@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { ThemeProvider } from '../hooks/use-theme'
-import { Mail, Lock, Search as SearchIcon, Calendar, Clock, User, Phone as PhoneIcon } from 'lucide-react'
+// Icons are used in stories but not directly imported
 
 const meta: Meta<typeof Input> = {
   title: 'UI/Input',
