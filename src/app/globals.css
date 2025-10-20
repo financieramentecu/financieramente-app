@@ -99,4 +99,18 @@
   .text-secondary-foreground {
     color: hsl(var(--secondary-foreground)) !important;
   }
+  
+  /* Asegurar que los inputs tengan el fondo correcto */
+  .bg-background {
+    background-color: hsl(var(--background)) !important;
+  }
+  
+  /* Asegurar que los popover y dropdown tengan el fondo correcto */
+  .bg-popover {
+    background-color: hsl(var(--background)) !important;
+  }
+  
+  .text-popover-foreground {
+    color: hsl(var(--foreground)) !important;
+  }
 }
