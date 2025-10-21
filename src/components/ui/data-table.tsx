@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import type { CheckedState } from "@radix-ui/react-checkbox"
 import { ChevronDown, ChevronUp, Search, Filter, Download, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,17 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-export interface Column<T> {
+export interface Column<T extends Record<string, unknown>> {
   key: keyof T
   title: string
   sortable?: boolean
   searchable?: boolean
-  render?: (value: any, row: T) => React.ReactNode
+  render?: (value: unknown, row: T) => React.ReactNode
   width?: string
   align?: "left" | "center" | "right"
 }
 
-export interface DataTableProps<T> {
+export interface DataTableProps<T extends Record<string, unknown>> {
   data: T[]
   columns: Column<T>[]
   searchable?: boolean
@@ -41,7 +42,7 @@ export interface DataTableProps<T> {
 
 type SortDirection = "asc" | "desc" | null
 
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T extends Record<string, unknown>>({
   data,
   columns,
   searchable = true,
@@ -121,11 +122,12 @@ export function DataTable<T extends Record<string, any>>({
   }
 
   // Handle row selection
-  const handleSelectRow = (row: T, checked: boolean) => {
+  const handleSelectRow = (row: T, checked: CheckedState) => {
     if (!selectable) return
+    const isChecked = checked === true
     
     let newSelection: T[]
-    if (checked) {
+    if (isChecked) {
       newSelection = [...selectedRows, row]
     } else {
       newSelection = selectedRows.filter((selectedRow) => selectedRow !== row)
@@ -135,10 +137,11 @@ export function DataTable<T extends Record<string, any>>({
   }
 
   // Handle select all
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = (checked: CheckedState) => {
     if (!selectable) return
+    const isChecked = checked === true
     
-    const newSelection = checked ? [...paginatedData] : []
+    const newSelection = isChecked ? [...paginatedData] : []
     setSelectedRows(newSelection)
     onSelectionChange?.(newSelection)
   }
@@ -151,8 +154,13 @@ export function DataTable<T extends Record<string, any>>({
       // Default CSV export
       const csvContent = [
         columns.map(col => col.title).join(","),
-        ...filteredData.map(row => 
-          columns.map(col => `"${row[col.key]}"`).join(",")
+        ...filteredData.map((row) =>
+          columns
+            .map((col) => {
+              const value = row[col.key]
+              return `"${value ?? ""}"`
+            })
+            .join(",")
         )
       ].join("\n")
       
@@ -218,11 +226,8 @@ export function DataTable<T extends Record<string, any>>({
               {selectable && (
                 <TableHead className="w-12">
                   <Checkbox
-                    checked={isAllSelected}
+                    checked={isIndeterminate ? "indeterminate" : isAllSelected}
                     onCheckedChange={handleSelectAll}
-                    ref={(el) => {
-                      if (el) el.indeterminate = isIndeterminate
-                    }}
                   />
                 </TableHead>
               )}
@@ -292,7 +297,7 @@ export function DataTable<T extends Record<string, any>>({
                     <TableCell>
                       <Checkbox
                         checked={selectedRows.includes(row)}
-                        onCheckedChange={(checked) => handleSelectRow(row, checked as boolean)}
+                        onCheckedChange={(checked) => handleSelectRow(row, checked)}
                         onClick={(e) => e.stopPropagation()}
                       />
                     </TableCell>

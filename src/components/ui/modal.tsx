@@ -86,11 +86,18 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
       xl: "max-w-xl",
       full: "max-w-full h-full"
     }
+    const variantStyles: Record<NonNullable<ModalProps["variant"]>, string> = {
+      default: "",
+      alert: "sm:max-w-sm",
+      confirm: "",
+      form: "",
+    }
 
     const content = (
       <DialogContent
         ref={ref}
-        className={cn(sizeClasses[size], className)}
+        data-variant={variant}
+        className={cn(sizeClasses[size], variantStyles[variant], className)}
         onPointerDownOutside={closeOnOverlayClick ? undefined : (e) => e.preventDefault()}
         onEscapeKeyDown={closeOnEscape ? undefined : (e) => e.preventDefault()}
         {...props}

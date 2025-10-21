@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
+import type { ColumnDef } from '@tanstack/react-table'
 import { TableModule, TableConfigs, createColumnDefs, useTableModule } from '../../components/ui/table-module'
 import { Button } from '../../components/ui/button'
-import { Badge } from '../../components/ui/badge'
 import { toast } from 'sonner'
 
 // Example: How to use the modular table system
@@ -45,6 +45,9 @@ export const BasicUsage: StoryObj = {
       }
     ]
 
+    type UsersRow = (typeof usersData)[number]
+    const userColumns = TableConfigs.users.columns as unknown as ColumnDef<UsersRow>[]
+
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Uso Básico con Configuración Predefinida</h3>
@@ -54,7 +57,7 @@ export const BasicUsage: StoryObj = {
         
         <TableModule
           data={usersData}
-          columns={TableConfigs.users.columns}
+          columns={userColumns}
           title="Gestión de Usuarios"
           description="Administra los usuarios del sistema"
           searchColumn={TableConfigs.users.searchColumn}
@@ -100,8 +103,9 @@ export const CustomColumns: StoryObj = {
       createColumnDefs.currency('price', 'Precio', { currency: 'USD' }),
       createColumnDefs.text('stock', 'Stock Disponible'),
       createColumnDefs.badge('status', 'Estado', {
-        getVariant: (status: string) => {
-          switch (status) {
+        getVariant: (status: unknown) => {
+          const value = String(status)
+          switch (value) {
             case 'Disponible': return 'default'
             case 'Agotado': return 'destructive'
             case 'Próximamente': return 'secondary'
@@ -113,8 +117,8 @@ export const CustomColumns: StoryObj = {
       {
         accessorKey: 'rating',
         header: 'Calificación',
-        cell: ({ getValue }) => {
-          const rating = getValue() as number
+        cell: ({ getValue }: { getValue: () => unknown }) => {
+          const rating = Number(getValue())
           return (
             <div className="flex items-center">
               <span className="text-sm font-medium">{rating}</span>
@@ -123,7 +127,7 @@ export const CustomColumns: StoryObj = {
           )
         }
       }
-    ]
+    ] as unknown as ColumnDef<(typeof customData)[number]>[]
 
     return (
       <div className="space-y-4">
@@ -150,8 +154,6 @@ export const CustomColumns: StoryObj = {
 // Example 3: Using the hook for dynamic table creation
 export const DynamicTableCreation: StoryObj = {
   render: () => {
-    const { createTable } = useTableModule()
-    
     const salesData = [
       {
         id: 1,
@@ -170,14 +172,16 @@ export const DynamicTableCreation: StoryObj = {
         salesperson: 'María González'
       }
     ]
+    const { createTable } = useTableModule<(typeof salesData)[number]>()
 
     const salesColumns = [
       createColumnDefs.text('client', 'Cliente', { searchable: true }),
       createColumnDefs.currency('amount', 'Monto', { currency: 'USD' }),
       createColumnDefs.date('date', 'Fecha de Venta'),
       createColumnDefs.badge('status', 'Estado', {
-        getVariant: (status: string) => {
-          switch (status) {
+        getVariant: (status: unknown) => {
+          const value = String(status)
+          switch (value) {
             case 'Pagado': return 'default'
             case 'Pendiente': return 'secondary'
             case 'Cancelado': return 'destructive'
@@ -186,7 +190,7 @@ export const DynamicTableCreation: StoryObj = {
         }
       }),
       createColumnDefs.text('salesperson', 'Vendedor')
-    ]
+    ] as unknown as ColumnDef<(typeof salesData)[number]>[]
 
     // Create a reusable table component
     const SalesTable = createTable({
@@ -226,7 +230,7 @@ export const MinimalConfiguration: StoryObj = {
     const simpleColumns = [
       createColumnDefs.text('name', 'Nombre'),
       createColumnDefs.text('value', 'Valor')
-    ]
+    ] as unknown as ColumnDef<(typeof simpleData)[number]>[]
 
     return (
       <div className="space-y-4">
@@ -275,9 +279,9 @@ export const CustomActions: StoryObj = {
       createColumnDefs.text('type', 'Tipo'),
       createColumnDefs.text('size', 'Tamaño'),
       createColumnDefs.badge('status', 'Estado', {
-        getVariant: (status: string) => status === 'Activo' ? 'default' : 'secondary'
+        getVariant: (status: unknown) => (String(status) === 'Activo' ? 'default' : 'secondary')
       })
-    ]
+    ] as unknown as ColumnDef<(typeof data)[number]>[]
 
     return (
       <div className="space-y-4">
@@ -324,59 +328,71 @@ export const CustomActions: StoryObj = {
 
 // Example 6: All configurations showcase
 export const AllConfigurations: StoryObj = {
-  render: () => (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Sistema Modular de Tablas</h2>
-        <p className="text-muted-foreground mb-6">
-          Ejemplos de todas las configuraciones disponibles en el sistema modular de tablas.
-        </p>
-      </div>
+  render: () => {
+    const userData = [
+      { id: 1, name: 'Juan Pérez', email: 'juan@test.com', role: 'Admin', status: 'Activo', lastLogin: '2024-01-15', department: 'IT', salary: 5000 },
+      { id: 2, name: 'María González', email: 'maria@test.com', role: 'User', status: 'Activo', lastLogin: '2024-01-14', department: 'Sales', salary: 3500 }
+    ]
+    const userColumns = TableConfigs.users.columns as unknown as ColumnDef<(typeof userData)[number]>[]
 
-      <div>
-        <h3 className="text-lg font-semibold mb-4">1. Tabla de Usuarios (Pre-configurada)</h3>
-        <TableModule
-          data={[
-            { id: 1, name: 'Juan Pérez', email: 'juan@test.com', role: 'Admin', status: 'Activo', lastLogin: '2024-01-15', department: 'IT', salary: 5000 },
-            { id: 2, name: 'María González', email: 'maria@test.com', role: 'User', status: 'Activo', lastLogin: '2024-01-14', department: 'Sales', salary: 3500 }
-          ]}
-          columns={TableConfigs.users.columns}
-          title="Usuarios del Sistema"
-          searchColumn={TableConfigs.users.searchColumn}
-          defaultPageSize={5}
-        />
-      </div>
+    const productData = [
+      { id: 1, name: 'Laptop Dell', category: 'Electrónicos', price: 1299.99, stock: 15, status: 'Disponible', createdAt: '2024-01-10' },
+      { id: 2, name: 'Mouse Logitech', category: 'Accesorios', price: 99.99, stock: 0, status: 'Agotado', createdAt: '2024-01-08' }
+    ]
+    const productColumns = TableConfigs.products.columns as unknown as ColumnDef<(typeof productData)[number]>[]
 
-      <div>
-        <h3 className="text-lg font-semibold mb-4">2. Tabla de Productos (Pre-configurada)</h3>
-        <TableModule
-          data={[
-            { id: 1, name: 'Laptop Dell', category: 'Electrónicos', price: 1299.99, stock: 15, status: 'Disponible', createdAt: '2024-01-10' },
-            { id: 2, name: 'Mouse Logitech', category: 'Accesorios', price: 99.99, stock: 0, status: 'Agotado', createdAt: '2024-01-08' }
-          ]}
-          columns={TableConfigs.products.columns}
-          title="Inventario de Productos"
-          searchColumn={TableConfigs.products.searchColumn}
-          defaultPageSize={5}
-        />
-      </div>
+    return (
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Sistema Modular de Tablas</h2>
+          <p className="text-muted-foreground mb-6">
+            Ejemplos de todas las configuraciones disponibles en el sistema modular de tablas.
+          </p>
+        </div>
 
-      <div>
-        <h3 className="text-lg font-semibold mb-4">3. Tabla Personalizada</h3>
-        <TableModule
-          data={[
-            { id: 1, customField: 'Valor 1', anotherField: 'Dato A' },
-            { id: 2, customField: 'Valor 2', anotherField: 'Dato B' }
-          ]}
-          columns={[
-            createColumnDefs.text('customField', 'Campo Personalizado'),
-            createColumnDefs.text('anotherField', 'Otro Campo')
-          ]}
-          title="Tabla Personalizada"
-          searchColumn="customField"
-          defaultPageSize={5}
-        />
+        <div>
+          <h3 className="text-lg font-semibold mb-4">1. Tabla de Usuarios (Pre-configurada)</h3>
+          <TableModule
+            data={userData}
+            columns={userColumns}
+            title="Usuarios del Sistema"
+            searchColumn={TableConfigs.users.searchColumn}
+            defaultPageSize={5}
+          />
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold mb-4">2. Tabla de Productos (Pre-configurada)</h3>
+          <TableModule
+            data={productData}
+            columns={productColumns}
+            title="Inventario de Productos"
+            searchColumn={TableConfigs.products.searchColumn}
+            defaultPageSize={5}
+          />
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold mb-4">3. Tabla Personalizada</h3>
+          <TableModule
+            data={
+              [
+                { customField: 'Valor 1', anotherField: 'Dato A' },
+                { customField: 'Valor 2', anotherField: 'Dato B' }
+              ] as Array<Record<string, unknown>>
+            }
+            columns={
+              [
+                createColumnDefs.text('customField', 'Campo Personalizado'),
+                createColumnDefs.text('anotherField', 'Otro Campo')
+              ] as unknown as ColumnDef<Record<string, unknown>>[]
+            }
+            title="Tabla Personalizada"
+            searchColumn="customField"
+            defaultPageSize={5}
+          />
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 }

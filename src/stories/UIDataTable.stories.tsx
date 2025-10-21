@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { DataTable } from '../components/ui/data-table'
+import { DataTable, type Column, type DataTableProps } from '../components/ui/data-table'
 import { Badge } from '../components/ui/badge'
-import { Button } from '../components/ui/button'
 
 // Datos de ejemplo
 const sampleData = [
@@ -57,14 +56,16 @@ const sampleData = [
   }
 ]
 
-const columns = [
+type UserRow = (typeof sampleData)[number]
+
+const columns: Column<UserRow>[] = [
   {
     key: 'name' as const,
     title: 'Nombre',
     sortable: true,
     searchable: true,
-    render: (value: string, row: any) => (
-      <div className="font-medium">{value}</div>
+    render: (value) => (
+      <div className="font-medium">{String(value)}</div>
     )
   },
   {
@@ -78,22 +79,28 @@ const columns = [
     title: 'Rol',
     sortable: true,
     searchable: true,
-    render: (value: string) => (
-      <Badge variant={value === 'Administrador' ? 'default' : 'secondary'}>
-        {value}
-      </Badge>
-    )
+    render: (value) => {
+      const role = String(value)
+      return (
+        <Badge variant={role === 'Administrador' ? 'default' : 'secondary'}>
+          {role}
+        </Badge>
+      )
+    }
   },
   {
     key: 'status' as const,
     title: 'Estado',
     sortable: true,
     searchable: true,
-    render: (value: string) => (
-      <Badge variant={value === 'Activo' ? 'default' : 'destructive'}>
-        {value}
-      </Badge>
-    )
+    render: (value) => {
+      const status = String(value)
+      return (
+        <Badge variant={status === 'Activo' ? 'default' : 'destructive'}>
+          {status}
+        </Badge>
+      )
+    }
   },
   {
     key: 'department' as const,
@@ -113,13 +120,17 @@ const columns = [
     sortable: true,
     searchable: false,
     align: 'right' as const,
-    render: (value: number) => `$${value.toLocaleString()}`
+    render: (value) => `$${Number(value).toLocaleString()}`
   }
 ]
 
-const meta: Meta<typeof DataTable> = {
+const DataTableForUsers = (props: DataTableProps<UserRow>) => (
+  <DataTable<UserRow> {...props} />
+)
+
+const meta: Meta<typeof DataTableForUsers> = {
   title: 'UI/DataTable',
-  component: DataTable,
+  component: DataTableForUsers,
   parameters: {
     layout: 'padded',
     docs: {
@@ -177,7 +188,7 @@ const meta: Meta<typeof DataTable> = {
 }
 
 export default meta
-type Story = StoryObj<typeof DataTable>
+type Story = StoryObj<typeof DataTableForUsers>
 
 export const Default: Story = {
   args: {
