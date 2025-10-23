@@ -1,14 +1,15 @@
-/// <reference types="vitest/config" />
+
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+import tailwindcss from '@tailwindcss/vite';
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   test: {
     environment: 'jsdom',
     setupFiles: './vitest.setup.ts',
@@ -37,7 +38,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': '/Users/andresagudelo/Documents/Financieramente/financieramente-app/src'
+     "@": path.resolve(__dirname, "./src"),
     }
   }
 });

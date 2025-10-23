@@ -25,9 +25,7 @@ const config: StorybookConfig = {
       propFilter: (prop) => (prop.parent ? !/node_modules/.test(prop.parent.fileName) : true),
     },
   },
-  features: {
-    buildStoriesJson: true,
-  },
+
 };
 
 export default config;

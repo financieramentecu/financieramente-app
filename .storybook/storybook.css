@@ -1,0 +1,263 @@
+/* Importar Tailwind CSS v4 */
+@import "tailwindcss";
+
+/* Variables CSS del sidebar */
+@layer base {
+  :root {
+    /* Colores de fondo y superficie */
+    --background: 0 0% 100%;
+    --foreground: 185 100% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 185 100% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 185 100% 18%;
+    
+    /* Colores primarios Financieramente */
+    --primary: 185 100% 18%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 110 56% 65%;
+    --secondary-foreground: 185 100% 18%;
+    
+    /* Colores neutros */
+    --muted: 185 20% 96%;
+    --muted-foreground: 185 30% 46%;
+    --accent: 110 56% 65%;
+    --accent-foreground: 185 100% 18%;
+    
+    /* Colores de estado */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Colores de interfaz */
+    --border: 185 20% 91%;
+    --input: 185 20% 91%;
+    --ring: 185 100% 18%;
+    --radius: 0.5rem;
+    
+    /* Variables del sidebar */
+    --sidebar: 185 20% 96%;
+    --sidebar-foreground: 185 100% 18%;
+    --sidebar-primary: 185 100% 18%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 185 20% 94%;
+    --sidebar-accent-foreground: 185 100% 18%;
+    --sidebar-border: 185 20% 91%;
+    --sidebar-ring: 185 100% 18%;
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 3rem;
+    --sidebar-width-mobile: 18rem;
+  }
+
+  .dark {
+    /* Colores de fondo y superficie para tema oscuro */
+    --background: 185 100% 5%;
+    --foreground: 0 0% 100%;
+    --card: 185 100% 8%;
+    --card-foreground: 0 0% 100%;
+    --popover: 185 100% 8%;
+    --popover-foreground: 0 0% 100%;
+    
+    /* Colores primarios para tema oscuro */
+    --primary: 110 56% 65%;
+    --primary-foreground: 185 100% 18%;
+    --secondary: 185 100% 18%;
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Colores neutros para tema oscuro */
+    --muted: 185 100% 8%;
+    --muted-foreground: 185 20% 65%;
+    --accent: 185 100% 8%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Colores de estado para tema oscuro */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Colores de interfaz para tema oscuro */
+    --border: 185 100% 8%;
+    --input: 185 100% 8%;
+    --ring: 110 56% 65%;
+    
+    /* Variables del sidebar para tema oscuro */
+    --sidebar: 185 100% 8%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 110 56% 65%;
+    --sidebar-primary-foreground: 185 100% 18%;
+    --sidebar-accent: 185 100% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 185 100% 12%;
+    --sidebar-ring: 110 56% 65%;
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 3rem;
+    --sidebar-width-mobile: 18rem;
+  }
+  
+  * {
+    border-color: hsl(var(--border));
+  }
+}
+
+/* Estilos específicos para Storybook */
+.sidebar-storybook {
+  min-height: 100vh;
+  width: 100%;
+  display: flex !important;
+}
+
+/* Forzar que el sidebar se muestre */
+.sidebar-storybook > div {
+  display: flex !important;
+  min-height: 100vh !important;
+  width: 100% !important;
+}
+
+/* Asegurar que el sidebar se muestre */
+.sidebar-storybook [data-sidebar="sidebar"] {
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: #f8f9fa !important;
+  color: #00505C !important;
+  width: var(--sidebar-width) !important;
+  height: 100vh !important;
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  border-right: 1px solid #e5e7eb !important;
+  transition: width 200ms ease-linear !important;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Asegurar que las clases del sidebar se apliquen correctamente */
+[data-sidebar="sidebar"] {
+  background-color: #f8f9fa !important;
+  color: #00505C !important;
+  width: var(--sidebar-width) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 100vh !important;
+  border-right: 1px solid #e5e7eb !important;
+  transition: width 200ms ease-linear !important;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-sidebar="sidebar"][data-collapsible="icon"] {
+  width: var(--sidebar-width-icon) !important;
+}
+
+/* Forzar que el sidebar se muestre */
+.group\/sidebar-wrapper {
+  display: flex !important;
+  min-height: 100vh !important;
+}
+
+.group\/sidebar-wrapper .group {
+  display: block !important;
+}
+
+/* Asegurar que el contenido respete el ancho del sidebar */
+.sidebar-content {
+  margin-left: var(--sidebar-width);
+  transition: margin-left 200ms ease-linear;
+}
+
+.sidebar-content[data-state="collapsed"] {
+  margin-left: var(--sidebar-width-icon);
+}
+
+/* Forzar visibilidad del sidebar */
+[data-sidebar="sidebar"] {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Forzar que el sidebar se muestre en desktop */
+@media (min-width: 768px) {
+  .group.peer {
+    display: block !important;
+  }
+  
+  .group.peer .fixed {
+    position: fixed !important;
+    display: flex !important;
+  }
+  
+  [data-sidebar="sidebar"] {
+    width: var(--sidebar-width) !important;
+  }
+  
+  [data-sidebar="sidebar"][data-collapsible="icon"] {
+    width: var(--sidebar-width-icon) !important;
+  }
+}
+
+/* Asegurar que el contenido principal respete el sidebar */
+main[data-sidebar-inset] {
+  margin-left: var(--sidebar-width) !important;
+  transition: margin-left 200ms ease-linear !important;
+}
+
+[data-state="collapsed"] main[data-sidebar-inset] {
+  margin-left: var(--sidebar-width-icon) !important;
+}
+
+/* Corregir el header para que no se solape con el sidebar */
+.sidebar-storybook header {
+  margin-left: var(--sidebar-width) !important;
+  transition: margin-left 200ms ease-linear !important;
+  background-color: white !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  color: #00505C !important;
+  z-index: 20 !important;
+  position: relative !important;
+}
+
+[data-state="collapsed"] .sidebar-storybook header {
+  margin-left: var(--sidebar-width-icon) !important;
+}
+
+/* Estilos para el botón Quick Create */
+.sidebar-storybook [data-sidebar="menu-button"][class*="bg-primary"] {
+  background-color: #00505C !important;
+  color: white !important;
+  border: none !important;
+  transition: background-color 200ms ease-linear !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-weight: 500 !important;
+}
+
+.sidebar-storybook [data-sidebar="menu-button"][class*="bg-primary"]:hover {
+  background-color: #004045 !important;
+  color: white !important;
+}
+
+/* Estilos para los elementos de navegación */
+.sidebar-storybook [data-sidebar="menu-button"]:not([class*="bg-primary"]) {
+  background-color: transparent !important;
+  color: #00505C !important;
+  transition: background-color 200ms ease-linear !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  margin: 2px 0 !important;
+}
+
+.sidebar-storybook [data-sidebar="menu-button"]:not([class*="bg-primary"]):hover {
+  background-color: #f3f4f6 !important;
+  color: #00505C !important;
+}
+
+/* Estilos para el texto del sidebar */
+.sidebar-storybook [data-sidebar="sidebar"] h1,
+.sidebar-storybook [data-sidebar="sidebar"] h2,
+.sidebar-storybook [data-sidebar="sidebar"] h3 {
+  color: #00505C !important;
+  font-weight: 600 !important;
+}
+
+/* Estilos para los iconos del sidebar */
+.sidebar-storybook [data-sidebar="sidebar"] svg {
+  color: #00505C !important;
+  width: 16px !important;
+  height: 16px !important;
+}

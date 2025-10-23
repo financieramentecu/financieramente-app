@@ -35,6 +35,16 @@
     --ring: 185 100% 18%;
 
     --radius: 0.5rem;
+    
+    /* Variables del sidebar */
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 3rem;
+    --sidebar-width-mobile: 18rem;
+    
+    /* Colores específicos del sidebar */
+    --sidebar-bg: #00505C;
+    --sidebar-active-bg: #003C45;
+    --sidebar-text: #ffffff;
   }
 
   .dark {
@@ -71,6 +81,16 @@
     --border: 185 30% 20%;
     --input: 185 30% 20%;
     --ring: 110 56% 65%;
+    
+    /* Variables del sidebar para tema oscuro */
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 3rem;
+    --sidebar-width-mobile: 18rem;
+    
+    /* Colores específicos del sidebar para tema oscuro */
+    --sidebar-bg: #00505C;
+    --sidebar-active-bg: #003C45;
+    --sidebar-text: #ffffff;
   }
 }
 
@@ -87,30 +107,55 @@
   .bg-primary {
     background-color: hsl(var(--primary)) !important;
   }
-  
+
   .text-primary-foreground {
     color: hsl(var(--primary-foreground)) !important;
   }
-  
+
   .bg-secondary {
     background-color: hsl(var(--secondary)) !important;
   }
-  
+
   .text-secondary-foreground {
     color: hsl(var(--secondary-foreground)) !important;
   }
-  
+
   /* Asegurar que los inputs tengan el fondo correcto */
   .bg-background {
     background-color: hsl(var(--background)) !important;
   }
-  
+
   /* Asegurar que los popover y dropdown tengan el fondo correcto */
   .bg-popover {
     background-color: hsl(var(--background)) !important;
   }
-  
+
   .text-popover-foreground {
     color: hsl(var(--foreground)) !important;
   }
+
+  /* Estilos específicos del sidebar */
+  .sidebar-custom {
+    background-color: var(--sidebar-bg) !important;
+  }
+
+  .sidebar-button {
+    color: var(--sidebar-text) !important;
+  }
+
+  .sidebar-button:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--sidebar-text) !important;
+  }
+
+  .sidebar-button-active {
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--sidebar-text) !important;
+  }
+
+  .sidebar-button-active:hover {
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--sidebar-text) !important;
+  }
 }
+
