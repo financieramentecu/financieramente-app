@@ -31,8 +31,8 @@ services:
 
   nextjs:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ./app
+      dockerfile: ../docker/Dockerfile
     container_name: financieramente-nextjs-qa
     restart: unless-stopped
     environment:
