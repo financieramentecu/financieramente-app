@@ -1,0 +1,205 @@
+name: Deploy to QA
+
+on:
+	push:
+		branches: [qa]
+	pull_request:
+		branches: [qa]
+
+env:
+	NODE_VERSION: '20'
+	REGISTRY: ghcr.io
+	IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+	test:
+		name: Run Tests
+		runs-on: ubuntu-latest
+		
+		steps:
+			- name: Checkout code
+				uses: actions/checkout@v4
+
+			- name: Setup Node.js
+				uses: actions/setup-node@v4
+				with:
+					node-version: ${{ env.NODE_VERSION }}
+					cache: 'npm'
+
+			- name: Install dependencies
+				run: npm ci
+
+			- name: Generate Prisma Client
+				run: npx prisma generate
+
+			- name: Run linter
+				run: npm run lint
+
+			- name: Run tests
+				run: npm test
+
+			- name: Build application
+				run: npm run build
+
+	deploy:
+		name: Deploy to QA
+		runs-on: ubuntu-latest
+		needs: test
+		if: github.event_name == 'push'
+
+		steps:
+			- name: Checkout code
+				uses: actions/checkout@v4
+
+			- name: Setup Node.js
+				uses: actions/setup-node@v4
+				with:
+					node-version: ${{ env.NODE_VERSION }}
+					cache: 'npm'
+
+			- name: Install dependencies
+				run: npm ci
+
+			- name: Generate Prisma Client
+				run: npx prisma generate
+
+			- name: Build application
+				run: npm run build
+
+			- name: Setup SSH
+				uses: webfactory/ssh-agent@v0.9.0
+				with:
+					ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+			- name: Add SSH known hosts
+				run: |
+					ssh-keyscan -H ${{ secrets.QA_DROPLET_IP }} >> ~/.ssh/known_hosts
+
+			- name: Copy files to server
+				run: |
+					# Create app directory structure
+					ssh root@${{ secrets.QA_DROPLET_IP }} "mkdir -p /opt/financieramente/app"
+					
+					# Copy application files
+					rsync -avz --delete \
+						--exclude='.git' \
+						--exclude='node_modules' \
+						--exclude='.next' \
+						--exclude='*.log' \
+						./ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/app/
+
+			- name: Copy Docker files
+				run: |
+					# Copy Docker configuration
+					scp -r ./docker/* root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/
+
+			- name: Setup environment variables
+				run: |
+					ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
+					cd /opt/financieramente
+					
+					# Create environment file
+					cat > .env << 'ENVEOF'
+					NODE_ENV=qa
+					POSTGRES_USER=financieramente_user
+					POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_QA }}
+					POSTGRES_DB=financieramente_qa
+					DATABASE_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_QA }}@postgres:5432/financieramente_qa
+					NEXT_PUBLIC_API_URL=http://${{ secrets.QA_DROPLET_IP }}
+					ENVEOF
+					
+					# Copy environment to app directory
+					cp .env app/.env
+					EOF
+
+			- name: Run database migrations
+				run: |
+					ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
+					cd /opt/financieramente/app
+					
+					# Wait for database to be ready
+					echo "Waiting for database to be ready..."
+					sleep 30
+					
+					# Run Prisma migrations
+					npx prisma migrate deploy
+					EOF
+
+			- name: Deploy application
+				run: |
+					ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
+					cd /opt/financieramente
+					
+					# Stop existing containers
+					docker-compose -f docker-compose.qa.yml down || true
+					
+					# Build and start new containers
+					docker-compose -f docker-compose.qa.yml build --no-cache
+					docker-compose -f docker-compose.qa.yml up -d
+					
+					# Wait for services to be ready
+					echo "Waiting for services to start..."
+					sleep 60
+					EOF
+
+			- name: Health check
+				run: |
+					# Wait a bit more for services to stabilize
+					sleep 30
+					
+					# Check if the application is responding
+					for i in {1..10}; do
+						if curl -f http://${{ secrets.QA_DROPLET_IP }}/health; then
+							echo "✅ Health check passed"
+							break
+						else
+							echo "⏳ Health check attempt $i/10 failed, retrying..."
+							sleep 10
+						fi
+					done
+					
+					# Final health check
+					if ! curl -f http://${{ secrets.QA_DROPLET_IP }}/health; then
+						echo "❌ Health check failed after 10 attempts"
+						exit 1
+					fi
+
+			- name: Verify database connection
+				run: |
+					ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
+					cd /opt/financieramente/app
+					
+					# Test database connection
+					if npx prisma db pull --print > /dev/null 2>&1; then
+						echo "✅ Database connection verified"
+					else
+						echo "❌ Database connection failed"
+						exit 1
+					fi
+					EOF
+
+			- name: Cleanup old images
+				run: |
+					ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
+					# Remove unused Docker images
+					docker image prune -f
+					
+					# Remove unused volumes
+					docker volume prune -f
+					EOF
+
+			- name: Deployment success notification
+				if: success()
+				run: |
+					echo "🎉 Deployment to QA completed successfully!"
+					echo "🌐 QA Environment: http://${{ secrets.QA_DROPLET_IP }}"
+					echo "📊 Commit: ${{ github.sha }}"
+					echo "👤 Author: ${{ github.actor }}"
+
+			- name: Deployment failure notification
+				if: failure()
+				run: |
+					echo "❌ Deployment to QA failed!"
+					echo "🔍 Check the logs above for details"
+					echo "📊 Commit: ${{ github.sha }}"
+					echo "👤 Author: ${{ github.actor }}"
