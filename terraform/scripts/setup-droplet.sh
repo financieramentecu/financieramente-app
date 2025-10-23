@@ -195,18 +195,20 @@ chmod 600 /root/.ssh/authorized_keys
 echo "Installing fail2ban..."
 apt-get install -y fail2ban
 
-# Configure fail2ban
+# Configure fail2ban with CI/CD friendly settings
+echo "Configuring fail2ban with CI/CD friendly settings..."
 cat > /etc/fail2ban/jail.local << EOF
 [DEFAULT]
-bantime = 3600
-findtime = 600
-maxretry = 3
+bantime = 1800
+findtime = 300
+maxretry = 10
 
 [sshd]
 enabled = true
 port = ssh
 logpath = /var/log/auth.log
-maxretry = 3
+maxretry = 10
+ignoreip = 127.0.0.1/8 ::1 140.82.112.0/20 185.199.108.0/22 192.30.252.0/22
 EOF
 
 systemctl enable fail2ban
