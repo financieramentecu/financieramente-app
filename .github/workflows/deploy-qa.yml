@@ -87,16 +87,16 @@ jobs:
           echo "Setting up SSH known hosts for ${{ secrets.QA_DROPLET_IP }}..."
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          
+
           # Crear archivo vacío con permisos correctos
           touch ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
-          
+
           echo "Attempting to fetch host key with retry logic..."
           MAX_ATTEMPTS=3
           ATTEMPT=1
           SUCCESS=false
-          
+
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Running ssh-keyscan..."
             
@@ -126,7 +126,7 @@ jobs:
             
             ATTEMPT=$((ATTEMPT + 1))
           done
-          
+
           # Si ssh-keyscan falla, usar StrictHostKeyChecking=no para QA
           if [ "$SUCCESS" = false ]; then
             echo "⚠️ ssh-keyscan failed after $MAX_ATTEMPTS attempts"
