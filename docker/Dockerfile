@@ -10,8 +10,8 @@ WORKDIR /app
 COPY package*.json ./
 # COPY prisma ./prisma/  # Temporarily disabled - Prisma schema not configured yet
 
-# Install dependencies
-RUN npm install --omit=dev && npm cache clean --force
+# Install dependencies (including dev dependencies for build)
+RUN npm install && npm cache clean --force
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
