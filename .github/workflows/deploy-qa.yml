@@ -88,21 +88,61 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           
-          echo "Adding host key to known_hosts..."
-          ssh-keyscan -H ${{ secrets.QA_DROPLET_IP }} >> ~/.ssh/known_hosts
-          
-          echo "Setting permissions on known_hosts..."
+          # Crear archivo vacío con permisos correctos
+          touch ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
           
-          echo "Verifying known_hosts file..."
-          if [ -f ~/.ssh/known_hosts ]; then
-            echo "✅ SSH known hosts file created successfully"
-            echo "Known hosts content:"
+          echo "Attempting to fetch host key with retry logic..."
+          MAX_ATTEMPTS=5
+          ATTEMPT=1
+          SUCCESS=false
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Running ssh-keyscan..."
+            
+            # Ejecutar ssh-keyscan con timeout explícito y capturar output
+            SCAN_OUTPUT=$(ssh-keyscan -T 10 -H ${{ secrets.QA_DROPLET_IP }} 2>&1)
+            SCAN_EXIT_CODE=$?
+            
+            echo "ssh-keyscan exit code: $SCAN_EXIT_CODE"
+            
+            # Verificar si obtuvimos una clave válida
+            if [ -n "$SCAN_OUTPUT" ] && echo "$SCAN_OUTPUT" | grep -q "ssh-"; then
+              echo "$SCAN_OUTPUT" >> ~/.ssh/known_hosts
+              echo "✅ Host key successfully retrieved and added"
+              echo "Retrieved key:"
+              echo "$SCAN_OUTPUT"
+              SUCCESS=true
+              break
+            else
+              echo "⚠️ Attempt $ATTEMPT failed to retrieve valid host key"
+              echo "Output was: $SCAN_OUTPUT"
+              if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+                echo "Waiting 10 seconds before retry..."
+                sleep 10
+              fi
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+          
+          # Verificar éxito final
+          if [ "$SUCCESS" = false ]; then
+            echo "❌ Failed to retrieve host key after $MAX_ATTEMPTS attempts"
+            echo "Final known_hosts content:"
             cat ~/.ssh/known_hosts
-          else
-            echo "❌ Failed to create known_hosts file"
             exit 1
           fi
+          
+          # Doble verificación: archivo no vacío
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "❌ known_hosts file is empty after successful scan"
+            exit 1
+          fi
+          
+          echo "✅ SSH known hosts configured successfully"
+          echo "Final known_hosts content:"
+          cat ~/.ssh/known_hosts
 
       - name: Test SSH connection
         run: |
@@ -122,17 +162,34 @@ jobs:
       - name: SSH Diagnostic
         if: failure()
         run: |
-          echo "Running SSH diagnostic due to failure..."
-          echo "SSH agent keys:"
+          echo "=== SSH DIAGNOSTIC DUE TO FAILURE ==="
+          echo ""
+          echo "1. SSH Agent Status:"
           ssh-add -l || echo "No keys loaded"
-          echo "SSH directory contents:"
-          ls -la ~/.ssh/ || echo "SSH directory not found"
-          echo "Known hosts:"
-          cat ~/.ssh/known_hosts || echo "No known hosts file"
-          echo "Testing network connectivity:"
-          ping -c 3 ${{ secrets.QA_DROPLET_IP }} || echo "Ping failed"
-          echo "Testing SSH port:"
-          nc -z -w5 ${{ secrets.QA_DROPLET_IP }} 22 || echo "SSH port not accessible"
+          echo ""
+          echo "2. SSH Directory:"
+          ls -la ~/.ssh/ 2>/dev/null || echo "SSH directory not found"
+          echo ""
+          echo "3. Known Hosts File:"
+          if [ -f ~/.ssh/known_hosts ]; then
+            echo "File exists. Size: $(stat -f%z ~/.ssh/known_hosts 2>/dev/null || stat -c%s ~/.ssh/known_hosts) bytes"
+            echo "Content:"
+            cat ~/.ssh/known_hosts
+          else
+            echo "File does not exist"
+          fi
+          echo ""
+          echo "4. Network Connectivity:"
+          ping -c 3 ${{ secrets.QA_DROPLET_IP }} || echo "Ping failed (ICMP might be blocked)"
+          echo ""
+          echo "5. SSH Port Test:"
+          nc -z -w5 ${{ secrets.QA_DROPLET_IP }} 22 && echo "✅ Port 22 is open" || echo "❌ Port 22 is not accessible"
+          echo ""
+          echo "6. Manual ssh-keyscan Test (verbose):"
+          ssh-keyscan -v -T 15 ${{ secrets.QA_DROPLET_IP }} 2>&1 || echo "ssh-keyscan failed"
+          echo ""
+          echo "7. Direct SSH Test (will likely fail but shows exact error):"
+          ssh -vvv -o ConnectTimeout=10 -o BatchMode=yes root@${{ secrets.QA_DROPLET_IP }} "echo test" 2>&1 | head -30
 
       - name: Copy files to server
         run: |
