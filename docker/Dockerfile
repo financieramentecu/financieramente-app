@@ -11,7 +11,7 @@ COPY package*.json ./
 # COPY prisma ./prisma/  # Temporarily disabled - Prisma schema not configured yet
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
@@ -30,6 +30,7 @@ RUN npm run build
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
+RUN apk add --no-cache curl
 WORKDIR /app
 
 # Create non-root user
