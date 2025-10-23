@@ -7,7 +7,7 @@ on:
     branches: [qa]
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: "20"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -15,7 +15,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -57,7 +57,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -77,31 +77,54 @@ jobs:
 
       - name: Add SSH known hosts
         run: |
+          mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.QA_DROPLET_IP }} >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        run: |
+          ssh -o ConnectTimeout=30 -o BatchMode=yes root@${{ secrets.QA_DROPLET_IP }} "echo 'SSH connection successful'"
 
       - name: Copy files to server
         run: |
           # Create app directory structure
-          ssh root@${{ secrets.QA_DROPLET_IP }} "mkdir -p /opt/financieramente/app"
-          
-          # Copy application files
-          rsync -avz --delete \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='.next' \
-            --exclude='*.log' \
-            ./ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/app/
+          ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} "mkdir -p /opt/financieramente/app"
+
+          # Copy application files with retry logic
+          for i in {1..3}; do
+            if rsync -avz --delete \
+              --exclude='.git' \
+              --exclude='node_modules' \
+              --exclude='.next' \
+              --exclude='*.log' \
+              --timeout=300 \
+              ./ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/app/; then
+              echo "✅ Files copied successfully"
+              break
+            else
+              echo "❌ File copy attempt $i failed, retrying..."
+              sleep 10
+            fi
+          done
 
       - name: Copy Docker files
         run: |
-          # Copy Docker configuration
-          scp -r ./docker/* root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/
+          # Copy Docker configuration with retry logic
+          for i in {1..3}; do
+            if scp -r -o ConnectTimeout=30 ./docker/* root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/; then
+              echo "✅ Docker files copied successfully"
+              break
+            else
+              echo "❌ Docker files copy attempt $i failed, retrying..."
+              sleep 10
+            fi
+          done
 
       - name: Setup environment variables
         run: |
-          ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
+          ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
           cd /opt/financieramente
-          
+
           # Create environment file
           cat > .env << 'ENVEOF'
           NODE_ENV=qa
@@ -111,9 +134,10 @@ jobs:
           DATABASE_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_QA }}@postgres:5432/financieramente_qa
           NEXT_PUBLIC_API_URL=http://${{ secrets.QA_DROPLET_IP }}
           ENVEOF
-          
+
           # Copy environment to app directory
           cp .env app/.env
+          echo "✅ Environment variables configured"
           EOF
 
       - name: Run database migrations
@@ -132,40 +156,55 @@ jobs:
 
       - name: Deploy application
         run: |
-          ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
+          ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
           cd /opt/financieramente
-          
-          # Stop existing containers
-          docker-compose -f docker-compose.qa.yml down || true
-          
+
+          # Stop existing containers gracefully
+          echo "Stopping existing containers..."
+          docker-compose -f docker-compose.qa.yml down --timeout 30 || true
+
+          # Clean up any orphaned containers
+          docker container prune -f || true
+
           # Build and start new containers
-          docker-compose -f docker-compose.qa.yml build --no-cache
+          echo "Building new containers..."
+          docker-compose -f docker-compose.qa.yml build --no-cache --parallel
+
+          echo "Starting new containers..."
           docker-compose -f docker-compose.qa.yml up -d
-          
+
           # Wait for services to be ready
           echo "Waiting for services to start..."
           sleep 60
+
+          # Check container status
+          echo "Container status:"
+          docker-compose -f docker-compose.qa.yml ps
           EOF
 
       - name: Health check
         run: |
           # Wait a bit more for services to stabilize
           sleep 30
-          
+
           # Check if the application is responding
-          for i in {1..10}; do
-            if curl -f http://${{ secrets.QA_DROPLET_IP }}/health; then
+          echo "Starting health check..."
+          for i in {1..15}; do
+            echo "Health check attempt $i/15..."
+            if curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.QA_DROPLET_IP }}/api/health; then
               echo "✅ Health check passed"
               break
             else
-              echo "⏳ Health check attempt $i/10 failed, retrying..."
+              echo "⏳ Health check attempt $i/15 failed, retrying in 10 seconds..."
               sleep 10
             fi
           done
-          
+
           # Final health check
-          if ! curl -f http://${{ secrets.QA_DROPLET_IP }}/health; then
-            echo "❌ Health check failed after 10 attempts"
+          if ! curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.QA_DROPLET_IP }}/api/health; then
+            echo "❌ Health check failed after 15 attempts"
+            echo "Checking container logs..."
+            ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} "cd /opt/financieramente && docker-compose -f docker-compose.qa.yml logs --tail=50"
             exit 1
           fi
 
@@ -186,12 +225,16 @@ jobs:
 
       - name: Cleanup old images
         run: |
-          ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
+          ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
           # Remove unused Docker images
           docker image prune -f
-          
+
           # Remove unused volumes
           docker volume prune -f
+
+          # Show disk usage
+          echo "Disk usage after cleanup:"
+          df -h
           EOF
 
       - name: Deployment success notification
@@ -209,3 +252,10 @@ jobs:
           echo "🔍 Check the logs above for details"
           echo "📊 Commit: ${{ github.sha }}"
           echo "👤 Author: ${{ github.actor }}"
+
+      - name: Cleanup SSH agent
+        if: always()
+        run: |
+          echo "Cleaning up SSH agent..."
+          ssh-add -D || true
+          echo "SSH agent cleanup completed"
