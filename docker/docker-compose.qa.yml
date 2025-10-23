@@ -32,7 +32,7 @@ services:
   nextjs:
     build:
       context: ./app
-      dockerfile: ../docker/Dockerfile
+      dockerfile: ./docker/Dockerfile
     container_name: financieramente-nextjs-qa
     restart: unless-stopped
     environment:
