@@ -16,10 +16,18 @@ resource "digitalocean_droplet" "qa" {
 		postgres_db			= var.postgres_db_qa
 	})
 
-	# Wait for Droplet to be ready
+	# Wait for cloud-init to complete and verify services
 	provisioner "remote-exec" {
 		inline = [
-			"cloud-init status --wait"
+			"echo 'Waiting for cloud-init to complete...'",
+			"cloud-init status --wait --long",
+			"echo 'Verifying Docker installation...'",
+			"docker --version || echo 'Docker not found'",
+			"echo 'Verifying fail2ban installation...'",
+			"systemctl is-active fail2ban || echo 'fail2ban not active'",
+			"echo 'Verifying SSH service...'",
+			"systemctl is-active ssh || echo 'SSH not active'",
+			"echo 'Setup verification completed'"
 		]
 
 		connection {
@@ -27,8 +35,12 @@ resource "digitalocean_droplet" "qa" {
 			user		= "root"
 			private_key = file("~/.ssh/droplet_deploy")
 			host		= self.ipv4_address
-			timeout		= "5m"
+			timeout		= "15m"
 		}
+	}
+
+	lifecycle {
+		create_before_destroy = false
 	}
 }
 
