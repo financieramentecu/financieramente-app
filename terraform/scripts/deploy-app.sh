@@ -67,24 +67,24 @@ else
 fi
 
 # Generate Prisma client
-echo "Generating Prisma client..."
-if command -v npx >/dev/null 2>&1; then
-	npx prisma generate
-	echo "✅ Prisma client generated"
-else
-	echo "❌ npx not found"
-	exit 1
-fi
+echo "Prisma client generation temporarily disabled - schema not configured yet"
+# if command -v npx >/dev/null 2>&1; then
+#	npx prisma generate
+#	echo "✅ Prisma client generated"
+# else
+#	echo "❌ npx not found"
+#	exit 1
+# fi
 
 # Run database migrations
-echo "Running database migrations..."
-if command -v npx >/dev/null 2>&1; then
-	npx prisma migrate deploy
-	echo "✅ Database migrations completed"
-else
-	echo "❌ npx not found"
-	exit 1
-fi
+echo "Database migrations temporarily disabled - Prisma schema not configured yet"
+# if command -v npx >/dev/null 2>&1; then
+#	npx prisma migrate deploy
+#	echo "✅ Database migrations completed"
+# else
+#	echo "❌ npx not found"
+#	exit 1
+# fi
 
 # Build the application
 echo "Building Next.js application..."
@@ -155,16 +155,17 @@ done
 
 # Verify database connection
 echo "Verifying database connection..."
-if command -v npx >/dev/null 2>&1; then
-	cd app
-	if npx prisma db pull > /dev/null 2>&1; then
-		echo "✅ Database connection verified"
-	else
-		echo "❌ Database connection failed"
-		exit 1
-	fi
-	cd ..
-fi
+echo "Database connection verification temporarily disabled - Prisma schema not configured yet"
+# if command -v npx >/dev/null 2>&1; then
+#	cd app
+#	if npx prisma db pull > /dev/null 2>&1; then
+#		echo "✅ Database connection verified"
+#	else
+#		echo "❌ Database connection failed"
+#		exit 1
+#	fi
+#	cd ..
+# fi
 
 # Clean up old images
 echo "Cleaning up old Docker images..."

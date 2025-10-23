@@ -151,12 +151,12 @@ echo "Setting up environment variables..."
 cp .env.template .env
 
 # Generate Prisma client
-echo "Generating Prisma client..."
-npx prisma generate
+echo "Prisma client generation temporarily disabled - schema not configured yet"
+# npx prisma generate
 
 # Run database migrations
-echo "Running database migrations..."
-npx prisma migrate deploy
+echo "Database migrations temporarily disabled - Prisma schema not configured yet"
+# npx prisma migrate deploy
 
 # Build and start containers
 echo "Building and starting containers..."
