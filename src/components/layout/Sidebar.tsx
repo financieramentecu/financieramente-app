@@ -14,8 +14,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-import { LayoutDashboard, List, ChartBar, Folder, Users, Camera, FileText, FileCode, Settings, Search, Database, FileSpreadsheet, FileText as FileWord, HelpCircleIcon } from "lucide-react"
+import { LayoutDashboard, List, ChartBar, Folder, Users, Camera, FileText, FileCode, Settings, Search, Database, FileSpreadsheet, FileText as FileWord, HelpCircleIcon, User } from "lucide-react"
 import Image from "next/image"
+import { useSidebar } from "@/components/ui/sidebar"
 
 
 const data = {
@@ -101,19 +102,14 @@ const data = {
   ],
   navSecondary: [
     {
-      title: "Settings",
+      title: "Perfil",
       url: "#",
-      icon: Settings,
+      icon: <User className="h-4 w-4" />,
     },
     {
-      title: "Get Help",
+      title: "Configuración",
       url: "#",
-      icon: HelpCircleIcon ,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: Search,
+      icon: <Settings className="h-4 w-4" />,
     },
   ],
   documents: [
@@ -136,6 +132,9 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
+  
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -143,17 +142,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5! sidebar-button"
+              className="data-[slot=sidebar-menu-button]:p-0! sidebar-button w-full h-24"
             >
-              <a href="#">
+              <a href="#" className="w-full h-full flex items-center justify-center">
                 <Image 
-                  src="/logos/logo-verde.svg" 
+                  src={isCollapsed ? "/logos/isologo-verde.svg" : "/logos/logo-verde.svg"} 
                   alt="Financieramente" 
-                  width={24} 
-                  height={24}
-                  className="size-6"
+                  width={isCollapsed ? 60 : 150}
+                  height={isCollapsed ? 60 : 80}
+                  className={isCollapsed ? "size-16" : "w-full h-auto max-h-20 object-contain"}
                 />
-                <span className="text-base font-semibold">Financieramente</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -163,7 +161,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        footer
+        <SidebarMenu>
+          {data.navSecondary.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton tooltip={item.title} asChild className="sidebar-button">
+                <a href={item.url}>
+                  {item.icon}
+                  <span>{item.title}</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   )
