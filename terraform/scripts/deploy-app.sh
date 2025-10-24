@@ -9,18 +9,33 @@ ENVIRONMENT=${1:-qa}
 APP_DIR="/opt/financieramente"
 LOG_FILE="/var/log/financieramente/deploy.log"
 
+# Function to log with timestamp
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a $LOG_FILE
+}
+
+# Function to handle errors
+handle_error() {
+    log "❌ Error occurred at line $1"
+    log "❌ Deployment failed for environment: $ENVIRONMENT"
+    exit 1
+}
+
+# Set error trap
+trap 'handle_error $LINENO' ERR
+
 # Log everything
 exec > >(tee -a $LOG_FILE)
 exec 2>&1
 
-echo "=========================================="
-echo "Starting deployment for environment: $ENVIRONMENT"
-echo "Date: $(date)"
-echo "=========================================="
+log "=========================================="
+log "Starting deployment for environment: $ENVIRONMENT"
+log "Date: $(date)"
+log "=========================================="
 
 # Check if we're in the right directory
 if [ ! -d "$APP_DIR" ]; then
-	echo "❌ Application directory not found: $APP_DIR"
+	log "❌ Application directory not found: $APP_DIR"
 	exit 1
 fi
 
@@ -28,124 +43,124 @@ cd $APP_DIR
 
 # Backup current deployment (if exists)
 if [ -d "backup" ]; then
-	echo "Removing old backup..."
+	log "Removing old backup..."
 	rm -rf backup
 fi
 
 if [ -d "app" ]; then
-	echo "Creating backup of current deployment..."
+	log "Creating backup of current deployment..."
 	mv app backup
 fi
 
 # Create new app directory
-echo "Creating new app directory..."
+log "Creating new app directory..."
 mkdir -p app
 cd app
 
 # Clone the repository (GitHub Actions will have already done this)
 # This is a placeholder - GitHub Actions will copy the code here
-echo "Code will be copied by GitHub Actions..."
+log "Code will be copied by GitHub Actions..."
 
 # Copy environment variables
-echo "Setting up environment variables..."
+log "Setting up environment variables..."
 if [ -f "../.env.template" ]; then
 	cp ../.env.template .env
-	echo "✅ Environment variables copied"
+	log "✅ Environment variables copied"
 else
-	echo "❌ Environment template not found"
+	log "❌ Environment template not found"
 	exit 1
 fi
 
 # Install dependencies
-echo "Installing dependencies..."
+log "Installing dependencies..."
 if [ -f "package.json" ]; then
 	npm ci --only=production
-	echo "✅ Dependencies installed"
+	log "✅ Dependencies installed"
 else
-	echo "❌ package.json not found"
+	log "❌ package.json not found"
 	exit 1
 fi
 
 # Generate Prisma client
-echo "Generating Prisma client..."
-if command -v npx >/dev/null 2>&1; then
-	npx prisma generate
-	echo "✅ Prisma client generated"
-else
-	echo "❌ npx not found"
-	exit 1
-fi
+log "Prisma client generation temporarily disabled - schema not configured yet"
+# if command -v npx >/dev/null 2>&1; then
+#	npx prisma generate
+#	log "✅ Prisma client generated"
+# else
+#	log "❌ npx not found"
+#	exit 1
+# fi
 
 # Run database migrations
-echo "Running database migrations..."
-if command -v npx >/dev/null 2>&1; then
-	npx prisma migrate deploy
-	echo "✅ Database migrations completed"
-else
-	echo "❌ npx not found"
-	exit 1
-fi
+log "Database migrations temporarily disabled - Prisma schema not configured yet"
+# if command -v npx >/dev/null 2>&1; then
+#	npx prisma migrate deploy
+#	log "✅ Database migrations completed"
+# else
+#	log "❌ npx not found"
+#	exit 1
+# fi
 
 # Build the application
-echo "Building Next.js application..."
+log "Building Next.js application..."
 if [ -f "package.json" ]; then
 	npm run build
-	echo "✅ Application built successfully"
+	log "✅ Application built successfully"
 else
-	echo "❌ package.json not found"
+	log "❌ package.json not found"
 	exit 1
 fi
 
 # Stop existing containers
-echo "Stopping existing containers..."
+log "Stopping existing containers..."
 cd ..
 if [ -f "docker-compose.yml" ]; then
-	docker-compose down || true
-	echo "✅ Existing containers stopped"
+	docker-compose down --timeout 30 || true
+	log "✅ Existing containers stopped"
 fi
 
 # Copy new docker-compose file
-echo "Setting up Docker Compose..."
+log "Setting up Docker Compose..."
 if [ "$ENVIRONMENT" = "prod" ]; then
 	if [ -f "docker-compose.prod.yml" ]; then
 		cp docker-compose.prod.yml docker-compose.yml
 	else
-		echo "❌ Production docker-compose file not found"
+		log "❌ Production docker-compose file not found"
 		exit 1
 	fi
 else
 	if [ -f "docker-compose.qa.yml" ]; then
 		cp docker-compose.qa.yml docker-compose.yml
 	else
-		echo "❌ QA docker-compose file not found"
+		log "❌ QA docker-compose file not found"
 		exit 1
 	fi
 fi
 
 # Build and start containers
-echo "Building and starting containers..."
-docker-compose build --no-cache
+log "Building and starting containers..."
+docker-compose build --no-cache --parallel
 docker-compose up -d
 
 # Wait for services to be ready
-echo "Waiting for services to be ready..."
+log "Waiting for services to be ready..."
 sleep 30
 
 # Health check
-echo "Performing health check..."
-MAX_ATTEMPTS=10
+log "Performing health check..."
+MAX_ATTEMPTS=15
 ATTEMPT=1
 
 while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-	echo "Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+	log "Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
 	
-	if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
-		echo "✅ Health check passed"
+	if curl -f --connect-timeout 10 --max-time 30 http://localhost:3000/api/health > /dev/null 2>&1; then
+		log "✅ Health check passed"
 		break
 	elif [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-		echo "❌ Health check failed after $MAX_ATTEMPTS attempts"
-		echo "Container logs:"
-		docker-compose logs
+		log "❌ Health check failed after $MAX_ATTEMPTS attempts"
+		log "Container logs:"
+		docker-compose logs --tail=50
 		exit 1
 	fi
 	
@@ -154,33 +169,34 @@ while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
 done
 
 # Verify database connection
-echo "Verifying database connection..."
-if command -v npx >/dev/null 2>&1; then
-	cd app
-	if npx prisma db pull > /dev/null 2>&1; then
-		echo "✅ Database connection verified"
-	else
-		echo "❌ Database connection failed"
-		exit 1
-	fi
-	cd ..
-fi
+log "Verifying database connection..."
+log "Database connection verification temporarily disabled - Prisma schema not configured yet"
+# if command -v npx >/dev/null 2>&1; then
+#	cd app
+#	if npx prisma db pull > /dev/null 2>&1; then
+#		log "✅ Database connection verified"
+#	else
+#		log "❌ Database connection failed"
+#		exit 1
+#	fi
+#	cd ..
+# fi
 
 # Clean up old images
-echo "Cleaning up old Docker images..."
+log "Cleaning up old Docker images..."
 docker image prune -f
 
 # Remove backup if deployment was successful
 if [ -d "backup" ]; then
-	echo "Removing backup..."
+	log "Removing backup..."
 	rm -rf backup
 fi
 
-echo "=========================================="
-echo "✅ Deployment completed successfully!"
-echo "Environment: $ENVIRONMENT"
-echo "Date: $(date)"
-echo "=========================================="
+log "=========================================="
+log "✅ Deployment completed successfully!"
+log "Environment: $ENVIRONMENT"
+log "Date: $(date)"
+log "=========================================="
 
 # Log deployment info
 echo "$(date): Successful deployment to $ENVIRONMENT" >> /var/log/financieramente/deployment-history.log
