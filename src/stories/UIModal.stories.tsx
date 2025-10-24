@@ -71,8 +71,10 @@ export const Default: Story = {
   render: (args) => {
     const [open, setOpen] = useState(false)
     return (
-      <Modal {...args} open={open} onOpenChange={setOpen}>
+      <Modal {...args} open={open} onOpenChange={setOpen} trigger={
         <Button onClick={() => setOpen(true)}>Abrir Modal</Button>
+      }>
+        {args.children}
       </Modal>
     )
   }
@@ -92,8 +94,10 @@ export const Small: Story = {
   render: (args) => {
     const [open, setOpen] = useState(false)
     return (
-      <Modal {...args} open={open} onOpenChange={setOpen}>
+      <Modal {...args} open={open} onOpenChange={setOpen} trigger={
         <Button onClick={() => setOpen(true)}>Abrir Modal Pequeño</Button>
+      }>
+        {args.children}
       </Modal>
     )
   }
@@ -123,8 +127,10 @@ export const Large: Story = {
   render: (args) => {
     const [open, setOpen] = useState(false)
     return (
-      <Modal {...args} open={open} onOpenChange={setOpen}>
+      <Modal {...args} open={open} onOpenChange={setOpen} trigger={
         <Button onClick={() => setOpen(true)}>Abrir Modal Grande</Button>
+      }>
+        {args.children}
       </Modal>
     )
   }
@@ -144,8 +150,10 @@ export const WithoutCloseButton: Story = {
   render: (args) => {
     const [open, setOpen] = useState(false)
     return (
-      <Modal {...args} open={open} onOpenChange={setOpen}>
+      <Modal {...args} open={open} onOpenChange={setOpen} trigger={
         <Button onClick={() => setOpen(true)}>Abrir Modal Sin Botón Cerrar</Button>
+      }>
+        {args.children}
       </Modal>
     )
   }
@@ -163,9 +171,8 @@ export const AlertInfo: Story = {
         message="Esta es una alerta informativa para el usuario."
         confirmText="Entendido"
         onConfirm={() => setOpen(false)}
-      >
-        <Button onClick={() => setOpen(true)}>Mostrar Alerta Info</Button>
-      </AlertModal>
+        trigger={<Button onClick={() => setOpen(true)}>Mostrar Alerta Info</Button>}
+      />
     )
   }
 }
@@ -181,9 +188,8 @@ export const AlertSuccess: Story = {
         message="¡Operación completada exitosamente!"
         confirmText="Continuar"
         onConfirm={() => setOpen(false)}
-      >
-        <Button onClick={() => setOpen(true)}>Mostrar Alerta Éxito</Button>
-      </AlertModal>
+        trigger={<Button onClick={() => setOpen(true)}>Mostrar Alerta Éxito</Button>}
+      />
     )
   }
 }
@@ -199,9 +205,8 @@ export const AlertWarning: Story = {
         message="Advertencia: Esta acción puede tener consecuencias no deseadas."
         confirmText="Proceder"
         onConfirm={() => setOpen(false)}
-      >
-        <Button onClick={() => setOpen(true)}>Mostrar Alerta Advertencia</Button>
-      </AlertModal>
+        trigger={<Button onClick={() => setOpen(true)}>Mostrar Alerta Advertencia</Button>}
+      />
     )
   }
 }
@@ -217,9 +222,8 @@ export const AlertError: Story = {
         message="Error: No se pudo completar la operación solicitada."
         confirmText="Reintentar"
         onConfirm={() => setOpen(false)}
-      >
-        <Button onClick={() => setOpen(true)}>Mostrar Alerta Error</Button>
-      </AlertModal>
+        trigger={<Button onClick={() => setOpen(true)}>Mostrar Alerta Error</Button>}
+      />
     )
   }
 }
@@ -240,9 +244,8 @@ export const ConfirmDefault: Story = {
           setOpen(false)
         }}
         onCancel={() => setOpen(false)}
-      >
-        <Button onClick={() => setOpen(true)}>Mostrar Confirmación</Button>
-      </ConfirmModal>
+        trigger={<Button onClick={() => setOpen(true)}>Mostrar Confirmación</Button>}
+      />
     )
   }
 }
@@ -263,9 +266,8 @@ export const ConfirmDestructive: Story = {
           setOpen(false)
         }}
         onCancel={() => setOpen(false)}
-      >
-        <Button variant="destructive" onClick={() => setOpen(true)}>Eliminar Elemento</Button>
-      </ConfirmModal>
+        trigger={<Button variant="destructive" onClick={() => setOpen(true)}>Eliminar Elemento</Button>}
+      />
     )
   }
 }
@@ -307,9 +309,8 @@ export const FormBasic: Story = {
         }}
         submitText="Enviar"
         cancelText="Cancelar"
-      >
-        <Button onClick={() => setOpen(true)}>Abrir Formulario</Button>
-      </FormModal>
+        trigger={<Button onClick={() => setOpen(true)}>Abrir Formulario</Button>}
+      />
     )
   }
 }
@@ -371,9 +372,8 @@ export const FormAdvanced: Story = {
         }}
         submitText="Guardar Perfil"
         cancelText="Descartar"
-      >
-        <Button onClick={() => setOpen(true)}>Crear Perfil</Button>
-      </FormModal>
+        trigger={<Button onClick={() => setOpen(true)}>Crear Perfil</Button>}
+      />
     )
   }
 }
