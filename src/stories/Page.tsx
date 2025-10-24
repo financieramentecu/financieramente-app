@@ -1,11 +1,43 @@
 import React from 'react';
 
-import { Header } from './Header';
 import './page.css';
 
 type User = {
   name: string;
 };
+
+type HeaderProps = {
+  user?: User;
+  onLogin: () => void;
+  onLogout: () => void;
+  onCreateAccount: () => void;
+};
+
+const Header: React.FC<HeaderProps> = ({ user, onLogin, onLogout, onCreateAccount }) => (
+  <header>
+    <div className="storybook-header">
+      <div>
+        <span className="storybook-logo">Financieramente</span>
+      </div>
+      <div>
+        {user ? (
+          <button type="button" className="storybook-button" onClick={onLogout}>
+            Cerrar sesión
+          </button>
+        ) : (
+          <>
+            <button type="button" className="storybook-button storybook-button--secondary" onClick={onLogin}>
+              Ingresar
+            </button>
+            <button type="button" className="storybook-button" onClick={onCreateAccount}>
+              Crear cuenta
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  </header>
+);
 
 export const Page: React.FC = () => {
   const [user, setUser] = React.useState<User>();
@@ -36,7 +68,7 @@ export const Page: React.FC = () => {
         <ul>
           <li>
             Use a higher-level connected component. Storybook helps you compose such data from the
-            "args" of child component stories
+            &quot;args&quot; of child component stories
           </li>
           <li>
             Assemble data in the page component from your services. You can mock these services out

@@ -1,0 +1,46 @@
+# Chromatic Configuration for Financieramente
+# https://www.chromatic.com/docs/config
+
+# Build settings
+buildScriptName: build-storybook
+exitZeroOnChanges: true
+exitOnceUploaded: true
+
+# Visual testing settings
+autoAcceptChanges: false
+externalUrl: https://financieramente.com
+
+# Ignore patterns
+ignoreLastBuildOnBranch: main
+skip: '${process.env.CHROMATIC_SKIP}'
+
+# UI settings
+projectToken: ${CHROMATIC_PROJECT_TOKEN}
+storybookBuildDir: storybook-static
+
+# Branch settings
+branchName: ${process.env.BRANCH_NAME:-${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}}
+buildBranch: main
+
+# Threshold settings
+diffThreshold: 0.2
+diffIgnoreAntialiasing: true
+diffIncludeAntiAliasing: false
+
+# Upload settings
+uploadBatchSize: 5
+uploadConcurrency: 5
+
+# Build settings
+buildStartTime: ${BUILD_START_TIME}
+ci: true
+
+# Storybook settings
+storybookVersion: ^7.0.0
+
+# Accessibility testing
+a11y: true
+
+# Visual regression settings
+enableVisualTesting: true
+enableA11yTesting: true
