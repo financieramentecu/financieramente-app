@@ -1,0 +1,166 @@
+name: QA PR Testing Pipeline
+
+on:
+    pull_request:
+        branches: [develop]
+
+env:
+    NODE_VERSION: "20"
+
+jobs:
+    lint:
+        name: 🔍 Lint Code
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
+            - run: npm ci
+            - run: npm run lint
+
+    unit-tests:
+        name: 🧪 Unit Tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
+            - run: npm ci
+            - run: npm run test:unit:coverage
+
+            - name: Upload coverage reports
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-unit
+                  path: coverage/
+                  retention-days: 7
+
+            - name: Comment coverage on PR
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs')
+                      const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'))
+                      const total = coverage.total
+
+                      const body = `## 📊 Unit Test Coverage
+
+                      | Metric | Percentage |
+                      |--------|-----------|
+                      | Lines | ${total.lines.pct}% |
+                      | Statements | ${total.statements.pct}% |
+                      | Functions | ${total.functions.pct}% |
+                      | Branches | ${total.branches.pct}% |`
+
+                      github.rest.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: body
+                      })
+
+    integration-tests:
+        name: 🔗 Integration Tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
+            - run: npm ci
+            - run: npm run test:integration:coverage
+
+            - name: Upload coverage reports
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-integration
+                  path: coverage/
+                  retention-days: 7
+
+    visual-tests:
+        name: 🎨 Visual Tests (Chromatic)
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
+            - run: npm ci
+            - run: npm run build-storybook
+
+            - name: Run Chromatic
+              id: chromatic
+              uses: chromaui/action@latest
+              with:
+                  projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+                  exitZeroOnChanges: false
+                  exitOnceUploaded: false
+
+    e2e-tests:
+        name: 🌐 E2E Tests
+        runs-on: ubuntu-latest
+        needs: [lint, unit-tests, integration-tests, visual-tests]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "npm"
+            - run: npm ci
+            - run: npx playwright install --with-deps
+            - run: npm run test:e2e
+
+            - name: Upload Playwright report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-report
+                  path: playwright-report/
+                  retention-days: 7
+
+    test-summary:
+        name: 📝 Test Summary
+        runs-on: ubuntu-latest
+        needs: [lint, unit-tests, integration-tests, visual-tests, e2e-tests]
+        if: always()
+        steps:
+            - name: Create summary comment
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const jobs = {
+                        lint: '${{ needs.lint.result }}',
+                        unit: '${{ needs.unit-tests.result }}',
+                        integration: '${{ needs.integration-tests.result }}',
+                        visual: '${{ needs.visual-tests.result }}',
+                        e2e: '${{ needs.e2e-tests.result }}'
+                      }
+
+                      const emoji = (result) => result === 'success' ? '✅' : '❌'
+
+                      const body = `## 🧪 Test Pipeline Results
+
+                      | Test Type | Status |
+                      |-----------|--------|
+                      | Linting | ${emoji(jobs.lint)} ${jobs.lint} |
+                      | Unit Tests | ${emoji(jobs.unit)} ${jobs.unit} |
+                      | Integration Tests | ${emoji(jobs.integration)} ${jobs.integration} |
+                      | Visual Tests | ${emoji(jobs.visual)} ${jobs.visual} |
+                      | E2E Tests | ${emoji(jobs.e2e)} ${jobs.e2e} |
+
+                      ${Object.values(jobs).every(r => r === 'success') ? '🎉 All tests passed!' : '⚠️ Some tests failed. Please review the logs.'}`
+
+                      github.rest.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: body
+                      })

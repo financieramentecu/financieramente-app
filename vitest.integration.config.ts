@@ -14,16 +14,13 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './vitest.setup.ts',
     globals: true,
-    include: ['src/**/*.test.{ts,tsx}'], // Solo .test, no .spec
-    exclude: [
-      'src/**/*.stories.{js,ts,jsx,tsx}',
-      'src/**/*.integration.test.{ts,tsx}',
-      'node_modules/',
-      'e2e/**',
-    ],
+    include: ['src/**/*.integration.test.{ts,tsx}'],
+    exclude: ['node_modules/', 'dist/', '.next/', 'e2e/**'],
+    testTimeout: 10000,
+    hookTimeout: 10000,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      reporter: ['text', 'json', 'html'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'node_modules/',
@@ -78,15 +75,6 @@ export default defineConfig({
         // Archivos de GitHub Actions
         '.github/**',
       ],
-    },
-    reporters: ['verbose', 'json', 'html'],
-    pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        maxThreads: 4,
-        minThreads: 1,
-      },
     },
   },
   resolve: {
