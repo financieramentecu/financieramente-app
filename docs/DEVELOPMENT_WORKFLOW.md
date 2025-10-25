@@ -276,16 +276,63 @@ Cuando creas un PR a `develop`, esto sucede automáticamente:
 ```mermaid
 graph TD
     A[Push PR a develop] --> B[GitHub Actions se activa]
-    B --> C[Build Storybook]
-    C --> D[Sube a Chromatic]
-    D --> E[Compara con baseline]
-    E --> F{¿Hay cambios?}
-    F -->|No| G[✅ Check pasa]
-    F -->|Sí| H[⚠️ Check pendiente]
-    H --> I[Bot comenta en PR]
-    I --> J[Desarrollador revisa]
-    J --> K[Aprobar/Rechazar]
-    K --> L[Check se actualiza]
+    B --> C{¿Hay cambios visuales?}
+    C -->|No| D[✅ Skip Chromatic - Ahorra recursos]
+    C -->|Sí| E[Build Storybook]
+    E --> F[Sube a Chromatic]
+    F --> G[Compara con baseline]
+    G --> H{¿Hay cambios?}
+    H -->|No| I[✅ Check pasa]
+    H -->|Sí| J[⚠️ Check pendiente]
+    J --> K[Bot comenta en PR]
+    K --> L[Desarrollador revisa]
+    L --> M[Aprobar/Rechazar]
+    M --> N[Check se actualiza]
+```
+
+### 🎯 Optimización de Recursos
+
+El workflow ahora incluye **detección inteligente de cambios**:
+
+#### **Archivos que ACTIVAN Chromatic:**
+- `src/stories/**` - Stories de Storybook
+- `src/components/**/*.tsx` - Componentes UI
+- `src/app/**/*.tsx` - Layouts y páginas
+- `src/app/**/*.css` - Estilos globales
+- `tailwind.config.ts` - Configuración de Tailwind
+- `src/lib/utils.ts` - Utilidades de estilos
+- `package.json` - Cambios en dependencias
+
+#### **Archivos que NO activan Chromatic:**
+- `docs/**` - Documentación
+- `src/**/*.test.tsx` - Tests unitarios
+- `e2e/**` - Tests E2E
+- `terraform/**` - Infraestructura
+- `docker/**` - Configuración Docker
+- `.github/workflows/deploy-*.yml` - CI/CD de despliegue
+
+### 💰 Beneficios de la Optimización
+
+#### **Ahorro de Recursos:**
+- **Snapshots de Chromatic**: Solo cuando hay cambios visuales reales
+- **Minutos de GitHub Actions**: Reduce ejecución innecesaria
+- **Tiempo de CI**: Builds más rápidos en cambios no visuales
+- **Costo**: Reducción significativa en facturación de Chromatic
+
+#### **Mejora de Performance:**
+- **Builds más rápidos**: Salta pasos innecesarios
+- **Feedback más rápido**: Menos tiempo de espera en CI
+- **Menos ruido**: Solo notificaciones relevantes
+
+#### **Ejemplo de Ahorro:**
+```
+Cambio en README.md:
+❌ ANTES: 3-5 minutos ejecutando Chromatic
+✅ AHORA: 30 segundos, mensaje "No visual changes"
+
+Cambio en componente Button:
+✅ ANTES: 3-5 minutos ejecutando Chromatic  
+✅ AHORA: 3-5 minutos ejecutando Chromatic (igual)
 ```
 
 ### 🎯 Momentos Clave para Intervención Manual

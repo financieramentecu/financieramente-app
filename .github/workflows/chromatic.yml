@@ -1,8 +1,6 @@
 name: "Visual Testing with Chromatic"
 
 on:
-    push:
-        branches: [develop]
     pull_request:
         branches: [develop]
 
@@ -15,22 +13,45 @@ jobs:
               with:
                   fetch-depth: 0
 
+            - name: Check for relevant changes
+              id: changes
+              uses: dorny/paths-filter@v3
+              with:
+                  filters: |
+                      storybook:
+                          - 'src/stories/**'
+                          - 'src/components/**/*.tsx'
+                          - 'src/components/**/*.ts'
+                          - 'src/app/**/*.tsx'
+                          - 'src/app/**/*.css'
+                          - '.storybook/**'
+                          - 'tailwind.config.ts'
+                          - 'postcss.config.mjs'
+                          - 'src/lib/utils.ts'
+                          - 'package.json'
+                          - 'package-lock.json'
+
             - name: Setup Node.js
+              if: steps.changes.outputs.storybook == 'true'
               uses: actions/setup-node@v4
               with:
                   node-version: "20"
                   cache: "npm"
 
             - name: Install dependencies
+              if: steps.changes.outputs.storybook == 'true'
               run: npm ci
 
             - name: Run unit tests
+              if: steps.changes.outputs.storybook == 'true'
               run: npm run test:unit:coverage
 
             - name: Build Storybook
+              if: steps.changes.outputs.storybook == 'true'
               run: npm run build-storybook
 
             - name: Publish to Chromatic
+              if: steps.changes.outputs.storybook == 'true'
               id: chromatic
               uses: chromaui/action@latest
               with:
@@ -43,7 +64,7 @@ jobs:
                   ignoreLastBuildOnBranch: develop
 
             - name: Comment PR with Chromatic results
-              if: github.event_name == 'pull_request'
+              if: steps.changes.outputs.storybook == 'true' && github.event_name == 'pull_request'
               uses: actions/github-script@v7
               with:
                   script: |
@@ -78,15 +99,22 @@ jobs:
                       })
 
             - name: Visual testing status check
-              if: steps.chromatic.outputs.changeCount > 0 && github.ref != 'refs/heads/develop'
+              if: steps.changes.outputs.storybook == 'true' && steps.chromatic.outputs.changeCount > 0 && github.ref != 'refs/heads/develop'
               run: |
                   echo "❌ Visual changes detected and not approved"
                   echo "Please review changes at: ${{ steps.chromatic.outputs.buildUrl }}"
                   exit 1
 
             - name: Visual testing success (auto-accepted)
-              if: steps.chromatic.outputs.changeCount > 0 && github.ref == 'refs/heads/develop'
+              if: steps.changes.outputs.storybook == 'true' && steps.chromatic.outputs.changeCount > 0 && github.ref == 'refs/heads/develop'
               run: |
                   echo "✅ Visual changes detected and auto-accepted on develop branch"
                   echo "📊 Changes: ${{ steps.chromatic.outputs.changeCount }}"
                   echo "🔗 Build details: ${{ steps.chromatic.outputs.buildUrl }}"
+
+            - name: No visual changes to test
+              if: steps.changes.outputs.storybook != 'true'
+              run: |
+                  echo "✅ No changes detected in visual components"
+                  echo "📁 Skipped files: Stories, Components, Styles, Tailwind config"
+                  echo "💰 Chromatic build skipped to save resources"
