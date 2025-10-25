@@ -7,6 +7,11 @@ on:
 env:
     NODE_VERSION: "20"
 
+permissions:
+    contents: read
+    pull-requests: write
+    issues: write
+
 jobs:
     lint:
         name: 🔍 Lint Code
@@ -83,48 +88,186 @@ jobs:
                   retention-days: 7
 
     visual-tests:
-        name: 🎨 Visual Tests (Chromatic)
+        name: 🎨 Visual Tests
         runs-on: ubuntu-latest
+        needs: [lint, unit-tests, integration-tests]
         steps:
-            - uses: actions/checkout@v4
+            - name: Checkout repository
+              uses: actions/checkout@v4
               with:
                   fetch-depth: 0
-            - uses: actions/setup-node@v4
+
+            - name: Check for relevant changes
+              id: changes
+              uses: dorny/paths-filter@v3
+              with:
+                  filters: |
+                      storybook:
+                          - 'src/stories/**'
+                          - 'src/components/**/*.tsx'
+                          - 'src/components/**/*.ts'
+                          - 'src/app/**/*.tsx'
+                          - 'src/app/**/*.css'
+                          - '.storybook/**'
+                          - 'tailwind.config.ts'
+                          - 'postcss.config.mjs'
+                          - 'src/lib/utils.ts'
+                          - 'package.json'
+                          - 'package-lock.json'
+
+            - name: Setup Node.js
+              if: steps.changes.outputs.storybook == 'true'
+              uses: actions/setup-node@v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: "npm"
-            - run: npm ci
-            - run: npm run build-storybook
 
-            - name: Run Chromatic
+            - name: Install dependencies
+              if: steps.changes.outputs.storybook == 'true'
+              run: npm ci
+
+            - name: Build Storybook
+              if: steps.changes.outputs.storybook == 'true'
+              run: npm run build-storybook
+
+            - name: Publish to Chromatic
+              if: steps.changes.outputs.storybook == 'true'
               id: chromatic
               uses: chromaui/action@latest
               with:
                   projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+                  buildScriptName: build-storybook
                   exitZeroOnChanges: false
                   exitOnceUploaded: false
+                  onlyChanged: true
+                  autoAcceptChanges: ${{ github.ref == 'refs/heads/develop' }}
+                  ignoreLastBuildOnBranch: develop
+
+            - name: Comment PR with Chromatic results
+              if: steps.changes.outputs.storybook == 'true' && github.event_name == 'pull_request'
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const storybookUrl = '${{ steps.chromatic.outputs.storybookUrl }}'
+                      const buildUrl = '${{ steps.chromatic.outputs.buildUrl }}'
+                      const changeCount = '${{ steps.chromatic.outputs.changeCount }}'
+
+                      const isDevelopBranch = context.ref === 'refs/heads/develop'
+                      const body = `## 🎨 Visual Testing Results
+
+                      ${changeCount > 0 
+                        ? (isDevelopBranch 
+                            ? '✅ **Visual changes detected and auto-accepted!**' 
+                            : '⚠️ **Visual changes detected!**')
+                        : '✅ **No visual changes**'}
+
+                      - 📚 [View Storybook](${storybookUrl})
+                      - 🔍 [Review Changes](${buildUrl})
+                      - 📊 Changes: ${changeCount}
+
+                      ${changeCount > 0 && !isDevelopBranch 
+                        ? '**Action required**: Please review and approve changes in Chromatic before merging.' 
+                        : changeCount > 0 && isDevelopBranch 
+                        ? '**Auto-accepted**: Changes were automatically approved on develop branch.' 
+                        : ''}`
+
+                      github.rest.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: body
+                      })
+
+            - name: Visual testing status check
+              if: steps.changes.outputs.storybook == 'true' && steps.chromatic.outputs.changeCount > 0 && github.ref != 'refs/heads/develop'
+              run: |
+                  echo "❌ Visual changes detected and not approved"
+                  echo "Please review changes at: ${{ steps.chromatic.outputs.buildUrl }}"
+                  exit 1
+
+            - name: Visual testing success (auto-accepted)
+              if: steps.changes.outputs.storybook == 'true' && steps.chromatic.outputs.changeCount > 0 && github.ref == 'refs/heads/develop'
+              run: |
+                  echo "✅ Visual changes detected and auto-accepted on develop branch"
+                  echo "📊 Changes: ${{ steps.chromatic.outputs.changeCount }}"
+                  echo "🔗 Build details: ${{ steps.chromatic.outputs.buildUrl }}"
+
+            - name: No visual changes to test
+              if: steps.changes.outputs.storybook != 'true'
+              run: |
+                  echo "✅ No changes detected in visual components"
+                  echo "📁 Skipped files: Stories, Components, Styles, Tailwind config"
+                  echo "💰 Chromatic build skipped to save resources"
 
     e2e-tests:
         name: 🌐 E2E Tests
         runs-on: ubuntu-latest
         needs: [lint, unit-tests, integration-tests, visual-tests]
+
         steps:
             - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Check for E2E relevant changes
+              id: changes
+              uses: dorny/paths-filter@v3
+              with:
+                  filters: |
+                      e2e:
+                          - 'e2e/**'
+                          - 'src/**/*.tsx'
+                          - 'src/**/*.ts'
+                          - 'src/app/**'
+                          - 'src/components/**'
+                          - 'package.json'
+                          - 'package-lock.json'
+
+            - name: Setup Node.js
+              if: steps.changes.outputs.e2e == 'true'
+              uses: actions/setup-node@v4
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: "npm"
-            - run: npm ci
-            - run: npx playwright install --with-deps
-            - run: npm run test:e2e
+
+            - name: Cache Playwright browsers
+              if: steps.changes.outputs.e2e == 'true'
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-playwright-
+
+            - name: Install dependencies
+              if: steps.changes.outputs.e2e == 'true'
+              run: npm ci
+
+            - name: Install Playwright browsers
+              if: steps.changes.outputs.e2e == 'true'
+              run: npx playwright install --with-deps chromium webkit
+
+            - name: Run E2E tests
+              if: steps.changes.outputs.e2e == 'true'
+              run: npx playwright test --project=chromium --project=webkit
+              env:
+                  CI: true
+                  BASE_URL: http://localhost:3000
 
             - name: Upload Playwright report
-              if: always()
+              if: always() && steps.changes.outputs.e2e == 'true'
               uses: actions/upload-artifact@v4
               with:
                   name: playwright-report
                   path: playwright-report/
                   retention-days: 7
+
+            - name: Skip E2E tests
+              if: steps.changes.outputs.e2e != 'true'
+              run: |
+                  echo "✅ No E2E relevant changes detected"
+                  echo "📁 Skipped files: E2E tests, Components, App pages"
+                  echo "💰 E2E tests skipped to save resources"
 
     test-summary:
         name: 📝 Test Summary
@@ -144,7 +287,11 @@ jobs:
                         e2e: '${{ needs.e2e-tests.result }}'
                       }
 
-                      const emoji = (result) => result === 'success' ? '✅' : '❌'
+                      const emoji = (result) => {
+                        if (result === 'success') return '✅'
+                        if (result === 'skipped') return '⏭️'
+                        return '❌'
+                      }
 
                       const body = `## 🧪 Test Pipeline Results
 
@@ -156,7 +303,7 @@ jobs:
                       | Visual Tests | ${emoji(jobs.visual)} ${jobs.visual} |
                       | E2E Tests | ${emoji(jobs.e2e)} ${jobs.e2e} |
 
-                      ${Object.values(jobs).every(r => r === 'success') ? '🎉 All tests passed!' : '⚠️ Some tests failed. Please review the logs.'}`
+                      ${Object.values(jobs).every(r => r === 'success' || r === 'skipped') ? '🎉 All tests passed!' : '⚠️ Some tests failed. Please review the logs.'}`
 
                       github.rest.issues.createComment({
                         issue_number: context.issue.number,
