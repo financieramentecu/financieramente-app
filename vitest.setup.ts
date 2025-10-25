@@ -4,7 +4,7 @@ import { afterEach, vi } from 'vitest';
 import React from 'react';
 
 // Agregar alias global de jest para compatibilidad
-(global as any).jest = vi;
+(global as Record<string, unknown>).jest = vi;
 
 // Mock de next/navigation
 vi.mock('next/navigation', () => ({

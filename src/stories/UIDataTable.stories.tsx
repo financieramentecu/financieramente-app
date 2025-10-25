@@ -1,6 +1,10 @@
-import type { Meta, StoryObj } from '@storybook/nextjs'
-import { DataTable, type Column, type DataTableProps } from '../components/ui/data-table'
-import { Badge } from '../components/ui/badge'
+import type { Meta, StoryObj } from '@storybook/nextjs';
+import {
+  DataTable,
+  type Column,
+  type DataTableProps,
+} from '../components/ui/data-table';
+import { Badge } from '../components/ui/badge';
 
 // Datos de ejemplo
 const sampleData = [
@@ -12,7 +16,7 @@ const sampleData = [
     status: 'Activo',
     lastLogin: '2024-01-15',
     department: 'IT',
-    salary: 5000
+    salary: 5000,
   },
   {
     id: 2,
@@ -22,7 +26,7 @@ const sampleData = [
     status: 'Activo',
     lastLogin: '2024-01-14',
     department: 'Ventas',
-    salary: 3500
+    salary: 3500,
   },
   {
     id: 3,
@@ -32,7 +36,7 @@ const sampleData = [
     status: 'Inactivo',
     lastLogin: '2024-01-10',
     department: 'Finanzas',
-    salary: 4200
+    salary: 4200,
   },
   {
     id: 4,
@@ -42,7 +46,7 @@ const sampleData = [
     status: 'Activo',
     lastLogin: '2024-01-15',
     department: 'RRHH',
-    salary: 3800
+    salary: 3800,
   },
   {
     id: 5,
@@ -52,11 +56,11 @@ const sampleData = [
     status: 'Activo',
     lastLogin: '2024-01-15',
     department: 'IT',
-    salary: 5500
-  }
-]
+    salary: 5500,
+  },
+];
 
-type UserRow = (typeof sampleData)[number]
+type UserRow = (typeof sampleData)[number];
 
 const columns: Column<UserRow>[] = [
   {
@@ -64,15 +68,13 @@ const columns: Column<UserRow>[] = [
     title: 'Nombre',
     sortable: true,
     searchable: true,
-    render: (value) => (
-      <div className="font-medium">{String(value)}</div>
-    )
+    render: (value) => <div className="font-medium">{String(value)}</div>,
   },
   {
     key: 'email' as const,
     title: 'Email',
     sortable: true,
-    searchable: true
+    searchable: true,
   },
   {
     key: 'role' as const,
@@ -80,13 +82,13 @@ const columns: Column<UserRow>[] = [
     sortable: true,
     searchable: true,
     render: (value) => {
-      const role = String(value)
+      const role = String(value);
       return (
         <Badge variant={role === 'Administrador' ? 'default' : 'secondary'}>
           {role}
         </Badge>
-      )
-    }
+      );
+    },
   },
   {
     key: 'status' as const,
@@ -94,25 +96,25 @@ const columns: Column<UserRow>[] = [
     sortable: true,
     searchable: true,
     render: (value) => {
-      const status = String(value)
+      const status = String(value);
       return (
         <Badge variant={status === 'Activo' ? 'default' : 'destructive'}>
           {status}
         </Badge>
-      )
-    }
+      );
+    },
   },
   {
     key: 'department' as const,
     title: 'Departamento',
     sortable: true,
-    searchable: true
+    searchable: true,
   },
   {
     key: 'lastLogin' as const,
     title: 'Último Acceso',
     sortable: true,
-    searchable: false
+    searchable: false,
   },
   {
     key: 'salary' as const,
@@ -120,13 +122,13 @@ const columns: Column<UserRow>[] = [
     sortable: true,
     searchable: false,
     align: 'right' as const,
-    render: (value) => `$${Number(value).toLocaleString()}`
-  }
-]
+    render: (value) => `$${Number(value).toLocaleString()}`,
+  },
+];
 
 const DataTableForUsers = (props: DataTableProps<UserRow>) => (
   <DataTable<UserRow> {...props} />
-)
+);
 
 const meta: Meta<typeof DataTableForUsers> = {
   title: 'UI/DataTable',
@@ -135,60 +137,61 @@ const meta: Meta<typeof DataTableForUsers> = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'Tabla de datos avanzada con funcionalidades de búsqueda, ordenamiento, paginación, selección múltiple y exportación. Cumple con estándares WCAG AA de accesibilidad.'
-      }
-    }
+        component:
+          'Tabla de datos avanzada con funcionalidades de búsqueda, ordenamiento, paginación, selección múltiple y exportación. Cumple con estándares WCAG AA de accesibilidad.',
+      },
+    },
   },
   argTypes: {
     data: {
       control: false,
-      description: 'Array de datos para mostrar en la tabla'
+      description: 'Array de datos para mostrar en la tabla',
     },
     columns: {
       control: false,
-      description: 'Configuración de columnas de la tabla'
+      description: 'Configuración de columnas de la tabla',
     },
     searchable: {
       control: 'boolean',
-      description: 'Habilitar búsqueda en la tabla'
+      description: 'Habilitar búsqueda en la tabla',
     },
     sortable: {
       control: 'boolean',
-      description: 'Habilitar ordenamiento de columnas'
+      description: 'Habilitar ordenamiento de columnas',
     },
     selectable: {
       control: 'boolean',
-      description: 'Habilitar selección múltiple de filas'
+      description: 'Habilitar selección múltiple de filas',
     },
     pagination: {
       control: 'boolean',
-      description: 'Habilitar paginación'
+      description: 'Habilitar paginación',
     },
     pageSize: {
       control: 'number',
-      description: 'Número de elementos por página'
+      description: 'Número de elementos por página',
     },
     exportable: {
       control: 'boolean',
-      description: 'Habilitar exportación de datos'
+      description: 'Habilitar exportación de datos',
     },
     filterable: {
       control: 'boolean',
-      description: 'Habilitar filtros'
+      description: 'Habilitar filtros',
     },
     loading: {
       control: 'boolean',
-      description: 'Estado de carga'
+      description: 'Estado de carga',
     },
     emptyMessage: {
       control: 'text',
-      description: 'Mensaje cuando no hay datos'
-    }
-  }
-}
+      description: 'Mensaje cuando no hay datos',
+    },
+  },
+};
 
-export default meta
-type Story = StoryObj<typeof DataTableForUsers>
+export default meta;
+type Story = StoryObj<typeof DataTableForUsers>;
 
 export const Default: Story = {
   args: {
@@ -202,9 +205,9 @@ export const Default: Story = {
     exportable: true,
     filterable: true,
     loading: false,
-    emptyMessage: 'No hay usuarios disponibles'
-  }
-}
+    emptyMessage: 'No hay usuarios disponibles',
+  },
+};
 
 export const WithoutPagination: Story = {
   args: {
@@ -217,9 +220,9 @@ export const WithoutPagination: Story = {
     exportable: true,
     filterable: true,
     loading: false,
-    emptyMessage: 'No hay usuarios disponibles'
-  }
-}
+    emptyMessage: 'No hay usuarios disponibles',
+  },
+};
 
 export const WithoutSelection: Story = {
   args: {
@@ -233,9 +236,9 @@ export const WithoutSelection: Story = {
     exportable: true,
     filterable: true,
     loading: false,
-    emptyMessage: 'No hay usuarios disponibles'
-  }
-}
+    emptyMessage: 'No hay usuarios disponibles',
+  },
+};
 
 export const WithoutSearch: Story = {
   args: {
@@ -249,9 +252,9 @@ export const WithoutSearch: Story = {
     exportable: true,
     filterable: true,
     loading: false,
-    emptyMessage: 'No hay usuarios disponibles'
-  }
-}
+    emptyMessage: 'No hay usuarios disponibles',
+  },
+};
 
 export const Loading: Story = {
   args: {
@@ -265,9 +268,9 @@ export const Loading: Story = {
     exportable: true,
     filterable: true,
     loading: true,
-    emptyMessage: 'No hay usuarios disponibles'
-  }
-}
+    emptyMessage: 'No hay usuarios disponibles',
+  },
+};
 
 export const Empty: Story = {
   args: {
@@ -281,9 +284,10 @@ export const Empty: Story = {
     exportable: true,
     filterable: true,
     loading: false,
-    emptyMessage: 'No se encontraron usuarios que coincidan con los criterios de búsqueda'
-  }
-}
+    emptyMessage:
+      'No se encontraron usuarios que coincidan con los criterios de búsqueda',
+  },
+};
 
 export const LargeDataset: Story = {
   args: {
@@ -293,9 +297,9 @@ export const LargeDataset: Story = {
       email: `usuario${i + 1}@financieramente.com`,
       role: ['Administrador', 'Usuario', 'Supervisor'][i % 3],
       status: ['Activo', 'Inactivo'][i % 2],
-      lastLogin: `2024-01-${String(Math.floor(Math.random() * 15) + 1).padStart(2, '0')}`,
+      lastLogin: `2024-01-${String((i % 15) + 1).padStart(2, '0')}`,
       department: ['IT', 'Ventas', 'Finanzas', 'RRHH'][i % 4],
-      salary: Math.floor(Math.random() * 5000) + 2000
+      salary: (i % 5) * 1000 + 2000,
     })),
     columns: columns,
     searchable: true,
@@ -306,9 +310,9 @@ export const LargeDataset: Story = {
     exportable: true,
     filterable: true,
     loading: false,
-    emptyMessage: 'No hay usuarios disponibles'
-  }
-}
+    emptyMessage: 'No hay usuarios disponibles',
+  },
+};
 
 export const MinimalTable: Story = {
   args: {
@@ -318,14 +322,14 @@ export const MinimalTable: Story = {
         key: 'name' as const,
         title: 'Nombre',
         sortable: false,
-        searchable: false
+        searchable: false,
       },
       {
         key: 'email' as const,
         title: 'Email',
         sortable: false,
-        searchable: false
-      }
+        searchable: false,
+      },
     ],
     searchable: false,
     sortable: false,
@@ -334,9 +338,9 @@ export const MinimalTable: Story = {
     exportable: false,
     filterable: false,
     loading: false,
-    emptyMessage: 'Sin datos'
-  }
-}
+    emptyMessage: 'Sin datos',
+  },
+};
 
 export const WithActions: Story = {
   args: {
@@ -352,10 +356,11 @@ export const WithActions: Story = {
     loading: false,
     emptyMessage: 'No hay usuarios disponibles',
     onRowClick: (row) => console.log('Row clicked:', row),
-    onSelectionChange: (selectedRows) => console.log('Selection changed:', selectedRows),
-    onExport: (data) => console.log('Export data:', data)
-  }
-}
+    onSelectionChange: (selectedRows) =>
+      console.log('Selection changed:', selectedRows),
+    onExport: (data) => console.log('Export data:', data),
+  },
+};
 
 export const AllVariants: Story = {
   render: () => (
@@ -376,7 +381,7 @@ export const AllVariants: Story = {
           emptyMessage="No hay usuarios disponibles"
         />
       </div>
-      
+
       <div>
         <h3 className="text-lg font-semibold mb-4">Tabla Mínima</h3>
         <DataTable
@@ -393,5 +398,5 @@ export const AllVariants: Story = {
         />
       </div>
     </div>
-  )
-}
+  ),
+};
