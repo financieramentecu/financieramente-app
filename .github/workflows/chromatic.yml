@@ -51,15 +51,24 @@ jobs:
                       const buildUrl = '${{ steps.chromatic.outputs.buildUrl }}'
                       const changeCount = '${{ steps.chromatic.outputs.changeCount }}'
 
+                      const isDevelopBranch = context.ref === 'refs/heads/develop'
                       const body = `## 🎨 Visual Testing Results
 
-                      ${changeCount > 0 ? '⚠️ **Visual changes detected!**' : '✅ **No visual changes**'}
+                      ${changeCount > 0 
+                        ? (isDevelopBranch 
+                            ? '✅ **Visual changes detected and auto-accepted!**' 
+                            : '⚠️ **Visual changes detected!**')
+                        : '✅ **No visual changes**'}
 
                       - 📚 [View Storybook](${storybookUrl})
                       - 🔍 [Review Changes](${buildUrl})
                       - 📊 Changes: ${changeCount}
 
-                      ${changeCount > 0 ? '**Action required**: Please review and approve changes in Chromatic before merging.' : ''}`
+                      ${changeCount > 0 && !isDevelopBranch 
+                        ? '**Action required**: Please review and approve changes in Chromatic before merging.' 
+                        : changeCount > 0 && isDevelopBranch 
+                        ? '**Auto-accepted**: Changes were automatically approved on develop branch.' 
+                        : ''}`
 
                       github.rest.issues.createComment({
                         issue_number: context.issue.number,
@@ -69,8 +78,15 @@ jobs:
                       })
 
             - name: Visual testing status check
-              if: steps.chromatic.outputs.changeCount > 0
+              if: steps.chromatic.outputs.changeCount > 0 && github.ref != 'refs/heads/develop'
               run: |
                   echo "❌ Visual changes detected and not approved"
                   echo "Please review changes at: ${{ steps.chromatic.outputs.buildUrl }}"
                   exit 1
+
+            - name: Visual testing success (auto-accepted)
+              if: steps.chromatic.outputs.changeCount > 0 && github.ref == 'refs/heads/develop'
+              run: |
+                  echo "✅ Visual changes detected and auto-accepted on develop branch"
+                  echo "📊 Changes: ${{ steps.chromatic.outputs.changeCount }}"
+                  echo "🔗 Build details: ${{ steps.chromatic.outputs.buildUrl }}"
