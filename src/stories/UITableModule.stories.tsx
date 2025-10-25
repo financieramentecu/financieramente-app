@@ -1,37 +1,41 @@
-import type { Meta, StoryObj } from '@storybook/nextjs'
-import { TableModule, TableConfigs, createColumnDefs } from '../components/ui/table-module'
-import { Button } from '../components/ui/button'
-import { toast } from 'sonner'
+import type { Meta, StoryObj } from '@storybook/nextjs';
+import {
+  TableModule,
+  TableConfigs,
+  createColumnDefs,
+} from '../components/ui/table-module';
+import { Button } from '../components/ui/button';
+import { toast } from 'sonner';
 
 // Types
 interface User {
-  id: number
-  name: string
-  email: string
-  role: string
-  status: string
-  lastLogin: string
-  department: string
-  salary: number
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastLogin: string;
+  department: string;
+  salary: number;
 }
 
 interface Product {
-  id: number
-  name: string
-  category: string
-  price: number
-  stock: number
-  status: string
-  createdAt: string
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  stock: number;
+  status: string;
+  createdAt: string;
 }
 
 interface Order {
-  id: string
-  customer: string
-  total: number
-  status: string
-  orderDate: string
-  deliveryDate: string
+  id: string;
+  customer: string;
+  total: number;
+  status: string;
+  orderDate: string;
+  deliveryDate: string;
 }
 
 // Sample data
@@ -44,7 +48,7 @@ const usersData: User[] = [
     status: 'Activo',
     lastLogin: '2024-01-15',
     department: 'IT',
-    salary: 5000
+    salary: 5000,
   },
   {
     id: 2,
@@ -54,7 +58,7 @@ const usersData: User[] = [
     status: 'Activo',
     lastLogin: '2024-01-14',
     department: 'Ventas',
-    salary: 3500
+    salary: 3500,
   },
   {
     id: 3,
@@ -64,7 +68,7 @@ const usersData: User[] = [
     status: 'Inactivo',
     lastLogin: '2024-01-10',
     department: 'Finanzas',
-    salary: 4200
+    salary: 4200,
   },
   {
     id: 4,
@@ -74,7 +78,7 @@ const usersData: User[] = [
     status: 'Activo',
     lastLogin: '2024-01-15',
     department: 'RRHH',
-    salary: 3800
+    salary: 3800,
   },
   {
     id: 5,
@@ -84,9 +88,9 @@ const usersData: User[] = [
     status: 'Activo',
     lastLogin: '2024-01-15',
     department: 'IT',
-    salary: 5500
-  }
-]
+    salary: 5500,
+  },
+];
 
 const productsData: Product[] = [
   {
@@ -96,7 +100,7 @@ const productsData: Product[] = [
     price: 1299.99,
     stock: 15,
     status: 'Disponible',
-    createdAt: '2024-01-10'
+    createdAt: '2024-01-10',
   },
   {
     id: 2,
@@ -105,7 +109,7 @@ const productsData: Product[] = [
     price: 99.99,
     stock: 0,
     status: 'Agotado',
-    createdAt: '2024-01-08'
+    createdAt: '2024-01-08',
   },
   {
     id: 3,
@@ -114,9 +118,9 @@ const productsData: Product[] = [
     price: 149.99,
     stock: 8,
     status: 'Disponible',
-    createdAt: '2024-01-12'
-  }
-]
+    createdAt: '2024-01-12',
+  },
+];
 
 const ordersData: Order[] = [
   {
@@ -125,7 +129,7 @@ const ordersData: Order[] = [
     total: 1299.99,
     status: 'Completado',
     orderDate: '2024-01-15',
-    deliveryDate: '2024-01-20'
+    deliveryDate: '2024-01-20',
   },
   {
     id: 'ORD-002',
@@ -133,7 +137,7 @@ const ordersData: Order[] = [
     total: 249.98,
     status: 'Pendiente',
     orderDate: '2024-01-16',
-    deliveryDate: '2024-01-22'
+    deliveryDate: '2024-01-22',
   },
   {
     id: 'ORD-003',
@@ -141,9 +145,9 @@ const ordersData: Order[] = [
     total: 99.99,
     status: 'Cancelado',
     orderDate: '2024-01-14',
-    deliveryDate: '2024-01-18'
-  }
-]
+    deliveryDate: '2024-01-18',
+  },
+];
 
 const meta: Meta<typeof TableModule<User>> = {
   title: 'UI/TableModule',
@@ -152,64 +156,65 @@ const meta: Meta<typeof TableModule<User>> = {
     layout: 'padded',
     docs: {
       description: {
-        component: 'Componente modular de tabla basado en TanStack Table con configuración flexible y reutilizable. Incluye funcionalidades avanzadas como búsqueda, ordenamiento, paginación, selección múltiple y exportación.'
-      }
-    }
+        component:
+          'Componente modular de tabla basado en TanStack Table con configuración flexible y reutilizable. Incluye funcionalidades avanzadas como búsqueda, ordenamiento, paginación, selección múltiple y exportación.',
+      },
+    },
   },
   argTypes: {
     data: {
       control: false,
-      description: 'Array de datos para mostrar en la tabla'
+      description: 'Array de datos para mostrar en la tabla',
     },
     columns: {
       control: false,
-      description: 'Configuración de columnas usando createColumnDefs'
+      description: 'Configuración de columnas usando createColumnDefs',
     },
     title: {
       control: 'text',
-      description: 'Título de la tabla'
+      description: 'Título de la tabla',
     },
     description: {
       control: 'text',
-      description: 'Descripción de la tabla'
+      description: 'Descripción de la tabla',
     },
     searchable: {
       control: 'boolean',
-      description: 'Habilitar búsqueda en la tabla'
+      description: 'Habilitar búsqueda en la tabla',
     },
     searchColumn: {
       control: 'text',
-      description: 'Columna específica para búsqueda'
+      description: 'Columna específica para búsqueda',
     },
     paginable: {
       control: 'boolean',
-      description: 'Habilitar paginación'
+      description: 'Habilitar paginación',
     },
     selectable: {
       control: 'boolean',
-      description: 'Habilitar selección múltiple'
+      description: 'Habilitar selección múltiple',
     },
     exportable: {
       control: 'boolean',
-      description: 'Habilitar exportación'
+      description: 'Habilitar exportación',
     },
     filterable: {
       control: 'boolean',
-      description: 'Habilitar filtros de columnas'
+      description: 'Habilitar filtros de columnas',
     },
     loading: {
       control: 'boolean',
-      description: 'Estado de carga'
+      description: 'Estado de carga',
     },
     emptyMessage: {
       control: 'text',
-      description: 'Mensaje cuando no hay datos'
-    }
-  }
-}
+      description: 'Mensaje cuando no hay datos',
+    },
+  },
+};
 
-export default meta
-type Story = StoryObj<typeof TableModule<User>>
+export default meta;
+type Story = StoryObj<typeof TableModule<User>>;
 
 // Pre-configured stories using TableConfigs
 export const UsersTable: Story = {
@@ -218,17 +223,20 @@ export const UsersTable: Story = {
     // @ts-expect-error - Complex generic type inference
     columns: TableConfigs.users.columns,
     title: 'Gestión de Usuarios',
-    description: 'Administra los usuarios del sistema con funcionalidades completas de CRUD',
+    description:
+      'Administra los usuarios del sistema con funcionalidades completas de CRUD',
     searchColumn: TableConfigs.users.searchColumn,
     defaultPageSize: TableConfigs.users.defaultPageSize,
     onRowClick: (row: User) => toast.info(`Usuario seleccionado: ${row.name}`),
-    onSelectionChange: (selectedRows: User[]) => toast.info(`${selectedRows.length} usuarios seleccionados`),
-    onExport: (data: User[]) => toast.success(`Exportando ${data.length} usuarios`),
+    onSelectionChange: (selectedRows: User[]) =>
+      toast.info(`${selectedRows.length} usuarios seleccionados`),
+    onExport: (data: User[]) =>
+      toast.success(`Exportando ${data.length} usuarios`),
     onEdit: (row: User) => toast.info(`Editando usuario: ${row.name}`),
     onDelete: (row: User) => toast.error(`Eliminando usuario: ${row.name}`),
-    onView: (row: User) => toast.info(`Viendo detalles de: ${row.name}`)
-  }
-}
+    onView: (row: User) => toast.info(`Viendo detalles de: ${row.name}`),
+  },
+};
 
 export const ProductsTable: StoryObj<typeof TableModule<Product>> = {
   args: {
@@ -239,14 +247,17 @@ export const ProductsTable: StoryObj<typeof TableModule<Product>> = {
     description: 'Gestiona el inventario de productos disponibles',
     searchColumn: TableConfigs.products.searchColumn,
     defaultPageSize: TableConfigs.products.defaultPageSize,
-    onRowClick: (row: Product) => toast.info(`Producto seleccionado: ${row.name}`),
-    onSelectionChange: (selectedRows: Product[]) => toast.info(`${selectedRows.length} productos seleccionados`),
-    onExport: (data: Product[]) => toast.success(`Exportando ${data.length} productos`),
+    onRowClick: (row: Product) =>
+      toast.info(`Producto seleccionado: ${row.name}`),
+    onSelectionChange: (selectedRows: Product[]) =>
+      toast.info(`${selectedRows.length} productos seleccionados`),
+    onExport: (data: Product[]) =>
+      toast.success(`Exportando ${data.length} productos`),
     onEdit: (row: Product) => toast.info(`Editando producto: ${row.name}`),
     onDelete: (row: Product) => toast.error(`Eliminando producto: ${row.name}`),
-    onView: (row: Product) => toast.info(`Viendo detalles de: ${row.name}`)
-  }
-}
+    onView: (row: Product) => toast.info(`Viendo detalles de: ${row.name}`),
+  },
+};
 
 export const OrdersTable: StoryObj<typeof TableModule<Order>> = {
   args: {
@@ -258,31 +269,42 @@ export const OrdersTable: StoryObj<typeof TableModule<Order>> = {
     searchColumn: TableConfigs.orders.searchColumn,
     defaultPageSize: TableConfigs.orders.defaultPageSize,
     onRowClick: (row: Order) => toast.info(`Pedido seleccionado: ${row.id}`),
-    onSelectionChange: (selectedRows: Order[]) => toast.info(`${selectedRows.length} pedidos seleccionados`),
-    onExport: (data: Order[]) => toast.success(`Exportando ${data.length} pedidos`),
+    onSelectionChange: (selectedRows: Order[]) =>
+      toast.info(`${selectedRows.length} pedidos seleccionados`),
+    onExport: (data: Order[]) =>
+      toast.success(`Exportando ${data.length} pedidos`),
     onEdit: (row: Order) => toast.info(`Editando pedido: ${row.id}`),
     onDelete: (row: Order) => toast.error(`Eliminando pedido: ${row.id}`),
-    onView: (row: Order) => toast.info(`Viendo detalles de: ${row.id}`)
-  }
-}
+    onView: (row: Order) => toast.info(`Viendo detalles de: ${row.id}`),
+  },
+};
 
 // Custom configuration story
 export const CustomTable: Story = {
   args: {
     data: usersData,
     columns: [
-      createColumnDefs.text('name' as keyof User, 'Nombre Completo', { searchable: true }),
-      createColumnDefs.text('email' as keyof User, 'Correo Electrónico', { searchable: true }),
+      createColumnDefs.text('name' as keyof User, 'Nombre Completo', {
+        searchable: true,
+      }),
+      createColumnDefs.text('email' as keyof User, 'Correo Electrónico', {
+        searchable: true,
+      }),
       createColumnDefs.badge('role' as keyof User, 'Tipo de Usuario', {
         getVariant: (role: unknown) => {
           switch (String(role)) {
-            case 'Administrador': return 'default'
-            case 'Supervisor': return 'secondary'
-            default: return 'outline'
+            case 'Administrador':
+              return 'default';
+            case 'Supervisor':
+              return 'secondary';
+            default:
+              return 'outline';
           }
-        }
+        },
       }),
-      createColumnDefs.currency('salary' as keyof User, 'Salario Mensual', { currency: 'USD' }),
+      createColumnDefs.currency('salary' as keyof User, 'Salario Mensual', {
+        currency: 'USD',
+      }),
     ],
     title: 'Tabla Personalizada',
     description: 'Ejemplo de tabla con configuración personalizada',
@@ -290,20 +312,30 @@ export const CustomTable: Story = {
     defaultPageSize: 5,
     pageSizeOptions: [5, 10, 15],
     onRowClick: (row: User) => toast.info(`Usuario: ${row.name}`),
-    onSelectionChange: (selectedRows: User[]) => toast.info(`${selectedRows.length} seleccionados`),
-    onExport: (data: User[]) => toast.success(`Exportando ${data.length} registros`),
+    onSelectionChange: (selectedRows: User[]) =>
+      toast.info(`${selectedRows.length} seleccionados`),
+    onExport: (data: User[]) =>
+      toast.success(`Exportando ${data.length} registros`),
     customActions: (row: User) => (
       <div className="flex space-x-1">
-        <Button size="sm" variant="outline" onClick={() => toast.info(`Ver ${row.name}`)}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => toast.info(`Ver ${row.name}`)}
+        >
           Ver
         </Button>
-        <Button size="sm" variant="outline" onClick={() => toast.info(`Editar ${row.name}`)}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => toast.info(`Editar ${row.name}`)}
+        >
           Editar
         </Button>
       </div>
-    )
-  }
-}
+    ),
+  },
+};
 
 // Minimal table
 export const MinimalTable: Story = {
@@ -320,8 +352,8 @@ export const MinimalTable: Story = {
     selectable: false,
     exportable: false,
     filterable: false,
-  }
-}
+  },
+};
 
 // Loading state
 export const LoadingTable: Story = {
@@ -332,8 +364,8 @@ export const LoadingTable: Story = {
     title: 'Tabla Cargando',
     description: 'Estado de carga de la tabla',
     loading: true,
-  }
-}
+  },
+};
 
 // Empty state
 export const EmptyTable: Story = {
@@ -344,22 +376,25 @@ export const EmptyTable: Story = {
     title: 'Tabla Vacía',
     description: 'Estado cuando no hay datos',
     emptyMessage: 'No se encontraron usuarios en el sistema',
-  }
-}
+  },
+};
 
 // Large dataset
 export const LargeDataset: Story = {
   args: {
-    data: Array.from({ length: 100 }, (_, i): User => ({
-      id: i + 1,
-      name: `Usuario ${i + 1}`,
-      email: `usuario${i + 1}@financieramente.com`,
-      role: ['Administrador', 'Usuario', 'Supervisor'][i % 3],
-      status: ['Activo', 'Inactivo'][i % 2],
-      lastLogin: `2024-01-${String(Math.floor(Math.random() * 15) + 1).padStart(2, '0')}`,
-      department: ['IT', 'Ventas', 'Finanzas', 'RRHH'][i % 4],
-      salary: Math.floor(Math.random() * 5000) + 2000
-    })),
+    data: Array.from(
+      { length: 100 },
+      (_, i): User => ({
+        id: i + 1,
+        name: `Usuario ${i + 1}`,
+        email: `usuario${i + 1}@financieramente.com`,
+        role: ['Administrador', 'Usuario', 'Supervisor'][i % 3],
+        status: ['Activo', 'Inactivo'][i % 2],
+        lastLogin: `2024-01-${String((i % 15) + 1).padStart(2, '0')}`,
+        department: ['IT', 'Ventas', 'Finanzas', 'RRHH'][i % 4],
+        salary: (i % 5) * 1000 + 2000,
+      })
+    ),
     // @ts-expect-error - Complex generic type inference
     columns: TableConfigs.users.columns,
     title: 'Dataset Grande',
@@ -367,10 +402,12 @@ export const LargeDataset: Story = {
     searchColumn: TableConfigs.users.searchColumn,
     defaultPageSize: 10,
     onRowClick: (row: User) => toast.info(`Usuario: ${row.name}`),
-    onSelectionChange: (selectedRows: User[]) => toast.info(`${selectedRows.length} seleccionados`),
-    onExport: (data: User[]) => toast.success(`Exportando ${data.length} registros`),
-  }
-}
+    onSelectionChange: (selectedRows: User[]) =>
+      toast.info(`${selectedRows.length} seleccionados`),
+    onExport: (data: User[]) =>
+      toast.success(`Exportando ${data.length} registros`),
+  },
+};
 
 // All variants showcase
 export const AllVariants: Story = {
@@ -388,7 +425,7 @@ export const AllVariants: Story = {
           onRowClick={(row: User) => toast.info(`Usuario: ${row.name}`)}
         />
       </div>
-      
+
       <div>
         <h3 className="text-lg font-semibold mb-4">Tabla de Productos</h3>
         <TableModule<Product>
@@ -401,7 +438,7 @@ export const AllVariants: Story = {
           onRowClick={(row: Product) => toast.info(`Producto: ${row.name}`)}
         />
       </div>
-      
+
       <div>
         <h3 className="text-lg font-semibold mb-4">Tabla Mínima</h3>
         <TableModule<User>
@@ -418,5 +455,5 @@ export const AllVariants: Story = {
         />
       </div>
     </div>
-  )
-}
+  ),
+};

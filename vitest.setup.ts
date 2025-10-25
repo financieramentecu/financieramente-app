@@ -1,56 +1,48 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+import React from 'react';
 
-type JestLike = {
-  fn: typeof vi.fn;
-  mock: typeof vi.mock;
-  clearAllMocks: typeof vi.clearAllMocks;
-  resetAllMocks: typeof vi.resetAllMocks;
-  restoreAllMocks: typeof vi.restoreAllMocks;
-  spyOn: typeof vi.spyOn;
-  unmock: typeof vi.unmock;
-  doMock: typeof vi.doMock;
-  isMockFunction: typeof vi.isMockFunction;
-  setSystemTime: typeof vi.setSystemTime;
-  useFakeTimers: typeof vi.useFakeTimers;
-  useRealTimers: typeof vi.useRealTimers;
-  advanceTimersByTime: typeof vi.advanceTimersByTime;
-  advanceTimersToNextTimer: typeof vi.advanceTimersToNextTimer;
-  getTimerCount: typeof vi.getTimerCount;
-  clearAllTimers: typeof vi.clearAllTimers;
-  runAllTimers: typeof vi.runAllTimers;
-  runOnlyPendingTimers: typeof vi.runOnlyPendingTimers;
-};
+// Agregar alias global de jest para compatibilidad
+(global as Record<string, unknown>).jest = vi;
 
-declare global {
-  // eslint-disable-next-line no-var
-  var jest: JestLike;
-}
+// Mock de next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  })),
+  usePathname: vi.fn(() => '/'),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  redirect: vi.fn(),
+  notFound: vi.fn(),
+}));
 
-// runs a cleanup after each test case (e.g. clearing jsdom)
+// Mock de next/image
+vi.mock('next/image', () => ({
+  default: (props: Record<string, unknown>) => {
+    return React.createElement('img', props);
+  },
+}));
+
+// Mock de next/link
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => {
+    return React.createElement('a', { href }, children);
+  },
+}));
+
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
 });
-
-// Mock jest functions for compatibility
-globalThis.jest = {
-  fn: vi.fn,
-  mock: vi.mock,
-  clearAllMocks: vi.clearAllMocks,
-  resetAllMocks: vi.resetAllMocks,
-  restoreAllMocks: vi.restoreAllMocks,
-  spyOn: vi.spyOn,
-  unmock: vi.unmock,
-  doMock: vi.doMock,
-  isMockFunction: vi.isMockFunction,
-  setSystemTime: vi.setSystemTime,
-  useFakeTimers: vi.useFakeTimers,
-  useRealTimers: vi.useRealTimers,
-  advanceTimersByTime: vi.advanceTimersByTime,
-  advanceTimersToNextTimer: vi.advanceTimersToNextTimer,
-  getTimerCount: vi.getTimerCount,
-  clearAllTimers: vi.clearAllTimers,
-  runAllTimers: vi.runAllTimers,
-  runOnlyPendingTimers: vi.runOnlyPendingTimers,
-} satisfies JestLike;

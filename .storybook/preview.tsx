@@ -1,6 +1,7 @@
 import type { Preview } from "@storybook/react";
 import React from "react";
 import { ThemeProvider } from "../src/hooks/use-theme";
+import { Toaster } from "../src/components/ui/sonner";
 
 // Importar Tailwind CSS
 import "../src/app/tailwind.css";
@@ -92,6 +93,7 @@ const preview: Preview = {
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
         <div className="sidebar-storybook">
           <Story />
+          <Toaster />
         </div>
       </ThemeProvider>
     ),
