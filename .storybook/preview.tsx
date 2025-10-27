@@ -1,4 +1,4 @@
-import type { Preview } from "@storybook/react";
+import type { Preview } from "@storybook/nextjs";
 import React from "react";
 import { ThemeProvider } from "../src/hooks/use-theme";
 import { Toaster } from "../src/components/ui/sonner";

@@ -10,7 +10,7 @@ export interface Business {
   date: string
   value: number
   product: string
-  status: 'Emitido' | 'Venta Efectuado'
+  status: 'Iniciado' | 'Venta Descuento' | 'Emitido'
 }
 
 export interface StatsData {
@@ -26,7 +26,17 @@ export interface BusinessSearchParams {
   searchCriteria: string
 }
 
-export type BusinessStatus = 'Emitido' | 'Venta Efectuado'
+export type BusinessStatus = 'Iniciado' | 'Venta Descuento' | 'Emitido'
+
+export interface SearchTypeOption {
+  value: 'agent' | 'client' | 'id'
+  label: string
+}
+
+export interface UserAvatar {
+  name: string
+  color: string
+}
 
 
 

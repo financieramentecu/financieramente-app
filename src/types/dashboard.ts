@@ -1,3 +1,6 @@
+import { User } from './user'
+import { NavItem } from './user'
+
 export interface DashboardLayoutProps {
   children: React.ReactNode
   currentPage: string
@@ -21,7 +24,7 @@ export interface SidebarProps {
 export interface DataTableColumn<T> {
   key: keyof T
   header: string
-  cellRenderer?: (value: any, row: T) => React.ReactNode
+  cellRenderer?: (value: unknown, row: T) => React.ReactNode
   sortable?: boolean
 }
 
@@ -48,9 +51,6 @@ export interface StatsCardProps {
   icon?: React.ReactNode
   description?: string
 }
-
-import { User } from './user'
-import { NavItem } from './user'
 
 
 

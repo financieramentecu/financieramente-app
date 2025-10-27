@@ -11,93 +11,42 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
+  useSidebar,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "../ui/sidebar"
 
-import { LayoutDashboard, List, ChartBar, Folder, Users, Camera, FileText, FileCode, Settings, Search, Database, FileSpreadsheet, FileText as FileWord, HelpCircleIcon, User } from "lucide-react"
+import { Building2, ChevronDown, Settings, User } from "lucide-react"
 import Image from "next/image"
-import { useSidebar } from "@/components/ui/sidebar"
 
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Juan A",
+    email: "juan@example.com",
+    avatar: "/avatars/juan.jpg",
   },
   navMain: [
     {
-      title: "Dashboard",
+      title: "Negocio",
       url: "#",
-      icon: <LayoutDashboard className="h-4 w-4" />,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: <List className="h-4 w-4" />,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: <ChartBar className="h-4 w-4" />,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: <Folder className="h-4 w-4" />,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: <Users className="h-4 w-4" />,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: Camera,
+      icon: <Building2 className="h-4 w-4" />,
       isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
     },
     {
-      title: "Proposal",
-      icon: FileText,
+      title: "Distribución",
       url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
+      icon: <ChevronDown className="h-4 w-4" />,
+      hasDropdown: true,
     },
     {
-      title: "Prompts",
-      icon: FileCode,
+      title: "Pre-liquidación",
       url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
+      icon: <Building2 className="h-4 w-4" />,
+    },
+    {
+      title: "Liquidación",
+      url: "#",
+      icon: <Building2 className="h-4 w-4" />,
     },
   ],
   navSecondary: [
@@ -110,23 +59,6 @@ const data = {
       title: "Configuración",
       url: "#",
       icon: <Settings className="h-4 w-4" />,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: Database,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: FileSpreadsheet,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: FileWord,
     },
   ],
 }
@@ -162,16 +94,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          {data.navSecondary.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} asChild className="sidebar-button">
-                <a href={item.url}>
-                  {item.icon}
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip={data.user.name} asChild className="sidebar-button">
+              <a href="#">
+                <User className="h-4 w-4" />
+                <span>{data.user.name}</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

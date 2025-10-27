@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
+import React from 'react'
 import { BusinessSearchForm } from '../components/mis-negocios/BusinessSearchForm'
 import { ThemeProvider } from '../hooks/use-theme'
 import { BusinessSearchParams } from '../types/business'

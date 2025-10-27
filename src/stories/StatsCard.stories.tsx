@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
+import React from 'react'
 import { StatsCard } from '../components/ui/StatsCard'
 import { ThemeProvider } from '../hooks/use-theme'
 import { TrendingUp, TrendingDown, Minus, DollarSign, Users } from 'lucide-react'
