@@ -161,6 +161,12 @@ timeout 300 apt-get install -y nodejs || {
     echo "Node.js installation timed out, continuing..."
 }
 
+# Install Certbot for SSL certificates
+echo "Installing Certbot..."
+timeout 300 apt-get install -y certbot || {
+    echo "Certbot installation timed out, continuing..."
+}
+
 # Install PM2 for process management (optional)
 if command -v npm >/dev/null 2>&1; then
     echo "Installing PM2..."
