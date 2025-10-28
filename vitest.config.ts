@@ -15,6 +15,17 @@ export default (async () => {
       environment: 'jsdom',
       setupFiles: './vitest.setup.ts',
       globals: true,
+      include: ['src/**/*.test.{ts,tsx}'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'build/',
+        '.next/',
+        'e2e/**',
+        'playwright-report/',
+        'test-results/',
+        'coverage/',
+      ],
     },
     resolve: {
       alias: {
