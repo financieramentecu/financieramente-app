@@ -11,7 +11,7 @@ Esta guía describe cómo configurar el dominio y certificados SSL para los ambi
 
 Los dominios están configurados en Hostinger y apuntan a los droplets de Digital Ocean:
 
-- QA Domain → `159.203.104.254` (s-1vcpu-1gb droplet)
+- QA Domain → `64.225.11.130` (s-1vcpu-1gb droplet)
 - Prod Domain → [PROD_IP] (cuando se cree el droplet de producción)
 
 ## Requisitos Previos
@@ -27,7 +27,7 @@ Los dominios están configurados en Hostinger y apuntan a los droplets de Digita
 
 ```bash
 # Conectar al servidor QA
-ssh root@159.203.104.254 -i ~/.ssh/droplet_deploy
+ssh root@64.225.11.130 -i ~/.ssh/droplet_deploy
 
 # O usar el script de infraestructura
 ./scripts/infrastructure.sh connect-qa
@@ -139,7 +139,7 @@ certbot renew --force-renewal
 # Verificar DNS
 nslookup negocios.qa.financieramentecu.co
 
-# Debe mostrar: 159.203.104.254
+# Debe mostrar: 64.225.11.130
 # Si no, configurar DNS en Hostinger y esperar propagación
 ```
 
