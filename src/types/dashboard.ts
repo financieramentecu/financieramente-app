@@ -21,7 +21,7 @@ export interface SidebarProps {
 export interface DataTableColumn<T> {
   key: keyof T
   header: string
-  cellRenderer?: (value: any, row: T) => React.ReactNode
+  cellRenderer?: (value: unknown, row: T) => React.ReactNode
   sortable?: boolean
 }
 

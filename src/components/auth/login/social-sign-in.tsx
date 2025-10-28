@@ -1,6 +1,7 @@
 import { ReactNode } from "react"
 
-import { Button, type ButtonProps } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
+import type { ComponentProps } from "react"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
@@ -11,7 +12,7 @@ export interface SocialProvider {
   label: string
   icon?: ReactNode
   onClick?: () => void
-  buttonProps?: ButtonProps
+  buttonProps?: ComponentProps<typeof Button>
 }
 
 export interface SocialSignInProps {

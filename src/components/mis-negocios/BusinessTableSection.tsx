@@ -51,61 +51,64 @@ export function BusinessTableSection({
       key: 'identification',
       header: 'Identificación',
       cellRenderer: (value) => (
-        <span className="font-medium">{value}</span>
+        <span className="font-medium">{value as string}</span>
       )
     },
     {
       key: 'user',
       header: 'Usuario',
-      cellRenderer: (user) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback>
-              {user.name.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-          <span className="font-medium">{user.name}</span>
-        </div>
-      )
+      cellRenderer: (user) => {
+        const userData = user as Business['user']
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={userData.avatar} alt={userData.name} />
+              <AvatarFallback>
+                {userData.name.split(' ').map((n: string) => n[0]).join('')}
+              </AvatarFallback>
+            </Avatar>
+            <span className="font-medium">{userData.name}</span>
+          </div>
+        )
+      }
     },
     {
       key: 'email',
       header: 'Email',
       cellRenderer: (value) => (
-        <span className="text-muted-foreground">{value}</span>
+        <span className="text-muted-foreground">{value as string}</span>
       )
     },
     {
       key: 'termPeriod',
       header: 'Plazo',
       cellRenderer: (value) => (
-        <span>{value}</span>
+        <span>{value as string}</span>
       )
     },
     {
       key: 'date',
       header: 'Fecha',
-      cellRenderer: (value) => formatDate(value)
+      cellRenderer: (value) => formatDate(value as string)
     },
     {
       key: 'value',
       header: 'Valor',
       cellRenderer: (value) => (
-        <span className="font-medium">{formatCurrency(value)}</span>
+        <span className="font-medium">{formatCurrency(value as number)}</span>
       )
     },
     {
       key: 'product',
       header: 'Producto',
       cellRenderer: (value) => (
-        <span>{value}</span>
+        <span>{value as string}</span>
       )
     },
     {
       key: 'status',
       header: 'Estado',
-      cellRenderer: (value) => getStatusBadge(value)
+      cellRenderer: (value) => getStatusBadge(value as string)
     },
     {
       key: 'actions',

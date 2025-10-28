@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/nextjs'
 import { DataTable } from '../components/ui/DataTable'
 import { ThemeProvider } from '../hooks/use-theme'
 import { mockBusinessList } from '../data/mockBusinessData'
-import { Business } from '../types/business'
 import { DataTableColumn } from '../types/dashboard'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
@@ -39,29 +38,32 @@ const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
     key: 'identification',
     header: 'Identificación',
     cellRenderer: (value) => (
-      <span className="font-medium">{value}</span>
+      <span className="font-medium">{value as string}</span>
     )
   },
   {
     key: 'user',
     header: 'Usuario',
-    cellRenderer: (user) => (
-      <div className="flex items-center gap-3">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={user.avatar} alt={user.name} />
-          <AvatarFallback>
-            {user.name.split(' ').map((n: string) => n[0]).join('')}
-          </AvatarFallback>
-        </Avatar>
-        <span className="font-medium">{user.name}</span>
-      </div>
-    )
+    cellRenderer: (value) => {
+      const user = value as { avatar: string; name: string }
+      return (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarFallback>
+              {user.name.split(' ').map((n: string) => n[0]).join('')}
+            </AvatarFallback>
+          </Avatar>
+          <span className="font-medium">{user.name}</span>
+        </div>
+      )
+    }
   },
   {
     key: 'email',
     header: 'Email',
     cellRenderer: (value) => (
-      <span className="text-muted-foreground">{value}</span>
+      <span className="text-muted-foreground">{value as string}</span>
     )
   },
   {
@@ -73,7 +75,7 @@ const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
           style: 'currency',
           currency: 'COP',
           minimumFractionDigits: 0
-        }).format(value)}
+        }).format(value as number)}
       </span>
     )
   },
@@ -82,17 +84,17 @@ const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
     header: 'Estado',
     cellRenderer: (value) => (
       <Badge 
-        variant={value === 'Emitido' ? "default" : "secondary"}
-        className={value === 'Emitido' ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}
+        variant={(value as string) === 'Emitido' ? "default" : "secondary"}
+        className={(value as string) === 'Emitido' ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}
       >
-        {value}
+        {value as string}
       </Badge>
     )
   },
   {
     key: 'actions',
     header: 'Acciones',
-    cellRenderer: (_, row) => (
+    cellRenderer: () => (
       <Button variant="outline" size="sm">
         Editar
       </Button>

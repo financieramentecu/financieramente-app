@@ -4,15 +4,14 @@ import React, { useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { DataTableProps } from '@/types/dashboard'
+import { DataTableProps, DataTableColumn } from '@/types/dashboard'
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T extends Record<string, unknown>>({
   columns,
   data,
   pagination,
-  onRowAction,
+  onRowAction: _onRowAction,
   searchable = false,
   onGlobalSearch,
   loading = false
@@ -24,23 +23,11 @@ export function DataTable<T extends Record<string, any>>({
     onGlobalSearch?.(query)
   }
 
-  const renderCell = (column: any, row: T) => {
+  const renderCell = (column: DataTableColumn<T>, row: T): React.ReactNode => {
     if (column.cellRenderer) {
       return column.cellRenderer(row[column.key], row)
     }
-    return row[column.key]
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(value)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-CO')
+    return String(row[column.key])
   }
 
   return (

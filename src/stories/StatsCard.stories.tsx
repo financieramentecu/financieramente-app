@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
 import { StatsCard } from '../components/ui/StatsCard'
 import { ThemeProvider } from '../hooks/use-theme'
-import { TrendingUp, TrendingDown, Minus, DollarSign, Users } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, Users } from 'lucide-react'
 
 const meta: Meta<typeof StatsCard> = {
   title: 'UI/StatsCard',

@@ -1,4 +1,4 @@
-export interface Business {
+export interface Business extends Record<string, unknown> {
   id: string
   identification: string
   user: {
@@ -11,6 +11,7 @@ export interface Business {
   value: number
   product: string
   status: 'Emitido' | 'Venta Efectuado'
+  actions?: unknown
 }
 
 export interface StatsData {

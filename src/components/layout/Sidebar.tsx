@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-import { LayoutDashboard, List, ChartBar, Folder, Users, Camera, FileText, FileCode, Settings, Search, Database, FileSpreadsheet, FileText as FileWord, HelpCircleIcon, User } from "lucide-react"
+import { LayoutDashboard, List, ChartBar, Folder, Users, Camera, FileText, FileCode, Settings, Database, FileSpreadsheet, FileText as FileWord, User } from "lucide-react"
 import Image from "next/image"
 import { useSidebar } from "@/components/ui/sidebar"
 
