@@ -24,15 +24,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Generate Prisma Client
         run: |
           echo "Prisma client generation temporarily disabled - schema not configured yet"
           # npx prisma generate
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
 
       - name: Run linter
         run: npm run lint
@@ -52,23 +68,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma Client
-        run: |
-          echo "Prisma client generation temporarily disabled - schema not configured yet"
-          # npx prisma generate
-
-      - name: Build application
-        run: npm run build
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -268,6 +267,10 @@ jobs:
           ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
           cd /opt/financieramente
 
+          # Enable Docker BuildKit for faster builds with better caching
+          export DOCKER_BUILDKIT=1
+          export COMPOSE_DOCKER_CLI_BUILD=1
+
           # Stop existing containers gracefully
           echo "Stopping existing containers..."
           docker-compose -f docker-compose.qa.yml down --timeout 30 || true
@@ -275,9 +278,9 @@ jobs:
           # Clean up any orphaned containers
           docker container prune -f || true
 
-          # Build and start new containers
+          # Build and start new containers (with cache for faster builds)
           echo "Building new containers..."
-          docker-compose -f docker-compose.qa.yml build --no-cache --parallel
+          docker-compose -f docker-compose.qa.yml build --parallel
 
           echo "Starting new containers..."
           docker-compose -f docker-compose.qa.yml up -d

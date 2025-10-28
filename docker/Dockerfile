@@ -6,12 +6,12 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
+# Copy package files (for better Docker layer caching)
 COPY package*.json ./
 # COPY prisma ./prisma/  # Temporarily disabled - Prisma schema not configured yet
 
-# Install dependencies (including dev dependencies for build)
-RUN npm install && npm cache clean --force
+# Install dependencies with npm ci for faster, reliable, reproducible builds
+RUN npm ci --prefer-offline --no-audit
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
@@ -19,13 +19,25 @@ WORKDIR /app
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+
+# Copy source code (this layer changes less often)
+COPY package*.json ./
+COPY next.config.ts ./
+COPY tsconfig.json ./
+COPY tailwind.config.ts ./
+COPY postcss.config.mjs ./
+
+# Copy app source (more volatile, should be last before build)
+COPY src ./src
+COPY public ./public
+COPY components.json ./
 
 # Generate Prisma client
 # RUN npx prisma generate  # Temporarily disabled - Prisma schema not configured yet
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV production
 RUN npm run build
 
 # Stage 3: Runner
