@@ -162,12 +162,20 @@ const AlertModal = React.forwardRef<HTMLDivElement, AlertModalProps>(
 
     const Icon = icons[type]
 
+    const typeLabels = {
+      info: 'Información',
+      success: 'Éxito',
+      warning: 'Advertencia',
+      error: 'Error'
+    }
+
     return (
       <Modal
         ref={ref}
         open={open}
         onOpenChange={onOpenChange}
         trigger={trigger}
+        title={typeLabels[type]}
         size="sm"
         variant="alert"
         {...props}
@@ -210,6 +218,7 @@ const ConfirmModal = React.forwardRef<HTMLDivElement, ConfirmModalProps>(
         open={open}
         onOpenChange={onOpenChange}
         trigger={trigger}
+        title="Confirmar Acción"
         size="sm"
         variant="confirm"
         {...props}
@@ -273,6 +282,7 @@ const FormModal = React.forwardRef<HTMLDivElement, FormModalProps>(
         open={open}
         onOpenChange={onOpenChange}
         trigger={trigger}
+        title="Formulario"
         size="md"
         variant="form"
         {...props}
