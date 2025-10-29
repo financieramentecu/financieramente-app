@@ -419,9 +419,44 @@ Para escalar horizontalmente:
 
 ## Troubleshooting
 
+> 📖 **Guía Completa de Troubleshooting**: Para una guía detallada de solución de problemas, consulta [TROUBLESHOOTING_DEPLOY.md](./TROUBLESHOOTING_DEPLOY.md)
+
+### Diagnóstico Rápido del Droplet
+
+Si el deployment falla con "Connection refused" o "Connection timeout":
+
+```bash
+# Usar el script de diagnóstico automático
+./scripts/droplet-status.sh
+```
+
+Este script verifica:
+- ✅ Estado del droplet (on/off)
+- ✅ Conectividad (ping, SSH, HTTP)
+- ✅ Ofrece encender el droplet automáticamente
+- ✅ Muestra un resumen completo del estado
+
 ### Problemas Comunes
 
-#### 1. Aplicación no responde
+#### 1. Droplet inaccesible (Connection refused/timeout)
+
+**Síntomas**: GitHub Actions falla con error SSH "Connection refused" o timeout.
+
+**Causa**: El droplet está apagado o tiene problemas de red.
+
+**Solución rápida**:
+```bash
+# Opción 1: Usar script de diagnóstico
+./scripts/droplet-status.sh
+
+# Opción 2: Encender manualmente con doctl
+doctl compute droplet-action power-on 526850447 --wait
+
+# Opción 3: Desde Digital Ocean Console
+# https://cloud.digitalocean.com/droplets
+```
+
+#### 2. Aplicación no responde
 
 ```bash
 # Verificar contenedores
@@ -434,7 +469,7 @@ ssh root@[IP] "cd /opt/financieramente && docker-compose logs"
 ./scripts/infrastructure.sh restart-qa
 ```
 
-#### 2. Base de datos no conecta
+#### 3. Base de datos no conecta
 
 ```bash
 # Verificar PostgreSQL
@@ -444,16 +479,16 @@ ssh root@[IP] "cd /opt/financieramente && docker-compose exec postgres pg_isread
 ssh root@[IP] "cd /opt/financieramente && cat .env"
 ```
 
-#### 3. GitHub Actions falla
+#### 4. GitHub Actions falla
 
 **Problemas Comunes**:
 
 1. **Error de conexión SSH**: 
    ```bash
-   # Verificar que el droplet está accesible
-   ping ${{ secrets.QA_DROPLET_IP }}
+   # Verificar que el droplet está encendido
+   ./scripts/droplet-status.sh
    
-   # Verificar conectividad SSH
+   # Verificar conectividad SSH manual
    ssh root@${{ secrets.QA_DROPLET_IP }} "echo 'Connection successful'"
    ```
 
@@ -475,13 +510,14 @@ ssh root@[IP] "cd /opt/financieramente && cat .env"
    ```
 
 **Solución General**:
-1. Verificar GitHub Secrets (`SSH_PRIVATE_KEY`, `QA_DROPLET_IP`, passwords)
-2. Verificar SSH key permissions
-3. Verificar IPs de Droplets
-4. Revisar logs del workflow en la pestaña "Actions" de GitHub
-5. Verificar que los puertos del firewall están abiertos
+1. Verificar que el droplet está encendido: `./scripts/droplet-status.sh`
+2. Verificar GitHub Secrets (`SSH_PRIVATE_KEY`, `QA_DROPLET_IP`, passwords)
+3. Verificar SSH key permissions
+4. Verificar IPs de Droplets
+5. Revisar logs del workflow en la pestaña "Actions" de GitHub
+6. Verificar que los puertos del firewall están abiertos
 
-#### 4. Problemas con rsync/scp en deployment
+#### 5. Problemas con rsync/scp en deployment
 
 Si el deployment falla al copiar archivos:
 
