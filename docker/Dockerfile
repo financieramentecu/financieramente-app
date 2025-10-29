@@ -38,6 +38,9 @@ COPY components.json ./
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
+# Skip type checking and linting during build (already done in CI tests)
+ENV SKIP_ENV_VALIDATION true
+ENV NEXT_SKIP_TYPE_CHECK true
 RUN npm run build
 
 # Stage 3: Runner

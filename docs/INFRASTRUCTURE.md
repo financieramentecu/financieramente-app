@@ -335,6 +335,38 @@ El workflow copia los archivos necesarios usando `rsync`:
 --exclude='terraform'
 ```
 
+#### Optimizaciones de Build
+
+Para reducir el tiempo de build y el consumo de recursos en el droplet QA:
+
+**Type Checking y Linting**:
+- Se ejecutan en el step de **Tests** (antes del deployment)
+- Se **deshabilitan** durante el build de Docker
+- Esto reduce significativamente el tiempo y memoria necesarios
+
+**Variables de entorno en Dockerfile**:
+```dockerfile
+ENV NEXT_SKIP_TYPE_CHECK=true  # Deshabilita type checking
+ENV SKIP_ENV_VALIDATION=true   # Deshabilita validación de env
+```
+
+**Configuración en next.config.ts**:
+```typescript
+typescript: {
+  ignoreBuildErrors: process.env.NEXT_SKIP_TYPE_CHECK === 'true',
+},
+eslint: {
+  ignoreDuringBuilds: process.env.NEXT_SKIP_TYPE_CHECK === 'true',
+}
+```
+
+**Timeouts en SSH Actions**:
+- Deploy: 30 minutos
+- Health Check: 10 minutos
+- Cleanup: 5 minutos
+
+Esto previene timeouts en droplets con recursos limitados.
+
 #### Fase 3: Deployment en el Servidor
 
 Una vez que los archivos llegan al servidor, se ejecutan estos comandos:
@@ -555,16 +587,155 @@ terraform apply
 terraform output
 ```
 
+## Estabilidad y Prevención de Problemas
+
+### ¿Por Qué se Puede Bloquear/Congelar un Droplet?
+
+El droplet puede volverse inaccesible por varias razones:
+
+#### 1. Falta de Recursos (Más Común)
+
+El droplet QA tiene recursos limitados (1GB RAM, 1 vCPU):
+
+**Causas:**
+- Memoria RAM llena → Sistema congela o mata procesos
+- Disco lleno → No puede escribir logs o crear archivos temporales
+- CPU al 100% → Sistema no responde
+
+**Prevención:**
+```bash
+# Monitorear recursos regularmente
+ssh root@[IP] "free -h && df -h && top -bn1 | head -20"
+
+# Limpiar Docker regularmente (cada semana)
+docker system prune -a -f
+docker volume prune -f
+
+# Limpiar logs antiguos
+journalctl --vacuum-time=7d
+```
+
+#### 2. Problemas con Docker
+
+**Causas:**
+- Contenedores zombie que no responden
+- Docker daemon congelado
+- Builds fallidos que dejan el sistema inestable
+
+**Prevención:**
+```bash
+# Reiniciar Docker semanalmente en horarios de bajo tráfico
+systemctl restart docker
+
+# Verificar salud de contenedores
+docker ps -a
+docker system df
+
+# Eliminar contenedores detenidos
+docker container prune -f
+```
+
+#### 3. Configuración Incorrecta del Firewall
+
+**Causas:**
+- Regla UFW que bloqueó SSH
+- Fail2ban baneó una IP importante
+
+**Prevención:**
+```bash
+# Verificar reglas UFW antes de aplicar cambios
+ufw status numbered
+
+# Siempre mantener puerto 22 abierto
+ufw allow 22/tcp
+
+# Verificar bans de Fail2ban
+fail2ban-client status sshd
+```
+
+#### 4. Procesos Fuera de Control
+
+**Causas:**
+- Loop infinito en la aplicación
+- Memory leak en el código
+- Demasiados contenedores simultáneos
+
+**Prevención:**
+- Implementar timeouts en la aplicación
+- Usar límites de recursos en Docker Compose
+- Monitorear logs regularmente
+
+#### 5. Problemas de Red en Digital Ocean
+
+**Causas:**
+- Mantenimiento de infraestructura
+- Problemas en el datacenter
+
+**Prevención:**
+- Suscribirse a notificaciones de Digital Ocean
+- Tener un plan de respuesta para outages
+
+### Mantenimiento Preventivo Recomendado
+
+#### Semanal
+```bash
+# Limpiar Docker
+docker system prune -f
+docker volume prune -f
+
+# Limpiar logs
+journalctl --vacuum-time=7d
+
+# Verificar espacio en disco
+df -h
+
+# Verificar memoria
+free -h
+```
+
+#### Mensual
+```bash
+# Actualizar paquetes del sistema
+apt update && apt upgrade -y
+
+# Reiniciar el servidor (en horario de bajo tráfico)
+reboot
+
+# Verificar logs del sistema
+journalctl -p err -n 50
+```
+
+#### Señales de Alerta
+
+Monitorea estas métricas:
+
+| Métrica | Normal | Alerta | Crítico |
+|---------|--------|--------|---------|
+| Uso de RAM | < 70% | 70-85% | > 85% |
+| Uso de Disco | < 70% | 70-85% | > 85% |
+| Carga CPU | < 1.0 | 1.0-1.5 | > 1.5 |
+| Docker Images | < 5 | 5-10 | > 10 |
+
+### Solución Rápida si el Droplet se Congela
+
+Si el droplet no responde a SSH:
+
+1. **Verificar en Dashboard**: https://cloud.digitalocean.com/droplets
+2. **Power Cycle**: Power → Power Cycle (NO Power Off)
+3. **Esperar 5 minutos**: El servidor necesita tiempo para reiniciar
+4. **Verificar logs**: Revisar `/var/log/syslog` para identificar la causa
+
 ## Próximos Pasos
 
 ### Mejoras Futuras
 
 1. **SSL/HTTPS**: Configurar Let's Encrypt
-2. **Monitoring**: Implementar Prometheus + Grafana
+2. **Monitoring**: Implementar Prometheus + Grafana para alertas automáticas
 3. **Backup Automático**: Backup diario de base de datos
 4. **Load Balancer**: Para alta disponibilidad
 5. **CDN**: Para assets estáticos
 6. **Managed Database**: PostgreSQL managed de Digital Ocean
+7. **Alertas**: Configurar alertas de uso de recursos en Digital Ocean
 
 ### Escalabilidad
 
