@@ -11,7 +11,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      # - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro  # Commented out - file doesn't exist yet
       - ./backups:/backups
     ports:
       - "5432:5432"
@@ -43,7 +43,7 @@ services:
   nextjs:
     build:
       context: ./app
-      dockerfile: ./docker/Dockerfile
+      dockerfile: ../docker/Dockerfile
     container_name: financieramente-nextjs-prod
     restart: unless-stopped
     environment:
