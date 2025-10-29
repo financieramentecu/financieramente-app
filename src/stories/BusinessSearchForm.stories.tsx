@@ -4,7 +4,7 @@ import { ThemeProvider } from '../hooks/use-theme'
 import { BusinessSearchParams } from '../types/business'
 
 const meta: Meta<typeof BusinessSearchForm> = {
-  title: 'Components/BusinessSearchForm',
+  title: 'Business/BusinessSearchForm',
   component: BusinessSearchForm,
   parameters: {
     layout: 'centered',
