@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   // External packages for server components
   serverExternalPackages: ['@prisma/client'],
 
+  // Skip type checking and ESLint during build (already done in CI/CD tests)
+  // This reduces build time and memory usage in resource-constrained environments
+  typescript: {
+    ignoreBuildErrors: process.env.NEXT_SKIP_TYPE_CHECK === 'true',
+  },
+  eslint: {
+    ignoreDuringBuilds: process.env.NEXT_SKIP_TYPE_CHECK === 'true',
+  },
+
   // Environment variables
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,

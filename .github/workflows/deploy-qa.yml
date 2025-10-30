@@ -24,21 +24,37 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit
 
       - name: Generate Prisma Client
         run: |
           echo "Prisma client generation temporarily disabled - schema not configured yet"
           # npx prisma generate
 
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
       - name: Run linter
         run: npm run lint
 
-      - name: Run tests
-        run: npm test
+      - name: Run unit tests
+        run: npm run test:unit
 
       - name: Build application
         run: npm run build
@@ -53,298 +69,106 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma Client
-        run: |
-          echo "Prisma client generation temporarily disabled - schema not configured yet"
-          # npx prisma generate
-
-      - name: Build application
-        run: npm run build
-
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Verify SSH key
-        run: |
-          echo "Verifying SSH key configuration..."
-          echo "SSH agent status:"
-          ssh-add -l
-          echo "✅ SSH key verification completed"
-
-      - name: Add SSH known hosts
-        run: |
-          echo "Setting up SSH known hosts for ${{ secrets.QA_DROPLET_IP }}..."
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          # Crear archivo vacío con permisos correctos
-          touch ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-          echo "Attempting to fetch host key with retry logic..."
-          MAX_ATTEMPTS=3
-          ATTEMPT=1
-          SUCCESS=false
-
-          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Running ssh-keyscan..."
-            
-            # Ejecutar ssh-keyscan con timeout explícito y capturar output
-            SCAN_OUTPUT=$(ssh-keyscan -T 15 -H ${{ secrets.QA_DROPLET_IP }} 2>&1)
-            SCAN_EXIT_CODE=$?
-            
-            echo "ssh-keyscan exit code: $SCAN_EXIT_CODE"
-            echo "ssh-keyscan output: '$SCAN_OUTPUT'"
-            
-            # Verificar si obtuvimos una clave válida
-            if [ -n "$SCAN_OUTPUT" ] && echo "$SCAN_OUTPUT" | grep -q "ssh-"; then
-              echo "$SCAN_OUTPUT" >> ~/.ssh/known_hosts
-              echo "✅ Host key successfully retrieved and added"
-              echo "Retrieved key:"
-              echo "$SCAN_OUTPUT"
-              SUCCESS=true
-              break
-            else
-              echo "⚠️ Attempt $ATTEMPT failed to retrieve valid host key"
-              echo "Output was: '$SCAN_OUTPUT'"
-              if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
-                echo "Waiting 15 seconds before retry..."
-                sleep 15
-              fi
-            fi
-            
-            ATTEMPT=$((ATTEMPT + 1))
-          done
-
-          # Si ssh-keyscan falla, usar StrictHostKeyChecking=no para QA
-          if [ "$SUCCESS" = false ]; then
-            echo "⚠️ ssh-keyscan failed after $MAX_ATTEMPTS attempts"
-            echo "This is acceptable for QA environment - will use StrictHostKeyChecking=no"
-            echo "Creating empty known_hosts file for consistency..."
-            touch ~/.ssh/known_hosts
-            chmod 600 ~/.ssh/known_hosts
-            echo "✅ Proceeding with StrictHostKeyChecking=no for QA environment"
-          else
-            # Verificar que el archivo no esté vacío
-            if [ ! -s ~/.ssh/known_hosts ]; then
-              echo "❌ known_hosts file is empty after successful scan"
-              exit 1
-            fi
-            
-            echo "✅ SSH known hosts configured successfully"
-            echo "Final known_hosts content:"
-            cat ~/.ssh/known_hosts
-          fi
-
-      - name: Test SSH connection
-        run: |
-          echo "Testing SSH connection to ${{ secrets.QA_DROPLET_IP }}..."
-          ssh -o ConnectTimeout=30 -o BatchMode=yes -o StrictHostKeyChecking=no root@${{ secrets.QA_DROPLET_IP }} "echo 'SSH connection successful'"
-          echo "✅ SSH connection test passed"
-
-      - name: Verify SSH setup
-        run: |
-          echo "Verifying SSH configuration..."
-          echo "SSH agent status:"
-          ssh-add -l || echo "No keys loaded"
-          echo "SSH known hosts:"
-          cat ~/.ssh/known_hosts || echo "No known hosts file"
-          echo "✅ SSH setup verification completed"
-
-      - name: SSH Diagnostic
-        if: failure()
-        run: |
-          echo "=== SSH DIAGNOSTIC DUE TO FAILURE ==="
-          echo ""
-          echo "1. SSH Agent Status:"
-          ssh-add -l || echo "No keys loaded"
-          echo ""
-          echo "2. SSH Directory:"
-          ls -la ~/.ssh/ 2>/dev/null || echo "SSH directory not found"
-          echo ""
-          echo "3. Known Hosts File:"
-          if [ -f ~/.ssh/known_hosts ]; then
-            echo "File exists. Size: $(stat -f%z ~/.ssh/known_hosts 2>/dev/null || stat -c%s ~/.ssh/known_hosts) bytes"
-            echo "Content:"
-            cat ~/.ssh/known_hosts
-          else
-            echo "File does not exist"
-          fi
-          echo ""
-          echo "4. Network Connectivity:"
-          ping -c 3 ${{ secrets.QA_DROPLET_IP }} || echo "Ping failed (ICMP might be blocked)"
-          echo ""
-          echo "5. SSH Port Test:"
-          nc -z -w5 ${{ secrets.QA_DROPLET_IP }} 22 && echo "✅ Port 22 is open" || echo "❌ Port 22 is not accessible"
-          echo ""
-          echo "6. Manual ssh-keyscan Test (verbose):"
-          ssh-keyscan -v -T 15 ${{ secrets.QA_DROPLET_IP }} 2>&1 || echo "ssh-keyscan failed"
-          echo ""
-          echo "7. Direct SSH Test (will likely fail but shows exact error):"
-          ssh -vvv -o ConnectTimeout=10 -o BatchMode=yes root@${{ secrets.QA_DROPLET_IP }} "echo test" 2>&1 | head -30
-
       - name: Copy files to server
         run: |
-          # Create app directory structure
-          ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} "mkdir -p /opt/financieramente/app"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
 
-          # Copy application files with retry logic
-          for i in {1..3}; do
-            if rsync -avz --delete \
-              --exclude='.git' \
-              --exclude='node_modules' \
-              --exclude='.next' \
-              --exclude='*.log' \
-              --timeout=300 \
-              ./ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/app/; then
-              echo "✅ Files copied successfully"
-              break
-            else
-              echo "❌ File copy attempt $i failed, retrying..."
-              sleep 10
-            fi
-          done
+          ssh-keyscan -H ${{ secrets.QA_DROPLET_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Copy Docker files
-        run: |
-          # Copy Docker configuration with retry logic
-          for i in {1..3}; do
-            if scp -r -o ConnectTimeout=30 ./docker/* root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/; then
-              echo "✅ Docker files copied successfully"
-              break
-            else
-              echo "❌ Docker files copy attempt $i failed, retrying..."
-              sleep 10
-            fi
-          done
+          rsync -avz --delete \
+            --exclude='node_modules' \
+            --exclude='.next' \
+            --exclude='.git' \
+            --exclude='coverage' \
+            --exclude='storybook-static' \
+            --exclude='test-results' \
+            --exclude='*.log' \
+            --exclude='.dockerignore' \
+            --exclude='html' \
+            --exclude='terraform' \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/app/
 
-      - name: Setup environment variables
-        run: |
-          ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
-          cd /opt/financieramente
-
-          # Create environment file
-          cat > .env << 'ENVEOF'
-          NODE_ENV=qa
-          POSTGRES_USER=financieramente_user
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_QA }}
-          POSTGRES_DB=financieramente_qa
-          DATABASE_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_QA }}@postgres:5432/financieramente_qa
-          NEXT_PUBLIC_API_URL=http://${{ secrets.QA_DROPLET_IP }}
-          ENVEOF
-
-          # Copy environment to app directory
-          cp .env app/.env
-          echo "✅ Environment variables configured"
-          EOF
-
-      - name: Run database migrations
-        run: |
-          echo "Database migrations temporarily disabled - Prisma schema not configured yet"
-          # ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
-          # cd /opt/financieramente/app
-          # 
-          # # Wait for database to be ready
-          # echo "Waiting for database to be ready..."
-          # sleep 30
-          # 
-          # # Run Prisma migrations
-          # npx prisma migrate deploy
-          # EOF
+          scp -o StrictHostKeyChecking=no \
+            -r ./docker/* root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/
 
       - name: Deploy application
-        run: |
-          ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
-          cd /opt/financieramente
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.QA_DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 30m
+          script: |
+            # Create .env file
+            cat > /opt/financieramente/.env << 'ENVEOF'
+            NODE_ENV=qa
+            POSTGRES_USER=financieramente_user
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_QA }}
+            POSTGRES_DB=financieramente_qa
+            DATABASE_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_QA }}@postgres:5432/financieramente_qa
+            NEXT_PUBLIC_API_URL=http://${{ secrets.QA_DROPLET_IP }}
+            ENVEOF
 
-          # Stop existing containers gracefully
-          echo "Stopping existing containers..."
-          docker-compose -f docker-compose.qa.yml down --timeout 30 || true
+            cp /opt/financieramente/.env /opt/financieramente/app/.env
 
-          # Clean up any orphaned containers
-          docker container prune -f || true
+            cd /opt/financieramente
 
-          # Build and start new containers
-          echo "Building new containers..."
-          docker-compose -f docker-compose.qa.yml build --no-cache --parallel
+            # Enable Docker BuildKit
+            export DOCKER_BUILDKIT=1
+            export COMPOSE_DOCKER_CLI_BUILD=1
 
-          echo "Starting new containers..."
-          docker-compose -f docker-compose.qa.yml up -d
+            # Stop existing containers
+            docker-compose -f docker-compose.qa.yml down --timeout 30 || true
+            docker container prune -f || true
 
-          # Wait for services to be ready
-          echo "Waiting for services to start..."
-          sleep 60
+            # Build and start new containers
+            docker-compose -f docker-compose.qa.yml build --parallel
+            docker-compose -f docker-compose.qa.yml up -d
 
-          # Check container status
-          echo "Container status:"
-          docker-compose -f docker-compose.qa.yml ps
-          EOF
+            # Wait for services
+            sleep 60
+
+            # Check container status
+            docker-compose -f docker-compose.qa.yml ps
 
       - name: Health check
-        run: |
-          # Wait a bit more for services to stabilize
-          sleep 30
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.QA_DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 10m
+          script: |
+            sleep 30
 
-          # Check if the application is responding
-          echo "Starting health check..."
-          for i in {1..15}; do
-            echo "Health check attempt $i/15..."
-            if curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.QA_DROPLET_IP }}/api/health; then
-              echo "✅ Health check passed"
-              break
-            else
-              echo "⏳ Health check attempt $i/15 failed, retrying in 10 seconds..."
+            for i in {1..15}; do
+              echo "Health check attempt $i/15..."
+              if curl -f http://localhost:3000/api/health; then
+                echo "✅ Health check passed"
+                exit 0
+              fi
               sleep 10
-            fi
-          done
+            done
 
-          # Final health check
-          if ! curl -f --connect-timeout 10 --max-time 30 http://${{ secrets.QA_DROPLET_IP }}/api/health; then
-            echo "❌ Health check failed after 15 attempts"
-            echo "Checking container logs..."
-            ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} "cd /opt/financieramente && docker-compose -f docker-compose.qa.yml logs --tail=50"
+            echo "❌ Health check failed"
+            cd /opt/financieramente
+            docker-compose -f docker-compose.qa.yml logs --tail=50
             exit 1
-          fi
-
-      - name: Verify database connection
-        run: |
-          echo "Database connection verification temporarily disabled - Prisma schema not configured yet"
-          # ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
-          # cd /opt/financieramente/app
-          # 
-          # # Test database connection
-          # if npx prisma db pull --print > /dev/null 2>&1; then
-          #   echo "✅ Database connection verified"
-          # else
-          #   echo "❌ Database connection failed"
-          #   exit 1
-          # fi
-          # EOF
 
       - name: Cleanup old images
-        run: |
-          ssh -o ConnectTimeout=30 root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
-          # Remove unused Docker images
-          docker image prune -f
-
-          # Remove unused volumes
-          docker volume prune -f
-
-          # Show disk usage
-          echo "Disk usage after cleanup:"
-          df -h
-          EOF
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.QA_DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 5m
+          script: |
+            docker image prune -f
+            docker volume prune -f
+            df -h
 
       - name: Deployment success notification
         if: success()
@@ -361,10 +185,3 @@ jobs:
           echo "🔍 Check the logs above for details"
           echo "📊 Commit: ${{ github.sha }}"
           echo "👤 Author: ${{ github.actor }}"
-
-      - name: Cleanup SSH agent
-        if: always()
-        run: |
-          echo "Cleaning up SSH agent..."
-          ssh-add -D || true
-          echo "SSH agent cleanup completed"
