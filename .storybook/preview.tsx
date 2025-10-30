@@ -1,10 +1,11 @@
 import type { Preview } from "@storybook/react";
+import React from "react";
 import { ThemeProvider } from "../src/hooks/use-theme";
 import { Toaster } from "../src/components/ui/sonner";
 
-// Importar Tailwind primero
+// Importar Tailwind CSS
 import "../src/app/tailwind.css";
-// Luego las variables CSS personalizadas
+// Importar variables CSS personalizadas
 import "../src/app/globals.css";
 
 const preview: Preview = {
@@ -90,7 +91,7 @@ const preview: Preview = {
   decorators: [
     (Story) => (
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-        <div className="min-h-screen bg-background text-foreground">
+        <div className="sidebar-storybook">
           <Story />
           <Toaster />
         </div>

@@ -28,6 +28,11 @@ const eslintConfig = [
       'test-results/**',
     ],
   },
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }]
+    }
+  },
   ...storybook.configs['flat/recommended'],
 ];
 
