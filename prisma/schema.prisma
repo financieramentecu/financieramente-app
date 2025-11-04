@@ -1,0 +1,445 @@
+// Prisma Schema
+// Sistema de Liquidación de Comisiones
+// IMPORTANTE: Prisma Client solo se usa en Server Components y API Routes
+// NUNCA en Client Components ('use client')
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =====================================================
+// TABLAS DE CATÁLOGOS Y DOMINIOS
+// =====================================================
+
+model Company {
+  idCompany     Int      @id @default(autoincrement()) @map("id_company")
+  name          String   @db.VarChar(100)
+  idTypeCompany String   @map("id_type_company") @db.VarChar(20) // 'NACIONAL' o 'INTERNACIONAL'
+  status        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  products Product[]
+
+  // Note: 'Aseguradoras: Skandia, Trinity, American Fidelity.'
+
+  @@index([idTypeCompany])
+  @@map("company")
+}
+
+model ProductOrigin {
+  idOrigin    Int      @id @default(autoincrement()) @map("id_origin")
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  productPercentajeCommisions ProductPercentajeCommision[]
+
+  @@map("product_origin")
+}
+
+model ClientOrigin {
+  idClientOrigin Int      @id @default(autoincrement()) @map("id_client_origin")
+  name           String   @db.VarChar(100)
+  description    String?  @db.Text
+  status         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  clients Client[]
+
+  @@map("client_origin")
+}
+
+model Category {
+  idCategory   Int      @id @default(autoincrement()) @map("id_category")
+  code         String   @unique @db.VarChar(20)
+  name         String   @db.VarChar(50)
+  typeCategory String   @map("type_category") @db.VarChar(20) // 'MMS', 'ALIADO' o 'TRINITY'
+  descripcion  String?  @db.Text
+  status       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  users                       User[]
+  productPercentajeCommisions ProductPercentajeCommision[]
+
+  @@index([typeCategory])
+  @@map("category")
+}
+
+model TypeUser {
+  idTypeUser      Int      @id @default(autoincrement()) @map("id_type_user")
+  nombre          String   @db.VarChar(100)
+  nivelJerarquico Int      @map("nivel_jerarquico")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  users User[]
+
+  // Note: 'PRESIDENTE(1), LIDER(2), SENIOR(3), JUNIOR(4)'
+
+  @@map("type_user")
+}
+
+model BuyPeriodicity {
+  idBuyPeriodicity Int      @id @default(autoincrement()) @map("id_buy_periodicity")
+  name             String   @db.VarChar(50)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  businesses Business[]
+
+  // Note: 'MENSUAL(1), TRIMESTRAL(3), SEMESTRAL(6), ANUAL(12)'
+
+  @@map("buy_periodicity")
+}
+
+model Currency {
+  idCurrency Int      @id @default(autoincrement()) @map("id_currency")
+  name       String   @db.VarChar(50)
+  symbol     String?  @db.VarChar(5)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  businesses Business[]
+
+  @@map("currency")
+}
+
+model Position {
+  idPosition Int      @id @default(autoincrement()) @map("id_position")
+  name       String   @db.VarChar(50)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  productPercentajeCommisionPositions ProductPercentajeCommisionPosition[]
+
+  // Note: 'GENERAL, AGENCIA, GERENTE DE AGENCIA, GERENTE UNIDAD, COACH, KAM INFLUENCER'
+
+  @@map("position")
+}
+
+model TypeProduct {
+  idTypeProduct Int      @id @default(autoincrement()) @map("id_type_product")
+  name          String   @db.VarChar(200)
+  description   String?  @db.Text
+  status        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  products Product[]
+
+  @@map("type_product")
+}
+
+// =====================================================
+// ENTIDADES PRINCIPALES
+// =====================================================
+
+model Product {
+  idProduct     Int      @id @default(autoincrement()) @map("id_product")
+  idCompany     Int      @map("id_company")
+  name          String   @db.VarChar(200)
+  description   String?  @db.Text
+  idTypeProduct Int?     @map("id_type_product")
+  status        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  company                     Company                      @relation(fields: [idCompany], references: [idCompany])
+  typeProduct                 TypeProduct?                 @relation(fields: [idTypeProduct], references: [idTypeProduct])
+  productPercentajeCommisions ProductPercentajeCommision[]
+
+  @@unique([idCompany, name])
+  @@index([idCompany])
+  @@map("product")
+}
+
+model ProductPercentajeCommision {
+  idProductPercentajeCommision Int      @id @default(autoincrement()) @map("id_product_percentaje_commision")
+  idProduct                    Int      @map("id_product")
+  idOrigin                     Int      @map("id_origin")
+  idCategory                   Int      @map("id_category")
+  code                         String?  @db.VarChar(50)
+  active                       Boolean  @default(true)
+  createdAt                    DateTime @default(now()) @map("created_at")
+  updatedAt                    DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  product                             Product                              @relation(fields: [idProduct], references: [idProduct])
+  productOrigin                       ProductOrigin                        @relation(fields: [idOrigin], references: [idOrigin])
+  category                            Category                             @relation(fields: [idCategory], references: [idCategory])
+  productPercentajeCommisionPositions ProductPercentajeCommisionPosition[]
+  businesses                          Business[]
+
+  // Note: 'Configuración maestra de porcentajes. Code ejemplo: SKANDIAPROPIOMULTIFON/PLATA'
+
+  @@index([idProduct])
+  @@index([idOrigin])
+  @@index([idCategory])
+  @@map("product_percentaje_commision")
+}
+
+model ProductPercentajeCommisionPosition {
+  id                           Int      @id @default(autoincrement())
+  idPosition                   Int      @map("id_position")
+  idProductPercentajeCommision Int      @map("id_product_percentaje_commision")
+  porcentajeDistribucion       Decimal  @map("porcentaje_distribucion") @db.Decimal(5, 4)
+  active                       Boolean  @default(true)
+  createdAt                    DateTime @default(now()) @map("created_at")
+  updatedAt                    DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  position                   Position                   @relation(fields: [idPosition], references: [idPosition])
+  productPercentajeCommision ProductPercentajeCommision @relation(fields: [idProductPercentajeCommision], references: [idProductPercentajeCommision])
+  comissionDistributions     ComissionDistribution[]
+
+  @@index([idPosition])
+  @@index([idProductPercentajeCommision])
+  @@map("product_percentaje_commision_position")
+}
+
+model User {
+  idUser         Int       @id @default(autoincrement()) @map("id_user")
+  name           String    @db.VarChar(150)
+  lastName       String?   @map("last_name") @db.VarChar(150)
+  typeIdentity   String    @default("CC") @map("type_identity") @db.VarChar(10)
+  identityNumber String    @map("identity_number") @db.VarChar(20)
+  email          String?   @db.VarChar(150)
+  phone          String?   @db.VarChar(30)
+  idTypeUser     Int       @map("id_type_user")
+  idCategoria    Int?      @map("id_categoria")
+  idUserLeader   Int?      @map("id_user_leader")
+  entryDate      DateTime  @map("entry_date") @db.Date
+  retirementDate DateTime? @map("retirement_date") @db.Date
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones recursivas y jerárquicas
+  typeUser                   TypeUser                    @relation(fields: [idTypeUser], references: [idTypeUser])
+  categoria                  Category?                   @relation(fields: [idCategoria], references: [idCategory])
+  leader                     User?                       @relation("UserLeader", fields: [idUserLeader], references: [idUser])
+  subordinates               User[]                      @relation("UserLeader")
+  businesses                 Business[]
+  fileImports                FileImport[]
+  userComissionDistributions UserComissionDistribution[]
+
+  // Note: 'Coaches, líderes, seniors, juniors con jerarquía recursiva'
+
+  @@unique([typeIdentity, identityNumber])
+  @@index([typeIdentity])
+  @@index([idUserLeader])
+  @@map("user")
+}
+
+model Client {
+  idClient       Int      @id @default(autoincrement()) @map("id_client")
+  name           String   @db.VarChar(200)
+  lastName       String?  @map("last_name") @db.VarChar(200)
+  typeIdentity   String   @default("CC") @map("type_identity") @db.VarChar(10)
+  identityNumber String   @map("identity_number") @db.VarChar(20)
+  idClientOrigin Int      @map("id_client_origin")
+  email          String?  @db.VarChar(150)
+  phone          String?  @db.VarChar(30)
+  direcction     String?  @db.VarChar(255)
+  city           String?  @db.VarChar(100)
+  country        String   @default("Colombia") @db.VarChar(50)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  clientOrigin ClientOrigin @relation(fields: [idClientOrigin], references: [idClientOrigin])
+  businesses   Business[]
+
+  @@unique([typeIdentity, identityNumber])
+  @@index([identityNumber])
+  @@map("client")
+}
+
+// =====================================================
+// TRANSACCIONES Y OPERACIONES
+// =====================================================
+
+model FileImport {
+  idFileImport  Int      @id @default(autoincrement()) @map("id_file_import")
+  nameFile      String   @map("name_file") @db.VarChar(255)
+  loadDate      DateTime @default(now()) @map("load_date")
+  idUser        Int      @map("id_user")
+  totalRecord   Int      @default(0) @map("total_record")
+  successRecord Int      @default(0) @map("success_record")
+  errorRecord   Int      @default(0) @map("error_record")
+  status        String   @db.VarChar(20)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  user User @relation(fields: [idUser], references: [idUser])
+
+  @@index([loadDate])
+  @@map("file_import")
+}
+
+model Business {
+  idBusiness                   Int      @id @default(autoincrement()) @map("id_business")
+  contract                     String?  @unique @db.VarChar(100)
+  term                         Int?
+  value                        Decimal  @db.Decimal(15, 2)
+  observations                 String?  @db.Text
+  idBuyPeriodicity             Int?     @map("id_buy_periodicity")
+  idUser                       Int      @map("id_user")
+  idClient                     Int      @map("id_client")
+  idProductPercentajeCommision Int      @map("id_product_percentaje_commision")
+  idCurrency                   Int      @map("id_currency")
+  status                       String?  @db.VarChar(20)
+  createdAt                    DateTime @default(now()) @map("created_at")
+  updatedAt                    DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  user                       User                       @relation(fields: [idUser], references: [idUser])
+  client                     Client                     @relation(fields: [idClient], references: [idClient])
+  productPercentajeCommision ProductPercentajeCommision @relation(fields: [idProductPercentajeCommision], references: [idProductPercentajeCommision])
+  currency                   Currency                   @relation(fields: [idCurrency], references: [idCurrency])
+  buyPeriodicity             BuyPeriodicity?            @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
+  settlementCommissions      SettlementCommission[]
+
+  // Note: 'Negocios de un usuario'
+
+  @@index([idUser])
+  @@index([contract])
+  @@map("business")
+}
+
+// =====================================================
+// LIQUIDACIÓN Y CÁLCULOS
+// =====================================================
+
+model SettlementCommission {
+  idSettlementCommission Int       @id @default(autoincrement()) @map("id_settlement_commission")
+  idBusiness             Int       @unique @map("id_business")
+  dateLiquidation        DateTime? @map("date_liquidation")
+  valueBase              Decimal   @map("value_base") @db.Decimal(15, 2)
+  comissionValor         Decimal?  @map("comission_valor") @db.Decimal(15, 2)
+  comissionDateFrom      Int?      @map("comission_date_from")
+  comissionDateUntil     DateTime? @map("comission_date_until") @db.Date
+  period                 String?   @db.VarChar(50)
+  isLag                  Boolean   @default(true) @map("is_lag")
+  dateSync               DateTime? @map("date_sync") @db.Date
+  status                 String    @db.VarChar(20) // 'SINCRONIZADA', 'PRELIQUIDADO', 'LIQUIDADO', 'ANULADA'
+  observations           String?   @db.Text
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones
+  business               Business                @relation(fields: [idBusiness], references: [idBusiness])
+  comissionDistributions ComissionDistribution[]
+
+  // Note: 'Registro de liquidaciones calculadas para cada negocio'
+
+  @@index([status])
+  @@index([period])
+  @@map("settlement_commission")
+}
+
+model LagCommission {
+  idLagCommision     Int       @id @default(autoincrement()) @map("id_lag_commisnion")
+  dateLiquidation    DateTime? @map("date_liquidation")
+  valueBase          Decimal   @map("value_base") @db.Decimal(15, 2)
+  comissionValor     Decimal?  @map("comission_valor") @db.Decimal(15, 2)
+  comissionDateFrom  Int?      @map("comission_date_from")
+  comissionDateUntil DateTime? @map("comission_date_until") @db.Date
+  period             String?   @db.VarChar(50)
+  status             String    @db.VarChar(20) // 'SINCRONIZADA', 'APLICADO'
+  observations       String?   @db.Text
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Note: 'Registro de liquidaciones calculadas para cada negocio'
+
+  @@index([status])
+  @@index([period])
+  @@map("lag_commission")
+}
+
+model ComissionDistribution {
+  idComissionDistribution Int      @id @default(autoincrement()) @map("id_comission_distribution")
+  idSettlementCommission  Int      @map("id_settlement_comission")
+  idPercentajeCommision   Int?     @map("id_percentaje_comission")
+  valueComission          Decimal  @map("value_comission") @db.Decimal(15, 2)
+  valueComissionFinal     Decimal  @map("value_comission_final") @db.Decimal(15, 2)
+  observation             String?  @db.Text
+  status                  String   @db.VarChar(20) // 'LIQUIDADO', 'NOTIFICADO', 'PAGADA', 'ANULADA'
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  settlementCommission               SettlementCommission                @relation(fields: [idSettlementCommission], references: [idSettlementCommission])
+  productPercentajeCommisionPosition ProductPercentajeCommisionPosition? @relation(fields: [idPercentajeCommision], references: [id])
+  userComissionDistributions         UserComissionDistribution[]
+
+  // Note: "El clawback es a nivel de negocio o por liquidación, Distribución detallada con clawback del 10% para Senior/Junior"
+
+  @@index([idSettlementCommission])
+  @@map("comission_distribution")
+}
+
+model UserComissionDistribution {
+  idUserComissionDistribution Int      @id @default(autoincrement()) @map("id_user_comission_distribution")
+  idUser                      Int      @map("id_user")
+  idComissionDistribution     Int      @map("id_comission_distribution")
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  user                  User                  @relation(fields: [idUser], references: [idUser])
+  comissionDistribution ComissionDistribution @relation(fields: [idComissionDistribution], references: [idComissionDistribution])
+  clawbacks             Clawback[]
+
+  @@index([idComissionDistribution])
+  @@index([idUser])
+  @@map("user_comission_distribution")
+}
+
+model Clawback {
+  idClawback                   Int       @id @default(autoincrement()) @map("id_clawback")
+  idUserCommissionDistribution Int       @map("id_user_commission_distribution")
+  valueClawback                Decimal   @map("value_clawback") @db.Decimal(15, 2)
+  porcentajeApplied           Decimal   @map("porcentaje_applied") @db.Decimal(5, 4)
+  state                       String    @db.VarChar(20) // 'RETENIDO', 'LIBERADO', 'APLICADO', 'CANCELADO'
+  appliedDate              DateTime? @map("applied_date") @db.Date
+  releaseDate              DateTime? @map("release_date") @db.Date
+  reason                     String?   @db.Text
+  createdAt                  DateTime  @default(now()) @map("created_at")
+  updatedAt                  DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones
+  userComissionDistribution UserComissionDistribution @relation(fields: [idUserCommissionDistribution], references: [idUserComissionDistribution])
+
+  // Note: 'Histórico de retenciones clawback (90 días)'
+
+  @@index([state])
+  @@map("clawback")
+}
