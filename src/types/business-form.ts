@@ -19,7 +19,7 @@ export const businessFormSchema = z.object({
   
   // Información del negocio
   moneda: z.enum(['USD', 'COP', 'EUR'], {
-    required_error: 'La moneda es obligatoria'
+    message: 'La moneda es obligatoria'
   }),
   perioricidad: z.string().min(1, 'La periodicidad es obligatoria'),
   valor: z.number().min(0, 'El valor debe ser mayor o igual a 0'),
