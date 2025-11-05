@@ -8,8 +8,9 @@ export const businessFormSchema = z.object({
   apellidos: z.string().min(2, 'Los apellidos son obligatorios').trim(),
   contacto: z.string().regex(/^[0-9\s\-+]+$/, 'Formato de contacto inválido').optional(),
   numeroDocumento: z.string()
-    .min(5, 'El número de documento es obligatorio')
-    .regex(/^[0-9.]+$/, 'Formato de documento inválido'),
+    .min(1, 'El número de documento es obligatorio')
+    .min(5, 'El número de documento debe tener al menos 5 caracteres')
+    .regex(/^[0-9.]+$/, 'El número de documento solo puede contener números y puntos'),
   
   // Información del producto
   compania: z.string().min(1, 'La compañía es obligatoria'),
@@ -52,5 +53,11 @@ export const agents = [
   { value: 'agent1', label: 'Agente 1' },
   { value: 'agent2', label: 'Agente 2' },
   { value: 'agent3', label: 'Agente 3' },
+]
+
+export const currencies = [
+  { value: 'USD', label: 'USD - Dólar Estadounidense' },
+  { value: 'COP', label: 'COP - Peso Colombiano' },
+  { value: 'EUR', label: 'EUR - Euro' },
 ]
 

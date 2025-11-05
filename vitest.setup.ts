@@ -6,6 +6,16 @@ import React from 'react';
 // Agregar alias global de jest para compatibilidad
 (global as Record<string, unknown>).jest = vi;
 
+// Mock de ResizeObserver para evitar errores en tests
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
+// Mock de scrollIntoView para evitar errores en tests
+Element.prototype.scrollIntoView = vi.fn();
+
 // Mock de next/navigation
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({

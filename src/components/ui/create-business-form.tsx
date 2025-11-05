@@ -16,18 +16,25 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { businessFormSchema, type BusinessFormData } from "@/types/business-form"
-import { companies, products, periodicities } from "@/types/business-form"
+import { companies, products, periodicities, currencies } from "@/types/business-form"
+import { DocumentAutocomplete, type User } from "@/components/ui/document-autocomplete"
+import { AgentAutocomplete, type Agent } from "@/components/ui/agent-autocomplete"
+import { mockUsers } from "@/data/mockUsers"
+import { mockAgents } from "@/data/mockAgents"
 
 export interface CreateBusinessFormProps {
   onSubmit?: (data: BusinessFormData) => void | Promise<void>
   onCancel?: () => void
   defaultValues?: Partial<BusinessFormData>
+  users?: User[]
+  agents?: Agent[]
+  onUserCreated?: (documento: string) => void | Promise<void>
 }
 
 export const CreateBusinessForm = React.forwardRef<
   HTMLFormElement,
   CreateBusinessFormProps
->(({ onSubmit, onCancel, defaultValues }, ref) => {
+>(({ onSubmit, onCancel, defaultValues, users, agents, onUserCreated }, ref) => {
   const [numeroDocumento, setNumeroDocumento] = React.useState("")
 
   const {
@@ -39,23 +46,29 @@ export const CreateBusinessForm = React.forwardRef<
   } = useForm<BusinessFormData>({
     resolver: zodResolver(businessFormSchema),
     defaultValues: {
-      email: defaultValues?.email || "email@gmail.com",
-      nombres: defaultValues?.nombres || "email@gmail.com",
-      apellidos: defaultValues?.apellidos || "Agente",
+      email: defaultValues?.email || "",
+      nombres: defaultValues?.nombres || "",
+      apellidos: defaultValues?.apellidos || "",
       contacto: defaultValues?.contacto || "",
       numeroDocumento: defaultValues?.numeroDocumento || "",
       compania: defaultValues?.compania || "",
       producto: defaultValues?.producto || "",
-      plazo: defaultValues?.plazo || 10,
-      moneda: defaultValues?.moneda || "USD",
-      perioricidad: defaultValues?.perioricidad || "Semestral",
-      valor: defaultValues?.valor || 0,
-      agente: defaultValues?.agente || "Agente",
+      plazo: defaultValues?.plazo || undefined,
+      moneda: defaultValues?.moneda || undefined,
+      perioricidad: defaultValues?.perioricidad || "",
+      valor: defaultValues?.valor || undefined,
+      agente: defaultValues?.agente || "",
     },
   })
 
   // Observar cambios en numeroDocumento
   const documentValue = watch("numeroDocumento")
+  
+  // Lista de usuarios para el autocomplete
+  const usersList = users || mockUsers
+  
+  // Lista de agentes para el autocomplete
+  const agentsList = agents || mockAgents
 
   React.useEffect(() => {
     setNumeroDocumento(documentValue || "")
@@ -63,6 +76,41 @@ export const CreateBusinessForm = React.forwardRef<
 
   // Determinar si los campos deben estar bloqueados
   const isBlocked = !numeroDocumento || numeroDocumento.length < 5
+
+  // Handler para cuando se selecciona un documento
+  const handleDocumentChange = (documento: string) => {
+    setValue("numeroDocumento", documento, { shouldValidate: true })
+    setNumeroDocumento(documento)
+
+    // Si se seleccionó un usuario existente, autocompletar campos
+    if (documento && usersList) {
+      const selectedUser = usersList.find(u => u.numeroDocumento === documento)
+      if (selectedUser) {
+        setValue("email", selectedUser.email || "")
+        setValue("nombres", selectedUser.nombres)
+        setValue("apellidos", selectedUser.apellidos)
+      }
+    }
+  }
+
+  // Handler para crear nuevo usuario
+  const handleCreateUser = async (documento: string) => {
+    // Asegurar explícitamente que el documento se establezca para desbloquear campos
+    // Esto es necesario porque el onChange puede no haber actualizado el estado aún
+    setValue("numeroDocumento", documento, { shouldValidate: true })
+    setNumeroDocumento(documento)
+    
+    // Limpiar los campos de información del cliente cuando se crea un nuevo usuario
+    // para evitar que se muestren valores por defecto
+    setValue("email", "")
+    setValue("nombres", "")
+    setValue("apellidos", "")
+    
+    // Notificar que se está creando un nuevo usuario
+    if (onUserCreated) {
+      await onUserCreated(documento)
+    }
+  }
 
   const handleFormSubmit = async (data: BusinessFormData) => {
     try {
@@ -119,23 +167,25 @@ export const CreateBusinessForm = React.forwardRef<
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="numeroDocumento" className="text-sm font-medium">
+              <Label htmlFor="numeroDocumento" id="numeroDocumento-label" className="text-sm font-medium">
                 No. Documento <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="numeroDocumento"
-                {...register("numeroDocumento")}
-                placeholder="X.XXX.XXX"
-                disabled={false}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setNumeroDocumento(value)
-                  setValue("numeroDocumento", value, { shouldValidate: true })
-                }}
+              <DocumentAutocomplete
+                value={documentValue}
+                onChange={handleDocumentChange}
+                users={usersList}
+                placeholder="Buscar o crear documento..."
+                onCreateNew={handleCreateUser}
+                aria-labelledby="numeroDocumento-label"
                 className={errors.numeroDocumento ? "border-red-500" : ""}
               />
               {errors.numeroDocumento && (
                 <p className="text-xs text-red-500">{errors.numeroDocumento.message}</p>
+              )}
+              {!errors.numeroDocumento && documentValue && documentValue.length > 0 && documentValue.length < 5 && (
+                <p className="text-xs text-amber-600">
+                  El documento debe tener al menos 5 caracteres para habilitar los campos
+                </p>
               )}
             </div>
 
@@ -146,6 +196,7 @@ export const CreateBusinessForm = React.forwardRef<
               <Input
                 id="email"
                 {...register("email")}
+                placeholder="email@gmail.com"
                 disabled={isBlocked}
                 className={errors.email ? "border-red-500" : ""}
               />
@@ -161,6 +212,7 @@ export const CreateBusinessForm = React.forwardRef<
               <Input
                 id="nombres"
                 {...register("nombres")}
+                placeholder="Nombres"
                 disabled={isBlocked}
                 className={errors.nombres ? "border-red-500" : ""}
               />
@@ -192,6 +244,7 @@ export const CreateBusinessForm = React.forwardRef<
               <Input
                 id="apellidos"
                 {...register("apellidos")}
+                placeholder="Apellidos"
                 disabled={isBlocked}
                 className={errors.apellidos ? "border-red-500" : ""}
               />
@@ -269,6 +322,7 @@ export const CreateBusinessForm = React.forwardRef<
                 id="plazo"
                 type="number"
                 {...register("plazo", { valueAsNumber: true })}
+                placeholder="10"
                 disabled={isBlocked}
                 className={errors.plazo ? "border-red-500" : ""}
               />
@@ -291,12 +345,22 @@ export const CreateBusinessForm = React.forwardRef<
               <Label htmlFor="moneda" className="text-sm font-medium">
                 Moneda
               </Label>
-              <Input
-                id="moneda"
-                {...register("moneda")}
+              <Select
                 disabled={isBlocked}
-                className={errors.moneda ? "border-red-500" : ""}
-              />
+                value={watch("moneda")}
+                onValueChange={(value) => setValue("moneda", value as "USD" | "COP" | "EUR", { shouldValidate: true })}
+              >
+                <SelectTrigger id="moneda" className={errors.moneda ? "border-red-500" : ""}>
+                  <SelectValue placeholder="Seleccione una moneda" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map((currency) => (
+                    <SelectItem key={currency.value} value={currency.value}>
+                      {currency.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.moneda && (
                 <p className="text-xs text-red-500">{errors.moneda.message}</p>
               )}
@@ -353,12 +417,15 @@ export const CreateBusinessForm = React.forwardRef<
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="agente" className="text-sm font-medium">
+              <Label htmlFor="agente" id="agente-label" className="text-sm font-medium">
                 Agente
               </Label>
-              <Input
-                id="agente"
-                {...register("agente")}
+              <AgentAutocomplete
+                value={watch("agente")}
+                onChange={(value) => setValue("agente", value, { shouldValidate: true })}
+                agents={agentsList}
+                placeholder="Buscar agente..."
+                aria-labelledby="agente-label"
                 disabled={isBlocked}
                 className={errors.agente ? "border-red-500" : ""}
               />

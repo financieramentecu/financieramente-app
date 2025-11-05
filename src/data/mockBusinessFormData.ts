@@ -1,18 +1,18 @@
 import type { BusinessFormData } from '@/types/business-form'
 
 export const mockBusinessFormDefaultValues: Partial<BusinessFormData> = {
-  email: 'email@gmail.com',
+  email: '',
   nombres: '',
-  apellidos: 'Agente',
+  apellidos: '',
   contacto: '',
   numeroDocumento: '',
   compania: '',
   producto: '',
-  plazo: 10,
-  moneda: 'USD',
-  perioricidad: 'Semestral',
-  valor: 0,
-  agente: 'Agente',
+  plazo: undefined,
+  moneda: undefined,
+  perioricidad: '',
+  valor: undefined,
+  agente: '',
 }
 
 export const mockBusinessFormFilled: BusinessFormData = {
