@@ -49,3 +49,6 @@ export function MisNegociosPage({
     </div>
   )
 }
+
+// Export default para cumplir con PagesPageConfig de Next.js
+export default MisNegociosPage
