@@ -2,90 +2,135 @@
 
 Esta guía explica las diferentes opciones para conectarte a las bases de datos desde tu entorno de desarrollo local.
 
-## Opción A: Supabase para Desarrollo (Recomendado) ⭐
+## Opción A: Neon para Desarrollo (Recomendado) ⭐
 
-### Ventajas
-- ✅ Sin instalación local de PostgreSQL
-- ✅ Dashboard web para ver datos
-- ✅ PostgreSQL real (misma versión que QA/Prod)
-- ✅ Backups automáticos
-- ✅ SSL incluido
-- ✅ Gratis hasta 500MB
+### ¿Por qué Neon?
+- ✅ **Solo Base de Datos**: Perfecto para desarrollo (no necesitas auth/storage)
+- ✅ **Branching como Git**: Entornos aislados para cada feature
+- ✅ **Serverless Real**: Escala automáticamente, incluso a cero
+- ✅ **Perfecto para Prisma**: Optimizado para serverless (Next.js)
+- ✅ **Gratis**: 0.5 GB storage + 190 horas compute/mes
+- ✅ **Sin ensuciar QA/Prod**: Desarrollo completamente separado
+
+### Ventajas vs Supabase
+- 🚀 **Branching**: Crear branches de BD para probar migraciones sin riesgo
+- ⚡ **Serverless**: Mejor performance y costo para desarrollo
+- 🎯 **Enfoque**: Solo DB, sin features extra que no necesitas
 
 ### Configuración Paso a Paso
 
-#### 1. Crear Proyecto en Supabase
+#### 1. Crear Proyecto en Neon
 
-1. **Ir a Supabase**:
-   - URL: https://supabase.com
-   - Sign up / Login
+1. **Ir a Neon**:
+   - URL: https://neon.tech
+   - Sign up / Login (puedes usar GitHub)
 
 2. **Crear Nuevo Proyecto**:
-   - Click en "New Project"
+   - Click en "Create Project"
    - **Name**: `financieramente-dev`
-   - **Database Password**: [genera una contraseña segura]
-   - **Region**: US East (más cerca de Digital Ocean NYC)
-   - **Pricing Plan**: Free
+   - **Region**: US East (N. Virginia) - más cerca de Digital Ocean NYC
+   - **PostgreSQL Version**: 15 o 16 (recomendado 15 para coincidir con QA/Prod)
+   - **Plan**: Free
 
 3. **Esperar Creación**:
-   - Wait ~2 minutos mientras se crea el proyecto
+   - Wait ~30 segundos mientras se crea el proyecto
 
 #### 2. Obtener Connection String
 
-1. **En Supabase Dashboard**:
-   - Project Settings → Database
-   - Connection string → URI
+1. **En Neon Dashboard**:
+   - Se muestra automáticamente después de crear el proyecto
+   - O ve a: Project → Connection Details
 
 2. **Copiar la URL**:
    ```
-   postgresql://postgres:[TU-PASSWORD]@db.xxxxxxxxxxxx.supabase.co:5432/postgres
+   postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
    ```
 
 #### 3. Configurar en tu Proyecto Local
 
 **Crear archivo `.env.local`**:
 ```bash
-# Para Prisma con connection pooling (recomendado)
-DATABASE_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres"
+# Neon - Development Database
+DATABASE_URL="postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require"
+DIRECT_URL="postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
 # Variables adicionales
 NODE_ENV=development
 NEXT_PUBLIC_API_URL=http://localhost:3000
 ```
 
+**Nota**: Con Neon puedes usar el mismo string para `DATABASE_URL` y `DIRECT_URL`, pero Prisma permite tenerlos separados.
+
 #### 4. Ejecutar Migraciones
 
 ```bash
 # Crear migración inicial
-npx prisma migrate dev --name init
+npm run prisma:migrate:dev --name init
 
-# Las tablas se crean en Supabase automáticamente
+# Las tablas se crean en Neon automáticamente
 ```
 
 #### 5. Verificar Conexión
 
 ```bash
 # Verificar que Prisma puede conectarse
-npx prisma db pull
+npm run prisma:db:pull
 
-# Ver datos en Supabase Dashboard
-# Ir a Table Editor en Supabase
+# Ver datos en Neon Dashboard
+# Ir a Neon Dashboard → Tables
+```
+
+#### 6. Usar Branching (Opcional pero Recomendado)
+
+**Crear branch para feature**:
+```bash
+# En Neon Dashboard:
+# 1. Ir a Branches
+# 2. Click "Create Branch"
+# 3. Nombre: feature-nueva-tabla
+# 4. Copiar connection string del branch
+# 5. Actualizar DATABASE_URL temporalmente en .env.local
+
+# Trabajar en el branch
+npm run prisma:migrate:dev --name nueva_tabla
+
+# Si funciona, merge o eliminar branch
+# Si falla, simplemente eliminar branch y empezar de nuevo
 ```
 
 ### Herramientas de Base de Datos
 
-Puedes usar cualquier herramienta para conectarte a Supabase:
+Puedes usar cualquier herramienta para conectarte a Neon:
 
 **pgAdmin, DBeaver, DataGrip, etc.**:
 ```
-Host: db.xxxxxxxxxxxx.supabase.co
+Host: ep-xxx.us-east-2.aws.neon.tech
 Port: 5432
-Database: postgres
-Username: postgres
-Password: [TU-PASSWORD]
+Database: neondb (o el nombre de tu DB)
+Username: [del connection string]
+Password: [del connection string]
 SSL: Required
 ```
+
+### Ventajas del Branching
+
+Con Neon puedes crear branches de la base de datos para cada feature:
+
+```bash
+# Ejemplo de workflow:
+# 1. Crear branch "feature-agregar-clawback"
+# 2. Actualizar .env.local con connection string del branch
+# 3. Crear migraciones en el branch
+# 4. Probar todo en el branch
+# 5. Si funciona: merge al main branch
+# 6. Si falla: eliminar branch (sin afectar nada)
+```
+
+Esto es especialmente útil para:
+- ✅ Probar migraciones complejas sin riesgo
+- ✅ Desarrollar features que requieren cambios de BD
+- ✅ Experimentar sin afectar tu DB principal
+- ✅ Rollback instantáneo si algo falla
 
 ## Opción B: SSH Tunnel a QA (Para probar con datos reales)
 
@@ -218,37 +263,120 @@ npx prisma migrate dev --name init
 # Las tablas se crean en PostgreSQL local
 ```
 
+## Opción A.1: Supabase (Alternativa)
+
+Si prefieres Supabase en lugar de Neon:
+
+### Configuración
+
+**Crear archivo `.env.local`**:
+```bash
+# Para Prisma con connection pooling (recomendado)
+DATABASE_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres"
+```
+
+### Comparación: Neon vs Supabase
+
+| Aspecto | Neon | Supabase |
+|---------|------|----------|
+| **Branching** | ✅ (Feature estrella) | ❌ |
+| **Serverless Real** | ✅ | ⚠️ Limitado |
+| **Solo DB** | ✅ | ❌ (incluye auth/storage) |
+| **Dashboard** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Gratis** | 0.5 GB + 190h/mes | 500 MB |
+| **Perfecto para Prisma** | ✅✅✅ | ✅✅ |
+
+**Recomendación**: Neon es mejor para tu caso (solo necesitas DB).
+
 ## Comparación de Opciones
 
-| Aspecto | Supabase | SSH Tunnel | PostgreSQL Local |
-|---------|----------|------------|------------------|
-| **Velocidad** | Media | Media | Alta |
-| **Datos Reales** | ❌ | ✅ | ❌ |
-| **Instalación** | ❌ | ❌ | ✅ |
-| **Internet Requerido** | ✅ | ✅ | ❌ |
-| **Dashboard Web** | ✅ | ❌ | ❌ |
-| **Backups** | ✅ | ❌ | ❌ |
-| **Costo** | Gratis | Gratis | Gratis |
+| Aspecto | Neon | Supabase | SSH Tunnel | PostgreSQL Local |
+|---------|------|----------|------------|------------------|
+| **Velocidad** | Alta | Media | Media | Alta |
+| **Datos Reales** | ❌ | ❌ | ✅ | ❌ |
+| **Instalación** | ❌ | ❌ | ❌ | ✅ |
+| **Internet Requerido** | ✅ | ✅ | ✅ | ❌ |
+| **Dashboard Web** | ✅ | ✅✅ | ❌ | ❌ |
+| **Backups** | ✅ | ✅ | ❌ | ❌ |
+| **Branching** | ✅✅✅ | ❌ | ❌ | ❌ |
+| **Costo** | Gratis | Gratis | Gratis | Gratis |
+
+## Arquitectura de Base de Datos por Entorno
+
+```
+┌─────────────────┐
+│   DESARROLLO    │
+│     Neon        │ ← Cloud, Branching, Serverless
+│  (Development)  │
+└─────────────────┘
+         │
+         │ git push origin qa
+         ▼
+┌─────────────────┐
+│      QA         │
+│  Droplet QA     │ ← Self-hosted (Digital Ocean)
+│  (Testing)      │
+└─────────────────┘
+         │
+         │ git push origin master
+         ▼
+┌─────────────────┐
+│   PRODUCCIÓN    │
+│  Droplet Prod   │ ← Self-hosted (Digital Ocean)
+│  (Production)   │
+└─────────────────┘
+```
+
+**Ventajas de esta arquitectura:**
+- ✅ Desarrollo completamente aislado (no ensucia QA/Prod)
+- ✅ QA y Prod controlados por ti (self-hosted)
+- ✅ Desarrollo con features avanzadas (branching)
+- ✅ Sin costos en desarrollo (Neon free tier)
 
 ## Flujo de Trabajo Recomendado
 
 ### Desarrollo Diario
-1. **Usar Supabase** para desarrollo normal
-2. **Datos de prueba** en Supabase
-3. **Migraciones** se aplican a Supabase
+1. **Usar Neon** para desarrollo normal
+2. **Crear branches** para features que requieren cambios de BD
+3. **Datos de prueba** en Neon (main branch o feature branches)
+4. **Migraciones** se aplican a Neon
+5. **Commitear** cambios cuando estén listos
 
 ### Debugging con Datos Reales
 1. **Usar SSH Tunnel** cuando necesites datos reales de QA
 2. **Conectar** a QA temporalmente
 3. **Desconectar** cuando termines
+4. **NUNCA** usar QA/Prod para desarrollo
+
+### Trabajo con Features Complejas
+1. **Crear branch en Neon** para la feature
+2. **Desarrollar y probar** en el branch
+3. **Si funciona**: Merge al main branch
+4. **Si falla**: Eliminar branch (sin consecuencias)
+5. **Migraciones** se prueban primero en el branch
 
 ### Trabajo Offline
 1. **Usar PostgreSQL Local** cuando no tengas internet
 2. **Sincronizar** cambios cuando vuelvas a tener conexión
+3. **Aplicar migraciones** a Neon cuando vuelvas online
 
 ## Troubleshooting
 
-### Supabase Connection Failed
+### Neon Connection Failed
+
+```bash
+# Verificar URL de conexión
+echo $DATABASE_URL
+
+# Probar conexión directa
+psql "postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require"
+
+# Verificar que el proyecto esté activo en Neon Dashboard
+# Verificar que el branch existe (si usas branching)
+```
+
+### Supabase Connection Failed (si usas Supabase)
 
 ```bash
 # Verificar URL de conexión
@@ -296,8 +424,11 @@ npx prisma db pull
 # Resetear base de datos local
 npx prisma migrate reset
 
-# Ver datos en Supabase Dashboard
-# Ir a Table Editor
+# Ver datos en Neon Dashboard
+# Ir a Tables en el dashboard
+
+# O usar Prisma Studio
+npm run prisma:studio
 
 # Ver logs de PostgreSQL local
 tail -f /usr/local/var/log/postgres.log  # macOS

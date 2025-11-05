@@ -543,6 +543,27 @@ cat .github/workflows/chromatic.yml
    - Aprobar/rechazar cambios
    - Check se actualizará automáticamente
 
+### PR bloqueado después de aprobar en Chromatic
+
+**Síntoma**: Aprobaste los cambios en Chromatic pero el PR sigue bloqueado con el check de Visual Tests fallando.
+
+**Causa**: El workflow de GitHub Actions verificó los cambios antes de que los aprobaras y falló con `exit 1`. Chromatic actualiza su estado, pero el workflow de GitHub ya terminó.
+
+**Solución**: Re-ejecutar el workflow para que verifique el estado actualizado:
+
+**Opción 1** (Recomendada): Desde GitHub UI
+1. Ve a tu PR → Pestaña **"Checks"**
+2. Click en **"🎨 Visual Tests"** → **"Re-run jobs"** → **"Re-run failed jobs"**
+3. El workflow verificará que los cambios están aprobados y pasará ✅
+
+**Opción 2**: Push vacío
+```bash
+git commit --allow-empty -m "chore: trigger CI after Chromatic approval"
+git push
+```
+
+**Prevención**: Aprueba los cambios en Chromatic lo antes posible después de que el bot comente en el PR para evitar bloqueos temporales.
+
 ### Baseline desactualizado
 
 ```bash
