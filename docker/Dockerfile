@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Copy package files (for better Docker layer caching)
 COPY package*.json ./
-# COPY prisma ./prisma/  # Temporarily disabled - Prisma schema not configured yet
+COPY prisma ./prisma/
 
 # Install dependencies with npm ci for faster, reliable, reproducible builds
 RUN npm ci --prefer-offline --no-audit
@@ -33,7 +33,7 @@ COPY public ./public
 COPY components.json ./
 
 # Generate Prisma client
-# RUN npx prisma generate  # Temporarily disabled - Prisma schema not configured yet
+RUN npx prisma generate
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED 1
@@ -56,7 +56,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-# COPY --from=builder /app/prisma ./prisma  # Temporarily disabled - Prisma schema not configured yet
+COPY --from=builder /app/prisma ./prisma
 
 # Copy package.json for scripts
 COPY --from=builder /app/package.json ./package.json
