@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-import { LayoutDashboard, List, ChartBar, Folder, Users, Camera, FileText, FileCode, Settings, Database, FileSpreadsheet, FileText as FileWord, User } from "lucide-react"
+import { Folder, Settings, User } from "lucide-react"
 import Image from "next/image"
 import { useSidebar } from "@/components/ui/sidebar"
 
@@ -27,77 +27,9 @@ const data = {
   },
   navMain: [
     {
-      title: "Dashboard",
-      url: "#",
-      icon: <LayoutDashboard className="h-4 w-4" />,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: <List className="h-4 w-4" />,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: <ChartBar className="h-4 w-4" />,
-    },
-    {
-      title: "Projects",
-      url: "#",
+      title: "Negocio",
+      url: "/dashboard/negocios",
       icon: <Folder className="h-4 w-4" />,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: <Users className="h-4 w-4" />,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: Camera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: FileText,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: FileCode,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
     },
   ],
   navSecondary: [
@@ -110,23 +42,6 @@ const data = {
       title: "Configuración",
       url: "#",
       icon: <Settings className="h-4 w-4" />,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: Database,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: FileSpreadsheet,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: FileWord,
     },
   ],
 }

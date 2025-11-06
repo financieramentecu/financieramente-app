@@ -3,8 +3,15 @@
 import React, { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Search } from 'lucide-react'
 import { BusinessSearchParams } from '@/types/business'
 
 interface BusinessSearchFormProps {
@@ -33,24 +40,19 @@ export function BusinessSearchForm({ onSearch, onShowAll }: BusinessSearchFormPr
       <div className="space-y-4">
         <div>
           <Label className="text-base font-medium">Tipo de Búsqueda</Label>
-          <RadioGroup
+          <Select
             value={searchType}
             onValueChange={(value) => setSearchType(value as 'agent' | 'client' | 'id')}
-            className="flex flex-col space-y-2 mt-2"
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="agent" id="agent" />
-              <Label htmlFor="agent">Nombre del agente</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="client" id="client" />
-              <Label htmlFor="client">Cliente</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="id" id="id" />
-              <Label htmlFor="id">Cédula</Label>
-            </div>
-          </RadioGroup>
+            <SelectTrigger className="mt-2">
+              <SelectValue placeholder="Selecciona el tipo de búsqueda" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="agent">Nombre del agente</SelectItem>
+              <SelectItem value="client">Nombre del cliente</SelectItem>
+              <SelectItem value="id">Cédula del cliente</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -59,7 +61,7 @@ export function BusinessSearchForm({ onSearch, onShowAll }: BusinessSearchFormPr
           </Label>
           <Input
             id="search-criteria"
-            placeholder="Ingrese el criterio de búsqueda..."
+            placeholder="Ej: María López"
             value={searchCriteria}
             onChange={(e) => setSearchCriteria(e.target.value)}
             className="mt-2"
@@ -68,6 +70,7 @@ export function BusinessSearchForm({ onSearch, onShowAll }: BusinessSearchFormPr
 
         <div className="flex gap-3">
           <Button onClick={handleSearch} disabled={!searchCriteria.trim()}>
+            <Search className="h-4 w-4 mr-2" />
             Buscar
           </Button>
           <Button variant="outline" onClick={handleShowAll}>

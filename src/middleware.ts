@@ -1,5 +1,6 @@
-import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+import { auth } from "@/app/api/auth/[...nextauth]/route"
 
 /**
  * Middleware para proteger rutas privadas
@@ -8,25 +9,23 @@ import { NextResponse } from "next/server"
  * - Protección de rutas del dashboard
  * - Redirección a login si no está autenticado
  * - Validación de sesión activa
+ * 
+ * Compatible con NextAuth v5
  */
-export default withAuth(
-  function middleware(req) {
-    // Aquí puedes agregar lógica adicional si es necesario
-    // Por ejemplo, validar roles, permisos, etc.
-    return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        // Verificar que exista un token válido
-        return !!token
-      },
-    },
-    pages: {
-      signIn: "/login",
-    },
+export async function middleware(request: NextRequest) {
+  // Verificar sesión
+  const session = await auth()
+
+  // Si no hay sesión y se intenta acceder a una ruta protegida, redirigir a login
+  if (!session) {
+    const loginUrl = new URL("/login", request.url)
+    loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname)
+    return NextResponse.redirect(loginUrl)
   }
-)
+
+  // Si hay sesión, permitir acceso
+  return NextResponse.next()
+}
 
 /**
  * Configuración de rutas protegidas

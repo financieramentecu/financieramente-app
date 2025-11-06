@@ -7,7 +7,7 @@ import { Business } from '@/types/business'
 import { DataTableColumn } from '@/types/dashboard'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Plus } from 'lucide-react'
+import { Plus, Pencil } from 'lucide-react'
 
 interface BusinessTableSectionProps {
   data: Business[]
@@ -48,6 +48,13 @@ export function BusinessTableSection({
 
   const columns: DataTableColumn<Business>[] = [
     {
+      key: 'id',
+      header: '# Negocio',
+      cellRenderer: (value, row) => (
+        <span className="font-medium">#{row.id}</span>
+      )
+    },
+    {
       key: 'identification',
       header: 'Identificación',
       cellRenderer: (value) => (
@@ -81,7 +88,7 @@ export function BusinessTableSection({
     },
     {
       key: 'termPeriod',
-      header: 'Plazo',
+      header: 'Plazo / periodo',
       cellRenderer: (value) => (
         <span>{value as string}</span>
       )
@@ -112,14 +119,15 @@ export function BusinessTableSection({
     },
     {
       key: 'actions',
-      header: 'Acciones',
+      header: 'Action',
       cellRenderer: (_, row) => (
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="sm"
           onClick={() => onEditBusiness(row)}
+          className="h-8 w-8 p-0"
         >
-          Editar
+          <Pencil className="h-4 w-4" />
         </Button>
       )
     }
