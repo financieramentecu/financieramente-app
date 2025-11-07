@@ -69,11 +69,11 @@ export function BusinessSearchForm({ onSearch, onShowAll }: BusinessSearchFormPr
         </div>
 
         <div className="flex gap-3">
-          <Button onClick={handleSearch} disabled={!searchCriteria.trim()}>
+          <Button onClick={handleSearch} disabled={!searchCriteria.trim()} className="cursor-pointer">
             <Search className="h-4 w-4 mr-2" />
             Buscar
           </Button>
-          <Button variant="outline" onClick={handleShowAll}>
+          <Button variant="outline" onClick={handleShowAll} className="cursor-pointer">
             Mostrar todos
           </Button>
         </div>

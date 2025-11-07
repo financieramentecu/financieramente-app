@@ -138,7 +138,7 @@ export function BusinessTableSection({
       {/* Table Header with Add Button */}
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Lista de Negocios</h3>
-        <Button onClick={onAddBusiness} className="gap-2">
+        <Button onClick={onAddBusiness} className="gap-2 cursor-pointer">
           <Plus className="h-4 w-4" />
           Agregar negocio
         </Button>

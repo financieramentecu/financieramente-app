@@ -35,20 +35,18 @@ export function BusinessManagementSection({
           onClick={() => setActiveMode('search')}
           variant={activeMode === 'search' ? 'default' : 'outline'}
           className={cn(
-            activeMode === 'search' && 'bg-primary text-primary-foreground'
+            activeMode === 'search' && 'bg-primary text-primary-foreground',
+            'cursor-pointer'
           )}
         >
           Búsqueda y edición
         </Button>
         <Button
           onClick={() => {
-            setActiveMode('create')
             onCreateNew()
           }}
-          variant={activeMode === 'create' ? 'default' : 'outline'}
-          className={cn(
-            activeMode === 'create' && 'bg-primary text-primary-foreground'
-          )}
+          variant="outline"
+          className="cursor-pointer"
         >
           Crear nuevo
         </Button>
@@ -77,7 +75,7 @@ export function BusinessManagementSection({
           <p className="text-muted-foreground mb-4">
             Aquí podrás crear un nuevo negocio en el sistema
           </p>
-          <Button onClick={onCreateNew}>
+          <Button onClick={onCreateNew} className="cursor-pointer">
             Crear Negocio
           </Button>
         </div>
