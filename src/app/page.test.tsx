@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { redirect } from 'next/navigation';
 import Page from './page';
-import type { Session } from 'next-auth';
 
 // Mock de next/navigation
 vi.mock('next/navigation', () => ({
@@ -20,7 +19,7 @@ describe('Home Page', () => {
 
   it('redirects to login when not authenticated', async () => {
     const { auth } = await import('@/auth');
-    vi.mocked(auth).mockResolvedValueOnce(null);
+    (auth as unknown as ReturnType<typeof vi.fn<() => Promise<{ user: { email: string; name: string }; expires: string } | null>>>).mockResolvedValueOnce(null);
 
     await Page();
 
@@ -29,12 +28,13 @@ describe('Home Page', () => {
 
   it('redirects to dashboard when authenticated', async () => {
     const { auth } = await import('@/auth');
-    vi.mocked(auth).mockResolvedValueOnce({
+    (auth as unknown as ReturnType<typeof vi.fn<() => Promise<{ user: { email: string; name: string }; expires: string } | null>>>).mockResolvedValueOnce({
       user: {
         email: 'test@financieramentecu.com',
         name: 'Test User',
       },
-    } as Session);
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    });
 
     await Page();
 
