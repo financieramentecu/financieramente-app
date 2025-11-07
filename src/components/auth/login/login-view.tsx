@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 
 import { AuthCard } from "./auth-card"
 import { BrandPanel } from "./brand-panel"
-import { EmailSignInForm, type EmailSignInFormProps } from "./email-sign-in-form"
+import {  type EmailSignInFormProps } from "./email-sign-in-form"
 import {
   GoogleIcon,
   SocialSignIn,
@@ -62,7 +62,6 @@ const DEFAULT_PROVIDERS: SocialProvider[] = [
 export function LoginView({
   className,
   brand,
-  emailForm,
   socialProviders = DEFAULT_PROVIDERS,
   termsLink = {
     label: "Términos y condiciones",
@@ -103,7 +102,6 @@ export function LoginView({
           }
         >
           <div className="space-y-6">
-            <EmailSignInForm {...emailForm} />
             <SocialSignIn providers={socialProviders} />
             {auxiliaryContent}
           </div>

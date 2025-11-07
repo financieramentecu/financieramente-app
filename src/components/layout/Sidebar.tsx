@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-import { Folder, Settings, User } from "lucide-react"
+import { Folder, Settings, User, List, Plus, Shield } from "lucide-react"
 import Image from "next/image"
 import { useSidebar } from "@/components/ui/sidebar"
 
@@ -30,6 +30,60 @@ const data = {
       title: "Negocio",
       url: "/dashboard/negocios",
       icon: <Folder className="h-4 w-4" />,
+      subItems: [
+        {
+          title: "Listar Negocios",
+          url: "/dashboard/negocios",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Crear Negocio",
+          url: "/dashboard/negocios/crear",
+          icon: <Plus className="h-4 w-4" />,
+        },
+      ],
+    },
+    {
+      title: "Administración",
+      url: "/dashboard/admin",
+      icon: <Shield className="h-4 w-4" />,
+      subItems: [
+        {
+          title: "Compañías",
+          url: "/dashboard/admin/companies",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Productos",
+          url: "/dashboard/admin/products",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Monedas",
+          url: "/dashboard/admin/currencies",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Periodicidades",
+          url: "/dashboard/admin/periodicities",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Orígenes",
+          url: "/dashboard/admin/origins",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Categorías",
+          url: "/dashboard/admin/categories",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Usuarios",
+          url: "/dashboard/admin/users",
+          icon: <List className="h-4 w-4" />,
+        },
+      ],
     },
   ],
   navSecondary: [

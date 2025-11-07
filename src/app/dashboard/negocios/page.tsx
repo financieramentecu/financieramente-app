@@ -1,10 +1,10 @@
 "use client"
 
 import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/layouts/DashboardLayout"
 import { MisNegociosPage } from "@/pages/MisNegociosPage"
 import { Business, StatsData, BusinessSearchParams } from "@/types/business"
-import { Folder } from "lucide-react"
 
 /**
  * Página de Negocios
@@ -12,6 +12,7 @@ import { Folder } from "lucide-react"
  * Muestra el listado de negocios con estadísticas, búsqueda y tabla
  */
 export default function NegociosPage() {
+  const router = useRouter()
   const [businessData, setBusinessData] = useState<Business[]>([
     {
       id: "20462",
@@ -66,8 +67,7 @@ export default function NegociosPage() {
   }
 
   const handleCreateNew = () => {
-    console.log("Crear nuevo negocio")
-    // TODO: Implementar lógica para crear nuevo negocio
+    router.push("/dashboard/negocios/crear")
   }
 
   const handleShowAll = () => {
@@ -76,8 +76,7 @@ export default function NegociosPage() {
   }
 
   const handleAddBusiness = () => {
-    console.log("Agregar negocio")
-    // TODO: Implementar lógica para agregar negocio
+    router.push("/dashboard/negocios/crear")
   }
 
   const handleEditBusiness = (business: Business) => {
@@ -93,12 +92,6 @@ export default function NegociosPage() {
   return (
     <DashboardLayout currentPage="Negocio">
       <div className="space-y-6">
-        {/* Header con título */}
-        <div className="flex items-center gap-2">
-          <Folder className="h-5 w-5 text-primary" />
-          <h1 className="text-2xl font-bold">Negocio</h1>
-        </div>
-
         {/* Contenido de la página de negocios */}
         <MisNegociosPage
           businessData={businessData}
