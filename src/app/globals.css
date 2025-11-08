@@ -157,5 +157,42 @@
     background-color: var(--sidebar-active-bg) !important;
     color: var(--sidebar-text) !important;
   }
+
+  /* Estilos para subitems del sidebar */
+  [data-sidebar="menu-sub-button"] {
+    background-color: transparent !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  [data-sidebar="menu-sub-button"]:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--sidebar-text) !important;
+  }
+
+  [data-sidebar="menu-sub-button"][data-active="true"] {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    color: var(--sidebar-text) !important;
+    font-weight: 500 !important;
+  }
+
+  [data-sidebar="menu-sub-button"][data-active="true"]:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: var(--sidebar-text) !important;
+  }
+
+  /* Estilos para acordeón del sidebar - chevron siempre visible */
+  .sidebar-button.group\/accordion svg:last-child,
+  .sidebar-button-active.group\/accordion svg:last-child {
+    display: block !important;
+    opacity: 0.85 !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sidebar-button.group\/accordion:hover svg:last-child,
+  .sidebar-button-active.group\/accordion:hover svg:last-child {
+    opacity: 1 !important;
+    color: rgba(255, 255, 255, 1) !important;
+  }
 }
 

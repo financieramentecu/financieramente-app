@@ -82,4 +82,10 @@ export default defineConfig({
       '@': path.resolve(dirname, './src'),
     },
   },
+  optimizeDeps: {
+    exclude: ['next', 'next-auth'],
+  },
+  ssr: {
+    noExternal: ['next-auth'],
+  },
 });

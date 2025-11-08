@@ -71,7 +71,7 @@ export function AgentAutocomplete({
   }, [agents, searchQuery])
 
   // Encontrar el agente seleccionado
-  const selectedAgent = agents.find((agent) => agent.nombre === value || agent.id === value)
+  const selectedAgent = agents.find((agent) => agent.id === value || agent.nombre === value)
 
   const handleSelect = (selectedValue: string) => {
     // Actualizar el valor seleccionado
@@ -123,15 +123,11 @@ export function AgentAutocomplete({
             {filteredAgents.length > 0 && (
               <CommandGroup heading="Agentes">
                 {filteredAgents.map((agent) => (
-                  <CommandItem
-                    key={agent.id}
-                    value={agent.nombre}
-                    onSelect={() => handleSelect(agent.nombre)}
-                  >
+                  <CommandItem key={agent.id} value={agent.id} onSelect={() => handleSelect(agent.id)}>
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        value === agent.nombre || value === agent.id
+                        value === agent.id || value === agent.nombre
                           ? "opacity-100"
                           : "opacity-0"
                       )}

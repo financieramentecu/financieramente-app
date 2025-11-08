@@ -61,6 +61,9 @@ COPY --from=builder /app/prisma ./prisma
 # Copy package.json for scripts
 COPY --from=builder /app/package.json ./package.json
 
+# Install Prisma CLI for running migrations
+RUN npm install -g prisma@^6.18.0
+
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
 USER nextjs

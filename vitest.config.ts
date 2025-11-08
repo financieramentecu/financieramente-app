@@ -32,5 +32,11 @@ export default (async () => {
         '@': path.resolve(dirname, './src'),
       },
     },
+    optimizeDeps: {
+      exclude: ['next', 'next-auth'],
+    },
+    ssr: {
+      noExternal: ['next-auth'],
+    },
   });
 })();

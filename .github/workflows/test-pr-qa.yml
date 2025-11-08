@@ -140,7 +140,7 @@ jobs:
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           buildScriptName: build-storybook
-          exitZeroOnChanges: false
+          exitZeroOnChanges: true
           exitOnceUploaded: false
           onlyChanged: true
           autoAcceptChanges: ${{ github.ref == 'refs/heads/develop' }}
@@ -169,7 +169,7 @@ jobs:
             - 📊 Changes: ${changeCount}
 
             ${changeCount > 0 && !isDevelopBranch 
-              ? '**Action required**: Please review and approve changes in Chromatic before merging. The GitHub Check will update automatically once approved.' 
+              ? '**Action required**: Please review and approve changes in Chromatic before merging. The Chromatic check will update automatically once approved and will allow the PR to be merged.' 
               : changeCount > 0 && isDevelopBranch 
               ? '**Auto-accepted**: Changes were automatically approved on develop branch.' 
               : ''}`
@@ -182,8 +182,9 @@ jobs:
             })
 
       # ✅ Chromatic maneja el GitHub Check automáticamente
-      # Cuando apruebes cambios en Chromatic, el check se actualizará automáticamente
-      # No necesitamos un step manual que haga exit 1 porque Chromatic crea su propio check
+      # Con exitZeroOnChanges: true, el workflow de GitHub Actions no falla por cambios visuales
+      # Chromatic crea su propio check que se actualiza automáticamente cuando se aprueban los cambios
+      # Este check de Chromatic es el que bloquea/permite el merge del PR
 
       - name: Visual testing success (auto-accepted)
         if: steps.changes.outputs.storybook == 'true' && steps.chromatic.outputs.changeCount > 0 && github.ref == 'refs/heads/develop'

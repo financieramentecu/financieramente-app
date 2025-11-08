@@ -23,6 +23,7 @@ export interface User {
   nombres: string
   apellidos: string
   email?: string
+  contacto?: string
 }
 
 export interface DocumentAutocompleteProps {
@@ -31,6 +32,7 @@ export interface DocumentAutocompleteProps {
   users?: User[]
   placeholder?: string
   onCreateNew?: (documento: string) => void
+  onSearch?: (query: string) => Promise<User[]>
   className?: string
   'aria-label'?: string
   'aria-labelledby'?: string
@@ -42,12 +44,20 @@ export function DocumentAutocomplete({
   users = [],
   placeholder = "Buscar o crear...",
   onCreateNew,
+  onSearch,
   className,
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
 }: DocumentAutocompleteProps) {
   const [open, setOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [remoteUsers, setRemoteUsers] = React.useState<User[]>(users)
+  const [isSearching, setIsSearching] = React.useState(false)
+  const hasRemoteSearch = typeof onSearch === "function"
+
+  React.useEffect(() => {
+    setRemoteUsers(users)
+  }, [users])
 
   // Inicializar el searchQuery con el valor actual cuando se abre el popover
   React.useEffect(() => {
@@ -58,8 +68,46 @@ export function DocumentAutocomplete({
     }
   }, [open, value])
 
+  React.useEffect(() => {
+    if (!hasRemoteSearch) return
+
+    if (!searchQuery || searchQuery.length < 3) {
+      setRemoteUsers([])
+      setIsSearching(false)
+      return
+    }
+
+    setIsSearching(true)
+    const controller = new AbortController()
+    const handler = setTimeout(async () => {
+      try {
+        const results = await onSearch(searchQuery)
+        if (!controller.signal.aborted) {
+          setRemoteUsers(results)
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Error searching users:", error)
+          setRemoteUsers([])
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsSearching(false)
+        }
+      }
+    }, 400)
+
+    return () => {
+      controller.abort()
+      clearTimeout(handler)
+    }
+  }, [searchQuery, onSearch, hasRemoteSearch])
+
   // Filtrar usuarios basados en la búsqueda
   const filteredUsers = React.useMemo(() => {
+    if (hasRemoteSearch) {
+      return remoteUsers
+    }
     if (!searchQuery) return users
     
     const query = searchQuery.toLowerCase()
@@ -69,20 +117,22 @@ export function DocumentAutocomplete({
         user.nombres.toLowerCase().includes(query) ||
         user.apellidos.toLowerCase().includes(query)
     )
-  }, [users, searchQuery])
+  }, [users, remoteUsers, searchQuery, hasRemoteSearch])
 
   // Encontrar el usuario seleccionado
-  const selectedUser = users.find((user) => user.numeroDocumento === value)
+  const selectedUser = [...users, ...remoteUsers].find(
+    (user) => user.numeroDocumento === value
+  )
 
   // Determinar si se debe mostrar la opción de crear nuevo
   const shouldShowCreate = React.useMemo(() => {
     if (!searchQuery || searchQuery.length < 3) return false
     // Verificar si el documento ya existe
-    const exists = users.some(
+    const exists = [...users, ...remoteUsers].some(
       (user) => user.numeroDocumento.toLowerCase() === searchQuery.toLowerCase()
     )
     return !exists
-  }, [searchQuery, users])
+  }, [searchQuery, users, remoteUsers])
 
   const handleSelect = (selectedValue: string) => {
     // Si es un valor de "create", llamar a onCreateNew y actualizar el valor
@@ -143,12 +193,14 @@ export function DocumentAutocomplete({
           />
           <CommandList>
             <CommandEmpty>
-              {searchQuery.length >= 3
-                ? "No se encontraron usuarios"
-                : "Ingrese al menos 3 caracteres para buscar"}
+              {isSearching
+                ? "Buscando usuarios..."
+                : searchQuery.length >= 3
+                  ? "No se encontraron usuarios"
+                  : "Ingrese al menos 3 caracteres para buscar"}
             </CommandEmpty>
 
-            {shouldShowCreate && searchQuery && (
+            {shouldShowCreate && searchQuery && !isSearching && (
               <CommandGroup>
                 <CommandItem
                   value="__create_new__"

@@ -2,10 +2,8 @@ import { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import type { ComponentProps } from "react"
-import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
-const DEFAULT_DIVIDER_LABEL = "o continúa con"
 
 export interface SocialProvider {
   id: string
@@ -22,7 +20,6 @@ export interface SocialSignInProps {
 
 export function SocialSignIn({
   providers = [],
-  dividerLabel = DEFAULT_DIVIDER_LABEL,
 }: SocialSignInProps) {
   if (providers.length === 0) {
     return null
@@ -30,7 +27,6 @@ export function SocialSignIn({
 
   return (
     <div className="space-y-4">
-      <DividerWithLabel>{dividerLabel}</DividerWithLabel>
       <div className="grid gap-3">
         {providers.map((provider) => (
           <SocialButton key={provider.id} provider={provider} />
@@ -40,16 +36,6 @@ export function SocialSignIn({
   )
 }
 
-function DividerWithLabel({ children }: { children: ReactNode }) {
-  return (
-    <div className="relative flex items-center">
-      <Separator />
-      <span className="absolute inset-0 flex items-center justify-center bg-background px-4 text-xs uppercase tracking-wide text-muted-foreground">
-        {children}
-      </span>
-    </div>
-  )
-}
 
 interface SocialButtonProps {
   provider: SocialProvider

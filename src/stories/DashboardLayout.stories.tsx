@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/nextjs'
-import { DashboardLayout } from '../layouts/DashboardLayout'
+import type { Meta, StoryObj } from '@storybook/nextjs';
+import { DashboardLayout } from '../layouts/DashboardLayout';
 
 const meta: Meta<typeof DashboardLayout> = {
   title: 'Layouts/DashboardLayout',
@@ -19,10 +19,10 @@ const meta: Meta<typeof DashboardLayout> = {
   args: {
     currentPage: 'Mis Negocios',
   },
-}
+};
 
-export default meta
-type Story = StoryObj<typeof meta>
+export default meta;
+type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
@@ -32,7 +32,7 @@ export const Default: Story = {
       </div>
     ),
   },
-}
+};
 
 export const WithMisNegociosPage: Story = {
   args: {
@@ -46,7 +46,7 @@ export const WithMisNegociosPage: Story = {
       </div>
     ),
   },
-}
+};
 
 export const WithDistribucionPage: Story = {
   args: {
@@ -60,7 +60,7 @@ export const WithDistribucionPage: Story = {
       </div>
     ),
   },
-}
+};
 
 export const WithPreliquidacionPage: Story = {
   args: {
@@ -74,7 +74,7 @@ export const WithPreliquidacionPage: Story = {
       </div>
     ),
   },
-}
+};
 
 export const WithLiquidacionPage: Story = {
   args: {
@@ -88,4 +88,4 @@ export const WithLiquidacionPage: Story = {
       </div>
     ),
   },
-}
+};
