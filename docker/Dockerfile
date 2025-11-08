@@ -32,6 +32,9 @@ COPY src ./src
 COPY public ./public
 COPY components.json ./
 
+# Copy prisma directory for generating Prisma client
+COPY prisma ./prisma/
+
 # Clean any existing Next.js cache
 RUN rm -rf .next || true
 
