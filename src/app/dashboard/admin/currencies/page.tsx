@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { currencySchema, type CurrencyFormData } from "@/lib/admin/schemas"
 
-interface Currency {
+interface Currency extends Record<string, unknown> {
   idCurrency: number
   name: string
   symbol: string | null
@@ -70,7 +70,8 @@ export default function CurrenciesAdminPage() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSubmit = async (data: CurrencyFormData) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
+    const formData = data as CurrencyFormData
     try {
       setIsSubmitting(true)
       const url =
@@ -84,8 +85,8 @@ export default function CurrenciesAdminPage() {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...data,
-          symbol: data.symbol === "" ? undefined : data.symbol,
+          ...formData,
+          symbol: formData.symbol === "" ? undefined : formData.symbol,
         }),
       })
 
@@ -145,25 +146,25 @@ export default function CurrenciesAdminPage() {
     {
       key: "idCurrency",
       header: "ID",
-      cellRenderer: (value) => <span className="font-medium">#{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">#{String(value)}</span>,
     },
     {
       key: "name",
       header: "Nombre",
-      cellRenderer: (value) => <span className="font-medium">{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">{String(value)}</span>,
     },
     {
       key: "symbol",
       header: "Símbolo",
       cellRenderer: (value) =>
-        value ? <span className="font-mono">{value}</span> : <span className="text-muted-foreground">-</span>,
+        value ? <span className="font-mono">{String(value)}</span> : <span className="text-muted-foreground">-</span>,
     },
     {
       key: "active",
       header: "Estado",
-      cellRenderer: (value: boolean) => (
-        <Badge variant={value ? "success" : "neutral"}>
-          {value ? "Activa" : "Inactiva"}
+      cellRenderer: (value) => (
+        <Badge variant={(value as boolean) ? "success" : "neutral"}>
+          {(value as boolean) ? "Activa" : "Inactiva"}
         </Badge>
       ),
     },

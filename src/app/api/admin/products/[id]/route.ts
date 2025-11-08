@@ -6,11 +6,12 @@ import { productSchema } from "@/lib/admin/schemas"
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const product = await prisma.product.findUnique({
-      where: { idProduct: Number(params.id) },
+      where: { idProduct: Number(id) },
       include: {
         company: true,
         typeProduct: true,
@@ -36,14 +37,15 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const data = productSchema.parse(body)
 
     const product = await prisma.product.update({
-      where: { idProduct: Number(params.id) },
+      where: { idProduct: Number(id) },
       data: {
         name: data.name,
         description: data.description ?? null,
@@ -92,11 +94,12 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const product = await prisma.product.update({
-      where: { idProduct: Number(params.id) },
+      where: { idProduct: Number(id) },
       data: { status: false },
     })
 

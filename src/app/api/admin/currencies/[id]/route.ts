@@ -5,11 +5,12 @@ import { z } from "zod"
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const currency = await prisma.currency.findUnique({
-      where: { idCurrency: parseInt(params.id) },
+      where: { idCurrency: parseInt(id) },
     })
 
     if (!currency) {
@@ -31,14 +32,15 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const data = currencySchema.parse(body)
 
     const currency = await prisma.currency.update({
-      where: { idCurrency: parseInt(params.id) },
+      where: { idCurrency: parseInt(id) },
       data: {
         name: data.name,
         symbol: data.symbol ?? null,
@@ -81,11 +83,12 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const currency = await prisma.currency.update({
-      where: { idCurrency: parseInt(params.id) },
+      where: { idCurrency: parseInt(id) },
       data: { active: false },
     })
 

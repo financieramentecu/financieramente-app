@@ -1,5 +1,4 @@
-import NextAuth from "next-auth"
-import { authConfig } from "@/lib/auth/config"
+import { handlers } from "@/lib/auth/nextauth"
 
 /**
  * Ruta API de NextAuth
@@ -10,10 +9,5 @@ import { authConfig } from "@/lib/auth/config"
  * - /api/auth/callback
  * - /api/auth/session
  */
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  ...authConfig,
-  trustHost: true,
-})
-
 export const { GET, POST } = handlers
 

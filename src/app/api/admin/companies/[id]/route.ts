@@ -5,11 +5,12 @@ import { z } from "zod"
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const company = await prisma.company.findUnique({
-      where: { idCompany: parseInt(params.id) },
+      where: { idCompany: parseInt(id) },
     })
 
     if (!company) {
@@ -31,14 +32,15 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const data = companySchema.parse(body)
 
     const company = await prisma.company.update({
-      where: { idCompany: parseInt(params.id) },
+      where: { idCompany: parseInt(id) },
       data,
     })
 
@@ -77,12 +79,13 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Soft delete - actualizar status a false
+    const { id } = await params
     const company = await prisma.company.update({
-      where: { idCompany: parseInt(params.id) },
+      where: { idCompany: parseInt(id) },
       data: { status: false },
     })
 

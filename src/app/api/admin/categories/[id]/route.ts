@@ -5,11 +5,12 @@ import { z } from "zod"
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const category = await prisma.category.findUnique({
-      where: { idCategory: parseInt(params.id) },
+      where: { idCategory: parseInt(id) },
     })
 
     if (!category) {
@@ -31,14 +32,15 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const data = categorySchema.parse(body)
 
     const category = await prisma.category.update({
-      where: { idCategory: parseInt(params.id) },
+      where: { idCategory: parseInt(id) },
       data: {
         code: data.code,
         name: data.name,
@@ -83,11 +85,12 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const category = await prisma.category.update({
-      where: { idCategory: parseInt(params.id) },
+      where: { idCategory: parseInt(id) },
       data: { status: false },
     })
 

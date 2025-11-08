@@ -17,7 +17,7 @@ import {
 } from "@/lib/admin/schemas"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-interface ProductOrigin {
+interface ProductOrigin extends Record<string, unknown> {
   idOrigin: number
   name: string
   description: string | null
@@ -26,7 +26,7 @@ interface ProductOrigin {
   updatedAt: string
 }
 
-interface ClientOrigin {
+interface ClientOrigin extends Record<string, unknown> {
   idClientOrigin: number
   name: string
   description: string | null
@@ -85,7 +85,8 @@ function ProductOriginsSection() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSubmit = async (data: ProductOriginFormData) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
+    const formData = data as ProductOriginFormData
     try {
       setIsSubmitting(true)
       const url =
@@ -99,8 +100,8 @@ function ProductOriginsSection() {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...data,
-          description: data.description === "" ? undefined : data.description,
+          ...formData,
+          description: formData.description === "" ? undefined : formData.description,
         }),
       })
 
@@ -164,19 +165,19 @@ function ProductOriginsSection() {
     {
       key: "idOrigin",
       header: "ID",
-      cellRenderer: (value) => <span className="font-medium">#{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">#{String(value)}</span>,
     },
     {
       key: "name",
       header: "Nombre",
-      cellRenderer: (value) => <span className="font-medium">{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">{String(value)}</span>,
     },
     {
       key: "description",
       header: "Descripción",
       cellRenderer: (value) =>
         value ? (
-          <span className="text-sm text-muted-foreground line-clamp-2">{value}</span>
+          <span className="text-sm text-muted-foreground line-clamp-2">{String(value)}</span>
         ) : (
           <span className="text-muted-foreground">-</span>
         ),
@@ -184,9 +185,9 @@ function ProductOriginsSection() {
     {
       key: "status",
       header: "Estado",
-      cellRenderer: (value: boolean) => (
-        <Badge variant={value ? "success" : "neutral"}>
-          {value ? "Activo" : "Inactivo"}
+      cellRenderer: (value) => (
+        <Badge variant={(value as boolean) ? "success" : "neutral"}>
+          {(value as boolean) ? "Activo" : "Inactivo"}
         </Badge>
       ),
     },
@@ -329,7 +330,8 @@ function ClientOriginsSection() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSubmit = async (data: ClientOriginFormData) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
+    const formData = data as ClientOriginFormData
     try {
       setIsSubmitting(true)
       const url =
@@ -343,8 +345,8 @@ function ClientOriginsSection() {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...data,
-          description: data.description === "" ? undefined : data.description,
+          ...formData,
+          description: formData.description === "" ? undefined : formData.description,
         }),
       })
 
@@ -411,19 +413,19 @@ function ClientOriginsSection() {
     {
       key: "idClientOrigin",
       header: "ID",
-      cellRenderer: (value) => <span className="font-medium">#{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">#{String(value)}</span>,
     },
     {
       key: "name",
       header: "Nombre",
-      cellRenderer: (value) => <span className="font-medium">{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">{String(value)}</span>,
     },
     {
       key: "description",
       header: "Descripción",
       cellRenderer: (value) =>
         value ? (
-          <span className="text-sm text-muted-foreground line-clamp-2">{value}</span>
+          <span className="text-sm text-muted-foreground line-clamp-2">{String(value)}</span>
         ) : (
           <span className="text-muted-foreground">-</span>
         ),
@@ -431,9 +433,9 @@ function ClientOriginsSection() {
     {
       key: "status",
       header: "Estado",
-      cellRenderer: (value: boolean) => (
-        <Badge variant={value ? "success" : "neutral"}>
-          {value ? "Activo" : "Inactivo"}
+      cellRenderer: (value) => (
+        <Badge variant={(value as boolean) ? "success" : "neutral"}>
+          {(value as boolean) ? "Activo" : "Inactivo"}
         </Badge>
       ),
     },

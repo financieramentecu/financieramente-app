@@ -5,11 +5,12 @@ import { z } from "zod"
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const origin = await prisma.clientOrigin.findUnique({
-      where: { idClientOrigin: parseInt(params.id) },
+      where: { idClientOrigin: parseInt(id) },
     })
 
     if (!origin) {
@@ -31,14 +32,15 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const data = clientOriginSchema.parse(body)
 
     const origin = await prisma.clientOrigin.update({
-      where: { idClientOrigin: parseInt(params.id) },
+      where: { idClientOrigin: parseInt(id) },
       data: {
         name: data.name,
         description: data.description ?? null,
@@ -81,11 +83,12 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const origin = await prisma.clientOrigin.update({
-      where: { idClientOrigin: parseInt(params.id) },
+      where: { idClientOrigin: parseInt(id) },
       data: { status: false },
     })
 

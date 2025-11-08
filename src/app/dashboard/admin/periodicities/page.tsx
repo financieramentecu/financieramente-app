@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { buyPeriodicitySchema, type BuyPeriodicityFormData } from "@/lib/admin/schemas"
 
-interface Periodicity {
+interface Periodicity extends Record<string, unknown> {
   idBuyPeriodicity: number
   name: string
   active: boolean
@@ -69,7 +69,8 @@ export default function PeriodicitiesAdminPage() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSubmit = async (data: BuyPeriodicityFormData) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
+    const formData = data as BuyPeriodicityFormData
     try {
       setIsSubmitting(true)
       const url =
@@ -82,7 +83,7 @@ export default function PeriodicitiesAdminPage() {
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formData),
       })
 
       const result = await response.json()
@@ -148,19 +149,19 @@ export default function PeriodicitiesAdminPage() {
     {
       key: "idBuyPeriodicity",
       header: "ID",
-      cellRenderer: (value) => <span className="font-medium">#{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">#{String(value)}</span>,
     },
     {
       key: "name",
       header: "Nombre",
-      cellRenderer: (value) => <span className="font-medium">{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">{String(value)}</span>,
     },
     {
       key: "active",
       header: "Estado",
-      cellRenderer: (value: boolean) => (
-        <Badge variant={value ? "success" : "neutral"}>
-          {value ? "Activa" : "Inactiva"}
+      cellRenderer: (value) => (
+        <Badge variant={(value as boolean) ? "success" : "neutral"}>
+          {(value as boolean) ? "Activa" : "Inactiva"}
         </Badge>
       ),
     },

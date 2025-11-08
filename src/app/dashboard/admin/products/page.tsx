@@ -20,7 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { productSchema } from "@/lib/admin/schemas"
 
-interface Product {
+interface Product extends Record<string, unknown> {
   idProduct: number
   name: string
   description: string | null
@@ -229,7 +229,7 @@ export default function ProductsAdminPage() {
     {
       key: "idProduct",
       header: "ID",
-      cellRenderer: (value) => <span className="font-medium">#{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">#{String(value)}</span>,
     },
     {
       key: "name",
@@ -256,8 +256,8 @@ export default function ProductsAdminPage() {
     {
       key: "status",
       header: "Estado",
-      cellRenderer: (value: boolean) => (
-        <Badge variant={value ? "success" : "neutral"}>{value ? "Activo" : "Inactivo"}</Badge>
+      cellRenderer: (value) => (
+        <Badge variant={(value as boolean) ? "success" : "neutral"}>{(value as boolean) ? "Activo" : "Inactivo"}</Badge>
       ),
     },
   ]

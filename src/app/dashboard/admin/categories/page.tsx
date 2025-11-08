@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 
-interface Category {
+interface Category extends Record<string, unknown> {
   idCategory: number
   code: string
   name: string
@@ -96,7 +96,8 @@ export default function CategoriesAdminPage() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSubmit = async (data: CategoryFormData) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
+    const formData = data as CategoryFormData
     try {
       setIsSubmitting(true)
       const url =
@@ -189,23 +190,23 @@ export default function CategoriesAdminPage() {
     {
       key: "idCategory",
       header: "ID",
-      cellRenderer: (value) => <span className="font-medium">#{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">#{String(value)}</span>,
     },
     {
       key: "code",
       header: "Código",
-      cellRenderer: (value) => <span className="font-mono text-sm">{value}</span>,
+      cellRenderer: (value) => <span className="font-mono text-sm">{String(value)}</span>,
     },
     {
       key: "name",
       header: "Nombre",
-      cellRenderer: (value) => <span className="font-medium">{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">{String(value)}</span>,
     },
     {
       key: "typeCategory",
       header: "Tipo",
-      cellRenderer: (value: Category["typeCategory"]) => (
-        <span className="text-sm">{CATEGORY_LABELS[value]}</span>
+      cellRenderer: (value) => (
+        <span className="text-sm">{CATEGORY_LABELS[value as Category["typeCategory"]]}</span>
       ),
     },
     {
@@ -213,7 +214,7 @@ export default function CategoriesAdminPage() {
       header: "Descripción",
       cellRenderer: (value) =>
         value ? (
-          <span className="text-sm text-muted-foreground line-clamp-2">{value}</span>
+          <span className="text-sm text-muted-foreground line-clamp-2">{String(value)}</span>
         ) : (
           <span className="text-muted-foreground">-</span>
         ),
@@ -221,8 +222,8 @@ export default function CategoriesAdminPage() {
     {
       key: "status",
       header: "Estado",
-      cellRenderer: (value: boolean) => (
-        <Badge variant={value ? "success" : "neutral"}>
+      cellRenderer: (value) => (
+        <Badge variant={(value as boolean) ? "success" : "neutral"}>
           {value ? "Activa" : "Inactiva"}
         </Badge>
       ),
@@ -326,17 +327,17 @@ export default function CategoriesAdminPage() {
           schema={categorySchema}
           initialData={
             mode === "edit" && selectedCategory
-              ? {
+              ? ({
                   code: selectedCategory.code,
                   name: selectedCategory.name,
                   typeCategory: selectedCategory.typeCategory,
                   descripcion: selectedCategory.descripcion || "",
                   status: selectedCategory.status,
-                }
-              : {
+                } as CategoryFormData)
+              : ({
                   status: true,
                   typeCategory: "MMS",
-                }
+                } as CategoryFormData)
           }
           onSubmit={handleSubmit}
           mode={mode}

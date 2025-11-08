@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { companySchema, type CompanyFormData } from "@/lib/admin/schemas"
 
-interface Company {
+interface Company extends Record<string, unknown> {
   idCompany: number
   name: string
   idTypeCompany: string
@@ -70,7 +70,8 @@ export default function CompaniesAdminPage() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSubmit = async (data: CompanyFormData) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
+    const formData = data as CompanyFormData
     try {
       setIsSubmitting(true)
       const url = mode === "create"
@@ -82,7 +83,7 @@ export default function CompaniesAdminPage() {
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formData),
       })
 
       const result = await response.json()
@@ -141,12 +142,12 @@ export default function CompaniesAdminPage() {
     {
       key: "idCompany",
       header: "ID",
-      cellRenderer: (value) => <span className="font-medium">#{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">#{String(value)}</span>,
     },
     {
       key: "name",
       header: "Nombre",
-      cellRenderer: (value) => <span className="font-medium">{value}</span>,
+      cellRenderer: (value) => <span className="font-medium">{String(value)}</span>,
     },
     {
       key: "idTypeCompany",
@@ -158,9 +159,9 @@ export default function CompaniesAdminPage() {
     {
       key: "status",
       header: "Estado",
-      cellRenderer: (value: boolean) => (
-        <Badge variant={value ? "success" : "neutral"}>
-          {value ? "Activo" : "Inactivo"}
+      cellRenderer: (value) => (
+        <Badge variant={(value as boolean) ? "success" : "neutral"}>
+          {(value as boolean) ? "Activo" : "Inactivo"}
         </Badge>
       ),
     },

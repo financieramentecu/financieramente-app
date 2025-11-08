@@ -22,13 +22,8 @@ declare module "next-auth" {
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT {
-    email?: string
-    name?: string | null
-    picture?: string | null
-  }
-}
+// NextAuth v5 no requiere declaración de módulo jwt separada
+// Los tipos de JWT se manejan internamente
 
 /**
  * Constantes de dominio corporativo

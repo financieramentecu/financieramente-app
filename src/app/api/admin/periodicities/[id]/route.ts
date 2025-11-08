@@ -5,11 +5,12 @@ import { z } from "zod"
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const periodicity = await prisma.buyPeriodicity.findUnique({
-      where: { idBuyPeriodicity: parseInt(params.id) },
+      where: { idBuyPeriodicity: parseInt(id) },
     })
 
     if (!periodicity) {
@@ -31,14 +32,15 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     const data = buyPeriodicitySchema.parse(body)
 
     const periodicity = await prisma.buyPeriodicity.update({
-      where: { idBuyPeriodicity: parseInt(params.id) },
+      where: { idBuyPeriodicity: parseInt(id) },
       data: {
         name: data.name,
         active: data.active ?? true,
@@ -80,11 +82,12 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const periodicity = await prisma.buyPeriodicity.update({
-      where: { idBuyPeriodicity: parseInt(params.id) },
+      where: { idBuyPeriodicity: parseInt(id) },
       data: { active: false },
     })
 
