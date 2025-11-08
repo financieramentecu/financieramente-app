@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import {
@@ -35,6 +35,7 @@ export interface CrudModalField {
   options?: { value: string; label: string }[]
   enumValues?: string[]
   disabled?: boolean
+  description?: string
 }
 
 export interface CrudModalProps {
@@ -67,8 +68,7 @@ export function CrudModal({
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    setValue,
-    watch,
+    control,
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: initialData || {},
@@ -92,7 +92,6 @@ export function CrudModal({
 
   const renderField = (field: CrudModalField) => {
     const error = errors[field.name]
-    const value = watch(field.name)
 
     switch (field.type) {
       case "textarea":
@@ -124,22 +123,28 @@ export function CrudModal({
               {field.label}
               {field.required && <span className="text-destructive ml-1">*</span>}
             </Label>
-            <Select
-              value={value || ""}
-              onValueChange={(val) => setValue(field.name, val)}
-              disabled={field.disabled || isLoading}
-            >
-              <SelectTrigger className={cn(error && "border-destructive")}>
-                <SelectValue placeholder={field.placeholder || "Seleccionar..."} />
-              </SelectTrigger>
-              <SelectContent>
-                {field.options?.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              name={field.name}
+              control={control}
+              render={({ field: controllerField }) => (
+                <Select
+                  value={controllerField.value?.toString() ?? ""}
+                  onValueChange={(val) => controllerField.onChange(val)}
+                  disabled={field.disabled || isLoading}
+                >
+                  <SelectTrigger className={cn(error && "border-destructive")}>
+                    <SelectValue placeholder={field.placeholder || "Seleccionar..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {field.options?.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {error && (
               <p className="text-sm text-destructive">
                 {error.message as string}
@@ -155,22 +160,28 @@ export function CrudModal({
               {field.label}
               {field.required && <span className="text-destructive ml-1">*</span>}
             </Label>
-            <Select
-              value={value || ""}
-              onValueChange={(val) => setValue(field.name, val)}
-              disabled={field.disabled || isLoading}
-            >
-              <SelectTrigger className={cn(error && "border-destructive")}>
-                <SelectValue placeholder={field.placeholder || "Seleccionar..."} />
-              </SelectTrigger>
-              <SelectContent>
-                {field.enumValues?.map((enumValue) => (
-                  <SelectItem key={enumValue} value={enumValue}>
-                    {enumValue}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              name={field.name}
+              control={control}
+              render={({ field: controllerField }) => (
+                <Select
+                  value={controllerField.value?.toString() ?? ""}
+                  onValueChange={(val) => controllerField.onChange(val)}
+                  disabled={field.disabled || isLoading}
+                >
+                  <SelectTrigger className={cn(error && "border-destructive")}>
+                    <SelectValue placeholder={field.placeholder || "Seleccionar..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {field.enumValues?.map((enumValue) => (
+                      <SelectItem key={enumValue} value={enumValue}>
+                        {enumValue}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {error && (
               <p className="text-sm text-destructive">
                 {error.message as string}
@@ -181,19 +192,39 @@ export function CrudModal({
 
       case "switch":
         return (
-          <div key={field.name} className="flex items-center justify-between space-x-2">
-            <Label htmlFor={field.name} className="flex-1">
-              {field.label}
-              {field.required && <span className="text-destructive ml-1">*</span>}
-            </Label>
-            <Switch
-              id={field.name}
-              checked={value || false}
-              onCheckedChange={(checked) => setValue(field.name, checked)}
-              disabled={field.disabled || isLoading}
-            />
+          <div key={field.name} className="space-y-2">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3 shadow-sm">
+              <div className="pr-4">
+                <Label htmlFor={field.name} className="text-sm font-semibold text-foreground leading-tight">
+                  {field.label}
+                  {field.required && <span className="text-destructive ml-1">*</span>}
+                </Label>
+                {field.description && (
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                    {field.description}
+                  </p>
+                )}
+              </div>
+              <Controller
+                name={field.name}
+                control={control}
+                render={({ field: controllerField }) => (
+                  <Switch
+                    id={field.name}
+                    checked={
+                      typeof controllerField.value === "boolean"
+                        ? controllerField.value
+                        : Boolean(initialData?.[field.name])
+                    }
+                    onCheckedChange={(checked) => controllerField.onChange(checked)}
+                    disabled={field.disabled || isLoading}
+                    className="data-[state=checked]:shadow-[0_10px_18px_rgba(0,107,94,0.25)] data-[state=unchecked]:shadow-[0_4px_12px_rgba(15,23,42,0.08)]"
+                  />
+                )}
+              />
+            </div>
             {error && (
-              <p className="text-sm text-destructive col-span-2">
+              <p className="text-sm text-destructive">
                 {error.message as string}
               </p>
             )}

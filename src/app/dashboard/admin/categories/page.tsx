@@ -7,6 +7,7 @@ import { CrudModal, type CrudModalField } from "@/components/admin/CrudModal"
 import { DeleteConfirmModal } from "@/components/admin/DeleteConfirmModal"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { categorySchema, type CategoryFormData } from "@/lib/admin/schemas"
 import {
@@ -220,6 +221,11 @@ export default function CategoriesAdminPage() {
     {
       key: "status",
       header: "Estado",
+      cellRenderer: (value: boolean) => (
+        <Badge variant={value ? "success" : "neutral"}>
+          {value ? "Activa" : "Inactiva"}
+        </Badge>
+      ),
     },
   ]
 
@@ -257,6 +263,7 @@ export default function CategoriesAdminPage() {
       label: "Activa",
       type: "switch",
       required: false,
+      description: "Desactiva una categoría para ocultarla sin perder su historial.",
     },
   ]
 

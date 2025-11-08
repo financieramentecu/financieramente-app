@@ -7,6 +7,7 @@ import { CrudModal, type CrudModalField } from "@/components/admin/CrudModal"
 import { DeleteConfirmModal } from "@/components/admin/DeleteConfirmModal"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { companySchema, type CompanyFormData } from "@/lib/admin/schemas"
 
@@ -157,6 +158,11 @@ export default function CompaniesAdminPage() {
     {
       key: "status",
       header: "Estado",
+      cellRenderer: (value: boolean) => (
+        <Badge variant={value ? "success" : "neutral"}>
+          {value ? "Activo" : "Inactivo"}
+        </Badge>
+      ),
     },
   ]
 
@@ -180,6 +186,7 @@ export default function CompaniesAdminPage() {
       label: "Activo",
       type: "switch",
       required: false,
+      description: "Controla si la compañía está disponible para nuevas operaciones.",
     },
   ]
 

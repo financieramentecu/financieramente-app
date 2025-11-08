@@ -7,6 +7,7 @@ import { CrudModal, type CrudModalField } from "@/components/admin/CrudModal"
 import { DeleteConfirmModal } from "@/components/admin/DeleteConfirmModal"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { buyPeriodicitySchema, type BuyPeriodicityFormData } from "@/lib/admin/schemas"
 
@@ -157,6 +158,11 @@ export default function PeriodicitiesAdminPage() {
     {
       key: "active",
       header: "Estado",
+      cellRenderer: (value: boolean) => (
+        <Badge variant={value ? "success" : "neutral"}>
+          {value ? "Activa" : "Inactiva"}
+        </Badge>
+      ),
     },
   ]
 
@@ -173,6 +179,7 @@ export default function PeriodicitiesAdminPage() {
       label: "Activo",
       type: "switch",
       required: false,
+      description: "Inactiva la periodicidad para evitar que nuevos registros la utilicen.",
     },
   ]
 

@@ -7,6 +7,7 @@ import { CrudModal, type CrudModalField } from "@/components/admin/CrudModal"
 import { DeleteConfirmModal } from "@/components/admin/DeleteConfirmModal"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { currencySchema, type CurrencyFormData } from "@/lib/admin/schemas"
 
@@ -160,6 +161,11 @@ export default function CurrenciesAdminPage() {
     {
       key: "active",
       header: "Estado",
+      cellRenderer: (value: boolean) => (
+        <Badge variant={value ? "success" : "neutral"}>
+          {value ? "Activa" : "Inactiva"}
+        </Badge>
+      ),
     },
   ]
 
@@ -183,6 +189,7 @@ export default function CurrenciesAdminPage() {
       label: "Activo",
       type: "switch",
       required: false,
+      description: "Define si la moneda puede ser seleccionada al crear negocios.",
     },
   ]
 

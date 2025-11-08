@@ -7,6 +7,7 @@ import { CrudModal, type CrudModalField } from "@/components/admin/CrudModal"
 import { DeleteConfirmModal } from "@/components/admin/DeleteConfirmModal"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import {
   clientOriginSchema,
@@ -183,6 +184,11 @@ function ProductOriginsSection() {
     {
       key: "status",
       header: "Estado",
+      cellRenderer: (value: boolean) => (
+        <Badge variant={value ? "success" : "neutral"}>
+          {value ? "Activo" : "Inactivo"}
+        </Badge>
+      ),
     },
   ]
 
@@ -206,6 +212,7 @@ function ProductOriginsSection() {
       label: "Activo",
       type: "switch",
       required: false,
+      description: "Deshabilita este origen para impedir su uso en nuevos productos.",
     },
   ]
 
@@ -424,6 +431,11 @@ function ClientOriginsSection() {
     {
       key: "status",
       header: "Estado",
+      cellRenderer: (value: boolean) => (
+        <Badge variant={value ? "success" : "neutral"}>
+          {value ? "Activo" : "Inactivo"}
+        </Badge>
+      ),
     },
   ]
 
@@ -447,6 +459,7 @@ function ClientOriginsSection() {
       label: "Activo",
       type: "switch",
       required: false,
+      description: "Inactiva el origen para que no esté disponible al registrar clientes.",
     },
   ]
 
