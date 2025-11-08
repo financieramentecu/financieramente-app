@@ -36,11 +36,16 @@ COPY components.json ./
 RUN npx prisma generate
 
 # Build the application
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
+# Build arguments for Next.js public variables (must be available at build time)
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_TELEMETRY_DISABLED=1
+
+ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
+ENV NODE_ENV=production
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 # Skip type checking and linting during build (already done in CI tests)
-ENV SKIP_ENV_VALIDATION true
-ENV NEXT_SKIP_TYPE_CHECK true
+ENV SKIP_ENV_VALIDATION=true
+ENV NEXT_SKIP_TYPE_CHECK=true
 RUN npm run build
 
 # Stage 3: Runner

@@ -96,12 +96,14 @@ graph TB
 ```mermaid
 graph TB
     subgraph GitHub
-        A[Push a rama 'qa'] --> B[GitHub Action QA]
-        C[Push a rama 'master'] --> D[GitHub Action Prod]
+        A1[PR a 'develop'] --> B1[test-pr-qa.yml<br/>Tests y Linting]
+        A2[Merge PR a 'qa'] --> A3[Push a 'qa']
+        A3 --> B2[deploy-qa.yml<br/>Solo Deploy]
+        C[Push a rama 'master'] --> D[deploy-prod.yml<br/>Solo Deploy]
     end
     
     subgraph "Digital Ocean - QA Environment"
-        B --> E[Droplet QA<br/>$6/month<br/>1GB RAM, 1 vCPU]
+        B2 --> E[Droplet QA<br/>$6/month<br/>1GB RAM, 1 vCPU]
         E --> F[Docker Compose]
         F --> G[PostgreSQL Container]
         F --> H[Next.js Container]
@@ -126,20 +128,24 @@ graph TB
     
     style E fill:#e1f5ff
     style J fill:#fff4e1
-    style B fill:#d4edda
-    style D fill:#d4edda
+    style B1 fill:#d4edda
+    style B2 fill:#cfe2ff
+    style D fill:#cfe2ff
 ```
 
 ### Detalles del Deployment
 
 El flujo de deployment sigue estos pasos:
 
-1. **Tests y Linting**: Se ejecutan unit tests y linter antes del deployment
-2. **Preparación SSH**: Se configura la conexión SSH con el droplet
-3. **Sincronización de Archivos**: Uso de `rsync` para transferir archivos
-4. **Copiar Configuración Docker**: Se copian archivos de configuración
-5. **Despliegue en Servidor**: Se ejecutan comandos en el servidor remoto
-6. **Health Check**: Verificación de que la aplicación responde correctamente
+1. **Preparación SSH**: Se configura la conexión SSH con el droplet
+2. **Sincronización de Archivos**: Uso de `rsync` para transferir archivos
+3. **Copiar Configuración Docker**: Se copian archivos de configuración
+4. **Crear Variables de Entorno**: Se crea el archivo `.env` en el servidor
+5. **Build y Deploy de Contenedores**: Docker Compose construye y levanta los contenedores
+6. **Ejecutar Migraciones**: Las migraciones de Prisma se ejecutan dentro del contenedor `nextjs`
+7. **Health Check**: Verificación de que la aplicación responde correctamente
+
+**Nota**: Los tests y linting se ejecutan en el workflow `test-pr-qa.yml` cuando se abre un PR a `develop`. El workflow de deployment (`deploy-qa.yml` y `deploy-prod.yml`) solo ejecuta el deploy para optimizar el tiempo de ejecución.
 
 #### Configuración SSH en GitHub Actions
 
@@ -294,7 +300,9 @@ ssh root@[IP] "htop"
 
 El deployment automático se activa al hacer push a las ramas `qa` o `master`. El proceso completo incluye:
 
-#### Fase 1: Pre-Deployment (Tests)
+#### Fase 1: Tests (Workflow Separado)
+
+Los tests se ejecutan en el workflow `test-pr-qa.yml` cuando se abre un PR a `develop`:
 
 ```bash
 # 1. Checkout del código
@@ -303,7 +311,7 @@ git clone repository
 # 2. Instalación de dependencias
 npm ci --prefer-offline --no-audit
 
-# 3. Generación de Prisma Client (si está habilitado)
+# 3. Generación de Prisma Client
 npx prisma generate
 
 # 4. Ejecución de Linter
@@ -312,11 +320,11 @@ npm run lint
 # 5. Ejecución de Tests Unitarios
 npm run test:unit
 
-# 6. Build de la aplicación
+# 6. Build de la aplicación (para verificar que compila)
 npm run build
 ```
 
-**Si cualquier paso falla, el deployment se cancela automáticamente.**
+**Nota**: El workflow de deployment (`deploy-qa.yml` y `deploy-prod.yml`) NO ejecuta tests para optimizar el tiempo de ejecución. Los tests ya se ejecutaron en el PR.
 
 #### Fase 2: Copia de Archivos
 
@@ -346,9 +354,29 @@ Para reducir el tiempo de build y el consumo de recursos en el droplet QA:
 
 **Variables de entorno en Dockerfile**:
 ```dockerfile
+# Build arguments (deben estar disponibles durante el build)
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_TELEMETRY_DISABLED=1
+
+# Variables de entorno para el build
 ENV NEXT_SKIP_TYPE_CHECK=true  # Deshabilita type checking
 ENV SKIP_ENV_VALIDATION=true   # Deshabilita validación de env
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}  # Disponible durante build
+ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
 ```
+
+**Build args en docker-compose**:
+```yaml
+nextjs:
+  build:
+    context: ./app
+    dockerfile: ../docker/Dockerfile
+    args:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED}
+```
+
+**Importante**: Las variables `NEXT_PUBLIC_*` deben estar disponibles durante el build porque Next.js las incrusta en el código compilado. Por eso se pasan como build args.
 
 **Configuración en next.config.ts**:
 ```typescript
@@ -372,29 +400,51 @@ Esto previene timeouts en droplets con recursos limitados.
 Una vez que los archivos llegan al servidor, se ejecutan estos comandos:
 
 ```bash
-# 1. Crear archivo .env
+# 1. Crear archivo .env con todas las variables necesarias
 cat > /opt/financieramente/.env << 'ENVEOF'
 NODE_ENV=qa
 POSTGRES_USER=financieramente_user
 POSTGRES_PASSWORD=[secreto]
 POSTGRES_DB=financieramente_qa
 DATABASE_URL=postgresql://...
-NEXT_PUBLIC_API_URL=http://[IP]
+NEXT_PUBLIC_API_URL=https://negocios.qa.financieramentecu.co
+NEXTAUTH_SECRET=[secreto]
+NEXTAUTH_URL=https://negocios.qa.financieramentecu.co
+GOOGLE_CLIENT_ID=[secreto]
+GOOGLE_CLIENT_SECRET=[secreto]
+NEXT_TELEMETRY_DISABLED=1
 ENVEOF
 
-# 2. Habilitar Docker BuildKit
+# 2. Copiar .env al directorio de la app
+cp /opt/financieramente/.env /opt/financieramente/app/.env
+
+# 3. Habilitar Docker BuildKit
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-# 3. Detener contenedores existentes
+# 4. Detener contenedores existentes
 docker-compose -f docker-compose.qa.yml down --timeout 30
 
-# 4. Limpiar contenedores
+# 5. Limpiar contenedores
 docker container prune -f
 
-# 5. Reconstruir y levantar contenedores
+# 6. Reconstruir y levantar contenedores
+# Las variables NEXT_PUBLIC_* se pasan como build args para estar disponibles durante el build
 docker-compose -f docker-compose.qa.yml build --parallel
 docker-compose -f docker-compose.qa.yml up -d
+
+# 7. Esperar a que PostgreSQL esté listo
+for i in {1..30}; do
+  if docker-compose exec -T postgres pg_isready -U financieramente_user -d financieramente_qa > /dev/null 2>&1; then
+    echo "✅ PostgreSQL is ready"
+    break
+  fi
+  sleep 2
+done
+
+# 8. Ejecutar migraciones DENTRO del contenedor nextjs
+docker-compose -f docker-compose.qa.yml exec -T nextjs sh -c "cd /app && npx prisma generate"
+docker-compose -f docker-compose.qa.yml exec -T nextjs sh -c "cd /app && npx prisma migrate deploy"
 ```
 
 #### Fase 4: Health Check
@@ -426,9 +476,33 @@ docker volume prune -f
 
 1. **Desarrollo**: Hacer cambios en código
 2. **Commit**: `git commit -m "feat: nueva funcionalidad"`
-3. **Push QA**: `git push origin qa`
-4. **Testing**: Verificar en ambiente QA
-5. **Push Producción**: `git push origin master`
+3. **Crear PR**: Crear PR de `develop` a `qa`
+   - Se ejecuta automáticamente `test-pr-qa.yml` (tests, linting, build)
+4. **Merge PR**: Aprobar y hacer merge del PR
+   - Se ejecuta automáticamente `deploy-qa.yml` (solo deploy, sin tests)
+5. **Testing**: Verificar en ambiente QA
+6. **Push Producción**: `git push origin master`
+   - Se ejecuta automáticamente `deploy-prod.yml` (solo deploy, sin tests)
+
+**Optimización**: Los workflows de deployment (`deploy-qa.yml` y `deploy-prod.yml`) NO ejecutan tests para ahorrar tiempo. Los tests ya se ejecutaron en el PR.
+
+### Triggers de Workflows
+
+**test-pr-qa.yml**:
+- Se ejecuta cuando se abre un PR a `develop`
+- Ejecuta: tests, linting, build (verificación)
+
+**deploy-qa.yml**:
+- Se ejecuta SOLO cuando hay `push` a la rama `qa`
+- NO se ejecuta en eventos de `pull_request` para evitar ejecuciones múltiples
+- Ejecuta: solo deploy (sin tests)
+
+**deploy-prod.yml**:
+- Se ejecuta SOLO cuando hay `push` a la rama `master`
+- NO se ejecuta en eventos de `pull_request` para evitar ejecuciones múltiples
+- Ejecuta: solo deploy (sin tests)
+
+**Prevención de ejecuciones múltiples**: Al hacer merge de un PR, GitHub genera un evento `push` a la rama destino. Si el workflow también escuchara eventos `pull_request`, se ejecutaría dos veces. Por eso los workflows de deployment solo escuchan `push`.
 
 ### Backup de Base de Datos
 
@@ -786,20 +860,31 @@ PROD_DROPLET_IP       # IP del droplet de Producción
 POSTGRES_PASSWORD_QA       # Contraseña PostgreSQL en QA
 POSTGRES_PASSWORD_PROD     # Contraseña PostgreSQL en Producción
 
-# Application
-NEXT_PUBLIC_API_URL   # URL de la API (generada automáticamente)
+# NextAuth (diferentes por ambiente)
+NEXTAUTH_SECRET_QA         # Secret para NextAuth en QA (generar con: openssl rand -base64 32)
+NEXTAUTH_SECRET_PROD       # Secret para NextAuth en PROD (generar con: openssl rand -base64 32)
+
+# Google OAuth (diferentes por ambiente - cada uno tiene su propio cliente OAuth)
+GOOGLE_CLIENT_ID_QA        # Cliente OAuth de Google para QA
+GOOGLE_CLIENT_SECRET_QA    # Secret del cliente OAuth de QA
+GOOGLE_CLIENT_ID_PROD      # Cliente OAuth de Google para PROD
+GOOGLE_CLIENT_SECRET_PROD  # Secret del cliente OAuth de PROD
 ```
+
+**Convención de nombres**: Los secrets se nombran con el formato `NOMBRE_VARIABLE_AMBIENTE` (ej: `NEXTAUTH_SECRET_QA`, `GOOGLE_CLIENT_ID_PROD`).
 
 ### Estados de Deployment
 
 El workflow puede estar en uno de estos estados:
 
-1. **Running Tests** 🔄: Ejecutando tests y linter
-2. **Copying Files** 📤: Copiando archivos al servidor
-3. **Building Containers** 🏗️: Construyendo contenedores Docker
+1. **Copying Files** 📤: Copiando archivos al servidor
+2. **Building Containers** 🏗️: Construyendo contenedores Docker
+3. **Running Migrations** 🔄: Ejecutando migraciones de Prisma dentro del contenedor
 4. **Health Check** ❤️: Verificando que la app responde
 5. **Success** ✅: Deployment completado
 6. **Failed** ❌: Fallo en algún paso
+
+**Nota**: Los tests se ejecutan en el workflow `test-pr-qa.yml` cuando se abre un PR a `develop`, no en el workflow de deployment.
 
 ## Contacto y Soporte
 
