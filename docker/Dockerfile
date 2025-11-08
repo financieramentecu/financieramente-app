@@ -68,15 +68,21 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+
+# Copy prisma directory with migrations (needed for migrate deploy)
+# Must copy from builder stage to ensure schema.prisma and migrations/ are available
 COPY --from=builder /app/prisma ./prisma
 
 # Copy package.json for scripts
 COPY --from=builder /app/package.json ./package.json
 
+# Ensure prisma directory exists and has correct structure
+RUN test -d /app/prisma && test -f /app/prisma/schema.prisma || (echo "ERROR: prisma directory or schema.prisma not found" && exit 1)
+
 # Install Prisma CLI for running migrations
 RUN npm install -g prisma@^6.18.0
 
-# Set correct permissions
+# Set correct permissions before switching to nextjs user
 RUN chown -R nextjs:nodejs /app
 USER nextjs
 
