@@ -35,6 +35,10 @@ COPY components.json ./
 # Copy prisma directory for generating Prisma client
 COPY prisma ./prisma/
 
+# Verify prisma directory was copied correctly
+RUN test -d /app/prisma || (echo "ERROR: prisma directory not found in builder stage" && exit 1)
+RUN test -f /app/prisma/schema.prisma || (echo "ERROR: schema.prisma not found in builder stage" && exit 1)
+
 # Clean any existing Next.js cache
 RUN rm -rf .next || true
 
@@ -55,6 +59,10 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 # Using --no-cache flag to ensure fresh build
 RUN npm run build
 
+# Verify prisma directory still exists after build (it should)
+RUN test -d /app/prisma || (echo "ERROR: prisma directory missing after build" && exit 1)
+RUN test -f /app/prisma/schema.prisma || (echo "ERROR: schema.prisma missing after build" && exit 1)
+
 # Stage 3: Runner
 FROM node:20-alpine AS runner
 RUN apk add --no-cache curl
@@ -65,19 +73,23 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy built application
+# Note: standalone output includes server.js and node_modules, but NOT prisma directory
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy prisma directory with migrations (needed for migrate deploy)
-# Must copy from builder stage to ensure schema.prisma and migrations/ are available
-COPY --from=builder /app/prisma ./prisma
-
 # Copy package.json for scripts
 COPY --from=builder /app/package.json ./package.json
 
-# Ensure prisma directory exists and has correct structure
-RUN test -d /app/prisma && test -f /app/prisma/schema.prisma || (echo "ERROR: prisma directory or schema.prisma not found" && exit 1)
+# Copy prisma directory with migrations (needed for migrate deploy)
+# IMPORTANT: Must copy AFTER standalone to ensure it's not overwritten
+# The prisma directory contains schema.prisma and migrations/ folder
+COPY --from=builder /app/prisma ./prisma
+
+# Verify prisma directory was copied correctly (before switching user)
+RUN test -d /app/prisma || (echo "ERROR: prisma directory not found after copy to runner stage" && ls -la /app/ && exit 1)
+RUN test -f /app/prisma/schema.prisma || (echo "ERROR: schema.prisma not found in prisma directory" && ls -la /app/prisma/ && exit 1)
+RUN echo "✅ Prisma directory verified: $(ls -la /app/prisma/)"
 
 # Install Prisma CLI for running migrations
 RUN npm install -g prisma@^6.18.0
