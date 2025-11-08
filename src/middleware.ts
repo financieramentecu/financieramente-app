@@ -13,6 +13,18 @@ import { auth } from "@/lib/auth/nextauth"
  * Compatible con NextAuth v5
  */
 export async function middleware(request: NextRequest) {
+  // En modo de prueba, permitir acceso si hay un header especial de test
+  // Esto permite que las pruebas e2e accedan a rutas protegidas sin autenticación real
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    request.headers.get('x-test-auth') === 'true'
+  ) {
+    // Crear una respuesta con el header de test para que las páginas sepan que es un test
+    const response = NextResponse.next()
+    response.headers.set('x-test-auth', 'true')
+    return response
+  }
+
   // Verificar sesión
   const session = await auth()
 
