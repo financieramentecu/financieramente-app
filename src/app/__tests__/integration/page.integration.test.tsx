@@ -7,6 +7,13 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }));
 
+// Mock de next/headers
+vi.mock('next/headers', () => ({
+  headers: vi.fn(() => {
+    throw new Error('headers() called outside request scope');
+  }),
+}));
+
 // Mock de @/auth
 vi.mock('@/auth', () => ({
   auth: vi.fn(() => Promise.resolve(null)),

@@ -13,8 +13,15 @@ import { headers } from "next/headers"
  */
 export default async function Home() {
 	// En modo de prueba, permitir acceso si hay un header especial de test
-	const headersList = await headers()
-	const isTestAuth = headersList.get('x-test-auth') === 'true'
+	// Solo verificar headers si estamos en un contexto de solicitud (no en tests unitarios)
+	let isTestAuth = false
+	try {
+		const headersList = await headers()
+		isTestAuth = headersList.get('x-test-auth') === 'true'
+	} catch {
+		// headers() no está disponible (por ejemplo, en tests unitarios)
+		// Continuar con el flujo normal de autenticación
+	}
 
 	if (process.env.NODE_ENV !== 'production' && isTestAuth) {
 		redirect("/dashboard")
