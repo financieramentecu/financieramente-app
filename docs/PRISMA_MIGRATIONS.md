@@ -64,27 +64,42 @@ sequenceDiagram
     participant GitHub as GitHub Repo
     participant Action as GitHub Action
     participant Droplet as Droplet QA
+    participant Container as Contenedor nextjs
     participant DB as PostgreSQL QA
 
     Dev->>GitHub: git push origin qa<br/>(incluye prisma/migrations/)
-    GitHub->>Action: Trigger workflow
-    Action->>Action: npm ci<br/>(instalar dependencias)
-    Action->>Action: npx prisma generate<br/>(generar Prisma Client)
-    Action->>Action: npm run build<br/>(build Next.js)
-    Action->>Droplet: SSH + Deploy código
-    Action->>Droplet: npx prisma migrate deploy
-    Droplet->>DB: Ejecutar migraciones SQL<br/>(solo las pendientes)
-    DB-->>Droplet: ✅ Migraciones aplicadas
-    Action->>Droplet: docker compose restart
-    Droplet-->>Action: ✅ Deployment exitoso
+    GitHub->>Action: Trigger workflow deploy-qa.yml
+    Action->>Droplet: SSH + Copiar archivos
+    Action->>Droplet: Crear archivo .env
+    Action->>Droplet: docker-compose build
+    Action->>Droplet: docker-compose up -d
+    Action->>Droplet: Esperar PostgreSQL ready
+    Action->>Container: docker-compose exec nextjs<br/>npx prisma generate
+    Action->>Container: docker-compose exec nextjs<br/>npx prisma migrate deploy
+    Container->>DB: Ejecutar migraciones SQL<br/>(solo las pendientes)
+    DB-->>Container: ✅ Migraciones aplicadas
+    Container-->>Action: ✅ Deployment exitoso
 ```
 
 **Comandos que ejecuta GitHub Action**:
 ```bash
 # En el Droplet de QA:
-npx prisma migrate deploy  # Aplica SOLO migraciones pendientes
-docker-compose restart     # Reinicia la app con el nuevo código
+# 1. Construir y levantar contenedores
+docker-compose -f docker-compose.qa.yml build --parallel
+docker-compose -f docker-compose.qa.yml up -d
+
+# 2. Esperar a que PostgreSQL esté listo
+docker-compose exec -T postgres pg_isready -U financieramente_user -d financieramente_qa
+
+# 3. Ejecutar migraciones DENTRO del contenedor nextjs
+docker-compose exec -T nextjs sh -c "cd /app && npx prisma generate"
+docker-compose exec -T nextjs sh -c "cd /app && npx prisma migrate deploy"
 ```
+
+**Importante**: Las migraciones se ejecutan **dentro del contenedor `nextjs`** porque:
+- Prisma CLI está instalado en el contenedor
+- Las dependencias están disponibles en el contenedor
+- El contenedor tiene acceso a la red de Docker para conectarse a PostgreSQL
 
 ### 3. Producción (Automático vía GitHub Actions)
 
@@ -271,16 +286,21 @@ npx prisma migrate deploy
 
 ### En Servidores (QA/Producción)
 
+**IMPORTANTE**: Las migraciones se ejecutan **dentro del contenedor Docker**, no directamente en el servidor.
+
 ```bash
-# Solo aplicar migraciones (NO crear nuevas)
-npx prisma migrate deploy
+# Ejecutar migraciones dentro del contenedor nextjs
+docker-compose -f docker-compose.qa.yml exec -T nextjs sh -c "cd /app && npx prisma generate"
+docker-compose -f docker-compose.qa.yml exec -T nextjs sh -c "cd /app && npx prisma migrate deploy"
 
-# Ver estado de migraciones
-npx prisma migrate status
+# Ver estado de migraciones (dentro del contenedor)
+docker-compose exec nextjs sh -c "cd /app && npx prisma migrate status"
 
-# Generar Prisma Client
-npx prisma generate
+# Generar Prisma Client (dentro del contenedor)
+docker-compose exec nextjs sh -c "cd /app && npx prisma generate"
 ```
+
+**Nota**: El comando `npx prisma migrate deploy` es idempotente - solo aplica migraciones pendientes. Si no hay migraciones nuevas, simplemente confirma que todas están aplicadas y sale exitosamente.
 
 ### Debugging
 
@@ -419,20 +439,37 @@ npx prisma migrate reset
 
 ## Integración con GitHub Actions
 
-Las migraciones se ejecutan automáticamente en los workflows:
+Las migraciones se ejecutan automáticamente en los workflows **dentro del contenedor Docker**:
 
 ```yaml
 # .github/workflows/deploy-qa.yml
-- name: Run database migrations
-  run: |
-    ssh root@${{ secrets.QA_DROPLET_IP }} << 'EOF'
-    cd /opt/financieramente/app
-    npx prisma migrate deploy
-    EOF
+- name: Deploy application
+  uses: appleboy/ssh-action@v1.0.3
+  script: |
+    # ... crear .env, build containers, up -d ...
+    
+    # Esperar a que PostgreSQL esté listo
+    for i in {1..30}; do
+      if docker-compose exec -T postgres pg_isready -U financieramente_user -d financieramente_qa > /dev/null 2>&1; then
+        echo "✅ PostgreSQL is ready"
+        break
+      fi
+      sleep 2
+    done
+
+    # Ejecutar migraciones DENTRO del contenedor nextjs
+    docker-compose exec -T nextjs sh -c "cd /app && npx prisma generate"
+    docker-compose exec -T nextjs sh -c "cd /app && npx prisma migrate deploy"
 ```
+
+**Por qué dentro del contenedor**:
+- ✅ Prisma CLI está instalado en el contenedor (instalado globalmente en el Dockerfile)
+- ✅ Todas las dependencias están disponibles
+- ✅ El contenedor tiene acceso a la red de Docker para conectarse a PostgreSQL
+- ✅ Las variables de entorno están configuradas en el contenedor
 
 Esto garantiza que:
 - ✅ Las migraciones se ejecuten en el orden correcto
-- ✅ Solo se apliquen migraciones pendientes
-- ✅ El proceso sea idempotente y seguro
-- ✅ Se manejen errores automáticamente
+- ✅ Solo se apliquen migraciones pendientes (idempotente)
+- ✅ El proceso sea seguro y manejado correctamente
+- ✅ Se manejen errores automáticamente con logs del contenedor

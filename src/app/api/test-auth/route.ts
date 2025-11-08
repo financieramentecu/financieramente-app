@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { signIn } from '@/lib/auth/nextauth'
 
 /**
  * Endpoint de prueba para establecer sesión mockeada en pruebas e2e
@@ -42,9 +41,10 @@ export async function POST(request: NextRequest) {
 
 		// Establecer cookie de sesión mockeada
 		// NextAuth v5 usa esta estructura de cookie
+		// En desarrollo/test, secure debe ser false (solo HTTPS en producción)
 		response.cookies.set('authjs.session-token', 'test-session-token', {
 			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
+			secure: false, // Siempre false en desarrollo/test (este endpoint solo está disponible en dev/test)
 			sameSite: 'lax',
 			maxAge: 30 * 24 * 60 * 60, // 30 días
 			path: '/',

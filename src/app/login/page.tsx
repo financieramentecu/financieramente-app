@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useSearchParams } from "next/navigation"
 import { useState } from "react"
@@ -11,12 +12,9 @@ import { toast } from "sonner"
 import type { SocialProvider } from "@/components/auth/login/social-sign-in"
 
 /**
- * Página de Login
- * 
- * Integra el componente LoginView maquetado con NextAuth
- * Maneja la autenticación con Google OAuth
+ * Componente interno que usa useSearchParams
  */
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -73,6 +71,20 @@ export default function LoginPage() {
         href: "#",
       }}
     />
+  )
+}
+
+/**
+ * Página de Login
+ * 
+ * Integra el componente LoginView maquetado con NextAuth
+ * Maneja la autenticación con Google OAuth
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }
 

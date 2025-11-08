@@ -132,16 +132,21 @@ POSTGRES_PASSWORD_PROD  → Segunda contraseña generada
 
 ### Variables de la Aplicación
 
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `NODE_ENV` | Ambiente de Node.js | `production` (prod) o `development` (qa) |
-| `NEXT_PUBLIC_API_URL` | URL pública de la API | `http://[DROPLET_IP]` |
-| `DATABASE_URL` | URL de conexión a PostgreSQL | `postgresql://user:pass@postgres:5432/dbname` |
+| Variable | Descripción | Ejemplo | Cuándo se necesita |
+|----------|-------------|---------|-------------------|
+| `NODE_ENV` | Ambiente de Node.js | `production` (prod) o `qa` (qa) | Build y Runtime |
+| `NEXT_PUBLIC_API_URL` | URL pública de la API | `https://negocios.qa.financieramentecu.co` | **Build time** (se incrusta en el código) |
+| `DATABASE_URL` | URL de conexión a PostgreSQL | `postgresql://user:pass@postgres:5432/dbname` | Runtime |
+| `NEXTAUTH_SECRET` | Secret para NextAuth | Generado con `openssl rand -base64 32` | Runtime |
+| `NEXTAUTH_URL` | URL base de la aplicación | `https://negocios.qa.financieramentecu.co` | Runtime |
+| `GOOGLE_CLIENT_ID` | Cliente OAuth de Google | `xxx.apps.googleusercontent.com` | Runtime |
+| `GOOGLE_CLIENT_SECRET` | Secret del cliente OAuth | Generado por Google | Runtime |
+| `NEXT_TELEMETRY_DISABLED` | Deshabilitar telemetría | `1` | Build y Runtime |
 
 ### Variables Opcionales
 
 ```bash
-# Autenticación
+# Autenticación adicional (si se usa)
 JWT_SECRET=your_jwt_secret_here
 ENCRYPTION_KEY=your_encryption_key_here
 
@@ -154,6 +159,21 @@ SMTP_PASS=your_email_password
 # APIs Externas
 EXTERNAL_API_KEY=your_api_key_here
 ```
+
+### Variables de Build Time vs Runtime
+
+**Build Time** (deben estar disponibles durante `npm run build`):
+- `NEXT_PUBLIC_API_URL` - Se incrusta en el código compilado
+- `NEXT_TELEMETRY_DISABLED` - Configuración de build
+
+**Runtime** (disponibles cuando la aplicación corre):
+- `DATABASE_URL` - Conexión a la base de datos
+- `NEXTAUTH_SECRET` - Secret para NextAuth
+- `NEXTAUTH_URL` - URL base de la aplicación
+- `GOOGLE_CLIENT_ID` - Cliente OAuth
+- `GOOGLE_CLIENT_SECRET` - Secret OAuth
+
+**Importante**: Las variables `NEXT_PUBLIC_*` se pasan como build args en Docker Compose para que estén disponibles durante el build.
 
 ## GitHub Secrets - Lista Completa
 
@@ -173,6 +193,23 @@ EXTERNAL_API_KEY=your_api_key_here
 |---|-------------|--------|----------------|
 | 6 | `QA_DROPLET_IP` | IP pública del Droplet QA | Output de Terraform |
 | 7 | `PROD_DROPLET_IP` | IP pública del Droplet Prod | Output de Terraform |
+
+### Secrets de Autenticación (NextAuth y Google OAuth):
+
+**Convención de nombres**: `NOMBRE_VARIABLE_AMBIENTE` (cada ambiente tiene sus propios secrets)
+
+| # | Secret Name | Qué es | Cómo obtenerlo |
+|---|-------------|--------|----------------|
+| 8 | `NEXTAUTH_SECRET_QA` | Secret para NextAuth en QA | `openssl rand -base64 32` |
+| 9 | `NEXTAUTH_SECRET_PROD` | Secret para NextAuth en PROD | `openssl rand -base64 32` |
+| 10 | `GOOGLE_CLIENT_ID_QA` | Cliente OAuth de Google para QA | Google Cloud Console (crear cliente OAuth para QA) |
+| 11 | `GOOGLE_CLIENT_SECRET_QA` | Secret del cliente OAuth de QA | Google Cloud Console |
+| 12 | `GOOGLE_CLIENT_ID_PROD` | Cliente OAuth de Google para PROD | Google Cloud Console (crear cliente OAuth para PROD) |
+| 13 | `GOOGLE_CLIENT_SECRET_PROD` | Secret del cliente OAuth de PROD | Google Cloud Console |
+
+**Nota**: Cada ambiente (QA y PROD) tiene su propio cliente OAuth de Google porque los redirect URIs son diferentes:
+- QA: `https://negocios.qa.financieramentecu.co/api/auth/callback/google`
+- PROD: `https://negocios.financieramentecu.co/api/auth/callback/google`
 
 ## Configuración Local
 
