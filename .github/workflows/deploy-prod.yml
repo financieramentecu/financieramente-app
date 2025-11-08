@@ -30,7 +30,11 @@ jobs:
       - name: Pre-deployment backup
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
+          set -euo pipefail
+
           cd /opt/financieramente
+
+          COMPOSE_FILE_PATH=/opt/financieramente/docker/docker-compose.prod.yml
 
           # Create backup directory with timestamp
           BACKUP_DIR="backup_$(date +%Y%m%d_%H%M%S)"
@@ -43,8 +47,8 @@ jobs:
           fi
 
           # Backup database
-          if docker-compose -f docker-compose.prod.yml ps postgres | grep -q "Up"; then
-            docker-compose -f docker-compose.prod.yml exec -T postgres pg_dump -U financieramente_user financieramente_prod > backups/$BACKUP_DIR/database_backup.sql
+          if docker-compose -f "$COMPOSE_FILE_PATH" ps postgres | grep -q "Up"; then
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres pg_dump -U financieramente_user financieramente_prod > backups/$BACKUP_DIR/database_backup.sql
             echo "✅ Database backed up to backups/$BACKUP_DIR/database_backup.sql"
           fi
           EOF
@@ -65,7 +69,9 @@ jobs:
       - name: Copy Docker files
         run: |
           # Copy Docker configuration
-          scp -r ./docker/* root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/
+          rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./docker/ root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/docker/
 
       - name: Setup environment variables
         run: |
@@ -103,10 +109,14 @@ jobs:
       - name: Deploy application
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
+          set -euo pipefail
+
           cd /opt/financieramente
 
+          COMPOSE_FILE_PATH=/opt/financieramente/docker/docker-compose.prod.yml
+
           # Stop existing containers gracefully
-          docker-compose -f docker-compose.prod.yml down --timeout 30 || true
+          docker-compose -f "$COMPOSE_FILE_PATH" down --timeout 30 || true
 
           # Clean Docker build cache to avoid stale builds
           docker builder prune -f || true
@@ -115,13 +125,13 @@ jobs:
           rm -rf /opt/financieramente/app/.next || true
 
           # Build and start new containers (no cache to ensure fresh build)
-          docker-compose -f docker-compose.prod.yml build --no-cache
-          docker-compose -f docker-compose.prod.yml up -d
+          docker-compose -f "$COMPOSE_FILE_PATH" build --no-cache
+          docker-compose -f "$COMPOSE_FILE_PATH" up -d
 
           # Wait for PostgreSQL to be ready
           echo "Waiting for PostgreSQL to be ready..."
           for i in {1..30}; do
-            if docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T postgres pg_isready -U financieramente_user -d financieramente_prod > /dev/null 2>&1; then
+            if docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres pg_isready -U financieramente_user -d financieramente_prod > /dev/null 2>&1; then
               echo "✅ PostgreSQL is ready"
               break
             fi
@@ -130,7 +140,7 @@ jobs:
           done
 
           # Verify PostgreSQL is accessible
-          docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T postgres psql -U financieramente_user -d financieramente_prod -c "SELECT 1" > /dev/null 2>&1 || {
+          docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres psql -U financieramente_user -d financieramente_prod -c "SELECT 1" > /dev/null 2>&1 || {
             echo "❌ PostgreSQL connection failed"
             exit 1
           }
@@ -138,14 +148,14 @@ jobs:
           # Run database migrations inside the nextjs container
           echo "Running Prisma migrations inside nextjs container..."
           # Verify prisma directory exists before running migrations
-          docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T nextjs sh -c "cd /app && ls -la prisma/ && test -f prisma/schema.prisma && echo '✅ Prisma schema found'" || {
+          docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la prisma/ && test -f prisma/schema.prisma && echo '✅ Prisma schema found'" || {
             echo "❌ Prisma schema not found in container"
-            docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T nextjs sh -c "cd /app && ls -la && pwd"
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la && pwd"
             exit 1
           }
-          docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T nextjs sh -c "cd /app && npx prisma migrate deploy" || {
+          docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && npx prisma migrate deploy" || {
             echo "❌ Migration failed"
-            docker-compose -f /opt/financieramente/docker-compose.prod.yml logs nextjs --tail=50
+            docker-compose -f "$COMPOSE_FILE_PATH" logs nextjs --tail=50
             exit 1
           }
           echo "✅ Migrations applied successfully"
@@ -194,15 +204,19 @@ jobs:
       - name: Verify all services
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
+          set -euo pipefail
+
           cd /opt/financieramente
 
+          COMPOSE_FILE_PATH=/opt/financieramente/docker/docker-compose.prod.yml
+
           # Check all containers are running
-          if docker-compose -f docker-compose.prod.yml ps | grep -q "Up"; then
+          if docker-compose -f "$COMPOSE_FILE_PATH" ps | grep -q "Up"; then
             echo "✅ All containers are running"
-            docker-compose -f docker-compose.prod.yml ps
+            docker-compose -f "$COMPOSE_FILE_PATH" ps
           else
             echo "❌ Some containers are not running"
-            docker-compose -f docker-compose.prod.yml ps
+            docker-compose -f "$COMPOSE_FILE_PATH" ps
             exit 1
           fi
           EOF
@@ -232,7 +246,11 @@ jobs:
           echo "❌ Deployment to Production failed! Initiating rollback..."
 
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
+          set -euo pipefail
+
           cd /opt/financieramente
+
+          COMPOSE_FILE_PATH=/opt/financieramente/docker/docker-compose.prod.yml
 
           # Find the latest backup
           LATEST_BACKUP=$(ls -t backups/ | head -n1)
@@ -241,7 +259,7 @@ jobs:
             echo "🔄 Rolling back to backup: $LATEST_BACKUP"
             
             # Stop current containers
-            docker-compose -f docker-compose.prod.yml down
+            docker-compose -f "$COMPOSE_FILE_PATH" down
             
             # Restore application files
             if [ -d "backups/$LATEST_BACKUP/app" ]; then
@@ -251,7 +269,7 @@ jobs:
             fi
             
             # Restart with previous version
-            docker-compose -f docker-compose.prod.yml up -d
+            docker-compose -f "$COMPOSE_FILE_PATH" up -d
             
             echo "✅ Rollback completed"
           else

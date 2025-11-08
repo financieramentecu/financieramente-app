@@ -40,8 +40,9 @@ jobs:
             -e "ssh -o StrictHostKeyChecking=no" \
             ./ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/app/
 
-          scp -o StrictHostKeyChecking=no \
-            -r ./docker/* root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/
+          rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./docker/ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/docker/
 
       - name: Deploy application
         uses: appleboy/ssh-action@v1.0.3
@@ -51,6 +52,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 30m
           script: |
+            set -euo pipefail
+
+            COMPOSE_FILE_PATH=/opt/financieramente/docker/docker-compose.qa.yml
+
             # Create .env file
             PASSWORD='${{ secrets.POSTGRES_PASSWORD_QA }}'
             ENCODED_PASSWORD=$(PASSWORD="$PASSWORD" python3 - <<'PYCODE'
@@ -84,7 +89,7 @@ jobs:
             export COMPOSE_DOCKER_CLI_BUILD=1
 
             # Stop existing containers
-            docker-compose -f docker-compose.qa.yml down --timeout 30 || true
+            docker-compose -f "$COMPOSE_FILE_PATH" down --timeout 30 || true
             docker container prune -f || true
 
             # Clean Docker build cache to avoid stale builds
@@ -94,13 +99,13 @@ jobs:
             rm -rf /opt/financieramente/app/.next || true
 
             # Build and start new containers (no cache to ensure fresh build)
-            docker-compose -f docker-compose.qa.yml build --no-cache --parallel
-            docker-compose -f docker-compose.qa.yml up -d
+            docker-compose -f "$COMPOSE_FILE_PATH" build --no-cache --parallel
+            docker-compose -f "$COMPOSE_FILE_PATH" up -d
 
             # Wait for PostgreSQL to be ready
             echo "Waiting for PostgreSQL to be ready..."
             for i in {1..30}; do
-              if docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T postgres pg_isready -U financieramente_user -d financieramente_qa > /dev/null 2>&1; then
+              if docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres pg_isready -U financieramente_user -d financieramente_qa > /dev/null 2>&1; then
                 echo "✅ PostgreSQL is ready"
                 break
               fi
@@ -109,7 +114,7 @@ jobs:
             done
 
             # Verify PostgreSQL is accessible
-            docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T postgres psql -U financieramente_user -d financieramente_qa -c "SELECT 1" > /dev/null 2>&1 || {
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres psql -U financieramente_user -d financieramente_qa -c "SELECT 1" > /dev/null 2>&1 || {
               echo "❌ PostgreSQL connection failed"
               exit 1
             }
@@ -117,14 +122,14 @@ jobs:
             # Run database migrations inside the nextjs container
             echo "Running Prisma migrations inside nextjs container..."
             # Verify prisma directory exists before running migrations
-            docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T nextjs sh -c "cd /app && ls -la prisma/ && test -f prisma/schema.prisma && echo '✅ Prisma schema found'" || {
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la prisma/ && test -f prisma/schema.prisma && echo '✅ Prisma schema found'" || {
               echo "❌ Prisma schema not found in container"
-              docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T nextjs sh -c "cd /app && ls -la && pwd"
+              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la && pwd"
               exit 1
             }
-            docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T nextjs sh -c "cd /app && npx prisma migrate deploy" || {
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && npx prisma migrate deploy" || {
               echo "❌ Migration failed"
-              docker-compose -f /opt/financieramente/docker-compose.qa.yml logs nextjs --tail=50
+              docker-compose -f "$COMPOSE_FILE_PATH" logs nextjs --tail=50
               exit 1
             }
             echo "✅ Migrations applied successfully"
@@ -135,7 +140,7 @@ jobs:
             sleep 30
 
             # Check container status
-            docker-compose -f docker-compose.qa.yml ps
+            docker-compose -f "$COMPOSE_FILE_PATH" ps
 
       - name: Health check
         uses: appleboy/ssh-action@v1.0.3
@@ -145,6 +150,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 10m
           script: |
+            set -euo pipefail
+
+            COMPOSE_FILE_PATH=/opt/financieramente/docker/docker-compose.qa.yml
+
             sleep 30
 
             for i in {1..15}; do
@@ -158,7 +167,7 @@ jobs:
 
             echo "❌ Health check failed"
             cd /opt/financieramente
-            docker-compose -f docker-compose.qa.yml logs --tail=50
+            docker-compose -f "$COMPOSE_FILE_PATH" logs --tail=50
             exit 1
 
       - name: Cleanup old images

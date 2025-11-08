@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro  # Commented out - file doesn't exist yet
-      - ./backups:/backups
+      - ../backups:/backups
     ports:
       - "5432:5432"
     deploy:
@@ -42,7 +42,7 @@ services:
 
   nextjs:
     build:
-      context: ./app
+      context: ../app
       dockerfile: ../docker/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
@@ -63,7 +63,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./app/prisma:/app/prisma:ro
+      - ../app/prisma:/app/prisma:ro
     ports:
       - "3000:3000"
     deploy:
@@ -121,7 +121,7 @@ services:
       PGDATABASE: ${POSTGRES_DB}
       PGHOST: postgres
     volumes:
-      - ./backups:/backups
+      - ../backups:/backups
     depends_on:
       postgres:
         condition: service_healthy
