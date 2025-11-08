@@ -119,14 +119,11 @@ jobs:
           # Stop existing containers gracefully
           docker-compose -f "$COMPOSE_FILE_PATH" down --timeout 30 || true
 
-          # Clean Docker build cache to avoid stale builds
-          docker builder prune -f || true
-
           # Clean Next.js cache if it exists
           rm -rf /opt/financieramente/app/.next || true
 
           # Build and start new containers (no cache to ensure fresh build)
-          docker-compose -f "$COMPOSE_FILE_PATH" build --no-cache
+          docker-compose -f "$COMPOSE_FILE_PATH" build --pull
           docker-compose -f "$COMPOSE_FILE_PATH" up -d
 
           # Wait for PostgreSQL to be ready
