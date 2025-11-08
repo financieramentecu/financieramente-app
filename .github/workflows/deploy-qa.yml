@@ -107,6 +107,12 @@ jobs:
 
             # Run database migrations inside the nextjs container
             echo "Running Prisma migrations inside nextjs container..."
+            # Verify prisma directory exists before running migrations
+            docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T nextjs sh -c "cd /app && ls -la prisma/ && test -f prisma/schema.prisma && echo '✅ Prisma schema found'" || {
+              echo "❌ Prisma schema not found in container"
+              docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T nextjs sh -c "cd /app && ls -la && pwd"
+              exit 1
+            }
             docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T nextjs sh -c "cd /app && npx prisma migrate deploy" || {
               echo "❌ Migration failed"
               docker-compose -f /opt/financieramente/docker-compose.qa.yml logs nextjs --tail=50
