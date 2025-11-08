@@ -81,6 +81,7 @@ jobs:
             sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" /opt/financieramente/.env
 
             cp /opt/financieramente/.env /opt/financieramente/app/.env
+            cp /opt/financieramente/.env /opt/financieramente/docker/.env
 
             cd /opt/financieramente
 

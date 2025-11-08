@@ -102,8 +102,9 @@ jobs:
           ENVEOF
           sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" .env
 
-          # Copy environment to app directory
+          # Copy environment to app and docker directories
           cp .env app/.env
+          cp .env docker/.env
           EOF
 
       - name: Deploy application
