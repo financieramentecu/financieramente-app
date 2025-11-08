@@ -73,13 +73,20 @@ jobs:
           cd /opt/financieramente
 
           # Create environment file
+          PASSWORD='${{ secrets.POSTGRES_PASSWORD_PROD }}'
+          ENCODED_PASSWORD=$(PASSWORD="$PASSWORD" python3 - <<'PYCODE'
+          import os
+          import urllib.parse
+          print(urllib.parse.quote(os.environ["PASSWORD"], safe=''))
+          PYCODE
+          )
           cat > .env << 'ENVEOF'
           NODE_ENV=production
           POSTGRES_USER=financieramente_user
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_PROD }}
           POSTGRES_DB=financieramente_prod
-          DATABASE_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_PROD }}@postgres:5432/financieramente_prod
-          DIRECT_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_PROD }}@postgres:5432/financieramente_prod
+          DATABASE_URL=postgresql://financieramente_user:__ENCODED_PASSWORD__@postgres:5432/financieramente_prod
+          DIRECT_URL=postgresql://financieramente_user:__ENCODED_PASSWORD__@postgres:5432/financieramente_prod
           NEXT_PUBLIC_API_URL=https://negocios.financieramentecu.co
           NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_PROD }}
           NEXTAUTH_URL=https://negocios.financieramentecu.co
@@ -87,6 +94,7 @@ jobs:
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_PROD }}
           NEXT_TELEMETRY_DISABLED=1
           ENVEOF
+          sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" .env
 
           # Copy environment to app directory
           cp .env app/.env
