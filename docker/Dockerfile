@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.6
+
 # Multi-stage Dockerfile for Next.js application
 # Optimized for production with Alpine Linux
 
@@ -11,7 +13,8 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies with npm ci for faster, reliable, reproducible builds
-RUN npm ci --prefer-offline --no-audit
+RUN --mount=type=cache,target=/root/.npm \
+	npm ci --prefer-offline --no-audit
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
