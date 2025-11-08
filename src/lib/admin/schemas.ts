@@ -46,6 +46,22 @@ export const clientOriginSchema = z.object({
 
 export type ClientOriginFormData = z.infer<typeof clientOriginSchema>
 
+// Product Schema
+export const productSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio").max(200, "El nombre no puede exceder 200 caracteres"),
+  description: z.string().optional(),
+  idCompany: z.coerce
+    .number()
+    .refine((value) => !Number.isNaN(value), {
+      message: "La compañía es obligatoria",
+    })
+    .int("La compañía seleccionada no es válida"),
+  idTypeProduct: z.coerce.number().int().optional(),
+  status: z.boolean().default(true),
+})
+
+export type ProductFormData = z.infer<typeof productSchema>
+
 // Category Schema
 export const categorySchema = z.object({
   code: z.string().min(1, "El código es obligatorio").max(20, "El código no puede exceder 20 caracteres"),

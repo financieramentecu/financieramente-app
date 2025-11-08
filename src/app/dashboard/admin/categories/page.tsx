@@ -45,7 +45,7 @@ export default function CategoriesAdminPage() {
   const [mode, setMode] = useState<"create" | "edit">("create")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string>("")
+  const [typeFilter, setTypeFilter] = useState<string>("all")
 
   const loadCategories = async () => {
     try {
@@ -54,7 +54,7 @@ export default function CategoriesAdminPage() {
       if (searchQuery) {
         params.set("search", searchQuery)
       }
-      if (typeFilter) {
+      if (typeFilter && typeFilter !== "all") {
         params.set("type", typeFilter)
       }
       const response = await fetch(`/api/admin/categories?${params.toString()}`)
@@ -179,7 +179,7 @@ export default function CategoriesAdminPage() {
         !searchQuery ||
         category.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
         category.name.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesType = !typeFilter || category.typeCategory === typeFilter
+      const matchesType = typeFilter === "all" || category.typeCategory === typeFilter
 
       return matchesSearch && matchesType
     })
@@ -295,7 +295,7 @@ export default function CategoriesAdminPage() {
               <SelectValue placeholder="Filtrar por tipo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los tipos</SelectItem>
+              <SelectItem value="all">Todos los tipos</SelectItem>
               <SelectItem value="MMS">MMS</SelectItem>
               <SelectItem value="ALIADO">Aliado</SelectItem>
               <SelectItem value="TRINITY">Trinity</SelectItem>
