@@ -24,7 +24,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package*.json ./
 COPY next.config.ts ./
 COPY tsconfig.json ./
-COPY tailwind.config.ts ./
+COPY tailwind.config.* ./
 COPY postcss.config.mjs ./
 
 # Copy app source (more volatile, should be last before build)
