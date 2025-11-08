@@ -100,9 +100,6 @@ RUN test -f /app/prisma/schema.prisma || (echo "ERROR: schema.prisma not found i
 RUN ls -la /app/prisma/ || (echo "ERROR: Cannot list prisma directory" && exit 1)
 RUN echo "✅ Prisma directory verified: $(ls -la /app/prisma/)"
 
-# Install Prisma CLI for running migrations
-RUN npm install -g prisma@^6.18.0
-
 # Set correct permissions before switching to nextjs user
 RUN chown -R nextjs:nodejs /app
 USER nextjs
