@@ -16,11 +16,9 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { businessFormSchema, type BusinessFormData } from "@/types/business-form"
-import { companies, products, periodicities, currencies } from "@/types/business-form"
 import { DocumentAutocomplete, type User } from "@/components/ui/document-autocomplete"
 import { AgentAutocomplete, type Agent } from "@/components/ui/agent-autocomplete"
-import { mockUsers } from "@/data/mockUsers"
-import { mockAgents } from "@/data/mockAgents"
+import { toast } from "sonner"
 
 export interface CreateBusinessFormProps {
   onSubmit?: (data: BusinessFormData) => void | Promise<void>
@@ -29,13 +27,25 @@ export interface CreateBusinessFormProps {
   users?: User[]
   agents?: Agent[]
   onUserCreated?: (documento: string) => void | Promise<void>
+  companiesOptions?: { value: string; label: string }[]
+  productsOptions?: { value: string; label: string; companyId: string }[]
+  periodicitiesOptions?: { value: string; label: string }[]
+  currenciesOptions?: { value: string; label: string }[]
 }
 
 export const CreateBusinessForm = React.forwardRef<
   HTMLFormElement,
   CreateBusinessFormProps
->(({ onSubmit, onCancel, defaultValues, users, agents, onUserCreated }, ref) => {
+>(({ onSubmit, onCancel, defaultValues, users, agents, onUserCreated, companiesOptions: providedCompanies, productsOptions: providedProducts, periodicitiesOptions: providedPeriodicities, currenciesOptions: providedCurrencies }, ref) => {
   const [numeroDocumento, setNumeroDocumento] = React.useState("")
+  const [companiesOptions, setCompaniesOptions] = React.useState<{ value: string; label: string }[]>(providedCompanies || [])
+  const [productsOptions, setProductsOptions] = React.useState<{ value: string; label: string; companyId: string }[]>(providedProducts || [])
+  const [periodicitiesOptions, setPeriodicitiesOptions] = React.useState<{ value: string; label: string }[]>(providedPeriodicities || [])
+  const [currenciesOptions, setCurrenciesOptions] = React.useState<{ value: string; label: string }[]>(providedCurrencies || [])
+  const [agentsList, setAgentsList] = React.useState<Agent[]>(agents || [])
+  const [userResults, setUserResults] = React.useState<User[]>(users || [])
+  const [isCatalogLoading, setIsCatalogLoading] = React.useState(false)
+  const lastUsersRef = React.useRef<User[]>(users || [])
 
   const {
     register,
@@ -54,25 +64,220 @@ export const CreateBusinessForm = React.forwardRef<
       compania: defaultValues?.compania || "",
       producto: defaultValues?.producto || "",
       plazo: defaultValues?.plazo || undefined,
-      moneda: defaultValues?.moneda || undefined,
+      moneda: defaultValues?.moneda || "",
       perioricidad: defaultValues?.perioricidad || "",
       valor: defaultValues?.valor || undefined,
       agente: defaultValues?.agente || "",
     },
   })
 
+  const selectedCompany = watch("compania")
+  const selectedProduct = watch("producto")
+
+  const filteredProducts = React.useMemo(() => {
+    if (!selectedCompany) {
+      return productsOptions
+    }
+    return productsOptions.filter((product) => product.companyId === selectedCompany)
+  }, [productsOptions, selectedCompany])
+
+  React.useEffect(() => {
+    if (selectedProduct && !filteredProducts.some((product) => product.value === selectedProduct)) {
+      setValue("producto", "")
+    }
+  }, [filteredProducts, selectedProduct, setValue])
+
   // Observar cambios en numeroDocumento
   const documentValue = watch("numeroDocumento")
   
+  React.useEffect(() => {
+    const loadCatalogs = async () => {
+      try {
+        const requests: Promise<void>[] = []
+
+        const shouldFetchCompanies = !providedCompanies || providedCompanies.length === 0
+        const shouldFetchProducts = !providedProducts || providedProducts.length === 0
+        const shouldFetchPeriodicities = !providedPeriodicities || providedPeriodicities.length === 0
+        const shouldFetchCurrencies = !providedCurrencies || providedCurrencies.length === 0
+
+        if (shouldFetchCompanies) {
+          requests.push(
+            fetch("/api/admin/companies?status=active")
+              .then((response) => {
+                if (!response.ok) throw new Error("Error al cargar compañías")
+                return response.json()
+              })
+              .then((data) => {
+                setCompaniesOptions(
+                  (data.companies ?? []).map((company: { idCompany: number; name: string }) => ({
+                    value: String(company.idCompany),
+                    label: company.name,
+                  }))
+                )
+              })
+          )
+        }
+
+        if (shouldFetchProducts) {
+          requests.push(
+            fetch("/api/admin/products?status=active")
+              .then((response) => {
+                if (!response.ok) throw new Error("Error al cargar productos")
+                return response.json()
+              })
+              .then((data) => {
+                setProductsOptions(
+                  (data.products ?? []).map(
+                    (product: { idProduct: number; name: string; idCompany: number }) => ({
+                      value: String(product.idProduct),
+                      label: product.name,
+                      companyId: String(product.idCompany),
+                    })
+                  )
+                )
+              })
+          )
+        }
+
+        if (shouldFetchPeriodicities) {
+          requests.push(
+            fetch("/api/admin/periodicities?status=active")
+              .then((response) => {
+                if (!response.ok) throw new Error("Error al cargar periodicidades")
+                return response.json()
+              })
+              .then((data) => {
+                setPeriodicitiesOptions(
+                  (data.periodicities ?? []).map(
+                    (periodicity: { idBuyPeriodicity: number; name: string }) => ({
+                      value: String(periodicity.idBuyPeriodicity),
+                      label: periodicity.name,
+                    })
+                  )
+                )
+              })
+          )
+        }
+
+        if (shouldFetchCurrencies) {
+          requests.push(
+            fetch("/api/admin/currencies?status=active")
+              .then((response) => {
+                if (!response.ok) throw new Error("Error al cargar monedas")
+                return response.json()
+              })
+              .then((data) => {
+                setCurrenciesOptions(
+                  (data.currencies ?? []).map(
+                    (currency: { idCurrency: number; name: string; symbol?: string | null }) => ({
+                      value: String(currency.idCurrency),
+                      label: currency.symbol ? `${currency.symbol} - ${currency.name}` : currency.name,
+                    })
+                  )
+                )
+              })
+          )
+        }
+
+        const shouldFetchAgents = !agents || agents.length === 0
+
+        if (shouldFetchAgents) {
+          requests.push(
+            fetch("/api/admin/agents")
+              .then((response) => {
+                if (!response.ok) throw new Error("Error al cargar agentes")
+                return response.json()
+              })
+              .then((data) => {
+                setAgentsList(
+                  (data.agents ?? []).map(
+                    (agent: { idUser: number; name: string; lastName?: string | null; email?: string | null; code?: string | null }) => ({
+                      id: String(agent.idUser),
+                      nombre: agent.lastName ? `${agent.name} ${agent.lastName}` : agent.name,
+                      email: agent.email ?? undefined,
+                      codigo: agent.code ?? undefined,
+                    })
+                  )
+                )
+              })
+          )
+        }
+
+        if (requests.length === 0) {
+          return
+        }
+
+        setIsCatalogLoading(true)
+        await Promise.all(requests)
+      } catch (error) {
+        console.error("Error loading catalogs:", error)
+        toast.error("Error al cargar catálogos", {
+          description:
+            error instanceof Error ? error.message : "No fue posible obtener la información inicial.",
+        })
+      } finally {
+        setIsCatalogLoading(false)
+      }
+    }
+
+    loadCatalogs()
+  }, [providedCompanies, providedProducts, providedPeriodicities, providedCurrencies, agents])
+
+  React.useEffect(() => {
+    if (Array.isArray(users) && users.length > 0) {
+      setUserResults(users)
+      lastUsersRef.current = users
+    }
+  }, [users])
+
+  React.useEffect(() => {
+    if (Array.isArray(agents) && agents.length > 0) {
+      setAgentsList(agents)
+    }
+  }, [agents])
   // Lista de usuarios para el autocomplete
-  const usersList = users || mockUsers
-  
-  // Lista de agentes para el autocomplete
-  const agentsList = agents || mockAgents
+  const usersList = userResults
 
   React.useEffect(() => {
     setNumeroDocumento(documentValue || "")
   }, [documentValue])
+
+  const handleSearchUsers = React.useCallback(async (query: string) => {
+    try {
+      const response = await fetch(
+        `/api/users/search?query=${encodeURIComponent(query)}&limit=10`
+      )
+
+      if (!response.ok) {
+        throw new Error("Error al buscar usuarios")
+      }
+
+      const data = await response.json()
+      const results: User[] = (data.users ?? []).map(
+        (user: {
+          idUser: number
+          name: string
+          lastName?: string | null
+          email?: string | null
+          identityNumber: string
+          phone?: string | null
+        }) => ({
+          numeroDocumento: user.identityNumber,
+          nombres: user.name,
+          apellidos: user.lastName ?? "",
+          email: user.email ?? undefined,
+          contacto: user.phone ?? undefined,
+        })
+      )
+
+      setUserResults(results)
+      lastUsersRef.current = results
+      return results
+    } catch (error) {
+      console.error("Error fetching users:", error)
+      return lastUsersRef.current
+    }
+  }, [])
 
   // Determinar si los campos deben estar bloqueados
   const isBlocked = !numeroDocumento || numeroDocumento.length < 5
@@ -84,11 +289,14 @@ export const CreateBusinessForm = React.forwardRef<
 
     // Si se seleccionó un usuario existente, autocompletar campos
     if (documento && usersList) {
-      const selectedUser = usersList.find(u => u.numeroDocumento === documento)
+      const selectedUser = usersList.find((u) => u.numeroDocumento === documento)
       if (selectedUser) {
         setValue("email", selectedUser.email || "")
         setValue("nombres", selectedUser.nombres)
         setValue("apellidos", selectedUser.apellidos)
+        if (selectedUser.contacto) {
+          setValue("contacto", selectedUser.contacto)
+        }
       }
     }
   }
@@ -173,7 +381,8 @@ export const CreateBusinessForm = React.forwardRef<
               <DocumentAutocomplete
                 value={documentValue}
                 onChange={handleDocumentChange}
-                users={usersList}
+              users={usersList}
+              onSearch={handleSearchUsers}
                 placeholder="Buscar o crear documento..."
                 onCreateNew={handleCreateUser}
                 aria-labelledby="numeroDocumento-label"
@@ -202,6 +411,22 @@ export const CreateBusinessForm = React.forwardRef<
               />
               {errors.email && (
                 <p className="text-xs text-red-500">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="apellidos" className="text-sm font-medium">
+                Apellidos
+              </Label>
+              <Input
+                id="apellidos"
+                {...register("apellidos")}
+                placeholder="Apellidos"
+                disabled={isBlocked}
+                className={errors.apellidos ? "border-red-500" : ""}
+              />
+              {errors.apellidos && (
+                <p className="text-xs text-red-500">{errors.apellidos.message}</p>
               )}
             </div>
 
@@ -236,22 +461,6 @@ export const CreateBusinessForm = React.forwardRef<
                 <p className="text-xs text-red-500">{errors.contacto.message}</p>
               )}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="apellidos" className="text-sm font-medium">
-                Apellidos
-              </Label>
-              <Input
-                id="apellidos"
-                {...register("apellidos")}
-                placeholder="Apellidos"
-                disabled={isBlocked}
-                className={errors.apellidos ? "border-red-500" : ""}
-              />
-              {errors.apellidos && (
-                <p className="text-xs text-red-500">{errors.apellidos.message}</p>
-              )}
-            </div>
           </div>
         </div>
 
@@ -268,14 +477,18 @@ export const CreateBusinessForm = React.forwardRef<
                 Compañía
               </Label>
               <Select
-                disabled={isBlocked}
-                onValueChange={(value) => setValue("compania", value, { shouldValidate: true })}
+                disabled={isBlocked || isCatalogLoading}
+                value={selectedCompany || ""}
+                onValueChange={(value) => {
+                  setValue("compania", value, { shouldValidate: true })
+                  setValue("producto", "")
+                }}
               >
                 <SelectTrigger id="compania" className={errors.compania ? "border-red-500" : ""}>
                   <SelectValue placeholder="Seleccione una compañía" />
                 </SelectTrigger>
                 <SelectContent>
-                  {companies.map((company) => (
+                  {companiesOptions.map((company) => (
                     <SelectItem key={company.value} value={company.value}>
                       {company.label}
                     </SelectItem>
@@ -295,14 +508,15 @@ export const CreateBusinessForm = React.forwardRef<
                 Producto
               </Label>
               <Select
-                disabled={isBlocked}
+                disabled={isBlocked || isCatalogLoading || filteredProducts.length === 0}
+                value={selectedProduct || ""}
                 onValueChange={(value) => setValue("producto", value, { shouldValidate: true })}
               >
                 <SelectTrigger id="producto" className={errors.producto ? "border-red-500" : ""}>
                   <SelectValue placeholder="Seleccione un producto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.map((product) => (
+                  {filteredProducts.map((product) => (
                     <SelectItem key={product.value} value={product.value}>
                       {product.label}
                     </SelectItem>
@@ -346,15 +560,15 @@ export const CreateBusinessForm = React.forwardRef<
                 Moneda
               </Label>
               <Select
-                disabled={isBlocked}
+                disabled={isBlocked || isCatalogLoading}
                 value={watch("moneda")}
-                onValueChange={(value) => setValue("moneda", value as "USD" | "COP" | "EUR", { shouldValidate: true })}
+                onValueChange={(value) => setValue("moneda", value, { shouldValidate: true })}
               >
                 <SelectTrigger id="moneda" className={errors.moneda ? "border-red-500" : ""}>
                   <SelectValue placeholder="Seleccione una moneda" />
                 </SelectTrigger>
                 <SelectContent>
-                  {currencies.map((currency) => (
+                  {currenciesOptions.map((currency) => (
                     <SelectItem key={currency.value} value={currency.value}>
                       {currency.label}
                     </SelectItem>
@@ -379,14 +593,15 @@ export const CreateBusinessForm = React.forwardRef<
                 Periodicidad
               </Label>
               <Select
-                disabled={isBlocked}
+                disabled={isBlocked || isCatalogLoading}
+                value={watch("perioricidad")}
                 onValueChange={(value) => setValue("perioricidad", value, { shouldValidate: true })}
               >
                 <SelectTrigger id="perioricidad" className={errors.perioricidad ? "border-red-500" : ""}>
                   <SelectValue placeholder="Seleccione periodicidad" />
                 </SelectTrigger>
                 <SelectContent>
-                  {periodicities.map((periodicity) => (
+                  {periodicitiesOptions.map((periodicity) => (
                     <SelectItem key={periodicity.value} value={periodicity.value}>
                       {periodicity.label}
                     </SelectItem>
@@ -426,7 +641,7 @@ export const CreateBusinessForm = React.forwardRef<
                 agents={agentsList}
                 placeholder="Buscar agente..."
                 aria-labelledby="agente-label"
-                disabled={isBlocked}
+                disabled={isBlocked || isCatalogLoading}
                 className={errors.agente ? "border-red-500" : ""}
               />
               {errors.agente && (
@@ -449,7 +664,7 @@ export const CreateBusinessForm = React.forwardRef<
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting || isBlocked}
+            disabled={isSubmitting || isBlocked || isCatalogLoading}
             className="bg-[#00505C] hover:bg-[#003d47] text-white"
           >
             {isSubmitting ? "Guardando..." : "Aceptar y Guardar"}

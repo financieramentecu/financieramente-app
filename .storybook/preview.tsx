@@ -2,11 +2,22 @@ import type { Preview } from "@storybook/react";
 import React from "react";
 import { ThemeProvider } from "../src/hooks/use-theme";
 import { Toaster } from "../src/components/ui/sonner";
+import { SessionProvider } from "next-auth/react";
 
 // Importar Tailwind CSS
 import "../src/app/tailwind.css";
 // Importar variables CSS personalizadas
 import "../src/app/globals.css";
+
+// Mock session data para Storybook
+const mockSession = {
+	user: {
+		name: 'Juan A',
+		email: 'juan.a@financieramente.com',
+		image: '/avatars/juan-a.jpg',
+	},
+	expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+};
 
 const preview: Preview = {
   parameters: {
@@ -90,12 +101,14 @@ const preview: Preview = {
   },
   decorators: [
     (Story) => (
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-        <div className="sidebar-storybook">
-          <Story />
-          <Toaster />
-        </div>
-      </ThemeProvider>
+      <SessionProvider session={mockSession}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <div className="sidebar-storybook">
+            <Story />
+            <Toaster />
+          </div>
+        </ThemeProvider>
+      </SessionProvider>
     ),
   ],
   globalTypes: {

@@ -1,9 +1,10 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import { BusinessSearchForm } from './BusinessSearchForm'
 import { BusinessSearchParams } from '@/types/business'
+import { cn } from '@/lib/utils'
 
 interface BusinessManagementSectionProps {
   onSearch: (params: BusinessSearchParams) => void
@@ -16,38 +17,69 @@ export function BusinessManagementSection({
   onCreateNew, 
   onShowAll 
 }: BusinessManagementSectionProps) {
-  const [activeTab, setActiveTab] = useState('search')
+  const [activeMode, setActiveMode] = useState<'search' | 'create'>('search')
 
   return (
-    <div className="mb-8">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="search">Búsqueda y edición</TabsTrigger>
-          <TabsTrigger value="create">Crear nuevo</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="search" className="mt-6">
+    <div className="space-y-6 mb-8">
+      {/* Gestión de Negocios Header */}
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold text-primary">Gestión de Negocios</h2>
+        <p className="text-muted-foreground">
+          Busca y edita información de negocios registrados
+        </p>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <Button
+          onClick={() => setActiveMode('search')}
+          variant={activeMode === 'search' ? 'default' : 'outline'}
+          className={cn(
+            activeMode === 'search' && 'bg-primary text-primary-foreground',
+            'cursor-pointer'
+          )}
+        >
+          Búsqueda y edición
+        </Button>
+        <Button
+          onClick={() => {
+            onCreateNew()
+          }}
+          variant="outline"
+          className="cursor-pointer"
+        >
+          Crear nuevo
+        </Button>
+      </div>
+
+      {/* Search Section */}
+      {activeMode === 'search' && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-primary mb-2">Búsqueda de Negocios</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Busca negocios por nombre del agente, cliente o cédula del cliente
+            </p>
+          </div>
           <BusinessSearchForm 
             onSearch={onSearch}
             onShowAll={onShowAll}
           />
-        </TabsContent>
-        
-        <TabsContent value="create" className="mt-6">
-          <div className="p-6 border rounded-lg bg-card text-center">
-            <h3 className="text-lg font-semibold mb-2">Crear Nuevo Negocio</h3>
-            <p className="text-muted-foreground mb-4">
-              Aquí podrás crear un nuevo negocio en el sistema
-            </p>
-            <button 
-              onClick={onCreateNew}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            >
-              Crear Negocio
-            </button>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
+
+      {/* Create Section */}
+      {activeMode === 'create' && (
+        <div className="p-6 border rounded-lg bg-card text-center">
+          <h3 className="text-lg font-semibold mb-2">Crear Nuevo Negocio</h3>
+          <p className="text-muted-foreground mb-4">
+            Aquí podrás crear un nuevo negocio en el sistema
+          </p>
+          <Button onClick={onCreateNew} className="cursor-pointer">
+            Crear Negocio
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

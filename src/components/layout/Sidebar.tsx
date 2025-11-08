@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-import { LayoutDashboard, List, ChartBar, Folder, Users, Camera, FileText, FileCode, Settings, Database, FileSpreadsheet, FileText as FileWord, User } from "lucide-react"
+import { Folder, Settings, User, List, Plus, Shield } from "lucide-react"
 import Image from "next/image"
 import { useSidebar } from "@/components/ui/sidebar"
 
@@ -27,75 +27,61 @@ const data = {
   },
   navMain: [
     {
-      title: "Dashboard",
-      url: "#",
-      icon: <LayoutDashboard className="h-4 w-4" />,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: <List className="h-4 w-4" />,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: <ChartBar className="h-4 w-4" />,
-    },
-    {
-      title: "Projects",
-      url: "#",
+      title: "Negocio",
+      url: "/dashboard/negocios",
       icon: <Folder className="h-4 w-4" />,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: <Users className="h-4 w-4" />,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: Camera,
-      isActive: true,
-      url: "#",
-      items: [
+      subItems: [
         {
-          title: "Active Proposals",
-          url: "#",
+          title: "Listar Negocios",
+          url: "/dashboard/negocios",
+          icon: <List className="h-4 w-4" />,
         },
         {
-          title: "Archived",
-          url: "#",
+          title: "Crear Negocio",
+          url: "/dashboard/negocios/crear",
+          icon: <Plus className="h-4 w-4" />,
         },
       ],
     },
     {
-      title: "Proposal",
-      icon: FileText,
-      url: "#",
-      items: [
+      title: "Administración",
+      url: "/dashboard/admin",
+      icon: <Shield className="h-4 w-4" />,
+      subItems: [
         {
-          title: "Active Proposals",
-          url: "#",
+          title: "Compañías",
+          url: "/dashboard/admin/companies",
+          icon: <List className="h-4 w-4" />,
         },
         {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: FileCode,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
+          title: "Productos",
+          url: "/dashboard/admin/products",
+          icon: <List className="h-4 w-4" />,
         },
         {
-          title: "Archived",
-          url: "#",
+          title: "Monedas",
+          url: "/dashboard/admin/currencies",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Periodicidades",
+          url: "/dashboard/admin/periodicities",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Orígenes",
+          url: "/dashboard/admin/origins",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Categorías",
+          url: "/dashboard/admin/categories",
+          icon: <List className="h-4 w-4" />,
+        },
+        {
+          title: "Usuarios",
+          url: "/dashboard/admin/users",
+          icon: <List className="h-4 w-4" />,
         },
       ],
     },
@@ -110,23 +96,6 @@ const data = {
       title: "Configuración",
       url: "#",
       icon: <Settings className="h-4 w-4" />,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: Database,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: FileSpreadsheet,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: FileWord,
     },
   ],
 }
