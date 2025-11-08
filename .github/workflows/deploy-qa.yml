@@ -16,6 +16,10 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' || 
+      (github.event_name == 'pull_request' && 
+       github.event.pull_request.base.ref != 'develop')
 
     steps:
       - name: Checkout code
@@ -114,7 +118,12 @@ jobs:
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_QA }}
             POSTGRES_DB=financieramente_qa
             DATABASE_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_QA }}@postgres:5432/financieramente_qa
-            NEXT_PUBLIC_API_URL=http://${{ secrets.QA_DROPLET_IP }}
+            NEXT_PUBLIC_API_URL=https://negocios.qa.financieramentecu.co
+            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_QA }}
+            NEXTAUTH_URL=https://negocios.qa.financieramentecu.co
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_QA }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_QA }}
+            NEXT_TELEMETRY_DISABLED=1
             ENVEOF
 
             cp /opt/financieramente/.env /opt/financieramente/app/.env
@@ -135,16 +144,31 @@ jobs:
 
             # Wait for PostgreSQL to be ready
             echo "Waiting for PostgreSQL to be ready..."
-            sleep 30
+            for i in {1..30}; do
+              if docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T postgres pg_isready -U financieramente_user -d financieramente_qa > /dev/null 2>&1; then
+                echo "✅ PostgreSQL is ready"
+                break
+              fi
+              echo "⏳ Waiting for PostgreSQL... ($i/30)"
+              sleep 2
+            done
 
-            # Run database migrations
-            cd /opt/financieramente/app
-            docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T postgres psql -U financieramente_user -d financieramente_qa -c "SELECT 1" > /dev/null 2>&1 || sleep 10
+            # Verify PostgreSQL is accessible
+            docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T postgres psql -U financieramente_user -d financieramente_qa -c "SELECT 1" > /dev/null 2>&1 || {
+              echo "❌ PostgreSQL connection failed"
+              exit 1
+            }
 
-            echo "Running Prisma migrations..."
-            npx prisma generate
-            npx prisma migrate deploy || {
+            # Run database migrations inside the nextjs container
+            echo "Running Prisma migrations inside nextjs container..."
+            docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T nextjs sh -c "cd /app && npx prisma generate" || {
+              echo "❌ Prisma generate failed"
+              exit 1
+            }
+
+            docker-compose -f /opt/financieramente/docker-compose.qa.yml exec -T nextjs sh -c "cd /app && npx prisma migrate deploy" || {
               echo "❌ Migration failed"
+              docker-compose -f /opt/financieramente/docker-compose.qa.yml logs nextjs --tail=50
               exit 1
             }
             echo "✅ Migrations applied successfully"

@@ -127,33 +127,16 @@ jobs:
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_PROD }}
           POSTGRES_DB=financieramente_prod
           DATABASE_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_PROD }}@postgres:5432/financieramente_prod
-          NEXT_PUBLIC_API_URL=http://${{ secrets.PROD_DROPLET_IP }}
+          NEXT_PUBLIC_API_URL=https://negocios.financieramentecu.co
+          NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_PROD }}
+          NEXTAUTH_URL=https://negocios.financieramentecu.co
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_PROD }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_PROD }}
+          NEXT_TELEMETRY_DISABLED=1
           ENVEOF
           
           # Copy environment to app directory
           cp .env app/.env
-          EOF
-
-      - name: Run database migrations
-        run: |
-          ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
-          cd /opt/financieramente/app
-          
-          # Wait for database to be ready
-          echo "Waiting for database to be ready..."
-          sleep 30
-          
-          # Verify PostgreSQL is accessible
-          docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T postgres psql -U financieramente_user -d financieramente_prod -c "SELECT 1" > /dev/null 2>&1 || sleep 10
-          
-          # Run Prisma migrations
-          echo "Running Prisma migrations..."
-          npx prisma generate
-          npx prisma migrate deploy || {
-            echo "❌ Migration failed"
-            exit 1
-          }
-          echo "✅ Migrations applied successfully"
           EOF
 
       - name: Deploy application
@@ -168,9 +151,41 @@ jobs:
           docker-compose -f docker-compose.prod.yml build --no-cache
           docker-compose -f docker-compose.prod.yml up -d
           
+          # Wait for PostgreSQL to be ready
+          echo "Waiting for PostgreSQL to be ready..."
+          for i in {1..30}; do
+            if docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T postgres pg_isready -U financieramente_user -d financieramente_prod > /dev/null 2>&1; then
+              echo "✅ PostgreSQL is ready"
+              break
+            fi
+            echo "⏳ Waiting for PostgreSQL... ($i/30)"
+            sleep 2
+          done
+
+          # Verify PostgreSQL is accessible
+          docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T postgres psql -U financieramente_user -d financieramente_prod -c "SELECT 1" > /dev/null 2>&1 || {
+            echo "❌ PostgreSQL connection failed"
+            exit 1
+          }
+
+          # Run database migrations inside the nextjs container
+          echo "Running Prisma migrations inside nextjs container..."
+          docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T nextjs sh -c "cd /app && npx prisma generate" || {
+            echo "❌ Prisma generate failed"
+            docker-compose -f /opt/financieramente/docker-compose.prod.yml logs nextjs --tail=50
+            exit 1
+          }
+          
+          docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T nextjs sh -c "cd /app && npx prisma migrate deploy" || {
+            echo "❌ Migration failed"
+            docker-compose -f /opt/financieramente/docker-compose.prod.yml logs nextjs --tail=50
+            exit 1
+          }
+          echo "✅ Migrations applied successfully"
+          
           # Wait for services to be ready
           echo "Waiting for services to start..."
-          sleep 90
+          sleep 30
           EOF
 
       - name: Health check
