@@ -32,6 +32,9 @@ COPY src ./src
 COPY public ./public
 COPY components.json ./
 
+# Clean any existing Next.js cache
+RUN rm -rf .next || true
+
 # Generate Prisma client
 RUN npx prisma generate
 
@@ -43,9 +46,10 @@ ARG NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-# Skip type checking and linting during build (already done in CI tests)
-ENV SKIP_ENV_VALIDATION=true
-ENV NEXT_SKIP_TYPE_CHECK=true
+
+# Note: Type checking and ESLint are disabled in next.config.ts
+# They are executed in CI/CD tests before deployment
+# Using --no-cache flag to ensure fresh build
 RUN npm run build
 
 # Stage 3: Runner

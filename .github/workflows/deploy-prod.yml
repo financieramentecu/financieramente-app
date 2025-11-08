@@ -5,7 +5,7 @@ on:
     branches: [master]
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: "20"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -31,17 +31,17 @@ jobs:
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
           cd /opt/financieramente
-          
+
           # Create backup directory with timestamp
           BACKUP_DIR="backup_$(date +%Y%m%d_%H%M%S)"
           mkdir -p backups/$BACKUP_DIR
-          
+
           # Backup current application
           if [ -d "app" ]; then
             cp -r app backups/$BACKUP_DIR/
             echo "✅ Application backed up to backups/$BACKUP_DIR"
           fi
-          
+
           # Backup database
           if docker-compose -f docker-compose.prod.yml ps postgres | grep -q "Up"; then
             docker-compose -f docker-compose.prod.yml exec -T postgres pg_dump -U financieramente_user financieramente_prod > backups/$BACKUP_DIR/database_backup.sql
@@ -53,7 +53,7 @@ jobs:
         run: |
           # Create app directory structure
           ssh root@${{ secrets.PROD_DROPLET_IP }} "mkdir -p /opt/financieramente/app"
-          
+
           # Copy application files
           rsync -avz --delete \
             --exclude='.git' \
@@ -71,7 +71,7 @@ jobs:
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
           cd /opt/financieramente
-          
+
           # Create environment file
           cat > .env << 'ENVEOF'
           NODE_ENV=production
@@ -86,7 +86,7 @@ jobs:
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_PROD }}
           NEXT_TELEMETRY_DISABLED=1
           ENVEOF
-          
+
           # Copy environment to app directory
           cp .env app/.env
           EOF
@@ -95,14 +95,20 @@ jobs:
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
           cd /opt/financieramente
-          
+
           # Stop existing containers gracefully
           docker-compose -f docker-compose.prod.yml down --timeout 30 || true
-          
-          # Build and start new containers
+
+          # Clean Docker build cache to avoid stale builds
+          docker builder prune -f || true
+
+          # Clean Next.js cache if it exists
+          rm -rf /opt/financieramente/app/.next || true
+
+          # Build and start new containers (no cache to ensure fresh build)
           docker-compose -f docker-compose.prod.yml build --no-cache
           docker-compose -f docker-compose.prod.yml up -d
-          
+
           # Wait for PostgreSQL to be ready
           echo "Waiting for PostgreSQL to be ready..."
           for i in {1..30}; do
@@ -127,14 +133,14 @@ jobs:
             docker-compose -f /opt/financieramente/docker-compose.prod.yml logs nextjs --tail=50
             exit 1
           }
-          
+
           docker-compose -f /opt/financieramente/docker-compose.prod.yml exec -T nextjs sh -c "cd /app && npx prisma migrate deploy" || {
             echo "❌ Migration failed"
             docker-compose -f /opt/financieramente/docker-compose.prod.yml logs nextjs --tail=50
             exit 1
           }
           echo "✅ Migrations applied successfully"
-          
+
           # Wait for services to be ready
           echo "Waiting for services to start..."
           sleep 30
@@ -144,7 +150,7 @@ jobs:
         run: |
           # Wait a bit more for services to stabilize
           sleep 30
-          
+
           # Check if the application is responding
           for i in {1..15}; do
             if curl -f http://${{ secrets.PROD_DROPLET_IP }}/health; then
@@ -155,7 +161,7 @@ jobs:
               sleep 10
             fi
           done
-          
+
           # Final health check
           if ! curl -f http://${{ secrets.PROD_DROPLET_IP }}/health; then
             echo "❌ Health check failed after 15 attempts"
@@ -166,7 +172,7 @@ jobs:
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
           cd /opt/financieramente/app
-          
+
           # Test database connection
           if npx prisma db pull --print > /dev/null 2>&1; then
             echo "✅ Database connection verified"
@@ -180,7 +186,7 @@ jobs:
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
           cd /opt/financieramente
-          
+
           # Check all containers are running
           if docker-compose -f docker-compose.prod.yml ps | grep -q "Up"; then
             echo "✅ All containers are running"
@@ -197,7 +203,7 @@ jobs:
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
           # Remove unused Docker images (keep last 3)
           docker image prune -f
-          
+
           # Remove old backups (keep last 7 days)
           find /opt/financieramente/backups -type d -mtime +7 -exec rm -rf {} + 2>/dev/null || true
           EOF
@@ -215,13 +221,13 @@ jobs:
         if: failure()
         run: |
           echo "❌ Deployment to Production failed! Initiating rollback..."
-          
+
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
           cd /opt/financieramente
-          
+
           # Find the latest backup
           LATEST_BACKUP=$(ls -t backups/ | head -n1)
-          
+
           if [ -n "$LATEST_BACKUP" ]; then
             echo "🔄 Rolling back to backup: $LATEST_BACKUP"
             

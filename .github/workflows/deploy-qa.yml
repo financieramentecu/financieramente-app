@@ -78,8 +78,14 @@ jobs:
             docker-compose -f docker-compose.qa.yml down --timeout 30 || true
             docker container prune -f || true
 
-            # Build and start new containers
-            docker-compose -f docker-compose.qa.yml build --parallel
+            # Clean Docker build cache to avoid stale builds
+            docker builder prune -f || true
+
+            # Clean Next.js cache if it exists
+            rm -rf /opt/financieramente/app/.next || true
+
+            # Build and start new containers (no cache to ensure fresh build)
+            docker-compose -f docker-compose.qa.yml build --no-cache --parallel
             docker-compose -f docker-compose.qa.yml up -d
 
             # Wait for PostgreSQL to be ready
