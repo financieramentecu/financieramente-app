@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState } from "react"
-import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/layouts/DashboardLayout"
 import { MisNegociosPage } from "@/pages/MisNegociosPage"
 import { Business, StatsData, BusinessSearchParams } from "@/types/business"
@@ -12,8 +11,7 @@ import { Business, StatsData, BusinessSearchParams } from "@/types/business"
  * Muestra el listado de negocios con estadísticas, búsqueda y tabla
  */
 export default function NegociosPage() {
-  const router = useRouter()
-  const [businessData, setBusinessData] = useState<Business[]>([
+  const [businessData] = useState<Business[]>([
     {
       id: "20462",
       identification: "1060",

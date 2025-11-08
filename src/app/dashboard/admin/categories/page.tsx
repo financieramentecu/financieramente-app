@@ -111,8 +111,8 @@ export default function CategoriesAdminPage() {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...data,
-          descripcion: data.descripcion === "" ? undefined : data.descripcion,
+          ...formData,
+          descripcion: formData.descripcion === "" ? undefined : formData.descripcion,
         }),
       })
 

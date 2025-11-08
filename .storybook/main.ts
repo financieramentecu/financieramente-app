@@ -32,7 +32,7 @@ const config: StorybookConfig & { viteFinal?: (config: Record<string, unknown>) 
     viteConfig.resolve.alias = {
       ...viteConfig.resolve.alias,
       'next/navigation': require.resolve('./mocks/next-navigation.ts'),
-      'next-auth/react': require.resolve('./mocks/next-auth-react.ts'),
+      'next-auth/react': require.resolve('./mocks/next-auth-react.tsx'),
       '@/auth': require.resolve('./mocks/auth.ts'),
     };
     return config;

@@ -2,7 +2,6 @@ import { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import type { ComponentProps } from "react"
-import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
 
