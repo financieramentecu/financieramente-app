@@ -82,13 +82,19 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/package.json ./package.json
 
 # Copy prisma directory with migrations (needed for migrate deploy)
-# IMPORTANT: Copy directly from build context, not from builder stage
-# The build context (./app) contains the prisma directory with schema.prisma and migrations/
+# IMPORTANT: Copy from builder stage AFTER standalone to ensure it's not overwritten
+# The builder stage has the prisma directory with schema.prisma and migrations/
+# We verified it exists in the builder stage after the build
+COPY --from=builder /app/prisma ./prisma
+
+# Also copy from build context as backup (in case builder copy fails silently)
+# This ensures prisma directory is available even if builder stage copy doesn't work
 COPY prisma ./prisma
 
 # Verify prisma directory was copied correctly (before switching user)
 RUN test -d /app/prisma || (echo "ERROR: prisma directory not found after copy to runner stage" && ls -la /app/ && exit 1)
 RUN test -f /app/prisma/schema.prisma || (echo "ERROR: schema.prisma not found in prisma directory" && ls -la /app/prisma/ && exit 1)
+RUN ls -la /app/prisma/ || (echo "ERROR: Cannot list prisma directory" && exit 1)
 RUN echo "✅ Prisma directory verified: $(ls -la /app/prisma/)"
 
 # Install Prisma CLI for running migrations
