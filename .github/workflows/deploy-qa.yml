@@ -58,6 +58,7 @@ jobs:
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_QA }}
             POSTGRES_DB=financieramente_qa
             DATABASE_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_QA }}@postgres:5432/financieramente_qa
+            DIRECT_URL=postgresql://financieramente_user:${{ secrets.POSTGRES_PASSWORD_QA }}@postgres:5432/financieramente_qa
             NEXT_PUBLIC_API_URL=https://negocios.qa.financieramentecu.co
             NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_QA }}
             NEXTAUTH_URL=https://negocios.qa.financieramentecu.co
