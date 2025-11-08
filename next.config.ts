@@ -3,6 +3,11 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: __dirname,
+  experimental: {
+    outputFileTracingIncludes: {
+      '/': ['./prisma/**/*'],
+    },
+  } as unknown as NextConfig['experimental'],
 
   // External packages for server components
   serverExternalPackages: ['@prisma/client'],
@@ -10,10 +15,12 @@ const nextConfig: NextConfig = {
   // Skip type checking and ESLint during build (already done in CI/CD tests)
   // This reduces build time and memory usage in resource-constrained environments
   typescript: {
-    ignoreBuildErrors: process.env.NEXT_SKIP_TYPE_CHECK === 'true',
+    // Always ignore build errors in Docker builds (type checking done in CI)
+    ignoreBuildErrors: true,
   },
   eslint: {
-    ignoreDuringBuilds: process.env.NEXT_SKIP_TYPE_CHECK === 'true',
+    // Always ignore ESLint during builds (linting done in CI)
+    ignoreDuringBuilds: true,
   },
 
   // Environment variables
