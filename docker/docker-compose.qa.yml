@@ -50,6 +50,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./app/prisma:/app/prisma:ro
     ports:
       - "3000:3000"
     deploy:
