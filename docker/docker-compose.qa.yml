@@ -31,7 +31,7 @@ services:
 
   nextjs:
     build:
-      context: ./app
+      context: ../app
       dockerfile: ../docker/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
@@ -52,7 +52,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./app/prisma:/app/prisma:ro
+      - ../app/prisma:/app/prisma:ro
     ports:
       - "3000:3000"
     deploy:
