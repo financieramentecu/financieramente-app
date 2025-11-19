@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { auth } from "@/lib/auth/nextauth"
+import { UserRole } from "@/lib/auth/roles"
 
 /**
  * Middleware para proteger rutas privadas
@@ -8,11 +9,17 @@ import { auth } from "@/lib/auth/nextauth"
  * Implementa:
  * - Protección de rutas del dashboard
  * - Redirección a login si no está autenticado
+ * - Redirección a access-denied si usuario inactivo o con rol DEFAULT
  * - Validación de sesión activa
  * 
  * Compatible con NextAuth v5
  */
 export async function middleware(request: NextRequest) {
+  // Permitir acceso a la página de acceso denegado
+  if (request.nextUrl.pathname === "/access-denied") {
+    return NextResponse.next()
+  }
+
   // En modo de prueba, permitir acceso si hay un header especial de test
   // Esto permite que las pruebas e2e accedan a rutas protegidas sin autenticación real
   if (
@@ -35,7 +42,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Si hay sesión, permitir acceso
+  // Si el usuario tiene rol DEFAULT, redirigir a access-denied
+  if (session.user?.role === UserRole.DEFAULT) {
+    const accessDeniedUrl = new URL("/access-denied", request.url)
+    accessDeniedUrl.searchParams.set("reason", "default_role")
+    return NextResponse.redirect(accessDeniedUrl)
+  }
+
+  // Si el usuario no tiene rol o permisos, redirigir a access-denied
+  if (!session.user?.role) {
+    const accessDeniedUrl = new URL("/access-denied", request.url)
+    accessDeniedUrl.searchParams.set("reason", "no_permissions")
+    return NextResponse.redirect(accessDeniedUrl)
+  }
+
+  // Si hay sesión válida, permitir acceso
   return NextResponse.next()
 }
 
@@ -47,6 +68,7 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/api/protected/:path*",
+    "/access-denied",
   ],
 }
 

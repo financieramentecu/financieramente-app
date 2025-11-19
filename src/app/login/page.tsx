@@ -2,23 +2,34 @@
 
 export const dynamic = 'force-dynamic'
 
-import { Suspense } from "react"
+import { Suspense, useEffect } from "react"
 import { signIn } from "next-auth/react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { useState } from "react"
 import { LoginView, type EmailSignInFormProps } from "@/components/auth/login"
 import { GoogleIcon } from "@/components/auth/login/social-sign-in"
 import { toast } from "sonner"
 import type { SocialProvider } from "@/components/auth/login/social-sign-in"
+import { ErrorMessage } from "@/components/auth/error-message"
 
 /**
  * Componente interno que usa useSearchParams
  */
 function LoginContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard"
+  const error = searchParams?.get("error")
+
+  // Redirigir a /access-denied si hay error de acceso denegado
+  useEffect(() => {
+    if (error === "AccessDenied" || error === "AccountDisabled") {
+      const reason = error === "AccountDisabled" ? "inactive" : "no_permissions"
+      router.replace(`/access-denied?reason=${reason}`)
+    }
+  }, [error, router])
 
   const handleGoogleSignIn = async () => {
     try {
@@ -58,19 +69,22 @@ function LoginContent() {
   ]
 
   return (
-    <LoginView
-      emailForm={{
-        placeholder: "usuario@financieramentecu.com",
-        submitLabel: "Ingresar con correo",
-        isSubmitting,
-        onSubmit: handleEmailSignIn,
-      }}
-      socialProviders={socialProviders}
-      termsLink={{
-        label: "Términos y condiciones",
-        href: "#",
-      }}
-    />
+    <>
+      <ErrorMessage error={error} />
+      <LoginView
+        emailForm={{
+          placeholder: "usuario@financieramentecu.com",
+          submitLabel: "Ingresar con correo",
+          isSubmitting,
+          onSubmit: handleEmailSignIn,
+        }}
+        socialProviders={socialProviders}
+        termsLink={{
+          label: "Términos y condiciones",
+          href: "#",
+        }}
+      />
+    </>
   )
 }
 

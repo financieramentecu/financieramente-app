@@ -1,4 +1,6 @@
 import { DefaultSession } from "next-auth"
+import { UserRole } from "./roles"
+import { RolePermissions } from "./permissions"
 
 /**
  * Tipos extendidos para NextAuth
@@ -11,6 +13,8 @@ declare module "next-auth" {
       email: string
       name?: string | null
       image?: string | null
+      role?: UserRole | null
+      permissions?: RolePermissions | null
     } & DefaultSession["user"]
   }
 
@@ -19,6 +23,18 @@ declare module "next-auth" {
     email: string
     name?: string | null
     image?: string | null
+    role?: UserRole | null
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    userId?: number
+    email?: string
+    name?: string | null
+    picture?: string | null
+    role?: UserRole | null
+    permissions?: RolePermissions | null
   }
 }
 
