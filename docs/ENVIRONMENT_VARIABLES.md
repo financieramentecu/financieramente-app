@@ -150,7 +150,13 @@ POSTGRES_PASSWORD_PROD  → Segunda contraseña generada
 JWT_SECRET=your_jwt_secret_here
 ENCRYPTION_KEY=your_encryption_key_here
 
-# Email/SMTP
+# SendGrid (Recomendado)
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SENDGRID_FROM_EMAIL=noreply@financieramente.com
+SENDGRID_FROM_NAME=Financieramente
+SENDGRID_TEMPLATE_ID=d-7bddba2ac2ba49ff952c4c2c689d55b7
+
+# Email/SMTP (Alternativa, no usado si SendGrid está configurado)
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=your_email@example.com
@@ -309,6 +315,72 @@ Antes de proceder con la implementación, verifica que tienes:
 2. Verificar que las migraciones se ejecutaron
 3. Verificar que PostgreSQL esté corriendo
 
+## SendGrid
+
+### Obtener API Key
+
+1. **Ir a SendGrid Dashboard**:
+   - URL: https://app.sendgrid.com/settings/api_keys
+   - Login con tu cuenta
+
+2. **Crear API Key**:
+   - Click en "Create API Key"
+   - **API Key Name**: `financieramente-app`
+   - **API Key Permissions**: "Full Access" o "Restricted Access" con permisos de "Mail Send"
+   - Click en "Create & View"
+
+3. **Copiar el API Key**:
+   - ⚠️ **IMPORTANTE**: Solo se muestra una vez
+   - Formato: `SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+   - Guardarlo en un gestor de contraseñas
+
+### Verificar Email Remitente
+
+1. **Ir a SendGrid Dashboard**:
+   - URL: https://app.sendgrid.com/settings/sender_auth/senders/new
+   - Click en "Create New Sender"
+
+2. **Configurar Sender**:
+   - **From Email**: `noreply@financieramente.com` (o el dominio que uses)
+   - **From Name**: `Financieramente`
+   - Completar información requerida
+   - Verificar el email (SendGrid enviará un email de verificación)
+
+### Variables de SendGrid
+
+| Variable | Descripción | Ejemplo | Obligatoria |
+|----------|-------------|---------|-------------|
+| `SENDGRID_API_KEY` | API Key de SendGrid | `SG.xxxxxxxxx...` | ✅ Sí |
+| `SENDGRID_FROM_EMAIL` | Email verificado como remitente | `noreply@financieramente.com` | ✅ Sí |
+| `SENDGRID_FROM_NAME` | Nombre del remitente | `Financieramente` | ❌ No (default: "Financieramente") |
+| `SENDGRID_TEMPLATE_ID` | ID del template por defecto | `d-7bddba2ac2ba49ff952c4c2c689d55b7` | ❌ No (puede pasarse en cada request) |
+
+### Configurar en Desarrollo Local
+
+```bash
+# .env.local
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SENDGRID_FROM_EMAIL=noreply@financieramente.com
+SENDGRID_FROM_NAME=Financieramente
+SENDGRID_TEMPLATE_ID=d-7bddba2ac2ba49ff952c4c2c689d55b7
+```
+
+### Configurar en GitHub Secrets (QA y PROD)
+
+```
+SENDGRID_API_KEY_QA    → API Key de SendGrid
+SENDGRID_FROM_EMAIL_QA → Email remitente para QA
+SENDGRID_API_KEY_PROD  → API Key de SendGrid (puede ser la misma)
+SENDGRID_FROM_EMAIL_PROD → Email remitente para PROD
+```
+
+**Nota**: Puedes usar la misma API Key para QA y PROD, o crear keys separadas para mejor seguridad.
+
+### Ver Documentación Completa
+
+Para más detalles sobre la configuración y uso de SendGrid, ver:
+- `docs/EMAIL_SENDGRID.md` - Documentación completa del servicio de email
+
 ## Comandos Útiles
 
 ```bash
@@ -326,4 +398,17 @@ cat ~/.ssh/droplet_deploy
 
 # Verificar variables locales
 cat terraform/terraform.tfvars
+
+# Probar envío de email con SendGrid
+curl -X POST http://localhost:3000/api/email/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "templated",
+    "to": "test@example.com",
+    "templateId": "d-7bddba2ac2ba49ff952c4c2c689d55b7",
+    "dynamicTemplateData": {
+      "nombre": "Test User",
+      "mensaje": "Este es un test"
+    }
+  }'
 ```
