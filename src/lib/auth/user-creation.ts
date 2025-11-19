@@ -120,6 +120,9 @@ export async function createUserAutomatically(params: CreateUserParams): Promise
       details: `Usuario creado automáticamente con rol Default y estado Inactivo`,
     })
 
+    // Nota: Las notificaciones por email se envían desde el callback signIn
+    // para tener acceso a todos los datos del usuario autenticado
+
     return {
       success: true,
       userId: newUser.idUser,

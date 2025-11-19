@@ -2,11 +2,13 @@ import type { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
 import { CORPORATE_DOMAIN, isValidCorporateEmail } from "./types"
 import { validateUserByEmail } from "./user-validation"
-import { logAuditEvent, AuditAction } from "./audit-logger"
+import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from "./audit-logger"
 import { getRolePermissions } from "./permissions"
 import { UserRole } from "./roles"
 import { createUserAutomatically } from "./user-creation"
+import { notifyUserAccountCreated, notifyAdminNewUser } from "./notifications"
 import { prisma } from "@/lib/prisma"
+import { headers } from "next/headers"
 
 /**
  * Configuración de autenticación NextAuth
@@ -36,11 +38,24 @@ export const authConfig: NextAuthConfig = {
   ],
   callbacks: {
     async signIn({ user, account }) {
+      // Obtener headers para IP y User-Agent
+      let ipAddress: string | undefined
+      let userAgent: string | undefined
+      try {
+        const headersList = await headers()
+        ipAddress = getClientIp(headersList)
+        userAgent = getUserAgent(headersList)
+      } catch {
+        // Headers no disponibles (ej: en algunos contextos)
+      }
+
       // Validación estricta de dominio corporativo para Google OAuth
       if (!user.email || typeof user.email !== "string") {
         await logAuditEvent({
           action: AuditAction.ACCESS_DENIED,
           email: user.email,
+          ipAddress,
+          userAgent,
           details: "Email no proporcionado",
         })
         return false
@@ -54,6 +69,8 @@ export const authConfig: NextAuthConfig = {
         await logAuditEvent({
           action: AuditAction.INVALID_DOMAIN,
           email: user.email,
+          ipAddress,
+          userAgent,
           details: `Dominio no autorizado: ${emailDomain}`,
         })
         return false
@@ -68,6 +85,8 @@ export const authConfig: NextAuthConfig = {
             userId: validation.user?.id,
             action: AuditAction.ACCOUNT_DISABLED,
             email: user.email,
+            ipAddress,
+            userAgent,
             details: "Usuario inactivo intentó acceder",
           })
           // Permitir autenticación pero agregar información para redirigir después
@@ -85,6 +104,8 @@ export const authConfig: NextAuthConfig = {
             userId: validation.user.id,
             action: AuditAction.ACCOUNT_DISABLED,
             email: user.email,
+            ipAddress,
+            userAgent,
             details: "Usuario con rol Default intentó acceder (requiere activación)",
           })
           // Permitir autenticación, el middleware redirigirá a /access-denied
@@ -101,6 +122,8 @@ export const authConfig: NextAuthConfig = {
             email: user.email,
             name: user.name || user.email.split('@')[0],
             image: user.image,
+            ipAddress,
+            userAgent,
           })
 
           if (createResult.success && createResult.userId) {
@@ -110,11 +133,23 @@ export const authConfig: NextAuthConfig = {
               userId: createResult.userId,
               action: AuditAction.ACCOUNT_DISABLED,
               email: user.email,
+              ipAddress,
+              userAgent,
               details: "Usuario nuevo creado automáticamente con estado Inactivo. Requiere activación por administrador.",
             })
 
-            // TODO: Notificar al administrador (se implementará en siguiente fase)
-            // await notifyAdminNewUser(user.email, user.name)
+            // Notificar al usuario que su cuenta fue creada
+            await notifyUserAccountCreated({
+              email: user.email,
+              name: user.name || user.email.split('@')[0],
+            })
+
+            // Notificar al administrador que hay un nuevo usuario pendiente
+            await notifyAdminNewUser({
+              userEmail: user.email,
+              userName: user.name || user.email.split('@')[0],
+              userId: createResult.userId,
+            })
 
             // Permitir autenticación, el middleware redirigirá a /access-denied
             // Obtener el usuario recién creado para agregar información
@@ -132,6 +167,8 @@ export const authConfig: NextAuthConfig = {
             await logAuditEvent({
               action: AuditAction.ACCESS_DENIED,
               email: user.email,
+              ipAddress,
+              userAgent,
               details: `Error al crear usuario: ${createResult.error}`,
             })
           }
@@ -142,6 +179,8 @@ export const authConfig: NextAuthConfig = {
             userId: validation.user?.id,
             action: AuditAction.ACCESS_DENIED,
             email: user.email,
+            ipAddress,
+            userAgent,
             details: "Usuario sin rol asignado",
           })
           // Permitir autenticación pero redirigir después
@@ -162,6 +201,8 @@ export const authConfig: NextAuthConfig = {
           roleId: undefined, // Se obtendrá en el callback jwt
           action: AuditAction.LOGIN,
           email: user.email,
+          ipAddress,
+          userAgent,
           details: "Login exitoso",
         })
 
