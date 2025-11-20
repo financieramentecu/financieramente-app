@@ -5,7 +5,10 @@ import { SendGridEmailService } from '@/infrastructure/email/sendgrid/SendGridEm
 import {
 	type SendTemplatedEmailDTO,
 	type SendEmailDTO,
+	sendTemplatedEmailSchema,
+	sendEmailSchema,
 } from '@/application/email/dto/EmailDTO'
+import { z } from 'zod'
 
 /**
  * POST /api/email/send
@@ -20,12 +23,21 @@ export async function POST(request: Request) {
 	try {
 		const body = await request.json()
 
-		// Validar que tenga el campo "type"
-		if (!body.type || typeof body.type !== 'string') {
+		// Validar el tipo de email
+		const typeSchema = z.object({
+			type: z.enum(['templated', 'traditional'], {
+				message:
+					'El campo "type" es requerido y debe ser "templated" o "traditional"',
+			}),
+		})
+
+		const typeValidation = typeSchema.safeParse(body)
+		if (!typeValidation.success) {
 			return NextResponse.json(
 				{
 					success: false,
 					error:
+						typeValidation.error.issues[0]?.message ||
 						'El campo "type" es requerido y debe ser "templated" o "traditional"',
 				},
 				{ status: 400 }
@@ -37,49 +49,24 @@ export async function POST(request: Request) {
 
 		// Procesar según el tipo
 		if (body.type === 'templated') {
-			// Validación manual básica
-			if (!body.to || typeof body.to !== 'string') {
+			// Validar con Zod
+			const validation = sendTemplatedEmailSchema.safeParse(body)
+			if (!validation.success) {
 				return NextResponse.json(
 					{
 						success: false,
-						error: 'El campo "to" es requerido y debe ser un email válido',
+						error: validation.error.issues[0]?.message || 'Error de validación',
+						errors: validation.error.issues,
 					},
 					{ status: 400 }
 				)
 			}
 
-			if (!body.templateId || typeof body.templateId !== 'string') {
-				return NextResponse.json(
-					{
-						success: false,
-						error: 'El campo "templateId" es requerido',
-					},
-					{ status: 400 }
-				)
-			}
-
-			if (
-				!body.dynamicTemplateData ||
-				typeof body.dynamicTemplateData !== 'object'
-			) {
-				return NextResponse.json(
-					{
-						success: false,
-						error:
-							'El campo "dynamicTemplateData" es requerido y debe ser un objeto',
-					},
-					{ status: 400 }
-				)
-			}
-
-			// Ejecutar caso de uso (el caso de uso tiene su propia validación)
+			// Ejecutar caso de uso
 			const useCase = new SendTemplatedEmailUseCase(emailService)
-			const result = await useCase.execute({
-				to: body.to,
-				from: body.from,
-				templateId: body.templateId,
-				dynamicTemplateData: body.dynamicTemplateData,
-			} as SendTemplatedEmailDTO)
+			const result = await useCase.execute(
+				validation.data as SendTemplatedEmailDTO
+			)
 
 			if (!result.success) {
 				return NextResponse.json(
@@ -108,32 +95,14 @@ export async function POST(request: Request) {
 		}
 
 		if (body.type === 'traditional') {
-			// Validación manual básica
-			if (!body.to || typeof body.to !== 'string') {
+			// Validar con Zod
+			const validation = sendEmailSchema.safeParse(body)
+			if (!validation.success) {
 				return NextResponse.json(
 					{
 						success: false,
-						error: 'El campo "to" es requerido y debe ser un email válido',
-					},
-					{ status: 400 }
-				)
-			}
-
-			if (!body.subject || typeof body.subject !== 'string') {
-				return NextResponse.json(
-					{
-						success: false,
-						error: 'El campo "subject" es requerido',
-					},
-					{ status: 400 }
-				)
-			}
-
-			if (!body.text && !body.html) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: 'Debe proporcionar al menos "text" o "html"',
+						error: validation.error.issues[0]?.message || 'Error de validación',
+						errors: validation.error.issues,
 					},
 					{ status: 400 }
 				)
@@ -141,13 +110,7 @@ export async function POST(request: Request) {
 
 			// Ejecutar caso de uso
 			const useCase = new SendEmailUseCase(emailService)
-			const result = await useCase.execute({
-				to: body.to,
-				from: body.from,
-				subject: body.subject,
-				text: body.text,
-				html: body.html,
-			} as SendEmailDTO)
+			const result = await useCase.execute(validation.data as SendEmailDTO)
 
 			if (!result.success) {
 				return NextResponse.json(
@@ -175,6 +138,8 @@ export async function POST(request: Request) {
 			)
 		}
 
+		// Este bloque nunca debería ejecutarse si la validación del tipo es correcta
+		// pero lo dejamos como fallback por seguridad
 		return NextResponse.json(
 			{
 				success: false,

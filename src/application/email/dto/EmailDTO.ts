@@ -29,6 +29,18 @@ export const sendEmailSchema = z
 	})
 
 /**
+ * Schema para validar el request completo del endpoint
+ */
+export const sendEmailRequestSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('templated'),
+  }).merge(sendTemplatedEmailSchema),
+  z.object({
+    type: z.literal('traditional'),
+  }).merge(sendEmailSchema),
+])
+
+/**
  * DTO para enviar email con template dinámico
  */
 export type SendTemplatedEmailDTO = z.infer<typeof sendTemplatedEmailSchema>
