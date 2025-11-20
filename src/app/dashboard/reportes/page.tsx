@@ -46,7 +46,7 @@ export default async function ReportesPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           {session.user.permissions?.reportes?.all && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle>Todos los Reportes</CardTitle>
                 <CardDescription>
@@ -54,15 +54,20 @@ export default async function ReportesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Próximamente podrás acceder a todos los reportes disponibles.
+                <p className="text-sm text-muted-foreground mb-2">
+                  Acceso completo a todos los reportes disponibles en el sistema.
                 </p>
+                <div className="flex gap-2">
+                  <a href="/dashboard/reportes/negocio" className="text-primary hover:underline text-sm font-medium">
+                    Reportes de Negocio →
+                  </a>
+                </div>
               </CardContent>
             </Card>
           )}
 
           {session.user.permissions?.reportes?.business && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle>Reportes de Negocio</CardTitle>
                 <CardDescription>
@@ -70,15 +75,15 @@ export default async function ReportesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Próximamente podrás ver reportes de negocio.
-                </p>
+                <a href="/dashboard/reportes/negocio" className="text-primary hover:underline font-medium">
+                  Ver Reportes de Negocio →
+                </a>
               </CardContent>
             </Card>
           )}
 
           {session.user.permissions?.reportes?.personal && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle>Mis Reportes</CardTitle>
                 <CardDescription>
@@ -86,9 +91,9 @@ export default async function ReportesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Próximamente podrás ver tus reportes personales.
-                </p>
+                <a href="/dashboard/reportes/personales" className="text-primary hover:underline font-medium">
+                  Ver Mis Reportes →
+                </a>
               </CardContent>
             </Card>
           )}

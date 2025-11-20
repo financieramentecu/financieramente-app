@@ -32,6 +32,10 @@ export function ErrorMessage({ error }: ErrorMessageProps) {
       title: "Cuenta No Encontrada",
       description: "Tu cuenta de Google no está registrada en el sistema. Contacta al administrador.",
     },
+    OAuthSignin: {
+      title: "Dominio No Autorizado",
+      description: "Solo se permiten cuentas con dominio @financieramentecu.com. Por favor, usa tu cuenta corporativa de Google.",
+    },
     Default: {
       title: "Error de Autenticación",
       description: "Ocurrió un error al intentar iniciar sesión. Por favor, intenta nuevamente.",

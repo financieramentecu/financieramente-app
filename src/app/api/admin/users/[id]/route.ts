@@ -140,7 +140,7 @@ export async function PUT(
     }
 
     // Preparar datos de actualización
-    const updateData: any = {}
+    const updateData: { active?: boolean; idRole?: number | null } = {}
 
     if (typeof active === 'boolean') {
       updateData.active = active

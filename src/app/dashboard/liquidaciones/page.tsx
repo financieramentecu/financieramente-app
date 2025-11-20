@@ -36,7 +36,7 @@ export default async function LiquidacionesPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           {session.user.permissions?.liquidaciones?.preliquidacion && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle>Preliquidación</CardTitle>
                 <CardDescription>
@@ -44,15 +44,15 @@ export default async function LiquidacionesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Próximamente podrás crear y gestionar preliquidaciones.
-                </p>
+                <a href="/dashboard/liquidaciones/preliquidacion" className="text-primary hover:underline font-medium">
+                  Ir a Preliquidación →
+                </a>
               </CardContent>
             </Card>
           )}
 
           {session.user.permissions?.liquidaciones?.liquidacion && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle>Liquidación</CardTitle>
                 <CardDescription>
@@ -60,9 +60,9 @@ export default async function LiquidacionesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Próximamente podrás procesar liquidaciones de comisiones.
-                </p>
+                <a href="/dashboard/liquidaciones/liquidacion" className="text-primary hover:underline font-medium">
+                  Ir a Liquidación →
+                </a>
               </CardContent>
             </Card>
           )}

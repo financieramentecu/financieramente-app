@@ -56,7 +56,7 @@ export async function POST(
     }
 
     // Preparar datos de actualización
-    const updateData: any = {
+    const updateData: { active: boolean; idRole?: number } = {
       active: true,
     }
 

@@ -36,7 +36,7 @@ export default async function CargasPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           {session.user.permissions?.cargas?.cargaMasiva && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle>Carga Masiva</CardTitle>
                 <CardDescription>
@@ -44,15 +44,15 @@ export default async function CargasPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Próximamente podrás cargar archivos Excel o CSV con múltiples negocios.
-                </p>
+                <a href="/dashboard/cargas/masiva" className="text-primary hover:underline font-medium">
+                  Ir a Carga Masiva →
+                </a>
               </CardContent>
             </Card>
           )}
 
           {session.user.permissions?.cargas?.historial && (
-            <Card>
+            <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle>Historial de Cargas</CardTitle>
                 <CardDescription>
@@ -60,9 +60,9 @@ export default async function CargasPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Próximamente podrás ver el historial completo de cargas masivas.
-                </p>
+                <a href="/dashboard/cargas/historial" className="text-primary hover:underline font-medium">
+                  Ver Historial →
+                </a>
               </CardContent>
             </Card>
           )}
