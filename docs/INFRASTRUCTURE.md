@@ -25,18 +25,18 @@ graph TB
     subgraph "Sistema Financieramente"
         SYS[Sistema de Liquidación<br/>Financieramente]
     end
-    
+
     USER[Usuario Final<br/>Persona]
     DEV[Desarrollador<br/>Persona]
     GITHUB[GitHub<br/>Sistema Externo<br/>Control de versiones y CI/CD]
     DO[Digital Ocean<br/>Sistema Externo<br/>Infraestructura en la nube]
-    
+
     USER -->|Usa la aplicación web| SYS
     DEV -->|Desarrolla y despliega código| GITHUB
     GITHUB -->|Ejecuta deployment automático| DO
     DO -->|Hospeda| SYS
     SYS -->|Responde con datos| USER
-    
+
     style SYS fill:#1168bd,stroke:#0b4884,color:#ffffff
     style USER fill:#08427b,stroke:#052e56,color:#ffffff
     style DEV fill:#08427b,stroke:#052e56,color:#ffffff
@@ -54,14 +54,14 @@ graph TB
             NEXT[Next.js App<br/>Aplicación Web<br/>Node.js 20<br/>Puerto 3000]
             PG[PostgreSQL<br/>Base de Datos<br/>PostgreSQL 15<br/>Puerto 5432]
         end
-        
+
         UFW[UFW Firewall<br/>Puertos: 22, 80]
         SSH[SSH Server<br/>Puerto 22]
     end
-    
+
     USER[Usuario QA<br/>Tester]
     GHACTION[GitHub Actions<br/>CI/CD QA]
-    
+
     USER -->|HTTP Request<br/>Puerto 80| NGINX
     NGINX -->|Proxy Pass<br/>Puerto 3000| NEXT
     NEXT -->|SQL Queries<br/>Puerto 5432| PG
@@ -69,7 +69,7 @@ graph TB
     SSH -->|Actualiza| NEXT
     UFW -->|Protege| NGINX
     UFW -->|Permite| SSH
-    
+
     style NGINX fill:#85bbf0,stroke:#5d82a8,color:#000000
     style NEXT fill:#85bbf0,stroke:#5d82a8,color:#000000
     style PG fill:#85bbf0,stroke:#5d82a8,color:#000000
@@ -80,12 +80,14 @@ graph TB
 ## Ambientes
 
 ### QA (Quality Assurance)
+
 - **Droplet**: `s-1vcpu-1gb` ($6/month)
 - **Recursos**: 1GB RAM, 1 vCPU, 25GB SSD
 - **Propósito**: Testing y desarrollo
 - **URL**: `http://[QA_DROPLET_IP]`
 
 ### Producción
+
 - **Droplet**: `s-2vcpu-4gb` ($24/month)
 - **Recursos**: 4GB RAM, 2 vCPU, 80GB SSD
 - **Propósito**: Ambiente de producción
@@ -101,7 +103,7 @@ graph TB
         A3 --> B2[deploy-qa.yml<br/>Solo Deploy]
         C[Push a rama 'master'] --> D[deploy-prod.yml<br/>Solo Deploy]
     end
-    
+
     subgraph "Digital Ocean - QA Environment"
         B2 --> E[Droplet QA<br/>$6/month<br/>1GB RAM, 1 vCPU]
         E --> F[Docker Compose]
@@ -109,7 +111,7 @@ graph TB
         F --> H[Next.js Container]
         F --> I[Nginx Container]
     end
-    
+
     subgraph "Digital Ocean - Production Environment"
         D --> J[Droplet Prod<br/>$24/month<br/>4GB RAM, 2 vCPU]
         J --> K[Docker Compose]
@@ -117,15 +119,15 @@ graph TB
         K --> M[Next.js Container]
         K --> N[Nginx Container]
     end
-    
+
     O[Usuario] --> I
     P[Usuario] --> N
-    
+
     I --> H
     N --> M
     H --> G
     M --> L
-    
+
     style E fill:#e1f5ff
     style J fill:#fff4e1
     style B1 fill:#d4edda
@@ -154,7 +156,6 @@ Para permitir conexiones SSH automáticas desde GitHub Actions al servidor, se u
 - **SSH Key Scaning**: `ssh-keyscan -H ${{ secrets.QA_DROPLET_IP }} >> ~/.ssh/known_hosts`
   - Agrega la clave pública del servidor a los hosts conocidos
   - Permite conexiones SSH sin interrupciones
-  
 - **StrictHostKeyChecking=no**: Flag SSH para deshabilitar verificación de host keys
   - Útil en entornos de CI/CD donde no se requiere confirmación interactiva
   - **Nota de Seguridad**: Se usa junto con `ssh-keyscan` para balancear seguridad y automatización
@@ -164,8 +165,8 @@ Para permitir conexiones SSH automáticas desde GitHub Actions al servidor, se u
 ssh-keyscan -H ${{ secrets.QA_DROPLET_IP }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
 rsync -avz --delete \
-  -e "ssh -o StrictHostKeyChecking=no" \
-  ./ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/app/
+-e "ssh -o StrictHostKeyChecking=no" \
+./ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/app/
 ```
 
 **Alternativa más segura**: En lugar de `StrictHostKeyChecking=no`, se puede usar `StrictHostKeyChecking=accept-new` que solo acepta nuevas hosts una vez.
@@ -208,11 +209,11 @@ financieramente-app/
 
 ## Costos Estimados
 
-| Ambiente | Droplet | Costo Mensual | Recursos |
-|----------|---------|---------------|----------|
-| QA | s-1vcpu-1gb | $6 | 1GB RAM, 1 vCPU, 25GB SSD |
-| Producción | s-2vcpu-4gb | $24 | 4GB RAM, 2 vCPU, 80GB SSD |
-| **Total** | | **$30** | |
+| Ambiente   | Droplet     | Costo Mensual | Recursos                  |
+| ---------- | ----------- | ------------- | ------------------------- |
+| QA         | s-1vcpu-1gb | $6            | 1GB RAM, 1 vCPU, 25GB SSD |
+| Producción | s-2vcpu-4gb | $24           | 4GB RAM, 2 vCPU, 80GB SSD |
+| **Total**  |             | **$30**       |                           |
 
 ## Seguridad
 
@@ -241,12 +242,13 @@ El workflow de GitHub Actions utiliza múltiples estrategias de seguridad:
     mkdir -p ~/.ssh
     echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
     chmod 600 ~/.ssh/id_rsa
-    
+
     # Agregar host conocido para evitar ataques MITM
     ssh-keyscan -H ${{ secrets.QA_DROPLET_IP }} >> ~/.ssh/known_hosts 2>/dev/null
 ```
 
 **Características de Seguridad**:
+
 - **SSH Key Scaning**: Previene ataques Man-in-the-Middle (MITM) al verificar la autenticidad del servidor
 - **Permisos restrictivos**: `chmod 600` en la clave SSH privada
 - **StrictHostKeyChecking**: Deshabilitado temporalmente para automatización (balanceado con ssh-keyscan)
@@ -263,12 +265,12 @@ Esto acepta la clave del host la primera vez, pero rechaza cambios futuros (prot
 
 ### Puertos Abiertos
 
-| Puerto | Servicio | Acceso | Propósito |
-|--------|----------|--------|-----------|
-| 22 | SSH | Público | Administración |
-| 80 | HTTP | Público | Aplicación web |
-| 443 | HTTPS | Público | Aplicación web (cuando se configure SSL) |
-| 5432 | PostgreSQL | Interno | Base de datos |
+| Puerto | Servicio   | Acceso  | Propósito                                |
+| ------ | ---------- | ------- | ---------------------------------------- |
+| 22     | SSH        | Público | Administración                           |
+| 80     | HTTP       | Público | Aplicación web                           |
+| 443    | HTTPS      | Público | Aplicación web (cuando se configure SSL) |
+| 5432   | PostgreSQL | Interno | Base de datos                            |
 
 ## Monitoreo y Logs
 
@@ -348,11 +350,13 @@ El workflow copia los archivos necesarios usando `rsync`:
 Para reducir el tiempo de build y el consumo de recursos en el droplet QA:
 
 **Type Checking y Linting**:
+
 - Se ejecutan en el step de **Tests** (antes del deployment)
 - Se **deshabilitan** durante el build de Docker
 - Esto reduce significativamente el tiempo y memoria necesarios
 
 **Variables de entorno en Dockerfile**:
+
 ```dockerfile
 # Build arguments (deben estar disponibles durante el build)
 ARG NEXT_PUBLIC_API_URL
@@ -366,6 +370,7 @@ ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
 ```
 
 **Build args en docker-compose**:
+
 ```yaml
 nextjs:
   build:
@@ -379,6 +384,7 @@ nextjs:
 **Importante**: Las variables `NEXT_PUBLIC_*` deben estar disponibles durante el build porque Next.js las incrusta en el código compilado. Por eso se pasan como build args.
 
 **Configuración en next.config.ts**:
+
 ```typescript
 typescript: {
   ignoreBuildErrors: process.env.NEXT_SKIP_TYPE_CHECK === 'true',
@@ -389,6 +395,7 @@ eslint: {
 ```
 
 **Timeouts en SSH Actions**:
+
 - Deploy: 30 minutos
 - Health Check: 10 minutos
 - Cleanup: 5 minutos
@@ -489,15 +496,18 @@ docker volume prune -f
 ### Triggers de Workflows
 
 **test-pr-qa.yml**:
+
 - Se ejecuta cuando se abre un PR a `develop`
 - Ejecuta: tests, linting, build (verificación)
 
 **deploy-qa.yml**:
+
 - Se ejecuta SOLO cuando hay `push` a la rama `qa`
 - NO se ejecuta en eventos de `pull_request` para evitar ejecuciones múltiples
 - Ejecuta: solo deploy (sin tests)
 
 **deploy-prod.yml**:
+
 - Se ejecuta SOLO cuando hay `push` a la rama `master`
 - NO se ejecuta en eventos de `pull_request` para evitar ejecuciones múltiples
 - Ejecuta: solo deploy (sin tests)
@@ -537,6 +547,7 @@ Si el deployment falla con "Connection refused" o "Connection timeout":
 ```
 
 Este script verifica:
+
 - ✅ Estado del droplet (on/off)
 - ✅ Conectividad (ping, SSH, HTTP)
 - ✅ Ofrece encender el droplet automáticamente
@@ -551,6 +562,7 @@ Este script verifica:
 **Causa**: El droplet está apagado o tiene problemas de red.
 
 **Solución rápida**:
+
 ```bash
 # Opción 1: Usar script de diagnóstico
 ./scripts/droplet-status.sh
@@ -589,11 +601,12 @@ ssh root@[IP] "cd /opt/financieramente && cat .env"
 
 **Problemas Comunes**:
 
-1. **Error de conexión SSH**: 
+1. **Error de conexión SSH**:
+
    ```bash
    # Verificar que el droplet está encendido
    ./scripts/droplet-status.sh
-   
+
    # Verificar conectividad SSH manual
    ssh root@${{ secrets.QA_DROPLET_IP }} "echo 'Connection successful'"
    ```
@@ -601,21 +614,22 @@ ssh root@[IP] "cd /opt/financieramente && cat .env"
 2. **Error de autenticación SSH**:
    - Verificar que `SSH_PRIVATE_KEY` está configurado en GitHub Secrets
    - Verificar que la clave pública está en el servidor: `cat ~/.ssh/authorized_keys`
-   
 3. **Error "Host key verification failed"**:
    - Usar `ssh-keyscan` para agregar el host conocido
    - O usar `StrictHostKeyChecking=no` en comandos SSH (menos seguro pero útil en CI/CD)
 
 4. **Error en rsync o scp**:
+
    ```bash
    # Verificar permisos en el servidor
    ssh root@[IP] "ls -la /opt/financieramente/"
-   
+
    # Verificar que el directorio existe
    ssh root@[IP] "mkdir -p /opt/financieramente/app"
    ```
 
 **Solución General**:
+
 1. Verificar que el droplet está encendido: `./scripts/droplet-status.sh`
 2. Verificar GitHub Secrets (`SSH_PRIVATE_KEY`, `QA_DROPLET_IP`, passwords)
 3. Verificar SSH key permissions
@@ -672,11 +686,13 @@ El droplet puede volverse inaccesible por varias razones:
 El droplet QA tiene recursos limitados (1GB RAM, 1 vCPU):
 
 **Causas:**
+
 - Memoria RAM llena → Sistema congela o mata procesos
 - Disco lleno → No puede escribir logs o crear archivos temporales
 - CPU al 100% → Sistema no responde
 
 **Prevención:**
+
 ```bash
 # Monitorear recursos regularmente
 ssh root@[IP] "free -h && df -h && top -bn1 | head -20"
@@ -692,11 +708,13 @@ journalctl --vacuum-time=7d
 #### 2. Problemas con Docker
 
 **Causas:**
+
 - Contenedores zombie que no responden
 - Docker daemon congelado
 - Builds fallidos que dejan el sistema inestable
 
 **Prevención:**
+
 ```bash
 # Reiniciar Docker semanalmente en horarios de bajo tráfico
 systemctl restart docker
@@ -712,10 +730,12 @@ docker container prune -f
 #### 3. Configuración Incorrecta del Firewall
 
 **Causas:**
+
 - Regla UFW que bloqueó SSH
 - Fail2ban baneó una IP importante
 
 **Prevención:**
+
 ```bash
 # Verificar reglas UFW antes de aplicar cambios
 ufw status numbered
@@ -730,11 +750,13 @@ fail2ban-client status sshd
 #### 4. Procesos Fuera de Control
 
 **Causas:**
+
 - Loop infinito en la aplicación
 - Memory leak en el código
 - Demasiados contenedores simultáneos
 
 **Prevención:**
+
 - Implementar timeouts en la aplicación
 - Usar límites de recursos en Docker Compose
 - Monitorear logs regularmente
@@ -742,16 +764,19 @@ fail2ban-client status sshd
 #### 5. Problemas de Red en Digital Ocean
 
 **Causas:**
+
 - Mantenimiento de infraestructura
 - Problemas en el datacenter
 
 **Prevención:**
+
 - Suscribirse a notificaciones de Digital Ocean
 - Tener un plan de respuesta para outages
 
 ### Mantenimiento Preventivo Recomendado
 
 #### Semanal
+
 ```bash
 # Limpiar Docker
 docker system prune -f
@@ -768,6 +793,7 @@ free -h
 ```
 
 #### Mensual
+
 ```bash
 # Actualizar paquetes del sistema
 apt update && apt upgrade -y
@@ -783,12 +809,12 @@ journalctl -p err -n 50
 
 Monitorea estas métricas:
 
-| Métrica | Normal | Alerta | Crítico |
-|---------|--------|--------|---------|
-| Uso de RAM | < 70% | 70-85% | > 85% |
-| Uso de Disco | < 70% | 70-85% | > 85% |
-| Carga CPU | < 1.0 | 1.0-1.5 | > 1.5 |
-| Docker Images | < 5 | 5-10 | > 10 |
+| Métrica       | Normal | Alerta  | Crítico |
+| ------------- | ------ | ------- | ------- |
+| Uso de RAM    | < 70%  | 70-85%  | > 85%   |
+| Uso de Disco  | < 70%  | 70-85%  | > 85%   |
+| Carga CPU     | < 1.0  | 1.0-1.5 | > 1.5   |
+| Docker Images | < 5    | 5-10    | > 10    |
 
 ### Solución Rápida si el Droplet se Congela
 
@@ -838,11 +864,11 @@ ssh-keyscan -H [IP] >> ~/.ssh/known_hosts
 
 #### Opciones de StrictHostKeyChecking
 
-| Opción | Descripción | Seguridad |
-|--------|-------------|-----------|
-| `yes` | Requiere verificación manual (por defecto) | Más seguro |
-| `accept-new` | Acepta nuevas claves automáticamente | Moderado |
-| `no` | Deshabilita toda verificación | Menos seguro |
+| Opción       | Descripción                                | Seguridad    |
+| ------------ | ------------------------------------------ | ------------ |
+| `yes`        | Requiere verificación manual (por defecto) | Más seguro   |
+| `accept-new` | Acepta nuevas claves automáticamente       | Moderado     |
+| `no`         | Deshabilita toda verificación              | Menos seguro |
 
 **Recomendación**: Para CI/CD usar `accept-new` en lugar de `no` cuando sea posible.
 

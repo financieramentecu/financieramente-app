@@ -28,13 +28,13 @@ SENDGRID_TEMPLATE_ID=d-7bddba2ac2ba49ff952c4c2c689d55b7
 
 ```json
 {
-  "type": "templated",
-  "to": "usuario@example.com",
-  "templateId": "d-7bddba2ac2ba49ff952c4c2c689d55b7",
-  "dynamicTemplateData": {
-    "nombre": "Juan Pérez",
-    "mensaje": "Bienvenido"
-  }
+	"type": "templated",
+	"to": "usuario@example.com",
+	"templateId": "d-7bddba2ac2ba49ff952c4c2c689d55b7",
+	"dynamicTemplateData": {
+		"nombre": "Juan Pérez",
+		"mensaje": "Bienvenido"
+	}
 }
 ```
 
@@ -42,11 +42,11 @@ SENDGRID_TEMPLATE_ID=d-7bddba2ac2ba49ff952c4c2c689d55b7
 
 ```json
 {
-  "type": "traditional",
-  "to": "usuario@example.com",
-  "subject": "Asunto",
-  "text": "Texto plano",
-  "html": "<p>HTML</p>"
+	"type": "traditional",
+	"to": "usuario@example.com",
+	"subject": "Asunto",
+	"text": "Texto plano",
+	"html": "<p>HTML</p>"
 }
 ```
 
@@ -60,19 +60,21 @@ SENDGRID_TEMPLATE_ID=d-7bddba2ac2ba49ff952c4c2c689d55b7
 ## Respuestas
 
 ### Éxito
+
 ```json
 {
-  "success": true,
-  "messageId": "xxxxx",
-  "message": "Email enviado exitosamente"
+	"success": true,
+	"messageId": "xxxxx",
+	"message": "Email enviado exitosamente"
 }
 ```
 
 ### Error
+
 ```json
 {
-  "success": false,
-  "error": "Descripción del error"
+	"success": false,
+	"error": "Descripción del error"
 }
 ```
 
@@ -81,4 +83,3 @@ SENDGRID_TEMPLATE_ID=d-7bddba2ac2ba49ff952c4c2c689d55b7
 - **"Sender Identity not verified"**: Verificar email en SendGrid
 - **"Unauthorized"**: Verificar API Key y permisos
 - **"Template ID inválido"**: Verificar que el template exista en SendGrid
-

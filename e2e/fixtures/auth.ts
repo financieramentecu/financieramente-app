@@ -22,17 +22,17 @@ export const DEFAULT_MOCK_USER: MockUser = {
 
 /**
  * Mockea la autenticación de NextAuth estableciendo una sesión simulada
- * 
+ *
  * Este helper intercepta las llamadas a /api/auth/session y devuelve
  * una sesión mockeada, permitiendo que las pruebas e2e se ejecuten
  * sin necesidad de autenticación real con Google OAuth.
- * 
+ *
  * También establece cookies de sesión para que el middleware del servidor
  * reconozca al usuario como autenticado.
- * 
+ *
  * @param page - Instancia de Page de Playwright
  * @param user - Datos del usuario a mockear (opcional, usa DEFAULT_MOCK_USER si no se proporciona)
- * 
+ *
  * @example
  * ```typescript
  * test('should display dashboard', async ({ page }) => {
@@ -42,7 +42,10 @@ export const DEFAULT_MOCK_USER: MockUser = {
  * })
  * ```
  */
-export async function mockAuth(page: Page, user: MockUser = DEFAULT_MOCK_USER): Promise<void> {
+export async function mockAuth(
+	page: Page,
+	user: MockUser = DEFAULT_MOCK_USER
+): Promise<void> {
 	const mockSession = {
 		user: {
 			email: user.email,
@@ -88,7 +91,7 @@ export async function mockAuth(page: Page, user: MockUser = DEFAULT_MOCK_USER): 
 
 /**
  * Limpia los mocks de autenticación
- * 
+ *
  * @param page - Instancia de Page de Playwright
  */
 export async function clearAuthMock(page: Page): Promise<void> {
@@ -97,4 +100,3 @@ export async function clearAuthMock(page: Page): Promise<void> {
 	await page.unroute('**/login**')
 	await page.context().clearCookies()
 }
-

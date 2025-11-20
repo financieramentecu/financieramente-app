@@ -135,6 +135,7 @@ certbot renew --force-renewal
 **Causa**: DNS no está configurado o no ha propagado
 
 **Solución**:
+
 ```bash
 # Verificar DNS
 nslookup negocios.qa.financieramentecu.co
@@ -148,6 +149,7 @@ nslookup negocios.qa.financieramentecu.co
 **Causa**: Certbot necesita el puerto 80 libre para verificación
 
 **Solución**:
+
 ```bash
 # Detener Nginx temporalmente
 cd /opt/financieramente/qa
@@ -165,6 +167,7 @@ docker-compose start nginx
 **Causa**: Renovación automática falló
 
 **Solución**:
+
 ```bash
 # Renovar inmediatamente
 certbot renew --force-renewal
@@ -224,4 +227,3 @@ Después de configurar SSL, puedes:
 4. Configurar backups de certificados
 
 Para más información, consultar [INFRASTRUCTURE.md](./INFRASTRUCTURE.md).
-

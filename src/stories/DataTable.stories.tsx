@@ -8,25 +8,26 @@ import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 
 const meta: Meta<typeof DataTable> = {
-  title: 'UI/DataTableGeneric',
-  component: DataTable,
-  parameters: {
-    layout: 'padded',
-    docs: {
-      description: {
-        component: 'Tabla genérica reutilizable para mostrar cualquier tipo de datos.',
-      },
-    },
-  },
-  decorators: [
-    (Story) => (
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-        <div className="w-full max-w-6xl">
-          <Story />
-        </div>
-      </ThemeProvider>
-    ),
-  ]
+	title: 'UI/DataTableGeneric',
+	component: DataTable,
+	parameters: {
+		layout: 'padded',
+		docs: {
+			description: {
+				component:
+					'Tabla genérica reutilizable para mostrar cualquier tipo de datos.',
+			},
+		},
+	},
+	decorators: [
+		(Story) => (
+			<ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+				<div className="w-full max-w-6xl">
+					<Story />
+				</div>
+			</ThemeProvider>
+		),
+	],
 }
 
 export default meta
@@ -34,127 +35,134 @@ type Story = StoryObj<typeof meta>
 
 // Configuración de columnas para la tabla de negocios
 const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
-  {
-    key: 'identification',
-    header: 'Identificación',
-    cellRenderer: (value) => (
-      <span className="font-medium">{value as string}</span>
-    )
-  },
-  {
-    key: 'user',
-    header: 'Usuario',
-    cellRenderer: (value) => {
-      const user = value as { avatar: string; name: string }
-      return (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback>
-              {user.name.split(' ').map((n: string) => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-          <span className="font-medium">{user.name}</span>
-        </div>
-      )
-    }
-  },
-  {
-    key: 'email',
-    header: 'Email',
-    cellRenderer: (value) => (
-      <span className="text-muted-foreground">{value as string}</span>
-    )
-  },
-  {
-    key: 'value',
-    header: 'Valor',
-    cellRenderer: (value) => (
-      <span className="font-medium">
-        {new Intl.NumberFormat('es-CO', {
-          style: 'currency',
-          currency: 'COP',
-          minimumFractionDigits: 0
-        }).format(value as number)}
-      </span>
-    )
-  },
-  {
-    key: 'status',
-    header: 'Estado',
-    cellRenderer: (value) => (
-      <Badge 
-        variant={(value as string) === 'Emitido' ? "default" : "secondary"}
-        className={(value as string) === 'Emitido' ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}
-      >
-        {value as string}
-      </Badge>
-    )
-  },
-  {
-    key: 'actions',
-    header: 'Acciones',
-    cellRenderer: () => (
-      <Button variant="outline" size="sm">
-        Editar
-      </Button>
-    )
-  }
+	{
+		key: 'identification',
+		header: 'Identificación',
+		cellRenderer: (value) => (
+			<span className="font-medium">{value as string}</span>
+		),
+	},
+	{
+		key: 'user',
+		header: 'Usuario',
+		cellRenderer: (value) => {
+			const user = value as { avatar: string; name: string }
+			return (
+				<div className="flex items-center gap-3">
+					<Avatar className="h-8 w-8">
+						<AvatarImage src={user.avatar} alt={user.name} />
+						<AvatarFallback>
+							{user.name
+								.split(' ')
+								.map((n: string) => n[0])
+								.join('')}
+						</AvatarFallback>
+					</Avatar>
+					<span className="font-medium">{user.name}</span>
+				</div>
+			)
+		},
+	},
+	{
+		key: 'email',
+		header: 'Email',
+		cellRenderer: (value) => (
+			<span className="text-muted-foreground">{value as string}</span>
+		),
+	},
+	{
+		key: 'value',
+		header: 'Valor',
+		cellRenderer: (value) => (
+			<span className="font-medium">
+				{new Intl.NumberFormat('es-CO', {
+					style: 'currency',
+					currency: 'COP',
+					minimumFractionDigits: 0,
+				}).format(value as number)}
+			</span>
+		),
+	},
+	{
+		key: 'status',
+		header: 'Estado',
+		cellRenderer: (value) => (
+			<Badge
+				variant={(value as string) === 'Emitido' ? 'default' : 'secondary'}
+				className={
+					(value as string) === 'Emitido'
+						? 'bg-blue-100 text-blue-800'
+						: 'bg-green-100 text-green-800'
+				}
+			>
+				{value as string}
+			</Badge>
+		),
+	},
+	{
+		key: 'actions',
+		header: 'Acciones',
+		cellRenderer: () => (
+			<Button variant="outline" size="sm">
+				Editar
+			</Button>
+		),
+	},
 ]
 
 export const Default: Story = {
-  args: {
-    columns: businessColumns,
-    data: mockBusinessList,
-    searchable: true,
-    onGlobalSearch: (query) => console.log('Search:', query),
-    pagination: {
-      currentPage: 1,
-      pageSize: 10,
-      totalItems: mockBusinessList.length,
-      onPageChange: (page) => console.log('Page changed:', page)
-    }
-  }
+	args: {
+		columns: businessColumns,
+		data: mockBusinessList,
+		searchable: true,
+		onGlobalSearch: (query) => console.log('Search:', query),
+		pagination: {
+			currentPage: 1,
+			pageSize: 10,
+			totalItems: mockBusinessList.length,
+			onPageChange: (page) => console.log('Page changed:', page),
+		},
+	},
 }
 
 export const WithoutSearch: Story = {
-  args: {
-    columns: businessColumns,
-    data: mockBusinessList.slice(0, 5),
-    searchable: false,
-    pagination: {
-      currentPage: 1,
-      pageSize: 5,
-      totalItems: 5,
-      onPageChange: (page) => console.log('Page changed:', page)
-    }
-  }
+	args: {
+		columns: businessColumns,
+		data: mockBusinessList.slice(0, 5),
+		searchable: false,
+		pagination: {
+			currentPage: 1,
+			pageSize: 5,
+			totalItems: 5,
+			onPageChange: (page) => console.log('Page changed:', page),
+		},
+	},
 }
 
 export const EmptyState: Story = {
-  args: {
-    columns: businessColumns,
-    data: [],
-    searchable: true,
-    onGlobalSearch: (query) => console.log('Search:', query)
-  }
+	args: {
+		columns: businessColumns,
+		data: [],
+		searchable: true,
+		onGlobalSearch: (query) => console.log('Search:', query),
+	},
 }
 
 export const LoadingState: Story = {
-  args: {
-    columns: businessColumns,
-    data: [],
-    loading: true,
-    searchable: true,
-    onGlobalSearch: (query) => console.log('Search:', query)
-  }
+	args: {
+		columns: businessColumns,
+		data: [],
+		loading: true,
+		searchable: true,
+		onGlobalSearch: (query) => console.log('Search:', query),
+	},
 }
 
 export const WithoutPagination: Story = {
-  args: {
-    columns: businessColumns,
-    data: mockBusinessList.slice(0, 3),
-    searchable: true,
-    onGlobalSearch: (query) => console.log('Search:', query)
-  }
+	args: {
+		columns: businessColumns,
+		data: mockBusinessList.slice(0, 3),
+		searchable: true,
+		onGlobalSearch: (query) => console.log('Search:', query),
+	},
 }

@@ -15,11 +15,11 @@ model User {
   name           String    @db.VarChar(150)
   lastName       String?   @map("last_name") @db.VarChar(150)
   // ... campos existentes ...
-  
+
   // ✅ NUEVO CAMPO
   avatar         String?   @db.VarChar(255)  // Campo nuevo
   phoneNumber    String?   @map("phone_number") @db.VarChar(30)  // Otro campo nuevo
-  
+
   // ... resto del modelo ...
 }
 ```
@@ -33,6 +33,7 @@ npm run prisma:migrate:dev --name agregar_campos_avatar_y_telefono
 ```
 
 Este comando hace 3 cosas automáticamente:
+
 1. **Genera el archivo SQL** en `prisma/migrations/[timestamp]_agregar_campos_avatar_y_telefono/migration.sql`
 2. **Aplica la migración** a tu base de datos local (Supabase en desarrollo)
 3. **Regenera el Prisma Client** con los nuevos tipos TypeScript
@@ -165,7 +166,7 @@ model User {
 model User {
   email String? @db.VarChar(150)
   // ...
-  
+
   @@index([email])  // ✅ Nuevo índice
 }
 ```
@@ -187,7 +188,7 @@ model Client {
 model Client {
   identityNumber String @map("identity_number") @db.VarChar(20)
   // ...
-  
+
   @@unique([identityNumber])  // ✅ Constraint único
 }
 ```
@@ -217,6 +218,7 @@ npm run prisma:migrate:dev --name eliminar_campo_old_field
 ```
 
 **⚠️ ADVERTENCIA**: Eliminar campos borra los datos permanentemente. Considera:
+
 - Hacer backup antes
 - Migrar datos importantes a otro campo primero
 - Usar un período de deprecación antes de eliminar
@@ -238,10 +240,13 @@ model User {
 **IMPORTANTE**: Prisma no renombra automáticamente. Necesitas hacerlo manualmente:
 
 1. **Opción A**: Crear migración manual
+
    ```bash
    npm run prisma:migrate:dev --name renombrar_phone_number_a_phone --create-only
    ```
+
    Luego editar el SQL generado:
+
    ```sql
    ALTER TABLE "user" RENAME COLUMN "phone_number" TO "phone";
    ```
@@ -416,4 +421,3 @@ npx prisma migrate deploy --verbose
 - `docs/PRISMA_MIGRATIONS.md` - Guía completa de migraciones
 - `docs/PRISMA_USAGE.md` - Guía de uso del cliente Prisma
 - [Prisma Migrations Docs](https://www.prisma.io/docs/concepts/components/prisma-migrate)
-
