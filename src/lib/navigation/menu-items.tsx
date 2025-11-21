@@ -1,5 +1,5 @@
 import React from "react"
-import { UserRole } from "@/lib/auth/roles"
+// UserRole import removed - not used
 import { 
   LayoutDashboard, 
   Folder, 
