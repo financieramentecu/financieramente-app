@@ -56,6 +56,7 @@ export async function POST(
     }
 
     // Preparar datos de actualización
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {
       active: true,
     }

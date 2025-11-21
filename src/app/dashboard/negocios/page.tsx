@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/layouts/DashboardLayout"
 import { MisNegociosPage } from "@/pages/MisNegociosPage"
 import { Business, StatsData, BusinessSearchParams } from "@/types/business"
 import { useAuthSession } from "@/hooks/use-auth-session"
-import { UserRole } from "@/lib/auth/roles"
+// UserRole import removed - not used
 
 /**
  * Página de Negocios
@@ -17,7 +17,7 @@ import { UserRole } from "@/lib/auth/roles"
  */
 export default function NegociosPage() {
   const router = useRouter()
-  const { session } = useAuthSession()
+  const { session: _session } = useAuthSession()
   const [businessData, setBusinessData] = useState<Business[]>([])
   const [statsData, setStatsData] = useState<StatsData[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,7 +37,7 @@ export default function NegociosPage() {
         setBusinessData(data.businesses || [])
 
         // Calcular estadísticas básicas
-        const total = data.total || 0
+        const _total = data.total || 0
         const ventasEfectuadas = data.businesses?.filter(
           (b: Business) => b.status === "Venta Efectuada" || b.status === "Venta Efectuado"
         ).length || 0

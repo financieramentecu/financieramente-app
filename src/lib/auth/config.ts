@@ -1,6 +1,6 @@
 import type { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
-import { CORPORATE_DOMAIN, isValidCorporateEmail } from "./types"
+import { isValidCorporateEmail } from "./types"
 import { validateUserByEmail } from "./user-validation"
 import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from "./audit-logger"
 import { getRolePermissions } from "./permissions"
@@ -37,7 +37,7 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account: _account }) {
       // Obtener headers para IP y User-Agent
       let ipAddress: string | undefined
       let userAgent: string | undefined
@@ -213,13 +213,14 @@ export const authConfig: NextAuthConfig = {
 
       return true
     },
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, trigger: _trigger }) {
       // Primera vez que se crea el token (después de signIn)
       if (user) {
         token.userId = parseInt(user.id || '0')
         token.email = user.email || undefined
         token.name = user.name || null
         token.picture = user.image || null
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.role = (user as any).role as UserRole | null | undefined
 
         // Obtener permisos del rol
@@ -256,6 +257,7 @@ export const authConfig: NextAuthConfig = {
         session.user.image = token.picture || null
         session.user.role = (typeof token.role === 'string' ? (token.role as UserRole) : null) || null
         if (token.permissions && typeof token.permissions === 'object') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           session.user.permissions = token.permissions as any
         } else {
           session.user.permissions = null

@@ -32,6 +32,7 @@ export async function GET(request: Request) {
     const search = searchParams.get('search')
 
     // Construir filtros
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {}
 
     if (status === 'active') {

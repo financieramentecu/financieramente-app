@@ -140,6 +140,7 @@ export async function PUT(
     }
 
     // Preparar datos de actualización
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {}
 
     if (typeof active === 'boolean') {

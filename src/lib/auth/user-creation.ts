@@ -90,6 +90,7 @@ export async function createUserAutomatically(params: CreateUserParams): Promise
           entryDate: new Date(),
         },
       })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (createError: any) {
       // Si el error es por duplicado (condición de carrera), obtener el usuario existente
       if (createError?.code === 'P2002' || createError?.message?.includes('Unique constraint')) {

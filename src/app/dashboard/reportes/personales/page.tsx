@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/auth"
 import { DashboardLayout } from "@/layouts/DashboardLayout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { UserRole } from "@/lib/auth/roles"
+// UserRole import removed - not used
 
 /**
  * Página de Reportes Personales

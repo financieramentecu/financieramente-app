@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     const offset = offsetParam ? Math.max(Number(offsetParam), 0) : 0
 
     // Construir filtros
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {}
 
     // Si es agente, solo mostrar sus negocios
