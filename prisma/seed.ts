@@ -1,64 +1,51 @@
 import { PrismaClient } from '@prisma/client'
+import { seedCurrencies } from './seeds/currency'
+import { seedCompanies } from './seeds/company'
+import { seedBuyPeriodicities } from './seeds/buy-periodicity'
+import { seedClientOrigins } from './seeds/client-origin'
+import { seedTypeProducts } from './seeds/type-product'
+import { seedCategories } from './seeds/category'
+import { seedProducts } from './seeds/product'
+import { seedRoles } from './seeds/roles'
 
 const prisma = new PrismaClient()
 
 /**
- * Seed de roles del sistema
+ * Seed principal del sistema
+ * Orquestador de todos los seeds individuales
  *
  * Ejecutar con: npx tsx prisma/seed.ts
- * O agregar al package.json: "prisma": { "seed": "tsx prisma/seed.ts" }
  */
 async function main() {
-	console.log('🌱 Iniciando seed de roles...')
+	console.log('🌱 Iniciando seed...')
 
-	// Crear roles si no existen
-	const roles = [
-		{
-			code: 'DEFAULT',
-			name: 'Default',
-			description:
-				'Rol por defecto asignado a usuarios nuevos pendientes de activación',
-			active: true,
-		},
-		{
-			code: 'ASISTENTE_GERENCIA_OPERATIVA',
-			name: 'Asistente Operativo de Gerencia',
-			description: 'Acceso completo al sistema excepto administración',
-			active: true,
-		},
-		{
-			code: 'ANALISTA_SOPORTE',
-			name: 'Analista de Soporte',
-			description: 'Acceso limitado a negocios y reportes de negocio',
-			active: true,
-		},
-		{
-			code: 'AGENTE',
-			name: 'Agente/Coach',
-			description: 'Solo acceso a sus propios negocios y reportes personales',
-			active: true,
-		},
-	]
+	try {
+		// 1. Catálogos base
+		await seedCurrencies(prisma)
+		await seedCompanies(prisma)
+		await seedBuyPeriodicities(prisma)
+		await seedClientOrigins(prisma)
+		await seedTypeProducts(prisma)
 
-	for (const roleData of roles) {
-		const role = await prisma.role.upsert({
-			where: { code: roleData.code },
-			update: {
-				name: roleData.name,
-				description: roleData.description,
-				active: roleData.active,
-			},
-			create: roleData,
-		})
-		console.log(`✅ Rol creado/actualizado: ${role.name} (${role.code})`)
+		// 2. Estructura de negocio
+		await seedCategories(prisma)
+
+		// 3. Productos (depende de Company y TypeProduct)
+		await seedProducts(prisma)
+
+		// 4. Seguridad y Roles
+		await seedRoles(prisma)
+
+		console.log('\n✨ Seed completado exitosamente!')
+	} catch (error) {
+		console.error('❌ Error crítico en seed:', error)
+		throw error
 	}
-
-	console.log('✨ Seed completado!')
 }
 
 main()
 	.catch((e) => {
-		console.error('❌ Error en seed:', e)
+		console.error(e)
 		process.exit(1)
 	})
 	.finally(async () => {

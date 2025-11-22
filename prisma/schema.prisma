@@ -80,22 +80,6 @@ model Category {
   @@map("category")
 }
 
-model TypeUser {
-  idTypeUser      Int      @id @default(autoincrement()) @map("id_type_user")
-  nombre          String   @db.VarChar(100)
-  nivelJerarquico Int      @map("nivel_jerarquico")
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  // Relaciones
-  users User[]
-
-  // Note: 'PRESIDENTE(1), LIDER(2), SENIOR(3), JUNIOR(4)'
-
-  @@map("type_user")
-}
-
 model Role {
   idRole      Int      @id @default(autoincrement()) @map("id_role")
   code        String   @unique @db.VarChar(50)
@@ -247,7 +231,6 @@ model User {
   identityNumber String    @map("identity_number") @db.VarChar(20)
   email          String?   @db.VarChar(150)
   phone          String?   @db.VarChar(30)
-  idTypeUser     Int       @map("id_type_user")
   idCategoria    Int?      @map("id_categoria")
   idRole         Int?      @map("id_role")
   idUserLeader   Int?      @map("id_user_leader")
@@ -258,7 +241,6 @@ model User {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relaciones recursivas y jerárquicas
-  typeUser                   TypeUser                    @relation(fields: [idTypeUser], references: [idTypeUser])
   categoria                  Category?                   @relation(fields: [idCategoria], references: [idCategory])
   role                       Role?                       @relation(fields: [idRole], references: [idRole])
   leader                     User?                       @relation("UserLeader", fields: [idUserLeader], references: [idUser])

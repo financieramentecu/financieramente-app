@@ -5,6 +5,7 @@
  */
 
 export enum UserRole {
+	ADMIN = 'ADMIN',
 	DEFAULT = 'DEFAULT',
 	ASISTENTE_GERENCIA_OPERATIVA = 'ASISTENTE_GERENCIA_OPERATIVA',
 	ANALISTA_SOPORTE = 'ANALISTA_SOPORTE',
@@ -15,6 +16,7 @@ export enum UserRole {
  * Nombres legibles de los roles
  */
 export const ROLE_NAMES: Record<UserRole, string> = {
+	[UserRole.ADMIN]: 'Administrador del Sistema',
 	[UserRole.DEFAULT]: 'Default',
 	[UserRole.ASISTENTE_GERENCIA_OPERATIVA]: 'Asistente Operativo de Gerencia',
 	[UserRole.ANALISTA_SOPORTE]: 'Analista de Soporte',
@@ -25,6 +27,8 @@ export const ROLE_NAMES: Record<UserRole, string> = {
  * Descripciones de los roles
  */
 export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
+	[UserRole.ADMIN]:
+		'Acceso total a todos los módulos y configuración del sistema',
 	[UserRole.DEFAULT]:
 		'Rol por defecto asignado a usuarios nuevos pendientes de activación',
 	[UserRole.ASISTENTE_GERENCIA_OPERATIVA]:
