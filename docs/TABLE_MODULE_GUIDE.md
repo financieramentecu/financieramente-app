@@ -27,33 +27,33 @@ TableModule → DataTable → TanStack Table → UI Components
 import { TableModule, TableConfigs } from '@/components/ui/table-module'
 
 const usersData = [
-  {
-    id: 1,
-    name: 'Juan Pérez',
-    email: 'juan@financieramente.com',
-    role: 'Administrador',
-    status: 'Activo',
-    lastLogin: '2024-01-15',
-    department: 'IT',
-    salary: 5000
-  }
-  // ... más datos
+	{
+		id: 1,
+		name: 'Juan Pérez',
+		email: 'juan@financieramente.com',
+		role: 'Administrador',
+		status: 'Activo',
+		lastLogin: '2024-01-15',
+		department: 'IT',
+		salary: 5000,
+	},
+	// ... más datos
 ]
 
 function UsersPage() {
-  return (
-    <TableModule
-      data={usersData}
-      columns={TableConfigs.users.columns}
-      title="Gestión de Usuarios"
-      description="Administra los usuarios del sistema"
-      searchColumn={TableConfigs.users.searchColumn}
-      defaultPageSize={TableConfigs.users.defaultPageSize}
-      onRowClick={(row) => console.log('Usuario seleccionado:', row)}
-      onEdit={(row) => console.log('Editando:', row)}
-      onDelete={(row) => console.log('Eliminando:', row)}
-    />
-  )
+	return (
+		<TableModule
+			data={usersData}
+			columns={TableConfigs.users.columns}
+			title="Gestión de Usuarios"
+			description="Administra los usuarios del sistema"
+			searchColumn={TableConfigs.users.searchColumn}
+			defaultPageSize={TableConfigs.users.defaultPageSize}
+			onRowClick={(row) => console.log('Usuario seleccionado:', row)}
+			onEdit={(row) => console.log('Editando:', row)}
+			onDelete={(row) => console.log('Eliminando:', row)}
+		/>
+	)
 }
 ```
 
@@ -63,31 +63,34 @@ function UsersPage() {
 import { TableModule, createColumnDefs } from '@/components/ui/table-module'
 
 const customColumns = [
-  createColumnDefs.text('name', 'Nombre Completo', { searchable: true }),
-  createColumnDefs.text('email', 'Correo Electrónico', { searchable: true }),
-  createColumnDefs.badge('role', 'Tipo de Usuario', {
-    getVariant: (role: string) => {
-      switch (role) {
-        case 'Administrador': return 'default'
-        case 'Supervisor': return 'secondary'
-        default: return 'outline'
-      }
-    }
-  }),
-  createColumnDefs.currency('salary', 'Salario Mensual', { currency: 'USD' }),
-  createColumnDefs.date('lastLogin', 'Último Acceso')
+	createColumnDefs.text('name', 'Nombre Completo', { searchable: true }),
+	createColumnDefs.text('email', 'Correo Electrónico', { searchable: true }),
+	createColumnDefs.badge('role', 'Tipo de Usuario', {
+		getVariant: (role: string) => {
+			switch (role) {
+				case 'Administrador':
+					return 'default'
+				case 'Supervisor':
+					return 'secondary'
+				default:
+					return 'outline'
+			}
+		},
+	}),
+	createColumnDefs.currency('salary', 'Salario Mensual', { currency: 'USD' }),
+	createColumnDefs.date('lastLogin', 'Último Acceso'),
 ]
 
 function CustomTable() {
-  return (
-    <TableModule
-      data={data}
-      columns={customColumns}
-      title="Tabla Personalizada"
-      searchColumn="name"
-      onRowClick={(row) => console.log('Fila clickeada:', row)}
-    />
-  )
+	return (
+		<TableModule
+			data={data}
+			columns={customColumns}
+			title="Tabla Personalizada"
+			searchColumn="name"
+			onRowClick={(row) => console.log('Fila clickeada:', row)}
+		/>
+	)
 }
 ```
 
@@ -151,10 +154,10 @@ function CustomTable() {
 
 ```tsx
 createColumnDefs.text('fieldName', 'Título de Columna', {
-  sortable: true,        // Habilitar ordenamiento
-  searchable: true,      // Habilitar búsqueda
-  width: '200px',        // Ancho fijo
-  align: 'center'         // Alineación: 'left' | 'center' | 'right'
+	sortable: true, // Habilitar ordenamiento
+	searchable: true, // Habilitar búsqueda
+	width: '200px', // Ancho fijo
+	align: 'center', // Alineación: 'left' | 'center' | 'right'
 })
 ```
 
@@ -162,14 +165,18 @@ createColumnDefs.text('fieldName', 'Título de Columna', {
 
 ```tsx
 createColumnDefs.badge('status', 'Estado', {
-  variant: 'default',    // Variante fija
-  getVariant: (value) => { // Función para variante dinámica
-    switch (value) {
-      case 'Activo': return 'default'
-      case 'Inactivo': return 'destructive'
-      default: return 'outline'
-    }
-  }
+	variant: 'default', // Variante fija
+	getVariant: (value) => {
+		// Función para variante dinámica
+		switch (value) {
+			case 'Activo':
+				return 'default'
+			case 'Inactivo':
+				return 'destructive'
+			default:
+				return 'outline'
+		}
+	},
 })
 ```
 
@@ -177,8 +184,8 @@ createColumnDefs.badge('status', 'Estado', {
 
 ```tsx
 createColumnDefs.currency('price', 'Precio', {
-  currency: 'USD',      // Código de moneda
-  locale: 'es-ES'       // Locale para formato
+	currency: 'USD', // Código de moneda
+	locale: 'es-ES', // Locale para formato
 })
 ```
 
@@ -186,7 +193,7 @@ createColumnDefs.currency('price', 'Precio', {
 
 ```tsx
 createColumnDefs.date('createdAt', 'Fecha de Creación', {
-  format: 'short'        // Formato de fecha
+	format: 'short', // Formato de fecha
 })
 ```
 
@@ -194,10 +201,14 @@ createColumnDefs.date('createdAt', 'Fecha de Creación', {
 
 ```tsx
 createColumnDefs.actions((row) => (
-  <div className="flex space-x-1">
-    <Button size="sm" onClick={() => editRow(row)}>Editar</Button>
-    <Button size="sm" variant="destructive" onClick={() => deleteRow(row)}>Eliminar</Button>
-  </div>
+	<div className="flex space-x-1">
+		<Button size="sm" onClick={() => editRow(row)}>
+			Editar
+		</Button>
+		<Button size="sm" variant="destructive" onClick={() => deleteRow(row)}>
+			Eliminar
+		</Button>
+	</div>
 ))
 ```
 
@@ -205,43 +216,43 @@ createColumnDefs.actions((row) => (
 
 ### Props Principales
 
-| Prop | Tipo | Default | Descripción |
-|------|------|---------|-------------|
-| `data` | `TData[]` | - | Array de datos para mostrar |
-| `columns` | `ColumnDef[]` | - | Configuración de columnas |
-| `title` | `string` | - | Título de la tabla |
-| `description` | `string` | - | Descripción de la tabla |
+| Prop          | Tipo          | Default | Descripción                 |
+| ------------- | ------------- | ------- | --------------------------- |
+| `data`        | `TData[]`     | -       | Array de datos para mostrar |
+| `columns`     | `ColumnDef[]` | -       | Configuración de columnas   |
+| `title`       | `string`      | -       | Título de la tabla          |
+| `description` | `string`      | -       | Descripción de la tabla     |
 
 ### Props de Funcionalidad
 
-| Prop | Tipo | Default | Descripción |
-|------|------|---------|-------------|
-| `searchable` | `boolean` | `true` | Habilitar búsqueda |
-| `searchColumn` | `string` | - | Columna específica para búsqueda |
-| `paginable` | `boolean` | `true` | Habilitar paginación |
-| `selectable` | `boolean` | `true` | Habilitar selección múltiple |
-| `exportable` | `boolean` | `true` | Habilitar exportación |
-| `filterable` | `boolean` | `true` | Habilitar filtros de columnas |
+| Prop           | Tipo      | Default | Descripción                      |
+| -------------- | --------- | ------- | -------------------------------- |
+| `searchable`   | `boolean` | `true`  | Habilitar búsqueda               |
+| `searchColumn` | `string`  | -       | Columna específica para búsqueda |
+| `paginable`    | `boolean` | `true`  | Habilitar paginación             |
+| `selectable`   | `boolean` | `true`  | Habilitar selección múltiple     |
+| `exportable`   | `boolean` | `true`  | Habilitar exportación            |
+| `filterable`   | `boolean` | `true`  | Habilitar filtros de columnas    |
 
 ### Props de Configuración
 
-| Prop | Tipo | Default | Descripción |
-|------|------|---------|-------------|
-| `pageSizeOptions` | `number[]` | `[10, 20, 30, 40, 50]` | Opciones de tamaño de página |
-| `defaultPageSize` | `number` | `10` | Tamaño de página por defecto |
-| `loading` | `boolean` | `false` | Estado de carga |
-| `emptyMessage` | `string` | `"No hay datos disponibles"` | Mensaje cuando no hay datos |
+| Prop              | Tipo       | Default                      | Descripción                  |
+| ----------------- | ---------- | ---------------------------- | ---------------------------- |
+| `pageSizeOptions` | `number[]` | `[10, 20, 30, 40, 50]`       | Opciones de tamaño de página |
+| `defaultPageSize` | `number`   | `10`                         | Tamaño de página por defecto |
+| `loading`         | `boolean`  | `false`                      | Estado de carga              |
+| `emptyMessage`    | `string`   | `"No hay datos disponibles"` | Mensaje cuando no hay datos  |
 
 ### Props de Eventos
 
-| Prop | Tipo | Descripción |
-|------|------|-------------|
-| `onRowClick` | `(row: TData) => void` | Callback al hacer clic en una fila |
-| `onSelectionChange` | `(selectedRows: TData[]) => void` | Callback al cambiar selección |
-| `onExport` | `(data: TData[]) => void` | Callback al exportar datos |
-| `onEdit` | `(row: TData) => void` | Callback al editar una fila |
-| `onDelete` | `(row: TData) => void` | Callback al eliminar una fila |
-| `onView` | `(row: TData) => void` | Callback al ver detalles de una fila |
+| Prop                | Tipo                              | Descripción                          |
+| ------------------- | --------------------------------- | ------------------------------------ |
+| `onRowClick`        | `(row: TData) => void`            | Callback al hacer clic en una fila   |
+| `onSelectionChange` | `(selectedRows: TData[]) => void` | Callback al cambiar selección        |
+| `onExport`          | `(data: TData[]) => void`         | Callback al exportar datos           |
+| `onEdit`            | `(row: TData) => void`            | Callback al editar una fila          |
+| `onDelete`          | `(row: TData) => void`            | Callback al eliminar una fila        |
+| `onView`            | `(row: TData) => void`            | Callback al ver detalles de una fila |
 
 ## 🎨 Personalización
 
@@ -249,21 +260,21 @@ createColumnDefs.actions((row) => (
 
 ```tsx
 <TableModule
-  data={data}
-  columns={columns}
-  customActions={(row) => (
-    <div className="flex space-x-1">
-      <Button size="sm" variant="outline" onClick={() => viewDetails(row)}>
-        Ver
-      </Button>
-      <Button size="sm" variant="outline" onClick={() => editRow(row)}>
-        Editar
-      </Button>
-      <Button size="sm" variant="destructive" onClick={() => deleteRow(row)}>
-        Eliminar
-      </Button>
-    </div>
-  )}
+	data={data}
+	columns={columns}
+	customActions={(row) => (
+		<div className="flex space-x-1">
+			<Button size="sm" variant="outline" onClick={() => viewDetails(row)}>
+				Ver
+			</Button>
+			<Button size="sm" variant="outline" onClick={() => editRow(row)}>
+				Editar
+			</Button>
+			<Button size="sm" variant="destructive" onClick={() => deleteRow(row)}>
+				Eliminar
+			</Button>
+		</div>
+	)}
 />
 ```
 
@@ -271,10 +282,10 @@ createColumnDefs.actions((row) => (
 
 ```tsx
 <TableModule
-  data={data}
-  columns={columns}
-  className="custom-table-class"
-  // ... otras props
+	data={data}
+	columns={columns}
+	className="custom-table-class"
+	// ... otras props
 />
 ```
 
@@ -284,21 +295,21 @@ createColumnDefs.actions((row) => (
 import { useTableModule } from '@/components/ui/table-module'
 
 function MyComponent() {
-  const { createTable } = useTableModule()
-  
-  const MyTable = createTable({
-    data: myData,
-    columns: myColumns,
-    title: 'Mi Tabla',
-    searchColumn: 'name'
-  })
-  
-  return (
-    <MyTable
-      onRowClick={(row) => console.log('Clicked:', row)}
-      onEdit={(row) => console.log('Edit:', row)}
-    />
-  )
+	const { createTable } = useTableModule()
+
+	const MyTable = createTable({
+		data: myData,
+		columns: myColumns,
+		title: 'Mi Tabla',
+		searchColumn: 'name',
+	})
+
+	return (
+		<MyTable
+			onRowClick={(row) => console.log('Clicked:', row)}
+			onEdit={(row) => console.log('Edit:', row)}
+		/>
+	)
 }
 ```
 
@@ -308,30 +319,30 @@ function MyComponent() {
 
 ```tsx
 function UsersTable() {
-  const [users, setUsers] = useState(initialUsers)
-  
-  const handleEdit = (user) => {
-    // Abrir modal de edición
-    setEditingUser(user)
-  }
-  
-  const handleDelete = (user) => {
-    // Confirmar eliminación
-    if (confirm(`¿Eliminar usuario ${user.name}?`)) {
-      setUsers(users.filter(u => u.id !== user.id))
-    }
-  }
-  
-  return (
-    <TableModule
-      data={users}
-      columns={TableConfigs.users.columns}
-      title="Usuarios del Sistema"
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onRowClick={(user) => navigate(`/users/${user.id}`)}
-    />
-  )
+	const [users, setUsers] = useState(initialUsers)
+
+	const handleEdit = (user) => {
+		// Abrir modal de edición
+		setEditingUser(user)
+	}
+
+	const handleDelete = (user) => {
+		// Confirmar eliminación
+		if (confirm(`¿Eliminar usuario ${user.name}?`)) {
+			setUsers(users.filter((u) => u.id !== user.id))
+		}
+	}
+
+	return (
+		<TableModule
+			data={users}
+			columns={TableConfigs.users.columns}
+			title="Usuarios del Sistema"
+			onEdit={handleEdit}
+			onDelete={handleDelete}
+			onRowClick={(user) => navigate(`/users/${user.id}`)}
+		/>
+	)
 }
 ```
 
@@ -339,25 +350,25 @@ function UsersTable() {
 
 ```tsx
 function ProductsTable() {
-  const [products, setProducts] = useState(initialProducts)
-  const [filteredProducts, setFilteredProducts] = useState(products)
-  
-  const handleSearch = (query) => {
-    const filtered = products.filter(product => 
-      product.name.toLowerCase().includes(query.toLowerCase())
-    )
-    setFilteredProducts(filtered)
-  }
-  
-  return (
-    <TableModule
-      data={filteredProducts}
-      columns={TableConfigs.products.columns}
-      title="Inventario de Productos"
-      searchColumn="name"
-      onExport={(data) => exportToCSV(data, 'productos.csv')}
-    />
-  )
+	const [products, setProducts] = useState(initialProducts)
+	const [filteredProducts, setFilteredProducts] = useState(products)
+
+	const handleSearch = (query) => {
+		const filtered = products.filter((product) =>
+			product.name.toLowerCase().includes(query.toLowerCase())
+		)
+		setFilteredProducts(filtered)
+	}
+
+	return (
+		<TableModule
+			data={filteredProducts}
+			columns={TableConfigs.products.columns}
+			title="Inventario de Productos"
+			searchColumn="name"
+			onExport={(data) => exportToCSV(data, 'productos.csv')}
+		/>
+	)
 }
 ```
 
@@ -365,21 +376,21 @@ function ProductsTable() {
 
 ```tsx
 function SimpleList() {
-  return (
-    <TableModule
-      data={simpleData}
-      columns={[
-        createColumnDefs.text('name', 'Nombre'),
-        createColumnDefs.text('value', 'Valor')
-      ]}
-      title="Lista Simple"
-      searchable={false}
-      paginable={false}
-      selectable={false}
-      exportable={false}
-      filterable={false}
-    />
-  )
+	return (
+		<TableModule
+			data={simpleData}
+			columns={[
+				createColumnDefs.text('name', 'Nombre'),
+				createColumnDefs.text('value', 'Valor'),
+			]}
+			title="Lista Simple"
+			searchable={false}
+			paginable={false}
+			selectable={false}
+			exportable={false}
+			filterable={false}
+		/>
+	)
 }
 ```
 
@@ -392,36 +403,34 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { TableModule, TableConfigs } from '@/components/ui/table-module'
 
 test('renders table with data', () => {
-  const data = [
-    { id: 1, name: 'Test User', email: 'test@example.com' }
-  ]
-  
-  render(
-    <TableModule
-      data={data}
-      columns={TableConfigs.users.columns}
-      title="Test Table"
-    />
-  )
-  
-  expect(screen.getByText('Test Table')).toBeInTheDocument()
-  expect(screen.getByText('Test User')).toBeInTheDocument()
+	const data = [{ id: 1, name: 'Test User', email: 'test@example.com' }]
+
+	render(
+		<TableModule
+			data={data}
+			columns={TableConfigs.users.columns}
+			title="Test Table"
+		/>
+	)
+
+	expect(screen.getByText('Test Table')).toBeInTheDocument()
+	expect(screen.getByText('Test User')).toBeInTheDocument()
 })
 
 test('handles row click', () => {
-  const mockOnRowClick = jest.fn()
-  const data = [{ id: 1, name: 'Test User' }]
-  
-  render(
-    <TableModule
-      data={data}
-      columns={TableConfigs.users.columns}
-      onRowClick={mockOnRowClick}
-    />
-  )
-  
-  fireEvent.click(screen.getByText('Test User'))
-  expect(mockOnRowClick).toHaveBeenCalledWith(data[0])
+	const mockOnRowClick = jest.fn()
+	const data = [{ id: 1, name: 'Test User' }]
+
+	render(
+		<TableModule
+			data={data}
+			columns={TableConfigs.users.columns}
+			onRowClick={mockOnRowClick}
+		/>
+	)
+
+	fireEvent.click(screen.getByText('Test User'))
+	expect(mockOnRowClick).toHaveBeenCalledWith(data[0])
 })
 ```
 
@@ -451,25 +460,25 @@ test('handles row click', () => {
 ### 2. Memoizar Datos Pesados
 
 ```tsx
-const memoizedColumns = useMemo(() => [
-  createColumnDefs.text('name', 'Nombre'),
-  createColumnDefs.text('email', 'Email'),
-], [])
-
-const memoizedData = useMemo(() => 
-  expensiveDataProcessing(rawData), 
-  [rawData]
+const memoizedColumns = useMemo(
+	() => [
+		createColumnDefs.text('name', 'Nombre'),
+		createColumnDefs.text('email', 'Email'),
+	],
+	[]
 )
+
+const memoizedData = useMemo(() => expensiveDataProcessing(rawData), [rawData])
 ```
 
 ### 3. Manejar Estados de Carga
 
 ```tsx
 <TableModule
-  data={data}
-  columns={columns}
-  loading={isLoading}
-  emptyMessage={error ? 'Error al cargar datos' : 'No hay datos disponibles'}
+	data={data}
+	columns={columns}
+	loading={isLoading}
+	emptyMessage={error ? 'Error al cargar datos' : 'No hay datos disponibles'}
 />
 ```
 
@@ -478,14 +487,14 @@ const memoizedData = useMemo(() =>
 ```tsx
 // Para datasets grandes, usar paginación del servidor
 <TableModule
-  data={data}
-  columns={columns}
-  paginable={true}
-  defaultPageSize={20}
-  onPageChange={(page, size) => {
-    // Cargar datos del servidor
-    fetchData(page, size)
-  }}
+	data={data}
+	columns={columns}
+	paginable={true}
+	defaultPageSize={20}
+	onPageChange={(page, size) => {
+		// Cargar datos del servidor
+		fetchData(page, size)
+	}}
 />
 ```
 
@@ -518,5 +527,5 @@ const memoizedData = useMemo(() =>
 
 ---
 
-*Última actualización: Enero 2024*
-*Versión: 1.0.0*
+_Última actualización: Enero 2024_
+_Versión: 1.0.0_

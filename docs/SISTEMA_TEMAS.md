@@ -8,32 +8,32 @@ Este documento describe la implementación completa del sistema de temas de colo
 
 ### Colores Corporativos Financieramente
 
-| Color | Hex | HSL | Uso |
-|-------|-----|-----|-----|
-| **Primario** | `#00505C` | `hsl(185, 100%, 18%)` | Botones principales, enlaces, acentos |
-| **Secundario** | `#83D874` | `hsl(110, 56%, 65%)` | Botones secundarios, highlights |
-| **Texto** | `#FFFFFF` | `hsl(0, 0%, 100%)` | Texto sobre fondos oscuros |
+| Color          | Hex       | HSL                   | Uso                                   |
+| -------------- | --------- | --------------------- | ------------------------------------- |
+| **Primario**   | `#00505C` | `hsl(185, 100%, 18%)` | Botones principales, enlaces, acentos |
+| **Secundario** | `#83D874` | `hsl(110, 56%, 65%)`  | Botones secundarios, highlights       |
+| **Texto**      | `#FFFFFF` | `hsl(0, 0%, 100%)`    | Texto sobre fondos oscuros            |
 
 ### Variables CSS Implementadas
 
 ```css
 :root {
-  /* Colores primarios Financieramente */
-  --primary: 185 100% 18%;
-  --primary-foreground: 0 0% 100%;
-  
-  /* Colores secundarios Financieramente */
-  --secondary: 110 56% 65%;
-  --secondary-foreground: 185 100% 18%;
-  
-  /* Colores neutros */
-  --muted: 185 20% 96%;
-  --muted-foreground: 185 30% 46%;
-  
-  /* Colores de interfaz */
-  --border: 185 20% 91%;
-  --input: 185 20% 91%;
-  --ring: 185 100% 18%;
+	/* Colores primarios Financieramente */
+	--primary: 185 100% 18%;
+	--primary-foreground: 0 0% 100%;
+
+	/* Colores secundarios Financieramente */
+	--secondary: 110 56% 65%;
+	--secondary-foreground: 185 100% 18%;
+
+	/* Colores neutros */
+	--muted: 185 20% 96%;
+	--muted-foreground: 185 30% 46%;
+
+	/* Colores de interfaz */
+	--border: 185 20% 91%;
+	--input: 185 20% 91%;
+	--ring: 185 100% 18%;
 }
 ```
 
@@ -45,19 +45,19 @@ El sistema utiliza `next-themes` para la gestión de temas:
 
 ```tsx
 <ThemeProvider
-  attribute="class"
-  defaultTheme="light"
-  enableSystem
-  disableTransitionOnChange
+	attribute="class"
+	defaultTheme="light"
+	enableSystem
+	disableTransitionOnChange
 >
-  {children}
+	{children}
 </ThemeProvider>
 ```
 
 ### Hook Personalizado
 
 ```typescript
-import { useThemeToggle } from "@/hooks/use-theme-toggle"
+import { useThemeToggle } from '@/hooks/use-theme-toggle'
 
 const { theme, toggleTheme, mounted } = useThemeToggle()
 ```
@@ -65,14 +65,15 @@ const { theme, toggleTheme, mounted } = useThemeToggle()
 ### Componente ThemeToggle
 
 ```tsx
-import { ThemeToggle } from "@/components/theme-toggle"
+import { ThemeToggle } from '@/components/theme-toggle'
 
-<ThemeToggle />
+;<ThemeToggle />
 ```
 
 ## 🧩 Componentes Shadcn/UI Instalados
 
 ### Componentes Básicos
+
 - ✅ **Button** - Botones con variantes
 - ✅ **Card** - Tarjetas de contenido
 - ✅ **Input** - Campos de entrada
@@ -82,6 +83,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 - ✅ **Separator** - Separadores visuales
 
 ### Componentes Avanzados
+
 - ✅ **Dialog** - Modales y diálogos
 - ✅ **Dropdown Menu** - Menús desplegables
 - ✅ **Navigation Menu** - Navegación principal
@@ -94,11 +96,11 @@ import { ThemeToggle } from "@/components/theme-toggle"
 
 ### Contraste de Colores Verificado
 
-| Combinación | Ratio | Estado |
-|-------------|-------|--------|
-| Texto primario sobre fondo | 4.5:1 | ✅ Cumple |
+| Combinación                  | Ratio | Estado    |
+| ---------------------------- | ----- | --------- |
+| Texto primario sobre fondo   | 4.5:1 | ✅ Cumple |
 | Texto secundario sobre fondo | 4.2:1 | ✅ Cumple |
-| Botones sobre fondo | 3.0:1 | ✅ Cumple |
+| Botones sobre fondo          | 3.0:1 | ✅ Cumple |
 
 ### Características de Accesibilidad
 
@@ -130,11 +132,11 @@ src/
 
 ```json
 {
-  "class-variance-authority": "^0.7.0",
-  "clsx": "^2.1.1",
-  "tailwind-merge": "^2.5.4",
-  "lucide-react": "^0.468.0",
-  "next-themes": "^0.4.4"
+	"class-variance-authority": "^0.7.0",
+	"clsx": "^2.1.1",
+	"tailwind-merge": "^2.5.4",
+	"lucide-react": "^0.468.0",
+	"next-themes": "^0.4.4"
 }
 ```
 
@@ -143,37 +145,37 @@ src/
 ### 1. Cambiar Tema Programáticamente
 
 ```tsx
-import { useThemeToggle } from "@/hooks/use-theme-toggle"
+import { useThemeToggle } from '@/hooks/use-theme-toggle'
 
 function MyComponent() {
-  const { toggleTheme, theme } = useThemeToggle()
-  
-  return (
-    <button onClick={toggleTheme}>
-      Cambiar a tema {theme === "dark" ? "claro" : "oscuro"}
-    </button>
-  )
+	const { toggleTheme, theme } = useThemeToggle()
+
+	return (
+		<button onClick={toggleTheme}>
+			Cambiar a tema {theme === 'dark' ? 'claro' : 'oscuro'}
+		</button>
+	)
 }
 ```
 
 ### 2. Usar Componentes con Temas
 
 ```tsx
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 function ExampleComponent() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Mi Tarjeta</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Button>Botón Primario</Button>
-        <Button variant="secondary">Botón Secundario</Button>
-      </CardContent>
-    </Card>
-  )
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>Mi Tarjeta</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<Button>Botón Primario</Button>
+				<Button variant="secondary">Botón Secundario</Button>
+			</CardContent>
+		</Card>
+	)
 }
 ```
 
@@ -181,8 +183,8 @@ function ExampleComponent() {
 
 ```tsx
 <div className="bg-background text-foreground">
-  <p className="text-primary">Texto primario</p>
-  <p className="text-muted-foreground">Texto secundario</p>
+	<p className="text-primary">Texto primario</p>
+	<p className="text-muted-foreground">Texto secundario</p>
 </div>
 ```
 
@@ -202,11 +204,11 @@ El sistema de temas es completamente responsive y funciona en todos los tamaños
 
 ```css
 :root {
-  --custom-color: 200 100% 50%;
+	--custom-color: 200 100% 50%;
 }
 
 .dark {
-  --custom-color: 200 100% 30%;
+	--custom-color: 200 100% 30%;
 }
 ```
 
@@ -222,18 +224,15 @@ colors: {
 ### Crear Nuevas Variantes de Componentes
 
 ```tsx
-import { cva } from "class-variance-authority"
+import { cva } from 'class-variance-authority'
 
-const buttonVariants = cva(
-  "base-classes",
-  {
-    variants: {
-      variant: {
-        custom: "custom-classes",
-      },
-    },
-  }
-)
+const buttonVariants = cva('base-classes', {
+	variants: {
+		variant: {
+			custom: 'custom-classes',
+		},
+	},
+})
 ```
 
 ## 🧪 Testing

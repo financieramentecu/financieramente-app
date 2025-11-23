@@ -1,19 +1,17 @@
 // Mock de next/navigation para Storybook
 export const useRouter = () => ({
-  push: () => {},
-  replace: () => {},
-  prefetch: () => {},
-  back: () => {},
-  forward: () => {},
-  refresh: () => {},
-});
+	push: () => {},
+	replace: () => {},
+	prefetch: () => {},
+	back: () => {},
+	forward: () => {},
+	refresh: () => {},
+})
 
-export const usePathname = () => '/';
+export const usePathname = () => '/'
 
-export const useSearchParams = () => new URLSearchParams();
+export const useSearchParams = () => new URLSearchParams()
 
-export const redirect = () => {};
+export const redirect = () => {}
 
-export const notFound = () => {};
-
-
+export const notFound = () => {}

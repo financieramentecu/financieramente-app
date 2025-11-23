@@ -91,16 +91,19 @@ Después de configurar las variables y reiniciar el servidor:
 ## Troubleshooting
 
 ### Error: "NEXTAUTH_SECRET is missing"
+
 - **Solución**: Asegúrate de tener `NEXTAUTH_SECRET` en `.env.local`
 - Verifica que el archivo se llame exactamente `.env.local` (no `.env`)
 
 ### Error: "500 Internal Server Error"
-- **Solución**: 
+
+- **Solución**:
   1. Verifica que todas las variables estén en `.env.local`
   2. Reinicia el servidor completamente
   3. Limpia la caché: `rm -rf .next`
 
 ### Error: "Invalid credentials" (Google OAuth)
+
 - **Solución**: Verifica que `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` estén correctos
 
 ## Notas Importantes
@@ -108,4 +111,3 @@ Después de configurar las variables y reiniciar el servidor:
 - **NUNCA commitees `.env.local`** al repositorio (está en `.gitignore`)
 - El `NEXTAUTH_SECRET` debe ser único y seguro
 - En producción, usa variables de entorno del servidor, no archivos `.env.local`
-

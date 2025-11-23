@@ -80,20 +80,22 @@ model Category {
   @@map("category")
 }
 
-model TypeUser {
-  idTypeUser      Int      @id @default(autoincrement()) @map("id_type_user")
-  nombre          String   @db.VarChar(100)
-  nivelJerarquico Int      @map("nivel_jerarquico")
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+model Role {
+  idRole      Int      @id @default(autoincrement()) @map("id_role")
+  code        String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  users User[]
+  users     User[]
+  auditLogs AuditLog[]
 
-  // Note: 'PRESIDENTE(1), LIDER(2), SENIOR(3), JUNIOR(4)'
+  // Note: 'ASISTENTE_GERENCIA_OPERATIVA, ANALISTA_SOPORTE, AGENTE'
 
-  @@map("type_user")
+  @@map("role")
 }
 
 model BuyPeriodicity {
@@ -226,11 +228,11 @@ model User {
   name           String    @db.VarChar(150)
   lastName       String?   @map("last_name") @db.VarChar(150)
   typeIdentity   String    @default("CC") @map("type_identity") @db.VarChar(10)
-  identityNumber String    @map("identity_number") @db.VarChar(20)
-  email          String?   @db.VarChar(150)
+  identityNumber String?   @map("identity_number") @db.VarChar(20)
+  email          String    @unique @db.VarChar(150)
   phone          String?   @db.VarChar(30)
-  idTypeUser     Int       @map("id_type_user")
   idCategoria    Int?      @map("id_categoria")
+  idRole         Int?      @map("id_role")
   idUserLeader   Int?      @map("id_user_leader")
   entryDate      DateTime  @map("entry_date") @db.Date
   retirementDate DateTime? @map("retirement_date") @db.Date
@@ -239,19 +241,22 @@ model User {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relaciones recursivas y jerárquicas
-  typeUser                   TypeUser                    @relation(fields: [idTypeUser], references: [idTypeUser])
   categoria                  Category?                   @relation(fields: [idCategoria], references: [idCategory])
+  role                       Role?                       @relation(fields: [idRole], references: [idRole])
   leader                     User?                       @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates               User[]                      @relation("UserLeader")
   businesses                 Business[]
   fileImports                FileImport[]
   userComissionDistributions UserComissionDistribution[]
+  auditLogs                  AuditLog[]
 
   // Note: 'Coaches, líderes, seniors, juniors con jerarquía recursiva'
 
-  @@unique([typeIdentity, identityNumber])
+  // Constraint única parcial: solo aplica cuando ambos campos tienen valores
+  @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
   @@index([idUserLeader])
+  @@index([idRole])
   @@map("user")
 }
 
@@ -427,13 +432,13 @@ model Clawback {
   idClawback                   Int       @id @default(autoincrement()) @map("id_clawback")
   idUserCommissionDistribution Int       @map("id_user_commission_distribution")
   valueClawback                Decimal   @map("value_clawback") @db.Decimal(15, 2)
-  porcentajeApplied           Decimal   @map("porcentaje_applied") @db.Decimal(5, 4)
-  state                       String    @db.VarChar(20) // 'RETENIDO', 'LIBERADO', 'APLICADO', 'CANCELADO'
-  appliedDate              DateTime? @map("applied_date") @db.Date
-  releaseDate              DateTime? @map("release_date") @db.Date
-  reason                     String?   @db.Text
-  createdAt                  DateTime  @default(now()) @map("created_at")
-  updatedAt                  DateTime  @updatedAt @map("updated_at")
+  porcentajeApplied            Decimal   @map("porcentaje_applied") @db.Decimal(5, 4)
+  state                        String    @db.VarChar(20) // 'RETENIDO', 'LIBERADO', 'APLICADO', 'CANCELADO'
+  appliedDate                  DateTime? @map("applied_date") @db.Date
+  releaseDate                  DateTime? @map("release_date") @db.Date
+  reason                       String?   @db.Text
+  createdAt                    DateTime  @default(now()) @map("created_at")
+  updatedAt                    DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
   userComissionDistribution UserComissionDistribution @relation(fields: [idUserCommissionDistribution], references: [idUserComissionDistribution])
@@ -442,4 +447,31 @@ model Clawback {
 
   @@index([state])
   @@map("clawback")
+}
+
+// =====================================================
+// AUDITORÍA Y SEGURIDAD
+// =====================================================
+
+model AuditLog {
+  idAuditLog Int      @id @default(autoincrement()) @map("id_audit_log")
+  idUser     Int?     @map("id_user")
+  idRole     Int?     @map("id_role")
+  action     String   @db.VarChar(50) // 'LOGIN', 'LOGOUT', 'ACCESS_DENIED', 'ACCOUNT_DISABLED'
+  email      String?  @db.VarChar(150)
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.Text
+  details    String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  user User? @relation(fields: [idUser], references: [idUser])
+  role Role? @relation(fields: [idRole], references: [idRole])
+
+  @@index([idUser])
+  @@index([idRole])
+  @@index([action])
+  @@index([email])
+  @@index([createdAt])
+  @@map("audit_log")
 }

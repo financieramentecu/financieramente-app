@@ -1,14 +1,17 @@
-import { redirect } from "next/navigation"
-import { auth } from "@/auth"
-import { headers } from "next/headers"
+import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
+import { headers } from 'next/headers'
+import { getRedirectUrlByRole } from '@/lib/navigation/menu-builder'
+import { UserRole } from '@/lib/auth/roles'
 
 /**
  * Página raíz
- * 
- * Redirige inteligentemente según el estado de autenticación:
- * - Si está autenticado → /dashboard
+ *
+ * Redirige inteligentemente según el estado de autenticación y rol:
+ * - Si está autenticado → redirige según rol (agente → /dashboard/agente, otros → /dashboard)
+ * - Si tiene rol DEFAULT → /access-denied
  * - Si no está autenticado → /login
- * 
+ *
  * En modo de prueba, permite acceso con header especial
  */
 export default async function Home() {
@@ -24,15 +27,23 @@ export default async function Home() {
 	}
 
 	if (process.env.NODE_ENV !== 'production' && isTestAuth) {
-		redirect("/dashboard")
+		// En modo de prueba, redirigir directamente al dashboard sin verificar auth
+		// El middleware ya permitió el acceso con el header x-test-auth
+		redirect('/dashboard')
 		return
 	}
 
 	const session = await auth()
 
-	if (session) {
-		redirect("/dashboard")
+	if (session?.user) {
+		// Si el usuario tiene rol DEFAULT, redirigir a access-denied
+		if (session.user.role === UserRole.DEFAULT) {
+			redirect('/access-denied?reason=default_role')
+			return
+		}
+		const redirectUrl = getRedirectUrlByRole(session.user.role)
+		redirect(redirectUrl)
 	} else {
-		redirect("/login")
+		redirect('/login')
 	}
 }

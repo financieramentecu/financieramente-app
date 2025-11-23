@@ -11,6 +11,7 @@ Este documento describe la implementación completa de componentes de formulario
 Componente de entrada de texto con soporte para múltiples tipos, tamaños y variantes.
 
 #### Características
+
 - ✅ Tipos de entrada: texto, email, password, número, teléfono, URL, búsqueda, fecha, hora
 - ✅ Tamaños: pequeño (sm), mediano (md), grande (lg)
 - ✅ Variantes: default, filled, outlined
@@ -25,22 +26,22 @@ Componente de entrada de texto con soporte para múltiples tipos, tamaños y var
 import { InputField } from '@/components/forms'
 
 // Campo básico
-<InputField 
-  label="Nombre completo" 
-  placeholder="Ingresa tu nombre" 
+<InputField
+  label="Nombre completo"
+  placeholder="Ingresa tu nombre"
 />
 
 // Campo requerido con validación
-<InputField 
-  label="Email" 
-  type="email" 
-  required 
+<InputField
+  label="Email"
+  type="email"
+  required
   error="Email es requerido"
 />
 
 // Campo con icono
-<InputField 
-  label="Buscar" 
+<InputField
+  label="Buscar"
   type="search"
   leftIcon={<SearchIcon />}
 />
@@ -48,24 +49,25 @@ import { InputField } from '@/components/forms'
 
 #### Props API
 
-| Prop | Tipo | Default | Descripción |
-|------|------|---------|-------------|
-| `label` | `string` | - | Etiqueta del campo |
-| `type` | `string` | `"text"` | Tipo de entrada |
-| `required` | `boolean` | `false` | Indica si es requerido |
-| `optional` | `boolean` | `false` | Indica si es opcional |
-| `error` | `string` | - | Mensaje de error |
-| `helperText` | `string` | - | Texto de ayuda |
-| `size` | `"sm" \| "md" \| "lg"` | `"md"` | Tamaño del campo |
-| `variant` | `"default" \| "filled" \| "outlined"` | `"default"` | Variante visual |
-| `leftIcon` | `ReactNode` | - | Icono izquierdo |
-| `rightIcon` | `ReactNode` | - | Icono derecho |
+| Prop         | Tipo                                  | Default     | Descripción            |
+| ------------ | ------------------------------------- | ----------- | ---------------------- |
+| `label`      | `string`                              | -           | Etiqueta del campo     |
+| `type`       | `string`                              | `"text"`    | Tipo de entrada        |
+| `required`   | `boolean`                             | `false`     | Indica si es requerido |
+| `optional`   | `boolean`                             | `false`     | Indica si es opcional  |
+| `error`      | `string`                              | -           | Mensaje de error       |
+| `helperText` | `string`                              | -           | Texto de ayuda         |
+| `size`       | `"sm" \| "md" \| "lg"`                | `"md"`      | Tamaño del campo       |
+| `variant`    | `"default" \| "filled" \| "outlined"` | `"default"` | Variante visual        |
+| `leftIcon`   | `ReactNode`                           | -           | Icono izquierdo        |
+| `rightIcon`  | `ReactNode`                           | -           | Icono derecho          |
 
 ### 2. LabelField
 
 Componente de etiqueta mejorado con soporte para tooltips e indicadores.
 
 #### Características
+
 - ✅ Indicadores de requerido/opcional
 - ✅ Tooltips informativos
 - ✅ Estados de error
@@ -81,7 +83,7 @@ import { LabelField } from '@/components/forms'
 <LabelField htmlFor="email">Correo electrónico</LabelField>
 
 // Etiqueta con tooltip
-<LabelField 
+<LabelField
   htmlFor="password"
   tooltip="Mínimo 8 caracteres, incluir números y símbolos"
 >
@@ -99,6 +101,7 @@ import { LabelField } from '@/components/forms'
 Componente de selección avanzado con múltiples funcionalidades.
 
 #### Características
+
 - ✅ Selección simple y múltiple
 - ✅ Búsqueda integrada
 - ✅ Opciones agrupadas
@@ -119,15 +122,15 @@ const options = [
 ]
 
 // Selección simple
-<SelectField 
-  label="País" 
+<SelectField
+  label="País"
   options={options}
   placeholder="Selecciona tu país"
 />
 
 // Selección múltiple con búsqueda
-<SelectField 
-  label="Habilidades" 
+<SelectField
+  label="Habilidades"
   options={skillOptions}
   multiple
   searchable
@@ -135,7 +138,7 @@ const options = [
 />
 
 // Opciones agrupadas
-<SelectField 
+<SelectField
   label="Región"
   options={[
     { value: 'col', label: 'Colombia', group: 'América del Sur' },
@@ -149,6 +152,7 @@ const options = [
 Componente de botón con múltiples variantes y estados.
 
 #### Características
+
 - ✅ Variantes: primary, secondary, tertiary, destructive, ghost, link, outline
 - ✅ Estados: normal, loading, disabled
 - ✅ Iconos izquierdos y derechos
@@ -159,19 +163,19 @@ Componente de botón con múltiples variantes y estados.
 #### Uso Básico
 
 ```tsx
-import { 
-  ButtonField, 
-  PrimaryButton, 
+import {
+  ButtonField,
+  PrimaryButton,
   SecondaryButton,
   TertiaryButton,
-  DestructiveButton 
+  DestructiveButton
 } from '@/components/forms'
 
 // Botón básico
 <ButtonField variant="primary">Guardar</ButtonField>
 
 // Botón con icono
-<ButtonField 
+<ButtonField
   variant="primary"
   leftIcon={<SaveIcon />}
 >
@@ -196,11 +200,11 @@ Los componentes utilizan automáticamente los colores del sistema de temas:
 
 ```css
 /* Colores primarios */
---primary: 185 100% 18%;        /* #00505C */
+--primary: 185 100% 18%; /* #00505C */
 --primary-foreground: 0 0% 100%; /* #FFFFFF */
 
 /* Colores secundarios */
---secondary: 110 56% 65%;       /* #83D874 */
+--secondary: 110 56% 65%; /* #83D874 */
 --secondary-foreground: 185 100% 18%; /* #00505C */
 ```
 
@@ -219,23 +223,27 @@ Todos los componentes se adaptan automáticamente al tema activo:
 ### Características Implementadas
 
 #### Contraste de Colores
+
 - ✅ Texto normal: 4.5:1 mínimo
 - ✅ Texto grande: 3:1 mínimo
 - ✅ Elementos interactivos: 3:1 mínimo
 
 #### Navegación por Teclado
+
 - ✅ Tab y Shift+Tab para navegación
 - ✅ Enter y Espacio para activación
 - ✅ Escape para cerrar modales
 - ✅ Flechas para navegación en listas
 
 #### Screen Readers
+
 - ✅ Etiquetas ARIA apropiadas
 - ✅ Estados de error anunciados
 - ✅ Descripción de elementos complejos
 - ✅ Roles semánticos correctos
 
 #### Focus Management
+
 - ✅ Indicadores de foco visibles
 - ✅ Orden lógico de navegación
 - ✅ Atrapado de foco en modales
@@ -245,7 +253,7 @@ Todos los componentes se adaptan automáticamente al tema activo:
 
 ```tsx
 // Campo con validación accesible
-<InputField 
+<InputField
   label="Email"
   type="email"
   required
@@ -258,7 +266,7 @@ Todos los componentes se adaptan automáticamente al tema activo:
 />
 
 // Botón accesible
-<ButtonField 
+<ButtonField
   loading
   aria-label="Guardando cambios..."
   // Automáticamente:
@@ -282,26 +290,26 @@ npm run test
 ```tsx
 // Test de renderizado
 it('renders with label', () => {
-  render(<InputField label="Test Label" />)
-  expect(screen.getByText('Test Label')).toBeInTheDocument()
+	render(<InputField label="Test Label" />)
+	expect(screen.getByText('Test Label')).toBeInTheDocument()
 })
 
 // Test de accesibilidad
 it('applies correct ARIA attributes', () => {
-  render(<InputField error="Error message" />)
-  const input = screen.getByRole('textbox')
-  expect(input).toHaveAttribute('aria-invalid', 'true')
+	render(<InputField error="Error message" />)
+	const input = screen.getByRole('textbox')
+	expect(input).toHaveAttribute('aria-invalid', 'true')
 })
 
 // Test de interacción
 it('handles user input', async () => {
-  const user = userEvent.setup()
-  const onChange = jest.fn()
-  
-  render(<InputField onChange={onChange} />)
-  await user.type(screen.getByRole('textbox'), 'test')
-  
-  expect(onChange).toHaveBeenCalled()
+	const user = userEvent.setup()
+	const onChange = jest.fn()
+
+	render(<InputField onChange={onChange} />)
+	await user.type(screen.getByRole('textbox'), 'test')
+
+	expect(onChange).toHaveBeenCalled()
 })
 ```
 
@@ -318,7 +326,7 @@ npm run test:snapshot
 Cada componente tiene stories completas en Storybook:
 
 - **InputField**: 15+ variaciones
-- **LabelField**: 8+ variaciones  
+- **LabelField**: 8+ variaciones
 - **SelectField**: 12+ variaciones
 - **ButtonField**: 20+ variaciones
 
@@ -358,68 +366,68 @@ import { InputField, SelectField, ButtonField } from '@/components/forms'
 
 ```tsx
 import React from 'react'
-import { 
-  InputField, 
-  SelectField, 
-  ButtonField,
-  LabelField 
+import {
+	InputField,
+	SelectField,
+	ButtonField,
+	LabelField,
 } from '@/components/forms'
 
 function UserForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    country: '',
-    skills: []
-  })
+	const [formData, setFormData] = useState({
+		name: '',
+		email: '',
+		country: '',
+		skills: [],
+	})
 
-  return (
-    <form className="space-y-6">
-      <InputField
-        label="Nombre completo"
-        value={formData.name}
-        onChange={(e) => setFormData({...formData, name: e.target.value})}
-        required
-        helperText="Ingresa tu nombre completo"
-      />
+	return (
+		<form className="space-y-6">
+			<InputField
+				label="Nombre completo"
+				value={formData.name}
+				onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+				required
+				helperText="Ingresa tu nombre completo"
+			/>
 
-      <InputField
-        label="Correo electrónico"
-        type="email"
-        value={formData.email}
-        onChange={(e) => setFormData({...formData, email: e.target.value})}
-        required
-        leftIcon={<MailIcon />}
-      />
+			<InputField
+				label="Correo electrónico"
+				type="email"
+				value={formData.email}
+				onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+				required
+				leftIcon={<MailIcon />}
+			/>
 
-      <SelectField
-        label="País de residencia"
-        options={countryOptions}
-        value={formData.country}
-        onChange={(value) => setFormData({...formData, country: value})}
-        searchable
-        clearable
-      />
+			<SelectField
+				label="País de residencia"
+				options={countryOptions}
+				value={formData.country}
+				onChange={(value) => setFormData({ ...formData, country: value })}
+				searchable
+				clearable
+			/>
 
-      <SelectField
-        label="Habilidades técnicas"
-        options={skillOptions}
-        value={formData.skills}
-        onChange={(value) => setFormData({...formData, skills: value})}
-        multiple
-        searchable
-      />
+			<SelectField
+				label="Habilidades técnicas"
+				options={skillOptions}
+				value={formData.skills}
+				onChange={(value) => setFormData({ ...formData, skills: value })}
+				multiple
+				searchable
+			/>
 
-      <div className="flex gap-4">
-        <ButtonField variant="primary" type="submit">
-          Guardar Usuario
-        </ButtonField>
-        <ButtonField variant="secondary" type="button">
-          Cancelar
-        </ButtonField>
-      </div>
-    </form>
-  )
+			<div className="flex gap-4">
+				<ButtonField variant="primary" type="submit">
+					Guardar Usuario
+				</ButtonField>
+				<ButtonField variant="secondary" type="button">
+					Cancelar
+				</ButtonField>
+			</div>
+		</form>
+	)
 }
 ```
 
@@ -430,13 +438,13 @@ function UserForm() {
 ```css
 /* Agregar nuevos colores */
 :root {
-  --success: 120 100% 50%;
-  --warning: 45 100% 50%;
+	--success: 120 100% 50%;
+	--warning: 45 100% 50%;
 }
 
 .dark {
-  --success: 120 100% 40%;
-  --warning: 45 100% 40%;
+	--success: 120 100% 40%;
+	--warning: 45 100% 40%;
 }
 ```
 
@@ -445,8 +453,8 @@ function UserForm() {
 ```tsx
 // Crear variante personalizada
 const CustomInput = styled(InputField)`
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	border-radius: 12px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `
 ```
 
@@ -455,7 +463,7 @@ const CustomInput = styled(InputField)`
 Todos los componentes son completamente responsive:
 
 - **Mobile**: Optimizado para pantallas < 768px
-- **Tablet**: Adaptado para pantallas 768px - 1024px  
+- **Tablet**: Adaptado para pantallas 768px - 1024px
 - **Desktop**: Experiencia completa > 1024px
 
 ## 🌐 Compatibilidad de Navegadores

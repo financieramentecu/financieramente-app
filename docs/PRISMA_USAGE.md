@@ -19,14 +19,14 @@ Esta guía explica cómo usar Prisma Client correctamente en el proyecto Financi
 import { prisma } from '@/lib/prisma' // ❌ ERROR
 
 export function UserList() {
-  const [users, setUsers] = useState([])
-  
-  useEffect(() => {
-    // ❌ Esto NO funcionará y es inseguro
-    prisma.user.findMany().then(setUsers)
-  }, [])
-  
-  return <div>{/* ... */}</div>
+	const [users, setUsers] = useState([])
+
+	useEffect(() => {
+		// ❌ Esto NO funcionará y es inseguro
+		prisma.user.findMany().then(setUsers)
+	}, [])
+
+	return <div>{/* ... */}</div>
 }
 ```
 
@@ -41,26 +41,28 @@ Los Server Components pueden usar Prisma directamente con `async/await`:
 import { prisma } from '@/lib/prisma'
 
 export default async function UserList() {
-  // ✅ Prisma funciona directamente en Server Components
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      avatar: true,
-    },
-  })
+	// ✅ Prisma funciona directamente en Server Components
+	const users = await prisma.user.findMany({
+		select: {
+			id: true,
+			name: true,
+			email: true,
+			avatar: true,
+		},
+	})
 
-  return (
-    <div>
-      <h1>Usuarios</h1>
-      <ul>
-        {users.map((user) => (
-          <li key={user.id}>{user.name} - {user.email}</li>
-        ))}
-      </ul>
-    </div>
-  )
+	return (
+		<div>
+			<h1>Usuarios</h1>
+			<ul>
+				{users.map((user) => (
+					<li key={user.id}>
+						{user.name} - {user.email}
+					</li>
+				))}
+			</ul>
+		</div>
+	)
 }
 ```
 
@@ -77,24 +79,24 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: true,
-      },
-    })
+	try {
+		const users = await prisma.user.findMany({
+			select: {
+				id: true,
+				name: true,
+				email: true,
+				avatar: true,
+			},
+		})
 
-    return NextResponse.json({ users })
-  } catch (error) {
-    console.error('Error fetching users:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch users' },
-      { status: 500 }
-    )
-  }
+		return NextResponse.json({ users })
+	} catch (error) {
+		console.error('Error fetching users:', error)
+		return NextResponse.json(
+			{ error: 'Failed to fetch users' },
+			{ status: 500 }
+		)
+	}
 }
 ```
 
@@ -107,42 +109,44 @@ export async function GET() {
 import { useEffect, useState } from 'react'
 
 interface User {
-  id: string
-  name: string
-  email: string
-  avatar: string | null
+	id: string
+	name: string
+	email: string
+	avatar: string | null
 }
 
 export function UserList() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
+	const [users, setUsers] = useState<User[]>([])
+	const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // ✅ Fetch a API Route, NO Prisma directamente
-    fetch('/api/users')
-      .then((res) => res.json())
-      .then((data) => {
-        setUsers(data.users)
-        setLoading(false)
-      })
-      .catch((error) => {
-        console.error('Error:', error)
-        setLoading(false)
-      })
-  }, [])
+	useEffect(() => {
+		// ✅ Fetch a API Route, NO Prisma directamente
+		fetch('/api/users')
+			.then((res) => res.json())
+			.then((data) => {
+				setUsers(data.users)
+				setLoading(false)
+			})
+			.catch((error) => {
+				console.error('Error:', error)
+				setLoading(false)
+			})
+	}, [])
 
-  if (loading) return <div>Cargando...</div>
+	if (loading) return <div>Cargando...</div>
 
-  return (
-    <div>
-      <h1>Usuarios</h1>
-      <ul>
-        {users.map((user) => (
-          <li key={user.id}>{user.name} - {user.email}</li>
-        ))}
-      </ul>
-    </div>
-  )
+	return (
+		<div>
+			<h1>Usuarios</h1>
+			<ul>
+				{users.map((user) => (
+					<li key={user.id}>
+						{user.name} - {user.email}
+					</li>
+				))}
+			</ul>
+		</div>
+	)
 }
 ```
 
@@ -178,32 +182,32 @@ export function UserList() {
 import { prisma } from '@/lib/prisma'
 
 export default async function NegociosPage() {
-  const businesses = await prisma.business.findMany({
-    include: {
-      user: {
-        select: {
-          name: true,
-          avatar: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
+	const businesses = await prisma.business.findMany({
+		include: {
+			user: {
+				select: {
+					name: true,
+					avatar: true,
+				},
+			},
+		},
+		orderBy: {
+			createdAt: 'desc',
+		},
+	})
 
-  return (
-    <div>
-      <h1>Mis Negocios</h1>
-      {businesses.map((business) => (
-        <div key={business.id}>
-          <h2>{business.product}</h2>
-          <p>Cliente: {business.user.name}</p>
-          <p>Valor: ${business.value.toString()}</p>
-        </div>
-      ))}
-    </div>
-  )
+	return (
+		<div>
+			<h1>Mis Negocios</h1>
+			{businesses.map((business) => (
+				<div key={business.id}>
+					<h2>{business.product}</h2>
+					<p>Cliente: {business.user.name}</p>
+					<p>Valor: ${business.value.toString()}</p>
+				</div>
+			))}
+		</div>
+	)
 }
 ```
 
@@ -215,35 +219,35 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
+	try {
+		const { searchParams } = new URL(request.url)
+		const status = searchParams.get('status')
 
-    const where = status ? { status } : {}
+		const where = status ? { status } : {}
 
-    const businesses = await prisma.business.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+		const businesses = await prisma.business.findMany({
+			where,
+			include: {
+				user: {
+					select: {
+						name: true,
+						avatar: true,
+					},
+				},
+			},
+			orderBy: {
+				createdAt: 'desc',
+			},
+		})
 
-    return NextResponse.json({ businesses })
-  } catch (error) {
-    console.error('Error fetching businesses:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch businesses' },
-      { status: 500 }
-    )
-  }
+		return NextResponse.json({ businesses })
+	} catch (error) {
+		console.error('Error fetching businesses:', error)
+		return NextResponse.json(
+			{ error: 'Failed to fetch businesses' },
+			{ status: 500 }
+		)
+	}
 }
 ```
 
@@ -258,57 +262,57 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 const createBusinessSchema = z.object({
-  identification: z.string(),
-  email: z.string().email(),
-  termPeriod: z.string(),
-  date: z.string(),
-  value: z.number(),
-  product: z.string(),
-  status: z.enum(['Emitido', 'Venta Efectuado']),
-  userId: z.string(),
+	identification: z.string(),
+	email: z.string().email(),
+	termPeriod: z.string(),
+	date: z.string(),
+	value: z.number(),
+	product: z.string(),
+	status: z.enum(['Emitido', 'Venta Efectuado']),
+	userId: z.string(),
 })
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json()
-    const data = createBusinessSchema.parse(body)
+	try {
+		const body = await request.json()
+		const data = createBusinessSchema.parse(body)
 
-    const business = await prisma.business.create({
-      data: {
-        identification: data.identification,
-        email: data.email,
-        termPeriod: data.termPeriod,
-        date: new Date(data.date),
-        value: data.value,
-        product: data.product,
-        status: data.status,
-        userId: data.userId,
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-    })
+		const business = await prisma.business.create({
+			data: {
+				identification: data.identification,
+				email: data.email,
+				termPeriod: data.termPeriod,
+				date: new Date(data.date),
+				value: data.value,
+				product: data.product,
+				status: data.status,
+				userId: data.userId,
+			},
+			include: {
+				user: {
+					select: {
+						name: true,
+						avatar: true,
+					},
+				},
+			},
+		})
 
-    return NextResponse.json({ business }, { status: 201 })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid data', details: error.errors },
-        { status: 400 }
-      )
-    }
+		return NextResponse.json({ business }, { status: 201 })
+	} catch (error) {
+		if (error instanceof z.ZodError) {
+			return NextResponse.json(
+				{ error: 'Invalid data', details: error.errors },
+				{ status: 400 }
+			)
+		}
 
-    console.error('Error creating business:', error)
-    return NextResponse.json(
-      { error: 'Failed to create business' },
-      { status: 500 }
-    )
-  }
+		console.error('Error creating business:', error)
+		return NextResponse.json(
+			{ error: 'Failed to create business' },
+			{ status: 500 }
+		)
+	}
 }
 ```
 
@@ -321,56 +325,56 @@ export async function POST(request: Request) {
 import { useState } from 'react'
 
 export function CreateBusinessForm() {
-  const [loading, setLoading] = useState(false)
+	const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault()
+		setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-    const data = {
-      identification: formData.get('identification') as string,
-      email: formData.get('email') as string,
-      termPeriod: formData.get('termPeriod') as string,
-      date: formData.get('date') as string,
-      value: Number(formData.get('value')),
-      product: formData.get('product') as string,
-      status: formData.get('status') as 'Emitido' | 'Venta Efectuado',
-      userId: formData.get('userId') as string,
-    }
+		const formData = new FormData(e.currentTarget)
+		const data = {
+			identification: formData.get('identification') as string,
+			email: formData.get('email') as string,
+			termPeriod: formData.get('termPeriod') as string,
+			date: formData.get('date') as string,
+			value: Number(formData.get('value')),
+			product: formData.get('product') as string,
+			status: formData.get('status') as 'Emitido' | 'Venta Efectuado',
+			userId: formData.get('userId') as string,
+		}
 
-    try {
-      // ✅ Fetch a API Route, NO Prisma directamente
-      const response = await fetch('/api/businesses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
+		try {
+			// ✅ Fetch a API Route, NO Prisma directamente
+			const response = await fetch('/api/businesses', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(data),
+			})
 
-      if (!response.ok) {
-        throw new Error('Failed to create business')
-      }
+			if (!response.ok) {
+				throw new Error('Failed to create business')
+			}
 
-      const result = await response.json()
-      console.log('Business created:', result.business)
-      // Redirigir o actualizar estado
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+			const result = await response.json()
+			console.log('Business created:', result.business)
+			// Redirigir o actualizar estado
+		} catch (error) {
+			console.error('Error:', error)
+		} finally {
+			setLoading(false)
+		}
+	}
 
-  return (
-    <form onSubmit={handleSubmit}>
-      {/* Campos del formulario */}
-      <button type="submit" disabled={loading}>
-        {loading ? 'Creando...' : 'Crear Negocio'}
-      </button>
-    </form>
-  )
+	return (
+		<form onSubmit={handleSubmit}>
+			{/* Campos del formulario */}
+			<button type="submit" disabled={loading}>
+				{loading ? 'Creando...' : 'Crear Negocio'}
+			</button>
+		</form>
+	)
 }
 ```
 
@@ -425,12 +429,12 @@ const users = await prisma.user.findMany()
 
 ```typescript
 const businesses = await prisma.business.findMany({
-  where: {
-    status: 'Emitido',
-    value: {
-      gte: 1000,
-    },
-  },
+	where: {
+		status: 'Emitido',
+		value: {
+			gte: 1000,
+		},
+	},
 })
 ```
 
@@ -438,9 +442,9 @@ const businesses = await prisma.business.findMany({
 
 ```typescript
 const user = await prisma.user.findUnique({
-  where: {
-    id: 'user-id',
-  },
+	where: {
+		id: 'user-id',
+	},
 })
 ```
 
@@ -448,11 +452,11 @@ const user = await prisma.user.findUnique({
 
 ```typescript
 const newUser = await prisma.user.create({
-  data: {
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'admin',
-  },
+	data: {
+		name: 'John Doe',
+		email: 'john@example.com',
+		role: 'admin',
+	},
 })
 ```
 
@@ -460,12 +464,12 @@ const newUser = await prisma.user.create({
 
 ```typescript
 const updatedUser = await prisma.user.update({
-  where: {
-    id: 'user-id',
-  },
-  data: {
-    name: 'Jane Doe',
-  },
+	where: {
+		id: 'user-id',
+	},
+	data: {
+		name: 'Jane Doe',
+	},
 })
 ```
 
@@ -473,9 +477,9 @@ const updatedUser = await prisma.user.update({
 
 ```typescript
 await prisma.user.delete({
-  where: {
-    id: 'user-id',
-  },
+	where: {
+		id: 'user-id',
+	},
 })
 ```
 
@@ -483,18 +487,18 @@ await prisma.user.delete({
 
 ```typescript
 const business = await prisma.business.findUnique({
-  where: {
-    id: 'business-id',
-  },
-  include: {
-    user: {
-      select: {
-        name: true,
-        email: true,
-        avatar: true,
-      },
-    },
-  },
+	where: {
+		id: 'business-id',
+	},
+	include: {
+		user: {
+			select: {
+				name: true,
+				email: true,
+				avatar: true,
+			},
+		},
+	},
 })
 ```
 
@@ -507,20 +511,20 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 
 export default async function UserPage({ params }: { params: { id: string } }) {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: params.id },
-    })
+	try {
+		const user = await prisma.user.findUnique({
+			where: { id: params.id },
+		})
 
-    if (!user) {
-      notFound()
-    }
+		if (!user) {
+			notFound()
+		}
 
-    return <div>{user.name}</div>
-  } catch (error) {
-    console.error('Error fetching user:', error)
-    throw new Error('Failed to fetch user')
-  }
+		return <div>{user.name}</div>
+	} catch (error) {
+		console.error('Error fetching user:', error)
+		throw new Error('Failed to fetch user')
+	}
 }
 ```
 
@@ -531,16 +535,16 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  try {
-    const users = await prisma.user.findMany()
-    return NextResponse.json({ users })
-  } catch (error) {
-    console.error('Database error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+	try {
+		const users = await prisma.user.findMany()
+		return NextResponse.json({ users })
+	} catch (error) {
+		console.error('Database error:', error)
+		return NextResponse.json(
+			{ error: 'Internal server error' },
+			{ status: 500 }
+		)
+	}
 }
 ```
 
@@ -553,30 +557,30 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 
 const createUserSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  role: z.string(),
+	name: z.string().min(1),
+	email: z.string().email(),
+	role: z.string(),
 })
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json()
-    const data = createUserSchema.parse(body) // Valida y transforma
+	try {
+		const body = await request.json()
+		const data = createUserSchema.parse(body) // Valida y transforma
 
-    const user = await prisma.user.create({
-      data, // Ya validado
-    })
+		const user = await prisma.user.create({
+			data, // Ya validado
+		})
 
-    return NextResponse.json({ user })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid data', details: error.errors },
-        { status: 400 }
-      )
-    }
-    throw error
-  }
+		return NextResponse.json({ user })
+	} catch (error) {
+		if (error instanceof z.ZodError) {
+			return NextResponse.json(
+				{ error: 'Invalid data', details: error.errors },
+				{ status: 400 }
+			)
+		}
+		throw error
+	}
 }
 ```
 
@@ -587,12 +591,12 @@ export async function POST(request: Request) {
 ```typescript
 // ✅ Solo trae los campos necesarios
 const users = await prisma.user.findMany({
-  select: {
-    id: true,
-    name: true,
-    email: true,
-    // No incluye avatar, role, etc. si no los necesitas
-  },
+	select: {
+		id: true,
+		name: true,
+		email: true,
+		// No incluye avatar, role, etc. si no los necesitas
+	},
 })
 ```
 
@@ -603,11 +607,11 @@ const page = 1
 const pageSize = 10
 
 const [businesses, total] = await Promise.all([
-  prisma.business.findMany({
-    skip: (page - 1) * pageSize,
-    take: pageSize,
-  }),
-  prisma.business.count(),
+	prisma.business.findMany({
+		skip: (page - 1) * pageSize,
+		take: pageSize,
+	}),
+	prisma.business.count(),
 ])
 ```
 
@@ -615,23 +619,24 @@ const [businesses, total] = await Promise.all([
 
 ```typescript
 await prisma.$transaction(async (tx) => {
-  const user = await tx.user.create({
-    data: { name: 'John', email: 'john@example.com', role: 'admin' },
-  })
+	const user = await tx.user.create({
+		data: { name: 'John', email: 'john@example.com', role: 'admin' },
+	})
 
-  await tx.business.create({
-    data: {
-      product: 'Product A',
-      userId: user.id,
-      // ... otros campos
-    },
-  })
+	await tx.business.create({
+		data: {
+			product: 'Product A',
+			userId: user.id,
+			// ... otros campos
+		},
+	})
 })
 ```
 
 ## Relación con Migraciones
 
 Para información sobre cómo crear y aplicar migraciones, ver:
+
 - `docs/PRISMA_MIGRATIONS.md` - Guía completa de migraciones
 - `docs/DATABASE_CONNECTION.md` - Configuración de conexiones
 
@@ -640,4 +645,3 @@ Para información sobre cómo crear y aplicar migraciones, ver:
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [Next.js Data Fetching](https://nextjs.org/docs/app/building-your-application/data-fetching)
 - [Next.js API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
-

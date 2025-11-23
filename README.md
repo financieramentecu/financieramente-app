@@ -5,6 +5,7 @@ Una plataforma moderna para la gestión y liquidación de comisiones financieras
 ## 🏗️ Arquitectura del Sistema
 
 ### Stack Tecnológico
+
 - **Frontend**: Next.js 15 con React 19 y Tailwind CSS v4
 - **Backend**: API Routes de Next.js con Prisma ORM
 - **Base de Datos**: PostgreSQL 15
@@ -18,6 +19,7 @@ Una plataforma moderna para la gestión y liquidación de comisiones financieras
 - **Infraestructura**: Terraform + Digital Ocean
 
 ### Características Principales
+
 - ✅ **Sistema de Temas**: Modo claro y oscuro con colores corporativos
 - ✅ **Componentes de Formularios**: InputField, SelectField, ButtonField con múltiples variantes
 - ✅ **Documentación Visual**: Storybook con 25+ stories de componentes
@@ -29,6 +31,7 @@ Una plataforma moderna para la gestión y liquidación de comisiones financieras
 ## 🚀 Configuración y Desarrollo
 
 ### Prerrequisitos
+
 - Node.js 20+
 - npm o yarn
 - Docker (opcional)
@@ -37,28 +40,33 @@ Una plataforma moderna para la gestión y liquidación de comisiones financieras
 ### Instalación Local
 
 1. **Clonar el repositorio**:
+
    ```bash
    git clone <repository-url>
    cd financieramente-app
    ```
 
 2. **Instalar dependencias**:
+
    ```bash
    npm install
    ```
 
 3. **Configurar variables de entorno**:
+
    ```bash
    cp docker/env.example .env.local
    # Editar .env.local con tu DATABASE_URL de Supabase
    ```
 
 4. **Ejecutar migraciones** (si usas base de datos local):
+
    ```bash
    npx prisma migrate dev --name init
    ```
 
 5. **Iniciar servidor de desarrollo**:
+
    ```bash
    npm run dev
    ```
@@ -68,6 +76,7 @@ Una plataforma moderna para la gestión y liquidación de comisiones financieras
 ## 🧪 Testing y Calidad
 
 ### Scripts de Testing
+
 ```bash
 # Tests unitarios
 npm run test:unit                    # Ejecutar tests unitarios
@@ -87,6 +96,7 @@ npm run test:working               # Solo tests que funcionan (integración + E2
 ```
 
 ### Cobertura Actual
+
 - **Tests Unitarios**: 50.87% statements, 80.59% branches
 - **Tests de Integración**: 15.26% statements, 74.13% branches
 - **Tests E2E**: 10/10 tests pasando en múltiples navegadores
@@ -94,18 +104,21 @@ npm run test:working               # Solo tests que funcionan (integración + E2
 ## 📚 Documentación y Storybook
 
 ### Ejecutar Storybook
+
 ```bash
 npm run storybook        # Servidor de desarrollo
 npm run build-storybook  # Build para producción
 ```
 
 ### Stories Disponibles
+
 - **Componentes UI**: Button, Input, Modal, DataTable, Header, etc.
 - **Componentes de Formularios**: InputField, SelectField, ButtonField
 - **Sistema de Temas**: ThemeToggle, ColorPalette
 - **Componentes de Autenticación**: LoginView, AuthCard
 
 ### Visual Testing con Chromatic
+
 ```bash
 npm run chromatic        # Publicación manual
 npm run chromatic:ci    # Para CI/CD
@@ -117,12 +130,13 @@ npm run chromatic:ci    # Para CI/CD
 
 ### Ambientes Disponibles
 
-| Ambiente | Droplet | Costo | Recursos | URL |
-|----------|---------|-------|----------|-----|
-| **QA** | s-1vcpu-1gb | $6/month | 1GB RAM, 1 vCPU | `http://[QA_IP]` |
+| Ambiente       | Droplet     | Costo     | Recursos        | URL                |
+| -------------- | ----------- | --------- | --------------- | ------------------ |
+| **QA**         | s-1vcpu-1gb | $6/month  | 1GB RAM, 1 vCPU | `http://[QA_IP]`   |
 | **Producción** | s-2vcpu-4gb | $24/month | 4GB RAM, 2 vCPU | `http://[PROD_IP]` |
 
 ### Flujo de Despliegue
+
 - **Push a `develop`** → Tests automáticos + Chromatic
 - **Push a `qa`** → Despliegue automático a QA
 - **Push a `main`** → Despliegue automático a Producción
@@ -130,6 +144,7 @@ npm run chromatic:ci    # Para CI/CD
 ### Configuración de Infraestructura
 
 1. **Configurar variables de entorno**:
+
    ```bash
    cp terraform/terraform.tfvars.example terraform/terraform.tfvars
    nano terraform/terraform.tfvars
@@ -154,6 +169,7 @@ npm run chromatic:ci    # Para CI/CD
 ## 🛠️ Scripts de Desarrollo
 
 ### Desarrollo
+
 ```bash
 npm run dev              # Servidor de desarrollo Next.js
 npm run build            # Build de producción
@@ -162,6 +178,7 @@ npm run lint             # Linter ESLint
 ```
 
 ### Infraestructura
+
 ```bash
 ./scripts/infrastructure.sh init        # Inicializar Terraform
 ./scripts/infrastructure.sh plan        # Ver plan de Terraform
@@ -171,6 +188,7 @@ npm run lint             # Linter ESLint
 ```
 
 ### Base de Datos
+
 ```bash
 ./scripts/db-tunnel-qa.sh start        # Crear túnel SSH
 ./scripts/db-tunnel-qa.sh test         # Probar conexión
@@ -189,13 +207,15 @@ npm run lint             # Linter ESLint
 ## 🎨 Sistema de Diseño
 
 ### Paleta de Colores
-| Color | Hex | HSL | Uso |
-|-------|-----|-----|-----|
-| **Primario** | `#00505C` | `hsl(185, 100%, 18%)` | Botones principales, enlaces |
-| **Secundario** | `#83D874` | `hsl(110, 56%, 65%)` | Botones secundarios, highlights |
-| **Texto** | `#FFFFFF` | `hsl(0, 0%, 100%)` | Texto sobre fondos oscuros |
+
+| Color          | Hex       | HSL                   | Uso                             |
+| -------------- | --------- | --------------------- | ------------------------------- |
+| **Primario**   | `#00505C` | `hsl(185, 100%, 18%)` | Botones principales, enlaces    |
+| **Secundario** | `#83D874` | `hsl(110, 56%, 65%)`  | Botones secundarios, highlights |
+| **Texto**      | `#FFFFFF` | `hsl(0, 0%, 100%)`    | Texto sobre fondos oscuros      |
 
 ### Componentes Principales
+
 ```tsx
 // Sistema de temas
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -240,6 +260,7 @@ import { Button, Card, Modal, DataTable } from '@/components/ui'
 5. Abrir un Pull Request
 
 ### Guías de Contribución
+
 - Seguir las convenciones de código establecidas
 - Escribir tests para nuevas funcionalidades
 - Actualizar documentación cuando sea necesario

@@ -226,6 +226,7 @@ Esta guía documenta el flujo completo de desarrollo desde creación de PR hasta
 ## Cuándo Subir Cambios a Chromatic
 
 ### 🚀 Automático (Recomendado)
+
 **Chromatic se ejecuta automáticamente** cuando creas un PR a `develop`. No necesitas hacer nada manual.
 
 ```bash
@@ -241,9 +242,11 @@ git push origin feature/new-button-variant
 ```
 
 ### 🔧 Manual (Opcional)
+
 Solo necesitas subir manualmente en estos casos:
 
 #### **Antes del PR** (Validación Temprana)
+
 ```bash
 # Cuando quieres validar cambios visuales ANTES de crear el PR
 npm run chromatic
@@ -254,6 +257,7 @@ npm run chromatic
 ```
 
 #### **Después del PR** (Si falla el automático)
+
 ```bash
 # Si el CI falla por problemas de Chromatic
 npm run chromatic:ci
@@ -262,12 +266,12 @@ npm run chromatic:ci
 
 ### 📋 Cuándo Usar Cada Opción
 
-| Escenario | Método | Cuándo Usar |
-|-----------|--------|-------------|
-| **Desarrollo Normal** | Automático | ✅ Siempre (recomendado) |
-| **Cambios Visuales Complejos** | Manual antes del PR | Cuando necesitas validación temprana |
-| **Debugging Visual** | Manual | Para investigar problemas |
-| **CI Falló** | Manual después del PR | Solo si el automático falla |
+| Escenario                      | Método                | Cuándo Usar                          |
+| ------------------------------ | --------------------- | ------------------------------------ |
+| **Desarrollo Normal**          | Automático            | ✅ Siempre (recomendado)             |
+| **Cambios Visuales Complejos** | Manual antes del PR   | Cuando necesitas validación temprana |
+| **Debugging Visual**           | Manual                | Para investigar problemas            |
+| **CI Falló**                   | Manual después del PR | Solo si el automático falla          |
 
 ### ⚡ Proceso Automático Detallado
 
@@ -295,6 +299,7 @@ graph TD
 El workflow ahora incluye **detección inteligente de cambios**:
 
 #### **Archivos que ACTIVAN Chromatic:**
+
 - `src/stories/**` - Stories de Storybook
 - `src/components/**/*.tsx` - Componentes UI
 - `src/app/**/*.tsx` - Layouts y páginas
@@ -304,6 +309,7 @@ El workflow ahora incluye **detección inteligente de cambios**:
 - `package.json` - Cambios en dependencias
 
 #### **Archivos que NO activan Chromatic:**
+
 - `docs/**` - Documentación
 - `src/**/*.test.tsx` - Tests unitarios
 - `e2e/**` - Tests E2E
@@ -314,30 +320,34 @@ El workflow ahora incluye **detección inteligente de cambios**:
 ### 💰 Beneficios de la Optimización
 
 #### **Ahorro de Recursos:**
+
 - **Snapshots de Chromatic**: Solo cuando hay cambios visuales reales
 - **Minutos de GitHub Actions**: Reduce ejecución innecesaria
 - **Tiempo de CI**: Builds más rápidos en cambios no visuales
 - **Costo**: Reducción significativa en facturación de Chromatic
 
 #### **Mejora de Performance:**
+
 - **Builds más rápidos**: Salta pasos innecesarios
 - **Feedback más rápido**: Menos tiempo de espera en CI
 - **Menos ruido**: Solo notificaciones relevantes
 
 #### **Ejemplo de Ahorro:**
+
 ```
 Cambio en README.md:
 ❌ ANTES: 3-5 minutos ejecutando Chromatic
 ✅ AHORA: 30 segundos, mensaje "No visual changes"
 
 Cambio en componente Button:
-✅ ANTES: 3-5 minutos ejecutando Chromatic  
+✅ ANTES: 3-5 minutos ejecutando Chromatic
 ✅ AHORA: 3-5 minutos ejecutando Chromatic (igual)
 ```
 
 ### 🎯 Momentos Clave para Intervención Manual
 
 #### **1. Antes del PR** - Validación Temprana
+
 ```bash
 # Cuando desarrollas cambios visuales complejos
 npm run storybook          # Ver localmente
@@ -350,6 +360,7 @@ npm run chromatic          # Validar en Chromatic
 ```
 
 #### **2. Durante el PR** - Si el automático falla
+
 ```bash
 # Si GitHub Actions falla por problemas técnicos
 npm run chromatic:ci        # Reintentar subida
@@ -360,6 +371,7 @@ npm run chromatic:ci        # Reintentar subida
 ```
 
 #### **3. Después del PR** - Debugging
+
 ```bash
 # Si hay cambios visuales inesperados
 npm run storybook          # Debug local
@@ -389,15 +401,18 @@ npm run chromatic          # Comparar con baseline
 ### 🎨 Acceso al Dashboard de Chromatic
 
 #### **URL del Proyecto**
+
 - **Dashboard Principal**: [https://www.chromatic.com/builds?appId=68f1c0249289c9e94cd95256](https://www.chromatic.com/builds?appId=68f1c0249289c9e94cd95256)
 - **App ID**: `68f1c0249289c9e94cd95256`
 
 #### **Cómo Acceder**
+
 1. **Desde el PR**: Click en el link que proporciona el bot de GitHub
 2. **Directamente**: Usar la URL del dashboard
 3. **Desde GitHub Actions**: Click en el step "Publish to Chromatic"
 
 #### **Qué Encontrarás en el Dashboard**
+
 - 📊 **Historial de builds** por PR
 - 🔍 **Comparaciones visuales** antes/después
 - ✅ **Estado de aprobaciones** pendientes
@@ -466,24 +481,31 @@ git push origin feature/new-button-variant
 ## Ventajas del Sistema
 
 ### ✅ Prevención de Regresiones Visuales
+
 Cualquier cambio no intencional en la UI es detectado automáticamente antes de llegar a producción.
 
 ### ✅ Revisión Obligatoria
+
 No se puede hacer merge sin aprobar los cambios visuales, garantizando calidad consistente.
 
 ### ✅ Documentación Visual
+
 Cada cambio queda documentado con screenshots antes/después en Chromatic.
 
 ### ✅ Baseline Automático
+
 Una vez aprobado, el nuevo estado se convierte en el baseline para futuros PRs.
 
 ### ✅ Integración con GitHub
+
 El estado se muestra directamente en el PR como un check más, integrado con el flujo normal.
 
 ### ✅ Comentarios Automáticos
+
 El bot informa al equipo sobre cambios visuales sin necesidad de revisar logs manualmente.
 
 ### ✅ Optimización de Builds
+
 Solo analiza componentes modificados gracias a `onlyChanged: true`.
 
 ## Configuración Clave
@@ -492,11 +514,11 @@ Solo analiza componentes modificados gracias a `onlyChanged: true`.
 
 ```yaml
 # Bloquea merge si hay cambios
-exitZeroOnChanges: false  # ❌ Falla si hay cambios
-exitOnceUploaded: false     # ⏳ Espera aprobación
+exitZeroOnChanges: false # ❌ Falla si hay cambios
+exitOnceUploaded: false # ⏳ Espera aprobación
 
 # Optimiza el proceso
-onlyChanged: true          # 🚀 Solo analiza componentes modificados
+onlyChanged: true # 🚀 Solo analiza componentes modificados
 
 # Auto-aprueba en main (producción)
 autoAcceptChanges: ${{ github.ref == 'refs/heads/main' }}
@@ -552,11 +574,13 @@ cat .github/workflows/chromatic.yml
 **Solución**: Re-ejecutar el workflow para que verifique el estado actualizado:
 
 **Opción 1** (Recomendada): Desde GitHub UI
+
 1. Ve a tu PR → Pestaña **"Checks"**
 2. Click en **"🎨 Visual Tests"** → **"Re-run jobs"** → **"Re-run failed jobs"**
 3. El workflow verificará que los cambios están aprobados y pasará ✅
 
 **Opción 2**: Push vacío
+
 ```bash
 git commit --allow-empty -m "chore: trigger CI after Chromatic approval"
 git push
@@ -646,4 +670,3 @@ gh run view <run-id> --log
 - [Storybook Docs](https://storybook.js.org/docs/)
 - [GitHub Actions](https://docs.github.com/en/actions)
 - [Testing Guide](./TESTING.md)
-

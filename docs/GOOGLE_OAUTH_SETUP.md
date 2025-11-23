@@ -23,16 +23,19 @@ Este error ocurre cuando la URL de redirección que envía tu aplicación no coi
 En la sección **"Authorized redirect URIs"**, agrega estas URLs exactas:
 
 #### Para Desarrollo Local:
+
 ```
 http://localhost:3000/api/auth/callback/google
 ```
 
 #### Para QA (si aplica):
+
 ```
 https://negocios.qa.financieramentecu.co/api/auth/callback/google
 ```
 
 #### Para Producción:
+
 ```
 https://negocios.financieramentecu.co/api/auth/callback/google
 ```
@@ -47,11 +50,13 @@ https://negocios.financieramentecu.co/api/auth/callback/google
 La sección debería verse así:
 
 **Authorized redirect URIs:**
+
 - `http://localhost:3000/api/auth/callback/google`
 - `https://negocios.qa.financieramentecu.co/api/auth/callback/google`
 - `https://negocios.financieramentecu.co/api/auth/callback/google`
 
 **Authorized JavaScript origins:**
+
 - `http://localhost:3000`
 - `https://negocios.qa.financieramentecu.co`
 - `https://negocios.financieramentecu.co`
@@ -59,17 +64,21 @@ La sección debería verse así:
 ## ⚠️ Puntos Importantes
 
 ### 1. Exactitud es Crucial
+
 - Las URLs deben coincidir **exactamente** (incluyendo `http://` vs `https://`)
 - No incluyas una barra final (`/`) al final
 - Respeta mayúsculas/minúsculas
 
 ### 2. Formato Correcto
+
 ✅ **Correcto:**
+
 ```
 http://localhost:3000/api/auth/callback/google
 ```
 
 ❌ **Incorrecto:**
+
 ```
 http://localhost:3000/api/auth/callback/google/
 http://localhost:3000/api/auth/callback/Google
@@ -77,9 +86,11 @@ http://localhost:3000/api/auth/callback/google?param=value
 ```
 
 ### 3. JavaScript Origins
+
 También asegúrate de agregar los **JavaScript origins** correspondientes:
 
 **Authorized JavaScript origins:**
+
 - `http://localhost:3000`
 - `https://negocios.qa.financieramentecu.co`
 - `https://negocios.financieramentecu.co`
@@ -134,4 +145,3 @@ También asegúrate de agregar los **JavaScript origins** correspondientes:
 
 - [Google OAuth Documentation](https://developers.google.com/identity/protocols/oauth2)
 - [NextAuth.js Google Provider](https://next-auth.js.org/providers/google)
-
