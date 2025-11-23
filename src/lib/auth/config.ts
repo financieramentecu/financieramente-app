@@ -64,6 +64,8 @@ export const authConfig: NextAuthConfig = {
 			// Validar usuario en base de datos
 			const validation = await validateUserByEmail(user.email)
 
+			console.log('validation', validation)
+
 			if (!validation.isValid) {
 				if (validation.error === 'USER_INACTIVE') {
 					await logAuditEvent({
@@ -133,9 +135,10 @@ export const authConfig: NextAuthConfig = {
 						}
 						return true
 					} else {
+						// TODO: Replace this functionality with Sentry error tracking
 						// Error al crear usuario
 						await logAuditEvent({
-							action: AuditAction.ACCESS_DENIED,
+							action: AuditAction.USER_CREATION_ERROR,
 							email: user.email,
 							details: `Error al crear usuario: ${createResult.error}`,
 						})

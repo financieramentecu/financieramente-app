@@ -228,8 +228,8 @@ model User {
   name           String    @db.VarChar(150)
   lastName       String?   @map("last_name") @db.VarChar(150)
   typeIdentity   String    @default("CC") @map("type_identity") @db.VarChar(10)
-  identityNumber String    @map("identity_number") @db.VarChar(20)
-  email          String?   @db.VarChar(150)
+  identityNumber String?   @map("identity_number") @db.VarChar(20)
+  email          String    @unique @db.VarChar(150)
   phone          String?   @db.VarChar(30)
   idCategoria    Int?      @map("id_categoria")
   idRole         Int?      @map("id_role")
@@ -252,11 +252,11 @@ model User {
 
   // Note: 'Coaches, líderes, seniors, juniors con jerarquía recursiva'
 
-  @@unique([typeIdentity, identityNumber])
+  // Constraint única parcial: solo aplica cuando ambos campos tienen valores
+  @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
   @@index([idUserLeader])
   @@index([idRole])
-  @@index([email])
   @@map("user")
 }
 

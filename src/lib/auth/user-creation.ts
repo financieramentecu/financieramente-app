@@ -55,28 +55,10 @@ export async function createUserAutomatically(
 			}
 		}
 
-		// Obtener el primer TypeUser disponible (requerido por el schema)
-		const typeUser = await prisma.typeUser.findFirst({
-			where: { active: true },
-			orderBy: { nivelJerarquico: 'asc' },
-		})
-
-		if (!typeUser) {
-			return {
-				success: false,
-				error:
-					'No hay TypeUser disponible. Configura los tipos de usuario primero.',
-			}
-		}
-
 		// Extraer nombre y apellido del nombre completo
 		const nameParts = params.name.trim().split(' ')
 		const firstName = nameParts[0] || params.name
 		const lastName = nameParts.slice(1).join(' ') || null
-
-		// Generar un número de identidad temporal único basado en email
-		// Esto es necesario porque el schema requiere typeIdentity e identityNumber
-		const tempIdentityNumber = `TEMP-${Date.now()}-${params.email.split('@')[0]}`
 
 		// Crear el usuario
 		// Nota: Ya validamos que no existe arriba, pero usamos try-catch para manejar condiciones de carrera
@@ -88,18 +70,23 @@ export async function createUserAutomatically(
 					lastName: lastName,
 					email: params.email,
 					typeIdentity: 'CC',
-					identityNumber: tempIdentityNumber,
-					idTypeUser: typeUser.idTypeUser,
 					idRole: defaultRole.idRole,
 					active: false, // Estado Inactivo por defecto
 					entryDate: new Date(),
 				},
 			})
-		} catch (createError: any) {
+		} catch (createError: unknown) {
 			// Si el error es por duplicado (condición de carrera), obtener el usuario existente
+			const isPrismaError =
+				createError &&
+				typeof createError === 'object' &&
+				'code' in createError &&
+				'message' in createError
 			if (
-				createError?.code === 'P2002' ||
-				createError?.message?.includes('Unique constraint')
+				(isPrismaError && createError.code === 'P2002') ||
+				(isPrismaError &&
+					typeof createError.message === 'string' &&
+					createError.message.includes('Unique constraint'))
 			) {
 				console.log(
 					`Usuario ${params.email} fue creado por otro proceso. Obteniendo usuario existente...`
