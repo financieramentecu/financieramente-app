@@ -1,0 +1,37 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Ejecutando validaciones pre-push..."
+
+echo "📝 Validando ESLint..."
+npm run lint || {
+	echo "❌ Error: ESLint encontró errores. Por favor, corrígelos antes de hacer push."
+	exit 1
+}
+
+echo "🔷 Validando tipos TypeScript..."
+npm run type-check || {
+	echo "❌ Error: TypeScript encontró errores de tipado. Por favor, corrígelos antes de hacer push."
+	exit 1
+}
+
+echo "🧪 Ejecutando pruebas unitarias..."
+npm run test:unit || {
+	echo "❌ Error: Las pruebas unitarias fallaron. Por favor, corrígelas antes de hacer push."
+	exit 1
+}
+
+echo "🔗 Ejecutando pruebas de integración..."
+npm run test:integration || {
+	echo "❌ Error: Las pruebas de integración fallaron. Por favor, corrígelas antes de hacer push."
+	exit 1
+}
+
+echo "🌐 Ejecutando pruebas e2e..."
+npm run test:e2e || {
+	echo "❌ Error: Las pruebas e2e fallaron. Por favor, corrígelas antes de hacer push."
+	exit 1
+}
+
+echo "✅ Todas las validaciones pasaron correctamente. Procediendo con el push..."
+
