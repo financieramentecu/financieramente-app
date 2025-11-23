@@ -3,11 +3,9 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
 	output: 'standalone',
 	outputFileTracingRoot: __dirname,
-	experimental: {
-		outputFileTracingIncludes: {
-			'/': ['./prisma/**/*'],
-		},
-	} as unknown as NextConfig['experimental'],
+	outputFileTracingIncludes: {
+		'/': ['./prisma/**/*'],
+	},
 
 	// External packages for server components
 	serverExternalPackages: ['@prisma/client'],

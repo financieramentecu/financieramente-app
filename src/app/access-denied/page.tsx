@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { Suspense } from 'react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertCircle, ArrowLeft, Mail } from 'lucide-react'
@@ -15,16 +15,11 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 /**
- * Página de Acceso Denegado
- *
- * Se muestra cuando:
- * - Usuario está inactivo
- * - Usuario tiene rol DEFAULT (pendiente de activación)
- * - Usuario no tiene permisos para acceder
+ * Componente interno que usa useSearchParams
  */
-export default function AccessDeniedPage() {
+function AccessDeniedContent() {
 	const router = useRouter()
-	const searchParams = useSearchParams()!
+	const searchParams = useSearchParams()
 	const reason = searchParams?.get('reason') || 'default'
 
 	const messages = {
@@ -146,5 +141,31 @@ export default function AccessDeniedPage() {
 				</CardContent>
 			</Card>
 		</div>
+	)
+}
+
+/**
+ * Página de Acceso Denegado
+ *
+ * Se muestra cuando:
+ * - Usuario está inactivo
+ * - Usuario tiene rol DEFAULT (pendiente de activación)
+ * - Usuario no tiene permisos para acceder
+ */
+export default function AccessDeniedPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="min-h-screen flex items-center justify-center p-4">
+					<Card className="w-full max-w-2xl">
+						<CardContent className="p-6">
+							<div className="text-center">Cargando...</div>
+						</CardContent>
+					</Card>
+				</div>
+			}
+		>
+			<AccessDeniedContent />
+		</Suspense>
 	)
 }

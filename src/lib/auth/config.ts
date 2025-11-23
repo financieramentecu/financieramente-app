@@ -1,9 +1,9 @@
 import type { NextAuthConfig } from 'next-auth'
 import Google from 'next-auth/providers/google'
-import { CORPORATE_DOMAIN, isValidCorporateEmail } from './types'
+import { isValidCorporateEmail } from './types'
 import { validateUserByEmail } from './user-validation'
 import { logAuditEvent, AuditAction } from './audit-logger'
-import { getRolePermissions } from './permissions'
+import { getRolePermissions, RolePermissions } from './permissions'
 import { UserRole } from './roles'
 import { createUserAutomatically } from './user-creation'
 import { prisma } from '@/lib/prisma'
@@ -35,7 +35,7 @@ export const authConfig: NextAuthConfig = {
 		}),
 	],
 	callbacks: {
-		async signIn({ user, account }) {
+		async signIn({ user, account: _account }) {
 			// Validación estricta de dominio corporativo para Google OAuth
 			if (!user.email || typeof user.email !== 'string') {
 				await logAuditEvent({
@@ -180,14 +180,14 @@ export const authConfig: NextAuthConfig = {
 
 			return true
 		},
-		async jwt({ token, user, trigger }) {
+		async jwt({ token, user, trigger: _trigger }) {
 			// Primera vez que se crea el token (después de signIn)
 			if (user) {
 				token.userId = parseInt(user.id || '0')
 				token.email = user.email || undefined
 				token.name = user.name || null
 				token.picture = user.image || null
-				token.role = (user as any).role as UserRole | null | undefined
+				token.role = user.role as UserRole | null | undefined
 
 				// Obtener permisos del rol
 				if (token.role && typeof token.role === 'string') {
@@ -225,7 +225,7 @@ export const authConfig: NextAuthConfig = {
 					(typeof token.role === 'string' ? (token.role as UserRole) : null) ||
 					null
 				if (token.permissions && typeof token.permissions === 'object') {
-					session.user.permissions = token.permissions as any
+					session.user.permissions = token.permissions as RolePermissions
 				} else {
 					session.user.permissions = null
 				}

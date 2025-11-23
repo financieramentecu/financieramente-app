@@ -33,6 +33,31 @@ export interface RolePermissions {
  * Configuración de permisos por rol
  */
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
+	[UserRole.ADMIN]: {
+		dashboard: true,
+		negocios: {
+			create: true,
+			edit: true,
+			list: true,
+			cancel: true,
+			viewAll: true,
+		},
+		cargas: {
+			cargaMasiva: true,
+			historial: true,
+		},
+		liquidaciones: {
+			preliquidacion: true,
+			liquidacion: true,
+		},
+		reportes: {
+			all: true,
+			business: true,
+			personal: true,
+		},
+		configuracion: true,
+		administracion: true,
+	},
 	[UserRole.DEFAULT]: {
 		dashboard: false,
 		negocios: {
