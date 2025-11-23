@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
 		return response
 	}
 
-	// Verificar sesión
+	// Verificar sesión (solo si no es modo de prueba)
 	const session = await auth()
 
 	// Si no hay sesión y se intenta acceder a una ruta protegida, redirigir a login

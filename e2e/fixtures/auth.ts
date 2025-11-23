@@ -52,6 +52,7 @@ export async function mockAuth(
 			name: user.name || null,
 			image: user.image || null,
 			id: user.id,
+			role: 'AGENTE', // Rol válido para evitar redirección a access-denied
 		},
 		expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días
 	}
@@ -87,6 +88,16 @@ export async function mockAuth(
 	await page.setExtraHTTPHeaders({
 		'x-test-auth': 'true',
 	})
+
+	// Establecer cookies de contexto para que las páginas del servidor puedan detectar el modo de prueba
+	await page.context().addCookies([
+		{
+			name: 'x-test-auth',
+			value: 'true',
+			domain: 'localhost',
+			path: '/',
+		},
+	])
 }
 
 /**

@@ -6,6 +6,9 @@ export default defineConfig({
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,
 
+	// Setup global que se ejecuta antes de todos los tests
+	globalSetup: './e2e/global-setup.ts',
+
 	// Optimización de workers para CI
 	workers: process.env.CI ? 2 : undefined,
 

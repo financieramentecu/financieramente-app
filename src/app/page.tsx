@@ -27,6 +27,8 @@ export default async function Home() {
 	}
 
 	if (process.env.NODE_ENV !== 'production' && isTestAuth) {
+		// En modo de prueba, redirigir directamente al dashboard sin verificar auth
+		// El middleware ya permitió el acceso con el header x-test-auth
 		redirect('/dashboard')
 		return
 	}
