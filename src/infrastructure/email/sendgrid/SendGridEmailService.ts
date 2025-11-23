@@ -53,6 +53,22 @@ export class SendGridEmailService implements IEmailRepository {
 			}
 
 			// Si no tiene template, enviar email tradicional
+			// SendGrid requiere al menos un elemento en content
+			if (!email.plainText && !email.html) {
+				return {
+					success: false,
+					error: 'El email debe tener contenido (texto plano o HTML)',
+				}
+			}
+
+			const content: Array<{ type: string; value: string }> = []
+			if (email.plainText) {
+				content.push({ type: 'text/plain', value: email.plainText })
+			}
+			if (email.html) {
+				content.push({ type: 'text/html', value: email.html })
+			}
+
 			const msg = {
 				to: email.to.getValue(),
 				from: {
@@ -60,11 +76,12 @@ export class SendGridEmailService implements IEmailRepository {
 					name: SendGridConfig.getFromName(),
 				},
 				subject: email.subject?.getValue() || '',
-				text: email.plainText,
-				html: email.html,
+				content: content as [(typeof content)[0], ...(typeof content)[]],
 			}
 
-			const [response] = await sgMail.send(msg)
+			const [response] = await sgMail.send(
+				msg as Parameters<typeof sgMail.send>[0]
+			)
 
 			return {
 				success: true,

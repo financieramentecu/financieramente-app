@@ -59,7 +59,6 @@ export async function GET(request: Request) {
 			where,
 			include: {
 				role: true,
-				typeUser: true,
 			},
 			orderBy: {
 				createdAt: 'desc',
@@ -107,12 +106,6 @@ export async function GET(request: Request) {
 			active: user.active,
 			createdAt: user.createdAt,
 			lastLogin: lastLoginMap.get(user.idUser) || null,
-			typeUser: user.typeUser
-				? {
-						id: user.typeUser.idTypeUser,
-						name: user.typeUser.nombre,
-					}
-				: null,
 		}))
 
 		return NextResponse.json({

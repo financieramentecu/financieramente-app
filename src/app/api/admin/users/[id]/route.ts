@@ -11,7 +11,7 @@ import { Prisma } from '@prisma/client'
  */
 export async function GET(
 	request: Request,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		const session = await auth()
@@ -22,7 +22,8 @@ export async function GET(
 			)
 		}
 
-		const userId = parseInt(params.id)
+		const { id } = await params
+		const userId = parseInt(id)
 		if (isNaN(userId)) {
 			return NextResponse.json(
 				{ success: false, error: 'ID de usuario inválido' },
@@ -34,7 +35,6 @@ export async function GET(
 			where: { idUser: userId },
 			include: {
 				role: true,
-				typeUser: true,
 			},
 		})
 
@@ -77,12 +77,6 @@ export async function GET(
 				active: user.active,
 				createdAt: user.createdAt,
 				lastLogin: lastLogin?.createdAt || null,
-				typeUser: user.typeUser
-					? {
-							id: user.typeUser.idTypeUser,
-							name: user.typeUser.nombre,
-						}
-					: null,
 			},
 		})
 	} catch (error) {
@@ -105,7 +99,7 @@ export async function GET(
  */
 export async function PUT(
 	request: Request,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		const session = await auth()
@@ -116,7 +110,8 @@ export async function PUT(
 			)
 		}
 
-		const userId = parseInt(params.id)
+		const { id } = await params
+		const userId = parseInt(id)
 		if (isNaN(userId)) {
 			return NextResponse.json(
 				{ success: false, error: 'ID de usuario inválido' },
@@ -171,7 +166,6 @@ export async function PUT(
 			data: updateData,
 			include: {
 				role: true,
-				typeUser: true,
 			},
 		})
 

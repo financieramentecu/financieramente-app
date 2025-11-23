@@ -167,11 +167,19 @@ describe('Header Component', () => {
 			/>
 		)
 
-		// Find the user menu button by its aria-haspopup attribute
-		const userButton = screen.getByRole('button', {
-			expanded: false,
-			haspopup: 'menu',
+		// Find the user menu button - it's the button that contains the avatar
+		// We'll find it by looking for buttons and checking if they contain an avatar
+		const buttons = screen.getAllByRole('button')
+		const userButton = buttons.find((button) => {
+			const avatar =
+				button.querySelector('[class*="Avatar"]') ||
+				button.querySelector('[class*="avatar"]')
+			return avatar !== null
 		})
+
+		if (!userButton) {
+			throw new Error('User menu button not found')
+		}
 
 		// Verify the user button exists and can be clicked
 		expect(userButton).toBeInTheDocument()

@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createUserAutomatically, type CreateUserParams } from '../user-creation'
+import {
+	createUserAutomatically,
+	type CreateUserParams,
+} from '../user-creation'
 import { UserRole } from '../roles'
 import { AuditAction, logAuditEvent } from '../audit-logger'
 import { prisma } from '@/lib/prisma'
@@ -47,10 +50,16 @@ describe('createUserAutomatically', () => {
 		idUser: 1,
 		name: 'John',
 		lastName: 'Doe',
+		typeIdentity: 'CC',
+		identityNumber: null,
 		email: 'test@financieramentecu.com',
+		phone: null,
+		idCategoria: null,
 		idRole: 1,
-		active: false,
+		idUserLeader: null,
 		entryDate: new Date(),
+		retirementDate: null,
+		active: false,
 		createdAt: new Date(),
 		updatedAt: new Date(),
 	}
@@ -106,7 +115,8 @@ describe('createUserAutomatically', () => {
 				email: mockParams.email,
 				ipAddress: mockParams.ipAddress,
 				userAgent: mockParams.userAgent,
-				details: 'Usuario creado automáticamente con rol Default y estado Inactivo',
+				details:
+					'Usuario creado automáticamente con rol Default y estado Inactivo',
 			})
 		})
 
@@ -157,7 +167,7 @@ describe('createUserAutomatically', () => {
 				...mockCreatedUser,
 				idUser: 5,
 				role: mockDefaultRole,
-			}
+			} as typeof mockCreatedUser & { role: typeof mockDefaultRole }
 
 			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(existingUser)
 
@@ -187,7 +197,7 @@ describe('createUserAutomatically', () => {
 					...mockCreatedUser,
 					idUser: 10,
 					role: mockDefaultRole,
-				})
+				} as typeof mockCreatedUser & { role: typeof mockDefaultRole })
 
 			vi.mocked(prisma.role.findUnique).mockResolvedValueOnce(mockDefaultRole)
 			vi.mocked(prisma.user.create).mockRejectedValueOnce(prismaError)
@@ -217,7 +227,7 @@ describe('createUserAutomatically', () => {
 					...mockCreatedUser,
 					idUser: 15,
 					role: mockDefaultRole,
-				})
+				} as typeof mockCreatedUser & { role: typeof mockDefaultRole })
 
 			vi.mocked(prisma.role.findUnique).mockResolvedValueOnce(mockDefaultRole)
 			vi.mocked(prisma.user.create).mockRejectedValueOnce(prismaError)
@@ -322,7 +332,8 @@ describe('createUserAutomatically', () => {
 				email: mockParams.email,
 				ipAddress: mockParams.ipAddress,
 				userAgent: mockParams.userAgent,
-				details: 'Usuario creado automáticamente con rol Default y estado Inactivo',
+				details:
+					'Usuario creado automáticamente con rol Default y estado Inactivo',
 			})
 		})
 
@@ -345,9 +356,9 @@ describe('createUserAutomatically', () => {
 				email: paramsWithoutOptional.email,
 				ipAddress: undefined,
 				userAgent: undefined,
-				details: 'Usuario creado automáticamente con rol Default y estado Inactivo',
+				details:
+					'Usuario creado automáticamente con rol Default y estado Inactivo',
 			})
 		})
 	})
 })
-

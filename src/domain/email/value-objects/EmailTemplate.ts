@@ -19,7 +19,7 @@ export class EmailTemplate {
 	 * Valida el formato del template ID de SendGrid
 	 */
 	private isValidTemplateId(templateId: string): boolean {
-		return this.TEMPLATE_ID_REGEX.test(templateId)
+		return EmailTemplate.TEMPLATE_ID_REGEX.test(templateId)
 	}
 
 	/**

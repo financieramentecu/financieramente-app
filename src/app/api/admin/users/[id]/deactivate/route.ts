@@ -10,7 +10,7 @@ import { logAuditEvent, AuditAction } from '@/lib/auth/audit-logger'
  */
 export async function POST(
 	request: Request,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		const session = await auth()
@@ -21,7 +21,8 @@ export async function POST(
 			)
 		}
 
-		const userId = parseInt(params.id)
+		const { id } = await params
+		const userId = parseInt(id)
 		if (isNaN(userId)) {
 			return NextResponse.json(
 				{ success: false, error: 'ID de usuario inválido' },
