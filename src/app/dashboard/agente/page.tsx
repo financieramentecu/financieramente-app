@@ -167,7 +167,8 @@ export default async function AgenteDashboardPage() {
 							Resumen de Ventas Efectuadas
 						</h3>
 						<p className="text-sm text-muted-foreground">
-							Total de negocios con estado "Venta Efectuada" en el mes actual.
+							Total de negocios con estado &quot;Venta Efectuada&quot; en el mes
+							actual.
 						</p>
 						<div className="mt-4">
 							<p className="text-3xl font-bold">{stats.ventasEfectuadas}</p>
@@ -179,7 +180,7 @@ export default async function AgenteDashboardPage() {
 							Resumen de Negocios Emitidos
 						</h3>
 						<p className="text-sm text-muted-foreground">
-							Total de negocios con estado "Emitido" en el mes actual.
+							Total de negocios con estado &quot;Emitido&quot; en el mes actual.
 						</p>
 						<div className="mt-4">
 							<p className="text-3xl font-bold">{stats.negociosEmitidos}</p>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth/nextauth'
 import { logAuditEvent, AuditAction } from '@/lib/auth/audit-logger'
+import { Prisma } from '@prisma/client'
 
 /**
  * GET /api/admin/users/[id]
@@ -140,7 +141,7 @@ export async function PUT(
 		}
 
 		// Preparar datos de actualización
-		const updateData: any = {}
+		const updateData: Prisma.UserUncheckedUpdateInput = {}
 
 		if (typeof active === 'boolean') {
 			updateData.active = active

@@ -5,6 +5,7 @@ import { logAuditEvent, AuditAction } from '@/lib/auth/audit-logger'
 import { SendTemplatedEmailUseCase } from '@/application/email/use-cases/SendTemplatedEmailUseCase'
 import { SendGridEmailService } from '@/infrastructure/email/sendgrid/SendGridEmailService'
 import { EmailAddress } from '@/domain/email/value-objects/EmailAddress'
+import { Prisma } from '@prisma/client'
 
 /**
  * POST /api/admin/users/[id]/activate
@@ -56,7 +57,7 @@ export async function POST(
 		}
 
 		// Preparar datos de actualización
-		const updateData: any = {
+		const updateData: Prisma.UserUncheckedUpdateInput = {
 			active: true,
 		}
 

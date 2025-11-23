@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth/nextauth'
+import { Prisma } from '@prisma/client'
 
 /**
  * GET /api/admin/users
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
 		const search = searchParams.get('search')
 
 		// Construir filtros
-		const where: any = {}
+		const where: Prisma.UserWhereInput = {}
 
 		if (status === 'active') {
 			where.active = true

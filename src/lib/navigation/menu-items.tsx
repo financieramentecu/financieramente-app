@@ -1,5 +1,4 @@
 import React from 'react'
-import { UserRole } from '@/lib/auth/roles'
 import {
 	LayoutDashboard,
 	Folder,
