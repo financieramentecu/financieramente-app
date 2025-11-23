@@ -7,6 +7,7 @@ import { seedTypeProducts } from './seeds/type-product'
 import { seedCategories } from './seeds/category'
 import { seedProducts } from './seeds/product'
 import { seedRoles } from './seeds/roles'
+import { seedUsers } from './seeds/user'
 
 const prisma = new PrismaClient()
 
@@ -35,6 +36,9 @@ async function main() {
 
 		// 4. Seguridad y Roles
 		await seedRoles(prisma)
+
+		// 5. Usuarios (depende de Roles)
+		await seedUsers(prisma)
 
 		console.log('\n✨ Seed completado exitosamente!')
 	} catch (error) {
