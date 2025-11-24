@@ -160,7 +160,7 @@ describe('SendGridEmailService - Integration Tests', () => {
             expect(sgMail.default.send).toHaveBeenCalledTimes(1)
         })
 
-        it('debe retornar error si no hay contenido', async () => {
+        it('debe lanzar error si no hay contenido', () => {
             const toResult = EmailAddress.create('recipient@example.com')
             const fromResult = EmailAddress.create('test@financieramente.com')
             const subjectResult = EmailSubject.create('Test Email')
@@ -169,17 +169,15 @@ describe('SendGridEmailService - Integration Tests', () => {
                 throw new Error('Failed to create value objects')
             }
 
-            const email = new Email(
-                randomUUID(),
-                toResult,
-                fromResult,
-                subjectResult
-            )
-
-            const result = await emailService.send(email)
-
-            expect(result.success).toBe(false)
-            expect(result.error).toContain('contenido')
+            // El constructor debe lanzar una excepción si no hay contenido
+            expect(() => {
+                new Email(
+                    randomUUID(),
+                    toResult,
+                    fromResult,
+                    subjectResult
+                )
+            }).toThrow('El email debe tener un template o contenido (text/html)')
         })
     })
 
