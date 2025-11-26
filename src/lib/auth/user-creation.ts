@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { UserRole } from './roles'
 import { logAuditEvent, AuditAction } from './audit-logger'
+import { sendNewUserNotificationToAdmins } from '@/lib/email/admin-notifications'
 
 /**
  * Crea un usuario automáticamente cuando se autentica por primera vez
@@ -115,6 +116,16 @@ export async function createUserAutomatically(
 			ipAddress: params.ipAddress,
 			userAgent: params.userAgent,
 			details: `Usuario creado automáticamente con rol Default y estado Inactivo`,
+		})
+
+		// Enviar notificación a administradores
+		const fullName = lastName ? `${firstName} ${lastName}`.trim() : firstName
+		sendNewUserNotificationToAdmins({
+			userId: newUser.idUser,
+			userName: fullName,
+			userEmail: params.email,
+		}).catch((error) => {
+			console.error('Error enviando notificación a administradores:', error)
 		})
 
 		return {

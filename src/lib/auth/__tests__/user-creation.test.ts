@@ -6,6 +6,7 @@ import {
 import { UserRole } from '../roles'
 import { AuditAction, logAuditEvent } from '../audit-logger'
 import { prisma } from '@/lib/prisma'
+import { sendNewUserNotificationToAdmins } from '@/lib/email/admin-notifications'
 
 // Mock de Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -26,6 +27,11 @@ vi.mock('../audit-logger', () => ({
 	AuditAction: {
 		USER_CREATED: 'USER_CREATED',
 	},
+}))
+
+// Mock de admin-notifications
+vi.mock('@/lib/email/admin-notifications', () => ({
+	sendNewUserNotificationToAdmins: vi.fn().mockResolvedValue(undefined),
 }))
 
 describe('createUserAutomatically', () => {
@@ -359,6 +365,140 @@ describe('createUserAutomatically', () => {
 				details:
 					'Usuario creado automáticamente con rol Default y estado Inactivo',
 			})
+		})
+	})
+
+	describe('Notificación a administradores', () => {
+		it('debe enviar notificación después de crear usuario exitosamente', async () => {
+			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
+			vi.mocked(prisma.role.findUnique).mockResolvedValueOnce(mockDefaultRole)
+			vi.mocked(prisma.user.create).mockResolvedValueOnce(mockCreatedUser)
+
+			const result = await createUserAutomatically(mockParams)
+
+			expect(result.success).toBe(true)
+			expect(result.userId).toBe(1)
+
+			// Verificar que se llamó sendNewUserNotificationToAdmins
+			expect(sendNewUserNotificationToAdmins).toHaveBeenCalledTimes(1)
+			expect(sendNewUserNotificationToAdmins).toHaveBeenCalledWith({
+				userId: mockCreatedUser.idUser,
+				userName: 'John Doe',
+				userEmail: mockParams.email,
+			})
+		})
+
+		it('debe usar solo el nombre si no hay apellido', async () => {
+			const userWithoutLastName = {
+				...mockCreatedUser,
+				name: 'Madonna',
+				lastName: null,
+			}
+
+			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
+			vi.mocked(prisma.role.findUnique).mockResolvedValueOnce(mockDefaultRole)
+			vi.mocked(prisma.user.create).mockResolvedValueOnce(userWithoutLastName)
+
+			const paramsWithSingleName: CreateUserParams = {
+				...mockParams,
+				name: 'Madonna',
+			}
+
+			await createUserAutomatically(paramsWithSingleName)
+
+			expect(sendNewUserNotificationToAdmins).toHaveBeenCalledWith({
+				userId: userWithoutLastName.idUser,
+				userName: 'Madonna',
+				userEmail: paramsWithSingleName.email,
+			})
+		})
+
+		it('no debe fallar creación de usuario si notificación falla', async () => {
+			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
+			vi.mocked(prisma.role.findUnique).mockResolvedValueOnce(mockDefaultRole)
+			vi.mocked(prisma.user.create).mockResolvedValueOnce(mockCreatedUser)
+			vi.mocked(sendNewUserNotificationToAdmins).mockRejectedValueOnce(
+				new Error('Email service error')
+			)
+
+			const consoleErrorSpy = vi
+				.spyOn(console, 'error')
+				.mockImplementation(() => {})
+
+			const result = await createUserAutomatically(mockParams)
+
+			// El usuario debe crearse exitosamente a pesar del error en la notificación
+			expect(result.success).toBe(true)
+			expect(result.userId).toBe(1)
+
+			// Debe loggear el error pero no propagarlo
+			expect(consoleErrorSpy).toHaveBeenCalledWith(
+				'Error enviando notificación a administradores:',
+				expect.any(Error)
+			)
+
+			consoleErrorSpy.mockRestore()
+		})
+
+		it('no debe enviar notificación si el usuario ya existe', async () => {
+			const existingUser = {
+				...mockCreatedUser,
+				idUser: 5,
+				role: mockDefaultRole,
+			} as typeof mockCreatedUser & { role: typeof mockDefaultRole }
+
+			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(existingUser)
+
+			const result = await createUserAutomatically(mockParams)
+
+			expect(result.success).toBe(true)
+			expect(result.userId).toBe(5)
+
+			// No debe enviar notificación para usuarios existentes
+			expect(sendNewUserNotificationToAdmins).not.toHaveBeenCalled()
+		})
+
+		it('no debe enviar notificación si falla la creación del usuario', async () => {
+			const prismaError = new Error('Database connection failed')
+
+			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
+			vi.mocked(prisma.role.findUnique).mockResolvedValueOnce(mockDefaultRole)
+			vi.mocked(prisma.user.create).mockRejectedValueOnce(prismaError)
+
+			const result = await createUserAutomatically(mockParams)
+
+			expect(result.success).toBe(false)
+			expect(result.error).toBe('Database connection failed')
+
+			// No debe enviar notificación si el usuario no se creó
+			expect(sendNewUserNotificationToAdmins).not.toHaveBeenCalled()
+		})
+
+		it('debe usar fire-and-forget (no esperar respuesta)', async () => {
+			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
+			vi.mocked(prisma.role.findUnique).mockResolvedValueOnce(mockDefaultRole)
+			vi.mocked(prisma.user.create).mockResolvedValueOnce(mockCreatedUser)
+
+			// Mock que resuelve después de un delay
+			let resolveNotification: () => void
+			const notificationPromise = new Promise<void>((resolve) => {
+				resolveNotification = resolve
+			})
+			vi.mocked(sendNewUserNotificationToAdmins).mockReturnValueOnce(
+				notificationPromise
+			)
+
+			const result = await createUserAutomatically(mockParams)
+
+			// La función debe retornar inmediatamente sin esperar la notificación
+			expect(result.success).toBe(true)
+			expect(result.userId).toBe(1)
+
+			// Verificar que se llamó pero no esperamos su resolución
+			expect(sendNewUserNotificationToAdmins).toHaveBeenCalled()
+
+			// Resolver la promesa después para limpiar
+			resolveNotification!()
 		})
 	})
 })
