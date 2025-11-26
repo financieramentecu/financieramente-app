@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { currencySchema } from '@/lib/admin/schemas'
+import { updateCurrencySchema } from '@/features/admin/currencies/lib/currency-schemas'
 import { z } from 'zod'
 
 export async function GET(
@@ -37,7 +37,7 @@ export async function PUT(
 	try {
 		const { id } = await params
 		const body = await request.json()
-		const data = currencySchema.parse(body)
+		const data = updateCurrencySchema.parse(body)
 
 		const currency = await prisma.currency.update({
 			where: { idCurrency: parseInt(id) },

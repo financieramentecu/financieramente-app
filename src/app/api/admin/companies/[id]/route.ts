@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { companySchema } from '@/lib/admin/schemas'
+import { updateCompanySchema } from '@/features/admin/companies/lib/company-schemas'
 import { z } from 'zod'
 
 export async function GET(
@@ -37,7 +37,7 @@ export async function PUT(
 	try {
 		const { id } = await params
 		const body = await request.json()
-		const data = companySchema.parse(body)
+		const data = updateCompanySchema.parse(body)
 
 		const company = await prisma.company.update({
 			where: { idCompany: parseInt(id) },

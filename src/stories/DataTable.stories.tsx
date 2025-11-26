@@ -1,11 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { DataTable } from '../components/ui/DataTable'
-import { ThemeProvider } from '../hooks/use-theme'
-import { mockBusinessList } from '../data/mockBusinessData'
-import { DataTableColumn } from '../types/dashboard'
-import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
-import { Badge } from '../components/ui/badge'
-import { Button } from '../components/ui/button'
+import { DataTable } from '../features/shared/ui/DataTable'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
+import { mockBusinessList } from '../features/shared/__tests__/fixtures/mockBusinessData'
+import { DataTableColumn } from '../features/shared/ui/types/dashboard.types'
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from '../features/shared/ui/avatar'
+import { Badge } from '../features/shared/ui/badge'
+import { Button } from '../features/shared/ui/button'
 
 const meta: Meta<typeof DataTable> = {
 	title: 'UI/DataTableGeneric',
@@ -45,7 +49,7 @@ const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
 	{
 		key: 'user',
 		header: 'Usuario',
-		cellRenderer: (value) => {
+		cellRenderer: (value: unknown) => {
 			const user = value as { avatar: string; name: string }
 			return (
 				<div className="flex items-center gap-3">
@@ -66,14 +70,14 @@ const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
 	{
 		key: 'email',
 		header: 'Email',
-		cellRenderer: (value) => (
+		cellRenderer: (value: unknown) => (
 			<span className="text-muted-foreground">{value as string}</span>
 		),
 	},
 	{
 		key: 'value',
 		header: 'Valor',
-		cellRenderer: (value) => (
+		cellRenderer: (value: unknown) => (
 			<span className="font-medium">
 				{new Intl.NumberFormat('es-CO', {
 					style: 'currency',
@@ -86,7 +90,7 @@ const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
 	{
 		key: 'status',
 		header: 'Estado',
-		cellRenderer: (value) => (
+		cellRenderer: (value: unknown) => (
 			<Badge
 				variant={(value as string) === 'Emitido' ? 'default' : 'secondary'}
 				className={

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { currencySchema } from '@/lib/admin/schemas'
+import { createCurrencySchema } from '@/features/admin/currencies/lib/currency-schemas'
 import { z } from 'zod'
 
 export async function GET(request: Request) {
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
 	try {
 		const body = await request.json()
-		const data = currencySchema.parse(body)
+		const data = createCurrencySchema.parse(body)
 
 		const currency = await prisma.currency.create({
 			data: {

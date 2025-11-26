@@ -1,57 +1,32 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { DashboardLayout } from '@/layouts/DashboardLayout'
-import { CrudTable, type CrudTableColumn } from '@/components/admin/CrudTable'
-import { CrudModal, type CrudModalField } from '@/components/admin/CrudModal'
-import { DeleteConfirmModal } from '@/components/admin/DeleteConfirmModal'
-import { Button } from '@/components/ui/button'
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { toast } from 'sonner'
-import { companySchema, type CompanyFormData } from '@/lib/admin/schemas'
-
-interface Company extends Record<string, unknown> {
-	idCompany: number
-	name: string
-	idTypeCompany: string
-	status: boolean
-	createdAt: string
-	updatedAt: string
-}
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
+import {
+	CrudModal,
+	type CrudModalField,
+} from '@/features/admin/shared/CrudModal'
+import { DeleteConfirmModal } from '@/features/admin/shared/DeleteConfirmModal'
+import { Button } from '@/features/shared/ui/button'
+import { CompaniesTable } from '@/features/admin/companies/components/companies-table'
+import { useCompanies } from '@/features/admin/companies/hooks/use-companies'
+import { useCompanyMutations } from '@/features/admin/companies/hooks/use-company-mutations'
+import {
+	createCompanySchema,
+	updateCompanySchema,
+} from '@/features/admin/companies/lib/company-schemas'
+import type { Company } from '@/features/admin/companies/types/company.types'
 
 export default function CompaniesAdminPage() {
-	const [companies, setCompanies] = useState<Company[]>([])
-	const [isLoading, setIsLoading] = useState(true)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
 	const [mode, setMode] = useState<'create' | 'edit'>('create')
-	const [isSubmitting, setIsSubmitting] = useState(false)
 
-	const loadCompanies = async () => {
-		try {
-			setIsLoading(true)
-			const response = await fetch('/api/admin/companies')
-			const data = await response.json()
-			if (response.ok) {
-				setCompanies(data.companies || [])
-			} else {
-				toast.error('Error al cargar compañías', {
-					description: data.error || 'Ocurrió un error inesperado',
-				})
-			}
-		} catch (error) {
-			console.error('Error loading companies:', error)
-			toast.error('Error al cargar compañías')
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	useEffect(() => {
-		loadCompanies()
-	}, [])
+	const { companies, isLoading, refreshCompanies } = useCompanies()
+	const { createCompany, updateCompany, deleteCompany, isSubmitting } =
+		useCompanyMutations()
 
 	const handleCreate = () => {
 		setSelectedCompany(null)
@@ -70,50 +45,27 @@ export default function CompaniesAdminPage() {
 		setIsDeleteModalOpen(true)
 	}
 
-	const handleSubmit = async (data: Record<string, unknown>) => {
-		const formData = data as CompanyFormData
+	const handleSubmit = async (formData: Record<string, unknown>) => {
 		try {
-			setIsSubmitting(true)
-			const url =
-				mode === 'create'
-					? '/api/admin/companies'
-					: `/api/admin/companies/${selectedCompany?.idCompany}`
-
-			const method = mode === 'create' ? 'POST' : 'PUT'
-
-			const response = await fetch(url, {
-				method,
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(formData),
-			})
-
-			const result = await response.json()
-
-			if (!response.ok) {
-				throw new Error(
-					result.details || result.error || 'Error al guardar compañía'
-				)
+			if (mode === 'create') {
+				await createCompany({
+					name: formData.name as string,
+					idTypeCompany: formData.idTypeCompany as 'NACIONAL' | 'INTERNACIONAL',
+					status: formData.status as boolean,
+				})
+			} else if (selectedCompany) {
+				await updateCompany(selectedCompany.idCompany, {
+					name: formData.name as string,
+					idTypeCompany: formData.idTypeCompany as 'NACIONAL' | 'INTERNACIONAL',
+					status: formData.status as boolean,
+				})
 			}
-
-			toast.success(
-				mode === 'create'
-					? 'Compañía creada exitosamente'
-					: 'Compañía actualizada exitosamente'
-			)
 
 			setIsModalOpen(false)
 			setSelectedCompany(null)
-			loadCompanies()
-		} catch (error) {
-			console.error('Error saving company:', error)
-			toast.error('Error al guardar compañía', {
-				description:
-					error instanceof Error
-						? error.message
-						: 'Ocurrió un error inesperado',
-			})
-		} finally {
-			setIsSubmitting(false)
+			refreshCompanies()
+		} catch {
+			// Error ya manejado en el hook
 		}
 	}
 
@@ -121,71 +73,14 @@ export default function CompaniesAdminPage() {
 		if (!selectedCompany) return
 
 		try {
-			setIsSubmitting(true)
-			const response = await fetch(
-				`/api/admin/companies/${selectedCompany.idCompany}`,
-				{
-					method: 'DELETE',
-				}
-			)
-
-			const result = await response.json()
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Error al eliminar compañía')
-			}
-
-			toast.success('Compañía eliminada exitosamente')
+			await deleteCompany(selectedCompany.idCompany)
 			setIsDeleteModalOpen(false)
 			setSelectedCompany(null)
-			loadCompanies()
-		} catch (error) {
-			console.error('Error deleting company:', error)
-			toast.error('Error al eliminar compañía', {
-				description:
-					error instanceof Error
-						? error.message
-						: 'Ocurrió un error inesperado',
-			})
-		} finally {
-			setIsSubmitting(false)
+			refreshCompanies()
+		} catch {
+			// Error ya manejado en el hook
 		}
 	}
-
-	const columns: CrudTableColumn<Company>[] = [
-		{
-			key: 'idCompany',
-			header: 'ID',
-			cellRenderer: (value) => (
-				<span className="font-medium">#{String(value)}</span>
-			),
-		},
-		{
-			key: 'name',
-			header: 'Nombre',
-			cellRenderer: (value) => (
-				<span className="font-medium">{String(value)}</span>
-			),
-		},
-		{
-			key: 'idTypeCompany',
-			header: 'Tipo',
-			cellRenderer: (value) => (
-				<span className="text-sm">
-					{value === 'NACIONAL' ? 'Nacional' : 'Internacional'}
-				</span>
-			),
-		},
-		{
-			key: 'status',
-			header: 'Estado',
-			cellRenderer: (value) => (
-				<Badge variant={(value as boolean) ? 'success' : 'neutral'}>
-					{(value as boolean) ? 'Activo' : 'Inactivo'}
-				</Badge>
-			),
-		},
-	]
 
 	const fields: CrudModalField[] = [
 		{
@@ -228,14 +123,11 @@ export default function CompaniesAdminPage() {
 					</Button>
 				</div>
 
-				<CrudTable
-					data={companies}
-					columns={columns}
+				<CompaniesTable
+					companies={companies}
+					isLoading={isLoading}
 					onEdit={handleEdit}
 					onDelete={handleDelete}
-					isLoading={isLoading}
-					searchable={true}
-					emptyMessage="No hay compañías registradas"
 				/>
 
 				<CrudModal
@@ -248,7 +140,7 @@ export default function CompaniesAdminPage() {
 							: 'Modifica los datos de la compañía'
 					}
 					fields={fields}
-					schema={companySchema}
+					schema={mode === 'create' ? createCompanySchema : updateCompanySchema}
 					initialData={
 						mode === 'edit' && selectedCompany
 							? {

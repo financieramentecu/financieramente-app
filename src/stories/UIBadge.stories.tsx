@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { Badge } from '../components/ui/badge'
-import { ThemeProvider } from '../hooks/use-theme'
+import { Badge } from '../features/shared/ui/badge'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 
 const meta: Meta<typeof Badge> = {
 	title: 'UI/Badge',

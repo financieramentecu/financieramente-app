@@ -2,15 +2,15 @@
 
 import React from 'react'
 
-import { DashboardLayout } from '@/layouts/DashboardLayout'
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+} from '@/features/shared/ui/card'
+import { Button } from '@/features/shared/ui/button'
 
 export default function AdminUsersPage() {
 	return (

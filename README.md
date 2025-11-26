@@ -18,10 +18,157 @@ Una plataforma moderna para la gestión y liquidación de comisiones financieras
 - **CI/CD**: GitHub Actions
 - **Infraestructura**: Terraform + Digital Ocean
 
+### Arquitectura: Feature-Based
+
+El proyecto utiliza **Feature-Based Architecture** para mantener el código organizado, escalable y fácil de mantener. Cada feature es autocontenido con sus propios tipos, schemas, hooks, componentes y lógica de negocio.
+
+#### Estructura de Carpetas
+
+```
+src/
+├── app/                          # Next.js App Router
+│   ├── api/                      # API Routes (simplificados)
+│   │   ├── admin/                # Endpoints de administración
+│   │   ├── auth/                 # Autenticación
+│   │   └── email/                # Servicios de email
+│   └── dashboard/                # Páginas del dashboard
+│
+├── features/                     # Feature-Based Architecture
+│   ├── admin/                    # Features de administración
+│   │   ├── products/             # Feature de productos
+│   │   │   ├── components/       # Componentes específicos
+│   │   │   ├── hooks/            # Custom hooks
+│   │   │   ├── lib/              # Lógica y schemas
+│   │   │   │   ├── product-api.ts
+│   │   │   │   └── product-schemas.ts
+│   │   │   ├── types/            # Tipos TypeScript
+│   │   │   └── __tests__/        # Tests del feature
+│   │   ├── companies/            # Feature de compañías
+│   │   ├── categories/           # Feature de categorías
+│   │   ├── currencies/           # Feature de monedas
+│   │   ├── periodicities/       # Feature de periodicidades
+│   │   ├── origins/              # Feature de orígenes
+│   │   └── shared/               # Componentes admin compartidos
+│   │       ├── CrudTable.tsx
+│   │       ├── CrudModal.tsx
+│   │       └── DeleteConfirmModal.tsx
+│   │
+│   ├── auth/                     # Feature de autenticación
+│   │   ├── components/           # Componentes de auth
+│   │   │   ├── error-message.tsx
+│   │   │   ├── login/            # Componentes de login
+│   │   │   │   ├── auth-card.tsx
+│   │   │   │   ├── brand-panel.tsx
+│   │   │   │   ├── email-sign-in-form.tsx
+│   │   │   │   ├── login-view.tsx
+│   │   │   │   └── social-sign-in.tsx
+│   │   │   └── logout-button.tsx
+│   │   └── __tests__/
+│   │
+│   ├── email/                    # Feature de email
+│   │   ├── lib/
+│   │   │   ├── email-service.ts  # Servicio simplificado
+│   │   │   └── sendgrid-config.ts
+│   │   └── types/
+│   │
+│   ├── negocios/                 # Feature de negocios
+│   │   ├── components/
+│   │   │   ├── BusinessManagementSection.tsx
+│   │   │   ├── BusinessSearchForm.tsx
+│   │   │   ├── BusinessTableSection.tsx
+│   │   │   ├── MisNegociosPage.tsx
+│   │   │   └── StatsOverview.tsx
+│   │   ├── types/
+│   │   └── lib/
+│   │
+│   └── shared/                   # Recursos compartidos
+│       ├── ui/                   # Componentes UI compartidos
+│       │   ├── button.tsx
+│       │   ├── input.tsx
+│       │   ├── table.tsx
+│       │   ├── theme-toggle.tsx  # Toggle de tema
+│       │   └── __tests__/
+│       ├── layout/               # Componentes de layout
+│       │   ├── DashboardLayout.tsx
+│       │   ├── Header.tsx
+│       │   └── Sidebar.tsx
+│       ├── hooks/                # Hooks compartidos
+│       │   ├── use-auth-session.ts
+│       │   ├── use-mobile.tsx
+│       │   ├── use-permissions.ts
+│       │   ├── use-theme-toggle.ts
+│       │   └── __tests__/
+│       ├── providers/            # Providers compartidos
+│       │   └── auth-provider.tsx
+│       ├── types/                # Tipos compartidos
+│       │   ├── user.types.ts
+│       │   └── liquidation.types.ts
+│       └── __tests__/
+│           └── fixtures/        # Datos mock para tests
+│
+├── lib/                          # Utilidades globales
+│   ├── api/
+│   │   └── client.ts             # Cliente API centralizado
+│   ├── auth/                     # Utilidades de autenticación
+│   ├── email/                    # Notificaciones de email
+│   ├── navigation/               # Navegación y menús
+│   └── prisma.ts                 # Cliente Prisma
+│
+└── types/                        # Tipos globales (solo env.d.ts)
+    └── env.d.ts                  # Tipos de variables de entorno
+```
+
+#### Principios de la Arquitectura
+
+1. **Features Autocontenidos**: Cada feature contiene todo lo necesario (tipos, schemas, hooks, componentes)
+2. **Separación de Responsabilidades**: 
+   - `types/` - Interfaces TypeScript
+   - `lib/` - Schemas Zod y funciones de negocio
+   - `hooks/` - Custom hooks para data fetching y mutations
+   - `components/` - Componentes React específicos del feature
+3. **Shared Resources**: Componentes y tipos compartidos en `features/shared/`
+4. **API Routes Simplificados**: Llamadas directas a servicios sin capas intermedias complejas
+5. **Testing Colocalizado**: Tests en `__tests__/` dentro de cada feature
+
+#### Ejemplo de Feature Completo
+
+```typescript
+// src/features/admin/products/types/product.types.ts
+export interface Product extends Record<string, unknown> {
+  idProduct: number
+  name: string
+  // ...
+}
+
+// src/features/admin/products/lib/product-schemas.ts
+import { z } from 'zod'
+export const createProductSchema = z.object({ /* ... */ })
+
+// src/features/admin/products/lib/product-api.ts
+import { apiClient } from '@/lib/api/client'
+export async function getProducts(): Promise<Product[]> {
+  return apiClient.get<Product[]>('/api/admin/products')
+}
+
+// src/features/admin/products/hooks/use-products.ts
+export function useProducts() {
+  // Lógica de data fetching
+}
+
+// src/features/admin/products/components/products-table.tsx
+export function ProductsTable() {
+  // Componente específico
+}
+```
+
 ### Características Principales
 
+- ✅ **Feature-Based Architecture**: Código organizado por funcionalidad, completamente migrado
+- ✅ **Hooks Compartidos**: Hooks reutilizables en `features/shared/hooks/`
+- ✅ **Providers Centralizados**: Providers compartidos en `features/shared/providers/`
 - ✅ **Sistema de Temas**: Modo claro y oscuro con colores corporativos
 - ✅ **Componentes de Formularios**: InputField, SelectField, ButtonField con múltiples variantes
+- ✅ **Componentes de Autenticación**: Login, logout y manejo de sesión
 - ✅ **Documentación Visual**: Storybook con 25+ stories de componentes
 - ✅ **Testing Completo**: Unitarios, integración y E2E con 80%+ cobertura
 - ✅ **Accesibilidad WCAG AA**: Cumplimiento completo de estándares
@@ -175,6 +322,7 @@ npm run dev              # Servidor de desarrollo Next.js
 npm run build            # Build de producción
 npm run start            # Servidor de producción
 npm run lint             # Linter ESLint
+npm run type-check       # Verificación de tipos TypeScript
 ```
 
 ### Infraestructura
@@ -218,15 +366,46 @@ npm run lint             # Linter ESLint
 
 ```tsx
 // Sistema de temas
-import { ThemeToggle } from '@/components/theme-toggle'
-import { useThemeToggle } from '@/hooks/use-theme-toggle'
+import { ThemeToggle } from '@/features/shared/ui/theme-toggle'
+import { ThemeProvider } from '@/features/shared/ui/ThemeProvider'
+import { useThemeToggle } from '@/features/shared/hooks/use-theme-toggle'
 
-// Componentes de formularios
-import { InputField, SelectField, ButtonField } from '@/components/forms'
+// Hooks compartidos
+import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
+import { useIsMobile } from '@/features/shared/hooks/use-mobile'
 
-// Componentes UI
-import { Button, Card, Modal, DataTable } from '@/components/ui'
+// Providers
+import { AuthProvider } from '@/features/shared/providers/auth-provider'
+
+// Componentes UI compartidos
+import { Button, Card, Modal } from '@/features/shared/ui/button'
+import { DataTable } from '@/features/shared/ui/DataTable'
+import { Input, Select } from '@/features/shared/ui/input'
+
+// Componentes de autenticación
+import { LoginView } from '@/features/auth/components/login/login-view'
+import { LogoutButton } from '@/features/auth/components/logout-button'
+
+// Componentes de negocios
+import { BusinessSearchForm } from '@/features/negocios/components/BusinessSearchForm'
+import { MisNegociosPage } from '@/features/negocios/components/MisNegociosPage'
+
+// Componentes de features específicos
+import { ProductsTable } from '@/features/admin/products/components/products-table'
+import { useProducts } from '@/features/admin/products/hooks/use-products'
+
+// Layout
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 ```
+
+### Convenciones de Código
+
+- **Features**: kebab-case (`admin/products`, `negocios`)
+- **Archivos**: kebab-case (`product-api.ts`, `use-products.ts`)
+- **Componentes**: PascalCase (`ProductsTable.tsx`)
+- **Hooks**: camelCase con prefijo `use` (`useProducts`, `useProductMutations`)
+- **Tipos**: PascalCase (`Product`, `BusinessFormData`)
 
 ## 🔒 Seguridad
 
@@ -265,6 +444,17 @@ import { Button, Card, Modal, DataTable } from '@/components/ui'
 - Escribir tests para nuevas funcionalidades
 - Actualizar documentación cuando sea necesario
 - Verificar accesibilidad en todos los componentes
+- **Nuevas features**: Crear estructura completa en `src/features/[feature-name]/` con:
+  - `components/` - Componentes específicos del feature
+  - `hooks/` - Custom hooks para data fetching y mutations
+  - `lib/` - Schemas Zod y funciones de negocio
+  - `types/` - Interfaces TypeScript
+  - `__tests__/` - Tests del feature
+- **Componentes compartidos**: 
+  - UI: Agregar a `src/features/shared/ui/`
+  - Layout: Agregar a `src/features/shared/layout/`
+  - Hooks: Agregar a `src/features/shared/hooks/`
+  - Providers: Agregar a `src/features/shared/providers/`
 
 ## 📞 Soporte
 

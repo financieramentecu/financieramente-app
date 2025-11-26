@@ -4,15 +4,15 @@ import React, { Suspense } from 'react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertCircle, ArrowLeft, Mail } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/features/shared/ui/button'
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from '@/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+} from '@/features/shared/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/features/shared/ui/alert'
 
 /**
  * Componente interno que usa useSearchParams

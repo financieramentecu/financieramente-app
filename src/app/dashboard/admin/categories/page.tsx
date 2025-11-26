@@ -1,85 +1,39 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { DashboardLayout } from '@/layouts/DashboardLayout'
-import { CrudTable, type CrudTableColumn } from '@/components/admin/CrudTable'
-import { CrudModal, type CrudModalField } from '@/components/admin/CrudModal'
-import { DeleteConfirmModal } from '@/components/admin/DeleteConfirmModal'
-import { Button } from '@/components/ui/button'
+import { useState, useMemo } from 'react'
 import { Plus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { toast } from 'sonner'
-import { categorySchema, type CategoryFormData } from '@/lib/admin/schemas'
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-
-interface Category extends Record<string, unknown> {
-	idCategory: number
-	code: string
-	name: string
-	typeCategory: 'MMS' | 'ALIADO' | 'TRINITY'
-	descripcion: string | null
-	status: boolean
-	createdAt: string
-	updatedAt: string
-}
-
-const CATEGORY_LABELS: Record<Category['typeCategory'], string> = {
-	MMS: 'MMS',
-	ALIADO: 'Aliado',
-	TRINITY: 'Trinity',
-}
+	CrudModal,
+	type CrudModalField,
+} from '@/features/admin/shared/CrudModal'
+import { DeleteConfirmModal } from '@/features/admin/shared/DeleteConfirmModal'
+import { Button } from '@/features/shared/ui/button'
+import { CategoriesTable } from '@/features/admin/categories/components/categories-table'
+import { CategoryFilters } from '@/features/admin/categories/components/category-filters'
+import { useCategories } from '@/features/admin/categories/hooks/use-categories'
+import { useCategoryMutations } from '@/features/admin/categories/hooks/use-category-mutations'
+import {
+	createCategorySchema,
+	updateCategorySchema,
+} from '@/features/admin/categories/lib/category-schemas'
+import type {
+	Category,
+	CategoryFilters as CategoryFiltersType,
+} from '@/features/admin/categories/types/category.types'
 
 export default function CategoriesAdminPage() {
-	const [categories, setCategories] = useState<Category[]>([])
-	const [isLoading, setIsLoading] = useState(true)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [selectedCategory, setSelectedCategory] = useState<Category | null>(
 		null
 	)
 	const [mode, setMode] = useState<'create' | 'edit'>('create')
-	const [isSubmitting, setIsSubmitting] = useState(false)
-	const [searchQuery, setSearchQuery] = useState('')
-	const [typeFilter, setTypeFilter] = useState<string>('all')
+	const [filters, setFilters] = useState<CategoryFiltersType>({})
 
-	const loadCategories = async () => {
-		try {
-			setIsLoading(true)
-			const params = new URLSearchParams()
-			if (searchQuery) {
-				params.set('search', searchQuery)
-			}
-			if (typeFilter && typeFilter !== 'all') {
-				params.set('type', typeFilter)
-			}
-			const response = await fetch(`/api/admin/categories?${params.toString()}`)
-			const data = await response.json()
-			if (response.ok) {
-				setCategories(data.categories || [])
-			} else {
-				toast.error('Error al cargar categorías', {
-					description: data.error || 'Ocurrió un error inesperado',
-				})
-			}
-		} catch (error) {
-			console.error('Error loading categories:', error)
-			toast.error('Error al cargar categorías')
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	useEffect(() => {
-		loadCategories()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [searchQuery, typeFilter])
+	const { categories, isLoading, refreshCategories } = useCategories(filters)
+	const { createCategory, updateCategory, deleteCategory, isSubmitting } =
+		useCategoryMutations()
 
 	const handleCreate = () => {
 		setSelectedCategory(null)
@@ -98,54 +52,31 @@ export default function CategoriesAdminPage() {
 		setIsDeleteModalOpen(true)
 	}
 
-	const handleSubmit = async (data: Record<string, unknown>) => {
-		const formData = data as CategoryFormData
+	const handleSubmit = async (formData: Record<string, unknown>) => {
 		try {
-			setIsSubmitting(true)
-			const url =
-				mode === 'create'
-					? '/api/admin/categories'
-					: `/api/admin/categories/${selectedCategory?.idCategory}`
-
-			const method = mode === 'create' ? 'POST' : 'PUT'
-
-			const response = await fetch(url, {
-				method,
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					...formData,
-					descripcion:
-						formData.descripcion === '' ? undefined : formData.descripcion,
-				}),
-			})
-
-			const result = await response.json()
-
-			if (!response.ok) {
-				throw new Error(
-					result.details || result.error || 'Error al guardar categoría'
-				)
+			if (mode === 'create') {
+				await createCategory({
+					code: formData.code as string,
+					name: formData.name as string,
+					typeCategory: formData.typeCategory as 'MMS' | 'ALIADO' | 'TRINITY',
+					descripcion: formData.descripcion as string | undefined,
+					status: formData.status as boolean,
+				})
+			} else if (selectedCategory) {
+				await updateCategory(selectedCategory.idCategory, {
+					code: formData.code as string,
+					name: formData.name as string,
+					typeCategory: formData.typeCategory as 'MMS' | 'ALIADO' | 'TRINITY',
+					descripcion: formData.descripcion as string | undefined,
+					status: formData.status as boolean,
+				})
 			}
-
-			toast.success(
-				mode === 'create'
-					? 'Categoría creada exitosamente'
-					: 'Categoría actualizada exitosamente'
-			)
 
 			setIsModalOpen(false)
 			setSelectedCategory(null)
-			loadCategories()
-		} catch (error) {
-			console.error('Error saving category:', error)
-			toast.error('Error al guardar categoría', {
-				description:
-					error instanceof Error
-						? error.message
-						: 'Ocurrió un error inesperado',
-			})
-		} finally {
-			setIsSubmitting(false)
+			refreshCategories()
+		} catch {
+			// Error ya manejado en el hook
 		}
 	}
 
@@ -153,155 +84,62 @@ export default function CategoriesAdminPage() {
 		if (!selectedCategory) return
 
 		try {
-			setIsSubmitting(true)
-			const response = await fetch(
-				`/api/admin/categories/${selectedCategory.idCategory}`,
-				{
-					method: 'DELETE',
-				}
-			)
-
-			const result = await response.json()
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Error al eliminar categoría')
-			}
-
-			toast.success('Categoría eliminada exitosamente')
+			await deleteCategory(selectedCategory.idCategory)
 			setIsDeleteModalOpen(false)
 			setSelectedCategory(null)
-			loadCategories()
-		} catch (error) {
-			console.error('Error deleting category:', error)
-			toast.error('Error al eliminar categoría', {
-				description:
-					error instanceof Error
-						? error.message
-						: 'Ocurrió un error inesperado',
-			})
-		} finally {
-			setIsSubmitting(false)
+			refreshCategories()
+		} catch {
+			// Error ya manejado en el hook
 		}
 	}
 
-	const filteredCategories = useMemo(() => {
-		if (!searchQuery && !typeFilter) {
-			return categories
-		}
-
-		return categories.filter((category) => {
-			const matchesSearch =
-				!searchQuery ||
-				category.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				category.name.toLowerCase().includes(searchQuery.toLowerCase())
-			const matchesType =
-				typeFilter === 'all' || category.typeCategory === typeFilter
-
-			return matchesSearch && matchesType
-		})
-	}, [categories, searchQuery, typeFilter])
-
-	const columns: CrudTableColumn<Category>[] = [
-		{
-			key: 'idCategory',
-			header: 'ID',
-			cellRenderer: (value) => (
-				<span className="font-medium">#{String(value)}</span>
-			),
-		},
-		{
-			key: 'code',
-			header: 'Código',
-			cellRenderer: (value) => (
-				<span className="font-mono text-sm">{String(value)}</span>
-			),
-		},
-		{
-			key: 'name',
-			header: 'Nombre',
-			cellRenderer: (value) => (
-				<span className="font-medium">{String(value)}</span>
-			),
-		},
-		{
-			key: 'typeCategory',
-			header: 'Tipo',
-			cellRenderer: (value) => (
-				<span className="text-sm">
-					{CATEGORY_LABELS[value as Category['typeCategory']]}
-				</span>
-			),
-		},
-		{
-			key: 'descripcion',
-			header: 'Descripción',
-			cellRenderer: (value) =>
-				value ? (
-					<span className="text-sm text-muted-foreground line-clamp-2">
-						{String(value)}
-					</span>
-				) : (
-					<span className="text-muted-foreground">-</span>
-				),
-		},
-		{
-			key: 'status',
-			header: 'Estado',
-			cellRenderer: (value) => (
-				<Badge variant={(value as boolean) ? 'success' : 'neutral'}>
-					{value ? 'Activa' : 'Inactiva'}
-				</Badge>
-			),
-		},
-	]
-
-	const fields: CrudModalField[] = [
-		{
-			name: 'code',
-			label: 'Código',
-			type: 'text',
-			placeholder: 'Ej: MMS-01',
-			required: true,
-		},
-		{
-			name: 'name',
-			label: 'Nombre',
-			type: 'text',
-			placeholder: 'Ej: Ejecutivo Senior',
-			required: true,
-		},
-		{
-			name: 'typeCategory',
-			label: 'Tipo de Categoría',
-			type: 'enum',
-			enumValues: ['MMS', 'ALIADO', 'TRINITY'],
-			required: true,
-		},
-		{
-			name: 'descripcion',
-			label: 'Descripción',
-			type: 'textarea',
-			placeholder: 'Descripción breve de la categoría',
-			required: false,
-		},
-		{
-			name: 'status',
-			label: 'Activa',
-			type: 'switch',
-			required: false,
-			description:
-				'Desactiva una categoría para ocultarla sin perder su historial.',
-		},
-	]
+	const fields: CrudModalField[] = useMemo(
+		() => [
+			{
+				name: 'code',
+				label: 'Código',
+				type: 'text',
+				placeholder: 'Ej: CAT001',
+				required: true,
+			},
+			{
+				name: 'name',
+				label: 'Nombre',
+				type: 'text',
+				placeholder: 'Ej: Categoría Principal',
+				required: true,
+			},
+			{
+				name: 'typeCategory',
+				label: 'Tipo de Categoría',
+				type: 'enum',
+				enumValues: ['MMS', 'ALIADO', 'TRINITY'],
+				required: true,
+			},
+			{
+				name: 'descripcion',
+				label: 'Descripción',
+				type: 'textarea',
+				placeholder: 'Descripción opcional de la categoría',
+			},
+			{
+				name: 'status',
+				label: 'Activo',
+				type: 'switch',
+				description: 'Controla si la categoría está disponible para uso.',
+			},
+		],
+		[]
+	)
 
 	return (
 		<DashboardLayout currentPage="Categorías">
 			<div className="space-y-6">
 				<div className="flex items-center justify-between">
 					<div>
-						<h1 className="text-3xl font-bold">Categorías de Usuarios</h1>
+						<h1 className="text-3xl font-bold">Categorías</h1>
 						<p className="text-muted-foreground mt-2">
-							Administra las categorías utilizadas en la estructura comercial
+							Gestiona las categorías del sistema
 						</p>
 					</div>
 					<Button onClick={handleCreate} className="gap-2">
@@ -310,34 +148,13 @@ export default function CategoriesAdminPage() {
 					</Button>
 				</div>
 
-				<div className="flex flex-col md:flex-row gap-3 md:items-center">
-					<Input
-						placeholder="Buscar por código o nombre..."
-						value={searchQuery}
-						onChange={(event) => setSearchQuery(event.target.value)}
-						className="md:w-1/3"
-					/>
-					<Select value={typeFilter} onValueChange={setTypeFilter}>
-						<SelectTrigger className="md:w-64">
-							<SelectValue placeholder="Filtrar por tipo" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">Todos los tipos</SelectItem>
-							<SelectItem value="MMS">MMS</SelectItem>
-							<SelectItem value="ALIADO">Aliado</SelectItem>
-							<SelectItem value="TRINITY">Trinity</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
+				<CategoryFilters filters={filters} onFiltersChange={setFilters} />
 
-				<CrudTable
-					data={filteredCategories}
-					columns={columns}
+				<CategoriesTable
+					categories={categories}
+					isLoading={isLoading}
 					onEdit={handleEdit}
 					onDelete={handleDelete}
-					isLoading={isLoading}
-					searchable={false}
-					emptyMessage="No hay categorías registradas"
 				/>
 
 				<CrudModal
@@ -346,24 +163,25 @@ export default function CategoriesAdminPage() {
 					title={mode === 'create' ? 'Crear Categoría' : 'Editar Categoría'}
 					description={
 						mode === 'create'
-							? 'Define una nueva categoría dentro de la jerarquía comercial'
-							: 'Modifica los datos de la categoría seleccionada'
+							? 'Completa el formulario para crear una nueva categoría'
+							: 'Modifica los datos de la categoría'
 					}
 					fields={fields}
-					schema={categorySchema}
+					schema={
+						mode === 'create' ? createCategorySchema : updateCategorySchema
+					}
 					initialData={
 						mode === 'edit' && selectedCategory
-							? ({
+							? {
 									code: selectedCategory.code,
 									name: selectedCategory.name,
 									typeCategory: selectedCategory.typeCategory,
-									descripcion: selectedCategory.descripcion || '',
+									descripcion: selectedCategory.descripcion ?? '',
 									status: selectedCategory.status,
-								} as CategoryFormData)
-							: ({
+								}
+							: {
 									status: true,
-									typeCategory: 'MMS',
-								} as CategoryFormData)
+								}
 					}
 					onSubmit={handleSubmit}
 					mode={mode}

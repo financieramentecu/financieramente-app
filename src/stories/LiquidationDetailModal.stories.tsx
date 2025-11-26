@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { LiquidationDetailModal } from '../components/ui/liquidation-detail-modal'
-import { Button } from '../components/ui/button'
+import { LiquidationDetailModal } from '../features/shared/ui/liquidation-detail-modal'
+import { Button } from '../features/shared/ui/button'
 import { useState } from 'react'
-import { ThemeProvider } from '../hooks/use-theme'
-import { mockLiquidationDetails } from '../data/mockLiquidationData'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
+import { mockLiquidationDetails } from '../features/shared/__tests__/fixtures/mockLiquidationData'
 
 const meta: Meta<typeof LiquidationDetailModal> = {
 	title: 'Business/LiquidationDetailModal',

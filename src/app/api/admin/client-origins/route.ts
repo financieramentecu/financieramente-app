@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { clientOriginSchema } from '@/lib/admin/schemas'
+import { createClientOriginSchema } from '@/features/admin/origins/lib/origin-schemas'
 import { z } from 'zod'
 
 export async function GET(request: Request) {
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
 	try {
 		const body = await request.json()
-		const data = clientOriginSchema.parse(body)
+		const data = createClientOriginSchema.parse(body)
 
 		const origin = await prisma.clientOrigin.create({
 			data: {

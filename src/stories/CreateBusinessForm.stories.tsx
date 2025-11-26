@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { CreateBusinessForm } from '../components/ui/create-business-form'
-import { ThemeProvider } from '../hooks/use-theme'
-import { mockBusinessFormDefaultValues } from '../data/mockBusinessFormData'
-import { mockUsers } from '../data/mockUsers'
-import { mockAgents } from '../data/mockAgents'
+import { CreateBusinessForm } from '../features/shared/ui/create-business-form'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
+import { mockBusinessFormDefaultValues } from '../features/shared/__tests__/fixtures/mockBusinessFormData'
+import { mockUsers } from '../features/shared/__tests__/fixtures/mockUsers'
+import { mockAgents } from '../features/shared/__tests__/fixtures/mockAgents'
 
 const meta: Meta<typeof CreateBusinessForm> = {
 	title: 'Business/CreateBusinessForm',

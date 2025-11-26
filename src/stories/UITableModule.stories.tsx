@@ -3,8 +3,8 @@ import {
 	TableModule,
 	TableConfigs,
 	createColumnDefs,
-} from '../components/ui/table-module'
-import { Button } from '../components/ui/button'
+} from '../features/shared/ui/table-module'
+import { Button } from '../features/shared/ui/button'
 import { toast } from 'sonner'
 
 // Types

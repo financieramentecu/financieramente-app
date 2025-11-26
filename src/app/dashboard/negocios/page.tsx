@@ -2,9 +2,13 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { DashboardLayout } from '@/layouts/DashboardLayout'
-import { MisNegociosPage } from '@/pages/MisNegociosPage'
-import { Business, StatsData, BusinessSearchParams } from '@/types/business'
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
+import { MisNegociosPage } from '@/features/negocios/components/MisNegociosPage'
+import {
+	Business,
+	StatsData,
+	BusinessSearchParams,
+} from '@/features/negocios/types/business.types'
 
 /**
  * Página de Negocios

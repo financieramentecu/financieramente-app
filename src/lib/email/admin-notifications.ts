@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { UserRole } from '@/lib/auth/roles'
-import { SendGridEmailService } from '@/infrastructure/email/sendgrid/SendGridEmailService'
-import { SendEmailUseCase } from '@/application/email/use-cases/SendEmailUseCase'
+import { sendEmail } from '@/features/email/lib/email-service'
 
 /**
  * Interfaz para usuario administrador
@@ -360,10 +359,6 @@ export async function sendNewUserNotificationToAdmins(
 			process.env.NEXT_PUBLIC_API_URL ||
 			'http://localhost:3000'
 
-		// Instanciar servicios
-		const emailService = new SendGridEmailService()
-		const sendEmailUseCase = new SendEmailUseCase(emailService)
-
 		// Enviar email a cada administrador en paralelo
 		const emailPromises = admins.map(async (admin) => {
 			try {
@@ -384,7 +379,7 @@ export async function sendNewUserNotificationToAdmins(
 					adminName: adminFullName,
 				})
 
-				const result = await sendEmailUseCase.execute({
+				const result = await sendEmail({
 					to: admin.email,
 					subject: `Nuevo Usuario Requiere Activación - ${params.userName}`,
 					html: htmlContent,

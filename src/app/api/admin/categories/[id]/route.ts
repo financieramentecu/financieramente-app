@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { categorySchema } from '@/lib/admin/schemas'
+import { updateCategorySchema } from '@/features/admin/categories/lib/category-schemas'
 import { z } from 'zod'
 
 export async function GET(
@@ -37,7 +37,7 @@ export async function PUT(
 	try {
 		const { id } = await params
 		const body = await request.json()
-		const data = categorySchema.parse(body)
+		const data = updateCategorySchema.parse(body)
 
 		const category = await prisma.category.update({
 			where: { idCategory: parseInt(id) },

@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { CancelBusinessModal } from '../components/ui/cancel-business-modal'
-import { Button } from '../components/ui/button'
+import { CancelBusinessModal } from '../features/shared/ui/cancel-business-modal'
+import { Button } from '../features/shared/ui/button'
 import { useState } from 'react'
-import { ThemeProvider } from '../hooks/use-theme'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 
 const meta: Meta<typeof CancelBusinessModal> = {
 	title: 'Business/CancelBusinessModal',

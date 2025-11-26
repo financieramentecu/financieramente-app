@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { DashboardLayout } from '../layouts/DashboardLayout'
+import { DashboardLayout } from '../features/shared/layout/DashboardLayout'
 
 const meta: Meta<typeof DashboardLayout> = {
 	title: 'Layouts/DashboardLayout',

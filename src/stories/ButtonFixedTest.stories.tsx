@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { ButtonFixed } from '../components/ui/button-fixed'
-import { Button } from '../components/ui/button'
-import { ThemeProvider } from '../hooks/use-theme'
+import { ButtonFixed } from '../features/shared/ui/button-fixed'
+import { Button } from '../features/shared/ui/button'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 
 const meta: Meta<typeof ButtonFixed> = {
 	title: 'Debug/ButtonFixedTest',

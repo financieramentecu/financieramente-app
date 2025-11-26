@@ -5,10 +5,10 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from '../components/ui/card'
-import { Button } from '../components/ui/button'
-import { Badge } from '../components/ui/badge'
-import { ThemeProvider } from '../hooks/use-theme'
+} from '../features/shared/ui/card'
+import { Button } from '../features/shared/ui/button'
+import { Badge } from '../features/shared/ui/badge'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 import { Star, Heart, Share2, Download } from 'lucide-react'
 
 const meta: Meta<typeof Card> = {

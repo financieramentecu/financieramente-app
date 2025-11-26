@@ -24,7 +24,7 @@ TableModule → DataTable → TanStack Table → UI Components
 ### 1. Configuración Predefinida
 
 ```tsx
-import { TableModule, TableConfigs } from '@/components/ui/table-module'
+import { TableModule, TableConfigs } from '@/features/shared/ui/table-module'
 
 const usersData = [
 	{
@@ -60,7 +60,7 @@ function UsersPage() {
 ### 2. Configuración Personalizada
 
 ```tsx
-import { TableModule, createColumnDefs } from '@/components/ui/table-module'
+import { TableModule, createColumnDefs } from '@/features/shared/ui/table-module'
 
 const customColumns = [
 	createColumnDefs.text('name', 'Nombre Completo', { searchable: true }),
@@ -292,7 +292,7 @@ createColumnDefs.actions((row) => (
 ## 🔄 Hook useTableModule
 
 ```tsx
-import { useTableModule } from '@/components/ui/table-module'
+import { useTableModule } from '@/features/shared/ui/table-module'
 
 function MyComponent() {
 	const { createTable } = useTableModule()
@@ -400,7 +400,7 @@ function SimpleList() {
 
 ```tsx
 import { render, screen, fireEvent } from '@testing-library/react'
-import { TableModule, TableConfigs } from '@/components/ui/table-module'
+import { TableModule, TableConfigs } from '@/features/shared/ui/table-module'
 
 test('renders table with data', () => {
 	const data = [{ id: 1, name: 'Test User', email: 'test@example.com' }]

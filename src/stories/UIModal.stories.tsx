@@ -4,8 +4,8 @@ import {
 	AlertModal,
 	ConfirmModal,
 	FormModal,
-} from '../components/ui/modal'
-import { Button } from '../components/ui/button'
+} from '../features/shared/ui/modal'
+import { Button } from '../features/shared/ui/button'
 import { useState } from 'react'
 
 const meta: Meta<typeof Modal> = {

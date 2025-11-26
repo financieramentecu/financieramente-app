@@ -5,9 +5,9 @@ import {
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from '../components/ui/select'
-import { Label } from '../components/ui/label'
-import { ThemeProvider } from '../hooks/use-theme'
+} from '../features/shared/ui/select'
+import { Label } from '../features/shared/ui/label'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 
 const meta: Meta<typeof Select> = {
 	title: 'UI/Select',

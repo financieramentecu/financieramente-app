@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
-import { SendTemplatedEmailUseCase } from '@/application/email/use-cases/SendTemplatedEmailUseCase'
-import { SendEmailUseCase } from '@/application/email/use-cases/SendEmailUseCase'
-import { SendGridEmailService } from '@/infrastructure/email/sendgrid/SendGridEmailService'
 import {
-	type SendTemplatedEmailDTO,
-	type SendEmailDTO,
+	sendEmail,
+	sendTemplatedEmail,
+} from '@/features/email/lib/email-service'
+import {
 	sendTemplatedEmailSchema,
 	sendEmailSchema,
-} from '@/application/email/dto/EmailDTO'
+} from '@/features/email/lib/email-schemas'
 import { z } from 'zod'
 
 /**
@@ -44,9 +43,6 @@ export async function POST(request: Request) {
 			)
 		}
 
-		// Instanciar servicios
-		const emailService = new SendGridEmailService()
-
 		// Procesar según el tipo
 		if (body.type === 'templated') {
 			// Validar con Zod
@@ -62,11 +58,8 @@ export async function POST(request: Request) {
 				)
 			}
 
-			// Ejecutar caso de uso
-			const useCase = new SendTemplatedEmailUseCase(emailService)
-			const result = await useCase.execute(
-				validation.data as SendTemplatedEmailDTO
-			)
+			// Enviar email directamente
+			const result = await sendTemplatedEmail(validation.data)
 
 			if (!result.success) {
 				return NextResponse.json(
@@ -108,9 +101,8 @@ export async function POST(request: Request) {
 				)
 			}
 
-			// Ejecutar caso de uso
-			const useCase = new SendEmailUseCase(emailService)
-			const result = await useCase.execute(validation.data as SendEmailDTO)
+			// Enviar email directamente
+			const result = await sendEmail(validation.data)
 
 			if (!result.success) {
 				return NextResponse.json(

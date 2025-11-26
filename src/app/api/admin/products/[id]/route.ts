@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { prisma } from '@/lib/prisma'
-import { productSchema } from '@/lib/admin/schemas'
+import { updateProductSchema } from '@/features/admin/products/lib/product-schemas'
 
 export async function GET(
 	request: Request,
@@ -42,7 +42,7 @@ export async function PUT(
 	try {
 		const { id } = await params
 		const body = await request.json()
-		const data = productSchema.parse(body)
+		const data = updateProductSchema.parse(body)
 
 		const product = await prisma.product.update({
 			where: { idProduct: Number(id) },

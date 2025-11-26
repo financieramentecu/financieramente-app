@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { BusinessSearchForm } from '../components/mis-negocios/BusinessSearchForm'
-import { ThemeProvider } from '../hooks/use-theme'
-import { BusinessSearchParams } from '../types/business'
+import { BusinessSearchForm } from '../features/negocios/components/BusinessSearchForm'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
+import { BusinessSearchParams } from '../features/negocios/types/business.types'
 
 const meta: Meta<typeof BusinessSearchForm> = {
 	title: 'Business/BusinessSearchForm',
