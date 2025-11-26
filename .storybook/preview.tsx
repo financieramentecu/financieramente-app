@@ -1,7 +1,7 @@
 import type { Preview } from '@storybook/react'
 import React from 'react'
-import { ThemeProvider } from '../src/hooks/use-theme'
-import { Toaster } from '../src/components/ui/sonner'
+import { ThemeProvider } from '../src/features/shared/ui/ThemeProvider'
+import { Toaster } from '../src/features/shared/ui/sonner'
 import { SessionProvider } from 'next-auth/react'
 
 // Importar Tailwind CSS
