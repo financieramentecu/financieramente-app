@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { categorySchema } from '@/lib/admin/schemas'
+import { createCategorySchema } from '@/features/admin/categories/lib/category-schemas'
 import { z } from 'zod'
 
 export async function GET(request: Request) {
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
 	try {
 		const body = await request.json()
-		const data = categorySchema.parse(body)
+		const data = createCategorySchema.parse(body)
 
 		const category = await prisma.category.create({
 			data: {

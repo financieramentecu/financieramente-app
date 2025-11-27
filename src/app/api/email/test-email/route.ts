@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { SendGridConfig } from '@/infrastructure/email/sendgrid/SendGridConfig'
-import { SendGridEmailService } from '@/infrastructure/email/sendgrid/SendGridEmailService'
-import { EmailAddress } from '@/domain/email/value-objects/EmailAddress'
-import { EmailSubject } from '@/domain/email/value-objects/EmailSubject'
-import { Email } from '@/domain/email/entities/Email'
+import { SendGridConfig } from '@/features/email/lib/sendgrid-config'
+import {
+	sendEmail,
+	sendTemplatedEmail,
+} from '@/features/email/lib/email-service'
 
 /**
  * GET /api/email/test-email
@@ -97,53 +97,12 @@ export async function POST(request: Request) {
 			)
 		}
 
-		// Crear servicio de email
-		const emailService = new SendGridEmailService()
-
 		if (type === 'traditional') {
 			// Enviar email tradicional de prueba
-			const toResult = EmailAddress.create(body.to)
-			if (toResult instanceof Error) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: `Email destinatario inválido: ${toResult.message}`,
-					},
-					{ status: 400 }
-				)
-			}
-			const to = toResult
-
-			const fromResult = EmailAddress.create(SendGridConfig.getFromEmail())
-			if (fromResult instanceof Error) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: `Email remitente inválido: ${fromResult.message}`,
-					},
-					{ status: 500 }
-				)
-			}
-			const from = fromResult
-
-			const subjectResult = EmailSubject.create('🧪 Email de Prueba - Financieramente')
-			if (subjectResult instanceof Error) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: `Asunto inválido: ${subjectResult.message}`,
-					},
-					{ status: 500 }
-				)
-			}
-			const subject = subjectResult
-
-			const email = Email.createTraditional(
-				crypto.randomUUID(),
-				to,
-				from,
-				subject,
-				`Este es un email de prueba del sistema Financieramente.
+			const result = await sendEmail({
+				to: body.to,
+				subject: '🧪 Email de Prueba - Financieramente',
+				text: `Este es un email de prueba del sistema Financieramente.
 
 Si recibes este mensaje, significa que la configuración de SendGrid está funcionando correctamente.
 
@@ -153,7 +112,7 @@ Detalles:
 - Fecha: ${new Date().toLocaleString('es-EC')}
 
 ¡Todo está funcionando! 🎉`,
-				`
+				html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -231,10 +190,8 @@ Detalles:
 	</div>
 </body>
 </html>
-			`
-			)
-
-			const result = await emailService.send(email)
+			`,
+			})
 
 			if (!result.success) {
 				return NextResponse.json(
@@ -243,7 +200,12 @@ Detalles:
 						error: result.error || 'Error al enviar email de prueba',
 						statusCode: result.statusCode,
 					},
-					{ status: result.statusCode && result.statusCode < 500 ? result.statusCode : 500 }
+					{
+						status:
+							result.statusCode && result.statusCode < 500
+								? result.statusCode
+								: 500,
+					}
 				)
 			}
 
@@ -272,25 +234,17 @@ Detalles:
 		}
 
 		// Enviar email con template
-		const toResult = EmailAddress.create(body.to)
-		if (toResult instanceof Error) {
-			return NextResponse.json(
-				{
-					success: false,
-					error: `Email destinatario inválido: ${toResult.message}`,
-				},
-				{ status: 400 }
-			)
-		}
-		const to = toResult
-
 		const dynamicData = body.dynamicTemplateData || {
 			nombre: 'Usuario de Prueba',
 			mensaje: 'Este es un email de prueba con template dinámico',
 			fecha: new Date().toLocaleString('es-EC'),
 		}
 
-		const result = await emailService.sendTemplated(templateId, to, dynamicData)
+		const result = await sendTemplatedEmail({
+			to: body.to,
+			templateId,
+			dynamicTemplateData: dynamicData,
+		})
 
 		if (!result.success) {
 			return NextResponse.json(
@@ -299,7 +253,12 @@ Detalles:
 					error: result.error || 'Error al enviar email con template',
 					statusCode: result.statusCode,
 				},
-				{ status: result.statusCode && result.statusCode < 500 ? result.statusCode : 500 }
+				{
+					status:
+						result.statusCode && result.statusCode < 500
+							? result.statusCode
+							: 500,
+				}
 			)
 		}
 

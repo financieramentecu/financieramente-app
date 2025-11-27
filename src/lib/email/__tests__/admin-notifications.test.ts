@@ -8,12 +8,7 @@ import {
 	type NewUserNotificationParams,
 } from '../admin-notifications'
 import { prisma } from '@/lib/prisma'
-import { SendGridEmailService } from '@/infrastructure/email/sendgrid/SendGridEmailService'
-import { SendEmailUseCase } from '@/application/email/use-cases/SendEmailUseCase'
-import type { IEmailRepository } from '@/domain/email/repositories/IEmailRepository'
-
-// Tipos para mocks
-type MockSendGridEmailService = IEmailRepository
+import { sendEmail } from '@/features/email/lib/email-service'
 
 // Mock de Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -24,14 +19,10 @@ vi.mock('@/lib/prisma', () => ({
 	},
 }))
 
-// Mock de SendGridEmailService
-vi.mock('@/infrastructure/email/sendgrid/SendGridEmailService', () => ({
-	SendGridEmailService: vi.fn(),
-}))
-
-// Mock de SendEmailUseCase
-vi.mock('@/application/email/use-cases/SendEmailUseCase', () => ({
-	SendEmailUseCase: vi.fn(),
+// Mock de email-service
+vi.mock('@/features/email/lib/email-service', () => ({
+	sendEmail: vi.fn(),
+	sendTemplatedEmail: vi.fn(),
 }))
 
 describe('admin-notifications', () => {
@@ -281,21 +272,7 @@ describe('admin-notifications', () => {
 		})
 
 		it('debe obtener administradores activos', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi.fn().mockResolvedValue({ success: true })
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
+			vi.mocked(sendEmail).mockResolvedValue({ success: true })
 
 			process.env.NEXTAUTH_URL = 'https://test.com'
 
@@ -305,28 +282,14 @@ describe('admin-notifications', () => {
 		})
 
 		it('debe usar NEXTAUTH_URL como baseUrl si está disponible', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi.fn().mockResolvedValue({ success: true })
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
+			vi.mocked(sendEmail).mockResolvedValue({ success: true })
 
 			process.env.NEXTAUTH_URL = 'https://nextauth.com'
 			delete process.env.NEXT_PUBLIC_API_URL
 
 			await sendNewUserNotificationToAdmins(params)
 
-			expect(mockExecute).toHaveBeenCalledWith(
+			expect(sendEmail).toHaveBeenCalledWith(
 				expect.objectContaining({
 					to: 'admin1@example.com',
 					subject: 'Nuevo Usuario Requiere Activación - Juan Pérez',
@@ -334,7 +297,7 @@ describe('admin-notifications', () => {
 			)
 
 			// Verificar que el HTML contiene la URL correcta y saludo personalizado
-			const firstCall = mockExecute.mock.calls[0][0]
+			const firstCall = vi.mocked(sendEmail).mock.calls[0][0]
 			expect(firstCall.html).toContain(
 				'https://nextauth.com/dashboard/admin/users/123'
 			)
@@ -342,28 +305,14 @@ describe('admin-notifications', () => {
 		})
 
 		it('debe usar NEXT_PUBLIC_API_URL como baseUrl si NEXTAUTH_URL no está disponible', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi.fn().mockResolvedValue({ success: true })
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
+			vi.mocked(sendEmail).mockResolvedValue({ success: true })
 
 			delete process.env.NEXTAUTH_URL
 			process.env.NEXT_PUBLIC_API_URL = 'https://api.com'
 
 			await sendNewUserNotificationToAdmins(params)
 
-			const firstCall = mockExecute.mock.calls[0][0]
+			const firstCall = vi.mocked(sendEmail).mock.calls[0][0]
 			expect(firstCall.html).toContain(
 				'https://api.com/dashboard/admin/users/123'
 			)
@@ -371,28 +320,14 @@ describe('admin-notifications', () => {
 		})
 
 		it('debe usar localhost como fallback si no hay variables de entorno', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi.fn().mockResolvedValue({ success: true })
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
+			vi.mocked(sendEmail).mockResolvedValue({ success: true })
 
 			delete process.env.NEXTAUTH_URL
 			delete process.env.NEXT_PUBLIC_API_URL
 
 			await sendNewUserNotificationToAdmins(params)
 
-			const firstCall = mockExecute.mock.calls[0][0]
+			const firstCall = vi.mocked(sendEmail).mock.calls[0][0]
 			expect(firstCall.html).toContain(
 				'http://localhost:3000/dashboard/admin/users/123'
 			)
@@ -400,33 +335,19 @@ describe('admin-notifications', () => {
 		})
 
 		it('debe enviar email a cada administrador', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi.fn().mockResolvedValue({ success: true })
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
+			vi.mocked(sendEmail).mockResolvedValue({ success: true })
 
 			process.env.NEXTAUTH_URL = 'https://test.com'
 
 			await sendNewUserNotificationToAdmins(params)
 
-			expect(mockExecute).toHaveBeenCalledTimes(2)
-			expect(mockExecute).toHaveBeenCalledWith(
+			expect(sendEmail).toHaveBeenCalledTimes(2)
+			expect(sendEmail).toHaveBeenCalledWith(
 				expect.objectContaining({
 					to: 'admin1@example.com',
 				})
 			)
-			expect(mockExecute).toHaveBeenCalledWith(
+			expect(sendEmail).toHaveBeenCalledWith(
 				expect.objectContaining({
 					to: 'admin2@example.com',
 				})
@@ -442,50 +363,18 @@ describe('admin-notifications', () => {
 				.spyOn(console, 'warn')
 				.mockImplementation(() => {})
 
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi.fn()
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
-
 			await sendNewUserNotificationToAdmins(params)
 
 			expect(consoleWarnSpy).toHaveBeenCalledWith(
 				'No hay administradores activos para enviar notificación'
 			)
-			expect(mockExecute).not.toHaveBeenCalled()
+			expect(sendEmail).not.toHaveBeenCalled()
 
 			consoleWarnSpy.mockRestore()
 		})
 
 		it('debe manejar errores sin propagar', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi
-				.fn()
-				.mockRejectedValue(new Error('Email service error'))
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
+			vi.mocked(sendEmail).mockRejectedValue(new Error('Email service error'))
 
 			const consoleErrorSpy = vi
 				.spyOn(console, 'error')
@@ -505,24 +394,9 @@ describe('admin-notifications', () => {
 		})
 
 		it('debe manejar errores individuales sin afectar otros envíos', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi
-				.fn()
+			vi.mocked(sendEmail)
 				.mockImplementationOnce(() => Promise.reject(new Error('Error admin1')))
 				.mockResolvedValueOnce({ success: true })
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
 
 			const consoleErrorSpy = vi
 				.spyOn(console, 'error')
@@ -533,7 +407,7 @@ describe('admin-notifications', () => {
 			await sendNewUserNotificationToAdmins(params)
 
 			// Debe intentar enviar a ambos admins
-			expect(mockExecute).toHaveBeenCalledTimes(2)
+			expect(sendEmail).toHaveBeenCalledTimes(2)
 			// Debe loggear el error del primer admin
 			expect(consoleErrorSpy).toHaveBeenCalled()
 
@@ -541,21 +415,7 @@ describe('admin-notifications', () => {
 		})
 
 		it('debe usar Promise.allSettled para envío paralelo', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi.fn().mockResolvedValue({ success: true })
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
+			vi.mocked(sendEmail).mockResolvedValue({ success: true })
 
 			process.env.NEXTAUTH_URL = 'https://test.com'
 
@@ -570,21 +430,7 @@ describe('admin-notifications', () => {
 		})
 
 		it('debe loggear éxito cuando el email se envía correctamente', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi.fn().mockResolvedValue({ success: true })
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
+			vi.mocked(sendEmail).mockResolvedValue({ success: true })
 
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
@@ -602,24 +448,10 @@ describe('admin-notifications', () => {
 		})
 
 		it('debe loggear error cuando el email falla', async () => {
-			const mockEmailService: MockSendGridEmailService = {
-				send: vi.fn(),
-				sendTemplated: vi.fn(),
-			}
-			const mockExecute = vi.fn().mockResolvedValue({
+			vi.mocked(sendEmail).mockResolvedValue({
 				success: false,
 				error: 'SendGrid error',
 			})
-
-			vi.mocked(SendGridEmailService).mockImplementation(
-				() => mockEmailService as unknown as SendGridEmailService
-			)
-			vi.mocked(SendEmailUseCase).mockImplementation(
-				() =>
-					({
-						execute: mockExecute,
-					}) as unknown as SendEmailUseCase
-			)
 
 			const consoleErrorSpy = vi
 				.spyOn(console, 'error')

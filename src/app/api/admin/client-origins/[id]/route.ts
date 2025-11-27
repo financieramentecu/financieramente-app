@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { clientOriginSchema } from '@/lib/admin/schemas'
+import { updateClientOriginSchema } from '@/features/admin/origins/lib/origin-schemas'
 import { z } from 'zod'
 
 export async function GET(
@@ -37,7 +37,7 @@ export async function PUT(
 	try {
 		const { id } = await params
 		const body = await request.json()
-		const data = clientOriginSchema.parse(body)
+		const data = updateClientOriginSchema.parse(body)
 
 		const origin = await prisma.clientOrigin.update({
 			where: { idClientOrigin: parseInt(id) },

@@ -3,8 +3,8 @@ import {
 	DataTable,
 	type Column,
 	type DataTableProps,
-} from '../components/ui/data-table'
-import { Badge } from '../components/ui/badge'
+} from '../features/shared/ui/data-table'
+import { Badge } from '../features/shared/ui/badge'
 
 // Datos de ejemplo
 const sampleData = [

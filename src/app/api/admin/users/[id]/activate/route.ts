@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth/nextauth'
 import { logAuditEvent, AuditAction } from '@/lib/auth/audit-logger'
-import { SendTemplatedEmailUseCase } from '@/application/email/use-cases/SendTemplatedEmailUseCase'
-import { SendGridEmailService } from '@/infrastructure/email/sendgrid/SendGridEmailService'
-import { EmailAddress } from '@/domain/email/value-objects/EmailAddress'
+import { sendTemplatedEmail } from '@/features/email/lib/email-service'
 import { Prisma } from '@prisma/client'
 
 /**
@@ -97,28 +95,22 @@ export async function POST(
 		// Enviar email de notificación
 		if (user.email) {
 			try {
-				const emailService = new SendGridEmailService()
-				const useCase = new SendTemplatedEmailUseCase(emailService)
+				const result = await sendTemplatedEmail({
+					to: user.email,
+					templateId:
+						process.env.SENDGRID_TEMPLATE_ID ||
+						'd-7bddba2ac2ba49ff952c4c2c689d55b7',
+					dynamicTemplateData: {
+						nombre: user.name,
+						mensaje:
+							'Tu cuenta ha sido activada. Ya puedes acceder al sistema.',
+						rol: updatedUser.role?.name || 'Sin rol asignado',
+					},
+				})
 
-				const toEmail = EmailAddress.create(user.email)
-				if (!(toEmail instanceof Error)) {
-					const result = await useCase.execute({
-						to: user.email,
-						templateId:
-							process.env.SENDGRID_TEMPLATE_ID ||
-							'd-7bddba2ac2ba49ff952c4c2c689d55b7',
-						dynamicTemplateData: {
-							nombre: user.name,
-							mensaje:
-								'Tu cuenta ha sido activada. Ya puedes acceder al sistema.',
-							rol: updatedUser.role?.name || 'Sin rol asignado',
-						},
-					})
-
-					if (!result.success) {
-						console.error('Error enviando email de activación:', result.error)
-						// No fallar la activación si el email falla
-					}
+				if (!result.success) {
+					console.error('Error enviando email de activación:', result.error)
+					// No fallar la activación si el email falla
 				}
 			} catch (emailError) {
 				console.error('Error enviando email de activación:', emailError)

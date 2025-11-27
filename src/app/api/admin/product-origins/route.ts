@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { productOriginSchema } from '@/lib/admin/schemas'
+import { createProductOriginSchema } from '@/features/admin/origins/lib/origin-schemas'
 import { z } from 'zod'
 
 export async function GET(request: Request) {
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
 	try {
 		const body = await request.json()
-		const data = productOriginSchema.parse(body)
+		const data = createProductOriginSchema.parse(body)
 
 		const origin = await prisma.productOrigin.create({
 			data: {

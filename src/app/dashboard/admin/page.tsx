@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import { DashboardLayout } from '@/layouts/DashboardLayout'
-import { AdminCard } from '@/components/admin/AdminCard'
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
+import { AdminCard } from '@/features/admin/shared/AdminCard'
 import {
 	Building2,
 	Package,

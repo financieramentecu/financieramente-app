@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { Label } from '../components/ui/label'
-import { ThemeProvider } from '../hooks/use-theme'
+import { Label } from '../features/shared/ui/label'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 
 const meta: Meta<typeof Label> = {
 	title: 'UI/Label',

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
 import type { CSSProperties, ReactNode } from 'react'
-import { ThemeProvider } from '../hooks/use-theme'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 
 const meta: Meta = {
 	title: 'Debug/ButtonFixed',

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { prisma } from '@/lib/prisma'
-import { productSchema } from '@/lib/admin/schemas'
+import { createProductSchema } from '@/features/admin/products/lib/product-schemas'
 
 export async function GET(request: Request) {
 	try {
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
 	try {
 		const body = await request.json()
-		const data = productSchema.parse(body)
+		const data = createProductSchema.parse(body)
 
 		const product = await prisma.product.create({
 			data: {

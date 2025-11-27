@@ -1,21 +1,32 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { DashboardLayout } from '@/layouts/DashboardLayout'
-import { CrudTable, type CrudTableColumn } from '@/components/admin/CrudTable'
-import { CrudModal, type CrudModalField } from '@/components/admin/CrudModal'
-import { DeleteConfirmModal } from '@/components/admin/DeleteConfirmModal'
-import { Button } from '@/components/ui/button'
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
+import {
+	CrudTable,
+	type CrudTableColumn,
+} from '@/features/admin/shared/CrudTable'
+import {
+	CrudModal,
+	type CrudModalField,
+} from '@/features/admin/shared/CrudModal'
+import { DeleteConfirmModal } from '@/features/admin/shared/DeleteConfirmModal'
+import { Button } from '@/features/shared/ui/button'
 import { Plus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@/features/shared/ui/badge'
 import { toast } from 'sonner'
 import {
-	clientOriginSchema,
-	productOriginSchema,
-	type ClientOriginFormData,
-	type ProductOriginFormData,
-} from '@/lib/admin/schemas'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+	createClientOriginSchema,
+	updateClientOriginSchema,
+	createProductOriginSchema,
+	updateProductOriginSchema,
+} from '@/features/admin/origins/lib/origin-schemas'
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from '@/features/shared/ui/tabs'
 
 interface ProductOrigin extends Record<string, unknown> {
 	idOrigin: number
@@ -88,7 +99,7 @@ function ProductOriginsSection() {
 	}
 
 	const handleSubmit = async (data: Record<string, unknown>) => {
-		const formData = data as ProductOriginFormData
+		const formData = data
 		try {
 			setIsSubmitting(true)
 			const url =
@@ -277,7 +288,11 @@ function ProductOriginsSection() {
 						: 'Modifica los datos del origen de producto seleccionado'
 				}
 				fields={fields}
-				schema={productOriginSchema}
+				schema={
+					mode === 'create'
+						? createProductOriginSchema
+						: updateProductOriginSchema
+				}
 				initialData={
 					mode === 'edit' && selectedOrigin
 						? {
@@ -358,7 +373,7 @@ function ClientOriginsSection() {
 	}
 
 	const handleSubmit = async (data: Record<string, unknown>) => {
-		const formData = data as ClientOriginFormData
+		const formData = data
 		try {
 			setIsSubmitting(true)
 			const url =
@@ -545,7 +560,11 @@ function ClientOriginsSection() {
 						: 'Modifica los datos del origen de cliente seleccionado'
 				}
 				fields={fields}
-				schema={clientOriginSchema}
+				schema={
+					mode === 'create'
+						? createClientOriginSchema
+						: updateClientOriginSchema
+				}
 				initialData={
 					mode === 'edit' && selectedOrigin
 						? {

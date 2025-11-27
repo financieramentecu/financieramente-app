@@ -2,9 +2,9 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { DashboardLayout } from '@/layouts/DashboardLayout'
-import { CreateBusinessForm } from '@/components/ui/create-business-form'
-import type { BusinessFormData } from '@/types/business-form'
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
+import { CreateBusinessForm } from '@/features/shared/ui/create-business-form'
+import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { toast } from 'sonner'
 
 /**

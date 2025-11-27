@@ -1,60 +1,37 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { DashboardLayout } from '@/layouts/DashboardLayout'
-import { CrudTable, type CrudTableColumn } from '@/components/admin/CrudTable'
-import { CrudModal, type CrudModalField } from '@/components/admin/CrudModal'
-import { DeleteConfirmModal } from '@/components/admin/DeleteConfirmModal'
-import { Button } from '@/components/ui/button'
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { toast } from 'sonner'
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import {
-	buyPeriodicitySchema,
-	type BuyPeriodicityFormData,
-} from '@/lib/admin/schemas'
-
-interface Periodicity extends Record<string, unknown> {
-	idBuyPeriodicity: number
-	name: string
-	active: boolean
-	createdAt: string
-	updatedAt: string
-}
+	CrudModal,
+	type CrudModalField,
+} from '@/features/admin/shared/CrudModal'
+import { DeleteConfirmModal } from '@/features/admin/shared/DeleteConfirmModal'
+import { Button } from '@/features/shared/ui/button'
+import { PeriodicitiesTable } from '@/features/admin/periodicities/components/periodicities-table'
+import { usePeriodicities } from '@/features/admin/periodicities/hooks/use-periodicities'
+import { usePeriodicityMutations } from '@/features/admin/periodicities/hooks/use-periodicity-mutations'
+import {
+	createPeriodicitySchema,
+	updatePeriodicitySchema,
+} from '@/features/admin/periodicities/lib/periodicity-schemas'
+import type { Periodicity } from '@/features/admin/periodicities/types/periodicity.types'
 
 export default function PeriodicitiesAdminPage() {
-	const [periodicities, setPeriodicities] = useState<Periodicity[]>([])
-	const [isLoading, setIsLoading] = useState(true)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [selectedPeriodicity, setSelectedPeriodicity] =
 		useState<Periodicity | null>(null)
 	const [mode, setMode] = useState<'create' | 'edit'>('create')
-	const [isSubmitting, setIsSubmitting] = useState(false)
 
-	const loadPeriodicities = async () => {
-		try {
-			setIsLoading(true)
-			const response = await fetch('/api/admin/periodicities')
-			const data = await response.json()
-			if (response.ok) {
-				setPeriodicities(data.periodicities || [])
-			} else {
-				toast.error('Error al cargar periodicidades', {
-					description: data.error || 'Ocurrió un error inesperado',
-				})
-			}
-		} catch (error) {
-			console.error('Error loading periodicities:', error)
-			toast.error('Error al cargar periodicidades')
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	useEffect(() => {
-		loadPeriodicities()
-	}, [])
+	const { periodicities, isLoading, refreshPeriodicities } = usePeriodicities()
+	const {
+		createPeriodicity,
+		updatePeriodicity,
+		deletePeriodicity,
+		isSubmitting,
+	} = usePeriodicityMutations()
 
 	const handleCreate = () => {
 		setSelectedPeriodicity(null)
@@ -73,50 +50,25 @@ export default function PeriodicitiesAdminPage() {
 		setIsDeleteModalOpen(true)
 	}
 
-	const handleSubmit = async (data: Record<string, unknown>) => {
-		const formData = data as BuyPeriodicityFormData
+	const handleSubmit = async (formData: Record<string, unknown>) => {
 		try {
-			setIsSubmitting(true)
-			const url =
-				mode === 'create'
-					? '/api/admin/periodicities'
-					: `/api/admin/periodicities/${selectedPeriodicity?.idBuyPeriodicity}`
-
-			const method = mode === 'create' ? 'POST' : 'PUT'
-
-			const response = await fetch(url, {
-				method,
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(formData),
-			})
-
-			const result = await response.json()
-
-			if (!response.ok) {
-				throw new Error(
-					result.details || result.error || 'Error al guardar periodicidad'
-				)
+			if (mode === 'create') {
+				await createPeriodicity({
+					name: formData.name as string,
+					active: formData.active as boolean,
+				})
+			} else if (selectedPeriodicity) {
+				await updatePeriodicity(selectedPeriodicity.idBuyPeriodicity, {
+					name: formData.name as string,
+					active: formData.active as boolean,
+				})
 			}
-
-			toast.success(
-				mode === 'create'
-					? 'Periodicidad creada exitosamente'
-					: 'Periodicidad actualizada exitosamente'
-			)
 
 			setIsModalOpen(false)
 			setSelectedPeriodicity(null)
-			loadPeriodicities()
-		} catch (error) {
-			console.error('Error saving periodicity:', error)
-			toast.error('Error al guardar periodicidad', {
-				description:
-					error instanceof Error
-						? error.message
-						: 'Ocurrió un error inesperado',
-			})
-		} finally {
-			setIsSubmitting(false)
+			refreshPeriodicities()
+		} catch {
+			// Error ya manejado en el hook
 		}
 	}
 
@@ -124,62 +76,14 @@ export default function PeriodicitiesAdminPage() {
 		if (!selectedPeriodicity) return
 
 		try {
-			setIsSubmitting(true)
-			const response = await fetch(
-				`/api/admin/periodicities/${selectedPeriodicity.idBuyPeriodicity}`,
-				{
-					method: 'DELETE',
-				}
-			)
-
-			const result = await response.json()
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Error al eliminar periodicidad')
-			}
-
-			toast.success('Periodicidad eliminada exitosamente')
+			await deletePeriodicity(selectedPeriodicity.idBuyPeriodicity)
 			setIsDeleteModalOpen(false)
 			setSelectedPeriodicity(null)
-			loadPeriodicities()
-		} catch (error) {
-			console.error('Error deleting periodicity:', error)
-			toast.error('Error al eliminar periodicidad', {
-				description:
-					error instanceof Error
-						? error.message
-						: 'Ocurrió un error inesperado',
-			})
-		} finally {
-			setIsSubmitting(false)
+			refreshPeriodicities()
+		} catch {
+			// Error ya manejado en el hook
 		}
 	}
-
-	const columns: CrudTableColumn<Periodicity>[] = [
-		{
-			key: 'idBuyPeriodicity',
-			header: 'ID',
-			cellRenderer: (value) => (
-				<span className="font-medium">#{String(value)}</span>
-			),
-		},
-		{
-			key: 'name',
-			header: 'Nombre',
-			cellRenderer: (value) => (
-				<span className="font-medium">{String(value)}</span>
-			),
-		},
-		{
-			key: 'active',
-			header: 'Estado',
-			cellRenderer: (value) => (
-				<Badge variant={(value as boolean) ? 'success' : 'neutral'}>
-					{(value as boolean) ? 'Activa' : 'Inactiva'}
-				</Badge>
-			),
-		},
-	]
 
 	const fields: CrudModalField[] = [
 		{
@@ -195,7 +99,7 @@ export default function PeriodicitiesAdminPage() {
 			type: 'switch',
 			required: false,
 			description:
-				'Inactiva la periodicidad para evitar que nuevos registros la utilicen.',
+				'Define si la periodicidad puede ser seleccionada al crear negocios.',
 		},
 	]
 
@@ -204,9 +108,9 @@ export default function PeriodicitiesAdminPage() {
 			<div className="space-y-6">
 				<div className="flex items-center justify-between">
 					<div>
-						<h1 className="text-3xl font-bold">Periodicidades de Compra</h1>
+						<h1 className="text-3xl font-bold">Periodicidades</h1>
 						<p className="text-muted-foreground mt-2">
-							Configura las periodicidades disponibles para los contratos
+							Gestiona las periodicidades de compra disponibles
 						</p>
 					</div>
 					<Button onClick={handleCreate} className="gap-2">
@@ -215,14 +119,11 @@ export default function PeriodicitiesAdminPage() {
 					</Button>
 				</div>
 
-				<CrudTable
-					data={periodicities}
-					columns={columns}
+				<PeriodicitiesTable
+					periodicities={periodicities}
+					isLoading={isLoading}
 					onEdit={handleEdit}
 					onDelete={handleDelete}
-					isLoading={isLoading}
-					searchable
-					emptyMessage="No hay periodicidades registradas"
 				/>
 
 				<CrudModal
@@ -233,11 +134,15 @@ export default function PeriodicitiesAdminPage() {
 					}
 					description={
 						mode === 'create'
-							? 'Define una nueva periodicidad para las compras'
+							? 'Completa el formulario para registrar una nueva periodicidad'
 							: 'Modifica los datos de la periodicidad seleccionada'
 					}
 					fields={fields}
-					schema={buyPeriodicitySchema}
+					schema={
+						mode === 'create'
+							? createPeriodicitySchema
+							: updatePeriodicitySchema
+					}
 					initialData={
 						mode === 'edit' && selectedPeriodicity
 							? {

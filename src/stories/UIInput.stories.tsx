@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { ThemeProvider } from '../hooks/use-theme'
+import { Input } from '../features/shared/ui/input'
+import { Label } from '../features/shared/ui/label'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 // Icons are used in stories but not directly imported
 
 const meta: Meta<typeof Input> = {

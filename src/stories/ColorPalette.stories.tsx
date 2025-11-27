@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { Button } from '../components/ui/button'
+import { Button } from '../features/shared/ui/button'
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from '../components/ui/card'
-import { Badge } from '../components/ui/badge'
-import { ThemeProvider } from '../hooks/use-theme'
+} from '../features/shared/ui/card'
+import { Badge } from '../features/shared/ui/badge'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 
 const ColorPaletteDemo = () => {
 	return (

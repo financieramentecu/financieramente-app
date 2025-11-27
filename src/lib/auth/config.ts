@@ -7,6 +7,7 @@ import { getRolePermissions, RolePermissions } from './permissions'
 import { UserRole } from './roles'
 import { createUserAutomatically } from './user-creation'
 import { prisma } from '@/lib/prisma'
+import { sendNewUserNotificationToAdmins } from '../email/admin-notifications'
 
 /**
  * Configuración de autenticación NextAuth
@@ -120,7 +121,11 @@ export const authConfig: NextAuthConfig = {
 						})
 
 						// TODO: Notificar al administrador (se implementará en siguiente fase)
-						// await notifyAdminNewUser(user.email, user.name)
+						await sendNewUserNotificationToAdmins({
+							userId: createResult.userId,
+							userName: user.name || user.email.split('@')[0],
+							userEmail: user.email,
+						})
 
 						// Permitir autenticación, el middleware redirigirá a /access-denied
 						// Obtener el usuario recién creado para agregar información

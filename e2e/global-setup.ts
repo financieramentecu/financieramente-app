@@ -5,7 +5,7 @@ import { setupTestUser } from './setup/db-setup'
  * Setup global que se ejecuta antes de todos los tests e2e
  * Crea el usuario de prueba en la base de datos
  */
-async function globalSetup(config: FullConfig) {
+async function globalSetup(_config: FullConfig) {
 	console.log('🔧 Configurando base de datos para pruebas e2e...')
 
 	try {

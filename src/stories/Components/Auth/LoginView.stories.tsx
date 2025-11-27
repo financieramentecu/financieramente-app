@@ -3,8 +3,8 @@ import {
 	GoogleIcon,
 	LoginView,
 	type LoginViewProps,
-} from '@/components/auth/login'
-import { ThemeProvider } from '@/hooks/use-theme'
+} from '@/features/auth/components/login'
+import { ThemeProvider } from '@/features/shared/ui/ThemeProvider'
 
 const meta: Meta<typeof LoginView> = {
 	title: 'Components/Auth/LoginView',

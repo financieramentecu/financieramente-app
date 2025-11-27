@@ -1,59 +1,34 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { DashboardLayout } from '@/layouts/DashboardLayout'
-import { CrudTable, type CrudTableColumn } from '@/components/admin/CrudTable'
-import { CrudModal, type CrudModalField } from '@/components/admin/CrudModal'
-import { DeleteConfirmModal } from '@/components/admin/DeleteConfirmModal'
-import { Button } from '@/components/ui/button'
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { toast } from 'sonner'
-import { currencySchema, type CurrencyFormData } from '@/lib/admin/schemas'
-
-interface Currency extends Record<string, unknown> {
-	idCurrency: number
-	name: string
-	symbol: string | null
-	active: boolean
-	createdAt: string
-	updatedAt: string
-}
+import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
+import {
+	CrudModal,
+	type CrudModalField,
+} from '@/features/admin/shared/CrudModal'
+import { DeleteConfirmModal } from '@/features/admin/shared/DeleteConfirmModal'
+import { Button } from '@/features/shared/ui/button'
+import { CurrenciesTable } from '@/features/admin/currencies/components/currencies-table'
+import { useCurrencies } from '@/features/admin/currencies/hooks/use-currencies'
+import { useCurrencyMutations } from '@/features/admin/currencies/hooks/use-currency-mutations'
+import {
+	createCurrencySchema,
+	updateCurrencySchema,
+} from '@/features/admin/currencies/lib/currency-schemas'
+import type { Currency } from '@/features/admin/currencies/types/currency.types'
 
 export default function CurrenciesAdminPage() {
-	const [currencies, setCurrencies] = useState<Currency[]>([])
-	const [isLoading, setIsLoading] = useState(true)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(
 		null
 	)
 	const [mode, setMode] = useState<'create' | 'edit'>('create')
-	const [isSubmitting, setIsSubmitting] = useState(false)
 
-	const loadCurrencies = async () => {
-		try {
-			setIsLoading(true)
-			const response = await fetch('/api/admin/currencies')
-			const data = await response.json()
-			if (response.ok) {
-				setCurrencies(data.currencies || [])
-			} else {
-				toast.error('Error al cargar monedas', {
-					description: data.error || 'Ocurrió un error inesperado',
-				})
-			}
-		} catch (error) {
-			console.error('Error loading currencies:', error)
-			toast.error('Error al cargar monedas')
-		} finally {
-			setIsLoading(false)
-		}
-	}
-
-	useEffect(() => {
-		loadCurrencies()
-	}, [])
+	const { currencies, isLoading, refreshCurrencies } = useCurrencies()
+	const { createCurrency, updateCurrency, deleteCurrency, isSubmitting } =
+		useCurrencyMutations()
 
 	const handleCreate = () => {
 		setSelectedCurrency(null)
@@ -72,53 +47,27 @@ export default function CurrenciesAdminPage() {
 		setIsDeleteModalOpen(true)
 	}
 
-	const handleSubmit = async (data: Record<string, unknown>) => {
-		const formData = data as CurrencyFormData
+	const handleSubmit = async (formData: Record<string, unknown>) => {
 		try {
-			setIsSubmitting(true)
-			const url =
-				mode === 'create'
-					? '/api/admin/currencies'
-					: `/api/admin/currencies/${selectedCurrency?.idCurrency}`
-
-			const method = mode === 'create' ? 'POST' : 'PUT'
-
-			const response = await fetch(url, {
-				method,
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					...formData,
-					symbol: formData.symbol === '' ? undefined : formData.symbol,
-				}),
-			})
-
-			const result = await response.json()
-
-			if (!response.ok) {
-				throw new Error(
-					result.details || result.error || 'Error al guardar moneda'
-				)
+			if (mode === 'create') {
+				await createCurrency({
+					name: formData.name as string,
+					symbol: formData.symbol as string | undefined,
+					active: formData.active as boolean,
+				})
+			} else if (selectedCurrency) {
+				await updateCurrency(selectedCurrency.idCurrency, {
+					name: formData.name as string,
+					symbol: formData.symbol as string | undefined,
+					active: formData.active as boolean,
+				})
 			}
-
-			toast.success(
-				mode === 'create'
-					? 'Moneda creada exitosamente'
-					: 'Moneda actualizada exitosamente'
-			)
 
 			setIsModalOpen(false)
 			setSelectedCurrency(null)
-			loadCurrencies()
-		} catch (error) {
-			console.error('Error saving currency:', error)
-			toast.error('Error al guardar moneda', {
-				description:
-					error instanceof Error
-						? error.message
-						: 'Ocurrió un error inesperado',
-			})
-		} finally {
-			setIsSubmitting(false)
+			refreshCurrencies()
+		} catch {
+			// Error ya manejado en el hook
 		}
 	}
 
@@ -126,72 +75,14 @@ export default function CurrenciesAdminPage() {
 		if (!selectedCurrency) return
 
 		try {
-			setIsSubmitting(true)
-			const response = await fetch(
-				`/api/admin/currencies/${selectedCurrency.idCurrency}`,
-				{
-					method: 'DELETE',
-				}
-			)
-
-			const result = await response.json()
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Error al eliminar moneda')
-			}
-
-			toast.success('Moneda eliminada exitosamente')
+			await deleteCurrency(selectedCurrency.idCurrency)
 			setIsDeleteModalOpen(false)
 			setSelectedCurrency(null)
-			loadCurrencies()
-		} catch (error) {
-			console.error('Error deleting currency:', error)
-			toast.error('Error al eliminar moneda', {
-				description:
-					error instanceof Error
-						? error.message
-						: 'Ocurrió un error inesperado',
-			})
-		} finally {
-			setIsSubmitting(false)
+			refreshCurrencies()
+		} catch {
+			// Error ya manejado en el hook
 		}
 	}
-
-	const columns: CrudTableColumn<Currency>[] = [
-		{
-			key: 'idCurrency',
-			header: 'ID',
-			cellRenderer: (value) => (
-				<span className="font-medium">#{String(value)}</span>
-			),
-		},
-		{
-			key: 'name',
-			header: 'Nombre',
-			cellRenderer: (value) => (
-				<span className="font-medium">{String(value)}</span>
-			),
-		},
-		{
-			key: 'symbol',
-			header: 'Símbolo',
-			cellRenderer: (value) =>
-				value ? (
-					<span className="font-mono">{String(value)}</span>
-				) : (
-					<span className="text-muted-foreground">-</span>
-				),
-		},
-		{
-			key: 'active',
-			header: 'Estado',
-			cellRenderer: (value) => (
-				<Badge variant={(value as boolean) ? 'success' : 'neutral'}>
-					{(value as boolean) ? 'Activa' : 'Inactiva'}
-				</Badge>
-			),
-		},
-	]
 
 	const fields: CrudModalField[] = [
 		{
@@ -234,14 +125,11 @@ export default function CurrenciesAdminPage() {
 					</Button>
 				</div>
 
-				<CrudTable
-					data={currencies}
-					columns={columns}
+				<CurrenciesTable
+					currencies={currencies}
+					isLoading={isLoading}
 					onEdit={handleEdit}
 					onDelete={handleDelete}
-					isLoading={isLoading}
-					searchable
-					emptyMessage="No hay monedas registradas"
 				/>
 
 				<CrudModal
@@ -254,7 +142,9 @@ export default function CurrenciesAdminPage() {
 							: 'Modifica los datos de la moneda seleccionada'
 					}
 					fields={fields}
-					schema={currencySchema}
+					schema={
+						mode === 'create' ? createCurrencySchema : updateCurrencySchema
+					}
 					initialData={
 						mode === 'edit' && selectedCurrency
 							? {

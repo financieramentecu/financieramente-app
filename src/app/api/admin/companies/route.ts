@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { companySchema } from '@/lib/admin/schemas'
+import { createCompanySchema } from '@/features/admin/companies/lib/company-schemas'
 import { z } from 'zod'
 
 export async function GET(request: Request) {
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
 	try {
 		const body = await request.json()
-		const data = companySchema.parse(body)
+		const data = createCompanySchema.parse(body)
 
 		const company = await prisma.company.create({
 			data,

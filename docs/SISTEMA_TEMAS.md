@@ -161,8 +161,8 @@ function MyComponent() {
 ### 2. Usar Componentes con Temas
 
 ```tsx
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/features/shared/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/features/shared/ui/card'
 
 function ExampleComponent() {
 	return (

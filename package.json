@@ -23,7 +23,7 @@
 		"test:ui": "vitest --ui",
 		"test:snapshot": "vitest --run --reporter=verbose",
 		"test:email": "tsx scripts/test-email.ts",
-		"test:email:integration": "vitest --config vitest.integration.config.ts --run src/infrastructure/email",
+		"test:email:integration": "vitest --config vitest.integration.config.ts --run src/features/email",
 		"storybook": "storybook dev -p 6006",
 		"build-storybook": "storybook build",
 		"chromatic": "npx chromatic --project-token=${CHROMATIC_PROJECT_TOKEN}",

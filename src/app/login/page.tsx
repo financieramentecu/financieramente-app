@@ -6,11 +6,11 @@ import { Suspense } from 'react'
 import { signIn } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { LoginView, type EmailSignInFormProps } from '@/components/auth/login'
-import { GoogleIcon } from '@/components/auth/login/social-sign-in'
+import { LoginView, type EmailSignInFormProps } from '@/features/auth/components/login'
+import { GoogleIcon } from '@/features/auth/components/login/social-sign-in'
 import { toast } from 'sonner'
-import type { SocialProvider } from '@/components/auth/login/social-sign-in'
-import { ErrorMessage } from '@/components/auth/error-message'
+import type { SocialProvider } from '@/features/auth/components/login/social-sign-in'
+import { ErrorMessage } from '@/features/auth/components/error-message'
 
 /**
  * Componente interno que usa useSearchParams

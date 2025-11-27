@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { Button } from '../components/ui/button'
-import { ThemeProvider } from '../hooks/use-theme'
+import { Button } from '../features/shared/ui/button'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 
 const meta: Meta<typeof Button> = {
 	title: 'Debug/Button',

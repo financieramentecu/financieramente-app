@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { DocumentAutocomplete } from '../components/ui/document-autocomplete'
-import { ThemeProvider } from '../hooks/use-theme'
-import { mockUsers } from '../data/mockUsers'
+import { DocumentAutocomplete } from '../features/shared/ui/document-autocomplete'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
+import { mockUsers } from '../features/shared/__tests__/fixtures/mockUsers'
 import * as React from 'react'
 
 const meta: Meta<typeof DocumentAutocomplete> = {

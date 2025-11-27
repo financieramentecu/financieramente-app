@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { buyPeriodicitySchema } from '@/lib/admin/schemas'
+import { createPeriodicitySchema } from '@/features/admin/periodicities/lib/periodicity-schemas'
 import { z } from 'zod'
 
 export async function GET(request: Request) {
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
 	try {
 		const body = await request.json()
-		const data = buyPeriodicitySchema.parse(body)
+		const data = createPeriodicitySchema.parse(body)
 
 		const periodicity = await prisma.buyPeriodicity.create({
 			data: {
