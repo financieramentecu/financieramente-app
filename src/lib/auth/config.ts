@@ -91,7 +91,7 @@ export const authConfig: NextAuthConfig = {
 						action: AuditAction.ACCOUNT_DISABLED,
 						email: user.email,
 						details:
-							'Usuario con rol Default intentó acceder (requiere activación)',
+							'Usuario con rol Default intentó acceder (requiere activación o cambio de rol permitido)',
 					})
 					// Permitir autenticación, el middleware redirigirá a /access-denied
 					if (validation.user) {

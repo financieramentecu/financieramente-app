@@ -69,10 +69,10 @@ export async function GET(
 				avatar: null,
 				role: user.role
 					? {
-							id: user.role.idRole,
-							code: user.role.code,
-							name: user.role.name,
-						}
+						id: user.role.idRole,
+						code: user.role.code,
+						name: user.role.name,
+					}
 					: null,
 				active: user.active,
 				createdAt: user.createdAt,
@@ -182,6 +182,23 @@ export async function PUT(
 				email: existingUser.email || undefined,
 				details: `Usuario ${active ? 'activado' : 'desactivado'} por administrador`,
 			})
+
+			// Send activation email if user is being activated
+			if (active && updatedUser.email) {
+				try {
+					const { sendUserActivationEmail } = await import(
+						'@/lib/email/user-activation-notification'
+					)
+					await sendUserActivationEmail({
+						userName: updatedUser.name,
+						userEmail: updatedUser.email,
+						roleName: updatedUser.role?.name || 'Sin rol asignado',
+					})
+				} catch (error) {
+					console.error('Error sending activation email:', error)
+					// Don't fail the request if email fails
+				}
+			}
 		}
 
 		if (roleId !== undefined && updatedUser.idRole !== existingUser.idRole) {
@@ -203,10 +220,10 @@ export async function PUT(
 				email: updatedUser.email,
 				role: updatedUser.role
 					? {
-							id: updatedUser.role.idRole,
-							code: updatedUser.role.code,
-							name: updatedUser.role.name,
-						}
+						id: updatedUser.role.idRole,
+						code: updatedUser.role.code,
+						name: updatedUser.role.name,
+					}
 					: null,
 				active: updatedUser.active,
 			},

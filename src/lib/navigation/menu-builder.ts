@@ -113,6 +113,12 @@ export function buildMenuByRole(
 			continue
 		}
 
+		// Usuarios (solo administradores)
+		if (item.title === 'Usuarios' && permissions.administracion) {
+			filteredItems.push(item)
+			continue
+		}
+
 		// Configuración
 		if (item.title === 'Configuración' && permissions.configuracion) {
 			filteredItems.push(item)
