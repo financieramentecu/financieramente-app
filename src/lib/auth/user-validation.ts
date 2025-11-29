@@ -110,3 +110,141 @@ export async function getUserRoleByEmail(
 	const validation = await validateUserByEmail(email)
 	return validation.user?.role || null
 }
+
+/**
+ * Valida credenciales de usuario (email + contraseña)
+ * Solo permite login con contraseña a usuarios ADMIN activos con ssoOnly = false
+ */
+export async function validateUserCredentials(
+	email: string,
+	password: string
+): Promise<UserValidationResult> {
+	try {
+		const user = await prisma.user.findUnique({
+			where: { email },
+			include: {
+				role: true,
+			},
+		})
+
+		if (!user) {
+			return {
+				isValid: false,
+				user: null,
+				error: 'USER_NOT_FOUND',
+			}
+		}
+
+		// Verificar que el usuario esté activo
+		if (!user.active) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: (user.role?.code as UserRole | null) || null,
+				},
+				error: 'USER_INACTIVE',
+			}
+		}
+
+		// Verificar que tenga rol
+		if (!user.role) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: null,
+				},
+				error: 'NO_ROLE',
+			}
+		}
+
+		// RESTRICCIÓN: Solo usuarios ADMIN pueden usar email/contraseña
+		if (user.role.code !== UserRole.ADMIN) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: user.role.code as UserRole,
+				},
+				error: 'USER_INACTIVE', // Usar este error para mantener consistencia
+			}
+		}
+
+		// Verificar que el usuario tenga habilitado el login con contraseña
+		if (user.ssoOnly) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: user.role.code as UserRole,
+				},
+				error: 'USER_INACTIVE', // Usar este error para mantener consistencia
+			}
+		}
+
+		// Verificar que tenga contraseña configurada
+		if (!user.password) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: user.role.code as UserRole,
+				},
+				error: 'USER_INACTIVE',
+			}
+		}
+
+		// Verificar la contraseña
+		const { verifyPassword } = await import('./password-utils')
+		const isPasswordValid = await verifyPassword(password, user.password)
+
+		if (!isPasswordValid) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: user.role.code as UserRole,
+				},
+				error: 'USER_INACTIVE', // Usar este error genérico por seguridad
+			}
+		}
+
+		// Usuario válido con credenciales correctas
+		return {
+			isValid: true,
+			user: {
+				id: user.idUser,
+				email: user.email || '',
+				name: user.name,
+				active: user.active,
+				role: user.role.code as UserRole,
+			},
+		}
+	} catch (error) {
+		console.error('Error validating user credentials:', error)
+		return {
+			isValid: false,
+			user: null,
+			error: 'USER_NOT_FOUND',
+		}
+	}
+}

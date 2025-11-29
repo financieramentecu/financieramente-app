@@ -22,6 +22,7 @@ function LoginContent() {
 
 	const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard'
 	const error = searchParams?.get('error')
+	const isSuperAdminMode = searchParams?.get('superadmin') === 'true'
 
 	// Redirigir a /access-denied si hay error de acceso denegado
 	if (error === 'AccessDenied' || error === 'AccountDisabled') {
@@ -40,6 +41,48 @@ function LoginContent() {
 			// Si redirect: true, signIn no retorna (la redirección maneja el flujo)
 		} catch (error) {
 			console.error('Error en autenticación:', error)
+			toast.error('Error inesperado', {
+				description: 'Ocurrió un error al intentar iniciar sesión.',
+			})
+			setIsSubmitting(false)
+		}
+	}
+
+	const handleEmailPasswordSignIn = async (email: string, password: string) => {
+		// Validar dominio corporativo
+		const emailDomain = email.split('@')[1]
+		if (emailDomain !== 'financieramentecu.com') {
+			toast.error('Dominio no autorizado', {
+				description:
+					'Solo se permite el acceso con correos corporativos (@financieramentecu.com). Por favor, utiliza tu cuenta institucional.',
+			})
+			return
+		}
+
+		try {
+			setIsSubmitting(true)
+			const result = await signIn('credentials', {
+				email,
+				password,
+				callbackUrl,
+				redirect: false,
+			})
+
+			if (result?.error) {
+				toast.error('Error de autenticación', {
+					description:
+						'Credenciales inválidas o usuario no autorizado para este método de acceso.',
+				})
+				setIsSubmitting(false)
+				return
+			}
+
+			if (result?.ok) {
+				toast.success('Inicio de sesión exitoso')
+				router.push(callbackUrl)
+			}
+		} catch (error) {
+			console.error('Error en autenticación con credenciales:', error)
 			toast.error('Error inesperado', {
 				description: 'Ocurrió un error al intentar iniciar sesión.',
 			})
@@ -71,6 +114,18 @@ function LoginContent() {
 		<>
 			<ErrorMessage error={error} />
 			<LoginView
+				showEmailPasswordForm={isSuperAdminMode}
+				emailPasswordForm={
+					isSuperAdminMode
+						? {
+							emailPlaceholder: 'admin@financieramentecu.com',
+							passwordPlaceholder: '••••••••',
+							submitLabel: 'Ingresar',
+							isSubmitting,
+							onSubmit: handleEmailPasswordSignIn,
+						}
+						: undefined
+				}
 				emailForm={{
 					placeholder: 'usuario@financieramentecu.com',
 					submitLabel: 'Ingresar con correo',
