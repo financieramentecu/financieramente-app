@@ -84,5 +84,11 @@ export default defineConfig({
 		url: 'http://localhost:3000',
 		reuseExistingServer: !process.env.CI,
 		timeout: 120000,
+		env: {
+			...(process.env.DATABASE_URL && {
+				DATABASE_URL: process.env.DATABASE_URL,
+			}),
+			...(process.env.DIRECT_URL && { DIRECT_URL: process.env.DIRECT_URL }),
+		},
 	},
 })

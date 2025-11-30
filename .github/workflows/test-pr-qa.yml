@@ -248,12 +248,21 @@ jobs:
         if: steps.changes.outputs.e2e == 'true'
         run: npx playwright install --with-deps chromium webkit
 
+      - name: Setup database schema
+        if: steps.changes.outputs.e2e == 'true'
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
+          DIRECT_URL: ${{ secrets.DATABASE_URL_DEV }}
+
       - name: Run E2E tests
         if: steps.changes.outputs.e2e == 'true'
         run: npx playwright test --project=chromium --project=webkit
         env:
           CI: true
           BASE_URL: http://localhost:3000
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
+          DIRECT_URL: ${{ secrets.DATABASE_URL_DEV }}
 
       - name: Upload Playwright report
         if: always() && steps.changes.outputs.e2e == 'true'
