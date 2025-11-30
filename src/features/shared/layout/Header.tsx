@@ -48,6 +48,12 @@ export function SiteHeader({ title = 'Financieramente' }: SiteHeaderProps) {
 									size="sm"
 									className="hidden sm:flex gap-2"
 								>
+									<div className="flex flex-col items-end">
+										<span className="text-sm font-medium">{user.name || user.email}</span>
+										<span className="text-xs text-muted-foreground">
+											{user.role || 'Sin rol'}
+										</span>
+									</div>
 									<Avatar className="h-8 w-8">
 										<AvatarImage
 											src={user.image || undefined}
@@ -55,7 +61,6 @@ export function SiteHeader({ title = 'Financieramente' }: SiteHeaderProps) {
 										/>
 										<AvatarFallback>{userInitials}</AvatarFallback>
 									</Avatar>
-									<span className="text-sm">{user.name || user.email}</span>
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-56">
@@ -64,9 +69,12 @@ export function SiteHeader({ title = 'Financieramente' }: SiteHeaderProps) {
 										<p className="text-sm font-medium leading-none">
 											{user.name}
 										</p>
-										<p className="text-xs leading-none text-muted-foreground flex items-center gap-1">
-											<Mail className="h-3 w-3" />
-											{user.email}
+										<p className="text-xs leading-none text-muted-foreground">
+											{user.role || 'Sin rol'}
+										</p>
+										<p className="text-xs leading-none text-muted-foreground flex items-center gap-1 truncate">
+											<Mail className="h-3 w-3 flex-shrink-0" />
+											<span className="truncate">{user.email}</span>
 										</p>
 									</div>
 								</DropdownMenuLabel>

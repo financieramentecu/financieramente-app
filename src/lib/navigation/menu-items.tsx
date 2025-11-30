@@ -10,6 +10,7 @@ import {
 	BarChart3,
 	Settings,
 	X,
+	Users,
 } from 'lucide-react'
 
 /**
@@ -108,6 +109,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				icon: <BarChart3 className="h-4 w-4" />,
 			},
 		],
+	},
+	{
+		title: 'Usuarios',
+		url: '/dashboard/admin/users',
+		icon: <Users className="h-4 w-4" />,
 	},
 	{
 		title: 'Configuración',

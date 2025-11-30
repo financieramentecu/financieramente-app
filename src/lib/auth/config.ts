@@ -65,40 +65,31 @@ export const authConfig: NextAuthConfig = {
 			// Validar usuario en base de datos
 			const validation = await validateUserByEmail(user.email)
 
-			console.log('validation', validation)
 
 			if (!validation.isValid) {
+				// PRIMERA VALIDACIÓN: Bloquear usuarios inactivos inmediatamente
 				if (validation.error === 'USER_INACTIVE') {
 					await logAuditEvent({
 						userId: validation.user?.id,
 						action: AuditAction.ACCOUNT_DISABLED,
 						email: user.email,
-						details: 'Usuario inactivo intentó acceder',
+						details: 'Usuario inactivo intentó acceder - Login bloqueado',
 					})
-					// Permitir autenticación pero agregar información para redirigir después
-					if (validation.user) {
-						user.id = validation.user.id.toString()
-						user.role = validation.user.role
-					}
-					// Retornar true para permitir autenticación, el middleware redirigirá a /access-denied
-					return true
+					// Bloquear login inmediatamente
+					return false
 				}
 
-				// Si el usuario tiene rol DEFAULT, permitir autenticación pero redirigir después
+				// SEGUNDA VALIDACIÓN: Bloquear usuarios con rol DEFAULT
 				if (validation.user?.role === UserRole.DEFAULT) {
 					await logAuditEvent({
 						userId: validation.user.id,
 						action: AuditAction.ACCOUNT_DISABLED,
 						email: user.email,
 						details:
-							'Usuario con rol Default intentó acceder (requiere activación)',
+							'Usuario con rol Default intentó acceder - Login bloqueado (requiere activación y asignación de rol)',
 					})
-					// Permitir autenticación, el middleware redirigirá a /access-denied
-					if (validation.user) {
-						user.id = validation.user.id.toString()
-						user.role = validation.user.role
-					}
-					return true
+					// Bloquear login inmediatamente
+					return false
 				}
 
 				if (validation.error === 'USER_NOT_FOUND') {
@@ -110,35 +101,25 @@ export const authConfig: NextAuthConfig = {
 					})
 
 					if (createResult.success && createResult.userId) {
-						// Usuario creado exitosamente, pero está inactivo
+						// Usuario creado exitosamente, pero está inactivo y con rol DEFAULT
 						// Registrar intento de acceso
 						await logAuditEvent({
 							userId: createResult.userId,
 							action: AuditAction.ACCOUNT_DISABLED,
 							email: user.email,
 							details:
-								'Usuario nuevo creado automáticamente con estado Inactivo. Requiere activación por administrador.',
+								'Usuario nuevo creado automáticamente con estado Inactivo - Login bloqueado. Requiere activación por administrador.',
 						})
 
-						// TODO: Notificar al administrador (se implementará en siguiente fase)
+						// Notificar al administrador
 						await sendNewUserNotificationToAdmins({
 							userId: createResult.userId,
 							userName: user.name || user.email.split('@')[0],
 							userEmail: user.email,
 						})
 
-						// Permitir autenticación, el middleware redirigirá a /access-denied
-						// Obtener el usuario recién creado para agregar información
-						const newUser = await prisma.user.findUnique({
-							where: { idUser: createResult.userId },
-							include: { role: true },
-						})
-						if (newUser) {
-							user.id = newUser.idUser.toString()
-							user.role =
-								(newUser.role?.code as UserRole | null) || UserRole.DEFAULT
-						}
-						return true
+						// Bloquear login inmediatamente - usuario debe ser activado primero
+						return false
 					} else {
 						// TODO: Replace this functionality with Sentry error tracking
 						// Error al crear usuario
@@ -155,14 +136,10 @@ export const authConfig: NextAuthConfig = {
 						userId: validation.user?.id,
 						action: AuditAction.ACCESS_DENIED,
 						email: user.email,
-						details: 'Usuario sin rol asignado',
+						details: 'Usuario sin rol asignado - Login bloqueado',
 					})
-					// Permitir autenticación pero redirigir después
-					if (validation.user) {
-						user.id = validation.user.id.toString()
-						user.role = null
-					}
-					return true
+					// Bloquear login - usuario debe tener un rol asignado
+					return false
 				}
 
 				return false

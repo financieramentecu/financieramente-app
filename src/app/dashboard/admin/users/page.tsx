@@ -1,7 +1,6 @@
 'use client'
 
-import React from 'react'
-
+import React, { useState } from 'react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import {
 	Card,
@@ -10,9 +9,17 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/features/shared/ui/card'
-import { Button } from '@/features/shared/ui/button'
+import { UsersTable } from '@/features/admin/users/components/users-table'
+import { UsersFilters } from '@/features/admin/users/components/users-filters'
+import { useUsers } from '@/features/admin/users/hooks/use-users'
+import { useRoles } from '@/features/admin/users/hooks/use-roles'
+import type { UserFilters } from '@/features/admin/users/types/user.types'
 
 export default function AdminUsersPage() {
+	const [filters, setFilters] = useState<UserFilters>({})
+	const { users, isLoading } = useUsers(filters)
+	const { roles } = useRoles()
+
 	return (
 		<DashboardLayout currentPage="Usuarios">
 			<div className="space-y-6">
@@ -20,28 +27,36 @@ export default function AdminUsersPage() {
 					<div>
 						<h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
 						<p className="text-muted-foreground mt-2">
-							Próximamente podrás administrar agentes, jerarquías y accesos del
-							sistema desde este panel.
+							Administra los usuarios del sistema, sus roles y permisos
 						</p>
 					</div>
-					<Button disabled className="opacity-60 cursor-not-allowed">
-						Crear Usuario
-					</Button>
 				</div>
 
-				<Card className="border-dashed">
+				<Card>
 					<CardHeader>
-						<CardTitle>Sección en construcción</CardTitle>
+						<CardTitle>Filtros de Búsqueda</CardTitle>
 						<CardDescription>
-							Estamos preparando el módulo completo de usuarios (listado,
-							filtros, asignación de roles, etc.).
+							Filtra y busca usuarios por nombre, email, estado o rol
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<p className="text-sm text-muted-foreground">
-							Mientras tanto, puedes seguir gestionando catálogos como
-							compañías, productos o categorías desde los módulos existentes.
-						</p>
+						<UsersFilters
+							filters={filters}
+							onFiltersChange={setFilters}
+							roles={roles}
+						/>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle>Usuarios del Sistema</CardTitle>
+						<CardDescription>
+							Haz clic en &quot;Ver detalle&quot; para gestionar cada usuario
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<UsersTable users={users} isLoading={isLoading} />
 					</CardContent>
 				</Card>
 			</div>
