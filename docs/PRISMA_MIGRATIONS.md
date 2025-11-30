@@ -10,12 +10,12 @@ Las migraciones son archivos SQL que describen los cambios en la estructura de l
 
 ### Comandos de Prisma
 
-| Comando | Dónde se usa | Qué hace |
-|---------|--------------|----------|
-| `prisma migrate dev` | **Desarrollo local** | Crea migración + aplica a DB local + genera client |
-| `prisma migrate deploy` | **QA/Producción** | Aplica migraciones pendientes (idempotente, seguro) |
-| `prisma generate` | **Todos** | Genera/actualiza el Prisma Client basado en schema |
-| `prisma migrate reset` | **Solo desarrollo** | ❌ NUNCA en producción - borra TODO y recrea |
+| Comando                 | Dónde se usa         | Qué hace                                            |
+| ----------------------- | -------------------- | --------------------------------------------------- |
+| `prisma migrate dev`    | **Desarrollo local** | Crea migración + aplica a DB local + genera client  |
+| `prisma migrate deploy` | **QA/Producción**    | Aplica migraciones pendientes (idempotente, seguro) |
+| `prisma generate`       | **Todos**            | Genera/actualiza el Prisma Client basado en schema  |
+| `prisma migrate reset`  | **Solo desarrollo**  | ❌ NUNCA en producción - borra TODO y recrea        |
 
 ## Flujo de Trabajo Completo
 
@@ -82,6 +82,7 @@ sequenceDiagram
 ```
 
 **Comandos que ejecuta GitHub Action**:
+
 ```bash
 # En el Droplet de QA:
 # 1. Construir y levantar contenedores
@@ -97,6 +98,7 @@ docker-compose exec -T nextjs sh -c "cd /app && npx prisma migrate deploy"
 ```
 
 **Importante**: Las migraciones se ejecutan **dentro del contenedor `nextjs`** porque:
+
 - Prisma CLI está instalado en el contenedor
 - Las dependencias están disponibles en el contenedor
 - El contenedor tiene acceso a la red de Docker para conectarse a PostgreSQL
@@ -447,7 +449,7 @@ Las migraciones se ejecutan automáticamente en los workflows **dentro del conte
   uses: appleboy/ssh-action@v1.0.3
   script: |
     # ... crear .env, build containers, up -d ...
-    
+
     # Esperar a que PostgreSQL esté listo
     for i in {1..30}; do
       if docker-compose exec -T postgres pg_isready -U financieramente_user -d financieramente_qa > /dev/null 2>&1; then
@@ -463,12 +465,14 @@ Las migraciones se ejecutan automáticamente en los workflows **dentro del conte
 ```
 
 **Por qué dentro del contenedor**:
+
 - ✅ Prisma CLI está instalado en el contenedor (instalado globalmente en el Dockerfile)
 - ✅ Todas las dependencias están disponibles
 - ✅ El contenedor tiene acceso a la red de Docker para conectarse a PostgreSQL
 - ✅ Las variables de entorno están configuradas en el contenedor
 
 Esto garantiza que:
+
 - ✅ Las migraciones se ejecuten en el orden correcto
 - ✅ Solo se apliquen migraciones pendientes (idempotente)
 - ✅ El proceso sea seguro y manejado correctamente

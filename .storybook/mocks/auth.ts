@@ -1,4 +1,2 @@
 // Mock de @/auth para Storybook
-export const auth = async () => null;
-
-
+export const auth = async () => null

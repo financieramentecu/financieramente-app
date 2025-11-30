@@ -1,14 +1,14 @@
 /**
  * Prisma Client Singleton
- * 
+ *
  * ⚠️ CRÍTICO: Este módulo SOLO debe ser usado en Server Components y API Routes
  * NUNCA importar este módulo en Client Components ('use client')
- * 
+ *
  * Razones:
  * 1. Seguridad: Expondría credenciales de base de datos al navegador
  * 2. Performance: Las queries desde el navegador son ineficientes
  * 3. Arquitectura: Next.js está diseñado para queries server-side
- * 
+ *
  * Uso correcto:
  * - ✅ Server Components: import { prisma } from '@/lib/prisma'
  * - ✅ API Routes: import { prisma } from '@/lib/prisma'
@@ -42,4 +42,3 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 			'   Ver docs/PRISMA_USAGE.md para más información.'
 	)
 }
-

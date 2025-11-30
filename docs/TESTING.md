@@ -17,6 +17,7 @@ Esta guía explica cómo escribir y ejecutar tests en el proyecto Financierament
 ## Tipos de Tests
 
 ### Unit Tests (`*.test.tsx`)
+
 Tests rápidos y aislados de componentes individuales o funciones puras.
 
 ```typescript
@@ -33,6 +34,7 @@ describe('Button Component', () => {
 ```
 
 ### Integration Tests (`*.integration.test.tsx`)
+
 Tests que verifican la interacción entre múltiples componentes.
 
 ```typescript
@@ -51,14 +53,15 @@ describe('Home Page Integration', () => {
 ```
 
 ### E2E Tests (`e2e/*.spec.ts`)
+
 Tests end-to-end que verifican flujos completos en el navegador.
 
 ```typescript
 import { test, expect } from '@playwright/test'
 
 test('should load home page', async ({ page }) => {
-  await page.goto('/')
-  await expect(page).toHaveTitle(/Financieramente/)
+	await page.goto('/')
+	await expect(page).toHaveTitle(/Financieramente/)
 })
 ```
 
@@ -72,12 +75,14 @@ test('should load home page', async ({ page }) => {
 ## Tests Unitarios
 
 ### Ubicación
+
 ```
 src/components/ui/__tests__/button.test.tsx
 src/hooks/__tests__/use-theme-toggle.test.ts
 ```
 
 ### Características
+
 - ⚡ Ejecución rápida (< 100ms por test)
 - 🎯 Tests aislados
 - 🔧 Mocking simple
@@ -99,7 +104,7 @@ describe('Button Component', () => {
   it('calls onClick handler when clicked', () => {
     const handleClick = vi.fn()
     render(<Button onClick={handleClick}>Click me</Button>)
-    
+
     fireEvent.click(screen.getByText('Click me'))
     expect(handleClick).toHaveBeenCalledTimes(1)
   })
@@ -114,11 +119,13 @@ describe('Button Component', () => {
 ## Tests de Integración
 
 ### Ubicación
+
 ```
 src/app/__tests__/integration/page.integration.test.tsx
 ```
 
 ### Características
+
 - 🔗 Verifica interacción entre componentes
 - ⏱️ Timeout más largo: 10s
 - 🌐 Puede requerir mockeo de servicios externos
@@ -133,7 +140,7 @@ import Page from '@/app/page'
 describe('Home Page Integration', () => {
   it('renders and loads all components', async () => {
     render(<Page />)
-    
+
     await waitFor(() => {
       expect(screen.getByRole('main')).toBeInTheDocument()
     })
@@ -144,12 +151,14 @@ describe('Home Page Integration', () => {
 ## Tests E2E
 
 ### Ubicación
+
 ```
 e2e/home.spec.ts
 e2e/auth/login.spec.ts
 ```
 
 ### Características
+
 - 🌐 Ejecutados en navegadores reales
 - ⏱️ Timeout: configurable por proyecto
 - 📸 Screenshots automáticos en fallos
@@ -161,45 +170,49 @@ e2e/auth/login.spec.ts
 import { test, expect } from '@playwright/test'
 
 test.describe('Home Page', () => {
-  test('should load and display content', async ({ page }) => {
-    await page.goto('/')
-    
-    await expect(page).toHaveTitle(/Financieramente/)
-    await expect(page.locator('main')).toBeVisible()
-  })
+	test('should load and display content', async ({ page }) => {
+		await page.goto('/')
 
-  test('should navigate using links', async ({ page }) => {
-    await page.goto('/')
-    
-    const link = page.locator('a').first()
-    if (await link.count() > 0) {
-      await link.click()
-      await expect(page).not.toHaveURL('/')
-    }
-  })
+		await expect(page).toHaveTitle(/Financieramente/)
+		await expect(page.locator('main')).toBeVisible()
+	})
+
+	test('should navigate using links', async ({ page }) => {
+		await page.goto('/')
+
+		const link = page.locator('a').first()
+		if ((await link.count()) > 0) {
+			await link.click()
+			await expect(page).not.toHaveURL('/')
+		}
+	})
 })
 ```
 
 ## Ejecutar Tests
 
 ### Todos los tests
+
 ```bash
 npm run test:all
 ```
 
 ### Solo unit tests
+
 ```bash
 npm run test:unit
 npm run test:unit:coverage
 ```
 
 ### Solo integration tests
+
 ```bash
 npm run test:integration
 npm run test:integration:coverage
 ```
 
 ### Solo E2E tests
+
 ```bash
 npm run test:e2e
 npm run test:e2e:ui      # Con interfaz visual
@@ -208,11 +221,13 @@ npm run test:e2e:headed  # Con navegador visible
 ```
 
 ### Modo watch (desarrollo)
+
 ```bash
 npm run test:watch
 ```
 
 ### Interfaz visual de Vitest
+
 ```bash
 npm run test:ui
 ```
@@ -220,6 +235,7 @@ npm run test:ui
 ## Debugging
 
 ### Vitest (Unit & Integration)
+
 ```bash
 # Modo watch
 npm run test:watch
@@ -232,6 +248,7 @@ npm run test:ui
 ```
 
 ### Playwright (E2E)
+
 ```bash
 # Debug interactivo
 npm run test:e2e:debug
@@ -246,12 +263,14 @@ npx playwright test e2e/home.spec.ts --debug
 ## Cobertura
 
 ### Thresholds Mínimos
+
 - Lines: 70%
 - Functions: 70%
 - Branches: 70%
 - Statements: 70%
 
 ### Ver Reporte
+
 ```bash
 npm run test:unit:coverage
 # Abrir coverage/index.html en el navegador
@@ -260,20 +279,22 @@ npm run test:unit:coverage
 ## Mejores Prácticas
 
 ### 1. Arrange-Act-Assert
+
 ```typescript
 it('should calculate total', () => {
-  // Arrange
-  const items = [10, 20, 30]
-  
-  // Act
-  const total = calculateTotal(items)
-  
-  // Assert
-  expect(total).toBe(60)
+	// Arrange
+	const items = [10, 20, 30]
+
+	// Act
+	const total = calculateTotal(items)
+
+	// Assert
+	expect(total).toBe(60)
 })
 ```
 
 ### 2. Tests Descriptivos
+
 ```typescript
 // ❌ Mal
 it('test 1', () => {})
@@ -283,6 +304,7 @@ it('should disable button when loading is true', () => {})
 ```
 
 ### 3. Usar Queries Accesibles
+
 ```typescript
 // ❌ Mal
 screen.getByTestId('submit-button')
@@ -292,23 +314,26 @@ screen.getByRole('button', { name: /submit/i })
 ```
 
 ### 4. Mockear Dependencias Externas
+
 ```typescript
 vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(() => ({
-    push: vi.fn(),
-  })),
+	useRouter: vi.fn(() => ({
+		push: vi.fn(),
+	})),
 }))
 ```
 
 ### 5. Limpiar Después de Cada Test
+
 ```typescript
 afterEach(() => {
-  cleanup()
-  vi.clearAllMocks()
+	cleanup()
+	vi.clearAllMocks()
 })
 ```
 
 ### 6. Tests Aislados
+
 ```typescript
 // ❌ Mal: dependen del orden
 it('creates user', () => {})
@@ -316,16 +341,17 @@ it('gets user', () => {})
 
 // ✅ Bien: cada test es independiente
 it('creates user', () => {
-  // Setup completo
+	// Setup completo
 })
 it('gets user', () => {
-  // Setup completo
+	// Setup completo
 })
 ```
 
 ## Integración con CI/CD
 
 Los tests se ejecutan automáticamente en:
+
 - PRs a `qa` o `main`
 - Push a cualquier rama protegida
 
@@ -337,4 +363,3 @@ Ver [DEVELOPMENT_WORKFLOW.md](./DEVELOPMENT_WORKFLOW.md) para detalles del flujo
 - [Vitest Docs](https://vitest.dev/)
 - [Playwright Docs](https://playwright.dev/)
 - [Storybook Testing](https://storybook.js.org/docs/writing-tests)
-

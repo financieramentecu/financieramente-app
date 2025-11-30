@@ -3,10 +3,10 @@ import type { NextRequest } from 'next/server'
 
 /**
  * Endpoint de prueba para establecer sesión mockeada en pruebas e2e
- * 
+ *
  * SOLO disponible en modo desarrollo/test
  * Permite establecer una sesión de prueba sin necesidad de OAuth real
- * 
+ *
  * Uso en Playwright:
  * ```typescript
  * await page.request.post('/api/test-auth', {
@@ -59,4 +59,3 @@ export async function POST(request: NextRequest) {
 		)
 	}
 }
-

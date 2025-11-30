@@ -5,6 +5,7 @@ Esta guía explica las diferentes opciones para conectarte a las bases de datos 
 ## Opción A: Neon para Desarrollo (Recomendado) ⭐
 
 ### ¿Por qué Neon?
+
 - ✅ **Solo Base de Datos**: Perfecto para desarrollo (no necesitas auth/storage)
 - ✅ **Branching como Git**: Entornos aislados para cada feature
 - ✅ **Serverless Real**: Escala automáticamente, incluso a cero
@@ -13,6 +14,7 @@ Esta guía explica las diferentes opciones para conectarte a las bases de datos 
 - ✅ **Sin ensuciar QA/Prod**: Desarrollo completamente separado
 
 ### Ventajas vs Supabase
+
 - 🚀 **Branching**: Crear branches de BD para probar migraciones sin riesgo
 - ⚡ **Serverless**: Mejor performance y costo para desarrollo
 - 🎯 **Enfoque**: Solo DB, sin features extra que no necesitas
@@ -49,6 +51,7 @@ Esta guía explica las diferentes opciones para conectarte a las bases de datos 
 #### 3. Configurar en tu Proyecto Local
 
 **Crear archivo `.env.local`**:
+
 ```bash
 # Neon - Development Database
 DATABASE_URL="postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require"
@@ -83,6 +86,7 @@ npm run prisma:db:pull
 #### 6. Usar Branching (Opcional pero Recomendado)
 
 **Crear branch para feature**:
+
 ```bash
 # En Neon Dashboard:
 # 1. Ir a Branches
@@ -103,6 +107,7 @@ npm run prisma:migrate:dev --name nueva_tabla
 Puedes usar cualquier herramienta para conectarte a Neon:
 
 **pgAdmin, DBeaver, DataGrip, etc.**:
+
 ```
 Host: ep-xxx.us-east-2.aws.neon.tech
 Port: 5432
@@ -127,6 +132,7 @@ Con Neon puedes crear branches de la base de datos para cada feature:
 ```
 
 Esto es especialmente útil para:
+
 - ✅ Probar migraciones complejas sin riesgo
 - ✅ Desarrollar features que requieren cambios de BD
 - ✅ Experimentar sin afectar tu DB principal
@@ -135,6 +141,7 @@ Esto es especialmente útil para:
 ## Opción B: SSH Tunnel a QA (Para probar con datos reales)
 
 ### Cuándo usar esta opción
+
 - ✅ Necesitas probar con datos reales de QA
 - ✅ Debugging de problemas específicos de QA
 - ✅ Verificar que los datos se ven correctamente
@@ -144,11 +151,13 @@ Esto es especialmente útil para:
 #### 1. Crear SSH Tunnel
 
 **Túnel manual**:
+
 ```bash
 ssh -L 5433:localhost:5432 root@[QA_DROPLET_IP] -i ~/.ssh/droplet_deploy
 ```
 
 **Usar script helper (más fácil)**:
+
 ```bash
 # El script detecta automáticamente la IP de QA
 ./scripts/db-tunnel-qa.sh start
@@ -160,6 +169,7 @@ QA_DROPLET_IP=164.92.123.45 ./scripts/db-tunnel-qa.sh start
 #### 2. Configurar Variables de Entorno
 
 **Crear archivo `.env.local`**:
+
 ```bash
 DATABASE_URL="postgresql://financieramente_user:PASSWORD@localhost:5433/financieramente_qa"
 NODE_ENV=development
@@ -182,6 +192,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000
 ### Herramientas de Base de Datos
 
 **pgAdmin, DBeaver, DataGrip, etc.**:
+
 ```
 Host: localhost
 Port: 5433
@@ -204,6 +215,7 @@ Password: [POSTGRES_PASSWORD_QA from GitHub Secrets]
 ## Opción C: PostgreSQL Local (Sin internet)
 
 ### Cuándo usar esta opción
+
 - ✅ Quieres trabajar completamente offline
 - ✅ No tienes conexión a internet estable
 - ✅ Quieres máxima velocidad de desarrollo
@@ -213,6 +225,7 @@ Password: [POSTGRES_PASSWORD_QA from GitHub Secrets]
 #### 1. Instalar PostgreSQL Localmente
 
 **macOS**:
+
 ```bash
 # Con Homebrew
 brew install postgresql@15
@@ -222,6 +235,7 @@ brew services start postgresql@15
 ```
 
 **Ubuntu/Debian**:
+
 ```bash
 sudo apt update
 sudo apt install postgresql postgresql-contrib
@@ -248,6 +262,7 @@ GRANT ALL PRIVILEGES ON DATABASE financieramente_dev TO dev_user;
 #### 3. Configurar Variables de Entorno
 
 **Crear archivo `.env.local`**:
+
 ```bash
 DATABASE_URL="postgresql://dev_user:dev_password@localhost:5432/financieramente_dev"
 NODE_ENV=development
@@ -270,6 +285,7 @@ Si prefieres Supabase en lugar de Neon:
 ### Configuración
 
 **Crear archivo `.env.local`**:
+
 ```bash
 # Para Prisma con connection pooling (recomendado)
 DATABASE_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:6543/postgres?pgbouncer=true"
@@ -278,29 +294,29 @@ DIRECT_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres"
 
 ### Comparación: Neon vs Supabase
 
-| Aspecto | Neon | Supabase |
-|---------|------|----------|
-| **Branching** | ✅ (Feature estrella) | ❌ |
-| **Serverless Real** | ✅ | ⚠️ Limitado |
-| **Solo DB** | ✅ | ❌ (incluye auth/storage) |
-| **Dashboard** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Gratis** | 0.5 GB + 190h/mes | 500 MB |
-| **Perfecto para Prisma** | ✅✅✅ | ✅✅ |
+| Aspecto                  | Neon                  | Supabase                  |
+| ------------------------ | --------------------- | ------------------------- |
+| **Branching**            | ✅ (Feature estrella) | ❌                        |
+| **Serverless Real**      | ✅                    | ⚠️ Limitado               |
+| **Solo DB**              | ✅                    | ❌ (incluye auth/storage) |
+| **Dashboard**            | ⭐⭐⭐                | ⭐⭐⭐⭐⭐                |
+| **Gratis**               | 0.5 GB + 190h/mes     | 500 MB                    |
+| **Perfecto para Prisma** | ✅✅✅                | ✅✅                      |
 
 **Recomendación**: Neon es mejor para tu caso (solo necesitas DB).
 
 ## Comparación de Opciones
 
-| Aspecto | Neon | Supabase | SSH Tunnel | PostgreSQL Local |
-|---------|------|----------|------------|------------------|
-| **Velocidad** | Alta | Media | Media | Alta |
-| **Datos Reales** | ❌ | ❌ | ✅ | ❌ |
-| **Instalación** | ❌ | ❌ | ❌ | ✅ |
-| **Internet Requerido** | ✅ | ✅ | ✅ | ❌ |
-| **Dashboard Web** | ✅ | ✅✅ | ❌ | ❌ |
-| **Backups** | ✅ | ✅ | ❌ | ❌ |
-| **Branching** | ✅✅✅ | ❌ | ❌ | ❌ |
-| **Costo** | Gratis | Gratis | Gratis | Gratis |
+| Aspecto                | Neon   | Supabase | SSH Tunnel | PostgreSQL Local |
+| ---------------------- | ------ | -------- | ---------- | ---------------- |
+| **Velocidad**          | Alta   | Media    | Media      | Alta             |
+| **Datos Reales**       | ❌     | ❌       | ✅         | ❌               |
+| **Instalación**        | ❌     | ❌       | ❌         | ✅               |
+| **Internet Requerido** | ✅     | ✅       | ✅         | ❌               |
+| **Dashboard Web**      | ✅     | ✅✅     | ❌         | ❌               |
+| **Backups**            | ✅     | ✅       | ❌         | ❌               |
+| **Branching**          | ✅✅✅ | ❌       | ❌         | ❌               |
+| **Costo**              | Gratis | Gratis   | Gratis     | Gratis           |
 
 ## Arquitectura de Base de Datos por Entorno
 
@@ -329,6 +345,7 @@ DIRECT_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres"
 ```
 
 **Ventajas de esta arquitectura:**
+
 - ✅ Desarrollo completamente aislado (no ensucia QA/Prod)
 - ✅ QA y Prod controlados por ti (self-hosted)
 - ✅ Desarrollo con features avanzadas (branching)
@@ -337,6 +354,7 @@ DIRECT_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres"
 ## Flujo de Trabajo Recomendado
 
 ### Desarrollo Diario
+
 1. **Usar Neon** para desarrollo normal
 2. **Crear branches** para features que requieren cambios de BD
 3. **Datos de prueba** en Neon (main branch o feature branches)
@@ -344,12 +362,14 @@ DIRECT_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres"
 5. **Commitear** cambios cuando estén listos
 
 ### Debugging con Datos Reales
+
 1. **Usar SSH Tunnel** cuando necesites datos reales de QA
 2. **Conectar** a QA temporalmente
 3. **Desconectar** cuando termines
 4. **NUNCA** usar QA/Prod para desarrollo
 
 ### Trabajo con Features Complejas
+
 1. **Crear branch en Neon** para la feature
 2. **Desarrollar y probar** en el branch
 3. **Si funciona**: Merge al main branch
@@ -357,6 +377,7 @@ DIRECT_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres"
 5. **Migraciones** se prueban primero en el branch
 
 ### Trabajo Offline
+
 1. **Usar PostgreSQL Local** cuando no tengas internet
 2. **Sincronizar** cambios cuando vuelvas a tener conexión
 3. **Aplicar migraciones** a Neon cuando vuelvas online

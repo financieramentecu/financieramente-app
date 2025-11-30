@@ -77,6 +77,11 @@ jobs:
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_QA }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_QA }}
             NEXT_TELEMETRY_DISABLED=1
+            SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY_QA }}
+            SENDGRID_FROM_EMAIL=${{ secrets.SENDGRID_FROM_EMAIL_QA }}
+            SENDGRID_FROM_NAME=${{ secrets.SENDGRID_FROM_NAME_QA }}
+            SENDGRID_TEMPLATE_ID=${{ secrets.SENDGRID_TEMPLATE_ID_QA }}
+            SUPER_ADMIN_PASSWORD=${{ secrets.SUPER_ADMIN_PASSWORD_QA }}
             ENVEOF
             sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" /opt/financieramente/.env
 

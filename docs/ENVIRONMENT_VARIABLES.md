@@ -45,16 +45,19 @@ El token necesita estos permisos:
 #### En tu máquina local (para Terraform):
 
 **Opción A: Variable de entorno**
+
 ```bash
 export DIGITALOCEAN_TOKEN="dop_v1_tu_token_aqui"
 ```
 
 **Opción B: Archivo terraform.tfvars**
+
 ```hcl
 digitalocean_token = "dop_v1_tu_token_aqui"
 ```
 
 #### En GitHub Secrets:
+
 - Repository → Settings → Secrets and variables → Actions
 - New repository secret
 - Name: `DIGITALOCEAN_TOKEN`
@@ -74,6 +77,7 @@ ssh-keygen -t ed25519 -C "github-actions-droplets" -f ~/.ssh/droplet_deploy
 ### Configurar SSH Keys
 
 #### Llave Privada (para GitHub Secrets):
+
 ```bash
 # Ver el contenido completo
 cat ~/.ssh/droplet_deploy
@@ -88,6 +92,7 @@ cat ~/.ssh/droplet_deploy
 - **Para qué**: GitHub Actions la usa para conectarse por SSH a los Droplets
 
 #### Llave Pública (para GitHub Secrets y Terraform):
+
 ```bash
 # Ver el contenido
 cat ~/.ssh/droplet_deploy.pub
@@ -114,12 +119,12 @@ openssl rand -base64 32
 
 ### Variables de PostgreSQL
 
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `POSTGRES_USER` | Usuario de base de datos | `financieramente_user` |
-| `POSTGRES_PASSWORD` | Contraseña segura | `8xK9mP2nQ5vR7sT1uW3yZ6aB4cD0eF8gH` |
-| `POSTGRES_DB` | Nombre de base de datos | `financieramente_qa` / `financieramente_prod` |
-| `DATABASE_URL` | URL completa de conexión | `postgresql://user:password@postgres:5432/dbname` |
+| Variable            | Descripción              | Ejemplo                                           |
+| ------------------- | ------------------------ | ------------------------------------------------- |
+| `POSTGRES_USER`     | Usuario de base de datos | `financieramente_user`                            |
+| `POSTGRES_PASSWORD` | Contraseña segura        | `8xK9mP2nQ5vR7sT1uW3yZ6aB4cD0eF8gH`               |
+| `POSTGRES_DB`       | Nombre de base de datos  | `financieramente_qa` / `financieramente_prod`     |
+| `DATABASE_URL`      | URL completa de conexión | `postgresql://user:password@postgres:5432/dbname` |
 
 ### Configurar en GitHub Secrets
 
@@ -132,16 +137,16 @@ POSTGRES_PASSWORD_PROD  → Segunda contraseña generada
 
 ### Variables de la Aplicación
 
-| Variable | Descripción | Ejemplo | Cuándo se necesita |
-|----------|-------------|---------|-------------------|
-| `NODE_ENV` | Ambiente de Node.js | `production` (prod) o `qa` (qa) | Build y Runtime |
-| `NEXT_PUBLIC_API_URL` | URL pública de la API | `https://negocios.qa.financieramentecu.co` | **Build time** (se incrusta en el código) |
-| `DATABASE_URL` | URL de conexión a PostgreSQL | `postgresql://user:pass@postgres:5432/dbname` | Runtime |
-| `NEXTAUTH_SECRET` | Secret para NextAuth | Generado con `openssl rand -base64 32` | Runtime |
-| `NEXTAUTH_URL` | URL base de la aplicación | `https://negocios.qa.financieramentecu.co` | Runtime |
-| `GOOGLE_CLIENT_ID` | Cliente OAuth de Google | `xxx.apps.googleusercontent.com` | Runtime |
-| `GOOGLE_CLIENT_SECRET` | Secret del cliente OAuth | Generado por Google | Runtime |
-| `NEXT_TELEMETRY_DISABLED` | Deshabilitar telemetría | `1` | Build y Runtime |
+| Variable                  | Descripción                  | Ejemplo                                       | Cuándo se necesita                        |
+| ------------------------- | ---------------------------- | --------------------------------------------- | ----------------------------------------- |
+| `NODE_ENV`                | Ambiente de Node.js          | `production` (prod) o `qa` (qa)               | Build y Runtime                           |
+| `NEXT_PUBLIC_API_URL`     | URL pública de la API        | `https://negocios.qa.financieramentecu.co`    | **Build time** (se incrusta en el código) |
+| `DATABASE_URL`            | URL de conexión a PostgreSQL | `postgresql://user:pass@postgres:5432/dbname` | Runtime                                   |
+| `NEXTAUTH_SECRET`         | Secret para NextAuth         | Generado con `openssl rand -base64 32`        | Runtime                                   |
+| `NEXTAUTH_URL`            | URL base de la aplicación    | `https://negocios.qa.financieramentecu.co`    | Runtime                                   |
+| `GOOGLE_CLIENT_ID`        | Cliente OAuth de Google      | `xxx.apps.googleusercontent.com`              | Runtime                                   |
+| `GOOGLE_CLIENT_SECRET`    | Secret del cliente OAuth     | Generado por Google                           | Runtime                                   |
+| `NEXT_TELEMETRY_DISABLED` | Deshabilitar telemetría      | `1`                                           | Build y Runtime                           |
 
 ### Variables Opcionales
 
@@ -150,7 +155,13 @@ POSTGRES_PASSWORD_PROD  → Segunda contraseña generada
 JWT_SECRET=your_jwt_secret_here
 ENCRYPTION_KEY=your_encryption_key_here
 
-# Email/SMTP
+# SendGrid (Recomendado)
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SENDGRID_FROM_EMAIL=noreply@financieramente.com
+SENDGRID_FROM_NAME=Financieramente
+SENDGRID_TEMPLATE_ID=d-7bddba2ac2ba49ff952c4c2c689d55b7
+
+# Email/SMTP (Alternativa, no usado si SendGrid está configurado)
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=your_email@example.com
@@ -163,10 +174,12 @@ EXTERNAL_API_KEY=your_api_key_here
 ### Variables de Build Time vs Runtime
 
 **Build Time** (deben estar disponibles durante `npm run build`):
+
 - `NEXT_PUBLIC_API_URL` - Se incrusta en el código compilado
 - `NEXT_TELEMETRY_DISABLED` - Configuración de build
 
 **Runtime** (disponibles cuando la aplicación corre):
+
 - `DATABASE_URL` - Conexión a la base de datos
 - `NEXTAUTH_SECRET` - Secret para NextAuth
 - `NEXTAUTH_URL` - URL base de la aplicación
@@ -179,35 +192,36 @@ EXTERNAL_API_KEY=your_api_key_here
 
 ### Secrets Requeridos (5 iniciales):
 
-| # | Secret Name | Qué es | Cómo obtenerlo |
-|---|-------------|--------|----------------|
-| 1 | `DIGITALOCEAN_TOKEN` | Token de API de Digital Ocean | Digital Ocean Dashboard → API |
-| 2 | `SSH_PRIVATE_KEY` | Llave SSH privada (completa) | `cat ~/.ssh/droplet_deploy` |
-| 3 | `SSH_PUBLIC_KEY` | Llave SSH pública | `cat ~/.ssh/droplet_deploy.pub` |
-| 4 | `POSTGRES_PASSWORD_QA` | Contraseña PostgreSQL QA | `openssl rand -base64 32` |
-| 5 | `POSTGRES_PASSWORD_PROD` | Contraseña PostgreSQL Prod | `openssl rand -base64 32` |
+| #   | Secret Name              | Qué es                        | Cómo obtenerlo                  |
+| --- | ------------------------ | ----------------------------- | ------------------------------- |
+| 1   | `DIGITALOCEAN_TOKEN`     | Token de API de Digital Ocean | Digital Ocean Dashboard → API   |
+| 2   | `SSH_PRIVATE_KEY`        | Llave SSH privada (completa)  | `cat ~/.ssh/droplet_deploy`     |
+| 3   | `SSH_PUBLIC_KEY`         | Llave SSH pública             | `cat ~/.ssh/droplet_deploy.pub` |
+| 4   | `POSTGRES_PASSWORD_QA`   | Contraseña PostgreSQL QA      | `openssl rand -base64 32`       |
+| 5   | `POSTGRES_PASSWORD_PROD` | Contraseña PostgreSQL Prod    | `openssl rand -base64 32`       |
 
 ### Secrets que se agregan después del primer `terraform apply`:
 
-| # | Secret Name | Qué es | Cómo obtenerlo |
-|---|-------------|--------|----------------|
-| 6 | `QA_DROPLET_IP` | IP pública del Droplet QA | Output de Terraform |
-| 7 | `PROD_DROPLET_IP` | IP pública del Droplet Prod | Output de Terraform |
+| #   | Secret Name       | Qué es                      | Cómo obtenerlo      |
+| --- | ----------------- | --------------------------- | ------------------- |
+| 6   | `QA_DROPLET_IP`   | IP pública del Droplet QA   | Output de Terraform |
+| 7   | `PROD_DROPLET_IP` | IP pública del Droplet Prod | Output de Terraform |
 
 ### Secrets de Autenticación (NextAuth y Google OAuth):
 
 **Convención de nombres**: `NOMBRE_VARIABLE_AMBIENTE` (cada ambiente tiene sus propios secrets)
 
-| # | Secret Name | Qué es | Cómo obtenerlo |
-|---|-------------|--------|----------------|
-| 8 | `NEXTAUTH_SECRET_QA` | Secret para NextAuth en QA | `openssl rand -base64 32` |
-| 9 | `NEXTAUTH_SECRET_PROD` | Secret para NextAuth en PROD | `openssl rand -base64 32` |
-| 10 | `GOOGLE_CLIENT_ID_QA` | Cliente OAuth de Google para QA | Google Cloud Console (crear cliente OAuth para QA) |
-| 11 | `GOOGLE_CLIENT_SECRET_QA` | Secret del cliente OAuth de QA | Google Cloud Console |
-| 12 | `GOOGLE_CLIENT_ID_PROD` | Cliente OAuth de Google para PROD | Google Cloud Console (crear cliente OAuth para PROD) |
-| 13 | `GOOGLE_CLIENT_SECRET_PROD` | Secret del cliente OAuth de PROD | Google Cloud Console |
+| #   | Secret Name                 | Qué es                            | Cómo obtenerlo                                       |
+| --- | --------------------------- | --------------------------------- | ---------------------------------------------------- |
+| 8   | `NEXTAUTH_SECRET_QA`        | Secret para NextAuth en QA        | `openssl rand -base64 32`                            |
+| 9   | `NEXTAUTH_SECRET_PROD`      | Secret para NextAuth en PROD      | `openssl rand -base64 32`                            |
+| 10  | `GOOGLE_CLIENT_ID_QA`       | Cliente OAuth de Google para QA   | Google Cloud Console (crear cliente OAuth para QA)   |
+| 11  | `GOOGLE_CLIENT_SECRET_QA`   | Secret del cliente OAuth de QA    | Google Cloud Console                                 |
+| 12  | `GOOGLE_CLIENT_ID_PROD`     | Cliente OAuth de Google para PROD | Google Cloud Console (crear cliente OAuth para PROD) |
+| 13  | `GOOGLE_CLIENT_SECRET_PROD` | Secret del cliente OAuth de PROD  | Google Cloud Console                                 |
 
 **Nota**: Cada ambiente (QA y PROD) tiene su propio cliente OAuth de Google porque los redirect URIs son diferentes:
+
 - QA: `https://negocios.qa.financieramentecu.co/api/auth/callback/google`
 - PROD: `https://negocios.financieramentecu.co/api/auth/callback/google`
 
@@ -223,6 +237,7 @@ nano terraform.tfvars
 ```
 
 **Contenido del archivo:**
+
 ```hcl
 digitalocean_token = "dop_v1_tu_token_aqui"
 ssh_public_key = "ssh-ed25519 AAAAC3NzaC1... github-actions-droplets"
@@ -255,6 +270,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000
 ## Seguridad de Tokens
 
 ### ❌ NUNCA hacer esto:
+
 - Compartir tokens en chat/mensaje
 - Subir tokens a Git
 - Enviar tokens por email
@@ -262,6 +278,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000
 - Usar tokens en URLs públicas
 
 ### ✅ SIEMPRE hacer esto:
+
 - Usar variables de entorno locales
 - Guardar tokens en GitHub Secrets (encriptado)
 - Usar gestor de contraseñas para almacenar
@@ -295,19 +312,89 @@ Antes de proceder con la implementación, verifica que tienes:
 ## Troubleshooting
 
 ### Token no funciona
+
 1. Verificar que el token tenga los scopes correctos
 2. Verificar que no haya expirado
 3. Generar un nuevo token si es necesario
 
 ### SSH connection failed
+
 1. Verificar que la llave privada esté en GitHub Secrets
 2. Verificar que la llave pública esté en Terraform
 3. Verificar permisos del archivo SSH (`chmod 600`)
 
 ### Database connection failed
+
 1. Verificar contraseñas en GitHub Secrets
 2. Verificar que las migraciones se ejecutaron
 3. Verificar que PostgreSQL esté corriendo
+
+## SendGrid
+
+### Obtener API Key
+
+1. **Ir a SendGrid Dashboard**:
+   - URL: https://app.sendgrid.com/settings/api_keys
+   - Login con tu cuenta
+
+2. **Crear API Key**:
+   - Click en "Create API Key"
+   - **API Key Name**: `financieramente-app`
+   - **API Key Permissions**: "Full Access" o "Restricted Access" con permisos de "Mail Send"
+   - Click en "Create & View"
+
+3. **Copiar el API Key**:
+   - ⚠️ **IMPORTANTE**: Solo se muestra una vez
+   - Formato: `SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+   - Guardarlo en un gestor de contraseñas
+
+### Verificar Email Remitente
+
+1. **Ir a SendGrid Dashboard**:
+   - URL: https://app.sendgrid.com/settings/sender_auth/senders/new
+   - Click en "Create New Sender"
+
+2. **Configurar Sender**:
+   - **From Email**: `noreply@financieramente.com` (o el dominio que uses)
+   - **From Name**: `Financieramente`
+   - Completar información requerida
+   - Verificar el email (SendGrid enviará un email de verificación)
+
+### Variables de SendGrid
+
+| Variable               | Descripción                     | Ejemplo                              | Obligatoria                           |
+| ---------------------- | ------------------------------- | ------------------------------------ | ------------------------------------- |
+| `SENDGRID_API_KEY`     | API Key de SendGrid             | `SG.xxxxxxxxx...`                    | ✅ Sí                                 |
+| `SENDGRID_FROM_EMAIL`  | Email verificado como remitente | `noreply@financieramente.com`        | ✅ Sí                                 |
+| `SENDGRID_FROM_NAME`   | Nombre del remitente            | `Financieramente`                    | ❌ No (default: "Financieramente")    |
+| `SENDGRID_TEMPLATE_ID` | ID del template por defecto     | `d-7bddba2ac2ba49ff952c4c2c689d55b7` | ❌ No (puede pasarse en cada request) |
+
+### Configurar en Desarrollo Local
+
+```bash
+# .env.local
+SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SENDGRID_FROM_EMAIL=noreply@financieramente.com
+SENDGRID_FROM_NAME=Financieramente
+SENDGRID_TEMPLATE_ID=d-7bddba2ac2ba49ff952c4c2c689d55b7
+```
+
+### Configurar en GitHub Secrets (QA y PROD)
+
+```
+SENDGRID_API_KEY_QA    → API Key de SendGrid
+SENDGRID_FROM_EMAIL_QA → Email remitente para QA
+SENDGRID_API_KEY_PROD  → API Key de SendGrid (puede ser la misma)
+SENDGRID_FROM_EMAIL_PROD → Email remitente para PROD
+```
+
+**Nota**: Puedes usar la misma API Key para QA y PROD, o crear keys separadas para mejor seguridad.
+
+### Ver Documentación Completa
+
+Para más detalles sobre la configuración y uso de SendGrid, ver:
+
+- `docs/EMAIL_SENDGRID.md` - Documentación completa del servicio de email
 
 ## Comandos Útiles
 
@@ -326,4 +413,17 @@ cat ~/.ssh/droplet_deploy
 
 # Verificar variables locales
 cat terraform/terraform.tfvars
+
+# Probar envío de email con SendGrid
+curl -X POST http://localhost:3000/api/email/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "templated",
+    "to": "test@example.com",
+    "templateId": "d-7bddba2ac2ba49ff952c4c2c689d55b7",
+    "dynamicTemplateData": {
+      "nombre": "Test User",
+      "mensaje": "Este es un test"
+    }
+  }'
 ```
