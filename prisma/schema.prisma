@@ -230,6 +230,8 @@ model User {
   typeIdentity   String    @default("CC") @map("type_identity") @db.VarChar(10)
   identityNumber String?   @map("identity_number") @db.VarChar(20)
   email          String    @unique @db.VarChar(150)
+  password       String?   @db.VarChar(255) // Contraseña hasheada (opcional, para login con credenciales)
+  ssoOnly        Boolean   @default(true) @map("sso_only") // true = solo SSO, false = permite email/password
   phone          String?   @db.VarChar(30)
   idCategoria    Int?      @map("id_categoria")
   idRole         Int?      @map("id_role")

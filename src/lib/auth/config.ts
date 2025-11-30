@@ -1,7 +1,8 @@
 import type { NextAuthConfig } from 'next-auth'
 import Google from 'next-auth/providers/google'
+import Credentials from 'next-auth/providers/credentials'
 import { isValidCorporateEmail } from './types'
-import { validateUserByEmail } from './user-validation'
+import { validateUserByEmail, validateUserCredentials } from './user-validation'
 import { logAuditEvent, AuditAction } from './audit-logger'
 import { getRolePermissions, RolePermissions } from './permissions'
 import { UserRole } from './roles'
@@ -34,9 +35,52 @@ export const authConfig: NextAuthConfig = {
 				},
 			},
 		}),
+		Credentials({
+			name: 'credentials',
+			credentials: {
+				email: { label: 'Email', type: 'email' },
+				password: { label: 'Password', type: 'password' },
+			},
+			async authorize(credentials) {
+				if (!credentials?.email || !credentials?.password) {
+					return null
+				}
+
+				const email = credentials.email as string
+				const password = credentials.password as string
+
+				// Validar credenciales (solo ADMIN activos con ssoOnly = false)
+				const validation = await validateUserCredentials(email, password)
+
+				if (!validation.isValid || !validation.user) {
+					await logAuditEvent({
+						action: AuditAction.ACCESS_DENIED,
+						email,
+						details: 'Intento de login con credenciales inválidas',
+					})
+					return null
+				}
+
+				// Registrar login exitoso
+				await logAuditEvent({
+					userId: validation.user.id,
+					action: AuditAction.LOGIN,
+					email,
+					details: 'Login exitoso con credenciales',
+				})
+
+				// Retornar usuario para el callback jwt
+				return {
+					id: validation.user.id.toString(),
+					email: validation.user.email,
+					name: validation.user.name,
+					role: validation.user.role,
+				}
+			},
+		}),
 	],
 	callbacks: {
-		async signIn({ user, account: _account }) {
+		async signIn({ user }) {
 			// Validación estricta de dominio corporativo para Google OAuth
 			if (!user.email || typeof user.email !== 'string') {
 				await logAuditEvent({
@@ -47,7 +91,7 @@ export const authConfig: NextAuthConfig = {
 				return false
 			}
 
-			// Validar dominio corporativo
+			// Validar dominio corporativo (solo para OAuth)
 			if (!isValidCorporateEmail(user.email)) {
 				const emailDomain = user.email.split('@')[1]
 				console.warn(
@@ -59,7 +103,7 @@ export const authConfig: NextAuthConfig = {
 					email: user.email,
 					details: `Dominio no autorizado: ${emailDomain}`,
 				})
-				return false
+				return '/login?error=InvalidDomain'
 			}
 
 			// Validar usuario en base de datos

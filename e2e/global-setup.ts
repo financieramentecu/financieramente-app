@@ -1,5 +1,5 @@
 import { FullConfig } from '@playwright/test'
-import { setupTestUser } from './setup/db-setup'
+import { setupTestUser, setupSSOUsers } from './setup/db-setup'
 
 /**
  * Setup global que se ejecuta antes de todos los tests e2e
@@ -10,6 +10,7 @@ async function globalSetup(_config: FullConfig) {
 
 	try {
 		await setupTestUser()
+		await setupSSOUsers()
 		console.log('✅ Setup global completado')
 	} catch (error) {
 		console.error('❌ Error en setup global:', error)

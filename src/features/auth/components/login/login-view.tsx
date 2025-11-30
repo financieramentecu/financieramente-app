@@ -7,7 +7,14 @@ import { cn } from '@/lib/utils'
 
 import { AuthCard } from './auth-card'
 import { BrandPanel } from './brand-panel'
-import { type EmailSignInFormProps } from './email-sign-in-form'
+import {
+	type EmailSignInFormProps,
+	EmailSignInForm,
+} from './email-sign-in-form'
+import {
+	type EmailPasswordFormProps,
+	EmailPasswordForm,
+} from './email-password-form'
 import { GoogleIcon, SocialSignIn, type SocialProvider } from './social-sign-in'
 
 interface BrandContent {
@@ -26,6 +33,7 @@ export interface LoginViewProps {
 	className?: string
 	brand?: BrandContent
 	emailForm?: EmailSignInFormProps
+	emailPasswordForm?: EmailPasswordFormProps
 	socialProviders?: SocialProvider[]
 	termsLink?: {
 		label: string
@@ -33,6 +41,7 @@ export interface LoginViewProps {
 	}
 	auxiliaryContent?: ReactNode
 	showBrandPanel?: boolean
+	showEmailPasswordForm?: boolean
 }
 
 const DEFAULT_BRAND: BrandContent = {
@@ -58,6 +67,7 @@ const DEFAULT_PROVIDERS: SocialProvider[] = [
 export function LoginView({
 	className,
 	brand,
+	emailPasswordForm,
 	socialProviders = DEFAULT_PROVIDERS,
 	termsLink = {
 		label: 'Términos y condiciones',
@@ -65,6 +75,7 @@ export function LoginView({
 	},
 	auxiliaryContent,
 	showBrandPanel = true,
+	showEmailPasswordForm = false,
 }: LoginViewProps) {
 	const brandConfig: BrandContent = {
 		...DEFAULT_BRAND,
@@ -98,7 +109,28 @@ export function LoginView({
 					}
 				>
 					<div className="space-y-6">
-						<SocialSignIn providers={socialProviders} />
+						{showEmailPasswordForm && emailPasswordForm ? (
+							<>
+								<EmailPasswordForm {...emailPasswordForm} />
+								{socialProviders && socialProviders.length > 0 && (
+									<>
+										<div className="relative">
+											<div className="absolute inset-0 flex items-center">
+												<span className="w-full border-t" />
+											</div>
+											<div className="relative flex justify-center text-xs uppercase">
+												<span className="bg-background px-2 text-muted-foreground">
+													O continuar con
+												</span>
+											</div>
+										</div>
+										<SocialSignIn providers={socialProviders} />
+									</>
+								)}
+							</>
+						) : (
+							<SocialSignIn providers={socialProviders} />
+						)}
 						{auxiliaryContent}
 					</div>
 				</AuthCard>

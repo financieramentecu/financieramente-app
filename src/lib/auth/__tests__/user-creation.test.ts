@@ -59,6 +59,8 @@ describe('createUserAutomatically', () => {
 		typeIdentity: 'CC',
 		identityNumber: null,
 		email: 'test@financieramentecu.com',
+		password: null,
+		ssoOnly: true,
 		phone: null,
 		idCategoria: null,
 		idRole: 1,
@@ -423,7 +425,7 @@ describe('createUserAutomatically', () => {
 
 			const consoleErrorSpy = vi
 				.spyOn(console, 'error')
-				.mockImplementation(() => {})
+				.mockImplementation(() => { })
 
 			const result = await createUserAutomatically(mockParams)
 

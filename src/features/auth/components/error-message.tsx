@@ -16,32 +16,37 @@ export function ErrorMessage({ error }: ErrorMessageProps) {
 	}
 
 	const errorMessages: Record<string, { title: string; description: string }> =
-		{
-			AccountDisabled: {
-				title: '⛔ Cuenta Desactivada',
-				description:
-					'Cuenta Desactivada. Debes solicitar la activación, contacta al administrador.',
-			},
-			AccessDenied: {
-				title: 'Acceso Denegado',
-				description:
-					'No tienes permisos para acceder al sistema. Si tu cuenta fue desactivada, contacta al administrador.',
-			},
-			Configuration: {
-				title: 'Error de Configuración',
-				description: 'Hubo un problema con la configuración del servidor.',
-			},
-			OAuthAccountNotLinked: {
-				title: 'Cuenta No Encontrada',
-				description:
-					'Tu cuenta de Google no está registrada en el sistema. Contacta al administrador.',
-			},
-			Default: {
-				title: 'Error de Autenticación',
-				description:
-					'Ocurrió un error al intentar iniciar sesión. Por favor, intenta nuevamente.',
-			},
-		}
+	{
+		AccountDisabled: {
+			title: '⛔ Cuenta Desactivada',
+			description:
+				'Cuenta Desactivada. Debes solicitar la activación, contacta al administrador.',
+		},
+		AccessDenied: {
+			title: 'Acceso Denegado',
+			description:
+				'No tienes permisos para acceder al sistema. Si tu cuenta fue desactivada, contacta al administrador.',
+		},
+		Configuration: {
+			title: 'Error de Configuración',
+			description: 'Hubo un problema con la configuración del servidor.',
+		},
+		OAuthAccountNotLinked: {
+			title: 'Cuenta No Encontrada',
+			description:
+				'Tu cuenta de Google no está registrada en el sistema. Contacta al administrador.',
+		},
+		InvalidDomain: {
+			title: 'Dominio No Autorizado',
+			description:
+				'Solo se permite el acceso con correos corporativos (@financieramentecu.com). Por favor, utiliza tu cuenta institucional.',
+		},
+		Default: {
+			title: 'Error de Autenticación',
+			description:
+				'Ocurrió un error al intentar iniciar sesión. Por favor, intenta nuevamente.',
+		},
+	}
 
 	const errorInfo = errorMessages[error] || errorMessages.Default
 
