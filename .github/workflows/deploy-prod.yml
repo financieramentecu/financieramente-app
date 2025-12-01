@@ -95,6 +95,7 @@ jobs:
       - name: Copy Docker files
         run: |
           rsync -avz --delete \
+            --exclude='nginx/ssl' \
             -e "ssh -o StrictHostKeyChecking=no" \
             ./docker/ root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/docker/
 
@@ -134,6 +135,47 @@ jobs:
 
           # Copy environment to docker directory
           cp .env docker/.env
+
+          # Create SSL directory and self-signed certificates if they don't exist
+          SSL_DIR=/opt/financieramente/docker/nginx/ssl
+          mkdir -p "$SSL_DIR"
+          
+          echo "=== Checking SSL certificates ==="
+          echo "SSL Directory: $SSL_DIR"
+          ls -la "$SSL_DIR" || echo "Directory does not exist or is empty"
+          
+          if [ -f "$SSL_DIR/cert.pem" ]; then
+            echo "✅ cert.pem exists ($(stat -c%s "$SSL_DIR/cert.pem") bytes)"
+            echo "Certificate details:"
+            openssl x509 -in "$SSL_DIR/cert.pem" -noout -subject -dates 2>/dev/null || echo "Could not read certificate details"
+          else
+            echo "❌ cert.pem does not exist"
+          fi
+          
+          if [ -f "$SSL_DIR/key.pem" ]; then
+            echo "✅ key.pem exists ($(stat -c%s "$SSL_DIR/key.pem") bytes)"
+          else
+            echo "❌ key.pem does not exist"
+          fi
+          
+          if [ ! -f "$SSL_DIR/cert.pem" ] || [ ! -f "$SSL_DIR/key.pem" ]; then
+            echo "Creating self-signed SSL certificates..."
+            if command -v openssl >/dev/null 2>&1; then
+              openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout "$SSL_DIR/key.pem" \
+                -out "$SSL_DIR/cert.pem" \
+                -subj "/C=CO/ST=State/L=City/O=Financieramente/CN=negocios.financieramentecu.co"
+              chmod 644 "$SSL_DIR/cert.pem"
+              chmod 600 "$SSL_DIR/key.pem"
+              echo "✅ Self-signed certificates created"
+            else
+              echo "❌ openssl not found, cannot create certificates"
+              echo "Please install openssl or configure SSL certificates manually"
+              exit 1
+            fi
+          else
+            echo "✅ SSL certificates already exist, skipping creation"
+          fi
           EOF
 
       - name: Deploy application

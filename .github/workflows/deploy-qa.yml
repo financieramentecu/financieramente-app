@@ -75,6 +75,7 @@ jobs:
       - name: Copy Docker files to server
         run: |
           rsync -avz --delete \
+            --exclude='nginx/ssl' \
             -e "ssh -o StrictHostKeyChecking=no" \
             ./docker/ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/docker/
 
@@ -127,6 +128,70 @@ jobs:
 
             cd /opt/financieramente
 
+            # Create SSL directory and self-signed certificates if they don't exist
+            # IMPORTANT: Do this BEFORE starting containers to prevent nginx restart loops
+            SSL_DIR=/opt/financieramente/docker/nginx/ssl
+            mkdir -p "$SSL_DIR"
+
+            echo "=== Checking SSL certificates ==="
+            echo "SSL Directory: $SSL_DIR"
+            ls -la "$SSL_DIR" || echo "Directory does not exist or is empty"
+
+            if [ -f "$SSL_DIR/cert.pem" ]; then
+              echo "✅ cert.pem exists ($(stat -c%s "$SSL_DIR/cert.pem") bytes)"
+              echo "Certificate details:"
+              openssl x509 -in "$SSL_DIR/cert.pem" -noout -subject -dates 2>/dev/null || echo "Could not read certificate details"
+            else
+              echo "❌ cert.pem does not exist"
+            fi
+
+            if [ -f "$SSL_DIR/key.pem" ]; then
+              echo "✅ key.pem exists ($(stat -c%s "$SSL_DIR/key.pem") bytes)"
+            else
+              echo "❌ key.pem does not exist"
+            fi
+
+            if [ ! -f "$SSL_DIR/cert.pem" ] || [ ! -f "$SSL_DIR/key.pem" ]; then
+              echo "Creating self-signed SSL certificates..."
+              if command -v openssl >/dev/null 2>&1; then
+                openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                  -keyout "$SSL_DIR/key.pem" \
+                  -out "$SSL_DIR/cert.pem" \
+                  -subj "/C=CO/ST=State/L=City/O=Financieramente/CN=negocios.qa.financieramentecu.co"
+                chmod 644 "$SSL_DIR/cert.pem"
+                chmod 600 "$SSL_DIR/key.pem"
+                
+                # Verify certificates were created
+                if [ -f "$SSL_DIR/cert.pem" ] && [ -f "$SSL_DIR/key.pem" ]; then
+                  echo "✅ Self-signed certificates created and verified"
+                  echo "Certificate location: $SSL_DIR"
+                  ls -lh "$SSL_DIR"
+                else
+                  echo "❌ Failed to create certificates"
+                  exit 1
+                fi
+              else
+                echo "❌ openssl not found, cannot create certificates"
+                echo "Please install openssl or configure SSL certificates manually"
+                exit 1
+              fi
+            else
+              echo "✅ SSL certificates already exist, skipping creation"
+              echo "Verifying certificates are readable..."
+              ls -lh "$SSL_DIR"
+            fi
+
+            # Final verification before starting containers
+            echo "=== Final SSL verification ==="
+            if [ ! -f "$SSL_DIR/cert.pem" ] || [ ! -f "$SSL_DIR/key.pem" ]; then
+              echo "❌ CRITICAL: SSL certificates are missing before container startup"
+              echo "Expected location: $SSL_DIR"
+              echo "Current directory contents:"
+              ls -la "$SSL_DIR" || echo "Directory does not exist!"
+              exit 1
+            fi
+            echo "✅ SSL certificates verified and ready"
+
             # Login to GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -136,7 +201,38 @@ jobs:
 
             # Pull and start new containers
             docker-compose -f "$COMPOSE_FILE_PATH" pull
-            docker-compose -f "$COMPOSE_FILE_PATH" up -d
+
+            # Verify SSL certificates one more time before starting
+            if [ ! -f "$SSL_DIR/cert.pem" ] || [ ! -f "$SSL_DIR/key.pem" ]; then
+              echo "❌ SSL certificates missing right before container startup!"
+              exit 1
+            fi
+
+            # Start containers (postgres and nextjs first, then nginx)
+            docker-compose -f "$COMPOSE_FILE_PATH" up -d postgres nextjs
+
+            # Wait a moment for postgres and nextjs to start
+            sleep 5
+
+            # Now start nginx (which requires SSL certificates)
+            docker-compose -f "$COMPOSE_FILE_PATH" up -d nginx
+
+            # Wait a moment and verify nginx can see the certificates
+            sleep 3
+            echo "=== Verifying nginx can access SSL certificates ==="
+            if docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx test -f /etc/nginx/ssl/cert.pem && \
+               docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx test -f /etc/nginx/ssl/key.pem; then
+              echo "✅ Nginx can access SSL certificates inside container"
+              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx ls -lh /etc/nginx/ssl/
+            else
+              echo "❌ Nginx cannot access SSL certificates inside container"
+              echo "Host SSL directory: $SSL_DIR"
+              ls -la "$SSL_DIR"
+              echo "Container SSL directory:"
+              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx ls -la /etc/nginx/ssl/ || echo "Cannot access container SSL directory"
+              docker-compose -f "$COMPOSE_FILE_PATH" logs nginx --tail=20
+              exit 1
+            fi
 
             # Wait for PostgreSQL to be ready
             echo "Waiting for PostgreSQL to be ready..."
@@ -190,21 +286,87 @@ jobs:
 
             COMPOSE_FILE_PATH=/opt/financieramente/docker/docker-compose.qa.yml
 
-            sleep 30
+            echo "Checking container status..."
+            docker-compose -f "$COMPOSE_FILE_PATH" ps
 
+            echo "Checking if nextjs container is responding..."
+            for i in {1..10}; do
+              if docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
+                echo "✅ Next.js container is responding"
+                break
+              fi
+              echo "⏳ Waiting for Next.js... ($i/10)"
+              sleep 5
+            done
+
+            echo "Checking nginx container status..."
+            # Wait for nginx to be running (not restarting)
+            for i in {1..30}; do
+              NGINX_STATUS=$(docker-compose -f "$COMPOSE_FILE_PATH" ps nginx | grep -q "Up" && echo "running" || echo "not_running")
+              if [ "$NGINX_STATUS" = "running" ]; then
+                echo "✅ Nginx container is running"
+                break
+              fi
+              echo "⏳ Waiting for nginx to be running... ($i/30)"
+              sleep 2
+            done
+
+            # Check if nginx is in restart loop
+            NGINX_RESTART_COUNT=$(docker-compose -f "$COMPOSE_FILE_PATH" ps nginx | grep -o "Restarting" | wc -l || echo "0")
+            if [ "$NGINX_RESTART_COUNT" -gt 0 ]; then
+              echo "❌ Nginx is in restart loop"
+              echo "=== Nginx Error Logs ==="
+              docker-compose -f "$COMPOSE_FILE_PATH" logs nginx --tail=50
+              echo "=== Checking SSL certificates ==="
+              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx ls -la /etc/nginx/ssl/ || echo "Cannot access SSL directory"
+              exit 1
+            fi
+
+            echo "Checking if nginx can reach nextjs..."
+            if docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx wget -qO- http://nextjs:3000/api/health > /dev/null 2>&1; then
+              echo "✅ Nginx can reach Next.js"
+            else
+              echo "❌ Nginx cannot reach Next.js"
+              echo "Checking nginx network connectivity..."
+              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx ping -c 2 nextjs || echo "Cannot ping nextjs"
+              docker-compose -f "$COMPOSE_FILE_PATH" logs nginx --tail=30
+              docker-compose -f "$COMPOSE_FILE_PATH" logs nextjs --tail=30
+              exit 1
+            fi
+
+            echo "Checking nginx on port 80..."
+            sleep 10
             for i in {1..15}; do
               echo "Health check attempt $i/15..."
-              if curl -f http://localhost:3000/api/health; then
-                echo "✅ Health check passed"
-                exit 0
+              if curl -f http://localhost:80/health > /dev/null 2>&1; then
+                echo "✅ Health check passed on port 80"
+                break
+              fi
+              if [ $i -eq 15 ]; then
+                echo "❌ Health check failed on port 80"
+                echo "=== Nginx Error Logs ==="
+                docker-compose -f "$COMPOSE_FILE_PATH" logs nginx --tail=50
+                echo "=== Next.js Logs ==="
+                docker-compose -f "$COMPOSE_FILE_PATH" logs nextjs --tail=50
+                echo "=== Testing nginx configuration ==="
+                docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx nginx -t || true
+                exit 1
               fi
               sleep 10
             done
 
-            echo "❌ Health check failed"
-            cd /opt/financieramente
-            docker-compose -f "$COMPOSE_FILE_PATH" logs --tail=50
-            exit 1
+            echo "Checking application endpoint through nginx..."
+            if curl -f -L http://localhost:80/login > /dev/null 2>&1; then
+              echo "✅ Application endpoint is responding through nginx"
+            else
+              echo "⚠️ Application endpoint check failed"
+              echo "Response code: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:80/login || echo 'failed')"
+              docker-compose -f "$COMPOSE_FILE_PATH" logs nginx --tail=20
+              docker-compose -f "$COMPOSE_FILE_PATH" logs nextjs --tail=20
+            fi
+
+            echo "=== Final Container Status ==="
+            docker-compose -f "$COMPOSE_FILE_PATH" ps
 
       - name: Cleanup old images
         uses: appleboy/ssh-action@v1.0.3
