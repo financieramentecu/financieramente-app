@@ -22,9 +22,11 @@ log "=========================================="
 case "$ENVIRONMENT" in
     qa)
         DOMAIN="negocios.qa.financieramentecu.co"
+        COMPOSE_FILE="docker/docker-compose.qa.yml"
         ;;
     prod)
         DOMAIN="negocios.financieramentecu.co"
+        COMPOSE_FILE="docker/docker-compose.prod.yml"
         ;;
     *)
         log "Error: Unknown environment '$ENVIRONMENT'"
@@ -33,24 +35,26 @@ case "$ENVIRONMENT" in
 esac
 
 APP_DIR="/opt/financieramente"
-ENV_DIR="$APP_DIR/$ENVIRONMENT"
-SSL_DIR="$ENV_DIR/nginx/ssl"
+SSL_DIR="$APP_DIR/docker/nginx/ssl"
 
 log "Domain: $DOMAIN"
 log "SSL Directory: $SSL_DIR"
-
-# Check if environment directory exists
-if [ ! -d "$ENV_DIR" ]; then
-    log "Error: Environment directory not found: $ENV_DIR"
-    exit 1
-fi
+log "Compose File: $COMPOSE_FILE"
 
 # Create logs directory if it doesn't exist
 mkdir -p "$(dirname "$LOG_FILE")"
 
+# Stop Nginx temporarily for renewal (needs port 80)
+log "Stopping Nginx temporarily..."
+cd "$APP_DIR"
+docker-compose -f "$COMPOSE_FILE" stop nginx || true
+
+# Wait a moment for port to be released
+sleep 2
+
 # Attempt to renew certificates
 log "Attempting to renew certificates..."
-if certbot renew --quiet --deploy-hook "echo 'Certificates renewed'"; then
+if certbot renew --quiet --standalone; then
     log "✅ Certificates renewed successfully"
     
     # Copy renewed certificates
@@ -66,8 +70,8 @@ if certbot renew --quiet --deploy-hook "echo 'Certificates renewed'"; then
         
         # Restart Nginx to load new certificates
         log "Restarting Nginx..."
-        cd "$ENV_DIR"
-        docker-compose restart nginx
+        cd "$APP_DIR"
+        docker-compose -f "$COMPOSE_FILE" up -d nginx
         
         log "Nginx restarted with new certificates"
         
@@ -86,9 +90,11 @@ if certbot renew --quiet --deploy-hook "echo 'Certificates renewed'"; then
     fi
 else
     log "Certificate renewal not needed or failed"
+    # Restart Nginx even if renewal wasn't needed
+    cd "$APP_DIR"
+    docker-compose -f "$COMPOSE_FILE" up -d nginx
 fi
 
 log "=========================================="
 log "SSL Certificate Renewal Completed"
 log "=========================================="
-

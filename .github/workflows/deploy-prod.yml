@@ -10,9 +10,54 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=prod
+            type=sha,prefix=prod-
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://negocios.financieramentecu.co
+            NEXT_TELEMETRY_DISABLED=1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
+    needs: build-and-push
 
     steps:
       - name: Checkout code
@@ -40,12 +85,6 @@ jobs:
           BACKUP_DIR="backup_$(date +%Y%m%d_%H%M%S)"
           mkdir -p backups/$BACKUP_DIR
 
-          # Backup current application
-          if [ -d "app" ]; then
-            cp -r app backups/$BACKUP_DIR/
-            echo "✅ Application backed up to backups/$BACKUP_DIR"
-          fi
-
           # Backup database
           if docker-compose -f "$COMPOSE_FILE_PATH" ps postgres | grep -q "Up"; then
             docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres pg_dump -U financieramente_user financieramente_prod > backups/$BACKUP_DIR/database_backup.sql
@@ -53,22 +92,8 @@ jobs:
           fi
           EOF
 
-      - name: Copy files to server
-        run: |
-          # Create app directory structure
-          ssh root@${{ secrets.PROD_DROPLET_IP }} "mkdir -p /opt/financieramente/app"
-
-          # Copy application files
-          rsync -avz --delete \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='.next' \
-            --exclude='*.log' \
-            ./ root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/app/
-
       - name: Copy Docker files
         run: |
-          # Copy Docker configuration
           rsync -avz --delete \
             -e "ssh -o StrictHostKeyChecking=no" \
             ./docker/ root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/docker/
@@ -107,8 +132,7 @@ jobs:
           ENVEOF
           sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" .env
 
-          # Copy environment to app and docker directories
-          cp .env app/.env
+          # Copy environment to docker directory
           cp .env docker/.env
           EOF
 
@@ -120,15 +144,19 @@ jobs:
           cd /opt/financieramente
 
           COMPOSE_FILE_PATH=/opt/financieramente/docker/docker-compose.prod.yml
+          IMAGE_NAME="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+
+          # Replace image placeholder in docker-compose file
+          sed -i "s#__IMAGE_NAME__#${IMAGE_NAME}#g" "$COMPOSE_FILE_PATH"
+
+          # Login to GHCR
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
           # Stop existing containers gracefully
           docker-compose -f "$COMPOSE_FILE_PATH" down --timeout 30 || true
 
-          # Clean Next.js cache if it exists
-          rm -rf /opt/financieramente/app/.next || true
-
-          # Build and start new containers (no cache to ensure fresh build)
-          docker-compose -f "$COMPOSE_FILE_PATH" build --pull
+          # Pull and start new containers
+          docker-compose -f "$COMPOSE_FILE_PATH" pull
           docker-compose -f "$COMPOSE_FILE_PATH" up -d
 
           # Wait for PostgreSQL to be ready
@@ -190,20 +218,6 @@ jobs:
             exit 1
           fi
 
-      - name: Verify database connection
-        run: |
-          ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
-          cd /opt/financieramente/app
-
-          # Test database connection
-          if npx prisma db pull --print > /dev/null 2>&1; then
-            echo "✅ Database connection verified"
-          else
-            echo "❌ Database connection failed"
-            exit 1
-          fi
-          EOF
-
       - name: Verify all services
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
@@ -227,7 +241,7 @@ jobs:
       - name: Cleanup old images
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
-          # Remove unused Docker images (keep last 3)
+          # Remove unused Docker images
           docker image prune -f
 
           # Remove old backups (keep last 7 days)
@@ -264,12 +278,16 @@ jobs:
             # Stop current containers
             docker-compose -f "$COMPOSE_FILE_PATH" down
             
-            # Restore application files
-            if [ -d "backups/$LATEST_BACKUP/app" ]; then
-              rm -rf app
-              cp -r backups/$LATEST_BACKUP/app .
-              echo "✅ Application files restored"
+            # Restore database from backup
+            if [ -f "backups/$LATEST_BACKUP/database_backup.sql" ]; then
+              docker-compose -f "$COMPOSE_FILE_PATH" up -d postgres
+              sleep 10
+              docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres psql -U financieramente_user -d financieramente_prod < backups/$LATEST_BACKUP/database_backup.sql
+              echo "✅ Database restored from backup"
             fi
+            
+            # Pull previous image version (using SHA from backup or latest prod tag)
+            docker-compose -f "$COMPOSE_FILE_PATH" pull || true
             
             # Restart with previous version
             docker-compose -f "$COMPOSE_FILE_PATH" up -d
