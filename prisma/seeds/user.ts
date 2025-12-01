@@ -1,5 +1,14 @@
 import { PrismaClient, Prisma } from '@prisma/client'
-import { hashPassword } from '../../src/lib/auth/password-utils'
+import bcrypt from 'bcryptjs'
+
+const SALT_ROUNDS = 10
+async function hashPassword(password: string): Promise<string> {
+	if (!password || password.trim().length === 0) {
+		throw new Error('Password cannot be empty')
+	}
+	const hash = await bcrypt.hash(password, SALT_ROUNDS)
+	return hash
+}
 
 export const adminUser = {
 	name: 'Vanesa',
