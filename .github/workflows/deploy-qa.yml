@@ -163,7 +163,7 @@ jobs:
               docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la && pwd"
               exit 1
             }
-            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && npx prisma migrate deploy" || {
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && npx prisma@6.18.0 migrate deploy" || {
               echo "❌ Migration failed"
               docker-compose -f "$COMPOSE_FILE_PATH" logs nextjs --tail=50
               exit 1
