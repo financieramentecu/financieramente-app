@@ -41,12 +41,7 @@ services:
       -c default_statistics_target=100
 
   nextjs:
-    build:
-      context: ../app
-      dockerfile: ../docker/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED}
+    image: __IMAGE_NAME__:prod
     container_name: financieramente-nextjs-prod
     restart: unless-stopped
     environment:
@@ -62,8 +57,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ../app/prisma:/app/prisma:ro
     ports:
       - "3000:3000"
     deploy:

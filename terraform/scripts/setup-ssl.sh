@@ -24,15 +24,15 @@ echo "Domain: $DOMAIN"
 echo "Email: $LETSENCRYPT_EMAIL"
 echo ""
 
-# Define paths based on environment
+# Define paths based on current structure
 APP_DIR="/opt/financieramente"
-ENV_DIR="$APP_DIR/$ENVIRONMENT"
-SSL_DIR="$ENV_DIR/nginx/ssl"
+SSL_DIR="$APP_DIR/docker/nginx/ssl"
 
-# Check if environment directory exists
-if [ ! -d "$ENV_DIR" ]; then
-    echo "Error: Environment directory not found: $ENV_DIR"
-    exit 1
+# Determine docker-compose file based on environment
+if [ "$ENVIRONMENT" = "prod" ]; then
+    COMPOSE_FILE="docker/docker-compose.prod.yml"
+else
+    COMPOSE_FILE="docker/docker-compose.qa.yml"
 fi
 
 # Create SSL directory
@@ -46,13 +46,16 @@ if ! command -v certbot >/dev/null 2>&1; then
     apt-get update
     apt-get install -y certbot
 else
-    echo "Certbot already installed"
+    echo "✅ Certbot already installed: $(certbot --version)"
 fi
 
 # Stop Nginx temporarily to free port 80
 echo "Stopping Nginx temporarily..."
-cd "$ENV_DIR"
-docker-compose stop nginx || true
+cd "$APP_DIR"
+docker-compose -f "$COMPOSE_FILE" stop nginx || true
+
+# Wait a moment for port to be released
+sleep 2
 
 # Obtain SSL certificate
 echo "Obtaining SSL certificate for $DOMAIN..."
@@ -74,12 +77,12 @@ cp "$CERT_PATH/privkey.pem" "$SSL_DIR/key.pem"
 chmod 644 "$SSL_DIR/cert.pem"
 chmod 600 "$SSL_DIR/key.pem"
 
-echo "Certificates installed successfully!"
+echo "✅ Certificates installed successfully!"
 
 # Restart services
 echo "Restarting services..."
-cd "$ENV_DIR"
-docker-compose up -d
+cd "$APP_DIR"
+docker-compose -f "$COMPOSE_FILE" up -d
 
 # Wait for services to be ready
 echo "Waiting for services to be ready..."
@@ -102,8 +105,7 @@ echo "Domain: https://$DOMAIN"
 echo "Certificates: $SSL_DIR"
 echo ""
 echo "Next steps:"
-echo "1. Configure automatic renewal (already set up in ssl-renew.sh)"
+echo "1. Configure automatic renewal with cron job"
 echo "2. Test your application at https://$DOMAIN"
 echo "3. Monitor certificate expiration: certbot certificates"
 echo ""
-
