@@ -30,12 +30,7 @@ services:
       start_period: 30s
 
   nextjs:
-    build:
-      context: ../app
-      dockerfile: ../docker/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED}
+    image: __IMAGE_NAME__:qa
     container_name: financieramente-nextjs-qa
     restart: unless-stopped
     environment:
@@ -51,8 +46,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ../app/prisma:/app/prisma:ro
     ports:
       - "3000:3000"
     deploy:
