@@ -9,7 +9,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files (for better Docker layer caching)
-COPY package*.json ./
+COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
 # Install dependencies with npm ci for faster, reliable, reproducible builds
@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 
 # Copy source code (this layer changes less often)
-COPY package*.json ./
+COPY package.json package-lock.json ./
 COPY next.config.ts ./
 COPY tsconfig.json ./
 COPY tailwind.config.* ./
