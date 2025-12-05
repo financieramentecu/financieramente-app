@@ -11,6 +11,7 @@ import {
 	Settings,
 	X,
 	Users,
+	FileUp,
 } from 'lucide-react'
 
 /**
@@ -53,6 +54,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				icon: <X className="h-4 w-4" />,
 			},
 		],
+	},
+	{
+		title: 'Carga Archivos',
+		url: '/dashboard/carga-archivos',
+		icon: <FileUp className="h-4 w-4" />,
 	},
 	{
 		title: 'Cargas',

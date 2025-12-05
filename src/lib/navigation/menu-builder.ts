@@ -48,6 +48,12 @@ export function buildMenuByRole(
 			continue
 		}
 
+		// Carga Archivos (usa permiso de cargas)
+		if (item.title === 'Carga Archivos' && permissions.cargas.cargaMasiva) {
+			filteredItems.push(item)
+			continue
+		}
+
 		// Cargas
 		if (item.title === 'Cargas') {
 			if (permissions.cargas.cargaMasiva || permissions.cargas.historial) {
