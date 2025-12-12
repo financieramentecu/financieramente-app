@@ -91,7 +91,7 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 		}
 		const variantStyles: Record<NonNullable<ModalProps['variant']>, string> = {
 			default: '',
-			alert: 'sm:max-w-sm',
+			alert: 'max-w-[360px]',
 			confirm: '',
 			form: '',
 		}
@@ -183,18 +183,19 @@ const AlertModal = React.forwardRef<HTMLDivElement, AlertModalProps>(
 				open={open}
 				onOpenChange={onOpenChange}
 				trigger={trigger}
-				title={typeLabels[type]}
+				title={props.title || typeLabels[type]}
 				size="sm"
 				variant="alert"
+				className={cn('!p-4', props.className)}
 				{...props}
 			>
-				<div className="flex items-center space-x-4 py-4">
-					<Icon className={cn('h-8 w-8', iconColors[type])} />
-					<div className="flex-1">
-						<p className="text-sm font-medium">{message}</p>
+				<div className="flex items-start space-x-3 py-2">
+					<Icon className={cn('h-6 w-6 mt-0.5 shrink-0', iconColors[type])} />
+					<div className="flex-1 min-w-0">
+						<p className="text-sm font-medium whitespace-pre-line leading-relaxed">{message}</p>
 					</div>
 				</div>
-				<DialogFooter>
+				<DialogFooter className="pt-2 pb-0">
 					<Button onClick={onConfirm} className="w-full">
 						{confirmText}
 					</Button>

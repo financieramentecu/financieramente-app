@@ -5,6 +5,10 @@ import { Button } from '@/features/shared/ui/button'
 import { AlertModal } from '@/features/shared/ui/modal'
 import { FileUp, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { validateExcelStructure } from '../lib/validate-excel-structure'
+import { processExcelFile, ProcessResult } from '../lib/process-excel-file'
+import { ProcessingSummary } from './ProcessingSummary'
+import { ProcessingProgress } from './ProcessingProgress'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const ACCEPTED_FILE_TYPES = [
@@ -19,6 +23,15 @@ export function CargarArchivoTab() {
 	const [isUploading, setIsUploading] = useState(false)
 	const [errorModalOpen, setErrorModalOpen] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
+	const [errorModalTitle, setErrorModalTitle] = useState<string | undefined>(undefined)
+	const [processingResult, setProcessingResult] = useState<ProcessResult & { sincronizadoCount: number; rezagadoCount: number } | null>(null)
+	const [processingProgress, setProcessingProgress] = useState<{
+		current: number
+		total: number
+		sincronizado: number
+		rezagado: number
+		error: number
+	} | null>(null)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	// Función para validar el formato del archivo
@@ -42,11 +55,12 @@ export function CargarArchivoTab() {
 		return { isValid: true }
 	}, [])
 
-	const handleFileSelect = useCallback((file: File) => {
+		const handleFileSelect = useCallback((file: File) => {
 		// Validar formato de archivo
 		const formatValidation = validateFileFormat(file)
 		if (!formatValidation.isValid) {
 			setErrorMessage(formatValidation.error || 'Formato de archivo no válido')
+			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
 			return
 		}
@@ -54,6 +68,7 @@ export function CargarArchivoTab() {
 		// Validar tamaño
 		if (file.size > MAX_FILE_SIZE) {
 			setErrorMessage('El archivo es demasiado grande. El tamaño máximo es 50MB')
+			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
 			return
 		}
@@ -103,10 +118,16 @@ export function CargarArchivoTab() {
 
 	const handleClear = useCallback(() => {
 		setSelectedFile(null)
+		setProcessingResult(null)
+		setProcessingProgress(null)
 		if (fileInputRef.current) {
 			fileInputRef.current.value = ''
 		}
 	}, [])
+
+	const handleUploadAnother = useCallback(() => {
+		handleClear()
+	}, [handleClear])
 
 	const handleUpload = useCallback(async () => {
 		if (!selectedFile) return
@@ -115,6 +136,7 @@ export function CargarArchivoTab() {
 		const formatValidation = validateFileFormat(selectedFile)
 		if (!formatValidation.isValid) {
 			setErrorMessage(formatValidation.error || 'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls')
+			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
 			return
 		}
@@ -122,24 +144,143 @@ export function CargarArchivoTab() {
 		// Validar tamaño antes de cargar
 		if (selectedFile.size > MAX_FILE_SIZE) {
 			setErrorMessage('El archivo es demasiado grande. El tamaño máximo es 50MB')
+			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
 			return
 		}
 
+		// Validar estructura del archivo Excel
 		setIsUploading(true)
 		try {
-			// TODO: Implementar la lógica de carga
-			const formData = new FormData()
-			formData.append('file', selectedFile)
+			const structureValidation = await validateExcelStructure(selectedFile)
+			
+			if (!structureValidation.isValid) {
+				// Mostrar modal con el mensaje exacto según el diseño
+				setErrorMessage('El archivo no contiene la estructura esperada de Skandia. Verifique las columnas requeridas.')
+				setErrorModalTitle('ESTRUCTURA INCORRECTA')
+				setErrorModalOpen(true)
+				setIsUploading(false)
+				return
+			}
 
-			// Simular carga (reemplazar con llamada real a API)
-			await new Promise((resolve) => setTimeout(resolve, 2000))
+			// Si la validación es exitosa, procesar el archivo
+			const result = await processExcelFile(selectedFile)
 
-			alert('Archivo cargado exitosamente')
-			handleClear()
+			// Crear FileImport
+			const fileImportResponse = await fetch('/api/carga-archivos/file-import', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ fileName: selectedFile.name }),
+			})
+
+			if (!fileImportResponse.ok) {
+				throw new Error('Error al crear registro de importación')
+			}
+
+			const { fileImport } = await fileImportResponse.json()
+
+			// Procesar y guardar registros válidos con progreso
+			if (result.validRecords.length > 0) {
+				setProcessingProgress({
+					current: 0,
+					total: result.validRecords.length,
+					sincronizado: 0,
+					rezagado: 0,
+					error: 0,
+				})
+
+				// Función para hacer polling del progreso
+				let pollInterval: NodeJS.Timeout | null = null
+				const pollProgress = (fileImportId: number): void => {
+					pollInterval = setInterval(async () => {
+						try {
+							const progressResponse = await fetch(
+								`/api/carga-archivos/file-import/${fileImportId}`
+							)
+							if (progressResponse.ok) {
+								const fileImportData = await progressResponse.json()
+								setProcessingProgress({
+									current: fileImportData.totalRecord || 0,
+									total: result.validRecords.length,
+									sincronizado: fileImportData.sincronizadoRecord || 0,
+									rezagado: fileImportData.rezagadoRecord || 0,
+									error: fileImportData.errorRecord || 0,
+								})
+
+								// Si está completado, detener polling
+								if (fileImportData.status === 'COMPLETADO') {
+									if (pollInterval) {
+										clearInterval(pollInterval)
+										pollInterval = null
+									}
+								}
+							}
+						} catch (error) {
+							console.error('Error al obtener progreso:', error)
+						}
+					}, 500) // Polling cada 500ms
+
+					// Limpiar intervalo después de 5 minutos como seguridad
+					setTimeout(() => {
+						if (pollInterval) {
+							clearInterval(pollInterval)
+							pollInterval = null
+						}
+					}, 5 * 60 * 1000)
+				}
+
+				// Iniciar polling
+				pollProgress(fileImport.idFileImport)
+
+				// Llamar a la API para procesar registros (procesa en batches)
+				const processResponse = await fetch('/api/carga-archivos/process-batch', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						fileImportId: fileImport.idFileImport,
+						records: result.validRecords,
+						headers: result.headers,
+						batchSize: 10, // Procesar 10 registros por batch
+					}),
+				})
+
+				if (!processResponse.ok) {
+					throw new Error('Error al procesar registros')
+				}
+
+				const processData = await processResponse.json()
+
+				// Esperar un poco para que el último polling actualice
+				await new Promise((resolve) => setTimeout(resolve, 1000))
+
+				// Obtener el estado final
+				const finalResponse = await fetch(
+					`/api/carga-archivos/file-import/${fileImport.idFileImport}`
+				)
+				const finalData = finalResponse.ok ? await finalResponse.json() : processData.summary
+
+				// Actualizar progreso con los resultados finales
+				setProcessingProgress(null)
+
+				// Actualizar resultado con los datos del procesamiento
+				setProcessingResult({
+					...result,
+					sincronizadoCount: finalData.sincronizadoRecord || processData.summary.sincronizado || 0,
+					rezagadoCount: finalData.rezagadoRecord || processData.summary.rezagado || 0,
+					errorCount: result.errorCount + (finalData.errorRecord || processData.summary.error || 0), // Errores de validación + errores de procesamiento
+				})
+			} else {
+				// Si no hay registros válidos, solo mostrar errores
+				setProcessingResult({
+					...result,
+					sincronizadoCount: 0,
+					rezagadoCount: 0,
+				})
+			}
 		} catch (error) {
-			console.error('Error al cargar archivo:', error)
-			setErrorMessage('Error al cargar el archivo. Por favor, intenta nuevamente.')
+			console.error('Error al procesar archivo:', error)
+			setErrorMessage('Error al procesar el archivo. Por favor, intenta nuevamente.')
+			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
 		} finally {
 			setIsUploading(false)
@@ -159,13 +300,35 @@ export function CargarArchivoTab() {
 				open={errorModalOpen}
 				onOpenChange={setErrorModalOpen}
 				type="error"
+				title={errorModalTitle}
 				message={errorMessage || 'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls'}
-				confirmText="Aceptar"
-				onConfirm={() => setErrorModalOpen(false)}
+				confirmText={errorModalTitle ? 'ACEPTAR' : 'Aceptar'}
+				onConfirm={() => {
+					setErrorModalOpen(false)
+					setErrorModalTitle(undefined)
+				}}
 			/>
 
-			{/* Card de carga */}
-			<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+			{/* Mostrar progreso si está procesando */}
+			{processingProgress && (
+				<ProcessingProgress
+					current={processingProgress.current}
+					total={processingProgress.total}
+					sincronizado={processingProgress.sincronizado}
+					rezagado={processingProgress.rezagado}
+					error={processingProgress.error}
+				/>
+			)}
+
+			{/* Mostrar resumen si hay resultado, sino mostrar área de carga */}
+			{processingResult && !processingProgress ? (
+				<ProcessingSummary
+					result={processingResult}
+					fileName={selectedFile?.name || 'archivo'}
+					onUploadAnother={handleUploadAnother}
+				/>
+			) : !processingProgress ? (
+				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
 				<h2 className="text-xl font-semibold text-[#00505C] mb-4">
 					Cargar Archivo de Covers Skandia
 				</h2>
@@ -248,6 +411,7 @@ export function CargarArchivoTab() {
 					</Button>
 				</div>
 			</div>
+			) : null}
 		</div>
 	)
 }
