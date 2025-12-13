@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { DocumentAutocomplete } from '../features/shared/ui/document-autocomplete'
+import { ClientAutocomplete } from '../features/negocios/components/client-autocomplete'
 import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 import { mockUsers } from '../features/shared/__tests__/fixtures/mockUsers'
 import * as React from 'react'
 
-const meta: Meta<typeof DocumentAutocomplete> = {
+const meta: Meta<typeof ClientAutocomplete> = {
 	title: 'Business/DocumentAutocomplete',
-	component: DocumentAutocomplete,
+	component: ClientAutocomplete,
 	parameters: {
 		layout: 'padded',
 		docs: {
@@ -28,7 +28,7 @@ const meta: Meta<typeof DocumentAutocomplete> = {
 }
 
 export default meta
-type Story = StoryObj<typeof DocumentAutocomplete>
+type Story = StoryObj<typeof ClientAutocomplete>
 
 // Wrapper component para manejar el estado
 const InteractiveWrapper = ({
@@ -44,7 +44,7 @@ const InteractiveWrapper = ({
 
 	return (
 		<div className="max-w-md space-y-4">
-			<DocumentAutocomplete
+			<ClientAutocomplete
 				value={value}
 				onChange={setValue}
 				users={users}
@@ -89,7 +89,7 @@ export const PreSelected: Story = {
 		const [value, setValue] = React.useState('1053.123.456')
 		return (
 			<div className="max-w-md space-y-4">
-				<DocumentAutocomplete
+				<ClientAutocomplete
 					value={value}
 					onChange={setValue}
 					users={mockUsers}

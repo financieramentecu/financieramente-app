@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
-import { CreateBusinessForm } from '../create-business-form'
+import { BusinessForm as CreateBusinessForm } from '@/features/negocios/components/business-form'
 import { mockUsers } from '@/features/shared/__tests__/fixtures/mockUsers'
 
 describe('CreateBusinessForm', () => {
@@ -14,7 +14,13 @@ describe('CreateBusinessForm', () => {
 
 	it('renders form with all fields', () => {
 		render(
-			<CreateBusinessForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+			<CreateBusinessForm
+				onSubmit={mockOnSubmit}
+				onCancel={mockOnCancel}
+				companiesOptions={[]}
+				periodicitiesOptions={[]}
+				currenciesOptions={[]}
+			/>
 		)
 
 		expect(screen.getByLabelText(/Email/i)).toBeInTheDocument()
@@ -29,7 +35,10 @@ describe('CreateBusinessForm', () => {
 			<CreateBusinessForm
 				onSubmit={mockOnSubmit}
 				onCancel={mockOnCancel}
-				users={mockUsers}
+				clients={mockUsers}
+				companiesOptions={[]}
+				periodicitiesOptions={[]}
+				currenciesOptions={[]}
 			/>
 		)
 
@@ -49,7 +58,10 @@ describe('CreateBusinessForm', () => {
 			<CreateBusinessForm
 				onSubmit={mockOnSubmit}
 				onCancel={mockOnCancel}
-				users={mockUsers}
+				clients={mockUsers}
+				companiesOptions={[]}
+				periodicitiesOptions={[]}
+				currenciesOptions={[]}
 			/>
 		)
 
@@ -63,18 +75,18 @@ describe('CreateBusinessForm', () => {
 		const searchInput = screen.getByPlaceholderText(
 			/Buscar documento o nombre/i
 		)
-		await user.type(searchInput, mockUsers[0].numeroDocumento)
+		await user.type(searchInput, mockUsers[0].identityNumber)
 
 		// Seleccionar el primer resultado
 		await waitFor(() => {
 			const firstResult = screen.getByText(
-				new RegExp(mockUsers[0].numeroDocumento, 'i')
+				new RegExp(mockUsers[0].identityNumber, 'i')
 			)
 			expect(firstResult).toBeInTheDocument()
 		})
 
 		await user.click(
-			screen.getByText(new RegExp(mockUsers[0].numeroDocumento, 'i'))
+			screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
 		)
 
 		await waitFor(() => {
@@ -84,7 +96,13 @@ describe('CreateBusinessForm', () => {
 
 	it('submit button is disabled when documento is empty', () => {
 		render(
-			<CreateBusinessForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+			<CreateBusinessForm
+				onSubmit={mockOnSubmit}
+				onCancel={mockOnCancel}
+				companiesOptions={[]}
+				periodicitiesOptions={[]}
+				currenciesOptions={[]}
+			/>
 		)
 
 		const submitButton = screen.getByRole('button', {
@@ -99,7 +117,10 @@ describe('CreateBusinessForm', () => {
 			<CreateBusinessForm
 				onSubmit={mockOnSubmit}
 				onCancel={mockOnCancel}
-				users={mockUsers}
+				clients={mockUsers}
+				companiesOptions={[]}
+				periodicitiesOptions={[]}
+				currenciesOptions={[]}
 			/>
 		)
 
@@ -111,14 +132,14 @@ describe('CreateBusinessForm', () => {
 		const searchInput = screen.getByPlaceholderText(
 			/Buscar documento o nombre/i
 		)
-		await user.type(searchInput, mockUsers[0].numeroDocumento)
+		await user.type(searchInput, mockUsers[0].identityNumber)
 		await waitFor(() => {
 			expect(
-				screen.getByText(new RegExp(mockUsers[0].numeroDocumento, 'i'))
+				screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
 			).toBeInTheDocument()
 		})
 		await user.click(
-			screen.getByText(new RegExp(mockUsers[0].numeroDocumento, 'i'))
+			screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
 		)
 
 		// Cambiar email a inválido
@@ -144,7 +165,13 @@ describe('CreateBusinessForm', () => {
 
 	it('calls onCancel when cancel button is clicked', () => {
 		render(
-			<CreateBusinessForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+			<CreateBusinessForm
+				onSubmit={mockOnSubmit}
+				onCancel={mockOnCancel}
+				companiesOptions={[]}
+				periodicitiesOptions={[]}
+				currenciesOptions={[]}
+			/>
 		)
 
 		const cancelButton = screen.getByRole('button', { name: /Cancelar/i })
@@ -159,7 +186,10 @@ describe('CreateBusinessForm', () => {
 			<CreateBusinessForm
 				onSubmit={mockOnSubmit}
 				onCancel={mockOnCancel}
-				users={mockUsers}
+				clients={mockUsers}
+				companiesOptions={[]}
+				periodicitiesOptions={[]}
+				currenciesOptions={[]}
 			/>
 		)
 
@@ -168,14 +198,14 @@ describe('CreateBusinessForm', () => {
 		const searchInput = screen.getByPlaceholderText(
 			/Buscar documento o nombre/i
 		)
-		await user.type(searchInput, mockUsers[0].numeroDocumento)
+		await user.type(searchInput, mockUsers[0].identityNumber)
 		await waitFor(() => {
 			expect(
-				screen.getByText(new RegExp(mockUsers[0].numeroDocumento, 'i'))
+				screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
 			).toBeInTheDocument()
 		})
 		await user.click(
-			screen.getByText(new RegExp(mockUsers[0].numeroDocumento, 'i'))
+			screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
 		)
 
 		await waitFor(() => {
@@ -196,7 +226,10 @@ describe('CreateBusinessForm', () => {
 			<CreateBusinessForm
 				onSubmit={mockOnSubmit}
 				onCancel={mockOnCancel}
-				users={mockUsers}
+				clients={mockUsers}
+				companiesOptions={[]}
+				periodicitiesOptions={[]}
+				currenciesOptions={[]}
 			/>
 		)
 
@@ -205,14 +238,14 @@ describe('CreateBusinessForm', () => {
 		const searchInput = screen.getByPlaceholderText(
 			/Buscar documento o nombre/i
 		)
-		await user.type(searchInput, mockUsers[0].numeroDocumento)
+		await user.type(searchInput, mockUsers[0].identityNumber)
 		await waitFor(() => {
 			expect(
-				screen.getByText(new RegExp(mockUsers[0].numeroDocumento, 'i'))
+				screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
 			).toBeInTheDocument()
 		})
 		await user.click(
-			screen.getByText(new RegExp(mockUsers[0].numeroDocumento, 'i'))
+			screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
 		)
 
 		const submitButton = await waitFor(() => {

@@ -1,49 +1,49 @@
-'use client'
-
 import React from 'react'
-import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
-import { CreateBusinessForm } from '@/features/shared/ui/create-business-form'
-import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
-import { toast } from 'sonner'
+import { getCompanies } from '@/services/company.service'
+import { unstable_cache } from 'next/cache'
+import BusinessWrapper from '@/features/negocios/components/business-wrapper'
+import { getProducts } from '@/services/product.service'
+import { getPeriodicities } from '@/services/periodicity.service'
+import { getCurrencies } from '@/services/currency.service'
 
-/**
- * Página de Crear Negocio
- *
- * Muestra el formulario para crear un nuevo negocio
- */
-export default function CrearNegocioPage() {
-	const router = useRouter()
+const getCompaniesCached = unstable_cache(getCompanies, ['companies'], {
+	revalidate: 300, // 5 minutes
+})
 
-	const handleSubmit = async (data: BusinessFormData) => {
-		try {
-			// TODO: Implementar llamada a API para crear negocio
-			console.log('Datos del formulario:', data)
+const getProductsCached = unstable_cache(getProducts, ['products'], {
+	revalidate: 300, // 5 minutes
+})
 
-			toast.success('Negocio creado exitosamente', {
-				description: 'El negocio ha sido registrado correctamente.',
-			})
-
-			// Redirigir a la lista de negocios después de crear
-			router.push('/dashboard/negocios')
-		} catch (error) {
-			console.error('Error al crear negocio:', error)
-			toast.error('Error al crear negocio', {
-				description:
-					'Ocurrió un error al intentar crear el negocio. Por favor, intenta de nuevo.',
-			})
-		}
+const getPeriodicitiesCached = unstable_cache(
+	getPeriodicities,
+	['periodicities'],
+	{
+		revalidate: 300, // 5 minutes
 	}
+)
 
-	const handleCancel = () => {
-		router.push('/dashboard/negocios')
-	}
+const getCurrenciesCached = unstable_cache(getCurrencies, ['currencies'], {
+	revalidate: 300, // 5 minutes
+})
+
+export default async function CrearNegocioPage() {
+	const [companies, products, periodicities, currencies] = await Promise.all([
+		getCompaniesCached(),
+		getProductsCached(),
+		getPeriodicitiesCached(),
+		getCurrenciesCached(),
+	])
 
 	return (
 		<DashboardLayout currentPage="Crear Negocio">
 			<div className="space-y-6">
-				{/* Formulario de crear negocio */}
-				<CreateBusinessForm onSubmit={handleSubmit} onCancel={handleCancel} />
+				<BusinessWrapper
+					companies={companies}
+					products={products}
+					periodicities={periodicities}
+					currencies={currencies}
+				/>
 			</div>
 		</DashboardLayout>
 	)

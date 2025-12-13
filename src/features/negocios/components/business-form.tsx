@@ -19,87 +19,80 @@ import {
 	businessFormSchema,
 	type BusinessFormData,
 } from '@/features/negocios/lib/business-form-schemas'
-import {
-	DocumentAutocomplete,
-	type User,
-} from '@/features/shared/ui/document-autocomplete'
+import { ClientAutocomplete } from '@/features/negocios/components/client-autocomplete'
 import {
 	AgentAutocomplete,
 	type Agent,
 } from '@/features/shared/ui/agent-autocomplete'
-import { toast } from 'sonner'
+import { useSearchClient } from '@/features/negocios/hooks/useSearchClient'
+import { Client } from '@prisma/client'
+// import { toast } from 'sonner'
 
-export interface CreateBusinessFormProps {
+export interface BusinessFormProps {
 	onSubmit?: (data: BusinessFormData) => void | Promise<void>
 	onCancel?: () => void
 	defaultValues?: Partial<BusinessFormData>
-	users?: User[]
+	clients?: Client[]
 	agents?: Agent[]
 	onUserCreated?: (documento: string) => void | Promise<void>
-	companiesOptions?: { value: string; label: string }[]
+	companiesOptions: { value: string; label: string }[]
 	productsOptions?: { value: string; label: string; companyId: string }[]
-	periodicitiesOptions?: { value: string; label: string }[]
-	currenciesOptions?: { value: string; label: string }[]
+	periodicitiesOptions: { value: string; label: string }[]
+	currenciesOptions: { value: string; label: string }[]
 }
 
-export const CreateBusinessForm = React.forwardRef<
+export const BusinessForm = React.forwardRef<
 	HTMLFormElement,
-	CreateBusinessFormProps
+	BusinessFormProps
 >(
 	(
 		{
 			onSubmit,
 			onCancel,
 			defaultValues,
-			users,
+			clients,
 			agents,
 			onUserCreated,
-			companiesOptions: providedCompanies,
+			companiesOptions,
 			productsOptions: providedProducts,
-			periodicitiesOptions: providedPeriodicities,
-			currenciesOptions: providedCurrencies,
+			periodicitiesOptions,
+			currenciesOptions,
 		},
 		ref
 	) => {
-		const [numeroDocumento, setNumeroDocumento] = React.useState('')
-		const [companiesOptions, setCompaniesOptions] = React.useState<
-			{ value: string; label: string }[]
-		>(providedCompanies || [])
 		const [productsOptions, setProductsOptions] = React.useState<
 			{ value: string; label: string; companyId: string }[]
 		>(providedProducts || [])
-		const [periodicitiesOptions, setPeriodicitiesOptions] = React.useState<
-			{ value: string; label: string }[]
-		>(providedPeriodicities || [])
-		const [currenciesOptions, setCurrenciesOptions] = React.useState<
-			{ value: string; label: string }[]
-		>(providedCurrencies || [])
 		const [agentsList, setAgentsList] = React.useState<Agent[]>(agents || [])
-		const [userResults, setUserResults] = React.useState<User[]>(users || [])
-		const [isCatalogLoading, setIsCatalogLoading] = React.useState(false)
-		const lastUsersRef = React.useRef<User[]>(users || [])
+
+		const {
+			handleSearchClient,
+			results: clientResults,
+			state: clientState,
+		} = useSearchClient()
 
 		const {
 			register,
 			handleSubmit,
 			setValue,
 			watch,
+			reset,
 			formState: { errors, isSubmitting },
 		} = useForm<BusinessFormData>({
 			resolver: zodResolver(businessFormSchema),
 			defaultValues: {
 				email: defaultValues?.email || '',
-				nombres: defaultValues?.nombres || '',
-				apellidos: defaultValues?.apellidos || '',
-				contacto: defaultValues?.contacto || '',
-				numeroDocumento: defaultValues?.numeroDocumento || '',
+				name: defaultValues?.name || '',
+				lastNames: defaultValues?.lastNames || '',
+				phone: defaultValues?.phone || '',
+				identityNumber: defaultValues?.identityNumber || '',
 				compania: defaultValues?.compania || '',
 				producto: defaultValues?.producto || '',
-				plazo: defaultValues?.plazo || undefined,
-				moneda: defaultValues?.moneda || '',
-				perioricidad: defaultValues?.perioricidad || '',
-				valor: defaultValues?.valor || undefined,
-				agente: defaultValues?.agente || '',
+				terms: defaultValues?.terms || undefined,
+				currency: defaultValues?.currency || '',
+				periodicity: defaultValues?.periodicity || '',
+				value: defaultValues?.value || undefined,
+				agent: defaultValues?.agent || '',
 			},
 		})
 
@@ -125,273 +118,53 @@ export const CreateBusinessForm = React.forwardRef<
 		}, [filteredProducts, selectedProduct, setValue])
 
 		// Observar cambios en numeroDocumento
-		const documentValue = watch('numeroDocumento')
-
-		React.useEffect(() => {
-			const loadCatalogs = async () => {
-				try {
-					const requests: Promise<void>[] = []
-
-					const shouldFetchCompanies =
-						!providedCompanies || providedCompanies.length === 0
-					const shouldFetchProducts =
-						!providedProducts || providedProducts.length === 0
-					const shouldFetchPeriodicities =
-						!providedPeriodicities || providedPeriodicities.length === 0
-					const shouldFetchCurrencies =
-						!providedCurrencies || providedCurrencies.length === 0
-
-					if (shouldFetchCompanies) {
-						requests.push(
-							fetch('/api/admin/companies?status=active')
-								.then((response) => {
-									if (!response.ok) throw new Error('Error al cargar compañías')
-									return response.json()
-								})
-								.then((data) => {
-									setCompaniesOptions(
-										(data.companies ?? []).map(
-											(company: { idCompany: number; name: string }) => ({
-												value: String(company.idCompany),
-												label: company.name,
-											})
-										)
-									)
-								})
-						)
-					}
-
-					if (shouldFetchProducts) {
-						requests.push(
-							fetch('/api/admin/products?status=active')
-								.then((response) => {
-									if (!response.ok) throw new Error('Error al cargar productos')
-									return response.json()
-								})
-								.then((data) => {
-									setProductsOptions(
-										(data.products ?? []).map(
-											(product: {
-												idProduct: number
-												name: string
-												idCompany: number
-											}) => ({
-												value: String(product.idProduct),
-												label: product.name,
-												companyId: String(product.idCompany),
-											})
-										)
-									)
-								})
-						)
-					}
-
-					if (shouldFetchPeriodicities) {
-						requests.push(
-							fetch('/api/admin/periodicities?status=active')
-								.then((response) => {
-									if (!response.ok)
-										throw new Error('Error al cargar periodicidades')
-									return response.json()
-								})
-								.then((data) => {
-									setPeriodicitiesOptions(
-										(data.periodicities ?? []).map(
-											(periodicity: {
-												idBuyPeriodicity: number
-												name: string
-											}) => ({
-												value: String(periodicity.idBuyPeriodicity),
-												label: periodicity.name,
-											})
-										)
-									)
-								})
-						)
-					}
-
-					if (shouldFetchCurrencies) {
-						requests.push(
-							fetch('/api/admin/currencies?status=active')
-								.then((response) => {
-									if (!response.ok) throw new Error('Error al cargar monedas')
-									return response.json()
-								})
-								.then((data) => {
-									setCurrenciesOptions(
-										(data.currencies ?? []).map(
-											(currency: {
-												idCurrency: number
-												name: string
-												symbol?: string | null
-											}) => ({
-												value: String(currency.idCurrency),
-												label: currency.symbol
-													? `${currency.symbol} - ${currency.name}`
-													: currency.name,
-											})
-										)
-									)
-								})
-						)
-					}
-
-					const shouldFetchAgents = !agents || agents.length === 0
-
-					if (shouldFetchAgents) {
-						requests.push(
-							fetch('/api/admin/agents')
-								.then((response) => {
-									if (!response.ok) throw new Error('Error al cargar agentes')
-									return response.json()
-								})
-								.then((data) => {
-									setAgentsList(
-										(data.agents ?? []).map(
-											(agent: {
-												idUser: number
-												name: string
-												lastName?: string | null
-												email?: string | null
-												code?: string | null
-											}) => ({
-												id: String(agent.idUser),
-												nombre: agent.lastName
-													? `${agent.name} ${agent.lastName}`
-													: agent.name,
-												email: agent.email ?? undefined,
-												codigo: agent.code ?? undefined,
-											})
-										)
-									)
-								})
-						)
-					}
-
-					if (requests.length === 0) {
-						return
-					}
-
-					setIsCatalogLoading(true)
-					await Promise.all(requests)
-				} catch (error) {
-					console.error('Error loading catalogs:', error)
-					toast.error('Error al cargar catálogos', {
-						description:
-							error instanceof Error
-								? error.message
-								: 'No fue posible obtener la información inicial.',
-					})
-				} finally {
-					setIsCatalogLoading(false)
-				}
-			}
-
-			loadCatalogs()
-		}, [
-			providedCompanies,
-			providedProducts,
-			providedPeriodicities,
-			providedCurrencies,
-			agents,
-		])
-
-		React.useEffect(() => {
-			if (Array.isArray(users) && users.length > 0) {
-				setUserResults(users)
-				lastUsersRef.current = users
-			}
-		}, [users])
+		const documentValue = watch('identityNumber')
 
 		React.useEffect(() => {
 			if (Array.isArray(agents) && agents.length > 0) {
 				setAgentsList(agents)
 			}
 		}, [agents])
-		// Lista de usuarios para el autocomplete
-		const usersList = userResults
-
-		React.useEffect(() => {
-			setNumeroDocumento(documentValue || '')
-		}, [documentValue])
-
-		const handleSearchUsers = React.useCallback(async (query: string) => {
-			try {
-				const response = await fetch(
-					`/api/users/search?query=${encodeURIComponent(query)}&limit=10`
-				)
-
-				if (!response.ok) {
-					throw new Error('Error al buscar usuarios')
-				}
-
-				const data = await response.json()
-				const results: User[] = (data.users ?? []).map(
-					(user: {
-						idUser: number
-						name: string
-						lastName?: string | null
-						email?: string | null
-						identityNumber: string
-						phone?: string | null
-					}) => ({
-						numeroDocumento: user.identityNumber,
-						nombres: user.name,
-						apellidos: user.lastName ?? '',
-						email: user.email ?? undefined,
-						contacto: user.phone ?? undefined,
-					})
-				)
-
-				setUserResults(results)
-				lastUsersRef.current = results
-				return results
-			} catch (error) {
-				console.error('Error fetching users:', error)
-				return lastUsersRef.current
-			}
-		}, [])
 
 		// Determinar si los campos deben estar bloqueados
-		const isBlocked = !numeroDocumento || numeroDocumento.length < 5
+		const isBlocked = !documentValue || documentValue.length < 5
 
 		// Handler para cuando se selecciona un documento
-		const handleDocumentChange = (documento: string) => {
-			setValue('numeroDocumento', documento, { shouldValidate: true })
-			setNumeroDocumento(documento)
+		const handleIdentityNumberClientChange = (identityClient: string) => {
+			setValue('identityNumber', identityClient, { shouldValidate: true })
 
 			// Si se seleccionó un usuario existente, autocompletar campos
-			if (documento && usersList) {
-				const selectedUser = usersList.find(
-					(u) => u.numeroDocumento === documento
+			if (identityClient && clientResults) {
+				const selectedClient = clientResults.find(
+					(c) => c.identityNumber === identityClient
 				)
-				if (selectedUser) {
-					setValue('email', selectedUser.email || '')
-					setValue('nombres', selectedUser.nombres)
-					setValue('apellidos', selectedUser.apellidos)
-					if (selectedUser.contacto) {
-						setValue('contacto', selectedUser.contacto)
+				if (selectedClient) {
+					setValue('email', selectedClient.email || '')
+					setValue('name', selectedClient.name)
+					setValue('lastNames', selectedClient.lastName || '')
+					if (selectedClient.phone) {
+						setValue('phone', selectedClient.phone)
 					}
 				}
 			}
 		}
 
 		// Handler para crear nuevo usuario
-		const handleCreateUser = async (documento: string) => {
+		const handleCreateUser = async (identityClient: string) => {
 			// Asegurar explícitamente que el documento se establezca para desbloquear campos
 			// Esto es necesario porque el onChange puede no haber actualizado el estado aún
-			setValue('numeroDocumento', documento, { shouldValidate: true })
-			setNumeroDocumento(documento)
+			setValue('identityNumber', identityClient, { shouldValidate: true })
 
 			// Limpiar los campos de información del cliente cuando se crea un nuevo usuario
 			// para evitar que se muestren valores por defecto
 			setValue('email', '')
-			setValue('nombres', '')
-			setValue('apellidos', '')
+			setValue('name', '')
+			setValue('lastNames', '')
+			setValue('phone', '')
 
 			// Notificar que se está creando un nuevo usuario
 			if (onUserCreated) {
-				await onUserCreated(documento)
+				await onUserCreated(identityClient)
 			}
 		}
 
@@ -463,22 +236,22 @@ export const CreateBusinessForm = React.forwardRef<
 								>
 									No. Documento <span className="text-red-500">*</span>
 								</Label>
-								<DocumentAutocomplete
+								<ClientAutocomplete
 									value={documentValue}
-									onChange={handleDocumentChange}
-									users={usersList}
-									onSearch={handleSearchUsers}
+									onChange={handleIdentityNumberClientChange}
+									users={clientResults}
+									onSearch={handleSearchClient}
 									placeholder="Buscar o crear documento..."
 									onCreateNew={handleCreateUser}
 									aria-labelledby="numeroDocumento-label"
-									className={errors.numeroDocumento ? 'border-red-500' : ''}
+									className={errors.identityNumber ? 'border-red-500' : ''}
 								/>
-								{errors.numeroDocumento && (
+								{errors.identityNumber && (
 									<p className="text-xs text-red-500">
-										{errors.numeroDocumento.message}
+										{errors.identityNumber.message}
 									</p>
 								)}
-								{!errors.numeroDocumento &&
+								{!errors.identityNumber &&
 									documentValue &&
 									documentValue.length > 0 &&
 									documentValue.length < 5 && (
@@ -491,7 +264,7 @@ export const CreateBusinessForm = React.forwardRef<
 
 							<div className="space-y-2">
 								<Label htmlFor="email" className="text-sm font-medium">
-									Email
+									Email <span className="text-red-500">*</span>
 								</Label>
 								<Input
 									id="email"
@@ -506,56 +279,52 @@ export const CreateBusinessForm = React.forwardRef<
 							</div>
 
 							<div className="space-y-2">
-								<Label htmlFor="apellidos" className="text-sm font-medium">
-									Apellidos
+								<Label htmlFor="lastNames" className="text-sm font-medium">
+									Apellidos <span className="text-red-500">*</span>
 								</Label>
 								<Input
-									id="apellidos"
-									{...register('apellidos')}
+									id="lastNames"
+									{...register('lastNames')}
 									placeholder="Apellidos"
 									disabled={isBlocked}
-									className={errors.apellidos ? 'border-red-500' : ''}
+									className={errors.lastNames ? 'border-red-500' : ''}
 								/>
-								{errors.apellidos && (
+								{errors.lastNames && (
 									<p className="text-xs text-red-500">
-										{errors.apellidos.message}
+										{errors.lastNames.message}
 									</p>
 								)}
 							</div>
 
 							<div className="space-y-2">
-								<Label htmlFor="nombres" className="text-sm font-medium">
-									Nombres
+								<Label htmlFor="name" className="text-sm font-medium">
+									Nombres <span className="text-red-500">*</span>
 								</Label>
 								<Input
-									id="nombres"
-									{...register('nombres')}
+									id="name"
+									{...register('name')}
 									placeholder="Nombres"
 									disabled={isBlocked}
-									className={errors.nombres ? 'border-red-500' : ''}
+									className={errors.name ? 'border-red-500' : ''}
 								/>
-								{errors.nombres && (
-									<p className="text-xs text-red-500">
-										{errors.nombres.message}
-									</p>
+								{errors.name && (
+									<p className="text-xs text-red-500">{errors.name.message}</p>
 								)}
 							</div>
 
 							<div className="space-y-2">
-								<Label htmlFor="contacto" className="text-sm font-medium">
+								<Label htmlFor="phone" className="text-sm font-medium">
 									Contacto
 								</Label>
 								<Input
-									id="contacto"
-									{...register('contacto')}
+									id="phone"
+									{...register('phone')}
 									placeholder="XXX XXX X"
 									disabled={isBlocked}
-									className={errors.contacto ? 'border-red-500' : ''}
+									className={errors.phone ? 'border-red-500' : ''}
 								/>
-								{errors.contacto && (
-									<p className="text-xs text-red-500">
-										{errors.contacto.message}
-									</p>
+								{errors.phone && (
+									<p className="text-xs text-red-500">{errors.phone.message}</p>
 								)}
 							</div>
 						</div>
@@ -576,7 +345,7 @@ export const CreateBusinessForm = React.forwardRef<
 									Compañía
 								</Label>
 								<Select
-									disabled={isBlocked || isCatalogLoading}
+									disabled={isBlocked}
 									value={selectedCompany || ''}
 									onValueChange={(value) => {
 										setValue('compania', value, { shouldValidate: true })
@@ -613,11 +382,7 @@ export const CreateBusinessForm = React.forwardRef<
 									Producto
 								</Label>
 								<Select
-									disabled={
-										isBlocked ||
-										isCatalogLoading ||
-										filteredProducts.length === 0
-									}
+									disabled={isBlocked || filteredProducts.length === 0}
 									value={selectedProduct || ''}
 									onValueChange={(value) =>
 										setValue('producto', value, { shouldValidate: true })
@@ -649,15 +414,15 @@ export const CreateBusinessForm = React.forwardRef<
 									Plazo
 								</Label>
 								<Input
-									id="plazo"
+									id="terms"
 									type="number"
-									{...register('plazo', { valueAsNumber: true })}
+									{...register('terms', { valueAsNumber: true })}
 									placeholder="10"
 									disabled={isBlocked}
-									className={errors.plazo ? 'border-red-500' : ''}
+									className={errors.terms ? 'border-red-500' : ''}
 								/>
-								{errors.plazo && (
-									<p className="text-xs text-red-500">{errors.plazo.message}</p>
+								{errors.terms && (
+									<p className="text-xs text-red-500">{errors.terms.message}</p>
 								)}
 							</div>
 						</div>
@@ -674,19 +439,19 @@ export const CreateBusinessForm = React.forwardRef<
 
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label htmlFor="moneda" className="text-sm font-medium">
+								<Label htmlFor="currency" className="text-sm font-medium">
 									Moneda
 								</Label>
 								<Select
-									disabled={isBlocked || isCatalogLoading}
-									value={watch('moneda')}
+									disabled={isBlocked}
+									value={watch('currency')}
 									onValueChange={(value) =>
-										setValue('moneda', value, { shouldValidate: true })
+										setValue('currency', value, { shouldValidate: true })
 									}
 								>
 									<SelectTrigger
-										id="moneda"
-										className={errors.moneda ? 'border-red-500' : ''}
+										id="currency"
+										className={errors.currency ? 'border-red-500' : ''}
 									>
 										<SelectValue placeholder="Seleccione una moneda" />
 									</SelectTrigger>
@@ -698,9 +463,9 @@ export const CreateBusinessForm = React.forwardRef<
 										))}
 									</SelectContent>
 								</Select>
-								{errors.moneda && (
+								{errors.currency && (
 									<p className="text-xs text-red-500">
-										{errors.moneda.message}
+										{errors.currency.message}
 									</p>
 								)}
 
@@ -718,15 +483,15 @@ export const CreateBusinessForm = React.forwardRef<
 									Periodicidad
 								</Label>
 								<Select
-									disabled={isBlocked || isCatalogLoading}
-									value={watch('perioricidad')}
+									disabled={isBlocked}
+									value={watch('periodicity')}
 									onValueChange={(value) =>
-										setValue('perioricidad', value, { shouldValidate: true })
+										setValue('periodicity', value, { shouldValidate: true })
 									}
 								>
 									<SelectTrigger
-										id="perioricidad"
-										className={errors.perioricidad ? 'border-red-500' : ''}
+										id="periodicity"
+										className={errors.periodicity ? 'border-red-500' : ''}
 									>
 										<SelectValue placeholder="Seleccione periodicidad" />
 									</SelectTrigger>
@@ -741,9 +506,9 @@ export const CreateBusinessForm = React.forwardRef<
 										))}
 									</SelectContent>
 								</Select>
-								{errors.perioricidad && (
+								{errors.periodicity && (
 									<p className="text-xs text-red-500">
-										{errors.perioricidad.message}
+										{errors.periodicity.message}
 									</p>
 								)}
 							</div>
@@ -756,39 +521,39 @@ export const CreateBusinessForm = React.forwardRef<
 									id="valor"
 									type="number"
 									step="0.01"
-									{...register('valor', { valueAsNumber: true })}
+									{...register('value', { valueAsNumber: true })}
 									placeholder="0.00"
 									disabled={isBlocked}
-									className={errors.valor ? 'border-red-500' : ''}
+									className={errors.value ? 'border-red-500' : ''}
 								/>
-								{errors.valor && (
-									<p className="text-xs text-red-500">{errors.valor.message}</p>
+								{errors.value && (
+									<p className="text-xs text-red-500">
+										{errors.value?.message}
+									</p>
 								)}
 							</div>
 
 							<div className="space-y-2">
 								<Label
-									htmlFor="agente"
-									id="agente-label"
+									htmlFor="agent"
+									id="agent-label"
 									className="text-sm font-medium"
 								>
 									Agente
 								</Label>
 								<AgentAutocomplete
-									value={watch('agente')}
+									value={watch('agent')}
 									onChange={(value) =>
-										setValue('agente', value, { shouldValidate: true })
+										setValue('agent', value, { shouldValidate: true })
 									}
 									agents={agentsList}
 									placeholder="Buscar agente..."
-									aria-labelledby="agente-label"
-									disabled={isBlocked || isCatalogLoading}
-									className={errors.agente ? 'border-red-500' : ''}
+									aria-labelledby="agent-label"
+									disabled={isBlocked}
+									className={errors.agent ? 'border-red-500' : ''}
 								/>
-								{errors.agente && (
-									<p className="text-xs text-red-500">
-										{errors.agente.message}
-									</p>
+								{errors.agent && (
+									<p className="text-xs text-red-500">{errors.agent.message}</p>
 								)}
 							</div>
 						</div>
@@ -807,7 +572,7 @@ export const CreateBusinessForm = React.forwardRef<
 						</Button>
 						<Button
 							type="submit"
-							disabled={isSubmitting || isBlocked || isCatalogLoading}
+							disabled={isSubmitting || isBlocked}
 							className="bg-[#00505C] hover:bg-[#003d47] text-white"
 						>
 							{isSubmitting ? 'Guardando...' : 'Aceptar y Guardar'}
@@ -819,4 +584,4 @@ export const CreateBusinessForm = React.forwardRef<
 	}
 )
 
-CreateBusinessForm.displayName = 'CreateBusinessForm'
+BusinessForm.displayName = 'BusinessForm'

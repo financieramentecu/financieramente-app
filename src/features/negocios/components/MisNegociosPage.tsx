@@ -4,7 +4,11 @@ import React from 'react'
 import { StatsOverview } from '@/features/negocios/components/StatsOverview'
 import { BusinessManagementSection } from '@/features/negocios/components/BusinessManagementSection'
 import { BusinessTableSection } from '@/features/negocios/components/BusinessTableSection'
-import { Business, StatsData, BusinessSearchParams } from '@/features/negocios/types/business.types'
+import {
+	Business,
+	StatsData,
+	BusinessSearchParams,
+} from '@/features/negocios/types/business.types'
 
 interface MisNegociosPageProps {
 	businessData?: Business[]

@@ -17,28 +17,21 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from '@/features/shared/ui/popover'
-
-export interface User {
-	numeroDocumento: string
-	nombres: string
-	apellidos: string
-	email?: string
-	contacto?: string
-}
+import { Client } from '@prisma/client'
 
 export interface DocumentAutocompleteProps {
 	value?: string
 	onChange?: (value: string) => void
-	users?: User[]
+	users?: Client[]
 	placeholder?: string
 	onCreateNew?: (documento: string) => void
-	onSearch?: (query: string) => Promise<User[]>
+	onSearch?: (query: string) => Promise<Client[]>
 	className?: string
 	'aria-label'?: string
 	'aria-labelledby'?: string
 }
 
-export function DocumentAutocomplete({
+export function ClientAutocomplete({
 	value = '',
 	onChange,
 	users = [],
@@ -51,7 +44,7 @@ export function DocumentAutocomplete({
 }: DocumentAutocompleteProps) {
 	const [open, setOpen] = React.useState(false)
 	const [searchQuery, setSearchQuery] = React.useState('')
-	const [remoteUsers, setRemoteUsers] = React.useState<User[]>(users)
+	const [remoteUsers, setRemoteUsers] = React.useState<Client[]>(users)
 	const [isSearching, setIsSearching] = React.useState(false)
 	const hasRemoteSearch = typeof onSearch === 'function'
 
@@ -113,15 +106,15 @@ export function DocumentAutocomplete({
 		const query = searchQuery.toLowerCase()
 		return users.filter(
 			(user) =>
-				user.numeroDocumento.toLowerCase().includes(query) ||
-				user.nombres.toLowerCase().includes(query) ||
-				user.apellidos.toLowerCase().includes(query)
+				user.identityNumber.toLowerCase().includes(query) ||
+				user.name.toLowerCase().includes(query) ||
+				user.lastName?.toLowerCase().includes(query)
 		)
 	}, [users, remoteUsers, searchQuery, hasRemoteSearch])
 
 	// Encontrar el usuario seleccionado
 	const selectedUser = [...users, ...remoteUsers].find(
-		(user) => user.numeroDocumento === value
+		(user) => user.identityNumber === value
 	)
 
 	// Determinar si se debe mostrar la opción de crear nuevo
@@ -129,7 +122,7 @@ export function DocumentAutocomplete({
 		if (!searchQuery || searchQuery.length < 3) return false
 		// Verificar si el documento ya existe
 		const exists = [...users, ...remoteUsers].some(
-			(user) => user.numeroDocumento.toLowerCase() === searchQuery.toLowerCase()
+			(user) => user.identityNumber.toLowerCase() === searchQuery.toLowerCase()
 		)
 		return !exists
 	}, [searchQuery, users, remoteUsers])
@@ -178,7 +171,7 @@ export function DocumentAutocomplete({
 				>
 					{value
 						? selectedUser
-							? `${selectedUser.numeroDocumento} - ${selectedUser.nombres} ${selectedUser.apellidos}`
+							? `${selectedUser.identityNumber} - ${selectedUser.name} ${selectedUser.lastName}`
 							: value // Mostrar el documento directamente si no hay usuario seleccionado (nuevo usuario)
 						: placeholder}
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -190,16 +183,16 @@ export function DocumentAutocomplete({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Buscar documento o nombre..."
+						placeholder="Buscar cliente por CC, nombre o apellido..."
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
 					<CommandList>
 						<CommandEmpty>
 							{isSearching
-								? 'Buscando usuarios...'
+								? 'Buscando clientes...'
 								: searchQuery.length >= 3
-									? 'No se encontraron usuarios'
+									? 'No se encontraron clientes'
 									: 'Ingrese al menos 3 caracteres para buscar'}
 						</CommandEmpty>
 
@@ -211,33 +204,31 @@ export function DocumentAutocomplete({
 									className="text-primary"
 								>
 									<Plus className="mr-2 h-4 w-4" />
-									Crear nuevo usuario: {searchQuery}
+									Crear nuevo cliente: {searchQuery}
 								</CommandItem>
 							</CommandGroup>
 						)}
 
 						{filteredUsers.length > 0 && (
-							<CommandGroup heading="Usuarios existentes">
+							<CommandGroup heading="Clientes existentes">
 								{filteredUsers.map((user) => (
 									<CommandItem
-										key={user.numeroDocumento}
-										value={user.numeroDocumento}
-										onSelect={() => handleSelect(user.numeroDocumento)}
+										key={user.identityNumber}
+										value={user.identityNumber}
+										onSelect={() => handleSelect(user.identityNumber)}
 									>
 										<Check
 											className={cn(
 												'mr-2 h-4 w-4',
-												value === user.numeroDocumento
+												value === user.identityNumber
 													? 'opacity-100'
 													: 'opacity-0'
 											)}
 										/>
 										<div className="flex flex-col">
-											<span className="font-medium">
-												{user.numeroDocumento}
-											</span>
+											<span className="font-medium">{user.identityNumber}</span>
 											<span className="text-xs text-muted-foreground">
-												{user.nombres} {user.apellidos}
+												{user.name} {user.lastName}
 												{user.email && ` - ${user.email}`}
 											</span>
 										</div>
