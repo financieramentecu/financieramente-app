@@ -73,7 +73,7 @@ describe('CreateBusinessForm', () => {
 
 		// Buscar y seleccionar un usuario
 		const searchInput = screen.getByPlaceholderText(
-			/Buscar documento o nombre/i
+			/Buscar cliente por documento/i
 		)
 		await user.type(searchInput, mockUsers[0].identityNumber)
 
@@ -113,7 +113,7 @@ describe('CreateBusinessForm', () => {
 		// Seleccionar un documento
 		await user.click(docTrigger)
 		const searchInput = screen.getByPlaceholderText(
-			/Buscar documento o nombre/i
+			/Buscar cliente por documento/i
 		)
 		await user.type(searchInput, mockUsers[0].identityNumber)
 		await waitFor(() => {
@@ -162,7 +162,7 @@ describe('CreateBusinessForm', () => {
 		const docTrigger = screen.getByRole('combobox', { name: /No\. Documento/i })
 		await user.click(docTrigger)
 		const searchInput = screen.getByPlaceholderText(
-			/Buscar documento o nombre/i
+			/Buscar cliente por documento/i
 		)
 		await user.type(searchInput, mockUsers[0].identityNumber)
 		await waitFor(() => {
@@ -193,7 +193,7 @@ describe('CreateBusinessForm', () => {
 		const docTrigger = screen.getByRole('combobox', { name: /No\. Documento/i })
 		await user.click(docTrigger)
 		const searchInput = screen.getByPlaceholderText(
-			/Buscar documento o nombre/i
+			/Buscar cliente por documento/i
 		)
 		await user.type(searchInput, mockUsers[0].identityNumber)
 		await waitFor(() => {
