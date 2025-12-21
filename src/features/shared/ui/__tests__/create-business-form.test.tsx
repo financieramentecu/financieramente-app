@@ -1,27 +1,45 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { BusinessForm as CreateBusinessForm } from '@/features/negocios/components/business-form'
 import { mockUsers } from '@/features/shared/__tests__/fixtures/mockUsers'
+import { mockUserWithRole } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
+
+// Mock de los hooks que hacen llamadas a la API
+vi.mock('@/features/negocios/hooks/useSearchClient', () => ({
+	useSearchClient: () => ({
+		handleSearchClient: vi.fn().mockResolvedValue([]),
+		results: [],
+	}),
+}))
+
+vi.mock('@/features/negocios/hooks/useSearchAgents', () => ({
+	useSearchAgents: () => ({
+		handleSearchAgents: vi.fn().mockResolvedValue([]),
+	}),
+}))
 
 describe('CreateBusinessForm', () => {
 	const mockOnSubmit = vi.fn()
 	const mockOnCancel = vi.fn()
+
+	const defaultProps = {
+		onSubmit: mockOnSubmit,
+		onCancel: mockOnCancel,
+		currentUser: mockUserWithRole,
+		companiesOptions: [],
+		productsOptions: [],
+		periodicitiesOptions: [],
+		currenciesOptions: [],
+		clientOriginsOptions: [],
+	}
 
 	beforeEach(() => {
 		vi.clearAllMocks()
 	})
 
 	it('renders form with all fields', () => {
-		render(
-			<CreateBusinessForm
-				onSubmit={mockOnSubmit}
-				onCancel={mockOnCancel}
-				companiesOptions={[]}
-				periodicitiesOptions={[]}
-				currenciesOptions={[]}
-			/>
-		)
+		render(<CreateBusinessForm {...defaultProps} />)
 
 		expect(screen.getByLabelText(/Email/i)).toBeInTheDocument()
 		expect(screen.getByLabelText(/Nombres/i)).toBeInTheDocument()
@@ -31,16 +49,7 @@ describe('CreateBusinessForm', () => {
 	})
 
 	it('blocks all fields except documento when documento is empty', () => {
-		render(
-			<CreateBusinessForm
-				onSubmit={mockOnSubmit}
-				onCancel={mockOnCancel}
-				clients={mockUsers}
-				companiesOptions={[]}
-				periodicitiesOptions={[]}
-				currenciesOptions={[]}
-			/>
-		)
+		render(<CreateBusinessForm {...defaultProps} />)
 
 		const emailInput = screen.getByLabelText(/Email/i)
 		const nombresInput = screen.getByLabelText(/Nombres/i)
@@ -54,16 +63,7 @@ describe('CreateBusinessForm', () => {
 
 	it('unlocks all fields when documento has value', async () => {
 		const user = userEvent.setup()
-		render(
-			<CreateBusinessForm
-				onSubmit={mockOnSubmit}
-				onCancel={mockOnCancel}
-				clients={mockUsers}
-				companiesOptions={[]}
-				periodicitiesOptions={[]}
-				currenciesOptions={[]}
-			/>
-		)
+		render(<CreateBusinessForm {...defaultProps} />)
 
 		const emailInput = screen.getByLabelText(/Email/i) as HTMLInputElement
 		const docTrigger = screen.getByRole('combobox', { name: /No\. Documento/i })
@@ -95,15 +95,7 @@ describe('CreateBusinessForm', () => {
 	})
 
 	it('submit button is disabled when documento is empty', () => {
-		render(
-			<CreateBusinessForm
-				onSubmit={mockOnSubmit}
-				onCancel={mockOnCancel}
-				companiesOptions={[]}
-				periodicitiesOptions={[]}
-				currenciesOptions={[]}
-			/>
-		)
+		render(<CreateBusinessForm {...defaultProps} />)
 
 		const submitButton = screen.getByRole('button', {
 			name: /Aceptar y Guardar/i,
@@ -113,16 +105,7 @@ describe('CreateBusinessForm', () => {
 
 	it('shows validation error for invalid email', async () => {
 		const user = userEvent.setup()
-		render(
-			<CreateBusinessForm
-				onSubmit={mockOnSubmit}
-				onCancel={mockOnCancel}
-				clients={mockUsers}
-				companiesOptions={[]}
-				periodicitiesOptions={[]}
-				currenciesOptions={[]}
-			/>
-		)
+		render(<CreateBusinessForm {...defaultProps} />)
 
 		const emailInput = screen.getByLabelText(/Email/i) as HTMLInputElement
 		const docTrigger = screen.getByRole('combobox', { name: /No\. Documento/i })
@@ -164,15 +147,7 @@ describe('CreateBusinessForm', () => {
 	})
 
 	it('calls onCancel when cancel button is clicked', () => {
-		render(
-			<CreateBusinessForm
-				onSubmit={mockOnSubmit}
-				onCancel={mockOnCancel}
-				companiesOptions={[]}
-				periodicitiesOptions={[]}
-				currenciesOptions={[]}
-			/>
-		)
+		render(<CreateBusinessForm {...defaultProps} />)
 
 		const cancelButton = screen.getByRole('button', { name: /Cancelar/i })
 		fireEvent.click(cancelButton)
@@ -182,16 +157,7 @@ describe('CreateBusinessForm', () => {
 
 	it('submit button is enabled when documento has value', async () => {
 		const user = userEvent.setup()
-		render(
-			<CreateBusinessForm
-				onSubmit={mockOnSubmit}
-				onCancel={mockOnCancel}
-				clients={mockUsers}
-				companiesOptions={[]}
-				periodicitiesOptions={[]}
-				currenciesOptions={[]}
-			/>
-		)
+		render(<CreateBusinessForm {...defaultProps} />)
 
 		const docTrigger = screen.getByRole('combobox', { name: /No\. Documento/i })
 		await user.click(docTrigger)
@@ -222,16 +188,7 @@ describe('CreateBusinessForm', () => {
 			() => new Promise((resolve) => setTimeout(resolve, 200))
 		)
 
-		render(
-			<CreateBusinessForm
-				onSubmit={mockOnSubmit}
-				onCancel={mockOnCancel}
-				clients={mockUsers}
-				companiesOptions={[]}
-				periodicitiesOptions={[]}
-				currenciesOptions={[]}
-			/>
-		)
+		render(<CreateBusinessForm {...defaultProps} />)
 
 		const docTrigger = screen.getByRole('combobox', { name: /No\. Documento/i })
 		await user.click(docTrigger)

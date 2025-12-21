@@ -18,12 +18,7 @@ export async function GET(request: Request) {
 
 		const clients = await prisma.client.findMany({
 			where: {
-				OR: [
-					{ identityNumber: { contains: query, mode: 'insensitive' } },
-					{ name: { contains: query, mode: 'insensitive' } },
-					{ lastName: { contains: query, mode: 'insensitive' } },
-					{ email: { contains: query, mode: 'insensitive' } },
-				],
+				OR: [{ identityNumber: { contains: query, mode: 'insensitive' } }],
 			},
 			orderBy: [{ name: 'asc' }, { lastName: 'asc' }],
 			select: {

@@ -1,26 +1,38 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { BusinessForm } from '@/features/negocios/components/business-form'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { toast } from 'sonner'
-import { Company, Currency, BuyPeriodicity, Product } from '@prisma/client'
+import {
+	Company,
+	Currency,
+	BuyPeriodicity,
+	Product,
+	ClientOrigin,
+} from '@prisma/client'
+import { UserWithRole } from '../types/business.types'
+import { useGetAllData } from '../hooks/usegetAlldata'
 
-interface BusinessWrapperProps {
+interface Props {
 	companies: Company[]
 	products: Product[]
 	periodicities: BuyPeriodicity[]
 	currencies: Currency[]
+	clientOrigins: ClientOrigin[]
+	currentUser: UserWithRole | null
 }
 
-export default function BusinessWrapper({
-	companies,
-	products,
-	periodicities,
-	currencies,
-}: BusinessWrapperProps) {
+export default function BusinessWrapper({ currentUser, ...props }: Props) {
 	const router = useRouter()
+	const {
+		companiesOptions,
+		productsOptions,
+		periodicitiesOptions,
+		currenciesOptions,
+		clientOriginsOptions,
+	} = useGetAllData(props)
 	const handleSubmit = async (data: BusinessFormData) => {
 		try {
 			// TODO: Implementar llamada a API para crear negocio
@@ -45,50 +57,16 @@ export default function BusinessWrapper({
 		router.push('/dashboard/negocios')
 	}
 
-	const companiesOptions = useMemo(
-		() =>
-			companies.map((company) => ({
-				value: company.idCompany.toString(),
-				label: company.name,
-			})),
-		[companies]
-	)
-
-	const productsOptions = useMemo(
-		() =>
-			products.map((product) => ({
-				value: product.idProduct.toString(),
-				label: product.name,
-				companyId: product.idCompany.toString(),
-			})),
-		[products]
-	)
-
-	const periodicitiesOptions = useMemo(
-		() =>
-			periodicities.map((periodicity) => ({
-				value: periodicity.idBuyPeriodicity.toString(),
-				label: periodicity.name,
-			})),
-		[periodicities]
-	)
-
-	const currenciesOptions = useMemo(
-		() =>
-			currencies.map((currency) => ({
-				value: currency.idCurrency.toString(),
-				label: currency.name,
-			})),
-		[currencies]
-	)
 	return (
 		<BusinessForm
 			onSubmit={handleSubmit}
 			onCancel={handleCancel}
+			currentUser={currentUser}
 			companiesOptions={companiesOptions}
 			productsOptions={productsOptions}
 			periodicitiesOptions={periodicitiesOptions}
 			currenciesOptions={currenciesOptions}
+			clientOriginsOptions={clientOriginsOptions}
 		/>
 	)
 }

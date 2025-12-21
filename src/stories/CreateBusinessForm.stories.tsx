@@ -2,9 +2,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs'
 import { BusinessForm } from '../features/negocios/components/business-form'
 import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 import { mockBusinessFormDefaultValues } from '../features/shared/__tests__/fixtures/mockBusinessFormData'
-import { mockUsers } from '../features/shared/__tests__/fixtures/mockUsers'
-import { mockAgents } from '../features/shared/__tests__/fixtures/mockAgents'
-import { Client } from '@prisma/client'
+import { mockUserWithRole } from '../features/shared/__tests__/fixtures/mockUserWithRole'
 
 // Mock data para las opciones del formulario
 const mockCompaniesOptions = [
@@ -43,6 +41,12 @@ const mockCurrenciesOptions = [
 	{ value: '2', label: 'Dólar Americano (USD)' },
 ]
 
+const mockClientOriginsOptions = [
+	{ value: '1', label: 'Propio' },
+	{ value: '2', label: 'Metodo Vortex' },
+	{ value: '3', label: 'Asesoria Gratuita' },
+]
+
 const meta: Meta<typeof BusinessForm> = {
 	title: 'Business/CreateBusinessForm',
 	component: BusinessForm,
@@ -72,12 +76,12 @@ type Story = StoryObj<typeof BusinessForm>
 export const Default: Story = {
 	args: {
 		defaultValues: mockBusinessFormDefaultValues,
-		clients: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
 		companiesOptions: mockCompaniesOptions,
 		productsOptions: mockProductsOptions,
 		periodicitiesOptions: mockPeriodicitiesOptions,
 		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
 			alert(`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}`)
@@ -91,12 +95,12 @@ export const Default: Story = {
 
 export const Empty: Story = {
 	args: {
-		clients: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
 		companiesOptions: mockCompaniesOptions,
 		productsOptions: mockProductsOptions,
 		periodicitiesOptions: mockPeriodicitiesOptions,
 		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
 		},
@@ -109,12 +113,12 @@ export const Empty: Story = {
 export const WithValidation: Story = {
 	args: {
 		defaultValues: mockBusinessFormDefaultValues,
-		clients: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
 		companiesOptions: mockCompaniesOptions,
 		productsOptions: mockProductsOptions,
 		periodicitiesOptions: mockPeriodicitiesOptions,
 		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
 			// Simular validación adicional
@@ -128,19 +132,17 @@ export const WithValidation: Story = {
 
 export const WithUserCreation: Story = {
 	args: {
-		clients: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
 		companiesOptions: mockCompaniesOptions,
 		productsOptions: mockProductsOptions,
 		periodicitiesOptions: mockPeriodicitiesOptions,
 		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
-			alert(`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}`)
-		},
-		onUserCreated: async (documento) => {
-			console.log('Creating new user:', documento)
-			alert(`Se creará un nuevo usuario con documento: ${documento}`)
+			alert(
+				`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}\n\nEl cliente se creará automáticamente si no existe en la base de datos.`
+			)
 		},
 		onCancel: () => {
 			console.log('Form cancelled')
@@ -150,20 +152,16 @@ export const WithUserCreation: Story = {
 
 export const CreateNewUserFlow: Story = {
 	args: {
-		clients: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
 		companiesOptions: mockCompaniesOptions,
 		productsOptions: mockProductsOptions,
 		periodicitiesOptions: mockPeriodicitiesOptions,
 		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
-			alert(`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}`)
-		},
-		onUserCreated: async (documento) => {
-			console.log('Creating new user:', documento)
 			alert(
-				`✅ Nuevo usuario creado exitosamente con documento: ${documento}\n\nAhora puedes completar los campos del formulario para crear el negocio.`
+				`✅ Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}\n\nEl cliente se creará automáticamente al enviar el formulario si no existe en la base de datos.`
 			)
 		},
 		onCancel: () => {
@@ -173,106 +171,17 @@ export const CreateNewUserFlow: Story = {
 	},
 }
 
-const baseDate = new Date('2024-01-01T00:00:00.000Z')
-
-const additionalMockClients: Client[] = [
-	{
-		idClient: 11,
-		name: 'Roberto',
-		lastName: 'Vargas',
-		typeIdentity: 'CC',
-		identityNumber: '1111.222.333',
-		idClientOrigin: 1,
-		email: 'roberto.vargas@gmail.com',
-		phone: '3001111111',
-		direcction: 'Calle 111 #222-333',
-		city: 'Medellín',
-		country: 'Colombia',
-		active: true,
-		createdAt: baseDate,
-		updatedAt: baseDate,
-	},
-	{
-		idClient: 12,
-		name: 'Patricia',
-		lastName: 'Morales',
-		typeIdentity: 'CC',
-		identityNumber: '2222.333.444',
-		idClientOrigin: 1,
-		email: 'patricia.morales@gmail.com',
-		phone: '3002222222',
-		direcction: 'Carrera 222 #333-444',
-		city: 'Bogotá',
-		country: 'Colombia',
-		active: true,
-		createdAt: baseDate,
-		updatedAt: baseDate,
-	},
-	{
-		idClient: 13,
-		name: 'Andrés',
-		lastName: 'Castro',
-		typeIdentity: 'CC',
-		identityNumber: '3333.444.555',
-		idClientOrigin: 1,
-		email: 'andres.castro@gmail.com',
-		phone: '3003333333',
-		direcction: 'Avenida 333 #444-555',
-		city: 'Cali',
-		country: 'Colombia',
-		active: true,
-		createdAt: baseDate,
-		updatedAt: baseDate,
-	},
-	{
-		idClient: 14,
-		name: 'Fernanda',
-		lastName: 'Ruiz',
-		typeIdentity: 'CC',
-		identityNumber: '4444.555.666',
-		idClientOrigin: 1,
-		email: 'fernanda.ruiz@gmail.com',
-		phone: '3004444444',
-		direcction: 'Calle 444 #555-666',
-		city: 'Barranquilla',
-		country: 'Colombia',
-		active: true,
-		createdAt: baseDate,
-		updatedAt: baseDate,
-	},
-	{
-		idClient: 15,
-		name: 'Javier',
-		lastName: 'Herrera',
-		typeIdentity: 'CC',
-		identityNumber: '5555.666.777',
-		idClientOrigin: 1,
-		email: 'javier.herrera@gmail.com',
-		phone: '3005555555',
-		direcction: 'Carrera 555 #666-777',
-		city: 'Cartagena',
-		country: 'Colombia',
-		active: true,
-		createdAt: baseDate,
-		updatedAt: baseDate,
-	},
-]
-
 export const LargeUserList: Story = {
 	args: {
-		clients: [...mockUsers, ...additionalMockClients],
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
 		companiesOptions: mockCompaniesOptions,
 		productsOptions: mockProductsOptions,
 		periodicitiesOptions: mockPeriodicitiesOptions,
 		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted with large list:', data)
 			alert(`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}`)
-		},
-		onUserCreated: async (documento) => {
-			console.log('Creating new user:', documento)
-			alert(`Nuevo usuario creado: ${documento}`)
 		},
 		onCancel: () => {
 			console.log('Form cancelled')

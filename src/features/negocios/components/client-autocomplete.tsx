@@ -19,7 +19,7 @@ import {
 } from '@/features/shared/ui/popover'
 import { Client } from '@prisma/client'
 
-export interface DocumentAutocompleteProps {
+export interface ClientAutocompleteProps {
 	value?: string
 	onChange?: (value: string) => void
 	users?: Client[]
@@ -29,6 +29,7 @@ export interface DocumentAutocompleteProps {
 	className?: string
 	'aria-label'?: string
 	'aria-labelledby'?: string
+	onFocusNextField?: () => void
 }
 
 export function ClientAutocomplete({
@@ -41,7 +42,8 @@ export function ClientAutocomplete({
 	className,
 	'aria-label': ariaLabel,
 	'aria-labelledby': ariaLabelledBy,
-}: DocumentAutocompleteProps) {
+	onFocusNextField,
+}: ClientAutocompleteProps) {
 	const [open, setOpen] = React.useState(false)
 	const [searchQuery, setSearchQuery] = React.useState('')
 	const [remoteUsers, setRemoteUsers] = React.useState<Client[]>(users)
@@ -128,11 +130,10 @@ export function ClientAutocomplete({
 	}, [searchQuery, users, remoteUsers])
 
 	const handleSelect = (selectedValue: string) => {
-		// Si es un valor de "create", llamar a onCreateNew y actualizar el valor
-		if (selectedValue === '__create_new__' && onCreateNew) {
-			// Cerrar el popover pero mantener el searchQuery para que el usuario pueda continuar buscando
+		// Si es un valor de "create", solo habilitar el formulario y mover el foco
+		if (selectedValue === '__create_new__') {
+			// Cerrar el popover
 			setOpen(false)
-			// No limpiar searchQuery para que si el usuario vuelve a abrir, pueda continuar desde donde estaba
 
 			// Actualizar el valor para que se refleje en el componente padre
 			// Esto desbloqueará los campos del formulario
@@ -140,9 +141,19 @@ export function ClientAutocomplete({
 				onChange(searchQuery)
 			}
 
-			// Luego llamar al callback para notificar la creación
-			// Esto se ejecuta después de que el valor se haya actualizado
-			onCreateNew(searchQuery)
+			// Notificar que se debe habilitar el formulario (sin crear el cliente)
+			if (onCreateNew) {
+				onCreateNew(searchQuery)
+			}
+
+			// Mover el foco al siguiente campo (email) después de un pequeño delay
+			// para asegurar que el DOM se haya actualizado
+			setTimeout(() => {
+				if (onFocusNextField) {
+					onFocusNextField()
+				}
+			}, 100)
+
 			return
 		}
 
@@ -183,7 +194,7 @@ export function ClientAutocomplete({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Buscar cliente por CC, nombre o apellido..."
+						placeholder="Buscar cliente por documento..."
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>

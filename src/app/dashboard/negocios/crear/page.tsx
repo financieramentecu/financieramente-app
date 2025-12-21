@@ -6,6 +6,10 @@ import BusinessWrapper from '@/features/negocios/components/business-wrapper'
 import { getProducts } from '@/services/product.service'
 import { getPeriodicities } from '@/services/periodicity.service'
 import { getCurrencies } from '@/services/currency.service'
+import { getClientOrigins } from '@/services/origin.service'
+import { auth } from '@/auth'
+import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { CurrentUser } from '@/features/negocios/types/business.types'
 
 const getCompaniesCached = unstable_cache(getCompanies, ['companies'], {
 	revalidate: 300, // 5 minutes
@@ -27,13 +31,37 @@ const getCurrenciesCached = unstable_cache(getCurrencies, ['currencies'], {
 	revalidate: 300, // 5 minutes
 })
 
+const getClientOriginsCached = unstable_cache(
+	getClientOrigins,
+	['clientOrigins'],
+	{
+		revalidate: 300, // 5 minutes
+	}
+)
+
 export default async function CrearNegocioPage() {
-	const [companies, products, periodicities, currencies] = await Promise.all([
+	const [
+		companies,
+		products,
+		periodicities,
+		currencies,
+		clientOrigins,
+		session,
+	] = await Promise.all([
 		getCompaniesCached(),
 		getProductsCached(),
 		getPeriodicitiesCached(),
 		getCurrenciesCached(),
+		getClientOriginsCached(),
+		auth(),
 	])
+
+	// Obtener información completa del usuario desde la base de datos
+	let currentUser: CurrentUser | null = null
+
+	if (session?.user?.email) {
+		currentUser = await getCurrentUserByEmail(session.user.email)
+	}
 
 	return (
 		<DashboardLayout currentPage="Crear Negocio">
@@ -43,6 +71,8 @@ export default async function CrearNegocioPage() {
 					products={products}
 					periodicities={periodicities}
 					currencies={currencies}
+					clientOrigins={clientOrigins}
+					currentUser={currentUser}
 				/>
 			</div>
 		</DashboardLayout>

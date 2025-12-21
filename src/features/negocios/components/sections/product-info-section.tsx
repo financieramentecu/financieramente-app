@@ -1,0 +1,76 @@
+'use client'
+
+import * as React from 'react'
+import { UseFormReturn } from 'react-hook-form'
+import { Separator } from '@/features/shared/ui/separator'
+import { FormSelectField } from '@/features/negocios/components/fields/form-select-field'
+import { NumberInputField } from '@/features/negocios/components/fields/number-input-field'
+import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
+
+export interface ProductInfoSectionProps {
+	form: UseFormReturn<BusinessFormData>
+	companiesOptions: { value: string; label: string }[]
+	productsOptions: { value: string; label: string; companyId: string }[]
+	filteredProducts: { value: string; label: string; companyId: string }[]
+	isBlocked: boolean
+}
+
+/**
+ * Sección del formulario para información del producto
+ */
+export function ProductInfoSection({
+	form,
+	companiesOptions,
+	filteredProducts,
+	isBlocked,
+}: ProductInfoSectionProps) {
+	const { setValue } = form
+
+	const handleCompanyChange = React.useCallback(
+		(_value: string) => {
+			setValue('producto', '', { shouldValidate: true })
+		},
+		[setValue]
+	)
+
+	return (
+		<div className="space-y-4">
+			<div className="space-y-2">
+				<h3 className="font-bold text-sm text-[#00505C]">
+					Información del producto
+				</h3>
+				<Separator className="bg-gray-300" />
+			</div>
+
+			<div className="grid grid-cols-2 gap-4">
+				<FormSelectField
+					name="compania"
+					label="Compañía"
+					placeholder="Seleccione una compañía"
+					options={companiesOptions}
+					form={form}
+					disabled={isBlocked}
+					helperText="Si estas registrado a un negocio internacional elige el nombre del producto..."
+					onValueChange={handleCompanyChange}
+				/>
+
+				<FormSelectField
+					name="producto"
+					label="Producto"
+					placeholder="Seleccione un producto"
+					options={filteredProducts}
+					form={form}
+					disabled={isBlocked || filteredProducts.length === 0}
+				/>
+
+				<NumberInputField
+					name="terms"
+					label="Plazo"
+					placeholder="10"
+					form={form}
+					disabled={isBlocked}
+				/>
+			</div>
+		</div>
+	)
+}

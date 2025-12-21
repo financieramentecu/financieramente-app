@@ -21,6 +21,7 @@ export const mockBusinessFormFilled: BusinessFormData = {
 	lastNames: 'Agudelo',
 	phone: '+57 320 555 55 55',
 	identityNumber: '1053.123.456',
+	clientOrigin: '1',
 	compania: 'skandia',
 	producto: 'crea-patrimonio',
 	terms: 34,

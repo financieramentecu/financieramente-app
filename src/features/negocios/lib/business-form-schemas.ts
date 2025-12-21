@@ -22,6 +22,7 @@ export const businessFormSchema = z.object({
 			/^[0-9.]+$/,
 			'El número de identificación solo puede contener números y puntos'
 		),
+	clientOrigin: z.string().min(1, 'El origen del cliente es obligatorio'),
 	contract: z.string().min(1, 'El contrato es obligatorio').optional(),
 
 	// Información del producto
