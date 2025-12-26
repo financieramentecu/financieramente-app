@@ -292,19 +292,22 @@ model Client {
 // =====================================================
 
 model FileImport {
-  idFileImport  Int      @id @default(autoincrement()) @map("id_file_import")
-  nameFile      String   @map("name_file") @db.VarChar(255)
-  loadDate      DateTime @default(now()) @map("load_date")
-  idUser        Int      @map("id_user")
-  totalRecord   Int      @default(0) @map("total_record")
-  successRecord Int      @default(0) @map("success_record")
-  errorRecord   Int      @default(0) @map("error_record")
-  status        String   @db.VarChar(20)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  idFileImport       Int      @id @default(autoincrement()) @map("id_file_import")
+  nameFile           String   @map("name_file") @db.VarChar(255)
+  loadDate           DateTime @default(now()) @map("load_date")
+  idUser             Int      @map("id_user")
+  totalRecord        Int      @default(0) @map("total_record")
+  successRecord      Int      @default(0) @map("success_record")
+  errorRecord        Int      @default(0) @map("error_record")
+  sincronizadoRecord Int      @default(0) @map("sincronizado_record")
+  rezagadoRecord     Int      @default(0) @map("rezagado_record")
+  status             String   @db.VarChar(20)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  user User @relation(fields: [idUser], references: [idUser])
+  user                  User                   @relation(fields: [idUser], references: [idUser])
+  settlementCommissions SettlementCommission[]
 
   @@index([loadDate])
   @@map("file_import")
@@ -346,28 +349,43 @@ model Business {
 
 model SettlementCommission {
   idSettlementCommission Int       @id @default(autoincrement()) @map("id_settlement_commission")
-  idBusiness             Int       @unique @map("id_business")
+  idBusiness             Int?      @map("id_business")
+  idFileImport           Int       @map("id_file_import")
+  // Campos del Excel
+  nombre                 String?   @db.VarChar(200)
+  franquicia             String?   @db.VarChar(200)
+  nombreFp               String?   @map("nombre_fp") @db.VarChar(200)
+  subGrupoFp             String?   @map("sub_grupo_fp") @db.VarChar(200)
+  compania               String?   @db.VarChar(200)
+  producto               String?   @db.VarChar(200)
+  tipoComision           String?   @map("tipo_comision") @db.VarChar(200)
+  contract               String?   @db.VarChar(100) // Cto del Excel
+  // Campos de liquidación
   dateLiquidation        DateTime? @map("date_liquidation")
   valueBase              Decimal   @map("value_base") @db.Decimal(15, 2)
   comissionValor         Decimal?  @map("comission_valor") @db.Decimal(15, 2)
-  comissionDateFrom      Int?      @map("comission_date_from")
+  comissionDateFrom      DateTime? @map("comission_date_from") @db.Date
   comissionDateUntil     DateTime? @map("comission_date_until") @db.Date
   period                 String?   @db.VarChar(50)
   isLag                  Boolean   @default(true) @map("is_lag")
   dateSync               DateTime? @map("date_sync") @db.Date
-  status                 String    @db.VarChar(20) // 'SINCRONIZADA', 'PRELIQUIDADO', 'LIQUIDADO', 'ANULADA'
+  status                 String    @db.VarChar(20) // 'REZAGADO', 'ERROR', 'SINCRONIZADO', 'PRELIQUIDADO', 'LIQUIDADO', 'ANULADA'
   observations           String?   @db.Text
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
-  business               Business                @relation(fields: [idBusiness], references: [idBusiness])
+  business               Business?               @relation(fields: [idBusiness], references: [idBusiness])
+  fileImport             FileImport              @relation(fields: [idFileImport], references: [idFileImport])
   comissionDistributions ComissionDistribution[]
 
-  // Note: 'Registro de liquidaciones calculadas para cada negocio'
+  // Note: 'Registro de liquidaciones calculadas para cada negocio. Puede haber múltiples registros por negocio (uno por cada carga de archivo)'
 
   @@index([status])
   @@index([period])
+  @@index([contract])
+  @@index([idFileImport])
+  @@index([idBusiness])
   @@map("settlement_commission")
 }
 
