@@ -24,10 +24,6 @@ const createClientSchema = z.object({
 			/^[0-9.]+$/,
 			'El número de identificación solo puede contener números y puntos'
 		),
-	idClientOrigin: z
-		.number()
-		.int()
-		.positive('El origen del cliente es obligatorio'),
 	email: z.string().email('Email inválido').optional(),
 	phone: z
 		.string()
@@ -80,7 +76,6 @@ export async function createClient(
 				lastName: validatedData.lastName,
 				typeIdentity: validatedData.typeIdentity,
 				identityNumber: validatedData.identityNumber,
-				idClientOrigin: validatedData.idClientOrigin,
 				email: validatedData.email,
 				phone: validatedData.phone,
 				direcction: validatedData.direcction,

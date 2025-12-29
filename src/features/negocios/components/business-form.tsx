@@ -1,8 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import { UseFormReturn } from 'react-hook-form'
 import { Header } from './header'
-import { ClientInfoSection } from '@/features/negocios/components/client-info-section'
+import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
+import { ClientInfoSection } from '@/features/negocios/components/sections/client-info-section'
 import { ProductInfoSection } from '@/features/negocios/components/sections/product-info-section'
 import { BusinessInfoSection } from '@/features/negocios/components/sections/business-info-section'
 import { FormActions } from '@/features/negocios/components/form-actions'
@@ -33,7 +35,6 @@ export const BusinessForm = React.forwardRef<
 			isSubmitting,
 			handleFormSubmit,
 			handleClientSelected,
-			handleCreateNew,
 			handleSearchClient,
 			clientResults,
 			filteredProducts,
@@ -59,16 +60,15 @@ export const BusinessForm = React.forwardRef<
 
 				<form ref={ref} onSubmit={handleFormSubmit} className="space-y-8">
 					<ClientInfoSection
-						form={form}
+						form={form as unknown as UseFormReturn<BusinessFormData>}
 						clientOriginsOptions={clientOriginsOptions}
 						clientResults={clientResults}
 						onSearchClient={handleSearchClient}
 						onClientSelected={handleClientSelected}
-						onCreateNew={handleCreateNew}
 					/>
 
 					<ProductInfoSection
-						form={form}
+						form={form as unknown as UseFormReturn<BusinessFormData>}
 						companiesOptions={companiesOptions}
 						productsOptions={productsOptions}
 						filteredProducts={filteredProducts}
@@ -76,7 +76,7 @@ export const BusinessForm = React.forwardRef<
 					/>
 
 					<BusinessInfoSection
-						form={form}
+						form={form as unknown as UseFormReturn<BusinessFormData>}
 						currenciesOptions={currenciesOptions}
 						periodicitiesOptions={periodicitiesOptions}
 						agentsList={agentsList}

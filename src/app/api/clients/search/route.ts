@@ -27,7 +27,6 @@ export async function GET(request: Request) {
 				lastName: true,
 				typeIdentity: true,
 				identityNumber: true,
-				idClientOrigin: true,
 				email: true,
 				phone: true,
 				direcction: true,

@@ -22,6 +22,7 @@ export const mockBusinessFormFilled: BusinessFormData = {
 	phone: '+57 320 555 55 55',
 	identityNumber: '1053.123.456',
 	clientOrigin: '1',
+	contract: undefined as string | undefined,
 	compania: 'skandia',
 	producto: 'crea-patrimonio',
 	terms: 34,

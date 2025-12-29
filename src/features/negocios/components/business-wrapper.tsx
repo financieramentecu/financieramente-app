@@ -33,11 +33,8 @@ export default function BusinessWrapper({ currentUser, ...props }: Props) {
 		currenciesOptions,
 		clientOriginsOptions,
 	} = useGetAllData(props)
-	const handleSubmit = async (data: BusinessFormData) => {
+	const handleSubmit = async () => {
 		try {
-			// TODO: Implementar llamada a API para crear negocio
-			console.log('Datos del formulario:', data)
-
 			toast.success('Negocio creado exitosamente', {
 				description: 'El negocio ha sido registrado correctamente.',
 			})

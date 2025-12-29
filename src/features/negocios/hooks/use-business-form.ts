@@ -8,6 +8,8 @@ import {
 	type BusinessFormData,
 } from '@/features/negocios/lib/business-form-schemas'
 import { createClient } from '@/features/negocios/actions/create-client'
+import { updateClient } from '@/features/negocios/actions/update-client'
+import { createBusiness } from '@/features/negocios/actions/create-business'
 import { useSearchClient } from '@/features/negocios/hooks/useSearchClient'
 import { useSearchAgents } from '@/features/negocios/hooks/useSearchAgents'
 import { useProductFilter } from '@/features/negocios/hooks/use-product-filter'
@@ -22,7 +24,7 @@ import type { BusinessFormProps } from '@/features/negocios/types/business.types
 export function useBusinessForm(props: BusinessFormProps) {
 	const { onSubmit, defaultValues, currentUser, productsOptions } = props
 
-	const [selectedClientId, setSelectedClientId] = React.useState<number | null>(
+	const [selectedClient, setSelectedClient] = React.useState<Client | null>(
 		null
 	)
 
@@ -76,12 +78,12 @@ export function useBusinessForm(props: BusinessFormProps) {
 
 	// Handler para cuando se selecciona un cliente existente
 	const handleClientSelected = React.useCallback((client: Client) => {
-		setSelectedClientId(client.idClient)
+		setSelectedClient(client)
 	}, [])
 
 	// Handler para cuando se hace clic en "Crear nuevo"
 	const handleCreateNew = React.useCallback((_identityNumber: string) => {
-		setSelectedClientId(null)
+		setSelectedClient(null)
 	}, [])
 
 	// Handler para búsqueda de agentes
@@ -101,7 +103,8 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const handleFormSubmit = React.useCallback(
 		async (data: BusinessFormData) => {
 			try {
-				let clientId = selectedClientId
+				let clientToUse = selectedClient
+				let clientId = selectedClient?.idClient ?? null
 
 				// Si no hay un cliente seleccionado, significa que es un nuevo cliente
 				// y necesitamos crearlo antes de crear el negocio
@@ -118,7 +121,6 @@ export function useBusinessForm(props: BusinessFormProps) {
 							lastName: data.lastNames,
 							typeIdentity: 'CC', // Por defecto CC
 							identityNumber: data.identityNumber,
-							idClientOrigin: parseInt(data.clientOrigin),
 							email: data.email,
 							phone: data.phone,
 							country: 'Colombia',
@@ -132,8 +134,9 @@ export function useBusinessForm(props: BusinessFormProps) {
 						}
 
 						if (createResult.data) {
+							clientToUse = createResult.data
 							clientId = createResult.data.idClient
-							setSelectedClientId(clientId)
+							setSelectedClient(clientToUse)
 						} else {
 							toast.error('Error al crear cliente', {
 								description: 'No se pudo crear el cliente',
@@ -141,12 +144,67 @@ export function useBusinessForm(props: BusinessFormProps) {
 							return
 						}
 					} else {
+						clientToUse = existingClient
 						clientId = existingClient.idClient
-						setSelectedClientId(clientId)
+						setSelectedClient(clientToUse)
 					}
 				}
 
-				// Ahora podemos crear el negocio con el clientId
+				// Si el cliente existe, verificar si fue modificado y actualizarlo
+				if (clientId && clientToUse) {
+					const hasChanges =
+						clientToUse.name !== data.name ||
+						clientToUse.lastName !== data.lastNames ||
+						clientToUse.email !== data.email ||
+						clientToUse.phone !== data.phone
+
+					if (hasChanges) {
+						const updateResult = await updateClient({
+							idClient: clientId,
+							name: data.name,
+							lastName: data.lastNames,
+							email: data.email,
+							phone: data.phone,
+						})
+
+						if ('error' in updateResult) {
+							toast.error('Error al actualizar cliente', {
+								description: updateResult.error,
+							})
+							return
+						}
+
+						if (updateResult.data) {
+							clientToUse = updateResult.data
+							setSelectedClient(clientToUse)
+						}
+					}
+				}
+
+				// Crear el negocio usando el action createBusiness
+				const businessResult = await createBusiness({
+					contract:
+						data.contract && data.contract.trim().length > 0
+							? data.contract.trim()
+							: undefined,
+					term: data.terms,
+					value: data.value,
+					idBuyPeriodicity: parseInt(data.periodicity),
+					idUser: parseInt(data.agent),
+					idClient: clientId!,
+					idProduct: parseInt(data.producto),
+					idCurrency: parseInt(data.currency),
+					idClientOrigin: parseInt(data.clientOrigin),
+				})
+
+				if ('error' in businessResult) {
+					toast.error('Error al crear negocio', {
+						description: businessResult.error,
+					})
+					return
+				}
+
+				// Si es exitoso, llamar al onSubmit para que el wrapper maneje el toast y redirect
 				await onSubmit?.(data)
 			} catch (error) {
 				console.error('Error submitting form:', error)
@@ -156,14 +214,16 @@ export function useBusinessForm(props: BusinessFormProps) {
 				})
 			}
 		},
-		[selectedClientId, clientResults, onSubmit]
+		[selectedClient, clientResults, onSubmit]
 	)
 
 	return {
 		form,
 		isBlocked,
 		isSubmitting,
-		handleFormSubmit: handleSubmit(handleFormSubmit),
+		handleFormSubmit: handleSubmit(
+			handleFormSubmit as (data: BusinessFormData) => Promise<void>
+		),
 		handleClientSelected,
 		handleCreateNew,
 		handleSearchClient,

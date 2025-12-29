@@ -22,7 +22,6 @@ export interface ClientInfoSectionProps {
 	clientResults: Client[]
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
-	onCreateNew: (documento: string) => void
 }
 
 export function ClientInfoSection({
@@ -31,7 +30,6 @@ export function ClientInfoSection({
 	clientResults,
 	onSearchClient,
 	onClientSelected,
-	onCreateNew,
 }: ClientInfoSectionProps) {
 	const {
 		register,
@@ -45,6 +43,7 @@ export function ClientInfoSection({
 	const nameValue = watch('name')
 	const lastNamesValue = watch('lastNames')
 	const phoneValue = watch('phone')
+	const contractValue = watch('contract')
 	const isBlocked = !documentValue || documentValue.length < 5
 
 	// Referencia para el campo email (para mover el foco)
@@ -55,6 +54,7 @@ export function ClientInfoSection({
 	const nameRegister = register('name')
 	const lastNamesRegister = register('lastNames')
 	const phoneRegister = register('phone')
+	const contractRegister = register('contract')
 
 	// Combinar el ref de react-hook-form con nuestro ref personalizado para email
 	const emailRefCallback = React.useCallback(
@@ -66,51 +66,51 @@ export function ClientInfoSection({
 	)
 
 	// Handler para cuando se selecciona un documento
-	const handleIdentityNumberChange = (identityClient: string) => {
-		setValue('identityNumber', identityClient, { shouldValidate: true })
+	const handleIdentityNumberChange = React.useCallback(
+		(identityNumber: string) => {
+			setValue('identityNumber', identityNumber, { shouldValidate: true })
 
-		// Si se seleccionó un cliente existente, autocompletar campos
-		if (identityClient && clientResults) {
-			const selectedClient = clientResults.find(
-				(c) => c.identityNumber === identityClient
-			)
-			if (selectedClient) {
-				setValue('email', selectedClient.email || '', { shouldValidate: true })
-				setValue('name', selectedClient.name, { shouldValidate: true })
-				setValue('lastNames', selectedClient.lastName || '', {
-					shouldValidate: true,
-				})
-				if (selectedClient.phone) {
-					setValue('phone', selectedClient.phone, { shouldValidate: true })
-				}
-				if (selectedClient.idClientOrigin) {
-					setValue('clientOrigin', selectedClient.idClientOrigin.toString(), {
+			// Si se seleccionó un cliente existente, autocompletar campos
+			if (identityNumber && clientResults) {
+				const selectedClient = clientResults.find(
+					(c) => c.identityNumber === identityNumber
+				)
+				if (selectedClient) {
+					setValue('email', selectedClient.email || '', {
 						shouldValidate: true,
 					})
+					setValue('name', selectedClient.name, { shouldValidate: true })
+					setValue('lastNames', selectedClient.lastName || '', {
+						shouldValidate: true,
+					})
+					if (selectedClient.phone) {
+						setValue('phone', selectedClient.phone, { shouldValidate: true })
+					}
+					onClientSelected(selectedClient)
 				}
-				onClientSelected(selectedClient)
 			}
-		}
-	}
+		},
+		[setValue, clientResults, onClientSelected]
+	)
 
 	// Handler para cuando se hace clic en "Crear nuevo"
-	const handleCreateNew = (documento: string) => {
-		setValue('identityNumber', documento, { shouldValidate: true })
+	const handleCreateNew = React.useCallback(
+		(identityNumber: string) => {
+			setValue('identityNumber', identityNumber, { shouldValidate: true })
 
-		// Limpiar los campos de información del cliente cuando se crea un nuevo usuario
-		setValue('email', '', { shouldValidate: false })
-		setValue('name', '', { shouldValidate: false })
-		setValue('lastNames', '', { shouldValidate: false })
-		setValue('phone', '', { shouldValidate: false })
-		setValue('clientOrigin', '', { shouldValidate: false })
+			// Limpiar los campos de información del cliente cuando se crea un nuevo usuario
+			setValue('email', '', { shouldValidate: false })
+			setValue('name', '', { shouldValidate: false })
+			setValue('lastNames', '', { shouldValidate: false })
+			setValue('phone', '', { shouldValidate: false })
 
-		// Mover el foco al campo email
-		setTimeout(() => {
-			emailInputRef.current?.focus()
-		}, 100)
-
-		onCreateNew(documento)
-	}
+			// Mover el foco al campo email
+			setTimeout(() => {
+				emailInputRef.current?.focus()
+			}, 100)
+		},
+		[setValue]
+	)
 
 	return (
 		<div className="space-y-4">
@@ -227,6 +227,30 @@ export function ClientInfoSection({
 				</div>
 
 				<div className="space-y-2">
+					<Label htmlFor="phone" className="text-sm font-medium">
+						Teléfono <span className="text-red-500">*</span>
+					</Label>
+					<Input
+						id="phone"
+						name={phoneRegister.name}
+						value={phoneValue}
+						onChange={(e) => {
+							phoneRegister.onChange(e)
+							setValue('phone', e.target.value, { shouldValidate: true })
+						}}
+						onBlur={phoneRegister.onBlur}
+						ref={phoneRegister.ref}
+						placeholder="+57 XXXXXXXXXX"
+						disabled={isBlocked}
+						type="tel"
+						className={errors.phone ? 'border-red-500' : ''}
+					/>
+					{errors.phone && (
+						<p className="text-xs text-red-500">{errors.phone.message}</p>
+					)}
+				</div>
+
+				<div className="space-y-2">
 					<Label htmlFor="clientOrigin" className="text-sm font-medium">
 						Origen del Cliente <span className="text-red-500">*</span>
 					</Label>
@@ -259,25 +283,25 @@ export function ClientInfoSection({
 				</div>
 
 				<div className="space-y-2">
-					<Label htmlFor="phone" className="text-sm font-medium">
-						Contacto
+					<Label htmlFor="contract" className="text-sm font-medium">
+						Nro. Contrato
 					</Label>
 					<Input
-						id="phone"
-						name={phoneRegister.name}
-						value={phoneValue || ''}
+						id="contract"
+						name={contractRegister.name}
+						value={contractValue || ''}
 						onChange={(e) => {
-							phoneRegister.onChange(e)
-							setValue('phone', e.target.value, { shouldValidate: true })
+							contractRegister.onChange(e)
+							setValue('contract', e.target.value, { shouldValidate: true })
 						}}
-						onBlur={phoneRegister.onBlur}
-						ref={phoneRegister.ref}
+						onBlur={contractRegister.onBlur}
+						ref={contractRegister.ref}
 						placeholder="XXX XXX X"
 						disabled={isBlocked}
-						className={errors.phone ? 'border-red-500' : ''}
+						className={errors.contract ? 'border-red-500' : ''}
 					/>
-					{errors.phone && (
-						<p className="text-xs text-red-500">{errors.phone.message}</p>
+					{errors.contract && (
+						<p className="text-xs text-red-500">{errors.contract.message}</p>
 					)}
 				</div>
 			</div>
