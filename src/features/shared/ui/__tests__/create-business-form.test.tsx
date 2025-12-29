@@ -45,7 +45,7 @@ describe('CreateBusinessForm', () => {
 		expect(screen.getByLabelText(/Nombres/i)).toBeInTheDocument()
 		expect(screen.getByLabelText(/Apellidos/i)).toBeInTheDocument()
 		expect(screen.getByLabelText(/No. Documento/i)).toBeInTheDocument()
-		expect(screen.getByLabelText(/Contacto/i)).toBeInTheDocument()
+		expect(screen.getByLabelText(/Teléfono/i)).toBeInTheDocument()
 	})
 
 	it('blocks all fields except documento when documento is empty', () => {
