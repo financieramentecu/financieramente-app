@@ -150,13 +150,13 @@ export function AgentAutocomplete({
 				>
 					{value ? (
 						selectedAgent ? (
-							<div className="flex flex-col items-start text-left flex-1">
+							<div className="flex items-center gap-2">
 								<span className="font-medium">
 									{getFullName(selectedAgent)}
 								</span>
 								{selectedAgent.identityNumber && (
 									<span className="text-xs text-muted-foreground">
-										{selectedAgent.identityNumber}
+										- {selectedAgent.identityNumber}
 									</span>
 								)}
 							</div>
@@ -213,11 +213,11 @@ export function AgentAutocomplete({
 													: 'opacity-0'
 											)}
 										/>
-										<div className="flex flex-col">
+										<div className="flex items-center gap-2">
 											<span className="font-medium">{getFullName(agent)}</span>
 											{agent.identityNumber && (
 												<span className="text-xs text-muted-foreground">
-													{agent.identityNumber}
+													- {agent.identityNumber}
 												</span>
 											)}
 										</div>

@@ -25,7 +25,8 @@ export function useAgentPermissions({
 	// Determinar si el usuario puede buscar agentes
 	const canSearchAgents =
 		currentUser?.role?.code === UserRole.ANALISTA_SOPORTE ||
-		currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
+		currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+		currentUser?.role?.code === UserRole.ADMIN
 
 	// Pre-cargar el usuario actual si es AGENTE
 	React.useEffect(() => {
