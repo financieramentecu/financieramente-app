@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { ClientAutocomplete } from '../features/negocios/components/client-autocomplete'
+import { ClientAutocomplete } from '../features/negocios/components/fields/client-autocomplete'
 import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 import { mockUsers } from '../features/shared/__tests__/fixtures/mockUsers'
 import * as React from 'react'

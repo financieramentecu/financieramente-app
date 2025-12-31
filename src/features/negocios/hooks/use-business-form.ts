@@ -109,44 +109,33 @@ export function useBusinessForm(props: BusinessFormProps) {
 				// Si no hay un cliente seleccionado, significa que es un nuevo cliente
 				// y necesitamos crearlo antes de crear el negocio
 				if (!clientId) {
-					// Verificar si el cliente ya existe en la base de datos
-					const existingClient = clientResults.find(
-						(c) => c.identityNumber === data.identityNumber
-					)
+					// Crear el nuevo cliente usando el action
+					const createResult = await createClient({
+						name: data.name,
+						lastName: data.lastNames,
+						typeIdentity: 'CC', // Por defecto CC
+						identityNumber: data.identityNumber,
+						email: data.email,
+						phone: data.phone,
+						country: 'Colombia',
+					})
 
-					if (!existingClient) {
-						// Crear el nuevo cliente usando el action
-						const createResult = await createClient({
-							name: data.name,
-							lastName: data.lastNames,
-							typeIdentity: 'CC', // Por defecto CC
-							identityNumber: data.identityNumber,
-							email: data.email,
-							phone: data.phone,
-							country: 'Colombia',
+					if ('error' in createResult) {
+						toast.error('Error al crear cliente', {
+							description: createResult.error,
 						})
+						return
+					}
 
-						if ('error' in createResult) {
-							toast.error('Error al crear cliente', {
-								description: createResult.error,
-							})
-							return
-						}
-
-						if (createResult.data) {
-							clientToUse = createResult.data
-							clientId = createResult.data.idClient
-							setSelectedClient(clientToUse)
-						} else {
-							toast.error('Error al crear cliente', {
-								description: 'No se pudo crear el cliente',
-							})
-							return
-						}
-					} else {
-						clientToUse = existingClient
-						clientId = existingClient.idClient
+					if (createResult.data) {
+						clientToUse = createResult.data
+						clientId = createResult.data.idClient
 						setSelectedClient(clientToUse)
+					} else {
+						toast.error('Error al crear cliente', {
+							description: 'No se pudo crear el cliente',
+						})
+						return
 					}
 				}
 
@@ -214,7 +203,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 				})
 			}
 		},
-		[selectedClient, clientResults, onSubmit]
+		[selectedClient, onSubmit]
 	)
 
 	return {

@@ -17,7 +17,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from '@/features/shared/ui/popover'
-import { UserWithRole } from '../types/business.types'
+import { UserWithRole } from '../../types/business.types'
 
 export interface AgentAutocompleteProps {
 	value?: string
@@ -111,12 +111,11 @@ export function AgentAutocomplete({
 
 	// Encontrar el agente seleccionado en todas las fuentes disponibles
 	const selectedAgent = React.useMemo(() => {
-		// Combinar todas las fuentes de agentes disponibles
-		const allAgents = hasRemoteSearch ? [...agents, ...remoteAgents] : agents
+		if (!value) return undefined
 
 		// Buscar el agente por ID
-		return allAgents.find((agent) => agent.idUser.toString() === value)
-	}, [value, agents, remoteAgents, hasRemoteSearch])
+		return remoteAgents.find((agent) => agent.idUser.toString() === value)
+	}, [value, remoteAgents])
 
 	// Obtener nombre completo del agente
 	const getFullName = (agent: UserWithRole) => {

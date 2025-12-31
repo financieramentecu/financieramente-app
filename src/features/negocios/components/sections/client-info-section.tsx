@@ -12,7 +12,7 @@ import {
 	SelectValue,
 } from '@/features/shared/ui/select'
 import { Separator } from '@/features/shared/ui/separator'
-import { ClientAutocomplete } from '@/features/negocios/components/client-autocomplete'
+import { ClientAutocomplete } from '@/features/negocios/components/fields/client-autocomplete'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { Client } from '@prisma/client'
 

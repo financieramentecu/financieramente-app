@@ -6,7 +6,7 @@ import { Label } from '@/features/shared/ui/label'
 import { Separator } from '@/features/shared/ui/separator'
 import { FormSelectField } from '@/features/negocios/components/fields/form-select-field'
 import { CurrencyInputField } from '@/features/negocios/components/fields/currency-input-field'
-import { AgentAutocomplete } from '@/features/negocios/components/agent-autocomplete'
+import { AgentAutocomplete } from '@/features/negocios/components/fields/agent-autocomplete'
 import {
 	getFieldError,
 	getFieldClassName,
