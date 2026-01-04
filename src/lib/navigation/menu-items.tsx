@@ -8,8 +8,7 @@ import {
 	History,
 	FileText,
 	BarChart3,
-	Settings,
-	X,
+
 	Users,
 	FileUp,
 } from 'lucide-react'
@@ -37,46 +36,13 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		title: 'Negocios',
 		url: '/dashboard/negocios',
 		icon: <Folder className="h-4 w-4" />,
-		subItems: [
-			{
-				title: 'Listar Negocios',
-				url: '/dashboard/negocios',
-				icon: <List className="h-4 w-4" />,
-			},
-			{
-				title: 'Crear Negocio',
-				url: '/dashboard/negocios/crear',
-				icon: <Plus className="h-4 w-4" />,
-			},
-			{
-				title: 'Cancelar Negocio',
-				url: '/dashboard/negocios/cancelar',
-				icon: <X className="h-4 w-4" />,
-			},
-		],
 	},
 	{
 		title: 'Carga Archivos',
 		url: '/dashboard/carga-archivos',
 		icon: <FileUp className="h-4 w-4" />,
 	},
-	{
-		title: 'Cargas',
-		url: '/dashboard/cargas',
-		icon: <Upload className="h-4 w-4" />,
-		subItems: [
-			{
-				title: 'Carga Masiva',
-				url: '/dashboard/cargas/masiva',
-				icon: <Upload className="h-4 w-4" />,
-			},
-			{
-				title: 'Historial',
-				url: '/dashboard/cargas/historial',
-				icon: <History className="h-4 w-4" />,
-			},
-		],
-	},
+
 	{
 		title: 'Liquidaciones',
 		url: '/dashboard/liquidaciones',
@@ -121,11 +87,7 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		url: '/dashboard/admin/users',
 		icon: <Users className="h-4 w-4" />,
 	},
-	{
-		title: 'Configuración',
-		url: '/dashboard/configuracion',
-		icon: <Settings className="h-4 w-4" />,
-	},
+
 ]
 
 /**

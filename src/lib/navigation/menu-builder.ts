@@ -31,20 +31,7 @@ export function buildMenuByRole(
 
 		// Negocios
 		if (item.title === 'Negocios' && permissions.negocios.list) {
-			const subItems = item.subItems?.filter((subItem) => {
-				if (subItem.title === 'Listar Negocios')
-					return permissions.negocios.list
-				if (subItem.title === 'Crear Negocio')
-					return permissions.negocios.create
-				if (subItem.title === 'Cancelar Negocio')
-					return permissions.negocios.cancel
-				return false
-			})
-
-			filteredItems.push({
-				...item,
-				subItems: subItems && subItems.length > 0 ? subItems : undefined,
-			})
+			filteredItems.push(item)
 			continue
 		}
 
@@ -54,23 +41,7 @@ export function buildMenuByRole(
 			continue
 		}
 
-		// Cargas
-		if (item.title === 'Cargas') {
-			if (permissions.cargas.cargaMasiva || permissions.cargas.historial) {
-				const subItems = item.subItems?.filter((subItem) => {
-					if (subItem.title === 'Carga Masiva')
-						return permissions.cargas.cargaMasiva
-					if (subItem.title === 'Historial') return permissions.cargas.historial
-					return false
-				})
 
-				filteredItems.push({
-					...item,
-					subItems: subItems && subItems.length > 0 ? subItems : undefined,
-				})
-			}
-			continue
-		}
 
 		// Liquidaciones
 		if (item.title === 'Liquidaciones') {
@@ -125,11 +96,7 @@ export function buildMenuByRole(
 			continue
 		}
 
-		// Configuración
-		if (item.title === 'Configuración' && permissions.configuracion) {
-			filteredItems.push(item)
-			continue
-		}
+
 	}
 
 	return filteredItems
