@@ -21,6 +21,9 @@ vi.mock('@/lib/prisma', () => ({
 			aggregate: vi.fn(),
 			findMany: vi.fn(),
 		},
+		currency: {
+			findMany: vi.fn(),
+		},
 	},
 }))
 vi.mock('@/features/negocios/services/user.service')
@@ -38,6 +41,7 @@ describe('GET /api/negocios/stats', () => {
 	const mockGetCurrentUserByEmail = vi.mocked(getCurrentUserByEmail)
 	const mockPrismaAggregate = vi.mocked(prisma.business.aggregate)
 	const mockPrismaFindMany = vi.mocked(prisma.business.findMany)
+	const mockCurrencyFindMany = vi.mocked(prisma.currency.findMany)
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
 
 	beforeEach(() => {
@@ -51,6 +55,25 @@ describe('GET /api/negocios/stats', () => {
 				} as unknown as NextResponse
 			}
 		)
+		// Mock por defecto de currency.findMany - retorna USD y COP
+		mockCurrencyFindMany.mockResolvedValue([
+			{
+				idCurrency: 1,
+				name: 'USD',
+				symbol: 'USD',
+				active: true,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			},
+			{
+				idCurrency: 2,
+				name: 'COP',
+				symbol: 'COP',
+				active: true,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			},
+		] as never)
 	})
 
 	afterEach(() => {
@@ -122,12 +145,28 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
 			mockPrismaAggregate
-				.mockResolvedValueOnce(mockEfectuadosAggregate as never)
-				.mockResolvedValueOnce(mockEmitidosAggregate as never)
+				.mockResolvedValueOnce(mockEfectuadosAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockEfectuadosAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockEmitidosAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockEmitidosAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
 			mockPrismaFindMany
-				.mockResolvedValueOnce(mockEfectuadosBusinesses as never)
-				.mockResolvedValueOnce(mockEmitidosBusinesses as never)
+				.mockResolvedValueOnce(
+					mockEfectuadosBusinesses.map((b) => ({
+						...b,
+						currency: { idCurrency: 1, symbol: 'USD' },
+					})) as never
+				) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce(
+					mockEmitidosBusinesses.map((b) => ({
+						...b,
+						currency: { idCurrency: 1, symbol: 'USD' },
+					})) as never
+				) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
@@ -137,12 +176,13 @@ describe('GET /api/negocios/stats', () => {
 			expect(mockGetCurrentUserByEmail).toHaveBeenCalledWith(
 				'admin@example.com'
 			)
-			expect(mockPrismaAggregate).toHaveBeenCalledTimes(2)
+			expect(mockPrismaAggregate).toHaveBeenCalledTimes(4) // 2 currencies × 2 statuses
 
-			// Verificar que no se aplica filtro de usuario
+			// Verificar que no se aplica filtro de usuario (debe incluir idCurrency)
 			expect(mockPrismaAggregate).toHaveBeenCalledWith({
 				where: {
 					status: BUSINESS_STATUS.VENTA_EFECTUADA,
+					idCurrency: expect.any(Number),
 				},
 				_sum: { value: true },
 			})
@@ -151,15 +191,20 @@ describe('GET /api/negocios/stats', () => {
 			expect(responseData).toHaveProperty('data')
 			expect(responseData.data).toHaveProperty('efectuados')
 			expect(responseData.data).toHaveProperty('emitidos')
-			expect(responseData.data.efectuados).toHaveProperty('totalValue')
-			expect(responseData.data.efectuados).toHaveProperty('totalMonth')
-			expect(responseData.data.efectuados).toHaveProperty('totalLastMonth')
-			expect(responseData.data.efectuados).toHaveProperty('monthlyData')
-			expect(responseData.data.efectuados).toHaveProperty('growthPercentage')
+			expect(responseData.data).toHaveProperty('currencies')
+			expect(responseData.data.efectuados).toHaveProperty('USD')
+			expect(responseData.data.efectuados).toHaveProperty('COP')
+			expect(responseData.data.efectuados.USD).toHaveProperty('totalValue')
+			expect(responseData.data.efectuados.USD).toHaveProperty('totalMonth')
+			expect(responseData.data.efectuados.USD).toHaveProperty('totalLastMonth')
+			expect(responseData.data.efectuados.USD).toHaveProperty('monthlyData')
+			expect(responseData.data.efectuados.USD).toHaveProperty(
+				'growthPercentage'
+			)
 
-			// Verificar valores
-			expect(responseData.data.efectuados.totalValue).toBe(635000000)
-			expect(responseData.data.emitidos.totalValue).toBe(325000000)
+			// Verificar valores (solo USD tiene datos en el mock)
+			expect(responseData.data.efectuados.USD.totalValue).toBe(635000000)
+			expect(responseData.data.emitidos.USD.totalValue).toBe(325000000)
 		})
 	})
 
@@ -180,20 +225,36 @@ describe('GET /api/negocios/stats', () => {
 				{
 					createdAt: new Date(),
 					value: 50000000,
+					currency: {
+						idCurrency: 1,
+						symbol: 'USD',
+					},
 				},
 			]
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockAgentUser)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados USD
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados COP
+				.mockResolvedValueOnce(mockBusinesses as never) // emitidos USD
+				.mockResolvedValueOnce(mockBusinesses as never) // emitidos COP
 
-			await GET()
+			const response = await GET()
+			const responseData = await response.json()
 
-			// Verificar que se aplica filtro de usuario
+			// Verificar que se aplica filtro de usuario en al menos una llamada
 			expect(mockPrismaAggregate).toHaveBeenCalledWith({
 				where: {
 					status: BUSINESS_STATUS.VENTA_EFECTUADA,
+					idCurrency: expect.any(Number),
 					idUser: mockAgentUser.idUser,
 				},
 				_sum: { value: true },
@@ -202,11 +263,19 @@ describe('GET /api/negocios/stats', () => {
 			expect(mockPrismaFindMany).toHaveBeenCalledWith({
 				where: {
 					status: BUSINESS_STATUS.VENTA_EFECTUADA,
+					idCurrency: expect.any(Number),
 					createdAt: expect.any(Object),
 					idUser: mockAgentUser.idUser,
 				},
 				select: {
 					createdAt: true,
+					value: true,
+					currency: {
+						select: {
+							idCurrency: true,
+							symbol: true,
+						},
+					},
 					value: true,
 				},
 			})
@@ -299,17 +368,29 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockEmptyAggregate as never)
-			mockPrismaFindMany.mockResolvedValue([] as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockEmptyAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockEmptyAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockEmptyAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockEmptyAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce([] as never) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
-			expect(responseData.data.efectuados.totalValue).toBe(0)
-			expect(responseData.data.efectuados.totalMonth).toBe(0)
-			expect(responseData.data.efectuados.totalLastMonth).toBe(0)
-			expect(responseData.data.efectuados.growthPercentage).toBe(0)
-			expect(Array.isArray(responseData.data.efectuados.monthlyData)).toBe(true)
+			expect(responseData.data.efectuados.USD.totalValue).toBe(0)
+			expect(responseData.data.efectuados.USD.totalMonth).toBe(0)
+			expect(responseData.data.efectuados.USD.totalLastMonth).toBe(0)
+			expect(responseData.data.efectuados.USD.growthPercentage).toBe(0)
+			expect(Array.isArray(responseData.data.efectuados.USD.monthlyData)).toBe(
+				true
+			)
 		})
 
 		it('debe retornar totalValue 0 cuando _sum.value es null', async () => {
@@ -325,14 +406,24 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockNullAggregate as never)
-			mockPrismaFindMany.mockResolvedValue([] as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockNullAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockNullAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockNullAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockNullAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce([] as never) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
-			expect(responseData.data.efectuados.totalValue).toBe(0)
-			expect(responseData.data.emitidos.totalValue).toBe(0)
+			expect(responseData.data.efectuados.USD.totalValue).toBe(0)
+			expect(responseData.data.emitidos.USD.totalValue).toBe(0)
 		})
 	})
 
@@ -365,14 +456,27 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados USD
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
 			// Crecimiento esperado: ((60M - 50M) / 50M) * 100 = 20%
-			expect(responseData.data.efectuados.growthPercentage).toBeCloseTo(20, 1)
+			expect(responseData.data.efectuados.USD.growthPercentage).toBeCloseTo(
+				20,
+				1
+			)
 		})
 
 		it('debe calcular crecimiento negativo correctamente', async () => {
@@ -403,14 +507,24 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados USD
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
 			// Crecimiento esperado: ((50M - 60M) / 60M) * 100 = -16.67%
-			expect(responseData.data.efectuados.growthPercentage).toBeCloseTo(
+			expect(responseData.data.efectuados.USD.growthPercentage).toBeCloseTo(
 				-16.67,
 				1
 			)
@@ -444,13 +558,23 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados USD
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
-			expect(responseData.data.efectuados.growthPercentage).toBe(100)
+			expect(responseData.data.efectuados.USD.growthPercentage).toBe(100)
 		})
 
 		it('debe retornar 0% cuando ambos meses son 0', async () => {
@@ -481,13 +605,23 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados USD
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
-			expect(responseData.data.efectuados.growthPercentage).toBe(0)
+			expect(responseData.data.efectuados.USD.growthPercentage).toBe(0)
 		})
 
 		it('debe retornar 100% cuando solo hay un mes de datos (mes anterior rellenado con 0)', async () => {
@@ -512,15 +646,25 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados USD
+				.mockResolvedValueOnce(mockBusinesses as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
 			// Cuando solo hay un mes de datos, fillMissingMonths rellena meses anteriores con 0
 			// Por lo tanto, el crecimiento es 100% (de 0 a valor positivo)
-			expect(responseData.data.efectuados.growthPercentage).toBe(100)
+			expect(responseData.data.efectuados.USD.growthPercentage).toBe(100)
 		})
 	})
 
@@ -554,14 +698,29 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(
+					mockBusinesses.map((b) => ({
+						...b,
+						currency: { idCurrency: 1, symbol: 'USD' },
+					})) as never
+				) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
 			const monthlyData: MonthlyData[] =
-				responseData.data.efectuados.monthlyData
+				responseData.data.efectuados.USD.monthlyData
 
 			// Debe tener aproximadamente 12 meses (puede variar según el día del mes)
 			expect(monthlyData.length).toBeGreaterThanOrEqual(3)
@@ -606,14 +765,29 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(
+					mockBusinesses.map((b) => ({
+						...b,
+						currency: { idCurrency: 1, symbol: 'USD' },
+					})) as never
+				) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
 			const monthlyData: MonthlyData[] =
-				responseData.data.efectuados.monthlyData
+				responseData.data.efectuados.USD.monthlyData
 
 			// Verificar que está ordenado
 			for (let i = 1; i < monthlyData.length; i++) {
@@ -651,14 +825,29 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(
+					mockBusinesses.map((b) => ({
+						...b,
+						currency: { idCurrency: 1, symbol: 'USD' },
+					})) as never
+				) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
 			const monthlyData: MonthlyData[] =
-				responseData.data.efectuados.monthlyData
+				responseData.data.efectuados.USD.monthlyData
 			const currentMonthData = monthlyData[monthlyData.length - 1]
 
 			// Debe sumar los 3 valores: 50M + 50M + 50M = 150M
@@ -687,14 +876,29 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(
+					mockBusinesses.map((b) => ({
+						...b,
+						currency: { idCurrency: 1, symbol: 'USD' },
+					})) as never
+				) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
 			const monthlyData: MonthlyData[] =
-				responseData.data.efectuados.monthlyData
+				responseData.data.efectuados.USD.monthlyData
 
 			// Verificar formato YYYY-MM
 			monthlyData.forEach((data) => {
@@ -788,13 +992,23 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue([] as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce([] as never) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
-			expect(responseData.data.efectuados.totalValue).toBe(1234567.89)
+			expect(responseData.data.efectuados.USD.totalValue).toBe(1234567.89)
 		})
 
 		it('debe manejar correctamente valores muy grandes', async () => {
@@ -810,13 +1024,23 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue([] as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce([] as never) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
-			expect(responseData.data.efectuados.totalValue).toBe(999999999999)
+			expect(responseData.data.efectuados.USD.totalValue).toBe(999999999999)
 		})
 
 		it('debe calcular correctamente totalMonth y totalLastMonth', async () => {
@@ -847,14 +1071,29 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(
+					mockBusinesses.map((b) => ({
+						...b,
+						currency: { idCurrency: 1, symbol: 'USD' },
+					})) as never
+				) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
-			expect(responseData.data.efectuados.totalMonth).toBe(120000000)
-			expect(responseData.data.efectuados.totalLastMonth).toBe(80000000)
+			expect(responseData.data.efectuados.USD.totalMonth).toBe(120000000)
+			expect(responseData.data.efectuados.USD.totalLastMonth).toBe(80000000)
 		})
 
 		it('debe retornar 0 para totalMonth cuando no hay datos mensuales', async () => {
@@ -870,14 +1109,24 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue([] as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce([] as never) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
 
-			expect(responseData.data.efectuados.totalMonth).toBe(0)
-			expect(responseData.data.efectuados.totalLastMonth).toBe(0)
+			expect(responseData.data.efectuados.USD.totalMonth).toBe(0)
+			expect(responseData.data.efectuados.USD.totalLastMonth).toBe(0)
 		})
 	})
 
@@ -910,8 +1159,23 @@ describe('GET /api/negocios/stats', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockUserWithRole)
-			mockPrismaAggregate.mockResolvedValue(mockAggregate as never)
-			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaAggregate
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados USD
+				.mockResolvedValueOnce(mockAggregate as never) // efectuados COP
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos USD
+				.mockResolvedValueOnce(mockAggregate as never) // emitidos COP
+			// Mock para 4 llamadas: 2 currencies × 2 statuses
+			mockPrismaFindMany
+				.mockResolvedValueOnce(
+					mockBusinesses.map((b) => ({
+						...b,
+						currency: { idCurrency: 1, symbol: 'USD' },
+					})) as never
+				) // efectuados USD
+				.mockResolvedValueOnce([] as never) // efectuados COP
+				.mockResolvedValueOnce([] as never) // emitidos USD
+				.mockResolvedValueOnce([] as never) // emitidos COP
 
 			const response = await GET()
 			const responseData = await response.json()
@@ -920,28 +1184,41 @@ describe('GET /api/negocios/stats', () => {
 			expect(responseData).toHaveProperty('data')
 			expect(responseData.data).toHaveProperty('efectuados')
 			expect(responseData.data).toHaveProperty('emitidos')
+			expect(responseData.data).toHaveProperty('currencies')
 
-			// Verificar estructura de efectuados
-			expect(responseData.data.efectuados).toHaveProperty('totalValue')
-			expect(responseData.data.efectuados).toHaveProperty('totalMonth')
-			expect(responseData.data.efectuados).toHaveProperty('totalLastMonth')
-			expect(responseData.data.efectuados).toHaveProperty('monthlyData')
-			expect(responseData.data.efectuados).toHaveProperty('growthPercentage')
-			expect(Array.isArray(responseData.data.efectuados.monthlyData)).toBe(true)
+			// Verificar estructura de efectuados (agrupado por currency)
+			expect(responseData.data.efectuados).toHaveProperty('USD')
+			expect(responseData.data.efectuados).toHaveProperty('COP')
+			expect(responseData.data.efectuados.USD).toHaveProperty('totalValue')
+			expect(responseData.data.efectuados.USD).toHaveProperty('totalMonth')
+			expect(responseData.data.efectuados.USD).toHaveProperty('totalLastMonth')
+			expect(responseData.data.efectuados.USD).toHaveProperty('monthlyData')
+			expect(responseData.data.efectuados.USD).toHaveProperty(
+				'growthPercentage'
+			)
+			expect(Array.isArray(responseData.data.efectuados.USD.monthlyData)).toBe(
+				true
+			)
 
-			// Verificar estructura de emitidos
-			expect(responseData.data.emitidos).toHaveProperty('totalValue')
-			expect(responseData.data.emitidos).toHaveProperty('totalMonth')
-			expect(responseData.data.emitidos).toHaveProperty('totalLastMonth')
-			expect(responseData.data.emitidos).toHaveProperty('monthlyData')
-			expect(responseData.data.emitidos).toHaveProperty('growthPercentage')
-			expect(Array.isArray(responseData.data.emitidos.monthlyData)).toBe(true)
+			// Verificar estructura de emitidos (agrupado por currency)
+			expect(responseData.data.emitidos).toHaveProperty('USD')
+			expect(responseData.data.emitidos).toHaveProperty('COP')
+			expect(responseData.data.emitidos.USD).toHaveProperty('totalValue')
+			expect(responseData.data.emitidos.USD).toHaveProperty('totalMonth')
+			expect(responseData.data.emitidos.USD).toHaveProperty('totalLastMonth')
+			expect(responseData.data.emitidos.USD).toHaveProperty('monthlyData')
+			expect(responseData.data.emitidos.USD).toHaveProperty('growthPercentage')
+			expect(Array.isArray(responseData.data.emitidos.USD.monthlyData)).toBe(
+				true
+			)
 
 			// Verificar tipos
-			expect(typeof responseData.data.efectuados.totalValue).toBe('number')
-			expect(typeof responseData.data.efectuados.totalMonth).toBe('number')
-			expect(typeof responseData.data.efectuados.totalLastMonth).toBe('number')
-			expect(typeof responseData.data.efectuados.growthPercentage).toBe(
+			expect(typeof responseData.data.efectuados.USD.totalValue).toBe('number')
+			expect(typeof responseData.data.efectuados.USD.totalMonth).toBe('number')
+			expect(typeof responseData.data.efectuados.USD.totalLastMonth).toBe(
+				'number'
+			)
+			expect(typeof responseData.data.efectuados.USD.growthPercentage).toBe(
 				'number'
 			)
 		})
