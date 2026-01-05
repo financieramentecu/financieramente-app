@@ -276,7 +276,6 @@ describe('GET /api/negocios/stats', () => {
 							symbol: true,
 						},
 					},
-					value: true,
 				},
 			})
 		})
