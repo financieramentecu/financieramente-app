@@ -22,6 +22,7 @@ export interface BusinessInfoSectionProps {
 	onSearchAgents?: (query: string) => Promise<UserWithRole[]>
 	isBlocked: boolean
 	isAgentUser: boolean
+	isEditMode?: boolean
 }
 
 /**
@@ -35,6 +36,7 @@ export function BusinessInfoSection({
 	onSearchAgents,
 	isBlocked,
 	isAgentUser,
+	isEditMode = false,
 }: BusinessInfoSectionProps) {
 	const { watch, setValue, formState } = form
 	const { errors } = formState
@@ -58,16 +60,18 @@ export function BusinessInfoSection({
 						placeholder="Seleccione una moneda"
 						options={currenciesOptions}
 						form={form}
-						disabled={isBlocked}
+						disabled={isBlocked || isEditMode}
 					/>
 
-					<div className="mt-2">
-						<p className="text-sm font-medium mb-2">Valor del negocio</p>
-						<div className="text-xs text-gray-500 space-y-1">
-							<p>1. Si el negocio es Crea Patrimonio de Skandia....</p>
-							<p>2. Si tu cliente toma......</p>
+					{!isEditMode && (
+						<div className="mt-2">
+							<p className="text-sm font-medium mb-2">Valor del negocio</p>
+							<div className="text-xs text-gray-500 space-y-1">
+								<p>1. Si el negocio es Crea Patrimonio de Skandia....</p>
+								<p>2. Si tu cliente toma......</p>
+							</div>
 						</div>
-					</div>
+					)}
 				</div>
 
 				<FormSelectField
@@ -76,7 +80,7 @@ export function BusinessInfoSection({
 					placeholder="Seleccione periodicidad"
 					options={periodicitiesOptions}
 					form={form}
-					disabled={isBlocked}
+					disabled={isBlocked || isEditMode}
 				/>
 
 				<CurrencyInputField
@@ -84,7 +88,7 @@ export function BusinessInfoSection({
 					label="Valor"
 					placeholder="0,00"
 					form={form}
-					disabled={isBlocked}
+					disabled={isBlocked || isEditMode}
 				/>
 
 				<div className="space-y-2">
@@ -103,7 +107,7 @@ export function BusinessInfoSection({
 						agents={agentsList}
 						placeholder="Buscar agente..."
 						aria-labelledby="agent-label"
-						disabled={isBlocked || isAgentUser}
+						disabled={isBlocked || isAgentUser || isEditMode}
 						className={getFieldClassName(agentError)}
 						onSearch={onSearchAgents}
 					/>

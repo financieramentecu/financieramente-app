@@ -17,6 +17,8 @@ export const BusinessForm = React.forwardRef<
 >(
 	(
 		{
+			mode = 'create',
+			businessId,
 			onSubmit,
 			onCancel,
 			defaultValues,
@@ -26,6 +28,7 @@ export const BusinessForm = React.forwardRef<
 			periodicitiesOptions,
 			currenciesOptions,
 			clientOriginsOptions,
+			businessAgent,
 		},
 		ref
 	) => {
@@ -33,6 +36,7 @@ export const BusinessForm = React.forwardRef<
 			form,
 			isBlocked,
 			isSubmitting,
+			isEditMode,
 			handleFormSubmit,
 			handleClientSelected,
 			handleSearchClient,
@@ -43,6 +47,8 @@ export const BusinessForm = React.forwardRef<
 			canSearchAgents,
 			handleAgentSearch,
 		} = useBusinessForm({
+			mode,
+			businessId,
 			onSubmit,
 			onCancel,
 			defaultValues,
@@ -52,6 +58,7 @@ export const BusinessForm = React.forwardRef<
 			periodicitiesOptions,
 			currenciesOptions,
 			clientOriginsOptions,
+			businessAgent,
 		})
 
 		return (
@@ -65,6 +72,7 @@ export const BusinessForm = React.forwardRef<
 						clientResults={clientResults}
 						onSearchClient={handleSearchClient}
 						onClientSelected={handleClientSelected}
+						isEditMode={isEditMode}
 					/>
 
 					<ProductInfoSection
@@ -73,6 +81,7 @@ export const BusinessForm = React.forwardRef<
 						productsOptions={productsOptions}
 						filteredProducts={filteredProducts}
 						isBlocked={isBlocked}
+						isEditMode={isEditMode}
 					/>
 
 					<BusinessInfoSection
@@ -83,12 +92,14 @@ export const BusinessForm = React.forwardRef<
 						onSearchAgents={canSearchAgents ? handleAgentSearch : undefined}
 						isBlocked={isBlocked}
 						isAgentUser={isAgentUser}
+						isEditMode={isEditMode}
 					/>
 
 					<FormActions
 						onCancel={onCancel}
 						isSubmitting={isSubmitting}
 						isBlocked={isBlocked}
+						isEditMode={isEditMode}
 					/>
 				</form>
 			</div>

@@ -156,3 +156,71 @@ export function parseCurrencyInput(value: string): number | null {
 
 	return numValue
 }
+
+/**
+ * Formatea un número como moneda con símbolo y código de moneda al final
+ * Formato: $1.000.000 COP o $1,000 USD
+ *
+ * @param value - Número a formatear
+ * @param currency - Código/símbolo de moneda (default: COP)
+ * @returns String formateado con símbolo y código de moneda
+ */
+export function formatCurrency(
+	value: number,
+	currency: string = 'COP'
+): string {
+	// Normalizar el código de moneda
+	const currencyCode = currency.toUpperCase()
+	const isUSD = currencyCode === 'USD' || currencyCode === 'DÓLAR AMERICANO'
+	const isCOP = currencyCode === 'COP' || currencyCode === 'PESO COLOMBIANO'
+
+	// Determinar el código ISO para el formatter
+	const isoCode = isUSD ? 'USD' : 'COP'
+
+	const formatter = new Intl.NumberFormat(COLOMBIAN_LOCALE, {
+		style: 'currency',
+		currency: isoCode,
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	})
+
+	// Formatear el valor
+	const formatted = formatter.format(value)
+
+	// El formato ya incluye el símbolo, pero queremos asegurar que el código esté al final
+	// Ejemplo: "$1.000.000" → "$1.000.000 COP"
+	// Si no es COP ni USD conocido, añadir el currency symbol al final
+	if (!isCOP && !isUSD) {
+		// Para currencies desconocidos, usar formato numérico + symbol
+		const numFormatter = new Intl.NumberFormat(COLOMBIAN_LOCALE, {
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 0,
+		})
+		return `$${numFormatter.format(value)} ${currency}`
+	}
+
+	// Retornar con el código de moneda explícito
+	// Remover cualquier código de moneda que Intl haya añadido y añadir el nuestro
+	const numericPart = formatted.replace(/[A-Z$\s]/g, '').trim()
+	return `$${numericPart} ${isUSD ? 'USD' : 'COP'}`
+}
+
+/**
+ * Formatea un número de forma compacta para estadísticas
+ * Ejemplo: 635000000 → "635M", 325000 → "325k"
+ *
+ * @param value - Número a formatear
+ * @returns String formateado de forma compacta
+ */
+export function formatCompactNumber(value: number): string {
+	if (value >= 1_000_000_000) {
+		return `${(value / 1_000_000_000).toFixed(1).replace('.0', '')}B`
+	}
+	if (value >= 1_000_000) {
+		return `${(value / 1_000_000).toFixed(0)}M`
+	}
+	if (value >= 1_000) {
+		return `${(value / 1_000).toFixed(0)}k`
+	}
+	return value.toString()
+}

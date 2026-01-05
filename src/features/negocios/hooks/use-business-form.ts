@@ -14,6 +14,7 @@ import { useSearchClient } from '@/features/negocios/hooks/useSearchClient'
 import { useSearchAgents } from '@/features/negocios/hooks/useSearchAgents'
 import { useProductFilter } from '@/features/negocios/hooks/use-product-filter'
 import { useAgentPermissions } from '@/features/negocios/hooks/use-agent-permissions'
+import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { UserRole } from '@/lib/auth/roles'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 
@@ -22,7 +23,18 @@ import type { BusinessFormProps } from '@/features/negocios/types/business.types
  * Inicializa el formulario, maneja la creación de clientes y coordina hooks secundarios
  */
 export function useBusinessForm(props: BusinessFormProps) {
-	const { onSubmit, defaultValues, currentUser, productsOptions } = props
+	const {
+		mode = 'create',
+		businessId,
+		onSubmit,
+		defaultValues,
+		currentUser,
+		productsOptions,
+		businessAgent,
+	} = props
+
+	const isEditMode = mode === 'edit'
+	const { updateBusiness, isUpdating } = useBusinessMutation()
 
 	const [selectedClient, setSelectedClient] = React.useState<Client | null>(
 		null
@@ -74,6 +86,8 @@ export function useBusinessForm(props: BusinessFormProps) {
 		useAgentPermissions({
 			currentUser,
 			setValue,
+			mode,
+			businessAgent,
 		})
 
 	// Handler para cuando se selecciona un cliente existente
@@ -103,6 +117,19 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const handleFormSubmit = React.useCallback(
 		async (data: BusinessFormData) => {
 			try {
+				// En modo edición, solo actualizar el contrato
+				if (isEditMode && businessId) {
+					const result = await updateBusiness(businessId, {
+						contract: data.contract || undefined,
+					})
+
+					if (result) {
+						await onSubmit?.(data)
+					}
+					return
+				}
+
+				// --- Modo creación ---
 				let clientToUse = selectedClient
 				let clientId = selectedClient?.idClient ?? null
 
@@ -203,13 +230,14 @@ export function useBusinessForm(props: BusinessFormProps) {
 				})
 			}
 		},
-		[selectedClient, onSubmit]
+		[selectedClient, onSubmit, isEditMode, businessId, updateBusiness]
 	)
 
 	return {
 		form,
 		isBlocked,
-		isSubmitting,
+		isSubmitting: isSubmitting || isUpdating,
+		isEditMode,
 		handleFormSubmit: handleSubmit(
 			handleFormSubmit as (data: BusinessFormData) => Promise<void>
 		),

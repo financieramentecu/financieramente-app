@@ -243,6 +243,7 @@ export function NegociosPageClient({
 				date: b.createdAt,
 				value: b.value,
 				product: b.product.name,
+				companyName: b.product.companyName,
 				status:
 					b.status === BUSINESS_STATUS.EMITIDO
 						? 'Emitido'

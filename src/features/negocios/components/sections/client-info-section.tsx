@@ -22,6 +22,7 @@ export interface ClientInfoSectionProps {
 	clientResults: Client[]
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
+	isEditMode?: boolean
 }
 
 export function ClientInfoSection({
@@ -30,6 +31,7 @@ export function ClientInfoSection({
 	clientResults,
 	onSearchClient,
 	onClientSelected,
+	isEditMode = false,
 }: ClientInfoSectionProps) {
 	const {
 		register,
@@ -44,7 +46,12 @@ export function ClientInfoSection({
 	const lastNamesValue = watch('lastNames')
 	const phoneValue = watch('phone')
 	const contractValue = watch('contract')
-	const isBlocked = !documentValue || documentValue.length < 5
+
+	// En modo edición, todos los campos de cliente están deshabilitados
+	// En modo creación, se habilitan cuando el documento tiene 5+ caracteres
+	const isBlocked = isEditMode || !documentValue || documentValue.length < 5
+	// El campo de contrato está habilitado en modo edición pero sigue las reglas de isBlocked en creación
+	const isContractDisabled = !isEditMode && isBlocked
 
 	// Referencia para el campo email (para mover el foco)
 	const emailInputRef = React.useRef<HTMLInputElement>(null)
@@ -130,23 +137,33 @@ export function ClientInfoSection({
 					>
 						No. Documento <span className="text-red-500">*</span>
 					</Label>
-					<ClientAutocomplete
-						value={documentValue}
-						onChange={handleIdentityNumberChange}
-						users={clientResults}
-						onSearch={onSearchClient}
-						placeholder="Buscar o crear documento..."
-						onCreateNew={handleCreateNew}
-						onFocusNextField={() => emailInputRef.current?.focus()}
-						aria-labelledby="numeroDocumento-label"
-						className={errors.identityNumber ? 'border-red-500' : ''}
-					/>
+					{isEditMode ? (
+						<Input
+							id="numeroDocumento"
+							value={documentValue}
+							disabled
+							className="bg-muted"
+						/>
+					) : (
+						<ClientAutocomplete
+							value={documentValue}
+							onChange={handleIdentityNumberChange}
+							users={clientResults}
+							onSearch={onSearchClient}
+							placeholder="Buscar o crear documento..."
+							onCreateNew={handleCreateNew}
+							onFocusNextField={() => emailInputRef.current?.focus()}
+							aria-labelledby="numeroDocumento-label"
+							className={errors.identityNumber ? 'border-red-500' : ''}
+						/>
+					)}
 					{errors.identityNumber && (
 						<p className="text-xs text-red-500">
 							{errors.identityNumber.message}
 						</p>
 					)}
-					{!errors.identityNumber &&
+					{!isEditMode &&
+						!errors.identityNumber &&
 						documentValue &&
 						documentValue.length > 0 &&
 						documentValue.length < 5 && (
@@ -284,7 +301,8 @@ export function ClientInfoSection({
 
 				<div className="space-y-2">
 					<Label htmlFor="contract" className="text-sm font-medium">
-						Nro. Contrato
+						Nro. Contrato{' '}
+						{isEditMode && <span className="text-red-500">*</span>}
 					</Label>
 					<Input
 						id="contract"
@@ -297,11 +315,16 @@ export function ClientInfoSection({
 						onBlur={contractRegister.onBlur}
 						ref={contractRegister.ref}
 						placeholder="XXX XXX X"
-						disabled={isBlocked}
+						disabled={isContractDisabled}
 						className={errors.contract ? 'border-red-500' : ''}
 					/>
 					{errors.contract && (
 						<p className="text-xs text-red-500">{errors.contract.message}</p>
+					)}
+					{isEditMode && (
+						<p className="text-xs text-muted-foreground">
+							Ingrese el número de contrato para cambiar el estado a Emitido
+						</p>
 					)}
 				</div>
 			</div>

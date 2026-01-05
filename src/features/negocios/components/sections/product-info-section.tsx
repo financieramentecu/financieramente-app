@@ -13,6 +13,8 @@ export interface ProductInfoSectionProps {
 	productsOptions: { value: string; label: string; companyId: string }[]
 	filteredProducts: { value: string; label: string; companyId: string }[]
 	isBlocked: boolean
+	/** Modo edición: deshabilita todos los campos */
+	isEditMode?: boolean
 }
 
 /**
@@ -23,6 +25,7 @@ export function ProductInfoSection({
 	companiesOptions,
 	filteredProducts,
 	isBlocked,
+	isEditMode = false,
 }: ProductInfoSectionProps) {
 	const { setValue } = form
 
@@ -49,8 +52,12 @@ export function ProductInfoSection({
 					placeholder="Seleccione una compañía"
 					options={companiesOptions}
 					form={form}
-					disabled={isBlocked}
-					helperText="Si estas registrado a un negocio internacional elige el nombre del producto..."
+					disabled={isBlocked || isEditMode}
+					helperText={
+						!isEditMode
+							? 'Si estas registrado a un negocio internacional elige el nombre del producto...'
+							: undefined
+					}
 					onValueChange={handleCompanyChange}
 				/>
 
@@ -60,7 +67,7 @@ export function ProductInfoSection({
 					placeholder="Seleccione un producto"
 					options={filteredProducts}
 					form={form}
-					disabled={isBlocked || filteredProducts.length === 0}
+					disabled={isBlocked || isEditMode || filteredProducts.length === 0}
 				/>
 
 				<NumberInputField
@@ -68,7 +75,7 @@ export function ProductInfoSection({
 					label="Plazo"
 					placeholder="10"
 					form={form}
-					disabled={isBlocked}
+					disabled={isBlocked || isEditMode}
 				/>
 			</div>
 		</div>

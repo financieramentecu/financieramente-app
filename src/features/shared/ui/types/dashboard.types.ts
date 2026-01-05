@@ -22,6 +22,15 @@ export interface DataTableProps<T> {
 	searchable?: boolean
 	onGlobalSearch?: (query: string) => void
 	loading?: boolean
+	searchPlaceholder?: string
+}
+
+/**
+ * Información de currency para selector
+ */
+export interface CurrencyOption {
+	symbol: string
+	name: string
 }
 
 export interface StatsCardProps {
@@ -31,4 +40,11 @@ export interface StatsCardProps {
 	trend?: 'up' | 'down' | 'neutral'
 	icon?: React.ReactNode
 	description?: string
+	monthlyData?: number[]
+	/** Lista de currencies disponibles para el selector */
+	currencies?: CurrencyOption[]
+	/** Currency seleccionada actualmente */
+	selectedCurrency?: string
+	/** Callback cuando el usuario cambia de currency */
+	onCurrencyChange?: (currency: string) => void
 }
