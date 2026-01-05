@@ -182,7 +182,7 @@ export function ClientAutocomplete({
 				>
 					{value
 						? selectedUser
-							? `${selectedUser.identityNumber} - ${selectedUser.name} ${selectedUser.lastName}`
+							? `${selectedUser.identityNumber}`
 							: value // Mostrar el documento directamente si no hay usuario seleccionado (nuevo usuario)
 						: placeholder}
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

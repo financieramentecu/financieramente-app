@@ -6,6 +6,8 @@ import { BusinessTableSection } from '@/features/negocios/components/BusinessTab
 import { Business, StatsData } from '@/features/negocios/types/business.types'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { AlertCircle } from 'lucide-react'
+import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
+import { UserRole } from '@/lib/auth/roles'
 
 interface PaginationData {
 	page: number
@@ -138,6 +140,9 @@ export function MisNegociosPage({
 	onGlobalSearch = () => {},
 	onPageChange,
 }: MisNegociosPageProps) {
+	const { user } = useAuthSession()
+	const isAgentUser = user?.role === UserRole.AGENTE
+
 	// Una vez inicializado, nunca mostrar el skeleton completo de nuevo
 	const showFullSkeleton = isLoading && !hasInitialized
 
@@ -146,12 +151,13 @@ export function MisNegociosPage({
 
 	return (
 		<div className="space-y-8">
-			{/* Stats Overview */}
-			{isLoadingStats ? (
-				<StatsLoadingSkeleton />
-			) : (
-				<StatsOverview statsData={statsData} />
-			)}
+			{/* Stats Overview - Solo visible para agentes */}
+			{isAgentUser &&
+				(isLoadingStats ? (
+					<StatsLoadingSkeleton />
+				) : (
+					<StatsOverview statsData={statsData} />
+				))}
 
 			{/* Error Message */}
 			{error && <ErrorMessage message={error} />}

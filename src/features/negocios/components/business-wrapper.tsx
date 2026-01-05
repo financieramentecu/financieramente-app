@@ -3,7 +3,6 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { BusinessForm } from '@/features/negocios/components/business-form'
-import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { toast } from 'sonner'
 import {
 	Company,
@@ -13,7 +12,7 @@ import {
 	ClientOrigin,
 } from '@prisma/client'
 import { UserWithRole } from '../types/business.types'
-import { useGetAllData } from '../hooks/usegetAlldata'
+import { useGetAllData } from '../hooks/use-get-all-data'
 
 interface Props {
 	companies: Company[]

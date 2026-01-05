@@ -20,24 +20,6 @@ interface UseContractValidationReturn extends ContractValidationState {
 	resetValidation: () => void
 }
 
-/**
- * Hook para validación de contratos con debounce
- *
- * @param excludeBusinessId - ID de negocio a excluir (para edición)
- * @param debounceMs - Tiempo de debounce en ms (default 500)
- * @returns Estado de validación y funciones de control
- *
- * @example
- * ```typescript
- * const { isValidating, isValid, error, validateContract } = useContractValidation(businessId)
- *
- * // En el onChange del input
- * const handleContractChange = (value: string) => {
- *   setContract(value)
- *   validateContract(value)
- * }
- * ```
- */
 export function useContractValidation(
 	excludeBusinessId?: number,
 	debounceMs: number = 500
