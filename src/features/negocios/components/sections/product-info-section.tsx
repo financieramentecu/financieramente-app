@@ -59,6 +59,7 @@ export function ProductInfoSection({
 							: undefined
 					}
 					onValueChange={handleCompanyChange}
+					required
 				/>
 
 				<FormSelectField
@@ -68,6 +69,7 @@ export function ProductInfoSection({
 					options={filteredProducts}
 					form={form}
 					disabled={isBlocked || isEditMode || filteredProducts.length === 0}
+					required
 				/>
 
 				<NumberInputField
@@ -76,6 +78,7 @@ export function ProductInfoSection({
 					placeholder="10"
 					form={form}
 					disabled={isBlocked || isEditMode}
+					required
 				/>
 			</div>
 		</div>

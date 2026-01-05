@@ -61,6 +61,7 @@ export function BusinessInfoSection({
 						options={currenciesOptions}
 						form={form}
 						disabled={isBlocked || isEditMode}
+						required
 					/>
 
 					{!isEditMode && (
@@ -81,6 +82,7 @@ export function BusinessInfoSection({
 					options={periodicitiesOptions}
 					form={form}
 					disabled={isBlocked || isEditMode}
+					required
 				/>
 
 				<CurrencyInputField
@@ -89,6 +91,7 @@ export function BusinessInfoSection({
 					placeholder="0,00"
 					form={form}
 					disabled={isBlocked || isEditMode}
+					required
 				/>
 
 				<div className="space-y-2">
@@ -97,7 +100,7 @@ export function BusinessInfoSection({
 						id="agent-label"
 						className="text-sm font-medium"
 					>
-						Agente
+						Agente <span className="text-red-500">*</span>
 					</Label>
 					<AgentAutocomplete
 						value={agentValue}

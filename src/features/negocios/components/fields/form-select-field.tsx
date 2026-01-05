@@ -25,6 +25,7 @@ export interface FormSelectFieldProps {
 	disabled?: boolean
 	helperText?: string
 	onValueChange?: (value: string) => void
+	required?: boolean
 }
 
 /**
@@ -39,6 +40,7 @@ export function FormSelectField({
 	disabled = false,
 	helperText,
 	onValueChange,
+	required = false,
 }: FormSelectFieldProps) {
 	const { setValue, watch, formState } = form
 	const { errors } = formState
@@ -53,7 +55,7 @@ export function FormSelectField({
 	return (
 		<div className="space-y-2">
 			<Label htmlFor={name} className="text-sm font-medium">
-				{label}
+				{label} {required && <span className="text-red-500">*</span>}
 			</Label>
 			<Select
 				disabled={disabled}

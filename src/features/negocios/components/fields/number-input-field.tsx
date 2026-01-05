@@ -17,6 +17,7 @@ export interface NumberInputFieldProps {
 	placeholder?: string
 	form: UseFormReturn<BusinessFormData>
 	disabled?: boolean
+	required?: boolean
 }
 
 /**
@@ -28,6 +29,7 @@ export function NumberInputField({
 	placeholder = '10',
 	form,
 	disabled = false,
+	required = false,
 }: NumberInputFieldProps) {
 	const { watch, setValue, formState } = form
 	const { errors } = formState
@@ -44,7 +46,7 @@ export function NumberInputField({
 	return (
 		<div className="space-y-2">
 			<Label htmlFor={name} className="text-sm font-medium">
-				{label}
+				{label} {required && <span className="text-red-500">*</span>}
 			</Label>
 			<Input
 				id={name}

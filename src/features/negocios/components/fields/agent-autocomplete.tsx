@@ -44,12 +44,24 @@ export function AgentAutocomplete({
 }: AgentAutocompleteProps) {
 	const [open, setOpen] = React.useState(false)
 	const [searchQuery, setSearchQuery] = React.useState('')
-	const [remoteAgents, setRemoteAgents] = React.useState<UserWithRole[]>(agents)
+	const [remoteAgents, setRemoteAgents] = React.useState<UserWithRole[]>([])
 	const [isSearching, setIsSearching] = React.useState(false)
+	const [selectedAgentCache, setSelectedAgentCache] = React.useState<
+		UserWithRole[]
+	>([])
 	const hasRemoteSearch = typeof onSearch === 'function'
 
+	// Initialize cache from agents prop (e.g., in edit mode or when user is agent)
 	React.useEffect(() => {
-		setRemoteAgents(agents)
+		if (agents.length > 0) {
+			setSelectedAgentCache((prev) => {
+				// Merge agents from props into cache, avoiding duplicates
+				const newAgents = agents.filter(
+					(agent) => !prev.some((cached) => cached.idUser === agent.idUser)
+				)
+				return [...prev, ...newAgents]
+			})
+		}
 	}, [agents])
 
 	// Búsqueda remota con debouncing
@@ -90,12 +102,20 @@ export function AgentAutocomplete({
 
 	// Filtrar agentes basados en la búsqueda (local o remota)
 	const filteredAgents = React.useMemo(() => {
-		const agentsToFilter = hasRemoteSearch ? remoteAgents : agents
+		const agentsToFilter = hasRemoteSearch
+			? [...remoteAgents, ...selectedAgentCache]
+			: [...agents, ...selectedAgentCache]
 
-		if (!searchQuery) return agentsToFilter
+		// Remove duplicates based on idUser
+		const uniqueAgents = agentsToFilter.filter(
+			(agent, index, self) =>
+				index === self.findIndex((a) => a.idUser === agent.idUser)
+		)
+
+		if (!searchQuery) return uniqueAgents
 
 		const query = searchQuery.toLowerCase()
-		return agentsToFilter.filter((agent) => {
+		return uniqueAgents.filter((agent) => {
 			const fullName = `${agent.name} ${agent.lastName || ''}`
 				.trim()
 				.toLowerCase()
@@ -107,15 +127,35 @@ export function AgentAutocomplete({
 				agent.email?.toLowerCase().includes(query)
 			)
 		})
-	}, [agents, remoteAgents, searchQuery, hasRemoteSearch])
+	}, [agents, remoteAgents, selectedAgentCache, searchQuery, hasRemoteSearch])
+
+	// Sync cache with value prop changes
+	React.useEffect(() => {
+		if (!value) {
+			// Don't clear cache when value is cleared, as it might be needed for display
+			return
+		}
+
+		// If value exists, ensure the agent is in cache
+		const allAgents = [...agents, ...remoteAgents]
+		const agent = allAgents.find((a) => a.idUser.toString() === value)
+
+		if (agent) {
+			setSelectedAgentCache((prev) => {
+				const exists = prev.some((a) => a.idUser.toString() === value)
+				return exists ? prev : [...prev, agent]
+			})
+		}
+	}, [value, agents, remoteAgents])
 
 	// Encontrar el agente seleccionado en todas las fuentes disponibles
 	const selectedAgent = React.useMemo(() => {
 		if (!value) return undefined
 
-		// Buscar el agente por ID
-		return remoteAgents.find((agent) => agent.idUser.toString() === value)
-	}, [value, remoteAgents])
+		// Search in all sources: agents prop, remoteAgents, and cache
+		const allAgents = [...agents, ...remoteAgents, ...selectedAgentCache]
+		return allAgents.find((agent) => agent.idUser.toString() === value)
+	}, [value, agents, remoteAgents, selectedAgentCache])
 
 	// Obtener nombre completo del agente
 	const getFullName = (agent: UserWithRole) => {
@@ -123,6 +163,22 @@ export function AgentAutocomplete({
 	}
 
 	const handleSelect = (selectedValue: string) => {
+		// Find the selected agent and add to cache
+		const allAgents = [...agents, ...remoteAgents]
+		const selected = allAgents.find(
+			(agent) => agent.idUser.toString() === selectedValue
+		)
+
+		if (selected) {
+			setSelectedAgentCache((prev) => {
+				// Avoid duplicates
+				const exists = prev.some(
+					(agent) => agent.idUser.toString() === selectedValue
+				)
+				return exists ? prev : [...prev, selected]
+			})
+		}
+
 		// Actualizar el valor seleccionado
 		if (onChange) {
 			onChange(selectedValue === value ? '' : selectedValue)

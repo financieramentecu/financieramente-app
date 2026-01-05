@@ -17,6 +17,7 @@ export interface CurrencyInputFieldProps {
 	placeholder?: string
 	form: UseFormReturn<BusinessFormData>
 	disabled?: boolean
+	required?: boolean
 }
 
 /**
@@ -28,6 +29,7 @@ export function CurrencyInputField({
 	placeholder = '0,00',
 	form,
 	disabled = false,
+	required = false,
 }: CurrencyInputFieldProps) {
 	const { watch, setValue, formState } = form
 	const { errors } = formState
@@ -44,7 +46,7 @@ export function CurrencyInputField({
 	return (
 		<div className="space-y-2">
 			<Label htmlFor={name} className="text-sm font-medium">
-				{label}
+				{label} {required && <span className="text-red-500">*</span>}
 			</Label>
 			<Input
 				id={name}
