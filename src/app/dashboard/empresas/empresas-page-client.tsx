@@ -130,7 +130,8 @@ export function EmpresasPageClient() {
 	const hasPendingSearch = debouncedSearch !== (lastLoadedSearch ?? '')
 
 	// Mostrar loading si está debouncing, cargando, o hay búsqueda pendiente
-	const isSearching = isDebouncing || state.status === 'loading' || hasPendingSearch
+	const isSearching =
+		isDebouncing || state.status === 'loading' || hasPendingSearch
 
 	// Marcar como inicializado y actualizar último término cargado
 	useEffect(() => {
@@ -201,14 +202,14 @@ export function EmpresasPageClient() {
 
 	// Mostrar loading en la tabla cuando se está buscando o cargando (después de inicializado)
 	// isSearching ya incluye state.status === 'loading', así que solo necesitamos verificar hasInitialized
-	const showTableLoading = isSearching || (hasInitialized && state.status !== 'success' && state.status !== 'error')
+	const showTableLoading =
+		isSearching ||
+		(hasInitialized && state.status !== 'success' && state.status !== 'error')
 
 	return (
 		<div className="space-y-6">
 			{/* Error Message */}
-			{state.status === 'error' && (
-				<ErrorMessage message={state.error} />
-			)}
+			{state.status === 'error' && <ErrorMessage message={state.error} />}
 
 			{/* Business Table Section */}
 			{showFullSkeleton ? (
@@ -235,8 +236,8 @@ export function EmpresasPageClient() {
 						<AlertDialogTitle>¿Eliminar empresa?</AlertDialogTitle>
 						<AlertDialogDescription>
 							¿Está seguro de que desea eliminar la empresa{' '}
-							<strong>{empresaToDelete?.name}</strong>? Esta acción no se
-							puede deshacer.
+							<strong>{empresaToDelete?.name}</strong>? Esta acción no se puede
+							deshacer.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -246,9 +247,7 @@ export function EmpresasPageClient() {
 							disabled={deleteState.status === 'loading'}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							{deleteState.status === 'loading'
-								? 'Eliminando...'
-								: 'Eliminar'}
+							{deleteState.status === 'loading' ? 'Eliminando...' : 'Eliminar'}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -256,4 +255,3 @@ export function EmpresasPageClient() {
 		</div>
 	)
 }
-

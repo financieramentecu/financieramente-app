@@ -25,7 +25,9 @@ import { cn } from '@/lib/utils'
 interface EmpresaFormProps {
 	mode: 'create' | 'edit'
 	initialData?: Empresa
-	onSubmit: (data: CreateEmpresaFormData | UpdateEmpresaFormData) => Promise<void>
+	onSubmit: (
+		data: CreateEmpresaFormData | UpdateEmpresaFormData
+	) => Promise<void>
 	onCancel?: () => void
 	isLoading?: boolean
 }
@@ -143,4 +145,3 @@ export function EmpresaForm({
 		</form>
 	)
 }
-

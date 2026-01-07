@@ -21,20 +21,34 @@ describe('EmpresaForm', () => {
 	describe('Create Mode', () => {
 		it('should render form with empty fields', () => {
 			render(
-				<EmpresaForm mode="create" onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+				<EmpresaForm
+					mode="create"
+					onSubmit={mockOnSubmit}
+					onCancel={mockOnCancel}
+				/>
 			)
 
-			expect(screen.getByLabelText(/nombre completo de la agencia/i)).toBeInTheDocument()
+			expect(
+				screen.getByLabelText(/nombre completo de la agencia/i)
+			).toBeInTheDocument()
 			// Select component uses combobox role, not directly associated with label
 			expect(screen.getByText(/estado/i)).toBeInTheDocument()
 			expect(screen.getByRole('combobox')).toBeInTheDocument()
-			expect(screen.getByRole('button', { name: /guardar/i })).toBeInTheDocument()
-			expect(screen.getByRole('button', { name: /cancelar/i })).toBeInTheDocument()
+			expect(
+				screen.getByRole('button', { name: /guardar/i })
+			).toBeInTheDocument()
+			expect(
+				screen.getByRole('button', { name: /cancelar/i })
+			).toBeInTheDocument()
 		})
 
 		it('should call onCancel when cancel button is clicked', () => {
 			render(
-				<EmpresaForm mode="create" onSubmit={mockOnSubmit} onCancel={mockOnCancel} />
+				<EmpresaForm
+					mode="create"
+					onSubmit={mockOnSubmit}
+					onCancel={mockOnCancel}
+				/>
 			)
 
 			const cancelButton = screen.getByRole('button', { name: /cancelar/i })
@@ -75,7 +89,9 @@ describe('EmpresaForm', () => {
 				/>
 			)
 
-			const nameInput = screen.getByLabelText(/nombre completo de la agencia/i) as HTMLInputElement
+			const nameInput = screen.getByLabelText(
+				/nombre completo de la agencia/i
+			) as HTMLInputElement
 			expect(nameInput.value).toBe('Skandia Seguros')
 			expect(nameInput).toBeDisabled()
 		})
@@ -104,8 +120,9 @@ describe('EmpresaForm', () => {
 				/>
 			)
 
-			expect(screen.getByRole('button', { name: /actualizar/i })).toBeInTheDocument()
+			expect(
+				screen.getByRole('button', { name: /actualizar/i })
+			).toBeInTheDocument()
 		})
 	})
 })
-

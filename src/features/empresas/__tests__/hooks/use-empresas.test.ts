@@ -148,12 +148,9 @@ describe('useEmpresas', () => {
 			data: mockResponse,
 		})
 
-		const { rerender } = renderHook(
-			({ search }) => useEmpresas({ search }),
-			{
-				initialProps: { search: 'Skandia' },
-			}
-		)
+		const { rerender } = renderHook(({ search }) => useEmpresas({ search }), {
+			initialProps: { search: 'Skandia' },
+		})
 
 		await waitFor(() => {
 			expect(empresaApi.getEmpresas).toHaveBeenCalledWith({
@@ -170,4 +167,3 @@ describe('useEmpresas', () => {
 		})
 	})
 })
-

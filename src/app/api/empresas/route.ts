@@ -2,10 +2,18 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createEmpresaSchema } from '@/features/empresas/lib/empresa-schemas'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import type { EmpresaListResponse, Empresa } from '@/features/empresas/types/empresa.types'
+import type {
+	EmpresaListResponse,
+	Empresa,
+} from '@/features/empresas/types/empresa.types'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from '@/lib/auth/audit-logger'
+import {
+	logAuditEvent,
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+} from '@/lib/auth/audit-logger'
 
 /**
  * GET /api/empresas
@@ -178,4 +186,3 @@ export async function POST(request: Request) {
 		return NextResponse.json(errorResponse, { status: 500 })
 	}
 }
-

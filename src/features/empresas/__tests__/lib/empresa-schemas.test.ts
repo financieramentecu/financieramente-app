@@ -174,4 +174,3 @@ describe('empresa-schemas', () => {
 		})
 	})
 })
-

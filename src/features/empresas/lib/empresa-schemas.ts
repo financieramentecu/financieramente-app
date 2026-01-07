@@ -30,4 +30,3 @@ export const updateEmpresaSchema = z.object({
  */
 export type CreateEmpresaFormData = z.infer<typeof createEmpresaSchema>
 export type UpdateEmpresaFormData = z.infer<typeof updateEmpresaSchema>
-

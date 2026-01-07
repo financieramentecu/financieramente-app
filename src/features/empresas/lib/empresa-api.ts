@@ -94,9 +94,7 @@ export const empresaApi = {
 	/**
 	 * Crea una nueva empresa
 	 */
-	async createEmpresa(
-		data: CreateEmpresaInput
-	): Promise<ApiResponse<Empresa>> {
+	async createEmpresa(data: CreateEmpresaInput): Promise<ApiResponse<Empresa>> {
 		try {
 			const response = await fetch('/api/empresas', {
 				method: 'POST',
@@ -198,4 +196,3 @@ export const empresaApi = {
 		}
 	},
 }
-

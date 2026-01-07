@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
-import type { EmpresaListResponse, EmpresaFilters } from '../types/empresa.types'
+import type {
+	EmpresaListResponse,
+	EmpresaFilters,
+} from '../types/empresa.types'
 import { empresaApi } from '../lib/empresa-api'
 
 interface UseEmpresasParams extends EmpresaFilters {
@@ -32,9 +35,7 @@ interface UseEmpresasReturn {
  * }
  * ```
  */
-export function useEmpresas(
-	params: UseEmpresasParams = {}
-): UseEmpresasReturn {
+export function useEmpresas(params: UseEmpresasParams = {}): UseEmpresasReturn {
 	const [state, setState] = useState<AsyncState<EmpresaListResponse>>({
 		status: 'loading',
 		data: undefined,
@@ -82,4 +83,3 @@ export function useEmpresas(
 		refetch: fetchEmpresas,
 	}
 }
-

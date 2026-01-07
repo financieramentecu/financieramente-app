@@ -84,4 +84,3 @@ export function useEmpresa(id: number): UseEmpresaReturn {
 		refetch: fetchEmpresa,
 	}
 }
-

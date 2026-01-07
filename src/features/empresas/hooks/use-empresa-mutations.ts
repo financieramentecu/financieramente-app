@@ -162,4 +162,3 @@ export function useEmpresaMutations(): UseEmpresaMutationsReturn {
 		deleteEmpresa,
 	}
 }
-

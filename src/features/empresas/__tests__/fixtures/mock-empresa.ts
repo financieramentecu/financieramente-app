@@ -3,9 +3,7 @@ import type { Empresa, EmpresaListResponse } from '../../types/empresa.types'
 /**
  * Crea un mock de Empresa para tests
  */
-export function createMockEmpresa(
-	overrides?: Partial<Empresa>
-): Empresa {
+export function createMockEmpresa(overrides?: Partial<Empresa>): Empresa {
 	return {
 		idCompany: 1,
 		name: 'Skandia Seguros',
@@ -34,4 +32,3 @@ export function createMockEmpresaListResponse(
 		},
 	}
 }
-

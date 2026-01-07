@@ -34,4 +34,3 @@ export interface EmpresaListResponse {
 		totalPages: number
 	}
 }
-

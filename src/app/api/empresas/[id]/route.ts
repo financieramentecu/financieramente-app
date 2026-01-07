@@ -94,7 +94,10 @@ export async function PUT(
 		}
 
 		// Validar unicidad de nombre si se está cambiando (case-insensitive)
-		if (data.name && data.name.trim().toLowerCase() !== existingEmpresa.name.toLowerCase()) {
+		if (
+			data.name &&
+			data.name.trim().toLowerCase() !== existingEmpresa.name.toLowerCase()
+		) {
 			const normalizedName = data.name.trim()
 			const duplicateEmpresa = await prisma.company.findFirst({
 				where: {
@@ -163,9 +166,7 @@ export async function PUT(
 		const changes: string[] = []
 
 		if (data.name && data.name !== existingEmpresa.name) {
-			changes.push(
-				`Nombre: "${existingEmpresa.name}" → "${data.name}"`
-			)
+			changes.push(`Nombre: "${existingEmpresa.name}" → "${data.name}"`)
 		}
 
 		if (data.status !== undefined && data.status !== existingEmpresa.status) {
@@ -216,11 +217,7 @@ export async function PUT(
 			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
-		if (
-			error &&
-			typeof error === 'object' &&
-			'code' in error
-		) {
+		if (error && typeof error === 'object' && 'code' in error) {
 			if (error.code === 'P2025') {
 				const errorResponse: ApiResponse<null> = {
 					data: null,
@@ -351,4 +348,3 @@ export async function DELETE(
 		return NextResponse.json(errorResponse, { status: 500 })
 	}
 }
-
