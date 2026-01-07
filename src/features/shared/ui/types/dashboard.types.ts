@@ -23,6 +23,8 @@ export interface DataTableProps<T> {
 	onGlobalSearch?: (query: string) => void
 	loading?: boolean
 	searchPlaceholder?: string
+	/** Render prop opcional para agregar filtros adicionales al lado del search */
+	renderAdditionalFilters?: () => React.ReactNode
 }
 
 /**

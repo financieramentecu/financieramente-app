@@ -12,6 +12,7 @@ import {
 	X,
 	Users,
 	Building2,
+	Package,
 } from 'lucide-react'
 
 /**
@@ -125,6 +126,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				title: 'Empresas',
 				url: '/dashboard/empresas',
 				icon: <Building2 className="h-4 w-4" />,
+			},
+			{
+				title: 'Productos',
+				url: '/dashboard/products',
+				icon: <Package className="h-4 w-4" />,
 			},
 		],
 	},
