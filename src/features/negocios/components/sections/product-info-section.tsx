@@ -47,7 +47,7 @@ export function ProductInfoSection({
 
 			<div className="grid grid-cols-2 gap-4">
 				<FormSelectField
-					name="compania"
+					name="company"
 					label="Compañía"
 					placeholder="Seleccione una compañía"
 					options={companiesOptions}

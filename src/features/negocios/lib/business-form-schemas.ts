@@ -30,7 +30,7 @@ export const businessFormSchema = z.object({
 		.optional(),
 
 	// Información del producto
-	compania: z.string().min(1, 'La compañía es obligatoria'),
+	company: z.string().min(1, 'La compañía es obligatoria'),
 	producto: z.string().min(1, 'El producto es obligatorio'),
 	terms: z
 		.number()

@@ -41,7 +41,7 @@ describe('businessEntityToFormData', () => {
 
 			const result = businessEntityToFormData(business)
 
-			expect(result.compania).toBe('1')
+			expect(result.company).toBe('1')
 			expect(result.producto).toBe('1')
 			expect(result.currency).toBe('1')
 			expect(result.periodicity).toBe('1')

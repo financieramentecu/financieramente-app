@@ -53,7 +53,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			phone: defaultValues?.phone || '',
 			identityNumber: defaultValues?.identityNumber || '',
 			clientOrigin: defaultValues?.clientOrigin || '',
-			compania: defaultValues?.compania || '',
+			company: defaultValues?.company || '',
 			producto: defaultValues?.producto || '',
 			terms: defaultValues?.terms || undefined,
 			currency: defaultValues?.currency || '',
@@ -66,7 +66,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const { handleSubmit, setValue, watch, formState } = form
 	const { isSubmitting } = formState
 
-	const selectedCompany = watch('compania')
+	const selectedCompany = watch('company')
 	const selectedProduct = watch('producto')
 	const documentValue = watch('identityNumber')
 

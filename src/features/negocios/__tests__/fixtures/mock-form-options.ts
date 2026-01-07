@@ -13,7 +13,7 @@ export interface ProductOption extends SelectOption {
 }
 
 /**
- * Opciones mock de compañías
+ * Opciones mock de companies
  */
 export const mockCompaniesOptions: SelectOption[] = [
 	{ value: '1', label: 'Skandia' },

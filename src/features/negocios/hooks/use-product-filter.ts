@@ -10,8 +10,8 @@ interface UseProductFilterOptions {
 }
 
 /**
- * Hook para filtrar productos basado en la compañía seleccionada
- * y resetear el producto cuando la compañía cambia
+ * Hook para filtrar productos basado en la company seleccionada
+ * y resetear el producto cuando la company cambia
  */
 export function useProductFilter({
 	productsOptions,
@@ -19,7 +19,7 @@ export function useProductFilter({
 	selectedProduct,
 	setValue,
 }: UseProductFilterOptions) {
-	// Filtrar productos basado en compañía seleccionada
+	// Filtrar productos basado en company seleccionada
 	const filteredProducts = React.useMemo(() => {
 		if (!selectedCompany) {
 			return productsOptions

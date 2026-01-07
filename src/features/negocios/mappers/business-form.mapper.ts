@@ -37,7 +37,7 @@ export function businessEntityToFormData(
 		clientOrigin: String(business.clientOrigin.id),
 
 		// Información del producto
-		compania: String(business.product.companyId),
+		company: String(business.product.companyId),
 		producto: String(business.product.id),
 		terms: business.term ?? undefined,
 
