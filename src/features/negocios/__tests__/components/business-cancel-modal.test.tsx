@@ -198,17 +198,16 @@ describe('BusinessCancelModal', () => {
 			).not.toBeInTheDocument()
 		})
 
-		it('should truncate at 500 characters', async () => {
-			const user = userEvent.setup()
-			render(<BusinessCancelModal {...defaultProps} />)
+	it('should truncate at 500 characters', () => {
+		render(<BusinessCancelModal {...defaultProps} />)
 
-			const longText = 'a'.repeat(550)
-			const textarea = screen.getByPlaceholderText(/motivo/i)
-			await user.type(textarea, longText)
+		const longText = 'a'.repeat(550)
+		const textarea = screen.getByPlaceholderText(/motivo/i)
+		fireEvent.change(textarea, { target: { value: longText } })
 
-			expect(textarea).toHaveValue('a'.repeat(500))
-			expect(screen.getByText('500/500')).toBeInTheDocument()
-		})
+		expect(textarea).toHaveValue('a'.repeat(500))
+		expect(screen.getByText('500/500')).toBeInTheDocument()
+	})
 	})
 
 	describe('Estado de carga', () => {
