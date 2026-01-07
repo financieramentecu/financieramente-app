@@ -11,6 +11,7 @@ import {
 	Settings,
 	X,
 	Users,
+	Building2,
 } from 'lucide-react'
 
 /**
@@ -114,6 +115,18 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		title: 'Usuarios',
 		url: '/dashboard/admin/users',
 		icon: <Users className="h-4 w-4" />,
+	},
+	{
+		title: 'Administración',
+		url: '/dashboard/empresas',
+		icon: <Settings className="h-4 w-4" />,
+		subItems: [
+			{
+				title: 'Empresas',
+				url: '/dashboard/empresas',
+				icon: <Building2 className="h-4 w-4" />,
+			},
+		],
 	},
 	{
 		title: 'Configuración',

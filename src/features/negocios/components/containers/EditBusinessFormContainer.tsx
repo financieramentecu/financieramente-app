@@ -114,7 +114,7 @@ export function EditBusinessFormContainer({
  */
 export function EditBusinessFormSkeleton() {
 	return (
-		<div className="w-full p-6 bg-white">
+		<div className="max-w-4xl mx-auto p-6 bg-white space-y-8">
 			{/* Header skeleton */}
 			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
 				{/* Logo skeleton */}
@@ -130,7 +130,7 @@ export function EditBusinessFormSkeleton() {
 			</div>
 
 			{/* ClientInfoSection skeleton */}
-			<div className="space-y-4 mb-4">
+			<div className="space-y-4">
 				<div className="space-y-2">
 					<Skeleton className="h-4 w-64" />
 					<Separator className="bg-gray-300" />
@@ -166,11 +166,16 @@ export function EditBusinessFormSkeleton() {
 						<Skeleton className="h-4 w-32" />
 						<Skeleton className="h-10 w-full" />
 					</div>
+					{/* Nro. Contrato */}
+					<div className="space-y-2">
+						<Skeleton className="h-4 w-28" />
+						<Skeleton className="h-10 w-full" />
+					</div>
 				</div>
 			</div>
 
 			{/* ProductInfoSection skeleton */}
-			<div className="space-y-4 mb-4">
+			<div className="space-y-4">
 				<div className="space-y-2">
 					<Skeleton className="h-4 w-48" />
 					<Separator className="bg-gray-300" />
@@ -195,7 +200,7 @@ export function EditBusinessFormSkeleton() {
 			</div>
 
 			{/* BusinessInfoSection skeleton */}
-			<div className="space-y-4 mb-4">
+			<div className="space-y-4">
 				<div className="space-y-2">
 					<Skeleton className="h-4 w-48" />
 					<Separator className="bg-gray-300" />

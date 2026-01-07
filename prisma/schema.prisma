@@ -31,6 +31,8 @@ model Company {
   // Note: 'Aseguradoras: Skandia, Trinity, American Fidelity.'
 
   @@index([idTypeCompany])
+  @@index([name])
+  @@index([status])
   @@map("company")
 }
 
