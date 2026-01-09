@@ -54,23 +54,16 @@ export function ProcessingSummary({
 						</div>
 					</div>
 				</div>
-				<Button
-					onClick={onUploadAnother}
-					variant="outline"
-					className="mt-4"
-				>
-					<Upload className="h-4 w-4 mr-2" />
-					Cargar otro
-				</Button>
 			</div>
+
 
 			{/* Estadísticas en cards */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 				{/* Sincronizados */}
 				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
 					<div className="flex items-center justify-center mb-3">
-						<div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-							<span className="text-2xl font-bold text-green-600">{sincronizados}</span>
+						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-green-500 flex items-center justify-center">
+							<span className="text-3xl font-bold text-green-600">{sincronizados}</span>
 						</div>
 					</div>
 					<p className="text-center text-sm font-medium text-gray-700">Sincronizados</p>
@@ -79,8 +72,8 @@ export function ProcessingSummary({
 				{/* Errores */}
 				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
 					<div className="flex items-center justify-center mb-3">
-						<div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-							<span className="text-2xl font-bold text-red-600">{result.errorCount}</span>
+						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-red-500 flex items-center justify-center">
+							<span className="text-3xl font-bold text-red-600">{result.errorCount}</span>
 						</div>
 					</div>
 					<p className="text-center text-sm font-medium text-gray-700">Errores</p>
@@ -89,8 +82,8 @@ export function ProcessingSummary({
 				{/* No sincronizados */}
 				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
 					<div className="flex items-center justify-center mb-3">
-						<div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
-							<span className="text-2xl font-bold text-blue-600">{noSincronizados}</span>
+						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-blue-500 flex items-center justify-center">
+							<span className="text-3xl font-bold text-blue-600">{noSincronizados}</span>
 						</div>
 					</div>
 					<p className="text-center text-sm font-medium text-gray-700">No sincronizados</p>
@@ -99,8 +92,8 @@ export function ProcessingSummary({
 				{/* Rezagados */}
 				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
 					<div className="flex items-center justify-center mb-3">
-						<div className="h-16 w-16 rounded-full bg-yellow-100 flex items-center justify-center">
-							<span className="text-2xl font-bold text-yellow-600">{rezagados}</span>
+						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-yellow-500 flex items-center justify-center">
+							<span className="text-3xl font-bold text-yellow-600">{rezagados}</span>
 						</div>
 					</div>
 					<p className="text-center text-sm font-medium text-gray-700">Rezagados</p>
@@ -129,7 +122,7 @@ export function ProcessingSummary({
 							const nombre = String(errorRecord.data['Nombre'] || errorRecord.data['nombre'] || '')
 							const desde = String(errorRecord.data['Desde'] || errorRecord.data['desde'] || '')
 							const hasta = String(errorRecord.data['Hasta'] || errorRecord.data['hasta'] || '')
-							
+
 							// Formatear fechas si es posible
 							const formatDate = (value: unknown): string => {
 								if (!value) return ''
@@ -225,6 +218,18 @@ export function ProcessingSummary({
 					</div>
 				</div>
 			)}
+
+			{/* Botón para subir otro archivo */}
+			<div className="flex justify-center pt-6">
+				<Button
+					onClick={onUploadAnother}
+					className="bg-[#00505C] hover:bg-[#003c45] text-white px-8"
+					size="lg"
+				>
+					<Upload className="h-5 w-5 mr-2" />
+					Subir otro nuevo y volver al estado inicial
+				</Button>
+			</div>
 		</div>
 	)
 }

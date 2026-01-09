@@ -1,6 +1,7 @@
 'use client'
 
 import { Progress } from '@/features/shared/ui/progress'
+import { Button } from '@/features/shared/ui/button'
 
 interface ProcessingProgressProps {
 	current: number
@@ -8,6 +9,7 @@ interface ProcessingProgressProps {
 	sincronizado: number
 	rezagado: number
 	error: number
+	onCancel?: () => void
 }
 
 export function ProcessingProgress({
@@ -16,6 +18,7 @@ export function ProcessingProgress({
 	sincronizado,
 	rezagado,
 	error,
+	onCancel,
 }: ProcessingProgressProps) {
 	const percentage = total > 0 ? Math.round((current / total) * 100) : 0
 
@@ -50,6 +53,18 @@ export function ProcessingProgress({
 						<p className="text-xs text-gray-600">Errores</p>
 					</div>
 				</div>
+
+				{/* Botón de Cancelar */}
+				{onCancel && (
+					<div className="flex justify-center pt-4 border-t">
+						<Button
+							onClick={onCancel}
+							className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
+						>
+							Cancelar Carga
+						</Button>
+					</div>
+				)}
 			</div>
 		</div>
 	)

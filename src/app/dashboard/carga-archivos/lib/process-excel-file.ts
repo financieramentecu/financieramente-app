@@ -133,21 +133,21 @@ function isValidDate(value: string | number | Date): boolean {
 		}
 		return !isNaN(new Date(value).getTime())
 	}
-	
+
 	const stringValue = String(value).trim()
 	if (!stringValue) return false
-	
+
 	// Intentar parsear como fecha
 	const date = new Date(stringValue)
 	if (!isNaN(date.getTime())) return true
-	
+
 	// Intentar formatos comunes de fecha
 	const dateFormats = [
 		/^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
 		/^\d{2}\/\d{2}\/\d{4}$/, // DD/MM/YYYY
 		/^\d{2}-\d{2}-\d{4}$/, // DD-MM-YYYY
 	]
-	
+
 	return dateFormats.some(format => format.test(stringValue))
 }
 
@@ -201,6 +201,16 @@ export async function processExcelFile(file: File): Promise<ProcessResult> {
 			headers.forEach((header, index) => {
 				record[header] = row[index] ?? ''
 			})
+
+			// Validar si la fila está vacía (ignorar filas totalmente vacías)
+			const isEmptyRow = Object.values(record).every((val) => {
+				const strVal = String(val).trim()
+				return strVal === ''
+			})
+
+			if (isEmptyRow) {
+				continue
+			}
 
 			// Validar registro
 			const errors = validateRecord(record, headers, columnIndices)
