@@ -5,13 +5,12 @@ import { NavMain } from '../layout/nav-main'
 import {
 	Sidebar,
 	SidebarContent,
-
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from '@/features/shared/ui/sidebar'
-import { Settings, User } from 'lucide-react'
+
 import Image from 'next/image'
 import { useSidebar } from '@/features/shared/ui/sidebar'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
