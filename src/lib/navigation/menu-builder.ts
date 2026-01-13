@@ -106,7 +106,17 @@ export function buildMenuByRole(
 			continue
 		}
 
+		// Administración
+		if (item.title === 'Administración' && permissions.administracion) {
+			filteredItems.push(item)
+			continue
+		}
 
+		// Configuración
+		if (item.title === 'Configuración' && permissions.configuracion) {
+			filteredItems.push(item)
+			continue
+		}
 	}
 
 	return filteredItems

@@ -54,11 +54,18 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.click('button[type="submit"]')
 
 			// Esperar a que aparezca el mensaje de error
-			// El mensaje puede variar, pero debe indicar credenciales inválidas
-			const errorMessage = page.locator('text=/inactiv|credenciales|error/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			// El toast de Sonner muestra: "Error de autenticación" con descripción "Credenciales inválidas..."
+			// Buscar el texto en cualquier parte del DOM (toast o página)
+			const errorText = page.locator(
+				'text=/Error de autenticación|Credenciales inválidas|credenciales inválidas|error de autenticación/i'
+			)
+
+			// Esperar a que aparezca el mensaje de error con timeout suficiente
+			await expect(errorText.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
+			// Esperar un poco para asegurar que no hay redirección
+			await page.waitForTimeout(2000)
 			await expect(page).not.toHaveURL(/\/dashboard/)
 		})
 	})

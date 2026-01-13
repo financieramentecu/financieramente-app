@@ -11,8 +11,12 @@ import {
 } from '@/features/shared/ui/table'
 import { Input } from '@/features/shared/ui/input'
 import { Button } from '@/features/shared/ui/button'
-import { DataTableProps, DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Skeleton } from '@/features/shared/ui/skeleton'
+import {
+	DataTableProps,
+	DataTableColumn,
+} from '@/features/shared/ui/types/dashboard.types'
+import { Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 
 export function DataTable<T extends Record<string, unknown>>({
 	columns,
@@ -22,6 +26,8 @@ export function DataTable<T extends Record<string, unknown>>({
 	searchable = false,
 	onGlobalSearch,
 	loading = false,
+	searchPlaceholder = '',
+	renderAdditionalFilters,
 }: DataTableProps<T>) {
 	const [searchQuery, setSearchQuery] = useState('')
 
@@ -39,18 +45,24 @@ export function DataTable<T extends Record<string, unknown>>({
 
 	return (
 		<div className="space-y-4">
-			{/* Search Bar */}
-			{searchable && (
-				<div className="flex items-center space-x-2">
-					<div className="relative flex-1 max-w-sm">
-						<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-						<Input
-							placeholder="Buscar..."
-							value={searchQuery}
-							onChange={(e) => handleSearch(e.target.value)}
-							className="pl-8"
-						/>
-					</div>
+			{/* Search Bar and Additional Filters */}
+			{(searchable || renderAdditionalFilters) && (
+				<div className="flex items-center gap-4 flex-wrap">
+					{searchable && (
+						<div className="relative flex-1 max-w-lg">
+							<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+							<Input
+								placeholder={searchPlaceholder}
+								value={searchQuery}
+								onChange={(e) => handleSearch(e.target.value)}
+								className="pl-8 pr-8"
+							/>
+							{loading && (
+								<Loader2 className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground animate-spin" />
+							)}
+						</div>
+					)}
+					{renderAdditionalFilters && renderAdditionalFilters()}
 				</div>
 			)}
 
@@ -66,14 +78,19 @@ export function DataTable<T extends Record<string, unknown>>({
 					</TableHeader>
 					<TableBody>
 						{loading ? (
-							<TableRow>
-								<TableCell
-									colSpan={columns.length}
-									className="h-24 text-center"
+							// Skeleton loading rows
+							Array.from({ length: 5 }).map((_, rowIndex) => (
+								<TableRow
+									key={`skeleton-${rowIndex}`}
+									className="animate-pulse"
 								>
-									Cargando...
-								</TableCell>
-							</TableRow>
+									{columns.map((column) => (
+										<TableCell key={String(column.key)}>
+											<Skeleton className="h-4 w-full max-w-[120px]" />
+										</TableCell>
+									))}
+								</TableRow>
+							))
 						) : data.length === 0 ? (
 							<TableRow>
 								<TableCell
