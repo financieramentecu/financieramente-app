@@ -1,13 +1,55 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { CreateBusinessForm } from '../features/shared/ui/create-business-form'
+import { BusinessForm } from '../features/negocios/components/business-form'
 import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 import { mockBusinessFormDefaultValues } from '../features/shared/__tests__/fixtures/mockBusinessFormData'
-import { mockUsers } from '../features/shared/__tests__/fixtures/mockUsers'
-import { mockAgents } from '../features/shared/__tests__/fixtures/mockAgents'
+import { mockUserWithRole } from '../features/shared/__tests__/fixtures/mockUserWithRole'
 
-const meta: Meta<typeof CreateBusinessForm> = {
+// Mock data para las opciones del formulario
+const mockCompaniesOptions = [
+	{ value: '1', label: 'SKANDIA' },
+	{ value: '2', label: 'Seguros Bolívar' },
+	{ value: '3', label: 'Sura' },
+]
+
+const mockProductsOptions = [
+	{ value: '1', label: 'CREA PATRIMONIO', companyId: '1' },
+	{ value: '2', label: 'MFUND', companyId: '1' },
+	{ value: '3', label: 'FPOB', companyId: '1' },
+	{ value: '4', label: 'CES', companyId: '1' },
+	{ value: '5', label: 'MACONDO', companyId: '1' },
+	{ value: '6', label: 'C+S', companyId: '1' },
+	{ value: '7', label: 'ACCAI', companyId: '1' },
+	{ value: '8', label: 'EXECUTIVE 20', companyId: '1' },
+	{ value: '9', label: 'CPA', companyId: '1' },
+	{ value: '10', label: 'Producto Bolívar 1', companyId: '2' },
+	{ value: '11', label: 'Producto Sura 1', companyId: '3' },
+]
+
+const mockPeriodicitiesOptions = [
+	{ value: '1', label: 'Anual' },
+	{ value: '2', label: 'Semestral' },
+	{ value: '3', label: 'Cuatrimestral' },
+	{ value: '4', label: 'Trimestral' },
+	{ value: '5', label: 'Bimensual' },
+	{ value: '6', label: 'Mensual' },
+	{ value: '7', label: 'Aportes Ocasionales' },
+	{ value: '8', label: 'Pago Único' },
+]
+
+const mockCurrenciesOptions = [
+	{ value: '1', label: 'Peso Colombiano (COP)' },
+	{ value: '2', label: 'Dólar Americano (USD)' },
+]
+
+const mockClientOriginsOptions = [
+	{ value: '1', label: 'Propio' },
+	{ value: '2', label: 'Metodo Vortex' },
+	{ value: '3', label: 'Asesoria Gratuita' },
+]
+
+const meta: Meta<typeof BusinessForm> = {
 	title: 'Business/CreateBusinessForm',
-	component: CreateBusinessForm,
+	component: BusinessForm,
 	parameters: {
 		layout: 'padded',
 		docs: {
@@ -29,13 +71,17 @@ const meta: Meta<typeof CreateBusinessForm> = {
 }
 
 export default meta
-type Story = StoryObj<typeof CreateBusinessForm>
+type Story = StoryObj<typeof BusinessForm>
 
 export const Default: Story = {
 	args: {
 		defaultValues: mockBusinessFormDefaultValues,
-		users: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
+		companiesOptions: mockCompaniesOptions,
+		productsOptions: mockProductsOptions,
+		periodicitiesOptions: mockPeriodicitiesOptions,
+		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
 			alert(`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}`)
@@ -49,8 +95,12 @@ export const Default: Story = {
 
 export const Empty: Story = {
 	args: {
-		users: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
+		companiesOptions: mockCompaniesOptions,
+		productsOptions: mockProductsOptions,
+		periodicitiesOptions: mockPeriodicitiesOptions,
+		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
 		},
@@ -63,8 +113,12 @@ export const Empty: Story = {
 export const WithValidation: Story = {
 	args: {
 		defaultValues: mockBusinessFormDefaultValues,
-		users: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
+		companiesOptions: mockCompaniesOptions,
+		productsOptions: mockProductsOptions,
+		periodicitiesOptions: mockPeriodicitiesOptions,
+		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
 			// Simular validación adicional
@@ -78,15 +132,17 @@ export const WithValidation: Story = {
 
 export const WithUserCreation: Story = {
 	args: {
-		users: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
+		companiesOptions: mockCompaniesOptions,
+		productsOptions: mockProductsOptions,
+		periodicitiesOptions: mockPeriodicitiesOptions,
+		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
-			alert(`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}`)
-		},
-		onUserCreated: async (documento) => {
-			console.log('Creating new user:', documento)
-			alert(`Se creará un nuevo usuario con documento: ${documento}`)
+			alert(
+				`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}\n\nEl cliente se creará automáticamente si no existe en la base de datos.`
+			)
 		},
 		onCancel: () => {
 			console.log('Form cancelled')
@@ -96,16 +152,16 @@ export const WithUserCreation: Story = {
 
 export const CreateNewUserFlow: Story = {
 	args: {
-		users: mockUsers,
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
+		companiesOptions: mockCompaniesOptions,
+		productsOptions: mockProductsOptions,
+		periodicitiesOptions: mockPeriodicitiesOptions,
+		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted:', data)
-			alert(`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}`)
-		},
-		onUserCreated: async (documento) => {
-			console.log('Creating new user:', documento)
 			alert(
-				`✅ Nuevo usuario creado exitosamente con documento: ${documento}\n\nAhora puedes completar los campos del formulario para crear el negocio.`
+				`✅ Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}\n\nEl cliente se creará automáticamente al enviar el formulario si no existe en la base de datos.`
 			)
 		},
 		onCancel: () => {
@@ -117,47 +173,15 @@ export const CreateNewUserFlow: Story = {
 
 export const LargeUserList: Story = {
 	args: {
-		users: [
-			...mockUsers,
-			{
-				numeroDocumento: '1111.222.333',
-				nombres: 'Roberto',
-				apellidos: 'Vargas',
-				email: 'roberto.vargas@gmail.com',
-			},
-			{
-				numeroDocumento: '2222.333.444',
-				nombres: 'Patricia',
-				apellidos: 'Morales',
-				email: 'patricia.morales@gmail.com',
-			},
-			{
-				numeroDocumento: '3333.444.555',
-				nombres: 'Andrés',
-				apellidos: 'Castro',
-				email: 'andres.castro@gmail.com',
-			},
-			{
-				numeroDocumento: '4444.555.666',
-				nombres: 'Fernanda',
-				apellidos: 'Ruiz',
-				email: 'fernanda.ruiz@gmail.com',
-			},
-			{
-				numeroDocumento: '5555.666.777',
-				nombres: 'Javier',
-				apellidos: 'Herrera',
-				email: 'javier.herrera@gmail.com',
-			},
-		],
-		agents: mockAgents,
+		currentUser: mockUserWithRole,
+		companiesOptions: mockCompaniesOptions,
+		productsOptions: mockProductsOptions,
+		periodicitiesOptions: mockPeriodicitiesOptions,
+		currenciesOptions: mockCurrenciesOptions,
+		clientOriginsOptions: mockClientOriginsOptions,
 		onSubmit: async (data) => {
 			console.log('Form submitted with large list:', data)
 			alert(`Formulario enviado con datos:\n${JSON.stringify(data, null, 2)}`)
-		},
-		onUserCreated: async (documento) => {
-			console.log('Creating new user:', documento)
-			alert(`Nuevo usuario creado: ${documento}`)
 		},
 		onCancel: () => {
 			console.log('Form cancelled')

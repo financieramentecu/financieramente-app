@@ -31,21 +31,9 @@ model Company {
   // Note: 'Aseguradoras: Skandia, Trinity, American Fidelity.'
 
   @@index([idTypeCompany])
+  @@index([name])
+  @@index([status])
   @@map("company")
-}
-
-model ProductOrigin {
-  idOrigin    Int      @id @default(autoincrement()) @map("id_origin")
-  name        String   @db.VarChar(100)
-  description String?  @db.Text
-  status      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relaciones
-  productPercentajeCommisions ProductPercentajeCommision[]
-
-  @@map("product_origin")
 }
 
 model ClientOrigin {
@@ -57,7 +45,8 @@ model ClientOrigin {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  clients Client[]
+  businesses                     Business[]
+  productPercentajeCommisions    ProductPercentajeCommision[]
 
   @@map("client_origin")
 }
@@ -182,7 +171,7 @@ model Product {
 model ProductPercentajeCommision {
   idProductPercentajeCommision Int      @id @default(autoincrement()) @map("id_product_percentaje_commision")
   idProduct                    Int      @map("id_product")
-  idOrigin                     Int      @map("id_origin")
+  idClientOrigin               Int      @map("id_client_origin")
   idCategory                   Int      @map("id_category")
   code                         String?  @db.VarChar(50)
   active                       Boolean  @default(true)
@@ -191,7 +180,7 @@ model ProductPercentajeCommision {
 
   // Relaciones
   product                             Product                              @relation(fields: [idProduct], references: [idProduct])
-  productOrigin                       ProductOrigin                        @relation(fields: [idOrigin], references: [idOrigin])
+  clientOrigin                        ClientOrigin                         @relation(fields: [idClientOrigin], references: [idClientOrigin])
   category                            Category                             @relation(fields: [idCategory], references: [idCategory])
   productPercentajeCommisionPositions ProductPercentajeCommisionPosition[]
   businesses                          Business[]
@@ -199,7 +188,7 @@ model ProductPercentajeCommision {
   // Note: 'Configuración maestra de porcentajes. Code ejemplo: SKANDIAPROPIOMULTIFON/PLATA'
 
   @@index([idProduct])
-  @@index([idOrigin])
+  @@index([idClientOrigin])
   @@index([idCategory])
   @@map("product_percentaje_commision")
 }
@@ -268,7 +257,6 @@ model Client {
   lastName       String?  @map("last_name") @db.VarChar(200)
   typeIdentity   String   @default("CC") @map("type_identity") @db.VarChar(10)
   identityNumber String   @map("identity_number") @db.VarChar(20)
-  idClientOrigin Int      @map("id_client_origin")
   email          String?  @db.VarChar(150)
   phone          String?  @db.VarChar(30)
   direcction     String?  @db.VarChar(255)
@@ -279,7 +267,6 @@ model Client {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  clientOrigin ClientOrigin @relation(fields: [idClientOrigin], references: [idClientOrigin])
   businesses   Business[]
 
   @@unique([typeIdentity, identityNumber])
@@ -324,6 +311,7 @@ model Business {
   idClient                     Int      @map("id_client")
   idProductPercentajeCommision Int      @map("id_product_percentaje_commision")
   idCurrency                   Int      @map("id_currency")
+  idClientOrigin               Int      @map("id_client_origin")
   status                       String?  @db.VarChar(20)
   createdAt                    DateTime @default(now()) @map("created_at")
   updatedAt                    DateTime @updatedAt @map("updated_at")
@@ -334,12 +322,14 @@ model Business {
   productPercentajeCommision ProductPercentajeCommision @relation(fields: [idProductPercentajeCommision], references: [idProductPercentajeCommision])
   currency                   Currency                   @relation(fields: [idCurrency], references: [idCurrency])
   buyPeriodicity             BuyPeriodicity?            @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
+  clientOrigin                ClientOrigin              @relation(fields: [idClientOrigin], references: [idClientOrigin])
   settlementCommissions      SettlementCommission[]
 
   // Note: 'Negocios de un usuario'
 
   @@index([idUser])
   @@index([contract])
+  @@index([idClientOrigin])
   @@map("business")
 }
 

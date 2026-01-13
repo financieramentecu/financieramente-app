@@ -1,0 +1,294 @@
+'use client'
+
+import React, { useState, useCallback, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { ProductsTableSection } from '@/features/product/components/products-table'
+import { useProducts } from '@/features/product/hooks/use-products'
+import { useProductMutations } from '@/features/product/hooks/use-product-mutations'
+import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
+import type { Product } from '@/features/product/types/product.types'
+import { toast } from 'sonner'
+import { Skeleton } from '@/features/shared/ui/skeleton'
+import { AlertCircle } from 'lucide-react'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/features/shared/ui/alert-dialog'
+
+const SEARCH_DEBOUNCE_DELAY = 500
+
+/**
+ * Skeleton para la tabla de productos
+ */
+function TableLoadingSkeleton() {
+	return (
+		<div className="space-y-4">
+			{/* Header */}
+			<div className="flex justify-between items-center">
+				<Skeleton className="h-7 w-44" />
+				<Skeleton className="h-10 w-40 rounded-md" />
+			</div>
+
+			{/* Search bar */}
+			<Skeleton className="h-10 w-full max-w-sm rounded-md" />
+
+			{/* Table */}
+			<div className="border rounded-lg overflow-hidden">
+				{/* Table header */}
+				<div className="bg-muted/50 p-4 flex gap-4">
+					{[80, 200, 150, 100, 120, 120, 100].map((w, i) => (
+						<Skeleton key={i} className="h-4" style={{ width: w }} />
+					))}
+				</div>
+
+				{/* Table rows */}
+				{[1, 2, 3, 4, 5].map((row) => (
+					<div key={row} className="p-4 flex gap-4 items-center border-t">
+						<Skeleton className="h-4 w-16" />
+						<Skeleton className="h-4 w-48" />
+						<Skeleton className="h-4 w-32" />
+						<Skeleton className="h-6 w-20 rounded-full" />
+						<Skeleton className="h-4 w-24" />
+						<Skeleton className="h-4 w-24" />
+						<div className="flex gap-1">
+							<Skeleton className="h-8 w-8 rounded-md" />
+							<Skeleton className="h-8 w-8 rounded-md" />
+						</div>
+					</div>
+				))}
+			</div>
+
+			{/* Pagination */}
+			<div className="flex justify-between items-center pt-2">
+				<Skeleton className="h-4 w-32" />
+				<div className="flex gap-2">
+					<Skeleton className="h-8 w-20 rounded-md" />
+					<Skeleton className="h-4 w-24" />
+					<Skeleton className="h-8 w-20 rounded-md" />
+				</div>
+			</div>
+		</div>
+	)
+}
+
+/**
+ * Componente de mensaje de error
+ */
+function ErrorMessage({ message }: { message: string }) {
+	return (
+		<div className="flex items-center gap-2 p-4 rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
+			<AlertCircle className="h-5 w-5" />
+			<span>{message}</span>
+		</div>
+	)
+}
+
+interface ProductsPageClientProps {
+	companies: Array<{
+		idCompany: number
+		name: string
+		status: boolean
+	}>
+}
+
+/**
+ * Componente Cliente para la Página de Listado de Productos
+ */
+export function ProductsPageClient({ companies }: ProductsPageClientProps) {
+	const router = useRouter()
+
+	// Estado para búsqueda con debounce
+	const [searchInput, setSearchInput] = useState('')
+	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
+
+	// Estado para filtro de empresa
+	const [selectedCompanyId, setSelectedCompanyId] = useState<
+		number | undefined
+	>(undefined)
+
+	// Estado para paginación
+	const [page, setPage] = useState(1)
+	const pageSize = 10
+
+	// Trackear si la tabla ya se inicializó (cargó datos al menos una vez)
+	const [hasInitialized, setHasInitialized] = useState(false)
+
+	// Trackear el último término de búsqueda y empresa que se cargó exitosamente
+	const [lastLoadedSearch, setLastLoadedSearch] = useState<string | undefined>(
+		undefined
+	)
+	const [lastLoadedCompanyId, setLastLoadedCompanyId] = useState<
+		number | undefined
+	>(undefined)
+
+	// Estado para modal de confirmación de eliminación
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+	const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+
+	// Hook para obtener productos
+	const { state, refetch } = useProducts({
+		search: debouncedSearch || undefined,
+		idCompany: selectedCompanyId,
+		page,
+		pageSize,
+	})
+
+	// Hook para mutaciones
+	const { deleteProduct, deleteState } = useProductMutations()
+
+	// Detectar si se está esperando el debounce (usuario escribiendo)
+	const isDebouncing = searchInput !== debouncedSearch
+
+	// Detectar si hay una búsqueda pendiente (el término actual no coincide con lo cargado)
+	const hasPendingSearch = debouncedSearch !== (lastLoadedSearch ?? '')
+
+	// Detectar si hay un cambio de empresa pendiente
+	const hasPendingCompanyChange =
+		selectedCompanyId !== (lastLoadedCompanyId ?? undefined)
+
+	// Mostrar loading si está debouncing, cargando, o hay búsqueda/empresa pendiente
+	const isSearching =
+		isDebouncing ||
+		state.status === 'loading' ||
+		hasPendingSearch ||
+		hasPendingCompanyChange
+
+	// Marcar como inicializado y actualizar último término y empresa cargados
+	useEffect(() => {
+		if (state.status === 'success') {
+			if (!hasInitialized) {
+				setHasInitialized(true)
+			}
+			// Actualizar el último término de búsqueda y empresa que se cargó
+			setLastLoadedSearch(debouncedSearch || undefined)
+			setLastLoadedCompanyId(selectedCompanyId)
+		}
+	}, [state.status, hasInitialized, debouncedSearch, selectedCompanyId])
+
+	// Manejar búsqueda
+	const handleSearch = useCallback((query: string) => {
+		setSearchInput(query)
+		setPage(1) // Resetear a primera página al buscar
+	}, [])
+
+	// Manejar cambio de empresa
+	const handleCompanyChange = useCallback((value: string) => {
+		const companyId = value === 'all' ? undefined : parseInt(value)
+		setSelectedCompanyId(companyId)
+		setPage(1) // Resetear a primera página al cambiar empresa
+	}, [])
+
+	// Manejar cambio de página
+	const handlePageChange = useCallback((newPage: number) => {
+		setPage(newPage)
+	}, [])
+
+	// Manejar agregar nuevo producto
+	const handleAddProduct = useCallback(() => {
+		router.push('/dashboard/products/create')
+	}, [router])
+
+	// Manejar editar producto
+	const handleEditProduct = useCallback(
+		(product: Product) => {
+			router.push(`/dashboard/products/editar/${product.idProduct}`)
+		},
+		[router]
+	)
+
+	// Manejar eliminar producto
+	const handleDeleteProduct = useCallback((product: Product) => {
+		setProductToDelete(product)
+		setDeleteDialogOpen(true)
+	}, [])
+
+	// Confirmar eliminación
+	const handleConfirmDelete = useCallback(async () => {
+		if (!productToDelete) return
+
+		await deleteProduct(productToDelete.idProduct)
+
+		if (deleteState.status === 'success') {
+			toast.success('Producto eliminado exitosamente')
+			setDeleteDialogOpen(false)
+			setProductToDelete(null)
+			refetch()
+		} else if (deleteState.status === 'error') {
+			toast.error(deleteState.error || 'Error al eliminar producto')
+		}
+	}, [productToDelete, deleteProduct, deleteState, refetch])
+
+	// Refetch cuando cambia el estado de eliminación
+	useEffect(() => {
+		if (deleteState.status === 'success') {
+			refetch()
+		}
+	}, [deleteState.status, refetch])
+
+	// Una vez inicializado, nunca mostrar el skeleton completo de nuevo
+	const showFullSkeleton = state.status === 'loading' && !hasInitialized
+
+	// Mostrar loading en la tabla cuando se está buscando o cargando (después de inicializado)
+	// isSearching ya incluye state.status === 'loading', así que solo necesitamos verificar hasInitialized
+	const showTableLoading =
+		isSearching ||
+		(hasInitialized && state.status !== 'success' && state.status !== 'error')
+
+	return (
+		<div className="space-y-6">
+			{/* Error Message */}
+			{state.status === 'error' && <ErrorMessage message={state.error} />}
+
+			{/* Products Table Section */}
+			{showFullSkeleton ? (
+				<TableLoadingSkeleton />
+			) : (
+				<ProductsTableSection
+					data={state.status === 'success' ? state.data.products : []}
+					onAddProduct={handleAddProduct}
+					onGlobalSearch={handleSearch}
+					onEditProduct={handleEditProduct}
+					onDeleteProduct={handleDeleteProduct}
+					pagination={
+						state.status === 'success' ? state.data.pagination : undefined
+					}
+					onPageChange={handlePageChange}
+					isSearching={showTableLoading}
+					companies={companies}
+					selectedCompanyId={selectedCompanyId}
+					onCompanyChange={handleCompanyChange}
+				/>
+			)}
+
+			{/* Modal de confirmación de eliminación */}
+			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>¿Eliminar producto?</AlertDialogTitle>
+						<AlertDialogDescription>
+							¿Está seguro de que desea eliminar el producto{' '}
+							<strong>{productToDelete?.name}</strong>? Esta acción no se puede
+							deshacer.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancelar</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={handleConfirmDelete}
+							disabled={deleteState.status === 'loading'}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{deleteState.status === 'loading' ? 'Eliminando...' : 'Eliminar'}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</div>
+	)
+}
