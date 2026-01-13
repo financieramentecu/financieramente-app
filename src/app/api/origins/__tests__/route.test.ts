@@ -208,4 +208,3 @@ describe('POST /api/origins', () => {
 		expect(mockPrismaCreate).not.toHaveBeenCalled()
 	})
 })
-

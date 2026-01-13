@@ -36,4 +36,3 @@ export type CreateClientOriginFormData = z.infer<
 export type UpdateClientOriginFormData = z.infer<
 	typeof updateClientOriginSchema
 >
-

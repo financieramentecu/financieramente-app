@@ -86,4 +86,3 @@ export function OriginEditClient({ id }: OriginEditClientProps) {
 
 	return null
 }
-

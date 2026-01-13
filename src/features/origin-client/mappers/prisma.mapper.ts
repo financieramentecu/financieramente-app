@@ -43,4 +43,3 @@ export function prismaClientOriginListToClientOrigins(
 ): ClientOrigin[] {
 	return prismaList.map(prismaClientOriginToClientOrigin)
 }
-

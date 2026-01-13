@@ -84,4 +84,3 @@ export function useClientOrigin(id: number): UseClientOriginReturn {
 		refetch: fetchClientOrigin,
 	}
 }
-
