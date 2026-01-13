@@ -4,6 +4,8 @@ export const mockBusinessList: Business[] = [
 	{
 		id: '1',
 		identification: 'CC 12345678',
+		clientName: 'Juan Pérez López',
+		contract: 'PN0001234',
 		user: {
 			avatar: '/avatars/user1.jpg',
 			name: 'María García',
@@ -13,11 +15,18 @@ export const mockBusinessList: Business[] = [
 		date: '2024-01-15',
 		value: 15000000,
 		product: 'Crédito Personal',
+		companyName: 'Skandia',
 		status: 'Emitido',
+		currency: {
+			id: 1,
+			name: 'COP',
+		},
 	},
 	{
 		id: '2',
 		identification: 'CC 87654321',
+		clientName: 'Pedro Martínez',
+		contract: '-',
 		user: {
 			avatar: '/avatars/user2.jpg',
 			name: 'Carlos López',
@@ -27,11 +36,18 @@ export const mockBusinessList: Business[] = [
 		date: '2024-01-14',
 		value: 25000000,
 		product: 'Crédito Hipotecario',
+		companyName: 'Trinity',
 		status: 'Venta Efectuado',
+		currency: {
+			id: 1,
+			name: 'COP',
+		},
 	},
 	{
 		id: '3',
 		identification: 'CC 11223344',
+		clientName: 'Laura Sánchez Gómez',
+		contract: 'PN0003456',
 		user: {
 			avatar: '/avatars/user3.jpg',
 			name: 'Ana Rodríguez',
@@ -41,11 +57,18 @@ export const mockBusinessList: Business[] = [
 		date: '2024-01-13',
 		value: 18000000,
 		product: 'Crédito Vehicular',
+		companyName: 'Skandia',
 		status: 'Emitido',
+		currency: {
+			id: 1,
+			name: 'COP',
+		},
 	},
 	{
 		id: '4',
 		identification: 'CC 55667788',
+		clientName: 'Roberto Castro',
+		contract: '-',
 		user: {
 			avatar: '/avatars/user4.jpg',
 			name: 'Luis Martínez',
@@ -55,11 +78,18 @@ export const mockBusinessList: Business[] = [
 		date: '2024-01-12',
 		value: 45000000,
 		product: 'Crédito Comercial',
+		companyName: 'Trinity',
 		status: 'Venta Efectuado',
+		currency: {
+			id: 1,
+			name: 'COP',
+		},
 	},
 	{
 		id: '5',
 		identification: 'CC 99887766',
+		clientName: 'Camila Ruiz Mendoza',
+		contract: 'PN0005678',
 		user: {
 			avatar: '/avatars/user5.jpg',
 			name: 'Sofia Herrera',
@@ -69,11 +99,18 @@ export const mockBusinessList: Business[] = [
 		date: '2024-01-11',
 		value: 8000000,
 		product: 'Crédito de Libre Inversión',
+		companyName: 'Skandia',
 		status: 'Emitido',
+		currency: {
+			id: 1,
+			name: 'COP',
+		},
 	},
 	{
 		id: '6',
 		identification: 'CC 33445566',
+		clientName: 'Andrés Valencia',
+		contract: '-',
 		user: {
 			avatar: '/avatars/user6.jpg',
 			name: 'Diego Torres',
@@ -83,7 +120,12 @@ export const mockBusinessList: Business[] = [
 		date: '2024-01-10',
 		value: 12000000,
 		product: 'Crédito Personal',
+		companyName: 'Trinity',
 		status: 'Venta Efectuado',
+		currency: {
+			id: 1,
+			name: 'COP',
+		},
 	},
 ]
 

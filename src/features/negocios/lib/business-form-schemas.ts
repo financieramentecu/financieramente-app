@@ -7,35 +7,41 @@ import { z } from 'zod'
 // Esquema de validación con Zod
 export const businessFormSchema = z.object({
 	// Información básica y general del cliente
-	email: z.string().email('Email inválido'),
-	nombres: z.string().min(2, 'Los nombres son obligatorios').trim(),
-	apellidos: z.string().min(2, 'Los apellidos son obligatorios').trim(),
-	contacto: z
+	email: z.email('Email inválido'),
+	name: z.string().min(2, 'Los nombres son obligatorios').trim(),
+	lastNames: z.string().min(2, 'Los apellidos son obligatorios').trim(),
+	phone: z
 		.string()
 		.regex(/^[0-9\s\-+]+$/, 'Formato de contacto inválido')
 		.optional(),
-	numeroDocumento: z
+	identityNumber: z
 		.string()
-		.min(1, 'El número de documento es obligatorio')
-		.min(5, 'El número de documento debe tener al menos 5 caracteres')
+		.min(1, 'El número de identificación es obligatorio')
+		.min(5, 'El número de identificación debe tener al menos 5 caracteres')
 		.regex(
 			/^[0-9.]+$/,
-			'El número de documento solo puede contener números y puntos'
+			'El número de identificación solo puede contener números y puntos'
 		),
+	clientOrigin: z.string().min(1, 'El origen del cliente es obligatorio'),
+	contract: z
+		.string()
+		.regex(/^[0-9]*$/, 'El número de contrato solo puede contener números')
+		.transform((val) => (val === '' ? undefined : val))
+		.optional(),
 
 	// Información del producto
-	compania: z.string().min(1, 'La compañía es obligatoria'),
+	company: z.string().min(1, 'La compañía es obligatoria'),
 	producto: z.string().min(1, 'El producto es obligatorio'),
-	plazo: z
+	terms: z
 		.number()
 		.min(1, 'El plazo debe ser mayor a 0')
 		.max(1200, 'El plazo no puede ser mayor a 1200 meses'),
 
 	// Información del negocio
-	moneda: z.string().min(1, 'La moneda es obligatoria'),
-	perioricidad: z.string().min(1, 'La periodicidad es obligatoria'),
-	valor: z.number().min(0, 'El valor debe ser mayor o igual a 0'),
-	agente: z.string().min(1, 'El agente es obligatorio'),
+	currency: z.string().min(1, 'La moneda es obligatoria'),
+	periodicity: z.string().min(1, 'La periodicidad es obligatoria'),
+	value: z.number().min(0, 'El valor debe ser mayor o igual a 0'),
+	agent: z.string().min(1, 'El agente es obligatorio'),
 })
 
 export type BusinessFormData = z.infer<typeof businessFormSchema>
