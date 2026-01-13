@@ -19,6 +19,10 @@ export function StatsOverview({ statsData }: StatsOverviewProps) {
 					change={stat.change}
 					trend={stat.trend}
 					description={stat.description}
+					monthlyData={stat.monthlyData}
+					currencies={stat.currencies}
+					selectedCurrency={stat.selectedCurrency}
+					onCurrencyChange={stat.onCurrencyChange}
 				/>
 			)) || []}
 		</div>

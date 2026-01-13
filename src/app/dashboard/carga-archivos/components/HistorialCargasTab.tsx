@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { FileText, RefreshCw, Trash2, Download, X } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
-import { cn } from '@/lib/utils'
 
 interface CargaHistorial {
 	id: string

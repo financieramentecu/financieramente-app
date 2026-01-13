@@ -4,13 +4,14 @@ import {
 	Folder,
 	List,
 	Plus,
-	Upload,
-	History,
 	FileText,
 	BarChart3,
-
+	Settings,
 	Users,
 	FileUp,
+	Building2,
+	Package,
+	UserCircle,
 } from 'lucide-react'
 
 /**
@@ -87,7 +88,33 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		url: '/dashboard/admin/users',
 		icon: <Users className="h-4 w-4" />,
 	},
-
+	{
+		title: 'Administración',
+		url: '/dashboard/empresas',
+		icon: <Settings className="h-4 w-4" />,
+		subItems: [
+			{
+				title: 'Empresas',
+				url: '/dashboard/empresas',
+				icon: <Building2 className="h-4 w-4" />,
+			},
+			{
+				title: 'Productos',
+				url: '/dashboard/products',
+				icon: <Package className="h-4 w-4" />,
+			},
+			{
+				title: 'Origen Cliente',
+				url: '/dashboard/origenes',
+				icon: <UserCircle className="h-4 w-4" />,
+			},
+		],
+	},
+	{
+		title: 'Configuración',
+		url: '/dashboard/configuracion',
+		icon: <Settings className="h-4 w-4" />,
+	},
 ]
 
 /**

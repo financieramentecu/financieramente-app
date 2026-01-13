@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
 import { ProcessedRecord } from '@/app/dashboard/carga-archivos/lib/process-excel-file'
 import { findBusinessByContract } from '@/app/dashboard/carga-archivos/lib/business-matcher'
-import { cleanNumericValue, toDecimal } from '@/app/dashboard/carga-archivos/lib/number-utils'
+import { toDecimal } from '@/app/dashboard/carga-archivos/lib/number-utils'
 
 interface ProcessBatchRequest {
 	fileImportId: number

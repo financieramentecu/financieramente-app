@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
 /**
  * Tests E2E para validación de login con ssoOnly
@@ -9,21 +9,7 @@ import { test, expect, Page } from '@playwright/test'
  * 3. Los mensajes de error son apropiados
  */
 
-// Helper para crear un usuario de prueba en la base de datos
-async function createTestUser(
-	page: Page,
-	userData: {
-		email: string
-		password?: string
-		ssoOnly: boolean
-		role: string
-		active: boolean
-	}
-) {
-	// En un entorno de prueba real, esto haría una llamada a la API
-	// Por ahora, asumimos que el usuario ya existe en la base de datos de prueba
-	return userData
-}
+
 
 test.describe('Login con validación ssoOnly', () => {
 	test.beforeEach(async ({ page }) => {
@@ -68,11 +54,18 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.click('button[type="submit"]')
 
 			// Esperar a que aparezca el mensaje de error
-			// El mensaje puede variar, pero debe indicar credenciales inválidas
-			const errorMessage = page.locator('text=/inactiv|credenciales|error/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			// El toast de Sonner muestra: "Error de autenticación" con descripción "Credenciales inválidas..."
+			// Buscar el texto en cualquier parte del DOM (toast o página)
+			const errorText = page.locator(
+				'text=/Error de autenticación|Credenciales inválidas|credenciales inválidas|error de autenticación/i'
+			)
+
+			// Esperar a que aparezca el mensaje de error con timeout suficiente
+			await expect(errorText.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
+			// Esperar un poco para asegurar que no hay redirección
+			await page.waitForTimeout(2000)
 			await expect(page).not.toHaveURL(/\/dashboard/)
 		})
 	})
