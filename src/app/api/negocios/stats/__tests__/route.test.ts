@@ -118,8 +118,6 @@ describe('GET /api/negocios/stats', () => {
 			const twoMonthsAgo = new Date(currentDate)
 			twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
 
-			const currentMonthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-			const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`
 
 			const mockEfectuadosBusinesses = [
 				{
@@ -248,7 +246,7 @@ describe('GET /api/negocios/stats', () => {
 				.mockResolvedValueOnce(mockBusinesses as never) // emitidos COP
 
 			const response = await GET()
-			const responseData = await response.json()
+			await response.json()
 
 			// Verificar que se aplica filtro de usuario en al menos una llamada
 			expect(mockPrismaAggregate).toHaveBeenCalledWith({

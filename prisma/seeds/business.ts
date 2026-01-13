@@ -86,7 +86,7 @@ export async function seedBusinesses(prisma: PrismaClient) {
 				},
 			})
 			createdCount++
-		} catch (error) {
+		} catch {
 			// Ignorar duplicados
 		}
 	}

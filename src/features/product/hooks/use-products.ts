@@ -72,6 +72,7 @@ export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
 						: 'Error desconocido al obtener productos',
 			})
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		params.page,
 		params.pageSize,

@@ -1,4 +1,4 @@
-import { renderHook, waitFor, act } from '@testing-library/react'
+import { renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useEmpresa } from '../../hooks/use-empresa'
 import { empresaApi } from '../../lib/empresa-api'
@@ -76,7 +76,7 @@ describe('useEmpresa', () => {
 		)
 
 		// Suppress console.error for this test
-		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => { })
 
 		const { result } = renderHook(() => useEmpresa(1))
 
