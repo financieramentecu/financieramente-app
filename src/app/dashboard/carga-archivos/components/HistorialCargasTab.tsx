@@ -1,98 +1,178 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { FileText, RefreshCw, Trash2, Download, X } from 'lucide-react'
+import { FileText, RefreshCw, Trash2, AlertCircle, Search, Calendar, Filter, X } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
-
-interface CargaHistorial {
-	id: string
-	nombreArchivo: string
-	fechaCarga: string
-	horaCarga: string
-	usuario: string
-	exitosos: number
-	errores: number
-	sincronizados: number
-	sinRegistro: number
-}
+import { Input } from '@/features/shared/ui/input'
+import { Label } from '@/features/shared/ui/label'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/features/shared/ui/select'
+import { useFileHistory } from '../hooks/use-file-history'
+import { ConfirmModal } from '@/features/shared/ui/modal'
+import { useState, useMemo } from 'react'
 
 /**
  * Componente para mostrar el historial de cargas de archivos
  */
 export function HistorialCargasTab() {
-	const [historial, setHistorial] = useState<CargaHistorial[]>([])
-	const [isLoading, setIsLoading] = useState(true)
+	const { historial, isLoading, error, refetch, deleteItem } = useFileHistory()
+	const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+	const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
-	useEffect(() => {
-		// TODO: Implementar llamada a API para obtener historial
-		const fetchHistorial = async () => {
-			setIsLoading(true)
-			try {
-				// Simular carga de datos
-				await new Promise((resolve) => setTimeout(resolve, 1000))
-				// Datos mock para visualizar el diseño
-				setHistorial([
-					{
-						id: '1',
-						nombreArchivo: 'covers_skandia_sept_2024.csv',
-						fechaCarga: '20/1/2024',
-						horaCarga: '5:30:00 a. m.',
-						usuario: 'Ana García',
-						exitosos: 142,
-						errores: 5,
-						sincronizados: 120,
-						sinRegistro: 22,
-					},
-					{
-						id: '2',
-						nombreArchivo: 'covers_skandia_sept_2024.csv',
-						fechaCarga: '20/1/2024',
-						horaCarga: '5:30:00 a. m.',
-						usuario: 'Ana García',
-						exitosos: 142,
-						errores: 5,
-						sincronizados: 120,
-						sinRegistro: 22,
-					},
-					{
-						id: '3',
-						nombreArchivo: 'covers_skandia_sept_2024.csv',
-						fechaCarga: '20/1/2024',
-						horaCarga: '5:30:00 a. m.',
-						usuario: 'Ana García',
-						exitosos: 142,
-						errores: 5,
-						sincronizados: 120,
-						sinRegistro: 22,
-					},
-				])
-			} catch (error) {
-				console.error('Error al cargar historial:', error)
-			} finally {
-				setIsLoading(false)
-			}
+	// Filter States
+	const [searchTerm, setSearchTerm] = useState('')
+	const [statusFilter, setStatusFilter] = useState('ALL')
+	const [dateStart, setDateStart] = useState('')
+	const [dateEnd, setDateEnd] = useState('')
+
+	const handleDeleteClick = (id: string) => {
+		setItemToDelete(id)
+		setDeleteModalOpen(true)
+	}
+
+	const handleConfirmDelete = async () => {
+		if (itemToDelete) {
+			await deleteItem(itemToDelete)
+			setDeleteModalOpen(false)
+			setItemToDelete(null)
 		}
-
-		fetchHistorial()
-	}, [])
-
-	const handleLimpiarHistorial = () => {
-		// TODO: Implementar lógica para limpiar historial
-		console.log('Limpiar historial')
 	}
 
-	const handleDescargarReporte = (id: string) => {
-		// TODO: Implementar descarga de reporte
-		console.log('Descargar reporte:', id)
+	const handleClearFilters = () => {
+		setSearchTerm('')
+		setStatusFilter('ALL')
+		setDateStart('')
+		setDateEnd('')
 	}
 
-	const handleVerErrores = (id: string) => {
-		// TODO: Implementar visualización de errores
-		console.log('Ver errores:', id)
-	}
+	const filteredHistorial = useMemo(() => {
+		return historial.filter(item => {
+			// Filter by name or user
+			if (searchTerm) {
+				const term = searchTerm.toLowerCase()
+				const matchesName = item.nombreArchivo.toLowerCase().includes(term)
+				const matchesUser = item.usuario.toLowerCase().includes(term)
+				if (!matchesName && !matchesUser) return false
+			}
+
+			// Filter by status
+			if (statusFilter !== 'ALL' && item.estado !== statusFilter) {
+				return false
+			}
+
+			// Filter by date range
+			if (item.createdAt) {
+				const itemDate = item.createdAt.substring(0, 10) // YYYY-MM-DD
+				if (dateStart && itemDate < dateStart) return false
+				if (dateEnd && itemDate > dateEnd) return false
+			}
+
+			return true
+		})
+	}, [historial, searchTerm, statusFilter, dateStart, dateEnd])
+
+
 
 	return (
 		<div className="space-y-6">
+			{/* Modal de confirmación de eliminación */}
+			<ConfirmModal
+				open={deleteModalOpen}
+				onOpenChange={setDeleteModalOpen}
+				title="¿Eliminar registro?"
+				message="Esta acción eliminará el registro de carga y todas las liquidaciones asociadas. Esta acción no se puede deshacer."
+				confirmText="Eliminar"
+				cancelText="Cancelar"
+				onConfirm={handleConfirmDelete}
+				onCancel={() => setDeleteModalOpen(false)}
+				destructive={true}
+			/>
+
+			{/* Panel de Filtros */}
+			<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+				<div className="flex items-center justify-between mb-4">
+					<h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+						<Filter className="h-4 w-4" /> Filtros
+					</h3>
+					{(searchTerm || statusFilter !== 'ALL' || dateStart || dateEnd) && (
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={handleClearFilters}
+							className="text-gray-500 hover:text-gray-900 h-8"
+						>
+							<X className="h-3.5 w-3.5 mr-1" /> Limpiar filtros
+						</Button>
+					)}
+				</div>
+
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+					{/* Buscador */}
+					<div className="space-y-2">
+						<Label className="text-xs">Buscar</Label>
+						<div className="relative">
+							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+							<Input
+								placeholder="Nombre o usuario..."
+								className="pl-9"
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+							/>
+						</div>
+					</div>
+
+					{/* Estado */}
+					<div className="space-y-2">
+						<Label className="text-xs">Estado</Label>
+						<Select value={statusFilter} onValueChange={setStatusFilter}>
+							<SelectTrigger>
+								<SelectValue placeholder="Todos" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="ALL">Todos</SelectItem>
+								<SelectItem value="COMPLETADO">Completado</SelectItem>
+								<SelectItem value="PARCIAL">Parcial</SelectItem>
+								<SelectItem value="ERROR">Error</SelectItem>
+								<SelectItem value="PROCESANDO">Procesando</SelectItem>
+								<SelectItem value="CANCELADO">Cancelado</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+
+					{/* Fecha Inicio */}
+					<div className="space-y-2">
+						<Label className="text-xs">Desde</Label>
+						<div className="relative">
+							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+							<Input
+								type="date"
+								className="pl-9"
+								value={dateStart}
+								onChange={(e) => setDateStart(e.target.value)}
+							/>
+						</div>
+					</div>
+
+					{/* Fecha Fin */}
+					<div className="space-y-2">
+						<Label className="text-xs">Hasta</Label>
+						<div className="relative">
+							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+							<Input
+								type="date"
+								className="pl-9"
+								value={dateEnd}
+								onChange={(e) => setDateEnd(e.target.value)}
+							/>
+						</div>
+					</div>
+				</div>
+			</div>
+
 			{/* Sección de Historial de Cargas */}
 			<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
 				{/* Header con título y botón limpiar */}
@@ -102,33 +182,43 @@ export function HistorialCargasTab() {
 						<h2 className="text-lg font-semibold text-[#00505C]">
 							Historial de Cargas
 						</h2>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={refetch}
+							className="ml-2 h-8 w-8 p-0"
+							title="Recargar"
+						>
+							<RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+						</Button>
 					</div>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={handleLimpiarHistorial}
-						className="bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-700"
-					>
-						<Trash2 className="h-4 w-4" />
-						Limpiar Historial
-					</Button>
+
 				</div>
 
-				{isLoading ? (
+				{error && (
+					<div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md flex items-center gap-2">
+						<AlertCircle className="h-5 w-5" />
+						<p>{error}</p>
+					</div>
+				)}
+
+				{isLoading && historial.length === 0 ? (
 					<div className="text-center py-12">
 						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00505C] mx-auto"></div>
 						<p className="text-muted-foreground mt-4">Cargando historial...</p>
 					</div>
-				) : historial.length === 0 ? (
+				) : filteredHistorial.length === 0 ? (
 					<div className="text-center py-12">
 						<FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
 						<p className="text-muted-foreground">
-							No hay historial de cargas disponible
+							{historial.length === 0
+								? 'No hay historial de cargas disponible'
+								: 'No se encontraron resultados con los filtros aplicados'}
 						</p>
 					</div>
 				) : (
 					<div className="space-y-4">
-						{historial.map((carga) => (
+						{filteredHistorial.map((carga) => (
 							<div
 								key={carga.id}
 								className="bg-gray-50 rounded-lg p-4 border border-gray-200"
@@ -139,9 +229,18 @@ export function HistorialCargasTab() {
 										<FileText className="h-5 w-5 text-gray-600 mt-0.5" />
 										<div className="flex-1">
 											{/* Nombre del archivo */}
-											<h3 className="font-semibold text-[#00505C] mb-2">
-												{carga.nombreArchivo}
-											</h3>
+											<div className="flex items-center gap-2 mb-2">
+												<h3 className="font-semibold text-[#00505C]">
+													{carga.nombreArchivo}
+												</h3>
+												<span className={`px-2 py-0.5 rounded text-xs font-medium ${carga.estado === 'COMPLETADO' ? 'bg-green-100 text-green-700' :
+													carga.estado === 'ERROR' ? 'bg-red-100 text-red-700' :
+														'bg-blue-100 text-blue-700'
+													}`}>
+													{carga.estado}
+												</span>
+											</div>
+
 											{/* Fecha, hora y usuario */}
 											<p className="text-sm text-gray-600 mb-3">
 												{carga.fechaCarga}, {carga.horaCarga} • Por: {carga.usuario}
@@ -160,29 +259,23 @@ export function HistorialCargasTab() {
 												<span className="text-amber-600 font-medium">
 													{carga.sinRegistro} sin registro
 												</span>
+												<span className="text-orange-600 font-medium">
+													{carga.rezagados} rezagados
+												</span>
 											</div>
 										</div>
 									</div>
 
-									{/* Botones de acción */}
+									{/* Botón de eliminar individual */}
 									<div className="flex items-center gap-2">
 										<Button
 											variant="ghost"
 											size="sm"
-											onClick={() => handleDescargarReporte(carga.id)}
-											className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 p-2"
+											onClick={() => handleDeleteClick(carga.id)}
+											className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2"
+											title="Eliminar registro"
 										>
-											<Download className="h-4 w-4 text-purple-600 mr-1.5" />
-											<span className="text-purple-600">Reporte</span>
-										</Button>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleVerErrores(carga.id)}
-											className="border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600 p-2"
-										>
-											<X className="h-4 w-4 text-red-600 mr-1.5" />
-											<span className="text-red-600">Errores</span>
+											<Trash2 className="h-4 w-4" />
 										</Button>
 									</div>
 								</div>
