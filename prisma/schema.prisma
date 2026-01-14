@@ -288,6 +288,7 @@ model FileImport {
   errorRecord        Int      @default(0) @map("error_record")
   sincronizadoRecord Int      @default(0) @map("sincronizado_record")
   rezagadoRecord     Int      @default(0) @map("rezagado_record")
+  noSincronizadoRecord Int    @default(0) @map("no_sincronizado_record")
   status             String   @db.VarChar(20)
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")

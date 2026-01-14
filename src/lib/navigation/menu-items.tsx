@@ -4,12 +4,11 @@ import {
 	Folder,
 	List,
 	Plus,
-	Upload,
-	History,
 	FileText,
 	BarChart3,
 	Settings,
 	Users,
+	FileUp,
 	Building2,
 	Package,
 	UserCircle,
@@ -40,22 +39,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		icon: <Folder className="h-4 w-4" />,
 	},
 	{
-		title: 'Cargas',
-		url: '/dashboard/cargas',
-		icon: <Upload className="h-4 w-4" />,
-		subItems: [
-			{
-				title: 'Carga Masiva',
-				url: '/dashboard/cargas/masiva',
-				icon: <Upload className="h-4 w-4" />,
-			},
-			{
-				title: 'Historial',
-				url: '/dashboard/cargas/historial',
-				icon: <History className="h-4 w-4" />,
-			},
-		],
+		title: 'Carga Archivos',
+		url: '/dashboard/carga-archivos',
+		icon: <FileUp className="h-4 w-4" />,
 	},
+
 	{
 		title: 'Liquidaciones',
 		url: '/dashboard/liquidaciones',

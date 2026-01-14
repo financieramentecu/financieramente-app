@@ -60,10 +60,15 @@ export function NavMain({ items }: { items: NavItem[] }) {
 			<SidebarGroupContent className="flex flex-col gap-2">
 				<SidebarMenu>
 					{items.map((item) => {
-						const isActive =
-							pathname === item.url ||
-							(item.url !== '/dashboard' && pathname?.startsWith(item.url + '/'))
+						// Para items sin subitems, solo activar si la ruta coincide exactamente
+						// Para items con subitems, activar si la ruta coincide exactamente o si algún subitem está activo
 						const hasSubItems = item.subItems && item.subItems.length > 0
+						const hasActiveSubItem = hasSubItems
+							? item.subItems!.some((subItem) => pathname === subItem.url)
+							: false
+						const isActive = hasSubItems
+							? pathname === item.url || hasActiveSubItem
+							: pathname === item.url
 						const isOpen = openItems.has(item.title)
 
 						return (

@@ -2,8 +2,9 @@
 
 import React, { Suspense } from 'react'
 import Image from 'next/image'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { AlertCircle, ArrowLeft, Mail } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { signOut } from 'next-auth/react'
+import { AlertCircle, ArrowLeft, Mail, LogOut } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import {
 	Card,
@@ -18,9 +19,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/features/shared/ui/alert'
  * Componente interno que usa useSearchParams
  */
 function AccessDeniedContent() {
-	const router = useRouter()
 	const searchParams = useSearchParams()
 	const reason = searchParams?.get('reason') || 'default'
+	const [isSigningOut, setIsSigningOut] = React.useState(false)
 
 	const messages = {
 		inactive: {
@@ -55,11 +56,8 @@ function AccessDeniedContent() {
 	const message = messages[reason as keyof typeof messages] || messages.default
 
 	const handleGoBack = () => {
-		router.back()
-	}
-
-	const handleGoHome = () => {
-		router.push('/')
+		// Usar window.location para evitar que el middleware intercepte
+		window.location.href = '/login'
 	}
 
 	const handleContactAdmin = () => {
@@ -67,6 +65,30 @@ function AccessDeniedContent() {
 		const adminEmail =
 			process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@financieramentecu.com'
 		window.location.href = `mailto:${adminEmail}?subject=Solicitud de Activación de Cuenta&body=Hola,%0D%0A%0D%0ASolicito la activación de mi cuenta en el sistema de liquidación de comisiones.%0D%0A%0D%0AGracias.`
+	}
+
+	const handleSignOut = async () => {
+		if (isSigningOut) return // Prevenir múltiples clics
+		
+		setIsSigningOut(true)
+		try {
+			// Cerrar sesión sin redirección automática
+			await signOut({
+				callbackUrl: '/login',
+				redirect: false,
+			})
+			// Forzar navegación completa a login para evitar que el middleware intercepte
+			// Usar setTimeout para asegurar que la sesión se haya limpiado
+			setTimeout(() => {
+				window.location.href = '/login'
+			}, 100)
+		} catch (error) {
+			console.error('Error al cerrar sesión:', error)
+			// Si falla el signOut, forzar redirección de todas formas
+			setTimeout(() => {
+				window.location.href = '/login'
+			}, 100)
+		}
 	}
 
 	return (
@@ -121,22 +143,33 @@ function AccessDeniedContent() {
 						</div>
 					</div>
 
-					<div className="flex flex-col sm:flex-row gap-3">
+					<div className="flex flex-col gap-3">
+						{/* Botón de cerrar sesión destacado */}
 						<Button
-							onClick={handleContactAdmin}
-							className="flex-1"
-							variant="default"
+							onClick={handleSignOut}
+							variant="destructive"
+							className="w-full"
+							disabled={isSigningOut}
 						>
-							<Mail className="mr-2 h-4 w-4" />
-							Contactar Administrador
+							<LogOut className="mr-2 h-4 w-4" />
+							{isSigningOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
 						</Button>
-						<Button onClick={handleGoBack} variant="outline" className="flex-1">
-							<ArrowLeft className="mr-2 h-4 w-4" />
-							Volver
-						</Button>
-						<Button onClick={handleGoHome} variant="ghost">
-							Ir al Inicio
-						</Button>
+
+						{/* Otros botones */}
+						<div className="flex flex-col sm:flex-row gap-3">
+							<Button
+								onClick={handleContactAdmin}
+								className="flex-1"
+								variant="default"
+							>
+								<Mail className="mr-2 h-4 w-4" />
+								Contactar Administrador
+							</Button>
+							<Button onClick={handleGoBack} variant="outline" className="flex-1">
+								<ArrowLeft className="mr-2 h-4 w-4" />
+								Ir a Login
+							</Button>
+						</div>
 					</div>
 				</CardContent>
 			</Card>

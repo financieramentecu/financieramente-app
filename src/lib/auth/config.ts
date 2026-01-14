@@ -7,7 +7,6 @@ import { logAuditEvent, AuditAction } from './audit-logger'
 import { getRolePermissions, RolePermissions } from './permissions'
 import { UserRole } from './roles'
 import { createUserAutomatically } from './user-creation'
-
 import { sendNewUserNotificationToAdmins } from '../email/admin-notifications'
 
 /**

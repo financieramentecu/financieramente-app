@@ -35,23 +35,13 @@ export function buildMenuByRole(
 			continue
 		}
 
-		// Cargas
-		if (item.title === 'Cargas') {
-			if (permissions.cargas.cargaMasiva || permissions.cargas.historial) {
-				const subItems = item.subItems?.filter((subItem) => {
-					if (subItem.title === 'Carga Masiva')
-						return permissions.cargas.cargaMasiva
-					if (subItem.title === 'Historial') return permissions.cargas.historial
-					return false
-				})
-
-				filteredItems.push({
-					...item,
-					subItems: subItems && subItems.length > 0 ? subItems : undefined,
-				})
-			}
+		// Carga Archivos (usa permiso de cargas)
+		if (item.title === 'Carga Archivos' && permissions.cargas.cargaMasiva) {
+			filteredItems.push(item)
 			continue
 		}
+
+
 
 		// Liquidaciones
 		if (item.title === 'Liquidaciones') {
