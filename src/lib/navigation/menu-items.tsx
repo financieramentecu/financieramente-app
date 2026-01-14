@@ -9,7 +9,6 @@ import {
 	FileText,
 	BarChart3,
 	Settings,
-	X,
 	Users,
 	Building2,
 	Package,
@@ -39,23 +38,6 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		title: 'Negocios',
 		url: '/dashboard/negocios',
 		icon: <Folder className="h-4 w-4" />,
-		subItems: [
-			{
-				title: 'Listar Negocios',
-				url: '/dashboard/negocios',
-				icon: <List className="h-4 w-4" />,
-			},
-			{
-				title: 'Crear Negocio',
-				url: '/dashboard/negocios/crear',
-				icon: <Plus className="h-4 w-4" />,
-			},
-			{
-				title: 'Cancelar Negocio',
-				url: '/dashboard/negocios/cancelar',
-				icon: <X className="h-4 w-4" />,
-			},
-		],
 	},
 	{
 		title: 'Cargas',

@@ -31,20 +31,7 @@ export function buildMenuByRole(
 
 		// Negocios
 		if (item.title === 'Negocios' && permissions.negocios.list) {
-			const subItems = item.subItems?.filter((subItem) => {
-				if (subItem.title === 'Listar Negocios')
-					return permissions.negocios.list
-				if (subItem.title === 'Crear Negocio')
-					return permissions.negocios.create
-				if (subItem.title === 'Cancelar Negocio')
-					return permissions.negocios.cancel
-				return false
-			})
-
-			filteredItems.push({
-				...item,
-				subItems: subItems && subItems.length > 0 ? subItems : undefined,
-			})
+			filteredItems.push(item)
 			continue
 		}
 

@@ -103,8 +103,7 @@ export async function PUT(
 			(normalizedName.toLowerCase() !== existingProduct.name.toLowerCase() ||
 				targetCompanyId !== existingProduct.idCompany)
 		) {
-			const capitalizedName =
-				normalizedName.charAt(0).toUpperCase() + normalizedName.slice(1)
+
 
 			const duplicateProduct = await prisma.product.findFirst({
 				where: {

@@ -61,7 +61,8 @@ export function NavMain({ items }: { items: NavItem[] }) {
 				<SidebarMenu>
 					{items.map((item) => {
 						const isActive =
-							pathname === item.url || pathname?.startsWith(item.url + '/')
+							pathname === item.url ||
+							(item.url !== '/dashboard' && pathname?.startsWith(item.url + '/'))
 						const hasSubItems = item.subItems && item.subItems.length > 0
 						const isOpen = openItems.has(item.title)
 

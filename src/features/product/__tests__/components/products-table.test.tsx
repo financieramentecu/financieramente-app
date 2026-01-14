@@ -218,7 +218,7 @@ describe('ProductsTableSection', () => {
 	})
 
 	it('should handle pagination page change', async () => {
-		const user = userEvent.setup()
+
 		const pagination = {
 			page: 1,
 			pageSize: 10,

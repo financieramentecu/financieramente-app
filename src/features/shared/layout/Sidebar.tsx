@@ -5,13 +5,12 @@ import { NavMain } from '../layout/nav-main'
 import {
 	Sidebar,
 	SidebarContent,
-	SidebarFooter,
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from '@/features/shared/ui/sidebar'
-import { Settings, User } from 'lucide-react'
+
 import Image from 'next/image'
 import { useSidebar } from '@/features/shared/ui/sidebar'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
@@ -30,18 +29,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		return buildMenuByRole(session.user.role, session.user.permissions)
 	}, [session])
 
-	const navSecondary = [
-		{
-			title: 'Perfil',
-			url: '#',
-			icon: <User className="h-4 w-4" />,
-		},
-		{
-			title: 'Configuración',
-			url: '#',
-			icon: <Settings className="h-4 w-4" />,
-		},
-	]
+
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
@@ -79,24 +67,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			<SidebarContent>
 				<NavMain items={menuItems} />
 			</SidebarContent>
-			<SidebarFooter>
-				<SidebarMenu>
-					{navSecondary.map((item) => (
-						<SidebarMenuItem key={item.title}>
-							<SidebarMenuButton
-								tooltip={item.title}
-								asChild
-								className="sidebar-button"
-							>
-								<a href={item.url}>
-									{item.icon}
-									<span>{item.title}</span>
-								</a>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					))}
-				</SidebarMenu>
-			</SidebarFooter>
+
 		</Sidebar>
 	)
 }

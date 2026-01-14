@@ -9,7 +9,6 @@ import { AuthCard } from './auth-card'
 import { BrandPanel } from './brand-panel'
 import {
 	type EmailSignInFormProps,
-	EmailSignInForm,
 } from './email-sign-in-form'
 import {
 	type EmailPasswordFormProps,
