@@ -139,6 +139,14 @@
 		background-color: var(--sidebar-bg) !important;
 	}
 
+	.bg-destructive {
+		background-color: hsl(var(--destructive)) !important;
+	}
+
+	.text-destructive-foreground {
+		color: hsl(var(--destructive-foreground)) !important;
+	}
+
 	.sidebar-button {
 		color: var(--sidebar-text) !important;
 	}

@@ -6,7 +6,6 @@
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
 	BusinessEntity,
-	BusinessStatus,
 } from '../types/business-entity.types'
 import type {
 	BusinessListResponse,

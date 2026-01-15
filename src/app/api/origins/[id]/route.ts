@@ -95,8 +95,7 @@ export async function PUT(
 			normalizedName &&
 			normalizedName.toLowerCase() !== existingOrigin.name.toLowerCase()
 		) {
-			const capitalizedName =
-				normalizedName.charAt(0).toUpperCase() + normalizedName.slice(1)
+
 
 			const duplicateOrigin = await prisma.clientOrigin.findFirst({
 				where: {

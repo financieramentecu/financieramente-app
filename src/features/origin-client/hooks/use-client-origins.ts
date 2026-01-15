@@ -74,6 +74,7 @@ export function useClientOrigins(
 						: 'Error desconocido al obtener orígenes de cliente',
 			})
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [params.page, params.pageSize, params.search, params.status])
 
 	useEffect(() => {
