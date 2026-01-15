@@ -41,8 +41,6 @@ export function buildMenuByRole(
 			continue
 		}
 
-
-
 		// Liquidaciones
 		if (item.title === 'Liquidaciones') {
 			if (
@@ -97,13 +95,10 @@ export function buildMenuByRole(
 		}
 
 		// Administración
-		if (item.title === 'Administración' && permissions.administracion) {
-			filteredItems.push(item)
-			continue
-		}
-
-		// Configuración
-		if (item.title === 'Configuración' && permissions.configuracion) {
+		if (
+			item.title === 'Administración' &&
+			(permissions.administracion || permissions.configuracion)
+		) {
 			filteredItems.push(item)
 			continue
 		}

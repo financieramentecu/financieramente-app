@@ -116,11 +116,6 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 			},
 		],
 	},
-	{
-		title: 'Configuración',
-		url: '/dashboard/configuracion',
-		icon: <Settings className="h-4 w-4" />,
-	},
 ]
 
 /**
