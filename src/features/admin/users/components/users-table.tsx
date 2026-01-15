@@ -53,6 +53,7 @@ export function UsersTable({ users, isLoading = false }: UsersTableProps) {
                         <TableHead>Email</TableHead>
                         <TableHead>Rol</TableHead>
                         <TableHead>Estado</TableHead>
+                        <TableHead>Fecha Creación</TableHead>
                         <TableHead>Último Acceso</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
@@ -79,6 +80,9 @@ export function UsersTable({ users, isLoading = false }: UsersTableProps) {
                                 <Badge variant={user.active ? 'default' : 'secondary'}>
                                     {user.active ? 'Activo' : 'Inactivo'}
                                 </Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                                {format(new Date(user.createdAt), 'PP', { locale: es })}
                             </TableCell>
                             <TableCell className="text-muted-foreground">
                                 {user.lastLogin

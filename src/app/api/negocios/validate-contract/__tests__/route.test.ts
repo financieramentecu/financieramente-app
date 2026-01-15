@@ -3,7 +3,7 @@ import { GET } from '../route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import { mockUserWithRole } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
+
 
 // Mock de módulos externos
 vi.mock('@/auth')

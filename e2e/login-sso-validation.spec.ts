@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
 /**
  * Tests E2E para validación de login con ssoOnly
@@ -9,21 +9,7 @@ import { test, expect, Page } from '@playwright/test'
  * 3. Los mensajes de error son apropiados
  */
 
-// Helper para crear un usuario de prueba en la base de datos
-async function createTestUser(
-	page: Page,
-	userData: {
-		email: string
-		password?: string
-		ssoOnly: boolean
-		role: string
-		active: boolean
-	}
-) {
-	// En un entorno de prueba real, esto haría una llamada a la API
-	// Por ahora, asumimos que el usuario ya existe en la base de datos de prueba
-	return userData
-}
+
 
 test.describe('Login con validación ssoOnly', () => {
 	test.beforeEach(async ({ page }) => {

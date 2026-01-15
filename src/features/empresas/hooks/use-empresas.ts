@@ -72,6 +72,7 @@ export function useEmpresas(params: UseEmpresasParams = {}): UseEmpresasReturn {
 						: 'Error desconocido al obtener empresas',
 			})
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [params.page, params.pageSize, params.search, params.status])
 
 	useEffect(() => {
