@@ -52,7 +52,7 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		subItems: [
 			{
 				title: 'Preliquidación',
-				url: '/dashboard/liquidaciones/preliquidacion',
+				url: '/dashboard/pre-liquidacion',
 				icon: <FileText className="h-4 w-4" />,
 			},
 			{
