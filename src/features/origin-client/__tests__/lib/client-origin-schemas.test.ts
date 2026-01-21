@@ -193,4 +193,3 @@ describe('client-origin-schemas', () => {
 		})
 	})
 })
-

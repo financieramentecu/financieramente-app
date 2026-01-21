@@ -77,9 +77,6 @@ describe('useClientOrigin', () => {
 			expect(result.current.state.status).toBe('error')
 		})
 
-		expect(result.current.state.error).toBe(
-			'ID de origen de cliente no válido'
-		)
+		expect(result.current.state.error).toBe('ID de origen de cliente no válido')
 	})
 })
-

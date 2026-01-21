@@ -12,6 +12,7 @@ import {
 	Building2,
 	Package,
 	UserCircle,
+	Tag,
 } from 'lucide-react'
 
 /**
@@ -104,16 +105,16 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				icon: <Package className="h-4 w-4" />,
 			},
 			{
+				title: 'Categorías',
+				url: '/dashboard/categorias',
+				icon: <Tag className="h-4 w-4" />,
+			},
+			{
 				title: 'Origen Cliente',
 				url: '/dashboard/origenes',
 				icon: <UserCircle className="h-4 w-4" />,
 			},
 		],
-	},
-	{
-		title: 'Configuración',
-		url: '/dashboard/configuracion',
-		icon: <Settings className="h-4 w-4" />,
 	},
 ]
 

@@ -37,8 +37,7 @@ export const clientOriginApi = {
 				}
 			)
 
-			const data: ApiResponse<ClientOriginListResponse> =
-				await response.json()
+			const data: ApiResponse<ClientOriginListResponse> = await response.json()
 
 			if (!response.ok) {
 				return {
@@ -80,9 +79,7 @@ export const clientOriginApi = {
 				return {
 					data: null,
 					error:
-						'error' in data
-							? data.error
-							: 'Error al obtener origen de cliente',
+						'error' in data ? data.error : 'Error al obtener origen de cliente',
 				}
 			}
 
@@ -213,4 +210,3 @@ export const clientOriginApi = {
 		}
 	},
 }
-

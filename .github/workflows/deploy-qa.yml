@@ -104,7 +104,8 @@ jobs:
             PYCODE
             )
             cat > /opt/financieramente/.env << 'ENVEOF'
-            NODE_ENV=qa
+            NODE_ENV=production
+            APP_ENV=qa
             POSTGRES_USER=financieramente_user
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_QA }}
             POSTGRES_DB=financieramente_qa
