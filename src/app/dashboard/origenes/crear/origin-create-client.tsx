@@ -18,9 +18,7 @@ export function OriginCreateClient() {
 	const { createClientOrigin, createState } = useClientOriginMutations()
 
 	const handleSubmit = useCallback(
-		async (
-			data: CreateClientOriginFormData | UpdateClientOriginFormData
-		) => {
+		async (data: CreateClientOriginFormData | UpdateClientOriginFormData) => {
 			// En modo create, siempre recibimos CreateClientOriginFormData
 			await createClientOrigin(data as CreateClientOriginFormData)
 		},
@@ -61,4 +59,3 @@ export function OriginCreateClient() {
 		</div>
 	)
 }
-

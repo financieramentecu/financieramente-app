@@ -37,4 +37,3 @@ export interface ClientOriginListResponse {
 		totalPages: number
 	}
 }
-

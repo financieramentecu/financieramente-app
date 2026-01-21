@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { clientOriginApi } from '../../lib/client-origin-api'
-import type { ClientOrigin, ClientOriginListResponse } from '../../types/client-origin.types'
+import type {
+	ClientOrigin,
+	ClientOriginListResponse,
+} from '../../types/client-origin.types'
 
 // Mock global fetch
 global.fetch = vi.fn()
@@ -250,4 +253,3 @@ describe('clientOriginApi', () => {
 		})
 	})
 })
-

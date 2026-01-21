@@ -86,4 +86,3 @@ export function useClientOrigins(
 		refetch: fetchClientOrigins,
 	}
 }
-

@@ -41,9 +41,7 @@ export function ClientOriginForm({
 	isLoading = false,
 }: ClientOriginFormProps) {
 	const schema =
-		mode === 'create'
-			? createClientOriginSchema
-			: updateClientOriginSchema
+		mode === 'create' ? createClientOriginSchema : updateClientOriginSchema
 
 	const {
 		register,
@@ -168,4 +166,3 @@ export function ClientOriginForm({
 		</form>
 	)
 }
-

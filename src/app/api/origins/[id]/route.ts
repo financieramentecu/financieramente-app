@@ -129,9 +129,7 @@ export async function PUT(
 
 			if (businessesCount > 0) {
 				// Permitir desactivar pero registrar advertencia en auditoría
-				const userId = session.user.id
-					? parseInt(session.user.id)
-					: undefined
+				const userId = session.user.id ? parseInt(session.user.id) : undefined
 				const headers = request.headers
 				await logAuditEvent({
 					userId,
@@ -153,8 +151,7 @@ export async function PUT(
 
 		if (data.name !== undefined) {
 			const capitalizedName =
-				data.name.trim().charAt(0).toUpperCase() +
-				data.name.trim().slice(1)
+				data.name.trim().charAt(0).toUpperCase() + data.name.trim().slice(1)
 			updateData.name = capitalizedName
 		}
 
@@ -178,9 +175,7 @@ export async function PUT(
 		const changes: string[] = []
 
 		if (data.name && data.name !== existingOrigin.name) {
-			changes.push(
-				`Nombre: "${existingOrigin.name}" → "${data.name}"`
-			)
+			changes.push(`Nombre: "${existingOrigin.name}" → "${data.name}"`)
 		}
 
 		if (
@@ -343,4 +338,3 @@ export async function DELETE(
 		return NextResponse.json(errorResponse, { status: 500 })
 	}
 }
-

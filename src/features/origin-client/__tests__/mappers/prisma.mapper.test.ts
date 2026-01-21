@@ -88,4 +88,3 @@ describe('prisma.mapper', () => {
 		})
 	})
 })
-

@@ -10,9 +10,7 @@ interface EditOriginPageProps {
 /**
  * Página de Edición de Origen de Cliente (Server Component)
  */
-export default async function EditOriginPage({
-	params,
-}: EditOriginPageProps) {
+export default async function EditOriginPage({ params }: EditOriginPageProps) {
 	const session = await auth()
 
 	if (!session?.user) {
@@ -32,4 +30,3 @@ export default async function EditOriginPage({
 		</DashboardLayout>
 	)
 }
-
