@@ -1,56 +1,100 @@
 import '@testing-library/jest-dom'
-import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { cleanup } from '@testing-library/react'
+import { afterEach, vi } from 'vitest'
+import React from 'react'
 
-type JestLike = {
-  fn: typeof vi.fn;
-  mock: typeof vi.mock;
-  clearAllMocks: typeof vi.clearAllMocks;
-  resetAllMocks: typeof vi.resetAllMocks;
-  restoreAllMocks: typeof vi.restoreAllMocks;
-  spyOn: typeof vi.spyOn;
-  unmock: typeof vi.unmock;
-  doMock: typeof vi.doMock;
-  isMockFunction: typeof vi.isMockFunction;
-  setSystemTime: typeof vi.setSystemTime;
-  useFakeTimers: typeof vi.useFakeTimers;
-  useRealTimers: typeof vi.useRealTimers;
-  advanceTimersByTime: typeof vi.advanceTimersByTime;
-  advanceTimersToNextTimer: typeof vi.advanceTimersToNextTimer;
-  getTimerCount: typeof vi.getTimerCount;
-  clearAllTimers: typeof vi.clearAllTimers;
-  runAllTimers: typeof vi.runAllTimers;
-  runOnlyPendingTimers: typeof vi.runOnlyPendingTimers;
-};
+// Agregar alias global de jest para compatibilidad
+;(global as Record<string, unknown>).jest = vi
 
-declare global {
-  // eslint-disable-next-line no-var
-  var jest: JestLike;
+// IMPORTANTE: Los mocks de Next.js y NextAuth deben estar ANTES de cualquier importación
+// Mock de next/server para evitar errores con NextAuth
+vi.mock('next/server', () => ({
+	NextResponse: {
+		json: vi.fn((data, init) => ({
+			json: () => Promise.resolve(data),
+			status: init?.status || 200,
+		})),
+		redirect: vi.fn((url) => ({
+			url,
+			status: 307,
+		})),
+	},
+	NextRequest: class NextRequest {
+		url = 'http://localhost:3000'
+		nextUrl = new URL('http://localhost:3000')
+	},
+}))
+
+// Mock de @/auth para evitar que NextAuth intente cargar módulos de Next.js
+vi.mock('@/auth', () => ({
+	auth: vi.fn(() => Promise.resolve(null)),
+}))
+
+// Mock de @/app/api/auth/[...nextauth]/route para evitar cargar NextAuth completo
+vi.mock('@/app/api/auth/[...nextauth]/route', () => ({
+	auth: vi.fn(() => Promise.resolve(null)),
+	signIn: vi.fn(),
+	signOut: vi.fn(),
+}))
+
+// Mock de ResizeObserver para evitar errores en tests
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+	observe: vi.fn(),
+	unobserve: vi.fn(),
+	disconnect: vi.fn(),
+}))
+
+// Mock de scrollIntoView para evitar errores en tests
+Element.prototype.scrollIntoView = vi.fn()
+
+// Mock de hasPointerCapture para Radix UI Select
+if (typeof Element.prototype.hasPointerCapture === 'undefined') {
+	Element.prototype.hasPointerCapture = vi.fn(() => false)
+}
+if (typeof Element.prototype.setPointerCapture === 'undefined') {
+	Element.prototype.setPointerCapture = vi.fn()
+}
+if (typeof Element.prototype.releasePointerCapture === 'undefined') {
+	Element.prototype.releasePointerCapture = vi.fn()
 }
 
-// runs a cleanup after each test case (e.g. clearing jsdom)
-afterEach(() => {
-  cleanup();
-});
+// Mock de next/navigation
+vi.mock('next/navigation', () => ({
+	useRouter: vi.fn(() => ({
+		push: vi.fn(),
+		replace: vi.fn(),
+		prefetch: vi.fn(),
+		back: vi.fn(),
+		forward: vi.fn(),
+		refresh: vi.fn(),
+	})),
+	usePathname: vi.fn(() => '/'),
+	useSearchParams: vi.fn(() => new URLSearchParams()),
+	redirect: vi.fn(),
+	notFound: vi.fn(),
+}))
 
-// Mock jest functions for compatibility
-globalThis.jest = {
-  fn: vi.fn,
-  mock: vi.mock,
-  clearAllMocks: vi.clearAllMocks,
-  resetAllMocks: vi.resetAllMocks,
-  restoreAllMocks: vi.restoreAllMocks,
-  spyOn: vi.spyOn,
-  unmock: vi.unmock,
-  doMock: vi.doMock,
-  isMockFunction: vi.isMockFunction,
-  setSystemTime: vi.setSystemTime,
-  useFakeTimers: vi.useFakeTimers,
-  useRealTimers: vi.useRealTimers,
-  advanceTimersByTime: vi.advanceTimersByTime,
-  advanceTimersToNextTimer: vi.advanceTimersToNextTimer,
-  getTimerCount: vi.getTimerCount,
-  clearAllTimers: vi.clearAllTimers,
-  runAllTimers: vi.runAllTimers,
-  runOnlyPendingTimers: vi.runOnlyPendingTimers,
-} satisfies JestLike;
+// Mock de next/image
+vi.mock('next/image', () => ({
+	default: (props: Record<string, unknown>) => {
+		return React.createElement('img', props)
+	},
+}))
+
+// Mock de next/link
+vi.mock('next/link', () => ({
+	default: ({
+		children,
+		href,
+	}: {
+		children: React.ReactNode
+		href: string
+	}) => {
+		return React.createElement('a', { href }, children)
+	},
+}))
+
+afterEach(() => {
+	cleanup()
+	vi.clearAllMocks()
+})

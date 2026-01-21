@@ -1,116 +1,205 @@
 @layer base {
-  :root {
-    /* Colores de fondo y superficie */
-    --background: 0 0% 100%;
-    --foreground: 185 100% 18%;
+	:root {
+		/* Colores de fondo y superficie */
+		--background: 0 0% 100%;
+		--foreground: 185 100% 18%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 185 100% 18%;
+		--card: 0 0% 100%;
+		--card-foreground: 185 100% 18%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 185 100% 18%;
+		--popover: 0 0% 100%;
+		--popover-foreground: 185 100% 18%;
 
-    /* Colores primarios Financieramente - Verde oscuro */
-    --primary: 185 100% 18%;
-    --primary-foreground: 0 0% 100%;
+		/* Colores primarios Financieramente - Verde oscuro */
+		--primary: 185 100% 18%;
+		--primary-foreground: 0 0% 100%;
 
-    /* Colores secundarios Financieramente */
-    --secondary: 110 56% 65%;
-    --secondary-foreground: 185 100% 18%;
+		/* Colores secundarios Financieramente */
+		--secondary: 110 56% 65%;
+		--secondary-foreground: 185 100% 18%;
 
-    /* Colores neutros */
-    --muted: 185 20% 96%;
-    --muted-foreground: 185 30% 46%;
+		/* Colores neutros */
+		--muted: 185 20% 96%;
+		--muted-foreground: 185 30% 46%;
 
-    --accent: 110 56% 65%;
-    --accent-foreground: 185 100% 18%;
+		--accent: 110 56% 65%;
+		--accent-foreground: 185 100% 18%;
 
-    /* Colores de estado */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
+		/* Colores de estado */
+		--destructive: 0 84.2% 60.2%;
+		--destructive-foreground: 0 0% 100%;
 
-    /* Colores de interfaz */
-    --border: 185 20% 91%;
-    --input: 185 20% 91%;
-    --ring: 185 100% 18%;
+		/* Colores de interfaz */
+		--border: 185 20% 91%;
+		--input: 185 20% 91%;
+		--ring: 185 100% 18%;
 
-    --radius: 0.5rem;
-  }
+		--radius: 0.5rem;
 
-  .dark {
-    /* Colores de fondo y superficie para tema oscuro */
-    --background: 185 100% 5%;
-    --foreground: 0 0% 100%;
+		/* Variables del sidebar */
+		--sidebar-width: 16rem;
+		--sidebar-width-icon: 3rem;
+		--sidebar-width-mobile: 18rem;
 
-    --card: 185 100% 8%;
-    --card-foreground: 0 0% 100%;
+		/* Colores específicos del sidebar */
+		--sidebar-bg: #00505c;
+		--sidebar-active-bg: #003c45;
+		--sidebar-text: #ffffff;
+	}
 
-    --popover: 185 100% 8%;
-    --popover-foreground: 0 0% 100%;
+	.dark {
+		/* Colores de fondo y superficie para tema oscuro */
+		--background: 185 100% 5%;
+		--foreground: 0 0% 100%;
 
-    /* Colores primarios para tema oscuro - invertidos */
-    --primary: 110 56% 65%;
-    --primary-foreground: 185 100% 18%;
+		--card: 185 100% 8%;
+		--card-foreground: 0 0% 100%;
 
-    /* Colores secundarios para tema oscuro */
-    --secondary: 185 100% 18%;
-    --secondary-foreground: 110 56% 65%;
+		--popover: 185 100% 8%;
+		--popover-foreground: 0 0% 100%;
 
-    /* Colores neutros para tema oscuro */
-    --muted: 185 30% 15%;
-    --muted-foreground: 185 20% 70%;
+		/* Colores primarios para tema oscuro - invertidos */
+		--primary: 110 56% 65%;
+		--primary-foreground: 185 100% 18%;
 
-    --accent: 185 100% 25%;
-    --accent-foreground: 0 0% 100%;
+		/* Colores secundarios para tema oscuro */
+		--secondary: 185 100% 18%;
+		--secondary-foreground: 110 56% 65%;
 
-    /* Colores de estado para tema oscuro */
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 100%;
+		/* Colores neutros para tema oscuro */
+		--muted: 185 30% 15%;
+		--muted-foreground: 185 20% 70%;
 
-    /* Colores de interfaz para tema oscuro */
-    --border: 185 30% 20%;
-    --input: 185 30% 20%;
-    --ring: 110 56% 65%;
-  }
+		--accent: 185 100% 25%;
+		--accent-foreground: 0 0% 100%;
+
+		/* Colores de estado para tema oscuro */
+		--destructive: 0 62.8% 30.6%;
+		--destructive-foreground: 0 0% 100%;
+
+		/* Colores de interfaz para tema oscuro */
+		--border: 185 30% 20%;
+		--input: 185 30% 20%;
+		--ring: 110 56% 65%;
+
+		/* Variables del sidebar para tema oscuro */
+		--sidebar-width: 16rem;
+		--sidebar-width-icon: 3rem;
+		--sidebar-width-mobile: 18rem;
+
+		/* Colores específicos del sidebar para tema oscuro */
+		--sidebar-bg: #00505c;
+		--sidebar-active-bg: #003c45;
+		--sidebar-text: #ffffff;
+	}
 }
 
 @layer base {
-  * {
-    border-color: hsl(var(--border));
-  }
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-  }
+	* {
+		border-color: hsl(var(--border));
+	}
+	body {
+		background-color: hsl(var(--background));
+		color: hsl(var(--foreground));
+	}
 
-  /* Forzar estilos de botones para asegurar que se apliquen */
-  .bg-primary {
-    background-color: hsl(var(--primary)) !important;
-  }
-  
-  .text-primary-foreground {
-    color: hsl(var(--primary-foreground)) !important;
-  }
-  
-  .bg-secondary {
-    background-color: hsl(var(--secondary)) !important;
-  }
-  
-  .text-secondary-foreground {
-    color: hsl(var(--secondary-foreground)) !important;
-  }
-  
-  /* Asegurar que los inputs tengan el fondo correcto */
-  .bg-background {
-    background-color: hsl(var(--background)) !important;
-  }
-  
-  /* Asegurar que los popover y dropdown tengan el fondo correcto */
-  .bg-popover {
-    background-color: hsl(var(--background)) !important;
-  }
-  
-  .text-popover-foreground {
-    color: hsl(var(--foreground)) !important;
-  }
+	/* Forzar estilos de botones para asegurar que se apliquen */
+	.bg-primary {
+		background-color: hsl(var(--primary)) !important;
+	}
+
+	.text-primary-foreground {
+		color: hsl(var(--primary-foreground)) !important;
+	}
+
+	.bg-secondary {
+		background-color: hsl(var(--secondary)) !important;
+	}
+
+	.text-secondary-foreground {
+		color: hsl(var(--secondary-foreground)) !important;
+	}
+
+	/* Asegurar que los inputs tengan el fondo correcto */
+	.bg-background {
+		background-color: hsl(var(--background)) !important;
+	}
+
+	/* Asegurar que los popover y dropdown tengan el fondo correcto */
+	.bg-popover {
+		background-color: hsl(var(--background)) !important;
+	}
+
+	.text-popover-foreground {
+		color: hsl(var(--foreground)) !important;
+	}
+
+	/* Estilos específicos del sidebar */
+	.sidebar-custom {
+		background-color: var(--sidebar-bg) !important;
+	}
+
+	.bg-destructive {
+		background-color: hsl(var(--destructive)) !important;
+	}
+
+	.text-destructive-foreground {
+		color: hsl(var(--destructive-foreground)) !important;
+	}
+
+	.sidebar-button {
+		color: var(--sidebar-text) !important;
+	}
+
+	.sidebar-button:hover {
+		background-color: rgba(255, 255, 255, 0.1) !important;
+		color: var(--sidebar-text) !important;
+	}
+
+	.sidebar-button-active {
+		background-color: var(--sidebar-active-bg) !important;
+		color: var(--sidebar-text) !important;
+	}
+
+	.sidebar-button-active:hover {
+		background-color: var(--sidebar-active-bg) !important;
+		color: var(--sidebar-text) !important;
+	}
+
+	/* Estilos para subitems del sidebar */
+	[data-sidebar='menu-sub-button'] {
+		background-color: transparent !important;
+		color: rgba(255, 255, 255, 0.7) !important;
+	}
+
+	[data-sidebar='menu-sub-button']:hover {
+		background-color: rgba(255, 255, 255, 0.08) !important;
+		color: var(--sidebar-text) !important;
+	}
+
+	[data-sidebar='menu-sub-button'][data-active='true'] {
+		background-color: rgba(255, 255, 255, 0.12) !important;
+		color: var(--sidebar-text) !important;
+		font-weight: 500 !important;
+	}
+
+	[data-sidebar='menu-sub-button'][data-active='true']:hover {
+		background-color: rgba(255, 255, 255, 0.15) !important;
+		color: var(--sidebar-text) !important;
+	}
+
+	/* Estilos para acordeón del sidebar - chevron siempre visible */
+	.sidebar-button.group\/accordion svg:last-child,
+	.sidebar-button-active.group\/accordion svg:last-child {
+		display: block !important;
+		opacity: 0.85 !important;
+		color: rgba(255, 255, 255, 0.85) !important;
+		flex-shrink: 0 !important;
+	}
+
+	.sidebar-button.group\/accordion:hover svg:last-child,
+	.sidebar-button-active.group\/accordion:hover svg:last-child {
+		opacity: 1 !important;
+		color: rgba(255, 255, 255, 1) !important;
+	}
 }

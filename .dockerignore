@@ -1,0 +1,75 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+yarn.lock
+# package-lock.json - needed for npm ci
+
+# Build outputs
+.next
+dist
+build
+out
+
+# Testing
+coverage
+test-results
+playwright-report
+.nyc_output
+
+# Development files
+.git
+.github
+.gitignore
+.vscode
+.idea
+*.md
+README.md
+CHANGELOG.md
+
+# Environment files
+.env*
+!.env.example
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Storybook
+storybook-static
+.storybook
+
+# Terraform
+terraform
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+
+# Docker
+docker-compose*.yml
+Dockerfile
+
+# CI/CD
+.github
+
+# Coverage reports
+html
+lcov.info
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Debug
+.npm
+.eslintcache
+
+# Build tools
+.vite
+

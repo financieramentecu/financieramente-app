@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Ejecutando validaciones pre-commit..."
+
+echo "📝 Validando ESLint..."
+npm run lint || {
+	echo "❌ Error: ESLint encontró errores. Por favor, corrígelos antes de hacer commit."
+	exit 1
+}
+
+echo "🔷 Validando tipos TypeScript..."
+npm run type-check || {
+	echo "❌ Error: TypeScript encontró errores de tipado. Por favor, corrígelos antes de hacer commit."
+	exit 1
+}
+
+echo "✅ Todas las validaciones pasaron correctamente. Procediendo con el commit..."

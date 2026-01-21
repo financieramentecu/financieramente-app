@@ -1,0 +1,29 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+.next
+out
+build
+dist
+storybook-static
+html
+
+# Testing
+coverage
+.nyc_output
+test-results
+playwright-report
+
+# Misc
+.DS_Store
+*.pem
+*.log
+
+# Prisma
+prisma/migrations
+
+# Generated files
+*.generated.*

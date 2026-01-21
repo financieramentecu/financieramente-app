@@ -1,0 +1,31 @@
+# Terraform Variables Example
+# Copy this file to terraform.tfvars and fill in your actual values
+# NEVER commit terraform.tfvars to Git!
+
+# Digital Ocean API Token
+# Get from: https://cloud.digitalocean.com/account/api/tokens
+# Scopes: Read and Write (full access)
+digitalocean_token = "dop_v1_REPLACE_WITH_YOUR_TOKEN"
+
+# SSH Public Key
+# Get from: cat ~/.ssh/droplet_deploy.pub
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1... github-actions-droplets"
+
+# PostgreSQL Passwords
+# Generate with: openssl rand -base64 32
+postgres_password_qa = "REPLACE_WITH_SECURE_PASSWORD_QA"
+postgres_password_prod = "REPLACE_WITH_SECURE_PASSWORD_PROD"
+
+# Create Production Droplet
+# Set to false initially (only QA)
+# Set to true when ready to deploy to production
+create_prod_droplet = false
+
+# Optional: Override default values
+# region = "nyc3"
+# droplet_size_qa = "s-1vcpu-1gb"
+# droplet_size_prod = "s-2vcpu-4gb"
+# postgres_user = "financieramente_user"
+# postgres_db_qa = "financieramente_qa"
+# postgres_db_prod = "financieramente_prod"
+
