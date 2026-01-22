@@ -136,7 +136,8 @@ export async function calcularComisionesParaRegistro(
  * Procesa la pre-liquidación de un archivo completo
  */
 export async function procesarPreLiquidacion(
-    fileImportId: number
+    fileImportId: number,
+    rangoFecha: { inicio: Date; fin: Date }
 ): Promise<{ success: boolean; registrosProcesados: number; mensaje: string }> {
     try {
         // Verificar que el archivo existe y está en estado COMPLETADO
@@ -152,19 +153,15 @@ export async function procesarPreLiquidacion(
             }
         }
 
-        if (fileImport.status !== 'COMPLETADO') {
-            return {
-                success: false,
-                registrosProcesados: 0,
-                mensaje: `El archivo debe estar en estado COMPLETADO. Estado actual: ${fileImport.status}`,
-            }
-        }
-
-        // Obtener todos los registros SINCRONIZADO del archivo
+        // Obtener todos los registros SINCRONIZADO del archivo en el rango de fechas
         const registros = await prisma.settlementCommission.findMany({
             where: {
                 idFileImport: fileImportId,
                 status: 'SINCRONIZADO',
+                fechaPago: {
+                    gte: rangoFecha.inicio,
+                    lte: rangoFecha.fin,
+                },
             },
             include: {
                 business: {
@@ -179,13 +176,16 @@ export async function procesarPreLiquidacion(
             return {
                 success: false,
                 registrosProcesados: 0,
-                mensaje: 'No hay registros sincronizados para procesar',
+                mensaje: 'No hay registros sincronizados para procesar en el rango de fechas seleccionado',
             }
         }
 
         let registrosProcesados = 0
 
-        // Procesar cada registro
+        // Procesar cada registro dentro de una transacción sería ideal, pero por volumen
+        // lo hacemos iterativo. Si falla uno, marcamos error o continuamos.
+        // Para consistencia crítica, podríamos agrupar en chunks y usar prisma.$transaction.
+
         for (const registro of registros) {
             if (!registro.business) {
                 console.warn(
@@ -194,42 +194,72 @@ export async function procesarPreLiquidacion(
                 continue
             }
 
-            // Obtener configuración de porcentajes
-            // const porcentajes = await obtenerConfiguracionPorcentajes(
-            //     registro.business.idProductPercentajeCommision
-            // )
-
-            // Calcular comisiones
-            // const comisionBase = registro.valorComision || new Decimal(0)
-            // const comisiones = aplicarFormulas(comisionBase, porcentajes)
-
-            // Actualizar registro con comisiones calculadas
-            await prisma.settlementCommission.update({
-                where: { idSettlementCommission: registro.idSettlementCommission },
-                data: {
-                    // generalBruta: comisiones.generalBruta,
-                    // generalDescuento: comisiones.generalDescuento,
-                    // comisionBrutaAgencia: comisiones.comisionBrutaAgencia,
-                    // comisionAgenciaDescuento: comisiones.comisionAgenciaDescuento,
-                    // comisionBrutaLider: comisiones.comisionBrutaLider,
-                    // comisionLiderDescuento: comisiones.comisionLiderDescuento,
-                    // comisionBrutaCoach: comisiones.comisionBrutaCoach,
-                    // comisionCoachDescuento: comisiones.comisionCoachDescuento,
-                    status: 'PRELIQUIDADO',
+            // 1. Obtener configuración de porcentajes del producto asociado al negocio
+            const configCategorias = await prisma.productPercentajeCommisionCategory.findMany({
+                where: {
+                    idProductPercentajeCommision: registro.business.idProductPercentajeCommision,
+                    active: true,
                 },
+            })
+
+            if (configCategorias.length === 0) {
+                console.warn(
+                    `Negocio del registro ${registro.idSettlementCommission} no tiene configuración de porcentajes activa`
+                )
+                // Podríamos marcarlo con error o saltarlo. Por ahora saltamos.
+                continue
+            }
+
+            const comisionBase = registro.valorComision || new Decimal(0)
+
+            // Usamos transacción para asegurar que se crean las distribuciones y se actualiza el estado atómicamente
+            await prisma.$transaction(async (tx) => {
+                // 2. Calcular y guardar distribución para cada categoría configurada
+                for (const config of configCategorias) {
+                    const porcentaje = config.porcentajeDistribucion // Decimal
+
+                    // Cálculo: Bruta = ComisionBase * %Categoria
+                    const valorComisionBruta = comisionBase.mul(porcentaje)
+
+                    // Cálculo: Final = Bruta - (Bruta * Descuento)
+                    // Descuento por defecto 10% (0.10)
+                    const valorDescuento = valorComisionBruta.mul(DESCUENTO_POR_DEFECTO)
+                    const valorComisionFinal = valorComisionBruta.sub(valorDescuento)
+
+                    await tx.comissionDistribution.create({
+                        data: {
+                            idSettlementCommission: registro.idSettlementCommission,
+                            idPercentajeCommisionCategory: config.id,
+                            valueComission: valorComisionBruta,
+                            valueComissionFinal: valorComisionFinal,
+                            status: 'LIQUIDADO',
+                        },
+                    })
+                }
+
+                // 3. Actualizar registro a PRELIQUIDADO
+                await tx.settlementCommission.update({
+                    where: { idSettlementCommission: registro.idSettlementCommission },
+                    data: {
+                        status: 'PRELIQUIDADO',
+                    },
+                })
             })
 
             registrosProcesados++
         }
 
-        // Actualizar estado del archivo
+        // Actualizar fecha de pre-liquidación en el archivo
+        // Esto indica que el archivo ha tenido actividad de pre-liquidación, permitiendo mostrarlo en el historial
         await prisma.fileImport.update({
             where: { idFileImport: fileImportId },
             data: {
-                status: 'PRELIQUIDADO',
-                // preLiquidacionDate: new Date(),
-            },
+                preLiquidacionDate: new Date(),
+                updatedAt: new Date()
+            }
         })
+
+
 
         return {
             success: true,

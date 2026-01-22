@@ -17,6 +17,7 @@ interface ModalConfirmacionPreLiquidacionProps {
     archivo?: ArchivoDisponible
     onConfirmar: () => void
     isProcesando: boolean
+    mesSeleccionado?: string
 }
 
 /**
@@ -28,6 +29,7 @@ export function ModalConfirmacionPreLiquidacion({
     archivo,
     onConfirmar,
     isProcesando,
+    mesSeleccionado,
 }: ModalConfirmacionPreLiquidacionProps) {
     if (!archivo) return null
 
@@ -56,12 +58,16 @@ export function ModalConfirmacionPreLiquidacion({
                         </span>?
                     </p>
 
-                    <p className="text-gray-600">
-                        Se procesarán{' '}
-                        <span className="font-semibold text-gray-900">
-                            {archivo.cantidadRegistros} registros
-                        </span>{' '}
-                        aplicando las fórmulas de cálculo y distribución comisional según los porcentajes establecidos.
+                    {mesSeleccionado && (
+                        <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                            <p className="text-sm text-blue-800 font-medium">
+                                Se liquidará para el periodo: <span className="font-bold">{mesSeleccionado}</span>
+                            </p>
+                        </div>
+                    )}
+
+                    <p className="text-sm text-gray-500">
+                        Se procesarán los registros sincronizados dentro del mes seleccionado, aplicando las fórmulas de distribución configuradas.
                     </p>
                 </div>
 
@@ -85,7 +91,7 @@ export function ModalConfirmacionPreLiquidacion({
                                 Procesando...
                             </>
                         ) : (
-                            'Confirmar pre-liquidación'
+                            'Confirmar y Liquidar'
                         )}
                     </Button>
                 </DialogFooter>

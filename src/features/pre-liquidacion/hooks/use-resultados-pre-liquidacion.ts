@@ -87,6 +87,7 @@ export function useResultadosPreLiquidacion(fileId: number) {
     return {
         resultados: state.data?.resultados || [],
         paginacion: state.data?.paginacion,
+        categoriasUnicas: state.data?.categoriasUnicas || [],
         isLoading: state.status === 'loading',
         error: state.error || null,
         refetch: fetchResultados,

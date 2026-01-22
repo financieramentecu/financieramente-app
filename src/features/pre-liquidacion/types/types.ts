@@ -14,6 +14,7 @@ export interface ArchivoDisponible {
     sincronizados: number
     rezagados: number
     estado: string
+    registrosPreliquidados?: number
 }
 
 /**
@@ -38,14 +39,12 @@ export interface ResultadoPreLiquidacion {
     numeroContrato: string | null
     tipoComision: string | null
     comision: number | null
-    generalBruta: number | null
-    generalDescuento: number | null
-    comisionBrutaAgencia: number | null
-    comisionAgenciaDescuento: number | null
-    comisionBrutaLider: number | null
-    comisionLiderDescuento: number | null
-    comisionBrutaCoach: number | null
-    comisionCoachDescuento: number | null
+    // Distribuciones dinámicas
+    distribuciones: {
+        categoria: string
+        bruta: number
+        neta: number
+    }[]
     estado: string
 }
 
@@ -117,4 +116,5 @@ export interface RespuestaArchivosDisponibles {
 export interface RespuestaResultadosPreLiquidacion {
     resultados: ResultadoPreLiquidacion[]
     paginacion: PaginacionInfo
+    categoriasUnicas: string[] // Lista de nombres de categorías encontradas para generar columnas
 }

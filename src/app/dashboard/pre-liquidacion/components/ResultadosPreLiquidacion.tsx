@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useResultadosPreLiquidacion } from '@/features/pre-liquidacion/hooks/use-resultados-pre-liquidacion'
 import {
-    Search,
+    // ... imports
     Download,
     ChevronLeft,
     ChevronRight,
@@ -10,72 +10,53 @@ import {
 } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
+import type { ResultadoPreLiquidacion } from '@/features/pre-liquidacion/types/types'
 
-// Mock Data para la visualización
-const MOCK_REGISTERED_DATA = Array.from({ length: 45 }).map((_, i) => ({
-    registro: `REG-${(i + 31).toString().padStart(3, '0')}`,
-    producto: i % 3 === 0 ? 'Seguro Vida' : i % 3 === 1 ? 'Ahorro Volunt' : 'Todo Riesgo',
-    rezagado: i % 10 === 0 ? 'SI' : 'NO',
-    nombreCliente: ['LUIS AVILA', 'ANDREA PEREA', 'ANA DIAZ', 'EVA GOMEZ', 'LUISA RUIZ'][i % 5],
-    cedulaAgente: ['1003243788', '10987356', '16078908', '35465890'][i % 4],
-    nombreAgente: ['JUAN PEREZ', 'LUIS ARENAS', 'JOSE LOPEZ', 'CRISTIAN LEON'][i % 4],
-    contrato: 'XXXXXXXX',
-    tipoComision: 'X',
-    valorOrig: (Math.random() * 2000000 + 300000).toFixed(0),
-    comisionCalc: (Math.random() * 50000 + 5000).toFixed(0),
-}))
+// ID del archivo debe venir como prop o contexto. 
+// Asumiremos que viene como prop o se obtiene de la URL/Contexto superior si no se pasa explícitamente.
+// Pero la firma actual es { onBack: () => void }.
+// Modificaremos para aceptar `fileId`.
 
 export function ResultadosPreLiquidacion({
+    fileId, // Nuevo prop requerido
     onBack,
 }: {
+    fileId?: number
     onBack: () => void
 }) {
-    const [currentPage, setCurrentPage] = useState(1)
-    const [minRange, setMinRange] = useState('')
-    const [maxRange, setMaxRange] = useState('')
-    const [activeFilter, setActiveFilter] = useState<{ min: number; max: number } | null>(null)
+    // Si no hay fileId, no podemos cargar (debería manejarse en el padre)
+    // Usamos el hook
+    const {
+        resultados,
+        paginacion,
+        categoriasUnicas,
+        isLoading,
+        page,
+        siguientePagina,
+        paginaAnterior,
+        filtros,
+        setFiltros,
+        limpiarFiltros,
+    } = useResultadosPreLiquidacion(fileId || 0)
 
-    const itemsPerPage = 10
-
-    // Filtrar datos
-    const filteredData = useMemo(() => {
-        if (!activeFilter) return MOCK_REGISTERED_DATA
-
-        return MOCK_REGISTERED_DATA.filter((item) => {
-            const value = Number(item.comisionCalc)
-            const min = activeFilter.min
-            const max = activeFilter.max > 0 ? activeFilter.max : Infinity
-            return value >= min && value <= max
-        })
-    }, [activeFilter])
-
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage)
-
-    const paginatedData = filteredData.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    )
-
-    const handleSearch = () => {
-        const min = minRange ? Number(minRange) : 0
-        const max = maxRange ? Number(maxRange) : 0
-        setActiveFilter({ min, max })
-        setCurrentPage(1)
-    }
-
-    const handleShowAll = () => {
-        setMinRange('')
-        setMaxRange('')
-        setActiveFilter(null)
-        setCurrentPage(1)
-    }
-
-    const formatCurrency = (value: string) => {
+    // Helper para formato moneda
+    const formatCurrency = (value: number | undefined | null) => {
+        if (value === undefined || value === null) return '-'
         return new Intl.NumberFormat('es-CO', {
             style: 'currency',
             currency: 'COP',
             minimumFractionDigits: 0,
-        }).format(Number(value))
+        }).format(value)
+    }
+
+    // Helper para obtener valor de distribución
+    const getValorDistribucion = (
+        registro: ResultadoPreLiquidacion,
+        categoria: string,
+        tipo: 'bruta' | 'neta'
+    ) => {
+        const dist = registro.distribuciones.find(d => d.categoria === categoria)
+        return dist ? (tipo === 'bruta' ? dist.bruta : dist.neta) : 0
     }
 
     return (
@@ -91,7 +72,7 @@ export function ResultadosPreLiquidacion({
                     <ArrowLeft className="h-6 w-6 text-gray-600" />
                 </Button>
                 <div>
-                    <h2 className="text-2xl font-bold text-[#00505C]">Búsqueda por rango de Valores</h2>
+                    <h2 className="text-2xl font-bold text-[#00505C]">Resultados Detallados</h2>
                 </div>
             </div>
 
@@ -105,8 +86,8 @@ export function ResultadosPreLiquidacion({
                         <Input
                             type="number"
                             placeholder="0"
-                            value={minRange}
-                            onChange={(e) => setMinRange(e.target.value)}
+                            value={filtros.minComision || ''}
+                            onChange={(e) => setFiltros(prev => ({ ...prev, minComision: Number(e.target.value) || undefined }))}
                         />
                     </div>
                     <div className="w-full md:w-1/4">
@@ -116,24 +97,18 @@ export function ResultadosPreLiquidacion({
                         <Input
                             type="number"
                             placeholder="Ej: 1000000"
-                            value={maxRange}
-                            onChange={(e) => setMaxRange(e.target.value)}
+                            value={filtros.maxComision || ''}
+                            onChange={(e) => setFiltros(prev => ({ ...prev, maxComision: Number(e.target.value) || undefined }))}
                         />
                     </div>
                     <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
-                        <Button
-                            onClick={handleSearch}
-                            className="bg-[#00505C] hover:bg-[#003d47] text-white px-6"
-                        >
-                            <Search className="h-4 w-4 mr-2" />
-                            Buscar
-                        </Button>
+                        {/* Los filtros en el hook se aplican inmediatamente, pero mantenemos botones UX */}
                         <Button
                             variant="outline"
-                            onClick={handleShowAll}
+                            onClick={limpiarFiltros}
                             className="border-gray-300"
                         >
-                            Mostrar todos
+                            Limpiar
                         </Button>
                     </div>
                 </div>
@@ -143,20 +118,26 @@ export function ResultadosPreLiquidacion({
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
-                        <h3 className="text-xl font-bold text-[#00505C]">Resultados de Pre-liquidación</h3>
+                        <h3 className="text-xl font-bold text-[#00505C]">Registros Pre-liquidados</h3>
                         <p className="text-gray-500">
-                            Pre-liquidación completada: {filteredData.length} registros encontrados {activeFilter ? '(filtrado)' : ''}
+                            Total registros: {paginacion?.totalRegistros || 0}
                         </p>
                     </div>
+                    {/* Exportar pendiente de implementación dinámica, por ahora visual */}
                     <Button className="bg-[#00505C] hover:bg-[#003d47] text-white">
                         <Download className="h-4 w-4 mr-2" />
                         Exportar Excel
                     </Button>
                 </div>
 
-                {filteredData.length === 0 ? (
+                {isLoading ? (
+                    <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00505C] mx-auto"></div>
+                        <p className="text-muted-foreground mt-4">Cargando resultados...</p>
+                    </div>
+                ) : resultados.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
-                        No se encontraron registros que coincidan con el rango seleccionado.
+                        No se encontraron registros que coincidan con los filtros.
                     </div>
                 ) : (
                     <>
@@ -164,31 +145,54 @@ export function ResultadosPreLiquidacion({
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C]">Registro</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C]">Producto</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C]">Rezagado</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C]">Nombre Cliente</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C]">Cedula Agente</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C]">Nombre Agente</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C]">Nombre Contrato</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C]">Tipo de Comisión</th>
-                                        <th className="py-3 px-4 text-right font-semibold text-[#00505C]">Valor Orig Del Negocio</th>
-                                        <th className="py-3 px-4 text-right font-semibold text-[#00505C]">Comisión Gral Calculada</th>
+                                        {/* Columnas fijas */}
+                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C] whitespace-nowrap">Registro</th>
+                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C] whitespace-nowrap">Producto</th>
+                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C] whitespace-nowrap">Cliente</th>
+                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C] whitespace-nowrap">Agente</th>
+                                        <th className="py-3 px-4 text-right font-semibold text-[#00505C] whitespace-nowrap bg-blue-50">Comisión Base</th>
+
+                                        {/* Columnas dinámicas generadas desde categoriasUnicas */}
+                                        {categoriasUnicas.map(categoria => (
+                                            <th key={categoria} className="py-3 px-4 text-center font-semibold text-[#00505C] border-l whitespace-nowrap min-w-[150px]">
+                                                {categoria}
+                                                <div className="grid grid-cols-2 gap-2 text-xs font-normal text-gray-500 mt-1 border-t pt-1">
+                                                    <span>Bruta</span>
+                                                    <span>Neta</span>
+                                                </div>
+                                            </th>
+                                        ))}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {paginatedData.map((row, idx) => (
-                                        <tr key={idx} className="hover:bg-gray-50">
-                                            <td className="py-3 px-4 text-gray-500">{row.registro}</td>
+                                    {resultados.map((row) => (
+                                        <tr key={row.idSettlementCommission} className="hover:bg-gray-50">
+                                            <td className="py-3 px-4 text-gray-500 font-mono text-xs">#{row.idSettlementCommission}</td>
                                             <td className="py-3 px-4 font-medium text-gray-900">{row.producto}</td>
-                                            <td className="py-3 px-4 text-gray-500">{row.rezagado}</td>
                                             <td className="py-3 px-4 text-gray-500">{row.nombreCliente}</td>
-                                            <td className="py-3 px-4 text-gray-500">{row.cedulaAgente}</td>
-                                            <td className="py-3 px-4 text-gray-500">{row.nombreAgente}</td>
-                                            <td className="py-3 px-4 text-gray-500">{row.contrato}</td>
-                                            <td className="py-3 px-4 text-gray-500">{row.tipoComision}</td>
-                                            <td className="py-3 px-4 text-right text-gray-500">{formatCurrency(row.valorOrig)}</td>
-                                            <td className="py-3 px-4 text-right font-medium text-[#00505C]">{formatCurrency(row.comisionCalc)}</td>
+                                            <td className="py-3 px-4 text-gray-500">
+                                                <div className="flex flex-col">
+                                                    <span>{row.nombreAgente}</span>
+                                                    <span className="text-xs text-gray-400">{row.cedulaAgente}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-4 text-right font-bold text-gray-700 bg-blue-50">
+                                                {formatCurrency(row.comision)}
+                                            </td>
+
+                                            {/* Celdas dinámicas */}
+                                            {categoriasUnicas.map(categoria => (
+                                                <td key={categoria} className="py-3 px-4 border-l">
+                                                    <div className="grid grid-cols-2 gap-2 text-right">
+                                                        <span className="text-gray-600">
+                                                            {formatCurrency(getValorDistribucion(row, categoria, 'bruta'))}
+                                                        </span>
+                                                        <span className="font-medium text-[#00505C]">
+                                                            {formatCurrency(getValorDistribucion(row, categoria, 'neta'))}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            ))}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -198,15 +202,14 @@ export function ResultadosPreLiquidacion({
                         {/* Paginación */}
                         <div className="flex items-center justify-between border-t pt-4">
                             <p className="text-sm text-gray-500">
-                                Mostrando los registros del {(currentPage - 1) * itemsPerPage + 1} al {Math.min(currentPage * itemsPerPage, filteredData.length)} de {filteredData.length} Total.
+                                Mostrando pag. {page} de {paginacion?.totalPaginas || 1} ({paginacion?.totalRegistros || 0} registros)
                             </p>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-600 mr-2">Pag. {currentPage}</span>
                                 <Button
                                     variant="outline"
                                     size="icon"
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
+                                    onClick={paginaAnterior}
+                                    disabled={page === 1}
                                     className="h-8 w-8"
                                 >
                                     <ChevronLeft className="h-4 w-4" />
@@ -214,8 +217,8 @@ export function ResultadosPreLiquidacion({
                                 <Button
                                     variant="outline"
                                     size="icon"
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
+                                    onClick={siguientePagina}
+                                    disabled={!paginacion || page === paginacion.totalPaginas}
                                     className="h-8 w-8"
                                 >
                                     <ChevronRight className="h-4 w-4" />

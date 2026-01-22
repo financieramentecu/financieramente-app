@@ -14,7 +14,7 @@ export async function GET(_request: NextRequest) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
         }
 
-        // Obtener archivos en estado COMPLETADO y PRELIQUIDADO
+        // Obtener archivos con conteo de preliquidados
         const todosArchivos = await prisma.fileImport.findMany({
             where: {
                 status: {
@@ -28,6 +28,13 @@ export async function GET(_request: NextRequest) {
                         lastName: true,
                     },
                 },
+                _count: {
+                    select: {
+                        settlementCommissions: {
+                            where: { status: 'PRELIQUIDADO' }
+                        }
+                    }
+                }
             },
             orderBy: {
                 loadDate: 'desc',
@@ -35,18 +42,23 @@ export async function GET(_request: NextRequest) {
         })
 
         // Formatear respuesta
-        const archivos = todosArchivos.map((archivo) => ({
-            idFileImport: archivo.idFileImport,
-            nombreArchivo: archivo.nameFile,
-            usuarioCargo: `${archivo.user.name} ${archivo.user.lastName || ''}`.trim(),
-            fechaCarga: archivo.loadDate.toISOString().split('T')[0],
-            fechaPreLiquidacion: null,
-            cantidadRegistros: archivo.totalRecord,
-            totalRegistros: archivo.totalRecord,
-            sincronizados: archivo.sincronizadoRecord,
-            rezagados: archivo.rezagadoRecord,
-            estado: archivo.status,
-        }))
+        const archivos = todosArchivos.map((archivo) => {
+            const preliquidadosCount = archivo._count.settlementCommissions
+
+            return {
+                idFileImport: archivo.idFileImport,
+                nombreArchivo: archivo.nameFile,
+                usuarioCargo: `${archivo.user.name} ${archivo.user.lastName || ''}`.trim(),
+                fechaCarga: archivo.loadDate.toISOString().split('T')[0],
+                fechaPreLiquidacion: archivo.preLiquidacionDate ? archivo.preLiquidacionDate.toISOString().split('T')[0] : null,
+                cantidadRegistros: archivo.totalRecord,
+                totalRegistros: archivo.totalRecord,
+                sincronizados: archivo.sincronizadoRecord,
+                rezagados: archivo.rezagadoRecord,
+                estado: archivo.status,
+                registrosPreliquidados: preliquidadosCount
+            }
+        })
 
         const archivosCompletados = archivos.filter((a) => a.estado === 'COMPLETADO')
         const archivosPreLiquidados = archivos.filter((a) => a.estado === 'PRELIQUIDADO')

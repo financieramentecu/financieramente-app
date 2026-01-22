@@ -83,6 +83,15 @@ export async function GET(
                         user: true,
                     },
                 },
+                comissionDistributions: {
+                    include: {
+                        productPercentajeCommisionCategory: {
+                            include: {
+                                category: true
+                            }
+                        }
+                    }
+                }
             },
             skip: (page - 1) * pageSize,
             take: pageSize,
@@ -91,31 +100,48 @@ export async function GET(
             },
         })
 
-        // Formatear resultados
-        const resultados = registros.map((registro) => ({
-            idSettlementCommission: registro.idSettlementCommission,
-            producto: registro.producto,
-            rezagado: registro.isLag,
-            nombreCliente: registro.business?.client
-                ? `${registro.business.client.name} ${registro.business.client.lastName || ''}`.trim()
-                : null,
-            cedulaAgente: registro.business?.user?.identityNumber || null,
-            nombreAgente: registro.business?.user
-                ? `${registro.business.user.name} ${registro.business.user.lastName || ''}`.trim()
-                : null,
-            numeroContrato: registro.business?.contract || registro.poliza || null,
-            tipoComision: registro.concepto,
-            comision: registro.valorComision?.toNumber() || null,
-            generalBruta: null, // Campos no disponibles en BD por ahora
-            generalDescuento: null,
-            comisionBrutaAgencia: null,
-            comisionAgenciaDescuento: null,
-            comisionBrutaLider: null,
-            comisionLiderDescuento: null,
-            comisionBrutaCoach: null,
-            comisionCoachDescuento: null,
-            estado: registro.status,
-        }))
+        // Formatear resultados y recolectar categorías únicas
+        const categoriasSet = new Set<string>()
+
+        const resultados = registros.map((registro) => {
+            const distribuciones: { categoria: string; bruta: number; neta: number }[] = []
+
+            if (registro.comissionDistributions && registro.comissionDistributions.length > 0) {
+                registro.comissionDistributions.forEach((dist) => {
+                    const rawCatName = dist.productPercentajeCommisionCategory?.category.name || 'SIN CATEGORIA'
+                    const catName = rawCatName.toUpperCase().trim()
+
+                    distribuciones.push({
+                        categoria: catName,
+                        bruta: dist.valueComission.toNumber(),
+                        neta: dist.valueComissionFinal.toNumber(),
+                    })
+
+                    categoriasSet.add(catName)
+                })
+            }
+
+            return {
+                idSettlementCommission: registro.idSettlementCommission,
+                producto: registro.producto,
+                rezagado: registro.isLag,
+                nombreCliente: registro.business?.client
+                    ? `${registro.business.client.name} ${registro.business.client.lastName || ''}`.trim()
+                    : null,
+                cedulaAgente: registro.business?.user?.identityNumber || null,
+                nombreAgente: registro.business?.user
+                    ? `${registro.business.user.name} ${registro.business.user.lastName || ''}`.trim()
+                    : null,
+                numeroContrato: registro.business?.contract || registro.poliza || null,
+                tipoComision: registro.concepto,
+                comision: registro.valorComision?.toNumber() || null,
+                distribuciones,
+                estado: registro.status,
+            }
+        })
+
+        // Ordenar categorías para consistencia (opcional, pero ayuda al UI)
+        const categoriasUnicas = Array.from(categoriasSet).sort()
 
         const response: RespuestaResultadosPreLiquidacion = {
             resultados,
@@ -125,6 +151,7 @@ export async function GET(
                 totalRegistros,
                 registrosPorPagina: pageSize,
             },
+            categoriasUnicas,
         }
 
         return NextResponse.json(response)

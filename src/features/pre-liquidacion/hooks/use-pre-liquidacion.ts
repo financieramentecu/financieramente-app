@@ -59,7 +59,7 @@ export function usePreLiquidacion() {
     }, [])
 
     const procesarPreLiquidacion = useCallback(
-        async (fileImportId: number) => {
+        async (fileImportId: number, mes: string) => {
             setIsProcesando(true)
             setErrorProcesamiento(null)
             setMensajeExito(null)
@@ -70,7 +70,7 @@ export function usePreLiquidacion() {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ fileImportId }),
+                    body: JSON.stringify({ fileImportId, mes }),
                 })
 
                 if (!response.ok) {

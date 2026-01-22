@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 
-export const clientOrigins = ['Propio', 'Metodo Vortex', 'Asesoria Gratuita']
+export const clientOrigins = ['Propio', 'Metodo Vortex', 'Asesoria Gratuita', 'SKANDIA']
 
 export async function seedClientOrigins(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Orígenes de Cliente (ClientOrigins)...')

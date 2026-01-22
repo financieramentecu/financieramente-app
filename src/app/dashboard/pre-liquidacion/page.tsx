@@ -48,15 +48,16 @@ export default function PreLiquidacionPage() {
         setModalOpen(true)
     }
 
-    const handleConfirmarPreLiquidacion = async () => {
-        setModalOpen(false)
-        setViewState('PROCESSING')
+    const handleConfirmarPreLiquidacion = async (mes: string) => {
+        if (archivoSeleccionado) {
+            await procesarPreLiquidacion(archivoSeleccionado, mes)
+            setModalOpen(false)
+            setViewState('RESULTS') // Opcional: ir a resultados inmediatamente si fue éxito
+        }
     }
 
     const handleProcessComplete = () => {
-        if (archivoSeleccionado) {
-            procesarPreLiquidacion(archivoSeleccionado)
-        }
+        // Ya procesado en confirmar
         setViewState('RESULTS')
     }
 
@@ -70,20 +71,20 @@ export default function PreLiquidacionPage() {
     const currentYear = new Date().getFullYear()
     const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString())
 
-    // Opciones de meses
+    // Opciones de meses (formato 01-12 para consistencia con YYYY-MM)
     const months = [
-        { value: '0', label: 'Enero' },
-        { value: '1', label: 'Febrero' },
-        { value: '2', label: 'Marzo' },
-        { value: '3', label: 'Abril' },
-        { value: '4', label: 'Mayo' },
-        { value: '5', label: 'Junio' },
-        { value: '6', label: 'Julio' },
-        { value: '7', label: 'Agosto' },
-        { value: '8', label: 'Septiembre' },
-        { value: '9', label: 'Octubre' },
-        { value: '10', label: 'Noviembre' },
-        { value: '11', label: 'Diciembre' },
+        { value: '01', label: 'Enero' },
+        { value: '02', label: 'Febrero' },
+        { value: '03', label: 'Marzo' },
+        { value: '04', label: 'Abril' },
+        { value: '05', label: 'Mayo' },
+        { value: '06', label: 'Junio' },
+        { value: '07', label: 'Julio' },
+        { value: '08', label: 'Agosto' },
+        { value: '09', label: 'Septiembre' },
+        { value: '10', label: 'Octubre' },
+        { value: '11', label: 'Noviembre' },
+        { value: '12', label: 'Diciembre' },
     ]
 
     const clearFilters = () => {
@@ -96,8 +97,10 @@ export default function PreLiquidacionPage() {
         if (!selectedMonth && !selectedYear) return archivosToFilter
 
         return archivosToFilter.filter((archivo) => {
+            // Asumiendo fechaCarga formato ISO o compatible
             const fileDate = new Date(archivo.fechaCarga)
-            const fileMonth = fileDate.getUTCMonth().toString()
+            // Ajustar mes 0-indexed a 01-12
+            const fileMonth = (fileDate.getUTCMonth() + 1).toString().padStart(2, '0')
             const fileYear = fileDate.getUTCFullYear().toString()
 
             if (selectedMonth && selectedYear) {
@@ -113,8 +116,10 @@ export default function PreLiquidacionPage() {
     const archivosPendientes = archivos.filter((a) => a.estado === 'COMPLETADO')
     const archivosPendientesFiltrados = filterArchivosByDate(archivosPendientes)
 
-    // Archivos ya pre-liquidados (PRELIQUIDADO)
-    const archivosHistorico = archivos.filter((a) => a.estado === 'PRELIQUIDADO')
+    // Archivos ya pre-liquidados (PRELIQUIDADO) o con fecha de pre-liquidación
+    const archivosHistorico = archivos.filter(
+        (a) => a.estado === 'PRELIQUIDADO' || !!a.fechaPreLiquidacion
+    )
     const archivosHistoricoFiltrados = filterArchivosByDate(archivosHistorico)
 
     // Resumen calculado basado en archivos filtrados
@@ -184,6 +189,20 @@ export default function PreLiquidacionPage() {
         </div>
     )
 
+    // Validación de pre-liquidación
+    const puedePreLiquidar = selectedMonth !== '' && selectedYear !== ''
+
+    // Si no ha seleccionado mes/año, mostramos aviso o deshabilitamos el click
+    // Opción UI: Modificar ListaArchivos para recibir 'puedePreLiquidar' y deshabilitar?
+    // O validar en el click handlePreLiquidarClick
+    const handlePreLiquidarClickConValidacion = (fileId: number) => {
+        if (!puedePreLiquidar) {
+            alert('Por favor selecciona un Mes y Año en los filtros para proceder con la Pre-liquidación.')
+            return
+        }
+        handlePreLiquidarClick(fileId)
+    }
+
     return (
         <DashboardLayout currentPage="Pre-liquidación">
             <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -245,7 +264,10 @@ export default function PreLiquidacionPage() {
                         {viewState === 'PROCESSING' ? (
                             <ProcesandoPreLiquidacion onComplete={handleProcessComplete} />
                         ) : viewState === 'RESULTS' ? (
-                            <ResultadosPreLiquidacion onBack={handleBackToList} />
+                            <ResultadosPreLiquidacion
+                                fileId={archivoSeleccionado || 0}
+                                onBack={handleBackToList}
+                            />
                         ) : (
                             /* Vista normal de Lista y Resumen */
                             <div className="space-y-6">
@@ -303,6 +325,13 @@ export default function PreLiquidacionPage() {
                                         </h2>
                                     </div>
 
+                                    {!puedePreLiquidar && (
+                                        <div className="mb-4 p-3 bg-blue-50 text-blue-800 text-sm rounded-md border border-blue-100 flex items-center gap-2">
+                                            <Filter className="h-4 w-4" />
+                                            <span>Para pre-liquidar, primero selecciona un <b>Mes</b> y <b>Año</b> en los filtros superiores.</span>
+                                        </div>
+                                    )}
+
                                     {isLoading ? (
                                         <div className="text-center py-12">
                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00505C] mx-auto"></div>
@@ -320,7 +349,7 @@ export default function PreLiquidacionPage() {
                                     ) : (
                                         <ListaArchivosDisponibles
                                             archivos={archivosPendientesFiltrados}
-                                            onPreLiquidar={handlePreLiquidarClick}
+                                            onPreLiquidar={handlePreLiquidarClickConValidacion}
                                             isProcesando={isProcesando}
                                         />
                                     )}
@@ -399,8 +428,9 @@ export default function PreLiquidacionPage() {
                     open={modalOpen}
                     onOpenChange={setModalOpen}
                     archivo={archivos.find((a) => a.idFileImport === archivoSeleccionado)}
-                    onConfirmar={handleConfirmarPreLiquidacion}
+                    onConfirmar={() => handleConfirmarPreLiquidacion(`${selectedYear}-${selectedMonth}`)}
                     isProcesando={isProcesando}
+                    mesSeleccionado={selectedMonth && selectedYear ? `${selectedMonth}/${selectedYear}` : undefined}
                 />
             </div>
         </DashboardLayout>

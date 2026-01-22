@@ -20,7 +20,8 @@ export const adminUser = {
 	idUserLeader: null,
 	entryDate: new Date(),
 	active: true,
-	ssoOnly: true,
+	ssoOnly: false, // Permitir login normal
+	password: 'admin', // Contraseña temporal
 }
 
 export const superAdminUser = {
@@ -59,6 +60,12 @@ export async function seedUsers(prisma: PrismaClient) {
 		},
 	})
 
+	// Hashear password si viene definido (extendemos el tipo adminUser temporalmente)
+	let adminPasswordCrypted = null
+	if (adminUser.password) {
+		adminPasswordCrypted = await hashPassword(adminUser.password)
+	}
+
 	const userData = {
 		name: adminUser.name,
 		lastName: adminUser.lastName,
@@ -70,7 +77,7 @@ export async function seedUsers(prisma: PrismaClient) {
 		entryDate: adminUser.entryDate,
 		active: adminUser.active,
 		ssoOnly: adminUser.ssoOnly,
-		password: null,
+		password: adminPasswordCrypted,
 	} as Prisma.UserUncheckedCreateInput
 
 	if (existing) {
@@ -83,7 +90,7 @@ export async function seedUsers(prisma: PrismaClient) {
 			entryDate: adminUser.entryDate,
 			active: adminUser.active,
 			ssoOnly: adminUser.ssoOnly,
-			password: null,
+			password: adminPasswordCrypted, // Actualizar password si ha cambiado
 		} as Prisma.UserUncheckedUpdateInput
 		await prisma.user.update({
 			where: { idUser: existing.idUser },
