@@ -266,6 +266,36 @@ export const authConfig: NextAuthConfig = {
 		strategy: 'jwt',
 		maxAge: 30 * 24 * 60 * 60, // 30 días
 	},
+	cookies: {
+		sessionToken: {
+			name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}authjs.session-token`,
+			options: {
+				httpOnly: true,
+				sameSite: 'lax',
+				path: '/',
+				secure: process.env.NODE_ENV === 'production',
+				maxAge: 30 * 24 * 60 * 60, // 30 días
+			},
+		},
+		csrfToken: {
+			name: `${process.env.NODE_ENV === 'production' ? '__Host-' : ''}authjs.csrf-token`,
+			options: {
+				httpOnly: true,
+				sameSite: 'lax',
+				path: '/',
+				secure: process.env.NODE_ENV === 'production',
+			},
+		},
+		callbackUrl: {
+			name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}authjs.callback-url`,
+			options: {
+				httpOnly: true,
+				sameSite: 'lax',
+				path: '/',
+				secure: process.env.NODE_ENV === 'production',
+			},
+		},
+	},
 	secret:
 		process.env.AUTH_SECRET ||
 		process.env.NEXTAUTH_SECRET ||
