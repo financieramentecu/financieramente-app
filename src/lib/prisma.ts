@@ -30,7 +30,12 @@ export const prisma =
 				: ['error'],
 	})
 
-if (process.env.NODE_ENV !== 'production') {
+// Store Prisma Client in global to prevent multiple instances
+// This is critical for preventing connection pool exhaustion
+// In production, Next.js may create multiple instances, so we ensure singleton
+if (process.env.NODE_ENV === 'production') {
+	globalForPrisma.prisma = prisma
+} else {
 	globalForPrisma.prisma = prisma
 }
 
