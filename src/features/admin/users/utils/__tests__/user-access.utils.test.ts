@@ -22,6 +22,8 @@ describe('user-access.utils', () => {
             code: UserRole.ADMIN,
             name: 'Administrador',
         },
+        category: null,
+        leader: null,
         createdAt: new Date(),
         lastLogin: null,
     }

@@ -87,6 +87,8 @@ export const authConfig: NextAuthConfig = {
 					email: user.email,
 					details: 'Email no proporcionado',
 				})
+				// Retornar false para que NextAuth maneje el error
+				// NextAuth redirigirá a /login?error=AccessDenied automáticamente
 				return false
 			}
 
@@ -102,12 +104,24 @@ export const authConfig: NextAuthConfig = {
 					email: user.email,
 					details: `Dominio no autorizado: ${emailDomain}`,
 				})
+				// Retornar URL para redirigir con error específico
 				return '/login?error=InvalidDomain'
 			}
 
 			// Validar usuario en base de datos
-			const validation = await validateUserByEmail(user.email)
-
+			let validation
+			try {
+				validation = await validateUserByEmail(user.email)
+			} catch (error) {
+				// Manejar errores inesperados en la validación
+				console.error('Error validando usuario:', error)
+				await logAuditEvent({
+					action: AuditAction.ACCESS_DENIED,
+					email: user.email,
+					details: `Error inesperado validando usuario: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				})
+				return false
+			}
 
 			if (!validation.isValid) {
 				// PRIMERA VALIDACIÓN: Bloquear usuarios inactivos inmediatamente
@@ -118,8 +132,8 @@ export const authConfig: NextAuthConfig = {
 						email: user.email,
 						details: 'Usuario inactivo intentó acceder - Login bloqueado',
 					})
-					// Bloquear login inmediatamente
-					return false
+					// Retornar URL con error específico
+					return '/login?error=AccountDisabled'
 				}
 
 				// SEGUNDA VALIDACIÓN: Bloquear usuarios con rol DEFAULT
@@ -131,46 +145,73 @@ export const authConfig: NextAuthConfig = {
 						details:
 							'Usuario con rol Default intentó acceder - Login bloqueado (requiere activación y asignación de rol)',
 					})
-					// Bloquear login inmediatamente
-					return false
+					// Retornar URL con error específico
+					return '/login?error=AccountDisabled'
 				}
 
 				if (validation.error === 'USER_NOT_FOUND') {
-					// Crear usuario automáticamente con dominio válido
-					const createResult = await createUserAutomatically({
-						email: user.email,
-						name: user.name || user.email.split('@')[0],
-						image: user.image,
-					})
-
-					if (createResult.success && createResult.userId) {
-						// Usuario creado exitosamente, pero está inactivo y con rol DEFAULT
-						// Registrar intento de acceso
-						await logAuditEvent({
-							userId: createResult.userId,
-							action: AuditAction.ACCOUNT_DISABLED,
+					try {
+						// Crear usuario automáticamente con dominio válido
+						const createResult = await createUserAutomatically({
 							email: user.email,
-							details:
-								'Usuario nuevo creado automáticamente con estado Inactivo - Login bloqueado. Requiere activación por administrador.',
+							name: user.name || user.email.split('@')[0],
+							image: user.image,
 						})
 
-						// Notificar al administrador
-						await sendNewUserNotificationToAdmins({
-							userId: createResult.userId,
-							userName: user.name || user.email.split('@')[0],
-							userEmail: user.email,
-						})
+						if (createResult.success && createResult.userId) {
+							// Usuario creado exitosamente, pero está inactivo y con rol DEFAULT
+							// Registrar intento de acceso
+							await logAuditEvent({
+								userId: createResult.userId,
+								action: AuditAction.ACCOUNT_DISABLED,
+								email: user.email,
+								details:
+									'Usuario nuevo creado automáticamente con estado Inactivo - Login bloqueado. Requiere activación por administrador.',
+							})
 
-						// Bloquear login inmediatamente - usuario debe ser activado primero
-						return false
-					} else {
-						// TODO: Replace this functionality with Sentry error tracking
-						// Error al crear usuario
+							// Notificar al administrador
+							console.log(
+								`[signIn callback] Intentando enviar notificación a administradores para usuario: ${user.email} (ID: ${createResult.userId})`
+							)
+							try {
+								await sendNewUserNotificationToAdmins({
+									userId: createResult.userId,
+									userName: user.name || user.email.split('@')[0],
+									userEmail: user.email,
+								})
+								console.log(
+									`[signIn callback] Notificación enviada exitosamente a administradores`
+								)
+							} catch (notificationError) {
+								console.error(
+									`[signIn callback] Error enviando notificación a administradores:`,
+									notificationError
+								)
+								// No bloquear el flujo si falla el envío de email
+							}
+
+							// Retornar URL con error específico - usuario debe ser activado primero
+							return '/login?error=AccountDisabled'
+						} else {
+							// TODO: Replace this functionality with Sentry error tracking
+							// Error al crear usuario
+							await logAuditEvent({
+								action: AuditAction.USER_CREATION_ERROR,
+								email: user.email,
+								details: `Error al crear usuario: ${createResult.error}`,
+							})
+							// Retornar false para error genérico
+							return false
+						}
+					} catch (error) {
+						// Manejar errores al crear usuario
+						console.error('Error creando usuario:', error)
 						await logAuditEvent({
 							action: AuditAction.USER_CREATION_ERROR,
 							email: user.email,
-							details: `Error al crear usuario: ${createResult.error}`,
+							details: `Error inesperado creando usuario: ${error instanceof Error ? error.message : 'Unknown error'}`,
 						})
+						return false
 					}
 				}
 
@@ -181,10 +222,11 @@ export const authConfig: NextAuthConfig = {
 						email: user.email,
 						details: 'Usuario sin rol asignado - Login bloqueado',
 					})
-					// Bloquear login - usuario debe tener un rol asignado
+					// Retornar false para error genérico
 					return false
 				}
 
+				// Error genérico
 				return false
 			}
 
