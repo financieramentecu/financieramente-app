@@ -7,7 +7,6 @@ export async function seedProductPercentages(prisma: PrismaClient) {
     const company = await prisma.company.findFirst({ where: { name: 'SKANDIA' } })
     const product = await prisma.product.findFirst({ where: { name: 'CREA PATRIMONIO' } })
     const clientOriginPropio = await prisma.clientOrigin.findFirst({ where: { name: 'Propio' } })
-    const clientOriginSkandia = await prisma.clientOrigin.findFirst({ where: { name: 'SKANDIA' } })
 
     // Categorías
     const catJunior = await prisma.category.findUnique({ where: { code: 'JUNIOR' } })
@@ -17,7 +16,7 @@ export async function seedProductPercentages(prisma: PrismaClient) {
     const catAgencia = await prisma.category.findUnique({ where: { code: 'AGENCIA' } })
     const catGeneral = await prisma.category.findUnique({ where: { code: 'GENERAL' } })
 
-    if (!company || !product || !clientOriginPropio || !clientOriginSkandia || !catJunior) {
+    if (!company || !product || !clientOriginPropio || !catJunior) {
         console.warn('⚠️ Faltan datos base (Company, Product, Origin, Category) para crear porcentajes. Saltando...')
         return
     }
@@ -39,17 +38,6 @@ export async function seedProductPercentages(prisma: PrismaClient) {
                 { targetCat: catLider, pct: 0.1 },   // 10%
                 { targetCat: catCoach, pct: 0.05 },  // 5%
                 { targetCat: catJunior, pct: 0.4 },  // 40%
-            ]
-        },
-        {
-            origin: clientOriginSkandia, // Configuración para SKANDIA
-            category: catJunior,
-            percentages: [
-                { targetCat: catGeneral, pct: 1.0 },
-                { targetCat: catAgencia, pct: 0.25 },
-                { targetCat: catLider, pct: 0.12 },
-                { targetCat: catCoach, pct: 0.08 },
-                { targetCat: catJunior, pct: 0.45 },
             ]
         },
         {
