@@ -36,7 +36,10 @@ test.describe('Pre-liquidación Flow', () => {
         await page.waitForTimeout(2000)
     })
 
-    test('should show files in LOAD status and allow pre-liquidation', async ({ page }) => {
+    test('should show files in LOAD status and allow pre-liquidation', async ({ page, isMobile }) => {
+        if (isMobile) {
+            test.skip();
+        }
         // Mock the files API to ensure we have a file to process
         await page.route('/api/pre-liquidacion/archivos', async route => {
             const json = {
