@@ -453,7 +453,7 @@ export async function POST(request: NextRequest) {
 				sincronizadoRecord: sincronizadoCount,
 				rezagadoRecord: rezagadoCount,
 				noSincronizadoRecord: noSincronizadoCount,
-				status: 'COMPLETADO',
+				status: 'LOAD',
 			},
 		})
 

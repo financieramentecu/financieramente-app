@@ -134,11 +134,13 @@ export function HistorialCargasTab() {
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="ALL">Todos</SelectItem>
+								<SelectItem value="LOAD">Cargado (Load)</SelectItem>
 								<SelectItem value="COMPLETADO">Completado</SelectItem>
 								<SelectItem value="PARCIAL">Parcial</SelectItem>
 								<SelectItem value="ERROR">Error</SelectItem>
 								<SelectItem value="PROCESANDO">Procesando</SelectItem>
 								<SelectItem value="CANCELADO">Cancelado</SelectItem>
+								<SelectItem value="PRELIQUIDADO">Pre-liquidado</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
@@ -233,9 +235,12 @@ export function HistorialCargasTab() {
 												<h3 className="font-semibold text-[#00505C]">
 													{carga.nombreArchivo}
 												</h3>
-												<span className={`px-2 py-0.5 rounded text-xs font-medium ${carga.estado === 'COMPLETADO' ? 'bg-green-100 text-green-700' :
-													carga.estado === 'ERROR' ? 'bg-red-100 text-red-700' :
-														'bg-blue-100 text-blue-700'
+
+												<span className={`px-2 py-0.5 rounded text-xs font-medium ${carga.estado === 'LOAD' ? 'bg-blue-100 text-blue-700' :
+													carga.estado === 'COMPLETADO' ? 'bg-green-100 text-green-700' :
+														carga.estado === 'ERROR' ? 'bg-red-100 text-red-700' :
+															carga.estado === 'PRELIQUIDADO' ? 'bg-purple-100 text-purple-700' :
+																'bg-blue-100 text-blue-700'
 													}`}>
 													{carga.estado}
 												</span>

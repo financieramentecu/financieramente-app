@@ -140,7 +140,7 @@ export async function procesarPreLiquidacion(
     rangoFecha: { inicio: Date; fin: Date }
 ): Promise<{ success: boolean; registrosProcesados: number; mensaje: string }> {
     try {
-        // Verificar que el archivo existe y está en estado COMPLETADO
+        // Verificar que el archivo existe y está en estado LOAD
         const fileImport = await prisma.fileImport.findUnique({
             where: { idFileImport: fileImportId },
         })
@@ -150,6 +150,14 @@ export async function procesarPreLiquidacion(
                 success: false,
                 registrosProcesados: 0,
                 mensaje: 'Archivo no encontrado',
+            }
+        }
+
+        if (fileImport.status !== 'LOAD') {
+            return {
+                success: false,
+                registrosProcesados: 0,
+                mensaje: `El archivo debe estar en estado LOAD para ser pre-liquidado (Estado actual: ${fileImport.status})`,
             }
         }
 
@@ -249,11 +257,12 @@ export async function procesarPreLiquidacion(
             registrosProcesados++
         }
 
-        // Actualizar fecha de pre-liquidación en el archivo
+        // Actualizar fecha de pre-liquidación en el archivo y cambiar estado
         // Esto indica que el archivo ha tenido actividad de pre-liquidación, permitiendo mostrarlo en el historial
         await prisma.fileImport.update({
             where: { idFileImport: fileImportId },
             data: {
+                status: 'PRELIQUIDADO',
                 preLiquidacionDate: new Date(),
                 updatedAt: new Date()
             }

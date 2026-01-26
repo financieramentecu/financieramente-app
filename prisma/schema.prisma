@@ -277,7 +277,7 @@ model FileImport {
   sincronizadoRecord   Int       @default(0) @map("sincronizado_record")
   rezagadoRecord       Int       @default(0) @map("rezagado_record")
   noSincronizadoRecord Int       @default(0) @map("no_sincronizado_record")
-  status               String    @db.VarChar(20) // 'PROCESANDO', 'COMPLETADO', 'PARCIAL', 'ERROR', 'CANCELADO', 'PRELIQUIDADO'
+  status               String    @db.VarChar(20) // 'PROCESANDO', 'LOAD', 'PARCIAL', 'ERROR', 'CANCELADO', 'PRELIQUIDADO', 'COMPLETADO'
   preLiquidacionDate   DateTime? @map("pre_liquidacion_date")
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
