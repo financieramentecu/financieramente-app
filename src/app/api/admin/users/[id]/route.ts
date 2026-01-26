@@ -35,6 +35,14 @@ export async function GET(
 			where: { idUser: userId },
 			include: {
 				role: true,
+				categoria: true,
+				leader: {
+					select: {
+						idUser: true,
+						name: true,
+						lastName: true,
+					},
+				},
 			},
 		})
 
@@ -72,6 +80,19 @@ export async function GET(
 						id: user.role.idRole,
 						code: user.role.code,
 						name: user.role.name,
+					}
+					: null,
+				category: user.categoria
+					? {
+						id: user.categoria.idCategory,
+						name: user.categoria.name,
+					}
+					: null,
+				leader: user.leader
+					? {
+						id: user.leader.idUser,
+						name: user.leader.name,
+						lastName: user.leader.lastName,
 					}
 					: null,
 				active: user.active,
@@ -120,12 +141,12 @@ export async function PUT(
 		}
 
 		const body = await request.json()
-		const { active, roleId } = body
+		const { active, roleId, categoryId, leaderId } = body
 
 		// Validar que el usuario existe
 		const existingUser = await prisma.user.findUnique({
 			where: { idUser: userId },
-			include: { role: true },
+			include: { role: true, categoria: true, leader: true },
 		})
 
 		if (!existingUser) {
@@ -160,12 +181,95 @@ export async function PUT(
 			}
 		}
 
+		// Validar y actualizar categoría
+		if (categoryId !== undefined) {
+			if (categoryId === null) {
+				updateData.idCategoria = null
+			} else {
+				// Verificar que la categoría existe
+				const category = await prisma.category.findUnique({
+					where: { idCategory: parseInt(categoryId) },
+				})
+				if (!category) {
+					return NextResponse.json(
+						{ success: false, error: 'Categoría no encontrada' },
+						{ status: 400 }
+					)
+				}
+				// Validar que si el rol es AGENTE, la categoría es requerida
+				const currentRoleCode = existingUser.role?.code
+				if (currentRoleCode === 'AGENTE' && categoryId === null) {
+					return NextResponse.json(
+						{
+							success: false,
+							error: 'La categoría es requerida cuando el rol es Agente/Coach',
+						},
+						{ status: 400 }
+					)
+				}
+				updateData.idCategoria = category.idCategory
+			}
+		}
+
+		// Validar y actualizar líder
+		if (leaderId !== undefined) {
+			if (leaderId === null) {
+				updateData.idUserLeader = null
+			} else {
+				// Validar que el líder no sea el mismo usuario
+				if (leaderId === userId) {
+					return NextResponse.json(
+						{
+							success: false,
+							error: 'Un usuario no puede ser líder de sí mismo',
+						},
+						{ status: 400 }
+					)
+				}
+				// Verificar que el líder existe y tiene rol AGENTE
+				const leader = await prisma.user.findUnique({
+					where: { idUser: parseInt(leaderId) },
+					include: { role: true },
+				})
+				if (!leader) {
+					return NextResponse.json(
+						{ success: false, error: 'Líder no encontrado' },
+						{ status: 400 }
+					)
+				}
+				if (!leader.active) {
+					return NextResponse.json(
+						{ success: false, error: 'El líder debe estar activo' },
+						{ status: 400 }
+					)
+				}
+				if (leader.role?.code !== 'AGENTE') {
+					return NextResponse.json(
+						{
+							success: false,
+							error: 'Solo usuarios con rol Agente/Coach pueden ser líderes',
+						},
+						{ status: 400 }
+					)
+				}
+				updateData.idUserLeader = leader.idUser
+			}
+		}
+
 		// Actualizar usuario
 		const updatedUser = await prisma.user.update({
 			where: { idUser: userId },
 			data: updateData,
 			include: {
 				role: true,
+				categoria: true,
+				leader: {
+					select: {
+						idUser: true,
+						name: true,
+						lastName: true,
+					},
+				},
 			},
 		})
 
@@ -211,6 +315,34 @@ export async function PUT(
 			})
 		}
 
+		// Registrar cambios de categoría
+		if (
+			categoryId !== undefined &&
+			updatedUser.idCategoria !== existingUser.idCategoria
+		) {
+			await logAuditEvent({
+				userId: adminUserId,
+				roleId: updatedUser.idRole || undefined,
+				action: AuditAction.ROLE_CHANGED, // Reutilizar acción, o crear nueva si es necesario
+				email: existingUser.email || undefined,
+				details: `Categoría cambiada de ${existingUser.categoria?.name || 'sin categoría'} a ${updatedUser.categoria?.name || 'sin categoría'}`,
+			})
+		}
+
+		// Registrar cambios de líder
+		if (
+			leaderId !== undefined &&
+			updatedUser.idUserLeader !== existingUser.idUserLeader
+		) {
+			await logAuditEvent({
+				userId: adminUserId,
+				roleId: updatedUser.idRole || undefined,
+				action: AuditAction.ROLE_CHANGED, // Reutilizar acción, o crear nueva si es necesario
+				email: existingUser.email || undefined,
+				details: `Líder cambiado de ${existingUser.leader ? `${existingUser.leader.name} ${existingUser.leader.lastName || ''}` : 'sin líder'} a ${updatedUser.leader ? `${updatedUser.leader.name} ${updatedUser.leader.lastName || ''}` : 'sin líder'}`,
+			})
+		}
+
 		return NextResponse.json({
 			success: true,
 			data: {
@@ -223,6 +355,19 @@ export async function PUT(
 						id: updatedUser.role.idRole,
 						code: updatedUser.role.code,
 						name: updatedUser.role.name,
+					}
+					: null,
+				category: updatedUser.categoria
+					? {
+						id: updatedUser.categoria.idCategory,
+						name: updatedUser.categoria.name,
+					}
+					: null,
+				leader: updatedUser.leader
+					? {
+						id: updatedUser.leader.idUser,
+						name: updatedUser.leader.name,
+						lastName: updatedUser.leader.lastName,
 					}
 					: null,
 				active: updatedUser.active,

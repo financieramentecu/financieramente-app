@@ -403,7 +403,13 @@ export async function sendNewUserNotificationToAdmins(
 		})
 
 		// Esperar a que todos los emails se envíen (o fallen)
-		await Promise.allSettled(emailPromises)
+		const results = await Promise.allSettled(emailPromises)
+		const successful = results.filter((r) => r.status === 'fulfilled').length
+		const failed = results.filter((r) => r.status === 'rejected').length
+
+		console.log(
+			`[sendNewUserNotificationToAdmins] Resultado: ${successful} exitosos, ${failed} fallidos`
+		)
 	} catch (error) {
 		// Loggear error pero no propagarlo
 		console.error('Error en sendNewUserNotificationToAdmins:', error)

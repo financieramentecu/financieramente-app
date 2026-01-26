@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -19,16 +19,25 @@ function LoginContent() {
 	const searchParams = useSearchParams()
 	const router = useRouter()
 	const [isSubmitting, setIsSubmitting] = useState(false)
+	const [isRedirecting, setIsRedirecting] = useState(false)
 
 	const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard'
 	const error = searchParams?.get('error')
 	const isSuperAdminMode = searchParams?.get('superadmin') === 'true'
 
 	// Redirigir a /access-denied si hay error de acceso denegado
-	if (error === 'AccessDenied' || error === 'AccountDisabled') {
-		const reason = error === 'AccountDisabled' ? 'inactive' : 'no_permissions'
-		router.replace(`/access-denied?reason=${reason}`)
-		return null // Evitar renderizar mientras redirige
+	// Usar useEffect para evitar problemas durante el render inicial
+	useEffect(() => {
+		if (error === 'AccessDenied' || error === 'AccountDisabled') {
+			const reason = error === 'AccountDisabled' ? 'inactive' : 'no_permissions'
+			setIsRedirecting(true)
+			router.replace(`/access-denied?reason=${reason}`)
+		}
+	}, [error, router])
+
+	// Evitar renderizar mientras redirige
+	if (isRedirecting || error === 'AccessDenied' || error === 'AccountDisabled') {
+		return null
 	}
 
 	const handleGoogleSignIn = async () => {
