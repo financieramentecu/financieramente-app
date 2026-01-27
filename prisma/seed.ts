@@ -9,6 +9,7 @@ import { seedProducts } from './seeds/product'
 import { seedRoles } from './seeds/roles'
 import { seedUsers } from './seeds/user'
 import { seedBusinesses } from './seeds/business'
+import { seedProductPercentages } from './seeds/product-percentage'
 
 const prisma = new PrismaClient()
 
@@ -32,10 +33,13 @@ async function main() {
 		// 2. Estructura de negocio
 		await seedCategories(prisma)
 
-		// 3. Productos (depende de Company y TypeProduct)
+		// 4. Productos (depende de Company y TypeProduct)
 		await seedProducts(prisma)
 
-		// 4. Seguridad y Roles
+		// 4.1 Configuración de Porcentajes (ProductPercentages) - NUEVO
+		await seedProductPercentages(prisma)
+
+		// 5. Seguridad y Roles
 		await seedRoles(prisma)
 
 		// 5. Usuarios (depende de Roles)

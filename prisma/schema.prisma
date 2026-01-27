@@ -45,8 +45,8 @@ model ClientOrigin {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  businesses                     Business[]
-  productPercentajeCommisions    ProductPercentajeCommision[]
+  businesses                  Business[]
+  productPercentajeCommisions ProductPercentajeCommision[]
 
   @@map("client_origin")
 }
@@ -62,8 +62,9 @@ model Category {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  users                       User[]
-  productPercentajeCommisions ProductPercentajeCommision[]
+  users                                User[]
+  productPercentajeCommisions          ProductPercentajeCommision[]
+  productPercentajeCommisionCategories ProductPercentajeCommisionCategory[]
 
   @@index([typeCategory])
   @@map("category")
@@ -116,19 +117,7 @@ model Currency {
   @@map("currency")
 }
 
-model Position {
-  idPosition Int      @id @default(autoincrement()) @map("id_position")
-  name       String   @db.VarChar(50)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  // Relaciones
-  productPercentajeCommisionPositions ProductPercentajeCommisionPosition[]
-
-  // Note: 'GENERAL, AGENCIA, GERENTE DE AGENCIA, GERENTE UNIDAD, COACH, KAM INFLUENCER'
-
-  @@map("position")
-}
 
 model TypeProduct {
   idTypeProduct Int      @id @default(autoincrement()) @map("id_type_product")
@@ -179,11 +168,11 @@ model ProductPercentajeCommision {
   updatedAt                    DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  product                             Product                              @relation(fields: [idProduct], references: [idProduct])
-  clientOrigin                        ClientOrigin                         @relation(fields: [idClientOrigin], references: [idClientOrigin])
-  category                            Category                             @relation(fields: [idCategory], references: [idCategory])
-  productPercentajeCommisionPositions ProductPercentajeCommisionPosition[]
-  businesses                          Business[]
+  product                              Product                              @relation(fields: [idProduct], references: [idProduct])
+  clientOrigin                         ClientOrigin                         @relation(fields: [idClientOrigin], references: [idClientOrigin])
+  category                             Category                             @relation(fields: [idCategory], references: [idCategory])
+  productPercentajeCommisionCategories ProductPercentajeCommisionCategory[]
+  businesses                           Business[]
 
   // Note: 'Configuración maestra de porcentajes. Code ejemplo: SKANDIAPROPIOMULTIFON/PLATA'
 
@@ -193,9 +182,9 @@ model ProductPercentajeCommision {
   @@map("product_percentaje_commision")
 }
 
-model ProductPercentajeCommisionPosition {
+model ProductPercentajeCommisionCategory {
   id                           Int      @id @default(autoincrement())
-  idPosition                   Int      @map("id_position")
+  idCategory                   Int      @map("id_category")
   idProductPercentajeCommision Int      @map("id_product_percentaje_commision")
   porcentajeDistribucion       Decimal  @map("porcentaje_distribucion") @db.Decimal(5, 4)
   active                       Boolean  @default(true)
@@ -203,13 +192,13 @@ model ProductPercentajeCommisionPosition {
   updatedAt                    DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  position                   Position                   @relation(fields: [idPosition], references: [idPosition])
+  category                   Category                   @relation(fields: [idCategory], references: [idCategory])
   productPercentajeCommision ProductPercentajeCommision @relation(fields: [idProductPercentajeCommision], references: [idProductPercentajeCommision])
   comissionDistributions     ComissionDistribution[]
 
-  @@index([idPosition])
+  @@index([idCategory])
   @@index([idProductPercentajeCommision])
-  @@map("product_percentaje_commision_position")
+  @@map("product_percentaje_commision_category")
 }
 
 model User {
@@ -236,10 +225,9 @@ model User {
   role                       Role?                       @relation(fields: [idRole], references: [idRole])
   leader                     User?                       @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates               User[]                      @relation("UserLeader")
-  businesses                 Business[]
-  fileImports                FileImport[]
-  userComissionDistributions UserComissionDistribution[]
-  auditLogs                  AuditLog[]
+  businesses  Business[]
+  fileImports FileImport[]
+  auditLogs   AuditLog[]
 
   // Note: 'Coaches, líderes, seniors, juniors con jerarquía recursiva'
 
@@ -267,7 +255,7 @@ model Client {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  businesses   Business[]
+  businesses Business[]
 
   @@unique([typeIdentity, identityNumber])
   @@index([identityNumber])
@@ -279,25 +267,27 @@ model Client {
 // =====================================================
 
 model FileImport {
-  idFileImport       Int      @id @default(autoincrement()) @map("id_file_import")
-  nameFile           String   @map("name_file") @db.VarChar(255)
-  loadDate           DateTime @default(now()) @map("load_date")
-  idUser             Int      @map("id_user")
-  totalRecord        Int      @default(0) @map("total_record")
-  successRecord      Int      @default(0) @map("success_record")
-  errorRecord        Int      @default(0) @map("error_record")
-  sincronizadoRecord Int      @default(0) @map("sincronizado_record")
-  rezagadoRecord     Int      @default(0) @map("rezagado_record")
-  noSincronizadoRecord Int    @default(0) @map("no_sincronizado_record")
-  status             String   @db.VarChar(20)
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  idFileImport         Int       @id @default(autoincrement()) @map("id_file_import")
+  nameFile             String    @map("name_file") @db.VarChar(255)
+  loadDate             DateTime  @default(now()) @map("load_date")
+  idUser               Int       @map("id_user")
+  totalRecord          Int       @default(0) @map("total_record")
+  successRecord        Int       @default(0) @map("success_record")
+  errorRecord          Int       @default(0) @map("error_record")
+  sincronizadoRecord   Int       @default(0) @map("sincronizado_record")
+  rezagadoRecord       Int       @default(0) @map("rezagado_record")
+  noSincronizadoRecord Int       @default(0) @map("no_sincronizado_record")
+  status               String    @db.VarChar(20) // 'PROCESANDO', 'LOAD', 'PARCIAL', 'ERROR', 'CANCELADO', 'PRELIQUIDADO', 'COMPLETADO'
+  preLiquidacionDate   DateTime? @map("pre_liquidacion_date")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
   user                  User                   @relation(fields: [idUser], references: [idUser])
   settlementCommissions SettlementCommission[]
 
   @@index([loadDate])
+  @@index([status])
   @@map("file_import")
 }
 
@@ -323,7 +313,7 @@ model Business {
   productPercentajeCommision ProductPercentajeCommision @relation(fields: [idProductPercentajeCommision], references: [idProductPercentajeCommision])
   currency                   Currency                   @relation(fields: [idCurrency], references: [idCurrency])
   buyPeriodicity             BuyPeriodicity?            @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
-  clientOrigin                ClientOrigin              @relation(fields: [idClientOrigin], references: [idClientOrigin])
+  clientOrigin               ClientOrigin               @relation(fields: [idClientOrigin], references: [idClientOrigin])
   settlementCommissions      SettlementCommission[]
 
   // Note: 'Negocios de un usuario'
@@ -339,82 +329,56 @@ model Business {
 // =====================================================
 
 model SettlementCommission {
-  idSettlementCommission Int       @id @default(autoincrement()) @map("id_settlement_commission")
-  idBusiness             Int?      @map("id_business")
-  idFileImport           Int       @map("id_file_import")
-  // Campos del Excel
-  nombre                 String?   @db.VarChar(200)
-  franquicia             String?   @db.VarChar(200)
-  nombreFp               String?   @map("nombre_fp") @db.VarChar(200)
-  subGrupoFp             String?   @map("sub_grupo_fp") @db.VarChar(200)
-  compania               String?   @db.VarChar(200)
-  producto               String?   @db.VarChar(200)
-  tipoComision           String?   @map("tipo_comision") @db.VarChar(200)
-  contract               String?   @db.VarChar(100) // Cto del Excel
-  // Campos de liquidación
-  dateLiquidation        DateTime? @map("date_liquidation")
-  valueBase              Decimal   @map("value_base") @db.Decimal(15, 2)
-  comissionValor         Decimal?  @map("comission_valor") @db.Decimal(15, 2)
-  comissionDateFrom      DateTime? @map("comission_date_from") @db.Date
-  comissionDateUntil     DateTime? @map("comission_date_until") @db.Date
-  period                 String?   @db.VarChar(50)
-  isLag                  Boolean   @default(true) @map("is_lag")
-  dateSync               DateTime? @map("date_sync") @db.Date
-  status                 String    @db.VarChar(20) // 'REZAGADO', 'ERROR', 'SINCRONIZADO', 'PRELIQUIDADO', 'LIQUIDADO', 'ANULADA'
-  observations           String?   @db.Text
+  idSettlementCommission Int      @id @default(autoincrement())
+  idFileImport           Int      @map("id_file_import")
+  idBusiness             Int?     @map("id_business")
+  
+  // Campos del excel
+  poliza                 String?
+  ramo                   String?
+  producto               String?
+  recibo                 String?
+  concepto               String?
+  fechaPago              DateTime? @map("fecha_pago")
+  valorComision          Decimal?  @map("valor_comision") @db.Decimal(15, 2)
+  porcentajeComision     Decimal?  @map("porcentaje_comision") @db.Decimal(5, 2)
+  valorPrima             Decimal?  @map("valor_prima") @db.Decimal(15, 2)
+  
+  // Campos de control
+  status                 String    @default("PENDIENTE") // PENDIENTE, SINCRONIZADO, ERROR, LAG, PRELIQUIDADO
+  isLag                  Boolean   @default(false) @map("is_lag")
+  error                  String?
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
-  business               Business?               @relation(fields: [idBusiness], references: [idBusiness])
-  fileImport             FileImport              @relation(fields: [idFileImport], references: [idFileImport])
+  fileImport            FileImport @relation(fields: [idFileImport], references: [idFileImport])
+  business              Business?  @relation(fields: [idBusiness], references: [idBusiness])
+  
   comissionDistributions ComissionDistribution[]
 
-  // Note: 'Registro de liquidaciones calculadas para cada negocio. Puede haber múltiples registros por negocio (uno por cada carga de archivo)'
-
-  @@index([status])
-  @@index([period])
-  @@index([contract])
   @@index([idFileImport])
   @@index([idBusiness])
   @@map("settlement_commission")
 }
 
-model LagCommission {
-  idLagCommision     Int       @id @default(autoincrement()) @map("id_lag_commisnion")
-  dateLiquidation    DateTime? @map("date_liquidation")
-  valueBase          Decimal   @map("value_base") @db.Decimal(15, 2)
-  comissionValor     Decimal?  @map("comission_valor") @db.Decimal(15, 2)
-  comissionDateFrom  Int?      @map("comission_date_from")
-  comissionDateUntil DateTime? @map("comission_date_until") @db.Date
-  period             String?   @db.VarChar(50)
-  status             String    @db.VarChar(20) // 'SINCRONIZADA', 'APLICADO'
-  observations       String?   @db.Text
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
 
-  // Note: 'Registro de liquidaciones calculadas para cada negocio'
-
-  @@index([status])
-  @@index([period])
-  @@map("lag_commission")
-}
 
 model ComissionDistribution {
-  idComissionDistribution Int      @id @default(autoincrement()) @map("id_comission_distribution")
-  idSettlementCommission  Int      @map("id_settlement_comission")
-  idPercentajeCommision   Int?     @map("id_percentaje_comission")
-  valueComission          Decimal  @map("value_comission") @db.Decimal(15, 2)
-  valueComissionFinal     Decimal  @map("value_comission_final") @db.Decimal(15, 2)
-  observation             String?  @db.Text
-  status                  String   @db.VarChar(20) // 'LIQUIDADO', 'NOTIFICADO', 'PAGADA', 'ANULADA'
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  idComissionDistribution       Int      @id @default(autoincrement()) @map("id_comission_distribution")
+  idSettlementCommission        Int      @map("id_settlement_comission")
+  idPercentajeCommisionCategory Int?     @map("id_percentaje_commision_category")
+  valueComission                Decimal  @map("value_comission") @db.Decimal(15, 2)
+  valueComissionFinal           Decimal  @map("value_comission_final") @db.Decimal(15, 2)
+  observation                   String?  @db.Text
+  status                        String   @db.VarChar(20) // 'LIQUIDADO', 'NOTIFICADO', 'PAGADA', 'ANULADA'
+  createdAt                     DateTime @default(now()) @map("created_at")
+  updatedAt                     DateTime @updatedAt @map("updated_at")
 
   // Relaciones
   settlementCommission               SettlementCommission                @relation(fields: [idSettlementCommission], references: [idSettlementCommission])
-  productPercentajeCommisionPosition ProductPercentajeCommisionPosition? @relation(fields: [idPercentajeCommision], references: [id])
-  userComissionDistributions         UserComissionDistribution[]
+  productPercentajeCommisionCategory ProductPercentajeCommisionCategory? @relation(fields: [idPercentajeCommisionCategory], references: [id])
+  clawback                           Clawback?
 
   // Note: "El clawback es a nivel de negocio o por liquidación, Distribución detallada con clawback del 10% para Senior/Junior"
 
@@ -422,37 +386,22 @@ model ComissionDistribution {
   @@map("comission_distribution")
 }
 
-model UserComissionDistribution {
-  idUserComissionDistribution Int      @id @default(autoincrement()) @map("id_user_comission_distribution")
-  idUser                      Int      @map("id_user")
-  idComissionDistribution     Int      @map("id_comission_distribution")
-  createdAt                   DateTime @default(now()) @map("created_at")
-  updatedAt                   DateTime @updatedAt @map("updated_at")
 
-  // Relaciones
-  user                  User                  @relation(fields: [idUser], references: [idUser])
-  comissionDistribution ComissionDistribution @relation(fields: [idComissionDistribution], references: [idComissionDistribution])
-  clawbacks             Clawback[]
-
-  @@index([idComissionDistribution])
-  @@index([idUser])
-  @@map("user_comission_distribution")
-}
 
 model Clawback {
-  idClawback                   Int       @id @default(autoincrement()) @map("id_clawback")
-  idUserCommissionDistribution Int       @map("id_user_commission_distribution")
-  valueClawback                Decimal   @map("value_clawback") @db.Decimal(15, 2)
-  porcentajeApplied            Decimal   @map("porcentaje_applied") @db.Decimal(5, 4)
-  state                        String    @db.VarChar(20) // 'RETENIDO', 'LIBERADO', 'APLICADO', 'CANCELADO'
-  appliedDate                  DateTime? @map("applied_date") @db.Date
-  releaseDate                  DateTime? @map("release_date") @db.Date
-  reason                       String?   @db.Text
-  createdAt                    DateTime  @default(now()) @map("created_at")
-  updatedAt                    DateTime  @updatedAt @map("updated_at")
+  idClawback              Int       @id @default(autoincrement()) @map("id_clawback")
+  idComissionDistribution Int       @unique @map("id_comission_distribution")
+  valueClawback           Decimal   @map("value_clawback") @db.Decimal(15, 2)
+  porcentajeApplied       Decimal   @map("porcentaje_applied") @db.Decimal(5, 4)
+  state                   String    @db.VarChar(20) // 'RETENIDO', 'LIBERADO', 'APLICADO', 'CANCELADO'
+  appliedDate             DateTime? @map("applied_date") @db.Date
+  releaseDate             DateTime? @map("release_date") @db.Date
+  reason                  String?   @db.Text
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
-  userComissionDistribution UserComissionDistribution @relation(fields: [idUserCommissionDistribution], references: [idUserComissionDistribution])
+  comissionDistribution ComissionDistribution @relation(fields: [idComissionDistribution], references: [idComissionDistribution])
 
   // Note: 'Histórico de retenciones clawback (90 días)'
 
