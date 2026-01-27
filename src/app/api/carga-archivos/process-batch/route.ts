@@ -121,12 +121,6 @@ function cleanStringValue(value: unknown): string | null {
 /**
  * Procesa y guarda un registro individual
  */
-/**
- * Procesa y guarda un registro individual
- */
-/**
- * Procesa y guarda un registro individual
- */
 async function processAndSaveRecord(
 	record: ProcessedRecord,
 	headers: string[],
@@ -151,24 +145,19 @@ async function processAndSaveRecord(
 			// Guardar con estado ERROR
 			await prisma.settlementCommission.create({
 				data: {
-
 					idFileImport: fileImportId,
-					contract: null,
-					nombre: cleanStringValue(getColumnValue(record, 'Nombre', headers)),
-					franquicia: cleanStringValue(getColumnValue(record, 'Franquicia', headers)),
-					nombreFp: cleanStringValue(getColumnValue(record, 'Nombre Fp', headers)),
-					subGrupoFp: cleanStringValue(getColumnValue(record, 'Sub Grupo Fp', headers)),
-					compania: cleanStringValue(getColumnValue(record, 'Compania', headers)),
+					poliza: null,
+					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
 					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					tipoComision: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					valueBase: toDecimal(base),
-					comissionValor: com ? toDecimal(com) : null,
-					comissionDateFrom: desde ? parseDate(desde) : null,
-					comissionDateUntil: hasta ? parseDate(hasta) : null,
+					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
+					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
+					fechaPago: desde ? parseDate(desde) : null,
+					valorComision: com ? toDecimal(com) : null,
+					porcentajeComision: null,
+					valorPrima: toDecimal(base),
 					status: 'ERROR',
 					isLag: true,
-					dateSync: null,
-					observations: 'El campo Cto (ID de contrato) está vacío',
+					error: 'El campo Cto (ID de contrato) está vacío',
 				},
 			})
 			return { status: 'ERROR', isLag: true, idBusiness: null, recoveredLag: false }
@@ -182,24 +171,19 @@ async function processAndSaveRecord(
 		if (!desdeDate || !hastaDate) {
 			await prisma.settlementCommission.create({
 				data: {
-
 					idFileImport: fileImportId,
-					contract: contractValue,
-					nombre: cleanStringValue(getColumnValue(record, 'Nombre', headers)),
-					franquicia: cleanStringValue(getColumnValue(record, 'Franquicia', headers)),
-					nombreFp: cleanStringValue(getColumnValue(record, 'Nombre Fp', headers)),
-					subGrupoFp: cleanStringValue(getColumnValue(record, 'Sub Grupo Fp', headers)),
-					compania: cleanStringValue(getColumnValue(record, 'Compania', headers)),
+					poliza: contractValue,
+					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
 					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					tipoComision: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					valueBase: toDecimal(base),
-					comissionValor: com ? toDecimal(com) : null,
-					comissionDateFrom: desdeDate,
-					comissionDateUntil: hastaDate,
+					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
+					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
+					fechaPago: desdeDate,
+					valorComision: com ? toDecimal(com) : null,
+					porcentajeComision: null,
+					valorPrima: toDecimal(base),
 					status: 'ERROR',
 					isLag: true,
-					dateSync: null,
-					observations: 'Las fechas Desde o Hasta están vacías o son inválidas',
+					error: 'Las fechas Desde o Hasta están vacías o son inválidas',
 				},
 			})
 			return { status: 'ERROR', isLag: true, idBusiness: null, recoveredLag: false }
@@ -213,23 +197,18 @@ async function processAndSaveRecord(
 			// "Contador UI: No Sincronizado"
 			await prisma.settlementCommission.create({
 				data: {
-
 					idFileImport: fileImportId,
-					contract: contractValue,
-					nombre: cleanStringValue(getColumnValue(record, 'Nombre', headers)),
-					franquicia: cleanStringValue(getColumnValue(record, 'Franquicia', headers)),
-					nombreFp: cleanStringValue(getColumnValue(record, 'Nombre Fp', headers)),
-					subGrupoFp: cleanStringValue(getColumnValue(record, 'Sub Grupo Fp', headers)),
-					compania: cleanStringValue(getColumnValue(record, 'Compania', headers)),
+					poliza: contractValue,
+					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
 					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					tipoComision: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					valueBase: toDecimal(base),
-					comissionValor: com ? toDecimal(com) : null,
-					comissionDateFrom: desdeDate,
-					comissionDateUntil: hastaDate,
+					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
+					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
+					fechaPago: desdeDate,
+					valorComision: com ? toDecimal(com) : null,
+					porcentajeComision: null,
+					valorPrima: toDecimal(base),
 					status: 'LAG',
 					isLag: true,
-					dateSync: null,
 				},
 			})
 			// Retornamos status LAG para identificarlo, pero sin idBusiness
@@ -242,7 +221,7 @@ async function processAndSaveRecord(
 		// "Existe Negocio + Existe Rezagado Previo"
 		const existingLag = await prisma.settlementCommission.findFirst({
 			where: {
-				contract: contractValue,
+				poliza: contractValue,
 				isLag: true,
 				// Buscamos cualquier status que denote lag, incluyendo el nuevo 'LAG' o antiguos 'REZAGADO'
 				status: { in: ['LAG', 'REZAGADO'] },
@@ -251,16 +230,14 @@ async function processAndSaveRecord(
 
 		// ====== CASO 2: EXISTE NEGOCIO + EXISTE REZAGADO PREVIO ======
 		if (existingLag) {
-			// 1. "Actualizar Rezagado anterior -> Cambiar a estatus ‘SINCRONIZADO’, aumentar contador rezagado"
+			// 1. "Actualizar Rezagado anterior -> Cambiar a estatus 'SINCRONIZADO', aumentar contador rezagado"
 			await prisma.settlementCommission.update({
 				where: { idSettlementCommission: existingLag.idSettlementCommission },
 				data: {
 					status: 'SINCRONIZADO',
 					isLag: false,
-
 					idBusiness: business.idBusiness, // Vinculamos por si acaso
-					dateSync: new Date(),
-					observations: (existingLag.observations ? existingLag.observations + ' | ' : '') + 'Recuperado por carga posterior',
+					error: (existingLag.error ? existingLag.error + ' | ' : '') + 'Recuperado por carga posterior',
 				},
 			})
 
@@ -269,21 +246,17 @@ async function processAndSaveRecord(
 				data: {
 					idFileImport: fileImportId,
 					idBusiness: business.idBusiness,
-					contract: contractValue,
-					nombre: cleanStringValue(getColumnValue(record, 'Nombre', headers)),
-					franquicia: cleanStringValue(getColumnValue(record, 'Franquicia', headers)),
-					nombreFp: cleanStringValue(getColumnValue(record, 'Nombre Fp', headers)),
-					subGrupoFp: cleanStringValue(getColumnValue(record, 'Sub Grupo Fp', headers)),
-					compania: cleanStringValue(getColumnValue(record, 'Compania', headers)),
+					poliza: contractValue,
+					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
 					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					tipoComision: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					valueBase: toDecimal(base),
-					comissionValor: com ? toDecimal(com) : null,
-					comissionDateFrom: desdeDate,
-					comissionDateUntil: hastaDate,
+					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
+					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
+					fechaPago: desdeDate,
+					valorComision: com ? toDecimal(com) : null,
+					porcentajeComision: null,
+					valorPrima: toDecimal(base),
 					status: 'SINCRONIZADO',
 					isLag: false,
-					dateSync: new Date(),
 				},
 			})
 
@@ -302,47 +275,39 @@ async function processAndSaveRecord(
 				data: {
 					idFileImport: fileImportId,
 					idBusiness: business.idBusiness,
-					contract: contractValue,
-					nombre: cleanStringValue(getColumnValue(record, 'Nombre', headers)),
-					franquicia: cleanStringValue(getColumnValue(record, 'Franquicia', headers)),
-					nombreFp: cleanStringValue(getColumnValue(record, 'Nombre Fp', headers)),
-					subGrupoFp: cleanStringValue(getColumnValue(record, 'Sub Grupo Fp', headers)),
-					compania: cleanStringValue(getColumnValue(record, 'Compania', headers)),
+					poliza: contractValue,
+					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
 					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					tipoComision: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					valueBase: toDecimal(base),
-					comissionValor: com ? toDecimal(com) : null,
-					comissionDateFrom: desdeDate,
-					comissionDateUntil: hastaDate,
+					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
+					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
+					fechaPago: desdeDate,
+					valorComision: com ? toDecimal(com) : null,
+					porcentajeComision: null,
+					valorPrima: toDecimal(base),
 					status: 'SINCRONIZADO',
 					isLag: false,
-					dateSync: new Date(),
 				},
 			})
 			return { status: 'SINCRONIZADO', isLag: false, idBusiness: business.idBusiness, recoveredLag: false }
 		} else {
 			// ====== CASO 4: EXISTE NEGOCIO + SIN REZAGADO + FECHAS NO COINCIDEN ======
-			// "Crear registro (Fallo fecha) -> status: ‘LAG’, isLag: true"
+			// "Crear registro (Fallo fecha) -> status: 'LAG', isLag: true"
 			// "No Sincronizado -> aumentar el contador de rezagados"
 			await prisma.settlementCommission.create({
 				data: {
 					idFileImport: fileImportId,
 					idBusiness: business.idBusiness, // Vinculado
-					contract: contractValue,
-					nombre: cleanStringValue(getColumnValue(record, 'Nombre', headers)),
-					franquicia: cleanStringValue(getColumnValue(record, 'Franquicia', headers)),
-					nombreFp: cleanStringValue(getColumnValue(record, 'Nombre Fp', headers)),
-					subGrupoFp: cleanStringValue(getColumnValue(record, 'Sub Grupo Fp', headers)),
-					compania: cleanStringValue(getColumnValue(record, 'Compania', headers)),
+					poliza: contractValue,
+					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
 					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					tipoComision: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					valueBase: toDecimal(base),
-					comissionValor: com ? toDecimal(com) : null,
-					comissionDateFrom: desdeDate,
-					comissionDateUntil: hastaDate,
+					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
+					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
+					fechaPago: desdeDate,
+					valorComision: com ? toDecimal(com) : null,
+					porcentajeComision: null,
+					valorPrima: toDecimal(base),
 					status: 'LAG',
 					isLag: true,
-					dateSync: null,
 				},
 			})
 			// Retornamos LAG para identificarlo.
@@ -357,30 +322,23 @@ async function processAndSaveRecord(
 		try {
 			await prisma.settlementCommission.create({
 				data: {
-
 					idFileImport: fileImportId,
-					contract: cleanStringValue(getColumnValue(record, 'Cto', headers)),
-					nombre: cleanStringValue(getColumnValue(record, 'Nombre', headers)),
-					franquicia: cleanStringValue(getColumnValue(record, 'Franquicia', headers)),
-					nombreFp: cleanStringValue(getColumnValue(record, 'Nombre Fp', headers)),
-					subGrupoFp: cleanStringValue(getColumnValue(record, 'Sub Grupo Fp', headers)),
-					compania: cleanStringValue(getColumnValue(record, 'Compania', headers)),
+					poliza: cleanStringValue(getColumnValue(record, 'Cto', headers)),
+					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
 					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					tipoComision: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					valueBase: toDecimal(getColumnValue(record, 'Base', headers)),
-					comissionValor: getColumnValue(record, 'Com', headers)
-						? toDecimal(getColumnValue(record, 'Com', headers))
-						: null,
-					comissionDateFrom: getColumnValue(record, 'Desde', headers)
+					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
+					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
+					fechaPago: getColumnValue(record, 'Desde', headers)
 						? parseDate(getColumnValue(record, 'Desde', headers))
 						: null,
-					comissionDateUntil: getColumnValue(record, 'Hasta', headers)
-						? parseDate(getColumnValue(record, 'Hasta', headers))
+					valorComision: getColumnValue(record, 'Com', headers)
+						? toDecimal(getColumnValue(record, 'Com', headers))
 						: null,
+					porcentajeComision: null,
+					valorPrima: toDecimal(getColumnValue(record, 'Base', headers)),
 					status: 'ERROR',
 					isLag: true,
-					dateSync: null,
-					observations: `Error al procesar: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+					error: `Error al procesar: ${error instanceof Error ? error.message : 'Error desconocido'}`,
 				},
 			})
 		} catch (saveError) {
@@ -495,7 +453,7 @@ export async function POST(request: NextRequest) {
 				sincronizadoRecord: sincronizadoCount,
 				rezagadoRecord: rezagadoCount,
 				noSincronizadoRecord: noSincronizadoCount,
-				status: 'COMPLETADO',
+				status: 'LOAD',
 			},
 		})
 

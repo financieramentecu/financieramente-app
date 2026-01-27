@@ -28,6 +28,8 @@ export default function UserDetailPage() {
     const handleUpdate = async (data: {
         active?: boolean
         roleId?: number | null
+        categoryId?: number | null
+        leaderId?: number | null
     }) => {
         await updateUser(userId, data)
         refreshUser()
@@ -95,18 +97,14 @@ export default function UserDetailPage() {
                     </Button>
                 </div>
 
-                {/* Content Grid */}
-                <div className="grid gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
-                        <UserInfoCard user={user} />
-                    </div>
-                    <div className="lg:col-span-1">
-                        <UserActionsCard
-                            user={user}
-                            onUpdate={handleUpdate}
-                            isLoading={isSubmitting}
-                        />
-                    </div>
+                {/* Content - Stacked Layout */}
+                <div className="space-y-6">
+                    <UserInfoCard user={user} />
+                    <UserActionsCard
+                        user={user}
+                        onUpdate={handleUpdate}
+                        isLoading={isSubmitting}
+                    />
                 </div>
             </div>
         </DashboardLayout>

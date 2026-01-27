@@ -36,6 +36,8 @@ interface UseCategoriesReturn {
  * ```
  */
 export function useCategories(params: UseCategoriesParams = {}): UseCategoriesReturn {
+	const { page, pageSize, search, status, typeCategory } = params
+
 	const [state, setState] = useState<AsyncState<CategoryListResponse>>({
 		status: 'loading',
 		data: undefined,
@@ -46,7 +48,13 @@ export function useCategories(params: UseCategoriesParams = {}): UseCategoriesRe
 		setState({ status: 'loading', data: undefined, error: '' })
 
 		try {
-			const response = await categoryApi.getCategories(params)
+			const response = await categoryApi.getCategories({
+				page,
+				pageSize,
+				search,
+				status,
+				typeCategory,
+			})
 
 			if ('error' in response) {
 				setState({
@@ -72,13 +80,7 @@ export function useCategories(params: UseCategoriesParams = {}): UseCategoriesRe
 						: 'Error desconocido al obtener categorías',
 			})
 		}
-	}, [
-		params.page,
-		params.pageSize,
-		params.search,
-		params.status,
-		params.typeCategory,
-	])
+	}, [page, pageSize, search, status, typeCategory])
 
 	useEffect(() => {
 		fetchCategories()
