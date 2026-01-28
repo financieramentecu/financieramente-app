@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { toast } from 'sonner'
 import { FileText, Calculator, AlertCircle, Filter, X, History, Clock } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { usePreLiquidacion } from '@/features/pre-liquidacion/hooks/use-pre-liquidacion'
@@ -10,6 +11,8 @@ import { ProcesandoPreLiquidacion } from './components/ProcesandoPreLiquidacion'
 import { ResultadosPreLiquidacion } from './components/ResultadosPreLiquidacion'
 import { Button } from '@/features/shared/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/features/shared/ui/tabs'
+import { EmptyState } from '@/features/shared/ui/empty-state'
+import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import {
     Select,
     SelectContent,
@@ -17,6 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/features/shared/ui/select'
+import { Label } from '@/features/shared/ui/label'
 
 /**
  * Página principal del módulo de Pre-liquidación
@@ -140,14 +144,15 @@ export default function PreLiquidacionPage() {
     // Componente de filtros reutilizable
     const FiltrosComponent = () => (
         <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Filter className="h-4 w-4" />
                 <span>Filtrar por:</span>
             </div>
 
-            <div className="w-32">
+            <div className="w-32 space-y-1.5">
+                <Label htmlFor="filtro-mes" className="text-xs text-muted-foreground">Mes</Label>
                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                    <SelectTrigger>
+                    <SelectTrigger id="filtro-mes">
                         <SelectValue placeholder="Mes" />
                     </SelectTrigger>
                     <SelectContent>
@@ -160,9 +165,10 @@ export default function PreLiquidacionPage() {
                 </Select>
             </div>
 
-            <div className="w-24">
+            <div className="w-24 space-y-1.5">
+                <Label htmlFor="filtro-anio" className="text-xs text-muted-foreground">Año</Label>
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger>
+                    <SelectTrigger id="filtro-anio">
                         <SelectValue placeholder="Año" />
                     </SelectTrigger>
                     <SelectContent>
@@ -178,12 +184,14 @@ export default function PreLiquidacionPage() {
             {(selectedMonth || selectedYear) && (
                 <Button
                     variant="ghost"
-                    size="icon"
+                    size="sm"
                     onClick={clearFilters}
-                    className="h-9 w-9 text-gray-500 hover:text-red-500"
+                    className="h-9 text-muted-foreground hover:text-destructive"
+                    aria-label="Limpiar filtros"
                     title="Limpiar filtros"
                 >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Limpiar</span>
                 </Button>
             )}
         </div>
@@ -197,11 +205,22 @@ export default function PreLiquidacionPage() {
     // O validar en el click handlePreLiquidarClick
     const handlePreLiquidarClickConValidacion = (fileId: number) => {
         if (!puedePreLiquidar) {
-            alert('Por favor selecciona un Mes y Año en los filtros para proceder con la Pre-liquidación.')
+            toast.warning('Selecciona mes y año en los filtros para continuar con la pre-liquidación.')
             return
         }
         handlePreLiquidarClick(fileId)
     }
+
+    // Feedback unificado por toast (en lugar de bloques inline)
+    useEffect(() => {
+        if (error) toast.error(error)
+    }, [error])
+    useEffect(() => {
+        if (errorProcesamiento) toast.error(errorProcesamiento)
+    }, [errorProcesamiento])
+    useEffect(() => {
+        if (mensajeExito) toast.success(mensajeExito)
+    }, [mensajeExito])
 
     return (
         <DashboardLayout currentPage="Pre-liquidación">
@@ -209,41 +228,15 @@ export default function PreLiquidacionPage() {
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex items-center gap-3 mb-2">
-                        <Calculator className="h-8 w-8 text-[#00505C]" />
-                        <h1 className="text-3xl font-bold text-[#00505C]">
+                        <Calculator className="h-8 w-8 text-primary" />
+                        <h1 className="text-3xl font-bold text-primary">
                             Pre-liquidación de Comisiones
                         </h1>
                     </div>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                         Procesa archivos sincronizados y genera cálculos de distribución comisional automáticos
                     </p>
                 </div>
-
-                {/* Error global */}
-                {error && (
-                    <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5" />
-                        <p>{error}</p>
-                    </div>
-                )}
-
-                {/* Error de procesamiento */}
-                {errorProcesamiento && (
-                    <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5" />
-                        <p>{errorProcesamiento}</p>
-                    </div>
-                )}
-
-                {/* Mensaje de éxito */}
-                {mensajeExito && (
-                    <div className="mb-6 p-4 bg-green-50 text-green-700 rounded-md flex items-center gap-2">
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <p>{mensajeExito}</p>
-                    </div>
-                )}
 
                 {/* Tabs principales */}
                 <Tabs defaultValue="preliquidar" className="w-full">
@@ -278,74 +271,71 @@ export default function PreLiquidacionPage() {
 
                                 {/* Panel de Resumen (dentro del tab, basado en filtros) */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                                    <div className="bg-card rounded-lg border border-border p-4 shadow-sm">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm text-gray-500">Total Archivos</p>
-                                                <p className="text-2xl font-bold text-[#00505C]">{resumenFiltrado.totalArchivos}</p>
+                                                <p className="text-sm text-muted-foreground">Total Archivos</p>
+                                                <p className="text-2xl font-bold text-chart-1">{resumenFiltrado.totalArchivos}</p>
                                             </div>
-                                            <FileText className="h-8 w-8 text-[#00505C] opacity-50" />
+                                            <FileText className="h-8 w-8 text-chart-1 opacity-50" />
                                         </div>
                                     </div>
-                                    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                                    <div className="bg-card rounded-lg border border-border p-4 shadow-sm">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm text-gray-500">Total Registros</p>
-                                                <p className="text-2xl font-bold text-blue-600">{resumenFiltrado.totalRegistros}</p>
+                                                <p className="text-sm text-muted-foreground">Total Registros</p>
+                                                <p className="text-2xl font-bold text-chart-2">{resumenFiltrado.totalRegistros}</p>
                                             </div>
-                                            <FileText className="h-8 w-8 text-blue-600 opacity-50" />
+                                            <FileText className="h-8 w-8 text-chart-2 opacity-50" />
                                         </div>
                                     </div>
-                                    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                                    <div className="bg-card rounded-lg border border-border p-4 shadow-sm">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm text-gray-500">Sincronizados</p>
-                                                <p className="text-2xl font-bold text-green-600">{resumenFiltrado.sincronizados}</p>
+                                                <p className="text-sm text-muted-foreground">Sincronizados</p>
+                                                <p className="text-2xl font-bold text-chart-3">{resumenFiltrado.sincronizados}</p>
                                             </div>
-                                            <Clock className="h-8 w-8 text-green-600 opacity-50" />
+                                            <Clock className="h-8 w-8 text-chart-3 opacity-50" />
                                         </div>
                                     </div>
-                                    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                                    <div className="bg-card rounded-lg border border-border p-4 shadow-sm">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm text-gray-500">Rezagados</p>
-                                                <p className="text-2xl font-bold text-amber-600">{resumenFiltrado.rezagados}</p>
+                                                <p className="text-sm text-muted-foreground">Rezagados</p>
+                                                <p className="text-2xl font-bold text-chart-4">{resumenFiltrado.rezagados}</p>
                                             </div>
-                                            <AlertCircle className="h-8 w-8 text-amber-600 opacity-50" />
+                                            <AlertCircle className="h-8 w-8 text-chart-4 opacity-50" />
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Lista de archivos */}
-                                <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                                <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
                                     <div className="flex items-center gap-2 mb-4">
-                                        <FileText className="h-5 w-5 text-[#00505C]" />
-                                        <h2 className="text-lg font-semibold text-[#00505C]">
+                                        <FileText className="h-5 w-5 text-primary" />
+                                        <h2 className="text-lg font-semibold text-primary">
                                             Archivos Pendientes de Pre-liquidar
                                         </h2>
                                     </div>
 
                                     {!puedePreLiquidar && (
-                                        <div className="mb-4 p-3 bg-blue-50 text-blue-800 text-sm rounded-md border border-blue-100 flex items-center gap-2">
+                                        <div className="mb-4 p-3 bg-info-muted text-info text-sm rounded-md border border-info/30 flex items-center gap-2">
                                             <Filter className="h-4 w-4" />
                                             <span>Para pre-liquidar, primero selecciona un <b>Mes</b> y <b>Año</b> en los filtros superiores.</span>
                                         </div>
                                     )}
 
                                     {isLoading ? (
-                                        <div className="text-center py-12">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00505C] mx-auto"></div>
-                                            <p className="text-muted-foreground mt-4">Cargando archivos...</p>
-                                        </div>
+                                        <TableRowsLoadingSkeleton rows={6} />
                                     ) : archivosPendientesFiltrados.length === 0 ? (
-                                        <div className="text-center py-12">
-                                            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                            <p className="text-muted-foreground">
-                                                {archivosPendientes.length === 0
+                                        <EmptyState
+                                            icon={<FileText className="h-12 w-12" />}
+                                            title={
+                                                archivosPendientes.length === 0
                                                     ? 'No hay archivos pendientes de pre-liquidar'
-                                                    : 'No hay archivos que coincidan con los filtros seleccionados'}
-                                            </p>
-                                        </div>
+                                                    : 'No hay archivos que coincidan con los filtros seleccionados'
+                                            }
+                                        />
                                     ) : (
                                         <ListaArchivosDisponibles
                                             archivos={archivosPendientesFiltrados}
@@ -360,11 +350,11 @@ export default function PreLiquidacionPage() {
 
                     {/* Tab Histórico */}
                     <TabsContent value="historico">
-                        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                        <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                                 <div className="flex items-center gap-2">
-                                    <History className="h-5 w-5 text-[#00505C]" />
-                                    <h2 className="text-lg font-semibold text-[#00505C]">
+                                    <History className="h-5 w-5 text-primary" />
+                                    <h2 className="text-lg font-semibold text-primary">
                                         Histórico de Pre-liquidaciones
                                     </h2>
                                 </div>
@@ -372,52 +362,75 @@ export default function PreLiquidacionPage() {
                             </div>
 
                             {isLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00505C] mx-auto"></div>
-                                    <p className="text-muted-foreground mt-4">Cargando histórico...</p>
-                                </div>
+                                <TableRowsLoadingSkeleton rows={6} />
                             ) : archivosHistoricoFiltrados.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                    <p className="text-muted-foreground">
-                                        {archivosHistorico.length === 0
+                                <EmptyState
+                                    icon={<History className="h-12 w-12" />}
+                                    title={
+                                        archivosHistorico.length === 0
                                             ? 'No hay archivos pre-liquidados aún'
-                                            : 'No hay archivos que coincidan con los filtros seleccionados'}
-                                    </p>
-                                </div>
+                                            : 'No hay archivos que coincidan con los filtros seleccionados'
+                                    }
+                                />
                             ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="text-left py-3 px-4 font-semibold text-gray-700">Archivo</th>
-                                                <th className="text-left py-3 px-4 font-semibold text-gray-700">Fecha Carga</th>
-                                                <th className="text-left py-3 px-4 font-semibold text-gray-700">Fecha Pre-liquidación</th>
-                                                <th className="text-center py-3 px-4 font-semibold text-gray-700">Registros</th>
-                                                <th className="text-center py-3 px-4 font-semibold text-gray-700">Sincronizados</th>
-                                                <th className="text-center py-3 px-4 font-semibold text-gray-700">Rezagados</th>
-                                                <th className="text-center py-3 px-4 font-semibold text-gray-700">Estado</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {archivosHistoricoFiltrados.map((archivo) => (
-                                                <tr key={archivo.idFileImport} className="border-t hover:bg-gray-50">
-                                                    <td className="py-3 px-4 font-medium">{archivo.nombreArchivo}</td>
-                                                    <td className="py-3 px-4">{archivo.fechaCarga}</td>
-                                                    <td className="py-3 px-4">{archivo.fechaPreLiquidacion || '-'}</td>
-                                                    <td className="py-3 px-4 text-center">{archivo.totalRegistros}</td>
-                                                    <td className="py-3 px-4 text-center text-green-600">{archivo.sincronizados}</td>
-                                                    <td className="py-3 px-4 text-center text-amber-600">{archivo.rezagados}</td>
-                                                    <td className="py-3 px-4 text-center">
-                                                        <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700">
-                                                            Pre-liquidado
-                                                        </span>
-                                                    </td>
+                                <>
+                                    {/* Vista cards en móvil */}
+                                    <div className="md:hidden space-y-3">
+                                        {archivosHistoricoFiltrados.map((archivo) => (
+                                            <div
+                                                key={archivo.idFileImport}
+                                                className="rounded-lg border border-border bg-card p-4 shadow-sm"
+                                            >
+                                                <div className="font-medium text-foreground">{archivo.nombreArchivo}</div>
+                                                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                                                    <span>Carga: {archivo.fechaCarga}</span>
+                                                    <span>Pre-liq.: {archivo.fechaPreLiquidacion || '-'}</span>
+                                                </div>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-sm">
+                                                    <span>Registros: {archivo.totalRegistros}</span>
+                                                    <span className="text-chart-3">Sync: {archivo.sincronizados}</span>
+                                                    <span className="text-chart-4">Rezag: {archivo.rezagados}</span>
+                                                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-success-muted text-success">
+                                                        Pre-liquidado
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* Tabla en desktop */}
+                                    <div className="hidden md:block overflow-x-auto rounded-md border border-border">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted">
+                                                <tr>
+                                                    <th className="text-left py-3 px-4 font-semibold text-foreground" scope="col">Archivo</th>
+                                                    <th className="text-left py-3 px-4 font-semibold text-foreground" scope="col">Fecha Carga</th>
+                                                    <th className="text-left py-3 px-4 font-semibold text-foreground" scope="col">Fecha Pre-liquidación</th>
+                                                    <th className="text-center py-3 px-4 font-semibold text-foreground" scope="col">Registros</th>
+                                                    <th className="text-center py-3 px-4 font-semibold text-foreground" scope="col">Sincronizados</th>
+                                                    <th className="text-center py-3 px-4 font-semibold text-foreground" scope="col">Rezagados</th>
+                                                    <th className="text-center py-3 px-4 font-semibold text-foreground" scope="col">Estado</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                            </thead>
+                                            <tbody>
+                                                {archivosHistoricoFiltrados.map((archivo) => (
+                                                    <tr key={archivo.idFileImport} className="border-t border-border hover:bg-muted/50">
+                                                        <td className="py-3 px-4 font-medium">{archivo.nombreArchivo}</td>
+                                                        <td className="py-3 px-4">{archivo.fechaCarga}</td>
+                                                        <td className="py-3 px-4">{archivo.fechaPreLiquidacion || '-'}</td>
+                                                        <td className="py-3 px-4 text-center">{archivo.totalRegistros}</td>
+                                                        <td className="py-3 px-4 text-center text-chart-3">{archivo.sincronizados}</td>
+                                                        <td className="py-3 px-4 text-center text-chart-4">{archivo.rezagados}</td>
+                                                        <td className="py-3 px-4 text-center">
+                                                            <span className="px-2 py-1 rounded text-xs font-medium bg-success-muted text-success">
+                                                                Pre-liquidado
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </TabsContent>

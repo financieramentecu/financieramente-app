@@ -71,7 +71,7 @@ export function ContractInput({
 				/>
 				<div className="absolute right-3 top-1/2 -translate-y-1/2">
 					{isValidating && (
-						<Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+						<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
 					)}
 					{showValidationState && isValid === true && (
 						<CheckCircle2 className="h-4 w-4 text-green-500" />

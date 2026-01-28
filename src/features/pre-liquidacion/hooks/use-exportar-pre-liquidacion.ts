@@ -22,7 +22,10 @@ export function useExportarPreLiquidacion() {
             })
 
             if (!response.ok) {
-                const errorData = await response.json()
+                const contentType = response.headers.get('content-type')
+                const errorData = contentType?.includes('application/json')
+                    ? await response.json().catch(() => ({ error: `Error ${response.status}` }))
+                    : { error: `Error ${response.status}: ${response.statusText}` }
                 setError(errorData.error || 'Error al exportar')
                 return
             }

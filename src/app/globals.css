@@ -29,6 +29,20 @@
 		--destructive: 0 84.2% 60.2%;
 		--destructive-foreground: 0 0% 100%;
 
+		/* Semánticos: success, warning, info */
+		--success: 142 76% 36%;
+		--success-muted: 142 70% 95%;
+		--warning: 38 92% 50%;
+		--warning-muted: 48 96% 89%;
+		--info: 217 91% 60%;
+		--info-muted: 214 100% 97%;
+
+		/* Chart / datos: registros, sincronizados, rezagados */
+		--chart-1: 185 100% 18%;
+		--chart-2: 217 91% 60%;
+		--chart-3: 142 76% 36%;
+		--chart-4: 38 92% 50%;
+
 		/* Colores de interfaz */
 		--border: 185 20% 91%;
 		--input: 185 20% 91%;
@@ -76,6 +90,20 @@
 		/* Colores de estado para tema oscuro */
 		--destructive: 0 62.8% 30.6%;
 		--destructive-foreground: 0 0% 100%;
+
+		/* Semánticos dark */
+		--success: 142 56% 45%;
+		--success-muted: 142 30% 18%;
+		--warning: 38 92% 55%;
+		--warning-muted: 38 30% 18%;
+		--info: 217 91% 65%;
+		--info-muted: 217 30% 18%;
+
+		/* Chart dark */
+		--chart-1: 185 100% 45%;
+		--chart-2: 217 91% 65%;
+		--chart-3: 142 56% 45%;
+		--chart-4: 38 92% 55%;
 
 		/* Colores de interfaz para tema oscuro */
 		--border: 185 30% 20%;

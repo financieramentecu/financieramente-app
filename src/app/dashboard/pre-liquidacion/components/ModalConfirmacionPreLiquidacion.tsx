@@ -45,28 +45,28 @@ export function ModalConfirmacionPreLiquidacion({
                 </button>
 
                 <DialogHeader>
-                    <DialogTitle className="text-xl font-bold text-[#00505C] flex items-center gap-2">
+                    <DialogTitle className="text-xl font-bold text-primary flex items-center gap-2">
                         Confirmar Pre-liquidación
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4">
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                         ¿Está seguro de que desea procesar la pre-liquidación del archivo{' '}
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-foreground">
                             “{archivo.nombreArchivo}”
                         </span>?
                     </p>
 
                     {mesSeleccionado && (
-                        <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
-                            <p className="text-sm text-blue-800 font-medium">
+                        <div className="bg-info-muted p-3 rounded-md border border-info/30">
+                            <p className="text-sm text-info font-medium">
                                 Se liquidará para el periodo: <span className="font-bold">{mesSeleccionado}</span>
                             </p>
                         </div>
                     )}
 
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                         Se procesarán los registros sincronizados dentro del mes seleccionado, aplicando las fórmulas de distribución configuradas.
                     </p>
                 </div>
@@ -76,14 +76,14 @@ export function ModalConfirmacionPreLiquidacion({
                         variant="outline"
                         onClick={() => onOpenChange(false)}
                         disabled={isProcesando}
-                        className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
+                        className="w-full sm:w-auto"
                     >
                         Cancelar
                     </Button>
                     <Button
                         onClick={onConfirmar}
                         disabled={isProcesando}
-                        className="w-full sm:w-auto font-semibold text-white bg-[#8dd67a] hover:bg-[#7bc469]"
+                        className="w-full sm:w-auto font-semibold"
                     >
                         {isProcesando ? (
                             <>

@@ -67,20 +67,20 @@ export function ResultadosPreLiquidacion({
                     variant="ghost"
                     size="icon"
                     onClick={onBack}
-                    className="h-10 w-10 rounded-full hover:bg-gray-100"
+                    className="h-10 w-10 rounded-full hover:bg-muted"
                 >
-                    <ArrowLeft className="h-6 w-6 text-gray-600" />
+                    <ArrowLeft className="h-6 w-6 text-muted-foreground" />
                 </Button>
                 <div>
-                    <h2 className="text-2xl font-bold text-[#00505C]">Resultados Detallados</h2>
+                    <h2 className="text-2xl font-bold text-primary">Resultados Detallados</h2>
                 </div>
             </div>
 
             {/* Filtros */}
-            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <div className="bg-card p-6 rounded-lg border border-border shadow-sm">
                 <div className="flex flex-col md:flex-row gap-4 items-end">
                     <div className="w-full md:w-1/4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                             Rango desde (Comisión):
                         </label>
                         <Input
@@ -91,7 +91,7 @@ export function ResultadosPreLiquidacion({
                         />
                     </div>
                     <div className="w-full md:w-1/4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                             Rango hasta (Comisión):
                         </label>
                         <Input
@@ -106,7 +106,7 @@ export function ResultadosPreLiquidacion({
                         <Button
                             variant="outline"
                             onClick={limpiarFiltros}
-                            className="border-gray-300"
+                            className=""
                         >
                             Limpiar
                         </Button>
@@ -115,16 +115,16 @@ export function ResultadosPreLiquidacion({
             </div>
 
             {/* Tabla de Resultados */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
+            <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
-                        <h3 className="text-xl font-bold text-[#00505C]">Registros Pre-liquidados</h3>
-                        <p className="text-gray-500">
+                        <h3 className="text-xl font-bold text-primary">Registros Pre-liquidados</h3>
+                        <p className="text-muted-foreground">
                             Total registros: {paginacion?.totalRegistros || 0}
                         </p>
                     </div>
                     {/* Exportar pendiente de implementación dinámica, por ahora visual */}
-                    <Button className="bg-[#00505C] hover:bg-[#003d47] text-white">
+                    <Button>
                         <Download className="h-4 w-4 mr-2" />
                         Exportar Excel
                     </Button>
@@ -132,31 +132,31 @@ export function ResultadosPreLiquidacion({
 
                 {isLoading ? (
                     <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00505C] mx-auto"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto"></div>
                         <p className="text-muted-foreground mt-4">Cargando resultados...</p>
                     </div>
                 ) : resultados.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
-                        No se encontraron registros que coincidan con los filtros.
-                    </div>
+<div className="text-center py-12 text-muted-foreground">
+                                        No se encontraron registros que coincidan con los filtros.
+                                    </div>
                 ) : (
                     <>
                         <div className="overflow-x-auto border rounded-lg">
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50 border-b">
+                                <thead className="bg-muted border-b border-border">
                                     <tr>
                                         {/* Columnas fijas */}
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C] whitespace-nowrap">Registro</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C] whitespace-nowrap">Producto</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C] whitespace-nowrap">Cliente</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-[#00505C] whitespace-nowrap">Agente</th>
-                                        <th className="py-3 px-4 text-right font-semibold text-[#00505C] whitespace-nowrap bg-blue-50">Comisión Base</th>
+                                        <th className="py-3 px-4 text-left font-semibold text-primary whitespace-nowrap" scope="col">Registro</th>
+                                        <th className="py-3 px-4 text-left font-semibold text-primary whitespace-nowrap" scope="col">Producto</th>
+                                        <th className="py-3 px-4 text-left font-semibold text-primary whitespace-nowrap" scope="col">Cliente</th>
+                                        <th className="py-3 px-4 text-left font-semibold text-primary whitespace-nowrap" scope="col">Agente</th>
+                                        <th className="py-3 px-4 text-right font-semibold text-primary whitespace-nowrap bg-info-muted" scope="col">Comisión Base</th>
 
                                         {/* Columnas dinámicas generadas desde categoriasUnicas */}
                                         {categoriasUnicas.map(categoria => (
-                                            <th key={categoria} className="py-3 px-4 text-center font-semibold text-[#00505C] border-l whitespace-nowrap min-w-[150px]">
+                                            <th key={categoria} className="py-3 px-4 text-center font-semibold text-primary border-l border-border whitespace-nowrap min-w-[150px]" scope="col">
                                                 {categoria}
-                                                <div className="grid grid-cols-2 gap-2 text-xs font-normal text-gray-500 mt-1 border-t pt-1">
+                                                <div className="grid grid-cols-2 gap-2 text-xs font-normal text-muted-foreground mt-1 border-t border-border pt-1">
                                                     <span>Bruta</span>
                                                     <span>Neta</span>
                                                 </div>
@@ -164,30 +164,30 @@ export function ResultadosPreLiquidacion({
                                         ))}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {resultados.map((row) => (
-                                        <tr key={row.idSettlementCommission} className="hover:bg-gray-50">
-                                            <td className="py-3 px-4 text-gray-500 font-mono text-xs">#{row.idSettlementCommission}</td>
-                                            <td className="py-3 px-4 font-medium text-gray-900">{row.producto}</td>
-                                            <td className="py-3 px-4 text-gray-500">{row.nombreCliente}</td>
-                                            <td className="py-3 px-4 text-gray-500">
+<tbody className="divide-y divide-border">
+                                            {resultados.map((row) => (
+                                        <tr key={row.idSettlementCommission} className="hover:bg-muted/50">
+                                            <td className="py-3 px-4 text-muted-foreground font-mono text-xs">#{row.idSettlementCommission}</td>
+                                            <td className="py-3 px-4 font-medium text-foreground">{row.producto}</td>
+                                            <td className="py-3 px-4 text-muted-foreground">{row.nombreCliente}</td>
+                                            <td className="py-3 px-4 text-muted-foreground">
                                                 <div className="flex flex-col">
                                                     <span>{row.nombreAgente}</span>
-                                                    <span className="text-xs text-gray-400">{row.cedulaAgente}</span>
+                                                    <span className="text-xs text-muted-foreground/80">{row.cedulaAgente}</span>
                                                 </div>
                                             </td>
-                                            <td className="py-3 px-4 text-right font-bold text-gray-700 bg-blue-50">
+                                            <td className="py-3 px-4 text-right font-bold text-foreground bg-info-muted">
                                                 {formatCurrency(row.comision)}
                                             </td>
 
                                             {/* Celdas dinámicas */}
                                             {categoriasUnicas.map(categoria => (
-                                                <td key={categoria} className="py-3 px-4 border-l">
+                                                <td key={categoria} className="py-3 px-4 border-l border-border">
                                                     <div className="grid grid-cols-2 gap-2 text-right">
-                                                        <span className="text-gray-600">
+                                                        <span className="text-muted-foreground">
                                                             {formatCurrency(getValorDistribucion(row, categoria, 'bruta'))}
                                                         </span>
-                                                        <span className="font-medium text-[#00505C]">
+                                                        <span className="font-medium text-primary">
                                                             {formatCurrency(getValorDistribucion(row, categoria, 'neta'))}
                                                         </span>
                                                     </div>
@@ -201,7 +201,7 @@ export function ResultadosPreLiquidacion({
 
                         {/* Paginación */}
                         <div className="flex items-center justify-between border-t pt-4">
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-muted-foreground">
                                 Mostrando pag. {page} de {paginacion?.totalPaginas || 1} ({paginacion?.totalRegistros || 0} registros)
                             </p>
                             <div className="flex items-center gap-2">

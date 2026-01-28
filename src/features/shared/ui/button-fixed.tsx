@@ -43,53 +43,9 @@ const ButtonFixed = React.forwardRef<HTMLButtonElement, ButtonProps>(
 	({ className, variant, size, asChild = false, ...props }, ref) => {
 		const Comp = asChild ? Slot : 'button'
 
-		// Estilos inline como fallback para asegurar que los colores se apliquen
-		const getInlineStyles = () => {
-			if (variant === 'default') {
-				return {
-					backgroundColor: '#00505C', // Verde oscuro de Financieramente
-					color: 'white',
-				}
-			}
-			if (variant === 'secondary') {
-				return {
-					backgroundColor: '#83D874', // Verde claro de Financieramente
-					color: '#00505C',
-				}
-			}
-			if (variant === 'destructive') {
-				return {
-					backgroundColor: '#ef4444',
-					color: 'white',
-				}
-			}
-			if (variant === 'outline') {
-				return {
-					backgroundColor: 'transparent',
-					color: '#00505C',
-					border: '1px solid #e5e7eb',
-				}
-			}
-			if (variant === 'ghost') {
-				return {
-					backgroundColor: 'transparent',
-					color: '#00505C',
-				}
-			}
-			if (variant === 'link') {
-				return {
-					backgroundColor: 'transparent',
-					color: '#00505C',
-					textDecoration: 'underline',
-				}
-			}
-			return {}
-		}
-
 		return (
 			<Comp
 				className={cn(buttonVariants({ variant, size, className }))}
-				style={getInlineStyles()}
 				ref={ref}
 				{...props}
 			/>

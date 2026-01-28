@@ -36,19 +36,19 @@ export function ProcesandoPreLiquidacion({
     }, [progress, onComplete])
 
     return (
-        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="flex flex-col items-center justify-center py-20 bg-card rounded-lg border border-border shadow-sm">
             <div className="w-full max-w-md space-y-4">
-                <div className="flex justify-between text-sm font-medium text-gray-700">
+                <div className="flex justify-between text-sm font-medium text-foreground">
                     <span>Procesando pre-liquidación...</span>
                     <span>{Math.round(progress)}%</span>
                 </div>
-                <div className="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-4 w-full bg-muted rounded-full overflow-hidden">
                     <div
-                        className="h-full bg-[#00505C] transition-all duration-300 ease-out"
+                        className="h-full bg-primary transition-all duration-300 ease-out"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
-                <p className="text-center text-sm text-gray-500 animate-pulse">
+                <p className="text-center text-sm text-muted-foreground animate-pulse">
                     Calculando comisiones y distribuciones...
                 </p>
             </div>

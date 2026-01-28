@@ -114,17 +114,17 @@ export function EditBusinessFormContainer({
  */
 export function EditBusinessFormSkeleton() {
 	return (
-		<div className="max-w-4xl mx-auto p-6 bg-white space-y-8">
+		<div className="max-w-4xl mx-auto p-6 bg-card space-y-8">
 			{/* Header skeleton */}
 			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
 				{/* Logo skeleton */}
 				<Skeleton className="h-9 w-36" />
 				{/* Banner skeleton */}
-				<div className="bg-[#00505C] w-full sm:w-auto px-4 sm:px-8 py-4 rounded-lg flex items-center gap-4 sm:gap-6">
-					<Skeleton className="h-24 w-24 rounded-md bg-[#003d47] dark:bg-[#004a54]" />
+				<div className="bg-primary w-full sm:w-auto px-4 sm:px-8 py-4 rounded-lg flex items-center gap-4 sm:gap-6">
+					<Skeleton className="h-24 w-24 rounded-md bg-primary-foreground/20" />
 					<div className="flex-1 flex flex-col gap-2">
-						<Skeleton className="h-5 w-64 bg-[#6BCA6F] dark:bg-[#83D874]" />
-						<Skeleton className="h-4 w-56 bg-[#6BCA6F] dark:bg-[#83D874]" />
+						<Skeleton className="h-5 w-64 bg-secondary/50" />
+						<Skeleton className="h-4 w-56 bg-secondary/50" />
 					</div>
 				</div>
 			</div>
@@ -133,7 +133,7 @@ export function EditBusinessFormSkeleton() {
 			<div className="space-y-4">
 				<div className="space-y-2">
 					<Skeleton className="h-4 w-64" />
-					<Separator className="bg-gray-300" />
+					<Separator className="bg-border" />
 				</div>
 				<div className="grid grid-cols-2 gap-4">
 					{/* No. Documento */}
@@ -203,7 +203,7 @@ export function EditBusinessFormSkeleton() {
 			<div className="space-y-4">
 				<div className="space-y-2">
 					<Skeleton className="h-4 w-48" />
-					<Separator className="bg-gray-300" />
+					<Separator className="bg-border" />
 				</div>
 				<div className="grid grid-cols-2 gap-4">
 					{/* Moneda */}

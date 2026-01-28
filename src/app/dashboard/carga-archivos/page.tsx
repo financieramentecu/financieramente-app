@@ -16,7 +16,7 @@ export default function CargaArchivosPage() {
 			<div className="space-y-6">
 				{/* Título y descripción */}
 				<div>
-					<h1 className="text-3xl font-bold text-[#00505C]">Carga archivos Skandia</h1>
+					<h1 className="text-3xl font-bold text-primary">Carga archivos Skandia</h1>
 					<p className="text-muted-foreground mt-2">
 						Carga archivos mensuales de covers de Skandia para procesar información
 						de negocios emitidos
