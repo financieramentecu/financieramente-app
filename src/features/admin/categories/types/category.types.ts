@@ -3,14 +3,14 @@
  */
 
 export interface Category extends Record<string, unknown> {
-	idCategory: number
+	readonly idCategory: number
 	code: string
 	name: string
 	typeCategory: 'MMS' | 'ALIADO' | 'TRINITY'
 	descripcion: string | null
 	status: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 }
 
 export interface CategoryFilters {

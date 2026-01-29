@@ -3,12 +3,12 @@
  */
 
 export interface Currency extends Record<string, unknown> {
-	idCurrency: number
+	readonly idCurrency: number
 	name: string
 	symbol: string | null
 	active: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 }
 
 export interface CurrencyFilters {
