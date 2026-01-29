@@ -5,21 +5,34 @@ const LEGACY_TO_TARGET = {
 	'@/services/company.service': '@/features/admin/companies/lib/company-api',
 	'@/services/currency.service': '@/features/admin/currencies/lib/currency-api',
 	'@/services/origin.service': '@/features/admin/origins/lib/origin-api',
-	'@/services/periodicity.service': '@/features/admin/periodicities/lib/periodicity-api',
+	'@/services/periodicity.service':
+		'@/features/admin/periodicities/lib/periodicity-api',
 	'@/services/product.service': '@/features/admin/products/lib/product-api',
 } as const
 
 type LegacyImportPath = keyof typeof LEGACY_TO_TARGET
 
 const LEGACY_SYMBOL_TO_TARGET = {
-	getCompanies: { importPath: LEGACY_TO_TARGET['@/services/company.service'], exportName: 'companyApi' },
-	getCurrencies: { importPath: LEGACY_TO_TARGET['@/services/currency.service'], exportName: 'currencyApi' },
-	getClientOrigins: { importPath: LEGACY_TO_TARGET['@/services/origin.service'], exportName: 'originApi' },
+	getCompanies: {
+		importPath: LEGACY_TO_TARGET['@/services/company.service'],
+		exportName: 'companyApi',
+	},
+	getCurrencies: {
+		importPath: LEGACY_TO_TARGET['@/services/currency.service'],
+		exportName: 'currencyApi',
+	},
+	getClientOrigins: {
+		importPath: LEGACY_TO_TARGET['@/services/origin.service'],
+		exportName: 'originApi',
+	},
 	getPeriodicities: {
 		importPath: LEGACY_TO_TARGET['@/services/periodicity.service'],
 		exportName: 'periodicityApi',
 	},
-	getProducts: { importPath: LEGACY_TO_TARGET['@/services/product.service'], exportName: 'productApi' },
+	getProducts: {
+		importPath: LEGACY_TO_TARGET['@/services/product.service'],
+		exportName: 'productApi',
+	},
 } as const
 
 type LegacySymbol = keyof typeof LEGACY_SYMBOL_TO_TARGET
@@ -61,7 +74,11 @@ async function listSourceFiles(repoRoot: string) {
 
 			if (!entry.isFile()) continue
 			const ext = path.extname(entry.name)
-			if (!INCLUDED_EXTENSIONS.includes(ext as (typeof INCLUDED_EXTENSIONS)[number]))
+			if (
+				!INCLUDED_EXTENSIONS.includes(
+					ext as (typeof INCLUDED_EXTENSIONS)[number]
+				)
+			)
 				continue
 			out.push(fullPath)
 		}
@@ -89,7 +106,9 @@ function splitImportSpecifiers(list: string) {
 		.filter(Boolean)
 }
 
-function parseSpecifier(spec: string): { imported: string; local: string } | null {
+function parseSpecifier(
+	spec: string
+): { imported: string; local: string } | null {
 	// "foo" or "foo as bar"
 	const parts = spec.split(/\s+as\s+/).map((s) => s.trim())
 	if (parts.length === 1) return { imported: parts[0], local: parts[0] }
@@ -153,12 +172,16 @@ function applyEditsForLegacyImport(params: {
 	// getCompanies(...) => companyApi.getCompanies(...)
 	// This is best-effort and intentionally simple for Phase 1.
 	for (const r of rewrites) {
-		const callRegex = new RegExp(`\\b${escapeRegExp(r.legacyLocalName)}\\s*\\(`, 'g')
+		const callRegex = new RegExp(
+			`\\b${escapeRegExp(r.legacyLocalName)}\\s*\\(`,
+			'g'
+		)
 		next = next.replace(callRegex, `${r.targetNamespace}.${r.targetMethod}(`)
 	}
 
 	const summary = rewrites.map(
-		(r) => `${legacyImportPath}: ${r.legacyLocalName} -> ${r.targetNamespace}.${r.targetMethod}(...)`
+		(r) =>
+			`${legacyImportPath}: ${r.legacyLocalName} -> ${r.targetNamespace}.${r.targetMethod}(...)`
 	)
 	return { nextSource: next, changed: next !== source, summary }
 }
@@ -197,8 +220,13 @@ async function main() {
 		let next = raw
 		const edits: string[] = []
 
-		for (const legacyPath of Object.keys(LEGACY_TO_TARGET) as LegacyImportPath[]) {
-			const res = applyEditsForLegacyImport({ source: next, legacyImportPath: legacyPath })
+		for (const legacyPath of Object.keys(
+			LEGACY_TO_TARGET
+		) as LegacyImportPath[]) {
+			const res = applyEditsForLegacyImport({
+				source: next,
+				legacyImportPath: legacyPath,
+			})
 			next = res.nextSource
 			edits.push(...res.summary)
 		}
@@ -229,4 +257,3 @@ main().catch((err: unknown) => {
 	console.error(err)
 	process.exitCode = 1
 })
-
