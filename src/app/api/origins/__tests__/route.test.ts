@@ -7,7 +7,7 @@ import {
 	prismaClientOriginToClientOrigin,
 	prismaClientOriginListToClientOrigins,
 } from '@/features/origin-client/mappers/prisma.mapper'
-import { logAuditEvent, AuditAction } from '@/lib/auth/audit-logger'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
 import { createMockPrismaClientOrigin } from '@/features/origin-client/__tests__/fixtures/mock-client-origin'
 
@@ -29,7 +29,7 @@ vi.mock('@/features/origin-client/lib/client-origin-schemas', () => ({
 	},
 }))
 vi.mock('@/features/origin-client/mappers/prisma.mapper')
-vi.mock('@/lib/auth/audit-logger', () => ({
+vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
 		CLIENT_ORIGIN_CREATED: 'CLIENT_ORIGIN_CREATED',

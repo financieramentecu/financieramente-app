@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { UserRole } from './roles'
 import { logAuditEvent, AuditAction } from './audit-logger'
-import { sendNewUserNotificationToAdmins } from '@/lib/email/admin-notifications'
+import { sendNewUserNotificationToAdmins } from '@/features/email/lib/admin-notifications'
 
 /**
  * Crea un usuario automáticamente cuando se autentica por primera vez

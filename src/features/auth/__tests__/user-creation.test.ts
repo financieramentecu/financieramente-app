@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
 	createUserAutomatically,
 	type CreateUserParams,
-} from '../user-creation'
-import { UserRole } from '../roles'
-import { AuditAction, logAuditEvent } from '../audit-logger'
+} from '../lib/user-creation'
+import { UserRole } from '../lib/roles'
+import { AuditAction, logAuditEvent } from '../lib/audit-logger'
 import { prisma } from '@/lib/prisma'
-import { sendNewUserNotificationToAdmins } from '@/lib/email/admin-notifications'
+import { sendNewUserNotificationToAdmins } from '@/features/email/lib/admin-notifications'
 
 // Mock de Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -22,15 +22,15 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 // Mock de audit-logger
-vi.mock('../audit-logger', () => ({
+vi.mock('../lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
 		USER_CREATED: 'USER_CREATED',
 	},
 }))
 
-// Mock de admin-notifications
-vi.mock('@/lib/email/admin-notifications', () => ({
+// Mock de admin-notifications (aún en lib/email hasta que migremos email)
+vi.mock('@/features/email/lib/admin-notifications', () => ({
 	sendNewUserNotificationToAdmins: vi.fn().mockResolvedValue(undefined),
 }))
 
@@ -425,7 +425,7 @@ describe('createUserAutomatically', () => {
 
 			const consoleErrorSpy = vi
 				.spyOn(console, 'error')
-				.mockImplementation(() => { })
+				.mockImplementation(() => {})
 
 			const result = await createUserAutomatically(mockParams)
 

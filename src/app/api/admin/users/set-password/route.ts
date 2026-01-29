@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
-import { hashPassword, validatePasswordStrength } from '@/lib/auth/password-utils'
-import { UserRole } from '@/lib/auth/roles'
+import { hashPassword, validatePasswordStrength } from '@/features/auth/lib/password-utils'
+import { UserRole } from '@/features/auth/lib/roles'
 import { z } from 'zod'
 
 /**

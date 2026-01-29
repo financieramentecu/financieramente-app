@@ -211,7 +211,9 @@ export async function validateUserCredentials(
 		}
 
 		// Verificar la contraseña
-		const { verifyPassword } = await import('./password-utils')
+		const { verifyPassword } = await import(
+			'@/features/auth/lib/password-utils'
+		)
 		const isPasswordValid = await verifyPassword(password, user.password)
 
 		if (!isPasswordValid) {

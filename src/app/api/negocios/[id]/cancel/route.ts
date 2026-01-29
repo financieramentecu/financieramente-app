@@ -15,13 +15,13 @@ import {
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { cancelBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
 	AuditAction,
 	getClientIp,
 	getUserAgent,
-} from '@/lib/auth/audit-logger'
+} from '@/features/auth/lib/audit-logger'
 
 interface RouteParams {
 	params: Promise<{ id: string }>
