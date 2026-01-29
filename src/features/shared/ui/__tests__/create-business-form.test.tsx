@@ -217,7 +217,9 @@ describe('CreateBusinessForm', () => {
 			}
 		)
 
-		vi.mocked(createBusiness).mockImplementation(() => businessPromise)
+		vi.mocked(createBusiness).mockImplementation(
+			() => businessPromise as ReturnType<typeof createBusiness>
+		)
 		mockHandleSearchClient.mockResolvedValue(mockUsers)
 
 		render(<CreateBusinessForm {...defaultProps} />)

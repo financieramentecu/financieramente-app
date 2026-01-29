@@ -21,7 +21,15 @@ export async function GET(_request: NextRequest) {
                     in: ['COMPLETADO', 'PRELIQUIDADO'],
                 },
             },
-            include: {
+            select: {
+                idFileImport: true,
+                nameFile: true,
+                loadDate: true,
+                preLiquidacionDate: true,
+                totalRecord: true,
+                sincronizadoRecord: true,
+                rezagadoRecord: true,
+                status: true,
                 user: {
                     select: {
                         name: true,

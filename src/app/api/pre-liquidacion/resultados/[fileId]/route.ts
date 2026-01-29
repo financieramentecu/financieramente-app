@@ -100,6 +100,12 @@ export async function GET(
 			},
 		})
 
+		// Tipo inferido del resultado de la query
+		type RegistroConDistribuciones = (typeof registros)[number]
+		type DistributionWithCategory = NonNullable<
+			RegistroConDistribuciones['comissionDistributions']
+		>[number]
+
 		// Formatear resultados y recolectar categorías únicas
 		const categoriasSet = new Set<string>()
 
@@ -115,15 +121,7 @@ export async function GET(
 				registro.comissionDistributions.length > 0
 			) {
 				registro.comissionDistributions.forEach(
-					(
-						dist: Prisma.ComissionDistributionGetPayload<{
-							include: {
-								productPercentajeCommisionCategory: {
-									include: { category: true }
-								}
-							}
-						}>
-					) => {
+					(dist: DistributionWithCategory) => {
 						const rawCatName =
 							dist.productPercentajeCommisionCategory?.category.name ||
 							'SIN CATEGORIA'

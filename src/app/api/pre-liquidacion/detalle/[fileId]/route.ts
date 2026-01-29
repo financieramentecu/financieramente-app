@@ -91,6 +91,14 @@ export async function GET(
 			},
 		})
 
+		// Tipo inferido del resultado de la query
+		type RegistroConBusiness = (typeof registros)[number]
+		type CategoryWithCategory = NonNullable<
+			NonNullable<
+				NonNullable<RegistroConBusiness['business']>['productPercentajeCommision']
+			>['productPercentajeCommisionCategories']
+		>[number]
+
 		// Interface para distribución por agente
 		interface AgenteDistribucion {
 			idAgente: number
@@ -124,11 +132,7 @@ export async function GET(
 					?.productPercentajeCommisionCategories
 			) {
 				r.business.productPercentajeCommision.productPercentajeCommisionCategories.forEach(
-					(
-						cat: Prisma.ProductPercentajeCommisionCategoryGetPayload<{
-							include: { category: true }
-						}>
-					) => {
+					(cat: CategoryWithCategory) => {
 						const categoryName = cat.category.name.toUpperCase()
 						if (categoryName.includes('GENERAL')) {
 							porcentajeGeneral = cat.porcentajeDistribucion
