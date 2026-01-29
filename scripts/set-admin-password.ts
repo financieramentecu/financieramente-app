@@ -4,8 +4,8 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client'
-import { hashPassword } from '../src/lib/auth/password-utils'
-import { UserRole } from '../src/lib/auth/roles'
+import { hashPassword } from '../src/features/auth/lib/password-utils'
+import { UserRole } from '../src/features/auth/lib/roles'
 
 const prisma = new PrismaClient()
 

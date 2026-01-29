@@ -1,4 +1,4 @@
-import { validateUserCredentials } from './src/lib/auth/user-validation'
+import { validateUserCredentials } from './src/features/auth/lib/user-validation'
 import { prisma } from './src/lib/prisma'
 
 async function verifyUsers() {

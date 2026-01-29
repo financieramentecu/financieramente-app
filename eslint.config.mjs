@@ -28,12 +28,14 @@ const eslintConfig = [
       'html/**',
       'playwright-report/**',
       'test-results/**',
+      'skills/**',
     ],
   },
   {
     rules: {
-      '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }]
-    }
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': ['warn', { 'argsIgnorePattern': '^_' }],
+    },
   },
   ...storybook.configs['flat/recommended'],
 ];
