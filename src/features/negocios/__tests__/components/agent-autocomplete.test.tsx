@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AgentAutocomplete } from '../../components/fields/agent-autocomplete'
 import { UserWithRole } from '../../types/business.types'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 
 const baseDate = new Date('2024-01-01T00:00:00.000Z')
 

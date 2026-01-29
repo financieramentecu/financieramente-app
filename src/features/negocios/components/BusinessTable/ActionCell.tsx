@@ -8,7 +8,7 @@
 import { Button } from '@/features/shared/ui/button'
 import { Pencil, Eye, Trash2 } from 'lucide-react'
 
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import type { BusinessStatus } from '../../types/business-entity.types'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
 import {

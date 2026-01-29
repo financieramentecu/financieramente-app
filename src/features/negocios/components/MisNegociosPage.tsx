@@ -7,7 +7,7 @@ import { Business, StatsData } from '@/features/negocios/types/business.types'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { AlertCircle } from 'lucide-react'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 
 interface PaginationData {
 	page: number

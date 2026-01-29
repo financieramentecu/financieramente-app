@@ -1,6 +1,6 @@
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { AsyncState } from '@/features/shared/types/async-state.types'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import React, { useState } from 'react'
 import { UserWithRole } from '../types/business.types'
 export const useSearchAgents = () => {

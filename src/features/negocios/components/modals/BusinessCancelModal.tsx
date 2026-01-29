@@ -19,7 +19,7 @@ import {
 	DialogTitle,
 } from '@/features/shared/ui/dialog'
 import { BusinessStatusBadge } from '../ui/BusinessStatusBadge'
-import { formatCurrency } from '@/lib/currency'
+import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { BusinessEntity } from '../../types/business-entity.types'
 
 const MIN_REASON_LENGTH = 20
