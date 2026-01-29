@@ -1,0 +1,179 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+# Guía de Componentes
+
+## Estructura de Archivos
+
+Los componentes se organizan en la carpeta `src/` siguiendo esta estructura:
+
+Ejemplo:
+
+```
+src/
+├── shared/
+│   └── components/
+│       ├── atoms/          # Componentes básicos e indivisibles
+│       ├── molecules/       # Combinaciones de átomos
+│       └── organis/        # Componentes complejos y layouts
+├── pages/                  # Páginas de la aplicación
+└── routes/                 # Configuración de rutas
+```
+
+**Estructura de un Átomo:**
+
+```
+atoms/
+└── button/
+    ├── index.tsx           # Componente principal
+    └── button.stories.tsx  # Storybook stories
+```
+
+#### **Molecules (Moléculas)**
+
+- **Propósito**: Combinaciones de átomos que forman unidades funcionales
+- **Ubicación**: `src/shared/components/molecules/`
+- **Ejemplos**: FormField, ButtonWithIcon, InputWithIcon, ListItemSidebar
+- **Características**:
+  - Combinan múltiples átomos
+  - Tienen lógica de composición
+  - Mantienen la reutilización
+  - Incluyen Storybook stories
+
+**Estructura de una Molécula:**
+
+```
+molecules/
+└── form-field/
+    ├── index.tsx           # Componente principal
+    └── formField.stories.tsx  # Storybook stories
+```
+
+#### **Organis (Organismos)**
+
+- **Propósito**: Componentes complejos que forman secciones completas
+- **Ubicación**: `src/shared/components/organis/`
+- **Ejemplos**: Layout, Header, Sidebar, Forms complejos
+- **Características**:
+  - Combinan moléculas y átomos
+  - Tienen lógica de negocio específica
+  - Pueden ser específicos de una página
+  - Incluyen Storybook stories
+
+**Estructura de un Organismo:**
+
+```
+organis/
+└── layout/
+    ├── index.tsx           # Componente principal
+    ├── header/
+    │   ├── index.tsx
+    │   ├── header.stories.tsx
+    │   └── header.test.tsx
+    └── sidebar/
+        ├── index.tsx
+        ├── sidebar.stories.tsx
+        └── routesConfig.tsx
+```
+
+## Convenciones de Nombrado
+
+- Los componentes usan PascalCase (ej: `CourseCard`, `UserProfile`)
+- Los archivos de componentes usan el mismo nombre que el componente
+- Los archivos de estilos usan el mismo nombre que el componente
+- Los nombres de las clases CSS usan camelCase
+
+## Estructura de Componentes
+
+1. **Imports**
+
+   - Primero los imports de React y librerías externas
+   - Luego los imports de componentes internos
+   - Finalmente los imports de estilos y tipos
+
+2. **Tipos**
+
+   - Definir interfaces/types antes del componente
+   - Usar TypeScript para todas las props
+   - Exportar tipos que puedan ser reutilizados
+   - Siempre importar y usar los tipos del proyecto desde `@/types` cuando estén disponibles
+   - Solo crear nuevos tipos cuando no existan en `@/types` o sean específicos del componente
+
+3. **Componente**
+
+   - Usar arrow functions para componentes funcionales
+   - Nombrar props de manera descriptiva
+   - Incluir PropTypes o TypeScript para validación de tipos
+
+4. **Estilos**
+   - Para los componentes atomicos aplicar estilos en overrides del theme de MUI
+
+```typescript
+const muiListItemButton: {
+  defaultProps?: ComponentsProps['MuiListItemButton'];
+  styleOverrides?: ComponentsOverrides<Theme>['MuiListItemButton'];
+  variants?: ComponentsVariants['MuiListItemButton'];
+} = {
+  styleOverrides: {
+    root: {
+      fontWeight: FONT_WEIGHT_REGULAR,
+      textTransform: 'none',
+      '&:hover': {
+        backgroundColor: NEUTRAL[100],
+        color: NEUTRAL[3],
+        '& .MuiListItemIcon-root': {
+          color: NEUTRAL[3],
+        },
+      },
+      '& .MuiTypography-root': {
+        fontWeight: FONT_WEIGHT_REGULAR,
+      },
+    },
+  },
+  variants: [],
+};
+```
+
+- Para componentes personalizados utilizar styled de MUI y crear su propio archivo ej: styles.tsx
+
+```typescript
+export const StyledCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: 16,
+  transition: 'all 0.3s ease-in-out',
+  cursor: 'pointer',
+  border: `1px solid ${theme.palette.divider}`,
+
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: theme.shadows[8],
+    borderColor: theme.palette.primary.main,
+  },
+
+  '&:active': {
+    transform: 'translateY(-2px)',
+  },
+}));
+```
+
+## Buenas Prácticas
+
+1. **Componentes**
+
+   - Mantener componentes pequeños y enfocados
+   - Extraer lógica compleja a hooks personalizados
+   - Usar memo cuando sea necesario para optimizar el rendimiento
+   - Si ya existe el componente reutilizarlo
+
+2. **Props**
+
+   - Proporcionar valores por defecto cuando sea apropiado
+   - Validar props con TypeScript
+
+3. **Accesibilidad**
+   - Incluir atributos ARIA cuando sea necesario
+   - Asegurar contraste de colores adecuado
+   - Proporcionar textos alternativos para imágenes
