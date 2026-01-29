@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { sendEmail } from '@/features/email/lib/email-service'
 
 /**

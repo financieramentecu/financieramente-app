@@ -6,7 +6,7 @@ import {
 	sendNewUserNotificationToAdmins,
 	type AdminUser,
 	type NewUserNotificationParams,
-} from '../admin-notifications'
+} from '../lib/admin-notifications'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/features/email/lib/email-service'
 
