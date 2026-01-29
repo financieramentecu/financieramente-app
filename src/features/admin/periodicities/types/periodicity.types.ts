@@ -3,11 +3,11 @@
  */
 
 export interface Periodicity extends Record<string, unknown> {
-	idBuyPeriodicity: number
+	readonly idBuyPeriodicity: number
 	name: string
 	active: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 }
 
 export interface PeriodicityFilters {

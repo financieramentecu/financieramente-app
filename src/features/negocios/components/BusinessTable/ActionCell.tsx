@@ -8,7 +8,7 @@
 import { Button } from '@/features/shared/ui/button'
 import { Pencil, Eye, Trash2 } from 'lucide-react'
 
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import type { BusinessStatus } from '../../types/business-entity.types'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
 import {
@@ -74,7 +74,7 @@ export function ActionCell({
 								className="h-8 w-8"
 								onClick={() => onEdit?.(businessId)}
 							>
-								<Pencil className="h-4 w-4 text-gray-600" />
+								<Pencil className="h-4 w-4 text-muted-foreground" />
 								<span className="sr-only">Editar negocio</span>
 							</Button>
 						</TooltipTrigger>
@@ -93,7 +93,7 @@ export function ActionCell({
 							className="h-8 w-8"
 							onClick={() => onView?.(businessId)}
 						>
-							<Eye className="h-4 w-4 text-gray-600" />
+							<Eye className="h-4 w-4 text-muted-foreground" />
 							<span className="sr-only">Ver negocio</span>
 						</Button>
 					</TooltipTrigger>
@@ -112,7 +112,7 @@ export function ActionCell({
 								className="h-8 w-8"
 								onClick={() => onCancel?.(businessId)}
 							>
-								<Trash2 className="h-4 w-4 text-red-500" />
+								<Trash2 className="h-4 w-4 text-destructive" />
 								<span className="sr-only">Cancelar negocio</span>
 							</Button>
 						</TooltipTrigger>

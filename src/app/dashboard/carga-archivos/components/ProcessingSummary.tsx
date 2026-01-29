@@ -38,19 +38,19 @@ export function ProcessingSummary({
 	return (
 		<div className="space-y-6">
 			{/* Sección de confirmación de carga */}
-			<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 				<div className="flex items-center justify-between mb-4">
 					<div>
-						<h3 className="text-lg font-semibold text-[#00505C] mb-2">
+						<h3 className="text-lg font-semibold text-primary mb-2">
 							Archivo cargado correctamente
 						</h3>
-						<p className="text-sm text-gray-600 mb-4">
+						<p className="text-sm text-muted-foreground mb-4">
 							Por favor carga los archivos en formato csv, xml con el formato correspondiente
 						</p>
 						<div className="flex items-center gap-3">
-							<FileText className="h-5 w-5 text-gray-600" />
-							<span className="text-sm font-medium text-gray-800">{fileName}</span>
-							<CheckCircle2 className="h-5 w-5 text-green-600" />
+							<FileText className="h-5 w-5 text-muted-foreground" />
+							<span className="text-sm font-medium text-foreground">{fileName}</span>
+							<CheckCircle2 className="h-5 w-5 text-success" />
 						</div>
 					</div>
 				</div>
@@ -60,54 +60,54 @@ export function ProcessingSummary({
 			{/* Estadísticas en cards */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 				{/* Sincronizados */}
-				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 					<div className="flex items-center justify-center mb-3">
-						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-green-500 flex items-center justify-center">
-							<span className="text-3xl font-bold text-green-600">{sincronizados}</span>
+						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-success flex items-center justify-center">
+							<span className="text-3xl font-bold text-success">{sincronizados}</span>
 						</div>
 					</div>
-					<p className="text-center text-sm font-medium text-gray-700">Sincronizados</p>
+					<p className="text-center text-sm font-medium text-muted-foreground">Sincronizados</p>
 				</div>
 
 				{/* Errores */}
-				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 					<div className="flex items-center justify-center mb-3">
-						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-red-500 flex items-center justify-center">
-							<span className="text-3xl font-bold text-red-600">{result.errorCount}</span>
+						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-destructive flex items-center justify-center">
+							<span className="text-3xl font-bold text-destructive">{result.errorCount}</span>
 						</div>
 					</div>
-					<p className="text-center text-sm font-medium text-gray-700">Errores</p>
+					<p className="text-center text-sm font-medium text-muted-foreground">Errores</p>
 				</div>
 
 				{/* No sincronizados */}
-				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 					<div className="flex items-center justify-center mb-3">
-						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-blue-500 flex items-center justify-center">
-							<span className="text-3xl font-bold text-blue-600">{noSincronizados}</span>
+						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-info flex items-center justify-center">
+							<span className="text-3xl font-bold text-info">{noSincronizados}</span>
 						</div>
 					</div>
-					<p className="text-center text-sm font-medium text-gray-700">No sincronizados</p>
+					<p className="text-center text-sm font-medium text-muted-foreground">No sincronizados</p>
 				</div>
 
 				{/* Rezagados */}
-				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 					<div className="flex items-center justify-center mb-3">
-						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-yellow-500 flex items-center justify-center">
-							<span className="text-3xl font-bold text-yellow-600">{rezagados}</span>
+						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-warning flex items-center justify-center">
+							<span className="text-3xl font-bold text-warning">{rezagados}</span>
 						</div>
 					</div>
-					<p className="text-center text-sm font-medium text-gray-700">Rezagados</p>
+					<p className="text-center text-sm font-medium text-muted-foreground">Rezagados</p>
 				</div>
 			</div>
 
 			{/* Sección de errores */}
 			{result.errorCount > 0 && (
-				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 					<div className="flex items-center justify-between mb-4">
-						<h3 className="text-lg font-semibold text-[#00505C]">Errores</h3>
+						<h3 className="text-lg font-semibold text-primary">Errores</h3>
 						<Button
 							onClick={handleDownloadErrorReport}
-							className="bg-[#00505C] hover:bg-[#003c45] text-white"
+							className="bg-primary hover:bg-primary/90 text-primary-foreground"
 							size="sm"
 						>
 							<Download className="h-4 w-4 mr-2" />
@@ -159,21 +159,21 @@ export function ProcessingSummary({
 							return (
 								<div
 									key={index}
-									className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+									className="border border-border rounded-lg p-4 hover:bg-muted transition-colors"
 								>
 									<div className="flex items-start justify-between gap-4">
 										<div className="flex-1">
 											{/* Información del registro */}
 											<div className="flex items-center gap-2 mb-3">
 												<div className="h-2 w-2 rounded-full bg-red-500"></div>
-												<span className="text-sm font-medium text-gray-800">
+												<span className="text-sm font-medium text-foreground">
 													{nombre || `Fila ${errorRecord.rowNumber}`}
 												</span>
 											</div>
 
 											{/* Información de fechas y duración */}
 											{(desde || hasta || duration) && (
-												<div className="text-sm text-gray-600 space-y-1 mb-3">
+												<div className="text-sm text-muted-foreground space-y-1 mb-3">
 													{duration && (
 														<div>
 															<span className="font-medium">Duración:</span> {duration}
@@ -196,11 +196,11 @@ export function ProcessingSummary({
 
 											{/* Detalle del error */}
 											{errorRecord.errors.length > 0 && (
-												<div className="mt-3 pt-3 border-t border-gray-200">
-													<p className="text-sm text-red-600 font-medium mb-1">
+												<div className="mt-3 pt-3 border-t border-border">
+													<p className="text-sm text-destructive font-medium mb-1">
 														Detalle del error:
 													</p>
-													<p className="text-sm text-red-600">
+													<p className="text-sm text-destructive">
 														{errorRecord.errors.join('; ')}
 													</p>
 												</div>
@@ -208,7 +208,7 @@ export function ProcessingSummary({
 										</div>
 
 										{/* Badge de error */}
-										<div className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium whitespace-nowrap">
+										<div className="px-3 py-1 bg-destructive/10 text-destructive rounded-full text-xs font-medium whitespace-nowrap">
 											Error
 										</div>
 									</div>
@@ -223,7 +223,7 @@ export function ProcessingSummary({
 			<div className="flex justify-center pt-6">
 				<Button
 					onClick={onUploadAnother}
-					className="bg-[#00505C] hover:bg-[#003c45] text-white px-8"
+					className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
 					size="lg"
 				>
 					<Upload className="h-5 w-5 mr-2" />

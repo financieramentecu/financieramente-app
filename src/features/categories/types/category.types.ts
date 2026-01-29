@@ -12,14 +12,14 @@ export type CategoryType = (typeof CATEGORY_TYPES)[number]
  * Category interface (mapped from Prisma, not using Prisma types directly)
  */
 export interface Category extends Record<string, unknown> {
-	idCategory: number
+	readonly idCategory: number
 	code: string
 	name: string
 	typeCategory: CategoryType
 	descripcion: string | null
 	status: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 }
 
 /**

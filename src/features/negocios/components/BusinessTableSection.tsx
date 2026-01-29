@@ -12,7 +12,7 @@ import {
 } from '@/features/shared/ui/avatar'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Eye, Trash2 } from 'lucide-react'
-import { formatCurrency } from '@/lib/currency'
+import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 
 interface PaginationData {
 	page: number

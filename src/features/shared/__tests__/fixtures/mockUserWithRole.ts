@@ -1,4 +1,4 @@
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { UserWithRole } from '@/features/negocios/types/business.types'
 
 /**

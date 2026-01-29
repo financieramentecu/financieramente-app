@@ -3,15 +3,15 @@
  */
 
 export interface Product extends Record<string, unknown> {
-	idProduct: number
-	idCompany: number
+	readonly idProduct: number
+	readonly idCompany: number
 	name: string
 	description: string | null
 	status: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 	company: {
-		idCompany: number
+		readonly idCompany: number
 		name: string
 	}
 }
@@ -45,7 +45,7 @@ export interface ProductListResponse {
 }
 
 export interface CompanyOption {
-	idCompany: number
+	readonly idCompany: number
 	name: string
 	status: boolean
 }

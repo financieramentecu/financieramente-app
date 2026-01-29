@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 
 /**
  * Middleware para proteger rutas privadas

@@ -3,11 +3,11 @@
  */
 
 export interface Empresa extends Record<string, unknown> {
-	idCompany: number
+	readonly idCompany: number
 	name: string
 	status: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 }
 
 export interface EmpresaFilters {

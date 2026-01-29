@@ -15,7 +15,7 @@ import type { UserWithRole } from '@/features/negocios/types/business.types'
 import type { BusinessEntity } from '@/features/negocios/types/business-entity.types'
 import type { BusinessListParams } from '@/features/negocios/types/business-api.types'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-status.types'
-import { formatCurrency } from '@/lib/currency'
+import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 
 const SEARCH_DEBOUNCE_DELAY = 500
 const DEFAULT_CURRENCY = 'USD'

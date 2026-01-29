@@ -5,9 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { cancelBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
-import { logAuditEvent, AuditAction } from '@/lib/auth/audit-logger'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 import {
 	mockUserWithRole,
@@ -36,7 +36,7 @@ vi.mock('@/features/negocios/lib/business-api.schemas', () => ({
 	},
 }))
 vi.mock('@/features/negocios/mappers/business-entity.mapper')
-vi.mock('@/lib/auth/audit-logger', () => ({
+vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
 		BUSINESS_CANCELLED: 'BUSINESS_CANCELLED',

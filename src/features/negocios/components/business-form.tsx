@@ -62,7 +62,7 @@ export const BusinessForm = React.forwardRef<
 		})
 
 		return (
-			<div className="max-w-4xl mx-auto p-6 bg-white">
+			<div className="max-w-4xl mx-auto p-6 bg-card">
 				<Header />
 
 				<form ref={ref} onSubmit={handleFormSubmit} className="space-y-8">

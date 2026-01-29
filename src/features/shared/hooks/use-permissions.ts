@@ -1,13 +1,13 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import {
 	RolePermissions,
 	getRolePermissions,
 	hasPermission,
 	hasNestedPermission,
-} from '@/lib/auth/permissions'
+} from '@/features/auth/lib/permissions'
 
 /**
  * Hook para acceder a permisos del usuario actual

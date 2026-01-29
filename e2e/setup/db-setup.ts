@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { UserRole } from '../../src/lib/auth/roles'
+import { UserRole } from '../../src/features/auth/lib/roles'
 import { hash } from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -31,8 +31,8 @@ export async function setupTestUser() {
 			where: {
 				typeIdentity: 'CC',
 				identityNumber: '1234567890',
-				NOT: { email: TEST_USER_EMAIL }
-			}
+				NOT: { email: TEST_USER_EMAIL },
+			},
 		})
 
 		if (collisionUser) {
@@ -91,13 +91,22 @@ export async function setupSSOUsers() {
 		const hashedAgentePassword = await hash('Agente123!', 10)
 
 		// Obtener roles
-		const adminRole = await prisma.role.findUnique({ where: { code: UserRole.ADMIN } })
-		const agenteRole = await prisma.role.findUnique({ where: { code: UserRole.AGENTE } })
+		const adminRole = await prisma.role.findUnique({
+			where: { code: UserRole.ADMIN },
+		})
+		const agenteRole = await prisma.role.findUnique({
+			where: { code: UserRole.AGENTE },
+		})
 		// Usar AGENTE si no existe ANALISTA_SOPORTE para el rol "PRO" simulado
-		const proRole = await prisma.role.findUnique({ where: { code: UserRole.ANALISTA_SOPORTE } }) || agenteRole
+		const proRole =
+			(await prisma.role.findUnique({
+				where: { code: UserRole.ANALISTA_SOPORTE },
+			})) || agenteRole
 
 		if (!adminRole || !agenteRole) {
-			console.warn('⚠️ Roles necesarios no encontrados. Saltando setup de SSO users.')
+			console.warn(
+				'⚠️ Roles necesarios no encontrados. Saltando setup de SSO users.'
+			)
 			return
 		}
 
@@ -108,7 +117,7 @@ export async function setupSSOUsers() {
 				password: hashedPassword,
 				ssoOnly: false,
 				idRole: adminRole.idRole,
-				identity: '888888881'
+				identity: '888888881',
 			},
 			{
 				email: 'admin-sso@financieramentecu.com',
@@ -116,7 +125,7 @@ export async function setupSSOUsers() {
 				password: hashedPassword,
 				ssoOnly: true,
 				idRole: adminRole.idRole,
-				identity: '888888882'
+				identity: '888888882',
 			},
 			{
 				email: 'pro@financieramentecu.com',
@@ -124,7 +133,7 @@ export async function setupSSOUsers() {
 				password: hashedProPassword,
 				ssoOnly: false,
 				idRole: proRole?.idRole || agenteRole.idRole,
-				identity: '888888883'
+				identity: '888888883',
 			},
 			{
 				email: 'agente@financieramentecu.com',
@@ -132,7 +141,7 @@ export async function setupSSOUsers() {
 				password: hashedAgentePassword,
 				ssoOnly: false,
 				idRole: agenteRole.idRole,
-				identity: '888888884'
+				identity: '888888884',
 			},
 			{
 				email: 'inactive@financieramentecu.com',
@@ -141,12 +150,14 @@ export async function setupSSOUsers() {
 				ssoOnly: false,
 				idRole: adminRole.idRole,
 				active: false,
-				identity: '888888885'
-			}
+				identity: '888888885',
+			},
 		]
 
 		for (const user of usersToCreate) {
-			const existing = await prisma.user.findUnique({ where: { email: user.email } })
+			const existing = await prisma.user.findUnique({
+				where: { email: user.email },
+			})
 			if (existing) {
 				await prisma.user.update({
 					where: { idUser: existing.idUser },
@@ -154,13 +165,13 @@ export async function setupSSOUsers() {
 						password: user.password,
 						ssoOnly: user.ssoOnly,
 						idRole: user.idRole,
-						active: user.active ?? true
-					}
+						active: user.active ?? true,
+					},
 				})
 			} else {
 				// Verificar colisión de documento antes de crear
 				const collision = await prisma.user.findFirst({
-					where: { typeIdentity: 'CC', identityNumber: user.identity }
+					where: { typeIdentity: 'CC', identityNumber: user.identity },
 				})
 
 				let identityToUse = user.identity
@@ -178,8 +189,8 @@ export async function setupSSOUsers() {
 						active: user.active ?? true,
 						typeIdentity: 'CC',
 						identityNumber: identityToUse,
-						entryDate: new Date()
-					}
+						entryDate: new Date(),
+					},
 				})
 			}
 		}

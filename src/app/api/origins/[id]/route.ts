@@ -10,7 +10,7 @@ import {
 	AuditAction,
 	getClientIp,
 	getUserAgent,
-} from '@/lib/auth/audit-logger'
+} from '@/features/auth/lib/audit-logger'
 import { prismaClientOriginToClientOrigin } from '@/features/origin-client/mappers/prisma.mapper'
 
 /**

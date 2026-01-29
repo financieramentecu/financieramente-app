@@ -4,6 +4,24 @@ const config = {
 	theme: {
 		extend: {
 			colors: {
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					muted: 'hsl(var(--success-muted))',
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					muted: 'hsl(var(--warning-muted))',
+				},
+				info: {
+					DEFAULT: 'hsl(var(--info))',
+					muted: 'hsl(var(--info-muted))',
+				},
+				chart: {
+					1: 'hsl(var(--chart-1))',
+					2: 'hsl(var(--chart-2))',
+					3: 'hsl(var(--chart-3))',
+					4: 'hsl(var(--chart-4))',
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

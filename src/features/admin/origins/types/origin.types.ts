@@ -3,21 +3,21 @@
  */
 
 export interface ProductOrigin {
-	idOrigin: number
+	readonly idOrigin: number
 	name: string
 	description: string | null
 	status: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 }
 
 export interface ClientOrigin {
-	idClientOrigin: number
+	readonly idClientOrigin: number
 	name: string
 	description: string | null
 	status: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 }
 
 export interface CreateProductOriginInput {

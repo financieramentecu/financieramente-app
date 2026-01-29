@@ -1,13 +1,19 @@
 import type { NextAuthConfig } from 'next-auth'
 import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
-import { isValidCorporateEmail } from './types'
-import { validateUserByEmail, validateUserCredentials } from './user-validation'
-import { logAuditEvent, AuditAction } from './audit-logger'
-import { getRolePermissions, RolePermissions } from './permissions'
-import { UserRole } from './roles'
-import { createUserAutomatically } from './user-creation'
-import { sendNewUserNotificationToAdmins } from '../email/admin-notifications'
+import { isValidCorporateEmail } from '@/features/auth/types/auth.types'
+import {
+	validateUserByEmail,
+	validateUserCredentials,
+} from '@/features/auth/lib/user-validation'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
+import {
+	getRolePermissions,
+	RolePermissions,
+} from '@/features/auth/lib/permissions'
+import { UserRole } from '@/features/auth/lib/roles'
+import { createUserAutomatically } from '@/features/auth/lib/user-creation'
+import { sendNewUserNotificationToAdmins } from '@/features/email/lib/admin-notifications'
 
 /**
  * Configuración de autenticación NextAuth

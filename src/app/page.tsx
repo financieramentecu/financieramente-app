@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import { headers } from 'next/headers'
 import { getRedirectUrlByRole } from '@/lib/navigation/menu-builder'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 
 /**
  * Página raíz
