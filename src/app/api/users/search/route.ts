@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/prisma'
-import { isValidRole, UserRole } from '@/lib/auth/roles'
+import { isValidRole, UserRole } from '@/features/auth/lib/roles'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { Prisma } from '@prisma/client'
 import { UserWithRole } from '@/features/negocios/types/business.types'
