@@ -451,8 +451,8 @@ export function CargarArchivoTab() {
 					onUploadAnother={handleUploadAnother}
 				/>
 			) : !processingProgress ? (
-				<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-					<h2 className="text-xl font-semibold text-[#00505C] mb-4">
+				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+					<h2 className="text-xl font-semibold text-primary mb-4">
 						Cargar Archivo de Covers Skandia
 					</h2>
 					<p className="text-muted-foreground mb-6">
@@ -468,16 +468,16 @@ export function CargarArchivoTab() {
 						className={cn(
 							'border-2 border-dashed rounded-lg p-12 text-center transition-colors',
 							isDragging
-								? 'border-[#00505C] bg-[#83D874]/10'
-								: 'border-[#83D874] bg-[#83D874]/5',
-							selectedFile && 'border-[#00505C] bg-[#83D874]/10'
+								? 'border-primary bg-secondary/10'
+								: 'border-secondary bg-secondary/5',
+							selectedFile && 'border-primary bg-secondary/10'
 						)}
 					>
 						{selectedFile ? (
 							<div className="space-y-4">
-								<FileUp className="h-16 w-16 mx-auto text-[#00505C]" />
+								<FileUp className="h-16 w-16 mx-auto text-primary" />
 								<div>
-									<p className="text-lg font-semibold text-[#00505C]">
+									<p className="text-lg font-semibold text-primary">
 										{selectedFile.name}
 									</p>
 									<p className="text-sm text-muted-foreground mt-1">
@@ -487,13 +487,13 @@ export function CargarArchivoTab() {
 							</div>
 						) : (
 							<>
-								<FileUp className="h-16 w-16 mx-auto text-[#00505C] mb-4" />
-								<p className="text-lg font-medium text-[#00505C] mb-4">
+								<FileUp className="h-16 w-16 mx-auto text-primary mb-4" />
+								<p className="text-lg font-medium text-primary mb-4">
 									Arrastra tu archivo de Skandia aquí
 								</p>
 								<Button
 									onClick={handleSelectFile}
-									className="bg-[#00505C] hover:bg-[#003c45] text-white"
+									className="bg-primary hover:bg-primary/90 text-primary-foreground"
 								>
 									<FileUp className="h-4 w-4" />
 									Seleccionar archivo
@@ -521,7 +521,7 @@ export function CargarArchivoTab() {
 							variant="outline"
 							onClick={handleClear}
 							disabled={!selectedFile || isUploading}
-							className="text-gray-700"
+							className="text-foreground"
 						>
 							<X className="h-4 w-4" />
 							Limpiar
@@ -529,7 +529,7 @@ export function CargarArchivoTab() {
 						<Button
 							onClick={handleUpload}
 							disabled={!selectedFile || isUploading}
-							className="bg-[#00505C] hover:bg-[#003c45] text-white"
+							className="bg-primary hover:bg-primary/90 text-primary-foreground"
 						>
 							{isUploading ? 'Cargando...' : 'Cargar'}
 						</Button>

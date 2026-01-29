@@ -18,6 +18,13 @@ describe('ApiClient', () => {
 			const mockData = { users: [{ id: 1, name: 'Test' }] }
 			;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
 				ok: true,
+				headers: {
+					get: vi.fn((name: string) => {
+						if (name === 'content-type') return 'application/json'
+						return null
+					}),
+				},
+				text: async () => JSON.stringify(mockData),
 				json: async () => mockData,
 			})
 
@@ -35,6 +42,15 @@ describe('ApiClient', () => {
 		it('should throw an error when response is not ok', async () => {
 			;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
 				ok: false,
+				status: 404,
+				statusText: 'Not Found',
+				headers: {
+					get: vi.fn((name: string) => {
+						if (name === 'content-type') return 'application/json'
+						return null
+					}),
+				},
+				text: async () => JSON.stringify({ error: 'Not found' }),
 				json: async () => ({ error: 'Not found' }),
 			})
 
@@ -48,6 +64,13 @@ describe('ApiClient', () => {
 			const requestData = { name: 'Test' }
 			;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
 				ok: true,
+				headers: {
+					get: vi.fn((name: string) => {
+						if (name === 'content-type') return 'application/json'
+						return null
+					}),
+				},
+				text: async () => JSON.stringify(mockData),
 				json: async () => mockData,
 			})
 
@@ -69,6 +92,13 @@ describe('ApiClient', () => {
 			const requestData = { name: 'Updated Name' }
 			;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
 				ok: true,
+				headers: {
+					get: vi.fn((name: string) => {
+						if (name === 'content-type') return 'application/json'
+						return null
+					}),
+				},
+				text: async () => JSON.stringify(mockData),
 				json: async () => mockData,
 			})
 
@@ -88,6 +118,14 @@ describe('ApiClient', () => {
 		it('should make a DELETE request', async () => {
 			;(fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
 				ok: true,
+				status: 200,
+				headers: {
+					get: vi.fn((name: string) => {
+						if (name === 'content-type') return 'application/json'
+						return null
+					}),
+				},
+				text: async () => JSON.stringify({ success: true }),
 				json: async () => ({ success: true }),
 			})
 

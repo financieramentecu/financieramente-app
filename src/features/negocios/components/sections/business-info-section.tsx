@@ -46,10 +46,10 @@ export function BusinessInfoSection({
 	return (
 		<div className="space-y-4">
 			<div className="space-y-2">
-				<h3 className="font-bold text-sm text-[#00505C]">
+				<h3 className="font-bold text-sm text-primary">
 					Información del negocio
 				</h3>
-				<Separator className="bg-gray-300" />
+				<Separator className="bg-border" />
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
@@ -67,7 +67,7 @@ export function BusinessInfoSection({
 					{!isEditMode && (
 						<div className="mt-2">
 							<p className="text-sm font-medium mb-2">Valor del negocio</p>
-							<div className="text-xs text-gray-500 space-y-1">
+							<div className="text-xs text-muted-foreground space-y-1">
 								<p>1. Si el negocio es Crea Patrimonio de Skandia....</p>
 								<p>2. Si tu cliente toma......</p>
 							</div>

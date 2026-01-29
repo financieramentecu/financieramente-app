@@ -30,7 +30,10 @@ export function usePreLiquidacion() {
             const response = await fetch('/api/pre-liquidacion/archivos')
 
             if (!response.ok) {
-                const error = await response.json()
+                const contentType = response.headers.get('content-type')
+                const error = contentType?.includes('application/json')
+                    ? await response.json().catch(() => ({ error: `Error ${response.status}` }))
+                    : { error: `Error ${response.status}: ${response.statusText}` }
                 setState({
                     status: 'error',
                     data: undefined,
@@ -39,7 +42,28 @@ export function usePreLiquidacion() {
                 return
             }
 
-            const data = await response.json()
+            const contentType = response.headers.get('content-type')
+            if (!contentType?.includes('application/json')) {
+                const text = await response.text()
+                setState({
+                    status: 'error',
+                    data: undefined,
+                    error: text || 'Respuesta no-JSON recibida',
+                })
+                return
+            }
+
+            const text = await response.text()
+            if (!text) {
+                setState({
+                    status: 'error',
+                    data: undefined,
+                    error: 'Respuesta vacía del servidor',
+                })
+                return
+            }
+
+            const data = JSON.parse(text)
             setState({
                 status: 'success',
                 data,
@@ -74,13 +98,28 @@ export function usePreLiquidacion() {
                 })
 
                 if (!response.ok) {
-                    const error = await response.json()
+                    const contentType = response.headers.get('content-type')
+                    const error = contentType?.includes('application/json')
+                        ? await response.json().catch(() => ({ error: `Error ${response.status}` }))
+                        : { error: `Error ${response.status}: ${response.statusText}` }
                     setErrorProcesamiento(error.error || 'Error al procesar')
                     return
                 }
 
-                const result: RespuestaProcesamientoPreLiquidacion =
-                    await response.json()
+                const contentType = response.headers.get('content-type')
+                if (!contentType?.includes('application/json')) {
+                    const text = await response.text()
+                    setErrorProcesamiento(text || 'Respuesta no-JSON recibida')
+                    return
+                }
+
+                const text = await response.text()
+                if (!text) {
+                    setErrorProcesamiento('Respuesta vacía del servidor')
+                    return
+                }
+
+                const result: RespuestaProcesamientoPreLiquidacion = JSON.parse(text)
 
                 if (result.success) {
                     setMensajeExito(

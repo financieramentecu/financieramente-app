@@ -52,7 +52,7 @@ export function CancelReasonField({
 			/>
 			<div className="flex justify-between items-center text-xs">
 				<span
-					className={cn(isUnderMinimum ? 'text-amber-600' : 'text-gray-500')}
+					className={cn(isUnderMinimum ? 'text-amber-600' : 'text-muted-foreground')}
 				>
 					{isUnderMinimum && `Mínimo ${MIN_LENGTH} caracteres`}
 					{isValid && <span className="text-green-600">Motivo válido</span>}
@@ -60,7 +60,7 @@ export function CancelReasonField({
 				<span
 					className={cn(
 						'tabular-nums',
-						isNearMaximum ? 'text-amber-600' : 'text-gray-500'
+						isNearMaximum ? 'text-amber-600' : 'text-muted-foreground'
 					)}
 				>
 					{characterCount}/{MAX_LENGTH}

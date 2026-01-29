@@ -2,6 +2,8 @@
 
 import { FileText, RefreshCw, Trash2, AlertCircle, Search, Calendar, Filter, X } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
+import { EmptyState } from '@/features/shared/ui/empty-state'
+import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { Input } from '@/features/shared/ui/input'
 import { Label } from '@/features/shared/ui/label'
 import {
@@ -93,9 +95,9 @@ export function HistorialCargasTab() {
 			/>
 
 			{/* Panel de Filtros */}
-			<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 				<div className="flex items-center justify-between mb-4">
-					<h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+					<h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
 						<Filter className="h-4 w-4" /> Filtros
 					</h3>
 					{(searchTerm || statusFilter !== 'ALL' || dateStart || dateEnd) && (
@@ -103,7 +105,8 @@ export function HistorialCargasTab() {
 							variant="ghost"
 							size="sm"
 							onClick={handleClearFilters}
-							className="text-gray-500 hover:text-gray-900 h-8"
+							className="text-muted-foreground hover:text-foreground h-8"
+							aria-label="Limpiar filtros"
 						>
 							<X className="h-3.5 w-3.5 mr-1" /> Limpiar filtros
 						</Button>
@@ -115,7 +118,7 @@ export function HistorialCargasTab() {
 					<div className="space-y-2">
 						<Label className="text-xs">Buscar</Label>
 						<div className="relative">
-							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
 							<Input
 								placeholder="Nombre o usuario..."
 								className="pl-9"
@@ -149,7 +152,7 @@ export function HistorialCargasTab() {
 					<div className="space-y-2">
 						<Label className="text-xs">Desde</Label>
 						<div className="relative">
-							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
 							<Input
 								type="date"
 								className="pl-9"
@@ -163,7 +166,7 @@ export function HistorialCargasTab() {
 					<div className="space-y-2">
 						<Label className="text-xs">Hasta</Label>
 						<div className="relative">
-							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
 							<Input
 								type="date"
 								className="pl-9"
@@ -176,12 +179,12 @@ export function HistorialCargasTab() {
 			</div>
 
 			{/* Sección de Historial de Cargas */}
-			<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 				{/* Header con título y botón limpiar */}
 				<div className="flex items-center justify-between mb-6">
 					<div className="flex items-center gap-2">
-						<RefreshCw className="h-5 w-5 text-[#00505C]" />
-						<h2 className="text-lg font-semibold text-[#00505C]">
+						<RefreshCw className="h-5 w-5 text-primary" />
+						<h2 className="text-lg font-semibold text-primary">
 							Historial de Cargas
 						</h2>
 						<Button
@@ -198,73 +201,70 @@ export function HistorialCargasTab() {
 				</div>
 
 				{error && (
-					<div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md flex items-center gap-2">
+					<div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-md flex items-center gap-2">
 						<AlertCircle className="h-5 w-5" />
 						<p>{error}</p>
 					</div>
 				)}
 
 				{isLoading && historial.length === 0 ? (
-					<div className="text-center py-12">
-						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00505C] mx-auto"></div>
-						<p className="text-muted-foreground mt-4">Cargando historial...</p>
-					</div>
+					<TableRowsLoadingSkeleton rows={5} />
 				) : filteredHistorial.length === 0 ? (
-					<div className="text-center py-12">
-						<FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-						<p className="text-muted-foreground">
-							{historial.length === 0
+					<EmptyState
+						icon={<FileText className="h-12 w-12" />}
+						title={
+							historial.length === 0
 								? 'No hay historial de cargas disponible'
-								: 'No se encontraron resultados con los filtros aplicados'}
-						</p>
-					</div>
+								: 'No se encontraron resultados con los filtros aplicados'
+						}
+					/>
 				) : (
 					<div className="space-y-4">
 						{filteredHistorial.map((carga) => (
 							<div
 								key={carga.id}
-								className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+								className="bg-muted rounded-lg p-4 border border-border"
 							>
 								<div className="flex items-start justify-between gap-4">
 									{/* Información del archivo */}
 									<div className="flex items-start gap-3 flex-1">
-										<FileText className="h-5 w-5 text-gray-600 mt-0.5" />
+										<FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
 										<div className="flex-1">
 											{/* Nombre del archivo */}
 											<div className="flex items-center gap-2 mb-2">
-												<h3 className="font-semibold text-[#00505C]">
+												<h3 className="font-semibold text-primary">
 													{carga.nombreArchivo}
 												</h3>
 
-												<span className={`px-2 py-0.5 rounded text-xs font-medium ${carga.estado === 'LOAD' ? 'bg-blue-100 text-blue-700' :
-													carga.estado === 'COMPLETADO' ? 'bg-green-100 text-green-700' :
-														carga.estado === 'ERROR' ? 'bg-red-100 text-red-700' :
-															carga.estado === 'PRELIQUIDADO' ? 'bg-purple-100 text-purple-700' :
-																'bg-blue-100 text-blue-700'
+												<span className={`px-2 py-0.5 rounded text-xs font-medium ${carga.estado === 'LOAD' ? 'bg-info-muted text-info' :
+													carga.estado === 'COMPLETADO' ? 'bg-success-muted text-success' :
+														carga.estado === 'ERROR' ? 'bg-destructive/10 text-destructive' :
+															carga.estado === 'PRELIQUIDADO' ? 'bg-success-muted text-success' :
+																'bg-info-muted text-info'
 													}`}>
 													{carga.estado}
 												</span>
 											</div>
 
 											{/* Fecha, hora y usuario */}
-											<p className="text-sm text-gray-600 mb-3">
+											<p className="text-sm text-muted-foreground mb-3">
 												{carga.fechaCarga}, {carga.horaCarga} • Por: {carga.usuario}
 											</p>
 											{/* Estadísticas */}
 											<div className="flex flex-wrap items-center gap-4 text-sm">
-												<span className="text-green-600 font-medium">
+												<span className="text-success font-medium">
 													{carga.exitosos} exitosos
 												</span>
-												<span className="text-red-600 font-medium">
+												<span className="text-destructive font-medium">
 													{carga.errores} errores
 												</span>
-												<span className="text-green-600 font-medium">
+												<span className="text-success font-medium">
 													{carga.sincronizados} sincronizados
 												</span>
-												<span className="text-amber-600 font-medium">
+												<span className="text-warning font-medium">
 													{carga.sinRegistro} sin registro
 												</span>
-												<span className="text-orange-600 font-medium">
+												<span className="text-warning font-medium">
 													{carga.rezagados} rezagados
 												</span>
 											</div>
@@ -277,7 +277,7 @@ export function HistorialCargasTab() {
 											variant="ghost"
 											size="sm"
 											onClick={() => handleDeleteClick(carga.id)}
-											className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2"
+											className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-2"
 											title="Eliminar registro"
 										>
 											<Trash2 className="h-4 w-4" />
@@ -291,8 +291,8 @@ export function HistorialCargasTab() {
 			</div>
 
 			{/* Sección de Formato Requerido */}
-			<div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-				<p className="text-sm text-gray-700 leading-relaxed">
+			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+				<p className="text-sm text-foreground leading-relaxed">
 					<strong>Formato requerido de Skandia:</strong> El archivo Excel debe contener
 					las columnas: Nombre, Franquicia, Desde, Hasta, Nombre Fp, Sub Grupo Fp,
 					Compania, Producto, Tipo Comisión, Cto, Base, Com. El sistema validará

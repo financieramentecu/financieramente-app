@@ -57,13 +57,13 @@ export const CancelBusinessModal = React.forwardRef<
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent ref={ref} className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle className="text-lg font-semibold text-gray-900">
+					<DialogTitle className="text-lg font-semibold text-foreground">
 						Cancelar negocio #{businessId}
 					</DialogTitle>
 				</DialogHeader>
 
-				<div className="flex items-start gap-2 text-sm text-gray-600 mt-2 mb-4">
-					<AlertTriangle className="h-4 w-4 mt-0.5 text-gray-500 shrink-0" />
+				<div className="flex items-start gap-2 text-sm text-muted-foreground mt-2 mb-4">
+					<AlertTriangle className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
 					<span>
 						Esta acción es irreversible. El negocio pasará a estado Cancelado y
 						no podrá ser modificado posteriormente.
@@ -74,7 +74,7 @@ export const CancelBusinessModal = React.forwardRef<
 					<div className="space-y-2">
 						<Label
 							htmlFor="cancel-reason"
-							className="text-sm font-medium text-gray-900"
+							className="text-sm font-medium text-foreground"
 						>
 							Explicación del motivo por el cual se cancelara el negocio
 							<span className="text-red-500 ml-1">*</span>
@@ -89,7 +89,7 @@ export const CancelBusinessModal = React.forwardRef<
 						/>
 					</div>
 
-					<p className="text-sm font-semibold text-gray-900">
+					<p className="text-sm font-semibold text-foreground">
 						¿Esta seguro de cancelar el negocio?
 					</p>
 				</div>
@@ -106,7 +106,7 @@ export const CancelBusinessModal = React.forwardRef<
 					<Button
 						onClick={handleConfirm}
 						disabled={!reason.trim() || isSubmitting}
-						className="flex-1 bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700"
+						className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
 					>
 						{isSubmitting ? 'Confirmando...' : 'Confirmar'}
 					</Button>

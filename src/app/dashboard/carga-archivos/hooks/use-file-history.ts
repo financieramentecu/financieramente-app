@@ -49,7 +49,18 @@ export function useFileHistory() {
                 throw new Error(errorData.error || 'Error al cargar el historial')
             }
 
-            const data: FileImportResponse[] = await response.json()
+            const contentType = response.headers.get('content-type')
+            if (!contentType?.includes('application/json')) {
+                const text = await response.text()
+                throw new Error(text || 'Respuesta no-JSON recibida')
+            }
+
+            const text = await response.text()
+            if (!text) {
+                throw new Error('Respuesta vacía del servidor')
+            }
+
+            const data: FileImportResponse[] = JSON.parse(text)
 
             const formattedData: CargaHistorial[] = data.map((item) => {
                 const date = new Date(item.createdAt)

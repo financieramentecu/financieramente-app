@@ -5,6 +5,7 @@ import { StatsOverview } from '@/features/negocios/components/StatsOverview'
 import { BusinessTableSection } from '@/features/negocios/components/BusinessTableSection'
 import { Business, StatsData } from '@/features/negocios/types/business.types'
 import { Skeleton } from '@/features/shared/ui/skeleton'
+import { TableLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { AlertCircle } from 'lucide-react'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { UserRole } from '@/features/auth/lib/roles'
@@ -54,63 +55,6 @@ function StatsLoadingSkeleton() {
 					</div>
 				</div>
 			))}
-		</div>
-	)
-}
-
-function TableLoadingSkeleton() {
-	return (
-		<div className="space-y-4">
-			{/* Header */}
-			<div className="flex justify-between items-center">
-				<Skeleton className="h-7 w-44" />
-				<Skeleton className="h-10 w-40 rounded-md" />
-			</div>
-
-			{/* Search bar */}
-			<Skeleton className="h-10 w-full max-w-sm rounded-md" />
-
-			{/* Table */}
-			<div className="border rounded-lg overflow-hidden">
-				{/* Table header */}
-				<div className="bg-muted/50 p-4 flex gap-4">
-					{[80, 100, 120, 150, 80, 100, 100, 80, 80].map((w, i) => (
-						<Skeleton key={i} className="h-4" style={{ width: w }} />
-					))}
-				</div>
-
-				{/* Table rows */}
-				{[1, 2, 3, 4, 5].map((row) => (
-					<div key={row} className="p-4 flex gap-4 items-center border-t">
-						<Skeleton className="h-4 w-16" />
-						<Skeleton className="h-4 w-24" />
-						<div className="flex items-center gap-2">
-							<Skeleton className="h-8 w-8 rounded-full" />
-							<Skeleton className="h-4 w-28" />
-						</div>
-						<Skeleton className="h-4 w-36" />
-						<Skeleton className="h-4 w-16" />
-						<Skeleton className="h-4 w-20" />
-						<Skeleton className="h-4 w-24" />
-						<Skeleton className="h-4 w-20" />
-						<Skeleton className="h-6 w-20 rounded-full" />
-						<div className="flex gap-1">
-							<Skeleton className="h-8 w-8 rounded-md" />
-							<Skeleton className="h-8 w-8 rounded-md" />
-						</div>
-					</div>
-				))}
-			</div>
-
-			{/* Pagination */}
-			<div className="flex justify-between items-center pt-2">
-				<Skeleton className="h-4 w-32" />
-				<div className="flex gap-2">
-					<Skeleton className="h-8 w-8 rounded-md" />
-					<Skeleton className="h-8 w-8 rounded-md" />
-					<Skeleton className="h-8 w-8 rounded-md" />
-				</div>
-			</div>
 		</div>
 	)
 }

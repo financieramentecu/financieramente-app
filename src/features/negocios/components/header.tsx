@@ -15,7 +15,7 @@ export function Header() {
 			</div>
 
 			{/* Banner con Isologo */}
-			<div className="bg-[#00505C] w-full sm:w-auto px-4 sm:px-8 py-4 rounded-lg flex items-center gap-4 sm:gap-6">
+			<div className="bg-primary w-full sm:w-auto px-4 sm:px-8 py-4 rounded-lg flex items-center gap-4 sm:gap-6">
 				<div className="w-1/2 sm:w-auto flex items-center justify-center">
 					<Image
 						src="/logos/isologo.svg"
@@ -26,10 +26,10 @@ export function Header() {
 					/>
 				</div>
 				<div className="flex-1 flex flex-col">
-					<h1 className="text-[#83D874] font-bold text-base sm:text-lg">
+					<h1 className="text-secondary font-bold text-base sm:text-lg">
 						Formulario único de inscripción Nacional
 					</h1>
-					<p className="text-[#6BCA6F] text-sm sm:text-base">
+					<p className="text-secondary/90 text-sm sm:text-base">
 						Formulario único de inscripción Nacional
 					</p>
 				</div>

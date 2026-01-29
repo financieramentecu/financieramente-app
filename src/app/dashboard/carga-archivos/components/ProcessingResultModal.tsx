@@ -42,9 +42,9 @@ export function ProcessingResultModal({
 		>
 			<div className="space-y-4">
 				{/* Resumen */}
-				<div className="bg-gray-50 rounded-lg p-4 space-y-3">
+				<div className="bg-muted rounded-lg p-4 space-y-3">
 					{hasSuccess && (
-						<div className="flex items-center gap-2 text-green-600">
+						<div className="flex items-center gap-2 text-success">
 							<CheckCircle2 className="h-5 w-5" />
 							<span className="font-medium">
 								{result.successCount} registro{result.successCount !== 1 ? 's' : ''} cargado
@@ -53,7 +53,7 @@ export function ProcessingResultModal({
 						</div>
 					)}
 					{hasErrors && (
-						<div className="flex items-center gap-2 text-red-600">
+						<div className="flex items-center gap-2 text-destructive">
 							<XCircle className="h-5 w-5" />
 							<span className="font-medium">
 								{result.errorCount} registro{result.errorCount !== 1 ? 's' : ''} con error
@@ -64,7 +64,7 @@ export function ProcessingResultModal({
 				</div>
 
 				{/* Mensaje de resumen según requerimiento */}
-				<div className="text-sm text-gray-700 bg-blue-50 rounded-lg p-3">
+				<div className="text-sm text-foreground bg-info-muted rounded-lg p-3">
 					<p className="font-medium">
 						{result.successCount} registro{result.successCount !== 1 ? 's' : ''} cargado
 						{result.successCount !== 1 ? 's' : ''} exitosamente
@@ -90,7 +90,7 @@ export function ProcessingResultModal({
 				<div className="pt-2">
 					<Button
 						onClick={() => onOpenChange(false)}
-						className="w-full bg-[#00505C] hover:bg-[#003c45] text-white"
+						className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
 					>
 						Aceptar
 					</Button>

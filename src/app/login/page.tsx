@@ -157,9 +157,20 @@ function LoginContent() {
  * Integra el componente LoginView maquetado con NextAuth
  * Maneja la autenticación con Google OAuth
  */
+function LoginLoadingFallback() {
+	return (
+		<div className="grid min-h-screen place-items-center bg-background">
+			<div
+				className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent"
+				aria-label="Cargando"
+			/>
+		</div>
+	)
+}
+
 export default function LoginPage() {
 	return (
-		<Suspense fallback={<div>Cargando...</div>}>
+		<Suspense fallback={<LoginLoadingFallback />}>
 			<LoginContent />
 		</Suspense>
 	)
