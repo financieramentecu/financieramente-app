@@ -96,12 +96,28 @@ export function ModalDetallePreLiquidacion({
             const response = await fetch(`/api/pre-liquidacion/detalle/${fileId}`)
 
             if (!response.ok) {
-                const errorData = await response.json()
+                const contentType = response.headers.get('content-type')
+                const errorData = contentType?.includes('application/json')
+                    ? await response.json().catch(() => ({ error: `Error ${response.status}` }))
+                    : { error: `Error ${response.status}: ${response.statusText}` }
                 setError(errorData.error || 'Error al cargar detalle')
                 return
             }
 
-            const result = await response.json()
+            const contentType = response.headers.get('content-type')
+            if (!contentType?.includes('application/json')) {
+                const text = await response.text()
+                setError(text || 'Respuesta no-JSON recibida')
+                return
+            }
+
+            const text = await response.text()
+            if (!text) {
+                setError('Respuesta vacía del servidor')
+                return
+            }
+
+            const result = JSON.parse(text)
             setData(result)
         } catch (err) {
             console.error('Error al cargar detalle:', err)
@@ -131,12 +147,12 @@ export function ModalDetallePreLiquidacion({
             <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-[#00505C]" />
+                        <FileText className="h-5 w-5 text-primary" />
                         Detalle de Pre-liquidación
                     </DialogTitle>
                     <DialogDescription>
                         {data && (
-                            <span className="font-semibold text-gray-900">
+                            <span className="font-semibold text-foreground">
                                 {data.archivo.nombreArchivo}
                             </span>
                         )}
@@ -145,7 +161,7 @@ export function ModalDetallePreLiquidacion({
 
                 {isLoading ? (
                     <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00505C] mx-auto"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                         <p className="text-muted-foreground mt-4">Cargando detalle...</p>
                     </div>
                 ) : error ? (
@@ -156,25 +172,25 @@ export function ModalDetallePreLiquidacion({
                     <div className="space-y-4">
                         {/* Resumen */}
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                            <div className="bg-blue-50 p-3 rounded-lg">
-                                <p className="text-xs text-blue-600">Total Registros</p>
-                                <p className="text-lg font-bold text-blue-900">{data.resumen.totalRegistros}</p>
+                            <div className="bg-info-muted p-3 rounded-lg">
+                                <p className="text-xs text-info">Total Registros</p>
+                                <p className="text-lg font-bold text-foreground">{data.resumen.totalRegistros}</p>
                             </div>
-                            <div className="bg-green-50 p-3 rounded-lg">
-                                <p className="text-xs text-green-600">Sincronizados</p>
-                                <p className="text-lg font-bold text-green-900">{data.resumen.sincronizados}</p>
+                            <div className="bg-success-muted p-3 rounded-lg">
+                                <p className="text-xs text-success">Sincronizados</p>
+                                <p className="text-lg font-bold text-foreground">{data.resumen.sincronizados}</p>
                             </div>
-                            <div className="bg-amber-50 p-3 rounded-lg">
-                                <p className="text-xs text-amber-600">Rezagados</p>
-                                <p className="text-lg font-bold text-amber-900">{data.resumen.rezagados}</p>
+                            <div className="bg-warning-muted p-3 rounded-lg">
+                                <p className="text-xs text-warning">Rezagados</p>
+                                <p className="text-lg font-bold text-foreground">{data.resumen.rezagados}</p>
                             </div>
-                            <div className="bg-purple-50 p-3 rounded-lg">
-                                <p className="text-xs text-purple-600">Total Comisión</p>
-                                <p className="text-sm font-bold text-purple-900">{formatCurrency(data.resumen.totalComision)}</p>
+                            <div className="bg-muted p-3 rounded-lg">
+                                <p className="text-xs text-muted-foreground">Total Comisión</p>
+                                <p className="text-sm font-bold text-foreground">{formatCurrency(data.resumen.totalComision)}</p>
                             </div>
-                            <div className="bg-teal-50 p-3 rounded-lg">
-                                <p className="text-xs text-teal-600">General Neto</p>
-                                <p className="text-sm font-bold text-teal-900">{formatCurrency(data.resumen.totalGeneral)}</p>
+                            <div className="bg-muted p-3 rounded-lg">
+                                <p className="text-xs text-muted-foreground">General Neto</p>
+                                <p className="text-sm font-bold text-foreground">{formatCurrency(data.resumen.totalGeneral)}</p>
                             </div>
                         </div>
 
@@ -195,33 +211,33 @@ export function ModalDetallePreLiquidacion({
                                 <div className="border rounded-lg overflow-hidden">
                                     <div className="max-h-[50vh] overflow-x-auto overflow-y-auto">
                                         <table className="w-full text-[10px]">
-                                            <thead className="bg-gray-100 sticky top-0">
+                                            <thead className="bg-muted sticky top-0">
                                                 <tr>
-                                                    <th className="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">ID</th>
-                                                    <th className="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Producto</th>
-                                                    <th className="text-center py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Rezagado</th>
-                                                    <th className="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Cliente</th>
-                                                    <th className="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Cédula Agente</th>
-                                                    <th className="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Agente</th>
-                                                    <th className="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Contrato</th>
-                                                    <th className="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Tipo</th>
-                                                    <th className="text-right py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Comisión</th>
-                                                    <th className="text-right py-2 px-1 font-semibold text-blue-700 whitespace-nowrap">Gen Bruta</th>
-                                                    <th className="text-right py-2 px-1 font-semibold text-blue-700 whitespace-nowrap">Gen Desc</th>
-                                                    <th className="text-right py-2 px-1 font-semibold text-teal-700 whitespace-nowrap">Ag Bruta</th>
-                                                    <th className="text-right py-2 px-1 font-semibold text-teal-700 whitespace-nowrap">Ag Desc</th>
+                                                    <th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">ID</th>
+                                                    <th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">Producto</th>
+                                                    <th className="text-center py-2 px-1 font-semibold text-foreground whitespace-nowrap">Rezagado</th>
+                                                    <th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">Cliente</th>
+                                                    <th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">Cédula Agente</th>
+                                                    <th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">Agente</th>
+                                                    <th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">Contrato</th>
+                                                    <th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">Tipo</th>
+                                                    <th className="text-right py-2 px-1 font-semibold text-foreground whitespace-nowrap">Comisión</th>
+                                                    <th className="text-right py-2 px-1 font-semibold text-info whitespace-nowrap">Gen Bruta</th>
+                                                    <th className="text-right py-2 px-1 font-semibold text-info whitespace-nowrap">Gen Desc</th>
+                                                    <th className="text-right py-2 px-1 font-semibold text-primary whitespace-nowrap">Ag Bruta</th>
+                                                    <th className="text-right py-2 px-1 font-semibold text-primary whitespace-nowrap">Ag Desc</th>
                                                     <th className="text-right py-2 px-1 font-semibold text-indigo-700 whitespace-nowrap">Lid Bruta</th>
                                                     <th className="text-right py-2 px-1 font-semibold text-indigo-700 whitespace-nowrap">Lid Desc</th>
                                                     <th className="text-right py-2 px-1 font-semibold text-pink-700 whitespace-nowrap">Co Bruta</th>
                                                     <th className="text-right py-2 px-1 font-semibold text-pink-700 whitespace-nowrap">Co Desc</th>
-                                                    <th className="text-center py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Estado</th>
+                                                    <th className="text-center py-2 px-1 font-semibold text-foreground whitespace-nowrap">Estado</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {data.registros.map((registro) => (
                                                     <tr
                                                         key={registro.idSettlementCommission}
-                                                        className="border-t hover:bg-gray-50"
+                                                        className="border-t hover:bg-muted"
                                                     >
                                                         <td className="py-1 px-1">{registro.idSettlementCommission}</td>
                                                         <td className="py-1 px-1 max-w-[100px] truncate" title={registro.producto || ''}>
@@ -231,7 +247,7 @@ export function ModalDetallePreLiquidacion({
                                                             {registro.esRezagado ? (
                                                                 <Check className="h-4 w-4 text-amber-600 mx-auto" />
                                                             ) : (
-                                                                <X className="h-4 w-4 text-gray-400 mx-auto" />
+                                                                <X className="h-4 w-4 text-muted-foreground mx-auto" />
                                                             )}
                                                         </td>
                                                         <td className="py-1 px-1 max-w-[100px] truncate" title={registro.nombreCliente || ''}>
@@ -248,16 +264,16 @@ export function ModalDetallePreLiquidacion({
                                                         <td className="py-1 px-1 text-right font-medium">
                                                             {formatCurrency(registro.comision)}
                                                         </td>
-                                                        <td className="py-1 px-1 text-right text-blue-700">
+                                                        <td className="py-1 px-1 text-right text-info">
                                                             {formatCurrency(registro.generalBruta)}
                                                         </td>
-                                                        <td className="py-1 px-1 text-right text-blue-700 font-medium">
+                                                        <td className="py-1 px-1 text-right text-info font-medium">
                                                             {formatCurrency(registro.generalDescuento)}
                                                         </td>
-                                                        <td className="py-1 px-1 text-right text-teal-700">
+                                                        <td className="py-1 px-1 text-right text-primary">
                                                             {formatCurrency(registro.agenciaBruta)}
                                                         </td>
-                                                        <td className="py-1 px-1 text-right text-teal-700 font-medium">
+                                                        <td className="py-1 px-1 text-right text-primary font-medium">
                                                             {formatCurrency(registro.agenciaDescuento)}
                                                         </td>
                                                         <td className="py-1 px-1 text-right text-indigo-700">
@@ -275,8 +291,8 @@ export function ModalDetallePreLiquidacion({
                                                         <td className="py-1 px-1 text-center">
                                                             <span
                                                                 className={`px-1 py-0.5 rounded text-[9px] font-medium whitespace-nowrap ${registro.estado === 'SINCRONIZADO'
-                                                                        ? 'bg-green-100 text-green-700'
-                                                                        : 'bg-amber-100 text-amber-700'
+                                                                        ? 'bg-success-muted text-success'
+                                                                        : 'bg-warning-muted text-warning'
                                                                     }`}
                                                             >
                                                                 {registro.estado === 'SINCRONIZADO' ? 'SYNC' : 'LAG'}
@@ -294,32 +310,32 @@ export function ModalDetallePreLiquidacion({
                                 <div className="border rounded-lg overflow-hidden">
                                     <div className="max-h-[50vh] overflow-y-auto">
                                         <table className="w-full text-xs">
-                                            <thead className="bg-gray-100 sticky top-0">
+                                            <thead className="bg-muted sticky top-0">
                                                 <tr>
-                                                    <th className="text-left py-2 px-2 font-semibold text-gray-700">Agente</th>
-                                                    <th className="text-left py-2 px-2 font-semibold text-gray-700">Cédula</th>
-                                                    <th className="text-right py-2 px-2 font-semibold text-gray-700">Registros</th>
-                                                    <th className="text-right py-2 px-2 font-semibold text-green-700">Sync</th>
-                                                    <th className="text-right py-2 px-2 font-semibold text-amber-700">Lag</th>
-                                                    <th className="text-right py-2 px-2 font-semibold text-blue-700">General</th>
-                                                    <th className="text-right py-2 px-2 font-semibold text-teal-700">Agencia</th>
+                                                    <th className="text-left py-2 px-2 font-semibold text-foreground">Agente</th>
+                                                    <th className="text-left py-2 px-2 font-semibold text-foreground">Cédula</th>
+                                                    <th className="text-right py-2 px-2 font-semibold text-foreground">Registros</th>
+                                                    <th className="text-right py-2 px-2 font-semibold text-success">Sync</th>
+                                                    <th className="text-right py-2 px-2 font-semibold text-warning">Lag</th>
+                                                    <th className="text-right py-2 px-2 font-semibold text-info">General</th>
+                                                    <th className="text-right py-2 px-2 font-semibold text-primary">Agencia</th>
                                                     <th className="text-right py-2 px-2 font-semibold text-indigo-700">Líder</th>
                                                     <th className="text-right py-2 px-2 font-semibold text-pink-700">Coach</th>
-                                                    <th className="text-right py-2 px-2 font-semibold text-gray-700">Total</th>
+                                                    <th className="text-right py-2 px-2 font-semibold text-foreground">Total</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {data.distribucion.map((dist, idx) => (
-                                                    <tr key={idx} className="border-t hover:bg-gray-50">
+                                                    <tr key={idx} className="border-t hover:bg-muted">
                                                         <td className="py-2 px-2 font-medium">{dist.nombreAgente}</td>
                                                         <td className="py-2 px-2">{dist.cedulaAgente}</td>
                                                         <td className="py-2 px-2 text-right">{dist.cantidadRegistros}</td>
                                                         <td className="py-2 px-2 text-right text-green-600">{dist.sincronizados}</td>
                                                         <td className="py-2 px-2 text-right text-amber-600">{dist.rezagados}</td>
-                                                        <td className="py-2 px-2 text-right text-blue-700 font-medium">
+                                                        <td className="py-2 px-2 text-right text-info font-medium">
                                                             {formatCurrency(dist.totalGeneral)}
                                                         </td>
-                                                        <td className="py-2 px-2 text-right text-teal-700 font-medium">
+                                                        <td className="py-2 px-2 text-right text-primary font-medium">
                                                             {formatCurrency(dist.totalAgencia)}
                                                         </td>
                                                         <td className="py-2 px-2 text-right text-indigo-700 font-medium">
@@ -334,19 +350,19 @@ export function ModalDetallePreLiquidacion({
                                                     </tr>
                                                 ))}
                                             </tbody>
-                                            <tfoot className="bg-gray-50 font-bold">
+                                            <tfoot className="bg-muted font-bold">
                                                 <tr>
                                                     <td colSpan={3} className="py-2 px-2 text-right">TOTALES:</td>
-                                                    <td className="py-2 px-2 text-right text-green-700">
+                                                    <td className="py-2 px-2 text-right text-success">
                                                         {data.distribucion.reduce((s, d) => s + d.sincronizados, 0)}
                                                     </td>
-                                                    <td className="py-2 px-2 text-right text-amber-700">
+                                                    <td className="py-2 px-2 text-right text-warning">
                                                         {data.distribucion.reduce((s, d) => s + d.rezagados, 0)}
                                                     </td>
-                                                    <td className="py-2 px-2 text-right text-blue-700">
+                                                    <td className="py-2 px-2 text-right text-info">
                                                         {formatCurrency(data.resumen.totalGeneral)}
                                                     </td>
-                                                    <td className="py-2 px-2 text-right text-teal-700">
+                                                    <td className="py-2 px-2 text-right text-primary">
                                                         {formatCurrency(data.resumen.totalAgencia)}
                                                     </td>
                                                     <td className="py-2 px-2 text-right text-indigo-700">
@@ -379,11 +395,11 @@ export function ModalDetallePreLiquidacion({
                     <Button
                         onClick={onConfirmar}
                         disabled={isProcesando || !data}
-                        className="bg-[#00505C] hover:bg-[#003d47]"
+                        className="bg-primary hover:bg-primary/90"
                     >
                         {isProcesando ? (
                             <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
                                 Procesando...
                             </>
                         ) : (

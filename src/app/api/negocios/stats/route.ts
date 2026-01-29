@@ -16,7 +16,7 @@ import type {
 	StatsByCurrency,
 } from '@/features/negocios/types/business-api.types'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 
 /**

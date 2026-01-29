@@ -9,7 +9,7 @@ import { Button } from '@/features/shared/ui/button'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { BusinessStatusBadge } from '../ui/BusinessStatusBadge'
 import { UserAvatar } from '../ui/UserAvatar'
-import { formatCurrency } from '@/lib/currency'
+import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { Calendar, Phone, Mail, Building2, FileText, Clock } from 'lucide-react'
 import type { BusinessEntity } from '../../types/business-entity.types'
 

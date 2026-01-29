@@ -6,10 +6,11 @@ import { mockUsers } from '@/features/shared/__tests__/fixtures/mockUsers'
 import { mockUserWithRole } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
 
 // Mock de los hooks que hacen llamadas a la API
+const mockHandleSearchClient = vi.fn()
 vi.mock('@/features/negocios/hooks/useSearchClient', () => ({
 	useSearchClient: () => ({
-		handleSearchClient: vi.fn().mockResolvedValue([]),
-		results: [],
+		handleSearchClient: mockHandleSearchClient,
+		results: mockUsers,
 	}),
 }))
 
@@ -17,6 +18,26 @@ vi.mock('@/features/negocios/hooks/useSearchAgents', () => ({
 	useSearchAgents: () => ({
 		handleSearchAgents: vi.fn().mockResolvedValue([]),
 	}),
+}))
+
+// Mock de las acciones de creación
+vi.mock('@/features/negocios/actions/create-client', () => ({
+	createClient: vi.fn(),
+}))
+
+vi.mock('@/features/negocios/actions/create-business', () => ({
+	createBusiness: vi.fn(),
+}))
+
+vi.mock('@/features/negocios/actions/update-client', () => ({
+	updateClient: vi.fn(),
+}))
+
+vi.mock('sonner', () => ({
+	toast: {
+		error: vi.fn(),
+		success: vi.fn(),
+	},
 }))
 
 describe('CreateBusinessForm', () => {
@@ -182,14 +203,28 @@ describe('CreateBusinessForm', () => {
 		})
 	})
 
-	it.skip('displays loading state during submission', async () => {
+	it('displays loading state during submission', async () => {
 		const user = userEvent.setup()
-		mockOnSubmit.mockImplementation(
-			() => new Promise((resolve) => setTimeout(resolve, 200))
+		const { createBusiness } = await import(
+			'@/features/negocios/actions/create-business'
 		)
+
+		// Mock que retorna una promesa que se resuelve después de un delay
+		let resolveBusiness: (value: { data: { idBusiness: number } }) => void
+		const businessPromise = new Promise<{ data: { idBusiness: number } }>(
+			(resolve) => {
+				resolveBusiness = resolve
+			}
+		)
+
+		vi.mocked(createBusiness).mockImplementation(
+			() => businessPromise as ReturnType<typeof createBusiness>
+		)
+		mockHandleSearchClient.mockResolvedValue(mockUsers)
 
 		render(<CreateBusinessForm {...defaultProps} />)
 
+		// Seleccionar documento para desbloquear el formulario
 		const docTrigger = screen.getByRole('combobox', { name: /No\. Documento/i })
 		await user.click(docTrigger)
 		const searchInput = screen.getByPlaceholderText(
@@ -205,18 +240,41 @@ describe('CreateBusinessForm', () => {
 			screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
 		)
 
+		// Llenar campos requeridos mínimos del formulario
+		const emailInput = screen.getByLabelText(/Email/i) as HTMLInputElement
+		await user.clear(emailInput)
+		await user.type(emailInput, mockUsers[0].email || 'test@example.com')
+
+		// Esperar a que el botón esté habilitado
 		const submitButton = await waitFor(() => {
 			const btn = screen.getByRole('button', { name: /Aceptar y Guardar/i })
 			expect(btn).not.toBeDisabled()
 			return btn
 		})
 
-		await user.click(submitButton)
-
-		await waitFor(() => {
-			expect(
-				screen.getByRole('button', { name: /Guardando.../i })
-			).toBeInTheDocument()
+		// Hacer click en el botón de submit
+		// No esperamos el click para poder verificar el estado de carga inmediatamente
+		user.click(submitButton).catch(() => {
+			// Ignorar errores de validación del formulario
 		})
+
+		// Verificar que el botón muestra el estado de carga
+		// react-hook-form actualiza isSubmitting cuando se inicia el submit
+		await waitFor(
+			() => {
+				const loadingButton = screen.getByRole('button', {
+					name: /Guardando.../i,
+				})
+				expect(loadingButton).toBeInTheDocument()
+				expect(loadingButton).toBeDisabled()
+			},
+			{ timeout: 2000 }
+		)
+
+		// Resolver la promesa para completar el submit y limpiar el estado
+		resolveBusiness!({ data: { idBusiness: 1 } })
+
+		// Esperar un poco para que se complete el flujo
+		await new Promise((resolve) => setTimeout(resolve, 100))
 	})
 })

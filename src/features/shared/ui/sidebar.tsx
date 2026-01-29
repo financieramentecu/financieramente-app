@@ -174,6 +174,21 @@ const Sidebar = React.forwardRef<
 	) => {
 		const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
+		const isCollapsedIcon = state === 'collapsed' && collapsible === 'icon'
+		const spacerWidth =
+			collapsible === 'offcanvas' && state === 'collapsed'
+				? 'w-0'
+				: isCollapsedIcon
+					? variant === 'floating' || variant === 'inset'
+						? 'w-16'
+						: 'w-12'
+					: 'w-64'
+		const sidebarContentWidth = isCollapsedIcon
+			? variant === 'floating' || variant === 'inset'
+				? 'w-16'
+				: 'w-12'
+			: 'w-64'
+
 		if (collapsible === 'none') {
 			return (
 				<div
@@ -211,7 +226,7 @@ const Sidebar = React.forwardRef<
 		return (
 			<div
 				ref={ref}
-				className="group peer hidden text-sidebar-foreground md:block"
+				className="group peer hidden shrink-0 text-sidebar-foreground md:block"
 				data-state={state}
 				data-collapsible={state === 'collapsed' ? collapsible : ''}
 				data-variant={variant}
@@ -220,24 +235,18 @@ const Sidebar = React.forwardRef<
 				{/* This is what handles the sidebar gap on desktop */}
 				<div
 					className={cn(
-						'relative w-64 bg-transparent transition-[width] duration-200 ease-linear',
-						'group-data-[collapsible=offcanvas]:w-0',
-						'group-data-[side=right]:rotate-180',
-						variant === 'floating' || variant === 'inset'
-							? 'group-data-[collapsible=icon]:w-16'
-							: 'group-data-[collapsible=icon]:w-12'
+						'relative shrink-0 bg-transparent transition-[width] duration-200 ease-linear',
+						side === 'right' && 'rotate-180',
+						spacerWidth
 					)}
 				/>
 				<div
 					className={cn(
-						'fixed inset-y-0 z-10 hidden h-svh w-64 transition-[left,right,width] duration-200 ease-linear md:flex',
-						side === 'left'
-							? 'left-0 group-data-[collapsible=offcanvas]:-left-64'
-							: 'right-0 group-data-[collapsible=offcanvas]:-right-64',
-						// Adjust the padding for floating and inset variants.
-						variant === 'floating' || variant === 'inset'
-							? 'p-2 group-data-[collapsible=icon]:w-16'
-							: 'group-data-[collapsible=icon]:w-12 group-data-[side=left]:border-r group-data-[side=right]:border-l',
+						'fixed inset-y-0 z-10 hidden h-svh transition-[left,right,width] duration-200 ease-linear md:flex',
+						side === 'left' ? 'left-0' : 'right-0',
+						sidebarContentWidth,
+						(variant === 'floating' || variant === 'inset') && 'p-2',
+						variant === 'sidebar' && (side === 'left' ? 'border-r border-sidebar-border' : 'border-l border-sidebar-border'),
 						className
 					)}
 					{...props}
@@ -318,7 +327,7 @@ const SidebarInset = React.forwardRef<
 		<main
 			ref={ref}
 			className={cn(
-				'relative flex w-full flex-1 flex-col bg-background',
+				'relative flex min-w-0 w-full flex-1 flex-col bg-background',
 				'md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow',
 				className
 			)}

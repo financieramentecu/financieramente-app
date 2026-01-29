@@ -7,7 +7,7 @@ import {
 	prismaProductToProduct,
 	prismaProductListToProducts,
 } from '@/features/product/mappers/product.mapper'
-import { logAuditEvent, AuditAction } from '@/lib/auth/audit-logger'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createMockPrismaProduct } from '@/features/product/__tests__/fixtures/mock-product'
@@ -30,7 +30,7 @@ vi.mock('@/features/product/lib/product-schemas', () => ({
 	},
 }))
 vi.mock('@/features/product/mappers/product.mapper')
-vi.mock('@/lib/auth/audit-logger', () => ({
+vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
 		PRODUCT_CREATED: 'PRODUCT_CREATED',

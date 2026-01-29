@@ -1,4 +1,6 @@
 import { apiClient } from '@/lib/api/client'
+import { prisma } from '@/lib/prisma'
+import type { Product as PrismaProduct } from '@prisma/client'
 import type {
 	Product,
 	ProductFilters,
@@ -6,6 +8,22 @@ import type {
 	UpdateProductInput,
 	CompanyOption,
 } from '../types/product.types'
+
+/**
+ * Server-side function to get active products.
+ * Use this in Server Components and API Routes.
+ * For Client Components, use productApi.getProducts() instead.
+ */
+export async function getProducts(): Promise<PrismaProduct[]> {
+	return await prisma.product.findMany({
+		where: {
+			status: true,
+		},
+		orderBy: {
+			name: 'asc',
+		},
+	})
+}
 
 export const productApi = {
 	async getProducts(filters?: ProductFilters): Promise<Product[]> {

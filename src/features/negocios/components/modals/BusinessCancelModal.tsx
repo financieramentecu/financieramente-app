@@ -19,7 +19,7 @@ import {
 	DialogTitle,
 } from '@/features/shared/ui/dialog'
 import { BusinessStatusBadge } from '../ui/BusinessStatusBadge'
-import { formatCurrency } from '@/lib/currency'
+import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { BusinessEntity } from '../../types/business-entity.types'
 
 const MIN_REASON_LENGTH = 20
@@ -106,50 +106,50 @@ export function BusinessCancelModal({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle className="text-lg font-semibold text-gray-900">
+					<DialogTitle className="text-lg font-semibold text-foreground">
 						Cancelar Negocio #{business.id}
 					</DialogTitle>
 				</DialogHeader>
 
 				{/* Warning Message */}
-				<div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
-					<AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-					<span className="text-amber-800">
+				<div className="flex items-start gap-3 p-3 rounded-lg bg-warning-muted border border-warning/30 text-sm">
+					<AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+					<span className="text-foreground">
 						Esta acción es irreversible. El negocio pasará a estado Cancelado y
 						no podrá ser modificado posteriormente.
 					</span>
 				</div>
 
 				{/* Business Info Summary */}
-				<div className="space-y-2 py-3 px-3 bg-gray-50 rounded-lg">
+				<div className="space-y-2 py-3 px-3 bg-muted rounded-lg">
 					<div className="flex justify-between items-center">
-						<span className="text-sm text-gray-600">Estado actual:</span>
+						<span className="text-sm text-muted-foreground">Estado actual:</span>
 						<BusinessStatusBadge status={business.status} />
 					</div>
 					<div className="flex justify-between items-center">
-						<span className="text-sm text-gray-600"># Contrato:</span>
+						<span className="text-sm text-muted-foreground"># Contrato:</span>
 						<span className="text-sm font-medium">
 							{business.contract || 'Sin asignar'}
 						</span>
 					</div>
 					<div className="flex justify-between items-center">
-						<span className="text-sm text-gray-600">Cliente:</span>
+						<span className="text-sm text-muted-foreground">Cliente:</span>
 						<span className="text-sm font-medium">
 							{business.client.fullName}
 						</span>
 					</div>
 					<div className="flex justify-between items-center">
-						<span className="text-sm text-gray-600">Cédula:</span>
+						<span className="text-sm text-muted-foreground">Cédula:</span>
 						<span className="text-sm font-medium">
 							{business.client.identityNumber}
 						</span>
 					</div>
 					<div className="flex justify-between items-center">
-						<span className="text-sm text-gray-600">Producto:</span>
+						<span className="text-sm text-muted-foreground">Producto:</span>
 						<span className="text-sm font-medium">{business.product.name}</span>
 					</div>
 					<div className="flex justify-between items-center">
-						<span className="text-sm text-gray-600">Valor:</span>
+						<span className="text-sm text-muted-foreground">Valor:</span>
 						<span className="text-sm font-semibold text-primary">
 							{formatCurrency(business.value, business.currency.name)}
 						</span>
@@ -160,7 +160,7 @@ export function BusinessCancelModal({
 				<div className="space-y-2">
 					<Label
 						htmlFor="cancel-reason"
-						className="text-sm font-medium text-gray-900"
+						className="text-sm font-medium text-foreground"
 					>
 						Motivo de cancelación
 						<span className="text-red-500 ml-1">*</span>
@@ -180,7 +180,7 @@ export function BusinessCancelModal({
 							className={
 								characterCount < MIN_REASON_LENGTH
 									? 'text-amber-600'
-									: 'text-gray-500'
+									: 'text-muted-foreground'
 							}
 						>
 							{characterCount < MIN_REASON_LENGTH &&
@@ -190,7 +190,7 @@ export function BusinessCancelModal({
 							className={
 								characterCount > MAX_REASON_LENGTH * 0.9
 									? 'text-amber-600'
-									: 'text-gray-500'
+									: 'text-muted-foreground'
 							}
 						>
 							{characterCount}/{MAX_REASON_LENGTH}
@@ -210,7 +210,7 @@ export function BusinessCancelModal({
 					<Button
 						onClick={handleConfirm}
 						disabled={!canSubmit}
-						className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+						className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
 					>
 						{isSubmitting ? (
 							<>

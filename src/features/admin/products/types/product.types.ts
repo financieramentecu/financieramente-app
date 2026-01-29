@@ -3,26 +3,26 @@
  */
 
 export interface Product extends Record<string, unknown> {
-	idProduct: number
+	readonly idProduct: number
 	name: string
 	description: string | null
 	status: boolean
-	idCompany: number
-	idTypeProduct: number | null
+	readonly idCompany: number
+	readonly idTypeProduct: number | null
 	company: {
-		idCompany: number
+		readonly idCompany: number
 		name: string
 	}
 	typeProduct: {
-		idTypeProduct: number
+		readonly idTypeProduct: number
 		name: string
 	} | null
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 }
 
 export interface CompanyOption {
-	idCompany: number
+	readonly idCompany: number
 	name: string
 	status: boolean
 }

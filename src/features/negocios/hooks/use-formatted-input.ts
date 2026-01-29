@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { UseFormSetValue } from 'react-hook-form'
-import { formatCurrencyInput, parseCurrencyInput } from '@/lib/currency'
+import { formatCurrencyInput, parseCurrencyInput } from '@/features/admin/currencies/lib/currency-formatters'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 
 export type FormattedInputType = 'currency' | 'number'

@@ -12,7 +12,7 @@ import { businessWithRelations } from '@/features/negocios/types/business-entity
 import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
 import { businessListParamsSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { Prisma } from '@prisma/client'
 
 /**

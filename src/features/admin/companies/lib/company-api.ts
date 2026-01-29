@@ -1,10 +1,28 @@
 import { apiClient } from '@/lib/api/client'
+import { prisma } from '@/lib/prisma'
+import type { Company as PrismaCompany } from '@prisma/client'
 import type {
 	Company,
 	CompanyFilters,
 	CreateCompanyInput,
 	UpdateCompanyInput,
 } from '../types/company.types'
+
+/**
+ * Server-side function to get active companies.
+ * Use this in Server Components and API Routes.
+ * For Client Components, use companyApi.getCompanies() instead.
+ */
+export async function getCompanies(): Promise<PrismaCompany[]> {
+	return await prisma.company.findMany({
+		where: {
+			status: true,
+		},
+		orderBy: {
+			name: 'asc',
+		},
+	})
+}
 
 export const companyApi = {
 	async getCompanies(filters?: CompanyFilters): Promise<Company[]> {

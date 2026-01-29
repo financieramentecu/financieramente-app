@@ -1,5 +1,5 @@
-import { UserRole } from '@/lib/auth/roles'
-import { RolePermissions } from '@/lib/auth/permissions'
+import { UserRole } from '@/features/auth/lib/roles'
+import { RolePermissions } from '@/features/auth/lib/permissions'
 import { ALL_MENU_ITEMS, AGENTE_MENU_ITEMS, MenuItem } from './menu-items'
 
 /**

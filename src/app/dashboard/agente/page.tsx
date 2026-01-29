@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { prisma } from '@/lib/prisma'
 

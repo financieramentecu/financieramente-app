@@ -3,12 +3,12 @@
  */
 
 export interface Company extends Record<string, unknown> {
-	idCompany: number
+	readonly idCompany: number
 	name: string
 	idTypeCompany: string
 	status: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 }
 
 export interface CompanyFilters {

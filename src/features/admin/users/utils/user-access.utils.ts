@@ -1,5 +1,5 @@
 import type { User } from '../types/user.types'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 
 /**
  * Verifica si el usuario no tiene un rol asignado

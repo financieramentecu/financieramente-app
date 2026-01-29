@@ -36,14 +36,14 @@ export function FormActions({
 				variant="ghost"
 				onClick={onCancel}
 				disabled={isSubmitting}
-				className="text-[#00505C] hover:text-[#00505C] hover:bg-gray-100"
+				className="text-primary hover:text-primary hover:bg-muted"
 			>
 				Cancelar
 			</Button>
 			<Button
 				type="submit"
 				disabled={isDisabled}
-				className="bg-[#00505C] hover:bg-[#003d47] text-white"
+				className="bg-primary hover:bg-primary/90 text-primary-foreground"
 			>
 				{submitText}
 			</Button>
