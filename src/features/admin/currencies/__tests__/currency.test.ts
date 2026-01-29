@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { formatCurrencyInput, parseCurrencyInput } from '../index'
+import {
+	formatCurrencyInput,
+	parseCurrencyInput,
+} from '../lib/currency-formatters'
 
 describe('formatCurrencyInput', () => {
 	describe('Formateo de números enteros', () => {
