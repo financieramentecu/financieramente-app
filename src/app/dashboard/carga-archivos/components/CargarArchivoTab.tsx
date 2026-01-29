@@ -23,8 +23,13 @@ export function CargarArchivoTab() {
 	const [isUploading, setIsUploading] = useState(false)
 	const [errorModalOpen, setErrorModalOpen] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
-	const [errorModalTitle, setErrorModalTitle] = useState<string | undefined>(undefined)
-	const [processingResult, setProcessingResult] = useState<ProcessResult & { sincronizadoCount: number; rezagadoCount: number } | null>(null)
+	const [errorModalTitle, setErrorModalTitle] = useState<string | undefined>(
+		undefined
+	)
+	const [processingResult, setProcessingResult] = useState<
+		| (ProcessResult & { sincronizadoCount: number; rezagadoCount: number })
+		| null
+	>(null)
 	const [processingProgress, setProcessingProgress] = useState<{
 		current: number
 		total: number
@@ -67,46 +72,59 @@ export function CargarArchivoTab() {
 	}, [])
 
 	// Función para validar el formato del archivo
-	const validateFileFormat = useCallback((file: File): { isValid: boolean; error?: string } => {
-		// Validar por extensión de archivo
-		const fileName = file.name.toLowerCase()
-		const hasValidExtension = ACCEPTED_EXTENSIONS.some(ext => fileName.endsWith(ext))
+	const validateFileFormat = useCallback(
+		(file: File): { isValid: boolean; error?: string } => {
+			// Validar por extensión de archivo
+			const fileName = file.name.toLowerCase()
+			const hasValidExtension = ACCEPTED_EXTENSIONS.some((ext) =>
+				fileName.endsWith(ext)
+			)
 
-		// Validar por tipo MIME
-		const hasValidMimeType = ACCEPTED_FILE_TYPES.includes(file.type)
+			// Validar por tipo MIME
+			const hasValidMimeType = ACCEPTED_FILE_TYPES.includes(file.type)
 
-		// El archivo es válido si tiene una extensión válida O un tipo MIME válido
-		// (algunos navegadores no siempre detectan correctamente el tipo MIME)
-		if (!hasValidExtension && !hasValidMimeType) {
-			return {
-				isValid: false,
-				error: 'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls',
+			// El archivo es válido si tiene una extensión válida O un tipo MIME válido
+			// (algunos navegadores no siempre detectan correctamente el tipo MIME)
+			if (!hasValidExtension && !hasValidMimeType) {
+				return {
+					isValid: false,
+					error:
+						'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls',
+				}
 			}
-		}
 
-		return { isValid: true }
-	}, [])
+			return { isValid: true }
+		},
+		[]
+	)
 
-	const handleFileSelect = useCallback((file: File) => {
-		// Validar formato de archivo
-		const formatValidation = validateFileFormat(file)
-		if (!formatValidation.isValid) {
-			setErrorMessage(formatValidation.error || 'Formato de archivo no válido')
-			setErrorModalTitle(undefined)
-			setErrorModalOpen(true)
-			return
-		}
+	const handleFileSelect = useCallback(
+		(file: File) => {
+			// Validar formato de archivo
+			const formatValidation = validateFileFormat(file)
+			if (!formatValidation.isValid) {
+				setErrorMessage(
+					formatValidation.error || 'Formato de archivo no válido'
+				)
+				setErrorModalTitle(undefined)
+				setErrorModalOpen(true)
+				return
+			}
 
-		// Validar tamaño
-		if (file.size > MAX_FILE_SIZE) {
-			setErrorMessage('El archivo es demasiado grande. El tamaño máximo es 50MB')
-			setErrorModalTitle(undefined)
-			setErrorModalOpen(true)
-			return
-		}
+			// Validar tamaño
+			if (file.size > MAX_FILE_SIZE) {
+				setErrorMessage(
+					'El archivo es demasiado grande. El tamaño máximo es 50MB'
+				)
+				setErrorModalTitle(undefined)
+				setErrorModalOpen(true)
+				return
+			}
 
-		setSelectedFile(file)
-	}, [validateFileFormat])
+			setSelectedFile(file)
+		},
+		[validateFileFormat]
+	)
 
 	const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
 		e.preventDefault()
@@ -167,7 +185,10 @@ export function CargarArchivoTab() {
 		// Validar formato del archivo antes de cargar
 		const formatValidation = validateFileFormat(selectedFile)
 		if (!formatValidation.isValid) {
-			setErrorMessage(formatValidation.error || 'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls')
+			setErrorMessage(
+				formatValidation.error ||
+					'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls'
+			)
 			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
 			return
@@ -175,7 +196,9 @@ export function CargarArchivoTab() {
 
 		// Validar tamaño antes de cargar
 		if (selectedFile.size > MAX_FILE_SIZE) {
-			setErrorMessage('El archivo es demasiado grande. El tamaño máximo es 50MB')
+			setErrorMessage(
+				'El archivo es demasiado grande. El tamaño máximo es 50MB'
+			)
 			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
 			return
@@ -190,7 +213,9 @@ export function CargarArchivoTab() {
 
 			if (!structureValidation.isValid) {
 				// Mostrar modal con el mensaje exacto según el diseño
-				setErrorMessage('El archivo no contiene la estructura esperada de Skandia. Verifique las columnas requeridas.')
+				setErrorMessage(
+					'El archivo no contiene la estructura esperada de Skandia. Verifique las columnas requeridas.'
+				)
 				setErrorModalTitle('ESTRUCTURA INCORRECTA')
 				setErrorModalOpen(true)
 				setIsUploading(false)
@@ -204,12 +229,15 @@ export function CargarArchivoTab() {
 			if (abortControllerRef.current?.signal.aborted) return
 
 			// Crear FileImport
-			const fileImportResponse = await fetch('/api/carga-archivos/file-import', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ fileName: selectedFile.name }),
-				signal: abortControllerRef.current?.signal
-			})
+			const fileImportResponse = await fetch(
+				'/api/carga-archivos/file-import',
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fileName: selectedFile.name }),
+					signal: abortControllerRef.current?.signal,
+				}
+			)
 
 			if (!fileImportResponse.ok) {
 				throw new Error('Error al crear registro de importación')
@@ -236,7 +264,7 @@ export function CargarArchivoTab() {
 							)
 							if (progressResponse.ok) {
 								const fileImportData = await progressResponse.json()
-								setProcessingProgress(prev => {
+								setProcessingProgress((prev) => {
 									if (!prev) return null
 									return {
 										...prev,
@@ -247,7 +275,10 @@ export function CargarArchivoTab() {
 								})
 
 								// Si está completado, detener polling
-								if (fileImportData.status === 'COMPLETADO' || fileImportData.status === 'CANCELADO') {
+								if (
+									fileImportData.status === 'COMPLETADO' ||
+									fileImportData.status === 'CANCELADO'
+								) {
 									if (pollIntervalRef.current) {
 										clearInterval(pollIntervalRef.current)
 										pollIntervalRef.current = null
@@ -260,12 +291,15 @@ export function CargarArchivoTab() {
 					}, 1000) // Polling cada 1s
 
 					// Limpiar intervalo después de 5 minutos como seguridad
-					setTimeout(() => {
-						if (pollIntervalRef.current) {
-							clearInterval(pollIntervalRef.current)
-							pollIntervalRef.current = null
-						}
-					}, 5 * 60 * 1000)
+					setTimeout(
+						() => {
+							if (pollIntervalRef.current) {
+								clearInterval(pollIntervalRef.current)
+								pollIntervalRef.current = null
+							}
+						},
+						5 * 60 * 1000
+					)
 				}
 
 				// Iniciar polling
@@ -285,17 +319,20 @@ export function CargarArchivoTab() {
 					const recordsBatch = result.validRecords.slice(i, i + BATCH_SIZE)
 
 					// Llamar a la API para procesar este lote
-					const processResponse = await fetch('/api/carga-archivos/process-batch', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({
-							fileImportId: fileImport.idFileImport,
-							records: recordsBatch,
-							headers: result.headers,
-							batchSize: BATCH_SIZE,
-						}),
-						signal: abortControllerRef.current?.signal
-					})
+					const processResponse = await fetch(
+						'/api/carga-archivos/process-batch',
+						{
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								fileImportId: fileImport.idFileImport,
+								records: recordsBatch,
+								headers: result.headers,
+								batchSize: BATCH_SIZE,
+							}),
+							signal: abortControllerRef.current?.signal,
+						}
+					)
 
 					if (!processResponse.ok) {
 						throw new Error(`Error al procesar lote ${i} - ${i + BATCH_SIZE}`)
@@ -304,10 +341,14 @@ export function CargarArchivoTab() {
 					processedCount += recordsBatch.length
 
 					// Actualizar progreso local (el polling actualizará los estados específicos)
-					setProcessingProgress(prev => prev ? {
-						...prev,
-						current: processedCount
-					} : null)
+					setProcessingProgress((prev) =>
+						prev
+							? {
+									...prev,
+									current: processedCount,
+								}
+							: null
+					)
 				}
 
 				// Esperar un poco para que el último polling actualice
@@ -343,7 +384,9 @@ export function CargarArchivoTab() {
 				return
 			}
 			console.error('Error al procesar archivo:', error)
-			setErrorMessage('Error al procesar el archivo. Por favor, intenta nuevamente.')
+			setErrorMessage(
+				'Error al procesar el archivo. Por favor, intenta nuevamente.'
+			)
 			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
 		} finally {
@@ -359,7 +402,7 @@ export function CargarArchivoTab() {
 			setIsUploading(false)
 			abortControllerRef.current = null
 		}
-	}, [selectedFile, handleClear, validateFileFormat])
+	}, [selectedFile, validateFileFormat])
 
 	const formatFileSize = (bytes: number): string => {
 		if (bytes < 1024) return bytes + ' B'
@@ -375,7 +418,10 @@ export function CargarArchivoTab() {
 				onOpenChange={setErrorModalOpen}
 				type="error"
 				title={errorModalTitle}
-				message={errorMessage || 'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls'}
+				message={
+					errorMessage ||
+					'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls'
+				}
 				confirmText={errorModalTitle ? 'ACEPTAR' : 'Aceptar'}
 				onConfirm={() => {
 					setErrorModalOpen(false)
@@ -410,7 +456,8 @@ export function CargarArchivoTab() {
 						Cargar Archivo de Covers Skandia
 					</h2>
 					<p className="text-muted-foreground mb-6">
-						Arrastra y suelta tu archivo Excel de Skandia o haz clic para seleccionar
+						Arrastra y suelta tu archivo Excel de Skandia o haz clic para
+						seleccionar
 					</p>
 
 					{/* Área de drag and drop */}

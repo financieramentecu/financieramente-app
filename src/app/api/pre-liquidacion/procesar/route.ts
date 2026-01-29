@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json(
 				{
 					error: 'Datos inválidos',
-					details: validationResult.error.errors.map((e) => ({
+					details: validationResult.error.issues.map((e) => ({
 						path: e.path.join('.'),
 						message: e.message,
 					})),
