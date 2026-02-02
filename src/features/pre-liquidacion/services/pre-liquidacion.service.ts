@@ -7,9 +7,33 @@ import type {
 
 /**
  * Porcentaje de descuento por defecto (10%)
- * TODO: Esto debería venir de una configuración en base de datos
+ * Se usa como fallback si no hay descuento activo en base de datos
  */
 const DESCUENTO_POR_DEFECTO = new Decimal(0.10)
+
+/**
+ * Obtiene el descuento activo desde la base de datos
+ * @returns Objeto con el porcentaje de descuento y su ID, o null si no hay descuento activo
+ */
+export async function obtenerDescuentoActivo(): Promise<{ idDiscount: number; percentage: Decimal } | null> {
+    const descuentoActivo = await prisma.discount.findFirst({
+        where: {
+            status: 'ACTIVE',
+        },
+        orderBy: {
+            createdAt: 'desc', // En caso de múltiples activos (no debería pasar), tomar el más reciente
+        },
+    })
+
+    if (!descuentoActivo) {
+        return null
+    }
+
+    return {
+        idDiscount: descuentoActivo.idDiscount,
+        percentage: descuentoActivo.percentage,
+    }
+}
 
 /**
  * Obtiene la configuración de porcentajes de comisión para un negocio
@@ -51,12 +75,14 @@ export async function obtenerConfiguracionPorcentajes(
  * Aplica las fórmulas de cálculo de comisiones
  * Fórmula: liquidacion_bruta_POSITION = comision * %comisiones.POSITION
  * Fórmula: liquidacion_con_descuento = liquidacion_bruta - (liquidacion_bruta * %descuento)
+ * @param descuento - Porcentaje de descuento. Si no se proporciona, se usa DESCUENTO_POR_DEFECTO como fallback
  */
 export function aplicarFormulas(
     comisionBase: Decimal,
     porcentajes: ConfiguracionPorcentajes,
-    descuento: Decimal = DESCUENTO_POR_DEFECTO
+    descuento?: Decimal
 ): ComisionesCalculadas {
+    const descuentoAplicar = descuento || DESCUENTO_POR_DEFECTO
     // Calcular comisiones brutas
     const generalBruta = porcentajes.general
         ? comisionBase.mul(new Decimal(porcentajes.general))
@@ -75,15 +101,15 @@ export function aplicarFormulas(
         : new Decimal(0)
 
     // Aplicar descuentos
-    const generalDescuento = generalBruta.sub(generalBruta.mul(descuento))
+    const generalDescuento = generalBruta.sub(generalBruta.mul(descuentoAplicar))
     const comisionAgenciaDescuento = comisionBrutaAgencia.sub(
-        comisionBrutaAgencia.mul(descuento)
+        comisionBrutaAgencia.mul(descuentoAplicar)
     )
     const comisionLiderDescuento = comisionBrutaLider.sub(
-        comisionBrutaLider.mul(descuento)
+        comisionBrutaLider.mul(descuentoAplicar)
     )
     const comisionCoachDescuento = comisionBrutaCoach.sub(
-        comisionBrutaCoach.mul(descuento)
+        comisionBrutaCoach.mul(descuentoAplicar)
     )
 
     return {
@@ -125,9 +151,13 @@ export async function calcularComisionesParaRegistro(
         settlement.business.idProductPercentajeCommision
     )
 
+    // Obtener descuento activo desde BD
+    const descuentoActivo = await obtenerDescuentoActivo()
+    const descuento = descuentoActivo ? descuentoActivo.percentage : DESCUENTO_POR_DEFECTO
+
     // Aplicar fórmulas
     const comisionBase = settlement.valorComision || new Decimal(0)
-    const comisionesCalculadas = aplicarFormulas(comisionBase, porcentajes)
+    const comisionesCalculadas = aplicarFormulas(comisionBase, porcentajes, descuento)
 
     return comisionesCalculadas
 }
@@ -190,6 +220,11 @@ export async function procesarPreLiquidacion(
 
         let registrosProcesados = 0
 
+        // Obtener descuento activo una vez antes del loop para todos los registros
+        const descuentoActivo = await obtenerDescuentoActivo()
+        const descuentoPorcentaje = descuentoActivo ? descuentoActivo.percentage : DESCUENTO_POR_DEFECTO
+        const idDiscount = descuentoActivo?.idDiscount || null
+
         // Procesar cada registro dentro de una transacción sería ideal, pero por volumen
         // lo hacemos iterativo. Si falla uno, marcamos error o continuamos.
         // Para consistencia crítica, podríamos agrupar en chunks y usar prisma.$transaction.
@@ -229,9 +264,10 @@ export async function procesarPreLiquidacion(
                     // Cálculo: Bruta = ComisionBase * %Categoria
                     const valorComisionBruta = comisionBase.mul(porcentaje)
 
-                    // Cálculo: Final = Bruta - (Bruta * Descuento)
-                    // Descuento por defecto 10% (0.10)
-                    const valorDescuento = valorComisionBruta.mul(DESCUENTO_POR_DEFECTO)
+                    // Cálculo: Descuento = Bruta * %Descuento
+                    const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
+                    
+                    // Cálculo: Final = Bruta - Descuento
                     const valorComisionFinal = valorComisionBruta.sub(valorDescuento)
 
                     await tx.comissionDistribution.create({
@@ -240,6 +276,8 @@ export async function procesarPreLiquidacion(
                             idPercentajeCommisionCategory: config.id,
                             valueComission: valorComisionBruta,
                             valueComissionFinal: valorComisionFinal,
+                            totalDiscount: valorDescuento,
+                            idDiscount: idDiscount,
                             status: 'LIQUIDADO',
                         },
                     })

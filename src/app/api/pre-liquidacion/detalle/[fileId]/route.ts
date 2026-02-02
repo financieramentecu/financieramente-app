@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
-import type { Prisma } from '@prisma/client'
+import { obtenerDescuentoActivo } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 
-// Porcentaje de descuento por defecto (10%)
+// Porcentaje de descuento por defecto (10%) - usado como fallback
 const DESCUENTO_POR_DEFECTO = new Decimal(0.1)
 
 /**
@@ -114,6 +114,10 @@ export async function GET(
 			rezagados: number
 		}
 
+		// Obtener descuento activo desde BD
+		const descuentoActivo = await obtenerDescuentoActivo()
+		const descuentoPorcentaje = descuentoActivo ? descuentoActivo.percentage : DESCUENTO_POR_DEFECTO
+
 		// Calcular distribución por agente
 		const distribucionMap = new Map<string, AgenteDistribucion>()
 
@@ -158,16 +162,16 @@ export async function GET(
 
 			// Calcular liquidaciones con descuento
 			const generalDescuento = generalBruta.sub(
-				generalBruta.mul(DESCUENTO_POR_DEFECTO)
+				generalBruta.mul(descuentoPorcentaje)
 			)
 			const agenciaDescuento = agenciaBruta.sub(
-				agenciaBruta.mul(DESCUENTO_POR_DEFECTO)
+				agenciaBruta.mul(descuentoPorcentaje)
 			)
 			const liderDescuento = liderBruta.sub(
-				liderBruta.mul(DESCUENTO_POR_DEFECTO)
+				liderBruta.mul(descuentoPorcentaje)
 			)
 			const coachDescuento = coachBruta.sub(
-				coachBruta.mul(DESCUENTO_POR_DEFECTO)
+				coachBruta.mul(descuentoPorcentaje)
 			)
 
 			// Actualizar distribución por agente
