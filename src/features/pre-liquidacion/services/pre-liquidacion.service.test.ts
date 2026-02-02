@@ -21,6 +21,9 @@ vi.mock('@/lib/prisma', () => ({
         comissionDistribution: {
             create: vi.fn(),
         },
+        discount: {
+            findFirst: vi.fn(),
+        },
         $transaction: vi.fn((callback) => callback(prisma)),
     },
 }));
@@ -84,6 +87,12 @@ describe('procesarPreLiquidacion', () => {
                 porcentajeDistribucion: new Decimal(0.5), // 50%
             },
         ] as any);
+
+        // Mock descuento activo (usado por obtenerDescuentoActivo)
+        vi.mocked(prisma.discount.findFirst).mockResolvedValue({
+            idDiscount: 1,
+            percentage: new Decimal(0.12),
+        } as any);
 
         // Mock transaction success by default (fn calls callback)
 
