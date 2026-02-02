@@ -276,6 +276,10 @@ jobs:
             # Check container status
             docker-compose -f "$COMPOSE_FILE_PATH" ps
 
+            # Ensure SSL renewal cron (idempotent): remove old ssl-renew entries, add correct path
+            (crontab -l 2>/dev/null | grep -v 'ssl-renew.sh' || true
+             echo "0 3 * * 0 /opt/financieramente/app/terraform/scripts/ssl-renew.sh qa >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
+
       - name: Health check
         uses: appleboy/ssh-action@v1.0.3
         with:
