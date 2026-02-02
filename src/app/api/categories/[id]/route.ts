@@ -205,11 +205,10 @@ export async function DELETE(
 			return NextResponse.json(errorResponse, { status: 409 })
 		}
 
-		// Check for relationships (productPercentajeCommisions)
-		const commissionsWithCategory =
-			await prisma.productPercentajeCommision.count({
-				where: { idCategory: categoryId },
-			})
+		// Check for relationships (ProductConfiguration by category)
+		const commissionsWithCategory = await prisma.productConfiguration.count({
+			where: { idCategory: categoryId },
+		})
 
 		if (commissionsWithCategory > 0) {
 			const errorResponse: ApiResponse<null> = {

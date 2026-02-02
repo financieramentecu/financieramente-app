@@ -103,8 +103,6 @@ export async function PUT(
 			(normalizedName.toLowerCase() !== existingProduct.name.toLowerCase() ||
 				targetCompanyId !== existingProduct.idCompany)
 		) {
-
-
 			const duplicateProduct = await prisma.product.findFirst({
 				where: {
 					idCompany: targetCompanyId,
@@ -129,8 +127,8 @@ export async function PUT(
 
 		// Validar impacto al cambiar estado a Inactivo
 		if (data.status === false && existingProduct.status === true) {
-			// Verificar si el producto está siendo utilizado en ProductPercentajeCommision
-			const productInUse = await prisma.productPercentajeCommision.findFirst({
+			// Verificar si el producto está siendo utilizado en ProductConfiguration (configuraciones comisionales)
+			const productInUse = await prisma.productConfiguration.findFirst({
 				where: {
 					idProduct: productId,
 				},
@@ -286,8 +284,8 @@ export async function DELETE(
 			return NextResponse.json(errorResponse, { status: 404 })
 		}
 
-		// Verificar si el producto está siendo utilizado en ProductPercentajeCommision
-		const productInUse = await prisma.productPercentajeCommision.findFirst({
+		// Verificar si el producto está siendo utilizado en ProductConfiguration (configuraciones comisionales)
+		const productInUse = await prisma.productConfiguration.findFirst({
 			where: {
 				idProduct: productId,
 			},
