@@ -1,8 +1,11 @@
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
 import type {
+    AgenteDistribucion,
     ComisionesCalculadas,
     ConfiguracionPorcentajes,
+    RegistroDetallePreLiquidacion,
+    RespuestaDetallePreLiquidacion,
 } from '../types/types'
 
 /**
@@ -69,6 +72,169 @@ export async function obtenerConfiguracionPorcentajes(
     }
 
     return porcentajes
+}
+
+/**
+ * Construye ConfiguracionPorcentajes desde categorías ya cargadas (evita N+1)
+ */
+function configFromCategories(
+    cats: Array<{ category: { name: string }; porcentajeDistribucion: Decimal }>
+): ConfiguracionPorcentajes {
+    const porcentajes: ConfiguracionPorcentajes = {}
+    for (const cat of cats) {
+        const name = cat.category.name.toUpperCase()
+        const pct = cat.porcentajeDistribucion.toNumber()
+        if (name.includes('GENERAL')) porcentajes.general = pct
+        else if (name.includes('AGENCIA')) porcentajes.agencia = pct
+        else if (name.includes('LIDER') || name.includes('LÍDER')) porcentajes.lider = pct
+        else if (name.includes('COACH')) porcentajes.coach = pct
+    }
+    return porcentajes
+}
+
+/**
+ * Obtiene el detalle de pre-liquidación de un archivo (registros, distribución por agente, resumen).
+ * Toda la lógica de negocio y acceso a datos vive aquí; el router solo delega.
+ */
+export async function obtenerDetallePreLiquidacion(
+    fileId: number
+): Promise<RespuestaDetallePreLiquidacion | null> {
+    const fileImport = await prisma.fileImport.findUnique({
+        where: { idFileImport: fileId },
+        include: {
+            user: { select: { name: true, lastName: true } },
+        },
+    })
+
+    if (!fileImport) return null
+
+    const registros = await prisma.settlementCommission.findMany({
+        where: {
+            idFileImport: fileId,
+            status: { in: ['SINCRONIZADO', 'LAG'] },
+        },
+        include: {
+            business: {
+                include: {
+                    client: true,
+                    user: {
+                        select: {
+                            idUser: true,
+                            name: true,
+                            lastName: true,
+                            identityNumber: true,
+                        },
+                    },
+                    productPercentajeCommision: {
+                        include: {
+                            productPercentajeCommisionCategories: {
+                                include: { category: true },
+                                where: { active: true },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        orderBy: { createdAt: 'asc' },
+    })
+
+    const descuentoActivo = await obtenerDescuentoActivo()
+    const descuentoPorcentaje = descuentoActivo
+        ? descuentoActivo.percentage
+        : DESCUENTO_POR_DEFECTO
+
+    const distribucionMap = new Map<string, AgenteDistribucion>()
+    const registrosFormateados: RegistroDetallePreLiquidacion[] = []
+
+    for (const r of registros) {
+        const comisionBase = r.valorComision || new Decimal(0)
+        const categorias =
+            r.business?.productPercentajeCommision?.productPercentajeCommisionCategories ?? []
+        const porcentajes = configFromCategories(categorias)
+        const comisiones = aplicarFormulas(comisionBase, porcentajes, descuentoPorcentaje)
+
+        if (r.business?.user) {
+            const agenteKey = String(r.business.user.idUser)
+            if (!distribucionMap.has(agenteKey)) {
+                distribucionMap.set(agenteKey, {
+                    idAgente: r.business.user.idUser,
+                    nombreAgente: `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim(),
+                    cedulaAgente: r.business.user.identityNumber ?? '',
+                    totalComision: 0,
+                    totalGeneral: 0,
+                    totalAgencia: 0,
+                    totalLider: 0,
+                    totalCoach: 0,
+                    cantidadRegistros: 0,
+                    sincronizados: 0,
+                    rezagados: 0,
+                })
+            }
+            const agente = distribucionMap.get(agenteKey)!
+            agente.totalComision += comisionBase.toNumber()
+            agente.totalGeneral += comisiones.generalDescuento.toNumber()
+            agente.totalAgencia += comisiones.comisionAgenciaDescuento.toNumber()
+            agente.totalLider += comisiones.comisionLiderDescuento.toNumber()
+            agente.totalCoach += comisiones.comisionCoachDescuento.toNumber()
+            agente.cantidadRegistros += 1
+            if (r.status === 'SINCRONIZADO') agente.sincronizados += 1
+            else if (r.status === 'LAG') agente.rezagados += 1
+        }
+
+        registrosFormateados.push({
+            idSettlementCommission: r.idSettlementCommission,
+            idBusiness: r.idBusiness ?? 0,
+            producto: r.producto,
+            esRezagado: r.isLag || r.status === 'LAG',
+            nombreCliente: r.business?.client
+                ? `${r.business.client.name} ${r.business.client.lastName ?? ''}`.trim()
+                : null,
+            cedulaAgente: r.business?.user?.identityNumber ?? '',
+            nombreAgente: r.business?.user
+                ? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
+                : '',
+            numeroContrato: r.business?.contract ?? r.poliza ?? null,
+            tipoComision: r.concepto,
+            comision: comisionBase.toNumber(),
+            generalBruta: comisiones.generalBruta.toNumber(),
+            generalDescuento: comisiones.generalDescuento.toNumber(),
+            agenciaBruta: comisiones.comisionBrutaAgencia.toNumber(),
+            agenciaDescuento: comisiones.comisionAgenciaDescuento.toNumber(),
+            liderBruta: comisiones.comisionBrutaLider.toNumber(),
+            liderDescuento: comisiones.comisionLiderDescuento.toNumber(),
+            coachBruta: comisiones.comisionBrutaCoach.toNumber(),
+            coachDescuento: comisiones.comisionCoachDescuento.toNumber(),
+            estado: r.status,
+        })
+    }
+
+    const distribucion = Array.from(distribucionMap.values())
+    const resumen = {
+        totalRegistros: registros.length,
+        sincronizados: registros.filter((x) => x.status === 'SINCRONIZADO').length,
+        rezagados: registros.filter((x) => x.status === 'LAG').length,
+        totalComision: registrosFormateados.reduce((s, x) => s + x.comision, 0),
+        totalGeneral: registrosFormateados.reduce((s, x) => s + x.generalDescuento, 0),
+        totalAgencia: registrosFormateados.reduce((s, x) => s + x.agenciaDescuento, 0),
+        totalLider: registrosFormateados.reduce((s, x) => s + x.liderDescuento, 0),
+        totalCoach: registrosFormateados.reduce((s, x) => s + x.coachDescuento, 0),
+    }
+
+    return {
+        archivo: {
+            idFileImport: fileImport.idFileImport,
+            nombreArchivo: fileImport.nameFile,
+            usuarioCargo: `${fileImport.user.name} ${fileImport.user.lastName ?? ''}`.trim(),
+            fechaCarga: fileImport.loadDate.toISOString().split('T')[0],
+            totalRegistros: fileImport.totalRecord,
+            sincronizados: fileImport.sincronizadoRecord,
+            rezagados: fileImport.rezagadoRecord,
+        },
+        registros: registrosFormateados,
+        distribucion,
+        resumen,
+    }
 }
 
 /**
