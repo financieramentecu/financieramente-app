@@ -51,12 +51,17 @@ export function prismaBusinessToEntity(
 			phone: prisma.user.phone,
 		},
 
-		// Aplanar relación anidada: productPercentajeCommision.product.company
+		// Aplanar relación anidada: productPercentajeCommision.productConfiguration.product
 		product: {
-			id: prisma.productPercentajeCommision.product.idProduct,
-			name: prisma.productPercentajeCommision.product.name,
-			companyId: prisma.productPercentajeCommision.product.company.idCompany,
-			companyName: prisma.productPercentajeCommision.product.company.name,
+			id: prisma.productPercentajeCommision.productConfiguration.product
+				.idProduct,
+			name: prisma.productPercentajeCommision.productConfiguration.product.name,
+			companyId:
+				prisma.productPercentajeCommision.productConfiguration.product.company
+					.idCompany,
+			companyName:
+				prisma.productPercentajeCommision.productConfiguration.product.company
+					.name,
 		},
 
 		currency: {

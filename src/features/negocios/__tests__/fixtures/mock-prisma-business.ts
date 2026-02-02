@@ -14,7 +14,11 @@ export type PrismaBusinessWithRelations = Prisma.BusinessGetPayload<{
 		user: { include: { role: true } }
 		productPercentajeCommision: {
 			include: {
-				product: { include: { company: true } }
+				productConfiguration: {
+					include: {
+						product: { include: { company: true } }
+					}
+				}
 			}
 		}
 		currency: true
@@ -88,29 +92,36 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	},
 	productPercentajeCommision: {
 		idProductPercentajeCommision: 1,
-		idProduct: 1,
-		idClientOrigin: 1,
-		idCategory: 1,
-		code: 'SKANDIA-PERSONAL-REFERIDO',
+		idProductConfiguration: 1,
 		active: true,
 		createdAt: baseDate,
 		updatedAt: baseDate,
-		product: {
+		productConfiguration: {
+			id: 1,
 			idProduct: 1,
-			idCompany: 1,
-			name: 'Crédito Personal',
-			description: 'Crédito de libre inversión',
-			idTypeProduct: 1,
-			status: true,
+			idClientOrigin: 1,
+			idCategory: 1,
+			code: 'CREA_PATRIMONIO-PROPIO-JUNIOR',
+			idProductPercentajeCommisionNewBusinesses: 1,
 			createdAt: baseDate,
 			updatedAt: baseDate,
-			company: {
+			product: {
+				idProduct: 1,
 				idCompany: 1,
-				name: 'Skandia',
-				idTypeCompany: 'NACIONAL',
+				name: 'Crédito Personal',
+				description: 'Crédito de libre inversión',
+				idTypeProduct: 1,
 				status: true,
 				createdAt: baseDate,
 				updatedAt: baseDate,
+				company: {
+					idCompany: 1,
+					name: 'Skandia',
+					idTypeCompany: 'NACIONAL',
+					status: true,
+					createdAt: baseDate,
+					updatedAt: baseDate,
+				},
 			},
 		},
 	},
