@@ -23,8 +23,9 @@ export const loginSchema = z.object({
  */
 export const emailSchema = z.object({
 	email: z
-		.email('El correo electrónico no es válido')
-		.min(1, 'El correo electrónico es obligatorio'),
+		.string()
+		.min(1, 'El correo electrónico es obligatorio')
+		.email('El correo electrónico no es válido'),
 })
 
 /**
