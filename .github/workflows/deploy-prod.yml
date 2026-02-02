@@ -139,11 +139,11 @@ jobs:
           # Create SSL directory and self-signed certificates if they don't exist
           SSL_DIR=/opt/financieramente/docker/nginx/ssl
           mkdir -p "$SSL_DIR"
-          
+
           echo "=== Checking SSL certificates ==="
           echo "SSL Directory: $SSL_DIR"
           ls -la "$SSL_DIR" || echo "Directory does not exist or is empty"
-          
+
           if [ -f "$SSL_DIR/cert.pem" ]; then
             echo "✅ cert.pem exists ($(stat -c%s "$SSL_DIR/cert.pem") bytes)"
             echo "Certificate details:"
@@ -151,13 +151,13 @@ jobs:
           else
             echo "❌ cert.pem does not exist"
           fi
-          
+
           if [ -f "$SSL_DIR/key.pem" ]; then
             echo "✅ key.pem exists ($(stat -c%s "$SSL_DIR/key.pem") bytes)"
           else
             echo "❌ key.pem does not exist"
           fi
-          
+
           if [ ! -f "$SSL_DIR/cert.pem" ] || [ ! -f "$SSL_DIR/key.pem" ]; then
             echo "Creating self-signed SSL certificates..."
             if command -v openssl >/dev/null 2>&1; then
@@ -232,6 +232,10 @@ jobs:
             exit 1
           }
           echo "✅ Migrations applied successfully"
+
+          # Ensure SSL renewal cron (idempotent): remove old ssl-renew entries, add correct path
+          (crontab -l 2>/dev/null | grep -v 'ssl-renew.sh' || true
+           echo "0 3 * * * /opt/financieramente/app/terraform/scripts/ssl-renew.sh prod >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
 
           # Wait for services to be ready
           echo "Waiting for services to start..."

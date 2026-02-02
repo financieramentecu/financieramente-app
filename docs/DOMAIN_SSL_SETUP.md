@@ -67,14 +67,16 @@ chmod +x terraform/scripts/setup-ssl.sh
 
 ### Fase 4: Configurar Renovación Automática
 
-Configurar cron job para renovación automática:
+El script de renovación está en el servidor en `/opt/financieramente/app/terraform/scripts/ssl-renew.sh`. Configurar cron job (idempotente: quita entradas antiguas y añade la correcta):
 
 ```bash
-# Para QA (renovación semanal)
-(crontab -l 2>/dev/null; echo "0 3 * * 0 /opt/financieramente/ssl-renew.sh qa >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
+# Para QA (renovación semanal, domingos 03:00)
+(crontab -l 2>/dev/null | grep -v 'ssl-renew.sh' || true
+ echo "0 3 * * 0 /opt/financieramente/app/terraform/scripts/ssl-renew.sh qa >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
 
-# Para Prod (renovación diaria)
-(crontab -l 2>/dev/null; echo "0 3 * * * /opt/financieramente/ssl-renew.sh prod >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
+# Para Prod (renovación diaria a las 03:00)
+(crontab -l 2>/dev/null | grep -v 'ssl-renew.sh' || true
+ echo "0 3 * * * /opt/financieramente/app/terraform/scripts/ssl-renew.sh prod >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
 
 # Verificar configuración
 crontab -l
@@ -88,8 +90,8 @@ crontab -l
 # Ver certificados instalados
 certbot certificates
 
-# Ver detalles del certificado
-openssl x509 -in /opt/financieramente/qa/nginx/ssl/cert.pem -noout -dates
+# Ver detalles del certificado (ruta real en servidor: docker/nginx/ssl)
+openssl x509 -in /opt/financieramente/docker/nginx/ssl/cert.pem -noout -dates
 
 # Ver fecha de expiración
 echo | openssl s_client -servername negocios.qa.financieramentecu.co -connect negocios.qa.financieramentecu.co:443 2>/dev/null | openssl x509 -noout -dates
@@ -108,11 +110,11 @@ curl -I https://negocios.qa.financieramentecu.co/health
 ### Verificar Logs
 
 ```bash
-# Ver logs de renovación
-tail -f /var/log/financieramente/ssl-renew.log
+# Ver logs de renovación (cron)
+tail -f /var/log/financieramente/ssl-renew-cron.log
 
 # Ver logs de Nginx
-docker-compose -f /opt/financieramente/qa/docker-compose.yml logs nginx
+docker-compose -f /opt/financieramente/docker/docker-compose.qa.yml logs nginx
 ```
 
 ## Renovación Manual
@@ -120,13 +122,33 @@ docker-compose -f /opt/financieramente/qa/docker-compose.yml logs nginx
 Si la renovación automática falla:
 
 ```bash
-# Renovar manualmente
-cd /opt/financieramente
-./terraform/scripts/ssl-renew.sh qa
+# Renovar manualmente (ruta en servidor: app/terraform/scripts/)
+/opt/financieramente/app/terraform/scripts/ssl-renew.sh qa   # QA
+/opt/financieramente/app/terraform/scripts/ssl-renew.sh prod # Prod
 
 # O con Certbot directamente
 certbot renew --force-renewal
 ```
+
+### Certificado ya expirado
+
+Si el certificado **ya está expirado** (por ejemplo porque el cron falló por ruta incorrecta), hay que hacer **una renovación manual única**:
+
+1. Conectar por SSH al servidor (QA o Prod).
+2. Ejecutar una vez el script de renovación:
+   ```bash
+   /opt/financieramente/app/terraform/scripts/ssl-renew.sh qa   # QA
+   # o
+   /opt/financieramente/app/terraform/scripts/ssl-renew.sh prod # Prod
+   ```
+3. Si falla (p. ej. puerto 80 ocupado), renovar con Certbot y copiar cert/key:
+   ```bash
+   certbot renew --force-renewal
+   cp /etc/letsencrypt/live/<dominio>/fullchain.pem /opt/financieramente/docker/nginx/ssl/cert.pem
+   cp /etc/letsencrypt/live/<dominio>/privkey.pem /opt/financieramente/docker/nginx/ssl/key.pem
+   docker-compose -f /opt/financieramente/docker/docker-compose.qa.yml restart nginx  # o .prod
+   ```
+4. Tras corregir el crontab (Fase 4), el cron volverá a ejecutarse en el siguiente horario programado; esta renovación manual es **solo para recuperar el certificado expirado una vez**.
 
 ## Troubleshooting
 
@@ -152,33 +174,30 @@ nslookup negocios.qa.financieramentecu.co
 
 ```bash
 # Detener Nginx temporalmente
-cd /opt/financieramente/qa
-docker-compose stop nginx
+docker-compose -f /opt/financieramente/docker/docker-compose.qa.yml stop nginx
 
 # Ejecutar Certbot
 certbot certonly --standalone -d negocios.qa.financieramentecu.co
 
 # Reiniciar Nginx
-docker-compose start nginx
+docker-compose -f /opt/financieramente/docker/docker-compose.qa.yml start nginx
 ```
 
 ### Certificado Expirado
 
-**Causa**: Renovación automática falló
+**Causa**: Renovación automática falló (p. ej. cron con ruta incorrecta).
 
-**Solución**:
+**Solución**: Ver sección **Certificado ya expirado** en Renovación Manual. Resumen:
 
 ```bash
-# Renovar inmediatamente
+# Opción 1: Usar el script (recomendado)
+/opt/financieramente/app/terraform/scripts/ssl-renew.sh qa   # QA
+
+# Opción 2: Certbot + copiar cert/key (ruta real: docker/nginx/ssl)
 certbot renew --force-renewal
-
-# Copiar certificados
-cp /etc/letsencrypt/live/negocios.qa.financieramentecu.co/fullchain.pem /opt/financieramente/qa/nginx/ssl/cert.pem
-cp /etc/letsencrypt/live/negocios.qa.financieramentecu.co/privkey.pem /opt/financieramente/qa/nginx/ssl/key.pem
-
-# Reiniciar Nginx
-cd /opt/financieramente/qa
-docker-compose restart nginx
+cp /etc/letsencrypt/live/negocios.qa.financieramentecu.co/fullchain.pem /opt/financieramente/docker/nginx/ssl/cert.pem
+cp /etc/letsencrypt/live/negocios.qa.financieramentecu.co/privkey.pem /opt/financieramente/docker/nginx/ssl/key.pem
+docker-compose -f /opt/financieramente/docker/docker-compose.qa.yml restart nginx
 ```
 
 ## Comandos Útiles
