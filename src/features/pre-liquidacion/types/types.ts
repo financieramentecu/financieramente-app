@@ -118,3 +118,77 @@ export interface RespuestaResultadosPreLiquidacion {
 	paginacion: PaginacionInfo
 	categoriasUnicas: string[] // Lista de nombres de categorías encontradas para generar columnas
 }
+
+/**
+ * Distribución por agente en el detalle de pre-liquidación
+ */
+export interface AgenteDistribucion {
+	idAgente: number
+	nombreAgente: string
+	cedulaAgente: string
+	totalComision: number
+	totalGeneral: number
+	totalAgencia: number
+	totalLider: number
+	totalCoach: number
+	cantidadRegistros: number
+	sincronizados: number
+	rezagados: number
+}
+
+/**
+ * Registro formateado en el detalle de pre-liquidación (con cálculos)
+ */
+export interface RegistroDetallePreLiquidacion {
+	idSettlementCommission: number
+	idBusiness: number
+	producto: string | null
+	esRezagado: boolean
+	nombreCliente: string | null
+	cedulaAgente: string
+	nombreAgente: string
+	numeroContrato: string | null
+	tipoComision: string | null
+	comision: number
+	generalBruta: number
+	generalDescuento: number
+	agenciaBruta: number
+	agenciaDescuento: number
+	liderBruta: number
+	liderDescuento: number
+	coachBruta: number
+	coachDescuento: number
+	estado: string
+}
+
+/**
+ * Resumen del detalle de pre-liquidación
+ */
+export interface ResumenDetallePreLiquidacion {
+	totalRegistros: number
+	sincronizados: number
+	rezagados: number
+	totalComision: number
+	totalGeneral: number
+	totalAgencia: number
+	totalLider: number
+	totalCoach: number
+}
+
+/**
+ * Respuesta del detalle de pre-liquidación por archivo (GET detalle/[fileId])
+ */
+export interface RespuestaDetallePreLiquidacion {
+	archivo: {
+		idFileImport: number
+		nombreArchivo: string
+		usuarioCargo: string
+		fechaCarga: string
+		totalRegistros: number
+		sincronizados: number
+		rezagados: number
+	}
+	registros: RegistroDetallePreLiquidacion[]
+	distribucion: AgenteDistribucion[]
+	resumen: ResumenDetallePreLiquidacion
+}

@@ -5,6 +5,7 @@ import { seedBuyPeriodicities } from './seeds/buy-periodicity'
 import { seedClientOrigins } from './seeds/client-origin'
 import { seedTypeProducts } from './seeds/type-product'
 import { seedCategories } from './seeds/category'
+import { seedDiscount } from './seeds/discount'
 import { seedProducts } from './seeds/product'
 import { seedRoles } from './seeds/roles'
 import { seedUsers } from './seeds/user'
@@ -32,6 +33,9 @@ async function main() {
 
 		// 2. Estructura de negocio
 		await seedCategories(prisma)
+
+		// 2.1 Descuentos (debe estar antes de productos para que puedan usarse)
+		await seedDiscount(prisma)
 
 		// 4. Productos (depende de Company y TypeProduct)
 		await seedProducts(prisma)

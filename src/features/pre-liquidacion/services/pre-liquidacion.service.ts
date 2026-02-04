@@ -1,15 +1,42 @@
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
 import type {
+    AgenteDistribucion,
     ComisionesCalculadas,
     ConfiguracionPorcentajes,
+    RegistroDetallePreLiquidacion,
+    RespuestaDetallePreLiquidacion,
 } from '../types/types'
 
 /**
  * Porcentaje de descuento por defecto (10%)
- * TODO: Esto debería venir de una configuración en base de datos
+ * Se usa como fallback si no hay descuento activo en base de datos
  */
 const DESCUENTO_POR_DEFECTO = new Decimal(0.10)
+
+/**
+ * Obtiene el descuento activo desde la base de datos
+ * @returns Objeto con el porcentaje de descuento y su ID, o null si no hay descuento activo
+ */
+export async function obtenerDescuentoActivo(): Promise<{ idDiscount: number; percentage: Decimal } | null> {
+    const descuentoActivo = await prisma.discount.findFirst({
+        where: {
+            status: 'ACTIVE',
+        },
+        orderBy: {
+            createdAt: 'desc', // En caso de múltiples activos (no debería pasar), tomar el más reciente
+        },
+    })
+
+    if (!descuentoActivo) {
+        return null
+    }
+
+    return {
+        idDiscount: descuentoActivo.idDiscount,
+        percentage: descuentoActivo.percentage,
+    }
+}
 
 /**
  * Obtiene la configuración de porcentajes de comisión para un negocio
@@ -48,15 +75,180 @@ export async function obtenerConfiguracionPorcentajes(
 }
 
 /**
+ * Construye ConfiguracionPorcentajes desde categorías ya cargadas (evita N+1)
+ */
+function configFromCategories(
+    cats: Array<{ category: { name: string }; porcentajeDistribucion: Decimal }>
+): ConfiguracionPorcentajes {
+    const porcentajes: ConfiguracionPorcentajes = {}
+    for (const cat of cats) {
+        const name = cat.category.name.toUpperCase()
+        const pct = cat.porcentajeDistribucion.toNumber()
+        if (name.includes('GENERAL')) porcentajes.general = pct
+        else if (name.includes('AGENCIA')) porcentajes.agencia = pct
+        else if (name.includes('LIDER') || name.includes('LÍDER')) porcentajes.lider = pct
+        else if (name.includes('COACH')) porcentajes.coach = pct
+    }
+    return porcentajes
+}
+
+/**
+ * Obtiene el detalle de pre-liquidación de un archivo (registros, distribución por agente, resumen).
+ * Toda la lógica de negocio y acceso a datos vive aquí; el router solo delega.
+ */
+export async function obtenerDetallePreLiquidacion(
+    fileId: number
+): Promise<RespuestaDetallePreLiquidacion | null> {
+    const fileImport = await prisma.fileImport.findUnique({
+        where: { idFileImport: fileId },
+        include: {
+            user: { select: { name: true, lastName: true } },
+        },
+    })
+
+    if (!fileImport) return null
+
+    const registros = await prisma.settlementCommission.findMany({
+        where: {
+            idFileImport: fileId,
+            status: { in: ['SINCRONIZADO', 'LAG'] },
+        },
+        include: {
+            business: {
+                include: {
+                    client: true,
+                    user: {
+                        select: {
+                            idUser: true,
+                            name: true,
+                            lastName: true,
+                            identityNumber: true,
+                        },
+                    },
+                    productPercentajeCommision: {
+                        include: {
+                            productPercentajeCommisionCategories: {
+                                include: { category: true },
+                                where: { active: true },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        orderBy: { createdAt: 'asc' },
+    })
+
+    const descuentoActivo = await obtenerDescuentoActivo()
+    const descuentoPorcentaje = descuentoActivo
+        ? descuentoActivo.percentage
+        : DESCUENTO_POR_DEFECTO
+
+    const distribucionMap = new Map<string, AgenteDistribucion>()
+    const registrosFormateados: RegistroDetallePreLiquidacion[] = []
+
+    for (const r of registros) {
+        const comisionBase = r.valorComision || new Decimal(0)
+        const categorias =
+            r.business?.productPercentajeCommision?.productPercentajeCommisionCategories ?? []
+        const porcentajes = configFromCategories(categorias)
+        const comisiones = aplicarFormulas(comisionBase, porcentajes, descuentoPorcentaje)
+
+        if (r.business?.user) {
+            const agenteKey = String(r.business.user.idUser)
+            if (!distribucionMap.has(agenteKey)) {
+                distribucionMap.set(agenteKey, {
+                    idAgente: r.business.user.idUser,
+                    nombreAgente: `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim(),
+                    cedulaAgente: r.business.user.identityNumber ?? '',
+                    totalComision: 0,
+                    totalGeneral: 0,
+                    totalAgencia: 0,
+                    totalLider: 0,
+                    totalCoach: 0,
+                    cantidadRegistros: 0,
+                    sincronizados: 0,
+                    rezagados: 0,
+                })
+            }
+            const agente = distribucionMap.get(agenteKey)!
+            agente.totalComision += comisionBase.toNumber()
+            agente.totalGeneral += comisiones.generalDescuento.toNumber()
+            agente.totalAgencia += comisiones.comisionAgenciaDescuento.toNumber()
+            agente.totalLider += comisiones.comisionLiderDescuento.toNumber()
+            agente.totalCoach += comisiones.comisionCoachDescuento.toNumber()
+            agente.cantidadRegistros += 1
+            if (r.status === 'SINCRONIZADO') agente.sincronizados += 1
+            else if (r.status === 'LAG') agente.rezagados += 1
+        }
+
+        registrosFormateados.push({
+            idSettlementCommission: r.idSettlementCommission,
+            idBusiness: r.idBusiness ?? 0,
+            producto: r.producto,
+            esRezagado: r.isLag || r.status === 'LAG',
+            nombreCliente: r.business?.client
+                ? `${r.business.client.name} ${r.business.client.lastName ?? ''}`.trim()
+                : null,
+            cedulaAgente: r.business?.user?.identityNumber ?? '',
+            nombreAgente: r.business?.user
+                ? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
+                : '',
+            numeroContrato: r.business?.contract ?? r.poliza ?? null,
+            tipoComision: r.concepto,
+            comision: comisionBase.toNumber(),
+            generalBruta: comisiones.generalBruta.toNumber(),
+            generalDescuento: comisiones.generalDescuento.toNumber(),
+            agenciaBruta: comisiones.comisionBrutaAgencia.toNumber(),
+            agenciaDescuento: comisiones.comisionAgenciaDescuento.toNumber(),
+            liderBruta: comisiones.comisionBrutaLider.toNumber(),
+            liderDescuento: comisiones.comisionLiderDescuento.toNumber(),
+            coachBruta: comisiones.comisionBrutaCoach.toNumber(),
+            coachDescuento: comisiones.comisionCoachDescuento.toNumber(),
+            estado: r.status,
+        })
+    }
+
+    const distribucion = Array.from(distribucionMap.values())
+    const resumen = {
+        totalRegistros: registros.length,
+        sincronizados: registros.filter((x) => x.status === 'SINCRONIZADO').length,
+        rezagados: registros.filter((x) => x.status === 'LAG').length,
+        totalComision: registrosFormateados.reduce((s, x) => s + x.comision, 0),
+        totalGeneral: registrosFormateados.reduce((s, x) => s + x.generalDescuento, 0),
+        totalAgencia: registrosFormateados.reduce((s, x) => s + x.agenciaDescuento, 0),
+        totalLider: registrosFormateados.reduce((s, x) => s + x.liderDescuento, 0),
+        totalCoach: registrosFormateados.reduce((s, x) => s + x.coachDescuento, 0),
+    }
+
+    return {
+        archivo: {
+            idFileImport: fileImport.idFileImport,
+            nombreArchivo: fileImport.nameFile,
+            usuarioCargo: `${fileImport.user.name} ${fileImport.user.lastName ?? ''}`.trim(),
+            fechaCarga: fileImport.loadDate.toISOString().split('T')[0],
+            totalRegistros: fileImport.totalRecord,
+            sincronizados: fileImport.sincronizadoRecord,
+            rezagados: fileImport.rezagadoRecord,
+        },
+        registros: registrosFormateados,
+        distribucion,
+        resumen,
+    }
+}
+
+/**
  * Aplica las fórmulas de cálculo de comisiones
  * Fórmula: liquidacion_bruta_POSITION = comision * %comisiones.POSITION
  * Fórmula: liquidacion_con_descuento = liquidacion_bruta - (liquidacion_bruta * %descuento)
+ * @param descuento - Porcentaje de descuento. Si no se proporciona, se usa DESCUENTO_POR_DEFECTO como fallback
  */
 export function aplicarFormulas(
     comisionBase: Decimal,
     porcentajes: ConfiguracionPorcentajes,
-    descuento: Decimal = DESCUENTO_POR_DEFECTO
+    descuento?: Decimal
 ): ComisionesCalculadas {
+    const descuentoAplicar = descuento || DESCUENTO_POR_DEFECTO
     // Calcular comisiones brutas
     const generalBruta = porcentajes.general
         ? comisionBase.mul(new Decimal(porcentajes.general))
@@ -75,15 +267,15 @@ export function aplicarFormulas(
         : new Decimal(0)
 
     // Aplicar descuentos
-    const generalDescuento = generalBruta.sub(generalBruta.mul(descuento))
+    const generalDescuento = generalBruta.sub(generalBruta.mul(descuentoAplicar))
     const comisionAgenciaDescuento = comisionBrutaAgencia.sub(
-        comisionBrutaAgencia.mul(descuento)
+        comisionBrutaAgencia.mul(descuentoAplicar)
     )
     const comisionLiderDescuento = comisionBrutaLider.sub(
-        comisionBrutaLider.mul(descuento)
+        comisionBrutaLider.mul(descuentoAplicar)
     )
     const comisionCoachDescuento = comisionBrutaCoach.sub(
-        comisionBrutaCoach.mul(descuento)
+        comisionBrutaCoach.mul(descuentoAplicar)
     )
 
     return {
@@ -125,9 +317,13 @@ export async function calcularComisionesParaRegistro(
         settlement.business.idProductPercentajeCommision
     )
 
+    // Obtener descuento activo desde BD
+    const descuentoActivo = await obtenerDescuentoActivo()
+    const descuento = descuentoActivo ? descuentoActivo.percentage : DESCUENTO_POR_DEFECTO
+
     // Aplicar fórmulas
     const comisionBase = settlement.valorComision || new Decimal(0)
-    const comisionesCalculadas = aplicarFormulas(comisionBase, porcentajes)
+    const comisionesCalculadas = aplicarFormulas(comisionBase, porcentajes, descuento)
 
     return comisionesCalculadas
 }
@@ -190,6 +386,11 @@ export async function procesarPreLiquidacion(
 
         let registrosProcesados = 0
 
+        // Obtener descuento activo una vez antes del loop para todos los registros
+        const descuentoActivo = await obtenerDescuentoActivo()
+        const descuentoPorcentaje = descuentoActivo ? descuentoActivo.percentage : DESCUENTO_POR_DEFECTO
+        const idDiscount = descuentoActivo?.idDiscount || null
+
         // Procesar cada registro dentro de una transacción sería ideal, pero por volumen
         // lo hacemos iterativo. Si falla uno, marcamos error o continuamos.
         // Para consistencia crítica, podríamos agrupar en chunks y usar prisma.$transaction.
@@ -229,9 +430,10 @@ export async function procesarPreLiquidacion(
                     // Cálculo: Bruta = ComisionBase * %Categoria
                     const valorComisionBruta = comisionBase.mul(porcentaje)
 
-                    // Cálculo: Final = Bruta - (Bruta * Descuento)
-                    // Descuento por defecto 10% (0.10)
-                    const valorDescuento = valorComisionBruta.mul(DESCUENTO_POR_DEFECTO)
+                    // Cálculo: Descuento = Bruta * %Descuento
+                    const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
+                    
+                    // Cálculo: Final = Bruta - Descuento
                     const valorComisionFinal = valorComisionBruta.sub(valorDescuento)
 
                     await tx.comissionDistribution.create({
@@ -240,6 +442,8 @@ export async function procesarPreLiquidacion(
                             idPercentajeCommisionCategory: config.id,
                             valueComission: valorComisionBruta,
                             valueComissionFinal: valorComisionFinal,
+                            totalDiscount: valorDescuento,
+                            idDiscount: idDiscount,
                             status: 'LIQUIDADO',
                         },
                     })
