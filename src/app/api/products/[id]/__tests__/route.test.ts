@@ -19,7 +19,7 @@ vi.mock('@/lib/prisma', () => ({
 			update: vi.fn(),
 			delete: vi.fn(),
 		},
-		productPercentajeCommision: {
+		productConfiguration: {
 			findFirst: vi.fn(),
 		},
 	},
@@ -137,8 +137,8 @@ describe('PUT /api/products/[id]', () => {
 	const mockPrismaFindUnique = vi.mocked(prisma.product.findUnique)
 	const mockPrismaFindFirst = vi.mocked(prisma.product.findFirst)
 	const mockPrismaUpdate = vi.mocked(prisma.product.update)
-	const mockProductPercentajeCommisionFindFirst = vi.mocked(
-		prisma.productPercentajeCommision.findFirst
+	const mockProductConfigurationFindFirst = vi.mocked(
+		prisma.productConfiguration.findFirst
 	)
 	const mockUpdateProductSchema = vi.mocked(updateProductSchema)
 	const mockPrismaProductToProduct = vi.mocked(prismaProductToProduct)
@@ -189,7 +189,7 @@ describe('PUT /api/products/[id]', () => {
 			mockUpdateProductSchema.parse.mockReturnValue(requestBody)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
 			mockPrismaFindFirst.mockResolvedValue(null) // No hay duplicado
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null) // No está en uso
+			mockProductConfigurationFindFirst.mockResolvedValue(null) // No está en uso
 			mockPrismaUpdate.mockResolvedValue(mockUpdatedProduct as never)
 			mockPrismaProductToProduct.mockReturnValue(mockFormattedProduct as never)
 
@@ -248,7 +248,7 @@ describe('PUT /api/products/[id]', () => {
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockUpdateProductSchema.parse.mockReturnValue(requestBody)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null)
+			mockProductConfigurationFindFirst.mockResolvedValue(null)
 			mockPrismaUpdate.mockResolvedValue(mockUpdatedProduct as never)
 			mockPrismaProductToProduct.mockReturnValue(mockFormattedProduct as never)
 
@@ -295,7 +295,7 @@ describe('PUT /api/products/[id]', () => {
 			mockUpdateProductSchema.parse.mockReturnValue(requestBody)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
 			mockPrismaFindFirst.mockResolvedValue(null)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null)
+			mockProductConfigurationFindFirst.mockResolvedValue(null)
 			mockPrismaUpdate.mockResolvedValue(mockUpdatedProduct as never)
 			mockPrismaProductToProduct.mockReturnValue(mockFormattedProduct as never)
 
@@ -481,7 +481,7 @@ describe('PUT /api/products/[id]', () => {
 			mockUpdateProductSchema.parse.mockReturnValue(requestBody)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
 			mockPrismaFindFirst.mockResolvedValue(null) // No hay duplicado porque es el mismo
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null)
+			mockProductConfigurationFindFirst.mockResolvedValue(null)
 			mockPrismaUpdate.mockResolvedValue(mockUpdatedProduct as never)
 			mockPrismaProductToProduct.mockReturnValue({
 				idProduct: 1,
@@ -526,7 +526,7 @@ describe('PUT /api/products/[id]', () => {
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockUpdateProductSchema.parse.mockReturnValue(requestBody)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(
+			mockProductConfigurationFindFirst.mockResolvedValue(
 				mockProductInUse as never
 			)
 
@@ -571,7 +571,7 @@ describe('PUT /api/products/[id]', () => {
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockUpdateProductSchema.parse.mockReturnValue(requestBody)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null)
+			mockProductConfigurationFindFirst.mockResolvedValue(null)
 			mockPrismaUpdate.mockResolvedValue(mockUpdatedProduct as never)
 			mockPrismaProductToProduct.mockReturnValue({
 				idProduct: 1,
@@ -610,7 +610,7 @@ describe('PUT /api/products/[id]', () => {
 			mockUpdateProductSchema.parse.mockReturnValue(requestBody)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
 			mockPrismaFindFirst.mockResolvedValue(null)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null)
+			mockProductConfigurationFindFirst.mockResolvedValue(null)
 			mockPrismaUpdate.mockRejectedValue(new Error('Update failed'))
 
 			const request = new Request('http://localhost:3000/api/products/1', {
@@ -654,7 +654,7 @@ describe('PUT /api/products/[id]', () => {
 			mockUpdateProductSchema.parse.mockReturnValue(requestBody)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
 			mockPrismaFindFirst.mockResolvedValue(null)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null)
+			mockProductConfigurationFindFirst.mockResolvedValue(null)
 			mockPrismaUpdate.mockRejectedValue(prismaError)
 
 			const request = new Request('http://localhost:3000/api/products/1', {
@@ -678,8 +678,8 @@ describe('PUT /api/products/[id]', () => {
 describe('DELETE /api/products/[id]', () => {
 	const mockAuth = vi.mocked(auth)
 	const mockPrismaFindUnique = vi.mocked(prisma.product.findUnique)
-	const mockProductPercentajeCommisionFindFirst = vi.mocked(
-		prisma.productPercentajeCommision.findFirst
+	const mockProductConfigurationFindFirst = vi.mocked(
+		prisma.productConfiguration.findFirst
 	)
 	const mockPrismaDelete = vi.mocked(prisma.product.delete)
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
@@ -715,7 +715,7 @@ describe('DELETE /api/products/[id]', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null) // No está en uso
+			mockProductConfigurationFindFirst.mockResolvedValue(null) // No está en uso
 			mockPrismaDelete.mockResolvedValue(mockExistingProduct as never)
 
 			const request = new Request('http://localhost:3000/api/products/1', {
@@ -731,7 +731,7 @@ describe('DELETE /api/products/[id]', () => {
 				where: { idProduct: 1 },
 				include: { company: true },
 			})
-			expect(mockProductPercentajeCommisionFindFirst).toHaveBeenCalledWith({
+			expect(mockProductConfigurationFindFirst).toHaveBeenCalledWith({
 				where: { idProduct: 1 },
 			})
 			expect(mockPrismaDelete).toHaveBeenCalledWith({
@@ -811,13 +811,13 @@ describe('DELETE /api/products/[id]', () => {
 
 			const mockExistingProduct = createMockPrismaProduct()
 			const mockProductInUse = {
-				idProductPercentajeCommision: 1,
+				id: 1,
 				idProduct: 1,
 			}
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(
+			mockProductConfigurationFindFirst.mockResolvedValue(
 				mockProductInUse as never
 			)
 
@@ -852,7 +852,7 @@ describe('DELETE /api/products/[id]', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null)
+			mockProductConfigurationFindFirst.mockResolvedValue(null)
 			mockPrismaDelete.mockRejectedValue(new Error('Delete failed'))
 
 			const request = new Request('http://localhost:3000/api/products/1', {
@@ -889,7 +889,7 @@ describe('DELETE /api/products/[id]', () => {
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
-			mockProductPercentajeCommisionFindFirst.mockResolvedValue(null)
+			mockProductConfigurationFindFirst.mockResolvedValue(null)
 			mockPrismaDelete.mockRejectedValue(prismaError)
 
 			const request = new Request('http://localhost:3000/api/products/1', {

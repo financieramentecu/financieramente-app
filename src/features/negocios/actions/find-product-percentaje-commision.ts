@@ -1,11 +1,11 @@
 'use server'
 
-import { prisma } from '@/lib/prisma'
 import { ProductPercentajeCommision } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
+import { getPpcForNewBusinesses } from '../services/product-configuration.service'
 
 /**
- * Parámetros para buscar ProductPercentajeCommision
+ * Parámetros para buscar ProductPercentajeCommision para nuevos negocios
  */
 export interface FindProductPercentajeCommisionInput {
 	idProduct: number
@@ -14,46 +14,42 @@ export interface FindProductPercentajeCommisionInput {
 }
 
 /**
- * Server Action para buscar ProductPercentajeCommision
+ * Server Action: obtiene el PPC activo para nuevos negocios según ProductConfiguration.
  *
- * Busca una configuración de comisión que coincida con los parámetros dados:
- * - idProduct: ID del producto seleccionado
- * - idClientOrigin: ID del origen del cliente (del formulario)
- * - idCategory: ID de la categoría del agente seleccionado
+ * Delega la consulta a Prisma al servicio product-configuration.service.
+ * Valida el resultado y devuelve ApiResponse con el PPC o mensaje de error.
  *
- * @param params - Parámetros de búsqueda
- * @returns ApiResponse con ProductPercentajeCommision encontrado o un error
+ * @param params - Parámetros de búsqueda (producto, origen, categoría del agente)
+ * @returns ApiResponse con ProductPercentajeCommision para nuevos negocios o error
  */
 export async function findProductPercentajeCommision(
 	params: FindProductPercentajeCommisionInput
 ): Promise<ApiResponse<ProductPercentajeCommision>> {
 	try {
-		const { idProduct, idClientOrigin, idCategory } = params
+		const { configExists, ppc } = await getPpcForNewBusinesses(params)
 
-		// Buscar ProductPercentajeCommision con las condiciones especificadas
-		const productPercentajeCommision =
-			await prisma.productPercentajeCommision.findFirst({
-				where: {
-					idProduct,
-					idClientOrigin,
-					idCategory,
-					active: true,
-				},
-			})
-
-		if (!productPercentajeCommision) {
+		if (!configExists) {
 			return {
 				data: null,
 				error:
-					'El producto, la categoría y el origen del cliente no tienen una comisión asignada',
+					'No hay configuración de comisión para esta combinación de producto, origen y categoría.',
+			}
+		}
+
+		if (!ppc) {
+			return {
+				data: null,
+				error:
+					'No hay configuración de comisión para nuevos negocios en esta combinación producto/origen/categoría.',
 			}
 		}
 
 		return {
-			data: productPercentajeCommision,
+			data: ppc,
 		}
 	} catch (error) {
-		console.error('Error finding product percentaje commision:', error)
+		const message = error instanceof Error ? error.message : String(error)
+		console.error('Error finding product percentaje commision:', message, error)
 		return {
 			data: null,
 			error:

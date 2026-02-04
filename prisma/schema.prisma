@@ -45,8 +45,8 @@ model ClientOrigin {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  businesses                  Business[]
-  productPercentajeCommisions ProductPercentajeCommision[]
+  businesses           Business[]
+  productConfigurations ProductConfiguration[]
 
   @@map("client_origin")
 }
@@ -63,7 +63,7 @@ model Category {
 
   // Relaciones
   users                                User[]
-  productPercentajeCommisions          ProductPercentajeCommision[]
+  productConfigurations                ProductConfiguration[]
   productPercentajeCommisionCategories ProductPercentajeCommisionCategory[]
 
   @@index([typeCategory])
@@ -148,37 +148,56 @@ model Product {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  company                     Company                      @relation(fields: [idCompany], references: [idCompany])
-  typeProduct                 TypeProduct?                 @relation(fields: [idTypeProduct], references: [idTypeProduct])
-  productPercentajeCommisions ProductPercentajeCommision[]
+  company               Company               @relation(fields: [idCompany], references: [idCompany])
+  typeProduct           TypeProduct?          @relation(fields: [idTypeProduct], references: [idTypeProduct])
+  productConfigurations ProductConfiguration[]
 
   @@unique([idCompany, name])
   @@index([idCompany])
   @@map("product")
 }
 
+model ProductConfiguration {
+  id                                    Int       @id @default(autoincrement()) @map("id_product_configuration")
+  idProduct                              Int      @map("id_product")
+  idClientOrigin                         Int      @map("id_client_origin")
+  idCategory                             Int      @map("id_category")
+  code                                   String?  @db.VarChar(50)
+  idProductPercentajeCommisionNewBusinesses Int?   @map("id_product_percentaje_commision_new_businesses")
+  createdAt                              DateTime @default(now()) @map("created_at")
+  updatedAt                              DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  product                              Product                   @relation(fields: [idProduct], references: [idProduct])
+  clientOrigin                         ClientOrigin              @relation(fields: [idClientOrigin], references: [idClientOrigin])
+  category                             Category                  @relation(fields: [idCategory], references: [idCategory])
+  productPercentajeCommisionNewBusinesses ProductPercentajeCommision? @relation("PpcNewBusinesses", fields: [idProductPercentajeCommisionNewBusinesses], references: [idProductPercentajeCommision])
+  productPercentajeCommisions          ProductPercentajeCommision[]
+
+  @@unique([idProduct, idClientOrigin, idCategory])
+  @@unique([idProductPercentajeCommisionNewBusinesses])
+  @@index([idProduct])
+  @@index([idClientOrigin])
+  @@index([idCategory])
+  @@map("product_configuration")
+}
+
 model ProductPercentajeCommision {
   idProductPercentajeCommision Int      @id @default(autoincrement()) @map("id_product_percentaje_commision")
-  idProduct                    Int      @map("id_product")
-  idClientOrigin               Int      @map("id_client_origin")
-  idCategory                   Int      @map("id_category")
-  code                         String?  @db.VarChar(50)
+  idProductConfiguration       Int      @map("id_product_configuration")
   active                       Boolean  @default(true)
   createdAt                    DateTime @default(now()) @map("created_at")
   updatedAt                    DateTime @updatedAt @map("updated_at")
 
   // Relaciones
-  product                              Product                              @relation(fields: [idProduct], references: [idProduct])
-  clientOrigin                         ClientOrigin                         @relation(fields: [idClientOrigin], references: [idClientOrigin])
-  category                             Category                             @relation(fields: [idCategory], references: [idCategory])
+  productConfiguration                 ProductConfiguration  @relation(fields: [idProductConfiguration], references: [id])
+  productConfigurationAsNewBusinesses  ProductConfiguration?  @relation("PpcNewBusinesses")
   productPercentajeCommisionCategories ProductPercentajeCommisionCategory[]
   businesses                           Business[]
 
-  // Note: 'Configuración maestra de porcentajes. Code ejemplo: SKANDIAPROPIOMULTIFON/PLATA'
+  // Note: 'Configuración maestra de porcentajes. Code está en ProductConfiguration.'
 
-  @@index([idProduct])
-  @@index([idClientOrigin])
-  @@index([idCategory])
+  @@index([idProductConfiguration])
   @@map("product_percentaje_commision")
 }
 
