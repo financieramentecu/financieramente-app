@@ -126,9 +126,13 @@ src/
    - `lib/` - Schemas Zod y funciones de negocio
    - `hooks/` - Custom hooks para data fetching y mutations
    - `components/` - Componentes React específicos del feature
+   - **`actions/`** - Server Actions: validan entrada, llaman a **services** y devuelven `ApiResponse`. No usan Prisma directamente.
+   - **`services/`** - Contienen todas las llamadas a **Prisma** (y otros accesos a datos) del feature. Devuelven datos de dominio; la forma de respuesta al cliente se define en las actions.
 3. **Shared Resources**: Componentes y tipos compartidos en `features/shared/`
 4. **API Routes Simplificados**: Llamadas directas a servicios sin capas intermedias complejas
 5. **Testing Colocalizado**: Tests en `__tests__/` dentro de cada feature
+
+**Patrón Actions → Services → Prisma**: Las Server Actions no llaman a Prisma directamente; delegan en servicios del feature. Ejemplo: `findProductPercentajeCommision` (action) llama a `getPpcForNewBusinesses` (service), que es quien usa `prisma.productConfiguration.findUnique(...)`.
 
 #### Ejemplo de Feature Completo
 

@@ -1,4 +1,4 @@
-version: "3.8"
+# version is obsolete in Compose V2 and is ignored – removed to avoid the warning
 
 services:
   postgres:

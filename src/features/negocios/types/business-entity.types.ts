@@ -126,9 +126,13 @@ export const businessWithRelations = {
 	},
 	productPercentajeCommision: {
 		include: {
-			product: {
+			productConfiguration: {
 				include: {
-					company: true,
+					product: {
+						include: {
+							company: true,
+						},
+					},
 				},
 			},
 		},

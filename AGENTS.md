@@ -1,3 +1,8 @@
+---
+description: 
+alwaysApply: true
+---
+
 # Repository Guidelines
 
 ## How to Use This Guide
@@ -140,5 +145,11 @@ Before creating a PR:
 - **Structure**: Each feature has `components/`, `hooks/`, `lib/`, `types/`, `__tests__/`
 - **Shared Resources**: Use `src/features/shared/` for truly shared components/hooks/types
 - **No Root Services**: Don't create files in `src/services/`, `src/utils/`, `src/types/` (use features)
+
+### Actions and Services (data access)
+
+- **Server Actions** (`actions/`): orchestrate validation, call **services** for data, and return `ApiResponse`. Do **not** call Prisma directly from actions.
+- **Services** (`services/`): contain all **Prisma** (and other data) calls for the feature. Return domain data or simple result objects; no `ApiResponse` here.
+- **Responsibility split**: Actions = input validation, error messages, response shape. Services = database queries, domain logic that touches Prisma.
 
 See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed architecture guidelines.
