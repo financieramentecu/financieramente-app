@@ -314,30 +314,12 @@ export const authConfig: NextAuthConfig = {
 		strategy: 'jwt',
 		maxAge: 30 * 24 * 60 * 60, // 30 días
 	},
+	// Only override csrfToken cookie - sessionToken and callbackUrl use NextAuth defaults (__Secure-)
 	cookies: {
-		sessionToken: {
-			name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}authjs.session-token`,
-			options: {
-				httpOnly: true,
-				sameSite: 'lax',
-				path: '/',
-				secure: process.env.NODE_ENV === 'production',
-				maxAge: 30 * 24 * 60 * 60, // 30 días
-			},
-		},
 		csrfToken: {
-			// Auth.js default: __Host- for CSRF ("additional protection", stricter than __Secure-). See next-auth packages/core/src/lib/utils/cookie.ts
-			// If 403 persists behind Nginx, set AUTH_TRUST_HOST=true and NEXTAUTH_URL exact; only then consider __Secure- as workaround (docs/DIAGNOSTIC_403_SIGNIN_QA_2026-02-04.md).
-			name: `${process.env.NODE_ENV === 'production' ? '__Host-' : ''}authjs.csrf-token`,
-			options: {
-				httpOnly: true,
-				sameSite: 'lax',
-				path: '/',
-				secure: process.env.NODE_ENV === 'production',
-			},
-		},
-		callbackUrl: {
-			name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}authjs.callback-url`,
+			// NextAuth default is __Host- which is too strict behind Nginx proxy (causes 403).
+			// __Secure- requires HTTPS but works with reverse proxies.
+			name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}authjs.csrf-token`,
 			options: {
 				httpOnly: true,
 				sameSite: 'lax',
