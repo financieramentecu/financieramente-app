@@ -143,7 +143,8 @@ POSTGRES_PASSWORD_PROD  → Segunda contraseña generada
 | `NEXT_PUBLIC_API_URL`     | URL pública de la API        | `https://negocios.qa.financieramentecu.co`    | **Build time** (se incrusta en el código) |
 | `DATABASE_URL`            | URL de conexión a PostgreSQL | `postgresql://user:pass@postgres:5432/dbname` | Runtime                                   |
 | `NEXTAUTH_SECRET`         | Secret para NextAuth         | Generado con `openssl rand -base64 32`        | Runtime                                   |
-| `NEXTAUTH_URL`            | URL base de la aplicación    | `https://negocios.qa.financieramentecu.co`    | Runtime                                   |
+| `NEXTAUTH_URL`            | URL base de la aplicación (sin barra final) | `https://negocios.qa.financieramentecu.co`    | Runtime                                   |
+| `AUTH_TRUST_HOST`         | Confiar en host de proxy (Nginx) para Auth.js | `true` (QA/prod detrás de Nginx)              | Runtime (ver docs/DIAGNOSTIC_403_SIGNIN_QA_2026-02-04.md) |
 | `GOOGLE_CLIENT_ID`        | Cliente OAuth de Google      | `xxx.apps.googleusercontent.com`              | Runtime                                   |
 | `GOOGLE_CLIENT_SECRET`    | Secret del cliente OAuth     | Generado por Google                           | Runtime                                   |
 | `NEXT_TELEMETRY_DISABLED` | Deshabilitar telemetría      | `1`                                           | Build y Runtime                           |

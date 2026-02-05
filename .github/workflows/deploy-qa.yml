@@ -115,6 +115,7 @@ jobs:
             NEXT_PUBLIC_API_URL=https://negocios.qa.financieramentecu.co
             NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_QA }}
             NEXTAUTH_URL=https://negocios.qa.financieramentecu.co
+            AUTH_TRUST_HOST=true
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_QA }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_QA }}
             NEXT_TELEMETRY_DISABLED=1

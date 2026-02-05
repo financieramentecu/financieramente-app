@@ -326,6 +326,8 @@ export const authConfig: NextAuthConfig = {
 			},
 		},
 		csrfToken: {
+			// Auth.js default: __Host- for CSRF ("additional protection", stricter than __Secure-). See next-auth packages/core/src/lib/utils/cookie.ts
+			// If 403 persists behind Nginx, set AUTH_TRUST_HOST=true and NEXTAUTH_URL exact; only then consider __Secure- as workaround (docs/DIAGNOSTIC_403_SIGNIN_QA_2026-02-04.md).
 			name: `${process.env.NODE_ENV === 'production' ? '__Host-' : ''}authjs.csrf-token`,
 			options: {
 				httpOnly: true,
