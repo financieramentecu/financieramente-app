@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidacion-resumen-notification'
 import { Decimal } from '@prisma/client/runtime/library'
 import type {
     AgenteDistribucion,
@@ -6,6 +7,8 @@ import type {
     ConfiguracionPorcentajes,
     RegistroDetallePreLiquidacion,
     RespuestaDetallePreLiquidacion,
+    ResumenFilaPreliquidacion,
+    ResumenUsuarioPreliquidacion,
 } from '../types/types'
 
 /**
@@ -329,6 +332,114 @@ export async function calcularComisionesParaRegistro(
 }
 
 /**
+ * Obtiene el resumen de pre-liquidación agrupado por usuario para envío de correos.
+ * Una fila por negocio por usuario (valor = suma de valueComissionFinal por negocio).
+ */
+export async function obtenerResumenPreliquidacionPorUsuario(
+    fileImportId: number,
+    rangoFecha: { inicio: Date; fin: Date },
+    archivoNombre: string
+): Promise<ResumenUsuarioPreliquidacion[]> {
+    const settlements = await prisma.settlementCommission.findMany({
+        where: {
+            idFileImport: fileImportId,
+            status: 'PRELIQUIDADO',
+            fechaPago: {
+                gte: rangoFecha.inicio,
+                lte: rangoFecha.fin,
+            },
+        },
+        select: { idSettlementCommission: true },
+    })
+    const ids = settlements.map((s) => s.idSettlementCommission)
+    if (ids.length === 0) return []
+
+    const distribuciones = await prisma.comissionDistribution.findMany({
+        where: { idSettlementCommission: { in: ids } },
+        include: {
+            settlementCommission: {
+                include: {
+                    business: {
+                        include: {
+                            user: {
+                                select: {
+                                    idUser: true,
+                                    email: true,
+                                    name: true,
+                                    lastName: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            productPercentajeCommisionCategory: {
+                include: { category: { select: { name: true } } },
+            },
+        },
+    })
+
+    const periodo = `${rangoFecha.inicio.toISOString().split('T')[0]} - ${rangoFecha.fin.toISOString().split('T')[0]}`
+    const byUser = new Map<
+        number,
+        { email: string; nombreUsuario: string; byBusiness: Map<number, { nombreNegocio: string; valor: number; categorias: string[] }> }
+    >()
+
+    for (const d of distribuciones) {
+        const business = d.settlementCommission.business
+        if (!business?.user) continue
+        const u = business.user
+        const idBusiness = business.idBusiness
+        const nombreNegocio = business.contract ? `Contrato ${business.contract}` : `Negocio #${idBusiness}`
+        const valor = d.valueComissionFinal.toNumber()
+        const categoria = d.productPercentajeCommisionCategory?.category?.name ?? ''
+
+        if (!byUser.has(u.idUser)) {
+            byUser.set(u.idUser, {
+                email: u.email,
+                nombreUsuario: `${u.name} ${u.lastName ?? ''}`.trim(),
+                byBusiness: new Map(),
+            })
+        }
+        const userEntry = byUser.get(u.idUser)!
+        if (!userEntry.byBusiness.has(idBusiness)) {
+            userEntry.byBusiness.set(idBusiness, {
+                nombreNegocio,
+                valor: 0,
+                categorias: [],
+            })
+        }
+        const biz = userEntry.byBusiness.get(idBusiness)!
+        biz.valor += valor
+        if (categoria && !biz.categorias.includes(categoria)) biz.categorias.push(categoria)
+    }
+
+    const result: ResumenUsuarioPreliquidacion[] = []
+    for (const [idUser, entry] of byUser) {
+        const filas: ResumenFilaPreliquidacion[] = []
+        for (const [idBusiness, biz] of entry.byBusiness) {
+            filas.push({
+                idBusiness,
+                nombreNegocio: biz.nombreNegocio,
+                valorComision: Math.round(biz.valor * 100) / 100,
+                categoriaConcepto: biz.categorias.length > 0 ? biz.categorias.join(', ') : undefined,
+            })
+        }
+        if (filas.length > 0) {
+            result.push({
+                idUser,
+                email: entry.email,
+                nombreUsuario: entry.nombreUsuario,
+                archivoNombre,
+                periodo,
+                filas,
+            })
+        }
+    }
+    return result
+}
+
+/**
  * Procesa la pre-liquidación de un archivo completo
  */
 export async function procesarPreLiquidacion(
@@ -462,7 +573,6 @@ export async function procesarPreLiquidacion(
         }
 
         // Actualizar fecha de pre-liquidación en el archivo y cambiar estado
-        // Esto indica que el archivo ha tenido actividad de pre-liquidación, permitiendo mostrarlo en el historial
         await prisma.fileImport.update({
             where: { idFileImport: fileImportId },
             data: {
@@ -472,7 +582,40 @@ export async function procesarPreLiquidacion(
             }
         })
 
-
+        // Envío de correos con resumen por usuario (fire-and-forget: no bloquea la respuesta)
+        if (registrosProcesados > 0) {
+            obtenerResumenPreliquidacionPorUsuario(
+                fileImportId,
+                rangoFecha,
+                fileImport.nameFile
+            )
+                .then((resumenes) => {
+                    for (const r of resumenes) {
+                        sendResumenPreliquidacionEmail({
+                            to: r.email,
+                            nombreUsuario: r.nombreUsuario,
+                            archivoNombre: r.archivoNombre,
+                            periodo: r.periodo,
+                            filas: r.filas.map((f) => ({
+                                nombreNegocio: f.nombreNegocio,
+                                valorComision: f.valorComision,
+                                categoriaConcepto: f.categoriaConcepto,
+                            })),
+                        }).catch((err) => {
+                            console.error(
+                                `Error enviando resumen pre-liquidación a ${r.email}:`,
+                                err
+                            )
+                        })
+                    }
+                })
+                .catch((err) => {
+                    console.error(
+                        'Error obteniendo resumen pre-liquidación para correos:',
+                        err
+                    )
+                })
+        }
 
         return {
             success: true,

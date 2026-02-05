@@ -192,3 +192,25 @@ export interface RespuestaDetallePreLiquidacion {
 	distribucion: AgenteDistribucion[]
 	resumen: ResumenDetallePreLiquidacion
 }
+
+/**
+ * Una fila del resumen por negocio (para email de pre-liquidación)
+ */
+export interface ResumenFilaPreliquidacion {
+	readonly idBusiness: number
+	nombreNegocio: string
+	valorComision: number
+	categoriaConcepto?: string
+}
+
+/**
+ * Resumen por usuario para enviar un correo de pre-liquidación (una fila por negocio)
+ */
+export interface ResumenUsuarioPreliquidacion {
+	readonly idUser: number
+	email: string
+	nombreUsuario?: string
+	archivoNombre: string
+	periodo: string
+	filas: ResumenFilaPreliquidacion[]
+}

@@ -4,6 +4,10 @@ import { procesarPreLiquidacion } from './pre-liquidacion.service';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 
+vi.mock('@/features/email/lib/preliquidacion-resumen-notification', () => ({
+    sendResumenPreliquidacionEmail: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
     prisma: {
@@ -20,6 +24,7 @@ vi.mock('@/lib/prisma', () => ({
         },
         comissionDistribution: {
             create: vi.fn(),
+            findMany: vi.fn(),
         },
         discount: {
             findFirst: vi.fn(),
@@ -62,10 +67,11 @@ describe('procesarPreLiquidacion', () => {
     });
 
     it('should return success and process records when everything is correct', async () => {
-        // Mock file exists and is LOAD
+        // Mock file exists and is LOAD (nameFile para correo de resumen)
         vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
             idFileImport: 1,
             status: 'LOAD',
+            nameFile: 'Test.xlsx',
         } as any);
 
         // Mock records found
@@ -93,6 +99,22 @@ describe('procesarPreLiquidacion', () => {
             idDiscount: 1,
             percentage: new Decimal(0.12),
         } as any);
+
+        // Primera findMany: registros SINCRONIZADO; segunda: settlements PRELIQUIDADO (para resumen email)
+        vi.mocked(prisma.settlementCommission.findMany)
+            .mockResolvedValueOnce([
+                {
+                    idSettlementCommission: 100,
+                    status: 'SINCRONIZADO',
+                    valorComision: new Decimal(100000),
+                    business: {
+                        idProductPercentajeCommision: 50,
+                    },
+                },
+            ] as any)
+            .mockResolvedValueOnce([]);
+
+        vi.mocked(prisma.comissionDistribution.findMany).mockResolvedValue([]);
 
         // Mock transaction success by default (fn calls callback)
 
