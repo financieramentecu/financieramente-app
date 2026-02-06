@@ -13,6 +13,7 @@ import {
 	Package,
 	UserCircle,
 	Tag,
+	Sliders,
 } from 'lucide-react'
 
 /**
@@ -113,6 +114,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				title: 'Origen Cliente',
 				url: '/dashboard/origenes',
 				icon: <UserCircle className="h-4 w-4" />,
+			},
+			{
+				title: 'Config. Producto',
+				url: '/dashboard/configuraciones-producto',
+				icon: <Sliders className="h-4 w-4" />,
 			},
 		],
 	},
