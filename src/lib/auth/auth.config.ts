@@ -11,6 +11,11 @@ import Credentials from 'next-auth/providers/credentials'
  * Los callbacks que necesitan acceso a la base de datos están en config.ts
  */
 export const authConfigEdge: NextAuthConfig = {
+	// Requerido por Auth.js. En CI/e2e no hay .env: usar fallback para que no falle MissingSecret
+	secret:
+		process.env.AUTH_SECRET ||
+		process.env.NEXTAUTH_SECRET ||
+		'fallback-secret-for-development-only',
 	providers: [
 		Google({
 			clientId: process.env.GOOGLE_CLIENT_ID!,
