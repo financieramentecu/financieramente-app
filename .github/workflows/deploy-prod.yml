@@ -99,6 +99,12 @@ jobs:
             -e "ssh -o StrictHostKeyChecking=no" \
             ./docker/ root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/docker/
 
+      - name: Copy SSL scripts to server
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.PROD_DROPLET_IP }} "mkdir -p /opt/financieramente/terraform/scripts"
+          scp -o StrictHostKeyChecking=no terraform/scripts/ssl-renew.sh root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/terraform/scripts/
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.PROD_DROPLET_IP }} "chmod +x /opt/financieramente/terraform/scripts/ssl-renew.sh"
+
       - name: Setup environment variables
         run: |
           ssh root@${{ secrets.PROD_DROPLET_IP }} << 'EOF'
@@ -234,9 +240,9 @@ jobs:
           }
           echo "✅ Migrations applied successfully"
 
-          # Ensure SSL renewal cron (idempotent): remove old ssl-renew entries, add correct path
+          # Ensure SSL renewal cron (idempotent): remove old ssl-renew entries, add correct path (no app/ on server)
           (crontab -l 2>/dev/null | grep -v 'ssl-renew.sh' || true
-           echo "0 3 * * * /opt/financieramente/app/terraform/scripts/ssl-renew.sh prod >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
+           echo "0 3 * * * /opt/financieramente/terraform/scripts/ssl-renew.sh prod >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
 
           # Wait for services to be ready
           echo "Waiting for services to start..."

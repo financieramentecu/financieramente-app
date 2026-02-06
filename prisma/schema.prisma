@@ -163,6 +163,7 @@ model ProductConfiguration {
   idClientOrigin                         Int      @map("id_client_origin")
   idCategory                             Int      @map("id_category")
   code                                   String?  @db.VarChar(50)
+  active                                 Boolean  @default(true) @map("active")
   idProductPercentajeCommisionNewBusinesses Int?   @map("id_product_percentaje_commision_new_businesses")
   createdAt                              DateTime @default(now()) @map("created_at")
   updatedAt                              DateTime @updatedAt @map("updated_at")

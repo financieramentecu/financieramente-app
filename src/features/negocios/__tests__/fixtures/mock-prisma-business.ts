@@ -102,6 +102,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 			idClientOrigin: 1,
 			idCategory: 1,
 			code: 'CREA_PATRIMONIO-PROPIO-JUNIOR',
+			active: true,
 			idProductPercentajeCommisionNewBusinesses: 1,
 			createdAt: baseDate,
 			updatedAt: baseDate,
