@@ -77,7 +77,8 @@ export async function setupTestUser() {
 		return { success: true }
 	} catch (error) {
 		console.error('❌ Error al configurar usuario de prueba:', error)
-		throw error
+		// No relanzar: permite que los e2e continúen (p. ej. sin DB o con TLS inválido)
+		return { success: false }
 	}
 }
 

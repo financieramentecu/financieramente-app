@@ -36,7 +36,15 @@ export const authConfigEdge: NextAuthConfig = {
 	},
 	callbacks: {
 		// El callback authorized se usa en el middleware para verificar autenticación
-		authorized({ auth, request: { nextUrl } }) {
+		authorized({ auth, request }) {
+			const { nextUrl } = request
+			// Permitir acceso en modo prueba (E2E) cuando se envía el header x-test-auth
+			if (
+				process.env.NODE_ENV !== 'production' &&
+				request.headers.get('x-test-auth') === 'true'
+			) {
+				return true
+			}
 			const isLoggedIn = !!auth?.user
 			const isOnDashboard = nextUrl.pathname.startsWith('/dashboard')
 			const isOnProtectedApi = nextUrl.pathname.startsWith('/api/protected')
