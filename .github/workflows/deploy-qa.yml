@@ -80,6 +80,12 @@ jobs:
             -e "ssh -o StrictHostKeyChecking=no" \
             ./docker/ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/docker/
 
+      - name: Copy SSL scripts to server
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.QA_DROPLET_IP }} "mkdir -p /opt/financieramente/terraform/scripts"
+          scp -o StrictHostKeyChecking=no terraform/scripts/ssl-renew.sh root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/terraform/scripts/
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.QA_DROPLET_IP }} "chmod +x /opt/financieramente/terraform/scripts/ssl-renew.sh"
+
       - name: Deploy application
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -277,9 +283,9 @@ jobs:
             # Check container status
             docker-compose -f "$COMPOSE_FILE_PATH" ps
 
-            # Ensure SSL renewal cron (idempotent): remove old ssl-renew entries, add correct path
+            # Ensure SSL renewal cron (idempotent): remove old ssl-renew entries, add correct path (no app/ on server)
             (crontab -l 2>/dev/null | grep -v 'ssl-renew.sh' || true
-             echo "0 3 * * 0 /opt/financieramente/app/terraform/scripts/ssl-renew.sh qa >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
+             echo "0 3 * * 0 /opt/financieramente/terraform/scripts/ssl-renew.sh qa >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
 
       - name: Health check
         uses: appleboy/ssh-action@v1.0.3
