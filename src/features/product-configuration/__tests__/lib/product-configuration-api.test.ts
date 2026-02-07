@@ -16,15 +16,13 @@ describe('product-configuration-api', () => {
 
 	describe('getProductConfigurations', () => {
 		it('should fetch configurations successfully (happy path)', async () => {
-			const mockResponse =
-				createMockProductConfigurationListResponse()
+			const mockResponse = createMockProductConfigurationListResponse()
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: async () => ({ data: mockResponse }),
 			})
 
-			const result =
-				await productConfigurationApi.getProductConfigurations()
+			const result = await productConfigurationApi.getProductConfigurations()
 
 			expect(result.data).toEqual(mockResponse)
 			expect('error' in result).toBe(false)
@@ -39,20 +37,16 @@ describe('product-configuration-api', () => {
 				}),
 			})
 
-			const result =
-				await productConfigurationApi.getProductConfigurations()
+			const result = await productConfigurationApi.getProductConfigurations()
 
 			expect(result.data).toBeNull()
-			expect('error' in result && result.error).toBe(
-				'Error del servidor'
-			)
+			expect('error' in result && result.error).toBe('Error del servidor')
 		})
 
 		it('should handle network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-			const result =
-				await productConfigurationApi.getProductConfigurations()
+			const result = await productConfigurationApi.getProductConfigurations()
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBe('Network error')
@@ -144,8 +138,7 @@ describe('product-configuration-api', () => {
 				json: async () => ({ data: mockConfig }),
 			})
 
-			const result =
-				await productConfigurationApi.getProductConfiguration(1)
+			const result = await productConfigurationApi.getProductConfiguration(1)
 
 			expect(result.data).toEqual(mockConfig)
 			expect('error' in result).toBe(false)
@@ -160,8 +153,7 @@ describe('product-configuration-api', () => {
 				}),
 			})
 
-			const result =
-				await productConfigurationApi.getProductConfiguration(999)
+			const result = await productConfigurationApi.getProductConfiguration(999)
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBe(
@@ -172,8 +164,7 @@ describe('product-configuration-api', () => {
 		it('should handle network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-			const result =
-				await productConfigurationApi.getProductConfiguration(1)
+			const result = await productConfigurationApi.getProductConfiguration(1)
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBe('Network error')
@@ -188,12 +179,12 @@ describe('product-configuration-api', () => {
 				json: async () => ({ data: mockConfig }),
 			})
 
-			const result =
-				await productConfigurationApi.createProductConfiguration({
-					idProduct: 1,
-					idClientOrigin: 1,
-					idCategory: 1,
-				})
+			const result = await productConfigurationApi.createProductConfiguration({
+				idProduct: 1,
+				idClientOrigin: 1,
+				idCategory: 1,
+				idCompany: 1,
+			})
 
 			expect(result.data).toEqual(mockConfig)
 			expect('error' in result).toBe(false)
@@ -208,12 +199,12 @@ describe('product-configuration-api', () => {
 				}),
 			})
 
-			const result =
-				await productConfigurationApi.createProductConfiguration({
-					idProduct: 1,
-					idClientOrigin: 1,
-					idCategory: 1,
-				})
+			const result = await productConfigurationApi.createProductConfiguration({
+				idProduct: 1,
+				idClientOrigin: 1,
+				idCategory: 1,
+				idCompany: 1,
+			})
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBe(
@@ -233,30 +224,28 @@ describe('product-configuration-api', () => {
 				idProduct: 1,
 				idClientOrigin: 2,
 				idCategory: 3,
+				idCompany: 1,
 			}
 
 			await productConfigurationApi.createProductConfiguration(data)
 
-			expect(mockFetch).toHaveBeenCalledWith(
-				'/api/product-configurations',
-				{
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(data),
-					credentials: 'include',
-				}
-			)
+			expect(mockFetch).toHaveBeenCalledWith('/api/product-configurations', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(data),
+				credentials: 'include',
+			})
 		})
 
 		it('should handle network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-			const result =
-				await productConfigurationApi.createProductConfiguration({
-					idProduct: 1,
-					idClientOrigin: 1,
-					idCategory: 1,
-				})
+			const result = await productConfigurationApi.createProductConfiguration({
+				idProduct: 1,
+				idClientOrigin: 1,
+				idCategory: 1,
+				idCompany: 1,
+			})
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBe('Network error')
@@ -271,10 +260,12 @@ describe('product-configuration-api', () => {
 				json: async () => ({ data: mockConfig }),
 			})
 
-			const result =
-				await productConfigurationApi.updateProductConfiguration(1, {
+			const result = await productConfigurationApi.updateProductConfiguration(
+				1,
+				{
 					idProductPercentajeCommisionNewBusinesses: 5,
-				})
+				}
+			)
 
 			expect(result.data).toEqual(mockConfig)
 			expect('error' in result).toBe(false)
@@ -294,24 +285,23 @@ describe('product-configuration-api', () => {
 
 			await productConfigurationApi.updateProductConfiguration(1, data)
 
-			expect(mockFetch).toHaveBeenCalledWith(
-				'/api/product-configurations/1',
-				{
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(data),
-					credentials: 'include',
-				}
-			)
+			expect(mockFetch).toHaveBeenCalledWith('/api/product-configurations/1', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(data),
+				credentials: 'include',
+			})
 		})
 
 		it('should handle network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-			const result =
-				await productConfigurationApi.updateProductConfiguration(1, {
+			const result = await productConfigurationApi.updateProductConfiguration(
+				1,
+				{
 					idProductPercentajeCommisionNewBusinesses: 5,
-				})
+				}
+			)
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBe('Network error')
@@ -328,10 +318,7 @@ describe('product-configuration-api', () => {
 				json: async () => ({ data: mockConfig }),
 			})
 
-			const result = await productConfigurationApi.toggleActive(
-				1,
-				false
-			)
+			const result = await productConfigurationApi.toggleActive(1, false)
 
 			expect(result.data).toEqual(mockConfig)
 			expect('error' in result).toBe(false)
@@ -347,24 +334,18 @@ describe('product-configuration-api', () => {
 
 			await productConfigurationApi.toggleActive(1, false)
 
-			expect(mockFetch).toHaveBeenCalledWith(
-				'/api/product-configurations/1',
-				{
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ active: false }),
-					credentials: 'include',
-				}
-			)
+			expect(mockFetch).toHaveBeenCalledWith('/api/product-configurations/1', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ active: false }),
+				credentials: 'include',
+			})
 		})
 
 		it('should handle network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-			const result = await productConfigurationApi.toggleActive(
-				1,
-				true
-			)
+			const result = await productConfigurationApi.toggleActive(1, true)
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBe('Network error')

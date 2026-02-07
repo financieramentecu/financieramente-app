@@ -20,9 +20,7 @@ describe('useProductConfigurationMutations', () => {
 
 	describe('createProductConfiguration', () => {
 		it('should start with idle state', () => {
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			expect(result.current.createState.status).toBe('idle')
 			expect(result.current.createState.data).toBeUndefined()
@@ -37,15 +35,14 @@ describe('useProductConfigurationMutations', () => {
 				data: mockConfig,
 			})
 
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			await act(async () => {
 				await result.current.createProductConfiguration({
 					idProduct: 1,
 					idClientOrigin: 1,
 					idCategory: 1,
+					idCompany: 1,
 				})
 			})
 
@@ -64,15 +61,14 @@ describe('useProductConfigurationMutations', () => {
 				error: 'Ya existe una configuración con esta combinación',
 			})
 
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			await act(async () => {
 				await result.current.createProductConfiguration({
 					idProduct: 1,
 					idClientOrigin: 1,
 					idCategory: 1,
+					idCompany: 1,
 				})
 			})
 
@@ -94,15 +90,14 @@ describe('useProductConfigurationMutations', () => {
 				.spyOn(console, 'error')
 				.mockImplementation(() => {})
 
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			await act(async () => {
 				await result.current.createProductConfiguration({
 					idProduct: 1,
 					idClientOrigin: 1,
 					idCategory: 1,
+					idCompany: 1,
 				})
 			})
 
@@ -118,9 +113,7 @@ describe('useProductConfigurationMutations', () => {
 
 	describe('updateProductConfiguration', () => {
 		it('should start with idle state', () => {
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			expect(result.current.updateState.status).toBe('idle')
 		})
@@ -133,9 +126,7 @@ describe('useProductConfigurationMutations', () => {
 				data: mockConfig,
 			})
 
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			await act(async () => {
 				await result.current.updateProductConfiguration(1, {
@@ -158,9 +149,7 @@ describe('useProductConfigurationMutations', () => {
 				error: 'La comisión no pertenece a esta configuración',
 			})
 
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			await act(async () => {
 				await result.current.updateProductConfiguration(1, {
@@ -180,9 +169,7 @@ describe('useProductConfigurationMutations', () => {
 
 	describe('toggleActive', () => {
 		it('should start with idle state', () => {
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			expect(result.current.toggleActiveState.status).toBe('idle')
 		})
@@ -191,51 +178,37 @@ describe('useProductConfigurationMutations', () => {
 			const mockConfig = createMockProductConfiguration({
 				active: false,
 			})
-			vi.mocked(
-				productConfigurationApi.toggleActive
-			).mockResolvedValueOnce({
+			vi.mocked(productConfigurationApi.toggleActive).mockResolvedValueOnce({
 				data: mockConfig,
 			})
 
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			await act(async () => {
 				await result.current.toggleActive(1, false)
 			})
 
 			await waitFor(() => {
-				expect(result.current.toggleActiveState.status).toBe(
-					'success'
-				)
+				expect(result.current.toggleActiveState.status).toBe('success')
 			})
 
-			expect(result.current.toggleActiveState.data).toEqual(
-				mockConfig
-			)
+			expect(result.current.toggleActiveState.data).toEqual(mockConfig)
 		})
 
 		it('should handle API error', async () => {
-			vi.mocked(
-				productConfigurationApi.toggleActive
-			).mockResolvedValueOnce({
+			vi.mocked(productConfigurationApi.toggleActive).mockResolvedValueOnce({
 				data: null,
 				error: 'Error al cambiar estado',
 			})
 
-			const { result } = renderHook(() =>
-				useProductConfigurationMutations()
-			)
+			const { result } = renderHook(() => useProductConfigurationMutations())
 
 			await act(async () => {
 				await result.current.toggleActive(1, false)
 			})
 
 			await waitFor(() => {
-				expect(result.current.toggleActiveState.status).toBe(
-					'error'
-				)
+				expect(result.current.toggleActiveState.status).toBe('error')
 			})
 
 			expect(result.current.toggleActiveState.error).toBe(
@@ -252,15 +225,14 @@ describe('useProductConfigurationMutations', () => {
 			data: mockConfig,
 		})
 
-		const { result } = renderHook(() =>
-			useProductConfigurationMutations()
-		)
+		const { result } = renderHook(() => useProductConfigurationMutations())
 
 		await act(async () => {
 			await result.current.createProductConfiguration({
 				idProduct: 1,
 				idClientOrigin: 1,
 				idCategory: 1,
+				idCompany: 1,
 			})
 		})
 

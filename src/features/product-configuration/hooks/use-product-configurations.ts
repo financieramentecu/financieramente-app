@@ -1,86 +1,144 @@
-'use client'
-
 import { useState, useCallback, useEffect } from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
-import type {
-	ProductConfigurationListResponse,
-	ProductConfigurationFilters,
-} from '../types/product-configuration.types'
-import { productConfigurationApi } from '../lib/product-configuration-api'
+import type { ProductConfiguration } from '../types/product-configuration.types'
+import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 
-interface UseProductConfigurationsParams
-	extends ProductConfigurationFilters {
-	page?: number
-	pageSize?: number
+interface Pagination {
+	page: number
+	pageSize: number
+	total: number
+	totalPages: number
+}
+
+interface ProductConfigurationsData {
+	configurations: ProductConfiguration[]
+	pagination: Pagination
+}
+
+interface UseProductConfigurationsFilters {
+	search?: string
+	active?: string
+	page: number
+	pageSize: number
 }
 
 interface UseProductConfigurationsReturn {
-	state: AsyncState<ProductConfigurationListResponse>
-	refetch: () => Promise<void>
+	data: ProductConfiguration[]
+	pagination?: Pagination
+	isLoading: boolean
+	isError: boolean
+	error: string
+	filters: UseProductConfigurationsFilters
+	setSearch: (value: string) => void
+	setActive: (value: string | undefined) => void
+	setPage: (page: number) => void
+	reload: () => void
 }
 
-/**
- * Hook for getting the list of product configurations with pagination and search
- */
-export function useProductConfigurations(
-	params: UseProductConfigurationsParams = {}
-): UseProductConfigurationsReturn {
-	const { page, pageSize, search, active } = params
+export function useProductConfigurations(): UseProductConfigurationsReturn {
+	// Internal State
+	const [filters, setFilters] = useState<UseProductConfigurationsFilters>({
+		page: 1,
+		pageSize: 10,
+		search: '',
+		active: undefined,
+	})
 
-	const [state, setState] =
-		useState<AsyncState<ProductConfigurationListResponse>>({
+	const [state, setState] = useState<AsyncState<ProductConfigurationsData>>({
+		status: 'idle',
+		data: undefined,
+		error: '',
+	})
+
+	// Debounce search
+	const debouncedSearch = useDebounce(filters.search || '', 500)
+
+	const fetchConfigurations = useCallback(async () => {
+		setState((prev) => ({
+			...prev,
 			status: 'loading',
 			data: undefined,
 			error: '',
-		})
-
-	const fetchConfigurations = useCallback(async () => {
-		setState({ status: 'loading', data: undefined, error: '' })
-
+		}))
 		try {
-			const response =
-				await productConfigurationApi.getProductConfigurations({
-					page,
-					pageSize,
-					search,
-					active,
-				})
+			const params = new URLSearchParams()
+			if (debouncedSearch) params.append('search', debouncedSearch)
+			if (filters.active && filters.active !== 'all')
+				params.append('active', filters.active)
+			params.append('page', filters.page.toString())
+			params.append('pageSize', filters.pageSize.toString())
 
-			if ('error' in response) {
+			const response = await fetch(
+				`/api/product-configurations?${params.toString()}`
+			)
+			const result = await response.json()
+
+			if (result.error) {
+				throw new Error(result.error)
+			}
+
+			if (result.data) {
 				setState({
-					status: 'error',
-					data: undefined,
-					error: response.error,
+					status: 'success',
+					data: result.data,
+					error: '',
 				})
 			} else {
 				setState({
 					status: 'success',
-					data: response.data,
+					data: {
+						configurations: [],
+						pagination: {
+							page: filters.page,
+							pageSize: filters.pageSize,
+							total: 0,
+							totalPages: 0,
+						},
+					},
 					error: '',
 				})
 			}
 		} catch (error) {
-			console.error(
-				'Error al obtener configuraciones de producto:',
-				error
-			)
+			console.error('Error loading configurations:', error)
 			setState({
 				status: 'error',
 				data: undefined,
 				error:
 					error instanceof Error
 						? error.message
-						: 'Error desconocido al obtener configuraciones de producto',
+						: 'Error desconocido al cargar configuraciones',
 			})
 		}
-	}, [page, pageSize, search, active])
+	}, [debouncedSearch, filters.active, filters.page, filters.pageSize])
 
+	// Fetch when dependencies change
 	useEffect(() => {
 		fetchConfigurations()
 	}, [fetchConfigurations])
 
+	// Handlers
+	const setSearch = useCallback((value: string) => {
+		setFilters((prev) => ({ ...prev, search: value, page: 1 }))
+	}, [])
+
+	const setActive = useCallback((value: string | undefined) => {
+		setFilters((prev) => ({ ...prev, active: value, page: 1 }))
+	}, [])
+
+	const setPage = useCallback((page: number) => {
+		setFilters((prev) => ({ ...prev, page }))
+	}, [])
+
 	return {
-		state,
-		refetch: fetchConfigurations,
+		data: state.data?.configurations || [],
+		pagination: state.data?.pagination,
+		isLoading: state.status === 'loading',
+		isError: state.status === 'error',
+		error: state.error || '',
+		filters,
+		setSearch,
+		setActive,
+		setPage,
+		reload: fetchConfigurations,
 	}
 }
