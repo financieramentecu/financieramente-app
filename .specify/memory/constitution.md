@@ -1,23 +1,17 @@
 <!--
 Sync Impact Report:
-Version: 1.0.0 → 1.1.0 (Updated with AGENTS.md and ARCHITECTURE.md improvements)
+Version: 1.4.0 → 1.5.0 (Added Component Logic Separation principle)
 Modified principles:
-  - Enhanced Feature-Based Architecture section with detailed structure
-  - Added Skills and Subagents section
-  - Updated TypeScript practices with React 19 and Next.js 15 specifics
-  - Enhanced Testing Standards with colocalized testing structure
-  - Added Validation and Schemas section
-  - Updated Development Workflow with commit guidelines
+  - None
 Added sections:
-  - Skills and Subagents
-  - Validation and Schemas (Zod)
-  - Commit & Pull Request Guidelines
-  - Tech Stack Context
+  - X. Component Logic Separation (Custom Hooks for Business Logic)
+Removed sections:
+  - None
 Templates requiring updates:
-  - ✅ plan-template.md (Constitution Check section aligns)
-  - ✅ spec-template.md (Architecture principles align)
-  - ✅ tasks-template.md (Task categorization aligns)
-  - ⚠️ commands/*.md (May need updates if references to old patterns exist)
+  - ✅ plan-template.md
+  - ✅ spec-template.md
+  - ✅ tasks-template.md
+  - ⚠️ commands/*.md
 Follow-up TODOs: None
 -->
 
@@ -26,6 +20,7 @@ Follow-up TODOs: None
 ## Project Context
 
 Financieramente is a modern commission settlement platform for financial services built with:
+
 - **Frontend**: Next.js 15, React 19, Tailwind CSS v4
 - **Backend**: Next.js API Routes, Prisma ORM
 - **Database**: PostgreSQL 15
@@ -70,6 +65,7 @@ Financieramente is a modern commission settlement platform for financial service
 - **Dependency Inversion**: Depend on abstractions (interfaces), not concrete implementations. Use factory pattern for dependency injection
 
 **Implementation**:
+
 - Services MUST be created via factory functions that accept dependencies as parameters
 - NO static classes or singleton patterns for business logic
 - Dependencies MUST be injected, not imported directly
@@ -91,27 +87,28 @@ Financieramente is a modern commission settlement platform for financial service
 - Use Zod schemas for validation and infer TypeScript types from schemas
 
 **Example**:
+
 ```typescript
 // ✅ Correct - Interface with readonly
 interface AuthenticatedUser {
-  readonly id: string
-  readonly email: string
+	readonly id: string
+	readonly email: string
 }
 
 // ✅ Correct - Zod schema with type inference
 import { z } from 'zod'
 
 export const createProductSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
+	name: z.string().min(1),
+	description: z.string().optional(),
 })
 
 export type CreateProductInput = z.infer<typeof createProductSchema>
 
 // ❌ Incorrect - Mutable interface without readonly
 interface User {
-  id: string
-  email: string
+	id: string
+	email: string
 }
 ```
 
@@ -130,33 +127,40 @@ interface User {
 - Maximum 3 parameters per function (use objects for more)
 
 **Example**:
+
 ```typescript
 // ✅ Correct - Plain function with types
 // src/features/auth/lib/auth-api.ts
 import { apiClient } from '@/lib/api/client'
 import type { AuthenticatedUser } from '../types/auth.types'
 
-export async function login(email: string, password: string): Promise<AuthenticatedUser> {
-  return apiClient.post<AuthenticatedUser>('/api/auth/login', { email, password })
+export async function login(
+	email: string,
+	password: string
+): Promise<AuthenticatedUser> {
+	return apiClient.post<AuthenticatedUser>('/api/auth/login', {
+		email,
+		password,
+	})
 }
 
 // ✅ Correct - Factory function with dependency injection (if needed)
 export function createAuthenticationService(
-  tokenManager: ITokenManager,
-  userValidator: IUserValidator
+	tokenManager: ITokenManager,
+	userValidator: IUserValidator
 ): IAuthenticationService {
-  return {
-    async login(email: string, password: string) {
-      // implementation
-    }
-  }
+	return {
+		async login(email: string, password: string) {
+			// implementation
+		},
+	}
 }
 
 // ❌ Incorrect - Static class
 export class AuthService {
-  static async login(email: string, password: string) {
-    // implementation
-  }
+	static async login(email: string, password: string) {
+		// implementation
+	}
 }
 ```
 
@@ -173,7 +177,7 @@ export class AuthService {
   - Use camelCase for variables, functions, methods, hooks, properties
   - Use PascalCase for components, types, interfaces
   - Use kebab-case for directory and file names
-- **Functions**: 
+- **Functions**:
   - Maximum 50 lines per function (prefer smaller)
   - Single responsibility per function
   - Maximum 3 parameters (use objects for more)
@@ -203,6 +207,7 @@ export class AuthService {
 - Tests MUST be colocalized in `__tests__/` within each feature
 
 **Test Structure**:
+
 - Unit tests: `src/features/[domain]/__tests__/`
 - Integration tests: `vitest.integration.config.ts`
 - E2E tests: `e2e/`
@@ -223,22 +228,23 @@ export class AuthService {
 - Use Result types or try-catch with typed errors, not generic `Error`
 
 **Example**:
+
 ```typescript
 // ✅ Correct - Zod schema with type inference
 // src/features/auth/lib/auth-schemas.ts
 import { z } from 'zod'
 
 export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+	email: z.string().email(),
+	password: z.string().min(8),
 })
 
 export type LoginInput = z.infer<typeof loginSchema>
 
 // ✅ Correct - Typed error
 interface AuthenticationError extends Error {
-  readonly code: 'INVALID_CREDENTIALS' | 'KEYCLOAK_ERROR' | 'VALIDATION_ERROR'
-  readonly details?: unknown
+	readonly code: 'INVALID_CREDENTIALS' | 'KEYCLOAK_ERROR' | 'VALIDATION_ERROR'
+	readonly details?: unknown
 }
 
 // ❌ Incorrect - Generic error
@@ -246,6 +252,136 @@ throw new Error('Login failed')
 ```
 
 **Rationale**: Provides better debugging, user experience, and security. Prevents information leakage.
+
+### VIII. React Data Fetching (Use AsyncState)
+
+**MUST**: Separate data fetching logic from presentation components and use `AsyncState` type.
+
+- All `fetch` calls, `SWR`, or `React Query` usage MUST be separated into custom hooks.
+- Hooks MUST use the `AsyncState<T>` type from `@/features/shared/types/async-state.types.ts` to manage loading, error, and success states uniformly.
+- Components MUST NOT contain direct `fetch` calls or `useEffect` for data loading.
+- Hooks MUST return the state object typed as `AsyncState<T>`.
+
+**Example**:
+
+```typescript
+import type { AsyncState } from '@/features/shared/types/async-state.types'
+
+// ✅ Correct - Logic in Custom Hook using AsyncState
+export function useProductConfigs(filters: Filters) {
+  const [state, setState] = useState<AsyncState<Config[]>>({
+    status: 'idle',
+    data: undefined,
+    error: ''
+  })
+
+  useEffect(() => {
+    setState({ status: 'loading', data: undefined, error: '' })
+
+    fetchConfigs(filters)
+      .then(data => setState({ status: 'success', data, error: '' }))
+      .catch(err => setState({ status: 'error', data: undefined, error: err.message }))
+  }, [filters]);
+
+  return state; // Returns AsyncState<Config[]>
+}
+
+// ✅ Correct - Component uses Hook and handles states
+export function ConfigList() {
+  const state = useProductConfigs(filters);
+
+  if (state.status === 'loading') return <Spinner />;
+  if (state.status === 'error') return <Error msg={state.error} />;
+  if (state.status === 'success') return <Table data={state.data} />; // Typed correctly
+
+  return null;
+}
+```
+
+**Rationale**: ensures consistent state handling across the application, prevents "impossible states" (e.g. loading and error at the same time), and provides excellent type inference for consumers.
+
+### IX. API Response Standardization
+
+**MUST**: Use standardized types for all API responses.
+
+- All API routes MUST return responses typed with `ApiResponse<T>` from `@/features/shared/types/api-response.types.ts`.
+- Use `NextResponse.json<ApiResponse<T>>(...)` to enforce the structure.
+- Always handle both success (`{ data: T }`) and error (`{ data: null, error: string }`) cases explicitly.
+
+**Example**:
+
+```typescript
+import { NextResponse } from 'next/server'
+import type { ApiResponse } from '@/features/shared/types/api-response.types'
+
+export async function GET(): Promise<NextResponse<ApiResponse<User[]>>> {
+	try {
+		const users = await getUsers()
+		return NextResponse.json({ data: users })
+	} catch (err) {
+		return NextResponse.json(
+			{ data: null, error: 'Failed to fetch users' },
+			{ status: 500 }
+		)
+	}
+}
+```
+
+**Rationale**: Guarantees a consistent contract between frontend and backend, simplifies error handling on the client (using discriminated unions), and improves type safety.
+
+### X. Component Logic Separation (Container/Presentational Pattern)
+
+**MUST**: Presentation components MUST NOT contain business logic. All logic MUST be encapsulated in custom hooks.
+
+- **Presentational Components**:
+  - Focus purely on UI rendering.
+  - Receive data and callbacks via props.
+  - No `useEffect`, `useState` (except for purely visual UI state like open/close), or API calls.
+- **Custom Hooks**:
+  - Encapsulate all state management (form state, data fetching state).
+  - Handle side effects (`useEffect`).
+  - Implement specific detailed tasks (Single Responsibility Principle).
+  - Return only the data and handlers needed by the component.
+
+**Example**:
+
+```typescript
+// ✅ Correct - Custom Hook for Logic
+export function useLoginForm() {
+  const [formState, setFormState] = useState({ email: '', password: '' });
+  const { login } = useAuth();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await login(formState);
+  };
+
+  return { formState, setFormState, handleLogin };
+}
+
+// ✅ Correct - Presentational Component
+export function LoginForm() {
+  const { formState, setFormState, handleLogin } = useLoginForm();
+
+  return (
+    <form onSubmit={handleLogin}>
+      <Input value={formState.email} onChange={e => setFormState({...formState, email: e.target.value})} />
+      <Button type="submit">Login</Button>
+    </form>
+  );
+}
+
+// ❌ Incorrect - Logic inside Component
+export function LoginForm() {
+  const [email, setEmail] = useState(''); // Logic mixed with UI
+
+  const handleSubmit = async () => { ... }; // Logic mixed with UI
+
+  return <form...>;
+}
+```
+
+**Rationale**: drastically improves maintainability by separating "how things look" (UI) from "how things work" (Logic). Hooks can be tested in isolation, reused, and refactored without touching the UI.
 
 ## Architecture Constraints
 
@@ -268,6 +404,7 @@ src/features/[domain]/
 ```
 
 **MUST NOT**: Create new files in legacy locations:
+
 - ❌ `src/services/` (migrate to `src/features/[domain]/services/` or `lib/`)
 - ❌ `src/lib/` for domain logic (use `src/features/[domain]/lib/`)
 - ❌ Global `src/types/` for domain types (use `src/features/[domain]/types/`)
@@ -283,26 +420,26 @@ import { apiClient } from '@/lib/api/client'
 import type { User } from '../types/user.types'
 
 export async function createUser(data: CreateUserInput): Promise<User> {
-  return apiClient.post<User>('/api/users', data)
+	return apiClient.post<User>('/api/users', data)
 }
 
 // ✅ Correct - Factory function (when dependency injection is needed)
 export function createUserService(
-  prisma: PrismaClient,
-  emailService: IEmailService
+	prisma: PrismaClient,
+	emailService: IEmailService
 ): IUserService {
-  return {
-    async createUser(data) {
-      // implementation using injected dependencies
-    }
-  }
+	return {
+		async createUser(data) {
+			// implementation using injected dependencies
+		},
+	}
 }
 
 // ❌ Incorrect - Direct imports in service
 export const userService = {
-  async createUser(data) {
-    // directly imports prisma, emailService
-  }
+	async createUser(data) {
+		// directly imports prisma, emailService
+	},
 }
 ```
 
@@ -371,6 +508,7 @@ export const userService = {
 Use these skills for detailed patterns on-demand:
 
 **Generic Skills (Any Project)**:
+
 - `typescript` - Const types, flat interfaces, utility types, strict typing
 - `react-19` - No useMemo/useCallback, React Compiler patterns
 - `nextjs-16` - App Router, Server Actions, Server Components, caching
@@ -379,11 +517,13 @@ Use these skills for detailed patterns on-demand:
 - `code-review-skill` - Security, performance, maintainability reviews
 
 **Financieramente-Specific Skills**:
+
 - `financieramente` - Project overview, structure, scripts, architecture
 
 ### Auto-invoke Skills
 
 When performing these actions, ALWAYS invoke the corresponding skill FIRST:
+
 - Writing React components → `react-19`
 - Writing TypeScript types/interfaces → `typescript`
 - Working with App Router / Server Actions → `nextjs-16`
@@ -391,6 +531,7 @@ When performing these actions, ALWAYS invoke the corresponding skill FIRST:
 ### Architecture Enforcer Subagent
 
 The **architecture-enforcer** subagent validates that all new code follows:
+
 - Feature-Based Architecture (Screaming Architecture)
 - Proper feature structure (`components/`, `hooks/`, `lib/`, `types/`, `__tests__/`)
 - TypeScript best practices (no `any`, readonly when appropriate)
@@ -410,6 +551,7 @@ The **architecture-enforcer** subagent validates that all new code follows:
 ### Pull Request Checklist
 
 Before creating a PR:
+
 1. Complete checklist in `.github/pull_request_template.md`
 2. Run all relevant tests and linters (`npm run test:all && npm run lint`)
 3. Link screenshots for UI changes
@@ -441,4 +583,4 @@ This constitution supersedes all other coding practices and conventions. All cod
 - Use `.cursor/rules/ARCHITECTURE.md` for detailed architecture guidance
 - Use `AGENTS.md` for skills, subagents, and development workflow guidance
 
-**Version**: 1.1.0 | **Ratified**: 2026-01-23 | **Last Amended**: 2026-01-28
+**Version**: 1.5.0 | **Ratified**: 2026-01-23 | **Last Amended**: 2026-02-06
