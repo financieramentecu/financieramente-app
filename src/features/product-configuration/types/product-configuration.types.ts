@@ -29,6 +29,7 @@ export interface ProductConfiguration extends Record<string, unknown> {
  * Input for creating a new product configuration
  */
 export interface CreateProductConfigurationInput {
+	idCompany: number
 	idProduct: number
 	idClientOrigin: number
 	idCategory: number

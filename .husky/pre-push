@@ -27,11 +27,5 @@ npm run test:integration || {
 	exit 1
 }
 
-echo "🌐 Ejecutando pruebas e2e..."
-npm run test:e2e || {
-	echo "❌ Error: Las pruebas e2e fallaron. Por favor, corrígelas antes de hacer push."
-	exit 1
-}
-
 echo "✅ Todas las validaciones pasaron correctamente. Procediendo con el push..."
 

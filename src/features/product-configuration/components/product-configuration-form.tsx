@@ -1,8 +1,7 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
-import { useForm, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import React from 'react'
+import { Controller } from 'react-hook-form'
 import { Button } from '@/features/shared/ui/button'
 import { Label } from '@/features/shared/ui/label'
 import { Input } from '@/features/shared/ui/input'
@@ -19,43 +18,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/features/shared/ui/card'
-import {
-	createProductConfigurationSchema,
-	type CreateProductConfigurationFormData,
-} from '../lib/product-configuration-schemas'
+import type { CreateProductConfigurationFormData } from '../lib/product-configuration-schemas'
 import type { ProductConfiguration } from '../types/product-configuration.types'
+import { useProductConfigurationForm } from '../hooks/use-product-configuration-form'
 import { cn } from '@/lib/utils'
-
-interface Company {
-	idCompany: number
-	name: string
-}
-
-interface Product {
-	idProduct: number
-	name: string
-	idCompany: number
-}
-
-interface ClientOrigin {
-	idClientOrigin: number
-	name: string
-}
-
-interface Category {
-	idCategory: number
-	name: string
-}
-
-interface PpcOption {
-	idProductPercentajeCommision: number
-	active: boolean
-}
 
 interface ProductConfigurationFormProps {
 	mode: 'create' | 'edit'
 	initialData?: ProductConfiguration
-	ppcOptions?: PpcOption[]
 	onSubmit: (data: Record<string, unknown>) => Promise<void>
 	onCancel?: () => void
 	isLoading?: boolean
@@ -64,150 +34,35 @@ interface ProductConfigurationFormProps {
 export function ProductConfigurationForm({
 	mode,
 	initialData,
-	ppcOptions = [],
 	onSubmit,
 	onCancel,
 	isLoading = false,
 }: ProductConfigurationFormProps) {
-	const [companies, setCompanies] = useState<Company[]>([])
-	const [products, setProducts] = useState<Product[]>([])
-	const [clientOrigins, setClientOrigins] = useState<ClientOrigin[]>([])
-	const [categories, setCategories] = useState<Category[]>([])
-	const [selectedCompany, setSelectedCompany] = useState<string>('')
-	const [loadingCompanies, setLoadingCompanies] = useState(false)
-	const [loadingProducts, setLoadingProducts] = useState(false)
-	const [loadingOrigins, setLoadingOrigins] = useState(false)
-	const [loadingCategories, setLoadingCategories] = useState(false)
+	const {
+		form,
+		companiesState,
+		productsState,
+		clientOriginsState,
+		categoriesState,
+		ppcOptions,
+		selectedPpc,
+		setSelectedPpc,
+	} = useProductConfigurationForm({ mode, initialData })
 
 	const {
 		handleSubmit,
 		formState: { errors, isSubmitting },
 		control,
-		setValue,
 		watch,
-	} = useForm<CreateProductConfigurationFormData>({
-		resolver:
-			mode === 'create'
-				? zodResolver(createProductConfigurationSchema)
-				: undefined,
-		defaultValues: {
-			idProduct: initialData?.idProduct ?? 0,
-			idClientOrigin: initialData?.idClientOrigin ?? 0,
-			idCategory: initialData?.idCategory ?? 0,
-		},
-	})
-
-	const [selectedPpc, setSelectedPpc] = useState<string>(
-		initialData?.idProductPercentajeCommisionNewBusinesses?.toString() ??
-			''
-	)
+	} = form
 
 	const watchedProduct = watch('idProduct')
+	const selectedCompanyId = watch('idCompany')
 
-	// Fetch companies
-	const fetchCompanies = useCallback(async () => {
-		setLoadingCompanies(true)
-		try {
-			const response = await fetch('/api/companies?status=active', {
-				credentials: 'include',
-			})
-			const result = await response.json()
-			if (result.data?.companies) {
-				setCompanies(result.data.companies)
-			}
-		} catch (error) {
-			console.error('Error fetching companies:', error)
-		} finally {
-			setLoadingCompanies(false)
-		}
-	}, [])
-
-	// Fetch products filtered by company
-	const fetchProducts = useCallback(async (companyId: string) => {
-		if (!companyId) {
-			setProducts([])
-			return
-		}
-		setLoadingProducts(true)
-		try {
-			const response = await fetch(
-				`/api/products?idCompany=${companyId}&status=active`,
-				{ credentials: 'include' }
-			)
-			const result = await response.json()
-			if (result.data?.products) {
-				setProducts(result.data.products)
-			}
-		} catch (error) {
-			console.error('Error fetching products:', error)
-		} finally {
-			setLoadingProducts(false)
-		}
-	}, [])
-
-	// Fetch client origins
-	const fetchClientOrigins = useCallback(async () => {
-		setLoadingOrigins(true)
-		try {
-			const response = await fetch(
-				'/api/client-origins?status=active',
-				{ credentials: 'include' }
-			)
-			const result = await response.json()
-			if (result.data?.clientOrigins) {
-				setClientOrigins(result.data.clientOrigins)
-			}
-		} catch (error) {
-			console.error('Error fetching client origins:', error)
-		} finally {
-			setLoadingOrigins(false)
-		}
-	}, [])
-
-	// Fetch categories
-	const fetchCategories = useCallback(async () => {
-		setLoadingCategories(true)
-		try {
-			const response = await fetch(
-				'/api/categories?status=active',
-				{ credentials: 'include' }
-			)
-			const result = await response.json()
-			if (result.data?.categories) {
-				setCategories(result.data.categories)
-			}
-		} catch (error) {
-			console.error('Error fetching categories:', error)
-		} finally {
-			setLoadingCategories(false)
-		}
-	}, [])
-
-	// Load data on mount (create mode only)
-	useEffect(() => {
-		if (mode === 'create') {
-			fetchCompanies()
-			fetchClientOrigins()
-			fetchCategories()
-		}
-	}, [mode, fetchCompanies, fetchClientOrigins, fetchCategories])
-
-	// Fetch products when company changes
-	useEffect(() => {
-		if (selectedCompany) {
-			fetchProducts(selectedCompany)
-			// Reset product selection when company changes
-			setValue('idProduct', 0)
-		}
-	}, [selectedCompany, fetchProducts, setValue])
-
-	const handleFormSubmit = async (
-		data: CreateProductConfigurationFormData
-	) => {
+	const handleFormSubmit = async (data: CreateProductConfigurationFormData) => {
 		if (mode === 'edit') {
 			await onSubmit({
-				idProductPercentajeCommisionNewBusinesses:
-					parseInt(selectedPpc),
+				idProductPercentajeCommisionNewBusinesses: parseInt(selectedPpc),
 			})
 		} else {
 			await onSubmit(data)
@@ -216,12 +71,14 @@ export function ProductConfigurationForm({
 
 	const isFormDisabled = isLoading || isSubmitting
 
+	// Edit Mode View
 	if (mode === 'edit' && initialData) {
 		return (
 			<form
 				onSubmit={(e) => {
 					e.preventDefault()
 					handleFormSubmit({
+						idCompany: initialData.product.company.idCompany,
 						idProduct: initialData.idProduct,
 						idClientOrigin: initialData.idClientOrigin,
 						idCategory: initialData.idCategory,
@@ -236,34 +93,20 @@ export function ProductConfigurationForm({
 					<CardContent className="space-y-4">
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div className="space-y-2">
-								<Label>Compañía</Label>
-								<Input
-									value={
-										initialData.product.company.name
-									}
-									disabled
-								/>
+								<Label>Empresa</Label>
+								<Input value={initialData.product.company.name} disabled />
 							</div>
 							<div className="space-y-2">
 								<Label>Producto</Label>
-								<Input
-									value={initialData.product.name}
-									disabled
-								/>
+								<Input value={initialData.product.name} disabled />
 							</div>
 							<div className="space-y-2">
 								<Label>Origen de Cliente</Label>
-								<Input
-									value={initialData.clientOrigin.name}
-									disabled
-								/>
+								<Input value={initialData.clientOrigin.name} disabled />
 							</div>
 							<div className="space-y-2">
 								<Label>Categoría</Label>
-								<Input
-									value={initialData.category.name}
-									disabled
-								/>
+								<Input value={initialData.category.name} disabled />
 							</div>
 						</div>
 						<div className="space-y-2">
@@ -275,15 +118,12 @@ export function ProductConfigurationForm({
 
 				<Card>
 					<CardHeader>
-						<CardTitle>
-							Comisión de Porcentaje (Nuevos Negocios)
-						</CardTitle>
+						<CardTitle>Comisión de Porcentaje (Nuevos Negocios)</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<div className="space-y-2">
 							<Label>
-								Referencia PPC{' '}
-								<span className="text-destructive">*</span>
+								Referencia PPC <span className="text-destructive">*</span>
 							</Label>
 							<Select
 								value={selectedPpc}
@@ -296,15 +136,11 @@ export function ProductConfigurationForm({
 								<SelectContent>
 									{ppcOptions.map((ppc) => (
 										<SelectItem
-											key={
-												ppc.idProductPercentajeCommision
-											}
+											key={ppc.idProductPercentajeCommision}
 											value={ppc.idProductPercentajeCommision.toString()}
 										>
 											PPC #{ppc.idProductPercentajeCommision}{' '}
-											{ppc.active
-												? '(Activo)'
-												: '(Inactivo)'}
+											{ppc.active ? '(Activo)' : '(Inactivo)'}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -313,7 +149,6 @@ export function ProductConfigurationForm({
 					</CardContent>
 				</Card>
 
-				{/* Form Actions */}
 				<div className="flex justify-end gap-3 pt-4">
 					{onCancel && (
 						<Button
@@ -325,24 +160,17 @@ export function ProductConfigurationForm({
 							Cancelar
 						</Button>
 					)}
-					<Button
-						type="submit"
-						disabled={isFormDisabled || !selectedPpc}
-					>
-						{isLoading || isSubmitting
-							? 'Guardando...'
-							: 'Guardar Cambios'}
+					<Button type="submit" disabled={isFormDisabled || !selectedPpc}>
+						{isLoading || isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
 					</Button>
 				</div>
 			</form>
 		)
 	}
 
+	// Create Mode View
 	return (
-		<form
-			onSubmit={handleSubmit(handleFormSubmit)}
-			className="space-y-6"
-		>
+		<form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
 			<Card>
 				<CardHeader>
 					<CardTitle>Datos de la Configuración</CardTitle>
@@ -351,79 +179,85 @@ export function ProductConfigurationForm({
 					{/* Company Select */}
 					<div className="space-y-2">
 						<Label>
-							Compañía{' '}
-							<span className="text-destructive">*</span>
+							Compañía <span className="text-destructive">*</span>
 						</Label>
-						<Select
-							value={selectedCompany}
-							onValueChange={setSelectedCompany}
-							disabled={isFormDisabled || loadingCompanies}
-						>
-							<SelectTrigger>
-								<SelectValue
-									placeholder={
-										loadingCompanies
-											? 'Cargando...'
-											: 'Seleccione una compañía'
+						<Controller
+							name="idCompany"
+							control={control}
+							render={({ field }) => (
+								<Select
+									value={field.value ? field.value.toString() : ''}
+									onValueChange={(val) => field.onChange(parseInt(val))}
+									disabled={
+										isFormDisabled || companiesState.status === 'loading'
 									}
-								/>
-							</SelectTrigger>
-							<SelectContent>
-								{companies.map((company) => (
-									<SelectItem
-										key={company.idCompany}
-										value={company.idCompany.toString()}
+								>
+									<SelectTrigger
+										className={cn(
+											companiesState.status === 'error' && 'border-destructive'
+										)}
 									>
-										{company.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+										<SelectValue
+											placeholder={
+												companiesState.status === 'loading'
+													? 'Cargando...'
+													: companiesState.status === 'error'
+														? 'Error al cargar'
+														: 'Seleccione una compañía'
+											}
+										/>
+									</SelectTrigger>
+									<SelectContent>
+										{companiesState.data?.map((company) => (
+											<SelectItem
+												key={company.idCompany}
+												value={company.idCompany.toString()}
+											>
+												{company.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							)}
+						/>
+						{companiesState.status === 'error' && (
+							<p className="text-sm text-destructive">{companiesState.error}</p>
+						)}
 					</div>
 
 					{/* Product Select */}
 					<div className="space-y-2">
 						<Label>
-							Producto{' '}
-							<span className="text-destructive">*</span>
+							Producto <span className="text-destructive">*</span>
 						</Label>
 						<Controller
 							name="idProduct"
 							control={control}
 							render={({ field }) => (
 								<Select
-									value={
-										field.value
-											? field.value.toString()
-											: ''
-									}
-									onValueChange={(val) =>
-										field.onChange(parseInt(val))
-									}
+									value={field.value ? field.value.toString() : ''}
+									onValueChange={(val) => field.onChange(parseInt(val))}
 									disabled={
 										isFormDisabled ||
-										!selectedCompany ||
-										loadingProducts
+										!selectedCompanyId ||
+										productsState.status === 'loading'
 									}
 								>
 									<SelectTrigger
-										className={cn(
-											errors.idProduct &&
-												'border-destructive'
-										)}
+										className={cn(errors.idProduct && 'border-destructive')}
 									>
 										<SelectValue
 											placeholder={
-												loadingProducts
+												productsState.status === 'loading'
 													? 'Cargando...'
-													: !selectedCompany
+													: !selectedCompanyId
 														? 'Seleccione primero una compañía'
 														: 'Seleccione un producto'
 											}
 										/>
 									</SelectTrigger>
 									<SelectContent>
-										{products.map((product) => (
+										{productsState.data?.map((product) => (
 											<SelectItem
 												key={product.idProduct}
 												value={product.idProduct.toString()}
@@ -435,6 +269,9 @@ export function ProductConfigurationForm({
 								</Select>
 							)}
 						/>
+						{productsState.status === 'error' && (
+							<p className="text-sm text-destructive">{productsState.error}</p>
+						)}
 						{errors.idProduct && (
 							<p className="text-sm text-destructive">
 								{errors.idProduct.message}
@@ -445,42 +282,34 @@ export function ProductConfigurationForm({
 					{/* ClientOrigin Select */}
 					<div className="space-y-2">
 						<Label>
-							Origen de Cliente{' '}
-							<span className="text-destructive">*</span>
+							Origen de Cliente <span className="text-destructive">*</span>
 						</Label>
 						<Controller
 							name="idClientOrigin"
 							control={control}
 							render={({ field }) => (
 								<Select
-									value={
-										field.value
-											? field.value.toString()
-											: ''
-									}
-									onValueChange={(val) =>
-										field.onChange(parseInt(val))
-									}
+									value={field.value ? field.value.toString() : ''}
+									onValueChange={(val) => field.onChange(parseInt(val))}
 									disabled={
-										isFormDisabled || loadingOrigins
+										isFormDisabled || clientOriginsState.status === 'loading'
 									}
 								>
 									<SelectTrigger
 										className={cn(
-											errors.idClientOrigin &&
-												'border-destructive'
+											errors.idClientOrigin && 'border-destructive'
 										)}
 									>
 										<SelectValue
 											placeholder={
-												loadingOrigins
+												clientOriginsState.status === 'loading'
 													? 'Cargando...'
 													: 'Seleccione un origen de cliente'
 											}
 										/>
 									</SelectTrigger>
 									<SelectContent>
-										{clientOrigins.map((origin) => (
+										{clientOriginsState.data?.map((origin) => (
 											<SelectItem
 												key={origin.idClientOrigin}
 												value={origin.idClientOrigin.toString()}
@@ -492,6 +321,11 @@ export function ProductConfigurationForm({
 								</Select>
 							)}
 						/>
+						{clientOriginsState.status === 'error' && (
+							<p className="text-sm text-destructive">
+								{clientOriginsState.error}
+							</p>
+						)}
 						{errors.idClientOrigin && (
 							<p className="text-sm text-destructive">
 								{errors.idClientOrigin.message}
@@ -502,42 +336,32 @@ export function ProductConfigurationForm({
 					{/* Category Select */}
 					<div className="space-y-2">
 						<Label>
-							Categoría{' '}
-							<span className="text-destructive">*</span>
+							Categoría <span className="text-destructive">*</span>
 						</Label>
 						<Controller
 							name="idCategory"
 							control={control}
 							render={({ field }) => (
 								<Select
-									value={
-										field.value
-											? field.value.toString()
-											: ''
-									}
-									onValueChange={(val) =>
-										field.onChange(parseInt(val))
-									}
+									value={field.value ? field.value.toString() : ''}
+									onValueChange={(val) => field.onChange(parseInt(val))}
 									disabled={
-										isFormDisabled || loadingCategories
+										isFormDisabled || categoriesState.status === 'loading'
 									}
 								>
 									<SelectTrigger
-										className={cn(
-											errors.idCategory &&
-												'border-destructive'
-										)}
+										className={cn(errors.idCategory && 'border-destructive')}
 									>
 										<SelectValue
 											placeholder={
-												loadingCategories
+												categoriesState.status === 'loading'
 													? 'Cargando...'
 													: 'Seleccione una categoría'
 											}
 										/>
 									</SelectTrigger>
 									<SelectContent>
-										{categories.map((cat) => (
+										{categoriesState.data?.map((cat) => (
 											<SelectItem
 												key={cat.idCategory}
 												value={cat.idCategory.toString()}
@@ -549,6 +373,11 @@ export function ProductConfigurationForm({
 								</Select>
 							)}
 						/>
+						{categoriesState.status === 'error' && (
+							<p className="text-sm text-destructive">
+								{categoriesState.error}
+							</p>
+						)}
 						{errors.idCategory && (
 							<p className="text-sm text-destructive">
 								{errors.idCategory.message}
@@ -558,7 +387,6 @@ export function ProductConfigurationForm({
 				</CardContent>
 			</Card>
 
-			{/* Form Actions */}
 			<div className="flex justify-end gap-3 pt-4">
 				{onCancel && (
 					<Button
@@ -570,15 +398,8 @@ export function ProductConfigurationForm({
 						Cancelar
 					</Button>
 				)}
-				<Button
-					type="submit"
-					disabled={
-						isFormDisabled || !watchedProduct
-					}
-				>
-					{isLoading || isSubmitting
-						? 'Creando...'
-						: 'Crear Configuración'}
+				<Button type="submit" disabled={isFormDisabled || !watchedProduct}>
+					{isLoading || isSubmitting ? 'Creando...' : 'Crear Configuración'}
 				</Button>
 			</div>
 		</form>

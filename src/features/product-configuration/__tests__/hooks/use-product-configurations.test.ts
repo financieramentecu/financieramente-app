@@ -1,187 +1,156 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useProductConfigurations } from '../../hooks/use-product-configurations'
-import { productConfigurationApi } from '../../lib/product-configuration-api'
 import {
 	createMockProductConfiguration,
 	createMockProductConfigurationListResponse,
 } from '../fixtures/mock-product-configuration'
 
-// Mock productConfigurationApi
-vi.mock('../../lib/product-configuration-api', () => ({
-	productConfigurationApi: {
-		getProductConfigurations: vi.fn(),
-	},
-}))
-
 describe('useProductConfigurations', () => {
+	const mockFetch = vi.fn()
+	global.fetch = mockFetch
+
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockFetch.mockResolvedValue({
+			ok: true,
+			json: async () => ({
+				data: createMockProductConfigurationListResponse(),
+			}),
+		})
 	})
 
 	it('should start with loading state', async () => {
-		const mockResponse =
-			createMockProductConfigurationListResponse()
-		vi.mocked(
-			productConfigurationApi.getProductConfigurations
-		).mockResolvedValueOnce({
-			data: mockResponse,
-		})
+		// Mock a delayed response to verify loading state
+		mockFetch.mockImplementationOnce(
+			() =>
+				new Promise((resolve) =>
+					setTimeout(
+						() =>
+							resolve({
+								ok: true,
+								json: async () => ({
+									data: createMockProductConfigurationListResponse(),
+								}),
+							}),
+						10
+					)
+				)
+		)
 
 		const { result } = renderHook(() => useProductConfigurations())
 
-		expect(result.current.state.status).toBe('loading')
-		expect(result.current.state.data).toBeUndefined()
+		expect(result.current.isLoading).toBe(true)
+		expect(result.current.data).toEqual([])
 
 		await waitFor(() => {
-			expect(result.current.state.status).not.toBe('loading')
+			expect(result.current.isLoading).toBe(false)
 		})
 	})
 
 	it('should fetch configurations successfully (happy path)', async () => {
-		const mockResponse =
-			createMockProductConfigurationListResponse([
-				createMockProductConfiguration({ id: 1 }),
-				createMockProductConfiguration({ id: 2 }),
-			])
+		const mockData = createMockProductConfigurationListResponse([
+			createMockProductConfiguration({ id: 1 }),
+			createMockProductConfiguration({ id: 2 }),
+		])
 
-		vi.mocked(
-			productConfigurationApi.getProductConfigurations
-		).mockResolvedValueOnce({
-			data: mockResponse,
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ data: mockData }),
 		})
 
 		const { result } = renderHook(() => useProductConfigurations())
 
 		await waitFor(() => {
-			expect(result.current.state.status).toBe('success')
+			expect(result.current.isLoading).toBe(false)
 		})
 
-		expect(result.current.state.data).toEqual(mockResponse)
-		expect(
-			result.current.state.data?.configurations
-		).toHaveLength(2)
-		expect(result.current.state.error).toBe('')
+		expect(result.current.data).toHaveLength(2)
+		expect(result.current.isError).toBe(false)
+		expect(mockFetch).toHaveBeenCalledWith(
+			expect.stringContaining('/api/product-configurations')
+		)
 	})
 
 	it('should handle API error', async () => {
-		vi.mocked(
-			productConfigurationApi.getProductConfigurations
-		).mockResolvedValueOnce({
-			data: null,
-			error: 'Error al obtener configuraciones de producto',
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({
+				data: null,
+				error: 'Error al obtener configuraciones',
+			}),
 		})
 
 		const { result } = renderHook(() => useProductConfigurations())
 
 		await waitFor(() => {
-			expect(result.current.state.status).toBe('error')
+			expect(result.current.isError).toBe(true)
 		})
 
-		expect(result.current.state.error).toBe(
-			'Error al obtener configuraciones de producto'
-		)
-		expect(result.current.state.data).toBeUndefined()
+		expect(result.current.error).toBe('Error al obtener configuraciones')
+		expect(result.current.data).toEqual([])
 	})
 
 	it('should handle network error', async () => {
-		vi.mocked(
-			productConfigurationApi.getProductConfigurations
-		).mockRejectedValueOnce(new Error('Network error'))
-
-		const consoleError = vi
-			.spyOn(console, 'error')
-			.mockImplementation(() => {})
+		mockFetch.mockRejectedValueOnce(new Error('Network error'))
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
 		const { result } = renderHook(() => useProductConfigurations())
 
 		await waitFor(() => {
-			expect(result.current.state.status).toBe('error')
+			expect(result.current.isError).toBe(true)
 		})
 
-		expect(result.current.state.error).toBe('Network error')
-		expect(result.current.state.data).toBeUndefined()
-
+		expect(result.current.error).toBe('Network error')
 		consoleError.mockRestore()
 	})
 
 	it('should pass search params to API', async () => {
-		const mockResponse =
-			createMockProductConfigurationListResponse()
-		vi.mocked(
-			productConfigurationApi.getProductConfigurations
-		).mockResolvedValueOnce({
-			data: mockResponse,
+		const { result } = renderHook(() => useProductConfigurations())
+
+		await act(async () => {
+			result.current.setSearch('test')
 		})
 
-		renderHook(() =>
-			useProductConfigurations({
-				search: 'test',
-				page: 1,
-				pageSize: 10,
-			})
-		)
-
 		await waitFor(() => {
-			expect(
-				productConfigurationApi.getProductConfigurations
-			).toHaveBeenCalledWith({
-				search: 'test',
-				page: 1,
-				pageSize: 10,
-			})
+			// First call (initial), Second call (debounced search update)
+			// Note: useDebounce default might delay. We might need to advance timers or wait.
+			// However, in this mock setup, we just check if it was called eventually with params.
+			expect(mockFetch).toHaveBeenCalledWith(
+				expect.stringContaining('search=test')
+			)
 		})
 	})
 
 	it('should pass active filter to API', async () => {
-		const mockResponse =
-			createMockProductConfigurationListResponse()
-		vi.mocked(
-			productConfigurationApi.getProductConfigurations
-		).mockResolvedValueOnce({
-			data: mockResponse,
+		const { result } = renderHook(() => useProductConfigurations())
+
+		await act(async () => {
+			result.current.setActive('active')
 		})
 
-		renderHook(() =>
-			useProductConfigurations({ active: 'active' })
-		)
-
 		await waitFor(() => {
-			expect(
-				productConfigurationApi.getProductConfigurations
-			).toHaveBeenCalledWith({
-				active: 'active',
-			})
+			expect(mockFetch).toHaveBeenCalledWith(
+				expect.stringContaining('active=active')
+			)
 		})
 	})
 
-	it('should refetch when refetch() is called', async () => {
-		const mockResponse =
-			createMockProductConfigurationListResponse()
-		vi.mocked(
-			productConfigurationApi.getProductConfigurations
-		).mockResolvedValue({
-			data: mockResponse,
-		})
-
+	it('should refetch when reload() is called', async () => {
 		const { result } = renderHook(() => useProductConfigurations())
 
 		await waitFor(() => {
-			expect(result.current.state.status).toBe('success')
+			expect(result.current.isLoading).toBe(false)
 		})
 
-		expect(
-			productConfigurationApi.getProductConfigurations
-		).toHaveBeenCalledTimes(1)
+		expect(mockFetch).toHaveBeenCalledTimes(1)
 
 		await act(async () => {
-			await result.current.refetch()
+			result.current.reload()
 		})
 
 		await waitFor(() => {
-			expect(
-				productConfigurationApi.getProductConfigurations
-			).toHaveBeenCalledTimes(2)
+			expect(mockFetch).toHaveBeenCalledTimes(2)
 		})
 	})
 })

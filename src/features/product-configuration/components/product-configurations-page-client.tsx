@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { ProductConfigurationsTableSection } from './product-configurations-table'
 import { useProductConfigurations } from '../hooks/use-product-configurations'
 import { useProductConfigurationMutations } from '../hooks/use-product-configuration-mutations'
-import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import type { ProductConfiguration } from '../types/product-configuration.types'
 import { toast } from 'sonner'
 import { Skeleton } from '@/features/shared/ui/skeleton'
@@ -20,8 +19,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/features/shared/ui/alert-dialog'
-
-const SEARCH_DEBOUNCE_DELAY = 500
 
 /**
  * Skeleton for the product configurations table
@@ -47,18 +44,11 @@ function TableLoadingSkeleton() {
 			<div className="border rounded-lg overflow-hidden">
 				<div className="bg-muted/50 p-4 flex gap-4">
 					{[80, 120, 100, 80, 80, 60, 80].map((w, i) => (
-						<Skeleton
-							key={i}
-							className="h-4"
-							style={{ width: w }}
-						/>
+						<Skeleton key={i} className="h-4" style={{ width: w }} />
 					))}
 				</div>
 				{[1, 2, 3, 4, 5].map((row) => (
-					<div
-						key={row}
-						className="p-4 flex gap-4 items-center border-t"
-					>
+					<div key={row} className="p-4 flex gap-4 items-center border-t">
 						<Skeleton className="h-4 w-20" />
 						<Skeleton className="h-4 w-28" />
 						<Skeleton className="h-4 w-24" />
@@ -104,90 +94,36 @@ function ErrorMessage({ message }: { message: string }) {
 export function ProductConfigurationsPageClient() {
 	const router = useRouter()
 
-	// State for search with debounce
-	const [searchInput, setSearchInput] = useState('')
-	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
-
-	// State for active filter
-	const [selectedActive, setSelectedActive] = useState<string | undefined>(
-		undefined
-	)
-
-	// State for pagination
-	const [page, setPage] = useState(1)
-	const pageSize = 10
-
-	// Track if table has initialized
-	const [hasInitialized, setHasInitialized] = useState(false)
-
-	// Track last loaded search and active filter
-	const [lastLoadedSearch, setLastLoadedSearch] = useState<
-		string | undefined
-	>(undefined)
-	const [lastLoadedActive, setLastLoadedActive] = useState<
-		string | undefined
-	>(undefined)
-
 	// State for toggle active confirmation modal
 	const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
 	const [configToToggle, setConfigToToggle] =
 		useState<ProductConfiguration | null>(null)
 
-	// Hook to get configurations
-	const { state, refetch } = useProductConfigurations({
-		search: debouncedSearch || undefined,
-		active: selectedActive,
-		page,
-		pageSize,
-	})
+	// Hook to get configurations (Logic in Hook)
+	const {
+		data,
+		pagination,
+		isLoading,
+		isError,
+		error,
+		filters,
+		setSearch,
+		setActive,
+		setPage,
+		reload,
+	} = useProductConfigurations()
 
 	// Hook for mutations
-	const { toggleActive, toggleActiveState } =
-		useProductConfigurationMutations()
-
-	// Detect if debouncing
-	const isDebouncing = searchInput !== debouncedSearch
-
-	// Detect pending changes
-	const hasPendingSearch = debouncedSearch !== (lastLoadedSearch ?? '')
-	const hasPendingActiveChange =
-		selectedActive !== (lastLoadedActive ?? undefined)
-
-	// Show loading state
-	const isSearching =
-		isDebouncing ||
-		state.status === 'loading' ||
-		hasPendingSearch ||
-		hasPendingActiveChange
-
-	// Mark as initialized and update last loaded values
-	useEffect(() => {
-		if (state.status === 'success') {
-			if (!hasInitialized) {
-				setHasInitialized(true)
-			}
-			setLastLoadedSearch(debouncedSearch || undefined)
-			setLastLoadedActive(selectedActive)
-		}
-	}, [state.status, hasInitialized, debouncedSearch, selectedActive])
-
-	// Handle search
-	const handleSearch = useCallback((query: string) => {
-		setSearchInput(query)
-		setPage(1)
-	}, [])
+	const { toggleActive, toggleActiveState } = useProductConfigurationMutations()
 
 	// Handle active filter change
-	const handleActiveChange = useCallback((value: string) => {
-		const active = value === 'all' ? undefined : value
-		setSelectedActive(active)
-		setPage(1)
-	}, [])
-
-	// Handle page change
-	const handlePageChange = useCallback((newPage: number) => {
-		setPage(newPage)
-	}, [])
+	const handleActiveChange = useCallback(
+		(value: string) => {
+			const active = value === 'all' ? undefined : value
+			setActive(active)
+		},
+		[setActive]
+	)
 
 	// Handle add new configuration
 	const handleAddConfiguration = useCallback(() => {
@@ -197,21 +133,16 @@ export function ProductConfigurationsPageClient() {
 	// Handle edit configuration
 	const handleEditConfiguration = useCallback(
 		(config: ProductConfiguration) => {
-			router.push(
-				`/dashboard/configuraciones-producto/editar/${config.id}`
-			)
+			router.push(`/dashboard/configuraciones-producto/editar/${config.id}`)
 		},
 		[router]
 	)
 
 	// Handle toggle active
-	const handleToggleActive = useCallback(
-		(config: ProductConfiguration) => {
-			setConfigToToggle(config)
-			setToggleDialogOpen(true)
-		},
-		[]
-	)
+	const handleToggleActive = useCallback((config: ProductConfiguration) => {
+		setConfigToToggle(config)
+		setToggleDialogOpen(true)
+	}, [])
 
 	// Confirm toggle
 	const handleConfirmToggle = useCallback(async () => {
@@ -225,64 +156,43 @@ export function ProductConfigurationsPageClient() {
 			toast.success('Estado de configuración actualizado exitosamente')
 			setToggleDialogOpen(false)
 			setConfigToToggle(null)
-			refetch()
+			reload()
 		} else if (toggleActiveState.status === 'error') {
 			toast.error(
-				toggleActiveState.error ||
-					'Error al cambiar estado de configuración'
+				toggleActiveState.error || 'Error al cambiar estado de configuración'
 			)
 		}
-	}, [toggleActiveState.status, toggleActiveState.error, refetch])
+	}, [toggleActiveState.status, toggleActiveState.error, reload])
 
-	// Show full skeleton only on first load
-	const showFullSkeleton =
-		state.status === 'loading' && !hasInitialized
-
-	// Show table loading
-	const showTableLoading =
-		isSearching ||
-		(hasInitialized &&
-			state.status !== 'success' &&
-			state.status !== 'error')
+	// Initial skeleton loading
+	// We check if data is empty and loading is true.
+	const showFullSkeleton = isLoading && data.length === 0 && !isError
 
 	return (
 		<div className="space-y-6">
 			{/* Error Message */}
-			{state.status === 'error' && (
-				<ErrorMessage message={state.error} />
-			)}
+			{isError && <ErrorMessage message={error} />}
 
 			{/* Configurations Table Section */}
 			{showFullSkeleton ? (
 				<TableLoadingSkeleton />
 			) : (
 				<ProductConfigurationsTableSection
-					data={
-						state.status === 'success'
-							? state.data.configurations
-							: []
-					}
+					data={data}
 					onAddConfiguration={handleAddConfiguration}
-					onGlobalSearch={handleSearch}
+					onGlobalSearch={setSearch}
 					onEditConfiguration={handleEditConfiguration}
 					onToggleActive={handleToggleActive}
-					pagination={
-						state.status === 'success'
-							? state.data.pagination
-							: undefined
-					}
-					onPageChange={handlePageChange}
-					isSearching={showTableLoading}
-					selectedActive={selectedActive}
+					pagination={pagination}
+					onPageChange={setPage}
+					isSearching={isLoading}
+					selectedActive={filters.active || 'all'}
 					onActiveChange={handleActiveChange}
 				/>
 			)}
 
 			{/* Toggle active confirmation modal */}
-			<AlertDialog
-				open={toggleDialogOpen}
-				onOpenChange={setToggleDialogOpen}
-			>
+			<AlertDialog open={toggleDialogOpen} onOpenChange={setToggleDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
@@ -300,9 +210,7 @@ export function ProductConfigurationsPageClient() {
 						<AlertDialogCancel>Cancelar</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={handleConfirmToggle}
-							disabled={
-								toggleActiveState.status === 'loading'
-							}
+							disabled={toggleActiveState.status === 'loading'}
 						>
 							{toggleActiveState.status === 'loading'
 								? 'Procesando...'

@@ -58,7 +58,9 @@ export const authConfigEdge: NextAuthConfig = {
 				if (isLoggedIn) {
 					// Verificar rol DEFAULT
 					if (auth?.user?.role === 'DEFAULT') {
-						return Response.redirect(new URL('/access-denied?reason=default_role', nextUrl))
+						return Response.redirect(
+							new URL('/access-denied?reason=default_role', nextUrl)
+						)
 					}
 					return true
 				}
@@ -66,19 +68,6 @@ export const authConfigEdge: NextAuthConfig = {
 			}
 
 			return true
-		},
-	},
-	// Solo override csrfToken cookie - sessionToken y callbackUrl usan defaults de NextAuth
-	cookies: {
-		csrfToken: {
-			// NextAuth default es __Host- que es muy estricto detrás de Nginx proxy
-			name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}authjs.csrf-token`,
-			options: {
-				httpOnly: true,
-				sameSite: 'lax',
-				path: '/',
-				secure: process.env.NODE_ENV === 'production',
-			},
 		},
 	},
 	trustHost: true,
