@@ -1,56 +1,137 @@
-# Implementation Plan: Administración de Configuración de Producto
+# Implementation Plan: Product Configuration Management
 
 **Branch**: `001-product-config-management` | **Date**: 2026-02-06 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-product-config-management/spec.md`
 
 ## Summary
 
-Implementar el CRUD completo de ProductConfiguration siguiendo el patrón exacto de `src/features/categories/`. Incluye: migración Prisma (campo `active`), feature module en `src/features/product-configuration/`, API routes REST, pages Next.js, link en sidebar Administración, y transacción de creación con auto-creación de PPC. El enfoque técnico replica los patrones existentes del proyecto (categories como referencia) para mantener consistencia arquitectónica.
+Implement a product configuration management module that allows administrators to create, read, update, and soft-delete (activate/inactivate) product configurations by combining Company + Product + Origin Client + Category. Products are **filtered by company** using a two-step selection flow (select company first, then product dropdown shows only products from that company). The system will auto-generate a unique identifier code (format: `PRODUCT_NAME-ORIGIN_NAME-CATEGORY_NAME`), automatically create and assign a ProductPercentajeCommision for new businesses when needed, validate that the product belongs to the selected company, and ensure referential integrity with existing business records. The solution follows Feature-Based Architecture with TypeScript, React 19, Next.js 15 App Router, Prisma ORM, and Zod validation.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.x (strict mode), Node.js 20+
-**Primary Dependencies**: Next.js 15, React 19, Prisma ORM, Zod, React Hook Form, Vitest, Testing Library
-**Storage**: PostgreSQL 15 (migración: campo `active` en `product_configuration`)
-**Testing**: Vitest (unit), Testing Library (component)
-**Target Platform**: Web application (Next.js App Router)
-**Project Type**: Web application (single project with Next.js App Router)
+**Language/Version**: TypeScript 5.x (with Next.js 15, React 19)  
+**Primary Dependencies**: Next.js 15, React 19, Prisma ORM, Zod, Radix UI (Shadcn/UI), Tailwind CSS v4  
+**Storage**: PostgreSQL 15 (via Prisma ORM)  
+**Testing**: Vitest (unit/integration), Testing Library (React components), Playwright (E2E)  
+**Target Platform**: Web (Next.js App Router - Server Components + Server Actions)  
+**Project Type**: Web application (feature-based architecture in `src/features/`)  
+**Performance Goals**:
+
+- Page load time < 1s for configuration list
+- Search/filter response < 300ms
+- Configuration creation/update < 500ms
+- Support pagination for 1000+ configurations
+
 **Constraints**:
-- Seguir Feature-Based Architecture existente
-- Replicar patrones de `src/features/categories/` para consistencia
-- No gestionar ProductPercentajeCommisionCategory (fuera de alcance)
-- No eliminación permanente de configuraciones (soft delete via `active`)
-- Código generado automáticamente ≤ 50 caracteres (límite DB)
 
-## Scope
+- Code identifier must be immutable once created
+- Product-Origin-Category combination must be unique
+- Transactional creation of ProductConfiguration + ProductPercentajeCommision
+- Soft delete only (preserve historical data for existing businesses)
+- Admin-only access (role-based authorization)
 
-- **In**: Prisma migration, feature module completo (types, schemas, api client, hooks, mappers, components, tests), API routes, Next.js pages, sidebar link, selects Company→Product filtrado, ClientOrigin, Category
-- **Out**: Gestión de ProductPercentajeCommisionCategory, administración de Product/ClientOrigin/Category, eliminación permanente
+**Scale/Scope**:
 
-## Existing Code to Reuse
+- ~50-200 product configurations initially
+- 3-5 products, 2-3 origins, 5-10 categories
+- Pagination at 10 records per page
+- Support for concurrent admin users (2-5)
 
-| What | File |
-|------|------|
-| `buildProductConfigurationCode()` | `src/features/negocios/lib/product-configuration-code.ts` |
-| `ApiResponse<T>` type | `src/features/shared/types/api-response.types.ts` |
-| `AsyncState<T>` type | `src/features/shared/types/async-state.types.ts` |
-| `DashboardLayout` | `src/features/shared/layout/DashboardLayout.tsx` |
-| `DataTable` component | `src/features/shared/ui/DataTable.tsx` |
-| `DataTableColumn<T>` type | `src/features/shared/ui/types/dashboard.types.ts` |
-| `Badge` | `src/features/shared/ui/badge.tsx` |
-| `Button` | `src/features/shared/ui/button.tsx` |
-| `Select`, `SelectContent`, `SelectItem`, `SelectTrigger`, `SelectValue` | `src/features/shared/ui/select.tsx` |
-| `Input` | `src/features/shared/ui/input.tsx` |
-| `Label` | `src/features/shared/ui/label.tsx` |
-| `Skeleton` | `src/features/shared/ui/skeleton.tsx` |
-| `AlertDialog` (confirmación toggle active) | `src/features/shared/ui/alert-dialog.tsx` |
-| `Card` | `src/features/shared/ui/card.tsx` |
-| `useDebounce` hook | `src/features/admin/users/hooks/use-debounce.ts` |
-| Category feature (reference pattern) | `src/features/categories/` |
-| Products API (company filter) | `src/app/api/products/route.ts` (query param `idCompany`) |
-| Sidebar menu items | `src/lib/navigation/menu-items.tsx` |
-| `auth()` session check | `src/auth.ts` |
-| Prisma client | `src/lib/prisma.ts` |
+## Constitution Check
+
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
+
+### ✅ PASS: Feature-Based Architecture (Screaming Architecture)
+
+- Feature organized under `src/features/product-config/`
+- Self-contained with `types/`, `lib/`, `components/`, `actions/`, `services/`, `__tests__/`
+- No code in legacy locations (`src/services/`, `src/lib/`, `src/types/`)
+- **Post-Design**: ✅ Verified in data-model.md and quickstart.md
+
+### ✅ PASS: SOLID Principles
+
+- Single Responsibility: Each service/function has one purpose (creation, update, listing, etc.)
+- Open/Closed: Extensible via interfaces for service contracts
+- Liskov Substitution: Service implementations substitutable via interfaces
+- Interface Segregation: Focused interfaces per operation (create, update, list, etc.)
+- Dependency Inversion: Services use factory pattern with injected Prisma client
+- **Post-Design**: ✅ Verified in service implementation (product-config.service.ts)
+
+### ✅ PASS: TypeScript Best Practices
+
+- Strict mode enabled (already configured in project)
+- No `any` types (use `unknown` with type guards)
+- Interfaces use `readonly` for immutable properties
+- Zod schemas define validation + infer TypeScript types
+- Explicit return types for all functions
+- **Post-Design**: ✅ Verified in types, schemas, and contract definitions
+
+### ✅ PASS: Functional Programming & Immutability
+
+- Use pure functions for business logic
+- Factory functions for services (no static classes)
+- Immutable data structures (`readonly` in interfaces)
+- Functions < 50 lines, max 3 parameters (use objects for more)
+- **Post-Design**: ✅ Verified in service implementation and utility functions
+
+### ✅ PASS: Clean Code Standards
+
+- Naming conventions:
+  - Event handlers: `handleCreate`, `handleUpdate`, `handleToggleActive`
+  - Booleans: `isLoading`, `hasError`, `canEdit`
+  - Hooks: `useProductConfigs`, `useProductConfigForm`
+- Functions < 50 lines
+- Self-documenting code (minimal comments, only "why" not "what")
+- **Post-Design**: ✅ Verified in quickstart.md examples
+
+### ✅ PASS: Test-First Development
+
+- Unit tests for all services, utilities, Zod schemas
+- Integration tests for Server Actions + Prisma operations
+- E2E tests for critical user journeys (create, search, update, toggle active)
+- Minimum 80% coverage for business logic
+- Tests colocalized in `src/features/product-config/__tests__/`
+- **Post-Design**: ✅ Test strategy documented in data-model.md and quickstart.md
+
+### ✅ PASS: Error Handling & Validation
+
+- Zod schemas in `lib/product-config-schemas.ts`
+- Client-side validation (form) + server-side validation (Server Actions)
+- Typed errors with specific codes (`DUPLICATE_CONFIGURATION`, `INVALID_INPUT`, `NOT_FOUND`)
+- User-friendly error messages (no database errors exposed)
+- **Post-Design**: ✅ Verified in schemas and Server Actions implementation
+
+### ✅ PASS: Dependency Injection
+
+- Factory pattern for services: `createProductConfigService(prisma: PrismaClient)`
+- No direct imports of Prisma in actions (injected via factory)
+- Testable with mock dependencies
+- **Post-Design**: ✅ Verified in service factory implementation
+
+### ✅ PASS: React Data Fetching (Use AsyncState)
+
+- **MUST**: Separate data fetching logic from presentation components.
+- **MUST**: Use `AsyncState<T>` type for loading, error, and success states.
+- **Strategy**: Creating `hooks/use-product-configurations.ts` and `hooks/use-product-configuration.ts` which return `AsyncState`.
+- **Post-Design**: ✅ Verified in data-model.md (Hooks section)
+
+### ✅ PASS: API Response Standardization
+
+- **MUST**: All API routes return `ApiResponse<T>`.
+- **MUST**: Handle success (`{ data: T }`) and error (`{ data: null, error: string }`) explicitly.
+- **Strategy**: All `route.ts` handlers wrapped to return correct type.
+- **Post-Design**: ✅ Verified in contracts (API Router usage)
+
+### ✅ PASS: Component Logic Separation
+
+- **MUST**: Presentation components (Form, List) contain NO business logic or `useEffect`.
+- **MUST**: One Container/Hook per feature logic unit.
+- **Strategy**:
+  - `ProductConfigurationForm` (Presentational) <-> `useProductConfigurationForm` (Logic)
+  - `ProductConfigurationsTable` (Presentational) <-> `useProductConfigurations` (Logic)
+- **Post-Design**: ✅ Verified in Component Architecture
+
+**STATUS**: ✅ All gates passed (Initial + Post-Design). Ready for Phase 2 (tasks breakdown).
 
 ## Project Structure
 
@@ -58,256 +139,149 @@ Implementar el CRUD completo de ProductConfiguration siguiendo el patrón exacto
 
 ```text
 specs/001-product-config-management/
-├── spec.md              # Feature specification
-├── plan.md              # This file (implementation plan)
-└── checklists/
-    └── requirements.md  # Specification quality checklist
+├── plan.md              # This file (/speckit.plan command output)
+├── research.md          # Phase 0 output (NEEDS CLARIFICATION resolution)
+├── data-model.md        # Phase 1 output (Entity definitions + Prisma schema)
+├── quickstart.md        # Phase 1 output (Developer guide)
+├── contracts/           # Phase 1 output (API contracts - Server Actions signatures)
+│   └── product-config-actions.ts
+└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
 
 ```text
-src/
-├── app/
-│   ├── api/
-│   │   └── product-configurations/
-│   │       ├── route.ts                    # GET (list) + POST (create with auto-PPC)
-│   │       └── [id]/
-│   │           ├── route.ts                # GET + PUT (PPC ref) + PATCH (toggle active)
-│   │           └── ppcs/
-│   │               └── route.ts            # GET PPCs for a configuration
-│   └── dashboard/
-│       └── configuraciones-producto/
-│           ├── page.tsx                     # List page (Server Component)
-│           ├── crear/
-│           │   └── page.tsx                # Create page (Server Component)
-│           └── editar/
-│               └── [id]/
-│                   ├── page.tsx            # Edit page (Server Component)
-│                   └── loading.tsx         # Next.js loading UI
-│
-├── features/
-│   └── product-configuration/
-│       ├── types/
-│       │   └── product-configuration.types.ts
-│       ├── lib/
-│       │   ├── product-configuration-schemas.ts
-│       │   └── product-configuration-api.ts
-│       ├── mappers/
-│       │   └── product-configuration.mapper.ts
-│       ├── hooks/
-│       │   ├── use-product-configurations.ts
-│       │   ├── use-product-configuration.ts
-│       │   └── use-product-configuration-mutations.ts
-│       ├── components/
-│       │   ├── product-configurations-table.tsx
-│       │   ├── product-configuration-form.tsx
-│       │   ├── product-configuration-form-skeleton.tsx
-│       │   ├── product-configurations-page-client.tsx
-│       │   ├── product-configuration-create-client.tsx
-│       │   └── product-configuration-edit-client.tsx
-│       └── __tests__/
-│           ├── fixtures/
-│           │   └── mock-product-configuration.ts
-│           ├── lib/
-│           │   ├── product-configuration-schemas.test.ts
-│           │   └── product-configuration-api.test.ts
-│           ├── mappers/
-│           │   └── product-configuration.mapper.test.ts
-│           ├── hooks/
-│           │   ├── use-product-configurations.test.ts
-│           │   ├── use-product-configuration.test.ts
-│           │   └── use-product-configuration-mutations.test.ts
-│           └── components/
-│               ├── product-configurations-table.test.tsx
-│               └── product-configuration-form.test.tsx
-│
-└── lib/
-    └── navigation/
-        └── menu-items.tsx                  # Modified: add sidebar link
+src/features/product-config/
+├── types/
+│   ├── product-config.types.ts      # Domain types (readonly interfaces)
+│   └── index.ts                      # Barrel export
+├── lib/
+│   ├── product-config-schemas.ts    # Zod schemas + type inference
+│   ├── product-config-utils.ts      # Code generation, formatting utilities
+│   ├── product-config-api.ts        # Client-side API wrapper (fetches)
+│   └── index.ts                      # Barrel export
+├── services/
+│   ├── product-config.service.ts    # Prisma operations (factory pattern)
+│   ├── product-config.contracts.ts  # Service interface contracts
+│   └── index.ts                      # Barrel export
+├── actions/
+│   ├── create-product-config.ts     # Server Action (refactor to API route handler?)
+│   └── ...                          # (Moving towards API Routes per user request)
+├── hooks/
+│   ├── use-product-configuration-form.ts   # Form logic (state, submit, validation)
+│   ├── use-product-configurations.ts       # List logic (fetch, filter, AsyncState)
+│   ├── use-product-configuration-mutations.ts # Create/Update/Toggle logic
+│   └── index.ts                      # Barrel export
+├── components/
+│   ├── product-config-list.tsx      # Table with search, filter, pagination (Server Component)
+│   ├── product-config-form.tsx      # Create/Edit form (Client Component)
+│   ├── product-config-filters.tsx   # Filter controls (Client Component)
+│   ├── product-config-status-badge.tsx  # Status visual indicator
+│   └── index.ts                      # Barrel export
+├── hooks/
+│   ├── use-product-config-form.ts   # Form state management (React Hook Form + Zod)
+│   └── index.ts                      # Barrel export
+├── __tests__/
+│   ├── services/
+│   │   └── product-config.service.test.ts  # Unit tests for service
+│   ├── actions/
+│   │   ├── create-product-config.test.ts
+│   │   ├── update-product-config.test.ts
+│   │   └── list-product-configs.test.ts
+│   ├── lib/
+│   │   ├── product-config-schemas.test.ts
+│   │   └── product-config-utils.test.ts
+│   └── integration/
+│       └── product-config-flow.test.ts  # Integration: create + list + update + toggle
+└── index.ts                          # Feature barrel export
+
+src/app/
+├── (dashboard)/
+│   └── configurations/
+│       ├── page.tsx                  # List page (Server Component)
+│       ├── new/
+│       │   └── page.tsx              # Create page
+│       └── [id]/
+│           └── edit/
+│               └── page.tsx          # Edit page
+
+e2e/
+└── product-config/
+    ├── create-product-config.spec.ts
+    ├── search-filter-product-config.spec.ts
+    └── update-toggle-product-config.spec.ts
 ```
 
-## Action Items
+**Structure Decision**:
+This feature follows the Financieramente standard Feature-Based Architecture under `src/features/product-config/`. The structure is self-contained with clear separation of concerns:
 
-### Step 1 — Prisma Migration
+- **types**: Domain models (readonly interfaces)
+- **lib**: Schemas (Zod) + utility functions (code generation)
+- **services**: Data access layer (Prisma operations via factory pattern)
+- **actions**: Server Actions (Next.js 15) for mutations and queries
+- **components**: UI components (Presentational only - NO Logic)
+- **hooks**: Custom Hooks handling ALL logic (AsyncState, Effects, Data Fetching)
+- ****tests****: Colocalized tests (unit, integration)
 
-- Edit `prisma/schema.prisma`: add `active Boolean @default(true) @map("active")` to `ProductConfiguration` model (after `code` field, before `idProductPercentajeCommisionNewBusinesses`)
-- Run `npx prisma migrate dev --name add-active-to-product-configuration`
-- Run `npx prisma generate`
-- Update mock fixtures that create full Prisma ProductConfiguration objects (e.g., `mock-prisma-business.ts`) to include `active` field
+Pages are organized under `src/app/(dashboard)/configurations/` following Next.js 15 App Router conventions. E2E tests are in the root `e2e/` directory following project convention.
 
-### Step 2 — Types (`src/features/product-configuration/types/product-configuration.types.ts`)
+## Complexity Tracking
 
-```
-ProductConfiguration interface:
-  readonly id: number
-  readonly idProduct: number
-  readonly idClientOrigin: number
-  readonly idCategory: number
-  code: string
-  active: boolean
-  idProductPercentajeCommisionNewBusinesses: number | null
-  readonly createdAt: string
-  readonly updatedAt: string
-  product: { readonly idProduct: number; name: string; company: { readonly idCompany: number; name: string } }
-  clientOrigin: { readonly idClientOrigin: number; name: string }
-  category: { readonly idCategory: number; name: string }
-  ppcNewBusinesses: { readonly id: number; active: boolean } | null
+> **Fill ONLY if Constitution Check has violations that must be justified**
 
-CreateProductConfigurationInput: { idProduct: number; idClientOrigin: number; idCategory: number }
-UpdateProductConfigurationInput: { idProductPercentajeCommisionNewBusinesses: number }
-ProductConfigurationFilters: { search?: string; active?: string }
-ProductConfigurationListResponse: { configurations: ProductConfiguration[]; pagination: { page, pageSize, total, totalPages } }
-```
+**No violations detected. All constitution checks passed.**
 
-### Step 3 — Zod Schemas (`src/features/product-configuration/lib/product-configuration-schemas.ts`)
+---
 
-- `createProductConfigurationSchema`: z.object({ idProduct: z.number().int().positive(), idClientOrigin: z.number().int().positive(), idCategory: z.number().int().positive() })
-- `updateProductConfigurationSchema`: z.object({ idProductPercentajeCommisionNewBusinesses: z.number().int().positive() })
-- Export inferred types `CreateProductConfigurationFormData`, `UpdateProductConfigurationFormData`
+## Phase 0: Research & Clarifications
 
-### Step 4 — Mapper (`src/features/product-configuration/mappers/product-configuration.mapper.ts`)
+**Status**: ✅ COMPLETED
 
-- `prismaProductConfigToProductConfig(prisma)`: Transform Prisma entity (with includes: product→company, clientOrigin, category, productPercentajeCommisionNewBusinesses) to domain `ProductConfiguration` type. Date→ISO string. Null code→empty string.
-- `prismaProductConfigListToProductConfigs(list)`: Batch mapper via `.map()`
+**Output**: `research.md` with resolutions for all NEEDS CLARIFICATION items.
 
-### Step 5 — API Client (`src/features/product-configuration/lib/product-configuration-api.ts`)
+**Research Tasks** (all completed):
 
-Object `productConfigurationApi` following exact pattern of `categoryApi`:
-- `getProductConfigurations(params?)` → GET `/api/product-configurations` with search, active, page, pageSize query params
-- `getProductConfiguration(id)` → GET `/api/product-configurations/{id}`
-- `createProductConfiguration(data)` → POST `/api/product-configurations`
-- `updateProductConfiguration(id, data)` → PUT `/api/product-configurations/{id}`
-- `toggleActive(id, active)` → PATCH `/api/product-configurations/{id}`
+1. ✅ **Transactional Creation Pattern**: Decision: Use Prisma Interactive Transaction (`$transaction`) for full control over multi-step operations with rollback on failure.
+2. ✅ **Code Generation Logic**: Decision: Sanitize each segment, validate length (max 50 chars), uppercase, replace spaces with `_`, join with `-`. Reject if too long (no auto-truncation).
+3. ✅ **Uniqueness Validation**: Decision: Prisma compound unique constraint + application-level validation for user-friendly errors.
+4. ✅ **Pagination Strategy**: Decision: Offset-based pagination (simpler, sufficient for scale ~1000 records, predictable page numbers).
+5. ✅ **Authorization Pattern**: Decision: Server Action level authorization (more granular, easier to test, clearer error messages).
+6. ✅ **Form Library**: Decision: React Hook Form + Zod resolver + Server Action submission (type-safe end-to-end, client + server validation).
 
-All with `credentials: 'include'`, returning `ApiResponse<T>`
+**Deliverables**: [research.md](./research.md)
 
-### Step 6 — Hooks (`src/features/product-configuration/hooks/`)
+---
 
-Following exact pattern of categories hooks (useState + useEffect, no React Query).
-Import and use `AsyncState<T>` from `src/features/shared/types/async-state.types.ts`.
+## Phase 1: Design & Contracts
 
-- `use-product-configurations.ts`: `useState<AsyncState<ProductConfigurationListResponse>>`, auto-refetch on dependency change, returns `{ state, refetch }`
-- `use-product-configuration.ts`: `useState<AsyncState<ProductConfiguration>>`, single fetch by id, validates id > 0
-- `use-product-configuration-mutations.ts`: Three independent `AsyncState` states (createState, updateState, toggleActiveState), returns states + mutation functions
+**Status**: ✅ COMPLETED
 
-### Step 7 — API Routes
+**Outputs**:
 
-#### `src/app/api/product-configurations/route.ts`
+- ✅ `data-model.md`: Entity definitions + Prisma schema changes
+- ✅ `contracts/product-config-actions.ts`: Server Actions signatures
+- ✅ `quickstart.md`: Developer setup and usage guide
+- ✅ Agent context updated (Cursor IDE context file)
 
-**GET**: Search across code, product.name, clientOrigin.name, category.name (case-insensitive OR). Filter by `active`. Pagination. Include product→company, clientOrigin, category, productPercentajeCommisionNewBusinesses. Use mapper for response.
+**Design Tasks** (all completed):
 
-**POST** (transactional creation):
-1. Parse body with `createProductConfigurationSchema`
-2. Validate product exists AND is active (status: true)
-3. Validate clientOrigin exists AND is active (status: true)
-4. Validate category exists AND is active (status: true)
-5. Check uniqueness: `@@unique([idProduct, idClientOrigin, idCategory])` — return 409 if duplicate
-6. Generate code: `buildProductConfigurationCode(product.name, clientOrigin.name, category.name)`
-7. Validate code length ≤ 50 chars
-8. Execute `prisma.$transaction()`:
-   a. Create ProductConfiguration (active: true, code, no PPC ref yet)
-   b. Create ProductPercentajeCommision (idProductConfiguration: config.id, active: true)
-   c. Update ProductConfiguration set idProductPercentajeCommisionNewBusinesses = ppc.id
-9. Re-fetch with includes, map, return 201
+1. ✅ **Data Model**: Defined ProductConfiguration entity with relationships, Prisma schema updates, migration strategy, ERD, and query patterns.
+2. ✅ **API Contracts**: Defined Server Actions signatures (create, list, update, toggle, get, getAvailablePPCs) with input/output types and error codes.
+3. ✅ **Component Architecture**: Defined component tree (list, form, filters, status badge), data flow (Server Components + Client Components), and state management.
+4. ✅ **Test Strategy**: Defined unit test scenarios (services, utilities, schemas), integration tests (Server Actions + Prisma), and E2E tests (create, search, update, toggle).
 
-#### `src/app/api/product-configurations/[id]/route.ts`
+**Deliverables**:
 
-**GET**: Fetch by id with includes, map, return. 404 if not found.
+- [data-model.md](./data-model.md)
+- [contracts/product-config-actions.ts](./contracts/product-config-actions.ts)
+- [quickstart.md](./quickstart.md)
 
-**PUT**: Parse with `updateProductConfigurationSchema`. Validate PPC belongs to this config (`idProductConfiguration === config.id`). Update only `idProductPercentajeCommisionNewBusinesses`. Return updated.
+---
 
-**PATCH**: Toggle `active` field. Body: `{ active: boolean }`. Return updated.
+## Notes
 
-#### `src/app/api/product-configurations/[id]/ppcs/route.ts`
-
-**GET**: Fetch all ProductPercentajeCommision records for a given configuration ID. Return array of `{ idProductPercentajeCommision, active }`.
-
-### Step 8 — Components (`src/features/product-configuration/components/`)
-
-All components are Client Components (`'use client'`) that reuse shared UI from `src/features/shared/ui/`.
-
-#### `product-configurations-table.tsx`
-
-Presentation component following `CategoriesTableSection` pattern.
-- Columns: Código, Producto, Compañía, Origen, Categoría, Estado (Badge active/inactive), Acciones (edit, toggle active)
-- Props: data, onAddConfiguration, onEditConfiguration, onToggleActive, onGlobalSearch, pagination, onPageChange, isSearching, selectedActive, onActiveChange
-- Search placeholder: "Buscar por código, producto, origen o categoría..."
-- Status filter: Select dropdown (Todos, Activo, Inactivo)
-
-#### `product-configuration-form.tsx`
-
-React Hook Form + zodResolver.
-- **Create mode**: Company select (fetches active companies) → filters Product select, Product select (filtered by company, active only), ClientOrigin select (active only), Category select (active only). Submit: "Crear Configuración"
-- **Edit mode**: Company, Product, Origin, Category shown as readonly/disabled. Code shown as readonly. PPC Reference select: dropdown of available PPCs. Submit: "Guardar Cambios"
-
-#### `product-configuration-form-skeleton.tsx`
-
-Skeleton matching form layout for loading states.
-
-#### `product-configurations-page-client.tsx`
-
-Client Component following `CategoriesPageClient` pattern: debounced search (500ms), active status filter, pagination (10 items/page), toggle active confirmation dialog (AlertDialog), toast notifications, navigate to crear/editar routes.
-
-#### `product-configuration-create-client.tsx`
-
-Client Component: renders form in create mode, on submit → POST → toast → navigate to list.
-
-#### `product-configuration-edit-client.tsx`
-
-Client Component: fetches config by id + available PPCs, renders form in edit mode, error state with back button, on submit → PUT → toast → navigate to list.
-
-### Step 9 — Pages Next.js (`src/app/dashboard/configuraciones-producto/`)
-
-Server Components with `auth()` session check and `DashboardLayout`, importing Client Components.
-
-- `page.tsx`: List page → `ProductConfigurationsPageClient`
-- `crear/page.tsx`: Create page → `ProductConfigurationCreateClient`
-- `editar/[id]/page.tsx`: Edit page with ID parsing → `ProductConfigurationEditClient`
-- `editar/[id]/loading.tsx`: Next.js loading UI with Skeleton
-
-### Step 10 — Sidebar Link
-
-Edit `src/lib/navigation/menu-items.tsx`:
-- Import `Sliders` from lucide-react
-- Add to Administración subItems (after "Origen Cliente"):
-  ```
-  { title: 'Config. Producto', url: '/dashboard/configuraciones-producto', icon: <Sliders className="h-4 w-4" /> }
-  ```
-
-### Step 11 — Tests (`src/features/product-configuration/__tests__/`)
-
-#### `fixtures/mock-product-configuration.ts`
-
-- `createMockProductConfiguration(overrides?)` — builder with defaults
-- `createMockProductConfigurationListResponse(configs?, pagination?)` — list response
-- `createMockPrismaProductConfiguration(overrides?)` — Prisma entity mock
-
-#### Test files:
-
-- `lib/product-configuration-schemas.test.ts` — validation happy/error paths, required fields, positive integers
-- `lib/product-configuration-api.test.ts` — all API client methods, error handling, query params
-- `mappers/product-configuration.mapper.test.ts` — Prisma→domain transformation, dates, nested objects, null handling
-- `hooks/use-product-configurations.test.ts` — loading, success, error states, refetch, params passing
-- `hooks/use-product-configuration.test.ts` — id validation, fetch states
-- `hooks/use-product-configuration-mutations.test.ts` — create/update/toggleActive states, independent state management
-- `components/product-configurations-table.test.tsx` — columns rendering, search placeholder, active/inactive badges
-- `components/product-configuration-form.test.tsx` — create/edit modes, readonly fields, loading states
-
-### Step 12 — Edge Cases Verification
-
-- [ ] Code length ≤ 50 chars → error with descriptive message
-- [ ] Duplicate combo product+origin+category → 409 error
-- [ ] Inactive product/origin/category → rejected with descriptive error
-- [ ] Transaction rollback if PPC creation fails
-- [ ] Toggle active preserves existing business references
-- [ ] Product select resets when company changes
-- [ ] PPC select in edit mode only shows PPCs belonging to that config
-
-## Verification
-
-1. `npx prisma migrate dev` — migration applies cleanly
-2. `npm run type-check` — no TypeScript errors
-3. `npm run lint` — no linting errors
-4. `npm run test:unit` — all new tests pass (98 tests across 8 files)
-5. Manual: navigate to /dashboard/configuraciones-producto, create config, verify code generation, toggle active, edit PPC reference, search/filter/paginate
+- This plan follows the `/speckit.plan` command workflow
+- Phase 0 (research.md) will resolve all technical unknowns
+- Phase 1 (data-model.md, contracts/, quickstart.md) will provide implementation blueprints
+- Tasks breakdown (tasks.md) will be created by separate `/speckit.tasks` command
+- Implementation follows Financieramente constitution and coding standards

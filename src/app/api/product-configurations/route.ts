@@ -145,6 +145,16 @@ export async function POST(request: Request) {
 			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
+		// Validate product belongs to company
+		if (product.idCompany !== data.idCompany) {
+			const errorResponse: ApiResponse<null> = {
+				data: null,
+				error:
+					'El producto seleccionado no pertenece a la compañía especificada',
+			}
+			return NextResponse.json(errorResponse, { status: 400 })
+		}
+
 		// Validate clientOrigin exists and is active
 		const clientOrigin = await prisma.clientOrigin.findUnique({
 			where: { idClientOrigin: data.idClientOrigin },
@@ -188,21 +198,21 @@ export async function POST(request: Request) {
 		}
 
 		// Check uniqueness (product + clientOrigin + category)
-		const existingConfig =
-			await prisma.productConfiguration.findUnique({
-				where: {
-					idProduct_idClientOrigin_idCategory: {
-						idProduct: data.idProduct,
-						idClientOrigin: data.idClientOrigin,
-						idCategory: data.idCategory,
-					},
+		const existingConfig = await prisma.productConfiguration.findUnique({
+			where: {
+				idProduct_idClientOrigin_idCategory: {
+					idProduct: data.idProduct,
+					idClientOrigin: data.idClientOrigin,
+					idCategory: data.idCategory,
 				},
-			})
+			},
+		})
 
 		if (existingConfig) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
-				error: 'Ya existe una configuración con esta combinación de producto, origen y categoría',
+				error:
+					'Ya existe una configuración con esta combinación de producto, origen y categoría',
 			}
 			return NextResponse.json(errorResponse, { status: 409 })
 		}
@@ -257,8 +267,7 @@ export async function POST(request: Request) {
 			return updatedConfig
 		})
 
-		const configFormatted =
-			prismaProductConfigToProductConfig(result)
+		const configFormatted = prismaProductConfigToProductConfig(result)
 
 		const response: ApiResponse<ProductConfiguration> = {
 			data: configFormatted,
@@ -282,7 +291,8 @@ export async function POST(request: Request) {
 		) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
-				error: 'Ya existe una configuración con esta combinación de producto, origen y categoría',
+				error:
+					'Ya existe una configuración con esta combinación de producto, origen y categoría',
 			}
 			return NextResponse.json(errorResponse, { status: 409 })
 		}

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ProductConfigurationForm } from './product-configuration-form'
 import { ProductConfigurationFormSkeleton } from './product-configuration-form-skeleton'
@@ -10,11 +10,6 @@ import type { UpdateProductConfigurationInput } from '../types/product-configura
 import { toast } from 'sonner'
 import { Button } from '@/features/shared/ui/button'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
-
-interface PpcOption {
-	idProductPercentajeCommision: number
-	active: boolean
-}
 
 interface ProductConfigurationEditClientProps {
 	id: number
@@ -30,42 +25,6 @@ export function ProductConfigurationEditClient({
 	const { state } = useProductConfiguration(id)
 	const { updateProductConfiguration, updateState } =
 		useProductConfigurationMutations()
-	const [ppcOptions, setPpcOptions] = useState<PpcOption[]>([])
-
-	// Fetch PPC options for this configuration
-	useEffect(() => {
-		if (state.status !== 'success') return
-
-		async function fetchPpcOptions() {
-			try {
-				const response = await fetch(
-					`/api/product-configurations/${id}/ppcs`,
-					{ credentials: 'include' }
-				)
-				const result = await response.json()
-				if (result.data) {
-					setPpcOptions(result.data)
-				}
-			} catch (error) {
-				console.error('Error fetching PPC options:', error)
-				// Fallback: use the current PPC if available
-				if (
-					state.status === 'success' &&
-					state.data.ppcNewBusinesses
-				) {
-					setPpcOptions([
-						{
-							idProductPercentajeCommision:
-								state.data.ppcNewBusinesses.id,
-							active: state.data.ppcNewBusinesses.active,
-						},
-					])
-				}
-			}
-		}
-
-		fetchPpcOptions()
-	}, [state.status, id, state])
 
 	const handleSubmit = useCallback(
 		async (data: Record<string, unknown>) => {
@@ -84,14 +43,11 @@ export function ProductConfigurationEditClient({
 	// Handle update response
 	useEffect(() => {
 		if (updateState.status === 'success') {
-			toast.success(
-				'Configuración de producto actualizada exitosamente'
-			)
+			toast.success('Configuración de producto actualizada exitosamente')
 			router.push('/dashboard/configuraciones-producto')
 		} else if (updateState.status === 'error') {
 			toast.error(
-				updateState.error ||
-					'Error al actualizar configuración de producto'
+				updateState.error || 'Error al actualizar configuración de producto'
 			)
 		}
 	}, [updateState.status, updateState.error, router])
@@ -124,11 +80,7 @@ export function ProductConfigurationEditClient({
 					</div>
 					<Button
 						variant="outline"
-						onClick={() =>
-							router.push(
-								'/dashboard/configuraciones-producto'
-							)
-						}
+						onClick={() => router.push('/dashboard/configuraciones-producto')}
 					>
 						<ArrowLeft className="h-4 w-4 mr-2" />
 						Volver al listado
@@ -148,15 +100,14 @@ export function ProductConfigurationEditClient({
 						Editar Configuración de Producto
 					</h1>
 					<p className="text-muted-foreground mt-2">
-						Modifique la referencia de comisión de porcentaje
-						para nuevos negocios
+						Modifique la referencia de comisión de porcentaje para nuevos
+						negocios
 					</p>
 				</div>
 
 				<ProductConfigurationForm
 					mode="edit"
 					initialData={state.data}
-					ppcOptions={ppcOptions}
 					onSubmit={handleSubmit}
 					onCancel={handleCancel}
 					isLoading={updateState.status === 'loading'}

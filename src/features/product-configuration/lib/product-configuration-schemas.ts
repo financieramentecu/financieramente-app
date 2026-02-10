@@ -4,6 +4,7 @@ import { z } from 'zod'
  * Schema for creating a product configuration
  */
 export const createProductConfigurationSchema = z.object({
+	idCompany: z.number().int().positive('Debe seleccionar una compañía'),
 	idProduct: z.number().int().positive('Debe seleccionar un producto'),
 	idClientOrigin: z
 		.number()

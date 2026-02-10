@@ -41,7 +41,7 @@ export default defineConfig({
 		video: process.env.CI ? 'retain-on-failure' : 'retain-on-failure',
 
 		// Headless en CI para mejor rendimiento
-		headless: process.env.CI ? true : false,
+		headless: !!process.env.CI || !!process.env.HEADLESS,
 	},
 
 	// Solo navegadores críticos en CI, todos en desarrollo

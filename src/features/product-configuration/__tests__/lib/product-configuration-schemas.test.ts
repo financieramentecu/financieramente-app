@@ -11,6 +11,7 @@ describe('product-configuration-schemas', () => {
 				idProduct: 1,
 				idClientOrigin: 2,
 				idCategory: 3,
+				idCompany: 1,
 			}
 
 			const result = createProductConfigurationSchema.safeParse(validData)
@@ -133,9 +134,7 @@ describe('product-configuration-schemas', () => {
 			const result = updateProductConfigurationSchema.safeParse(data)
 			expect(result.success).toBe(true)
 			if (result.success) {
-				expect(
-					result.data.idProductPercentajeCommisionNewBusinesses
-				).toBe(5)
+				expect(result.data.idProductPercentajeCommisionNewBusinesses).toBe(5)
 			}
 		})
 
