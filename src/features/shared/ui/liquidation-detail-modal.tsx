@@ -47,8 +47,8 @@ export const LiquidationDetailModal = React.forwardRef<
 				ref={ref}
 				className="sm:max-w-4xl max-h-[90vh] overflow-y-auto"
 			>
-				<DialogHeader className="flex flex-row items-center justify-between pb-4 border-b">
-					<div className="flex items-center gap-3">
+				<DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b gap-3">
+					<div className="flex flex-wrap items-center gap-3 min-w-0">
 						<DialogTitle className="text-xl font-bold text-foreground">
 							Detalle de Liquidación
 						</DialogTitle>
@@ -62,7 +62,7 @@ export const LiquidationDetailModal = React.forwardRef<
 
 				<div className="space-y-6 py-6">
 					{/* First Row: Client and Agent Information - 2 columns */}
-					<div className="grid grid-cols-2 gap-6">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 						{/* Client Information */}
 						<div className="bg-info-muted rounded-lg p-4">
 							<div className="flex items-center gap-3 mb-4">
@@ -95,7 +95,7 @@ export const LiquidationDetailModal = React.forwardRef<
 								<h4 className="font-bold text-foreground mb-2 text-sm">
 									Información cliente
 								</h4>
-								<div className="grid grid-cols-2 gap-3 text-sm">
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
 									<div>
 										<span className="text-muted-foreground">email</span>
 										<p className="text-foreground font-medium text-xs break-all">
@@ -140,7 +140,7 @@ export const LiquidationDetailModal = React.forwardRef<
 								</div>
 							</div>
 							<div className="border-t border-border pt-3">
-								<div className="grid grid-cols-2 gap-3 text-sm">
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
 									<div>
 										<span className="text-muted-foreground">Correo electronico</span>
 										<p className="text-foreground font-medium text-xs break-all">
@@ -165,7 +165,7 @@ export const LiquidationDetailModal = React.forwardRef<
 					</div>
 
 					{/* Second Row: Insurance and Product - 2 columns */}
-					<div className="grid grid-cols-2 gap-6">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 						{/* Insurance Company Card */}
 						<div className="border border-border rounded-lg p-4 bg-card">
 							<div className="flex items-center justify-between">
@@ -223,7 +223,7 @@ export const LiquidationDetailModal = React.forwardRef<
 					</div>
 				</div>
 
-				<DialogFooter className="justify-end gap-3 sm:justify-end">
+				<DialogFooter className="flex-col-reverse sm:flex-row justify-end gap-3">
 					<Button
 						variant="outline"
 						onClick={onCancel}

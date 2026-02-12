@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { UserRole } from '@/features/auth/lib/roles'
 import { sendEmail } from '@/features/email/lib/email-service'
+import { escapeHtml } from '@/features/email/lib/email-template-base'
 
 /**
  * Interfaz para usuario administrador
@@ -261,14 +262,14 @@ export function generateNotificationHTML(
 			<p>Sistema Financieramente</p>
 		</div>
 		<div class="content">
-			<p class="greeting">Hola ${adminDisplayName},</p>
+			<p class="greeting">Hola ${escapeHtml(adminDisplayName)},</p>
 			<p class="message">Un nuevo usuario ha iniciado sesión en el sistema y requiere que actives su cuenta.</p>
 			
 			<div class="user-info">
 				<h3>Información del Usuario:</h3>
-				<p><strong>Nombre:</strong> ${params.userName}</p>
-				<p><strong>Email:</strong> <a href="mailto:${params.userEmail}">${params.userEmail}</a></p>
-				<p><strong>Fecha de Registro:</strong> ${currentDate}</p>
+				<p><strong>Nombre:</strong> ${escapeHtml(params.userName)}</p>
+				<p><strong>Email:</strong> <a href="mailto:${escapeHtml(params.userEmail)}">${escapeHtml(params.userEmail)}</a></p>
+				<p><strong>Fecha de Registro:</strong> ${escapeHtml(currentDate)}</p>
 				<p><strong>Estado:</strong> Inactivo<span class="badge">Pendiente</span></p>
 			</div>
 

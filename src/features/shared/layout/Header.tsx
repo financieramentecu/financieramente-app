@@ -49,13 +49,13 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 
 	return (
 		<header className="flex shrink-0 flex-col border-b">
-			<div className="flex h-16 w-full items-center gap-1 px-4 py-2 lg:gap-2 lg:px-6">
-				<SidebarTrigger className="-ml-1" />
+			<div className="flex h-16 w-full items-center gap-1 px-4 py-2 lg:gap-2 lg:px-6 min-w-0">
+				<SidebarTrigger className="-ml-1 shrink-0" aria-label="Abrir menú" />
 				<Separator
 					orientation="vertical"
-					className="mx-2 data-[orientation=vertical]:h-4"
+					className="mx-2 shrink-0 data-[orientation=vertical]:h-4 hidden sm:block"
 				/>
-				<h1 className="text-base font-medium">{title}</h1>
+				<h1 className="text-base font-medium truncate min-w-0 flex-1">{title}</h1>
 				<div className="ml-auto flex items-center gap-2">
 					<ThemeToggle />
 					{user && (
@@ -63,16 +63,17 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 							<DropdownMenuTrigger asChild>
 								<Button
 									variant="ghost"
-									size="sm"
-									className="hidden sm:flex gap-2"
+									size="icon"
+									className="h-9 w-9 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-auto sm:gap-2 sm:px-3"
+									aria-label="Menú de usuario"
 								>
-									<div className="flex flex-col items-end">
+									<div className="hidden sm:flex flex-col items-end">
 										<span className="text-sm font-medium">{user.name || user.email}</span>
 										<span className="text-xs text-muted-foreground">
 											{user.role || 'Sin rol'}
 										</span>
 									</div>
-									<Avatar className="h-8 w-8">
+									<Avatar className="h-8 w-8 shrink-0">
 										<AvatarImage
 											src={user.image || undefined}
 											alt={user.name || ''}

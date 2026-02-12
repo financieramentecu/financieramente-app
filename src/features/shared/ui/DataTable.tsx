@@ -44,12 +44,12 @@ export function DataTable<T extends Record<string, unknown>>({
 	}
 
 	return (
-		<div className="space-y-4">
+		<div className="space-y-4 min-w-0 overflow-hidden">
 			{/* Search Bar and Additional Filters */}
 			{(searchable || renderAdditionalFilters) && (
-				<div className="flex items-center gap-4 flex-wrap">
+				<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-wrap">
 					{searchable && (
-						<div className="relative flex-1 max-w-lg">
+						<div className="relative flex-1 min-w-0 max-w-full sm:max-w-lg">
 							<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
 							<Input
 								placeholder={searchPlaceholder}
@@ -67,7 +67,7 @@ export function DataTable<T extends Record<string, unknown>>({
 			)}
 
 			{/* Table */}
-			<div className="rounded-md border">
+			<div className="rounded-md border overflow-x-auto">
 				<Table>
 					<TableHeader>
 						<TableRow>
@@ -117,8 +117,8 @@ export function DataTable<T extends Record<string, unknown>>({
 
 			{/* Pagination */}
 			{pagination && (
-				<div className="flex items-center justify-between">
-					<div className="text-sm text-muted-foreground">
+				<div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+					<div className="text-sm text-muted-foreground order-2 sm:order-1">
 						Mostrando {(pagination.currentPage - 1) * pagination.pageSize + 1} a{' '}
 						{Math.min(
 							pagination.currentPage * pagination.pageSize,
@@ -126,7 +126,7 @@ export function DataTable<T extends Record<string, unknown>>({
 						)}{' '}
 						de {pagination.totalItems} resultados
 					</div>
-					<div className="flex items-center space-x-2">
+					<div className="flex items-center justify-center sm:justify-end gap-2 order-1 sm:order-2">
 						<Button
 							variant="outline"
 							size="sm"

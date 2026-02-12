@@ -70,11 +70,11 @@ export function CrudTable<T extends Record<string, unknown>>({
 	}
 
 	return (
-		<div className="space-y-4">
+		<div className="space-y-4 min-w-0 overflow-hidden">
 			{/* Search Bar */}
 			{searchable && (
-				<div className="flex items-center space-x-2">
-					<div className="relative flex-1 max-w-sm">
+				<div className="flex items-center">
+					<div className="relative flex-1 min-w-0 max-w-full sm:max-w-sm">
 						<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
 						<Input
 							placeholder={searchPlaceholder}
@@ -87,7 +87,7 @@ export function CrudTable<T extends Record<string, unknown>>({
 			)}
 
 			{/* Table */}
-			<div className="rounded-md border">
+			<div className="rounded-md border overflow-x-auto">
 				<Table>
 					<TableHeader>
 						<TableRow>

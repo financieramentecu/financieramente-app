@@ -151,7 +151,7 @@ export function ProductConfigurationsTableSection({
 				value={selectedActive || 'all'}
 				onValueChange={onActiveChange}
 			>
-				<SelectTrigger className="w-[180px]">
+				<SelectTrigger className="w-full sm:w-[180px] min-w-0">
 					<SelectValue placeholder="Filtrar por estado" />
 				</SelectTrigger>
 				<SelectContent>
