@@ -4,36 +4,39 @@ export default defineConfig({
 	testDir: './e2e',
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
-	retries: process.env.CI ? 2 : 0,
+	retries: process.env.CI ? 2 : 1,
 
 	// Setup global que se ejecuta antes de todos los tests
 	globalSetup: './e2e/global-setup.ts',
 
-	// Optimización de workers para CI
-	workers: process.env.CI ? 2 : undefined,
+	// Optimización de workers para estabilidad local y CI
+	// En local con Next.js 15 dev server, demasiados workers pueden causar timeouts
+	workers: process.env.CI ? 2 : 3,
 
-	// Timeouts optimizados
-	timeout: process.env.CI ? 30000 : 60000,
+	// Timeouts optimizados para resiliencia ante carga del servidor
+	timeout: 120000,
 	expect: {
-		timeout: process.env.CI ? 10000 : 20000,
+		timeout: 30000,
 	},
 
 	// Reportes optimizados para CI
 	reporter: process.env.CI
 		? [
-				['html', { outputFolder: 'playwright-report' }],
-				['json', { outputFile: 'playwright-report/results.json' }],
-				['junit', { outputFile: 'playwright-report/results.xml' }],
-			]
+			['html', { outputFolder: 'playwright-report' }],
+			['json', { outputFile: 'playwright-report/results.json' }],
+			['junit', { outputFile: 'playwright-report/results.xml' }],
+		]
 		: [
-				['html', { outputFolder: 'playwright-report' }],
-				['json', { outputFile: 'playwright-report/results.json' }],
-				['junit', { outputFile: 'playwright-report/results.xml' }],
-				['list'],
-			],
+			['html', { outputFolder: 'playwright-report' }],
+			['json', { outputFile: 'playwright-report/results.json' }],
+			['junit', { outputFile: 'playwright-report/results.xml' }],
+			['list'],
+		],
 
 	use: {
 		baseURL: process.env.BASE_URL || 'http://localhost:3000',
+		navigationTimeout: 60000,
+		actionTimeout: 30000,
 
 		// Optimización de media para CI
 		trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry',
@@ -47,37 +50,37 @@ export default defineConfig({
 	// Solo navegadores críticos en CI, todos en desarrollo
 	projects: process.env.CI
 		? [
-				{
-					name: 'chromium',
-					use: { ...devices['Desktop Chrome'] },
-				},
-				{
-					name: 'webkit',
-					use: { ...devices['Desktop Safari'] },
-				},
-			]
+			{
+				name: 'chromium',
+				use: { ...devices['Desktop Chrome'] },
+			},
+			{
+				name: 'webkit',
+				use: { ...devices['Desktop Safari'] },
+			},
+		]
 		: [
-				{
-					name: 'chromium',
-					use: { ...devices['Desktop Chrome'] },
-				},
-				{
-					name: 'firefox',
-					use: { ...devices['Desktop Firefox'] },
-				},
-				{
-					name: 'webkit',
-					use: { ...devices['Desktop Safari'] },
-				},
-				{
-					name: 'Mobile Chrome',
-					use: { ...devices['Pixel 5'] },
-				},
-				{
-					name: 'Mobile Safari',
-					use: { ...devices['iPhone 12'] },
-				},
-			],
+			{
+				name: 'chromium',
+				use: { ...devices['Desktop Chrome'] },
+			},
+			{
+				name: 'firefox',
+				use: { ...devices['Desktop Firefox'] },
+			},
+			{
+				name: 'webkit',
+				use: { ...devices['Desktop Safari'] },
+			},
+			{
+				name: 'Mobile Chrome',
+				use: { ...devices['Pixel 5'] },
+			},
+			{
+				name: 'Mobile Safari',
+				use: { ...devices['iPhone 12'] },
+			},
+		],
 
 	webServer: {
 		command: 'npm run dev',

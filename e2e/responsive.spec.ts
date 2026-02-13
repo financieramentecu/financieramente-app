@@ -30,10 +30,11 @@ test.describe('Responsive - flujos críticos', () => {
 			await page.waitForLoadState('networkidle')
 
 			// Verificar que hay contenido de login (Google o formulario)
-			const loginContent = page.locator(
-				'button[type="submit"], [data-provider="google"], text=/Iniciar sesión|Continuar con/i'
-			)
-			await expect(loginContent.first()).toBeVisible({ timeout: 5000 })
+			const loginContent = page
+				.locator('button[type="submit"]')
+				.or(page.locator('[data-provider="google"]'))
+				.or(page.getByText(/Iniciar sesión|Continuar con/i))
+			await expect(loginContent.first()).toBeVisible({ timeout: 10000 })
 		})
 	})
 
