@@ -153,3 +153,10 @@ Before creating a PR:
 - **Responsibility split**: Actions = input validation, error messages, response shape. Services = database queries, domain logic that touches Prisma.
 
 See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed architecture guidelines.
+
+## Active Technologies
+- TypeScript 5.x, Node.js 20+ + Next.js 15 (App Router), React 19, Prisma ORM, Zod, React Hook Form, Shadcn/UI + Radix UI, Tailwind CSS v4, Sonner (toasts) (004-manage-commission-rules)
+- PostgreSQL 15 via Prisma ORM (004-manage-commission-rules)
+
+## Recent Changes
+- 004-manage-commission-rules: Added TypeScript 5.x, Node.js 20+ + Next.js 15 (App Router), React 19, Prisma ORM, Zod, React Hook Form, Shadcn/UI + Radix UI, Tailwind CSS v4, Sonner (toasts)
