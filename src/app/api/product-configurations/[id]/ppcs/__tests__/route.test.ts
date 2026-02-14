@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server'
 // Mock modules
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
-		productPercentajeCommision: {
+		productPercentageCommission: {
 			findMany: vi.fn(),
 		},
 	},
@@ -24,7 +24,7 @@ vi.mock('next/server', () => ({
 }))
 
 describe('GET /api/product-configurations/[id]/ppcs', () => {
-	const mockPrismaPpc = vi.mocked(prisma.productPercentajeCommision.findMany)
+	const mockPrismaPpc = vi.mocked(prisma.productPercentageCommission.findMany)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
@@ -33,8 +33,8 @@ describe('GET /api/product-configurations/[id]/ppcs', () => {
 	it('should return available PPC options for a given product configuration', async () => {
 		const configId = 1
 		const mockPpcs = [
-			{ idProductPercentajeCommision: 1, active: true },
-			{ idProductPercentajeCommision: 2, active: false },
+			{ idProductPercentageCommission: 1, active: true },
+			{ idProductPercentageCommission: 2, active: false },
 		]
 
 		mockPrismaPpc.mockResolvedValue(mockPpcs as any)
@@ -55,11 +55,11 @@ describe('GET /api/product-configurations/[id]/ppcs', () => {
 				idProductConfiguration: configId,
 			},
 			select: {
-				idProductPercentajeCommision: true,
+				idProductPercentageCommission: true,
 				active: true,
 			},
 			orderBy: {
-				idProductPercentajeCommision: 'asc',
+				idProductPercentageCommission: 'asc',
 			},
 		})
 	})

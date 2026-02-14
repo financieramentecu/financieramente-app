@@ -12,7 +12,7 @@ export interface ProductConfiguration extends Record<string, unknown> {
 	readonly idCategory: number
 	code: string
 	active: boolean
-	idProductPercentajeCommisionNewBusinesses: number | null
+	idProductPercentageCommissionNewBusinesses: number | null
 	readonly createdAt: string
 	readonly updatedAt: string
 	product: {
@@ -39,7 +39,7 @@ export interface CreateProductConfigurationInput {
  * Input for updating an existing product configuration
  */
 export interface UpdateProductConfigurationInput {
-	idProductPercentajeCommisionNewBusinesses: number
+	idProductPercentageCommissionNewBusinesses: number
 }
 
 /**

@@ -13,7 +13,7 @@ vi.mock('@/lib/prisma', () => ({
 			findUnique: vi.fn(),
 			update: vi.fn(),
 		},
-		productPercentajeCommision: {
+		productPercentageCommission: {
 			findUnique: vi.fn(),
 		},
 	},
@@ -47,7 +47,7 @@ vi.mock('next/server', () => ({
 describe('PUT /api/product-configurations/[id]', () => {
 	const mockPrismaConfig = vi.mocked(prisma.productConfiguration.findUnique)
 	const mockPrismaConfigUpdate = vi.mocked(prisma.productConfiguration.update)
-	const mockPrismaPpc = vi.mocked(prisma.productPercentajeCommision.findUnique)
+	const mockPrismaPpc = vi.mocked(prisma.productPercentageCommission.findUnique)
 	const mockSchemaParse = vi.mocked(updateProductConfigurationSchema)
 
 	beforeEach(() => {
@@ -57,7 +57,7 @@ describe('PUT /api/product-configurations/[id]', () => {
 	it('should update product configuration successfully', async () => {
 		const configId = 1
 		const ppcId = 100
-		const requestBody = { idProductPercentajeCommisionNewBusinesses: ppcId }
+		const requestBody = { idProductPercentageCommissionNewBusinesses: ppcId }
 
 		mockSchemaParse.parse.mockReturnValue(requestBody as any)
 
@@ -66,7 +66,7 @@ describe('PUT /api/product-configurations/[id]', () => {
 
 		// Mock PPC belonging to config
 		mockPrismaPpc.mockResolvedValue({
-			idProductPercentajeCommision: ppcId,
+			idProductPercentageCommission: ppcId,
 			idProductConfiguration: configId,
 		} as any)
 
@@ -92,7 +92,7 @@ describe('PUT /api/product-configurations/[id]', () => {
 		expect(mockPrismaConfigUpdate).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: { id: configId },
-				data: { idProductPercentajeCommisionNewBusinesses: ppcId },
+				data: { idProductPercentageCommissionNewBusinesses: ppcId },
 			})
 		)
 	})
@@ -100,7 +100,7 @@ describe('PUT /api/product-configurations/[id]', () => {
 	it('should return 404 if configuration not found', async () => {
 		const configId = 999
 		mockSchemaParse.parse.mockReturnValue({
-			idProductPercentajeCommisionNewBusinesses: 100,
+			idProductPercentageCommissionNewBusinesses: 100,
 		} as any)
 		mockPrismaConfig.mockResolvedValue(null)
 
@@ -121,11 +121,11 @@ describe('PUT /api/product-configurations/[id]', () => {
 		const otherConfigId = 2
 
 		mockSchemaParse.parse.mockReturnValue({
-			idProductPercentajeCommisionNewBusinesses: ppcId,
+			idProductPercentageCommissionNewBusinesses: ppcId,
 		} as any)
 		mockPrismaConfig.mockResolvedValue({ id: configId } as any)
 		mockPrismaPpc.mockResolvedValue({
-			idProductPercentajeCommision: ppcId,
+			idProductPercentageCommission: ppcId,
 			idProductConfiguration: otherConfigId, // Mismatch
 		} as any)
 

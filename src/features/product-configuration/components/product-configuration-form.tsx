@@ -62,7 +62,7 @@ export function ProductConfigurationForm({
 	const handleFormSubmit = async (data: CreateProductConfigurationFormData) => {
 		if (mode === 'edit') {
 			await onSubmit({
-				idProductPercentajeCommisionNewBusinesses: parseInt(selectedPpc),
+				idProductPercentageCommissionNewBusinesses: parseInt(selectedPpc),
 			})
 		} else {
 			await onSubmit(data)
@@ -136,10 +136,10 @@ export function ProductConfigurationForm({
 								<SelectContent>
 									{ppcOptions.map((ppc) => (
 										<SelectItem
-											key={ppc.idProductPercentajeCommision}
-											value={ppc.idProductPercentajeCommision.toString()}
+											key={ppc.idProductPercentageCommission}
+											value={ppc.idProductPercentageCommission.toString()}
 										>
-											PPC #{ppc.idProductPercentajeCommision}{' '}
+											PPC #{ppc.idProductPercentageCommission}{' '}
 											{ppc.active ? '(Activo)' : '(Inactivo)'}
 										</SelectItem>
 									))}

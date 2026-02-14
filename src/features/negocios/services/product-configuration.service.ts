@@ -5,7 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import type { ProductPercentajeCommision } from '@prisma/client'
+import type { ProductPercentageCommission } from '@prisma/client'
 
 export interface GetPpcForNewBusinessesParams {
 	idProduct: number
@@ -15,15 +15,15 @@ export interface GetPpcForNewBusinessesParams {
 
 export interface GetPpcForNewBusinessesResult {
 	configExists: boolean
-	ppc: ProductPercentajeCommision | null
+	ppc: ProductPercentageCommission | null
 }
 
 /**
  * Obtiene el PPC activo para nuevos negocios según ProductConfiguration.
  *
  * Busca ProductConfiguration por (idProduct, idClientOrigin, idCategory)
- * y devuelve el ProductPercentajeCommision designado en
- * idProductPercentajeCommisionNewBusinesses.
+ * y devuelve el ProductPercentageCommission designado en
+ * idProductPercentageCommissionNewBusinesses.
  *
  * @param params - Parámetros de búsqueda (producto, origen, categoría del agente)
  * @returns Objeto con configExists (si existe la combinación) y ppc (PPC para nuevos negocios o null)
@@ -42,7 +42,7 @@ export async function getPpcForNewBusinesses(
 			},
 		},
 		include: {
-			productPercentajeCommisionNewBusinesses: true,
+			productPercentageCommissionNewBusinesses: true,
 		},
 	})
 
@@ -52,6 +52,6 @@ export async function getPpcForNewBusinesses(
 
 	return {
 		configExists: true,
-		ppc: productConfiguration.productPercentajeCommisionNewBusinesses,
+		ppc: productConfiguration.productPercentageCommissionNewBusinesses,
 	}
 }

@@ -26,7 +26,7 @@ vi.mock('@/lib/prisma', () => ({
 			count: vi.fn(),
 			findMany: vi.fn(),
 		},
-		productPercentajeCommision: {
+		productPercentageCommission: {
 			create: vi.fn(),
 		},
 		$transaction: vi.fn((callback) => callback(prisma)),
@@ -70,7 +70,7 @@ describe('POST /api/product-configurations', () => {
 	const mockPrismaConfig = vi.mocked(prisma.productConfiguration.findUnique)
 	const mockPrismaConfigCreate = vi.mocked(prisma.productConfiguration.create)
 	const mockPrismaPpcCreate = vi.mocked(
-		prisma.productPercentajeCommision.create
+		prisma.productPercentageCommission.create
 	)
 	const mockPrismaConfigUpdate = vi.mocked(prisma.productConfiguration.update)
 	const mockSchemaParse = vi.mocked(createProductConfigurationSchema)
@@ -147,7 +147,7 @@ describe('POST /api/product-configurations', () => {
 
 			// Transaction Mocks
 			const mockCreatedConfig = { id: 10, code: 'TEST-CODE-123' }
-			const mockCreatedPpc = { idProductPercentajeCommision: 50, active: true }
+			const mockCreatedPpc = { idProductPercentageCommission: 50, active: true }
 			mockPrismaConfigCreate.mockResolvedValue(mockCreatedConfig as any)
 			mockPrismaPpcCreate.mockResolvedValue(mockCreatedPpc as any)
 			mockPrismaConfigUpdate.mockResolvedValue({
@@ -178,7 +178,7 @@ describe('POST /api/product-configurations', () => {
 			expect(mockPrismaConfigUpdate).toHaveBeenCalledWith(
 				expect.objectContaining({
 					where: { id: 10 },
-					data: { idProductPercentajeCommisionNewBusinesses: 50 },
+					data: { idProductPercentageCommissionNewBusinesses: 50 },
 				})
 			)
 		})

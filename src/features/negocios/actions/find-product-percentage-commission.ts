@@ -1,13 +1,13 @@
 'use server'
 
-import { ProductPercentajeCommision } from '@prisma/client'
+import { ProductPercentageCommission } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { getPpcForNewBusinesses } from '../services/product-configuration.service'
 
 /**
- * Parámetros para buscar ProductPercentajeCommision para nuevos negocios
+ * Parámetros para buscar ProductPercentageCommission para nuevos negocios
  */
-export interface FindProductPercentajeCommisionInput {
+export interface FindProductPercentageCommissionInput {
 	idProduct: number
 	idClientOrigin: number
 	idCategory: number
@@ -20,11 +20,11 @@ export interface FindProductPercentajeCommisionInput {
  * Valida el resultado y devuelve ApiResponse con el PPC o mensaje de error.
  *
  * @param params - Parámetros de búsqueda (producto, origen, categoría del agente)
- * @returns ApiResponse con ProductPercentajeCommision para nuevos negocios o error
+ * @returns ApiResponse con ProductPercentageCommission para nuevos negocios o error
  */
-export async function findProductPercentajeCommision(
-	params: FindProductPercentajeCommisionInput
-): Promise<ApiResponse<ProductPercentajeCommision>> {
+export async function findProductPercentageCommission(
+	params: FindProductPercentageCommissionInput
+): Promise<ApiResponse<ProductPercentageCommission>> {
 	try {
 		const { configExists, ppc } = await getPpcForNewBusinesses(params)
 

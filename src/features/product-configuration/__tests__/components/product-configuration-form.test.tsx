@@ -19,7 +19,14 @@ describe('ProductConfigurationForm', () => {
 		// Mock API calls for selects
 		mockFetch.mockResolvedValue({
 			ok: true,
-			json: async () => ({ data: { companies: [], products: [], clientOrigins: [], categories: [] } }),
+			json: async () => ({
+				data: {
+					companies: [],
+					products: [],
+					clientOrigins: [],
+					categories: [],
+				},
+			}),
 		})
 	})
 
@@ -27,9 +34,7 @@ describe('ProductConfigurationForm', () => {
 		it('should render create form title', () => {
 			render(<ProductConfigurationForm {...defaultCreateProps} />)
 
-			expect(
-				screen.getByText('Datos de la Configuración')
-			).toBeInTheDocument()
+			expect(screen.getByText('Datos de la Configuración')).toBeInTheDocument()
 		})
 
 		it('should render company select', () => {
@@ -47,9 +52,7 @@ describe('ProductConfigurationForm', () => {
 		it('should render client origin select', () => {
 			render(<ProductConfigurationForm {...defaultCreateProps} />)
 
-			expect(
-				screen.getByText('Origen de Cliente')
-			).toBeInTheDocument()
+			expect(screen.getByText('Origen de Cliente')).toBeInTheDocument()
 		})
 
 		it('should render category select', () => {
@@ -61,9 +64,7 @@ describe('ProductConfigurationForm', () => {
 		it('should render create button', () => {
 			render(<ProductConfigurationForm {...defaultCreateProps} />)
 
-			expect(
-				screen.getByText('Crear Configuración')
-			).toBeInTheDocument()
+			expect(screen.getByText('Crear Configuración')).toBeInTheDocument()
 		})
 
 		it('should render cancel button', () => {
@@ -74,10 +75,7 @@ describe('ProductConfigurationForm', () => {
 
 		it('should show loading state', () => {
 			render(
-				<ProductConfigurationForm
-					{...defaultCreateProps}
-					isLoading={true}
-				/>
+				<ProductConfigurationForm {...defaultCreateProps} isLoading={true} />
 			)
 
 			expect(screen.getByText('Creando...')).toBeInTheDocument()
@@ -89,9 +87,7 @@ describe('ProductConfigurationForm', () => {
 		const defaultEditProps = {
 			mode: 'edit' as const,
 			initialData,
-			ppcOptions: [
-				{ idProductPercentajeCommision: 1, active: true },
-			],
+			ppcOptions: [{ idProductPercentageCommission: 1, active: true }],
 			onSubmit: vi.fn(),
 			onCancel: vi.fn(),
 		}
@@ -114,9 +110,7 @@ describe('ProductConfigurationForm', () => {
 		it('should show product as readonly', () => {
 			render(<ProductConfigurationForm {...defaultEditProps} />)
 
-			const productInput = screen.getByDisplayValue(
-				'Crea Patrimonio'
-			)
+			const productInput = screen.getByDisplayValue('Crea Patrimonio')
 			expect(productInput).toBeDisabled()
 		})
 
@@ -146,17 +140,12 @@ describe('ProductConfigurationForm', () => {
 		it('should render save button', () => {
 			render(<ProductConfigurationForm {...defaultEditProps} />)
 
-			expect(
-				screen.getByText('Guardar Cambios')
-			).toBeInTheDocument()
+			expect(screen.getByText('Guardar Cambios')).toBeInTheDocument()
 		})
 
 		it('should show loading state', () => {
 			render(
-				<ProductConfigurationForm
-					{...defaultEditProps}
-					isLoading={true}
-				/>
+				<ProductConfigurationForm {...defaultEditProps} isLoading={true} />
 			)
 
 			expect(screen.getByText('Guardando...')).toBeInTheDocument()
@@ -166,9 +155,7 @@ describe('ProductConfigurationForm', () => {
 			render(<ProductConfigurationForm {...defaultEditProps} />)
 
 			expect(
-				screen.getByText(
-					'Comisión de Porcentaje (Nuevos Negocios)'
-				)
+				screen.getByText('Comisión de Porcentaje (Nuevos Negocios)')
 			).toBeInTheDocument()
 		})
 	})

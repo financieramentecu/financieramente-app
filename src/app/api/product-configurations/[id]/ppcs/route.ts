@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 
 interface PpcOption {
-	idProductPercentajeCommision: number
+	idProductPercentageCommission: number
 	active: boolean
 }
 
@@ -19,13 +19,13 @@ export async function GET(
 		const { id } = await params
 		const configId = parseInt(id)
 
-		const ppcs = await prisma.productPercentajeCommision.findMany({
+		const ppcs = await prisma.productPercentageCommission.findMany({
 			where: { idProductConfiguration: configId },
 			select: {
-				idProductPercentajeCommision: true,
+				idProductPercentageCommission: true,
 				active: true,
 			},
-			orderBy: { idProductPercentajeCommision: 'asc' },
+			orderBy: { idProductPercentageCommission: 'asc' },
 		})
 
 		const response: ApiResponse<PpcOption[]> = {

@@ -17,7 +17,7 @@ export const createProductConfigurationSchema = z.object({
  * Schema for updating a product configuration
  */
 export const updateProductConfigurationSchema = z.object({
-	idProductPercentajeCommisionNewBusinesses: z
+	idProductPercentageCommissionNewBusinesses: z
 		.number()
 		.int()
 		.positive('Debe seleccionar una comisión de porcentaje válida'),

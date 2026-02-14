@@ -16,7 +16,7 @@ export function createMockProductConfiguration(
 		idCategory: 1,
 		code: 'CREA_PATRIMONIO-PROPIO-JUNIOR',
 		active: true,
-		idProductPercentajeCommisionNewBusinesses: 1,
+		idProductPercentageCommissionNewBusinesses: 1,
 		createdAt: '2024-01-01T00:00:00.000Z',
 		updatedAt: '2024-01-01T00:00:00.000Z',
 		product: {
@@ -35,9 +35,7 @@ export function createMockProductConfiguration(
  * Creates a mock ProductConfigurationListResponse for tests
  */
 export function createMockProductConfigurationListResponse(
-	configurations: ProductConfiguration[] = [
-		createMockProductConfiguration(),
-	],
+	configurations: ProductConfiguration[] = [createMockProductConfiguration()],
 	pagination?: Partial<ProductConfigurationListResponse['pagination']>
 ): ProductConfigurationListResponse {
 	return {
@@ -65,7 +63,7 @@ export function createMockPrismaProductConfiguration(
 		idCategory: 1,
 		code: 'CREA_PATRIMONIO-PROPIO-JUNIOR',
 		active: true,
-		idProductPercentajeCommisionNewBusinesses: 1,
+		idProductPercentageCommissionNewBusinesses: 1,
 		createdAt: new Date('2024-01-01T00:00:00.000Z'),
 		updatedAt: new Date('2024-01-01T00:00:00.000Z'),
 		product: {
@@ -75,8 +73,8 @@ export function createMockPrismaProductConfiguration(
 		},
 		clientOrigin: { idClientOrigin: 1, name: 'Propio' },
 		category: { idCategory: 1, name: 'Junior' },
-		productPercentajeCommisionNewBusinesses: {
-			idProductPercentajeCommision: 1,
+		productPercentageCommissionNewBusinesses: {
+			idProductPercentageCommission: 1,
 			active: true,
 		},
 		...overrides,

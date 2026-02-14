@@ -64,7 +64,7 @@ model Category {
   // Relaciones
   users                                User[]
   productConfigurations                ProductConfiguration[]
-  productPercentajeCommisionCategories ProductPercentajeCommisionCategory[]
+  productPercentageCommissionCategories ProductPercentageCommissionCategory[]
 
   @@index([typeCategory])
   @@map("category")
@@ -164,7 +164,7 @@ model ProductConfiguration {
   idCategory                             Int      @map("id_category")
   code                                   String?  @db.VarChar(50)
   active                                 Boolean  @default(true) @map("active")
-  idProductPercentajeCommisionNewBusinesses Int?   @map("id_product_percentaje_commision_new_businesses")
+  idProductPercentageCommissionNewBusinesses Int?   @map("id_product_percentage_commission_new_businesses")
   createdAt                              DateTime @default(now()) @map("created_at")
   updatedAt                              DateTime @updatedAt @map("updated_at")
 
@@ -172,20 +172,21 @@ model ProductConfiguration {
   product                              Product                   @relation(fields: [idProduct], references: [idProduct])
   clientOrigin                         ClientOrigin              @relation(fields: [idClientOrigin], references: [idClientOrigin])
   category                             Category                  @relation(fields: [idCategory], references: [idCategory])
-  productPercentajeCommisionNewBusinesses ProductPercentajeCommision? @relation("PpcNewBusinesses", fields: [idProductPercentajeCommisionNewBusinesses], references: [idProductPercentajeCommision])
-  productPercentajeCommisions          ProductPercentajeCommision[]
+  productPercentageCommissionNewBusinesses ProductPercentageCommission? @relation("PpcNewBusinesses", fields: [idProductPercentageCommissionNewBusinesses], references: [idProductPercentageCommission])
+  productPercentageCommissions          ProductPercentageCommission[]
 
   @@unique([idProduct, idClientOrigin, idCategory])
-  @@unique([idProductPercentajeCommisionNewBusinesses])
+  @@unique([idProductPercentageCommissionNewBusinesses])
   @@index([idProduct])
   @@index([idClientOrigin])
   @@index([idCategory])
   @@map("product_configuration")
 }
 
-model ProductPercentajeCommision {
-  idProductPercentajeCommision Int      @id @default(autoincrement()) @map("id_product_percentaje_commision")
+model ProductPercentageCommission {
+  idProductPercentageCommission Int      @id @default(autoincrement()) @map("id_product_percentage_commission")
   idProductConfiguration       Int      @map("id_product_configuration")
+  description                  String?  @db.VarChar(255)
   active                       Boolean  @default(true)
   createdAt                    DateTime @default(now()) @map("created_at")
   updatedAt                    DateTime @updatedAt @map("updated_at")
@@ -193,7 +194,7 @@ model ProductPercentajeCommision {
   // Relaciones
   productConfiguration                 ProductConfiguration  @relation(fields: [idProductConfiguration], references: [id])
   productConfigurationAsNewBusinesses  ProductConfiguration?  @relation("PpcNewBusinesses")
-  productPercentajeCommisionCategories ProductPercentajeCommisionCategory[]
+  productPercentageCommissionCategories ProductPercentageCommissionCategory[]
   businesses                           Business[]
 
   // Note: 'Configuración maestra de porcentajes. Code está en ProductConfiguration.'
@@ -202,10 +203,10 @@ model ProductPercentajeCommision {
   @@map("product_percentaje_commision")
 }
 
-model ProductPercentajeCommisionCategory {
+model ProductPercentageCommissionCategory {
   id                           Int      @id @default(autoincrement())
   idCategory                   Int      @map("id_category")
-  idProductPercentajeCommision Int      @map("id_product_percentaje_commision")
+  idProductPercentageCommission Int      @map("id_product_percentage_commission")
   porcentajeDistribucion       Decimal  @map("porcentaje_distribucion") @db.Decimal(5, 4)
   active                       Boolean  @default(true)
   createdAt                    DateTime @default(now()) @map("created_at")
@@ -213,11 +214,11 @@ model ProductPercentajeCommisionCategory {
 
   // Relaciones
   category                   Category                   @relation(fields: [idCategory], references: [idCategory])
-  productPercentajeCommision ProductPercentajeCommision @relation(fields: [idProductPercentajeCommision], references: [idProductPercentajeCommision])
+  productPercentageCommission ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
   comissionDistributions     ComissionDistribution[]
 
   @@index([idCategory])
-  @@index([idProductPercentajeCommision])
+  @@index([idProductPercentageCommission])
   @@map("product_percentaje_commision_category")
 }
 
@@ -320,7 +321,7 @@ model Business {
   idBuyPeriodicity             Int?     @map("id_buy_periodicity")
   idUser                       Int      @map("id_user")
   idClient                     Int      @map("id_client")
-  idProductPercentajeCommision Int      @map("id_product_percentaje_commision")
+  idProductPercentageCommission Int      @map("id_product_percentage_commission")
   idCurrency                   Int      @map("id_currency")
   idClientOrigin               Int      @map("id_client_origin")
   status                       String?  @db.VarChar(20)
@@ -330,7 +331,7 @@ model Business {
   // Relaciones
   user                       User                       @relation(fields: [idUser], references: [idUser])
   client                     Client                     @relation(fields: [idClient], references: [idClient])
-  productPercentajeCommision ProductPercentajeCommision @relation(fields: [idProductPercentajeCommision], references: [idProductPercentajeCommision])
+  productPercentageCommission ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
   currency                   Currency                   @relation(fields: [idCurrency], references: [idCurrency])
   buyPeriodicity             BuyPeriodicity?            @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
   clientOrigin               ClientOrigin               @relation(fields: [idClientOrigin], references: [idClientOrigin])
@@ -413,7 +414,7 @@ model ComissionDistribution {
 
   // Relaciones
   settlementCommission               SettlementCommission                @relation(fields: [idSettlementCommission], references: [idSettlementCommission])
-  productPercentajeCommisionCategory ProductPercentajeCommisionCategory? @relation(fields: [idPercentajeCommisionCategory], references: [id])
+  productPercentageCommissionCategory ProductPercentageCommissionCategory? @relation(fields: [idPercentajeCommisionCategory], references: [id])
   discount                           Discount?                           @relation(fields: [idDiscount], references: [idDiscount])
   clawback                           Clawback?
 

@@ -31,7 +31,7 @@ export interface CategoryOption {
 }
 
 export interface PpcOption {
-	idProductPercentajeCommision: number
+	idProductPercentageCommission: number
 	active: boolean
 }
 
@@ -91,7 +91,7 @@ export function useProductConfigurationForm({
 
 	// PPC State for Edit Mode
 	const [selectedPpc, setSelectedPpc] = useState<string>(
-		initialData?.idProductPercentajeCommisionNewBusinesses?.toString() ?? ''
+		initialData?.idProductPercentageCommissionNewBusinesses?.toString() ?? ''
 	)
 	const [ppcOptions, setPpcOptions] = useState<PpcOption[]>([])
 
@@ -254,14 +254,14 @@ export function useProductConfigurationForm({
 					// Avoid duplicates logic strictly if needed, but simple append works for now as initial state
 					const exists = prev.some(
 						(p) =>
-							p.idProductPercentajeCommision ===
+							p.idProductPercentageCommission ===
 							initialData.ppcNewBusinesses!.id
 					)
 					if (!exists && initialData.ppcNewBusinesses) {
 						return [
 							...prev,
 							{
-								idProductPercentajeCommision: initialData.ppcNewBusinesses.id,
+								idProductPercentageCommission: initialData.ppcNewBusinesses.id,
 								active: initialData.ppcNewBusinesses.active,
 							},
 						]

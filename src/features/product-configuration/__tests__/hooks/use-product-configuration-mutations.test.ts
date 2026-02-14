@@ -130,7 +130,7 @@ describe('useProductConfigurationMutations', () => {
 
 			await act(async () => {
 				await result.current.updateProductConfiguration(1, {
-					idProductPercentajeCommisionNewBusinesses: 5,
+					idProductPercentageCommissionNewBusinesses: 5,
 				})
 			})
 
@@ -153,7 +153,7 @@ describe('useProductConfigurationMutations', () => {
 
 			await act(async () => {
 				await result.current.updateProductConfiguration(1, {
-					idProductPercentajeCommisionNewBusinesses: 5,
+					idProductPercentageCommissionNewBusinesses: 5,
 				})
 			})
 
