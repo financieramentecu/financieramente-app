@@ -1,43 +1,34 @@
-import { type CommissionRule } from '../../types/commission-rule.types'
-import { Decimal } from '@prisma/client/runtime/library'
+import {
+	CommissionRule,
+	CommissionRuleCategory,
+} from '../../types/commission-rule.types'
 
-export const mockCommissionRule: CommissionRule = {
+export const mockCommissionRuleCategory = (
+	overrides?: Partial<CommissionRuleCategory>
+): CommissionRuleCategory => ({
+	id: 1,
+	idCategory: 101,
 	idProductPercentageCommission: 1,
-	idProductConfiguration: 101,
-	description: 'Regla Estándar 2024',
+	porcentajeDistribucion: 0.5,
 	active: true,
-	createdAt: new Date('2024-01-01T00:00:00Z'),
-	updatedAt: new Date('2024-01-01T00:00:00Z'),
-	categories: [
-		{
-			id: 1,
-			idCategory: 5,
-			idProductPercentageCommission: 1,
-			porcentajeDistribucion: new Decimal(0.15),
-			active: true,
-			createdAt: new Date('2024-01-01T00:00:00Z'),
-			updatedAt: new Date('2024-01-01T00:00:00Z'),
-			category: {
-				idCategory: 5,
-				code: 'CAT-001',
-				name: 'Agencia',
-				typeCategory: 'ALIADO',
-				descripcion: 'Agencia externa',
-				status: true,
-				createdAt: new Date('2024-01-01T00:00:00Z'),
-				updatedAt: new Date('2024-01-01T00:00:00Z'),
-			},
-		},
-	],
-}
+	createdAt: new Date().toISOString(),
+	updatedAt: new Date().toISOString(),
+	category: {
+		idCategory: 101,
+		name: 'Mock Category',
+	},
+	...overrides,
+})
 
-export const mockCreateCommissionRuleInput = {
-	idProductConfiguration: 101,
-	description: 'Nueva Regla',
-	categories: [
-		{
-			idCategory: 5,
-			percentage: 15, // 15%
-		},
-	],
-}
+export const mockCommissionRule = (
+	overrides?: Partial<CommissionRule>
+): CommissionRule => ({
+	id: 1,
+	idProductConfiguration: 50,
+	description: 'Mock Rule Description',
+	active: true,
+	createdAt: new Date().toISOString(),
+	updatedAt: new Date().toISOString(),
+	categories: [mockCommissionRuleCategory()],
+	...overrides,
+})

@@ -1,52 +1,108 @@
 import { describe, it, expect } from 'vitest'
 import {
-	CommissionRuleMapper,
-	type PrismaCommissionRule,
+	prismaCommissionRuleToDomain,
+	prismaCommissionRuleCategoryToDomain,
 } from '../../mappers/commission-rule.mapper'
-import { mockCommissionRule } from '../fixtures/mock-commission-rule'
-import { Decimal } from '@prisma/client/runtime/library'
 
-describe('CommissionRuleMapper', () => {
-	it('should map Prisma result to Domain entity correctly', () => {
-		// We construct a "Prisma-like" object based on our mock
-		// The mapper expects the categories to be under 'productPercentageCommissionCategories'
-		const prismaResult = {
-			...mockCommissionRule,
-			productPercentageCommissionCategories: mockCommissionRule.categories,
-		}
+// Mock Decimal class behavior
+const mockDecimal = (val: number) => ({
+	toNumber: () => val,
+	toString: () => val.toString(),
+})
 
-		// We can delete 'categories' to simulate raw prisma output if we were strict,
-		// but the mapper ignores extra fields so it's fine.
+describe('Commission Rule Mappers', () => {
+	describe('prismaCommissionRuleCategoryToDomain', () => {
+		it('should map flat fields correctly', () => {
+			const prismaCategory = {
+				id: 10,
+				idCategory: 100,
+				idProductPercentageCommission: 50,
+				porcentajeDistribucion: mockDecimal(15.5),
+				active: true,
+				createdAt: new Date('2023-01-01T10:00:00Z'),
+				updatedAt: new Date('2023-01-02T10:00:00Z'),
+			}
 
-		const domain = CommissionRuleMapper.toDomain(
-			prismaResult as unknown as PrismaCommissionRule
-		)
+			const domain = prismaCommissionRuleCategoryToDomain(prismaCategory)
 
-		expect(domain.idProductPercentageCommission).toBe(
-			mockCommissionRule.idProductPercentageCommission
-		)
-		expect(domain.categories).toBeDefined()
-		expect(domain.categories?.length).toBe(1)
-		expect(domain.categories?.[0].porcentajeDistribucion).toBeInstanceOf(
-			Decimal
-		)
-		expect(domain.categories?.[0].category).toBeDefined()
+			expect(domain).toEqual({
+				id: 10,
+				idCategory: 100,
+				idProductPercentageCommission: 50,
+				porcentajeDistribucion: 15.5,
+				active: true,
+				createdAt: '2023-01-01T10:00:00.000Z',
+				updatedAt: '2023-01-02T10:00:00.000Z',
+				category: undefined,
+			})
+		})
+
+		it('should map nested category if present', () => {
+			const prismaCategory = {
+				id: 10,
+				idCategory: 100,
+				idProductPercentageCommission: 50,
+				porcentajeDistribucion: mockDecimal(10),
+				active: true,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+				category: {
+					idCategory: 100,
+					name: 'Test Category',
+				},
+			}
+
+			const domain = prismaCommissionRuleCategoryToDomain(prismaCategory)
+			expect(domain.category).toEqual({
+				idCategory: 100,
+				name: 'Test Category',
+			})
+		})
 	})
 
-	it('should handle missing categories gracefully', () => {
-		const prismaResult = {
-			idProductPercentageCommission: 1,
-			idProductConfiguration: 1,
-			description: 'Test',
-			active: true,
-			createdAt: new Date(),
-			updatedAt: new Date(),
-			productPercentageCommissionCategories: undefined,
-		}
+	describe('prismaCommissionRuleToDomain', () => {
+		it('should map rule with categories', () => {
+			const prismaRule = {
+				idProductPercentageCommission: 1,
+				idProductConfiguration: 5,
+				description: 'Test Rule',
+				active: true,
+				createdAt: new Date('2023-01-01T00:00:00Z'),
+				updatedAt: new Date('2023-01-01T00:00:00Z'),
+				productPercentageCommissionCategories: [
+					{
+						id: 10,
+						idCategory: 100,
+						idProductPercentageCommission: 1,
+						porcentajeDistribucion: mockDecimal(20),
+						active: true,
+						createdAt: new Date('2023-01-01T00:00:00Z'),
+						updatedAt: new Date('2023-01-01T00:00:00Z'),
+					},
+				],
+			}
 
-		const domain = CommissionRuleMapper.toDomain(
-			prismaResult as unknown as PrismaCommissionRule
-		)
-		expect(domain.categories).toBeUndefined()
+			const domain = prismaCommissionRuleToDomain(prismaRule)
+
+			expect(domain.id).toBe(1)
+			expect(domain.description).toBe('Test Rule')
+			expect(domain.categories).toHaveLength(1)
+			expect(domain.categories[0].porcentajeDistribucion).toBe(20)
+		})
+
+		it('should map rule without categories', () => {
+			const prismaRule = {
+				idProductPercentageCommission: 2,
+				idProductConfiguration: 5,
+				description: null,
+				active: false,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+				// undefined categories
+			}
+
+			const domain = prismaCommissionRuleToDomain(prismaRule)
+			expect(domain.categories).toEqual([])
+		})
 	})
 })

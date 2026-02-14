@@ -17,14 +17,14 @@
 
 **Goal**: Implement shared types, schemas, and helpers required by all user stories.
 
-- [ ] T005 [P] Define domain interfaces in `src/features/commission-rules/types/commission-rule.types.ts`
-- [ ] T006 [P] Create mock data fixtures in `src/features/commission-rules/__tests__/fixtures/mock-commission-rule.ts`
-- [ ] T007 [P] Implement Zod schemas (`createCommissionRuleSchema`, `updateCommissionRuleSchema`) in `src/features/commission-rules/lib/commission-rule-schemas.ts`
-- [ ] T008 [P] Add unit tests for Zod schemas in `src/features/commission-rules/__tests__/lib/commission-rule-schemas.test.ts`
-- [ ] T009 [P] Implement Prisma-to-Domain mappers in `src/features/commission-rules/mappers/commission-rule.mapper.ts`
-- [ ] T010 [P] Add unit tests for mappers in `src/features/commission-rules/__tests__/mappers/commission-rule.mapper.test.ts`
-- [ ] T011 Update existing code references in `src/features/product-configuration/` to use new Prisma model names
-- [ ] T012 Update existing code references in `src/features/negocios/` to use new Prisma model names
+- [x] T005 [P] Define domain interfaces in `src/features/commission-rules/types/commission-rule.types.ts`
+- [x] T006 [P] Create mock data fixtures in `src/features/commission-rules/__tests__/fixtures/mock-commission-rule.ts`
+- [x] T007 [P] Implement Zod schemas (`createCommissionRuleSchema`, `updateCommissionRuleSchema`) in `src/features/commission-rules/lib/commission-rule-schemas.ts`
+- [x] T008 [P] Add unit tests for Zod schemas in `src/features/commission-rules/__tests__/lib/commission-rule-schemas.test.ts`
+- [x] T009 [P] Implement Prisma-to-Domain mappers in `src/features/commission-rules/mappers/commission-rule.mapper.ts`
+- [x] T010 [P] Add unit tests for mappers in `src/features/commission-rules/__tests__/mappers/commission-rule.mapper.test.ts`
+- [x] T011 Update existing code references in `src/features/product-configuration/` to use new Prisma model names
+- [x] T012 Update existing code references in `src/features/negocios/` to use new Prisma model names
 
 ## Phase 3: User Story 1 - Manage Commission Rules (P1)
 
