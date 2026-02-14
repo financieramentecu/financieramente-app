@@ -17,7 +17,10 @@ interface UseCommissionRuleMutationsReturn {
 		ruleId: number,
 		data: Omit<UpdateCommissionRuleInput, 'idProductPercentageCommission'>
 	) => Promise<boolean>
-	toggleActive: (ruleId: number, active: boolean) => Promise<boolean>
+	toggleActive: (
+		ruleId: number,
+		active: boolean
+	) => Promise<{ success: boolean; error?: string }>
 	assignNewBusinesses: (ruleId: number) => Promise<boolean>
 	isCreating: boolean
 	isUpdating: boolean
@@ -134,7 +137,7 @@ export function useCommissionRuleMutations(
 	const toggleActive = async (
 		ruleId: number,
 		active: boolean
-	): Promise<boolean> => {
+	): Promise<{ success: boolean; error?: string }> => {
 		setToggleState({ status: 'loading', data: undefined, error: '' })
 		setError('')
 
@@ -151,7 +154,7 @@ export function useCommissionRuleMutations(
 				error: response.error,
 			})
 			setError(response.error)
-			return false
+			return { success: false, error: response.error }
 		}
 
 		setToggleState({
@@ -161,7 +164,7 @@ export function useCommissionRuleMutations(
 		})
 		router.refresh()
 		onSuccess?.()
-		return true
+		return { success: true }
 	}
 
 	const assignNewBusinesses = async (ruleId: number): Promise<boolean> => {

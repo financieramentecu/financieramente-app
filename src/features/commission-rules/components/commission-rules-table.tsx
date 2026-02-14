@@ -44,14 +44,24 @@ export function CommissionRulesTable({
 	const handleToggleActive = async (rule: CommissionRule) => {
 		setTogglingId(rule.id)
 		try {
-			const success = await toggleActive(rule.id, !rule.active)
-			if (success) {
+			const result = await toggleActive(rule.id, !rule.active)
+			if (result.success) {
 				toast.success(rule.active ? 'Regla desactivada' : 'Regla activada', {
 					description: `La regla "${rule.description}" ha sido ${
 						rule.active ? 'desactivada' : 'activada'
 					} correctamente.`,
 				})
 			} else {
+				if (
+					result.error?.includes(
+						'No se puede desactivar: existen negocios asociados'
+					)
+				) {
+					toast.error('Desactivación bloqueada', {
+						description: result.error,
+					})
+					return
+				}
 				toast.error('Error', {
 					description: 'No se pudo cambiar el estado de la regla.',
 				})

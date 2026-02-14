@@ -28,6 +28,17 @@ import { useRouter } from 'next/navigation'
 import { Loader2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CategoryPercentageRow } from '@/features/commission-rules/components/category-percentage-row'
+import { useState } from 'react'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/features/shared/ui/alert-dialog'
 
 // Unified form type for internal use
 type CommissionRuleFormData =
@@ -48,6 +59,10 @@ export function CommissionRuleForm({
 	const router = useRouter()
 	const { create, update, isCreating, isUpdating } = useCommissionRuleMutations(
 		productConfigId
+	)
+	const [showImpactDialog, setShowImpactDialog] = useState(false)
+	const [pendingData, setPendingData] = useState<CommissionRuleFormData | null>(
+		null
 	)
 	
 	// Fetch categories for selection
@@ -101,7 +116,7 @@ export function CommissionRuleForm({
 		0
 	)
 
-	const onSubmit = async (data: CommissionRuleFormData) => {
+	const submitData = async (data: CommissionRuleFormData) => {
 		try {
 			let success = false
 			if (mode === 'create') {
@@ -144,6 +159,23 @@ export function CommissionRuleForm({
 		} catch (error) {
 			console.error('Form submission error:', error)
 		}
+	}
+
+	const onSubmit = async (data: CommissionRuleFormData) => {
+		if (mode === 'edit') {
+			setPendingData(data)
+			setShowImpactDialog(true)
+			return
+		}
+
+		await submitData(data)
+	}
+
+	const handleConfirmImpact = async () => {
+		if (!pendingData) return
+		setShowImpactDialog(false)
+		await submitData(pendingData)
+		setPendingData(null)
 	}
 
 	return (
@@ -254,6 +286,37 @@ export function CommissionRuleForm({
 						</div>
 					</div>
 				</div>
+
+				<AlertDialog
+					open={showImpactDialog}
+					onOpenChange={(open) => {
+						setShowImpactDialog(open)
+						if (!open) {
+							setPendingData(null)
+						}
+					}}
+				>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>
+								Confirmar actualización
+							</AlertDialogTitle>
+							<AlertDialogDescription>
+								Los cambios en esta regla pueden afectar negocios
+								asociados y futuras liquidaciones. ¿Deseas continuar?
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancelar</AlertDialogCancel>
+							<AlertDialogAction
+								onClick={handleConfirmImpact}
+								disabled={isLoading}
+							>
+								Confirmar cambios
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
 
 				<div className="flex justify-end space-x-4">
 					<Button

@@ -71,10 +71,10 @@
 
 **Goal**: Ensure robust error handling, loading states, and UX details.
 
-- [ ] T036 Implement `CommissionRuleFormSkeleton` loading state
-- [ ] T037 Add specific error handling for "Deactivation Blocked" (Business Association)
-- [ ] T038 Add specific error handling for "Impact Warning" on Edit
-- [ ] T039 Verify all UI inputs handle percentage conversion correctly (Whole Number <-> Fraction)
+- [x] T036 Implement `CommissionRuleFormSkeleton` loading state
+- [x] T037 Add specific error handling for "Deactivation Blocked" (Business Association)
+- [x] T038 Add specific error handling for "Impact Warning" on Edit
+- [x] T039 Verify all UI inputs handle percentage conversion correctly (Whole Number <-> Fraction)
 - [ ] T040 Final E2E smoke test with Playwright (create config -> create rule -> assign category -> assign default)
 
 ## Dependencies

@@ -238,10 +238,44 @@ export async function PATCH(
 			)
 		}
 
-		const updatedRule = await prisma.productPercentageCommission.update({
+		const existingRule = await prisma.productPercentageCommission.findFirst({
 			where: {
 				idProductPercentageCommission: ruleId,
 				idProductConfiguration: productConfigId,
+			},
+			select: {
+				idProductPercentageCommission: true,
+				active: true,
+			},
+		})
+
+		if (!existingRule) {
+			return NextResponse.json(
+				{ data: null, error: 'Regla de comisión no encontrada' },
+				{ status: 404 }
+			)
+		}
+
+		if (!active) {
+			const businessCount = await prisma.business.count({
+				where: { idProductPercentageCommission: ruleId },
+			})
+
+			if (businessCount > 0) {
+				return NextResponse.json(
+					{
+						data: null,
+						error:
+							'No se puede desactivar: existen negocios asociados a esta regla',
+					},
+					{ status: 409 }
+				)
+			}
+		}
+
+		const updatedRule = await prisma.productPercentageCommission.update({
+			where: {
+				idProductPercentageCommission: ruleId,
 			},
 			data: {
 				active,
