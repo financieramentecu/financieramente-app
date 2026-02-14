@@ -31,17 +31,17 @@
 **Goal**: CRUD (List, Create, Toggle, Get, Update) for Commission Rules.
 **Independent Test**: Can create, list, and toggle rules via UI.
 
-- [ ] T013 [US1] Create API client wrappers in `src/features/commission-rules/lib/commission-rule-api.ts`
-- [ ] T014 [US1] Implement GET/POST API route in `src/app/api/product-configurations/[id]/commission-rules/route.ts`
-- [ ] T015 [US1] Implement GET/PUT/PATCH API route in `src/app/api/product-configurations/[id]/commission-rules/[ruleId]/route.ts`
-- [ ] T016 [US1] Implement `useCommissionRules` (list) hook in `src/features/commission-rules/hooks/use-commission-rules.ts`
-- [ ] T017 [US1] Implement `useCommissionRule` (single) hook in `src/features/commission-rules/hooks/use-commission-rule.ts`
-- [ ] T018 [US1] Implement `useCommissionRuleMutations` hook in `src/features/commission-rules/hooks/use-commission-rule-mutations.ts`
-- [ ] T019 [US1] Create `CommissionRulesTable` component in `src/features/commission-rules/components/commission-rules-table.tsx`
-- [ ] T020 [US1] Implement List Page in `src/app/dashboard/configuraciones-producto/[id]/reglas/page.tsx`
-- [ ] T021 [US1] Create `CommissionRuleForm` component (Basic Metadata) in `src/features/commission-rules/components/commission-rule-form.tsx`
-- [ ] T022 [US1] Implement Create Page in `src/app/dashboard/configuraciones-producto/[id]/reglas/crear/page.tsx`
-- [ ] T023 [US1] Implement Edit Page in `src/app/dashboard/configuraciones-producto/[id]/reglas/editar/[ruleId]/page.tsx`
+- [x] T013 [US1] Create API client wrappers in `src/features/commission-rules/lib/commission-rule-api.ts`
+- [x] T014 [US1] Implement GET/POST API route in `src/app/api/product-configurations/[id]/commission-rules/route.ts`
+- [x] T015 [US1] Implement GET/PUT/PATCH API route in `src/app/api/product-configurations/[id]/commission-rules/[ruleId]/route.ts`
+- [x] T016 [US1] Implement `useCommissionRules` (list) hook in `src/features/commission-rules/hooks/use-commission-rules.ts`
+- [x] T017 [US1] Implement `useCommissionRule` (single) hook in `src/features/commission-rules/hooks/use-commission-rule.ts`
+- [x] T018 [US1] Implement `useCommissionRuleMutations` hook in `src/features/commission-rules/hooks/use-commission-rule-mutations.ts`
+- [x] T019 [US1] Create `CommissionRulesTable` component in `src/features/commission-rules/components/commission-rules-table.tsx`
+- [x] T020 [US1] Implement List Page in `src/app/dashboard/configuraciones-producto/[id]/reglas/page.tsx`
+- [x] T021 [US1] Create `CommissionRuleForm` component (Basic Metadata) in `src/features/commission-rules/components/commission-rule-form.tsx`
+- [x] T022 [US1] Implement Create Page in `src/app/dashboard/configuraciones-producto/[id]/reglas/crear/page.tsx`
+- [x] T023 [US1] Implement Edit Page in `src/app/dashboard/configuraciones-producto/[id]/reglas/editar/[ruleId]/page.tsx`
 - [ ] T024 [P] [US1] Add integration tests for API routes in `src/features/commission-rules/__tests__/lib/commission-rule-api.test.ts`
 
 ## Phase 4: User Story 2 - Configure Category Distribution (P1)

@@ -55,3 +55,7 @@ export interface CommissionRuleListResponse {
 		totalPages: number
 	}
 }
+export interface CommissionRuleFilters {
+	search?: string
+	active?: string // 'true' | 'false' | 'all'
+}
