@@ -41,16 +41,18 @@ type PrismaCommissionRule = {
 export function prismaCommissionRuleCategoryToDomain(
 	prisma: PrismaCommissionRuleCategory
 ): CommissionRuleCategory {
+	const rawPercentage =
+		typeof prisma.porcentajeDistribucion === 'object' &&
+		'toNumber' in prisma.porcentajeDistribucion
+			? prisma.porcentajeDistribucion.toNumber()
+			: Number(prisma.porcentajeDistribucion)
+
 	return {
 		id: prisma.id,
 		idCategory: prisma.idCategory,
 		idProductPercentageCommission: prisma.idProductPercentageCommission,
 		// Handle Decimal -> number conversion safely
-		porcentajeDistribucion:
-			typeof prisma.porcentajeDistribucion === 'object' &&
-			'toNumber' in prisma.porcentajeDistribucion
-				? prisma.porcentajeDistribucion.toNumber()
-				: Number(prisma.porcentajeDistribucion),
+		porcentajeDistribucion: Number((rawPercentage * 100).toFixed(2)),
 		active: prisma.active,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),

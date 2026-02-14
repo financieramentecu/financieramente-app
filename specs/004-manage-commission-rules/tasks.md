@@ -49,23 +49,23 @@
 **Goal**: Add aggregation UI for categories and store percentage distributions.
 **Independent Test**: Can add/remove categories and percentages to a rule.
 
-- [ ] T025 [US2] Create column schemas for Category Lines in `src/features/commission-rules/lib/commission-rule-schemas.ts`
-- [ ] T026 [US2] Create `CategoryPercentageRow` component in `src/features/commission-rules/components/category-percentage-row.tsx`
-- [ ] T027 [US2] Update `CommissionRuleForm` to include dynamic categories list (useFieldArray)
-- [ ] T028 [US2] Update POST/PUT API logic to handle `productPercentageCommissionCategories` transactionally
-- [ ] T029 [US2] Add validation logic: No duplicate categories, valid percentages
-- [ ] T030 [P] [US2] Add unit tests for Form validation logic
+- [x] T025 [US2] Create column schemas for Category Lines in `src/features/commission-rules/lib/commission-rule-schemas.ts`
+- [x] T026 [US2] Create `CategoryPercentageRow` component in `src/features/commission-rules/components/category-percentage-row.tsx`
+- [x] T027 [US2] Update `CommissionRuleForm` to include dynamic categories list (useFieldArray)
+- [x] T028 [US2] Update POST/PUT API logic to handle `productPercentageCommissionCategories` transactionally
+- [x] T029 [US2] Add validation logic: No duplicate categories, valid percentages
+- [x] T030 [P] [US2] Add unit tests for Form validation logic
 
 ## Phase 5: User Story 3 - List Configurations & Assign Default (P2)
 
 **Goal**: Navigate from Config list and assign a default rule for new businesses.
 **Independent Test**: Can navigate from Config list to Rules list; can set a rule as default.
 
-- [ ] T031 [US3] Update `ProductConfigurationsTable` to add "Gestionar Reglas" action in `src/features/product-configuration/components/product-configurations-table.tsx`
-- [ ] T032 [US3] Implement POST API for assignment in `src/app/api/product-configurations/[id]/commission-rules/[ruleId]/assign-new-businesses/route.ts`
-- [ ] T033 [US3] Add "Assign as Default" button/action in `CommissionRulesTable`
-- [ ] T034 [US3] Connect button to `useCommissionRuleMutations` assignment mutation
-- [ ] T035 [P] [US3] Add integration test for assignment endpoint
+- [x] T031 [US3] Update `ProductConfigurationsTable` to add "Gestionar Reglas" action in `src/features/product-configuration/components/product-configurations-table.tsx`
+- [x] T032 [US3] Implement POST API for assignment in `src/app/api/product-configurations/[id]/commission-rules/[ruleId]/assign-new-businesses/route.ts`
+- [x] T033 [US3] Add "Assign as Default" button/action in `CommissionRulesTable`
+- [x] T034 [US3] Connect button to `useCommissionRuleMutations` assignment mutation
+- [x] T035 [P] [US3] Add integration test for assignment endpoint
 
 ## Phase 6: Polish & Cross-Cutting
 

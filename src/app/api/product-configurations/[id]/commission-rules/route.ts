@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
-import { createCommissionRuleSchema } from '@/features/commission-rules/lib/commission-rule-schemas'
+import { createCommissionRuleApiSchema } from '@/features/commission-rules/lib/commission-rule-schemas'
 import { prismaCommissionRuleListToDomain } from '@/features/commission-rules/mappers/commission-rule.mapper'
 import {
 	CommissionRuleListResponse,
@@ -32,6 +32,18 @@ export async function GET(
 			return NextResponse.json(
 				{ data: null, error: 'ID de configuración inválido' },
 				{ status: 400 }
+			)
+		}
+
+		const productConfiguration = await prisma.productConfiguration.findUnique({
+			where: { id: productConfigId },
+			select: { idProductPercentageCommissionNewBusinesses: true },
+		})
+
+		if (!productConfiguration) {
+			return NextResponse.json(
+				{ data: null, error: 'Configuración de producto no encontrada' },
+				{ status: 404 }
 			)
 		}
 
@@ -82,7 +94,14 @@ export async function GET(
 			},
 		})
 
-		const domainRules = prismaCommissionRuleListToDomain(rules)
+		const defaultRuleId =
+			productConfiguration.idProductPercentageCommissionNewBusinesses
+		const domainRules = prismaCommissionRuleListToDomain(rules).map(
+			(rule) => ({
+				...rule,
+				isDefaultForNewBusinesses: rule.id === defaultRuleId,
+			})
+		)
 
 		return NextResponse.json({
 			data: {
@@ -129,7 +148,7 @@ export async function POST(
 		const body = await request.json()
 
 		// Validate input
-		const validation = createCommissionRuleSchema.safeParse({
+		const validation = createCommissionRuleApiSchema.safeParse({
 			...body,
 			idProductConfiguration: productConfigId,
 		})

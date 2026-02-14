@@ -9,7 +9,7 @@ export const mockCommissionRuleCategory = (
 	id: 1,
 	idCategory: 101,
 	idProductPercentageCommission: 1,
-	porcentajeDistribucion: 0.5,
+	porcentajeDistribucion: 50,
 	active: true,
 	createdAt: new Date().toISOString(),
 	updatedAt: new Date().toISOString(),

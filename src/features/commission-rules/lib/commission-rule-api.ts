@@ -4,6 +4,7 @@ import {
 	CommissionRuleListResponse,
 	CreateCommissionRuleInput,
 	UpdateCommissionRuleInput,
+	AssignNewBusinessesResponse,
 } from '../types/commission-rule.types'
 
 /**
@@ -255,6 +256,49 @@ export const commissionRuleApi = {
 					error instanceof Error
 						? error.message
 						: 'Error desconocido al activar/desactivar regla de comisión',
+			}
+		}
+	},
+
+	/**
+	 * Assigns a rule as default for new businesses
+	 */
+	async assignNewBusinessesRule(
+		productConfigId: number,
+		ruleId: number
+	): Promise<ApiResponse<AssignNewBusinessesResponse>> {
+		try {
+			const response = await fetch(
+				`/api/product-configurations/${productConfigId}/commission-rules/${ruleId}/assign-new-businesses`,
+				{
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				}
+			)
+
+			const result: ApiResponse<AssignNewBusinessesResponse> =
+				await response.json()
+
+			if (!response.ok) {
+				return {
+					data: null,
+					error:
+						'error' in result
+							? result.error
+							: 'Error al asignar regla predeterminada',
+				}
+			}
+
+			return result
+		} catch (error) {
+			return {
+				data: null,
+				error:
+					error instanceof Error
+						? error.message
+						: 'Error desconocido al asignar regla predeterminada',
 			}
 		}
 	},

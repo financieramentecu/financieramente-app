@@ -1,65 +1,81 @@
 import { z } from 'zod'
 
-// Category Line Item Schema
+const descriptionSchema = z
+	.string()
+	.max(255, 'La descripción no puede exceder 255 caracteres')
+	.optional()
+
+const percentageSchema = z
+	.number({ message: 'El porcentaje debe ser un número' })
+	.min(0.01, 'El porcentaje debe estar entre 0.01 y 999.99')
+	.max(999.99, 'El porcentaje debe estar entre 0.01 y 999.99')
+
+// Category Line Item Schema (Column schema)
 // Input: User enters 15.5 for 15.5%
-// Storage: Converted to 0.1550 in DB (Decimal 5,4)
 export const categoryPercentageSchema = z.object({
-	idCategory: z.number().int().positive('La categoría es requerida'),
-	percentage: z
-		.number({ message: 'El porcentaje debe ser un número' })
-		.min(0, 'El porcentaje no puede ser negativo')
-		.max(100, 'El porcentaje no puede exceder 100%'),
+	idCategory: z.number().int('Categoría inválida').positive('Categoría inválida'),
+	percentage: percentageSchema,
 })
 
-// Create Commission Rule Schema
+const categoryLinesSchema = z
+	.array(categoryPercentageSchema)
+	.superRefine((items, ctx) => {
+		const seen = new Set<number>()
+		items.forEach((item, index) => {
+			if (item.idCategory && seen.has(item.idCategory)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: 'Categoría duplicada en la regla',
+					path: [index, 'idCategory'],
+				})
+			}
+			if (item.idCategory) {
+				seen.add(item.idCategory)
+			}
+		})
+	})
+
+const categoryLinesApiSchema = categoryLinesSchema.transform((items) =>
+	items.map((item) => ({
+		...item,
+		percentage: Number((item.percentage / 100).toFixed(4)),
+	}))
+)
+
+const optionalCategoryLinesApiSchema = z.preprocess(
+	(value) => (value === undefined ? [] : value),
+	categoryLinesApiSchema
+)
+
+// Create Commission Rule Schema (Form)
 export const createCommissionRuleSchema = z.object({
 	idProductConfiguration: z
 		.number()
 		.int()
 		.positive('Configuración de producto inválida'),
-	description: z
-		.string()
-		.min(3, 'La descripción debe tener al menos 3 caracteres')
-		.max(255, 'La descripción no puede exceder 255 caracteres'),
-	categories: z
-		.array(categoryPercentageSchema)
-		.min(1, 'Debe agregar al menos una categoría')
-		.refine(
-			(items) => {
-				const total = items.reduce((acc, item) => acc + item.percentage, 0)
-				return Math.abs(total - 100) < 0.01 // Floating point tolerance
-			},
-			{
-				message: 'La suma de los porcentajes debe ser exactamente 100%',
-			}
-		),
+	description: descriptionSchema,
+	categories: categoryLinesSchema,
 })
 
-// Update Commission Rule Schema
+// Update Commission Rule Schema (Form)
 export const updateCommissionRuleSchema = z.object({
 	idProductPercentageCommission: z
 		.number()
 		.int()
 		.positive('ID de regla inválido'),
-	description: z
-		.string()
-		.min(3, 'La descripción debe tener al menos 3 caracteres')
-		.max(255, 'La descripción no puede exceder 255 caracteres')
-		.optional(),
+	description: descriptionSchema,
 	active: z.boolean().optional(),
-	categories: z
-		.array(categoryPercentageSchema)
-		.min(1, 'Debe agregar al menos una categoría')
-		.refine(
-			(items) => {
-				const total = items.reduce((acc, item) => acc + item.percentage, 0)
-				return Math.abs(total - 100) < 0.01
-			},
-			{
-				message: 'La suma de los porcentajes debe ser exactamente 100%',
-			}
-		)
-		.optional(),
+	categories: categoryLinesSchema.optional(),
+})
+
+// Create Commission Rule Schema (API)
+export const createCommissionRuleApiSchema = createCommissionRuleSchema.extend({
+	categories: optionalCategoryLinesApiSchema,
+})
+
+// Update Commission Rule Schema (API)
+export const updateCommissionRuleApiSchema = updateCommissionRuleSchema.extend({
+	categories: categoryLinesApiSchema.optional(),
 })
 
 // Inferred Types

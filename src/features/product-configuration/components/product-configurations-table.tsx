@@ -1,12 +1,11 @@
 'use client'
-
-import React from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import type { ProductConfiguration } from '../types/product-configuration.types'
 import type { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, ToggleLeft, ToggleRight } from 'lucide-react'
+import Link from 'next/link'
 import {
 	Select,
 	SelectContent,
@@ -105,6 +104,13 @@ export function ProductConfigurationsTableSection({
 			header: 'Acciones',
 			cellRenderer: (_, row) => (
 				<div className="flex items-center gap-1">
+					<Button asChild variant="ghost" size="sm">
+						<Link
+							href={`/dashboard/configuraciones-producto/${row.id}/reglas`}
+						>
+							Gestionar Reglas
+						</Link>
+					</Button>
 					<Button
 						variant="ghost"
 						size="icon"

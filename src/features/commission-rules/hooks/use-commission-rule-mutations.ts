@@ -5,6 +5,7 @@ import {
 	CommissionRule,
 	CreateCommissionRuleInput,
 	UpdateCommissionRuleInput,
+	AssignNewBusinessesResponse,
 } from '../types/commission-rule.types'
 import { commissionRuleApi } from '../lib/commission-rule-api'
 
@@ -17,9 +18,11 @@ interface UseCommissionRuleMutationsReturn {
 		data: Omit<UpdateCommissionRuleInput, 'idProductPercentageCommission'>
 	) => Promise<boolean>
 	toggleActive: (ruleId: number, active: boolean) => Promise<boolean>
+	assignNewBusinesses: (ruleId: number) => Promise<boolean>
 	isCreating: boolean
 	isUpdating: boolean
 	isToggling: boolean
+	isAssigning: boolean
 	error: string
 	reset: () => void
 }
@@ -44,12 +47,20 @@ export function useCommissionRuleMutations(
 		data: undefined,
 		error: '',
 	})
+	const [assignState, setAssignState] = useState<
+		AsyncState<AssignNewBusinessesResponse>
+	>({
+		status: 'idle',
+		data: undefined,
+		error: '',
+	})
 	const [error, setError] = useState<string>('')
 
 	const reset = () => {
 		setCreateState({ status: 'idle', data: undefined, error: '' })
 		setUpdateState({ status: 'idle', data: undefined, error: '' })
 		setToggleState({ status: 'idle', data: undefined, error: '' })
+		setAssignState({ status: 'idle', data: undefined, error: '' })
 		setError('')
 	}
 
@@ -153,13 +164,44 @@ export function useCommissionRuleMutations(
 		return true
 	}
 
+	const assignNewBusinesses = async (ruleId: number): Promise<boolean> => {
+		setAssignState({ status: 'loading', data: undefined, error: '' })
+		setError('')
+
+		const response = await commissionRuleApi.assignNewBusinessesRule(
+			productConfigId,
+			ruleId
+		)
+
+		if ('error' in response) {
+			setAssignState({
+				status: 'error',
+				data: undefined,
+				error: response.error,
+			})
+			setError(response.error)
+			return false
+		}
+
+		setAssignState({
+			status: 'success',
+			data: response.data,
+			error: '',
+		})
+		router.refresh()
+		onSuccess?.()
+		return true
+	}
+
 	return {
 		create,
 		update,
 		toggleActive,
+		assignNewBusinesses,
 		isCreating: createState.status === 'loading',
 		isUpdating: updateState.status === 'loading',
 		isToggling: toggleState.status === 'loading',
+		isAssigning: assignState.status === 'loading',
 		error,
 		reset,
 	}

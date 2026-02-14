@@ -7,7 +7,7 @@ export interface CommissionRuleCategory {
 	readonly id: number
 	readonly idCategory: number
 	readonly idProductPercentageCommission: number
-	porcentajeDistribucion: number // Decimal(5,4) in DB
+	porcentajeDistribucion: number // Whole number (15 = 15%). Stored as Decimal(5,4) in DB.
 	active: boolean
 	readonly createdAt: string
 	readonly updatedAt: string
@@ -25,6 +25,7 @@ export interface CommissionRule {
 	readonly createdAt: string
 	readonly updatedAt: string
 	categories: CommissionRuleCategory[]
+	isDefaultForNewBusinesses?: boolean
 }
 
 export interface CreateCommissionRuleInput {
@@ -54,6 +55,11 @@ export interface CommissionRuleListResponse {
 		total: number
 		totalPages: number
 	}
+}
+
+export interface AssignNewBusinessesResponse {
+	idProductConfiguration: number
+	idProductPercentageCommissionNewBusinesses: number | null
 }
 export interface CommissionRuleFilters {
 	search?: string

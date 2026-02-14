@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { updateCommissionRuleSchema } from '@/features/commission-rules/lib/commission-rule-schemas'
+import { updateCommissionRuleApiSchema } from '@/features/commission-rules/lib/commission-rule-schemas'
 import { prismaCommissionRuleToDomain } from '@/features/commission-rules/mappers/commission-rule.mapper'
 import {
 	CommissionRule,
@@ -105,7 +105,7 @@ export async function PUT(
 		const body = await request.json()
 
 		// Validate input
-		const validation = updateCommissionRuleSchema.safeParse({
+		const validation = updateCommissionRuleApiSchema.safeParse({
 			...body,
 			idProductPercentageCommission: ruleId,
 		})

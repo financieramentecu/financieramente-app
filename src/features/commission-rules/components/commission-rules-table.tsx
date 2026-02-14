@@ -11,6 +11,7 @@ import {
 } from '@/features/shared/ui/table'
 import { Switch } from '@/features/shared/ui/switch'
 import { Button } from '@/features/shared/ui/button'
+import { Badge } from '@/features/shared/ui/badge'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -18,7 +19,7 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from '@/features/shared/ui/dropdown-menu'
-import { Edit, MoreHorizontal } from 'lucide-react'
+import { Edit, MoreHorizontal, Star } from 'lucide-react'
 import Link from 'next/link'
 import { CommissionRule } from '@/features/commission-rules/types/commission-rule.types'
 import { useCommissionRuleMutations } from '@/features/commission-rules/hooks/use-commission-rule-mutations'
@@ -35,8 +36,10 @@ export function CommissionRulesTable({
 	data,
 	productConfigId,
 }: CommissionRulesTableProps) {
-	const { toggleActive } = useCommissionRuleMutations(productConfigId)
+	const { toggleActive, assignNewBusinesses } =
+		useCommissionRuleMutations(productConfigId)
 	const [togglingId, setTogglingId] = useState<number | null>(null)
+	const [assigningId, setAssigningId] = useState<number | null>(null)
 
 	const handleToggleActive = async (rule: CommissionRule) => {
 		setTogglingId(rule.id)
@@ -55,6 +58,26 @@ export function CommissionRulesTable({
 			}
 		} finally {
 			setTogglingId(null)
+		}
+	}
+
+	const handleAssignDefault = async (rule: CommissionRule) => {
+		setAssigningId(rule.id)
+		try {
+			const success = await assignNewBusinesses(rule.id)
+			if (success) {
+				toast.success('Regla predeterminada asignada', {
+					description:
+						'La regla fue asignada como predeterminada para nuevos negocios.',
+				})
+			} else {
+				toast.error('Error', {
+					description:
+						'No se pudo asignar la regla como predeterminada.',
+				})
+			}
+		} finally {
+			setAssigningId(null)
 		}
 	}
 
@@ -84,7 +107,20 @@ export function CommissionRulesTable({
 						data.map((rule) => (
 							<TableRow key={rule.id}>
 								<TableCell className="font-medium">
-									{rule.description || 'Sin descripción'}
+									<div className="flex flex-wrap items-center gap-2">
+										<span>
+											{rule.description || 'Sin descripción'}
+										</span>
+										{rule.isDefaultForNewBusinesses && (
+											<Badge
+												variant="secondary"
+												className="inline-flex items-center gap-1"
+											>
+												<Star className="h-3 w-3" />
+												Predeterminada
+											</Badge>
+										)}
+									</div>
 								</TableCell>
 								<TableCell>
 									{rule.categories?.length || 0} categorías
@@ -129,6 +165,17 @@ export function CommissionRulesTable({
 													<Edit className="mr-2 h-4 w-4" />
 													Editar
 												</Link>
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() =>
+													handleAssignDefault(rule)
+												}
+												disabled={
+													rule.isDefaultForNewBusinesses ||
+													assigningId === rule.id
+												}
+											>
+												Asignar a Nuevos Negocios
 											</DropdownMenuItem>
 											{/* Placeholder for future actions like Detail View */}
 										</DropdownMenuContent>

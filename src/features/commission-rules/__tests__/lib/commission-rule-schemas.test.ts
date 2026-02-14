@@ -13,21 +13,25 @@ describe('Commission Rule Schemas', () => {
 			expect(result.success).toBe(true)
 		})
 
-		it('should fail if percentage is negative', () => {
-			const invalid = { idCategory: 1, percentage: -1 }
+		it('should fail if percentage is below minimum', () => {
+			const invalid = { idCategory: 1, percentage: 0 }
 			const result = categoryPercentageSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
 			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('no puede ser negativo')
+				expect(result.error.issues[0].message).toContain(
+					'entre 0.01 y 999.99'
+				)
 			}
 		})
 
-		it('should fail if percentage exceeds 100', () => {
-			const invalid = { idCategory: 1, percentage: 101 }
+		it('should fail if percentage exceeds maximum', () => {
+			const invalid = { idCategory: 1, percentage: 1000 }
 			const result = categoryPercentageSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
 			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('no puede exceder 100%')
+				expect(result.error.issues[0].message).toContain(
+					'entre 0.01 y 999.99'
+				)
 			}
 		})
 	})
@@ -43,16 +47,29 @@ describe('Commission Rule Schemas', () => {
 			expect(result.success).toBe(true)
 		})
 
-		it('should fail if description is too short', () => {
+		it('should allow empty categories', () => {
+			const valid = {
+				idProductConfiguration: 10,
+				description: '',
+				categories: [],
+			}
+			const result = createCommissionRuleSchema.safeParse(valid)
+			expect(result.success).toBe(true)
+		})
+
+		it('should fail on duplicate categories', () => {
 			const invalid = {
 				idProductConfiguration: 10,
-				description: 'ab',
-				categories: [{ idCategory: 1, percentage: 100 }],
+				description: 'Duplicados',
+				categories: [
+					{ idCategory: 1, percentage: 10 },
+					{ idCategory: 1, percentage: 20 },
+				],
 			}
 			const result = createCommissionRuleSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
 			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('al menos 3 caracteres')
+				expect(result.error.issues[0].message).toContain('Categoría duplicada')
 			}
 		})
 	})
@@ -72,7 +89,10 @@ describe('Commission Rule Schemas', () => {
 				idProductPercentageCommission: 5,
 				description: 'Updated Desc',
 				active: true,
-				categories: [{ idCategory: 1, percentage: 50 }, { idCategory: 2, percentage: 50 }],
+				categories: [
+					{ idCategory: 1, percentage: 50 },
+					{ idCategory: 2, percentage: 50 },
+				],
 			}
 			const result = updateCommissionRuleSchema.safeParse(valid)
 			expect(result.success).toBe(true)
