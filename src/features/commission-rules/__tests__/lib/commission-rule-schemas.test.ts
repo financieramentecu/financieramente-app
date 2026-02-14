@@ -22,12 +22,12 @@ describe('Commission Rule Schemas', () => {
 			}
 		})
 
-		it('should fail if percentage exceeds 999.99', () => {
-			const invalid = { idCategory: 1, percentage: 1000 }
+		it('should fail if percentage exceeds 100', () => {
+			const invalid = { idCategory: 1, percentage: 101 }
 			const result = categoryPercentageSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
 			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('no puede exceder 999.99')
+				expect(result.error.issues[0].message).toContain('no puede exceder 100%')
 			}
 		})
 	})
@@ -37,7 +37,7 @@ describe('Commission Rule Schemas', () => {
 			const valid = {
 				idProductConfiguration: 10,
 				description: 'Valid Description',
-				categories: [{ idCategory: 1, percentage: 10 }],
+				categories: [{ idCategory: 1, percentage: 100 }],
 			}
 			const result = createCommissionRuleSchema.safeParse(valid)
 			expect(result.success).toBe(true)
@@ -47,6 +47,7 @@ describe('Commission Rule Schemas', () => {
 			const invalid = {
 				idProductConfiguration: 10,
 				description: 'ab',
+				categories: [{ idCategory: 1, percentage: 100 }],
 			}
 			const result = createCommissionRuleSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
@@ -71,7 +72,7 @@ describe('Commission Rule Schemas', () => {
 				idProductPercentageCommission: 5,
 				description: 'Updated Desc',
 				active: true,
-				categories: [],
+				categories: [{ idCategory: 1, percentage: 50 }, { idCategory: 2, percentage: 50 }],
 			}
 			const result = updateCommissionRuleSchema.safeParse(valid)
 			expect(result.success).toBe(true)
