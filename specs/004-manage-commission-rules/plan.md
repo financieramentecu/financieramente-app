@@ -193,3 +193,13 @@ src/features/shared/layout/
 **Fix Plan**:
 
 - **Backend**: Remove `error: null` from the `GET` success response in `distribution-commission/[ruleId]/route.ts`.
+
+## User Feedback Updates: Edit Page UI (2026-02-15)
+
+**Goal**: Refine terminology and UX on the "Editar Configuración de Producto" page.
+
+1.  **Section Title**:
+    - Rename "Comisión de Porcentaje" to "**Distribución de comisión**".
+2.  **Assign Default Select**:
+    - **Label/Placeholder**: Change from "PPC" or abbreviations to "**Seleccione la distribución de comisión**".
+    - **Option Display**: Ensure the select options display the full **description** of the distribution rule.

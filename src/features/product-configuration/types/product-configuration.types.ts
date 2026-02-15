@@ -22,7 +22,11 @@ export interface ProductConfiguration extends Record<string, unknown> {
 	}
 	clientOrigin: { readonly idClientOrigin: number; name: string }
 	category: { readonly idCategory: number; name: string }
-	ppcNewBusinesses: { readonly id: number; active: boolean } | null
+	ppcNewBusinesses: {
+		readonly id: number
+		description?: string | null
+		active: boolean
+	} | null
 }
 
 /**

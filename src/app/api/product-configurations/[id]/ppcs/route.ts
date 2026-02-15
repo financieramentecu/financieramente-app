@@ -4,6 +4,7 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 
 interface PpcOption {
 	idProductPercentageCommission: number
+	description: string | null
 	active: boolean
 }
 
@@ -23,6 +24,7 @@ export async function GET(
 			where: { idProductConfiguration: configId },
 			select: {
 				idProductPercentageCommission: true,
+				description: true,
 				active: true,
 			},
 			orderBy: { idProductPercentageCommission: 'asc' },

@@ -26,7 +26,11 @@ const productConfigurationInclude = {
 		select: { idCategory: true, name: true },
 	},
 	productPercentageCommissionNewBusinesses: {
-		select: { idProductPercentageCommission: true, active: true },
+		select: {
+			idProductPercentageCommission: true,
+			description: true,
+			active: true,
+		},
 	},
 } as const
 

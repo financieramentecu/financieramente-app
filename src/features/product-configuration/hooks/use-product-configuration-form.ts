@@ -32,6 +32,7 @@ export interface CategoryOption {
 
 export interface PpcOption {
 	idProductPercentageCommission: number
+	description?: string | null
 	active: boolean
 }
 
@@ -262,6 +263,7 @@ export function useProductConfigurationForm({
 							...prev,
 							{
 								idProductPercentageCommission: initialData.ppcNewBusinesses.id,
+								description: initialData.ppcNewBusinesses.description,
 								active: initialData.ppcNewBusinesses.active,
 							},
 						]

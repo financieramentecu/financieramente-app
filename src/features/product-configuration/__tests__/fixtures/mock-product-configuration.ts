@@ -26,7 +26,11 @@ export function createMockProductConfiguration(
 		},
 		clientOrigin: { idClientOrigin: 1, name: 'Propio' },
 		category: { idCategory: 1, name: 'Junior' },
-		ppcNewBusinesses: { id: 1, active: true },
+		ppcNewBusinesses: {
+			id: 1,
+			description: 'Distribución Estándar',
+			active: true,
+		},
 		...overrides,
 	}
 }
@@ -75,6 +79,7 @@ export function createMockPrismaProductConfiguration(
 		category: { idCategory: 1, name: 'Junior' },
 		productPercentageCommissionNewBusinesses: {
 			idProductPercentageCommission: 1,
+			description: 'Distribución Estándar',
 			active: true,
 		},
 		...overrides,

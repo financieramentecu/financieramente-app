@@ -27,6 +27,7 @@ interface PrismaProductConfigurationWithIncludes {
 	category: { idCategory: number; name: string }
 	productPercentageCommissionNewBusinesses: {
 		idProductPercentageCommission: number
+		description: string | null
 		active: boolean
 	} | null
 }
@@ -68,6 +69,8 @@ export function prismaProductConfigToProductConfig(
 			? {
 					id: prisma.productPercentageCommissionNewBusinesses
 						.idProductPercentageCommission,
+					description:
+						prisma.productPercentageCommissionNewBusinesses.description,
 					active: prisma.productPercentageCommissionNewBusinesses.active,
 				}
 			: null,

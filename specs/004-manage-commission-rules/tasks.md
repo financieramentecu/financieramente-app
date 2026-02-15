@@ -107,3 +107,11 @@
 - [ ] T050 Verify Manual Flows: Create Distribution -> Add Categories -> Save -> Edit -> Assign Default -> Toggle Active
 - [ ] T051 Check sidebar navigation and breadcrumbs consistency
 - [ ] T052 Final E2E smoke test with Playwright
+
+## Phase 9: UI Refinements (Edit Page)
+
+**Goal**: Implement user-requested UI changes for better clarity.
+
+- [x] T065 [US4] Rename "Comisión de Porcentaje" section to "Distribución de comisión" in `src/features/product-configuration/components/product-configuration-form.tsx`
+- [x] T066 [US4] Update "Assign Default" select label to "Seleccione la distribución de comisión" in `src/features/product-configuration/components/product-configuration-form.tsx`
+- [x] T067 [US4] Update "Assign Default" select options to display full description in `src/features/product-configuration/components/product-configuration-form.tsx`
