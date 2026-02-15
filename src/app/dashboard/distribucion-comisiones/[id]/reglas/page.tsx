@@ -16,28 +16,34 @@ import {
 	CardTitle,
 } from '@/features/shared/ui/card'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
+import { useProductConfiguration } from '@/features/product-configuration/hooks/use-product-configuration'
 
 export default function CommissionRulesPage() {
 	const params = useParams()
 	const productConfigId = Number(params.id)
 
-	const { data, isLoading, isError, error, filters, setSearch } =
+	const { data, isLoading, isError, error, filters, setSearch, reload } =
 		useCommissionRules(productConfigId)
+
+	const { state: productConfigState } = useProductConfiguration(productConfigId)
 
 	if (isNaN(productConfigId)) {
 		return <div>ID de configuración inválido</div>
 	}
 
 	return (
-		<DashboardLayout currentPage="Distribuciones de Comisión">
+		<DashboardLayout currentPage="Configuración del producto">
 			<div className="space-y-6">
 				<div className="flex items-center justify-between">
 					<div>
 						<h2 className="text-3xl font-bold tracking-tight">
-							Distribuciones de Comisión
+							Configuración del producto
 						</h2>
 						<p className="text-muted-foreground">
-							Administra las distribuciones de comisiones para este producto.
+							{productConfigState.status === 'success' &&
+							productConfigState.data?.code
+								? `Código: ${productConfigState.data.code}`
+								: 'Administra las distribuciones de comisiones para este producto.'}
 						</p>
 					</div>
 					<Button asChild>
@@ -52,7 +58,7 @@ export default function CommissionRulesPage() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Distribuciones Registradas</CardTitle>
+						<CardTitle>Distribución de comisión</CardTitle>
 						<CardDescription>
 							Listado de distribuciones de comisión activas e inactivas.
 						</CardDescription>
@@ -79,6 +85,7 @@ export default function CommissionRulesPage() {
 							<CommissionRulesTable
 								data={data}
 								productConfigId={productConfigId}
+								onAssignmentSuccess={reload}
 							/>
 						)}
 					</CardContent>

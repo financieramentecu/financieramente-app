@@ -30,14 +30,18 @@ import { es } from 'date-fns/locale'
 interface CommissionRulesTableProps {
 	data: CommissionRule[]
 	productConfigId: number
+	onAssignmentSuccess?: () => void
 }
 
 export function CommissionRulesTable({
 	data,
 	productConfigId,
+	onAssignmentSuccess,
 }: CommissionRulesTableProps) {
-	const { toggleActive, assignNewBusinesses } =
-		useCommissionRuleMutations(productConfigId)
+	const { toggleActive, assignNewBusinesses } = useCommissionRuleMutations(
+		productConfigId,
+		onAssignmentSuccess
+	)
 	const [togglingId, setTogglingId] = useState<number | null>(null)
 	const [assigningId, setAssigningId] = useState<number | null>(null)
 
@@ -138,7 +142,7 @@ export function CommissionRulesTable({
 										{rule.categories && rule.categories.length > 0 ? (
 											rule.categories.map((cat) => (
 												<Badge key={cat.idCategory} variant="outline">
-													{cat.category?.name || 'Categoría'}:{' '}
+													{cat.category?.name || `Cat ${cat.idCategory}`}:{' '}
 													{cat.porcentajeDistribucion}%
 												</Badge>
 											))

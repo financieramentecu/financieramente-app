@@ -27,6 +27,7 @@ export interface ProductConfiguration extends Record<string, unknown> {
 		description?: string | null
 		active: boolean
 	} | null
+	newBusinessesDistributionDescription: string | null
 }
 
 /**

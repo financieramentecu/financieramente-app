@@ -37,6 +37,21 @@ describe('Commission Rule Mappers', () => {
 			})
 		})
 
+		it('should handle string decimal values', () => {
+			const prismaCategory = {
+				id: 10,
+				idCategory: 100,
+				idProductPercentageCommission: 50,
+				porcentajeDistribucion: '0.155', // String representation
+				active: true,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			}
+
+			const domain = prismaCommissionRuleCategoryToDomain(prismaCategory)
+			expect(domain.porcentajeDistribucion).toBe(15.5)
+		})
+
 		it('should map nested category if present', () => {
 			const prismaCategory = {
 				id: 10,

@@ -4,7 +4,7 @@ import { Button } from '@/features/shared/ui/button'
 import type { ProductConfiguration } from '../types/product-configuration.types'
 import type { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
-import { Plus, Pencil, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import {
 	Select,
@@ -13,6 +13,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/features/shared/ui/select'
+import { Switch } from '@/features/shared/ui/switch'
 
 interface PaginationData {
 	page: number
@@ -90,6 +91,27 @@ export function ProductConfigurationsTableSection({
 			),
 		},
 		{
+			key: 'newBusinessesDistributionDescription',
+			header: 'Distribucíon para nuevos negocios',
+			sortable: false,
+			cellRenderer: (_, row) => {
+				const description =
+					row.newBusinessesDistributionDescription ||
+					row.ppcNewBusinesses?.description ||
+					'Sin descripción'
+
+				return (
+					<span
+						className={`text-sm ${
+							description === 'Sin asignar' ? 'text-muted-foreground' : ''
+						}`}
+					>
+						{description}
+					</span>
+				)
+			},
+		},
+		{
 			key: 'active',
 			header: 'Estado',
 			sortable: true,
@@ -117,20 +139,15 @@ export function ProductConfigurationsTableSection({
 					>
 						<Pencil className="h-4 w-4" />
 					</Button>
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => onToggleActive(row)}
-						title={
-							row.active ? 'Desactivar configuración' : 'Activar configuración'
+					<Switch
+						checked={row.active}
+						onCheckedChange={() => onToggleActive(row)}
+						aria-label={
+							row.active
+								? 'Desactivar configuración'
+								: 'Activar configuración'
 						}
-					>
-						{row.active ? (
-							<ToggleRight className="h-4 w-4" />
-						) : (
-							<ToggleLeft className="h-4 w-4 text-muted-foreground" />
-						)}
-					</Button>
+					/>
 				</div>
 			),
 		},

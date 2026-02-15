@@ -96,6 +96,7 @@ export async function GET(
 
 		const defaultRuleId =
 			productConfiguration.idProductPercentageCommissionNewBusinesses
+
 		const domainRules = prismaCommissionRuleListToDomain(rules).map((rule) => ({
 			...rule,
 			isDefaultForNewBusinesses: rule.id === defaultRuleId,
@@ -111,7 +112,6 @@ export async function GET(
 					totalPages: Math.ceil(total / pageSize),
 				},
 			},
-			error: null,
 		})
 	} catch (error) {
 		console.error('Error listing commission rules:', error)

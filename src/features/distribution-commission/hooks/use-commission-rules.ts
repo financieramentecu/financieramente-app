@@ -74,8 +74,7 @@ export function useCommissionRules(
 				}
 			)
 
-			// Check for error property safely, handling backend returning error: null on success
-			if ('error' in response) {
+			if ('error' in response && response.error) {
 				throw new Error(response.error)
 			}
 

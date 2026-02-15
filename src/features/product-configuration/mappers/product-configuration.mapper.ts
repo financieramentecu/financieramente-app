@@ -74,6 +74,8 @@ export function prismaProductConfigToProductConfig(
 					active: prisma.productPercentageCommissionNewBusinesses.active,
 				}
 			: null,
+		newBusinessesDistributionDescription:
+			prisma.productPercentageCommissionNewBusinesses?.description ?? null,
 	}
 }
 

@@ -203,3 +203,23 @@ src/features/shared/layout/
 2.  **Assign Default Select**:
     - **Label/Placeholder**: Change from "PPC" or abbreviations to "**Seleccione la distribución de comisión**".
     - **Option Display**: Ensure the select options display the full **description** of the distribution rule.
+
+## UI Update: Product Configuration Table (2026-02-15)
+
+**Goal**: Improve visibility of the default distribution assigned to new businesses on `/configuraciones-producto`.
+
+1. **New Column**:
+   - Add a column named "**Distribución nuevos negocios**" in the Product Configuration table.
+   - Display the **description** of the distribution assigned for new businesses.
+2. **UI/UX Enhancement**:
+   - Update the column display using the **toggle** pattern consistent with existing UI for clearer visibility.
+   - Keep all existing columns and behaviors intact.
+
+## Bug: Assign New Businesses Not Refreshing (2026-02-15)
+
+**Goal**: When assigning “Nuevos negocios” in Distribución de Comisiones, the list should refresh automatically without requiring a manual page reload.
+
+1. **Fix Refresh**:
+   - Ensure the assignment action triggers a UI refresh (`router.refresh` or query invalidation).
+2. **Visual Feedback**:
+   - Confirm the updated “Nuevos negocios” state appears immediately after assignment.

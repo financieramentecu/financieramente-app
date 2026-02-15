@@ -115,3 +115,29 @@
 - [x] T065 [US4] Rename "Comisión de Porcentaje" section to "Distribución de comisión" in `src/features/product-configuration/components/product-configuration-form.tsx`
 - [x] T066 [US4] Update "Assign Default" select label to "Seleccione la distribución de comisión" in `src/features/product-configuration/components/product-configuration-form.tsx`
 - [x] T067 [US4] Update "Assign Default" select options to display full description in `src/features/product-configuration/components/product-configuration-form.tsx`
+
+## Phase 10: UI Detail Improvements & Bug Fixes
+
+**Goal**: Implement requested UI refinements and fix data loading bug.
+
+- [x] T068 [US4] UI Update: Rename page title to "Configuración del producto" and add Product Code to subtitle in `src/app/dashboard/distribucion-comisiones/[id]/reglas/page.tsx`
+- [x] T069 [US4] UI Update: Rename section title "Distribuciones Registradas" to "Distribución de comisión" in `src/app/dashboard/distribucion-comisiones/[id]/reglas/page.tsx`
+- [x] T070 [Bug] Investigate and fix missing commission percentages (categories) in `CommissionRulesTable` and/or List API Endpoint
+- [x] T071 [Bug] Detalle de distribución: al cargar la lista de comisiones por categoría aparece `Error: null`. Investigar causa y corregir el flujo de error/success.
+
+## Phase 11: UI Update Product Configuration Table
+
+**Goal**: Show default distribution for new businesses in `/configuraciones-producto` table with improved visibility.
+
+- [x] T072 Update product configuration list API to include default distribution description for new businesses in `src/app/api/product-configurations/route.ts`
+- [x] T073 Update product configuration types to include new businesses distribution description in `src/features/product-configuration/types/product-configuration.types.ts`
+- [x] T074 Update product configuration mapper to map default distribution description in `src/features/product-configuration/mappers/product-configuration.mapper.ts`
+- [x] T075 Add "Distribución nuevos negocios" column with toggle-style visibility to Product Configurations table in `src/features/product-configuration/components/product-configurations-table.tsx`
+
+## Phase 12: Fix Assign New Businesses Refresh
+
+**Goal**: Ensure assigning "Nuevos negocios" refreshes the list immediately without manual reload.
+
+- [x] T076 Update assignment mutation to trigger UI refresh (router.refresh or query invalidation) in `src/features/distribution-commission/hooks/use-commission-rule-mutations.ts`
+- [x] T077 Ensure list page reflects updated default assignment after mutation in `src/features/distribution-commission/components/commission-rules-table.tsx`
+- [x] T078 Add/adjust tests for immediate UI update after assignment in `src/features/distribution-commission/__tests__/components/commission-rules-table.test.tsx`
