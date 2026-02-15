@@ -19,7 +19,7 @@ describe('Commission Rule Schemas', () => {
 			expect(result.success).toBe(false)
 			if (!result.success) {
 				expect(result.error.issues[0].message).toContain(
-					'entre 0.01 y 999.99'
+					'El porcentaje debe ser mayor a 0'
 				)
 			}
 		})
@@ -30,7 +30,7 @@ describe('Commission Rule Schemas', () => {
 			expect(result.success).toBe(false)
 			if (!result.success) {
 				expect(result.error.issues[0].message).toContain(
-					'entre 0.01 y 999.99'
+					'El porcentaje no puede exceder 100'
 				)
 			}
 		})
