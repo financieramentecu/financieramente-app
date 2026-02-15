@@ -333,5 +333,5 @@ export const authConfig: NextAuthConfig = {
 		process.env.NEXTAUTH_SECRET ||
 		'fallback-secret-for-development-only',
 	trustHost: true,
-	debug: process.env.NODE_ENV === 'development',
+	debug: process.env.AUTH_DEBUG === 'true',
 }
