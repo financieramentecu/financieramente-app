@@ -154,9 +154,7 @@ describe('ProductConfigurationForm', () => {
 		it('should render PPC section', () => {
 			render(<ProductConfigurationForm {...defaultEditProps} />)
 
-			expect(
-				screen.getByText('Comisión de Porcentaje (Nuevos Negocios)')
-			).toBeInTheDocument()
+			expect(screen.getByText('Distribución de comisión')).toBeInTheDocument()
 		})
 	})
 })

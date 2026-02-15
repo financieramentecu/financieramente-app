@@ -56,6 +56,7 @@ describe('GET /api/product-configurations/[id]/ppcs', () => {
 			},
 			select: {
 				idProductPercentageCommission: true,
+				description: true,
 				active: true,
 			},
 			orderBy: {
