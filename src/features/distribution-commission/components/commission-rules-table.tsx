@@ -21,8 +21,8 @@ import {
 } from '@/features/shared/ui/dropdown-menu'
 import { Edit, MoreHorizontal, Star } from 'lucide-react'
 import Link from 'next/link'
-import { CommissionRule } from '@/features/commission-rules/types/commission-rule.types'
-import { useCommissionRuleMutations } from '@/features/commission-rules/hooks/use-commission-rule-mutations'
+import { CommissionRule } from '@/features/distribution-commission/types/commission-rule.types'
+import { useCommissionRuleMutations } from '@/features/distribution-commission/hooks/use-commission-rule-mutations'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -46,11 +46,14 @@ export function CommissionRulesTable({
 		try {
 			const result = await toggleActive(rule.id, !rule.active)
 			if (result.success) {
-				toast.success(rule.active ? 'Regla desactivada' : 'Regla activada', {
-					description: `La regla "${rule.description}" ha sido ${
-						rule.active ? 'desactivada' : 'activada'
-					} correctamente.`,
-				})
+				toast.success(
+					rule.active ? 'Distribución desactivada' : 'Distribución activada',
+					{
+						description: `La distribución "${rule.description}" ha sido ${
+							rule.active ? 'desactivada' : 'activada'
+						} correctamente.`,
+					}
+				)
 			} else {
 				if (
 					result.error?.includes(
@@ -63,7 +66,7 @@ export function CommissionRulesTable({
 					return
 				}
 				toast.error('Error', {
-					description: 'No se pudo cambiar el estado de la regla.',
+					description: 'No se pudo cambiar el estado de la distribución.',
 				})
 			}
 		} finally {
@@ -76,14 +79,14 @@ export function CommissionRulesTable({
 		try {
 			const success = await assignNewBusinesses(rule.id)
 			if (success) {
-				toast.success('Regla predeterminada asignada', {
+				toast.success('Distribución predeterminada asignada', {
 					description:
-						'La regla fue asignada como predeterminada para nuevos negocios.',
+						'La distribución fue asignada como predeterminada para nuevos negocios.',
 				})
 			} else {
 				toast.error('Error', {
 					description:
-						'No se pudo asignar la regla como predeterminada.',
+						'No se pudo asignar la distribución como predeterminada.',
 				})
 			}
 		} finally {
@@ -110,7 +113,7 @@ export function CommissionRulesTable({
 								colSpan={5}
 								className="h-24 text-center text-muted-foreground"
 							>
-								No hay reglas de comisión registradas.
+								No hay distribuciones de comisión registradas.
 							</TableCell>
 						</TableRow>
 					) : (
@@ -118,68 +121,66 @@ export function CommissionRulesTable({
 							<TableRow key={rule.id}>
 								<TableCell className="font-medium">
 									<div className="flex flex-wrap items-center gap-2">
-										<span>
-											{rule.description || 'Sin descripción'}
-										</span>
+										<span>{rule.description || 'Sin descripción'}</span>
 										{rule.isDefaultForNewBusinesses && (
 											<Badge
 												variant="secondary"
 												className="inline-flex items-center gap-1"
 											>
 												<Star className="h-3 w-3" />
-												Predeterminada
+												Nuevos negocios
 											</Badge>
 										)}
 									</div>
 								</TableCell>
 								<TableCell>
-									{rule.categories?.length || 0} categorías
+									<div className="flex flex-wrap gap-1">
+										{rule.categories && rule.categories.length > 0 ? (
+											rule.categories.map((cat) => (
+												<Badge key={cat.idCategory} variant="outline">
+													{cat.category?.name || 'Categoría'}:{' '}
+													{cat.porcentajeDistribucion}%
+												</Badge>
+											))
+										) : (
+											<span className="text-muted-foreground text-sm">
+												Sin categorías
+											</span>
+										)}
+									</div>
 								</TableCell>
 								<TableCell>
 									<Switch
 										checked={rule.active}
-										onCheckedChange={() =>
-											handleToggleActive(rule)
-										}
+										onCheckedChange={() => handleToggleActive(rule)}
 										disabled={togglingId === rule.id}
 									/>
 								</TableCell>
 								<TableCell>
-									{format(
-										new Date(rule.createdAt),
-										'dd/MM/yyyy',
-										{ locale: es }
-									)}
+									{format(new Date(rule.createdAt), 'dd/MM/yyyy', {
+										locale: es,
+									})}
 								</TableCell>
 								<TableCell>
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
-											<Button
-												variant="ghost"
-												className="h-8 w-8 p-0"
-											>
-												<span className="sr-only">
-													Abrir menú
-												</span>
+											<Button variant="ghost" className="h-8 w-8 p-0">
+												<span className="sr-only">Abrir menú</span>
 												<MoreHorizontal className="h-4 w-4" />
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
-											<DropdownMenuLabel>
-												Acciones
-											</DropdownMenuLabel>
+											<DropdownMenuLabel>Acciones</DropdownMenuLabel>
 											<DropdownMenuItem asChild>
 												<Link
-													href={`/dashboard/configuraciones-producto/${productConfigId}/reglas/editar/${rule.id}`}
+													href={`/dashboard/distribucion-comisiones/${productConfigId}/reglas/editar/${rule.id}`}
 												>
 													<Edit className="mr-2 h-4 w-4" />
 													Editar
 												</Link>
 											</DropdownMenuItem>
 											<DropdownMenuItem
-												onClick={() =>
-													handleAssignDefault(rule)
-												}
+												onClick={() => handleAssignDefault(rule)}
 												disabled={
 													rule.isDefaultForNewBusinesses ||
 													assigningId === rule.id

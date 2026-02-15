@@ -100,10 +100,7 @@ export function useCommissionRuleMutations(
 
 	const update = async (
 		ruleId: number,
-		data: Omit<
-			UpdateCommissionRuleInput,
-			'idProductPercentageCommission'
-		>
+		data: Omit<UpdateCommissionRuleInput, 'idProductPercentageCommission'>
 	): Promise<boolean> => {
 		setUpdateState({ status: 'loading', data: undefined, error: '' })
 		setError('')

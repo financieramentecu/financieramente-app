@@ -5,15 +5,18 @@ const descriptionSchema = z
 	.max(255, 'La descripción no puede exceder 255 caracteres')
 	.optional()
 
-const percentageSchema = z
+const percentageSchema = z.coerce
 	.number({ message: 'El porcentaje debe ser un número' })
-	.min(0.01, 'El porcentaje debe estar entre 0.01 y 999.99')
-	.max(999.99, 'El porcentaje debe estar entre 0.01 y 999.99')
+	.min(0.01, 'El porcentaje debe ser mayor a 0')
+	.max(100, 'El porcentaje no puede exceder 100')
 
 // Category Line Item Schema (Column schema)
 // Input: User enters 15.5 for 15.5%
 export const categoryPercentageSchema = z.object({
-	idCategory: z.number().int('Categoría inválida').positive('Categoría inválida'),
+	idCategory: z
+		.number()
+		.int('Categoría inválida')
+		.positive('Categoría inválida'),
 	percentage: percentageSchema,
 })
 
@@ -38,12 +41,12 @@ const categoryLinesSchema = z
 const categoryLinesApiSchema = categoryLinesSchema.transform((items) =>
 	items.map((item) => ({
 		...item,
-		percentage: Number((item.percentage / 100).toFixed(4)),
+		percentage: Number(item.percentage) / 100,
 	}))
 )
 
 const optionalCategoryLinesApiSchema = z.preprocess(
-	(value) => (value === undefined ? [] : value),
+	(value) => (Array.isArray(value) ? value : []),
 	categoryLinesApiSchema
 )
 
@@ -85,4 +88,6 @@ export type CreateCommissionRuleFormData = z.infer<
 export type UpdateCommissionRuleFormData = z.infer<
 	typeof updateCommissionRuleSchema
 >
-export type CategoryPercentageFormData = z.infer<typeof categoryPercentageSchema>
+export type CategoryPercentageFormData = z.infer<
+	typeof categoryPercentageSchema
+>

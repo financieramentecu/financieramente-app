@@ -100,6 +100,7 @@ Como Administrador, quiero ver una lista de Configuraciones de Producto para pod
 - **RF-013**: La interfaz de creación de reglas DEBE utilizar un "modo de agregación" donde el usuario selecciona una Configuración de Producto y luego añade múltiples líneas de Categoría/Porcentaje antes de guardar.
 - **RF-014**: El modelo `ProductPercentageCommission` DEBE incluir un campo `description` (texto opcional, máx. 255 caracteres) que el usuario puede asignar al crear o editar una regla para identificarla en el listado.
 - **RF-015**: Los modelos Prisma DEBEN renombrarse al inglés correcto: `ProductPercentajeCommision` → `ProductPercentageCommission`, `ProductPercentajeCommisionCategory` → `ProductPercentageCommissionCategory`. Las tablas subyacentes en BD mantienen sus nombres (`@@map`). Requiere migración.
+- **RF-016**: El sistema DEBE incluir una opción en la barra lateral de navegación (Sidebar) con el texto "Config. Distribución comisión", que permita al usuario acceder directamente al listado de Configuraciones de Producto.
 
 ### Entidades Clave _(incluir si la funcionalidad involucra datos)_
 

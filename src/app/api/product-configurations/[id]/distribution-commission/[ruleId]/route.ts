@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { updateCommissionRuleApiSchema } from '@/features/commission-rules/lib/commission-rule-schemas'
-import { prismaCommissionRuleToDomain } from '@/features/commission-rules/mappers/commission-rule.mapper'
-import {
-	CommissionRule,
-} from '@/features/commission-rules/types/commission-rule.types'
+import { updateCommissionRuleApiSchema } from '@/features/distribution-commission/lib/commission-rule-schemas'
+import { prismaCommissionRuleToDomain } from '@/features/distribution-commission/mappers/commission-rule.mapper'
+import { CommissionRule } from '@/features/distribution-commission/types/commission-rule.types'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 
 export const dynamic = 'force-dynamic'
@@ -36,9 +34,7 @@ export async function GET(
 			)
 		}
 
-		console.log(
-			`Fetching rule ${ruleId} for product config ${productConfigId}`
-		)
+		console.log(`Fetching rule ${ruleId} for product config ${productConfigId}`)
 
 		const rule = await prisma.productPercentageCommission.findUnique({
 			where: {
@@ -68,7 +64,6 @@ export async function GET(
 
 		return NextResponse.json({
 			data: prismaCommissionRuleToDomain(rule),
-			error: null,
 		})
 	} catch (error) {
 		console.error('Error fetching commission rule:', error)
@@ -185,7 +180,6 @@ export async function PUT(
 
 		return NextResponse.json({
 			data: prismaCommissionRuleToDomain(updatedRule),
-			error: null,
 		})
 	} catch (error) {
 		console.error('Error updating commission rule:', error)
@@ -233,7 +227,10 @@ export async function PATCH(
 
 		if (typeof active !== 'boolean') {
 			return NextResponse.json(
-				{ data: null, error: 'El campo active es requerido y debe ser booleano' },
+				{
+					data: null,
+					error: 'El campo active es requerido y debe ser booleano',
+				},
 				{ status: 400 }
 			)
 		}
@@ -296,11 +293,15 @@ export async function PATCH(
 
 		return NextResponse.json({
 			data: prismaCommissionRuleToDomain(updatedRule),
-			error: null,
 		})
 	} catch (error) {
 		console.error('Error toggling commission rule status:', error)
-		if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
+		if (
+			error &&
+			typeof error === 'object' &&
+			'code' in error &&
+			error.code === 'P2025'
+		) {
 			return NextResponse.json(
 				{ data: null, error: 'Regla de comisión no encontrada' },
 				{ status: 404 }

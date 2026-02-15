@@ -74,6 +74,7 @@ export function useCommissionRules(
 				}
 			)
 
+			// Check for error property safely, handling backend returning error: null on success
 			if ('error' in response) {
 				throw new Error(response.error)
 			}
@@ -87,7 +88,7 @@ export function useCommissionRules(
 				})
 			} else {
 				// Fallback generic error if no data and no error message
-				throw new Error('No se pudieron cargar las reglas')
+				throw new Error('No se encontraron reglas de comisión')
 			}
 		} catch (error) {
 			console.error('Error loading commission rules:', error)
@@ -100,7 +101,13 @@ export function useCommissionRules(
 						: 'Error desconocido al cargar reglas de comisión',
 			})
 		}
-	}, [productConfigId, debouncedSearch, filters.active, filters.page, filters.pageSize])
+	}, [
+		productConfigId,
+		debouncedSearch,
+		filters.active,
+		filters.page,
+		filters.pageSize,
+	])
 
 	// Fetch when dependencies change
 	useEffect(() => {

@@ -40,7 +40,7 @@ export const commissionRuleApi = {
 
 			const queryString = queryParams.toString()
 			const response = await fetch(
-				`/api/product-configurations/${productConfigId}/commission-rules${
+				`/api/product-configurations/${productConfigId}/distribution-commission${
 					queryString ? `?${queryString}` : ''
 				}`,
 				{
@@ -84,7 +84,7 @@ export const commissionRuleApi = {
 	): Promise<ApiResponse<CommissionRule>> {
 		try {
 			const response = await fetch(
-				`/api/product-configurations/${productConfigId}/commission-rules/${ruleId}`,
+				`/api/product-configurations/${productConfigId}/distribution-commission/${ruleId}`,
 				{
 					headers: {
 						'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export const commissionRuleApi = {
 			}
 
 			const response = await fetch(
-				`/api/product-configurations/${productConfigId}/commission-rules`,
+				`/api/product-configurations/${productConfigId}/distribution-commission`,
 				{
 					method: 'POST',
 					headers: {
@@ -182,7 +182,7 @@ export const commissionRuleApi = {
 			}
 
 			const response = await fetch(
-				`/api/product-configurations/${productConfigId}/commission-rules/${ruleId}`,
+				`/api/product-configurations/${productConfigId}/distribution-commission/${ruleId}`,
 				{
 					method: 'PUT',
 					headers: {
@@ -226,7 +226,7 @@ export const commissionRuleApi = {
 	): Promise<ApiResponse<CommissionRule>> {
 		try {
 			const response = await fetch(
-				`/api/product-configurations/${productConfigId}/commission-rules/${ruleId}`,
+				`/api/product-configurations/${productConfigId}/distribution-commission/${ruleId}`,
 				{
 					method: 'PATCH',
 					headers: {
@@ -269,7 +269,7 @@ export const commissionRuleApi = {
 	): Promise<ApiResponse<AssignNewBusinessesResponse>> {
 		try {
 			const response = await fetch(
-				`/api/product-configurations/${productConfigId}/commission-rules/${ruleId}/assign-new-businesses`,
+				`/api/product-configurations/${productConfigId}/distribution-commission/${ruleId}/assign-new-businesses`,
 				{
 					method: 'POST',
 					headers: {

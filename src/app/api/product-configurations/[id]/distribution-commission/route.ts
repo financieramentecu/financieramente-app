@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
-import { createCommissionRuleApiSchema } from '@/features/commission-rules/lib/commission-rule-schemas'
-import { prismaCommissionRuleListToDomain } from '@/features/commission-rules/mappers/commission-rule.mapper'
+import { createCommissionRuleApiSchema } from '@/features/distribution-commission/lib/commission-rule-schemas'
+import { prismaCommissionRuleListToDomain } from '@/features/distribution-commission/mappers/commission-rule.mapper'
 import {
 	CommissionRuleListResponse,
 	CommissionRule,
-} from '@/features/commission-rules/types/commission-rule.types'
+} from '@/features/distribution-commission/types/commission-rule.types'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 
 export const dynamic = 'force-dynamic'
@@ -96,12 +96,10 @@ export async function GET(
 
 		const defaultRuleId =
 			productConfiguration.idProductPercentageCommissionNewBusinesses
-		const domainRules = prismaCommissionRuleListToDomain(rules).map(
-			(rule) => ({
-				...rule,
-				isDefaultForNewBusinesses: rule.id === defaultRuleId,
-			})
-		)
+		const domainRules = prismaCommissionRuleListToDomain(rules).map((rule) => ({
+			...rule,
+			isDefaultForNewBusinesses: rule.id === defaultRuleId,
+		}))
 
 		return NextResponse.json({
 			data: {
@@ -180,8 +178,7 @@ export async function POST(
 			if (data.categories && data.categories.length > 0) {
 				await tx.productPercentageCommissionCategory.createMany({
 					data: data.categories.map((cat) => ({
-						idProductPercentageCommission:
-							rule.idProductPercentageCommission,
+						idProductPercentageCommission: rule.idProductPercentageCommission,
 						idCategory: cat.idCategory,
 						porcentajeDistribucion: cat.percentage,
 						active: true,
@@ -192,8 +189,7 @@ export async function POST(
 			// Return complete rule with includes
 			return tx.productPercentageCommission.findUniqueOrThrow({
 				where: {
-					idProductPercentageCommission:
-						rule.idProductPercentageCommission,
+					idProductPercentageCommission: rule.idProductPercentageCommission,
 				},
 				include: {
 					productPercentageCommissionCategories: {
@@ -214,12 +210,11 @@ export async function POST(
 		// Checking mappers file content from history...
 		// Yes, `prismaCommissionRuleToDomain` exists.
 		const { prismaCommissionRuleToDomain } = await import(
-			'@/features/commission-rules/mappers/commission-rule.mapper'
+			'@/features/distribution-commission/mappers/commission-rule.mapper'
 		)
 
 		return NextResponse.json({
 			data: prismaCommissionRuleToDomain(newRule),
-			error: null,
 		})
 	} catch (error) {
 		console.error('Error creating commission rule:', error)

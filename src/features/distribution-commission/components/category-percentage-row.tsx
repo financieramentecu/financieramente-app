@@ -4,7 +4,7 @@ import type { Category } from '@/features/categories/types/category.types'
 import type {
 	CreateCommissionRuleFormData,
 	UpdateCommissionRuleFormData,
-} from '@/features/commission-rules/lib/commission-rule-schemas'
+} from '@/features/distribution-commission/lib/commission-rule-schemas'
 import { Button } from '@/features/shared/ui/button'
 import {
 	FormControl,

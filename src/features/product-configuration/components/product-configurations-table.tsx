@@ -104,11 +104,9 @@ export function ProductConfigurationsTableSection({
 			header: 'Acciones',
 			cellRenderer: (_, row) => (
 				<div className="flex items-center gap-1">
-					<Button asChild variant="ghost" size="sm">
-						<Link
-							href={`/dashboard/configuraciones-producto/${row.id}/reglas`}
-						>
-							Gestionar Reglas
+					<Button asChild variant="default" size="sm">
+						<Link href={`/dashboard/distribucion-comisiones/${row.id}/reglas`}>
+							Configuración comisión
 						</Link>
 					</Button>
 					<Button
@@ -124,9 +122,7 @@ export function ProductConfigurationsTableSection({
 						size="icon"
 						onClick={() => onToggleActive(row)}
 						title={
-							row.active
-								? 'Desactivar configuración'
-								: 'Activar configuración'
+							row.active ? 'Desactivar configuración' : 'Activar configuración'
 						}
 					>
 						{row.active ? (
@@ -153,10 +149,7 @@ export function ProductConfigurationsTableSection({
 	const renderAdditionalFilters = () => {
 		if (!onActiveChange) return null
 		return (
-			<Select
-				value={selectedActive || 'all'}
-				onValueChange={onActiveChange}
-			>
+			<Select value={selectedActive || 'all'} onValueChange={onActiveChange}>
 				<SelectTrigger className="w-[180px]">
 					<SelectValue placeholder="Filtrar por estado" />
 				</SelectTrigger>
@@ -173,9 +166,7 @@ export function ProductConfigurationsTableSection({
 		<div className="space-y-4">
 			{/* Header */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-				<h2 className="text-xl font-semibold">
-					Configuraciones de Producto
-				</h2>
+				<h2 className="text-xl font-semibold">Configuraciones de Producto</h2>
 				<Button onClick={onAddConfiguration}>
 					<Plus className="h-4 w-4 mr-2" />
 					Crear Configuración

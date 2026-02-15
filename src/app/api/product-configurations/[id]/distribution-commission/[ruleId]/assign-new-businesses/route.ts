@@ -56,8 +56,7 @@ export async function POST(
 			return NextResponse.json(
 				{
 					data: null,
-					error:
-						'Solo se puede asignar una regla activa como predeterminada',
+					error: 'Solo se puede asignar una regla activa como predeterminada',
 				},
 				{ status: 400 }
 			)
@@ -78,7 +77,6 @@ export async function POST(
 				idProductPercentageCommissionNewBusinesses:
 					updatedConfig.idProductPercentageCommissionNewBusinesses,
 			},
-			error: null,
 		})
 	} catch (error) {
 		console.error(

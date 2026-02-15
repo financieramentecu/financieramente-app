@@ -7,7 +7,7 @@ import {
 	updateCommissionRuleSchema,
 	CreateCommissionRuleFormData,
 	UpdateCommissionRuleFormData,
-} from '@/features/commission-rules/lib/commission-rule-schemas'
+} from '@/features/distribution-commission/lib/commission-rule-schemas'
 import { Button } from '@/features/shared/ui/button'
 import {
 	Form,
@@ -20,14 +20,14 @@ import {
 } from '@/features/shared/ui/form'
 import { Input } from '@/features/shared/ui/input'
 import { Switch } from '@/features/shared/ui/switch'
-import { CommissionRule } from '@/features/commission-rules/types/commission-rule.types'
-import { useCommissionRuleMutations } from '@/features/commission-rules/hooks/use-commission-rule-mutations'
+import { CommissionRule } from '@/features/distribution-commission/types/commission-rule.types'
+import { useCommissionRuleMutations } from '@/features/distribution-commission/hooks/use-commission-rule-mutations'
 import { useCategories } from '@/features/categories/hooks/use-categories'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { Loader2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { CategoryPercentageRow } from '@/features/commission-rules/components/category-percentage-row'
+import { CategoryPercentageRow } from '@/features/distribution-commission/components/category-percentage-row'
 import { useState } from 'react'
 import {
 	AlertDialog,
@@ -57,14 +57,13 @@ export function CommissionRuleForm({
 	mode,
 }: CommissionRuleFormProps) {
 	const router = useRouter()
-	const { create, update, isCreating, isUpdating } = useCommissionRuleMutations(
-		productConfigId
-	)
+	const { create, update, isCreating, isUpdating } =
+		useCommissionRuleMutations(productConfigId)
 	const [showImpactDialog, setShowImpactDialog] = useState(false)
 	const [pendingData, setPendingData] = useState<CommissionRuleFormData | null>(
 		null
 	)
-	
+
 	// Fetch categories for selection
 	const { state: categoriesState } = useCategories({
 		status: 'true', // Only active categories
@@ -79,23 +78,24 @@ export function CommissionRuleForm({
 			mode === 'create'
 				? createCommissionRuleSchema
 				: updateCommissionRuleSchema
-		),
+		) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
 		defaultValues:
 			mode === 'create'
 				? {
 						idProductConfiguration: productConfigId,
 						description: '',
 						categories: [],
-				  }
+					}
 				: {
 						idProductPercentageCommission: initialData?.id,
 						description: initialData?.description || '',
 						active: initialData?.active,
-						categories: initialData?.categories?.map((cat) => ({
-							idCategory: cat.idCategory,
-							percentage: Number(cat.porcentajeDistribucion),
-						})) || [],
-				  },
+						categories:
+							initialData?.categories?.map((cat) => ({
+								idCategory: cat.idCategory,
+								percentage: Number(cat.porcentajeDistribucion),
+							})) || [],
+					},
 	})
 
 	const { fields, append, remove } = useFieldArray({
@@ -138,22 +138,22 @@ export function CommissionRuleForm({
 			if (success) {
 				toast.success(
 					mode === 'create'
-						? 'Regla creada'
-						: 'Regla actualizada',
+						? 'Distribución creada'
+						: 'Distribución actualizada',
 					{
-						description: `La regla ha sido ${
+						description: `La distribución ha sido ${
 							mode === 'create' ? 'creada' : 'actualizada'
 						} exitosamente.`,
 					}
 				)
 				router.push(
-					`/dashboard/configuraciones-producto/${productConfigId}/reglas`
+					`/dashboard/distribucion-comisiones/${productConfigId}/reglas`
 				)
 			} else {
 				toast.error('Error', {
 					description: `No se pudo ${
 						mode === 'create' ? 'crear' : 'actualizar'
-					} la regla.`,
+					} la distribución.`,
 				})
 			}
 		} catch (error) {
@@ -207,11 +207,9 @@ export function CommissionRuleForm({
 							render={({ field }) => (
 								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
 									<div className="space-y-0.5">
-										<FormLabel className="text-base">
-											Activo
-										</FormLabel>
+										<FormLabel className="text-base">Activo</FormLabel>
 										<FormDescription>
-											Activar o desactivar esta regla de comisión.
+											Activar o desactivar esta distribución de comisión.
 										</FormDescription>
 									</div>
 									<FormControl>
@@ -238,9 +236,7 @@ export function CommissionRuleForm({
 							type="button"
 							variant="outline"
 							size="sm"
-							onClick={() =>
-								append({ idCategory: 0, percentage: 0.01 })
-							}
+							onClick={() => append({ idCategory: 0, percentage: 0.01 })}
 						>
 							<Plus className="mr-2 h-4 w-4" />
 							Agregar Categoría
@@ -263,22 +259,21 @@ export function CommissionRuleForm({
 
 						{fields.length === 0 && (
 							<div className="py-6 text-center text-sm text-muted-foreground">
-								No hay categorías agregadas. Agrega una para comenzar la distribución.
+								No hay categorías agregadas. Agrega una para comenzar la
+								distribución.
 							</div>
 						)}
 					</div>
 
 					<div className="flex items-center justify-end gap-4">
 						<div className="text-right">
-							<p className="text-sm font-medium">
-								Total (informativo)
-							</p>
+							<p className="text-sm font-medium">Total (informativo)</p>
 							<p
 								className={cn(
-									"text-2xl font-bold",
+									'text-2xl font-bold',
 									totalPercentage > 0
-										? "text-foreground"
-										: "text-muted-foreground"
+										? 'text-foreground'
+										: 'text-muted-foreground'
 								)}
 							>
 								{totalPercentage.toFixed(2)}%
@@ -298,11 +293,9 @@ export function CommissionRuleForm({
 				>
 					<AlertDialogContent>
 						<AlertDialogHeader>
-							<AlertDialogTitle>
-								Confirmar actualización
-							</AlertDialogTitle>
+							<AlertDialogTitle>Confirmar actualización</AlertDialogTitle>
 							<AlertDialogDescription>
-								Los cambios en esta regla pueden afectar negocios
+								Los cambios en esta distribución pueden afectar negocios
 								asociados y futuras liquidaciones. ¿Deseas continuar?
 							</AlertDialogDescription>
 						</AlertDialogHeader>
@@ -328,10 +321,8 @@ export function CommissionRuleForm({
 						Cancelar
 					</Button>
 					<Button type="submit" disabled={isLoading}>
-						{isLoading && (
-							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-						)}
-						{mode === 'create' ? 'Crear Regla' : 'Guardar Cambios'}
+						{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+						{mode === 'create' ? 'Crear Distribución' : 'Guardar Cambios'}
 					</Button>
 				</div>
 			</form>

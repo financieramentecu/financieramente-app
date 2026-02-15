@@ -1,11 +1,15 @@
-# Implementation Plan: Gestión de Reglas de Comisión
+# Implementation Plan: Distribución de Comisión
 
-**Branch**: `004-manage-commission-rules` | **Date**: 2026-02-12 | **Spec**: [spec.md](./spec.md)
+**Branch**: `004-manage-commission-rules` | **Date**: 2026-02-14 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/004-manage-commission-rules/spec.md`
 
 ## Summary
 
-CRUD management for commission percentage rules (`ProductPercentageCommission`) nested under `ProductConfiguration`. Admins create rules with a description, assign category-based percentage distributions via an aggregation UI, toggle active status (with business-association guards), and designate a default rule for new businesses. Requires Prisma model rename migration, a new `description` field, a new feature module following the categories reference pattern, nested API routes, and new dashboard pages.
+CRUD management for commission distribution rules (`ProductPercentageCommission`) nested under `ProductConfiguration`. Admins create distributions with a description, assign category-based percentage distributions via an aggregation UI, toggle active status (with business-association guards), and designate a default rule for new businesses.
+
+**Terminology Update**: The feature has been renamed from "Reglas de Comisión" to "**Distribución de Comisión**" to better reflect the business domain.
+
+**Navigation**: A new sidebar item "Distribución de comisión" will point to the dedicated module at `/dashboard/distribucion-comisiones/`.
 
 ## Technical Context
 
@@ -21,22 +25,8 @@ CRUD management for commission percentage rules (`ProductPercentageCommission`) 
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-| Principle | Status | Notes |
-|-----------|--------|-------|
-| I. Screaming Architecture | PASS | New feature in `src/features/commission-rules/` with full structure |
-| II. SOLID Principles | PASS | Services via plain functions, Zod schemas, typed interfaces |
-| III. TypeScript Best Practices | PASS | No `any`, readonly for IDs/timestamps, Zod inference |
-| IV. Functional Programming | PASS | Pure functions, immutable interfaces, factory patterns where needed |
-| V. Clean Code Standards | PASS | kebab-case files, camelCase vars, PascalCase types, handle* for events |
-| VI. Test-First Development | PASS | Tests for schemas, API, hooks, mappers, components in `__tests__/` |
-| VII. Error Handling & Validation | PASS | Zod schemas for create/update, typed ApiResponse errors |
-| VIII. React Data Fetching (AsyncState) | PASS | Custom hooks returning AsyncState\<T\> |
-| IX. API Response Standardization | PASS | All routes return ApiResponse\<T\> via NextResponse.json |
-| X. Component Logic Separation | PASS | Hooks for logic, components for presentation |
-
-**Gate Result**: ALL PASS. No violations to justify.
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
+PASS. Standard "Financieramente" stack usage.
 
 ## Project Structure
 
@@ -65,7 +55,7 @@ prisma/
     └── YYYYMMDD_rename_ppc_models_add_description/
 
 # Feature Module (new)
-src/features/commission-rules/
+src/features/distribution-commission/
 ├── types/
 │   └── commission-rule.types.ts     # Domain interfaces
 ├── lib/
@@ -100,37 +90,106 @@ src/features/commission-rules/
 │       └── commission-rule-form.test.tsx
 └── index.ts
 
-# API Routes (nested under product-configurations)
-src/app/api/product-configurations/[id]/commission-rules/
+# API Routes
+src/app/api/product-configurations/[id]/distribution-commission/
 ├── route.ts                         # GET list, POST create
 └── [ruleId]/
     ├── route.ts                     # GET single, PUT update, PATCH toggle active
     └── assign-new-businesses/
         └── route.ts                 # POST assign as default for new businesses
 
-# Dashboard Pages (nested under configuraciones-producto)
-src/app/dashboard/configuraciones-producto/[id]/reglas/
-├── page.tsx                         # Server component: list rules
-├── crear/
-│   └── page.tsx                     # Server component: create rule
-└── editar/
-    └── [ruleId]/
-        └── page.tsx                 # Server component: edit rule
+# Dashboard Pages (New dedicated module)
+src/app/dashboard/distribucion-comisiones/
+├── page.tsx                         # Entry point: List Product Configurations
+├── [id]/
+│   └── reglas/
+│       ├── page.tsx                 # List rules for config [id]
+│       ├── crear/
+│       │   └── page.tsx             # Create rule
+│       └── editar/
+│           └── [ruleId]/
+│               └── page.tsx         # Edit rule
 
 # Modifications to Existing Code
 src/features/product-configuration/
 ├── components/
-│   └── product-configurations-table.tsx  # Add "Gestionar Reglas" action column
+│   └── product-configurations-table.tsx  # Reuse or adapt for the entry page list
 └── types/
     └── product-configuration.types.ts    # Update field names after Prisma rename
 src/features/product-configuration/mappers/
     └── product-configuration.mapper.ts   # Update field references
 src/app/api/product-configurations/[id]/ppcs/
     └── route.ts                          # Update Prisma model references
+src/features/shared/layout/
+    └── menu-items.tsx                    # [MODIFIED] Add "Distribución de comisión" link
 ```
 
-**Structure Decision**: Feature-based architecture following the `categories` reference pattern. Commission rules are a separate feature module (`src/features/commission-rules/`) because they have their own domain types, validation rules, and UI. API routes are nested under `/product-configurations/[id]/` to express the parent-child relationship. Pages nested under `/configuraciones-producto/[id]/reglas/` for natural navigation.
+**Structure Decision**: Feature-based architecture following the `categories` reference pattern.
 
-## Complexity Tracking
+## Refactoring & Updates (2026-02-14)
 
-> No constitution violations. Table not needed.
+1.  **Renaming**: Feature renamed from `commission-rules` to `distribution-commission`.
+    - API routes moved to `src/app/api/product-configurations/[id]/distribution-commission/`.
+    - UI text updated to use "Distribución de Comisión".
+2.  **Layout**: All dashboard pages (List, Create, Edit) are now wrapped in `DashboardLayout` for consistent navigation and header.
+3.  **Error Handling**: Fixed `useCommissionRules` hook to correctly handle API responses where `error` is null.
+4.  **Dependencies**: Updated imports in API routes to point to `features/distribution-commission`.
+
+## Refactoring & Updates (Round 2)
+
+**Goal**: Polish UI/UX and fix bugs based on user feedback.
+
+1.  **Navigation**: Remove "Distribución de comisión" from the sidebar. Access will be exclusively through the "Configuración de Producto" table.
+2.  **Product Configuration Table**:
+    - Rename action "Gestionar Distribución" to "**Configuración comisión**".
+    - Style it as a button (variant: default or outline) instead of a link/ghost button.
+3.  **Distribution Details (Rules Table)**:
+    - **Categories Column**: Display category names and their percentages as **Chips/Badges**.
+    - **Status Indicators**: Change the "Predeterminada" label to "**Nuevos negocios**".
+4.  **Bug Fixes**:
+    - Fix errors when creating/editing percentages (ensure proper type conversion).
+    - Fix errors when creating/editing the distribution rule itself.
+
+## Bug Investigation: Toast Error on Save (2026-02-14)
+
+**Issue**: saving data shows an error toast ("Error"), but the data is saved correctly.
+
+**Root Cause**:
+
+- The API routes (`POST`, `PUT`, `PATCH`) are returning `{ data: ..., error: null }` on success.
+- The `ApiResponse` type definition defines success as `{ data: T }` (no error property).
+- The frontend hook `useCommissionRuleMutations` checks failure using `if ('error' in response)`.
+- Since `error: null` is present in the response object, the check evaluates to `true`, treating success as a failure.
+
+**Fix Plan**:
+
+2.  **Frontend (Defensive)**: Update `useCommissionRuleMutations` to check `if ('error' in response && response.error)` to be robust against mixed responses.
+
+## Bug Investigation: Assign Default Rule (2026-02-14)
+
+**Issue**: Assigning "Nuevos negocios" shows error toast, but change applies on reload. User wants immediate feedback without reload.
+
+**Root Cause**:
+
+- **Error Toast**: Same as above—`assign-new-businesses/route.ts` returns `error: null`, causing false failure detection.
+- **"No Reload"**: `router.refresh()` is called on success, but since the hook thinks it failed, it might not be triggering the refresh or the user is confused by the error toast.
+
+**Fix Plan**:
+
+1.  **Backend**: Remove `error: null` from `assign-new-businesses/route.ts` success response.
+2.  **Frontend**: Ensure `onSuccess` (which triggers `router.refresh()`) is called. The existing logic usually calls it on success.
+3.  **UI Feedback**: The existing component already has a success toast. Fixing the boolean return from the hook will reveal it.
+
+## Bug Investigation: Edit Page "Error: null" (2026-02-14)
+
+**Issue**: Accessing the Edit page shows "Error: null" despite a successful 200 OK API response.
+
+**Root Cause**:
+
+- **Backward Compatibility**: The `GET` endpoint in `distribution-commission/[ruleId]/route.ts` still returns `{ error: null }`.
+- **Frontend Hook**: `useCommissionRule` checks `if ('error' in response)`, identifying the presence of the `error` key (even if null) as a failure.
+- **Throw**: It then throws `response.error` (null), resulting in the visible "Error: null".
+
+**Fix Plan**:
+
+- **Backend**: Remove `error: null` from the `GET` success response in `distribution-commission/[ruleId]/route.ts`.
