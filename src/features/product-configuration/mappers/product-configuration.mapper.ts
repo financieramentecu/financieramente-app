@@ -6,7 +6,7 @@
 import type { ProductConfiguration } from '../types/product-configuration.types'
 
 /**
- * Prisma result type with includes
+ * Prisma result type with includes using Prisma's payload type helper
  */
 interface PrismaProductConfigurationWithIncludes {
 	id: number

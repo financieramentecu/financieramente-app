@@ -156,7 +156,7 @@ export function CategoriesTableSection({
 				value={selectedTypeCategory || 'all'}
 				onValueChange={onTypeCategoryChange}
 			>
-				<SelectTrigger className="w-[180px]">
+				<SelectTrigger className="w-full sm:w-[180px] min-w-0">
 					<SelectValue placeholder="Filtrar por tipo" />
 				</SelectTrigger>
 				<SelectContent>

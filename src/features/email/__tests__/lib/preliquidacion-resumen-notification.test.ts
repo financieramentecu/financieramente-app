@@ -16,24 +16,27 @@ describe('preliquidacion-resumen-notification', () => {
 
     describe('buildResumenPreliquidacionHtml', () => {
         it('incluye saludo, archivo, periodo y tabla con filas', () => {
-            const html = buildResumenPreliquidacionHtml({
-                to: 'user@test.com',
-                nombreUsuario: 'Juan Pérez',
-                archivoNombre: 'Carga Enero.xlsx',
-                periodo: '2024-01-01 - 2024-01-31',
-                filas: [
-                    {
-                        nombreNegocio: 'Contrato CT-001',
-                        valorComision: 150.5,
-                        categoriaConcepto: 'Agencia',
-                    },
-                    {
-                        nombreNegocio: 'Contrato CT-002',
-                        valorComision: 200,
-                        categoriaConcepto: 'General',
-                    },
-                ],
-            })
+            const html = buildResumenPreliquidacionHtml(
+                {
+                    to: 'user@test.com',
+                    nombreUsuario: 'Juan Pérez',
+                    archivoNombre: 'Carga Enero.xlsx',
+                    periodo: '2024-01-01 - 2024-01-31',
+                    filas: [
+                        {
+                            nombreNegocio: 'Contrato CT-001',
+                            valorComision: 150.5,
+                            categoriaConcepto: 'Agencia',
+                        },
+                        {
+                            nombreNegocio: 'Contrato CT-002',
+                            valorComision: 200,
+                            categoriaConcepto: 'General',
+                        },
+                    ],
+                },
+                'https://example.com'
+            )
 
             expect(html).toContain('Hola Juan Pérez,')
             expect(html).toContain('Carga Enero.xlsx')
@@ -50,12 +53,15 @@ describe('preliquidacion-resumen-notification', () => {
         })
 
         it('escapa HTML en nombres para evitar XSS', () => {
-            const html = buildResumenPreliquidacionHtml({
-                to: 'u@t.com',
-                archivoNombre: '<script>alert(1)</script>',
-                periodo: '2024-01',
-                filas: [{ nombreNegocio: 'A & B', valorComision: 0 }],
-            })
+            const html = buildResumenPreliquidacionHtml(
+                {
+                    to: 'u@t.com',
+                    archivoNombre: '<script>alert(1)</script>',
+                    periodo: '2024-01',
+                    filas: [{ nombreNegocio: 'A & B', valorComision: 0 }],
+                },
+                'https://example.com'
+            )
             expect(html).not.toContain('<script>')
             expect(html).toContain('&lt;script&gt;')
             expect(html).toContain('A &amp; B')
@@ -63,7 +69,7 @@ describe('preliquidacion-resumen-notification', () => {
     })
 
     describe('sendResumenPreliquidacionEmail', () => {
-        it('llama a sendEmail con subject, to y html', async () => {
+        it('llama a sendEmail con subject, to, html y text', async () => {
             await sendResumenPreliquidacionEmail({
                 to: 'agente@test.com',
                 nombreUsuario: 'María',
@@ -81,7 +87,9 @@ describe('preliquidacion-resumen-notification', () => {
             expect(params.subject).toContain('Archivo.xlsx')
             expect(params.subject).toContain('2024-01')
             expect(params.html).toBeDefined()
+            expect(params.text).toBeDefined()
             expect(params.html).toContain('N1')
+            expect(params.text).toContain('N1')
         })
     })
 })
