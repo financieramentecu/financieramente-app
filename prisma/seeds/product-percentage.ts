@@ -99,14 +99,14 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 		}
 
 		// Buscar o crear PPC bajo esta configuración
-		let ppc = await prisma.productPercentajeCommision.findFirst({
+		let ppc = await prisma.productPercentageCommission.findFirst({
 			where: {
 				idProductConfiguration: productConfiguration.id,
 			},
 		})
 
 		if (!ppc) {
-			ppc = await prisma.productPercentajeCommision.create({
+			ppc = await prisma.productPercentageCommission.create({
 				data: {
 					idProductConfiguration: productConfiguration.id,
 					active: true,
@@ -116,8 +116,8 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 			await prisma.productConfiguration.update({
 				where: { id: productConfiguration.id },
 				data: {
-					idProductPercentajeCommisionNewBusinesses:
-						ppc.idProductPercentajeCommision,
+					idProductPercentageCommissionNewBusinesses:
+						ppc.idProductPercentageCommission,
 				},
 			})
 			console.log(
@@ -130,17 +130,17 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 			if (!dist.targetCat) continue
 
 			const existingDetail =
-				await prisma.productPercentajeCommisionCategory.findFirst({
+				await prisma.productPercentageCommissionCategory.findFirst({
 					where: {
-						idProductPercentajeCommision: ppc.idProductPercentajeCommision,
+						idProductPercentageCommission: ppc.idProductPercentageCommission,
 						idCategory: dist.targetCat.idCategory,
 					},
 				})
 
 			if (!existingDetail) {
-				await prisma.productPercentajeCommisionCategory.create({
+				await prisma.productPercentageCommissionCategory.create({
 					data: {
-						idProductPercentajeCommision: ppc.idProductPercentajeCommision,
+						idProductPercentageCommission: ppc.idProductPercentageCommission,
 						idCategory: dist.targetCat.idCategory,
 						porcentajeDistribucion: dist.pct,
 						active: true,

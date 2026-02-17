@@ -128,13 +128,13 @@ describe('product-configuration-schemas', () => {
 	describe('updateProductConfigurationSchema', () => {
 		it('should validate valid data (happy path)', () => {
 			const data = {
-				idProductPercentajeCommisionNewBusinesses: 5,
+				idProductPercentageCommissionNewBusinesses: 5,
 			}
 
 			const result = updateProductConfigurationSchema.safeParse(data)
 			expect(result.success).toBe(true)
 			if (result.success) {
-				expect(result.data.idProductPercentajeCommisionNewBusinesses).toBe(5)
+				expect(result.data.idProductPercentageCommissionNewBusinesses).toBe(5)
 			}
 		})
 
@@ -145,7 +145,7 @@ describe('product-configuration-schemas', () => {
 
 		it('should reject zero value', () => {
 			const data = {
-				idProductPercentajeCommisionNewBusinesses: 0,
+				idProductPercentageCommissionNewBusinesses: 0,
 			}
 
 			const result = updateProductConfigurationSchema.safeParse(data)
@@ -154,7 +154,7 @@ describe('product-configuration-schemas', () => {
 
 		it('should reject negative value', () => {
 			const data = {
-				idProductPercentajeCommisionNewBusinesses: -1,
+				idProductPercentageCommissionNewBusinesses: -1,
 			}
 
 			const result = updateProductConfigurationSchema.safeParse(data)
@@ -163,7 +163,7 @@ describe('product-configuration-schemas', () => {
 
 		it('should reject non-integer value', () => {
 			const data = {
-				idProductPercentajeCommisionNewBusinesses: 1.5,
+				idProductPercentageCommissionNewBusinesses: 1.5,
 			}
 
 			const result = updateProductConfigurationSchema.safeParse(data)

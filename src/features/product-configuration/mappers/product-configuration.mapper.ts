@@ -6,7 +6,7 @@
 import type { ProductConfiguration } from '../types/product-configuration.types'
 
 /**
- * Prisma result type with includes
+ * Prisma result type with includes using Prisma's payload type helper
  */
 interface PrismaProductConfigurationWithIncludes {
 	id: number
@@ -15,7 +15,7 @@ interface PrismaProductConfigurationWithIncludes {
 	idCategory: number
 	code: string | null
 	active: boolean
-	idProductPercentajeCommisionNewBusinesses: number | null
+	idProductPercentageCommissionNewBusinesses: number | null
 	createdAt: Date
 	updatedAt: Date
 	product: {
@@ -25,8 +25,9 @@ interface PrismaProductConfigurationWithIncludes {
 	}
 	clientOrigin: { idClientOrigin: number; name: string }
 	category: { idCategory: number; name: string }
-	productPercentajeCommisionNewBusinesses: {
-		idProductPercentajeCommision: number
+	productPercentageCommissionNewBusinesses: {
+		idProductPercentageCommission: number
+		description: string | null
 		active: boolean
 	} | null
 }
@@ -44,8 +45,8 @@ export function prismaProductConfigToProductConfig(
 		idCategory: prisma.idCategory,
 		code: prisma.code ?? '',
 		active: prisma.active,
-		idProductPercentajeCommisionNewBusinesses:
-			prisma.idProductPercentajeCommisionNewBusinesses,
+		idProductPercentageCommissionNewBusinesses:
+			prisma.idProductPercentageCommissionNewBusinesses,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
 		product: {
@@ -64,14 +65,17 @@ export function prismaProductConfigToProductConfig(
 			idCategory: prisma.category.idCategory,
 			name: prisma.category.name,
 		},
-		ppcNewBusinesses: prisma.productPercentajeCommisionNewBusinesses
+		ppcNewBusinesses: prisma.productPercentageCommissionNewBusinesses
 			? {
-					id: prisma.productPercentajeCommisionNewBusinesses
-						.idProductPercentajeCommision,
-					active:
-						prisma.productPercentajeCommisionNewBusinesses.active,
+					id: prisma.productPercentageCommissionNewBusinesses
+						.idProductPercentageCommission,
+					description:
+						prisma.productPercentageCommissionNewBusinesses.description,
+					active: prisma.productPercentageCommissionNewBusinesses.active,
 				}
 			: null,
+		newBusinessesDistributionDescription:
+			prisma.productPercentageCommissionNewBusinesses?.description ?? null,
 	}
 }
 

@@ -32,12 +32,12 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Admin123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que la navegación se complete
-			await page.waitForURL('**/dashboard**', {
-				timeout: process.env.CI ? 20000 : 10000,
-			})
+			await page.waitForURL('**/dashboard**')
 
 			// Verificar que estamos en el dashboard
 			await expect(page).toHaveURL(/\/dashboard/)
@@ -49,7 +49,9 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'WrongPassword123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			// El toast de Sonner muestra: "Error de autenticación" con descripción "Credenciales inválidas..."
@@ -59,7 +61,7 @@ test.describe('Login con validación ssoOnly', () => {
 			)
 
 			// Esperar a que aparezca el mensaje de error con timeout suficiente
-			await expect(errorText.first()).toBeVisible({ timeout: 10000 })
+			await expect(errorText.first()).toBeVisible()
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -82,11 +84,13 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Admin123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			const errorMessage = page.locator('text=/inactiv|sso|google/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible()
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -117,11 +121,13 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Pro123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			const errorMessage = page.locator('text=/inactiv|no autorizado|admin/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -135,11 +141,13 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Agente123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			const errorMessage = page.locator('text=/inactiv|no autorizado|admin/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -153,11 +161,13 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Password123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			const errorMessage = page.locator('text=/no encontrado|inválid/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -173,14 +183,16 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Password123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			// El mensaje es genérico por seguridad
 			const errorMessage = page.locator(
 				'text=/Error de autenticación|Credenciales inválidas/i'
 			)
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -236,7 +248,7 @@ test.describe('Login con validación ssoOnly', () => {
 			const errorToast = page
 				.getByText(/Dominio no autorizado/i)
 				.or(page.getByText(/corporativos|no autorizado/i))
-			await expect(errorToast.first()).toBeVisible({ timeout: 15000 })
+			await expect(errorToast.first()).toBeVisible()
 		})
 	})
 

@@ -62,7 +62,7 @@ export function ProductConfigurationForm({
 	const handleFormSubmit = async (data: CreateProductConfigurationFormData) => {
 		if (mode === 'edit') {
 			await onSubmit({
-				idProductPercentajeCommisionNewBusinesses: parseInt(selectedPpc),
+				idProductPercentageCommissionNewBusinesses: parseInt(selectedPpc),
 			})
 		} else {
 			await onSubmit(data)
@@ -118,12 +118,13 @@ export function ProductConfigurationForm({
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Comisión de Porcentaje (Nuevos Negocios)</CardTitle>
+						<CardTitle>Distribución de comisión</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<div className="space-y-2">
 							<Label>
-								Referencia PPC <span className="text-destructive">*</span>
+								Distribución de comisión (Nuevos Negocios){' '}
+								<span className="text-destructive">*</span>
 							</Label>
 							<Select
 								value={selectedPpc}
@@ -131,16 +132,17 @@ export function ProductConfigurationForm({
 								disabled={isFormDisabled}
 							>
 								<SelectTrigger>
-									<SelectValue placeholder="Seleccione una comisión" />
+									<SelectValue placeholder="Seleccione la distribución de comisión" />
 								</SelectTrigger>
 								<SelectContent>
 									{ppcOptions.map((ppc) => (
 										<SelectItem
-											key={ppc.idProductPercentajeCommision}
-											value={ppc.idProductPercentajeCommision.toString()}
+											key={ppc.idProductPercentageCommission}
+											value={ppc.idProductPercentageCommission.toString()}
 										>
-											PPC #{ppc.idProductPercentajeCommision}{' '}
-											{ppc.active ? '(Activo)' : '(Inactivo)'}
+											{ppc.description ||
+												`Distribución #${ppc.idProductPercentageCommission}`}
+											{ppc.active ? '' : ' (Inactivo)'}
 										</SelectItem>
 									))}
 								</SelectContent>

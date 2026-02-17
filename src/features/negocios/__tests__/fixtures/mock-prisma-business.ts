@@ -12,7 +12,7 @@ export type PrismaBusinessWithRelations = Prisma.BusinessGetPayload<{
 	include: {
 		client: true
 		user: { include: { role: true } }
-		productPercentajeCommision: {
+		productPercentageCommission: {
 			include: {
 				productConfiguration: {
 					include: {
@@ -41,7 +41,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	idBuyPeriodicity: 1,
 	idUser: 2,
 	idClient: 1,
-	idProductPercentajeCommision: 1,
+	idProductPercentageCommission: 1,
 	idCurrency: 1,
 	idClientOrigin: 1,
 	status: 'VENTA_EFECTUADA',
@@ -90,10 +90,11 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 			updatedAt: baseDate,
 		},
 	},
-	productPercentajeCommision: {
-		idProductPercentajeCommision: 1,
+	productPercentageCommission: {
+		idProductPercentageCommission: 1,
 		idProductConfiguration: 1,
 		active: true,
+		description: null,
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		productConfiguration: {
@@ -103,7 +104,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 			idCategory: 1,
 			code: 'CREA_PATRIMONIO-PROPIO-JUNIOR',
 			active: true,
-			idProductPercentajeCommisionNewBusinesses: 1,
+			idProductPercentageCommissionNewBusinesses: 1,
 			createdAt: baseDate,
 			updatedAt: baseDate,
 			product: {

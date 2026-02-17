@@ -18,7 +18,7 @@ describe('product-configuration.mapper', () => {
 			expect(result.idCategory).toBe(1)
 			expect(result.code).toBe('CREA_PATRIMONIO-PROPIO-JUNIOR')
 			expect(result.active).toBe(true)
-			expect(result.idProductPercentajeCommisionNewBusinesses).toBe(1)
+			expect(result.idProductPercentageCommissionNewBusinesses).toBe(1)
 		})
 
 		it('should convert Date to ISO string', () => {
@@ -71,16 +71,14 @@ describe('product-configuration.mapper', () => {
 
 		it('should handle null ppcNewBusinesses', () => {
 			const prismaConfig = createMockPrismaProductConfiguration({
-				productPercentajeCommisionNewBusinesses: null,
-				idProductPercentajeCommisionNewBusinesses: null,
+				productPercentageCommissionNewBusinesses: null,
+				idProductPercentageCommissionNewBusinesses: null,
 			})
 
 			const result = prismaProductConfigToProductConfig(prismaConfig)
 
 			expect(result.ppcNewBusinesses).toBeNull()
-			expect(
-				result.idProductPercentajeCommisionNewBusinesses
-			).toBeNull()
+			expect(result.idProductPercentageCommissionNewBusinesses).toBeNull()
 		})
 
 		it('should handle null code', () => {
@@ -101,8 +99,7 @@ describe('product-configuration.mapper', () => {
 				createMockPrismaProductConfiguration({ id: 2 }),
 			]
 
-			const result =
-				prismaProductConfigListToProductConfigs(prismaList)
+			const result = prismaProductConfigListToProductConfigs(prismaList)
 
 			expect(result).toHaveLength(2)
 			expect(result[0].id).toBe(1)
