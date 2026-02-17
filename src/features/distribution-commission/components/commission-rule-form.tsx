@@ -82,20 +82,20 @@ export function CommissionRuleForm({
 		defaultValues:
 			mode === 'create'
 				? {
-						idProductConfiguration: productConfigId,
-						description: '',
-						categories: [],
-					}
+					idProductConfiguration: productConfigId,
+					description: '',
+					categories: [],
+				}
 				: {
-						idProductPercentageCommission: initialData?.id,
-						description: initialData?.description || '',
-						active: initialData?.active,
-						categories:
-							initialData?.categories?.map((cat) => ({
-								idCategory: cat.idCategory,
-								percentage: Number(cat.porcentajeDistribucion),
-							})) || [],
-					},
+					idProductPercentageCommission: initialData?.id,
+					description: initialData?.description || '',
+					active: initialData?.active,
+					categories:
+						initialData?.categories?.map((cat) => ({
+							idCategory: cat.idCategory,
+							percentage: Number(cat.porcentajeDistribucion),
+						})) || [],
+				},
 	})
 
 	const { fields, append, remove } = useFieldArray({
@@ -141,9 +141,8 @@ export function CommissionRuleForm({
 						? 'Distribución creada'
 						: 'Distribución actualizada',
 					{
-						description: `La distribución ha sido ${
-							mode === 'create' ? 'creada' : 'actualizada'
-						} exitosamente.`,
+						description: `La distribución ha sido ${mode === 'create' ? 'creada' : 'actualizada'
+							} exitosamente.`,
 					}
 				)
 				router.push(
@@ -151,9 +150,8 @@ export function CommissionRuleForm({
 				)
 			} else {
 				toast.error('Error', {
-					description: `No se pudo ${
-						mode === 'create' ? 'crear' : 'actualizar'
-					} la distribución.`,
+					description: `No se pudo ${mode === 'create' ? 'crear' : 'actualizar'
+						} la distribución.`,
 				})
 			}
 		} catch (error) {

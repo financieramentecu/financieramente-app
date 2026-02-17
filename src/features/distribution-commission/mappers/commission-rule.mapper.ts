@@ -1,3 +1,4 @@
+import { DecimalLike } from '@/features/shared/types/prisma.types'
 import {
 	CommissionRule,
 	CommissionRuleCategory,
@@ -7,9 +8,6 @@ import {
  * Prisma result types with includes.
  * Note: Prisma returns Decimal types which need conversion or are typed as such.
  */
-type DecimalLike = {
-	toNumber(): number
-} | number | string
 
 type PrismaCommissionRuleCategory = {
 	id: number
@@ -43,7 +41,7 @@ export function prismaCommissionRuleCategoryToDomain(
 ): CommissionRuleCategory {
 	const rawPercentage =
 		typeof prisma.porcentajeDistribucion === 'object' &&
-		'toNumber' in prisma.porcentajeDistribucion
+			'toNumber' in prisma.porcentajeDistribucion
 			? prisma.porcentajeDistribucion.toNumber()
 			: Number(prisma.porcentajeDistribucion)
 
@@ -58,9 +56,9 @@ export function prismaCommissionRuleCategoryToDomain(
 		updatedAt: prisma.updatedAt.toISOString(),
 		category: prisma.category
 			? {
-					idCategory: prisma.category.idCategory,
-					name: prisma.category.name,
-				}
+				idCategory: prisma.category.idCategory,
+				name: prisma.category.name,
+			}
 			: undefined,
 	}
 }
@@ -80,8 +78,8 @@ export function prismaCommissionRuleToDomain(
 		updatedAt: prisma.updatedAt.toISOString(),
 		categories: prisma.productPercentageCommissionCategories
 			? prisma.productPercentageCommissionCategories.map(
-					prismaCommissionRuleCategoryToDomain
-				)
+				prismaCommissionRuleCategoryToDomain
+			)
 			: [],
 	}
 }
