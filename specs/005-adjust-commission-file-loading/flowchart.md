@@ -1,61 +1,59 @@
 # Process Flowchart: Commission Adjustments
 
-This diagram visualizes the integration of the 3 core flows: **Carga**, **Pre-Liquidación**, and **Ajuste de Saldo (Claw)**, supporting both **Voluntarias** and **Polizas** formats.
+This diagram visualizes the integration of the 3 core flows.
 
 ```mermaid
 graph TD
-    subgraph Flow_1 ["Flow 1: Carga de Archivos (Saving)"]
-        A["Start: User Uploads Excel"] --> B{"Detect Headers"}
-        B -- "Has 'Polizas Periodo'?" --> C["FileType: POLIZAS"]
-        B -- "Has 'Cto' / 'Com'?" --> D["FileType: VOLUNTARIAS"]
+    subgraph FLOW1 ["Flow 1: Carga de Archivos"]
+        A["Start: Select FileType & Upload"] --> B{"Check: Request.fileType?"}
         
-        C --> E["Map: 'Contrato Largo', 'Valor Comisión'"]
-        E --> F["Clean Currency Format: '$ (x.xxx)' -> Numeric"]
-        F --> G["Skip 'BASE' Column"]
+        B -- "Item: POLIZAS" --> C["Validate: Polizas Headers"]
+        B -- "Item: VOLUNTARIAS" --> D["Validate: Voluntarias Headers"]
         
-        D --> H["Map: 'Cto', 'Com', 'Base'"]
+        C -- "Valid" --> E["Map Fields & Clean Currency"]
+        E --> F["Note: Save BASE as Informational"]
+        F --> G["Save to DB (Status: LOAD)"]
         
-        G --> I["Save to SettlementCommission Status: LOAD"]
-        H --> I
+        D -- "Valid" --> H["Map Fields (Cto, Com, Base)"]
+        H --> G
+        
+        C -- "Invalid" --> I["Mark: NOT_SYNCHRONIZED (Reason: Headers)"]
+        D -- "Invalid" --> I
     end
 
-    subgraph Flow_2 ["Flow 2: Pre-Liquidación (Engine)"]
-        I --> J["Start: Process Pre-Liquidation"]
+    subgraph FLOW2 ["Flow 2: Pre-Liquidacion"]
+        G --> J["Start: Process calculations"]
         J --> K{"Concept Type?"}
         
-        K -- "Normal Commission" --> L{"FileType?"}
+        K -- "Normal" --> L{"FileType?"}
         
-        L -- "VOLUNTARIAS" --> M["Resolve Hierarchy: Coach > Leader > Agency"]
-        M --> N["Lookup Dynamic Percentaje"]
-        N --> O["Calculate Bruta: Coach > Leader Split > Agency Total"]
+        L -- "VOLUNTARIAS" --> M["Resolve Hierarchy & Percentages"]
+        M --> N["Calculate Bruta (Coach/Leader/Agency)"]
         
-        L -- "POLIZAS" --> P["Lookup Coach Base by Origin"]
-        P --> Q["Apply 12% Tax Discount ALL Roles"]
-        Q --> R["Apply 10% Clawback Retention POZ ROLES"]
+        L -- "POLIZAS" --> O["Lookup base by Origin (Ignore BASE)"]
+        O --> P["Apply 12 pct Tax Discount"]
+        P --> Q["Apply 10 pct Clawback Retention"]
         
-        O --> S["ComissionDistribution Created"]
-        R --> S
+        N --> R["Create Distributions (Save FileType context)"]
+        Q --> R
+        
+        R --> S["Update Record: SYNCHRONIZED"]
+        M -- "Error" --> T["Update Record: NOT_SYNCHRONIZED"]
+        O -- "Error" --> T
     end
 
-    subgraph Flow_3 ["Flow 3: Balance Adjustment (Claw)"]
-        K -- "'claw' Record" --> T["Generate Negative Distribution"]
-        T --> U["Update User Reserve: Sum RETENIDO entries"]
-        U --> V["Final Settlement Balance Adjusted"]
+    subgraph FLOW3 ["Flow 3: Balance Adjustment"]
+        K -- "Claw" --> U["Generate Negative Distribution"]
+        U --> V["Update User Reserve Balance"]
+        V --> S
     end
 
-    S --> W["End: UI Display Summary"]
-    V --> W
+    S --> W["Final: UI Summary (TotalSyncFailed)"]
+    T --> W
 ```
 
-## Description of Stages
+## Description
 
-### 1. Carga (Saving)
-The system normalizes the data regardless of the source. For **Polizas**, it performs a rigorous cleaning of the currency strings (which include symbols, parentheses for negatives, and commas) and ignores the `BASE` column as per the latest requirement.
-
-### 2. Pre-Liquidación (Engine)
-The core logic switches between:
-- **Voluntarias**: A hierarchical approach where the Leader's commission is a percentage of the Coach's earnings.
-- **Polizas**: A product-origin approach with fixed retentions applied to the net value.
-
-### 3. Ajuste de Saldo (Claw)
-Specifically handles the return of commissions. Instead of a simple deduction, it generates a traceable record in the distribution table that impacts the user's virtual reserve.
+- **Flow 1 (Carga)**: Mandatory selector in UI. Headers are validated before saving. Polizas currency is cleaned.
+- **Flow 2 (Pre-Liquidation)**: Dynamic engine. Voluntarias uses hierarchy; Polizas uses origin + retentions.
+- **Flow 3 (Adjustment)**: Negative distribution logic for returns.
