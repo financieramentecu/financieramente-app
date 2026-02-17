@@ -26,7 +26,7 @@ vi.mock('@/lib/prisma', () => ({
 			create: vi.fn(),
 			findMany: vi.fn(),
 		},
-		discount: {
+		commissionConfiguration: {
 			findFirst: vi.fn(),
 		},
 		$transaction: vi.fn((callback) => callback(prisma)),
@@ -79,7 +79,11 @@ describe('procesarPreLiquidacion', () => {
 			{
 				idSettlementCommission: 100,
 				status: 'SINCRONIZADO',
-				valorComision: new Decimal(100000),
+				commissionValue: new Decimal(100000),
+				baseCommission: new Decimal(100000),
+				discountPercentage: new Decimal(0.1),
+				clawbackPercentage: new Decimal(0.05),
+				originCommission: 'CARTERA',
 				business: {
 					idProductPercentageCommission: 50,
 				},
@@ -93,14 +97,9 @@ describe('procesarPreLiquidacion', () => {
 			{
 				id: 10,
 				porcentajeDistribucion: new Decimal(0.5), // 50%
+				porcentajePortfolio: new Decimal(0.6), // 60%
 			},
 		] as any)
-
-		// Mock descuento activo (usado por obtenerDescuentoActivo)
-		vi.mocked(prisma.discount.findFirst).mockResolvedValue({
-			idDiscount: 1,
-			percentage: new Decimal(0.12),
-		} as any)
 
 		// Primera findMany: registros SINCRONIZADO; segunda: settlements PRELIQUIDADO (para resumen email)
 		vi.mocked(prisma.settlementCommission.findMany)
@@ -108,7 +107,11 @@ describe('procesarPreLiquidacion', () => {
 				{
 					idSettlementCommission: 100,
 					status: 'SINCRONIZADO',
-					valorComision: new Decimal(100000),
+					commissionValue: new Decimal(100000),
+					baseCommission: new Decimal(100000),
+					discountPercentage: new Decimal(0.1),
+					clawbackPercentage: new Decimal(0.05),
+					originCommission: 'CARTERA',
 					business: {
 						idProductPercentageCommission: 50,
 					},
@@ -127,6 +130,16 @@ describe('procesarPreLiquidacion', () => {
 
 		expect(result.success).toBe(true)
 		expect(result.registrosProcesados).toBe(1)
+
+		// porcentajePortfolio (60%) * 100000 = 60000
+		// descuento (10%) + clawback (5%) = 15% => 60000 * 0.15 = 9000
+		// final = 60000 - 9000 = 51000
+		const distributionCall = vi.mocked(prisma.comissionDistribution.create).mock
+			.calls[0]?.[0]
+		expect(Number(distributionCall?.data.valueComission)).toBe(60000)
+		expect(Number(distributionCall?.data.valueComissionFinal)).toBe(51000)
+		expect(Number(distributionCall?.data.totalDiscount ?? 0)).toBe(9000)
+		expect(Number(distributionCall?.data.appliedDiscountPercentage ?? 0)).toBe(0.1)
 
 		// Verify status update to PRELIQUIDADO
 		expect(prisma.settlementCommission.update).toHaveBeenCalledWith({

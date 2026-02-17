@@ -3,13 +3,78 @@ import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
 import { ProcessedRecord } from '@/app/dashboard/carga-archivos/lib/process-excel-file'
 import { findBusinessByContract } from '@/app/dashboard/carga-archivos/lib/business-matcher'
-import { toDecimal } from '@/app/dashboard/carga-archivos/lib/number-utils'
+import { cleanNumericValue, toDecimal } from '@/app/dashboard/carga-archivos/lib/number-utils'
+import { FILE_TYPES, type FileType } from '@/app/dashboard/carga-archivos/lib/file-types'
+import {
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+	logAuditEvent,
+} from '@/features/auth/lib/audit-logger'
 
 interface ProcessBatchRequest {
 	fileImportId: number
 	records: ProcessedRecord[]
 	headers: string[]
+	fileType: FileType
 	batchSize?: number
+}
+
+const DEFAULT_DISCOUNT_PERCENTAGE = 0.12
+const DEFAULT_CLAWBACK_PERCENTAGE = 0.1
+
+const FILE_TYPE_COLUMN_MAP = {
+	[FILE_TYPES.POLIZA]: {
+		contract: 'Contrato Largo',
+		descripcion: 'Plan de Compensación',
+		base: 'BASE',
+		commission: 'Valor Comisión',
+	},
+	[FILE_TYPES.VOLUNTARIA]: {
+		contract: 'Cto',
+		descripcion: 'Tipo de Comision',
+		base: 'Base',
+		commission: 'Com',
+		desde: 'Desde',
+		hasta: 'Hasta',
+	},
+} as const
+
+interface AuditContext {
+	userId: number
+	email?: string
+	ipAddress?: string
+	userAgent?: string
+	fileImportId: number
+}
+
+function isEmptyValue(value: unknown): boolean {
+	return value === null || value === undefined || String(value).trim() === ''
+}
+
+async function logImportError({
+	auditContext,
+	record,
+	field,
+	rawValue,
+	reason,
+}: {
+	auditContext: AuditContext
+	record: ProcessedRecord
+	field: string
+	rawValue: unknown
+	reason: string
+}): Promise<void> {
+	await logAuditEvent({
+		userId: auditContext.userId,
+		email: auditContext.email,
+		ipAddress: auditContext.ipAddress,
+		userAgent: auditContext.userAgent,
+		action: AuditAction.IMPORT_ERROR,
+		details: `fileImportId=${auditContext.fileImportId} row=${record.rowNumber} field=${field} rawValue="${String(
+			rawValue ?? ''
+		)}" reason=${reason}`,
+	})
 }
 
 /**
@@ -124,20 +189,49 @@ function cleanStringValue(value: unknown): string | null {
 async function processAndSaveRecord(
 	record: ProcessedRecord,
 	headers: string[],
-	fileImportId: number
+	fileImportId: number,
+	fileType: FileType,
+	snapshots: {
+		discountPercentage: number | string
+		clawbackPercentage: number | string | null
+	},
+	auditContext: AuditContext
 ): Promise<{
 	status: 'SINCRONIZADO' | 'LAG' | 'ERROR'
 	isLag: boolean
 	idBusiness: number | null
 	recoveredLag: boolean // Indica si se recuperó un rezagado
 }> {
+	const commissionType = fileType
+	let descripcion: string | null = null
+	let base: unknown = null
+	let com: unknown = null
+	let originCommission: string | null = null
+	let clawbackPercentage: number | string | null = null
+
 	try {
+		const columnMap = FILE_TYPE_COLUMN_MAP[fileType]
+
 		// Obtener valores del registro
-		const cto = getColumnValue(record, 'Cto', headers)
-		const desde = getColumnValue(record, 'Desde', headers)
-		const hasta = getColumnValue(record, 'Hasta', headers)
-		const base = getColumnValue(record, 'Base', headers)
-		const com = getColumnValue(record, 'Com', headers)
+		const cto = getColumnValue(record, columnMap.contract, headers)
+		base = getColumnValue(record, columnMap.base, headers)
+		com = getColumnValue(record, columnMap.commission, headers)
+		descripcion = cleanStringValue(
+			getColumnValue(record, columnMap.descripcion, headers)
+		)
+
+		const planValue =
+			fileType === FILE_TYPES.POLIZA ? (descripcion ?? '') : ''
+		const normalizedPlan = planValue.trim().toUpperCase()
+		originCommission =
+			fileType === FILE_TYPES.POLIZA && normalizedPlan === 'FRONT19_OMPEV'
+				? 'CARTERA'
+				: null
+		const shouldApplyClawback =
+			fileType === FILE_TYPES.POLIZA && normalizedPlan.includes('CLAW')
+		clawbackPercentage = shouldApplyClawback
+			? snapshots.clawbackPercentage
+			: null
 
 		// Validar que Cto no esté vacío
 		const contractValue = cto ? String(cto).trim() : ''
@@ -146,15 +240,14 @@ async function processAndSaveRecord(
 			await prisma.settlementCommission.create({
 				data: {
 					idFileImport: fileImportId,
-					poliza: null,
-					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
-					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
-					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					fechaPago: desde ? parseDate(desde) : null,
-					valorComision: com ? toDecimal(com) : null,
-					porcentajeComision: null,
-					valorPrima: toDecimal(base),
+					descripcion,
+					commissionValue: com ? toDecimal(com) : null,
+					commissionPercentage: null,
+					baseCommission: base ? toDecimal(base) : null,
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
 					status: 'ERROR',
 					isLag: true,
 					error: 'El campo Cto (ID de contrato) está vacío',
@@ -163,27 +256,139 @@ async function processAndSaveRecord(
 			return { status: 'ERROR', isLag: true, idBusiness: null, recoveredLag: false }
 		}
 
+		const shouldValidateDates = fileType === FILE_TYPES.VOLUNTARIA
+
+		const desde = shouldValidateDates
+			? getColumnValue(
+					record,
+					FILE_TYPE_COLUMN_MAP[FILE_TYPES.VOLUNTARIA].desde,
+					headers
+				)
+			: null
+		const hasta = shouldValidateDates
+			? getColumnValue(
+					record,
+					FILE_TYPE_COLUMN_MAP[FILE_TYPES.VOLUNTARIA].hasta,
+					headers
+				)
+			: null
+
 		// Parsear fechas del registro
-		const desdeDate = desde ? parseDate(desde) : null
-		const hastaDate = hasta ? parseDate(hasta) : null
+		const desdeDate = shouldValidateDates && desde ? parseDate(desde) : null
+		const hastaDate = shouldValidateDates && hasta ? parseDate(hasta) : null
 
 		// Guardar con estado ERROR si faltan fechas
-		if (!desdeDate || !hastaDate) {
+		if (shouldValidateDates && (!desdeDate || !hastaDate)) {
 			await prisma.settlementCommission.create({
 				data: {
 					idFileImport: fileImportId,
-					poliza: contractValue,
-					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
-					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
-					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					fechaPago: desdeDate,
-					valorComision: com ? toDecimal(com) : null,
-					porcentajeComision: null,
-					valorPrima: toDecimal(base),
+					descripcion,
+					commissionValue: com ? toDecimal(com) : null,
+					commissionPercentage: null,
+					baseCommission: base ? toDecimal(base) : null,
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
 					status: 'ERROR',
 					isLag: true,
 					error: 'Las fechas Desde o Hasta están vacías o son inválidas',
+				},
+			})
+			return { status: 'ERROR', isLag: true, idBusiness: null, recoveredLag: false }
+		}
+
+		if (isEmptyValue(base)) {
+			await prisma.settlementCommission.create({
+				data: {
+					idFileImport: fileImportId,
+					descripcion,
+					commissionValue: com ? toDecimal(com) : null,
+					commissionPercentage: null,
+					baseCommission: null,
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
+					status: 'ERROR',
+					isLag: true,
+					error: 'El campo Base es requerido',
+				},
+			})
+			return { status: 'ERROR', isLag: true, idBusiness: null, recoveredLag: false }
+		}
+
+		const baseNumeric = cleanNumericValue(base)
+		if (baseNumeric === null) {
+			await logImportError({
+				auditContext,
+				record,
+				field: columnMap.base,
+				rawValue: base,
+				reason: 'Valor numérico inválido',
+			})
+			await prisma.settlementCommission.create({
+				data: {
+					idFileImport: fileImportId,
+					descripcion,
+					commissionValue: com ? toDecimal(com) : null,
+					commissionPercentage: null,
+					baseCommission: null,
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
+					status: 'ERROR',
+					isLag: true,
+					error: `Valor numérico inválido en ${columnMap.base}`,
+				},
+			})
+			return { status: 'ERROR', isLag: true, idBusiness: null, recoveredLag: false }
+		}
+
+		if (isEmptyValue(com)) {
+			await prisma.settlementCommission.create({
+				data: {
+					idFileImport: fileImportId,
+					descripcion,
+					commissionValue: null,
+					commissionPercentage: null,
+					baseCommission: toDecimal(baseNumeric),
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
+					status: 'ERROR',
+					isLag: true,
+					error: 'El campo Comisión es requerido',
+				},
+			})
+			return { status: 'ERROR', isLag: true, idBusiness: null, recoveredLag: false }
+		}
+
+		const commissionNumeric = cleanNumericValue(com)
+		if (commissionNumeric === null) {
+			await logImportError({
+				auditContext,
+				record,
+				field: columnMap.commission,
+				rawValue: com,
+				reason: 'Valor numérico inválido',
+			})
+			await prisma.settlementCommission.create({
+				data: {
+					idFileImport: fileImportId,
+					descripcion,
+					commissionValue: null,
+					commissionPercentage: null,
+					baseCommission: toDecimal(baseNumeric),
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
+					status: 'ERROR',
+					isLag: true,
+					error: `Valor numérico inválido en ${columnMap.commission}`,
 				},
 			})
 			return { status: 'ERROR', isLag: true, idBusiness: null, recoveredLag: false }
@@ -198,15 +403,14 @@ async function processAndSaveRecord(
 			await prisma.settlementCommission.create({
 				data: {
 					idFileImport: fileImportId,
-					poliza: contractValue,
-					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
-					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
-					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					fechaPago: desdeDate,
-					valorComision: com ? toDecimal(com) : null,
-					porcentajeComision: null,
-					valorPrima: toDecimal(base),
+					descripcion,
+					commissionValue: toDecimal(commissionNumeric),
+					commissionPercentage: null,
+					baseCommission: toDecimal(baseNumeric),
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
 					status: 'LAG',
 					isLag: true,
 				},
@@ -221,7 +425,7 @@ async function processAndSaveRecord(
 		// "Existe Negocio + Existe Rezagado Previo"
 		const existingLag = await prisma.settlementCommission.findFirst({
 			where: {
-				poliza: contractValue,
+				idBusiness: business.idBusiness,
 				isLag: true,
 				// Buscamos cualquier status que denote lag, incluyendo el nuevo 'LAG' o antiguos 'REZAGADO'
 				status: { in: ['LAG', 'REZAGADO'] },
@@ -246,15 +450,14 @@ async function processAndSaveRecord(
 				data: {
 					idFileImport: fileImportId,
 					idBusiness: business.idBusiness,
-					poliza: contractValue,
-					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
-					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
-					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					fechaPago: desdeDate,
-					valorComision: com ? toDecimal(com) : null,
-					porcentajeComision: null,
-					valorPrima: toDecimal(base),
+					descripcion,
+					commissionValue: toDecimal(commissionNumeric),
+					commissionPercentage: null,
+					baseCommission: toDecimal(baseNumeric),
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
 					status: 'SINCRONIZADO',
 					isLag: false,
 				},
@@ -266,7 +469,11 @@ async function processAndSaveRecord(
 
 		// ====== NO HAY REZAGADO PREVIO ======
 		const createdAt = business.createdAt
-		const isDateMatch = createdAt >= desdeDate && createdAt <= hastaDate
+		let isDateMatch = true
+		if (shouldValidateDates) {
+			isDateMatch =
+				createdAt >= (desdeDate as Date) && createdAt <= (hastaDate as Date)
+		}
 
 		// ====== CASO 3: EXISTE NEGOCIO + SIN REZAGADO + FECHAS COINCIDEN ======
 		if (isDateMatch) {
@@ -275,15 +482,14 @@ async function processAndSaveRecord(
 				data: {
 					idFileImport: fileImportId,
 					idBusiness: business.idBusiness,
-					poliza: contractValue,
-					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
-					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
-					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					fechaPago: desdeDate,
-					valorComision: com ? toDecimal(com) : null,
-					porcentajeComision: null,
-					valorPrima: toDecimal(base),
+					descripcion,
+					commissionValue: toDecimal(commissionNumeric),
+					commissionPercentage: null,
+					baseCommission: toDecimal(baseNumeric),
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
 					status: 'SINCRONIZADO',
 					isLag: false,
 				},
@@ -297,15 +503,14 @@ async function processAndSaveRecord(
 				data: {
 					idFileImport: fileImportId,
 					idBusiness: business.idBusiness, // Vinculado
-					poliza: contractValue,
-					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
-					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
-					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					fechaPago: desdeDate,
-					valorComision: com ? toDecimal(com) : null,
-					porcentajeComision: null,
-					valorPrima: toDecimal(base),
+					descripcion,
+					commissionValue: toDecimal(commissionNumeric),
+					commissionPercentage: null,
+					baseCommission: toDecimal(baseNumeric),
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
 					status: 'LAG',
 					isLag: true,
 				},
@@ -323,19 +528,14 @@ async function processAndSaveRecord(
 			await prisma.settlementCommission.create({
 				data: {
 					idFileImport: fileImportId,
-					poliza: cleanStringValue(getColumnValue(record, 'Cto', headers)),
-					ramo: cleanStringValue(getColumnValue(record, 'Ramo', headers)),
-					producto: cleanStringValue(getColumnValue(record, 'Producto', headers)),
-					recibo: cleanStringValue(getColumnValue(record, 'Recibo', headers)),
-					concepto: cleanStringValue(getColumnValue(record, 'Tipo Comisión', headers)),
-					fechaPago: getColumnValue(record, 'Desde', headers)
-						? parseDate(getColumnValue(record, 'Desde', headers))
-						: null,
-					valorComision: getColumnValue(record, 'Com', headers)
-						? toDecimal(getColumnValue(record, 'Com', headers))
-						: null,
-					porcentajeComision: null,
-					valorPrima: toDecimal(getColumnValue(record, 'Base', headers)),
+					descripcion,
+					commissionValue: com ? toDecimal(com) : null,
+					commissionPercentage: null,
+					baseCommission: base ? toDecimal(base) : null,
+					discountPercentage: snapshots.discountPercentage,
+					clawbackPercentage,
+					originCommission,
+					commissionType,
 					status: 'ERROR',
 					isLag: true,
 					error: `Error al procesar: ${error instanceof Error ? error.message : 'Error desconocido'}`,
@@ -356,11 +556,19 @@ export async function POST(request: NextRequest) {
 		}
 
 		const body: ProcessBatchRequest = await request.json()
-		const { fileImportId, records, headers, batchSize = 10 } = body
+		const { fileImportId, records, headers, fileType, batchSize = 10 } = body
 
 		if (!fileImportId || !records || !Array.isArray(records) || records.length === 0) {
 			return NextResponse.json(
 				{ error: 'Datos inválidos: se requiere fileImportId y records' },
+				{ status: 400 }
+			)
+		}
+
+		const isValidFileType = Object.values(FILE_TYPES).includes(fileType)
+		if (!isValidFileType) {
+			return NextResponse.json(
+				{ error: 'Se requiere un tipo de archivo válido' },
 				{ status: 400 }
 			)
 		}
@@ -380,6 +588,29 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
+		const activeConfig = await prisma.commissionConfiguration.findFirst({
+			where: { status: 'ACTIVE' },
+			orderBy: { createdAt: 'desc' },
+		})
+		const hasActiveConfig = Boolean(activeConfig)
+		const discountPercentage =
+			hasActiveConfig && activeConfig?.discountPercentage != null
+				? Number(activeConfig.discountPercentage)
+				: DEFAULT_DISCOUNT_PERCENTAGE
+		const clawbackPercentage = hasActiveConfig
+			? activeConfig?.clawbackPercentage == null
+				? null
+				: Number(activeConfig.clawbackPercentage)
+			: DEFAULT_CLAWBACK_PERCENTAGE
+
+		const auditContext: AuditContext = {
+			userId: Number(session.user.id),
+			email: session.user.email,
+			ipAddress: getClientIp(request.headers),
+			userAgent: getUserAgent(request.headers),
+			fileImportId,
+		}
+
 		// Procesar registros en batches
 		const totalRecords = records.length
 		let sincronizadoCount = 0
@@ -393,7 +624,17 @@ export async function POST(request: NextRequest) {
 
 			// Procesar cada registro del batch
 			for (const record of batch) {
-				const result = await processAndSaveRecord(record, headers, fileImportId)
+				const result = await processAndSaveRecord(
+					record,
+					headers,
+					fileImportId,
+					fileType,
+					{
+						discountPercentage,
+						clawbackPercentage,
+					},
+					auditContext
+				)
 
 				if (result.status === 'ERROR') {
 					errorCount++
@@ -478,4 +719,3 @@ export async function POST(request: NextRequest) {
 		)
 	}
 }
-
