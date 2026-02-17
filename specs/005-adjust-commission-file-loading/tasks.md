@@ -7,93 +7,76 @@
 
 **Purpose**: Database schema updates and basic type definitions
 
-- [ ] T001 Update `prisma/schema.prisma` with `fileType` in `FileImport` and role/type fields in `ComissionDistribution`
-- [ ] T002 Run `npx prisma migrate dev` to apply schema changes
-- [ ] T003 [P] Add `FileType` enum and update `AsyncState` usage in `src/features/pre-liquidacion/types/types.ts`
+- [ ] T001 Update `prisma/schema.prisma` with `fileType` in `FileImport`
+- [ ] T002 Update `prisma/schema.prisma` with `bruta`, `neta`, `clawback` fields in `ComissionDistribution`
+- [ ] T003 Run `npx prisma migrate dev` to apply schema changes
+- [ ] T004 [P] Add `FileType` enum and update `AsyncState` usage in `src/features/pre-liquidacion/types/types.ts`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Core calculation logic and row validation
+**Purpose**: Core infrastructure for header mapping and recursive hierarchy
 
-- [ ] T004 Update row validation schema in `src/features/pre-liquidacion/lib/pre-liquidacion-schemas.ts` to include `idBusiness` and `valorComision`
-- [ ] T005 Create `CommissionCalculationService` factory in `src/features/pre-liquidacion/services/calculation-service.ts`
-- [ ] T006 Implement base percentage lookup helper in `src/features/negocios/services/product-configuration.service.ts`
-- [ ] T007 [P] Create unit test suite for calculation engine in `src/features/pre-liquidacion/__tests__/calculation-service.test.ts`
-
----
-
-## Phase 3: User Story 1 - Import Voluntarias File (Priority: P1) 🎯 MVP
-
-**Goal**: Import "Voluntarias" files and calculate hierarchical commissions (Coach, Leader, Agency) with a 12% tax discount.
-
-**Independent Test**: Upload file named `VOLUNTARIAS_test.xlsx`, verify `pre-liquidacion/detalles` returns Coach (64.19%), Leader (5.502% of Coach Bruta), Agency (4.5% of total), all with 12% discount applied to Bruta.
-
-- [ ] T008 [US1] Implement filename-based `fileType` detection in `src/app/api/carga-archivos/process-batch/route.ts`
-- [ ] T010 [US1] Implement hierarchical calculation engine for Voluntarias in `src/features/pre-liquidacion/services/calculation-service.ts`
-- [ ] T011 [US1] Implement `procesarPreLiquidacion` logic for Voluntarias in `src/features/pre-liquidacion/services/pre-liquidacion.service.ts`
-- [ ] T012 [US1] Verify Voluntarias import flow and hierarchy calculations
+- [ ] T005 Create `ExcelMapperService` in `src/features/pre-liquidacion/lib/excel-mapper.ts` with support for Voluntarias vs Polizas headers
+- [ ] T006 Implement `HierarchyService` for recursive leader resolution in `src/features/pre-liquidacion/services/hierarchy.service.ts`
+- [ ] T007 [P] Create unit test suite for mapping engine in `src/features/pre-liquidacion/__tests__/excel-mapper.test.ts`
 
 ---
 
-## Phase 4: User Story 2 - Import Polizas File with Origin Logic (Priority: P1)
+## Phase 3: Flow 1 - File Upload (Carga) (Priority: P1)
 
-**Goal**: Import "Polizas" files with origin-based Coach percentages and 10% Clawback retention.
+**Goal**: Save raw data and detect file type without calculations.
 
-**Independent Test**: Upload file named `POLIZAS_test.xlsx` with a "Propio" record, verify Coach (77.9449%) and verify 10% Clawback is subtracted after the 12% tax discount.
+**Independent Test**: Upload `Polizas.xlsx`, verify `FileImport` status is `LOAD` and `fileType` is `POLIZAS`. Check `SettlementCommission` records have mapped `valorComision`.
 
-- [ ] T013 [US2] Implement origin-based lookup logic in `src/features/pre-liquidacion/services/calculation-service.ts`
-- [ ] T014 [US2] Implement 10% Clawback retention logic for Polizas in the calculation engine
-- [ ] T015 [US2] Integrate `Clawback` table record creation in `src/features/pre-liquidacion/services/pre-liquidacion.service.ts`
-- [ ] T016 [US2] Verify Polizas import flow with origin-specific percentages and retentions
-
----
-
-## Phase 5: User Story 3 - Dynamic Hierarchy & Claw Variations (Priority: P2)
-
-**Goal**: Handle "claw" records to reduce reserves and support dynamic hierarchy levels (skipping missing leaders).
-
-**Independent Test**: Upload record with `Tipo Comisión` = 'claw', verify negative distribution entry and reduction in user's virtual reserve balance.
-
-- [ ] T017 [US3] Implement dynamic hierarchy resolution (recursive leader search) in calculation service
-- [ ] T018 [US3] Implement "claw" record handling (negative value generation) in `src/features/pre-liquidacion/services/calculation-service.ts`
-- [ ] T019 [US3] Verify "claw" processing and dynamic hierarchy resolution edge cases
+- [ ] T008 [P] [US1] Implement header-based `fileType` detection in `src/app/api/carga-archivos/process-batch/route.ts`
+- [ ] T009 [US1] Update `processAndSaveRecord` to use `ExcelMapperService` based on detected type
+- [ ] T010 [US1] Verify "Carga de Archivos" correctly maps headers for both Voluntarias and Polizas samples
 
 ---
 
-## Phase 6: Polish & Cross-Cutting Concerns
+## Phase 4: Flow 2 - User Story 1 (Voluntarias) (Priority: P1) 🎯 MVP
 
-- [ ] T020 Update pre-liquidation preview UI to display Bruta/Neta/Clawback columns in `src/features/pre-liquidacion/components/`
-- [ ] T021 [P] Run all pre-liquidation tests to ensure zero regressions
-- [ ] T022 Final E2E validation with provided Excel example datasets
+**Goal**: Calculate hierarchical commissions for Voluntarias with 12% discount.
+
+**Independent Test**: Trigger pre-liquidation for a Voluntarias file. Verify Coach (64.19%), Leader (5.502% of Coach), and Agency (4.5% total) with 12% discount.
+
+- [ ] T011 [US1] Implement `CalculationService` factory for Voluntarias logic in `src/features/pre-liquidacion/services/calculation-service.ts`
+- [ ] T012 [P] [US1] Implement hierarchical calculation engine for Voluntarias (Coach -> Leader -> Agency)
+- [ ] T013 [US1] Update `procesarPreLiquidacion` in `pre-liquidacion.service.ts` to use Step-by-Step distribution logic
+- [ ] T014 [US1] Verify Voluntarias distribution values match acceptance scenario 1.1
 
 ---
 
-## Dependencies & Execution Order
+## Phase 5: Flow 2 - User Story 2 (Polizas) (Priority: P1)
 
-1. **Phase 1 -> Phase 2**: Database and types must exist before calculation logic.
-2. **Phase 2 -> Phase 3**: Calculation engine must exist before Voluntarias story.
-3. **Phase 3 -> Phase 4**: Polizas story integrates with base engine but adds origin/clawback logic.
-4. **Phase 4 -> Phase 5**: Claw records and dynamic hierarchy build on the base engine handlers.
-5. **Phase 6**: UI and cleanup after all logic is verified.
+**Goal**: Calculate Polizas commissions with origin-based percentages and 10% clawback.
 
-## Parallel Execution Examples
+**Independent Test**: Trigger pre-liquidation for `Polizas.xlsx`. Verify Coach (Propio: 77.94% etc) and verify 10% clawback is subtracted after discount.
 
-```bash
-# Foundational tests and types
-Task: "T003 Add FileType enum and update AsyncState usage"
-Task: "T007 Create unit test suite for calculation engine"
+- [ ] T015 [US2] Implement origin-based lookup logic in `CalculationService`
+- [ ] T016 [P] [US2] Implement 10% Clawback retention logic for roles
+- [ ] T017 [US2] Integrate `Clawback` table retention creation in `pre-liquidacion.service.ts`
+- [ ] T018 [US2] Verify Polizas distribution values match acceptance scenario 2.1 and 2.2
 
-# Calculation engine components (different files)
-Task: "T006 Implement base percentage lookup helper"
-Task: "T005 Create CommissionCalculationService factory"
-```
+---
 
-## Implementation Strategy
+## Phase 6: Flow 3 - User Story 3 (Claws & Dynamic Hierarchy) (Priority: P2)
 
-### MVP First (User Story 1 Only)
-1. Schema & Types (Phase 1)
-2. Calculation Engine Base (Phase 2)
-3. Voluntarias Logic (Phase 3)
-4. **MVP Check**: Verify Voluntarias import works as per user screenshot logic.
+**Goal**: Handle return records and reduce reserves.
+
+**Independent Test**: Process a 'claw' record. Verify negative distribution entry and update to the user's reserve balance in the `Clawback` table.
+
+- [ ] T019 [US3] Implement dynamic hierarchy resolution (recursive leader search) in hierarchy service
+- [ ] T020 [US3] Implement 'claw' record detection and negative distribution generation
+- [ ] T021 [US3] Implement reserve balance update logic (summing RETENIDO state)
+- [ ] T022 [US3] Verify "claw" processing and dynamic hierarchy resolution
+
+---
+
+## Phase 7: Polish & UI
+
+- [ ] T023 Update Pre-Liquidation detail UI to display Bruta/Neta/Clawback columns
+- [ ] T024 [P] Run all pre-liquidation tests to ensure zero regressions
+- [ ] T025 Final validation push to branch `005-adjust-commission-file-loading`
