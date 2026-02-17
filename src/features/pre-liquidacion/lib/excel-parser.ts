@@ -73,7 +73,7 @@ export async function parseExcelFile(fileBuffer: Buffer): Promise<ParseResult> {
     const worksheet = workbook.Sheets[firstSheetName]
 
     // Convert to JSON with headers
-    const rawData = XLSX.utils.sheet_to_json<any>(worksheet, { header: 1 })
+    const rawData = XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1 }) as unknown[][]
 
     if (rawData.length === 0) {
         return {
@@ -95,7 +95,7 @@ export async function parseExcelFile(fileBuffer: Buffer): Promise<ParseResult> {
     const validationErrors: { row: number; errors: string[] }[] = []
 
     // Start from row 1 (index 1) as 0 is header
-    const dataRows = rawData.slice(1) as any[][]
+    const dataRows = rawData.slice(1)
 
     let validCount = 0
     let invalidCount = 0
@@ -104,14 +104,14 @@ export async function parseExcelFile(fileBuffer: Buffer): Promise<ParseResult> {
         const rowNum = index + 2 // 1-based index, +1 header
 
         // Helper to get value by header name
-        const getValue = (headerName: string): any => {
+        const getValue = (headerName: string): unknown => {
             const idx = headers.indexOf(headerName)
             if (idx === -1) return undefined
             return row[idx]
         }
 
         // Clean currency string "$ (1.234,56)" -> number
-        const parseCurrency = (val: any): number | undefined => {
+        const parseCurrency = (val: unknown): number | undefined => {
             if (typeof val === 'number') return val
             if (!val) return undefined
             const str = String(val).replace(/[$. ()]/g, '').replace(',', '.')
@@ -119,12 +119,12 @@ export async function parseExcelFile(fileBuffer: Buffer): Promise<ParseResult> {
             return isNaN(num) ? undefined : num
         }
 
-        const parseString = (val: any): string | undefined => {
+        const parseString = (val: unknown): string | undefined => {
             return val ? String(val).trim() : undefined
         }
 
         const rowErrors: string[] = []
-        let parsedRow: RawRowData = { rowNumber: rowNum }
+        const parsedRow: RawRowData = { rowNumber: rowNum }
 
         if (fileType === 'VOLUNTARIA') {
             // Mapping Voluntarias

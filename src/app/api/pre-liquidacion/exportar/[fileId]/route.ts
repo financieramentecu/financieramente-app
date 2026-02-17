@@ -46,21 +46,22 @@ export async function GET(
                         }
                     }
                 },
-                percentageCommissionCategory: {
+                productPercentageCommissionCategory: {
                     include: { category: true }
                 }
             }
-        }) as any[]
+        })
 
         // Transform to Excel format
-        const data = distributions.map(d => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = distributions.map((d: any) => ({
             'ID Registro': d.settlementCommission.idSettlementCommission,
             'Producto': d.settlementCommission.product,
             'Tipo Comision': d.settlementCommission.commissionType,
             'Agente': d.settlementCommission.business?.user?.name ?? 'Unknown',
             'Cliente': d.settlementCommission.business?.client?.name ?? 'Unknown',
             'Contrato/Poliza': d.settlementCommission.business?.contract ?? d.settlementCommission.poliza,
-            'Categoria': d.percentageCommissionCategory?.category?.name ?? 'General',
+            'Categoria': (d as any).productPercentageCommissionCategory?.category?.name ?? 'General',
             'Valor Base': d.settlementCommission.commissionValue ? d.settlementCommission.commissionValue.toNumber() : 0,
             'Comision Bruta': d.valueCommission.toNumber(),
             'Comision Neta': d.valueCommissionFinal.toNumber(),

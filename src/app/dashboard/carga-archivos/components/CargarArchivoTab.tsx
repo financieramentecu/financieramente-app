@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Button } from '@/features/shared/ui/button'
 import { AlertModal } from '@/features/shared/ui/modal'
+import { Decimal } from '@prisma/client/runtime/library'
 import { FileUp, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 // import { validateExcelStructure } from '../lib/validate-excel-structure'
@@ -257,7 +258,7 @@ export function CargarArchivoTab() {
 							const { data }: { data: PreLiquidationResultResponse } = await resultsResponse.json()
 
 							// Update progress
-							setProcessingProgress((prev) => ({
+							setProcessingProgress(() => ({
 								current: Math.floor((data.progress / 100) * totalRows),
 								total: totalRows,
 								sincronizado: data.summary?.successfulRows || 0,
@@ -297,7 +298,7 @@ export function CargarArchivoTab() {
 			setErrorModalOpen(true)
 			setIsUploading(false)
 		}
-	}, [selectedFile, validateFileFormat])
+	}, [selectedFile, validateFileFormat, manualFileType])
 
 	const formatFileSize = (bytes: number): string => {
 		if (bytes < 1024) return bytes + ' B'

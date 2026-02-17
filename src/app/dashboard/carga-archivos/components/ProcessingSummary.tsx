@@ -4,6 +4,12 @@ import { Button } from '@/features/shared/ui/button'
 import { FileText, CheckCircle2, Download, Upload, AlertTriangle } from 'lucide-react'
 import { PreLiquidationResultResponse } from '@/features/pre-liquidacion/types/api-types'
 
+export interface CommissionHierarchy {
+	coach: unknown
+	leader?: unknown | null
+	agency?: unknown | null
+}
+
 interface ProcessingSummaryProps {
 	result: PreLiquidationResultResponse['summary']
 	fileName: string
@@ -42,7 +48,6 @@ export function ProcessingSummary({
 	}
 
 	const sincronizados = result.successfulRows
-	const rezagados = 0 // Future: Distinguish logic
 	const errores = result.failedRows
 
 	return (

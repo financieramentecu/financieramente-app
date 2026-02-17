@@ -18,9 +18,9 @@ type UserWithHierarchy = Prisma.UserGetPayload<{
 // The issue is assigning the result of query to this interface.
 
 export interface CommissionHierarchy {
-    coach: UserWithHierarchy
-    leader?: UserWithHierarchy['leader'] | null
-    agency?: UserWithHierarchy['leader']['leader'] | null
+    coach: any
+    leader?: any | null
+    agency?: any | null
 }
 
 /**

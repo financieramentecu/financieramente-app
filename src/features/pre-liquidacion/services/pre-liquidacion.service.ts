@@ -11,12 +11,6 @@ import {
 import { resolveHierarchy } from '../lib/hierarchy-resolver'
 import type {
 	// New Types
-	PreLiquidationProcessResponse,
-	AgenteDistribucion,
-	ComisionesCalculadas,
-	ConfiguracionPorcentajes,
-	RegistroDetallePreLiquidacion,
-	RespuestaDetallePreLiquidacion,
 	ResumenFilaPreliquidacion,
 	ResumenUsuarioPreliquidacion,
 } from '../types/types'
@@ -43,7 +37,7 @@ async function matchRecords(fileId: number) {
 			const business = await prisma.business.findFirst({
 				where: { contract: r.policy },
 			})
-			if (business) businessId = business.id
+			if (business) businessId = business.idBusiness
 		} else if (r.commissionType === 'VOLUNTARIA') {
 			// Placeholder for Voluntarias matching logic
 		}
@@ -194,7 +188,7 @@ export async function procesarPreLiquidacion(
 							status: 'PRELIQUIDADO',
 							appliedDiscountPercentage: new Decimal(0),
 							appliedClawbackPercentage: new Decimal(0)
-						} as any
+						}
 					})
 				})
 				processedCount++
