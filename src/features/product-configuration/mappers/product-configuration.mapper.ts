@@ -3,33 +3,34 @@
  * Single responsibility: database data conversion to domain
  */
 
+import { Prisma } from '@prisma/client'
 import type { ProductConfiguration } from '../types/product-configuration.types'
 
 /**
- * Prisma result type with includes
+ * Prisma result type with includes using Prisma's payload type helper
  */
-interface PrismaProductConfigurationWithIncludes {
-	id: number
-	idProduct: number
-	idClientOrigin: number
-	idCategory: number
-	code: string | null
-	active: boolean
-	idProductPercentajeCommisionNewBusinesses: number | null
-	createdAt: Date
-	updatedAt: Date
-	product: {
-		idProduct: number
-		name: string
-		company: { idCompany: number; name: string }
+export type PrismaProductConfigurationWithIncludes = Prisma.ProductConfigurationGetPayload<{
+	include: {
+		product: {
+			select: {
+				idProduct: true
+				name: true
+				company: {
+					select: { idCompany: true; name: true }
+				}
+			}
+		}
+		clientOrigin: {
+			select: { idClientOrigin: true; name: true }
+		}
+		category: {
+			select: { idCategory: true; name: true }
+		}
+		productPercentajeCommisionNewBusinesses: {
+			select: { idProductPercentajeCommision: true; active: true }
+		}
 	}
-	clientOrigin: { idClientOrigin: number; name: string }
-	category: { idCategory: number; name: string }
-	productPercentajeCommisionNewBusinesses: {
-		idProductPercentajeCommision: number
-		active: boolean
-	} | null
-}
+}>
 
 /**
  * Transforms a Prisma ProductConfiguration (with includes) to domain type
@@ -66,11 +67,11 @@ export function prismaProductConfigToProductConfig(
 		},
 		ppcNewBusinesses: prisma.productPercentajeCommisionNewBusinesses
 			? {
-					id: prisma.productPercentajeCommisionNewBusinesses
-						.idProductPercentajeCommision,
-					active:
-						prisma.productPercentajeCommisionNewBusinesses.active,
-				}
+				id: prisma.productPercentajeCommisionNewBusinesses
+					.idProductPercentajeCommision,
+				active:
+					prisma.productPercentajeCommisionNewBusinesses.active,
+			}
 			: null,
 	}
 }
