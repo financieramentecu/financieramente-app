@@ -515,7 +515,7 @@ describe('PUT /api/products/[id]', () => {
 			})
 
 			const mockProductInUse = {
-				idProductPercentajeCommision: 1,
+				idProductPercentageCommission: 1,
 				idProduct: 1,
 			}
 

@@ -3,34 +3,34 @@
  * Single responsibility: database data conversion to domain
  */
 
-import { Prisma } from '@prisma/client'
 import type { ProductConfiguration } from '../types/product-configuration.types'
 
 /**
  * Prisma result type with includes using Prisma's payload type helper
  */
-export type PrismaProductConfigurationWithIncludes = Prisma.ProductConfigurationGetPayload<{
-	include: {
-		product: {
-			select: {
-				idProduct: true
-				name: true
-				company: {
-					select: { idCompany: true; name: true }
-				}
-			}
-		}
-		clientOrigin: {
-			select: { idClientOrigin: true; name: true }
-		}
-		category: {
-			select: { idCategory: true; name: true }
-		}
-		productPercentajeCommisionNewBusinesses: {
-			select: { idProductPercentajeCommision: true; active: true }
-		}
+interface PrismaProductConfigurationWithIncludes {
+	id: number
+	idProduct: number
+	idClientOrigin: number
+	idCategory: number
+	code: string | null
+	active: boolean
+	idProductPercentageCommissionNewBusinesses: number | null
+	createdAt: Date
+	updatedAt: Date
+	product: {
+		idProduct: number
+		name: string
+		company: { idCompany: number; name: string }
 	}
-}>
+	clientOrigin: { idClientOrigin: number; name: string }
+	category: { idCategory: number; name: string }
+	productPercentageCommissionNewBusinesses: {
+		idProductPercentageCommission: number
+		description: string | null
+		active: boolean
+	} | null
+}
 
 /**
  * Transforms a Prisma ProductConfiguration (with includes) to domain type
@@ -45,8 +45,8 @@ export function prismaProductConfigToProductConfig(
 		idCategory: prisma.idCategory,
 		code: prisma.code ?? '',
 		active: prisma.active,
-		idProductPercentajeCommisionNewBusinesses:
-			prisma.idProductPercentajeCommisionNewBusinesses,
+		idProductPercentageCommissionNewBusinesses:
+			prisma.idProductPercentageCommissionNewBusinesses,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
 		product: {
@@ -65,14 +65,17 @@ export function prismaProductConfigToProductConfig(
 			idCategory: prisma.category.idCategory,
 			name: prisma.category.name,
 		},
-		ppcNewBusinesses: prisma.productPercentajeCommisionNewBusinesses
+		ppcNewBusinesses: prisma.productPercentageCommissionNewBusinesses
 			? {
-				id: prisma.productPercentajeCommisionNewBusinesses
-					.idProductPercentajeCommision,
-				active:
-					prisma.productPercentajeCommisionNewBusinesses.active,
-			}
+					id: prisma.productPercentageCommissionNewBusinesses
+						.idProductPercentageCommission,
+					description:
+						prisma.productPercentageCommissionNewBusinesses.description,
+					active: prisma.productPercentageCommissionNewBusinesses.active,
+				}
 			: null,
+		newBusinessesDistributionDescription:
+			prisma.productPercentageCommissionNewBusinesses?.description ?? null,
 	}
 }
 

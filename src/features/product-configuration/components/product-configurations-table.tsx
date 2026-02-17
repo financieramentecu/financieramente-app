@@ -1,12 +1,11 @@
 'use client'
-
-import React from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import type { ProductConfiguration } from '../types/product-configuration.types'
 import type { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
-import { Plus, Pencil, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Pencil } from 'lucide-react'
+import Link from 'next/link'
 import {
 	Select,
 	SelectContent,
@@ -14,6 +13,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/features/shared/ui/select'
+import { Switch } from '@/features/shared/ui/switch'
 
 interface PaginationData {
 	page: number
@@ -91,6 +91,27 @@ export function ProductConfigurationsTableSection({
 			),
 		},
 		{
+			key: 'newBusinessesDistributionDescription',
+			header: 'Distribucíon para nuevos negocios',
+			sortable: false,
+			cellRenderer: (_, row) => {
+				const description =
+					row.newBusinessesDistributionDescription ||
+					row.ppcNewBusinesses?.description ||
+					'Sin descripción'
+
+				return (
+					<span
+						className={`text-sm ${
+							description === 'Sin asignar' ? 'text-muted-foreground' : ''
+						}`}
+					>
+						{description}
+					</span>
+				)
+			},
+		},
+		{
 			key: 'active',
 			header: 'Estado',
 			sortable: true,
@@ -105,6 +126,11 @@ export function ProductConfigurationsTableSection({
 			header: 'Acciones',
 			cellRenderer: (_, row) => (
 				<div className="flex items-center gap-1">
+					<Button asChild variant="default" size="sm">
+						<Link href={`/dashboard/distribucion-comisiones/${row.id}/reglas`}>
+							Configuración comisión
+						</Link>
+					</Button>
 					<Button
 						variant="ghost"
 						size="icon"
@@ -113,22 +139,13 @@ export function ProductConfigurationsTableSection({
 					>
 						<Pencil className="h-4 w-4" />
 					</Button>
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => onToggleActive(row)}
-						title={
-							row.active
-								? 'Desactivar configuración'
-								: 'Activar configuración'
+					<Switch
+						checked={row.active}
+						onCheckedChange={() => onToggleActive(row)}
+						aria-label={
+							row.active ? 'Desactivar configuración' : 'Activar configuración'
 						}
-					>
-						{row.active ? (
-							<ToggleRight className="h-4 w-4" />
-						) : (
-							<ToggleLeft className="h-4 w-4 text-muted-foreground" />
-						)}
-					</Button>
+					/>
 				</div>
 			),
 		},
@@ -147,10 +164,7 @@ export function ProductConfigurationsTableSection({
 	const renderAdditionalFilters = () => {
 		if (!onActiveChange) return null
 		return (
-			<Select
-				value={selectedActive || 'all'}
-				onValueChange={onActiveChange}
-			>
+			<Select value={selectedActive || 'all'} onValueChange={onActiveChange}>
 				<SelectTrigger className="w-full sm:w-[180px] min-w-0">
 					<SelectValue placeholder="Filtrar por estado" />
 				</SelectTrigger>
@@ -167,9 +181,7 @@ export function ProductConfigurationsTableSection({
 		<div className="space-y-4">
 			{/* Header */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-				<h2 className="text-xl font-semibold">
-					Configuraciones de Producto
-				</h2>
+				<h2 className="text-xl font-semibold">Configuraciones de Producto</h2>
 				<Button onClick={onAddConfiguration}>
 					<Plus className="h-4 w-4 mr-2" />
 					Crear Configuración

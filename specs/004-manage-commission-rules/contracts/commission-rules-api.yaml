@@ -1,0 +1,382 @@
+openapi: 3.1.0
+info:
+  title: Commission Rules API
+  version: 1.0.0
+  description: API for managing commission percentage rules under product configurations.
+
+paths:
+  /api/product-configurations/{configId}/commission-rules:
+    get:
+      summary: List commission rules for a product configuration
+      operationId: listCommissionRules
+      parameters:
+        - name: configId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search by description
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter by active status
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of commission rules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionRuleListResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      summary: Create a commission rule with category percentages
+      operationId: createCommissionRule
+      parameters:
+        - name: configId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommissionRuleInput"
+      responses:
+        "201":
+          description: Commission rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionRuleResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Product configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/product-configurations/{configId}/commission-rules/{ruleId}:
+    get:
+      summary: Get a single commission rule with category details
+      operationId: getCommissionRule
+      parameters:
+        - name: configId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Commission rule details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionRuleResponse"
+        "404":
+          description: Rule not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      summary: Update a commission rule (replaces all category percentages)
+      operationId: updateCommissionRule
+      parameters:
+        - name: configId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCommissionRuleInput"
+      responses:
+        "200":
+          description: Commission rule updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionRuleResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rule not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      summary: Toggle commission rule active status
+      operationId: toggleCommissionRuleActive
+      parameters:
+        - name: configId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - active
+              properties:
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommissionRuleResponse"
+        "409":
+          description: Cannot deactivate — has associated businesses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/product-configurations/{configId}/commission-rules/{ruleId}/assign-new-businesses:
+    post:
+      summary: Assign rule as default for new businesses
+      operationId: assignNewBusinessesRule
+      parameters:
+        - name: configId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rule assigned as default
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignNewBusinessesResponse"
+        "400":
+          description: Rule is not active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Rule or config not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    CommissionRuleListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/CommissionRuleListItem"
+            totalItems:
+              type: integer
+            currentPage:
+              type: integer
+            pageSize:
+              type: integer
+
+    CommissionRuleListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+          nullable: true
+        active:
+          type: boolean
+        categoryCount:
+          type: integer
+        businessCount:
+          type: integer
+        isDefaultForNewBusinesses:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    CommissionRuleResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/CommissionRule"
+
+    CommissionRule:
+      type: object
+      properties:
+        id:
+          type: integer
+        idProductConfiguration:
+          type: integer
+        description:
+          type: string
+          nullable: true
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommissionRuleCategory"
+        businessCount:
+          type: integer
+        isDefaultForNewBusinesses:
+          type: boolean
+
+    CommissionRuleCategory:
+      type: object
+      properties:
+        id:
+          type: integer
+        idCategory:
+          type: integer
+        categoryName:
+          type: string
+        categoryCode:
+          type: string
+        percentage:
+          type: number
+          description: "Whole number (15 = 15%). Stored as fraction (0.15) in DB."
+        active:
+          type: boolean
+
+    CreateCommissionRuleInput:
+      type: object
+      properties:
+        description:
+          type: string
+          maxLength: 255
+        categories:
+          type: array
+          items:
+            type: object
+            required:
+              - idCategory
+              - percentage
+            properties:
+              idCategory:
+                type: integer
+              percentage:
+                type: number
+                minimum: 0.01
+                maximum: 999.99
+
+    UpdateCommissionRuleInput:
+      type: object
+      properties:
+        description:
+          type: string
+          maxLength: 255
+        categories:
+          type: array
+          items:
+            type: object
+            required:
+              - idCategory
+              - percentage
+            properties:
+              idCategory:
+                type: integer
+              percentage:
+                type: number
+                minimum: 0.01
+                maximum: 999.99
+
+    AssignNewBusinessesResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            idProductConfiguration:
+              type: integer
+            idProductPercentageCommissionNewBusinesses:
+              type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        data:
+          type: "null"
+        error:
+          type: string

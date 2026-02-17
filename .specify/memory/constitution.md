@@ -1,17 +1,14 @@
 <!--
 Sync Impact Report:
-Version: 1.4.0 → 1.5.0 (Added Component Logic Separation principle)
+Version: 1.5.0 → 1.6.0 (Added Import Alias Rule)
 Modified principles:
-  - None
+  - V. Clean Code Standards (Added strict import alias rule)
 Added sections:
-  - X. Component Logic Separation (Custom Hooks for Business Logic)
+  - None
 Removed sections:
   - None
 Templates requiring updates:
-  - ✅ plan-template.md
-  - ✅ spec-template.md
-  - ✅ tasks-template.md
-  - ⚠️ commands/*.md
+  - None
 Follow-up TODOs: None
 -->
 
@@ -184,8 +181,11 @@ export class AuthService {
 - **Comments**: Only comment "why", not "what". Code should be self-explanatory
 - **Dead Code**: Remove unused imports, functions, and variables before committing
 - **Formatting**: Use Prettier with project configuration. Tabs for indentation, single quotes for strings
+- **Imports**:
+  - **MUST**: Use path aliases (`@/`) for all module imports (e.g., `import { foo } from '@/features/bar'`).
+  - **MUST NOT**: Use relative paths (e.g., `../..`, `./`) for imports. Always use the absolute alias path needed.
 
-**Rationale**: Reduces cognitive load, enables faster onboarding, and prevents bugs from unclear code.
+**Rationale**: Reduces cognitive load, enables faster onboarding, prevents bugs from unclear code, and ensures consistent import paths refactoring-safe.
 
 ### VI. Test-First Development (NON-NEGOTIABLE for Business Logic)
 
@@ -583,4 +583,4 @@ This constitution supersedes all other coding practices and conventions. All cod
 - Use `.cursor/rules/ARCHITECTURE.md` for detailed architecture guidance
 - Use `AGENTS.md` for skills, subagents, and development workflow guidance
 
-**Version**: 1.5.0 | **Ratified**: 2026-01-23 | **Last Amended**: 2026-02-06
+**Version**: 1.6.0 | **Ratified**: 2026-01-23 | **Last Amended**: 2026-02-14

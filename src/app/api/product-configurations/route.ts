@@ -32,8 +32,12 @@ const productConfigurationInclude = {
 	category: {
 		select: { idCategory: true, name: true },
 	},
-	productPercentajeCommisionNewBusinesses: {
-		select: { idProductPercentajeCommision: true, active: true },
+	productPercentageCommissionNewBusinesses: {
+		select: {
+			idProductPercentageCommission: true,
+			description: true,
+			active: true,
+		},
 	},
 } as const
 
@@ -246,8 +250,8 @@ export async function POST(request: Request) {
 				},
 			})
 
-			// Create ProductPercentajeCommision
-			const ppc = await tx.productPercentajeCommision.create({
+			// Create ProductPercentageCommission
+			const ppc = await tx.productPercentageCommission.create({
 				data: {
 					idProductConfiguration: config.id,
 					active: true,
@@ -258,8 +262,8 @@ export async function POST(request: Request) {
 			const updatedConfig = await tx.productConfiguration.update({
 				where: { id: config.id },
 				data: {
-					idProductPercentajeCommisionNewBusinesses:
-						ppc.idProductPercentajeCommision,
+					idProductPercentageCommissionNewBusinesses:
+						ppc.idProductPercentageCommission,
 				},
 				include: productConfigurationInclude,
 			})

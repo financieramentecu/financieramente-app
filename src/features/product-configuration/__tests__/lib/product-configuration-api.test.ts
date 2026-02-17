@@ -263,7 +263,7 @@ describe('product-configuration-api', () => {
 			const result = await productConfigurationApi.updateProductConfiguration(
 				1,
 				{
-					idProductPercentajeCommisionNewBusinesses: 5,
+					idProductPercentageCommissionNewBusinesses: 5,
 				}
 			)
 
@@ -280,7 +280,7 @@ describe('product-configuration-api', () => {
 			})
 
 			const data = {
-				idProductPercentajeCommisionNewBusinesses: 5,
+				idProductPercentageCommissionNewBusinesses: 5,
 			}
 
 			await productConfigurationApi.updateProductConfiguration(1, data)
@@ -299,7 +299,7 @@ describe('product-configuration-api', () => {
 			const result = await productConfigurationApi.updateProductConfiguration(
 				1,
 				{
-					idProductPercentajeCommisionNewBusinesses: 5,
+					idProductPercentageCommissionNewBusinesses: 5,
 				}
 			)
 

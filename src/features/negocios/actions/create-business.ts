@@ -5,7 +5,7 @@ import { Business } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { z } from 'zod'
 import { determineBusinessStatus } from '@/features/negocios/types/business-status.types'
-import { findProductPercentajeCommision } from './find-product-percentaje-commision'
+import { findProductPercentageCommission } from './find-product-percentage-commission'
 
 /**
  * Schema de validación para crear un negocio
@@ -31,7 +31,7 @@ export type CreateBusinessInput = z.infer<typeof createBusinessSchema>
 /**
  * Server Action para crear un negocio
  *
- * Valida los datos, obtiene la categoría del agente, busca ProductPercentajeCommision,
+ * Valida los datos, obtiene la categoría del agente, busca ProductPercentageCommission,
  * determina el estado basado en el contrato y crea el negocio en la base de datos.
  *
  * @param data - Datos del negocio a crear
@@ -68,8 +68,8 @@ export async function createBusiness(
 			}
 		}
 
-		// Buscar ProductPercentajeCommision
-		const commisionResult = await findProductPercentajeCommision({
+		// Buscar ProductPercentageCommission
+		const commisionResult = await findProductPercentageCommission({
 			idProduct: validatedData.idProduct,
 			idClientOrigin: validatedData.idClientOrigin,
 			idCategory: user.idCategoria,
@@ -97,8 +97,8 @@ export async function createBusiness(
 				idBuyPeriodicity: validatedData.idBuyPeriodicity || null,
 				idUser: validatedData.idUser,
 				idClient: validatedData.idClient,
-				idProductPercentajeCommision:
-					commisionResult.data.idProductPercentajeCommision,
+				idProductPercentageCommission:
+					commisionResult.data.idProductPercentageCommission,
 				idCurrency: validatedData.idCurrency,
 				idClientOrigin: validatedData.idClientOrigin,
 				status,

@@ -12,15 +12,15 @@ export async function seedBusinesses(prisma: PrismaClient) {
 		where: { role: { code: 'AGENTE' } },
 	})
 
-	const productPercentajeCommision =
-		await prisma.productPercentajeCommision.findFirst()
+	const productPercentageCommission =
+		await prisma.productPercentageCommission.findFirst()
 	const currency = await prisma.currency.findFirst({ where: { name: 'COP' } })
 	const periodicity = await prisma.buyPeriodicity.findFirst({
 		where: { name: 'Mensual' },
 	})
 	const clientOrigin = await prisma.clientOrigin.findFirst()
 
-	if (!user || !productPercentajeCommision || !currency || !clientOrigin) {
+	if (!user || !productPercentageCommission || !currency || !clientOrigin) {
 		console.log('⚠️ Faltan datos base para crear negocios de prueba')
 		return
 	}
@@ -78,8 +78,8 @@ export async function seedBusinesses(prisma: PrismaClient) {
 					...businessData,
 					idUser: user.idUser,
 					idClient: client.idClient,
-					idProductPercentajeCommision:
-						productPercentajeCommision.idProductPercentajeCommision,
+					idProductPercentageCommission:
+						productPercentageCommission.idProductPercentageCommission,
 					idCurrency: currency.idCurrency,
 					idBuyPeriodicity: periodicity?.idBuyPeriodicity || null,
 					idClientOrigin: clientOrigin.idClientOrigin,

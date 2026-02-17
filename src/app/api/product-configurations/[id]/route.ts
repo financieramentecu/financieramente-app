@@ -25,8 +25,12 @@ const productConfigurationInclude = {
 	category: {
 		select: { idCategory: true, name: true },
 	},
-	productPercentajeCommisionNewBusinesses: {
-		select: { idProductPercentajeCommision: true, active: true },
+	productPercentageCommissionNewBusinesses: {
+		select: {
+			idProductPercentageCommission: true,
+			description: true,
+			active: true,
+		},
 	},
 } as const
 
@@ -53,8 +57,7 @@ export async function GET(
 			return NextResponse.json(errorResponse, { status: 404 })
 		}
 
-		const configFormatted =
-			prismaProductConfigToProductConfig(config)
+		const configFormatted = prismaProductConfigToProductConfig(config)
 
 		const response: ApiResponse<ProductConfiguration> = {
 			data: configFormatted,
@@ -86,10 +89,9 @@ export async function PUT(
 		const data = updateProductConfigurationSchema.parse(body)
 
 		// Get existing configuration
-		const existingConfig =
-			await prisma.productConfiguration.findUnique({
-				where: { id: configId },
-			})
+		const existingConfig = await prisma.productConfiguration.findUnique({
+			where: { id: configId },
+		})
 
 		if (!existingConfig) {
 			const errorResponse: ApiResponse<null> = {
@@ -100,10 +102,10 @@ export async function PUT(
 		}
 
 		// Validate PPC belongs to this configuration
-		const ppc = await prisma.productPercentajeCommision.findUnique({
+		const ppc = await prisma.productPercentageCommission.findUnique({
 			where: {
-				idProductPercentajeCommision:
-					data.idProductPercentajeCommisionNewBusinesses,
+				idProductPercentageCommission:
+					data.idProductPercentageCommissionNewBusinesses,
 			},
 		})
 
@@ -127,14 +129,13 @@ export async function PUT(
 		const config = await prisma.productConfiguration.update({
 			where: { id: configId },
 			data: {
-				idProductPercentajeCommisionNewBusinesses:
-					data.idProductPercentajeCommisionNewBusinesses,
+				idProductPercentageCommissionNewBusinesses:
+					data.idProductPercentageCommissionNewBusinesses,
 			},
 			include: productConfigurationInclude,
 		})
 
-		const configFormatted =
-			prismaProductConfigToProductConfig(config)
+		const configFormatted = prismaProductConfigToProductConfig(config)
 
 		const response: ApiResponse<ProductConfiguration> = {
 			data: configFormatted,
@@ -193,10 +194,9 @@ export async function PATCH(
 		}
 
 		// Check if configuration exists
-		const existingConfig =
-			await prisma.productConfiguration.findUnique({
-				where: { id: configId },
-			})
+		const existingConfig = await prisma.productConfiguration.findUnique({
+			where: { id: configId },
+		})
 
 		if (!existingConfig) {
 			const errorResponse: ApiResponse<null> = {
@@ -213,8 +213,7 @@ export async function PATCH(
 			include: productConfigurationInclude,
 		})
 
-		const configFormatted =
-			prismaProductConfigToProductConfig(config)
+		const configFormatted = prismaProductConfigToProductConfig(config)
 
 		const response: ApiResponse<ProductConfiguration> = {
 			data: configFormatted,
@@ -234,10 +233,7 @@ export async function PATCH(
 			}
 		}
 
-		console.error(
-			'Error toggling product configuration active:',
-			error
-		)
+		console.error('Error toggling product configuration active:', error)
 		const errorResponse: ApiResponse<null> = {
 			data: null,
 			error: 'Error al cambiar estado de configuración de producto',

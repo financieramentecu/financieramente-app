@@ -85,7 +85,7 @@ export async function GET(
 				},
 				comissionDistributions: {
 					include: {
-						productPercentajeCommisionCategory: {
+						productPercentageCommissionCategory: {
 							include: {
 								category: true,
 							},
@@ -123,7 +123,7 @@ export async function GET(
 				registro.comissionDistributions.forEach(
 					(dist: DistributionWithCategory) => {
 						const rawCatName =
-							dist.productPercentajeCommisionCategory?.category.name ||
+							dist.productPercentageCommissionCategory?.category.name ||
 							'SIN CATEGORIA'
 						const catName = rawCatName.toUpperCase().trim()
 
