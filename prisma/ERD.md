@@ -1,47 +1,39 @@
-# Modelo relacional - Sistema de Liquidación de Comisiones
-
-Diagrama ER (Entity Relationship) generado a partir de `schema.prisma`.  
-Sistema: Financieramente — liquidación de comisiones.
-
 ```mermaid
 erDiagram
-    %% ========== CATÁLOGOS Y DOMINIOS ==========
     Company ||--o{ Product : "tiene productos"
     TypeProduct ||--o{ Product : "clasifica"
     ClientOrigin ||--o{ ProductConfiguration : "origen en config"
     ClientOrigin ||--o{ Business : "origen del negocio"
     Category ||--o{ User : "categoría del usuario"
     Category ||--o{ ProductConfiguration : "categoría en config"
-    Category ||--o{ ProductPercentajeCommisionCategory : "en distribución"
+    Category ||--o{ ProductPercentageCommissionCategory : "en distribución"
     Role ||--o{ User : "rol asignado"
     Role ||--o{ AuditLog : "rol en auditoría"
     BuyPeriodicity ||--o{ Business : "periodicidad de compra"
     Currency ||--o{ Business : "moneda"
+    Currency ||--o{ Business : "moneda"
+    User ||--o| ClawbackBalance : "saldo reserva"
+    User ||--o{ Clawback : "historial movimientos"
 
-    %% ========== PRODUCTOS Y CONFIGURACIÓN ==========
     Product ||--o{ ProductConfiguration : "combinación producto/origen/categoría"
-    ProductConfiguration ||--o{ ProductPercentajeCommision : "versiones PPC"
-    ProductConfiguration ||--o| ProductPercentajeCommision : "PPC activo nuevos negocios"
-    ProductPercentajeCommision ||--o{ ProductPercentajeCommisionCategory : "distribución por categoría"
-    ProductPercentajeCommision ||--o{ Business : "config aplicada"
-    ProductPercentajeCommisionCategory ||--o{ ComissionDistribution : "distribución"
+    ProductConfiguration ||--o{ ProductPercentageCommission : "versiones PPC"
+    ProductConfiguration ||--o| ProductPercentageCommission : "PPC activo nuevos negocios"
+    ProductPercentageCommission ||--o{ ProductPercentageCommissionCategory : "distribución por categoría"
+    ProductPercentageCommission ||--o{ Business : "config aplicada"
+    ProductPercentageCommissionCategory ||--o{ CommissionDistribution : "distribución"
 
-    %% ========== USUARIOS Y JERARQUÍA ==========
     User ||--o| User : "líder"
     User ||--o{ Business : "negocios"
     User ||--o{ FileImport : "importaciones"
     User ||--o{ AuditLog : "eventos auditoría"
 
-    %% ========== CLIENTES Y NEGOCIOS ==========
     Client ||--o{ Business : "negocios"
 
-    %% ========== IMPORTACIÓN Y LIQUIDACIÓN ==========
     FileImport ||--o{ SettlementCommission : "registros"
     Business ||--o{ SettlementCommission : "comisiones"
-    SettlementCommission ||--o{ ComissionDistribution : "distribuciones"
-    ComissionDistribution ||--o| Clawback : "clawback opcional"
+    SettlementCommission ||--o{ CommissionDistribution : "distribuciones"
+    CommissionDistribution ||--o| Clawback : "clawback opcional"
 
-    %% ========== ENTIDADES - CATÁLOGOS ==========
     Company {
         int id_company PK
         string name
@@ -54,7 +46,7 @@ erDiagram
     ClientOrigin {
         int id_client_origin PK
         string name
-        text description
+        string description
         boolean status
         datetime created_at
         datetime updated_at
@@ -65,7 +57,7 @@ erDiagram
         string code UK
         string name
         string type_category
-        text descripcion
+        string descripcion
         boolean status
         datetime created_at
         datetime updated_at
@@ -75,7 +67,7 @@ erDiagram
         int id_role PK
         string code UK
         string name
-        text description
+        string description
         boolean active
         datetime created_at
         datetime updated_at
@@ -101,18 +93,34 @@ erDiagram
     TypeProduct {
         int id_type_product PK
         string name
-        text description
+        string description
         boolean status
         datetime created_at
         datetime updated_at
     }
 
-    %% ========== ENTIDADES - PRODUCTOS ==========
+    CommissionConfiguration {
+        int id_config_commission PK
+        float discount_percentage
+        float clawback_percentage
+        string name
+        string description
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+
+    ClawbackBalance {
+        int id_user PK, FK
+        float total_amount
+        datetime updated_at
+    }
+
     Product {
         int id_product PK
         int id_company FK
         string name
-        text description
+        string description
         int id_type_product FK
         boolean status
         datetime created_at
@@ -125,30 +133,29 @@ erDiagram
         int id_client_origin FK
         int id_category FK
         string code
-        int id_product_percentaje_commision_new_businesses FK
+        int id_ppc_new_businesses FK
         datetime created_at
         datetime updated_at
     }
 
-    ProductPercentajeCommision {
-        int id_product_percentaje_commision PK
+    ProductPercentageCommission {
+        int id_product_percentage_commission PK
         int id_product_configuration FK
         boolean active
         datetime created_at
         datetime updated_at
     }
 
-    ProductPercentajeCommisionCategory {
+    ProductPercentageCommissionCategory {
         int id PK
         int id_category FK
-        int id_product_percentaje_commision FK
-        decimal porcentaje_distribucion
+        int id_product_percentage_commission FK
+        float porcentaje_distribucion
         boolean active
         datetime created_at
         datetime updated_at
     }
 
-    %% ========== ENTIDADES - USUARIOS Y CLIENTES ==========
     User {
         int id_user PK
         string name
@@ -185,7 +192,6 @@ erDiagram
         datetime updated_at
     }
 
-    %% ========== ENTIDADES - OPERACIONES ==========
     FileImport {
         int id_file_import PK
         string name_file
@@ -207,12 +213,12 @@ erDiagram
         int id_business PK
         string contract UK
         int term
-        decimal value
-        text observations
+        float value
+        string observations
         int id_buy_periodicity FK
         int id_user FK
         int id_client FK
-        int id_product_percentaje_commision FK
+        int id_product_percentage_commission FK
         int id_currency FK
         int id_client_origin FK
         string status
@@ -224,15 +230,15 @@ erDiagram
         int id_settlement_commission PK
         int id_file_import FK
         int id_business FK
-        string poliza
-        string ramo
-        string producto
-        string recibo
-        string concepto
-        datetime fecha_pago
-        decimal valor_comision
-        decimal porcentaje_comision
-        decimal valor_prima
+        string product
+        string descripcion
+        float valor_comision
+        float porcentaje_comision
+        float base_commission
+        float applied_discount_percentage "SNAPSHOT"
+        float applied_clawback_percentage "SNAPSHOT"
+        string origin_commission
+        string commission_type
         string status
         boolean is_lag
         string error
@@ -240,13 +246,16 @@ erDiagram
         datetime updated_at
     }
 
-    ComissionDistribution {
-        int id_comission_distribution PK
+    CommissionDistribution {
+        int id_commission_distribution PK
         int id_settlement_commission FK
-        int id_percentaje_commision_category FK
-        decimal value_comission
-        decimal value_comission_final
-        text observation
+        int id_percentage_commission_category FK
+        float value_commission
+        float value_commission_final
+        float total_discount
+        float applied_discount_percentage
+        int id_config_commission FK
+        string observation
         string status
         datetime created_at
         datetime updated_at
@@ -254,13 +263,14 @@ erDiagram
 
     Clawback {
         int id_clawback PK
-        int id_comission_distribution FK
-        decimal value_clawback
-        decimal porcentaje_applied
-        string state
+        int id_user FK
+        int id_commission_distribution FK
+        float value_clawback
+        float porcentaje_applied
+        string state "ACUMULADO / DESCONTADO"
         date applied_date
         date release_date
-        text reason
+        string reason
         datetime created_at
         datetime updated_at
     }
@@ -272,18 +282,24 @@ erDiagram
         string action
         string email
         string ip_address
-        text user_agent
-        text details
+        string user_agent
+        string details
         datetime created_at
     }
 ```
+
+---
+# Modelo relacional - Sistema de Liquidación de Comisiones
+
+Diagrama ER (Entity Relationship) generado a partir de `schema.prisma`.  
+Sistema: Financieramente — liquidación de comisiones.
 
 ## Leyenda de cardinalidad (Mermaid)
 
 | Símbolo | Significado        |
 |---------|--------------------|
-| `\|\|--o{` | Uno a muchos     |
-| `\|\|--o\|` | Uno a cero o uno |
+| `||--o{` | Uno a muchos     |
+| `||--o|` | Uno a cero o uno |
 | `}o--o{`   | Muchos a muchos  |
 
 ## Índices y convenciones
@@ -295,4 +311,4 @@ erDiagram
 
 ## Cómo ver el diagrama
 
-- Pegar el bloque de código mermaid en [mermaid.live](https://mermaid.live) o en cualquier visor que soporte Mermaid (GitHub, GitLab, Notion, etc.).
+- Pegar el bloque de código mermaid en [mermaid.live](https://mermaid.live).

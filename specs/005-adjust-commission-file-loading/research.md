@@ -1,26 +1,26 @@
-# Research: Commission Adjustments
+# Research & Technical Decisions
 
-## Findings
+## 1. Rounding Policy
+- **Decision**: Standard Rounding to 3 decimals (Half-Up).
+- **Rationale**: User explicitly requested 3-decimal precision to match Excel examples.
+- **Alternatives**: Floor/Ceil (rejected as inaccurate for financial data), 2 decimals (insufficient for intermediate calculations).
 
-### Hierarchical Resolution
-The `User` model in `prisma/schema.prisma` contains an `idUserLeader` field (self-relation). 
-- **Decision**: Use `user.leader` relation to resolve the hierarchy (Coach -> Leader). 
-- **Rationale**: This is the native way the app handles relationships.
+## 2. Business Origin Mapping for Polizas
+- **Decision**: Map `PROMOTOR_FRONT19_OMPEV` in "Plan de Compensación" column to `CARTERA` in `originCommission` field.
+- **Rationale**: Essential to differentiate commission percentages (Propio vs Vortex/Asesoria vs Cartera).
+- **Alternatives**: Hardcoded ID lookup (fragile), Fuzzy matching (unreliable).
 
-### Commission Percentage Lookups
-The app uses `getPpcForNewBusinesses` in `product-configuration.service.ts` to find the `ProductPercentageCommission` based on `Product`, `ClientOrigin`, and `Category`.
-- **Decision**: Extend or use this service to fetch the Coach's base percentage dynamically for both Voluntarias and Polizas.
-- **Rationale**: Reuses existing configuration logic and allows for per-product/origin/category flexibility.
+## 3. Configuration Storage
+- **Decision**: Rename `Discount` table to `CommissionConfiguration`. Add `discountPercentage` (12%) and `clawbackPercentage` (10%).
+- **Rationale**: Centralized configuration allows adjusting tax/retention rates without code changes. Decoupling historical records via snapshots ensures auditability.
+- **Alternatives**: Hardcoded constants (inflexible), Environment variables (require redeploy).
 
-### Clawback Reserves
-There is no dedicated `Reserve` table. The `Clawback` table exists with a `state` field ('RETENIDO', 'LIBERADO', 'APLICADO', 'CANCELADO').
-- **Decision**: Implement a virtual "reserve" by summing `Clawback` records for a user that are in 'RETENIDO' state. For "claw" type records in Excel, create negative entries or apply them to existing retentions.
-- **Rationale**: Leverages the existing schema without adding unnecessary tables.
+## 4. Clawback Tracking
+- **Decision**: Dual-table approach: `ClawbackBalance` for current total reserve, `Clawback` for movement history (`ACUMULADO`, `DESCONTADO`).
+- **Rationale**: Provides both high-performance balance checks and full audit trail of every modification. Allows negative balances to represent debt.
+- **Alternatives**: Single table with sum aggregation (slow at scale), JSON field on User (hard to query/report).
 
-### File Type Detection
-The user Excel example shows identical headers but different internal logic.
-- **Decision**: Use Filename-based detection (e.g., "VOLUNTARIAS") for Phase 1. 
-
-## Alternatives Considered
-- **Strict Header Detection**: Rejected because the headers are identical in the provided examples.
-- **New Reserve Table**: Rejected to keep the schema lean; the `Clawback` table is sufficient for tracking retentions.
+## 5. File Processing UX
+- **Decision**: Combined real-time progress bar + detailed post-import summary.
+- **Rationale**: User needs immediate feedback on long-running batches and precise details on row-level failures (e.g., missing mandatory data).
+- **Alternatives**: Async email report (too slow), Silent failure (bad UX).

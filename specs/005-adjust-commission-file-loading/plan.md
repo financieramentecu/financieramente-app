@@ -1,87 +1,68 @@
-## Summary
+# Implementation Plan: 005-adjust-commission-file-loading
 
-Adjust the file upload and commission distribution engine to handle "Voluntarias" and "Polizas" files. The solution implements a dynamic hierarchical calculation where percentages for Coach, Leader, and Agency are fetched from DB configuration tables. Calculations apply common tax discounts (12%) and retention clawbacks (10% for policies). It also handles "claw" type records to subtract from user reserve balances.
+**Branch**: `005-adjust-commission-file-loading` | **Date**: 2026-02-16 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `specs/005-adjust-commission-file-loading/spec.md`
+
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+
+## Summary
+Adjust the file upload and commission distribution engine to handle "Voluntarias" and "Polizas" files. The solution implements a dynamic hierarchical calculation where percentages for Coach, Leader, and Agency are fetched from DB configuration tables. This plan includes a table refactor of `Discount` to `CommissionConfiguration` to host dynamic `discountPercentage` (12% office tax) and `clawbackPercentage` (10% retention, strictly for Polizas), and uses **3-decimal rounding** across calculations.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.8, Next.js 15  
-**Primary Dependencies**: Prisma, Zod, XLSX, Shadcn/UI  
-**Storage**: PostgreSQL (Prisma ORM)  
-**Testing**: Vitest (Unit/Integration), Playwright (E2E)  
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
+
+**Language/Version**: TypeScript 5.8, Next.js 15
+**Primary Dependencies**: Prisma, Zod, XLSX, Shadcn/UI
+**Storage**: PostgreSQL (Prisma ORM)
+**Testing**: Vitest (Unit/Integration), Playwright (E2E)
 **Target Platform**: Web (Next.js App Router)
-**Project Type**: Web Application  
-**Performance Goals**: Batch process >1k Excel records per minute; <200ms latency for pre-liquidation summaries.  
-**Constraints**: Hierarchical integrity (Leader based on Coach Bruta), dynamic discount/percentage lookups (no hardcoding).  
+**Project Type**: Web Application
+**Performance Goals**: Batch process >1k Excel records per minute; <200ms latency for pre-liquidation summaries.
+**Constraints**: Hierarchical integrity (Leader based on Coach Bruta), dynamic discount/percentage lookups. **Standard Rounding to 3 decimals (Half-Up)**.
 **Scale/Scope**: Handling monthly commission increments across ~50 agents and multiple business origins.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-| Gate | Requirement | Context |
-|------|-------------|---------|
-| Screaming Architecture | Logic in `src/features/pre-liquidacion` | All new formulas and hierarchy resolution MUST be domain-contained. |
-| SOLID | Dependency Inversion for Calc | Calculation services MUST be injected or use factory patterns for testability. |
-| Strict Types | Readonly Domain Types | All distribution results MUST use immutable interfaces. |
-| Validation | Zod schemas for Excel | Every imported row MUST be validated before processing. |
-| Separation | Hook-based logic | UI components (CargarArchivoTab) MUST NOT contain calculation logic. |
+[Gates determined based on constitution file]
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/005-adjust-commission-file-loading/
+├── spec.md              # Requirements and clarifications
+├── plan.md              # This file
+├── data-model.md        # DB Entity definitions
+├── clawback-flow.md     # Logic for retentions/adjustments
+├── research.md          # Key technical decisions
+├── contracts/           # API Definitions
+└── tasks.md             # Actionable engineering tasks
 ```
 
-### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
+### Source Code (Screaming Architecture)
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+src/features/pre-liquidacion/
+├── components/           # UI for summary and progress
+├── hooks/                # Data fetching and state
+├── lib/                  # Business logic & services
+│   ├── calculation-engine.ts
+│   ├── hierarchy-resolver.ts
+│   └── excel-parser.ts
+├── types/                # Domain specific types
+└── __tests__/             # Unit/Integration tests
 
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+src/app/api/
+├── carga-archivos/       # Entry point for imports
+└── pre-liquidacion/      # Entry point for calculations
 ```
 
 **Structure Decision**: [Document the selected structure and reference the real

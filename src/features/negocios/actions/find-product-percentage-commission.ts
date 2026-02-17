@@ -49,7 +49,7 @@ export async function findProductPercentageCommission(
 		}
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error)
-		console.error('Error finding product percentaje commision:', message, error)
+		console.error('Error finding product percentage commission:', message, error)
 		return {
 			data: null,
 			error:
