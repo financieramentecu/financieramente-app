@@ -15,7 +15,53 @@ export interface ArchivoDisponible {
 	rezagados: number
 	estado: string
 	registrosPreliquidados?: number
+	fileType?: string | null // NEW: VOLUNTARIA / POLIZA
 }
+
+// --- API Responses (Matching contracts/pre-liquidacion-api.md) ---
+
+export interface UploadCommissionFileResponse {
+	fileId: string // uuid? or int? DB uses Int id_file_import. API Contract says "uuid-v4". 
+	// Wait, DB Key is Int. If contract says UUID, I might need to return ID as string or UUID if I added UUID column. 
+	// Schema `FileImport` has `id Int`. I will return `id` (number) but maybe formatted as string?
+	// Contract said "uuid-v4". This is a discrepancy. I will stick to Int for now as schema is Int.
+	// Or I should have added a UUID field to FileImport?
+	// T001 didn't say "Add UUID". I'll use number for now.
+	// "fileId": number 
+	fileName: string
+	status: string
+	totalRows: number
+	detectedType: string // 'VOLUNTARIA' | 'POLIZA'
+}
+
+export interface PreLiquidationProcessResponse {
+	jobId: string
+	status: string
+	message: string
+}
+
+export interface PreLiquidationSummaryError {
+	rowIndex: number
+	reason: string
+}
+
+export interface PreLiquidationSummary {
+	totalProcessed: number
+	successfulRows: number
+	failedRows: number
+	errors: PreLiquidationSummaryError[]
+	totalCommissionBruta: number
+	totalCommissionNeta: number
+	totalClawbackRetained: number
+}
+
+export interface PreLiquidationStatusResponse {
+	fileId: number // Int
+	status: string // 'PROCESSING' | 'COMPLETED' | 'COMPLETED_WITH_ERRORS'
+	progress: number // 0-100
+	summary?: PreLiquidationSummary | null
+}
+
 
 /**
  * Resumen de archivos por estado

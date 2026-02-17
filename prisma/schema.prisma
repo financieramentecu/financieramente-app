@@ -1,0 +1,451 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement()) @map("id_audit_log")
+  idUser    Int?     @map("id_user")
+  idRole    Int?     @map("id_role")
+  action    String   @db.VarChar(50)
+  email     String?  @db.VarChar(150)
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent")
+  details   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  role Role? @relation(fields: [idRole], references: [idRole])
+  user User? @relation(fields: [idUser], references: [idUser])
+
+  @@map("audit_log")
+  @@index([action])
+  @@index([createdAt])
+  @@index([email])
+  @@index([idRole])
+  @@index([idUser])
+}
+
+model Business {
+  idBusiness                  Int      @id @default(autoincrement()) @map("id_business")
+  contract                    String?  @unique @db.VarChar(100)
+  term                        Int?
+  value                       Decimal  @db.Decimal(15, 2)
+  observations                String?
+  idBuyPeriodicity            Int?     @map("id_buy_periodicity")
+  idUser                      Int      @map("id_user")
+  idClient                    Int      @map("id_client")
+  idProductPercentageCommission Int    @map("id_product_percentage_commission")
+  idCurrency                  Int      @map("id_currency")
+  idClientOrigin              Int      @map("id_client_origin")
+  status                      String?  @db.VarChar(20)
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+
+  buyPeriodicity            BuyPeriodicity?            @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
+  client                    Client                     @relation(fields: [idClient], references: [idClient])
+  clientOrigin              ClientOrigin               @relation(fields: [idClientOrigin], references: [idClientOrigin])
+  currency                  Currency                   @relation(fields: [idCurrency], references: [idCurrency])
+  productPercentageCommission ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
+  user                      User                       @relation(fields: [idUser], references: [idUser])
+  settlementCommissions     SettlementCommission[]
+
+  @@map("business")
+  @@index([contract])
+  @@index([idClientOrigin])
+  @@index([idUser])
+}
+
+model BuyPeriodicity {
+  idBuyPeriodicity Int @id @default(autoincrement()) @map("id_buy_periodicity")
+  name      String   @db.VarChar(50)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  businesses Business[]
+
+  @@map("buy_periodicity")
+}
+
+model Category {
+  idCategory   Int      @id @default(autoincrement()) @map("id_category")
+  code         String   @unique @db.VarChar(20)
+  name         String   @db.VarChar(50)
+  typeCategory String   @map("type_category") @db.VarChar(20)
+  description  String?  @map("descripcion")
+  status       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  productConfigurations               ProductConfiguration[]
+  productPercentageCommissionCategories ProductPercentageCommissionCategory[]
+  users                               User[]
+
+  @@map("category")
+  @@index([typeCategory])
+}
+
+model Clawback {
+  id                Int       @id @default(autoincrement()) @map("id_clawback")
+  idUser            Int       @map("id_user")
+  // Optional relation to distribution to track origin of retention
+  idCommissionDistribution Int? @map("id_commission_distribution")
+
+  value             Decimal   @map("value_clawback") @db.Decimal(15, 2)
+  percentageApplied Decimal?  @map("porcentaje_applied") @db.Decimal(5, 4)
+  state             String    @db.VarChar(20) // ACUMULADO, DESCONTADO
+  appliedDate       DateTime? @map("applied_date") @db.Date
+  releaseDate       DateTime? @map("release_date") @db.Date
+  reason            String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user                   User                    @relation(fields: [idUser], references: [idUser])
+  commissionDistribution CommissionDistribution? @relation(fields: [idCommissionDistribution], references: [id])
+
+  @@map("clawback")
+  @@index([state])
+  @@index([idUser])
+}
+
+model ClawbackBalance {
+  idUser      Int      @id @map("id_user")
+  totalAmount Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [idUser], references: [idUser])
+
+  @@map("clawback_balance")
+}
+
+model Client {
+  idClient       Int      @id @default(autoincrement()) @map("id_client")
+  name           String   @db.VarChar(200)
+  lastName       String?  @map("last_name") @db.VarChar(200)
+  typeIdentity   String   @default("CC") @map("type_identity") @db.VarChar(10)
+  identityNumber String   @map("identity_number") @db.VarChar(20)
+  email          String?  @db.VarChar(150)
+  phone          String?  @db.VarChar(30)
+  direction      String?  @map("direcction") @db.VarChar(255) // Typo in DB 'direcction'
+  city           String?  @db.VarChar(100)
+  country        String   @default("Colombia") @db.VarChar(50)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  businesses Business[]
+
+  @@map("client")
+  @@unique([typeIdentity, identityNumber])
+  @@index([identityNumber])
+}
+
+model ClientOrigin {
+  idClientOrigin Int @id @default(autoincrement()) @map("id_client_origin")
+  name        String   @db.VarChar(100)
+  description String?
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  businesses            Business[]
+  productConfigurations ProductConfiguration[]
+
+  @@map("client_origin")
+}
+
+model CommissionDistribution {
+  id                         Int      @id @default(autoincrement()) @map("id_comission_distribution") // Typo in DB 'comission'
+  idSettlementCommission     Int      @map("id_settlement_comission") // Typo in DB
+  valueCommission            Decimal  @map("value_comission") @db.Decimal(15, 2)
+  valueCommissionFinal       Decimal  @map("value_comission_final") @db.Decimal(15, 2)
+  observation                String?
+  status                     String   @db.VarChar(20)
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  
+  idPercentageCommissionCategory Int? @map("id_percentaje_commision_category") // Typo
+  
+  // Decoupled: No hard relation to CommissionConfiguration required by Plan, but mapped fields exist.
+  // We remove 'id_discount' relation enforcement if strictly required, but for data integrity keeping FK is okay if optional.
+  // Plan says "Remove hard relations". So I will make it optional and NOT define the relation field if possible, or just keep it loose.
+  // Ideally, we store snapshots:
+  totalDiscount              Decimal? @map("total_discount") @db.Decimal(15, 2)
+  appliedDiscountPercentage  Decimal? @map("applied_discount_percentage") // Matches DB if exists? pull didn't show it but it was in migration 20260128201149?
+  // pull showed 'id_discount'.
+  idCommissionConfiguration  Int?     @map("id_discount")
+
+  settlementCommission            SettlementCommission             @relation(fields: [idSettlementCommission], references: [idSettlementCommission])
+  productPercentageCommissionCategory ProductPercentageCommissionCategory? @relation(fields: [idPercentageCommissionCategory], references: [idProductPercentageCommissionCategory])
+  
+  clawbacks Clawback[]
+
+  @@map("comission_distribution")
+  @@index([idCommissionConfiguration])
+  @@index([idSettlementCommission])
+}
+
+model Company {
+  id            Int      @id @default(autoincrement()) @map("id_company")
+  name          String   @db.VarChar(100)
+  idTypeCompany String   @map("id_type_company") @db.VarChar(20)
+  status        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("company")
+  @@index([idTypeCompany])
+  @@index([name])
+  @@index([status])
+}
+
+model Currency {
+  idCurrency Int @id @default(autoincrement()) @map("id_currency")
+  name      String   @db.VarChar(50)
+  symbol    String?  @db.VarChar(5)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  businesses Business[]
+
+  @@map("currency")
+}
+
+// Renamed from Discount
+model CommissionConfiguration {
+  idCommissionConfiguration Int @id @default(autoincrement()) @map("id_discount") // Map to old ID column
+  discountPercentage Decimal  @map("percentage") @db.Decimal(5, 4) // Map to old column
+  clawbackPercentage Decimal  @default(0) @map("clawback_percentage") @db.Decimal(5, 4) // New column
+  name               String?  @map("description") // Map description to name concept
+  status             String   @default("INACTIVE") @db.VarChar(20)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // Intentionally removed relation back to CommissionDistribution to enforce snapshot logic? 
+  // Or just keep it as loose reference.
+  
+  @@map("config_commission") // Rename table
+  @@index([status])
+}
+
+model FileImport {
+  idFileImport          Int      @id @default(autoincrement()) @map("id_file_import")
+  nameFile              String   @map("name_file") @db.VarChar(255)
+  loadDate              DateTime @default(now()) @map("load_date")
+  idUser                Int      @map("id_user")
+  totalRecord           Int      @default(0) @map("total_record")
+  successRecord         Int      @default(0) @map("success_record")
+  errorRecord           Int      @default(0) @map("error_record")
+  status                String   @db.VarChar(20)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  
+  rezagadoRecord        Int      @default(0) @map("rezagado_record")
+  sincronizadoRecord    Int      @default(0) @map("sincronizado_record")
+  noSincronizadoRecord  Int      @default(0) @map("no_sincronizado_record")
+  preLiquidacionDate    DateTime? @map("pre_liquidacion_date")
+  
+  // New field for T001/T009
+  fileType              String?  @map("file_type") @db.VarChar(20) // VOLUNTARIA / POLIZA
+
+  user                  User     @relation(fields: [idUser], references: [idUser])
+  settlementCommissions SettlementCommission[]
+
+  @@map("file_import")
+  @@index([loadDate])
+  @@index([status])
+}
+
+model Product {
+  idProduct Int @id @default(autoincrement()) @map("id_product")
+  idCompany   Int      @map("id_company")
+  name        String   @db.VarChar(200)
+  description String?
+  idTypeProduct Int?   @map("id_type_product")
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company               Company                @relation(fields: [idCompany], references: [id])
+  typeProduct           TypeProduct?           @relation(fields: [idTypeProduct], references: [id])
+  productConfigurations ProductConfiguration[]
+
+  @@map("product")
+  @@unique([idCompany, name])
+  @@index([idCompany])
+}
+
+model ProductConfiguration {
+  idProductConfiguration Int @id @default(autoincrement()) @map("id_product_configuration")
+  idProduct                        Int      @map("id_product")
+  idClientOrigin                   Int      @map("id_client_origin")
+  idCategory                       Int      @map("id_category")
+  idProductPercentageCommissionNew Int?     @unique @map("id_product_percentage_commission_new_businesses")
+  createdAt                        DateTime @default(now()) @map("created_at")
+  updatedAt                        DateTime @updatedAt @map("updated_at")
+  code                             String?  @db.VarChar(50)
+  active                           Boolean  @default(true)
+
+  category     Category     @relation(fields: [idCategory], references: [idCategory])
+  clientOrigin ClientOrigin @relation(fields: [idClientOrigin], references: [idClientOrigin])
+  product      Product      @relation(fields: [idProduct], references: [idProduct])
+  
+  productPercentageCommissionNewBusinesses ProductPercentageCommission? @relation("NewBusinessesPPC", fields: [idProductPercentageCommissionNew], references: [idProductPercentageCommission])
+  productPercentageCommissions             ProductPercentageCommission[] @relation("ConfigPPC")
+
+  @@map("product_configuration")
+  @@unique([idProduct, idClientOrigin, idCategory])
+  @@index([idCategory])
+  @@index([idClientOrigin])
+  @@index([idProduct])
+}
+
+model ProductPercentageCommission {
+  idProductPercentageCommission Int @id @default(autoincrement()) @map("id_product_percentage_commission")
+  active               Boolean  @default(true)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  idProductConfiguration Int    @map("id_product_configuration")
+  description          String?  @db.VarChar(255)
+
+  businesses           Business[]
+  
+  // Relations to ProductConfiguration
+  configNewBusinesses  ProductConfiguration? @relation("NewBusinessesPPC")
+  productConfiguration ProductConfiguration  @relation("ConfigPPC", fields: [idProductConfiguration], references: [idProductConfiguration])
+  
+  categories           ProductPercentageCommissionCategory[]
+
+  @@map("product_percentaje_commision") // Typo
+  @@index([idProductConfiguration])
+}
+
+model ProductPercentageCommissionCategory {
+  idProductPercentageCommissionCategory Int @id @default(autoincrement()) @map("id_product_percentaje_commision_category")
+  idCategory                   Int      @map("id_category")
+  idProductPercentageCommission Int     @map("id_product_percentage_commission")
+  distributionPercentage       Decimal  @map("porcentaje_distribucion") @db.Decimal(5, 4)
+  active                       Boolean  @default(true)
+  createdAt                    DateTime @default(now()) @map("created_at")
+  updatedAt                    DateTime @updatedAt @map("updated_at")
+
+  commissionDistributions      CommissionDistribution[]
+  category                     Category                    @relation(fields: [idCategory], references: [idCategory])
+  productPercentageCommission  ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
+
+  @@map("product_percentaje_commision_category") // Typo
+  @@index([idCategory])
+  @@index([idProductPercentageCommission])
+}
+
+model Role {
+  idRole      Int        @id @default(autoincrement()) @map("id_role")
+  code        String     @unique @db.VarChar(50)
+  name        String     @db.VarChar(100)
+  description String?
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  auditLogs   AuditLog[]
+  users       User[]
+
+  @@map("role")
+}
+
+model SettlementCommission {
+  idSettlementCommission Int @id @default(autoincrement()) @map("id_settlement_commission")
+  idFileImport         Int      @map("id_file_import")
+  idBusiness           Int?     @map("id_business")
+  
+  // Standardized English Columns (Data will be cleared/migrated)
+  product              String?  @map("product")
+  description          String?  @map("description")
+  policy               String?  @map("policy")
+  branch               String?  @map("branch")
+  receipt              String?  @map("receipt")
+  premiumValue         Decimal? @map("premium_value") @db.Decimal(15, 2)
+  
+  commissionValue      Decimal? @map("commission_value") @db.Decimal(15, 2)
+  commissionPercentage Decimal? @map("commission_percentage") @db.Decimal(5, 2)
+  
+  // New Fields
+  baseCommission       Decimal? @map("base_commission") @db.Decimal(15, 2)
+  originCommission     String?  @map("origin_commission")
+  appliedDiscountPercentage Decimal? @map("applied_discount_percentage") @db.Decimal(5, 4)
+  appliedClawbackPercentage Decimal? @map("applied_clawback_percentage") @db.Decimal(5, 4)
+  commissionType       String?  @map("commission_type") // VOLUNTARIA / POLIZA
+
+  status               String   @default("PENDIENTE")
+  error                String?
+  isLag                Boolean  @default(false) @map("is_lag")
+  paymentDate          DateTime? @map("payment_date")
+
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  commissionDistributions CommissionDistribution[]
+  business              Business?   @relation(fields: [idBusiness], references: [idBusiness])
+  fileImport            FileImport  @relation(fields: [idFileImport], references: [idFileImport])
+
+  @@map("settlement_commission")
+  @@index([idBusiness])
+  @@index([idFileImport])
+}
+
+model TypeProduct {
+  id          Int      @id @default(autoincrement()) @map("id_type_product")
+  name        String   @db.VarChar(200)
+  description String?
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("type_product")
+}
+
+model User {
+  idUser         Int       @id @default(autoincrement()) @map("id_user")
+  name           String    @db.VarChar(150)
+  lastName       String?   @map("last_name") @db.VarChar(150)
+  typeIdentity   String    @default("CC") @map("type_identity") @db.VarChar(10)
+  identityNumber String?   @map("identity_number") @db.VarChar(20)
+  email          String    @unique @db.VarChar(150)
+  phone          String?   @db.VarChar(30)
+  idCategory     Int?      @map("id_categoria")
+  idUserLeader   Int?      @map("id_user_leader")
+  entryDate      DateTime  @map("entry_date") @db.Date
+  retirementDate DateTime? @map("retirement_date") @db.Date
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  idRole         Int?      @map("id_role")
+  password       String?   @db.VarChar(255)
+  ssoOnly        Boolean   @default(true) @map("sso_only")
+
+  auditLogs      AuditLog[]
+  businesses     Business[]
+  fileImports    FileImport[]
+  // Relations
+  category       Category? @relation(fields: [idCategory], references: [idCategory])
+  role           Role?     @relation(fields: [idRole], references: [idRole])
+  leader         User?     @relation("UserHierarchy", fields: [idUserLeader], references: [idUser])
+  subordinates   User[]    @relation("UserHierarchy")
+  
+  clawbackBalance ClawbackBalance?
+  clawbacks       Clawback[]
+
+  @@map("user")
+  @@unique([typeIdentity, identityNumber])
+  @@index([idRole])
+  @@index([idUserLeader])
+  @@index([typeIdentity])
+}

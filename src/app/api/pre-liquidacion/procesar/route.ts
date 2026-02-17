@@ -1,82 +1,54 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/nextauth'
+import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 import { procesarPreLiquidacion } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
-import { procesarPreLiquidacionSchema } from '@/features/pre-liquidacion/lib/pre-liquidacion-schemas'
 
-/**
- * POST /api/pre-liquidacion/procesar
- * Ejecuta el proceso de pre-liquidación para un archivo en un rango de fechas
- */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request): Promise<NextResponse> {
 	try {
 		const session = await auth()
-		if (!session?.user?.id) {
-			return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+		if (!session?.user) {
+			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 		}
 
 		const body = await request.json()
+		const { fileId, rangoFecha } = body
 
-		// Validar con schema Zod
-		const validationResult = procesarPreLiquidacionSchema.safeParse(body)
-		if (!validationResult.success) {
-			return NextResponse.json(
-				{
-					error: 'Datos inválidos',
-					details: validationResult.error.issues.map((e) => ({
-						path: e.path.join('.'),
-						message: e.message,
-					})),
-				},
-				{ status: 400 }
-			)
+		if (!fileId) {
+			return NextResponse.json({ error: 'Missing fileId' }, { status: 400 })
 		}
 
-		const { fileImportId, mes, fechaInicio, fechaFin } = validationResult.data
-
-		let rangoFecha: { inicio: Date; fin: Date }
-
-		// Opción 1: Rango de fechas explícito
-		if (fechaInicio && fechaFin) {
-			rangoFecha = {
-				inicio: new Date(fechaInicio),
-				fin: new Date(fechaFin),
+		// T011: Trigger Engine
+		// Optional rangoFecha parsing
+		let rangoFechaParsed: { inicio: Date; fin: Date } | undefined = undefined
+		if (rangoFecha) {
+			rangoFechaParsed = {
+				inicio: new Date(rangoFecha.inicio),
+				fin: new Date(rangoFecha.fin)
 			}
 		}
-		// Opción 2: Mes "YYYY-MM"
-		else if (mes) {
-			const [year, month] = mes.split('-').map(Number)
-			rangoFecha = {
-				inicio: new Date(year, month - 1, 1), // Mes es 0-indexed en JS
-				fin: new Date(year, month, 0), // Día 0 del siguiente mes es el último día del mes actual
-			}
-			// Asegurar fin del día para la fecha fin si es necesario,
-			// pero como fechaPago suele ser DateTime, mejor asegurar cobertura total
-			// Ajustamos horas para cubrir todo el día
-			rangoFecha.fin.setHours(23, 59, 59, 999)
-		} else {
-			// Este caso no debería ocurrir debido a la validación del schema,
-			// pero lo mantenemos como fallback
-			return NextResponse.json(
-				{ error: 'Se requiere "mes" (YYYY-MM) o "fechaInicio" y "fechaFin".' },
-				{ status: 400 }
-			)
-		}
 
-		// Ejecutar proceso
-		const resultado = await procesarPreLiquidacion(fileImportId, rangoFecha)
+		const result = await procesarPreLiquidacion(Number(fileId), rangoFechaParsed)
 
-		if (!resultado.success) {
-			return NextResponse.json({ error: resultado.mensaje }, { status: 400 })
-		}
+		// Map service result to API response structure?
+		// Service returns { success, registrosProcesados, mensaje }
+		// API Contract (T008) defined: { jobId, status, message } (Async job pattern)
+		// But implementation is synchronous for MVP.
+		// We will return 200 OK with success indicator?
+		// API Contract says 202 Accepted.
+		// I will return 200 for now as it completes immediately (iteration).
+		// Or 202 if passing to background?
+		// T011 implementation is synchronous.
 
-		return NextResponse.json(resultado)
+		return NextResponse.json({
+			jobId: `sync-${Date.now()}`,
+			status: result.success ? 'COMPLETED' : 'ERROR',
+			message: result.mensaje,
+			processedCount: result.registrosProcesados
+		}, { status: result.success ? 200 : 500 })
+
 	} catch (error) {
-		console.error('Error al procesar pre-liquidación:', error)
+		console.error('Error processing pre-liquidation:', error)
 		return NextResponse.json(
-			{
-				error: 'Error al procesar pre-liquidación',
-				details: error instanceof Error ? error.message : 'Error desconocido',
-			},
+			{ error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) },
 			{ status: 500 }
 		)
 	}

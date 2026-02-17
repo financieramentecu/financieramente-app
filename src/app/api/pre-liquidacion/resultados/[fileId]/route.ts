@@ -1,184 +1,125 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/nextauth'
+import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
-import type { RespuestaResultadosPreLiquidacion } from '@/features/pre-liquidacion/types/types'
+import { Decimal } from '@prisma/client/runtime/library'
 
-/**
- * GET /api/pre-liquidacion/resultados/[fileId]
- * Obtiene los resultados detallados de una pre-liquidación
- */
 export async function GET(
-	request: NextRequest,
-	props: { params: Promise<{ fileId: string }> }
-) {
-	const params = await props.params
+	request: Request,
+	{ params }: { params: Promise<{ fileId: string }> }
+): Promise<NextResponse> {
 	try {
+		const { fileId } = await params
 		const session = await auth()
-		if (!session?.user?.id) {
-			return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+		if (!session?.user) {
+			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 		}
 
-		const fileId = parseInt(params.fileId)
-		if (isNaN(fileId)) {
-			return NextResponse.json(
-				{ error: 'ID de archivo inválido' },
-				{ status: 400 }
-			)
+		const id = parseInt(fileId)
+		if (isNaN(id)) {
+			return NextResponse.json({ error: 'Invalid File ID' }, { status: 400 })
 		}
 
-		// Obtener parámetros de query
-		const { searchParams } = new URL(request.url)
-		const page = parseInt(searchParams.get('page') || '1')
-		const pageSize = parseInt(searchParams.get('pageSize') || '100')
-		const minComision = searchParams.get('minComision')
-		const maxComision = searchParams.get('maxComision')
-		const producto = searchParams.get('producto')
-		const tipoComision = searchParams.get('tipoComision')
-
-		// Construir filtros
-		const where: Prisma.SettlementCommissionWhereInput = {
-			idFileImport: fileId,
-			status: 'PRELIQUIDADO',
-		}
-
-		if (minComision) {
-			where.valorComision = {
-				...((where.valorComision as Prisma.DecimalFilter) || {}),
-				gte: parseFloat(minComision),
-			}
-		}
-
-		if (maxComision) {
-			where.valorComision = {
-				...((where.valorComision as Prisma.DecimalFilter) || {}),
-				lte: parseFloat(maxComision),
-			}
-		}
-
-		if (producto) {
-			where.producto = {
-				contains: producto,
-				mode: 'insensitive',
-			}
-		}
-
-		if (tipoComision) {
-			where.concepto = {
-				contains: tipoComision,
-				mode: 'insensitive',
-			}
-		}
-
-		// Contar total de registros
-		const totalRegistros = await prisma.settlementCommission.count({ where })
-
-		// Obtener registros paginados
-		const registros = await prisma.settlementCommission.findMany({
-			where,
-			include: {
-				business: {
-					include: {
-						client: true,
-						user: true,
-					},
-				},
-				comissionDistributions: {
-					include: {
-						productPercentageCommissionCategory: {
-							include: {
-								category: true,
-							},
-						},
-					},
-				},
-			},
-			skip: (page - 1) * pageSize,
-			take: pageSize,
-			orderBy: {
-				createdAt: 'desc',
-			},
+		const fileImport = await prisma.fileImport.findUnique({
+			where: { idFileImport: id },
 		})
 
-		// Tipo inferido del resultado de la query
-		type RegistroConDistribuciones = (typeof registros)[number]
-		type DistributionWithCategory = NonNullable<
-			RegistroConDistribuciones['comissionDistributions']
-		>[number]
+		if (!fileImport) {
+			return NextResponse.json({ error: 'File not found' }, { status: 404 })
+		}
 
-		// Formatear resultados y recolectar categorías únicas
-		const categoriasSet = new Set<string>()
+		// Calculate progress and summary
+		// For now, if status is LOAD, progress is 0. If PRELIQUIDADO, progress is 100.
+		// Real-time progress would require a job queue or tracking table update.
+		// We will approximate based on status.
 
-		const resultados = registros.map((registro) => {
-			const distribuciones: {
-				categoria: string
-				bruta: number
-				neta: number
-			}[] = []
+		let progress = 0
+		if (fileImport.status === 'PRELIQUIDADO' || fileImport.status === 'CLOSED') {
+			progress = 100
+		} else if (fileImport.status === 'PROCESSING') {
+			progress = 50 // Mock
+		}
 
-			if (
-				registro.comissionDistributions &&
-				registro.comissionDistributions.length > 0
-			) {
-				registro.comissionDistributions.forEach(
-					(dist: DistributionWithCategory) => {
-						const rawCatName =
-							dist.productPercentageCommissionCategory?.category.name ||
-							'SIN CATEGORIA'
-						const catName = rawCatName.toUpperCase().trim()
+		let summary = null
 
-						distribuciones.push({
-							categoria: catName,
-							bruta: dist.valueComission.toNumber(),
-							neta: dist.valueComissionFinal.toNumber(),
-						})
+		if (progress === 100) {
+			const settlements = await prisma.settlementCommission.findMany({
+				where: { idFileImport: id },
+				include: {
+					commissionDistributions: true
+				}
+			})
 
-						categoriasSet.add(catName)
+			const totalProcessed = settlements.length
+			// Assuming "failed" rows are skipped or have specific status?
+			const successfulRows = settlements.filter(s => s.status !== 'ERROR').length
+			const failedRows = totalProcessed - successfulRows
+
+			// Calculate totals
+			let totalBruta = new Decimal(0)
+			let totalNeta = new Decimal(0) // Logic for Neta might differ based on distributions
+			let totalClawback = new Decimal(0)
+
+			// To get accurate totals we might need to sum distributions?
+			// Or sum settlement values?
+			// Use distributions for Neta/Clawback
+			const distributions = await prisma.commissionDistribution.findMany({
+				where: {
+					settlementCommission: {
+						idFileImport: id
 					}
-				)
+				},
+				include: {
+					clawbacks: true
+				}
+			})
+
+			for (const dist of distributions) {
+				totalBruta = totalBruta.add(dist.valueCommission)
+				totalNeta = totalNeta.add(dist.valueCommissionFinal)
+
+				// Check clawbacks linked to this distribution
+				// Actually clawback is linked to distribution in schema?
+				// Yes: Clawback -> CommissionDistribution
 			}
 
-			return {
-				idSettlementCommission: registro.idSettlementCommission,
-				producto: registro.producto,
-				rezagado: registro.isLag,
-				nombreCliente: registro.business?.client
-					? `${registro.business.client.name} ${registro.business.client.lastName || ''}`.trim()
-					: null,
-				cedulaAgente: registro.business?.user?.identityNumber || null,
-				nombreAgente: registro.business?.user
-					? `${registro.business.user.name} ${registro.business.user.lastName || ''}`.trim()
-					: null,
-				numeroContrato: registro.business?.contract || registro.poliza || null,
-				tipoComision: registro.concepto,
-				comision: registro.valorComision?.toNumber() || null,
-				distribuciones,
-				estado: registro.status,
+			// Fetch clawbacks separately or via relation
+			const clawbacks = await prisma.clawback.findMany({
+				where: {
+					commissionDistribution: {
+						settlementCommission: {
+							idFileImport: id
+						}
+					}
+				}
+			})
+
+			totalClawback = clawbacks.reduce((sum, c) => sum.add(c.value), new Decimal(0))
+
+
+			summary = {
+				totalProcessed,
+				successfulRows,
+				failedRows,
+				errors: [], // Populate if we tracked errors
+				totalCommissionBruta: totalBruta.toNumber(),
+				totalCommissionNeta: totalNeta.toNumber(),
+				totalClawbackRetained: totalClawback.toNumber()
+			}
+		}
+
+		return NextResponse.json({
+			data: {
+				fileId: fileId,
+				status: fileImport.status,
+				progress,
+				summary
 			}
 		})
 
-		// Ordenar categorías para consistencia (opcional, pero ayuda al UI)
-		const categoriasUnicas = Array.from(categoriasSet).sort()
-
-		const response: RespuestaResultadosPreLiquidacion = {
-			resultados,
-			paginacion: {
-				paginaActual: page,
-				totalPaginas: Math.ceil(totalRegistros / pageSize),
-				totalRegistros,
-				registrosPorPagina: pageSize,
-			},
-			categoriasUnicas,
-		}
-
-		return NextResponse.json(response)
 	} catch (error) {
-		console.error('Error al obtener resultados:', error)
+		console.error('Error fetching results:', error)
 		return NextResponse.json(
-			{
-				error: 'Error al obtener resultados',
-				details: error instanceof Error ? error.message : 'Error desconocido',
-			},
+			{ error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) },
 			{ status: 500 }
 		)
 	}

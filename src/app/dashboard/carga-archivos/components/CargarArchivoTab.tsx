@@ -5,10 +5,20 @@ import { Button } from '@/features/shared/ui/button'
 import { AlertModal } from '@/features/shared/ui/modal'
 import { FileUp, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { validateExcelStructure } from '../lib/validate-excel-structure'
-import { processExcelFile, ProcessResult } from '../lib/process-excel-file'
+// import { validateExcelStructure } from '../lib/validate-excel-structure'
+// import { processExcelFile, ProcessResult } from '../lib/process-excel-file'
 import { ProcessingSummary } from './ProcessingSummary'
 import { ProcessingProgress } from './ProcessingProgress'
+import { UploadCommissionFileResponse } from '@/features/pre-liquidacion/types/types'
+import { PreLiquidationResultResponse } from '@/features/pre-liquidacion/types/api-types'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/features/shared/ui/select'
+import { Label } from '@/features/shared/ui/label'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const ACCEPTED_FILE_TYPES = [
@@ -21,15 +31,13 @@ export function CargarArchivoTab() {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
 	const [isDragging, setIsDragging] = useState(false)
 	const [isUploading, setIsUploading] = useState(false)
+	const [manualFileType, setManualFileType] = useState('AUTO')
 	const [errorModalOpen, setErrorModalOpen] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const [errorModalTitle, setErrorModalTitle] = useState<string | undefined>(
 		undefined
 	)
-	const [processingResult, setProcessingResult] = useState<
-		| (ProcessResult & { sincronizadoCount: number; rezagadoCount: number })
-		| null
-	>(null)
+	const [processingResult, setProcessingResult] = useState<PreLiquidationResultResponse['summary'] | null>(null)
 	const [processingProgress, setProcessingProgress] = useState<{
 		current: number
 		total: number
@@ -182,202 +190,100 @@ export function CargarArchivoTab() {
 	const handleUpload = useCallback(async () => {
 		if (!selectedFile) return
 
-		// Validar formato del archivo antes de cargar
+		// Validar formato del archivo antes de cargar (Validación básica cliente)
 		const formatValidation = validateFileFormat(selectedFile)
 		if (!formatValidation.isValid) {
 			setErrorMessage(
 				formatValidation.error ||
-					'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls'
+				'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls'
 			)
 			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
 			return
 		}
 
-		// Validar tamaño antes de cargar
-		if (selectedFile.size > MAX_FILE_SIZE) {
-			setErrorMessage(
-				'El archivo es demasiado grande. El tamaño máximo es 50MB'
-			)
-			setErrorModalTitle(undefined)
-			setErrorModalOpen(true)
-			return
-		}
-
-		// Validar estructura del archivo Excel
 		setIsUploading(true)
 		abortControllerRef.current = new AbortController()
 
 		try {
-			const structureValidation = await validateExcelStructure(selectedFile)
+			// 1. Cargar Archivo (T009)
+			const formData = new FormData()
+			formData.append('file', selectedFile)
+			formData.append('manualFileType', manualFileType)
 
-			if (!structureValidation.isValid) {
-				// Mostrar modal con el mensaje exacto según el diseño
-				setErrorMessage(
-					'El archivo no contiene la estructura esperada de Skandia. Verifique las columnas requeridas.'
-				)
-				setErrorModalTitle('ESTRUCTURA INCORRECTA')
-				setErrorModalOpen(true)
-				setIsUploading(false)
-				return
+			const uploadResponse = await fetch('/api/carga-archivos/file-import', {
+				method: 'POST',
+				body: formData,
+				signal: abortControllerRef.current?.signal,
+			})
+
+			if (!uploadResponse.ok) {
+				const errorData = await uploadResponse.json()
+				throw new Error(errorData.error || 'Error al cargar el archivo')
 			}
 
-			// Si la validación es exitosa, procesar el archivo
-			const result = await processExcelFile(selectedFile)
+			const uploadResult: UploadCommissionFileResponse = await uploadResponse.json()
+			const { fileId, totalRows } = uploadResult
 
-			// Verificar cancelación antes de continuar
-			if (abortControllerRef.current?.signal.aborted) return
+			// 2. Iniciar Procesamiento (T011)
+			const processResponse = await fetch('/api/pre-liquidacion/procesar', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ fileId }),
+				signal: abortControllerRef.current?.signal,
+			})
 
-			// Crear FileImport
-			const fileImportResponse = await fetch(
-				'/api/carga-archivos/file-import',
-				{
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ fileName: selectedFile.name }),
-					signal: abortControllerRef.current?.signal,
-				}
-			)
-
-			if (!fileImportResponse.ok) {
-				throw new Error('Error al crear registro de importación')
+			if (!processResponse.ok) {
+				const errorData = await processResponse.json()
+				throw new Error(errorData.error || 'Error al iniciar procesamiento')
 			}
 
-			const { fileImport } = await fileImportResponse.json()
+			// 3. Polling de Resultados (T022)
+			setProcessingProgress({
+				current: 0,
+				total: totalRows,
+				sincronizado: 0,
+				rezagado: 0,
+				error: 0,
+			})
 
-			// Procesar y guardar registros válidos con progreso
-			if (result.validRecords.length > 0) {
-				setProcessingProgress({
-					current: 0,
-					total: result.validRecords.length,
-					sincronizado: 0,
-					rezagado: 0,
-					error: 0,
-				})
+			const pollProgress = () => {
+				pollIntervalRef.current = setInterval(async () => {
+					try {
+						const resultsResponse = await fetch(
+							`/api/pre-liquidacion/resultados/${fileId}`
+						)
+						if (resultsResponse.ok) {
+							const { data }: { data: PreLiquidationResultResponse } = await resultsResponse.json()
 
-				// Función para hacer polling del progreso
-				const pollProgress = (fileImportId: number): void => {
-					pollIntervalRef.current = setInterval(async () => {
-						try {
-							const progressResponse = await fetch(
-								`/api/carga-archivos/file-import/${fileImportId}`
-							)
-							if (progressResponse.ok) {
-								const fileImportData = await progressResponse.json()
-								setProcessingProgress((prev) => {
-									if (!prev) return null
-									return {
-										...prev,
-										sincronizado: fileImportData.sincronizadoRecord || 0,
-										rezagado: fileImportData.rezagadoRecord || 0,
-										error: fileImportData.errorRecord || 0,
-									}
-								})
+							// Update progress
+							setProcessingProgress((prev) => ({
+								current: Math.floor((data.progress / 100) * totalRows),
+								total: totalRows,
+								sincronizado: data.summary?.successfulRows || 0,
+								rezagado: 0,
+								error: data.summary?.failedRows || 0
+							}))
 
-								// Si está completado, detener polling
-								if (
-									fileImportData.status === 'COMPLETADO' ||
-									fileImportData.status === 'CANCELADO'
-								) {
-									if (pollIntervalRef.current) {
-										clearInterval(pollIntervalRef.current)
-										pollIntervalRef.current = null
-									}
+							if (data.status === 'COMPLETED' || data.status === 'PRELIQUIDADO' || data.status === 'CLOSED') {
+								if (pollIntervalRef.current) {
+									clearInterval(pollIntervalRef.current)
+									pollIntervalRef.current = null
 								}
+
+								setProcessingProgress(null)
+								setProcessingResult(data.summary)
+								setIsUploading(false)
 							}
-						} catch (error) {
-							console.error('Error al obtener progreso:', error)
 						}
-					}, 1000) // Polling cada 1s
-
-					// Limpiar intervalo después de 5 minutos como seguridad
-					setTimeout(
-						() => {
-							if (pollIntervalRef.current) {
-								clearInterval(pollIntervalRef.current)
-								pollIntervalRef.current = null
-							}
-						},
-						5 * 60 * 1000
-					)
-				}
-
-				// Iniciar polling
-				pollProgress(fileImport.idFileImport)
-
-				// Procesar por lotes (chunks) para permitir cancelación real
-				const BATCH_SIZE = 50
-				const totalRecords = result.validRecords.length
-				let processedCount = 0
-
-				for (let i = 0; i < totalRecords; i += BATCH_SIZE) {
-					// Verificar si se canceló
-					if (abortControllerRef.current?.signal.aborted) {
-						break
+					} catch (error) {
+						console.error('Error polling results:', error)
 					}
-
-					const recordsBatch = result.validRecords.slice(i, i + BATCH_SIZE)
-
-					// Llamar a la API para procesar este lote
-					const processResponse = await fetch(
-						'/api/carga-archivos/process-batch',
-						{
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({
-								fileImportId: fileImport.idFileImport,
-								records: recordsBatch,
-								headers: result.headers,
-								batchSize: BATCH_SIZE,
-							}),
-							signal: abortControllerRef.current?.signal,
-						}
-					)
-
-					if (!processResponse.ok) {
-						throw new Error(`Error al procesar lote ${i} - ${i + BATCH_SIZE}`)
-					}
-
-					processedCount += recordsBatch.length
-
-					// Actualizar progreso local (el polling actualizará los estados específicos)
-					setProcessingProgress((prev) =>
-						prev
-							? {
-									...prev,
-									current: processedCount,
-								}
-							: null
-					)
-				}
-
-				// Esperar un poco para que el último polling actualice
-				await new Promise((resolve) => setTimeout(resolve, 1000))
-
-				// Obtener el estado final
-				const finalResponse = await fetch(
-					`/api/carga-archivos/file-import/${fileImport.idFileImport}`
-				)
-				const finalData = await finalResponse.json()
-
-				// Actualizar progreso con los resultados finales
-				setProcessingProgress(null)
-
-				// Actualizar resultado con los datos del procesamiento
-				setProcessingResult({
-					...result,
-					sincronizadoCount: finalData.sincronizadoRecord || 0,
-					rezagadoCount: finalData.rezagadoRecord || 0,
-					errorCount: result.errorCount + (finalData.errorRecord || 0),
-				})
-			} else {
-				// Si no hay registros válidos, solo mostrar errores
-				setProcessingResult({
-					...result,
-					sincronizadoCount: 0,
-					rezagadoCount: 0,
-				})
+				}, 2000)
 			}
+
+			pollProgress()
+
 		} catch (error) {
 			if (error instanceof Error && error.name === 'AbortError') {
 				console.log('Carga cancelada')
@@ -385,22 +291,11 @@ export function CargarArchivoTab() {
 			}
 			console.error('Error al procesar archivo:', error)
 			setErrorMessage(
-				'Error al procesar el archivo. Por favor, intenta nuevamente.'
+				error instanceof Error ? error.message : 'Error al procesar el archivo.'
 			)
-			setErrorModalTitle(undefined)
+			setErrorModalTitle('Error de Procesamiento')
 			setErrorModalOpen(true)
-		} finally {
-			if (pollIntervalRef.current) {
-				clearInterval(pollIntervalRef.current)
-				pollIntervalRef.current = null
-			}
-			// Only set uploading to false if we are not cancelling with a specific modal flow?
-			// Actually handleCancelUpload sets it to false.
-			// But if we return early due to abort, we might skip this.
-			// Wait, if error is AbortError, I return early in catch block.
-			// Ideally I should let it flow to finally or ensure setIsUploading(false) is called.
 			setIsUploading(false)
-			abortControllerRef.current = null
 		}
 	}, [selectedFile, validateFileFormat])
 
@@ -459,6 +354,29 @@ export function CargarArchivoTab() {
 						Arrastra y suelta tu archivo Excel de Skandia o haz clic para
 						seleccionar
 					</p>
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+						<div className="space-y-2">
+							<Label htmlFor="file-type">Tipo de Archivo (Opcional)</Label>
+							<Select
+								value={manualFileType}
+								onValueChange={setManualFileType}
+								disabled={isUploading}
+							>
+								<SelectTrigger id="file-type" className="bg-background text-foreground">
+									<SelectValue placeholder="Detección Automática" />
+								</SelectTrigger>
+								<SelectContent className="bg-popover text-popover-foreground">
+									<SelectItem value="AUTO">Detección Automática</SelectItem>
+									<SelectItem value="VOLUNTARIA">Voluntarias</SelectItem>
+									<SelectItem value="POLIZA">Pólizas</SelectItem>
+								</SelectContent>
+							</Select>
+							<p className="text-xs text-muted-foreground italic">
+								* Use esto si el sistema no reconoce el formato automáticamente.
+							</p>
+						</div>
+					</div>
 
 					{/* Área de drag and drop */}
 					<div

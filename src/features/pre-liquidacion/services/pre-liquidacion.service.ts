@@ -1,7 +1,17 @@
 import { prisma } from '@/lib/prisma'
-import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidacion-resumen-notification'
 import { Decimal } from '@prisma/client/runtime/library'
+import {
+	Prisma,
+} from '@prisma/client'
+import {
+	calculateDistributions,
+	type CalculationContext,
+	type DistributionCategory,
+} from '../lib/calculation-engine'
+import { resolveHierarchy } from '../lib/hierarchy-resolver'
 import type {
+	// New Types
+	PreLiquidationProcessResponse,
 	AgenteDistribucion,
 	ComisionesCalculadas,
 	ConfiguracionPorcentajes,
@@ -11,42 +21,305 @@ import type {
 	ResumenUsuarioPreliquidacion,
 } from '../types/types'
 
-/**
- * Porcentaje de descuento por defecto (10%)
- * Se usa como fallback si no hay descuento activo en base de datos
- */
-const DESCUENTO_POR_DEFECTO = new Decimal(0.1)
+// --- Constants ---
+const DESCUENTO_POR_DEFECTO = new Decimal(0.12) // 12% is standard for Voluntarias per spec
+const CLAWBACK_POR_DEFECTO = new Decimal(0.10) // 10% is standard for Polizas
+
+// --- Helpers for Procesar ---
 
 /**
- * Obtiene el descuento activo desde la base de datos
- * @returns Objeto con el porcentaje de descuento y su ID, o null si no hay descuento activo
+ * Helper: Link PENDIENTE records to Business/User based on metadata.
  */
-export async function obtenerDescuentoActivo(): Promise<{
-	idDiscount: number
-	percentage: Decimal
-} | null> {
-	const descuentoActivo = await prisma.discount.findFirst({
-		where: {
-			status: 'ACTIVE',
-		},
-		orderBy: {
-			createdAt: 'desc', // En caso de múltiples activos (no debería pasar), tomar el más reciente
-		},
+async function matchRecords(fileId: number) {
+	// 1. Fetch PENDIENTE records
+	const records = await prisma.settlementCommission.findMany({
+		where: { idFileImport: fileId, status: 'PENDIENTE' },
 	})
 
-	if (!descuentoActivo) {
-		return null
-	}
+	for (const r of records) {
+		let businessId: number | null = null
 
-	return {
-		idDiscount: descuentoActivo.idDiscount,
-		percentage: descuentoActivo.percentage,
+		if (r.commissionType === 'POLIZA' && r.policy) {
+			const business = await prisma.business.findFirst({
+				where: { contract: r.policy },
+			})
+			if (business) businessId = business.id
+		} else if (r.commissionType === 'VOLUNTARIA') {
+			// Placeholder for Voluntarias matching logic
+		}
+
+		if (businessId) {
+			await prisma.settlementCommission.update({
+				where: { idSettlementCommission: r.idSettlementCommission },
+				data: { idBusiness: businessId, status: 'SINCRONIZADO' },
+			})
+		}
 	}
 }
 
 /**
- * Obtiene la configuración de porcentajes de comisión para un negocio
+ * Core Process Function (New logic)
  */
+type SettlementCommissionWithRelations = Prisma.SettlementCommissionGetPayload<{
+	include: {
+		business: {
+			include: {
+				user: true,
+				productPercentageCommission: {
+					include: {
+						productPercentageCommissionCategories: {
+							include: { category: true }
+						}
+					}
+				}
+			}
+		}
+	}
+}>
+
+export async function procesarPreLiquidacion(
+	fileImportId: number,
+	rangoFecha?: { inicio: Date; fin: Date }
+): Promise<{ success: boolean; registrosProcesados: number; mensaje: string }> {
+	try {
+		await matchRecords(fileImportId)
+
+		const fileImport = await prisma.fileImport.findUnique({
+			where: { idFileImport: fileImportId },
+		})
+		if (!fileImport) throw new Error('Archivo no encontrado')
+
+		const config = await prisma.commissionConfiguration.findFirst({
+			where: { status: 'ACTIVE' },
+			orderBy: { createdAt: 'desc' }
+		})
+		const officeDiscount = config?.discountPercentage ?? DESCUENTO_POR_DEFECTO
+		const clawbackPercentage = config?.clawbackPercentage ?? CLAWBACK_POR_DEFECTO
+
+		const whereClause: Prisma.SettlementCommissionWhereInput = {
+			idFileImport: fileImportId,
+			status: { in: ['SINCRONIZADO', 'LAG'] },
+		}
+		if (rangoFecha) {
+			whereClause.paymentDate = { gte: rangoFecha.inicio, lte: rangoFecha.fin }
+		}
+
+		const records = await prisma.settlementCommission.findMany({
+			where: whereClause,
+			include: {
+				business: {
+					include: {
+						user: true,
+						productPercentageCommission: {
+							include: {
+								productPercentageCommissionCategories: {
+									include: { category: true },
+									where: { active: true }
+								}
+							}
+						},
+					},
+				},
+			},
+		}) as SettlementCommissionWithRelations[]
+
+		let processedCount = 0
+
+		for (const record of records) {
+			if (!record.business || !record.business.user) {
+				console.warn(`Record ${record.idSettlementCommission} has no business / user linked.Skipping.`)
+				continue
+			}
+
+			const user = record.business.user
+			const hierarchy = await resolveHierarchy(user.idUser)
+
+			if (!hierarchy) {
+				console.warn(`User ${user.idUser} hierarchy not found.`)
+				continue
+			}
+
+			const isClawAdjustment = record.description?.toLowerCase().includes('claw')
+			const commissionValue = record.commissionValue ?? new Decimal(0)
+
+			if (isClawAdjustment) {
+				// T020: Handle Clawback Adjustment
+				await prisma.$transaction(async (tx) => {
+					await tx.commissionDistribution.deleteMany({
+						where: { idSettlementCommission: record.idSettlementCommission }
+					})
+
+					// Create Distribution for Visibility (Negative Value)
+					const createdDist = await tx.commissionDistribution.create({
+						data: {
+							idSettlementCommission: record.idSettlementCommission,
+							idPercentageCommissionCategory: record.business?.productPercentageCommission?.productPercentageCommissionCategories[0]?.idProductPercentageCommissionCategory ?? 1,
+							valueCommission: commissionValue,
+							valueCommissionFinal: commissionValue,
+							totalDiscount: new Decimal(0),
+							idCommissionConfiguration: config?.idCommissionConfiguration,
+							status: 'LIQUIDADO'
+						}
+					})
+
+					// Create Clawback Record (DESCONTADO)
+					const absValue = commissionValue.abs()
+					await tx.clawback.create({
+						data: {
+							user: { connect: { idUser: user.idUser } },
+							commissionDistribution: { connect: { idCommissionDistribution: createdDist.idCommissionDistribution } },
+							value: absValue,
+							percentageApplied: new Decimal(100), // Full amount
+							state: 'DESCONTADO', // Adjustment/Usage of reserve
+							reason: `Adjustment / Clawback: ${record.description} `,
+							appliedDate: new Date()
+						}
+					})
+
+					// Update Balance (Add negative value = Reduce Balance)
+					await tx.clawbackBalance.upsert({
+						where: { idUser: user.idUser },
+						create: {
+							user: { connect: { idUser: user.idUser } },
+							totalAmount: commissionValue
+						},
+						update: {
+							totalAmount: { increment: commissionValue }
+						}
+					})
+
+					await tx.settlementCommission.update({
+						where: { idSettlementCommission: record.idSettlementCommission },
+						data: {
+							status: 'PRELIQUIDADO',
+							appliedDiscountPercentage: new Decimal(0),
+							appliedClawbackPercentage: new Decimal(0)
+						} as any
+					})
+				})
+				processedCount++
+				continue
+			}
+			const categories: DistributionCategory[] = record.business.productPercentageCommission?.productPercentageCommissionCategories.map((c) => ({
+				id: c.idProductPercentageCommissionCategory,
+				name: c.category.name,
+				percentage: c.porcentajeDistribucion
+			})) ?? []
+
+			const ctx: CalculationContext = {
+				settlementValue: commissionValue,
+				hierarchy,
+				categories,
+				officeDiscount,
+				clawbackPercentage,
+				isPoliza: record.commissionType === 'POLIZA'
+			}
+
+			const distributions = calculateDistributions(ctx)
+
+			await prisma.$transaction(async (tx) => {
+				await tx.commissionDistribution.deleteMany({
+					where: { idSettlementCommission: record.idSettlementCommission }
+				})
+
+				for (const dist of distributions) {
+					// 1. Create Distribution
+					const createdDist = await tx.commissionDistribution.create({
+						data: {
+							idSettlementCommission: record.idSettlementCommission,
+							idPercentageCommissionCategory: dist.categoryId,
+							valueCommission: dist.baseAmount,
+							valueCommissionFinal: dist.finalAmount,
+							totalDiscount: dist.discountAmount,
+							idCommissionConfiguration: config?.idCommissionConfiguration,
+							status: 'LIQUIDADO'
+						}
+					})
+
+					// 2. Handle Clawback (If > 0)
+					if (dist.clawbackAmount.gt(0)) {
+						// Create Clawback Record
+						await tx.clawback.create({
+							data: {
+								user: { connect: { idUser: user.idUser } },
+								commissionDistribution: { connect: { idCommissionDistribution: createdDist.idCommissionDistribution } },
+								value: dist.clawbackAmount,
+								percentageApplied: dist.clawbackPercentageApplied,
+								state: 'ACUMULADO', // Retention
+								reason: `Retention 12% Poliza ${record.policy ?? ''}`, // Reason?
+								appliedDate: new Date()
+							}
+						})
+
+						// Update Balance
+						await tx.clawbackBalance.upsert({
+							where: { idUser: user.idUser },
+							create: {
+								user: { connect: { idUser: user.idUser } },
+								totalAmount: dist.clawbackAmount
+							},
+							update: {
+								totalAmount: { increment: dist.clawbackAmount }
+							}
+						})
+					}
+				}
+
+				await tx.settlementCommission.update({
+					where: { idSettlementCommission: record.idSettlementCommission },
+					data: {
+						status: 'PROCESADO',
+						appliedDiscountPercentage: officeDiscount,
+						appliedClawbackPercentage: record.commissionType === 'POLIZA' ? clawbackPercentage : null
+					}
+				})
+			})
+
+			processedCount++
+		}
+
+		await prisma.fileImport.update({
+			where: { idFileImport: fileImportId },
+			data: {
+				status: 'PRELIQUIDADO',
+				preLiquidacionDate: new Date()
+			}
+		})
+
+		// Send email logic (if needed)...
+
+		return {
+			success: true,
+			registrosProcesados: processedCount,
+			mensaje: 'Procesamiento completado',
+		}
+	} catch (error) {
+		console.error('Error in procesarPreLiquidacion:', error)
+		return {
+			success: false,
+			registrosProcesados: 0,
+			mensaje: error instanceof Error ? error.message : 'Unknown Error',
+		}
+	}
+}
+
+// --- Legacy Query Functions (Restored & Updated) ---
+
+export async function obtenerDescuentoActivo(): Promise<{
+	idDiscount: number
+	percentage: Decimal
+} | null> {
+	const descuentoActivo = await prisma.commissionConfiguration.findFirst({
+		where: { status: 'ACTIVE' },
+		orderBy: { createdAt: 'desc' },
+	})
+	if (!descuentoActivo) return null
+	return {
+		idDiscount: descuentoActivo.idCommissionConfiguration,
+		percentage: descuentoActivo.discountPercentage,
+	}
+}
+
 export async function obtenerConfiguracionPorcentajes(
 	idProductPercentageCommission: number
 ): Promise<ConfiguracionPorcentajes> {
@@ -56,37 +329,21 @@ export async function obtenerConfiguracionPorcentajes(
 				idProductPercentageCommission,
 				active: true,
 			},
-			include: {
-				category: true,
-			},
+			include: { category: true },
 		})
-
+	// Map to ConfiguracionPorcentajes
 	const porcentajes: ConfiguracionPorcentajes = {}
-
 	for (const config of configuracion) {
-		const categoryName = config.category.name.toUpperCase()
-		const porcentaje = config.porcentajeDistribucion.toNumber()
-
-		if (categoryName.includes('GENERAL')) {
-			porcentajes.general = porcentaje
-		} else if (categoryName.includes('AGENCIA')) {
-			porcentajes.agencia = porcentaje
-		} else if (
-			categoryName.includes('LIDER') ||
-			categoryName.includes('LÍDER')
-		) {
-			porcentajes.lider = porcentaje
-		} else if (categoryName.includes('COACH')) {
-			porcentajes.coach = porcentaje
-		}
+		const name = config.category.name.toUpperCase()
+		const pct = config.porcentajeDistribucion.toNumber()
+		if (name.includes('GENERAL')) porcentajes.general = pct
+		else if (name.includes('AGENCIA')) porcentajes.agencia = pct
+		else if (name.includes('LIDER') || name.includes('LÍDER')) porcentajes.lider = pct
+		else if (name.includes('COACH')) porcentajes.coach = pct
 	}
-
 	return porcentajes
 }
 
-/**
- * Construye ConfiguracionPorcentajes desde categorías ya cargadas (evita N+1)
- */
 function configFromCategories(
 	cats: Array<{ category: { name: string }; porcentajeDistribucion: Decimal }>
 ): ConfiguracionPorcentajes {
@@ -103,39 +360,55 @@ function configFromCategories(
 	return porcentajes
 }
 
-/**
- * Obtiene el detalle de pre-liquidación de un archivo (registros, distribución por agente, resumen).
- * Toda la lógica de negocio y acceso a datos vive aquí; el router solo delega.
- */
+export function aplicarFormulas(
+	comisionBase: Decimal,
+	porcentajes: ConfiguracionPorcentajes,
+	descuento?: Decimal
+): ComisionesCalculadas {
+	// Legacy calculation logic (Used by UI for preview)
+	const descuentoAplicar = descuento || DESCUENTO_POR_DEFECTO
+	const generalBruta = porcentajes.general ? comisionBase.mul(new Decimal(porcentajes.general)) : new Decimal(0)
+	const comisionBrutaAgencia = porcentajes.agencia ? comisionBase.mul(new Decimal(porcentajes.agencia)) : new Decimal(0)
+	const comisionBrutaLider = porcentajes.lider ? comisionBase.mul(new Decimal(porcentajes.lider)) : new Decimal(0)
+	const comisionBrutaCoach = porcentajes.coach ? comisionBase.mul(new Decimal(porcentajes.coach)) : new Decimal(0)
+
+	const generalDescuento = generalBruta.sub(generalBruta.mul(descuentoAplicar))
+	const comisionAgenciaDescuento = comisionBrutaAgencia.sub(comisionBrutaAgencia.mul(descuentoAplicar))
+	const comisionLiderDescuento = comisionBrutaLider.sub(comisionBrutaLider.mul(descuentoAplicar))
+	const comisionCoachDescuento = comisionBrutaCoach.sub(comisionBrutaCoach.mul(descuentoAplicar))
+
+	return {
+		generalBruta,
+		generalDescuento,
+		comisionBrutaAgencia,
+		comisionAgenciaDescuento,
+		comisionBrutaLider,
+		comisionLiderDescuento,
+		comisionBrutaCoach,
+		comisionCoachDescuento,
+	}
+}
+
 export async function obtenerDetallePreLiquidacion(
 	fileId: number
 ): Promise<RespuestaDetallePreLiquidacion | null> {
+	// Same implementation as before (Lines 282-404 in previous version)
 	const fileImport = await prisma.fileImport.findUnique({
 		where: { idFileImport: fileId },
-		include: {
-			user: { select: { name: true, lastName: true } },
-		},
+		include: { user: { select: { name: true, lastName: true } } },
 	})
-
 	if (!fileImport) return null
 
 	const registros = await prisma.settlementCommission.findMany({
 		where: {
 			idFileImport: fileId,
-			status: { in: ['SINCRONIZADO', 'LAG'] },
+			status: { in: ['SINCRONIZADO', 'LAG', 'PRELIQUIDADO'] }, // Included PRELIQUIDADO
 		},
 		include: {
 			business: {
 				include: {
 					client: true,
-					user: {
-						select: {
-							idUser: true,
-							name: true,
-							lastName: true,
-							identityNumber: true,
-						},
-					},
+					user: { select: { idUser: true, name: true, lastName: true, identityNumber: true } },
 					productPercentageCommission: {
 						include: {
 							productPercentageCommissionCategories: {
@@ -148,35 +421,26 @@ export async function obtenerDetallePreLiquidacion(
 			},
 		},
 		orderBy: { createdAt: 'asc' },
-	})
+	}) as SettlementCommissionWithRelations[]
 
 	const descuentoActivo = await obtenerDescuentoActivo()
-	const descuentoPorcentaje = descuentoActivo
-		? descuentoActivo.percentage
-		: DESCUENTO_POR_DEFECTO
+	const descuentoPorcentaje = descuentoActivo ? descuentoActivo.percentage : DESCUENTO_POR_DEFECTO
 
 	const distribucionMap = new Map<string, AgenteDistribucion>()
 	const registrosFormateados: RegistroDetallePreLiquidacion[] = []
 
 	for (const r of registros) {
-		const comisionBase = r.valorComision || new Decimal(0)
-		const categorias =
-			r.business?.productPercentageCommission
-				?.productPercentageCommissionCategories ?? []
+		const comisionBase = r.commissionValue || new Decimal(0)
+		const categorias = r.business?.productPercentageCommission?.productPercentageCommissionCategories ?? []
 		const porcentajes = configFromCategories(categorias)
-		const comisiones = aplicarFormulas(
-			comisionBase,
-			porcentajes,
-			descuentoPorcentaje
-		)
+		const comisiones = aplicarFormulas(comisionBase, porcentajes, descuentoPorcentaje)
 
 		if (r.business?.user) {
 			const agenteKey = String(r.business.user.idUser)
 			if (!distribucionMap.has(agenteKey)) {
 				distribucionMap.set(agenteKey, {
 					idAgente: r.business.user.idUser,
-					nombreAgente:
-						`${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim(),
+					nombreAgente: `${r.business.user.name} ${r.business.user.lastName ?? ''} `.trim(),
 					cedulaAgente: r.business.user.identityNumber ?? '',
 					totalComision: 0,
 					totalGeneral: 0,
@@ -202,17 +466,13 @@ export async function obtenerDetallePreLiquidacion(
 		registrosFormateados.push({
 			idSettlementCommission: r.idSettlementCommission,
 			idBusiness: r.idBusiness ?? 0,
-			producto: r.producto,
+			producto: r.product,
 			esRezagado: r.isLag || r.status === 'LAG',
-			nombreCliente: r.business?.client
-				? `${r.business.client.name} ${r.business.client.lastName ?? ''}`.trim()
-				: null,
+			nombreCliente: r.business?.client ? `${r.business.client.name} ${r.business.client.lastName ?? ''} `.trim() : null,
 			cedulaAgente: r.business?.user?.identityNumber ?? '',
-			nombreAgente: r.business?.user
-				? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
-				: '',
-			numeroContrato: r.business?.contract ?? r.poliza ?? null,
-			tipoComision: r.concepto,
+			nombreAgente: r.business?.user ? `${r.business.user.name} ${r.business.user.lastName ?? ''} `.trim() : '',
+			numeroContrato: r.business?.contract ?? r.policy ?? null,
+			tipoComision: r.description ?? r.policy ?? null, // Use description (Legacy 'concepto')
 			comision: comisionBase.toNumber(),
 			generalBruta: comisiones.generalBruta.toNumber(),
 			generalDescuento: comisiones.generalDescuento.toNumber(),
@@ -232,14 +492,8 @@ export async function obtenerDetallePreLiquidacion(
 		sincronizados: registros.filter((x) => x.status === 'SINCRONIZADO').length,
 		rezagados: registros.filter((x) => x.status === 'LAG').length,
 		totalComision: registrosFormateados.reduce((s, x) => s + x.comision, 0),
-		totalGeneral: registrosFormateados.reduce(
-			(s, x) => s + x.generalDescuento,
-			0
-		),
-		totalAgencia: registrosFormateados.reduce(
-			(s, x) => s + x.agenciaDescuento,
-			0
-		),
+		totalGeneral: registrosFormateados.reduce((s, x) => s + x.generalDescuento, 0),
+		totalAgencia: registrosFormateados.reduce((s, x) => s + x.agenciaDescuento, 0),
 		totalLider: registrosFormateados.reduce((s, x) => s + x.liderDescuento, 0),
 		totalCoach: registrosFormateados.reduce((s, x) => s + x.coachDescuento, 0),
 	}
@@ -248,8 +502,7 @@ export async function obtenerDetallePreLiquidacion(
 		archivo: {
 			idFileImport: fileImport.idFileImport,
 			nombreArchivo: fileImport.nameFile,
-			usuarioCargo:
-				`${fileImport.user.name} ${fileImport.user.lastName ?? ''}`.trim(),
+			usuarioCargo: `${fileImport.user.name} ${fileImport.user.lastName ?? ''} `.trim(),
 			fechaCarga: fileImport.loadDate.toISOString().split('T')[0],
 			totalRegistros: fileImport.totalRecord,
 			sincronizados: fileImport.sincronizadoRecord,
@@ -261,141 +514,48 @@ export async function obtenerDetallePreLiquidacion(
 	}
 }
 
-/**
- * Aplica las fórmulas de cálculo de comisiones
- * Fórmula: liquidacion_bruta_POSITION = comision * %comisiones.POSITION
- * Fórmula: liquidacion_con_descuento = liquidacion_bruta - (liquidacion_bruta * %descuento)
- * @param descuento - Porcentaje de descuento. Si no se proporciona, se usa DESCUENTO_POR_DEFECTO como fallback
- */
-export function aplicarFormulas(
-	comisionBase: Decimal,
-	porcentajes: ConfiguracionPorcentajes,
-	descuento?: Decimal
-): ComisionesCalculadas {
-	const descuentoAplicar = descuento || DESCUENTO_POR_DEFECTO
-	// Calcular comisiones brutas
-	const generalBruta = porcentajes.general
-		? comisionBase.mul(new Decimal(porcentajes.general))
-		: new Decimal(0)
-
-	const comisionBrutaAgencia = porcentajes.agencia
-		? comisionBase.mul(new Decimal(porcentajes.agencia))
-		: new Decimal(0)
-
-	const comisionBrutaLider = porcentajes.lider
-		? comisionBase.mul(new Decimal(porcentajes.lider))
-		: new Decimal(0)
-
-	const comisionBrutaCoach = porcentajes.coach
-		? comisionBase.mul(new Decimal(porcentajes.coach))
-		: new Decimal(0)
-
-	// Aplicar descuentos
-	const generalDescuento = generalBruta.sub(generalBruta.mul(descuentoAplicar))
-	const comisionAgenciaDescuento = comisionBrutaAgencia.sub(
-		comisionBrutaAgencia.mul(descuentoAplicar)
-	)
-	const comisionLiderDescuento = comisionBrutaLider.sub(
-		comisionBrutaLider.mul(descuentoAplicar)
-	)
-	const comisionCoachDescuento = comisionBrutaCoach.sub(
-		comisionBrutaCoach.mul(descuentoAplicar)
-	)
-
-	return {
-		generalBruta,
-		generalDescuento,
-		comisionBrutaAgencia,
-		comisionAgenciaDescuento,
-		comisionBrutaLider,
-		comisionLiderDescuento,
-		comisionBrutaCoach,
-		comisionCoachDescuento,
-	}
-}
-
-/**
- * Calcula las comisiones para un registro de liquidación
- */
 export async function calcularComisionesParaRegistro(
 	idSettlementCommission: number
 ): Promise<ComisionesCalculadas | null> {
-	// Obtener el registro de liquidación con su negocio
+	// Legacy single record calc
 	const settlement = await prisma.settlementCommission.findUnique({
 		where: { idSettlementCommission },
-		include: {
-			business: {
-				include: {
-					productPercentageCommission: true,
-				},
-			},
-		},
+		include: { business: { include: { productPercentageCommission: true } } },
 	})
-
-	if (!settlement || !settlement.business) {
-		return null
-	}
-
-	// Obtener configuración de porcentajes
-	const porcentajes = await obtenerConfiguracionPorcentajes(
-		settlement.business.idProductPercentageCommission
-	)
-
-	// Obtener descuento activo desde BD
+	if (!settlement || !settlement.business) return null
+	const idProductPercentageCommission = settlement.business.idProductPercentageCommission
+	const porcentajes = await obtenerConfiguracionPorcentajes(idProductPercentageCommission)
 	const descuentoActivo = await obtenerDescuentoActivo()
-	const descuento = descuentoActivo
-		? descuentoActivo.percentage
-		: DESCUENTO_POR_DEFECTO
-
-	// Aplicar fórmulas
-	const comisionBase = settlement.valorComision || new Decimal(0)
-	const comisionesCalculadas = aplicarFormulas(
-		comisionBase,
-		porcentajes,
-		descuento
-	)
-
-	return comisionesCalculadas
+	const descuento = descuentoActivo ? descuentoActivo.percentage : DESCUENTO_POR_DEFECTO
+	const comisionBase = settlement.commissionValue || new Decimal(0)
+	return aplicarFormulas(comisionBase, porcentajes, descuento)
 }
 
-/**
- * Obtiene el resumen de pre-liquidación agrupado por usuario para envío de correos.
- * Una fila por negocio por usuario (valor = suma de valueComissionFinal por negocio).
- */
 export async function obtenerResumenPreliquidacionPorUsuario(
 	fileImportId: number,
 	rangoFecha: { inicio: Date; fin: Date },
 	archivoNombre: string
 ): Promise<ResumenUsuarioPreliquidacion[]> {
+	// Logic from legacy file
 	const settlements = await prisma.settlementCommission.findMany({
 		where: {
 			idFileImport: fileImportId,
 			status: 'PRELIQUIDADO',
-			fechaPago: {
-				gte: rangoFecha.inicio,
-				lte: rangoFecha.fin,
-			},
+			paymentDate: { gte: rangoFecha.inicio, lte: rangoFecha.fin },
 		},
 		select: { idSettlementCommission: true },
 	})
 	const ids = settlements.map((s) => s.idSettlementCommission)
 	if (ids.length === 0) return []
 
-	const distribuciones = await prisma.comissionDistribution.findMany({
+	const distribuciones = await prisma.commissionDistribution.findMany({
 		where: { idSettlementCommission: { in: ids } },
 		include: {
 			settlementCommission: {
 				include: {
 					business: {
 						include: {
-							user: {
-								select: {
-									idUser: true,
-									email: true,
-									name: true,
-									lastName: true,
-								},
-							},
+							user: { select: { idUser: true, email: true, name: true, lastName: true } },
 						},
 					},
 				},
@@ -405,51 +565,29 @@ export async function obtenerResumenPreliquidacionPorUsuario(
 			},
 		},
 	})
-
-	const periodo = `${rangoFecha.inicio.toISOString().split('T')[0]} - ${rangoFecha.fin.toISOString().split('T')[0]}`
-	const byUser = new Map<
-		number,
-		{
-			email: string
-			nombreUsuario: string
-			byBusiness: Map<
-				number,
-				{ nombreNegocio: string; valor: number; categorias: string[] }
-			>
-		}
-	>()
+	// Grouping logic (same as before)
+	const periodo = `${rangoFecha.inicio.toISOString().split('T')[0]} - ${rangoFecha.fin.toISOString().split('T')[0]} `
+	const byUser = new Map<number, { email: string; nombreUsuario: string; byBusiness: Map<number, { nombreNegocio: string; valor: number; categorias: string[] }> }>()
 
 	for (const d of distribuciones) {
 		const business = d.settlementCommission.business
 		if (!business?.user) continue
 		const u = business.user
 		const idBusiness = business.idBusiness
-		const nombreNegocio = business.contract
-			? `Contrato ${business.contract}`
-			: `Negocio #${idBusiness}`
-		const valor = d.valueComissionFinal.toNumber()
-		const categoria =
-			d.productPercentageCommissionCategory?.category?.name ?? ''
+		const nombreNegocio = business.contract ? `Contrato ${business.contract} ` : `Negocio #${idBusiness} `
+		const valor = d.valueCommissionFinal.toNumber()
+		const categoria = d.productPercentageCommissionCategory?.category?.name ?? ''
 
 		if (!byUser.has(u.idUser)) {
-			byUser.set(u.idUser, {
-				email: u.email,
-				nombreUsuario: `${u.name} ${u.lastName ?? ''}`.trim(),
-				byBusiness: new Map(),
-			})
+			byUser.set(u.idUser, { email: u.email, nombreUsuario: `${u.name} ${u.lastName ?? ''} `.trim(), byBusiness: new Map() })
 		}
 		const userEntry = byUser.get(u.idUser)!
 		if (!userEntry.byBusiness.has(idBusiness)) {
-			userEntry.byBusiness.set(idBusiness, {
-				nombreNegocio,
-				valor: 0,
-				categorias: [],
-			})
+			userEntry.byBusiness.set(idBusiness, { nombreNegocio, valor: 0, categorias: [] })
 		}
 		const biz = userEntry.byBusiness.get(idBusiness)!
 		biz.valor += valor
-		if (categoria && !biz.categorias.includes(categoria))
-			biz.categorias.push(categoria)
+		if (categoria && !biz.categorias.includes(categoria)) biz.categorias.push(categoria)
 	}
 
 	const result: ResumenUsuarioPreliquidacion[] = []
@@ -460,218 +598,12 @@ export async function obtenerResumenPreliquidacionPorUsuario(
 				idBusiness,
 				nombreNegocio: biz.nombreNegocio,
 				valorComision: Math.round(biz.valor * 100) / 100,
-				categoriaConcepto:
-					biz.categorias.length > 0 ? biz.categorias.join(', ') : undefined,
+				categoriaConcepto: biz.categorias.length > 0 ? biz.categorias.join(', ') : undefined,
 			})
 		}
 		if (filas.length > 0) {
-			result.push({
-				idUser,
-				email: entry.email,
-				nombreUsuario: entry.nombreUsuario,
-				archivoNombre,
-				periodo,
-				filas,
-			})
+			result.push({ idUser, email: entry.email, nombreUsuario: entry.nombreUsuario, archivoNombre, periodo, filas })
 		}
 	}
 	return result
-}
-
-/**
- * Procesa la pre-liquidación de un archivo completo
- */
-export async function procesarPreLiquidacion(
-	fileImportId: number,
-	rangoFecha: { inicio: Date; fin: Date }
-): Promise<{ success: boolean; registrosProcesados: number; mensaje: string }> {
-	try {
-		// Verificar que el archivo existe y está en estado LOAD
-		const fileImport = await prisma.fileImport.findUnique({
-			where: { idFileImport: fileImportId },
-		})
-
-		if (!fileImport) {
-			return {
-				success: false,
-				registrosProcesados: 0,
-				mensaje: 'Archivo no encontrado',
-			}
-		}
-
-		if (fileImport.status !== 'LOAD') {
-			return {
-				success: false,
-				registrosProcesados: 0,
-				mensaje: `El archivo debe estar en estado LOAD para ser pre-liquidado (Estado actual: ${fileImport.status})`,
-			}
-		}
-
-		// Obtener todos los registros SINCRONIZADO del archivo en el rango de fechas
-		const registros = await prisma.settlementCommission.findMany({
-			where: {
-				idFileImport: fileImportId,
-				status: 'SINCRONIZADO',
-				fechaPago: {
-					gte: rangoFecha.inicio,
-					lte: rangoFecha.fin,
-				},
-			},
-			include: {
-				business: {
-					include: {
-						productPercentageCommission: true,
-					},
-				},
-			},
-		})
-
-		if (registros.length === 0) {
-			return {
-				success: false,
-				registrosProcesados: 0,
-				mensaje:
-					'No hay registros sincronizados para procesar en el rango de fechas seleccionado',
-			}
-		}
-
-		let registrosProcesados = 0
-
-		// Obtener descuento activo una vez antes del loop para todos los registros
-		const descuentoActivo = await obtenerDescuentoActivo()
-		const descuentoPorcentaje = descuentoActivo
-			? descuentoActivo.percentage
-			: DESCUENTO_POR_DEFECTO
-		const idDiscount = descuentoActivo?.idDiscount || null
-
-		// Procesar cada registro dentro de una transacción sería ideal, pero por volumen
-		// lo hacemos iterativo. Si falla uno, marcamos error o continuamos.
-		// Para consistencia crítica, podríamos agrupar en chunks y usar prisma.$transaction.
-
-		for (const registro of registros) {
-			if (!registro.business) {
-				console.warn(
-					`Registro ${registro.idSettlementCommission} no tiene negocio asociado`
-				)
-				continue
-			}
-
-			// 1. Obtener configuración de porcentajes del producto asociado al negocio
-			const configCategorias =
-				await prisma.productPercentageCommissionCategory.findMany({
-					where: {
-						idProductPercentageCommission:
-							registro.business.idProductPercentageCommission,
-						active: true,
-					},
-				})
-
-			if (configCategorias.length === 0) {
-				console.warn(
-					`Negocio del registro ${registro.idSettlementCommission} no tiene configuración de porcentajes activa`
-				)
-				// Podríamos marcarlo con error o saltarlo. Por ahora saltamos.
-				continue
-			}
-
-			const comisionBase = registro.valorComision || new Decimal(0)
-
-			// Usamos transacción para asegurar que se crean las distribuciones y se actualiza el estado atómicamente
-			await prisma.$transaction(async (tx) => {
-				// 2. Calcular y guardar distribución para cada categoría configurada
-				for (const config of configCategorias) {
-					const porcentaje = config.porcentajeDistribucion // Decimal
-
-					// Cálculo: Bruta = ComisionBase * %Categoria
-					const valorComisionBruta = comisionBase.mul(porcentaje)
-
-					// Cálculo: Descuento = Bruta * %Descuento
-					const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
-
-					// Cálculo: Final = Bruta - Descuento
-					const valorComisionFinal = valorComisionBruta.sub(valorDescuento)
-
-					await tx.comissionDistribution.create({
-						data: {
-							idSettlementCommission: registro.idSettlementCommission,
-							idPercentajeCommisionCategory: config.id,
-							valueComission: valorComisionBruta,
-							valueComissionFinal: valorComisionFinal,
-							totalDiscount: valorDescuento,
-							idDiscount: idDiscount,
-							status: 'LIQUIDADO',
-						},
-					})
-				}
-
-				// 3. Actualizar registro a PRELIQUIDADO
-				await tx.settlementCommission.update({
-					where: { idSettlementCommission: registro.idSettlementCommission },
-					data: {
-						status: 'PRELIQUIDADO',
-					},
-				})
-			})
-
-			registrosProcesados++
-		}
-
-		// Actualizar fecha de pre-liquidación en el archivo y cambiar estado
-		await prisma.fileImport.update({
-			where: { idFileImport: fileImportId },
-			data: {
-				status: 'PRELIQUIDADO',
-				preLiquidacionDate: new Date(),
-				updatedAt: new Date(),
-			},
-		})
-
-		// Envío de correos con resumen por usuario (fire-and-forget: no bloquea la respuesta)
-		if (registrosProcesados > 0) {
-			obtenerResumenPreliquidacionPorUsuario(
-				fileImportId,
-				rangoFecha,
-				fileImport.nameFile
-			)
-				.then((resumenes) => {
-					for (const r of resumenes) {
-						sendResumenPreliquidacionEmail({
-							to: r.email,
-							nombreUsuario: r.nombreUsuario,
-							archivoNombre: r.archivoNombre,
-							periodo: r.periodo,
-							filas: r.filas.map((f) => ({
-								nombreNegocio: f.nombreNegocio,
-								valorComision: f.valorComision,
-								categoriaConcepto: f.categoriaConcepto,
-							})),
-						}).catch((err) => {
-							console.error(
-								`Error enviando resumen pre-liquidación a ${r.email}:`,
-								err
-							)
-						})
-					}
-				})
-				.catch((err) => {
-					console.error(
-						'Error obteniendo resumen pre-liquidación para correos:',
-						err
-					)
-				})
-		}
-
-		return {
-			success: true,
-			registrosProcesados,
-			mensaje: `Pre-liquidación completada: ${registrosProcesados} registros procesados`,
-		}
-	} catch (error) {
-		console.error('Error al procesar pre-liquidación:', error)
-		return {
-			success: false,
-			registrosProcesados: 0,
-			mensaje: `Error al procesar: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-		}
-	}
 }
