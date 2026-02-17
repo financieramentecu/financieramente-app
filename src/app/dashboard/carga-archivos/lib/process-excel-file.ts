@@ -1,5 +1,7 @@
 import * as XLSX from 'xlsx'
-import { REQUIRED_COLUMNS } from './validate-excel-structure'
+import { FILE_TYPE_REQUIRED_HEADERS, type FileType } from './file-types'
+import { findHeaderIndex } from './header-utils'
+import { cleanNumericValue } from './number-utils'
 
 export interface ProcessedRecord {
 	rowNumber: number
@@ -18,62 +20,8 @@ export interface ProcessResult {
 	headers: string[]
 }
 
-/**
- * Normaliza el nombre de una columna para comparación
- */
-function normalizeColumnName(name: string): string {
-	return name
-		.toLowerCase()
-		.trim()
-		.replace(/\s+/g, ' ')
-		.replace(/[áàäâ]/g, 'a')
-		.replace(/[éèëê]/g, 'e')
-		.replace(/[íìïî]/g, 'i')
-		.replace(/[óòöô]/g, 'o')
-		.replace(/[úùüû]/g, 'u')
-		.replace(/ñ/g, 'n')
-}
-
-/**
- * Encuentra el índice de una columna requerida en los headers
- */
-function findColumnIndex(
-	headers: string[],
-	requiredColumn: string
-): number {
-	const normalizedRequired = normalizeColumnName(requiredColumn)
-	const normalizedHeaders = headers.map((h) => normalizeColumnName(h || ''))
-
-	for (let i = 0; i < normalizedHeaders.length; i++) {
-		const h = normalizedHeaders[i]
-		if (h === normalizedRequired) return i
-
-		// Para columnas con múltiples palabras
-		const requiredWords = normalizedRequired.split(' ').filter((w) => w.length > 0)
-		if (requiredWords.length > 1) {
-			let lastIndex = -1
-			let allWordsFound = true
-			for (const word of requiredWords) {
-				const wordIndex = h.indexOf(word)
-				if (wordIndex === -1 || wordIndex < lastIndex) {
-					allWordsFound = false
-					break
-				}
-				lastIndex = wordIndex
-			}
-			if (allWordsFound) return i
-		}
-
-		// Para columnas de una sola palabra
-		if (requiredWords.length === 1) {
-			const word = requiredWords[0]
-			const wordRegex = new RegExp(`\\b${word}\\b`, 'i')
-			if (wordRegex.test(h)) return i
-		}
-	}
-
-	return -1
-}
+const DATE_COLUMNS = new Set(['Desde', 'Hasta'])
+const NUMERIC_COLUMNS = new Set(['Base', 'Com', 'BASE', 'Valor Comisión'])
 
 /**
  * Valida un registro individual
@@ -81,12 +29,13 @@ function findColumnIndex(
 function validateRecord(
 	record: Record<string, unknown>,
 	headers: string[],
-	columnIndices: Map<string, number>
+	columnIndices: Map<string, number>,
+	requiredHeaders: readonly string[]
 ): string[] {
 	const errors: string[] = []
 
 	// Validar que los campos requeridos no estén vacíos
-	for (const requiredCol of REQUIRED_COLUMNS) {
+	for (const requiredCol of requiredHeaders) {
 		const colIndex = columnIndices.get(requiredCol)
 		if (colIndex === undefined || colIndex === -1) {
 			errors.push(`Columna "${requiredCol}" no encontrada`)
@@ -102,16 +51,16 @@ function validateRecord(
 		}
 
 		// Validaciones específicas por tipo de campo
-		if (requiredCol === 'Desde' || requiredCol === 'Hasta') {
+		if (DATE_COLUMNS.has(requiredCol)) {
 			// Validar formato de fecha (puede ser fecha o string)
 			if (stringValue && !isValidDate(stringValue)) {
 				errors.push(`Campo "${requiredCol}" debe ser una fecha válida`)
 			}
 		}
 
-		if (requiredCol === 'Cto' || requiredCol === 'Base' || requiredCol === 'Com') {
-			// Validar que sean números
-			if (stringValue && isNaN(Number(stringValue))) {
+		if (NUMERIC_COLUMNS.has(requiredCol)) {
+			// Validar que sean números después de normalizar formato
+			if (stringValue && cleanNumericValue(value) === null) {
 				errors.push(`Campo "${requiredCol}" debe ser un número válido`)
 			}
 		}
@@ -154,8 +103,13 @@ function isValidDate(value: string | number | Date): boolean {
 /**
  * Procesa un archivo Excel y valida cada registro
  */
-export async function processExcelFile(file: File): Promise<ProcessResult> {
+export async function processExcelFile(
+	file: File,
+	fileType: FileType
+): Promise<ProcessResult> {
 	try {
+		const requiredHeaders = FILE_TYPE_REQUIRED_HEADERS[fileType]
+
 		// Leer el archivo
 		const arrayBuffer = await file.arrayBuffer()
 		const workbook = XLSX.read(arrayBuffer, { type: 'array' })
@@ -183,8 +137,8 @@ export async function processExcelFile(file: File): Promise<ProcessResult> {
 
 		// Crear mapa de índices de columnas requeridas
 		const columnIndices = new Map<string, number>()
-		for (const requiredCol of REQUIRED_COLUMNS) {
-			const index = findColumnIndex(headers, requiredCol)
+		for (const requiredCol of requiredHeaders) {
+			const index = findHeaderIndex(headers, requiredCol)
 			columnIndices.set(requiredCol, index)
 		}
 
@@ -213,7 +167,12 @@ export async function processExcelFile(file: File): Promise<ProcessResult> {
 			}
 
 			// Validar registro
-			const errors = validateRecord(record, headers, columnIndices)
+			const errors = validateRecord(
+				record,
+				headers,
+				columnIndices,
+				requiredHeaders
+			)
 
 			const processedRecord: ProcessedRecord = {
 				rowNumber,
@@ -243,4 +202,3 @@ export async function processExcelFile(file: File): Promise<ProcessResult> {
 		throw error
 	}
 }
-

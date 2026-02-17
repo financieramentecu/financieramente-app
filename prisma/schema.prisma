@@ -243,7 +243,7 @@ model User {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relaciones recursivas y jerárquicas
-  categoria                  Category?                   @relation(fields: [idCategoria], references: [idCategory])
+  category                   Category?                   @relation(fields: [idCategoria], references: [idCategory])
   role                       Role?                       @relation(fields: [idRole], references: [idRole])
   leader                     User?                       @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates               User[]                      @relation("UserLeader")
@@ -293,6 +293,7 @@ model Client {
 model FileImport {
   idFileImport         Int       @id @default(autoincrement()) @map("id_file_import")
   nameFile             String    @map("name_file") @db.VarChar(255)
+  fileType             String?   @map("file_type") @db.VarChar(20)
   loadDate             DateTime  @default(now()) @map("load_date")
   idUser               Int       @map("id_user")
   totalRecord          Int       @default(0) @map("total_record")

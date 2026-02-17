@@ -12,20 +12,20 @@ import type {
 } from '../types/types'
 
 /**
- * Porcentaje de descuento por defecto (10%)
+ * Porcentaje de descuento por defecto (12%)
  * Se usa como fallback si no hay descuento activo en base de datos
  */
-const DESCUENTO_POR_DEFECTO = new Decimal(0.1)
+const DESCUENTO_POR_DEFECTO = new Decimal(0.12)
 
 /**
  * Obtiene el descuento activo desde la base de datos
  * @returns Objeto con el porcentaje de descuento y su ID, o null si no hay descuento activo
  */
 export async function obtenerDescuentoActivo(): Promise<{
-	idDiscount: number
-	percentage: Decimal
+	discountPercentage: Decimal
+	clawbackPercentage: Decimal | null
 } | null> {
-	const descuentoActivo = await prisma.discount.findFirst({
+	const descuentoActivo = await prisma.commissionConfiguration.findFirst({
 		where: {
 			status: 'ACTIVE',
 		},
@@ -39,8 +39,8 @@ export async function obtenerDescuentoActivo(): Promise<{
 	}
 
 	return {
-		idDiscount: descuentoActivo.idDiscount,
-		percentage: descuentoActivo.percentage,
+		discountPercentage: descuentoActivo.discountPercentage,
+		clawbackPercentage: descuentoActivo.clawbackPercentage,
 	}
 }
 
@@ -48,7 +48,8 @@ export async function obtenerDescuentoActivo(): Promise<{
  * Obtiene la configuración de porcentajes de comisión para un negocio
  */
 export async function obtenerConfiguracionPorcentajes(
-	idProductPercentageCommission: number
+	idProductPercentageCommission: number,
+	usePortfolio: boolean
 ): Promise<ConfiguracionPorcentajes> {
 	const configuracion =
 		await prisma.productPercentageCommissionCategory.findMany({
@@ -61,39 +62,28 @@ export async function obtenerConfiguracionPorcentajes(
 			},
 		})
 
-	const porcentajes: ConfiguracionPorcentajes = {}
-
-	for (const config of configuracion) {
-		const categoryName = config.category.name.toUpperCase()
-		const porcentaje = config.porcentajeDistribucion.toNumber()
-
-		if (categoryName.includes('GENERAL')) {
-			porcentajes.general = porcentaje
-		} else if (categoryName.includes('AGENCIA')) {
-			porcentajes.agencia = porcentaje
-		} else if (
-			categoryName.includes('LIDER') ||
-			categoryName.includes('LÍDER')
-		) {
-			porcentajes.lider = porcentaje
-		} else if (categoryName.includes('COACH')) {
-			porcentajes.coach = porcentaje
-		}
-	}
-
-	return porcentajes
+	return configFromCategories(configuracion, usePortfolio)
 }
 
 /**
  * Construye ConfiguracionPorcentajes desde categorías ya cargadas (evita N+1)
  */
 function configFromCategories(
-	cats: Array<{ category: { name: string }; porcentajeDistribucion: Decimal }>
+	cats: Array<{
+		category: { name: string }
+		porcentajeDistribucion: Decimal
+		porcentajePortfolio: Decimal | null
+	}>,
+	usePortfolio: boolean
 ): ConfiguracionPorcentajes {
 	const porcentajes: ConfiguracionPorcentajes = {}
 	for (const cat of cats) {
 		const name = cat.category.name.toUpperCase()
-		const pct = cat.porcentajeDistribucion.toNumber()
+		const pctSource =
+			usePortfolio && cat.porcentajePortfolio !== null
+				? cat.porcentajePortfolio
+				: cat.porcentajeDistribucion
+		const pct = pctSource.toNumber()
 		if (name.includes('GENERAL')) porcentajes.general = pct
 		else if (name.includes('AGENCIA')) porcentajes.agencia = pct
 		else if (name.includes('LIDER') || name.includes('LÍDER'))
@@ -150,24 +140,25 @@ export async function obtenerDetallePreLiquidacion(
 		orderBy: { createdAt: 'asc' },
 	})
 
-	const descuentoActivo = await obtenerDescuentoActivo()
-	const descuentoPorcentaje = descuentoActivo
-		? descuentoActivo.percentage
-		: DESCUENTO_POR_DEFECTO
-
 	const distribucionMap = new Map<string, AgenteDistribucion>()
 	const registrosFormateados: RegistroDetallePreLiquidacion[] = []
 
 	for (const r of registros) {
-		const comisionBase = r.valorComision || new Decimal(0)
+		const comisionBase =
+			r.baseCommission || r.commissionValue || new Decimal(0)
+		const descuentoPorcentaje =
+			r.discountPercentage ?? DESCUENTO_POR_DEFECTO
+		const clawbackPorcentaje = r.clawbackPercentage ?? new Decimal(0)
+		const usePortfolio = r.originCommission === 'CARTERA'
 		const categorias =
 			r.business?.productPercentageCommission
 				?.productPercentageCommissionCategories ?? []
-		const porcentajes = configFromCategories(categorias)
+		const porcentajes = configFromCategories(categorias, usePortfolio)
 		const comisiones = aplicarFormulas(
 			comisionBase,
 			porcentajes,
-			descuentoPorcentaje
+			descuentoPorcentaje,
+			clawbackPorcentaje
 		)
 
 		if (r.business?.user) {
@@ -202,7 +193,7 @@ export async function obtenerDetallePreLiquidacion(
 		registrosFormateados.push({
 			idSettlementCommission: r.idSettlementCommission,
 			idBusiness: r.idBusiness ?? 0,
-			producto: r.producto,
+			producto: r.descripcion,
 			esRezagado: r.isLag || r.status === 'LAG',
 			nombreCliente: r.business?.client
 				? `${r.business.client.name} ${r.business.client.lastName ?? ''}`.trim()
@@ -211,8 +202,8 @@ export async function obtenerDetallePreLiquidacion(
 			nombreAgente: r.business?.user
 				? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
 				: '',
-			numeroContrato: r.business?.contract ?? r.poliza ?? null,
-			tipoComision: r.concepto,
+			numeroContrato: r.business?.contract ?? null,
+			tipoComision: r.descripcion,
 			comision: comisionBase.toNumber(),
 			generalBruta: comisiones.generalBruta.toNumber(),
 			generalDescuento: comisiones.generalDescuento.toNumber(),
@@ -264,15 +255,19 @@ export async function obtenerDetallePreLiquidacion(
 /**
  * Aplica las fórmulas de cálculo de comisiones
  * Fórmula: liquidacion_bruta_POSITION = comision * %comisiones.POSITION
- * Fórmula: liquidacion_con_descuento = liquidacion_bruta - (liquidacion_bruta * %descuento)
+ * Fórmula: liquidacion_con_descuento = liquidacion_bruta - (liquidacion_bruta * (%descuento + %clawback))
  * @param descuento - Porcentaje de descuento. Si no se proporciona, se usa DESCUENTO_POR_DEFECTO como fallback
+ * @param clawback - Porcentaje de clawback aplicado cuando corresponde
  */
 export function aplicarFormulas(
 	comisionBase: Decimal,
 	porcentajes: ConfiguracionPorcentajes,
-	descuento?: Decimal
+	descuento?: Decimal,
+	clawback?: Decimal | null
 ): ComisionesCalculadas {
 	const descuentoAplicar = descuento || DESCUENTO_POR_DEFECTO
+	const clawbackAplicar = clawback ?? new Decimal(0)
+	const totalDescuentoFactor = descuentoAplicar.add(clawbackAplicar)
 	// Calcular comisiones brutas
 	const generalBruta = porcentajes.general
 		? comisionBase.mul(new Decimal(porcentajes.general))
@@ -290,16 +285,18 @@ export function aplicarFormulas(
 		? comisionBase.mul(new Decimal(porcentajes.coach))
 		: new Decimal(0)
 
-	// Aplicar descuentos
-	const generalDescuento = generalBruta.sub(generalBruta.mul(descuentoAplicar))
+	// Aplicar descuento + clawback
+	const generalDescuento = generalBruta.sub(
+		generalBruta.mul(totalDescuentoFactor)
+	)
 	const comisionAgenciaDescuento = comisionBrutaAgencia.sub(
-		comisionBrutaAgencia.mul(descuentoAplicar)
+		comisionBrutaAgencia.mul(totalDescuentoFactor)
 	)
 	const comisionLiderDescuento = comisionBrutaLider.sub(
-		comisionBrutaLider.mul(descuentoAplicar)
+		comisionBrutaLider.mul(totalDescuentoFactor)
 	)
 	const comisionCoachDescuento = comisionBrutaCoach.sub(
-		comisionBrutaCoach.mul(descuentoAplicar)
+		comisionBrutaCoach.mul(totalDescuentoFactor)
 	)
 
 	return {
@@ -338,21 +335,21 @@ export async function calcularComisionesParaRegistro(
 
 	// Obtener configuración de porcentajes
 	const porcentajes = await obtenerConfiguracionPorcentajes(
-		settlement.business.idProductPercentageCommission
+		settlement.business.idProductPercentageCommission,
+		settlement.originCommission === 'CARTERA'
 	)
 
-	// Obtener descuento activo desde BD
-	const descuentoActivo = await obtenerDescuentoActivo()
-	const descuento = descuentoActivo
-		? descuentoActivo.percentage
-		: DESCUENTO_POR_DEFECTO
+	const descuento = settlement.discountPercentage ?? DESCUENTO_POR_DEFECTO
+	const clawback = settlement.clawbackPercentage ?? new Decimal(0)
 
 	// Aplicar fórmulas
-	const comisionBase = settlement.valorComision || new Decimal(0)
+	const comisionBase =
+		settlement.baseCommission || settlement.commissionValue || new Decimal(0)
 	const comisionesCalculadas = aplicarFormulas(
 		comisionBase,
 		porcentajes,
-		descuento
+		descuento,
+		clawback
 	)
 
 	return comisionesCalculadas
@@ -371,7 +368,7 @@ export async function obtenerResumenPreliquidacionPorUsuario(
 		where: {
 			idFileImport: fileImportId,
 			status: 'PRELIQUIDADO',
-			fechaPago: {
+			createdAt: {
 				gte: rangoFecha.inicio,
 				lte: rangoFecha.fin,
 			},
@@ -512,7 +509,7 @@ export async function procesarPreLiquidacion(
 			where: {
 				idFileImport: fileImportId,
 				status: 'SINCRONIZADO',
-				fechaPago: {
+				createdAt: {
 					gte: rangoFecha.inicio,
 					lte: rangoFecha.fin,
 				},
@@ -537,13 +534,6 @@ export async function procesarPreLiquidacion(
 
 		let registrosProcesados = 0
 
-		// Obtener descuento activo una vez antes del loop para todos los registros
-		const descuentoActivo = await obtenerDescuentoActivo()
-		const descuentoPorcentaje = descuentoActivo
-			? descuentoActivo.percentage
-			: DESCUENTO_POR_DEFECTO
-		const idDiscount = descuentoActivo?.idDiscount || null
-
 		// Procesar cada registro dentro de una transacción sería ideal, pero por volumen
 		// lo hacemos iterativo. Si falla uno, marcamos error o continuamos.
 		// Para consistencia crítica, podríamos agrupar en chunks y usar prisma.$transaction.
@@ -555,6 +545,12 @@ export async function procesarPreLiquidacion(
 				)
 				continue
 			}
+
+			const descuentoPorcentaje =
+				registro.discountPercentage ?? DESCUENTO_POR_DEFECTO
+			const clawbackPorcentaje =
+				registro.clawbackPercentage ?? new Decimal(0)
+			const usePortfolio = registro.originCommission === 'CARTERA'
 
 			// 1. Obtener configuración de porcentajes del producto asociado al negocio
 			const configCategorias =
@@ -574,22 +570,30 @@ export async function procesarPreLiquidacion(
 				continue
 			}
 
-			const comisionBase = registro.valorComision || new Decimal(0)
+			const comisionBase =
+				registro.baseCommission ||
+				registro.commissionValue ||
+				new Decimal(0)
 
 			// Usamos transacción para asegurar que se crean las distribuciones y se actualiza el estado atómicamente
 			await prisma.$transaction(async (tx) => {
 				// 2. Calcular y guardar distribución para cada categoría configurada
 				for (const config of configCategorias) {
-					const porcentaje = config.porcentajeDistribucion // Decimal
+					const porcentaje =
+						usePortfolio && config.porcentajePortfolio !== null
+							? config.porcentajePortfolio
+							: config.porcentajeDistribucion
 
 					// Cálculo: Bruta = ComisionBase * %Categoria
 					const valorComisionBruta = comisionBase.mul(porcentaje)
 
 					// Cálculo: Descuento = Bruta * %Descuento
 					const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
+					const valorClawback = valorComisionBruta.mul(clawbackPorcentaje)
+					const totalDescuento = valorDescuento.add(valorClawback)
 
-					// Cálculo: Final = Bruta - Descuento
-					const valorComisionFinal = valorComisionBruta.sub(valorDescuento)
+					// Cálculo: Final = Bruta - Descuento - Clawback
+					const valorComisionFinal = valorComisionBruta.sub(totalDescuento)
 
 					await tx.comissionDistribution.create({
 						data: {
@@ -597,8 +601,8 @@ export async function procesarPreLiquidacion(
 							idPercentajeCommisionCategory: config.id,
 							valueComission: valorComisionBruta,
 							valueComissionFinal: valorComisionFinal,
-							totalDiscount: valorDescuento,
-							idDiscount: idDiscount,
+							totalDiscount: totalDescuento,
+							appliedDiscountPercentage: descuentoPorcentaje,
 							status: 'LIQUIDADO',
 						},
 					})

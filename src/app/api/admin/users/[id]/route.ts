@@ -4,6 +4,21 @@ import { auth } from '@/lib/auth/nextauth'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { Prisma } from '@prisma/client'
 
+type CategorySummary = {
+	idCategory: number
+	name: string
+}
+
+async function fetchCategorySummary(
+	categoryId: number | null | undefined
+): Promise<CategorySummary | null> {
+	if (!categoryId) return null
+	return prisma.category.findUnique({
+		where: { idCategory: categoryId },
+		select: { idCategory: true, name: true },
+	})
+}
+
 /**
  * GET /api/admin/users/[id]
  *
@@ -35,7 +50,6 @@ export async function GET(
 			where: { idUser: userId },
 			include: {
 				role: true,
-				categoria: true,
 				leader: {
 					select: {
 						idUser: true,
@@ -52,6 +66,8 @@ export async function GET(
 				{ status: 404 }
 			)
 		}
+
+		const category = await fetchCategorySummary(user.idCategoria)
 
 		// Obtener último acceso
 		const lastLogin = await prisma.auditLog.findFirst({
@@ -82,11 +98,11 @@ export async function GET(
 						name: user.role.name,
 					}
 					: null,
-				category: user.categoria
+				category: category
 					? {
-						id: user.categoria.idCategory,
-						name: user.categoria.name,
-					}
+							id: category.idCategory,
+							name: category.name,
+						}
 					: null,
 				leader: user.leader
 					? {
@@ -146,7 +162,7 @@ export async function PUT(
 		// Validar que el usuario existe
 		const existingUser = await prisma.user.findUnique({
 			where: { idUser: userId },
-			include: { role: true, categoria: true, leader: true },
+			include: { role: true, leader: true },
 		})
 
 		if (!existingUser) {
@@ -156,8 +172,12 @@ export async function PUT(
 			)
 		}
 
+		const existingCategory = await fetchCategorySummary(
+			existingUser.idCategoria
+		)
+
 		// Preparar datos de actualización
-		const updateData: Prisma.UserUncheckedUpdateInput = {}
+		const updateData: Prisma.UserUpdateInput = {}
 
 		if (typeof active === 'boolean') {
 			updateData.active = active
@@ -165,7 +185,7 @@ export async function PUT(
 
 		if (roleId !== undefined) {
 			if (roleId === null) {
-				updateData.idRole = null
+				updateData.role = { disconnect: true }
 			} else {
 				// Verificar que el rol existe
 				const role = await prisma.role.findUnique({
@@ -177,14 +197,14 @@ export async function PUT(
 						{ status: 400 }
 					)
 				}
-				updateData.idRole = role.idRole
+				updateData.role = { connect: { idRole: role.idRole } }
 			}
 		}
 
 		// Validar y actualizar categoría
 		if (categoryId !== undefined) {
 			if (categoryId === null) {
-				updateData.idCategoria = null
+				updateData.category = { disconnect: true }
 			} else {
 				// Verificar que la categoría existe
 				const category = await prisma.category.findUnique({
@@ -207,14 +227,14 @@ export async function PUT(
 						{ status: 400 }
 					)
 				}
-				updateData.idCategoria = category.idCategory
+				updateData.category = { connect: { idCategory: category.idCategory } }
 			}
 		}
 
 		// Validar y actualizar líder
 		if (leaderId !== undefined) {
 			if (leaderId === null) {
-				updateData.idUserLeader = null
+				updateData.leader = { disconnect: true }
 			} else {
 				// Validar que el líder no sea el mismo usuario
 				if (leaderId === userId) {
@@ -252,7 +272,7 @@ export async function PUT(
 						{ status: 400 }
 					)
 				}
-				updateData.idUserLeader = leader.idUser
+				updateData.leader = { connect: { idUser: leader.idUser } }
 			}
 		}
 
@@ -262,7 +282,6 @@ export async function PUT(
 			data: updateData,
 			include: {
 				role: true,
-				categoria: true,
 				leader: {
 					select: {
 						idUser: true,
@@ -272,6 +291,10 @@ export async function PUT(
 				},
 			},
 		})
+
+		const updatedCategory = await fetchCategorySummary(
+			updatedUser.idCategoria
+		)
 
 		// Registrar en audit log
 		const adminUserId = session.user.id ? parseInt(session.user.id) : undefined
@@ -325,7 +348,7 @@ export async function PUT(
 				roleId: updatedUser.idRole || undefined,
 				action: AuditAction.ROLE_CHANGED, // Reutilizar acción, o crear nueva si es necesario
 				email: existingUser.email || undefined,
-				details: `Categoría cambiada de ${existingUser.categoria?.name || 'sin categoría'} a ${updatedUser.categoria?.name || 'sin categoría'}`,
+				details: `Categoría cambiada de ${existingCategory?.name || 'sin categoría'} a ${updatedCategory?.name || 'sin categoría'}`,
 			})
 		}
 
@@ -357,11 +380,11 @@ export async function PUT(
 						name: updatedUser.role.name,
 					}
 					: null,
-				category: updatedUser.categoria
+				category: updatedCategory
 					? {
-						id: updatedUser.categoria.idCategory,
-						name: updatedUser.categoria.name,
-					}
+							id: updatedCategory.idCategory,
+							name: updatedCategory.name,
+						}
 					: null,
 				leader: updatedUser.leader
 					? {

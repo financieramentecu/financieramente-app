@@ -194,6 +194,7 @@ erDiagram
     FileImport {
         int id_file_import PK
         string name_file
+        string file_type
         datetime load_date
         int id_user FK
         int total_record

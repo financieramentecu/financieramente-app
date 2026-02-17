@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/features/shared/ui/button'
 import { AlertModal } from '@/features/shared/ui/modal'
 import { FileUp, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { validateExcelStructure } from '../lib/validate-excel-structure'
 import { processExcelFile, ProcessResult } from '../lib/process-excel-file'
+import { FILE_TYPES, type FileType } from '../lib/file-types'
 import { ProcessingSummary } from './ProcessingSummary'
 import { ProcessingProgress } from './ProcessingProgress'
 
@@ -19,6 +20,7 @@ const ACCEPTED_EXTENSIONS = ['.xlsx', '.xls']
 
 export function CargarArchivoTab() {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
+	const [selectedFileType, setSelectedFileType] = useState<FileType | ''>('')
 	const [isDragging, setIsDragging] = useState(false)
 	const [isUploading, setIsUploading] = useState(false)
 	const [errorModalOpen, setErrorModalOpen] = useState(false)
@@ -55,7 +57,7 @@ export function CargarArchivoTab() {
 		}
 	}, [])
 
-	const handleCancelUpload = useCallback(() => {
+	const handleCancelUpload = () => {
 		if (abortControllerRef.current) {
 			abortControllerRef.current.abort()
 			abortControllerRef.current = null
@@ -69,118 +71,114 @@ export function CargarArchivoTab() {
 		setErrorMessage('Carga cancelada por el usuario')
 		setErrorModalTitle('Carga Cancelada')
 		setErrorModalOpen(true)
-	}, [])
+	}
 
 	// Función para validar el formato del archivo
-	const validateFileFormat = useCallback(
-		(file: File): { isValid: boolean; error?: string } => {
-			// Validar por extensión de archivo
-			const fileName = file.name.toLowerCase()
-			const hasValidExtension = ACCEPTED_EXTENSIONS.some((ext) =>
-				fileName.endsWith(ext)
+	const validateFileFormat = (
+		file: File
+	): { isValid: boolean; error?: string } => {
+		// Validar por extensión de archivo
+		const fileName = file.name.toLowerCase()
+		const hasValidExtension = ACCEPTED_EXTENSIONS.some((ext) =>
+			fileName.endsWith(ext)
+		)
+
+		// Validar por tipo MIME
+		const hasValidMimeType = ACCEPTED_FILE_TYPES.includes(file.type)
+
+		// El archivo es válido si tiene una extensión válida O un tipo MIME válido
+		// (algunos navegadores no siempre detectan correctamente el tipo MIME)
+		if (!hasValidExtension && !hasValidMimeType) {
+			return {
+				isValid: false,
+				error:
+					'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls',
+			}
+		}
+
+		return { isValid: true }
+	}
+
+	const handleFileSelect = (file: File) => {
+		// Validar formato de archivo
+		const formatValidation = validateFileFormat(file)
+		if (!formatValidation.isValid) {
+			setErrorMessage(formatValidation.error || 'Formato de archivo no válido')
+			setErrorModalTitle(undefined)
+			setErrorModalOpen(true)
+			return
+		}
+
+		// Validar tamaño
+		if (file.size > MAX_FILE_SIZE) {
+			setErrorMessage(
+				'El archivo es demasiado grande. El tamaño máximo es 50MB'
 			)
+			setErrorModalTitle(undefined)
+			setErrorModalOpen(true)
+			return
+		}
 
-			// Validar por tipo MIME
-			const hasValidMimeType = ACCEPTED_FILE_TYPES.includes(file.type)
+		setSelectedFile(file)
+	}
 
-			// El archivo es válido si tiene una extensión válida O un tipo MIME válido
-			// (algunos navegadores no siempre detectan correctamente el tipo MIME)
-			if (!hasValidExtension && !hasValidMimeType) {
-				return {
-					isValid: false,
-					error:
-						'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls',
-				}
-			}
-
-			return { isValid: true }
-		},
-		[]
-	)
-
-	const handleFileSelect = useCallback(
-		(file: File) => {
-			// Validar formato de archivo
-			const formatValidation = validateFileFormat(file)
-			if (!formatValidation.isValid) {
-				setErrorMessage(
-					formatValidation.error || 'Formato de archivo no válido'
-				)
-				setErrorModalTitle(undefined)
-				setErrorModalOpen(true)
-				return
-			}
-
-			// Validar tamaño
-			if (file.size > MAX_FILE_SIZE) {
-				setErrorMessage(
-					'El archivo es demasiado grande. El tamaño máximo es 50MB'
-				)
-				setErrorModalTitle(undefined)
-				setErrorModalOpen(true)
-				return
-			}
-
-			setSelectedFile(file)
-		},
-		[validateFileFormat]
-	)
-
-	const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+	const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
 		e.preventDefault()
 		e.stopPropagation()
 		setIsDragging(true)
-	}, [])
+	}
 
-	const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+	const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
 		e.preventDefault()
 		e.stopPropagation()
 		setIsDragging(false)
-	}, [])
+	}
 
-	const handleDrop = useCallback(
-		(e: React.DragEvent<HTMLDivElement>) => {
-			e.preventDefault()
-			e.stopPropagation()
-			setIsDragging(false)
+	const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+		e.preventDefault()
+		e.stopPropagation()
+		setIsDragging(false)
 
-			const files = Array.from(e.dataTransfer.files)
-			if (files.length > 0) {
-				handleFileSelect(files[0])
-			}
-		},
-		[handleFileSelect]
-	)
+		const files = Array.from(e.dataTransfer.files)
+		if (files.length > 0) {
+			handleFileSelect(files[0])
+		}
+	}
 
-	const handleFileInputChange = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const files = e.target.files
-			if (files && files.length > 0) {
-				handleFileSelect(files[0])
-			}
-		},
-		[handleFileSelect]
-	)
+	const handleFileInputChange = (
+		e: React.ChangeEvent<HTMLInputElement>
+	) => {
+		const files = e.target.files
+		if (files && files.length > 0) {
+			handleFileSelect(files[0])
+		}
+	}
 
-	const handleSelectFile = useCallback(() => {
+	const handleSelectFile = () => {
 		fileInputRef.current?.click()
-	}, [])
+	}
 
-	const handleClear = useCallback(() => {
+	const handleClear = () => {
 		setSelectedFile(null)
 		setProcessingResult(null)
 		setProcessingProgress(null)
 		if (fileInputRef.current) {
 			fileInputRef.current.value = ''
 		}
-	}, [])
+	}
 
-	const handleUploadAnother = useCallback(() => {
+	const handleUploadAnother = () => {
 		handleClear()
-	}, [handleClear])
+	}
 
-	const handleUpload = useCallback(async () => {
+	const handleUpload = async () => {
 		if (!selectedFile) return
+		if (!selectedFileType) {
+			setErrorMessage('Debes seleccionar el tipo de archivo antes de cargar.')
+			setErrorModalTitle('TIPO DE ARCHIVO REQUERIDO')
+			setErrorModalOpen(true)
+			return
+		}
 
 		// Validar formato del archivo antes de cargar
 		const formatValidation = validateFileFormat(selectedFile)
@@ -209,7 +207,10 @@ export function CargarArchivoTab() {
 		abortControllerRef.current = new AbortController()
 
 		try {
-			const structureValidation = await validateExcelStructure(selectedFile)
+			const structureValidation = await validateExcelStructure(
+				selectedFile,
+				selectedFileType
+			)
 
 			if (!structureValidation.isValid) {
 				// Mostrar modal con el mensaje exacto según el diseño
@@ -223,7 +224,7 @@ export function CargarArchivoTab() {
 			}
 
 			// Si la validación es exitosa, procesar el archivo
-			const result = await processExcelFile(selectedFile)
+			const result = await processExcelFile(selectedFile, selectedFileType)
 
 			// Verificar cancelación antes de continuar
 			if (abortControllerRef.current?.signal.aborted) return
@@ -234,7 +235,10 @@ export function CargarArchivoTab() {
 				{
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ fileName: selectedFile.name }),
+					body: JSON.stringify({
+						fileName: selectedFile.name,
+						fileType: selectedFileType,
+					}),
 					signal: abortControllerRef.current?.signal,
 				}
 			)
@@ -329,6 +333,7 @@ export function CargarArchivoTab() {
 								records: recordsBatch,
 								headers: result.headers,
 								batchSize: BATCH_SIZE,
+								fileType: selectedFileType,
 							}),
 							signal: abortControllerRef.current?.signal,
 						}
@@ -402,7 +407,14 @@ export function CargarArchivoTab() {
 			setIsUploading(false)
 			abortControllerRef.current = null
 		}
-	}, [selectedFile, validateFileFormat])
+	}
+
+	const handleFileTypeChange = (
+		event: React.ChangeEvent<HTMLSelectElement>
+	) => {
+		const value = event.target.value as FileType | ''
+		setSelectedFileType(value)
+	}
 
 	const formatFileSize = (bytes: number): string => {
 		if (bytes < 1024) return bytes + ' B'
@@ -459,6 +471,21 @@ export function CargarArchivoTab() {
 						Arrastra y suelta tu archivo Excel de Skandia o haz clic para
 						seleccionar
 					</p>
+
+					<div className="mb-6 space-y-2">
+						<label className="text-sm font-medium text-foreground">
+							Tipo de archivo
+						</label>
+						<select
+							value={selectedFileType}
+							onChange={handleFileTypeChange}
+							className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+						>
+							<option value="">Selecciona el tipo</option>
+							<option value={FILE_TYPES.POLIZA}>POLIZA</option>
+							<option value={FILE_TYPES.VOLUNTARIA}>VOLUNTARIA</option>
+						</select>
+					</div>
 
 					{/* Área de drag and drop */}
 					<div
@@ -528,7 +555,7 @@ export function CargarArchivoTab() {
 						</Button>
 						<Button
 							onClick={handleUpload}
-							disabled={!selectedFile || isUploading}
+							disabled={!selectedFile || !selectedFileType || isUploading}
 							className="bg-primary hover:bg-primary/90 text-primary-foreground"
 						>
 							{isUploading ? 'Cargando...' : 'Cargar'}

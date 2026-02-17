@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
+import { FILE_TYPES, type FileType } from '@/app/dashboard/carga-archivos/lib/file-types'
 
 export async function POST(request: NextRequest) {
 	try {
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		const body = await request.json()
-		const { fileName } = body
+		const { fileName, fileType } = body
 
 		if (!fileName) {
 			return NextResponse.json(
@@ -19,11 +20,36 @@ export async function POST(request: NextRequest) {
 			)
 		}
 
+		const isValidFileType =
+			typeof fileType === 'string' &&
+			Object.values(FILE_TYPES).includes(fileType as FileType)
+
+		if (!isValidFileType) {
+			return NextResponse.json(
+				{ error: 'Se requiere un tipo de archivo válido' },
+				{ status: 400 }
+			)
+		}
+
+		const userId = Number(session.user.id)
+		const userExists = await prisma.user.findUnique({
+			where: { idUser: userId },
+			select: { idUser: true },
+		})
+
+		if (!userExists) {
+			return NextResponse.json(
+				{ error: 'Usuario no encontrado' },
+				{ status: 404 }
+			)
+		}
+
 		// Crear FileImport
 		const fileImport = await prisma.fileImport.create({
 			data: {
 				nameFile: fileName,
-				idUser: Number(session.user.id),
+				fileType,
+				idUser: userId,
 				totalRecord: 0,
 				successRecord: 0,
 				errorRecord: 0,
@@ -76,4 +102,3 @@ export async function GET() {
 		)
 	}
 }
-

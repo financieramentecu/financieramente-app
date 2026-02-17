@@ -25,6 +25,7 @@ Actualizar el flujo de carga para soportar dos tipos de Excel (POLIZA/VOLUNTARIA
 **Project Type**: Web application (single Next.js repo)  
 **Performance Goals**: Sin objetivos nuevos; no degradar tiempos actuales de procesamiento por lotes  
 **Constraints**: Mantener semántica de estados/contadores; tamaño máximo de archivo 50MB  
+**Data Integrity**: `file_import.id_user` debe existir en `user` (FK). Validar existencia del usuario autenticado antes de crear FileImport.  
 **Scale/Scope**: Procesamiento de archivos mensuales de comisiones con batch de 50 registros
 
 ## Constitution Check
@@ -117,6 +118,8 @@ No violations.
 - **Backend**
   - Validación de headers por tipo con normalización de encabezados.
   - Parsing robusto de valores monetarios (símbolos, miles, paréntesis).
+  - Validar que el `id_user` del session exista en `user` antes de crear `file_import` (evitar FK `file_import_id_user_fkey`). Si no existe, responder con error claro.
+  - Revisar el include de detalle de usuario en `src/app/api/admin/users/[id]/route.ts`; el include `categoria` no existe en el modelo `User` y provoca `Unknown field 'categoria'`. Ajustar a relaciones válidas.
   - Reglas de estados/contadores de sincronización sin cambios.
   - Inserción de auditoría por cada error de parsing/validación.
   - Cálculo de pre‑liquidación con `base_commission` y porcentajes según origen.
