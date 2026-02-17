@@ -1,5 +1,15 @@
 # Data Model: Commission Adjustments
 
+## Header Mappings
+| Target Field | Voluntarias Header | Polizas Header |
+|--------------|--------------------|----------------|
+| `poliza` | `Cto` | `Contrato Largo` (Contract ID) |
+| `valorComision` | `Com` | `Valor Comisión` (Must clean currency format `$ (x.xxx)`) |
+| `valorPrima` | `Base` | `BASE` (Ignored for Polizas calculations) |
+| `concepto` | `Tipo de Comision` | `Plan de Compensación` |
+| `producto` | `Producto` | `Polizas Producto` |
+| `agente` | `Nombre Fp` (or similar) | `Polizas Nombre Agente` |
+
 ## Entities
 
 ### FileImport (Existing - Modified)

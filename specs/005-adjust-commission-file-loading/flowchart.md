@@ -10,7 +10,7 @@ graph TD
         B -- "Item: POLIZAS" --> C["Validate: Polizas Headers"]
         B -- "Item: VOLUNTARIAS" --> D["Validate: Voluntarias Headers"]
         
-        C -- "Valid" --> E["Map Fields & Clean Currency"]
+        C -- "Valid" --> E["Map: Contrato Largo as ID & Clean Valor Comision"]
         E --> F["Note: Save BASE as Informational"]
         F --> G["Save to DB (Status: LOAD)"]
         
@@ -54,6 +54,6 @@ graph TD
 
 ## Description
 
-- **Flow 1 (Carga)**: Mandatory selector in UI. Headers are validated before saving. Polizas currency is cleaned.
+- **Flow 1 (Carga)**: Mandatory selector in UI. Headers are validated before saving. **Contrato Largo** is used as the contract ID for Polizas. **Valor Comisión** is cleaned and formatted numerically.
 - **Flow 2 (Pre-Liquidation)**: Dynamic engine. Voluntarias uses hierarchy; Polizas uses origin + retentions.
 - **Flow 3 (Adjustment)**: Negative distribution logic for returns.
