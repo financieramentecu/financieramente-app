@@ -4,46 +4,46 @@ This diagram visualizes the integration of the 3 core flows: **Carga**, **Pre-Li
 
 ```mermaid
 graph TD
-    subgraph Flow_1 [Flow 1: Carga de Archivos (Saving)]
-        A[Start: User Uploads Excel] --> B{Detect Headers}
-        B -- "Has 'Polizas Periodo'?" --> C[FileType: POLIZAS]
-        B -- "Has 'Cto' / 'Com'?" --> D[FileType: VOLUNTARIAS]
+    subgraph Flow_1 ["Flow 1: Carga de Archivos (Saving)"]
+        A["Start: User Uploads Excel"] --> B{"Detect Headers"}
+        B -- "Has 'Polizas Periodo'?" --> C["FileType: POLIZAS"]
+        B -- "Has 'Cto' / 'Com'?" --> D["FileType: VOLUNTARIAS"]
         
-        C --> E[Map: 'Contrato Largo', 'Valor Comisión']
-        E --> F[Clean Currency Format: '$ (x.xxx)' -> Numeric]
-        F --> G[Skip 'BASE' Column]
+        C --> E["Map: 'Contrato Largo', 'Valor Comisión'"]
+        E --> F["Clean Currency Format: '$ (x.xxx)' -> Numeric"]
+        F --> G["Skip 'BASE' Column"]
         
-        D --> H[Map: 'Cto', 'Com', 'Base']
+        D --> H["Map: 'Cto', 'Com', 'Base'"]
         
-        G --> I[Save to SettlementCommission Status: LOAD]
+        G --> I["Save to SettlementCommission Status: LOAD"]
         H --> I
     end
 
-    subgraph Flow_2 [Flow 2: Pre-Liquidación (Engine)]
-        I --> J[Start: Process Pre-Liquidation]
-        J --> K{Concept Type?}
+    subgraph Flow_2 ["Flow 2: Pre-Liquidación (Engine)"]
+        I --> J["Start: Process Pre-Liquidation"]
+        J --> K{"Concept Type?"}
         
-        K -- "Normal Commission" --> L{FileType?}
+        K -- "Normal Commission" --> L{"FileType?"}
         
-        L -- VOLUNTARIAS --> M[Resolve Hierarchy: Coach > Leader > Agency]
-        M --> N[Lookup Dynamic Percentages]
-        N --> O[Calculate Bruta: Coach > Leader Split > Agency Total]
+        L -- "VOLUNTARIAS" --> M["Resolve Hierarchy: Coach > Leader > Agency"]
+        M --> N["Lookup Dynamic Percentaje"]
+        N --> O["Calculate Bruta: Coach > Leader Split > Agency Total"]
         
-        L -- POLIZAS --> P[Lookup Coach Base by Origin]
-        P --> Q[Apply 12% Tax Discount ALL Roles]
-        Q --> R[Apply 10% Clawback Retention POZ ROLES]
+        L -- "POLIZAS" --> P["Lookup Coach Base by Origin"]
+        P --> Q["Apply 12% Tax Discount ALL Roles"]
+        Q --> R["Apply 10% Clawback Retention POZ ROLES"]
         
-        O --> S[ComissionDistribution Created]
+        O --> S["ComissionDistribution Created"]
         R --> S
     end
 
-    subgraph Flow_3 [Flow 3: Balance Adjustment (Claw)]
-        K -- "'claw' Record" --> T[Generate Negative Distribution]
-        T --> U[Update User Reserve: Sum RETENIDO entries]
-        U --> V[Final Settlement Balance Adjusted]
+    subgraph Flow_3 ["Flow 3: Balance Adjustment (Claw)"]
+        K -- "'claw' Record" --> T["Generate Negative Distribution"]
+        T --> U["Update User Reserve: Sum RETENIDO entries"]
+        U --> V["Final Settlement Balance Adjusted"]
     end
 
-    S --> W[End: UI Display Summary]
+    S --> W["End: UI Display Summary"]
     V --> W
 ```
 
