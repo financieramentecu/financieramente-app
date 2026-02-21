@@ -58,7 +58,7 @@ export async function POST(
         // HOJA 1: Detalle de Cálculos
         const detalleData = registros.map((r) => ({
             'ID Registro': r.idSettlementCommission,
-            Producto: r.producto || '',
+            Producto: r.descripcion || '',
             Rezagado: r.isLag ? 'Sí' : 'No',
             'Nombre Cliente': r.business?.client
                 ? `${r.business.client.name} ${r.business.client.lastName || ''}`.trim()
@@ -67,9 +67,9 @@ export async function POST(
             'Nombre Agente': r.business?.user
                 ? `${r.business.user.name} ${r.business.user.lastName || ''}`.trim()
                 : '',
-            'Número Contrato': r.business?.contract || r.poliza || '',
-            'Tipo Comisión': r.concepto || '',
-            Comisión: r.valorComision?.toNumber() || 0,
+            'Número Contrato': r.business?.contract || '',
+            'Tipo Comisión': r.descripcion || '',
+            Comisión: r.commissionValue?.toNumber() || 0,
             'General Bruta': 0, // r.generalBruta?.toNumber() || 0,
             'General Descuento': 0, // r.generalDescuento?.toNumber() || 0,
             'Comisión Bruta Agencia': 0, // r.comisionBrutaAgencia?.toNumber() || 0,
@@ -117,7 +117,7 @@ export async function POST(
             }
 
             const agente = distribucionMap.get(agenteKey)!
-            agente['Total Comisión'] += r.valorComision?.toNumber() || 0
+            agente['Total Comisión'] += r.commissionValue?.toNumber() || 0
             agente['Total General'] += 0 // Campo no disponible: r.generalDescuento
             agente['Total Agencia'] += 0 // Campo no disponible: r.comisionAgenciaDescuento
             agente['Total Líder'] += 0 // Campo no disponible: r.comisionLiderDescuento

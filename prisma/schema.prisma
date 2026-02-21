@@ -208,6 +208,7 @@ model ProductPercentageCommissionCategory {
   idCategory                   Int      @map("id_category")
   idProductPercentageCommission Int      @map("id_product_percentage_commission")
   porcentajeDistribucion       Decimal  @map("porcentaje_distribucion") @db.Decimal(5, 4)
+  porcentajePortfolio          Decimal? @map("porcentaje_portfolio") @db.Decimal(5, 4)
   active                       Boolean  @default(true)
   createdAt                    DateTime @default(now()) @map("created_at")
   updatedAt                    DateTime @updatedAt @map("updated_at")
@@ -242,13 +243,15 @@ model User {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relaciones recursivas y jerárquicas
-  categoria                  Category?                   @relation(fields: [idCategoria], references: [idCategory])
+  category                   Category?                   @relation(fields: [idCategoria], references: [idCategory])
   role                       Role?                       @relation(fields: [idRole], references: [idRole])
   leader                     User?                       @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates               User[]                      @relation("UserLeader")
   businesses  Business[]
   fileImports FileImport[]
   auditLogs   AuditLog[]
+  clawbacks   Clawback[]
+  clawbackBalance ClawbackBalance?
 
   // Note: 'Coaches, líderes, seniors, juniors con jerarquía recursiva'
 
@@ -290,6 +293,7 @@ model Client {
 model FileImport {
   idFileImport         Int       @id @default(autoincrement()) @map("id_file_import")
   nameFile             String    @map("name_file") @db.VarChar(255)
+  fileType             String?   @map("file_type") @db.VarChar(20)
   loadDate             DateTime  @default(now()) @map("load_date")
   idUser               Int       @map("id_user")
   totalRecord          Int       @default(0) @map("total_record")
@@ -349,36 +353,35 @@ model Business {
 // LIQUIDACIÓN Y CÁLCULOS
 // =====================================================
 
-model Discount {
-  idDiscount    Int      @id @default(autoincrement()) @map("id_discount")
-  percentage    Decimal  @db.Decimal(5, 4)
-  description   String?  @db.Text
-  status        String   @default("INACTIVE") @db.VarChar(20)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  comissionDistributions ComissionDistribution[]
+model CommissionConfiguration {
+  idConfigCommission Int      @id @default(autoincrement()) @map("id_config_commission")
+  discountPercentage Decimal  @map("discount_percentage") @db.Decimal(5, 4)
+  clawbackPercentage Decimal? @map("clawback_percentage") @db.Decimal(5, 4)
+  name               String?  @db.VarChar(100)
+  description        String?  @db.Text
+  status             String   @default("INACTIVE") @db.VarChar(20)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   @@index([status])
-  @@map("discount")
+  @@map("commission_configuration")
 }
 
 model SettlementCommission {
   idSettlementCommission Int      @id @default(autoincrement())
   idFileImport           Int      @map("id_file_import")
   idBusiness             Int?     @map("id_business")
-  
+
   // Campos del excel
-  poliza                 String?
-  ramo                   String?
-  producto               String?
-  recibo                 String?
-  concepto               String?
-  fechaPago              DateTime? @map("fecha_pago")
-  valorComision          Decimal?  @map("valor_comision") @db.Decimal(15, 2)
-  porcentajeComision     Decimal?  @map("porcentaje_comision") @db.Decimal(5, 2)
-  valorPrima             Decimal?  @map("valor_prima") @db.Decimal(15, 2)
-  
+  descripcion            String?
+  commissionValue        Decimal?  @map("commission_value") @db.Decimal(15, 2)
+  commissionPercentage   Decimal?  @map("commission_percentage") @db.Decimal(5, 4)
+  baseCommission         Decimal?  @map("base_commission") @db.Decimal(15, 2)
+  discountPercentage     Decimal?  @map("discount_percentage") @db.Decimal(5, 4)
+  clawbackPercentage     Decimal?  @map("clawback_percentage") @db.Decimal(5, 4)
+  originCommission       String?   @map("origin_commission") @db.VarChar(20)
+  commissionType         String?   @map("commission_type") @db.VarChar(20)
+
   // Campos de control
   status                 String    @default("PENDIENTE") // PENDIENTE, SINCRONIZADO, ERROR, LAG, PRELIQUIDADO
   isLag                  Boolean   @default(false) @map("is_lag")
@@ -406,22 +409,20 @@ model ComissionDistribution {
   valueComission                Decimal  @map("value_comission") @db.Decimal(15, 2)
   valueComissionFinal           Decimal  @map("value_comission_final") @db.Decimal(15, 2)
   totalDiscount                 Decimal? @map("total_discount") @db.Decimal(15, 2)
+  appliedDiscountPercentage     Decimal? @map("applied_discount_percentage") @db.Decimal(5, 4)
   observation                   String?  @db.Text
   status                        String   @db.VarChar(20) // 'LIQUIDADO', 'NOTIFICADO', 'PAGADA', 'ANULADA'
   createdAt                     DateTime @default(now()) @map("created_at")
   updatedAt                     DateTime @updatedAt @map("updated_at")
-  idDiscount                    Int?     @map("id_discount")
 
   // Relaciones
   settlementCommission               SettlementCommission                @relation(fields: [idSettlementCommission], references: [idSettlementCommission])
   productPercentageCommissionCategory ProductPercentageCommissionCategory? @relation(fields: [idPercentajeCommisionCategory], references: [id])
-  discount                           Discount?                           @relation(fields: [idDiscount], references: [idDiscount])
   clawback                           Clawback?
 
   // Note: "El clawback es a nivel de negocio o por liquidación, Distribución detallada con clawback del 10% para Senior/Junior"
 
   @@index([idSettlementCommission])
-  @@index([idDiscount])
   @@map("comission_distribution")
 }
 
@@ -429,6 +430,7 @@ model ComissionDistribution {
 
 model Clawback {
   idClawback              Int       @id @default(autoincrement()) @map("id_clawback")
+  idUser                  Int       @map("id_user")
   idComissionDistribution Int       @unique @map("id_comission_distribution")
   valueClawback           Decimal   @map("value_clawback") @db.Decimal(15, 2)
   porcentajeApplied       Decimal   @map("porcentaje_applied") @db.Decimal(5, 4)
@@ -440,12 +442,25 @@ model Clawback {
   updatedAt               DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
+  user User @relation(fields: [idUser], references: [idUser])
   comissionDistribution ComissionDistribution @relation(fields: [idComissionDistribution], references: [idComissionDistribution])
 
   // Note: 'Histórico de retenciones clawback (90 días)'
 
   @@index([state])
+  @@index([idUser])
   @@map("clawback")
+}
+
+model ClawbackBalance {
+  idUser      Int      @id @map("id_user")
+  totalAmount Decimal  @map("total_amount") @db.Decimal(15, 2)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  user User @relation(fields: [idUser], references: [idUser])
+
+  @@map("clawback_balance")
 }
 
 // =====================================================

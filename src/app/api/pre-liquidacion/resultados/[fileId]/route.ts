@@ -43,28 +43,28 @@ export async function GET(
 		}
 
 		if (minComision) {
-			where.valorComision = {
-				...((where.valorComision as Prisma.DecimalFilter) || {}),
+			where.commissionValue = {
+				...((where.commissionValue as Prisma.DecimalFilter) || {}),
 				gte: parseFloat(minComision),
 			}
 		}
 
 		if (maxComision) {
-			where.valorComision = {
-				...((where.valorComision as Prisma.DecimalFilter) || {}),
+			where.commissionValue = {
+				...((where.commissionValue as Prisma.DecimalFilter) || {}),
 				lte: parseFloat(maxComision),
 			}
 		}
 
 		if (producto) {
-			where.producto = {
+			where.descripcion = {
 				contains: producto,
 				mode: 'insensitive',
 			}
 		}
 
 		if (tipoComision) {
-			where.concepto = {
+			where.descripcion = {
 				contains: tipoComision,
 				mode: 'insensitive',
 			}
@@ -140,7 +140,7 @@ export async function GET(
 
 			return {
 				idSettlementCommission: registro.idSettlementCommission,
-				producto: registro.producto,
+				producto: registro.descripcion,
 				rezagado: registro.isLag,
 				nombreCliente: registro.business?.client
 					? `${registro.business.client.name} ${registro.business.client.lastName || ''}`.trim()
@@ -149,9 +149,9 @@ export async function GET(
 				nombreAgente: registro.business?.user
 					? `${registro.business.user.name} ${registro.business.user.lastName || ''}`.trim()
 					: null,
-				numeroContrato: registro.business?.contract || registro.poliza || null,
-				tipoComision: registro.concepto,
-				comision: registro.valorComision?.toNumber() || null,
+				numeroContrato: registro.business?.contract || null,
+				tipoComision: registro.descripcion,
+				comision: registro.commissionValue?.toNumber() || null,
 				distribuciones,
 				estado: registro.status,
 			}

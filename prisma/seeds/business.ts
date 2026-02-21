@@ -8,20 +8,37 @@ export async function seedBusinesses(prisma: PrismaClient) {
 	console.log('📊 Creando negocios de prueba...')
 
 	// Obtener datos necesarios
-	const user = await prisma.user.findFirst({
+	// Buscar primero un AGENTE, si no existe usar cualquier usuario activo (ej. ADMIN)
+	let user = await prisma.user.findFirst({
 		where: { role: { code: 'AGENTE' } },
 	})
+	if (!user) {
+		user = await prisma.user.findFirst({
+			where: { active: true },
+			orderBy: { idUser: 'asc' },
+		})
+	}
 
 	const productPercentageCommission =
 		await prisma.productPercentageCommission.findFirst()
-	const currency = await prisma.currency.findFirst({ where: { name: 'COP' } })
+	const currency = await prisma.currency.findFirst({
+		where: { symbol: 'COP' },
+	})
 	const periodicity = await prisma.buyPeriodicity.findFirst({
 		where: { name: 'Mensual' },
 	})
 	const clientOrigin = await prisma.clientOrigin.findFirst()
 
 	if (!user || !productPercentageCommission || !currency || !clientOrigin) {
-		console.log('⚠️ Faltan datos base para crear negocios de prueba')
+		const missing = [
+			!user && 'User',
+			!productPercentageCommission && 'ProductPercentageCommission',
+			!currency && 'Currency (COP)',
+			!clientOrigin && 'ClientOrigin',
+		].filter(Boolean)
+		console.log(
+			`⚠️ Faltan datos base para crear negocios de prueba: ${missing.join(', ')}`
+		)
 		return
 	}
 

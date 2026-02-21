@@ -24,9 +24,9 @@ export const auth = async () => {
                     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 }
             }
-        } catch (error) {
-            // headers() no disponible o error al leerlos
-        }
+		} catch {
+			// headers() no disponible o error al leerlos
+		}
     }
     return nextAuth()
 }

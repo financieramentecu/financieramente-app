@@ -1,5 +1,5 @@
--
-description: 
+---
+description:
 alwaysApply: true
 ---
 
@@ -16,29 +16,31 @@ alwaysApply: true
 Use these skills for detailed patterns on-demand:
 
 ### Generic Skills (Any Project)
-| Skill | Description | When to Use | URL |
-|-------|-------------|-------------|-----|
-| `typescript` | Const types, flat interfaces, utility types, strict typing | Writing TypeScript types/interfaces, refactoring types | [SKILL.md](skills/typescript/SKILL.md) |
-| `react-19` | No useMemo/useCallback, React Compiler patterns | Writing React components/hooks | [SKILL.md](skills/react-19/SKILL.md) |
-| `nextjs-16` | App Router, Server Actions, Server Components, caching | Working with Next.js App Router, API routes | [SKILL.md](skills/nextjs-16/SKILL.md) |
-| `screaming-architecture` | Feature-based organization, domain-driven structure | Organizing code by feature/domain | [SKILL.md](skills/screaming-architecture/SKILL.md) |
-| `commit-messages` | Conventional commits, clear commit messages | Writing commit messages, preparing commits | [SKILL.md](skills/commit-messages/SKILL.md) |
-| `code-review-skill` | Security, performance, maintainability reviews | Code reviews, PR reviews, security analysis | [SKILL.md](skills/code-review-skill/SKILL.md) |
+
+| Skill                    | Description                                                | When to Use                                            | URL                                                |
+| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------- |
+| `typescript`             | Const types, flat interfaces, utility types, strict typing | Writing TypeScript types/interfaces, refactoring types | [SKILL.md](skills/typescript/SKILL.md)             |
+| `react-19`               | No useMemo/useCallback, React Compiler patterns            | Writing React components/hooks                         | [SKILL.md](skills/react-19/SKILL.md)               |
+| `nextjs-16`              | App Router, Server Actions, Server Components, caching     | Working with Next.js App Router, API routes            | [SKILL.md](skills/nextjs-16/SKILL.md)              |
+| `screaming-architecture` | Feature-based organization, domain-driven structure        | Organizing code by feature/domain                      | [SKILL.md](skills/screaming-architecture/SKILL.md) |
+| `commit-messages`        | Conventional commits, clear commit messages                | Writing commit messages, preparing commits             | [SKILL.md](skills/commit-messages/SKILL.md)        |
+| `code-review-skill`      | Security, performance, maintainability reviews             | Code reviews, PR reviews, security analysis            | [SKILL.md](skills/code-review-skill/SKILL.md)      |
 
 ### Financieramente-Specific Skills
-| Skill | Description | When to Use | URL |
-|-------|-------------|-------------|-----|
+
+| Skill             | Description                                        | When to Use                                      | URL                                         |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------ | ------------------------------------------- |
 | `financieramente` | Project overview, structure, scripts, architecture | Onboarding, navigating codebase, running scripts | [SKILL.md](skills/financieramente/SKILL.md) |
 
 ### Auto-invoke Skills
 
 When performing these actions, ALWAYS invoke the corresponding skill FIRST:
 
-| Action | Skill |
-|--------|-------|
-| Writing React components | `react-19` |
-| Writing TypeScript types/interfaces | `typescript` |
-| Working with App Router / Server Actions | `nextjs-16` |
+| Action                                   | Skill        |
+| ---------------------------------------- | ------------ |
+| Writing React components                 | `react-19`   |
+| Writing TypeScript types/interfaces      | `typescript` |
+| Working with App Router / Server Actions | `nextjs-16`  |
 
 ---
 
@@ -46,13 +48,14 @@ When performing these actions, ALWAYS invoke the corresponding skill FIRST:
 
 Subagents are specialized AI assistants that enforce specific architectural or code quality rules:
 
-| Subagent | Description | When to Use | Location |
-|----------|-------------|-------------|----------|
+| Subagent                | Description                                   | When to Use                                | Location                                                                           |
+| ----------------------- | --------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- |
 | `architecture-enforcer` | Ensures Feature-Based Architecture compliance | Creating/modifying code in `src/features/` | [.cursor/agents/architecture-enforcer.md](.cursor/agents/architecture-enforcer.md) |
 
 ### Architecture Enforcer
 
 The **architecture-enforcer** subagent validates that all new code follows:
+
 - Feature-Based Architecture (Screaming Architecture)
 - Proper feature structure (`components/`, `hooks/`, `lib/`, `types/`, `__tests__/`)
 - TypeScript best practices (no `any`, readonly when appropriate)
@@ -63,18 +66,24 @@ The **architecture-enforcer** subagent validates that all new code follows:
 
 ---
 
+## API Documentation
+
+- **[API Router Reference](src/app/api/AGENTS.md)**: Detailed guide to endpoints, authentication, and response formats.
+
+---
+
 ## Project Overview
 
 Financieramente is a modern commission settlement platform for financial services.
 
-| Component | Location | Tech Stack |
-|-----------|----------|------------|
-| **Pages** | `src/app/` | Next.js 15 App Router |
-| **API Routes** | `src/app/api/` | Next.js 15 API Routes |
-| **Features** | `src/features/` | Feature-Based Architecture, React 19, TypeScript |
-| **Shared** | `src/features/shared/` | UI components, hooks, providers, types |
-| **Database** | `prisma/` | Prisma ORM, PostgreSQL |
-| **Infrastructure** | `terraform/` | Digital Ocean, Docker |
+| Component          | Location               | Tech Stack                                       |
+| ------------------ | ---------------------- | ------------------------------------------------ |
+| **Pages**          | `src/app/`             | Next.js 15 App Router                            |
+| **API Routes**     | `src/app/api/`         | Next.js 15 API Routes                            |
+| **Features**       | `src/features/`        | Feature-Based Architecture, React 19, TypeScript |
+| **Shared**         | `src/features/shared/` | UI components, hooks, providers, types           |
+| **Database**       | `prisma/`              | Prisma ORM, PostgreSQL                           |
+| **Infrastructure** | `terraform/`           | Digital Ocean, Docker                            |
 
 ### Tech Stack
 
@@ -134,6 +143,7 @@ Follow conventional-commit style: `<type>[scope]: <description>`
 **Use the `commit-messages` skill** when writing commit messages to ensure consistency.
 
 Before creating a PR:
+
 1. Complete checklist in `.github/pull_request_template.md`
 2. Run all relevant tests and linters (`npm run test:all && npm run lint`)
 3. Link screenshots for UI changes
@@ -153,11 +163,3 @@ Before creating a PR:
 - **Responsibility split**: Actions = input validation, error messages, response shape. Services = database queries, domain logic that touches Prisma.
 
 See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed architecture guidelines.
-
-## Active Technologies
-- TypeScript 5.x, Node.js 20+ + Next.js 15 (App Router), React 19, Prisma ORM, Zod, React Hook Form, Shadcn/UI + Radix UI, Tailwind CSS v4, Sonner (toasts) (004-manage-commission-rules)
-- PostgreSQL 15 via Prisma ORM (004-manage-commission-rules)
-- TypeScript (Next.js 15 / Node.js) + Next.js App Router, Prisma ORM, XLSX (001-commission-sync)
-
-## Recent Changes
-- 004-manage-commission-rules: Added TypeScript 5.x, Node.js 20+ + Next.js 15 (App Router), React 19, Prisma ORM, Zod, React Hook Form, Shadcn/UI + Radix UI, Tailwind CSS v4, Sonner (toasts)

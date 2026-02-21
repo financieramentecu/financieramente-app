@@ -1,28 +1,32 @@
 import { PrismaClient } from '@prisma/client'
 
 export async function seedDiscount(prisma: PrismaClient) {
-	console.log('\n👉 Procesando Descuentos (Discount)...')
+	console.log('\n👉 Procesando Configuración de Comisión...')
 
-	// Verificar si ya existe un descuento activo
-	const descuentoActivoExistente = await prisma.discount.findFirst({
+	// Verificar si ya existe una configuración activa
+	const configuracionActiva = await prisma.commissionConfiguration.findFirst({
 		where: {
 			status: 'ACTIVE',
 		},
 	})
 
-	if (descuentoActivoExistente) {
-		console.log('⚠️ Ya existe un descuento activo. Saltando creación de seed...')
+	if (configuracionActiva) {
+		console.log('⚠️ Ya existe una configuración activa. Saltando creación de seed...')
 		return
 	}
 
-	// Crear descuento del 12% activo
-	const descuento = await prisma.discount.create({
+	// Crear configuración por defecto (12% descuento, 10% clawback)
+	const configuracion = await prisma.commissionConfiguration.create({
 		data: {
-			percentage: 0.12, // 12%
-			description: 'Descuento estándar del 12%',
+			discountPercentage: 0.12,
+			clawbackPercentage: 0.1,
+			name: 'DEFAULT',
+			description: 'Configuración estándar (12% descuento, 10% clawback)',
 			status: 'ACTIVE',
 		},
 	})
 
-	console.log(`✅ Descuento creado: ${descuento.percentage.toNumber() * 100}% (ID: ${descuento.idDiscount})`)
+	console.log(
+		`✅ Configuración creada: ${configuracion.discountPercentage.toNumber() * 100}% (ID: ${configuracion.idConfigCommission})`
+	)
 }
