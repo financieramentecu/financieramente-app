@@ -12,7 +12,7 @@ erDiagram
     ClientOrigin ||--o{ Business : "origen del negocio"
     Category ||--o{ User : "categoría del usuario"
     Category ||--o{ ProductConfiguration : "categoría en config"
-    Category ||--o{ ProductPercentajeCommisionCategory : "en distribución"
+    Category ||--o{ ProductPercentageCommissionCategory : "en distribución"
     Role ||--o{ User : "rol asignado"
     Role ||--o{ AuditLog : "rol en auditoría"
     BuyPeriodicity ||--o{ Business : "periodicidad de compra"
@@ -20,17 +20,19 @@ erDiagram
 
     %% ========== PRODUCTOS Y CONFIGURACIÓN ==========
     Product ||--o{ ProductConfiguration : "combinación producto/origen/categoría"
-    ProductConfiguration ||--o{ ProductPercentajeCommision : "versiones PPC"
-    ProductConfiguration ||--o| ProductPercentajeCommision : "PPC activo nuevos negocios"
-    ProductPercentajeCommision ||--o{ ProductPercentajeCommisionCategory : "distribución por categoría"
-    ProductPercentajeCommision ||--o{ Business : "config aplicada"
-    ProductPercentajeCommisionCategory ||--o{ ComissionDistribution : "distribución"
+    ProductConfiguration ||--o{ ProductPercentageCommission : "versiones PPC"
+    ProductConfiguration ||--o| ProductPercentageCommission : "PPC activo nuevos negocios"
+    ProductPercentageCommission ||--o{ ProductPercentageCommissionCategory : "distribución por categoría"
+    ProductPercentageCommission ||--o{ Business : "config aplicada"
+    ProductPercentageCommissionCategory ||--o{ ComissionDistribution : "distribución"
 
     %% ========== USUARIOS Y JERARQUÍA ==========
     User ||--o| User : "líder"
     User ||--o{ Business : "negocios"
     User ||--o{ FileImport : "importaciones"
     User ||--o{ AuditLog : "eventos auditoría"
+    User ||--o{ Clawback : "historial clawback"
+    User ||--o| ClawbackBalance : "saldo clawback"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
     Client ||--o{ Business : "negocios"
@@ -125,24 +127,27 @@ erDiagram
         int id_client_origin FK
         int id_category FK
         string code
-        int id_product_percentaje_commision_new_businesses FK
+        boolean active
+        int id_product_percentage_commission_new_businesses FK
         datetime created_at
         datetime updated_at
     }
 
-    ProductPercentajeCommision {
-        int id_product_percentaje_commision PK
+    ProductPercentageCommission {
+        int id_product_percentage_commission PK
         int id_product_configuration FK
+        string description
         boolean active
         datetime created_at
         datetime updated_at
     }
 
-    ProductPercentajeCommisionCategory {
+    ProductPercentageCommissionCategory {
         int id PK
         int id_category FK
-        int id_product_percentaje_commision FK
+        int id_product_percentage_commission FK
         decimal porcentaje_distribucion
+        decimal porcentaje_portfolio
         boolean active
         datetime created_at
         datetime updated_at
@@ -189,6 +194,7 @@ erDiagram
     FileImport {
         int id_file_import PK
         string name_file
+        string file_type
         datetime load_date
         int id_user FK
         int total_record
@@ -212,9 +218,20 @@ erDiagram
         int id_buy_periodicity FK
         int id_user FK
         int id_client FK
-        int id_product_percentaje_commision FK
+        int id_product_percentage_commission FK
         int id_currency FK
         int id_client_origin FK
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+
+    CommissionConfiguration {
+        int id_config_commission PK
+        decimal discount_percentage
+        decimal clawback_percentage
+        string name
+        text description
         string status
         datetime created_at
         datetime updated_at
@@ -224,15 +241,14 @@ erDiagram
         int id_settlement_commission PK
         int id_file_import FK
         int id_business FK
-        string poliza
-        string ramo
-        string producto
-        string recibo
-        string concepto
-        datetime fecha_pago
-        decimal valor_comision
-        decimal porcentaje_comision
-        decimal valor_prima
+        string descripcion
+        decimal commission_value
+        decimal commission_percentage
+        decimal base_commission
+        decimal discount_percentage
+        decimal clawback_percentage
+        string origin_commission
+        string commission_type
         string status
         boolean is_lag
         string error
@@ -246,6 +262,8 @@ erDiagram
         int id_percentaje_commision_category FK
         decimal value_comission
         decimal value_comission_final
+        decimal total_discount
+        decimal applied_discount_percentage
         text observation
         string status
         datetime created_at
@@ -254,6 +272,7 @@ erDiagram
 
     Clawback {
         int id_clawback PK
+        int id_user FK
         int id_comission_distribution FK
         decimal value_clawback
         decimal porcentaje_applied
@@ -262,6 +281,12 @@ erDiagram
         date release_date
         text reason
         datetime created_at
+        datetime updated_at
+    }
+
+    ClawbackBalance {
+        int id_user PK
+        decimal total_amount
         datetime updated_at
     }
 

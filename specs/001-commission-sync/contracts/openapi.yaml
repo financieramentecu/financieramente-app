@@ -1,0 +1,84 @@
+openapi: 3.0.3
+info:
+  title: Commission Sync & Pre-liquidation API
+  version: "1.0.0"
+paths:
+  /api/carga-archivos/file-import:
+    post:
+      summary: Crear importación de archivo de comisiones
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, fileType]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                fileType:
+                  type: string
+                  enum: [POLIZA, VOLUNTARIA]
+      responses:
+        "200":
+          description: Importación creada
+        "400":
+          description: Error de validación (headers o formato)
+
+  /api/carga-archivos/process-batch:
+    post:
+      summary: Procesar lote de registros de un archivo importado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileImportId, batchIndex, records, fileType]
+              properties:
+                fileImportId:
+                  type: integer
+                batchIndex:
+                  type: integer
+                fileType:
+                  type: string
+                  enum: [POLIZA, VOLUNTARIA]
+                records:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "200":
+          description: Lote procesado (contadores actualizados)
+        "400":
+          description: Error de validación de registros
+
+  /api/pre-liquidacion/procesar:
+    post:
+      summary: Ejecutar pre-liquidación para un archivo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileImportId, rangoFecha]
+              properties:
+                fileImportId:
+                  type: integer
+                rangoFecha:
+                  type: object
+                  required: [inicio, fin]
+                  properties:
+                    inicio:
+                      type: string
+                      format: date
+                    fin:
+                      type: string
+                      format: date
+      responses:
+        "200":
+          description: Pre-liquidación ejecutada
+        "400":
+          description: Archivo no está en estado LOAD o sin registros

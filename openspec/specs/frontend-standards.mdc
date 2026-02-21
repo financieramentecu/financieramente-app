@@ -1,0 +1,204 @@
+---
+description: Next.js frontend standards, Feature-Based Architecture patterns, component conventions, data fetching practices, and performance guidelines for the Financieramente app
+globs: ["src/**/*.{ts,tsx}", "tsconfig.json", "package.json"]
+alwaysApply: true
+---
+
+# Frontend Standards — Financieramente App
+
+## Overview
+
+This document is the canonical reference for all frontend development in the Financieramente codebase.
+
+Stack: Next.js 15 App Router, React 19, TypeScript 5, Tailwind CSS v4, Shadcn/UI + Radix UI, Zod, React Hook Form.
+
+---
+
+## Table of Contents
+
+- [Architecture](#architecture)
+- [Feature Structure](#feature-structure)
+- [Component Conventions](#component-conventions)
+- [Styling](#styling)
+- [Data Fetching & Mutations](#data-fetching--mutations)
+- [Navigation](#navigation)
+- [Error Handling](#error-handling)
+- [Performance Rules](#performance-rules)
+- [Naming Conventions](#naming-conventions)
+- [TypeScript](#typescript)
+- [Testing](#testing)
+
+---
+
+## Architecture
+
+The app follows **Feature-Based Architecture (Screaming Architecture)**. All related code lives together grouped by business domain (feature), not by technical concern (components, hooks, etc.).
+
+There are no broad `src/services/` or `src/utils/` folders mapping to the entire application.
+
+```
+src/
+├── app/               # Next.js App Router (pages and api routes only)
+├── features/          # Business feature modules (where the actual code lives)
+│   ├── [feature-a]/
+│   ├── [feature-b]/
+│   └── shared/        # Cross-cutting UI, types, and hooks used by 3+ features
+├── lib/               # Framework integrations (Prisma client, Auth, api/client)
+└── ...
+```
+
+---
+
+## Feature Structure
+
+Every feature lives in `src/features/<feature>/` with this exact layout:
+
+```
+src/features/<feature>/
+├── components/       # React components (Server and Client)
+├── hooks/            # Custom hooks for the feature
+├── lib/              # Feature-specific libraries (Zod schemas, API client wrappers)
+│   ├── <feature>-api.ts
+│   └── <feature>-schemas.ts
+├── types/            # TypeScript interfaces and types
+├── services/         # Prisma queries & domain logic (Server-only)
+├── mappers/          # Data mappers (DTO to domain, optional)
+└── __tests__/        # Colocated tests for this feature
+    ├── lib/
+    ├── hooks/
+    ├── mappers/
+    └── fixtures/     # Test data and Prisma object mocks
+```
+
+---
+
+## Component Conventions
+
+### Server vs Client Components
+
+- **Default to Server Components**. They ship zero JS to the client, handle auth securely, and fetch data close to the database.
+- Add `'use client'` **only** when required (e.g., for `useState`, `useEffect`, event handlers, browser APIs, or using React contexts).
+- Never add `'use client'` to layout (`layout.tsx`) or page (`page.tsx`) files unless strictly necessary to wrap the entire route.
+- Pass plain, serializable data from Server Components to Client Components as props. Do not pass functions or class instances.
+
+### React 19 Patterns
+
+- **No manual memoization**: The React Compiler handles `useMemo` and `useCallback` automatically. Do not write them manually.
+- **Named imports only**: Use `import { useState } from 'react'`, never `import React from 'react'`.
+- **`ref` as a prop**: Do not use `forwardRef`. Instead, pass `ref` normally: `function MyInput({ ref, ...props }: Props)`.
+- Use the **`useActionState`** hook when handling form submissions tied to Server Actions.
+- Use the **`use()`** hook for reading contexts conditionally or unwrapping Promises.
+
+---
+
+## Styling
+
+- **Tailwind CSS v4** is used for utility-first styling. Prefer class composition over custom CSS.
+- **Shadcn/UI and Radix UI** form the foundation of our design system.
+- Ensure designs are **mobile-first responsive**, utilizing `sm:`, `md:`, `lg:` prefixes.
+- Never write hardcoded inline style objects in JSX unless the value is strictly computed at runtime (e.g., a dynamically calculated height).
+
+```tsx
+// ✅ Correct
+<div className="flex items-center gap-4 p-6 rounded-lg bg-background text-foreground">
+
+// ❌ Incorrect
+<div style={{ display: 'flex', gap: '16px', padding: '24px' }}>
+```
+
+---
+
+## Data Fetching & Mutations
+
+### Server-Side Data Flow (Actions & Services)
+
+- **Server Actions** (`actions/` or inline in Server Components): Orchestrate operations. They validate input using Zod, call services, and return normalized responses (`ApiResponse<T>`). **Never call Prisma directly from actions.**
+- **Services** (`services/`): Pure domain logic and Prisma database access. They throw errors or return raw domain models. No `ApiResponse` or Zod parsing happens here.
+
+### API Routes
+
+All Next.js API Routes (`app/api/...`) must return the standardized `ApiResponse<T>` structure:
+
+```typescript
+import type { ApiResponse } from '@/features/shared/types/api-response.types'
+
+export async function GET(): Promise<NextResponse<ApiResponse<MyType>>> {
+  // Always check Auth first
+  const session = await auth()
+  if (!session?.user) return NextResponse.json({ data: null, error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    const data = await myService.getAll()
+    return NextResponse.json({ data })
+  } catch (error) {
+    return NextResponse.json({ data: null, error: 'Failed' }, { status: 500 })
+  }
+}
+```
+
+### Client-Side API Calls
+
+Never use `fetch` directly inside feature code. Always use `apiClient` configured via `src/lib/api/client.ts`.
+
+```typescript
+import { apiClient } from '@/lib/api/client'
+
+export const getCategories = async (): Promise<Category[]> => {
+  return apiClient.get<Category[]>('/api/categories')
+}
+```
+
+---
+
+## Navigation
+
+- Use `Link` from `next/link` for internal navigation. Let Next.js handle client-side route transitions and prefetching.
+- Icons and sidebar navigation items live centrally in `src/lib/navigation/menu-items.tsx`.
+- Route groups such as `(auth)` should be used to organize App Router segments without impacting the URL.
+
+---
+
+## Error Handling
+
+- **Next.js Error Boundaries**: Use `error.tsx` in `app/` segments to catch standard rendering errors. Let Next.js handle the fallback UI.
+- **Server Action/API Route Errors**: Never throw raw errors back to the client. Always catch them and return a structured `{ data: null, error: 'User friendly message' }` object. 
+- **Zod Validation**: Do not trust user input. Server Actions and API Routes must validate input with Zod schemas before continuing.
+
+---
+
+## Performance Rules
+
+- **Parallel Fetching**: In Server Components, fetch independent queries simultaneously using `Promise.all()`.
+- **React Suspense**: Use `<Suspense>` boundaries to stream parts of the UI that depend on slow queries. Let the user view the initial shell instantly while the data loads in the background (`loading.tsx` or inline Suspense).
+- **Bundle Size**: Import components directly or use tree-shaking where applicable. Ensure packages that shouldn't leak to the client are marked with `'server-only'`.
+
+---
+
+## Naming Conventions
+
+| Element | Convention | Example |
+|---------|-----------|---------|
+| Directories / Files | `kebab-case` | `manage-users/`, `category-api.ts` |
+| Components / Interfaces / Types | `PascalCase` | `UserAvatar`, `CategoryModel` |
+| Variables / Functions / Hooks | `camelCase` | `isMenuOpen`, `getUsers`, `useValidation` |
+| Constants / Env vars | `UPPER_SNAKE_CASE` | `MAX_RETRIES`, `JWT_SECRET` |
+| Event handlers | `handle*` | `handleSubmit`, `handleClick` |
+| Boolean variables | `is*` / `has*` / `can*` | `isLoading`, `hasError`, `canDelete` |
+| Services | `[module].service.ts` | `category.service.ts` |
+| Libs / Schemas | `[module]-api.ts` | `category-schemas.ts` |
+
+---
+
+## TypeScript
+
+- **Strict Mode**: Always on. Avoid `any`; use `unknown` for runtime boundary-checking, then narrow with Zod or type guards.
+- **Readonly Properties**: Add `readonly` to interface properties that should not mutate over their lifetime.
+- **Enums**: Prefer `const` objects over TypeScript Enums for mapping literal values.
+
+---
+
+## Testing
+
+- **Colocation**: Test files must reside in the `__tests__/` directory within the module/feature they test.
+- **Fixtures**: Include mock data and full Prisma object constructions in an explicit `__tests__/fixtures/` directory.
+- Tools: Vitest for Unit/Integration tests, Playwright for E2E.

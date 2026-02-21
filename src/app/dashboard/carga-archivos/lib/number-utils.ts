@@ -6,34 +6,52 @@
 export function cleanNumericValue(value: unknown): number | null {
 	if (value === null || value === undefined) return null
 
-	// Si ya es un número, retornarlo
 	if (typeof value === 'number') {
-		return isNaN(value) ? null : value
+		return Number.isFinite(value) ? value : null
 	}
 
-	// Convertir a string y limpiar
 	let stringValue = String(value).trim()
-
 	if (!stringValue) return null
 
-	// Remover símbolos comunes de moneda y formato
-	// $, €, £, pesos, dólares, etc.
+	const isNegative =
+		/^\(.*\)$/.test(stringValue) || stringValue.includes('-')
+
+	if (stringValue.startsWith('(') && stringValue.endsWith(')')) {
+		stringValue = stringValue.slice(1, -1)
+	}
+
 	stringValue = stringValue
-		.replace(/[$€£¥₹₽₩₪₫₨₦₡₵₴₸₶₷₺₼₾₿]/g, '') // Símbolos de moneda
+		.replace(/[$€£¥₹₽₩₪₫₨₦₡₵₴₸₶₷₺₼₾₿]/g, '')
 		.replace(/pesos?/gi, '')
-		.replace(/dólares?/gi, '')
+		.replace(/d[oó]lares?/gi, '')
 		.replace(/euros?/gi, '')
-		.replace(/,/g, '') // Remover comas (separadores de miles)
-		.replace(/\s+/g, '') // Remover espacios
-		.replace(/[^\d.-]/g, '') // Solo dejar dígitos, puntos y guiones
+		.replace(/\s+/g, '')
+		.replace(/-/g, '')
 
-	// Si quedó vacío, retornar null
 	if (!stringValue) return null
 
-	// Convertir a número
-	const numValue = parseFloat(stringValue)
+	const hasDot = stringValue.includes('.')
+	const hasComma = stringValue.includes(',')
 
-	return isNaN(numValue) ? null : numValue
+	if (hasDot && hasComma) {
+		stringValue = stringValue.replace(/\./g, '').replace(/,/g, '.')
+	} else if (hasComma) {
+		stringValue = stringValue.replace(/,/g, '.')
+	} else if (hasDot) {
+		const dotCount = (stringValue.match(/\./g) || []).length
+		if (dotCount > 1) {
+			stringValue = stringValue.replace(/\./g, '')
+		}
+	}
+
+	stringValue = stringValue.replace(/[^\d.]/g, '')
+
+	if (!stringValue || stringValue === '.') return null
+
+	const numValue = Number(stringValue)
+	if (!Number.isFinite(numValue)) return null
+
+	return isNegative ? -numValue : numValue
 }
 
 /**
@@ -44,4 +62,3 @@ export function toDecimal(value: unknown): string {
 	if (numValue === null) return '0'
 	return numValue.toString()
 }
-

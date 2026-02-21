@@ -1,23 +1,10 @@
 import * as XLSX from 'xlsx'
+import { FILE_TYPE_REQUIRED_HEADERS, type FileType } from './file-types'
+import { findMissingHeaders } from './header-utils'
 
 /**
  * Columnas requeridas para el formato Skandia
  */
-export const REQUIRED_COLUMNS = [
-	'Nombre',
-	'Franquicia',
-	'Desde',
-	'Hasta',
-	'Nombre Fp',
-	'Sub Grupo Fp',
-	'Compania',
-	'Producto',
-	'Tipo Comisión',
-	'Cto',
-	'Base',
-	'Com',
-] as const
-
 export interface ValidationResult {
 	isValid: boolean
 	error?: string
@@ -31,9 +18,12 @@ export interface ValidationResult {
  * @returns Resultado de la validación con información sobre columnas faltantes o incorrectas
  */
 export async function validateExcelStructure(
-	file: File
+	file: File,
+	fileType: FileType
 ): Promise<ValidationResult> {
 	try {
+		const requiredHeaders = FILE_TYPE_REQUIRED_HEADERS[fileType]
+
 		// Leer el archivo como array buffer
 		const arrayBuffer = await file.arrayBuffer()
 		const workbook = XLSX.read(arrayBuffer, { type: 'array' })
@@ -74,70 +64,7 @@ export async function validateExcelStructure(
 			}
 		}
 
-		// Función para normalizar nombres de columnas (eliminar espacios, acentos, convertir a minúsculas)
-		const normalizeColumnName = (name: string): string => {
-			return name
-				.toLowerCase()
-				.trim()
-				.replace(/\s+/g, ' ') // Reemplazar múltiples espacios por uno solo
-				.replace(/[áàäâ]/g, 'a')
-				.replace(/[éèëê]/g, 'e')
-				.replace(/[íìïî]/g, 'i')
-				.replace(/[óòöô]/g, 'o')
-				.replace(/[úùüû]/g, 'u')
-				.replace(/ñ/g, 'n')
-		}
-
-		// Normalizar los encabezados
-		const normalizedHeaders = headers.map((h) => normalizeColumnName(h || ''))
-
-		// Encontrar columnas faltantes
-		const missingColumns: string[] = []
-
-		for (const requiredCol of REQUIRED_COLUMNS) {
-			const normalizedRequired = normalizeColumnName(requiredCol)
-			// Buscar coincidencia exacta primero
-			let found = normalizedHeaders.some((h) => h === normalizedRequired)
-
-			// Si no hay coincidencia exacta, buscar coincidencia flexible
-			// (para casos como "Nombre Fp" vs "Nombre FP" o "nombre fp")
-			if (!found) {
-				found = normalizedHeaders.some((h) => {
-					// Coincidencia exacta después de normalización
-					if (h === normalizedRequired) return true
-
-					// Para columnas con múltiples palabras, verificar que todas las palabras estén presentes
-					// y en el orden correcto (aproximado)
-					const requiredWords = normalizedRequired.split(' ').filter((w) => w.length > 0)
-					if (requiredWords.length > 1) {
-						// Verificar que todas las palabras estén presentes en orden
-						let lastIndex = -1
-						for (const word of requiredWords) {
-							const wordIndex = h.indexOf(word)
-							if (wordIndex === -1 || wordIndex < lastIndex) {
-								return false
-							}
-							lastIndex = wordIndex
-						}
-						return true
-					}
-
-					// Para columnas de una sola palabra, buscar coincidencia exacta o que contenga la palabra completa
-					if (requiredWords.length === 1) {
-						const word = requiredWords[0]
-						// Buscar que la palabra esté como palabra completa (no como parte de otra palabra)
-						const wordRegex = new RegExp(`\\b${word}\\b`, 'i')
-						return wordRegex.test(h)
-					}
-
-					return false
-				})
-			}
-
-			if (!found) {
-				missingColumns.push(requiredCol)
-			}
-		}
+		const missingColumns = findMissingHeaders(headers, requiredHeaders)
 
 		// Si hay columnas faltantes, retornar error
 		if (missingColumns.length > 0) {
@@ -162,4 +89,3 @@ export async function validateExcelStructure(
 		}
 	}
 }
-

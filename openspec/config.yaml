@@ -1,0 +1,26 @@
+schema: spec-driven
+
+context: |
+  Domain: Financieramente - A commission settlement platform for financial services.
+  Tech stack: Next.js 15 App Router, React 19, TypeScript 5, Prisma ORM, PostgreSQL 15, Zod, React Hook Form, Shadcn/UI, Tailwind CSS v4, NextAuth v5, Vitest, Playwright.
+
+  Architecture & Core Principles:
+  - Feature-Based Architecture: All code lives in `src/features/[feature-name]/` (components, hooks, lib, types, services, mappers, __tests__).
+  - Imports: Use path aliases (`@/`) for all module imports, NO relative paths (`../..`).
+  - SOLID & Clean Code: Single responsibility, small functions (< 50 lines, max 3 params), no static classes for business logic (use factory functions or plain functions).
+  - React Separation: Components handle UI only. Hooks handle logic, state, and side effects.
+  - Data Fetching: All React hooks fetching data MUST return `AsyncState<T>`. 
+  - Server Actions validate input (Zod) -> call Services. Services handle all Prisma queries.
+  - APIs return `ApiResponse<T>`. Protected routes check session.
+  - Client API calls use `apiClient` from `src/lib/api/client.ts`.
+  - UI/React: React 19 (no useMemo/useCallback). Pages are Server Components, interactive parts are Client Components.
+  - TypeScript: Fully typed, no `any` (use `unknown`), use `readonly` in interfaces.
+  - Process: Small incremental tasks, Test-Driven Development (TDD), min 80% coverage for business logic.
+  - Language: All technical artifacts (code, docs, commits) MUST be in English. GitHub issues MUST be in Spanish.
+  - Git: Use conventional commits.
+
+rules:
+  tasks:
+    - Break tasks into small, focused baby steps, one at a time.
+    - Start with failing tests for any new functionality (TDD).
+    - Specify that changes should be incremental.
