@@ -112,7 +112,7 @@ export async function obtenerDetallePreLiquidacion(
 	const registros = await prisma.settlementCommission.findMany({
 		where: {
 			idFileImport: fileId,
-			status: { in: ['SINCRONIZADO', 'LAG'] },
+			status: 'SINCRONIZADO',
 		},
 		include: {
 			business: {

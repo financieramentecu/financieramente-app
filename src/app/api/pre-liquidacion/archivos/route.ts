@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest) {
 		const todosArchivos = await prisma.fileImport.findMany({
 			where: {
 				status: {
-					in: ['COMPLETADO', 'PRELIQUIDADO'],
+					in: ['LOAD', 'COMPLETADO', 'PRELIQUIDADO'],
 				},
 			},
 			select: {
