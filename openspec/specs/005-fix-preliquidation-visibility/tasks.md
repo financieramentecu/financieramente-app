@@ -2,12 +2,12 @@
 
 ## Phase 1: API & Service Corrections
 
-- [ ] **T001: Update Archivos API Filter**
+- [x] **T001: Update Archivos API Filter**
   - File: `src/app/api/pre-liquidacion/archivos/route.ts`
   - Action: Add `LOAD` to the `in` array in the Prisma `where` clause.
   - Reason: Enable visibility of recently uploaded files.
 
-- [ ] **T002: Refine Record Filtering in Service**
+- [x] **T002: Refine Record Filtering in Service**
   - File: `src/features/pre-liquidacion/services/pre-liquidacion.service.ts`
   - Function: `obtenerDetallePreLiquidacion`
   - Action: Update `settlementCommission.findMany` where clause to `status: 'SINCRONIZADO'`.
