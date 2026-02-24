@@ -3,8 +3,8 @@ import * as dotenv from 'dotenv'
 import * as path from 'path'
 
 // Cargar variables de entorno para que estén disponibles en webServer y globalSetup
-dotenv.config({ path: path.resolve(__dirname, '.env.local') })
-dotenv.config({ path: path.resolve(__dirname, '.env') })
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+dotenv.config({ path: path.resolve(process.cwd(), '.env') })
 
 export default defineConfig({
 	testDir: './e2e',
