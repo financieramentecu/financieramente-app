@@ -2,7 +2,15 @@ import { PrismaClient } from '@prisma/client'
 import { UserRole } from '../../src/features/auth/lib/roles'
 import { hash } from 'bcryptjs'
 
-const prisma = new PrismaClient()
+// Lazy initialization: PrismaClient se crea solo cuando se necesita
+// para permitir que las variables de entorno se carguen primero
+let _prisma: PrismaClient | null = null
+function getPrisma(): PrismaClient {
+	if (!_prisma) {
+		_prisma = new PrismaClient()
+	}
+	return _prisma
+}
 
 /**
  * Usuario de prueba para e2e
@@ -15,7 +23,7 @@ export const TEST_USER_NAME = 'Test User'
  */
 export async function setupTestUser() {
 	try {
-		const role = await prisma.role.findFirst({
+		const role = await getPrisma().role.findFirst({
 			where: {
 				OR: [{ code: 'ADMIN' }, { code: 'AGENTE' }, { active: true }],
 			},
@@ -27,7 +35,7 @@ export async function setupTestUser() {
 		}
 
 		// Verificar colisión por documento
-		const collisionUser = await prisma.user.findFirst({
+		const collisionUser = await getPrisma().user.findFirst({
 			where: {
 				typeIdentity: 'CC',
 				identityNumber: '1234567890',
@@ -54,12 +62,12 @@ export async function setupTestUser() {
 			entryDate: new Date(),
 		}
 
-		const existingUser = await prisma.user.findUnique({
+		const existingUser = await getPrisma().user.findUnique({
 			where: { email: TEST_USER_EMAIL },
 		})
 
 		if (existingUser) {
-			await prisma.user.update({
+			await getPrisma().user.update({
 				where: { idUser: existingUser.idUser },
 				data: {
 					active: true,
@@ -68,7 +76,7 @@ export async function setupTestUser() {
 			})
 			console.log(`✅ Usuario de prueba actualizado: ${TEST_USER_EMAIL}`)
 		} else {
-			await prisma.user.create({
+			await getPrisma().user.create({
 				data: userData,
 			})
 			console.log(`✅ Usuario de prueba creado: ${TEST_USER_EMAIL}`)
@@ -92,15 +100,15 @@ export async function setupSSOUsers() {
 		const hashedAgentePassword = await hash('Agente123!', 10)
 
 		// Obtener roles
-		const adminRole = await prisma.role.findUnique({
+		const adminRole = await getPrisma().role.findUnique({
 			where: { code: UserRole.ADMIN },
 		})
-		const agenteRole = await prisma.role.findUnique({
+		const agenteRole = await getPrisma().role.findUnique({
 			where: { code: UserRole.AGENTE },
 		})
 		// Usar AGENTE si no existe ANALISTA_SOPORTE para el rol "PRO" simulado
 		const proRole =
-			(await prisma.role.findUnique({
+			(await getPrisma().role.findUnique({
 				where: { code: UserRole.ANALISTA_SOPORTE },
 			})) || agenteRole
 
@@ -156,11 +164,11 @@ export async function setupSSOUsers() {
 		]
 
 		for (const user of usersToCreate) {
-			const existing = await prisma.user.findUnique({
+			const existing = await getPrisma().user.findUnique({
 				where: { email: user.email },
 			})
 			if (existing) {
-				await prisma.user.update({
+				await getPrisma().user.update({
 					where: { idUser: existing.idUser },
 					data: {
 						password: user.password,
@@ -171,7 +179,7 @@ export async function setupSSOUsers() {
 				})
 			} else {
 				// Verificar colisión de documento antes de crear
-				const collision = await prisma.user.findFirst({
+				const collision = await getPrisma().user.findFirst({
 					where: { typeIdentity: 'CC', identityNumber: user.identity },
 				})
 
@@ -180,7 +188,7 @@ export async function setupSSOUsers() {
 					identityToUse = `99${Math.floor(Math.random() * 10000000)}`
 				}
 
-				await prisma.user.create({
+				await getPrisma().user.create({
 					data: {
 						email: user.email,
 						name: user.name,
@@ -217,6 +225,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 			process.exit(1)
 		})
 		.finally(() => {
-			prisma.$disconnect()
+			getPrisma().$disconnect()
 		})
 }
