@@ -57,8 +57,20 @@ export async function GET(request: Request) {
 		// Obtener usuarios con relaciones
 		const users = await prisma.user.findMany({
 			where,
-			include: {
-				role: true,
+			select: {
+				idUser: true,
+				name: true,
+				lastName: true,
+				email: true,
+				active: true,
+				createdAt: true,
+				role: {
+					select: {
+						idRole: true,
+						code: true,
+						name: true,
+					},
+				},
 			},
 			orderBy: {
 				createdAt: 'desc',
@@ -98,10 +110,10 @@ export async function GET(request: Request) {
 			avatar: null, // TODO: Agregar campo avatar o usar image de OAuth
 			role: user.role
 				? {
-						id: user.role.idRole,
-						code: user.role.code,
-						name: user.role.name,
-					}
+					id: user.role.idRole,
+					code: user.role.code,
+					name: user.role.name,
+				}
 				: null,
 			active: user.active,
 			createdAt: user.createdAt,
