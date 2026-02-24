@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaClient } from '@prisma/client'
 import { UserRole } from '../../src/features/auth/lib/roles'
 import { hash } from 'bcryptjs'
@@ -12,17 +13,15 @@ function getPrisma(): PrismaClient {
 	return _prisma
 }
 
-/**
- * Usuario de prueba para e2e
- */
-export const TEST_USER_EMAIL = 'test@financieramentecu.com'
-export const TEST_USER_NAME = 'Test User'
+const TEST_USER_EMAIL = 'test@financieramentecu.com'
+const TEST_USER_NAME = 'Test User E2E'
 
 /**
- * Crea o actualiza el usuario de prueba en la base de datos
+ * Crea o actualiza un usuario de prueba en la base de datos
  */
 export async function setupTestUser() {
 	try {
+		// Obtener un rol válido (preferiblemente ADMIN)
 		const role = await getPrisma().role.findFirst({
 			where: {
 				OR: [{ code: 'ADMIN' }, { code: 'AGENTE' }, { active: true }],
@@ -81,17 +80,15 @@ export async function setupTestUser() {
 			})
 			console.log(`✅ Usuario de prueba creado: ${TEST_USER_EMAIL}`)
 		}
-
-		return { success: true }
 	} catch (error) {
 		console.error('❌ Error al configurar usuario de prueba:', error)
-		// No relanzar: permite que los e2e continúen (p. ej. sin DB o con TLS inválido)
-		return { success: false }
+	} finally {
+		// No desconectar aquí para mantener la conexión para otros setups si es necesario
 	}
 }
 
 /**
- * Configura los usuarios necesarios para las pruebas de SSO
+ * Configura usuarios específicos para pruebas de validación SSO
  */
 export async function setupSSOUsers() {
 	try {
@@ -101,21 +98,17 @@ export async function setupSSOUsers() {
 
 		// Obtener roles
 		const adminRole = await getPrisma().role.findUnique({
-			where: { code: UserRole.ADMIN },
+			where: { code: 'ADMIN' },
 		})
 		const agenteRole = await getPrisma().role.findUnique({
-			where: { code: UserRole.AGENTE },
+			where: { code: 'AGENTE' },
 		})
-		// Usar AGENTE si no existe ANALISTA_SOPORTE para el rol "PRO" simulado
-		const proRole =
-			(await getPrisma().role.findUnique({
-				where: { code: UserRole.ANALISTA_SOPORTE },
-			})) || agenteRole
+		const proRole = await getPrisma().role.findUnique({
+			where: { code: 'PRO' },
+		})
 
 		if (!adminRole || !agenteRole) {
-			console.warn(
-				'⚠️ Roles necesarios no encontrados. Saltando setup de SSO users.'
-			)
+			console.warn('⚠️ Roles ADMIN o AGENTE no encontrados. Saltando setup SSO.')
 			return
 		}
 
@@ -141,7 +134,11 @@ export async function setupSSOUsers() {
 				name: 'Pro User',
 				password: hashedProPassword,
 				ssoOnly: false,
-				idRole: proRole?.idRole || (proRole as any)?.role_id || agenteRole.idRole || (agenteRole as any).role_id,
+				idRole:
+					proRole?.idRole ||
+					(proRole as any)?.role_id ||
+					agenteRole.idRole ||
+					(agenteRole as any).role_id,
 				identity: '888888883',
 			},
 			{
@@ -178,53 +175,35 @@ export async function setupSSOUsers() {
 					},
 				})
 			} else {
-				// Verificar colisión de documento antes de crear
-				const collision = await getPrisma().user.findFirst({
-					where: { typeIdentity: 'CC', identityNumber: user.identity },
+				// Para evitar colisiones con usuarios existentes, usamos un identityNumber único basado en el email
+				const identityToUse = user.identity
+
+				// Verificar si el documento ya existe
+				const identityCollision = await getPrisma().user.findFirst({
+					where: { identityNumber: identityToUse },
 				})
 
-				let identityToUse = user.identity
-				if (collision) {
-					identityToUse = `99${Math.floor(Math.random() * 10000000)}`
+				if (!identityCollision) {
+					await getPrisma().user.create({
+						data: {
+							email: user.email,
+							name: user.name.split(' ')[0],
+							lastName: user.name.split(' ')[1] || '',
+							password: user.password,
+							ssoOnly: user.ssoOnly,
+							idRole: user.idRole,
+							active: user.active ?? true,
+							typeIdentity: 'CC',
+							identityNumber: identityToUse,
+							entryDate: new Date(),
+						},
+					})
 				}
-
-				await getPrisma().user.create({
-					data: {
-						email: user.email,
-						name: user.name,
-						password: user.password,
-						ssoOnly: user.ssoOnly,
-						idRole: user.idRole,
-						active: user.active ?? true,
-						typeIdentity: 'CC',
-						identityNumber: identityToUse,
-						entryDate: new Date(),
-					},
-				})
 			}
 		}
+
 		console.log('✅ Usuarios SSO configurados correctamente')
 	} catch (error) {
 		console.error('❌ Error configurando usuarios SSO:', error)
 	}
-}
-
-export async function cleanupTestUser() {
-	// Implementación simplificada
-}
-
-// Ejecutar setup si se llama directamente
-if (import.meta.url === `file://${process.argv[1]}`) {
-	Promise.all([setupTestUser(), setupSSOUsers()])
-		.then(() => {
-			console.log('✅ Setup de base de datos completado')
-			process.exit(0)
-		})
-		.catch((error) => {
-			console.error('❌ Error en setup:', error)
-			process.exit(1)
-		})
-		.finally(() => {
-			getPrisma().$disconnect()
-		})
 }
