@@ -27,7 +27,7 @@ export async function setupTestUser() {
 			where: {
 				OR: [{ code: 'ADMIN' }, { code: 'AGENTE' }, { active: true }],
 			},
-			orderBy: { idRole: 'asc' },
+			orderBy: { idRole: 'asc' } as any,
 		})
 
 		if (!role) {
@@ -57,7 +57,7 @@ export async function setupTestUser() {
 			typeIdentity: 'CC' as const,
 			identityNumber: randomIdentity, // Usar random para evitar colisiones
 			email: TEST_USER_EMAIL,
-			idRole: role.idRole,
+			idRole: role.idRole || (role as any).role_id,
 			active: true,
 			entryDate: new Date(),
 		}
@@ -68,10 +68,10 @@ export async function setupTestUser() {
 
 		if (existingUser) {
 			await getPrisma().user.update({
-				where: { idUser: existingUser.idUser },
+				where: { idUser: existingUser.idUser || (existingUser as any).user_id },
 				data: {
 					active: true,
-					idRole: role.idRole,
+					idRole: role.idRole || (role as any).role_id,
 				},
 			})
 			console.log(`✅ Usuario de prueba actualizado: ${TEST_USER_EMAIL}`)
@@ -125,7 +125,7 @@ export async function setupSSOUsers() {
 				name: 'Admin User',
 				password: hashedPassword,
 				ssoOnly: false,
-				idRole: adminRole.idRole,
+				idRole: adminRole.idRole || (adminRole as any).role_id,
 				identity: '888888881',
 			},
 			{
@@ -133,7 +133,7 @@ export async function setupSSOUsers() {
 				name: 'Admin SSO',
 				password: hashedPassword,
 				ssoOnly: true,
-				idRole: adminRole.idRole,
+				idRole: adminRole.idRole || (adminRole as any).role_id,
 				identity: '888888882',
 			},
 			{
@@ -141,7 +141,7 @@ export async function setupSSOUsers() {
 				name: 'Pro User',
 				password: hashedProPassword,
 				ssoOnly: false,
-				idRole: proRole?.idRole || agenteRole.idRole,
+				idRole: proRole?.idRole || (proRole as any)?.role_id || agenteRole.idRole || (agenteRole as any).role_id,
 				identity: '888888883',
 			},
 			{
@@ -149,7 +149,7 @@ export async function setupSSOUsers() {
 				name: 'Agente User',
 				password: hashedAgentePassword,
 				ssoOnly: false,
-				idRole: agenteRole.idRole,
+				idRole: agenteRole.idRole || (agenteRole as any).role_id,
 				identity: '888888884',
 			},
 			{
@@ -157,7 +157,7 @@ export async function setupSSOUsers() {
 				name: 'Inactive User',
 				password: hashedPassword,
 				ssoOnly: false,
-				idRole: adminRole.idRole,
+				idRole: adminRole.idRole || (adminRole as any).role_id,
 				active: false,
 				identity: '888888885',
 			},
@@ -169,7 +169,7 @@ export async function setupSSOUsers() {
 			})
 			if (existing) {
 				await getPrisma().user.update({
-					where: { idUser: existing.idUser },
+					where: { idUser: existing.idUser || (existing as any).user_id },
 					data: {
 						password: user.password,
 						ssoOnly: user.ssoOnly,
