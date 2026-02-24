@@ -112,7 +112,7 @@ export async function obtenerDetallePreLiquidacion(
 	const registros = await prisma.settlementCommission.findMany({
 		where: {
 			idFileImport: fileId,
-			status: { in: ['SINCRONIZADO', 'LAG'] },
+			status: 'SINCRONIZADO',
 		},
 		include: {
 			business: {
@@ -483,7 +483,7 @@ export async function procesarPreLiquidacion(
 	rangoFecha: { inicio: Date; fin: Date }
 ): Promise<{ success: boolean; registrosProcesados: number; mensaje: string }> {
 	try {
-		// Verificar que el archivo existe y está en estado LOAD
+		// Verificar que el archivo existe y está en estado COMPLETADO
 		const fileImport = await prisma.fileImport.findUnique({
 			where: { idFileImport: fileImportId },
 		})
@@ -496,11 +496,11 @@ export async function procesarPreLiquidacion(
 			}
 		}
 
-		if (fileImport.status !== 'LOAD') {
+		if (fileImport.status !== 'COMPLETADO' && fileImport.status !== 'LOAD') {
 			return {
 				success: false,
 				registrosProcesados: 0,
-				mensaje: `El archivo debe estar en estado LOAD para ser pre-liquidado (Estado actual: ${fileImport.status})`,
+				mensaje: `El archivo debe estar en estado COMPLETADO o LOAD para ser pre-liquidado (Estado actual: ${fileImport.status})`,
 			}
 		}
 

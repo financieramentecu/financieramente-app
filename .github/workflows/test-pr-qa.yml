@@ -263,6 +263,8 @@ jobs:
           BASE_URL: http://localhost:3000
           DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
           DIRECT_URL: ${{ secrets.DATABASE_URL_DEV }}
+          NEXTAUTH_SECRET: e2e-test-secret-not-for-production
+          NEXTAUTH_URL: http://localhost:3000
 
       - name: Upload Playwright report
         if: always() && steps.changes.outputs.e2e == 'true'

@@ -77,7 +77,24 @@ export function HistorialCargasTab() {
 		})
 	}, [historial, searchTerm, statusFilter, dateStart, dateEnd])
 
-
+	const getEstadoBadgeStyle = (estado: string): React.CSSProperties => {
+		switch (estado) {
+			case 'COMPLETADO':
+			case 'PRELIQUIDADO':
+				return { backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac' }
+			case 'ERROR':
+				return { backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }
+			case 'PROCESANDO':
+				return { backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }
+			case 'PARCIAL':
+				return { backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047' }
+			case 'CANCELADO':
+				return { backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }
+			case 'LOAD':
+			default:
+				return { backgroundColor: '#e0f2fe', color: '#075985', border: '1px solid #7dd3fc' }
+		}
+	}
 
 	return (
 		<div className="space-y-6">
@@ -180,7 +197,7 @@ export function HistorialCargasTab() {
 
 			{/* Sección de Historial de Cargas */}
 			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-				{/* Header con título y botón limpiar */}
+				{/* Header con título y botón recargar */}
 				<div className="flex items-center justify-between mb-6">
 					<div className="flex items-center gap-2">
 						<RefreshCw className="h-5 w-5 text-primary" />
@@ -197,7 +214,6 @@ export function HistorialCargasTab() {
 							<RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
 						</Button>
 					</div>
-
 				</div>
 
 				{error && (
@@ -230,18 +246,12 @@ export function HistorialCargasTab() {
 									<div className="flex items-start gap-3 flex-1">
 										<FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
 										<div className="flex-1">
-											{/* Nombre del archivo */}
+											{/* Nombre del archivo y badge de estado */}
 											<div className="flex items-center gap-2 mb-2">
 												<h3 className="font-semibold text-primary">
 													{carga.nombreArchivo}
 												</h3>
-
-												<span className={`px-2 py-0.5 rounded text-xs font-medium ${carga.estado === 'LOAD' ? 'bg-info-muted text-info' :
-													carga.estado === 'COMPLETADO' ? 'bg-success-muted text-success' :
-														carga.estado === 'ERROR' ? 'bg-destructive/10 text-destructive' :
-															carga.estado === 'PRELIQUIDADO' ? 'bg-success-muted text-success' :
-																'bg-info-muted text-info'
-													}`}>
+												<span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={getEstadoBadgeStyle(carga.estado)}>
 													{carga.estado}
 												</span>
 											</div>
@@ -250,34 +260,40 @@ export function HistorialCargasTab() {
 											<p className="text-sm text-muted-foreground mb-3">
 												{carga.fechaCarga}, {carga.horaCarga} • Por: {carga.usuario}
 											</p>
-											{/* Estadísticas */}
-											<div className="flex flex-wrap items-center gap-4 text-sm">
-												<span className="text-success font-medium">
+
+											{/* Badges de estadísticas */}
+											<div className="flex flex-wrap items-center gap-2">
+												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac' }}>
+													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#16a34a' }} />
 													{carga.exitosos} exitosos
 												</span>
-												<span className="text-destructive font-medium">
+												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}>
+													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#dc2626' }} />
 													{carga.errores} errores
 												</span>
-												<span className="text-success font-medium">
+												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }}>
+													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#3b82f6' }} />
 													{carga.sincronizados} sincronizados
 												</span>
-												<span className="text-warning font-medium">
+												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047' }}>
+													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#eab308' }} />
 													{carga.sinRegistro} sin registro
 												</span>
-												<span className="text-warning font-medium">
+												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
+													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#f59e0b' }} />
 													{carga.rezagados} rezagados
 												</span>
 											</div>
 										</div>
 									</div>
 
-									{/* Botón de eliminar individual */}
+									{/* Botón de eliminar */}
 									<div className="flex items-center gap-2">
 										<Button
 											variant="ghost"
 											size="sm"
 											onClick={() => handleDeleteClick(carga.id)}
-											className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-2"
+											className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2"
 											title="Eliminar registro"
 										>
 											<Trash2 className="h-4 w-4" />
@@ -303,4 +319,3 @@ export function HistorialCargasTab() {
 		</div>
 	)
 }
-

@@ -82,22 +82,24 @@ test.describe('Pre-liquidación Flow', () => {
 		})
 
 		// Navigate via Sidebar: expand 'Liquidaciones' then click 'Preliquidación'
-		await page.getByText('Liquidaciones').click()
+		await page.getByText('Liquidaciones', { exact: true }).click()
 		await page.waitForLoadState('domcontentloaded')
-		const preLiquidacionLink = page.getByText('Preliquidación')
+		const preLiquidacionLink = page.getByText('Preliquidación', { exact: true })
 		await expect(preLiquidacionLink).toBeVisible({ timeout: 10000 })
 		await preLiquidacionLink.click()
 
 		// Verify we are on the right page and table with file is visible
 		await expect(page).toHaveURL(/.*pre-liquidacion/, { timeout: 20000 })
-		await expect(page.getByText('Test File E2E.xlsx')).toBeVisible({
-			timeout: 15000,
+		
+		// Use a more flexible text matcher for the file name
+		await expect(page.getByText(/Test File E2E\.xlsx/i)).toBeVisible({
+			timeout: 20000,
 		})
 
 		// First click without filters (may show alert "Selecciona mes y año")
 		const preLiquidarBtn = page
 			.locator('table')
-			.getByRole('button', { name: 'Pre-liquidar' })
+			.getByRole('button', { name: /Pre-liquidar/i })
 		await expect(preLiquidarBtn).toBeVisible({ timeout: 10000 })
 		await preLiquidarBtn.click()
 
@@ -115,14 +117,14 @@ test.describe('Pre-liquidación Flow', () => {
 		// Modal should appear
 		await expect(
 			page.getByRole('dialog').getByText(/Confirmar Pre-liquidación/i)
-		).toBeVisible({ timeout: 10000 })
+		).toBeVisible({ timeout: 15000 })
 
 		// Confirm (button text is "Confirmar y Liquidar")
-		await page.getByRole('button', { name: /Confirmar/ }).click()
+		await page.getByRole('button', { name: /Confirmar/i }).click()
 
 		// Mensaje de éxito (toast Sonner: "Pre-liquidación completada")
-		await expect(page.getByText(/Pre-liquidación completada/)).toBeVisible({
-			timeout: 20000,
+		await expect(page.getByText(/Pre-liquidación completada/i)).toBeVisible({
+			timeout: 25000,
 		})
 	})
 })

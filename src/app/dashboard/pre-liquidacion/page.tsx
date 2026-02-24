@@ -116,8 +116,8 @@ export default function PreLiquidacionPage() {
         })
     }
 
-    // Archivos pendientes de pre-liquidar (LOAD)
-    const archivosPendientes = archivos.filter((a) => a.estado === 'LOAD')
+    // Archivos pendientes de pre-liquidar (COMPLETADO)
+    const archivosPendientes = archivos.filter((a) => a.estado === 'COMPLETADO')
     const archivosPendientesFiltrados = filterArchivosByDate(archivosPendientes)
 
     // Archivos ya pre-liquidados (PRELIQUIDADO) o con fecha de pre-liquidación

@@ -50,11 +50,11 @@ describe('procesarPreLiquidacion', () => {
 		expect(result.mensaje).toContain('Archivo no encontrado')
 	})
 
-	it('should return error if file is not in LOAD status', async () => {
+	it('should return error if file is not in COMPLETADO or LOAD status', async () => {
 		// Mock finding the file but with wrong status
 		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
 			idFileImport: 1,
-			status: 'PROCESANDO', // Anything other than LOAD
+			status: 'PROCESANDO', // Anything other than LOAD or COMPLETADO
 		} as any)
 
 		const result = await procesarPreLiquidacion(1, {
@@ -63,14 +63,14 @@ describe('procesarPreLiquidacion', () => {
 		})
 
 		expect(result.success).toBe(false)
-		expect(result.mensaje).toContain('El archivo debe estar en estado LOAD')
+		expect(result.mensaje).toContain('El archivo debe estar en estado COMPLETADO o LOAD')
 	})
 
 	it('should return success and process records when everything is correct', async () => {
-		// Mock file exists and is LOAD (nameFile para correo de resumen)
+		// Mock file exists and is COMPLETADO (nameFile para correo de resumen)
 		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
 			idFileImport: 1,
-			status: 'LOAD',
+			status: 'COMPLETADO',
 			nameFile: 'Test.xlsx',
 		} as any)
 

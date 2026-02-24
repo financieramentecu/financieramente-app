@@ -29,6 +29,7 @@ const eslintConfig = [
 			'playwright-report/**',
 			'test-results/**',
 			'skills/**',
+			'.agent/**',
 		],
 	},
 	{
