@@ -72,7 +72,7 @@ export async function GET(_request: NextRequest) {
 		})
 
 		const archivosCompletados = archivos.filter(
-			(a) => a.estado === 'COMPLETADO'
+			(a) => a.estado === 'COMPLETADO' || a.estado === 'LOAD'
 		)
 		const archivosPreLiquidados = archivos.filter(
 			(a) => a.estado === 'PRELIQUIDADO'

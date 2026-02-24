@@ -496,11 +496,11 @@ export async function procesarPreLiquidacion(
 			}
 		}
 
-		if (fileImport.status !== 'COMPLETADO') {
+		if (fileImport.status !== 'COMPLETADO' && fileImport.status !== 'LOAD') {
 			return {
 				success: false,
 				registrosProcesados: 0,
-				mensaje: `El archivo debe estar en estado COMPLETADO para ser pre-liquidado (Estado actual: ${fileImport.status})`,
+				mensaje: `El archivo debe estar en estado COMPLETADO o LOAD para ser pre-liquidado (Estado actual: ${fileImport.status})`,
 			}
 		}
 

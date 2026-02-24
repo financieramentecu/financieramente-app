@@ -15,11 +15,11 @@
 
 ## Phase 2: Verification
 
-- [ ] **V001: Manual UI Test**
+- [x] **V001: Manual UI Test**
   - Upload a new file (reaches `LOAD`).
   - Go to Pre-liquidation -> File should appear.
   - Open File -> Only `SINCRONIZADO` records should appear.
   - Process -> Success.
 
-- [ ] **V002: Regression Check**
+- [x] **V002: Regression Check**
   - Verify that `LAG` records still exist in the DB and are not deleted, just hidden from this specific view.
