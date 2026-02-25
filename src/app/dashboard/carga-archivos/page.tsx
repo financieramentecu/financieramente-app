@@ -1,9 +1,14 @@
 'use client'
 
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/features/shared/ui/tabs'
-import { CargarArchivoTab } from './components/CargarArchivoTab'
-import { HistorialCargasTab } from './components/HistorialCargasTab'
+import {
+	Tabs,
+	TabsList,
+	TabsTrigger,
+	TabsContent,
+} from '@/features/shared/ui/tabs'
+import { CargarArchivoTab } from '@/features/load-file/components/CargarArchivoTab'
+import { HistorialCargasTab } from '@/features/load-file/components/HistorialCargasTab'
 
 /**
  * Página de Carga de Archivos
@@ -16,10 +21,12 @@ export default function CargaArchivosPage() {
 			<div className="space-y-6">
 				{/* Título y descripción */}
 				<div>
-					<h1 className="text-3xl font-bold text-primary">Carga archivos Skandia</h1>
+					<h1 className="text-3xl font-bold text-primary">
+						Carga archivos Skandia
+					</h1>
 					<p className="text-muted-foreground mt-2">
-						Carga archivos mensuales de covers de Skandia para procesar información
-						de negocios emitidos
+						Carga archivos mensuales de covers de Skandia para procesar
+						información de negocios emitidos
 					</p>
 				</div>
 
@@ -42,4 +49,3 @@ export default function CargaArchivosPage() {
 		</DashboardLayout>
 	)
 }
-

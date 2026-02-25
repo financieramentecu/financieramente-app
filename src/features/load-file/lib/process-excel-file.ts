@@ -2,23 +2,7 @@ import * as XLSX from 'xlsx'
 import { FILE_TYPE_REQUIRED_HEADERS, type FileType } from './file-types'
 import { findHeaderIndex } from './header-utils'
 import { cleanNumericValue } from './number-utils'
-
-export interface ProcessedRecord {
-	rowNumber: number
-	data: Record<string, unknown>
-	isValid: boolean
-	errors: string[]
-}
-
-export interface ProcessResult {
-	successCount: number
-	errorCount: number
-	sincronizadoCount: number
-	rezagadoCount: number
-	validRecords: ProcessedRecord[]
-	errorRecords: ProcessedRecord[]
-	headers: string[]
-}
+import type { ProcessedRecord, ProcessResult } from '../types/load-file.types'
 
 const DATE_COLUMNS = new Set(['Desde', 'Hasta'])
 const NUMERIC_COLUMNS = new Set(['Base', 'Com', 'BASE', 'Valor Comisión'])
@@ -97,7 +81,7 @@ function isValidDate(value: string | number | Date): boolean {
 		/^\d{2}-\d{2}-\d{4}$/, // DD-MM-YYYY
 	]
 
-	return dateFormats.some(format => format.test(stringValue))
+	return dateFormats.some((format) => format.test(stringValue))
 }
 
 /**
