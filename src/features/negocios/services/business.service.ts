@@ -4,9 +4,12 @@
  */
 
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import { prisma } from '@/lib/prisma'
+import { UserRole } from '@/features/auth/lib/roles'
 import type {
 	BusinessEntity,
 } from '../types/business-entity.types'
+import { businessWithRelations } from '../types/business-entity.types'
 import type {
 	BusinessListResponse,
 	BusinessStatsResponse,
@@ -15,6 +18,22 @@ import type {
 	CancelBusinessRequest,
 	BusinessListParams,
 } from '../types/business-api.types'
+
+/**
+ * Obtiene un negocio por ID desde la base de datos (Server-side)
+ * Encapsula el acceso directo a Prisma
+ */
+export async function getBusinessById(id: number, currentUser: { idUser: number, role: { code: string } | null }) {
+	const isAgent = currentUser.role?.code === UserRole.AGENTE
+	const whereClause = isAgent
+		? { idBusiness: id, idUser: currentUser.idUser }
+		: { idBusiness: id }
+
+	return prisma.business.findFirst({
+		where: whereClause,
+		include: businessWithRelations,
+	})
+}
 
 /**
  * Base URL para las APIs de negocios
