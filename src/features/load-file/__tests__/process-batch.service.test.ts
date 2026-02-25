@@ -70,6 +70,7 @@ describe('processBatchService', () => {
 			// Mock FileImport found
 			vi.mocked(prisma.fileImport.findFirst).mockResolvedValue({
 				idFileImport: 100,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any)
 			// Mock no business found
 			vi.mocked(prisma.business.findFirst).mockResolvedValue(null)
@@ -120,16 +121,19 @@ describe('processBatchService', () => {
 		it('should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters', async () => {
 			vi.mocked(prisma.fileImport.findFirst).mockResolvedValue({
 				idFileImport: 100,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any)
 			// Mock business exists
 			vi.mocked(prisma.business.findFirst).mockResolvedValue({
 				idBusiness: 50,
 				createdAt: new Date(),
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any)
 			// Mock an existing lag record exists
 			vi.mocked(prisma.settlementCommission.findFirst).mockResolvedValue({
 				idSettlementCommission: 500,
 				status: 'LAG',
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any)
 
 			const record: ProcessedRecord = {
@@ -160,7 +164,7 @@ describe('processBatchService', () => {
 				expect.objectContaining({
 					where: { idSettlementCommission: 500 },
 					data: expect.objectContaining({
-						status: 'SINCRONIZADO',
+						status: 'SYNCHRONIZED',
 						isLag: false,
 					}),
 				})
@@ -170,7 +174,7 @@ describe('processBatchService', () => {
 			expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
 				expect.objectContaining({
 					data: expect.objectContaining({
-						status: 'SINCRONIZADO',
+						status: 'SYNCHRONIZED',
 						isLag: false,
 						idBusiness: 50,
 					}),

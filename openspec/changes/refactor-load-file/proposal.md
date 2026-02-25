@@ -17,7 +17,7 @@ The current implementation of the file import feature (`carga-archivos`) tightly
 - **State Management Standardization (English states)**:
   - `FileImport` records will remain in state: `LOAD` (when synchronized, even with errors). The `COMPLETED` state is NOT necessary for pre-liquidation.
   - `SettlementCommission` records will use states: `LAG`, `SYNCHRONIZED`, `PRE-SETTLED` and `SETTLED`.
-  - The API explicitly filters and returns `LOAD` files containing actively `SYNCHRONIZED` or `PRE-SETTLED` settlements.
+  - The API explicitly filters and returns `LOAD` files containing actively `SYNCHRONIZED` settlements.
   - The UI Pre-liquidación screen (`page.tsx`) will be refactored to align with these new definitions: it will rely on the `estado === 'LOAD'` identifier alongside counter heuristics (`sincronizados > 0` vs `registrosPreliquidados > 0`) to dynamically split the list into the "Pendientes / Pre-liquidar" and "Histórico" tabs, removing the obsolete `COMPLETADO` and `PRELIQUIDADO` UI hardcodings.
 
 ### Modified Capabilities
