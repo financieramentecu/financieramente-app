@@ -341,7 +341,7 @@ export default function PreLiquidacionPage() {
 										<div className="flex items-center justify-between">
 											<div>
 												<p className="text-sm text-muted-foreground">
-													SYNCHRONIZED
+													Sincronizados
 												</p>
 												<p className="text-2xl font-bold text-chart-3">
 													{resumenFiltrado.sincronizados}
@@ -458,7 +458,7 @@ export default function PreLiquidacionPage() {
 														Rezag: {archivo.rezagados}
 													</span>
 													<span className="px-2 py-0.5 rounded text-xs font-medium bg-success-muted text-success">
-														PRE-SETTLED
+														Pre-liquidado
 													</span>
 												</div>
 											</div>
@@ -537,7 +537,7 @@ export default function PreLiquidacionPage() {
 														</td>
 														<td className="py-3 px-4 text-center">
 															<span className="px-2 py-1 rounded text-xs font-medium bg-success-muted text-success">
-																PRE-SETTLED
+																PRE-LIQUIDADO
 															</span>
 														</td>
 													</tr>

@@ -186,7 +186,7 @@ export function ModalDetallePreLiquidacion({
 								</p>
 							</div>
 							<div className="bg-success-muted p-3 rounded-lg">
-								<p className="text-xs text-success">SYNCHRONIZED</p>
+								<p className="text-xs text-success">Sincronizados</p>
 								<p className="text-lg font-bold text-foreground">
 									{data.resumen.sincronizados}
 								</p>
