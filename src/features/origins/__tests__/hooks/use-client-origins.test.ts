@@ -1,12 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useClientOrigins } from '../../hooks/use-client-origins'
-import { clientOriginApi } from '../../lib/client-origin-api'
+import { originsApi } from '../../lib/origins-api'
 import type { ClientOriginListResponse } from '../../types/origins.types'
 
-// Mock clientOriginApi
-vi.mock('../../lib/client-origin-api', () => ({
-	clientOriginApi: {
+// Mock originsApi
+vi.mock('../../lib/origins-api', () => ({
+	originsApi: {
 		getClientOrigins: vi.fn(),
 	},
 }))
@@ -38,7 +38,7 @@ describe('useClientOrigins', () => {
 	it('should fetch client origins successfully (happy path)', async () => {
 		const mockResponse = createMockListResponse()
 
-		vi.mocked(clientOriginApi.getClientOrigins).mockResolvedValueOnce({
+		vi.mocked(originsApi.getClientOrigins).mockResolvedValueOnce({
 			data: mockResponse,
 		})
 
@@ -53,7 +53,7 @@ describe('useClientOrigins', () => {
 	})
 
 	it('should handle API error', async () => {
-		vi.mocked(clientOriginApi.getClientOrigins).mockResolvedValueOnce({
+		vi.mocked(originsApi.getClientOrigins).mockResolvedValueOnce({
 			data: null,
 			error: 'Error al obtener orígenes de cliente',
 		})
@@ -71,7 +71,7 @@ describe('useClientOrigins', () => {
 
 	it('should fetch with search params', async () => {
 		const mockResponse = createMockListResponse()
-		vi.mocked(clientOriginApi.getClientOrigins).mockResolvedValueOnce({
+		vi.mocked(originsApi.getClientOrigins).mockResolvedValueOnce({
 			data: mockResponse,
 		})
 
@@ -83,7 +83,7 @@ describe('useClientOrigins', () => {
 			expect(result.current.state.status).toBe('success')
 		})
 
-		expect(clientOriginApi.getClientOrigins).toHaveBeenCalledWith({
+		expect(originsApi.getClientOrigins).toHaveBeenCalledWith({
 			search: 'Propio',
 			page: 1,
 			pageSize: 10,

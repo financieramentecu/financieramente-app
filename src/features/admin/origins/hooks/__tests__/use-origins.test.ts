@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
@@ -6,7 +7,7 @@ import {
 	useProductOriginMutations,
 	useClientOriginMutations,
 } from '../use-origins'
-import { originApi } from '../../lib/origin-api'
+import { originsApi } from '@/features/origins/lib/origins-api'
 import type {
 	ProductOrigin,
 	ClientOrigin,
@@ -16,9 +17,9 @@ import type {
 	UpdateClientOriginInput,
 } from '@/features/origins/types/origins.types'
 
-// Mock originApi
-vi.mock('../../lib/origin-api', () => ({
-	originApi: {
+// Mock originsApi
+vi.mock('@/features/origins/lib/origins-api', () => ({
+	originsApi: {
 		getProductOrigins: vi.fn(),
 		getClientOrigins: vi.fn(),
 		createProductOrigin: vi.fn(),
@@ -47,7 +48,7 @@ describe('useProductOrigins', () => {
 			},
 		]
 
-		vi.mocked(originApi.getProductOrigins).mockResolvedValueOnce(mockOrigins)
+		vi.mocked(originsApi.getProductOrigins).mockResolvedValueOnce(mockOrigins)
 
 		const { result } = renderHook(() => useProductOrigins())
 
@@ -73,7 +74,7 @@ describe('useProductOrigins', () => {
 			},
 		]
 
-		vi.mocked(originApi.getProductOrigins).mockResolvedValueOnce(mockOrigins)
+		vi.mocked(originsApi.getProductOrigins).mockResolvedValueOnce(mockOrigins)
 
 		const { result } = renderHook(() => useProductOrigins())
 
@@ -83,11 +84,11 @@ describe('useProductOrigins', () => {
 
 		expect(result.current.state.data).toEqual(mockOrigins)
 		expect(result.current.state.error).toBe('')
-		expect(originApi.getProductOrigins).toHaveBeenCalledTimes(1)
+		expect(originsApi.getProductOrigins).toHaveBeenCalledTimes(1)
 	})
 
 	it('should handle API error', async () => {
-		vi.mocked(originApi.getProductOrigins).mockRejectedValueOnce(
+		vi.mocked(originsApi.getProductOrigins).mockRejectedValueOnce(
 			new Error('Network error')
 		)
 
@@ -107,7 +108,7 @@ describe('useProductOrigins', () => {
 
 	it('should provide refetch function', async () => {
 		const mockOrigins: ProductOrigin[] = []
-		vi.mocked(originApi.getProductOrigins).mockResolvedValue(mockOrigins)
+		vi.mocked(originsApi.getProductOrigins).mockResolvedValue(mockOrigins)
 
 		const { result } = renderHook(() => useProductOrigins())
 
@@ -121,7 +122,7 @@ describe('useProductOrigins', () => {
 		await result.current.refetch()
 
 		await waitFor(() => {
-			expect(originApi.getProductOrigins).toHaveBeenCalledTimes(2)
+			expect(originsApi.getProductOrigins).toHaveBeenCalledTimes(2)
 		})
 	})
 })
@@ -143,7 +144,9 @@ describe('useClientOrigins', () => {
 			},
 		]
 
-		vi.mocked(originApi.getClientOrigins).mockResolvedValueOnce(mockOrigins)
+		vi.mocked(originsApi.getClientOrigins).mockResolvedValueOnce({
+			data: { origins: mockOrigins, pagination: {} as any },
+		} as any)
 
 		const { result } = renderHook(() => useClientOrigins())
 
@@ -156,7 +159,7 @@ describe('useClientOrigins', () => {
 	})
 
 	it('should handle API error', async () => {
-		vi.mocked(originApi.getClientOrigins).mockRejectedValueOnce(
+		vi.mocked(originsApi.getClientOrigins).mockRejectedValueOnce(
 			new Error('API error')
 		)
 
@@ -195,7 +198,7 @@ describe('useProductOriginMutations', () => {
 			updatedAt: '2024-01-01T00:00:00.000Z',
 		}
 
-		vi.mocked(originApi.createProductOrigin).mockResolvedValueOnce(mockCreated)
+		vi.mocked(originsApi.createProductOrigin).mockResolvedValueOnce(mockCreated)
 
 		const { result } = renderHook(() => useProductOriginMutations())
 
@@ -205,7 +208,7 @@ describe('useProductOriginMutations', () => {
 		if (createResult.success) {
 			expect(createResult.data).toEqual(mockCreated)
 		}
-		expect(originApi.createProductOrigin).toHaveBeenCalledWith(mockInput)
+		expect(originsApi.createProductOrigin).toHaveBeenCalledWith(mockInput)
 	})
 
 	it('should handle create error', async () => {
@@ -214,7 +217,7 @@ describe('useProductOriginMutations', () => {
 			status: true,
 		}
 
-		vi.mocked(originApi.createProductOrigin).mockRejectedValueOnce(
+		vi.mocked(originsApi.createProductOrigin).mockRejectedValueOnce(
 			new Error('Create failed')
 		)
 
@@ -242,7 +245,7 @@ describe('useProductOriginMutations', () => {
 			updatedAt: '2024-01-01T00:00:00.000Z',
 		}
 
-		vi.mocked(originApi.updateProductOrigin).mockResolvedValueOnce(mockUpdated)
+		vi.mocked(originsApi.updateProductOrigin).mockResolvedValueOnce(mockUpdated)
 
 		const { result } = renderHook(() => useProductOriginMutations())
 
@@ -255,14 +258,14 @@ describe('useProductOriginMutations', () => {
 	})
 
 	it('should delete product origin successfully', async () => {
-		vi.mocked(originApi.deleteProductOrigin).mockResolvedValueOnce(undefined)
+		vi.mocked(originsApi.deleteProductOrigin).mockResolvedValueOnce(undefined)
 
 		const { result } = renderHook(() => useProductOriginMutations())
 
 		const deleteResult = await result.current.remove(1)
 
 		expect(deleteResult.success).toBe(true)
-		expect(originApi.deleteProductOrigin).toHaveBeenCalledWith(1)
+		expect(originsApi.deleteProductOrigin).toHaveBeenCalledWith(1)
 	})
 })
 
@@ -286,7 +289,9 @@ describe('useClientOriginMutations', () => {
 			updatedAt: '2024-01-01T00:00:00.000Z',
 		}
 
-		vi.mocked(originApi.createClientOrigin).mockResolvedValueOnce(mockCreated)
+		vi.mocked(originsApi.createClientOrigin).mockResolvedValueOnce({
+			data: mockCreated,
+		} as any)
 
 		const { result } = renderHook(() => useClientOriginMutations())
 
@@ -312,7 +317,9 @@ describe('useClientOriginMutations', () => {
 			updatedAt: '2024-01-01T00:00:00.000Z',
 		}
 
-		vi.mocked(originApi.updateClientOrigin).mockResolvedValueOnce(mockUpdated)
+		vi.mocked(originsApi.updateClientOrigin).mockResolvedValueOnce({
+			data: mockUpdated,
+		} as any)
 
 		const { result } = renderHook(() => useClientOriginMutations())
 
@@ -325,13 +332,15 @@ describe('useClientOriginMutations', () => {
 	})
 
 	it('should delete client origin successfully', async () => {
-		vi.mocked(originApi.deleteClientOrigin).mockResolvedValueOnce(undefined)
+		vi.mocked(originsApi.deleteClientOrigin).mockResolvedValueOnce({
+			data: undefined,
+		} as any)
 
 		const { result } = renderHook(() => useClientOriginMutations())
 
 		const deleteResult = await result.current.remove(1)
 
 		expect(deleteResult.success).toBe(true)
-		expect(originApi.deleteClientOrigin).toHaveBeenCalledWith(1)
+		expect(originsApi.deleteClientOrigin).toHaveBeenCalledWith(1)
 	})
 })

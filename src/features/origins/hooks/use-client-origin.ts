@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 import type { ClientOrigin } from '../types/origins.types'
-import { clientOriginApi } from '../lib/client-origin-api'
+import { originsApi } from '../lib/origins-api'
 
 interface UseClientOriginReturn {
 	state: AsyncState<ClientOrigin>
@@ -47,7 +47,7 @@ export function useClientOrigin(id: number): UseClientOriginReturn {
 		setState({ status: 'loading', data: undefined, error: '' })
 
 		try {
-			const response = await clientOriginApi.getClientOrigin(id)
+			const response = await originsApi.getClientOrigin(id)
 
 			if ('error' in response) {
 				setState({

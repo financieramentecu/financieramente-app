@@ -1,12 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useClientOrigin } from '../../hooks/use-client-origin'
-import { clientOriginApi } from '../../lib/client-origin-api'
+import { originsApi } from '../../lib/origins-api'
 import { createMockClientOrigin } from '../fixtures/mock-client-origin'
 
-// Mock clientOriginApi
-vi.mock('../../lib/client-origin-api', () => ({
-	clientOriginApi: {
+// Mock originsApi
+vi.mock('../../lib/origins-api', () => ({
+	originsApi: {
 		getClientOrigin: vi.fn(),
 	},
 }))
@@ -18,7 +18,7 @@ describe('useClientOrigin', () => {
 
 	it('should start with loading state', async () => {
 		const mockOrigin = createMockClientOrigin({ idClientOrigin: 1 })
-		vi.mocked(clientOriginApi.getClientOrigin).mockResolvedValueOnce({
+		vi.mocked(originsApi.getClientOrigin).mockResolvedValueOnce({
 			data: mockOrigin,
 		})
 
@@ -40,7 +40,7 @@ describe('useClientOrigin', () => {
 			name: 'Propio',
 		})
 
-		vi.mocked(clientOriginApi.getClientOrigin).mockResolvedValueOnce({
+		vi.mocked(originsApi.getClientOrigin).mockResolvedValueOnce({
 			data: mockOrigin,
 		})
 
@@ -55,7 +55,7 @@ describe('useClientOrigin', () => {
 	})
 
 	it('should handle API error', async () => {
-		vi.mocked(clientOriginApi.getClientOrigin).mockResolvedValueOnce({
+		vi.mocked(originsApi.getClientOrigin).mockResolvedValueOnce({
 			data: null,
 			error: 'Origen de cliente no encontrado',
 		})

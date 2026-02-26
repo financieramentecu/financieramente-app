@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { clientOriginApi } from '../../lib/client-origin-api'
+import { originsApi } from '../../lib/origins-api'
 import type {
 	ClientOrigin,
 	ClientOriginListResponse,
@@ -32,7 +32,7 @@ const createMockClientOriginListResponse = (
 	},
 })
 
-describe('clientOriginApi', () => {
+describe('originsApi', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 	})
@@ -49,7 +49,7 @@ describe('clientOriginApi', () => {
 				json: async () => ({ data: mockResponse }),
 			} as Response)
 
-			const result = await clientOriginApi.getClientOrigins()
+			const result = await originsApi.getClientOrigins()
 
 			expect(result).toEqual({ data: mockResponse })
 			expect(fetch).toHaveBeenCalledWith('/api/origins', {
@@ -67,7 +67,7 @@ describe('clientOriginApi', () => {
 				json: async () => ({ data: mockResponse }),
 			} as Response)
 
-			await clientOriginApi.getClientOrigins({
+			await originsApi.getClientOrigins({
 				search: 'Propio',
 				page: 1,
 				pageSize: 10,
@@ -88,7 +88,7 @@ describe('clientOriginApi', () => {
 				}),
 			} as Response)
 
-			const result = await clientOriginApi.getClientOrigins()
+			const result = await originsApi.getClientOrigins()
 
 			expect(result).toEqual({
 				data: null,
@@ -99,7 +99,7 @@ describe('clientOriginApi', () => {
 		it('should handle network error', async () => {
 			vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'))
 
-			const result = await clientOriginApi.getClientOrigins()
+			const result = await originsApi.getClientOrigins()
 
 			expect(result).toEqual({
 				data: null,
@@ -117,7 +117,7 @@ describe('clientOriginApi', () => {
 				json: async () => ({ data: mockOrigin }),
 			} as Response)
 
-			const result = await clientOriginApi.getClientOrigin(1)
+			const result = await originsApi.getClientOrigin(1)
 
 			expect(result).toEqual({ data: mockOrigin })
 			expect(fetch).toHaveBeenCalledWith('/api/origins/1', {
@@ -137,7 +137,7 @@ describe('clientOriginApi', () => {
 				}),
 			} as Response)
 
-			const result = await clientOriginApi.getClientOrigin(999)
+			const result = await originsApi.getClientOrigin(999)
 
 			expect(result).toEqual({
 				data: null,
@@ -160,7 +160,7 @@ describe('clientOriginApi', () => {
 				json: async () => ({ data: mockOrigin }),
 			} as Response)
 
-			const result = await clientOriginApi.createClientOrigin(createData)
+			const result = await originsApi.createClientOrigin(createData)
 
 			expect(result).toEqual({ data: mockOrigin })
 			expect(fetch).toHaveBeenCalledWith('/api/origins', {
@@ -182,7 +182,7 @@ describe('clientOriginApi', () => {
 				}),
 			} as Response)
 
-			const result = await clientOriginApi.createClientOrigin({
+			const result = await originsApi.createClientOrigin({
 				name: 'Propio',
 			})
 
@@ -205,7 +205,7 @@ describe('clientOriginApi', () => {
 				json: async () => ({ data: mockOrigin }),
 			} as Response)
 
-			const result = await clientOriginApi.updateClientOrigin(1, updateData)
+			const result = await originsApi.updateClientOrigin(1, updateData)
 
 			expect(result).toEqual({ data: mockOrigin })
 			expect(fetch).toHaveBeenCalledWith('/api/origins/1', {
@@ -226,7 +226,7 @@ describe('clientOriginApi', () => {
 				json: async () => ({ data: undefined }),
 			} as Response)
 
-			const result = await clientOriginApi.deleteClientOrigin(1)
+			const result = await originsApi.deleteClientOrigin(1)
 
 			expect(result).toEqual({ data: undefined })
 			expect(fetch).toHaveBeenCalledWith('/api/origins/1', {
@@ -244,7 +244,7 @@ describe('clientOriginApi', () => {
 				}),
 			} as Response)
 
-			const result = await clientOriginApi.deleteClientOrigin(1)
+			const result = await originsApi.deleteClientOrigin(1)
 
 			expect(result).toEqual({
 				data: null,

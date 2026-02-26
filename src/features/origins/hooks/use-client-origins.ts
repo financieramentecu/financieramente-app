@@ -6,7 +6,7 @@ import type {
 	ClientOriginListResponse,
 	ClientOriginFilters,
 } from '../types/origins.types'
-import { clientOriginApi } from '../lib/client-origin-api'
+import { originsApi } from '../lib/origins-api'
 
 interface UseClientOriginsParams extends ClientOriginFilters {
 	page?: number
@@ -48,7 +48,7 @@ export function useClientOrigins(
 		setState({ status: 'loading', data: undefined, error: '' })
 
 		try {
-			const response = await clientOriginApi.getClientOrigins(params)
+			const response = await originsApi.getClientOrigins(params)
 
 			if ('error' in response) {
 				setState({

@@ -7,7 +7,7 @@ import type {
 	CreateClientOriginInput,
 	UpdateClientOriginInput,
 } from '../types/origins.types'
-import { clientOriginApi } from '../lib/client-origin-api'
+import { originsApi } from '../lib/origins-api'
 
 interface UseClientOriginMutationsReturn {
 	createState: AsyncState<ClientOrigin>
@@ -62,7 +62,7 @@ export function useClientOriginMutations(): UseClientOriginMutationsReturn {
 			setCreateState({ status: 'loading', data: undefined, error: '' })
 
 			try {
-				const response = await clientOriginApi.createClientOrigin(data)
+				const response = await originsApi.createClientOrigin(data)
 
 				if ('error' in response) {
 					setCreateState({
@@ -97,7 +97,7 @@ export function useClientOriginMutations(): UseClientOriginMutationsReturn {
 			setUpdateState({ status: 'loading', data: undefined, error: '' })
 
 			try {
-				const response = await clientOriginApi.updateClientOrigin(id, data)
+				const response = await originsApi.updateClientOrigin(id, data)
 
 				if ('error' in response) {
 					setUpdateState({
@@ -131,7 +131,7 @@ export function useClientOriginMutations(): UseClientOriginMutationsReturn {
 		setDeleteState({ status: 'loading', data: undefined, error: '' })
 
 		try {
-			const response = await clientOriginApi.deleteClientOrigin(id)
+			const response = await originsApi.deleteClientOrigin(id)
 
 			if ('error' in response) {
 				setDeleteState({
