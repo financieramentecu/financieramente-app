@@ -218,7 +218,10 @@ export function useClientOriginMutations() {
 		setIsSubmitting(true)
 		try {
 			const result = await originsApi.createClientOrigin(data)
-			return { success: true, data: result }
+			if ('error' in result) {
+				return { success: false, error: result.error }
+			}
+			return { success: true, data: result.data }
 		} catch (error) {
 			return {
 				success: false,
@@ -237,7 +240,10 @@ export function useClientOriginMutations() {
 			setIsSubmitting(true)
 			try {
 				const result = await originsApi.updateClientOrigin(id, data)
-				return { success: true, data: result }
+				if ('error' in result) {
+					return { success: false, error: result.error }
+				}
+				return { success: true, data: result.data }
 			} catch (error) {
 				return {
 					success: false,
@@ -256,7 +262,10 @@ export function useClientOriginMutations() {
 	const remove = useCallback(async (id: number) => {
 		setIsSubmitting(true)
 		try {
-			await originsApi.deleteClientOrigin(id)
+			const result = await originsApi.deleteClientOrigin(id)
+			if ('error' in result) {
+				return { success: false, error: result.error }
+			}
 			return { success: true }
 		} catch (error) {
 			return {
