@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import * as XLSX from 'xlsx'
-import { validateExcelStructure } from '../validate-excel-structure'
+import { validateExcelStructure } from '@/features/load-file/lib/validate-excel-structure'
 import {
 	FILE_TYPES,
 	POLIZA_REQUIRED_HEADERS,
 	VOLUNTARIA_REQUIRED_HEADERS,
-} from '../file-types'
+} from '@/features/load-file/lib/file-types'
 
 function buildFile(headers: readonly string[]): File {
 	const worksheet = XLSX.utils.aoa_to_sheet([Array.from(headers), ['']])
@@ -20,7 +20,10 @@ function buildFile(headers: readonly string[]): File {
 		const arrayBuffer =
 			buffer instanceof ArrayBuffer
 				? buffer
-				: buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+				: buffer.buffer.slice(
+						buffer.byteOffset,
+						buffer.byteOffset + buffer.byteLength
+					)
 
 		Object.defineProperty(file, 'arrayBuffer', {
 			value: async () => arrayBuffer,

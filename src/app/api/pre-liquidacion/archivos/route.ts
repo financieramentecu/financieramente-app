@@ -1,101 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
-import { prisma } from '@/lib/prisma'
+import { obtenerArchivosDisponiblesPreliquidacion } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
+import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { RespuestaArchivosDisponibles } from '@/features/pre-liquidacion/types/types'
 
 /**
  * GET /api/pre-liquidacion/archivos
- * Lista archivos disponibles para pre-liquidar (COMPLETADO) y pre-liquidados (PRELIQUIDADO)
+ * Lista archivos disponibles para pre-liquidar y pre-liquidados
  */
-export async function GET(_request: NextRequest) {
+export async function GET(
+	_request: NextRequest
+): Promise<NextResponse<ApiResponse<RespuestaArchivosDisponibles>>> {
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+			return NextResponse.json(
+				{ data: null, error: 'No autorizado' },
+				{ status: 401 }
+			)
 		}
 
-		// Obtener archivos con conteo de preliquidados
-		const todosArchivos = await prisma.fileImport.findMany({
-			where: {
-				status: {
-					in: ['LOAD', 'COMPLETADO', 'PRELIQUIDADO'],
-				},
-			},
-			select: {
-				idFileImport: true,
-				nameFile: true,
-				loadDate: true,
-				preLiquidacionDate: true,
-				totalRecord: true,
-				sincronizadoRecord: true,
-				rezagadoRecord: true,
-				status: true,
-				user: {
-					select: {
-						name: true,
-						lastName: true,
-					},
-				},
-				_count: {
-					select: {
-						settlementCommissions: {
-							where: { status: 'PRELIQUIDADO' },
-						},
-					},
-				},
-			},
-			orderBy: {
-				loadDate: 'desc',
-			},
-		})
+		// Obtenemos los archivos limpios delegando al servicio (sin llamar a prisma directo)
+		const response = await obtenerArchivosDisponiblesPreliquidacion()
 
-		// Formatear respuesta
-		const archivos = todosArchivos.map((archivo) => {
-			const preliquidadosCount = archivo._count.settlementCommissions
-
-			return {
-				idFileImport: archivo.idFileImport,
-				nombreArchivo: archivo.nameFile,
-				usuarioCargo:
-					`${archivo.user.name} ${archivo.user.lastName || ''}`.trim(),
-				fechaCarga: archivo.loadDate.toISOString().split('T')[0],
-				fechaPreLiquidacion: archivo.preLiquidacionDate
-					? archivo.preLiquidacionDate.toISOString().split('T')[0]
-					: null,
-				cantidadRegistros: archivo.totalRecord,
-				totalRegistros: archivo.totalRecord,
-				sincronizados: archivo.sincronizadoRecord,
-				rezagados: archivo.rezagadoRecord,
-				estado: archivo.status,
-				registrosPreliquidados: preliquidadosCount,
-			}
-		})
-
-		const archivosCompletados = archivos.filter(
-			(a) => a.estado === 'COMPLETADO' || a.estado === 'LOAD'
-		)
-		const archivosPreLiquidados = archivos.filter(
-			(a) => a.estado === 'PRELIQUIDADO'
-		)
-
-		const resumen = {
-			totalArchivos: archivos.length,
-			sincronizados: archivosCompletados.length,
-			preLiquidados: archivosPreLiquidados.length,
-		}
-
-		const response: RespuestaArchivosDisponibles = {
-			archivos,
-			resumen,
-		}
-
-		return NextResponse.json(response)
+		return NextResponse.json({ data: response })
 	} catch (error) {
 		console.error('Error al obtener archivos disponibles:', error)
 		return NextResponse.json(
 			{
-				error: 'Error al obtener archivos',
-				details: error instanceof Error ? error.message : 'Error desconocido',
+				data: null,
+				error: error instanceof Error ? error.message : 'Error desconocido',
 			},
 			{ status: 500 }
 		)
