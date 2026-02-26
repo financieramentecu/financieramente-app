@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { cleanNumericValue, toDecimal } from '../number-utils'
+import {
+	cleanNumericValue,
+	toDecimal,
+} from '@/features/load-file/lib/number-utils'
 
 describe('cleanNumericValue', () => {
 	it('parses currency with thousands and comma decimal', () => {

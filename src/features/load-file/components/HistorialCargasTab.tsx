@@ -1,6 +1,15 @@
 'use client'
 
-import { FileText, RefreshCw, Trash2, AlertCircle, Search, Calendar, Filter, X } from 'lucide-react'
+import {
+	FileText,
+	RefreshCw,
+	Trash2,
+	AlertCircle,
+	Search,
+	Calendar,
+	Filter,
+	X,
+} from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import { EmptyState } from '@/features/shared/ui/empty-state'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
@@ -52,7 +61,7 @@ export function HistorialCargasTab() {
 	}
 
 	const filteredHistorial = useMemo(() => {
-		return historial.filter(item => {
+		return historial.filter((item) => {
 			// Filter by name or user
 			if (searchTerm) {
 				const term = searchTerm.toLowerCase()
@@ -79,20 +88,44 @@ export function HistorialCargasTab() {
 
 	const getEstadoBadgeStyle = (estado: string): React.CSSProperties => {
 		switch (estado) {
-			case 'COMPLETADO':
-			case 'PRELIQUIDADO':
-				return { backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac' }
+			case 'COMPLETED':
+			case 'PRE-SETTLED':
+				return {
+					backgroundColor: '#dcfce7',
+					color: '#166534',
+					border: '1px solid #86efac',
+				}
 			case 'ERROR':
-				return { backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }
+				return {
+					backgroundColor: '#fee2e2',
+					color: '#991b1b',
+					border: '1px solid #fca5a5',
+				}
 			case 'PROCESANDO':
-				return { backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }
+				return {
+					backgroundColor: '#dbeafe',
+					color: '#1e40af',
+					border: '1px solid #93c5fd',
+				}
 			case 'PARCIAL':
-				return { backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047' }
+				return {
+					backgroundColor: '#fef9c3',
+					color: '#854d0e',
+					border: '1px solid #fde047',
+				}
 			case 'CANCELADO':
-				return { backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }
+				return {
+					backgroundColor: '#fef3c7',
+					color: '#92400e',
+					border: '1px solid #fcd34d',
+				}
 			case 'LOAD':
 			default:
-				return { backgroundColor: '#e0f2fe', color: '#075985', border: '1px solid #7dd3fc' }
+				return {
+					backgroundColor: '#e0f2fe',
+					color: '#075985',
+					border: '1px solid #7dd3fc',
+				}
 		}
 	}
 
@@ -155,12 +188,12 @@ export function HistorialCargasTab() {
 							<SelectContent>
 								<SelectItem value="ALL">Todos</SelectItem>
 								<SelectItem value="LOAD">Cargado (Load)</SelectItem>
-								<SelectItem value="COMPLETADO">Completado</SelectItem>
+								<SelectItem value="COMPLETED">Completado</SelectItem>
 								<SelectItem value="PARCIAL">Parcial</SelectItem>
 								<SelectItem value="ERROR">Error</SelectItem>
 								<SelectItem value="PROCESANDO">Procesando</SelectItem>
 								<SelectItem value="CANCELADO">Cancelado</SelectItem>
-								<SelectItem value="PRELIQUIDADO">Pre-liquidado</SelectItem>
+								<SelectItem value="PRE-SETTLED">Pre-liquidado</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
@@ -211,7 +244,9 @@ export function HistorialCargasTab() {
 							className="ml-2 h-8 w-8 p-0"
 							title="Recargar"
 						>
-							<RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+							<RefreshCw
+								className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+							/>
 						</Button>
 					</div>
 				</div>
@@ -251,36 +286,90 @@ export function HistorialCargasTab() {
 												<h3 className="font-semibold text-primary">
 													{carga.nombreArchivo}
 												</h3>
-												<span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={getEstadoBadgeStyle(carga.estado)}>
+												<span
+													className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+													style={getEstadoBadgeStyle(carga.estado)}
+												>
 													{carga.estado}
 												</span>
 											</div>
 
 											{/* Fecha, hora y usuario */}
 											<p className="text-sm text-muted-foreground mb-3">
-												{carga.fechaCarga}, {carga.horaCarga} • Por: {carga.usuario}
+												{carga.fechaCarga}, {carga.horaCarga} • Por:{' '}
+												{carga.usuario}
 											</p>
 
 											{/* Badges de estadísticas */}
 											<div className="flex flex-wrap items-center gap-2">
-												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac' }}>
-													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#16a34a' }} />
+												<span
+													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+													style={{
+														backgroundColor: '#dcfce7',
+														color: '#166534',
+														border: '1px solid #86efac',
+													}}
+												>
+													<span
+														className="w-1.5 h-1.5 rounded-full"
+														style={{ backgroundColor: '#16a34a' }}
+													/>
 													{carga.exitosos} exitosos
 												</span>
-												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}>
-													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#dc2626' }} />
+												<span
+													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+													style={{
+														backgroundColor: '#fee2e2',
+														color: '#991b1b',
+														border: '1px solid #fca5a5',
+													}}
+												>
+													<span
+														className="w-1.5 h-1.5 rounded-full"
+														style={{ backgroundColor: '#dc2626' }}
+													/>
 													{carga.errores} errores
 												</span>
-												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' }}>
-													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#3b82f6' }} />
+												<span
+													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+													style={{
+														backgroundColor: '#dbeafe',
+														color: '#1e40af',
+														border: '1px solid #93c5fd',
+													}}
+												>
+													<span
+														className="w-1.5 h-1.5 rounded-full"
+														style={{ backgroundColor: '#3b82f6' }}
+													/>
 													{carga.sincronizados} sincronizados
 												</span>
-												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047' }}>
-													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#eab308' }} />
+												<span
+													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+													style={{
+														backgroundColor: '#fef9c3',
+														color: '#854d0e',
+														border: '1px solid #fde047',
+													}}
+												>
+													<span
+														className="w-1.5 h-1.5 rounded-full"
+														style={{ backgroundColor: '#eab308' }}
+													/>
 													{carga.sinRegistro} sin registro
 												</span>
-												<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
-													<span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#f59e0b' }} />
+												<span
+													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+													style={{
+														backgroundColor: '#fef3c7',
+														color: '#92400e',
+														border: '1px solid #fcd34d',
+													}}
+												>
+													<span
+														className="w-1.5 h-1.5 rounded-full"
+														style={{ backgroundColor: '#f59e0b' }}
+													/>
 													{carga.rezagados} rezagados
 												</span>
 											</div>
@@ -309,11 +398,11 @@ export function HistorialCargasTab() {
 			{/* Sección de Formato Requerido */}
 			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 				<p className="text-sm text-foreground leading-relaxed">
-					<strong>Formato requerido de Skandia:</strong> El archivo Excel debe contener
-					las columnas: Nombre, Franquicia, Desde, Hasta, Nombre Fp, Sub Grupo Fp,
-					Compania, Producto, Tipo Comisión, Cto, Base, Com. El sistema validará
-					automáticamente la estructura y sincronizará con los registros de agentes
-					existentes.
+					<strong>Formato requerido de Skandia:</strong> El archivo Excel debe
+					contener las columnas: Nombre, Franquicia, Desde, Hasta, Nombre Fp,
+					Sub Grupo Fp, Compania, Producto, Tipo Comisión, Cto, Base, Com. El
+					sistema validará automáticamente la estructura y sincronizará con los
+					registros de agentes existentes.
 				</p>
 			</div>
 		</div>

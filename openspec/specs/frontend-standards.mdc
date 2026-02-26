@@ -117,7 +117,7 @@ src/features/<feature>/
 
 ### API Routes
 
-All Next.js API Routes (`app/api/...`) must return the standardized `ApiResponse<T>` structure:
+All Next.js API Routes (`app/api/...`) must return the standardized `ApiResponse<T>` structure. **Never call Prisma directly from API Routes.** Always delegate data access to a function inside the `features/<feature>/services/` layer.
 
 ```typescript
 import type { ApiResponse } from '@/features/shared/types/api-response.types'

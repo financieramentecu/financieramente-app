@@ -1,4 +1,4 @@
-import { ProcessedRecord } from './process-excel-file'
+import type { ProcessedRecord } from '../types/load-file.types'
 
 /**
  * Genera un reporte CSV con los registros que tuvieron errores
@@ -19,7 +19,11 @@ export function generateErrorReportCSV(
 		if (value === null || value === undefined) return ''
 		const stringValue = String(value)
 		// Si contiene comas, comillas o saltos de línea, envolver en comillas y escapar comillas
-		if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+		if (
+			stringValue.includes(',') ||
+			stringValue.includes('"') ||
+			stringValue.includes('\n')
+		) {
 			return `"${stringValue.replace(/"/g, '""')}"`
 		}
 		return stringValue
@@ -66,4 +70,3 @@ export function downloadCSV(content: string, filename: string): void {
 	document.body.removeChild(link)
 	URL.revokeObjectURL(url)
 }
-
