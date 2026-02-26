@@ -4,13 +4,13 @@ import type {
 	CategoryFilters,
 	CreateCategoryInput,
 	UpdateCategoryInput,
-} from '../types/category.types'
+} from '@/features/categories/types/category.types'
 
 export const categoryApi = {
 	async getCategories(filters?: CategoryFilters): Promise<Category[]> {
 		const params = new URLSearchParams()
 		if (filters?.search) params.set('search', filters.search)
-		if (filters?.type) params.set('type', filters.type)
+		if (filters?.typeCategory) params.set('type', filters.typeCategory)
 		if (filters?.status) params.set('status', filters.status)
 
 		const queryString = params.toString()

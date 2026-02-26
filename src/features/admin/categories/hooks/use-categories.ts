@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { categoryApi } from '../lib/category-api'
-import type { Category, CategoryFilters } from '../types/category.types'
+import type { Category, CategoryFilters } from '@/features/categories/types/category.types'
 
 export function useCategories(filters?: CategoryFilters) {
 	const [categories, setCategories] = useState<Category[]>([])
@@ -12,7 +12,7 @@ export function useCategories(filters?: CategoryFilters) {
 	useEffect(() => {
 		loadCategories()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filters?.search, filters?.type, filters?.status])
+	}, [filters?.search, filters?.typeCategory, filters?.status])
 
 	const loadCategories = async () => {
 		try {

@@ -16,11 +16,11 @@ import { useCategoryMutations } from '@/features/admin/categories/hooks/use-cate
 import {
 	createCategorySchema,
 	updateCategorySchema,
-} from '@/features/admin/categories/lib/category-schemas'
+} from '@/features/categories/lib/category-schemas'
 import type {
 	Category,
 	CategoryFilters as CategoryFiltersType,
-} from '@/features/admin/categories/types/category.types'
+} from '@/features/categories/types/category.types'
 
 export default function CategoriesAdminPage() {
 	const [isModalOpen, setIsModalOpen] = useState(false)

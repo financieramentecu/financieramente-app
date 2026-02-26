@@ -5,7 +5,7 @@ import {
 	type CrudTableColumn,
 } from '@/features/admin/shared/CrudTable'
 import { Badge } from '@/features/shared/ui/badge'
-import type { Category } from '../types/category.types'
+import type { Category } from '@/features/categories/types/category.types'
 
 interface CategoriesTableProps {
 	categories: Category[]

@@ -8,7 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/features/shared/ui/select'
-import type { CategoryFilters } from '../types/category.types'
+import type { CategoryFilters, CategoryType } from '@/features/categories/types/category.types'
 
 interface CategoryFiltersProps {
 	filters: CategoryFilters
@@ -30,11 +30,11 @@ export function CategoryFilters({
 				className="md:w-1/3"
 			/>
 			<Select
-				value={filters.type || 'all'}
+				value={filters.typeCategory || 'all'}
 				onValueChange={(value) =>
 					onFiltersChange({
 						...filters,
-						type: value === 'all' ? undefined : value,
+						typeCategory: value === 'all' ? undefined : (value as CategoryType),
 					})
 				}
 			>

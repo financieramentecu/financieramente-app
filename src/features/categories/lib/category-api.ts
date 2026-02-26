@@ -14,6 +14,7 @@ import type {
 export const categoryApi = {
 	/**
 	 * Gets the list of categories with pagination and search
+	 * Note: Used by both Domain and Admin views.
 	 */
 	async getCategories(
 		params?: CategoryFilters & { page?: number; pageSize?: number }

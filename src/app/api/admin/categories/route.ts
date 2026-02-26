@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createCategorySchema } from '@/features/admin/categories/lib/category-schemas'
+import { createCategorySchema } from '@/features/categories/lib/category-schemas'
 import { z } from 'zod'
 
 export async function GET(request: Request) {

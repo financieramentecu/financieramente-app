@@ -6,7 +6,7 @@ import { categoryApi } from '../lib/category-api'
 import type {
 	CreateCategoryInput,
 	UpdateCategoryInput,
-} from '../types/category.types'
+} from '@/features/categories/types/category.types'
 
 export function useCategoryMutations() {
 	const [isSubmitting, setIsSubmitting] = useState(false)
