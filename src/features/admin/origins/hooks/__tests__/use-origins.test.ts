@@ -14,7 +14,7 @@ import type {
 	UpdateProductOriginInput,
 	CreateClientOriginInput,
 	UpdateClientOriginInput,
-} from '../../types/origin.types'
+} from '@/features/origins/types/origins.types'
 
 // Mock originApi
 vi.mock('../../lib/origin-api', () => ({

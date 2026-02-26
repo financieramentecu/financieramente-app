@@ -10,7 +10,7 @@ import type {
 	UpdateProductOriginInput,
 	CreateClientOriginInput,
 	UpdateClientOriginInput,
-} from '../types/origin.types'
+} from '@/features/origins/types/origins.types'
 
 /**
  * Hook para obtener la lista de orígenes de producto

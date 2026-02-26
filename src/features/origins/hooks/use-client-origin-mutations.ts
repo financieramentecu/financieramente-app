@@ -6,7 +6,7 @@ import type {
 	ClientOrigin,
 	CreateClientOriginInput,
 	UpdateClientOriginInput,
-} from '../types/client-origin.types'
+} from '../types/origins.types'
 import { clientOriginApi } from '../lib/client-origin-api'
 
 interface UseClientOriginMutationsReturn {

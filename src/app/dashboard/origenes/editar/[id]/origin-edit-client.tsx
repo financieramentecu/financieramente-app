@@ -6,7 +6,7 @@ import { ClientOriginForm } from '@/features/origins/components/client-origin-fo
 import { EditClientOriginFormSkeleton } from '@/features/origins/components/client-origin-form-skeleton'
 import { useClientOrigin } from '@/features/origins/hooks/use-client-origin'
 import { useClientOriginMutations } from '@/features/origins/hooks/use-client-origin-mutations'
-import type { UpdateClientOriginFormData } from '@/features/origins/lib/client-origin-schemas'
+import type { UpdateClientOriginFormData } from '@/features/origins/lib/origins-schemas'
 import { toast } from 'sonner'
 
 interface OriginEditClientProps {

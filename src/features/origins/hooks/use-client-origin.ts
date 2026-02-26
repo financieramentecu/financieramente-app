@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
-import type { ClientOrigin } from '../types/client-origin.types'
+import type { ClientOrigin } from '../types/origins.types'
 import { clientOriginApi } from '../lib/client-origin-api'
 
 interface UseClientOriginReturn {

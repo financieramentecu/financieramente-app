@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { updateClientOriginSchema } from '@/features/admin/origins/lib/origin-schemas'
+import { updateClientOriginSchema } from '@/features/origins/lib/origins-schemas'
 import { z } from 'zod'
 
 export async function GET(

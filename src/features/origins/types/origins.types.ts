@@ -1,8 +1,8 @@
 /**
- * Tipos para el feature de Origins
+ * Common types for the Origins feature (covers both Product and Client origins)
  */
 
-export interface ProductOrigin {
+export interface ProductOrigin extends Record<string, unknown> {
 	readonly idOrigin: number
 	name: string
 	description: string | null
@@ -11,13 +11,23 @@ export interface ProductOrigin {
 	readonly updatedAt: string
 }
 
-export interface ClientOrigin {
+export interface ClientOrigin extends Record<string, unknown> {
 	readonly idClientOrigin: number
 	name: string
 	description: string | null
 	status: boolean
 	readonly createdAt: string
 	readonly updatedAt: string
+}
+
+export interface ProductOriginFilters {
+	search?: string
+	status?: string
+}
+
+export interface ClientOriginFilters {
+	search?: string
+	status?: 'active' | 'inactive' | string
 }
 
 export interface CreateProductOriginInput {
@@ -35,11 +45,21 @@ export interface UpdateProductOriginInput {
 export interface CreateClientOriginInput {
 	name: string
 	description?: string
-	status: boolean
+	status?: boolean
 }
 
 export interface UpdateClientOriginInput {
 	name?: string
 	description?: string
 	status?: boolean
+}
+
+export interface ClientOriginListResponse {
+	origins: ClientOrigin[]
+	pagination: {
+		page: number
+		pageSize: number
+		total: number
+		totalPages: number
+	}
 }

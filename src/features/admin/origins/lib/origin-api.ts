@@ -8,7 +8,7 @@ import type {
 	UpdateProductOriginInput,
 	CreateClientOriginInput,
 	UpdateClientOriginInput,
-} from '../types/origin.types'
+} from '@/features/origins/types/origins.types'
 
 /**
  * Server-side function to get active client origins.

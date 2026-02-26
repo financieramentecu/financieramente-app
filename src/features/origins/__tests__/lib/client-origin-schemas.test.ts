@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
 	createClientOriginSchema,
 	updateClientOriginSchema,
-} from '../../lib/client-origin-schemas'
+} from '../../lib/origins-schemas'
 
 describe('client-origin-schemas', () => {
 	describe('createClientOriginSchema', () => {

@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client'
-import type { ClientOrigin } from '../../types/client-origin.types'
+import type { ClientOrigin } from '../../types/origins.types'
 
 /**
  * Crea un mock de ClientOrigin para pruebas

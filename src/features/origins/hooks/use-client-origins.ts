@@ -5,7 +5,7 @@ import type { AsyncState } from '@/features/shared/types/async-state.types'
 import type {
 	ClientOriginListResponse,
 	ClientOriginFilters,
-} from '../types/client-origin.types'
+} from '../types/origins.types'
 import { clientOriginApi } from '../lib/client-origin-api'
 
 interface UseClientOriginsParams extends ClientOriginFilters {

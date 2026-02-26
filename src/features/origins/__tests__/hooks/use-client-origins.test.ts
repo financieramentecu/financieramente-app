@@ -2,7 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useClientOrigins } from '../../hooks/use-client-origins'
 import { clientOriginApi } from '../../lib/client-origin-api'
-import type { ClientOriginListResponse } from '../../types/client-origin.types'
+import type { ClientOriginListResponse } from '../../types/origins.types'
 
 // Mock clientOriginApi
 vi.mock('../../lib/client-origin-api', () => ({

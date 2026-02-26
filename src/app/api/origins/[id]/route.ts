@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { updateClientOriginSchema } from '@/features/origins/lib/client-origin-schemas'
+import { updateClientOriginSchema } from '@/features/origins/lib/origins-schemas'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import type { ClientOrigin } from '@/features/origins/types/client-origin.types'
+import type { ClientOrigin } from '@/features/origins/types/origins.types'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import {

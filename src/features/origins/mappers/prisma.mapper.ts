@@ -3,7 +3,7 @@
  * Responsabilidad única: conversión de datos de base de datos a dominio
  */
 
-import type { ClientOrigin } from '../types/client-origin.types'
+import type { ClientOrigin } from '../types/origins.types'
 import type { Prisma } from '@prisma/client'
 
 type PrismaClientOrigin = Prisma.ClientOriginGetPayload<Record<string, never>>

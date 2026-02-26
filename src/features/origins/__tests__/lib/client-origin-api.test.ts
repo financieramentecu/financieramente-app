@@ -3,7 +3,7 @@ import { clientOriginApi } from '../../lib/client-origin-api'
 import type {
 	ClientOrigin,
 	ClientOriginListResponse,
-} from '../../types/client-origin.types'
+} from '../../types/origins.types'
 
 // Mock global fetch
 global.fetch = vi.fn()

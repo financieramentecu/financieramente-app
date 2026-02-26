@@ -6,7 +6,7 @@ import { ClientOriginsTableSection } from '@/features/origins/components/client-
 import { useClientOrigins } from '@/features/origins/hooks/use-client-origins'
 import { useClientOriginMutations } from '@/features/origins/hooks/use-client-origin-mutations'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
-import type { ClientOrigin } from '@/features/origins/types/client-origin.types'
+import type { ClientOrigin } from '@/features/origins/types/origins.types'
 import { toast } from 'sonner'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { AlertCircle } from 'lucide-react'

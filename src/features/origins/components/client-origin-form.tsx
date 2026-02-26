@@ -19,8 +19,8 @@ import {
 	updateClientOriginSchema,
 	type CreateClientOriginFormData,
 	type UpdateClientOriginFormData,
-} from '../lib/client-origin-schemas'
-import type { ClientOrigin } from '../types/client-origin.types'
+} from '../lib/origins-schemas'
+import type { ClientOrigin } from '../types/origins.types'
 import { cn } from '@/lib/utils'
 
 interface ClientOriginFormProps {

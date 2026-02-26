@@ -3,7 +3,7 @@
 import React from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable'
 import { Button } from '@/features/shared/ui/button'
-import { ClientOrigin } from '../types/client-origin.types'
+import { ClientOrigin } from '../types/origins.types'
 import { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Trash2 } from 'lucide-react'

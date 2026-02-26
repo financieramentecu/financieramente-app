@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClientOriginSchema } from '@/features/origins/lib/client-origin-schemas'
+import { createClientOriginSchema } from '@/features/origins/lib/origins-schemas'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
 	ClientOriginListResponse,
 	ClientOrigin,
-} from '@/features/origins/types/client-origin.types'
+} from '@/features/origins/types/origins.types'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import {

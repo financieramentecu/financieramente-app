@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET, POST } from '../route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { createClientOriginSchema } from '@/features/origins/lib/client-origin-schemas'
+import { createClientOriginSchema } from '@/features/origins/lib/origins-schemas'
 import {
 	prismaClientOriginToClientOrigin,
 	prismaClientOriginListToClientOrigins,
@@ -23,7 +23,7 @@ vi.mock('@/lib/prisma', () => ({
 		},
 	},
 }))
-vi.mock('@/features/origins/lib/client-origin-schemas', () => ({
+vi.mock('@/features/origins/lib/origins-schemas', () => ({
 	createClientOriginSchema: {
 		parse: vi.fn(),
 	},

@@ -7,7 +7,7 @@ import { useClientOriginMutations } from '@/features/origins/hooks/use-client-or
 import type {
 	CreateClientOriginFormData,
 	UpdateClientOriginFormData,
-} from '@/features/origins/lib/client-origin-schemas'
+} from '@/features/origins/lib/origins-schemas'
 import { toast } from 'sonner'
 
 /**
