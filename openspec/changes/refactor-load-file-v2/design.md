@@ -65,12 +65,12 @@ flowchart TD
     LOOP_P --> P_PLAN{Plan de<br/>Compensación}:::decision
     
     P_PLAN -- "includes FRONT19" --> P_CART[origin_commission = CARTERA]:::process
-    P_PLAN -- "includes CLAW" --> P_CLAW[Traer clawback_percentage<br/>Marcar isClawback = true]:::process
-    P_PLAN -- "Otro" --> P_NULL[clawback_percentage = null<br/>isClawback = false]:::process
+    P_PLAN -- "includes CLAW" --> P_CLAW[Marcar isClawback = true<br/>NO calcular % Clawback]:::process
+    P_PLAN -- "Otro" --> P_NULL[isClawback = false]:::process
     
     %% Confluencia Póliza
-    P_CART & P_CLAW & P_NULL --> GET_CONF_P[Consultar config_comision<br/>% Comisión y % Descuento]:::process
-    GET_CONF_P --> SAVE_P[(Guardar BD:<br/>Valor Comisión Real Skandia,<br/>Contrato, origin_commission,<br/>% Comisión, % Desc, % Clawback)]:::db
+    P_CART & P_CLAW & P_NULL --> GET_CONF_P[Consultar config_comision<br/>% Descuento (Sin % Com)]:::process
+    GET_CONF_P --> SAVE_P[(Guardar BD:<br/>Valor Comisión Real Skandia,<br/>Contrato, origin_commission,<br/>% Desc, isClawback)]:::db
     
     %% Flujo de retorno Póliza
     SAVE_P --> NEXT_P{¿Hay más<br/>registros?}:::decision

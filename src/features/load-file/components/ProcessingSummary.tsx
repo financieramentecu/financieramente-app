@@ -37,9 +37,8 @@ export function ProcessingSummary({
 	// Usar los valores reales del procesamiento
 	const sincronizados = result.sincronizadoCount || 0
 	const rezagados = result.rezagadoCount || 0
-	// No sincronizados = total de registros válidos que no están sincronizados ni son errores
-	// Esto incluye los rezagados y cualquier otro registro que no se pudo sincronizar
-	const noSincronizados = result.successCount - sincronizados
+	// No sincronizados = total de registros válidos que no están sincronizados ni son rezagados
+	const noSincronizados = Math.max(0, result.successCount - sincronizados - rezagados)
 
 	return (
 		<div className="space-y-6">
@@ -164,9 +163,27 @@ export function ProcessingSummary({
 											day: 'numeric',
 										})
 									}
-									const str = String(value)
-									// Intentar parsear como fecha
-									const date = new Date(str)
+
+									const str = String(value).trim()
+									// Limpiar caracteres no imprimibles
+									const cleanStr = str.replace(/[\u200B-\u200D\uFEFF]/g, '')
+
+									// Manejar formato DD/MM/YYYY que new Date() suele fallar
+									const dmyMatch = cleanStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+									if (dmyMatch) {
+										const [_, day, month, year] = dmyMatch
+										const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+										if (!isNaN(date.getTime())) {
+											return date.toLocaleDateString('es-ES', {
+												year: 'numeric',
+												month: 'short',
+												day: 'numeric',
+											})
+										}
+									}
+
+									// Intentar parsear como fecha estándar (ISO, etc)
+									const date = new Date(cleanStr)
 									if (!isNaN(date.getTime())) {
 										return date.toLocaleDateString('es-ES', {
 											year: 'numeric',

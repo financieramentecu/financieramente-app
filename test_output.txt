@@ -1,0 +1,396 @@
+
+> financieramente-app@0.1.0 test
+> vitest src/features/load-file/__tests__/process-batch.service.test.ts
+
+
+ DEV  v3.2.4 /Users/andres/Documents/financieramente/financieramente-app
+
+stderr | src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 1: No Business Found > should create a LAG record and increment noSincronizadoCount when business does not exist
+Error al procesar registro fila 2: TypeError: __vite_ssr_import_0__.prisma.$transaction is not a function
+    at processAndSaveRecord [90m(/Users/andres/Documents/financieramente/financieramente-app/[39msrc/features/load-file/services/process-batch.service.ts:399:23[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
+    at ProcessBatchService.processBatch [90m(/Users/andres/Documents/financieramente/financieramente-app/[39msrc/features/load-file/services/process-batch.service.ts:614:20[90m)[39m
+    at [90m/Users/andres/Documents/financieramente/financieramente-app/[39msrc/features/load-file/__tests__/process-batch.service.test.ts:102:19
+    at [90mfile:///Users/andres/Documents/financieramente/financieramente-app/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+stderr | src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery > should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters
+Error al procesar registro fila 2: TypeError: __vite_ssr_import_0__.prisma.$transaction is not a function
+    at processAndSaveRecord [90m(/Users/andres/Documents/financieramente/financieramente-app/[39msrc/features/load-file/services/process-batch.service.ts:399:23[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
+    at ProcessBatchService.processBatch [90m(/Users/andres/Documents/financieramente/financieramente-app/[39msrc/features/load-file/services/process-batch.service.ts:614:20[90m)[39m
+    at [90m/Users/andres/Documents/financieramente/financieramente-app/[39msrc/features/load-file/__tests__/process-batch.service.test.ts:157:19
+    at [90mfile:///Users/andres/Documents/financieramente/financieramente-app/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-hooks.js:752:20
+
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests | 2 failed) 11ms
+   ✓ processBatchService > Validation & Authorization > should throw an error if FileImport does not exist or does not belong to user 2ms
+   × processBatchService > Core Lag/Sync Logic - Scenario 1: No Business Found > should create a LAG record and increment noSincronizadoCount when business does not exist 7ms
+     → expected "spy" to be called with arguments: [ ObjectContaining{…} ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  [[22m
+[32m-   ObjectContaining {[90m
+[32m-     "data": ObjectContaining {[90m
+[31m+   {[90m
+[31m+     "data": {[90m
+[31m+       "baseCommission": "1000",[90m
+[31m+       "clawbackPercentage": null,[90m
+[31m+       "commissionPercentage": null,[90m
+[31m+       "commissionType": "POLIZA",[90m
+[31m+       "commissionValue": "100",[90m
+[31m+       "descripcion": "Test Plan",[90m
+[31m+       "discountPercentage": 0.12,[90m
+[31m+       "error": "Error al procesar: prisma.$transaction is not a function",[90m
+[31m+       "idFileImport": 100,[90m
+[2m        "isLag": true,[22m
+[32m-       "status": "LAG",[90m
+[31m+       "originCommission": null,[90m
+[31m+       "status": "ERROR",[90m
+[2m      },[22m
+[2m    },[22m
+[2m  ][22m
+[39m[90m
+
+Number of calls: [1m1[22m
+[39m
+   × processBatchService > Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery > should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters 1ms
+     → expected "spy" to be called with arguments: [ ObjectContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[39m
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 1: No Business Found > should create a LAG record and increment noSincronizadoCount when business does not exist
+AssertionError: expected "spy" to be called with arguments: [ ObjectContaining{…} ][90m
+
+Received: 
+
+[1m  1st spy call:
+
+[22m[2m  [[22m
+[32m-   ObjectContaining {[90m
+[32m-     "data": ObjectContaining {[90m
+[31m+   {[90m
+[31m+     "data": {[90m
+[31m+       "baseCommission": "1000",[90m
+[31m+       "clawbackPercentage": null,[90m
+[31m+       "commissionPercentage": null,[90m
+[31m+       "commissionType": "POLIZA",[90m
+[31m+       "commissionValue": "100",[90m
+[31m+       "descripcion": "Test Plan",[90m
+[31m+       "discountPercentage": 0.12,[90m
+[31m+       "error": "Error al procesar: prisma.$transaction is not a function",[90m
+[31m+       "idFileImport": 100,[90m
+[2m        "isLag": true,[22m
+[32m-       "status": "LAG",[90m
+[31m+       "originCommission": null,[90m
+[31m+       "status": "ERROR",[90m
+[2m      },[22m
+[2m    },[22m
+[2m  ][22m
+[39m[90m
+
+Number of calls: [1m1[22m
+[39m
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts:107:47
+    105|    )
+    106| 
+    107|    expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
+       |                                               ^
+    108|     expect.objectContaining({
+    109|      data: expect.objectContaining({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery > should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters
+AssertionError: expected "spy" to be called with arguments: [ ObjectContaining{…} ][90m
+
+Number of calls: [1m0[22m
+[39m
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts:163:47
+    161| 
+    162|    // Should update the old record
+    163|    expect(prisma.settlementCommission.update).toHaveBeenCalledWith(
+       |                                               ^
+    164|     expect.objectContaining({
+    165|      where: { idSettlementCommission: 500 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  20:18:41
+   Duration  1.46s (transform 111ms, setup 149ms, collect 49ms, tests 11ms, environment 504ms, prepare 279ms)
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/__tests__/process-batch.service.test.ts x1 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+ ✓ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests) 6ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  20:19:39
+   Duration  315ms
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/services/process-batch.service.ts x2 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+ ✓ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests) 46ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  20:44:07
+   Duration  1.61s
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/services/process-batch.service.ts x3 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+ ✓ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests) 12ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  20:44:34
+   Duration  906ms
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/services/process-batch.service.ts x4 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+9:12:02 PM [vite] (client) warning: Duplicate key "noSincronizadoRecord" in object literal
+660 |  					rezagadoRecord: rezagadoCount,
+661 |  					noSincronizadoRecord: noSincronizadoCount,
+662 |  					noSincronizadoRecord: noSincronizadoCount,
+    |       ^
+663 |  					status:
+664 |  						sincronizadoCount + rezagadoCount + noSincronizadoCount === 0 &&
+
+  Plugin: vite:esbuild
+  File: /Users/andres/Documents/financieramente/financieramente-app/src/features/load-file/services/process-batch.service.ts
+9:12:02 PM [vite] (client) warning: Duplicate key "noSincronizadoRecord" in object literal
+679 |  				rezagadoRecord: rezagadoCount,
+680 |  				noSincronizadoRecord: noSincronizadoCount,
+681 |  				noSincronizadoRecord: noSincronizadoCount,
+    |      ^
+682 |  				status:
+683 |  					sincronizadoCount + rezagadoCount + noSincronizadoCount === 0 &&
+
+  Plugin: vite:esbuild
+  File: /Users/andres/Documents/financieramente/financieramente-app/src/features/load-file/services/process-batch.service.ts
+ ✓ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests) 26ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  21:11:57
+   Duration  1.60s
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/services/process-batch.service.ts x5 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+ ✓ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests) 65ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  21:12:16
+   Duration  2.97s
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/services/process-batch.service.ts x6 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+ ✓ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests) 26ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  21:14:30
+   Duration  1.72s
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/services/process-batch.service.ts x7 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/load-file/__tests__/process-batch.service.test.ts [ src/features/load-file/__tests__/process-batch.service.test.ts ]
+Error: Transform failed with 1 error:
+/Users/andres/Documents/financieramente/financieramente-app/src/features/load-file/services/process-batch.service.ts:663:9: ERROR: Expected ";" but found "{"
+  Plugin: vite:esbuild
+  File: /Users/andres/Documents/financieramente/financieramente-app/src/features/load-file/services/process-batch.service.ts:663:9
+  
+  Expected ";" but found "{"
+  661 |  	}
+  662 |  
+  663 |  		return {
+      |           ^
+  664 |  	summary: {
+  665 |  		total: sincronizadoTotal + rezagadoTotal + noSincronizadoTotal + errorTotal,
+  
+ ❯ failureErrorWithLog node_modules/esbuild/lib/main.js:1467:15
+ ❯ node_modules/esbuild/lib/main.js:736:50
+ ❯ responseCallbacks.<computed> node_modules/esbuild/lib/main.js:603:9
+ ❯ handleIncomingPacket node_modules/esbuild/lib/main.js:658:12
+ ❯ Socket.readFromStdout node_modules/esbuild/lib/main.js:581:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  21:21:46
+   Duration  2.05s
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/services/process-batch.service.ts x8 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests | 2 failed) 39ms
+   ✓ processBatchService > Validation & Authorization > should throw an error if FileImport does not exist or does not belong to user 19ms
+   × processBatchService > Core Lag/Sync Logic - Scenario 1: No Business Found > should create a LAG record and increment noSincronizadoCount when business does not exist 17ms
+     → Cannot read properties of undefined (reading 'successRecord')
+   × processBatchService > Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery > should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters 1ms
+     → Cannot read properties of undefined (reading 'successRecord')
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 1: No Business Found > should create a LAG record and increment noSincronizadoCount when business does not exist
+TypeError: Cannot read properties of undefined (reading 'successRecord')
+ ❯ ProcessBatchService.processBatch src/features/load-file/services/process-batch.service.ts:674:45
+    672| 
+    673|    // Actualizar estado basado en el progreso acumulado
+    674|    const totalProcessed = updatedFileImport.successRecord + updatedFil…
+       |                                             ^
+    675|    await prisma.fileImport.update({
+    676|     where: { idFileImport: fileImportId },
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts:103:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery > should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters
+TypeError: Cannot read properties of undefined (reading 'successRecord')
+ ❯ ProcessBatchService.processBatch src/features/load-file/services/process-batch.service.ts:674:45
+    672| 
+    673|    // Actualizar estado basado en el progreso acumulado
+    674|    const totalProcessed = updatedFileImport.successRecord + updatedFil…
+       |                                             ^
+    675|    await prisma.fileImport.update({
+    676|     where: { idFileImport: fileImportId },
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts:158:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  21:22:22
+   Duration  1.44s
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/services/process-batch.service.ts x9 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests | 2 failed) 17ms
+   ✓ processBatchService > Validation & Authorization > should throw an error if FileImport does not exist or does not belong to user 3ms
+   × processBatchService > Core Lag/Sync Logic - Scenario 1: No Business Found > should create a LAG record and increment noSincronizadoCount when business does not exist 10ms
+     → Cannot read properties of undefined (reading 'successRecord')
+   × processBatchService > Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery > should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters 2ms
+     → Cannot read properties of undefined (reading 'successRecord')
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 1: No Business Found > should create a LAG record and increment noSincronizadoCount when business does not exist
+TypeError: Cannot read properties of undefined (reading 'successRecord')
+ ❯ ProcessBatchService.processBatch src/features/load-file/services/process-batch.service.ts:692:45
+    690| 
+    691|    // Actualizar estado basado en el progreso acumulado
+    692|    const totalProcessed = updatedFileImport.successRecord + updatedFil…
+       |                                             ^
+    693|    await prisma.fileImport.update({
+    694|     where: { idFileImport: fileImportId },
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts:103:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery > should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters
+TypeError: Cannot read properties of undefined (reading 'successRecord')
+ ❯ ProcessBatchService.processBatch src/features/load-file/services/process-batch.service.ts:692:45
+    690| 
+    691|    // Actualizar estado basado en el progreso acumulado
+    692|    const totalProcessed = updatedFileImport.successRecord + updatedFil…
+       |                                             ^
+    693|    await prisma.fileImport.update({
+    694|     where: { idFileImport: fileImportId },
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts:158:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  22:05:25
+   Duration  1.93s
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit
+c[3J RERUN  src/features/load-file/services/process-batch.service.ts x10 
+        Filename pattern: src/features/load-file/__tests__/process-batch.service.test.ts
+
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts (3 tests | 2 failed) 46ms
+   ✓ processBatchService > Validation & Authorization > should throw an error if FileImport does not exist or does not belong to user 13ms
+   × processBatchService > Core Lag/Sync Logic - Scenario 1: No Business Found > should create a LAG record and increment noSincronizadoCount when business does not exist 5ms
+     → Cannot read properties of undefined (reading 'successRecord')
+   × processBatchService > Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery > should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters 1ms
+     → Cannot read properties of undefined (reading 'successRecord')
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 1: No Business Found > should create a LAG record and increment noSincronizadoCount when business does not exist
+TypeError: Cannot read properties of undefined (reading 'successRecord')
+ ❯ ProcessBatchService.processBatch src/features/load-file/services/process-batch.service.ts:694:45
+    692| 
+    693|    // Actualizar estado basado en el progreso acumulado
+    694|    const totalProcessed = updatedFileImport.successRecord + updatedFil…
+       |                                             ^
+    695|    await prisma.fileImport.update({
+    696|     where: { idFileImport: fileImportId },
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts:103:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/load-file/__tests__/process-batch.service.test.ts > processBatchService > Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery > should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters
+TypeError: Cannot read properties of undefined (reading 'successRecord')
+ ❯ ProcessBatchService.processBatch src/features/load-file/services/process-batch.service.ts:694:45
+    692| 
+    693|    // Actualizar estado basado en el progreso acumulado
+    694|    const totalProcessed = updatedFileImport.successRecord + updatedFil…
+       |                                             ^
+    695|    await prisma.fileImport.update({
+    696|     where: { idFileImport: fileImportId },
+ ❯ src/features/load-file/__tests__/process-batch.service.test.ts:158:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  22:06:15
+   Duration  1.34s
+
+ FAIL  Tests failed. Watching for file changes...
+       press h to show help, press q to quit

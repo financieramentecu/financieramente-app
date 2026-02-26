@@ -1,18 +1,17 @@
 # Plan: Load File Process Refactor V2
 
 ## Context
-The application needs to process commission files from Skandia (Voluntaria and Poliza). The current implementation needs an architectural refactor to handle complex business rules, such as identifying if a business has prior commissions to determine if a record is a duplicate, a recovered lag, or a new synchronized record. Additionally, Poliza files have special rules based on the "Plan de Compensación" column that dictate the `origin_commission` and `clawback_percentage`.
+The application needs to process commission files from Skandia (Voluntaria and Poliza). The current implementation (`process-batch.service.ts`) has gaps: it loosely recovers lags but cannot detect exact duplicate commissions in the same month, does not persist the global commission percentage, and lacks the `isClawback` explicit flag for penalty policies. This requires an architectural refactor.
 
 ## Goal
-Implement a robust, rule-based batch processing engine for Skandia files. The engine must evaluate each record against existing database state to determine its exact status (SYNCHRONIZED, LAG, or ERROR) and correctly map business rules like CLAWbacks and origin derivations before calculating pre-liquidation values.
+Implement a robust, strict rule-based batch processing engine ("Rule Engine") for Skandia files. The engine must evaluate each record with mutual exclusivity based on its File Type. For Voluntarias, it establishes a strict Duplicate -> Lag Recovery -> Date evaluation hierarchy. For Polizas, it forces origin derivations (CARTERA) and explicit penalty flags (CLAW).
 
 ## Scope
-- Update the `processBatchService` (or create a V2) to support the new business logic flow.
-- Support file types: `VOLUNTARIA` and `POLIZA`.
-- Implement duplicate prevention for Voluntaria records.
-- Implement LAG recovery logic.
-- Implement Poliza-specific derivations (FRONT19_OMPEV -> CARTERA, CLAW -> Clawback percentage).
-- Fetch and apply `commission_configuration` (discount and commission percentages) at the moment of saving the record.
+- Update `process-batch.service.ts` (or create a V2) separating paths primarily by VOLUNTARIA vs POLIZA.
+- Implement exact match duplicate prevention `ERROR UI` for Voluntaria records within the same processing month/year.
+- Implement LAG recovery logic inside strict hierarchy.
+- Implement Poliza-specific derivations: `FRONT19_OMPEV` -> CARTERA, `CLAW` -> Clawback percentage + `isClawback = true`.
+- Fetch and apply universally the `commission_configuration` (`discountPercentage` and `commissionPercentage`) alongside the Contract ID in every database write.
 
 ## Non-Goals
 - Altering the Pre-liquidation calculation engine (this spec focuses only on the Load File / Sync phase).

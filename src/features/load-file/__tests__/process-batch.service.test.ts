@@ -25,6 +25,7 @@ vi.mock('@/lib/prisma', () => ({
 		business: {
 			findFirst: vi.fn(),
 		},
+		$transaction: vi.fn((callback) => callback(prisma)),
 	},
 }))
 

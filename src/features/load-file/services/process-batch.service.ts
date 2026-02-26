@@ -73,9 +73,13 @@ function parseDate(value: unknown): Date | null {
 	if (!value) return null
 	if (value instanceof Date) return value
 
-	const stringValue = String(value).trim()
+	// Limpiar caracteres no imprimibles y espacios especiales
+	const stringValue = String(value)
+		.replace(/[\u200B-\u200D\uFEFF]/g, '')
+		.trim()
 	if (!stringValue) return null
 
+	// Intentar parsear como ISO string (YYYY-MM-DD) o formatos estándar
 	const date = new Date(stringValue)
 	if (!isNaN(date.getTime())) {
 		const year = date.getFullYear()
@@ -84,6 +88,7 @@ function parseDate(value: unknown): Date | null {
 		}
 	}
 
+	// Manejo especial para números de Excel
 	if (typeof value === 'number') {
 		const excelEpoch = new Date(1900, 0, 1)
 		excelEpoch.setDate(excelEpoch.getDate() + value - 2)
@@ -92,6 +97,7 @@ function parseDate(value: unknown): Date | null {
 			return excelEpoch
 		}
 	}
+
 	return null
 }
 
@@ -185,6 +191,8 @@ async function processAndSaveRecord(
 	let com: unknown = null
 	let originCommission: string | null = null
 	let clawbackPercentage: number | string | null = null
+	let contractValue: string | null = null
+	let business: Awaited<ReturnType<typeof findBusinessByContract>> | null = null
 
 	try {
 		const columnMap = FILE_TYPE_COLUMN_MAP[fileType]
@@ -208,23 +216,29 @@ async function processAndSaveRecord(
 			? snapshots.clawbackPercentage
 			: null
 
-		const contractValue = cto ? String(cto).trim() : ''
+		contractValue = cto ? String(cto).trim() : ''
+		business = contractValue ? await findBusinessByContract(contractValue) : null
+
 		if (!contractValue) {
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					descripcion,
-					commissionValue: com ? toDecimal(com) : null,
-					commissionPercentage: null,
-					baseCommission: base ? toDecimal(base) : null,
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'ERROR',
-					isLag: true,
-					error: 'El campo Cto (ID de contrato) está vacío',
-				},
+			await prisma.$transaction(async (tx) => {
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: null,
+						contract: null,
+						descripcion,
+						commissionValue: com ? toDecimal(com) : null,
+						commissionPercentage: null,
+						baseCommission: base ? toDecimal(base) : null,
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'ERROR',
+						isLag: true,
+						error: 'El campo Cto (ID de contrato) está vacío',
+					},
+				})
 			})
 			return {
 				status: 'ERROR',
@@ -237,38 +251,42 @@ async function processAndSaveRecord(
 		const shouldValidateDates = fileType === FILE_TYPES.VOLUNTARIA
 		const desde = shouldValidateDates
 			? getColumnValue(
-					record,
-					FILE_TYPE_COLUMN_MAP[FILE_TYPES.VOLUNTARIA].desde,
-					headers
-				)
+				record,
+				FILE_TYPE_COLUMN_MAP[FILE_TYPES.VOLUNTARIA].desde,
+				headers
+			)
 			: null
 		const hasta = shouldValidateDates
 			? getColumnValue(
-					record,
-					FILE_TYPE_COLUMN_MAP[FILE_TYPES.VOLUNTARIA].hasta,
-					headers
-				)
+				record,
+				FILE_TYPE_COLUMN_MAP[FILE_TYPES.VOLUNTARIA].hasta,
+				headers
+			)
 			: null
 
 		const desdeDate = shouldValidateDates && desde ? parseDate(desde) : null
 		const hastaDate = shouldValidateDates && hasta ? parseDate(hasta) : null
 
 		if (shouldValidateDates && (!desdeDate || !hastaDate)) {
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					descripcion,
-					commissionValue: com ? toDecimal(com) : null,
-					commissionPercentage: null,
-					baseCommission: base ? toDecimal(base) : null,
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'ERROR',
-					isLag: true,
-					error: 'Las fechas Desde o Hasta están vacías o son inválidas',
-				},
+			await prisma.$transaction(async (tx) => {
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: business?.idBusiness || null,
+						contract: contractValue,
+						descripcion,
+						commissionValue: com ? toDecimal(com) : null,
+						commissionPercentage: null,
+						baseCommission: base ? toDecimal(base) : null,
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'ERROR',
+						isLag: true,
+						error: 'Las fechas Desde o Hasta están vacías o son inválidas',
+					},
+				})
 			})
 			return {
 				status: 'ERROR',
@@ -279,21 +297,25 @@ async function processAndSaveRecord(
 		}
 
 		if (isEmptyValue(base)) {
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					descripcion,
-					commissionValue: com ? toDecimal(com) : null,
-					commissionPercentage: null,
-					baseCommission: null,
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'ERROR',
-					isLag: true,
-					error: 'El campo Base es requerido',
-				},
+			await prisma.$transaction(async (tx) => {
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: business?.idBusiness || null,
+						contract: contractValue,
+						descripcion,
+						commissionValue: com ? toDecimal(com) : null,
+						commissionPercentage: null,
+						baseCommission: null,
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'ERROR',
+						isLag: true,
+						error: 'El campo Base es requerido',
+					},
+				})
 			})
 			return {
 				status: 'ERROR',
@@ -305,28 +327,32 @@ async function processAndSaveRecord(
 
 		const baseNumeric = cleanNumericValue(base)
 		if (baseNumeric === null) {
-			await logImportError({
-				auditContext,
-				record,
-				field: columnMap.base,
-				rawValue: base,
-				reason: 'Valor numérico inválido',
-			})
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					descripcion,
-					commissionValue: com ? toDecimal(com) : null,
-					commissionPercentage: null,
-					baseCommission: null,
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'ERROR',
-					isLag: true,
-					error: `Valor numérico inválido en ${columnMap.base}`,
-				},
+			await prisma.$transaction(async (tx) => {
+				await logImportError({
+					auditContext,
+					record,
+					field: columnMap.base,
+					rawValue: base,
+					reason: 'Valor numérico inválido',
+				})
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: business?.idBusiness || null,
+						contract: contractValue,
+						descripcion,
+						commissionValue: com ? toDecimal(com) : null,
+						commissionPercentage: null,
+						baseCommission: null,
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'ERROR',
+						isLag: true,
+						error: `Valor numérico inválido en ${columnMap.base}`,
+					},
+				})
 			})
 			return {
 				status: 'ERROR',
@@ -337,21 +363,25 @@ async function processAndSaveRecord(
 		}
 
 		if (isEmptyValue(com)) {
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					descripcion,
-					commissionValue: null,
-					commissionPercentage: null,
-					baseCommission: toDecimal(baseNumeric),
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'ERROR',
-					isLag: true,
-					error: 'El campo Comisión es requerido',
-				},
+			await prisma.$transaction(async (tx) => {
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: business?.idBusiness || null,
+						contract: contractValue,
+						descripcion,
+						commissionValue: null,
+						commissionPercentage: null,
+						baseCommission: toDecimal(baseNumeric),
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'ERROR',
+						isLag: true,
+						error: 'El campo Comisión es requerido',
+					},
+				})
 			})
 			return {
 				status: 'ERROR',
@@ -363,28 +393,32 @@ async function processAndSaveRecord(
 
 		const commissionNumeric = cleanNumericValue(com)
 		if (commissionNumeric === null) {
-			await logImportError({
-				auditContext,
-				record,
-				field: columnMap.commission,
-				rawValue: com,
-				reason: 'Valor numérico inválido',
-			})
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					descripcion,
-					commissionValue: null,
-					commissionPercentage: null,
-					baseCommission: toDecimal(baseNumeric),
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'ERROR',
-					isLag: true,
-					error: `Valor numérico inválido en ${columnMap.commission}`,
-				},
+			await prisma.$transaction(async (tx) => {
+				await logImportError({
+					auditContext,
+					record,
+					field: columnMap.commission,
+					rawValue: com,
+					reason: 'Valor numérico inválido',
+				})
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: business?.idBusiness || null,
+						contract: contractValue,
+						descripcion,
+						commissionValue: null,
+						commissionPercentage: null,
+						baseCommission: toDecimal(baseNumeric),
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'ERROR',
+						isLag: true,
+						error: `Valor numérico inválido en ${columnMap.commission}`,
+					},
+				})
 			})
 			return {
 				status: 'ERROR',
@@ -394,137 +428,145 @@ async function processAndSaveRecord(
 			}
 		}
 
-		const business = await findBusinessByContract(contractValue)
-
-		if (!business) {
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					descripcion,
-					commissionValue: toDecimal(commissionNumeric),
-					commissionPercentage: null,
-					baseCommission: toDecimal(baseNumeric),
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'LAG',
+		return await prisma.$transaction(async (tx) => {
+			if (!business) {
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: null,
+						contract: contractValue,
+						descripcion,
+						commissionValue: com ? toDecimal(com) : null,
+						commissionPercentage: null,
+						baseCommission: toDecimal(baseNumeric),
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'LAG',
+						isLag: true,
+					},
+				})
+				return {
+					status: 'LAG' as const,
 					isLag: true,
+					idBusiness: null,
+					recoveredLag: false,
+				}
+			}
+
+			const existingLag = await tx.settlementCommission.findFirst({
+				where: {
+					idBusiness: business.idBusiness,
+					isLag: true,
+					status: { in: ['LAG', 'REZAGADO'] },
 				},
 			})
-			return {
-				status: 'LAG',
-				isLag: true,
-				idBusiness: null,
-				recoveredLag: false,
-			}
-		}
 
-		const existingLag = await prisma.settlementCommission.findFirst({
-			where: {
-				idBusiness: business.idBusiness,
-				isLag: true,
-				status: { in: ['LAG', 'REZAGADO'] },
-			},
+			if (existingLag) {
+				await tx.settlementCommission.update({
+					where: { idSettlementCommission: existingLag.idSettlementCommission },
+					data: {
+						status: 'SYNCHRONIZED',
+						isLag: false,
+						idBusiness: business.idBusiness,
+						contract: contractValue,
+						error:
+							(existingLag.error ? existingLag.error + ' | ' : '') +
+							'Recuperado por carga posterior',
+					},
+				})
+
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: business.idBusiness,
+						contract: contractValue,
+						descripcion,
+						commissionValue: toDecimal(commissionNumeric),
+						commissionPercentage: null,
+						baseCommission: toDecimal(baseNumeric),
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'SYNCHRONIZED',
+						isLag: false,
+					},
+				})
+				return {
+					status: 'SYNCHRONIZED' as const,
+					isLag: false,
+					idBusiness: business.idBusiness,
+					recoveredLag: true,
+				}
+			}
+
+			const createdAt = business.createdAt
+			let isDateMatch = true
+			if (shouldValidateDates) {
+				isDateMatch =
+					createdAt >= (desdeDate as Date) && createdAt <= (hastaDate as Date)
+			}
+
+			if (isDateMatch) {
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: business.idBusiness,
+						contract: contractValue,
+						descripcion,
+						commissionValue: toDecimal(commissionNumeric),
+						commissionPercentage: null,
+						baseCommission: toDecimal(baseNumeric),
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'SYNCHRONIZED',
+						isLag: false,
+					},
+				})
+				return {
+					status: 'SYNCHRONIZED' as const,
+					isLag: false,
+					idBusiness: business.idBusiness,
+					recoveredLag: false,
+				}
+			} else {
+				await tx.settlementCommission.create({
+					data: {
+						idFileImport: fileImportId,
+						idBusiness: business.idBusiness,
+						contract: contractValue,
+						descripcion,
+						commissionValue: toDecimal(commissionNumeric),
+						commissionPercentage: null,
+						baseCommission: toDecimal(baseNumeric),
+						discountPercentage: snapshots.discountPercentage,
+						clawbackPercentage,
+						originCommission,
+						commissionType,
+						status: 'LAG',
+						isLag: true,
+					},
+				})
+				return {
+					status: 'LAG' as const,
+					isLag: true,
+					idBusiness: business.idBusiness,
+					recoveredLag: false,
+				}
+			}
 		})
-
-		if (existingLag) {
-			await prisma.settlementCommission.update({
-				where: { idSettlementCommission: existingLag.idSettlementCommission },
-				data: {
-					status: 'SYNCHRONIZED',
-					isLag: false,
-					idBusiness: business.idBusiness,
-					error:
-						(existingLag.error ? existingLag.error + ' | ' : '') +
-						'Recuperado por carga posterior',
-				},
-			})
-
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					idBusiness: business.idBusiness,
-					descripcion,
-					commissionValue: toDecimal(commissionNumeric),
-					commissionPercentage: null,
-					baseCommission: toDecimal(baseNumeric),
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'SYNCHRONIZED',
-					isLag: false,
-				},
-			})
-			return {
-				status: 'SYNCHRONIZED',
-				isLag: false,
-				idBusiness: business.idBusiness,
-				recoveredLag: true,
-			}
-		}
-
-		const createdAt = business.createdAt
-		let isDateMatch = true
-		if (shouldValidateDates) {
-			isDateMatch =
-				createdAt >= (desdeDate as Date) && createdAt <= (hastaDate as Date)
-		}
-
-		if (isDateMatch) {
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					idBusiness: business.idBusiness,
-					descripcion,
-					commissionValue: toDecimal(commissionNumeric),
-					commissionPercentage: null,
-					baseCommission: toDecimal(baseNumeric),
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'SYNCHRONIZED',
-					isLag: false,
-				},
-			})
-			return {
-				status: 'SYNCHRONIZED',
-				isLag: false,
-				idBusiness: business.idBusiness,
-				recoveredLag: false,
-			}
-		} else {
-			await prisma.settlementCommission.create({
-				data: {
-					idFileImport: fileImportId,
-					idBusiness: business.idBusiness,
-					descripcion,
-					commissionValue: toDecimal(commissionNumeric),
-					commissionPercentage: null,
-					baseCommission: toDecimal(baseNumeric),
-					discountPercentage: snapshots.discountPercentage,
-					clawbackPercentage,
-					originCommission,
-					commissionType,
-					status: 'LAG',
-					isLag: true,
-				},
-			})
-			return {
-				status: 'LAG',
-				isLag: true,
-				idBusiness: business.idBusiness,
-				recoveredLag: false,
-			}
-		}
 	} catch (error) {
 		console.error(`Error al procesar registro fila ${record.rowNumber}:`, error)
 		try {
 			await prisma.settlementCommission.create({
 				data: {
 					idFileImport: fileImportId,
+					idBusiness: business?.idBusiness || null,
+					contract: contractValue,
 					descripcion,
 					commissionValue: com ? toDecimal(com) : null,
 					commissionPercentage: null,
@@ -599,14 +641,17 @@ export class ProcessBatchService {
 				: Number(activeConfig.clawbackPercentage)
 			: DEFAULT_CLAWBACK_PERCENTAGE
 
-		const totalRecords = records.length
-		let sincronizadoCount = 0
-		let rezagadoCount = 0
-		let noSincronizadoCount = 0
-		let errorCount = 0
+		let sincronizadoTotal = 0
+		let rezagadoTotal = 0
+		let noSincronizadoTotal = 0
+		let errorTotal = 0
 
 		for (let i = 0; i < records.length; i += batchSize) {
 			const batch = records.slice(i, i + batchSize)
+			let sincronizadoBatch = 0
+			let rezagadoBatch = 0
+			let noSincronizadoBatch = 0
+			let errorBatch = 0
 
 			for (const record of batch) {
 				const result = await processAndSaveRecord(
@@ -619,54 +664,59 @@ export class ProcessBatchService {
 				)
 
 				if (result.status === 'ERROR') {
-					errorCount++
+					errorBatch++
 				} else if (result.status === 'LAG' && !result.idBusiness) {
-					noSincronizadoCount++
+					noSincronizadoBatch++
 				} else if (result.status === 'LAG' && result.idBusiness) {
-					rezagadoCount++
+					rezagadoBatch++
 				} else if (result.status === 'SYNCHRONIZED') {
-					sincronizadoCount++
+					sincronizadoBatch++
 					if (result.recoveredLag) {
-						rezagadoCount++
+						rezagadoBatch++
 					}
 				}
 			}
 
+			// Actualizar progreso en la base de datos usando incrementos atómicos
+			const updatedFileImport = await prisma.fileImport.update({
+				where: { idFileImport: fileImportId },
+				data: {
+					totalRecord: { increment: batch.length },
+					sincronizadoRecord: { increment: sincronizadoBatch },
+					rezagadoRecord: { increment: rezagadoBatch },
+					noSincronizadoRecord: { increment: noSincronizadoBatch },
+					errorRecord: { increment: errorBatch },
+					successRecord: {
+						increment: sincronizadoBatch + rezagadoBatch + noSincronizadoBatch
+					},
+				},
+			})
+
+			// Actualizar estado basado en el progreso acumulado
+			const totalProcessed = updatedFileImport.successRecord + updatedFileImport.errorRecord
 			await prisma.fileImport.update({
 				where: { idFileImport: fileImportId },
 				data: {
-					totalRecord: totalRecords,
-					successRecord:
-						sincronizadoCount + rezagadoCount + noSincronizadoCount,
-					errorRecord: errorCount,
-					sincronizadoRecord: sincronizadoCount,
-					rezagadoRecord: rezagadoCount,
-					noSincronizadoRecord: noSincronizadoCount,
-					status: 'LOAD', // Always LOAD regardless of completion point inside batches to match definition
-				},
+					status: updatedFileImport.successRecord === 0 && totalProcessed > 0
+						? 'ERROR'
+						: 'LOAD'
+				}
 			})
-		}
 
-		await prisma.fileImport.update({
-			where: { idFileImport: fileImportId },
-			data: {
-				totalRecord: totalRecords,
-				successRecord: sincronizadoCount + rezagadoCount + noSincronizadoCount,
-				errorRecord: errorCount,
-				sincronizadoRecord: sincronizadoCount,
-				rezagadoRecord: rezagadoCount,
-				noSincronizadoRecord: noSincronizadoCount,
-				status: 'LOAD',
-			},
-		})
+			// Acumular para el summary de retorno
+			sincronizadoTotal += sincronizadoBatch
+			rezagadoTotal += rezagadoBatch
+			noSincronizadoTotal += noSincronizadoBatch
+			errorTotal += errorBatch
+		}
 
 		return {
 			summary: {
-				total: totalRecords,
-				sincronizado: sincronizadoCount,
-				rezagado: rezagadoCount,
-				noSincronizado: noSincronizadoCount,
-				error: errorCount,
+				total: sincronizadoTotal + rezagadoTotal + noSincronizadoTotal + errorTotal,
+				sincronizado: sincronizadoTotal,
+				rezagado: rezagadoTotal,
+				noSincronizado: noSincronizadoTotal,
+				error: errorTotal,
 			},
 		}
 	}

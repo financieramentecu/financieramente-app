@@ -101,7 +101,7 @@ export function HistorialCargasTab() {
 					color: '#991b1b',
 					border: '1px solid #fca5a5',
 				}
-			case 'PROCESANDO':
+			case 'PROCESSING':
 				return {
 					backgroundColor: '#dbeafe',
 					color: '#1e40af',
@@ -191,7 +191,7 @@ export function HistorialCargasTab() {
 								<SelectItem value="COMPLETED">Completado</SelectItem>
 								<SelectItem value="PARCIAL">Parcial</SelectItem>
 								<SelectItem value="ERROR">Error</SelectItem>
-								<SelectItem value="PROCESANDO">Procesando</SelectItem>
+								<SelectItem value="PROCESSING">Procesando</SelectItem>
 								<SelectItem value="CANCELADO">Cancelado</SelectItem>
 								<SelectItem value="PRE-SETTLED">Pre-liquidado</SelectItem>
 							</SelectContent>
