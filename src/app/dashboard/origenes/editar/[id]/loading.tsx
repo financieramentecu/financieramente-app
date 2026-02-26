@@ -1,5 +1,5 @@
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
-import { EditClientOriginFormSkeleton } from '@/features/origin-client/components/client-origin-form-skeleton'
+import { EditClientOriginFormSkeleton } from '@/features/origins/components/client-origin-form-skeleton'
 
 /**
  * Loading state para la página de edición de origen de cliente

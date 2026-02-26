@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET, POST } from '../route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { createClientOriginSchema } from '@/features/origin-client/lib/client-origin-schemas'
+import { createClientOriginSchema } from '@/features/origins/lib/client-origin-schemas'
 import {
 	prismaClientOriginToClientOrigin,
 	prismaClientOriginListToClientOrigins,
-} from '@/features/origin-client/mappers/prisma.mapper'
+} from '@/features/origins/mappers/prisma.mapper'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
-import { createMockPrismaClientOrigin } from '@/features/origin-client/__tests__/fixtures/mock-client-origin'
+import { createMockPrismaClientOrigin } from '@/features/origins/__tests__/fixtures/mock-client-origin'
 
 // Mock de módulos externos
 vi.mock('@/auth')
@@ -23,12 +23,12 @@ vi.mock('@/lib/prisma', () => ({
 		},
 	},
 }))
-vi.mock('@/features/origin-client/lib/client-origin-schemas', () => ({
+vi.mock('@/features/origins/lib/client-origin-schemas', () => ({
 	createClientOriginSchema: {
 		parse: vi.fn(),
 	},
 }))
-vi.mock('@/features/origin-client/mappers/prisma.mapper')
+vi.mock('@/features/origins/mappers/prisma.mapper')
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
