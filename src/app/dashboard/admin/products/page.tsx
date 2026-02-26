@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { Button } from '@/features/shared/ui/button'
@@ -11,43 +11,31 @@ import {
 import { DeleteConfirmModal } from '@/features/admin/shared/DeleteConfirmModal'
 import { ProductsTable } from '@/features/admin/products/components/products-table'
 import { ProductFilters } from '@/features/admin/products/components/product-filters'
-import { useProducts } from '@/features/admin/products/hooks/use-products'
+import { useProducts, useActiveCompanies } from '@/features/admin/products/hooks/use-products'
 import { useProductMutations } from '@/features/admin/products/hooks/use-product-mutations'
-import { productApi } from '@/features/admin/products/lib/product-api'
 import {
 	createProductSchema,
 	updateProductSchema,
-} from '@/features/admin/products/lib/product-schemas'
+} from '@/features/product/lib/product-schemas'
 import type {
 	Product,
 	ProductFilters as ProductFiltersType,
-	CompanyOption,
-} from '@/features/admin/products/types/product.types'
+} from '@/features/product/types/product.types'
 
 export default function ProductsAdminPage() {
-	const [companies, setCompanies] = useState<CompanyOption[]>([])
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 	const [mode, setMode] = useState<'create' | 'edit'>('create')
 	const [filters, setFilters] = useState<ProductFiltersType>({})
 
-	const { products, isLoading, refreshProducts } = useProducts(filters)
-	const { createProduct, updateProduct, deleteProduct, isSubmitting } =
-		useProductMutations()
+	const { state: productsState, refetch: refreshProducts } = useProducts(filters)
+	const { state: companiesState } = useActiveCompanies()
+	const { create, update, remove, isSubmitting } = useProductMutations()
 
-	useEffect(() => {
-		loadCompanies()
-	}, [])
-
-	const loadCompanies = async () => {
-		try {
-			const companiesData = await productApi.getActiveCompanies()
-			setCompanies(companiesData)
-		} catch (error) {
-			console.error('Error loading companies:', error)
-		}
-	}
+	const products = productsState.data || []
+	const isLoading = productsState.status === 'loading'
+	const companies = useMemo(() => companiesState.data || [], [companiesState.data])
 
 	const handleCreate = () => {
 		setSelectedProduct(null)
@@ -67,47 +55,44 @@ export default function ProductsAdminPage() {
 	}
 
 	const handleSubmit = async (formData: Record<string, unknown>) => {
-		try {
-			if (mode === 'create') {
-				await createProduct({
-					name: formData.name as string,
-					description: formData.description as string | undefined,
-					idCompany: Number(formData.idCompany),
-					idTypeProduct: formData.idTypeProduct
-						? Number(formData.idTypeProduct)
-						: undefined,
-					status: formData.status as boolean,
-				})
-			} else if (selectedProduct) {
-				await updateProduct(selectedProduct.idProduct, {
-					name: formData.name as string,
-					description: formData.description as string | undefined,
-					idCompany: Number(formData.idCompany),
-					idTypeProduct: formData.idTypeProduct
-						? Number(formData.idTypeProduct)
-						: undefined,
-					status: formData.status as boolean,
-				})
-			}
+		let result;
+		if (mode === 'create') {
+			result = await create({
+				name: formData.name as string,
+				description: formData.description as string | undefined,
+				idCompany: Number(formData.idCompany),
+				idTypeProduct: formData.idTypeProduct
+					? Number(formData.idTypeProduct)
+					: undefined,
+				status: formData.status as boolean,
+			})
+		} else if (selectedProduct) {
+			result = await update(selectedProduct.idProduct, {
+				name: formData.name as string,
+				description: formData.description as string | undefined,
+				idCompany: Number(formData.idCompany),
+				idTypeProduct: formData.idTypeProduct
+					? Number(formData.idTypeProduct)
+					: undefined,
+				status: formData.status as boolean,
+			})
+		}
 
+		if (result?.success) {
 			setIsModalOpen(false)
 			setSelectedProduct(null)
 			refreshProducts()
-		} catch {
-			// Error ya manejado en el hook
 		}
 	}
 
 	const handleDeleteConfirm = async () => {
 		if (!selectedProduct) return
 
-		try {
-			await deleteProduct(selectedProduct.idProduct)
+		const result = await remove(selectedProduct.idProduct)
+		if (result.success) {
 			setIsDeleteModalOpen(false)
 			setSelectedProduct(null)
 			refreshProducts()
-		} catch {
-			// Error ya manejado en el hook
 		}
 	}
 

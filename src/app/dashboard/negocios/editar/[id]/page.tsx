@@ -9,7 +9,7 @@ import { businessWithRelations } from '@/features/negocios/types/business-entity
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { UserRole } from '@/features/auth/lib/roles'
 import { getCompanies } from '@/features/admin/companies/lib/company-api'
-import { getProducts } from '@/features/admin/products/lib/product-api'
+import { getProducts } from '@/features/product/lib/product-api'
 import { getPeriodicities } from '@/features/admin/periodicities/lib/periodicity-api'
 import { getCurrencies } from '@/features/admin/currencies/lib/currency-api'
 import { getClientOrigins } from '@/features/origins/lib/origins-api'
