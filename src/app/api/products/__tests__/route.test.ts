@@ -96,7 +96,7 @@ describe('GET /api/products', () => {
 			expect(mockPrismaCount).toHaveBeenCalledWith({ where: {} })
 			expect(mockPrismaFindMany).toHaveBeenCalledWith({
 				where: {},
-				include: { company: true },
+				include: { company: true, typeProduct: true },
 				orderBy: { name: 'asc' },
 				skip: 0,
 				take: 10,
@@ -130,7 +130,7 @@ describe('GET /api/products', () => {
 
 			expect(mockPrismaFindMany).toHaveBeenCalledWith({
 				where: {},
-				include: { company: true },
+				include: { company: true, typeProduct: true },
 				orderBy: { name: 'asc' },
 				skip: 5, // (page - 1) * pageSize = (2 - 1) * 5 = 5
 				take: 5,
@@ -426,14 +426,8 @@ describe('POST /api/products', () => {
 				},
 			})
 			expect(mockPrismaCreate).toHaveBeenCalledWith({
-				data: {
-					name: 'Seguro de vida',
-					idCompany: 1,
-					status: true,
-				},
-				include: {
-					company: true,
-				},
+				data: { name: 'Seguro de vida', idCompany: 1, status: true, description: null, idTypeProduct: null },
+				include: { company: true, typeProduct: true },
 			})
 			expect(mockLogAuditEvent).toHaveBeenCalledWith({
 				userId: 1,
@@ -484,14 +478,8 @@ describe('POST /api/products', () => {
 			await POST(request)
 
 			expect(mockPrismaCreate).toHaveBeenCalledWith({
-				data: {
-					name: 'Seguro de salud',
-					idCompany: 1,
-					status: true,
-				},
-				include: {
-					company: true,
-				},
+				data: { name: 'Seguro de salud', idCompany: 1, status: true, description: null, idTypeProduct: null },
+				include: { company: true, typeProduct: true },
 			})
 		})
 	})
