@@ -36,7 +36,7 @@ import { useLeaders, type Leader } from '../hooks/use-leaders'
 import { useUserAccessValidation } from '../hooks/use-user-access-validation'
 import { isDefaultRole } from '../utils/user-access.utils'
 import { updateUserSchema } from '../lib/user-schemas'
-import { useCategories } from '@/features/admin/categories/hooks/use-categories'
+import { useAdminCategories as useCategories } from '@/features/categories/hooks/use-admin-categories'
 import {
     UI_TEXT,
     WARNING_MESSAGES,

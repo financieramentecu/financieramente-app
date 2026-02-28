@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { categoryApi } from '../lib/category-api'
-import type { Category, CategoryFilters } from '@/features/categories/types/category.types'
+import type { Category, CategoryFilters } from '../types/category.types'
 
-export function useCategories(filters?: CategoryFilters) {
+export function useAdminCategories(filters?: CategoryFilters) {
 	const [categories, setCategories] = useState<Category[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<Error | null>(null)
@@ -18,12 +18,20 @@ export function useCategories(filters?: CategoryFilters) {
 		try {
 			setIsLoading(true)
 			setError(null)
-			const data = await categoryApi.getCategories(filters)
-			setCategories(data)
+			const response = await categoryApi.getCategories({
+				...filters,
+				pageSize: 1000,
+			})
+
+			if ('error' in response && response.error) {
+				setError(new Error(response.error))
+				return
+			}
+
+			setCategories(response.data?.categories ?? [])
 		} catch (err) {
 			const error = err instanceof Error ? err : new Error('Error desconocido')
 			setError(error)
-			console.error('Error loading categories:', error)
 		} finally {
 			setIsLoading(false)
 		}

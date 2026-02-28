@@ -20,7 +20,7 @@ const CATEGORY_LABELS: Record<Category['typeCategory'], string> = {
 	TRINITY: 'Trinity',
 }
 
-export function CategoriesTable({
+export function AdminCategoriesTable({
 	categories,
 	isLoading,
 	onEdit,
