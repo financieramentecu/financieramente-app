@@ -1,6 +1,6 @@
 import React from 'react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
-import { getCompanies } from '@/features/admin/companies/lib/company-api'
+import { getCompanies } from '@/features/company/lib/company-api'
 import { unstable_cache } from 'next/cache'
 import BusinessWrapper from '@/features/negocios/components/business-wrapper'
 import { getProducts } from '@/features/product/lib/product-api'

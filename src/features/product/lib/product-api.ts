@@ -239,16 +239,18 @@ export const productApi = {
 				},
 			})
 
-			const data: ApiResponse<CompanyOption[]> = await response.json()
+			const result = await response.json()
 
 			if (!response.ok) {
 				return {
 					data: null,
-					error: 'error' in data ? data.error : 'Error al obtener compañías',
+					error: result.error ?? 'Error al obtener compañías',
 				}
 			}
 
-			return data
+			// API returns ApiResponse<CompanyListResponse> with { data: { companies, pagination } }
+			const companies: CompanyOption[] = result.data?.companies ?? []
+			return { data: companies }
 		} catch (error) {
 			return {
 				data: null,

@@ -8,7 +8,7 @@ import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-ent
 import { businessWithRelations } from '@/features/negocios/types/business-entity.types'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { UserRole } from '@/features/auth/lib/roles'
-import { getCompanies } from '@/features/admin/companies/lib/company-api'
+import { getCompanies } from '@/features/company/lib/company-api'
 import { getProducts } from '@/features/product/lib/product-api'
 import { getPeriodicities } from '@/features/admin/periodicities/lib/periodicity-api'
 import { getCurrencies } from '@/features/admin/currencies/lib/currency-api'

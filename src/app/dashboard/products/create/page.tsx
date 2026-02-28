@@ -1,7 +1,7 @@
 import { auth } from '@/auth'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { ProductCreateClient } from './product-create-client'
-import { getCompanies } from '@/features/admin/companies/lib/company-api'
+import { getCompanies } from '@/features/company/lib/company-api'
 import type { CompanyOption } from '@/features/product/types/product.types'
 
 /**
