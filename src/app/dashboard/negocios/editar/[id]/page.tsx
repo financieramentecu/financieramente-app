@@ -1,15 +1,13 @@
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
 import { notFound, redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { EditBusinessFormContainer } from '@/features/negocios/components/containers/EditBusinessFormContainer'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
-import { businessWithRelations } from '@/features/negocios/types/business-entity.types'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/features/auth/lib/roles'
 import { getCompanies } from '@/features/company/lib/company-api'
 import { getProducts } from '@/features/product/lib/product-api'
+import { getBusinessById } from '@/features/negocios/services/business.service'
 import { getPeriodicities } from '@/features/admin/periodicities/lib/periodicity-api'
 import { getCurrencies } from '@/features/admin/currencies/lib/currency-api'
 import { getClientOrigins } from '@/features/origins/lib/origins-api'
@@ -79,17 +77,8 @@ export default async function EditarNegocioPage({ params }: PageProps) {
 		redirect('/login')
 	}
 
-	// Verificar acceso según rol
-	const isAgent = currentUser.role?.code === UserRole.AGENTE
-	const whereClause = isAgent
-		? { idBusiness: businessId, idUser: currentUser.idUser }
-		: { idBusiness: businessId }
-
-	// Obtener negocio con relaciones
-	const prismaBusiness = await prisma.business.findFirst({
-		where: whereClause,
-		include: businessWithRelations,
-	})
+	// Obtener negocio con relaciones a través del servicio
+	const prismaBusiness = await getBusinessById(businessId, currentUser)
 
 	if (!prismaBusiness) {
 		console.log(

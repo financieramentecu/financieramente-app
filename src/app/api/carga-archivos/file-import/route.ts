@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
-import { FILE_TYPES, type FileType } from '@/app/dashboard/carga-archivos/lib/file-types'
+import { FILE_TYPES, type FileType } from '@/features/load-file/lib/file-types'
+import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import type {
+	FileImportHistory,
+	PaginatedData,
+} from '@/features/load-file/types/load-file.types'
 
 export async function POST(request: NextRequest) {
 	try {
@@ -57,12 +62,10 @@ export async function POST(request: NextRequest) {
 			},
 		})
 
-		return NextResponse.json({ fileImport }, { status: 201 })
+		return NextResponse.json({ data: { fileImport } }, { status: 201 })
 	} catch (error) {
 		console.error('Error al crear FileImport:', error)
-		return NextResponse.json(
-			{ status: 500 }
-		)
+		return NextResponse.json({ status: 500 })
 	}
 }
 
@@ -90,14 +93,30 @@ export async function GET() {
 			},
 		})
 
-		return NextResponse.json(fileImports)
+		return NextResponse.json(
+			{
+				data: {
+					items: fileImports as unknown as FileImportHistory[],
+					pagination: {
+						page: 1,
+						pageSize: fileImports.length,
+						totalItems: fileImports.length,
+						totalPages: 1,
+					},
+				},
+			} satisfies ApiResponse<PaginatedData<FileImportHistory>>,
+			{ status: 200 }
+		)
 	} catch (error) {
 		console.error('Error al obtener historial:', error)
 		return NextResponse.json(
 			{
-				error: 'Error al obtener historial',
-				details: error instanceof Error ? error.message : 'Error desconocido',
-			},
+				data: null,
+				error:
+					error instanceof Error
+						? error.message
+						: 'Error desconocido al obtener historial',
+			} satisfies ApiResponse<null>,
 			{ status: 500 }
 		)
 	}

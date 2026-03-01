@@ -6,10 +6,12 @@ import { AlertModal } from '@/features/shared/ui/modal'
 import { FileUp, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { validateExcelStructure } from '../lib/validate-excel-structure'
-import { processExcelFile, ProcessResult } from '../lib/process-excel-file'
+import { processExcelFile } from '../lib/process-excel-file'
 import { FILE_TYPES, type FileType } from '../lib/file-types'
 import { ProcessingSummary } from './ProcessingSummary'
 import { ProcessingProgress } from './ProcessingProgress'
+import { loadFileApi } from '../lib/load-file-api'
+import type { ProcessResult } from '../types/load-file.types'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const ACCEPTED_FILE_TYPES = [
@@ -145,9 +147,7 @@ export function CargarArchivoTab() {
 		}
 	}
 
-	const handleFileInputChange = (
-		e: React.ChangeEvent<HTMLInputElement>
-	) => {
+	const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files
 		if (files && files.length > 0) {
 			handleFileSelect(files[0])
@@ -230,24 +230,19 @@ export function CargarArchivoTab() {
 			if (abortControllerRef.current?.signal.aborted) return
 
 			// Crear FileImport
-			const fileImportResponse = await fetch(
-				'/api/carga-archivos/file-import',
-				{
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						fileName: selectedFile.name,
-						fileType: selectedFileType,
-					}),
-					signal: abortControllerRef.current?.signal,
-				}
+			const initiateResponse = await loadFileApi.initiateImport(
+				selectedFile.name,
+				selectedFileType,
+				{ signal: abortControllerRef.current?.signal }
 			)
 
-			if (!fileImportResponse.ok) {
-				throw new Error('Error al crear registro de importación')
+			if ('error' in initiateResponse || !initiateResponse.data) {
+				throw new Error(
+					initiateResponse.error || 'Error al crear registro de importación'
+				)
 			}
 
-			const { fileImport } = await fileImportResponse.json()
+			const fileImport = initiateResponse.data.fileImport
 
 			// Procesar y guardar registros válidos con progreso
 			if (result.validRecords.length > 0) {
@@ -263,11 +258,13 @@ export function CargarArchivoTab() {
 				const pollProgress = (fileImportId: number): void => {
 					pollIntervalRef.current = setInterval(async () => {
 						try {
-							const progressResponse = await fetch(
-								`/api/carga-archivos/file-import/${fileImportId}`
+							const progressResponse = await loadFileApi.getImportProgress(
+								fileImportId,
+								{ signal: abortControllerRef.current?.signal }
 							)
-							if (progressResponse.ok) {
-								const fileImportData = await progressResponse.json()
+
+							if (!('error' in progressResponse) && progressResponse.data) {
+								const fileImportData = progressResponse.data
 								setProcessingProgress((prev) => {
 									if (!prev) return null
 									return {
@@ -280,8 +277,9 @@ export function CargarArchivoTab() {
 
 								// Si está completado, detener polling
 								if (
-									fileImportData.status === 'COMPLETADO' ||
-									fileImportData.status === 'CANCELADO'
+									fileImportData.status === 'COMPLETED' ||
+									fileImportData.status === 'CANCELADO' ||
+									fileImportData.status === 'LOAD'
 								) {
 									if (pollIntervalRef.current) {
 										clearInterval(pollIntervalRef.current)
@@ -323,24 +321,21 @@ export function CargarArchivoTab() {
 					const recordsBatch = result.validRecords.slice(i, i + BATCH_SIZE)
 
 					// Llamar a la API para procesar este lote
-					const processResponse = await fetch(
-						'/api/carga-archivos/process-batch',
+					const processResponse = await loadFileApi.processBatch(
 						{
-							method: 'POST',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({
-								fileImportId: fileImport.idFileImport,
-								records: recordsBatch,
-								headers: result.headers,
-								batchSize: BATCH_SIZE,
-								fileType: selectedFileType,
-							}),
-							signal: abortControllerRef.current?.signal,
-						}
+							fileImportId: fileImport.idFileImport,
+							records: recordsBatch,
+							headers: result.headers,
+							batchSize: BATCH_SIZE,
+							fileType: selectedFileType,
+						},
+						{ signal: abortControllerRef.current?.signal }
 					)
 
-					if (!processResponse.ok) {
-						throw new Error(`Error al procesar lote ${i} - ${i + BATCH_SIZE}`)
+					if ('error' in processResponse) {
+						throw new Error(
+							`Error al procesar lote ${i} - ${i + BATCH_SIZE}: ${processResponse.error}`
+						)
 					}
 
 					processedCount += recordsBatch.length

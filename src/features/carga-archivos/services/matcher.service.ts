@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 
 /**
- * Busca un Business por contract
+ * Busca un Business por contract (Server-side)
  * @param contract - ID del contrato (Cto del Excel)
  * @returns Business encontrado o null
  */
@@ -13,7 +13,7 @@ export async function findBusinessByContract(
 	}
 
 	try {
-		const business = await prisma.business.findFirst({
+		return prisma.business.findFirst({
 			where: {
 				contract: contract.trim(),
 			},
@@ -22,11 +22,8 @@ export async function findBusinessByContract(
 				createdAt: true,
 			},
 		})
-
-		return business
 	} catch (error) {
-		console.error('Error al buscar Business:', error)
+		console.error('Error al buscar Business by contract:', error)
 		return null
 	}
 }
-
