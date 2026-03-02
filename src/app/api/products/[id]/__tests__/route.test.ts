@@ -89,7 +89,7 @@ describe('GET /api/products/[id]', () => {
 
 			expect(mockPrismaFindUnique).toHaveBeenCalledWith({
 				where: { idProduct: 1 },
-				include: { company: true },
+				include: { company: true, typeProduct: true },
 			})
 			expect(mockPrismaProductToProduct).toHaveBeenCalledWith(mockProduct)
 			expect(response.status).toBe(200)
@@ -209,14 +209,14 @@ describe('PUT /api/products/[id]', () => {
 			expect(mockUpdateProductSchema.parse).toHaveBeenCalledWith(requestBody)
 			expect(mockPrismaFindUnique).toHaveBeenCalledWith({
 				where: { idProduct: 1 },
-				include: { company: true },
+				include: { company: true, typeProduct: true },
 			})
 			expect(mockPrismaUpdate).toHaveBeenCalledWith({
 				where: { idProduct: 1 },
 				data: expect.objectContaining({
 					name: 'Seguro de salud actualizado',
 				}),
-				include: { company: true },
+				include: { company: true, typeProduct: true },
 			})
 			expect(mockLogAuditEvent).toHaveBeenCalled()
 			expect(response.status).toBe(200)
@@ -265,7 +265,7 @@ describe('PUT /api/products/[id]', () => {
 				data: {
 					status: false,
 				},
-				include: { company: true },
+				include: { company: true, typeProduct: true },
 			})
 		})
 
@@ -312,7 +312,7 @@ describe('PUT /api/products/[id]', () => {
 				data: {
 					idCompany: 2,
 				},
-				include: { company: true },
+				include: { company: true, typeProduct: true },
 			})
 		})
 	})
@@ -729,7 +729,7 @@ describe('DELETE /api/products/[id]', () => {
 			expect(mockAuth).toHaveBeenCalledTimes(1)
 			expect(mockPrismaFindUnique).toHaveBeenCalledWith({
 				where: { idProduct: 1 },
-				include: { company: true },
+				include: { company: true, typeProduct: true },
 			})
 			expect(mockProductConfigurationFindFirst).toHaveBeenCalledWith({
 				where: { idProduct: 1 },

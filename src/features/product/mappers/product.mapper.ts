@@ -6,9 +6,10 @@
 import type { Product } from '../types/product.types'
 import type { Prisma } from '@prisma/client'
 
-type PrismaProductWithCompany = Prisma.ProductGetPayload<{
+type PrismaProductWithRelations = Prisma.ProductGetPayload<{
 	include: {
 		company: true
+		typeProduct: true
 	}
 }>
 
@@ -22,17 +23,18 @@ type PrismaProductWithCompany = Prisma.ProductGetPayload<{
  * ```typescript
  * const prismaProduct = await prisma.product.findUnique({
  *   where: { idProduct: 1 },
- *   include: { company: true },
+ *   include: { company: true, typeProduct: true },
  * })
  * const product = prismaProductToProduct(prismaProduct)
  * ```
  */
 export function prismaProductToProduct(
-	prisma: PrismaProductWithCompany
+	prisma: PrismaProductWithRelations
 ): Product {
 	return {
 		idProduct: prisma.idProduct,
 		idCompany: prisma.idCompany,
+		idTypeProduct: prisma.idTypeProduct,
 		name: prisma.name,
 		description: prisma.description,
 		status: prisma.status,
@@ -42,6 +44,12 @@ export function prismaProductToProduct(
 			idCompany: prisma.company.idCompany,
 			name: prisma.company.name,
 		},
+		typeProduct: prisma.typeProduct
+			? {
+					idTypeProduct: prisma.typeProduct.idTypeProduct,
+					name: prisma.typeProduct.name,
+				}
+			: null,
 	}
 }
 
@@ -49,7 +57,7 @@ export function prismaProductToProduct(
  * Transforma una lista de Product de Prisma a Product[]
  */
 export function prismaProductListToProducts(
-	prismaList: PrismaProductWithCompany[]
+	prismaList: PrismaProductWithRelations[]
 ): Product[] {
 	return prismaList.map(prismaProductToProduct)
 }

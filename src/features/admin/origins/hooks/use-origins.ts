@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
-import { originApi } from '../lib/origin-api'
+import { originsApi } from '@/features/origins/lib/origins-api'
 import type {
 	ProductOrigin,
 	ClientOrigin,
@@ -10,7 +11,7 @@ import type {
 	UpdateProductOriginInput,
 	CreateClientOriginInput,
 	UpdateClientOriginInput,
-} from '../types/origin.types'
+} from '@/features/origins/types/origins.types'
 
 /**
  * Hook para obtener la lista de orígenes de producto
@@ -39,7 +40,7 @@ export function useProductOrigins() {
 		setState({ status: 'loading', data: undefined, error: '' })
 
 		try {
-			const origins = await originApi.getProductOrigins()
+			const origins = await originsApi.getProductOrigins()
 			setState({
 				status: 'success',
 				data: origins,
@@ -95,12 +96,20 @@ export function useClientOrigins() {
 		setState({ status: 'loading', data: undefined, error: '' })
 
 		try {
-			const origins = await originApi.getClientOrigins()
-			setState({
-				status: 'success',
-				data: origins,
-				error: '',
-			})
+			const response = await originsApi.getClientOrigins()
+			if ('data' in response && response.data) {
+				setState({
+					status: 'success',
+					data: response.data.origins,
+					error: '',
+				})
+			} else {
+				setState({
+					status: 'error',
+					data: undefined,
+					error: (response as any).error || 'Error al obtener orígenes',
+				})
+			}
 		} catch (error) {
 			console.error('Error al obtener orígenes de cliente:', error)
 			setState({
@@ -135,7 +144,7 @@ export function useProductOriginMutations() {
 	const create = useCallback(async (data: CreateProductOriginInput) => {
 		setIsSubmitting(true)
 		try {
-			const result = await originApi.createProductOrigin(data)
+			const result = await originsApi.createProductOrigin(data)
 			return { success: true, data: result }
 		} catch (error) {
 			return {
@@ -154,7 +163,7 @@ export function useProductOriginMutations() {
 		async (id: number, data: UpdateProductOriginInput) => {
 			setIsSubmitting(true)
 			try {
-				const result = await originApi.updateProductOrigin(id, data)
+				const result = await originsApi.updateProductOrigin(id, data)
 				return { success: true, data: result }
 			} catch (error) {
 				return {
@@ -174,7 +183,7 @@ export function useProductOriginMutations() {
 	const remove = useCallback(async (id: number) => {
 		setIsSubmitting(true)
 		try {
-			await originApi.deleteProductOrigin(id)
+			await originsApi.deleteProductOrigin(id)
 			return { success: true }
 		} catch (error) {
 			return {
@@ -208,8 +217,11 @@ export function useClientOriginMutations() {
 	const create = useCallback(async (data: CreateClientOriginInput) => {
 		setIsSubmitting(true)
 		try {
-			const result = await originApi.createClientOrigin(data)
-			return { success: true, data: result }
+			const result = await originsApi.createClientOrigin(data)
+			if ('error' in result) {
+				return { success: false, error: result.error }
+			}
+			return { success: true, data: result.data }
 		} catch (error) {
 			return {
 				success: false,
@@ -227,8 +239,11 @@ export function useClientOriginMutations() {
 		async (id: number, data: UpdateClientOriginInput) => {
 			setIsSubmitting(true)
 			try {
-				const result = await originApi.updateClientOrigin(id, data)
-				return { success: true, data: result }
+				const result = await originsApi.updateClientOrigin(id, data)
+				if ('error' in result) {
+					return { success: false, error: result.error }
+				}
+				return { success: true, data: result.data }
 			} catch (error) {
 				return {
 					success: false,
@@ -247,7 +262,10 @@ export function useClientOriginMutations() {
 	const remove = useCallback(async (id: number) => {
 		setIsSubmitting(true)
 		try {
-			await originApi.deleteClientOrigin(id)
+			const result = await originsApi.deleteClientOrigin(id)
+			if ('error' in result) {
+				return { success: false, error: result.error }
+			}
 			return { success: true }
 		} catch (error) {
 			return {

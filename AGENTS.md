@@ -163,3 +163,4 @@ Before creating a PR:
 - **Responsibility split**: Actions = input validation, error messages, response shape. Services = database queries, domain logic that touches Prisma.
 
 See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed architecture guidelines.
+- Git: Use Git Flow (feature/, bugfix/, audit/, hotfix/). Branch from 'develop'. Commits MUST follow Conventional Commits (feat:, fix:, chore:, docs:, refactor:, audit:). PRs must use the provided template.

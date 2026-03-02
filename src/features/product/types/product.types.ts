@@ -5,6 +5,7 @@
 export interface Product extends Record<string, unknown> {
 	readonly idProduct: number
 	readonly idCompany: number
+	readonly idTypeProduct: number | null
 	name: string
 	description: string | null
 	status: boolean
@@ -14,23 +15,32 @@ export interface Product extends Record<string, unknown> {
 		readonly idCompany: number
 		name: string
 	}
+	typeProduct: {
+		readonly idTypeProduct: number
+		name: string
+	} | null
 }
 
 export interface ProductFilters {
 	search?: string
 	status?: string
 	idCompany?: number
+	companyId?: string // Alias for admin compatibility
 }
 
 export interface CreateProductInput {
 	name: string
 	idCompany: number
+	idTypeProduct?: number
+	description?: string
 	status: boolean
 }
 
 export interface UpdateProductInput {
 	name?: string
 	idCompany?: number
+	idTypeProduct?: number
+	description?: string
 	status?: boolean
 }
 

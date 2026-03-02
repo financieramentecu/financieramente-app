@@ -1,3 +1,5 @@
+import { prisma } from '@/lib/prisma'
+import type { Product as PrismaProduct } from '@prisma/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
 	Product,
@@ -5,9 +7,30 @@ import type {
 	CreateProductInput,
 	UpdateProductInput,
 	ProductListResponse,
+	CompanyOption,
 } from '../types/product.types'
 
 /**
+ * --- SERVER-SIDE FUNCTIONS ---
+ * Use these in Server Components and API Routes.
+ */
+
+/**
+ * Server-side function to get active products.
+ */
+export async function getProducts(): Promise<PrismaProduct[]> {
+	return await prisma.product.findMany({
+		where: {
+			status: true,
+		},
+		orderBy: {
+			name: 'asc',
+		},
+	})
+}
+
+/**
+ * --- CLIENT-SIDE API ---
  * Cliente API para productos
  * Retorna ApiResponse<T> según el estándar del proyecto
  */
@@ -22,8 +45,13 @@ export const productApi = {
 			const queryParams = new URLSearchParams()
 			if (params?.search) queryParams.set('search', params.search)
 			if (params?.status) queryParams.set('status', params.status)
-			if (params?.idCompany)
-				queryParams.set('idCompany', params.idCompany.toString())
+			
+			// Handle both idCompany (number) and companyId (string alias)
+			const companyId = params?.idCompany || params?.companyId
+			if (companyId && companyId !== 'all') {
+				queryParams.set('idCompany', companyId.toString())
+			}
+			
 			if (params?.page) queryParams.set('page', params.page.toString())
 			if (params?.pageSize)
 				queryParams.set('pageSize', params.pageSize.toString())
@@ -195,6 +223,41 @@ export const productApi = {
 					error instanceof Error
 						? error.message
 						: 'Error desconocido al eliminar producto',
+			}
+		}
+	},
+
+	/**
+	 * Obtiene compañías activas (necesario para selects en admin)
+	 */
+	async getActiveCompanies(): Promise<ApiResponse<CompanyOption[]>> {
+		try {
+			const response = await fetch('/api/admin/companies?status=active', {
+				credentials: 'include',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			})
+
+			const result = await response.json()
+
+			if (!response.ok) {
+				return {
+					data: null,
+					error: result.error ?? 'Error al obtener compañías',
+				}
+			}
+
+			// API returns ApiResponse<CompanyListResponse> with { data: { companies, pagination } }
+			const companies: CompanyOption[] = result.data?.companies ?? []
+			return { data: companies }
+		} catch (error) {
+			return {
+				data: null,
+				error:
+					error instanceof Error
+						? error.message
+						: 'Error desconocido al obtener compañías',
 			}
 		}
 	},

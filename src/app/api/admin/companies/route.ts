@@ -1,13 +1,32 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createCompanySchema } from '@/features/admin/companies/lib/company-schemas'
+import { createCompanySchema } from '@/features/company/lib/company-schemas'
+import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import type {
+	CompanyListResponse,
+	Company,
+} from '@/features/company/types/company.types'
+import { prismaCompanyToCompany } from '@/features/company/mappers/company.mapper'
 import { z } from 'zod'
+import { auth } from '@/auth'
+import {
+	logAuditEvent,
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+} from '@/features/auth/lib/audit-logger'
 
+/**
+ * GET /api/admin/companies
+ * Lists companies with pagination and search
+ */
 export async function GET(request: Request) {
 	try {
 		const { searchParams } = new URL(request.url)
 		const search = searchParams.get('search')
 		const status = searchParams.get('status')
+		const page = parseInt(searchParams.get('page') || '1')
+		const pageSize = parseInt(searchParams.get('pageSize') || '10')
 
 		const where: {
 			name?: { contains: string; mode: 'insensitive' }
@@ -20,39 +39,111 @@ export async function GET(request: Request) {
 
 		if (status === 'active') {
 			where.status = true
+		} else if (status === 'inactive') {
+			where.status = false
 		}
+
+		const total = await prisma.company.count({ where })
 
 		const companies = await prisma.company.findMany({
 			where,
 			orderBy: { name: 'asc' },
+			skip: (page - 1) * pageSize,
+			take: pageSize,
 		})
 
-		return NextResponse.json({ companies })
+		const response: ApiResponse<CompanyListResponse> = {
+			data: {
+				companies: companies.map(prismaCompanyToCompany),
+				pagination: {
+					page,
+					pageSize,
+					total,
+					totalPages: Math.ceil(total / pageSize),
+				},
+			},
+		}
+
+		return NextResponse.json(response)
 	} catch (error) {
 		console.error('Error fetching companies:', error)
-		return NextResponse.json(
-			{ error: 'Error al obtener compañías' },
-			{ status: 500 }
-		)
+		const errorResponse: ApiResponse<null> = {
+			data: null,
+			error: 'Error al obtener empresas',
+		}
+		return NextResponse.json(errorResponse, { status: 500 })
 	}
 }
 
+/**
+ * POST /api/admin/companies
+ * Creates a new company
+ */
 export async function POST(request: Request) {
 	try {
+		const session = await auth()
+		if (!session?.user) {
+			const errorResponse: ApiResponse<null> = {
+				data: null,
+				error: 'No autorizado',
+			}
+			return NextResponse.json(errorResponse, { status: 401 })
+		}
+
 		const body = await request.json()
 		const data = createCompanySchema.parse(body)
 
-		const company = await prisma.company.create({
-			data,
+		// Validate unique name (case-insensitive)
+		const normalizedName = data.name.trim()
+		const existingCompany = await prisma.company.findFirst({
+			where: {
+				name: {
+					equals: normalizedName,
+					mode: 'insensitive',
+				},
+			},
 		})
 
-		return NextResponse.json({ company }, { status: 201 })
+		if (existingCompany) {
+			const errorResponse: ApiResponse<null> = {
+				data: null,
+				error: 'Ya existe una empresa con este nombre',
+			}
+			return NextResponse.json(errorResponse, { status: 409 })
+		}
+
+		const company = await prisma.company.create({
+			data: {
+				name: data.name.trim(),
+				status: data.status,
+				idTypeCompany: 'NACIONAL',
+			},
+		})
+
+		// Audit logging
+		const userId = session.user.id ? parseInt(session.user.id) : undefined
+		const headers = request.headers
+		await logAuditEvent({
+			userId,
+			action: AuditAction.COMPANY_CREATED,
+			email: session.user.email || undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `Empresa creada: ${company.name} (ID: ${company.idCompany})`,
+		})
+
+		const response: ApiResponse<Company> = {
+			data: prismaCompanyToCompany(company),
+		}
+
+		return NextResponse.json(response, { status: 201 })
 	} catch (error) {
 		if (error instanceof z.ZodError) {
-			return NextResponse.json(
-				{ error: 'Datos inválidos', details: error.issues },
-				{ status: 400 }
-			)
+			const errorResponse: ApiResponse<null> = {
+				data: null,
+				error: error.issues[0]?.message || 'Datos inválidos',
+			}
+			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
 		if (
@@ -61,19 +152,18 @@ export async function POST(request: Request) {
 			'code' in error &&
 			error.code === 'P2002'
 		) {
-			return NextResponse.json(
-				{ error: 'Ya existe una compañía con este nombre' },
-				{ status: 409 }
-			)
+			const errorResponse: ApiResponse<null> = {
+				data: null,
+				error: 'Ya existe una empresa con este nombre',
+			}
+			return NextResponse.json(errorResponse, { status: 409 })
 		}
 
 		console.error('Error creating company:', error)
-		return NextResponse.json(
-			{
-				error: 'Error al crear compañía',
-				details: error instanceof Error ? error.message : undefined,
-			},
-			{ status: 500 }
-		)
+		const errorResponse: ApiResponse<null> = {
+			data: null,
+			error: 'Error al crear empresa',
+		}
+		return NextResponse.json(errorResponse, { status: 500 })
 	}
 }

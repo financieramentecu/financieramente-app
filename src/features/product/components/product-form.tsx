@@ -49,7 +49,8 @@ export function ProductForm({
 		formState: { errors, isSubmitting },
 		control,
 	} = useForm<CreateProductFormData | UpdateProductFormData>({
-		resolver: zodResolver(schema),
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		resolver: zodResolver(schema) as any,
 		defaultValues: initialData
 			? {
 					name: initialData.name,

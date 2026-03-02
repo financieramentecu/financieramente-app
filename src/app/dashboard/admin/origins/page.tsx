@@ -20,7 +20,7 @@ import {
 	updateClientOriginSchema,
 	createProductOriginSchema,
 	updateProductOriginSchema,
-} from '@/features/admin/origins/lib/origin-schemas'
+} from '@/features/origins/lib/origins-schemas'
 import {
 	Tabs,
 	TabsContent,

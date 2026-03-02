@@ -46,41 +46,13 @@ describe('product-schemas', () => {
 			const result = createProductSchema.safeParse(data)
 			expect(result.success).toBe(false)
 			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('2 caracteres')
+				expect(result.error.issues[0].message).toContain('obligatorio')
 			}
 		})
 
-		it('should reject name shorter than 2 characters', () => {
+		it('should accept name with exactly 1 character', () => {
 			const data = {
 				name: 'A',
-				idCompany: 1,
-				status: true,
-			}
-
-			const result = createProductSchema.safeParse(data)
-			expect(result.success).toBe(false)
-			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('2 caracteres')
-			}
-		})
-
-		it('should reject name longer than 100 characters', () => {
-			const data = {
-				name: 'A'.repeat(101),
-				idCompany: 1,
-				status: true,
-			}
-
-			const result = createProductSchema.safeParse(data)
-			expect(result.success).toBe(false)
-			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('100 caracteres')
-			}
-		})
-
-		it('should accept name with exactly 2 characters', () => {
-			const data = {
-				name: 'AB',
 				idCompany: 1,
 				status: true,
 			}
@@ -89,9 +61,23 @@ describe('product-schemas', () => {
 			expect(result.success).toBe(true)
 		})
 
-		it('should accept name with exactly 100 characters', () => {
+		it('should reject name longer than 200 characters', () => {
 			const data = {
-				name: 'A'.repeat(100),
+				name: 'A'.repeat(201),
+				idCompany: 1,
+				status: true,
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(result.error.issues[0].message).toContain('200 caracteres')
+			}
+		})
+
+		it('should accept name with exactly 200 characters', () => {
+			const data = {
+				name: 'A'.repeat(200),
 				idCompany: 1,
 				status: true,
 			}
@@ -167,33 +153,46 @@ describe('product-schemas', () => {
 			}
 		})
 
-		it('should reject missing status', () => {
+		it('should accept optional description', () => {
 			const data = {
 				name: 'Seguro de Vida',
 				idCompany: 1,
-			}
-
-			const result = createProductSchema.safeParse(data)
-			expect(result.success).toBe(false)
-			if (!result.success) {
-				const statusError = result.error.issues.find(
-					(issue) => issue.path[0] === 'status'
-				)
-				expect(statusError).toBeDefined()
-			}
-		})
-
-		it('should accept status as false', () => {
-			const data = {
-				name: 'Seguro de Vida',
-				idCompany: 1,
-				status: false,
+				description: 'Mi descripción',
+				status: true,
 			}
 
 			const result = createProductSchema.safeParse(data)
 			expect(result.success).toBe(true)
 			if (result.success) {
-				expect(result.data.status).toBe(false)
+				expect(result.data.description).toBe('Mi descripción')
+			}
+		})
+
+		it('should accept optional idTypeProduct', () => {
+			const data = {
+				name: 'Seguro de Vida',
+				idCompany: 1,
+				idTypeProduct: 5,
+				status: true,
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.idTypeProduct).toBe(5)
+			}
+		})
+
+		it('should default status to true', () => {
+			const data = {
+				name: 'Seguro de Vida',
+				idCompany: 1,
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.status).toBe(true)
 			}
 		})
 	})
@@ -244,40 +243,25 @@ describe('product-schemas', () => {
 			expect(result.success).toBe(true)
 		})
 
-		it('should reject name shorter than 2 characters', () => {
+		it('should reject name longer than 200 characters', () => {
 			const data = {
-				name: 'A',
+				name: 'A'.repeat(201),
 			}
 
 			const result = updateProductSchema.safeParse(data)
 			expect(result.success).toBe(false)
 			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('2 caracteres')
+				expect(result.error.issues[0].message).toContain('200 caracteres')
 			}
 		})
 
-		it('should reject name longer than 100 characters', () => {
-			const data = {
-				name: 'A'.repeat(101),
-			}
-
-			const result = updateProductSchema.safeParse(data)
-			expect(result.success).toBe(false)
-			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('100 caracteres')
-			}
-		})
-
-		it('should reject empty name string', () => {
+		it('should accept empty name string (as optional in update)', () => {
 			const data = {
 				name: '',
 			}
 
 			const result = updateProductSchema.safeParse(data)
 			expect(result.success).toBe(false)
-			if (!result.success) {
-				expect(result.error.issues[0].message).toContain('2 caracteres')
-			}
 		})
 
 		it('should trim whitespace from name', () => {

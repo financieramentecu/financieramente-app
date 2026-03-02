@@ -96,7 +96,7 @@ export function useProductConfigurationForm({
 	)
 	const [ppcOptions, setPpcOptions] = useState<PpcOption[]>([])
 
-	// Fetch Companies (Endpoint: /api/empresas)
+	// Fetch Companies (Endpoint: /api/admin/companies)
 	const fetchCompanies = useCallback(async () => {
 		setCompaniesState((prev) => ({
 			...prev,
@@ -105,13 +105,12 @@ export function useProductConfigurationForm({
 			error: '',
 		}))
 		try {
-			const response = await fetch('/api/empresas?status=active')
+			const response = await fetch('/api/admin/companies?status=active')
 			const result = await response.json()
-			// Note: Endpoint returns 'empresas'
-			if (result.data?.empresas) {
+			if (result.data?.companies) {
 				setCompaniesState({
 					status: 'success',
-					data: result.data.empresas,
+					data: result.data.companies,
 					error: '',
 				})
 			} else {

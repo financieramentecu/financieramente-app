@@ -1,67 +1,87 @@
 'use client'
 
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { productApi } from '../lib/product-api'
+import { useCallback, useState } from 'react'
+import { productApi } from '@/features/product/lib/product-api'
 import type {
 	CreateProductInput,
 	UpdateProductInput,
-} from '../types/product.types'
+} from '@/features/product/types/product.types'
 
+/**
+ * Hook para mutaciones de productos
+ *
+ * @returns Funciones para crear, actualizar y eliminar productos
+ */
 export function useProductMutations() {
 	const [isSubmitting, setIsSubmitting] = useState(false)
 
-	const createProduct = async (data: CreateProductInput) => {
+	const create = useCallback(async (data: CreateProductInput) => {
+		setIsSubmitting(true)
 		try {
-			setIsSubmitting(true)
-			const product = await productApi.createProduct(data)
-			toast.success('Producto creado exitosamente')
-			return product
+			const result = await productApi.createProduct(data)
+			if ('error' in result) {
+				return { success: false, error: result.error }
+			}
+			return { success: true, data: result.data }
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : 'Error al crear producto'
-			toast.error('Error al crear producto', { description: message })
-			throw error
+			return {
+				success: false,
+				error:
+					error instanceof Error
+						? error.message
+						: 'Error desconocido al crear producto',
+			}
 		} finally {
 			setIsSubmitting(false)
 		}
-	}
+	}, [])
 
-	const updateProduct = async (id: number, data: UpdateProductInput) => {
+	const update = useCallback(async (id: number, data: UpdateProductInput) => {
+		setIsSubmitting(true)
 		try {
-			setIsSubmitting(true)
-			const product = await productApi.updateProduct(id, data)
-			toast.success('Producto actualizado exitosamente')
-			return product
+			const result = await productApi.updateProduct(id, data)
+			if ('error' in result) {
+				return { success: false, error: result.error }
+			}
+			return { success: true, data: result.data }
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : 'Error al actualizar producto'
-			toast.error('Error al actualizar producto', { description: message })
-			throw error
+			return {
+				success: false,
+				error:
+					error instanceof Error
+						? error.message
+						: 'Error desconocido al actualizar producto',
+			}
 		} finally {
 			setIsSubmitting(false)
 		}
-	}
+	}, [])
 
-	const deleteProduct = async (id: number) => {
+	const remove = useCallback(async (id: number) => {
+		setIsSubmitting(true)
 		try {
-			setIsSubmitting(true)
-			await productApi.deleteProduct(id)
-			toast.success('Producto desactivado exitosamente')
+			const result = await productApi.deleteProduct(id)
+			if ('error' in result) {
+				return { success: false, error: result.error }
+			}
+			return { success: true }
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : 'Error al desactivar producto'
-			toast.error('Error al desactivar producto', { description: message })
-			throw error
+			return {
+				success: false,
+				error:
+					error instanceof Error
+						? error.message
+						: 'Error desconocido al eliminar producto',
+			}
 		} finally {
 			setIsSubmitting(false)
 		}
-	}
+	}, [])
 
 	return {
-		createProduct,
-		updateProduct,
-		deleteProduct,
+		create,
+		update,
+		remove,
 		isSubmitting,
 	}
 }
