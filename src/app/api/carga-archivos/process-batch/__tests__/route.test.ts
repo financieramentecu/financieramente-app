@@ -23,6 +23,9 @@ vi.mock('@/lib/prisma', () => ({
 			findFirst: vi.fn(),
 			update: vi.fn(),
 		},
+		fileImportError: {
+			create: vi.fn(),
+		},
 	},
 }))
 vi.mock('@/features/auth/lib/audit-logger', () => ({
@@ -49,7 +52,7 @@ describe('POST /api/carga-archivos/process-batch', () => {
 	const mockAuth = vi.mocked(auth)
 	const mockFindFileImport = vi.mocked(prisma.fileImport.findFirst)
 	const mockUpdateFileImport = vi.mocked(prisma.fileImport.update)
-	const mockCreateSettlement = vi.mocked(prisma.settlementCommission.create)
+	const mockCreateError = vi.mocked(prisma.fileImportError.create)
 	const mockFindConfig = vi.mocked(prisma.commissionConfiguration.findFirst)
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
 	const mockFindBusiness = vi.mocked(findBusinessByContract)
@@ -77,7 +80,7 @@ describe('POST /api/carga-archivos/process-batch', () => {
 		} as never)
 		mockFindConfig.mockResolvedValue(null)
 		mockUpdateFileImport.mockResolvedValue({} as never)
-		mockCreateSettlement.mockResolvedValue({} as never)
+		mockCreateError.mockResolvedValue({} as never)
 		mockFindBusiness.mockResolvedValue(null)
 
 		const headers = ['Cto', 'Desde', 'Hasta', 'Tipo de Comision', 'Base', 'Com']
@@ -120,10 +123,10 @@ describe('POST /api/carga-archivos/process-batch', () => {
 				action: 'IMPORT_ERROR',
 			})
 		)
-		expect(mockCreateSettlement).toHaveBeenCalledWith(
+		expect(mockCreateError).toHaveBeenCalledWith(
 			expect.objectContaining({
 				data: expect.objectContaining({
-					status: 'ERROR',
+					reason: expect.any(String),
 				}),
 			})
 		)

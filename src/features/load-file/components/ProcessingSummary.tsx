@@ -38,7 +38,10 @@ export function ProcessingSummary({
 	const sincronizados = result.sincronizadoCount || 0
 	const rezagados = result.rezagadoCount || 0
 	// No sincronizados = total de registros válidos que no están sincronizados ni son rezagados
-	const noSincronizados = Math.max(0, result.successCount - sincronizados - rezagados)
+	const noSincronizados = Math.max(
+		0,
+		result.successCount - sincronizados - rezagados
+	)
 
 	return (
 		<div className="space-y-6">
@@ -169,10 +172,16 @@ export function ProcessingSummary({
 									const cleanStr = str.replace(/[\u200B-\u200D\uFEFF]/g, '')
 
 									// Manejar formato DD/MM/YYYY que new Date() suele fallar
-									const dmyMatch = cleanStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+									const dmyMatch = cleanStr.match(
+										/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
+									)
 									if (dmyMatch) {
-										const [_, day, month, year] = dmyMatch
-										const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+										const [, day, month, year] = dmyMatch
+										const date = new Date(
+											parseInt(year),
+											parseInt(month) - 1,
+											parseInt(day)
+										)
 										if (!isNaN(date.getTime())) {
 											return date.toLocaleDateString('es-ES', {
 												year: 'numeric',

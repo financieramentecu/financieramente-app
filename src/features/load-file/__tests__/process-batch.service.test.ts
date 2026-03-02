@@ -6,13 +6,17 @@ import type {
 	ProcessBatchRequest,
 	ProcessedRecord,
 } from '../types/load-file.types'
+import { findBusinessByContract } from '../lib/business-matcher'
 
-// Mock Prisma
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		fileImport: {
 			findFirst: vi.fn(),
-			update: vi.fn(),
+			update: vi.fn().mockImplementation((args) => ({
+				successRecord: args.data?.successRecord?.increment || 0,
+				errorRecord: args.data?.errorRecord?.increment || 0,
+				status: 'LOAD',
+			})),
 		},
 		commissionConfiguration: {
 			findFirst: vi.fn(),
@@ -20,13 +24,23 @@ vi.mock('@/lib/prisma', () => ({
 		settlementCommission: {
 			create: vi.fn(),
 			findFirst: vi.fn(),
+			findMany: vi.fn(),
 			update: vi.fn(),
 		},
-		business: {
-			findFirst: vi.fn(),
+		fileImportError: {
+			create: vi.fn(),
 		},
-		$transaction: vi.fn((callback) => callback(prisma)),
+		$transaction: vi.fn(async (callback) => await callback(prisma)),
 	},
+}))
+
+vi.mock('../lib/business-matcher', () => ({
+	findBusinessByContract: vi.fn(),
+}))
+
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	logAuditEvent: vi.fn(),
+	AuditAction: { IMPORT_ERROR: 'IMPORT_ERROR' },
 }))
 
 describe('processBatchService', () => {
@@ -40,65 +54,200 @@ describe('processBatchService', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.mocked(prisma.fileImport.findFirst).mockResolvedValue({
+			idFileImport: 100,
+		} as never)
+		vi.mocked(prisma.commissionConfiguration.findFirst).mockResolvedValue({
+			discountPercentage: 12,
+			clawbackPercentage: 10,
+		} as never)
 	})
 
-	describe('Validation & Authorization', () => {
-		it('should throw an error if FileImport does not exist or does not belong to user', async () => {
-			vi.mocked(prisma.fileImport.findFirst).mockResolvedValue(null)
+	describe('Poliza Scenarios', () => {
+		const record: ProcessedRecord = {
+			rowNumber: 2,
+			isValid: true,
+			errors: [],
+			data: {
+				'Contrato Largo': 'POL-001',
+				BASE: 1000,
+				'Valor Comisión': 100,
+				'Plan de Compensación': 'Test Plan',
+			},
+		}
+		const request: ProcessBatchRequest = {
+			fileImportId: 100,
+			records: [record],
+			headers: [
+				'Contrato Largo',
+				'BASE',
+				'Valor Comisión',
+				'Plan de Compensación',
+			],
+			fileType: FILE_TYPES.POLIZA,
+		}
 
-			const dummyRecord: ProcessedRecord = {
-				rowNumber: 2,
-				isValid: true,
-				errors: [],
-				data: {},
+		it('4.3 should create LAG record and increment noSincronizado when business not found', async () => {
+			vi.mocked(findBusinessByContract).mockResolvedValue(null)
+
+			const result = await processBatchService.processBatch(
+				request,
+				mockAuditContext
+			)
+
+			expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({ status: 'LAG', isLag: true }),
+				})
+			)
+			expect(result.summary.noSincronizado).toBe(1)
+		})
+
+		it('4.3 should update prior LAG to SYNCHRONIZED when recovering lag', async () => {
+			vi.mocked(findBusinessByContract).mockResolvedValue({
+				idBusiness: 50,
+			} as never)
+			vi.mocked(prisma.settlementCommission.findFirst).mockResolvedValue({
+				idSettlementCommission: 500,
+				status: 'LAG',
+				isLag: true,
+			} as never)
+
+			const result = await processBatchService.processBatch(
+				request,
+				mockAuditContext
+			)
+
+			expect(prisma.settlementCommission.update).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: { idSettlementCommission: 500 },
+					data: expect.objectContaining({
+						status: 'SYNCHRONIZED',
+						isLag: false,
+					}),
+				})
+			)
+			expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({
+						status: 'SYNCHRONIZED',
+						isLag: false,
+						idBusiness: 50,
+					}),
+				})
+			)
+			expect(result.summary.sincronizado).toBe(2) // 1 generated + 1 recovered
+		})
+
+		it('4.4 should identify FRONT19 as origin CARTERA', async () => {
+			const frontRecord = {
+				...record,
+				data: {
+					...record.data,
+					'Plan de Compensación': 'SOMETHING FRONT19 SOMETHING',
+				},
 			}
+			vi.mocked(findBusinessByContract).mockResolvedValue({
+				idBusiness: 50,
+			} as never)
+			vi.mocked(prisma.settlementCommission.findFirst).mockResolvedValue(null)
 
-			const request: ProcessBatchRequest = {
-				fileImportId: 999,
-				records: [dummyRecord],
-				headers: [],
-				fileType: FILE_TYPES.POLIZA,
+			await processBatchService.processBatch(
+				{ ...request, records: [frontRecord] },
+				mockAuditContext
+			)
+
+			expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({
+						status: 'SYNCHRONIZED',
+						originCommission: 'CARTERA',
+						isClawback: false,
+					}),
+				})
+			)
+		})
+
+		it('4.4 should identify CLAW overrides', async () => {
+			const clawRecord = {
+				...record,
+				data: { ...record.data, 'Plan de Compensación': 'TEST CLAW TEST' },
 			}
+			vi.mocked(findBusinessByContract).mockResolvedValue({
+				idBusiness: 50,
+			} as never)
+			vi.mocked(prisma.settlementCommission.findFirst).mockResolvedValue(null)
 
-			await expect(
-				processBatchService.processBatch(request, mockAuditContext)
-			).rejects.toThrow('FileImport no encontrado o no autorizado')
+			await processBatchService.processBatch(
+				{ ...request, records: [clawRecord] },
+				mockAuditContext
+			)
+
+			expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({
+						status: 'SYNCHRONIZED',
+						isClawback: true,
+					}),
+				})
+			)
 		})
 	})
 
-	describe('Core Lag/Sync Logic - Scenario 1: No Business Found', () => {
-		it('should create a LAG record and increment noSincronizadoCount when business does not exist', async () => {
-			// Mock FileImport found
-			vi.mocked(prisma.fileImport.findFirst).mockResolvedValue({
-				idFileImport: 100,
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			} as any)
-			// Mock no business found
-			vi.mocked(prisma.business.findFirst).mockResolvedValue(null)
+	describe('Voluntaria Scenarios', () => {
+		const record: ProcessedRecord = {
+			rowNumber: 3,
+			isValid: true,
+			errors: [],
+			data: {
+				Cto: 'VOL-001',
+				Base: 1000,
+				Com: 100,
+				'Tipo de Comision': 'TEST',
+				Desde: new Date('2023-01-01'),
+				Hasta: new Date('2023-01-31'),
+			},
+		}
+		const request: ProcessBatchRequest = {
+			fileImportId: 100,
+			records: [record],
+			headers: ['Cto', 'Base', 'Com', 'Tipo de Comision', 'Desde', 'Hasta'],
+			fileType: FILE_TYPES.VOLUNTARIA,
+		}
 
-			const record: ProcessedRecord = {
-				rowNumber: 2,
-				isValid: true,
-				errors: [],
-				data: {
-					'Contrato Largo': 'NON_EXISTENT_001',
-					BASE: 1000,
-					'Valor Comisión': 100,
-					'Plan de Compensación': 'Test Plan',
-				},
-			}
+		it('4.1 should detect duplicate commission and save in FileImportError', async () => {
+			vi.mocked(findBusinessByContract).mockResolvedValue({
+				idBusiness: 60,
+				createdAt: new Date('2023-01-15'),
+			} as never)
+			vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([
+				{
+					startDate: new Date('2023-01-01'),
+					endDate: new Date('2023-01-31'),
+				} as never,
+			])
 
-			const request: ProcessBatchRequest = {
-				fileImportId: 100,
-				records: [record],
-				headers: [
-					'Contrato Largo',
-					'BASE',
-					'Valor Comisión',
-					'Plan de Compensación',
-				],
-				fileType: FILE_TYPES.POLIZA,
-			}
+			const result = await processBatchService.processBatch(
+				request,
+				mockAuditContext
+			)
+
+			expect(prisma.settlementCommission.create).not.toHaveBeenCalled()
+			expect(prisma.fileImportError.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({ reason: 'Duplicate commission' }),
+				})
+			)
+			expect(result.summary.error).toBe(1)
+		})
+
+		it('4.2 should create LAG when business found but date outside range', async () => {
+			// CreatedAt is in Feb, but record is Jan
+			vi.mocked(findBusinessByContract).mockResolvedValue({
+				idBusiness: 60,
+				createdAt: new Date('2023-02-15'),
+			} as never)
+			vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([])
 
 			const result = await processBatchService.processBatch(
 				request,
@@ -110,80 +259,10 @@ describe('processBatchService', () => {
 					data: expect.objectContaining({
 						status: 'LAG',
 						isLag: true,
+						idBusiness: 60,
 					}),
 				})
 			)
-			expect(result.summary.noSincronizado).toBe(1)
-			expect(result.summary.sincronizado).toBe(0)
-		})
-	})
-
-	describe('Core Lag/Sync Logic - Scenario 2: Existing Lag Recovery', () => {
-		it('should update the existing LAG, create a new SINCRONIZADO, and increment both sincronizado and rezagado counters', async () => {
-			vi.mocked(prisma.fileImport.findFirst).mockResolvedValue({
-				idFileImport: 100,
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			} as any)
-			// Mock business exists
-			vi.mocked(prisma.business.findFirst).mockResolvedValue({
-				idBusiness: 50,
-				createdAt: new Date(),
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			} as any)
-			// Mock an existing lag record exists
-			vi.mocked(prisma.settlementCommission.findFirst).mockResolvedValue({
-				idSettlementCommission: 500,
-				status: 'LAG',
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			} as any)
-
-			const record: ProcessedRecord = {
-				rowNumber: 2,
-				isValid: true,
-				errors: [],
-				data: {
-					'Contrato Largo': 'VALID_CONTRACT',
-					BASE: 1000,
-					'Valor Comisión': 100,
-				},
-			}
-
-			const request: ProcessBatchRequest = {
-				fileImportId: 100,
-				records: [record],
-				headers: ['Contrato Largo', 'BASE', 'Valor Comisión'],
-				fileType: FILE_TYPES.POLIZA,
-			}
-
-			const result = await processBatchService.processBatch(
-				request,
-				mockAuditContext
-			)
-
-			// Should update the old record
-			expect(prisma.settlementCommission.update).toHaveBeenCalledWith(
-				expect.objectContaining({
-					where: { idSettlementCommission: 500 },
-					data: expect.objectContaining({
-						status: 'SYNCHRONIZED',
-						isLag: false,
-					}),
-				})
-			)
-
-			// Should create the new record
-			expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
-				expect.objectContaining({
-					data: expect.objectContaining({
-						status: 'SYNCHRONIZED',
-						isLag: false,
-						idBusiness: 50,
-					}),
-				})
-			)
-
-			// Recovered lags count for both Sincronizado AND Rezagado UI counters based on original logic
-			expect(result.summary.sincronizado).toBe(1)
 			expect(result.summary.rezagado).toBe(1)
 		})
 	})

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaClient } from '@prisma/client'
-import { UserRole } from '../../src/features/auth/lib/roles'
 import { hash } from 'bcryptjs'
 
 // Lazy initialization: PrismaClient se crea solo cuando se necesita
@@ -108,7 +107,9 @@ export async function setupSSOUsers() {
 		})
 
 		if (!adminRole || !agenteRole) {
-			console.warn('⚠️ Roles ADMIN o AGENTE no encontrados. Saltando setup SSO.')
+			console.warn(
+				'⚠️ Roles ADMIN o AGENTE no encontrados. Saltando setup SSO.'
+			)
 			return
 		}
 
