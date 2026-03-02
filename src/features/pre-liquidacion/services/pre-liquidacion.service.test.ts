@@ -63,7 +63,9 @@ describe('procesarPreLiquidacion', () => {
 		})
 
 		expect(result.success).toBe(false)
-		expect(result.mensaje).toContain('El archivo debe estar en estado LOAD')
+		expect(result.mensaje).toContain(
+			'El archivo debe estar en estado LOAD para ser pre-liquidado'
+		)
 	})
 
 	it('should return success and process records when everything is correct', async () => {
@@ -78,7 +80,7 @@ describe('procesarPreLiquidacion', () => {
 		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([
 			{
 				idSettlementCommission: 100,
-				status: 'SINCRONIZADO',
+				status: 'SYNCHRONIZED',
 				commissionValue: new Decimal(100000),
 				baseCommission: new Decimal(100000),
 				discountPercentage: new Decimal(0.1),
@@ -101,12 +103,12 @@ describe('procesarPreLiquidacion', () => {
 			},
 		] as any)
 
-		// Primera findMany: registros SINCRONIZADO; segunda: settlements PRELIQUIDADO (para resumen email)
+		// Primera findMany: registros SYNCHRONIZED; segunda: settlements PRE-SETTLED (para resumen email)
 		vi.mocked(prisma.settlementCommission.findMany)
 			.mockResolvedValueOnce([
 				{
 					idSettlementCommission: 100,
-					status: 'SINCRONIZADO',
+					status: 'SYNCHRONIZED',
 					commissionValue: new Decimal(100000),
 					baseCommission: new Decimal(100000),
 					discountPercentage: new Decimal(0.1),
@@ -134,24 +136,28 @@ describe('procesarPreLiquidacion', () => {
 		// porcentajePortfolio (60%) * 100000 = 60000
 		// descuento (10%) + clawback (5%) = 15% => 60000 * 0.15 = 9000
 		// final = 60000 - 9000 = 51000
-		const distributionCall = vi.mocked(prisma.comissionDistribution.create).mock
-			.calls[0]?.[0]
-		expect(Number(distributionCall?.data.valueComission)).toBe(60000)
-		expect(Number(distributionCall?.data.valueComissionFinal)).toBe(51000)
-		expect(Number(distributionCall?.data.totalDiscount ?? 0)).toBe(9000)
-		expect(Number(distributionCall?.data.appliedDiscountPercentage ?? 0)).toBe(0.1)
+		const calls = vi.mocked(prisma.comissionDistribution.create).mock.calls
+		const distributionCall = calls && calls[0] ? calls[0][0] : undefined
+		const distributionData =
+			distributionCall && distributionCall.data
+				? distributionCall.data
+				: ({} as any)
+		expect(Number(distributionData.valueComission)).toBe(60000)
+		expect(Number(distributionData.valueComissionFinal)).toBe(51000)
+		expect(Number(distributionData.totalDiscount || 0)).toBe(9000)
+		expect(Number(distributionData.appliedDiscountPercentage || 0)).toBe(0.1)
 
-		// Verify status update to PRELIQUIDADO
+		// Verify status update to PRE-SETTLED
 		expect(prisma.settlementCommission.update).toHaveBeenCalledWith({
 			where: { idSettlementCommission: 100 },
-			data: { status: 'PRELIQUIDADO' },
+			data: { status: 'PRE-SETTLED' },
 		})
 
 		// Verify file status update
 		expect(prisma.fileImport.update).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: { idFileImport: 1 },
-				data: expect.objectContaining({ status: 'PRELIQUIDADO' }),
+				data: expect.objectContaining({ preLiquidacionDate: expect.any(Date) }),
 			})
 		)
 	})

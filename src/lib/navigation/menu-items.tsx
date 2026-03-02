@@ -92,12 +92,12 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 	},
 	{
 		title: 'Administración',
-		url: '/dashboard/empresas',
+		url: '/dashboard/admin/companies',
 		icon: <Settings className="h-4 w-4" />,
 		subItems: [
 			{
 				title: 'Empresas',
-				url: '/dashboard/empresas',
+				url: '/dashboard/admin/companies',
 				icon: <Building2 className="h-4 w-4" />,
 			},
 			{

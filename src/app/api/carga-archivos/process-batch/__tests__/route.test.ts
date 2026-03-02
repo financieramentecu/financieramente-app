@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from '../route'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
-import { FILE_TYPES } from '@/app/dashboard/carga-archivos/lib/file-types'
+import { FILE_TYPES } from '@/features/load-file/lib/file-types'
 import { logAuditEvent } from '@/features/auth/lib/audit-logger'
-import { findBusinessByContract } from '@/app/dashboard/carga-archivos/lib/business-matcher'
+import { findBusinessByContract } from '@/features/load-file/lib/business-matcher'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
@@ -33,7 +33,7 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 	getClientIp: vi.fn(() => '127.0.0.1'),
 	getUserAgent: vi.fn(() => 'test-agent'),
 }))
-vi.mock('@/app/dashboard/carga-archivos/lib/business-matcher', () => ({
+vi.mock('@/features/load-file/lib/business-matcher', () => ({
 	findBusinessByContract: vi.fn(),
 }))
 vi.mock('next/server', () => ({
@@ -80,14 +80,7 @@ describe('POST /api/carga-archivos/process-batch', () => {
 		mockCreateSettlement.mockResolvedValue({} as never)
 		mockFindBusiness.mockResolvedValue(null)
 
-		const headers = [
-			'Cto',
-			'Desde',
-			'Hasta',
-			'Tipo de Comision',
-			'Base',
-			'Com',
-		]
+		const headers = ['Cto', 'Desde', 'Hasta', 'Tipo de Comision', 'Base', 'Com']
 		const records = [
 			{
 				rowNumber: 2,
@@ -135,6 +128,6 @@ describe('POST /api/carga-archivos/process-batch', () => {
 			})
 		)
 		expect(response.status).toBe(200)
-		expect(responseData.summary.error).toBe(1)
+		expect(responseData.data.summary.error).toBe(1)
 	})
 })

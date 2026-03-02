@@ -9,18 +9,18 @@ import {
 } from '@/features/admin/shared/CrudModal'
 import { DeleteConfirmModal } from '@/features/admin/shared/DeleteConfirmModal'
 import { Button } from '@/features/shared/ui/button'
-import { CategoriesTable } from '@/features/admin/categories/components/categories-table'
-import { CategoryFilters } from '@/features/admin/categories/components/category-filters'
-import { useCategories } from '@/features/admin/categories/hooks/use-categories'
-import { useCategoryMutations } from '@/features/admin/categories/hooks/use-category-mutations'
+import { AdminCategoriesTable as CategoriesTable } from '@/features/categories/components/admin-categories-table'
+import { CategoryFilters } from '@/features/categories/components/category-filters'
+import { useAdminCategories as useCategories } from '@/features/categories/hooks/use-admin-categories'
+import { useAdminCategoryMutations as useCategoryMutations } from '@/features/categories/hooks/use-admin-category-mutations'
 import {
 	createCategorySchema,
 	updateCategorySchema,
-} from '@/features/admin/categories/lib/category-schemas'
+} from '@/features/categories/lib/category-schemas'
 import type {
 	Category,
 	CategoryFilters as CategoryFiltersType,
-} from '@/features/admin/categories/types/category.types'
+} from '@/features/categories/types/category.types'
 
 export default function CategoriesAdminPage() {
 	const [isModalOpen, setIsModalOpen] = useState(false)

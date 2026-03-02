@@ -8,7 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/features/shared/ui/select'
-import type { ProductFilters, CompanyOption } from '../types/product.types'
+import type { ProductFilters, CompanyOption } from '@/features/product/types/product.types'
 
 interface ProductFiltersProps {
 	filters: ProductFilters

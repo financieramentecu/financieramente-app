@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { prisma } from '@/lib/prisma'
-import { updateProductSchema } from '@/features/admin/products/lib/product-schemas'
+import { updateProductSchema } from '@/features/product/lib/product-schemas'
 
 export async function GET(
 	request: Request,

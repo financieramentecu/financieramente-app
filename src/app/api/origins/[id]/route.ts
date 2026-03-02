@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { updateClientOriginSchema } from '@/features/origin-client/lib/client-origin-schemas'
+import { updateClientOriginSchema } from '@/features/origins/lib/origins-schemas'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import type { ClientOrigin } from '@/features/origin-client/types/client-origin.types'
+import type { ClientOrigin } from '@/features/origins/types/origins.types'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import {
@@ -11,7 +11,7 @@ import {
 	getClientIp,
 	getUserAgent,
 } from '@/features/auth/lib/audit-logger'
-import { prismaClientOriginToClientOrigin } from '@/features/origin-client/mappers/prisma.mapper'
+import { prismaClientOriginToClientOrigin } from '@/features/origins/mappers/prisma.mapper'
 
 /**
  * GET /api/origins/[id]

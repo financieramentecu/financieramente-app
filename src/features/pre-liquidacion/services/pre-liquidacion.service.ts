@@ -7,9 +7,95 @@ import type {
 	ConfiguracionPorcentajes,
 	RegistroDetallePreLiquidacion,
 	RespuestaDetallePreLiquidacion,
+	RespuestaArchivosDisponibles,
+	ArchivoDisponible,
 	ResumenFilaPreliquidacion,
 	ResumenUsuarioPreliquidacion,
 } from '../types/types'
+
+/**
+ * Obtiene los archivos disponibles para pre-liquidar y los ya pre-liquidados.
+ * Enforces Screaming Architecture isolating the database calls from the API router.
+ */
+export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<RespuestaArchivosDisponibles> {
+	const todosArchivos = await prisma.fileImport.findMany({
+		where: {
+			status: 'LOAD',
+			settlementCommissions: {
+				some: {
+					status: {
+						in: ['SYNCHRONIZED'],
+					},
+				},
+			},
+		},
+		select: {
+			idFileImport: true,
+			nameFile: true,
+			loadDate: true,
+			preLiquidacionDate: true,
+			totalRecord: true,
+			sincronizadoRecord: true,
+			rezagadoRecord: true,
+			status: true,
+			user: {
+				select: {
+					name: true,
+					lastName: true,
+				},
+			},
+			_count: {
+				select: {
+					settlementCommissions: {
+						where: { status: 'SYNCHRONIZED' },
+					},
+				},
+			},
+		},
+		orderBy: {
+			loadDate: 'desc',
+		},
+	})
+
+	const archivos: ArchivoDisponible[] = todosArchivos.map((archivo) => {
+		const preliquidadosCount = archivo._count.settlementCommissions
+
+		return {
+			idFileImport: archivo.idFileImport,
+			nombreArchivo: archivo.nameFile,
+			usuarioCargo:
+				`${archivo.user.name} ${archivo.user.lastName || ''}`.trim(),
+			fechaCarga: archivo.loadDate.toISOString().split('T')[0],
+			fechaPreLiquidacion: archivo.preLiquidacionDate
+				? archivo.preLiquidacionDate.toISOString().split('T')[0]
+				: null,
+			cantidadRegistros: archivo.totalRecord,
+			totalRegistros: archivo.totalRecord,
+			sincronizados: archivo.sincronizadoRecord,
+			rezagados: archivo.rezagadoRecord,
+			estado: archivo.status,
+			registrosPreliquidados: preliquidadosCount,
+		}
+	})
+
+	const disponiblesParaPreliquidar = archivos.filter(
+		(a) => a.estado === 'LOAD' && a.sincronizados > 0
+	)
+	const archivosPreLiquidados = archivos.filter(
+		(a) => (a.registrosPreliquidados ?? 0) > 0
+	)
+
+	const resumen = {
+		totalArchivos: archivos.length,
+		sincronizados: disponiblesParaPreliquidar.length,
+		preLiquidados: archivosPreLiquidados.length,
+	}
+
+	return {
+		archivos,
+		resumen,
+	}
+}
 
 /**
  * Porcentaje de descuento por defecto (12%)
@@ -112,7 +198,7 @@ export async function obtenerDetallePreLiquidacion(
 	const registros = await prisma.settlementCommission.findMany({
 		where: {
 			idFileImport: fileId,
-			status: { in: ['SINCRONIZADO', 'LAG'] },
+			status: 'SYNCHRONIZED',
 		},
 		include: {
 			business: {
@@ -144,10 +230,8 @@ export async function obtenerDetallePreLiquidacion(
 	const registrosFormateados: RegistroDetallePreLiquidacion[] = []
 
 	for (const r of registros) {
-		const comisionBase =
-			r.baseCommission || r.commissionValue || new Decimal(0)
-		const descuentoPorcentaje =
-			r.discountPercentage ?? DESCUENTO_POR_DEFECTO
+		const comisionBase = r.baseCommission || r.commissionValue || new Decimal(0)
+		const descuentoPorcentaje = r.discountPercentage ?? DESCUENTO_POR_DEFECTO
 		const clawbackPorcentaje = r.clawbackPercentage ?? new Decimal(0)
 		const usePortfolio = r.originCommission === 'CARTERA'
 		const categorias =
@@ -186,7 +270,7 @@ export async function obtenerDetallePreLiquidacion(
 			agente.totalLider += comisiones.comisionLiderDescuento.toNumber()
 			agente.totalCoach += comisiones.comisionCoachDescuento.toNumber()
 			agente.cantidadRegistros += 1
-			if (r.status === 'SINCRONIZADO') agente.sincronizados += 1
+			if (r.status === 'SYNCHRONIZED') agente.sincronizados += 1
 			else if (r.status === 'LAG') agente.rezagados += 1
 		}
 
@@ -220,7 +304,7 @@ export async function obtenerDetallePreLiquidacion(
 	const distribucion = Array.from(distribucionMap.values())
 	const resumen = {
 		totalRegistros: registros.length,
-		sincronizados: registros.filter((x) => x.status === 'SINCRONIZADO').length,
+		sincronizados: registros.filter((x) => x.status === 'SYNCHRONIZED').length,
 		rezagados: registros.filter((x) => x.status === 'LAG').length,
 		totalComision: registrosFormateados.reduce((s, x) => s + x.comision, 0),
 		totalGeneral: registrosFormateados.reduce(
@@ -367,7 +451,7 @@ export async function obtenerResumenPreliquidacionPorUsuario(
 	const settlements = await prisma.settlementCommission.findMany({
 		where: {
 			idFileImport: fileImportId,
-			status: 'PRELIQUIDADO',
+			status: 'PRE-SETTLED',
 			createdAt: {
 				gte: rangoFecha.inicio,
 				lte: rangoFecha.fin,
@@ -504,11 +588,11 @@ export async function procesarPreLiquidacion(
 			}
 		}
 
-		// Obtener todos los registros SINCRONIZADO del archivo en el rango de fechas
+		// Obtener todos los registros SYNCHRONIZED del archivo en el rango de fechas
 		const registros = await prisma.settlementCommission.findMany({
 			where: {
 				idFileImport: fileImportId,
-				status: 'SINCRONIZADO',
+				status: 'SYNCHRONIZED',
 				createdAt: {
 					gte: rangoFecha.inicio,
 					lte: rangoFecha.fin,
@@ -548,8 +632,7 @@ export async function procesarPreLiquidacion(
 
 			const descuentoPorcentaje =
 				registro.discountPercentage ?? DESCUENTO_POR_DEFECTO
-			const clawbackPorcentaje =
-				registro.clawbackPercentage ?? new Decimal(0)
+			const clawbackPorcentaje = registro.clawbackPercentage ?? new Decimal(0)
 			const usePortfolio = registro.originCommission === 'CARTERA'
 
 			// 1. Obtener configuración de porcentajes del producto asociado al negocio
@@ -571,9 +654,7 @@ export async function procesarPreLiquidacion(
 			}
 
 			const comisionBase =
-				registro.baseCommission ||
-				registro.commissionValue ||
-				new Decimal(0)
+				registro.baseCommission || registro.commissionValue || new Decimal(0)
 
 			// Usamos transacción para asegurar que se crean las distribuciones y se actualiza el estado atómicamente
 			await prisma.$transaction(async (tx) => {
@@ -608,11 +689,11 @@ export async function procesarPreLiquidacion(
 					})
 				}
 
-				// 3. Actualizar registro a PRELIQUIDADO
+				// 3. Actualizar registro a PRE-SETTLED
 				await tx.settlementCommission.update({
 					where: { idSettlementCommission: registro.idSettlementCommission },
 					data: {
-						status: 'PRELIQUIDADO',
+						status: 'PRE-SETTLED',
 					},
 				})
 			})
@@ -620,11 +701,10 @@ export async function procesarPreLiquidacion(
 			registrosProcesados++
 		}
 
-		// Actualizar fecha de pre-liquidación en el archivo y cambiar estado
+		// Actualizar fecha de pre-liquidación en el archivo sin cambiar el estado
 		await prisma.fileImport.update({
 			where: { idFileImport: fileImportId },
 			data: {
-				status: 'PRELIQUIDADO',
 				preLiquidacionDate: new Date(),
 				updatedAt: new Date(),
 			},

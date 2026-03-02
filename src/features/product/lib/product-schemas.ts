@@ -6,30 +6,22 @@ import { z } from 'zod'
 export const createProductSchema = z.object({
 	name: z
 		.string()
-		.min(2, 'El nombre del producto debe tener al menos 2 caracteres')
-		.max(100, 'El nombre del producto no puede exceder 100 caracteres')
+		.min(1, 'El nombre es obligatorio')
+		.max(200, 'El nombre no puede exceder 200 caracteres')
 		.trim(),
-	idCompany: z.number().int().positive('Debe seleccionar una compañía'),
-	status: z.boolean(),
+	description: z.string().optional(),
+	idCompany: z.coerce
+		.number()
+		.int('La compañía seleccionada no es válida')
+		.positive('Debe seleccionar una compañía'),
+	idTypeProduct: z.coerce.number().int().optional(),
+	status: z.boolean().default(true),
 })
 
 /**
  * Schema para actualizar un producto
  */
-export const updateProductSchema = z.object({
-	name: z
-		.string()
-		.min(2, 'El nombre del producto debe tener al menos 2 caracteres')
-		.max(100, 'El nombre del producto no puede exceder 100 caracteres')
-		.trim()
-		.optional(),
-	idCompany: z
-		.number()
-		.int()
-		.positive('Debe seleccionar una compañía')
-		.optional(),
-	status: z.boolean().optional(),
-})
+export const updateProductSchema = createProductSchema.partial()
 
 /**
  * Tipos inferidos de los schemas

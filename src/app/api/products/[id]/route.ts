@@ -27,6 +27,7 @@ export async function GET(
 			where: { idProduct: parseInt(id) },
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 		})
 
@@ -83,6 +84,7 @@ export async function PUT(
 			where: { idProduct: productId },
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 		})
 
@@ -147,7 +149,9 @@ export async function PUT(
 		// Preparar datos para actualizar
 		const updateData: {
 			name?: string
+			description?: string | null
 			idCompany?: number
+			idTypeProduct?: number | null
 			status?: boolean
 		} = {}
 
@@ -157,8 +161,16 @@ export async function PUT(
 			updateData.name = capitalizedName
 		}
 
+		if (data.description !== undefined) {
+			updateData.description = data.description || null
+		}
+
 		if (data.idCompany !== undefined) {
 			updateData.idCompany = data.idCompany
+		}
+
+		if (data.idTypeProduct !== undefined) {
+			updateData.idTypeProduct = data.idTypeProduct || null
 		}
 
 		if (data.status !== undefined) {
@@ -171,6 +183,7 @@ export async function PUT(
 			data: updateData,
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 		})
 
@@ -273,6 +286,7 @@ export async function DELETE(
 			where: { idProduct: productId },
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 		})
 

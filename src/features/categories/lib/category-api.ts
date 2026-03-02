@@ -1,3 +1,4 @@
+import { apiClient } from '@/lib/api/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
 	Category,
@@ -14,6 +15,7 @@ import type {
 export const categoryApi = {
 	/**
 	 * Gets the list of categories with pagination and search
+	 * Used by both Domain and Admin views.
 	 */
 	async getCategories(
 		params?: CategoryFilters & { page?: number; pageSize?: number }
@@ -27,24 +29,9 @@ export const categoryApi = {
 			if (params?.pageSize) queryParams.set('pageSize', params.pageSize.toString())
 
 			const queryString = queryParams.toString()
-			const response = await fetch(
-				`/api/categories${queryString ? `?${queryString}` : ''}`,
-				{
-					credentials: 'include',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-				}
+			const data = await apiClient.get<ApiResponse<CategoryListResponse>>(
+				`/categories${queryString ? `?${queryString}` : ''}`
 			)
-
-			const data: ApiResponse<CategoryListResponse> = await response.json()
-
-			if (!response.ok) {
-				return {
-					data: null,
-					error: 'error' in data ? data.error : 'Error al obtener categorías',
-				}
-			}
 
 			return data
 		} catch (error) {
@@ -63,22 +50,9 @@ export const categoryApi = {
 	 */
 	async getCategory(id: number): Promise<ApiResponse<Category>> {
 		try {
-			const response = await fetch(`/api/categories/${id}`, {
-				credentials: 'include',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			})
-
-			const data: ApiResponse<Category> = await response.json()
-
-			if (!response.ok) {
-				return {
-					data: null,
-					error: 'error' in data ? data.error : 'Error al obtener categoría',
-				}
-			}
-
+			const data = await apiClient.get<ApiResponse<Category>>(
+				`/categories/${id}`
+			)
 			return data
 		} catch (error) {
 			return {
@@ -94,27 +68,13 @@ export const categoryApi = {
 	/**
 	 * Creates a new category
 	 */
-	async createCategory(data: CreateCategoryInput): Promise<ApiResponse<Category>> {
+	async createCategory(input: CreateCategoryInput): Promise<ApiResponse<Category>> {
 		try {
-			const response = await fetch('/api/categories', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(data),
-				credentials: 'include',
-			})
-
-			const result: ApiResponse<Category> = await response.json()
-
-			if (!response.ok) {
-				return {
-					data: null,
-					error: 'error' in result ? result.error : 'Error al crear categoría',
-				}
-			}
-
-			return result
+			const data = await apiClient.post<ApiResponse<Category>>(
+				'/categories',
+				input
+			)
+			return data
 		} catch (error) {
 			return {
 				data: null,
@@ -131,28 +91,14 @@ export const categoryApi = {
 	 */
 	async updateCategory(
 		id: number,
-		data: UpdateCategoryInput
+		input: UpdateCategoryInput
 	): Promise<ApiResponse<Category>> {
 		try {
-			const response = await fetch(`/api/categories/${id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(data),
-				credentials: 'include',
-			})
-
-			const result: ApiResponse<Category> = await response.json()
-
-			if (!response.ok) {
-				return {
-					data: null,
-					error: 'error' in result ? result.error : 'Error al actualizar categoría',
-				}
-			}
-
-			return result
+			const data = await apiClient.put<ApiResponse<Category>>(
+				`/categories/${id}`,
+				input
+			)
+			return data
 		} catch (error) {
 			return {
 				data: null,
@@ -165,25 +111,12 @@ export const categoryApi = {
 	},
 
 	/**
-	 * Deletes a category
+	 * Hard-deletes a category (validates no relations exist)
 	 */
 	async deleteCategory(id: number): Promise<ApiResponse<void>> {
 		try {
-			const response = await fetch(`/api/categories/${id}`, {
-				method: 'DELETE',
-				credentials: 'include',
-			})
-
-			const result: ApiResponse<void> = await response.json()
-
-			if (!response.ok) {
-				return {
-					data: null,
-					error: 'error' in result ? result.error : 'Error al eliminar categoría',
-				}
-			}
-
-			return result
+			await apiClient.delete(`/categories/${id}`)
+			return { data: undefined }
 		} catch (error) {
 			return {
 				data: null,
@@ -191,6 +124,28 @@ export const categoryApi = {
 					error instanceof Error
 						? error.message
 						: 'Error desconocido al eliminar categoría',
+			}
+		}
+	},
+
+	/**
+	 * Soft-deletes (deactivates) a category by setting status to false.
+	 * Used by admin views instead of hard delete.
+	 */
+	async deactivateCategory(id: number): Promise<ApiResponse<Category>> {
+		try {
+			const data = await apiClient.put<ApiResponse<Category>>(
+				`/categories/${id}`,
+				{ status: false }
+			)
+			return data
+		} catch (error) {
+			return {
+				data: null,
+				error:
+					error instanceof Error
+						? error.message
+						: 'Error desconocido al desactivar categoría',
 			}
 		}
 	},

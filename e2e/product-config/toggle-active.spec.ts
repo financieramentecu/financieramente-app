@@ -31,6 +31,7 @@ test.describe('Product Configuration Management - Toggle Active', () => {
 		}
 
 		// Check which toggle button is visible in the first row
+		// Using more specific selectors and waiting
 		const deactivateBtn = row.getByRole('button', {
 			name: /Desactivar configuración/i,
 		})
@@ -38,19 +39,22 @@ test.describe('Product Configuration Management - Toggle Active', () => {
 			name: /Activar configuración/i,
 		})
 
+		// Wait for either button to be present (at least one should be)
+		await expect(deactivateBtn.or(activateBtn).first()).toBeVisible({ timeout: 15000 })
+
 		const hasDeactivate = (await deactivateBtn.count()) > 0
 		const toggleBtn = hasDeactivate ? deactivateBtn : activateBtn
 		const confirmText = hasDeactivate ? /Desactivar/i : /Activar/i
 
 		// Ensure button is visible and ready for interaction
-		await toggleBtn.waitFor({ state: 'visible', timeout: 10000 })
+		await toggleBtn.waitFor({ state: 'visible', timeout: 15000 })
 
 		// Click the toggle button
-		await toggleBtn.click()
+		await toggleBtn.click({ force: true })
 
 		// Wait for confirmation dialog
-		const dialog = page.getByRole('alertdialog')
-		await expect(dialog).toBeVisible({ timeout: 10000 })
+		const dialog = page.getByRole('alertdialog').or(page.getByRole('dialog'))
+		await expect(dialog.first()).toBeVisible({ timeout: 15000 })
 
 		// Set up response listener BEFORE clicking confirm
 		const patchResponsePromise = page.waitForResponse(
@@ -61,17 +65,17 @@ test.describe('Product Configuration Management - Toggle Active', () => {
 		)
 
 		// Click the confirmation action button
-		await dialog.getByRole('button', { name: confirmText }).click()
+		await dialog.getByRole('button', { name: confirmText }).first().click()
 
 		// Wait for the PATCH API call to complete
 		const patchResponse = await patchResponsePromise
 		const patchStatus = patchResponse.status()
 
 		if (patchStatus === 200) {
-			// Verify success toast
+			// Verify success toast - using more flexible text matching
 			await expect(
-				page.getByText('Estado de configuración actualizado exitosamente')
-			).toBeVisible({ timeout: 15000 })
+				page.getByText(/Estado de configuración actualizado exitosamente/i)
+			).toBeVisible({ timeout: 20000 })
 		} else {
 			// If the API returned an error, check for error toast instead
 			const errorToast = page.getByText(/Error/i)

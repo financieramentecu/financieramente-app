@@ -5,7 +5,7 @@ import {
 	type CrudTableColumn,
 } from '@/features/admin/shared/CrudTable'
 import { Badge } from '@/features/shared/ui/badge'
-import type { Product } from '../types/product.types'
+import type { Product } from '@/features/product/types/product.types'
 
 interface ProductsTableProps {
 	products: Product[]

@@ -2,7 +2,7 @@ import { readFile, readdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const LEGACY_TO_TARGET = {
-	'@/services/company.service': '@/features/admin/companies/lib/company-api',
+	'@/services/company.service': '@/features/company/lib/company-api',
 	'@/services/currency.service': '@/features/admin/currencies/lib/currency-api',
 	'@/services/origin.service': '@/features/admin/origins/lib/origin-api',
 	'@/services/periodicity.service':
@@ -162,7 +162,7 @@ function applyEditsForLegacyImport(params: {
 	// Example:
 	// import { getCompanies } from '@/services/company.service'
 	// =>
-	// import { companyApi } from '@/features/admin/companies/lib/company-api'
+	// import { companyApi } from '@/features/company/lib/company-api'
 	const apiExportName = rewrites[0]?.targetNamespace
 	const newImportLine = `import { ${apiExportName} } from '${targetImportPath}'`
 
