@@ -5,12 +5,12 @@ import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { EditBusinessFormContainer } from '@/features/negocios/components/containers/EditBusinessFormContainer'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { getCompanies } from '@/features/company/lib/company-api'
+import { getProducts } from '@/features/product/lib/product-api'
 import { getBusinessById } from '@/features/negocios/services/business.service'
-import { getCompanies } from '@/features/admin/companies/lib/company-api'
-import { getProducts } from '@/features/admin/products/lib/product-api'
 import { getPeriodicities } from '@/features/admin/periodicities/lib/periodicity-api'
 import { getCurrencies } from '@/features/admin/currencies/lib/currency-api'
-import { getClientOrigins } from '@/features/admin/origins/lib/origin-api'
+import { getClientOrigins } from '@/features/origins/lib/origins-api'
 
 // Cache de opciones del formulario
 const getCompaniesCached = unstable_cache(getCompanies, ['companies'], {

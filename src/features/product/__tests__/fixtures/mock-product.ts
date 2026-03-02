@@ -12,6 +12,7 @@ export function createMockProduct(overrides?: Partial<Product>): Product {
 	return {
 		idProduct: 1,
 		idCompany: 1,
+		idTypeProduct: null,
 		name: 'Seguro de Vida',
 		description: 'Seguro de vida completo',
 		status: true,
@@ -21,6 +22,7 @@ export function createMockProduct(overrides?: Partial<Product>): Product {
 			idCompany: 1,
 			name: 'Skandia',
 		},
+		typeProduct: null,
 		...overrides,
 	}
 }
@@ -62,11 +64,12 @@ export function createMockCompanyOption(
  * Crea un mock de PrismaProductWithCompany para tests de mapper
  */
 export function createMockPrismaProduct(
-	overrides?: Partial<Prisma.ProductGetPayload<{ include: { company: true } }>>
-): Prisma.ProductGetPayload<{ include: { company: true } }> {
+	overrides?: Partial<Prisma.ProductGetPayload<{ include: { company: true; typeProduct: true } }>>
+): Prisma.ProductGetPayload<{ include: { company: true; typeProduct: true } }> {
 	return {
 		idProduct: 1,
 		idCompany: 1,
+		idTypeProduct: null,
 		name: 'Seguro de Vida',
 		description: 'Seguro de vida completo',
 		status: true,
@@ -80,6 +83,7 @@ export function createMockPrismaProduct(
 			createdAt: new Date('2024-01-01T00:00:00.000Z'),
 			updatedAt: new Date('2024-01-01T00:00:00.000Z'),
 		},
+		typeProduct: null,
 		...overrides,
-	} as Prisma.ProductGetPayload<{ include: { company: true } }>
+	} as Prisma.ProductGetPayload<{ include: { company: true; typeProduct: true } }>
 }
