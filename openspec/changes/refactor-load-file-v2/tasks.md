@@ -43,3 +43,19 @@
 - [x] 4.4 Update tests to firmly assert that Poliza records marked `CLAW` accurately force `discountPercentage = 0` and `clawbackPercentage = 0` and `isClawback = true` regardless of global settings.
 - [x] 4.5 Run full suite tests ensuring existing validations for empty fields remain intact during the refactor, correctly populating `FileImportError` and incrementing `errorRecord` without halting the batch process.
 - [x] 4.6 Verify that the `ERROR` status is no longer used or expected for `SettlementCommission`.
+
+## 5. Visualization of Records by Status (UI + API)
+
+- [x] 5.1 Add endpoint (e.g. `GET /api/carga-archivos/[id]/records`) that returns records for a file import grouped or filterable by status (Sincronizados, No sincronizados, Rezagados), with pagination (e.g. `page`, `pageSize`, optional `status`). Reuse existing `GET .../errors` for Errores; cause = `reason`.
+- [x] 5.2 Define response shape: include contract, montos (baseCommission, commissionValue), isLag, isClawback, discountPercentage, clawbackPercentage, and for "No sincronizados" a derived detail string using only hardcoded text: "No existe el contrato" or "La fecha de creación no está en el rango de fechas". Rezagados = `isLag = true` and `lagDate` not null.
+- [x] 5.3 Create shared UI component: four summary cards (counts) + four tabs (Sincronizados, Errores, No sincronizados, Rezagados), each tab rendering a table with columns: Contrato, montos (if LAG), clawback (sí/no), percentages, detail/cause. Errores tab uses `reason` as cause.
+- [x] 5.4 Integrate the shared component into the post-upload flow (carga de archivo): after processing completes, show the view for the current `fileImportId` (data from API; view is temporary and lost on refresh).
+- [x] 5.5 Integrate into Historial: add "Ver detalle" (or equivalent) to each history card; on click, open a **fullscreen, closeable** modal with the same shared component and load data by `fileImportId` with pagination (modal fullscreen to make the best use of space; user can close to return to the list).
+- [x] 5.6 Ensure the records endpoint and UI support pagination so large imports do not load all rows at once.
+
+## 6. Deletion of File Import (Historial)
+
+- [x] 6.1 In the load-file feature service: validate that the file import exists, belongs to the current user, and has `status === 'LOAD'` or `status === 'ERROR'` before performing any delete. If status is not LOAD nor ERROR (e.g. PRE-SETTLED or SETTLED), return a typed error (e.g. `INVALID_STATUS`) with a clear message so the API can respond 400/409.
+- [x] 6.2 In the same service, within a single transaction, delete dependent records in FK-safe order: Clawback (for ComissionDistributions of this file's settlements), ComissionDistribution (for this file's SettlementCommissions), SettlementCommission (where idFileImport = id), FileImportError (where idFileImport = id), then FileImport. This fixes the "related errors" failure when the file has FileImportError rows.
+- [x] 6.3 In the DELETE API route for file-import/[id]: call the new service; on success return 200; on validation failure (e.g. INVALID_STATUS) return 400 or 409 with the service message in the response body.
+- [x] 6.4 (Optional) In the historial UI or the hook that triggers delete, surface the backend error message when the delete request fails (e.g. "Solo se puede eliminar si está en estado LOAD o ERROR").

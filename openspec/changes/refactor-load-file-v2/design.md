@@ -120,3 +120,53 @@ To eliminate complexity and facilitate maintenance, the backend service implemen
 - **Voluntaria Branching**: Comisiones > 0 (by `contract`)? No -> Inside Proc Month => SYNC, otherwise LAG+noSincronizado. Comisiones > 0? Yes -> Same Dates? Yes => Save in FileImportError & increment errorRecord, No => Recover Old LAGs to SYNC, Create New SYNC.
 - **Poliza Exact Parsing**: When processing strings that `includes("CLAW")`, it must explicitly override the fetched `CommissionConfiguration` percentages, forcibly setting `clawbackPercentage = 0`, `discountPercentage = 0`, and marking the row `isClawback = true` and `status = 'SYNCHRONIZED'`.
 - use Prisma transactions strictly for the Multi-Row creation scenarios (like old LAG recovery + new SYNC creation).
+
+---
+
+## Visualization of Records by Status (Design)
+
+### Definitions (aligned with spec)
+
+- **Sincronizados**: `SettlementCommission` where `idFileImport = id` and `status = 'SYNCHRONIZED'`.
+- **Errores**: `FileImportError` where `idFileImport = id` (existing endpoint returns these; cause = `reason`).
+- **No sincronizados**: `SettlementCommission` where `idFileImport = id`, `status = 'LAG'`, and `idBusiness` is null (or equivalent: business-not-found / date-out-of-range). Detail column uses **hardcoded text only**: "No existe el contrato" when business was not found, or "La fecha de creación no está en el rango de fechas" when date was out of range. No new DB column.
+- **Rezagados**: `SettlementCommission` where `idFileImport = id`, `isLag = true`, and `lagDate IS NOT NULL` (recovered into sync flow).
+
+### API contract (new endpoint)
+
+- **Endpoint**: e.g. `GET /api/carga-archivos/[id]/records` (or `/detail`). Returns records for the given file import, grouped or filterable by status.
+- **Pagination**: Required. Query params such as `page`, `pageSize`, and optionally `status` (to fetch one tab at a time) to avoid loading full result set for large imports.
+- **Response**: List(s) of records with fields needed for the table: contract, commissionValue, baseCommission, discountPercentage, clawbackPercentage, isClawback, isLag, lagDate, startDate, endDate, and for "No sincronizados" a derived detail string (hardcoded by rule above). Errors are already served by `GET /api/carga-archivos/[id]/errors` (cause = `reason`).
+- **Authorization**: Same as existing carga-archivos endpoints (file import must belong to current user).
+
+### UI behavior
+
+- **Carga de archivo**: After successful processing, frontend has `fileImportId`. Call the new records endpoint (and existing errors endpoint) and render shared component: four summary cards + four tabs, each tab a table. No persistence of this view beyond session; on refresh, user can go to Historial and open the same import.
+- **Historial**: Each history card has a "Ver detalle" (or equivalent) action. On click, open a **fullscreen modal** (to make the best use of space for tables and many rows) with the same shared component, passing `fileImportId`; component fetches records (paginated) and errors and displays the same four tabs and tables. The modal SHALL be **closeable** (e.g. close button and/or overlay/escape) so the user can return to the historial list.
+
+---
+
+## Deletion of File Import (Historial)
+
+### Business rule
+
+- **Allow deletion when** `FileImport.status === 'LOAD'` **or** `FileImport.status === 'ERROR'`.
+- If the file is PRE-SETTLED or SETTLED (preliquidado o liquidado), deletion SHALL be rejected with a clear error (e.g. 400/409 and message such as "Solo se puede eliminar un archivo en estado LOAD o ERROR" or "El archivo está pre-liquidado o liquidado").
+- This satisfies: "el archivo solo se puede eliminar si está en estado LOAD o ERROR, sin preliquidados ni liquidados" (PRE-SETTLED/SETTLED imply pre-liquidated or settled; ERROR is a failed import that may be removed from historial).
+
+### Fix for "related errors" on delete
+
+- The current DELETE does **not** remove `FileImportError` rows. Because there is no `onDelete: Cascade` on the relation, deleting `FileImport` while `FileImportError` rows exist causes a foreign-key error ("related records" or similar).
+- **Solution**: Within the same transaction, delete dependent rows in an order that respects foreign keys, then delete `FileImport`:
+  1. **Clawback** (where the related `ComissionDistribution` belongs to a `SettlementCommission` of this file import).
+  2. **ComissionDistribution** (where `idSettlementCommission` belongs to this file import).
+  3. **SettlementCommission** (where `idFileImport` = id).
+  4. **FileImportError** (where `idFileImport` = id).
+  5. **FileImport**.
+- For files in LOAD, typically only `SettlementCommission` and `FileImportError` exist; including the full order keeps the implementation safe for any data shape.
+
+### Responsibility split (architecture)
+
+- **API route** (`file-import/[id]/route.ts`): Auth, parse id, call load-file service (e.g. `deleteFileImport(id, idUser)`), map service result to HTTP status and body (200, or 400/409 with message).
+- **Service** (in `src/features/load-file/services/`): Ensure file exists and belongs to user; validate `status === 'LOAD' || status === 'ERROR'`; if invalid, return a typed result (e.g. `{ ok: false, code: 'INVALID_STATUS', message }`); otherwise run a single transaction that performs the deletes in the order above and returns success.
+- **UI** (optional): When the backend rejects the delete, show the returned error message (e.g. in Historial or in the hook that calls the delete API).

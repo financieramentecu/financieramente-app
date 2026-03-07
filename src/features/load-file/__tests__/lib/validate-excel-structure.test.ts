@@ -52,4 +52,37 @@ describe('validateExcelStructure', () => {
 		expect(result.isValid).toBe(false)
 		expect(result.missingColumns?.length || 0).toBeGreaterThan(0)
 	})
+
+	it('returns error when the Excel file is empty (no rows)', async () => {
+		const worksheet = XLSX.utils.aoa_to_sheet([])
+		const workbook = XLSX.utils.book_new()
+		XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
+		const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
+		const file = new File([buffer], 'empty.xlsx', {
+			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		})
+		Object.defineProperty(file, 'arrayBuffer', {
+			value: async () =>
+				buffer instanceof ArrayBuffer
+					? buffer
+					: buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+		})
+
+		const result = await validateExcelStructure(file, FILE_TYPES.POLIZA)
+
+		expect(result.isValid).toBe(false)
+		expect(result.error).toMatch(/vacío/)
+	})
+
+	it('returns error when the file is corrupted and cannot be parsed', async () => {
+		const blob = new Blob(['not-an-excel-file'], { type: 'application/octet-stream' })
+		const file = new File([blob], 'corrupt.xlsx', {
+			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		})
+
+		const result = await validateExcelStructure(file, FILE_TYPES.POLIZA)
+
+		expect(result.isValid).toBe(false)
+		expect(result.error).toBeDefined()
+	})
 })

@@ -85,7 +85,13 @@ const FILE_TYPE_COLUMN_MAP = {
   - Ensure `commissionType` is strictly mapped without optional nulls.
 - **Clean Code Architecture (Backend)**: Apply SOLID principles directly to the batch processing core (`process-batch.service.ts`). Split the monolithic procedural logic into discrete specific modules located in `processors/` and `validators/` directories. Utilize a Strategy/Factory pattern to cleanly execute POLIZA vs VOLUNTARIA logic.
 
+- **User visualization of records by status** (post-refactor extension):
+  - **Four categories (tabs)**: Sincronizados, Errores, No sincronizados, Rezagados. Each tab shows a **table** with: Contrato, montos (if LAG), is clawback, percentages, and detail/cause.
+  - **Rezagados** = records with `isLag = true` and `lagDate` not null (recovered into sync flow). **No sincronizados** = LAG without business or date out of range; display **hardcoded** reason only: "No existe el contrato" or "La fecha de creación no está en el rango de fechas".
+  - **Errores**: show cause from `FileImportError.reason`.
+  - Applies to **carga de archivo** (temporary view after upload; lost on refresh) and **historial** (persistent; user opens detail from each card in a **fullscreen, closeable** modal to make the best use of space). Same backend source: records by `fileImportId` with **pagination**.
+
 ## Non-Goals
 
 - Altering the Pre-liquidation calculation engine (this spec focuses only on the Load File / Sync phase).
-- Changing the frontend UI components (the UI should just receive the new backend responses).
+- Changing the frontend UI components for the initial refactor (the UI should just receive the new backend responses). The visualization-by-status feature explicitly updates the UI for carga and historial.

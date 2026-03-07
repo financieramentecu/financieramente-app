@@ -87,3 +87,38 @@ The system SHALL retrieve global commission settings before saving any valid rec
 - **WHEN** a record is ready to be saved
 - **THEN** the system MUST fetch the active `commission_configuration`
 - **AND** store the `commission_percentage` and `discount_percentage` in the `settlement_commission` record.
+
+### Requirement: User Visualization of Records by Status
+
+The system SHALL allow the user to view records from a file import grouped by synchronization status, in both the post-upload flow (carga de archivo) and the history view (historial).
+
+#### Categories (four tabs)
+
+- **Sincronizados**: Records that ended in `SYNCHRONIZED` (`status = 'SYNCHRONIZED'`).
+- **Errores**: Records that could not be registered and generated an error; stored in `FileImportError`; the **cause** SHALL be displayed (field `reason`).
+- **No sincronizados**: Records that were not accepted and remained as LAG (e.g. business not found or date out of range). The detail/cause SHALL be shown using **hardcoded text only**: either "No existe el contrato" or "La fecha de creación no está en el rango de fechas" (no new DB field).
+- **Rezagados**: Records that were in LAG and were brought into the synchronization flow. Identified by `isLag = true` AND `lagDate` is not null (i.e. they had a lag date set when recovered).
+
+#### Table content per tab
+
+Each tab SHALL display a **table** with relevant information: Contrato, montos (when applicable, e.g. LAG), is clawback (yes/no), percentages used for calculation, and detail/cause (for errors: `reason`; for no sincronizados: one of the two hardcoded messages above).
+
+#### Scope
+
+- **Carga de archivo**: After processing, show the summary cards and tabs with tables for the current import; data is loaded from the API by `fileImportId`. If the user refreshes the page, this view is lost (data remains in DB; user can open the same import from Historial).
+- **Historial**: Each history card SHALL allow opening a detail view in a **fullscreen modal** (to make the best use of space) with the same four cards and four tabs with tables for that import. Data SHALL be fetched by `fileImportId` from the API. The modal SHALL be **closeable** (close control and/or overlay/escape) so the user can return to the historial list.
+
+#### Pagination
+
+The endpoint that returns records by status for a file import SHALL support **pagination** so that large imports do not load all rows at once.
+
+### Requirement: Deletion of File Import (Historial)
+
+The system SHALL allow deletion of a file import from the historial only when the file is in **LOAD** or **ERROR** status (not pre-liquidated or liquidated).
+
+- **WHEN** the user requests deletion of a file import from historial  
+- **AND** the file import has `status` other than `'LOAD'` or `'ERROR'` (e.g. PRE-SETTLED or SETTLED)  
+- **THEN** the system SHALL reject the request (e.g. HTTP 400 or 409) with a clear message (e.g. "Solo se puede eliminar si está en estado LOAD o ERROR" or "El archivo está pre-liquidado o liquidado").
+
+- **WHEN** the user requests deletion and the file import has `status === 'LOAD'` or `status === 'ERROR'`  
+- **THEN** the system SHALL delete the file import and all dependent data (including `FileImportError`, `SettlementCommission`, and any `ComissionDistribution`/`Clawback` linked to those commissions) in a single transaction, in an order that respects foreign keys, so that deletion succeeds even when the file has related errors (`FileImportError` rows).
