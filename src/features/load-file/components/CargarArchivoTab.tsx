@@ -8,8 +8,8 @@ import { cn } from '@/lib/utils'
 import { validateExcelStructure } from '../lib/validate-excel-structure'
 import { processExcelFile } from '../lib/process-excel-file'
 import { FILE_TYPES, type FileType } from '../lib/file-types'
-import { ProcessingSummary } from './ProcessingSummary'
 import { ProcessingProgress } from './ProcessingProgress'
+import { RecordsByStatusView } from './RecordsByStatusView'
 import { loadFileApi } from '../lib/load-file-api'
 import type { ProcessResult } from '../types/load-file.types'
 
@@ -32,7 +32,11 @@ export function CargarArchivoTab() {
 		undefined
 	)
 	const [processingResult, setProcessingResult] = useState<
-		| (ProcessResult & { sincronizadoCount: number; rezagadoCount: number })
+		| (ProcessResult & {
+				sincronizadoCount: number
+				rezagadoCount: number
+				noSincronizadoCount?: number
+		  })
 		| null
 	>(null)
 	const [processingProgress, setProcessingProgress] = useState<{
@@ -42,6 +46,9 @@ export function CargarArchivoTab() {
 		rezagado: number
 		error: number
 	} | null>(null)
+	const [currentFileImportId, setCurrentFileImportId] = useState<
+		number | null
+	>(null)
 
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	// Refs para control de cancelación
@@ -163,6 +170,7 @@ export function CargarArchivoTab() {
 		setSelectedFile(null)
 		setProcessingResult(null)
 		setProcessingProgress(null)
+		setCurrentFileImportId(null)
 		if (fileInputRef.current) {
 			fileInputRef.current.value = ''
 		}
@@ -244,6 +252,7 @@ export function CargarArchivoTab() {
 			}
 
 			const fileImport = initiateResponse.data.fileImport
+			setCurrentFileImportId(fileImport.idFileImport)
 
 			// Procesar y guardar todos los registros (incluyendo los que tienen error previo)
 			const allRecords = [...result.validRecords, ...result.errorRecords]
@@ -371,14 +380,16 @@ export function CargarArchivoTab() {
 						...result,
 						sincronizadoCount: 0,
 						rezagadoCount: 0,
+						noSincronizadoCount: 0,
 					})
 				} else {
 					const finalData = finalResponse.data
-					// Actualizar resultado con los datos consolidados del backend
+					// Actualizar resultado con los datos consolidados del backend (misma fuente que historial)
 					setProcessingResult({
 						...result,
 						sincronizadoCount: finalData.sincronizadoRecord || 0,
 						rezagadoCount: finalData.rezagadoRecord || 0,
+						noSincronizadoCount: finalData.noSincronizadoRecord ?? 0,
 						// Sumamos errores locales detectados + errores reportados por el backend
 						errorCount: finalData.errorRecord || result.errorCount,
 					})
@@ -389,6 +400,7 @@ export function CargarArchivoTab() {
 					...result,
 					sincronizadoCount: 0,
 					rezagadoCount: 0,
+					noSincronizadoCount: 0,
 				})
 			}
 		} catch (error) {
@@ -463,13 +475,44 @@ export function CargarArchivoTab() {
 				</div>
 			)}
 
-			{/* Mostrar resumen si hay resultado, sino mostrar área de carga */}
-			{processingResult && !processingProgress ? (
-				<ProcessingSummary
-					result={processingResult}
-					fileName={selectedFile?.name || 'archivo'}
-					onUploadAnother={handleUploadAnother}
-				/>
+			{/* Mostrar vista por estado (cards + tabs) si hay resultado */}
+			{processingResult && !processingProgress && currentFileImportId ? (
+				<div className="space-y-6">
+					<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+						<h3 className="text-lg font-semibold text-primary mb-2">
+							Archivo cargado correctamente
+						</h3>
+						<p className="text-sm text-muted-foreground">
+							{selectedFile?.name || 'archivo'}
+						</p>
+					</div>
+					<RecordsByStatusView
+						fileImportId={currentFileImportId}
+						counts={{
+							sincronizados: processingResult.sincronizadoCount ?? 0,
+							errores: processingResult.errorCount ?? 0,
+							noSincronizados:
+								processingResult.noSincronizadoCount ??
+								Math.max(
+									0,
+									(processingResult.successCount ?? 0) -
+										(processingResult.sincronizadoCount ?? 0) -
+										(processingResult.rezagadoCount ?? 0)
+								),
+							rezagados: processingResult.rezagadoCount ?? 0,
+						}}
+					/>
+					<div className="flex justify-center pt-4">
+						<Button
+							onClick={handleUploadAnother}
+							className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
+							size="lg"
+						>
+							<FileUp className="h-5 w-5 mr-2" />
+							Subir otro y volver al estado inicial
+						</Button>
+					</div>
+				</div>
 			) : !processingProgress ? (
 				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 					<h2 className="text-xl font-semibold text-primary mb-4">

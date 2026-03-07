@@ -99,6 +99,8 @@ export class PolizaProcessor implements ICommissionProcessor {
 				isClawback = false
 			}
 
+			const effectiveDiscount = isClawback ? 0 : snapshots.discountPercentage
+
 			if (priorLag) {
 				await tx.settlementCommission.update({
 					where: { idSettlementCommission: priorLag.idSettlementCommission },
@@ -113,7 +115,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 					extracted,
 					fileImportId,
 					business.idBusiness,
-					snapshots.discountPercentage,
+					effectiveDiscount,
 					originCommission,
 					isClawback
 				)
@@ -129,7 +131,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 					extracted,
 					fileImportId,
 					business.idBusiness,
-					snapshots.discountPercentage,
+					effectiveDiscount,
 					originCommission,
 					isClawback
 				)

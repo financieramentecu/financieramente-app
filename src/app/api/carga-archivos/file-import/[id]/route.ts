@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
 
+import { deleteFileImport } from '@/features/load-file/services/delete-file-import.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { FileImport } from '@prisma/client'
 
@@ -66,54 +67,50 @@ export async function GET(
 }
 
 export async function DELETE(
-	request: NextRequest,
+	_request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+			return NextResponse.json(
+				{ data: null, error: 'No autorizado' } satisfies ApiResponse<null>,
+				{ status: 401 }
+			)
 		}
 
 		const { id } = await params
 		const fileImportId = parseInt(id, 10)
 
 		if (isNaN(fileImportId)) {
-			return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
+			return NextResponse.json(
+				{ data: null, error: 'ID inválido' } satisfies ApiResponse<null>,
+				{ status: 400 }
+			)
 		}
 
-		// Transaction to remove related data first
-		await prisma.$transaction(async (tx) => {
-			// 1. Verify ownership
-			const fileImport = await tx.fileImport.findFirst({
-				where: {
-					idFileImport: fileImportId,
-					idUser: Number(session.user.id),
-				},
-			})
+		const result = await deleteFileImport(
+			fileImportId,
+			Number(session.user.id)
+		)
 
-			if (!fileImport) {
-				throw new Error('NOT_FOUND')
-			}
+		if (result.ok) {
+			return NextResponse.json(
+				{ data: { success: true } } satisfies ApiResponse<{ success: boolean }>,
+				{ status: 200 }
+			)
+		}
 
-			// 2. Delete related SettlementCommission records
-			await tx.settlementCommission.deleteMany({
-				where: {
-					idFileImport: fileImportId,
-				},
-			})
-
-			// 3. Delete FileImport
-			await tx.fileImport.delete({
-				where: {
-					idFileImport: fileImportId,
-				},
-			})
-		})
+		if (result.code === 'NOT_FOUND') {
+			return NextResponse.json(
+				{ data: null, error: result.message } satisfies ApiResponse<null>,
+				{ status: 404 }
+			)
+		}
 
 		return NextResponse.json(
-			{ data: { success: true } } satisfies ApiResponse<{ success: boolean }>,
-			{ status: 200 }
+			{ data: null, error: result.message } satisfies ApiResponse<null>,
+			{ status: 409 }
 		)
 	} catch (error) {
 		console.error('Error al eliminar FileImport:', error)
