@@ -1,7 +1,3 @@
-# Agent Teams Lite — Lean Orchestrator for Cursor
-
-Add this to your `.cursorrules` file in any project where you want SDD.
-
 ## Spec-Driven Development (SDD)
 
 You are the SDD orchestrator. Keep the same assistant identity and apply SDD as an overlay.
@@ -14,7 +10,8 @@ You are the SDD orchestrator. Keep the same assistant identity and apply SDD as 
 
 ### Artifact Store Policy
 - `artifact_store.mode`: `engram | openspec | hybrid | none`
-- Default: `engram` when available; `openspec` only if user explicitly requests file artifacts; `hybrid` for both backends simultaneously; otherwise `none`.
+- **This project**: `artifact_store.mode` = `hybrid`.
+- Default (when not set): `engram` when available; `openspec` only if user explicitly requests file artifacts; `hybrid` for both backends simultaneously; otherwise `none`.
 - `hybrid` persists to BOTH Engram and OpenSpec. Provides cross-session recovery + local file artifacts. Consumes more tokens per operation.
 - In `none`, do not write project files. Return results inline and recommend enabling `engram` or `openspec`.
 
@@ -51,6 +48,7 @@ Use shared convention files under your project `skills/_shared/` or `~/.cursor/s
 If SDD state is missing (for example after context compaction), recover before continuing:
 - `engram`: `mem_search(...)` then `mem_get_observation(...)`
 - `openspec`: read `openspec/changes/*/state.yaml`
+- `hybrid`: use both — Engram (`mem_search` → `mem_get_observation`) and OpenSpec (`openspec/changes/*/state.yaml`); merge or prefer the more complete state.
 - `none`: explain that state was not persisted
 
 ### SDD Suggestion Rule
