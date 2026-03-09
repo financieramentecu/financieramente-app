@@ -46,6 +46,14 @@ Refactor the Skandia file load into a strict rule engine: separate VOLUNTARIA an
 
 **Rationale**: Pagination and filter avoid loading full result sets. Single source for counts (FileImport) ensures post-upload and historial match. Reuse of one component keeps behavior consistent.
 
+### Decision: Poliza clawback percentage on commission
+
+**Choice**: **Clawback is 0 only when Plan de Compensación includes "CLAW".** For all other plans (FRONT19, "Otro", or any other value), the processor MUST obtain the clawback percentage from the active `CommissionConfiguration` (already provided in `snapshots.clawbackPercentage` by the batch coordinator) and **persist it on the commission** (`SettlementCommission.clawbackPercentage`). The coordinator already fetches config once per batch; the Poliza processor computes `effectiveClawback = isClawback ? 0 : (snapshots.clawbackPercentage ?? 0)` and passes it into `createSync`, which writes it to the DB instead of a hardcoded `0`.
+
+**Alternatives considered**: Always storing 0 for Poliza (current bug); fetching config inside the processor per row.
+
+**Rationale**: Flow and spec require storing discount and clawback from config on the record; CLAW is the only exception (explicit override to 0). Pre-liquidación uses `SettlementCommission.clawbackPercentage`, so the value must be present at sync time. Reusing `snapshots` avoids extra DB reads.
+
 ## Data Flow
 
 ```
@@ -84,7 +92,7 @@ Delete (historial)
 |------|--------|-------------|
 | `src/features/load-file/services/processors/processor.interface.ts` | Create | `ICommissionProcessor` and `ProcessorResult` type. |
 | `src/features/load-file/services/processors/voluntaria.processor.ts` | Create | Voluntaria rules: business lookup, duplicate check, LAG recovery, date range, write to SettlementCommission or FileImportError. |
-| `src/features/load-file/services/processors/poliza.processor.ts` | Create | Poliza rules: business lookup, LAG recovery, Plan de Compensación (FRONT19/CLAW), write to SettlementCommission or FileImportError. |
+| `src/features/load-file/services/processors/poliza.processor.ts` | Create / Modify | Poliza rules: business lookup, LAG recovery, Plan de Compensación (FRONT19/CLAW). **Clawback**: 0 only when Plan includes "CLAW"; otherwise persist `snapshots.clawbackPercentage` on the commission. `createSync` must accept a `clawbackPercentage` parameter and use it in `data.clawbackPercentage`. Write to SettlementCommission or FileImportError. |
 | `src/features/load-file/services/processors/processor.factory.ts` | Create | Returns Voluntaria or Poliza processor by `fileType`. |
 | `src/features/load-file/services/validators/row.validator.service.ts` | Create | Parse dates, numbers, required cells; used by processors. |
 | `src/features/load-file/services/process-batch.service.ts` | Modify | Orchestrate batches, call factory and processor per row, aggregate metrics, update FileImport; no direct row logic. |
@@ -116,6 +124,7 @@ Delete (historial)
 |-------|--------------|----------|
 | Unit | Voluntaria: duplicate→FileImportError, LAG recovery, date range→LAG/SYNC, business not found→LAG | process-batch.service.test with mocked Prisma; assert processor returns and DB calls. |
 | Unit | Poliza: FRONT19→CARTERA, CLAW→isClawback, business not found→LAG, LAG recovery | Same test file; Poliza scenarios. |
+| Unit | Poliza clawback persistence: Plan with "CLAW" → `clawbackPercentage` 0; Plan FRONT19 or other (no CLAW) → `clawbackPercentage` equals active CommissionConfiguration | Assert created `SettlementCommission` row has correct `clawbackPercentage` in process-batch.service.test (or poliza.processor test). |
 | Unit | Header validation with/without accents; encoding (CSV UTF-8) | validate-excel-structure.test; optional test for accented headers. |
 | Unit | deleteFileImport: LOAD/ERROR allowed, PRE-SETTLED rejected, FK order in transaction | delete-file-import.service test (if added). |
 | Integration | Full batch: file → processBatch → FileImport + SettlementCommission + FileImportError state | Optional integration test. |
@@ -252,7 +261,7 @@ To eliminate complexity and facilitate maintenance, the backend service implemen
 - **Voluntaria Anti-Duplicate Rule & LAG Logic**: When querying `SettlementCommission` to check if a commission already exists, **the search MUST match the `contract`, `start_date`, and `end_date`**.
 - **Voluntaria Date Validation**: If the `idBusiness.createdAt` falls OUTSIDE the `start_date` and `end_date` parsed from Excel, the row is discarded, the `noSincronizados` counter increments, and it is saved as LAG.
 - **Voluntaria Branching**: Comisiones > 0 (by `contract`)? No -> Inside Proc Month => SYNC, otherwise LAG+noSincronizado. Comisiones > 0? Yes -> Same Dates? Yes => Save in FileImportError & increment errorRecord, No => Recover Old LAGs to SYNC, Create New SYNC.
-- **Poliza Exact Parsing**: When processing strings that `includes("CLAW")`, it must explicitly override the fetched `CommissionConfiguration` percentages, forcibly setting `clawbackPercentage = 0`, `discountPercentage = 0`, and marking the row `isClawback = true` and `status = 'SYNCHRONIZED'`.
+- **Poliza Exact Parsing**: When processing strings that `includes("CLAW")`, it must explicitly override the fetched `CommissionConfiguration` percentages, forcibly setting `clawbackPercentage = 0`, `discountPercentage = 0`, and marking the row `isClawback = true` and `status = 'SYNCHRONIZED'`. **For all other plans (FRONT19, "Otro", etc.)**, the processor MUST persist the clawback percentage from `CommissionConfiguration` on the commission: compute `effectiveClawback = isClawback ? 0 : (snapshots.clawbackPercentage ?? 0)` and pass it to `createSync`; `createSync` must accept a `clawbackPercentage` argument and write it to `data.clawbackPercentage` (no hardcoded 0).
 - use Prisma transactions strictly for the Multi-Row creation scenarios (like old LAG recovery + new SYNC creation).
 
 ---

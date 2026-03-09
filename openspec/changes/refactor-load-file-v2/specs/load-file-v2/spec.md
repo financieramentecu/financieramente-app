@@ -78,7 +78,57 @@ The system SHALL allow deletion of a file import from the historial only when th
 - **WHEN** the file import does not exist or does not belong to the user  
 - **THEN** the system SHALL respond with not found (e.g. HTTP 404)
 
+### Requirement: Poliza clawback percentage persistence
+
+The system SHALL persist the clawback percentage on the commission record for Poliza files according to the Plan de Compensación. **Clawback percentage SHALL be 0 only when the Plan de Compensación includes "CLAW".** For all other plans (e.g. FRONT19, or any other value), the system SHALL obtain the clawback percentage from the active `CommissionConfiguration` and SHALL store it on the `settlement_commission` record (`clawback_percentage`).
+
+#### Scenario: Plan contains CLAW — clawback zero
+
+- **GIVEN** a Poliza record is being saved as SYNCHRONIZED  
+- **AND** the "Plan de Compensación" contains "CLAW" (case-normalized)  
+- **WHEN** the system persists the record  
+- **THEN** the system SHALL set `clawback_percentage` to 0 on the commission  
+- **AND** SHALL set `isClawback` to true
+
+#### Scenario: Plan does not contain CLAW — clawback from configuration
+
+- **GIVEN** a Poliza record is being saved as SYNCHRONIZED  
+- **AND** the "Plan de Compensación" does NOT contain "CLAW" (e.g. contains "FRONT19" or any other value)  
+- **AND** an active `CommissionConfiguration` exists with a `clawback_percentage` value  
+- **WHEN** the system persists the record  
+- **THEN** the system SHALL set `clawback_percentage` on the commission to the value from the active `CommissionConfiguration`  
+- **AND** SHALL set `isClawback` to false
+
+#### Scenario: Plan does not contain CLAW and configuration has null clawback
+
+- **GIVEN** a Poliza record is being saved as SYNCHRONIZED  
+- **AND** the "Plan de Compensación" does NOT contain "CLAW"  
+- **AND** the active `CommissionConfiguration` has `clawback_percentage` null or missing  
+- **WHEN** the system persists the record  
+- **THEN** the system MAY store 0 (or the configured default) for `clawback_percentage` so that the record remains consistent for pre-liquidación
+
 ## MODIFIED Requirements
+
+### Requirement: Poliza Special Derivations
+
+(Previously: For "Plan does NOT contain CLAW", the base spec set `clawback_percentage = null`. For "Plan contains CLAW", it did not require storing a numeric clawback.)
+
+The system SHALL apply Plan de Compensación rules for Poliza as in the base spec, with the following clarification for clawback percentage: when the Plan contains "CLAW", the system SHALL set `clawback_percentage` to 0 and `isClawback` to true. When the Plan does NOT contain "CLAW", the system SHALL NOT set `clawback_percentage` to null; it SHALL obtain and store the clawback percentage from the active `CommissionConfiguration` on the commission (see ADDED Requirement: Poliza clawback percentage persistence).
+
+#### Scenario: Plan contains CLAW — override to zero
+
+- **GIVEN** a Poliza record with "Plan de Compensación" containing "CLAW"  
+- **WHEN** the system saves the record to `SettlementCommission`  
+- **THEN** the system SHALL set `clawback_percentage` to 0  
+- **AND** SHALL set `isClawback` to true  
+- **AND** MAY override `discount_percentage` as defined for CLAW (e.g. 0)
+
+#### Scenario: Plan does not contain CLAW — persist config clawback
+
+- **GIVEN** a Poliza record with "Plan de Compensación" not containing "CLAW" (e.g. FRONT19 or other)  
+- **WHEN** the system saves the record to `SettlementCommission`  
+- **THEN** the system SHALL persist `clawback_percentage` from the active `CommissionConfiguration` on the commission  
+- **AND** SHALL set `isClawback` to false
 
 ### Requirement: Global Configuration Fetching
 

@@ -49,3 +49,59 @@
 ## Ready for Proposal
 
 Yes. Las decisiones (encoding explícito para CSV, comparación ya insensible a acentos, documentar y probar) se pueden reflejar en el design y en una nueva tarea del change.
+
+---
+
+## Exploration: Porcentaje de clawback no registrado al sincronizar archivos de póliza
+
+### Regla de negocio
+
+**El clawback es 0 solo cuando el Plan incluye "CLAW".** En todos los demás casos (FRONT19, "Otro", etc.) se debe obtener el porcentaje de clawback de `CommissionConfiguration` y **registrarlo en la comisión** (`SettlementCommission.clawbackPercentage`).
+
+### Current State
+
+- **Flujo (flow.md):** Para PÓLIZA, cuando el plan es FRONT19 o "Otro", el flujo indica: **GET_CONF_P** (Consultar config_comision % Descuento, **% clawback**) → **SAVE_P** (Guardar BD: Estado, Contrato, % Desc, **% Clawback**, type_commission=POLIZA, monto). Solo en el caso **P_CLAW** (Plan incluye "CLAW") se fuerza clawback_percentage=0.
+- **process-batch.service.ts:** Obtiene correctamente `discountPercentage` y `clawbackPercentage` de la configuración activa (`CommissionConfiguration`) y los pasa en `snapshots` al processor (líneas 48–65, 87).
+- **poliza.processor.ts:** Recibe `snapshots` con `discountPercentage` y `clawbackPercentage`, usa `effectiveDiscount = isClawback ? 0 : snapshots.discountPercentage` para el descuento, pero **nunca usa `snapshots.clawbackPercentage`**. En `createSync` siempre persiste `clawbackPercentage: 0` (línea 166), por lo que el % de clawback de la configuración no se registra en BD para registros SYNCHRONIZED de póliza (FRONT19 u "Otro").
+- **Spec (load-file-v2):** "The system SHALL store `discount_percentage` (and, **where applicable**, `clawback_percentage`) from that configuration on the `settlement_commission` record." Poliza CLAW puede sobrescribir; para FRONT19 y "Otro" aplica el "where applicable" y debe guardarse el % de clawback de la config.
+
+### Affected Areas
+
+- `src/features/load-file/services/processors/poliza.processor.ts` — `createSync` siempre escribe `clawbackPercentage: 0`; no recibe ni usa el % de clawback de `snapshots` para los casos no-CLAW (FRONT19, Otro).
+- `src/features/load-file/__tests__/process-batch.service.test.ts` — Los tests de Poliza (p. ej. 4.4 CLAW) validan clawback=0 para CLAW; faltaría validar que para FRONT19/Otro se persista `snapshots.clawbackPercentage`.
+
+### Approaches
+
+1. **Pasar clawback efectivo a createSync y persistirlo**  
+   Calcular en `process()` un `effectiveClawback`: si `isClawback` (plan CLAW) → 0; si no (FRONT19 u "Otro") → `snapshots.clawbackPercentage ?? 0`. Pasar `effectiveClawback` a `createSync` y usarlo en `data.clawbackPercentage`.  
+   - Pros: Alinea con flow y spec; un solo punto de persistencia; pre-liquidación ya usa `r.clawbackPercentage` de la comisión.  
+   - Cons: Ninguno relevante.  
+   - Effort: Low.
+
+2. **Solo documentar y no persistir % clawback para póliza**  
+   Dejar siempre 0 en póliza y documentar que el flujo "GET_CONF_P / % Clawback" no se implementa.  
+   - Pros: Sin cambios de código.  
+   - Cons: Incumple flow y spec; pre-liquidación seguiría usando 0 para póliza no-CLAW salvo que se tome de config en tiempo de pre-liquidación (no es el diseño actual).  
+   - Effort: Low (solo docs).
+
+3. **Obtener clawback en pre-liquidación en lugar de en sync**  
+   No guardar clawback en `SettlementCommission` para póliza y en pre-liquidación leer siempre de `CommissionConfiguration`.  
+   - Pros: Un solo lugar de verdad para el %.  
+   - Cons: Cambia el diseño (spec pide guardar snapshot en el registro); historial de cargas no mostraría el % aplicado en el momento del sync.  
+   - Effort: Medium.
+
+### Recommendation
+
+**Enfoque 1 (pasar clawback efectivo a createSync):**  
+- **Solo cuando el Plan incluye "CLAW"** → `clawbackPercentage = 0`.  
+- **En todos los demás casos** → obtener el % de clawback de `CommissionConfiguration` (ya viene en `snapshots.clawbackPercentage`) y registrarlo en la comisión.  
+- En `poliza.processor.ts`: calcular `effectiveClawback = isClawback ? 0 : (snapshots.clawbackPercentage ?? 0)` y pasarlo a `createSync`; en `createSync` usar ese valor en `data.clawbackPercentage` en lugar del literal `0`.  
+- Añadir/ajustar test que verifique: (1) plan con "CLAW" → clawback 0; (2) plan FRONT19 u otro sin CLAW → `clawbackPercentage` igual al de la configuración activa.
+
+### Risks
+
+- Si `snapshots.clawbackPercentage` es `null` (config sin clawback), usar `?? 0` evita null en BD; confirmar con negocio si 0 es aceptable o si debe rechazarse el sync cuando falte config de clawback para póliza no-CLAW (hoy no se rechaza).
+
+### Ready for Proposal
+
+Yes. La causa es que el procesador de póliza no propaga el % de clawback de la configuración al crear el registro; el cambio es acotado (poliza.processor + test) y coherente con flow y spec.

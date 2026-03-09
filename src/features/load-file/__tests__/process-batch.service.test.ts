@@ -337,6 +337,37 @@ describe('processBatchService', () => {
 			)
 		})
 
+		it('6.2 Poliza FRONT19 (no CLAW) persists clawbackPercentage from CommissionConfiguration', async () => {
+			vi.mocked(prisma.commissionConfiguration.findFirst).mockResolvedValue({
+				discountPercentage: 12,
+				clawbackPercentage: 0.1,
+			} as never)
+			const front19Record = {
+				...record,
+				data: { ...record.data, 'Plan de Compensación': 'FRONT19' },
+			}
+			vi.mocked(findBusinessByContract).mockResolvedValue({
+				idBusiness: 50,
+			} as never)
+			vi.mocked(prisma.settlementCommission.findFirst).mockResolvedValue(null)
+
+			await processBatchService.processBatch(
+				{ ...request, records: [front19Record] },
+				mockAuditContext
+			)
+
+			expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({
+						status: 'SYNCHRONIZED',
+						originCommission: 'CARTERA',
+						isClawback: false,
+						clawbackPercentage: 0.1,
+					}),
+				})
+			)
+		})
+
 		it('4.4 should use global config discountPercentage for regular plans', async () => {
 			const regularRecord = {
 				...record,

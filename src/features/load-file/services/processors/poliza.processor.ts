@@ -100,6 +100,12 @@ export class PolizaProcessor implements ICommissionProcessor {
 			}
 
 			const effectiveDiscount = isClawback ? 0 : snapshots.discountPercentage
+			const effectiveClawback =
+				isClawback
+					? 0
+					: snapshots.clawbackPercentage != null
+						? Number(snapshots.clawbackPercentage)
+						: 0
 
 			if (priorLag) {
 				await tx.settlementCommission.update({
@@ -116,6 +122,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 					fileImportId,
 					business.idBusiness,
 					effectiveDiscount,
+					effectiveClawback,
 					originCommission,
 					isClawback
 				)
@@ -132,6 +139,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 					fileImportId,
 					business.idBusiness,
 					effectiveDiscount,
+					effectiveClawback,
 					originCommission,
 					isClawback
 				)
@@ -151,6 +159,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 		fileImportId: number,
 		idBusiness: number,
 		discountPercentage: number | string,
+		clawbackPercentage: number,
 		originCommission: string | null,
 		isClawback: boolean
 	) {
@@ -163,7 +172,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 				commissionValue: extracted.commission,
 				baseCommission: extracted.base,
 				discountPercentage,
-				clawbackPercentage: 0,
+				clawbackPercentage,
 				originCommission,
 				commissionType: FILE_TYPES.POLIZA,
 				status: 'SYNCHRONIZED',
