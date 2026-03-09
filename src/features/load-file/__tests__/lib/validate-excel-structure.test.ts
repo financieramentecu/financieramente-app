@@ -85,4 +85,15 @@ describe('validateExcelStructure', () => {
 		expect(result.isValid).toBe(false)
 		expect(result.error).toBeDefined()
 	})
+
+	it('accepts POLIZA headers with non-accented column name (Plan de Compensacion)', async () => {
+		// Header comparison is accent-insensitive via normalizeHeaderValue in header-utils.
+		// Required column is "Plan de Compensación"; file has "Plan de Compensacion" (no accent).
+		const headersWithoutAccent = POLIZA_REQUIRED_HEADERS.map((h) =>
+			h === 'Plan de Compensación' ? 'Plan de Compensacion' : h
+		)
+		const file = buildFile(headersWithoutAccent)
+		const result = await validateExcelStructure(file, FILE_TYPES.POLIZA)
+		expect(result.isValid).toBe(true)
+	})
 })

@@ -1,6 +1,140 @@
 # Design: Load File Process Refactor V2
 
-## Flow Architecture
+## Technical Approach
+
+Refactor the Skandia file load into a strict rule engine: separate VOLUNTARIA and POLIZA logic via Strategy/Factory, persist rejections in `FileImportError` (non-blocking), enforce additive metrics on `FileImport`, and add visualization-by-status plus safe historial deletion. Encoding and accent handling for Excel/CSV ensure Spanish column names work with or without diacritics. Implementation follows feature-based layout under `src/features/load-file/` and existing API/UI patterns.
+
+## Architecture Decisions
+
+### Decision: Processor strategy (Voluntaria vs Poliza)
+
+**Choice**: Dedicated processor classes (`VoluntariaProcessor`, `PolizaProcessor`) implementing `ICommissionProcessor`, selected by `ProcessorFactory` from `fileType`. Batch coordinator stays thin and only iterates rows and aggregates metrics.
+
+**Alternatives considered**: Single monolithic switch inside `process-batch.service`; separate API endpoints per file type.
+
+**Rationale**: Proposal and spec require mutually exclusive logic per file type and clear separation. Strategy pattern keeps each processor testable and avoids branching by file type in one large function.
+
+### Decision: Where to persist row-level errors
+
+**Choice**: All validation/format/duplicate rejections go to `FileImportError` linked to `idFileImport`. No row is written to `SettlementCommission` with an error status; metrics (`errorRecord`, `noSincronizadoRecord`) are incremented from processor return only.
+
+**Alternatives considered**: Storing error flag on `SettlementCommission`; writing errors to a generic audit log.
+
+**Rationale**: Spec and proposal require a dedicated error table, non-blocking processing, and fast retrieval by `idFileImport`. Clean separation avoids polluting commission data and keeps queries simple.
+
+### Decision: Deletion of file import (historial)
+
+**Choice**: Allow delete only when `FileImport.status` is `LOAD` or `ERROR`. In one transaction delete dependents in FK order (Clawback → ComissionDistribution → SettlementCommission → FileImportError → FileImport). Service returns typed result (`NOT_FOUND` | `INVALID_STATUS` | success); route maps to 404/409/200.
+
+**Alternatives considered**: Allow delete in any status; cascade deletes in DB only.
+
+**Rationale**: Business rule: no deletion once pre-liquidated/liquidated. FK-safe order avoids "related records" failure when `FileImportError` rows exist. Typed result keeps route thin and testable.
+
+### Decision: Encoding and accented column names
+
+**Choice**: Keep header comparison accent-insensitive via existing `normalizeHeaderValue` (NFD + strip diacritics) in `header-utils`. Add explicit UTF-8 decoding when reading CSV (e.g. `TextDecoder` or `codepage: 65001`) in `validate-excel-structure.ts` and `process-excel-file.ts` so Spanish accents are not corrupted.
+
+**Alternatives considered**: Accept only exact header strings; support multiple encodings (e.g. Windows-1252) with detection.
+
+**Rationale**: Comparison already supports "Plan de Compensación" vs "Plan de Compensacion". Failures are likely from mojibake when CSV bytes are misinterpreted; UTF-8 is the recommended export. Multiple encodings add complexity and can be added later if needed.
+
+### Decision: Records-by-status source and UI
+
+**Choice**: New endpoint `GET /api/carga-archivos/[id]/records` with pagination and optional `status` filter. Counts for cards come from `FileImport` (e.g. `noSincronizadoRecord`); tab content from this endpoint and existing errors endpoint. Shared component `RecordsByStatusView` used in post-upload and historial (fullscreen closeable modal).
+
+**Alternatives considered**: Single endpoint returning all four groups; computing counts client-side from record lists.
+
+**Rationale**: Pagination and filter avoid loading full result sets. Single source for counts (FileImport) ensures post-upload and historial match. Reuse of one component keeps behavior consistent.
+
+## Data Flow
+
+```
+Upload (CargarArchivoTab)
+    │
+    ├─► validateExcelStructure(file, fileType) ──► headers vs FILE_TYPE_REQUIRED_HEADERS (header-utils)
+    ├─► processExcelFile(file, fileType) ──► validRecords[], headers
+    │
+    └─► processBatch({ fileImportId, records, headers, fileType })
+            │
+            ├─► ProcessorFactory.getProcessor(fileType) ──► VoluntariaProcessor | PolizaProcessor
+            ├─► for each record: processor.process(record, …) ──► ProcessorResult (SYNCHRONIZED | LAG | ERROR)
+            │       ├─► LAG + !idBusiness ──► noSincronizadoRecord++
+            │       ├─► LAG + idBusiness ──► rezagadoRecord++
+            │       ├─► ERROR ──► FileImportError.create, errorRecord++
+            │       └─► SYNCHRONIZED ──► SettlementCommission.create/update, sincronizadoRecord++
+            └─► prisma.fileImport.update({ sincronizadoRecord, rezagadoRecord, noSincronizadoRecord, errorRecord })
+
+Historial / Ver detalle
+    │
+    ├─► GET /api/carga-archivos/file-import?page&limit ──► list FileImport (counts from DB)
+    ├─► GET /api/carga-archivos/[id] ──► single FileImport (for modal counts)
+    ├─► GET /api/carga-archivos/[id]/records?page&pageSize&status ──► file-import-records.service ──► SettlementCommission (filtered)
+    ├─► GET /api/carga-archivos/[id]/errors ──► FileImportError by idFileImport
+    └─► RecordsByStatusView(fileImportId, counts?) ──► four cards + four tabs (tables)
+
+Delete (historial)
+    │
+    └─► DELETE /api/carga-archivos/file-import/[id]
+            └─► deleteFileImport(id, idUser) ──► validate LOAD|ERROR ──► tx: Clawback→ComissionDistribution→SettlementCommission→FileImportError→FileImport
+```
+
+## File Changes
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/features/load-file/services/processors/processor.interface.ts` | Create | `ICommissionProcessor` and `ProcessorResult` type. |
+| `src/features/load-file/services/processors/voluntaria.processor.ts` | Create | Voluntaria rules: business lookup, duplicate check, LAG recovery, date range, write to SettlementCommission or FileImportError. |
+| `src/features/load-file/services/processors/poliza.processor.ts` | Create | Poliza rules: business lookup, LAG recovery, Plan de Compensación (FRONT19/CLAW), write to SettlementCommission or FileImportError. |
+| `src/features/load-file/services/processors/processor.factory.ts` | Create | Returns Voluntaria or Poliza processor by `fileType`. |
+| `src/features/load-file/services/validators/row.validator.service.ts` | Create | Parse dates, numbers, required cells; used by processors. |
+| `src/features/load-file/services/process-batch.service.ts` | Modify | Orchestrate batches, call factory and processor per row, aggregate metrics, update FileImport; no direct row logic. |
+| `src/features/load-file/services/delete-file-import.service.ts` | Create | Validate LOAD/ERROR, run FK-safe delete transaction. |
+| `src/features/load-file/services/file-import-records.service.ts` | Create | getFileImportRecords(fileImportId, userId, { page, pageSize, status }) for records-by-status API. |
+| `src/features/load-file/lib/header-utils.ts` | Existing | normalizeHeaderValue, findHeaderIndex, findMissingHeaders (accent-insensitive). |
+| `src/features/load-file/lib/validate-excel-structure.ts` | Modify | Validate structure; add UTF-8/encoding for CSV if needed (task 7.1). |
+| `src/features/load-file/lib/process-excel-file.ts` | Modify | Read file, build column indices via findHeaderIndex; align encoding with validation (task 7.1). |
+| `src/features/load-file/lib/file-types.ts` | Existing | POLIZA/VOLUNTARIA required headers and FILE_TYPE_COLUMN_MAP. |
+| `src/features/load-file/types/load-file.types.ts` | Modify | ProcessResult, FileImportHistory, DeleteFileImportResult, record-by-status types. |
+| `src/app/api/carga-archivos/file-import/[id]/route.ts` | Modify | GET unchanged; DELETE delegates to deleteFileImport, returns 200/404/409. |
+| `src/app/api/carga-archivos/[id]/records/route.ts` | Create | GET records with pagination and status filter; auth and call file-import-records.service. |
+| `src/features/load-file/components/RecordsByStatusView.tsx` | Create | Four cards + four tabs (Sincronizados, Errores, No sincronizados, Rezagados); pagination. |
+| `src/features/load-file/components/CargarArchivoTab.tsx` | Modify | Post-upload shows RecordsByStatusView; counts from backend (noSincronizadoCount etc.). |
+| `src/features/load-file/components/HistorialCargasTab.tsx` | Modify | "Ver detalle" opens fullscreen modal with RecordsByStatusView; format section Voluntaria/Póliza. |
+| `src/features/load-file/lib/load-file-api.ts` | Modify | getImportProgress, getImportRecords, getImportErrors. |
+| `prisma/schema.prisma` | Modify | FileImportError model; SettlementCommission fields (contract, startDate, endDate, lagDate, isClawback; remove commissionPercentage, error). |
+
+## Interfaces / Contracts
+
+- **Processor**: `ICommissionProcessor.process(record, headers, fileImportId, snapshots, auditContext) => Promise<ProcessorResult>` with `ProcessorResult = { status: 'SYNCHRONIZED'|'LAG'|'ERROR', isLag, idBusiness, recoveredLag?, errorReason? }`.
+- **Delete service**: `deleteFileImport(fileImportId, idUser) => Promise<DeleteFileImportResult>` with `DeleteFileImportResult = { ok: true } | { ok: false, code: 'NOT_FOUND'|'INVALID_STATUS', message }`.
+- **Records API**: `GET /api/carga-archivos/[id]/records?page&pageSize&status` → `ApiResponse<FileImportRecordsResponse>`; `status` one of `SYNCHRONIZED`|`NO_SYNC`|`REZAGADOS`; response `{ items: FileImportRecordDetail[], pagination }`.
+- **Header matching**: `headerMatchesRequired(header, requiredHeader)` uses `normalizeHeaderValue` (NFD + strip diacritics) so accented and non-accented column names match.
+
+## Testing Strategy
+
+| Layer | What to Test | Approach |
+|-------|--------------|----------|
+| Unit | Voluntaria: duplicate→FileImportError, LAG recovery, date range→LAG/SYNC, business not found→LAG | process-batch.service.test with mocked Prisma; assert processor returns and DB calls. |
+| Unit | Poliza: FRONT19→CARTERA, CLAW→isClawback, business not found→LAG, LAG recovery | Same test file; Poliza scenarios. |
+| Unit | Header validation with/without accents; encoding (CSV UTF-8) | validate-excel-structure.test; optional test for accented headers. |
+| Unit | deleteFileImport: LOAD/ERROR allowed, PRE-SETTLED rejected, FK order in transaction | delete-file-import.service test (if added). |
+| Integration | Full batch: file → processBatch → FileImport + SettlementCommission + FileImportError state | Optional integration test. |
+| E2E | Upload file → see records by status; historial → Ver detalle → modal; delete LOAD import | Playwright if in scope. |
+
+## Migration / Rollout
+
+- Prisma migration for `FileImportError` and `SettlementCommission` schema changes; backfill not required.
+- No feature flags; behavior is backward-compatible for successful imports. Failed rows previously stored as ERROR on SettlementCommission will no longer exist; new failures go to FileImportError only.
+- Recommend: run migration, deploy, then validate with sample Voluntaria and Poliza files (including CSV with UTF-8 and accented headers).
+
+## Open Questions
+
+- [ ] Confirm SheetJS (xlsx 0.18.x) `codepage` / string read API for CSV to implement task 7.1 without breaking .xlsx/.xls.
+- [ ] Whether to add a small shared helper (e.g. `readWorkbookFromFile(file)`) used by both validate-excel-structure and process-excel-file for consistent encoding.
+
+---
+
+## Flow Architecture (State Machine)
 
 ### Diagrama Lógico y de Estados
 
@@ -120,6 +254,17 @@ To eliminate complexity and facilitate maintenance, the backend service implemen
 - **Voluntaria Branching**: Comisiones > 0 (by `contract`)? No -> Inside Proc Month => SYNC, otherwise LAG+noSincronizado. Comisiones > 0? Yes -> Same Dates? Yes => Save in FileImportError & increment errorRecord, No => Recover Old LAGs to SYNC, Create New SYNC.
 - **Poliza Exact Parsing**: When processing strings that `includes("CLAW")`, it must explicitly override the fetched `CommissionConfiguration` percentages, forcibly setting `clawbackPercentage = 0`, `discountPercentage = 0`, and marking the row `isClawback = true` and `status = 'SYNCHRONIZED'`.
 - use Prisma transactions strictly for the Multi-Row creation scenarios (like old LAG recovery + new SYNC creation).
+
+---
+
+## Encoding and Accents (Excel/CSV)
+
+- **Objetivo:** Soportar columnas con acentos en español en archivos Excel/CSV (Pólizas y Voluntaria) y evitar fallos por encoding incorrecto.
+- **Comparación de cabeceras:** La comparación de headers ya es insensible a acentos gracias a `header-utils` (`normalizeHeaderValue`: NFD + eliminación de diacríticos). Las columnas requeridas pueden aparecer en el archivo con o sin acento (ej. "Plan de Compensación" / "Plan de Compensacion") y se consideran válidas.
+- **Encoding al leer:** Para que los caracteres con acento no se corrompan (mojibake), la lectura de archivos debe usar encoding explícito donde aplique:
+  - **CSV:** Decodificar el buffer como UTF-8 (p. ej. `TextDecoder('utf-8')`) antes de pasar a SheetJS, o usar la opción `codepage: 65001` (UTF-8) si la librería lo soporta para formato texto. Se recomienda documentar que los CSV deben estar en UTF-8 (o exportar con “UTF-8 con BOM” desde Excel).
+  - **XLSX/XLS:** El formato binario suele traer los strings en UTF-8 internamente; si en algún flujo se lee como texto, usar codepage/UTF-8 de forma coherente.
+- **Alcance:** Aplicar en `validate-excel-structure.ts` y `process-excel-file.ts` para que ambos usen la misma estrategia de lectura (y, si aplica, una utilidad compartida de lectura con encoding).
 
 ---
 
