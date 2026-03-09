@@ -1,7 +1,16 @@
 'use client'
 
 import { Button } from '@/features/shared/ui/button'
-import { FileText, CheckCircle2, Download, Upload } from 'lucide-react'
+import {
+	FileText,
+	CheckCircle2,
+	Download,
+	Upload,
+	CircleCheck,
+	CircleX,
+	CircleOff,
+	Clock,
+} from 'lucide-react'
 import { ProcessResult, ProcessedRecord } from '../types/load-file.types'
 import {
 	generateErrorReportCSV,
@@ -70,57 +79,61 @@ export function ProcessingSummary({
 			{/* Estadísticas en cards */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 				{/* Sincronizados */}
-				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-					<div className="flex items-center justify-center mb-3">
-						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-success flex items-center justify-center">
-							<span className="text-3xl font-bold text-success">
-								{sincronizados}
-							</span>
+				<div className="rounded-xl bg-emerald-500 p-5 shadow-lg shadow-emerald-500/20 transition-transform hover:scale-[1.02]">
+					<div className="flex items-center justify-between mb-3">
+						<div className="rounded-lg bg-white/20 p-2">
+							<CircleCheck className="h-6 w-6 text-white" />
 						</div>
+						<span className="text-4xl font-extrabold text-white">
+							{sincronizados}
+						</span>
 					</div>
-					<p className="text-center text-sm font-medium text-muted-foreground">
+					<p className="text-sm font-medium text-white/90">
 						Sincronizados
 					</p>
 				</div>
 
 				{/* Errores */}
-				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-					<div className="flex items-center justify-center mb-3">
-						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-destructive flex items-center justify-center">
-							<span className="text-3xl font-bold text-destructive">
-								{result.errorCount}
-							</span>
+				<div className="rounded-xl bg-red-500 p-5 shadow-lg shadow-red-500/20 transition-transform hover:scale-[1.02]">
+					<div className="flex items-center justify-between mb-3">
+						<div className="rounded-lg bg-white/20 p-2">
+							<CircleX className="h-6 w-6 text-white" />
 						</div>
+						<span className="text-4xl font-extrabold text-white">
+							{result.errorCount}
+						</span>
 					</div>
-					<p className="text-center text-sm font-medium text-muted-foreground">
+					<p className="text-sm font-medium text-white/90">
 						Errores
 					</p>
 				</div>
 
 				{/* No sincronizados */}
-				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-					<div className="flex items-center justify-center mb-3">
-						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-info flex items-center justify-center">
-							<span className="text-3xl font-bold text-info">
-								{noSincronizados}
-							</span>
+				<div className="rounded-xl bg-blue-500 p-5 shadow-lg shadow-blue-500/20 transition-transform hover:scale-[1.02]">
+					<div className="flex items-center justify-between mb-3">
+						<div className="rounded-lg bg-white/20 p-2">
+							<CircleOff className="h-6 w-6 text-white" />
 						</div>
+						<span className="text-4xl font-extrabold text-white">
+							{noSincronizados}
+						</span>
 					</div>
-					<p className="text-center text-sm font-medium text-muted-foreground">
+					<p className="text-sm font-medium text-white/90">
 						No sincronizados
 					</p>
 				</div>
 
 				{/* Rezagados */}
-				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-					<div className="flex items-center justify-center mb-3">
-						<div className="h-24 w-24 rounded-full bg-transparent border-2 border-warning flex items-center justify-center">
-							<span className="text-3xl font-bold text-warning">
-								{rezagados}
-							</span>
+				<div className="rounded-xl bg-amber-500 p-5 shadow-lg shadow-amber-500/20 transition-transform hover:scale-[1.02]">
+					<div className="flex items-center justify-between mb-3">
+						<div className="rounded-lg bg-white/20 p-2">
+							<Clock className="h-6 w-6 text-white" />
 						</div>
+						<span className="text-4xl font-extrabold text-white">
+							{rezagados}
+						</span>
 					</div>
-					<p className="text-center text-sm font-medium text-muted-foreground">
+					<p className="text-sm font-medium text-white/90">
 						Rezagados
 					</p>
 				</div>
@@ -273,7 +286,7 @@ export function ProcessingSummary({
 											</div>
 
 											{/* Badge de error */}
-											<div className="px-3 py-1 bg-destructive/10 text-destructive rounded-full text-xs font-medium whitespace-nowrap">
+											<div className="px-3 py-1 bg-red-600 text-white rounded-full text-xs font-medium whitespace-nowrap">
 												Error
 											</div>
 										</div>
