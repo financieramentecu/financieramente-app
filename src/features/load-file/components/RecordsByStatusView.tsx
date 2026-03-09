@@ -17,7 +17,7 @@ import type {
 	FileImportRecordStatusFilter,
 } from '../types/load-file.types'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CircleCheck, CircleX, CircleOff, Clock } from 'lucide-react'
 
 const PAGE_SIZE = 20
 
@@ -167,51 +167,62 @@ export function RecordsByStatusView({
 					<div className="col-span-2 lg:col-span-4 h-20 rounded-lg bg-muted animate-pulse" />
 				) : (
 					<>
-						<div className={cardClass}>
-							<div className="flex items-center justify-center mb-1">
-								<div className={`rounded-full border-2 border-success flex items-center justify-center ${compact ? 'h-12 w-12' : 'h-16 w-16'}`}>
-									<span className={`font-bold text-success ${compact ? 'text-lg' : 'text-2xl'}`}>
-										{counts?.sincronizados ?? 0}
-									</span>
+						{/* Sincronizados */}
+						<div className="rounded-xl bg-emerald-500 p-5 shadow-lg shadow-emerald-500/20 transition-transform hover:scale-[1.02]">
+							<div className="flex items-center justify-between mb-3">
+								<div className="rounded-lg bg-white/20 p-2">
+									<CircleCheck className="h-6 w-6 text-white" />
 								</div>
+								<span className={`font-extrabold text-white ${compact ? 'text-2xl' : 'text-4xl'}`}>
+									{counts?.sincronizados ?? 0}
+								</span>
 							</div>
-							<p className="text-center text-xs font-medium text-muted-foreground">
+							<p className={`font-medium text-white/90 ${compact ? 'text-xs' : 'text-sm'}`}>
 								Sincronizados
 							</p>
 						</div>
-						<div className={cardClass}>
-							<div className="flex items-center justify-center mb-1">
-								<div className={`rounded-full border-2 border-destructive flex items-center justify-center ${compact ? 'h-12 w-12' : 'h-16 w-16'}`}>
-									<span className={`font-bold text-destructive ${compact ? 'text-lg' : 'text-2xl'}`}>
-										{counts?.errores ?? 0}
-									</span>
+
+						{/* Errores */}
+						<div className="rounded-xl bg-red-500 p-5 shadow-lg shadow-red-500/20 transition-transform hover:scale-[1.02]">
+							<div className="flex items-center justify-between mb-3">
+								<div className="rounded-lg bg-white/20 p-2">
+									<CircleX className="h-6 w-6 text-white" />
 								</div>
+								<span className={`font-extrabold text-white ${compact ? 'text-2xl' : 'text-4xl'}`}>
+									{counts?.errores ?? 0}
+								</span>
 							</div>
-							<p className="text-center text-xs font-medium text-muted-foreground">
+							<p className={`font-medium text-white/90 ${compact ? 'text-xs' : 'text-sm'}`}>
 								Errores
 							</p>
 						</div>
-						<div className={cardClass}>
-							<div className="flex items-center justify-center mb-1">
-								<div className={`rounded-full border-2 border-info flex items-center justify-center ${compact ? 'h-12 w-12' : 'h-16 w-16'}`}>
-									<span className={`font-bold text-info ${compact ? 'text-lg' : 'text-2xl'}`}>
-										{counts?.noSincronizados ?? 0}
-									</span>
+
+						{/* No sincronizados */}
+						<div className="rounded-xl bg-blue-500 p-5 shadow-lg shadow-blue-500/20 transition-transform hover:scale-[1.02]">
+							<div className="flex items-center justify-between mb-3">
+								<div className="rounded-lg bg-white/20 p-2">
+									<CircleOff className="h-6 w-6 text-white" />
 								</div>
+								<span className={`font-extrabold text-white ${compact ? 'text-2xl' : 'text-4xl'}`}>
+									{counts?.noSincronizados ?? 0}
+								</span>
 							</div>
-							<p className="text-center text-xs font-medium text-muted-foreground">
+							<p className={`font-medium text-white/90 ${compact ? 'text-xs' : 'text-sm'}`}>
 								No sincronizados
 							</p>
 						</div>
-						<div className={cardClass}>
-							<div className="flex items-center justify-center mb-1">
-								<div className={`rounded-full border-2 border-warning flex items-center justify-center ${compact ? 'h-12 w-12' : 'h-16 w-16'}`}>
-									<span className={`font-bold text-warning ${compact ? 'text-lg' : 'text-2xl'}`}>
-										{counts?.rezagados ?? 0}
-									</span>
+
+						{/* Rezagados */}
+						<div className="rounded-xl bg-amber-500 p-5 shadow-lg shadow-amber-500/20 transition-transform hover:scale-[1.02]">
+							<div className="flex items-center justify-between mb-3">
+								<div className="rounded-lg bg-white/20 p-2">
+									<Clock className="h-6 w-6 text-white" />
 								</div>
+								<span className={`font-extrabold text-white ${compact ? 'text-2xl' : 'text-4xl'}`}>
+									{counts?.rezagados ?? 0}
+								</span>
 							</div>
-							<p className="text-center text-xs font-medium text-muted-foreground">
+							<p className={`font-medium text-white/90 ${compact ? 'text-xs' : 'text-sm'}`}>
 								Rezagados
 							</p>
 						</div>
@@ -473,6 +484,6 @@ export function RecordsByStatusView({
 					)}
 				</TabsContent>
 			</Tabs>
-		</div>
+		</div >
 	)
 }
