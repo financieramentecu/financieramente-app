@@ -2,13 +2,19 @@ import type { PrismaClient } from '@prisma/client'
 
 /**
  * Seed de negocios de prueba
+ * Crea negocios con contratos que hacen match con los CSVs de prueba en docs/test-data/
+ *
+ * Contratos creados:
+ * - CONT-1001 a CONT-1010: Para pruebas de archivos poliza-*.csv
+ * - CTO-2001 a CTO-2010: Para pruebas de archivos voluntaria-*.csv
+ *   (createdAt en Feb 2026 para que el date-matching funcione con voluntaria-synchronized.csv)
+ *
  * Ejecutar después de tener usuarios, productos y clientes
  */
 export async function seedBusinesses(prisma: PrismaClient) {
 	console.log('📊 Creando negocios de prueba...')
 
 	// Obtener datos necesarios
-	// Buscar primero un AGENTE, si no existe usar cualquier usuario activo (ej. ADMIN)
 	let user = await prisma.user.findFirst({
 		where: { role: { code: 'AGENTE' } },
 	})
@@ -64,8 +70,18 @@ export async function seedBusinesses(prisma: PrismaClient) {
 		console.log('  ✓ Cliente de prueba creado')
 	}
 
-	// Crear negocios de prueba
-	const businessesData = [
+	const baseData = {
+		idUser: user.idUser,
+		idClient: client.idClient,
+		idProductPercentageCommission:
+			productPercentageCommission.idProductPercentageCommission,
+		idCurrency: currency.idCurrency,
+		idBuyPeriodicity: periodicity?.idBuyPeriodicity || null,
+		idClientOrigin: clientOrigin.idClientOrigin,
+	}
+
+	// ─── Negocios originales (sin contrato) ───
+	const originalBusinesses = [
 		{
 			term: 12,
 			value: 15000000,
@@ -86,21 +102,33 @@ export async function seedBusinesses(prisma: PrismaClient) {
 		},
 	]
 
+	// ─── Negocios para test-data poliza CSVs (CONT-1001 a CONT-1010) ───
+	const polizaBusinesses = Array.from({ length: 10 }, (_, i) => ({
+		term: 12,
+		value: 50000,
+		status: 'EMITIDO',
+		contract: `CONT-${1001 + i}`,
+	}))
+
+	// ─── Negocios para test-data voluntaria CSVs (CTO-2001 a CTO-2010) ───
+	// createdAt en Feb 2026 para que haga match con voluntaria-synchronized.csv
+	// (Desde: 2026-02-01, Hasta: 2026-02-28)
+	const voluntariaCreatedAt = new Date('2026-02-15T12:00:00Z')
+	const voluntariaBusinesses = Array.from({ length: 10 }, (_, i) => ({
+		term: 12,
+		value: 100000,
+		status: 'EMITIDO',
+		contract: `CTO-${2001 + i}`,
+		createdAt: voluntariaCreatedAt,
+	}))
+
 	let createdCount = 0
 
-	for (const businessData of businessesData) {
+	// Crear negocios originales
+	for (const businessData of originalBusinesses) {
 		try {
 			await prisma.business.create({
-				data: {
-					...businessData,
-					idUser: user.idUser,
-					idClient: client.idClient,
-					idProductPercentageCommission:
-						productPercentageCommission.idProductPercentageCommission,
-					idCurrency: currency.idCurrency,
-					idBuyPeriodicity: periodicity?.idBuyPeriodicity || null,
-					idClientOrigin: clientOrigin.idClientOrigin,
-				},
+				data: { ...baseData, ...businessData },
 			})
 			createdCount++
 		} catch {
@@ -108,5 +136,33 @@ export async function seedBusinesses(prisma: PrismaClient) {
 		}
 	}
 
-	console.log(`  ✓ ${createdCount} negocios de prueba creados`)
+	// Crear negocios para poliza tests
+	for (const businessData of polizaBusinesses) {
+		try {
+			await prisma.business.create({
+				data: { ...baseData, ...businessData },
+			})
+			createdCount++
+		} catch {
+			// Ignorar duplicados (contract es unique)
+		}
+	}
+	console.log('  ✓ Negocios POLIZA creados (CONT-1001 a CONT-1010)')
+
+	// Crear negocios para voluntaria tests
+	for (const businessData of voluntariaBusinesses) {
+		try {
+			await prisma.business.create({
+				data: { ...baseData, ...businessData },
+			})
+			createdCount++
+		} catch {
+			// Ignorar duplicados (contract es unique)
+		}
+	}
+	console.log(
+		'  ✓ Negocios VOLUNTARIA creados (CTO-2001 a CTO-2010, createdAt: Feb 2026)'
+	)
+
+	console.log(`  ✓ ${createdCount} negocios de prueba creados en total`)
 }
