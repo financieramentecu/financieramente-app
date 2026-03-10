@@ -133,7 +133,7 @@ export function RecordsByStatusView({
 				}
 				setLoadingRecords(false)
 			})
-	}, [fileImportId, activeTab])
+	}, [fileImportId, activeTab, statusForTab])
 
 	const loadPage = (page: number) => {
 		if (activeTab === 'errores') return
@@ -154,10 +154,6 @@ export function RecordsByStatusView({
 				setLoadingRecords(false)
 			})
 	}
-
-	const cardClass = compact
-		? 'rounded-lg border border-border p-3 shadow-sm bg-card'
-		: 'rounded-lg border border-border p-6 shadow-sm bg-card'
 
 	return (
 		<div className={`flex flex-col items-stretch ${compact ? 'space-y-3' : 'space-y-4'}`}>
