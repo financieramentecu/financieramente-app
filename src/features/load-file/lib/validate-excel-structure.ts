@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import { FILE_TYPE_REQUIRED_HEADERS, type FileType } from './file-types'
 import { findMissingHeaders } from './header-utils'
+import { readWorkbookFromFile } from './read-workbook'
 
 /**
  * Columnas requeridas para el formato Skandia
@@ -24,9 +25,8 @@ export async function validateExcelStructure(
 	try {
 		const requiredHeaders = FILE_TYPE_REQUIRED_HEADERS[fileType]
 
-		// Leer el archivo como array buffer
-		const arrayBuffer = await file.arrayBuffer()
-		const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+		// Use shared reader: UTF-8 decoding for CSV so accented headers/cells are not corrupted
+		const workbook = await readWorkbookFromFile(file)
 
 		// Obtener la primera hoja
 		const firstSheetName = workbook.SheetNames[0]

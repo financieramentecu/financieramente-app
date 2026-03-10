@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 				totalRecord: 0,
 				successRecord: 0,
 				errorRecord: 0,
-				status: 'PROCESANDO',
+				status: 'PROCESSING',
 			},
 		})
 

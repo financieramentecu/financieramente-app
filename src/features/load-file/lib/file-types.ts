@@ -42,6 +42,23 @@ const FILE_TYPE_REQUIRED_HEADERS = {
 	[FILE_TYPES.VOLUNTARIA]: VOLUNTARIA_REQUIRED_HEADERS,
 } as const
 
+export const FILE_TYPE_COLUMN_MAP = {
+	[FILE_TYPES.POLIZA]: {
+		contract: 'Contrato Largo',
+		descripcion: 'Plan de Compensación',
+		base: 'BASE',
+		commission: 'Valor Comisión',
+	},
+	[FILE_TYPES.VOLUNTARIA]: {
+		contract: 'Cto',
+		descripcion: 'Tipo de Comision',
+		base: 'Base',
+		commission: 'Com',
+		desde: 'Desde',
+		hasta: 'Hasta',
+	},
+} as const
+
 export {
 	FILE_TYPES,
 	FILE_TYPE_REQUIRED_HEADERS,

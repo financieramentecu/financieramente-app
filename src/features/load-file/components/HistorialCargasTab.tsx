@@ -9,6 +9,7 @@ import {
 	Calendar,
 	Filter,
 	X,
+	Eye,
 } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import { EmptyState } from '@/features/shared/ui/empty-state'
@@ -23,7 +24,8 @@ import {
 	SelectValue,
 } from '@/features/shared/ui/select'
 import { useFileHistory } from '../hooks/use-file-history'
-import { ConfirmModal } from '@/features/shared/ui/modal'
+import { ConfirmModal, Modal } from '@/features/shared/ui/modal'
+import { RecordsByStatusView } from './RecordsByStatusView'
 import { useState, useMemo } from 'react'
 
 /**
@@ -33,6 +35,9 @@ export function HistorialCargasTab() {
 	const { historial, isLoading, error, refetch, deleteItem } = useFileHistory()
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 	const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+	const [detailFileImportId, setDetailFileImportId] = useState<number | null>(
+		null
+	)
 
 	// Filter States
 	const [searchTerm, setSearchTerm] = useState('')
@@ -101,7 +106,7 @@ export function HistorialCargasTab() {
 					color: '#991b1b',
 					border: '1px solid #fca5a5',
 				}
-			case 'PROCESANDO':
+			case 'PROCESSING':
 				return {
 					backgroundColor: '#dbeafe',
 					color: '#1e40af',
@@ -143,6 +148,23 @@ export function HistorialCargasTab() {
 				onCancel={() => setDeleteModalOpen(false)}
 				destructive={true}
 			/>
+
+			<Modal
+				open={detailFileImportId !== null}
+				onOpenChange={(open) => !open && setDetailFileImportId(null)}
+				title="Detalle por estado"
+				size="full"
+				className="left-[2%]! top-[2%]! translate-x-0! translate-y-0! w-[96vw]! max-w-[96vw]! h-[96vh]! max-h-[96vh]! flex flex-col items-stretch! gap-0!"
+			>
+				{detailFileImportId !== null && (
+					<div className="flex-1 min-h-0 overflow-y-auto w-full pt-2">
+						<RecordsByStatusView
+							fileImportId={detailFileImportId}
+							compact
+						/>
+					</div>
+				)}
+			</Modal>
 
 			{/* Panel de Filtros */}
 			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
@@ -191,7 +213,7 @@ export function HistorialCargasTab() {
 								<SelectItem value="COMPLETED">Completado</SelectItem>
 								<SelectItem value="PARCIAL">Parcial</SelectItem>
 								<SelectItem value="ERROR">Error</SelectItem>
-								<SelectItem value="PROCESANDO">Procesando</SelectItem>
+								<SelectItem value="PROCESSING">Procesando</SelectItem>
 								<SelectItem value="CANCELADO">Cancelado</SelectItem>
 								<SelectItem value="PRE-SETTLED">Pre-liquidado</SelectItem>
 							</SelectContent>
@@ -376,8 +398,20 @@ export function HistorialCargasTab() {
 										</div>
 									</div>
 
-									{/* Botón de eliminar */}
+									{/* Botones Ver detalle y Eliminar */}
 									<div className="flex items-center gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() =>
+												setDetailFileImportId(parseInt(carga.id, 10))
+											}
+											className="p-2"
+											title="Ver detalle por estado"
+										>
+											<Eye className="h-4 w-4 mr-1" />
+											Ver detalle
+										</Button>
 										<Button
 											variant="ghost"
 											size="sm"
@@ -396,14 +430,25 @@ export function HistorialCargasTab() {
 			</div>
 
 			{/* Sección de Formato Requerido */}
-			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+			<div className="bg-card rounded-lg border border-border p-6 shadow-sm space-y-3">
 				<p className="text-sm text-foreground leading-relaxed">
-					<strong>Formato requerido de Skandia:</strong> El archivo Excel debe
-					contener las columnas: Nombre, Franquicia, Desde, Hasta, Nombre Fp,
-					Sub Grupo Fp, Compania, Producto, Tipo Comisión, Cto, Base, Com. El
-					sistema validará automáticamente la estructura y sincronizará con los
-					registros de agentes existentes.
+					<strong>Formato requerido de Skandia:</strong> Seleccione el tipo de
+					archivo y use la estructura correspondiente. El sistema validará
+					automáticamente las columnas y sincronizará con los registros existentes.
 				</p>
+				<div className="text-sm text-foreground space-y-2">
+					<p>
+						<strong>Voluntaria:</strong> Nombre Franquicia, Desde, Hasta, Nombre
+						Fp, Sub Grupo Fp, Compania, Producto, Tipo de Comision, Cto, Base,
+						Com.
+					</p>
+					<p>
+						<strong>Póliza:</strong> Polizas Periodo, Plan de Compensación, Valor
+						Comisión, BASE, Polizas Producto, Contrato Largo, Polizas Id
+						Agente, Polizas Nombre Agente, Polizas Id Sociedad, Nombre Sociedad,
+						Polizas Clasificación.
+					</p>
+				</div>
 			</div>
 		</div>
 	)
