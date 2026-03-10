@@ -8,8 +8,8 @@ import { cn } from '@/lib/utils'
 import { validateExcelStructure } from '../lib/validate-excel-structure'
 import { processExcelFile } from '../lib/process-excel-file'
 import { FILE_TYPES, type FileType } from '../lib/file-types'
-import { ProcessingSummary } from './ProcessingSummary'
 import { ProcessingProgress } from './ProcessingProgress'
+import { RecordsByStatusView } from './RecordsByStatusView'
 import { loadFileApi } from '../lib/load-file-api'
 import type { ProcessResult } from '../types/load-file.types'
 
@@ -17,8 +17,9 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const ACCEPTED_FILE_TYPES = [
 	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
 	'application/vnd.ms-excel', // .xls
+	'text/csv', // .csv
 ]
-const ACCEPTED_EXTENSIONS = ['.xlsx', '.xls']
+const ACCEPTED_EXTENSIONS = ['.xlsx', '.xls', '.csv']
 
 export function CargarArchivoTab() {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -31,7 +32,11 @@ export function CargarArchivoTab() {
 		undefined
 	)
 	const [processingResult, setProcessingResult] = useState<
-		| (ProcessResult & { sincronizadoCount: number; rezagadoCount: number })
+		| (ProcessResult & {
+				sincronizadoCount: number
+				rezagadoCount: number
+				noSincronizadoCount?: number
+		  })
 		| null
 	>(null)
 	const [processingProgress, setProcessingProgress] = useState<{
@@ -41,6 +46,9 @@ export function CargarArchivoTab() {
 		rezagado: number
 		error: number
 	} | null>(null)
+	const [currentFileImportId, setCurrentFileImportId] = useState<
+		number | null
+	>(null)
 
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	// Refs para control de cancelación
@@ -94,7 +102,7 @@ export function CargarArchivoTab() {
 			return {
 				isValid: false,
 				error:
-					'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls',
+					'Formato de archivo no válido. Solo se permiten archivos .xlsx, .xls o .csv',
 			}
 		}
 
@@ -162,6 +170,7 @@ export function CargarArchivoTab() {
 		setSelectedFile(null)
 		setProcessingResult(null)
 		setProcessingProgress(null)
+		setCurrentFileImportId(null)
 		if (fileInputRef.current) {
 			fileInputRef.current.value = ''
 		}
@@ -185,7 +194,7 @@ export function CargarArchivoTab() {
 		if (!formatValidation.isValid) {
 			setErrorMessage(
 				formatValidation.error ||
-					'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls'
+				'Formato de archivo no válido. Solo se permiten archivos .xlsx, .xls o .csv'
 			)
 			setErrorModalTitle(undefined)
 			setErrorModalOpen(true)
@@ -243,12 +252,15 @@ export function CargarArchivoTab() {
 			}
 
 			const fileImport = initiateResponse.data.fileImport
+			setCurrentFileImportId(fileImport.idFileImport)
 
-			// Procesar y guardar registros válidos con progreso
-			if (result.validRecords.length > 0) {
+			// Procesar y guardar todos los registros (incluyendo los que tienen error previo)
+			const allRecords = [...result.validRecords, ...result.errorRecords]
+
+			if (allRecords.length > 0) {
 				setProcessingProgress({
 					current: 0,
-					total: result.validRecords.length,
+					total: allRecords.length,
 					sincronizado: 0,
 					rezagado: 0,
 					error: 0,
@@ -279,7 +291,8 @@ export function CargarArchivoTab() {
 								if (
 									fileImportData.status === 'COMPLETED' ||
 									fileImportData.status === 'CANCELADO' ||
-									fileImportData.status === 'LOAD'
+									fileImportData.status === 'LOAD' ||
+									fileImportData.status === 'ERROR'
 								) {
 									if (pollIntervalRef.current) {
 										clearInterval(pollIntervalRef.current)
@@ -309,16 +322,16 @@ export function CargarArchivoTab() {
 
 				// Procesar por lotes (chunks) para permitir cancelación real
 				const BATCH_SIZE = 50
-				const totalRecords = result.validRecords.length
+				const totalRecordsCount = allRecords.length
 				let processedCount = 0
 
-				for (let i = 0; i < totalRecords; i += BATCH_SIZE) {
+				for (let i = 0; i < totalRecordsCount; i += BATCH_SIZE) {
 					// Verificar si se canceló
 					if (abortControllerRef.current?.signal.aborted) {
 						break
 					}
 
-					const recordsBatch = result.validRecords.slice(i, i + BATCH_SIZE)
+					const recordsBatch = allRecords.slice(i, i + BATCH_SIZE)
 
 					// Llamar a la API para procesar este lote
 					const processResponse = await loadFileApi.processBatch(
@@ -344,9 +357,9 @@ export function CargarArchivoTab() {
 					setProcessingProgress((prev) =>
 						prev
 							? {
-									...prev,
-									current: processedCount,
-								}
+								...prev,
+								current: processedCount,
+							}
 							: null
 					)
 				}
@@ -354,28 +367,40 @@ export function CargarArchivoTab() {
 				// Esperar un poco para que el último polling actualice
 				await new Promise((resolve) => setTimeout(resolve, 1000))
 
-				// Obtener el estado final
-				const finalResponse = await fetch(
-					`/api/carga-archivos/file-import/${fileImport.idFileImport}`
-				)
-				const finalData = await finalResponse.json()
-
-				// Actualizar progreso con los resultados finales
+				// Limpiar progreso para mostrar el resumen (independientemente si falla el fetch final)
 				setProcessingProgress(null)
 
-				// Actualizar resultado con los datos del procesamiento
-				setProcessingResult({
-					...result,
-					sincronizadoCount: finalData.sincronizadoRecord || 0,
-					rezagadoCount: finalData.rezagadoRecord || 0,
-					errorCount: result.errorCount + (finalData.errorRecord || 0),
-				})
+				// Obtener el estado final usando el wrapper de API
+				const finalResponse = await loadFileApi.getImportProgress(fileImport.idFileImport)
+
+				if ('error' in finalResponse || !finalResponse.data) {
+					console.error('Error al obtener estado final:', finalResponse.error)
+					// Fallback a los resultados de validación local si falla el fetch final
+					setProcessingResult({
+						...result,
+						sincronizadoCount: 0,
+						rezagadoCount: 0,
+						noSincronizadoCount: 0,
+					})
+				} else {
+					const finalData = finalResponse.data
+					// Actualizar resultado con los datos consolidados del backend (misma fuente que historial)
+					setProcessingResult({
+						...result,
+						sincronizadoCount: finalData.sincronizadoRecord || 0,
+						rezagadoCount: finalData.rezagadoRecord || 0,
+						noSincronizadoCount: finalData.noSincronizadoRecord ?? 0,
+						// Sumamos errores locales detectados + errores reportados por el backend
+						errorCount: finalData.errorRecord || result.errorCount,
+					})
+				}
 			} else {
 				// Si no hay registros válidos, solo mostrar errores
 				setProcessingResult({
 					...result,
 					sincronizadoCount: 0,
 					rezagadoCount: 0,
+					noSincronizadoCount: 0,
 				})
 			}
 		} catch (error) {
@@ -427,7 +452,7 @@ export function CargarArchivoTab() {
 				title={errorModalTitle}
 				message={
 					errorMessage ||
-					'Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls'
+					'Formato de archivo no válido. Solo se permiten archivos .xlsx, .xls o .csv'
 				}
 				confirmText={errorModalTitle ? 'ACEPTAR' : 'Aceptar'}
 				onConfirm={() => {
@@ -450,13 +475,44 @@ export function CargarArchivoTab() {
 				</div>
 			)}
 
-			{/* Mostrar resumen si hay resultado, sino mostrar área de carga */}
-			{processingResult && !processingProgress ? (
-				<ProcessingSummary
-					result={processingResult}
-					fileName={selectedFile?.name || 'archivo'}
-					onUploadAnother={handleUploadAnother}
-				/>
+			{/* Mostrar vista por estado (cards + tabs) si hay resultado */}
+			{processingResult && !processingProgress && currentFileImportId ? (
+				<div className="space-y-6">
+					<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+						<h3 className="text-lg font-semibold text-primary mb-2">
+							Archivo cargado correctamente
+						</h3>
+						<p className="text-sm text-muted-foreground">
+							{selectedFile?.name || 'archivo'}
+						</p>
+					</div>
+					<RecordsByStatusView
+						fileImportId={currentFileImportId}
+						counts={{
+							sincronizados: processingResult.sincronizadoCount ?? 0,
+							errores: processingResult.errorCount ?? 0,
+							noSincronizados:
+								processingResult.noSincronizadoCount ??
+								Math.max(
+									0,
+									(processingResult.successCount ?? 0) -
+										(processingResult.sincronizadoCount ?? 0) -
+										(processingResult.rezagadoCount ?? 0)
+								),
+							rezagados: processingResult.rezagadoCount ?? 0,
+						}}
+					/>
+					<div className="flex justify-center pt-4">
+						<Button
+							onClick={handleUploadAnother}
+							className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
+							size="lg"
+						>
+							<FileUp className="h-5 w-5 mr-2" />
+							Subir otro y volver al estado inicial
+						</Button>
+					</div>
+				</div>
 			) : !processingProgress ? (
 				<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 					<h2 className="text-xl font-semibold text-primary mb-4">
@@ -526,7 +582,7 @@ export function CargarArchivoTab() {
 						<input
 							ref={fileInputRef}
 							type="file"
-							accept=".xlsx,.xls"
+							accept=".xlsx,.xls,.csv"
 							onChange={handleFileInputChange}
 							className="hidden"
 						/>
@@ -534,7 +590,7 @@ export function CargarArchivoTab() {
 
 					{/* Información de formatos */}
 					<p className="text-sm text-muted-foreground mt-4 text-center">
-						Formatos soportados: xlsx, xls • Tamaño máximo: 50MB
+						Formatos soportados: xlsx, xls, csv • Tamaño máximo: 50MB
 					</p>
 
 					{/* Botones de acción */}

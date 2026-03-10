@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx'
 import { FILE_TYPE_REQUIRED_HEADERS, type FileType } from './file-types'
 import { findHeaderIndex } from './header-utils'
 import { cleanNumericValue } from './number-utils'
+import { readWorkbookFromFile } from './read-workbook'
 import type { ProcessedRecord, ProcessResult } from '../types/load-file.types'
 
 const DATE_COLUMNS = new Set(['Desde', 'Hasta'])
@@ -36,8 +37,8 @@ function validateRecord(
 
 		// Validaciones específicas por tipo de campo
 		if (DATE_COLUMNS.has(requiredCol)) {
-			// Validar formato de fecha (puede ser fecha o string)
-			if (stringValue && !isValidDate(stringValue)) {
+			// Validar formato de fecha (puede ser fecha, número serial o string)
+			if (value && !isValidDate(value as string | number | Date)) {
 				errors.push(`Campo "${requiredCol}" debe ser una fecha válida`)
 			}
 		}
@@ -67,21 +68,28 @@ function isValidDate(value: string | number | Date): boolean {
 		return !isNaN(new Date(value).getTime())
 	}
 
-	const stringValue = String(value).trim()
+	// Limpiar caracteres no imprimibles y espacios especiales (BOM, etc)
+	const stringValue = String(value)
+		.replace(/[\u200B-\u200D\uFEFF]/g, '')
+		.trim()
 	if (!stringValue) return false
 
-	// Intentar parsear como fecha
-	const date = new Date(stringValue)
-	if (!isNaN(date.getTime())) return true
-
-	// Intentar formatos comunes de fecha
+	// Intentar formatos comunes de fecha con regex antes de New Date (más seguro)
 	const dateFormats = [
 		/^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+		/^\d{4}\/\d{2}\/\d{2}$/, // YYYY/MM/DD
 		/^\d{2}\/\d{2}\/\d{4}$/, // DD/MM/YYYY
 		/^\d{2}-\d{2}-\d{4}$/, // DD-MM-YYYY
 	]
 
-	return dateFormats.some((format) => format.test(stringValue))
+	if (dateFormats.some((format) => format.test(stringValue))) {
+		const date = new Date(stringValue)
+		return !isNaN(date.getTime())
+	}
+
+	// Como último recurso, intentar parsear directamente
+	const date = new Date(stringValue)
+	return !isNaN(date.getTime())
 }
 
 /**
@@ -94,9 +102,8 @@ export async function processExcelFile(
 	try {
 		const requiredHeaders = FILE_TYPE_REQUIRED_HEADERS[fileType]
 
-		// Leer el archivo
-		const arrayBuffer = await file.arrayBuffer()
-		const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+		// Use shared reader: UTF-8 decoding for CSV so accented headers/cells are not corrupted
+		const workbook = await readWorkbookFromFile(file)
 
 		// Obtener la primera hoja
 		const firstSheetName = workbook.SheetNames[0]

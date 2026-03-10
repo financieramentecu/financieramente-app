@@ -1,186 +1,85 @@
-# CLAUDE.md
+---
+description:
+alwaysApply: true
+---
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# Agent Teams Lite — Lean Orchestrator Instructions
 
-## Project Overview
-
-Financieramente is a commission settlement platform for financial services built with Next.js 15 App Router.
-
-| Component        | Location               | Tech                                 |
-| ---------------- | ---------------------- | ------------------------------------ |
-| Pages            | `src/app/`             | Next.js 15 App Router                |
-| API Routes       | `src/app/api/`         | Next.js Route Handlers               |
-| Features         | `src/features/`        | Feature-Based Architecture           |
-| Shared UI/hooks  | `src/features/shared/` | React 19, Tailwind v4                |
-| Global utilities | `src/lib/`             | Prisma client, auth, nav, API client |
-| Database         | `prisma/`              | Prisma ORM, PostgreSQL 15            |
-
-**Stack**: Next.js 15, React 19, TypeScript 5, Prisma ORM, Zod, React Hook Form, Shadcn/UI + Radix UI, Tailwind CSS v4, Sonner, NextAuth v5, Vitest, Playwright.
+Add this section to your existing `~/.claude/CLAUDE.md` or project-level `CLAUDE.md`.
 
 ---
 
-## Commands
+## Spec-Driven Development (SDD) Orchestrator
 
-```bash
-# Dev
-npm run dev
-npm run build
-npm run type-check
-npm run lint
-npm run format
+You are the ORCHESTRATOR for Spec-Driven Development. Keep the same mentor identity and apply SDD as an overlay.
 
-# Testing
-npm run test:unit                    # Unit tests (vitest.unit.config.ts)
-npm run test:integration             # Integration tests
-npm run test:e2e                     # Playwright E2E
-npm run test:all                     # All three
+### Core Operating Rules
+- Delegate-only: never do analysis/design/implementation/verification inline.
+- Launch sub-agents via Task for all phase work.
+- The lead only coordinates DAG state, user approvals, and concise summaries.
+- `/sdd-new`, `/sdd-continue`, and `/sdd-ff` are meta-commands handled by the orchestrator (not skills).
 
-# Run a single test file
-npx vitest run src/features/categories/__tests__/lib/category-api.test.ts
+### Artifact Store Policy
+- `artifact_store.mode`: `engram | openspec | hybrid | none`
+- Default: `engram` when available; `openspec` only if user explicitly requests file artifacts; `hybrid` for both backends simultaneously; otherwise `none`.
+- `hybrid` persists to BOTH Engram and OpenSpec. Provides cross-session recovery + local file artifacts. Consumes more tokens per operation.
+- In `none`, do not write project files. Return results inline and recommend enabling `engram` or `openspec`.
 
-# Run tests matching a pattern
-npx vitest run --reporter=verbose -t "should fetch"
+### Commands
+- `/sdd-init` → launch `sdd-init` sub-agent
+- `/sdd-explore <topic>` → launch `sdd-explore` sub-agent
+- `/sdd-new <change>` → run `sdd-explore` then `sdd-propose`
+- `/sdd-continue [change]` → create next missing artifact in dependency chain
+- `/sdd-ff [change]` → run `sdd-propose` → `sdd-spec` → `sdd-design` → `sdd-tasks`
+- `/sdd-apply [change]` → launch `sdd-apply` in batches
+- `/sdd-verify [change]` → launch `sdd-verify`
+- `/sdd-archive [change]` → launch `sdd-archive`
 
-# Prisma
-npm run prisma:migrate:dev           # Run migrations (dev)
-npm run prisma:generate              # Regenerate client after schema changes
-npm run prisma:studio                # Open Prisma Studio
-npm run prisma:seed                  # Seed database
+### Dependency Graph
 ```
-
----
-
-## Architecture Rules
-
-### Feature-Based Structure
-
-All code lives in `src/features/[feature-name]/`. Do **not** add files to `src/services/`, `src/utils/`, or `src/types/`.
-
+proposal -> specs --> tasks -> apply -> verify -> archive
+             ^
+             |
+           design
 ```
-src/features/[feature-name]/
-├── components/       # React components
-├── hooks/            # Custom hooks (data fetching, mutations)
-├── lib/              # Zod schemas + API functions
-│   ├── [name]-api.ts
-│   └── [name]-schemas.ts
-├── types/            # TypeScript interfaces
-├── services/         # Prisma queries (only if needed by Server Actions)
-├── mappers/          # Data mappers between layers (optional)
-└── __tests__/        # Colocated tests
-    ├── lib/
-    ├── hooks/
-    ├── mappers/
-    └── fixtures/
-```
+- `specs` and `design` both depend on `proposal`.
+- `tasks` depends on both `specs` and `design`.
 
-**Reference implementation**: `src/features/categories/` — use this as the canonical pattern for new CRUD features.
+### Sub-Agent Launch Pattern
+When launching a phase, require the sub-agent to read `~/.claude/skills/sdd-{phase}/SKILL.md` first and return:
+- `status`
+- `executive_summary`
+- `artifacts` (include IDs/paths)
+- `next_recommended`
+- `risks`
 
-### Actions vs Services (Server-side only)
+### State & Conventions (source of truth)
+Keep this file lean. Do NOT inline full persistence and naming specs here.
 
-- **Server Actions** (`actions/`): validate input with Zod → call services → return `ApiResponse<T>`. Never call Prisma directly.
-- **Services** (`services/`): all Prisma calls. Return domain data, not `ApiResponse`.
+Use shared convention files installed under `~/.claude/skills/_shared/`:
+- `engram-convention.md` for artifact naming + two-step recovery
+- `persistence-contract.md` for mode behavior + state persistence/recovery
+- `openspec-convention.md` for file layout when mode is `openspec`
 
-### API Routes
+### Recovery Rule
+If SDD state is missing (for example after context compaction), recover from backend state before continuing:
+- `engram`: `mem_search(...)` then `mem_get_observation(...)`
+- `openspec`: read `openspec/changes/*/state.yaml`
+- `none`: explain that state was not persisted
 
-All routes must use `ApiResponse<T>` from `@/features/shared/types/api-response.types`:
+### SDD Suggestion Rule
+For substantial features/refactors, suggest SDD.
+For small fixes/questions, do not force SDD.
 
-```typescript
-import type { ApiResponse } from '@/features/shared/types/api-response.types'
 
-export async function GET(): Promise<NextResponse<ApiResponse<MyType>>> {
-	try {
-		const data = await myService.getAll()
-		return NextResponse.json({ data })
-	} catch {
-		return NextResponse.json({ data: null, error: 'Failed' }, { status: 500 })
-	}
-}
-```
 
-Auth check pattern at the top of every protected route:
+# Repository Guidelines
 
-```typescript
-const session = await auth()
-if (!session?.user) {
-	return NextResponse.json(
-		{ data: null, error: 'Unauthorized' },
-		{ status: 401 }
-	)
-}
-```
+## How to Use This Guide
 
-See `src/app/api/AGENTS.md` for the full API route reference.
-
-### Client-side API Calls
-
-Use `apiClient` from `src/lib/api/client.ts` — never raw `fetch` in feature lib files:
-
-```typescript
-import { apiClient } from '@/lib/api/client'
-
-export async function getCategories(): Promise<Category[]> {
-	return apiClient.get<Category[]>('/api/categories')
-}
-```
-
-### TypeScript
-
-- No `any`. Use `unknown` at boundaries, narrow with Zod or type guards.
-- Use `readonly` on interface fields that don't mutate.
-- Cast overlapping types via `as unknown as TargetType`.
-- Prefer `const` object maps over enums.
-
-### React Components
-
-- No `useMemo`/`useCallback` — React Compiler handles memoization.
-- Pages are Server Components (handle auth + layout); interactive parts are Client Components (`'use client'`).
-- Sidebar menu items: `src/lib/navigation/menu-items.tsx` (`ALL_MENU_ITEMS`, `AGENTE_MENU_ITEMS`). Icons from `lucide-react`.
-
----
-
-## Testing Patterns
-
-```typescript
-// Mock fetch
-const mockFetch = vi.fn()
-global.fetch = mockFetch
-
-// Mock API module
-vi.mock('../../lib/category-api', () => ({ getCategories: vi.fn() }))
-
-// Hooks
-const { result } = renderHook(() => useCategories())
-await waitFor(() => expect(result.current.data).toBeDefined())
-```
-
-- Test fixtures live in `__tests__/fixtures/` within each feature.
-- `DataTable` columns require unique `key` per column.
-
----
-
-## Prisma
-
-After modifying `prisma/schema.prisma`:
-
-1. `npm run prisma:migrate:dev` — create and apply migration
-2. `npm run prisma:generate` — regenerate client
-
-When adding model fields, also update mock fixtures in `__tests__/fixtures/` that construct full Prisma objects.
-
----
-
-## Commit & PR Guidelines
-
-Conventional commits: `<type>[scope]: <description>`
-Types: `feat`, `fix`, `docs`, `chore`, `perf`, `refactor`, `style`, `test`
-
-Before a PR:
-
-1. `npm run test:all && npm run lint && npm run type-check`
-2. Complete `.github/pull_request_template.md` checklist
-3. Link screenshots for UI changes
-
----
+- Start here for cross-project norms. Financieramente is a commission settlement platform.
+- Each feature follows Feature-Based Architecture in `src/features/`.
+- Use skills and subagents to ensure code quality and architectural consistency.
 
 ## Available Skills
 
@@ -188,20 +87,20 @@ Use these skills for detailed patterns on-demand:
 
 ### Generic Skills (Any Project)
 
-| Skill                    | Description                                                | When to Use                                            | URL                                      |
-| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------- |
-| `typescript`             | Const types, flat interfaces, utility types, strict typing | Writing TypeScript types/interfaces, refactoring types | `skills/typescript/SKILL.md`             |
-| `react-19`               | No useMemo/useCallback, React Compiler patterns            | Writing React components/hooks                         | `skills/react-19/SKILL.md`               |
-| `nextjs-16`              | App Router, Server Actions, Server Components, caching     | Working with Next.js App Router, API routes            | `skills/nextjs-16/SKILL.md`              |
-| `screaming-architecture` | Feature-based organization, domain-driven structure        | Organizing code by feature/domain                      | `skills/screaming-architecture/SKILL.md` |
-| `commit-messages`        | Conventional commits, clear commit messages                | Writing commit messages, preparing commits             | `skills/commit-messages/SKILL.md`        |
-| `code-review-skill`      | Security, performance, maintainability reviews             | Code reviews, PR reviews, security analysis            | `skills/code-review-skill/SKILL.md`      |
+| Skill                    | Description                                                | When to Use                                            | URL                                                |
+| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------- |
+| `typescript`             | Const types, flat interfaces, utility types, strict typing | Writing TypeScript types/interfaces, refactoring types | [SKILL.md](skills/typescript/SKILL.md)             |
+| `react-19`               | No useMemo/useCallback, React Compiler patterns            | Writing React components/hooks                         | [SKILL.md](skills/react-19/SKILL.md)               |
+| `nextjs-16`              | App Router, Server Actions, Server Components, caching     | Working with Next.js App Router, API routes            | [SKILL.md](skills/nextjs-16/SKILL.md)              |
+| `screaming-architecture` | Feature-based organization, domain-driven structure        | Organizing code by feature/domain                      | [SKILL.md](skills/screaming-architecture/SKILL.md) |
+| `commit-messages`        | Conventional commits, clear commit messages                | Writing commit messages, preparing commits             | [SKILL.md](skills/commit-messages/SKILL.md)        |
+| `code-review-skill`      | Security, performance, maintainability reviews             | Code reviews, PR reviews, security analysis            | [SKILL.md](skills/code-review-skill/SKILL.md)      |
 
 ### Financieramente-Specific Skills
 
-| Skill             | Description                                        | When to Use                                      | URL                               |
-| ----------------- | -------------------------------------------------- | ------------------------------------------------ | --------------------------------- |
-| `financieramente` | Project overview, structure, scripts, architecture | Onboarding, navigating codebase, running scripts | `skills/financieramente/SKILL.md` |
+| Skill             | Description                                        | When to Use                                      | URL                                         |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------ | ------------------------------------------- |
+| `financieramente` | Project overview, structure, scripts, architecture | Onboarding, navigating codebase, running scripts | [SKILL.md](skills/financieramente/SKILL.md) |
 
 ### Auto-invoke Skills
 
@@ -219,9 +118,9 @@ When performing these actions, ALWAYS invoke the corresponding skill FIRST:
 
 Subagents are specialized AI assistants that enforce specific architectural or code quality rules:
 
-| Subagent                | Description                                   | When to Use                                | Location                                  |
-| ----------------------- | --------------------------------------------- | ------------------------------------------ | ----------------------------------------- |
-| `architecture-enforcer` | Ensures Feature-Based Architecture compliance | Creating/modifying code in `src/features/` | `.cursor/agents/architecture-enforcer.md` |
+| Subagent                | Description                                   | When to Use                                | Location                                                                           |
+| ----------------------- | --------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `architecture-enforcer` | Ensures Feature-Based Architecture compliance | Creating/modifying code in `src/features/` | [.cursor/agents/architecture-enforcer.md](.cursor/agents/architecture-enforcer.md) |
 
 ### Architecture Enforcer
 
@@ -234,3 +133,104 @@ The **architecture-enforcer** subagent validates that all new code follows:
 - Testing colocalizado
 
 **Invoke when**: Creating or modifying code in `src/features/` to ensure architectural compliance.
+
+---
+
+## API Documentation
+
+- **[API Router Reference](src/app/api/AGENTS.md)**: Detailed guide to endpoints, authentication, and response formats.
+
+---
+
+## Project Overview
+
+Financieramente is a modern commission settlement platform for financial services.
+
+| Component          | Location               | Tech Stack                                       |
+| ------------------ | ---------------------- | ------------------------------------------------ |
+| **Pages**          | `src/app/`             | Next.js 15 App Router                            |
+| **API Routes**     | `src/app/api/`         | Next.js 15 API Routes                            |
+| **Features**       | `src/features/`        | Feature-Based Architecture, React 19, TypeScript |
+| **Shared**         | `src/features/shared/` | UI components, hooks, providers, types           |
+| **Database**       | `prisma/`              | Prisma ORM, PostgreSQL                           |
+| **Infrastructure** | `terraform/`           | Digital Ocean, Docker                            |
+
+### Tech Stack
+
+- **Frontend**: Next.js 15, React 19, Tailwind CSS v4
+- **Backend**: Next.js API Routes, Prisma ORM
+- **Database**: PostgreSQL 15
+- **UI**: Shadcn/UI + Radix UI
+- **Testing**: Vitest, Testing Library, Playwright
+- **Infrastructure**: Docker, Terraform, Digital Ocean
+
+---
+
+## Development Workflow
+
+### Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Setup environment
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Run database migrations
+npx prisma migrate dev
+
+# Start development server
+npm run dev
+```
+
+### Code Quality
+
+```bash
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+
+# Formatting
+npm run format
+
+# Testing
+npm run test:unit          # Unit tests
+npm run test:integration   # Integration tests
+npm run test:e2e          # E2E tests
+npm run test:all          # All tests
+```
+
+## Commit & Pull Request Guidelines
+
+Follow conventional-commit style: `<type>[scope]: <description>`
+
+**Types:** `feat`, `fix`, `docs`, `chore`, `perf`, `refactor`, `style`, `test`
+
+**Use the `commit-messages` skill** when writing commit messages to ensure consistency.
+
+Before creating a PR:
+
+1. Complete checklist in `.github/pull_request_template.md`
+2. Run all relevant tests and linters (`npm run test:all && npm run lint`)
+3. Link screenshots for UI changes
+4. Ensure architecture compliance (use `architecture-enforcer` subagent)
+
+## Architecture Rules
+
+- **Feature-Based**: All code in `src/features/[feature-name]/`
+- **Structure**: Each feature has `components/`, `hooks/`, `lib/`, `types/`, `__tests__/`
+- **Shared Resources**: Use `src/features/shared/` for truly shared components/hooks/types
+- **No Root Services**: Don't create files in `src/services/`, `src/utils/`, `src/types/` (use features)
+
+### Actions and Services (data access)
+
+- **Server Actions** (`actions/`): orchestrate validation, call **services** for data, and return `ApiResponse`. Do **not** call Prisma directly from actions.
+- **Services** (`services/`): contain all **Prisma** (and other data) calls for the feature. Return domain data or simple result objects; no `ApiResponse` here.
+- **Responsibility split**: Actions = input validation, error messages, response shape. Services = database queries, domain logic that touches Prisma.
+
+See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed architecture guidelines.
+- Git: Use Git Flow (feature/, bugfix/, audit/, hotfix/). Branch from 'develop'. Commits MUST follow Conventional Commits (feat:, fix:, chore:, docs:, refactor:, audit:). PRs must use the provided template.
