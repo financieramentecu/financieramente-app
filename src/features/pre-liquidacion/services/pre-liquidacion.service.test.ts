@@ -26,8 +26,8 @@ vi.mock('@/lib/prisma', () => ({
 			create: vi.fn(),
 			findMany: vi.fn(),
 		},
-		commissionConfiguration: {
-			findFirst: vi.fn(),
+		commissionDiscount: {
+			findMany: vi.fn(),
 		},
 		$transaction: vi.fn((callback) => callback(prisma)),
 	},

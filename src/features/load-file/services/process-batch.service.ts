@@ -46,20 +46,19 @@ export class ProcessBatchService {
 			throw new Error('FileImport no encontrado o no autorizado')
 		}
 
-		const activeConfig = await prisma.commissionConfiguration.findFirst({
-			where: { status: 'ACTIVE' },
-			orderBy: { createdAt: 'desc' },
+		const activeDiscounts = await prisma.commissionDiscount.findMany({
+			where: { status: 'ACTIVE', type: { in: ['IMPUESTO', 'CLAWBACK'] } },
 		})
 
-		const discountPercentage =
-			activeConfig?.discountPercentage != null
-				? Number(activeConfig.discountPercentage)
-				: DEFAULT_DISCOUNT_PERCENTAGE
+		const impuestoRow = activeDiscounts.find((d) => d.type === 'IMPUESTO')
+		const clawbackRow = activeDiscounts.find((d) => d.type === 'CLAWBACK')
 
-		const clawbackPercentage = activeConfig
-			? activeConfig.clawbackPercentage == null
-				? null
-				: Number(activeConfig.clawbackPercentage)
+		const discountPercentage = impuestoRow
+			? impuestoRow.percentage.toNumber() / 100
+			: DEFAULT_DISCOUNT_PERCENTAGE
+
+		const clawbackPercentage = clawbackRow
+			? clawbackRow.percentage.toNumber() / 100
 			: DEFAULT_CLAWBACK_PERCENTAGE
 
 		const snapshots = { discountPercentage, clawbackPercentage }

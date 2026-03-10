@@ -1,0 +1,17 @@
+---
+description: Convención de diseño UI/UX para el proyecto Financieramente.
+globs: ["**/*.tsx", "**/*.jsx", "**/design.md", "**/spec.md", "financieramnete.pen"]
+---
+
+# Design convention
+
+## Siempre usar ui-ux-pro-max en diseño
+
+Cuando se hable de **diseño**, **UI**, **UX** o se implemente componentes/pantallas en este proyecto:
+
+1. **Invocar el skill ui-ux-pro-max** (`.cursor/skills/ui-ux-pro-max`).
+2. Para trabajo de UI nuevo: generar design system con `--design-system` (p. ej. "admin dashboard fintech") y aplicar sus reglas (accesibilidad, touch targets, loading, error feedback, Pre-Delivery Checklist).
+3. **Referencia visual**: `financieramnete.pen` en la raíz del repo (tokens, pantallas, layout).
+4. **Reglas y checklist**: las del skill ui-ux-pro-max (contraste 4.5:1, cursor-pointer, focus visible, labels en formularios, etc.).
+
+Resumen: **diseño = financieramnete.pen (visual) + ui-ux-pro-max (reglas y checklist)**.
