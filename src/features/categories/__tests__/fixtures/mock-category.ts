@@ -1,87 +1,59 @@
-import type {
-	Category,
-	CategoryListResponse,
-	CategoryType,
-} from '../../types/category.types'
-import type { Category as PrismaCategory } from '@prisma/client'
+import { CategoryType as CategoryTypeDomain } from '../../types/category.types'
+import { Category, CategoryType } from '@prisma/client'
 
 /**
- * Creates a mock Category for tests
+ * Mock category for testing (Domain Type)
  */
-export function createMockCategory(overrides?: Partial<Category>): Category {
+export const MOCK_CATEGORY = {
+	idCategory: 1,
+	code: 'CAT-001',
+	name: 'Categoría de Prueba',
+	idCategoryType: 1,
+	typeCategory: 'MMS' as CategoryTypeDomain,
+	descripcion: 'Esta es una categoría de prueba para tests',
+	status: true,
+	createdAt: new Date().toISOString(),
+	updatedAt: new Date().toISOString(),
+}
+
+export const createMockCategory = (overrides: Partial<typeof MOCK_CATEGORY> = {}) => ({
+	...MOCK_CATEGORY,
+	...overrides,
+})
+
+export const createMockCategoryListResponse = (categories = [MOCK_CATEGORY]) => ({
+	categories,
+	pagination: {
+		total: categories.length,
+		page: 1,
+		pageSize: 10,
+		totalPages: 1,
+	},
+})
+
+export const createMockCategoriesByType = (type: CategoryTypeDomain = 'MMS', count = 3) => {
+	return Array.from({ length: count }, (_, i) => ({
+		...MOCK_CATEGORY,
+		idCategory: i + 1,
+		code: `CAT-${type}-${i + 1}`,
+		typeCategory: type,
+	}))
+}
+
+/**
+ * Mock Prisma Category for testing (Prisma Client Type)
+ */
+export const createMockPrismaCategory = (overrides: Partial<Category & { categoryType?: CategoryType | null }> = {}): Category & { categoryType?: CategoryType | null } => {
+	const now = new Date()
 	return {
 		idCategory: 1,
-		code: 'CAT001',
-		name: 'Agente Experto',
-		typeCategory: 'MMS',
-		descripcion: 'Categoría para agentes expertos',
+		code: 'CAT-001',
+		name: 'Categoría 1',
+		idCategoryType: 1,
+		descripcion: 'Descripción 1',
 		status: true,
-		createdAt: '2024-01-01T00:00:00.000Z',
-		updatedAt: '2024-01-01T00:00:00.000Z',
+		createdAt: now,
+		updatedAt: now,
 		...overrides,
 	}
-}
-
-/**
- * Creates a mock CategoryListResponse for tests
- */
-export function createMockCategoryListResponse(
-	categories: Category[] = [createMockCategory()],
-	pagination?: Partial<CategoryListResponse['pagination']>
-): CategoryListResponse {
-	return {
-		categories,
-		pagination: {
-			page: 1,
-			pageSize: 10,
-			total: categories.length,
-			totalPages: Math.ceil(categories.length / 10),
-			...pagination,
-		},
-	}
-}
-
-/**
- * Creates a mock Prisma Category for mapper tests
- */
-export function createMockPrismaCategory(
-	overrides?: Partial<PrismaCategory>
-): PrismaCategory {
-	return {
-		idCategory: 1,
-		code: 'CAT001',
-		name: 'Agente Experto',
-		typeCategory: 'MMS' as CategoryType,
-		descripcion: 'Categoría para agentes expertos',
-		status: true,
-		createdAt: new Date('2024-01-01T00:00:00.000Z'),
-		updatedAt: new Date('2024-01-01T00:00:00.000Z'),
-		...overrides,
-	}
-}
-
-/**
- * Creates multiple mock categories with different types
- */
-export function createMockCategoriesByType(): Category[] {
-	return [
-		createMockCategory({
-			idCategory: 1,
-			code: 'MMS001',
-			name: 'MMS Básico',
-			typeCategory: 'MMS',
-		}),
-		createMockCategory({
-			idCategory: 2,
-			code: 'ALI001',
-			name: 'Aliado Oro',
-			typeCategory: 'ALIADO',
-		}),
-		createMockCategory({
-			idCategory: 3,
-			code: 'TRI001',
-			name: 'Trinity Premium',
-			typeCategory: 'TRINITY',
-		}),
-	]
 }

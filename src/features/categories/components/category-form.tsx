@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, Controller, DefaultValues } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
@@ -16,12 +16,10 @@ import {
 } from '@/features/shared/ui/select'
 import {
 	createCategorySchema,
-	updateCategorySchema,
 	type CreateCategoryFormData,
 	type UpdateCategoryFormData,
 } from '../lib/category-schemas'
-import type { Category } from '../types/category.types'
-import { CATEGORY_TYPES } from '../types/category.types'
+import type { Category, CategoryType } from '../types/category.types'
 import { cn } from '@/lib/utils'
 
 interface CategoryFormProps {
@@ -34,41 +32,50 @@ interface CategoryFormProps {
 	isLoading?: boolean
 }
 
-const CATEGORY_TYPE_LABELS: Record<string, string> = {
-	MMS: 'MMS',
-	ALIADO: 'Aliado',
-	TRINITY: 'Trinity',
-}
+// Hardcoded for now to unblock build, ideally fetched from API
+const CATEGORY_TYPE_OPTIONS: { id: number; label: CategoryType }[] = [
+	{ id: 1, label: 'MMS' },
+	{ id: 2, label: 'ALIADO' },
+	{ id: 3, label: 'TRINITY' },
+]
+
+type FormValues = CreateCategoryFormData
 
 export function CategoryForm({
 	mode,
 	initialData,
-	onSubmit,
+	onSubmit: submitHandler,
 	onCancel,
 	isLoading = false,
 }: CategoryFormProps) {
-	const schema = mode === 'create' ? createCategorySchema : updateCategorySchema
+	const form = useForm<FormValues>({
+		resolver: zodResolver(createCategorySchema),
+		defaultValues: (initialData
+			? {
+				code: initialData.code,
+				name: initialData.name,
+				typeCategory: initialData.typeCategory as CategoryType,
+				descripcion: initialData.descripcion,
+				status: initialData.status,
+			}
+			: {
+				code: '',
+				name: '',
+				typeCategory: 'MMS' as CategoryType,
+				descripcion: '',
+				status: true,
+			}) as DefaultValues<FormValues>,
+	})
 
 	const {
 		register,
 		handleSubmit,
 		formState: { errors, isSubmitting },
 		control,
-	} = useForm<CreateCategoryFormData | UpdateCategoryFormData>({
-		resolver: zodResolver(schema),
-		defaultValues: {
-			code: initialData?.code ?? '',
-			name: initialData?.name ?? '',
-			typeCategory: initialData?.typeCategory ?? undefined,
-			descripcion: initialData?.descripcion ?? '',
-			status: initialData?.status ?? true,
-		},
-	})
+	} = form
 
-	const handleFormSubmit = async (
-		data: CreateCategoryFormData | UpdateCategoryFormData
-	) => {
-		await onSubmit(data)
+	const handleFormSubmit = async (data: FormValues) => {
+		await submitHandler(data)
 	}
 
 	const isFormDisabled = isLoading || isSubmitting
@@ -122,6 +129,7 @@ export function CategoryForm({
 							onValueChange={field.onChange}
 							defaultValue={field.value}
 							disabled={isFormDisabled}
+							value={field.value}
 						>
 							<SelectTrigger
 								className={cn(errors.typeCategory && 'border-destructive')}
@@ -129,9 +137,9 @@ export function CategoryForm({
 								<SelectValue placeholder="Seleccione un tipo" />
 							</SelectTrigger>
 							<SelectContent>
-								{CATEGORY_TYPES.map((type) => (
-									<SelectItem key={type} value={type}>
-										{CATEGORY_TYPE_LABELS[type] || type}
+								{CATEGORY_TYPE_OPTIONS.map((type) => (
+									<SelectItem key={type.id} value={type.label}>
+										{type.label}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -139,7 +147,9 @@ export function CategoryForm({
 					)}
 				/>
 				{errors.typeCategory && (
-					<p className="text-sm text-destructive">{errors.typeCategory.message}</p>
+					<p className="text-sm text-destructive">
+						{errors.typeCategory.message}
+					</p>
 				)}
 			</div>
 
@@ -167,6 +177,7 @@ export function CategoryForm({
 						<Select
 							onValueChange={(value) => field.onChange(value === 'true')}
 							defaultValue={field.value ? 'true' : 'false'}
+							value={field.value ? 'true' : 'false'}
 							disabled={isFormDisabled}
 						>
 							<SelectTrigger
@@ -182,7 +193,9 @@ export function CategoryForm({
 					)}
 				/>
 				{errors.status && (
-					<p className="text-sm text-destructive">{errors.status.message}</p>
+					<p className="text-sm text-destructive">
+						{errors.status.message}
+					</p>
 				)}
 			</div>
 

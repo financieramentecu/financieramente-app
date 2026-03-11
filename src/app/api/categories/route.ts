@@ -11,6 +11,14 @@ import {
 	prismaCategoryToCategory,
 	prismaCategoryListToCategories,
 } from '@/features/categories/mappers/category.mapper'
+import { Prisma } from '@prisma/client'
+
+// Temporary mapping for legacy compatibility
+const TYPE_NAME_TO_ID: Record<string, number> = {
+	MMS: 1,
+	ALIADO: 2,
+	TRINITY: 3,
+}
 
 /**
  * GET /api/categories
@@ -25,14 +33,7 @@ export async function GET(request: Request) {
 		const page = parseInt(searchParams.get('page') || '1')
 		const pageSize = parseInt(searchParams.get('pageSize') || '10')
 
-		const where: {
-			OR?: Array<{
-				code?: { contains: string; mode: 'insensitive' }
-				name?: { contains: string; mode: 'insensitive' }
-			}>
-			typeCategory?: string
-			status?: boolean
-		} = {}
+		const where: Prisma.CategoryWhereInput = {}
 
 		if (search) {
 			where.OR = [
@@ -42,7 +43,10 @@ export async function GET(request: Request) {
 		}
 
 		if (typeCategory) {
-			where.typeCategory = typeCategory
+			const typeId = TYPE_NAME_TO_ID[typeCategory]
+			if (typeId) {
+				where.idCategoryType = typeId
+			}
 		}
 
 		if (status === 'active') {
@@ -57,6 +61,7 @@ export async function GET(request: Request) {
 		// Get categories with pagination
 		const categories = await prisma.category.findMany({
 			where,
+			include: { categoryType: true },
 			orderBy: { name: 'asc' },
 			skip: (page - 1) * pageSize,
 			take: pageSize,
@@ -97,73 +102,52 @@ export async function POST(request: Request) {
 		const body = await request.json()
 		const data = createCategorySchema.parse(body)
 
-		// Normalize code (trim and uppercase)
+		// Create category mapping typeCategory string to ID
+		const typeId = TYPE_NAME_TO_ID[data.typeCategory] || 1
+
+		// Normalize code
 		const normalizedCode = data.code.trim().toUpperCase()
 
-		// Validate code uniqueness (case-insensitive)
+		// Validate code uniqueness
 		const existingCategory = await prisma.category.findFirst({
 			where: {
-				code: {
-					equals: normalizedCode,
-					mode: 'insensitive',
-				},
+				code: { equals: normalizedCode, mode: 'insensitive' },
 			},
 		})
 
 		if (existingCategory) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'Ya existe una categoría con este código',
-			}
-			return NextResponse.json(errorResponse, { status: 409 })
+			return NextResponse.json(
+				{ data: null, error: 'Ya existe una categoría con este código' },
+				{ status: 409 }
+			)
 		}
 
-		// Create category
 		const category = await prisma.category.create({
 			data: {
 				code: normalizedCode,
 				name: data.name.trim(),
-				typeCategory: data.typeCategory,
+				idCategoryType: typeId,
 				descripcion: data.descripcion ?? null,
 				status: data.status,
 			},
+			include: { categoryType: true },
 		})
 
-		// Transform using mapper
-		const categoryFormatted = prismaCategoryToCategory(category)
-
 		const response: ApiResponse<Category> = {
-			data: categoryFormatted,
+			data: prismaCategoryToCategory(category),
 		}
 
 		return NextResponse.json(response, { status: 201 })
 	} catch (error) {
 		if (error instanceof z.ZodError) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: error.issues[0]?.message || 'Datos inválidos',
-			}
-			return NextResponse.json(errorResponse, { status: 400 })
+			return NextResponse.json(
+				{ data: null, error: error.issues[0]?.message || 'Datos inválidos' },
+				{ status: 400 }
+			)
 		}
-
-		if (
-			error &&
-			typeof error === 'object' &&
-			'code' in error &&
-			error.code === 'P2002'
-		) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'Ya existe una categoría con este código',
-			}
-			return NextResponse.json(errorResponse, { status: 409 })
-		}
-
-		console.error('Error creating category:', error)
-		const errorResponse: ApiResponse<null> = {
-			data: null,
-			error: 'Error al crear categoría',
-		}
-		return NextResponse.json(errorResponse, { status: 500 })
+		return NextResponse.json(
+			{ data: null, error: 'Error al crear categoría' },
+			{ status: 500 }
+		)
 	}
 }

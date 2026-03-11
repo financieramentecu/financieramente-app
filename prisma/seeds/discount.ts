@@ -21,7 +21,6 @@ export async function seedDiscount(prisma: PrismaClient) {
 			discountPercentage: 0.12,
 			clawbackPercentage: 0.1,
 			name: 'DEFAULT',
-			description: 'Configuración estándar (12% descuento, 10% clawback)',
 			status: 'ACTIVE',
 		},
 	})
