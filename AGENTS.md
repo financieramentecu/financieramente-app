@@ -64,6 +64,22 @@ The **architecture-enforcer** subagent validates that all new code follows:
 
 **Invoke when**: Creating or modifying code in `src/features/` to ensure architectural compliance.
 
+### Spec-Driven Development (SDD)
+
+For Spec-Driven Development / OpenSpec workflow, **always use subagents** to run each phase instead of executing the phase inline:
+
+| Phase | Command / Trigger | Action |
+| ----- | ----------------- | ------ |
+| Proposal | `/sdd-propose` | Launch subagent to create or update `proposal.md` from exploration or user input. |
+| Design | `/sdd-design` | Launch subagent to produce `design.md` from proposal (and specs if present). |
+| Spec | `/sdd-spec` | Launch subagent to write delta or full specs in `openspec/changes/{change}/specs/`. |
+| Tasks | `/sdd-tasks` | Launch subagent to create `tasks.md` from proposal, specs, and design. |
+| Apply | `/sdd-apply` | Launch subagent to implement tasks (code changes) in batches. |
+| Verify | `/sdd-verify` | Launch subagent to verify implementation against specs and tasks. |
+| Archive | `/sdd-archive` | Launch subagent to archive the change and sync delta specs to main specs. |
+
+**Rule**: Do not execute proposal, design, spec, tasks, apply, verify, or archive logic inline. Use `mcp_task` (or equivalent) with the appropriate subagent and pass the change name, artifact store mode, and context so the subagent reads the skill and produces the artifact. See [.cursor/rules/SDD.md](.cursor/rules/SDD.md).
+
 ---
 
 ## API Documentation
