@@ -12,6 +12,7 @@ import type {
 	ResumenFilaPreliquidacion,
 	ResumenUsuarioPreliquidacion,
 } from '../types/types'
+import { deriveFlow } from '../lib/pre-liquidacion-flow'
 
 /**
  * Obtiene los archivos disponibles para pre-liquidar y los ya pre-liquidados.
@@ -24,7 +25,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 			settlementCommissions: {
 				some: {
 					status: {
-						in: ['SYNCHRONIZED'],
+						in: ['SYNCHRONIZED', 'PRE-SETTLED'],
 					},
 				},
 			},
@@ -44,22 +45,49 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 					lastName: true,
 				},
 			},
-			_count: {
-				select: {
-					settlementCommissions: {
-						where: { status: 'SYNCHRONIZED' },
-					},
-				},
-			},
 		},
 		orderBy: {
 			loadDate: 'desc',
 		},
 	})
 
-	const archivos: ArchivoDisponible[] = todosArchivos.map((archivo) => {
-		const preliquidadosCount = archivo._count.settlementCommissions
+	const fileIds = todosArchivos.map((a) => a.idFileImport)
+	const countsMap: Record<
+		number,
+		{ sincronizados: number; registrosPreliquidados: number }
+	> = {}
 
+	if (fileIds.length > 0) {
+		const groups = await prisma.settlementCommission.groupBy({
+			by: ['idFileImport', 'status'],
+			where: {
+				idFileImport: { in: fileIds },
+				status: { in: ['SYNCHRONIZED', 'PRE-SETTLED'] },
+			},
+			_count: { idSettlementCommission: true },
+		})
+		for (const row of groups) {
+			if (!countsMap[row.idFileImport]) {
+				countsMap[row.idFileImport] = {
+					sincronizados: 0,
+					registrosPreliquidados: 0,
+				}
+			}
+			const count = row._count.idSettlementCommission
+			if (row.status === 'SYNCHRONIZED') {
+				countsMap[row.idFileImport].sincronizados = count
+			} else if (row.status === 'PRE-SETTLED') {
+				countsMap[row.idFileImport].registrosPreliquidados = count
+			}
+		}
+	}
+
+	const archivos: ArchivoDisponible[] = todosArchivos.map((archivo) => {
+		const counts =
+			countsMap[archivo.idFileImport] ?? {
+				sincronizados: 0,
+				registrosPreliquidados: 0,
+			}
 		return {
 			idFileImport: archivo.idFileImport,
 			nombreArchivo: archivo.nameFile,
@@ -71,10 +99,10 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 				: null,
 			cantidadRegistros: archivo.totalRecord,
 			totalRegistros: archivo.totalRecord,
-			sincronizados: archivo.sincronizadoRecord,
+			sincronizados: counts.sincronizados,
 			rezagados: archivo.rezagadoRecord,
 			estado: archivo.status,
-			registrosPreliquidados: preliquidadosCount,
+			registrosPreliquidados: counts.registrosPreliquidados,
 		}
 	})
 
@@ -599,6 +627,7 @@ export async function procesarPreLiquidacion(
 			include: {
 				business: {
 					include: {
+						user: true,
 						productPercentageCommission: true,
 					},
 				},
@@ -628,6 +657,19 @@ export async function procesarPreLiquidacion(
 				continue
 			}
 
+			const flow = deriveFlow({
+				commissionType: registro.commissionType,
+				originCommission: registro.originCommission,
+				isClawback: registro.isClawback,
+			})
+
+			if (flow !== 'VOLUNTARIA' && !registro.business.user) {
+				console.warn(
+					`Registro ${registro.idSettlementCommission} requiere business.user para flujo ${flow}; omitiendo`
+				)
+				continue
+			}
+
 			const descuentoPorcentaje =
 				registro.discountPercentage ?? DESCUENTO_POR_DEFECTO
 			const clawbackPorcentaje = registro.clawbackPercentage ?? new Decimal(0)
@@ -653,9 +695,12 @@ export async function procesarPreLiquidacion(
 
 			const comisionBase =
 				registro.baseCommission || registro.commissionValue || new Decimal(0)
+			const idUser = registro.business.user?.idUser
 
 			// Usamos transacción para asegurar que se crean las distribuciones y se actualiza el estado atómicamente
 			await prisma.$transaction(async (tx) => {
+				let totalValorClawback = new Decimal(0)
+
 				// 2. Calcular y guardar distribución para cada categoría configurada
 				for (const config of configCategorias) {
 					const porcentaje =
@@ -674,7 +719,7 @@ export async function procesarPreLiquidacion(
 					// Cálculo: Final = Bruta - Descuento - Clawback
 					const valorComisionFinal = valorComisionBruta.sub(totalDescuento)
 
-					await tx.comissionDistribution.create({
+					const created = await tx.comissionDistribution.create({
 						data: {
 							idSettlementCommission: registro.idSettlementCommission,
 							idPercentajeCommisionCategory: config.id,
@@ -685,6 +730,48 @@ export async function procesarPreLiquidacion(
 							status: 'LIQUIDADO',
 						},
 					})
+
+					// Clawback row when flow is Poliza (CARTERA or NO_CLAW) and valorClawback > 0 (not POLIZA_CLAW — that is Phase 4)
+					if (
+						flow !== 'VOLUNTARIA' &&
+						flow !== 'POLIZA_CLAW' &&
+						valorClawback.gt(0) &&
+						idUser !== undefined
+					) {
+						await tx.clawback.create({
+							data: {
+								idComissionDistribution: created.idComissionDistribution,
+								idUser,
+								valueClawback: valorClawback,
+								porcentajeApplied: clawbackPorcentaje,
+								state: 'RETENIDO',
+							},
+						})
+						totalValorClawback = totalValorClawback.add(valorClawback)
+					}
+				}
+
+				// Upsert ClawbackBalance for this registro when flow persists clawback and total > 0
+				if (
+					flow !== 'VOLUNTARIA' &&
+					totalValorClawback.gt(0) &&
+					idUser !== undefined
+				) {
+					const existing = await tx.clawbackBalance.findUnique({
+						where: { idUser },
+					})
+					if (existing === null) {
+						await tx.clawbackBalance.create({
+							data: { idUser, totalAmount: totalValorClawback },
+						})
+					} else {
+						await tx.clawbackBalance.update({
+							where: { idUser },
+							data: {
+								totalAmount: existing.totalAmount.add(totalValorClawback),
+							},
+						})
+					}
 				}
 
 				// 3. Actualizar registro a PRE-SETTLED
