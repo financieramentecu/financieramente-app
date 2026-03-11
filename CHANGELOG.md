@@ -4,6 +4,17 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.2.1] - 2026-03-11
+
+### Añadido
+
+- **Administrador:** Integradas documentación y directrices estructuradas para orquestador SDD, y se mejoró la visibilidad del modelo de archivos en el área de administración.
+- **Pre-liquidación:** La creación histórica del desglose de _Clawback_ fue condicionado al flujo de la comisión, refinando la trazabilidad.
+
+### Mejorado / Refactorizado
+
+- **Pre-liquidación:** Extracción completa de las operaciones al balance del asesor (`ClawbackBalance`) durante la pre-liquidación; estas actualizaciones ahora quedarán delegadas exclusivamente al paso de liquidación para prevenir desincronizaciones de saldos totales.
+
 ## [0.2.0] - 2026-03-10
 
 ### Añadido
