@@ -170,7 +170,7 @@ describe('procesarPreLiquidacion', () => {
 		)
 	})
 
-	it('should create Clawback per category and update ClawbackBalance when POLIZA with clawbackPercentage > 0', async () => {
+	it('should create Clawback per category and NOT update ClawbackBalance when POLIZA with clawbackPercentage > 0', async () => {
 		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
 			idFileImport: 1,
 			status: 'LOAD',
@@ -220,9 +220,6 @@ describe('procesarPreLiquidacion', () => {
 				idComissionDistribution: 302,
 			} as any)
 
-		vi.mocked(prisma.clawbackBalance.findUnique).mockResolvedValue(null)
-		vi.mocked(prisma.clawbackBalance.create).mockResolvedValue({} as any)
-
 		const result = await procesarPreLiquidacion(1, {
 			inicio: new Date('2024-01-01'),
 			fin: new Date('2024-01-31'),
@@ -242,16 +239,10 @@ describe('procesarPreLiquidacion', () => {
 				}),
 			})
 		)
-		expect(prisma.clawbackBalance.findUnique).toHaveBeenCalledWith({
-			where: { idUser: 42 },
-		})
-		expect(prisma.clawbackBalance.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				data: expect.objectContaining({
-					idUser: 42,
-					totalAmount: expect.anything(),
-				}),
-			})
-		)
+
+		// Assert that ClawbackBalance is NOT touched
+		expect(prisma.clawbackBalance.findUnique).not.toHaveBeenCalled()
+		expect(prisma.clawbackBalance.create).not.toHaveBeenCalled()
+		expect(prisma.clawbackBalance.update).not.toHaveBeenCalled()
 	})
 })

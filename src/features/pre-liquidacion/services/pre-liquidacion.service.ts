@@ -83,11 +83,10 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 	}
 
 	const archivos: ArchivoDisponible[] = todosArchivos.map((archivo) => {
-		const counts =
-			countsMap[archivo.idFileImport] ?? {
-				sincronizados: 0,
-				registrosPreliquidados: 0,
-			}
+		const counts = countsMap[archivo.idFileImport] ?? {
+			sincronizados: 0,
+			registrosPreliquidados: 0,
+		}
 		return {
 			idFileImport: archivo.idFileImport,
 			nombreArchivo: archivo.nameFile,
@@ -152,7 +151,9 @@ export async function obtenerDescuentoActivo(): Promise<{
 
 	return {
 		discountPercentage: new Decimal(impuesto.percentage.toNumber() / 100),
-		clawbackPercentage: clawback ? new Decimal(clawback.percentage.toNumber() / 100) : null,
+		clawbackPercentage: clawback
+			? new Decimal(clawback.percentage.toNumber() / 100)
+			: null,
 	}
 }
 
@@ -751,28 +752,8 @@ export async function procesarPreLiquidacion(
 					}
 				}
 
-				// Upsert ClawbackBalance for this registro when flow persists clawback and total > 0
-				if (
-					flow !== 'VOLUNTARIA' &&
-					totalValorClawback.gt(0) &&
-					idUser !== undefined
-				) {
-					const existing = await tx.clawbackBalance.findUnique({
-						where: { idUser },
-					})
-					if (existing === null) {
-						await tx.clawbackBalance.create({
-							data: { idUser, totalAmount: totalValorClawback },
-						})
-					} else {
-						await tx.clawbackBalance.update({
-							where: { idUser },
-							data: {
-								totalAmount: existing.totalAmount.add(totalValorClawback),
-							},
-						})
-					}
-				}
+				// ClawbackBalance is no longer updated during pre-liquidación.
+				// It will be updated by the liquidación process.
 
 				// 3. Actualizar registro a PRE-SETTLED
 				await tx.settlementCommission.update({
