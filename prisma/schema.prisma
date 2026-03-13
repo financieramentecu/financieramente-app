@@ -1,7 +1,5 @@
 // Prisma Schema
 // Sistema de Liquidación de Comisiones
-// IMPORTANTE: Prisma Client solo se usa en Server Components y API Routes
-// NUNCA en Client Components ('use client')
 
 generator client {
   provider = "prisma-client-js"
@@ -250,6 +248,8 @@ model User {
   auditLogs       AuditLog[]
   clawbacks       Clawback[]
   clawbackBalance ClawbackBalance?
+  commissionDiscountsCreated CommissionDiscount[] @relation("DiscountCreatedBy")
+  commissionDiscountsUpdated CommissionDiscount[] @relation("DiscountUpdatedBy")
 
   // Note: 'Coaches, líderes, seniors, juniors con jerarquía recursiva'
 
@@ -352,19 +352,27 @@ model Business {
 // LIQUIDACIÓN Y CÁLCULOS
 // =====================================================
 
-model CommissionConfiguration {
-  idConfigCommission Int      @id @default(autoincrement()) @map("id_config_commission")
-  discountPercentage Decimal  @map("discount_percentage") @db.Decimal(5, 4)
-  clawbackPercentage Decimal? @map("clawback_percentage") @db.Decimal(5, 4)
-  name               String?  @db.VarChar(100)
-  description        String?  @db.Text
-  status             String   @default("INACTIVE") @db.VarChar(20)
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+model CommissionDiscount {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  type        String   @db.VarChar(20) // 'IMPUESTO' | 'CLAWBACK'
+  percentage  Decimal  @db.Decimal(5, 2)
+  description String?  @db.Text
+  status      String   @default("ACTIVE") @db.VarChar(20) // 'ACTIVE' | 'INACTIVE'
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById Int?     @map("created_by_id")
+  updatedById Int?     @map("updated_by_id")
+
+  // Relaciones
+  createdBy User? @relation("DiscountCreatedBy", fields: [createdById], references: [idUser])
+  updatedBy User? @relation("DiscountUpdatedBy", fields: [updatedById], references: [idUser])
 
   @@index([status])
-  @@map("commission_configuration")
+  @@index([type])
+  @@map("commission_discount")
 }
+
 
 model SettlementCommission {
   idSettlementCommission Int     @id @default(autoincrement())

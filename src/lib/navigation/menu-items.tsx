@@ -14,6 +14,7 @@ import {
 	UserCircle,
 	Tag,
 	Sliders,
+	Percent,
 } from 'lucide-react'
 
 /**
@@ -119,6 +120,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				title: 'Config. Producto',
 				url: '/dashboard/configuraciones-producto',
 				icon: <Sliders className="h-4 w-4" />,
+			},
+			{
+				title: 'Descuentos',
+				url: '/dashboard/admin/discounts',
+				icon: <Percent className="h-4 w-4" />,
 			},
 		],
 	},

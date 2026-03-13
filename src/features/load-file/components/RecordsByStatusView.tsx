@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/features/shared/ui/tabs'
 import {
 	Table,
@@ -100,11 +100,14 @@ export function RecordsByStatusView({
 	}, [fileImportId, countsProp])
 
 	// Fetch records when tab changes (for Sincronizados, No sincronizados, Rezagados)
-	const statusForTab: Record<string, FileImportRecordStatusFilter> = {
-		sincronizados: 'SYNCHRONIZED',
-		noSincronizados: 'NO_SYNC',
-		rezagados: 'REZAGADOS',
-	}
+	const statusForTab = useMemo<Record<string, FileImportRecordStatusFilter>>(
+		() => ({
+			sincronizados: 'SYNCHRONIZED',
+			noSincronizados: 'NO_SYNC',
+			rezagados: 'REZAGADOS',
+		}),
+		[]
+	)
 
 	useEffect(() => {
 		if (activeTab === 'errores') {
@@ -133,7 +136,7 @@ export function RecordsByStatusView({
 				}
 				setLoadingRecords(false)
 			})
-	}, [fileImportId, activeTab])
+	}, [fileImportId, activeTab, statusForTab])
 
 	const loadPage = (page: number) => {
 		if (activeTab === 'errores') return
@@ -154,10 +157,6 @@ export function RecordsByStatusView({
 				setLoadingRecords(false)
 			})
 	}
-
-	const cardClass = compact
-		? 'rounded-lg border border-border p-3 shadow-sm bg-card'
-		: 'rounded-lg border border-border p-6 shadow-sm bg-card'
 
 	return (
 		<div className={`flex flex-col items-stretch ${compact ? 'space-y-3' : 'space-y-4'}`}>

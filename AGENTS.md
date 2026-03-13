@@ -159,8 +159,13 @@ Before creating a PR:
 ### Actions and Services (data access)
 
 - **Server Actions** (`actions/`): orchestrate validation, call **services** for data, and return `ApiResponse`. Do **not** call Prisma directly from actions.
+- **API Routes** (`src/app/api/`): **NUNCA** call Prisma from API route handlers. Always call **feature services** (`src/features/[feature]/services/` or `lib/`) for any database access. Route handlers only handle HTTP, validate input, and return responses.
 - **Services** (`services/`): contain all **Prisma** (and other data) calls for the feature. Return domain data or simple result objects; no `ApiResponse` here.
-- **Responsibility split**: Actions = input validation, error messages, response shape. Services = database queries, domain logic that touches Prisma.
+- **Responsibility split**: Actions = input validation, error messages, response shape. API routes = HTTP layer only, delegate to services. Services = database queries, domain logic that touches Prisma.
+
+### Async state in hooks
+
+- **Hooks with async calls** must use the shared type `AsyncState<T>` from `src/features/shared/types/async-state.types.ts`. Do **not** manage three separate states (e.g. `isLoading`, `data`, `error` with multiple `useState`). Use a single discriminated state (`idle` | `loading` | `success` | `error`) for consistent UI and type narrowing.
 
 See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed architecture guidelines.
 - Git: Use Git Flow (feature/, bugfix/, audit/, hotfix/). Branch from 'develop'. Commits MUST follow Conventional Commits (feat:, fix:, chore:, docs:, refactor:, audit:). PRs must use the provided template.

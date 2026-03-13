@@ -111,22 +111,20 @@ export async function obtenerDescuentoActivo(): Promise<{
 	discountPercentage: Decimal
 	clawbackPercentage: Decimal | null
 } | null> {
-	const descuentoActivo = await prisma.commissionConfiguration.findFirst({
-		where: {
-			status: 'ACTIVE',
-		},
-		orderBy: {
-			createdAt: 'desc', // En caso de múltiples activos (no debería pasar), tomar el más reciente
-		},
+	const activeDiscounts = await prisma.commissionDiscount.findMany({
+		where: { status: 'ACTIVE', type: { in: ['IMPUESTO', 'CLAWBACK'] } },
 	})
 
-	if (!descuentoActivo) {
+	const impuesto = activeDiscounts.find((d) => d.type === 'IMPUESTO')
+	const clawback = activeDiscounts.find((d) => d.type === 'CLAWBACK')
+
+	if (!impuesto) {
 		return null
 	}
 
 	return {
-		discountPercentage: descuentoActivo.discountPercentage,
-		clawbackPercentage: descuentoActivo.clawbackPercentage,
+		discountPercentage: new Decimal(impuesto.percentage.toNumber() / 100),
+		clawbackPercentage: clawback ? new Decimal(clawback.percentage.toNumber() / 100) : null,
 	}
 }
 
