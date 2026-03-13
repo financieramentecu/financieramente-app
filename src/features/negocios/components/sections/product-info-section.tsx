@@ -53,11 +53,6 @@ export function ProductInfoSection({
 					options={companiesOptions}
 					form={form}
 					disabled={isBlocked || isEditMode}
-					helperText={
-						!isEditMode
-							? 'Si estas registrado a un negocio internacional elige el nombre del producto...'
-							: undefined
-					}
 					onValueChange={handleCompanyChange}
 					required
 				/>

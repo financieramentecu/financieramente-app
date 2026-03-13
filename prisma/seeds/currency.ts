@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client'
 
 export const currencies = [
 	{ name: 'Peso Colombiano', symbol: 'COP' },
-	{ name: 'Dólar Americano', symbol: 'USD' },
+	{ name: 'Moneda Extranjera', symbol: 'USD' },
 ]
 
 export async function seedCurrencies(prisma: PrismaClient) {
