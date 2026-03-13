@@ -36,10 +36,10 @@ export async function GET(
 		const producto = searchParams.get('producto')
 		const tipoComision = searchParams.get('tipoComision')
 
-		// Construir filtros
+		// Construir filtros (canonical state: PRE-SETTLED)
 		const where: Prisma.SettlementCommissionWhereInput = {
 			idFileImport: fileId,
-			status: 'PRELIQUIDADO',
+			status: 'PRE-SETTLED',
 		}
 
 		if (minComision) {

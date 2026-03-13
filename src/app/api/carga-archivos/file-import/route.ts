@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
+import { UserRole } from '@/features/auth/lib/roles'
 import { FILE_TYPES, type FileType } from '@/features/load-file/lib/file-types'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
@@ -76,10 +77,11 @@ export async function GET() {
 			return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 		}
 
+		const isAdmin = session.user.role === UserRole.ADMIN
 		const fileImports = await prisma.fileImport.findMany({
-			where: {
-				idUser: Number(session.user.id),
-			},
+			where: isAdmin
+				? undefined
+				: { idUser: Number(session.user.id) },
 			orderBy: {
 				createdAt: 'desc',
 			},

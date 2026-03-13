@@ -214,3 +214,21 @@ export interface ResumenUsuarioPreliquidacion {
 	periodo: string
 	filas: ResumenFilaPreliquidacion[]
 }
+
+/** Pre-liquidación flow for clawback persistence and balance behavior */
+export const PRE_LIQUIDACION_FLOW = {
+	VOLUNTARIA: 'VOLUNTARIA',
+	POLIZA_CARTERA: 'POLIZA_CARTERA',
+	POLIZA_NO_CLAW: 'POLIZA_NO_CLAW',
+	POLIZA_CLAW: 'POLIZA_CLAW',
+} as const
+
+export type PreLiquidacionFlow =
+	(typeof PRE_LIQUIDACION_FLOW)[keyof typeof PRE_LIQUIDACION_FLOW]
+
+/** Input for pure flow derivation (no Prisma shape leakage) */
+export interface DeriveFlowInput {
+	readonly commissionType: string
+	readonly originCommission: string | null
+	readonly isClawback: boolean
+}
