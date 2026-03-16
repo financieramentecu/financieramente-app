@@ -14,7 +14,6 @@ import {
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { usePreLiquidacion } from '@/features/pre-liquidacion/hooks/use-pre-liquidacion'
 import { ListaArchivosDisponibles } from './components/ListaArchivosDisponibles'
-import { ModalConfirmacionPreLiquidacion } from './components/ModalConfirmacionPreLiquidacion'
 import { ProcesandoPreLiquidacion } from './components/ProcesandoPreLiquidacion'
 import { ResultadosPreLiquidacion } from './components/ResultadosPreLiquidacion'
 import { Button } from '@/features/shared/ui/button'
@@ -43,8 +42,8 @@ export default function PreLiquidacionPage() {
 		archivos,
 		isLoading,
 		error,
-		procesarPreLiquidacion,
-		isProcesando,
+		procesarPreLiquidacion: _procesarPreLiquidacion,
+		isProcesando: _isProcesando,
 		errorProcesamiento,
 		mensajeExito,
 		refetch,
@@ -53,29 +52,18 @@ export default function PreLiquidacionPage() {
 	const [archivoSeleccionado, setArchivoSeleccionado] = useState<number | null>(
 		null
 	)
-	const [modalOpen, setModalOpen] = useState(false)
 
-	// Estados para filtros
-	const [selectedMonth, setSelectedMonth] = useState<string>('')
-	const [selectedYear, setSelectedYear] = useState<string>('')
+	// Estados para filtros (por defecto: mes y año actual para preliquidar)
+	const now = new Date()
+	const defaultMonth = (now.getMonth() + 1).toString().padStart(2, '0')
+	const defaultYear = now.getFullYear().toString()
+	const [selectedMonth, setSelectedMonth] = useState<string>(defaultMonth)
+	const [selectedYear, setSelectedYear] = useState<string>(defaultYear)
 
 	// Estados para flujo de procesamiento y resultados
 	const [viewState, setViewState] = useState<'LIST' | 'PROCESSING' | 'RESULTS'>(
 		'LIST'
 	)
-
-	const handlePreLiquidarClick = (fileId: number) => {
-		setArchivoSeleccionado(fileId)
-		setModalOpen(true)
-	}
-
-	const handleConfirmarPreLiquidacion = async (mes: string) => {
-		if (archivoSeleccionado) {
-			await procesarPreLiquidacion(archivoSeleccionado, mes)
-			setModalOpen(false)
-			setViewState('RESULTS') // Opcional: ir a resultados inmediatamente si fue éxito
-		}
-	}
 
 	const handleProcessComplete = () => {
 		// Ya procesado en confirmar
@@ -231,22 +219,6 @@ export default function PreLiquidacionPage() {
 		</div>
 	)
 
-	// Validación de pre-liquidación
-	const puedePreLiquidar = selectedMonth !== '' && selectedYear !== ''
-
-	// Si no ha seleccionado mes/año, mostramos aviso o deshabilitamos el click
-	// Opción UI: Modificar ListaArchivos para recibir 'puedePreLiquidar' y deshabilitar?
-	// O validar en el click handlePreLiquidarClick
-	const handlePreLiquidarClickConValidacion = (fileId: number) => {
-		if (!puedePreLiquidar) {
-			toast.warning(
-				'Selecciona mes y año en los filtros para continuar con la pre-liquidación.'
-			)
-			return
-		}
-		handlePreLiquidarClick(fileId)
-	}
-
 	// Feedback unificado por toast (en lugar de bloques inline)
 	useEffect(() => {
 		if (error) toast.error(error)
@@ -374,17 +346,7 @@ export default function PreLiquidacionPage() {
 										</h2>
 									</div>
 
-									{!puedePreLiquidar && (
-										<div className="mb-4 p-3 bg-info-muted text-info text-sm rounded-md border border-info/30 flex items-center gap-2">
-											<Filter className="h-4 w-4" />
-											<span>
-												Para pre-liquidar, primero selecciona un <b>Mes</b> y{' '}
-												<b>Año</b> en los filtros superiores.
-											</span>
-										</div>
-									)}
-
-									{isLoading ? (
+										{isLoading ? (
 										<TableRowsLoadingSkeleton rows={6} />
 									) : archivosPendientesFiltrados.length === 0 ? (
 										<EmptyState
@@ -398,8 +360,6 @@ export default function PreLiquidacionPage() {
 									) : (
 										<ListaArchivosDisponibles
 											archivos={archivosPendientesFiltrados}
-											onPreLiquidar={handlePreLiquidarClickConValidacion}
-											isProcesando={isProcesando}
 										/>
 									)}
 								</div>
@@ -551,21 +511,6 @@ export default function PreLiquidacionPage() {
 					</TabsContent>
 				</Tabs>
 
-				{/* Modal de Confirmación */}
-				<ModalConfirmacionPreLiquidacion
-					open={modalOpen}
-					onOpenChange={setModalOpen}
-					archivo={archivos.find((a) => a.idFileImport === archivoSeleccionado)}
-					onConfirmar={() =>
-						handleConfirmarPreLiquidacion(`${selectedYear}-${selectedMonth}`)
-					}
-					isProcesando={isProcesando}
-					mesSeleccionado={
-						selectedMonth && selectedYear
-							? `${selectedMonth}/${selectedYear}`
-							: undefined
-					}
-				/>
 			</div>
 		</DashboardLayout>
 	)

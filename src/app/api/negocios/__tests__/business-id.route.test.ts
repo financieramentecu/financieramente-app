@@ -27,6 +27,9 @@ vi.mock('@/lib/prisma', () => ({
 			findFirst: vi.fn(),
 			update: vi.fn(),
 		},
+		clientOrigin: {
+			findFirst: vi.fn(),
+		},
 	},
 }))
 vi.mock('@/features/negocios/services/user.service')
@@ -402,6 +405,10 @@ describe('PUT /api/negocios/[id]', () => {
 	const mockGetCurrentUserByEmail = vi.mocked(getCurrentUserByEmail)
 	const mockPrismaFindFirst = vi.mocked(prisma.business.findFirst)
 	const mockPrismaUpdate = vi.mocked(prisma.business.update)
+	const mockClientOriginFindFirst = vi.mocked(
+		(prisma as unknown as { clientOrigin: { findFirst: ReturnType<typeof vi.fn> } })
+			.clientOrigin.findFirst
+	)
 	const mockUpdateBusinessSchema = vi.mocked(updateBusinessSchema)
 	const mockPrismaBusinessToEntity = vi.mocked(prismaBusinessToEntity)
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
@@ -652,6 +659,92 @@ describe('PUT /api/negocios/[id]', () => {
 			})
 			expect(response.status).toBe(200)
 			expect(responseData.data.status).toBe(BUSINESS_STATUS.VENTA_EFECTUADA)
+		})
+
+		it('debe actualizar solo idClientOrigin cuando negocio está EMITIDO', async () => {
+			const mockSession = {
+				user: {
+					email: 'admin@example.com',
+					name: 'Admin User',
+				},
+			}
+
+			const mockAdminUser = {
+				...mockUserWithRole,
+				email: 'admin@example.com',
+				role: {
+					idRole: 1,
+					code: UserRole.ADMIN,
+					name: 'Administrador del Sistema',
+					description: 'Acceso total',
+					active: true,
+					createdAt: new Date('2024-01-01'),
+					updatedAt: new Date('2024-01-01'),
+				},
+			}
+
+			const mockExistingBusiness = {
+				...mockPrismaBusinessEmitido,
+				idBusiness: 1,
+				status: BUSINESS_STATUS.EMITIDO,
+			}
+
+			const mockUpdatedBusiness = {
+				...mockExistingBusiness,
+				idClientOrigin: 2,
+			}
+
+			const mockEntity = {
+				id: 1,
+				status: BUSINESS_STATUS.EMITIDO,
+				clientOrigin: { id: 2, name: 'Propio' },
+			}
+
+			const requestBody = { idClientOrigin: 2 }
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: requestBody,
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindFirst.mockResolvedValue(mockExistingBusiness as never)
+			mockClientOriginFindFirst.mockResolvedValue({
+				idClientOrigin: 2,
+				name: 'Propio',
+				status: true,
+			} as never)
+			mockPrismaUpdate.mockResolvedValue(mockUpdatedBusiness as never)
+			mockPrismaBusinessToEntity.mockReturnValue(mockEntity as never)
+
+			const request = new Request('http://localhost:3000/api/negocios/1', {
+				method: 'PUT',
+				body: JSON.stringify(requestBody),
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			})
+
+			const params = Promise.resolve({ id: '1' })
+			const response = await PUT(request, { params })
+			const responseData = await response.json()
+
+			expect(mockClientOriginFindFirst).toHaveBeenCalledWith({
+				where: { idClientOrigin: 2, status: true },
+			})
+			expect(mockPrismaUpdate).toHaveBeenCalledWith({
+				where: { idBusiness: 1 },
+				data: { idClientOrigin: 2 },
+				include: expect.any(Object),
+			})
+			expect(mockLogAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: AuditAction.BUSINESS_UPDATED,
+					details: expect.stringContaining('idClientOrigin'),
+				})
+			)
+			expect(response.status).toBe(200)
+			expect(responseData).toEqual({ data: mockEntity })
 		})
 	})
 

@@ -59,6 +59,7 @@ export interface ContractValidationResponse {
  */
 export interface UpdateBusinessRequest {
 	contract?: string
+	idClientOrigin?: number
 }
 
 /**
