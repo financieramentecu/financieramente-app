@@ -77,6 +77,14 @@ export function ProcessingSummary({
 			</div>
 
 			{/* Estadísticas en cards */}
+			<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
+				<h3 className="text-sm font-semibold text-primary mb-1">
+					Resumen de esta sincronización
+				</h3>
+				<p className="text-xs text-muted-foreground">
+					Los contadores corresponden únicamente a la sincronización de este archivo.
+				</p>
+			</div>
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 				{/* Sincronizados */}
 				<div className="rounded-xl bg-emerald-500 p-5 shadow-lg shadow-emerald-500/20 transition-transform hover:scale-[1.02]">

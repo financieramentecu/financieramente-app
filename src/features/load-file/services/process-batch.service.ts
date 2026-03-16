@@ -77,6 +77,7 @@ export class ProcessBatchService {
 			let noSincronizadoBatch = 0
 			let errorBatch = 0
 			let recoveredLagsBatch = 0
+			let resolvedErrorsBatch = 0
 
 			for (const record of batch) {
 				const result = await processor.process(
@@ -99,8 +100,10 @@ export class ProcessBatchService {
 						recoveredLagsBatch++
 					}
 				}
+				resolvedErrorsBatch += result.resolvedErrors ?? 0
 			}
 
+			const netErrorDelta = errorBatch - resolvedErrorsBatch
 			const updatedFileImport = await prisma.fileImport.update({
 				where: { idFileImport: fileImportId },
 				data: {
@@ -110,7 +113,10 @@ export class ProcessBatchService {
 					},
 					rezagadoRecord: { increment: rezagadoBatch },
 					noSincronizadoRecord: { increment: noSincronizadoBatch },
-					errorRecord: { increment: errorBatch },
+					errorRecord:
+						netErrorDelta >= 0
+							? { increment: netErrorDelta }
+							: { decrement: -netErrorDelta },
 					successRecord: {
 						increment: sincronizadoBatch + rezagadoBatch + noSincronizadoBatch,
 					},
