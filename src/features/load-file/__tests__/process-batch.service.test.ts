@@ -18,8 +18,8 @@ vi.mock('@/lib/prisma', () => ({
 				status: 'LOAD',
 			})),
 		},
-		commissionConfiguration: {
-			findFirst: vi.fn(),
+		commissionDiscount: {
+			findMany: vi.fn(),
 		},
 		settlementCommission: {
 			create: vi.fn(),
@@ -57,10 +57,10 @@ describe('processBatchService', () => {
 		vi.mocked(prisma.fileImport.findFirst).mockResolvedValue({
 			idFileImport: 100,
 		} as never)
-		vi.mocked(prisma.commissionConfiguration.findFirst).mockResolvedValue({
-			discountPercentage: 12,
-			clawbackPercentage: 10,
-		} as never)
+		vi.mocked(prisma.commissionDiscount.findMany).mockResolvedValue([
+			{ type: 'IMPUESTO', percentage: { toNumber: () => 12 } },
+			{ type: 'CLAWBACK', percentage: { toNumber: () => 10 } },
+		] as never)
 	})
 
 	describe('Guard Clauses', () => {
@@ -108,8 +108,8 @@ describe('processBatchService', () => {
 			).rejects.toThrow('FileImport no encontrado o no autorizado')
 		})
 
-		it('uses default discountPercentage and clawbackPercentage when activeConfig is null', async () => {
-			vi.mocked(prisma.commissionConfiguration.findFirst).mockResolvedValue(null)
+		it('uses default discountPercentage and clawbackPercentage when no ACTIVE CommissionDiscount exists', async () => {
+			vi.mocked(prisma.commissionDiscount.findMany).mockResolvedValue([] as never)
 			vi.mocked(findBusinessByContract).mockResolvedValue(null)
 
 			await processBatchService.processBatch(
@@ -144,11 +144,10 @@ describe('processBatchService', () => {
 			)
 		})
 
-		it('uses null clawbackPercentage when activeConfig.clawbackPercentage is null', async () => {
-			vi.mocked(prisma.commissionConfiguration.findFirst).mockResolvedValue({
-				discountPercentage: 10,
-				clawbackPercentage: null,
-			} as never)
+		it('uses default clawbackPercentage when no CLAWBACK discount is active', async () => {
+			vi.mocked(prisma.commissionDiscount.findMany).mockResolvedValue([
+				{ type: 'IMPUESTO', percentage: { toNumber: () => 10 } },
+			] as never)
 			vi.mocked(findBusinessByContract).mockResolvedValue({
 				idBusiness: 50,
 			} as never)
@@ -337,11 +336,11 @@ describe('processBatchService', () => {
 			)
 		})
 
-		it('6.2 Poliza FRONT19 (no CLAW) persists clawbackPercentage from CommissionConfiguration', async () => {
-			vi.mocked(prisma.commissionConfiguration.findFirst).mockResolvedValue({
-				discountPercentage: 12,
-				clawbackPercentage: 0.1,
-			} as never)
+		it('6.2 Poliza FRONT19 (no CLAW) persists clawbackPercentage from CommissionDiscount', async () => {
+			vi.mocked(prisma.commissionDiscount.findMany).mockResolvedValue([
+				{ type: 'IMPUESTO', percentage: { toNumber: () => 12 } },
+				{ type: 'CLAWBACK', percentage: { toNumber: () => 10 } },
+			] as never)
 			const front19Record = {
 				...record,
 				data: { ...record.data, 'Plan de Compensación': 'FRONT19' },
@@ -388,7 +387,7 @@ describe('processBatchService', () => {
 					data: expect.objectContaining({
 						isClawback: false,
 						originCommission: null,
-						discountPercentage: 12,
+						discountPercentage: 0.12,
 					}),
 				})
 			)

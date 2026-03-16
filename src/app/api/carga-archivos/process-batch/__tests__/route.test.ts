@@ -15,8 +15,8 @@ vi.mock('@/lib/prisma', () => ({
 			findFirst: vi.fn(),
 			update: vi.fn(),
 		},
-		commissionConfiguration: {
-			findFirst: vi.fn(),
+		commissionDiscount: {
+			findMany: vi.fn(),
 		},
 		settlementCommission: {
 			create: vi.fn(),
@@ -53,7 +53,7 @@ describe('POST /api/carga-archivos/process-batch', () => {
 	const mockFindFileImport = vi.mocked(prisma.fileImport.findFirst)
 	const mockUpdateFileImport = vi.mocked(prisma.fileImport.update)
 	const mockCreateError = vi.mocked(prisma.fileImportError.create)
-	const mockFindConfig = vi.mocked(prisma.commissionConfiguration.findFirst)
+	const mockFindDiscounts = vi.mocked(prisma.commissionDiscount.findMany)
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
 	const mockFindBusiness = vi.mocked(findBusinessByContract)
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
@@ -78,7 +78,7 @@ describe('POST /api/carga-archivos/process-batch', () => {
 			idFileImport: 1,
 			idUser: 1,
 		} as never)
-		mockFindConfig.mockResolvedValue(null)
+		mockFindDiscounts.mockResolvedValue([])
 		mockUpdateFileImport.mockResolvedValue({} as never)
 		mockCreateError.mockResolvedValue({} as never)
 		mockFindBusiness.mockResolvedValue(null)

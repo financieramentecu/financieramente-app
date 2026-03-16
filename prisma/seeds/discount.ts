@@ -1,31 +1,31 @@
 import { PrismaClient } from '@prisma/client'
 
 export async function seedDiscount(prisma: PrismaClient) {
-	console.log('\n👉 Procesando Configuración de Comisión...')
+	// Seed CommissionDiscount rows if none exist
+	console.log('\n👉 Procesando CommissionDiscounts...')
+	const existingDiscounts = await prisma.commissionDiscount.count()
 
-	// Verificar si ya existe una configuración activa
-	const configuracionActiva = await prisma.commissionConfiguration.findFirst({
-		where: {
-			status: 'ACTIVE',
-		},
-	})
-
-	if (configuracionActiva) {
-		console.log('⚠️ Ya existe una configuración activa. Saltando creación de seed...')
+	if (existingDiscounts > 0) {
+		console.log('⚠️ Ya existen CommissionDiscounts. Saltando creación de seed...')
 		return
 	}
 
-	// Crear configuración por defecto (12% descuento, 10% clawback)
-	const configuracion = await prisma.commissionConfiguration.create({
-		data: {
-			discountPercentage: 0.12,
-			clawbackPercentage: 0.1,
-			name: 'DEFAULT',
-			status: 'ACTIVE',
-		},
+	await prisma.commissionDiscount.createMany({
+		data: [
+			{
+				type: 'IMPUESTO',
+				name: 'Impuesto estándar',
+				percentage: 12.0,
+				status: 'ACTIVE',
+			},
+			{
+				type: 'CLAWBACK',
+				name: 'Clawback operativo',
+				percentage: 10.0,
+				status: 'ACTIVE',
+			},
+		],
 	})
 
-	console.log(
-		`✅ Configuración creada: ${configuracion.discountPercentage.toNumber() * 100}% (ID: ${configuracion.idConfigCommission})`
-	)
+	console.log('✅ CommissionDiscounts creados: IMPUESTO 12%, CLAWBACK 10%')
 }

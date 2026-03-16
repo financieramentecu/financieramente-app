@@ -26,8 +26,16 @@ vi.mock('@/lib/prisma', () => ({
 			create: vi.fn(),
 			findMany: vi.fn(),
 		},
-		commissionConfiguration: {
-			findFirst: vi.fn(),
+		clawback: {
+			create: vi.fn(),
+		},
+		clawbackBalance: {
+			findUnique: vi.fn(),
+			create: vi.fn(),
+			update: vi.fn(),
+		},
+		commissionDiscount: {
+			findMany: vi.fn(),
 		},
 		$transaction: vi.fn((callback) => callback(prisma)),
 	},
@@ -160,5 +168,81 @@ describe('procesarPreLiquidacion', () => {
 				data: expect.objectContaining({ preLiquidacionDate: expect.any(Date) }),
 			})
 		)
+	})
+
+	it('should create Clawback per category and NOT update ClawbackBalance when POLIZA with clawbackPercentage > 0', async () => {
+		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
+			idFileImport: 1,
+			status: 'LOAD',
+			nameFile: 'Test.xlsx',
+		} as any)
+
+		vi.mocked(prisma.settlementCommission.findMany)
+			.mockResolvedValueOnce([
+				{
+					idSettlementCommission: 200,
+					status: 'SYNCHRONIZED',
+					commissionType: 'POLIZA',
+					originCommission: null,
+					isClawback: false,
+					commissionValue: new Decimal(100000),
+					baseCommission: new Decimal(100000),
+					discountPercentage: new Decimal(0.1),
+					clawbackPercentage: new Decimal(0.1),
+					business: {
+						idProductPercentageCommission: 50,
+						user: { idUser: 42 },
+					},
+				},
+			] as any)
+			.mockResolvedValueOnce([])
+
+		vi.mocked(
+			prisma.productPercentageCommissionCategory.findMany
+		).mockResolvedValue([
+			{
+				id: 10,
+				porcentajeDistribucion: new Decimal(0.5),
+				porcentajePortfolio: null,
+			},
+			{
+				id: 11,
+				porcentajeDistribucion: new Decimal(0.5),
+				porcentajePortfolio: null,
+			},
+		] as any)
+
+		vi.mocked(prisma.comissionDistribution.create)
+			.mockResolvedValueOnce({
+				idComissionDistribution: 301,
+			} as any)
+			.mockResolvedValueOnce({
+				idComissionDistribution: 302,
+			} as any)
+
+		const result = await procesarPreLiquidacion(1, {
+			inicio: new Date('2024-01-01'),
+			fin: new Date('2024-01-31'),
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.registrosProcesados).toBe(1)
+
+		// Two categories => two distributions, two clawbacks (valorClawback = 10% of bruta > 0 each)
+		expect(prisma.clawback.create).toHaveBeenCalledTimes(2)
+		expect(prisma.clawback.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					idUser: 42,
+					state: 'RETENIDO',
+					idComissionDistribution: expect.any(Number),
+				}),
+			})
+		)
+
+		// Assert that ClawbackBalance is NOT touched
+		expect(prisma.clawbackBalance.findUnique).not.toHaveBeenCalled()
+		expect(prisma.clawbackBalance.create).not.toHaveBeenCalled()
+		expect(prisma.clawbackBalance.update).not.toHaveBeenCalled()
 	})
 })

@@ -1,3 +1,6 @@
+// Prisma Schema
+// Sistema de Liquidación de Comisiones
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -212,14 +215,19 @@ model User {
   businesses                                                  Business[]
   clawbacks                                                   Clawback[]
   clawbackBalance                                             ClawbackBalance?
-  commission_discount_commission_discount_created_by_idTouser commission_discount[] @relation("commission_discount_created_by_idTouser")
-  commission_discount_commission_discount_updated_by_idTouser commission_discount[] @relation("commission_discount_updated_by_idTouser")
   fileImports                                                 FileImport[]
   category                                                    Category?             @relation(fields: [idCategoria], references: [idCategory])
   role                                                        Role?                 @relation(fields: [idRole], references: [idRole])
   leader                                                      User?                 @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates                                                User[]                @relation("UserLeader")
 
+  // Relaciones recursivas y jerárquicas
+  commissionDiscountsCreated CommissionDiscount[] @relation("DiscountCreatedBy")
+  commissionDiscountsUpdated CommissionDiscount[] @relation("DiscountUpdatedBy")
+
+  // Note: 'Coaches, líderes, seniors, juniors con jerarquía recursiva'
+
+  // Constraint única parcial: solo aplica cuando ambos campos tienen valores
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
   @@index([idUserLeader])
@@ -301,6 +309,32 @@ model Business {
   @@index([idClientOrigin])
   @@map("business")
 }
+
+// =====================================================
+// LIQUIDACIÓN Y CÁLCULOS
+// =====================================================
+
+model CommissionDiscount {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  type        String   @db.VarChar(20) // 'IMPUESTO' | 'CLAWBACK'
+  percentage  Decimal  @db.Decimal(5, 2)
+  description String?  @db.Text
+  status      String   @default("ACTIVE") @db.VarChar(20) // 'ACTIVE' | 'INACTIVE'
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById Int?     @map("created_by_id")
+  updatedById Int?     @map("updated_by_id")
+
+  // Relaciones
+  createdBy User? @relation("DiscountCreatedBy", fields: [createdById], references: [idUser])
+  updatedBy User? @relation("DiscountUpdatedBy", fields: [updatedById], references: [idUser])
+
+  @@index([status])
+  @@index([type])
+  @@map("commission_discount")
+}
+
 
 model SettlementCommission {
   idBusiness             Int?                    @map("id_business")
@@ -427,20 +461,4 @@ model CommissionConfiguration {
   @@map("commission_configuration")
 }
 
-model commission_discount {
-  id                                           Int      @id @default(autoincrement())
-  name                                         String   @db.VarChar(100)
-  type                                         String   @db.VarChar(20)
-  percentage                                   Decimal  @db.Decimal(5, 2)
-  description                                  String?
-  status                                       String   @default("ACTIVE") @db.VarChar(20)
-  created_at                                   DateTime @default(now())
-  updated_at                                   DateTime
-  created_by_id                                Int?
-  updated_by_id                                Int?
-  user_commission_discount_created_by_idTouser User?    @relation("commission_discount_created_by_idTouser", fields: [created_by_id], references: [idUser])
-  user_commission_discount_updated_by_idTouser User?    @relation("commission_discount_updated_by_idTouser", fields: [updated_by_id], references: [idUser])
 
-  @@index([status])
-  @@index([type])
-}
