@@ -590,42 +590,11 @@ describe('PUT /api/negocios/[id]', () => {
 			expect(response.status).toBe(200)
 		})
 
-		it('debe actualizar negocio sin cambiar estado cuando no se proporciona contrato', async () => {
+		it('debe retornar 400 cuando no se proporciona contract ni idClientOrigin', async () => {
 			const mockSession = {
 				user: {
 					email: 'admin@example.com',
 				},
-			}
-
-			const mockAdminUser = {
-				...mockUserWithRole,
-				email: 'admin@example.com',
-				role: {
-					idRole: 1,
-					code: UserRole.ADMIN,
-					name: 'Administrador del Sistema',
-					description: 'Acceso total',
-					active: true,
-					createdAt: new Date('2024-01-01'),
-					updatedAt: new Date('2024-01-01'),
-				},
-			}
-
-			const mockExistingBusiness = {
-				...mockPrismaBusinessVentaEfectuada,
-				status: BUSINESS_STATUS.VENTA_EFECTUADA,
-			}
-
-			const mockUpdatedBusiness = {
-				...mockExistingBusiness,
-				contract: null,
-				status: BUSINESS_STATUS.VENTA_EFECTUADA,
-			}
-
-			const mockEntity = {
-				id: 1,
-				contract: null,
-				status: BUSINESS_STATUS.VENTA_EFECTUADA,
 			}
 
 			const requestBody = {}
@@ -635,10 +604,6 @@ describe('PUT /api/negocios/[id]', () => {
 				success: true,
 				data: requestBody,
 			} as never)
-			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
-			mockPrismaFindFirst.mockResolvedValue(mockExistingBusiness as never)
-			mockPrismaUpdate.mockResolvedValue(mockUpdatedBusiness as never)
-			mockPrismaBusinessToEntity.mockReturnValue(mockEntity as never)
 
 			const request = new Request('http://localhost:3000/api/negocios/1', {
 				method: 'PUT',
@@ -649,16 +614,9 @@ describe('PUT /api/negocios/[id]', () => {
 			const response = await PUT(request, { params })
 			const responseData = await response.json()
 
-			expect(mockPrismaUpdate).toHaveBeenCalledWith({
-				where: { idBusiness: 1 },
-				data: {
-					contract: null,
-					status: BUSINESS_STATUS.VENTA_EFECTUADA,
-				},
-				include: expect.any(Object),
-			})
-			expect(response.status).toBe(200)
-			expect(responseData.data.status).toBe(BUSINESS_STATUS.VENTA_EFECTUADA)
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
+			expect(response.status).toBe(400)
+			expect(responseData.error).toBe('Debe enviar contract o idClientOrigin')
 		})
 
 		it('debe actualizar solo idClientOrigin cuando negocio está EMITIDO', async () => {
