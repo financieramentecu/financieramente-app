@@ -23,11 +23,11 @@ import { deriveFlow } from '../lib/pre-liquidacion-flow'
 export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<RespuestaArchivosDisponibles> {
 	const todosArchivos = await prisma.fileImport.findMany({
 		where: {
-			status: 'LOAD',
+			status: { in: ['LOAD', 'PRE-SETTLED', 'PRE-SETTLE-APROVED'] },
 			settlementCommissions: {
 				some: {
 					status: {
-						in: ['SYNCHRONIZED', 'PRE-SETTLED'],
+						in: ['SYNCHRONIZED', 'PRE-SETTLED', 'PRE-SETTLE-APROVED'],
 					},
 				},
 			},
@@ -65,7 +65,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 			by: ['idFileImport', 'status'],
 			where: {
 				idFileImport: { in: fileIds },
-				status: { in: ['SYNCHRONIZED', 'PRE-SETTLED'] },
+				status: { in: ['SYNCHRONIZED', 'PRE-SETTLED', 'PRE-SETTLE-APROVED'] },
 			},
 			_count: { idSettlementCommission: true },
 		})
@@ -79,8 +79,8 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 			const count = row._count.idSettlementCommission
 			if (row.status === 'SYNCHRONIZED') {
 				countsMap[row.idFileImport].sincronizados = count
-			} else if (row.status === 'PRE-SETTLED') {
-				countsMap[row.idFileImport].registrosPreliquidados = count
+			} else if (row.status === 'PRE-SETTLED' || row.status === 'PRE-SETTLE-APROVED') {
+				countsMap[row.idFileImport].registrosPreliquidados += count
 			}
 		}
 	}
@@ -110,10 +110,10 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 	})
 
 	const disponiblesParaPreliquidar = archivos.filter(
-		(a) => a.estado === 'LOAD' && (a.registrosPreliquidados ?? 0) > 0
+		(a) => a.estado === 'LOAD' && (a.sincronizados ?? 0) > (a.registrosPreliquidados ?? 0)
 	)
 	const archivosPreLiquidados = archivos.filter(
-		(a) => (a.registrosPreliquidados ?? 0) > 0
+		(a) => a.estado === 'PRE-SETTLED' || (a.registrosPreliquidados ?? 0) > 0
 	)
 
 	const resumen = {
@@ -999,10 +999,11 @@ export async function procesarPreLiquidacion(
 			registrosProcesados++
 		}
 
-		// Actualizar fecha de pre-liquidación en el archivo sin cambiar el estado
+		// 4. Actualizar estado del archivo a PRE-SETTLED (siempre que el proceso haya corrido)
 		await prisma.fileImport.update({
 			where: { idFileImport: fileImportId },
 			data: {
+				status: 'PRE-SETTLED',
 				preLiquidacionDate: new Date(),
 				updatedAt: new Date(),
 			},
@@ -1046,7 +1047,7 @@ export async function procesarPreLiquidacion(
 		return {
 			success: true,
 			registrosProcesados,
-			mensaje: `Pre-liquidación completada: ${registrosProcesados} registros procesados`,
+			mensaje: `Se procesaron exitosamente ${registrosProcesados} registros`,
 		}
 	} catch (error) {
 		console.error('Error al procesar pre-liquidación:', error)

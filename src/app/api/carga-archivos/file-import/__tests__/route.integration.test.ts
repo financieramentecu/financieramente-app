@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { GET } from '../route'
+import { GET, POST } from '../route'
 import { auth } from '@/lib/auth/nextauth'
 import { FileImportService } from '@/features/load-file/services/file-import.service'
 import { UserRole } from '@/features/auth/lib/roles'
@@ -10,8 +10,15 @@ vi.mock('@/lib/auth/nextauth')
 vi.mock('@/features/load-file/services/file-import.service', () => ({
 	FileImportService: {
 		listFileImports: vi.fn(),
+		initiateImport: vi.fn(),
 	},
 	PeriodCompletedError: class PeriodCompletedError extends Error {},
+	PeriodPreSettledError: class PeriodPreSettledError extends Error {
+		constructor(public readonly month: number, public readonly year: number) {
+			super(`Período en pre-liquidación`)
+			this.name = 'PeriodPreSettledError'
+		}
+	},
 }))
 vi.mock('next/server', () => ({
 	NextResponse: {
@@ -24,6 +31,7 @@ vi.mock('next/server', () => ({
 
 const mockAuth = vi.mocked(auth)
 const mockListFileImports = vi.mocked(FileImportService.listFileImports)
+const mockInitiateImport = vi.mocked(FileImportService.initiateImport)
 const mockNextResponseJson = vi.mocked(NextResponse.json)
 
 function makeRequest(searchParams: Record<string, string> = {}): NextRequest {
@@ -134,5 +142,55 @@ describe('GET /api/carga-archivos/file-import', () => {
 			const response = await GET(req)
 			expect(response.status).toBe(401)
 		})
+	})
+})
+
+describe('POST /api/carga-archivos/file-import', () => {
+	const validBody = {
+		fileType: 'POLIZA',
+		month: 2,
+		year: 2026,
+	}
+
+	beforeEach(() => {
+		vi.clearAllMocks()
+		mockNextResponseJson.mockImplementation(
+			(data: unknown, init?: { status?: number }) =>
+				({
+					json: () => Promise.resolve(data),
+					status: init?.status || 200,
+				}) as unknown as NextResponse
+		)
+		mockAuth.mockResolvedValue({
+			user: { id: '10', role: UserRole.ADMIN },
+		} as unknown as Awaited<ReturnType<typeof auth>>)
+	})
+
+	it('returns 201 and the import result on success', async () => {
+		const mockResult = { created: true, fileImport: { idFileImport: 1 } }
+		mockInitiateImport.mockResolvedValueOnce(mockResult as unknown as Awaited<ReturnType<typeof mockInitiateImport>>)
+
+		const req = {
+			json: () => Promise.resolve(validBody),
+		} as unknown as NextRequest
+
+		const response = await POST(req)
+		expect(response.status).toBe(201)
+		const data = await response.json()
+		expect(data).toEqual({ data: { fileImport: mockResult.fileImport } })
+	})
+
+	it('returns 409 when period is already pre-settled', async () => {
+		const { PeriodPreSettledError } = await import('@/features/load-file/services/file-import.service')
+		mockInitiateImport.mockRejectedValueOnce(new PeriodPreSettledError(2, 2026))
+
+		const req = {
+			json: () => Promise.resolve(validBody),
+		} as unknown as NextRequest
+
+		const response = await POST(req)
+		expect(response.status).toBe(409)
+		const data = await response.json()
+		expect(data.error).toBe('Período en pre-liquidación')
 	})
 })
