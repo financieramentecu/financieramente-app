@@ -6,7 +6,6 @@ import {
 	Trash2,
 	AlertCircle,
 	Search,
-	Calendar,
 	Filter,
 	X,
 	Eye,
@@ -26,13 +25,12 @@ import {
 import { useFileHistory } from '../hooks/use-file-history'
 import { ConfirmModal, Modal } from '@/features/shared/ui/modal'
 import { RecordsByStatusView } from './RecordsByStatusView'
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 
 /**
  * Componente para mostrar el historial de cargas de archivos
  */
 export function HistorialCargasTab() {
-	const { historial, isLoading, error, refetch, deleteItem } = useFileHistory()
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 	const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 	const [detailFileImportId, setDetailFileImportId] = useState<number | null>(
@@ -41,9 +39,26 @@ export function HistorialCargasTab() {
 
 	// Filter States
 	const [searchTerm, setSearchTerm] = useState('')
+	const [debouncedSearch, setDebouncedSearch] = useState(searchTerm)
 	const [statusFilter, setStatusFilter] = useState('ALL')
-	const [dateStart, setDateStart] = useState('')
-	const [dateEnd, setDateEnd] = useState('')
+	const [mesFilter, setMesFilter] = useState<string>('ALL')
+	const [anioFilter, setAnioFilter] = useState<string>('ALL')
+
+	// 200ms debounce for searchTerm
+	useEffect(() => {
+		const timer = setTimeout(() => setDebouncedSearch(searchTerm), 200)
+		return () => clearTimeout(timer)
+	}, [searchTerm])
+
+	const { historial, isLoading, error, refetch, deleteItem } = useFileHistory({
+		month: mesFilter !== 'ALL' ? Number(mesFilter) : undefined,
+		year: anioFilter !== 'ALL' ? Number(anioFilter) : undefined,
+		status: statusFilter !== 'ALL' ? statusFilter : undefined,
+		search: debouncedSearch || undefined,
+	})
+
+	const currentYear = new Date().getFullYear()
+	const yearRange = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
 
 	const handleDeleteClick = (id: string) => {
 		setItemToDelete(id)
@@ -61,35 +76,9 @@ export function HistorialCargasTab() {
 	const handleClearFilters = () => {
 		setSearchTerm('')
 		setStatusFilter('ALL')
-		setDateStart('')
-		setDateEnd('')
+		setMesFilter('ALL')
+		setAnioFilter('ALL')
 	}
-
-	const filteredHistorial = useMemo(() => {
-		return historial.filter((item) => {
-			// Filter by name or user
-			if (searchTerm) {
-				const term = searchTerm.toLowerCase()
-				const matchesName = item.nombreArchivo.toLowerCase().includes(term)
-				const matchesUser = item.usuario.toLowerCase().includes(term)
-				if (!matchesName && !matchesUser) return false
-			}
-
-			// Filter by status
-			if (statusFilter !== 'ALL' && item.estado !== statusFilter) {
-				return false
-			}
-
-			// Filter by date range
-			if (item.createdAt) {
-				const itemDate = item.createdAt.substring(0, 10) // YYYY-MM-DD
-				if (dateStart && itemDate < dateStart) return false
-				if (dateEnd && itemDate > dateEnd) return false
-			}
-
-			return true
-		})
-	}, [historial, searchTerm, statusFilter, dateStart, dateEnd])
 
 	const getEstadoBadgeStyle = (estado: string): React.CSSProperties => {
 		switch (estado) {
@@ -172,7 +161,7 @@ export function HistorialCargasTab() {
 					<h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
 						<Filter className="h-4 w-4" /> Filtros
 					</h3>
-					{(searchTerm || statusFilter !== 'ALL' || dateStart || dateEnd) && (
+					{(searchTerm || statusFilter !== 'ALL' || mesFilter !== 'ALL' || anioFilter !== 'ALL') && (
 						<Button
 							variant="ghost"
 							size="sm"
@@ -209,43 +198,59 @@ export function HistorialCargasTab() {
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="ALL">Todos</SelectItem>
-								<SelectItem value="LOAD">Cargado (Load)</SelectItem>
+								<SelectItem value="LOAD">Cargado</SelectItem>
 								<SelectItem value="COMPLETED">Completado</SelectItem>
-								<SelectItem value="PARCIAL">Parcial</SelectItem>
-								<SelectItem value="ERROR">Error</SelectItem>
-								<SelectItem value="PROCESSING">Procesando</SelectItem>
-								<SelectItem value="CANCELADO">Cancelado</SelectItem>
-								<SelectItem value="PRE-SETTLED">Pre-liquidado</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
 
-					{/* Fecha Inicio */}
+					{/* Mes */}
 					<div className="space-y-2">
-						<Label className="text-xs">Desde</Label>
-						<div className="relative">
-							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-							<Input
-								type="date"
-								className="pl-9"
-								value={dateStart}
-								onChange={(e) => setDateStart(e.target.value)}
-							/>
-						</div>
+						<Label className="text-xs">Mes</Label>
+						<Select value={mesFilter} onValueChange={setMesFilter}>
+							<SelectTrigger>
+								<SelectValue placeholder="Mes" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="ALL">Todos los meses</SelectItem>
+								{[
+									['1', 'Enero'],
+									['2', 'Febrero'],
+									['3', 'Marzo'],
+									['4', 'Abril'],
+									['5', 'Mayo'],
+									['6', 'Junio'],
+									['7', 'Julio'],
+									['8', 'Agosto'],
+									['9', 'Septiembre'],
+									['10', 'Octubre'],
+									['11', 'Noviembre'],
+									['12', 'Diciembre'],
+								].map(([val, label]) => (
+									<SelectItem key={val} value={val}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 
-					{/* Fecha Fin */}
+					{/* Año */}
 					<div className="space-y-2">
-						<Label className="text-xs">Hasta</Label>
-						<div className="relative">
-							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-							<Input
-								type="date"
-								className="pl-9"
-								value={dateEnd}
-								onChange={(e) => setDateEnd(e.target.value)}
-							/>
-						</div>
+						<Label className="text-xs">Año</Label>
+						<Select value={anioFilter} onValueChange={setAnioFilter}>
+							<SelectTrigger>
+								<SelectValue placeholder="Año" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="ALL">Todos los años</SelectItem>
+								{yearRange.map((y) => (
+									<SelectItem key={y} value={String(y)}>
+										{y}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 				</div>
 			</div>
@@ -282,18 +287,17 @@ export function HistorialCargasTab() {
 
 				{isLoading && historial.length === 0 ? (
 					<TableRowsLoadingSkeleton rows={5} />
-				) : filteredHistorial.length === 0 ? (
+				) : historial.length === 0 ? (
 					<EmptyState
 						icon={<FileText className="h-12 w-12" />}
-						title={
-							historial.length === 0
-								? 'No hay historial de cargas disponible'
-								: 'No se encontraron resultados con los filtros aplicados'
-						}
+						title="No hay historial de cargas disponible"
 					/>
 				) : (
 					<div className="space-y-4">
-						{filteredHistorial.map((carga) => (
+						<p className="text-xs text-muted-foreground">
+							Los contadores de cada archivo reflejan el total acumulado de todas las sincronizaciones realizadas.
+						</p>
+						{historial.map((carga) => (
 							<div
 								key={carga.id}
 								className="bg-muted rounded-lg p-4 border border-border"

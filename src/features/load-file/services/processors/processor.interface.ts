@@ -6,6 +6,7 @@ export interface ProcessorResult {
 	idBusiness: number | null
 	recoveredLag: boolean
 	errorReason?: string
+	resolvedErrors: number
 }
 
 export interface ProcessorAuditContext {

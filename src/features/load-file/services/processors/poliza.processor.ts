@@ -45,6 +45,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 				idBusiness: null,
 				recoveredLag: false,
 				errorReason: 'Error de validación de formato',
+				resolvedErrors: 0,
 			}
 		}
 
@@ -74,6 +75,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 					isLag: true,
 					idBusiness: null,
 					recoveredLag: false,
+					resolvedErrors: 0,
 				}
 			}
 
@@ -126,11 +128,23 @@ export class PolizaProcessor implements ICommissionProcessor {
 					originCommission,
 					isClawback
 				)
+				const resolved = await tx.fileImportError.updateMany({
+					where: {
+						idFileImport: fileImportId,
+						contract: extracted.contract,
+						resolved: false,
+					},
+					data: {
+						resolved: true,
+						resolvedAt: new Date(),
+					},
+				})
 				return {
 					status: 'SYNCHRONIZED',
 					isLag: false,
 					idBusiness: business.idBusiness,
 					recoveredLag: true,
+					resolvedErrors: resolved.count,
 				}
 			} else {
 				await this.createSync(
@@ -143,11 +157,23 @@ export class PolizaProcessor implements ICommissionProcessor {
 					originCommission,
 					isClawback
 				)
+				const resolved = await tx.fileImportError.updateMany({
+					where: {
+						idFileImport: fileImportId,
+						contract: extracted.contract,
+						resolved: false,
+					},
+					data: {
+						resolved: true,
+						resolvedAt: new Date(),
+					},
+				})
 				return {
 					status: 'SYNCHRONIZED',
 					isLag: false,
 					idBusiness: business.idBusiness,
 					recoveredLag: false,
+					resolvedErrors: resolved.count,
 				}
 			}
 		})
@@ -178,6 +204,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 				status: 'SYNCHRONIZED',
 				isLag: false,
 				isClawback,
+				syncDate: new Date(),
 			},
 		})
 	}

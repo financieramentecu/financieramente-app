@@ -302,6 +302,8 @@ model FileImport {
   noSincronizadoRecord Int       @default(0) @map("no_sincronizado_record")
   status               String    @db.VarChar(20) // 'PROCESSING', 'LOAD', 'COMPLETED', 'ERROR', 'CANCELLED', 'PRE-SETTLED', 'SETTLED'
   preLiquidacionDate   DateTime? @map("pre_liquidacion_date")
+  month                Int?      @map("month")
+  year                 Int?      @map("year")
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
@@ -312,6 +314,7 @@ model FileImport {
 
   @@index([loadDate])
   @@index([status])
+  @@index([fileType, month, year, status])
   @@map("file_import")
 }
 
@@ -396,6 +399,7 @@ model SettlementCommission {
   isLag      Boolean   @default(false) @map("is_lag")
   isClawback Boolean   @default(false) @map("is_clawback")
   lagDate    DateTime? @map("lag_date")
+  syncDate   DateTime? @map("sync_date")
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
@@ -497,12 +501,14 @@ model AuditLog {
 }
 
 model FileImportError {
-  idFileImportError Int     @id @default(autoincrement()) @map("id_file_import_error")
-  idFileImport      Int     @map("id_file_import")
-  rowNumber         Int     @map("row_number")
-  contract          String? @db.VarChar(50)
-  reason            String  @db.Text
-  rawData           Json    @map("raw_data")
+  idFileImportError Int       @id @default(autoincrement()) @map("id_file_import_error")
+  idFileImport      Int       @map("id_file_import")
+  rowNumber         Int       @map("row_number")
+  contract          String?   @db.VarChar(50)
+  reason            String    @db.Text
+  rawData           Json      @map("raw_data")
+  resolved          Boolean   @default(false) @map("resolved")
+  resolvedAt        DateTime? @map("resolved_at")
 
   // Relaciones
   fileImport FileImport @relation(fields: [idFileImport], references: [idFileImport])
