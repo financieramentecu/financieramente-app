@@ -9,7 +9,9 @@ import {
 	Filter,
 	X,
 	Eye,
+	Loader2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/features/shared/ui/button'
 import { EmptyState } from '@/features/shared/ui/empty-state'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
@@ -26,16 +28,35 @@ import { useFileHistory } from '../hooks/use-file-history'
 import { ConfirmModal, Modal } from '@/features/shared/ui/modal'
 import { RecordsByStatusView } from './RecordsByStatusView'
 import { useState, useEffect } from 'react'
+import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
+import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
+import type { UserRole } from '@/features/auth/lib/roles'
+import { loadFileApi } from '../lib/load-file-api'
 
 /**
  * Componente para mostrar el historial de cargas de archivos
  */
 export function HistorialCargasTab() {
+	const { user } = useAuthSession()
+	const canPreliquidar =
+		user?.role != null &&
+		(ROLE_PERMISSIONS[user.role as UserRole]?.liquidaciones?.preliquidacion ??
+			false)
+
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 	const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 	const [detailFileImportId, setDetailFileImportId] = useState<number | null>(
 		null
 	)
+	const [preliquidarModalOpen, setPreliquidarModalOpen] = useState(false)
+	const [preliquidarTarget, setPreliquidarTarget] = useState<{
+		idFileImport: number
+		mes: string
+		id: string
+	} | null>(null)
+	const [preliquidarLoading, setPreliquidarLoading] = useState<
+		Record<string, boolean>
+	>({})
 
 	// Filter States
 	const [searchTerm, setSearchTerm] = useState('')
@@ -78,6 +99,43 @@ export function HistorialCargasTab() {
 		setStatusFilter('ALL')
 		setMesFilter('ALL')
 		setAnioFilter('ALL')
+	}
+
+	const handlePreliquidarClick = (carga: {
+		id: string
+		idFileImport: number
+		createdAt: string
+	}) => {
+		const date = new Date(carga.createdAt)
+		const month = String(date.getMonth() + 1).padStart(2, '0')
+		const mes = `${date.getFullYear()}-${month}`
+		setPreliquidarTarget({ idFileImport: carga.idFileImport, mes, id: carga.id })
+		setPreliquidarModalOpen(true)
+	}
+
+	const handleConfirmPreliquidar = async () => {
+		if (!preliquidarTarget) return
+		const { idFileImport, mes, id } = preliquidarTarget
+		setPreliquidarModalOpen(false)
+		setPreliquidarLoading((prev) => ({ ...prev, [id]: true }))
+		try {
+			const result = await loadFileApi.preliquidar(idFileImport, mes)
+			if ('error' in result) {
+				toast.error('Error al pre-liquidar', { description: result.error })
+			} else {
+				toast.success('Pre-liquidación completada', {
+					description: result.data?.mensaje ?? 'Registros procesados correctamente',
+				})
+				await refetch()
+			}
+		} catch (err) {
+			toast.error('Error inesperado', {
+				description: err instanceof Error ? err.message : 'Error desconocido',
+			})
+		} finally {
+			setPreliquidarLoading((prev) => ({ ...prev, [id]: false }))
+			setPreliquidarTarget(null)
+		}
 	}
 
 	const getEstadoBadgeStyle = (estado: string): React.CSSProperties => {
@@ -136,6 +194,24 @@ export function HistorialCargasTab() {
 				onConfirm={handleConfirmDelete}
 				onCancel={() => setDeleteModalOpen(false)}
 				destructive={true}
+			/>
+
+			{/* Modal de confirmación de pre-liquidación */}
+			<ConfirmModal
+				open={preliquidarModalOpen}
+				onOpenChange={(open) => {
+					setPreliquidarModalOpen(open)
+					if (!open) setPreliquidarTarget(null)
+				}}
+				title="¿Confirmar pre-liquidación?"
+				message={`Se procesarán los registros sincronizados del archivo para el período ${preliquidarTarget?.mes ?? ''}. Esta acción cambiará su estado a PRE-LIQUIDADO.`}
+				confirmText="Pre-liquidar"
+				cancelText="Cancelar"
+				onConfirm={handleConfirmPreliquidar}
+				onCancel={() => {
+					setPreliquidarModalOpen(false)
+					setPreliquidarTarget(null)
+				}}
 			/>
 
 			<Modal
@@ -402,7 +478,7 @@ export function HistorialCargasTab() {
 										</div>
 									</div>
 
-									{/* Botones Ver detalle y Eliminar */}
+									{/* Botones Ver detalle, Preliquidar y Eliminar */}
 									<div className="flex items-center gap-2">
 										<Button
 											variant="outline"
@@ -416,6 +492,23 @@ export function HistorialCargasTab() {
 											<Eye className="h-4 w-4 mr-1" />
 											Ver detalle
 										</Button>
+										{canPreliquidar &&
+											carga.sincronizados > 0 &&
+											carga.estado === 'LOAD' && (
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() => handlePreliquidarClick(carga)}
+													disabled={preliquidarLoading[carga.id] === true}
+													className="p-2"
+													title="Pre-liquidar archivo"
+												>
+													{preliquidarLoading[carga.id] === true ? (
+														<Loader2 className="h-4 w-4 mr-1 animate-spin" />
+													) : null}
+													Preliquidar
+												</Button>
+											)}
 										<Button
 											variant="ghost"
 											size="sm"

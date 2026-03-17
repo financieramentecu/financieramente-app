@@ -70,10 +70,10 @@ export function ListaArchivosDisponibles({
 								{archivo.fechaCarga}
 							</td>
 							<td className="py-3 px-4 text-sm text-muted-foreground">
-								{archivo.cantidadRegistros} registros
+								{archivo.registrosPreliquidados ?? 0} registros
 							</td>
 							<td className="py-3 px-4 text-right">
-								{archivo.sincronizados > 0 ? (
+								{(archivo.sincronizados > 0 || (archivo.registrosPreliquidados ?? 0) > 0) ? (
 									<Button
 										variant="outline"
 										size="sm"

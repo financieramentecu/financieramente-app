@@ -110,7 +110,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 	})
 
 	const disponiblesParaPreliquidar = archivos.filter(
-		(a) => a.estado === 'LOAD' && a.sincronizados > 0
+		(a) => a.estado === 'LOAD' && (a.registrosPreliquidados ?? 0) > 0
 	)
 	const archivosPreLiquidados = archivos.filter(
 		(a) => (a.registrosPreliquidados ?? 0) > 0
@@ -364,6 +364,90 @@ export async function obtenerDetallePreLiquidacion(
 		registros: registrosFormateados,
 		distribucion,
 		resumen,
+	}
+}
+
+/**
+ * Returns PRE-SETTLED records for a given file import.
+ * Used by the pre-liquidación detail page to display commissions already processed.
+ * Does not run distribution formulas — flat field set only.
+ */
+export async function obtenerComisionesPreliquidadas(
+	fileId: number
+): Promise<RespuestaRegistrosLiquidacion | null> {
+	const fileImport = await prisma.fileImport.findUnique({
+		where: { idFileImport: fileId },
+		select: {
+			idFileImport: true,
+			nameFile: true,
+			fileType: true,
+			loadDate: true,
+			totalRecord: true,
+			sincronizadoRecord: true,
+			rezagadoRecord: true,
+			user: {
+				select: { name: true, lastName: true },
+			},
+		},
+	})
+
+	if (!fileImport) return null
+
+	const registros = await prisma.settlementCommission.findMany({
+		where: {
+			idFileImport: fileId,
+			status: 'PRE-SETTLED',
+		},
+		include: {
+			business: {
+				select: {
+					contract: true,
+					user: {
+						select: { name: true, lastName: true },
+					},
+				},
+			},
+		},
+		orderBy: { createdAt: 'asc' },
+	})
+
+	const flat: RegistroLiquidacionDetalle[] = registros.map((r) => {
+		const nombreAsesor = r.business?.user
+			? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
+			: ''
+		return {
+			idSettlementCommission: r.idSettlementCommission,
+			idBusiness: r.idBusiness,
+			contrato: r.contract ?? r.business?.contract ?? null,
+			nombreAsesor,
+			tipo: r.descripcion,
+			monto: (r.commissionValue ?? r.baseCommission ?? new Decimal(0)).toNumber(),
+			baseComision: (r.baseCommission ?? r.commissionValue ?? new Decimal(0)).toNumber(),
+			porcentajeDescuento: (r.discountPercentage ?? new Decimal(0)).toNumber(),
+			porcentajeClawback: (r.clawbackPercentage ?? new Decimal(0)).toNumber(),
+			esClawback: r.isClawback ?? false,
+			esRezagado: r.isLag ?? false,
+			fechaSincronizacion: r.syncDate?.toISOString() ?? null,
+			fechaRezagado: r.lagDate?.toISOString() ?? null,
+			fechaInicio: r.startDate?.toISOString().split('T')[0] ?? null,
+			fechaFin: r.endDate?.toISOString().split('T')[0] ?? null,
+		}
+	})
+
+	const fileType = fileImport.fileType ?? ''
+
+	return {
+		archivo: {
+			idFileImport: fileImport.idFileImport,
+			nombreArchivo: fileImport.nameFile,
+			fileType,
+			usuarioCargo:
+				`${fileImport.user.name} ${fileImport.user.lastName ?? ''}`.trim(),
+			fechaCarga: fileImport.loadDate.toISOString().split('T')[0],
+			totalRegistros: fileImport.totalRecord,
+			sincronizados: flat.length,
+		},
+		registros: flat,
 	}
 }
 
