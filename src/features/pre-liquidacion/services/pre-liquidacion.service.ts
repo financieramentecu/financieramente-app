@@ -3,12 +3,14 @@ import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidac
 import { Decimal } from '@prisma/client/runtime/library'
 import type {
 	AgenteDistribucion,
+	ArchivoDisponible,
 	ComisionesCalculadas,
 	ConfiguracionPorcentajes,
 	RegistroDetallePreLiquidacion,
-	RespuestaDetallePreLiquidacion,
+	RegistroLiquidacionDetalle,
 	RespuestaArchivosDisponibles,
-	ArchivoDisponible,
+	RespuestaDetallePreLiquidacion,
+	RespuestaRegistrosLiquidacion,
 	ResumenFilaPreliquidacion,
 	ResumenUsuarioPreliquidacion,
 } from '../types/types'
@@ -33,6 +35,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 		select: {
 			idFileImport: true,
 			nameFile: true,
+			fileType: true,
 			loadDate: true,
 			preLiquidacionDate: true,
 			totalRecord: true,
@@ -90,6 +93,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 		return {
 			idFileImport: archivo.idFileImport,
 			nombreArchivo: archivo.nameFile,
+			fileType: archivo.fileType,
 			usuarioCargo:
 				`${archivo.user.name} ${archivo.user.lastName || ''}`.trim(),
 			fechaCarga: archivo.loadDate.toISOString().split('T')[0],
@@ -361,6 +365,150 @@ export async function obtenerDetallePreLiquidacion(
 		distribucion,
 		resumen,
 	}
+}
+
+/**
+ * Returns SYNCHRONIZED records for the detail page (per-record Liquidar/Rezagar).
+ * Does not run distribution formulas — flat field set only.
+ */
+export async function obtenerRegistrosParaLiquidacion(
+	fileId: number
+): Promise<RespuestaRegistrosLiquidacion | null> {
+	const fileImport = await prisma.fileImport.findUnique({
+		where: { idFileImport: fileId },
+		select: {
+			idFileImport: true,
+			nameFile: true,
+			fileType: true,
+			loadDate: true,
+			totalRecord: true,
+			sincronizadoRecord: true,
+			rezagadoRecord: true,
+			user: {
+				select: { name: true, lastName: true },
+			},
+		},
+	})
+
+	if (!fileImport) return null
+
+	const registros = await prisma.settlementCommission.findMany({
+		where: {
+			idFileImport: fileId,
+			status: 'SYNCHRONIZED',
+		},
+		include: {
+			business: {
+				select: {
+					contract: true,
+					user: {
+						select: { name: true, lastName: true },
+					},
+				},
+			},
+		},
+		orderBy: { createdAt: 'asc' },
+	})
+
+	const flat: RegistroLiquidacionDetalle[] = registros.map((r) => {
+		const nombreAsesor = r.business?.user
+			? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
+			: ''
+		return {
+			idSettlementCommission: r.idSettlementCommission,
+			idBusiness: r.idBusiness,
+			contrato: r.contract ?? r.business?.contract ?? null,
+			nombreAsesor,
+			tipo: r.descripcion,
+			monto: (r.commissionValue ?? r.baseCommission ?? new Decimal(0)).toNumber(),
+			baseComision: (r.baseCommission ?? r.commissionValue ?? new Decimal(0)).toNumber(),
+			porcentajeDescuento: (r.discountPercentage ?? new Decimal(0)).toNumber(),
+			porcentajeClawback: (r.clawbackPercentage ?? new Decimal(0)).toNumber(),
+			esClawback: r.isClawback ?? false,
+			esRezagado: r.isLag ?? false,
+			fechaSincronizacion: r.syncDate?.toISOString() ?? null,
+			fechaRezagado: r.lagDate?.toISOString() ?? null,
+			fechaInicio: r.startDate?.toISOString().split('T')[0] ?? null,
+			fechaFin: r.endDate?.toISOString().split('T')[0] ?? null,
+		}
+	})
+
+	const fileType = fileImport.fileType ?? ''
+
+	return {
+		archivo: {
+			idFileImport: fileImport.idFileImport,
+			nombreArchivo: fileImport.nameFile,
+			fileType,
+			usuarioCargo:
+				`${fileImport.user.name} ${fileImport.user.lastName ?? ''}`.trim(),
+			fechaCarga: fileImport.loadDate.toISOString().split('T')[0],
+			totalRegistros: fileImport.totalRecord,
+			sincronizados: flat.length,
+		},
+		registros: flat,
+	}
+}
+
+/**
+ * Transitions selected SYNCHRONIZED records to SETTLED. If no SYNCHRONIZED remain for the file, sets FileImport.status to COMPLETED.
+ */
+export async function liquidarRegistros(
+	ids: number[],
+	_userId: number,
+	fileId: number
+): Promise<{ liquidated: number; fileCompleted: boolean }> {
+	return prisma.$transaction(async (tx) => {
+		const result = await tx.settlementCommission.updateMany({
+			where: {
+				idSettlementCommission: { in: ids },
+				status: 'SYNCHRONIZED',
+			},
+			data: { status: 'SETTLED', updatedAt: new Date() },
+		})
+
+		const remaining = await tx.settlementCommission.count({
+			where: {
+				idFileImport: fileId,
+				status: 'SYNCHRONIZED',
+			},
+		})
+
+		if (remaining === 0) {
+			await tx.fileImport.update({
+				where: { idFileImport: fileId },
+				data: { status: 'COMPLETED', updatedAt: new Date() },
+			})
+		}
+
+		return {
+			liquidated: result.count,
+			fileCompleted: remaining === 0,
+		}
+	})
+}
+
+/**
+ * Transitions selected SYNCHRONIZED records to LAG with lagDate and isLag set.
+ * Does not update FileImport.status.
+ */
+export async function rezagarRegistros(
+	ids: number[],
+	_userId: number
+): Promise<{ lagged: number }> {
+	const result = await prisma.settlementCommission.updateMany({
+		where: {
+			idSettlementCommission: { in: ids },
+			status: 'SYNCHRONIZED',
+		},
+		data: {
+			status: 'LAG',
+			isLag: true,
+			lagDate: new Date(),
+			updatedAt: new Date(),
+		},
+	})
+	return { lagged: result.count }
 }
 
 /**

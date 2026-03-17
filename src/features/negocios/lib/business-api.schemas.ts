@@ -25,7 +25,7 @@ export const businessListParamsSchema = z.object({
 export type BusinessListParamsSchema = z.infer<typeof businessListParamsSchema>
 
 /**
- * Schema para actualización de negocio (solo contrato)
+ * Schema para actualización de negocio (contrato y/o origen del cliente)
  */
 export const updateBusinessSchema = z.object({
 	contract: z
@@ -36,6 +36,7 @@ export const updateBusinessSchema = z.object({
 			'El contrato solo puede contener letras, números y guiones'
 		)
 		.optional(),
+	idClientOrigin: z.number().int().positive().optional(),
 })
 
 export type UpdateBusinessSchema = z.infer<typeof updateBusinessSchema>

@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { procesarPreLiquidacion } from './pre-liquidacion.service'
+import {
+	procesarPreLiquidacion,
+	obtenerRegistrosParaLiquidacion,
+	liquidarRegistros,
+	rezagarRegistros,
+} from './pre-liquidacion.service'
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
 
@@ -18,6 +23,8 @@ vi.mock('@/lib/prisma', () => ({
 		settlementCommission: {
 			findMany: vi.fn(),
 			update: vi.fn(),
+			updateMany: vi.fn(),
+			count: vi.fn(),
 		},
 		productPercentageCommissionCategory: {
 			findMany: vi.fn(),
@@ -244,5 +251,188 @@ describe('procesarPreLiquidacion', () => {
 		expect(prisma.clawbackBalance.findUnique).not.toHaveBeenCalled()
 		expect(prisma.clawbackBalance.create).not.toHaveBeenCalled()
 		expect(prisma.clawbackBalance.update).not.toHaveBeenCalled()
+	})
+})
+
+describe('obtenerRegistrosParaLiquidacion', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+	})
+
+	it('returns null when file does not exist', async () => {
+		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue(null)
+		const result = await obtenerRegistrosParaLiquidacion(999)
+		expect(result).toBeNull()
+	})
+
+	it('returns only SYNCHRONIZED records and correct archivo.fileType', async () => {
+		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
+			idFileImport: 1,
+			nameFile: 'test.xlsx',
+			fileType: 'POLIZA',
+			loadDate: new Date('2024-01-15'),
+			totalRecord: 10,
+			sincronizadoRecord: 2,
+			rezagadoRecord: 0,
+			user: { name: 'John', lastName: 'Doe' },
+		} as any)
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([
+			{
+				idSettlementCommission: 100,
+				idFileImport: 1,
+				idBusiness: 1,
+				contract: null,
+				status: 'SYNCHRONIZED',
+				descripcion: 'Tipo A',
+				commissionValue: new Decimal(1000),
+				baseCommission: new Decimal(1000),
+				discountPercentage: new Decimal(0.1),
+				clawbackPercentage: new Decimal(0),
+				isClawback: false,
+				isLag: false,
+				syncDate: new Date('2024-01-10'),
+				lagDate: null,
+				startDate: null,
+				endDate: null,
+				business: {
+					contract: 'C-001',
+					user: { name: 'Jane', lastName: 'Smith' },
+				},
+			},
+		] as any)
+
+		const result = await obtenerRegistrosParaLiquidacion(1)
+		expect(result).not.toBeNull()
+		expect(result!.archivo.fileType).toBe('POLIZA')
+		expect(result!.registros).toHaveLength(1)
+		expect(result!.registros[0].idSettlementCommission).toBe(100)
+		expect(prisma.settlementCommission.findMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					idFileImport: 1,
+					status: 'SYNCHRONIZED',
+				},
+			})
+		)
+	})
+
+	it('returns empty registros with archivo metadata when file has no SYNCHRONIZED records', async () => {
+		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
+			idFileImport: 1,
+			nameFile: 'empty.xlsx',
+			fileType: 'VOLUNTARIA',
+			loadDate: new Date('2024-01-15'),
+			totalRecord: 5,
+			sincronizadoRecord: 0,
+			rezagadoRecord: 0,
+			user: { name: 'John', lastName: 'Doe' },
+		} as any)
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([])
+
+		const result = await obtenerRegistrosParaLiquidacion(1)
+		expect(result).not.toBeNull()
+		expect(result!.registros).toHaveLength(0)
+		expect(result!.archivo.fileType).toBe('VOLUNTARIA')
+		expect(result!.archivo.nombreArchivo).toBe('empty.xlsx')
+	})
+})
+
+describe('liquidarRegistros', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+	})
+
+	it('updates only SYNCHRONIZED ids and returns liquidated count', async () => {
+		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
+			count: 3,
+		})
+		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(0)
+		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
+
+		const result = await liquidarRegistros([1, 2, 3], 10, 1)
+		expect(result.liquidated).toBe(3)
+		expect(result.fileCompleted).toBe(true)
+		expect(prisma.settlementCommission.updateMany).toHaveBeenCalledWith({
+			where: {
+				idSettlementCommission: { in: [1, 2, 3] },
+				status: 'SYNCHRONIZED',
+			},
+			data: { status: 'SETTLED', updatedAt: expect.any(Date) },
+		})
+	})
+
+	it('sets FileImport COMPLETED when 0 SYNCHRONIZED remain', async () => {
+		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
+			count: 5,
+		})
+		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(0)
+		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
+
+		await liquidarRegistros([1, 2, 3, 4, 5], 10, 1)
+		expect(prisma.fileImport.update).toHaveBeenCalledWith({
+			where: { idFileImport: 1 },
+			data: { status: 'COMPLETED', updatedAt: expect.any(Date) },
+		})
+	})
+
+	it('does not set FileImport COMPLETED when some SYNCHRONIZED remain', async () => {
+		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
+			count: 3,
+		})
+		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(7)
+		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
+
+		const result = await liquidarRegistros([1, 2, 3], 10, 1)
+		expect(result.fileCompleted).toBe(false)
+		expect(result.liquidated).toBe(3)
+		expect(prisma.fileImport.update).not.toHaveBeenCalled()
+	})
+
+	it('skips non-SYNCHRONIZED ids and returns actual liquidated count', async () => {
+		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
+			count: 1,
+		})
+		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(4)
+		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
+
+		const result = await liquidarRegistros([1, 2], 10, 1)
+		expect(result.liquidated).toBe(1)
+		expect(result.fileCompleted).toBe(false)
+	})
+})
+
+describe('rezagarRegistros', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+	})
+
+	it('updates only SYNCHRONIZED ids to LAG with lagDate and isLag', async () => {
+		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
+			count: 2,
+		})
+
+		const result = await rezagarRegistros([4, 5], 10)
+		expect(result.lagged).toBe(2)
+		expect(prisma.settlementCommission.updateMany).toHaveBeenCalledWith({
+			where: {
+				idSettlementCommission: { in: [4, 5] },
+				status: 'SYNCHRONIZED',
+			},
+			data: {
+				status: 'LAG',
+				isLag: true,
+				lagDate: expect.any(Date),
+				updatedAt: expect.any(Date),
+			},
+		})
+	})
+
+	it('does not set FileImport COMPLETED (rezagar never completes file)', async () => {
+		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
+			count: 5,
+		})
+
+		await rezagarRegistros([1, 2, 3, 4, 5], 10)
+		expect(prisma.fileImport.update).not.toHaveBeenCalled()
 	})
 })
