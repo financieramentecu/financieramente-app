@@ -23,6 +23,7 @@ import {
 	getClientIp,
 	getUserAgent,
 } from '@/features/auth/lib/audit-logger'
+import { sincronizarYCalcularRegistroRezagado } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 
 interface RouteParams {
 	params: Promise<{ id: string }>
@@ -139,11 +140,11 @@ export async function PUT(
 			)
 		}
 
-		const { contract, idClientOrigin } = validationResult.data
+		const { contract, idClientOrigin, idSettlementCommission } = validationResult.data
 
-		if (contract === undefined && idClientOrigin === undefined) {
+		if (contract === undefined && idClientOrigin === undefined && idSettlementCommission === undefined) {
 			return NextResponse.json(
-				{ data: null, error: 'Debe enviar contract o idClientOrigin' },
+				{ data: null, error: 'Debe enviar contract, idClientOrigin o idSettlementCommission' },
 				{ status: 400 }
 			)
 		}
@@ -220,12 +221,24 @@ export async function PUT(
 			return NextResponse.json({ data: entity })
 		}
 
-		// Flujo: actualizar contrato (solo cuando VENTA_EFECTUADA)
-		if (existingBusiness.status !== BUSINESS_STATUS.VENTA_EFECTUADA) {
+		// Flujo: actualizar contrato
+		const isAsistente = currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
+
+		if (existingBusiness.status === BUSINESS_STATUS.EMITIDO) {
+			if (!isAsistente) {
+				return NextResponse.json(
+					{
+						data: null,
+						error: 'Solo el Asistente de Gerencia Operativa puede editar contratos en estado Emitido',
+					},
+					{ status: 403 }
+				)
+			}
+		} else if (existingBusiness.status !== BUSINESS_STATUS.VENTA_EFECTUADA) {
 			return NextResponse.json(
 				{
 					data: null,
-					error: 'Solo se pueden editar negocios en estado Venta Efectuada',
+					error: 'Solo se pueden editar negocios en estado Venta Efectuada o Emitido',
 				},
 				{ status: 400 }
 			)
@@ -252,7 +265,7 @@ export async function PUT(
 		}
 
 		// Actualizar negocio: contrato y estado a EMITIDO
-		const newStatus = contract
+		const newStatus = contract && existingBusiness.status === BUSINESS_STATUS.VENTA_EFECTUADA
 			? BUSINESS_STATUS.EMITIDO
 			: existingBusiness.status
 
@@ -264,6 +277,24 @@ export async function PUT(
 			},
 			include: businessWithRelations,
 		})
+
+		// Sincronizar si se proporciona idSettlementCommission
+		if (idSettlementCommission && contract) {
+			const syncResult = await sincronizarYCalcularRegistroRezagado(
+				idSettlementCommission,
+				contract
+			)
+			if (!syncResult.success) {
+				console.warn('Sincronización fallida:', syncResult.mensaje)
+				return NextResponse.json(
+					{
+						data: null,
+						error: `Contrato actualizado pero sincronización falló: ${syncResult.mensaje}`,
+					},
+					{ status: 400 }
+				)
+			}
+		}
 
 		await logAuditEvent({
 			userId: currentUser.idUser,
@@ -277,6 +308,7 @@ export async function PUT(
 				previousStatus: existingBusiness.status,
 				newStatus,
 				contract,
+				idSettlementCommission: idSettlementCommission || null,
 			}),
 		})
 

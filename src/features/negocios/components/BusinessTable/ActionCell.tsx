@@ -56,7 +56,10 @@ export function ActionCell({
 	onView,
 	onCancel,
 }: ActionCellProps) {
-	const canEdit = EDITABLE_STATUSES.includes(businessStatus)
+	const canEdit =
+		businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA ||
+		(businessStatus === BUSINESS_STATUS.EMITIDO &&
+			userRole === UserRole.ASISTENTE_GERENCIA_OPERATIVA)
 	const canCancel =
 		CANCEL_ALLOWED_ROLES.includes(userRole) &&
 		CANCELABLE_STATUSES.includes(businessStatus)

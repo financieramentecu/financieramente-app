@@ -39,6 +39,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const [selectedClient, setSelectedClient] = React.useState<Client | null>(
 		null
 	)
+	const [idSettlementCommission, setIdSettlementCommission] = React.useState<number | null>(null)
 
 	const { handleSearchClient, results: clientResults } = useSearchClient()
 	const { handleSearchAgents } = useSearchAgents()
@@ -121,6 +122,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 				if (isEditMode && businessId) {
 					const result = await updateBusiness(businessId, {
 						contract: data.contract || undefined,
+						idSettlementCommission: idSettlementCommission || undefined,
 					})
 
 					if (result) {
@@ -230,7 +232,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 				})
 			}
 		},
-		[selectedClient, onSubmit, isEditMode, businessId, updateBusiness]
+		[selectedClient, onSubmit, isEditMode, businessId, updateBusiness, idSettlementCommission]
 	)
 
 	return {
@@ -250,5 +252,6 @@ export function useBusinessForm(props: BusinessFormProps) {
 		isAgentUser,
 		canSearchAgents,
 		handleAgentSearch,
+		setIdSettlementCommission,
 	}
 }

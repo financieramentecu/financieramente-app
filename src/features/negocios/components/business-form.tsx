@@ -46,6 +46,7 @@ export const BusinessForm = React.forwardRef<
 			isAgentUser,
 			canSearchAgents,
 			handleAgentSearch,
+			setIdSettlementCommission,
 		} = useBusinessForm({
 			mode,
 			businessId,
@@ -73,6 +74,7 @@ export const BusinessForm = React.forwardRef<
 						onSearchClient={handleSearchClient}
 						onClientSelected={handleClientSelected}
 						isEditMode={isEditMode}
+						onSelectLag={setIdSettlementCommission}
 					/>
 
 					<ProductInfoSection
