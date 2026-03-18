@@ -58,7 +58,7 @@ model Category {
 }
 
 model CategoryType {
-  id          Int        @id @default(autoincrement())
+  id          Int        @id @default(autoincrement()) @map("id_category_type")
   name        String     @unique @db.VarChar(100)
   description String?    @db.Text
   status      Boolean    @default(true)

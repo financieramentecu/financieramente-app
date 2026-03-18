@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import {
     findCategoryTypeById,
     updateCategoryType,
+    deleteCategoryType,
 } from '@/features/category-types/services/category-type.service'
 import { updateCategoryTypeSchema } from '@/features/category-types/lib/category-type-schemas'
 import { prismaCategoryTypeToCategoryType } from '@/features/category-types/mappers/category-type.mapper'
@@ -155,3 +156,102 @@ export async function PUT(
         )
     }
 }
+
+/**
+ * PATCH /api/category-types/[id]
+ * Toggles active status of a category type
+ */
+export async function PATCH(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse<ApiResponse<CategoryType>>> {
+    try {
+        const session = await auth()
+        if (!session?.user) {
+            return NextResponse.json(
+                { data: null, error: 'No autorizado' },
+                { status: 401 }
+            )
+        }
+
+        const { id } = await params
+        const categoryTypeId = parseInt(id)
+
+        if (isNaN(categoryTypeId)) {
+            return NextResponse.json(
+                { data: null, error: 'ID de tipo categoría inválido' },
+                { status: 400 }
+            )
+        }
+
+        const categoryType = await findCategoryTypeById(categoryTypeId)
+        if (!categoryType) {
+            return NextResponse.json(
+                { data: null, error: 'Tipo de categoría no encontrado' },
+                { status: 404 }
+            )
+        }
+
+        const updateResult = await updateCategoryType(categoryTypeId, {
+            status: !categoryType.status,
+        })
+
+        const formattedCategoryType = prismaCategoryTypeToCategoryType(
+            updateResult.categoryType
+        )
+
+        return NextResponse.json({ data: formattedCategoryType })
+    } catch (error) {
+        console.error('Error toggling category type status:', error)
+        return NextResponse.json(
+            { data: null, error: 'Error al cambiar el estado' },
+            { status: 500 }
+        )
+    }
+}
+
+/**
+ * DELETE /api/category-types/[id]
+ * Deletes a category type
+ */
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse<ApiResponse<null>>> {
+    try {
+        const session = await auth()
+        if (!session?.user) {
+            return NextResponse.json(
+                { data: null, error: 'No autorizado' },
+                { status: 401 }
+            )
+        }
+
+        const { id } = await params
+        const categoryTypeId = parseInt(id)
+
+        if (isNaN(categoryTypeId)) {
+            return NextResponse.json(
+                { data: null, error: 'ID de tipo categoría inválido' },
+                { status: 400 }
+            )
+        }
+
+        await deleteCategoryType(categoryTypeId)
+
+        return NextResponse.json({ data: null })
+    } catch (error) {
+        console.error('Error deleting category type:', error)
+        if (error instanceof Error && error.message.includes('No se puede eliminar')) {
+             return NextResponse.json(
+                 { data: null, error: error.message },
+                 { status: 409 }
+             )
+        }
+        return NextResponse.json(
+            { data: null, error: 'Error al eliminar el tipo de categoría' },
+            { status: 500 }
+        )
+    }
+}
+
