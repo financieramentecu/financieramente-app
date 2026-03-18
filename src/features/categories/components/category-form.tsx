@@ -21,6 +21,7 @@ import {
 } from '../lib/category-schemas'
 import type { Category, CategoryType } from '../types/category.types'
 import { cn } from '@/lib/utils'
+import { useCategoryTypes } from '@/features/category-types/hooks/use-category-types'
 
 interface CategoryFormProps {
 	mode: 'create' | 'edit'
@@ -32,13 +33,6 @@ interface CategoryFormProps {
 	isLoading?: boolean
 }
 
-// Hardcoded for now to unblock build, ideally fetched from API
-const CATEGORY_TYPE_OPTIONS: { id: number; label: CategoryType }[] = [
-	{ id: 1, label: 'MMS' },
-	{ id: 2, label: 'ALIADO' },
-	{ id: 3, label: 'TRINITY' },
-]
-
 type FormValues = CreateCategoryFormData
 
 export function CategoryForm({
@@ -48,6 +42,9 @@ export function CategoryForm({
 	onCancel,
 	isLoading = false,
 }: CategoryFormProps) {
+	const { data: typesData } = useCategoryTypes() // Fetch all active/inactive or default filter
+	const options = typesData?.categoryTypes.map(t => ({ id: t.id, label: t.name })) || []
+
 	const form = useForm<FormValues>({
 		resolver: zodResolver(createCategorySchema),
 		defaultValues: (initialData
@@ -137,7 +134,7 @@ export function CategoryForm({
 								<SelectValue placeholder="Seleccione un tipo" />
 							</SelectTrigger>
 							<SelectContent>
-								{CATEGORY_TYPE_OPTIONS.map((type) => (
+								{options.map((type) => (
 									<SelectItem key={type.id} value={type.label}>
 										{type.label}
 									</SelectItem>

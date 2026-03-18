@@ -13,12 +13,7 @@ import {
 } from '@/features/categories/mappers/category.mapper'
 import { Prisma } from '@prisma/client'
 
-// Temporary mapping for legacy compatibility
-const TYPE_NAME_TO_ID: Record<string, number> = {
-	MMS: 1,
-	ALIADO: 2,
-	TRINITY: 3,
-}
+
 
 /**
  * GET /api/categories
@@ -43,9 +38,11 @@ export async function GET(request: Request) {
 		}
 
 		if (typeCategory) {
-			const typeId = TYPE_NAME_TO_ID[typeCategory]
-			if (typeId) {
-				where.idCategoryType = typeId
+			const categoryTypeRec = await prisma.categoryType.findFirst({
+				where: { name: { equals: typeCategory, mode: 'insensitive' } },
+			})
+			if (categoryTypeRec) {
+				where.idCategoryType = categoryTypeRec.id
 			}
 		}
 
@@ -102,8 +99,19 @@ export async function POST(request: Request) {
 		const body = await request.json()
 		const data = createCategorySchema.parse(body)
 
-		// Create category mapping typeCategory string to ID
-		const typeId = TYPE_NAME_TO_ID[data.typeCategory] || 1
+		// Lookup category type ID from database
+		const categoryTypeRec = await prisma.categoryType.findFirst({
+			where: { name: { equals: data.typeCategory, mode: 'insensitive' } },
+		})
+
+		if (!categoryTypeRec) {
+			return NextResponse.json(
+				{ data: null, error: 'Tipo de categoría no válido' },
+				{ status: 400 }
+			)
+		}
+
+		const typeId = categoryTypeRec.id
 
 		// Normalize code
 		const normalizedCode = data.code.trim().toUpperCase()
