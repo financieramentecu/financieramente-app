@@ -120,6 +120,9 @@ describe('sincronizarYCalcularRegistroRezagado', () => {
 			settlementCommission: {
 				findUnique: vi.fn().mockResolvedValue(mockSettlement),
 			},
+			business: {
+				findFirst: vi.fn().mockResolvedValue({ idBusiness: 100 }),
+			},
 		}
 
 		vi.mocked(prisma.$transaction).mockImplementation(async (callback: any) => {
