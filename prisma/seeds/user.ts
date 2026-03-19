@@ -50,6 +50,20 @@ export const superAdminUser = {
 	ssoOnly: false,
 }
 
+export const agentUser = {
+	name: 'Agente',
+	lastName: 'Prueba',
+	typeIdentity: 'CC',
+	identityNumber: '1234567890',
+	email: 'agente.prueba@financieramentecu.com',
+	roleCode: 'AGENTE',
+	idUserLeader: null,
+	entryDate: new Date(),
+	active: true,
+	ssoOnly: false,
+}
+
+
 export async function seedUsers(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Usuarios (Users)...')
 
@@ -162,8 +176,7 @@ export async function seedUsers(prisma: PrismaClient) {
 		console.warn(
 			'⚠️  SUPER_ADMIN_PASSWORD no está definida. Saltando creación de Super Admin.'
 		)
-		return
-	}
+	} else {
 
 	// Verificar si el super admin ya existe
 	const existingSuperAdmin = await prisma.user.findFirst({
@@ -214,6 +227,53 @@ export async function seedUsers(prisma: PrismaClient) {
 		})
 		console.log(
 			`✅ Super Admin creado: ${superAdminUser.name} (${superAdminUser.email})`
+		)
+	}
+	}
+
+	// 4. Procesar Agente Prueba
+	console.log('\n👉 Procesando Usuario Agente...')
+	const agentRole = await prisma.role.findFirst({
+		where: { code: agentUser.roleCode },
+	})
+
+	if (!agentRole) {
+		console.error(`❌ Error: No se encontró el rol ${agentUser.roleCode}.`)
+		return
+	}
+
+	const existingAgent = await prisma.user.findFirst({
+		where: { email: agentUser.email },
+	})
+
+	const agentPasswordCrypted = await hashPassword('password123')
+
+	const agentData = {
+		name: agentUser.name,
+		lastName: agentUser.lastName,
+		typeIdentity: agentUser.typeIdentity,
+		identityNumber: agentUser.identityNumber,
+		email: agentUser.email,
+		password: agentPasswordCrypted,
+		ssoOnly: agentUser.ssoOnly,
+		idRole: agentRole.idRole,
+		idUserLeader: agentUser.idUserLeader,
+		entryDate: agentUser.entryDate,
+		active: agentUser.active,
+	} as Prisma.UserUncheckedCreateInput
+
+	if (existingAgent) {
+		await prisma.user.update({
+			where: { idUser: existingAgent.idUser },
+			data: agentData,
+		})
+		console.log(
+			`✅ Usuario Agente actualizado: ${agentUser.name} (${agentUser.email})`
+		)
+	} else {
+		await prisma.user.create({ data: agentData })
+		console.log(
+			`✅ Usuario Agente creado: ${agentUser.name} (${agentUser.email})`
 		)
 	}
 }

@@ -10,6 +10,7 @@ import { getClientOrigins } from '@/features/origins/lib/origins-api'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { CurrentUser } from '@/features/negocios/types/business.types'
+import { getClawbackBalance } from '@/features/shared/services/agent.service'
 
 const getCompaniesCached = unstable_cache(getCompanies, ['companies'], {
 	revalidate: 300, // 5 minutes
@@ -58,9 +59,15 @@ export default async function CrearNegocioPage() {
 
 	// Obtener información completa del usuario desde la base de datos
 	let currentUser: CurrentUser | null = null
+	let clawbackBalance = 0
 
 	if (session?.user?.email) {
 		currentUser = await getCurrentUserByEmail(session.user.email)
+	}
+
+	const userId = parseInt(session?.user?.id || '0')
+	if (userId) {
+		clawbackBalance = await getClawbackBalance(userId)
 	}
 
 	return (
@@ -73,8 +80,10 @@ export default async function CrearNegocioPage() {
 					currencies={currencies}
 					clientOrigins={clientOrigins}
 					currentUser={currentUser}
+					clawbackBalance={clawbackBalance}
 				/>
 			</div>
 		</DashboardLayout>
 	)
 }
+

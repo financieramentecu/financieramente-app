@@ -254,17 +254,17 @@ export function BusinessTableSection({
 				pagination={
 					pagination
 						? {
-								currentPage: pagination.page,
-								pageSize: pagination.pageSize,
-								totalItems: pagination.total,
-								onPageChange: onPageChange || (() => {}),
-							}
+							currentPage: pagination.page,
+							pageSize: pagination.pageSize,
+							totalItems: pagination.total,
+							onPageChange: onPageChange || (() => { }),
+						}
 						: {
-								currentPage: 1,
-								pageSize: 10,
-								totalItems: data.length,
-								onPageChange: () => {},
-							}
+							currentPage: 1,
+							pageSize: 10,
+							totalItems: data.length,
+							onPageChange: () => { },
+						}
 				}
 			/>
 		</div>

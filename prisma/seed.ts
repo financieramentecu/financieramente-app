@@ -11,6 +11,8 @@ import { seedRoles } from './seeds/roles'
 import { seedUsers } from './seeds/user'
 import { seedBusinesses } from './seeds/business'
 import { seedProductPercentages } from './seeds/product-percentage'
+import { seedClawbackBalance } from './seeds/clawback'
+
 
 const prisma = new PrismaClient()
 
@@ -48,6 +50,9 @@ async function main() {
 
 		// 5. Usuarios (depende de Roles)
 		await seedUsers(prisma)
+
+		// 5.1 Saldos de Clawback (depende de Usuarios) - NUEVO
+		await seedClawbackBalance(prisma)
 
 		// 6. Negocios de prueba (depende de todo lo anterior)
 		await seedBusinesses(prisma)

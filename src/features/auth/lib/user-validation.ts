@@ -166,7 +166,8 @@ export async function validateUserCredentials(
 		}
 
 		// RESTRICCIÓN: Solo usuarios ADMIN pueden usar email/contraseña
-		if (user.role.code !== UserRole.ADMIN) {
+		// NOTA: Se permite AGENTE para facilitar pruebas locales de Dashboard
+		if (user.role.code !== UserRole.ADMIN && user.role.code !== UserRole.AGENTE) {
 			return {
 				isValid: false,
 				user: {
