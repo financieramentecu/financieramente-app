@@ -142,4 +142,24 @@ export const categoryTypeApi = {
             }
         }
     },
+
+    /**
+     * Delete a category type
+     */
+    deleteCategoryType: async (id: number): Promise<ApiResponse<null>> => {
+        try {
+            const response = await fetch(`/api/category-types/${id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+            })
+            const result: ApiResponse<null> = await response.json()
+            return result
+        } catch (error) {
+            return {
+                data: null,
+                error: error instanceof Error ? error.message : 'Error al eliminar',
+            }
+        }
+    },
 }
+

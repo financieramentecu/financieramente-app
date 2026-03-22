@@ -89,10 +89,36 @@ export function useCategoryTypeMutations() {
         []
     )
 
+    const deleteCategoryType = useCallback(
+        async (id: number) => {
+            try {
+                setIsSubmitting(true)
+                const response = await categoryTypeApi.deleteCategoryType(id)
+
+                if ('error' in response) {
+                    toast.error(response.error)
+                    return false
+                }
+
+
+                toast.success('Tipo de categoría eliminado exitosamente')
+                return true
+            } catch {
+                toast.error('Ocurrió un error al eliminar el tipo de categoría')
+                return false
+            } finally {
+                setIsSubmitting(false)
+            }
+        },
+        []
+    )
+
     return {
         createCategoryType,
         updateCategoryType,
         toggleCategoryTypeStatus,
+        deleteCategoryType,
         isSubmitting,
     }
+
 }

@@ -2,17 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/features/shared/ui/table'
 import { Input } from '@/features/shared/ui/input'
 import { Button } from '@/features/shared/ui/button'
-import { Badge } from '@/features/shared/ui/badge'
 import {
     Select,
     SelectContent,
@@ -20,14 +11,49 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/features/shared/ui/select'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/features/shared/ui/alert-dialog'
+
 import { useCategoryTypes } from '../hooks/use-category-types'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Search, Plus, Edit, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Plus, Edit, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { useDebounce } from '@/features/shared/hooks/use-debounce'
-import { Switch } from '@/features/shared/ui/switch'
 import { useCategoryTypeMutations } from '../hooks/use-category-type-mutations'
 import { CategoryType } from '../types/category-type.types'
+
+
+function StatusBadge({ status }: { status: boolean }) {
+    return (
+        <span
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+            style={
+                status
+                    ? { backgroundColor: '#dcfce7', color: '#166534' }
+                    : { backgroundColor: '#F1F5F5', color: '#529398' }
+            }
+        >
+            <span
+                className="inline-block rounded-full"
+                style={{
+                    width: 5,
+                    height: 5,
+                    backgroundColor: status ? '#16A34A' : '#DDE9EB',
+                    flexShrink: 0,
+                }}
+            />
+            {status ? 'Activo' : 'Inactivo'}
+        </span>
+    )
+}
 
 export function CategoryTypesTable() {
     const router = useRouter()
@@ -49,10 +75,30 @@ export function CategoryTypesTable() {
         currentPage,
         10
     )
-    const { toggleCategoryTypeStatus } = useCategoryTypeMutations()
+    const { toggleCategoryTypeStatus, deleteCategoryType } = useCategoryTypeMutations()
+    const [deleteId, setDeleteId] = useState<number | null>(null)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const loading = status === 'loading'
+    
+    const handleDeleteClick = (id: number) => {
+        setDeleteId(id)
+        setIsDeleteDialogOpen(true)
+    }
+
+    const handleConfirmDelete = async () => {
+        if (deleteId !== null) {
+            const success = await deleteCategoryType(deleteId)
+            if (success) {
+                refetch()
+            }
+            setDeleteId(null)
+            setIsDeleteDialogOpen(false)
+        }
+    }
+
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
         setSearchTerm(e.target.value)
         updateQueryParams('search', e.target.value)
     }
@@ -119,73 +165,121 @@ export function CategoryTypesTable() {
                 </Button>
             </div>
 
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead className="hidden md:table-cell">Descripción</TableHead>
-                            <TableHead>Estado</TableHead>
-                            <TableHead className="hidden lg:table-cell">Modificado</TableHead>
-                            <TableHead className="w-[100px] text-right">Acciones</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center h-24">
-                                    Cargando...
-                                </TableCell>
-                            </TableRow>
-                        ) : error ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center text-red-500 h-24">
-                                    Error al cargar los tipos de categoría
-                                </TableCell>
-                            </TableRow>
-                        ) : !data?.categoryTypes.length ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                                    No se encontraron resultados
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            data.categoryTypes.map((type: CategoryType) => (
-                                <TableRow key={type.id}>
-                                    <TableCell className="font-medium">{type.name}</TableCell>
-                                    <TableCell className="hidden md:table-cell">
-                                        {type.description || <span className="text-muted-foreground italic">Sin descripción</span>}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center space-x-2">
-                                            <Switch
-                                                checked={type.status}
-                                                onCheckedChange={() => handleToggleStatus(type.id, type.status)}
-                                                disabled={loading}
-                                            />
-                                            <Badge variant={type.status ? 'default' : 'secondary'}>
-                                                {type.status ? 'Activo' : 'Inactivo'}
-                                            </Badge>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="hidden lg:table-cell">
+            <div
+                className="overflow-hidden rounded-lg"
+                style={{
+                    border: '1px solid #DDE9EB',
+                    boxShadow: '0 1px 3px #0000000D',
+                    backgroundColor: '#FFFFFF',
+                }}
+            >
+                {/* Header */}
+                <div
+                    className="flex items-center px-4"
+                    style={{
+                        backgroundColor: '#F1F5F5',
+                        height: 40,
+                        borderBottom: '1px solid #DDE9EB',
+                    }}
+                >
+                    <span className="w-[280px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
+                        NOMBRE / DESCRIPCIÓN
+                    </span>
+                    <span className="w-[120px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
+                        ESTADO
+                    </span>
+                    <span className="w-[140px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
+                        MODIFICADO
+                    </span>
+                    <span className="flex-1 text-right text-[11px] font-semibold tracking-[0.5px]" style={{ color: '#529398' }}>
+                        ACCIONES
+                    </span>
+                </div>
+
+                {/* Rows */}
+                {loading ? (
+                    <div className="py-10 text-center text-sm" style={{ color: '#529398' }}>
+                        Cargando...
+                    </div>
+                ) : error ? (
+                    <div className="py-10 text-center text-sm text-red-500">
+                        Error al cargar los tipos de categoría
+                    </div>
+                ) : !data?.categoryTypes.length ? (
+                    <div className="py-10 text-center text-sm" style={{ color: '#529398' }}>
+                        No se encontraron resultados
+                    </div>
+                ) : (
+                    data.categoryTypes.map((type: CategoryType, idx: number) => {
+                        const isLast = idx === data.categoryTypes.length - 1
+                        return (
+                            <div
+                                key={type.id}
+                                className="flex items-center px-4"
+                                style={{
+                                    backgroundColor: type.status ? '#FFFFFF' : '#FAFAFA',
+                                    height: 54,
+                                    borderBottom: isLast ? 'none' : '1px solid #F1F5F5',
+                                }}
+                            >
+                                {/* Nombre + descripción */}
+                                <div className="w-[280px] shrink-0 flex flex-col justify-center gap-0.5">
+                                    <span
+                                        className="text-[13px] font-medium leading-tight"
+                                        style={{ color: type.status ? '#111827' : '#529398' }}
+                                    >
+                                        {type.name}
+                                    </span>
+                                    <span className="text-[11px] truncate pr-4" style={{ color: type.status ? '#529398' : '#DDE9EB' }}>
+                                        {type.description || <span className="italic">Sin descripción</span>}
+                                    </span>
+                                </div>
+
+                                {/* Estado */}
+                                <div className="w-[120px] shrink-0">
+                                    <StatusBadge status={type.status} />
+                                </div>
+
+                                {/* Modificado */}
+                                <div className="w-[140px] shrink-0">
+                                    <span className="text-[12px]" style={{ color: type.status ? '#529398' : '#DDE9EB' }}>
                                         {format(new Date(type.updatedAt), 'dd MMM yyyy', { locale: es })}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => router.push(`/dashboard/admin/category-types/editar/${type.id}`)}
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                            <span className="sr-only">Editar</span>
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                                    </span>
+                                </div>
+
+                                {/* Acciones */}
+                                <div className="flex-1 flex justify-end gap-2">
+                                    <button
+                                        onClick={() => router.push(`/dashboard/admin/category-types/editar/${type.id}`)}
+                                        className="cursor-pointer rounded-md px-1 py-1 hover:bg-slate-100 transition-colors"
+                                    >
+                                        <Edit className="h-4 w-4 text-slate-500" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleToggleStatus(type.id, type.status)}
+                                        className="cursor-pointer rounded-md px-2.5 py-1 text-[12px] font-medium transition-opacity hover:opacity-80"
+                                        style={
+                                            type.status
+                                                ? { backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#ED4337' }
+                                                : { backgroundColor: '#F1FDF4', border: '1px solid #DCFCE7', color: '#166534' }
+                                        }
+                                    >
+                                        {type.status ? 'Inactivar' : 'Activar'}
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteClick(type.id)}
+                                        className="cursor-pointer rounded-md px-1.5 py-1 hover:bg-red-50 transition-colors"
+                                        title="Eliminar"
+                                    >
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                    </button>
+
+
+                                </div>
+                            </div>
+                        )
+                    })
+                )}
             </div>
 
             {data && data.pagination.totalPages > 1 && (
@@ -213,6 +307,30 @@ export function CategoryTypesTable() {
                     </Button>
                 </div>
             )}
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Está seguro de que desea eliminar?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente el
+                            tipo de categoría si no tiene subcategorías o referencias activas.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDeleteId(null)}>
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmDelete}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            Eliminar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
+
     )
 }
