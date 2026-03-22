@@ -15,6 +15,8 @@ export interface CargaHistorial {
 	rezagados: number
 	estado: string
 	createdAt: string // Raw ISO string for filtering
+	fileType: 'POLIZA' | 'VOLUNTARIA' | string
+	idFileImport: number
 }
 
 interface FileHistoryParams {
@@ -67,6 +69,8 @@ export function useFileHistory(params: FileHistoryParams = {}) {
 							item.createdAt instanceof Date
 								? item.createdAt.toISOString()
 								: String(item.createdAt),
+						fileType: item.fileType,
+						idFileImport: item.idFileImport,
 					}
 				}
 			)

@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { Button } from '@/features/shared/ui/button'
-import { useRegistrosLiquidacion } from '@/features/pre-liquidacion/hooks/use-registros-liquidacion'
+import { useComisionesPreliquidadas } from '@/features/pre-liquidacion/hooks/use-comisiones-preliquidadas'
 import { useLiquidarRegistros } from '@/features/pre-liquidacion/hooks/use-liquidar-registros'
 import { useRezagarRegistros } from '@/features/pre-liquidacion/hooks/use-rezagar-registros'
 import { RegistrosLiquidacionTable } from '@/features/pre-liquidacion/components/RegistrosLiquidacionTable'
@@ -27,7 +27,7 @@ export default function DetallePreLiquidacionPage() {
 		isLoading,
 		error,
 		refetch,
-	} = useRegistrosLiquidacion(fileId)
+	} = useComisionesPreliquidadas(fileId)
 
 	const { execute: executeLiquidar, state: liquidarState } =
 		useLiquidarRegistros()
@@ -108,11 +108,11 @@ export default function DetallePreLiquidacionPage() {
 					</Button>
 					<div className="flex-1">
 						<h1 className="text-lg font-semibold text-foreground">
-							Detalle de pre-liquidación
+							Comisiones pre-liquidadas
 						</h1>
 						{archivo && (
 							<p className="text-sm text-muted-foreground">
-								{archivo.nombreArchivo} · {archivo.sincronizados} sincronizados
+								{archivo.nombreArchivo} · registros en estado PRE-LIQUIDADO
 							</p>
 						)}
 					</div>
@@ -126,15 +126,19 @@ export default function DetallePreLiquidacionPage() {
 
 				{isLoading ? (
 					<div className="py-8 text-center text-muted-foreground">
-						Cargando registros...
+						Cargando comisiones pre-liquidadas...
+					</div>
+				) : registros.length === 0 ? (
+					<div className="py-8 text-center text-muted-foreground">
+						No hay comisiones pre-liquidadas para este archivo.
 					</div>
 				) : (
 					<>
 						{archivo && (
 							<h2 className="text-lg font-semibold text-foreground">
 								{archivo.fileType === 'VOLUNTARIA'
-									? 'PRELIQUIDACIÓN VOLUNTARIA'
-									: 'PRELIQUIDACIÓN POLIZA'}
+									? 'PRE-LIQUIDADAS VOLUNTARIA'
+									: 'PRE-LIQUIDADAS POLIZA'}
 							</h2>
 						)}
 						<RegistrosLiquidacionTable
@@ -144,8 +148,9 @@ export default function DetallePreLiquidacionPage() {
 							onSelectionChange={setSelectedIds}
 							onVerNegocio={handleVerNegocio}
 						/>
+						{/* Liquidar/Rezagar actions are disabled — records are PRE-SETTLED, not SYNCHRONIZED */}
 						<BarraAccionesLiquidacion
-							selectedCount={selectedIds.size}
+							selectedCount={0}
 							onLiquidar={handleLiquidar}
 							onRezagar={handleRezagar}
 							isLiquidando={isLiquidando}

@@ -98,11 +98,6 @@ export default function PreLiquidacionPage() {
 		{ value: '12', label: 'Diciembre' },
 	]
 
-	const clearFilters = () => {
-		setSelectedMonth('')
-		setSelectedYear('')
-	}
-
 	// Filtrar archivos por mes/año
 	const filterArchivosByDate = (archivosToFilter: typeof archivos) => {
 		if (!selectedMonth && !selectedYear) return archivosToFilter
@@ -123,9 +118,9 @@ export default function PreLiquidacionPage() {
 		})
 	}
 
-	// Archivos pendientes de pre-liquidar (LOAD y con registros SYNCHRONIZED)
+	// Archivos con registros PRE-SETTLED (ya preliquidados)
 	const archivosPendientes = archivos.filter(
-		(a) => a.estado === 'LOAD' && a.sincronizados > 0
+		(a) => a.estado === 'LOAD' && (a.registrosPreliquidados ?? 0) > 0
 	)
 	const archivosPendientesFiltrados = filterArchivosByDate(archivosPendientes)
 
@@ -138,12 +133,8 @@ export default function PreLiquidacionPage() {
 	// Resumen calculado basado en archivos filtrados
 	const resumenFiltrado = useMemo(() => {
 		const totalArchivos = archivosPendientesFiltrados.length
-		const totalRegistros = archivosPendientesFiltrados.reduce(
-			(sum, a) => sum + a.totalRegistros,
-			0
-		)
-		const totalSincronizados = archivosPendientesFiltrados.reduce(
-			(sum, a) => sum + a.sincronizados,
+		const totalRegistrosPreliquidados = archivosPendientesFiltrados.reduce(
+			(sum, a) => sum + (a.registrosPreliquidados ?? 0),
 			0
 		)
 		const totalRezagados = archivosPendientesFiltrados.reduce(
@@ -153,8 +144,7 @@ export default function PreLiquidacionPage() {
 
 		return {
 			totalArchivos,
-			totalRegistros,
-			sincronizados: totalSincronizados,
+			totalRegistros: totalRegistrosPreliquidados,
 			rezagados: totalRezagados,
 		}
 	}, [archivosPendientesFiltrados])
@@ -202,20 +192,6 @@ export default function PreLiquidacionPage() {
 					</SelectContent>
 				</Select>
 			</div>
-
-			{(selectedMonth || selectedYear) && (
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={clearFilters}
-					className="h-9 text-muted-foreground hover:text-destructive"
-					aria-label="Limpiar filtros"
-					title="Limpiar filtros"
-				>
-					<X className="h-4 w-4 sm:mr-1" />
-					<span className="hidden sm:inline">Limpiar</span>
-				</Button>
-			)}
 		</div>
 	)
 
@@ -282,7 +258,7 @@ export default function PreLiquidacionPage() {
 								</div>
 
 								{/* Panel de Resumen (dentro del tab, basado en filtros) */}
-								<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+								<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 									<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
 										<div className="flex items-center justify-between">
 											<div>
@@ -313,19 +289,6 @@ export default function PreLiquidacionPage() {
 										<div className="flex items-center justify-between">
 											<div>
 												<p className="text-sm text-muted-foreground">
-													Sincronizados
-												</p>
-												<p className="text-2xl font-bold text-chart-3">
-													{resumenFiltrado.sincronizados}
-												</p>
-											</div>
-											<Clock className="h-8 w-8 text-chart-3 opacity-50" />
-										</div>
-									</div>
-									<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
-										<div className="flex items-center justify-between">
-											<div>
-												<p className="text-sm text-muted-foreground">
 													Rezagados
 												</p>
 												<p className="text-2xl font-bold text-chart-4">
@@ -342,11 +305,11 @@ export default function PreLiquidacionPage() {
 									<div className="flex items-center gap-2 mb-4">
 										<FileText className="h-5 w-5 text-primary" />
 										<h2 className="text-lg font-semibold text-primary">
-											Archivos Pendientes de Pre-liquidar
+											Archivos pendientes para validar la Pre-Liquidación
 										</h2>
 									</div>
 
-										{isLoading ? (
+									{isLoading ? (
 										<TableRowsLoadingSkeleton rows={6} />
 									) : archivosPendientesFiltrados.length === 0 ? (
 										<EmptyState
@@ -510,7 +473,6 @@ export default function PreLiquidacionPage() {
 						</div>
 					</TabsContent>
 				</Tabs>
-
 			</div>
 		</DashboardLayout>
 	)

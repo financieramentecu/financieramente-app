@@ -238,6 +238,65 @@ export const loadFileApi = {
 	},
 
 	/**
+	 * Invoca el proceso de pre-liquidación para un archivo específico.
+	 * Llama a POST /api/pre-liquidacion/procesar con el fileImportId y el mes (YYYY-MM).
+	 */
+	preliquidar: async (
+		fileImportId: number,
+		mes: string,
+		config?: { signal?: AbortSignal }
+	): Promise<
+		ApiResponse<{ success: boolean; registrosProcesados: number; mensaje: string }>
+	> => {
+		try {
+			const res = await fetch('/api/pre-liquidacion/procesar', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ fileImportId, mes }),
+				signal: config?.signal,
+			})
+
+			const json = await res.json()
+
+			if (!res.ok) {
+				return {
+					data: null,
+					error: json.error || 'Error al procesar pre-liquidación',
+				}
+			}
+
+			if (
+				json.data &&
+				typeof json.data.success === 'boolean' &&
+				typeof json.data.registrosProcesados === 'number'
+			) {
+				return { data: json.data }
+			}
+
+			// Legacy: backend returned success/registrosProcesados at root level
+			if (typeof json.success === 'boolean') {
+				return {
+					data: {
+						success: json.success,
+						registrosProcesados: json.registrosProcesados ?? 0,
+						mensaje: json.mensaje ?? '',
+					},
+				}
+			}
+
+			return { data: null, error: 'Formato de respuesta desconocido' }
+		} catch (error) {
+			return {
+				data: null,
+				error:
+					error instanceof Error ? error.message : 'Error inesperado servidor',
+			}
+		}
+	},
+
+	/**
 	 * Obtiene los errores (FileImportError) de una importación.
 	 */
 	getImportErrors: async (
