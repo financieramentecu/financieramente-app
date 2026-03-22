@@ -9,6 +9,7 @@ interface RegistrosLiquidacionTableProps {
 	selectedIds: Set<number>
 	onSelectionChange: (ids: Set<number>) => void
 	onVerNegocio: (idBusiness: number) => void
+	onVerDistribucion: (idSettlementCommission: number) => void
 }
 
 const VOLUNTARIA = 'VOLUNTARIA'
@@ -30,6 +31,7 @@ export function RegistrosLiquidacionTable({
 	selectedIds,
 	onSelectionChange,
 	onVerNegocio,
+	onVerDistribucion,
 }: RegistrosLiquidacionTableProps) {
 	const isVoluntaria = fileType === VOLUNTARIA
 	const allIds = registros.map((r) => r.idSettlementCommission)
@@ -180,19 +182,30 @@ export function RegistrosLiquidacionTable({
 								</>
 							)}
 							<td className="py-3 px-4 text-right">
-								{r.idBusiness != null ? (
+								<div className="flex items-center justify-end gap-2">
+									{r.idBusiness != null ? (
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => onVerNegocio(r.idBusiness!)}
+											className="cursor-pointer"
+											aria-label="Ver negocio"
+										>
+											Ver negocio
+										</Button>
+									) : (
+										<span className="text-muted-foreground text-sm">—</span>
+									)}
 									<Button
 										variant="outline"
 										size="sm"
-										onClick={() => onVerNegocio(r.idBusiness!)}
+										onClick={() => onVerDistribucion(r.idSettlementCommission)}
 										className="cursor-pointer"
-										aria-label="Ver negocio"
+										aria-label="Ver distribución de comisión"
 									>
-										Ver negocio
+										Detalle de Distribución
 									</Button>
-								) : (
-									<span className="text-muted-foreground text-sm">—</span>
-								)}
+								</div>
 							</td>
 						</tr>
 					))}
