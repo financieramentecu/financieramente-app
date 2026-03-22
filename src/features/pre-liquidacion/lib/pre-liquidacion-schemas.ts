@@ -69,6 +69,25 @@ export const mesSchema = z.object({
 })
 
 /**
+ * Schema for POST /api/pre-liquidacion/liquidar body
+ */
+export const liquidarRegistrosSchema = z.object({
+	ids: z
+		.array(z.number().int().positive())
+		.min(1, 'Debe seleccionar al menos un registro'),
+	fileId: z.number().int().positive(),
+})
+
+/**
+ * Schema for POST /api/pre-liquidacion/rezagar body
+ */
+export const rezagarRegistrosSchema = z.object({
+	ids: z
+		.array(z.number().int().positive())
+		.min(1, 'Debe seleccionar al menos un registro'),
+})
+
+/**
  * Tipos inferidos desde schemas
  */
 export type ProcesarPreLiquidacionInput = z.infer<
@@ -76,3 +95,5 @@ export type ProcesarPreLiquidacionInput = z.infer<
 >
 export type RangoFechasInput = z.infer<typeof rangoFechasSchema>
 export type MesInput = z.infer<typeof mesSchema>
+export type LiquidarRegistrosInput = z.infer<typeof liquidarRegistrosSchema>
+export type RezagarRegistrosInput = z.infer<typeof rezagarRegistrosSchema>

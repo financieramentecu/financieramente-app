@@ -11,6 +11,7 @@ import {
 	ArrowRightLeft,
 	Users,
 	Tag,
+	Percent,
 } from 'lucide-react'
 
 export default function AdminDashboardPage() {
@@ -56,6 +57,12 @@ export default function AdminDashboardPage() {
 			description: 'Gestionar usuarios y agentes',
 			href: '/dashboard/admin/users',
 			icon: <Users className="h-5 w-5 text-primary" />,
+		},
+		{
+			title: 'Descuentos',
+			description: 'Gestionar descuentos de impuesto y clawback',
+			href: '/dashboard/admin/discounts',
+			icon: <Percent className="h-5 w-5 text-primary" />,
 		},
 	]
 

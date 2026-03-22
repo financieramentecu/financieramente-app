@@ -15,6 +15,7 @@ export interface ArchivoDisponible {
 	rezagados: number
 	estado: string
 	registrosPreliquidados?: number
+	fileType: string | null
 }
 
 /**
@@ -213,4 +214,59 @@ export interface ResumenUsuarioPreliquidacion {
 	archivoNombre: string
 	periodo: string
 	filas: ResumenFilaPreliquidacion[]
+}
+
+/**
+ * Flat record for the pre-liquidación detail page table (SYNCHRONIZED records only).
+ */
+export interface RegistroLiquidacionDetalle {
+	readonly idSettlementCommission: number
+	readonly idBusiness: number | null
+	contrato: string | null
+	nombreAsesor: string
+	tipo: string | null
+	monto: number
+	baseComision: number
+	porcentajeDescuento: number
+	porcentajeClawback: number
+	esClawback: boolean
+	esRezagado: boolean
+	fechaSincronizacion: string | null
+	fechaRezagado: string | null
+	fechaInicio: string | null
+	fechaFin: string | null
+}
+
+/**
+ * Response shape for GET /api/pre-liquidacion/registros/[fileId].
+ */
+export interface RespuestaRegistrosLiquidacion {
+	archivo: {
+		idFileImport: number
+		nombreArchivo: string
+		fileType: string
+		usuarioCargo: string
+		fechaCarga: string
+		totalRegistros: number
+		sincronizados: number
+	}
+	registros: RegistroLiquidacionDetalle[]
+}
+
+/** Pre-liquidación flow for clawback persistence and balance behavior */
+export const PRE_LIQUIDACION_FLOW = {
+	VOLUNTARIA: 'VOLUNTARIA',
+	POLIZA_CARTERA: 'POLIZA_CARTERA',
+	POLIZA_NO_CLAW: 'POLIZA_NO_CLAW',
+	POLIZA_CLAW: 'POLIZA_CLAW',
+} as const
+
+export type PreLiquidacionFlow =
+	(typeof PRE_LIQUIDACION_FLOW)[keyof typeof PRE_LIQUIDACION_FLOW]
+
+/** Input for pure flow derivation (no Prisma shape leakage) */
+export interface DeriveFlowInput {
+	readonly commissionType: string
+	readonly originCommission: string | null
+	readonly isClawback: boolean
 }

@@ -64,6 +64,22 @@ The **architecture-enforcer** subagent validates that all new code follows:
 
 **Invoke when**: Creating or modifying code in `src/features/` to ensure architectural compliance.
 
+### Spec-Driven Development (SDD)
+
+For Spec-Driven Development / OpenSpec workflow, **always use subagents** to run each phase instead of executing the phase inline:
+
+| Phase | Command / Trigger | Action |
+| ----- | ----------------- | ------ |
+| Proposal | `/sdd-propose` | Launch subagent to create or update `proposal.md` from exploration or user input. |
+| Design | `/sdd-design` | Launch subagent to produce `design.md` from proposal (and specs if present). |
+| Spec | `/sdd-spec` | Launch subagent to write delta or full specs in `openspec/changes/{change}/specs/`. |
+| Tasks | `/sdd-tasks` | Launch subagent to create `tasks.md` from proposal, specs, and design. |
+| Apply | `/sdd-apply` | Launch subagent to implement tasks (code changes) in batches. |
+| Verify | `/sdd-verify` | Launch subagent to verify implementation against specs and tasks. |
+| Archive | `/sdd-archive` | Launch subagent to archive the change and sync delta specs to main specs. |
+
+**Rule**: Do not execute proposal, design, spec, tasks, apply, verify, or archive logic inline. Use `mcp_task` (or equivalent) with the appropriate subagent and pass the change name, artifact store mode, and context so the subagent reads the skill and produces the artifact. See [.cursor/rules/SDD.md](.cursor/rules/SDD.md).
+
 ---
 
 ## API Documentation
@@ -159,8 +175,13 @@ Before creating a PR:
 ### Actions and Services (data access)
 
 - **Server Actions** (`actions/`): orchestrate validation, call **services** for data, and return `ApiResponse`. Do **not** call Prisma directly from actions.
+- **API Routes** (`src/app/api/`): **NUNCA** call Prisma from API route handlers. Always call **feature services** (`src/features/[feature]/services/` or `lib/`) for any database access. Route handlers only handle HTTP, validate input, and return responses.
 - **Services** (`services/`): contain all **Prisma** (and other data) calls for the feature. Return domain data or simple result objects; no `ApiResponse` here.
-- **Responsibility split**: Actions = input validation, error messages, response shape. Services = database queries, domain logic that touches Prisma.
+- **Responsibility split**: Actions = input validation, error messages, response shape. API routes = HTTP layer only, delegate to services. Services = database queries, domain logic that touches Prisma.
+
+### Async state in hooks
+
+- **Hooks with async calls** must use the shared type `AsyncState<T>` from `src/features/shared/types/async-state.types.ts`. Do **not** manage three separate states (e.g. `isLoading`, `data`, `error` with multiple `useState`). Use a single discriminated state (`idle` | `loading` | `success` | `error`) for consistent UI and type narrowing.
 
 See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed architecture guidelines.
 - Git: Use Git Flow (feature/, bugfix/, audit/, hotfix/). Branch from 'develop'. Commits MUST follow Conventional Commits (feat:, fix:, chore:, docs:, refactor:, audit:). PRs must use the provided template.

@@ -45,6 +45,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				idBusiness: null,
 				recoveredLag: false,
 				errorReason: 'Error de validación de formato',
+				resolvedErrors: 0,
 			}
 		}
 
@@ -76,6 +77,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 					isLag: true,
 					idBusiness: null,
 					recoveredLag: false,
+					resolvedErrors: 0,
 				}
 			}
 
@@ -99,11 +101,23 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						business.idBusiness,
 						snapshots.discountPercentage
 					)
+					const resolved = await tx.fileImportError.updateMany({
+						where: {
+							idFileImport: fileImportId,
+							contract: extracted.contract,
+							resolved: false,
+						},
+						data: {
+							resolved: true,
+							resolvedAt: new Date(),
+						},
+					})
 					return {
 						status: 'SYNCHRONIZED',
 						isLag: false,
 						idBusiness: business.idBusiness,
 						recoveredLag: false,
+						resolvedErrors: resolved.count,
 					}
 				} else {
 					await this.createLag(tx, extracted, fileImportId, business.idBusiness)
@@ -112,6 +126,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						isLag: true,
 						idBusiness: business.idBusiness,
 						recoveredLag: false,
+						resolvedErrors: 0,
 					}
 				}
 			} else {
@@ -135,6 +150,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						idBusiness: business.idBusiness,
 						recoveredLag: false,
 						errorReason: 'Duplicate commission',
+						resolvedErrors: 0,
 					}
 				}
 
@@ -162,11 +178,23 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						business.idBusiness,
 						snapshots.discountPercentage
 					)
+					const resolved = await tx.fileImportError.updateMany({
+						where: {
+							idFileImport: fileImportId,
+							contract: extracted.contract,
+							resolved: false,
+						},
+						data: {
+							resolved: true,
+							resolvedAt: new Date(),
+						},
+					})
 					return {
 						status: 'SYNCHRONIZED',
 						isLag: false,
 						idBusiness: business.idBusiness,
 						recoveredLag: true,
+						resolvedErrors: resolved.count,
 					}
 				} else {
 					await this.createSync(
@@ -176,11 +204,23 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						business.idBusiness,
 						snapshots.discountPercentage
 					)
+					const resolved = await tx.fileImportError.updateMany({
+						where: {
+							idFileImport: fileImportId,
+							contract: extracted.contract,
+							resolved: false,
+						},
+						data: {
+							resolved: true,
+							resolvedAt: new Date(),
+						},
+					})
 					return {
 						status: 'SYNCHRONIZED',
 						isLag: false,
 						idBusiness: business.idBusiness,
 						recoveredLag: false,
+						resolvedErrors: resolved.count,
 					}
 				}
 			}
@@ -211,6 +251,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				status: 'SYNCHRONIZED',
 				isLag: false,
 				isClawback: false,
+				syncDate: new Date(),
 			},
 		})
 	}

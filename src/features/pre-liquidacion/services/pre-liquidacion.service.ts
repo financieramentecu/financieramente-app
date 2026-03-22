@@ -3,15 +3,18 @@ import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidac
 import { Decimal } from '@prisma/client/runtime/library'
 import type {
 	AgenteDistribucion,
+	ArchivoDisponible,
 	ComisionesCalculadas,
 	ConfiguracionPorcentajes,
 	RegistroDetallePreLiquidacion,
-	RespuestaDetallePreLiquidacion,
+	RegistroLiquidacionDetalle,
 	RespuestaArchivosDisponibles,
-	ArchivoDisponible,
+	RespuestaDetallePreLiquidacion,
+	RespuestaRegistrosLiquidacion,
 	ResumenFilaPreliquidacion,
 	ResumenUsuarioPreliquidacion,
 } from '../types/types'
+import { deriveFlow } from '../lib/pre-liquidacion-flow'
 
 /**
  * Obtiene los archivos disponibles para pre-liquidar y los ya pre-liquidados.
@@ -20,11 +23,11 @@ import type {
 export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<RespuestaArchivosDisponibles> {
 	const todosArchivos = await prisma.fileImport.findMany({
 		where: {
-			status: 'LOAD',
+			status: { in: ['LOAD', 'PRE-SETTLED', 'PRE-SETTLE-APROVED'] },
 			settlementCommissions: {
 				some: {
 					status: {
-						in: ['SYNCHRONIZED'],
+						in: ['SYNCHRONIZED', 'PRE-SETTLED', 'PRE-SETTLE-APROVED'],
 					},
 				},
 			},
@@ -32,6 +35,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 		select: {
 			idFileImport: true,
 			nameFile: true,
+			fileType: true,
 			loadDate: true,
 			preLiquidacionDate: true,
 			totalRecord: true,
@@ -44,25 +48,52 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 					lastName: true,
 				},
 			},
-			_count: {
-				select: {
-					settlementCommissions: {
-						where: { status: 'SYNCHRONIZED' },
-					},
-				},
-			},
 		},
 		orderBy: {
 			loadDate: 'desc',
 		},
 	})
 
-	const archivos: ArchivoDisponible[] = todosArchivos.map((archivo) => {
-		const preliquidadosCount = archivo._count.settlementCommissions
+	const fileIds = todosArchivos.map((a) => a.idFileImport)
+	const countsMap: Record<
+		number,
+		{ sincronizados: number; registrosPreliquidados: number }
+	> = {}
 
+	if (fileIds.length > 0) {
+		const groups = await prisma.settlementCommission.groupBy({
+			by: ['idFileImport', 'status'],
+			where: {
+				idFileImport: { in: fileIds },
+				status: { in: ['SYNCHRONIZED', 'PRE-SETTLED', 'PRE-SETTLE-APROVED'] },
+			},
+			_count: { idSettlementCommission: true },
+		})
+		for (const row of groups) {
+			if (!countsMap[row.idFileImport]) {
+				countsMap[row.idFileImport] = {
+					sincronizados: 0,
+					registrosPreliquidados: 0,
+				}
+			}
+			const count = row._count.idSettlementCommission
+			if (row.status === 'SYNCHRONIZED') {
+				countsMap[row.idFileImport].sincronizados = count
+			} else if (row.status === 'PRE-SETTLED' || row.status === 'PRE-SETTLE-APROVED') {
+				countsMap[row.idFileImport].registrosPreliquidados += count
+			}
+		}
+	}
+
+	const archivos: ArchivoDisponible[] = todosArchivos.map((archivo) => {
+		const counts = countsMap[archivo.idFileImport] ?? {
+			sincronizados: 0,
+			registrosPreliquidados: 0,
+		}
 		return {
 			idFileImport: archivo.idFileImport,
 			nombreArchivo: archivo.nameFile,
+			fileType: archivo.fileType,
 			usuarioCargo:
 				`${archivo.user.name} ${archivo.user.lastName || ''}`.trim(),
 			fechaCarga: archivo.loadDate.toISOString().split('T')[0],
@@ -71,18 +102,18 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 				: null,
 			cantidadRegistros: archivo.totalRecord,
 			totalRegistros: archivo.totalRecord,
-			sincronizados: archivo.sincronizadoRecord,
+			sincronizados: counts.sincronizados,
 			rezagados: archivo.rezagadoRecord,
 			estado: archivo.status,
-			registrosPreliquidados: preliquidadosCount,
+			registrosPreliquidados: counts.registrosPreliquidados,
 		}
 	})
 
 	const disponiblesParaPreliquidar = archivos.filter(
-		(a) => a.estado === 'LOAD' && a.sincronizados > 0
+		(a) => a.estado === 'LOAD' && (a.sincronizados ?? 0) > (a.registrosPreliquidados ?? 0)
 	)
 	const archivosPreLiquidados = archivos.filter(
-		(a) => (a.registrosPreliquidados ?? 0) > 0
+		(a) => a.estado === 'PRE-SETTLED' || (a.registrosPreliquidados ?? 0) > 0
 	)
 
 	const resumen = {
@@ -111,22 +142,22 @@ export async function obtenerDescuentoActivo(): Promise<{
 	discountPercentage: Decimal
 	clawbackPercentage: Decimal | null
 } | null> {
-	const descuentoActivo = await prisma.commissionConfiguration.findFirst({
-		where: {
-			status: 'ACTIVE',
-		},
-		orderBy: {
-			createdAt: 'desc', // En caso de múltiples activos (no debería pasar), tomar el más reciente
-		},
+	const activeDiscounts = await prisma.commissionDiscount.findMany({
+		where: { status: 'ACTIVE', type: { in: ['IMPUESTO', 'CLAWBACK'] } },
 	})
 
-	if (!descuentoActivo) {
+	const impuesto = activeDiscounts.find((d) => d.type === 'IMPUESTO')
+	const clawback = activeDiscounts.find((d) => d.type === 'CLAWBACK')
+
+	if (!impuesto) {
 		return null
 	}
 
 	return {
-		discountPercentage: descuentoActivo.discountPercentage,
-		clawbackPercentage: descuentoActivo.clawbackPercentage,
+		discountPercentage: new Decimal(impuesto.percentage.toNumber() / 100),
+		clawbackPercentage: clawback
+			? new Decimal(clawback.percentage.toNumber() / 100)
+			: null,
 	}
 }
 
@@ -334,6 +365,234 @@ export async function obtenerDetallePreLiquidacion(
 		distribucion,
 		resumen,
 	}
+}
+
+/**
+ * Returns PRE-SETTLED records for a given file import.
+ * Used by the pre-liquidación detail page to display commissions already processed.
+ * Does not run distribution formulas — flat field set only.
+ */
+export async function obtenerComisionesPreliquidadas(
+	fileId: number
+): Promise<RespuestaRegistrosLiquidacion | null> {
+	const fileImport = await prisma.fileImport.findUnique({
+		where: { idFileImport: fileId },
+		select: {
+			idFileImport: true,
+			nameFile: true,
+			fileType: true,
+			loadDate: true,
+			totalRecord: true,
+			sincronizadoRecord: true,
+			rezagadoRecord: true,
+			user: {
+				select: { name: true, lastName: true },
+			},
+		},
+	})
+
+	if (!fileImport) return null
+
+	const registros = await prisma.settlementCommission.findMany({
+		where: {
+			idFileImport: fileId,
+			status: 'PRE-SETTLED',
+		},
+		include: {
+			business: {
+				select: {
+					contract: true,
+					user: {
+						select: { name: true, lastName: true },
+					},
+				},
+			},
+		},
+		orderBy: { createdAt: 'asc' },
+	})
+
+	const flat: RegistroLiquidacionDetalle[] = registros.map((r) => {
+		const nombreAsesor = r.business?.user
+			? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
+			: ''
+		return {
+			idSettlementCommission: r.idSettlementCommission,
+			idBusiness: r.idBusiness,
+			contrato: r.contract ?? r.business?.contract ?? null,
+			nombreAsesor,
+			tipo: r.descripcion,
+			monto: (r.commissionValue ?? r.baseCommission ?? new Decimal(0)).toNumber(),
+			baseComision: (r.baseCommission ?? r.commissionValue ?? new Decimal(0)).toNumber(),
+			porcentajeDescuento: (r.discountPercentage ?? new Decimal(0)).toNumber(),
+			porcentajeClawback: (r.clawbackPercentage ?? new Decimal(0)).toNumber(),
+			esClawback: r.isClawback ?? false,
+			esRezagado: r.isLag ?? false,
+			fechaSincronizacion: r.syncDate?.toISOString() ?? null,
+			fechaRezagado: r.lagDate?.toISOString() ?? null,
+			fechaInicio: r.startDate?.toISOString().split('T')[0] ?? null,
+			fechaFin: r.endDate?.toISOString().split('T')[0] ?? null,
+		}
+	})
+
+	const fileType = fileImport.fileType ?? ''
+
+	return {
+		archivo: {
+			idFileImport: fileImport.idFileImport,
+			nombreArchivo: fileImport.nameFile,
+			fileType,
+			usuarioCargo:
+				`${fileImport.user.name} ${fileImport.user.lastName ?? ''}`.trim(),
+			fechaCarga: fileImport.loadDate.toISOString().split('T')[0],
+			totalRegistros: fileImport.totalRecord,
+			sincronizados: flat.length,
+		},
+		registros: flat,
+	}
+}
+
+/**
+ * Returns SYNCHRONIZED records for the detail page (per-record Liquidar/Rezagar).
+ * Does not run distribution formulas — flat field set only.
+ */
+export async function obtenerRegistrosParaLiquidacion(
+	fileId: number
+): Promise<RespuestaRegistrosLiquidacion | null> {
+	const fileImport = await prisma.fileImport.findUnique({
+		where: { idFileImport: fileId },
+		select: {
+			idFileImport: true,
+			nameFile: true,
+			fileType: true,
+			loadDate: true,
+			totalRecord: true,
+			sincronizadoRecord: true,
+			rezagadoRecord: true,
+			user: {
+				select: { name: true, lastName: true },
+			},
+		},
+	})
+
+	if (!fileImport) return null
+
+	const registros = await prisma.settlementCommission.findMany({
+		where: {
+			idFileImport: fileId,
+			status: 'SYNCHRONIZED',
+		},
+		include: {
+			business: {
+				select: {
+					contract: true,
+					user: {
+						select: { name: true, lastName: true },
+					},
+				},
+			},
+		},
+		orderBy: { createdAt: 'asc' },
+	})
+
+	const flat: RegistroLiquidacionDetalle[] = registros.map((r) => {
+		const nombreAsesor = r.business?.user
+			? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
+			: ''
+		return {
+			idSettlementCommission: r.idSettlementCommission,
+			idBusiness: r.idBusiness,
+			contrato: r.contract ?? r.business?.contract ?? null,
+			nombreAsesor,
+			tipo: r.descripcion,
+			monto: (r.commissionValue ?? r.baseCommission ?? new Decimal(0)).toNumber(),
+			baseComision: (r.baseCommission ?? r.commissionValue ?? new Decimal(0)).toNumber(),
+			porcentajeDescuento: (r.discountPercentage ?? new Decimal(0)).toNumber(),
+			porcentajeClawback: (r.clawbackPercentage ?? new Decimal(0)).toNumber(),
+			esClawback: r.isClawback ?? false,
+			esRezagado: r.isLag ?? false,
+			fechaSincronizacion: r.syncDate?.toISOString() ?? null,
+			fechaRezagado: r.lagDate?.toISOString() ?? null,
+			fechaInicio: r.startDate?.toISOString().split('T')[0] ?? null,
+			fechaFin: r.endDate?.toISOString().split('T')[0] ?? null,
+		}
+	})
+
+	const fileType = fileImport.fileType ?? ''
+
+	return {
+		archivo: {
+			idFileImport: fileImport.idFileImport,
+			nombreArchivo: fileImport.nameFile,
+			fileType,
+			usuarioCargo:
+				`${fileImport.user.name} ${fileImport.user.lastName ?? ''}`.trim(),
+			fechaCarga: fileImport.loadDate.toISOString().split('T')[0],
+			totalRegistros: fileImport.totalRecord,
+			sincronizados: flat.length,
+		},
+		registros: flat,
+	}
+}
+
+/**
+ * Transitions selected SYNCHRONIZED records to SETTLED. If no SYNCHRONIZED remain for the file, sets FileImport.status to COMPLETED.
+ */
+export async function liquidarRegistros(
+	ids: number[],
+	_userId: number,
+	fileId: number
+): Promise<{ liquidated: number; fileCompleted: boolean }> {
+	return prisma.$transaction(async (tx) => {
+		const result = await tx.settlementCommission.updateMany({
+			where: {
+				idSettlementCommission: { in: ids },
+				status: 'SYNCHRONIZED',
+			},
+			data: { status: 'SETTLED', updatedAt: new Date() },
+		})
+
+		const remaining = await tx.settlementCommission.count({
+			where: {
+				idFileImport: fileId,
+				status: 'SYNCHRONIZED',
+			},
+		})
+
+		if (remaining === 0) {
+			await tx.fileImport.update({
+				where: { idFileImport: fileId },
+				data: { status: 'COMPLETED', updatedAt: new Date() },
+			})
+		}
+
+		return {
+			liquidated: result.count,
+			fileCompleted: remaining === 0,
+		}
+	})
+}
+
+/**
+ * Transitions selected SYNCHRONIZED records to LAG with lagDate and isLag set.
+ * Does not update FileImport.status.
+ */
+export async function rezagarRegistros(
+	ids: number[],
+	_userId: number
+): Promise<{ lagged: number }> {
+	const result = await prisma.settlementCommission.updateMany({
+		where: {
+			idSettlementCommission: { in: ids },
+			status: 'SYNCHRONIZED',
+		},
+		data: {
+			status: 'LAG',
+			isLag: true,
+			lagDate: new Date(),
+			updatedAt: new Date(),
+		},
+	})
+	return { lagged: result.count }
 }
 
 /**
@@ -601,6 +860,7 @@ export async function procesarPreLiquidacion(
 			include: {
 				business: {
 					include: {
+						user: true,
 						productPercentageCommission: true,
 					},
 				},
@@ -630,6 +890,19 @@ export async function procesarPreLiquidacion(
 				continue
 			}
 
+			const flow = deriveFlow({
+				commissionType: registro.commissionType,
+				originCommission: registro.originCommission,
+				isClawback: registro.isClawback,
+			})
+
+			if (flow !== 'VOLUNTARIA' && !registro.business.user) {
+				console.warn(
+					`Registro ${registro.idSettlementCommission} requiere business.user para flujo ${flow}; omitiendo`
+				)
+				continue
+			}
+
 			const descuentoPorcentaje =
 				registro.discountPercentage ?? DESCUENTO_POR_DEFECTO
 			const clawbackPorcentaje = registro.clawbackPercentage ?? new Decimal(0)
@@ -655,9 +928,12 @@ export async function procesarPreLiquidacion(
 
 			const comisionBase =
 				registro.baseCommission || registro.commissionValue || new Decimal(0)
+			const idUser = registro.business.user?.idUser
 
 			// Usamos transacción para asegurar que se crean las distribuciones y se actualiza el estado atómicamente
 			await prisma.$transaction(async (tx) => {
+				let totalValorClawback = new Decimal(0)
+
 				// 2. Calcular y guardar distribución para cada categoría configurada
 				for (const config of configCategorias) {
 					const porcentaje =
@@ -676,7 +952,7 @@ export async function procesarPreLiquidacion(
 					// Cálculo: Final = Bruta - Descuento - Clawback
 					const valorComisionFinal = valorComisionBruta.sub(totalDescuento)
 
-					await tx.comissionDistribution.create({
+					const created = await tx.comissionDistribution.create({
 						data: {
 							idSettlementCommission: registro.idSettlementCommission,
 							idPercentajeCommisionCategory: config.id,
@@ -687,7 +963,29 @@ export async function procesarPreLiquidacion(
 							status: 'LIQUIDADO',
 						},
 					})
+
+					// Clawback row when flow is Poliza (CARTERA or NO_CLAW) and valorClawback > 0 (not POLIZA_CLAW — that is Phase 4)
+					if (
+						flow !== 'VOLUNTARIA' &&
+						flow !== 'POLIZA_CLAW' &&
+						valorClawback.gt(0) &&
+						idUser !== undefined
+					) {
+						await tx.clawback.create({
+							data: {
+								idComissionDistribution: created.idComissionDistribution,
+								idUser,
+								valueClawback: valorClawback,
+								porcentajeApplied: clawbackPorcentaje,
+								state: 'RETENIDO',
+							},
+						})
+						totalValorClawback = totalValorClawback.add(valorClawback)
+					}
 				}
+
+				// ClawbackBalance is no longer updated during pre-liquidación.
+				// It will be updated by the liquidación process.
 
 				// 3. Actualizar registro a PRE-SETTLED
 				await tx.settlementCommission.update({
@@ -701,10 +999,11 @@ export async function procesarPreLiquidacion(
 			registrosProcesados++
 		}
 
-		// Actualizar fecha de pre-liquidación en el archivo sin cambiar el estado
+		// 4. Actualizar estado del archivo a PRE-SETTLED (siempre que el proceso haya corrido)
 		await prisma.fileImport.update({
 			where: { idFileImport: fileImportId },
 			data: {
+				status: 'PRE-SETTLED',
 				preLiquidacionDate: new Date(),
 				updatedAt: new Date(),
 			},
@@ -748,7 +1047,7 @@ export async function procesarPreLiquidacion(
 		return {
 			success: true,
 			registrosProcesados,
-			mensaje: `Pre-liquidación completada: ${registrosProcesados} registros procesados`,
+			mensaje: `Se procesaron exitosamente ${registrosProcesados} registros`,
 		}
 	} catch (error) {
 		console.error('Error al procesar pre-liquidación:', error)

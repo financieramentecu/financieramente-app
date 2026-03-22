@@ -4,20 +4,39 @@
  * Modal para visualización de detalle de negocio
  */
 
+import { useState } from 'react'
 import { Modal } from '@/features/shared/ui/modal'
 import { Button } from '@/features/shared/ui/button'
 import { Skeleton } from '@/features/shared/ui/skeleton'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/features/shared/ui/select'
 import { BusinessStatusBadge } from '../ui/BusinessStatusBadge'
 import { UserAvatar } from '../ui/UserAvatar'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { Calendar, Phone, Mail, Building2, FileText, Clock } from 'lucide-react'
 import type { BusinessEntity } from '../../types/business-entity.types'
 
+export interface ClientOriginOption {
+	value: string
+	label: string
+}
+
 interface BusinessViewModalProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	business: BusinessEntity | null
 	isLoading?: boolean
+	/** When true and business.status === 'EMITIDO', show inline select to change client origin */
+	allowEditOrigin?: boolean
+	/** Options for the origin select (required when allowEditOrigin) */
+	clientOriginsOptions?: ClientOriginOption[]
+	/** Called when user saves a new origin from the modal */
+	onSaveOrigin?: (businessId: number, idClientOrigin: number) => Promise<void>
 }
 
 /**
@@ -33,12 +52,35 @@ interface BusinessViewModalProps {
  * />
  * ```
  */
+const EMITIDO = 'EMITIDO'
+
 export function BusinessViewModal({
 	open,
 	onOpenChange,
 	business,
 	isLoading,
+	allowEditOrigin = false,
+	clientOriginsOptions = [],
+	onSaveOrigin,
 }: BusinessViewModalProps) {
+	const [isEditingOrigin, setIsEditingOrigin] = useState(false)
+	const [selectedOriginId, setSelectedOriginId] = useState<string>('')
+	const [isSavingOrigin, setIsSavingOrigin] = useState(false)
+
+	const canEditOrigin =
+		allowEditOrigin &&
+		business?.status === EMITIDO &&
+		clientOriginsOptions.length > 0 &&
+		typeof onSaveOrigin === 'function'
+
+	const currentOriginValue =
+		business?.clientOrigin?.id != null
+			? String(business.clientOrigin.id)
+			: ''
+
+	const displayOriginValue = selectedOriginId || currentOriginValue
+	const hasOriginChanged =
+		selectedOriginId !== '' && selectedOriginId !== currentOriginValue
 	if (isLoading) {
 		return (
 			<Modal
@@ -162,17 +204,78 @@ export function BusinessViewModal({
 				</section>
 
 				{/* Origen y Fecha */}
-				<section className="flex justify-between text-sm text-muted-foreground pt-4 border-t">
-					<span>Origen: {business.clientOrigin.name}</span>
-					<span>
-						Registrado:{' '}
-						{new Date(business.createdAt).toLocaleDateString('es-CO')}
-					</span>
+				<section className="space-y-3 pt-4 border-t">
+					<div className="flex justify-between items-start gap-4 flex-wrap">
+						<div className="space-y-1">
+							<span className="text-sm text-muted-foreground">Origen</span>
+							{isEditingOrigin && canEditOrigin ? (
+								<Select
+									value={displayOriginValue}
+									onValueChange={setSelectedOriginId}
+									disabled={isSavingOrigin}
+								>
+									<SelectTrigger className="w-[200px]">
+										<SelectValue placeholder="Seleccione origen" />
+									</SelectTrigger>
+									<SelectContent>
+										{clientOriginsOptions.map((opt) => (
+											<SelectItem key={opt.value} value={opt.value}>
+												{opt.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							) : (
+								<p className="font-medium">{business.clientOrigin.name}</p>
+							)}
+						</div>
+						<span className="text-sm text-muted-foreground">
+							Registrado:{' '}
+							{new Date(business.createdAt).toLocaleDateString('es-CO')}
+						</span>
+					</div>
 				</section>
 
-				{/* Botón Cerrar */}
-				<div className="flex justify-end pt-4">
-					<Button variant="outline" onClick={() => onOpenChange(false)}>
+				{/* Footer: Editar origen (si EMITIDO y no editando) o Guardar (si editando) + Cerrar */}
+				<div className="flex justify-end gap-2 pt-4">
+					{isEditingOrigin && canEditOrigin ? (
+						<Button
+							variant="default"
+							disabled={!hasOriginChanged || isSavingOrigin}
+							onClick={async () => {
+								if (!onSaveOrigin || !business || !hasOriginChanged) return
+								setIsSavingOrigin(true)
+								try {
+									await onSaveOrigin(business.id, Number(selectedOriginId))
+									setSelectedOriginId('')
+									setIsEditingOrigin(false)
+								} finally {
+									setIsSavingOrigin(false)
+								}
+							}}
+							className="cursor-pointer"
+						>
+							{isSavingOrigin ? 'Guardando…' : 'Guardar'}
+						</Button>
+					) : (
+						canEditOrigin && (
+							<Button
+								variant="outline"
+								onClick={() => setIsEditingOrigin(true)}
+								className="cursor-pointer"
+							>
+								Editar origen
+							</Button>
+						)
+					)}
+					<Button
+						variant="outline"
+						onClick={() => {
+							setIsEditingOrigin(false)
+							setSelectedOriginId('')
+							onOpenChange(false)
+						}}
+					>
 						Cerrar
 					</Button>
 				</div>

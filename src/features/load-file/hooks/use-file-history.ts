@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import type { AsyncState } from '@/features/shared/types/async-state.types'
 import { loadFileApi } from '../lib/load-file-api'
 
 export interface CargaHistorial {
@@ -14,25 +15,35 @@ export interface CargaHistorial {
 	rezagados: number
 	estado: string
 	createdAt: string // Raw ISO string for filtering
+	fileType: 'POLIZA' | 'VOLUNTARIA' | string
+	idFileImport: number
 }
 
-export function useFileHistory() {
-	const [historial, setHistorial] = useState<CargaHistorial[]>([])
-	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
+interface FileHistoryParams {
+	month?: number
+	year?: number
+	status?: string
+	search?: string
+}
 
-	const fetchHistorial = useCallback(async () => {
-		setIsLoading(true)
-		setError(null)
+export function useFileHistory(params: FileHistoryParams = {}) {
+	const [state, setState] = useState<AsyncState<CargaHistorial[]>>({
+		status: 'idle',
+		data: undefined,
+		error: '',
+	})
+
+	const fetchHistorial = async () => {
+		setState({ status: 'loading', data: undefined, error: '' })
 		try {
-			const response = await loadFileApi.getImportHistory(1, 100) // Default to fetching recent 100 items if no pagination built in, or adjust as needed. Currently the existing code didn't paginate but just fetched all.
+			const response = await loadFileApi.getImportHistory(1, 100, params)
 
-			if ('error' in response) {
+			if ('error' in response && response.error) {
 				throw new Error(response.error)
 			}
 
 			if (!response.data || !response.data.items) {
-				setHistorial([])
+				setState({ status: 'success', data: [], error: '' })
 				return
 			}
 
@@ -58,20 +69,24 @@ export function useFileHistory() {
 							item.createdAt instanceof Date
 								? item.createdAt.toISOString()
 								: String(item.createdAt),
+						fileType: item.fileType,
+						idFileImport: item.idFileImport,
 					}
 				}
 			)
 
-			setHistorial(formattedData)
+			setState({ status: 'success', data: formattedData, error: '' })
 		} catch (err) {
 			console.error('Error fetching history:', err)
-			setError(err instanceof Error ? err.message : 'Error desconocido')
-		} finally {
-			setIsLoading(false)
+			setState({
+				status: 'error',
+				data: undefined,
+				error: err instanceof Error ? err.message : 'Error desconocido',
+			})
 		}
-	}, [])
+	}
 
-	const deleteItem = useCallback(async (id: string) => {
+	const deleteItem = async (id: string) => {
 		try {
 			const response = await fetch(`/api/carga-archivos/file-import/${id}`, {
 				method: 'DELETE',
@@ -83,23 +98,46 @@ export function useFileHistory() {
 			}
 
 			// Actualizar estado local eliminando el item
-			setHistorial((prev) => prev.filter((item) => item.id !== id))
+			setState((prev) => {
+				if (prev.status === 'success') {
+					return {
+						...prev,
+						data: prev.data.filter((item) => item.id !== id),
+					}
+				}
+				return prev
+			})
 			return true
 		} catch (err) {
 			console.error('Error deleting item:', err)
-			setError(err instanceof Error ? err.message : 'Error desconocido')
+			setState((prev) => {
+				if (prev.status === 'success' || prev.status === 'idle') {
+					return {
+						status: 'error',
+						data: undefined,
+						error:
+							err instanceof Error ? err.message : 'Error desconocido',
+					}
+				}
+				return {
+					status: 'error',
+					data: undefined,
+					error: err instanceof Error ? err.message : 'Error desconocido',
+				}
+			})
 			return false
 		}
-	}, [])
+	}
 
 	useEffect(() => {
 		fetchHistorial()
-	}, [fetchHistorial])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [params.month, params.year, params.status, params.search])
 
 	return {
-		historial,
-		isLoading,
-		error,
+		historial: state.status === 'success' ? state.data : [],
+		isLoading: state.status === 'loading',
+		error: state.status === 'error' ? state.error : null,
 		refetch: fetchHistorial,
 		deleteItem,
 	}

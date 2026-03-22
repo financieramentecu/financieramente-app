@@ -1,102 +1,156 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/lib/auth/nextauth'
-import { prisma } from '@/lib/prisma'
-import { FILE_TYPES, type FileType } from '@/features/load-file/lib/file-types'
+import { UserRole } from '@/features/auth/lib/roles'
+import {
+	FileImportService,
+	PeriodCompletedError,
+	PeriodPreSettledError,
+} from '@/features/load-file/services/file-import.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
 	FileImportHistory,
 	PaginatedData,
 } from '@/features/load-file/types/load-file.types'
 
+// ---------------------------------------------------------------------------
+// Zod validation schema for POST body
+// ---------------------------------------------------------------------------
+
+const createFileImportSchema = z.object({
+	fileType: z.enum(['POLIZA', 'VOLUNTARIA']),
+	month: z.number().int().min(1).max(12),
+	year: z.number().int().min(2020).max(2100),
+})
+
+// ---------------------------------------------------------------------------
+// Zod validation schema for GET query params
+// ---------------------------------------------------------------------------
+
+const getFileImportQuerySchema = z.object({
+	page: z.coerce.number().int().min(1).optional().default(1),
+	limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+	month: z.coerce.number().int().min(1).max(12).optional(),
+	year: z.coerce.number().int().min(2020).max(2100).optional(),
+	status: z.string().optional(),
+	search: z.string().optional(),
+})
+
+// ---------------------------------------------------------------------------
+// POST /api/carga-archivos/file-import
+// ---------------------------------------------------------------------------
+
 export async function POST(request: NextRequest) {
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+			return NextResponse.json(
+				{ data: null, error: 'No autorizado' } satisfies ApiResponse<null>,
+				{ status: 401 }
+			)
 		}
 
 		const body = await request.json()
-		const { fileName, fileType } = body
+		const validation = createFileImportSchema.safeParse(body)
 
-		if (!fileName) {
+		if (!validation.success) {
 			return NextResponse.json(
-				{ error: 'Se requiere el nombre del archivo' },
+				{
+					data: null,
+					error: validation.error.message,
+				} satisfies ApiResponse<null>,
 				{ status: 400 }
 			)
 		}
 
-		const isValidFileType =
-			typeof fileType === 'string' &&
-			Object.values(FILE_TYPES).includes(fileType as FileType)
+		const { fileType, month, year } = validation.data
+		const idUser = Number(session.user.id)
 
-		if (!isValidFileType) {
+		const result = await FileImportService.initiateImport({
+			fileType,
+			month,
+			year,
+			idUser,
+		})
+
+		if (result.created) {
 			return NextResponse.json(
-				{ error: 'Se requiere un tipo de archivo válido' },
-				{ status: 400 }
+				{ data: { fileImport: result.fileImport } },
+				{ status: 201 }
 			)
 		}
 
-		const userId = Number(session.user.id)
-		const userExists = await prisma.user.findUnique({
-			where: { idUser: userId },
-			select: { idUser: true },
-		})
-
-		if (!userExists) {
-			return NextResponse.json(
-				{ error: 'Usuario no encontrado' },
-				{ status: 404 }
-			)
-		}
-
-		// Crear FileImport
-		const fileImport = await prisma.fileImport.create({
-			data: {
-				nameFile: fileName,
-				fileType,
-				idUser: userId,
-				totalRecord: 0,
-				successRecord: 0,
-				errorRecord: 0,
-				status: 'PROCESSING',
-			},
-		})
-
-		return NextResponse.json({ data: { fileImport } }, { status: 201 })
+		return NextResponse.json(
+			{ data: { fileImport: result.fileImport } },
+			{ status: 200 }
+		)
 	} catch (error) {
+		if (error instanceof PeriodCompletedError || error instanceof PeriodPreSettledError) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: error.message,
+				} satisfies ApiResponse<null>,
+				{ status: 409 }
+			)
+		}
+
 		console.error('Error al crear FileImport:', error)
-		return NextResponse.json({ status: 500 })
+		return NextResponse.json(
+			{
+				data: null,
+				error: 'Error interno del servidor',
+			} satisfies ApiResponse<null>,
+			{ status: 500 }
+		)
 	}
 }
 
-export async function GET() {
+// ---------------------------------------------------------------------------
+// GET /api/carga-archivos/file-import
+// ---------------------------------------------------------------------------
+
+export async function GET(request: NextRequest) {
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+			return NextResponse.json(
+				{ data: null, error: 'No autorizado' } satisfies ApiResponse<null>,
+				{ status: 401 }
+			)
 		}
 
-		const fileImports = await prisma.fileImport.findMany({
-			where: {
-				idUser: Number(session.user.id),
-			},
-			orderBy: {
-				createdAt: 'desc',
-			},
-			include: {
-				user: {
-					select: {
-						name: true,
-						lastName: true,
-					},
-				},
-			},
+		const query = getFileImportQuerySchema.safeParse(
+			Object.fromEntries(request.nextUrl.searchParams)
+		)
+
+		if (!query.success) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: query.error.message,
+				} satisfies ApiResponse<null>,
+				{ status: 400 }
+			)
+		}
+
+		const { month, year, status, search } = query.data
+		const userId = Number(session.user.id)
+		const isAdmin = session.user.role === UserRole.ADMIN
+
+		const fileImports = await FileImportService.listFileImports({
+			userId,
+			isAdmin,
+			month,
+			year,
+			status,
+			search,
 		})
 
 		return NextResponse.json(
 			{
 				data: {
-					items: fileImports as unknown as FileImportHistory[],
+					items: fileImports,
 					pagination: {
 						page: 1,
 						pageSize: fileImports.length,

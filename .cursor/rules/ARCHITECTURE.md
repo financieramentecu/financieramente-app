@@ -111,6 +111,18 @@ features/[feature-name]/
 - **`mappers/`** - Mappers de datos entre capas (opcional)
 - **`__tests__/`** - Tests colocalizados con el código
 
+### API Routes y acceso a datos (regla obligatoria)
+
+- **NUNCA llamar Prisma desde las API routes** (`src/app/api/`). Las rutas del API Router solo orquestan: validan entrada, llaman a **servicios del feature** correspondiente y devuelven la respuesta.
+- **Siempre usar servicios de features** para cualquier acceso a base de datos: los archivos en `src/app/api/**/*.ts` deben importar y usar funciones de `src/features/[feature]/services/` (o `lib/` cuando el feature no tenga carpeta `services/`), nunca importar `prisma` ni ejecutar queries directamente.
+- **Responsabilidad**: API Route = HTTP, validación, llamada a servicio. Servicio del feature = Prisma y lógica de dominio.
+
+### Hooks con llamadas asíncronas (regla obligatoria)
+
+- **Siempre usar el tipo `AsyncState<T>`** de `src/features/shared/types/async-state.types.ts` en hooks que hacen llamadas asíncronas (fetch, mutaciones, etc.). No manejar por separado tres estados (p. ej. `isLoading`, `data`, `error` con varios `useState`).
+- **Un solo estado discriminado**: el hook debe exponer un estado tipado como `AsyncState<T>` (`idle` | `loading` | `success` | `error`) para permitir type narrowing y UI consistente (loading, error, success, idle).
+- **Referencia**: [async-state.types.ts](src/features/shared/types/async-state.types.ts).
+
 ## 🎯 Beneficios de la Arquitectura
 
 ### **1. Feature-Based Organization**

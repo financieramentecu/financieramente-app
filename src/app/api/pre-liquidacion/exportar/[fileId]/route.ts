@@ -26,11 +26,11 @@ export async function POST(
             )
         }
 
-        // Obtener todos los registros pre-liquidados
+        // Obtener todos los registros pre-liquidados (canonical state: PRE-SETTLED)
         const registros = await prisma.settlementCommission.findMany({
             where: {
                 idFileImport: fileId,
-                status: 'PRELIQUIDADO',
+                status: 'PRE-SETTLED',
             },
             include: {
                 business: {
