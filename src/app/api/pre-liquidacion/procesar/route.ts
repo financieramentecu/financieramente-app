@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
+import { UserRole } from '@/features/auth/lib/roles'
 import { procesarPreLiquidacion } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { procesarPreLiquidacionSchema } from '@/features/pre-liquidacion/lib/pre-liquidacion-schemas'
+
+const ALLOWED_ROLES: UserRole[] = [
+	UserRole.ADMIN,
+	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+]
 
 /**
  * POST /api/pre-liquidacion/procesar
@@ -12,6 +18,11 @@ export async function POST(request: NextRequest) {
 		const session = await auth()
 		if (!session?.user?.id) {
 			return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+		}
+
+		const role = session.user?.role as UserRole | undefined
+		if (!role || !ALLOWED_ROLES.includes(role)) {
+			return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 		}
 
 		const body = await request.json()

@@ -49,6 +49,8 @@ export interface FileImportHistory {
 	noSincronizadoRecord: number
 	status: string
 	createdAt: Date
+	month?: number
+	year?: number
 	user: {
 		name: string | null
 		lastName: string | null

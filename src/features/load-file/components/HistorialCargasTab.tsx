@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 
 import {
 	FileText,
@@ -6,11 +7,12 @@ import {
 	Trash2,
 	AlertCircle,
 	Search,
-	Calendar,
 	Filter,
 	X,
 	Eye,
+	Loader2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/features/shared/ui/button'
 import { EmptyState } from '@/features/shared/ui/empty-state'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
@@ -26,24 +28,93 @@ import {
 import { useFileHistory } from '../hooks/use-file-history'
 import { ConfirmModal, Modal } from '@/features/shared/ui/modal'
 import { RecordsByStatusView } from './RecordsByStatusView'
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
+import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
+import type { UserRole } from '@/features/auth/lib/roles'
+import { loadFileApi } from '../lib/load-file-api'
 
 /**
  * Componente para mostrar el historial de cargas de archivos
  */
+
+function StatBadge({
+	label,
+	value,
+	bgColor,
+	textColor,
+	borderColor,
+	dotColor,
+}: {
+	label: string
+	value: number
+	bgColor: string
+	textColor: string
+	borderColor: string
+	dotColor: string
+}) {
+	return (
+		<span
+			className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+			style={{
+				backgroundColor: bgColor,
+				color: textColor,
+				border: `1px solid ${borderColor}`,
+			}}
+		>
+			<span
+				className="w-1.5 h-1.5 rounded-full"
+				style={{ backgroundColor: dotColor }}
+			/>
+			{value} {label}
+		</span>
+	)
+}
+
 export function HistorialCargasTab() {
-	const { historial, isLoading, error, refetch, deleteItem } = useFileHistory()
+	const { user } = useAuthSession()
+	const canPreliquidar =
+		user?.role != null &&
+		(ROLE_PERMISSIONS[user.role as UserRole]?.liquidaciones?.preliquidacion ??
+			false)
+
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 	const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 	const [detailFileImportId, setDetailFileImportId] = useState<number | null>(
 		null
 	)
+	const [preliquidarModalOpen, setPreliquidarModalOpen] = useState(false)
+	const [preliquidarTarget, setPreliquidarTarget] = useState<{
+		idFileImport: number
+		mes: string
+		id: string
+	} | null>(null)
+	const [preliquidarLoading, setPreliquidarLoading] = useState<
+		Record<string, boolean>
+	>({})
 
 	// Filter States
 	const [searchTerm, setSearchTerm] = useState('')
+	const [debouncedSearch, setDebouncedSearch] = useState(searchTerm)
 	const [statusFilter, setStatusFilter] = useState('ALL')
-	const [dateStart, setDateStart] = useState('')
-	const [dateEnd, setDateEnd] = useState('')
+	const [mesFilter, setMesFilter] = useState<string>('ALL')
+	const [anioFilter, setAnioFilter] = useState<string>('ALL')
+
+	// 200ms debounce for searchTerm
+	useEffect(() => {
+		const timer = setTimeout(() => setDebouncedSearch(searchTerm), 200)
+		return () => clearTimeout(timer)
+	}, [searchTerm])
+
+	const { historial, isLoading, error, refetch, deleteItem } = useFileHistory({
+		month: mesFilter !== 'ALL' ? Number(mesFilter) : undefined,
+		year: anioFilter !== 'ALL' ? Number(anioFilter) : undefined,
+		status: statusFilter !== 'ALL' ? statusFilter : undefined,
+		search: debouncedSearch || undefined,
+	})
+
+	const currentYear = new Date().getFullYear()
+	const yearRange = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
 
 	const handleDeleteClick = (id: string) => {
 		setItemToDelete(id)
@@ -61,75 +132,119 @@ export function HistorialCargasTab() {
 	const handleClearFilters = () => {
 		setSearchTerm('')
 		setStatusFilter('ALL')
-		setDateStart('')
-		setDateEnd('')
+		setMesFilter('ALL')
+		setAnioFilter('ALL')
 	}
 
-	const filteredHistorial = useMemo(() => {
-		return historial.filter((item) => {
-			// Filter by name or user
-			if (searchTerm) {
-				const term = searchTerm.toLowerCase()
-				const matchesName = item.nombreArchivo.toLowerCase().includes(term)
-				const matchesUser = item.usuario.toLowerCase().includes(term)
-				if (!matchesName && !matchesUser) return false
-			}
-
-			// Filter by status
-			if (statusFilter !== 'ALL' && item.estado !== statusFilter) {
-				return false
-			}
-
-			// Filter by date range
-			if (item.createdAt) {
-				const itemDate = item.createdAt.substring(0, 10) // YYYY-MM-DD
-				if (dateStart && itemDate < dateStart) return false
-				if (dateEnd && itemDate > dateEnd) return false
-			}
-
-			return true
+	const handlePreliquidarClick = (carga: {
+		id: string
+		idFileImport: number
+		createdAt: string
+	}) => {
+		const date = new Date(carga.createdAt)
+		const month = String(date.getMonth() + 1).padStart(2, '0')
+		const mes = `${date.getFullYear()}-${month}`
+		setPreliquidarTarget({
+			idFileImport: carga.idFileImport,
+			mes,
+			id: carga.id,
 		})
-	}, [historial, searchTerm, statusFilter, dateStart, dateEnd])
+		setPreliquidarModalOpen(true)
+	}
 
-	const getEstadoBadgeStyle = (estado: string): React.CSSProperties => {
+	const handleConfirmPreliquidar = async () => {
+		if (!preliquidarTarget) return
+		const { idFileImport, mes, id } = preliquidarTarget
+		setPreliquidarModalOpen(false)
+		setPreliquidarLoading((prev) => ({ ...prev, [id]: true }))
+		try {
+			const result = await loadFileApi.preliquidar(idFileImport, mes)
+			if ('error' in result) {
+				toast.error('Error al pre-liquidar', { description: result.error })
+			} else {
+				toast.success('Pre-liquidación completada', {
+					description:
+						result.data?.mensaje ?? 'Registros procesados correctamente',
+				})
+				await refetch()
+			}
+		} catch (err) {
+			toast.error('Error inesperado', {
+				description: err instanceof Error ? err.message : 'Error desconocido',
+			})
+		} finally {
+			setPreliquidarLoading((prev) => ({ ...prev, [id]: false }))
+			setPreliquidarTarget(null)
+		}
+	}
+
+	const getEstadoBadgeStyle = (
+		estado: string
+	): { label: string; style: React.CSSProperties } => {
 		switch (estado) {
 			case 'COMPLETED':
+				return {
+					label: 'LIQUIDADO',
+					style: {
+						backgroundColor: '#dcfce7',
+						color: '#166534',
+						border: '1px solid #86efac',
+					},
+				}
 			case 'PRE-SETTLED':
 				return {
-					backgroundColor: '#dcfce7',
-					color: '#166534',
-					border: '1px solid #86efac',
+					label: 'Pre-liquidado',
+					style: {
+						backgroundColor: '#e0f2fe', // Light blue for pre-settled
+						color: '#075985', // Darker blue
+						border: '1px solid #7dd3fc', // Border blue
+					},
 				}
 			case 'ERROR':
 				return {
-					backgroundColor: '#fee2e2',
-					color: '#991b1b',
-					border: '1px solid #fca5a5',
+					label: 'ERROR',
+					style: {
+						backgroundColor: '#fee2e2',
+						color: '#991b1b',
+						border: '1px solid #fca5a5',
+					},
 				}
 			case 'PROCESSING':
 				return {
-					backgroundColor: '#dbeafe',
-					color: '#1e40af',
-					border: '1px solid #93c5fd',
+					label: 'PROCESANDO',
+					style: {
+						backgroundColor: '#dbeafe',
+						color: '#1e40af',
+						border: '1px solid #93c5fd',
+					},
 				}
 			case 'PARCIAL':
 				return {
-					backgroundColor: '#fef9c3',
-					color: '#854d0e',
-					border: '1px solid #fde047',
+					label: 'PARCIAL',
+					style: {
+						backgroundColor: '#fef9c3',
+						color: '#854d0e',
+						border: '1px solid #fde047',
+					},
 				}
 			case 'CANCELADO':
 				return {
-					backgroundColor: '#fef3c7',
-					color: '#92400e',
-					border: '1px solid #fcd34d',
+					label: 'CANCELADO',
+					style: {
+						backgroundColor: '#fef3c7',
+						color: '#92400e',
+						border: '1px solid #fcd34d',
+					},
 				}
 			case 'LOAD':
 			default:
 				return {
-					backgroundColor: '#e0f2fe',
-					color: '#075985',
-					border: '1px solid #7dd3fc',
+					label: 'SINCRONIZADO',
+					style: {
+						backgroundColor: '#e0f2fe',
+						color: '#075985',
+						border: '1px solid #7dd3fc',
+					},
 				}
 		}
 	}
@@ -149,6 +264,24 @@ export function HistorialCargasTab() {
 				destructive={true}
 			/>
 
+			{/* Modal de confirmación de pre-liquidación */}
+			<ConfirmModal
+				open={preliquidarModalOpen}
+				onOpenChange={(open) => {
+					setPreliquidarModalOpen(open)
+					if (!open) setPreliquidarTarget(null)
+				}}
+				title="¿Confirmar pre-liquidación?"
+				message={`Se procesarán los registros sincronizados del archivo para el período ${preliquidarTarget?.mes ?? ''}. Esta acción cambiará su estado a PRE-LIQUIDADO.`}
+				confirmText="Pre-liquidar"
+				cancelText="Cancelar"
+				onConfirm={handleConfirmPreliquidar}
+				onCancel={() => {
+					setPreliquidarModalOpen(false)
+					setPreliquidarTarget(null)
+				}}
+			/>
+
 			<Modal
 				open={detailFileImportId !== null}
 				onOpenChange={(open) => !open && setDetailFileImportId(null)}
@@ -158,10 +291,7 @@ export function HistorialCargasTab() {
 			>
 				{detailFileImportId !== null && (
 					<div className="flex-1 min-h-0 overflow-y-auto w-full pt-2">
-						<RecordsByStatusView
-							fileImportId={detailFileImportId}
-							compact
-						/>
+						<RecordsByStatusView fileImportId={detailFileImportId} compact />
 					</div>
 				)}
 			</Modal>
@@ -172,7 +302,10 @@ export function HistorialCargasTab() {
 					<h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
 						<Filter className="h-4 w-4" /> Filtros
 					</h3>
-					{(searchTerm || statusFilter !== 'ALL' || dateStart || dateEnd) && (
+					{(searchTerm ||
+						statusFilter !== 'ALL' ||
+						mesFilter !== 'ALL' ||
+						anioFilter !== 'ALL') && (
 						<Button
 							variant="ghost"
 							size="sm"
@@ -209,43 +342,60 @@ export function HistorialCargasTab() {
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="ALL">Todos</SelectItem>
-								<SelectItem value="LOAD">Cargado (Load)</SelectItem>
+								<SelectItem value="LOAD">Cargado</SelectItem>
+								<SelectItem value="PRE-SETTLED">Pre-Liquidado</SelectItem>
 								<SelectItem value="COMPLETED">Completado</SelectItem>
-								<SelectItem value="PARCIAL">Parcial</SelectItem>
-								<SelectItem value="ERROR">Error</SelectItem>
-								<SelectItem value="PROCESSING">Procesando</SelectItem>
-								<SelectItem value="CANCELADO">Cancelado</SelectItem>
-								<SelectItem value="PRE-SETTLED">Pre-liquidado</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
 
-					{/* Fecha Inicio */}
+					{/* Mes */}
 					<div className="space-y-2">
-						<Label className="text-xs">Desde</Label>
-						<div className="relative">
-							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-							<Input
-								type="date"
-								className="pl-9"
-								value={dateStart}
-								onChange={(e) => setDateStart(e.target.value)}
-							/>
-						</div>
+						<Label className="text-xs">Mes</Label>
+						<Select value={mesFilter} onValueChange={setMesFilter}>
+							<SelectTrigger>
+								<SelectValue placeholder="Mes" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="ALL">Todos los meses</SelectItem>
+								{[
+									['1', 'Enero'],
+									['2', 'Febrero'],
+									['3', 'Marzo'],
+									['4', 'Abril'],
+									['5', 'Mayo'],
+									['6', 'Junio'],
+									['7', 'Julio'],
+									['8', 'Agosto'],
+									['9', 'Septiembre'],
+									['10', 'Octubre'],
+									['11', 'Noviembre'],
+									['12', 'Diciembre'],
+								].map(([val, label]) => (
+									<SelectItem key={val} value={val}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 
-					{/* Fecha Fin */}
+					{/* Año */}
 					<div className="space-y-2">
-						<Label className="text-xs">Hasta</Label>
-						<div className="relative">
-							<Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-							<Input
-								type="date"
-								className="pl-9"
-								value={dateEnd}
-								onChange={(e) => setDateEnd(e.target.value)}
-							/>
-						</div>
+						<Label className="text-xs">Año</Label>
+						<Select value={anioFilter} onValueChange={setAnioFilter}>
+							<SelectTrigger>
+								<SelectValue placeholder="Año" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="ALL">Todos los años</SelectItem>
+								{yearRange.map((y) => (
+									<SelectItem key={y} value={String(y)}>
+										{y}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 				</div>
 			</div>
@@ -282,149 +432,157 @@ export function HistorialCargasTab() {
 
 				{isLoading && historial.length === 0 ? (
 					<TableRowsLoadingSkeleton rows={5} />
-				) : filteredHistorial.length === 0 ? (
+				) : historial.length === 0 ? (
 					<EmptyState
 						icon={<FileText className="h-12 w-12" />}
-						title={
-							historial.length === 0
-								? 'No hay historial de cargas disponible'
-								: 'No se encontraron resultados con los filtros aplicados'
-						}
+						title="No hay historial de cargas disponible"
 					/>
 				) : (
 					<div className="space-y-4">
-						{filteredHistorial.map((carga) => (
-							<div
-								key={carga.id}
-								className="bg-muted rounded-lg p-4 border border-border"
-							>
-								<div className="flex items-start justify-between gap-4">
-									{/* Información del archivo */}
-									<div className="flex items-start gap-3 flex-1">
-										<FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
-										<div className="flex-1">
-											{/* Nombre del archivo y badge de estado */}
-											<div className="flex items-center gap-2 mb-2">
-												<h3 className="font-semibold text-primary">
-													{carga.nombreArchivo}
-												</h3>
-												<span
-													className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-													style={getEstadoBadgeStyle(carga.estado)}
-												>
-													{carga.estado}
-												</span>
-											</div>
+						<p className="text-xs text-muted-foreground">
+							Los contadores de cada archivo reflejan el total acumulado de
+							todas las sincronizaciones realizadas.
+						</p>
+						{historial.map((carga) => {
+							const { label: estadoLabel, style: estadoStyle } =
+								getEstadoBadgeStyle(carga.estado)
+							return (
+								<div
+									key={carga.id}
+									className="bg-muted rounded-lg p-4 border border-border"
+								>
+									<div className="flex items-start justify-between gap-4">
+										{/* Información del archivo */}
+										<div className="flex items-start gap-3 flex-1">
+											<FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+											<div className="flex-1">
+												{/* Nombre del archivo y badge de estado */}
+												<div className="flex items-center gap-2 mb-2">
+													<h3 className="font-semibold text-primary">
+														{carga.nombreArchivo}
+													</h3>
+													<span
+														className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+														style={estadoStyle}
+													>
+														{estadoLabel}
+													</span>
+												</div>
 
-											{/* Fecha, hora y usuario */}
-											<p className="text-sm text-muted-foreground mb-3">
-												{carga.fechaCarga}, {carga.horaCarga} • Por:{' '}
-												{carga.usuario}
-											</p>
+												{/* Fecha, hora y usuario */}
+												<p className="text-sm text-muted-foreground mb-3">
+													{carga.fechaCarga}, {carga.horaCarga} • Por:{' '}
+													{carga.usuario}
+												</p>
 
-											{/* Badges de estadísticas */}
-											<div className="flex flex-wrap items-center gap-2">
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#dcfce7',
-														color: '#166534',
-														border: '1px solid #86efac',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#16a34a' }}
+												{/* Badges de estadísticas */}
+												<div className="flex flex-wrap items-center gap-2">
+													<StatBadge
+														label="exitosos"
+														value={carga.exitosos}
+														bgColor="#dcfce7"
+														textColor="#166534"
+														borderColor="#86efac"
+														dotColor="#16a34a"
 													/>
-													{carga.exitosos} exitosos
-												</span>
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#fee2e2',
-														color: '#991b1b',
-														border: '1px solid #fca5a5',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#dc2626' }}
+													<StatBadge
+														label="errores"
+														value={carga.errores}
+														bgColor="#fee2e2"
+														textColor="#991b1b"
+														borderColor="#fca5a5"
+														dotColor="#dc2626"
 													/>
-													{carga.errores} errores
-												</span>
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#dbeafe',
-														color: '#1e40af',
-														border: '1px solid #93c5fd',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#3b82f6' }}
+													<StatBadge
+														label="sincronizados"
+														value={carga.sincronizados}
+														bgColor="#dbeafe"
+														textColor="#1e40af"
+														borderColor="#93c5fd"
+														dotColor="#3b82f6"
 													/>
-													{carga.sincronizados} sincronizados
-												</span>
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#fef9c3',
-														color: '#854d0e',
-														border: '1px solid #fde047',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#eab308' }}
+													<StatBadge
+														label="sin registro"
+														value={carga.sinRegistro}
+														bgColor="#fef9c3"
+														textColor="#854d0e"
+														borderColor="#fde047"
+														dotColor="#eab308"
 													/>
-													{carga.sinRegistro} sin registro
-												</span>
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#fef3c7',
-														color: '#92400e',
-														border: '1px solid #fcd34d',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#f59e0b' }}
+													<StatBadge
+														label="rezagados"
+														value={carga.rezagados}
+														bgColor="#fef3c7"
+														textColor="#92400e"
+														borderColor="#fcd34d"
+														dotColor="#f59e0b"
 													/>
-													{carga.rezagados} rezagados
-												</span>
+												</div>
 											</div>
 										</div>
-									</div>
 
-									{/* Botones Ver detalle y Eliminar */}
-									<div className="flex items-center gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() =>
-												setDetailFileImportId(parseInt(carga.id, 10))
-											}
-											className="p-2"
-											title="Ver detalle por estado"
-										>
-											<Eye className="h-4 w-4 mr-1" />
-											Ver detalle
-										</Button>
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={() => handleDeleteClick(carga.id)}
-											className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2"
-											title="Eliminar registro"
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
+										{/* Botones Ver detalle, Preliquidar, Ir a Preliqui y Eliminar */}
+										<div className="flex items-center gap-2">
+											{carga.estado === 'LOAD' && (
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() =>
+														setDetailFileImportId(parseInt(carga.id, 10))
+													}
+													className="p-2"
+													title="Ver detalle por estado"
+												>
+													<Eye className="h-4 w-4 mr-1" />
+													Ver detalle
+												</Button>
+											)}
+
+											{carga.estado === 'PRE-SETTLED' && (
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() =>
+														window.location.assign(`/dashboard/pre-liquidacion/${carga.idFileImport}`)
+													}
+													className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+												>
+													IR a PRELIQUIDACIÓN
+												</Button>
+											)}
+
+											{canPreliquidar &&
+												carga.sincronizados > 0 &&
+												carga.estado === 'LOAD' && (
+													<Button
+														variant="outline"
+														size="sm"
+														onClick={() => handlePreliquidarClick(carga)}
+														disabled={preliquidarLoading[carga.id] === true}
+														className="p-2"
+														title="Pre-liquidar archivo"
+													>
+														{preliquidarLoading[carga.id] === true ? (
+															<Loader2 className="h-4 w-4 mr-1 animate-spin" />
+														) : null}
+														Preliquidar
+													</Button>
+												)}
+
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => handleDeleteClick(carga.id)}
+												className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2"
+												title="Eliminar registro"
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</div>
 									</div>
 								</div>
-							</div>
-						))}
+							)
+						})}
 					</div>
 				)}
 			</div>
@@ -434,7 +592,8 @@ export function HistorialCargasTab() {
 				<p className="text-sm text-foreground leading-relaxed">
 					<strong>Formato requerido de Skandia:</strong> Seleccione el tipo de
 					archivo y use la estructura correspondiente. El sistema validará
-					automáticamente las columnas y sincronizará con los registros existentes.
+					automáticamente las columnas y sincronizará con los registros
+					existentes.
 				</p>
 				<div className="text-sm text-foreground space-y-2">
 					<p>
@@ -443,8 +602,8 @@ export function HistorialCargasTab() {
 						Com.
 					</p>
 					<p>
-						<strong>Póliza:</strong> Polizas Periodo, Plan de Compensación, Valor
-						Comisión, BASE, Polizas Producto, Contrato Largo, Polizas Id
+						<strong>Póliza:</strong> Polizas Periodo, Plan de Compensación,
+						Valor Comisión, BASE, Polizas Producto, Contrato Largo, Polizas Id
 						Agente, Polizas Nombre Agente, Polizas Id Sociedad, Nombre Sociedad,
 						Polizas Clasificación.
 					</p>

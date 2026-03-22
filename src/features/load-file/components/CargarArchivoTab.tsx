@@ -8,10 +8,26 @@ import { cn } from '@/lib/utils'
 import { validateExcelStructure } from '../lib/validate-excel-structure'
 import { processExcelFile } from '../lib/process-excel-file'
 import { FILE_TYPES, type FileType } from '../lib/file-types'
+import { getDefaultPeriod } from '../lib/period-utils'
 import { ProcessingProgress } from './ProcessingProgress'
 import { RecordsByStatusView } from './RecordsByStatusView'
 import { loadFileApi } from '../lib/load-file-api'
 import type { ProcessResult } from '../types/load-file.types'
+
+const SPANISH_MONTH_NAMES: Readonly<Record<number, string>> = {
+	1: 'Enero',
+	2: 'Febrero',
+	3: 'Marzo',
+	4: 'Abril',
+	5: 'Mayo',
+	6: 'Junio',
+	7: 'Julio',
+	8: 'Agosto',
+	9: 'Septiembre',
+	10: 'Octubre',
+	11: 'Noviembre',
+	12: 'Diciembre',
+} as const
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const ACCEPTED_FILE_TYPES = [
@@ -24,6 +40,8 @@ const ACCEPTED_EXTENSIONS = ['.xlsx', '.xls', '.csv']
 export function CargarArchivoTab() {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
 	const [selectedFileType, setSelectedFileType] = useState<FileType | ''>('')
+	const [selectedMonth, setSelectedMonth] = useState<number>(() => getDefaultPeriod().month)
+	const [selectedYear, setSelectedYear] = useState<number>(() => getDefaultPeriod().year)
 	const [isDragging, setIsDragging] = useState(false)
 	const [isUploading, setIsUploading] = useState(false)
 	const [errorModalOpen, setErrorModalOpen] = useState(false)
@@ -240,15 +258,19 @@ export function CargarArchivoTab() {
 
 			// Crear FileImport
 			const initiateResponse = await loadFileApi.initiateImport(
-				selectedFile.name,
 				selectedFileType,
+				selectedMonth,
+				selectedYear,
 				{ signal: abortControllerRef.current?.signal }
 			)
 
-			if ('error' in initiateResponse || !initiateResponse.data) {
-				throw new Error(
-					initiateResponse.error || 'Error al crear registro de importación'
-				)
+			if (!initiateResponse.data) {
+				const errorMsg = initiateResponse.error || 'Error al crear registro de importación'
+				setErrorMessage(errorMsg)
+				setErrorModalTitle('PERÍODO BLOQUEADO')
+				setErrorModalOpen(true)
+				setIsUploading(false)
+				return
 			}
 
 			const fileImport = initiateResponse.data.fileImport
@@ -258,6 +280,7 @@ export function CargarArchivoTab() {
 			const allRecords = [...result.validRecords, ...result.errorRecords]
 
 			if (allRecords.length > 0) {
+				// SESSION RESET POINT: counters start at zero for this sync session
 				setProcessingProgress({
 					current: 0,
 					total: allRecords.length,
@@ -277,17 +300,8 @@ export function CargarArchivoTab() {
 
 							if (!('error' in progressResponse) && progressResponse.data) {
 								const fileImportData = progressResponse.data
-								setProcessingProgress((prev) => {
-									if (!prev) return null
-									return {
-										...prev,
-										sincronizado: fileImportData.sincronizadoRecord || 0,
-										rezagado: fileImportData.rezagadoRecord || 0,
-										error: fileImportData.errorRecord || 0,
-									}
-								})
 
-								// Si está completado, detener polling
+								// Polling only detects terminal status — counters are accumulated from batch responses
 								if (
 									fileImportData.status === 'COMPLETED' ||
 									fileImportData.status === 'CANCELADO' ||
@@ -324,6 +338,10 @@ export function CargarArchivoTab() {
 				const BATCH_SIZE = 50
 				const totalRecordsCount = allRecords.length
 				let processedCount = 0
+				let sessionSincronizado = 0
+				let sessionRezagado = 0
+				let sessionError = 0
+				let sessionNoSincronizado = 0
 
 				for (let i = 0; i < totalRecordsCount; i += BATCH_SIZE) {
 					// Verificar si se canceló
@@ -351,49 +369,39 @@ export function CargarArchivoTab() {
 						)
 					}
 
+					const batchSummary = processResponse.data.summary
 					processedCount += recordsBatch.length
 
-					// Actualizar progreso local (el polling actualizará los estados específicos)
+					// Accumulate session counters from batch response (not from DB polling)
+					sessionSincronizado += batchSummary.sincronizado ?? 0
+					sessionRezagado += batchSummary.rezagado ?? 0
+					sessionError += batchSummary.error ?? 0
+					sessionNoSincronizado += batchSummary.noSincronizado ?? 0
+
 					setProcessingProgress((prev) =>
 						prev
 							? {
 								...prev,
 								current: processedCount,
+								sincronizado: sessionSincronizado,
+								rezagado: sessionRezagado,
+								error: sessionError,
 							}
 							: null
 					)
 				}
 
-				// Esperar un poco para que el último polling actualice
-				await new Promise((resolve) => setTimeout(resolve, 1000))
-
-				// Limpiar progreso para mostrar el resumen (independientemente si falla el fetch final)
+				// Limpiar progreso para mostrar el resumen con contadores de sesión
 				setProcessingProgress(null)
 
-				// Obtener el estado final usando el wrapper de API
-				const finalResponse = await loadFileApi.getImportProgress(fileImport.idFileImport)
-
-				if ('error' in finalResponse || !finalResponse.data) {
-					console.error('Error al obtener estado final:', finalResponse.error)
-					// Fallback a los resultados de validación local si falla el fetch final
-					setProcessingResult({
-						...result,
-						sincronizadoCount: 0,
-						rezagadoCount: 0,
-						noSincronizadoCount: 0,
-					})
-				} else {
-					const finalData = finalResponse.data
-					// Actualizar resultado con los datos consolidados del backend (misma fuente que historial)
-					setProcessingResult({
-						...result,
-						sincronizadoCount: finalData.sincronizadoRecord || 0,
-						rezagadoCount: finalData.rezagadoRecord || 0,
-						noSincronizadoCount: finalData.noSincronizadoRecord ?? 0,
-						// Sumamos errores locales detectados + errores reportados por el backend
-						errorCount: finalData.errorRecord || result.errorCount,
-					})
-				}
+				// Usar contadores de sesión (no los acumulados en DB)
+				setProcessingResult({
+					...result,
+					sincronizadoCount: sessionSincronizado,
+					rezagadoCount: sessionRezagado,
+					noSincronizadoCount: sessionNoSincronizado,
+					errorCount: sessionError || result.errorCount,
+				})
 			} else {
 				// Si no hay registros válidos, solo mostrar errores
 				setProcessingResult({
@@ -537,6 +545,52 @@ export function CargarArchivoTab() {
 							<option value={FILE_TYPES.VOLUNTARIA}>VOLUNTARIA</option>
 						</select>
 					</div>
+
+					{/* Selector de período */}
+					<div className="mb-6 grid grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<label className="text-sm font-medium text-foreground">
+								Mes
+							</label>
+							<select
+								value={selectedMonth}
+								onChange={(e) => setSelectedMonth(Number(e.target.value))}
+								className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+							>
+								{Object.entries(SPANISH_MONTH_NAMES).map(([num, name]) => (
+									<option key={num} value={num}>
+										{name}
+									</option>
+								))}
+							</select>
+						</div>
+						<div className="space-y-2">
+							<label className="text-sm font-medium text-foreground">
+								Año
+							</label>
+							<select
+								value={selectedYear}
+								onChange={(e) => setSelectedYear(Number(e.target.value))}
+								className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+							>
+								{Array.from({ length: 11 }, (_, i) => 2020 + i).map((year) => (
+									<option key={year} value={year}>
+										{year}
+									</option>
+								))}
+							</select>
+						</div>
+					</div>
+
+					{/* Confirmación de período seleccionado */}
+					{selectedFileType && (
+						<p className="text-sm text-muted-foreground mb-4">
+							Sincronizando:{' '}
+							<span className="font-medium text-foreground">
+								{selectedFileType} / {SPANISH_MONTH_NAMES[selectedMonth]} {selectedYear}
+							</span>
+						</p>
+					)}
 
 					{/* Área de drag and drop */}
 					<div

@@ -122,7 +122,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 			historial: false,
 		},
 		liquidaciones: {
-			preliquidacion: false,
+			preliquidacion: true,
 			liquidacion: false,
 		},
 		reportes: {

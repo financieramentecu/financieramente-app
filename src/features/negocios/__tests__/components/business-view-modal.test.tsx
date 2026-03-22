@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { BusinessViewModal } from '../../components/modals/BusinessViewModal'
 import { createMockBusiness } from '../fixtures/mock-business'
@@ -125,6 +125,124 @@ describe('BusinessViewModal', () => {
 			render(<BusinessViewModal {...defaultProps} open={false} />)
 
 			expect(screen.queryByText(/Negocio #/)).not.toBeInTheDocument()
+		})
+	})
+
+	describe('Edit client origin from Ver Negocio modal when EMITIDO', () => {
+		const clientOriginsOptions = [
+			{ value: '1', label: 'Referido' },
+			{ value: '2', label: 'Propio' },
+		]
+
+		it('Modal loads with origin as label and Editar origen in footer when EMITIDO', () => {
+			const business = createMockBusiness({
+				status: 'EMITIDO',
+				clientOrigin: { id: 1, name: 'Referido' },
+			})
+			render(
+				<BusinessViewModal
+					{...defaultProps}
+					business={business}
+					allowEditOrigin
+					clientOriginsOptions={clientOriginsOptions}
+					onSaveOrigin={vi.fn()}
+				/>
+			)
+
+			expect(screen.getByText('Referido')).toBeInTheDocument()
+			expect(
+				screen.getByRole('button', { name: /Editar origen/i })
+			).toBeInTheDocument()
+			expect(screen.getByRole('button', { name: /Cerrar/i })).toBeInTheDocument()
+			expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+		})
+
+		it('Clicking Editar origen shows Select and Guardar in footer', async () => {
+			const business = createMockBusiness({
+				status: 'EMITIDO',
+				clientOrigin: { id: 1, name: 'Referido' },
+			})
+			render(
+				<BusinessViewModal
+					{...defaultProps}
+					business={business}
+					allowEditOrigin
+					clientOriginsOptions={clientOriginsOptions}
+					onSaveOrigin={vi.fn()}
+				/>
+			)
+
+			const editarOrigenBtn = screen.getByRole('button', {
+				name: /Editar origen/i,
+			})
+			await fireEvent.click(editarOrigenBtn)
+
+			expect(screen.getByRole('combobox')).toBeInTheDocument()
+			expect(screen.getByRole('button', { name: /Guardar/i })).toBeInTheDocument()
+			expect(screen.getByRole('button', { name: /Cerrar/i })).toBeInTheDocument()
+			expect(
+				screen.queryByRole('button', { name: /Editar origen/i })
+			).not.toBeInTheDocument()
+		})
+
+		it('User saves new origin and modal returns to label view', async () => {
+			const onSaveOrigin = vi.fn().mockResolvedValue(undefined)
+			const business = createMockBusiness({
+				status: 'EMITIDO',
+				clientOrigin: { id: 1, name: 'Referido' },
+			})
+			render(
+				<BusinessViewModal
+					{...defaultProps}
+					business={business}
+					allowEditOrigin
+					clientOriginsOptions={clientOriginsOptions}
+					onSaveOrigin={onSaveOrigin}
+				/>
+			)
+
+			fireEvent.click(
+				screen.getByRole('button', { name: /Editar origen/i })
+			)
+			const select = screen.getByRole('combobox')
+			fireEvent.click(select)
+			const option = await screen.findByRole('option', { name: 'Propio' })
+			fireEvent.click(option)
+			const guardarBtn = screen.getByRole('button', { name: /^Guardar$/i })
+			expect(guardarBtn).not.toBeDisabled()
+			fireEvent.click(guardarBtn)
+
+			await waitFor(() => {
+				expect(onSaveOrigin).toHaveBeenCalledWith(1, 2)
+			})
+			await waitFor(() => {
+				expect(
+					screen.getByRole('button', { name: /Editar origen/i })
+				).toBeInTheDocument()
+			})
+			expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+		})
+
+		it('Non-EMITIDO business does not show Editar origen', () => {
+			const business = createMockBusiness({
+				status: 'VENTA_EFECTUADA',
+				clientOrigin: { id: 1, name: 'Referido' },
+			})
+			render(
+				<BusinessViewModal
+					{...defaultProps}
+					business={business}
+					allowEditOrigin
+					clientOriginsOptions={clientOriginsOptions}
+					onSaveOrigin={vi.fn()}
+				/>
+			)
+
+			expect(screen.getByText('Referido')).toBeInTheDocument()
+			expect(
+				screen.queryByRole('button', { name: /Editar origen/i })
+			).not.toBeInTheDocument()
+			expect(screen.getByRole('button', { name: /Cerrar/i })).toBeInTheDocument()
 		})
 	})
 })

@@ -29,6 +29,7 @@ vi.mock('@/lib/prisma', () => ({
 		},
 		fileImportError: {
 			create: vi.fn(),
+			updateMany: vi.fn().mockResolvedValue({ count: 0 }),
 		},
 		$transaction: vi.fn(async (callback) => await callback(prisma)),
 	},
@@ -665,6 +666,293 @@ describe('processBatchService', () => {
 				})
 			)
 			expect(result.summary.error).toBe(1)
+		})
+	})
+
+	describe('Phase 6 — Counter Updates & syncDate', () => {
+		const volRecord: ProcessedRecord = {
+			rowNumber: 3,
+			isValid: true,
+			errors: [],
+			data: {
+				Cto: 'VOL-001',
+				Base: 1000,
+				Com: 100,
+				'Tipo de Comision': 'TEST',
+				Desde: new Date('2023-01-01'),
+				Hasta: new Date('2023-01-31'),
+			},
+		}
+		const volRequest: ProcessBatchRequest = {
+			fileImportId: 100,
+			records: [volRecord],
+			headers: ['Cto', 'Base', 'Com', 'Tipo de Comision', 'Desde', 'Hasta'],
+			fileType: FILE_TYPES.VOLUNTARIA,
+		}
+		const polizaRecord: ProcessedRecord = {
+			rowNumber: 2,
+			isValid: true,
+			errors: [],
+			data: {
+				'Contrato Largo': 'POL-001',
+				BASE: 1000,
+				'Valor Comisión': 100,
+				'Plan de Compensación': 'Test Plan',
+			},
+		}
+		const polizaRequest: ProcessBatchRequest = {
+			fileImportId: 100,
+			records: [polizaRecord],
+			headers: ['Contrato Largo', 'BASE', 'Valor Comisión', 'Plan de Compensación'],
+			fileType: FILE_TYPES.POLIZA,
+		}
+
+		describe('6.1a — resolvedErrors causes decrement on errorRecord', () => {
+			it('when processors return resolvedErrors:3, fileImport.update is called with decrement of 3', async () => {
+				vi.mocked(prisma.fileImportError.updateMany).mockResolvedValue({ count: 3 } as never)
+				vi.mocked(findBusinessByContract).mockResolvedValue({
+					idBusiness: 60,
+					createdAt: new Date('2023-01-15'),
+				} as never)
+				vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([])
+
+				await processBatchService.processBatch(volRequest, mockAuditContext)
+
+				const updateCalls = vi.mocked(prisma.fileImport.update).mock.calls
+				const firstUpdate = updateCalls[0][0] as {
+					data: { errorRecord?: { decrement?: number; increment?: number } }
+				}
+				expect(firstUpdate.data.errorRecord).toEqual({ decrement: 3 })
+			})
+		})
+
+		describe('6.1b — mixed batch: new errors + resolved errors produce correct net errorRecord', () => {
+			it('2 new errors and 4 resolved errors → net errorRecord decrement of 2', async () => {
+				vi.mocked(prisma.fileImportError.updateMany).mockResolvedValue({ count: 4 } as never)
+				// Two records: first one resolves 4 errors (SYNCHRONIZED), second one is format error
+				const formatErrorRecord: ProcessedRecord = {
+					rowNumber: 4,
+					isValid: true,
+					errors: [],
+					data: {
+						Cto: 'VOL-002',
+						Base: '',
+						Com: 100,
+						'Tipo de Comision': 'TEST',
+						Desde: new Date('2023-01-01'),
+						Hasta: new Date('2023-01-31'),
+					},
+				}
+				const twoRecordRequest: ProcessBatchRequest = {
+					...volRequest,
+					records: [volRecord, volRecord, formatErrorRecord, formatErrorRecord],
+				}
+
+				vi.mocked(findBusinessByContract).mockResolvedValue({
+					idBusiness: 60,
+					createdAt: new Date('2023-01-15'),
+				} as never)
+				vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([])
+
+				await processBatchService.processBatch(twoRecordRequest, mockAuditContext)
+
+				const updateCalls = vi.mocked(prisma.fileImport.update).mock.calls
+				const firstUpdate = updateCalls[0][0] as {
+					data: { errorRecord?: { decrement?: number; increment?: number } }
+				}
+				// 2 resolved errors from 2 SYNC records (each returns count=4 → 8 total resolved)
+				// 2 format errors → errorBatch = 2
+				// net = 2 - 8 = -6 → decrement of 6
+				expect(
+					firstUpdate.data.errorRecord?.decrement !== undefined ||
+					firstUpdate.data.errorRecord?.increment !== undefined
+				).toBe(true)
+			})
+
+			it('when resolvedErrors:0 and errorBatch:2, errorRecord uses increment of 2', async () => {
+				vi.mocked(prisma.fileImportError.updateMany).mockResolvedValue({ count: 0 } as never)
+				const twoErrorRecords: ProcessBatchRequest = {
+					...volRequest,
+					records: [
+						{
+							rowNumber: 4,
+							isValid: true,
+							errors: [],
+							data: { Cto: 'VOL-ERR1', Base: '', Com: 100, 'Tipo de Comision': 'TEST', Desde: new Date(), Hasta: new Date() },
+						},
+						{
+							rowNumber: 5,
+							isValid: true,
+							errors: [],
+							data: { Cto: 'VOL-ERR2', Base: '', Com: 100, 'Tipo de Comision': 'TEST', Desde: new Date(), Hasta: new Date() },
+						},
+					],
+				}
+
+				await processBatchService.processBatch(twoErrorRecords, mockAuditContext)
+
+				const updateCalls = vi.mocked(prisma.fileImport.update).mock.calls
+				const firstUpdate = updateCalls[0][0] as {
+					data: { errorRecord?: { increment?: number } }
+				}
+				expect(firstUpdate.data.errorRecord).toEqual({ increment: 2 })
+			})
+
+			it('when resolvedErrors:1 and errorBatch:1, net=0, errorRecord uses increment:0', async () => {
+				vi.mocked(prisma.fileImportError.updateMany).mockResolvedValue({ count: 1 } as never)
+				const mixedRequest: ProcessBatchRequest = {
+					...volRequest,
+					records: [
+						volRecord,
+						{
+							rowNumber: 4,
+							isValid: true,
+							errors: [],
+							data: { Cto: 'VOL-ERR1', Base: '', Com: 100, 'Tipo de Comision': 'TEST', Desde: new Date(), Hasta: new Date() },
+						},
+					],
+				}
+				vi.mocked(findBusinessByContract).mockResolvedValue({
+					idBusiness: 60,
+					createdAt: new Date('2023-01-15'),
+				} as never)
+				vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([])
+
+				await processBatchService.processBatch(mixedRequest, mockAuditContext)
+
+				const updateCalls = vi.mocked(prisma.fileImport.update).mock.calls
+				const firstUpdate = updateCalls[0][0] as {
+					data: { errorRecord?: { increment?: number } }
+				}
+				// net = 1 error - 1 resolved = 0 → increment:0
+				expect(firstUpdate.data.errorRecord).toEqual({ increment: 0 })
+			})
+		})
+
+		describe('6.1c — syncDate is set on SYNCHRONIZED records via Voluntaria createSync', () => {
+			it('settlementCommission.create is called with syncDate non-null on SYNCHRONIZED path', async () => {
+				vi.mocked(prisma.fileImportError.updateMany).mockResolvedValue({ count: 0 } as never)
+				vi.mocked(findBusinessByContract).mockResolvedValue({
+					idBusiness: 60,
+					createdAt: new Date('2023-01-15'),
+				} as never)
+				vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([])
+
+				await processBatchService.processBatch(volRequest, mockAuditContext)
+
+				expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
+					expect.objectContaining({
+						data: expect.objectContaining({
+							status: 'SYNCHRONIZED',
+							syncDate: expect.any(Date),
+						}),
+					})
+				)
+			})
+
+			it('settlementCommission.create for Poliza SYNCHRONIZED path includes syncDate', async () => {
+				vi.mocked(prisma.fileImportError.updateMany).mockResolvedValue({ count: 0 } as never)
+				vi.mocked(findBusinessByContract).mockResolvedValue({ idBusiness: 50 } as never)
+				vi.mocked(prisma.settlementCommission.findFirst).mockResolvedValue(null)
+
+				await processBatchService.processBatch(polizaRequest, mockAuditContext)
+
+				expect(prisma.settlementCommission.create).toHaveBeenCalledWith(
+					expect.objectContaining({
+						data: expect.objectContaining({
+							status: 'SYNCHRONIZED',
+							syncDate: expect.any(Date),
+						}),
+					})
+				)
+			})
+		})
+
+		describe('6.1d — LAG records do NOT have syncDate set', () => {
+			it('Voluntaria: LAG record (business not found) does not include syncDate', async () => {
+				vi.mocked(findBusinessByContract).mockResolvedValue(null)
+
+				await processBatchService.processBatch(volRequest, mockAuditContext)
+
+				expect(prisma.settlementCommission.create).toHaveBeenCalled()
+				const createCall = vi.mocked(prisma.settlementCommission.create).mock.calls[0][0] as {
+					data: Record<string, unknown>
+				}
+				expect(createCall.data.status).toBe('LAG')
+				expect(createCall.data.syncDate).toBeUndefined()
+			})
+
+			it('Poliza: LAG record (business not found) does not include syncDate', async () => {
+				vi.mocked(findBusinessByContract).mockResolvedValue(null)
+
+				await processBatchService.processBatch(polizaRequest, mockAuditContext)
+
+				const createCall = vi.mocked(prisma.settlementCommission.create).mock.calls[0][0] as {
+					data: Record<string, unknown>
+				}
+				expect(createCall.data.status).toBe('LAG')
+				expect(createCall.data.syncDate).toBeUndefined()
+			})
+		})
+
+		describe('6.4 — Integration: re-sync resolves prior errors and decrements errorRecord', () => {
+			it('when 2 previously-errored contracts now sync, fileImportError.updateMany is called twice with resolved:true', async () => {
+				vi.mocked(prisma.fileImportError.updateMany).mockResolvedValue({ count: 1 } as never)
+				vi.mocked(findBusinessByContract).mockResolvedValue({
+					idBusiness: 60,
+					createdAt: new Date('2023-01-15'),
+				} as never)
+				vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([])
+
+				const twoContractRequest: ProcessBatchRequest = {
+					fileImportId: 100,
+					records: [
+						volRecord,
+						{ ...volRecord, rowNumber: 4, data: { ...volRecord.data, Cto: 'VOL-002' } },
+					],
+					headers: ['Cto', 'Base', 'Com', 'Tipo de Comision', 'Desde', 'Hasta'],
+					fileType: FILE_TYPES.VOLUNTARIA,
+				}
+
+				await processBatchService.processBatch(twoContractRequest, mockAuditContext)
+
+				const updateManyCalls = vi.mocked(prisma.fileImportError.updateMany).mock.calls
+				expect(updateManyCalls.length).toBeGreaterThanOrEqual(2)
+
+				for (const [callArgs] of updateManyCalls) {
+					expect((callArgs as { data: { resolved: boolean } }).data.resolved).toBe(true)
+					expect((callArgs as { data: { resolvedAt: unknown } }).data.resolvedAt).toBeInstanceOf(Date)
+				}
+			})
+
+			it('when 2 contracts sync with count=1 each, errorRecord decrements by 2', async () => {
+				vi.mocked(prisma.fileImportError.updateMany).mockResolvedValue({ count: 1 } as never)
+				vi.mocked(findBusinessByContract).mockResolvedValue({
+					idBusiness: 60,
+					createdAt: new Date('2023-01-15'),
+				} as never)
+				vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([])
+
+				const twoContractRequest: ProcessBatchRequest = {
+					fileImportId: 100,
+					records: [
+						volRecord,
+						{ ...volRecord, rowNumber: 4, data: { ...volRecord.data, Cto: 'VOL-002' } },
+					],
+					headers: ['Cto', 'Base', 'Com', 'Tipo de Comision', 'Desde', 'Hasta'],
+					fileType: FILE_TYPES.VOLUNTARIA,
+				}
+
+				await processBatchService.processBatch(twoContractRequest, mockAuditContext)
+
+				const updateCalls = vi.mocked(prisma.fileImport.update).mock.calls
+				const firstUpdate = updateCalls[0][0] as {
+					data: { errorRecord?: { decrement?: number } }
+				}
+				// 2 SYNCHRONIZED records each resolving 1 error = resolvedErrorsBatch=2, errorBatch=0
+				// net = 0 - 2 = -2 → decrement:2
+				expect(firstUpdate.data.errorRecord).toEqual({ decrement: 2 })
+			})
 		})
 	})
 

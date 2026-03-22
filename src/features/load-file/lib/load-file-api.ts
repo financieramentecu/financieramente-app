@@ -64,13 +64,24 @@ export const loadFileApi = {
 	getImportHistory: async (
 		page: number,
 		pageSize: number = 10,
+		filters?: {
+			month?: number
+			year?: number
+			status?: string
+			search?: string
+		},
 		config?: { signal?: AbortSignal }
 	): Promise<ApiResponse<PaginatedData<FileImportHistory>>> => {
 		try {
-			const res = await fetch(
-				`/api/carga-archivos/file-import?page=${page}&limit=${pageSize}`,
-				{ method: 'GET', signal: config?.signal }
-			)
+			const params = new URLSearchParams()
+			params.set('page', String(page))
+			params.set('limit', String(pageSize))
+			if (filters?.month != null) params.set('month', String(filters.month))
+			if (filters?.year != null) params.set('year', String(filters.year))
+			if (filters?.status && filters.status !== 'ALL') params.set('status', filters.status)
+			if (filters?.search) params.set('search', filters.search)
+			const url = `/api/carga-archivos/file-import?${params.toString()}`
+			const res = await fetch(url, { method: 'GET', signal: config?.signal })
 
 			const json = await res.json()
 
@@ -104,10 +115,12 @@ export const loadFileApi = {
 
 	/**
 	 * Inicia un nuevo registro de importación antes de procesar lotes.
+	 * El servidor genera el nombre del archivo a partir del fileType, month y year.
 	 */
 	initiateImport: async (
-		fileName: string,
 		fileType: string,
+		month: number,
+		year: number,
 		config?: { signal?: AbortSignal }
 	): Promise<ApiResponse<{ fileImport: FileImport }>> => {
 		try {
@@ -116,7 +129,7 @@ export const loadFileApi = {
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ fileName, fileType }),
+				body: JSON.stringify({ fileType, month, year }),
 				signal: config?.signal,
 			})
 
@@ -214,6 +227,65 @@ export const loadFileApi = {
 			if (json.data && Array.isArray(json.data.items)) {
 				return { data: json.data as FileImportRecordsResponse }
 			}
+			return { data: null, error: 'Formato de respuesta desconocido' }
+		} catch (error) {
+			return {
+				data: null,
+				error:
+					error instanceof Error ? error.message : 'Error inesperado servidor',
+			}
+		}
+	},
+
+	/**
+	 * Invoca el proceso de pre-liquidación para un archivo específico.
+	 * Llama a POST /api/pre-liquidacion/procesar con el fileImportId y el mes (YYYY-MM).
+	 */
+	preliquidar: async (
+		fileImportId: number,
+		mes: string,
+		config?: { signal?: AbortSignal }
+	): Promise<
+		ApiResponse<{ success: boolean; registrosProcesados: number; mensaje: string }>
+	> => {
+		try {
+			const res = await fetch('/api/pre-liquidacion/procesar', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ fileImportId, mes }),
+				signal: config?.signal,
+			})
+
+			const json = await res.json()
+
+			if (!res.ok) {
+				return {
+					data: null,
+					error: json.error || 'Error al procesar pre-liquidación',
+				}
+			}
+
+			if (
+				json.data &&
+				typeof json.data.success === 'boolean' &&
+				typeof json.data.registrosProcesados === 'number'
+			) {
+				return { data: json.data }
+			}
+
+			// Legacy: backend returned success/registrosProcesados at root level
+			if (typeof json.success === 'boolean') {
+				return {
+					data: {
+						success: json.success,
+						registrosProcesados: json.registrosProcesados ?? 0,
+						mensaje: json.mensaje ?? '',
+					},
+				}
+			}
+
 			return { data: null, error: 'Formato de respuesta desconocido' }
 		} catch (error) {
 			return {
