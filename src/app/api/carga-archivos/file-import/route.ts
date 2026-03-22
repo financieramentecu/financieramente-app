@@ -5,6 +5,7 @@ import { UserRole } from '@/features/auth/lib/roles'
 import {
 	FileImportService,
 	PeriodCompletedError,
+	PeriodPreSettledError,
 } from '@/features/load-file/services/file-import.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
 			{ status: 200 }
 		)
 	} catch (error) {
-		if (error instanceof PeriodCompletedError) {
+		if (error instanceof PeriodCompletedError || error instanceof PeriodPreSettledError) {
 			return NextResponse.json(
 				{
 					data: null,

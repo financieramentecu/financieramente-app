@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 
 import {
 	FileText,
@@ -36,6 +37,40 @@ import { loadFileApi } from '../lib/load-file-api'
 /**
  * Componente para mostrar el historial de cargas de archivos
  */
+
+function StatBadge({
+	label,
+	value,
+	bgColor,
+	textColor,
+	borderColor,
+	dotColor,
+}: {
+	label: string
+	value: number
+	bgColor: string
+	textColor: string
+	borderColor: string
+	dotColor: string
+}) {
+	return (
+		<span
+			className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+			style={{
+				backgroundColor: bgColor,
+				color: textColor,
+				border: `1px solid ${borderColor}`,
+			}}
+		>
+			<span
+				className="w-1.5 h-1.5 rounded-full"
+				style={{ backgroundColor: dotColor }}
+			/>
+			{value} {label}
+		</span>
+	)
+}
+
 export function HistorialCargasTab() {
 	const { user } = useAuthSession()
 	const canPreliquidar =
@@ -109,7 +144,11 @@ export function HistorialCargasTab() {
 		const date = new Date(carga.createdAt)
 		const month = String(date.getMonth() + 1).padStart(2, '0')
 		const mes = `${date.getFullYear()}-${month}`
-		setPreliquidarTarget({ idFileImport: carga.idFileImport, mes, id: carga.id })
+		setPreliquidarTarget({
+			idFileImport: carga.idFileImport,
+			mes,
+			id: carga.id,
+		})
 		setPreliquidarModalOpen(true)
 	}
 
@@ -124,7 +163,8 @@ export function HistorialCargasTab() {
 				toast.error('Error al pre-liquidar', { description: result.error })
 			} else {
 				toast.success('Pre-liquidación completada', {
-					description: result.data?.mensaje ?? 'Registros procesados correctamente',
+					description:
+						result.data?.mensaje ?? 'Registros procesados correctamente',
 				})
 				await refetch()
 			}
@@ -138,45 +178,73 @@ export function HistorialCargasTab() {
 		}
 	}
 
-	const getEstadoBadgeStyle = (estado: string): React.CSSProperties => {
+	const getEstadoBadgeStyle = (
+		estado: string
+	): { label: string; style: React.CSSProperties } => {
 		switch (estado) {
 			case 'COMPLETED':
+				return {
+					label: 'LIQUIDADO',
+					style: {
+						backgroundColor: '#dcfce7',
+						color: '#166534',
+						border: '1px solid #86efac',
+					},
+				}
 			case 'PRE-SETTLED':
 				return {
-					backgroundColor: '#dcfce7',
-					color: '#166534',
-					border: '1px solid #86efac',
+					label: 'Pre-liquidado',
+					style: {
+						backgroundColor: '#e0f2fe', // Light blue for pre-settled
+						color: '#075985', // Darker blue
+						border: '1px solid #7dd3fc', // Border blue
+					},
 				}
 			case 'ERROR':
 				return {
-					backgroundColor: '#fee2e2',
-					color: '#991b1b',
-					border: '1px solid #fca5a5',
+					label: 'ERROR',
+					style: {
+						backgroundColor: '#fee2e2',
+						color: '#991b1b',
+						border: '1px solid #fca5a5',
+					},
 				}
 			case 'PROCESSING':
 				return {
-					backgroundColor: '#dbeafe',
-					color: '#1e40af',
-					border: '1px solid #93c5fd',
+					label: 'PROCESANDO',
+					style: {
+						backgroundColor: '#dbeafe',
+						color: '#1e40af',
+						border: '1px solid #93c5fd',
+					},
 				}
 			case 'PARCIAL':
 				return {
-					backgroundColor: '#fef9c3',
-					color: '#854d0e',
-					border: '1px solid #fde047',
+					label: 'PARCIAL',
+					style: {
+						backgroundColor: '#fef9c3',
+						color: '#854d0e',
+						border: '1px solid #fde047',
+					},
 				}
 			case 'CANCELADO':
 				return {
-					backgroundColor: '#fef3c7',
-					color: '#92400e',
-					border: '1px solid #fcd34d',
+					label: 'CANCELADO',
+					style: {
+						backgroundColor: '#fef3c7',
+						color: '#92400e',
+						border: '1px solid #fcd34d',
+					},
 				}
 			case 'LOAD':
 			default:
 				return {
-					backgroundColor: '#e0f2fe',
-					color: '#075985',
-					border: '1px solid #7dd3fc',
+					label: 'SINCRONIZADO',
+					style: {
+						backgroundColor: '#e0f2fe',
+						color: '#075985',
+						border: '1px solid #7dd3fc',
+					},
 				}
 		}
 	}
@@ -223,10 +291,7 @@ export function HistorialCargasTab() {
 			>
 				{detailFileImportId !== null && (
 					<div className="flex-1 min-h-0 overflow-y-auto w-full pt-2">
-						<RecordsByStatusView
-							fileImportId={detailFileImportId}
-							compact
-						/>
+						<RecordsByStatusView fileImportId={detailFileImportId} compact />
 					</div>
 				)}
 			</Modal>
@@ -237,7 +302,10 @@ export function HistorialCargasTab() {
 					<h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
 						<Filter className="h-4 w-4" /> Filtros
 					</h3>
-					{(searchTerm || statusFilter !== 'ALL' || mesFilter !== 'ALL' || anioFilter !== 'ALL') && (
+					{(searchTerm ||
+						statusFilter !== 'ALL' ||
+						mesFilter !== 'ALL' ||
+						anioFilter !== 'ALL') && (
 						<Button
 							variant="ghost"
 							size="sm"
@@ -275,6 +343,7 @@ export function HistorialCargasTab() {
 							<SelectContent>
 								<SelectItem value="ALL">Todos</SelectItem>
 								<SelectItem value="LOAD">Cargado</SelectItem>
+								<SelectItem value="PRE-SETTLED">Pre-Liquidado</SelectItem>
 								<SelectItem value="COMPLETED">Completado</SelectItem>
 							</SelectContent>
 						</Select>
@@ -371,157 +440,149 @@ export function HistorialCargasTab() {
 				) : (
 					<div className="space-y-4">
 						<p className="text-xs text-muted-foreground">
-							Los contadores de cada archivo reflejan el total acumulado de todas las sincronizaciones realizadas.
+							Los contadores de cada archivo reflejan el total acumulado de
+							todas las sincronizaciones realizadas.
 						</p>
-						{historial.map((carga) => (
-							<div
-								key={carga.id}
-								className="bg-muted rounded-lg p-4 border border-border"
-							>
-								<div className="flex items-start justify-between gap-4">
-									{/* Información del archivo */}
-									<div className="flex items-start gap-3 flex-1">
-										<FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
-										<div className="flex-1">
-											{/* Nombre del archivo y badge de estado */}
-											<div className="flex items-center gap-2 mb-2">
-												<h3 className="font-semibold text-primary">
-													{carga.nombreArchivo}
-												</h3>
-												<span
-													className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-													style={getEstadoBadgeStyle(carga.estado)}
-												>
-													{carga.estado}
-												</span>
-											</div>
+						{historial.map((carga) => {
+							const { label: estadoLabel, style: estadoStyle } =
+								getEstadoBadgeStyle(carga.estado)
+							return (
+								<div
+									key={carga.id}
+									className="bg-muted rounded-lg p-4 border border-border"
+								>
+									<div className="flex items-start justify-between gap-4">
+										{/* Información del archivo */}
+										<div className="flex items-start gap-3 flex-1">
+											<FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
+											<div className="flex-1">
+												{/* Nombre del archivo y badge de estado */}
+												<div className="flex items-center gap-2 mb-2">
+													<h3 className="font-semibold text-primary">
+														{carga.nombreArchivo}
+													</h3>
+													<span
+														className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+														style={estadoStyle}
+													>
+														{estadoLabel}
+													</span>
+												</div>
 
-											{/* Fecha, hora y usuario */}
-											<p className="text-sm text-muted-foreground mb-3">
-												{carga.fechaCarga}, {carga.horaCarga} • Por:{' '}
-												{carga.usuario}
-											</p>
+												{/* Fecha, hora y usuario */}
+												<p className="text-sm text-muted-foreground mb-3">
+													{carga.fechaCarga}, {carga.horaCarga} • Por:{' '}
+													{carga.usuario}
+												</p>
 
-											{/* Badges de estadísticas */}
-											<div className="flex flex-wrap items-center gap-2">
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#dcfce7',
-														color: '#166534',
-														border: '1px solid #86efac',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#16a34a' }}
+												{/* Badges de estadísticas */}
+												<div className="flex flex-wrap items-center gap-2">
+													<StatBadge
+														label="exitosos"
+														value={carga.exitosos}
+														bgColor="#dcfce7"
+														textColor="#166534"
+														borderColor="#86efac"
+														dotColor="#16a34a"
 													/>
-													{carga.exitosos} exitosos
-												</span>
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#fee2e2',
-														color: '#991b1b',
-														border: '1px solid #fca5a5',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#dc2626' }}
+													<StatBadge
+														label="errores"
+														value={carga.errores}
+														bgColor="#fee2e2"
+														textColor="#991b1b"
+														borderColor="#fca5a5"
+														dotColor="#dc2626"
 													/>
-													{carga.errores} errores
-												</span>
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#dbeafe',
-														color: '#1e40af',
-														border: '1px solid #93c5fd',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#3b82f6' }}
+													<StatBadge
+														label="sincronizados"
+														value={carga.sincronizados}
+														bgColor="#dbeafe"
+														textColor="#1e40af"
+														borderColor="#93c5fd"
+														dotColor="#3b82f6"
 													/>
-													{carga.sincronizados} sincronizados
-												</span>
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#fef9c3',
-														color: '#854d0e',
-														border: '1px solid #fde047',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#eab308' }}
+													<StatBadge
+														label="sin registro"
+														value={carga.sinRegistro}
+														bgColor="#fef9c3"
+														textColor="#854d0e"
+														borderColor="#fde047"
+														dotColor="#eab308"
 													/>
-													{carga.sinRegistro} sin registro
-												</span>
-												<span
-													className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-													style={{
-														backgroundColor: '#fef3c7',
-														color: '#92400e',
-														border: '1px solid #fcd34d',
-													}}
-												>
-													<span
-														className="w-1.5 h-1.5 rounded-full"
-														style={{ backgroundColor: '#f59e0b' }}
+													<StatBadge
+														label="rezagados"
+														value={carga.rezagados}
+														bgColor="#fef3c7"
+														textColor="#92400e"
+														borderColor="#fcd34d"
+														dotColor="#f59e0b"
 													/>
-													{carga.rezagados} rezagados
-												</span>
+												</div>
 											</div>
 										</div>
-									</div>
 
-									{/* Botones Ver detalle, Preliquidar y Eliminar */}
-									<div className="flex items-center gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() =>
-												setDetailFileImportId(parseInt(carga.id, 10))
-											}
-											className="p-2"
-											title="Ver detalle por estado"
-										>
-											<Eye className="h-4 w-4 mr-1" />
-											Ver detalle
-										</Button>
-										{canPreliquidar &&
-											carga.sincronizados > 0 &&
-											carga.estado === 'LOAD' && (
+										{/* Botones Ver detalle, Preliquidar, Ir a Preliqui y Eliminar */}
+										<div className="flex items-center gap-2">
+											{carga.estado === 'LOAD' && (
 												<Button
 													variant="outline"
 													size="sm"
-													onClick={() => handlePreliquidarClick(carga)}
-													disabled={preliquidarLoading[carga.id] === true}
+													onClick={() =>
+														setDetailFileImportId(parseInt(carga.id, 10))
+													}
 													className="p-2"
-													title="Pre-liquidar archivo"
+													title="Ver detalle por estado"
 												>
-													{preliquidarLoading[carga.id] === true ? (
-														<Loader2 className="h-4 w-4 mr-1 animate-spin" />
-													) : null}
-													Preliquidar
+													<Eye className="h-4 w-4 mr-1" />
+													Ver detalle
 												</Button>
 											)}
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={() => handleDeleteClick(carga.id)}
-											className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2"
-											title="Eliminar registro"
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
+
+											{carga.estado === 'PRE-SETTLED' && (
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() =>
+														window.location.assign(`/dashboard/pre-liquidacion/${carga.idFileImport}`)
+													}
+													className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
+												>
+													IR a PRELIQUIDACIÓN
+												</Button>
+											)}
+
+											{canPreliquidar &&
+												carga.sincronizados > 0 &&
+												carga.estado === 'LOAD' && (
+													<Button
+														variant="outline"
+														size="sm"
+														onClick={() => handlePreliquidarClick(carga)}
+														disabled={preliquidarLoading[carga.id] === true}
+														className="p-2"
+														title="Pre-liquidar archivo"
+													>
+														{preliquidarLoading[carga.id] === true ? (
+															<Loader2 className="h-4 w-4 mr-1 animate-spin" />
+														) : null}
+														Preliquidar
+													</Button>
+												)}
+
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => handleDeleteClick(carga.id)}
+												className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2"
+												title="Eliminar registro"
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</div>
 									</div>
 								</div>
-							</div>
-						))}
+							)
+						})}
 					</div>
 				)}
 			</div>
@@ -531,7 +592,8 @@ export function HistorialCargasTab() {
 				<p className="text-sm text-foreground leading-relaxed">
 					<strong>Formato requerido de Skandia:</strong> Seleccione el tipo de
 					archivo y use la estructura correspondiente. El sistema validará
-					automáticamente las columnas y sincronizará con los registros existentes.
+					automáticamente las columnas y sincronizará con los registros
+					existentes.
 				</p>
 				<div className="text-sm text-foreground space-y-2">
 					<p>
@@ -540,8 +602,8 @@ export function HistorialCargasTab() {
 						Com.
 					</p>
 					<p>
-						<strong>Póliza:</strong> Polizas Periodo, Plan de Compensación, Valor
-						Comisión, BASE, Polizas Producto, Contrato Largo, Polizas Id
+						<strong>Póliza:</strong> Polizas Periodo, Plan de Compensación,
+						Valor Comisión, BASE, Polizas Producto, Contrato Largo, Polizas Id
 						Agente, Polizas Nombre Agente, Polizas Id Sociedad, Nombre Sociedad,
 						Polizas Clasificación.
 					</p>

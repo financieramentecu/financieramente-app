@@ -186,35 +186,51 @@ The system SHALL use the canonical state value `PRE-SETTLED` when querying pre-l
 - THEN the system SHALL include those commission records with status `PRE-SETTLED` in the export
 - AND the export SHALL NOT be empty due to a status filter mismatch
 
-### Requirement: File list for pre-liquidación includes pending and pre-liquidated files
+### Requirement: File list for pre-liquidación updated for PRE-SETTLED status
 
-The system SHALL list file imports available for pre-liquidación (e.g. for the pre-liquidación screen) such that: (1) a file SHALL appear if it has at least one `SettlementCommission` with status `SYNCHRONIZED` OR at least one with status `PRE-SETTLED`; (2) for each file, the system SHALL expose a live count of commissions with status `SYNCHRONIZED` (sincronizados) and a live count with status `PRE-SETTLED` (registrosPreliquidados). The UI "Pendientes" tab SHALL use sincronizados > 0 to show files that can still be pre-liquidated; the "Histórico" tab SHALL use registrosPreliquidados > 0 to show files that have pre-liquidated records.
+The system SHALL list file imports in the pre-liquidación module as follows:
+- **Tab "Pre-liquidar"**: SHALL include files with `status = LOAD` AND `sincronizados > 0`.
+- **Tab "Histórico"**: SHALL include files with `status = PRE-SETTLED` OR `status = COMPLETED`.
 
-#### Scenario: Pre-liquidated file remains in list
+The system SHALL also expose a live count of commissions with status `SYNCHRONIZED` (sincronizados) and a live count with status `PRE-SETTLED` (registrosPreliquidados) for each file.
 
-- GIVEN a file whose commissions have all been pre-liquidated (all `SettlementCommission` records for that file have status `PRE-SETTLED`)
-- WHEN the client requests the list of files for pre-liquidación
-- THEN the system SHALL include that file in the list
-- AND the file SHALL have registrosPreliquidados equal to the number of PRE-SETTLED commissions for that file
-- AND the file SHALL appear in the "Histórico" tab when the UI filters by registrosPreliquidados > 0
+#### Scenario: Pre-liquidated file moves to Histórico
 
-#### Scenario: Pending file shows correct counts
+- GIVEN a file whose commissions have been pre-liquidated (`status` transitioned to `PRE-SETTLED`)
+- WHEN the user navigates to the Pre-liquidación module
+- THEN the file MUST NOT appear in the "Pre-liquidar" tab
+- BUT MUST appear in the "Histórico" tab
 
-- GIVEN a file that has at least one `SettlementCommission` with status `SYNCHRONIZED` and none with status `PRE-SETTLED`
-- WHEN the client requests the list of files for pre-liquidación
-- THEN the system SHALL include that file in the list
-- AND sincronizados SHALL equal the count of SYNCHRONIZED commissions for that file
-- AND registrosPreliquidados SHALL be 0
-- AND the file SHALL appear in the "Pendientes" tab when the UI filters by sincronizados > 0
+### Requirement: Navigation to Pre-liquidation Details
 
-#### Scenario: File with both pending and pre-liquidated records
+The "Histórico" tab (and the "Historial" tab in Load-File) SHALL provide an "IR a PRELIQUIDACIÓN" button for files with `status = PRE-SETTLED`. This button SHALL navigate to `/dashboard/pre-liquidacion/[fileId]`.
 
-- GIVEN a file that has at least one `SettlementCommission` with status `SYNCHRONIZED` and at least one with status `PRE-SETTLED`
-- WHEN the client requests the list of files for pre-liquidación
-- THEN the system SHALL include that file in the list
-- AND sincronizados SHALL equal the count of SYNCHRONIZED commissions
-- AND registrosPreliquidados SHALL equal the count of PRE-SETTLED commissions
-- AND the file MAY appear in both Pendientes and Histórico depending on UI logic (e.g. show in both or in the tab that matches the user's intent)
+#### Scenario: Direct navigation from Load-File History
+
+- GIVEN a file with `status = 'PRE-SETTLED'` in the Historial de Cargas
+- WHEN the user clicks "IR a PRELIQUIDACIÓN"
+- THEN the system SHALL navigate to the specific pre-liquidación detail page for that file
+
+---
+
+### Requirement: Spanish Table Headers in Results
+
+The results table and exports in the Pre-liquidación module MUST use Spanish headers for all columns to ensure a fully localized experience.
+
+| English Key | Spanish Header |
+|-------------|----------------|
+| `SYNCHRONIZED` | SINCRONIZADOS |
+| `PRE-SETTLED` | PRE-LIQUIDADOS |
+| `LAG` | REZAGADOS |
+| `TOTAL` | TOTAL |
+
+#### Scenario: Table headers in Spanish
+
+- GIVEN the user is viewing the results of a pre-liquidated file
+- WHEN the summary table is rendered
+- THEN headers MUST be in Spanish (e.g., "PRE-LIQUIDADOS" instead of "PRE-SETTLED")
+
+---
 
 ### Requirement: Block Re-Sync on Completed Period (FileImportService responsibility)
 

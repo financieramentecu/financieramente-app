@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
 	FileImportService,
 	PeriodCompletedError,
+	PeriodPreSettledError,
 } from '../services/file-import.service'
 import { prisma } from '@/lib/prisma'
 import { FILE_TYPES } from '../lib/file-types'
@@ -38,6 +39,12 @@ const mockFileImportCompleted = {
 	...mockFileImportLoad,
 	idFileImport: 2,
 	status: 'COMPLETED',
+}
+
+const mockFileImportPreSettled = {
+	...mockFileImportLoad,
+	idFileImport: 4,
+	status: 'PRE-SETTLED',
 }
 
 describe('FileImportService', () => {
@@ -92,6 +99,23 @@ describe('FileImportService', () => {
 				).rejects.toThrow(PeriodCompletedError)
 
 				expect(prisma.fileImport.create).not.toHaveBeenCalled()
+			})
+		})
+
+		describe('when a PRE-SETTLED import exists for the same period + user', () => {
+			it('throws PeriodPreSettledError', async () => {
+				vi.mocked(prisma.fileImport.findFirst).mockResolvedValueOnce(
+					mockFileImportPreSettled as never
+				)
+
+				await expect(
+					FileImportService.initiateImport({
+						fileType: FILE_TYPES.POLIZA,
+						month: 2,
+						year: 2026,
+						idUser: 10,
+					})
+				).rejects.toThrow(PeriodPreSettledError)
 			})
 		})
 
@@ -241,7 +265,7 @@ describe('FileImportService', () => {
 				expect(result).toEqual(mockFileImports)
 				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
 					expect.objectContaining({
-						where: { status: { in: ['LOAD', 'COMPLETED'] } },
+						where: { status: { in: ['LOAD', 'PRE-SETTLED', 'COMPLETED'] } },
 					})
 				)
 			})
@@ -254,7 +278,7 @@ describe('FileImportService', () => {
 				await FileImportService.listFileImports({ userId: 10, isAdmin: true })
 
 				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
-					expect.objectContaining({ where: { status: { in: ['LOAD', 'COMPLETED'] } } })
+					expect.objectContaining({ where: { status: { in: ['LOAD', 'PRE-SETTLED', 'COMPLETED'] } } })
 				)
 				expect(prisma.fileImport.findMany).not.toHaveBeenCalledWith(
 					expect.objectContaining({ where: expect.objectContaining({ idUser: expect.anything() }) })
@@ -277,7 +301,7 @@ describe('FileImportService', () => {
 				expect(result).toEqual(userImports)
 				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
 					expect.objectContaining({
-						where: { idUser: 10, status: { in: ['LOAD', 'COMPLETED'] } },
+						where: { idUser: 10, status: { in: ['LOAD', 'PRE-SETTLED', 'COMPLETED'] } },
 					})
 				)
 			})
@@ -331,7 +355,7 @@ describe('FileImportService', () => {
 				})
 
 				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
-					expect.objectContaining({ where: expect.objectContaining({ idUser: 1, month: 3, status: { in: ['LOAD', 'COMPLETED'] } }) })
+					expect.objectContaining({ where: expect.objectContaining({ idUser: 1, month: 3, status: { in: ['LOAD', 'PRE-SETTLED', 'COMPLETED'] } }) })
 				)
 				expect(prisma.fileImport.findMany).not.toHaveBeenCalledWith(
 					expect.objectContaining({ where: expect.objectContaining({ year: expect.anything() }) })
@@ -385,7 +409,7 @@ describe('FileImportService', () => {
 				})
 
 				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
-					expect.objectContaining({ where: expect.objectContaining({ status: { in: ['LOAD', 'COMPLETED'] } }) })
+					expect.objectContaining({ where: expect.objectContaining({ status: { in: ['LOAD', 'PRE-SETTLED', 'COMPLETED'] } }) })
 				)
 			})
 
@@ -421,7 +445,7 @@ describe('FileImportService', () => {
 				})
 
 				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
-					expect.objectContaining({ where: { idUser: 5, status: { in: ['LOAD', 'COMPLETED'] } } })
+					expect.objectContaining({ where: { idUser: 5, status: { in: ['LOAD', 'PRE-SETTLED', 'COMPLETED'] } } })
 				)
 			})
 
