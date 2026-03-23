@@ -51,6 +51,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=https://negocios.qa.financieramentecu.co
             NEXT_TELEMETRY_DISABLED=1
+            BUILD_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -79,6 +80,12 @@ jobs:
             -e "ssh -o StrictHostKeyChecking=no" \
             ./docker/ root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/docker/
 
+      - name: Copy SSL scripts to server
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.QA_DROPLET_IP }} "mkdir -p /opt/financieramente/terraform/scripts"
+          scp -o StrictHostKeyChecking=no terraform/scripts/ssl-renew.sh root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/terraform/scripts/
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.QA_DROPLET_IP }} "chmod +x /opt/financieramente/terraform/scripts/ssl-renew.sh"
+
       - name: Deploy application
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -104,7 +111,8 @@ jobs:
             PYCODE
             )
             cat > /opt/financieramente/.env << 'ENVEOF'
-            NODE_ENV=qa
+            NODE_ENV=production
+            APP_ENV=qa
             POSTGRES_USER=financieramente_user
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD_QA }}
             POSTGRES_DB=financieramente_qa
@@ -113,8 +121,10 @@ jobs:
             NEXT_PUBLIC_API_URL=https://negocios.qa.financieramentecu.co
             NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_QA }}
             NEXTAUTH_URL=https://negocios.qa.financieramentecu.co
+            AUTH_TRUST_HOST=true
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_QA }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_QA }}
+            AUTH_DEBUG=true
             NEXT_TELEMETRY_DISABLED=1
             SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY_QA }}
             SENDGRID_FROM_EMAIL=${{ secrets.SENDGRID_FROM_EMAIL_QA }}
@@ -273,6 +283,10 @@ jobs:
 
             # Check container status
             docker-compose -f "$COMPOSE_FILE_PATH" ps
+
+            # Ensure SSL renewal cron (idempotent): remove old ssl-renew entries, add correct path (no app/ on server)
+            (crontab -l 2>/dev/null | grep -v 'ssl-renew.sh' || true
+             echo "0 3 * * 0 /opt/financieramente/terraform/scripts/ssl-renew.sh qa >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
 
       - name: Health check
         uses: appleboy/ssh-action@v1.0.3

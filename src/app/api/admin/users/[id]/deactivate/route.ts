@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth/nextauth'
-import { logAuditEvent, AuditAction } from '@/lib/auth/audit-logger'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 
 /**
  * POST /api/admin/users/[id]/deactivate

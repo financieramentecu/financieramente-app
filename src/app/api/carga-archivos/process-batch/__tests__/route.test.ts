@@ -1,0 +1,136 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { POST } from '../route'
+import { auth } from '@/lib/auth/nextauth'
+import { prisma } from '@/lib/prisma'
+import { FILE_TYPES } from '@/features/load-file/lib/file-types'
+import { logAuditEvent } from '@/features/auth/lib/audit-logger'
+import { findBusinessByContract } from '@/features/load-file/lib/business-matcher'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+
+vi.mock('@/lib/auth/nextauth')
+vi.mock('@/lib/prisma', () => ({
+	prisma: {
+		fileImport: {
+			findFirst: vi.fn(),
+			update: vi.fn(),
+		},
+		commissionDiscount: {
+			findMany: vi.fn(),
+		},
+		settlementCommission: {
+			create: vi.fn(),
+			findFirst: vi.fn(),
+			update: vi.fn(),
+		},
+		fileImportError: {
+			create: vi.fn(),
+		},
+	},
+}))
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	logAuditEvent: vi.fn(),
+	AuditAction: {
+		IMPORT_ERROR: 'IMPORT_ERROR',
+	},
+	getClientIp: vi.fn(() => '127.0.0.1'),
+	getUserAgent: vi.fn(() => 'test-agent'),
+}))
+vi.mock('@/features/load-file/lib/business-matcher', () => ({
+	findBusinessByContract: vi.fn(),
+}))
+vi.mock('next/server', () => ({
+	NextResponse: {
+		json: vi.fn((data, init) => ({
+			json: () => Promise.resolve(data),
+			status: init?.status || 200,
+		})),
+	},
+}))
+
+describe('POST /api/carga-archivos/process-batch', () => {
+	const mockAuth = vi.mocked(auth)
+	const mockFindFileImport = vi.mocked(prisma.fileImport.findFirst)
+	const mockUpdateFileImport = vi.mocked(prisma.fileImport.update)
+	const mockCreateError = vi.mocked(prisma.fileImportError.create)
+	const mockFindDiscounts = vi.mocked(prisma.commissionDiscount.findMany)
+	const mockLogAuditEvent = vi.mocked(logAuditEvent)
+	const mockFindBusiness = vi.mocked(findBusinessByContract)
+	const mockNextResponseJson = vi.mocked(NextResponse.json)
+
+	beforeEach(() => {
+		vi.clearAllMocks()
+		mockNextResponseJson.mockImplementation(
+			(data: unknown, init?: { status?: number }) => {
+				return {
+					json: () => Promise.resolve(data),
+					status: init?.status || 200,
+				} as unknown as NextResponse
+			}
+		)
+	})
+
+	it('logs audit entry and marks record as error for invalid numeric values', async () => {
+		mockAuth.mockResolvedValue({
+			user: { id: '1', email: 'test@example.com' },
+		} as unknown as Awaited<ReturnType<typeof auth>>)
+		mockFindFileImport.mockResolvedValue({
+			idFileImport: 1,
+			idUser: 1,
+		} as never)
+		mockFindDiscounts.mockResolvedValue([])
+		mockUpdateFileImport.mockResolvedValue({} as never)
+		mockCreateError.mockResolvedValue({} as never)
+		mockFindBusiness.mockResolvedValue(null)
+
+		const headers = ['Cto', 'Desde', 'Hasta', 'Tipo de Comision', 'Base', 'Com']
+		const records = [
+			{
+				rowNumber: 2,
+				data: {
+					Cto: '123',
+					Desde: '2024-01-01',
+					Hasta: '2024-12-31',
+					'Tipo de Comision': 'BASE',
+					Base: 'abc',
+					Com: '1000',
+				},
+				isValid: true,
+				errors: [],
+			},
+		]
+
+		const request = new Request(
+			'http://localhost/api/carga-archivos/process-batch',
+			{
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					fileImportId: 1,
+					records,
+					headers,
+					fileType: FILE_TYPES.VOLUNTARIA,
+					batchSize: 10,
+				}),
+			}
+		)
+
+		const response = await POST(request as unknown as NextRequest)
+		const responseData = await response.json()
+
+		expect(mockLogAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: 'IMPORT_ERROR',
+			})
+		)
+		expect(mockCreateError).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					reason: expect.any(String),
+				}),
+			})
+		)
+		expect(response.status).toBe(200)
+		expect(responseData.data.summary.error).toBe(1)
+	})
+})

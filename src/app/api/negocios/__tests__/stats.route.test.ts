@@ -4,7 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { NextResponse } from 'next/server'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 import {
 	mockUserWithRole,

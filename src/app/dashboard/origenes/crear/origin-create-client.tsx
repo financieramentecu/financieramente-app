@@ -2,12 +2,12 @@
 
 import React, { useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ClientOriginForm } from '@/features/origin-client/components/client-origin-form'
-import { useClientOriginMutations } from '@/features/origin-client/hooks/use-client-origin-mutations'
+import { ClientOriginForm } from '@/features/origins/components/client-origin-form'
+import { useClientOriginMutations } from '@/features/origins/hooks/use-client-origin-mutations'
 import type {
 	CreateClientOriginFormData,
 	UpdateClientOriginFormData,
-} from '@/features/origin-client/lib/client-origin-schemas'
+} from '@/features/origins/lib/origins-schemas'
 import { toast } from 'sonner'
 
 /**

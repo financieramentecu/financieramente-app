@@ -15,7 +15,7 @@ import { useSearchAgents } from '@/features/negocios/hooks/use-search-agents'
 import { useProductFilter } from '@/features/negocios/hooks/use-product-filter'
 import { useAgentPermissions } from '@/features/negocios/hooks/use-agent-permissions'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 
 /**

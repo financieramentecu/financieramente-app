@@ -5,9 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
-import { logAuditEvent, AuditAction } from '@/lib/auth/audit-logger'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 import {
 	mockUserWithRole,
@@ -27,6 +27,9 @@ vi.mock('@/lib/prisma', () => ({
 			findFirst: vi.fn(),
 			update: vi.fn(),
 		},
+		clientOrigin: {
+			findFirst: vi.fn(),
+		},
 	},
 }))
 vi.mock('@/features/negocios/services/user.service')
@@ -36,7 +39,7 @@ vi.mock('@/features/negocios/lib/business-api.schemas', () => ({
 	},
 }))
 vi.mock('@/features/negocios/mappers/business-entity.mapper')
-vi.mock('@/lib/auth/audit-logger', () => ({
+vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
 		BUSINESS_UPDATED: 'BUSINESS_UPDATED',
@@ -402,6 +405,10 @@ describe('PUT /api/negocios/[id]', () => {
 	const mockGetCurrentUserByEmail = vi.mocked(getCurrentUserByEmail)
 	const mockPrismaFindFirst = vi.mocked(prisma.business.findFirst)
 	const mockPrismaUpdate = vi.mocked(prisma.business.update)
+	const mockClientOriginFindFirst = vi.mocked(
+		(prisma as unknown as { clientOrigin: { findFirst: ReturnType<typeof vi.fn> } })
+			.clientOrigin.findFirst
+	)
 	const mockUpdateBusinessSchema = vi.mocked(updateBusinessSchema)
 	const mockPrismaBusinessToEntity = vi.mocked(prismaBusinessToEntity)
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
@@ -583,10 +590,40 @@ describe('PUT /api/negocios/[id]', () => {
 			expect(response.status).toBe(200)
 		})
 
-		it('debe actualizar negocio sin cambiar estado cuando no se proporciona contrato', async () => {
+		it('debe retornar 400 cuando no se proporciona contract ni idClientOrigin', async () => {
 			const mockSession = {
 				user: {
 					email: 'admin@example.com',
+				},
+			}
+
+			const requestBody = {}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: requestBody,
+			} as never)
+
+			const request = new Request('http://localhost:3000/api/negocios/1', {
+				method: 'PUT',
+				body: JSON.stringify(requestBody),
+			})
+
+			const params = Promise.resolve({ id: '1' })
+			const response = await PUT(request, { params })
+			const responseData = await response.json()
+
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
+			expect(response.status).toBe(400)
+			expect(responseData.error).toBe('Debe enviar contract o idClientOrigin')
+		})
+
+		it('debe actualizar solo idClientOrigin cuando negocio está EMITIDO', async () => {
+			const mockSession = {
+				user: {
+					email: 'admin@example.com',
+					name: 'Admin User',
 				},
 			}
 
@@ -605,23 +642,23 @@ describe('PUT /api/negocios/[id]', () => {
 			}
 
 			const mockExistingBusiness = {
-				...mockPrismaBusinessVentaEfectuada,
-				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				...mockPrismaBusinessEmitido,
+				idBusiness: 1,
+				status: BUSINESS_STATUS.EMITIDO,
 			}
 
 			const mockUpdatedBusiness = {
 				...mockExistingBusiness,
-				contract: null,
-				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				idClientOrigin: 2,
 			}
 
 			const mockEntity = {
 				id: 1,
-				contract: null,
-				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				status: BUSINESS_STATUS.EMITIDO,
+				clientOrigin: { id: 2, name: 'Propio' },
 			}
 
-			const requestBody = {}
+			const requestBody = { idClientOrigin: 2 }
 
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockUpdateBusinessSchema.safeParse.mockReturnValue({
@@ -630,28 +667,42 @@ describe('PUT /api/negocios/[id]', () => {
 			} as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
 			mockPrismaFindFirst.mockResolvedValue(mockExistingBusiness as never)
+			mockClientOriginFindFirst.mockResolvedValue({
+				idClientOrigin: 2,
+				name: 'Propio',
+				status: true,
+			} as never)
 			mockPrismaUpdate.mockResolvedValue(mockUpdatedBusiness as never)
 			mockPrismaBusinessToEntity.mockReturnValue(mockEntity as never)
 
 			const request = new Request('http://localhost:3000/api/negocios/1', {
 				method: 'PUT',
 				body: JSON.stringify(requestBody),
+				headers: {
+					'Content-Type': 'application/json',
+				},
 			})
 
 			const params = Promise.resolve({ id: '1' })
 			const response = await PUT(request, { params })
 			const responseData = await response.json()
 
+			expect(mockClientOriginFindFirst).toHaveBeenCalledWith({
+				where: { idClientOrigin: 2, status: true },
+			})
 			expect(mockPrismaUpdate).toHaveBeenCalledWith({
 				where: { idBusiness: 1 },
-				data: {
-					contract: null,
-					status: BUSINESS_STATUS.VENTA_EFECTUADA,
-				},
+				data: { idClientOrigin: 2 },
 				include: expect.any(Object),
 			})
+			expect(mockLogAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: AuditAction.BUSINESS_UPDATED,
+					details: expect.stringContaining('idClientOrigin'),
+				})
+			)
 			expect(response.status).toBe(200)
-			expect(responseData.data.status).toBe(BUSINESS_STATUS.VENTA_EFECTUADA)
+			expect(responseData).toEqual({ data: mockEntity })
 		})
 	})
 

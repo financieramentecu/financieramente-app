@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { UseFormSetValue } from 'react-hook-form'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { UserWithRole } from '@/features/negocios/types/business.types'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { AgentInfo } from '@/features/negocios/types/business-entity.types'

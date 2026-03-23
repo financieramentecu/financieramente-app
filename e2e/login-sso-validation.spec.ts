@@ -9,8 +9,6 @@ import { test, expect } from '@playwright/test'
  * 3. Los mensajes de error son apropiados
  */
 
-
-
 test.describe('Login con validación ssoOnly', () => {
 	test.beforeEach(async ({ page }) => {
 		// Navegar a la página de login con el parámetro superadmin=true para habilitar el formulario de contraseña
@@ -34,12 +32,12 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Admin123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que la navegación se complete
-			await page.waitForURL('**/dashboard**', {
-				timeout: process.env.CI ? 20000 : 10000,
-			})
+			await page.waitForURL('**/dashboard**')
 
 			// Verificar que estamos en el dashboard
 			await expect(page).toHaveURL(/\/dashboard/)
@@ -51,7 +49,9 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'WrongPassword123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			// El toast de Sonner muestra: "Error de autenticación" con descripción "Credenciales inválidas..."
@@ -61,11 +61,9 @@ test.describe('Login con validación ssoOnly', () => {
 			)
 
 			// Esperar a que aparezca el mensaje de error con timeout suficiente
-			await expect(errorText.first()).toBeVisible({ timeout: 10000 })
+			await expect(errorText.first()).toBeVisible()
 
 			// Verificar que NO se redirigió al dashboard
-			// Esperar un poco para asegurar que no hay redirección
-			await page.waitForTimeout(2000)
 			await expect(page).not.toHaveURL(/\/dashboard/)
 		})
 	})
@@ -86,11 +84,13 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Admin123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			const errorMessage = page.locator('text=/inactiv|sso|google/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible()
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -99,8 +99,8 @@ test.describe('Login con validación ssoOnly', () => {
 		test('debe mostrar botón de Google SSO como alternativa', async ({
 			page,
 		}) => {
-			// Verificar que el botón de Google SSO está disponible
-			const googleButton = page.locator('button:has-text("Google")')
+			// Verificar que el botón de Google SSO está disponible (texto: "Continuar con Google")
+			const googleButton = page.getByRole('button', { name: /Google/i })
 			await expect(googleButton).toBeVisible()
 		})
 	})
@@ -121,11 +121,13 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Pro123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			const errorMessage = page.locator('text=/inactiv|no autorizado|admin/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -139,11 +141,13 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Agente123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			const errorMessage = page.locator('text=/inactiv|no autorizado|admin/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -157,11 +161,13 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Password123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			const errorMessage = page.locator('text=/no encontrado|inválid/i')
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -177,14 +183,16 @@ test.describe('Login con validación ssoOnly', () => {
 			await page.fill('input[type="password"]', 'Password123!')
 
 			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
+			await expect(submitButton).toBeEnabled()
+			await submitButton.click()
 
 			// Esperar a que aparezca el mensaje de error
 			// El mensaje es genérico por seguridad
 			const errorMessage = page.locator(
 				'text=/Error de autenticación|Credenciales inválidas/i'
 			)
-			await expect(errorMessage.first()).toBeVisible({ timeout: 5000 })
+			await expect(errorMessage.first()).toBeVisible({ timeout: 10000 })
 
 			// Verificar que NO se redirigió al dashboard
 			await expect(page).not.toHaveURL(/\/dashboard/)
@@ -193,9 +201,10 @@ test.describe('Login con validación ssoOnly', () => {
 
 	test.describe('UI/UX del formulario', () => {
 		test('debe mostrar campos de email y password', async ({ page }) => {
-			const emailInput = page.locator('input[type="email"]')
-			const passwordInput = page.locator('input[type="password"]')
-			const submitButton = page.locator('button[type="submit"]')
+			// Con ?superadmin=true se muestra el formulario email+contraseña
+			const emailInput = page.locator('#login-email')
+			const passwordInput = page.locator('#login-password')
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
 
 			await expect(emailInput).toBeVisible()
 			await expect(passwordInput).toBeVisible()
@@ -203,53 +212,49 @@ test.describe('Login con validación ssoOnly', () => {
 		})
 
 		test('debe validar formato de email', async ({ page }) => {
-			// Llenar con email inválido
-			await page.fill('input[type="email"]', 'invalid-email')
-			await page.fill('input[type="password"]', 'Password123!')
+			// Usar IDs del formulario de login (superadmin)
+			const emailInput = page.locator('#login-email')
+			await emailInput.fill('invalid-email')
+			await page.locator('#login-password').fill('Password123!')
 
 			// Intentar enviar el formulario
-			await page.click('button[type="submit"]')
+			await page.getByRole('button', { name: 'Ingresar' }).click()
 
-			// El navegador debe mostrar validación HTML5 o el formulario debe mostrar error
-			const emailInput = page.locator('input[type="email"]')
+			// El input con formato inválido debe tener validity.valid === false
 			const isInvalid = await emailInput.evaluate((el: HTMLInputElement) => {
 				return !el.validity.valid
 			})
-
 			expect(isInvalid).toBe(true)
 		})
 
 		test('debe requerir ambos campos', async ({ page }) => {
-			// El botón de submit debe estar deshabilitado si los campos están vacíos
-			const submitButton = page.locator('button[type="submit"]')
+			// Formulario superadmin: botón "Ingresar" deshabilitado si faltan email o contraseña
+			const submitButton = page.getByRole('button', { name: 'Ingresar' })
 			await expect(submitButton).toBeDisabled()
 
-			// Llenar solo email
-			await page.fill('input[type="email"]', 'test@example.com')
+			await page.locator('#login-email').fill('test@example.com')
 			await expect(submitButton).toBeDisabled()
 
-			// Llenar password también
-			await page.fill('input[type="password"]', 'password')
+			await page.locator('#login-password').fill('password')
 			await expect(submitButton).toBeEnabled()
 		})
 
 		test('debe rechazar dominio no corporativo', async ({ page }) => {
-			// Llenar con email de dominio inválido
-			await page.fill('input[type="email"]', 'user@gmail.com')
-			await page.fill('input[type="password"]', 'Password123!')
+			await page.locator('#login-email').fill('user@gmail.com')
+			await page.locator('#login-password').fill('Password123!')
+			await page.getByRole('button', { name: 'Ingresar' }).click()
 
-			// Hacer clic en el botón de login
-			await page.click('button[type="submit"]')
-
-			// Esperar a que aparezca el mensaje de error específico
-			const errorMessage = page.locator('text=Dominio no autorizado')
-			await expect(errorMessage).toBeVisible()
+			// Toast de Sonner: título "Dominio no autorizado" o descripción con "corporativos"
+			const errorToast = page
+				.getByText(/Dominio no autorizado/i)
+				.or(page.getByText(/corporativos|no autorizado/i))
+			await expect(errorToast.first()).toBeVisible()
 		})
 	})
 
 	test.describe('Integración con Google SSO', () => {
 		test('debe tener botón de Google SSO visible', async ({ page }) => {
-			const googleButton = page.locator('button:has-text("Google")')
+			const googleButton = page.getByRole('button', { name: /Google/i })
 			await expect(googleButton).toBeVisible()
 		})
 

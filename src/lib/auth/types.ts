@@ -1,6 +1,6 @@
 import { DefaultSession } from 'next-auth'
-import { UserRole } from './roles'
-import { RolePermissions } from './permissions'
+import { UserRole } from '@/features/auth/lib/roles'
+import { RolePermissions } from '@/features/auth/lib/permissions'
 
 /**
  * Tipos extendidos para NextAuth
@@ -31,19 +31,8 @@ declare module 'next-auth' {
 // Los tipos de JWT se manejan internamente
 // Si necesitas tipos de JWT, usa la API de NextAuth v5 directamente
 
-/**
- * Constantes de dominio corporativo
- */
-export const CORPORATE_DOMAIN = 'financieramentecu.com'
-
-/**
- * Validación de dominio de email corporativo
- */
-export function isValidCorporateEmail(email: string): boolean {
-	if (!email || typeof email !== 'string') {
-		return false
-	}
-
-	const emailDomain = email.split('@')[1]
-	return emailDomain === CORPORATE_DOMAIN
-}
+// Re-exportar funciones de dominio desde features/auth
+export {
+	CORPORATE_DOMAIN,
+	isValidCorporateEmail,
+} from '@/features/auth/types/auth.types'

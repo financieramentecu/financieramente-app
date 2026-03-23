@@ -49,6 +49,8 @@ export const UI_TEXT = {
     SAVING: 'Guardando...',
     CANCEL: 'Cancelar',
     DEACTIVATE_USER: 'Desactivar Usuario',
+    MORE_FILTERS: 'Filtros',
+    FILTERS_TITLE: 'Filtros de Búsqueda',
 } as const
 
 // Títulos de diálogo

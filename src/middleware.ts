@@ -1,69 +1,35 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { auth } from '@/lib/auth/nextauth'
-import { UserRole } from '@/lib/auth/roles'
+import NextAuth from 'next-auth'
+import { authConfigEdge } from '@/lib/auth/auth.config'
 
 /**
- * Middleware para proteger rutas privadas
+ * Middleware para proteger rutas usando NextAuth v5
  *
- * Implementa:
- * - Protección de rutas del dashboard
- * - Redirección a login si no está autenticado
- * - Redirección a access-denied si usuario inactivo o con rol DEFAULT
- * - Validación de sesión activa
+ * IMPORTANTE: Este middleware corre en Edge Runtime.
+ * NO puede importar código que use Prisma u otras dependencias de Node.js.
+ * Usa authConfigEdge que es Edge-compatible (sin callbacks de DB).
  *
- * Compatible con NextAuth v5
+ * La lógica de autorización está en authConfigEdge.callbacks.authorized
  */
-export async function middleware(request: NextRequest) {
-	// Permitir acceso a la página de acceso denegado
-	if (request.nextUrl.pathname === '/access-denied') {
-		return NextResponse.next()
-	}
 
-	// En modo de prueba, permitir acceso si hay un header especial de test
-	// Esto permite que las pruebas e2e accedan a rutas protegidas sin autenticación real
+const { auth } = NextAuth(authConfigEdge)
+
+export default auth((req) => {
+	const isLoggedIn = !!req.auth
+	const { nextUrl } = req
+
+	// Log para diagnóstico de problemas de sesión en QA (403 después de 20 min)
 	if (
-		process.env.NODE_ENV !== 'production' &&
-		request.headers.get('x-test-auth') === 'true'
+		nextUrl.pathname.startsWith('/api/auth') ||
+		nextUrl.pathname.startsWith('/dashboard')
 	) {
-		// Crear una respuesta con el header de test para que las páginas sepan que es un test
-		const response = NextResponse.next()
-		response.headers.set('x-test-auth', 'true')
-		return response
+		console.log(`[Middleware] ${req.method} ${nextUrl.pathname}`, {
+			hasAuth: isLoggedIn,
+			userId: req.auth?.user?.id,
+			cookies: req.cookies.getAll().map((c) => c.name), // Solo nombres para privacidad
+		})
 	}
+})
 
-	// Verificar sesión (solo si no es modo de prueba)
-	const session = await auth()
-
-	// Si no hay sesión y se intenta acceder a una ruta protegida, redirigir a login
-	if (!session) {
-		const loginUrl = new URL('/login', request.url)
-		loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname)
-		return NextResponse.redirect(loginUrl)
-	}
-
-	// Si el usuario tiene rol DEFAULT, redirigir a access-denied
-	if (session.user?.role === UserRole.DEFAULT) {
-		const accessDeniedUrl = new URL('/access-denied', request.url)
-		accessDeniedUrl.searchParams.set('reason', 'default_role')
-		return NextResponse.redirect(accessDeniedUrl)
-	}
-
-	// Si el usuario no tiene rol o permisos, redirigir a access-denied
-	if (!session.user?.role) {
-		const accessDeniedUrl = new URL('/access-denied', request.url)
-		accessDeniedUrl.searchParams.set('reason', 'no_permissions')
-		return NextResponse.redirect(accessDeniedUrl)
-	}
-
-	// Si hay sesión válida, permitir acceso
-	return NextResponse.next()
-}
-
-/**
- * Configuración de rutas protegidas
- * Todas las rutas bajo /dashboard requieren autenticación
- */
 export const config = {
-	matcher: ['/dashboard/:path*', '/api/protected/:path*', '/access-denied'],
+	matcher: ['/dashboard/:path*', '/api/protected/:path*', '/api/auth/:path*'],
 }

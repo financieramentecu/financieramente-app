@@ -1,5 +1,7 @@
 'use client'
 
+import * as React from 'react'
+import Link from 'next/link'
 import { Button } from '@/features/shared/ui/button'
 import { Separator } from '@/features/shared/ui/separator'
 import { SidebarTrigger } from '@/features/shared/ui/sidebar'
@@ -13,13 +15,28 @@ import {
 	DropdownMenuTrigger,
 } from '@/features/shared/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/features/shared/ui/avatar'
+import {
+	Breadcrumb,
+	BreadcrumbList,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from '@/features/shared/ui/breadcrumb'
 import { User, Mail, LogOut } from 'lucide-react'
+import { ThemeToggle } from '@/features/shared/ui/theme-toggle'
+
+export interface BreadcrumbItemProps {
+	label: string
+	href?: string
+}
 
 interface SiteHeaderProps {
 	title?: string
+	breadcrumbs?: BreadcrumbItemProps[]
 }
 
-export function SiteHeader({ title = 'Financieramente' }: SiteHeaderProps) {
+export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: SiteHeaderProps) {
 	const { user } = useAuthSession()
 
 	const userInitials =
@@ -31,30 +48,32 @@ export function SiteHeader({ title = 'Financieramente' }: SiteHeaderProps) {
 			.slice(0, 2) || 'U'
 
 	return (
-		<header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-16">
-			<div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-				<SidebarTrigger className="-ml-1" />
+		<header className="flex shrink-0 flex-col border-b">
+			<div className="flex h-16 w-full items-center gap-1 px-4 py-2 lg:gap-2 lg:px-6 min-w-0">
+				<SidebarTrigger className="-ml-1 shrink-0" aria-label="Abrir menú" />
 				<Separator
 					orientation="vertical"
-					className="mx-2 data-[orientation=vertical]:h-4"
+					className="mx-2 shrink-0 data-[orientation=vertical]:h-4 hidden sm:block"
 				/>
-				<h1 className="text-base font-medium">{title}</h1>
+				<h1 className="text-base font-medium truncate min-w-0 flex-1">{title}</h1>
 				<div className="ml-auto flex items-center gap-2">
+					<ThemeToggle />
 					{user && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
 									variant="ghost"
-									size="sm"
-									className="hidden sm:flex gap-2"
+									size="icon"
+									className="h-9 w-9 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-auto sm:gap-2 sm:px-3"
+									aria-label="Menú de usuario"
 								>
-									<div className="flex flex-col items-end">
+									<div className="hidden sm:flex flex-col items-end">
 										<span className="text-sm font-medium">{user.name || user.email}</span>
 										<span className="text-xs text-muted-foreground">
 											{user.role || 'Sin rol'}
 										</span>
 									</div>
-									<Avatar className="h-8 w-8">
+									<Avatar className="h-8 w-8 shrink-0">
 										<AvatarImage
 											src={user.image || undefined}
 											alt={user.name || ''}
@@ -73,7 +92,7 @@ export function SiteHeader({ title = 'Financieramente' }: SiteHeaderProps) {
 											{user.role || 'Sin rol'}
 										</p>
 										<p className="text-xs leading-none text-muted-foreground flex items-center gap-1 truncate">
-											<Mail className="h-3 w-3 flex-shrink-0" />
+											<Mail className="h-3 w-3 shrink-0" />
 											<span className="truncate">{user.email}</span>
 										</p>
 									</div>
@@ -99,6 +118,28 @@ export function SiteHeader({ title = 'Financieramente' }: SiteHeaderProps) {
 					)}
 				</div>
 			</div>
+			{breadcrumbs.length > 0 && (
+				<div className="border-t bg-muted/30 px-4 py-2.5 lg:px-6">
+					<Breadcrumb>
+						<BreadcrumbList>
+							{breadcrumbs.map((crumb, index) => (
+								<React.Fragment key={index}>
+									{index > 0 && <BreadcrumbSeparator />}
+									<BreadcrumbItem>
+										{crumb.href ? (
+											<BreadcrumbLink asChild>
+												<Link href={crumb.href}>{crumb.label}</Link>
+											</BreadcrumbLink>
+										) : (
+											<BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+										)}
+									</BreadcrumbItem>
+								</React.Fragment>
+							))}
+						</BreadcrumbList>
+					</Breadcrumb>
+				</div>
+			)}
 		</header>
 	)
 }

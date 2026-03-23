@@ -6,7 +6,7 @@ import { getCurrentUserByEmail } from '@/features/negocios/services/user.service
 import { businessListParamsSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
 import { NextResponse } from 'next/server'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 import {
 	mockUserWithRole,

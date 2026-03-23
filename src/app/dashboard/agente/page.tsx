@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
-import { prisma } from '@/lib/prisma'
+import { getAgentDashboardStats } from '@/features/shared/services/agent.service'
 
 /**
  * Dashboard de Agente
@@ -31,73 +31,8 @@ export default async function AgenteDashboardPage() {
 		redirect('/login')
 	}
 
-	// Obtener estadísticas del agente
-	const now = new Date()
-	const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-	const endOfMonth = new Date(
-		now.getFullYear(),
-		now.getMonth() + 1,
-		0,
-		23,
-		59,
-		59
-	)
-
-	// Total negocios del mes
-	const totalNegociosMes = await prisma.business.count({
-		where: {
-			idUser: userId,
-			createdAt: {
-				gte: startOfMonth,
-				lte: endOfMonth,
-			},
-		},
-	})
-
-	// Negocios "Venta Efectuada"
-	const ventasEfectuadas = await prisma.business.count({
-		where: {
-			idUser: userId,
-			status: 'Venta Efectuada',
-			createdAt: {
-				gte: startOfMonth,
-				lte: endOfMonth,
-			},
-		},
-	})
-
-	// Negocios "Emitidos"
-	const negociosEmitidos = await prisma.business.count({
-		where: {
-			idUser: userId,
-			status: 'Emitido',
-			createdAt: {
-				gte: startOfMonth,
-				lte: endOfMonth,
-			},
-		},
-	})
-
-	// Valor total de negocios del mes
-	const valorTotalMes = await prisma.business.aggregate({
-		where: {
-			idUser: userId,
-			createdAt: {
-				gte: startOfMonth,
-				lte: endOfMonth,
-			},
-		},
-		_sum: {
-			value: true,
-		},
-	})
-
-	const stats = {
-		totalNegocios: totalNegociosMes,
-		ventasEfectuadas,
-		negociosEmitidos,
-		valorTotal: valorTotalMes._sum.value || 0,
-	}
+	// Obtener estadísticas del agente a través del servicio
+	const stats = await getAgentDashboardStats(userId)
 
 	return (
 		<DashboardLayout currentPage="Mi Dashboard">

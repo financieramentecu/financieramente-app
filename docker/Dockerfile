@@ -52,10 +52,12 @@ RUN npx prisma generate
 # Build arguments for Next.js public variables (must be available at build time)
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_TELEMETRY_DISABLED=1
+ARG BUILD_SHA
 
 ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV BUILD_SHA=${BUILD_SHA}
 
 # Note: Type checking and ESLint are disabled in next.config.ts
 # They are executed in CI/CD tests before deployment

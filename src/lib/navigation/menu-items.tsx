@@ -13,6 +13,8 @@ import {
 	Package,
 	UserCircle,
 	Tag,
+	Sliders,
+	Percent,
 } from 'lucide-react'
 
 /**
@@ -52,7 +54,7 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		subItems: [
 			{
 				title: 'Preliquidación',
-				url: '/dashboard/liquidaciones/preliquidacion',
+				url: '/dashboard/pre-liquidacion',
 				icon: <FileText className="h-4 w-4" />,
 			},
 			{
@@ -91,12 +93,12 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 	},
 	{
 		title: 'Administración',
-		url: '/dashboard/empresas',
+		url: '/dashboard/admin/companies',
 		icon: <Settings className="h-4 w-4" />,
 		subItems: [
 			{
 				title: 'Empresas',
-				url: '/dashboard/empresas',
+				url: '/dashboard/admin/companies',
 				icon: <Building2 className="h-4 w-4" />,
 			},
 			{
@@ -113,6 +115,16 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				title: 'Origen Cliente',
 				url: '/dashboard/origenes',
 				icon: <UserCircle className="h-4 w-4" />,
+			},
+			{
+				title: 'Config. Producto',
+				url: '/dashboard/configuraciones-producto',
+				icon: <Sliders className="h-4 w-4" />,
+			},
+			{
+				title: 'Descuentos',
+				url: '/dashboard/admin/discounts',
+				icon: <Percent className="h-4 w-4" />,
 			},
 		],
 	},

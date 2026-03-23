@@ -20,6 +20,20 @@ export const adminUser = {
 	idUserLeader: null,
 	entryDate: new Date(),
 	active: true,
+	ssoOnly: false, // Permitir login normal
+	password: 'admin', // Contraseña temporal
+}
+
+export const andresUser = {
+	name: 'Andres',
+	lastName: 'Agudelo',
+	typeIdentity: 'CC',
+	identityNumber: null,
+	email: 'andres.agudelo@financieramentecu.com',
+	roleCode: 'ADMIN',
+	idUserLeader: null,
+	entryDate: new Date('2026-03-07'),
+	active: true,
 	ssoOnly: true,
 }
 
@@ -59,6 +73,12 @@ export async function seedUsers(prisma: PrismaClient) {
 		},
 	})
 
+	// Hashear password si viene definido (extendemos el tipo adminUser temporalmente)
+	let adminPasswordCrypted = null
+	if (adminUser.password) {
+		adminPasswordCrypted = await hashPassword(adminUser.password)
+	}
+
 	const userData = {
 		name: adminUser.name,
 		lastName: adminUser.lastName,
@@ -70,7 +90,7 @@ export async function seedUsers(prisma: PrismaClient) {
 		entryDate: adminUser.entryDate,
 		active: adminUser.active,
 		ssoOnly: adminUser.ssoOnly,
-		password: null,
+		password: adminPasswordCrypted,
 	} as Prisma.UserUncheckedCreateInput
 
 	if (existing) {
@@ -83,7 +103,7 @@ export async function seedUsers(prisma: PrismaClient) {
 			entryDate: adminUser.entryDate,
 			active: adminUser.active,
 			ssoOnly: adminUser.ssoOnly,
-			password: null,
+			password: adminPasswordCrypted, // Actualizar password si ha cambiado
 		} as Prisma.UserUncheckedUpdateInput
 		await prisma.user.update({
 			where: { idUser: existing.idUser },
@@ -98,6 +118,39 @@ export async function seedUsers(prisma: PrismaClient) {
 		})
 		console.log(
 			`✅ Usuario creado: ${adminUser.name} ${adminUser.lastName} (${adminUser.identityNumber})`
+		)
+	}
+
+	// 2.5 Procesar usuario Andres Agudelo (SSO only)
+	const existingAndres = await prisma.user.findFirst({
+		where: { email: andresUser.email },
+	})
+
+	const andresData = {
+		name: andresUser.name,
+		lastName: andresUser.lastName,
+		typeIdentity: andresUser.typeIdentity,
+		identityNumber: andresUser.identityNumber,
+		email: andresUser.email,
+		idRole: adminRole.idRole,
+		idUserLeader: andresUser.idUserLeader,
+		entryDate: andresUser.entryDate,
+		active: andresUser.active,
+		ssoOnly: andresUser.ssoOnly,
+	} as Prisma.UserUncheckedCreateInput
+
+	if (existingAndres) {
+		await prisma.user.update({
+			where: { idUser: existingAndres.idUser },
+			data: andresData,
+		})
+		console.log(
+			`✅ Usuario actualizado: ${andresUser.name} ${andresUser.lastName} (${andresUser.email})`
+		)
+	} else {
+		await prisma.user.create({ data: andresData })
+		console.log(
+			`✅ Usuario creado: ${andresUser.name} ${andresUser.lastName} (${andresUser.email})`
 		)
 	}
 

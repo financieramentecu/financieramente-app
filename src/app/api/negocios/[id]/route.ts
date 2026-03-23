@@ -16,13 +16,13 @@ import {
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
 	AuditAction,
 	getClientIp,
 	getUserAgent,
-} from '@/lib/auth/audit-logger'
+} from '@/features/auth/lib/audit-logger'
 
 interface RouteParams {
 	params: Promise<{ id: string }>
@@ -139,7 +139,14 @@ export async function PUT(
 			)
 		}
 
-		const { contract } = validationResult.data
+		const { contract, idClientOrigin } = validationResult.data
+
+		if (contract === undefined && idClientOrigin === undefined) {
+			return NextResponse.json(
+				{ data: null, error: 'Debe enviar contract o idClientOrigin' },
+				{ status: 400 }
+			)
+		}
 
 		// Obtener usuario actual
 		const currentUser = await getCurrentUserByEmail(session.user.email)
@@ -168,7 +175,52 @@ export async function PUT(
 			)
 		}
 
-		// Verificar que el negocio está en estado editable
+		// Flujo: solo idClientOrigin (negocio EMITIDO) o solo contract (negocio VENTA_EFECTUADA)
+		if (idClientOrigin !== undefined && contract === undefined) {
+			if (existingBusiness.status !== BUSINESS_STATUS.EMITIDO) {
+				return NextResponse.json(
+					{
+						data: null,
+						error: 'Solo se puede cambiar el origen en negocios en estado Emitido',
+					},
+					{ status: 400 }
+				)
+			}
+
+			const originExists = await prisma.clientOrigin.findFirst({
+				where: { idClientOrigin, status: true },
+			})
+			if (!originExists) {
+				return NextResponse.json(
+					{ data: null, error: 'Origen de cliente no válido o inactivo' },
+					{ status: 400 }
+				)
+			}
+
+			const updatedBusiness = await prisma.business.update({
+				where: { idBusiness: businessId },
+				data: { idClientOrigin },
+				include: businessWithRelations,
+			})
+
+			await logAuditEvent({
+				userId: currentUser.idUser,
+				roleId: currentUser.idRole ?? undefined,
+				action: AuditAction.BUSINESS_UPDATED,
+				email: session.user.email,
+				ipAddress: getClientIp(new Headers(request.headers)),
+				userAgent: getUserAgent(new Headers(request.headers)),
+				details: JSON.stringify({
+					businessId,
+					idClientOrigin,
+				}),
+			})
+
+			const entity = prismaBusinessToEntity(updatedBusiness)
+			return NextResponse.json({ data: entity })
+		}
+
+		// Flujo: actualizar contrato (solo cuando VENTA_EFECTUADA)
 		if (existingBusiness.status !== BUSINESS_STATUS.VENTA_EFECTUADA) {
 			return NextResponse.json(
 				{
@@ -199,8 +251,7 @@ export async function PUT(
 			}
 		}
 
-		// Actualizar negocio
-		// Si se agrega contrato, cambiar estado a EMITIDO
+		// Actualizar negocio: contrato y estado a EMITIDO
 		const newStatus = contract
 			? BUSINESS_STATUS.EMITIDO
 			: existingBusiness.status
@@ -214,7 +265,6 @@ export async function PUT(
 			include: businessWithRelations,
 		})
 
-		// Registrar en audit log
 		await logAuditEvent({
 			userId: currentUser.idUser,
 			roleId: currentUser.idRole ?? undefined,
@@ -231,7 +281,6 @@ export async function PUT(
 		})
 
 		const entity = prismaBusinessToEntity(updatedBusiness)
-
 		return NextResponse.json({ data: entity })
 	} catch (error) {
 		console.error('Error al actualizar negocio:', error)

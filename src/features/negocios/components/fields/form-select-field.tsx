@@ -75,7 +75,7 @@ export function FormSelectField({
 			</Select>
 			{error && <p className="text-xs text-red-500">{getFieldError(error)}</p>}
 			{helperText && !error && (
-				<p className="text-xs text-gray-500">{helperText}</p>
+				<p className="text-xs text-muted-foreground">{helperText}</p>
 			)}
 		</div>
 	)

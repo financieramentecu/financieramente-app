@@ -3,34 +3,44 @@
  */
 
 export interface Product extends Record<string, unknown> {
-	idProduct: number
-	idCompany: number
+	readonly idProduct: number
+	readonly idCompany: number
+	readonly idTypeProduct: number | null
 	name: string
 	description: string | null
 	status: boolean
-	createdAt: string
-	updatedAt: string
+	readonly createdAt: string
+	readonly updatedAt: string
 	company: {
-		idCompany: number
+		readonly idCompany: number
 		name: string
 	}
+	typeProduct: {
+		readonly idTypeProduct: number
+		name: string
+	} | null
 }
 
 export interface ProductFilters {
 	search?: string
 	status?: string
 	idCompany?: number
+	companyId?: string // Alias for admin compatibility
 }
 
 export interface CreateProductInput {
 	name: string
 	idCompany: number
+	idTypeProduct?: number
+	description?: string
 	status: boolean
 }
 
 export interface UpdateProductInput {
 	name?: string
 	idCompany?: number
+	idTypeProduct?: number
+	description?: string
 	status?: boolean
 }
 
@@ -45,7 +55,7 @@ export interface ProductListResponse {
 }
 
 export interface CompanyOption {
-	idCompany: number
+	readonly idCompany: number
 	name: string
 	status: boolean
 }

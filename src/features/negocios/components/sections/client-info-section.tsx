@@ -122,10 +122,10 @@ export function ClientInfoSection({
 	return (
 		<div className="space-y-4">
 			<div className="space-y-2">
-				<h3 className="font-bold text-sm text-[#00505C]">
+				<h3 className="font-bold text-sm text-primary">
 					Información básica y general del cliente
 				</h3>
-				<Separator className="bg-gray-300" />
+				<Separator className="bg-border" />
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">

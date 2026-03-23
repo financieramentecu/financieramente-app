@@ -10,7 +10,7 @@ import {
 	AuditAction,
 	getClientIp,
 	getUserAgent,
-} from '@/lib/auth/audit-logger'
+} from '@/features/auth/lib/audit-logger'
 import { prismaProductToProduct } from '@/features/product/mappers/product.mapper'
 
 /**
@@ -27,6 +27,7 @@ export async function GET(
 			where: { idProduct: parseInt(id) },
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 		})
 
@@ -83,6 +84,7 @@ export async function PUT(
 			where: { idProduct: productId },
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 		})
 
@@ -103,8 +105,6 @@ export async function PUT(
 			(normalizedName.toLowerCase() !== existingProduct.name.toLowerCase() ||
 				targetCompanyId !== existingProduct.idCompany)
 		) {
-
-
 			const duplicateProduct = await prisma.product.findFirst({
 				where: {
 					idCompany: targetCompanyId,
@@ -129,8 +129,8 @@ export async function PUT(
 
 		// Validar impacto al cambiar estado a Inactivo
 		if (data.status === false && existingProduct.status === true) {
-			// Verificar si el producto está siendo utilizado en ProductPercentajeCommision
-			const productInUse = await prisma.productPercentajeCommision.findFirst({
+			// Verificar si el producto está siendo utilizado en ProductConfiguration (configuraciones comisionales)
+			const productInUse = await prisma.productConfiguration.findFirst({
 				where: {
 					idProduct: productId,
 				},
@@ -149,7 +149,9 @@ export async function PUT(
 		// Preparar datos para actualizar
 		const updateData: {
 			name?: string
+			description?: string | null
 			idCompany?: number
+			idTypeProduct?: number | null
 			status?: boolean
 		} = {}
 
@@ -159,8 +161,16 @@ export async function PUT(
 			updateData.name = capitalizedName
 		}
 
+		if (data.description !== undefined) {
+			updateData.description = data.description || null
+		}
+
 		if (data.idCompany !== undefined) {
 			updateData.idCompany = data.idCompany
+		}
+
+		if (data.idTypeProduct !== undefined) {
+			updateData.idTypeProduct = data.idTypeProduct || null
 		}
 
 		if (data.status !== undefined) {
@@ -173,6 +183,7 @@ export async function PUT(
 			data: updateData,
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 		})
 
@@ -275,6 +286,7 @@ export async function DELETE(
 			where: { idProduct: productId },
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 		})
 
@@ -286,8 +298,8 @@ export async function DELETE(
 			return NextResponse.json(errorResponse, { status: 404 })
 		}
 
-		// Verificar si el producto está siendo utilizado en ProductPercentajeCommision
-		const productInUse = await prisma.productPercentajeCommision.findFirst({
+		// Verificar si el producto está siendo utilizado en ProductConfiguration (configuraciones comisionales)
+		const productInUse = await prisma.productConfiguration.findFirst({
 			where: {
 				idProduct: productId,
 			},

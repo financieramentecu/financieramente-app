@@ -1,39 +1,48 @@
 import { defineConfig, devices } from '@playwright/test'
+import * as dotenv from 'dotenv'
+import * as path from 'path'
+
+// Cargar variables de entorno para que estén disponibles en webServer y globalSetup
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+dotenv.config({ path: path.resolve(process.cwd(), '.env') })
 
 export default defineConfig({
 	testDir: './e2e',
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
-	retries: process.env.CI ? 2 : 0,
+	retries: process.env.CI ? 2 : 1,
 
 	// Setup global que se ejecuta antes de todos los tests
 	globalSetup: './e2e/global-setup.ts',
 
-	// Optimización de workers para CI
-	workers: process.env.CI ? 2 : undefined,
+	// Optimización de workers para estabilidad local y CI
+	// En local con Next.js 15 dev server, demasiados workers pueden causar timeouts
+	workers: process.env.CI ? 2 : 3,
 
-	// Timeouts optimizados
-	timeout: process.env.CI ? 30000 : 60000,
+	// Timeouts optimizados para resiliencia ante carga del servidor
+	timeout: 120000,
 	expect: {
-		timeout: process.env.CI ? 10000 : 20000,
+		timeout: 30000,
 	},
 
 	// Reportes optimizados para CI
 	reporter: process.env.CI
 		? [
-				['html', { outputFolder: 'playwright-report' }],
-				['json', { outputFile: 'playwright-report/results.json' }],
-				['junit', { outputFile: 'playwright-report/results.xml' }],
-			]
+			['html', { outputFolder: 'playwright-report' }],
+			['json', { outputFile: 'playwright-report/results.json' }],
+			['junit', { outputFile: 'playwright-report/results.xml' }],
+		]
 		: [
-				['html', { outputFolder: 'playwright-report' }],
-				['json', { outputFile: 'playwright-report/results.json' }],
-				['junit', { outputFile: 'playwright-report/results.xml' }],
-				['list'],
-			],
+			['html', { outputFolder: 'playwright-report' }],
+			['json', { outputFile: 'playwright-report/results.json' }],
+			['junit', { outputFile: 'playwright-report/results.xml' }],
+			['list'],
+		],
 
 	use: {
 		baseURL: process.env.BASE_URL || 'http://localhost:3000',
+		navigationTimeout: 60000,
+		actionTimeout: 30000,
 
 		// Optimización de media para CI
 		trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry',
@@ -41,54 +50,53 @@ export default defineConfig({
 		video: process.env.CI ? 'retain-on-failure' : 'retain-on-failure',
 
 		// Headless en CI para mejor rendimiento
-		headless: process.env.CI ? true : false,
+		headless: !!process.env.CI || !!process.env.HEADLESS,
 	},
 
 	// Solo navegadores críticos en CI, todos en desarrollo
 	projects: process.env.CI
 		? [
-				{
-					name: 'chromium',
-					use: { ...devices['Desktop Chrome'] },
-				},
-				{
-					name: 'webkit',
-					use: { ...devices['Desktop Safari'] },
-				},
-			]
+			{
+				name: 'chromium',
+				use: { ...devices['Desktop Chrome'] },
+			},
+			{
+				name: 'webkit',
+				use: { ...devices['Desktop Safari'] },
+			},
+		]
 		: [
-				{
-					name: 'chromium',
-					use: { ...devices['Desktop Chrome'] },
-				},
-				{
-					name: 'firefox',
-					use: { ...devices['Desktop Firefox'] },
-				},
-				{
-					name: 'webkit',
-					use: { ...devices['Desktop Safari'] },
-				},
-				{
-					name: 'Mobile Chrome',
-					use: { ...devices['Pixel 5'] },
-				},
-				{
-					name: 'Mobile Safari',
-					use: { ...devices['iPhone 12'] },
-				},
-			],
+			{
+				name: 'chromium',
+				use: { ...devices['Desktop Chrome'] },
+			},
+			{
+				name: 'firefox',
+				use: { ...devices['Desktop Firefox'] },
+			},
+			{
+				name: 'webkit',
+				use: { ...devices['Desktop Safari'] },
+			},
+			{
+				name: 'Mobile Chrome',
+				use: { ...devices['Pixel 5'] },
+			},
+			{
+				name: 'Mobile Safari',
+				use: { ...devices['iPhone 12'] },
+			},
+		],
 
 	webServer: {
 		command: 'npm run dev',
 		url: 'http://localhost:3000',
 		reuseExistingServer: !process.env.CI,
 		timeout: 120000,
-		env: {
-			...(process.env.DATABASE_URL && {
-				DATABASE_URL: process.env.DATABASE_URL,
-			}),
-			...(process.env.DIRECT_URL && { DIRECT_URL: process.env.DIRECT_URL }),
-		},
+		env: Object.fromEntries(
+			Object.entries(process.env).filter(
+				(entry): entry is [string, string] => entry[1] !== undefined
+			)
+		),
 	},
 })

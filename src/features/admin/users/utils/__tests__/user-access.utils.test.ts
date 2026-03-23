@@ -6,7 +6,7 @@ import {
     getAccessIssues,
     isDefaultRole,
 } from '../user-access.utils'
-import { UserRole } from '@/lib/auth/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import type { User } from '../../types/user.types'
 
 describe('user-access.utils', () => {
@@ -22,6 +22,8 @@ describe('user-access.utils', () => {
             code: UserRole.ADMIN,
             name: 'Administrador',
         },
+        category: null,
+        leader: null,
         createdAt: new Date(),
         lastLogin: null,
     }

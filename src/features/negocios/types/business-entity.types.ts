@@ -34,7 +34,7 @@ export type BusinessFormMode = 'create' | 'edit' | 'view' | 'cancel'
  * Información del cliente aplanada
  */
 export interface ClientInfo {
-	id: number
+	readonly id: number
 	fullName: string
 	identityNumber: string
 	email: string | null
@@ -45,7 +45,7 @@ export interface ClientInfo {
  * Información del agente aplanada
  */
 export interface AgentInfo {
-	id: number
+	readonly id: number
 	fullName: string
 	roleName: string | null
 	email: string
@@ -56,9 +56,9 @@ export interface AgentInfo {
  * Información del producto aplanada
  */
 export interface ProductInfo {
-	id: number
+	readonly id: number
 	name: string
-	companyId: number
+	readonly companyId: number
 	companyName: string
 }
 
@@ -66,7 +66,7 @@ export interface ProductInfo {
  * Información de moneda
  */
 export interface CurrencyInfo {
-	id: number
+	readonly id: number
 	name: string
 }
 
@@ -74,7 +74,7 @@ export interface CurrencyInfo {
  * Información de periodicidad
  */
 export interface PeriodicityInfo {
-	id: number
+	readonly id: number
 	name: string
 }
 
@@ -82,7 +82,7 @@ export interface PeriodicityInfo {
  * Información de origen de cliente
  */
 export interface ClientOriginInfo {
-	id: number
+	readonly id: number
 	name: string
 }
 
@@ -95,12 +95,12 @@ export interface ClientOriginInfo {
  * Datos aplanados y serializables (JSON-safe)
  */
 export interface BusinessEntity {
-	id: number
+	readonly id: number
 	contract: string | null
 	term: number | null
 	value: number
 	status: BusinessStatus
-	createdAt: string // ISO string para serialización
+	readonly createdAt: string // ISO string para serialización
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo
@@ -124,11 +124,15 @@ export const businessWithRelations = {
 			role: true,
 		},
 	},
-	productPercentajeCommision: {
+	productPercentageCommission: {
 		include: {
-			product: {
+			productConfiguration: {
 				include: {
-					company: true,
+					product: {
+						include: {
+							company: true,
+						},
+					},
 				},
 			},
 		},

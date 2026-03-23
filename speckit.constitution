@@ -1,0 +1,218 @@
+# Financieramente App Constitution
+
+## Project Context
+
+Financieramente is a modern commission settlement platform for financial services built with:
+- **Frontend**: Next.js 15, React 19, Tailwind CSS v4
+- **Backend**: Next.js API Routes, Prisma ORM
+- **Database**: PostgreSQL 15
+- **UI**: Shadcn/UI + Radix UI
+- **Testing**: Vitest, Testing Library, Playwright
+- **Infrastructure**: Docker, Terraform, Digital Ocean
+
+## Code Quality Principles
+
+### 1. Clean Code Standards
+- Write self-documenting code with clear, descriptive variable and function names
+- Follow consistent naming conventions:
+  - camelCase for variables, functions, methods, hooks, properties
+  - PascalCase for components, types, interfaces
+  - kebab-case for directory and file names
+  - Prefix event handlers with `handle`: `handleClick`, `handleSubmit`
+  - Prefix boolean variables with verbs: `isLoading`, `hasError`, `canSubmit`
+  - Prefix custom hooks with `use`: `useAuth`, `useForm`
+- Maintain functions under 50 lines when possible, with single responsibility
+- Maximum 3 parameters per function (use objects for more)
+- Use meaningful comments for complex business logic, not obvious code
+- Eliminate dead code and unused imports before committing
+- Use tabs for indentation, single quotes for strings
+
+### 2. Type Safety
+- Use TypeScript strict mode with proper type annotations
+- **NON-NEGOTIABLE**: Avoid `any` types; use `unknown` if type is truly unknown, then narrow with type guards
+- Prefer `interface` over `type` for object structures, especially when extending
+- Use `readonly` for immutable properties in interfaces
+- Define clear interfaces for API responses and data models
+- All functions MUST have explicit return types
+- Implement proper error handling with typed error objects and specific error codes
+- Use union types and discriminated unions for type-safe state management
+
+### 3. Code Architecture
+- **Feature-Based Architecture (Screaming Architecture)**: Organize code by business domains, not technical types
+- All code MUST be organized under `src/features/[feature-name]/` by domain
+- Each feature MUST be self-contained with its own:
+  - `types/` - Domain-specific TypeScript interfaces
+  - `lib/` - Schemas Zod and API/business logic functions
+  - `components/` - UI components (if applicable)
+  - `hooks/` - React hooks (if applicable)
+  - `services/` - Business logic services (optional)
+  - `mappers/` - Data mappers (optional)
+  - `__tests__/` - Tests
+  - `index.ts` - Barrel exports (optional)
+- **MUST NOT**: Create files in legacy locations (`src/services/`, `src/utils/`, `src/types/` for domain logic)
+- Shared utilities go in `src/features/shared/` only if used by 3+ features
+- Follow SOLID principles in component and service design
+- Implement proper separation of concerns between UI, business logic, and data layers
+- Use functional programming patterns (factory functions) over static classes
+- Apply dependency injection patterns where appropriate
+
+## Testing Standards
+
+### 4. Test Coverage Requirements
+- **NON-NEGOTIABLE**: Write tests for all business logic, utilities, and services
+- Maintain minimum 80% code coverage for critical business logic
+- Unit tests MUST be written for:
+  - All utility functions
+  - All business logic services
+  - All custom hooks
+  - All schema validations (Zod schemas)
+- Integration tests MUST be written for:
+  - API endpoints
+  - Database operations
+  - Inter-service communication
+- E2E tests MUST cover critical user journeys
+- Tests MUST be colocalized in `__tests__/` within each feature
+
+### 5. Test Quality Standards
+- Write descriptive test names that explain the scenario and expected outcome
+- Use AAA pattern (Arrange, Act, Assert) for test structure
+- Mock external dependencies and API calls in unit tests
+- Ensure tests are deterministic and don't rely on external state
+- Test structure:
+  - Unit tests: `src/features/[domain]/__tests__/`
+  - Integration tests: `vitest.integration.config.ts`
+  - E2E tests: `e2e/`
+
+### 6. Test Automation
+- Run tests automatically on every pull request
+- Block merging if tests fail or coverage drops below threshold
+- Include performance regression tests for critical operations
+- Maintain separate test environments that mirror production
+
+## User Experience Consistency
+
+### 7. Design System Adherence
+- Use consistent spacing, typography, and color schemes across all components
+- Follow established component library patterns and props
+- Implement responsive design principles for all screen sizes
+- Maintain consistent interaction patterns (hover states, animations, transitions)
+
+### 8. Accessibility Standards
+- Ensure WCAG 2.1 AA compliance for all user interfaces
+- Implement proper ARIA labels and semantic HTML
+- Provide keyboard navigation for all interactive elements
+- Test with screen readers and maintain color contrast ratios
+
+### 9. User Flow Optimization
+- Minimize user cognitive load with clear navigation and information hierarchy
+- Implement consistent error messaging and validation patterns
+- Provide clear feedback for all user actions (loading states, success/error messages)
+- Maintain consistent form layouts and interaction patterns
+
+## Performance Requirements
+
+### 10. Loading Performance
+- Target Core Web Vitals: LCP < 2.5s, FID < 100ms, CLS < 0.1
+- Implement code splitting and lazy loading for non-critical components
+- Optimize bundle sizes with tree shaking and dead code elimination
+- Use efficient image formats and implement proper image optimization
+
+### 11. Runtime Performance
+- Maintain 60fps for animations and scrolling
+- Implement proper memory management to prevent memory leaks
+- Use efficient data structures and algorithms for data processing
+- **React 19**: Leverage React Compiler; avoid manual `useMemo`/`useCallback` unless profiling shows necessity
+- Use React Query or similar for data fetching and caching
+
+### 12. Network Performance
+- Implement request caching and deduplication strategies
+- Use compression (gzip/brotli) for all text-based assets
+- Minimize API call frequency with proper state management
+- Implement offline-first strategies where appropriate
+
+## Development Workflow
+
+### 13. Code Review Standards
+- Require at least one approval for production code changes
+- Review for:
+  - Architecture compliance (feature-based, SOLID principles)
+  - Type safety (no `any`, proper interfaces)
+  - Test coverage (business logic must have tests)
+  - Security vulnerabilities
+  - Performance implications
+- Ensure all code follows established patterns and conventions
+- Verify test coverage and quality before approval
+- Use `architecture-enforcer` subagent when creating/modifying code in `src/features/`
+
+### 14. Continuous Integration
+- Automate linting, formatting, and type checking in CI pipeline
+- Run unit and integration tests in CI
+- Block merging if tests fail or coverage drops below threshold
+- Run security scans and dependency vulnerability checks
+- Implement automated deployment with proper rollback procedures
+- Monitor application performance and error rates in production
+
+## Commit & Pull Request Guidelines
+
+### 18. Commit Messages
+- Follow conventional-commit style: `<type>[scope]: <description>`
+- Types: `feat`, `fix`, `docs`, `chore`, `perf`, `refactor`, `style`, `test`
+- Use the `commit-messages` skill when writing commit messages
+
+### 19. Pull Request Checklist
+Before creating a PR:
+1. Complete checklist in `.github/pull_request_template.md`
+2. Run all relevant tests and linters (`npm run test:all && npm run lint`)
+3. Link screenshots for UI changes
+4. Ensure architecture compliance (use `architecture-enforcer` subagent)
+5. Verify all code follows established patterns and conventions
+
+### 15. Documentation Requirements
+- Maintain up-to-date API documentation and component interfaces
+- Document architectural decisions and technical debt
+- Provide clear setup instructions for development environment
+- Document deployment procedures and environment configurations
+- Use JSDoc for all public functions, interfaces, and services
+- Document with complete sentences and proper punctuation
+
+## Skills and Subagents
+
+### Available Skills
+Use these skills for detailed patterns on-demand:
+- `typescript` - Const types, flat interfaces, utility types, strict typing
+- `react-19` - No useMemo/useCallback, React Compiler patterns
+- `nextjs-16` - App Router, Server Actions, Server Components, caching
+- `screaming-architecture` - Feature-based organization, domain-driven structure
+- `commit-messages` - Conventional commits, clear commit messages
+- `code-review-skill` - Security, performance, maintainability reviews
+- `financieramente` - Project overview, structure, scripts, architecture
+
+### Auto-invoke Skills
+When performing these actions, ALWAYS invoke the corresponding skill FIRST:
+- Writing React components → `react-19`
+- Writing TypeScript types/interfaces → `typescript`
+- Working with App Router / Server Actions → `nextjs-16`
+
+### Architecture Enforcer Subagent
+The `architecture-enforcer` subagent validates that all new code follows:
+- Feature-Based Architecture (Screaming Architecture)
+- Proper feature structure (`components/`, `hooks/`, `lib/`, `types/`, `__tests__/`)
+- TypeScript best practices (no `any`, readonly when appropriate)
+- Schemas Zod for validation
+- Testing colocalizado
+
+**Invoke when**: Creating or modifying code in `src/features/` to ensure architectural compliance.
+
+## Validation and Schemas
+
+### 16. Input Validation
+- **MUST**: All user inputs MUST be validated using Zod schemas
+- Schemas MUST be defined in `lib/[feature]-schemas.ts` within each feature
+- Use Zod schemas for both client-side and server-side validation
+- Export TypeScript types from schemas using `z.infer<typeof schema>`
+
+### 17. Error Handling
+- Errors MUST be typed with specific error codes
+- Error messages MUST be user-friendly and actionable
+- Database errors MUST be caught and logged, never exposed to users
+- Use Result types or try-catch with typed errors, not generic `Error`

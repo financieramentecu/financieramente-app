@@ -1,0 +1,29 @@
+# financieramente-app Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2026-02-06
+
+## Active Technologies
+
+- TypeScript 5.x (with Next.js 15, React 19) + Next.js 15, React 19, Prisma ORM, Zod, Radix UI (Shadcn/UI), Tailwind CSS v4 (001-product-config-management)
+
+## Project Structure
+
+```text
+src/
+tests/
+```
+
+## Commands
+
+npm test && npm run lint
+
+## Code Style
+
+TypeScript 5.x (with Next.js 15, React 19): Follow standard conventions
+
+## Recent Changes
+
+- 001-product-config-management: Added TypeScript 5.x (with Next.js 15, React 19) + Next.js 15, React 19, Prisma ORM, Zod, Radix UI (Shadcn/UI), Tailwind CSS v4
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

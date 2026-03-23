@@ -22,24 +22,24 @@ export default function AdminUsersPage() {
 
 	return (
 		<DashboardLayout currentPage="Usuarios">
-			<div className="space-y-6">
+			<div className="space-y-4 md:space-y-6">
 				<div className="flex items-center justify-between">
 					<div>
-						<h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
-						<p className="text-muted-foreground mt-2">
+						<h1 className="text-2xl md:text-3xl font-bold">Gestión de Usuarios</h1>
+						<p className="text-muted-foreground mt-1 text-sm md:text-base hidden sm:block">
 							Administra los usuarios del sistema, sus roles y permisos
 						</p>
 					</div>
 				</div>
 
-				<Card>
-					<CardHeader>
+				<Card className="shadow-none sm:shadow-sm">
+					<CardHeader className="hidden md:flex">
 						<CardTitle>Filtros de Búsqueda</CardTitle>
 						<CardDescription>
 							Filtra y busca usuarios por nombre, email, estado o rol
 						</CardDescription>
 					</CardHeader>
-					<CardContent>
+					<CardContent className="pt-6 md:pt-0">
 						<UsersFilters
 							filters={filters}
 							onFiltersChange={setFilters}
@@ -48,10 +48,10 @@ export default function AdminUsersPage() {
 					</CardContent>
 				</Card>
 
-				<Card>
-					<CardHeader>
-						<CardTitle>Usuarios del Sistema</CardTitle>
-						<CardDescription>
+				<Card className="shadow-none sm:shadow-sm">
+					<CardHeader className="pb-3 md:pb-6">
+						<CardTitle className="text-xl md:text-2xl">Usuarios del Sistema</CardTitle>
+						<CardDescription className="hidden sm:block">
 							Haz clic en &quot;Ver detalle&quot; para gestionar cada usuario
 						</CardDescription>
 					</CardHeader>

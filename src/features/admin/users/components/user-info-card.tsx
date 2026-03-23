@@ -1,7 +1,7 @@
 import React from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Mail, Calendar, Clock, User as UserIcon } from 'lucide-react'
+import { Mail, Calendar, Clock, User as UserIcon, Users } from 'lucide-react'
 import {
     Card,
     CardContent,
@@ -76,6 +76,33 @@ export function UserInfoCard({ user }: UserInfoCardProps) {
                                 <p className="font-medium">
                                     {format(new Date(user.lastLogin), 'PPp', { locale: es })}
                                 </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {user.leader && (
+                        <div className="flex items-center gap-3 text-sm">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
+                                <Users className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                                <p className="text-muted-foreground">Líder (Coach)</p>
+                                <p className="font-medium">
+                                    {user.leader.name}{' '}
+                                    {user.leader.lastName || ''}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {user.category && (
+                        <div className="flex items-center gap-3 text-sm">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
+                                <UserIcon className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                                <p className="text-muted-foreground">Categoría</p>
+                                <p className="font-medium">{user.category.name}</p>
                             </div>
                         </div>
                     )}

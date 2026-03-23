@@ -1,4 +1,4 @@
-version: "3.8"
+# version is obsolete in Compose V2 and is ignored – removed to avoid the warning
 
 services:
   postgres:
@@ -14,6 +14,16 @@ services:
       # - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro  # Commented out - file doesn't exist yet
     ports:
       - "5432:5432"
+    # Configure connection limits to prevent connection exhaustion
+    command: >
+      postgres
+      -c max_connections=100
+      -c shared_buffers=128MB
+      -c effective_cache_size=256MB
+      -c maintenance_work_mem=32MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=8MB
+      -c default_statistics_target=100
     deploy:
       resources:
         limits:
@@ -39,7 +49,9 @@ services:
       DIRECT_URL: ${DIRECT_URL}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      AUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED}
@@ -55,10 +67,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 512M
           cpus: "0.5"
         reservations:
-          memory: 256M
+          memory: 384M
           cpus: "0.25"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]

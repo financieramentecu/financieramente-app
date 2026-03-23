@@ -13,7 +13,7 @@ import {
 	AuditAction,
 	getClientIp,
 	getUserAgent,
-} from '@/lib/auth/audit-logger'
+} from '@/features/auth/lib/audit-logger'
 import {
 	prismaProductToProduct,
 	prismaProductListToProducts,
@@ -69,6 +69,7 @@ export async function GET(request: Request) {
 			where,
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 			orderBy: { name: 'asc' },
 			skip: (page - 1) * pageSize,
@@ -147,11 +148,14 @@ export async function POST(request: Request) {
 		const product = await prisma.product.create({
 			data: {
 				name: capitalizedName,
+				description: data.description ?? null,
 				idCompany: data.idCompany,
+				idTypeProduct: data.idTypeProduct ?? null,
 				status: data.status,
 			},
 			include: {
 				company: true,
+				typeProduct: true,
 			},
 		})
 

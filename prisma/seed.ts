@@ -5,10 +5,12 @@ import { seedBuyPeriodicities } from './seeds/buy-periodicity'
 import { seedClientOrigins } from './seeds/client-origin'
 import { seedTypeProducts } from './seeds/type-product'
 import { seedCategories } from './seeds/category'
+import { seedDiscount } from './seeds/discount'
 import { seedProducts } from './seeds/product'
 import { seedRoles } from './seeds/roles'
 import { seedUsers } from './seeds/user'
 import { seedBusinesses } from './seeds/business'
+import { seedProductPercentages } from './seeds/product-percentage'
 
 const prisma = new PrismaClient()
 
@@ -32,10 +34,16 @@ async function main() {
 		// 2. Estructura de negocio
 		await seedCategories(prisma)
 
-		// 3. Productos (depende de Company y TypeProduct)
+		// 2.1 Descuentos (debe estar antes de productos para que puedan usarse)
+		await seedDiscount(prisma)
+
+		// 4. Productos (depende de Company y TypeProduct)
 		await seedProducts(prisma)
 
-		// 4. Seguridad y Roles
+		// 4.1 Configuración de Porcentajes (ProductPercentages) - NUEVO
+		await seedProductPercentages(prisma)
+
+		// 5. Seguridad y Roles
 		await seedRoles(prisma)
 
 		// 5. Usuarios (depende de Roles)

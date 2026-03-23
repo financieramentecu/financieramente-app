@@ -92,7 +92,7 @@ function AccessDeniedContent() {
 	}
 
 	return (
-		<div className="min-h-screen flex items-center justify-center from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
+		<div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
 			<Card className="w-full max-w-2xl">
 				<CardHeader className="text-center">
 					<div className="mx-auto mb-6 flex flex-col items-center gap-4">

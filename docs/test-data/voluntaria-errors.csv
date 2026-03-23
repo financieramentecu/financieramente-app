@@ -1,0 +1,11 @@
+Nombre Franquicia,Desde,Hasta,Nombre Fp,Sub Grupo Fp,Compania,Producto,Tipo de Comision,Cto,Base,Com
+Franquicia A,2026-02-01,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5001,100000,5000
+Franquicia A,INVALID_DATE,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5002,NOT_A_NUMBER,5000
+Franquicia A,2026-02-01,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5003,100000,5000
+Franquicia A,INVALID_DATE,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5004,NOT_A_NUMBER,5000
+Franquicia A,2026-02-01,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5005,100000,5000
+Franquicia A,INVALID_DATE,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5006,NOT_A_NUMBER,5000
+Franquicia A,2026-02-01,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5007,100000,5000
+Franquicia A,INVALID_DATE,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5008,NOT_A_NUMBER,5000
+Franquicia A,2026-02-01,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5009,100000,5000
+Franquicia A,INVALID_DATE,2026-02-28,Nombre FP,Subgrupo A,Compania A,Producto A,Comision A,CTO-5010,NOT_A_NUMBER,5000
