@@ -15,7 +15,8 @@ export interface Category extends Record<string, unknown> {
 	readonly idCategory: number
 	code: string
 	name: string
-	typeCategory: CategoryType
+	typeCategory: string
+	idCategoryType?: number
 	descripcion: string | null
 	status: boolean
 	readonly createdAt: string
@@ -27,7 +28,7 @@ export interface Category extends Record<string, unknown> {
  */
 export interface CategoryFilters {
 	search?: string
-	typeCategory?: CategoryType
+	typeCategory?: string
 	status?: string
 }
 
@@ -37,7 +38,7 @@ export interface CategoryFilters {
 export interface CreateCategoryInput {
 	code: string
 	name: string
-	typeCategory: CategoryType
+	typeCategory: string
 	descripcion?: string | null
 	status: boolean
 }
@@ -48,7 +49,7 @@ export interface CreateCategoryInput {
 export interface UpdateCategoryInput {
 	code?: string
 	name?: string
-	typeCategory?: CategoryType
+	typeCategory?: string
 	descripcion?: string | null
 	status?: boolean
 }

@@ -106,16 +106,33 @@ export async function PUT(
 			code?: string
 			name?: string
 			typeCategory?: string
+			idCategoryType?: number
 			descripcion?: string | null
 			status?: boolean
 		} = {}
 
 		if (data.code) updateData.code = data.code.trim().toUpperCase()
 		if (data.name) updateData.name = data.name.trim()
-		if (data.typeCategory) updateData.typeCategory = data.typeCategory
 		if (data.descripcion !== undefined)
 			updateData.descripcion = data.descripcion
 		if (data.status !== undefined) updateData.status = data.status
+
+		if (data.typeCategory) {
+			const categoryTypeRec = await prisma.categoryType.findFirst({
+				where: { name: { equals: data.typeCategory, mode: 'insensitive' } },
+			})
+
+			if (!categoryTypeRec) {
+				const errorResponse: ApiResponse<null> = {
+					data: null,
+					error: 'Tipo de categoría no válido',
+				}
+				return NextResponse.json(errorResponse, { status: 400 })
+			}
+
+			updateData.typeCategory = data.typeCategory
+			updateData.idCategoryType = categoryTypeRec.id
+		}
 
 		// Update category
 		const category = await prisma.category.update({

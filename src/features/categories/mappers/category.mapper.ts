@@ -1,32 +1,22 @@
-/**
- * Mapper for transforming Category from Prisma to Category type
- * Single responsibility: database data conversion to domain
- */
-
-import type { Category, CategoryType } from '../types/category.types'
-import type { Category as PrismaCategory } from '@prisma/client'
+import { Category, CategoryType } from '@prisma/client'
+import { Category as CategoryDomain } from '../types/category.types'
 
 /**
- * Transforms a Prisma Category to Category type
- *
- * @param prisma - Category from Prisma
- * @returns Category for use in the UI
- *
- * @example
- * ```typescript
- * const prismaCategory = await prisma.category.findUnique({
- *   where: { idCategory: 1 },
- * })
- * const category = prismaCategoryToCategory(prismaCategory)
- * ```
+ * Mapea una categoría de Prisma a una categoría de dominio
  */
-export function prismaCategoryToCategory(prisma: PrismaCategory): Category {
+export const prismaCategoryToCategory = (
+	prisma: Category & { categoryType?: CategoryType | null }
+): CategoryDomain => {
+	// Use type-safe approach to get type name, fallback to legacy field then default
+	const typeCategory = prisma.categoryType?.name || (prisma as unknown as { typeCategory: string }).typeCategory || 'MMS'
+
 	return {
 		idCategory: prisma.idCategory,
 		code: prisma.code,
 		name: prisma.name,
-		typeCategory: prisma.typeCategory as CategoryType,
-		descripcion: prisma.descripcion,
+		typeCategory,
+		idCategoryType: prisma.idCategoryType || 1,
+		descripcion: prisma.descripcion === null ? null : (prisma.descripcion || ''),
 		status: prisma.status,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
@@ -34,10 +24,15 @@ export function prismaCategoryToCategory(prisma: PrismaCategory): Category {
 }
 
 /**
- * Transforms a list of Prisma Categories to Category[]
+ * Mapea una lista de categorías de Prisma a categorías de dominio
  */
-export function prismaCategoryListToCategories(
-	prismaList: PrismaCategory[]
-): Category[] {
+export const prismaCategoryListToCategories = (
+	prismaList: (Category & { categoryType?: CategoryType | null })[]
+): CategoryDomain[] => {
 	return prismaList.map(prismaCategoryToCategory)
 }
+
+/**
+ * Backwards compatibility alias
+ */
+export const mapToDomain = prismaCategoryToCategory
