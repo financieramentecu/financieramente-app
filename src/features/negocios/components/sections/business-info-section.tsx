@@ -65,12 +65,15 @@ export function BusinessInfoSection({
 					/>
 
 					{!isEditMode && (
-						<div className="mt-2">
-							<p className="text-sm font-medium mb-2">Valor del negocio</p>
+						<div className="mt-4">
+							<p className="text-md font-medium mb-2">Valor del negocio</p>
 							<div className="text-xs text-muted-foreground space-y-1">
-								<p>1. Si el negocio es Crea Patrimonio de Skandia....</p>
-								<p>2. Si tu cliente toma......</p>
+								<p>
+									Recuerde que el campo Valor debe ser equivalente al valor de la
+									prima por 12
+								</p>
 							</div>
+
 						</div>
 					)}
 				</div>

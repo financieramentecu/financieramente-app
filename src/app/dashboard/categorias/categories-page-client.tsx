@@ -115,9 +115,7 @@ export function CategoriesPageClient() {
 	const [hasInitialized, setHasInitialized] = useState(false)
 
 	// Track last loaded search and type category
-	const [lastLoadedSearch, setLastLoadedSearch] = useState<string | undefined>(
-		undefined
-	)
+	const [lastLoadedSearch, setLastLoadedSearch] = useState<string>('')
 	const [lastLoadedTypeCategory, setLastLoadedTypeCategory] = useState<
 		CategoryType | undefined
 	>(undefined)
@@ -160,7 +158,7 @@ export function CategoriesPageClient() {
 			if (!hasInitialized) {
 				setHasInitialized(true)
 			}
-			setLastLoadedSearch(debouncedSearch || undefined)
+			setLastLoadedSearch(debouncedSearch)
 			setLastLoadedTypeCategory(selectedTypeCategory)
 		}
 	}, [state.status, hasInitialized, debouncedSearch, selectedTypeCategory])
