@@ -90,7 +90,7 @@ export async function seedSettlements(prisma: PrismaClient) {
     const fileImport = await prisma.fileImport.create({
       data: {
         nameFile: fileName,
-        fileType: commissionType as any, // POLIZA or VOLUNTARIO
+        fileType: commissionType, // POLIZA or VOLUNTARIO
         idUser: admin.idUser,
         status: 'SETTLED',
         month,
@@ -126,7 +126,7 @@ export async function seedSettlements(prisma: PrismaClient) {
       // 3. Crear Distribuciones
       const categories = business.productPercentageCommission.productPercentageCommissionCategories;
       for (const cat of categories) {
-        let distValue = commissionValue * Number(cat.porcentajeDistribucion || 1);
+        const distValue = commissionValue * Number(cat.porcentajeDistribucion || 1);
         let totalDiscount = 0;
         let appliedDiscountPercentage = 0;
         
