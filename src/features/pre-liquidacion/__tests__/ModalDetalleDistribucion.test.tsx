@@ -178,8 +178,8 @@ describe('ModalDetalleDistribucion', () => {
 				applied_discount_percentace: 0.12,
 				discount_total: 48,
 				percentaje_applied: 0.05,
-				value_clawback: 100,
-				comisionNeta: 250,
+				value_clawback: 50,
+				comisionNeta: 302,
 			},
 		]
 
