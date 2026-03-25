@@ -85,7 +85,10 @@ export async function POST(request: NextRequest) {
 			{ status: 200 }
 		)
 	} catch (error) {
-		if (error instanceof PeriodCompletedError || error instanceof PeriodPreSettledError) {
+		if (
+			error instanceof PeriodCompletedError ||
+			error instanceof PeriodPreSettledError
+		) {
 			return NextResponse.json(
 				{
 					data: null,

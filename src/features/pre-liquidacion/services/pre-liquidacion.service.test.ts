@@ -159,7 +159,7 @@ describe('procesarPreLiquidacion', () => {
 				: ({} as any)
 		expect(Number(distributionData.valueComission)).toBe(60000)
 		expect(Number(distributionData.valueComissionFinal)).toBe(51000)
-		expect(Number(distributionData.totalDiscount || 0)).toBe(9000)
+		expect(Number(distributionData.totalDiscount || 0)).toBe(6000)
 		expect(Number(distributionData.appliedDiscountPercentage || 0)).toBe(0.1)
 
 		// Verify status update to PRE-SETTLED

@@ -19,6 +19,16 @@ import { BusinessStatusBadge } from '../ui/BusinessStatusBadge'
 import { UserAvatar } from '../ui/UserAvatar'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { Calendar, Phone, Mail, Building2, FileText, Clock } from 'lucide-react'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/features/shared/ui/alert-dialog'
 import type { BusinessEntity } from '../../types/business-entity.types'
 
 export interface ClientOriginOption {
@@ -66,6 +76,20 @@ export function BusinessViewModal({
 	const [isEditingOrigin, setIsEditingOrigin] = useState(false)
 	const [selectedOriginId, setSelectedOriginId] = useState<string>('')
 	const [isSavingOrigin, setIsSavingOrigin] = useState(false)
+	const [isAlertOpen, setIsAlertOpen] = useState(false)
+
+	const handleConfirmOriginChange = async () => {
+		if (!onSaveOrigin || !business || !hasOriginChanged) return
+		setIsSavingOrigin(true)
+		try {
+			await onSaveOrigin(business.id, Number(selectedOriginId))
+			setSelectedOriginId('')
+			setIsEditingOrigin(false)
+			setIsAlertOpen(false)
+		} finally {
+			setIsSavingOrigin(false)
+		}
+	}
 
 	const canEditOrigin =
 		allowEditOrigin &&
@@ -242,17 +266,7 @@ export function BusinessViewModal({
 						<Button
 							variant="default"
 							disabled={!hasOriginChanged || isSavingOrigin}
-							onClick={async () => {
-								if (!onSaveOrigin || !business || !hasOriginChanged) return
-								setIsSavingOrigin(true)
-								try {
-									await onSaveOrigin(business.id, Number(selectedOriginId))
-									setSelectedOriginId('')
-									setIsEditingOrigin(false)
-								} finally {
-									setIsSavingOrigin(false)
-								}
-							}}
+							onClick={() => setIsAlertOpen(true)}
 							className="cursor-pointer"
 						>
 							{isSavingOrigin ? 'Guardando…' : 'Guardar'}
@@ -280,6 +294,28 @@ export function BusinessViewModal({
 					</Button>
 				</div>
 			</div>
+			
+			<AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>¿Confirmar cambio de origen?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Al cambiar el origen de un negocio Emitido, <strong className="text-foreground">las comisiones van a ser recalculadas</strong> acorde a la nueva configuración de distribución. 
+							<br/><br/>
+							Se mantendrán los descuentos y clawbacks actuales. Esta acción no se puede deshacer.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isSavingOrigin}>Cancelar</AlertDialogCancel>
+						<AlertDialogAction onClick={(e) => {
+							e.preventDefault()
+							handleConfirmOriginChange()
+						}} disabled={isSavingOrigin}>
+							{isSavingOrigin ? 'Recalculando...' : 'Sí, continuar'}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</Modal>
 	)
 }

@@ -16,6 +16,7 @@ import {
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -197,11 +198,27 @@ export async function PUT(
 				)
 			}
 
-			const updatedBusiness = await prisma.business.update({
+			try {
+				await recalcularComisionesPorCambioOrigen(
+					businessId, 
+					idClientOrigin, 
+					{ idUser: currentUser.idUser, name: currentUser.name }
+				)
+			} catch(error: unknown) {
+				return NextResponse.json(
+					{ data: null, error: error instanceof Error ? error.message : 'Error al actualizar el origen del negocio' },
+					{ status: 400 }
+				)
+			}
+
+			const updatedBusiness = await prisma.business.findFirst({
 				where: { idBusiness: businessId },
-				data: { idClientOrigin },
 				include: businessWithRelations,
 			})
+
+			if (!updatedBusiness) {
+				throw new Error('No se pudo encontrar el negocio actualizado')
+			}
 
 			await logAuditEvent({
 				userId: currentUser.idUser,

@@ -448,40 +448,26 @@ The system SHALL expose `fileType` for each file in the pre-liquidación file li
 
 ### Requirement: Edit client origin from Ver Negocio modal when EMITIDO
 
-When the "Ver Negocio" modal is opened from the pre-liquidación detail page and the business has status EMITIDO, the system SHALL allow the user to change the client origin from within the modal without navigating to the business edit page. On load, the origin SHALL be displayed as a label (read-only). The modal footer SHALL show an "Editar origen" button next to "Cerrar" only when the business status is EMITIDO. When the user clicks "Editar origen", the origin label SHALL be replaced by a Select with the list of active client origins and the footer SHALL show "Guardar" and "Cerrar". When the user selects a different origin and clicks "Guardar", the system SHALL persist the new `idClientOrigin` (e.g. via `PUT /api/negocios/[id]` with body `{ idClientOrigin }`) and SHALL refresh the business data so the modal returns to label view with the updated origin. The backend SHALL accept updates of only `idClientOrigin` when the business status is EMITIDO.
+The system SHALL display a confirmation alert before persisting the new client origin if the business is in `EMITIDO` state. The alert MUST warn the user that commissions will be recalculated. If accepted, the system SHALL call the update API.
+(Previously: The system saved the origin immediately without alerting about recalculation.)
 
-#### Scenario: Modal loads with origin as label and Editar origen in footer when EMITIDO
+#### Scenario: User saves new origin and accepts recalculation warning
 
-- GIVEN the user opened "Ver Negocio" from the pre-liquidación detail page for a business with status EMITIDO
-- WHEN the modal is displayed
-- THEN the current client origin SHALL be shown as a label (text)
-- AND the modal footer SHALL show "Editar origen" next to "Cerrar"
-- AND the modal SHALL NOT show a Select for origin until the user clicks "Editar origen"
-
-#### Scenario: Clicking Editar origen shows Select and Guardar in footer
-
-- GIVEN the Ver Negocio modal is open for an EMITIDO business and the origin is shown as a label
-- WHEN the user clicks "Editar origen"
-- THEN the origin label SHALL be replaced by a Select with the list of active client origins, pre-selected with the current origin
-- AND the footer SHALL show "Guardar" and "Cerrar" (and SHALL NOT show "Editar origen" while in edit mode)
-- AND "Guardar" SHALL be enabled only when the user has selected a different origin value
-
-#### Scenario: User saves new origin and modal returns to label view
-
-- GIVEN the user is in edit mode (Select visible) and has selected a different client origin
+- GIVEN the user is in edit mode (Select visible) and has selected a different client origin for a business in EMITIDO state
 - WHEN the user clicks "Guardar"
-- THEN the system SHALL send an update request (e.g. PUT with `idClientOrigin`) and SHALL persist the change for that business
-- AND the modal SHALL refresh the business data and SHALL return to the initial view: origin as label and footer with "Editar origen" and "Cerrar"
-- AND the label SHALL display the newly saved origin name
+- THEN the system SHALL display an alert warning that commissions will be recalculated
+- WHEN the user confirms the alert
+- THEN the system SHALL send the update request to change `idClientOrigin`
+- AND the modal SHALL return to the label view showing the new origin
 
-#### Scenario: Non-EMITIDO business does not show Editar origen
+#### Scenario: User cancels origin change at the warning
 
-- GIVEN the user opened "Ver Negocio" for a business with status other than EMITIDO (e.g. VENTA_EFECTUADA or CANCELADO)
-- WHEN the modal is displayed
-- THEN the origin SHALL be shown as a label only
-- AND the footer SHALL NOT show "Editar origen", only "Cerrar"
-
----
+- GIVEN the user is in edit mode and has selected a different client origin
+- WHEN the user clicks "Guardar"
+- THEN the system SHALL display an alert warning that commissions will be recalculated
+- WHEN the user cancels or dismisses the alert
+- THEN the system SHALL NOT send the update request
+- AND the modal SHALL remain in edit mode or revert the selection without saving
 
 ### Requirement: Detail Page Lists PRE-SETTLED Commissions
 
@@ -522,6 +508,11 @@ The `pre-liquidacion.service.ts` MUST expose `obtenerComisionesPreliquidadas(fil
 - THEN an empty array is returned (no error thrown)
 
 ---
+
+### Requirement: Atomic commission recalculation on origin change
+
+When a business's client origin is updated via `PUT /api/negocios/[id]` and the business is in `EMITIDO` state, the system SHALL calculate the new percentages based on the new `ProductConfiguration` (matching the new origin, same product, same category). Within the same transaction, the system SHALL delete existing `ComissionDistribution` and `Clawback` records for related `SettlementCommission`s that are in `PRE-SETTLED` state, and recreate them using the new percentages while retaining the original `discountPercentage` and `clawbackPercentage` from the `SettlementCommission`.
+
 
 ## Technical Design
 

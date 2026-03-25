@@ -1,7 +1,19 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
 import { BusinessViewModal } from '../../components/modals/BusinessViewModal'
 import { createMockBusiness } from '../fixtures/mock-business'
+
+vi.mock('@/features/shared/ui/alert-dialog', () => ({
+	AlertDialog: ({ children, open }: { children: React.ReactNode; open: boolean }) => open ? <div data-testid="mock-alert-dialog">{children}</div> : null,
+	AlertDialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogTitle: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogDescription: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogCancel: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+	AlertDialogAction: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => <button data-testid="mock-confirm-btn" onClick={onClick}>{children}</button>,
+}))
 
 describe('BusinessViewModal', () => {
 	const defaultProps = {
@@ -204,13 +216,16 @@ describe('BusinessViewModal', () => {
 			fireEvent.click(
 				screen.getByRole('button', { name: /Editar origen/i })
 			)
-			const select = screen.getByRole('combobox')
-			fireEvent.click(select)
+			const select = screen.getByRole('combobox') // Radix Select Trigger
+			await userEvent.click(select) // Opens Radix Dropdown
 			const option = await screen.findByRole('option', { name: 'Propio' })
-			fireEvent.click(option)
+			await userEvent.click(option)
 			const guardarBtn = screen.getByRole('button', { name: /^Guardar$/i })
 			expect(guardarBtn).not.toBeDisabled()
-			fireEvent.click(guardarBtn)
+			await userEvent.click(guardarBtn)
+
+			const confirmarBtn = await screen.findByTestId('mock-confirm-btn')
+			await userEvent.click(confirmarBtn)
 
 			await waitFor(() => {
 				expect(onSaveOrigin).toHaveBeenCalledWith(1, 2)

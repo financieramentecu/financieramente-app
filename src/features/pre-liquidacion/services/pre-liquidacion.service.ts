@@ -264,7 +264,7 @@ export async function obtenerDetallePreLiquidacion(
 	const registrosFormateados: RegistroDetallePreLiquidacion[] = []
 
 	for (const r of registros) {
-		const comisionBase = r.baseCommission || r.commissionValue || new Decimal(0)
+		const comisionBase = r.commissionValue || new Decimal(0)
 		const descuentoPorcentaje = r.discountPercentage ?? DESCUENTO_POR_DEFECTO
 		const clawbackPorcentaje = r.clawbackPercentage ?? new Decimal(0)
 		const usePortfolio = r.originCommission === 'CARTERA'
@@ -590,28 +590,18 @@ export async function obtenerDistribucionComision(
 				? ppcc.porcentajePortfolio.toNumber()
 				: (ppcc?.porcentajeDistribucion?.toNumber() ?? 0)
 
-		const clawbackData = row.clawback
-			? {
-					valor: row.clawback.valueClawback.toNumber(),
-					porcentaje: row.clawback.porcentajeApplied.toNumber(),
-					estado: row.clawback.state,
-					fechaAplicacion: row.clawback.appliedDate
-						? row.clawback.appliedDate.toISOString().split('T')[0]
-						: null,
-				}
-			: null
+
 
 		return {
 			idComissionDistribution: row.idComissionDistribution,
 			categoria: categoriaNombre,
-			porcentajeDistribucion,
-			comisionBruta: row.valueComission.toNumber(),
-			comisionNeta: row.valueComissionFinal.toNumber(),
-			totalDescuento: row.totalDiscount?.toNumber() ?? 0,
-			porcentajeDescuento: row.appliedDiscountPercentage?.toNumber() ?? 0,
-			value_commission_final: row.valueComissionFinal.toNumber(),
-			value_clawback_percentage: row.clawback?.porcentajeApplied.toNumber() ?? 0,
-			clawback: clawbackData,
+			value_commision: row.valueComission?.toNumber() ?? 0,
+			applied_discount_percentace: row.appliedDiscountPercentage?.toNumber() ?? 0,
+			discount_total: row.totalDiscount?.toNumber() ?? 0,
+			commission_porcentaje: porcentajeDistribucion,
+			percentaje_applied: row.clawback?.porcentajeApplied.toNumber() ?? null,
+			value_clawback: row.clawback?.valueClawback.toNumber() ?? null,
+			comisionNeta: row.valueComissionFinal?.toNumber() ?? 0
 		}
 	})
 
@@ -619,8 +609,11 @@ export async function obtenerDistribucionComision(
 	const productConfig =
 		ppccFirst?.productPercentageCommission?.productConfiguration
 
+	const commissionValueParent = sc.commissionValue?.toNumber() ?? sc.baseCommission?.toNumber() ?? 0
+
 	const distribucion: DistribucionComision = {
 		idSettlementCommission: id,
+		commission_value: commissionValueParent,
 		categoria: ppccFirst?.category?.name ?? null,
 		producto: productConfig?.product?.name ?? null,
 		origen: productConfig?.clientOrigin?.name ?? null,
@@ -786,7 +779,7 @@ export async function calcularComisionesParaRegistro(
 
 	// Aplicar fórmulas
 	const comisionBase =
-		settlement.baseCommission || settlement.commissionValue || new Decimal(0)
+		settlement.commissionValue || new Decimal(0)
 	const comisionesCalculadas = aplicarFormulas(
 		comisionBase,
 		porcentajes,
@@ -1026,7 +1019,7 @@ export async function procesarPreLiquidacion(
 			}
 
 			const comisionBase =
-				registro.baseCommission || registro.commissionValue || new Decimal(0)
+				registro.commissionValue || new Decimal(0)
 			const idUser = registro.business.user?.idUser
 
 			// Usamos transacción para asegurar que se crean las distribuciones y se actualiza el estado atómicamente
@@ -1046,10 +1039,10 @@ export async function procesarPreLiquidacion(
 					// Cálculo: Descuento = Bruta * %Descuento
 					const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
 					const valorClawback = valorComisionBruta.mul(clawbackPorcentaje)
-					const totalDescuento = valorDescuento.add(valorClawback)
+					const totalDescuento = valorDescuento
 
 					// Cálculo: Final = Bruta - Descuento - Clawback
-					const valorComisionFinal = valorComisionBruta.sub(totalDescuento)
+					const valorComisionFinal = valorComisionBruta.sub(totalDescuento).sub(valorClawback)
 
 					const created = await tx.comissionDistribution.create({
 						data: {
@@ -1059,7 +1052,7 @@ export async function procesarPreLiquidacion(
 							valueComissionFinal: valorComisionFinal,
 							totalDiscount: totalDescuento,
 							appliedDiscountPercentage: descuentoPorcentaje,
-							status: 'LIQUIDADO',
+							status: 'PRE-SETTLED',
 						},
 					})
 
@@ -1156,4 +1149,150 @@ export async function procesarPreLiquidacion(
 			mensaje: `Error al procesar: ${error instanceof Error ? error.message : 'Error desconocido'}`,
 		}
 	}
+}
+
+import { Business } from '@prisma/client'
+
+/**
+ * Recalcula comisiones de un negocio en estado EMITIDO al cambiar su origen.
+ * Asegura la retención de descuentos y clawbacks de las comisiones PRE-SETTLED.
+ */
+export async function recalcularComisionesPorCambioOrigen(
+	idBusiness: number,
+	idClientOrigin: number,
+	usuarioAccion: { idUser: number; name: string }
+): Promise<{ success: boolean; business?: Business; countRecreados?: number; message?: string }> {
+	return prisma.$transaction(async (tx) => {
+		const business = await tx.business.findUnique({
+			where: { idBusiness },
+			include: { 
+				user: true,
+				productPercentageCommission: {
+					include: { productConfiguration: true }
+				}
+			}
+		})
+		if (!business) throw new Error('Negocio no encontrado')
+		
+		const productConfig = await tx.productConfiguration.findFirst({
+			where: {
+				idProduct: business.productPercentageCommission.productConfiguration.idProduct,
+				idCategory: business.productPercentageCommission.productConfiguration.idCategory,
+				idClientOrigin
+			},
+			include: {
+				productPercentageCommissions: {
+					where: { active: true }
+				}
+			}
+		})
+		
+		if (!productConfig) {
+			throw new Error('No existe configuración de producto para el nuevo origen')
+		}
+		
+		const activePercentageConfig = productConfig.productPercentageCommissions[0]
+		if (!activePercentageConfig) {
+			throw new Error('No existe distribución de comisiones para el nuevo origen')
+		}
+
+		const updatedBusiness = await tx.business.update({
+			where: { idBusiness },
+			data: {
+				idClientOrigin,
+				idProductPercentageCommission: activePercentageConfig.idProductPercentageCommission,
+				updatedAt: new Date()
+			}
+		})
+
+		const preSettledCommissions = await tx.settlementCommission.findMany({
+			where: {
+				idBusiness,
+				status: 'PRE-SETTLED'
+			}
+		})
+
+		let countRecreados = 0
+
+		if (preSettledCommissions.length > 0) {
+			const newCategories = await tx.productPercentageCommissionCategory.findMany({
+				where: { idProductPercentageCommission: activePercentageConfig.idProductPercentageCommission, active: true },
+				include: { category: true }
+			})
+
+			const ids = preSettledCommissions.map((c) => c.idSettlementCommission)
+
+			await tx.clawback.deleteMany({
+				where: { comissionDistribution: { idSettlementCommission: { in: ids } } }
+			})
+
+			await tx.comissionDistribution.deleteMany({
+				where: { idSettlementCommission: { in: ids } }
+			})
+
+			for (const record of preSettledCommissions) {
+				const usePortfolio = record.originCommission === 'CARTERA'
+				const comisionBase = record.commissionValue || new Decimal(0)
+				const descuentoPorcentaje = record.discountPercentage ?? new Decimal(0)
+				const clawbackPorcentaje = record.clawbackPercentage ?? new Decimal(0)
+
+				for (const cat of newCategories) {
+					const porcentaje = usePortfolio && cat.porcentajePortfolio !== null
+						? cat.porcentajePortfolio
+						: cat.porcentajeDistribucion
+
+					const valorComisionBruta = comisionBase.mul(porcentaje)
+
+					const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
+					const valorClawback = valorComisionBruta.mul(clawbackPorcentaje)
+					const totalDescuento = valorDescuento
+
+					const valorComisionFinal = valorComisionBruta.sub(totalDescuento).sub(valorClawback)
+
+					if (valorComisionBruta.toNumber() > 0 || porcentaje.toNumber() > 0) {
+						const dist = await tx.comissionDistribution.create({
+							data: {
+								idSettlementCommission: record.idSettlementCommission,
+								idPercentajeCommisionCategory: cat.id,
+								appliedDiscountPercentage: descuentoPorcentaje,
+								totalDiscount: totalDescuento,
+								valueComission: valorComisionBruta,
+								valueComissionFinal: valorComisionFinal,
+								status: 'PRE-SETTLED'
+							}
+						})
+
+						if (valorClawback.toNumber() > 0 && business.user?.idUser !== undefined) {
+							await tx.clawback.create({
+								data: {
+									idComissionDistribution: dist.idComissionDistribution,
+									valueClawback: valorClawback,
+									porcentajeApplied: clawbackPorcentaje,
+									idUser: business.user.idUser,
+									state: 'RETENIDO'
+								}
+							})
+						}
+					}
+				}
+				countRecreados++
+			}
+		}
+
+		await tx.auditLog.create({
+			data: {
+				action: 'RECALCULATE_COMMISSIONS_ORIGIN',
+				details: JSON.stringify({
+					entityType: 'BUSINESS',
+					entityId: business.idBusiness,
+					previousOrigin: business.idClientOrigin,
+					newOrigin: idClientOrigin,
+					recalculatedCommissionsCount: countRecreados
+				}),
+				idUser: usuarioAccion.idUser
+			}
+		})
+
+		return { success: true, business: updatedBusiness, countRecreados }
+	})
 }

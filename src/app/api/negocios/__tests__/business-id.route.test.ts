@@ -9,6 +9,7 @@ import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
 import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
+import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import {
 	mockUserWithRole,
 	mockAgentUser,
@@ -21,6 +22,7 @@ import {
 
 // Mock de módulos externos
 vi.mock('@/auth')
+vi.mock('@/features/pre-liquidacion/services/pre-liquidacion.service')
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		business: {
@@ -413,6 +415,7 @@ describe('PUT /api/negocios/[id]', () => {
 	const mockPrismaBusinessToEntity = vi.mocked(prismaBusinessToEntity)
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
+	const mockRecalcularComisionesPorCambioOrigen = vi.mocked(recalcularComisionesPorCambioOrigen)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
@@ -666,7 +669,9 @@ describe('PUT /api/negocios/[id]', () => {
 				data: requestBody,
 			} as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
-			mockPrismaFindFirst.mockResolvedValue(mockExistingBusiness as never)
+			mockPrismaFindFirst
+				.mockResolvedValueOnce(mockExistingBusiness as never)
+				.mockResolvedValueOnce(mockUpdatedBusiness as never)
 			mockClientOriginFindFirst.mockResolvedValue({
 				idClientOrigin: 2,
 				name: 'Propio',
@@ -690,11 +695,12 @@ describe('PUT /api/negocios/[id]', () => {
 			expect(mockClientOriginFindFirst).toHaveBeenCalledWith({
 				where: { idClientOrigin: 2, status: true },
 			})
-			expect(mockPrismaUpdate).toHaveBeenCalledWith({
-				where: { idBusiness: 1 },
-				data: { idClientOrigin: 2 },
-				include: expect.any(Object),
-			})
+			expect(mockRecalcularComisionesPorCambioOrigen).toHaveBeenCalledWith(
+				1,
+				2,
+				{ idUser: mockAdminUser.idUser, name: mockAdminUser.name }
+			)
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
 			expect(mockLogAuditEvent).toHaveBeenCalledWith(
 				expect.objectContaining({
 					action: AuditAction.BUSINESS_UPDATED,

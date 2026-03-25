@@ -1,7 +1,6 @@
 'use client'
 
 import { Loader2 } from 'lucide-react'
-import { Badge } from '@/features/shared/ui/badge'
 import { Modal } from '@/features/shared/ui/modal'
 import { useDistribucionComision } from '../hooks/use-distribucion-comision'
 
@@ -63,7 +62,13 @@ export function ModalDetalleDistribucion({
 			{!isLoading && !error && distribucion && (
 				<div className="space-y-4">
 					{/* Header section */}
-					<div className="grid grid-cols-2 gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm">
+					<div className="grid grid-cols-2 lg:grid-cols-3 gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm">
+						<div>
+							<span className="font-medium text-foreground">Comisión Total:</span>{' '}
+							<span className="text-muted-foreground font-semibold">
+								${distribucion.commission_value !== undefined ? formatNumber(distribucion.commission_value) : '—'}
+							</span>
+						</div>
 						<div>
 							<span className="font-medium text-foreground">Categoría:</span>{' '}
 							<span className="text-muted-foreground">
@@ -104,6 +109,9 @@ export function ModalDetalleDistribucion({
 											Categoría
 										</th>
 										<th className="py-2 px-3 text-right font-semibold text-foreground">
+											% Dist. de Comisión
+										</th>
+										<th className="py-2 px-3 text-right font-semibold text-foreground">
 											Comisión Bruta
 										</th>
 										<th className="py-2 px-3 text-right font-semibold text-foreground">
@@ -117,12 +125,6 @@ export function ModalDetalleDistribucion({
 										</th>
 										<th className="py-2 px-3 text-right font-semibold text-foreground">
 											Descuento Clawback
-										</th>
-										<th className="py-2 px-3 text-left font-semibold text-foreground">
-											Tipo Clawback
-										</th>
-										<th className="py-2 px-3 text-right font-semibold text-foreground">
-											% Distribución de Comisión
 										</th>
 										<th className="py-2 px-3 text-right font-semibold text-foreground">
 											Comisión Final
@@ -138,37 +140,28 @@ export function ModalDetalleDistribucion({
 											<td className="py-2 px-3 text-foreground">
 												{item.categoria}
 											</td>
+											<td className="py-2 px-3 text-right text-muted-foreground bg-muted/20">
+												{formatPct(item.commission_porcentaje)}
+											</td>
 											<td className="py-2 px-3 text-right text-foreground">
-												{formatNumber(item.comisionBruta)}
+												{formatNumber(item.value_commision)}
 											</td>
 											<td className="py-2 px-3 text-right text-muted-foreground">
-												{formatPct(item.porcentajeDescuento)}
+												{formatPct(item.applied_discount_percentace)}
 											</td>
 											<td className="py-2 px-3 text-right text-muted-foreground">
-												{formatNumber(item.totalDescuento)}
+												{formatNumber(item.discount_total)}
 											</td>
 											<td className="py-2 px-3 text-right text-muted-foreground">
-												{Math.round(item.value_clawback_percentage * 100)}%
+												{item.percentaje_applied != null ? formatPct(item.percentaje_applied) : '—'}
 											</td>
 											<td className="py-2 px-3 text-right text-muted-foreground">
-												{item.clawback != null
-													? formatNumber(item.clawback.valor)
+												{item.value_clawback != null
+													? formatNumber(item.value_clawback)
 													: '—'}
 											</td>
-											<td className="py-2 px-3">
-												{item.clawback != null ? (
-													<Badge variant="neutral">
-														{item.clawback.estado}
-													</Badge>
-												) : (
-													<span className="text-muted-foreground">—</span>
-												)}
-											</td>
-											<td className="py-2 px-3 text-right text-muted-foreground">
-												{formatPct(item.porcentajeDistribucion)}
-											</td>
 											<td className="py-2 px-3 text-right font-bold text-foreground">
-												{formatNumber(item.value_commission_final)}
+												{formatNumber(item.comisionNeta)}
 											</td>
 										</tr>
 									))}

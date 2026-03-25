@@ -25,6 +25,7 @@ function makeDistribucion(
 ): DistribucionComision {
 	return {
 		idSettlementCommission: 10,
+		commission_value: 1000,
 		categoria: 'CARTERA',
 		producto: 'Seguro de Vida',
 		origen: 'DIRECTO',
@@ -33,14 +34,13 @@ function makeDistribucion(
 			{
 				idComissionDistribution: 1,
 				categoria: 'GENERAL',
-				porcentajeDistribucion: 0.5,
-				comisionBruta: 1000,
+				value_commision: 1000,
+				applied_discount_percentace: 0.12,
+				discount_total: 120,
+				commission_porcentaje: 0.5,
+				percentaje_applied: 0,
+				value_clawback: 0,
 				comisionNeta: 880,
-				totalDescuento: 120,
-				porcentajeDescuento: 0.12,
-				value_commission_final: 880,
-				value_clawback_percentage: 0,
-				clawback: null,
 			},
 		],
 		...overrides,
