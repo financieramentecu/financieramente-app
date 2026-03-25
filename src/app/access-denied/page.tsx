@@ -4,7 +4,7 @@ import React, { Suspense } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { AlertCircle, ArrowLeft, Mail, LogOut } from 'lucide-react'
+import { AlertCircle, LogOut, CheckCircle2, Mail } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import {
 	Card,
@@ -25,24 +25,26 @@ function AccessDeniedContent() {
 
 	const messages = {
 		inactive: {
-			title: '⛔ Cuenta Desactivada',
-			description:
-				'Cuenta Desactivada. Debes solicitar la activación, contacta al administrador.',
+			title: '⛔ Cuenta Inactiva',
+			description: 'Se ha notificado al administrador para activar tu cuenta.',
 			details:
-				'Tu cuenta ha sido desactivada o está pendiente de activación. Por favor, contacta al administrador del sistema para solicitar la activación de tu cuenta.',
+				'Tu cuenta ha sido desactivada o está pendiente de activación. Ten en cuenta, se te notificará por correo cuando esté activada por el administrador para que puedas iniciar sesión.',
+			variant: 'destructive',
 		},
 		default_role: {
-			title: '⏳ Cuenta Pendiente de Activación',
+			title: '🎉 ¡Registro Exitoso!',
 			description:
-				'Tu cuenta está pendiente de activación por el administrador.',
+				'Hemos enviado una notificación al administrador para activar tu acceso.',
 			details:
-				'Tu cuenta ha sido creada pero aún no ha sido activada. El administrador debe asignarte un rol y activar tu cuenta para que puedas acceder al sistema.',
+				'Tu cuenta ha sido creada correctamente. Como es tu primer acceso, el administrador ha recibido un correo para revisar y otorgar tu acceso al sistema. Te notificaremos por correo cuando esté listo.',
+			variant: 'default',
 		},
 		no_permissions: {
 			title: '🚫 Acceso Denegado',
 			description: 'No tienes permisos para acceder a esta sección.',
 			details:
 				'No tienes los permisos necesarios para acceder a esta funcionalidad. Si crees que esto es un error, contacta al administrador.',
+			variant: 'destructive',
 		},
 		default: {
 			title: '🚫 Acceso Denegado',
@@ -50,26 +52,15 @@ function AccessDeniedContent() {
 				'No tienes permisos para acceder al sistema. Si tu cuenta fue desactivada, contacta al administrador.',
 			details:
 				'Tu acceso al sistema ha sido restringido. Si tu cuenta fue desactivada o necesitas permisos adicionales, contacta al administrador.',
+			variant: 'destructive',
 		},
 	}
 
 	const message = messages[reason as keyof typeof messages] || messages.default
 
-	const handleGoBack = () => {
-		// Usar window.location para evitar que el middleware intercepte
-		window.location.href = '/login'
-	}
-
-	const handleContactAdmin = () => {
-		// Abrir cliente de email o copiar email al portapapeles
-		const adminEmail =
-			process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@financieramentecu.com'
-		window.location.href = `mailto:${adminEmail}?subject=Solicitud de Activación de Cuenta&body=Hola,%0D%0A%0D%0ASolicito la activación de mi cuenta en el sistema de liquidación de comisiones.%0D%0A%0D%0AGracias.`
-	}
-
 	const handleSignOut = async () => {
 		if (isSigningOut) return // Prevenir múltiples clics
-		
+
 		setIsSigningOut(true)
 		try {
 			// Cerrar sesión sin redirección automática
@@ -107,9 +98,15 @@ function AccessDeniedContent() {
 								priority
 							/>
 						</div>
-						{/* Icono de advertencia */}
-						<div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-							<AlertCircle className="h-8 w-8 text-destructive" />
+						{/* Icono */}
+						<div
+							className={`flex h-16 w-16 items-center justify-center rounded-full ${message.variant === 'default' ? 'bg-primary/10' : 'bg-destructive/10'}`}
+						>
+							{message.variant === 'default' ? (
+								<CheckCircle2 className="h-8 w-8 text-primary" />
+							) : (
+								<AlertCircle className="h-8 w-8 text-destructive" />
+							)}
 						</div>
 					</div>
 					<CardTitle className="text-2xl">{message.title}</CardTitle>
@@ -118,58 +115,31 @@ function AccessDeniedContent() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-6">
-					<Alert variant="destructive">
+					<Alert
+						variant={message.variant === 'default' ? 'default' : 'destructive'}
+					>
 						<AlertCircle className="h-4 w-4" />
 						<AlertTitle>Información Importante</AlertTitle>
 						<AlertDescription>{message.details}</AlertDescription>
 					</Alert>
 
-					<div className="space-y-4">
-						<div className="rounded-lg border bg-muted/50 p-4">
-							<h3 className="font-semibold mb-2 flex items-center gap-2">
-								<Mail className="h-4 w-4" />
-								¿Qué puedes hacer?
-							</h3>
-							<ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-								<li>
-									Contacta al administrador del sistema para solicitar la
-									activación
-								</li>
-								<li>Verifica que tu cuenta esté correctamente configurada</li>
-								<li>
-									Espera a que el administrador asigne los permisos necesarios
-								</li>
-							</ul>
-						</div>
-					</div>
-
 					<div className="flex flex-col gap-3">
-						{/* Botón de cerrar sesión destacado */}
+						{/* Botón único */}
 						<Button
 							onClick={handleSignOut}
-							variant="destructive"
+							variant={
+								message.variant === 'default' ? 'default' : 'destructive'
+							}
 							className="w-full"
 							disabled={isSigningOut}
 						>
 							<LogOut className="mr-2 h-4 w-4" />
-							{isSigningOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
+							{isSigningOut
+								? 'Cerrando sesión...'
+								: message.variant === 'default'
+									? 'Cerrar Sesión y Volver al Login'
+									: 'Cerrar Sesión'}
 						</Button>
-
-						{/* Otros botones */}
-						<div className="flex flex-col sm:flex-row gap-3">
-							<Button
-								onClick={handleContactAdmin}
-								className="flex-1"
-								variant="default"
-							>
-								<Mail className="mr-2 h-4 w-4" />
-								Contactar Administrador
-							</Button>
-							<Button onClick={handleGoBack} variant="outline" className="flex-1">
-								<ArrowLeft className="mr-2 h-4 w-4" />
-								Ir a Login
-							</Button>
-						</div>
 					</div>
 				</CardContent>
 			</Card>
