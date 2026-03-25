@@ -83,8 +83,8 @@ jobs:
       - name: Copy SSL scripts to server
         run: |
           ssh -o StrictHostKeyChecking=no root@${{ secrets.QA_DROPLET_IP }} "mkdir -p /opt/financieramente/terraform/scripts"
-          scp -o StrictHostKeyChecking=no terraform/scripts/ssl-renew.sh root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/terraform/scripts/
-          ssh -o StrictHostKeyChecking=no root@${{ secrets.QA_DROPLET_IP }} "chmod +x /opt/financieramente/terraform/scripts/ssl-renew.sh"
+          scp -o StrictHostKeyChecking=no terraform/scripts/ssl-renew.sh terraform/scripts/setup-ssl.sh root@${{ secrets.QA_DROPLET_IP }}:/opt/financieramente/terraform/scripts/
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.QA_DROPLET_IP }} "chmod +x /opt/financieramente/terraform/scripts/ssl-renew.sh /opt/financieramente/terraform/scripts/setup-ssl.sh"
 
       - name: Deploy application
         uses: appleboy/ssh-action@v1.0.3
