@@ -188,23 +188,7 @@ describe('category-schemas', () => {
 			expect(result.success).toBe(true)
 		})
 
-		it('should reject invalid typeCategory value', () => {
-			const data = {
-				code: 'CAT001',
-				name: 'Agente',
-				typeCategory: 'INVALID',
-				status: true,
-			}
 
-			const result = createCategorySchema.safeParse(data)
-			expect(result.success).toBe(false)
-			if (!result.success) {
-				const typeCategoryError = result.error.issues.find(
-					(issue) => issue.path[0] === 'typeCategory'
-				)
-				expect(typeCategoryError).toBeDefined()
-			}
-		})
 
 		it('should accept optional descripcion as null', () => {
 			const data = {
@@ -417,13 +401,6 @@ describe('category-schemas', () => {
 			}
 		})
 
-		it('should reject invalid typeCategory when provided', () => {
-			const data = {
-				typeCategory: 'INVALID',
-			}
 
-			const result = updateCategorySchema.safeParse(data)
-			expect(result.success).toBe(false)
-		})
 	})
 })

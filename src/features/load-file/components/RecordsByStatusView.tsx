@@ -21,6 +21,12 @@ import { ChevronLeft, ChevronRight, CircleCheck, CircleX, CircleOff, Clock } fro
 
 const PAGE_SIZE = 20
 
+const STATUS_FOR_TAB: Record<string, FileImportRecordStatusFilter> = {
+	sincronizados: 'SYNCHRONIZED',
+	noSincronizados: 'NO_SYNC',
+	rezagados: 'REZAGADOS',
+}
+
 export interface RecordsByStatusCounts {
 	sincronizados: number
 	errores: number
@@ -118,7 +124,7 @@ export function RecordsByStatusView({
 			})
 			return
 		}
-		const status = statusForTab[activeTab]
+		const status = STATUS_FOR_TAB[activeTab]
 		if (!status) return
 		setLoadingRecords(true)
 		loadFileApi
@@ -140,7 +146,7 @@ export function RecordsByStatusView({
 
 	const loadPage = (page: number) => {
 		if (activeTab === 'errores') return
-		const status = statusForTab[activeTab]
+		const status = STATUS_FOR_TAB[activeTab]
 		if (!status) return
 		setLoadingRecords(true)
 		loadFileApi

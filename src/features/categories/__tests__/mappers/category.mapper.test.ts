@@ -12,7 +12,14 @@ describe('category.mapper', () => {
 				idCategory: 1,
 				code: 'CAT001',
 				name: 'Agente Experto',
-				typeCategory: 'MMS',
+				categoryType: {
+					id: 1,
+					name: 'MMS',
+					description: 'Descripción completa',
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
 				descripcion: 'Descripción completa',
 				status: true,
 			})
@@ -76,7 +83,14 @@ describe('category.mapper', () => {
 				idCategory: 42,
 				code: 'UNIQUE_CODE',
 				name: 'Unique Name',
-				typeCategory: 'ALIADO',
+				categoryType: {
+					id: 2,
+					name: 'ALIADO',
+					description: 'Unique description',
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
 				descripcion: 'Unique description',
 			})
 
@@ -91,7 +105,14 @@ describe('category.mapper', () => {
 
 		it('should handle typeCategory MMS', () => {
 			const prismaCategory = createMockPrismaCategory({
-				typeCategory: 'MMS',
+				categoryType: {
+					id: 1,
+					name: 'MMS',
+					description: null,
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date()
+				}
 			})
 
 			const result = prismaCategoryToCategory(prismaCategory)
@@ -101,7 +122,14 @@ describe('category.mapper', () => {
 
 		it('should handle typeCategory ALIADO', () => {
 			const prismaCategory = createMockPrismaCategory({
-				typeCategory: 'ALIADO',
+				categoryType: {
+					id: 2,
+					name: 'ALIADO',
+					description: null,
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date()
+				}
 			})
 
 			const result = prismaCategoryToCategory(prismaCategory)
@@ -111,7 +139,14 @@ describe('category.mapper', () => {
 
 		it('should handle typeCategory TRINITY', () => {
 			const prismaCategory = createMockPrismaCategory({
-				typeCategory: 'TRINITY',
+				categoryType: {
+					id: 3,
+					name: 'TRINITY',
+					description: null,
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date()
+				}
 			})
 
 			const result = prismaCategoryToCategory(prismaCategory)
@@ -147,7 +182,7 @@ describe('category.mapper', () => {
 		})
 
 		it('should handle empty array', () => {
-			const prismaCategories: ReturnType<typeof createMockPrismaCategory>[] = []
+			const prismaCategories: (ReturnType<typeof createMockPrismaCategory>)[] = []
 
 			const result = prismaCategoryListToCategories(prismaCategories)
 
@@ -178,7 +213,14 @@ describe('category.mapper', () => {
 					idCategory: 1,
 					code: 'CAT001',
 					name: 'Agente MMS',
-					typeCategory: 'MMS',
+					categoryType: {
+						id: 1,
+						name: 'MMS',
+						description: 'Descripción 1',
+						status: true,
+						createdAt: new Date(),
+						updatedAt: new Date()
+					},
 					descripcion: 'Descripción 1',
 					status: true,
 				}),
@@ -186,7 +228,14 @@ describe('category.mapper', () => {
 					idCategory: 2,
 					code: 'CAT002',
 					name: 'Agente Aliado',
-					typeCategory: 'ALIADO',
+					categoryType: {
+						id: 2,
+						name: 'ALIADO',
+						description: null,
+						status: true,
+						createdAt: new Date(),
+						updatedAt: new Date()
+					},
 					descripcion: null,
 					status: false,
 				}),

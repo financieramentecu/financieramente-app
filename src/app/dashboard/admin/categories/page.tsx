@@ -148,7 +148,7 @@ export default function CategoriesAdminPage() {
 					</Button>
 				</div>
 
-				<CategoryFilters filters={filters} onFiltersChange={setFilters} />
+				<CategoryFilters filters={filters} onFilterChange={setFilters} />
 
 				<CategoriesTable
 					categories={categories}
@@ -173,15 +173,15 @@ export default function CategoriesAdminPage() {
 					initialData={
 						mode === 'edit' && selectedCategory
 							? {
-									code: selectedCategory.code,
-									name: selectedCategory.name,
-									typeCategory: selectedCategory.typeCategory,
-									descripcion: selectedCategory.descripcion ?? '',
-									status: selectedCategory.status,
-								}
+								code: selectedCategory.code,
+								name: selectedCategory.name,
+								typeCategory: selectedCategory.typeCategory,
+								descripcion: selectedCategory.descripcion ?? '',
+								status: selectedCategory.status,
+							}
 							: {
-									status: true,
-								}
+								status: true,
+							}
 					}
 					onSubmit={handleSubmit}
 					mode={mode}

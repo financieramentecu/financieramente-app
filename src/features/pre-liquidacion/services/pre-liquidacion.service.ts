@@ -6,10 +6,13 @@ import type {
 	ArchivoDisponible,
 	ComisionesCalculadas,
 	ConfiguracionPorcentajes,
+	DistribucionComision,
+	ItemDistribucionComision,
 	RegistroDetallePreLiquidacion,
 	RegistroLiquidacionDetalle,
 	RespuestaArchivosDisponibles,
 	RespuestaDetallePreLiquidacion,
+	RespuestaDistribucionComision,
 	RespuestaRegistrosLiquidacion,
 	ResumenFilaPreliquidacion,
 	ResumenUsuarioPreliquidacion,
@@ -532,6 +535,102 @@ export async function obtenerRegistrosParaLiquidacion(
 		},
 		registros: flat,
 	}
+}
+
+/**
+ * Returns the commission distribution breakdown for a given settlement commission.
+ * Performs a single findMany with a 4-level include chain to avoid N+1 queries.
+ * Returns null when no ComissionDistribution rows exist for the given id.
+ */
+export async function obtenerDistribucionComision(
+	id: number
+): Promise<RespuestaDistribucionComision | null> {
+	const rows = await prisma.comissionDistribution.findMany({
+		where: { idSettlementCommission: id },
+		include: {
+			productPercentageCommissionCategory: {
+				include: {
+					category: true,
+					productPercentageCommission: {
+						include: {
+							productConfiguration: {
+								include: {
+									product: true,
+									clientOrigin: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			settlementCommission: {
+				include: {
+					business: {
+						include: {
+							user: { select: { name: true, lastName: true } },
+						},
+					},
+				},
+			},
+			clawback: true,
+		},
+	})
+
+	if (rows.length === 0) return null
+
+	const first = rows[0]
+	const sc = first.settlementCommission
+	const usePortfolio = sc.originCommission === 'CARTERA'
+
+	const distribuciones: ItemDistribucionComision[] = rows.map((row) => {
+		const ppcc = row.productPercentageCommissionCategory
+		const categoriaNombre = ppcc?.category?.name ?? ''
+		const porcentajeDistribucion =
+			usePortfolio && ppcc?.porcentajePortfolio != null
+				? ppcc.porcentajePortfolio.toNumber()
+				: (ppcc?.porcentajeDistribucion?.toNumber() ?? 0)
+
+		const clawbackData = row.clawback
+			? {
+					valor: row.clawback.valueClawback.toNumber(),
+					porcentaje: row.clawback.porcentajeApplied.toNumber(),
+					estado: row.clawback.state,
+					fechaAplicacion: row.clawback.appliedDate
+						? row.clawback.appliedDate.toISOString().split('T')[0]
+						: null,
+				}
+			: null
+
+		return {
+			idComissionDistribution: row.idComissionDistribution,
+			categoria: categoriaNombre,
+			porcentajeDistribucion,
+			comisionBruta: row.valueComission.toNumber(),
+			comisionNeta: row.valueComissionFinal.toNumber(),
+			totalDescuento: row.totalDiscount?.toNumber() ?? 0,
+			porcentajeDescuento: row.appliedDiscountPercentage?.toNumber() ?? 0,
+			value_commission_final: row.valueComissionFinal.toNumber(),
+			value_clawback_percentage: row.clawback?.porcentajeApplied.toNumber() ?? 0,
+			clawback: clawbackData,
+		}
+	})
+
+	const ppccFirst = first.productPercentageCommissionCategory
+	const productConfig =
+		ppccFirst?.productPercentageCommission?.productConfiguration
+
+	const distribucion: DistribucionComision = {
+		idSettlementCommission: id,
+		categoria: ppccFirst?.category?.name ?? null,
+		producto: productConfig?.product?.name ?? null,
+		origen: productConfig?.clientOrigin?.name ?? null,
+		nombreAsesor: sc.business?.user
+			? `${sc.business.user.name} ${sc.business.user.lastName ?? ''}`.trim()
+			: null,
+		distribuciones,
+	}
+
+	return { distribucion }
 }
 
 /**
