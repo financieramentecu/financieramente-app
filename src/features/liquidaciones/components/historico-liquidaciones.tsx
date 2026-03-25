@@ -6,6 +6,7 @@ import { es } from 'date-fns/locale';
 import { CalendarIcon, ChevronDown, ChevronRight, Check, ChevronsUpDown, Search, X } from 'lucide-react';
 
 import { useComisionesLiquidadas } from '../hooks/use-comisiones-liquidadas';
+import { LiquidacionConRelaciones } from '../services/liquidacion.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/features/shared/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/features/shared/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/features/shared/ui/select';
@@ -18,9 +19,7 @@ export function HistoricoLiquidaciones() {
   const { 
     state, 
     contratos, 
-    loadingContratos, 
     coaches,
-    loadingCoaches,
     fetchComisiones, 
     fetchContratos,
     fetchCoaches
@@ -64,6 +63,7 @@ export function HistoricoLiquidaciones() {
 
   const data = state.data?.comisiones || [];
   const metrics = state.data?.metrics || { totalSettled: 0, totalClawbacks: 0, count: 0 };
+  const coachesList = coaches || [];
 
   return (
     <div className="space-y-6">
@@ -129,7 +129,7 @@ export function HistoricoLiquidaciones() {
                   <CommandList>
                     <CommandEmpty>No se encontraron contratos.</CommandEmpty>
                     <CommandGroup>
-                      {contratos.map((contract) => (
+                      {(contratos || []).map((contract) => (
                         <CommandItem
                           key={contract}
                           value={contract}
@@ -186,7 +186,7 @@ export function HistoricoLiquidaciones() {
                     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-primary" />
                     <span className="truncate text-xs">
                       {selectedCoach 
-                        ? coaches.find((c) => c.id === selectedCoach)?.fullName 
+                        ? coachesList.find((c) => c.id === selectedCoach)?.fullName 
                         : "Seleccionar Coach..."}
                     </span>
                   </div>
@@ -199,7 +199,7 @@ export function HistoricoLiquidaciones() {
                   <CommandList>
                     <CommandEmpty>No se encontraron coaches.</CommandEmpty>
                     <CommandGroup>
-                      {coaches.map((coach) => (
+                      {coachesList.map((coach: { id: number; fullName: string; category: string }) => (
                         <CommandItem
                           key={coach.id}
                           value={coach.fullName}
@@ -318,7 +318,7 @@ export function HistoricoLiquidaciones() {
                     </TableCell>
                   </TableRow>
                 )}
-                {state.status === 'success' && data.map((comision: any) => (
+                {state.status === 'success' && data.map((comision: LiquidacionConRelaciones) => (
                   <React.Fragment key={comision.idSettlementCommission}>
                     <TableRow 
                       className={cn(
@@ -346,7 +346,7 @@ export function HistoricoLiquidaciones() {
                       </TableCell>
                       <TableCell>
                         <span className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 capitalize">
-                          {comision.commissionType.toLowerCase()}
+                          {(comision.commissionType as string).toLowerCase()}
                         </span>
                       </TableCell>
                       <TableCell className="text-right font-bold text-primary">{formatCurrency(Number(comision.commissionValue))}</TableCell>
@@ -426,7 +426,7 @@ export function HistoricoLiquidaciones() {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {comision.comissionDistributions?.map((dist: any) => {
+                                {comision.comissionDistributions?.map((dist) => {
                                   // Lógica de derivación del participante
                                   const catName = dist.productPercentageCommissionCategory?.category?.name || 'Desconocido';
                                   const upperCat = catName.toUpperCase();
@@ -447,7 +447,7 @@ export function HistoricoLiquidaciones() {
                                         if (coach) participant = `${coach.name} ${coach.lastName || ''}`.trim();
                                       } else if (upperCat.includes('AGENCIA') || upperCat.includes('TRINITY')) {
                                         const manager = user.leader?.leader?.leader || user.leader?.leader;
-                                        if (manager) participant = `${manager.name} ${manager.lastName || ''}`.trim();
+                                        if (manager) participant = `${(manager as any).name} ${(manager as any).lastName || ''}`.trim();
                                       }
                                     }
                                   }

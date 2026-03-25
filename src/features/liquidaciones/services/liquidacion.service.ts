@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -6,29 +6,30 @@ const prisma = new PrismaClient();
  * Recursively converts Prisma Decimal objects to numbers.
  * Necessary for Next.js Client Component serialization.
  */
-function serializeDecimal<T>(data: T): any {
+function serializeDecimal<T>(data: T): T {
   if (data === null || data === undefined) return data;
 
   if (Array.isArray(data)) {
-    return data.map(item => serializeDecimal(item));
+    return data.map(item => serializeDecimal(item)) as unknown as T;
   }
 
   if (typeof data === 'object') {
     // Check if it's a Decimal object
-    if ('toNumber' in data && typeof (data as any).toNumber === 'function') {
-      return (data as any).toNumber();
+    if ('toNumber' in data && typeof (data as { toNumber?: unknown }).toNumber === 'function') {
+      return (data as { toNumber: () => number }).toNumber() as unknown as T;
     }
 
     // Handle Date objects (already serializable but good to keep)
     if (data instanceof Date) return data;
 
-    const result: any = {};
-    for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        result[key] = serializeDecimal((data as any)[key]);
+    const result: Record<string, unknown> = {};
+    const obj = data as Record<string, unknown>;
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        result[key] = serializeDecimal(obj[key]);
       }
     }
-    return result;
+    return result as unknown as T;
   }
 
   return data;
@@ -43,11 +44,69 @@ export interface GetLiquidacionesParams {
   coachId?: number;
 }
 
-export async function obtenerComisionesLiquidadas(params: GetLiquidacionesParams) {
+const liquidacionInclude = {
+  business: {
+    include: {
+      client: true,
+      user: {
+        include: {
+          category: true,
+          leader: {
+            include: {
+              leader: {
+                include: {
+                  leader: true
+                }
+              }
+            }
+          }
+        }
+      },
+      productPercentageCommission: {
+        include: {
+          productConfiguration: {
+            include: {
+              product: true
+            }
+          }
+        }
+      },
+    }
+  },
+  comissionDistributions: {
+    include: {
+      productPercentageCommissionCategory: {
+        include: {
+          category: true
+        }
+      },
+      clawback: {
+        include: {
+          user: true
+        }
+      },
+    }
+  }
+} satisfies Prisma.SettlementCommissionInclude;
+
+export type LiquidacionConRelaciones = Prisma.SettlementCommissionGetPayload<{
+  include: typeof liquidacionInclude
+}>;
+
+export interface LiquidacionesData {
+  comisiones: LiquidacionConRelaciones[];
+  metrics: {
+    totalSettled: number;
+    totalClawbacks: number;
+    count: number;
+  };
+}
+
+export async function obtenerComisionesLiquidadas(params: GetLiquidacionesParams): Promise<LiquidacionesData> {
   const { startDate, endDate, month, year, contract, coachId } = params;
 
   // Construir filtros de fecha
-  let dateFilter: any = {};
+  let dateFilter: Prisma.DateTimeFilter | undefined = undefined;
   
   if (startDate && endDate) {
     dateFilter = {
@@ -65,11 +124,11 @@ export async function obtenerComisionesLiquidadas(params: GetLiquidacionesParams
   }
 
   // Si no hay filtro, podríamos requerirlo o no, pero mejor permitir consultar todo u opcional
-  const whereInfo: any = {
+  const whereInfo: Prisma.SettlementCommissionWhereInput = {
     status: 'SETTLED',
   };
 
-  if (Object.keys(dateFilter).length > 0) {
+  if (dateFilter) {
     whereInfo.settledDate = dateFilter;
   }
 
@@ -95,46 +154,7 @@ export async function obtenerComisionesLiquidadas(params: GetLiquidacionesParams
   // Buscar todas las liquidaciones en el rango
   const comisiones = await prisma.settlementCommission.findMany({
     where: whereInfo,
-    include: {
-      business: {
-        include: {
-          client: true,
-          user: {
-            include: {
-              category: true,
-              leader: {
-                include: {
-                  leader: true
-                }
-              }
-            }
-          },
-          productPercentageCommission: {
-            include: {
-              productConfiguration: {
-                include: {
-                  product: true
-                }
-              }
-            }
-          },
-        }
-      },
-      comissionDistributions: {
-        include: {
-          productPercentageCommissionCategory: {
-            include: {
-              category: true
-            }
-          },
-          clawback: {
-            include: {
-              user: true
-            }
-          },
-        }
-      }
-    },
+    include: liquidacionInclude,
     orderBy: {
       settledDate: 'desc'
     }
@@ -144,11 +164,9 @@ export async function obtenerComisionesLiquidadas(params: GetLiquidacionesParams
   const totalSettled = comisiones.reduce((acc, curr) => acc + (Number(curr.commissionValue) || 0), 0);
   
   // Calcular clawbacks: la suma de todos los clawbacks aplicados en estas comisiones
-  // Un clawback suele estar asociado a distribution, o la comision tiene isClawback / clawbackPercentage
-  // Según el modelo, existe clawback = true y clawback dentro de distribuciones.
   let totalClawbacks = 0;
   comisiones.forEach(c => {
-    c.comissionDistributions.forEach(d => {
+    c.comissionDistributions.forEach((d) => {
       if (d.clawback) {
         totalClawbacks += Number(d.clawback.valueClawback) || 0;
       }
@@ -162,7 +180,7 @@ export async function obtenerComisionesLiquidadas(params: GetLiquidacionesParams
       totalClawbacks,
       count: comisiones.length
     }
-  });
+  }) as LiquidacionesData;
 }
 
 /**

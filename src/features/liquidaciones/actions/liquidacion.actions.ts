@@ -16,7 +16,7 @@ export async function fetchComisionesLiquidadasAction(
     contract?: string;
     coachId?: number;
   }
-): Promise<ApiResponse<any>> {
+): Promise<ApiResponse<Awaited<ReturnType<typeof obtenerComisionesLiquidadas>>>> {
   try {
     const data = await obtenerComisionesLiquidadas(params);
     return {
@@ -46,7 +46,7 @@ export async function fetchContratosAction(): Promise<ApiResponse<string[]>> {
   }
 }
 
-export async function fetchCoachesAction(): Promise<ApiResponse<any[]>> {
+export async function fetchCoachesAction(): Promise<ApiResponse<Awaited<ReturnType<typeof obtenerTodosLosCoaches>>>> {
   try {
     const data = await obtenerTodosLosCoaches();
     return {

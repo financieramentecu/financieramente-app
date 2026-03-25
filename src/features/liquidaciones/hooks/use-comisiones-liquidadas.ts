@@ -9,10 +9,14 @@ import {
 } from '../actions/liquidacion.actions';
 
 export function useComisionesLiquidadas() {
-  const [state, setState] = useState<AsyncState<any>>({ status: 'idle', data: undefined, error: '' });
+  const [state, setState] = useState<AsyncState<Awaited<ReturnType<typeof fetchComisionesLiquidadasAction>>['data']>>({ 
+    status: 'idle', 
+    data: undefined, 
+    error: '' 
+  });
   const [contratos, setContratos] = useState<string[]>([]);
   const [loadingContratos, setLoadingContratos] = useState(false);
-  const [coaches, setCoaches] = useState<any[]>([]);
+  const [coaches, setCoaches] = useState<Awaited<ReturnType<typeof fetchCoachesAction>>['data']>([]);
   const [loadingCoaches, setLoadingCoaches] = useState(false);
 
   const fetchComisiones = useCallback(async (params: { 
@@ -27,7 +31,7 @@ export function useComisionesLiquidadas() {
     try {
       const response = await fetchComisionesLiquidadasAction(params);
       
-      if (response && !('error' in response)) {
+      if (response && !('error' in response) && response.data) {
         setState({
           status: 'success',
           data: response.data,
@@ -37,10 +41,10 @@ export function useComisionesLiquidadas() {
         setState({
           status: 'error',
           data: undefined,
-          error: response?.error || 'Error desconocido al cargar liquidaciones',
+          error: (response as { error?: string })?.error || 'Error desconocido al cargar liquidaciones',
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState({
         status: 'error',
         data: undefined,
