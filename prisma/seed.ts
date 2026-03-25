@@ -11,6 +11,7 @@ import { seedRoles } from './seeds/roles'
 import { seedUsers } from './seeds/user'
 import { seedBusinesses } from './seeds/business'
 import { seedProductPercentages } from './seeds/product-percentage'
+import { seedSettlements } from './seeds/settlements'
 
 const prisma = new PrismaClient()
 
@@ -51,6 +52,9 @@ async function main() {
 
 		// 6. Negocios de prueba (depende de todo lo anterior)
 		await seedBusinesses(prisma)
+
+		// 7. Liquidaciones (depende de los negocios)
+		await seedSettlements(prisma)
 
 		console.log('\n✨ Seed completado exitosamente!')
 	} catch (error) {

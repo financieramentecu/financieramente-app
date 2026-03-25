@@ -59,7 +59,7 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 			},
 			{
 				title: 'Liquidación',
-				url: '/dashboard/liquidaciones/liquidacion',
+				url: '/dashboard/liquidaciones',
 				icon: <FileText className="h-4 w-4" />,
 			},
 		],
