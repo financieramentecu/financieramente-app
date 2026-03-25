@@ -14,6 +14,7 @@ import { BarraAccionesLiquidacion } from '@/features/pre-liquidacion/components/
 import { ModalConfirmacionLiquidar } from '@/features/pre-liquidacion/components/ModalConfirmacionLiquidar'
 import { ModalConfirmacionRezagar } from '@/features/pre-liquidacion/components/ModalConfirmacionRezagar'
 import { ModalVerNegocio } from '@/features/pre-liquidacion/components/ModalVerNegocio'
+import { ModalDetalleDistribucion } from '@/features/pre-liquidacion/components/ModalDetalleDistribucion'
 
 export default function DetallePreLiquidacionPage() {
 	const params = useParams()
@@ -40,6 +41,10 @@ export default function DetallePreLiquidacionPage() {
 		null
 	)
 	const [modalVerNegocioOpen, setModalVerNegocioOpen] = useState(false)
+	const [selectedCommissionId, setSelectedCommissionId] = useState<
+		number | null
+	>(null)
+	const [modalDistribucionOpen, setModalDistribucionOpen] = useState(false)
 
 	const isLiquidando = liquidarState.status === 'loading'
 	const isRezagando = rezagarState.status === 'loading'
@@ -80,6 +85,11 @@ export default function DetallePreLiquidacionPage() {
 	function handleVerNegocio(idBusiness: number) {
 		setSelectedBusinessId(idBusiness)
 		setModalVerNegocioOpen(true)
+	}
+
+	function handleVerDistribucion(idSettlementCommission: number) {
+		setSelectedCommissionId(idSettlementCommission)
+		setModalDistribucionOpen(true)
 	}
 
 	if (fileId == null || fileId <= 0) {
@@ -147,6 +157,7 @@ export default function DetallePreLiquidacionPage() {
 							selectedIds={selectedIds}
 							onSelectionChange={setSelectedIds}
 							onVerNegocio={handleVerNegocio}
+							onVerDistribucion={handleVerDistribucion}
 						/>
 						{/* Liquidar/Rezagar actions are disabled — records are PRE-SETTLED, not SYNCHRONIZED */}
 						<BarraAccionesLiquidacion
@@ -180,6 +191,14 @@ export default function DetallePreLiquidacionPage() {
 				onOpenChange={(open) => {
 					setModalVerNegocioOpen(open)
 					if (!open) setSelectedBusinessId(null)
+				}}
+			/>
+			<ModalDetalleDistribucion
+				idSettlementCommission={selectedCommissionId}
+				open={modalDistribucionOpen}
+				onClose={() => {
+					setModalDistribucionOpen(false)
+					setSelectedCommissionId(null)
 				}}
 			/>
 		</DashboardLayout>

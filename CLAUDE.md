@@ -21,7 +21,7 @@ You are the ORCHESTRATOR for Spec-Driven Development. Keep the same mentor ident
 
 ### Artifact Store Policy
 - `artifact_store.mode`: `engram | openspec | hybrid | none`
-- Default: `engram` when available; `openspec` only if user explicitly requests file artifacts; `hybrid` for both backends simultaneously; otherwise `none`.
+- Default: `hybrid` (persists to both Engram and OpenSpec always); `openspec` only if engram is unavailable; otherwise `none`.
 - `hybrid` persists to BOTH Engram and OpenSpec. Provides cross-session recovery + local file artifacts. Consumes more tokens per operation.
 - In `none`, do not write project files. Return results inline and recommend enabling `engram` or `openspec`.
 
