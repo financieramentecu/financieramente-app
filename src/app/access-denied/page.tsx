@@ -25,11 +25,10 @@ function AccessDeniedContent() {
 
 	const messages = {
 		inactive: {
-			title: '⛔ Cuenta Desactivada',
-			description:
-				'Cuenta Desactivada. Debes solicitar la activación, contacta al administrador.',
+			title: '⛔ Cuenta Inactiva',
+			description: 'Se ha notificado al administrador para activar tu cuenta.',
 			details:
-				'Tu cuenta ha sido desactivada o está pendiente de activación. Por favor, contacta al administrador del sistema para solicitar la activación de tu cuenta.',
+				'Tu cuenta ha sido desactivada o está pendiente de activación. Ten en cuenta, se te notificará por correo cuando esté activada por el administrador para que puedas iniciar sesión.',
 			variant: 'destructive',
 		},
 		default_role: {
@@ -58,8 +57,6 @@ function AccessDeniedContent() {
 	}
 
 	const message = messages[reason as keyof typeof messages] || messages.default
-
-
 
 	const handleSignOut = async () => {
 		if (isSigningOut) return // Prevenir múltiples clics
@@ -102,7 +99,9 @@ function AccessDeniedContent() {
 							/>
 						</div>
 						{/* Icono */}
-						<div className={`flex h-16 w-16 items-center justify-center rounded-full ${message.variant === 'default' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+						<div
+							className={`flex h-16 w-16 items-center justify-center rounded-full ${message.variant === 'default' ? 'bg-primary/10' : 'bg-destructive/10'}`}
+						>
 							{message.variant === 'default' ? (
 								<CheckCircle2 className="h-8 w-8 text-primary" />
 							) : (
@@ -116,41 +115,30 @@ function AccessDeniedContent() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-6">
-					<Alert variant={message.variant === 'default' ? 'default' : 'destructive'}>
+					<Alert
+						variant={message.variant === 'default' ? 'default' : 'destructive'}
+					>
 						<AlertCircle className="h-4 w-4" />
 						<AlertTitle>Información Importante</AlertTitle>
 						<AlertDescription>{message.details}</AlertDescription>
 					</Alert>
 
-					<div className="space-y-4">
-						<div className="rounded-lg border bg-muted/50 p-4">
-							<h3 className="font-semibold mb-2 flex items-center gap-2">
-								<Mail className="h-4 w-4" />
-								¿Qué puedes hacer?
-							</h3>
-							<ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-								<li>
-									Contacta al administrador del sistema para solicitar la
-									activación
-								</li>
-								<li>Verifica que tu cuenta esté correctamente configurada</li>
-								<li>
-									Espera a que el administrador asigne los permisos necesarios
-								</li>
-							</ul>
-						</div>
-					</div>
-
 					<div className="flex flex-col gap-3">
 						{/* Botón único */}
 						<Button
 							onClick={handleSignOut}
-							variant={message.variant === 'default' ? 'default' : 'destructive'}
+							variant={
+								message.variant === 'default' ? 'default' : 'destructive'
+							}
 							className="w-full"
 							disabled={isSigningOut}
 						>
 							<LogOut className="mr-2 h-4 w-4" />
-							{isSigningOut ? 'Cerrando sesión...' : message.variant === 'default' ? 'Cerrar Sesión y Volver al Login' : 'Cerrar Sesión'}
+							{isSigningOut
+								? 'Cerrando sesión...'
+								: message.variant === 'default'
+									? 'Cerrar Sesión y Volver al Login'
+									: 'Cerrar Sesión'}
 						</Button>
 					</div>
 				</CardContent>
