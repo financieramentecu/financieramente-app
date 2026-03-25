@@ -447,7 +447,7 @@ export function HistoricoLiquidaciones() {
                                         if (coach) participant = `${coach.name} ${coach.lastName || ''}`.trim();
                                       } else if (upperCat.includes('AGENCIA') || upperCat.includes('TRINITY')) {
                                         const manager = user.leader?.leader?.leader || user.leader?.leader;
-                                        if (manager) participant = `${(manager as any).name} ${(manager as any).lastName || ''}`.trim();
+                                        if (manager) participant = `${manager.name} ${manager.lastName || ''}`.trim();
                                       }
                                     }
                                   }
