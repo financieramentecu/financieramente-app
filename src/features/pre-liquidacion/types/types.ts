@@ -253,6 +253,46 @@ export interface RespuestaRegistrosLiquidacion {
 	registros: RegistroLiquidacionDetalle[]
 }
 
+/**
+ * Un registro de ComissionDistribution mapeado para visualización
+ */
+export interface ItemDistribucionComision {
+	readonly idComissionDistribution: number
+	categoria: string
+	porcentajeDistribucion: number // porcentajePortfolio cuando typeCategory === 'CARTERA'
+	comisionBruta: number // valueComission
+	comisionNeta: number // valueComissionFinal
+	totalDescuento: number
+	porcentajeDescuento: number // appliedDiscountPercentage
+	readonly value_commission_final: number // valueComissionFinal — final settled commission amount
+	readonly value_clawback_percentage: number // clawback.porcentajeApplied — clawback percentage applied to this record
+	clawback: {
+		valor: number // clawback.valueClawback
+		porcentaje: number // clawback.porcentajeApplied
+		estado: string // clawback.state
+		fechaAplicacion: string | null // clawback.appliedDate
+	} | null
+}
+
+/**
+ * Contexto de cabecera + filas de distribución para una comisión de liquidación
+ */
+export interface DistribucionComision {
+	idSettlementCommission: number
+	categoria: string | null // from first distribution row's category
+	producto: string | null
+	origen: string | null
+	nombreAsesor: string | null // business.user name + lastName
+	distribuciones: ItemDistribucionComision[]
+}
+
+/**
+ * Forma de respuesta de la API para distribución de comisión
+ */
+export interface RespuestaDistribucionComision {
+	distribucion: DistribucionComision
+}
+
 /** Pre-liquidación flow for clawback persistence and balance behavior */
 export const PRE_LIQUIDACION_FLOW = {
 	VOLUNTARIA: 'VOLUNTARIA',
