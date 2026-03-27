@@ -4,7 +4,7 @@ import { seedCompanies } from './seeds/company'
 import { seedBuyPeriodicities } from './seeds/buy-periodicity'
 import { seedClientOrigins } from './seeds/client-origin'
 import { seedTypeProducts } from './seeds/type-product'
-import { seedCategories } from './seeds/category'
+import { seedCategories, seedCategoryBeneficiaryLinks } from './seeds/category'
 import { seedDiscount } from './seeds/discount'
 import { seedProducts } from './seeds/product'
 import { seedRoles } from './seeds/roles'
@@ -47,6 +47,9 @@ async function main() {
 
 		// 5. Usuarios (depende de Roles)
 		await seedUsers(prisma)
+
+		// 5.1 Categoría AGENCIA → usuario fijo (después de usuarios)
+		await seedCategoryBeneficiaryLinks(prisma)
 
 		// Clientes y negocios de prueba: npx tsx prisma/seed-test-data.ts
 

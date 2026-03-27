@@ -20,6 +20,8 @@ function makeDistribucion(
 		distribuciones: [
 			{
 				idComissionDistribution: 1,
+				idBeneficiaryUser: 1,
+				beneficiarioNombre: 'Test User',
 				categoria: 'GENERAL',
 				value_commision: 1000,
 				applied_discount_percentace: 0.12,

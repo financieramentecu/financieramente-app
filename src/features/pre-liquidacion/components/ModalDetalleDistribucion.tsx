@@ -108,6 +108,9 @@ export function ModalDetalleDistribucion({
 										<th className="py-2 px-3 text-left font-semibold text-foreground">
 											Categoría
 										</th>
+										<th className="py-2 px-3 text-left font-semibold text-foreground">
+											Beneficiario
+										</th>
 										<th className="py-2 px-3 text-right font-semibold text-foreground">
 											% Dist. de Comisión
 										</th>
@@ -139,6 +142,9 @@ export function ModalDetalleDistribucion({
 										>
 											<td className="py-2 px-3 text-foreground">
 												{item.categoria}
+											</td>
+											<td className="py-2 px-3 text-muted-foreground">
+												{item.beneficiarioNombre || '—'}
 											</td>
 											<td className="py-2 px-3 text-right text-muted-foreground bg-muted/20">
 												{formatPct(item.commission_porcentaje)}

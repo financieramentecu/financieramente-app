@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { recalcularComisionesPorCambioOrigen } from '../services/pre-liquidacion.service'
 import { prisma } from '@/lib/prisma'
+import { BeneficiaryMode } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 
 vi.mock('@/features/email/lib/preliquidacion-resumen-notification', () => ({
@@ -17,6 +18,7 @@ vi.mock('@/lib/prisma', () => ({
 		comissionDistribution: { deleteMany: vi.fn(), create: vi.fn() },
 		clawback: { deleteMany: vi.fn(), create: vi.fn() },
 		productPercentageCommissionCategory: { findMany: vi.fn() },
+		user: { findUnique: vi.fn() },
 		auditLog: { create: vi.fn() }
 	},
 }))
@@ -109,8 +111,15 @@ describe('recalcularComisionesPorCambioOrigen', () => {
 		vi.mocked(prisma.productPercentageCommissionCategory.findMany).mockResolvedValue([
 			{
 				id: 77,
-				category: { name: 'GENERAL' },
-				porcentajeDistribucion: new Decimal(0.50), // 50%
+				category: {
+					idCategory: 1,
+					code: 'GENERAL',
+					name: 'GENERAL',
+					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					idFixedBeneficiaryUser: 123,
+					fixedBeneficiaryUser: { idUser: 123, active: true },
+				},
+				porcentajeDistribucion: new Decimal(0.5),
 				porcentajePortfolio: null,
 			},
 		] as never)
@@ -148,8 +157,9 @@ describe('recalcularComisionesPorCambioOrigen', () => {
 			data: expect.objectContaining({
 				idSettlementCommission: 100,
 				idPercentajeCommisionCategory: 77,
-				valueComission: new Decimal(500), 
-				valueComissionFinal: new Decimal(440), 
+				idBeneficiaryUser: 123,
+				valueComission: new Decimal(500),
+				valueComissionFinal: new Decimal(440),
 				appliedDiscountPercentage: new Decimal(0.12),
 				totalDiscount: new Decimal(60),
 				status: 'PRE-SETTLED',

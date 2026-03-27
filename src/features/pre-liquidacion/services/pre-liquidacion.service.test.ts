@@ -7,6 +7,7 @@ import {
 	rezagarRegistros,
 } from './pre-liquidacion.service'
 import { prisma } from '@/lib/prisma'
+import { BeneficiaryMode } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 
 vi.mock('@/features/email/lib/preliquidacion-resumen-notification', () => ({
@@ -35,6 +36,9 @@ vi.mock('@/lib/prisma', () => ({
 		},
 		clawback: {
 			create: vi.fn(),
+		},
+		user: {
+			findUnique: vi.fn(),
 		},
 		clawbackBalance: {
 			findUnique: vi.fn(),
@@ -107,14 +111,20 @@ describe('procesarPreLiquidacion', () => {
 			},
 		] as any)
 
-		// Mock porcentaje config
 		vi.mocked(
 			prisma.productPercentageCommissionCategory.findMany
 		).mockResolvedValue([
 			{
 				id: 10,
-				porcentajeDistribucion: new Decimal(0.5), // 50%
-				porcentajePortfolio: new Decimal(0.6), // 60%
+				porcentajeDistribucion: new Decimal(0.5),
+				porcentajePortfolio: new Decimal(0.6),
+				category: {
+					idCategory: 1,
+					code: 'GENERAL',
+					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					idFixedBeneficiaryUser: 77,
+					fixedBeneficiaryUser: { idUser: 77, active: true },
+				},
 			},
 		] as any)
 
@@ -161,6 +171,7 @@ describe('procesarPreLiquidacion', () => {
 		expect(Number(distributionData.valueComissionFinal)).toBe(51000)
 		expect(Number(distributionData.totalDiscount || 0)).toBe(6000)
 		expect(Number(distributionData.appliedDiscountPercentage || 0)).toBe(0.1)
+		expect(distributionData.idBeneficiaryUser).toBe(77)
 
 		// Verify status update to PRE-SETTLED
 		expect(prisma.settlementCommission.update).toHaveBeenCalledWith({
@@ -211,11 +222,25 @@ describe('procesarPreLiquidacion', () => {
 				id: 10,
 				porcentajeDistribucion: new Decimal(0.5),
 				porcentajePortfolio: null,
+				category: {
+					idCategory: 1,
+					code: 'A',
+					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					idFixedBeneficiaryUser: 77,
+					fixedBeneficiaryUser: { idUser: 77, active: true },
+				},
 			},
 			{
 				id: 11,
 				porcentajeDistribucion: new Decimal(0.5),
 				porcentajePortfolio: null,
+				category: {
+					idCategory: 2,
+					code: 'B',
+					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					idFixedBeneficiaryUser: 77,
+					fixedBeneficiaryUser: { idUser: 77, active: true },
+				},
 			},
 		] as any)
 
@@ -240,7 +265,7 @@ describe('procesarPreLiquidacion', () => {
 		expect(prisma.clawback.create).toHaveBeenCalledWith(
 			expect.objectContaining({
 				data: expect.objectContaining({
-					idUser: 42,
+					idUser: 77,
 					state: 'RETENIDO',
 					idComissionDistribution: expect.any(Number),
 				}),
@@ -252,11 +277,74 @@ describe('procesarPreLiquidacion', () => {
 		expect(prisma.clawbackBalance.create).not.toHaveBeenCalled()
 		expect(prisma.clawbackBalance.update).not.toHaveBeenCalled()
 	})
+
+	it('omits registro when UPLINE_CHAIN has no matching user in chain', async () => {
+		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
+			idFileImport: 1,
+			status: 'LOAD',
+			nameFile: 'Test.xlsx',
+		} as never)
+
+		vi.mocked(prisma.settlementCommission.findMany)
+			.mockResolvedValueOnce([
+				{
+					idSettlementCommission: 300,
+					status: 'SYNCHRONIZED',
+					commissionType: 'VOLUNTARIA',
+					originCommission: null,
+					isClawback: false,
+					commissionValue: new Decimal(100000),
+					baseCommission: new Decimal(100000),
+					discountPercentage: new Decimal(0.1),
+					clawbackPercentage: new Decimal(0),
+					business: {
+						idProductPercentageCommission: 50,
+						user: { idUser: 1 },
+					},
+				},
+			] as never)
+			.mockResolvedValueOnce([])
+
+		vi.mocked(
+			prisma.productPercentageCommissionCategory.findMany
+		).mockResolvedValue([
+			{
+				id: 10,
+				porcentajeDistribucion: new Decimal(1),
+				porcentajePortfolio: null,
+				category: {
+					idCategory: 99,
+					code: 'NOMATCH',
+					beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+					idFixedBeneficiaryUser: null,
+					fixedBeneficiaryUser: null,
+				},
+			},
+		] as never)
+
+		vi.mocked(prisma.user.findUnique).mockResolvedValue({
+			idUser: 1,
+			idCategoria: 1,
+			idUserLeader: null,
+		} as never)
+
+		const result = await procesarPreLiquidacion(1, {
+			inicio: new Date('2024-01-01'),
+			fin: new Date('2024-01-31'),
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.registrosProcesados).toBe(0)
+		expect(result.registrosOmitidos).toBe(1)
+		expect(prisma.comissionDistribution.create).not.toHaveBeenCalled()
+		expect(prisma.settlementCommission.update).not.toHaveBeenCalled()
+	})
 })
 
 describe('obtenerRegistrosParaLiquidacion', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.mocked(prisma.settlementCommission.findMany).mockReset()
 	})
 
 	it('returns null when file does not exist', async () => {

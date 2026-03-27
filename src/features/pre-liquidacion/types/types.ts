@@ -258,6 +258,9 @@ export interface RespuestaRegistrosLiquidacion {
  */
 export interface ItemDistribucionComision {
 	readonly idComissionDistribution: number
+	readonly idBeneficiaryUser: number
+	/** Display name of resolved beneficiary for this distribution row */
+	beneficiarioNombre: string
 	categoria: string
 	value_commision: number // Bruta
 	applied_discount_percentace: number // % Descuento

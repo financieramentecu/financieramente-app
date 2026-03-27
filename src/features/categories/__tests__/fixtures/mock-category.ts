@@ -1,5 +1,5 @@
 import { CategoryType as CategoryTypeDomain } from '../../types/category.types'
-import { Category, CategoryType } from '@prisma/client'
+import { BeneficiaryMode, Category, CategoryType } from '@prisma/client'
 
 /**
  * Mock category for testing (Domain Type)
@@ -52,6 +52,8 @@ export const createMockPrismaCategory = (overrides: Partial<Category & { categor
 		idCategoryType: 1,
 		descripcion: 'Descripción 1',
 		status: true,
+		beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+		idFixedBeneficiaryUser: null,
 		createdAt: now,
 		updatedAt: now,
 		...overrides,

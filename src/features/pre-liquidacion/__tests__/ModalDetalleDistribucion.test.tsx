@@ -127,6 +127,8 @@ describe('ModalDetalleDistribucion', () => {
 		const distribuciones = [
 			{
 				idComissionDistribution: 1,
+				idBeneficiaryUser: 10,
+				beneficiarioNombre: 'Ana Gómez',
 				categoria: 'GENERAL',
 				commission_porcentaje: 0.5,
 				value_commision: 1000,
@@ -138,6 +140,8 @@ describe('ModalDetalleDistribucion', () => {
 			},
 			{
 				idComissionDistribution: 2,
+				idBeneficiaryUser: 20,
+				beneficiarioNombre: 'Pool Agencia',
 				categoria: 'AGENCIA',
 				commission_porcentaje: 0.2,
 				value_commision: 400,
@@ -166,12 +170,16 @@ describe('ModalDetalleDistribucion', () => {
 		// Both row categories should appear
 		expect(screen.getByText('GENERAL')).toBeInTheDocument()
 		expect(screen.getByText('AGENCIA')).toBeInTheDocument()
+		expect(screen.getByText('Ana Gómez')).toBeInTheDocument()
+		expect(screen.getByText('Pool Agencia')).toBeInTheDocument()
 	})
 
 	it('renders clawback value for rows that have clawback', () => {
 		const distribuciones = [
 			{
 				idComissionDistribution: 2,
+				idBeneficiaryUser: 2,
+				beneficiarioNombre: 'Claw User',
 				categoria: 'AGENCIA',
 				commission_porcentaje: 0.2,
 				value_commision: 400,

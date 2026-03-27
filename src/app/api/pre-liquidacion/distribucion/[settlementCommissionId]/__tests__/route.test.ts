@@ -33,6 +33,8 @@ function makeDistribucion(
 		distribuciones: [
 			{
 				idComissionDistribution: 1,
+				idBeneficiaryUser: 42,
+				beneficiarioNombre: 'María Beneficiario',
 				categoria: 'GENERAL',
 				value_commision: 1000,
 				applied_discount_percentace: 0.12,
@@ -164,6 +166,10 @@ describe('GET /api/pre-liquidacion/distribucion/[settlementCommissionId]', () =>
 		expect(body.data.distribucion.idSettlementCommission).toBe(10)
 		expect(body.data.distribucion.nombreAsesor).toBe('Juan Pérez')
 		expect(Array.isArray(body.data.distribucion.distribuciones)).toBe(true)
+		expect(body.data.distribucion.distribuciones[0].idBeneficiaryUser).toBe(42)
+		expect(body.data.distribucion.distribuciones[0].beneficiarioNombre).toBe(
+			'María Beneficiario'
+		)
 		expect(mockObtenerDistribucion).toHaveBeenCalledWith(10)
 	})
 
