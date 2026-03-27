@@ -220,6 +220,7 @@ model User {
   role            Role?            @relation(fields: [idRole], references: [idRole])
   leader          User?            @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates    User[]           @relation("UserLeader")
+  beneficiaryComissions ComissionDistribution[] @relation("BeneficiaryUser")
 
   // Relaciones recursivas y jerárquicas
   commissionDiscountsCreated CommissionDiscount[] @relation("DiscountCreatedBy")
@@ -390,7 +391,9 @@ model ComissionDistribution {
   idPercentajeCommisionCategory       Int?                                 @map("id_percentaje_commision_category")
   totalDiscount                       Decimal?                             @map("total_discount") @db.Decimal(15, 2)
   appliedDiscountPercentage           Decimal?                             @map("applied_discount_percentage") @db.Decimal(5, 4)
+  idBeneficiaryUser                   Int                                  @map("id_beneficiary_user")
   clawback                            Clawback?
+  beneficiaryUser                     User                                 @relation("BeneficiaryUser", fields: [idBeneficiaryUser], references: [idUser])
   productPercentageCommissionCategory ProductPercentageCommissionCategory? @relation(fields: [idPercentajeCommisionCategory], references: [id])
   settlementCommission                SettlementCommission                 @relation(fields: [idSettlementCommission], references: [idSettlementCommission])
 
@@ -465,15 +468,4 @@ model FileImportError {
   @@map("file_import_error")
 }
 
-model CommissionConfiguration {
-  idConfigCommission Int      @id @default(autoincrement()) @map("id_config_commission")
-  name               String   @db.VarChar(100)
-  discountPercentage Decimal  @map("discount_percentage") @db.Decimal(5, 4)
-  clawbackPercentage Decimal? @map("clawback_percentage") @db.Decimal(5, 4)
-  status             String   @default("ACTIVE") @db.VarChar(20)
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
 
-  @@index([status])
-  @@map("commission_configuration")
-}

@@ -160,16 +160,14 @@ export async function obtenerComisionesLiquidadas(params: GetLiquidacionesParams
     }
   });
 
-  // Calcular métricas
-  const totalSettled = comisiones.reduce((acc, curr) => acc + (Number(curr.commissionValue) || 0), 0);
-  
-  // Calcular clawbacks: la suma de todos los clawbacks aplicados en estas comisiones
+  // Calcular métricas basadas en las distribuciones (foto del momento de liquidación)
+  let totalSettled = 0;
   let totalClawbacks = 0;
+
   comisiones.forEach(c => {
     c.comissionDistributions.forEach((d) => {
-      if (d.clawback) {
-        totalClawbacks += Number(d.clawback.valueClawback) || 0;
-      }
+      totalSettled += Number(d.valueComissionFinal) || 0;
+      totalClawbacks += Number(d.totalDiscount) || 0;
     });
   });
 

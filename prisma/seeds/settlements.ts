@@ -55,13 +55,35 @@ export async function seedSettlements(prisma: PrismaClient) {
   // Find business from Jan
   const polizaBusinesses = await prisma.business.findMany({
     where: { contract: { startsWith: 'CONT-' } },
-    include: { productPercentageCommission: { include: { productPercentageCommissionCategories: true } } }
+    include: { 
+      user: {
+        include: { leader: true }
+      },
+      productPercentageCommission: { 
+        include: { 
+          productPercentageCommissionCategories: { 
+            include: { category: true } 
+          } 
+        } 
+      } 
+    }
   });
 
   // Find business from Feb
   const voluntariaBusinesses = await prisma.business.findMany({
     where: { contract: { startsWith: 'CTO-' } },
-    include: { productPercentageCommission: { include: { productPercentageCommissionCategories: true } } }
+    include: { 
+      user: {
+        include: { leader: true }
+      },
+      productPercentageCommission: { 
+        include: { 
+          productPercentageCommissionCategories: { 
+            include: { category: true } 
+          } 
+        } 
+      } 
+    }
   });
 
   if (polizaBusinesses.length === 0 && voluntariaBusinesses.length === 0) {
@@ -74,7 +96,8 @@ export async function seedSettlements(prisma: PrismaClient) {
     month: number, 
     year: number,
     settleDate: Date,
-    businesses: typeof polizaBusinesses,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    businesses: any[],
     commissionType: string
   ) => {
     const existingFileImport = await prisma.fileImport.findFirst({
@@ -107,6 +130,10 @@ export async function seedSettlements(prisma: PrismaClient) {
       const hasDiscount = Math.random() > 0.5;
       const hasClawback = Math.random() > 0.7;
       
+      // Calculate period dates
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
       const commission = await prisma.settlementCommission.create({
         data: {
           idFileImport: fileImport.idFileImport,
@@ -117,9 +144,13 @@ export async function seedSettlements(prisma: PrismaClient) {
           commissionType: commissionType,
           status: 'SETTLED',
           settledDate: settleDate,
+          startDate,
+          endDate,
           originCommission: 'Asesoría Gratuita',
           discountPercentage: hasDiscount ? 0.12 : null,
           clawbackPercentage: hasClawback ? 0.10 : null,
+          isClawback: hasClawback,
+          isLag: false,
         }
       });
 
@@ -137,17 +168,49 @@ export async function seedSettlements(prisma: PrismaClient) {
 
         const valueComissionFinal = distValue - totalDiscount;
 
-        const dist = await prisma.comissionDistribution.create({
-          data: {
-            idSettlementCommission: commission.idSettlementCommission,
-            valueComission: distValue,
-            valueComissionFinal,
-            status: 'SETTLED',
-            idPercentajeCommisionCategory: cat.id,
-            totalDiscount: totalDiscount > 0 ? totalDiscount : null,
-            appliedDiscountPercentage: appliedDiscountPercentage > 0 ? appliedDiscountPercentage : null,
+        // Determinar el beneficiario basado en la categoría
+        let idBeneficiaryUser = business.idUser;
+        if (cat.category.code === 'LIDER' && business.user.idUserLeader) {
+          idBeneficiaryUser = business.user.idUserLeader;
+        } else if (cat.category.code === 'PRESIDENTE' || cat.category.code === 'COACH') {
+          // Buscamos al líder del líder si existe
+          const leader = await prisma.user.findUnique({
+            where: { idUser: business.user.idUserLeader || 0 },
+            select: { idUserLeader: true }
+          });
+          if (leader?.idUserLeader) {
+            idBeneficiaryUser = leader.idUserLeader;
           }
-        });
+        }
+
+        // Insertar usando SQL crudo para saltar la validación de Prisma (ya que generate falla por versión de Node)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const distResult = await prisma.$queryRawUnsafe<any[]>(`
+          INSERT INTO "comission_distribution" (
+            "id_settlement_comission", 
+            "value_comission", 
+            "value_comission_final", 
+            "status", 
+            "id_percentaje_commision_category", 
+            "total_discount", 
+            "applied_discount_percentage",
+            "id_beneficiary_user",
+            "created_at",
+            "updated_at"
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+          RETURNING "id_comission_distribution" as "idComissionDistribution"
+        `, 
+          commission.idSettlementCommission, 
+          distValue, 
+          valueComissionFinal, 
+          'SETTLED', 
+          cat.id, 
+          totalDiscount > 0 ? totalDiscount : null, 
+          appliedDiscountPercentage > 0 ? appliedDiscountPercentage : null,
+          idBeneficiaryUser
+        );
+
+        const dist = distResult[0];
 
         // 4. Crear Clawback si aplica a esta distribución
         if (hasClawback) {
@@ -164,10 +227,21 @@ export async function seedSettlements(prisma: PrismaClient) {
             }
           });
           
-          // Actualizar el valor final de la distribución para reflejar el clawback
-          await prisma.comissionDistribution.update({
-            where: { idComissionDistribution: dist.idComissionDistribution },
-            data: { valueComissionFinal: valueComissionFinal - clawbackValue }
+          // Actualizar el valor final de la distribución para reflejar el clawback usando SQL crudo
+          await prisma.$executeRawUnsafe(`
+            UPDATE "comission_distribution"
+            SET "value_comission_final" = $1, "updated_at" = NOW()
+            WHERE "id_comission_distribution" = $2
+          `, 
+            valueComissionFinal - clawbackValue,
+            dist.idComissionDistribution
+          );
+
+          // Actualizar ClawbackBalance del usuario
+          await prisma.clawbackBalance.upsert({
+            where: { idUser: admin.idUser },
+            update: { totalAmount: { increment: clawbackValue } },
+            create: { idUser: admin.idUser, totalAmount: clawbackValue }
           });
         }
       }
