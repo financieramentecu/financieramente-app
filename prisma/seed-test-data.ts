@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { seedSettlements } from './seeds/settlements'
 
 const prisma = new PrismaClient()
 
@@ -92,6 +93,9 @@ async function main() {
         voluntariaCount++
     }
     console.log(`  ✓ ${voluntariaCount} Negocios de Voluntarias creados (CTO-2001 a CTO-2005)`)
+
+    // 5. Crear Liquidaciones de prueba (Enero y Febrero 2026)
+    await seedSettlements(prisma)
 
     console.log('\n✨ Seed de prueba finalizado!')
     console.log('Nota: Los contratos finalizados en 6-10 no se crearon para forzar el estado "LAG" (Rezagado).')

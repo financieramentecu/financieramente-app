@@ -194,32 +194,33 @@ model ProductPercentageCommissionCategory {
 }
 
 model User {
-  idUser                                                      Int                   @id @default(autoincrement()) @map("id_user")
-  name                                                        String                @db.VarChar(150)
-  lastName                                                    String?               @map("last_name") @db.VarChar(150)
-  typeIdentity                                                String                @default("CC") @map("type_identity") @db.VarChar(10)
-  identityNumber                                              String?               @map("identity_number") @db.VarChar(20)
-  email                                                       String                @unique @db.VarChar(150)
-  phone                                                       String?               @db.VarChar(30)
-  idCategoria                                                 Int?                  @map("id_categoria")
-  idUserLeader                                                Int?                  @map("id_user_leader")
-  entryDate                                                   DateTime              @map("entry_date") @db.Date
-  retirementDate                                              DateTime?             @map("retirement_date") @db.Date
-  active                                                      Boolean               @default(true)
-  createdAt                                                   DateTime              @default(now()) @map("created_at")
-  updatedAt                                                   DateTime              @updatedAt @map("updated_at")
-  idRole                                                      Int?                  @map("id_role")
-  password                                                    String?               @db.VarChar(255)
-  ssoOnly                                                     Boolean               @default(true) @map("sso_only")
-  auditLogs                                                   AuditLog[]
-  businesses                                                  Business[]
-  clawbacks                                                   Clawback[]
-  clawbackBalance                                             ClawbackBalance?
-  fileImports                                                 FileImport[]
-  category                                                    Category?             @relation(fields: [idCategoria], references: [idCategory])
-  role                                                        Role?                 @relation(fields: [idRole], references: [idRole])
-  leader                                                      User?                 @relation("UserLeader", fields: [idUserLeader], references: [idUser])
-  subordinates                                                User[]                @relation("UserLeader")
+  idUser          Int              @id @default(autoincrement()) @map("id_user")
+  name            String           @db.VarChar(150)
+  lastName        String?          @map("last_name") @db.VarChar(150)
+  typeIdentity    String           @default("CC") @map("type_identity") @db.VarChar(10)
+  identityNumber  String?          @map("identity_number") @db.VarChar(20)
+  email           String           @unique @db.VarChar(150)
+  phone           String?          @db.VarChar(30)
+  idCategoria     Int?             @map("id_categoria")
+  idUserLeader    Int?             @map("id_user_leader")
+  entryDate       DateTime         @map("entry_date") @db.Date
+  retirementDate  DateTime?        @map("retirement_date") @db.Date
+  active          Boolean          @default(true)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  idRole          Int?             @map("id_role")
+  password        String?          @db.VarChar(255)
+  ssoOnly         Boolean          @default(true) @map("sso_only")
+  auditLogs       AuditLog[]
+  businesses      Business[]
+  clawbacks       Clawback[]
+  clawbackBalance ClawbackBalance?
+  fileImports     FileImport[]
+  category        Category?        @relation(fields: [idCategoria], references: [idCategory])
+  role            Role?            @relation(fields: [idRole], references: [idRole])
+  leader          User?            @relation("UserLeader", fields: [idUserLeader], references: [idUser])
+  subordinates    User[]           @relation("UserLeader")
+  beneficiaryComissions ComissionDistribution[] @relation("BeneficiaryUser")
 
   // Relaciones recursivas y jerárquicas
   commissionDiscountsCreated CommissionDiscount[] @relation("DiscountCreatedBy")
@@ -340,7 +341,6 @@ model CommissionDiscount {
   @@map("commission_discount")
 }
 
-
 model SettlementCommission {
   idSettlementCommission Int     @id @default(autoincrement())
   idFileImport           Int     @map("id_file_import")
@@ -354,18 +354,20 @@ model SettlementCommission {
   discountPercentage Decimal?  @map("discount_percentage") @db.Decimal(5, 4)
   clawbackPercentage Decimal?  @map("clawback_percentage") @db.Decimal(5, 4)
   originCommission   String?   @map("origin_commission") @db.VarChar(20)
+  // TODO: cambiarlo a enum
   commissionType     String    @map("commission_type") @db.VarChar(20)
   startDate          DateTime? @map("start_date")
   endDate            DateTime? @map("end_date")
 
   // Campos de control
-  status     String    @default("PENDING") // PENDING, SYNCHRONIZED, LAG, PRE-SETTLED, SETTLED
-  isLag      Boolean   @default(false) @map("is_lag")
-  isClawback Boolean   @default(false) @map("is_clawback")
-  lagDate    DateTime? @map("lag_date")
-  syncDate   DateTime? @map("sync_date")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  status      String    @default("PENDING") // PENDING, SYNCHRONIZED, LAG, PRE-SETTLED, SETTLED
+  isLag       Boolean   @default(false) @map("is_lag")
+  isClawback  Boolean   @default(false) @map("is_clawback")
+  lagDate     DateTime? @map("lag_date")
+  syncDate    DateTime? @map("sync_date")
+  settledDate DateTime? @map("settled_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
   comissionDistributions ComissionDistribution[]
@@ -389,7 +391,9 @@ model ComissionDistribution {
   idPercentajeCommisionCategory       Int?                                 @map("id_percentaje_commision_category")
   totalDiscount                       Decimal?                             @map("total_discount") @db.Decimal(15, 2)
   appliedDiscountPercentage           Decimal?                             @map("applied_discount_percentage") @db.Decimal(5, 4)
+  idBeneficiaryUser                   Int                                  @map("id_beneficiary_user")
   clawback                            Clawback?
+  beneficiaryUser                     User                                 @relation("BeneficiaryUser", fields: [idBeneficiaryUser], references: [idUser])
   productPercentageCommissionCategory ProductPercentageCommissionCategory? @relation(fields: [idPercentajeCommisionCategory], references: [id])
   settlementCommission                SettlementCommission                 @relation(fields: [idSettlementCommission], references: [idSettlementCommission])
 
@@ -462,19 +466,6 @@ model FileImportError {
 
   @@index([idFileImport])
   @@map("file_import_error")
-}
-
-model CommissionConfiguration {
-  idConfigCommission Int      @id @default(autoincrement()) @map("id_config_commission")
-  name               String   @db.VarChar(100)
-  discountPercentage Decimal  @map("discount_percentage") @db.Decimal(5, 4)
-  clawbackPercentage Decimal? @map("clawback_percentage") @db.Decimal(5, 4)
-  status             String   @default("ACTIVE") @db.VarChar(20)
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@map("commission_configuration")
 }
 
 

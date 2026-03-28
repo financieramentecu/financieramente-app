@@ -105,7 +105,6 @@ export async function PUT(
 		const updateData: {
 			code?: string
 			name?: string
-			typeCategory?: string
 			idCategoryType?: number
 			descripcion?: string | null
 			status?: boolean
@@ -130,7 +129,6 @@ export async function PUT(
 				return NextResponse.json(errorResponse, { status: 400 })
 			}
 
-			updateData.typeCategory = data.typeCategory
 			updateData.idCategoryType = categoryTypeRec.id
 		}
 
