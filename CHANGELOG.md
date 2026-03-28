@@ -4,6 +4,26 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.2.7] - 2026-03-28
+
+### Añadido
+
+- **Liquidaciones – Histórico:** Vista de histórico de liquidaciones con filtros por mes o rango de fechas y desglose por comisión liquidada (integración desde historial de desarrollo).
+- **Pre-liquidación – Beneficiario por categoría:** Resolución de beneficiario según `beneficiaryMode` de la categoría (`UPLINE_CHAIN` o `FIXED_BENEFICIARY`), persistencia de `idBeneficiaryUser` en distribuciones, alineación de clawback con el beneficiario de la fila y respuesta con `registrosConError` cuando falla la configuración.
+- **Pre-liquidación – Errores de configuración en UI:** Modal que lista registros omitidos tras preliquidar, con código de categoría y motivo.
+- **Categorías – Modo beneficiario:** Formulario y API de categorías permiten fijar modo de beneficiario y usuario fijo cuando aplica; validación cruzada en esquemas Zod.
+- **OpenSpec – Especificaciones:** Nuevo spec principal `categories` y actualización de `pre-liquidación` (archivado el cambio `preliquidacion-beneficiario-categoria-clawback`).
+
+### Corregido
+
+- **Pre-liquidación – Modal de distribución:** Textos de resumen y tabla alineados con comisión (`Valor Comisión`, `Com. Dist.`).
+
+### Interno
+
+- Integración de rama `develop` (liquidaciones, seeds, migraciones Prisma, ajustes de comisión y UI).
+- Eliminación de helpers no usados en el plugin OpenCode `background-agents`.
+- Pruebas unitarias alineadas con códigos de error del resolvedor y etiquetas de acciones en tabla de registros.
+
 ## [0.2.6] - 2026-03-24
 
 ### Añadido
