@@ -17,6 +17,7 @@ import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-ent
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
+import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
 import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -198,10 +199,48 @@ export async function PUT(
 				)
 			}
 
+			// Verificar que existe configuración de distribución para el nuevo origen
+			const businessWithPpc = await prisma.business.findFirst({
+				where: { idBusiness: businessId },
+				include: {
+					productPercentageCommission: {
+						include: {
+							productConfiguration: true,
+						},
+					},
+				},
+			})
+
+			const productConfiguration =
+				businessWithPpc?.productPercentageCommission?.productConfiguration
+
+			if (!productConfiguration) {
+				return NextResponse.json(
+					{
+						data: null,
+						error: 'No se pudo obtener la configuración de producto del negocio',
+					},
+					{ status: 400 }
+				)
+			}
+
+			const configValidation = await validateProductConfigurationExists(
+				productConfiguration.idCategory,
+				productConfiguration.idProduct,
+				idClientOrigin
+			)
+
+			if (!configValidation.valid) {
+				return NextResponse.json(
+					{ data: null, error: configValidation.reason },
+					{ status: 400 }
+				)
+			}
+
 			try {
 				await recalcularComisionesPorCambioOrigen(
-					businessId, 
-					idClientOrigin, 
+					businessId,
+					idClientOrigin,
 					{ idUser: currentUser.idUser, name: currentUser.name }
 				)
 			} catch(error: unknown) {

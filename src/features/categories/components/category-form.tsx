@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useForm, Controller, DefaultValues } from 'react-hook-form'
+import { useForm, Controller, DefaultValues, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
@@ -20,8 +20,10 @@ import {
 	type UpdateCategoryFormData,
 } from '../lib/category-schemas'
 import type { Category, CategoryType } from '../types/category.types'
+import { SYSTEM_CATEGORY_TYPE_NAME } from '../types/category.types'
 import { cn } from '@/lib/utils'
 import { useCategoryTypes } from '@/features/category-types/hooks/use-category-types'
+import { useActiveUsers } from '../hooks/use-active-users'
 
 interface CategoryFormProps {
 	mode: 'create' | 'edit'
@@ -42,11 +44,14 @@ export function CategoryForm({
 	onCancel,
 	isLoading = false,
 }: CategoryFormProps) {
-	const { data: typesData } = useCategoryTypes() // Fetch all active/inactive or default filter
+	const { data: typesData } = useCategoryTypes()
 	const options = typesData?.categoryTypes.map(t => ({ id: t.id, label: t.name })) || []
 
+	const { state: usersState } = useActiveUsers()
+	const activeUsers = usersState.status === 'success' ? usersState.data : []
+
 	const form = useForm<FormValues>({
-		resolver: zodResolver(createCategorySchema),
+		resolver: zodResolver(createCategorySchema) as Resolver<FormValues>,
 		defaultValues: (initialData
 			? {
 				code: initialData.code,
@@ -54,6 +59,8 @@ export function CategoryForm({
 				typeCategory: initialData.typeCategory as CategoryType,
 				descripcion: initialData.descripcion,
 				status: initialData.status,
+				beneficiaryMode: initialData.beneficiaryMode ?? 'UPLINE_CHAIN',
+				idFixedBeneficiaryUser: initialData.idFixedBeneficiaryUser ?? null,
 			}
 			: {
 				code: '',
@@ -61,6 +68,8 @@ export function CategoryForm({
 				typeCategory: 'MMS' as CategoryType,
 				descripcion: '',
 				status: true,
+				beneficiaryMode: 'UPLINE_CHAIN' as const,
+				idFixedBeneficiaryUser: null,
 			}) as DefaultValues<FormValues>,
 	})
 
@@ -69,7 +78,11 @@ export function CategoryForm({
 		handleSubmit,
 		formState: { errors, isSubmitting },
 		control,
+		watch,
 	} = form
+
+	const beneficiaryMode = watch('beneficiaryMode')
+	const isSystemCategory = initialData?.typeCategory === SYSTEM_CATEGORY_TYPE_NAME
 
 	const handleFormSubmit = async (data: FormValues) => {
 		await submitHandler(data)
@@ -149,6 +162,113 @@ export function CategoryForm({
 					</p>
 				)}
 			</div>
+
+			{/* Beneficiary Mode Field */}
+			<div className="space-y-2">
+				<Label htmlFor="beneficiaryMode">
+					Modo de beneficiario <span className="text-destructive">*</span>
+				</Label>
+				<Controller
+					name="beneficiaryMode"
+					control={control}
+					render={({ field }) => (
+						<Select
+							onValueChange={field.onChange}
+							defaultValue={field.value}
+							value={field.value}
+							disabled={isFormDisabled || isSystemCategory}
+						>
+							<SelectTrigger
+								className={cn(errors.beneficiaryMode && 'border-destructive')}
+							>
+								<SelectValue placeholder="Seleccione un modo" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="UPLINE_CHAIN">Por cadena de ventas</SelectItem>
+								<SelectItem value="FIXED_BENEFICIARY">Beneficiario fijo</SelectItem>
+							</SelectContent>
+						</Select>
+					)}
+				/>
+				{errors.beneficiaryMode && (
+					<p className="text-sm text-destructive">
+						{errors.beneficiaryMode.message}
+					</p>
+				)}
+			</div>
+
+			{/* Fixed Beneficiary User Field — only when FIXED_BENEFICIARY */}
+			{beneficiaryMode === 'FIXED_BENEFICIARY' && (
+				<div className="space-y-2">
+					<Label htmlFor="idFixedBeneficiaryUser">
+						Usuario beneficiario fijo <span className="text-destructive">*</span>
+					</Label>
+					{isSystemCategory && initialData?.fixedBeneficiaryUser ? (
+						/* Read-only display for system categories with a configured user */
+						<div
+							data-testid="system-user-readonly"
+							className="rounded-md border bg-muted/50 p-3 space-y-1"
+						>
+							<p className="text-sm font-medium">
+								{initialData.fixedBeneficiaryUser.name}{' '}
+								{initialData.fixedBeneficiaryUser.lastName}
+							</p>
+							<p className="text-sm text-muted-foreground">
+								{initialData.fixedBeneficiaryUser.email}
+							</p>
+						</div>
+					) : isSystemCategory && !initialData?.fixedBeneficiaryUser ? (
+						/* Read-only placeholder for system categories without configured user */
+						<div
+							data-testid="system-user-empty"
+							className="rounded-md border border-dashed bg-muted/50 p-3"
+						>
+							<p className="text-sm text-muted-foreground">
+								No hay usuario beneficiario fijo configurado para esta categoría de sistema.
+							</p>
+						</div>
+					) : (
+						/* Select de usuarios activos */
+						<>
+							<Controller
+								name="idFixedBeneficiaryUser"
+								control={control}
+								render={({ field }) => (
+									<Select
+										onValueChange={(val) => field.onChange(Number(val))}
+										value={field.value != null ? String(field.value) : ''}
+										disabled={isFormDisabled || usersState.status === 'loading'}
+									>
+										<SelectTrigger
+											className={cn(errors.idFixedBeneficiaryUser && 'border-destructive')}
+										>
+											<SelectValue
+												placeholder={
+													usersState.status === 'loading'
+														? 'Cargando usuarios...'
+														: 'Seleccione un usuario'
+												}
+											/>
+										</SelectTrigger>
+										<SelectContent>
+											{activeUsers.map((user) => (
+												<SelectItem key={user.id} value={String(user.id)}>
+													{user.name} {user.lastName} — {user.email}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
+							/>
+							{errors.idFixedBeneficiaryUser && (
+								<p className="text-sm text-destructive">
+									{errors.idFixedBeneficiaryUser.message}
+								</p>
+							)}
+						</>
+					)}
+				</div>
+			)}
 
 			{/* Description Field */}
 			<div className="space-y-2">

@@ -7,7 +7,7 @@ const descriptionSchema = z
 
 const percentageSchema = z.coerce
 	.number({ message: 'El porcentaje debe ser un número' })
-	.min(0.01, 'El porcentaje debe ser mayor a 0')
+	.min(0, 'El porcentaje no puede ser negativo')
 	.max(100, 'El porcentaje no puede exceder 100')
 
 // Category Line Item Schema (Column schema)

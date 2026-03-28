@@ -565,6 +565,7 @@ export async function obtenerDistribucionComision(
 								include: {
 									product: true,
 									clientOrigin: true,
+									category: true,
 								},
 							},
 						},
@@ -629,7 +630,7 @@ export async function obtenerDistribucionComision(
 	const distribucion: DistribucionComision = {
 		idSettlementCommission: id,
 		commission_value: commissionValueParent,
-		categoria: ppccFirst?.category?.name ?? null,
+		categoria: productConfig?.category?.name ?? null,
 		producto: productConfig?.product?.name ?? null,
 		origen: productConfig?.clientOrigin?.name ?? null,
 		nombreAsesor: sc.business?.user
@@ -936,6 +937,7 @@ export async function procesarPreLiquidacion(
 	registrosProcesados: number
 	registrosOmitidos?: number
 	mensaje: string
+	registrosConError: { idSettlementCommission: number; categoryCode: string; errorCode: string; contrato: string | null; idBusiness: number; idUserAgent: number }[]
 }> {
 	try {
 		// Verificar que el archivo existe y está en estado LOAD
@@ -948,6 +950,7 @@ export async function procesarPreLiquidacion(
 				success: false,
 				registrosProcesados: 0,
 				mensaje: 'Archivo no encontrado',
+				registrosConError: [],
 			}
 		}
 
@@ -956,6 +959,7 @@ export async function procesarPreLiquidacion(
 				success: false,
 				registrosProcesados: 0,
 				mensaje: `El archivo debe estar en estado LOAD para ser pre-liquidado (Estado actual: ${fileImport.status})`,
+				registrosConError: [],
 			}
 		}
 
@@ -985,11 +989,13 @@ export async function procesarPreLiquidacion(
 				registrosProcesados: 0,
 				mensaje:
 					'No hay registros sincronizados para procesar en el rango de fechas seleccionado',
+				registrosConError: [],
 			}
 		}
 
 		let registrosProcesados = 0
 		let registrosOmitidos = 0
+		const registrosConError: { idSettlementCommission: number; categoryCode: string; errorCode: string; contrato: string | null; idBusiness: number; idUserAgent: number }[] = []
 
 		for (const registro of registros) {
 			if (!registro.business) {
@@ -1067,6 +1073,14 @@ export async function procesarPreLiquidacion(
 				console.warn(
 					`Pre-liquidación omitida registro ${registro.idSettlementCommission}: categoría ${failed.categoryCode} — ${failed.code}`
 				)
+				registrosConError.push({
+					idSettlementCommission: registro.idSettlementCommission,
+					categoryCode: failed.categoryCode,
+					errorCode: failed.code,
+					contrato: registro.business.contract ?? registro.contract ?? null,
+					idBusiness: registro.business.idBusiness,
+					idUserAgent: registro.business.user?.idUser ?? 0,
+				})
 				registrosOmitidos++
 				continue
 			}
@@ -1147,15 +1161,29 @@ export async function procesarPreLiquidacion(
 			registrosProcesados++
 		}
 
-		// 4. Actualizar estado del archivo a PRE-SETTLED (siempre que el proceso haya corrido)
-		await prisma.fileImport.update({
-			where: { idFileImport: fileImportId },
-			data: {
-				status: 'PRE-SETTLED',
-				preLiquidacionDate: new Date(),
-				updatedAt: new Date(),
-			},
+		// 4. Actualizar estado del archivo a PRE-SETTLED solo si no quedan registros SYNCHRONIZED
+		const remainingSynchronized = await prisma.settlementCommission.count({
+			where: { idFileImport: fileImportId, status: 'SYNCHRONIZED' },
 		})
+
+		if (remainingSynchronized === 0) {
+			await prisma.fileImport.update({
+				where: { idFileImport: fileImportId },
+				data: {
+					status: 'PRE-SETTLED',
+					preLiquidacionDate: new Date(),
+					updatedAt: new Date(),
+				},
+			})
+		} else {
+			await prisma.fileImport.update({
+				where: { idFileImport: fileImportId },
+				data: {
+					preLiquidacionDate: new Date(),
+					updatedAt: new Date(),
+				},
+			})
+		}
 
 		// Envío de correos con resumen por usuario (fire-and-forget: no bloquea la respuesta)
 		if (registrosProcesados > 0) {
@@ -1202,6 +1230,7 @@ export async function procesarPreLiquidacion(
 			registrosProcesados,
 			...(registrosOmitidos > 0 ? { registrosOmitidos } : {}),
 			mensaje: `Se procesaron exitosamente ${registrosProcesados} registros${omitSuffix}`,
+			registrosConError,
 		}
 	} catch (error) {
 		console.error('Error al procesar pre-liquidación:', error)
@@ -1209,6 +1238,7 @@ export async function procesarPreLiquidacion(
 			success: false,
 			registrosProcesados: 0,
 			mensaje: `Error al procesar: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+			registrosConError: [],
 		}
 	}
 }
@@ -1293,6 +1323,12 @@ export async function recalcularComisionesPorCambioOrigen(
 					},
 				},
 			})
+
+			if (newCategories.length === 0) {
+				throw new Error(
+					'La nueva configuración de origen no tiene reglas de distribución activas configuradas'
+				)
+			}
 
 			if (
 				ppcConfigsNeedUplineAgent(newCategories) &&

@@ -96,6 +96,68 @@ The system SHALL load data needed to build the upline chain from `business.user`
 - THEN it SHALL have access to `business.user` with category and leader fields needed for the chain
 - AND each PPC category configuration SHALL include linked `Category` beneficiary fields
 
+### Requirement: Configuration error report in response
+
+When `procesarPreLiquidacion` completes with at least one configuration error, the response SHALL include `registrosConError: { idSettlementCommission, categoryCode, errorCode }[]` describing each failed registro. When there are no errors the list SHALL be empty (not absent).
+
+#### Scenario: Response includes error list
+
+- GIVEN `procesarPreLiquidacion` runs and one or more registros fail due to config errors
+- WHEN the operation completes
+- THEN the response SHALL contain `registrosConError` with one entry per failed registro
+- AND each entry SHALL include `idSettlementCommission`, `categoryCode`, and `errorCode`
+
+#### Scenario: No errors — empty list
+
+- GIVEN all registros resolve successfully
+- WHEN the operation completes
+- THEN `registrosConError` SHALL be an empty array
+
+### Requirement: Configuration error modal in UI
+
+The pre-liquidación UI SHALL display a dismissible modal after `procesarPreLiquidacion` when `registrosConError.length > 0`. The modal SHALL list affected registros with their category and error reason so the operator knows what to fix.
+
+#### Scenario: Modal shown after partial failure
+
+- GIVEN `procesarPreLiquidacion` returns `registrosConError` with at least one entry
+- WHEN the response is received in the UI
+- THEN a modal SHALL appear listing the failed registros
+- AND the operator SHALL be able to dismiss it
+
+#### Scenario: No modal when all succeed
+
+- GIVEN `procesarPreLiquidacion` returns `registrosConError: []`
+- WHEN the response is received
+- THEN no error modal SHALL appear
+
+## MODIFIED Requirements
+
+### Requirement: FileImport advances to PRE-SETTLED only when all records are settled
+
+(Previously: `FileImport.status` was always set to `PRE-SETTLED` at the end of `procesarPreLiquidacion`.)
+
+`FileImport.status` SHALL advance to `PRE-SETTLED` **only if zero `SYNCHRONIZED` registros remain** for that file after processing. If any registros remain `SYNCHRONIZED` (due to configuration errors), the file SHALL stay in its current state. Re-running pre-liquidation on the same file SHALL only process remaining `SYNCHRONIZED` records.
+
+#### Scenario: File advances when all records succeed
+
+- GIVEN `procesarPreLiquidacion` runs and all SYNCHRONIZED registros resolve successfully
+- WHEN the transaction commits
+- THEN `FileImport.status` SHALL be `PRE-SETTLED`
+
+#### Scenario: File stays when some records fail
+
+- GIVEN `procesarPreLiquidacion` runs and at least one registro has a configuration error
+- WHEN the operation completes
+- THEN `FileImport.status` SHALL remain unchanged
+- AND only the successfully processed registros SHALL be `PRE-SETTLED`
+
+#### Scenario: Re-run only processes remaining SYNCHRONIZED
+
+- GIVEN a file with some registros already `PRE-SETTLED` and some still `SYNCHRONIZED`
+- WHEN `procesarPreLiquidacion` is triggered again for the same file
+- THEN only `SYNCHRONIZED` registros SHALL be processed
+- AND already-`PRE-SETTLED` registros SHALL NOT be modified
+
 ## REMOVED Requirements
 
 (None — previous scenarios for Poliza CARTERA / no-CLAW / CLAW clawback amounts and flows remain; **owner of clawback** is superseded by MODIFIED “Clawback row and balance user”.)

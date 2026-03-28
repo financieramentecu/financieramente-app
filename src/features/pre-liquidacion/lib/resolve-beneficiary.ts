@@ -10,8 +10,11 @@ export interface UplineChainLink {
 
 export type ResolveBeneficiaryErrorCode =
 	| 'FIXED_MISSING_USER'
-	| 'UPLINE_NO_MATCH'
 	| 'FIXED_USER_INACTIVE'
+	| 'UPLINE_NO_MATCH'
+	| 'UPLINE_AGENT_NO_CATEGORY'
+	| 'UPLINE_NO_LEADER'
+	| 'UPLINE_LEADER_NO_CATEGORY'
 
 export type ResolveBeneficiaryResult =
 	| { ok: true; idUser: number }
@@ -70,6 +73,31 @@ export function resolveBeneficiaryUserId(
 	for (const link of chain) {
 		if (link.idCategoria === category.idCategory) {
 			return { ok: true, idUser: link.idUser }
+		}
+	}
+
+	// Diagnose why no match was found for a more specific error message
+	const agent = chain[0]
+	if (!agent || agent.idCategoria == null) {
+		return {
+			ok: false,
+			code: 'UPLINE_AGENT_NO_CATEGORY',
+			categoryCode: category.code,
+		}
+	}
+	if (chain.length === 1) {
+		return {
+			ok: false,
+			code: 'UPLINE_NO_LEADER',
+			categoryCode: category.code,
+		}
+	}
+	const leaderHasNoCategory = chain.slice(1).some((l) => l.idCategoria == null)
+	if (leaderHasNoCategory) {
+		return {
+			ok: false,
+			code: 'UPLINE_LEADER_NO_CATEGORY',
+			categoryCode: category.code,
 		}
 	}
 	return {

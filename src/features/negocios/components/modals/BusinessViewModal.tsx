@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Modal } from '@/features/shared/ui/modal'
 import { Button } from '@/features/shared/ui/button'
 import { Skeleton } from '@/features/shared/ui/skeleton'
@@ -86,6 +87,12 @@ export function BusinessViewModal({
 			setSelectedOriginId('')
 			setIsEditingOrigin(false)
 			setIsAlertOpen(false)
+		} catch (err: unknown) {
+			const message =
+				err instanceof Error
+					? err.message
+					: 'Error al actualizar el origen del negocio'
+			toast.error(message)
 		} finally {
 			setIsSavingOrigin(false)
 		}

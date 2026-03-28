@@ -10,6 +10,7 @@ import { seedProducts } from './seeds/product'
 import { seedRoles } from './seeds/roles'
 import { seedUsers } from './seeds/user'
 import { seedProductPercentages } from './seeds/product-percentage'
+// import { seedSettlements } from './seeds/settlements'
 
 const prisma = new PrismaClient()
 
@@ -52,6 +53,10 @@ async function main() {
 		await seedCategoryBeneficiaryLinks(prisma)
 
 		// Clientes y negocios de prueba: npx tsx prisma/seed-test-data.ts
+
+
+		// 7. Liquidaciones (Omitido en producción, usar seed-test-data.ts para pruebas)
+		// await seedSettlements(prisma)
 
 		console.log('\n✨ Seed completado exitosamente!')
 	} catch (error) {

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { seedBusinesses } from './seeds/business'
+import { seedSettlements } from './seeds/settlements'
 
 const prisma = new PrismaClient()
 
@@ -28,8 +29,12 @@ async function main() {
 	}
 
 	await seedBusinesses(prisma)
+	await seedSettlements(prisma)
 
 	console.log('\n✨ Seed de prueba finalizado!')
+	console.log(
+		'Nota: Los contratos finalizados en 6-10 no se crearon para forzar el estado "LAG" (Rezagado).'
+	)
 }
 
 main()

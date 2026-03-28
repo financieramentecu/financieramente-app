@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server'
 import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
+import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
 import {
 	mockUserWithRole,
 	mockAgentUser,
@@ -23,6 +24,7 @@ import {
 // Mock de módulos externos
 vi.mock('@/auth')
 vi.mock('@/features/pre-liquidacion/services/pre-liquidacion.service')
+vi.mock('@/features/negocios/services/product-configuration.service')
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		business: {
@@ -416,6 +418,7 @@ describe('PUT /api/negocios/[id]', () => {
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
 	const mockRecalcularComisionesPorCambioOrigen = vi.mocked(recalcularComisionesPorCambioOrigen)
+	const mockValidateProductConfigurationExists = vi.mocked(validateProductConfigurationExists)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
@@ -663,6 +666,19 @@ describe('PUT /api/negocios/[id]', () => {
 
 			const requestBody = { idClientOrigin: 2 }
 
+			const mockBusinessWithPpc = {
+				...mockExistingBusiness,
+				productPercentageCommission: {
+					idProductPercentageCommission: 1,
+					productConfiguration: {
+						id: 1,
+						idProduct: 1,
+						idClientOrigin: 1,
+						idCategory: 1,
+					},
+				},
+			}
+
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockUpdateBusinessSchema.safeParse.mockReturnValue({
 				success: true,
@@ -670,13 +686,15 @@ describe('PUT /api/negocios/[id]', () => {
 			} as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
 			mockPrismaFindFirst
-				.mockResolvedValueOnce(mockExistingBusiness as never)
-				.mockResolvedValueOnce(mockUpdatedBusiness as never)
+				.mockResolvedValueOnce(mockExistingBusiness as never) // 1st: validate business exists
+				.mockResolvedValueOnce(mockBusinessWithPpc as never)  // 2nd: fetch PPC/productConfiguration
+				.mockResolvedValueOnce(mockUpdatedBusiness as never)  // 3rd: fetch updated business after recalculate
 			mockClientOriginFindFirst.mockResolvedValue({
 				idClientOrigin: 2,
 				name: 'Propio',
 				status: true,
 			} as never)
+			mockValidateProductConfigurationExists.mockResolvedValue({ valid: true })
 			mockPrismaUpdate.mockResolvedValue(mockUpdatedBusiness as never)
 			mockPrismaBusinessToEntity.mockReturnValue(mockEntity as never)
 

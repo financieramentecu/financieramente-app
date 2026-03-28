@@ -246,7 +246,19 @@ export const loadFileApi = {
 		mes: string,
 		config?: { signal?: AbortSignal }
 	): Promise<
-		ApiResponse<{ success: boolean; registrosProcesados: number; mensaje: string }>
+		ApiResponse<{
+			success: boolean
+			registrosProcesados: number
+			mensaje: string
+			registrosConError: {
+				idSettlementCommission: number
+				categoryCode: string
+				errorCode: string
+				contrato: string | null
+				idBusiness: number
+				idUserAgent: number
+			}[]
+		}>
 	> => {
 		try {
 			const res = await fetch('/api/pre-liquidacion/procesar', {
@@ -282,6 +294,7 @@ export const loadFileApi = {
 						success: json.success,
 						registrosProcesados: json.registrosProcesados ?? 0,
 						mensaje: json.mensaje ?? '',
+						registrosConError: json.registrosConError ?? [],
 					},
 				}
 			}

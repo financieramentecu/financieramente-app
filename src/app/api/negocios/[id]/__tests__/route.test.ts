@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PUT } from '../route'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
+import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
@@ -14,6 +15,9 @@ vi.mock('@/lib/prisma', () => ({
 }))
 vi.mock('@/features/pre-liquidacion/services/pre-liquidacion.service', () => ({
 	recalcularComisionesPorCambioOrigen: vi.fn(),
+}))
+vi.mock('@/features/negocios/services/product-configuration.service', () => ({
+	validateProductConfigurationExists: vi.fn(),
 }))
 vi.mock('@/features/negocios/services/user.service', () => ({
 	getCurrentUserByEmail: vi.fn(),
@@ -29,6 +33,22 @@ vi.mock('@/features/shared/utils/request.utils', () => ({
 	getUserAgent: vi.fn().mockReturnValue('test-agent'),
 }))
 
+const mockProductConfiguration = {
+	idProductConfiguration: 1,
+	idProduct: 5,
+	idClientOrigin: 1,
+	idCategory: 3,
+}
+
+const mockBusinessWithPpc = {
+	idBusiness: 10,
+	status: 'EMITIDO',
+	productPercentageCommission: {
+		idProductPercentageCommission: 1,
+		productConfiguration: mockProductConfiguration,
+	},
+}
+
 describe('PUT /api/negocios/[id]', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
@@ -38,17 +58,20 @@ describe('PUT /api/negocios/[id]', () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
 		const mockBusiness = { idBusiness: 10, status: 'EMITIDO' }
-		
+
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(auth as any).mockResolvedValue(mockSession)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(prisma.business.findFirst as any)
-			.mockResolvedValueOnce(mockBusiness) // primer findFirst (validar negocio)
-			.mockResolvedValueOnce(mockBusiness) // segundo findFirst (después de actualizar)
+			.mockResolvedValueOnce(mockBusiness)        // 1st: validate business exists
+			.mockResolvedValueOnce(mockBusinessWithPpc) // 2nd: fetch PPC/productConfiguration
+			.mockResolvedValueOnce(mockBusiness)        // 3rd: fetch updated business after recalculate
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(prisma.clientOrigin.findFirst as any).mockResolvedValue({ idClientOrigin: 2, status: true })
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(validateProductConfigurationExists as any).mockResolvedValue({ valid: true })
 
 		const req = new Request('http://localhost:3000/api/negocios/10', {
 			method: 'PUT',
@@ -72,7 +95,7 @@ describe('PUT /api/negocios/[id]', () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
 		const mockBusiness = { idBusiness: 10, status: 'VENTA_EFECTUADA' } // NOT EMITIDO
-		
+
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(auth as any).mockResolvedValue(mockSession)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,5 +116,78 @@ describe('PUT /api/negocios/[id]', () => {
 		expect(res.status).toBe(400)
 		expect(data.error).toContain('Solo se puede cambiar el origen en negocios en estado Emitido')
 		expect(recalcularComisionesPorCambioOrigen).not.toHaveBeenCalled()
+	})
+
+	it('should return 400 with a clear message when validateProductConfigurationExists returns false', async () => {
+		const mockSession = { user: { email: 'admin@test.com' } }
+		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
+		const mockBusiness = { idBusiness: 10, status: 'EMITIDO' }
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(auth as any).mockResolvedValue(mockSession)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.business.findFirst as any)
+			.mockResolvedValueOnce(mockBusiness)        // 1st: validate business exists
+			.mockResolvedValueOnce(mockBusinessWithPpc) // 2nd: fetch PPC/productConfiguration
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.clientOrigin.findFirst as any).mockResolvedValue({ idClientOrigin: 2, status: true })
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(validateProductConfigurationExists as any).mockResolvedValue({
+			valid: false,
+			reason: 'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
+		})
+
+		const req = new Request('http://localhost:3000/api/negocios/10', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ idClientOrigin: 2 }),
+		})
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
+		const data = await res.json() as { error: string }
+
+		expect(res.status).toBe(400)
+		expect(data.error).toContain('No existe configuración de distribución')
+		expect(recalcularComisionesPorCambioOrigen).not.toHaveBeenCalled()
+	})
+
+	it('should call recalcularComisionesPorCambioOrigen and return 200 when validateProductConfigurationExists returns true', async () => {
+		const mockSession = { user: { email: 'admin@test.com' } }
+		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
+		const mockBusiness = { idBusiness: 10, status: 'EMITIDO' }
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(auth as any).mockResolvedValue(mockSession)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.business.findFirst as any)
+			.mockResolvedValueOnce(mockBusiness)        // 1st: validate business exists
+			.mockResolvedValueOnce(mockBusinessWithPpc) // 2nd: fetch PPC/productConfiguration
+			.mockResolvedValueOnce(mockBusiness)        // 3rd: fetch updated business after recalculate
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.clientOrigin.findFirst as any).mockResolvedValue({ idClientOrigin: 2, status: true })
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(validateProductConfigurationExists as any).mockResolvedValue({ valid: true })
+
+		const req = new Request('http://localhost:3000/api/negocios/10', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ idClientOrigin: 2 }),
+		})
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
+		await res.json()
+
+		expect(res.status).toBe(200)
+		expect(recalcularComisionesPorCambioOrigen).toHaveBeenCalledWith(
+			10,
+			2,
+			{ idUser: 1, name: 'Admin' }
+		)
 	})
 })

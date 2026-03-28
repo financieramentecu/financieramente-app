@@ -95,12 +95,25 @@ export interface ConfiguracionPorcentajes {
 }
 
 /**
+ * Entrada de error de configuración durante pre-liquidación
+ */
+export interface RegistroConError {
+	idSettlementCommission: number
+	categoryCode: string
+	errorCode: string
+	contrato: string | null
+	idBusiness: number
+	idUserAgent: number
+}
+
+/**
  * Respuesta de procesamiento de pre-liquidación
  */
 export interface RespuestaProcesamientoPreLiquidacion {
 	success: boolean
 	registrosProcesados: number
 	mensaje: string
+	registrosConError?: RegistroConError[]
 }
 
 /**

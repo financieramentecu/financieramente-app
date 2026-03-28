@@ -13,6 +13,7 @@ import { usePreLiquidacion } from '@/features/pre-liquidacion/hooks/use-pre-liqu
 import { ListaArchivosDisponibles } from './components/ListaArchivosDisponibles'
 import { ProcesandoPreLiquidacion } from './components/ProcesandoPreLiquidacion'
 import { ResultadosPreLiquidacion } from './components/ResultadosPreLiquidacion'
+import { ModalErroresConfiguracion } from '@/features/pre-liquidacion/components/ModalErroresConfiguracion'
 import { EmptyState } from '@/features/shared/ui/empty-state'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import {
@@ -35,6 +36,9 @@ export default function PreLiquidacionPage() {
 		errorProcesamiento,
 		mensajeExito,
 		refetch,
+		registrosConError,
+		modalErroresOpen,
+		cerrarModalErrores,
 	} = usePreLiquidacion()
 
 	const [archivoSeleccionado, setArchivoSeleccionado] = useState<number | null>(
@@ -301,6 +305,11 @@ export default function PreLiquidacionPage() {
 					</div>
 				)}
 			</div>
+			<ModalErroresConfiguracion
+				registrosConError={registrosConError}
+				open={modalErroresOpen}
+				onClose={cerrarModalErrores}
+			/>
 		</DashboardLayout>
 	)
 }

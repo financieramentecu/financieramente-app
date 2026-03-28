@@ -229,8 +229,8 @@ model User {
   role            Role?            @relation(fields: [idRole], references: [idRole])
   leader          User?            @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates    User[]           @relation("UserLeader")
-  categoriesAsFixedBeneficiary Category[]           @relation("CategoryFixedBeneficiary")
-  comissionDistributionsAsBeneficiary ComissionDistribution[] @relation("DistributionBeneficiary")
+  categoriesAsFixedBeneficiary Category[] @relation("CategoryFixedBeneficiary")
+  comissionDistributionsAsBeneficiary ComissionDistribution[] @relation("BeneficiaryUser")
 
   // Relaciones recursivas y jerárquicas
   commissionDiscountsCreated CommissionDiscount[] @relation("DiscountCreatedBy")
@@ -364,18 +364,20 @@ model SettlementCommission {
   discountPercentage Decimal?  @map("discount_percentage") @db.Decimal(5, 4)
   clawbackPercentage Decimal?  @map("clawback_percentage") @db.Decimal(5, 4)
   originCommission   String?   @map("origin_commission") @db.VarChar(20)
+  // TODO: cambiarlo a enum
   commissionType     String    @map("commission_type") @db.VarChar(20)
   startDate          DateTime? @map("start_date")
   endDate            DateTime? @map("end_date")
 
   // Campos de control
-  status     String    @default("PENDING") // PENDING, SYNCHRONIZED, LAG, PRE-SETTLED, SETTLED
-  isLag      Boolean   @default(false) @map("is_lag")
-  isClawback Boolean   @default(false) @map("is_clawback")
-  lagDate    DateTime? @map("lag_date")
-  syncDate   DateTime? @map("sync_date")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  status      String    @default("PENDING") // PENDING, SYNCHRONIZED, LAG, PRE-SETTLED, SETTLED
+  isLag       Boolean   @default(false) @map("is_lag")
+  isClawback  Boolean   @default(false) @map("is_clawback")
+  lagDate     DateTime? @map("lag_date")
+  syncDate    DateTime? @map("sync_date")
+  settledDate DateTime? @map("settled_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // Relaciones
   comissionDistributions ComissionDistribution[]
@@ -399,9 +401,9 @@ model ComissionDistribution {
   idPercentajeCommisionCategory       Int?                                 @map("id_percentaje_commision_category")
   totalDiscount                       Decimal?                             @map("total_discount") @db.Decimal(15, 2)
   appliedDiscountPercentage           Decimal?                             @map("applied_discount_percentage") @db.Decimal(5, 4)
-  clawback                            Clawback?
   idBeneficiaryUser                   Int                                  @map("id_beneficiary_user")
-  beneficiaryUser                     User                                 @relation("DistributionBeneficiary", fields: [idBeneficiaryUser], references: [idUser])
+  clawback                            Clawback?
+  beneficiaryUser                     User                                 @relation("BeneficiaryUser", fields: [idBeneficiaryUser], references: [idUser])
   productPercentageCommissionCategory ProductPercentageCommissionCategory? @relation(fields: [idPercentajeCommisionCategory], references: [id])
   settlementCommission                SettlementCommission                 @relation(fields: [idSettlementCommission], references: [idSettlementCommission])
 
@@ -477,15 +479,3 @@ model FileImportError {
   @@map("file_import_error")
 }
 
-model CommissionConfiguration {
-  idConfigCommission Int      @id @default(autoincrement()) @map("id_config_commission")
-  name               String   @db.VarChar(100)
-  discountPercentage Decimal  @map("discount_percentage") @db.Decimal(5, 4)
-  clawbackPercentage Decimal? @map("clawback_percentage") @db.Decimal(5, 4)
-  status             String   @default("ACTIVE") @db.VarChar(20)
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@map("commission_configuration")
-}
