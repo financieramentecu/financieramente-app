@@ -11,15 +11,27 @@ interface ModalDetalleDistribucionProps {
 	onClose: () => void
 }
 
-function StatCard({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+function StatCard({
+	icon: Icon,
+	label,
+	value,
+}: {
+	icon: React.ElementType
+	label: string
+	value: string
+}) {
 	return (
 		<div className="flex items-start gap-3 rounded-lg bg-muted/40 border border-border p-3">
 			<div className="rounded-md bg-primary/10 p-1.5 shrink-0">
 				<Icon className="h-3.5 w-3.5 text-primary" />
 			</div>
 			<div className="min-w-0">
-				<p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide leading-none mb-1">{label}</p>
-				<p className="text-sm font-semibold text-foreground truncate">{value}</p>
+				<p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide leading-none mb-1">
+					{label}
+				</p>
+				<p className="text-sm font-semibold text-foreground truncate">
+					{value}
+				</p>
 			</div>
 		</div>
 	)
@@ -49,7 +61,8 @@ export function ModalDetalleDistribucion({
 		{ bruta: 0, descuento: 0, clawback: 0, neta: 0 }
 	)
 
-	const thClass = 'py-2.5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap'
+	const thClass =
+		'py-2.5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap'
 	const thRight = `${thClass} text-right`
 
 	return (
@@ -63,9 +76,14 @@ export function ModalDetalleDistribucion({
 			className="max-w-6xl"
 		>
 			{isLoading && (
-				<div className="flex flex-col items-center justify-center gap-3 py-12" aria-label="Cargando distribución">
+				<div
+					className="flex flex-col items-center justify-center gap-3 py-12"
+					aria-label="Cargando distribución"
+				>
 					<Loader2 className="h-8 w-8 animate-spin text-primary/40" />
-					<p className="text-sm text-muted-foreground">Cargando distribución...</p>
+					<p className="text-sm text-muted-foreground">
+						Cargando distribución...
+					</p>
 				</div>
 			)}
 
@@ -81,8 +99,12 @@ export function ModalDetalleDistribucion({
 					<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
 						<StatCard
 							icon={DollarSign}
-							label="Valor Negocio"
-							value={distribucion.commission_value !== undefined ? formatCurrency(distribucion.commission_value) : '—'}
+							label="Valor Comisión"
+							value={
+								distribucion.commission_value !== undefined
+									? formatCurrency(distribucion.commission_value)
+									: '—'
+							}
 						/>
 						<StatCard
 							icon={Tag}
@@ -120,7 +142,7 @@ export function ModalDetalleDistribucion({
 											<th className={thClass}>Categoría</th>
 											<th className={thClass}>Beneficiario</th>
 											<th className={thRight}>% Dist.</th>
-											<th className={thRight}>Com. Bruta</th>
+											<th className={thRight}>Com. Dist.</th>
 											<th className={thRight}>% Desc.</th>
 											<th className={thRight}>Desc. Total</th>
 											<th className={thRight}>% Clawback</th>
@@ -155,10 +177,14 @@ export function ModalDetalleDistribucion({
 													{formatCurrency(item.discount_total)}
 												</td>
 												<td className="py-3 px-3 text-right text-muted-foreground tabular-nums">
-													{item.percentaje_applied != null ? formatPct(item.percentaje_applied) : '—'}
+													{item.percentaje_applied != null
+														? formatPct(item.percentaje_applied)
+														: '—'}
 												</td>
 												<td className="py-3 px-3 text-right text-muted-foreground tabular-nums">
-													{item.value_clawback != null ? formatCurrency(item.value_clawback) : '—'}
+													{item.value_clawback != null
+														? formatCurrency(item.value_clawback)
+														: '—'}
 												</td>
 												<td className="py-3 px-3 text-right">
 													<span className="font-bold text-primary tabular-nums text-sm">
@@ -172,7 +198,10 @@ export function ModalDetalleDistribucion({
 									{totals && (
 										<tfoot>
 											<tr className="bg-muted/60 border-t-2 border-border">
-												<td colSpan={3} className="py-2.5 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+												<td
+													colSpan={3}
+													className="py-2.5 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+												>
 													Total
 												</td>
 												<td className="py-2.5 px-3 text-right font-bold text-foreground tabular-nums text-sm">
