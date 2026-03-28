@@ -205,8 +205,8 @@ describe('ModalDetalleDistribucion', () => {
 			/>
 		)
 
-		// 50 formatted as es-CO should appear
-		expect(screen.getByText('50')).toBeInTheDocument()
+		// 50 formatted as es-CO currency ($ 50) should appear
+		expect(screen.getAllByText('$ 50').length).toBeGreaterThan(0)
 	})
 
 	it('calls onClose when the modal triggers onOpenChange with false', () => {

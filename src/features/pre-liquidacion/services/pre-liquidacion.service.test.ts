@@ -459,7 +459,7 @@ describe('procesarPreLiquidacion', () => {
 		expect(result.registrosConError[0]).toMatchObject({
 			idSettlementCommission: 501,
 			categoryCode: 'NOMATCH',
-			errorCode: 'UPLINE_NO_MATCH',
+			errorCode: 'UPLINE_NO_LEADER',
 		})
 
 		// Record 500 → PRE-SETTLED
