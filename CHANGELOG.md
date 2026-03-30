@@ -4,6 +4,23 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [0.2.6] - 2026-03-29
+
+### Añadido
+
+- **Carga de archivos – Pestañas "Archivos" e "Historial":** La pantalla de carga divide el listado en dos contextos: archivos en proceso (`LOAD` / `PRE-SETTLED`) en "Archivos" y cargas finalizadas (`COMPLETED`) en "Historial", cada uno con su propio filtro de estados en el servidor.
+- **Carga de archivos – Tarjetas y badges de estado:** Cada fila usa componentes dedicados con etiquetas y colores claros; los estados "Sincronizado" y "Pre-liquidado" se distinguen bien entre sí.
+- **Carga de archivos – API multi-estado:** El listado puede consultarse con varios estados a la vez (`status` como lista separada por comas), manteniendo compatibilidad con un solo valor.
+
+### Mejorado
+
+- **Carga de archivos – Historial:** Navegación interna con el enrutador de la app (sin recargar la página completa), textos de botones más claros (por ejemplo "Ir a Pre-liquidación", "Cargar otro archivo") y mejor contraste en acciones como eliminar.
+- **Carga de archivos – Errores de red:** Si el historial recibe una respuesta que no es JSON (por ejemplo una página de error HTML), se muestra un mensaje entendible en lugar de un error técnico de parseo.
+
+### Documentación / Interno
+
+- OpenSpec: especificación `carga-archivos` en el catálogo principal y archivo del change `file-sync-ux-improvement` con informe de verificación.
+
 ## [0.2.5] - 2026-03-21
 
 ### Añadido

@@ -1029,6 +1029,13 @@ export async function procesarPreLiquidacion(
 				registro.baseCommission || registro.commissionValue || new Decimal(0)
 			const idUser = registro.business.user?.idUser
 
+			if (idUser === undefined) {
+				console.warn(
+					`Registro ${registro.idSettlementCommission} sin id de usuario asesor; omitiendo liquidación`
+				)
+				continue
+			}
+
 			// Usamos transacción para asegurar que se crean las distribuciones y se actualiza el estado atómicamente
 			await prisma.$transaction(async (tx) => {
 				let totalValorClawback = new Decimal(0)
@@ -1055,6 +1062,7 @@ export async function procesarPreLiquidacion(
 						data: {
 							idSettlementCommission: registro.idSettlementCommission,
 							idPercentajeCommisionCategory: config.id,
+							idBeneficiaryUser: idUser,
 							valueComission: valorComisionBruta,
 							valueComissionFinal: valorComisionFinal,
 							totalDiscount: totalDescuento,
