@@ -9,12 +9,19 @@ import {
 } from '@/features/shared/ui/tabs'
 import { CargarArchivoTab } from '@/features/load-file/components/CargarArchivoTab'
 import { HistorialCargasTab } from '@/features/load-file/components/HistorialCargasTab'
+import type { CargaHistorial } from '@/features/load-file/hooks/use-file-history'
 
 /**
  * Página de Carga de Archivos
  *
  * Permite cargar archivos mensuales de covers de Skandia para procesar información de negocios emitidos
  */
+
+const canDeleteActiveFile = (carga: CargaHistorial): boolean =>
+	carga.estado === 'LOAD'
+
+const canDeleteCompletedFile = (_carga: CargaHistorial): boolean => false
+
 export default function CargaArchivosPage() {
 	return (
 		<DashboardLayout currentPage="Carga Archivos">
@@ -34,15 +41,27 @@ export default function CargaArchivosPage() {
 				<Tabs defaultValue="cargar" className="space-y-4">
 					<TabsList>
 						<TabsTrigger value="cargar">Cargar archivo</TabsTrigger>
-						<TabsTrigger value="historial">Historial de cargas</TabsTrigger>
+						<TabsTrigger value="archivos">Archivos</TabsTrigger>
+						<TabsTrigger value="historial">Historial</TabsTrigger>
 					</TabsList>
 
 					<TabsContent value="cargar">
 						<CargarArchivoTab />
 					</TabsContent>
 
+					<TabsContent value="archivos">
+						<HistorialCargasTab
+							allowedStatuses={['LOAD', 'PRE-SETTLED']}
+							canDeleteFn={canDeleteActiveFile}
+						/>
+					</TabsContent>
+
 					<TabsContent value="historial">
-						<HistorialCargasTab />
+						<HistorialCargasTab
+							allowedStatuses={['COMPLETED']}
+							canDeleteFn={canDeleteCompletedFile}
+							emptyStateDescription="No hay archivos completados"
+						/>
 					</TabsContent>
 				</Tabs>
 			</div>

@@ -4,7 +4,7 @@ import React, { Suspense } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { AlertCircle, LogOut, CheckCircle2, Mail } from 'lucide-react'
+import { AlertCircle, LogOut, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import {
 	Card,

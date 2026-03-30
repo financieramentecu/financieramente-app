@@ -389,11 +389,32 @@ describe('FileImportService', () => {
 				await FileImportService.listFileImports({
 					userId: 1,
 					isAdmin: false,
-					status: 'LOAD',
+					status: ['LOAD'],
 				})
 
 				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
-					expect.objectContaining({ where: expect.objectContaining({ idUser: 1, status: 'LOAD' }) })
+					expect.objectContaining({ where: expect.objectContaining({ idUser: 1, status: { in: ['LOAD'] } }) })
+				)
+			})
+
+			it('status filter LOAD+PRE-SETTLED → WHERE includes { in: ["LOAD","PRE-SETTLED"] } (REQ-6)', async () => {
+				vi.mocked(prisma.fileImport.findMany).mockResolvedValueOnce(
+					[] as never
+				)
+
+				await FileImportService.listFileImports({
+					userId: 1,
+					isAdmin: false,
+					status: ['LOAD', 'PRE-SETTLED'],
+				})
+
+				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
+					expect.objectContaining({
+						where: expect.objectContaining({
+							idUser: 1,
+							status: { in: ['LOAD', 'PRE-SETTLED'] },
+						}),
+					})
 				)
 			})
 
@@ -405,7 +426,7 @@ describe('FileImportService', () => {
 				await FileImportService.listFileImports({
 					userId: 1,
 					isAdmin: false,
-					status: 'ALL',
+					// status omitted → uses default filter
 				})
 
 				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
@@ -458,7 +479,7 @@ describe('FileImportService', () => {
 					userId: 1,
 					isAdmin: true,
 					year: 2026,
-					status: 'COMPLETED',
+					status: ['COMPLETED'],
 					search: 'test',
 				})
 
@@ -466,7 +487,7 @@ describe('FileImportService', () => {
 					expect.objectContaining({
 						where: expect.objectContaining({
 							year: 2026,
-							status: 'COMPLETED',
+							status: { in: ['COMPLETED'] },
 							nameFile: { contains: 'test', mode: 'insensitive' },
 						}),
 					})

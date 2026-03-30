@@ -668,6 +668,29 @@ export function CargarArchivoTab() {
 					</div>
 				</div>
 			) : null}
+
+			{/* Sección de Formato Requerido */}
+			<div className="bg-card rounded-lg border border-border p-6 shadow-sm space-y-3">
+				<p className="text-sm text-foreground leading-relaxed">
+					<strong>Formato requerido de Skandia:</strong> Seleccione el tipo de
+					archivo y use la estructura correspondiente. El sistema validará
+					automáticamente las columnas y sincronizará con los registros
+					existentes.
+				</p>
+				<div className="text-sm text-foreground space-y-2">
+					<p>
+						<strong>Voluntaria:</strong> Nombre Franquicia, Desde, Hasta, Nombre
+						Fp, Sub Grupo Fp, Compania, Producto, Tipo de Comision, Cto, Base,
+						Com.
+					</p>
+					<p>
+						<strong>Póliza:</strong> Polizas Periodo, Plan de Compensación,
+						Valor Comisión, BASE, Polizas Producto, Contrato Largo, Polizas Id
+						Agente, Polizas Nombre Agente, Polizas Id Sociedad, Nombre Sociedad,
+						Polizas Clasificación.
+					</p>
+				</div>
+			</div>
 		</div>
 	)
 }

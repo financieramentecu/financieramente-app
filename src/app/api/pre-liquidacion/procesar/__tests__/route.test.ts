@@ -82,6 +82,7 @@ describe('POST /api/pre-liquidacion/procesar', () => {
 			success: true,
 			registrosProcesados: 5,
 			mensaje: 'Pre-liquidación completada: 5 registros procesados',
+			registrosConError: [],
 		})
 
 		const response = await POST(makeRequest({ fileImportId: 1, mes: '2026-01' }) as never)
@@ -101,6 +102,7 @@ describe('POST /api/pre-liquidacion/procesar', () => {
 			success: true,
 			registrosProcesados: 3,
 			mensaje: 'Pre-liquidación completada: 3 registros procesados',
+			registrosConError: [],
 		})
 
 		const response = await POST(makeRequest({ fileImportId: 2, mes: '2026-02' }) as never)

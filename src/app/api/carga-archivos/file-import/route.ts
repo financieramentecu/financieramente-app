@@ -85,7 +85,10 @@ export async function POST(request: NextRequest) {
 			{ status: 200 }
 		)
 	} catch (error) {
-		if (error instanceof PeriodCompletedError || error instanceof PeriodPreSettledError) {
+		if (
+			error instanceof PeriodCompletedError ||
+			error instanceof PeriodPreSettledError
+		) {
 			return NextResponse.json(
 				{
 					data: null,
@@ -138,12 +141,20 @@ export async function GET(request: NextRequest) {
 		const userId = Number(session.user.id)
 		const isAdmin = session.user.role === UserRole.ADMIN
 
+		const statusArray =
+			status && status.trim().length > 0
+				? status
+						.split(',')
+						.map((s) => s.trim())
+						.filter(Boolean)
+				: undefined
+
 		const fileImports = await FileImportService.listFileImports({
 			userId,
 			isAdmin,
 			month,
 			year,
-			status,
+			status: statusArray,
 			search,
 		})
 

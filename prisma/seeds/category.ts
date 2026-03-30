@@ -11,7 +11,38 @@ export const categories = [
 	{ name: 'Líder', code: 'LIDER', type: 'MMS' },
 	{ name: 'Senior', code: 'SENIOR', type: 'MMS' },
 	{ name: 'Junior', code: 'JUNIOR', type: 'MMS' },
+	{ name: 'Agencia', code: 'AGENCIA', type: 'MMS' },
+	{ name: 'General', code: 'GENERAL', type: 'MMS' },
+	{ name: 'Coach', code: 'COACH', type: 'MMS' },
 ]
+
+const AGENCIA_EMAIL = 'agencia@financieramentecu.com'
+
+/**
+ * After users exist: set AGENCIA category to FIXED_BENEFICIARY → Agencia system user.
+ */
+export async function seedCategoryBeneficiaryLinks(prisma: PrismaClient) {
+	console.log('\n👉 Vinculando categoría AGENCIA con usuario sistema…')
+	const agenciaUser = await prisma.user.findUnique({
+		where: { email: AGENCIA_EMAIL },
+	})
+	if (!agenciaUser) {
+		console.warn(
+			`⚠️  Usuario ${AGENCIA_EMAIL} no encontrado; omitiendo modo beneficiario fijo en AGENCIA.`
+		)
+		return
+	}
+	const result = await prisma.category.updateMany({
+		where: { code: 'AGENCIA' },
+		data: {
+			beneficiaryMode: 'FIXED_BENEFICIARY',
+			idFixedBeneficiaryUser: agenciaUser.idUser,
+		},
+	})
+	console.log(
+		`✅ Categorías AGENCIA con beneficiario fijo actualizadas: ${result.count}`
+	)
+}
 
 export async function seedCategories(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Tipos de Categorías (CategoryTypes)...')

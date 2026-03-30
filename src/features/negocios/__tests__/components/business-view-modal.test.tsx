@@ -1,7 +1,27 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { BusinessViewModal } from '../../components/modals/BusinessViewModal'
 import { createMockBusiness } from '../fixtures/mock-business'
+
+vi.mock('sonner', () => ({
+	toast: {
+		error: vi.fn(),
+		success: vi.fn(),
+	},
+}))
+
+vi.mock('@/features/shared/ui/alert-dialog', () => ({
+	AlertDialog: ({ children, open }: { children: React.ReactNode; open: boolean }) => open ? <div data-testid="mock-alert-dialog">{children}</div> : null,
+	AlertDialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogTitle: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogDescription: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	AlertDialogCancel: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+	AlertDialogAction: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => <button data-testid="mock-confirm-btn" onClick={onClick}>{children}</button>,
+}))
 
 describe('BusinessViewModal', () => {
 	const defaultProps = {
@@ -9,6 +29,10 @@ describe('BusinessViewModal', () => {
 		onOpenChange: vi.fn(),
 		business: createMockBusiness(),
 	}
+
+	beforeEach(() => {
+		vi.clearAllMocks()
+	})
 
 	describe('Happy Path', () => {
 		it('should render business ID in title', () => {
@@ -204,13 +228,16 @@ describe('BusinessViewModal', () => {
 			fireEvent.click(
 				screen.getByRole('button', { name: /Editar origen/i })
 			)
-			const select = screen.getByRole('combobox')
-			fireEvent.click(select)
+			const select = screen.getByRole('combobox') // Radix Select Trigger
+			await userEvent.click(select) // Opens Radix Dropdown
 			const option = await screen.findByRole('option', { name: 'Propio' })
-			fireEvent.click(option)
+			await userEvent.click(option)
 			const guardarBtn = screen.getByRole('button', { name: /^Guardar$/i })
 			expect(guardarBtn).not.toBeDisabled()
-			fireEvent.click(guardarBtn)
+			await userEvent.click(guardarBtn)
+
+			const confirmarBtn = await screen.findByTestId('mock-confirm-btn')
+			await userEvent.click(confirmarBtn)
 
 			await waitFor(() => {
 				expect(onSaveOrigin).toHaveBeenCalledWith(1, 2)
@@ -243,6 +270,72 @@ describe('BusinessViewModal', () => {
 				screen.queryByRole('button', { name: /Editar origen/i })
 			).not.toBeInTheDocument()
 			expect(screen.getByRole('button', { name: /Cerrar/i })).toBeInTheDocument()
+		})
+
+		it('shows toast.error with API error message when onSaveOrigin rejects with a 400-like error', async () => {
+			const errorMessage = 'No existe configuración de distribución para el origen, producto y categoría del negocio.'
+			const onSaveOrigin = vi.fn().mockRejectedValue(new Error(errorMessage))
+			const business = createMockBusiness({
+				status: 'EMITIDO',
+				clientOrigin: { id: 1, name: 'Referido' },
+			})
+			render(
+				<BusinessViewModal
+					{...defaultProps}
+					business={business}
+					allowEditOrigin
+					clientOriginsOptions={clientOriginsOptions}
+					onSaveOrigin={onSaveOrigin}
+				/>
+			)
+
+			fireEvent.click(screen.getByRole('button', { name: /Editar origen/i }))
+			const select = screen.getByRole('combobox')
+			await userEvent.click(select)
+			const option = await screen.findByRole('option', { name: 'Propio' })
+			await userEvent.click(option)
+			const guardarBtn = screen.getByRole('button', { name: /^Guardar$/i })
+			await userEvent.click(guardarBtn)
+
+			const confirmarBtn = await screen.findByTestId('mock-confirm-btn')
+			await userEvent.click(confirmarBtn)
+
+			await waitFor(() => {
+				expect(toast.error).toHaveBeenCalledWith(errorMessage)
+			})
+		})
+
+		it('does not call toast.error when onSaveOrigin resolves successfully', async () => {
+			const onSaveOrigin = vi.fn().mockResolvedValue(undefined)
+			const business = createMockBusiness({
+				status: 'EMITIDO',
+				clientOrigin: { id: 1, name: 'Referido' },
+			})
+			render(
+				<BusinessViewModal
+					{...defaultProps}
+					business={business}
+					allowEditOrigin
+					clientOriginsOptions={clientOriginsOptions}
+					onSaveOrigin={onSaveOrigin}
+				/>
+			)
+
+			fireEvent.click(screen.getByRole('button', { name: /Editar origen/i }))
+			const select = screen.getByRole('combobox')
+			await userEvent.click(select)
+			const option = await screen.findByRole('option', { name: 'Propio' })
+			await userEvent.click(option)
+			const guardarBtn = screen.getByRole('button', { name: /^Guardar$/i })
+			await userEvent.click(guardarBtn)
+
+			const confirmarBtn = await screen.findByTestId('mock-confirm-btn')
+			await userEvent.click(confirmarBtn)
+
+			await waitFor(() => {
+				expect(onSaveOrigin).toHaveBeenCalledWith(1, 2)
+			})
+			expect(toast.error).not.toHaveBeenCalled()
 		})
 	})
 })

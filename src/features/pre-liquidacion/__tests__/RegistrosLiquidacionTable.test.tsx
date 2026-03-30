@@ -50,7 +50,7 @@ describe('RegistrosLiquidacionTable — "Detalle de Distribución" button', () =
 
 		render(<RegistrosLiquidacionTable {...props} />)
 
-		const buttons = screen.getAllByRole('button', { name: /Ver distribución/i })
+		const buttons = screen.getAllByRole('button', { name: /Distribución/i })
 		expect(buttons).toHaveLength(3)
 	})
 
@@ -62,7 +62,7 @@ describe('RegistrosLiquidacionTable — "Detalle de Distribución" button', () =
 		render(<RegistrosLiquidacionTable {...props} />)
 
 		const buttons = screen.getAllByRole('button', {
-			name: /Ver distribución/i,
+			name: /Distribución/i,
 		})
 
 		fireEvent.click(buttons[0])
@@ -79,7 +79,7 @@ describe('RegistrosLiquidacionTable — "Detalle de Distribución" button', () =
 
 		render(<RegistrosLiquidacionTable {...props} />)
 
-		const button = screen.getByRole('button', { name: /Ver distribución/i })
+		const button = screen.getByRole('button', { name: /Distribución/i })
 		fireEvent.click(button)
 
 		expect(onVerDistribucion).toHaveBeenCalledTimes(1)
@@ -92,7 +92,7 @@ describe('RegistrosLiquidacionTable — "Detalle de Distribución" button', () =
 		render(<RegistrosLiquidacionTable {...props} />)
 
 		const buttons = screen.queryAllByRole('button', {
-			name: /Ver distribución/i,
+			name: /Distribución/i,
 		})
 		expect(buttons).toHaveLength(0)
 	})
@@ -103,7 +103,7 @@ describe('RegistrosLiquidacionTable — "Detalle de Distribución" button', () =
 
 		render(<RegistrosLiquidacionTable {...props} />)
 
-		expect(screen.getByText('Detalle de Distribución')).toBeInTheDocument()
+		expect(screen.getByText('Distribución')).toBeInTheDocument()
 	})
 })
 
@@ -145,7 +145,7 @@ describe('RegistrosLiquidacionTable — selection and other behaviours', () => {
 		render(<RegistrosLiquidacionTable {...props} />)
 
 		const verNegocioButtons = screen.queryAllByRole('button', {
-			name: /Ver negocio/i,
+			name: /Negocio/i,
 		})
 		expect(verNegocioButtons).toHaveLength(1)
 	})
@@ -157,7 +157,7 @@ describe('RegistrosLiquidacionTable — selection and other behaviours', () => {
 
 		render(<RegistrosLiquidacionTable {...props} />)
 
-		const button = screen.getByRole('button', { name: /Ver negocio/i })
+		const button = screen.getByRole('button', { name: /Negocio/i })
 		fireEvent.click(button)
 
 		expect(onVerNegocio).toHaveBeenCalledWith(42)

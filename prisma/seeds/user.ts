@@ -50,6 +50,72 @@ export const superAdminUser = {
 	ssoOnly: false,
 }
 
+/** System user for FIXED_BENEFICIARY category AGENCIA (pool / company). */
+export const agenciaSystemUser = {
+	name: 'Agencia',
+	lastName: 'Sistema',
+	typeIdentity: 'CC',
+	identityNumber: null,
+	email: 'agencia@financieramentecu.com',
+	roleCode: 'ADMIN',
+	idUserLeader: null,
+	entryDate: new Date(),
+	active: true,
+	ssoOnly: true,
+}
+
+/**
+ * Upsert solo el usuario sistema Agencia (`agencia@financieramentecu.com`).
+ * Requiere rol ADMIN en BD. Opcional: `AGENCIA_USER_PASSWORD` en .env para password.
+ */
+export async function seedAgenciaSystemUser(
+	prisma: PrismaClient,
+	adminRole: { idRole: number }
+): Promise<void> {
+	console.log('\n👉 Procesando usuario sistema Agencia…')
+	const existingAgencia = await prisma.user.findFirst({
+		where: { email: agenciaSystemUser.email },
+	})
+	let agenciaPasswordCrypted: string | null = null
+	if (process.env.AGENCIA_USER_PASSWORD?.trim()) {
+		agenciaPasswordCrypted = await hashPassword(
+			process.env.AGENCIA_USER_PASSWORD.trim()
+		)
+	}
+	const agenciaData = {
+		name: agenciaSystemUser.name,
+		lastName: agenciaSystemUser.lastName,
+		typeIdentity: agenciaSystemUser.typeIdentity,
+		identityNumber: agenciaSystemUser.identityNumber,
+		email: agenciaSystemUser.email,
+		idRole: adminRole.idRole,
+		idUserLeader: agenciaSystemUser.idUserLeader,
+		entryDate: agenciaSystemUser.entryDate,
+		active: agenciaSystemUser.active,
+		ssoOnly: agenciaSystemUser.ssoOnly,
+		password: agenciaPasswordCrypted,
+	} as Prisma.UserUncheckedCreateInput
+
+	if (existingAgencia) {
+		await prisma.user.update({
+			where: { idUser: existingAgencia.idUser },
+			data: {
+				name: agenciaData.name,
+				lastName: agenciaData.lastName,
+				active: agenciaData.active,
+				ssoOnly: agenciaData.ssoOnly,
+				...(agenciaPasswordCrypted
+					? { password: agenciaPasswordCrypted }
+					: {}),
+			},
+		})
+		console.log(`✅ Usuario Agencia actualizado: ${agenciaSystemUser.email}`)
+	} else {
+		await prisma.user.create({ data: agenciaData })
+		console.log(`✅ Usuario Agencia creado: ${agenciaSystemUser.email}`)
+	}
+}
+
 export async function seedUsers(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Usuarios (Users)...')
 
@@ -153,6 +219,9 @@ export async function seedUsers(prisma: PrismaClient) {
 			`✅ Usuario creado: ${andresUser.name} ${andresUser.lastName} (${andresUser.email})`
 		)
 	}
+
+	// 2.6 Usuario sistema Agencia (beneficiario fijo categoría AGENCIA)
+	await seedAgenciaSystemUser(prisma, adminRole)
 
 	// 3. Procesar Super Admin User
 	console.log('\n👉 Procesando Super Admin User...')

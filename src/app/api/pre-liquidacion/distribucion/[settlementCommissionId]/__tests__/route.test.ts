@@ -25,6 +25,7 @@ function makeDistribucion(
 ): DistribucionComision {
 	return {
 		idSettlementCommission: 10,
+		commission_value: 1000,
 		categoria: 'CARTERA',
 		producto: 'Seguro de Vida',
 		origen: 'DIRECTO',
@@ -32,15 +33,16 @@ function makeDistribucion(
 		distribuciones: [
 			{
 				idComissionDistribution: 1,
+				idBeneficiaryUser: 42,
+				beneficiarioNombre: 'María Beneficiario',
 				categoria: 'GENERAL',
-				porcentajeDistribucion: 0.5,
-				comisionBruta: 1000,
+				value_commision: 1000,
+				applied_discount_percentace: 0.12,
+				discount_total: 120,
+				commission_porcentaje: 0.5,
+				percentaje_applied: 0,
+				value_clawback: 0,
 				comisionNeta: 880,
-				totalDescuento: 120,
-				porcentajeDescuento: 0.12,
-				value_commission_final: 880,
-				value_clawback_percentage: 0,
-				clawback: null,
 			},
 		],
 		...overrides,
@@ -164,6 +166,10 @@ describe('GET /api/pre-liquidacion/distribucion/[settlementCommissionId]', () =>
 		expect(body.data.distribucion.idSettlementCommission).toBe(10)
 		expect(body.data.distribucion.nombreAsesor).toBe('Juan Pérez')
 		expect(Array.isArray(body.data.distribucion.distribuciones)).toBe(true)
+		expect(body.data.distribucion.distribuciones[0].idBeneficiaryUser).toBe(42)
+		expect(body.data.distribucion.distribuciones[0].beneficiarioNombre).toBe(
+			'María Beneficiario'
+		)
 		expect(mockObtenerDistribucion).toHaveBeenCalledWith(10)
 	})
 

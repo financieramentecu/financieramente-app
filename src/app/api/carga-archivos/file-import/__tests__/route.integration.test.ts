@@ -128,10 +128,80 @@ describe('GET /api/carga-archivos/file-import', () => {
 				expect.objectContaining({
 					month: 6,
 					year: 2026,
-					status: 'COMPLETED',
+					status: ['COMPLETED'],
 					search: 'test',
 				})
 			)
+		})
+
+		it('GET ?status=LOAD,PRE-SETTLED passes ["LOAD","PRE-SETTLED"] and echoes service items (REQ-6)', async () => {
+			const base = {
+				nameFile: 'a.xlsx',
+				fileType: 'POLIZA',
+				month: 2,
+				year: 2026,
+				totalRecord: 0,
+				successRecord: 0,
+				errorRecord: 0,
+				sincronizadoRecord: 0,
+				rezagadoRecord: 0,
+				noSincronizadoRecord: 0,
+				createdAt: new Date(),
+				user: { name: 'U', lastName: 'V' },
+			}
+			const items = [
+				{ ...base, idFileImport: 1, status: 'LOAD' },
+				{ ...base, idFileImport: 2, status: 'PRE-SETTLED' },
+			]
+			mockListFileImports.mockResolvedValueOnce(items as never)
+
+			const req = makeRequest({ status: 'LOAD,PRE-SETTLED' })
+			const response = await GET(req)
+
+			expect(response.status).toBe(200)
+			expect(mockListFileImports).toHaveBeenCalledWith(
+				expect.objectContaining({ status: ['LOAD', 'PRE-SETTLED'] })
+			)
+			const body = await response.json()
+			expect(body.data.items).toHaveLength(2)
+			const statuses = body.data.items.map(
+				(i: { status: string }) => i.status
+			)
+			expect(statuses.every((s: string) => s === 'LOAD' || s === 'PRE-SETTLED')).toBe(
+				true
+			)
+		})
+
+		it('GET ?status=COMPLETED passes ["COMPLETED"] and echoes only COMPLETED rows (REQ-6)', async () => {
+			const base = {
+				nameFile: 'b.xlsx',
+				fileType: 'POLIZA',
+				month: 2,
+				year: 2026,
+				totalRecord: 0,
+				successRecord: 0,
+				errorRecord: 0,
+				sincronizadoRecord: 0,
+				rezagadoRecord: 0,
+				noSincronizadoRecord: 0,
+				createdAt: new Date(),
+				user: { name: 'U', lastName: 'V' },
+			}
+			mockListFileImports.mockResolvedValueOnce([
+				{ ...base, idFileImport: 9, status: 'COMPLETED' },
+			] as never)
+
+			const req = makeRequest({ status: 'COMPLETED' })
+			const response = await GET(req)
+
+			expect(response.status).toBe(200)
+			expect(mockListFileImports).toHaveBeenCalledWith(
+				expect.objectContaining({ status: ['COMPLETED'] })
+			)
+			const body = await response.json()
+			expect(
+				body.data.items.every((i: { status: string }) => i.status === 'COMPLETED')
+			).toBe(true)
 		})
 	})
 

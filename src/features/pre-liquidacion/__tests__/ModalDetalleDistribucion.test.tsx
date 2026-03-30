@@ -17,6 +17,7 @@ function makeDistribucion(
 ): DistribucionComision {
 	return {
 		idSettlementCommission: 10,
+		commission_value: 1000,
 		categoria: 'CARTERA',
 		producto: 'Seguro de Vida',
 		origen: 'DIRECTO',
@@ -126,32 +127,29 @@ describe('ModalDetalleDistribucion', () => {
 		const distribuciones = [
 			{
 				idComissionDistribution: 1,
+				idBeneficiaryUser: 10,
+				beneficiarioNombre: 'Ana Gómez',
 				categoria: 'GENERAL',
-				porcentajeDistribucion: 0.5,
-				comisionBruta: 1000,
+				commission_porcentaje: 0.5,
+				value_commision: 1000,
+				applied_discount_percentace: 0.12,
+				discount_total: 120,
+				percentaje_applied: 0,
+				value_clawback: 0,
 				comisionNeta: 880,
-				totalDescuento: 120,
-				porcentajeDescuento: 0.12,
-				value_commission_final: 880,
-				value_clawback_percentage: 0,
-				clawback: null,
 			},
 			{
 				idComissionDistribution: 2,
+				idBeneficiaryUser: 20,
+				beneficiarioNombre: 'Pool Agencia',
 				categoria: 'AGENCIA',
-				porcentajeDistribucion: 0.2,
-				comisionBruta: 400,
-				comisionNeta: 352,
-				totalDescuento: 48,
-				porcentajeDescuento: 0.12,
-				value_commission_final: 302,
-				value_clawback_percentage: 0.05,
-				clawback: {
-					valor: 50,
-					porcentaje: 0.05,
-					estado: 'APLICADO',
-					fechaAplicacion: '2026-01-15',
-				},
+				commission_porcentaje: 0.2,
+				value_commision: 400,
+				applied_discount_percentace: 0.12,
+				discount_total: 48,
+				percentaje_applied: 0.05,
+				value_clawback: 50,
+				comisionNeta: 302,
 			},
 		]
 
@@ -172,26 +170,24 @@ describe('ModalDetalleDistribucion', () => {
 		// Both row categories should appear
 		expect(screen.getByText('GENERAL')).toBeInTheDocument()
 		expect(screen.getByText('AGENCIA')).toBeInTheDocument()
+		expect(screen.getByText('Ana Gómez')).toBeInTheDocument()
+		expect(screen.getByText('Pool Agencia')).toBeInTheDocument()
 	})
 
 	it('renders clawback value for rows that have clawback', () => {
 		const distribuciones = [
 			{
 				idComissionDistribution: 2,
+				idBeneficiaryUser: 2,
+				beneficiarioNombre: 'Claw User',
 				categoria: 'AGENCIA',
-				porcentajeDistribucion: 0.2,
-				comisionBruta: 400,
-				comisionNeta: 352,
-				totalDescuento: 48,
-				porcentajeDescuento: 0.12,
-				value_commission_final: 302,
-				value_clawback_percentage: 0.05,
-				clawback: {
-					valor: 50,
-					porcentaje: 0.05,
-					estado: 'APLICADO',
-					fechaAplicacion: '2026-01-15',
-				},
+				commission_porcentaje: 0.2,
+				value_commision: 400,
+				applied_discount_percentace: 0.12,
+				discount_total: 48,
+				percentaje_applied: 0.05,
+				value_clawback: 50,
+				comisionNeta: 302,
 			},
 		]
 
@@ -209,8 +205,8 @@ describe('ModalDetalleDistribucion', () => {
 			/>
 		)
 
-		// 50 formatted as es-CO should appear
-		expect(screen.getByText('50')).toBeInTheDocument()
+		// 50 formatted as es-CO currency ($ 50) should appear
+		expect(screen.getAllByText('$ 50').length).toBeGreaterThan(0)
 	})
 
 	it('calls onClose when the modal triggers onOpenChange with false', () => {

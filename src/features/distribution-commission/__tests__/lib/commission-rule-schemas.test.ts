@@ -13,13 +13,19 @@ describe('Commission Rule Schemas', () => {
 			expect(result.success).toBe(true)
 		})
 
-		it('should fail if percentage is below minimum', () => {
-			const invalid = { idCategory: 1, percentage: 0 }
+		it('should allow percentage to be zero', () => {
+			const valid = { idCategory: 1, percentage: 0 }
+			const result = categoryPercentageSchema.safeParse(valid)
+			expect(result.success).toBe(true)
+		})
+
+		it('should fail if percentage is below minimum (negative)', () => {
+			const invalid = { idCategory: 1, percentage: -1 }
 			const result = categoryPercentageSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
 			if (!result.success) {
 				expect(result.error.issues[0].message).toContain(
-					'El porcentaje debe ser mayor a 0'
+					'El porcentaje no puede ser negativo'
 				)
 			}
 		})

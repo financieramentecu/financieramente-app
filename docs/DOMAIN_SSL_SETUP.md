@@ -49,6 +49,13 @@ Nota: Los droplets nuevos se crean automáticamente con Certbot instalado.
 
 ### Fase 3: Configurar SSL
 
+El deploy por GitHub Actions copia `setup-ssl.sh` junto con `ssl-renew.sh` a `/opt/financieramente/terraform/scripts/`. Si el archivo no está (servidor antiguo o deploy previo), cópialo desde tu máquina con el repo clonado:
+
+```bash
+scp -i ~/.ssh/droplet_deploy terraform/scripts/setup-ssl.sh root@<IP_SERVIDOR>:/opt/financieramente/terraform/scripts/
+ssh -i ~/.ssh/droplet_deploy root@<IP_SERVIDOR> "chmod +x /opt/financieramente/terraform/scripts/setup-ssl.sh"
+```
+
 Ejecutar el script de configuración SSL:
 
 ```bash
