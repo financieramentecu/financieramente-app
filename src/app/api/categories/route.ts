@@ -58,7 +58,12 @@ export async function GET(request: Request) {
 		// Get categories with pagination
 		const categories = await prisma.category.findMany({
 			where,
-			include: { categoryType: true },
+			include: {
+				categoryType: true,
+				fixedBeneficiaryUser: {
+					select: { idUser: true, name: true, lastName: true, email: true },
+				},
+			},
 			orderBy: { name: 'asc' },
 			skip: (page - 1) * pageSize,
 			take: pageSize,
@@ -130,6 +135,40 @@ export async function POST(request: Request) {
 			)
 		}
 
+		// Validate beneficiary constraint before persisting
+		if (
+			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			(data.idFixedBeneficiaryUser === null ||
+				data.idFixedBeneficiaryUser === undefined)
+		) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: 'El usuario beneficiario fijo es requerido cuando el modo es FIXED_BENEFICIARY',
+				},
+				{ status: 400 }
+			)
+		}
+
+		// Verify fixed beneficiary user exists and is active
+		if (
+			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			data.idFixedBeneficiaryUser != null
+		) {
+			const beneficiaryUser = await prisma.user.findFirst({
+				where: { idUser: data.idFixedBeneficiaryUser, active: true },
+			})
+			if (!beneficiaryUser) {
+				return NextResponse.json(
+					{
+						data: null,
+						error: 'El usuario beneficiario fijo no existe o está inactivo',
+					},
+					{ status: 400 }
+				)
+			}
+		}
+
 		const category = await prisma.category.create({
 			data: {
 				code: normalizedCode,
@@ -137,8 +176,18 @@ export async function POST(request: Request) {
 				idCategoryType: typeId,
 				descripcion: data.descripcion ?? null,
 				status: data.status,
+				beneficiaryMode: data.beneficiaryMode ?? 'UPLINE_CHAIN',
+				idFixedBeneficiaryUser:
+					data.beneficiaryMode === 'FIXED_BENEFICIARY'
+						? (data.idFixedBeneficiaryUser ?? null)
+						: null,
 			},
-			include: { categoryType: true },
+			include: {
+				categoryType: true,
+				fixedBeneficiaryUser: {
+					select: { idUser: true, name: true, lastName: true, email: true },
+				},
+			},
 		})
 
 		const response: ApiResponse<Category> = {

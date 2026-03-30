@@ -1,14 +1,28 @@
-import { Category, CategoryType } from '@prisma/client'
-import { Category as CategoryDomain } from '../types/category.types'
+import { Category, CategoryType, User } from '@prisma/client'
+import { Category as CategoryDomain, BeneficiaryMode } from '../types/category.types'
+
+type PrismaCategoryWithRelations = Category & {
+	categoryType?: CategoryType | null
+	fixedBeneficiaryUser?: Pick<User, 'idUser' | 'name' | 'lastName' | 'email'> | null
+}
 
 /**
  * Mapea una categoría de Prisma a una categoría de dominio
  */
 export const prismaCategoryToCategory = (
-	prisma: Category & { categoryType?: CategoryType | null }
+	prisma: PrismaCategoryWithRelations
 ): CategoryDomain => {
 	// Use type-safe approach to get type name, fallback to legacy field then default
 	const typeCategory = prisma.categoryType?.name || (prisma as unknown as { typeCategory: string }).typeCategory || 'MMS'
+
+	const fixedBeneficiaryUser = prisma.fixedBeneficiaryUser
+		? {
+				idUser: prisma.fixedBeneficiaryUser.idUser,
+				name: prisma.fixedBeneficiaryUser.name,
+				lastName: prisma.fixedBeneficiaryUser.lastName ?? '',
+				email: prisma.fixedBeneficiaryUser.email,
+			}
+		: null
 
 	return {
 		idCategory: prisma.idCategory,
@@ -18,6 +32,9 @@ export const prismaCategoryToCategory = (
 		idCategoryType: prisma.idCategoryType || 1,
 		descripcion: prisma.descripcion === null ? null : (prisma.descripcion || ''),
 		status: prisma.status,
+		beneficiaryMode: (prisma.beneficiaryMode as BeneficiaryMode) ?? 'UPLINE_CHAIN',
+		idFixedBeneficiaryUser: prisma.idFixedBeneficiaryUser ?? null,
+		fixedBeneficiaryUser,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
 	}
@@ -27,7 +44,7 @@ export const prismaCategoryToCategory = (
  * Mapea una lista de categorías de Prisma a categorías de dominio
  */
 export const prismaCategoryListToCategories = (
-	prismaList: (Category & { categoryType?: CategoryType | null })[]
+	prismaList: PrismaCategoryWithRelations[]
 ): CategoryDomain[] => {
 	return prismaList.map(prismaCategoryToCategory)
 }

@@ -273,6 +273,108 @@ describe('category-schemas', () => {
 		})
 	})
 
+	describe('beneficiaryMode and idFixedBeneficiaryUser validation', () => {
+		it('should fail when FIXED_BENEFICIARY and idFixedBeneficiaryUser is null', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				beneficiaryMode: 'FIXED_BENEFICIARY' as const,
+				idFixedBeneficiaryUser: null,
+			}
+
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const issue = result.error.issues.find(
+					(i) => i.path[0] === 'idFixedBeneficiaryUser'
+				)
+				expect(issue).toBeDefined()
+				expect(issue?.message).toContain('requerido')
+			}
+		})
+
+		it('should fail when FIXED_BENEFICIARY and idFixedBeneficiaryUser is undefined', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				beneficiaryMode: 'FIXED_BENEFICIARY' as const,
+			}
+
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const issue = result.error.issues.find(
+					(i) => i.path[0] === 'idFixedBeneficiaryUser'
+				)
+				expect(issue).toBeDefined()
+			}
+		})
+
+		it('should pass when UPLINE_CHAIN and idFixedBeneficiaryUser is null', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				beneficiaryMode: 'UPLINE_CHAIN' as const,
+				idFixedBeneficiaryUser: null,
+			}
+
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
+		})
+
+		it('should pass when UPLINE_CHAIN and idFixedBeneficiaryUser is undefined', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				beneficiaryMode: 'UPLINE_CHAIN' as const,
+			}
+
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
+		})
+
+		it('should pass when FIXED_BENEFICIARY and idFixedBeneficiaryUser is a valid positive integer', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				beneficiaryMode: 'FIXED_BENEFICIARY' as const,
+				idFixedBeneficiaryUser: 42,
+			}
+
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.beneficiaryMode).toBe('FIXED_BENEFICIARY')
+				expect(result.data.idFixedBeneficiaryUser).toBe(42)
+			}
+		})
+
+		it('should default beneficiaryMode to UPLINE_CHAIN when not provided', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+			}
+
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.beneficiaryMode).toBe('UPLINE_CHAIN')
+			}
+		})
+	})
+
 	describe('updateCategorySchema', () => {
 		it('should validate with all fields (happy path)', () => {
 			const data = {

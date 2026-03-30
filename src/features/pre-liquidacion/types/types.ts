@@ -95,12 +95,25 @@ export interface ConfiguracionPorcentajes {
 }
 
 /**
+ * Entrada de error de configuración durante pre-liquidación
+ */
+export interface RegistroConError {
+	idSettlementCommission: number
+	categoryCode: string
+	errorCode: string
+	contrato: string | null
+	idBusiness: number
+	idUserAgent: number
+}
+
+/**
  * Respuesta de procesamiento de pre-liquidación
  */
 export interface RespuestaProcesamientoPreLiquidacion {
 	success: boolean
 	registrosProcesados: number
 	mensaje: string
+	registrosConError?: RegistroConError[]
 }
 
 /**
@@ -258,20 +271,17 @@ export interface RespuestaRegistrosLiquidacion {
  */
 export interface ItemDistribucionComision {
 	readonly idComissionDistribution: number
+	readonly idBeneficiaryUser: number
+	/** Display name of resolved beneficiary for this distribution row */
+	beneficiarioNombre: string
 	categoria: string
-	porcentajeDistribucion: number // porcentajePortfolio cuando typeCategory === 'CARTERA'
-	comisionBruta: number // valueComission
-	comisionNeta: number // valueComissionFinal
-	totalDescuento: number
-	porcentajeDescuento: number // appliedDiscountPercentage
-	readonly value_commission_final: number // valueComissionFinal — final settled commission amount
-	readonly value_clawback_percentage: number // clawback.porcentajeApplied — clawback percentage applied to this record
-	clawback: {
-		valor: number // clawback.valueClawback
-		porcentaje: number // clawback.porcentajeApplied
-		estado: string // clawback.state
-		fechaAplicacion: string | null // clawback.appliedDate
-	} | null
+	value_commision: number // Bruta
+	applied_discount_percentace: number // % Descuento
+	discount_total: number // Total Descuento
+	commission_porcentaje: number // % Distribucion de comision
+	percentaje_applied: number | null // % clawback
+	value_clawback: number | null // Descuento clawback
+	comisionNeta: number // valueComissionFinal (Comisión Final)
 }
 
 /**
@@ -279,10 +289,11 @@ export interface ItemDistribucionComision {
  */
 export interface DistribucionComision {
 	idSettlementCommission: number
-	categoria: string | null // from first distribution row's category
+	commission_value: number // Comisión Total (from settlement parent)
+	categoria: string | null 
 	producto: string | null
 	origen: string | null
-	nombreAsesor: string | null // business.user name + lastName
+	nombreAsesor: string | null 
 	distribuciones: ItemDistribucionComision[]
 }
 

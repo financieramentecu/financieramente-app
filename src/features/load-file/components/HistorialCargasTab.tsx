@@ -33,6 +33,8 @@ import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
 import type { UserRole } from '@/features/auth/lib/roles'
 import { loadFileApi } from '../lib/load-file-api'
+import { ModalErroresConfiguracion } from '@/features/pre-liquidacion/components/ModalErroresConfiguracion'
+import type { RegistroConError } from '@/features/pre-liquidacion/types/types'
 
 /**
  * Componente para mostrar el historial de cargas de archivos
@@ -92,6 +94,8 @@ export function HistorialCargasTab() {
 	const [preliquidarLoading, setPreliquidarLoading] = useState<
 		Record<string, boolean>
 	>({})
+	const [registrosConError, setRegistrosConError] = useState<RegistroConError[]>([])
+	const [modalErroresOpen, setModalErroresOpen] = useState(false)
 
 	// Filter States
 	const [searchTerm, setSearchTerm] = useState('')
@@ -166,6 +170,10 @@ export function HistorialCargasTab() {
 					description:
 						result.data?.mensaje ?? 'Registros procesados correctamente',
 				})
+				if (result.data?.registrosConError && result.data.registrosConError.length > 0) {
+					setRegistrosConError(result.data.registrosConError)
+					setModalErroresOpen(true)
+				}
 				await refetch()
 			}
 		} catch (err) {
@@ -586,6 +594,12 @@ export function HistorialCargasTab() {
 					</div>
 				)}
 			</div>
+
+			<ModalErroresConfiguracion
+				registrosConError={registrosConError}
+				open={modalErroresOpen}
+				onClose={() => setModalErroresOpen(false)}
+			/>
 
 			{/* Sección de Formato Requerido */}
 			<div className="bg-card rounded-lg border border-border p-6 shadow-sm space-y-3">

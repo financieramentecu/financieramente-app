@@ -11,6 +11,11 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum BeneficiaryMode {
+  UPLINE_CHAIN
+  FIXED_BENEFICIARY
+}
+
 model Company {
   idCompany     Int       @id @default(autoincrement()) @map("id_company")
   name          String    @db.VarChar(100)
@@ -48,12 +53,16 @@ model Category {
   status                                Boolean                               @default(true)
   createdAt                             DateTime                              @default(now()) @map("created_at")
   updatedAt                             DateTime                              @updatedAt @map("updated_at")
+  beneficiaryMode                       BeneficiaryMode                       @default(UPLINE_CHAIN) @map("beneficiary_mode")
+  idFixedBeneficiaryUser                Int?                                  @map("id_fixed_beneficiary_user")
   categoryType                          CategoryType                          @relation(fields: [idCategoryType], references: [id])
+  fixedBeneficiaryUser                  User?                                 @relation("CategoryFixedBeneficiary", fields: [idFixedBeneficiaryUser], references: [idUser])
   productConfigurations                 ProductConfiguration[]
   productPercentageCommissionCategories ProductPercentageCommissionCategory[]
   users                                 User[]
 
   @@index([idCategoryType])
+  @@index([idFixedBeneficiaryUser])
   @@map("category")
 }
 
@@ -220,7 +229,8 @@ model User {
   role            Role?            @relation(fields: [idRole], references: [idRole])
   leader          User?            @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates    User[]           @relation("UserLeader")
-  beneficiaryComissions ComissionDistribution[] @relation("BeneficiaryUser")
+  categoriesAsFixedBeneficiary Category[] @relation("CategoryFixedBeneficiary")
+  comissionDistributionsAsBeneficiary ComissionDistribution[] @relation("BeneficiaryUser")
 
   // Relaciones recursivas y jerárquicas
   commissionDiscountsCreated CommissionDiscount[] @relation("DiscountCreatedBy")
@@ -398,6 +408,7 @@ model ComissionDistribution {
   settlementCommission                SettlementCommission                 @relation(fields: [idSettlementCommission], references: [idSettlementCommission])
 
   @@index([idSettlementCommission])
+  @@index([idBeneficiaryUser])
   @@map("comission_distribution")
 }
 
@@ -467,5 +478,4 @@ model FileImportError {
   @@index([idFileImport])
   @@map("file_import_error")
 }
-
 

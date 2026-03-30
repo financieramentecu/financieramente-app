@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Calculator, FileText } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { Button } from '@/features/shared/ui/button'
 import { useComisionesPreliquidadas } from '@/features/pre-liquidacion/hooks/use-comisiones-preliquidadas'
@@ -102,55 +102,69 @@ export default function DetallePreLiquidacionPage() {
 
 	return (
 		<DashboardLayout>
-			<div className="space-y-4 p-4">
+			<div className="space-y-6 p-6">
 				{/* Header */}
-				<div className="flex items-center gap-4">
-					<Button
-						variant="ghost"
-						size="sm"
-						asChild
-						className="cursor-pointer"
-					>
-						<Link href="/dashboard/pre-liquidacion">
-							<ArrowLeft className="h-4 w-4 mr-2" />
-							Volver
-						</Link>
-					</Button>
-					<div className="flex-1">
-						<h1 className="text-lg font-semibold text-foreground">
-							Comisiones pre-liquidadas
-						</h1>
-						{archivo && (
-							<p className="text-sm text-muted-foreground">
-								{archivo.nombreArchivo} · registros en estado PRE-LIQUIDADO
-							</p>
-						)}
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+					<div className="flex items-center gap-4">
+						<Button
+							variant="ghost"
+							size="sm"
+							asChild
+							className="cursor-pointer shrink-0"
+						>
+							<Link href="/dashboard/pre-liquidacion">
+								<ArrowLeft className="h-4 w-4 mr-1.5" />
+								Volver
+							</Link>
+						</Button>
+						<div className="flex items-center gap-3">
+							<div className="rounded-lg bg-primary/10 p-2 shrink-0">
+								<Calculator className="h-5 w-5 text-primary" />
+							</div>
+							<div>
+								<h1 className="text-xl font-bold text-foreground leading-tight">
+									Comisiones Pre-Liquidadas
+								</h1>
+								{archivo && (
+									<p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
+										<FileText className="h-3.5 w-3.5" />
+										{archivo.nombreArchivo}
+										{archivo.fileType && (
+											<span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+												{archivo.fileType}
+											</span>
+										)}
+									</p>
+								)}
+							</div>
+						</div>
 					</div>
+					{registros.length > 0 && (
+						<div className="flex items-center gap-2 shrink-0">
+							<span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+								{registros.length} registros
+							</span>
+						</div>
+					)}
 				</div>
 
 				{error && (
-					<div className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+					<div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
 						{error}
 					</div>
 				)}
 
 				{isLoading ? (
-					<div className="py-8 text-center text-muted-foreground">
-						Cargando comisiones pre-liquidadas...
+					<div className="py-16 text-center text-muted-foreground">
+						<Calculator className="h-8 w-8 mx-auto mb-3 opacity-20 animate-pulse" />
+						<p>Cargando comisiones pre-liquidadas...</p>
 					</div>
 				) : registros.length === 0 ? (
-					<div className="py-8 text-center text-muted-foreground">
+					<div className="py-16 text-center text-muted-foreground">
 						No hay comisiones pre-liquidadas para este archivo.
 					</div>
 				) : (
 					<>
-						{archivo && (
-							<h2 className="text-lg font-semibold text-foreground">
-								{archivo.fileType === 'VOLUNTARIA'
-									? 'PRE-LIQUIDADAS VOLUNTARIA'
-									: 'PRE-LIQUIDADAS POLIZA'}
-							</h2>
-						)}
 						<RegistrosLiquidacionTable
 							registros={registros}
 							fileType={archivo?.fileType ?? ''}

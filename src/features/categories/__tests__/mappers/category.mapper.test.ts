@@ -4,6 +4,7 @@ import {
 	prismaCategoryListToCategories,
 } from '../../mappers/category.mapper'
 import { createMockPrismaCategory } from '../fixtures/mock-category'
+import { BeneficiaryMode } from '@prisma/client'
 
 describe('category.mapper', () => {
 	describe('prismaCategoryToCategory', () => {
@@ -152,6 +153,81 @@ describe('category.mapper', () => {
 			const result = prismaCategoryToCategory(prismaCategory)
 
 			expect(result.typeCategory).toBe('TRINITY')
+		})
+	})
+
+	describe('beneficiaryMode and fixedBeneficiaryUser mapping', () => {
+		it('should map beneficiaryMode UPLINE_CHAIN correctly', () => {
+			const prismaCategory = createMockPrismaCategory({
+				beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.beneficiaryMode).toBe('UPLINE_CHAIN')
+		})
+
+		it('should map beneficiaryMode FIXED_BENEFICIARY correctly', () => {
+			const prismaCategory = createMockPrismaCategory({
+				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				idFixedBeneficiaryUser: 5,
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.beneficiaryMode).toBe('FIXED_BENEFICIARY')
+		})
+
+		it('should map idFixedBeneficiaryUser as null when not set', () => {
+			const prismaCategory = createMockPrismaCategory({
+				idFixedBeneficiaryUser: null,
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.idFixedBeneficiaryUser).toBeNull()
+		})
+
+		it('should map idFixedBeneficiaryUser when set', () => {
+			const prismaCategory = createMockPrismaCategory({
+				idFixedBeneficiaryUser: 10,
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.idFixedBeneficiaryUser).toBe(10)
+		})
+
+		it('should map fixedBeneficiaryUser as null when relation not included', () => {
+			const prismaCategory = createMockPrismaCategory({
+				idFixedBeneficiaryUser: null,
+			})
+			// No fixedBeneficiaryUser property — relation not included
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.fixedBeneficiaryUser).toBeNull()
+		})
+
+		it('should map fixedBeneficiaryUser when relation is included', () => {
+			const prismaCategory = createMockPrismaCategory({
+				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				idFixedBeneficiaryUser: 7,
+				fixedBeneficiaryUser: {
+					idUser: 7,
+					name: 'Ana',
+					lastName: 'García',
+					email: 'ana@example.com',
+				},
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.fixedBeneficiaryUser).toEqual({
+				idUser: 7,
+				name: 'Ana',
+				lastName: 'García',
+				email: 'ana@example.com',
+			})
 		})
 	})
 

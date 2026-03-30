@@ -42,7 +42,6 @@ function makeCarga(overrides: Partial<CargaHistorial> = {}): CargaHistorial {
 		sincronizados: 5,
 		rezagados: 2,
 		sinRegistro: 3,
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		createdAt: '2026-01-15T10:00:00Z',
 		...overrides,
 	}
