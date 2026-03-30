@@ -32,9 +32,9 @@
 
 ## Phase 6: Tests
 
-- [ ] 6.1 Unit test `FileStatusBadge`: assert distinct label and class for each status, including `LOAD` ≠ `PRE-SETTLED` (REQ-7 scenario).
-- [ ] 6.2 Unit test `FileImportCard`: `canDelete=false` hides delete button for `PRE-SETTLED` and `COMPLETED` (REQ-4 scenarios).
-- [ ] 6.3 Unit test `useFileHistory`: `statuses=['LOAD','PRE-SETTLED']` serializes to `status=LOAD,PRE-SETTLED` in fetch call.
-- [ ] 6.4 Unit test `listFileImports`: status array builds `{ in: [...] }` Prisma filter correctly.
-- [ ] 6.5 Integration test `GET /api/carga-archivos/file-import?status=LOAD,PRE-SETTLED`: returns only matching records (REQ-6 multi-status scenario).
-- [ ] 6.6 Integration test backward compat: `?status=COMPLETED` returns only COMPLETED records (REQ-6 single-value scenario).
+- [x] 6.1 Unit test `FileStatusBadge`: assert distinct label and class for each status, including `LOAD` ≠ `PRE-SETTLED` (REQ-7 scenario).
+- [x] 6.2 Unit test `FileImportCard`: `canDelete=false` hides delete button for `PRE-SETTLED` and `COMPLETED` (REQ-4 scenarios).
+- [x] 6.3 Unit test `useFileHistory`: `statuses=['LOAD','PRE-SETTLED']` serializes to `status=LOAD,PRE-SETTLED` in fetch call.
+- [x] 6.4 Unit test `listFileImports`: status array builds `{ in: [...] }` Prisma filter correctly.
+- [x] 6.5 Integration test `GET /api/carga-archivos/file-import?status=LOAD,PRE-SETTLED`: returns only matching records (REQ-6 multi-status scenario).
+- [x] 6.6 Integration test backward compat: `?status=COMPLETED` returns only COMPLETED records (REQ-6 single-value scenario).

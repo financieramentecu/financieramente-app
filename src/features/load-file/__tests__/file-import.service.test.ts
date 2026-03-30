@@ -397,6 +397,27 @@ describe('FileImportService', () => {
 				)
 			})
 
+			it('status filter LOAD+PRE-SETTLED → WHERE includes { in: ["LOAD","PRE-SETTLED"] } (REQ-6)', async () => {
+				vi.mocked(prisma.fileImport.findMany).mockResolvedValueOnce(
+					[] as never
+				)
+
+				await FileImportService.listFileImports({
+					userId: 1,
+					isAdmin: false,
+					status: ['LOAD', 'PRE-SETTLED'],
+				})
+
+				expect(prisma.fileImport.findMany).toHaveBeenCalledWith(
+					expect.objectContaining({
+						where: expect.objectContaining({
+							idUser: 1,
+							status: { in: ['LOAD', 'PRE-SETTLED'] },
+						}),
+					})
+				)
+			})
+
 			it('status ALL → WHERE includes default status filter', async () => {
 				vi.mocked(prisma.fileImport.findMany).mockResolvedValueOnce(
 					[] as never
