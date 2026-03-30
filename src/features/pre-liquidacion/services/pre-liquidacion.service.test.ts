@@ -7,6 +7,7 @@ import {
 	rezagarRegistros,
 } from './pre-liquidacion.service'
 import { prisma } from '@/lib/prisma'
+import { BeneficiaryMode } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 
 vi.mock('@/features/email/lib/preliquidacion-resumen-notification', () => ({
@@ -35,6 +36,9 @@ vi.mock('@/lib/prisma', () => ({
 		},
 		clawback: {
 			create: vi.fn(),
+		},
+		user: {
+			findUnique: vi.fn(),
 		},
 		clawbackBalance: {
 			findUnique: vi.fn(),
@@ -107,14 +111,20 @@ describe('procesarPreLiquidacion', () => {
 			},
 		] as any)
 
-		// Mock porcentaje config
 		vi.mocked(
 			prisma.productPercentageCommissionCategory.findMany
 		).mockResolvedValue([
 			{
 				id: 10,
-				porcentajeDistribucion: new Decimal(0.5), // 50%
-				porcentajePortfolio: new Decimal(0.6), // 60%
+				porcentajeDistribucion: new Decimal(0.5),
+				porcentajePortfolio: new Decimal(0.6),
+				category: {
+					idCategory: 1,
+					code: 'GENERAL',
+					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					idFixedBeneficiaryUser: 77,
+					fixedBeneficiaryUser: { idUser: 77, active: true },
+				},
 			},
 		] as any)
 
@@ -137,6 +147,8 @@ describe('procesarPreLiquidacion', () => {
 			.mockResolvedValueOnce([])
 
 		vi.mocked(prisma.comissionDistribution.findMany).mockResolvedValue([])
+		// 0 remaining SYNCHRONIZED → FileImport status advances to PRE-SETTLED
+		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(0)
 
 		// Mock transaction success by default (fn calls callback)
 
@@ -159,8 +171,9 @@ describe('procesarPreLiquidacion', () => {
 				: ({} as any)
 		expect(Number(distributionData.valueComission)).toBe(60000)
 		expect(Number(distributionData.valueComissionFinal)).toBe(51000)
-		expect(Number(distributionData.totalDiscount || 0)).toBe(9000)
+		expect(Number(distributionData.totalDiscount || 0)).toBe(6000)
 		expect(Number(distributionData.appliedDiscountPercentage || 0)).toBe(0.1)
+		expect(distributionData.idBeneficiaryUser).toBe(77)
 
 		// Verify status update to PRE-SETTLED
 		expect(prisma.settlementCommission.update).toHaveBeenCalledWith({
@@ -211,11 +224,25 @@ describe('procesarPreLiquidacion', () => {
 				id: 10,
 				porcentajeDistribucion: new Decimal(0.5),
 				porcentajePortfolio: null,
+				category: {
+					idCategory: 1,
+					code: 'A',
+					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					idFixedBeneficiaryUser: 77,
+					fixedBeneficiaryUser: { idUser: 77, active: true },
+				},
 			},
 			{
 				id: 11,
 				porcentajeDistribucion: new Decimal(0.5),
 				porcentajePortfolio: null,
+				category: {
+					idCategory: 2,
+					code: 'B',
+					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					idFixedBeneficiaryUser: 77,
+					fixedBeneficiaryUser: { idUser: 77, active: true },
+				},
 			},
 		] as any)
 
@@ -226,6 +253,8 @@ describe('procesarPreLiquidacion', () => {
 			.mockResolvedValueOnce({
 				idComissionDistribution: 302,
 			} as any)
+
+		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(0)
 
 		const result = await procesarPreLiquidacion(1, {
 			inicio: new Date('2024-01-01'),
@@ -240,7 +269,7 @@ describe('procesarPreLiquidacion', () => {
 		expect(prisma.clawback.create).toHaveBeenCalledWith(
 			expect.objectContaining({
 				data: expect.objectContaining({
-					idUser: 42,
+					idUser: 77,
 					state: 'RETENIDO',
 					idComissionDistribution: expect.any(Number),
 				}),
@@ -252,11 +281,277 @@ describe('procesarPreLiquidacion', () => {
 		expect(prisma.clawbackBalance.create).not.toHaveBeenCalled()
 		expect(prisma.clawbackBalance.update).not.toHaveBeenCalled()
 	})
+
+	it('omits registro when UPLINE_CHAIN has no matching user in chain', async () => {
+		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
+			idFileImport: 1,
+			status: 'LOAD',
+			nameFile: 'Test.xlsx',
+		} as never)
+
+		vi.mocked(prisma.settlementCommission.findMany)
+			.mockResolvedValueOnce([
+				{
+					idSettlementCommission: 300,
+					status: 'SYNCHRONIZED',
+					commissionType: 'VOLUNTARIA',
+					originCommission: null,
+					isClawback: false,
+					commissionValue: new Decimal(100000),
+					baseCommission: new Decimal(100000),
+					discountPercentage: new Decimal(0.1),
+					clawbackPercentage: new Decimal(0),
+					business: {
+						idProductPercentageCommission: 50,
+						user: { idUser: 1 },
+					},
+				},
+			] as never)
+			.mockResolvedValueOnce([])
+
+		vi.mocked(
+			prisma.productPercentageCommissionCategory.findMany
+		).mockResolvedValue([
+			{
+				id: 10,
+				porcentajeDistribucion: new Decimal(1),
+				porcentajePortfolio: null,
+				category: {
+					idCategory: 99,
+					code: 'NOMATCH',
+					beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+					idFixedBeneficiaryUser: null,
+					fixedBeneficiaryUser: null,
+				},
+			},
+		] as never)
+
+		vi.mocked(prisma.user.findUnique).mockResolvedValue({
+			idUser: 1,
+			idCategoria: 1,
+			idUserLeader: null,
+		} as never)
+
+		// 1 SYNCHRONIZED remaining (the failed one was not processed)
+		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(1)
+
+		const result = await procesarPreLiquidacion(1, {
+			inicio: new Date('2024-01-01'),
+			fin: new Date('2024-01-31'),
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.registrosProcesados).toBe(0)
+		expect(result.registrosOmitidos).toBe(1)
+		expect(prisma.comissionDistribution.create).not.toHaveBeenCalled()
+		expect(prisma.settlementCommission.update).not.toHaveBeenCalled()
+		// FileImport should NOT be advanced to PRE-SETTLED
+		expect(prisma.fileImport.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ status: 'PRE-SETTLED' }),
+			})
+		)
+	})
+
+	it('mixed: one success + one UPLINE_NO_MATCH — successful record PRE-SETTLED, failed stays SYNCHRONIZED, FileImport NOT advanced', async () => {
+		// Reset mocks that use mockResolvedValueOnce to avoid queue leakage across tests
+		vi.mocked(prisma.settlementCommission.findMany).mockReset()
+		vi.mocked(prisma.productPercentageCommissionCategory.findMany).mockReset()
+		vi.mocked(prisma.user.findUnique).mockReset()
+		vi.mocked(prisma.comissionDistribution.create).mockReset()
+		vi.mocked(prisma.settlementCommission.count).mockReset()
+
+		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
+			idFileImport: 1,
+			status: 'LOAD',
+			nameFile: 'Test.xlsx',
+		} as never)
+
+		// Two records: first succeeds (FIXED_BENEFICIARY), second fails (UPLINE_CHAIN no match)
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValueOnce([
+			{
+				idSettlementCommission: 500,
+				status: 'SYNCHRONIZED',
+				commissionType: 'VOLUNTARIA',
+				originCommission: null,
+				isClawback: false,
+				commissionValue: new Decimal(50000),
+				baseCommission: new Decimal(50000),
+				discountPercentage: new Decimal(0.1),
+				clawbackPercentage: new Decimal(0),
+				business: {
+					idProductPercentageCommission: 10,
+					user: { idUser: 1 },
+				},
+			},
+			{
+				idSettlementCommission: 501,
+				status: 'SYNCHRONIZED',
+				commissionType: 'VOLUNTARIA',
+				originCommission: null,
+				isClawback: false,
+				commissionValue: new Decimal(50000),
+				baseCommission: new Decimal(50000),
+				discountPercentage: new Decimal(0.1),
+				clawbackPercentage: new Decimal(0),
+				business: {
+					idProductPercentageCommission: 20,
+					user: { idUser: 2 },
+				},
+			},
+		] as never)
+
+		// PPC for record 500: FIXED_BENEFICIARY → resolves OK
+		// PPC for record 501: UPLINE_CHAIN → no match
+		vi.mocked(prisma.productPercentageCommissionCategory.findMany)
+			.mockResolvedValueOnce([
+				{
+					id: 10,
+					porcentajeDistribucion: new Decimal(1),
+					porcentajePortfolio: null,
+					category: {
+						idCategory: 1,
+						code: 'GENERAL',
+						beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+						idFixedBeneficiaryUser: 77,
+						fixedBeneficiaryUser: { idUser: 77, active: true },
+					},
+				},
+			] as never)
+			.mockResolvedValueOnce([
+				{
+					id: 20,
+					porcentajeDistribucion: new Decimal(1),
+					porcentajePortfolio: null,
+					category: {
+						idCategory: 99,
+						code: 'NOMATCH',
+						beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+						idFixedBeneficiaryUser: null,
+						fixedBeneficiaryUser: null,
+					},
+				},
+			] as never)
+
+		// user.findUnique for chain of record 501 — no leader, no category match
+		vi.mocked(prisma.user.findUnique).mockResolvedValue({
+			idUser: 2,
+			idCategoria: 5, // doesn't match category 99
+			idUserLeader: null,
+		} as never)
+
+		vi.mocked(prisma.comissionDistribution.create).mockResolvedValueOnce({
+			idComissionDistribution: 500,
+		} as any)
+
+		// 1 remaining SYNCHRONIZED (record 501 was not processed)
+		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(1)
+
+		const result = await procesarPreLiquidacion(1, {
+			inicio: new Date('2024-01-01'),
+			fin: new Date('2024-01-31'),
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.registrosProcesados).toBe(1)
+		expect(result.registrosOmitidos).toBe(1)
+		expect(result.registrosConError).toHaveLength(1)
+		expect(result.registrosConError[0]).toMatchObject({
+			idSettlementCommission: 501,
+			categoryCode: 'NOMATCH',
+			errorCode: 'UPLINE_NO_LEADER',
+		})
+
+		// Record 500 → PRE-SETTLED
+		expect(prisma.settlementCommission.update).toHaveBeenCalledWith({
+			where: { idSettlementCommission: 500 },
+			data: { status: 'PRE-SETTLED' },
+		})
+
+		// FileImport should NOT be advanced to PRE-SETTLED (1 remaining SYNCHRONIZED)
+		expect(prisma.fileImport.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ status: 'PRE-SETTLED' }),
+			})
+		)
+	})
+
+	it('all succeed: FileImport updated to PRE-SETTLED; registrosConError is empty', async () => {
+		// Reset to avoid queue leakage from prior tests
+		vi.mocked(prisma.settlementCommission.findMany).mockReset()
+		vi.mocked(prisma.productPercentageCommissionCategory.findMany).mockReset()
+		vi.mocked(prisma.comissionDistribution.create).mockReset()
+		vi.mocked(prisma.settlementCommission.count).mockReset()
+
+		vi.mocked(prisma.fileImport.findUnique).mockResolvedValue({
+			idFileImport: 1,
+			status: 'LOAD',
+			nameFile: 'Test.xlsx',
+		} as never)
+
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValueOnce([
+			{
+				idSettlementCommission: 600,
+				status: 'SYNCHRONIZED',
+				commissionType: 'VOLUNTARIA',
+				originCommission: null,
+				isClawback: false,
+				commissionValue: new Decimal(80000),
+				baseCommission: new Decimal(80000),
+				discountPercentage: new Decimal(0.1),
+				clawbackPercentage: new Decimal(0),
+				business: {
+					idProductPercentageCommission: 30,
+					user: { idUser: 10 },
+				},
+			},
+		] as never)
+
+		vi.mocked(prisma.productPercentageCommissionCategory.findMany).mockResolvedValue([
+			{
+				id: 30,
+				porcentajeDistribucion: new Decimal(1),
+				porcentajePortfolio: null,
+				category: {
+					idCategory: 1,
+					code: 'AGENCIA',
+					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					idFixedBeneficiaryUser: 50,
+					fixedBeneficiaryUser: { idUser: 50, active: true },
+				},
+			},
+		] as never)
+
+		vi.mocked(prisma.comissionDistribution.create).mockResolvedValueOnce({
+			idComissionDistribution: 600,
+		} as any)
+
+		// 0 remaining SYNCHRONIZED → FileImport advances to PRE-SETTLED
+		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(0)
+
+		const result = await procesarPreLiquidacion(1, {
+			inicio: new Date('2024-01-01'),
+			fin: new Date('2024-01-31'),
+		})
+
+		expect(result.success).toBe(true)
+		expect(result.registrosProcesados).toBe(1)
+		expect(result.registrosConError).toEqual([])
+
+		// FileImport must be advanced to PRE-SETTLED
+		expect(prisma.fileImport.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { idFileImport: 1 },
+				data: expect.objectContaining({ status: 'PRE-SETTLED' }),
+			})
+		)
+	})
 })
 
 describe('obtenerRegistrosParaLiquidacion', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.mocked(prisma.settlementCommission.findMany).mockReset()
 	})
 
 	it('returns null when file does not exist', async () => {

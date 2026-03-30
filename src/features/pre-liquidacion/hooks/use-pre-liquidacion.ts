@@ -5,6 +5,7 @@ import type { AsyncState } from '@/features/shared/types/async-state.types'
 import type {
 	RespuestaArchivosDisponibles,
 	RespuestaProcesamientoPreLiquidacion,
+	RegistroConError,
 } from '../types/types'
 
 /**
@@ -22,6 +23,8 @@ export function usePreLiquidacion() {
 		null
 	)
 	const [mensajeExito, setMensajeExito] = useState<string | null>(null)
+	const [registrosConError, setRegistrosConError] = useState<RegistroConError[]>([])
+	const [modalErroresOpen, setModalErroresOpen] = useState(false)
 
 	const fetchArchivos = useCallback(async () => {
 		setState({ status: 'loading', data: undefined, error: '' })
@@ -133,6 +136,10 @@ export function usePreLiquidacion() {
 					setMensajeExito(
 						`Pre-liquidación completada: ${result.registrosProcesados} registros procesados`
 					)
+					if (result.registrosConError && result.registrosConError.length > 0) {
+						setRegistrosConError(result.registrosConError)
+						setModalErroresOpen(true)
+					}
 					// Refrescar lista de archivos
 					await fetchArchivos()
 				}
@@ -162,5 +169,8 @@ export function usePreLiquidacion() {
 		isProcesando,
 		errorProcesamiento,
 		mensajeExito,
+		registrosConError,
+		modalErroresOpen,
+		cerrarModalErrores: () => setModalErroresOpen(false),
 	}
 }

@@ -276,7 +276,7 @@ export function CommissionRuleForm({
 										: 'text-muted-foreground'
 								)}
 							>
-								{totalPercentage.toFixed(2)}%
+								{totalPercentage.toFixed(4)}%
 							</p>
 						</div>
 					</div>

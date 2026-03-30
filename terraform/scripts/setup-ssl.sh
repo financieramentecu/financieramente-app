@@ -64,8 +64,7 @@ certbot certonly --standalone \
     --agree-tos \
     --email "$LETSENCRYPT_EMAIL" \
     -d "$DOMAIN" \
-    --preferred-challenges http \
-    --standalone-supported-challenges http-01
+    --preferred-challenges http
 
 # Copy certificates to application directory
 echo "Copying certificates..."

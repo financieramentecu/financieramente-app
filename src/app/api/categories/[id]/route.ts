@@ -18,6 +18,11 @@ export async function GET(
 		const { id } = await params
 		const category = await prisma.category.findUnique({
 			where: { idCategory: parseInt(id) },
+			include: {
+				fixedBeneficiaryUser: {
+					select: { idUser: true, name: true, lastName: true, email: true },
+				},
+			},
 		})
 
 		if (!category) {
@@ -101,14 +106,46 @@ export async function PUT(
 			}
 		}
 
+		// Validate beneficiary constraint before persisting
+		if (
+			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			(data.idFixedBeneficiaryUser === null ||
+				data.idFixedBeneficiaryUser === undefined)
+		) {
+			const errorResponse: ApiResponse<null> = {
+				data: null,
+				error:
+					'El usuario beneficiario fijo es requerido cuando el modo es FIXED_BENEFICIARY',
+			}
+			return NextResponse.json(errorResponse, { status: 400 })
+		}
+
+		// Verify fixed beneficiary user exists and is active
+		if (
+			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			data.idFixedBeneficiaryUser != null
+		) {
+			const beneficiaryUser = await prisma.user.findFirst({
+				where: { idUser: data.idFixedBeneficiaryUser, active: true },
+			})
+			if (!beneficiaryUser) {
+				const errorResponse: ApiResponse<null> = {
+					data: null,
+					error: 'El usuario beneficiario fijo no existe o está inactivo',
+				}
+				return NextResponse.json(errorResponse, { status: 400 })
+			}
+		}
+
 		// Prepare update data
 		const updateData: {
 			code?: string
 			name?: string
-			typeCategory?: string
 			idCategoryType?: number
 			descripcion?: string | null
 			status?: boolean
+			beneficiaryMode?: 'UPLINE_CHAIN' | 'FIXED_BENEFICIARY'
+			idFixedBeneficiaryUser?: number | null
 		} = {}
 
 		if (data.code) updateData.code = data.code.trim().toUpperCase()
@@ -116,6 +153,13 @@ export async function PUT(
 		if (data.descripcion !== undefined)
 			updateData.descripcion = data.descripcion
 		if (data.status !== undefined) updateData.status = data.status
+		if (data.beneficiaryMode !== undefined)
+			updateData.beneficiaryMode = data.beneficiaryMode
+		if ('idFixedBeneficiaryUser' in data)
+			updateData.idFixedBeneficiaryUser =
+				data.beneficiaryMode === 'UPLINE_CHAIN'
+					? null
+					: (data.idFixedBeneficiaryUser ?? null)
 
 		if (data.typeCategory) {
 			const categoryTypeRec = await prisma.categoryType.findFirst({
@@ -130,7 +174,6 @@ export async function PUT(
 				return NextResponse.json(errorResponse, { status: 400 })
 			}
 
-			updateData.typeCategory = data.typeCategory
 			updateData.idCategoryType = categoryTypeRec.id
 		}
 
@@ -138,6 +181,11 @@ export async function PUT(
 		const category = await prisma.category.update({
 			where: { idCategory: categoryId },
 			data: updateData,
+			include: {
+				fixedBeneficiaryUser: {
+					select: { idUser: true, name: true, lastName: true, email: true },
+				},
+			},
 		})
 
 		// Transform using mapper
