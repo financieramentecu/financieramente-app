@@ -1,3 +1,4 @@
+import type { Business } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidacion-resumen-notification'
 import { Decimal } from '@prisma/client/runtime/library'
@@ -87,7 +88,10 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 			const count = row._count.idSettlementCommission
 			if (row.status === 'SYNCHRONIZED') {
 				countsMap[row.idFileImport].sincronizados = count
-			} else if (row.status === 'PRE-SETTLED' || row.status === 'PRE-SETTLE-APROVED') {
+			} else if (
+				row.status === 'PRE-SETTLED' ||
+				row.status === 'PRE-SETTLE-APROVED'
+			) {
 				countsMap[row.idFileImport].registrosPreliquidados += count
 			}
 		}
@@ -118,7 +122,9 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 	})
 
 	const disponiblesParaPreliquidar = archivos.filter(
-		(a) => a.estado === 'LOAD' && (a.sincronizados ?? 0) > (a.registrosPreliquidados ?? 0)
+		(a) =>
+			a.estado === 'LOAD' &&
+			(a.sincronizados ?? 0) > (a.registrosPreliquidados ?? 0)
 	)
 	const archivosPreLiquidados = archivos.filter(
 		(a) => a.estado === 'PRE-SETTLED' || (a.registrosPreliquidados ?? 0) > 0
@@ -429,8 +435,16 @@ export async function obtenerComisionesPreliquidadas(
 			contrato: r.contract ?? r.business?.contract ?? null,
 			nombreAsesor,
 			tipo: r.descripcion,
-			monto: (r.commissionValue ?? r.baseCommission ?? new Decimal(0)).toNumber(),
-			baseComision: (r.baseCommission ?? r.commissionValue ?? new Decimal(0)).toNumber(),
+			monto: (
+				r.commissionValue ??
+				r.baseCommission ??
+				new Decimal(0)
+			).toNumber(),
+			baseComision: (
+				r.baseCommission ??
+				r.commissionValue ??
+				new Decimal(0)
+			).toNumber(),
 			porcentajeDescuento: (r.discountPercentage ?? new Decimal(0)).toNumber(),
 			porcentajeClawback: (r.clawbackPercentage ?? new Decimal(0)).toNumber(),
 			esClawback: r.isClawback ?? false,
@@ -512,8 +526,16 @@ export async function obtenerRegistrosParaLiquidacion(
 			contrato: r.contract ?? r.business?.contract ?? null,
 			nombreAsesor,
 			tipo: r.descripcion,
-			monto: (r.commissionValue ?? r.baseCommission ?? new Decimal(0)).toNumber(),
-			baseComision: (r.baseCommission ?? r.commissionValue ?? new Decimal(0)).toNumber(),
+			monto: (
+				r.commissionValue ??
+				r.baseCommission ??
+				new Decimal(0)
+			).toNumber(),
+			baseComision: (
+				r.baseCommission ??
+				r.commissionValue ??
+				new Decimal(0)
+			).toNumber(),
 			porcentajeDescuento: (r.discountPercentage ?? new Decimal(0)).toNumber(),
 			porcentajeClawback: (r.clawbackPercentage ?? new Decimal(0)).toNumber(),
 			esClawback: r.isClawback ?? false,
@@ -599,8 +621,6 @@ export async function obtenerDistribucionComision(
 				? ppcc.porcentajePortfolio.toNumber()
 				: (ppcc?.porcentajeDistribucion?.toNumber() ?? 0)
 
-
-
 		const ben = row.beneficiaryUser
 		const beneficiarioNombre = ben
 			? `${ben.name} ${ben.lastName ?? ''}`.trim()
@@ -612,7 +632,8 @@ export async function obtenerDistribucionComision(
 			categoria: categoriaNombre,
 			beneficiarioNombre,
 			value_commision: row.valueComission?.toNumber() ?? 0,
-			applied_discount_percentace: row.appliedDiscountPercentage?.toNumber() ?? 0,
+			applied_discount_percentace:
+				row.appliedDiscountPercentage?.toNumber() ?? 0,
 			discount_total: row.totalDiscount?.toNumber() ?? 0,
 			commission_porcentaje: porcentajeDistribucion,
 			percentaje_applied: row.clawback?.porcentajeApplied.toNumber() ?? null,
@@ -625,7 +646,8 @@ export async function obtenerDistribucionComision(
 	const productConfig =
 		ppccFirst?.productPercentageCommission?.productConfiguration
 
-	const commissionValueParent = sc.commissionValue?.toNumber() ?? sc.baseCommission?.toNumber() ?? 0
+	const commissionValueParent =
+		sc.commissionValue?.toNumber() ?? sc.baseCommission?.toNumber() ?? 0
 
 	const distribucion: DistribucionComision = {
 		idSettlementCommission: id,
@@ -794,8 +816,7 @@ export async function calcularComisionesParaRegistro(
 	const clawback = settlement.clawbackPercentage ?? new Decimal(0)
 
 	// Aplicar fórmulas
-	const comisionBase =
-		settlement.commissionValue || new Decimal(0)
+	const comisionBase = settlement.commissionValue || new Decimal(0)
 	const comisionesCalculadas = aplicarFormulas(
 		comisionBase,
 		porcentajes,
@@ -937,7 +958,14 @@ export async function procesarPreLiquidacion(
 	registrosProcesados: number
 	registrosOmitidos?: number
 	mensaje: string
-	registrosConError: { idSettlementCommission: number; categoryCode: string; errorCode: string; contrato: string | null; idBusiness: number; idUserAgent: number }[]
+	registrosConError: {
+		idSettlementCommission: number
+		categoryCode: string
+		errorCode: string
+		contrato: string | null
+		idBusiness: number
+		idUserAgent: number
+	}[]
 }> {
 	try {
 		// Verificar que el archivo existe y está en estado LOAD
@@ -995,7 +1023,14 @@ export async function procesarPreLiquidacion(
 
 		let registrosProcesados = 0
 		let registrosOmitidos = 0
-		const registrosConError: { idSettlementCommission: number; categoryCode: string; errorCode: string; contrato: string | null; idBusiness: number; idUserAgent: number }[] = []
+		const registrosConError: {
+			idSettlementCommission: number
+			categoryCode: string
+			errorCode: string
+			contrato: string | null
+			idBusiness: number
+			idUserAgent: number
+		}[] = []
 
 		for (const registro of registros) {
 			if (!registro.business) {
@@ -1093,9 +1128,9 @@ export async function procesarPreLiquidacion(
 				}
 			})
 
-			const comisionBase =
-				registro.commissionValue || new Decimal(0)
+			const comisionBase = registro.commissionValue || new Decimal(0)
 
+			// Usamos transacción para asegurar que se crean las distribuciones y se actualiza el estado atómicamente
 			await prisma.$transaction(async (tx) => {
 				for (const config of configCategorias) {
 					const idBeneficiaryUser = beneficiaryByConfigId.get(config.id)
@@ -1124,12 +1159,12 @@ export async function procesarPreLiquidacion(
 						data: {
 							idSettlementCommission: registro.idSettlementCommission,
 							idPercentajeCommisionCategory: config.id,
+							idBeneficiaryUser,
 							valueComission: valorComisionBruta,
 							valueComissionFinal: valorComisionFinal,
 							totalDiscount: totalDescuento,
 							appliedDiscountPercentage: descuentoPorcentaje,
 							status: 'PRE-SETTLED',
-							idBeneficiaryUser,
 						},
 					})
 
@@ -1243,8 +1278,6 @@ export async function procesarPreLiquidacion(
 	}
 }
 
-import { Business } from '@prisma/client'
-
 /**
  * Recalcula comisiones de un negocio en estado EMITIDO al cambiar su origen.
  * Asegura la retención de descuentos y clawbacks de las comisiones PRE-SETTLED.
@@ -1253,76 +1286,89 @@ export async function recalcularComisionesPorCambioOrigen(
 	idBusiness: number,
 	idClientOrigin: number,
 	usuarioAccion: { idUser: number; name: string }
-): Promise<{ success: boolean; business?: Business; countRecreados?: number; message?: string }> {
+): Promise<{
+	success: boolean
+	business?: Business
+	countRecreados?: number
+	message?: string
+}> {
 	return prisma.$transaction(async (tx) => {
 		const business = await tx.business.findUnique({
 			where: { idBusiness },
-			include: { 
+			include: {
 				user: true,
 				productPercentageCommission: {
-					include: { productConfiguration: true }
-				}
-			}
+					include: { productConfiguration: true },
+				},
+			},
 		})
 		if (!business) throw new Error('Negocio no encontrado')
-		
+
 		const productConfig = await tx.productConfiguration.findFirst({
 			where: {
-				idProduct: business.productPercentageCommission.productConfiguration.idProduct,
-				idCategory: business.productPercentageCommission.productConfiguration.idCategory,
-				idClientOrigin
+				idProduct:
+					business.productPercentageCommission.productConfiguration.idProduct,
+				idCategory:
+					business.productPercentageCommission.productConfiguration.idCategory,
+				idClientOrigin,
 			},
 			include: {
 				productPercentageCommissions: {
-					where: { active: true }
-				}
-			}
+					where: { active: true },
+				},
+			},
 		})
-		
+
 		if (!productConfig) {
-			throw new Error('No existe configuración de producto para el nuevo origen')
+			throw new Error(
+				'No existe configuración de producto para el nuevo origen'
+			)
 		}
-		
+
 		const activePercentageConfig = productConfig.productPercentageCommissions[0]
 		if (!activePercentageConfig) {
-			throw new Error('No existe distribución de comisiones para el nuevo origen')
+			throw new Error(
+				'No existe distribución de comisiones para el nuevo origen'
+			)
 		}
 
 		const updatedBusiness = await tx.business.update({
 			where: { idBusiness },
 			data: {
 				idClientOrigin,
-				idProductPercentageCommission: activePercentageConfig.idProductPercentageCommission,
-				updatedAt: new Date()
-			}
+				idProductPercentageCommission:
+					activePercentageConfig.idProductPercentageCommission,
+				updatedAt: new Date(),
+			},
 		})
 
 		const preSettledCommissions = await tx.settlementCommission.findMany({
 			where: {
 				idBusiness,
-				status: 'PRE-SETTLED'
-			}
+				status: 'PRE-SETTLED',
+			},
 		})
 
 		let countRecreados = 0
 
 		if (preSettledCommissions.length > 0) {
-			const newCategories = await tx.productPercentageCommissionCategory.findMany({
-				where: {
-					idProductPercentageCommission:
-						activePercentageConfig.idProductPercentageCommission,
-					active: true,
-				},
-				include: {
-					category: {
-						include: {
-							fixedBeneficiaryUser: {
-								select: { idUser: true, active: true },
+			const newCategories =
+				await tx.productPercentageCommissionCategory.findMany({
+					where: {
+						idProductPercentageCommission:
+							activePercentageConfig.idProductPercentageCommission,
+						active: true,
+					},
+					include: {
+						category: {
+							include: {
+								fixedBeneficiaryUser: {
+									select: { idUser: true, active: true },
+								},
 							},
 						},
 					},
-				},
-			})
+				})
 
 			if (newCategories.length === 0) {
 				throw new Error(
@@ -1330,25 +1376,23 @@ export async function recalcularComisionesPorCambioOrigen(
 				)
 			}
 
-			if (
-				ppcConfigsNeedUplineAgent(newCategories) &&
-				!business.user
-			) {
+			if (ppcConfigsNeedUplineAgent(newCategories) && !business.user) {
 				throw new Error(
 					'El negocio no tiene usuario asesor; no se puede recalcular distribución con categorías UPLINE_CHAIN'
 				)
 			}
 
 			const chain =
-				business.user != null &&
-				ppcConfigsNeedUplineAgent(newCategories)
+				business.user != null && ppcConfigsNeedUplineAgent(newCategories)
 					? await buildUplineChain(tx, business.user.idUser)
 					: []
 
 			const ids = preSettledCommissions.map((c) => c.idSettlementCommission)
 
 			await tx.clawback.deleteMany({
-				where: { comissionDistribution: { idSettlementCommission: { in: ids } } },
+				where: {
+					comissionDistribution: { idSettlementCommission: { in: ids } },
+				},
 			})
 
 			await tx.comissionDistribution.deleteMany({
@@ -1433,10 +1477,10 @@ export async function recalcularComisionesPorCambioOrigen(
 					entityId: business.idBusiness,
 					previousOrigin: business.idClientOrigin,
 					newOrigin: idClientOrigin,
-					recalculatedCommissionsCount: countRecreados
+					recalculatedCommissionsCount: countRecreados,
 				}),
-				idUser: usuarioAccion.idUser
-			}
+				idUser: usuarioAccion.idUser,
+			},
 		})
 
 		return { success: true, business: updatedBusiness, countRecreados }
