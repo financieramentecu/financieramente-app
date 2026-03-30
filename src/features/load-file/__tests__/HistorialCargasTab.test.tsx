@@ -15,6 +15,7 @@ vi.mock('../lib/load-file-api', () => ({
 	},
 }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 // Stub out heavy child components that need full providers
 vi.mock('../components/RecordsByStatusView', () => ({
 	RecordsByStatusView: () => null,
@@ -79,7 +80,7 @@ describe('HistorialCargasTab — Preliquidar button visibility', () => {
 			makeFileHistoryReturn([makeCarga({ sincronizados: 0, estado: 'LOAD' })])
 		)
 
-		render(<HistorialCargasTab />)
+		render(<HistorialCargasTab allowedStatuses={['LOAD', 'PRE-SETTLED']} />)
 
 		expect(screen.queryByTitle('Pre-liquidar archivo')).toBeNull()
 		expect(screen.queryByText('Preliquidar')).toBeNull()
@@ -98,7 +99,7 @@ describe('HistorialCargasTab — Preliquidar button visibility', () => {
 			makeFileHistoryReturn([makeCarga({ sincronizados: 10, estado: 'COMPLETED' })])
 		)
 
-		render(<HistorialCargasTab />)
+		render(<HistorialCargasTab allowedStatuses={['LOAD', 'PRE-SETTLED']} />)
 
 		expect(screen.queryByTitle('Pre-liquidar archivo')).toBeNull()
 		expect(screen.queryByText('Preliquidar')).toBeNull()
@@ -118,7 +119,7 @@ describe('HistorialCargasTab — Preliquidar button visibility', () => {
 			makeFileHistoryReturn([makeCarga({ sincronizados: 5, estado: 'LOAD' })])
 		)
 
-		render(<HistorialCargasTab />)
+		render(<HistorialCargasTab allowedStatuses={['LOAD', 'PRE-SETTLED']} />)
 
 		expect(screen.queryByTitle('Pre-liquidar archivo')).toBeNull()
 		expect(screen.queryByText('Preliquidar')).toBeNull()
@@ -137,7 +138,7 @@ describe('HistorialCargasTab — Preliquidar button visibility', () => {
 			makeFileHistoryReturn([makeCarga({ sincronizados: 5, estado: 'LOAD' })])
 		)
 
-		render(<HistorialCargasTab />)
+		render(<HistorialCargasTab allowedStatuses={['LOAD', 'PRE-SETTLED']} />)
 
 		expect(screen.getByTitle('Pre-liquidar archivo')).toBeTruthy()
 		expect(screen.getByText('Preliquidar')).toBeTruthy()
@@ -156,7 +157,7 @@ describe('HistorialCargasTab — Preliquidar button visibility', () => {
 			makeFileHistoryReturn([makeCarga({ sincronizados: 3, estado: 'LOAD' })])
 		)
 
-		render(<HistorialCargasTab />)
+		render(<HistorialCargasTab allowedStatuses={['LOAD', 'PRE-SETTLED']} />)
 
 		expect(screen.getByTitle('Pre-liquidar archivo')).toBeTruthy()
 	})
@@ -174,7 +175,7 @@ describe('HistorialCargasTab — Preliquidar button visibility', () => {
 			makeFileHistoryReturn([makeCarga({ sincronizados: 5, estado: 'LOAD' })])
 		)
 
-		render(<HistorialCargasTab />)
+		render(<HistorialCargasTab allowedStatuses={['LOAD', 'PRE-SETTLED']} />)
 
 		expect(screen.queryByTitle('Pre-liquidar archivo')).toBeNull()
 	})

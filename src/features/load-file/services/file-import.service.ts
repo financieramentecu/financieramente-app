@@ -124,7 +124,7 @@ export class FileImportService {
 		isAdmin: boolean
 		month?: number
 		year?: number
-		status?: string
+		status?: string[]
 		search?: string
 	}): Promise<FileImportHistory[]> {
 		const { userId, isAdmin, month, year, status, search } = params
@@ -132,9 +132,9 @@ export class FileImportService {
 		const where: Prisma.FileImportWhereInput = isAdmin ? {} : { idUser: userId }
 		if (month !== undefined) where.month = month
 		if (year !== undefined) where.year = year
-		if (status && status !== 'ALL') {
-			where.status = status
-		} else if (!status || status === 'ALL') {
+		if (status && status.length > 0) {
+			where.status = { in: status }
+		} else {
 			where.status = { in: ['LOAD', 'PRE-SETTLED', 'COMPLETED'] }
 		}
 		if (search) where.nameFile = { contains: search, mode: 'insensitive' }

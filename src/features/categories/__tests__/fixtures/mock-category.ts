@@ -1,6 +1,11 @@
 import type { Category } from '../../types/category.types'
 import { CategoryType as CategoryTypeDomain } from '../../types/category.types'
-import { BeneficiaryMode, Category as PrismaCategory, CategoryType, User } from '@prisma/client'
+import {
+	BeneficiaryMode,
+	Category as PrismaCategory,
+	CategoryType,
+	User,
+} from '@prisma/client'
 
 /**
  * Mock category for testing (Domain Type)
@@ -20,12 +25,16 @@ export const MOCK_CATEGORY: Category = {
 	updatedAt: new Date().toISOString(),
 }
 
-export const createMockCategory = (overrides: Partial<Category> = {}): Category => ({
+export const createMockCategory = (
+	overrides: Partial<Category> = {}
+): Category => ({
 	...MOCK_CATEGORY,
 	...overrides,
 })
 
-export const createMockCategoryListResponse = (categories = [MOCK_CATEGORY]) => ({
+export const createMockCategoryListResponse = (
+	categories = [MOCK_CATEGORY]
+) => ({
 	categories,
 	pagination: {
 		total: categories.length,
@@ -35,7 +44,10 @@ export const createMockCategoryListResponse = (categories = [MOCK_CATEGORY]) => 
 	},
 })
 
-export const createMockCategoriesByType = (type: CategoryTypeDomain = 'MMS', count = 3) => {
+export const createMockCategoriesByType = (
+	type: CategoryTypeDomain = 'MMS',
+	count = 3
+) => {
 	return Array.from({ length: count }, (_, i) => ({
 		...MOCK_CATEGORY,
 		idCategory: i + 1,
@@ -46,13 +58,18 @@ export const createMockCategoriesByType = (type: CategoryTypeDomain = 'MMS', cou
 
 type PrismaCategoryWithRelations = PrismaCategory & {
 	categoryType?: CategoryType | null
-	fixedBeneficiaryUser?: Pick<User, 'idUser' | 'name' | 'lastName' | 'email'> | null
+	fixedBeneficiaryUser?: Pick<
+		User,
+		'idUser' | 'name' | 'lastName' | 'email'
+	> | null
 }
 
 /**
  * Mock Prisma Category for testing (Prisma Client Type)
  */
-export const createMockPrismaCategory = (overrides: Partial<PrismaCategoryWithRelations> = {}): PrismaCategoryWithRelations => {
+export const createMockPrismaCategory = (
+	overrides: Partial<PrismaCategoryWithRelations> = {}
+): PrismaCategoryWithRelations => {
 	const now = new Date()
 	return {
 		idCategory: 1,

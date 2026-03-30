@@ -10,6 +10,34 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { FileImport } from '@prisma/client'
 
 /**
+ * Evita SyntaxError al hacer `res.json()` cuando el servidor devuelve HTML
+ * (404/502, redirección a login, página de error).
+ */
+function tryParseApiJsonBody(bodyText: string):
+	| { readonly success: true; readonly data: unknown }
+	| { readonly success: false; readonly error: string } {
+	const trimmed = bodyText.trimStart()
+	if (
+		trimmed.startsWith('<') ||
+		trimmed.slice(0, 9).toLowerCase() === '<!doctype'
+	) {
+		return {
+			success: false,
+			error:
+				'El servidor respondió con una página web en lugar de datos. Suele indicar sesión expirada o un error del servidor. Recarga la página o vuelve a iniciar sesión.',
+		}
+	}
+	try {
+		return { success: true, data: JSON.parse(bodyText) as unknown }
+	} catch {
+		return {
+			success: false,
+			error: 'La respuesta del servidor no es JSON válido.',
+		}
+	}
+}
+
+/**
  * Servicio cliente para el módulo de carga de archivos (load-file).
  * Utiliza el contrato global de respuestas `ApiResponse`.
  */
@@ -67,7 +95,7 @@ export const loadFileApi = {
 		filters?: {
 			month?: number
 			year?: number
-			status?: string
+			statuses?: string[]
 			search?: string
 		},
 		config?: { signal?: AbortSignal }
@@ -78,15 +106,36 @@ export const loadFileApi = {
 			params.set('limit', String(pageSize))
 			if (filters?.month != null) params.set('month', String(filters.month))
 			if (filters?.year != null) params.set('year', String(filters.year))
-			if (filters?.status && filters.status !== 'ALL') params.set('status', filters.status)
+			if (filters?.statuses && filters.statuses.length > 0)
+				params.set('status', filters.statuses.join(','))
 			if (filters?.search) params.set('search', filters.search)
 			const url = `/api/carga-archivos/file-import?${params.toString()}`
-			const res = await fetch(url, { method: 'GET', signal: config?.signal })
+			const res = await fetch(url, {
+				method: 'GET',
+				signal: config?.signal,
+				credentials: 'include',
+			})
 
-			const json = await res.json()
+			const text = await res.text()
+			const parsed = tryParseApiJsonBody(text)
+			if (!parsed.success) {
+				return { data: null, error: parsed.error }
+			}
+
+			const json = parsed.data as {
+				data?: PaginatedData<FileImportHistory>
+				error?: string
+				success?: boolean
+				pagination?: PaginatedData<FileImportHistory>['pagination']
+			}
 
 			if (!res.ok) {
-				return { data: null, error: json.error || 'Error obteniendo historial' }
+				return {
+					data: null,
+					error:
+						(typeof json.error === 'string' && json.error) ||
+						'Error obteniendo historial',
+				}
 			}
 
 			if (json.data && json.data.items) {
@@ -97,8 +146,14 @@ export const loadFileApi = {
 			if (json.success && json.data) {
 				return {
 					data: {
-						items: json.data,
-						pagination: json.pagination,
+						items: json.data as unknown as FileImportHistory[],
+						pagination:
+							json.pagination ?? {
+								page: 1,
+								pageSize: 0,
+								totalItems: 0,
+								totalPages: 1,
+							},
 					},
 				}
 			}
