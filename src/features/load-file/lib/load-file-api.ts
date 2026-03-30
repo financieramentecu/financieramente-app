@@ -67,7 +67,7 @@ export const loadFileApi = {
 		filters?: {
 			month?: number
 			year?: number
-			status?: string
+			statuses?: string[]
 			search?: string
 		},
 		config?: { signal?: AbortSignal }
@@ -78,7 +78,8 @@ export const loadFileApi = {
 			params.set('limit', String(pageSize))
 			if (filters?.month != null) params.set('month', String(filters.month))
 			if (filters?.year != null) params.set('year', String(filters.year))
-			if (filters?.status && filters.status !== 'ALL') params.set('status', filters.status)
+			if (filters?.statuses && filters.statuses.length > 0)
+				params.set('status', filters.statuses.join(','))
 			if (filters?.search) params.set('search', filters.search)
 			const url = `/api/carga-archivos/file-import?${params.toString()}`
 			const res = await fetch(url, { method: 'GET', signal: config?.signal })
