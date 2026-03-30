@@ -1060,6 +1060,10 @@ export async function procesarPreLiquidacion(
 							totalDiscount: totalDescuento,
 							appliedDiscountPercentage: descuentoPorcentaje,
 							status: 'LIQUIDADO',
+							// idBeneficiaryUser is required by schema; for flows without a business user
+							// (VOLUNTARIA with no user), this will throw at runtime — a pre-existing
+							// design gap introduced when the field was added to the schema.
+							idBeneficiaryUser: idUser!,
 						},
 					})
 
