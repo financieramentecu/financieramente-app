@@ -84,10 +84,11 @@ export function DataTable<TData>({
 
 	// Definición final de columnas (inyectando selección y acciones)
 	const finalColumns = useMemo(() => {
-		const cols = columns.map((col) => ({
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const cols = columns.map((col: any) => ({
 			...col,
-			id: (col as any).id || (col as any).accessorKey,
-			filterFn: (col as any).filterFn ?? 'includesString',
+			id: col.id || col.accessorKey,
+			filterFn: col.filterFn ?? 'includesString',
 		}))
 
 		// Inyectar columna de checkboxes si es selectable o enableRowSelection o hay callback de selección
@@ -119,13 +120,19 @@ export function DataTable<TData>({
 				),
 				enableSorting: false,
 				enableHiding: false,
-			} as any)
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as unknown as any)
 		}
 
 		// Inyectar columna de acciones si existe el prop
 		if (actions) {
 			cols.push({
 				id: 'actions',
+				header: () => (
+					<div className="text-right pr-4">
+						Acciones
+					</div>
+				),
 				cell: ({ row }: CellContext<TData, unknown>) => (
 					<div className="flex items-center justify-end">
 						{actions(row.original)}
@@ -133,11 +140,12 @@ export function DataTable<TData>({
 				),
 				enableSorting: false,
 				enableHiding: false,
-			} as any)
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as unknown as any)
 		}
 
 		return cols
-	}, [columns, selectable, enableRowSelection, actions, getRowAriaLabel])
+	}, [columns, selectable, enableRowSelection, actions, getRowAriaLabel, onSelectionChange])
 
 	// Sincronización de selección controlada/no-controlada
 	const rowSelection = selectedRowIds ?? externalRowSelection ?? internalRowSelection
@@ -255,7 +263,6 @@ export function DataTable<TData>({
 			{(searchable || isExportable || renderAdditionalFilters) && (
 				<DataTableToolbar
 					table={table}
-					columnFilters={columnFilters}
 					setColumnFilters={setColumnFilters}
 					globalFilter={globalFilter}
 					setGlobalFilter={setGlobalFilter}

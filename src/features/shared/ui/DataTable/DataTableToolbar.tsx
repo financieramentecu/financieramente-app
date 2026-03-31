@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react'
 
 interface DataTableToolbarProps<TData> {
 	table: Table<TData>
-	columnFilters: ColumnFiltersState
 	setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>
 	globalFilter: string
 	setGlobalFilter: React.Dispatch<React.SetStateAction<string>>
@@ -24,7 +23,6 @@ interface DataTableToolbarProps<TData> {
 
 export function DataTableToolbar<TData>({
 	table,
-	columnFilters,
 	setColumnFilters,
 	globalFilter,
 	setGlobalFilter,

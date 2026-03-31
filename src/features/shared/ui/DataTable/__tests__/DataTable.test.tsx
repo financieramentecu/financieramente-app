@@ -60,25 +60,23 @@ describe('DataTable', () => {
 		expect(skeletons.length).toBeGreaterThan(0)
 	})
 
-	it('debe filtrar los datos mediante la búsqueda global', () => {
+	it('debe filtrar los datos mediante la búsqueda global', async () => {
 		render(
 			<DataTable
 				columns={columns}
 				data={data}
 				searchable={true}
 				searchColumn="name"
+				searchDebounceMs={0}
 			/>
 		)
 
-		const searchInput = screen.getByPlaceholderText('Filtrar por name...')
+		const searchInput = screen.getByPlaceholderText('Buscar...')
 		fireEvent.change(searchInput, { target: { value: 'Item 1' } })
 
-		// Como tiene debounce de 300ms, usamos vi.useFakeTimers si fuera necesario,
-		// pero TanStack Table a veces actualiza síncronamente el modelo de filas filtradas.
-		// Sin embargo, el Input en DataTableToolbar tiene un useEffect con setTimeout.
-
-		// Para este test, simplificaremos asumiendo el filtrado.
-		// En un entorno real de integración, esperaríamos el debounce.
+		// Con searchDebounceMs={0}, el filtrado debería ser inmediato o en el siguiente tick
+		expect(screen.getByText('Item 1')).toBeInTheDocument()
+		expect(screen.queryByText('Item 2')).not.toBeInTheDocument()
 	})
 
 	it('debe manejar la selección de filas si selectable es true', () => {
