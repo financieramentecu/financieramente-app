@@ -10,12 +10,12 @@ import { ColumnDef } from '@tanstack/react-table';
 import { useComisionesLiquidadas } from '../hooks/use-comisiones-liquidadas';
 import { LiquidacionConRelaciones } from '../services/liquidacion.service';
 import { Button } from '@/features/shared/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/features/shared/ui/select';
 import {
   Popover,
@@ -36,21 +36,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/features/shared/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/features/shared/ui/table';
+
 import { cn } from '@/lib/utils';
 
 // Helper formatting functions
-const formatCurrency = (value: number) => 
+const formatCurrency = (value: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
 
-const formatPercentage = (value: number) => 
+const formatPercentage = (value: number) =>
   new Intl.NumberFormat('es-CO', { style: 'percent', minimumFractionDigits: 2 }).format(value);
 
 /**
@@ -62,7 +55,7 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
       {
         accessorKey: 'productPercentageCommissionCategory.category.name',
         header: 'Categoría',
-        cell: ({ row }: { row: any }) => (
+        cell: ({ row }) => (
           <span className="font-semibold text-xs text-slate-700 dark:text-slate-300">
             {row.original.productPercentageCommissionCategory?.category?.name || 'Desconocido'}
           </span>
@@ -71,11 +64,11 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
       {
         id: 'participant',
         header: () => <div className="text-center">Participante</div>,
-        cell: ({ row }: { row: any }) => {
+        cell: ({ row }) => {
           const dist = row.original;
           const catName = dist.productPercentageCommissionCategory?.category?.name || 'Desconocido';
           const upperCat = catName.toUpperCase();
-          
+
           let participant = '-';
           if (dist.clawback?.user) {
             participant = `${dist.clawback.user.name} ${dist.clawback.user.lastName || ''}`.trim();
@@ -106,7 +99,7 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
       {
         id: 'porcentajeDistribucion',
         header: () => <div className="text-right">% Dist.</div>,
-        cell: ({ row }: { row: any }) => (
+        cell: ({ row }) => (
           <div className="text-right text-xs font-medium text-slate-500">
             {formatPercentage(Number(row.original.productPercentageCommissionCategory?.porcentajeDistribucion || 0))}
           </div>
@@ -115,7 +108,7 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
       {
         accessorKey: 'valueComission',
         header: () => <div className="text-right">Com. Bruta</div>,
-        cell: ({ row }: { row: any }) => (
+        cell: ({ row }) => (
           <div className="text-right text-xs font-medium">
             {formatCurrency(Number(row.original.valueComission))}
           </div>
@@ -124,10 +117,10 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
       {
         accessorKey: 'appliedDiscountPercentage',
         header: () => <div className="text-right">% Desc.</div>,
-        cell: ({ row }: { row: any }) => (
+        cell: ({ row }) => (
           <div className="text-right text-xs text-amber-600 font-medium">
-            {row.original.appliedDiscountPercentage 
-              ? formatPercentage(Number(row.original.appliedDiscountPercentage)) 
+            {row.original.appliedDiscountPercentage
+              ? formatPercentage(Number(row.original.appliedDiscountPercentage))
               : '0%'}
           </div>
         ),
@@ -135,10 +128,10 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
       {
         accessorKey: 'totalDiscount',
         header: () => <div className="text-right">Total Desc.</div>,
-        cell: ({ row }: { row: any }) => (
+        cell: ({ row }) => (
           <div className="text-right text-xs text-amber-600">
-            {row.original.totalDiscount && Number(row.original.totalDiscount) > 0 
-              ? `-${formatCurrency(Number(row.original.totalDiscount))}` 
+            {row.original.totalDiscount && Number(row.original.totalDiscount) > 0
+              ? `-${formatCurrency(Number(row.original.totalDiscount))}`
               : '0'}
           </div>
         ),
@@ -146,10 +139,10 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
       {
         id: 'porcentajeClawback',
         header: () => <div className="text-right">% Clawback</div>,
-        cell: ({ row }: { row: any }) => (
+        cell: ({ row }) => (
           <div className="text-right text-xs text-red-500 font-medium">
-            {row.original.clawback 
-              ? formatPercentage(Number(row.original.clawback.porcentajeApplied)) 
+            {row.original.clawback
+              ? formatPercentage(Number(row.original.clawback.porcentajeApplied))
               : '0%'}
           </div>
         ),
@@ -157,10 +150,10 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
       {
         id: 'valorClawback',
         header: () => <div className="text-right">Clawback</div>,
-        cell: ({ row }: { row: any }) => (
+        cell: ({ row }) => (
           <div className="text-right text-xs text-red-500">
-            {row.original.clawback 
-              ? `-${formatCurrency(Number(row.original.clawback.valueClawback))}` 
+            {row.original.clawback
+              ? `-${formatCurrency(Number(row.original.clawback.valueClawback))}`
               : '0'}
           </div>
         ),
@@ -168,7 +161,7 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
       {
         accessorKey: 'valueComissionFinal',
         header: () => <div className="text-right">Com. Final</div>,
-        cell: ({ row }: { row: any }) => (
+        cell: ({ row }) => (
           <div className="text-right font-bold text-sm text-primary">
             {formatCurrency(Number(row.original.valueComissionFinal))}
           </div>
@@ -192,11 +185,11 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
 }
 
 export function HistoricoLiquidaciones() {
-  const { 
-    state, 
-    contratos, 
+  const {
+    state,
+    contratos,
     coaches,
-    fetchComisiones, 
+    fetchComisiones,
     fetchContratos,
     fetchCoaches
   } = useComisionesLiquidadas();
@@ -221,11 +214,9 @@ export function HistoricoLiquidaciones() {
     });
   }, [selectedMonth, selectedYear, selectedContract, selectedCoach, fetchComisiones]);
 
-  const formatCurrency = (value: number) => 
+  const formatCurrency = (value: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
 
-  const formatPercentage = (value: number) => 
-    new Intl.NumberFormat('es-CO', { style: 'percent', minimumFractionDigits: 2 }).format(value);
 
   const columns: ColumnDef<LiquidacionConRelaciones>[] = [
     {
@@ -390,9 +381,9 @@ export function HistoricoLiquidaciones() {
               </PopoverContent>
             </Popover>
             {selectedContract && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedContract('');
@@ -422,8 +413,8 @@ export function HistoricoLiquidaciones() {
                   <div className="flex items-center overflow-hidden">
                     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-primary" />
                     <span className="truncate text-xs">
-                      {selectedCoach 
-                        ? coachesList.find((c) => c.id === selectedCoach)?.fullName 
+                      {selectedCoach
+                        ? coachesList.find((c) => c.id === selectedCoach)?.fullName
                         : "Seleccionar Coach..."}
                     </span>
                   </div>
@@ -464,9 +455,9 @@ export function HistoricoLiquidaciones() {
               </PopoverContent>
             </Popover>
             {selectedCoach && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedCoach(null);

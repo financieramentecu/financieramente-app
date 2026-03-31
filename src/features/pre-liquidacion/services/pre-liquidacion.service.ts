@@ -1,4 +1,4 @@
-import type { Business } from '@prisma/client'
+import type { Business, SettlementCommission } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidacion-resumen-notification'
 import { Decimal } from '@prisma/client/runtime/library'
@@ -8,7 +8,6 @@ import type {
 	ComisionesCalculadas,
 	ConfiguracionPorcentajes,
 	DistribucionComision,
-	ItemDistribucionComision,
 	RegistroDetallePreLiquidacion,
 	RegistroLiquidacionDetalle,
 	RespuestaArchivosDisponibles,
@@ -572,7 +571,7 @@ export async function obtenerRegistrosParaLiquidacion(
 export async function obtenerDistribucionComision(
 	id: number
 ): Promise<RespuestaDistribucionComision | null> {
-	const rows = (await (prisma.comissionDistribution as unknown as { findMany: (args: unknown) => Promise<unknown[]> }).findMany({
+	const rows = (await (prisma.comissionDistribution).findMany({
 		where: { idSettlementCommission: id },
 		include: {
 			beneficiaryUser: {
@@ -605,15 +604,24 @@ export async function obtenerDistribucionComision(
 			},
 			clawback: true,
 		},
-	})) as any[]
+	}))
 
 	if (rows.length === 0) return null
 
 	const first = rows[0]
-	const sc = first.settlementCommission
+	const sc = first.settlementCommission as SettlementCommission & {
+		business?: {
+			user?: {
+				name: string
+				lastName: string | null
+			} | null
+		} | null
+		commissionValue?: Decimal | null
+		baseCommission?: Decimal | null
+	}
 	const usePortfolio = sc.originCommission === 'CARTERA'
 
-	const distribuciones: ItemDistribucionComision[] = rows.map((row) => {
+	const distribuciones = rows.map((row) => {
 		const ppcc = row.productPercentageCommissionCategory
 		const categoriaNombre = ppcc?.category?.name ?? ''
 		const porcentajeDistribucion =
@@ -1071,10 +1079,10 @@ export async function procesarPreLiquidacion(
 								fixedBeneficiaryUser: {
 									select: { idUser: true, active: true },
 								},
-							} as any,
+							},
 						},
 					},
-				})) as any[]
+				}))
 
 			if (configCategorias.length === 0) {
 				console.warn(
@@ -1096,12 +1104,12 @@ export async function procesarPreLiquidacion(
 
 			const chain =
 				registro.business.user != null &&
-				ppcConfigsNeedUplineAgent(configCategorias)
+					ppcConfigsNeedUplineAgent(configCategorias)
 					? await buildUplineChain(prisma, registro.business.user.idUser)
 					: []
 
 			const resolutions = configCategorias.map((cfg) =>
-				resolveBeneficiaryUserId(cfg.category as any, chain)
+				resolveBeneficiaryUserId(cfg.category, chain)
 			)
 			const failed = resolutions.find((r) => !r.ok)
 			if (failed && !failed.ok) {
@@ -1165,7 +1173,7 @@ export async function procesarPreLiquidacion(
 							totalDiscount: totalDescuento,
 							appliedDiscountPercentage: descuentoPorcentaje,
 							status: 'PRE-SETTLED',
-						} as any,
+						},
 					})
 
 					if (
@@ -1365,10 +1373,10 @@ export async function recalcularComisionesPorCambioOrigen(
 								fixedBeneficiaryUser: {
 									select: { idUser: true, active: true },
 								},
-							} as any,
+							},
 						},
 					},
-				})) as any[]
+				}))
 
 			if (newCategories.length === 0) {
 				throw new Error(
@@ -1411,7 +1419,7 @@ export async function recalcularComisionesPorCambioOrigen(
 				const clawbackPorcentaje = record.clawbackPercentage ?? new Decimal(0)
 
 				for (const cat of newCategories) {
-					const resolved = resolveBeneficiaryUserId(cat.category as any, chain)
+					const resolved = resolveBeneficiaryUserId(cat.category, chain)
 					if (!resolved.ok) {
 						throw new Error(
 							`No se pudo resolver beneficiario (categoría ${resolved.categoryCode}): ${resolved.code}`
@@ -1419,7 +1427,7 @@ export async function recalcularComisionesPorCambioOrigen(
 					}
 					const idBeneficiaryUser = resolved.idUser
 
-					const catAny = cat as any
+					const catAny = cat
 					const porcentaje =
 						usePortfolio && catAny.porcentajePortfolio !== null
 							? catAny.porcentajePortfolio
@@ -1446,7 +1454,7 @@ export async function recalcularComisionesPorCambioOrigen(
 								valueComissionFinal: valorComisionFinal,
 								status: 'PRE-SETTLED',
 								idBeneficiaryUser,
-							} as any,
+							},
 						})
 
 						if (

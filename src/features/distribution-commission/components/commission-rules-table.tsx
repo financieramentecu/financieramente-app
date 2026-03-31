@@ -48,9 +48,8 @@ export function CommissionRulesTable({
 				toast.success(
 					rule.active ? 'Distribución desactivada' : 'Distribución activada',
 					{
-						description: `La distribución "${rule.description}" ha sido ${
-							rule.active ? 'desactivada' : 'activada'
-						} correctamente.`,
+						description: `La distribución "${rule.description}" ha sido ${rule.active ? 'desactivada' : 'activada'
+							} correctamente.`,
 					}
 				)
 			} else {
@@ -156,6 +155,7 @@ export function CommissionRulesTable({
 				),
 			},
 		],
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[togglingId]
 	)
 

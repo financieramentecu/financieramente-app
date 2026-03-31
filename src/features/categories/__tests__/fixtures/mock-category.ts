@@ -1,10 +1,5 @@
 import type { Category } from '../../types/category.types'
 import { CategoryType as CategoryTypeDomain } from '../../types/category.types'
-import {
-	Category as PrismaCategoryBase,
-	CategoryType,
-	User,
-} from '@prisma/client'
 import { PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations } from '../../mappers/category.mapper'
 
 // Local redefinition of BeneficiaryMode because Prisma client is outdated
