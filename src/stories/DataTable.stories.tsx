@@ -9,9 +9,10 @@ import {
 	AvatarImage,
 } from '../features/shared/ui/avatar'
 import { Badge } from '../features/shared/ui/badge'
-import { Button } from '../features/shared/ui/button'
 
-const meta: Meta<any> = {
+type Business = typeof mockBusinessList[0]
+
+const meta: Meta<typeof DataTable<Business>> = {
 	title: 'UI/DataTableGeneric',
 	component: DataTable,
 	parameters: {
@@ -35,9 +36,9 @@ const meta: Meta<any> = {
 }
 
 export default meta
-type Story = StoryObj<any>
+type Story = StoryObj<typeof DataTable<Business>>
 
-const businessColumns: ColumnDef<any, any>[] = [
+const businessColumns: ColumnDef<Business, unknown>[] = [
 	{
 		accessorKey: 'identification',
 		header: 'Identificación',
@@ -112,7 +113,8 @@ export const Default: Story = {
 		columns: businessColumns,
 		data: mockBusinessList,
 		searchable: true,
-		onSearchChange: (query: string) => console.log('Search:', query),
+		onGlobalSearch: (query: string) => console.log('Search:', query),
+		manualPagination: true,
 		currentPage: 1,
 		pageSize: 10,
 		totalItems: mockBusinessList.length,
@@ -125,6 +127,7 @@ export const WithoutSearch: Story = {
 		columns: businessColumns,
 		data: mockBusinessList.slice(0, 5),
 		searchable: false,
+		manualPagination: true,
 		currentPage: 1,
 		pageSize: 5,
 		totalItems: 5,
@@ -137,7 +140,7 @@ export const EmptyState: Story = {
 		columns: businessColumns,
 		data: [],
 		searchable: true,
-		onSearchChange: (query: string) => console.log('Search:', query),
+		onGlobalSearch: (query: string) => console.log('Search:', query),
 	},
 }
 
@@ -147,7 +150,7 @@ export const LoadingState: Story = {
 		data: [],
 		loading: true,
 		searchable: true,
-		onSearchChange: (query: string) => console.log('Search:', query),
+		onGlobalSearch: (query: string) => console.log('Search:', query),
 	},
 }
 
@@ -156,6 +159,6 @@ export const WithoutPagination: Story = {
 		columns: businessColumns,
 		data: mockBusinessList.slice(0, 3),
 		searchable: true,
-		onSearchChange: (query: string) => console.log('Search:', query),
+		onGlobalSearch: (query: string) => console.log('Search:', query),
 	},
 }

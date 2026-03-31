@@ -4,6 +4,7 @@ function Skeleton({ className, ...props }: React.ComponentProps<'div'>) {
 	return (
 		<div
 			data-slot="skeleton"
+			data-testid="skeleton"
 			className={cn(
 				// Light mode: usar un gris medio para buena visibilidad sobre fondo claro
 				'bg-gray-300',

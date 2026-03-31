@@ -57,18 +57,14 @@ export async function GET(request: Request) {
 		const total = await prisma.category.count({ where })
 
 		// Get categories with pagination
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const includeOptions: any = {
-			categoryType: true,
-			fixedBeneficiaryUser: {
-				select: { idUser: true, name: true, lastName: true, email: true },
-			},
-		} as any
-
-		// @ts-ignore - Prisma client is outdated and doesn't know about these fields yet
 		const rawCategories = await prisma.category.findMany({
 			where,
-			include: includeOptions,
+			include: {
+				categoryType: true,
+				fixedBeneficiaryUser: {
+					select: { idUser: true, name: true, lastName: true, email: true },
+				},
+			},
 			orderBy: { name: 'asc' },
 			skip: (page - 1) * pageSize,
 			take: pageSize,
@@ -175,8 +171,7 @@ export async function POST(request: Request) {
 			}
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const createOptions: any = {
+		const categoryRaw = await prisma.category.create({
 			data: {
 				code: normalizedCode,
 				name: data.name.trim(),
@@ -195,10 +190,7 @@ export async function POST(request: Request) {
 					select: { idUser: true, name: true, lastName: true, email: true },
 				},
 			},
-		}
-
-		// @ts-ignore - Prisma client is outdated and doesn't know about these fields yet
-		const categoryRaw = await prisma.category.create(createOptions)
+		})
 		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
 
 		const response: ApiResponse<Category> = {

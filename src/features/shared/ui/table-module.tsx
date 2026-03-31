@@ -32,11 +32,12 @@ export interface TableModuleProps<TData> {
 	onView?: (row: TData) => void
 	customActions?: (row: TData) => React.ReactNode
 	searchable?: boolean
+	searchColumn?: string
 	searchPlaceholder?: string
 	paginable?: boolean
 	selectable?: boolean
 	exportable?: boolean
-	filterable?: boolean
+	pageSizeOptions?: number[]
 }
 
 // Default actions component
@@ -109,11 +110,12 @@ export function TableModule<TData>({
 	onView,
 	customActions,
 	searchable,
+	searchColumn,
 	searchPlaceholder,
 	paginable,
 	selectable,
 	exportable,
-	filterable,
+	pageSizeOptions,
 }: TableModuleProps<TData>) {
 	// Create actions function
 	const actions = React.useCallback(
@@ -159,10 +161,12 @@ export function TableModule<TData>({
 				onExport={onExport}
 				actions={actions}
 				searchable={searchable}
+				searchColumn={searchColumn}
 				searchPlaceholder={searchPlaceholder}
 				paginable={paginable}
 				selectable={selectable}
 				exportable={exportable}
+				pageSizeOptions={pageSizeOptions}
 			/>
 		</div>
 	)

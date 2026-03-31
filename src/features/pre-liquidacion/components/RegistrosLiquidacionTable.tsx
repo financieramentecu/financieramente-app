@@ -7,7 +7,7 @@ import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import type { RegistroLiquidacionDetalle } from '../types/types'
 import { formatCurrency, formatPct, formatDate } from '../lib/format-utils'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, RowSelectionState } from '@tanstack/react-table'
 
 interface RegistrosLiquidacionTableProps {
 	registros: RegistroLiquidacionDetalle[]
@@ -56,7 +56,7 @@ export function RegistrosLiquidacionTable({
 	}, [selectedIds])
 
 	// Adaptador: Convertir el cambio de selección de TanStack de vuelta al Set<number> del padre
-	const handleRowSelectionChange = (updaterOrValue: any) => {
+	const handleRowSelectionChange = (updaterOrValue: RowSelectionState | ((old: RowSelectionState) => RowSelectionState)) => {
 		const newSelection =
 			typeof updaterOrValue === 'function' ? updaterOrValue(rowSelection) : updaterOrValue
 

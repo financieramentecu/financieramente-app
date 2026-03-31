@@ -33,7 +33,7 @@ export interface DataTableProps<TData> {
 	exportConfig?: {
 		fileName: string
 		sheetName?: string
-		transformData?: (data: TData[]) => any[]
+		transformData?: (data: TData[]) => unknown[]
 	}
 	/**
 	 * Habilita la selección de filas

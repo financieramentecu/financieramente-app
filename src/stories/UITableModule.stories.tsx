@@ -198,10 +198,6 @@ const meta: Meta<typeof TableModule<User>> = {
 			control: 'boolean',
 			description: 'Habilitar exportación',
 		},
-		filterable: {
-			control: 'boolean',
-			description: 'Habilitar filtros de columnas',
-		},
 		loading: {
 			control: 'boolean',
 			description: 'Estado de carga',
@@ -351,7 +347,6 @@ export const MinimalTable: Story = {
 		paginable: false,
 		selectable: false,
 		exportable: false,
-		filterable: false,
 	},
 }
 
@@ -451,7 +446,6 @@ export const AllVariants: Story = {
 					paginable={false}
 					selectable={false}
 					exportable={false}
-					filterable={false}
 				/>
 			</div>
 		</div>

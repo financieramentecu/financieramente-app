@@ -27,8 +27,8 @@ export const createColumnDefs = {
 		accessorKey: keyof TData | string,
 		header: string,
 		options: {
-			getVariant?: (value: any) => 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'neutral'
-			getLabel?: (value: any) => string
+			getVariant?: (value: unknown) => 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'neutral'
+			getLabel?: (value: unknown) => string
 		} = {}
 	): ColumnDef<TData> => ({
 		accessorKey: accessorKey as string,
@@ -39,7 +39,7 @@ export const createColumnDefs = {
 			const label = options.getLabel ? options.getLabel(value) : String(value)
 			
 			return (
-				<Badge variant={variant as any}>
+				<Badge variant={variant as 'default' | 'secondary' | 'destructive' | 'outline'}>
 					{label}
 				</Badge>
 			)
@@ -61,7 +61,7 @@ export const createColumnDefs = {
 			if (!value) return '—'
 			try {
 				return format(new Date(value as string), options.formatStr || 'PP', { locale: es })
-			} catch (e) {
+			} catch {
 				return String(value)
 			}
 		},

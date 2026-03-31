@@ -3,6 +3,7 @@ import { DataTable } from '../features/shared/ui/DataTable/DataTable'
 import { Badge } from '../features/shared/ui/badge'
 import type { ColumnDef } from '@tanstack/react-table'
 import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
+import React from 'react'
 
 // Datos de ejemplo
 const sampleData = [
@@ -81,7 +82,7 @@ const columns: ColumnDef<UserRow>[] = [
 	},
 ]
 
-const meta: Meta<any> = {
+const meta: Meta<typeof DataTable<UserRow>> = {
 	title: 'UI/DataTableAdvanced',
 	component: DataTable,
 	parameters: {
@@ -99,12 +100,12 @@ const meta: Meta<any> = {
 }
 
 export default meta
-type Story = StoryObj<any>
+type Story = StoryObj<typeof DataTable<UserRow>>
 
 export const Default: Story = {
 	args: {
 		data: sampleData,
-		columns: columns as ColumnDef<any>[],
+		columns: columns,
 		searchable: true,
 		manualPagination: false,
 		pageSize: 10,
@@ -115,7 +116,7 @@ export const Default: Story = {
 export const Loading: Story = {
 	args: {
 		data: [],
-		columns: columns as ColumnDef<any>[],
+		columns: columns,
 		loading: true,
 		emptyMessage: 'Cargando usuarios...',
 	},
@@ -124,7 +125,7 @@ export const Loading: Story = {
 export const Selection: Story = {
 	args: {
 		data: sampleData,
-		columns: columns as ColumnDef<any>[],
-		onSelectionChange: (selected) => console.log('Selected:', selected),
+		columns: columns,
+		onSelectionChange: (selected: UserRow[]) => console.log('Selected:', selected),
 	},
 }

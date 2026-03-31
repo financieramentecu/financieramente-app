@@ -30,7 +30,9 @@ const sampleData = [
 	},
 ]
 
-const columns: ColumnDef<any>[] = [
+type SampleDataType = typeof sampleData[0]
+
+const columns: ColumnDef<SampleDataType>[] = [
 	{
 		accessorKey: 'name',
 		header: 'Nombre',
@@ -200,7 +202,8 @@ describe('DataTable Component', () => {
 			/>
 		)
 
-		expect(screen.getByText('Cargando...')).toBeInTheDocument()
+		const skeletons = screen.getAllByTestId('skeleton')
+		expect(skeletons.length).toBeGreaterThan(0)
 	})
 
 	it('renders empty state', () => {

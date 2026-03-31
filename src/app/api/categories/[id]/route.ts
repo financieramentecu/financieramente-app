@@ -19,18 +19,14 @@ export async function GET(
 ) {
 	try {
 		const { id } = await params
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const findOptions: any = {
+		const categoryRaw = await prisma.category.findUnique({
 			where: { idCategory: parseInt(id) },
 			include: {
 				fixedBeneficiaryUser: {
 					select: { idUser: true, name: true, lastName: true, email: true },
 				},
 			},
-		} as any
-
-		// @ts-ignore - Prisma client is outdated
-		const categoryRaw = await prisma.category.findUnique(findOptions)
+		})
 		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
 
 		if (!category) {
@@ -185,8 +181,7 @@ export async function PUT(
 			updateData.idCategoryType = categoryTypeRec.id
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const updateOptions: any = {
+		const categoryRaw = await prisma.category.update({
 			where: { idCategory: categoryId },
 			data: updateData,
 			include: {
@@ -194,10 +189,7 @@ export async function PUT(
 					select: { idUser: true, name: true, lastName: true, email: true },
 				},
 			},
-		} as any
-
-		// @ts-ignore - Prisma client is outdated
-		const categoryRaw = await prisma.category.update(updateOptions)
+		})
 		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
 
 		// Transform using mapper
@@ -277,54 +269,21 @@ export async function DELETE(
 		if (usersWithCategory > 0) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
-				error: `No se puede eliminar la categoría porque tiene ${usersWithCategory} usuario(s) asignado(s)`,
+				error: 'No se puede eliminar la categoría porque tiene usuarios asociados',
 			}
-			return NextResponse.json(errorResponse, { status: 409 })
+			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
-		// Check for relationships (ProductConfiguration by category)
-		const commissionsWithCategory = await prisma.productConfiguration.count({
-			where: { idCategory: categoryId },
-		})
-
-		if (commissionsWithCategory > 0) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: `No se puede eliminar la categoría porque tiene ${commissionsWithCategory} comisión(es) de producto asignada(s)`,
-			}
-			return NextResponse.json(errorResponse, { status: 409 })
-		}
-
-		// Delete category
 		await prisma.category.delete({
 			where: { idCategory: categoryId },
 		})
 
-		const response: ApiResponse<void> = {
-			data: undefined,
+		const response: ApiResponse<{ success: boolean }> = {
+			data: { success: true },
 		}
 
 		return NextResponse.json(response)
 	} catch (error) {
-		if (error && typeof error === 'object' && 'code' in error) {
-			if (error.code === 'P2025') {
-				const errorResponse: ApiResponse<null> = {
-					data: null,
-					error: 'Categoría no encontrada',
-				}
-				return NextResponse.json(errorResponse, { status: 404 })
-			}
-
-			if (error.code === 'P2003') {
-				const errorResponse: ApiResponse<null> = {
-					data: null,
-					error:
-						'No se puede eliminar la categoría porque tiene registros relacionados',
-				}
-				return NextResponse.json(errorResponse, { status: 409 })
-			}
-		}
-
 		console.error('Error deleting category:', error)
 		const errorResponse: ApiResponse<null> = {
 			data: null,

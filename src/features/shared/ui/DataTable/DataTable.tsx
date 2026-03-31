@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import {
-	ColumnDef,
 	ColumnFiltersState,
 	SortingState,
 	VisibilityState,
@@ -126,7 +125,7 @@ export function DataTable<TData>({
 		}
 
 		return cols
-	}, [columns, selectable, actions])
+	}, [columns, selectable, enableRowSelection, actions])
 
 	const table = useReactTable({
 		data,
@@ -173,6 +172,14 @@ export function DataTable<TData>({
 		getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getRowId,
+		meta: {
+			searchable,
+			searchPlaceholder: searchPlaceholder || 'Buscar...',
+			renderAdditionalFilters,
+			exportable,
+			exportConfig,
+			onExport,
+		},
 		initialState: {
 			pagination: {
 				pageSize: defaultPageSize,
@@ -207,7 +214,7 @@ export function DataTable<TData>({
 			  })
 
 		exportToExcel(
-			exportData,
+			exportData as unknown[],
 			exportConfig?.fileName || 'exportacion-tabla',
 			exportConfig?.sheetName
 		)

@@ -572,7 +572,7 @@ export async function obtenerRegistrosParaLiquidacion(
 export async function obtenerDistribucionComision(
 	id: number
 ): Promise<RespuestaDistribucionComision | null> {
-	const rows = (await (prisma.comissionDistribution as any).findMany({
+	const rows = (await (prisma.comissionDistribution as unknown as { findMany: (args: unknown) => Promise<unknown[]> }).findMany({
 		where: { idSettlementCommission: id },
 		include: {
 			beneficiaryUser: {

@@ -1,5 +1,5 @@
 import { Table } from '@tanstack/react-table'
-import { Plus, Search, X, Download } from 'lucide-react'
+import { Search, X, Download } from 'lucide-react'
 
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
@@ -53,7 +53,7 @@ export function DataTableToolbar<TData>({
 	return (
 		<div className="flex items-center justify-between">
 			<div className="flex flex-1 items-center space-x-2">
-				{searchable && (onGlobalSearch || searchColumn) && (
+				{searchable && (
 					<div className="relative">
 						<Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 						<Input
