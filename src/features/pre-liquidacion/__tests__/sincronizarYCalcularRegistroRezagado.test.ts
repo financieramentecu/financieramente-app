@@ -59,6 +59,12 @@ describe('sincronizarYCalcularRegistroRezagado', () => {
 				id: 10,
 				porcentajeDistribucion: new Decimal(0.1), // 10%
 				porcentajePortfolio: null,
+				category: {
+					idCategory: 1,
+					code: 'ASESOR',
+					beneficiaryMode: 'UPLINE_CHAIN',
+					idFixedBeneficiaryUser: null,
+				},
 			},
 		]
 
@@ -73,6 +79,13 @@ describe('sincronizarYCalcularRegistroRezagado', () => {
 			},
 			productPercentageCommissionCategory: {
 				findMany: vi.fn().mockResolvedValue(mockConfigCategorias),
+			},
+			user: {
+				findUnique: vi.fn().mockResolvedValue({
+					idUser: 5,
+					idCategoria: 1,
+					idUserLeader: null,
+				}),
 			},
 			comissionDistribution: {
 				create: vi.fn().mockResolvedValue({ id: 999 }),
