@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CategoryForm } from '../../components/category-form'
 import { createMockCategory } from '../fixtures/mock-category'
+import { SYSTEM_CATEGORY_TYPE_NAME } from '../../types/category.types'
 
 describe('CategoryForm', () => {
 	const defaultProps = {
@@ -154,6 +155,79 @@ describe('CategoryForm', () => {
 					screen.getByText(/el código no puede exceder 20 caracteres/i)
 				).toBeInTheDocument()
 			})
+		})
+	})
+
+	describe('Beneficiary Mode', () => {
+		it('should render beneficiaryMode selector', () => {
+			render(<CategoryForm {...defaultProps} />)
+
+			expect(screen.getByText(/modo de beneficiario/i)).toBeInTheDocument()
+		})
+
+		it('should not show idFixedBeneficiaryUser picker when UPLINE_CHAIN is selected', () => {
+			const category = createMockCategory({
+				beneficiaryMode: 'UPLINE_CHAIN',
+				idFixedBeneficiaryUser: null,
+			})
+			render(
+				<CategoryForm {...defaultProps} mode="edit" initialData={category} />
+			)
+
+			expect(
+				screen.queryByText(/usuario beneficiario fijo/i)
+			).not.toBeInTheDocument()
+		})
+
+		it('should show idFixedBeneficiaryUser picker when FIXED_BENEFICIARY is selected', () => {
+			// Render with initial beneficiaryMode = FIXED_BENEFICIARY to avoid Radix pointer-events issue
+			const category = createMockCategory({
+				beneficiaryMode: 'FIXED_BENEFICIARY',
+				idFixedBeneficiaryUser: null,
+			})
+			render(
+				<CategoryForm {...defaultProps} mode="edit" initialData={category} />
+			)
+
+			expect(
+				screen.getByText(/usuario beneficiario fijo/i)
+			).toBeInTheDocument()
+		})
+
+		it('should show read-only system user display for system categories with FIXED_BENEFICIARY and a configured user', () => {
+			const systemCategory = createMockCategory({
+				typeCategory: SYSTEM_CATEGORY_TYPE_NAME,
+				beneficiaryMode: 'FIXED_BENEFICIARY',
+				idFixedBeneficiaryUser: 5,
+				fixedBeneficiaryUser: {
+					idUser: 5,
+					name: 'Usuario',
+					lastName: 'Sistema',
+					email: 'sistema@test.com',
+				},
+			})
+
+			render(
+				<CategoryForm {...defaultProps} mode="edit" initialData={systemCategory} />
+			)
+
+			expect(screen.getByTestId('system-user-readonly')).toBeInTheDocument()
+			expect(screen.getByText('sistema@test.com')).toBeInTheDocument()
+		})
+
+		it('should show empty state placeholder for system categories with FIXED_BENEFICIARY and no user configured', () => {
+			const systemCategory = createMockCategory({
+				typeCategory: SYSTEM_CATEGORY_TYPE_NAME,
+				beneficiaryMode: 'FIXED_BENEFICIARY',
+				idFixedBeneficiaryUser: null,
+				fixedBeneficiaryUser: null,
+			})
+
+			render(
+				<CategoryForm {...defaultProps} mode="edit" initialData={systemCategory} />
+			)
+
+			expect(screen.getByTestId('system-user-empty')).toBeInTheDocument()
 		})
 	})
 

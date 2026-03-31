@@ -11,6 +11,9 @@ import {
 	prismaCategoryToCategory,
 	prismaCategoryListToCategories,
 } from '@/features/categories/mappers/category.mapper'
+import { Prisma } from '@prisma/client'
+
+
 
 /**
  * GET /api/categories
@@ -25,14 +28,7 @@ export async function GET(request: Request) {
 		const page = parseInt(searchParams.get('page') || '1')
 		const pageSize = parseInt(searchParams.get('pageSize') || '10')
 
-		const where: {
-			OR?: Array<{
-				code?: { contains: string; mode: 'insensitive' }
-				name?: { contains: string; mode: 'insensitive' }
-			}>
-			typeCategory?: string
-			status?: boolean
-		} = {}
+		const where: Prisma.CategoryWhereInput = {}
 
 		if (search) {
 			where.OR = [
@@ -42,7 +38,12 @@ export async function GET(request: Request) {
 		}
 
 		if (typeCategory) {
-			where.typeCategory = typeCategory
+			const categoryTypeRec = await prisma.categoryType.findFirst({
+				where: { name: { equals: typeCategory, mode: 'insensitive' } },
+			})
+			if (categoryTypeRec) {
+				where.idCategoryType = categoryTypeRec.id
+			}
 		}
 
 		if (status === 'active') {
@@ -57,6 +58,12 @@ export async function GET(request: Request) {
 		// Get categories with pagination
 		const categories = await prisma.category.findMany({
 			where,
+			include: {
+				categoryType: true,
+				fixedBeneficiaryUser: {
+					select: { idUser: true, name: true, lastName: true, email: true },
+				},
+			},
 			orderBy: { name: 'asc' },
 			skip: (page - 1) * pageSize,
 			take: pageSize,
@@ -97,73 +104,107 @@ export async function POST(request: Request) {
 		const body = await request.json()
 		const data = createCategorySchema.parse(body)
 
-		// Normalize code (trim and uppercase)
+		// Lookup category type ID from database
+		const categoryTypeRec = await prisma.categoryType.findFirst({
+			where: { name: { equals: data.typeCategory, mode: 'insensitive' } },
+		})
+
+		if (!categoryTypeRec) {
+			return NextResponse.json(
+				{ data: null, error: 'Tipo de categoría no válido' },
+				{ status: 400 }
+			)
+		}
+
+		const typeId = categoryTypeRec.id
+
+		// Normalize code
 		const normalizedCode = data.code.trim().toUpperCase()
 
-		// Validate code uniqueness (case-insensitive)
+		// Validate code uniqueness
 		const existingCategory = await prisma.category.findFirst({
 			where: {
-				code: {
-					equals: normalizedCode,
-					mode: 'insensitive',
-				},
+				code: { equals: normalizedCode, mode: 'insensitive' },
 			},
 		})
 
 		if (existingCategory) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'Ya existe una categoría con este código',
-			}
-			return NextResponse.json(errorResponse, { status: 409 })
+			return NextResponse.json(
+				{ data: null, error: 'Ya existe una categoría con este código' },
+				{ status: 409 }
+			)
 		}
 
-		// Create category
+		// Validate beneficiary constraint before persisting
+		if (
+			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			(data.idFixedBeneficiaryUser === null ||
+				data.idFixedBeneficiaryUser === undefined)
+		) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: 'El usuario beneficiario fijo es requerido cuando el modo es FIXED_BENEFICIARY',
+				},
+				{ status: 400 }
+			)
+		}
+
+		// Verify fixed beneficiary user exists and is active
+		if (
+			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			data.idFixedBeneficiaryUser != null
+		) {
+			const beneficiaryUser = await prisma.user.findFirst({
+				where: { idUser: data.idFixedBeneficiaryUser, active: true },
+			})
+			if (!beneficiaryUser) {
+				return NextResponse.json(
+					{
+						data: null,
+						error: 'El usuario beneficiario fijo no existe o está inactivo',
+					},
+					{ status: 400 }
+				)
+			}
+		}
+
 		const category = await prisma.category.create({
 			data: {
 				code: normalizedCode,
 				name: data.name.trim(),
-				typeCategory: data.typeCategory,
+				idCategoryType: typeId,
 				descripcion: data.descripcion ?? null,
 				status: data.status,
+				beneficiaryMode: data.beneficiaryMode ?? 'UPLINE_CHAIN',
+				idFixedBeneficiaryUser:
+					data.beneficiaryMode === 'FIXED_BENEFICIARY'
+						? (data.idFixedBeneficiaryUser ?? null)
+						: null,
+			},
+			include: {
+				categoryType: true,
+				fixedBeneficiaryUser: {
+					select: { idUser: true, name: true, lastName: true, email: true },
+				},
 			},
 		})
 
-		// Transform using mapper
-		const categoryFormatted = prismaCategoryToCategory(category)
-
 		const response: ApiResponse<Category> = {
-			data: categoryFormatted,
+			data: prismaCategoryToCategory(category),
 		}
 
 		return NextResponse.json(response, { status: 201 })
 	} catch (error) {
 		if (error instanceof z.ZodError) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: error.issues[0]?.message || 'Datos inválidos',
-			}
-			return NextResponse.json(errorResponse, { status: 400 })
+			return NextResponse.json(
+				{ data: null, error: error.issues[0]?.message || 'Datos inválidos' },
+				{ status: 400 }
+			)
 		}
-
-		if (
-			error &&
-			typeof error === 'object' &&
-			'code' in error &&
-			error.code === 'P2002'
-		) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'Ya existe una categoría con este código',
-			}
-			return NextResponse.json(errorResponse, { status: 409 })
-		}
-
-		console.error('Error creating category:', error)
-		const errorResponse: ApiResponse<null> = {
-			data: null,
-			error: 'Error al crear categoría',
-		}
-		return NextResponse.json(errorResponse, { status: 500 })
+		return NextResponse.json(
+			{ data: null, error: 'Error al crear categoría' },
+			{ status: 500 }
+		)
 	}
 }

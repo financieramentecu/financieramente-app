@@ -30,6 +30,7 @@ const eslintConfig = [
 			'test-results/**',
 			'skills/**',
 			'.agent/**',
+			'.claude/**',
 		],
 	},
 	{

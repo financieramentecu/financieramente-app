@@ -43,7 +43,7 @@ if (process.env.NODE_ENV === 'production') {
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 	console.error(
 		'❌ ERROR: Prisma Client no puede ser usado en Client Components.\n' +
-			'   Usa fetch() a una API Route en su lugar.\n' +
-			'   Ver docs/PRISMA_USAGE.md para más información.'
+		'   Usa fetch() a una API Route en su lugar.\n' +
+		'   Ver docs/PRISMA_USAGE.md para más información.'
 	)
 }

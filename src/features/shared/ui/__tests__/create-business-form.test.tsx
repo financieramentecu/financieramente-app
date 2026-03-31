@@ -6,15 +6,15 @@ import { mockUsers } from '@/features/shared/__tests__/fixtures/mockUsers'
 import { mockUserWithRole } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
 
 // Mock de los hooks que hacen llamadas a la API
-const mockHandleSearchClient = vi.fn()
-vi.mock('@/features/negocios/hooks/useSearchClient', () => ({
+const mockHandleSearchClient = vi.fn().mockResolvedValue(mockUsers)
+vi.mock('@/features/negocios/hooks/use-search-client', () => ({
 	useSearchClient: () => ({
 		handleSearchClient: mockHandleSearchClient,
 		results: mockUsers,
 	}),
 }))
 
-vi.mock('@/features/negocios/hooks/useSearchAgents', () => ({
+vi.mock('@/features/negocios/hooks/use-search-agents', () => ({
 	useSearchAgents: () => ({
 		handleSearchAgents: vi.fn().mockResolvedValue([]),
 	}),

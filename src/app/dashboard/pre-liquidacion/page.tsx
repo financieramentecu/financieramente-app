@@ -7,22 +7,13 @@ import {
 	Calculator,
 	AlertCircle,
 	Filter,
-	X,
-	History,
-	Clock,
 } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { usePreLiquidacion } from '@/features/pre-liquidacion/hooks/use-pre-liquidacion'
 import { ListaArchivosDisponibles } from './components/ListaArchivosDisponibles'
 import { ProcesandoPreLiquidacion } from './components/ProcesandoPreLiquidacion'
 import { ResultadosPreLiquidacion } from './components/ResultadosPreLiquidacion'
-import { Button } from '@/features/shared/ui/button'
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from '@/features/shared/ui/tabs'
+import { ModalErroresConfiguracion } from '@/features/pre-liquidacion/components/ModalErroresConfiguracion'
 import { EmptyState } from '@/features/shared/ui/empty-state'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import {
@@ -42,18 +33,19 @@ export default function PreLiquidacionPage() {
 		archivos,
 		isLoading,
 		error,
-		procesarPreLiquidacion: _procesarPreLiquidacion,
-		isProcesando: _isProcesando,
 		errorProcesamiento,
 		mensajeExito,
 		refetch,
+		registrosConError,
+		modalErroresOpen,
+		cerrarModalErrores,
 	} = usePreLiquidacion()
 
 	const [archivoSeleccionado, setArchivoSeleccionado] = useState<number | null>(
 		null
 	)
 
-	// Estados para filtros (por defecto: mes y año actual para preliquidar)
+	// Estados para filtros (por defecto: mes y año actual)
 	const now = new Date()
 	const defaultMonth = (now.getMonth() + 1).toString().padStart(2, '0')
 	const defaultYear = now.getFullYear().toString()
@@ -98,14 +90,13 @@ export default function PreLiquidacionPage() {
 		{ value: '12', label: 'Diciembre' },
 	]
 
-	const clearFilters = () => {
-		setSelectedMonth('')
-		setSelectedYear('')
-	}
-
-	// Filtrar archivos por mes/año
-	const filterArchivosByDate = (archivosToFilter: typeof archivos) => {
-		if (!selectedMonth && !selectedYear) return archivosToFilter
+	// Filtrar archivos por mes/año (genérico, acepta filtros explícitos)
+	const filterArchivosByDate = (
+		archivosToFilter: typeof archivos,
+		filterMonth: string,
+		filterYear: string
+	) => {
+		if (!filterMonth && !filterYear) return archivosToFilter
 
 		return archivosToFilter.filter((archivo) => {
 			// Asumiendo fechaCarga formato ISO o compatible
@@ -114,36 +105,30 @@ export default function PreLiquidacionPage() {
 			const fileMonth = (fileDate.getUTCMonth() + 1).toString().padStart(2, '0')
 			const fileYear = fileDate.getUTCFullYear().toString()
 
-			if (selectedMonth && selectedYear) {
-				return fileMonth === selectedMonth && fileYear === selectedYear
+			if (filterMonth && filterYear) {
+				return fileMonth === filterMonth && fileYear === filterYear
 			}
-			if (selectedMonth) return fileMonth === selectedMonth
-			if (selectedYear) return fileYear === selectedYear
+			if (filterMonth) return fileMonth === filterMonth
+			if (filterYear) return fileYear === filterYear
 			return true
 		})
 	}
 
-	// Archivos pendientes de pre-liquidar (LOAD y con registros SYNCHRONIZED)
+	// Archivos para pre-liquidar: Estado PRE-SETTLED (ya pre-liquidados, pendientes de revisión/aprobación)
 	const archivosPendientes = archivos.filter(
-		(a) => a.estado === 'LOAD' && a.sincronizados > 0
+		(a) => a.estado === 'PRE-SETTLED'
 	)
-	const archivosPendientesFiltrados = filterArchivosByDate(archivosPendientes)
-
-	// Archivos ya pre-liquidados (LOAD y con registros PRE-SETTLED)
-	const archivosHistorico = archivos.filter(
-		(a) => a.estado === 'LOAD' && (a.registrosPreliquidados ?? 0) > 0
+	const archivosPendientesFiltrados = filterArchivosByDate(
+		archivosPendientes,
+		selectedMonth,
+		selectedYear
 	)
-	const archivosHistoricoFiltrados = filterArchivosByDate(archivosHistorico)
 
 	// Resumen calculado basado en archivos filtrados
 	const resumenFiltrado = useMemo(() => {
 		const totalArchivos = archivosPendientesFiltrados.length
-		const totalRegistros = archivosPendientesFiltrados.reduce(
-			(sum, a) => sum + a.totalRegistros,
-			0
-		)
-		const totalSincronizados = archivosPendientesFiltrados.reduce(
-			(sum, a) => sum + a.sincronizados,
+		const totalRegistrosPreliquidados = archivosPendientesFiltrados.reduce(
+			(sum, a) => sum + (a.registrosPreliquidados ?? 0),
 			0
 		)
 		const totalRezagados = archivosPendientesFiltrados.reduce(
@@ -153,13 +138,12 @@ export default function PreLiquidacionPage() {
 
 		return {
 			totalArchivos,
-			totalRegistros,
-			sincronizados: totalSincronizados,
+			totalRegistros: totalRegistrosPreliquidados,
 			rezagados: totalRezagados,
 		}
 	}, [archivosPendientesFiltrados])
 
-	// Componente de filtros reutilizable
+	// Componente de filtros
 	const FiltrosComponent = () => (
 		<div className="flex flex-wrap items-center gap-3">
 			<div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -202,20 +186,6 @@ export default function PreLiquidacionPage() {
 					</SelectContent>
 				</Select>
 			</div>
-
-			{(selectedMonth || selectedYear) && (
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={clearFilters}
-					className="h-9 text-muted-foreground hover:text-destructive"
-					aria-label="Limpiar filtros"
-					title="Limpiar filtros"
-				>
-					<X className="h-4 w-4 sm:mr-1" />
-					<span className="hidden sm:inline">Limpiar</span>
-				</Button>
-			)}
 		</div>
 	)
 
@@ -247,271 +217,99 @@ export default function PreLiquidacionPage() {
 					</p>
 				</div>
 
-				{/* Tabs principales */}
-				<Tabs defaultValue="preliquidar" className="w-full">
-					<TabsList className="grid w-full grid-cols-2 mb-6">
-						<TabsTrigger
-							value="preliquidar"
-							className="flex items-center gap-2"
-						>
-							<Clock className="h-4 w-4" />
-							Pre-liquidar ({archivosPendientes.length})
-						</TabsTrigger>
-						<TabsTrigger value="historico" className="flex items-center gap-2">
-							<History className="h-4 w-4" />
-							Histórico ({archivosHistorico.length})
-						</TabsTrigger>
-					</TabsList>
+				{/* Contenido condicional */}
+				{viewState === 'PROCESSING' ? (
+					<ProcesandoPreLiquidacion onComplete={handleProcessComplete} />
+				) : viewState === 'RESULTS' ? (
+					<ResultadosPreLiquidacion
+						fileId={archivoSeleccionado || 0}
+						onBack={handleBackToList}
+					/>
+				) : (
+					/* Vista normal de Lista y Resumen */
+					<div className="space-y-6">
+						{/* Filtros */}
+						<div className="flex justify-end">
+							<FiltrosComponent />
+						</div>
 
-					{/* Tab Pre-liquidar */}
-					<TabsContent value="preliquidar">
-						{/* Contenido condicional dentro del Tab */}
-						{viewState === 'PROCESSING' ? (
-							<ProcesandoPreLiquidacion onComplete={handleProcessComplete} />
-						) : viewState === 'RESULTS' ? (
-							<ResultadosPreLiquidacion
-								fileId={archivoSeleccionado || 0}
-								onBack={handleBackToList}
-							/>
-						) : (
-							/* Vista normal de Lista y Resumen */
-							<div className="space-y-6">
-								{/* Filtros */}
-								<div className="flex justify-end">
-									<FiltrosComponent />
-								</div>
-
-								{/* Panel de Resumen (dentro del tab, basado en filtros) */}
-								<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-									<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
-										<div className="flex items-center justify-between">
-											<div>
-												<p className="text-sm text-muted-foreground">
-													Total Archivos
-												</p>
-												<p className="text-2xl font-bold text-chart-1">
-													{resumenFiltrado.totalArchivos}
-												</p>
-											</div>
-											<FileText className="h-8 w-8 text-chart-1 opacity-50" />
-										</div>
+						{/* Panel de Resumen */}
+						<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+							<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
+								<div className="flex items-center justify-between">
+									<div>
+										<p className="text-sm text-muted-foreground">
+											Total Archivos
+										</p>
+										<p className="text-2xl font-bold text-chart-1">
+											{resumenFiltrado.totalArchivos}
+										</p>
 									</div>
-									<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
-										<div className="flex items-center justify-between">
-											<div>
-												<p className="text-sm text-muted-foreground">
-													Total Registros
-												</p>
-												<p className="text-2xl font-bold text-chart-2">
-													{resumenFiltrado.totalRegistros}
-												</p>
-											</div>
-											<FileText className="h-8 w-8 text-chart-2 opacity-50" />
-										</div>
-									</div>
-									<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
-										<div className="flex items-center justify-between">
-											<div>
-												<p className="text-sm text-muted-foreground">
-													Sincronizados
-												</p>
-												<p className="text-2xl font-bold text-chart-3">
-													{resumenFiltrado.sincronizados}
-												</p>
-											</div>
-											<Clock className="h-8 w-8 text-chart-3 opacity-50" />
-										</div>
-									</div>
-									<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
-										<div className="flex items-center justify-between">
-											<div>
-												<p className="text-sm text-muted-foreground">
-													Rezagados
-												</p>
-												<p className="text-2xl font-bold text-chart-4">
-													{resumenFiltrado.rezagados}
-												</p>
-											</div>
-											<AlertCircle className="h-8 w-8 text-chart-4 opacity-50" />
-										</div>
-									</div>
-								</div>
-
-								{/* Lista de archivos */}
-								<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-									<div className="flex items-center gap-2 mb-4">
-										<FileText className="h-5 w-5 text-primary" />
-										<h2 className="text-lg font-semibold text-primary">
-											Archivos Pendientes de Pre-liquidar
-										</h2>
-									</div>
-
-										{isLoading ? (
-										<TableRowsLoadingSkeleton rows={6} />
-									) : archivosPendientesFiltrados.length === 0 ? (
-										<EmptyState
-											icon={<FileText className="h-12 w-12" />}
-											title={
-												archivosPendientes.length === 0
-													? 'No hay archivos pendientes de pre-liquidar'
-													: 'No hay archivos que coincidan con los filtros seleccionados'
-											}
-										/>
-									) : (
-										<ListaArchivosDisponibles
-											archivos={archivosPendientesFiltrados}
-										/>
-									)}
+									<FileText className="h-8 w-8 text-chart-1 opacity-50" />
 								</div>
 							</div>
-						)}
-					</TabsContent>
-
-					{/* Tab Histórico */}
-					<TabsContent value="historico">
-						<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-							<div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-								<div className="flex items-center gap-2">
-									<History className="h-5 w-5 text-primary" />
-									<h2 className="text-lg font-semibold text-primary">
-										Histórico de Pre-liquidaciones
-									</h2>
+							<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
+								<div className="flex items-center justify-between">
+									<div>
+										<p className="text-sm text-muted-foreground">
+											Total Registros
+										</p>
+										<p className="text-2xl font-bold text-chart-2">
+											{resumenFiltrado.totalRegistros}
+										</p>
+									</div>
+									<FileText className="h-8 w-8 text-chart-2 opacity-50" />
 								</div>
-								<FiltrosComponent />
+							</div>
+							<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
+								<div className="flex items-center justify-between">
+									<div>
+										<p className="text-sm text-muted-foreground">
+											Rezagados
+										</p>
+										<p className="text-2xl font-bold text-chart-4">
+											{resumenFiltrado.rezagados}
+										</p>
+									</div>
+									<AlertCircle className="h-8 w-8 text-chart-4 opacity-50" />
+								</div>
+							</div>
+						</div>
+
+						{/* Lista de archivos */}
+						<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+							<div className="flex items-center gap-2 mb-4">
+								<FileText className="h-5 w-5 text-primary" />
+								<h2 className="text-lg font-semibold text-primary">
+									Archivos pendientes para validar la Pre-Liquidación
+								</h2>
 							</div>
 
 							{isLoading ? (
 								<TableRowsLoadingSkeleton rows={6} />
-							) : archivosHistoricoFiltrados.length === 0 ? (
+							) : archivosPendientesFiltrados.length === 0 ? (
 								<EmptyState
-									icon={<History className="h-12 w-12" />}
+									icon={<FileText className="h-12 w-12" />}
 									title={
-										archivosHistorico.length === 0
-											? 'No hay archivos pre-liquidados aún'
+										archivosPendientes.length === 0
+											? 'No hay archivos pendientes de pre-liquidar'
 											: 'No hay archivos que coincidan con los filtros seleccionados'
 									}
 								/>
 							) : (
-								<>
-									{/* Vista cards en móvil */}
-									<div className="md:hidden space-y-3">
-										{archivosHistoricoFiltrados.map((archivo) => (
-											<div
-												key={archivo.idFileImport}
-												className="rounded-lg border border-border bg-card p-4 shadow-sm"
-											>
-												<div className="font-medium text-foreground">
-													{archivo.nombreArchivo}
-												</div>
-												<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-													<span>Carga: {archivo.fechaCarga}</span>
-													<span>
-														Pre-liq.: {archivo.fechaPreLiquidacion || '-'}
-													</span>
-												</div>
-												<div className="mt-2 flex flex-wrap gap-2 text-sm">
-													<span>Registros: {archivo.totalRegistros}</span>
-													<span className="text-chart-3">
-														Sync: {archivo.sincronizados}
-													</span>
-													<span className="text-chart-4">
-														Rezag: {archivo.rezagados}
-													</span>
-													<span className="px-2 py-0.5 rounded text-xs font-medium bg-success-muted text-success">
-														Pre-liquidado
-													</span>
-												</div>
-											</div>
-										))}
-									</div>
-									{/* Tabla en desktop */}
-									<div className="hidden md:block overflow-x-auto rounded-md border border-border">
-										<table className="w-full text-sm">
-											<thead className="bg-muted">
-												<tr>
-													<th
-														className="text-left py-3 px-4 font-semibold text-foreground"
-														scope="col"
-													>
-														Archivo
-													</th>
-													<th
-														className="text-left py-3 px-4 font-semibold text-foreground"
-														scope="col"
-													>
-														Fecha Carga
-													</th>
-													<th
-														className="text-left py-3 px-4 font-semibold text-foreground"
-														scope="col"
-													>
-														Fecha Pre-liquidación
-													</th>
-													<th
-														className="text-center py-3 px-4 font-semibold text-foreground"
-														scope="col"
-													>
-														Registros
-													</th>
-													<th
-														className="text-center py-3 px-4 font-semibold text-foreground"
-														scope="col"
-													>
-														SYNCHRONIZED
-													</th>
-													<th
-														className="text-center py-3 px-4 font-semibold text-foreground"
-														scope="col"
-													>
-														Rezagados
-													</th>
-													<th
-														className="text-center py-3 px-4 font-semibold text-foreground"
-														scope="col"
-													>
-														Estado
-													</th>
-												</tr>
-											</thead>
-											<tbody>
-												{archivosHistoricoFiltrados.map((archivo) => (
-													<tr
-														key={archivo.idFileImport}
-														className="border-t border-border hover:bg-muted/50"
-													>
-														<td className="py-3 px-4 font-medium">
-															{archivo.nombreArchivo}
-														</td>
-														<td className="py-3 px-4">{archivo.fechaCarga}</td>
-														<td className="py-3 px-4">
-															{archivo.fechaPreLiquidacion || '-'}
-														</td>
-														<td className="py-3 px-4 text-center">
-															{archivo.totalRegistros}
-														</td>
-														<td className="py-3 px-4 text-center text-chart-3">
-															{archivo.sincronizados}
-														</td>
-														<td className="py-3 px-4 text-center text-chart-4">
-															{archivo.rezagados}
-														</td>
-														<td className="py-3 px-4 text-center">
-															<span className="px-2 py-1 rounded text-xs font-medium bg-success-muted text-success">
-																PRE-LIQUIDADO
-															</span>
-														</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									</div>
-								</>
+								<ListaArchivosDisponibles
+									archivos={archivosPendientesFiltrados}
+								/>
 							)}
 						</div>
-					</TabsContent>
-				</Tabs>
-
+					</div>
+				)}
 			</div>
+			<ModalErroresConfiguracion
+				registrosConError={registrosConError}
+				open={modalErroresOpen}
+				onClose={cerrarModalErrores}
+			/>
 		</DashboardLayout>
 	)
 }

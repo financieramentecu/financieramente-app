@@ -55,3 +55,65 @@ export async function getPpcForNewBusinesses(
 		ppc: productConfiguration.productPercentageCommissionNewBusinesses,
 	}
 }
+
+export type OriginValidationResult =
+	| { valid: true }
+	| { valid: false; reason: string }
+
+/**
+ * Valida que la combinación (idCategory, idProduct, idClientOrigin) tenga:
+ *  1. ProductConfiguration existente
+ *  2. Al menos un ProductPercentageCommission activo
+ *  3. Al menos una ProductPercentageCommissionCategory activa en ese PPC
+ *
+ * Devuelve `{ valid: true }` si todo está presente, o `{ valid: false, reason }` si falta algo.
+ */
+export async function validateProductConfigurationExists(
+	idCategory: number,
+	idProduct: number,
+	idClientOrigin: number
+): Promise<OriginValidationResult> {
+	const productConfiguration = await prisma.productConfiguration.findUnique({
+		where: {
+			idProduct_idClientOrigin_idCategory: {
+				idProduct,
+				idClientOrigin,
+				idCategory,
+			},
+		},
+		include: {
+			productPercentageCommissions: {
+				where: { active: true },
+				include: {
+					productPercentageCommissionCategories: {
+						where: { active: true },
+					},
+				},
+			},
+		},
+	})
+
+	if (!productConfiguration) {
+		return {
+			valid: false,
+			reason: 'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
+		}
+	}
+
+	const activePpc = productConfiguration.productPercentageCommissions[0]
+	if (!activePpc) {
+		return {
+			valid: false,
+			reason: 'La configuración de ese origen no tiene comisiones activas configuradas.',
+		}
+	}
+
+	if (activePpc.productPercentageCommissionCategories.length === 0) {
+		return {
+			valid: false,
+			reason: 'La configuración de ese origen no tiene reglas de distribución configuradas.',
+		}
+	}
+
+	return { valid: true }
+}

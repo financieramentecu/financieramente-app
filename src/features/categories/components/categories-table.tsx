@@ -3,7 +3,7 @@
 import React from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable'
 import { Button } from '@/features/shared/ui/button'
-import { Category, CATEGORY_TYPES } from '../types/category.types'
+import { Category, CATEGORY_TYPES, SYSTEM_CATEGORY_TYPE_NAME } from '../types/category.types'
 import { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
@@ -76,6 +76,26 @@ export function CategoriesTableSection({
 					{CATEGORY_TYPE_LABELS[String(value)] || String(value)}
 				</Badge>
 			),
+		},
+		{
+			key: 'beneficiaryMode',
+			header: 'Beneficiario',
+			cellRenderer: (value, row) => {
+				const isFixed = value === 'FIXED_BENEFICIARY'
+				const isSystemType = row.typeCategory === SYSTEM_CATEGORY_TYPE_NAME
+				return (
+					<div className="flex flex-col gap-0.5">
+						<Badge variant={isFixed ? 'outline' : 'secondary'} className="w-fit text-xs">
+							{isFixed ? 'Fijo' : 'Por cadena'}
+						</Badge>
+						{isSystemType && isFixed && row.fixedBeneficiaryUser ? (
+							<span className="text-xs text-muted-foreground">
+								{row.fixedBeneficiaryUser.name} {row.fixedBeneficiaryUser.lastName}
+							</span>
+						) : null}
+					</div>
+				)
+			},
 		},
 		{
 			key: 'descripcion',

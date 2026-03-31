@@ -24,11 +24,23 @@ describe('useFileHistory — filter params forwarded to loadFileApi', () => {
 		mockGetImportHistory.mockResolvedValue(emptyResponse)
 	})
 
-	it('forwards { month, year, status, search } to getImportHistory as filters', async () => {
+	it('forwards statuses [LOAD, PRE-SETTLED] to getImportHistory (REQ-6)', async () => {
+		renderHook(() =>
+			useFileHistory({ statuses: ['LOAD', 'PRE-SETTLED'] })
+		)
+
+		await waitFor(() => {
+			expect(mockGetImportHistory).toHaveBeenCalledWith(1, 100, {
+				statuses: ['LOAD', 'PRE-SETTLED'],
+			})
+		})
+	})
+
+	it('forwards { month, year, statuses, search } to getImportHistory as filters', async () => {
 		const params = {
 			month: 3,
 			year: 2026,
-			status: 'COMPLETED',
+			statuses: ['COMPLETED'],
 			search: 'foo',
 		}
 
@@ -38,7 +50,7 @@ describe('useFileHistory — filter params forwarded to loadFileApi', () => {
 			expect(mockGetImportHistory).toHaveBeenCalledWith(
 				1,
 				100,
-				{ month: 3, year: 2026, status: 'COMPLETED', search: 'foo' }
+				{ month: 3, year: 2026, statuses: ['COMPLETED'], search: 'foo' }
 			)
 		})
 	})

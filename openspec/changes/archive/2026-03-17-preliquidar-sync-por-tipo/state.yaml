@@ -1,0 +1,38 @@
+change: preliquidar-sync-por-tipo
+status: apply_complete
+artifact_store: hybrid
+updated: "2026-03-17"
+
+dag:
+  proposal: complete
+  spec: complete
+  design: complete
+  tasks: complete
+  apply: complete
+  verify: complete
+  archive: pending
+
+notes:
+  tasks_regenerated: "2026-03-17 — tasks.md regenerated to include post-implementation UI improvements (pre-liquidacion/page.tsx stats panel, ListaArchivosDisponibles registrosPreliquidados column, disponiblesParaPreliquidar filter, additional tests 4.6-4.7)"
+
+artifacts:
+  proposal:
+    engram_id: 130
+    file: openspec/changes/preliquidar-sync-por-tipo/proposal.md
+  spec:
+    engram_id: 132
+    files:
+      - openspec/changes/preliquidar-sync-por-tipo/specs/sync-module/spec.md
+      - openspec/changes/preliquidar-sync-por-tipo/specs/pre-liquidacion/spec.md
+      - openspec/changes/preliquidar-sync-por-tipo/specs/security/spec.md
+  design:
+    engram_id: 131
+    file: openspec/changes/preliquidar-sync-por-tipo/design.md
+  tasks:
+    engram_id: 133
+    file: openspec/changes/preliquidar-sync-por-tipo/tasks.md
+
+domains:
+  - sync-module
+  - pre-liquidacion
+  - security

@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CategoriesTableSection } from '../../components/categories-table'
 import {
 	createMockCategory,
-	createMockCategoriesByType,
 } from '../fixtures/mock-category'
 
 describe('CategoriesTableSection', () => {
@@ -81,25 +80,33 @@ describe('CategoriesTableSection', () => {
 
 	describe('Multiple Types Display', () => {
 		it('should display all category types correctly', () => {
-			const categories = createMockCategoriesByType()
+			const categories = [
+				createMockCategory({ code: 'CAT-MMS', typeCategory: 'MMS' }),
+				createMockCategory({ code: 'CAT-ALIADO', typeCategory: 'ALIADO' }),
+				createMockCategory({ code: 'CAT-TRINITY', typeCategory: 'TRINITY' }),
+			]
 
 			render(<CategoriesTableSection {...defaultProps} data={categories} />)
 
 			// Check that all codes are displayed
-			expect(screen.getByText('MMS001')).toBeInTheDocument()
-			expect(screen.getByText('ALI001')).toBeInTheDocument()
-			expect(screen.getByText('TRI001')).toBeInTheDocument()
+			expect(screen.getByText('CAT-MMS')).toBeInTheDocument()
+			expect(screen.getByText('CAT-ALIADO')).toBeInTheDocument()
+			expect(screen.getByText('CAT-TRINITY')).toBeInTheDocument()
 		})
 
 		it('should display type labels in table', () => {
-			const categories = createMockCategoriesByType()
+			const categories = [
+				createMockCategory({ code: 'CAT-MMS', typeCategory: 'MMS' }),
+				createMockCategory({ code: 'CAT-ALIADO', typeCategory: 'ALIADO' }),
+				createMockCategory({ code: 'CAT-TRINITY', typeCategory: 'TRINITY' }),
+			]
 
 			render(<CategoriesTableSection {...defaultProps} data={categories} />)
 
 			// Check type labels are shown (mapped from values)
-			expect(screen.getByText('MMS')).toBeInTheDocument()
-			expect(screen.getByText('Aliado')).toBeInTheDocument()
-			expect(screen.getByText('Trinity')).toBeInTheDocument()
+			expect(screen.getAllByText('MMS')[0]).toBeInTheDocument()
+			expect(screen.getAllByText('Aliado')[0]).toBeInTheDocument()
+			expect(screen.getAllByText('Trinity')[0]).toBeInTheDocument()
 		})
 	})
 })
