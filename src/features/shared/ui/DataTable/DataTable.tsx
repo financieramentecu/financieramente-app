@@ -13,6 +13,8 @@ import {
 	getExpandedRowModel,
 	useReactTable,
 	ExpandedState,
+	HeaderContext,
+	CellContext,
 } from '@tanstack/react-table'
 
 import {
@@ -37,7 +39,7 @@ export function DataTable<TData>({
 	data,
 	searchable = true,
 	searchColumn,
-	searchDebounceMs = 300,
+	searchDebounceMs = 0,
 	exportable = false,
 	exportConfig,
 	selectable = false,
@@ -67,26 +69,32 @@ export function DataTable<TData>({
 	getRowCanExpand,
 	className,
 	renderAdditionalFilters,
+	getRowAriaLabel,
 }: DataTableProps<TData>) {
 	const [sorting, setSorting] = useState<SortingState>([])
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+	const [globalFilter, setGlobalFilter] = useState<string>('')
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 	const [internalRowSelection, setInternalRowSelection] = useState({})
 	const [expanded, setExpanded] = useState<ExpandedState>({})
-
-	// Sincronización de selección controlada/no-controlada
-	const rowSelection = selectedRowIds ?? externalRowSelection ?? internalRowSelection
-	const onRowSelectionChange = onExternalRowSelectionChange ?? setInternalRowSelection
+	const [pagination, setPagination] = useState({
+		pageIndex: (currentPage ?? 1) - 1,
+		pageSize: propPageSize ?? defaultPageSize,
+	})
 
 	// Definición final de columnas (inyectando selección y acciones)
 	const finalColumns = useMemo(() => {
-		const cols = [...columns]
+		const cols = columns.map((col) => ({
+			...col,
+			id: (col as any).id || (col as any).accessorKey,
+			filterFn: (col as any).filterFn ?? 'includesString',
+		}))
 
-		// Inyectar columna de checkboxes si es selectable o enableRowSelection
-		if (selectable || enableRowSelection) {
+		// Inyectar columna de checkboxes si es selectable o enableRowSelection o hay callback de selección
+		if (selectable || enableRowSelection || !!onSelectionChange) {
 			cols.unshift({
 				id: 'select',
-				header: ({ table }) => (
+				header: ({ table }: HeaderContext<TData, unknown>) => (
 					<Checkbox
 						checked={
 							table.getIsAllPageRowsSelected() ||
@@ -97,73 +105,93 @@ export function DataTable<TData>({
 						className="translate-y-[2px]"
 					/>
 				),
-				cell: ({ row }) => (
+				cell: ({ row }: CellContext<TData, unknown>) => (
 					<Checkbox
 						checked={row.getIsSelected()}
 						onCheckedChange={(value) => row.toggleSelected(!!value)}
-						aria-label="Seleccionar fila"
+						aria-label={
+							getRowAriaLabel
+								? getRowAriaLabel(row.original)
+								: 'Seleccionar fila'
+						}
 						className="translate-y-[2px]"
 					/>
 				),
 				enableSorting: false,
 				enableHiding: false,
-			})
+			} as any)
 		}
 
 		// Inyectar columna de acciones si existe el prop
 		if (actions) {
 			cols.push({
 				id: 'actions',
-				cell: ({ row }) => (
+				cell: ({ row }: CellContext<TData, unknown>) => (
 					<div className="flex items-center justify-end">
 						{actions(row.original)}
 					</div>
 				),
 				enableSorting: false,
 				enableHiding: false,
-			})
+			} as any)
 		}
 
 		return cols
-	}, [columns, selectable, enableRowSelection, actions])
+	}, [columns, selectable, enableRowSelection, actions, getRowAriaLabel])
 
-	const table = useReactTable({
+	// Sincronización de selección controlada/no-controlada
+	const rowSelection = selectedRowIds ?? externalRowSelection ?? internalRowSelection
+	const onRowSelectionChange = onExternalRowSelectionChange ?? setInternalRowSelection
+
+	// Sincronización de tamaño de página si cambia el prop
+	useEffect(() => {
+		if (propPageSize !== undefined && propPageSize !== pagination.pageSize) {
+			setPagination((prev) => ({ ...prev, pageSize: propPageSize }))
+		}
+	}, [propPageSize, pagination.pageSize])
+
+	// Sincronización de página actual si cambia el prop (manual)
+	useEffect(() => {
+		if (currentPage !== undefined && (currentPage - 1) !== pagination.pageIndex) {
+			setPagination((prev) => ({ ...prev, pageIndex: currentPage - 1 }))
+		}
+	}, [currentPage, pagination.pageIndex])
+
+	const table = useReactTable<TData>({
 		data,
 		columns: finalColumns,
 		state: {
 			sorting,
 			columnFilters,
+			globalFilter,
 			columnVisibility,
 			rowSelection,
 			expanded,
-			...(manualPagination
-				? {
-						pagination: {
-							pageIndex: (currentPage ?? 1) - 1,
-							pageSize: propPageSize ?? defaultPageSize,
-						},
-					}
-				: {}),
+			pagination,
 		},
 		enableRowSelection: true,
+		enableFilters: true,
+		enableColumnFilters: true,
+		enableGlobalFilter: true,
 		manualPagination,
+		manualFiltering: false,
+		autoResetPageIndex: true,
 		rowCount: manualPagination ? totalItems : undefined,
 		onRowSelectionChange,
 		onSortingChange: setSorting,
 		onColumnFiltersChange: setColumnFilters,
+		onGlobalFilterChange: setGlobalFilter,
 		onColumnVisibilityChange: setColumnVisibility,
 		onExpandedChange: setExpanded,
 		getExpandedRowModel: getExpandedRowModel(),
 		getRowCanExpand,
 		onPaginationChange: (updater) => {
-			if (manualPagination && onPageChange) {
-				const nextState =
-					typeof updater === 'function'
-						? updater({
-								pageIndex: (currentPage ?? 1) - 1,
-								pageSize: propPageSize ?? defaultPageSize,
-							})
-						: updater
+			const nextState =
+				typeof updater === 'function' ? updater(pagination) : updater
+			
+			setPagination(nextState)
+
+			if (manualPagination && onPageChange && nextState.pageIndex !== pagination.pageIndex) {
 				onPageChange(nextState.pageIndex + 1)
 			}
 		},
@@ -182,7 +210,7 @@ export function DataTable<TData>({
 		},
 		initialState: {
 			pagination: {
-				pageSize: defaultPageSize,
+				pageSize: propPageSize ?? defaultPageSize,
 			},
 		},
 	})
@@ -220,16 +248,21 @@ export function DataTable<TData>({
 		)
 	}
 
+	const isExportable = exportable || !!onExport
 
 	return (
 		<div className={cn('space-y-4', className)}>
-			{(searchable || exportable || renderAdditionalFilters) && (
+			{(searchable || isExportable || renderAdditionalFilters) && (
 				<DataTableToolbar
 					table={table}
+					columnFilters={columnFilters}
+					setColumnFilters={setColumnFilters}
+					globalFilter={globalFilter}
+					setGlobalFilter={setGlobalFilter}
 					searchable={searchable}
 					searchColumn={searchColumn}
 					searchDebounceMs={searchDebounceMs}
-					exportable={exportable}
+					exportable={isExportable}
 					onExport={handleExport}
 					onGlobalSearch={onGlobalSearch}
 					searchPlaceholder={searchPlaceholder}
@@ -260,7 +293,10 @@ export function DataTable<TData>({
 								<TableRow key={`loading-${i}`}>
 									{columns.map((_, j) => (
 										<TableCell key={`loading-${i}-${j}`}>
-											<Skeleton className="h-6 w-full" />
+											<Skeleton
+												className="h-6 w-full"
+												data-testid="skeleton"
+											/>
 										</TableCell>
 									))}
 								</TableRow>

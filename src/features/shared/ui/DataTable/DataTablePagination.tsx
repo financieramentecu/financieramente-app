@@ -26,9 +26,19 @@ export function DataTablePagination<TData>({
 }: DataTablePaginationProps<TData>) {
 	const paginationState = table.getState().pagination
 
+	const start = table.getRowModel().rows.length > 0 ? (paginationState.pageIndex * paginationState.pageSize) + 1 : 0
+	const end = Math.min(
+		(paginationState.pageIndex + 1) * paginationState.pageSize,
+		table.getFilteredRowModel().rows.length
+	)
+	const total = table.getFilteredRowModel().rows.length
+
 	return (
 		<div className="flex items-center justify-between px-2 py-4">
 			<div className="flex-1 text-sm text-muted-foreground">
+				{`Mostrando ${start} a ${end} de ${total} resultados`}
+			</div>
+			<div className="flex-1 text-sm text-muted-foreground hidden lg:block">
 				{table.getFilteredSelectedRowModel().rows.length} de{' '}
 				{table.getFilteredRowModel().rows.length} fila(s) seleccionada(s).
 			</div>

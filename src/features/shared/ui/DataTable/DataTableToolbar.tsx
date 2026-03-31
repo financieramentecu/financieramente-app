@@ -1,4 +1,4 @@
-import { Table } from '@tanstack/react-table'
+import { ColumnFiltersState, Table } from '@tanstack/react-table'
 import { Search, X, Download } from 'lucide-react'
 
 import { Button } from '@/features/shared/ui/button'
@@ -8,6 +8,10 @@ import { useEffect, useState } from 'react'
 
 interface DataTableToolbarProps<TData> {
 	table: Table<TData>
+	columnFilters: ColumnFiltersState
+	setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>
+	globalFilter: string
+	setGlobalFilter: React.Dispatch<React.SetStateAction<string>>
 	searchable?: boolean
 	searchColumn?: string
 	searchDebounceMs?: number
@@ -20,35 +24,59 @@ interface DataTableToolbarProps<TData> {
 
 export function DataTableToolbar<TData>({
 	table,
+	columnFilters,
+	setColumnFilters,
+	globalFilter,
+	setGlobalFilter,
 	searchable = true,
 	searchColumn,
-	searchDebounceMs = 300,
+	searchDebounceMs = 0,
 	exportable = false,
 	onExport,
 	onGlobalSearch,
 	searchPlaceholder,
 	renderAdditionalFilters,
 }: DataTableToolbarProps<TData>) {
-	const isFiltered = table.getState().columnFilters.length > 0
-	const [searchValue, setSearchValue] = useState<string>(
-		(searchColumn ? table.getColumn(searchColumn)?.getFilterValue() as string : '') ?? ''
-	)
+	const isFiltered = table.getState().columnFilters.length > 0 || !!table.getState().globalFilter
+	const [searchValue, setSearchValue] = useState<string>(globalFilter || '')
 
 	// Debounce search
 	useEffect(() => {
-		const handler = setTimeout(() => {
+		const update = () => {
 			if (onGlobalSearch) {
 				onGlobalSearch(searchValue)
-			} else if (searchColumn) {
-				const column = table.getColumn(searchColumn)
-				if (column) {
-					column.setFilterValue(searchValue)
-				}
+				return
 			}
-		}, searchDebounceMs)
+			
+			if (searchColumn) {
+				setColumnFilters(searchValue ? [{ id: searchColumn, value: searchValue }] : [])
+			} else {
+				setGlobalFilter(searchValue)
+			}
+		}
+
+		if (searchDebounceMs === 0) {
+			update()
+			return
+		}
+
+		const handler = setTimeout(update, searchDebounceMs)
 
 		return () => clearTimeout(handler)
-	}, [searchValue, searchColumn, table, searchDebounceMs, onGlobalSearch])
+	}, [searchValue, searchColumn, searchDebounceMs, onGlobalSearch, setColumnFilters, setGlobalFilter])
+
+	const handleSearchChange = (newValue: string) => {
+		setSearchValue(newValue)
+		if (searchDebounceMs === 0) {
+			if (onGlobalSearch) {
+				onGlobalSearch(newValue)
+			} else if (searchColumn) {
+				setColumnFilters(newValue ? [{ id: searchColumn, value: newValue }] : [])
+			} else {
+				setGlobalFilter(newValue)
+			}
+		}
+	}
 
 	return (
 		<div className="flex items-center justify-between">
@@ -57,9 +85,9 @@ export function DataTableToolbar<TData>({
 					<div className="relative">
 						<Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 						<Input
-							placeholder={searchPlaceholder ?? `Filtrar por ${searchColumn ?? '...'}...`}
+							placeholder={searchPlaceholder ?? 'Buscar...'}
 							value={searchValue}
-							onChange={(event) => setSearchValue(event.target.value)}
+							onChange={(event) => handleSearchChange(event.target.value)}
 							className="h-8 w-[150px] pl-8 lg:w-[250px]"
 						/>
 					</div>

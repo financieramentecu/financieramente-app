@@ -146,5 +146,9 @@ export interface DataTableProps<TData> {
 	 * Callback cuando se solicita exportar los datos
 	 */
 	onExport?: (data: TData[]) => void
+	/**
+	 * Función opcional para generar el aria-label de la fila (accesibilidad)
+	 */
+	getRowAriaLabel?: (row: TData) => string
 }
 

@@ -12,6 +12,7 @@ import {
 	Info,
 } from 'lucide-react'
 import { Modal } from '@/features/shared/ui/modal'
+import { Button } from '@/features/shared/ui/button'
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { ColumnDef } from '@tanstack/react-table'
 import type { RegistroConError } from '../types/types'
@@ -183,6 +184,16 @@ export function ModalErroresConfiguracion({
 						searchColumn="contrato"
 						searchPlaceholder="Buscar por contrato..."
 					/>
+				</div>
+
+				<div className="flex justify-end pt-4">
+					<Button
+						variant="outline"
+						onClick={onClose}
+						className="px-8 font-semibold"
+					>
+						Cerrar
+					</Button>
 				</div>
 			</div>
 		</Modal>

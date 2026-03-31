@@ -241,6 +241,7 @@ export function RegistrosLiquidacionTable({
 			columns={columns}
 			data={registros}
 			getRowId={(row) => row.idSettlementCommission.toString()}
+			getRowAriaLabel={(row) => `Seleccionar registro ${row.idSettlementCommission}`}
 			enableRowSelection={true}
 			selectedRowIds={rowSelection}
 			onRowSelectionChange={handleRowSelectionChange}
