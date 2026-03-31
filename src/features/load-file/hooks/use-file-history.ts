@@ -15,12 +15,14 @@ export interface CargaHistorial {
 	rezagados: number
 	estado: string
 	createdAt: string // Raw ISO string for filtering
+	fileType: 'POLIZA' | 'VOLUNTARIA' | string
+	idFileImport: number
 }
 
 interface FileHistoryParams {
 	month?: number
 	year?: number
-	status?: string
+	statuses?: string[]
 	search?: string
 }
 
@@ -34,7 +36,12 @@ export function useFileHistory(params: FileHistoryParams = {}) {
 	const fetchHistorial = async () => {
 		setState({ status: 'loading', data: undefined, error: '' })
 		try {
-			const response = await loadFileApi.getImportHistory(1, 100, params)
+			const response = await loadFileApi.getImportHistory(1, 100, {
+				month: params.month,
+				year: params.year,
+				statuses: params.statuses,
+				search: params.search,
+			})
 
 			if ('error' in response && response.error) {
 				throw new Error(response.error)
@@ -67,6 +74,8 @@ export function useFileHistory(params: FileHistoryParams = {}) {
 							item.createdAt instanceof Date
 								? item.createdAt.toISOString()
 								: String(item.createdAt),
+						fileType: item.fileType,
+						idFileImport: item.idFileImport,
 					}
 				}
 			)
@@ -125,10 +134,13 @@ export function useFileHistory(params: FileHistoryParams = {}) {
 		}
 	}
 
+	// Serialize statuses array to a stable string for effect dependency
+	const statusesKey = params.statuses?.join(',') ?? ''
+
 	useEffect(() => {
 		fetchHistorial()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params.month, params.year, params.status, params.search])
+	}, [params.month, params.year, statusesKey, params.search])
 
 	return {
 		historial: state.status === 'success' ? state.data : [],

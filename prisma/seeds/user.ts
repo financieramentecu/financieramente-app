@@ -50,19 +50,71 @@ export const superAdminUser = {
 	ssoOnly: false,
 }
 
-export const agentUser = {
-	name: 'Agente',
-	lastName: 'Prueba',
+/** System user for FIXED_BENEFICIARY category AGENCIA (pool / company). */
+export const agenciaSystemUser = {
+	name: 'Agencia',
+	lastName: 'Sistema',
 	typeIdentity: 'CC',
-	identityNumber: '1234567890',
-	email: 'agente.prueba@financieramentecu.com',
-	roleCode: 'AGENTE',
+	identityNumber: null,
+	email: 'agencia@financieramentecu.com',
+	roleCode: 'ADMIN',
 	idUserLeader: null,
 	entryDate: new Date(),
 	active: true,
-	ssoOnly: false,
+	ssoOnly: true,
 }
 
+/**
+ * Upsert solo el usuario sistema Agencia (`agencia@financieramentecu.com`).
+ * Requiere rol ADMIN en BD. Opcional: `AGENCIA_USER_PASSWORD` en .env para password.
+ */
+export async function seedAgenciaSystemUser(
+	prisma: PrismaClient,
+	adminRole: { idRole: number }
+): Promise<void> {
+	console.log('\n👉 Procesando usuario sistema Agencia…')
+	const existingAgencia = await prisma.user.findFirst({
+		where: { email: agenciaSystemUser.email },
+	})
+	let agenciaPasswordCrypted: string | null = null
+	if (process.env.AGENCIA_USER_PASSWORD?.trim()) {
+		agenciaPasswordCrypted = await hashPassword(
+			process.env.AGENCIA_USER_PASSWORD.trim()
+		)
+	}
+	const agenciaData = {
+		name: agenciaSystemUser.name,
+		lastName: agenciaSystemUser.lastName,
+		typeIdentity: agenciaSystemUser.typeIdentity,
+		identityNumber: agenciaSystemUser.identityNumber,
+		email: agenciaSystemUser.email,
+		idRole: adminRole.idRole,
+		idUserLeader: agenciaSystemUser.idUserLeader,
+		entryDate: agenciaSystemUser.entryDate,
+		active: agenciaSystemUser.active,
+		ssoOnly: agenciaSystemUser.ssoOnly,
+		password: agenciaPasswordCrypted,
+	} as Prisma.UserUncheckedCreateInput
+
+	if (existingAgencia) {
+		await prisma.user.update({
+			where: { idUser: existingAgencia.idUser },
+			data: {
+				name: agenciaData.name,
+				lastName: agenciaData.lastName,
+				active: agenciaData.active,
+				ssoOnly: agenciaData.ssoOnly,
+				...(agenciaPasswordCrypted
+					? { password: agenciaPasswordCrypted }
+					: {}),
+			},
+		})
+		console.log(`✅ Usuario Agencia actualizado: ${agenciaSystemUser.email}`)
+	} else {
+		await prisma.user.create({ data: agenciaData })
+		console.log(`✅ Usuario Agencia creado: ${agenciaSystemUser.email}`)
+	}
+}
 
 export async function seedUsers(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Usuarios (Users)...')
@@ -168,6 +220,9 @@ export async function seedUsers(prisma: PrismaClient) {
 		)
 	}
 
+	// 2.6 Usuario sistema Agencia (beneficiario fijo categoría AGENCIA)
+	await seedAgenciaSystemUser(prisma, adminRole)
+
 	// 3. Procesar Super Admin User
 	console.log('\n👉 Procesando Super Admin User...')
 
@@ -178,34 +233,21 @@ export async function seedUsers(prisma: PrismaClient) {
 		)
 	} else {
 
-	// Verificar si el super admin ya existe
-	const existingSuperAdmin = await prisma.user.findFirst({
-		where: {
-			email: superAdminUser.email,
-		},
-	})
+		// Verificar si el super admin ya existe
+		const existingSuperAdmin = await prisma.user.findFirst({
+			where: {
+				email: superAdminUser.email,
+			},
+		})
 
-	// Hashear la contraseña del super admin desde la variable de entorno
-	const hashedPassword = await hashPassword(process.env.SUPER_ADMIN_PASSWORD)
+		// Hashear la contraseña del super admin desde la variable de entorno
+		const hashedPassword = await hashPassword(process.env.SUPER_ADMIN_PASSWORD)
 
-	const superAdminData = {
-		name: superAdminUser.name,
-		lastName: superAdminUser.lastName,
-		typeIdentity: superAdminUser.typeIdentity,
-		identityNumber: superAdminUser.identityNumber,
-		email: superAdminUser.email,
-		password: hashedPassword,
-		ssoOnly: superAdminUser.ssoOnly,
-		idRole: adminRole.idRole,
-		idUserLeader: superAdminUser.idUserLeader,
-		entryDate: superAdminUser.entryDate,
-		active: superAdminUser.active,
-	} as Prisma.UserUncheckedCreateInput
-
-	if (existingSuperAdmin) {
-		const updateSuperAdminData = {
+		const superAdminData = {
 			name: superAdminUser.name,
 			lastName: superAdminUser.lastName,
+			typeIdentity: superAdminUser.typeIdentity,
+			identityNumber: superAdminUser.identityNumber,
 			email: superAdminUser.email,
 			password: hashedPassword,
 			ssoOnly: superAdminUser.ssoOnly,
@@ -213,67 +255,35 @@ export async function seedUsers(prisma: PrismaClient) {
 			idUserLeader: superAdminUser.idUserLeader,
 			entryDate: superAdminUser.entryDate,
 			active: superAdminUser.active,
-		} as Prisma.UserUncheckedUpdateInput
-		await prisma.user.update({
-			where: { idUser: existingSuperAdmin.idUser },
-			data: updateSuperAdminData,
-		})
-		console.log(
-			`✅ Super Admin actualizado: ${superAdminUser.name} (${superAdminUser.email})`
-		)
-	} else {
-		await prisma.user.create({
-			data: superAdminData,
-		})
-		console.log(
-			`✅ Super Admin creado: ${superAdminUser.name} (${superAdminUser.email})`
-		)
-	}
-	}
+		} as Prisma.UserUncheckedCreateInput
 
-	// 4. Procesar Agente Prueba
-	console.log('\n👉 Procesando Usuario Agente...')
-	const agentRole = await prisma.role.findFirst({
-		where: { code: agentUser.roleCode },
-	})
-
-	if (!agentRole) {
-		console.error(`❌ Error: No se encontró el rol ${agentUser.roleCode}.`)
-		return
-	}
-
-	const existingAgent = await prisma.user.findFirst({
-		where: { email: agentUser.email },
-	})
-
-	const agentPasswordCrypted = await hashPassword('password123')
-
-	const agentData = {
-		name: agentUser.name,
-		lastName: agentUser.lastName,
-		typeIdentity: agentUser.typeIdentity,
-		identityNumber: agentUser.identityNumber,
-		email: agentUser.email,
-		password: agentPasswordCrypted,
-		ssoOnly: agentUser.ssoOnly,
-		idRole: agentRole.idRole,
-		idUserLeader: agentUser.idUserLeader,
-		entryDate: agentUser.entryDate,
-		active: agentUser.active,
-	} as Prisma.UserUncheckedCreateInput
-
-	if (existingAgent) {
-		await prisma.user.update({
-			where: { idUser: existingAgent.idUser },
-			data: agentData,
-		})
-		console.log(
-			`✅ Usuario Agente actualizado: ${agentUser.name} (${agentUser.email})`
-		)
-	} else {
-		await prisma.user.create({ data: agentData })
-		console.log(
-			`✅ Usuario Agente creado: ${agentUser.name} (${agentUser.email})`
-		)
+		if (existingSuperAdmin) {
+			const updateSuperAdminData = {
+				name: superAdminUser.name,
+				lastName: superAdminUser.lastName,
+				email: superAdminUser.email,
+				password: hashedPassword,
+				ssoOnly: superAdminUser.ssoOnly,
+				idRole: adminRole.idRole,
+				idUserLeader: superAdminUser.idUserLeader,
+				entryDate: superAdminUser.entryDate,
+				active: superAdminUser.active,
+			} as Prisma.UserUncheckedUpdateInput
+			await prisma.user.update({
+				where: { idUser: existingSuperAdmin.idUser },
+				data: updateSuperAdminData,
+			})
+			console.log(
+				`✅ Super Admin actualizado: ${superAdminUser.name} (${superAdminUser.email})`
+			)
+		} else {
+			await prisma.user.create({
+				data: superAdminData,
+			})
+			console.log(
+				`✅ Super Admin creado: ${superAdminUser.name} (${superAdminUser.email})`
+			)
+		}
 	}
 }
+

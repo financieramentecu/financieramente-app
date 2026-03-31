@@ -9,15 +9,39 @@ export const CATEGORY_TYPES = ['MMS', 'ALIADO', 'TRINITY'] as const
 export type CategoryType = (typeof CATEGORY_TYPES)[number]
 
 /**
+ * System category type name constant — used to detect system-managed categories
+ */
+export const SYSTEM_CATEGORY_TYPE_NAME = 'SISTEMA' as const
+
+/**
+ * Beneficiary mode for commission distribution
+ */
+export type BeneficiaryMode = 'UPLINE_CHAIN' | 'FIXED_BENEFICIARY'
+
+/**
+ * Fixed beneficiary user data (minimal projection)
+ */
+export interface FixedBeneficiaryUser {
+	readonly idUser: number
+	name: string
+	lastName: string
+	email: string
+}
+
+/**
  * Category interface (mapped from Prisma, not using Prisma types directly)
  */
 export interface Category extends Record<string, unknown> {
 	readonly idCategory: number
 	code: string
 	name: string
-	typeCategory: CategoryType
+	typeCategory: string
+	idCategoryType?: number
 	descripcion: string | null
 	status: boolean
+	beneficiaryMode: BeneficiaryMode
+	idFixedBeneficiaryUser: number | null
+	fixedBeneficiaryUser?: FixedBeneficiaryUser | null
 	readonly createdAt: string
 	readonly updatedAt: string
 }
@@ -27,7 +51,7 @@ export interface Category extends Record<string, unknown> {
  */
 export interface CategoryFilters {
 	search?: string
-	typeCategory?: CategoryType
+	typeCategory?: string
 	status?: string
 }
 
@@ -37,9 +61,11 @@ export interface CategoryFilters {
 export interface CreateCategoryInput {
 	code: string
 	name: string
-	typeCategory: CategoryType
+	typeCategory: string
 	descripcion?: string | null
 	status: boolean
+	beneficiaryMode?: BeneficiaryMode
+	idFixedBeneficiaryUser?: number | null
 }
 
 /**
@@ -48,9 +74,11 @@ export interface CreateCategoryInput {
 export interface UpdateCategoryInput {
 	code?: string
 	name?: string
-	typeCategory?: CategoryType
+	typeCategory?: string
 	descripcion?: string | null
 	status?: boolean
+	beneficiaryMode?: BeneficiaryMode
+	idFixedBeneficiaryUser?: number | null
 }
 
 /**

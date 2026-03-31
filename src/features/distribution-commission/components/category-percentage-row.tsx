@@ -42,7 +42,7 @@ export function CategoryPercentageRow({
 	onRemove,
 }: CategoryPercentageRowProps) {
 	return (
-		<div className="flex items-end gap-4">
+		<div className="flex items-start gap-4">
 			<FormField
 				control={control}
 				name={`categories.${index}.idCategory`}
@@ -94,15 +94,15 @@ export function CategoryPercentageRow({
 						<FormControl>
 							<Input
 								type="number"
-								step="0.01"
-								min="0.01"
-								max="999.99"
-								placeholder="0.00"
+								step="0.0001"
+								min="0"
+								max="100"
+								placeholder="0.0000"
 								value={field.value ?? ''}
 								onChange={(event) => {
 									const nextValue =
 										event.target.value === ''
-											? undefined
+											? 0
 											: Number(event.target.value)
 									field.onChange(nextValue)
 								}}
@@ -113,15 +113,18 @@ export function CategoryPercentageRow({
 				)}
 			/>
 
-			<Button
-				type="button"
-				variant="ghost"
-				size="icon"
-				className="h-10 w-10 shrink-0 text-destructive"
-				onClick={onRemove}
-			>
-				<Trash2 className="h-4 w-4" />
-			</Button>
+			<div className="flex flex-col">
+				{index === 0 && <div className="h-[20px] mb-2" aria-hidden="true" />}
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					className="h-10 w-10 shrink-0 text-destructive"
+					onClick={onRemove}
+				>
+					<Trash2 className="h-4 w-4" />
+				</Button>
+			</div>
 		</div>
 	)
 }

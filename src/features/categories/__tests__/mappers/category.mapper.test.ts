@@ -4,6 +4,7 @@ import {
 	prismaCategoryListToCategories,
 } from '../../mappers/category.mapper'
 import { createMockPrismaCategory } from '../fixtures/mock-category'
+import { BeneficiaryMode } from '@prisma/client'
 
 describe('category.mapper', () => {
 	describe('prismaCategoryToCategory', () => {
@@ -12,7 +13,14 @@ describe('category.mapper', () => {
 				idCategory: 1,
 				code: 'CAT001',
 				name: 'Agente Experto',
-				typeCategory: 'MMS',
+				categoryType: {
+					id: 1,
+					name: 'MMS',
+					description: 'Descripción completa',
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
 				descripcion: 'Descripción completa',
 				status: true,
 			})
@@ -76,7 +84,14 @@ describe('category.mapper', () => {
 				idCategory: 42,
 				code: 'UNIQUE_CODE',
 				name: 'Unique Name',
-				typeCategory: 'ALIADO',
+				categoryType: {
+					id: 2,
+					name: 'ALIADO',
+					description: 'Unique description',
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
 				descripcion: 'Unique description',
 			})
 
@@ -91,7 +106,14 @@ describe('category.mapper', () => {
 
 		it('should handle typeCategory MMS', () => {
 			const prismaCategory = createMockPrismaCategory({
-				typeCategory: 'MMS',
+				categoryType: {
+					id: 1,
+					name: 'MMS',
+					description: null,
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date()
+				}
 			})
 
 			const result = prismaCategoryToCategory(prismaCategory)
@@ -101,7 +123,14 @@ describe('category.mapper', () => {
 
 		it('should handle typeCategory ALIADO', () => {
 			const prismaCategory = createMockPrismaCategory({
-				typeCategory: 'ALIADO',
+				categoryType: {
+					id: 2,
+					name: 'ALIADO',
+					description: null,
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date()
+				}
 			})
 
 			const result = prismaCategoryToCategory(prismaCategory)
@@ -111,12 +140,94 @@ describe('category.mapper', () => {
 
 		it('should handle typeCategory TRINITY', () => {
 			const prismaCategory = createMockPrismaCategory({
-				typeCategory: 'TRINITY',
+				categoryType: {
+					id: 3,
+					name: 'TRINITY',
+					description: null,
+					status: true,
+					createdAt: new Date(),
+					updatedAt: new Date()
+				}
 			})
 
 			const result = prismaCategoryToCategory(prismaCategory)
 
 			expect(result.typeCategory).toBe('TRINITY')
+		})
+	})
+
+	describe('beneficiaryMode and fixedBeneficiaryUser mapping', () => {
+		it('should map beneficiaryMode UPLINE_CHAIN correctly', () => {
+			const prismaCategory = createMockPrismaCategory({
+				beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.beneficiaryMode).toBe('UPLINE_CHAIN')
+		})
+
+		it('should map beneficiaryMode FIXED_BENEFICIARY correctly', () => {
+			const prismaCategory = createMockPrismaCategory({
+				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				idFixedBeneficiaryUser: 5,
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.beneficiaryMode).toBe('FIXED_BENEFICIARY')
+		})
+
+		it('should map idFixedBeneficiaryUser as null when not set', () => {
+			const prismaCategory = createMockPrismaCategory({
+				idFixedBeneficiaryUser: null,
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.idFixedBeneficiaryUser).toBeNull()
+		})
+
+		it('should map idFixedBeneficiaryUser when set', () => {
+			const prismaCategory = createMockPrismaCategory({
+				idFixedBeneficiaryUser: 10,
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.idFixedBeneficiaryUser).toBe(10)
+		})
+
+		it('should map fixedBeneficiaryUser as null when relation not included', () => {
+			const prismaCategory = createMockPrismaCategory({
+				idFixedBeneficiaryUser: null,
+			})
+			// No fixedBeneficiaryUser property — relation not included
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.fixedBeneficiaryUser).toBeNull()
+		})
+
+		it('should map fixedBeneficiaryUser when relation is included', () => {
+			const prismaCategory = createMockPrismaCategory({
+				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				idFixedBeneficiaryUser: 7,
+				fixedBeneficiaryUser: {
+					idUser: 7,
+					name: 'Ana',
+					lastName: 'García',
+					email: 'ana@example.com',
+				},
+			})
+
+			const result = prismaCategoryToCategory(prismaCategory)
+
+			expect(result.fixedBeneficiaryUser).toEqual({
+				idUser: 7,
+				name: 'Ana',
+				lastName: 'García',
+				email: 'ana@example.com',
+			})
 		})
 	})
 
@@ -147,7 +258,7 @@ describe('category.mapper', () => {
 		})
 
 		it('should handle empty array', () => {
-			const prismaCategories: ReturnType<typeof createMockPrismaCategory>[] = []
+			const prismaCategories: (ReturnType<typeof createMockPrismaCategory>)[] = []
 
 			const result = prismaCategoryListToCategories(prismaCategories)
 
@@ -178,7 +289,14 @@ describe('category.mapper', () => {
 					idCategory: 1,
 					code: 'CAT001',
 					name: 'Agente MMS',
-					typeCategory: 'MMS',
+					categoryType: {
+						id: 1,
+						name: 'MMS',
+						description: 'Descripción 1',
+						status: true,
+						createdAt: new Date(),
+						updatedAt: new Date()
+					},
 					descripcion: 'Descripción 1',
 					status: true,
 				}),
@@ -186,7 +304,14 @@ describe('category.mapper', () => {
 					idCategory: 2,
 					code: 'CAT002',
 					name: 'Agente Aliado',
-					typeCategory: 'ALIADO',
+					categoryType: {
+						id: 2,
+						name: 'ALIADO',
+						description: null,
+						status: true,
+						createdAt: new Date(),
+						updatedAt: new Date()
+					},
 					descripcion: null,
 					status: false,
 				}),

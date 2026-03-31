@@ -42,8 +42,7 @@ export function ModalVerNegocio({
 	async function handleSaveOrigin(businessId: number, idClientOrigin: number) {
 		const response = await businessService.update(businessId, { idClientOrigin })
 		if ('error' in response && response.error) {
-			toast.error('Error al actualizar origen', { description: response.error })
-			return
+			throw new Error(response.error)
 		}
 		toast.success('Origen actualizado')
 		await refetch()

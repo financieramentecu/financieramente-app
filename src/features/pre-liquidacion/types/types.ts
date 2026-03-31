@@ -95,12 +95,25 @@ export interface ConfiguracionPorcentajes {
 }
 
 /**
+ * Entrada de error de configuración durante pre-liquidación
+ */
+export interface RegistroConError {
+	idSettlementCommission: number
+	categoryCode: string
+	errorCode: string
+	contrato: string | null
+	idBusiness: number
+	idUserAgent: number
+}
+
+/**
  * Respuesta de procesamiento de pre-liquidación
  */
 export interface RespuestaProcesamientoPreLiquidacion {
 	success: boolean
 	registrosProcesados: number
 	mensaje: string
+	registrosConError?: RegistroConError[]
 }
 
 /**
@@ -251,6 +264,44 @@ export interface RespuestaRegistrosLiquidacion {
 		sincronizados: number
 	}
 	registros: RegistroLiquidacionDetalle[]
+}
+
+/**
+ * Un registro de ComissionDistribution mapeado para visualización
+ */
+export interface ItemDistribucionComision {
+	readonly idComissionDistribution: number
+	readonly idBeneficiaryUser: number
+	/** Display name of resolved beneficiary for this distribution row */
+	beneficiarioNombre: string
+	categoria: string
+	value_commision: number // Bruta
+	applied_discount_percentace: number // % Descuento
+	discount_total: number // Total Descuento
+	commission_porcentaje: number // % Distribucion de comision
+	percentaje_applied: number | null // % clawback
+	value_clawback: number | null // Descuento clawback
+	comisionNeta: number // valueComissionFinal (Comisión Final)
+}
+
+/**
+ * Contexto de cabecera + filas de distribución para una comisión de liquidación
+ */
+export interface DistribucionComision {
+	idSettlementCommission: number
+	commission_value: number // Comisión Total (from settlement parent)
+	categoria: string | null 
+	producto: string | null
+	origen: string | null
+	nombreAsesor: string | null 
+	distribuciones: ItemDistribucionComision[]
+}
+
+/**
+ * Forma de respuesta de la API para distribución de comisión
+ */
+export interface RespuestaDistribucionComision {
+	distribucion: DistribucionComision
 }
 
 /** Pre-liquidación flow for clawback persistence and balance behavior */

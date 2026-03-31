@@ -1,43 +1,55 @@
-/**
- * Mapper for transforming Category from Prisma to Category type
- * Single responsibility: database data conversion to domain
- */
+import { Category, CategoryType, User } from '@prisma/client'
+import { Category as CategoryDomain, BeneficiaryMode } from '../types/category.types'
 
-import type { Category, CategoryType } from '../types/category.types'
-import type { Category as PrismaCategory } from '@prisma/client'
+type PrismaCategoryWithRelations = Category & {
+	categoryType?: CategoryType | null
+	fixedBeneficiaryUser?: Pick<User, 'idUser' | 'name' | 'lastName' | 'email'> | null
+}
 
 /**
- * Transforms a Prisma Category to Category type
- *
- * @param prisma - Category from Prisma
- * @returns Category for use in the UI
- *
- * @example
- * ```typescript
- * const prismaCategory = await prisma.category.findUnique({
- *   where: { idCategory: 1 },
- * })
- * const category = prismaCategoryToCategory(prismaCategory)
- * ```
+ * Mapea una categoría de Prisma a una categoría de dominio
  */
-export function prismaCategoryToCategory(prisma: PrismaCategory): Category {
+export const prismaCategoryToCategory = (
+	prisma: PrismaCategoryWithRelations
+): CategoryDomain => {
+	// Use type-safe approach to get type name, fallback to legacy field then default
+	const typeCategory = prisma.categoryType?.name || (prisma as unknown as { typeCategory: string }).typeCategory || 'MMS'
+
+	const fixedBeneficiaryUser = prisma.fixedBeneficiaryUser
+		? {
+				idUser: prisma.fixedBeneficiaryUser.idUser,
+				name: prisma.fixedBeneficiaryUser.name,
+				lastName: prisma.fixedBeneficiaryUser.lastName ?? '',
+				email: prisma.fixedBeneficiaryUser.email,
+			}
+		: null
+
 	return {
 		idCategory: prisma.idCategory,
 		code: prisma.code,
 		name: prisma.name,
-		typeCategory: prisma.typeCategory as CategoryType,
-		descripcion: prisma.descripcion,
+		typeCategory,
+		idCategoryType: prisma.idCategoryType || 1,
+		descripcion: prisma.descripcion === null ? null : (prisma.descripcion || ''),
 		status: prisma.status,
+		beneficiaryMode: (prisma.beneficiaryMode as BeneficiaryMode) ?? 'UPLINE_CHAIN',
+		idFixedBeneficiaryUser: prisma.idFixedBeneficiaryUser ?? null,
+		fixedBeneficiaryUser,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
 	}
 }
 
 /**
- * Transforms a list of Prisma Categories to Category[]
+ * Mapea una lista de categorías de Prisma a categorías de dominio
  */
-export function prismaCategoryListToCategories(
-	prismaList: PrismaCategory[]
-): Category[] {
+export const prismaCategoryListToCategories = (
+	prismaList: PrismaCategoryWithRelations[]
+): CategoryDomain[] => {
 	return prismaList.map(prismaCategoryToCategory)
 }
+
+/**
+ * Backwards compatibility alias
+ */
+export const mapToDomain = prismaCategoryToCategory

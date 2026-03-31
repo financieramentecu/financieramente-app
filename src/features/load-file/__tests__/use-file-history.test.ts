@@ -97,6 +97,25 @@ describe('useFileHistory — AsyncState lifecycle', () => {
 		)
 	})
 
+	it('maps fileType and idFileImport from API response to CargaHistorial', async () => {
+		const items = [
+			makeMockItem({ idFileImport: 42, fileType: 'POLIZA' }),
+			makeMockItem({ idFileImport: 99, fileType: 'VOLUNTARIA' }),
+		]
+		mockGetImportHistory.mockResolvedValueOnce(makePaginatedResponse(items))
+
+		const { result } = renderHook(() => useFileHistory())
+
+		await waitFor(() => {
+			expect(result.current.historial).toHaveLength(2)
+		})
+
+		expect(result.current.historial[0].fileType).toBe('POLIZA')
+		expect(result.current.historial[0].idFileImport).toBe(42)
+		expect(result.current.historial[1].fileType).toBe('VOLUNTARIA')
+		expect(result.current.historial[1].idFileImport).toBe(99)
+	})
+
 	it('resolves to error with message when getImportHistory rejects', async () => {
 		mockGetImportHistory.mockRejectedValueOnce(
 			new Error('Network error')

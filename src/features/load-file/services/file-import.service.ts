@@ -30,6 +30,16 @@ export class PeriodCompletedError extends Error {
 	}
 }
 
+export class PeriodPreSettledError extends Error {
+	constructor(
+		public readonly month: number,
+		public readonly year: number
+	) {
+		super(`Período en pre-liquidación`)
+		this.name = 'PeriodPreSettledError'
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -50,19 +60,25 @@ export class FileImportService {
 	}): Promise<InitiateImportResult> {
 		const { fileType, month, year, idUser } = params
 
-		// 1. Check for COMPLETED import (period block guard)
-		const completed = await prisma.fileImport.findFirst({
+		// 1. Check for COMPLETED import per user, or PRE-SETTLED globally (period block guard).
+		// PRE-SETTLED is a global block: no user can sync into a period that ANY user has pre-liquidated.
+		const blocked = await prisma.fileImport.findFirst({
 			where: {
 				fileType,
 				month,
 				year,
-				idUser,
-				status: 'COMPLETED',
+				OR: [
+					{ idUser, status: 'COMPLETED' },
+					{ status: 'PRE-SETTLED' },
+				],
 			},
 		})
 
-		if (completed) {
-			throw new PeriodCompletedError(month, year)
+		if (blocked) {
+			if (blocked.status === 'COMPLETED') {
+				throw new PeriodCompletedError(month, year)
+			}
+			throw new PeriodPreSettledError(month, year)
 		}
 
 		// 2. Check for LOAD import (dedup)
@@ -108,7 +124,7 @@ export class FileImportService {
 		isAdmin: boolean
 		month?: number
 		year?: number
-		status?: string
+		status?: string[]
 		search?: string
 	}): Promise<FileImportHistory[]> {
 		const { userId, isAdmin, month, year, status, search } = params
@@ -116,10 +132,10 @@ export class FileImportService {
 		const where: Prisma.FileImportWhereInput = isAdmin ? {} : { idUser: userId }
 		if (month !== undefined) where.month = month
 		if (year !== undefined) where.year = year
-		if (status && status !== 'ALL') {
-			where.status = status
-		} else if (!status || status === 'ALL') {
-			where.status = { in: ['LOAD', 'COMPLETED'] }
+		if (status && status.length > 0) {
+			where.status = { in: status }
+		} else {
+			where.status = { in: ['LOAD', 'PRE-SETTLED', 'COMPLETED'] }
 		}
 		if (search) where.nameFile = { contains: search, mode: 'insensitive' }
 

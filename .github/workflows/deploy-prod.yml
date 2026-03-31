@@ -2,7 +2,7 @@ name: Deploy to Production
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 env:
   NODE_VERSION: "20"
@@ -102,8 +102,8 @@ jobs:
       - name: Copy SSL scripts to server
         run: |
           ssh -o StrictHostKeyChecking=no root@${{ secrets.PROD_DROPLET_IP }} "mkdir -p /opt/financieramente/terraform/scripts"
-          scp -o StrictHostKeyChecking=no terraform/scripts/ssl-renew.sh root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/terraform/scripts/
-          ssh -o StrictHostKeyChecking=no root@${{ secrets.PROD_DROPLET_IP }} "chmod +x /opt/financieramente/terraform/scripts/ssl-renew.sh"
+          scp -o StrictHostKeyChecking=no terraform/scripts/ssl-renew.sh terraform/scripts/setup-ssl.sh root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/terraform/scripts/
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.PROD_DROPLET_IP }} "chmod +x /opt/financieramente/terraform/scripts/ssl-renew.sh /opt/financieramente/terraform/scripts/setup-ssl.sh"
 
       - name: Setup environment variables
         run: |

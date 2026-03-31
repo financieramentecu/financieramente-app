@@ -49,9 +49,12 @@ export default function NotFound() {
 							<FileQuestion className="h-8 w-8 text-primary" />
 						</div>
 					</div>
-					<CardTitle className="text-2xl text-primary">Página no encontrada</CardTitle>
+					<CardTitle className="text-2xl text-primary">
+						Página no encontrada
+					</CardTitle>
 					<CardDescription className="text-base mt-2">
-						Lo sentimos, la página que estás buscando no existe o ha sido movida.
+						Lo sentimos, la página que estás buscando no existe o ha sido
+						movida.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-6">
@@ -74,11 +77,7 @@ export default function NotFound() {
 								Ir al Dashboard
 							</Link>
 						</Button>
-						<Button
-							variant="outline"
-							className="flex-1"
-							onClick={handleGoBack}
-						>
+						<Button variant="outline" className="flex-1" onClick={handleGoBack}>
 							<ArrowLeft className="mr-2 h-4 w-4" />
 							Volver atrás
 						</Button>
