@@ -15,6 +15,7 @@ import { ModalConfirmacionLiquidar } from '@/features/pre-liquidacion/components
 import { ModalConfirmacionRezagar } from '@/features/pre-liquidacion/components/ModalConfirmacionRezagar'
 import { ModalVerNegocio } from '@/features/pre-liquidacion/components/ModalVerNegocio'
 import { ModalDetalleDistribucion } from '@/features/pre-liquidacion/components/ModalDetalleDistribucion'
+import { RegistrosLiquidacionSkeleton } from '@/features/shared/ui/loading-skeletons'
 
 export default function DetallePreLiquidacionPage() {
 	const params = useParams()
@@ -155,13 +156,17 @@ export default function DetallePreLiquidacionPage() {
 				)}
 
 				{isLoading ? (
-					<div className="py-16 text-center text-muted-foreground">
-						<Calculator className="h-8 w-8 mx-auto mb-3 opacity-20 animate-pulse" />
-						<p>Cargando comisiones pre-liquidadas...</p>
-					</div>
+					<RegistrosLiquidacionSkeleton />
 				) : registros.length === 0 ? (
-					<div className="py-16 text-center text-muted-foreground">
-						No hay comisiones pre-liquidadas para este archivo.
+					<div className="py-16 flex flex-col items-center gap-4 text-center">
+						<p className="text-muted-foreground max-w-md">
+							No hay comisiones pre-liquidadas para este archivo.
+						</p>
+						<Button asChild className="cursor-pointer">
+							<Link href="/dashboard/liquidaciones">
+								Ir a liquidaciones
+							</Link>
+						</Button>
 					</div>
 				) : (
 					<>
@@ -173,9 +178,8 @@ export default function DetallePreLiquidacionPage() {
 							onVerNegocio={handleVerNegocio}
 							onVerDistribucion={handleVerDistribucion}
 						/>
-						{/* Liquidar/Rezagar actions are disabled — records are PRE-SETTLED, not SYNCHRONIZED */}
 						<BarraAccionesLiquidacion
-							selectedCount={0}
+							selectedCount={selectedIds.size}
 							onLiquidar={handleLiquidar}
 							onRezagar={handleRezagar}
 							isLiquidando={isLiquidando}
