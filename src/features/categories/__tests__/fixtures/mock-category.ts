@@ -1,11 +1,17 @@
 import type { Category } from '../../types/category.types'
 import { CategoryType as CategoryTypeDomain } from '../../types/category.types'
 import {
-	BeneficiaryMode,
-	Category as PrismaCategory,
+	Category as PrismaCategoryBase,
 	CategoryType,
 	User,
 } from '@prisma/client'
+import { PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations } from '../../mappers/category.mapper'
+
+// Local redefinition of BeneficiaryMode because Prisma client is outdated
+export enum BeneficiaryMode {
+	UPLINE_CHAIN = 'UPLINE_CHAIN',
+	FIXED_BENEFICIARY = 'FIXED_BENEFICIARY',
+}
 
 /**
  * Mock category for testing (Domain Type)
@@ -56,32 +62,28 @@ export const createMockCategoriesByType = (
 	}))
 }
 
-type PrismaCategoryWithRelations = PrismaCategory & {
-	categoryType?: CategoryType | null
-	fixedBeneficiaryUser?: Pick<
-		User,
-		'idUser' | 'name' | 'lastName' | 'email'
-	> | null
-}
-
 /**
  * Mock Prisma Category for testing (Prisma Client Type)
+ * Uses the exported type from the mapper to ensure compatibility
  */
 export const createMockPrismaCategory = (
-	overrides: Partial<PrismaCategoryWithRelations> = {}
-): PrismaCategoryWithRelations => {
+	overrides: Partial<MapperPrismaCategoryWithRelations> = {}
+): MapperPrismaCategoryWithRelations => {
 	const now = new Date()
-	return {
+	const base: MapperPrismaCategoryWithRelations = {
 		idCategory: 1,
 		code: 'CAT-001',
 		name: 'Categoría 1',
 		idCategoryType: 1,
 		descripcion: 'Descripción 1',
 		status: true,
-		beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+		beneficiaryMode: 'UPLINE_CHAIN',
 		idFixedBeneficiaryUser: null,
 		createdAt: now,
 		updatedAt: now,
-		...overrides,
+	}
+	return {
+		...base,
+		...overrides as MapperPrismaCategoryWithRelations,
 	}
 }

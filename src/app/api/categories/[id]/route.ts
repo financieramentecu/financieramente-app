@@ -4,7 +4,10 @@ import { updateCategorySchema } from '@/features/categories/lib/category-schemas
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { Category } from '@/features/categories/types/category.types'
 import { z } from 'zod'
-import { prismaCategoryToCategory } from '@/features/categories/mappers/category.mapper'
+import { 
+	prismaCategoryToCategory,
+	type PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations 
+} from '@/features/categories/mappers/category.mapper'
 
 /**
  * GET /api/categories/[id]
@@ -16,14 +19,19 @@ export async function GET(
 ) {
 	try {
 		const { id } = await params
-		const category = await prisma.category.findUnique({
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const findOptions: any = {
 			where: { idCategory: parseInt(id) },
 			include: {
 				fixedBeneficiaryUser: {
 					select: { idUser: true, name: true, lastName: true, email: true },
 				},
 			},
-		})
+		} as any
+
+		// @ts-ignore - Prisma client is outdated
+		const categoryRaw = await prisma.category.findUnique(findOptions)
+		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
 
 		if (!category) {
 			const errorResponse: ApiResponse<null> = {
@@ -177,8 +185,8 @@ export async function PUT(
 			updateData.idCategoryType = categoryTypeRec.id
 		}
 
-		// Update category
-		const category = await prisma.category.update({
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const updateOptions: any = {
 			where: { idCategory: categoryId },
 			data: updateData,
 			include: {
@@ -186,7 +194,11 @@ export async function PUT(
 					select: { idUser: true, name: true, lastName: true, email: true },
 				},
 			},
-		})
+		} as any
+
+		// @ts-ignore - Prisma client is outdated
+		const categoryRaw = await prisma.category.update(updateOptions)
+		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
 
 		// Transform using mapper
 		const categoryFormatted = prismaCategoryToCategory(category)

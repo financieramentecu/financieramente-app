@@ -2,11 +2,8 @@
 
 import * as React from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import {
-	DataTable,
-	DataTableConfig,
-	createColumnDefs,
-} from './data-table-enhanced'
+import { DataTable } from './DataTable/DataTable'
+import { createColumnDefs } from './DataTable/column-utils'
 import { Button } from './button'
 import {
 	DropdownMenu,
@@ -24,17 +21,9 @@ export interface TableModuleProps<TData> {
 	columns: ColumnDef<TData>[]
 	title?: string
 	description?: string
-	searchable?: boolean
-	searchColumn?: string
-	paginable?: boolean
-	selectable?: boolean
-	exportable?: boolean
-	filterable?: boolean
-	pageSizeOptions?: number[]
 	defaultPageSize?: number
 	loading?: boolean
 	emptyMessage?: string
-	className?: string
 	onRowClick?: (row: TData) => void
 	onSelectionChange?: (selectedRows: TData[]) => void
 	onExport?: (data: TData[]) => void
@@ -42,6 +31,12 @@ export interface TableModuleProps<TData> {
 	onDelete?: (row: TData) => void
 	onView?: (row: TData) => void
 	customActions?: (row: TData) => React.ReactNode
+	searchable?: boolean
+	searchPlaceholder?: string
+	paginable?: boolean
+	selectable?: boolean
+	exportable?: boolean
+	filterable?: boolean
 }
 
 // Default actions component
@@ -103,17 +98,9 @@ export function TableModule<TData>({
 	columns,
 	title,
 	description,
-	searchable = true,
-	searchColumn,
-	paginable = true,
-	selectable = true,
-	exportable = true,
-	filterable = true,
-	pageSizeOptions = [10, 20, 30, 40, 50],
 	defaultPageSize = 10,
 	loading = false,
 	emptyMessage = 'No hay datos disponibles',
-	className,
 	onRowClick,
 	onSelectionChange,
 	onExport,
@@ -121,41 +108,13 @@ export function TableModule<TData>({
 	onDelete,
 	onView,
 	customActions,
+	searchable,
+	searchPlaceholder,
+	paginable,
+	selectable,
+	exportable,
+	filterable,
 }: TableModuleProps<TData>) {
-	// Create table configuration
-	const config: DataTableConfig<TData> = React.useMemo(
-		() => ({
-			columns,
-			data,
-			searchable,
-			searchColumn,
-			paginable,
-			selectable,
-			exportable,
-			filterable,
-			pageSizeOptions,
-			defaultPageSize,
-			loading,
-			emptyMessage,
-			className,
-		}),
-		[
-			columns,
-			data,
-			searchable,
-			searchColumn,
-			paginable,
-			selectable,
-			exportable,
-			filterable,
-			pageSizeOptions,
-			defaultPageSize,
-			loading,
-			emptyMessage,
-			className,
-		]
-	)
-
 	// Create actions function
 	const actions = React.useCallback(
 		(row: TData) => {
@@ -189,11 +148,21 @@ export function TableModule<TData>({
 			)}
 
 			<DataTable
-				config={config}
+				columns={columns}
+				data={data}
+				loading={loading}
+				emptyMessage={emptyMessage}
+				pageSize={defaultPageSize}
+				manualPagination={false}
 				onRowClick={onRowClick}
 				onSelectionChange={onSelectionChange}
 				onExport={onExport}
 				actions={actions}
+				searchable={searchable}
+				searchPlaceholder={searchPlaceholder}
+				paginable={paginable}
+				selectable={selectable}
+				exportable={exportable}
 			/>
 		</div>
 	)
@@ -308,4 +277,4 @@ export function useTableModule<TData>() {
 
 // Export everything
 export { createColumnDefs }
-export type { DataTableConfig }
+

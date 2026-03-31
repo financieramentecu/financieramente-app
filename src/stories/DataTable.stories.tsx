@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import { DataTable } from '../features/shared/ui/DataTable'
+import { DataTable } from '../features/shared/ui/DataTable/DataTable'
 import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
 import { mockBusinessList } from '../features/shared/__tests__/fixtures/mockBusinessData'
-import { DataTableColumn } from '../features/shared/ui/types/dashboard.types'
+import type { ColumnDef } from '@tanstack/react-table'
 import {
 	Avatar,
 	AvatarFallback,
@@ -11,7 +11,7 @@ import {
 import { Badge } from '../features/shared/ui/badge'
 import { Button } from '../features/shared/ui/button'
 
-const meta: Meta<typeof DataTable> = {
+const meta: Meta<any> = {
 	title: 'UI/DataTableGeneric',
 	component: DataTable,
 	parameters: {
@@ -35,22 +35,21 @@ const meta: Meta<typeof DataTable> = {
 }
 
 export default meta
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<any>
 
-// Configuración de columnas para la tabla de negocios
-const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
+const businessColumns: ColumnDef<any, any>[] = [
 	{
-		key: 'identification',
+		accessorKey: 'identification',
 		header: 'Identificación',
-		cellRenderer: (value) => (
-			<span className="font-medium">{value as string}</span>
+		cell: ({ row }) => (
+			<span className="font-medium">{row.getValue('identification') as string}</span>
 		),
 	},
 	{
-		key: 'user',
+		accessorKey: 'user',
 		header: 'Usuario',
-		cellRenderer: (value: unknown) => {
-			const user = value as { avatar: string; name: string }
+		cell: ({ row }) => {
+			const user = row.getValue('user') as { avatar: string; name: string }
 			return (
 				<div className="flex items-center gap-3">
 					<Avatar className="h-8 w-8">
@@ -68,49 +67,43 @@ const businessColumns: DataTableColumn<Record<string, unknown>>[] = [
 		},
 	},
 	{
-		key: 'email',
+		accessorKey: 'email',
 		header: 'Email',
-		cellRenderer: (value: unknown) => (
-			<span className="text-muted-foreground">{value as string}</span>
+		cell: ({ row }) => (
+			<span className="text-muted-foreground">{row.getValue('email')}</span>
 		),
 	},
 	{
-		key: 'value',
+		accessorKey: 'value',
 		header: 'Valor',
-		cellRenderer: (value: unknown) => (
+		cell: ({ row }) => (
 			<span className="font-medium">
 				{new Intl.NumberFormat('es-CO', {
 					style: 'currency',
 					currency: 'COP',
 					minimumFractionDigits: 0,
-				}).format(value as number)}
+				}).format(row.getValue('value') as number)}
 			</span>
 		),
 	},
 	{
-		key: 'status',
+		accessorKey: 'status',
 		header: 'Estado',
-		cellRenderer: (value: unknown) => (
-			<Badge
-				variant={(value as string) === 'Emitido' ? 'default' : 'secondary'}
-				className={
-					(value as string) === 'Emitido'
-						? 'bg-blue-100 text-blue-800'
-						: 'bg-green-100 text-green-800'
-				}
-			>
-				{value as string}
-			</Badge>
-		),
-	},
-	{
-		key: 'actions',
-		header: 'Acciones',
-		cellRenderer: () => (
-			<Button variant="outline" size="sm">
-				Editar
-			</Button>
-		),
+		cell: ({ row }) => {
+			const value = row.getValue('status') as string
+			return (
+				<Badge
+					variant={value === 'Emitido' ? 'default' : 'secondary'}
+					className={
+						value === 'Emitido'
+							? 'bg-blue-100 text-blue-800'
+							: 'bg-green-100 text-green-800'
+					}
+				>
+					{value}
+				</Badge>
+			)
+		},
 	},
 ]
 
@@ -119,13 +112,11 @@ export const Default: Story = {
 		columns: businessColumns,
 		data: mockBusinessList,
 		searchable: true,
-		onGlobalSearch: (query) => console.log('Search:', query),
-		pagination: {
-			currentPage: 1,
-			pageSize: 10,
-			totalItems: mockBusinessList.length,
-			onPageChange: (page) => console.log('Page changed:', page),
-		},
+		onSearchChange: (query: string) => console.log('Search:', query),
+		currentPage: 1,
+		pageSize: 10,
+		totalItems: mockBusinessList.length,
+		onPageChange: (page: number) => console.log('Page changed:', page),
 	},
 }
 
@@ -134,12 +125,10 @@ export const WithoutSearch: Story = {
 		columns: businessColumns,
 		data: mockBusinessList.slice(0, 5),
 		searchable: false,
-		pagination: {
-			currentPage: 1,
-			pageSize: 5,
-			totalItems: 5,
-			onPageChange: (page) => console.log('Page changed:', page),
-		},
+		currentPage: 1,
+		pageSize: 5,
+		totalItems: 5,
+		onPageChange: (page: number) => console.log('Page changed:', page),
 	},
 }
 
@@ -148,7 +137,7 @@ export const EmptyState: Story = {
 		columns: businessColumns,
 		data: [],
 		searchable: true,
-		onGlobalSearch: (query) => console.log('Search:', query),
+		onSearchChange: (query: string) => console.log('Search:', query),
 	},
 }
 
@@ -158,7 +147,7 @@ export const LoadingState: Story = {
 		data: [],
 		loading: true,
 		searchable: true,
-		onGlobalSearch: (query) => console.log('Search:', query),
+		onSearchChange: (query: string) => console.log('Search:', query),
 	},
 }
 
@@ -167,6 +156,6 @@ export const WithoutPagination: Story = {
 		columns: businessColumns,
 		data: mockBusinessList.slice(0, 3),
 		searchable: true,
-		onGlobalSearch: (query) => console.log('Search:', query),
+		onSearchChange: (query: string) => console.log('Search:', query),
 	},
 }

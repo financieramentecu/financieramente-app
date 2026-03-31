@@ -3,8 +3,7 @@ import {
 	prismaCategoryToCategory,
 	prismaCategoryListToCategories,
 } from '../../mappers/category.mapper'
-import { createMockPrismaCategory } from '../fixtures/mock-category'
-import { BeneficiaryMode } from '@prisma/client'
+import { createMockPrismaCategory, BeneficiaryMode } from '../fixtures/mock-category'
 
 describe('category.mapper', () => {
 	describe('prismaCategoryToCategory', () => {

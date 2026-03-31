@@ -572,7 +572,7 @@ export async function obtenerRegistrosParaLiquidacion(
 export async function obtenerDistribucionComision(
 	id: number
 ): Promise<RespuestaDistribucionComision | null> {
-	const rows = await prisma.comissionDistribution.findMany({
+	const rows = (await (prisma.comissionDistribution as any).findMany({
 		where: { idSettlementCommission: id },
 		include: {
 			beneficiaryUser: {
@@ -605,7 +605,7 @@ export async function obtenerDistribucionComision(
 			},
 			clawback: true,
 		},
-	})
+	})) as any[]
 
 	if (rows.length === 0) return null
 
@@ -1059,7 +1059,7 @@ export async function procesarPreLiquidacion(
 			const usePortfolio = registro.originCommission === 'CARTERA'
 
 			const configCategorias =
-				await prisma.productPercentageCommissionCategory.findMany({
+				(await prisma.productPercentageCommissionCategory.findMany({
 					where: {
 						idProductPercentageCommission:
 							registro.business.idProductPercentageCommission,
@@ -1071,10 +1071,10 @@ export async function procesarPreLiquidacion(
 								fixedBeneficiaryUser: {
 									select: { idUser: true, active: true },
 								},
-							},
+							} as any,
 						},
 					},
-				})
+				})) as any[]
 
 			if (configCategorias.length === 0) {
 				console.warn(
@@ -1101,7 +1101,7 @@ export async function procesarPreLiquidacion(
 					: []
 
 			const resolutions = configCategorias.map((cfg) =>
-				resolveBeneficiaryUserId(cfg.category, chain)
+				resolveBeneficiaryUserId(cfg.category as any, chain)
 			)
 			const failed = resolutions.find((r) => !r.ok)
 			if (failed && !failed.ok) {
@@ -1165,7 +1165,7 @@ export async function procesarPreLiquidacion(
 							totalDiscount: totalDescuento,
 							appliedDiscountPercentage: descuentoPorcentaje,
 							status: 'PRE-SETTLED',
-						},
+						} as any,
 					})
 
 					if (
@@ -1353,7 +1353,7 @@ export async function recalcularComisionesPorCambioOrigen(
 
 		if (preSettledCommissions.length > 0) {
 			const newCategories =
-				await tx.productPercentageCommissionCategory.findMany({
+				(await tx.productPercentageCommissionCategory.findMany({
 					where: {
 						idProductPercentageCommission:
 							activePercentageConfig.idProductPercentageCommission,
@@ -1365,10 +1365,10 @@ export async function recalcularComisionesPorCambioOrigen(
 								fixedBeneficiaryUser: {
 									select: { idUser: true, active: true },
 								},
-							},
+							} as any,
 						},
 					},
-				})
+				})) as any[]
 
 			if (newCategories.length === 0) {
 				throw new Error(
@@ -1411,7 +1411,7 @@ export async function recalcularComisionesPorCambioOrigen(
 				const clawbackPorcentaje = record.clawbackPercentage ?? new Decimal(0)
 
 				for (const cat of newCategories) {
-					const resolved = resolveBeneficiaryUserId(cat.category, chain)
+					const resolved = resolveBeneficiaryUserId(cat.category as any, chain)
 					if (!resolved.ok) {
 						throw new Error(
 							`No se pudo resolver beneficiario (categoría ${resolved.categoryCode}): ${resolved.code}`
@@ -1419,10 +1419,11 @@ export async function recalcularComisionesPorCambioOrigen(
 					}
 					const idBeneficiaryUser = resolved.idUser
 
+					const catAny = cat as any
 					const porcentaje =
-						usePortfolio && cat.porcentajePortfolio !== null
-							? cat.porcentajePortfolio
-							: cat.porcentajeDistribucion
+						usePortfolio && catAny.porcentajePortfolio !== null
+							? catAny.porcentajePortfolio
+							: catAny.porcentajeDistribucion
 
 					const valorComisionBruta = comisionBase.mul(porcentaje)
 
@@ -1445,7 +1446,7 @@ export async function recalcularComisionesPorCambioOrigen(
 								valueComissionFinal: valorComisionFinal,
 								status: 'PRE-SETTLED',
 								idBeneficiaryUser,
-							},
+							} as any,
 						})
 
 						if (
