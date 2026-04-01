@@ -2,6 +2,7 @@
 
 import { Loader2, DollarSign, Tag, Package, MapPin, User } from 'lucide-react'
 import { Modal } from '@/features/shared/ui/modal'
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { useDistribucionComision } from '../hooks/use-distribucion-comision'
 import { formatCurrency, formatPct } from '../lib/format-utils'
 
@@ -60,10 +61,6 @@ export function ModalDetalleDistribucion({
 		}),
 		{ bruta: 0, descuento: 0, clawback: 0, neta: 0 }
 	)
-
-	const thClass =
-		'py-2.5 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap'
-	const thRight = `${thClass} text-right`
 
 	return (
 		<Modal
@@ -134,98 +131,120 @@ export function ModalDetalleDistribucion({
 							No hay distribuciones registradas para esta comisión.
 						</div>
 					) : (
-						<div className="rounded-lg border border-border overflow-hidden">
-							<div className="overflow-x-auto">
-								<table className="w-full text-sm">
-									<thead>
-										<tr className="bg-muted/60 border-b border-border">
-											<th className={thClass}>Categoría</th>
-											<th className={thClass}>Beneficiario</th>
-											<th className={thRight}>% Dist.</th>
-											<th className={thRight}>Com. Dist.</th>
-											<th className={thRight}>% Desc.</th>
-											<th className={thRight}>Desc. Total</th>
-											<th className={thRight}>% Clawback</th>
-											<th className={thRight}>Clawback</th>
-											<th className={`${thRight} text-primary`}>Com. Final</th>
-										</tr>
-									</thead>
-									<tbody className="divide-y divide-border">
-										{distribucion.distribuciones.map((item, idx) => (
-											<tr
-												key={item.idComissionDistribution}
-												className={`hover:bg-primary/5 transition-colors ${idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}`}
-											>
-												<td className="py-3 px-3">
-													<span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-semibold text-secondary-foreground">
-														{item.categoria}
-													</span>
-												</td>
-												<td className="py-3 px-3 text-foreground font-medium">
-													{item.beneficiarioNombre || '—'}
-												</td>
-												<td className="py-3 px-3 text-right text-muted-foreground tabular-nums">
-													{formatPct(item.commission_porcentaje)}
-												</td>
-												<td className="py-3 px-3 text-right text-foreground tabular-nums">
-													{formatCurrency(item.value_commision)}
-												</td>
-												<td className="py-3 px-3 text-right text-muted-foreground tabular-nums">
-													{formatPct(item.applied_discount_percentace)}
-												</td>
-												<td className="py-3 px-3 text-right text-muted-foreground tabular-nums">
-													{formatCurrency(item.discount_total)}
-												</td>
-												<td className="py-3 px-3 text-right text-muted-foreground tabular-nums">
-													{item.percentaje_applied != null
-														? formatPct(item.percentaje_applied)
-														: '—'}
-												</td>
-												<td className="py-3 px-3 text-right text-muted-foreground tabular-nums">
-													{item.value_clawback != null
-														? formatCurrency(item.value_clawback)
-														: '—'}
-												</td>
-												<td className="py-3 px-3 text-right">
-													<span className="font-bold text-primary tabular-nums text-sm">
-														{formatCurrency(item.comisionNeta)}
-													</span>
-												</td>
-											</tr>
-										))}
-									</tbody>
-									{/* Totals row */}
-									{totals && (
-										<tfoot>
-											<tr className="bg-muted/60 border-t-2 border-border">
-												<td
-													colSpan={3}
-													className="py-2.5 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide"
-												>
-													Total
-												</td>
-												<td className="py-2.5 px-3 text-right font-bold text-foreground tabular-nums text-sm">
-													{formatCurrency(totals.bruta)}
-												</td>
-												<td className="py-2.5 px-3" />
-												<td className="py-2.5 px-3 text-right font-bold text-foreground tabular-nums text-sm">
-													{formatCurrency(totals.descuento)}
-												</td>
-												<td className="py-2.5 px-3" />
-												<td className="py-2.5 px-3 text-right font-bold text-foreground tabular-nums text-sm">
-													{formatCurrency(totals.clawback)}
-												</td>
-												<td className="py-2.5 px-3 text-right">
-													<span className="font-bold text-primary tabular-nums text-sm">
-														{formatCurrency(totals.neta)}
-													</span>
-												</td>
-											</tr>
-										</tfoot>
-									)}
-								</table>
-							</div>
-						</div>
+						<DataTable
+							columns={[
+								{
+									accessorKey: 'categoria',
+									header: 'Categoría',
+									cell: ({ row }) => (
+										<span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-semibold text-secondary-foreground">
+											{row.original.categoria}
+										</span>
+									),
+									footer: () => 'Total',
+								},
+								{
+									accessorKey: 'beneficiarioNombre',
+									header: 'Beneficiario',
+									cell: ({ row }) => row.original.beneficiarioNombre || '—',
+								},
+								{
+									accessorKey: 'commission_porcentaje',
+									header: () => <div className="text-right">% Dist.</div>,
+									cell: ({ row }) => (
+										<div className="text-right text-muted-foreground tabular-nums">
+											{formatPct(row.original.commission_porcentaje)}
+										</div>
+									),
+								},
+								{
+									accessorKey: 'value_commision',
+									header: () => <div className="text-right">Com. Dist.</div>,
+									cell: ({ row }) => (
+										<div className="text-right text-foreground tabular-nums">
+											{formatCurrency(row.original.value_commision)}
+										</div>
+									),
+									footer: () => (
+										<div className="text-right font-bold text-foreground tabular-nums text-sm">
+											{formatCurrency(totals?.bruta || 0)}
+										</div>
+									),
+								},
+								{
+									accessorKey: 'applied_discount_percentace',
+									header: () => <div className="text-right">% Desc.</div>,
+									cell: ({ row }) => (
+										<div className="text-right text-muted-foreground tabular-nums">
+											{formatPct(row.original.applied_discount_percentace)}
+										</div>
+									),
+								},
+								{
+									accessorKey: 'discount_total',
+									header: () => <div className="text-right">Desc. Total</div>,
+									cell: ({ row }) => (
+										<div className="text-right text-muted-foreground tabular-nums">
+											{formatCurrency(row.original.discount_total)}
+										</div>
+									),
+									footer: () => (
+										<div className="text-right font-bold text-foreground tabular-nums text-sm">
+											{formatCurrency(totals?.descuento || 0)}
+										</div>
+									),
+								},
+								{
+									accessorKey: 'percentaje_applied',
+									header: () => <div className="text-right">% Clawback</div>,
+									cell: ({ row }) => (
+										<div className="text-right text-muted-foreground tabular-nums">
+											{row.original.percentaje_applied != null
+												? formatPct(row.original.percentaje_applied)
+												: '—'}
+										</div>
+									),
+								},
+								{
+									accessorKey: 'value_clawback',
+									header: () => <div className="text-right">Clawback</div>,
+									cell: ({ row }) => (
+										<div className="text-right text-muted-foreground tabular-nums">
+											{row.original.value_clawback != null
+												? formatCurrency(row.original.value_clawback)
+												: '—'}
+										</div>
+									),
+									footer: () => (
+										<div className="text-right font-bold text-foreground tabular-nums text-sm">
+											{formatCurrency(totals?.clawback || 0)}
+										</div>
+									),
+								},
+								{
+									accessorKey: 'comisionNeta',
+									header: () => <div className="text-right pr-2 text-primary">Com. Final</div>,
+									cell: ({ row }) => (
+										<div className="text-right pr-2">
+											<span className="font-bold text-primary tabular-nums text-sm">
+												{formatCurrency(row.original.comisionNeta)}
+											</span>
+										</div>
+									),
+									footer: () => (
+										<div className="text-right pr-2">
+											<span className="font-bold text-primary tabular-nums text-sm">
+												{formatCurrency(totals?.neta || 0)}
+											</span>
+										</div>
+									),
+								},
+							]}
+							data={distribucion.distribuciones}
+							paginable={false}
+							searchable={false}
+							showFooter
+						/>
 					)}
 				</div>
 			)}

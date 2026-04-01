@@ -150,5 +150,10 @@ export interface DataTableProps<TData> {
 	 * Función opcional para generar el aria-label de la fila (accesibilidad)
 	 */
 	getRowAriaLabel?: (row: TData) => string
+	/**
+	 * Indica si se debe mostrar el footer de la tabla
+	 * @default false
+	 */
+	showFooter?: boolean
 }
 

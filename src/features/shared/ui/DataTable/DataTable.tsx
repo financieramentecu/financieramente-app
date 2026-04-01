@@ -24,6 +24,7 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
+	TableFooter,
 } from '@/features/shared/ui/table'
 import { Checkbox } from '@/features/shared/ui/checkbox'
 import { Skeleton } from '@/features/shared/ui/skeleton'
@@ -70,6 +71,7 @@ export function DataTable<TData>({
 	className,
 	renderAdditionalFilters,
 	getRowAriaLabel,
+	showFooter = false,
 }: DataTableProps<TData>) {
 	const [sorting, setSorting] = useState<SortingState>([])
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -347,6 +349,31 @@ export function DataTable<TData>({
 					</TableBody>
 				</Table>
 			</div>
+			{showFooter && (
+				<div className="rounded-md border bg-muted/50 mt-[-1px]">
+					<Table>
+						<TableFooter>
+							{table.getFooterGroups().map((footerGroup) => (
+								<TableRow key={footerGroup.id} className="hover:bg-transparent border-none">
+									{footerGroup.headers.map((header) => (
+										<TableHead
+											key={header.id}
+											className="h-10 text-xs font-bold text-foreground"
+										>
+											{header.isPlaceholder
+												? null
+												: flexRender(
+														header.column.columnDef.footer,
+														header.getContext()
+												  )}
+										</TableHead>
+									))}
+								</TableRow>
+							))}
+						</TableFooter>
+					</Table>
+				</div>
+			)}
 			{paginable && (
 				<DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
 			)}

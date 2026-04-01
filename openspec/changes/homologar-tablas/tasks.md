@@ -24,14 +24,14 @@
 
 ## 3. Migración Módulos de Operación (Negocios y Liquidaciones)
 
-- [ ] 3.1 Refactorizar `BusinessTableSection.tsx` para usar el nuevo engine.
-- [ ] 3.2 Refactorizar `RegistrosLiquidacionTable.tsx` eliminando la lógica de selección manual de checkboxes.
-- [ ] 3.3 Buscar componentes que usan `div` para tablas (e.g. `grep -r "flex.*flex-col.*border"` o similar) y migrarlos.
-- [ ] 3.4 Asegurar que las tablas dentro de Acordeones en Liquidación usen el componente estándar.
+- [x] 3.1 Refactorizar `BusinessTableSection.tsx` para usar el nuevo engine.
+- [x] 3.2 Refactorizar `RegistrosLiquidacionTable.tsx` (Migrado a `historico-liquidaciones.tsx`).
+- [x] 3.3 Buscar componentes que usan `div` para tablas y migrarlos (e.g. `ModalDetalleDistribucion.tsx`).
+- [x] 3.4 Asegurar que las tablas dentro de Acordeones en Liquidación usen el componente estándar.
 
 ## 4. Limpieza y Consolidación
 
-- [ ] 4.1 Eliminar `src/features/admin/shared/CrudTable.tsx`.
-- [ ] 4.2 Eliminar `src/features/shared/ui/data-table-enhanced.tsx`.
-- [ ] 4.3 Renombrar/Reemplazar el `DataTable.tsx` original (manual) por el nuevo si el impacto es manejable, o mantenerlo como alias temporal.
-- [ ] 4.4 Correr linter y type-check en todo el proyecto.
+- [x] 4.1 Eliminar `src/features/admin/shared/CrudTable.tsx`.
+- [x] 4.2 Eliminar `src/features/shared/ui/data-table-enhanced.tsx`.
+- [x] 4.3 Renombrar/Reemplazar el `DataTable.tsx` original (manual) por el nuevo si el impacto es manejable, o mantenerlo como alias temporal.
+- [x] 4.4 Correr linter y type-check en todo el proyecto.
