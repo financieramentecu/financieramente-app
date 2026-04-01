@@ -15,7 +15,7 @@ export function ModalConfirmacionRezagar({
 	onOpenChange,
 	count,
 	onConfirmar,
-	isConfirmando: _isConfirmando,
+	isConfirmando,
 }: ModalConfirmacionRezagarProps) {
 	return (
 		<ConfirmModal
@@ -25,6 +25,7 @@ export function ModalConfirmacionRezagar({
 			confirmText="Rezagar"
 			cancelText="Cancelar"
 			destructive={false}
+			isLoading={isConfirmando}
 			onConfirm={onConfirmar}
 			onCancel={() => onOpenChange(false)}
 		/>

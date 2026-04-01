@@ -72,6 +72,17 @@ export function BusinessTableSection({
 			)
 		}
 
+		if (status === 'Comisionando') {
+			return (
+				<Badge
+					variant="default"
+					className="bg-blue-100 text-blue-800 border-blue-200"
+				>
+					{status}
+				</Badge>
+			)
+		}
+
 		if (status === 'Cancelado') {
 			return (
 				<Badge

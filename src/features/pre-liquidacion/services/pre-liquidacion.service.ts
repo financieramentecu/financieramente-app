@@ -17,7 +17,7 @@ import type {
 	ResumenFilaPreliquidacion,
 	ResumenUsuarioPreliquidacion,
 } from '../types/types'
-import { deriveFlow } from '../lib/pre-liquidacion-flow'
+import { deriveFlow, shouldPersistClawback } from '../lib/pre-liquidacion-flow'
 import {
 	buildUplineChain,
 	resolveBeneficiaryUserId,
@@ -672,8 +672,121 @@ export async function obtenerDistribucionComision(
 	return { distribucion }
 }
 
+// ---------------------------------------------------------------------------
+// Internal transaction helpers
+// ---------------------------------------------------------------------------
+
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
 /**
- * Transitions selected SYNCHRONIZED records to SETTLED. If no SYNCHRONIZED remain for the file, sets FileImport.status to COMPLETED.
+ * Applies clawbacks within a settlement transaction for POLIZA commissions.
+ * For each commission distribution that has a linked Clawback row:
+ *   - Sets applied_date=now() and state=APPLIED
+ *   - Appends "retención del clawback de la póliza" to reason
+ *   - Upserts ClawbackBalance per user, incrementing totalAmount
+ */
+async function applyClawbacksForSettlement(
+	tx: PrismaTx,
+	commissions: Array<{
+		idSettlementCommission: number
+		commissionType: string
+		originCommission: string | null
+		isClawback: boolean
+	}>
+): Promise<void> {
+	const now = new Date()
+
+	// Filter to POLIZA flows only
+	const polizaCommissionIds = commissions
+		.filter((c) => shouldPersistClawback(deriveFlow(c)))
+		.map((c) => c.idSettlementCommission)
+
+	if (polizaCommissionIds.length === 0) return
+
+	// Fetch all distributions with their clawback rows for these commissions
+	const distributions = await tx.comissionDistribution.findMany({
+		where: {
+			idSettlementCommission: { in: polizaCommissionIds },
+			clawback: { isNot: null },
+		},
+		include: {
+			clawback: true,
+		},
+	})
+
+	if (distributions.length === 0) return
+
+	// Group clawback values by userId for balance upsert
+	const balanceByUser = new Map<number, number>()
+
+	for (const dist of distributions) {
+		const claw = dist.clawback
+		if (!claw) continue
+
+		const existingReason = claw.reason ?? ''
+		const appendedReason = existingReason
+			? `${existingReason}, retención del clawback de la póliza`
+			: 'retención del clawback de la póliza'
+
+		await tx.clawback.update({
+			where: { idClawback: claw.idClawback },
+			data: {
+				appliedDate: now,
+				state: 'APPLIED',
+				reason: appendedReason,
+				updatedAt: now,
+			},
+		})
+
+		const userId = claw.idUser
+		const clawValue = claw.valueClawback.toNumber()
+		balanceByUser.set(userId, (balanceByUser.get(userId) ?? 0) + clawValue)
+	}
+
+	// Upsert ClawbackBalance per user
+	for (const [userId, totalValue] of balanceByUser.entries()) {
+		await tx.clawbackBalance.upsert({
+			where: { idUser: userId },
+			create: { idUser: userId, totalAmount: totalValue },
+			update: { totalAmount: { increment: totalValue } },
+		})
+	}
+}
+
+/**
+ * Transitions businesses from EMITIDO to COMISIONANDO within a settlement transaction.
+ * Only affects businesses currently in EMITIDO status (idempotent for others).
+ */
+async function updateBusinessStatusOnSettle(
+	tx: PrismaTx,
+	businessIds: number[]
+): Promise<void> {
+	if (businessIds.length === 0) return
+
+	await tx.business.updateMany({
+		where: {
+			idBusiness: { in: businessIds },
+			status: 'EMITIDO',
+		},
+		data: {
+			status: 'COMISIONANDO',
+			updatedAt: new Date(),
+		},
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Public service functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Transitions selected PRE-SETTLED records to SETTLED.
+ * Within a single transaction:
+ *   - Updates settlement_commission: status=SETTLED, settledDate=now()
+ *   - Updates all linked comission_distribution rows: status=SETTLED
+ *   - Applies clawbacks for POLIZA commissions (appliedDate, state=APPLIED, reason append, balance upsert)
+ *   - Transitions linked businesses from EMITIDO to COMISIONANDO
+ *   - Sets FileImport.status=COMPLETED only when no SYNCHRONIZED and no PRE-SETTLED remain for the file
  */
 export async function liquidarRegistros(
 	ids: number[],
@@ -681,53 +794,107 @@ export async function liquidarRegistros(
 	fileId: number
 ): Promise<{ liquidated: number; fileCompleted: boolean }> {
 	return prisma.$transaction(async (tx) => {
-		const result = await tx.settlementCommission.updateMany({
+		const now = new Date()
+
+		// 1. Fetch commissions with all related data
+		const commissions = await tx.settlementCommission.findMany({
 			where: {
 				idSettlementCommission: { in: ids },
-				status: 'SYNCHRONIZED',
+				status: 'PRE-SETTLED',
 			},
-			data: { status: 'SETTLED', updatedAt: new Date() },
+			select: {
+				idSettlementCommission: true,
+				idBusiness: true,
+				commissionType: true,
+				originCommission: true,
+				isClawback: true,
+			},
 		})
 
-		const remaining = await tx.settlementCommission.count({
+		const settledIds = commissions.map((c) => c.idSettlementCommission)
+
+		if (settledIds.length === 0) {
+			return { liquidated: 0, fileCompleted: false }
+		}
+
+		// 2. Update settlement_commission: status=SETTLED, settledDate=now()
+		const result = await tx.settlementCommission.updateMany({
+			where: { idSettlementCommission: { in: settledIds } },
+			data: { status: 'SETTLED', settledDate: now, updatedAt: now },
+		})
+
+		// 3. Update all linked comission_distribution rows: status=SETTLED
+		await tx.comissionDistribution.updateMany({
+			where: { idSettlementCommission: { in: settledIds } },
+			data: { status: 'SETTLED', updatedAt: now },
+		})
+
+		// 4. Apply clawbacks for POLIZA commissions
+		await applyClawbacksForSettlement(tx, commissions)
+
+		// 5. Transition linked businesses from EMITIDO to COMISIONANDO
+		const businessIds = [
+			...new Set(
+				commissions
+					.map((c) => c.idBusiness)
+					.filter((id): id is number => id !== null)
+			),
+		]
+		await updateBusinessStatusOnSettle(tx, businessIds)
+
+		// 6. COMPLETED only when no sync backlog and no pre-liquidation queue left for this import
+		const remainingSynchronized = await tx.settlementCommission.count({
 			where: {
 				idFileImport: fileId,
 				status: 'SYNCHRONIZED',
 			},
 		})
+		const remainingPreSettled = await tx.settlementCommission.count({
+			where: {
+				idFileImport: fileId,
+				status: 'PRE-SETTLED',
+			},
+		})
 
-		if (remaining === 0) {
+		const fileCompleted =
+			remainingSynchronized === 0 && remainingPreSettled === 0
+
+		if (fileCompleted) {
 			await tx.fileImport.update({
 				where: { idFileImport: fileId },
-				data: { status: 'COMPLETED', updatedAt: new Date() },
+				data: { status: 'COMPLETED', updatedAt: now },
 			})
 		}
 
 		return {
 			liquidated: result.count,
-			fileCompleted: remaining === 0,
+			fileCompleted,
 		}
 	})
 }
 
 /**
- * Transitions selected SYNCHRONIZED records to LAG with lagDate and isLag set.
+ * Transitions selected PRE-SETTLED records to LAG with lagDate, isLag,
+ * isLagByUser and isLagByUserDate set (user-initiated lag tracking).
  * Does not update FileImport.status.
  */
 export async function rezagarRegistros(
 	ids: number[],
 	_userId: number
 ): Promise<{ lagged: number }> {
+	const now = new Date()
 	const result = await prisma.settlementCommission.updateMany({
 		where: {
 			idSettlementCommission: { in: ids },
-			status: 'SYNCHRONIZED',
+			status: 'PRE-SETTLED',
 		},
 		data: {
 			status: 'LAG',
 			isLag: true,
-			lagDate: new Date(),
-			updatedAt: new Date(),
+			lagDate: now,
+			isLagByUser: true,
+			isLagByUserDate: now,
+			updatedAt: now,
 		},
 	})
 	return { lagged: result.count }

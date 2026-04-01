@@ -110,7 +110,55 @@ export function SectionWithStatsLoadingSkeleton() {
 }
 
 /**
- * Skeleton mínimo para “cargando tabla” (solo filas, sin header ni paginación).
+ * Skeleton para la tabla de registros de pre-liquidacion.
+ * Replica la estructura de RegistrosLiquidacionTable.
+ */
+export function RegistrosLiquidacionSkeleton({ rows = 8 }: { rows?: number }) {
+	const colWidths = [10, 80, 100, 70, 60, 70, 70, 100, 100, 80]
+	return (
+		<div className="rounded-lg border border-border overflow-hidden shadow-sm">
+			<div className="overflow-x-auto">
+				<table className="w-full text-sm">
+					<thead>
+						<tr className="bg-muted/60 border-b border-border">
+							{colWidths.map((w, i) => (
+								<th key={i} className="py-3 px-4">
+									<Skeleton className="h-3" style={{ width: w }} />
+								</th>
+							))}
+						</tr>
+					</thead>
+					<tbody className="divide-y divide-border">
+						{Array.from({ length: rows }).map((_, i) => (
+							<tr key={i} className={i % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+								<td className="py-3 px-4 text-center">
+									<Skeleton className="h-4 w-4 rounded mx-auto" />
+								</td>
+								<td className="py-3 px-4"><Skeleton className="h-4 w-16" /></td>
+								<td className="py-3 px-4"><Skeleton className="h-4 w-28" /></td>
+								<td className="py-3 px-4 text-right"><Skeleton className="h-4 w-16 ml-auto" /></td>
+								<td className="py-3 px-4 text-right"><Skeleton className="h-4 w-10 ml-auto" /></td>
+								<td className="py-3 px-4 text-right"><Skeleton className="h-4 w-10 ml-auto" /></td>
+								<td className="py-3 px-4 text-center"><Skeleton className="h-5 w-10 rounded-full mx-auto" /></td>
+								<td className="py-3 px-4 text-center"><Skeleton className="h-5 w-10 rounded-full mx-auto" /></td>
+								<td className="py-3 px-4"><Skeleton className="h-4 w-24" /></td>
+								<td className="py-3 px-4">
+									<div className="flex items-center justify-end gap-1.5">
+										<Skeleton className="h-7 w-16 rounded-md" />
+										<Skeleton className="h-7 w-20 rounded-md" />
+									</div>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	)
+}
+
+/**
+ * Skeleton mínimo para "cargando tabla" (solo filas, sin header ni paginación).
  * Útil en Historial de cargas o listas simples.
  */
 export function TableRowsLoadingSkeleton({ rows = 5 }: { rows?: number }) {
