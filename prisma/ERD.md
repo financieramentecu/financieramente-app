@@ -3,16 +3,20 @@
 Diagrama ER (Entity Relationship) generado a partir de `schema.prisma`.  
 Sistema: Financieramente — liquidación de comisiones.
 
+**Enum** `BeneficiaryMode`: `UPLINE_CHAIN` | `FIXED_BENEFICIARY` (en `category.beneficiary_mode`).
+
 ```mermaid
 erDiagram
     %% ========== CATÁLOGOS Y DOMINIOS ==========
     Company ||--o{ Product : "tiene productos"
     TypeProduct ||--o{ Product : "clasifica"
+    CategoryType ||--o{ Category : "tipo de categoría"
     ClientOrigin ||--o{ ProductConfiguration : "origen en config"
     ClientOrigin ||--o{ Business : "origen del negocio"
     Category ||--o{ User : "categoría del usuario"
     Category ||--o{ ProductConfiguration : "categoría en config"
     Category ||--o{ ProductPercentageCommissionCategory : "en distribución"
+    User ||--o{ Category : "beneficiario fijo categoría"
     Role ||--o{ User : "rol asignado"
     Role ||--o{ AuditLog : "rol en auditoría"
     BuyPeriodicity ||--o{ Business : "periodicidad de compra"
@@ -21,7 +25,7 @@ erDiagram
     %% ========== PRODUCTOS Y CONFIGURACIÓN ==========
     Product ||--o{ ProductConfiguration : "combinación producto/origen/categoría"
     ProductConfiguration ||--o{ ProductPercentageCommission : "versiones PPC"
-    ProductConfiguration ||--o| ProductPercentageCommission : "PPC activo nuevos negocios"
+    ProductConfiguration ||--o| ProductPercentageCommission : "PPC nuevos negocios"
     ProductPercentageCommission ||--o{ ProductPercentageCommissionCategory : "distribución por categoría"
     ProductPercentageCommission ||--o{ Business : "config aplicada"
     ProductPercentageCommissionCategory ||--o{ ComissionDistribution : "distribución"
@@ -31,14 +35,17 @@ erDiagram
     User ||--o{ Business : "negocios"
     User ||--o{ FileImport : "importaciones"
     User ||--o{ AuditLog : "eventos auditoría"
-    User ||--o{ Clawback : "historial clawback"
+    User ||--o{ Clawback : "clawbacks"
     User ||--o| ClawbackBalance : "saldo clawback"
+    User ||--o{ ComissionDistribution : "beneficiario distribución"
+    User ||--o{ CommissionDiscount : "created_by updated_by"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
     Client ||--o{ Business : "negocios"
 
     %% ========== IMPORTACIÓN Y LIQUIDACIÓN ==========
     FileImport ||--o{ SettlementCommission : "registros"
+    FileImport ||--o{ FileImportError : "errores fila"
     Business ||--o{ SettlementCommission : "comisiones"
     SettlementCommission ||--o{ ComissionDistribution : "distribuciones"
     ComissionDistribution ||--o| Clawback : "clawback opcional"
@@ -62,13 +69,24 @@ erDiagram
         datetime updated_at
     }
 
+    CategoryType {
+        int id_category_type PK
+        string name UK
+        text description
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
+
     Category {
         int id_category PK
         string code UK
         string name
-        string type_category
+        int id_category_type FK
         text descripcion
         boolean status
+        enum beneficiary_mode
+        int id_fixed_beneficiary_user FK
         datetime created_at
         datetime updated_at
     }
@@ -205,8 +223,21 @@ erDiagram
         int no_sincronizado_record
         string status
         datetime pre_liquidacion_date
+        int month
+        int year
         datetime created_at
         datetime updated_at
+    }
+
+    FileImportError {
+        int id_file_import_error PK
+        int id_file_import FK
+        int row_number
+        string contract
+        text reason
+        json raw_data
+        boolean resolved
+        datetime resolved_at
     }
 
     Business {
@@ -226,32 +257,41 @@ erDiagram
         datetime updated_at
     }
 
-    CommissionConfiguration {
-        int id_config_commission PK
-        decimal discount_percentage
-        decimal clawback_percentage
+    CommissionDiscount {
+        int id PK
         string name
+        string type
+        decimal percentage
         text description
         string status
         datetime created_at
         datetime updated_at
+        int created_by_id FK
+        int updated_by_id FK
     }
 
     SettlementCommission {
         int id_settlement_commission PK
         int id_file_import FK
         int id_business FK
-        string descripcion
+        string contract
+        text descripcion
         decimal commission_value
-        decimal commission_percentage
         decimal base_commission
         decimal discount_percentage
         decimal clawback_percentage
         string origin_commission
         string commission_type
+        datetime start_date
+        datetime end_date
         string status
         boolean is_lag
-        string error
+        boolean is_clawback
+        datetime lag_date
+        boolean is_lag_by_user
+        datetime is_lag_by_user_date
+        datetime sync_date
+        datetime settled_date
         datetime created_at
         datetime updated_at
     }
@@ -260,6 +300,7 @@ erDiagram
         int id_comission_distribution PK
         int id_settlement_commission FK
         int id_percentaje_commision_category FK
+        int id_beneficiary_user FK
         decimal value_comission
         decimal value_comission_final
         decimal total_discount
@@ -273,7 +314,7 @@ erDiagram
     Clawback {
         int id_clawback PK
         int id_user FK
-        int id_comission_distribution FK
+        int id_comission_distribution UK
         decimal value_clawback
         decimal porcentaje_applied
         string state
@@ -316,7 +357,10 @@ erDiagram
 - **PK**: Primary Key  
 - **FK**: Foreign Key  
 - **UK**: Unique (constraint único)  
-- Nombres de tablas y columnas coinciden con el mapeo en `schema.prisma` (`@@map` / `@map`).
+- Nombres de tablas y columnas en el diagrama siguen el mapeo físico de `schema.prisma` (`@@map` / `@map`).
+- `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor.
+- `SettlementCommission.id_business` es opcional en Prisma (`Int?`); el diagrama refleja la FK habitual hacia `business`.
+- Tablas físicas con typo histórico: `product_percentaje_commision`, `product_percentaje_commision_category` (ver `@@map` en el schema).
 
 ## Cómo ver el diagrama
 
