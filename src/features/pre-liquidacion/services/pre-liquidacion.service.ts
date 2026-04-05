@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidacion-resumen-notification'
 import { Decimal } from '@prisma/client/runtime/library'
 import { Prisma } from '@prisma/client'
+import { computeLineDistributionAmounts } from '@/features/pre-liquidacion/lib/compute-line-distribution'
 
 export interface ConfigCategoryItem {
 	id: number
@@ -643,6 +644,12 @@ export async function obtenerDistribucionComision(
 			? `${ben.name} ${ben.lastName ?? ''}`.trim()
 			: ''
 
+		const valueCommissionWithDiscountResolved =
+			row.valueCommissionWithDiscount != null
+				? row.valueCommissionWithDiscount.toNumber()
+				: (row.valueComissionFinal?.toNumber() ?? 0) +
+					(row.clawback?.valueClawback.toNumber() ?? 0)
+
 		return {
 			idComissionDistribution: row.idComissionDistribution,
 			idBeneficiaryUser: row.idBeneficiaryUser,
@@ -652,6 +659,7 @@ export async function obtenerDistribucionComision(
 			applied_discount_percentace:
 				row.appliedDiscountPercentage?.toNumber() ?? 0,
 			discount_total: row.totalDiscount?.toNumber() ?? 0,
+			value_commission_with_discount: valueCommissionWithDiscountResolved,
 			commission_porcentaje: porcentajeDistribucion,
 			percentaje_applied: row.clawback?.porcentajeApplied.toNumber() ?? null,
 			value_clawback: row.clawback?.valueClawback.toNumber() ?? null,
@@ -912,7 +920,7 @@ export async function rezagarRegistros(
 /**
  * Aplica las fórmulas de cálculo de comisiones
  * Fórmula: liquidacion_bruta_POSITION = comision * %comisiones.POSITION
- * Fórmula: liquidacion_con_descuento = liquidacion_bruta - (liquidacion_bruta * (%descuento + %clawback))
+ * Por bucket: impuesto sobre bruta, luego clawback sobre el monto post-impuesto (igual que distribución persistida).
  * @param descuento - Porcentaje de descuento. Si no se proporciona, se usa DESCUENTO_POR_DEFECTO como fallback
  * @param clawback - Porcentaje de clawback aplicado cuando corresponde
  */
@@ -924,7 +932,11 @@ export function aplicarFormulas(
 ): ComisionesCalculadas {
 	const descuentoAplicar = descuento || DESCUENTO_POR_DEFECTO
 	const clawbackAplicar = clawback ?? new Decimal(0)
-	const totalDescuentoFactor = descuentoAplicar.add(clawbackAplicar)
+
+	const netAfterSequential = (bruta: Decimal) =>
+		computeLineDistributionAmounts(bruta, descuentoAplicar, clawbackAplicar)
+			.finalAmount
+
 	// Calcular comisiones brutas
 	const generalBruta = porcentajes.general
 		? comisionBase.mul(new Decimal(porcentajes.general))
@@ -942,19 +954,18 @@ export function aplicarFormulas(
 		? comisionBase.mul(new Decimal(porcentajes.coach))
 		: new Decimal(0)
 
-	// Aplicar descuento + clawback
-	const generalDescuento = generalBruta.sub(
-		generalBruta.mul(totalDescuentoFactor)
-	)
-	const comisionAgenciaDescuento = comisionBrutaAgencia.sub(
-		comisionBrutaAgencia.mul(totalDescuentoFactor)
-	)
-	const comisionLiderDescuento = comisionBrutaLider.sub(
-		comisionBrutaLider.mul(totalDescuentoFactor)
-	)
-	const comisionCoachDescuento = comisionBrutaCoach.sub(
-		comisionBrutaCoach.mul(totalDescuentoFactor)
-	)
+	const generalDescuento = porcentajes.general
+		? netAfterSequential(generalBruta)
+		: new Decimal(0)
+	const comisionAgenciaDescuento = porcentajes.agencia
+		? netAfterSequential(comisionBrutaAgencia)
+		: new Decimal(0)
+	const comisionLiderDescuento = porcentajes.lider
+		? netAfterSequential(comisionBrutaLider)
+		: new Decimal(0)
+	const comisionCoachDescuento = porcentajes.coach
+		? netAfterSequential(comisionBrutaCoach)
+		: new Decimal(0)
 
 	return {
 		generalBruta,
@@ -1154,16 +1165,16 @@ export async function calcularYGuardarDistribucion(
 				? config.porcentajePortfolio
 				: config.porcentajeDistribucion
 
-		// Cálculo: Bruta = ComisionBase * %Categoria
+		// Cálculo: Bruta = ComisionBase * %Categoria; impuesto sobre bruta; clawback sobre post-impuesto
 		const valorComisionBruta = comisionBase.mul(porcentaje)
-
-		// Cálculo: Descuento = Bruta * %Descuento
-		const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
-		const valorClawback = valorComisionBruta.mul(clawbackPorcentaje)
-		const totalDescuento = valorDescuento.add(valorClawback)
-
-		// Cálculo: Final = Bruta - Descuento - Clawback
-		const valorComisionFinal = valorComisionBruta.sub(totalDescuento)
+		const amounts = computeLineDistributionAmounts(
+			valorComisionBruta,
+			descuentoPorcentaje,
+			clawbackPorcentaje
+		)
+		const valorDescuento = amounts.taxAmount
+		const valorClawback = amounts.clawbackAmount
+		const valorComisionFinal = amounts.finalAmount
 
 		const idBeneficiaryUser = beneficiaryByConfigId.get(config.id)
 		if (idBeneficiaryUser === undefined) {
@@ -1176,8 +1187,9 @@ export async function calcularYGuardarDistribucion(
 				idPercentajeCommisionCategory: config.id,
 				idBeneficiaryUser,
 				valueComission: valorComisionBruta,
+				valueCommissionWithDiscount: amounts.valueCommissionWithDiscount,
 				valueComissionFinal: valorComisionFinal,
-				totalDiscount: totalDescuento,
+				totalDiscount: valorDescuento,
 				appliedDiscountPercentage: descuentoPorcentaje,
 				status: 'LIQUIDADO',
 			},
@@ -1559,14 +1571,14 @@ export async function procesarPreLiquidacion(
 							: config.porcentajeDistribucion
 
 					const valorComisionBruta = comisionBase.mul(porcentaje)
-
-					const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
-					const valorClawback = valorComisionBruta.mul(clawbackPorcentaje)
-					const totalDescuento = valorDescuento
-
-					const valorComisionFinal = valorComisionBruta
-						.sub(totalDescuento)
-						.sub(valorClawback)
+					const amounts = computeLineDistributionAmounts(
+						valorComisionBruta,
+						descuentoPorcentaje,
+						clawbackPorcentaje
+					)
+					const valorDescuento = amounts.taxAmount
+					const valorClawback = amounts.clawbackAmount
+					const valorComisionFinal = amounts.finalAmount
 
 					const created = await tx.comissionDistribution.create({
 						data: {
@@ -1574,8 +1586,9 @@ export async function procesarPreLiquidacion(
 							idPercentajeCommisionCategory: config.id,
 							idBeneficiaryUser,
 							valueComission: valorComisionBruta,
+							valueCommissionWithDiscount: amounts.valueCommissionWithDiscount,
 							valueComissionFinal: valorComisionFinal,
-							totalDiscount: totalDescuento,
+							totalDiscount: valorDescuento,
 							appliedDiscountPercentage: descuentoPorcentaje,
 							status: 'PRE-SETTLED',
 						},
@@ -1839,14 +1852,14 @@ export async function recalcularComisionesPorCambioOrigen(
 							: catAny.porcentajeDistribucion
 
 					const valorComisionBruta = comisionBase.mul(porcentaje)
-
-					const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
-					const valorClawback = valorComisionBruta.mul(clawbackPorcentaje)
-					const totalDescuento = valorDescuento
-
-					const valorComisionFinal = valorComisionBruta
-						.sub(totalDescuento)
-						.sub(valorClawback)
+					const amounts = computeLineDistributionAmounts(
+						valorComisionBruta,
+						descuentoPorcentaje,
+						clawbackPorcentaje
+					)
+					const valorDescuento = amounts.taxAmount
+					const valorClawback = amounts.clawbackAmount
+					const valorComisionFinal = amounts.finalAmount
 
 					if (valorComisionBruta.toNumber() > 0 || porcentaje.toNumber() > 0) {
 						const dist = await tx.comissionDistribution.create({
@@ -1854,8 +1867,9 @@ export async function recalcularComisionesPorCambioOrigen(
 								idSettlementCommission: record.idSettlementCommission,
 								idPercentajeCommisionCategory: cat.id,
 								appliedDiscountPercentage: descuentoPorcentaje,
-								totalDiscount: totalDescuento,
+								totalDiscount: valorDescuento,
 								valueComission: valorComisionBruta,
+								valueCommissionWithDiscount: amounts.valueCommissionWithDiscount,
 								valueComissionFinal: valorComisionFinal,
 								status: 'PRE-SETTLED',
 								idBeneficiaryUser,

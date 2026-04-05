@@ -56,10 +56,11 @@ export function ModalDetalleDistribucion({
 		(acc, item) => ({
 			bruta: acc.bruta + item.value_commision,
 			descuento: acc.descuento + item.discount_total,
+			postDesc: acc.postDesc + item.value_commission_with_discount,
 			clawback: acc.clawback + (item.value_clawback ?? 0),
 			neta: acc.neta + item.comisionNeta,
 		}),
-		{ bruta: 0, descuento: 0, clawback: 0, neta: 0 }
+		{ bruta: 0, descuento: 0, postDesc: 0, clawback: 0, neta: 0 }
 	)
 
 	return (
@@ -191,6 +192,22 @@ export function ModalDetalleDistribucion({
 									footer: () => (
 										<div className="text-right font-bold text-foreground tabular-nums text-sm">
 											{formatCurrency(totals?.descuento || 0)}
+										</div>
+									),
+								},
+								{
+									accessorKey: 'value_commission_with_discount',
+									header: () => (
+										<div className="text-right">Com. Dist. con descuento</div>
+									),
+									cell: ({ row }) => (
+										<div className="text-right text-foreground tabular-nums">
+											{formatCurrency(row.original.value_commission_with_discount)}
+										</div>
+									),
+									footer: () => (
+										<div className="text-right font-bold text-foreground tabular-nums text-sm">
+											{formatCurrency(totals?.postDesc || 0)}
 										</div>
 									),
 								},

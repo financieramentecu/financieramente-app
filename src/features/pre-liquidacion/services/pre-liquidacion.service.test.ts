@@ -178,8 +178,7 @@ describe('procesarPreLiquidacion', () => {
 		expect(result.registrosProcesados).toBe(1)
 
 		// porcentajePortfolio (60%) * 100000 = 60000
-		// descuento (10%) + clawback (5%) = 15% => 60000 * 0.15 = 9000
-		// final = 60000 - 9000 = 51000
+		// tax 10% => 6000; post-tax 54000; clawback 5% of 54000 => 2700; final 51300
 		const calls = vi.mocked(prisma.comissionDistribution.create).mock.calls
 		const distributionCall = calls && calls[0] ? calls[0][0] : undefined
 		const distributionData =
@@ -187,7 +186,8 @@ describe('procesarPreLiquidacion', () => {
 				? distributionCall.data
 				: ({} as any)
 		expect(Number(distributionData.valueComission)).toBe(60000)
-		expect(Number(distributionData.valueComissionFinal)).toBe(51000)
+		expect(Number(distributionData.valueComissionFinal)).toBe(51300)
+		expect(Number(distributionData.valueCommissionWithDiscount)).toBe(54000)
 		expect(Number(distributionData.totalDiscount || 0)).toBe(6000)
 		expect(Number(distributionData.appliedDiscountPercentage || 0)).toBe(0.1)
 		expect(distributionData.idBeneficiaryUser).toBe(77)
@@ -281,7 +281,7 @@ describe('procesarPreLiquidacion', () => {
 		expect(result.success).toBe(true)
 		expect(result.registrosProcesados).toBe(1)
 
-		// Two categories => two distributions, two clawbacks (valorClawback = 10% of bruta > 0 each)
+		// Two categories => two distributions, two clawbacks (10% of post-tax amount each)
 		expect(prisma.clawback.create).toHaveBeenCalledTimes(2)
 		expect(prisma.clawback.create).toHaveBeenCalledWith(
 			expect.objectContaining({

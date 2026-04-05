@@ -39,6 +39,7 @@ function makeDistribucion(
 				value_commision: 1000,
 				applied_discount_percentace: 0.12,
 				discount_total: 120,
+				value_commission_with_discount: 880,
 				commission_porcentaje: 0.5,
 				percentaje_applied: 0,
 				value_clawback: 0,

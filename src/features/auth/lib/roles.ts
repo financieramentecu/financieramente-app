@@ -46,6 +46,29 @@ export function isValidRole(role: string): role is UserRole {
 }
 
 /**
+ * Roles that may update contract when the business is already EMITIDO
+ */
+export const ROLES_CAN_EDIT_CONTRACT_WHEN_EMITIDO: readonly UserRole[] = [
+	UserRole.ADMIN,
+	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+]
+
+/**
+ * Whether the role may change contract on a business in EMITIDO status
+ */
+export function canEditContractWhenBusinessEmitido(
+	roleCode: string | undefined
+): boolean {
+	if (roleCode === undefined || roleCode === '') {
+		return false
+	}
+	return (
+		isValidRole(roleCode) &&
+		ROLES_CAN_EDIT_CONTRACT_WHEN_EMITIDO.includes(roleCode as UserRole)
+	)
+}
+
+/**
  * Obtiene el nombre legible de un rol
  */
 export function getRoleName(role: UserRole | string): string {

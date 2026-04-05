@@ -3,7 +3,7 @@ import {
 	FileType,
 	FILE_TYPE_COLUMN_MAP,
 } from '../../lib/file-types'
-import { cleanNumericValue, toDecimal } from '../../lib/number-utils'
+import { cleanLoadFileMoneyValue } from '../../lib/number-utils'
 import type { ProcessedRecord } from '../../types/load-file.types'
 import { Prisma } from '@prisma/client'
 
@@ -146,7 +146,7 @@ export class RowValidatorService {
 		if (this.isEmptyValue(baseRaw)) {
 			throw new Error('El campo Base es requerido')
 		}
-		const baseNumeric = cleanNumericValue(baseRaw)
+		const baseNumeric = cleanLoadFileMoneyValue(baseRaw)
 		if (baseNumeric === null) {
 			throw new Error(`Valor numérico inválido en ${baseCol}`)
 		}
@@ -155,7 +155,7 @@ export class RowValidatorService {
 		if (this.isEmptyValue(comRaw)) {
 			throw new Error('El campo Comisión es requerido')
 		}
-		const commissionNumeric = cleanNumericValue(comRaw)
+		const commissionNumeric = cleanLoadFileMoneyValue(comRaw)
 		if (commissionNumeric === null) {
 			throw new Error(`Valor numérico inválido en ${commCol}`)
 		}
@@ -186,8 +186,8 @@ export class RowValidatorService {
 		return {
 			contract,
 			descripcion,
-			base: new Prisma.Decimal(toDecimal(baseNumeric)),
-			commission: new Prisma.Decimal(toDecimal(commissionNumeric)),
+			base: new Prisma.Decimal(baseNumeric.toString()),
+			commission: new Prisma.Decimal(commissionNumeric.toString()),
 			startDate,
 			endDate,
 		}

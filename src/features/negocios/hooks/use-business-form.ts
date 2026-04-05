@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { Client } from '@prisma/client'
+import type { Client } from '@prisma/client'
 import {
 	businessFormSchema,
 	type BusinessFormData,
@@ -61,6 +61,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			periodicity: defaultValues?.periodicity || '',
 			value: defaultValues?.value || undefined,
 			agent: defaultValues?.agent || '',
+			contract: defaultValues?.contract ?? '',
 		},
 	})
 

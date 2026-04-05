@@ -14,6 +14,8 @@ import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Eye, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { ColumnDef } from '@tanstack/react-table'
+import type { UserRole } from '@/features/auth/lib/roles'
+import { canEditContractWhenBusinessEmitido } from '@/features/auth/lib/roles'
 
 interface PaginationData {
 	page: number
@@ -32,6 +34,8 @@ interface BusinessTableSectionProps {
 	pagination?: PaginationData
 	onPageChange?: (page: number) => void
 	isSearching?: boolean
+	/** Used to show edit on Emitido only for roles allowed by API */
+	userRole?: UserRole
 }
 
 export function BusinessTableSection({
@@ -44,6 +48,7 @@ export function BusinessTableSection({
 	pagination,
 	onPageChange,
 	isSearching = false,
+	userRole,
 }: BusinessTableSectionProps) {
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('es-CO')
@@ -240,7 +245,13 @@ export function BusinessTableSection({
 				totalItems={pagination?.total || data.length}
 				onPageChange={onPageChange}
 				actions={(row) => {
-					const isEditable = row.status === 'Venta Efectuado'
+					const isVentaEfectuado = row.status === 'Venta Efectuado'
+					const isEmitido = row.status === 'Emitido'
+					const canEditEmitido =
+						isEmitido &&
+						userRole !== undefined &&
+						canEditContractWhenBusinessEmitido(userRole)
+					const isEditable = isVentaEfectuado || canEditEmitido
 					const isCancelable =
 						row.status === 'Venta Efectuado' || row.status === 'Emitido'
 

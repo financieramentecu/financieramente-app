@@ -277,7 +277,9 @@ export interface ItemDistribucionComision {
 	categoria: string
 	value_commision: number // Bruta
 	applied_discount_percentace: number // % Descuento
-	discount_total: number // Total Descuento
+	discount_total: number // Total Descuento (tax only)
+	/** Commission line after tax discount, before clawback */
+	value_commission_with_discount: number
 	commission_porcentaje: number // % Distribucion de comision
 	percentaje_applied: number | null // % clawback
 	value_clawback: number | null // Descuento clawback

@@ -18,7 +18,10 @@ import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schem
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
-import { UserRole } from '@/features/auth/lib/roles'
+import {
+	UserRole,
+	canEditContractWhenBusinessEmitido,
+} from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -278,14 +281,13 @@ export async function PUT(
 		}
 
 		// Flujo: actualizar contrato
-		const isAsistente = currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
-
 		if (existingBusiness.status === BUSINESS_STATUS.EMITIDO) {
-			if (!isAsistente) {
+			if (!canEditContractWhenBusinessEmitido(currentUser.role?.code)) {
 				return NextResponse.json(
 					{
 						data: null,
-						error: 'Solo el Asistente de Gerencia Operativa puede editar contratos en estado Emitido',
+						error:
+							'Solo el administrador del sistema o el asistente de gerencia operativa pueden editar contratos en estado Emitido',
 					},
 					{ status: 403 }
 				)
