@@ -83,6 +83,13 @@ export function createMockPrismaProductConfiguration(
 			description: 'Distribución Estándar',
 			active: true,
 		},
+		productPercentageCommissions: [
+			{
+				idProductPercentageCommission: 1,
+				description: 'Distribución Estándar',
+				active: true,
+			},
+		],
 		...overrides,
 	}
 }
