@@ -39,6 +39,11 @@ const STATUS_CONFIG: Record<
 		variant: 'destructive',
 		className: 'bg-red-100 text-red-800 hover:bg-red-200',
 	},
+	COMISIONANDO: {
+		label: 'Comisionando',
+		variant: 'secondary',
+		className: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+	},
 }
 
 /**

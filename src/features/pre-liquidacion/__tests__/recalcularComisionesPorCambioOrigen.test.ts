@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { recalcularComisionesPorCambioOrigen } from '../services/pre-liquidacion.service'
 import { prisma } from '@/lib/prisma'
-import { BeneficiaryMode } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
+
+// Local redefinition of BeneficiaryMode because Prisma client is outdated
+enum BeneficiaryMode {
+	UPLINE_CHAIN = 'UPLINE_CHAIN',
+	FIXED_BENEFICIARY = 'FIXED_BENEFICIARY',
+}
 
 vi.mock('@/features/email/lib/preliquidacion-resumen-notification', () => ({
 	sendResumenPreliquidacionEmail: vi.fn().mockResolvedValue({ success: true }),

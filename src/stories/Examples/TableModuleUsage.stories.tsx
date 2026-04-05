@@ -271,7 +271,6 @@ export const MinimalConfiguration: StoryObj = {
 					paginable={false}
 					selectable={false}
 					exportable={false}
-					filterable={false}
 				/>
 			</div>
 		)

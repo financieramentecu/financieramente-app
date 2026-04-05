@@ -78,6 +78,6 @@
 - [x] 9.1 Run `npm run type-check` — zero TypeScript errors
 - [x] 9.2 Run `npm run test:unit` — all passing, coverage ≥80% on `src/features/commission-discounts/` business logic
 - [x] 9.3 Run `npm run lint` — zero lint errors
-- [ ] 9.4 Manual smoke test: navigate to `/dashboard/admin/discounts`, create a discount, verify it appears in list with ACTIVO badge; click Inactivar, confirm modal shows correct data, confirm → row shows INACTIVO and no Inactivar button
-- [ ] 9.5 Verify "Descuentos" card appears on `/dashboard/admin` and links correctly
-- [ ] 9.6 Confirm `process-batch` integration: run or manually trace that `discountPercentage` and `clawbackPercentage` snapshots resolve from `CommissionDiscount` table (not `CommissionConfiguration`)
+- [x] 9.4 Manual smoke test: navigate to `/dashboard/admin/discounts`, create a discount, verify it appears in list with ACTIVO badge; click Inactivar, confirm modal shows correct data, confirm → row shows INACTIVO and no Inactivar button
+- [x] 9.5 Verify "Descuentos" card appears on `/dashboard/admin` and links correctly
+- [x] 9.6 Confirm `process-batch` integration: run or manually trace that `discountPercentage` and `clawbackPercentage` snapshots resolve from `CommissionDiscount` table (not `CommissionConfiguration`)

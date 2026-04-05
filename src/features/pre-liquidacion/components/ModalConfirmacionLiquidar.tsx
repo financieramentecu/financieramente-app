@@ -15,16 +15,17 @@ export function ModalConfirmacionLiquidar({
 	onOpenChange,
 	count,
 	onConfirmar,
-	isConfirmando: _isConfirmando,
+	isConfirmando,
 }: ModalConfirmacionLiquidarProps) {
 	return (
 		<ConfirmModal
 			open={open}
 			onOpenChange={onOpenChange}
-			message={`¿Liquidar ${count} registro(s) seleccionado(s)? Esta acción los marcará como SETTLED.`}
+			message={`¿Liquidar ${count} registro(s) seleccionado(s)? Esta acción los marcará como LIQUIDADO.`}
 			confirmText="Liquidar"
 			cancelText="Cancelar"
 			destructive={false}
+			isLoading={isConfirmando}
 			onConfirm={onConfirmar}
 			onCancel={() => onOpenChange(false)}
 		/>

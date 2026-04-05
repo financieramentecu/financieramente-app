@@ -1,12 +1,12 @@
 'use client'
 
-import React from 'react'
-import { DataTable } from '@/features/shared/ui/DataTable'
+import React, { useMemo } from 'react'
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import { Company } from '../types/company.types'
-import { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { ColumnDef } from '@tanstack/react-table'
 
 interface PaginationData {
 	page: number
@@ -37,86 +37,48 @@ export function CompaniesTableSection({
 	isSearching = false,
 }: CompaniesTableSectionProps) {
 	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString('es-CO')
-	}
-
-	const getStatusBadge = (status: boolean) => {
-		if (status) {
-			return (
-				<Badge
-					variant="default"
-					className="bg-emerald-100 text-emerald-800 border-emerald-200"
-				>
-					Activa
-				</Badge>
-			)
+		try {
+			return new Date(dateString).toLocaleDateString('es-CO')
+		} catch {
+			return dateString
 		}
-
-		return (
-			<Badge
-				variant="default"
-				className="bg-red-100 text-red-800 border-red-200"
-			>
-				Inactiva
-			</Badge>
-		)
 	}
 
-	const columns: DataTableColumn<Company>[] = [
-		{
-			key: 'idCompany',
-			header: '# Empresa',
-			cellRenderer: (_value, row) => (
-				<span className="font-medium">#{row.idCompany}</span>
-			),
-		},
-		{
-			key: 'name',
-			header: 'Nombre Completo de la Agencia',
-			cellRenderer: (value) => (
-				<span className="font-medium">{value as string}</span>
-			),
-		},
-		{
-			key: 'status',
-			header: 'Estado',
-			cellRenderer: (value) => getStatusBadge(value as boolean),
-		},
-		{
-			key: 'createdAt',
-			header: 'Fecha de Registro',
-			cellRenderer: (value) => formatDate(value as string),
-		},
-		{
-			key: 'actions',
-			header: 'Acciones',
-			cellRenderer: (_, row) => {
-				return (
-					<div className="flex items-center gap-1">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => onEditCompany(row)}
-							className="h-8 w-8 p-0 cursor-pointer"
-							title="Editar"
-						>
-							<Pencil className="h-4 w-4" />
-						</Button>
-
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => onDeleteCompany(row)}
-							className="h-8 w-8 p-0 text-destructive hover:text-destructive cursor-pointer"
-							title="Eliminar"
-						>
-							<Trash2 className="h-4 w-4" />
-						</Button>
-					</div>
-				)
+	const columns = useMemo<ColumnDef<Company>[]>(
+		() => [
+			{
+				accessorKey: 'idCompany',
+				header: '# Empresa',
+				cell: ({ row }) => (
+					<span className="font-medium">#{row.original.idCompany}</span>
+				),
 			},
-		},
-	]
+			{
+				accessorKey: 'name',
+				header: 'Nombre Completo de la Agencia',
+				cell: ({ row }) => (
+					<span className="font-medium">{row.original.name}</span>
+				),
+			},
+			{
+				accessorKey: 'status',
+				header: 'Estado',
+				cell: ({ row }) => (
+					<Badge
+						variant={row.original.status ? 'success' : 'destructive'}
+					>
+						{row.original.status ? 'Activa' : 'Inactiva'}
+					</Badge>
+				),
+			},
+			{
+				accessorKey: 'createdAt',
+				header: 'Fecha de Registro',
+				cell: ({ row }) => formatDate(row.original.createdAt as string),
+			},
+		],
+		[]
+	)
 
 	return (
 		<div className="space-y-4">
@@ -135,22 +97,37 @@ export function CompaniesTableSection({
 				onGlobalSearch={onGlobalSearch}
 				loading={isSearching}
 				searchPlaceholder="Buscar por nombre de empresa..."
-				pagination={
-					pagination
-						? {
-								currentPage: pagination.page,
-								pageSize: pagination.pageSize,
-								totalItems: pagination.total,
-								onPageChange: onPageChange || (() => {}),
-							}
-						: {
-								currentPage: 1,
-								pageSize: 10,
-								totalItems: data.length,
-								onPageChange: () => {},
-							}
-				}
+				manualPagination={!!pagination}
+				currentPage={pagination?.page}
+				pageSize={pagination?.pageSize}
+				totalItems={pagination?.total}
+				onPageChange={onPageChange}
+				actions={(company) => (
+					<div className="flex items-center gap-1">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => onEditCompany(company)}
+							className="h-8 w-8 p-0 cursor-pointer"
+							title="Editar"
+						>
+							<Pencil className="h-4 w-4" />
+						</Button>
+
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => onDeleteCompany(company)}
+							className="h-8 w-8 p-0 text-destructive hover:text-destructive cursor-pointer"
+							title="Eliminar"
+						>
+							<Trash2 className="h-4 w-4" />
+						</Button>
+					</div>
+				)}
 			/>
 		</div>
 	)
 }
+
+

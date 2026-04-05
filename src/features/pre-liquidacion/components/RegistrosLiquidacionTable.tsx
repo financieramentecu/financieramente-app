@@ -1,13 +1,18 @@
 'use client'
 
+import React, { useMemo } from 'react'
 import { ExternalLink, BarChart2 } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
+import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import type { RegistroLiquidacionDetalle } from '../types/types'
 import { formatCurrency, formatPct, formatDate } from '../lib/format-utils'
+import type { ColumnDef, RowSelectionState } from '@tanstack/react-table'
 
 interface RegistrosLiquidacionTableProps {
 	registros: RegistroLiquidacionDetalle[]
 	fileType: string
+	fileName?: string
 	selectedIds: Set<number>
 	onSelectionChange: (ids: Set<number>) => void
 	onVerNegocio: (idBusiness: number) => void
@@ -37,162 +42,259 @@ export function RegistrosLiquidacionTable({
 	onSelectionChange,
 	onVerNegocio,
 	onVerDistribucion,
+	fileName,
 }: RegistrosLiquidacionTableProps) {
 	const isVoluntaria = fileType === VOLUNTARIA
-	const allIds = registros.map((r) => r.idSettlementCommission)
-	const allSelected =
-		allIds.length > 0 && allIds.every((id) => selectedIds.has(id))
 
-	function toggleAll() {
-		if (allSelected) {
-			onSelectionChange(new Set())
-		} else {
-			onSelectionChange(new Set(allIds))
+	// Adaptador: Convertir Set<number> a Record<string, boolean> para TanStack Table
+	const rowSelection = useMemo(() => {
+		const selection: Record<string, boolean> = {}
+		selectedIds.forEach((id) => {
+			selection[id.toString()] = true
+		})
+		return selection
+	}, [selectedIds])
+
+	// Adaptador: Convertir el cambio de selección de TanStack de vuelta al Set<number> del padre
+	const handleRowSelectionChange = (updaterOrValue: RowSelectionState | ((old: RowSelectionState) => RowSelectionState)) => {
+		const newSelection =
+			typeof updaterOrValue === 'function' ? updaterOrValue(rowSelection) : updaterOrValue
+
+		const newSet = new Set<number>()
+		Object.keys(newSelection).forEach((key) => {
+			if (newSelection[key]) {
+				newSet.add(parseInt(key, 10))
+			}
+		})
+		onSelectionChange(newSet)
+	}
+
+	const columns = useMemo<ColumnDef<RegistroLiquidacionDetalle>[]>(() => {
+		const cols: ColumnDef<RegistroLiquidacionDetalle>[] = [
+			{
+				accessorKey: 'contrato',
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Contrato" />
+				),
+				cell: ({ row }) => (
+					<span className="font-mono text-xs font-semibold text-foreground bg-muted px-2 py-0.5 rounded">
+						{row.original.contrato ?? '—'}
+					</span>
+				),
+			},
+			{
+				accessorKey: 'nombreAsesor',
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Asesor" />
+				),
+				cell: ({ row }) => (
+					<span className="font-medium text-foreground">
+						{row.original.nombreAsesor}
+					</span>
+				),
+			},
+			{
+				accessorKey: 'monto',
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title="Comisión"
+						className="justify-end"
+					/>
+				),
+				cell: ({ row }) => (
+					<div className="text-right font-semibold text-foreground tabular-nums">
+						{formatCurrency(row.original.monto)}
+					</div>
+				),
+			},
+			{
+				accessorKey: 'porcentajeDescuento',
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title="% Desc."
+						className="justify-end"
+					/>
+				),
+				cell: ({ row }) => (
+					<div className="text-right text-muted-foreground tabular-nums">
+						{formatPct(row.original.porcentajeDescuento)}
+					</div>
+				),
+			},
+		]
+
+		if (!isVoluntaria) {
+			cols.push(
+				{
+					accessorKey: 'porcentajeClawback',
+					header: ({ column }) => (
+						<DataTableColumnHeader
+							column={column}
+							title="% Clawback"
+							className="justify-end"
+						/>
+					),
+					cell: ({ row }) => (
+						<div className="text-right text-muted-foreground tabular-nums">
+							{formatPct(row.original.porcentajeClawback)}
+						</div>
+					),
+				},
+				{
+					accessorKey: 'esClawback',
+					header: ({ column }) => (
+						<DataTableColumnHeader
+							column={column}
+							title="Clawback"
+							className="justify-center"
+						/>
+					),
+					cell: ({ row }) => (
+						<div className="flex justify-center">
+							<BoolBadge value={row.original.esClawback} />
+						</div>
+					),
+				}
+			)
 		}
-	}
 
-	function toggleOne(id: number) {
-		const next = new Set(selectedIds)
-		if (next.has(id)) next.delete(id)
-		else next.add(id)
-		onSelectionChange(next)
-	}
+		cols.push({
+			accessorKey: 'esRezagado',
+			header: ({ column }) => (
+				<DataTableColumnHeader
+					column={column}
+					title="Rezagado"
+					className="justify-center"
+				/>
+			),
+			cell: ({ row }) => (
+				<div className="flex justify-center">
+					<BoolBadge
+						value={row.original.esRezagado}
+						trueLabel="Sí"
+						falseLabel="No"
+					/>
+				</div>
+			),
+		})
 
-	const thClass = 'py-3 px-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap'
-	const thRight = `${thClass} text-right`
+		cols.push({
+			accessorKey: 'fechaSincronizacion',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="F. Sincronización" />
+			),
+			cell: ({ row }) => (
+				<span className="text-muted-foreground text-xs whitespace-nowrap">
+					{formatDate(row.original.fechaSincronizacion)}
+				</span>
+			),
+		})
+
+		if (!isVoluntaria) {
+			cols.push({
+				accessorKey: 'fechaRezagado',
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="F. Rezagado" />
+				),
+				cell: ({ row }) => (
+					<span className="text-muted-foreground text-xs whitespace-nowrap">
+						{formatDate(row.original.fechaRezagado)}
+					</span>
+				),
+			})
+		}
+
+		if (isVoluntaria) {
+			cols.push(
+				{
+					accessorKey: 'fechaInicio',
+					header: ({ column }) => (
+						<DataTableColumnHeader column={column} title="Fecha Inicio" />
+					),
+					cell: ({ row }) => (
+						<span className="text-muted-foreground text-xs whitespace-nowrap">
+							{row.original.fechaInicio ?? '—'}
+						</span>
+					),
+				},
+				{
+					accessorKey: 'fechaFin',
+					header: ({ column }) => (
+						<DataTableColumnHeader column={column} title="Fecha Fin" />
+					),
+					cell: ({ row }) => (
+						<span className="text-muted-foreground text-xs whitespace-nowrap">
+							{row.original.fechaFin ?? '—'}
+						</span>
+					),
+				}
+			)
+		}
+
+		return cols
+	}, [isVoluntaria])
 
 	return (
-		<div className="rounded-lg border border-border overflow-hidden shadow-sm">
-			<div className="overflow-x-auto">
-				<table className="w-full text-sm">
-					<thead>
-						<tr className="bg-muted/60 border-b border-border">
-							<th className="w-10 py-3 px-4 text-center" scope="col">
-								<input
-									type="checkbox"
-									checked={allSelected}
-									onChange={toggleAll}
-									aria-label="Seleccionar todos"
-									className="cursor-pointer rounded border-border accent-primary"
-								/>
-							</th>
-							<th className={thClass} scope="col">Contrato</th>
-							<th className={thClass} scope="col">Asesor</th>
-							<th className={thRight} scope="col">Comisión</th>
-							<th className={thRight} scope="col">% Desc.</th>
-							{!isVoluntaria && (
-								<>
-									<th className={thRight} scope="col">% Clawback</th>
-									<th className={`${thClass} text-center`} scope="col">Clawback</th>
-								</>
-							)}
-							<th className={`${thClass} text-center`} scope="col">Rezagado</th>
-							<th className={thClass} scope="col">F. Sincronización</th>
-							{!isVoluntaria && (
-								<th className={thClass} scope="col">F. Rezagado</th>
-							)}
-							{isVoluntaria && (
-								<>
-									<th className={thClass} scope="col">Fecha Inicio</th>
-									<th className={thClass} scope="col">Fecha Fin</th>
-								</>
-							)}
-							<th className={`${thClass} text-right`} scope="col">Acciones</th>
-						</tr>
-					</thead>
-					<tbody className="divide-y divide-border">
-						{registros.map((r, idx) => (
-							<tr
-								key={r.idSettlementCommission}
-								className={`hover:bg-primary/5 transition-colors duration-100 ${selectedIds.has(r.idSettlementCommission) ? 'bg-primary/5' : idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}`}
-							>
-								<td className="py-3 px-4 text-center">
-									<input
-										type="checkbox"
-										checked={selectedIds.has(r.idSettlementCommission)}
-										onChange={() => toggleOne(r.idSettlementCommission)}
-										aria-label={`Seleccionar registro ${r.idSettlementCommission}`}
-										className="cursor-pointer rounded border-border accent-primary"
-									/>
-								</td>
-								<td className="py-3 px-4">
-									<span className="font-mono text-xs font-semibold text-foreground bg-muted px-2 py-0.5 rounded">
-										{r.contrato ?? '—'}
-									</span>
-								</td>
-								<td className="py-3 px-4">
-									<span className="font-medium text-foreground">{r.nombreAsesor}</span>
-								</td>
-								<td className="py-3 px-4 text-right font-semibold text-foreground tabular-nums">
-									{formatCurrency(r.monto)}
-								</td>
-								<td className="py-3 px-4 text-right text-muted-foreground tabular-nums">
-									{formatPct(r.porcentajeDescuento)}
-								</td>
-								{!isVoluntaria && (
-									<>
-										<td className="py-3 px-4 text-right text-muted-foreground tabular-nums">
-											{formatPct(r.porcentajeClawback)}
-										</td>
-										<td className="py-3 px-4 text-center">
-											<BoolBadge value={r.esClawback} />
-										</td>
-									</>
-								)}
-								<td className="py-3 px-4 text-center">
-									<BoolBadge
-										value={r.esRezagado}
-										trueLabel="Sí"
-										falseLabel="No"
-									/>
-								</td>
-								<td className="py-3 px-4 text-muted-foreground text-xs whitespace-nowrap">
-									{formatDate(r.fechaSincronizacion)}
-								</td>
-								{!isVoluntaria && (
-									<td className="py-3 px-4 text-muted-foreground text-xs whitespace-nowrap">
-										{formatDate(r.fechaRezagado)}
-									</td>
-								)}
-								{isVoluntaria && (
-									<>
-										<td className="py-3 px-4 text-muted-foreground text-xs whitespace-nowrap">
-											{r.fechaInicio ?? '—'}
-										</td>
-										<td className="py-3 px-4 text-muted-foreground text-xs whitespace-nowrap">
-											{r.fechaFin ?? '—'}
-										</td>
-									</>
-								)}
-								<td className="py-3 px-4 text-right">
-									<div className="flex items-center justify-end gap-1.5">
-										{r.idBusiness != null ? (
-											<Button
-												variant="ghost"
-												size="sm"
-												onClick={() => onVerNegocio(r.idBusiness!)}
-												className="h-7 px-2.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
-											>
-												<ExternalLink className="h-3 w-3 mr-1" />
-												Negocio
-											</Button>
-										) : null}
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => onVerDistribucion(r.idSettlementCommission)}
-											className="h-7 px-2.5 text-xs"
-										>
-											<BarChart2 className="h-3 w-3 mr-1" />
-											Distribución
-										</Button>
-									</div>
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			</div>
-		</div>
+		<DataTable
+			columns={columns}
+			data={registros}
+			getRowId={(row) => row.idSettlementCommission.toString()}
+			getRowAriaLabel={(row) => `Seleccionar registro ${row.idSettlementCommission}`}
+			enableRowSelection={true}
+			selectedRowIds={rowSelection}
+			onRowSelectionChange={handleRowSelectionChange}
+			searchable={true}
+			searchPlaceholder="Filtrar por asesor o contrato..."
+			exportable={true}
+			exportConfig={{
+				fileName: fileName ? `pre-liquidacion-${fileName}` : 'pre-liquidacion-registros',
+				sheetName: 'Comisiones',
+				transformData: (data) =>
+					data.map((r) => ({
+						'Contrato': r.contrato ?? '—',
+						'Asesor': r.nombreAsesor,
+						'Comisión': r.monto,
+						'% Descuento': r.porcentajeDescuento / 100,
+						...(isVoluntaria ? {} : {
+							'% Clawback': r.porcentajeClawback / 100,
+							'Clawback': r.esClawback ? 'Sí' : 'No',
+						}),
+						'Rezagado': r.esRezagado ? 'Sí' : 'No',
+						'F. Sincronización': formatDate(r.fechaSincronizacion) ?? '—',
+						...(isVoluntaria ? {
+							'Fecha Inicio': r.fechaInicio ?? '—',
+							'Fecha Fin': r.fechaFin ?? '—',
+						} : {
+							'F. Rezagado': formatDate(r.fechaRezagado) ?? '—',
+						}),
+					})),
+			}}
+			actions={(row) => (
+				<div className="flex items-center justify-end gap-1.5">
+					{row.idBusiness != null && (
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => onVerNegocio(row.idBusiness!)}
+							className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
+						>
+							<ExternalLink className="h-3 w-3 mr-1" />
+							Negocio
+						</Button>
+					)}
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => onVerDistribucion(row.idSettlementCommission)}
+						className="h-7 px-2 text-xs"
+					>
+						<BarChart2 className="h-3 w-3 mr-1" />
+						Distribución
+					</Button>
+				</div>
+			)}
+		/>
 	)
 }

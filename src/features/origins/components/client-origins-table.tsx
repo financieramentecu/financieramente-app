@@ -1,12 +1,12 @@
 'use client'
 
 import React from 'react'
-import { DataTable } from '@/features/shared/ui/DataTable'
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import { ClientOrigin } from '../types/origins.types'
-import { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { ColumnDef } from '@tanstack/react-table'
 
 interface PaginationData {
 	page: number
@@ -37,100 +37,57 @@ export function ClientOriginsTableSection({
 	isSearching = false,
 }: ClientOriginsTableSectionProps) {
 	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString('es-CO')
-	}
-
-	const getStatusBadge = (status: boolean) => {
-		if (status) {
-			return (
-				<Badge
-					variant="default"
-					className="bg-emerald-100 text-emerald-800 border-emerald-200"
-				>
-					Activo
-				</Badge>
-			)
+		try {
+			return new Date(dateString).toLocaleDateString('es-CO')
+		} catch {
+			return dateString
 		}
-
-		return (
-			<Badge
-				variant="default"
-				className="bg-red-100 text-red-800 border-red-200"
-			>
-				Inactivo
-			</Badge>
-		)
 	}
 
-	const columns: DataTableColumn<ClientOrigin>[] = [
+	const columns: ColumnDef<ClientOrigin>[] = [
 		{
-			key: 'idClientOrigin',
+			accessorKey: 'idClientOrigin',
 			header: 'ID',
-			cellRenderer: (_value, row) => (
-				<span className="font-medium">#{row.idClientOrigin}</span>
+			cell: ({ row }) => (
+				<span className="font-medium">#{row.original.idClientOrigin}</span>
 			),
 		},
 		{
-			key: 'name',
+			accessorKey: 'name',
 			header: 'Nombre',
-			cellRenderer: (value) => (
-				<span className="font-medium">{value as string}</span>
+			cell: ({ row }) => (
+				<span className="font-medium">{row.original.name}</span>
 			),
 		},
 		{
-			key: 'description',
+			accessorKey: 'description',
 			header: 'Descripción',
-			cellRenderer: (value) => (
+			cell: ({ row }) => (
 				<span className="text-muted-foreground">
-					{value ? (value as string) : '-'}
+					{row.original.description || '-'}
 				</span>
 			),
 		},
 		{
-			key: 'status',
+			accessorKey: 'status',
 			header: 'Estado',
-			cellRenderer: (value) => getStatusBadge(value as boolean),
+			cell: ({ row }) => (
+				<Badge
+					variant={row.original.status ? 'success' : 'destructive'}
+				>
+					{row.original.status ? 'Activo' : 'Inactivo'}
+				</Badge>
+			),
 		},
 		{
-			key: 'createdAt',
+			accessorKey: 'createdAt',
 			header: 'Fecha Creación',
-			cellRenderer: (value) => formatDate(value as string),
+			cell: ({ row }) => formatDate(row.original.createdAt as unknown as string),
 		},
 		{
-			key: 'updatedAt',
+			accessorKey: 'updatedAt',
 			header: 'Fecha Modificación',
-			cellRenderer: (value) => formatDate(value as string),
-		},
-		{
-			key: 'actions',
-			header: 'Acciones',
-			cellRenderer: (_, row) => {
-				return (
-					<div className="flex items-center gap-1">
-						{/* Editar */}
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => onEditOrigin(row)}
-							className="h-8 w-8 p-0 cursor-pointer"
-							title="Editar"
-						>
-							<Pencil className="h-4 w-4" />
-						</Button>
-
-						{/* Eliminar */}
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => onDeleteOrigin(row)}
-							className="h-8 w-8 p-0 text-destructive hover:text-destructive cursor-pointer"
-							title="Eliminar"
-						>
-							<Trash2 className="h-4 w-4" />
-						</Button>
-					</div>
-				)
-			},
+			cell: ({ row }) => formatDate(row.original.updatedAt as unknown as string),
 		},
 	]
 
@@ -153,22 +110,36 @@ export function ClientOriginsTableSection({
 				onGlobalSearch={onGlobalSearch}
 				loading={isSearching}
 				searchPlaceholder="Buscar por nombre de origen..."
-				pagination={
-					pagination
-						? {
-								currentPage: pagination.page,
-								pageSize: pagination.pageSize,
-								totalItems: pagination.total,
-								onPageChange: onPageChange || (() => {}),
-							}
-						: {
-								currentPage: 1,
-								pageSize: 10,
-								totalItems: data.length,
-								onPageChange: () => {},
-							}
-				}
+				manualPagination={!!pagination}
+				currentPage={pagination?.page}
+				pageSize={pagination?.pageSize}
+				totalItems={pagination?.total}
+				onPageChange={onPageChange}
+				actions={(origin) => (
+					<>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => onEditOrigin(origin)}
+							className="h-8 w-8 p-0 cursor-pointer"
+							title="Editar"
+						>
+							<Pencil className="h-4 w-4" />
+						</Button>
+
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => onDeleteOrigin(origin)}
+							className="h-8 w-8 p-0 text-destructive hover:text-destructive cursor-pointer"
+							title="Eliminar"
+						>
+							<Trash2 className="h-4 w-4" />
+						</Button>
+					</>
+				)}
 			/>
 		</div>
 	)
 }
+
