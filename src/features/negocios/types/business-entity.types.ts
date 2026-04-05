@@ -15,6 +15,7 @@ import { Prisma } from '@prisma/client'
 export const BUSINESS_STATUS = {
 	VENTA_EFECTUADA: 'VENTA_EFECTUADA',
 	EMITIDO: 'EMITIDO',
+	COMISIONANDO: 'COMISIONANDO',
 	CANCELADO: 'CANCELADO',
 } as const
 

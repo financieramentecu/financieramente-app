@@ -1,10 +1,10 @@
 'use client'
 
 import React from 'react'
-import { DataTable } from '@/features/shared/ui/DataTable'
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
+import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import { Button } from '@/features/shared/ui/button'
 import { Business } from '@/features/negocios/types/business.types'
-import { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import {
 	Avatar,
 	AvatarFallback,
@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Eye, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
+import type { ColumnDef } from '@tanstack/react-table'
 
 interface PaginationData {
 	page: number
@@ -71,6 +72,17 @@ export function BusinessTableSection({
 			)
 		}
 
+		if (status === 'Comisionando') {
+			return (
+				<Badge
+					variant="default"
+					className="bg-blue-100 text-blue-800 border-blue-200"
+				>
+					{status}
+				</Badge>
+			)
+		}
+
 		if (status === 'Cancelado') {
 			return (
 				<Badge
@@ -93,33 +105,39 @@ export function BusinessTableSection({
 		)
 	}
 
-	const columns: DataTableColumn<Business>[] = [
+	const columns: ColumnDef<Business>[] = [
 		{
-			key: 'id',
-			header: '# Negocio',
-			cellRenderer: (_value, row) => (
-				<span className="font-medium">#{row.id}</span>
+			accessorKey: 'id',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="# Negocio" />
+			),
+			cell: ({ row }) => <span className="font-medium">#{row.original.id}</span>,
+		},
+		{
+			accessorKey: 'clientName',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Cliente" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">{row.getValue('clientName')}</span>
 			),
 		},
 		{
-			key: 'clientName',
-			header: 'Cliente',
-			cellRenderer: (value) => (
-				<span className="font-medium">{value as string}</span>
+			accessorKey: 'identification',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Identificación" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">{row.getValue('identification')}</span>
 			),
 		},
 		{
-			key: 'identification',
-			header: 'Identificación',
-			cellRenderer: (value) => (
-				<span className="font-medium">{value as string}</span>
+			accessorKey: 'user',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Agente" />
 			),
-		},
-		{
-			key: 'user',
-			header: 'Agente',
-			cellRenderer: (user) => {
-				const userData = user as Business['user']
+			cell: ({ row }) => {
+				const userData = row.original.user
 				return (
 					<div className="flex items-center gap-3">
 						<Avatar className="h-8 w-8">
@@ -137,98 +155,61 @@ export function BusinessTableSection({
 			},
 		},
 		{
-			key: 'contract',
-			header: 'Contrato',
-			cellRenderer: (value) => (
-				<span
-					className={value === '-' ? 'text-muted-foreground' : 'font-medium'}
-				>
-					{value as string}
-				</span>
+			accessorKey: 'contract',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Contrato" />
 			),
-		},
-		{
-			key: 'companyName',
-			header: 'Compañía',
-			cellRenderer: (value) => (
-				<span className="font-medium">{value as string}</span>
-			),
-		},
-		{
-			key: 'date',
-			header: 'Fecha',
-			cellRenderer: (value) => formatDate(value as string),
-		},
-		{
-			key: 'product',
-			header: 'Producto',
-			cellRenderer: (value) => <span>{value as string}</span>,
-		},
-		{
-			key: 'value',
-			header: 'Valor',
-			cellRenderer: (value, row) => (
-				<span className="font-medium">
-					{formatCurrency(value as number, row.currency.name)}
-				</span>
-			),
-		},
-		{
-			key: 'status',
-			header: 'Estado',
-			cellRenderer: (value) => getStatusBadge(value as string),
-		},
-		{
-			key: 'actions',
-			header: 'Acciones',
-			cellRenderer: (_, row) => {
-				const isEditable = row.status === 'Venta Efectuado'
-				const isCancelable =
-					row.status === 'Venta Efectuado' || row.status === 'Emitido'
-
+			cell: ({ row }) => {
+				const value = row.getValue('contract') as string
 				return (
-					<div className="flex items-center gap-1">
-						{/* Editar - solo para Venta Efectuada */}
-						{isEditable && (
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => onEditBusiness(row)}
-								className="h-8 w-8 p-0 cursor-pointer"
-								title="Editar"
-							>
-								<Pencil className="h-4 w-4" />
-							</Button>
-						)}
-
-						{/* Ver - siempre visible */}
-						{onViewBusiness && (
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => onViewBusiness(row)}
-								className="h-8 w-8 p-0 cursor-pointer"
-								title="Ver detalle"
-							>
-								<Eye className="h-4 w-4" />
-							</Button>
-						)}
-
-						{/* Cancelar - solo para Venta Efectuada o Emitido */}
-						{onCancelBusiness && isCancelable && (
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => onCancelBusiness(row)}
-								className="h-8 w-8 p-0 text-destructive hover:text-destructive cursor-pointer"
-								title="Cancelar negocio"
-							>
-								<Trash2 className="h-4 w-4" />
-							</Button>
-						)}
-					</div>
+					<span
+						className={value === '-' ? 'text-muted-foreground' : 'font-medium'}
+					>
+						{value}
+					</span>
 				)
 			},
+		},
+		{
+			accessorKey: 'companyName',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Compañía" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">{row.getValue('companyName')}</span>
+			),
+		},
+		{
+			accessorKey: 'date',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Fecha" />
+			),
+			cell: ({ row }) => formatDate(row.getValue('date')),
+		},
+		{
+			accessorKey: 'product',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Producto" />
+			),
+			cell: ({ row }) => <span>{row.getValue('product')}</span>,
+		},
+		{
+			accessorKey: 'value',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Valor" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium text-right">
+					{formatCurrency(row.original.value, row.original.currency.name)}
+				</span>
+			),
+		},
+		{
+			accessorKey: 'status',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Estado" />
+			),
+			cell: ({ row }) => getStatusBadge(row.getValue('status')),
 		},
 	]
 
@@ -251,21 +232,56 @@ export function BusinessTableSection({
 				onGlobalSearch={onGlobalSearch}
 				loading={isSearching}
 				searchPlaceholder="Buscar por cédula, nombre, email, # negocio o contrato..."
-				pagination={
-					pagination
-						? {
-								currentPage: pagination.page,
-								pageSize: pagination.pageSize,
-								totalItems: pagination.total,
-								onPageChange: onPageChange || (() => {}),
-							}
-						: {
-								currentPage: 1,
-								pageSize: 10,
-								totalItems: data.length,
-								onPageChange: () => {},
-							}
-				}
+				manualPagination={true}
+				currentPage={pagination?.page || 1}
+				pageSize={pagination?.pageSize || 10}
+				totalItems={pagination?.total || data.length}
+				onPageChange={onPageChange}
+				actions={(row) => {
+					const isEditable = row.status === 'Venta Efectuado'
+					const isCancelable =
+						row.status === 'Venta Efectuado' || row.status === 'Emitido'
+
+					return (
+						<div className="flex items-center gap-1">
+							{isEditable && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => onEditBusiness(row)}
+									className="h-8 w-8 p-1 cursor-pointer"
+									title="Editar"
+								>
+									<Pencil className="h-4 w-4" />
+								</Button>
+							)}
+
+							{onViewBusiness && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => onViewBusiness(row)}
+									className="h-8 w-8 p-1 cursor-pointer"
+									title="Ver detalle"
+								>
+									<Eye className="h-4 w-4" />
+								</Button>
+							)}
+
+							{onCancelBusiness && isCancelable && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => onCancelBusiness(row)}
+									className="h-8 w-8 p-1 text-destructive hover:text-destructive cursor-pointer"
+									title="Cancelar negocio"
+								>
+									<Trash2 className="h-4 w-4" />
+								</Button>
+							)}
+						</div>
+					)
+				}}
 			/>
 		</div>
 	)

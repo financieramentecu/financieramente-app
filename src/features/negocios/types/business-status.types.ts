@@ -5,7 +5,7 @@
 /**
  * Estados posibles de un negocio
  */
-export type BusinessStatus = 'VENTA_EFECTUADA' | 'EMITIDO'
+export type BusinessStatus = 'VENTA_EFECTUADA' | 'EMITIDO' | 'COMISIONANDO'
 
 /**
  * Constantes para los estados de negocio
@@ -13,6 +13,7 @@ export type BusinessStatus = 'VENTA_EFECTUADA' | 'EMITIDO'
 export const BUSINESS_STATUS = {
 	VENTA_EFECTUADA: 'VENTA_EFECTUADA' as const,
 	EMITIDO: 'EMITIDO' as const,
+	COMISIONANDO: 'COMISIONANDO' as const,
 } as const
 
 /**

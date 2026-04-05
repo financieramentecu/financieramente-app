@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/nextjs'
-import {
-	DataTable,
-	type Column,
-	type DataTableProps,
-} from '../features/shared/ui/data-table'
+import { DataTable } from '../features/shared/ui/DataTable/DataTable'
 import { Badge } from '../features/shared/ui/badge'
+import type { ColumnDef } from '@tanstack/react-table'
+import { ThemeProvider } from '../features/shared/ui/ThemeProvider'
+import React from 'react'
 
 // Datos de ejemplo
 const sampleData = [
@@ -38,51 +37,25 @@ const sampleData = [
 		department: 'Finanzas',
 		salary: 4200,
 	},
-	{
-		id: 4,
-		name: 'Ana Martínez',
-		email: 'ana.martinez@financieramente.com',
-		role: 'Usuario',
-		status: 'Activo',
-		lastLogin: '2024-01-15',
-		department: 'RRHH',
-		salary: 3800,
-	},
-	{
-		id: 5,
-		name: 'Luis Rodríguez',
-		email: 'luis.rodriguez@financieramente.com',
-		role: 'Administrador',
-		status: 'Activo',
-		lastLogin: '2024-01-15',
-		department: 'IT',
-		salary: 5500,
-	},
 ]
 
 type UserRow = (typeof sampleData)[number]
 
-const columns: Column<UserRow>[] = [
+const columns: ColumnDef<UserRow>[] = [
 	{
-		key: 'name' as const,
-		title: 'Nombre',
-		sortable: true,
-		searchable: true,
-		render: (value) => <div className="font-medium">{String(value)}</div>,
+		accessorKey: 'name',
+		header: 'Nombre',
+		cell: ({ row }) => <div className="font-medium">{row.getValue('name')}</div>,
 	},
 	{
-		key: 'email' as const,
-		title: 'Email',
-		sortable: true,
-		searchable: true,
+		accessorKey: 'email',
+		header: 'Email',
 	},
 	{
-		key: 'role' as const,
-		title: 'Rol',
-		sortable: true,
-		searchable: true,
-		render: (value) => {
-			const role = String(value)
+		accessorKey: 'role',
+		header: 'Rol',
+		cell: ({ row }) => {
+			const role = row.getValue('role') as string
 			return (
 				<Badge variant={role === 'Administrador' ? 'default' : 'secondary'}>
 					{role}
@@ -91,12 +64,10 @@ const columns: Column<UserRow>[] = [
 		},
 	},
 	{
-		key: 'status' as const,
-		title: 'Estado',
-		sortable: true,
-		searchable: true,
-		render: (value) => {
-			const status = String(value)
+		accessorKey: 'status',
+		header: 'Estado',
+		cell: ({ row }) => {
+			const status = row.getValue('status') as string
 			return (
 				<Badge variant={status === 'Activo' ? 'default' : 'destructive'}>
 					{status}
@@ -105,153 +76,39 @@ const columns: Column<UserRow>[] = [
 		},
 	},
 	{
-		key: 'department' as const,
-		title: 'Departamento',
-		sortable: true,
-		searchable: true,
-	},
-	{
-		key: 'lastLogin' as const,
-		title: 'Último Acceso',
-		sortable: true,
-		searchable: false,
-	},
-	{
-		key: 'salary' as const,
-		title: 'Salario',
-		sortable: true,
-		searchable: false,
-		align: 'right' as const,
-		render: (value) => `$${Number(value).toLocaleString()}`,
+		accessorKey: 'salary',
+		header: 'Salario',
+		cell: ({ row }) => `$${Number(row.getValue('salary')).toLocaleString()}`,
 	},
 ]
 
-const DataTableForUsers = (props: DataTableProps<UserRow>) => (
-	<DataTable<UserRow> {...props} />
-)
-
-const meta: Meta<typeof DataTableForUsers> = {
-	title: 'UI/DataTable',
-	component: DataTableForUsers,
+const meta: Meta<typeof DataTable<UserRow>> = {
+	title: 'UI/DataTableAdvanced',
+	component: DataTable,
 	parameters: {
 		layout: 'padded',
-		docs: {
-			description: {
-				component:
-					'Tabla de datos avanzada con funcionalidades de búsqueda, ordenamiento, paginación, selección múltiple y exportación. Cumple con estándares WCAG AA de accesibilidad.',
-			},
-		},
 	},
-	argTypes: {
-		data: {
-			control: false,
-			description: 'Array de datos para mostrar en la tabla',
-		},
-		columns: {
-			control: false,
-			description: 'Configuración de columnas de la tabla',
-		},
-		searchable: {
-			control: 'boolean',
-			description: 'Habilitar búsqueda en la tabla',
-		},
-		sortable: {
-			control: 'boolean',
-			description: 'Habilitar ordenamiento de columnas',
-		},
-		selectable: {
-			control: 'boolean',
-			description: 'Habilitar selección múltiple de filas',
-		},
-		pagination: {
-			control: 'boolean',
-			description: 'Habilitar paginación',
-		},
-		pageSize: {
-			control: 'number',
-			description: 'Número de elementos por página',
-		},
-		exportable: {
-			control: 'boolean',
-			description: 'Habilitar exportación de datos',
-		},
-		filterable: {
-			control: 'boolean',
-			description: 'Habilitar filtros',
-		},
-		loading: {
-			control: 'boolean',
-			description: 'Estado de carga',
-		},
-		emptyMessage: {
-			control: 'text',
-			description: 'Mensaje cuando no hay datos',
-		},
-	},
+	decorators: [
+		(Story) => (
+			<ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+				<div className="w-full max-w-6xl">
+					<Story />
+				</div>
+			</ThemeProvider>
+		),
+	],
 }
 
 export default meta
-type Story = StoryObj<typeof DataTableForUsers>
+type Story = StoryObj<typeof DataTable<UserRow>>
 
 export const Default: Story = {
 	args: {
 		data: sampleData,
 		columns: columns,
 		searchable: true,
-		sortable: true,
-		selectable: true,
-		pagination: true,
+		manualPagination: false,
 		pageSize: 10,
-		exportable: true,
-		filterable: true,
-		loading: false,
-		emptyMessage: 'No hay usuarios disponibles',
-	},
-}
-
-export const WithoutPagination: Story = {
-	args: {
-		data: sampleData,
-		columns: columns,
-		searchable: true,
-		sortable: true,
-		selectable: true,
-		pagination: false,
-		exportable: true,
-		filterable: true,
-		loading: false,
-		emptyMessage: 'No hay usuarios disponibles',
-	},
-}
-
-export const WithoutSelection: Story = {
-	args: {
-		data: sampleData,
-		columns: columns,
-		searchable: true,
-		sortable: true,
-		selectable: false,
-		pagination: true,
-		pageSize: 5,
-		exportable: true,
-		filterable: true,
-		loading: false,
-		emptyMessage: 'No hay usuarios disponibles',
-	},
-}
-
-export const WithoutSearch: Story = {
-	args: {
-		data: sampleData,
-		columns: columns,
-		searchable: false,
-		sortable: true,
-		selectable: true,
-		pagination: true,
-		pageSize: 10,
-		exportable: true,
-		filterable: true,
-		loading: false,
 		emptyMessage: 'No hay usuarios disponibles',
 	},
 }
@@ -260,143 +117,15 @@ export const Loading: Story = {
 	args: {
 		data: [],
 		columns: columns,
-		searchable: true,
-		sortable: true,
-		selectable: true,
-		pagination: true,
-		pageSize: 10,
-		exportable: true,
-		filterable: true,
 		loading: true,
-		emptyMessage: 'No hay usuarios disponibles',
+		emptyMessage: 'Cargando usuarios...',
 	},
 }
 
-export const Empty: Story = {
-	args: {
-		data: [],
-		columns: columns,
-		searchable: true,
-		sortable: true,
-		selectable: true,
-		pagination: true,
-		pageSize: 10,
-		exportable: true,
-		filterable: true,
-		loading: false,
-		emptyMessage:
-			'No se encontraron usuarios que coincidan con los criterios de búsqueda',
-	},
-}
-
-export const LargeDataset: Story = {
-	args: {
-		data: Array.from({ length: 100 }, (_, i) => ({
-			id: i + 1,
-			name: `Usuario ${i + 1}`,
-			email: `usuario${i + 1}@financieramente.com`,
-			role: ['Administrador', 'Usuario', 'Supervisor'][i % 3],
-			status: ['Activo', 'Inactivo'][i % 2],
-			lastLogin: `2024-01-${String((i % 15) + 1).padStart(2, '0')}`,
-			department: ['IT', 'Ventas', 'Finanzas', 'RRHH'][i % 4],
-			salary: (i % 5) * 1000 + 2000,
-		})),
-		columns: columns,
-		searchable: true,
-		sortable: true,
-		selectable: true,
-		pagination: true,
-		pageSize: 10,
-		exportable: true,
-		filterable: true,
-		loading: false,
-		emptyMessage: 'No hay usuarios disponibles',
-	},
-}
-
-export const MinimalTable: Story = {
-	args: {
-		data: sampleData.slice(0, 3),
-		columns: [
-			{
-				key: 'name' as const,
-				title: 'Nombre',
-				sortable: false,
-				searchable: false,
-			},
-			{
-				key: 'email' as const,
-				title: 'Email',
-				sortable: false,
-				searchable: false,
-			},
-		],
-		searchable: false,
-		sortable: false,
-		selectable: false,
-		pagination: false,
-		exportable: false,
-		filterable: false,
-		loading: false,
-		emptyMessage: 'Sin datos',
-	},
-}
-
-export const WithActions: Story = {
+export const Selection: Story = {
 	args: {
 		data: sampleData,
 		columns: columns,
-		searchable: true,
-		sortable: true,
-		selectable: true,
-		pagination: true,
-		pageSize: 10,
-		exportable: true,
-		filterable: true,
-		loading: false,
-		emptyMessage: 'No hay usuarios disponibles',
-		onRowClick: (row) => console.log('Row clicked:', row),
-		onSelectionChange: (selectedRows) =>
-			console.log('Selection changed:', selectedRows),
-		onExport: (data) => console.log('Export data:', data),
+		onSelectionChange: (selected: UserRow[]) => console.log('Selected:', selected),
 	},
-}
-
-export const AllVariants: Story = {
-	render: () => (
-		<div className="space-y-8">
-			<div>
-				<h3 className="text-lg font-semibold mb-4">Tabla Completa</h3>
-				<DataTable
-					data={sampleData}
-					columns={columns}
-					searchable={true}
-					sortable={true}
-					selectable={true}
-					pagination={true}
-					pageSize={5}
-					exportable={true}
-					filterable={true}
-					loading={false}
-					emptyMessage="No hay usuarios disponibles"
-				/>
-			</div>
-
-			<div>
-				<h3 className="text-lg font-semibold mb-4">Tabla Mínima</h3>
-				<DataTable
-					data={sampleData.slice(0, 3)}
-					columns={columns.slice(0, 3)}
-					searchable={false}
-					sortable={false}
-					selectable={false}
-					pagination={false}
-					exportable={false}
-					filterable={false}
-					loading={false}
-					emptyMessage="Sin datos"
-				/>
-			</div>
-		</div>
-	),
 }

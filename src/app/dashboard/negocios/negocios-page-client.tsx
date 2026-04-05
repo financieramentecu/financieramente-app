@@ -249,7 +249,9 @@ export function NegociosPageClient({
 						? 'Emitido'
 						: b.status === BUSINESS_STATUS.VENTA_EFECTUADA
 							? 'Venta Efectuado'
-							: 'Cancelado',
+							: b.status === BUSINESS_STATUS.COMISIONANDO
+								? 'Comisionando'
+								: 'Cancelado',
 				currency: b.currency,
 			})),
 		[businesses]

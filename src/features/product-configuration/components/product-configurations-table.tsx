@@ -1,8 +1,8 @@
 'use client'
-import { DataTable } from '@/features/shared/ui/DataTable'
+
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import type { ProductConfiguration } from '../types/product-configuration.types'
-import type { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil } from 'lucide-react'
 import Link from 'next/link'
@@ -14,6 +14,7 @@ import {
 	SelectValue,
 } from '@/features/shared/ui/select'
 import { Switch } from '@/features/shared/ui/switch'
+import { ColumnDef } from '@tanstack/react-table'
 
 interface PaginationData {
 	page: number
@@ -47,57 +48,51 @@ export function ProductConfigurationsTableSection({
 	selectedActive,
 	onActiveChange,
 }: ProductConfigurationsTableProps) {
-	const columns: DataTableColumn<ProductConfiguration>[] = [
+	const columns: ColumnDef<ProductConfiguration>[] = [
 		{
-			key: 'code',
+			accessorKey: 'code',
 			header: 'Código',
-			sortable: true,
-			cellRenderer: (value) => (
-				<span className="font-mono text-sm">{String(value)}</span>
+			cell: ({ row }) => (
+				<span className="font-mono text-sm">{row.original.code}</span>
 			),
 		},
 		{
-			key: 'product',
+			accessorKey: 'product.name',
 			header: 'Producto',
-			sortable: false,
-			cellRenderer: (_, row) => (
-				<span className="text-sm">{row.product.name}</span>
+			cell: ({ row }) => (
+				<span className="text-sm">{row.original.product.name}</span>
 			),
 		},
 		{
-			key: 'idProduct',
+			accessorKey: 'product.company.name',
 			header: 'Compañía',
-			sortable: false,
-			cellRenderer: (_, row) => (
+			cell: ({ row }) => (
 				<span className="text-sm text-muted-foreground">
-					{row.product.company.name}
+					{row.original.product.company.name}
 				</span>
 			),
 		},
 		{
-			key: 'clientOrigin',
+			accessorKey: 'clientOrigin.name',
 			header: 'Origen',
-			sortable: false,
-			cellRenderer: (_, row) => (
-				<span className="text-sm">{row.clientOrigin.name}</span>
+			cell: ({ row }) => (
+				<span className="text-sm">{row.original.clientOrigin.name}</span>
 			),
 		},
 		{
-			key: 'category',
+			accessorKey: 'category.name',
 			header: 'Categoría',
-			sortable: false,
-			cellRenderer: (_, row) => (
-				<span className="text-sm">{row.category.name}</span>
+			cell: ({ row }) => (
+				<span className="text-sm">{row.original.category.name}</span>
 			),
 		},
 		{
-			key: 'newBusinessesDistributionDescription',
-			header: 'Distribucíon para nuevos negocios',
-			sortable: false,
-			cellRenderer: (_, row) => {
+			accessorKey: 'newBusinessesDistributionDescription',
+			header: 'Distribución para nuevos negocios',
+			cell: ({ row }) => {
 				const description =
-					row.newBusinessesDistributionDescription ||
-					row.ppcNewBusinesses?.description ||
+					row.original.newBusinessesDistributionDescription ||
+					row.original.ppcNewBusinesses?.description ||
 					'Sin descripción'
 
 				return (
@@ -112,54 +107,15 @@ export function ProductConfigurationsTableSection({
 			},
 		},
 		{
-			key: 'active',
+			accessorKey: 'active',
 			header: 'Estado',
-			sortable: true,
-			cellRenderer: (value) => (
-				<Badge variant={value ? 'default' : 'secondary'}>
-					{value ? 'Activo' : 'Inactivo'}
+			cell: ({ row }) => (
+				<Badge variant={row.original.active ? 'success' : 'destructive'}>
+					{row.original.active ? 'Activo' : 'Inactivo'}
 				</Badge>
 			),
 		},
-		{
-			key: 'id',
-			header: 'Acciones',
-			cellRenderer: (_, row) => (
-				<div className="flex items-center gap-1">
-					<Button asChild variant="default" size="sm">
-						<Link href={`/dashboard/distribucion-comisiones/${row.id}/reglas`}>
-							Configuración comisión
-						</Link>
-					</Button>
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => onEditConfiguration(row)}
-						title="Editar configuración"
-					>
-						<Pencil className="h-4 w-4" />
-					</Button>
-					<Switch
-						checked={row.active}
-						onCheckedChange={() => onToggleActive(row)}
-						aria-label={
-							row.active ? 'Desactivar configuración' : 'Activar configuración'
-						}
-					/>
-				</div>
-			),
-		},
 	]
-
-	const dataTablePagination =
-		pagination && onPageChange
-			? {
-					currentPage: pagination.page,
-					pageSize: pagination.pageSize,
-					totalItems: pagination.total,
-					onPageChange: onPageChange,
-				}
-			: undefined
 
 	const renderAdditionalFilters = () => {
 		if (!onActiveChange) return null
@@ -194,11 +150,42 @@ export function ProductConfigurationsTableSection({
 				columns={columns}
 				onGlobalSearch={onGlobalSearch}
 				searchPlaceholder="Buscar por código, producto, origen o categoría..."
-				pagination={dataTablePagination}
+				manualPagination={!!pagination}
+				currentPage={pagination?.page}
+				pageSize={pagination?.pageSize}
+				totalItems={pagination?.total}
+				onPageChange={onPageChange}
 				searchable
 				loading={isSearching}
 				renderAdditionalFilters={renderAdditionalFilters}
+				actions={(row) => (
+					<div className="flex items-center gap-1">
+						<Button asChild variant="default" size="sm" className="cursor-pointer">
+							<Link href={`/dashboard/distribucion-comisiones/${row.id}/reglas`}>
+								Configuración comisión
+							</Link>
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => onEditConfiguration(row)}
+							title="Editar configuración"
+							className="cursor-pointer"
+						>
+							<Pencil className="h-4 w-4" />
+						</Button>
+						<Switch
+							checked={row.active}
+							onCheckedChange={() => onToggleActive(row)}
+							aria-label={
+								row.active ? 'Desactivar configuración' : 'Activar configuración'
+							}
+							className="cursor-pointer"
+						/>
+					</div>
+				)}
 			/>
 		</div>
 	)
 }
+

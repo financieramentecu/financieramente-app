@@ -1,10 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import { Category, CATEGORY_TYPES, SYSTEM_CATEGORY_TYPE_NAME } from '../types/category.types'
-import { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import {
@@ -14,6 +13,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/features/shared/ui/select'
+import { ColumnDef } from '@tanstack/react-table'
 
 interface PaginationData {
 	page: number
@@ -53,120 +53,83 @@ export function CategoriesTableSection({
 	selectedTypeCategory,
 	onTypeCategoryChange,
 }: CategoriesTableSectionProps) {
-	const columns: DataTableColumn<Category>[] = [
-		{
-			key: 'code',
-			header: 'Código',
-			sortable: true,
-			cellRenderer: (value) => (
-				<span className="font-mono text-sm">{String(value)}</span>
-			),
-		},
-		{
-			key: 'name',
-			header: 'Nombre',
-			sortable: true,
-		},
-		{
-			key: 'typeCategory',
-			header: 'Tipo',
-			sortable: true,
-			cellRenderer: (value) => (
-				<Badge variant="outline">
-					{CATEGORY_TYPE_LABELS[String(value)] || String(value)}
-				</Badge>
-			),
-		},
-		{
-			key: 'beneficiaryMode',
-			header: 'Beneficiario',
-			cellRenderer: (value, row) => {
-				const isFixed = value === 'FIXED_BENEFICIARY'
-				const isSystemType = row.typeCategory === SYSTEM_CATEGORY_TYPE_NAME
-				return (
-					<div className="flex flex-col gap-0.5">
-						<Badge variant={isFixed ? 'outline' : 'secondary'} className="w-fit text-xs">
-							{isFixed ? 'Fijo' : 'Por cadena'}
-						</Badge>
-						{isSystemType && isFixed && row.fixedBeneficiaryUser ? (
-							<span className="text-xs text-muted-foreground">
-								{row.fixedBeneficiaryUser.name} {row.fixedBeneficiaryUser.lastName}
-							</span>
-						) : null}
-					</div>
-				)
+	const columns = useMemo<ColumnDef<Category>[]>(
+		() => [
+			{
+				accessorKey: 'code',
+				header: 'Código',
+				cell: ({ row }) => (
+					<span className="font-mono text-sm">{row.original.code}</span>
+				),
 			},
-		},
-		{
-			key: 'descripcion',
-			header: 'Descripción',
-			cellRenderer: (value) => (
-				<span className="text-muted-foreground text-sm truncate max-w-xs block">
-					{value ? String(value) : '-'}
-				</span>
-			),
-		},
-		{
-			key: 'status',
-			header: 'Estado',
-			sortable: true,
-			cellRenderer: (value) => (
-				<Badge variant={value ? 'default' : 'secondary'}>
-					{value ? 'Activo' : 'Inactivo'}
-				</Badge>
-			),
-		},
-		{
-			key: 'createdAt',
-			header: 'Fecha Creación',
-			sortable: true,
-			cellRenderer: (value) => {
-				if (!value) return '-'
-				const date = new Date(String(value))
-				return date.toLocaleDateString('es-CO', {
-					year: 'numeric',
-					month: 'short',
-					day: 'numeric',
-				})
+			{
+				accessorKey: 'name',
+				header: 'Nombre',
 			},
-		},
-		{
-			key: 'idCategory',
-			header: 'Acciones',
-			cellRenderer: (_, row) => (
-				<div className="flex items-center gap-1">
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => onEditCategory(row)}
-						title="Editar categoría"
-					>
-						<Pencil className="h-4 w-4" />
-					</Button>
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => onDeleteCategory(row)}
-						title="Eliminar categoría"
-						className="text-destructive hover:text-destructive"
-					>
-						<Trash2 className="h-4 w-4" />
-					</Button>
-				</div>
-			),
-		},
-	]
-
-	// Transform pagination to DataTable format
-	const dataTablePagination =
-		pagination && onPageChange
-			? {
-					currentPage: pagination.page,
-					pageSize: pagination.pageSize,
-					totalItems: pagination.total,
-					onPageChange: onPageChange,
-				}
-			: undefined
+			{
+				accessorKey: 'typeCategory',
+				header: 'Tipo',
+				cell: ({ row }) => (
+					<Badge variant="outline">
+						{CATEGORY_TYPE_LABELS[row.original.typeCategory] || row.original.typeCategory}
+					</Badge>
+				),
+			},
+			{
+				accessorKey: 'beneficiaryMode',
+				header: 'Beneficiario',
+				cell: ({ row }) => {
+					const isFixed = row.original.beneficiaryMode === 'FIXED_BENEFICIARY'
+					const isSystemType = row.original.typeCategory === SYSTEM_CATEGORY_TYPE_NAME
+					return (
+						<div className="flex flex-col gap-0.5">
+							<Badge variant={isFixed ? 'outline' : 'secondary'} className="w-fit text-xs">
+								{isFixed ? 'Fijo' : 'Por cadena'}
+							</Badge>
+							{isSystemType && isFixed && row.original.fixedBeneficiaryUser ? (
+								<span className="text-xs text-muted-foreground">
+									{row.original.fixedBeneficiaryUser.name} {row.original.fixedBeneficiaryUser.lastName}
+								</span>
+							) : null}
+						</div>
+					)
+				},
+			},
+			{
+				accessorKey: 'descripcion',
+				header: 'Descripción',
+				cell: ({ row }) => (
+					<span className="text-muted-foreground text-sm truncate max-w-xs block">
+						{row.original.descripcion || '-'}
+					</span>
+				),
+			},
+			{
+				accessorKey: 'status',
+				header: 'Estado',
+				cell: ({ row }) => (
+					<Badge variant={row.original.status ? 'success' : 'destructive'}>
+						{row.original.status ? 'Activo' : 'Inactivo'}
+					</Badge>
+				),
+			},
+			{
+				accessorKey: 'createdAt',
+				header: 'Fecha Creación',
+				cell: ({ row }) => {
+					const value = row.original.createdAt
+					if (!value) return '-'
+					const date = new Date(String(value))
+					return date.toLocaleDateString('es-CO', {
+						year: 'numeric',
+						month: 'short',
+						day: 'numeric',
+					})
+				},
+			},
+		],
+		[]
+	)
 
 	// Additional filters for type category
 	const renderAdditionalFilters = () => {
@@ -196,7 +159,7 @@ export function CategoriesTableSection({
 			{/* Header */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
 				<h2 className="text-xl font-semibold">Categorías de Agentes</h2>
-				<Button onClick={onAddCategory}>
+				<Button onClick={onAddCategory} className="cursor-pointer">
 					<Plus className="h-4 w-4 mr-2" />
 					Crear Categoría
 				</Button>
@@ -208,11 +171,39 @@ export function CategoriesTableSection({
 				columns={columns}
 				onGlobalSearch={onGlobalSearch}
 				searchPlaceholder="Buscar por código o nombre..."
-				pagination={dataTablePagination}
+				manualPagination={!!pagination}
+				currentPage={pagination?.page}
+				pageSize={pagination?.pageSize}
+				totalItems={pagination?.total}
+				onPageChange={onPageChange}
 				searchable
 				loading={isSearching}
 				renderAdditionalFilters={renderAdditionalFilters}
+				actions={(category) => (
+					<div className="flex items-center gap-1">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => onEditCategory(category)}
+							title="Editar categoría"
+							className="cursor-pointer"
+						>
+							<Pencil className="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => onDeleteCategory(category)}
+							title="Eliminar categoría"
+							className="text-destructive hover:text-destructive cursor-pointer"
+						>
+							<Trash2 className="h-4 w-4" />
+						</Button>
+					</div>
+				)}
 			/>
 		</div>
 	)
 }
+
+

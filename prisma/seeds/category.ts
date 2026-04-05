@@ -32,7 +32,7 @@ export async function seedCategoryBeneficiaryLinks(prisma: PrismaClient) {
 		)
 		return
 	}
-	const result = await prisma.category.updateMany({
+	const result = await (prisma.category.updateMany)({
 		where: { code: 'AGENCIA' },
 		data: {
 			beneficiaryMode: 'FIXED_BENEFICIARY',

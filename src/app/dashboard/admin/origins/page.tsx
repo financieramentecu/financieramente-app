@@ -2,18 +2,17 @@
 
 import React, { useEffect, useState } from 'react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
-import {
-	CrudTable,
-	type CrudTableColumn,
-} from '@/features/admin/shared/CrudTable'
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
+import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import {
 	CrudModal,
 	type CrudModalField,
 } from '@/features/admin/shared/CrudModal'
 import { DeleteConfirmModal } from '@/features/admin/shared/DeleteConfirmModal'
 import { Button } from '@/features/shared/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '@/features/shared/ui/badge'
+import type { ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import {
 	createClientOriginSchema,
@@ -186,41 +185,54 @@ function ProductOriginsSection() {
 		}
 	}
 
-	const columns: CrudTableColumn<ProductOrigin>[] = [
+	const columns: ColumnDef<ProductOrigin>[] = [
 		{
-			key: 'idOrigin',
-			header: 'ID',
-			cellRenderer: (value) => (
-				<span className="font-medium">#{String(value)}</span>
+			accessorKey: 'idOrigin',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="ID" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">#{row.getValue('idOrigin')}</span>
 			),
 		},
 		{
-			key: 'name',
-			header: 'Nombre',
-			cellRenderer: (value) => (
-				<span className="font-medium">{String(value)}</span>
+			accessorKey: 'name',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Nombre" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">{row.getValue('name')}</span>
 			),
 		},
 		{
-			key: 'description',
-			header: 'Descripción',
-			cellRenderer: (value) =>
-				value ? (
+			accessorKey: 'description',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Descripción" />
+			),
+			cell: ({ row }) => {
+				const value = row.getValue('description') as string
+				return value ? (
 					<span className="text-sm text-muted-foreground line-clamp-2">
-						{String(value)}
+						{value}
 					</span>
 				) : (
-					<span className="text-muted-foreground">-</span>
-				),
+					<span className="text-muted-foreground">—</span>
+				)
+			},
 		},
 		{
-			key: 'status',
-			header: 'Estado',
-			cellRenderer: (value) => (
-				<Badge variant={(value as boolean) ? 'success' : 'neutral'}>
-					{(value as boolean) ? 'Activo' : 'Inactivo'}
-				</Badge>
+			accessorKey: 'status',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Estado" />
 			),
+			cell: ({ row }) => {
+				const status = row.getValue('status') as boolean
+				return (
+					<Badge variant={status ? 'success' : 'neutral'}>
+						{status ? 'Activo' : 'Inactivo'}
+					</Badge>
+				)
+			},
 		},
 	]
 
@@ -264,14 +276,33 @@ function ProductOriginsSection() {
 				</Button>
 			</div>
 
-			<CrudTable
+			<DataTable
 				data={origins}
 				columns={columns}
-				onEdit={handleEdit}
-				onDelete={handleDelete}
-				isLoading={isLoading}
+				loading={isLoading}
 				searchable
+				searchColumn="name"
 				emptyMessage="No hay orígenes de producto registrados"
+				actions={(origin) => (
+					<div className="flex justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => handleEdit(origin)}
+							className="h-8 w-8 p-0"
+						>
+							<Pencil className="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => handleDelete(origin)}
+							className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+						>
+							<Trash2 className="h-4 w-4" />
+						</Button>
+					</div>
+				)}
 			/>
 
 			<CrudModal
@@ -458,41 +489,54 @@ function ClientOriginsSection() {
 		}
 	}
 
-	const columns: CrudTableColumn<ClientOrigin>[] = [
+	const columns: ColumnDef<ClientOrigin>[] = [
 		{
-			key: 'idClientOrigin',
-			header: 'ID',
-			cellRenderer: (value) => (
-				<span className="font-medium">#{String(value)}</span>
+			accessorKey: 'idClientOrigin',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="ID" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">#{row.getValue('idClientOrigin')}</span>
 			),
 		},
 		{
-			key: 'name',
-			header: 'Nombre',
-			cellRenderer: (value) => (
-				<span className="font-medium">{String(value)}</span>
+			accessorKey: 'name',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Nombre" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">{row.getValue('name')}</span>
 			),
 		},
 		{
-			key: 'description',
-			header: 'Descripción',
-			cellRenderer: (value) =>
-				value ? (
+			accessorKey: 'description',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Descripción" />
+			),
+			cell: ({ row }) => {
+				const value = row.getValue('description') as string
+				return value ? (
 					<span className="text-sm text-muted-foreground line-clamp-2">
-						{String(value)}
+						{value}
 					</span>
 				) : (
-					<span className="text-muted-foreground">-</span>
-				),
+					<span className="text-muted-foreground">—</span>
+				)
+			},
 		},
 		{
-			key: 'status',
-			header: 'Estado',
-			cellRenderer: (value) => (
-				<Badge variant={(value as boolean) ? 'success' : 'neutral'}>
-					{(value as boolean) ? 'Activo' : 'Inactivo'}
-				</Badge>
+			accessorKey: 'status',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Estado" />
 			),
+			cell: ({ row }) => {
+				const status = row.getValue('status') as boolean
+				return (
+					<Badge variant={status ? 'success' : 'neutral'}>
+						{status ? 'Activo' : 'Inactivo'}
+					</Badge>
+				)
+			},
 		},
 	]
 
@@ -536,14 +580,33 @@ function ClientOriginsSection() {
 				</Button>
 			</div>
 
-			<CrudTable
+			<DataTable
 				data={origins}
 				columns={columns}
-				onEdit={handleEdit}
-				onDelete={handleDelete}
-				isLoading={isLoading}
+				loading={isLoading}
 				searchable
+				searchColumn="name"
 				emptyMessage="No hay orígenes de cliente registrados"
+				actions={(origin) => (
+					<div className="flex justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => handleEdit(origin)}
+							className="h-8 w-8 p-0"
+						>
+							<Pencil className="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => handleDelete(origin)}
+							className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+						>
+							<Trash2 className="h-4 w-4" />
+						</Button>
+					</div>
+				)}
 			/>
 
 			<CrudModal

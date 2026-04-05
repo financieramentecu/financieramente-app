@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { AlertTriangle, CheckCircle, Info, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Info, Loader2, XCircle } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
 import { Label } from '@/features/shared/ui/label'
@@ -47,6 +47,7 @@ export interface ConfirmModalProps extends Omit<ModalProps, 'variant'> {
 	onConfirm?: () => void
 	onCancel?: () => void
 	destructive?: boolean
+	isLoading?: boolean
 }
 
 export interface FormModalProps extends Omit<ModalProps, 'variant'> {
@@ -219,6 +220,7 @@ const ConfirmModal = React.forwardRef<HTMLDivElement, ConfirmModalProps>(
 			onConfirm,
 			onCancel,
 			destructive = false,
+			isLoading = false,
 			trigger,
 			...props
 		},
@@ -228,25 +230,29 @@ const ConfirmModal = React.forwardRef<HTMLDivElement, ConfirmModalProps>(
 			<Modal
 				ref={ref}
 				open={open}
-				onOpenChange={onOpenChange}
+				onOpenChange={isLoading ? undefined : onOpenChange}
 				trigger={trigger}
 				title="Confirmar Acción"
 				size="sm"
 				variant="confirm"
+				closeOnOverlayClick={!isLoading}
+				closeOnEscape={!isLoading}
 				{...props}
 			>
 				<div className="py-4">
 					<p className="text-sm">{message}</p>
 				</div>
 				<DialogFooter className="gap-2">
-					<Button variant="outline" onClick={onCancel} className="flex-1">
+					<Button variant="outline" onClick={onCancel} disabled={isLoading} className="flex-1">
 						{cancelText}
 					</Button>
 					<Button
 						variant={destructive ? 'destructive' : 'default'}
 						onClick={onConfirm}
+						disabled={isLoading}
 						className="flex-1"
 					>
+						{isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
 						{confirmText}
 					</Button>
 				</DialogFooter>

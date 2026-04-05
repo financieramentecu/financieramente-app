@@ -1,15 +1,20 @@
 'use client'
 
+import { useMemo } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, ExternalLink, User } from 'lucide-react'
 import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogFooter,
-} from '@/features/shared/ui/dialog'
+	AlertTriangle,
+	ExternalLink,
+	User,
+	Hash,
+	FileText,
+	Tag,
+	Info,
+} from 'lucide-react'
+import { Modal } from '@/features/shared/ui/modal'
 import { Button } from '@/features/shared/ui/button'
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
+import { ColumnDef } from '@tanstack/react-table'
 import type { RegistroConError } from '../types/types'
 
 const ERROR_LABELS: Record<string, string> = {
@@ -27,131 +32,170 @@ interface ModalErroresConfiguracionProps {
 	onClose: () => void
 }
 
-/**
- * Modal que muestra los errores de configuración ocurridos durante la pre-liquidación.
- * Solo se monta cuando registrosConError.length > 0.
- */
 export function ModalErroresConfiguracion({
 	registrosConError,
 	open,
 	onClose,
 }: ModalErroresConfiguracionProps) {
-	if (registrosConError.length === 0) return null
+	const columns = useMemo<ColumnDef<RegistroConError>[]>(
+		() => [
+			{
+				accessorKey: 'idSettlementCommission',
+				header: () => (
+					<div className="flex items-center gap-2">
+						<Hash className="h-3 w-3" />
+						<span># LIQ.</span>
+					</div>
+				),
+				cell: ({ row }) => {
+					const id = row.getValue('idSettlementCommission') as number
+					const idBusiness = row.original.idBusiness
+					if (!idBusiness) {
+						return (
+							<span className="font-mono text-[11px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border">
+								{id}
+							</span>
+						)
+					}
+					return (
+						<Link
+							href={`/dashboard/negocios/editar/${idBusiness}`}
+							className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-primary bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded border border-primary/20 transition-colors"
+							onClick={onClose}
+						>
+							{id}
+							<ExternalLink className="h-3 w-3 opacity-60" />
+						</Link>
+					)
+				},
+			},
+			{
+				accessorKey: 'contrato',
+				header: () => (
+					<div className="flex items-center gap-2">
+						<FileText className="h-3 w-3" />
+						<span>CONTRATO</span>
+					</div>
+				),
+				cell: ({ row }) => (
+					<span className="font-mono text-[11px] font-medium text-foreground bg-muted/50 px-2 py-0.5 rounded border border-border/50">
+						{row.getValue('contrato') ?? '—'}
+					</span>
+				),
+			},
+			{
+				accessorKey: 'userAgentName', // Usaremos un campo de nombre si existe, o el ID
+				header: () => (
+					<div className="flex items-center gap-2">
+						<User className="h-3 w-3" />
+						<span>AGENTE</span>
+					</div>
+				),
+				cell: ({ row }) => {
+					const idUserAgent = row.original.idUserAgent
+					if (!idUserAgent) {
+						return <span className="text-muted-foreground text-xs">—</span>
+					}
+					return (
+						<Link
+							href={`/dashboard/admin/users/${idUserAgent}`}
+							className="inline-flex items-center gap-1.5 text-[11px] font-bold text-primary bg-primary/5 hover:bg-primary/10 px-2.5 py-0.5 rounded-full border border-primary/20 transition-colors"
+							onClick={onClose}
+						>
+							<User className="h-3 w-3" />
+							Ver agente
+							<ExternalLink className="h-3 w-3 opacity-60" />
+						</Link>
+					)
+				},
+			},
+			{
+				accessorKey: 'categoryCode',
+				header: () => (
+					<div className="flex items-center gap-2">
+						<Tag className="h-3 w-3" />
+						<span>CATEGORÍA</span>
+					</div>
+				),
+				cell: ({ row }) => (
+					<span className="inline-flex items-center rounded-md bg-secondary/50 border border-border px-2 py-0.5 text-[11px] font-bold text-secondary-foreground uppercase tracking-wider">
+						{row.getValue('categoryCode')}
+					</span>
+				),
+			},
+			{
+				accessorKey: 'errorCode',
+				header: () => (
+					<div className="flex items-center gap-2">
+						<Info className="h-3 w-3" />
+						<span>MOTIVO DEL ERROR</span>
+					</div>
+				),
+				cell: ({ row }) => {
+					const code = row.getValue('errorCode') as string
+					return (
+						<div className="flex items-center gap-2 text-destructive font-semibold text-xs py-1">
+							<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+							<span>{ERROR_LABELS[code] ?? code}</span>
+						</div>
+					)
+				},
+			},
+		],
+		[onClose]
+	)
 
 	return (
-		<Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
-			<DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
-				<DialogHeader>
-					<DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-						<AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
-						Registros con error de configuración
-						<span className="ml-1 inline-flex items-center justify-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
-							{registrosConError.length} {registrosConError.length === 1 ? 'registro' : 'registros'}
-						</span>
-					</DialogTitle>
-				</DialogHeader>
-
-				<p className="text-sm text-muted-foreground">
-					Los siguientes registros no pudieron ser pre-liquidados por errores en la
-					configuración del beneficiario. Usá los links para ir directo a corregir
-					la configuración y volvé a procesar.
-				</p>
-
-				<div className="overflow-auto flex-1 rounded-md border border-border">
-					<table className="w-full text-sm">
-						<thead className="sticky top-0 bg-muted/80 backdrop-blur-sm z-10">
-							<tr className="border-b border-border">
-								<th className="text-left py-2.5 px-4 font-semibold text-foreground whitespace-nowrap">
-									# Liquidación
-								</th>
-								<th className="text-left py-2.5 px-4 font-semibold text-foreground whitespace-nowrap">
-									Contrato
-								</th>
-								<th className="text-left py-2.5 px-4 font-semibold text-foreground whitespace-nowrap">
-									Agente
-								</th>
-								<th className="text-left py-2.5 px-4 font-semibold text-foreground whitespace-nowrap">
-									Categoría
-								</th>
-								<th className="text-left py-2.5 px-4 font-semibold text-foreground">
-									Motivo del error
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{registrosConError.map((error) => (
-								<tr
-									key={error.idSettlementCommission}
-									className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors"
-								>
-									{/* ID Liquidación → link al negocio */}
-									<td className="py-2.5 px-4">
-										{error.idBusiness ? (
-											<Link
-												href={`/dashboard/negocios/editar/${error.idBusiness}`}
-												className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-primary bg-primary/8 hover:bg-primary/15 px-2 py-1 rounded transition-colors"
-												onClick={onClose}
-											>
-												{error.idSettlementCommission}
-												<ExternalLink className="h-3 w-3 opacity-60" />
-											</Link>
-										) : (
-											<span className="font-mono text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded">
-												{error.idSettlementCommission}
-											</span>
-										)}
-									</td>
-
-									{/* Contrato */}
-									<td className="py-2.5 px-4">
-										<span className="font-mono text-xs text-foreground bg-muted px-2 py-1 rounded">
-											{error.contrato ?? '—'}
-										</span>
-									</td>
-
-									{/* Agente → link a config de usuario */}
-									<td className="py-2.5 px-4">
-										{error.idUserAgent ? (
-											<Link
-												href={`/dashboard/admin/users/${error.idUserAgent}`}
-												className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/8 hover:bg-primary/15 px-2.5 py-1 rounded-full transition-colors border border-primary/20"
-												onClick={onClose}
-											>
-												<User className="h-3 w-3" />
-												Ver agente
-												<ExternalLink className="h-3 w-3 opacity-60" />
-											</Link>
-										) : (
-											<span className="text-muted-foreground text-xs">—</span>
-										)}
-									</td>
-
-									{/* Categoría */}
-									<td className="py-2.5 px-4">
-										<span className="inline-flex items-center font-semibold text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-											{error.categoryCode}
-										</span>
-									</td>
-
-									{/* Motivo */}
-									<td className="py-2.5 px-4">
-										<span className="inline-flex items-center gap-1.5 text-xs text-destructive">
-											<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-											{ERROR_LABELS[error.errorCode] ?? error.errorCode}
-										</span>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+		<Modal
+			open={open}
+			onOpenChange={(isOpen) => {
+				if (!isOpen) onClose()
+			}}
+			title="Registros con Errores de Configuración"
+			size="xl"
+			className="max-w-6xl"
+		>
+			<div className="space-y-4">
+				<div className="flex items-start gap-4 rounded-xl bg-destructive/5 border border-destructive/20 p-5 text-sm text-destructive shadow-sm">
+					<div className="rounded-full bg-destructive/10 p-2 shrink-0">
+						<AlertTriangle className="h-6 w-6" />
+					</div>
+					<div className="space-y-1.5 py-1">
+						<p className="text-base font-bold leading-none tracking-tight">
+							Atención requerida
+						</p>
+						<p className="text-muted-foreground font-medium leading-relaxed">
+							Los siguientes registros no pudieron ser pre-liquidados por
+							errores en la configuración del beneficiario. Usá los links para
+							ir directo a corregir la configuración y volvé a procesar.
+						</p>
+					</div>
+					<div className="ml-auto bg-destructive/10 px-3 py-1.5 rounded-lg border border-destructive/20 text-xs font-bold whitespace-nowrap">
+						{registrosConError.length}{' '}
+						{registrosConError.length === 1 ? 'registro' : 'registros'}
+					</div>
 				</div>
 
-				<DialogFooter>
-					<Button variant="outline" onClick={onClose}>
+				<div className="rounded-xl border border-border shadow-sm overflow-hidden bg-background">
+					<DataTable
+						columns={columns}
+						data={registrosConError}
+						searchable={true}
+						searchColumn="contrato"
+						searchPlaceholder="Buscar por contrato..."
+					/>
+				</div>
+
+				<div className="flex justify-end pt-4">
+					<Button
+						variant="outline"
+						onClick={onClose}
+						className="px-8 font-semibold"
+					>
 						Cerrar
 					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+				</div>
+			</div>
+		</Modal>
 	)
 }
