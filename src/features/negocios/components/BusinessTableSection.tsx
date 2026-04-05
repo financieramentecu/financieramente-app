@@ -111,7 +111,9 @@ export function BusinessTableSection({
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="# Negocio" />
 			),
-			cell: ({ row }) => <span className="font-medium">#{row.original.id}</span>,
+			cell: ({ row }) => (
+				<span className="font-medium">#{row.original.id}</span>
+			),
 		},
 		{
 			accessorKey: 'clientName',
