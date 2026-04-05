@@ -1,13 +1,12 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useCommissionRules } from '@/features/distribution-commission/hooks/use-commission-rules'
 import { CommissionRulesTable } from '@/features/distribution-commission/components/commission-rules-table'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
-import { Plus } from 'lucide-react'
-import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
+import { Plus, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
 	Card,
 	CardContent,
@@ -20,6 +19,7 @@ import { useProductConfiguration } from '@/features/product-configuration/hooks/
 
 export default function CommissionRulesPage() {
 	const params = useParams()
+	const router = useRouter()
 	const productConfigId = Number(params.id)
 
 	const { data, isLoading, isError, error, filters, setSearch, reload } =
@@ -41,18 +41,28 @@ export default function CommissionRulesPage() {
 						</h2>
 						<p className="text-muted-foreground">
 							{productConfigState.status === 'success' &&
-							productConfigState.data?.code
+								productConfigState.data?.code
 								? `Código: ${productConfigState.data.code}`
 								: 'Administra las distribuciones de comisiones para este producto.'}
 						</p>
 					</div>
-					<Button asChild>
-						<Link
-							href={`/dashboard/distribucion-comisiones/${productConfigId}/reglas/crear`}
-						>
-							<Plus className="mr-2 h-4 w-4" />
-							Nueva Distribución
-						</Link>
+					<Button
+						disabled={data.some((r) => r.active)}
+						onClick={() => {
+							if (data.some((r) => r.active)) {
+								toast.error('Acción bloqueada', {
+									description:
+										'Ya existe una distribución activa. Desactívala antes de crear una nueva.',
+								})
+								return
+							}
+							router.push(
+								`/dashboard/distribucion-comisiones/${productConfigId}/reglas/crear`
+							)
+						}}
+					>
+						<Plus className="mr-2 h-4 w-4" />
+						Nueva Distribución
 					</Button>
 				</div>
 
