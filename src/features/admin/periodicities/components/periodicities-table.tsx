@@ -1,10 +1,9 @@
-'use client'
-
-import {
-	CrudTable,
-	type CrudTableColumn,
-} from '@/features/admin/shared/CrudTable'
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
+import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import { Badge } from '@/features/shared/ui/badge'
+import { Button } from '@/features/shared/ui/button'
+import { Pencil, Trash2 } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
 import type { Periodicity } from '../types/periodicity.types'
 
 interface PeriodicitiesTableProps {
@@ -20,41 +19,69 @@ export function PeriodicitiesTable({
 	onEdit,
 	onDelete,
 }: PeriodicitiesTableProps) {
-	const columns: CrudTableColumn<Periodicity>[] = [
+	const columns: ColumnDef<Periodicity>[] = [
 		{
-			key: 'idBuyPeriodicity',
-			header: 'ID',
-			cellRenderer: (value) => (
-				<span className="font-medium">#{String(value)}</span>
+			accessorKey: 'idBuyPeriodicity',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="ID" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">#{row.getValue('idBuyPeriodicity')}</span>
 			),
 		},
 		{
-			key: 'name',
-			header: 'Nombre',
-			cellRenderer: (value) => (
-				<span className="font-medium">{value as string}</span>
+			accessorKey: 'name',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Nombre" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">{row.getValue('name')}</span>
 			),
 		},
 		{
-			key: 'active',
-			header: 'Estado',
-			cellRenderer: (value) => (
-				<Badge variant={(value as boolean) ? 'success' : 'neutral'}>
-					{(value as boolean) ? 'Activa' : 'Inactiva'}
-				</Badge>
+			accessorKey: 'active',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Estado" />
 			),
+			cell: ({ row }) => {
+				const active = row.getValue('active') as boolean
+				return (
+					<Badge variant={active ? 'success' : 'neutral'}>
+						{active ? 'Activa' : 'Inactiva'}
+					</Badge>
+				)
+			},
 		},
 	]
 
 	return (
-		<CrudTable
+		<DataTable
 			data={periodicities}
 			columns={columns}
-			onEdit={onEdit}
-			onDelete={onDelete}
-			isLoading={isLoading}
+			loading={isLoading}
 			searchable={true}
+			searchColumn="name"
 			emptyMessage="No hay periodicidades registradas"
+			actions={(periodicity) => (
+				<>
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => onEdit(periodicity)}
+						className="h-8 w-8 p-0"
+					>
+						<Pencil className="h-4 w-4" />
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => onDelete(periodicity)}
+						className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+					>
+						<Trash2 className="h-4 w-4" />
+					</Button>
+				</>
+			)}
 		/>
 	)
 }

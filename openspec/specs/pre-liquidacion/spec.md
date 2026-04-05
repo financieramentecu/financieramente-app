@@ -115,16 +115,82 @@ The system SHALL derive a pre-liquidación flow for each `SettlementCommission` 
 - WHEN the system derives the flow for that registro
 - THEN the flow SHALL be Poliza CLAW, not Poliza CARTERA
 
+### Requirement: Category beneficiary mode
+
+Each `Category` SHALL have `beneficiaryMode` with values `UPLINE_CHAIN` or `FIXED_BENEFICIARY`. For `FIXED_BENEFICIARY`, `idFixedBeneficiaryUser` MUST reference an existing user suitable for that category (SHALL be active unless product explicitly allows otherwise). For `UPLINE_CHAIN`, `idFixedBeneficiaryUser` SHOULD be null; if present, pre-liquidación MUST ignore it for resolution.
+
+#### Scenario: Fixed category requires user
+
+- GIVEN a `Category` with `beneficiaryMode === FIXED_BENEFICIARY` and a valid `idFixedBeneficiaryUser`
+- WHEN pre-liquidación resolves the beneficiary for a distribution row targeting that category
+- THEN the resolved user SHALL be that fixed user
+
+#### Scenario: Upline category matches chain
+
+- GIVEN a `Category` with `beneficiaryMode === UPLINE_CHAIN`
+- AND the upline chain from `business.user` contains exactly one user whose `idCategoria` equals that category’s `idCategory` (first from agent toward root)
+- WHEN pre-liquidación resolves the beneficiary for that distribution row
+- THEN the resolved user SHALL be that chain member
+
+### Requirement: Distribution row beneficiary persistence
+
+Every `ComissionDistribution` created in pre-liquidación SHALL have non-null `idBeneficiaryUser` set to the resolved beneficiary for that row’s distribution category.
+
+#### Scenario: Beneficiary stored with amounts
+
+- GIVEN pre-liquidación successfully processes a registro
+- WHEN `ComissionDistribution` rows are persisted
+- THEN each row SHALL have `idBeneficiaryUser` set per category rules
+- AND no row SHALL be written without a beneficiary
+
+### Requirement: Block registro when beneficiary cannot be resolved
+
+If **any** active `ProductPercentageCommissionCategory` for that settlement’s PPC yields an unresolved beneficiary (`FIXED_BENEFICIARY` without valid fixed user, or `UPLINE_CHAIN` with no matching chain user), the system SHALL NOT create any `ComissionDistribution` for that `SettlementCommission`, SHALL NOT update that registro to `PRE-SETTLED`, and SHALL NOT create `Clawback` rows for it in that attempt.
+
+#### Scenario: Missing upline match
+
+- GIVEN a registro and a distribution category with `UPLINE_CHAIN`
+- AND no user in the upline chain has that category’s `idCategory`
+- WHEN pre-liquidación runs for that registro
+- THEN the registro SHALL remain `SYNCHRONIZED`
+- AND no distributions or clawbacks SHALL be created for that registro in that run
+
+#### Scenario: Fixed mode misconfigured
+
+- GIVEN a category with `FIXED_BENEFICIARY` and null or invalid `idFixedBeneficiaryUser`
+- WHEN pre-liquidación evaluates that registro’s PPC rows
+- THEN the registro SHALL be blocked as above
+
+### Requirement: Clawback user equals distribution beneficiary
+
+Whenever pre-liquidación creates a `Clawback` row for a `ComissionDistribution`, `Clawback.idUser` SHALL equal that distribution’s `idBeneficiaryUser`. The system MUST NOT assign clawback to the file uploader.
+
+#### Scenario: Clawback aligns with row beneficiary
+
+- GIVEN a `Clawback` row is created for a distribution in pre-liquidación
+- WHEN persisted
+- THEN `Clawback.idUser` SHALL equal `ComissionDistribution.idBeneficiaryUser` for that row
+
+### Requirement: Distribution detail exposes beneficiary
+
+The pre-liquidación distribution detail (API consumed by the modal) SHALL include, per distribution line, enough data to show the beneficiary’s display name when available.
+
+#### Scenario: API includes beneficiary for UI
+
+- GIVEN `GET` distribution detail for a `SettlementCommission` with distributions
+- WHEN the response is built
+- THEN each line item SHALL include beneficiary display fields derived from the stored beneficiary user
+
 ### Requirement: Clawback row and balance user
 
-The system SHALL associate each `Clawback` row with the user who owns the business of the commission record. The user SHALL be the agent: `business.user.idUser` (the business owner). The system MUST NOT use the file uploader or any other user for Clawback. In pre-liquidación the system SHALL NOT perform any `ClawbackBalance` create or update, so no balance row is associated with pre-liquidación; the liquidation process will associate balance updates with the same user when it runs.
+The system SHALL associate each `Clawback` row created in pre-liquidación with the **beneficiary user of that distribution row** (`ComissionDistribution.idBeneficiaryUser`), resolved from category rules. The system MUST NOT use the file uploader for `Clawback`. In pre-liquidación the system SHALL NOT create or update `ClawbackBalance`.
 
-#### Scenario: Clawback linked to business owner
+#### Scenario: Clawback not always the business owner
 
-- GIVEN a registro with `business.user.idUser === 42`
-- WHEN the system creates a `Clawback` row for that registro
-- THEN `Clawback.idUser` SHALL be 42
-- AND the system SHALL NOT create or update a `ClawbackBalance` row in pre-liquidación
+- GIVEN a Poliza registro where a distribution row’s beneficiary resolves to user `U` (not necessarily `business.user`)
+- WHEN a `Clawback` row is created for that distribution
+- THEN `Clawback.idUser` SHALL be `U`
+- AND SHALL NOT create or update `ClawbackBalance` in pre-liquidación
 
 ### Requirement: Clawback initial state and balance atomicity
 
@@ -159,14 +225,72 @@ Unchanged in effect: when `valorClawback` is zero for every category, the system
 
 ### Requirement: Pre-liquidación data access for flow and user
 
-The system SHALL load, when fetching `SettlementCommission` records for pre-liquidación, the fields `commissionType`, `originCommission`, and `isClawback`, and SHALL include the related `business` with its `user` (so that `business.user.idUser` is available). This data SHALL be sufficient to derive the flow and to associate each `Clawback` row with the correct user without further queries inside the transaction. No `ClawbackBalance` operations are performed in pre-liquidación, so no additional data for balance updates is required.
+The system SHALL load data needed to build the upline chain from `business.user` (including `idCategoria` and leader linkage) and SHALL load each active PPC row’s `Category` (including `beneficiaryMode` and fixed-beneficiary fields) before starting the transactional write for that registro.
 
-#### Scenario: Query includes business and user
+#### Scenario: Query supports beneficiary resolution
 
-- GIVEN the pre-liquidación process fetches registros for a file and date range
-- WHEN the query is executed
-- THEN each returned record SHALL include `commissionType`, `originCommission`, `isClawback`, and `business` with `user` (at least `idUser`)
-- AND the service SHALL NOT need to query `User` or `Business` again inside the per-registro transaction to create Clawback rows
+- GIVEN pre-liquidación fetches a registro to process
+- WHEN the service prepares beneficiary resolution
+- THEN it SHALL have access to `business.user` with category and leader fields needed for the chain
+- AND each PPC category configuration SHALL include linked `Category` beneficiary fields
+
+### Requirement: Configuration error report in response
+
+When `procesarPreLiquidacion` completes with at least one configuration error, the response SHALL include `registrosConError: { idSettlementCommission, categoryCode, errorCode }[]` describing each failed registro. When there are no errors the list SHALL be empty (not absent).
+
+#### Scenario: Response includes error list
+
+- GIVEN `procesarPreLiquidacion` runs and one or more registros fail due to config errors
+- WHEN the operation completes
+- THEN the response SHALL contain `registrosConError` with one entry per failed registro
+- AND each entry SHALL include `idSettlementCommission`, `categoryCode`, and `errorCode`
+
+#### Scenario: No errors — empty list
+
+- GIVEN all registros resolve successfully
+- WHEN the operation completes
+- THEN `registrosConError` SHALL be an empty array
+
+### Requirement: Configuration error modal in UI
+
+The pre-liquidación UI SHALL display a dismissible modal after `procesarPreLiquidacion` when `registrosConError.length > 0`. The modal SHALL list affected registros with their category and error reason so the operator knows what to fix.
+
+#### Scenario: Modal shown after partial failure
+
+- GIVEN `procesarPreLiquidacion` returns `registrosConError` with at least one entry
+- WHEN the response is received in the UI
+- THEN a modal SHALL appear listing the failed registros
+- AND the operator SHALL be able to dismiss it
+
+#### Scenario: No modal when all succeed
+
+- GIVEN `procesarPreLiquidacion` returns `registrosConError: []`
+- WHEN the response is received
+- THEN no error modal SHALL appear
+
+### Requirement: FileImport advances to PRE-SETTLED only when all records are settled
+
+`FileImport.status` SHALL advance to `PRE-SETTLED` **only if zero `SYNCHRONIZED` registros remain** for that file after processing. If any registros remain `SYNCHRONIZED` (due to configuration errors), the file SHALL stay in its current state. Re-running pre-liquidation on the same file SHALL only process remaining `SYNCHRONIZED` records.
+
+#### Scenario: File advances when all records succeed
+
+- GIVEN `procesarPreLiquidacion` runs and all SYNCHRONIZED registros resolve successfully
+- WHEN the transaction commits
+- THEN `FileImport.status` SHALL be `PRE-SETTLED`
+
+#### Scenario: File stays when some records fail
+
+- GIVEN `procesarPreLiquidacion` runs and at least one registro has a configuration error
+- WHEN the operation completes
+- THEN `FileImport.status` SHALL remain unchanged
+- AND only the successfully processed registros SHALL be `PRE-SETTLED`
+
+#### Scenario: Re-run only processes remaining SYNCHRONIZED
+
+- GIVEN a file with some registros already `PRE-SETTLED` and some still `SYNCHRONIZED`
+- WHEN `procesarPreLiquidacion` is triggered again for the same file
+- THEN only `SYNCHRONIZED` registros SHALL be processed
+- AND already-`PRE-SETTLED` registros SHALL NOT be modified
 
 ### Requirement: Pre-liquidación results and export use PRE-SETTLED state
 
@@ -186,35 +310,51 @@ The system SHALL use the canonical state value `PRE-SETTLED` when querying pre-l
 - THEN the system SHALL include those commission records with status `PRE-SETTLED` in the export
 - AND the export SHALL NOT be empty due to a status filter mismatch
 
-### Requirement: File list for pre-liquidación includes pending and pre-liquidated files
+### Requirement: File list for pre-liquidación updated for PRE-SETTLED status
 
-The system SHALL list file imports available for pre-liquidación (e.g. for the pre-liquidación screen) such that: (1) a file SHALL appear if it has at least one `SettlementCommission` with status `SYNCHRONIZED` OR at least one with status `PRE-SETTLED`; (2) for each file, the system SHALL expose a live count of commissions with status `SYNCHRONIZED` (sincronizados) and a live count with status `PRE-SETTLED` (registrosPreliquidados). The UI "Pendientes" tab SHALL use sincronizados > 0 to show files that can still be pre-liquidated; the "Histórico" tab SHALL use registrosPreliquidados > 0 to show files that have pre-liquidated records.
+The system SHALL list file imports in the pre-liquidación module as follows:
+- **Tab "Pre-liquidar"**: SHALL include files with `status = LOAD` AND `sincronizados > 0`.
+- **Tab "Histórico"**: SHALL include files with `status = PRE-SETTLED` OR `status = COMPLETED`.
 
-#### Scenario: Pre-liquidated file remains in list
+The system SHALL also expose a live count of commissions with status `SYNCHRONIZED` (sincronizados) and a live count with status `PRE-SETTLED` (registrosPreliquidados) for each file.
 
-- GIVEN a file whose commissions have all been pre-liquidated (all `SettlementCommission` records for that file have status `PRE-SETTLED`)
-- WHEN the client requests the list of files for pre-liquidación
-- THEN the system SHALL include that file in the list
-- AND the file SHALL have registrosPreliquidados equal to the number of PRE-SETTLED commissions for that file
-- AND the file SHALL appear in the "Histórico" tab when the UI filters by registrosPreliquidados > 0
+#### Scenario: Pre-liquidated file moves to Histórico
 
-#### Scenario: Pending file shows correct counts
+- GIVEN a file whose commissions have been pre-liquidated (`status` transitioned to `PRE-SETTLED`)
+- WHEN the user navigates to the Pre-liquidación module
+- THEN the file MUST NOT appear in the "Pre-liquidar" tab
+- BUT MUST appear in the "Histórico" tab
 
-- GIVEN a file that has at least one `SettlementCommission` with status `SYNCHRONIZED` and none with status `PRE-SETTLED`
-- WHEN the client requests the list of files for pre-liquidación
-- THEN the system SHALL include that file in the list
-- AND sincronizados SHALL equal the count of SYNCHRONIZED commissions for that file
-- AND registrosPreliquidados SHALL be 0
-- AND the file SHALL appear in the "Pendientes" tab when the UI filters by sincronizados > 0
+### Requirement: Navigation to Pre-liquidation Details
 
-#### Scenario: File with both pending and pre-liquidated records
+The "Histórico" tab (and the "Historial" tab in Load-File) SHALL provide an "IR a PRELIQUIDACIÓN" button for files with `status = PRE-SETTLED`. This button SHALL navigate to `/dashboard/pre-liquidacion/[fileId]`.
 
-- GIVEN a file that has at least one `SettlementCommission` with status `SYNCHRONIZED` and at least one with status `PRE-SETTLED`
-- WHEN the client requests the list of files for pre-liquidación
-- THEN the system SHALL include that file in the list
-- AND sincronizados SHALL equal the count of SYNCHRONIZED commissions
-- AND registrosPreliquidados SHALL equal the count of PRE-SETTLED commissions
-- AND the file MAY appear in both Pendientes and Histórico depending on UI logic (e.g. show in both or in the tab that matches the user's intent)
+#### Scenario: Direct navigation from Load-File History
+
+- GIVEN a file with `status = 'PRE-SETTLED'` in the Historial de Cargas
+- WHEN the user clicks "IR a PRELIQUIDACIÓN"
+- THEN the system SHALL navigate to the specific pre-liquidación detail page for that file
+
+---
+
+### Requirement: Spanish Table Headers in Results
+
+The results table and exports in the Pre-liquidación module MUST use Spanish headers for all columns to ensure a fully localized experience.
+
+| English Key | Spanish Header |
+|-------------|----------------|
+| `SYNCHRONIZED` | SINCRONIZADOS |
+| `PRE-SETTLED` | PRE-LIQUIDADOS |
+| `LAG` | REZAGADOS |
+| `TOTAL` | TOTAL |
+
+#### Scenario: Table headers in Spanish
+
+- GIVEN the user is viewing the results of a pre-liquidated file
+- WHEN the summary table is rendered
+- THEN headers MUST be in Spanish (e.g., "PRE-LIQUIDADOS" instead of "PRE-SETTLED")
+
+---
 
 ### Requirement: Block Re-Sync on Completed Period (FileImportService responsibility)
 
@@ -432,40 +572,169 @@ The system SHALL expose `fileType` for each file in the pre-liquidación file li
 
 ### Requirement: Edit client origin from Ver Negocio modal when EMITIDO
 
-When the "Ver Negocio" modal is opened from the pre-liquidación detail page and the business has status EMITIDO, the system SHALL allow the user to change the client origin from within the modal without navigating to the business edit page. On load, the origin SHALL be displayed as a label (read-only). The modal footer SHALL show an "Editar origen" button next to "Cerrar" only when the business status is EMITIDO. When the user clicks "Editar origen", the origin label SHALL be replaced by a Select with the list of active client origins and the footer SHALL show "Guardar" and "Cerrar". When the user selects a different origin and clicks "Guardar", the system SHALL persist the new `idClientOrigin` (e.g. via `PUT /api/negocios/[id]` with body `{ idClientOrigin }`) and SHALL refresh the business data so the modal returns to label view with the updated origin. The backend SHALL accept updates of only `idClientOrigin` when the business status is EMITIDO.
+The system SHALL display a confirmation alert before persisting the new client origin if the business is in `EMITIDO` state. The alert MUST warn the user that commissions will be recalculated. If accepted, the system SHALL call the update API.
+(Previously: The system saved the origin immediately without alerting about recalculation.)
 
-#### Scenario: Modal loads with origin as label and Editar origen in footer when EMITIDO
+#### Scenario: User saves new origin and accepts recalculation warning
 
-- GIVEN the user opened "Ver Negocio" from the pre-liquidación detail page for a business with status EMITIDO
-- WHEN the modal is displayed
-- THEN the current client origin SHALL be shown as a label (text)
-- AND the modal footer SHALL show "Editar origen" next to "Cerrar"
-- AND the modal SHALL NOT show a Select for origin until the user clicks "Editar origen"
-
-#### Scenario: Clicking Editar origen shows Select and Guardar in footer
-
-- GIVEN the Ver Negocio modal is open for an EMITIDO business and the origin is shown as a label
-- WHEN the user clicks "Editar origen"
-- THEN the origin label SHALL be replaced by a Select with the list of active client origins, pre-selected with the current origin
-- AND the footer SHALL show "Guardar" and "Cerrar" (and SHALL NOT show "Editar origen" while in edit mode)
-- AND "Guardar" SHALL be enabled only when the user has selected a different origin value
-
-#### Scenario: User saves new origin and modal returns to label view
-
-- GIVEN the user is in edit mode (Select visible) and has selected a different client origin
+- GIVEN the user is in edit mode (Select visible) and has selected a different client origin for a business in EMITIDO state
 - WHEN the user clicks "Guardar"
-- THEN the system SHALL send an update request (e.g. PUT with `idClientOrigin`) and SHALL persist the change for that business
-- AND the modal SHALL refresh the business data and SHALL return to the initial view: origin as label and footer with "Editar origen" and "Cerrar"
-- AND the label SHALL display the newly saved origin name
+- THEN the system SHALL display an alert warning that commissions will be recalculated
+- WHEN the user confirms the alert
+- THEN the system SHALL send the update request to change `idClientOrigin`
+- AND the modal SHALL return to the label view showing the new origin
 
-#### Scenario: Non-EMITIDO business does not show Editar origen
+#### Scenario: User cancels origin change at the warning
 
-- GIVEN the user opened "Ver Negocio" for a business with status other than EMITIDO (e.g. VENTA_EFECTUADA or CANCELADO)
-- WHEN the modal is displayed
-- THEN the origin SHALL be shown as a label only
-- AND the footer SHALL NOT show "Editar origen", only "Cerrar"
+- GIVEN the user is in edit mode and has selected a different client origin
+- WHEN the user clicks "Guardar"
+- THEN the system SHALL display an alert warning that commissions will be recalculated
+- WHEN the user cancels or dismisses the alert
+- THEN the system SHALL NOT send the update request
+- AND the modal SHALL remain in edit mode or revert the selection without saving
+
+### Requirement: Detail Page Lists PRE-SETTLED Commissions
+
+(Supersedes the SYNCHRONIZED-only filter in "Requirement: Detail page for SYNCHRONIZED records" above for the primary detail view query. The detail page at `/dashboard/pre-liquidacion/[fileId]` now queries `SettlementCommission` where `status = 'PRE-SETTLED'` for the given `fileId`.)
+
+The detail page MUST query `SettlementCommission` where `status = 'PRE-SETTLED'` for the given `fileId`.
+
+Column headers and empty-state copy MUST clearly indicate that the shown records are in PRE-SETTLED status.
+
+#### Scenario: Detail page shows PRE-SETTLED records
+
+- GIVEN a user navigates to `/dashboard/pre-liquidacion/[fileId]`
+- WHEN the page loads
+- THEN only commissions with `status = 'PRE-SETTLED'` are displayed in the table
+
+#### Scenario: No PRE-SETTLED records exist for the file
+
+- GIVEN a `fileId` that has zero PRE-SETTLED commissions
+- WHEN the detail page loads
+- THEN an empty state is shown with copy indicating no pre-settled commissions are available
 
 ---
+
+### Requirement: New Service Function for PRE-SETTLED Query
+
+The `pre-liquidacion.service.ts` MUST expose `obtenerComisionesPreliquidadas(fileImportId: number)` that returns all `SettlementCommission` records where `status = 'PRE-SETTLED'` and `fileImportId` matches.
+
+#### Scenario: Returns correct records
+
+- GIVEN `fileImportId = 7` with three PRE-SETTLED commissions
+- WHEN `obtenerComisionesPreliquidadas(7)` is called
+- THEN exactly those three records are returned
+
+#### Scenario: Returns empty array when none exist
+
+- GIVEN `fileImportId = 99` with no PRE-SETTLED commissions
+- WHEN `obtenerComisionesPreliquidadas(99)` is called
+- THEN an empty array is returned (no error thrown)
+
+---
+
+### Requirement: Atomic commission recalculation on origin change
+
+When a business's client origin is updated via `PUT /api/negocios/[id]` and the business is in `EMITIDO` state, the system SHALL calculate the new percentages based on the new `ProductConfiguration` (matching the new origin, same product, same category). Within the same transaction, the system SHALL delete existing `ComissionDistribution` and `Clawback` records for related `SettlementCommission`s that are in `PRE-SETTLED` state, and recreate them using the new percentages while retaining the original `discountPercentage` and `clawbackPercentage` from the `SettlementCommission`.
+
+---
+
+### Requirement: Rezagar records user-initiated lag
+
+The system MUST persist user-initiated lag: `status=LAG`, `isLag=true`, lag timestamps, `isLagByUser=true`, `isLagByUserDate` at action time.
+
+#### Scenario: Lag fields written
+
+- GIVEN eligible commissions selected for Rezagar
+- WHEN the user confirms
+- THEN each updated row SHALL have `status=LAG`, `isLag=true`, `isLagByUser=true`, and `isLagByUserDate` set
+
+#### Scenario: Empty selection
+
+- GIVEN no commission ids are submitted
+- WHEN Rezagar runs
+- THEN no row SHALL be updated and the response SHALL not indicate a system error
+
+---
+
+### Requirement: Liquidar settles commission and distributions together
+
+The system MUST atomically set targeted `SettlementCommission` and linked `ComissionDistribution` rows to `SETTLED` with settlement time on commissions.
+
+#### Scenario: Pre-liquidated row with distributions
+
+- GIVEN `PRE-SETTLED` commissions with distributions
+- WHEN Liquidar runs
+- THEN commissions SHALL be `SETTLED` with settlement time AND distributions `SETTLED`
+
+#### Scenario: No distributions
+
+- GIVEN a `PRE-SETTLED` commission with no linked distributions
+- WHEN Liquidar runs
+- THEN the commission SHALL become `SETTLED` and the operation SHALL succeed
+
+---
+
+### Requirement: Liquidar applies POLIZA clawbacks to balances
+
+For POLIZA flows with persisted pre-liquidación clawbacks, the system MUST apply clawbacks (reason append) and increase each user’s `ClawbackBalance`.
+
+#### Scenario: POLIZA with clawback rows
+
+- GIVEN `PRE-SETTLED` POLIZA with clawbacks on distributions
+- WHEN Liquidar runs
+- THEN clawbacks SHALL be applied with reason updated AND balances increased
+
+#### Scenario: POLIZA without clawbacks
+
+- GIVEN POLIZA with no clawback rows
+- WHEN Liquidar runs
+- THEN settlement and distribution updates SHALL still apply
+- AND no `ClawbackBalance` change SHALL occur
+
+---
+
+### Requirement: Linked business becomes COMISIONANDO only from EMITIDO (pre-liquidación Liquidar)
+
+Liquidar MUST promote linked businesses from `EMITIDO` to `COMISIONANDO` only; other statuses MUST NOT change.
+
+#### Scenario: EMITIDO promoted
+
+- GIVEN a business linked to a settled commission with `status=EMITIDO`
+- WHEN Liquidar completes
+- THEN that business SHALL have `status=COMISIONANDO`
+
+#### Scenario: Already COMISIONANDO
+
+- GIVEN the linked business has `status=COMISIONANDO`
+- WHEN Liquidar completes
+- THEN that business SHALL stay `COMISIONANDO` without redundant update
+
+---
+
+### Requirement: Import file reaches COMPLETED only with no SYNCHRONIZED and no PRE-SETTLED
+
+After Liquidar, the system MUST set the file to `COMPLETED` **iff** for that `idFileImport` both counts are zero: `SYNCHRONIZED` and `PRE-SETTLED`. If either count is positive, the system MUST NOT set `COMPLETED`.
+
+*(Supersedes any earlier rule that set `COMPLETED` from zero `SYNCHRONIZED` alone.)*
+
+#### Scenario: Partial Liquidar
+
+- GIVEN zero `SYNCHRONIZED` but some `PRE-SETTLED` remain after Liquidar
+- WHEN the operation completes
+- THEN the file SHALL NOT be `COMPLETED`
+
+#### Scenario: Sync backlog
+
+- GIVEN at least one `SYNCHRONIZED` row remains for the file after Liquidar
+- WHEN the operation completes
+- THEN the file SHALL NOT be `COMPLETED`
+
+#### Scenario: Fully drained queue
+
+- GIVEN zero `SYNCHRONIZED` and zero `PRE-SETTLED` after Liquidar
+- WHEN the operation completes
+- THEN the file SHALL be `COMPLETED`
 
 ## Technical Design
 

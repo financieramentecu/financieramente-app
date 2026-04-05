@@ -59,7 +59,7 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 			},
 			{
 				title: 'Liquidación',
-				url: '/dashboard/liquidaciones/liquidacion',
+				url: '/dashboard/liquidaciones',
 				icon: <FileText className="h-4 w-4" />,
 			},
 		],
@@ -109,6 +109,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 			{
 				title: 'Categorías',
 				url: '/dashboard/categorias',
+				icon: <Tag className="h-4 w-4" />,
+			},
+			{
+				title: 'Tipo Categoría',
+				url: '/dashboard/admin/category-types',
 				icon: <Tag className="h-4 w-4" />,
 			},
 			{

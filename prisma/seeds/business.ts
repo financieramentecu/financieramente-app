@@ -1,15 +1,14 @@
 import type { PrismaClient } from '@prisma/client'
 
 /**
- * Seed de negocios de prueba
- * Crea negocios con contratos que hacen match con los CSVs de prueba en docs/test-data/
+ * Cliente y negocios de prueba (solo entorno dev/QA).
+ * Invocado desde `prisma/seed-test-data.ts`, no desde el seed de producción.
  *
- * Contratos creados:
- * - CONT-1001 a CONT-1010: Para pruebas de archivos poliza-*.csv
- * - CTO-2001 a CTO-2010: Para pruebas de archivos voluntaria-*.csv
- *   (createdAt en Feb 2026 para que el date-matching funcione con voluntaria-synchronized.csv)
+ * Contratos alineados con docs/test-data/:
+ * - CONT-1001 a CONT-1010: poliza-*.csv
+ * - CTO-2001 a CTO-2010: voluntaria-*.csv (createdAt Feb 2026 para date-matching)
  *
- * Ejecutar después de tener usuarios, productos y clientes
+ * Requiere usuarios, catálogos y productPercentageCommission (seed principal).
  */
 export async function seedBusinesses(prisma: PrismaClient) {
 	console.log('📊 Creando negocios de prueba...')

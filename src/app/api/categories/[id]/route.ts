@@ -4,7 +4,10 @@ import { updateCategorySchema } from '@/features/categories/lib/category-schemas
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { Category } from '@/features/categories/types/category.types'
 import { z } from 'zod'
-import { prismaCategoryToCategory } from '@/features/categories/mappers/category.mapper'
+import { 
+	prismaCategoryToCategory,
+	type PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations 
+} from '@/features/categories/mappers/category.mapper'
 
 /**
  * GET /api/categories/[id]
@@ -16,9 +19,15 @@ export async function GET(
 ) {
 	try {
 		const { id } = await params
-		const category = await prisma.category.findUnique({
+		const categoryRaw = await prisma.category.findUnique({
 			where: { idCategory: parseInt(id) },
+			include: {
+				fixedBeneficiaryUser: {
+					select: { idUser: true, name: true, lastName: true, email: true },
+				},
+			},
 		})
+		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
 
 		if (!category) {
 			const errorResponse: ApiResponse<null> = {
@@ -101,27 +110,87 @@ export async function PUT(
 			}
 		}
 
+		// Validate beneficiary constraint before persisting
+		if (
+			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			(data.idFixedBeneficiaryUser === null ||
+				data.idFixedBeneficiaryUser === undefined)
+		) {
+			const errorResponse: ApiResponse<null> = {
+				data: null,
+				error:
+					'El usuario beneficiario fijo es requerido cuando el modo es FIXED_BENEFICIARY',
+			}
+			return NextResponse.json(errorResponse, { status: 400 })
+		}
+
+		// Verify fixed beneficiary user exists and is active
+		if (
+			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			data.idFixedBeneficiaryUser != null
+		) {
+			const beneficiaryUser = await prisma.user.findFirst({
+				where: { idUser: data.idFixedBeneficiaryUser, active: true },
+			})
+			if (!beneficiaryUser) {
+				const errorResponse: ApiResponse<null> = {
+					data: null,
+					error: 'El usuario beneficiario fijo no existe o está inactivo',
+				}
+				return NextResponse.json(errorResponse, { status: 400 })
+			}
+		}
+
 		// Prepare update data
 		const updateData: {
 			code?: string
 			name?: string
-			typeCategory?: string
+			idCategoryType?: number
 			descripcion?: string | null
 			status?: boolean
+			beneficiaryMode?: 'UPLINE_CHAIN' | 'FIXED_BENEFICIARY'
+			idFixedBeneficiaryUser?: number | null
 		} = {}
 
 		if (data.code) updateData.code = data.code.trim().toUpperCase()
 		if (data.name) updateData.name = data.name.trim()
-		if (data.typeCategory) updateData.typeCategory = data.typeCategory
 		if (data.descripcion !== undefined)
 			updateData.descripcion = data.descripcion
 		if (data.status !== undefined) updateData.status = data.status
+		if (data.beneficiaryMode !== undefined)
+			updateData.beneficiaryMode = data.beneficiaryMode
+		if ('idFixedBeneficiaryUser' in data)
+			updateData.idFixedBeneficiaryUser =
+				data.beneficiaryMode === 'UPLINE_CHAIN'
+					? null
+					: (data.idFixedBeneficiaryUser ?? null)
 
-		// Update category
-		const category = await prisma.category.update({
+		if (data.typeCategory) {
+			const categoryTypeRec = await prisma.categoryType.findFirst({
+				where: { name: { equals: data.typeCategory, mode: 'insensitive' } },
+			})
+
+			if (!categoryTypeRec) {
+				const errorResponse: ApiResponse<null> = {
+					data: null,
+					error: 'Tipo de categoría no válido',
+				}
+				return NextResponse.json(errorResponse, { status: 400 })
+			}
+
+			updateData.idCategoryType = categoryTypeRec.id
+		}
+
+		const categoryRaw = await prisma.category.update({
 			where: { idCategory: categoryId },
 			data: updateData,
+			include: {
+				fixedBeneficiaryUser: {
+					select: { idUser: true, name: true, lastName: true, email: true },
+				},
+			},
 		})
+		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
 
 		// Transform using mapper
 		const categoryFormatted = prismaCategoryToCategory(category)
@@ -200,54 +269,21 @@ export async function DELETE(
 		if (usersWithCategory > 0) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
-				error: `No se puede eliminar la categoría porque tiene ${usersWithCategory} usuario(s) asignado(s)`,
+				error: 'No se puede eliminar la categoría porque tiene usuarios asociados',
 			}
-			return NextResponse.json(errorResponse, { status: 409 })
+			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
-		// Check for relationships (ProductConfiguration by category)
-		const commissionsWithCategory = await prisma.productConfiguration.count({
-			where: { idCategory: categoryId },
-		})
-
-		if (commissionsWithCategory > 0) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: `No se puede eliminar la categoría porque tiene ${commissionsWithCategory} comisión(es) de producto asignada(s)`,
-			}
-			return NextResponse.json(errorResponse, { status: 409 })
-		}
-
-		// Delete category
 		await prisma.category.delete({
 			where: { idCategory: categoryId },
 		})
 
-		const response: ApiResponse<void> = {
-			data: undefined,
+		const response: ApiResponse<{ success: boolean }> = {
+			data: { success: true },
 		}
 
 		return NextResponse.json(response)
 	} catch (error) {
-		if (error && typeof error === 'object' && 'code' in error) {
-			if (error.code === 'P2025') {
-				const errorResponse: ApiResponse<null> = {
-					data: null,
-					error: 'Categoría no encontrada',
-				}
-				return NextResponse.json(errorResponse, { status: 404 })
-			}
-
-			if (error.code === 'P2003') {
-				const errorResponse: ApiResponse<null> = {
-					data: null,
-					error:
-						'No se puede eliminar la categoría porque tiene registros relacionados',
-				}
-				return NextResponse.json(errorResponse, { status: 409 })
-			}
-		}
-
 		console.error('Error deleting category:', error)
 		const errorResponse: ApiResponse<null> = {
 			data: null,

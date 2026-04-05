@@ -45,6 +45,8 @@ describe('GET /api/negocios/stats', () => {
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
 
 	beforeEach(() => {
+		vi.useFakeTimers()
+		vi.setSystemTime(new Date('2026-03-15T12:00:00Z'))
 		vi.clearAllMocks()
 		// Mock por defecto de NextResponse.json para retornar el objeto directamente
 		mockNextResponseJson.mockImplementation(
@@ -77,6 +79,7 @@ describe('GET /api/negocios/stats', () => {
 	})
 
 	afterEach(() => {
+		vi.useRealTimers()
 		vi.restoreAllMocks()
 	})
 
@@ -436,9 +439,9 @@ describe('GET /api/negocios/stats', () => {
 				_sum: { value: 100000000 },
 			}
 
-			const currentDate = new Date()
-			const lastMonth = new Date(currentDate)
-			lastMonth.setMonth(lastMonth.getMonth() - 1)
+			// Fixed UTC dates — `new Date()` + setMonth is flaky across TZ (both rows can land in same month).
+			const lastMonth = new Date('2026-02-15T12:00:00.000Z')
+			const currentDate = new Date('2026-03-15T12:00:00.000Z')
 
 			const mockBusinesses = [
 				{
@@ -487,9 +490,8 @@ describe('GET /api/negocios/stats', () => {
 				_sum: { value: 100000000 },
 			}
 
-			const currentDate = new Date()
-			const lastMonth = new Date(currentDate)
-			lastMonth.setMonth(lastMonth.getMonth() - 1)
+			const lastMonth = new Date('2026-02-15T12:00:00.000Z')
+			const currentDate = new Date('2026-03-15T12:00:00.000Z')
 
 			const mockBusinesses = [
 				{
@@ -1051,9 +1053,8 @@ describe('GET /api/negocios/stats', () => {
 				_sum: { value: 200000000 },
 			}
 
-			const currentDate = new Date()
-			const lastMonth = new Date(currentDate)
-			lastMonth.setMonth(lastMonth.getMonth() - 1)
+			const lastMonth = new Date('2026-02-15T12:00:00.000Z')
+			const currentDate = new Date('2026-03-15T12:00:00.000Z')
 
 			const mockBusinesses = [
 				{

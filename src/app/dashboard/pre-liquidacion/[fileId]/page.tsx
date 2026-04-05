@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Calculator, FileText } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { Button } from '@/features/shared/ui/button'
-import { useRegistrosLiquidacion } from '@/features/pre-liquidacion/hooks/use-registros-liquidacion'
+import { useComisionesPreliquidadas } from '@/features/pre-liquidacion/hooks/use-comisiones-preliquidadas'
 import { useLiquidarRegistros } from '@/features/pre-liquidacion/hooks/use-liquidar-registros'
 import { useRezagarRegistros } from '@/features/pre-liquidacion/hooks/use-rezagar-registros'
 import { RegistrosLiquidacionTable } from '@/features/pre-liquidacion/components/RegistrosLiquidacionTable'
@@ -14,6 +14,8 @@ import { BarraAccionesLiquidacion } from '@/features/pre-liquidacion/components/
 import { ModalConfirmacionLiquidar } from '@/features/pre-liquidacion/components/ModalConfirmacionLiquidar'
 import { ModalConfirmacionRezagar } from '@/features/pre-liquidacion/components/ModalConfirmacionRezagar'
 import { ModalVerNegocio } from '@/features/pre-liquidacion/components/ModalVerNegocio'
+import { ModalDetalleDistribucion } from '@/features/pre-liquidacion/components/ModalDetalleDistribucion'
+import { RegistrosLiquidacionSkeleton } from '@/features/shared/ui/loading-skeletons'
 
 export default function DetallePreLiquidacionPage() {
 	const params = useParams()
@@ -27,7 +29,7 @@ export default function DetallePreLiquidacionPage() {
 		isLoading,
 		error,
 		refetch,
-	} = useRegistrosLiquidacion(fileId)
+	} = useComisionesPreliquidadas(fileId)
 
 	const { execute: executeLiquidar, state: liquidarState } =
 		useLiquidarRegistros()
@@ -40,6 +42,10 @@ export default function DetallePreLiquidacionPage() {
 		null
 	)
 	const [modalVerNegocioOpen, setModalVerNegocioOpen] = useState(false)
+	const [selectedCommissionId, setSelectedCommissionId] = useState<
+		number | null
+	>(null)
+	const [modalDistribucionOpen, setModalDistribucionOpen] = useState(false)
 
 	const isLiquidando = liquidarState.status === 'loading'
 	const isRezagando = rezagarState.status === 'loading'
@@ -82,6 +88,11 @@ export default function DetallePreLiquidacionPage() {
 		setModalVerNegocioOpen(true)
 	}
 
+	function handleVerDistribucion(idSettlementCommission: number) {
+		setSelectedCommissionId(idSettlementCommission)
+		setModalDistribucionOpen(true)
+	}
+
 	if (fileId == null || fileId <= 0) {
 		return (
 			<DashboardLayout>
@@ -92,57 +103,81 @@ export default function DetallePreLiquidacionPage() {
 
 	return (
 		<DashboardLayout>
-			<div className="space-y-4 p-4">
+			<div className="space-y-6 p-6">
 				{/* Header */}
-				<div className="flex items-center gap-4">
-					<Button
-						variant="ghost"
-						size="sm"
-						asChild
-						className="cursor-pointer"
-					>
-						<Link href="/dashboard/pre-liquidacion">
-							<ArrowLeft className="h-4 w-4 mr-2" />
-							Volver
-						</Link>
-					</Button>
-					<div className="flex-1">
-						<h1 className="text-lg font-semibold text-foreground">
-							Detalle de pre-liquidación
-						</h1>
-						{archivo && (
-							<p className="text-sm text-muted-foreground">
-								{archivo.nombreArchivo} · {archivo.sincronizados} sincronizados
-							</p>
-						)}
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+					<div className="flex items-center gap-4">
+						<Button
+							variant="ghost"
+							size="sm"
+							asChild
+							className="cursor-pointer shrink-0"
+						>
+							<Link href="/dashboard/pre-liquidacion">
+								<ArrowLeft className="h-4 w-4 mr-1.5" />
+								Volver
+							</Link>
+						</Button>
+						<div className="flex items-center gap-3">
+							<div className="rounded-lg bg-primary/10 p-2 shrink-0">
+								<Calculator className="h-5 w-5 text-primary" />
+							</div>
+							<div>
+								<h1 className="text-xl font-bold text-foreground leading-tight">
+									Comisiones Pre-Liquidadas
+								</h1>
+								{archivo && (
+									<p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5">
+										<FileText className="h-3.5 w-3.5" />
+										{archivo.nombreArchivo}
+										{archivo.fileType && (
+											<span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+												{archivo.fileType}
+											</span>
+										)}
+									</p>
+								)}
+							</div>
+						</div>
 					</div>
+					{registros.length > 0 && (
+						<div className="flex items-center gap-2 shrink-0">
+							<span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+								{registros.length} registros
+							</span>
+						</div>
+					)}
 				</div>
 
 				{error && (
-					<div className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+					<div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
 						{error}
 					</div>
 				)}
 
 				{isLoading ? (
-					<div className="py-8 text-center text-muted-foreground">
-						Cargando registros...
+					<RegistrosLiquidacionSkeleton />
+				) : registros.length === 0 ? (
+					<div className="py-16 flex flex-col items-center gap-4 text-center">
+						<p className="text-muted-foreground max-w-md">
+							No hay comisiones pre-liquidadas para este archivo.
+						</p>
+						<Button asChild className="cursor-pointer">
+							<Link href="/dashboard/liquidaciones">
+								Ir a liquidaciones
+							</Link>
+						</Button>
 					</div>
 				) : (
 					<>
-						{archivo && (
-							<h2 className="text-lg font-semibold text-foreground">
-								{archivo.fileType === 'VOLUNTARIA'
-									? 'PRELIQUIDACIÓN VOLUNTARIA'
-									: 'PRELIQUIDACIÓN POLIZA'}
-							</h2>
-						)}
 						<RegistrosLiquidacionTable
 							registros={registros}
 							fileType={archivo?.fileType ?? ''}
+							fileName={archivo?.nombreArchivo ?? ''}
 							selectedIds={selectedIds}
 							onSelectionChange={setSelectedIds}
 							onVerNegocio={handleVerNegocio}
+							onVerDistribucion={handleVerDistribucion}
 						/>
 						<BarraAccionesLiquidacion
 							selectedCount={selectedIds.size}
@@ -175,6 +210,14 @@ export default function DetallePreLiquidacionPage() {
 				onOpenChange={(open) => {
 					setModalVerNegocioOpen(open)
 					if (!open) setSelectedBusinessId(null)
+				}}
+			/>
+			<ModalDetalleDistribucion
+				idSettlementCommission={selectedCommissionId}
+				open={modalDistribucionOpen}
+				onClose={() => {
+					setModalDistribucionOpen(false)
+					setSelectedCommissionId(null)
 				}}
 			/>
 		</DashboardLayout>
