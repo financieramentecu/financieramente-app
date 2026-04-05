@@ -18,6 +18,7 @@ import type {
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
+import { getClawbackBalance } from '@/features/shared/services/agent.service'
 
 /**
  * GET /api/negocios/stats
@@ -62,7 +63,7 @@ export async function GET(): Promise<
 		const userFilter = isAgent ? currentUser.idUser : undefined
 
 		// Calcular estadísticas para cada estado agrupadas por currency
-		const [efectuadosStats, emitidosStats] = await Promise.all([
+		const [efectuadosStats, emitidosStats, clawbackBalance] = await Promise.all([
 			calculateStatsForStatusByCurrency(
 				BUSINESS_STATUS.VENTA_EFECTUADA,
 				activeCurrencies,
@@ -73,6 +74,9 @@ export async function GET(): Promise<
 				activeCurrencies,
 				userFilter
 			),
+			isAgent
+				? getClawbackBalance(currentUser.idUser)
+				: Promise.resolve(undefined),
 		])
 
 		return NextResponse.json({
@@ -80,6 +84,7 @@ export async function GET(): Promise<
 				currencies,
 				efectuados: efectuadosStats,
 				emitidos: emitidosStats,
+				clawbackBalance,
 			},
 		})
 	} catch (error) {

@@ -49,4 +49,6 @@ export interface StatsCardProps {
 	selectedCurrency?: string
 	/** Callback cuando el usuario cambia de currency */
 	onCurrencyChange?: (currency: string) => void
+	/** Variante de color para la tarjeta */
+	variant?: 'default' | 'indigo' | 'green' | 'blue' | 'teal' | 'amber'
 }
