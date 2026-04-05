@@ -10,7 +10,6 @@ import { getClientOrigins } from '@/features/origins/lib/origins-api'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { CurrentUser } from '@/features/negocios/types/business.types'
-import { getClawbackBalance } from '@/features/shared/services/agent.service'
 
 const getCompaniesCached = unstable_cache(getCompanies, ['companies'], {
 	revalidate: 300, // 5 minutes
