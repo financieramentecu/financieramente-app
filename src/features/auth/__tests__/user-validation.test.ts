@@ -199,8 +199,10 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 		})
 	})
 
-	describe('Restricción de rol ADMIN', () => {
-		it('debe rechazar usuarios no-ADMIN incluso con ssoOnly false', async () => {
+	describe('Restricción de rol (ADMIN y AGENTE)', () => {
+		it('debe permitir usuarios AGENTE con ssoOnly false', async () => {
+			const { verifyPassword } = await import('../lib/password-utils')
+
 			const mockUser = {
 				idUser: 2,
 				name: 'Agente',
@@ -223,15 +225,56 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 			}
 
 			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(mockUser)
+			vi.mocked(verifyPassword).mockResolvedValueOnce(true)
 
 			const result = await validateUserCredentials(
 				'agente@financieramentecu.com',
 				'password123'
 			)
 
+			expect(result.isValid).toBe(true)
+			expect(result.user?.role).toBe(UserRole.AGENTE)
+			expect(verifyPassword).toHaveBeenCalled()
+		})
+
+		it('debe rechazar otros roles (ej. ANALISTA_SOPORTE) con ssoOnly false', async () => {
+			const mockAnalistaRole = {
+				idRole: 3,
+				code: UserRole.ANALISTA_SOPORTE,
+				name: 'Analista',
+				active: true,
+			}
+			const mockUser = {
+				idUser: 3,
+				name: 'Analista',
+				lastName: 'User',
+				typeIdentity: 'CC',
+				identityNumber: null,
+				email: 'analista@financieramentecu.com',
+				password: '$2a$10$hashedpassword',
+				ssoOnly: false,
+				phone: null,
+				idCategoria: null,
+				idRole: 3,
+				idUserLeader: null,
+				entryDate: new Date(),
+				retirementDate: null,
+				active: true,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+				role: mockAnalistaRole,
+			}
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(mockUser as any)
+
+			const result = await validateUserCredentials(
+				'analista@financieramentecu.com',
+				'password123'
+			)
+
 			expect(result.isValid).toBe(false)
 			expect(result.error).toBe('USER_INACTIVE')
-			// No debe verificar la contraseña si no es ADMIN
 			const { verifyPassword } = await import('../lib/password-utils')
 			expect(verifyPassword).not.toHaveBeenCalled()
 		})

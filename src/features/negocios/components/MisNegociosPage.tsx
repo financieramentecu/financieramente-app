@@ -36,8 +36,8 @@ interface MisNegociosPageProps {
 
 function StatsLoadingSkeleton() {
 	return (
-		<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-			{[1, 2].map((i) => (
+		<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+			{[1, 2, 3].map((i) => (
 				<div
 					key={i}
 					className="p-6 rounded-xl border bg-card shadow-sm space-y-4"
