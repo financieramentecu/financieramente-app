@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 
 interface SparklineChartProps {
 	data: number[]
-	color?: 'orange' | 'green' | 'blue'
+	color?: 'orange' | 'green' | 'blue' | 'white'
 	height?: number | string
 	width?: number | string
 	className?: string
@@ -27,6 +27,10 @@ const COLORS = {
 	blue: {
 		stroke: '#3B82F6',
 		fill: '#3B82F6',
+	},
+	white: {
+		stroke: '#FFFFFF',
+		fill: '#FFFFFF',
 	},
 }
 

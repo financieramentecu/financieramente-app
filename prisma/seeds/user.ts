@@ -50,6 +50,19 @@ export const superAdminUser = {
 	ssoOnly: false,
 }
 
+export const agentUser = {
+	name: 'Agente',
+	lastName: 'Prueba',
+	typeIdentity: 'CC',
+	identityNumber: '1234567890',
+	email: 'agente.prueba@financieramentecu.com',
+	roleCode: 'AGENTE',
+	idUserLeader: null,
+	entryDate: new Date(),
+	active: true,
+	ssoOnly: false,
+}
+
 /** System user for FIXED_BENEFICIARY category AGENCIA (pool / company). */
 export const agenciaSystemUser = {
 	name: 'Agencia',
@@ -104,9 +117,7 @@ export async function seedAgenciaSystemUser(
 				lastName: agenciaData.lastName,
 				active: agenciaData.active,
 				ssoOnly: agenciaData.ssoOnly,
-				...(agenciaPasswordCrypted
-					? { password: agenciaPasswordCrypted }
-					: {}),
+				...(agenciaPasswordCrypted ? { password: agenciaPasswordCrypted } : {}),
 			},
 		})
 		console.log(`✅ Usuario Agencia actualizado: ${agenciaSystemUser.email}`)
@@ -231,37 +242,22 @@ export async function seedUsers(prisma: PrismaClient) {
 		console.warn(
 			'⚠️  SUPER_ADMIN_PASSWORD no está definida. Saltando creación de Super Admin.'
 		)
-		return
-	}
+	} else {
+		// Verificar si el super admin ya existe
+		const existingSuperAdmin = await prisma.user.findFirst({
+			where: {
+				email: superAdminUser.email,
+			},
+		})
 
-	// Verificar si el super admin ya existe
-	const existingSuperAdmin = await prisma.user.findFirst({
-		where: {
-			email: superAdminUser.email,
-		},
-	})
+		// Hashear la contraseña del super admin desde la variable de entorno
+		const hashedPassword = await hashPassword(process.env.SUPER_ADMIN_PASSWORD)
 
-	// Hashear la contraseña del super admin desde la variable de entorno
-	const hashedPassword = await hashPassword(process.env.SUPER_ADMIN_PASSWORD)
-
-	const superAdminData = {
-		name: superAdminUser.name,
-		lastName: superAdminUser.lastName,
-		typeIdentity: superAdminUser.typeIdentity,
-		identityNumber: superAdminUser.identityNumber,
-		email: superAdminUser.email,
-		password: hashedPassword,
-		ssoOnly: superAdminUser.ssoOnly,
-		idRole: adminRole.idRole,
-		idUserLeader: superAdminUser.idUserLeader,
-		entryDate: superAdminUser.entryDate,
-		active: superAdminUser.active,
-	} as Prisma.UserUncheckedCreateInput
-
-	if (existingSuperAdmin) {
-		const updateSuperAdminData = {
+		const superAdminData = {
 			name: superAdminUser.name,
 			lastName: superAdminUser.lastName,
+			typeIdentity: superAdminUser.typeIdentity,
+			identityNumber: superAdminUser.identityNumber,
 			email: superAdminUser.email,
 			password: hashedPassword,
 			ssoOnly: superAdminUser.ssoOnly,
@@ -269,20 +265,34 @@ export async function seedUsers(prisma: PrismaClient) {
 			idUserLeader: superAdminUser.idUserLeader,
 			entryDate: superAdminUser.entryDate,
 			active: superAdminUser.active,
-		} as Prisma.UserUncheckedUpdateInput
-		await prisma.user.update({
-			where: { idUser: existingSuperAdmin.idUser },
-			data: updateSuperAdminData,
-		})
-		console.log(
-			`✅ Super Admin actualizado: ${superAdminUser.name} (${superAdminUser.email})`
-		)
-	} else {
-		await prisma.user.create({
-			data: superAdminData,
-		})
-		console.log(
-			`✅ Super Admin creado: ${superAdminUser.name} (${superAdminUser.email})`
-		)
+		} as Prisma.UserUncheckedCreateInput
+
+		if (existingSuperAdmin) {
+			const updateSuperAdminData = {
+				name: superAdminUser.name,
+				lastName: superAdminUser.lastName,
+				email: superAdminUser.email,
+				password: hashedPassword,
+				ssoOnly: superAdminUser.ssoOnly,
+				idRole: adminRole.idRole,
+				idUserLeader: superAdminUser.idUserLeader,
+				entryDate: superAdminUser.entryDate,
+				active: superAdminUser.active,
+			} as Prisma.UserUncheckedUpdateInput
+			await prisma.user.update({
+				where: { idUser: existingSuperAdmin.idUser },
+				data: updateSuperAdminData,
+			})
+			console.log(
+				`✅ Super Admin actualizado: ${superAdminUser.name} (${superAdminUser.email})`
+			)
+		} else {
+			await prisma.user.create({
+				data: superAdminData,
+			})
+			console.log(
+				`✅ Super Admin creado: ${superAdminUser.name} (${superAdminUser.email})`
+			)
+		}
 	}
 }

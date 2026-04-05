@@ -113,4 +113,5 @@ export interface BusinessStatsResponse {
 	currencies: StatsCurrencyInfo[]
 	efectuados: StatsByCurrency
 	emitidos: StatsByCurrency
+	clawbackBalance?: number
 }

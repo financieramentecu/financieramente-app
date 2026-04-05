@@ -58,7 +58,6 @@ export default async function CrearNegocioPage() {
 
 	// Obtener información completa del usuario desde la base de datos
 	let currentUser: CurrentUser | null = null
-
 	if (session?.user?.email) {
 		currentUser = await getCurrentUserByEmail(session.user.email)
 	}

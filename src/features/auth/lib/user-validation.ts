@@ -165,8 +165,8 @@ export async function validateUserCredentials(
 			}
 		}
 
-		// RESTRICCIÓN: Solo usuarios ADMIN pueden usar email/contraseña
-		if (user.role.code !== UserRole.ADMIN) {
+		// RESTRICCIÓN: Solo usuarios ADMIN y AGENTE pueden usar email/contraseña
+		if (user.role.code !== UserRole.ADMIN && user.role.code !== UserRole.AGENTE) {
 			return {
 				isValid: false,
 				user: {
