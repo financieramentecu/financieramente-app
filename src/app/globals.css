@@ -194,6 +194,15 @@
 		color: var(--sidebar-text) !important;
 	}
 
+	/* Fix robusto para el fondo del Switch */
+	.radix-switch-root[data-state='checked'] {
+		background-color: hsl(var(--primary)) !important;
+	}
+
+	.radix-switch-root[data-state='unchecked'] {
+		background-color: hsl(var(--input)) !important;
+	}
+
 	/* Estilos para subitems del sidebar */
 	[data-sidebar='menu-sub-button'] {
 		background-color: transparent !important;
