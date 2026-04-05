@@ -62,13 +62,13 @@ describe('ProductConfigurationsTableSection', () => {
 		expect(screen.getByText('Junior')).toBeInTheDocument()
 	})
 
-	it('should render active badge', () => {
+	it('should render active switch', () => {
 		render(<ProductConfigurationsTableSection {...defaultProps} />)
 
-		expect(screen.getByText('Activo')).toBeInTheDocument()
+		expect(screen.getByLabelText('Desactivar producto')).toBeInTheDocument()
 	})
 
-	it('should render inactive badge', () => {
+	it('should render inactive switch', () => {
 		const inactiveConfig = createMockProductConfiguration({
 			active: false,
 		})
@@ -79,7 +79,7 @@ describe('ProductConfigurationsTableSection', () => {
 			/>
 		)
 
-		expect(screen.getByText('Inactivo')).toBeInTheDocument()
+		expect(screen.getByLabelText('Activar producto')).toBeInTheDocument()
 	})
 
 	it('should render multiple configurations', () => {
