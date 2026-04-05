@@ -164,6 +164,7 @@ describe('recalcularComisionesPorCambioOrigen', () => {
 				idPercentajeCommisionCategory: 77,
 				idBeneficiaryUser: 123,
 				valueComission: new Decimal(500),
+				valueCommissionWithDiscount: new Decimal(440),
 				valueComissionFinal: new Decimal(440),
 				appliedDiscountPercentage: new Decimal(0.12),
 				totalDiscount: new Decimal(60),

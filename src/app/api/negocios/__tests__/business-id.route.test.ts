@@ -622,7 +622,7 @@ describe('PUT /api/negocios/[id]', () => {
 
 			expect(mockPrismaUpdate).not.toHaveBeenCalled()
 			expect(response.status).toBe(400)
-			expect(responseData.error).toBe('Debe enviar contract o idClientOrigin')
+			expect(responseData.error).toBe('Debe enviar contract, idClientOrigin o idSettlementCommission')
 		})
 
 		it('debe actualizar solo idClientOrigin cuando negocio está EMITIDO', async () => {
@@ -1025,7 +1025,7 @@ describe('PUT /api/negocios/[id]', () => {
 
 			const mockExistingBusiness = {
 				...mockPrismaBusinessEmitido,
-				status: BUSINESS_STATUS.EMITIDO,
+				status: BUSINESS_STATUS.CANCELADO,
 			}
 
 			const requestBody = {
@@ -1052,7 +1052,133 @@ describe('PUT /api/negocios/[id]', () => {
 			expect(response.status).toBe(400)
 			expect(responseData).toEqual({
 				data: null,
-				error: 'Solo se pueden editar negocios en estado Venta Efectuada',
+				error: 'Solo se pueden editar negocios en estado Venta Efectuada o Emitido',
+			})
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
+		})
+
+		it('debe actualizar contrato cuando el negocio está EMITIDO y el usuario es administrador', async () => {
+			const mockSession = {
+				user: {
+					email: 'admin@example.com',
+				},
+			}
+
+			const mockAdminUser = {
+				...mockUserWithRole,
+				email: 'admin@example.com',
+				role: {
+					idRole: 1,
+					code: UserRole.ADMIN,
+					name: 'Administrador del Sistema',
+					description: 'Acceso total',
+					active: true,
+					createdAt: new Date('2024-01-01'),
+					updatedAt: new Date('2024-01-01'),
+				},
+			}
+
+			const mockExistingBusiness = {
+				...mockPrismaBusinessEmitido,
+				idBusiness: 2,
+				status: BUSINESS_STATUS.EMITIDO,
+				contract: 'OLD123',
+			}
+
+			const mockUpdatedBusiness = {
+				...mockExistingBusiness,
+				contract: 'PN0005678',
+				status: BUSINESS_STATUS.EMITIDO,
+			}
+
+			const mockEntity = {
+				id: 2,
+				contract: 'PN0005678',
+				status: BUSINESS_STATUS.EMITIDO,
+			}
+
+			const requestBody = {
+				contract: 'PN0005678',
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: requestBody,
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindFirst
+				.mockResolvedValueOnce(mockExistingBusiness as never)
+				.mockResolvedValueOnce(null)
+			mockPrismaUpdate.mockResolvedValue(mockUpdatedBusiness as never)
+			mockPrismaBusinessToEntity.mockReturnValue(mockEntity as never)
+
+			const request = new Request('http://localhost:3000/api/negocios/2', {
+				method: 'PUT',
+				body: JSON.stringify(requestBody),
+			})
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await PUT(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(200)
+			expect(responseData.data).toEqual(mockEntity)
+			expect(mockPrismaUpdate).toHaveBeenCalled()
+		})
+
+		it('debe retornar 403 cuando el negocio está en estado EMITIDO y el usuario es analista de soporte', async () => {
+			const mockSession = {
+				user: {
+					email: 'analyst@example.com',
+				},
+			}
+
+			const mockAnalystUser = {
+				...mockUserWithRole,
+				email: 'analyst@example.com',
+				role: {
+					idRole: 3,
+					code: UserRole.ANALISTA_SOPORTE,
+					name: 'Analista de Soporte',
+					description: 'Acceso limitado',
+					active: true,
+					createdAt: new Date('2024-01-01'),
+					updatedAt: new Date('2024-01-01'),
+				},
+			}
+
+			const mockExistingBusiness = {
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.EMITIDO,
+			}
+
+			const requestBody = {
+				contract: 'PN0005678',
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: requestBody,
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAnalystUser)
+			mockPrismaFindFirst.mockResolvedValue(mockExistingBusiness as never)
+
+			const request = new Request('http://localhost:3000/api/negocios/2', {
+				method: 'PUT',
+				body: JSON.stringify(requestBody),
+			})
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await PUT(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(403)
+			expect(responseData).toEqual({
+				data: null,
+				error:
+					'Solo el administrador del sistema o el asistente de gerencia operativa pueden editar contratos en estado Emitido',
 			})
 			expect(mockPrismaUpdate).not.toHaveBeenCalled()
 		})

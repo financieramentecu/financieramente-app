@@ -23,11 +23,26 @@ describe('ActionCell', () => {
 			).toBeInTheDocument()
 		})
 
-		it('should NOT show edit button for EMITIDO status', () => {
+		it('should show edit button for EMITIDO status when user is ADMIN', () => {
 			render(
 				<ActionCell
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.ADMIN}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: /Editar/i })
+			).toBeInTheDocument()
+		})
+
+		it('should NOT show edit button for EMITIDO when user is AGENTE', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.AGENTE}
 				/>
 			)
 
@@ -156,7 +171,7 @@ describe('ActionCell', () => {
 			).toBeInTheDocument()
 		})
 
-		it('should show view, cancel for ASISTENTE_GERENCIA in EMITIDO', () => {
+		it('should show edit, view, cancel for ASISTENTE_GERENCIA in EMITIDO', () => {
 			render(
 				<ActionCell
 					{...defaultProps}
@@ -166,8 +181,8 @@ describe('ActionCell', () => {
 			)
 
 			expect(
-				screen.queryByRole('button', { name: /Editar/i })
-			).not.toBeInTheDocument()
+				screen.getByRole('button', { name: /Editar/i })
+			).toBeInTheDocument()
 			expect(screen.getByRole('button', { name: /Ver/i })).toBeInTheDocument()
 			expect(
 				screen.getByRole('button', { name: /Cancelar/i })

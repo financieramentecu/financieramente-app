@@ -134,6 +134,7 @@ describe('ModalDetalleDistribucion', () => {
 				value_commision: 1000,
 				applied_discount_percentace: 0.12,
 				discount_total: 120,
+				value_commission_with_discount: 880,
 				percentaje_applied: 0,
 				value_clawback: 0,
 				comisionNeta: 880,
@@ -147,9 +148,10 @@ describe('ModalDetalleDistribucion', () => {
 				value_commision: 400,
 				applied_discount_percentace: 0.12,
 				discount_total: 48,
+				value_commission_with_discount: 352,
 				percentaje_applied: 0.05,
-				value_clawback: 50,
-				comisionNeta: 302,
+				value_clawback: 17.6,
+				comisionNeta: 334.4,
 			},
 		]
 
@@ -185,9 +187,10 @@ describe('ModalDetalleDistribucion', () => {
 				value_commision: 400,
 				applied_discount_percentace: 0.12,
 				discount_total: 48,
+				value_commission_with_discount: 352,
 				percentaje_applied: 0.05,
-				value_clawback: 50,
-				comisionNeta: 302,
+				value_clawback: 17.6,
+				comisionNeta: 334.4,
 			},
 		]
 
@@ -205,8 +208,8 @@ describe('ModalDetalleDistribucion', () => {
 			/>
 		)
 
-		// 50 formatted as es-CO currency ($ 50) should appear
-		expect(screen.getAllByText('$ 50').length).toBeGreaterThan(0)
+		// Clawback 17.6 COP rounds to $ 18 with es-CO 0 decimals
+		expect(screen.getAllByText('$ 18').length).toBeGreaterThan(0)
 	})
 
 	it('calls onClose when the modal triggers onOpenChange with false', () => {

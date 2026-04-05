@@ -37,6 +37,7 @@ export const updateBusinessSchema = z.object({
 		)
 		.optional(),
 	idClientOrigin: z.number().int().positive().optional(),
+	idSettlementCommission: z.number().int().positive().optional(),
 })
 
 export type UpdateBusinessSchema = z.infer<typeof updateBusinessSchema>

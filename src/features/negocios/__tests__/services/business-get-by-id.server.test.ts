@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+vi.mock('server-only', () => ({}))
+
 import { prisma } from '@/lib/prisma'
-import { getBusinessById } from '../../services/business.service'
+import { getBusinessById } from '@/features/negocios/services/business-get-by-id.server'
 import { UserRole } from '@/features/auth/lib/roles'
 
 vi.mock('@/lib/prisma', () => ({

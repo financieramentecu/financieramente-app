@@ -395,6 +395,7 @@ model ComissionDistribution {
   idComissionDistribution             Int                                  @id @default(autoincrement()) @map("id_comission_distribution")
   idSettlementCommission              Int                                  @map("id_settlement_comission")
   valueComission                      Decimal                              @map("value_comission") @db.Decimal(15, 2)
+  valueCommissionWithDiscount         Decimal?                             @map("value_commission_with_discount") @db.Decimal(15, 2)
   valueComissionFinal                 Decimal                              @map("value_comission_final") @db.Decimal(15, 2)
   observation                         String?
   status                              String                               @db.VarChar(20)

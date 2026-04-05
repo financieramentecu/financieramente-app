@@ -75,6 +75,8 @@ Core domain for managing business/commission records.
 | `POST` | `/api/negocios`                   | Create a new business record.              |
 | `GET`  | `/api/negocios/[id]`              | Get business details.                      |
 | `PUT`  | `/api/negocios/[id]`              | Update business details.                   |
+
+For `PUT` with a **contract** on a business in **EMITIDO**, only **ADMIN** and **ASISTENTE_GERENCIA_OPERATIVA** are allowed; other roles receive 403.
 | `POST` | `/api/negocios/[id]/cancel`       | Cancel a business.                         |
 | `GET`  | `/api/negocios/stats`             | Get business statistics.                   |
 | `POST` | `/api/negocios/validate-contract` | Check if a contract exists.                |
@@ -146,6 +148,7 @@ Handling file uploads and batch processing.
 | `/api/pre-liquidacion/archivos`          | Pre-liquidation files.  |
 | `/api/pre-liquidacion/procesar`          | Trigger processing.     |
 | `/api/pre-liquidacion/exportar/[fileId]` | Export results.         |
+| `/api/pre-liquidacion/distribucion/[settlementCommissionId]` | GET distribution breakdown; each line includes `value_commission_with_discount` (post-tax, pre-clawback). |
 
 ### 6. System & Utility
 

@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx'
 import { FILE_TYPE_REQUIRED_HEADERS, type FileType } from './file-types'
 import { findHeaderIndex } from './header-utils'
-import { cleanNumericValue } from './number-utils'
+import { cleanLoadFileMoneyValue } from './number-utils'
 import { readWorkbookFromFile } from './read-workbook'
 import type { ProcessedRecord, ProcessResult } from '../types/load-file.types'
 
@@ -44,8 +44,7 @@ function validateRecord(
 		}
 
 		if (NUMERIC_COLUMNS.has(requiredCol)) {
-			// Validar que sean números después de normalizar formato
-			if (stringValue && cleanNumericValue(value) === null) {
+			if (stringValue && cleanLoadFileMoneyValue(value) === null) {
 				errors.push(`Campo "${requiredCol}" debe ser un número válido`)
 			}
 		}

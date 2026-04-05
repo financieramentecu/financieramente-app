@@ -13,6 +13,7 @@ import {
 } from '@/features/shared/ui/select'
 import { Separator } from '@/features/shared/ui/separator'
 import { ClientAutocomplete } from '@/features/negocios/components/fields/client-autocomplete'
+import { ContractAutocomplete } from '@/features/negocios/components/fields/contract-autocomplete'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { Client } from '@prisma/client'
 
@@ -23,6 +24,7 @@ export interface ClientInfoSectionProps {
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
 	isEditMode?: boolean
+	onSelectLag?: (id: number | null) => void
 }
 
 export function ClientInfoSection({
@@ -32,6 +34,7 @@ export function ClientInfoSection({
 	onSearchClient,
 	onClientSelected,
 	isEditMode = false,
+	onSelectLag,
 }: ClientInfoSectionProps) {
 	const {
 		register,
@@ -304,20 +307,30 @@ export function ClientInfoSection({
 						Nro. Contrato{' '}
 						{isEditMode && <span className="text-red-500">*</span>}
 					</Label>
-					<Input
-						id="contract"
-						name={contractRegister.name}
-						value={contractValue || ''}
-						onChange={(e) => {
-							contractRegister.onChange(e)
-							setValue('contract', e.target.value, { shouldValidate: true })
-						}}
-						onBlur={contractRegister.onBlur}
-						ref={contractRegister.ref}
-						placeholder="XXX XXX X"
-						disabled={isContractDisabled}
-						className={errors.contract ? 'border-red-500' : ''}
-					/>
+					{isEditMode ? (
+						<ContractAutocomplete
+							value={contractValue || ''}
+							onChange={(val) => setValue('contract', val, { shouldValidate: true })}
+							onSelectLag={onSelectLag}
+							disabled={isContractDisabled}
+							className={errors.contract ? 'border-red-500' : ''}
+						/>
+					) : (
+						<Input
+							id="contract"
+							name={contractRegister.name}
+							value={contractValue || ''}
+							onChange={(e) => {
+								contractRegister.onChange(e)
+								setValue('contract', e.target.value, { shouldValidate: true })
+							}}
+							onBlur={contractRegister.onBlur}
+							ref={contractRegister.ref}
+							placeholder="XXX XXX X"
+							disabled={isContractDisabled}
+							className={errors.contract ? 'border-red-500' : ''}
+						/>
+					)}
 					{errors.contract && (
 						<p className="text-xs text-red-500">{errors.contract.message}</p>
 					)}

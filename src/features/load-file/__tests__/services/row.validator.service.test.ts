@@ -314,6 +314,41 @@ describe('RowValidatorService.validateAndExtractRow — happy paths', () => {
 		expect(result.endDate).toBe(null)
 	})
 
+	it('normalizes POLIZA commission from accounting negative number to positive magnitude', () => {
+		const record = makeRecord({
+			'Contrato Largo': 'POL-789',
+			BASE: 10_000,
+			'Valor Comisión': -1_848_000,
+			'Plan de Compensación': 'PLAN B',
+		})
+
+		const result = rowValidatorService.validateAndExtractRow(
+			record,
+			POLIZA_HEADERS,
+			FILE_TYPES.POLIZA
+		)
+
+		expect(Number(result.commission)).toBe(1_848_000)
+	})
+
+	it('normalizes POLIZA commission from US accounting string', () => {
+		const record = makeRecord({
+			'Contrato Largo': 'POL-790',
+			BASE: '5,000.00',
+			'Valor Comisión': '$ (1,848,000.00)',
+			'Plan de Compensación': 'PLAN C',
+		})
+
+		const result = rowValidatorService.validateAndExtractRow(
+			record,
+			POLIZA_HEADERS,
+			FILE_TYPES.POLIZA
+		)
+
+		expect(Number(result.base)).toBe(5000)
+		expect(Number(result.commission)).toBe(1_848_000)
+	})
+
 	it('returns null descripcion when descripcion column is empty', () => {
 		const record = makeRecord({
 			Cto: 'VOL-001',

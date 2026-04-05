@@ -120,6 +120,7 @@ export function MisNegociosPage({
 					pagination={pagination}
 					onPageChange={onPageChange}
 					isSearching={showTableLoading}
+					userRole={user?.role ?? undefined}
 				/>
 			)}
 		</div>
