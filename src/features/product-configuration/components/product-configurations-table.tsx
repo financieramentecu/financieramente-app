@@ -3,7 +3,6 @@
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import type { ProductConfiguration } from '../types/product-configuration.types'
-import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -97,9 +96,8 @@ export function ProductConfigurationsTableSection({
 
 				return (
 					<span
-						className={`text-sm ${
-							description === 'Sin asignar' ? 'text-muted-foreground' : ''
-						}`}
+						className={`text-sm ${description === 'Sin asignar' ? 'text-muted-foreground' : ''
+							}`}
 					>
 						{description}
 					</span>
@@ -110,9 +108,15 @@ export function ProductConfigurationsTableSection({
 			accessorKey: 'active',
 			header: 'Estado',
 			cell: ({ row }) => (
-				<Badge variant={row.original.active ? 'success' : 'destructive'}>
-					{row.original.active ? 'Activo' : 'Inactivo'}
-				</Badge>
+				<div className="flex items-center gap-2">
+					<Switch
+						checked={row.original.active}
+						onCheckedChange={() => onToggleActive(row.original)}
+						aria-label={
+							row.original.active ? 'Desactivar producto' : 'Activar producto'
+						}
+					/>
+				</div>
 			),
 		},
 	]
@@ -174,14 +178,6 @@ export function ProductConfigurationsTableSection({
 						>
 							<Pencil className="h-4 w-4" />
 						</Button>
-						<Switch
-							checked={row.active}
-							onCheckedChange={() => onToggleActive(row)}
-							aria-label={
-								row.active ? 'Desactivar configuración' : 'Activar configuración'
-							}
-							className="cursor-pointer"
-						/>
 					</div>
 				)}
 			/>

@@ -253,6 +253,30 @@ export async function PATCH(
 			)
 		}
 
+		// Validation: If activating, check if another distribution is already active
+		if (active) {
+			const anotherActive = await prisma.productPercentageCommission.findFirst({
+				where: {
+					idProductConfiguration: productConfigId,
+					active: true,
+					idProductPercentageCommission: { not: ruleId },
+				},
+				select: { description: true },
+			})
+
+			if (anotherActive) {
+				return NextResponse.json(
+					{
+						data: null,
+						error: `Ya existe una distribución activa: ${
+							anotherActive.description || 'Sin descripción'
+						}.`,
+					},
+					{ status: 409 }
+				)
+			}
+		}
+
 		if (!active) {
 			const businessCount = await prisma.business.count({
 				where: { idProductPercentageCommission: ruleId },

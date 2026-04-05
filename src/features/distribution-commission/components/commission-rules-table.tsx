@@ -41,6 +41,17 @@ export function CommissionRulesTable({
 	const [assigningId, setAssigningId] = useState<number | null>(null)
 
 	const handleToggleActive = async (rule: CommissionRule) => {
+		// If trying to activate, check if another distribution is already active
+		if (!rule.active && data.some((r) => r.active && r.id !== rule.id)) {
+			const activeRule = data.find((r) => r.active)
+			toast.error('Activación bloqueada', {
+				description: `Ya existe una distribución activa: ${
+					activeRule?.description || 'Sin descripción'
+				}. Desactívala antes de activar esta.`,
+			})
+			return
+		}
+
 		setTogglingId(rule.id)
 		try {
 			const result = await toggleActive(rule.id, !rule.active)

@@ -39,6 +39,13 @@ const productConfigurationInclude = {
 			active: true,
 		},
 	},
+	productPercentageCommissions: {
+		select: {
+			idProductPercentageCommission: true,
+			description: true,
+			active: true,
+		},
+	},
 } as const
 
 /**

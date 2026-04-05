@@ -162,6 +162,27 @@ export async function POST(
 		}
 
 		const data = validation.data
+		// Use the already declared productConfigId from higher up in the function scope
+		// (line 138: const productConfigId = parseInt(params.id))
+
+		// Check if an active distribution already exists
+		const existingActive = await prisma.productPercentageCommission.findFirst({
+			where: {
+				idProductConfiguration: productConfigId,
+				active: true,
+			},
+		})
+
+		if (existingActive) {
+			return NextResponse.json(
+				{
+					data: null,
+					error:
+						'Ya existe una distribución activa para este producto. Desactívala antes de crear una nueva.',
+				},
+				{ status: 400 }
+			)
+		}
 
 		// Create rule transactionally (if categories are present)
 		const newRule = await prisma.$transaction(async (tx) => {
