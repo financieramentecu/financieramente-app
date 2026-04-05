@@ -3,7 +3,6 @@
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import type { ProductConfiguration } from '../types/product-configuration.types'
-import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import {
