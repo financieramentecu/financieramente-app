@@ -5,6 +5,24 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.1] - 2026-04-05
+
+### Añadido
+
+- **Pre-liquidación – Comisión tras descuento (impuesto):** El sistema guarda el monto de comisión distribuida **después** del descuento fiscal y calcula el clawback sobre esa base. En el modal de detalle de distribución verás la columna **Com. Dist. con descuento** y totales coherentes con cada fila.
+- **Negocios – Edición de contrato:** Al abrir **Editar**, los datos del negocio se obtienen de forma estable desde el servidor (API y capa de datos dedicada), reduciendo desfases respecto al listado.
+
+### Mejorado
+
+- **Carga de archivos – Números en Excel:** Lectura y validación de importes más tolerantes a formatos regionales y separadores decimales, con reglas documentadas en OpenSpec.
+- **UI – Tablas con totales:** El pie de totales del `DataTable` comparte la misma tabla que el cuerpo, alineando columnas e importes (por ejemplo en modales con desglose).
+
+### Documentación / Interno
+
+- **Base de datos:** Migración Prisma para `value_commission_with_discount` en distribuciones de comisión.
+- **API y especificaciones:** Ajustes en `AGENTS.md`, modo de artefactos SDD Engram en OpenSpec y ampliación del spec de carga de archivos.
+- **Pruebas:** Cobertura ampliada en pre-liquidación (helper de montos, servicio, modal), negocios (edición, API), roles y ruta de distribución.
+
 ## [1.0.0-beta.0] - 2026-03-31
 
 Primera versión **beta** pública del ciclo 1.x: refuerza la pre-liquidación, la liquidación parcial y el estado de negocio **Comisionando**.
