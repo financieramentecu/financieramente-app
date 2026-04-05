@@ -59,15 +59,8 @@ export default async function CrearNegocioPage() {
 
 	// Obtener información completa del usuario desde la base de datos
 	let currentUser: CurrentUser | null = null
-	let clawbackBalance = 0
-
 	if (session?.user?.email) {
 		currentUser = await getCurrentUserByEmail(session.user.email)
-	}
-
-	const userId = parseInt(session?.user?.id || '0')
-	if (userId) {
-		clawbackBalance = await getClawbackBalance(userId)
 	}
 
 	return (
@@ -80,10 +73,8 @@ export default async function CrearNegocioPage() {
 					currencies={currencies}
 					clientOrigins={clientOrigins}
 					currentUser={currentUser}
-					clawbackBalance={clawbackBalance}
 				/>
 			</div>
 		</DashboardLayout>
 	)
 }
-

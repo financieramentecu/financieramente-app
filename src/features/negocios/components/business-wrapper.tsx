@@ -3,7 +3,6 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { BusinessForm } from '@/features/negocios/components/business-form'
-import { PiggyBank } from 'lucide-react'
 import { toast } from 'sonner'
 import {
 	Company,
@@ -22,12 +21,10 @@ interface Props {
 	currencies: Currency[]
 	clientOrigins: ClientOrigin[]
 	currentUser: UserWithRole | null
-	clawbackBalance: number
 }
 
 export default function BusinessWrapper({
 	currentUser,
-	clawbackBalance = 0,
 	...props
 }: Props) {
 	const router = useRouter()
