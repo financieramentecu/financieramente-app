@@ -39,7 +39,10 @@ const CANCEL_ALLOWED_ROLES: UserRole[] = [
 /**
  * Estados que permiten edición
  */
-const EDITABLE_STATUSES: BusinessStatus[] = [BUSINESS_STATUS.VENTA_EFECTUADA]
+const EDITABLE_STATUSES: BusinessStatus[] = [
+	BUSINESS_STATUS.VENTA_EFECTUADA,
+	BUSINESS_STATUS.EMITIDO,
+]
 
 /**
  * Estados que permiten cancelación
@@ -56,7 +59,17 @@ export function ActionCell({
 	onView,
 	onCancel,
 }: ActionCellProps) {
-	const canEdit = EDITABLE_STATUSES.includes(businessStatus)
+	const canEditStatuses: BusinessStatus[] = [
+		BUSINESS_STATUS.VENTA_EFECTUADA,
+		BUSINESS_STATUS.EMITIDO,
+	]
+	const canEditRoles: UserRole[] = [
+		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+		UserRole.ADMIN,
+	]
+	const canEdit =
+		canEditStatuses.includes(businessStatus) && canEditRoles.includes(userRole)
+
 	const canCancel =
 		CANCEL_ALLOWED_ROLES.includes(userRole) &&
 		CANCELABLE_STATUSES.includes(businessStatus)

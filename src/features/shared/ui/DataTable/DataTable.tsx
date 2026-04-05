@@ -347,33 +347,32 @@ export function DataTable<TData>({
 							</TableRow>
 						)}
 					</TableBody>
-				</Table>
-			</div>
-			{showFooter && (
-				<div className="rounded-md border bg-muted/50 mt-[-1px]">
-					<Table>
+					{showFooter && (
 						<TableFooter>
 							{table.getFooterGroups().map((footerGroup) => (
-								<TableRow key={footerGroup.id} className="hover:bg-transparent border-none">
+								<TableRow
+									key={footerGroup.id}
+									className="hover:bg-transparent border-b-0"
+								>
 									{footerGroup.headers.map((header) => (
-										<TableHead
+										<TableCell
 											key={header.id}
-											className="h-10 text-xs font-bold text-foreground"
+											className="p-4 text-xs font-bold text-foreground align-middle"
 										>
 											{header.isPlaceholder
 												? null
 												: flexRender(
 														header.column.columnDef.footer,
 														header.getContext()
-												  )}
-										</TableHead>
+													)}
+										</TableCell>
 									))}
 								</TableRow>
 							))}
 						</TableFooter>
-					</Table>
-				</div>
-			)}
+					)}
+				</Table>
+			</div>
 			{paginable && (
 				<DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
 			)}

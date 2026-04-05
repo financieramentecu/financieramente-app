@@ -2,6 +2,15 @@ import type { Business, SettlementCommission } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidacion-resumen-notification'
 import { Decimal } from '@prisma/client/runtime/library'
+import { Prisma } from '@prisma/client'
+import { computeLineDistributionAmounts } from '@/features/pre-liquidacion/lib/compute-line-distribution'
+
+export interface ConfigCategoryItem {
+	id: number
+	porcentajePortfolio: Decimal | null
+	porcentajeDistribucion: Decimal
+	category: CategoryForBeneficiaryResolve
+}
 import type {
 	AgenteDistribucion,
 	ArchivoDisponible,
@@ -22,6 +31,7 @@ import {
 	buildUplineChain,
 	resolveBeneficiaryUserId,
 	ppcConfigsNeedUplineAgent,
+	type CategoryForBeneficiaryResolve,
 } from '../lib/resolve-beneficiary'
 
 /**
@@ -634,6 +644,12 @@ export async function obtenerDistribucionComision(
 			? `${ben.name} ${ben.lastName ?? ''}`.trim()
 			: ''
 
+		const valueCommissionWithDiscountResolved =
+			row.valueCommissionWithDiscount != null
+				? row.valueCommissionWithDiscount.toNumber()
+				: (row.valueComissionFinal?.toNumber() ?? 0) +
+					(row.clawback?.valueClawback.toNumber() ?? 0)
+
 		return {
 			idComissionDistribution: row.idComissionDistribution,
 			idBeneficiaryUser: row.idBeneficiaryUser,
@@ -643,6 +659,7 @@ export async function obtenerDistribucionComision(
 			applied_discount_percentace:
 				row.appliedDiscountPercentage?.toNumber() ?? 0,
 			discount_total: row.totalDiscount?.toNumber() ?? 0,
+			value_commission_with_discount: valueCommissionWithDiscountResolved,
 			commission_porcentaje: porcentajeDistribucion,
 			percentaje_applied: row.clawback?.porcentajeApplied.toNumber() ?? null,
 			value_clawback: row.clawback?.valueClawback.toNumber() ?? null,
@@ -903,7 +920,7 @@ export async function rezagarRegistros(
 /**
  * Aplica las fórmulas de cálculo de comisiones
  * Fórmula: liquidacion_bruta_POSITION = comision * %comisiones.POSITION
- * Fórmula: liquidacion_con_descuento = liquidacion_bruta - (liquidacion_bruta * (%descuento + %clawback))
+ * Por bucket: impuesto sobre bruta, luego clawback sobre el monto post-impuesto (igual que distribución persistida).
  * @param descuento - Porcentaje de descuento. Si no se proporciona, se usa DESCUENTO_POR_DEFECTO como fallback
  * @param clawback - Porcentaje de clawback aplicado cuando corresponde
  */
@@ -915,7 +932,11 @@ export function aplicarFormulas(
 ): ComisionesCalculadas {
 	const descuentoAplicar = descuento || DESCUENTO_POR_DEFECTO
 	const clawbackAplicar = clawback ?? new Decimal(0)
-	const totalDescuentoFactor = descuentoAplicar.add(clawbackAplicar)
+
+	const netAfterSequential = (bruta: Decimal) =>
+		computeLineDistributionAmounts(bruta, descuentoAplicar, clawbackAplicar)
+			.finalAmount
+
 	// Calcular comisiones brutas
 	const generalBruta = porcentajes.general
 		? comisionBase.mul(new Decimal(porcentajes.general))
@@ -933,19 +954,18 @@ export function aplicarFormulas(
 		? comisionBase.mul(new Decimal(porcentajes.coach))
 		: new Decimal(0)
 
-	// Aplicar descuento + clawback
-	const generalDescuento = generalBruta.sub(
-		generalBruta.mul(totalDescuentoFactor)
-	)
-	const comisionAgenciaDescuento = comisionBrutaAgencia.sub(
-		comisionBrutaAgencia.mul(totalDescuentoFactor)
-	)
-	const comisionLiderDescuento = comisionBrutaLider.sub(
-		comisionBrutaLider.mul(totalDescuentoFactor)
-	)
-	const comisionCoachDescuento = comisionBrutaCoach.sub(
-		comisionBrutaCoach.mul(totalDescuentoFactor)
-	)
+	const generalDescuento = porcentajes.general
+		? netAfterSequential(generalBruta)
+		: new Decimal(0)
+	const comisionAgenciaDescuento = porcentajes.agencia
+		? netAfterSequential(comisionBrutaAgencia)
+		: new Decimal(0)
+	const comisionLiderDescuento = porcentajes.lider
+		? netAfterSequential(comisionBrutaLider)
+		: new Decimal(0)
+	const comisionCoachDescuento = porcentajes.coach
+		? netAfterSequential(comisionBrutaCoach)
+		: new Decimal(0)
 
 	return {
 		generalBruta,
@@ -1120,6 +1140,236 @@ export async function obtenerResumenPreliquidacionPorUsuario(
 		}
 	}
 	return result
+}
+
+/**
+ * Calcula y guarda la distribución de comisiones para un registro
+ */
+export async function calcularYGuardarDistribucion(
+	tx: Prisma.TransactionClient,
+	idSettlementCommission: number,
+	configCategorias: ConfigCategoryItem[],
+	beneficiaryByConfigId: Map<number, number>,
+	comisionBase: Decimal,
+	descuentoPorcentaje: Decimal,
+	clawbackPorcentaje: Decimal,
+	usePortfolio: boolean,
+	flow: string,
+	idUser: number | undefined
+) {
+	let totalValorClawback = new Decimal(0)
+
+	for (const config of configCategorias) {
+		const porcentaje =
+			usePortfolio && config.porcentajePortfolio !== null
+				? config.porcentajePortfolio
+				: config.porcentajeDistribucion
+
+		// Cálculo: Bruta = ComisionBase * %Categoria; impuesto sobre bruta; clawback sobre post-impuesto
+		const valorComisionBruta = comisionBase.mul(porcentaje)
+		const amounts = computeLineDistributionAmounts(
+			valorComisionBruta,
+			descuentoPorcentaje,
+			clawbackPorcentaje
+		)
+		const valorDescuento = amounts.taxAmount
+		const valorClawback = amounts.clawbackAmount
+		const valorComisionFinal = amounts.finalAmount
+
+		const idBeneficiaryUser = beneficiaryByConfigId.get(config.id)
+		if (idBeneficiaryUser === undefined) {
+			throw new Error(`No se pudo resolver el beneficiario para la categoría ${config.category.code}`)
+		}
+
+		const created = await tx.comissionDistribution.create({
+			data: {
+				idSettlementCommission,
+				idPercentajeCommisionCategory: config.id,
+				idBeneficiaryUser,
+				valueComission: valorComisionBruta,
+				valueCommissionWithDiscount: amounts.valueCommissionWithDiscount,
+				valueComissionFinal: valorComisionFinal,
+				totalDiscount: valorDescuento,
+				appliedDiscountPercentage: descuentoPorcentaje,
+				status: 'LIQUIDADO',
+			},
+		})
+
+		// Clawback row when flow is Poliza (CARTERA or NO_CLAW) and valorClawback > 0 (not POLIZA_CLAW)
+		if (
+			flow !== 'VOLUNTARIA' &&
+			flow !== 'POLIZA_CLAW' &&
+			valorClawback.gt(0) &&
+			idUser !== undefined
+		) {
+			await tx.clawback.create({
+				data: {
+					idComissionDistribution: created.idComissionDistribution,
+					idUser,
+					valueClawback: valorClawback,
+					porcentajeApplied: clawbackPorcentaje,
+					state: 'RETENIDO',
+				},
+			})
+			totalValorClawback = totalValorClawback.add(valorClawback)
+		}
+	}
+
+	return totalValorClawback
+}
+
+/**
+ * Sincroniza y calcula las comisiones para un registro de liquidación rezagado
+ */
+export async function sincronizarYCalcularRegistroRezagado(
+	idSettlementCommission: number,
+	contractNumber: string
+): Promise<{ success: boolean; mensaje: string }> {
+	try {
+		return await prisma.$transaction(async (tx) => {
+			// 1. Buscar el negocio por número de contrato
+			const business = await tx.business.findFirst({
+				where: { contract: contractNumber },
+				include: {
+					user: true,
+					productPercentageCommission: true,
+				},
+			})
+
+			if (!business) {
+				throw new Error(
+					`No se encontró ningún negocio con el contrato ${contractNumber}`
+				)
+			}
+
+			// 2. Buscar el registro de liquidación
+			const settlement = await tx.settlementCommission.findUnique({
+				where: { idSettlementCommission },
+			})
+
+			if (!settlement) {
+				throw new Error('Registro de liquidación no encontrado')
+			}
+
+			if (settlement.status !== 'LAG') {
+				throw new Error(
+					`El registro debe estar en estado LAG (Estado actual: ${settlement.status})`
+				)
+			}
+
+			// 3. Actualizar el registro para vincularlo al negocio y marcarlo como SYNCHRONIZED
+			await tx.settlementCommission.update({
+				where: { idSettlementCommission },
+				data: {
+					idBusiness: business.idBusiness,
+					status: 'SYNCHRONIZED',
+				},
+			})
+
+			// 4. Calcular Comisión
+			const flow = deriveFlow({
+				commissionType: settlement.commissionType,
+				originCommission: settlement.originCommission,
+				isClawback: settlement.isClawback,
+			})
+
+			if (flow !== 'VOLUNTARIA' && !business.user) {
+				throw new Error(
+					`Se requiere un usuario asesor para el flujo ${flow}`
+				)
+			}
+
+			const descuentoPorcentaje =
+				settlement.discountPercentage ?? DESCUENTO_POR_DEFECTO
+			const clawbackPorcentaje =
+				settlement.clawbackPercentage ?? new Decimal(0)
+			const usePortfolio = settlement.originCommission === 'CARTERA'
+
+			// Obtener porcentajes
+			const configCategorias: ConfigCategoryItem[] =
+				(await tx.productPercentageCommissionCategory.findMany({
+					where: {
+						idProductPercentageCommission:
+							business.idProductPercentageCommission,
+						active: true,
+					},
+					include: {
+						category: {
+							include: {
+								fixedBeneficiaryUser: {
+									select: {
+										idUser: true,
+										active: true,
+									},
+								},
+							},
+						},
+					},
+				})) as unknown as ConfigCategoryItem[]
+
+			if (configCategorias.length === 0) {
+				throw new Error(
+					'El negocio no tiene configuración de porcentajes activa'
+				)
+			}
+
+			const comisionBase =
+				settlement.baseCommission ||
+				settlement.commissionValue ||
+				new Decimal(0)
+			const idUser = business.user?.idUser
+
+			const chain =
+				business.user != null && ppcConfigsNeedUplineAgent(configCategorias)
+					? await buildUplineChain(tx, business.user.idUser)
+					: []
+
+			const beneficiaryByConfigId = new Map<number, number>()
+			for (const cfg of configCategorias) {
+				const res = resolveBeneficiaryUserId(cfg.category, chain)
+				if (!res.ok) {
+					throw new Error(
+						`Error resolviendo beneficiario para ${cfg.category.code}: ${res.code}`
+					)
+				}
+				beneficiaryByConfigId.set(cfg.id, res.idUser)
+			}
+
+			// 5. Calcular y Guardar Distribución
+			await calcularYGuardarDistribucion(
+				tx,
+				idSettlementCommission,
+				configCategorias,
+				beneficiaryByConfigId,
+				comisionBase,
+				descuentoPorcentaje,
+				clawbackPorcentaje,
+				usePortfolio,
+				flow,
+				idUser
+			)
+
+			// 6. Actualizar estado a PRE-SETTLED
+			await tx.settlementCommission.update({
+				where: { idSettlementCommission },
+				data: {
+					status: 'PRE-SETTLED',
+				},
+			})
+
+			return {
+				success: true,
+				mensaje: 'Registro sincronizado y pre-liquidado exitosamente',
+			}
+		})
+	} catch (error) {
+		console.error('Error en sincronizarYCalcularRegistroRezagado:', error)
+		return {
+			success: false,
+			mensaje:
+				error instanceof Error ? error.message : 'Error interno del servidor',
+		}
+	}
 }
 
 /**
@@ -1321,14 +1571,14 @@ export async function procesarPreLiquidacion(
 							: config.porcentajeDistribucion
 
 					const valorComisionBruta = comisionBase.mul(porcentaje)
-
-					const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
-					const valorClawback = valorComisionBruta.mul(clawbackPorcentaje)
-					const totalDescuento = valorDescuento
-
-					const valorComisionFinal = valorComisionBruta
-						.sub(totalDescuento)
-						.sub(valorClawback)
+					const amounts = computeLineDistributionAmounts(
+						valorComisionBruta,
+						descuentoPorcentaje,
+						clawbackPorcentaje
+					)
+					const valorDescuento = amounts.taxAmount
+					const valorClawback = amounts.clawbackAmount
+					const valorComisionFinal = amounts.finalAmount
 
 					const created = await tx.comissionDistribution.create({
 						data: {
@@ -1336,8 +1586,9 @@ export async function procesarPreLiquidacion(
 							idPercentajeCommisionCategory: config.id,
 							idBeneficiaryUser,
 							valueComission: valorComisionBruta,
+							valueCommissionWithDiscount: amounts.valueCommissionWithDiscount,
 							valueComissionFinal: valorComisionFinal,
-							totalDiscount: totalDescuento,
+							totalDiscount: valorDescuento,
 							appliedDiscountPercentage: descuentoPorcentaje,
 							status: 'PRE-SETTLED',
 						},
@@ -1601,14 +1852,14 @@ export async function recalcularComisionesPorCambioOrigen(
 							: catAny.porcentajeDistribucion
 
 					const valorComisionBruta = comisionBase.mul(porcentaje)
-
-					const valorDescuento = valorComisionBruta.mul(descuentoPorcentaje)
-					const valorClawback = valorComisionBruta.mul(clawbackPorcentaje)
-					const totalDescuento = valorDescuento
-
-					const valorComisionFinal = valorComisionBruta
-						.sub(totalDescuento)
-						.sub(valorClawback)
+					const amounts = computeLineDistributionAmounts(
+						valorComisionBruta,
+						descuentoPorcentaje,
+						clawbackPorcentaje
+					)
+					const valorDescuento = amounts.taxAmount
+					const valorClawback = amounts.clawbackAmount
+					const valorComisionFinal = amounts.finalAmount
 
 					if (valorComisionBruta.toNumber() > 0 || porcentaje.toNumber() > 0) {
 						const dist = await tx.comissionDistribution.create({
@@ -1616,8 +1867,9 @@ export async function recalcularComisionesPorCambioOrigen(
 								idSettlementCommission: record.idSettlementCommission,
 								idPercentajeCommisionCategory: cat.id,
 								appliedDiscountPercentage: descuentoPorcentaje,
-								totalDiscount: totalDescuento,
+								totalDiscount: valorDescuento,
 								valueComission: valorComisionBruta,
+								valueCommissionWithDiscount: amounts.valueCommissionWithDiscount,
 								valueComissionFinal: valorComisionFinal,
 								status: 'PRE-SETTLED',
 								idBeneficiaryUser,

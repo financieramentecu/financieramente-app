@@ -19,7 +19,7 @@ import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatt
 import { PiggyBank } from 'lucide-react'
 
 const SEARCH_DEBOUNCE_DELAY = 500
-const DEFAULT_CURRENCY = 'USD'
+const DEFAULT_CURRENCY = 'COP'
 
 interface NegociosPageClientProps {
 	currentUser?: UserWithRole

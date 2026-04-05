@@ -4,7 +4,7 @@
 2. create tunner from DB
 
 ```
-    QA_DROPLET_IP=64.225.11.130 bash scripts/db-tunnel-qa.sh start
+    QA_DROPLET_IP=134.209.160.201 bash scripts/db-tunnel-qa.sh start
 ```
 3. check tunnel
 ```
