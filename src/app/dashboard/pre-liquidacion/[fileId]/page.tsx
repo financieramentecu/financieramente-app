@@ -173,6 +173,7 @@ export default function DetallePreLiquidacionPage() {
 						<RegistrosLiquidacionTable
 							registros={registros}
 							fileType={archivo?.fileType ?? ''}
+							fileName={archivo?.nombreArchivo ?? ''}
 							selectedIds={selectedIds}
 							onSelectionChange={setSelectedIds}
 							onVerNegocio={handleVerNegocio}

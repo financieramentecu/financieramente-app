@@ -1,4 +1,4 @@
-import type { Business } from '@prisma/client'
+import type { Business, SettlementCommission } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidacion-resumen-notification'
 import { Decimal } from '@prisma/client/runtime/library'
@@ -8,7 +8,6 @@ import type {
 	ComisionesCalculadas,
 	ConfiguracionPorcentajes,
 	DistribucionComision,
-	ItemDistribucionComision,
 	RegistroDetallePreLiquidacion,
 	RegistroLiquidacionDetalle,
 	RespuestaArchivosDisponibles,
@@ -572,7 +571,7 @@ export async function obtenerRegistrosParaLiquidacion(
 export async function obtenerDistribucionComision(
 	id: number
 ): Promise<RespuestaDistribucionComision | null> {
-	const rows = await prisma.comissionDistribution.findMany({
+	const rows = (await (prisma.comissionDistribution).findMany({
 		where: { idSettlementCommission: id },
 		include: {
 			beneficiaryUser: {
@@ -605,15 +604,24 @@ export async function obtenerDistribucionComision(
 			},
 			clawback: true,
 		},
-	})
+	}))
 
 	if (rows.length === 0) return null
 
 	const first = rows[0]
-	const sc = first.settlementCommission
+	const sc = first.settlementCommission as SettlementCommission & {
+		business?: {
+			user?: {
+				name: string
+				lastName: string | null
+			} | null
+		} | null
+		commissionValue?: Decimal | null
+		baseCommission?: Decimal | null
+	}
 	const usePortfolio = sc.originCommission === 'CARTERA'
 
-	const distribuciones: ItemDistribucionComision[] = rows.map((row) => {
+	const distribuciones = rows.map((row) => {
 		const ppcc = row.productPercentageCommissionCategory
 		const categoriaNombre = ppcc?.category?.name ?? ''
 		const porcentajeDistribucion =
@@ -1226,7 +1234,7 @@ export async function procesarPreLiquidacion(
 			const usePortfolio = registro.originCommission === 'CARTERA'
 
 			const configCategorias =
-				await prisma.productPercentageCommissionCategory.findMany({
+				(await prisma.productPercentageCommissionCategory.findMany({
 					where: {
 						idProductPercentageCommission:
 							registro.business.idProductPercentageCommission,
@@ -1241,7 +1249,7 @@ export async function procesarPreLiquidacion(
 							},
 						},
 					},
-				})
+				}))
 
 			if (configCategorias.length === 0) {
 				console.warn(
@@ -1263,7 +1271,7 @@ export async function procesarPreLiquidacion(
 
 			const chain =
 				registro.business.user != null &&
-				ppcConfigsNeedUplineAgent(configCategorias)
+					ppcConfigsNeedUplineAgent(configCategorias)
 					? await buildUplineChain(prisma, registro.business.user.idUser)
 					: []
 
@@ -1520,7 +1528,7 @@ export async function recalcularComisionesPorCambioOrigen(
 
 		if (preSettledCommissions.length > 0) {
 			const newCategories =
-				await tx.productPercentageCommissionCategory.findMany({
+				(await tx.productPercentageCommissionCategory.findMany({
 					where: {
 						idProductPercentageCommission:
 							activePercentageConfig.idProductPercentageCommission,
@@ -1535,7 +1543,7 @@ export async function recalcularComisionesPorCambioOrigen(
 							},
 						},
 					},
-				})
+				}))
 
 			if (newCategories.length === 0) {
 				throw new Error(
@@ -1586,10 +1594,11 @@ export async function recalcularComisionesPorCambioOrigen(
 					}
 					const idBeneficiaryUser = resolved.idUser
 
+					const catAny = cat
 					const porcentaje =
-						usePortfolio && cat.porcentajePortfolio !== null
-							? cat.porcentajePortfolio
-							: cat.porcentajeDistribucion
+						usePortfolio && catAny.porcentajePortfolio !== null
+							? catAny.porcentajePortfolio
+							: catAny.porcentajeDistribucion
 
 					const valorComisionBruta = comisionBase.mul(porcentaje)
 

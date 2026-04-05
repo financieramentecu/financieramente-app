@@ -1,4 +1,5 @@
-import type { BeneficiaryMode, PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
+import type { BeneficiaryMode } from '@/features/categories/types/category.types'
 
 /** Max leader hops when walking the upline chain (cycle guard uses visited set). */
 export const MAX_UPLINE_DEPTH = 50

@@ -74,7 +74,7 @@ describe('CategoriesTableSection', () => {
 		it('should display empty state when no data', () => {
 			render(<CategoriesTableSection {...defaultProps} data={[]} />)
 
-			expect(screen.getByText('No se encontraron datos')).toBeInTheDocument()
+			expect(screen.getByText('No se encontraron resultados.')).toBeInTheDocument()
 		})
 	})
 

@@ -4,7 +4,8 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [1.0.0-beta.0] - 2026-03-30
+
+## [1.0.0-beta.0] - 2026-03-31
 
 Primera versión **beta** pública del ciclo 1.x: refuerza la pre-liquidación, la liquidación parcial y el estado de negocio **Comisionando**.
 
@@ -29,6 +30,25 @@ Primera versión **beta** pública del ciclo 1.x: refuerza la pre-liquidación, 
 - **Prisma:** Migración para campos de rezago por usuario en comisiones de liquidación; diagrama **ERD** alineado con el schema actual.
 - **OpenSpec:** Requisitos de pre-liquidación y negocios incorporados al catálogo principal; change `liquidar-rezagar-preliquidacion` archivado con informe de verificación.
 - **Pruebas:** Cobertura ampliada en servicio de pre-liquidación, rutas API de liquidar/rezagar y badge de estado en negocios.
+
+## [0.2.9] - 2026-03-31
+
+### Añadido
+
+- **Administración – Maestro de Categorías:** Implementación completa del CRUD para categorías desde el dashboard administrativo. Incluye soporte para el nuevo modelo de beneficiario fijo (`FIXED_BENEFICIARY`) y configuración de productos vinculada.
+- **Administración – Maestro de Orígenes:** Nueva sección para gestionar orígenes de póliza (`ClientOrigin`), permitiendo crear, editar y listar orígenes de clientes de forma independiente en `/dashboard/admin/origins`.
+- **UI – DataTable Premium:** Rediseño y mejora del componente de tablas compartidas, con soporte nativo para filtros de tipo Combobox, estados de carga (Skeleton) y diseño optimizado para interfaces administrativas.
+- **Categorías – API de Tipos:** Nuevo endpoint para consultar tipos de categorías disponibles, facilitando la integración con formularios dinámicos.
+
+### Mejorado
+
+- **Calidad de Código – Tipado estricto:** Eliminación completa de `any` en servicios críticos como `pre-liquidacion.service.ts` y componentes de tablas, asegurando la integridad de los datos mediante interfaces reales de Prisma y TypeScript.
+- **Linting – Resolución de advertencias:** Limpieza exhaustiva de ~25 problemas de ESLint en múltiples features, incluyendo imports duplicados, dependencias de hooks faltantes y variables no utilizadas.
+
+### Interno
+
+- **Pruebas:** Sincronización de mocks y fixtures para categorías, alineando las pruebas unitarias con los nuevos esquemas de validación Zod.
+- **Infraestructura:** Actualización de seeds para incluir orígenes por defecto y categorías base.
 
 ## [0.2.8] - 2026-03-29
 
