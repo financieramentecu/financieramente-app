@@ -54,7 +54,6 @@ async function main() {
 
 		// Clientes y negocios de prueba: npx tsx prisma/seed-test-data.ts
 
-
 		// 7. Liquidaciones (Omitido en producción, usar seed-test-data.ts para pruebas)
 		// await seedSettlements(prisma)
 
