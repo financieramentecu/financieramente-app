@@ -1,10 +1,9 @@
 'use client'
 
-import React from 'react'
-import { DataTable } from '@/features/shared/ui/DataTable'
+import React, { useMemo } from 'react'
+import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import { Product } from '../types/product.types'
-import { DataTableColumn } from '@/features/shared/ui/types/dashboard.types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import {
@@ -14,6 +13,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/features/shared/ui/select'
+import { ColumnDef } from '@tanstack/react-table'
 
 interface PaginationData {
 	page: number
@@ -79,75 +79,78 @@ export function ProductsTableSection({
 		)
 	}
 
-	const columns: DataTableColumn<Product>[] = [
-		{
-			key: 'idProduct',
-			header: 'ID',
-			cellRenderer: (_value, row) => (
-				<span className="font-medium">#{row.idProduct}</span>
-			),
-		},
-		{
-			key: 'name',
-			header: 'Nombre del Producto',
-			cellRenderer: (value) => (
-				<span className="font-medium">{value as string}</span>
-			),
-		},
-		{
-			key: 'company',
-			header: 'Compañía',
-			cellRenderer: (_value, row) => (
-				<span className="font-medium">{row.company.name}</span>
-			),
-		},
-		{
-			key: 'status',
-			header: 'Estado',
-			cellRenderer: (value) => getStatusBadge(value as boolean),
-		},
-		{
-			key: 'createdAt',
-			header: 'Fecha Creación',
-			cellRenderer: (value) => formatDate(value as string),
-		},
-		{
-			key: 'updatedAt',
-			header: 'Fecha Modificación',
-			cellRenderer: (value) => formatDate(value as string),
-		},
-		{
-			key: 'actions',
-			header: 'Acciones',
-			cellRenderer: (_, row) => {
-				return (
-					<div className="flex items-center gap-1">
-						{/* Editar */}
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => onEditProduct(row)}
-							className="h-8 w-8 p-0 cursor-pointer"
-							title="Editar"
-						>
-							<Pencil className="h-4 w-4" />
-						</Button>
-
-						{/* Eliminar */}
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => onDeleteProduct(row)}
-							className="h-8 w-8 p-0 text-destructive hover:text-destructive cursor-pointer"
-							title="Eliminar"
-						>
-							<Trash2 className="h-4 w-4" />
-						</Button>
-					</div>
-				)
+	const columns = useMemo<ColumnDef<Product>[]>(
+		() => [
+			{
+				accessorKey: 'idProduct',
+				header: 'ID',
+				cell: ({ row }) => (
+					<span className="font-medium">#{row.original.idProduct}</span>
+				),
 			},
-		},
-	]
+			{
+				accessorKey: 'name',
+				header: 'Nombre del Producto',
+				cell: ({ row }) => (
+					<span className="font-medium">{row.original.name}</span>
+				),
+			},
+			{
+				id: 'company',
+				header: 'Compañía',
+				cell: ({ row }) => (
+					<span className="font-medium">{row.original.company.name}</span>
+				),
+			},
+			{
+				accessorKey: 'status',
+				header: 'Estado',
+				cell: ({ row }) => getStatusBadge(row.original.status),
+			},
+			{
+				accessorKey: 'createdAt',
+				header: 'Fecha Creación',
+				cell: ({ row }) => formatDate(row.original.createdAt as string),
+			},
+			{
+				accessorKey: 'updatedAt',
+				header: 'Fecha Modificación',
+				cell: ({ row }) => formatDate(row.original.updatedAt as string),
+			},
+			{
+				id: 'actions',
+				header: 'Acciones',
+				cell: ({ row }) => {
+					return (
+						<div className="flex items-center gap-1">
+							{/* Editar */}
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => onEditProduct(row.original)}
+								className="h-8 w-8 p-0 cursor-pointer"
+								title="Editar"
+							>
+								<Pencil className="h-4 w-4" />
+							</Button>
+
+							{/* Eliminar */}
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => onDeleteProduct(row.original)}
+								className="h-8 w-8 p-0 text-destructive hover:text-destructive cursor-pointer"
+								title="Eliminar"
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</div>
+					)
+				},
+			},
+		],
+		[onEditProduct, onDeleteProduct]
+	)
 
 	return (
 		<div className="space-y-4">
@@ -197,22 +200,13 @@ export function ProductsTableSection({
 							)
 						: undefined
 				}
-				pagination={
-					pagination
-						? {
-								currentPage: pagination.page,
-								pageSize: pagination.pageSize,
-								totalItems: pagination.total,
-								onPageChange: onPageChange || (() => {}),
-							}
-						: {
-								currentPage: 1,
-								pageSize: 10,
-								totalItems: data.length,
-								onPageChange: () => {},
-							}
-				}
+				manualPagination={!!pagination}
+				currentPage={pagination?.page}
+				pageSize={pagination?.pageSize}
+				totalItems={pagination?.total}
+				onPageChange={onPageChange}
 			/>
 		</div>
 	)
 }
+

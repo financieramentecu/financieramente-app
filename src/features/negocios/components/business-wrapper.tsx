@@ -23,7 +23,10 @@ interface Props {
 	currentUser: UserWithRole | null
 }
 
-export default function BusinessWrapper({ currentUser, ...props }: Props) {
+export default function BusinessWrapper({
+	currentUser,
+	...props
+}: Props) {
 	const router = useRouter()
 	const {
 		companiesOptions,
@@ -54,15 +57,18 @@ export default function BusinessWrapper({ currentUser, ...props }: Props) {
 	}
 
 	return (
-		<BusinessForm
-			onSubmit={handleSubmit}
-			onCancel={handleCancel}
-			currentUser={currentUser}
-			companiesOptions={companiesOptions}
-			productsOptions={productsOptions}
-			periodicitiesOptions={periodicitiesOptions}
-			currenciesOptions={currenciesOptions}
-			clientOriginsOptions={clientOriginsOptions}
-		/>
+		<div className="space-y-6">
+			<BusinessForm
+				onSubmit={handleSubmit}
+				onCancel={handleCancel}
+				currentUser={currentUser}
+				companiesOptions={companiesOptions}
+				productsOptions={productsOptions}
+				periodicitiesOptions={periodicitiesOptions}
+				currenciesOptions={currenciesOptions}
+				clientOriginsOptions={clientOriginsOptions}
+			/>
+		</div>
 	)
 }
+

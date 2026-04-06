@@ -16,9 +16,10 @@ import type { BusinessEntity } from '@/features/negocios/types/business-entity.t
 import type { BusinessListParams } from '@/features/negocios/types/business-api.types'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-status.types'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
+import { PiggyBank } from 'lucide-react'
 
 const SEARCH_DEBOUNCE_DELAY = 500
-const DEFAULT_CURRENCY = 'USD'
+const DEFAULT_CURRENCY = 'COP'
 
 interface NegociosPageClientProps {
 	currentUser?: UserWithRole
@@ -249,7 +250,9 @@ export function NegociosPageClient({
 						? 'Emitido'
 						: b.status === BUSINESS_STATUS.VENTA_EFECTUADA
 							? 'Venta Efectuado'
-							: 'Cancelado',
+							: b.status === BUSINESS_STATUS.COMISIONANDO
+								? 'Comisionando'
+								: 'Cancelado',
 				currency: b.currency,
 			})),
 		[businesses]
@@ -298,6 +301,19 @@ export function NegociosPageClient({
 					emitidos.growthPercentage >= 0 ? ('up' as const) : ('down' as const),
 				description: `Último mes: ${formatCurrency(emitidos.totalLastMonth, selectedCurrency)}`,
 				monthlyData: emitidos.monthlyData.map((m) => m.totalValue),
+				currencies: stats.currencies,
+				selectedCurrency,
+				onCurrencyChange: handleCurrencyChange,
+			},
+			{
+				title: 'Reserva de Clawback',
+				value: formatCurrency(stats.clawbackBalance || 0, selectedCurrency),
+				change: 0,
+				trend: 'up' as const,
+				description: 'Saldo acumulado',
+				icon: <PiggyBank className="h-5 w-5" />,
+				variant: 'amber' as const,
+				monthlyData: [],
 				currencies: stats.currencies,
 				selectedCurrency,
 				onCurrencyChange: handleCurrencyChange,

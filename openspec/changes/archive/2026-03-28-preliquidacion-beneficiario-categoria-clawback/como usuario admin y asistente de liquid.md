@@ -1,34 +1,37 @@
-como usuario admin y asistente de liquidación quiero desde el modulo de preliquidación poder rezagar o liquidar preliquidación para que queden aplicadas a los coach.
+como usuario admin y asistente de liquidación quiero desde el modulo de preliquidación poder rezagar o liquidar preliquidación para que queden aplicadas la liquidacion y la distribución.
 
 #Resagados.  
   El usuario va poder seleccinar las preliquidaciones por medio de un checkbox, si le da en el boton de rezagar, la comisiones de settlement_commission van a ser actualizados en el status 
-  LAG y cambos isLag en true, para que luego se pueda agrega a una liquidación previa.                                                                                                                                                              
+  LAG y cambos isLagByUser en true, (agregar este nuevo campo en la base de datos), porner isLag en true y agregar isLagByUserDate para registar la fecha que el usuario lo agego como lag, que luego se pueda agrega a una liquidación previa.                                                                                                                                                              
 
 #Liquidación.                            
   EL usuario selecciona las preliquidaciones disponibles por  medio de un checkbox, si le da en el boton de liquidar va pasar los siguiente.                                                                                                                                                                                                                                                                                                              
   Voluntarias                                                                                                                                                                                                                              
   **aplicar cambios en settementment_commision**
    - status a 'SETTLED'
-   - ADD: agregar campo settlement_date, agregar la fecha de liquidación.
+   - actualiza el campo settled_data para registar la fecha que fue liquidado
   **aplicar cambios en commission_distribution**
    - status a 'SETTLED'
-   - ADD: agregar campo settlement_date, agregar la fecha de liquidación.
 
 
   Polizas
   **aplicar cambios en settementment_commision**
    - status a 'SETTLED'
-   - ADD: agregar campo settlement_date, agregar la fecha de liquidación.
+   - actualiza el campo settled_data para registar la fecha que fue liquidado
   **aplicar cambios en commission_distribution**
    - status a 'SETTLED'
-   - ADD: agregar campo settlement_date, agregar la fecha de liquidación.
     **aplicar cambios en clawback**
-   - ADD: agregar campo applied_date, agregar la fecha de aplicación.
-   - ADD: agregar campo release_date, agregar la fecha de liberación.
+   - actualizar la fecha de applied_date
+   - agregar en el campo reason, retencion del clawback de la poliza
    - Sumar el valor del clowback a el balance de clawback de la tabla clawback_balance.
-    - Debe aplicarlo para el usuario dueño del negocio. y sus usuarios subordinados. buscar user_leader en la tabla user. y aplicar el valor al balance de clawback de los usuarios subordinados.
-    - Cada categoria de distribución debe tener un clawback y ser actualizado en la tabla clawback
+    -debe aplicarlo para todas las distribuciones que le pertenecen a esa cmision, 
 
     **aplicar cambios en clawback_balance**
-    - Sumar el valor del clawback a el balance de clawback de la tabla clawback_balance. si el registro del clawback es 
+    - Sumar el valor del clawback a el balance de clawback de la tabla clawback_balance, sumando a el total_amount el valor retienido del clawback
+
+
+    Requisitos generales.
+    - Si el usuario termina de liuidar o rezagar todo las comisiones del archivo, pasa el estado del import File en 'COMPLETED'
+    - si el negocio a liquidar esta en 'EMITIDO' pasa a el estado en 'COMISIONANDO'.
+    - la tabla de lista de negocios debe presentar ese nuevo estado.
 

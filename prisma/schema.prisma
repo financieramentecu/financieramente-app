@@ -371,9 +371,11 @@ model SettlementCommission {
 
   // Campos de control
   status      String    @default("PENDING") // PENDING, SYNCHRONIZED, LAG, PRE-SETTLED, SETTLED
-  isLag       Boolean   @default(false) @map("is_lag")
-  isClawback  Boolean   @default(false) @map("is_clawback")
-  lagDate     DateTime? @map("lag_date")
+  isLag           Boolean   @default(false) @map("is_lag")
+  isClawback      Boolean   @default(false) @map("is_clawback")
+  lagDate         DateTime? @map("lag_date")
+  isLagByUser     Boolean   @default(false) @map("is_lag_by_user")
+  isLagByUserDate DateTime? @map("is_lag_by_user_date")
   syncDate    DateTime? @map("sync_date")
   settledDate DateTime? @map("settled_date")
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -393,6 +395,7 @@ model ComissionDistribution {
   idComissionDistribution             Int                                  @id @default(autoincrement()) @map("id_comission_distribution")
   idSettlementCommission              Int                                  @map("id_settlement_comission")
   valueComission                      Decimal                              @map("value_comission") @db.Decimal(15, 2)
+  valueCommissionWithDiscount         Decimal?                             @map("value_commission_with_discount") @db.Decimal(15, 2)
   valueComissionFinal                 Decimal                              @map("value_comission_final") @db.Decimal(15, 2)
   observation                         String?
   status                              String                               @db.VarChar(20)

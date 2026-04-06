@@ -19,6 +19,7 @@ export function StatsCard({
 	change,
 	trend = 'neutral',
 	icon,
+	variant = 'default',
 	description,
 	monthlyData,
 	currencies,
@@ -37,6 +38,10 @@ export function StatsCard({
 	}
 
 	const getTrendColor = () => {
+		if (variant !== 'default') {
+			return 'bg-white/20 text-white border-white/30'
+		}
+
 		switch (trend) {
 			case 'up':
 				return 'bg-success-muted text-success border-success/30'
@@ -47,7 +52,26 @@ export function StatsCard({
 		}
 	}
 
-	const getSparklineColor = (): 'green' | 'orange' | 'blue' => {
+	const getVariantClasses = () => {
+		switch (variant) {
+			case 'indigo':
+				return 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-indigo-500/20 shadow-indigo-500/20 shadow-lg'
+			case 'green':
+				return 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-emerald-500/20 shadow-emerald-500/20 shadow-lg'
+			case 'blue':
+				return 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-blue-500/20 shadow-blue-500/20 shadow-lg'
+			case 'teal':
+				return 'bg-gradient-to-br from-teal-400 to-cyan-600 text-white border-teal-500/20 shadow-teal-500/20 shadow-lg'
+			case 'amber':
+				return 'bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-500/20 shadow-amber-500/20 shadow-lg'
+			default:
+				return 'bg-card text-card-foreground border-border hover:shadow-md'
+		}
+	}
+
+	const getSparklineColor = (): 'green' | 'orange' | 'blue' | 'white' => {
+		if (variant !== 'default') return 'white'
+
 		switch (trend) {
 			case 'up':
 				return 'green'
@@ -65,10 +89,13 @@ export function StatsCard({
 	}
 
 	return (
-		<Card className="w-full">
+		<Card className={cn('w-full transition-all duration-200 border-none', getVariantClasses())}>
 			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 				<div className="flex flex-row gap-2 items-center justify-between w-full mb-4">
-					<CardTitle className="text-sm font-medium text-muted-foreground">
+					<CardTitle className={cn(
+						"text-sm font-medium",
+						variant === 'default' ? "text-muted-foreground" : "text-white/90"
+					)}>
 						{title}
 					</CardTitle>
 					{currencies && currencies.length > 0 && (
@@ -82,8 +109,8 @@ export function StatsCard({
 									className={cn(
 										'cursor-pointer text-xs transition-colors',
 										selectedCurrency === currency.symbol
-											? 'bg-primary text-primary-foreground hover:bg-primary/90'
-											: 'text-muted-foreground hover:bg-muted hover:text-foreground'
+											? variant === 'default' ? 'bg-primary text-primary-foreground' : 'bg-white text-primary'
+											: variant === 'default' ? 'text-muted-foreground' : 'text-white hover:bg-white/20'
 									)}
 									onClick={() => handleCurrencyClick(currency.symbol)}
 								>
@@ -93,7 +120,7 @@ export function StatsCard({
 						</div>
 					)}
 				</div>
-				{icon && <div className="text-muted-foreground">{icon}</div>}
+				{icon && <div className={cn(variant === 'default' ? "text-muted-foreground" : "text-white/80")}>{icon}</div>}
 			</CardHeader>
 			<CardContent>
 				<div className="flex items-center justify-between ">
@@ -103,7 +130,7 @@ export function StatsCard({
 							<div className="flex items-center gap-1 mt-2">
 								<Badge
 									variant="outline"
-									className={cn('text-xs', getTrendColor())}
+									className={cn('text-xs font-semibold', getTrendColor())}
 								>
 									{getTrendIcon()}
 									<span className="ml-1">
@@ -114,7 +141,10 @@ export function StatsCard({
 							</div>
 						)}
 						{description && (
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className={cn(
+								"text-xs mt-1",
+								variant === 'default' ? "text-muted-foreground" : "text-white/70"
+							)}>
 								{description}
 							</p>
 						)}

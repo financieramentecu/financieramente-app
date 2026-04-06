@@ -10,6 +10,7 @@ import { z } from 'zod'
 import {
 	prismaCategoryToCategory,
 	prismaCategoryListToCategories,
+	type PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations
 } from '@/features/categories/mappers/category.mapper'
 import { Prisma } from '@prisma/client'
 
@@ -56,7 +57,7 @@ export async function GET(request: Request) {
 		const total = await prisma.category.count({ where })
 
 		// Get categories with pagination
-		const categories = await prisma.category.findMany({
+		const rawCategories = await prisma.category.findMany({
 			where,
 			include: {
 				categoryType: true,
@@ -68,6 +69,7 @@ export async function GET(request: Request) {
 			skip: (page - 1) * pageSize,
 			take: pageSize,
 		})
+		const categories = rawCategories as unknown as MapperPrismaCategoryWithRelations[]
 
 		// Transform using mapper
 		const categoriesFormatted = prismaCategoryListToCategories(categories)
@@ -169,7 +171,7 @@ export async function POST(request: Request) {
 			}
 		}
 
-		const category = await prisma.category.create({
+		const categoryRaw = await prisma.category.create({
 			data: {
 				code: normalizedCode,
 				name: data.name.trim(),
@@ -189,6 +191,7 @@ export async function POST(request: Request) {
 				},
 			},
 		})
+		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
 
 		const response: ApiResponse<Category> = {
 			data: prismaCategoryToCategory(category),

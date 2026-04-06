@@ -4,6 +4,70 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+
+## [1.0.0-beta.1] - 2026-04-05
+
+### Añadido
+
+- **Pre-liquidación – Comisión tras descuento (impuesto):** El sistema guarda el monto de comisión distribuida **después** del descuento fiscal y calcula el clawback sobre esa base. En el modal de detalle de distribución verás la columna **Com. Dist. con descuento** y totales coherentes con cada fila.
+- **Negocios – Edición de contrato:** Al abrir **Editar**, los datos del negocio se obtienen de forma estable desde el servidor (API y capa de datos dedicada), reduciendo desfases respecto al listado.
+
+### Mejorado
+
+- **Carga de archivos – Números en Excel:** Lectura y validación de importes más tolerantes a formatos regionales y separadores decimales, con reglas documentadas en OpenSpec.
+- **UI – Tablas con totales:** El pie de totales del `DataTable` comparte la misma tabla que el cuerpo, alineando columnas e importes (por ejemplo en modales con desglose).
+
+### Documentación / Interno
+
+- **Base de datos:** Migración Prisma para `value_commission_with_discount` en distribuciones de comisión.
+- **API y especificaciones:** Ajustes en `AGENTS.md`, modo de artefactos SDD Engram en OpenSpec y ampliación del spec de carga de archivos.
+- **Pruebas:** Cobertura ampliada en pre-liquidación (helper de montos, servicio, modal), negocios (edición, API), roles y ruta de distribución.
+
+## [1.0.0-beta.0] - 2026-03-31
+
+Primera versión **beta** pública del ciclo 1.x: refuerza la pre-liquidación, la liquidación parcial y el estado de negocio **Comisionando**.
+
+### Añadido
+
+- **Pre-liquidación – Liquidar de extremo a extremo:** Al confirmar la liquidación, el sistema actualiza en una sola operación las comisiones y sus distribuciones, aplica retenciones tipo póliza (clawback) cuando corresponde, actualiza saldos de clawback por usuario y deja trazabilidad coherente con la liquidación real.
+- **Pre-liquidación – Rezagar con trazabilidad de usuario:** El rezago registra que la acción fue iniciada por el operador (`isLagByUser` y fecha asociada), además del estado rezagado y la marca de rezago ya existentes.
+- **Negocios – Estado Comisionando:** Nuevo estado de negocio tras liquidar desde pre-liquidación cuando el negocio estaba **Emitido**; visible en tipos, validación de API y badge en la interfaz.
+- **Pre-liquidación – Archivo completado solo cuando la cola está vacía:** Un archivo pasa a **Completado** únicamente cuando no quedan comisiones pendientes de sincronizar **ni** en cola de pre-liquidación, evitando cerrar el archivo mientras aún hay registros por liquidar.
+
+### Mejorado
+
+- **Negocios – Lista principal:** Las filas en estado **Comisionando** ya no se muestran por error como canceladas; el badge usa el estilo azul acorde al resto del producto.
+- **Pre-liquidación – Detalle sin registros:** Si el archivo no tiene comisiones pre-liquidadas, se ofrece un acceso directo a **Liquidaciones** para continuar el flujo operativo.
+
+### Corregido
+
+- **Modales compartidos:** Ajustes de accesibilidad y comportamiento del modal base usado en confirmaciones de liquidar y rezagar (enfoque y cierre coherentes).
+
+### Documentación / Interno
+
+- **Prisma:** Migración para campos de rezago por usuario en comisiones de liquidación; diagrama **ERD** alineado con el schema actual.
+- **OpenSpec:** Requisitos de pre-liquidación y negocios incorporados al catálogo principal; change `liquidar-rezagar-preliquidacion` archivado con informe de verificación.
+- **Pruebas:** Cobertura ampliada en servicio de pre-liquidación, rutas API de liquidar/rezagar y badge de estado en negocios.
+
+## [0.2.9] - 2026-03-31
+
+### Añadido
+
+- **Administración – Maestro de Categorías:** Implementación completa del CRUD para categorías desde el dashboard administrativo. Incluye soporte para el nuevo modelo de beneficiario fijo (`FIXED_BENEFICIARY`) y configuración de productos vinculada.
+- **Administración – Maestro de Orígenes:** Nueva sección para gestionar orígenes de póliza (`ClientOrigin`), permitiendo crear, editar y listar orígenes de clientes de forma independiente en `/dashboard/admin/origins`.
+- **UI – DataTable Premium:** Rediseño y mejora del componente de tablas compartidas, con soporte nativo para filtros de tipo Combobox, estados de carga (Skeleton) y diseño optimizado para interfaces administrativas.
+- **Categorías – API de Tipos:** Nuevo endpoint para consultar tipos de categorías disponibles, facilitando la integración con formularios dinámicos.
+
+### Mejorado
+
+- **Calidad de Código – Tipado estricto:** Eliminación completa de `any` en servicios críticos como `pre-liquidacion.service.ts` y componentes de tablas, asegurando la integridad de los datos mediante interfaces reales de Prisma y TypeScript.
+- **Linting – Resolución de advertencias:** Limpieza exhaustiva de ~25 problemas de ESLint en múltiples features, incluyendo imports duplicados, dependencias de hooks faltantes y variables no utilizadas.
+
+### Interno
+
+- **Pruebas:** Sincronización de mocks y fixtures para categorías, alineando las pruebas unitarias con los nuevos esquemas de validación Zod.
+- **Infraestructura:** Actualización de seeds para incluir orígenes por defecto y categorías base.
+
 ## [0.2.8] - 2026-03-29
 
 ### Añadido

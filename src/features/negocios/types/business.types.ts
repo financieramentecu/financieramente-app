@@ -19,7 +19,7 @@ export interface Business extends Record<string, unknown> {
 	value: number
 	product: string
 	companyName: string
-	status: 'Emitido' | 'Venta Efectuado' | 'Cancelado'
+	status: 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado'
 	currency: {
 		id: number
 		name: string

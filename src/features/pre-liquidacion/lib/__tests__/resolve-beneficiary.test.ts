@@ -4,7 +4,6 @@ import {
 	resolveBeneficiaryUserId,
 	ppcConfigsNeedUplineAgent,
 } from '@/features/pre-liquidacion/lib/resolve-beneficiary'
-import { BeneficiaryMode } from '@prisma/client'
 
 function cat(
 	overrides: Partial<Parameters<typeof resolveBeneficiaryUserId>[0]> = {}
@@ -12,7 +11,7 @@ function cat(
 	return {
 		idCategory: 10,
 		code: 'TEST',
-		beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+		beneficiaryMode: 'UPLINE_CHAIN',
 		idFixedBeneficiaryUser: null,
 		...overrides,
 	}
@@ -22,7 +21,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY returns fixed user when active and relation loaded', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				beneficiaryMode: 'FIXED_BENEFICIARY',
 				idFixedBeneficiaryUser: 99,
 				fixedBeneficiaryUser: { idUser: 99, active: true },
 			}),
@@ -34,7 +33,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY ignores upline chain', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				beneficiaryMode: 'FIXED_BENEFICIARY',
 				idFixedBeneficiaryUser: 99,
 				fixedBeneficiaryUser: { idUser: 99, active: true },
 			}),
@@ -46,7 +45,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY fails when idFixedBeneficiaryUser is null', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				beneficiaryMode: 'FIXED_BENEFICIARY',
 				idFixedBeneficiaryUser: null,
 			}),
 			[]
@@ -58,7 +57,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY fails when fixed user missing or not loaded', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				beneficiaryMode: 'FIXED_BENEFICIARY',
 				idFixedBeneficiaryUser: 5,
 				fixedBeneficiaryUser: null,
 			}),
@@ -71,7 +70,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY fails when fixed user inactive', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				beneficiaryMode: 'FIXED_BENEFICIARY',
 				idFixedBeneficiaryUser: 5,
 				fixedBeneficiaryUser: { idUser: 5, active: false },
 			}),
@@ -177,8 +176,8 @@ describe('ppcConfigsNeedUplineAgent', () => {
 	it('is true when any category is UPLINE_CHAIN', () => {
 		expect(
 			ppcConfigsNeedUplineAgent([
-				{ category: { beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY } },
-				{ category: { beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN } },
+				{ category: { beneficiaryMode: 'FIXED_BENEFICIARY' } },
+				{ category: { beneficiaryMode: 'UPLINE_CHAIN' } },
 			])
 		).toBe(true)
 	})
@@ -186,7 +185,7 @@ describe('ppcConfigsNeedUplineAgent', () => {
 	it('is false when all FIXED_BENEFICIARY', () => {
 		expect(
 			ppcConfigsNeedUplineAgent([
-				{ category: { beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY } },
+				{ category: { beneficiaryMode: 'FIXED_BENEFICIARY' } },
 			])
 		).toBe(false)
 	})

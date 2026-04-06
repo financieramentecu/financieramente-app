@@ -91,4 +91,26 @@ describe('POST /api/pre-liquidacion/rezagar', () => {
 		expect(body.data).toEqual({ lagged: 2 })
 		expect(mockRezagarRegistros).toHaveBeenCalledWith([4, 5], 10)
 	})
+
+	it('delegates isLagByUser and isLagByUserDate tracking to rezagarRegistros service', async () => {
+		mockAuth.mockResolvedValue({
+			user: { id: '15', role: UserRole.ADMIN },
+		} as never)
+		// Service sets isLagByUser/isLagByUserDate internally; route only receives the count
+		mockRezagarRegistros.mockResolvedValue({ lagged: 3 })
+
+		const request = new Request(
+			'http://localhost/api/pre-liquidacion/rezagar',
+			{
+				method: 'POST',
+				body: JSON.stringify({ ids: [7, 8, 9] }),
+			}
+		)
+		const response = await POST(request as never)
+		expect(response.status).toBe(200)
+		const body = await response.json()
+		expect(body.data).toEqual({ lagged: 3 })
+		// Route delegates the user-initiated lag tracking to the service
+		expect(mockRezagarRegistros).toHaveBeenCalledWith([7, 8, 9], 15)
+	})
 })

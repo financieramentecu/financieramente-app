@@ -33,9 +33,11 @@ vi.mock('@/lib/prisma', () => ({
 		comissionDistribution: {
 			create: vi.fn(),
 			findMany: vi.fn(),
+			updateMany: vi.fn(),
 		},
 		clawback: {
 			create: vi.fn(),
+			update: vi.fn(),
 		},
 		user: {
 			findUnique: vi.fn(),
@@ -44,6 +46,10 @@ vi.mock('@/lib/prisma', () => ({
 			findUnique: vi.fn(),
 			create: vi.fn(),
 			update: vi.fn(),
+			upsert: vi.fn(),
+		},
+		business: {
+			updateMany: vi.fn(),
 		},
 		commissionDiscount: {
 			findMany: vi.fn(),
@@ -51,6 +57,17 @@ vi.mock('@/lib/prisma', () => ({
 		$transaction: vi.fn((callback) => callback(prisma)),
 	},
 }))
+
+function mockFileQueueCounts(syncRemaining: number, preSettledRemaining: number) {
+	vi.mocked(prisma.settlementCommission.count).mockImplementation(
+		((args: any) => {
+			const status = args?.where?.status
+			if (status === 'SYNCHRONIZED') return Promise.resolve(syncRemaining)
+			if (status === 'PRE-SETTLED') return Promise.resolve(preSettledRemaining)
+			return Promise.resolve(0)
+		}) as typeof prisma.settlementCommission.count
+	)
+}
 
 describe('procesarPreLiquidacion', () => {
 	beforeEach(() => {
@@ -161,8 +178,7 @@ describe('procesarPreLiquidacion', () => {
 		expect(result.registrosProcesados).toBe(1)
 
 		// porcentajePortfolio (60%) * 100000 = 60000
-		// descuento (10%) + clawback (5%) = 15% => 60000 * 0.15 = 9000
-		// final = 60000 - 9000 = 51000
+		// tax 10% => 6000; post-tax 54000; clawback 5% of 54000 => 2700; final 51300
 		const calls = vi.mocked(prisma.comissionDistribution.create).mock.calls
 		const distributionCall = calls && calls[0] ? calls[0][0] : undefined
 		const distributionData =
@@ -170,7 +186,8 @@ describe('procesarPreLiquidacion', () => {
 				? distributionCall.data
 				: ({} as any)
 		expect(Number(distributionData.valueComission)).toBe(60000)
-		expect(Number(distributionData.valueComissionFinal)).toBe(51000)
+		expect(Number(distributionData.valueComissionFinal)).toBe(51300)
+		expect(Number(distributionData.valueCommissionWithDiscount)).toBe(54000)
 		expect(Number(distributionData.totalDiscount || 0)).toBe(6000)
 		expect(Number(distributionData.appliedDiscountPercentage || 0)).toBe(0.1)
 		expect(distributionData.idBeneficiaryUser).toBe(77)
@@ -264,7 +281,7 @@ describe('procesarPreLiquidacion', () => {
 		expect(result.success).toBe(true)
 		expect(result.registrosProcesados).toBe(1)
 
-		// Two categories => two distributions, two clawbacks (valorClawback = 10% of bruta > 0 each)
+		// Two categories => two distributions, two clawbacks (10% of post-tax amount each)
 		expect(prisma.clawback.create).toHaveBeenCalledTimes(2)
 		expect(prisma.clawback.create).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -632,35 +649,76 @@ describe('obtenerRegistrosParaLiquidacion', () => {
 	})
 })
 
+function mockCommissionRow(id: number, idBusiness: number | null = 1) {
+	return {
+		idSettlementCommission: id,
+		idBusiness,
+		commissionType: 'VOLUNTARIA',
+		originCommission: null,
+		isClawback: false,
+	}
+}
+
 describe('liquidarRegistros', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.mocked(prisma.comissionDistribution.updateMany).mockResolvedValue({
+			count: 0,
+		})
+		vi.mocked(prisma.business.updateMany).mockResolvedValue({ count: 0 })
 	})
 
-	it('updates only SYNCHRONIZED ids and returns liquidated count', async () => {
+	it('updates only PRE-SETTLED ids and returns liquidated count', async () => {
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([
+			mockCommissionRow(1),
+			mockCommissionRow(2),
+			mockCommissionRow(3),
+		] as any)
 		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
 			count: 3,
 		})
-		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(0)
+		mockFileQueueCounts(0, 0)
 		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
 
 		const result = await liquidarRegistros([1, 2, 3], 10, 1)
 		expect(result.liquidated).toBe(3)
 		expect(result.fileCompleted).toBe(true)
+		expect(prisma.settlementCommission.findMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					idSettlementCommission: { in: [1, 2, 3] },
+					status: 'PRE-SETTLED',
+				},
+			})
+		)
 		expect(prisma.settlementCommission.updateMany).toHaveBeenCalledWith({
-			where: {
-				idSettlementCommission: { in: [1, 2, 3] },
-				status: 'SYNCHRONIZED',
+			where: { idSettlementCommission: { in: [1, 2, 3] } },
+			data: {
+				status: 'SETTLED',
+				settledDate: expect.any(Date),
+				updatedAt: expect.any(Date),
 			},
-			data: { status: 'SETTLED', updatedAt: expect.any(Date) },
+		})
+		expect(prisma.settlementCommission.count).toHaveBeenCalledWith({
+			where: { idFileImport: 1, status: 'SYNCHRONIZED' },
+		})
+		expect(prisma.settlementCommission.count).toHaveBeenCalledWith({
+			where: { idFileImport: 1, status: 'PRE-SETTLED' },
 		})
 	})
 
-	it('sets FileImport COMPLETED when 0 SYNCHRONIZED remain', async () => {
+	it('sets FileImport COMPLETED when 0 SYNCHRONIZED and 0 PRE-SETTLED remain', async () => {
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([
+			mockCommissionRow(1),
+			mockCommissionRow(2),
+			mockCommissionRow(3),
+			mockCommissionRow(4),
+			mockCommissionRow(5),
+		] as any)
 		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
 			count: 5,
 		})
-		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(0)
+		mockFileQueueCounts(0, 0)
 		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
 
 		await liquidarRegistros([1, 2, 3, 4, 5], 10, 1)
@@ -670,11 +728,16 @@ describe('liquidarRegistros', () => {
 		})
 	})
 
-	it('does not set FileImport COMPLETED when some SYNCHRONIZED remain', async () => {
+	it('does not set FileImport COMPLETED when SYNCHRONIZED rows still exist', async () => {
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([
+			mockCommissionRow(1),
+			mockCommissionRow(2),
+			mockCommissionRow(3),
+		] as any)
 		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
 			count: 3,
 		})
-		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(7)
+		mockFileQueueCounts(7, 0)
 		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
 
 		const result = await liquidarRegistros([1, 2, 3], 10, 1)
@@ -683,16 +746,34 @@ describe('liquidarRegistros', () => {
 		expect(prisma.fileImport.update).not.toHaveBeenCalled()
 	})
 
-	it('skips non-SYNCHRONIZED ids and returns actual liquidated count', async () => {
+	it('skips ids not in PRE-SETTLED and returns actual liquidated count', async () => {
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([
+			mockCommissionRow(1),
+		] as any)
 		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
 			count: 1,
 		})
-		vi.mocked(prisma.settlementCommission.count).mockResolvedValue(4)
+		mockFileQueueCounts(4, 0)
 		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
 
 		const result = await liquidarRegistros([1, 2], 10, 1)
 		expect(result.liquidated).toBe(1)
 		expect(result.fileCompleted).toBe(false)
+	})
+
+	it('does not set FileImport COMPLETED when 0 SYNCHRONIZED but PRE-SETTLED remain', async () => {
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValue([
+			mockCommissionRow(1),
+		] as any)
+		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
+			count: 1,
+		})
+		mockFileQueueCounts(0, 3)
+		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
+
+		const result = await liquidarRegistros([1], 10, 1)
+		expect(result.fileCompleted).toBe(false)
+		expect(prisma.fileImport.update).not.toHaveBeenCalled()
 	})
 })
 
@@ -701,7 +782,7 @@ describe('rezagarRegistros', () => {
 		vi.clearAllMocks()
 	})
 
-	it('updates only SYNCHRONIZED ids to LAG with lagDate and isLag', async () => {
+	it('updates only PRE-SETTLED ids to LAG with lag and user lag tracking', async () => {
 		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
 			count: 2,
 		})
@@ -711,12 +792,14 @@ describe('rezagarRegistros', () => {
 		expect(prisma.settlementCommission.updateMany).toHaveBeenCalledWith({
 			where: {
 				idSettlementCommission: { in: [4, 5] },
-				status: 'SYNCHRONIZED',
+				status: 'PRE-SETTLED',
 			},
 			data: {
 				status: 'LAG',
 				isLag: true,
 				lagDate: expect.any(Date),
+				isLagByUser: true,
+				isLagByUserDate: expect.any(Date),
 				updatedAt: expect.any(Date),
 			},
 		})

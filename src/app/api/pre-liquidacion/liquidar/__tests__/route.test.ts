@@ -112,4 +112,49 @@ describe('POST /api/pre-liquidacion/liquidar', () => {
 		expect(body.data).toEqual({ liquidated: 3, fileCompleted: false })
 		expect(mockLiquidarRegistros).toHaveBeenCalledWith([1, 2, 3], 10, 1)
 	})
+
+	it('returns fileCompleted=true when service reports file completed', async () => {
+		mockAuth.mockResolvedValue({
+			user: { id: '10', role: UserRole.ADMIN },
+		} as never)
+		mockLiquidarRegistros.mockResolvedValue({
+			liquidated: 1,
+			fileCompleted: true,
+		})
+
+		const request = new Request(
+			'http://localhost/api/pre-liquidacion/liquidar',
+			{
+				method: 'POST',
+				body: JSON.stringify({ ids: [5], fileId: 2 }),
+			}
+		)
+		const response = await POST(request as never)
+		expect(response.status).toBe(200)
+		const body = await response.json()
+		expect(body.data).toEqual({ liquidated: 1, fileCompleted: true })
+	})
+
+	it('delegates commission settlement including distributions and business status to service', async () => {
+		mockAuth.mockResolvedValue({
+			user: { id: '20', role: UserRole.ADMIN },
+		} as never)
+		mockLiquidarRegistros.mockResolvedValue({
+			liquidated: 2,
+			fileCompleted: false,
+		})
+
+		const request = new Request(
+			'http://localhost/api/pre-liquidacion/liquidar',
+			{
+				method: 'POST',
+				body: JSON.stringify({ ids: [10, 11], fileId: 3 }),
+			}
+		)
+		await POST(request as never)
+
+		// The route delegates ALL settlement logic (distributions + business status)
+		// to liquidarRegistros — verify it is called with the correct arguments
+		expect(mockLiquidarRegistros).toHaveBeenCalledWith([10, 11], 20, 3)
+	})
 })

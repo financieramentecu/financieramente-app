@@ -1,7 +1,7 @@
 import type {
 	DeriveFlowInput,
 	PreLiquidacionFlow,
-} from '@/features/pre-liquidacion/types/types'
+} from '../types/types'
 
 /**
  * Derives the pre-liquidación flow for clawback persistence and balance behavior.

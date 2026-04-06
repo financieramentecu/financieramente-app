@@ -45,6 +45,8 @@ describe('GET /api/negocios/stats', () => {
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
 
 	beforeEach(() => {
+		vi.useFakeTimers()
+		vi.setSystemTime(new Date('2026-03-15T12:00:00Z'))
 		vi.clearAllMocks()
 		// Mock por defecto de NextResponse.json para retornar el objeto directamente
 		mockNextResponseJson.mockImplementation(
@@ -77,6 +79,7 @@ describe('GET /api/negocios/stats', () => {
 	})
 
 	afterEach(() => {
+		vi.useRealTimers()
 		vi.restoreAllMocks()
 	})
 

@@ -1,9 +1,11 @@
 import { Category, CategoryType, User } from '@prisma/client'
-import { Category as CategoryDomain, BeneficiaryMode } from '../types/category.types'
+import { Category as CategoryDomain } from '../types/category.types'
 
-type PrismaCategoryWithRelations = Category & {
+export type PrismaCategoryWithRelations = Category & {
 	categoryType?: CategoryType | null
 	fixedBeneficiaryUser?: Pick<User, 'idUser' | 'name' | 'lastName' | 'email'> | null
+	beneficiaryMode?: string | null
+	idFixedBeneficiaryUser?: number | null
 }
 
 /**
@@ -32,7 +34,9 @@ export const prismaCategoryToCategory = (
 		idCategoryType: prisma.idCategoryType || 1,
 		descripcion: prisma.descripcion === null ? null : (prisma.descripcion || ''),
 		status: prisma.status,
-		beneficiaryMode: (prisma.beneficiaryMode as BeneficiaryMode) ?? 'UPLINE_CHAIN',
+		beneficiaryMode: (prisma.beneficiaryMode as string) === 'FIXED_BENEFICIARY' 
+			? 'FIXED_BENEFICIARY' 
+			: 'UPLINE_CHAIN',
 		idFixedBeneficiaryUser: prisma.idFixedBeneficiaryUser ?? null,
 		fixedBeneficiaryUser,
 		createdAt: prisma.createdAt.toISOString(),

@@ -60,6 +60,7 @@ export interface ContractValidationResponse {
 export interface UpdateBusinessRequest {
 	contract?: string
 	idClientOrigin?: number
+	idSettlementCommission?: number
 }
 
 /**
@@ -113,4 +114,5 @@ export interface BusinessStatsResponse {
 	currencies: StatsCurrencyInfo[]
 	efectuados: StatsByCurrency
 	emitidos: StatsByCurrency
+	clawbackBalance?: number
 }

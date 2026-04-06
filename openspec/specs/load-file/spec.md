@@ -555,3 +555,46 @@ The system MUST display all `FileImport` status values in the UI using Spanish l
 - GIVEN a `FileImport` with `status = 'PRE-SETTLED'`
 - WHEN rendered in `HistorialCargasTab`
 - THEN the badge MUST show the text "Pre-liquidado"
+
+---
+
+### Requirement: Monetary magnitude for imported Base and Commission
+
+The system SHALL parse **Base** and **Commission** values from POLIZA and VOLUNTARIA source files (including cells read as numbers or as formatted text) and SHALL persist `baseCommission` and `commissionValue` as **non-negative** magnitudes for rows that pass validation. Accounting-only notations (e.g. currency symbols, thousand separators, surrounding parentheses, or negative internal numeric representation used for accounting display) MUST NOT cause a negative stored amount for these two fields. Clawback semantics MUST remain driven by existing business rules (e.g. description-based flags), not by the sign of the imported amount alone.
+
+#### Scenario: Excel numeric negative from accounting format
+
+- GIVEN a valid POLIZA row whose Commission cell is stored as the number `-1848000` (typical when Excel uses accounting format showing parentheses)
+- WHEN the row is validated and the commission is persisted
+- THEN `commissionValue` SHALL equal `1848000` (same numeric scale as today’s successful imports)
+
+#### Scenario: Text with currency and parentheses (US-style grouping)
+
+- GIVEN a valid row whose Commission cell is the string equivalent to `$ (1,848,000.00)` (spaces and symbols as produced by export)
+- WHEN the row is validated and persisted
+- THEN `commissionValue` SHALL equal `1848000`
+
+#### Scenario: European-formatted positive amount unchanged in magnitude
+
+- GIVEN a valid row whose Base cell is the string `$ 1.234,56`
+- WHEN the row is validated and persisted
+- THEN `baseCommission` SHALL equal `1234.56`
+
+#### Scenario: Invalid token still fails
+
+- GIVEN a Commission cell containing no parseable number
+- WHEN structure/row validation runs
+- THEN the row MUST NOT be treated as valid for sync
+- AND the system SHALL surface a validation error consistent with existing invalid-numeric behavior
+
+### Requirement: Pre-batch structure validation uses same monetary rules
+
+The system SHALL apply the **same** parsing and magnitude rules for required numeric columns during pre-upload structure validation as during row extraction for batch processing, so a row accepted as structurally valid for Base/Commission SHALL NOT later fail numeric parsing for the same cell shape.
+
+#### Scenario: Consistency between structure check and row extract
+
+- GIVEN a file where a Commission cell uses accounting-style formatting accepted by this requirement
+- WHEN `processExcelFile` validates required columns
+- AND when `validateAndExtractRow` runs for that row
+- THEN both steps SHALL agree that the value is valid
+- AND the persisted magnitude SHALL match the scenario expectations in “Monetary magnitude for imported Base and Commission”
