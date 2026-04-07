@@ -48,12 +48,14 @@ export function NegociosPageClient({
 
 	// Estado para búsqueda con debounce
 	const [searchInput, setSearchInput] = useState('')
+	const [exactMatch, setExactMatch] = useState(false)
 	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
 
 	// Estado para paginación
 	const [searchParams, setSearchParams] = useState<BusinessListParams>({
 		page: 1,
 		pageSize: 10,
+		exactMatch: false,
 	})
 
 	// Trackear si la tabla ya se inicializó (cargó datos al menos una vez)
@@ -69,9 +71,10 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({
 			...prev,
 			search: debouncedSearch || undefined,
+			exactMatch,
 			page: 1,
 		}))
-	}, [debouncedSearch])
+	}, [debouncedSearch, exactMatch])
 
 	// Hooks para datos
 	const { businesses, isLoading, error, pagination, refetch } =
@@ -203,6 +206,13 @@ export function NegociosPageClient({
 	 */
 	const handleGlobalSearch = useCallback((query: string) => {
 		setSearchInput(query)
+	}, [])
+
+	/**
+	 * Maneja el cambio de coincidencia exacta
+	 */
+	const handleExactMatchChange = useCallback((value: boolean) => {
+		setExactMatch(value)
 	}, [])
 
 	/**
@@ -341,6 +351,8 @@ export function NegociosPageClient({
 				onViewBusiness={handleViewBusiness}
 				onCancelBusiness={handleCancelBusiness}
 				onGlobalSearch={handleGlobalSearch}
+				exactMatch={exactMatch}
+				onExactMatchChange={handleExactMatchChange}
 				onPageChange={handlePageChange}
 			/>
 

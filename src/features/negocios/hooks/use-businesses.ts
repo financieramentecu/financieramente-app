@@ -75,6 +75,7 @@ export function useBusinesses(
 				pageSize: params.pageSize || 10,
 				search: params.search,
 				status: params.status,
+				exactMatch: params.exactMatch,
 			})
 
 			if ('error' in response && response.error) {
@@ -90,7 +91,7 @@ export function useBusinesses(
 				error: 'Error al cargar negocios',
 			})
 		}
-	}, [params.page, params.pageSize, params.search, params.status])
+	}, [params.page, params.pageSize, params.search, params.status, params.exactMatch])
 
 	useEffect(() => {
 		fetchBusinesses()

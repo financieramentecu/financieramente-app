@@ -31,6 +31,8 @@ interface MisNegociosPageProps {
 	onViewBusiness?: (business: Business) => void
 	onCancelBusiness?: (business: Business) => void
 	onGlobalSearch?: (query: string) => void
+	exactMatch?: boolean
+	onExactMatchChange?: (value: boolean) => void
 	onPageChange?: (page: number) => void
 }
 
@@ -82,6 +84,8 @@ export function MisNegociosPage({
 	onViewBusiness,
 	onCancelBusiness,
 	onGlobalSearch = () => {},
+	exactMatch = false,
+	onExactMatchChange,
 	onPageChange,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
@@ -114,6 +118,8 @@ export function MisNegociosPage({
 					data={businessData}
 					onAddBusiness={onAddBusiness}
 					onGlobalSearch={onGlobalSearch}
+					exactMatch={exactMatch}
+					onExactMatchChange={onExactMatchChange}
 					onEditBusiness={onEditBusiness}
 					onViewBusiness={onViewBusiness}
 					onCancelBusiness={onCancelBusiness}

@@ -11,6 +11,8 @@ import {
 	AvatarImage,
 } from '@/features/shared/ui/avatar'
 import { Badge } from '@/features/shared/ui/badge'
+import { Checkbox } from '@/features/shared/ui/checkbox'
+import { Label } from '@/features/shared/ui/label'
 import { Plus, Pencil, Eye, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -34,6 +36,8 @@ interface BusinessTableSectionProps {
 	pagination?: PaginationData
 	onPageChange?: (page: number) => void
 	isSearching?: boolean
+	exactMatch?: boolean
+	onExactMatchChange?: (value: boolean) => void
 	/** Used to show edit on Emitido only for roles allowed by API */
 	userRole?: UserRole
 }
@@ -48,6 +52,8 @@ export function BusinessTableSection({
 	pagination,
 	onPageChange,
 	isSearching = false,
+	exactMatch = false,
+	onExactMatchChange,
 	userRole,
 }: BusinessTableSectionProps) {
 	const formatDate = (dateString: string) => {
@@ -237,6 +243,21 @@ export function BusinessTableSection({
 				data={data}
 				searchable={true}
 				onGlobalSearch={onGlobalSearch}
+				renderAdditionalFilters={() => (
+					<div className="flex items-center space-x-2 px-1">
+						<Checkbox
+							id="exact-match"
+							checked={exactMatch}
+							onCheckedChange={(checked) => onExactMatchChange?.(!!checked)}
+						/>
+						<Label
+							htmlFor="exact-match"
+							className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+						>
+							Coincidencia exacta
+						</Label>
+					</div>
+				)}
 				loading={isSearching}
 				searchPlaceholder="Buscar por cédula, nombre, email, # negocio o contrato..."
 				manualPagination={true}
