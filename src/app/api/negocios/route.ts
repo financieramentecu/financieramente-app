@@ -46,7 +46,6 @@ export async function GET(
 			pageSize: searchParams.get('pageSize'),
 			search: searchParams.get('search'),
 			status: searchParams.get('status'),
-			exactMatch: searchParams.get('exactMatch'),
 		}
 
 		const validationResult = businessListParamsSchema.safeParse(params)
@@ -61,7 +60,7 @@ export async function GET(
 			)
 		}
 
-		const { page, pageSize, search, status, exactMatch } = validationResult.data
+		const { page, pageSize, search, status } = validationResult.data
 
 		// Obtener usuario actual
 		const currentUser = await getCurrentUserByEmail(session.user.email)
@@ -99,11 +98,7 @@ export async function GET(
 				{
 					client: {
 						OR: [
-							{
-								identityNumber: exactMatch
-									? { equals: searchTerm, mode: 'insensitive' }
-									: { contains: searchTerm, mode: 'insensitive' },
-							},
+							{ identityNumber: { contains: searchTerm, mode: 'insensitive' } },
 							{ name: { contains: searchTerm, mode: 'insensitive' } },
 							{ lastName: { contains: searchTerm, mode: 'insensitive' } },
 							{ email: { contains: searchTerm, mode: 'insensitive' } },
@@ -112,9 +107,7 @@ export async function GET(
 				},
 				// Búsqueda por número de contrato
 				{
-					contract: exactMatch
-						? { equals: searchTerm, mode: 'insensitive' }
-						: { contains: searchTerm, mode: 'insensitive' },
+					contract: { contains: searchTerm, mode: 'insensitive' },
 				},
 			]
 

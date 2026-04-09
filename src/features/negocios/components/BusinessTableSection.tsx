@@ -11,8 +11,6 @@ import {
 	AvatarImage,
 } from '@/features/shared/ui/avatar'
 import { Badge } from '@/features/shared/ui/badge'
-import { Checkbox } from '@/features/shared/ui/checkbox'
-import { Label } from '@/features/shared/ui/label'
 import { Plus, Pencil, Eye, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -29,15 +27,13 @@ interface PaginationData {
 interface BusinessTableSectionProps {
 	data: Business[]
 	onAddBusiness: () => void
-	onGlobalSearch: (query: string) => void
+	onGlobalSearch?: (query: string) => void
 	onEditBusiness: (business: Business) => void
 	onViewBusiness?: (business: Business) => void
 	onCancelBusiness?: (business: Business) => void
 	pagination?: PaginationData
 	onPageChange?: (page: number) => void
 	isSearching?: boolean
-	exactMatch?: boolean
-	onExactMatchChange?: (value: boolean) => void
 	/** Used to show edit on Emitido only for roles allowed by API */
 	userRole?: UserRole
 }
@@ -52,8 +48,6 @@ export function BusinessTableSection({
 	pagination,
 	onPageChange,
 	isSearching = false,
-	exactMatch = false,
-	onExactMatchChange,
 	userRole,
 }: BusinessTableSectionProps) {
 	const formatDate = (dateString: string) => {
@@ -65,7 +59,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-orange-100 text-orange-800 border-orange-200"
+					className="bg-orange-100 text-orange-800 border-orange-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -76,7 +70,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-emerald-100 text-emerald-800 border-emerald-200"
+					className="bg-emerald-100 text-emerald-800 border-emerald-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -87,7 +81,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-blue-100 text-blue-800 border-blue-200"
+					className="bg-blue-100 text-blue-800 border-blue-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -98,7 +92,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-red-100 text-red-800 border-red-200"
+					className="bg-red-100 text-red-800 border-red-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -109,7 +103,7 @@ export function BusinessTableSection({
 		return (
 			<Badge
 				variant="secondary"
-				className="bg-secondary/10 text-secondary-foreground border-secondary/20"
+				className="bg-secondary/10 text-secondary-foreground border-secondary/20 truncate"
 			>
 				{status}
 			</Badge>
@@ -243,21 +237,6 @@ export function BusinessTableSection({
 				data={data}
 				searchable={true}
 				onGlobalSearch={onGlobalSearch}
-				renderAdditionalFilters={() => (
-					<div className="flex items-center space-x-2 px-1">
-						<Checkbox
-							id="exact-match"
-							checked={exactMatch}
-							onCheckedChange={(checked) => onExactMatchChange?.(!!checked)}
-						/>
-						<Label
-							htmlFor="exact-match"
-							className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-						>
-							Coincidencia exacta
-						</Label>
-					</div>
-				)}
 				loading={isSearching}
 				searchPlaceholder="Buscar por cédula, nombre, email, # negocio o contrato..."
 				manualPagination={true}

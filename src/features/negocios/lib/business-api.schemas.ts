@@ -22,7 +22,6 @@ export const businessListParamsSchema = z.object({
 	status: z
 		.enum(['VENTA_EFECTUADA', 'EMITIDO', 'COMISIONANDO', 'CANCELADO'])
 		.nullish(),
-	exactMatch: z.coerce.boolean().optional().default(false),
 })
 
 export type BusinessListParamsSchema = z.infer<typeof businessListParamsSchema>

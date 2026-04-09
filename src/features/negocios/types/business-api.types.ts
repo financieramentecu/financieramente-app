@@ -28,7 +28,6 @@ export interface BusinessListParams {
 	pageSize?: number
 	search?: string
 	status?: BusinessStatus
-	exactMatch?: boolean
 }
 
 // ============================================
