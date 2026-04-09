@@ -43,6 +43,7 @@ export interface HistorialCargasTabProps {
 	readonly allowedStatuses: FileImportStatus[]
 	readonly canDeleteFn?: (carga: CargaHistorial) => boolean
 	readonly emptyStateDescription?: string
+	readonly showPreliquidarAction?: boolean
 }
 
 const defaultCanDeleteFn = (carga: CargaHistorial): boolean =>
@@ -52,6 +53,7 @@ export function HistorialCargasTab({
 	allowedStatuses,
 	canDeleteFn = defaultCanDeleteFn,
 	emptyStateDescription,
+	showPreliquidarAction = true,
 }: HistorialCargasTabProps) {
 	const router = useRouter()
 	const { user } = useAuthSession()
@@ -349,6 +351,7 @@ export function HistorialCargasTab({
 								carga={carga}
 								canDelete={canDeleteFn(carga)}
 								canPreliquidar={
+									showPreliquidarAction &&
 									canPreliquidar &&
 									carga.sincronizados > 0 &&
 									carga.estado === 'LOAD'
