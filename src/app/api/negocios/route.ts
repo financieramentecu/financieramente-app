@@ -106,7 +106,9 @@ export async function GET(
 					},
 				},
 				// Búsqueda por número de contrato
-				{ contract: { contains: searchTerm, mode: 'insensitive' } },
+				{
+					contract: { contains: searchTerm, mode: 'insensitive' },
+				},
 			]
 
 			// Si el término es numérico, también buscar por ID del negocio

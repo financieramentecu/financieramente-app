@@ -27,7 +27,7 @@ interface PaginationData {
 interface BusinessTableSectionProps {
 	data: Business[]
 	onAddBusiness: () => void
-	onGlobalSearch: (query: string) => void
+	onGlobalSearch?: (query: string) => void
 	onEditBusiness: (business: Business) => void
 	onViewBusiness?: (business: Business) => void
 	onCancelBusiness?: (business: Business) => void
@@ -59,7 +59,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-orange-100 text-orange-800 border-orange-200"
+					className="bg-orange-100 text-orange-800 border-orange-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -70,7 +70,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-emerald-100 text-emerald-800 border-emerald-200"
+					className="bg-emerald-100 text-emerald-800 border-emerald-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -81,7 +81,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-blue-100 text-blue-800 border-blue-200"
+					className="bg-blue-100 text-blue-800 border-blue-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -92,7 +92,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-red-100 text-red-800 border-red-200"
+					className="bg-red-100 text-red-800 border-red-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -103,7 +103,7 @@ export function BusinessTableSection({
 		return (
 			<Badge
 				variant="secondary"
-				className="bg-secondary/10 text-secondary-foreground border-secondary/20"
+				className="bg-secondary/10 text-secondary-foreground border-secondary/20 truncate"
 			>
 				{status}
 			</Badge>
