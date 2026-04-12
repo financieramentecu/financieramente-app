@@ -3,7 +3,7 @@ schema: spec-driven
 # SDD artifact persistence: engram | openspec | hybrid | none
 # hybrid = persist to both Engram and OpenSpec (file artifacts)
 artifact_store:
-  mode: engram
+  mode: hybrid
 
 context: |
   Domain: Financieramente - A commission settlement platform for financial services.

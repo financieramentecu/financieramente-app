@@ -51,5 +51,22 @@ describe('format-percent', () => {
 		it('multiplies fraction by 100 for display', () => {
 			expect(formatPercentFromFraction(0.155, LOCALE)).toMatch(/15[,.]5/)
 		})
+
+		it('matches formatPercentDisplay for the same semantic 0–100 value (shared rules)', () => {
+			const cases = [0, 1, 10.25, 15.555555]
+			for (const pct of cases) {
+				const fromFraction = formatPercentFromFraction(pct / 100, LOCALE)
+				const direct = formatPercentDisplay(pct, LOCALE)
+				expect(fromFraction).toBe(direct)
+			}
+		})
+	})
+
+	describe('read-only presentation (0–100 from API)', () => {
+		it('appends trailing % outside digit grouping', () => {
+			const s = formatPercentDisplay(12.3, LOCALE)
+			expect(s.endsWith('%')).toBe(true)
+			expect(s.slice(0, -1)).not.toContain('%')
+		})
 	})
 })
