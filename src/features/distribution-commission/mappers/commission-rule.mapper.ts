@@ -1,3 +1,4 @@
+import { Decimal } from '@prisma/client/runtime/library'
 import {
 	CommissionRule,
 	CommissionRuleCategory,
@@ -35,24 +36,27 @@ type PrismaCommissionRule = {
 	productPercentageCommissionCategories?: PrismaCommissionRuleCategory[]
 }
 
+function fractionToPercent0to100(porcentajeDistribucion: DecimalLike): number {
+	const asString =
+		typeof porcentajeDistribucion === 'object' &&
+		porcentajeDistribucion !== null &&
+		'toString' in porcentajeDistribucion
+			? (porcentajeDistribucion as { toString(): string }).toString()
+			: String(porcentajeDistribucion)
+	return new Decimal(asString).times(100).toNumber()
+}
+
 /**
  * Transforms a Prisma CommissionRuleCategory to domain type
  */
 export function prismaCommissionRuleCategoryToDomain(
 	prisma: PrismaCommissionRuleCategory
 ): CommissionRuleCategory {
-	const rawPercentage =
-		typeof prisma.porcentajeDistribucion === 'object' &&
-		'toNumber' in prisma.porcentajeDistribucion
-			? prisma.porcentajeDistribucion.toNumber()
-			: Number(prisma.porcentajeDistribucion)
-
 	return {
 		id: prisma.id,
 		idCategory: prisma.idCategory,
 		idProductPercentageCommission: prisma.idProductPercentageCommission,
-		// Handle Decimal -> number conversion safely
-		porcentajeDistribucion: Number((rawPercentage * 100).toFixed(2)),
+		porcentajeDistribucion: fractionToPercent0to100(prisma.porcentajeDistribucion),
 		active: prisma.active,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),

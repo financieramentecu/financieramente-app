@@ -21,6 +21,8 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ColumnDef } from '@tanstack/react-table'
+import { formatPercentDisplay } from '@/features/shared/lib/format-percent'
+import { getAppLocale } from '@/features/shared/lib/app-locale'
 
 interface CommissionRulesTableProps {
 	data: CommissionRule[]
@@ -132,7 +134,10 @@ export function CommissionRulesTable({
 							row.original.categories.map((cat) => (
 								<Badge key={cat.idCategory} variant="outline" className="text-[10px]">
 									{cat.category?.name || `Cat ${cat.idCategory}`}:{' '}
-									{cat.porcentajeDistribucion}%
+									{formatPercentDisplay(
+										cat.porcentajeDistribucion,
+										getAppLocale()
+									)}
 								</Badge>
 							))
 						) : (

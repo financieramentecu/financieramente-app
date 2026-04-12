@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { Decimal } from '@prisma/client/runtime/library'
 import {
 	prismaCommissionRuleToDomain,
 	prismaCommissionRuleCategoryToDomain,
@@ -35,6 +36,21 @@ describe('Commission Rule Mappers', () => {
 				updatedAt: '2023-01-02T10:00:00.000Z',
 				category: undefined,
 			})
+		})
+
+		it('should preserve precision beyond two decimal places when mapping', () => {
+			const prismaCategory = {
+				id: 10,
+				idCategory: 100,
+				idProductPercentageCommission: 50,
+				porcentajeDistribucion: new Decimal('0.15555'),
+				active: true,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			}
+
+			const domain = prismaCommissionRuleCategoryToDomain(prismaCategory)
+			expect(domain.porcentajeDistribucion).toBeCloseTo(15.555, 4)
 		})
 
 		it('should handle string decimal values', () => {
