@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/features/shared/ui/tabs'
+import { Tabs, TabsContent } from '@/features/shared/ui/tabs'
+import { cn } from '@/lib/utils'
 import {
 	Table,
 	TableBody,
@@ -17,7 +18,7 @@ import type {
 	FileImportRecordStatusFilter,
 } from '../types/load-file.types'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
-import { ChevronLeft, ChevronRight, CircleCheck, CircleX, CircleOff, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CircleCheck, CircleX, CircleOff, Clock, SearchX, Inbox } from 'lucide-react'
 
 const PAGE_SIZE = 20
 
@@ -57,6 +58,34 @@ function formatDate(value: Date | null): string {
 		month: 'short',
 		day: 'numeric',
 	})
+}
+
+function StatusEmptyState({
+	message,
+	icon: Icon,
+	compact,
+}: {
+	message: string
+	icon: any
+	compact?: boolean
+}) {
+	return (
+		<div
+			className={`flex flex-col items-center justify-center text-center ${
+				compact ? 'py-8 px-4' : 'py-16 px-6'
+			} bg-slate-50/50 dark:bg-slate-900/20 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl transition-all duration-300`}
+		>
+			<div className="rounded-2xl bg-white dark:bg-slate-800 p-4 shadow-sm mb-4 border border-slate-100 dark:border-slate-700">
+				<Icon className="h-8 w-8 text-slate-400" />
+			</div>
+			<h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 italic">
+				{message}
+			</h3>
+			<p className="text-xs text-slate-500 mt-2 max-w-[200px] leading-relaxed">
+				No encontramos registros para mostrar en esta categoría en este momento.
+			</p>
+		</div>
+	)
 }
 
 export function RecordsByStatusView({
@@ -166,14 +195,22 @@ export function RecordsByStatusView({
 
 	return (
 		<div className={`flex flex-col items-stretch ${compact ? 'space-y-3' : 'space-y-4'}`}>
-			{/* Summary cards */}
+			{/* Summary cards acting as Tabs */}
 			<div className={`grid grid-cols-2 lg:grid-cols-4 ${compact ? 'gap-2' : 'gap-3'}`}>
 				{loadingCounts ? (
 					<div className="col-span-2 lg:col-span-4 h-20 rounded-lg bg-muted animate-pulse" />
 				) : (
 					<>
 						{/* Sincronizados */}
-						<div className="rounded-xl bg-emerald-500 p-5 shadow-lg shadow-emerald-500/20 transition-transform hover:scale-[1.02]">
+						<div
+							onClick={() => setActiveTab('sincronizados')}
+							className={cn(
+								'rounded-xl cursor-pointer p-5 transition-all duration-200 transform hover:scale-[1.02] shadow-lg',
+								activeTab === 'sincronizados'
+									? 'bg-emerald-600 border-2 border-white scale-[1.03] shadow-emerald-500/40'
+									: 'bg-emerald-500 hover:bg-emerald-500/90 shadow-emerald-500/20 opacity-80'
+							)}
+						>
 							<div className="flex items-center justify-between mb-3">
 								<div className="rounded-lg bg-white/20 p-2">
 									<CircleCheck className="h-6 w-6 text-white" />
@@ -188,7 +225,15 @@ export function RecordsByStatusView({
 						</div>
 
 						{/* Errores */}
-						<div className="rounded-xl bg-red-500 p-5 shadow-lg shadow-red-500/20 transition-transform hover:scale-[1.02]">
+						<div
+							onClick={() => setActiveTab('errores')}
+							className={cn(
+								'rounded-xl cursor-pointer p-5 transition-all duration-200 transform hover:scale-[1.02] shadow-lg',
+								activeTab === 'errores'
+									? 'bg-red-600 border-2 border-white scale-[1.03] shadow-red-500/40'
+									: 'bg-red-500 hover:bg-red-500/90 shadow-red-500/20 opacity-80'
+							)}
+						>
 							<div className="flex items-center justify-between mb-3">
 								<div className="rounded-lg bg-white/20 p-2">
 									<CircleX className="h-6 w-6 text-white" />
@@ -203,7 +248,15 @@ export function RecordsByStatusView({
 						</div>
 
 						{/* No sincronizados */}
-						<div className="rounded-xl bg-blue-500 p-5 shadow-lg shadow-blue-500/20 transition-transform hover:scale-[1.02]">
+						<div
+							onClick={() => setActiveTab('noSincronizados')}
+							className={cn(
+								'rounded-xl cursor-pointer p-5 transition-all duration-200 transform hover:scale-[1.02] shadow-lg',
+								activeTab === 'noSincronizados'
+									? 'bg-blue-600 border-2 border-white scale-[1.03] shadow-blue-500/40'
+									: 'bg-blue-500 hover:bg-blue-500/90 shadow-blue-500/20 opacity-80'
+							)}
+						>
 							<div className="flex items-center justify-between mb-3">
 								<div className="rounded-lg bg-white/20 p-2">
 									<CircleOff className="h-6 w-6 text-white" />
@@ -218,7 +271,15 @@ export function RecordsByStatusView({
 						</div>
 
 						{/* Rezagados */}
-						<div className="rounded-xl bg-amber-500 p-5 shadow-lg shadow-amber-500/20 transition-transform hover:scale-[1.02]">
+						<div
+							onClick={() => setActiveTab('rezagados')}
+							className={cn(
+								'rounded-xl cursor-pointer p-5 transition-all duration-200 transform hover:scale-[1.02] shadow-lg',
+								activeTab === 'rezagados'
+									? 'bg-amber-600 border-2 border-white scale-[1.03] shadow-amber-500/40'
+									: 'bg-amber-500 hover:bg-amber-500/90 shadow-amber-500/20 opacity-80'
+							)}
+						>
 							<div className="flex items-center justify-between mb-3">
 								<div className="rounded-lg bg-white/20 p-2">
 									<Clock className="h-6 w-6 text-white" />
@@ -236,20 +297,17 @@ export function RecordsByStatusView({
 			</div>
 
 			<Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
-				<TabsList className={`w-full flex flex-wrap shrink-0 ${compact ? 'gap-1 mt-1' : 'gap-1'}`}>
-					<TabsTrigger value="sincronizados">Sincronizados</TabsTrigger>
-					<TabsTrigger value="errores">Errores</TabsTrigger>
-					<TabsTrigger value="noSincronizados">No sincronizados</TabsTrigger>
-					<TabsTrigger value="rezagados">Rezagados</TabsTrigger>
-				</TabsList>
+				{/* TabsList removed in favor of clickable cards above */}
 
 				<TabsContent value="sincronizados" className={`mt-3 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col ${compact ? 'data-[state=active]:overflow-auto' : ''}`}>
 					{loadingRecords ? (
 						<TableRowsLoadingSkeleton rows={5} />
 					) : records.length === 0 ? (
-						<p className={`text-sm text-muted-foreground text-center ${compact ? 'py-4' : 'py-6'}`}>
-							No hay registros sincronizados.
-						</p>
+						<StatusEmptyState
+							message="No hay registros sincronizados"
+							icon={SearchX}
+							compact={compact}
+						/>
 					) : (
 						<>
 							<Table>
@@ -320,9 +378,11 @@ export function RecordsByStatusView({
 					{loadingErrors ? (
 						<TableRowsLoadingSkeleton rows={5} />
 					) : errors.length === 0 ? (
-						<p className={`text-sm text-muted-foreground text-center ${compact ? 'py-4' : 'py-6'}`}>
-							No hay errores.
-						</p>
+						<StatusEmptyState
+							message="No se encontraron errores"
+							icon={CircleCheck}
+							compact={compact}
+						/>
 					) : (
 						<Table>
 							<TableHeader>
@@ -351,9 +411,11 @@ export function RecordsByStatusView({
 					{loadingRecords ? (
 						<TableRowsLoadingSkeleton rows={5} />
 					) : records.length === 0 ? (
-						<p className={`text-sm text-muted-foreground text-center ${compact ? 'py-4' : 'py-6'}`}>
-							No hay registros no sincronizados.
-						</p>
+						<StatusEmptyState
+							message="No hay registros pendientes"
+							icon={Inbox}
+							compact={compact}
+						/>
 					) : (
 						<>
 							<Table>
@@ -422,9 +484,11 @@ export function RecordsByStatusView({
 					{loadingRecords ? (
 						<TableRowsLoadingSkeleton rows={5} />
 					) : records.length === 0 ? (
-						<p className={`text-sm text-muted-foreground text-center ${compact ? 'py-4' : 'py-6'}`}>
-							No hay registros rezagados.
-						</p>
+						<StatusEmptyState
+							message="No hay registros rezagados"
+							icon={SearchX}
+							compact={compact}
+						/>
 					) : (
 						<>
 							<Table>
