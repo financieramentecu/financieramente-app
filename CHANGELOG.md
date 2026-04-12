@@ -5,6 +5,25 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.2] - 2026-04-10
+
+### Añadido
+
+- **Distribución de comisiones – Campo de porcentaje dedicado:** Al editar categorías en una regla, el porcentaje usa un control con el símbolo **%** como adorno (no mezclado con el número), entrada tipo texto con teclado decimal, y **pegado normalizado** para formatos como `12,5 %` o `12.5%` según el locale de la aplicación. Mientras escribes se permiten hasta **cuatro** decimales; si borras todo el campo, **no** se fuerza el valor a cero antes de validar.
+- **Porcentajes en lectura unificados:** Las vistas que muestran porcentajes de distribución (tabla de reglas, totales del formulario, **pre-liquidación** vía `formatPct`, **histórico de liquidaciones**) comparten la misma regla de presentación: separadores según locale, precisión coherente con el valor del servidor (sin redondeo caprichoso en cliente) y entero mostrado con relleno de decimales en pantalla según RF-01.
+
+### Mejorado
+
+- **Distribución de comisiones – Validación RF-05:** Cada línea de categoría exige un porcentaje entre **1 % y 100 %**; la **suma** de todas las líneas no puede superar **100 %**. Los errores son explícitos en el formulario, con indicación en vivo cuando el total se excede y mensajes al intentar guardar si algo falla.
+- **Distribución de comisiones – Precisión al cargar reglas:** El mapeo desde Prisma usa aritmética **Decimal** al pasar de fracción al modelo de dominio (0–100), evitando la pérdida de precisión que imponía un redondeo fijo a dos decimales.
+- **Distribución de comisiones – Formulario y edición:** Errores de campo más visibles (estilo destructivo, icono, `role="alert"` donde aplica, `aria-invalid` en select y campo de porcentaje); filas de categoría con separación y altura consistentes; página **editar regla** sin título duplicado; skeleton alineado al formulario sin columna “Activo” en el flujo de lista.
+
+### Documentación / Interno
+
+- **PRDs:** Documentos de requisitos de producto para configuración de comisiones y tema MAPA (UX / configuración producto-comisión) en `PRDs/`.
+- **OpenSpec:** Change `rf-01-presentacion-porcentajes` con propuesta, diseño, tareas, especificaciones delta (`ui-system`, `commission-distribution-ui`), exploración e informe de verificación SDD.
+- **Repositorio:** Entrada en `.gitignore` para la carpeta `.atl/` (artefactos locales de agentes).
+
 ## [1.0.0-beta.1] - 2026-04-05
 
 ### Añadido
