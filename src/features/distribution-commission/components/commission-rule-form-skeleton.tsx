@@ -3,15 +3,9 @@ import { Skeleton } from '@/features/shared/ui/skeleton'
 export function CommissionRuleFormSkeleton() {
 	return (
 		<div className="space-y-8">
-			<div className="grid gap-6 md:grid-cols-2">
-				<div className="space-y-2">
-					<Skeleton className="h-4 w-24" />
-					<Skeleton className="h-10 w-full" />
-				</div>
-				<div className="space-y-2">
-					<Skeleton className="h-4 w-20" />
-					<Skeleton className="h-12 w-full" />
-				</div>
+			<div className="max-w-2xl space-y-2">
+				<Skeleton className="h-4 w-24" />
+				<Skeleton className="h-10 w-full" />
 			</div>
 
 			<div className="space-y-4">

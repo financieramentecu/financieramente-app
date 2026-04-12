@@ -32,6 +32,9 @@
 # production
 /build
 
+# agent local artifacts
+.atl/
+
 # misc
 .DS_Store
 *.pem

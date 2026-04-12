@@ -3,6 +3,9 @@
  * Currency uses es-CO locale (Colombian peso conventions: dot as thousands separator).
  */
 
+import { formatPercentDisplay } from '@/features/shared/lib/format-percent'
+import { getAppLocale } from '@/features/shared/lib/app-locale'
+
 const currencyFormatter = new Intl.NumberFormat('es-CO', {
 	style: 'currency',
 	currency: 'COP',
@@ -26,9 +29,9 @@ export function formatNumber(value: number): string {
 	return numberFormatter.format(value)
 }
 
-/** Formats a decimal fraction as a percentage: 0.12 → 12% */
+/** Formats a decimal fraction (0–1) as a percentage for display (shared RF-01 rules). */
 export function formatPct(value: number): string {
-	return `${numberFormatter.format(value * 100)}%`
+	return formatPercentDisplay(value * 100, getAppLocale())
 }
 
 /** Formats an ISO date string to a readable short date: 2026-03-28 → 28 mar 2026 */

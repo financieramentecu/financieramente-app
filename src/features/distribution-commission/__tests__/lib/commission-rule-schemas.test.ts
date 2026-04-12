@@ -13,21 +13,16 @@ describe('Commission Rule Schemas', () => {
 			expect(result.success).toBe(true)
 		})
 
-		it('should allow percentage to be zero', () => {
-			const valid = { idCategory: 1, percentage: 0 }
-			const result = categoryPercentageSchema.safeParse(valid)
-			expect(result.success).toBe(true)
+		it('should reject percentage below 1', () => {
+			const invalid = { idCategory: 1, percentage: 0 }
+			const result = categoryPercentageSchema.safeParse(invalid)
+			expect(result.success).toBe(false)
 		})
 
-		it('should fail if percentage is below minimum (negative)', () => {
+		it('should fail if percentage is negative', () => {
 			const invalid = { idCategory: 1, percentage: -1 }
 			const result = categoryPercentageSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
-			if (!result.success) {
-				expect(result.error.issues[0].message).toContain(
-					'El porcentaje no puede ser negativo'
-				)
-			}
 		})
 
 		it('should fail if percentage exceeds maximum', () => {
@@ -77,6 +72,36 @@ describe('Commission Rule Schemas', () => {
 			if (!result.success) {
 				expect(result.error.issues[0].message).toContain('Categoría duplicada')
 			}
+		})
+
+		it('should fail when sum of percentages exceeds 100', () => {
+			const invalid = {
+				idProductConfiguration: 10,
+				description: 'Suma inválida',
+				categories: [
+					{ idCategory: 1, percentage: 60 },
+					{ idCategory: 2, percentage: 50 },
+				],
+			}
+			const result = createCommissionRuleSchema.safeParse(invalid)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(result.error.issues.some((i) => i.message.includes('100'))).toBe(
+					true
+				)
+			}
+		})
+
+		it('should accept categories summing to exactly 100', () => {
+			const valid = {
+				idProductConfiguration: 10,
+				description: 'OK',
+				categories: [
+					{ idCategory: 1, percentage: 40 },
+					{ idCategory: 2, percentage: 60 },
+				],
+			}
+			expect(createCommissionRuleSchema.safeParse(valid).success).toBe(true)
 		})
 	})
 
