@@ -3,6 +3,7 @@
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
+	COMMISSION_RULE_CATEGORIES_SUM_MAX_MESSAGE,
 	createCommissionRuleSchema,
 	updateCommissionRuleSchema,
 	CreateCommissionRuleFormData,
@@ -16,18 +17,18 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-	FormDescription,
 } from '@/features/shared/ui/form'
 import { Input } from '@/features/shared/ui/input'
-import { Switch } from '@/features/shared/ui/switch'
 import { CommissionRule } from '@/features/distribution-commission/types/commission-rule.types'
 import { useCommissionRuleMutations } from '@/features/distribution-commission/hooks/use-commission-rule-mutations'
 import { useCategories } from '@/features/categories/hooks/use-categories'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { Loader2, Plus } from 'lucide-react'
+import { AlertCircle, Loader2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CategoryPercentageRow } from '@/features/distribution-commission/components/category-percentage-row'
+import { formatPercentDisplay } from '@/features/shared/lib/format-percent'
+import { getAppLocale } from '@/features/shared/lib/app-locale'
 import { useState } from 'react'
 import {
 	AlertDialog,
@@ -89,7 +90,6 @@ export function CommissionRuleForm({
 				: {
 						idProductPercentageCommission: initialData?.id,
 						description: initialData?.description || '',
-						active: initialData?.active,
 						categories:
 							initialData?.categories?.map((cat) => ({
 								idCategory: cat.idCategory,
@@ -116,6 +116,8 @@ export function CommissionRuleForm({
 		0
 	)
 
+	const sumExceeds100 = totalPercentage > 100 + 1e-6
+
 	const submitData = async (data: CommissionRuleFormData) => {
 		try {
 			let success = false
@@ -130,7 +132,7 @@ export function CommissionRuleForm({
 				if (!initialData) return
 				success = await update(initialData.id, {
 					description: updateData.description,
-					active: updateData.active,
+					active: initialData.active,
 					categories: updateData.categories,
 				})
 			}
@@ -178,10 +180,25 @@ export function CommissionRuleForm({
 		setPendingData(null)
 	}
 
+	const handleInvalidSubmit = () => {
+		const total = (form.getValues('categories') || []).reduce(
+			(acc, item) => acc + (Number(item?.percentage) || 0),
+			0
+		)
+		if (total > 100 + 1e-6) {
+			toast.error('Suma de porcentajes', {
+				description: COMMISSION_RULE_CATEGORIES_SUM_MAX_MESSAGE,
+			})
+		}
+	}
+
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-				<div className="grid gap-6 md:grid-cols-2">
+			<form
+				onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)}
+				className="space-y-6"
+			>
+				<div className="max-w-2xl">
 					<FormField
 						control={form.control}
 						name="description"
@@ -199,35 +216,14 @@ export function CommissionRuleForm({
 							</FormItem>
 						)}
 					/>
-
-					{mode === 'edit' && (
-						<FormField
-							control={form.control}
-							name="active"
-							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-									<div className="space-y-0.5">
-										<FormLabel className="text-base">Activo</FormLabel>
-										<FormDescription>
-											Activar o desactivar esta distribución de comisión.
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value as boolean}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-					)}
 				</div>
 
 				<div className="space-y-4">
-					<div className="flex items-center justify-between">
-						<div>
-							<h3 className="text-lg font-medium">Categorías</h3>
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<div className="min-w-0 space-y-1">
+							<h3 className="text-lg font-semibold tracking-tight text-foreground">
+								Categorías
+							</h3>
 							<p className="text-sm text-muted-foreground">
 								Distribución de porcentajes por categoría.
 							</p>
@@ -236,48 +232,65 @@ export function CommissionRuleForm({
 							type="button"
 							variant="outline"
 							size="sm"
-							onClick={() => append({ idCategory: 0, percentage: 0.01 })}
+							className="shrink-0 self-start sm:self-auto"
+							onClick={() => append({ idCategory: 0, percentage: 1 })}
 						>
 							<Plus className="mr-2 h-4 w-4" />
 							Agregar Categoría
 						</Button>
 					</div>
 
-					<div className="rounded-md border p-4">
-						<div className="space-y-4">
-							{fields.map((field, index) => (
-								<CategoryPercentageRow
-									key={field.id}
-									index={index}
-									control={form.control}
-									categories={categoriesState.data?.categories ?? []}
-									selectedCategoryIds={selectedCategoryIds}
-									onRemove={() => remove(index)}
-								/>
-							))}
-						</div>
-
-						{fields.length === 0 && (
-							<div className="py-6 text-center text-sm text-muted-foreground">
+					<div className="overflow-hidden rounded-xl border border-border/90 bg-card shadow-sm">
+						{fields.length > 0 ? (
+							<div className="divide-y divide-border px-4 sm:px-5">
+								{fields.map((field, index) => (
+									<CategoryPercentageRow
+										key={field.id}
+										index={index}
+										control={form.control}
+										categories={categoriesState.data?.categories ?? []}
+										selectedCategoryIds={selectedCategoryIds}
+										onRemove={() => remove(index)}
+									/>
+								))}
+							</div>
+						) : (
+							<div className="px-4 py-10 text-center text-sm text-muted-foreground sm:px-5">
 								No hay categorías agregadas. Agrega una para comenzar la
 								distribución.
 							</div>
 						)}
-					</div>
 
-					<div className="flex items-center justify-end gap-4">
-						<div className="text-right">
-							<p className="text-sm font-medium">Total (informativo)</p>
-							<p
-								className={cn(
-									'text-2xl font-bold',
-									totalPercentage > 0
-										? 'text-foreground'
-										: 'text-muted-foreground'
-								)}
-							>
-								{totalPercentage.toFixed(4)}%
-							</p>
+						<div className="border-t border-border bg-muted/15 px-4 py-4 sm:px-5 sm:py-4">
+							<div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-end sm:gap-4">
+								<p className="text-sm font-medium text-muted-foreground sm:text-right">
+									Total (informativo)
+								</p>
+								<p
+									className={cn(
+										'text-lg font-semibold tabular-nums tracking-tight sm:text-xl',
+										sumExceeds100
+											? 'text-destructive'
+											: totalPercentage > 0
+												? 'text-foreground'
+												: 'text-muted-foreground'
+									)}
+								>
+									{formatPercentDisplay(totalPercentage, getAppLocale())}
+								</p>
+							</div>
+							{sumExceeds100 && (
+								<div
+									role="alert"
+									className="mt-3 flex items-start gap-1.5 text-sm font-medium text-destructive"
+								>
+									<AlertCircle
+										className="mt-0.5 size-3.5 shrink-0"
+										aria-hidden
+									/>
+									<span>{COMMISSION_RULE_CATEGORIES_SUM_MAX_MESSAGE}</span>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>
@@ -311,16 +324,21 @@ export function CommissionRuleForm({
 					</AlertDialogContent>
 				</AlertDialog>
 
-				<div className="flex justify-end space-x-4">
+				<div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end sm:gap-3">
 					<Button
 						type="button"
 						variant="outline"
 						onClick={() => router.back()}
 						disabled={isLoading}
+						className="w-full sm:w-auto"
 					>
 						Cancelar
 					</Button>
-					<Button type="submit" disabled={isLoading}>
+					<Button
+						type="submit"
+						disabled={isLoading}
+						className="w-full sm:w-auto"
+					>
 						{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 						{mode === 'create' ? 'Crear Distribución' : 'Guardar Cambios'}
 					</Button>

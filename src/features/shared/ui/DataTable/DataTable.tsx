@@ -185,7 +185,7 @@ export function DataTable<TData>({
 		enableGlobalFilter: true,
 		manualPagination,
 		manualFiltering: false,
-		autoResetPageIndex: true,
+		autoResetPageIndex: !manualPagination,
 		rowCount: manualPagination ? totalItems : undefined,
 		onRowSelectionChange,
 		onSortingChange: setSorting,

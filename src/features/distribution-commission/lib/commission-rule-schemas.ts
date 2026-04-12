@@ -1,5 +1,9 @@
 import { z } from 'zod'
 
+/** Mensaje único para UI + validación Zod (suma de líneas > 100 %) */
+export const COMMISSION_RULE_CATEGORIES_SUM_MAX_MESSAGE =
+	'La suma de porcentajes por categoría no puede superar 100'
+
 const descriptionSchema = z
 	.string()
 	.max(255, 'La descripción no puede exceder 255 caracteres')
@@ -7,7 +11,7 @@ const descriptionSchema = z
 
 const percentageSchema = z.coerce
 	.number({ message: 'El porcentaje debe ser un número' })
-	.min(0, 'El porcentaje no puede ser negativo')
+	.min(1, 'El porcentaje debe ser al menos 1')
 	.max(100, 'El porcentaje no puede exceder 100')
 
 // Category Line Item Schema (Column schema)
@@ -36,6 +40,15 @@ const categoryLinesSchema = z
 				seen.add(item.idCategory)
 			}
 		})
+
+		const sum = items.reduce((acc, item) => acc + item.percentage, 0)
+		if (sum > 100 + 1e-6) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: COMMISSION_RULE_CATEGORIES_SUM_MAX_MESSAGE,
+				path: [],
+			})
+		}
 	})
 
 const categoryLinesApiSchema = categoryLinesSchema.transform((items) =>

@@ -72,15 +72,6 @@ export default function EditCommissionRulePage() {
 	return (
 		<DashboardLayout currentPage="Editar Distribución de Comisión">
 			<div className="space-y-6">
-				<div>
-					<h2 className="text-3xl font-bold tracking-tight">
-						Editar Distribución de Comisión
-					</h2>
-					<p className="text-muted-foreground">
-						Modifica los detalles y porcentajes de la distribución de comisión.
-					</p>
-				</div>
-
 				<Card>
 					<CardHeader>
 						<CardTitle>Editar Distribución</CardTitle>

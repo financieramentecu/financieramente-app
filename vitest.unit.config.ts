@@ -92,6 +92,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'@': path.resolve(dirname, './src'),
+			'server-only': path.resolve(dirname, './src/__mocks__/server-only.ts'),
 		},
 	},
 	optimizeDeps: {

@@ -77,11 +77,11 @@ export function MisNegociosPage({
 	hasInitialized = false,
 	error = null,
 	pagination,
-	onAddBusiness = () => {},
-	onEditBusiness = () => {},
+	onAddBusiness = () => { },
+	onEditBusiness = () => { },
 	onViewBusiness,
 	onCancelBusiness,
-	onGlobalSearch = () => {},
+	onGlobalSearch,
 	onPageChange,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
