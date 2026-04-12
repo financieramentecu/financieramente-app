@@ -1,5 +1,7 @@
 'use client'
 
+// Editable commission/distribution percentages SHOULD use this field (RF-01/RF-02, cross-module UI spec).
+
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { getAppLocale } from '@/features/shared/lib/app-locale'

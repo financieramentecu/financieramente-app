@@ -35,6 +35,22 @@ describe('Commission Rule Schemas', () => {
 				)
 			}
 		})
+
+		it('should reject undefined percentage (RF-02 empty state)', () => {
+			const result = categoryPercentageSchema.safeParse({
+				idCategory: 1,
+				percentage: undefined,
+			})
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(result.error.issues[0].message).toContain('número')
+			}
+		})
+
+		it('should reject missing percentage key', () => {
+			const result = categoryPercentageSchema.safeParse({ idCategory: 1 })
+			expect(result.success).toBe(false)
+		})
 	})
 
 	describe('createCommissionRuleSchema', () => {
@@ -102,6 +118,15 @@ describe('Commission Rule Schemas', () => {
 				],
 			}
 			expect(createCommissionRuleSchema.safeParse(valid).success).toBe(true)
+		})
+
+		it('should reject category line with undefined percentage', () => {
+			const invalid = {
+				idProductConfiguration: 10,
+				description: 'X',
+				categories: [{ idCategory: 1, percentage: undefined }],
+			}
+			expect(createCommissionRuleSchema.safeParse(invalid).success).toBe(false)
 		})
 	})
 

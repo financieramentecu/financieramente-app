@@ -1,5 +1,6 @@
 import { Trash2 } from 'lucide-react'
-import type { Control } from 'react-hook-form'
+import type { Control, FieldPath } from 'react-hook-form'
+import { useFormContext } from 'react-hook-form'
 import type { Category } from '@/features/categories/types/category.types'
 import type {
 	CreateCommissionRuleFormData,
@@ -41,6 +42,10 @@ export function CategoryPercentageRow({
 	selectedCategoryIds,
 	onRemove,
 }: CategoryPercentageRowProps) {
+	const { trigger } = useFormContext<CommissionRuleFormData>()
+	const percentagePath =
+		`categories.${index}.percentage` as FieldPath<CommissionRuleFormData>
+
 	return (
 		<div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-start sm:gap-5 sm:py-5">
 			<FormField
@@ -95,7 +100,12 @@ export function CategoryPercentageRow({
 							<PercentageField
 								value={field.value}
 								onChange={field.onChange}
-								onBlur={field.onBlur}
+								onBlur={() => {
+									field.onBlur()
+									queueMicrotask(() => {
+										void trigger(percentagePath)
+									})
+								}}
 								name={field.name}
 								ref={field.ref}
 							/>

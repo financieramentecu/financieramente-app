@@ -1,25 +1,6 @@
-# Spec: Commission distribution UI
+# Delta for Commission distribution UI
 
-## Purpose
-
-Validation and UX rules for **per-category distribution percentages** on commission rules (distribución de comisiones), aligned with PRD RF-01, **RF-02**, and RF-05.
-
-## Requirements
-
-### Requirement: Valid range for each category line
-
-The system SHALL NOT accept a saved category distribution percentage outside **[1, 100]** on the 0–100 scale. Negative values SHALL NOT be accepted. Violations SHALL be communicated **on save attempt** and **when the user finishes editing** that percentage field, per **Validation feedback on blur for category percentages (RF-02)**.
-
-#### Scenario: User enters zero
-
-- **GIVEN** a commission rule form with at least one category line
-- **WHEN** the user sets a line percentage to `0` and submits **or** leaves the field after committing `0`
-- **THEN** the system SHALL surface a validation error for that line
-
-#### Scenario: User enters above 100
-
-- **WHEN** the user sets a line percentage above `100` and submits **or** leaves the field after committing that value
-- **THEN** the system SHALL surface a validation error for that line
+## ADDED Requirements
 
 ### Requirement: No silent coercion of cleared percentage (RF-02)
 
@@ -66,28 +47,25 @@ For each **per-category distribution percentage** field on the commission rule f
 - **THEN** the system SHALL enforce the same numeric and sum rules as before this change
 - **AND** invalid submissions SHALL be blocked with clear messages
 
-### Requirement: Sum of category percentages per rule
+## MODIFIED Requirements
 
-The system SHALL NOT persist a commission rule whose category lines sum to **more than 100** (on the 0–100 scale) for distribution percentages on the same rule.
+### Requirement: Valid range for each category line
 
-#### Scenario: Sum exceeds 100
+The system SHALL NOT accept a saved category distribution percentage outside **[1, 100]** on the 0–100 scale. Negative values SHALL NOT be accepted. Violations SHALL be communicated **on save attempt** and **when the user finishes editing** that percentage field, per **Validation feedback on blur for category percentages (RF-02)**.
 
-- **GIVEN** two lines with percentages `60` and `50`
-- **WHEN** the user attempts to save
-- **THEN** the system SHALL reject the operation with a clear validation message
+(Previously: enforcement described only implicitly at submit via scenarios.)
 
-#### Scenario: Sum exactly 100
+#### Scenario: User enters zero
 
-- **GIVEN** lines that sum to `100`
-- **WHEN** the user saves
-- **THEN** the system SHALL accept the operation if all other validations pass
+- **GIVEN** a commission rule form with at least one category line
+- **WHEN** the user sets a line percentage to `0` and submits **or** leaves the field after committing `0`
+- **THEN** the system SHALL surface a validation error for that line
 
-### Requirement: Cross-module percentage display consistency
+#### Scenario: User enters above 100
 
-Screens that show **commission distribution percentages** (same meaning as `porcentaje_distribucion`) SHALL use the shared UI percentage formatter (locale, precision, adornment).
+- **WHEN** the user sets a line percentage above `100` and submits **or** leaves the field after committing that value
+- **THEN** the system SHALL surface a validation error for that line
 
-#### Scenario: Another module shows that percent read-only
+## REMOVED Requirements
 
-- **GIVEN** a modal or table shows that semantic percent
-- **WHEN** it renders read-only
-- **THEN** formatting SHALL match the shared UI rules
+(None)
