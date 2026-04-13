@@ -11,7 +11,6 @@ import {
 	CardContent,
 	CardDescription,
 	CardHeader,
-	CardTitle,
 } from '@/features/shared/ui/card'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { useProductConfiguration } from '@/features/product-configuration/hooks/use-product-configuration'
