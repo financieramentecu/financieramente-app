@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/features/shared/ui/button'
 import { AlertModal } from '@/features/shared/ui/modal'
-import { FileUp, X } from 'lucide-react'
+import { FileUp, X, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { validateExcelStructure } from '../lib/validate-excel-structure'
 import { processExcelFile } from '../lib/process-excel-file'
@@ -38,6 +39,7 @@ const ACCEPTED_FILE_TYPES = [
 const ACCEPTED_EXTENSIONS = ['.xlsx', '.xls', '.csv']
 
 export function CargarArchivoTab() {
+	const router = useRouter()
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
 	const [selectedFileType, setSelectedFileType] = useState<FileType | ''>('')
 	const [selectedMonth, setSelectedMonth] = useState<number>(() => getDefaultPeriod().month)
@@ -513,11 +515,20 @@ export function CargarArchivoTab() {
 					<div className="flex justify-center pt-4">
 						<Button
 							onClick={handleUploadAnother}
-							className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
+							variant="outline"
+							className="px-8"
 							size="lg"
 						>
 							<FileUp className="h-5 w-5 mr-2" />
-							Subir otro y volver al estado inicial
+							Subir otro
+						</Button>
+						<Button
+							onClick={() => router.push(`/dashboard/pre-liquidacion/${currentFileImportId}`)}
+							className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
+							size="lg"
+						>
+							<ArrowRight className="h-5 w-5 mr-2" />
+							Ir a preliquidar
 						</Button>
 					</div>
 				</div>

@@ -41,8 +41,8 @@ export default function CargaArchivosPage() {
 				<Tabs defaultValue="cargar" className="space-y-4">
 					<TabsList>
 						<TabsTrigger value="cargar">Cargar archivo</TabsTrigger>
-						<TabsTrigger value="archivos">Archivos</TabsTrigger>
-						<TabsTrigger value="historial">Historial</TabsTrigger>
+						<TabsTrigger value="archivos">En proceso</TabsTrigger>
+						<TabsTrigger value="historial">Historial de cargas</TabsTrigger>
 					</TabsList>
 
 					<TabsContent value="cargar">
@@ -51,16 +51,18 @@ export default function CargaArchivosPage() {
 
 					<TabsContent value="archivos">
 						<HistorialCargasTab
-							allowedStatuses={['LOAD', 'PRE-SETTLED']}
+							allowedStatuses={['PROCESSING', 'PRE-SETTLED', 'LOAD']}
 							canDeleteFn={canDeleteActiveFile}
+							showPreliquidarAction={true}
 						/>
 					</TabsContent>
 
 					<TabsContent value="historial">
 						<HistorialCargasTab
-							allowedStatuses={['COMPLETED']}
+							allowedStatuses={['COMPLETED', 'ERROR', 'CANCELADO']}
 							canDeleteFn={canDeleteCompletedFile}
-							emptyStateDescription="No hay archivos completados"
+							emptyStateDescription="No hay archivos en el historial"
+							showPreliquidarAction={false}
 						/>
 					</TabsContent>
 				</Tabs>
