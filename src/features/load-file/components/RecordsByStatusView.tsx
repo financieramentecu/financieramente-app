@@ -18,7 +18,17 @@ import type {
 	FileImportRecordStatusFilter,
 } from '../types/load-file.types'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
-import { ChevronLeft, ChevronRight, CircleCheck, CircleX, CircleOff, Clock, SearchX, Inbox } from 'lucide-react'
+import {
+	ChevronLeft,
+	ChevronRight,
+	CircleCheck,
+	CircleX,
+	CircleOff,
+	Clock,
+	SearchX,
+	Inbox,
+	type LucideIcon,
+} from 'lucide-react'
 
 const PAGE_SIZE = 20
 
@@ -66,7 +76,7 @@ function StatusEmptyState({
 	compact,
 }: {
 	message: string
-	icon: any
+	icon: LucideIcon
 	compact?: boolean
 }) {
 	return (
