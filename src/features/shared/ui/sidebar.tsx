@@ -517,7 +517,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = 'SidebarMenuItem'
 
 const sidebarMenuButtonVariants = cva(
-	'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
+	'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:min-w-0 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
 	{
 		variants: {
 			variant: {
@@ -560,10 +560,51 @@ const SidebarMenuButton = React.forwardRef<
 	) => {
 		const Comp = asChild ? Slot : 'button'
 		const { isMobile, state } = useSidebar()
+		const localRef = React.useRef<HTMLElement | null>(null)
+		const [labelTruncated, setLabelTruncated] = React.useState(false)
+
+		const setRefs = React.useCallback(
+			(node: HTMLElement | null) => {
+				localRef.current = node
+				if (typeof ref === 'function') {
+					ref(node as HTMLButtonElement)
+				} else if (ref) {
+					;(ref as React.MutableRefObject<HTMLElement | null>).current = node
+				}
+			},
+			[ref]
+		)
+
+		const measureLabelTruncation = React.useCallback(() => {
+			const root = localRef.current
+			if (!root) {
+				setLabelTruncated(false)
+				return
+			}
+			let truncated = false
+			for (const child of root.children) {
+				if (child instanceof HTMLElement && child.tagName === 'SPAN') {
+					if (child.scrollWidth > child.clientWidth) {
+						truncated = true
+						break
+					}
+				}
+			}
+			setLabelTruncated(truncated)
+		}, [])
+
+		React.useLayoutEffect(() => {
+			const root = localRef.current
+			if (!root) return
+			measureLabelTruncation()
+			const ro = new ResizeObserver(() => measureLabelTruncation())
+			ro.observe(root)
+			return () => ro.disconnect()
+		}, [measureLabelTruncation])
 
 		const button = (
 			<Comp
-				ref={ref}
+				ref={setRefs}
 				data-sidebar="menu-button"
 				data-size={size}
 				data-active={isActive}
@@ -576,21 +617,27 @@ const SidebarMenuButton = React.forwardRef<
 			return button
 		}
 
+		let tooltipProps: React.ComponentProps<typeof TooltipContent>
 		if (typeof tooltip === 'string') {
-			tooltip = {
+			tooltipProps = {
 				children: tooltip,
 			}
+		} else {
+			tooltipProps = { ...tooltip }
+		}
+
+		// No tooltip on touch; expanded + full label: skip wrapper (avoids broken `hidden` on Content).
+		const showTooltip =
+			!isMobile && (state === 'collapsed' || labelTruncated)
+
+		if (!showTooltip) {
+			return button
 		}
 
 		return (
 			<Tooltip>
 				<TooltipTrigger asChild>{button}</TooltipTrigger>
-				<TooltipContent
-					side="right"
-					align="center"
-					hidden={state !== 'collapsed' || isMobile}
-					{...tooltip}
-				/>
+				<TooltipContent side="right" align="center" {...tooltipProps} />
 			</Tooltip>
 		)
 	}
@@ -733,7 +780,7 @@ const SidebarMenuSubButton = React.forwardRef<
 				'active:bg-sidebar-accent/50 active:text-sidebar-accent-foreground',
 				'disabled:pointer-events-none disabled:opacity-50',
 				'aria-disabled:pointer-events-none aria-disabled:opacity-50',
-				'[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
+				'[&>span:last-child]:min-w-0 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
 				'data-[active=true]:bg-sidebar-accent/70 data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium',
 				size === 'sm' && 'text-xs',
 				size === 'md' && 'text-sm',

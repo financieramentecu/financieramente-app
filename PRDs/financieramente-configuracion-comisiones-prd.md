@@ -9,7 +9,7 @@
 
 ## 1. Resumen ejecutivo
 
-Tres conceptos: **A** configuración de producto (matriz producto + origen + categoría), **B** PPC (versiones de comisión), **C** reparto por categoría. Problemas: descubrimiento del flujo, % en UI, inputs que no dejan borrar, cartera en BD no administrada en CRUD, menú sin “Distribución”. Este PRD pide: navegación clara, % en unidades, inputs corregidos, **`hasPortfolio` en PPC**, columna % cartera → `porcentaje_portfolio` sin wipe al apagar flag, UI/UX profesional, y alineación técnica documentada.
+Tres conceptos: **A** configuración de producto (matriz producto + origen + categoría), **B** PPC (versiones de comisión), **C** reparto por categoría. Problemas: descubrimiento del flujo, % en UI, inputs que no dejan borrar, cartera en BD no administrada en CRUD. Este PRD pide: navegación clara (incluido **flujo nuevo** por menú **Config. distribución de comisiones** sin romper el acceso actual desde **Config. Producto**), % en unidades, inputs corregidos, **`hasPortfolio` en PPC**, columna % cartera → `porcentaje_portfolio` sin wipe al apagar flag, UI/UX profesional, y alineación técnica documentada.
 
 ---
 
@@ -29,7 +29,7 @@ Tres conceptos: **A** configuración de producto (matriz producto + origen + cat
 
 ## 3. Contexto
 
-Menú: Config. Producto sí; distribución vía enlaces. Form fuerza `''→0` en %. API no persiste `porcentaje_portfolio`. Pre-liquidación usa `originCommission === 'CARTERA'`. Pros/contras detallados: **MAPA §D contexto** y tabla riesgos abajo.
+Menú: **Config. Producto** sí; distribución hoy vía enlaces y `/dashboard/distribucion-comisiones` (**flujo actual por `id`**). **Acuerdo:** añadir ítem **Config. distribución de comisiones** para un **flujo paralelo** por **`code`** (MAPA **M17**), **sin** alterar el comportamiento del flujo actual salvo decisión explícita de producto. Form historial: `''→0` en %; API y cartera según evolución documentada en MAPA. Pre-liquidación usa `originCommission === 'CARTERA'`. Pros/contras: **MAPA §D** y tabla riesgos abajo.
 
 ---
 
@@ -43,8 +43,10 @@ Descubrimiento A→B→C, % humanos, inputs fluidos, cartera admin, shadcn/share
 
 ## 5. Navegación y flujo
 
-- Ítem menú **Distribución de comisiones** recomendado (M2); copy A↔B/C.
-- Lista distribución = lista A (M3); **evolución deseada (M11):** pantalla con **combo por código** + empty state + tabla B solo con A elegida (detalle en MAPA).
+- **Dos entradas coexisten (M2 + M3 + M17):**
+  1. **Flujo actual (legado):** desde **Config. Producto** → enlace por **`id`** → `/dashboard/distribucion-comisiones` y rutas `[id]/reglas` (lista de configuraciones A como hoy). **No** debe romperse al introducir RF-06.
+  2. **Flujo nuevo:** ítem **Administración → Config. distribución de comisiones** → prefijo de rutas dedicado (propuesta MAPA: `/dashboard/config-distribucion-comisiones`) → **solo** selección por **`code`**, empty state, tabla **B** de la A elegida, deep links por **`code`**.
+- Copy A↔B/C en ambos recorridos donde aplique.
 - **`financieramnete.pen`:** 4 marcos + glosario; tokens `#00545c`, etc. (MAPA §I).
 
 ### 5.4 Wizard
@@ -62,24 +64,25 @@ Hoy no hay wizard en código para Nuevo Producto ni para Nueva configuración (f
 | RF-03 | `hasPortfolio` en contexto **comisión por categoría (PPC / C)**; sin regla de liquidación hoy |
 | RF-04 | Si `hasPortfolio` off: **ocultar** columnas/inputs cartera; no borrar `porcentaje_portfolio` en BD |
 | RF-05 | Rango **1–100** por campo; suma de `porcentaje_distribucion` (C) por B **≤ 100**; con `hasPortfolio`, misma regla de rango/suma para **cartera** por C; BD hasta **6** decimales |
-| RF-06 | Distribución: **solo** filtro/selección por **código** A; sin código elegido → empty state; deep link **por `code`** |
+| RF-06 | **Flujo nuevo** (menú **Config. distribución de comisiones**, MAPA M17): **solo** filtro/selección por **código** A; sin código elegido → empty state; deep link **por `code`**. **Flujo actual** por **`id`** se mantiene en paralelo |
 | RF-07 | `code` generado al crear A (`PRODUCTO-ORIGEN-CATEGORIA`); **NOT NULL**, único, **no editable**; visible admin y operación |
 | RF-08 | Descripción PPC **opcional** (puede quedar vacía); editable sin restricciones |
 | RF-09 | Sin columna «Distribución para nuevos negocios» en listado A; sin excepción por rol |
 | RF-10 | Acción explícita **«Asignada a nuevos negocios»**; **activa** solo informativa; al asignar, desactivar la otra; acciones en fila **sin** menú ⋮ |
 | RF-11 | Wizard post-crear A (datos **de A**); no bloquea negocios; indicador de incompleto; reanudación por definir; sin límite de tiempo |
 
-**Índice M1–M16 y auditoría de cobertura:** [MAPA §D y §L](./MAPA-topic-ux-product-config-commission-prd.md).
+**Índice M1–M17 y auditoría de cobertura:** [MAPA §D y §L](./MAPA-topic-ux-product-config-commission-prd.md).
 
 ### 6.1 Detalle por RF (acuerdo producto)
 
 **RF-01 — Presentación y comportamiento de porcentajes (detalle 2026-04)**
 
-- **Alcance y rutas (confirmado):** mismas superficies que hoy listan o editan porcentajes en **distribución de comisiones**, en coherencia con el listado actual del módulo. Rutas de referencia (MAPA §G):  
+- **Alcance y rutas (confirmado):** mismas superficies que listan o editan porcentajes en **distribución de comisiones**, en coherencia con el módulo — **incluidas** las rutas del **flujo nuevo** por `code` cuando existan (MAPA §G). Rutas de referencia **legado**:  
   `/dashboard/distribucion-comisiones`,  
   `/dashboard/distribucion-comisiones/[id]/reglas`,  
   `/dashboard/distribucion-comisiones/[id]/reglas/crear`,  
   `/dashboard/distribucion-comisiones/[id]/reglas/editar/[ruleId]`.  
+  Rutas **nuevas** (propuesta): bajo `/dashboard/config-distribucion-comisiones/...` con segmento **`[code]`** donde corresponda.  
   Cualquier otra pantalla del producto que muestre los mismos campos (`porcentaje_distribucion`, `porcentaje_portfolio`) debe usar **la misma lógica** (ver punto “cross-módulo”).
 - **Otras pantallas:** no hay exclusiones; toda superficie que muestre `porcentaje_distribucion` / `porcentaje_portfolio` debe usar la misma lógica (**cross-módulo** abajo).
 
@@ -125,11 +128,12 @@ Hoy no hay wizard en código para Nuevo Producto ni para Nueva configuración (f
 - **Entrada en UI:** hasta **4** decimales (locale de la app). **Persistencia en BD:** hasta **6** decimales (ajustar esquema/API si hoy es menor).
 - **Presentación cargada desde servidor:** según **RF-01** (sin redondeo/truncado en cliente; relleno a 4 decimales para valores enteros).
 
-**RF-06 — Pantalla distribución (M11)**
+**RF-06 — Pantalla distribución (M11 + M17)**
 
-- El **código** de A es **obligatorio** en datos: se genera al crear la configuración de producto; el usuario **debe seleccionar un código** en la pantalla de distribución para ver la tabla de esquemas **B** de esa A.
-- **Único filtro MVP:** búsqueda/selección por **código** (sin filtros adicionales por empresa/producto/origen en esta ola).
-- Enlaces desde configuración de producto: deep link usando **`code`** (no solo `id`).
+- **Alcance UX:** aplica al **flujo nuevo** entrando por **Config. distribución de comisiones** (MAPA §G rutas `config-distribucion-comisiones`). El **flujo actual** (`/dashboard/distribucion-comisiones` y `[id]/reglas`) **permanece**; RF-06 **no** lo reemplaza por defecto.
+- El **código** de A es **obligatorio** en datos (M12 / RF-07): se genera al crear la configuración; en el **flujo nuevo**, el usuario **debe seleccionar un `code`** para ver la tabla de esquemas **B** de esa A.
+- **Único filtro MVP** (flujo nuevo): búsqueda/selección por **código** (sin filtros adicionales por empresa/producto/origen en esta ola).
+- Enlaces desde **Config. Producto** hacia el flujo nuevo: deep link usando **`code`** hacia el prefijo del flujo nuevo; el enlace por **`id`** al legado puede **coexistir**.
 
 **RF-07 — Código de configuración A (M12)**
 
@@ -200,7 +204,7 @@ Rutas y API: **MAPA §G**. Código: **MAPA §H**.
 
 ---
 
-## 13. Anexo M1–M16
+## 13. Anexo M1–M17
 
 Texto íntegro de cada decisión: **MAPA §D**.
 

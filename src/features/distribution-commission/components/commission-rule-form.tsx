@@ -52,14 +52,20 @@ interface CommissionRuleFormProps {
 	productConfigId: number
 	initialData?: CommissionRule
 	mode: 'create' | 'edit'
+	/** Base path without `/reglas` (e.g. `/dashboard/distribucion-comisiones/1` or code-based path). */
+	distributionBasePath?: string
 }
 
 export function CommissionRuleForm({
 	productConfigId,
 	initialData,
 	mode,
+	distributionBasePath,
 }: CommissionRuleFormProps) {
 	const router = useRouter()
+	const rulesBasePath =
+		distributionBasePath ??
+		`/dashboard/distribucion-comisiones/${productConfigId}`
 	const { create, update, isCreating, isUpdating } =
 		useCommissionRuleMutations(productConfigId)
 	const [showImpactDialog, setShowImpactDialog] = useState(false)
@@ -173,9 +179,7 @@ export function CommissionRuleForm({
 						} exitosamente.`,
 					}
 				)
-				router.push(
-					`/dashboard/distribucion-comisiones/${productConfigId}/reglas`
-				)
+				router.push(`${rulesBasePath}/reglas`)
 			} else {
 				toast.error('Error', {
 					description: `No se pudo ${
