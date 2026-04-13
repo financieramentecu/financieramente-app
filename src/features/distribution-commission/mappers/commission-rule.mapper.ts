@@ -16,7 +16,8 @@ type PrismaCommissionRuleCategory = {
 	id: number
 	idCategory: number
 	idProductPercentageCommission: number
-	porcentajeDistribucion: DecimalLike // Prisma Decimal
+	porcentajeDistribucion: DecimalLike
+	porcentajePortfolio?: DecimalLike | null
 	active: boolean
 	createdAt: Date
 	updatedAt: Date
@@ -31,18 +32,19 @@ type PrismaCommissionRule = {
 	idProductConfiguration: number
 	description: string | null
 	active: boolean
+	hasPortfolio?: boolean
 	createdAt: Date
 	updatedAt: Date
 	productPercentageCommissionCategories?: PrismaCommissionRuleCategory[]
 }
 
-function fractionToPercent0to100(porcentajeDistribucion: DecimalLike): number {
+function fractionToPercent0to100(value: DecimalLike): number {
 	const asString =
-		typeof porcentajeDistribucion === 'object' &&
-		porcentajeDistribucion !== null &&
-		'toString' in porcentajeDistribucion
-			? (porcentajeDistribucion as { toString(): string }).toString()
-			: String(porcentajeDistribucion)
+		typeof value === 'object' &&
+		value !== null &&
+		'toString' in value
+			? (value as { toString(): string }).toString()
+			: String(value)
 	return new Decimal(asString).times(100).toNumber()
 }
 
@@ -52,11 +54,19 @@ function fractionToPercent0to100(porcentajeDistribucion: DecimalLike): number {
 export function prismaCommissionRuleCategoryToDomain(
 	prisma: PrismaCommissionRuleCategory
 ): CommissionRuleCategory {
+	const porcentajePortfolio =
+		prisma.porcentajePortfolio != null
+			? fractionToPercent0to100(prisma.porcentajePortfolio)
+			: undefined
+
 	return {
 		id: prisma.id,
 		idCategory: prisma.idCategory,
 		idProductPercentageCommission: prisma.idProductPercentageCommission,
 		porcentajeDistribucion: fractionToPercent0to100(prisma.porcentajeDistribucion),
+		...(porcentajePortfolio !== undefined
+			? { porcentajePortfolio }
+			: {}),
 		active: prisma.active,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
@@ -80,6 +90,7 @@ export function prismaCommissionRuleToDomain(
 		idProductConfiguration: prisma.idProductConfiguration,
 		description: prisma.description,
 		active: prisma.active,
+		hasPortfolio: prisma.hasPortfolio ?? false,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
 		categories: prisma.productPercentageCommissionCategories

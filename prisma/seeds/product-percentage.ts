@@ -42,12 +42,13 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 		return
 	}
 
+	// Fracciones 0–1; en UI se muestran como %. La suma por PPC debe ser 1.0 (≤100%).
 	const configs = [
 		{
 			origin: clientOriginPropio,
 			category: catJunior,
 			percentages: [
-				{ targetCat: catGeneral, pct: 1.0 },
+				{ targetCat: catGeneral, pct: 0.15 },
 				{ targetCat: catAgencia, pct: 0.3 },
 				{ targetCat: catLider, pct: 0.1 },
 				{ targetCat: catCoach, pct: 0.05 },
@@ -58,11 +59,11 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 			origin: clientOriginPropio,
 			category: catSenior,
 			percentages: [
-				{ targetCat: catGeneral, pct: 1.0 },
+				{ targetCat: catGeneral, pct: 0.15 },
 				{ targetCat: catAgencia, pct: 0.3 },
 				{ targetCat: catLider, pct: 0.1 },
 				{ targetCat: catCoach, pct: 0.05 },
-				{ targetCat: catSenior, pct: 0.55 },
+				{ targetCat: catSenior, pct: 0.4 },
 			],
 		},
 	]

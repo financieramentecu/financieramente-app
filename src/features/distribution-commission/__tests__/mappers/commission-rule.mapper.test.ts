@@ -89,6 +89,23 @@ describe('Commission Rule Mappers', () => {
 				name: 'Test Category',
 			})
 		})
+
+		it('should map porcentajePortfolio when present', () => {
+			const prismaCategory = {
+				id: 10,
+				idCategory: 100,
+				idProductPercentageCommission: 50,
+				porcentajeDistribucion: mockDecimal(0.5),
+				porcentajePortfolio: mockDecimal(0.2),
+				active: true,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			}
+
+			const domain = prismaCommissionRuleCategoryToDomain(prismaCategory)
+			expect(domain.porcentajeDistribucion).toBe(50)
+			expect(domain.porcentajePortfolio).toBe(20)
+		})
 	})
 
 	describe('prismaCommissionRuleToDomain', () => {
@@ -98,6 +115,7 @@ describe('Commission Rule Mappers', () => {
 				idProductConfiguration: 5,
 				description: 'Test Rule',
 				active: true,
+				hasPortfolio: false,
 				createdAt: new Date('2023-01-01T00:00:00Z'),
 				updatedAt: new Date('2023-01-01T00:00:00Z'),
 				productPercentageCommissionCategories: [
@@ -117,6 +135,7 @@ describe('Commission Rule Mappers', () => {
 
 			expect(domain.id).toBe(1)
 			expect(domain.description).toBe('Test Rule')
+			expect(domain.hasPortfolio).toBe(false)
 			expect(domain.categories).toHaveLength(1)
 			expect(domain.categories[0].porcentajeDistribucion).toBe(20)
 		})
@@ -133,6 +152,7 @@ describe('Commission Rule Mappers', () => {
 			}
 
 			const domain = prismaCommissionRuleToDomain(prismaRule)
+			expect(domain.hasPortfolio).toBe(false)
 			expect(domain.categories).toEqual([])
 		})
 	})

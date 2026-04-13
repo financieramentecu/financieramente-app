@@ -101,6 +101,11 @@ Manages the configuration linking Products, Companies, and Commissions.
 | `GET`  | `/api/product-configurations/[id]`      | Get configuration details.                       |
 | `PUT`  | `/api/product-configurations/[id]`      | Update configuration.                            |
 | `GET`  | `/api/product-configurations/[id]/ppcs` | Get Product Percentage Commissions for a config. |
+| `GET`  | `/api/product-configurations/[id]/distribution-commission` | List commission rules (paginated). Rules include `hasPortfolio` and optional per-line `porcentajePortfolio` (0–100 in JSON). |
+| `POST` | `/api/product-configurations/[id]/distribution-commission` | Create commission rule. Body: `description`, `hasPortfolio` (boolean, default false), `categories[]` with `percentage` and `portfolioPercentage` (0–100 each; API stores fractions). |
+| `GET`  | `/api/product-configurations/[id]/distribution-commission/[ruleId]` | Get one rule. |
+| `PUT`  | `/api/product-configurations/[id]/distribution-commission/[ruleId]` | Update rule and optional category lines. If `hasPortfolio` is false after save, prior `porcentaje_portfolio` per category is preserved when lines are recreated (RF-04). |
+| `PATCH` | `/api/product-configurations/[id]/distribution-commission/[ruleId]` | Toggle `active` only. |
 
 #### Example: Create Config (`POST /api/product-configurations`)
 

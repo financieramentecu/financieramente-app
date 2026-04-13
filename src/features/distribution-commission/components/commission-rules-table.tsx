@@ -24,16 +24,25 @@ import { ColumnDef } from '@tanstack/react-table'
 import { formatPercentDisplay } from '@/features/shared/lib/format-percent'
 import { getAppLocale } from '@/features/shared/lib/app-locale'
 
+/** Badges de % en tabla: verde oscuro, texto blanco (distribución y cartera). */
+const READONLY_PERCENT_BADGE_CLASS =
+	'h-auto shrink-0 max-w-full whitespace-normal break-words rounded-md border-transparent bg-emerald-900 px-2 py-1 text-left text-[10px] font-medium leading-snug text-white shadow-none hover:bg-emerald-900'
+
 interface CommissionRulesTableProps {
 	data: CommissionRule[]
 	productConfigId: number
 	onAssignmentSuccess?: () => void
+	/** Si se define, el buscador del DataTable dispara búsqueda en servidor (p. ej. descripción). */
+	onSearchChange?: (query: string) => void
+	searchPlaceholder?: string
 }
 
 export function CommissionRulesTable({
 	data,
 	productConfigId,
 	onAssignmentSuccess,
+	onSearchChange,
+	searchPlaceholder,
 }: CommissionRulesTableProps) {
 	const { toggleActive, assignNewBusinesses } = useCommissionRuleMutations(
 		productConfigId,
@@ -41,6 +50,11 @@ export function CommissionRulesTable({
 	)
 	const [togglingId, setTogglingId] = useState<number | null>(null)
 	const [assigningId, setAssigningId] = useState<number | null>(null)
+
+	const showPortfolioColumn = useMemo(
+		() => data.some((r) => r.hasPortfolio),
+		[data]
+	)
 
 	const handleToggleActive = async (rule: CommissionRule) => {
 		// If trying to activate, check if another distribution is already active
@@ -105,14 +119,18 @@ export function CommissionRulesTable({
 		}
 	}
 
-	const columns = useMemo<ColumnDef<CommissionRule>[]>(
-		() => [
+	const columns = useMemo<ColumnDef<CommissionRule>[]>(() => {
+		const cols: ColumnDef<CommissionRule>[] = [
 			{
 				accessorKey: 'description',
-				header: ({ column }) => <DataTableColumnHeader column={column} title="Descripción" />,
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Descripción" />
+				),
 				cell: ({ row }) => (
 					<div className="flex flex-wrap items-center gap-2">
-						<span className="font-medium">{row.original.description || 'Sin descripción'}</span>
+						<span className="font-medium">
+							{row.original.description || 'Sin descripción'}
+						</span>
 						{row.original.isDefaultForNewBusinesses && (
 							<Badge
 								variant="secondary"
@@ -127,12 +145,22 @@ export function CommissionRulesTable({
 			},
 			{
 				id: 'categories',
-				header: ({ column }) => <DataTableColumnHeader column={column} title="Categorías/Distribución" />,
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title="Categorías/Distribución"
+					/>
+				),
 				cell: ({ row }) => (
-					<div className="flex flex-wrap gap-1">
-						{row.original.categories && row.original.categories.length > 0 ? (
+					<div className="flex min-w-0 max-w-xl flex-wrap content-start items-start gap-x-2 gap-y-2">
+						{row.original.categories &&
+						row.original.categories.length > 0 ? (
 							row.original.categories.map((cat) => (
-								<Badge key={cat.idCategory} variant="outline" className="text-[10px]">
+								<Badge
+									key={cat.idCategory}
+									variant="outline"
+									className={READONLY_PERCENT_BADGE_CLASS}
+								>
 									{cat.category?.name || `Cat ${cat.idCategory}`}:{' '}
 									{formatPercentDisplay(
 										cat.porcentajeDistribucion,
@@ -148,9 +176,58 @@ export function CommissionRulesTable({
 					</div>
 				),
 			},
+		]
+
+		if (showPortfolioColumn) {
+			cols.push({
+				id: 'portfolio',
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Cartera" />
+				),
+				cell: ({ row }) => {
+					if (!row.original.hasPortfolio) {
+						return (
+							<span className="text-muted-foreground text-sm">—</span>
+						)
+					}
+					if (
+						!row.original.categories ||
+						row.original.categories.length === 0
+					) {
+						return (
+							<span className="text-muted-foreground text-sm">—</span>
+						)
+					}
+					return (
+						<div className="flex min-w-0 max-w-xl flex-wrap content-start items-start gap-x-2 gap-y-2">
+							{row.original.categories.map((cat) => (
+								<Badge
+									key={cat.idCategory}
+									variant="secondary"
+									className={READONLY_PERCENT_BADGE_CLASS}
+								>
+									{cat.category?.name || `Cat ${cat.idCategory}`}{' '}
+									cartera:{' '}
+									{cat.porcentajePortfolio != null
+										? formatPercentDisplay(
+												cat.porcentajePortfolio,
+												getAppLocale()
+											)
+										: '—'}
+								</Badge>
+							))}
+						</div>
+					)
+				},
+			})
+		}
+
+		cols.push(
 			{
 				accessorKey: 'active',
-				header: ({ column }) => <DataTableColumnHeader column={column} title="Estado" />,
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Estado" />
+				),
 				cell: ({ row }) => (
 					<Switch
 						checked={row.original.active}
@@ -161,7 +238,9 @@ export function CommissionRulesTable({
 			},
 			{
 				accessorKey: 'createdAt',
-				header: ({ column }) => <DataTableColumnHeader column={column} title="Fecha Creación" />,
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Fecha Creación" />
+				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground text-sm">
 						{format(new Date(row.original.createdAt), 'dd/MM/yyyy', {
@@ -169,17 +248,21 @@ export function CommissionRulesTable({
 						})}
 					</span>
 				),
-			},
-		],
+			}
+		)
+
+		return cols
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[togglingId]
-	)
+	}, [showPortfolioColumn, togglingId])
 
 	return (
 		<DataTable
 			columns={columns}
 			data={data}
 			emptyMessage="No hay distribuciones de comisión registradas."
+			onGlobalSearch={onSearchChange}
+			searchDebounceMs={0}
+			searchPlaceholder={searchPlaceholder}
 			actions={(rule) => (
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>

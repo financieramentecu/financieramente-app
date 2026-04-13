@@ -45,31 +45,25 @@ export function normalizePercentPaste(raw: string, locale: string): string {
 	return formatter.format(n).replace(/\u00a0/g, '')
 }
 
-function isEffectivelyInteger(n: number): boolean {
-	return Math.abs(n - Math.round(n)) < 1e-9
-}
-
 /**
- * Read-only percent on 0–100 scale: no extra client rounding; integers padded to 4 dp; trailing `%`.
+ * Read-only percent on 0–100 scale: up to 6 fraction digits, no trailing zeros; trailing `%`.
  */
 export function formatPercentDisplay(
 	percent0to100: number,
 	locale: string = getAppLocale()
 ): string {
 	if (!Number.isFinite(percent0to100)) {
-		const sep = getDecimalSeparator(locale)
-		return `0${sep}0000%`
+		return '0%'
 	}
 
-	const intish = isEffectivelyInteger(percent0to100)
+	const rounded = Math.round(percent0to100 * 1e6) / 1e6
 	const formatter = new Intl.NumberFormat(locale, {
 		useGrouping: false,
-		...(intish
-			? { minimumFractionDigits: 4, maximumFractionDigits: 4 }
-			: { minimumFractionDigits: 0, maximumFractionDigits: 6 }),
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 6,
 	})
 
-	return `${formatter.format(percent0to100).replace(/\u00a0/g, '')}%`
+	return `${formatter.format(rounded).replace(/\u00a0/g, '')}%`
 }
 
 /** `fraction` in 0–1 (e.g. DB `porcentaje_distribucion`) → same display as `formatPercentDisplay`. */

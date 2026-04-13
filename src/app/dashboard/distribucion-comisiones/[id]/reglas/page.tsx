@@ -4,7 +4,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { useCommissionRules } from '@/features/distribution-commission/hooks/use-commission-rules'
 import { CommissionRulesTable } from '@/features/distribution-commission/components/commission-rules-table'
 import { Button } from '@/features/shared/ui/button'
-import { Input } from '@/features/shared/ui/input'
 import { Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -22,7 +21,7 @@ export default function CommissionRulesPage() {
 	const router = useRouter()
 	const productConfigId = Number(params.id)
 
-	const { data, isLoading, isError, error, filters, setSearch, reload } =
+	const { data, isLoading, isError, error, setSearch, reload } =
 		useCommissionRules(productConfigId)
 
 	const { state: productConfigState } = useProductConfiguration(productConfigId)
@@ -32,17 +31,17 @@ export default function CommissionRulesPage() {
 	}
 
 	return (
-		<DashboardLayout currentPage="Configuración del producto">
+		<DashboardLayout currentPage="Distribución de comisión">
 			<div className="space-y-6">
 				<div className="flex items-center justify-between">
 					<div>
 						<h2 className="text-3xl font-bold tracking-tight">
-							Configuración del producto
+							Distribución de comisión
 						</h2>
 						<p className="text-muted-foreground">
 							{productConfigState.status === 'success' &&
-								productConfigState.data?.code
-								? `Código: ${productConfigState.data.code}`
+							productConfigState.data?.code
+								? `Código producto: ${productConfigState.data.code}`
 								: 'Administra las distribuciones de comisiones para este producto.'}
 						</p>
 					</div>
@@ -68,21 +67,11 @@ export default function CommissionRulesPage() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Distribución de comisión</CardTitle>
 						<CardDescription>
 							Listado de distribuciones de comisión activas e inactivas.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<div className="flex items-center space-x-2">
-							<Input
-								placeholder="Buscar por descripción..."
-								value={filters.search || ''}
-								onChange={(e) => setSearch(e.target.value)}
-								className="max-w-sm"
-							/>
-						</div>
-
 						{isLoading ? (
 							<div className="flex h-24 items-center justify-center">
 								<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -96,6 +85,8 @@ export default function CommissionRulesPage() {
 								data={data}
 								productConfigId={productConfigId}
 								onAssignmentSuccess={reload}
+								onSearchChange={setSearch}
+								searchPlaceholder="Buscar por descripción..."
 							/>
 						)}
 					</CardContent>
