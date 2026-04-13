@@ -84,7 +84,8 @@ export default defineConfig({
 		poolOptions: {
 			threads: {
 				singleThread: false,
-				maxThreads: 4,
+				// CI + coverage is memory-heavy; fewer threads avoids OOM on ubuntu-latest
+				maxThreads: process.env.CI ? 2 : 4,
 				minThreads: 1,
 			},
 		},
