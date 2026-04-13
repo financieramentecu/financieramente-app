@@ -5,6 +5,31 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.4] - 2026-04-13
+
+### Añadido
+
+- **Administración – Config. distribución de comisiones:** Nuevo acceso en el menú lateral (dentro de **Administración**) que abre un flujo donde **identificas la configuración de producto por código** antes de ver la tabla de reglas de distribución. Incluye búsqueda, selección y **enlaces directos** que conservan el código en la URL cuando es válido.
+- **Reglas (flujo por código):** Botón **Buscar nueva distribución** para volver a la pantalla de búsqueda y elegir otra configuración sin perder el contexto del flujo nuevo.
+- **Tabla de reglas de distribución:** Las acciones **Editar** y **Asignar a nuevos negocios** quedan **visibles en cada fila**, sin tener que abrir primero el menú de tres puntos.
+
+### Mejorado
+
+- **Configuración de producto:** El enlace principal **Distribución de Comisión** en el listado lleva al **flujo por código** (ruta nueva del dashboard). Si una fila no tiene código usable (datos heredados), el enlace te dirige a la **entrada de búsqueda** para localizar la configuración correctamente.
+- **Barra lateral y tooltips:** Ajustes en submenús anidados y en tooltips para que textos largos (por ejemplo nombres de secciones) se lean bien y no queden recortados de forma confusa.
+- **Carga de archivos:** Navegación más clara, pestañas tipo tarjeta y etiquetas alineadas con el flujo de archivos e historial.
+
+### Compatibilidad
+
+- Siguen disponibles las URLs **por id** del flujo clásico (`…/distribucion-comisiones/[id]/…`) para favoritos y enlaces antiguos; el listado de configuración de producto ya no usa ese camino como acción principal hacia la distribución.
+
+### Documentación / Interno
+
+- **Base de datos:** Migración Prisma que asegura **código obligatorio y único** en cada configuración de producto. En cada entorno hay que aplicar **`prisma migrate deploy`** (ver runbook del proyecto si hubo estados intermedios de despliegue).
+- **API:** Documentado `GET /api/product-configurations/by-code/[code]` para resolución por código exacto.
+- **OpenSpec:** Requisitos RF-06 / RF-07 integrados en los specs principales (`product-configuration`, `navigation`, `commission-distribution-ui`); cambio OpenSpec correspondiente archivado.
+- **Pruebas:** Scripts de Vitest unificados con la bandera `--run` en los comandos `npm` de test; limpieza menor en mocks de integración.
+
 ## [1.0.0-beta.3] - 2026-04-12
 
 ### Añadido
