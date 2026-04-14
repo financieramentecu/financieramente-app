@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import {
 	Tabs,
@@ -23,6 +24,12 @@ const canDeleteActiveFile = (carga: CargaHistorial): boolean =>
 const canDeleteCompletedFile = (_carga: CargaHistorial): boolean => false
 
 export default function CargaArchivosPage() {
+	const router = useRouter()
+
+	const handleGoToLiquidacion = () => {
+		router.push('/dashboard/liquidaciones')
+	}
+
 	return (
 		<DashboardLayout currentPage="Carga Archivos">
 			<div className="space-y-6">
@@ -51,18 +58,21 @@ export default function CargaArchivosPage() {
 
 					<TabsContent value="archivos">
 						<HistorialCargasTab
-							allowedStatuses={['PROCESSING', 'PRE-SETTLED', 'LOAD']}
+							allowedStatuses={['PROCESSING', 'PRE-SETTLED', 'LOAD', 'COMPLETED']}
 							canDeleteFn={canDeleteActiveFile}
 							showPreliquidarAction={true}
+							onGoToLiquidacion={handleGoToLiquidacion}
 						/>
 					</TabsContent>
 
 					<TabsContent value="historial">
 						<HistorialCargasTab
 							allowedStatuses={['COMPLETED', 'ERROR', 'CANCELADO']}
+							title="Detalle"
 							canDeleteFn={canDeleteCompletedFile}
 							emptyStateDescription="No hay archivos en el historial"
 							showPreliquidarAction={false}
+							onGoToLiquidacion={handleGoToLiquidacion}
 						/>
 					</TabsContent>
 				</Tabs>

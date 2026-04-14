@@ -41,9 +41,11 @@ import type { FileImportStatus } from './ui/FileStatusBadge'
 
 export interface HistorialCargasTabProps {
 	readonly allowedStatuses: FileImportStatus[]
+	readonly title?: string
 	readonly canDeleteFn?: (carga: CargaHistorial) => boolean
 	readonly emptyStateDescription?: string
 	readonly showPreliquidarAction?: boolean
+	readonly onGoToLiquidacion?: () => void
 }
 
 const defaultCanDeleteFn = (carga: CargaHistorial): boolean =>
@@ -51,9 +53,11 @@ const defaultCanDeleteFn = (carga: CargaHistorial): boolean =>
 
 export function HistorialCargasTab({
 	allowedStatuses,
+	title = 'Historial de Cargas',
 	canDeleteFn = defaultCanDeleteFn,
 	emptyStateDescription,
 	showPreliquidarAction = true,
+	onGoToLiquidacion,
 }: HistorialCargasTabProps) {
 	const router = useRouter()
 	const { user } = useAuthSession()
@@ -308,7 +312,7 @@ export function HistorialCargasTab({
 					<div className="flex items-center gap-2">
 						<RefreshCw className="h-5 w-5 text-primary" />
 						<h2 className="text-lg font-semibold text-primary">
-							Historial de Cargas
+							{title}
 						</h2>
 						<Button
 							variant="ghost"
@@ -361,6 +365,7 @@ export function HistorialCargasTab({
 								onPreliquidar={handlePreliquidarClick}
 								onViewDetail={setDetailFileImportId}
 								onGoToPreliquidacion={handleGoToPreliquidacion}
+								onGoToLiquidacion={onGoToLiquidacion}
 							/>
 						))}
 					</div>

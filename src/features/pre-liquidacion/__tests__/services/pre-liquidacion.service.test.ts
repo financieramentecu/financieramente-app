@@ -65,7 +65,7 @@ describe('rezagarRegistros', () => {
 			count: 3,
 		})
 
-		const result = await rezagarRegistros([1, 2, 3], 10)
+		const result = await rezagarRegistros([1, 2, 3], 10, 1)
 
 		expect(prisma.settlementCommission.updateMany).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -84,7 +84,7 @@ describe('rezagarRegistros', () => {
 			})
 		)
 
-		expect(result).toEqual({ lagged: 3 })
+		expect(result).toEqual({ lagged: 3, fileCompleted: false })
 	})
 
 	it('returns lagged=0 when no PRE-SETTLED records match', async () => {
@@ -92,9 +92,9 @@ describe('rezagarRegistros', () => {
 			count: 0,
 		})
 
-		const result = await rezagarRegistros([99], 10)
+		const result = await rezagarRegistros([99], 10, 1)
 
-		expect(result).toEqual({ lagged: 0 })
+		expect(result).toEqual({ lagged: 0, fileCompleted: false })
 	})
 })
 

@@ -65,6 +65,7 @@ export interface FileImportCardProps {
 	readonly onPreliquidar: (carga: CargaHistorial) => void
 	readonly onViewDetail: (id: number) => void
 	readonly onGoToPreliquidacion?: (idFileImport: number) => void
+	readonly onGoToLiquidacion?: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -79,9 +80,11 @@ export function FileImportCard({
 	onDelete,
 	onViewDetail,
 	onGoToPreliquidacion,
+	onGoToLiquidacion,
 }: FileImportCardProps) {
 	const isPreSettled = carga.estado === 'PRE-SETTLED'
 	const isLoad = carga.estado === 'LOAD'
+	const isCompleted = carga.estado === 'COMPLETED'
 
 	return (
 		<div className="bg-muted rounded-lg p-4 border border-border">
@@ -163,6 +166,19 @@ export function FileImportCard({
 						>
 							<Eye className="h-4 w-4 mr-1" />
 							Ver detalle
+						</Button>
+					)}
+
+					{/* Ir a Liquidación — only for COMPLETED */}
+					{isCompleted && onGoToLiquidacion && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={onGoToLiquidacion}
+							className="bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700 cursor-pointer transition-colors duration-200"
+						>
+							<ArrowRight className="h-4 w-4 mr-1" />
+							Ir a Liquidación
 						</Button>
 					)}
 

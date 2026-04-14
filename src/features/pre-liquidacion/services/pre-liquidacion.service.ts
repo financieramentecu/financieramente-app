@@ -797,6 +797,41 @@ async function updateBusinessStatusOnSettle(
 // ---------------------------------------------------------------------------
 
 /**
+ * Checks if a file import has any remaining SYNCHRONIZED or PRE-SETTLED commissions.
+ * If none remain, transitions the file status to COMPLETED.
+ */
+async function checkAndSetFileImportStatus(
+	tx: Prisma.TransactionClient,
+	fileId: number,
+	now: Date
+): Promise<boolean> {
+	const remainingSynchronized = await tx.settlementCommission.count({
+		where: {
+			idFileImport: fileId,
+			status: 'SYNCHRONIZED',
+		},
+	})
+	const remainingPreSettled = await tx.settlementCommission.count({
+		where: {
+			idFileImport: fileId,
+			status: 'PRE-SETTLED',
+		},
+	})
+
+	const fileCompleted =
+		remainingSynchronized === 0 && remainingPreSettled === 0
+
+	if (fileCompleted) {
+		await tx.fileImport.update({
+			where: { idFileImport: fileId },
+			data: { status: 'COMPLETED', updatedAt: now },
+		})
+	}
+
+	return fileCompleted
+}
+
+/**
  * Transitions selected PRE-SETTLED records to SETTLED.
  * Within a single transaction:
  *   - Updates settlement_commission: status=SETTLED, settledDate=now()
@@ -860,28 +895,7 @@ export async function liquidarRegistros(
 		await updateBusinessStatusOnSettle(tx, businessIds)
 
 		// 6. COMPLETED only when no sync backlog and no pre-liquidation queue left for this import
-		const remainingSynchronized = await tx.settlementCommission.count({
-			where: {
-				idFileImport: fileId,
-				status: 'SYNCHRONIZED',
-			},
-		})
-		const remainingPreSettled = await tx.settlementCommission.count({
-			where: {
-				idFileImport: fileId,
-				status: 'PRE-SETTLED',
-			},
-		})
-
-		const fileCompleted =
-			remainingSynchronized === 0 && remainingPreSettled === 0
-
-		if (fileCompleted) {
-			await tx.fileImport.update({
-				where: { idFileImport: fileId },
-				data: { status: 'COMPLETED', updatedAt: now },
-			})
-		}
+		const fileCompleted = await checkAndSetFileImportStatus(tx, fileId, now)
 
 		return {
 			liquidated: result.count,
@@ -893,28 +907,37 @@ export async function liquidarRegistros(
 /**
  * Transitions selected PRE-SETTLED records to LAG with lagDate, isLag,
  * isLagByUser and isLagByUserDate set (user-initiated lag tracking).
- * Does not update FileImport.status.
+ * Also transitions FileImport.status to COMPLETED if no records remain.
  */
 export async function rezagarRegistros(
 	ids: number[],
-	_userId: number
-): Promise<{ lagged: number }> {
-	const now = new Date()
-	const result = await prisma.settlementCommission.updateMany({
-		where: {
-			idSettlementCommission: { in: ids },
-			status: 'PRE-SETTLED',
-		},
-		data: {
-			status: 'LAG',
-			isLag: true,
-			lagDate: now,
-			isLagByUser: true,
-			isLagByUserDate: now,
-			updatedAt: now,
-		},
+	_userId: number,
+	fileId: number
+): Promise<{ lagged: number; fileCompleted: boolean }> {
+	return prisma.$transaction(async (tx) => {
+		const now = new Date()
+		const result = await tx.settlementCommission.updateMany({
+			where: {
+				idSettlementCommission: { in: ids },
+				status: 'PRE-SETTLED',
+			},
+			data: {
+				status: 'LAG',
+				isLag: true,
+				lagDate: now,
+				isLagByUser: true,
+				isLagByUserDate: now,
+				updatedAt: now,
+			},
+		})
+
+		const fileCompleted = await checkAndSetFileImportStatus(tx, fileId, now)
+
+		return {
+			lagged: result.count,
+			fileCompleted,
+		}
 	})
-	return { lagged: result.count }
 }
 
 /**

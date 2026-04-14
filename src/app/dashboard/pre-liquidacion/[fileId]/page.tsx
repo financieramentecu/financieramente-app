@@ -73,13 +73,16 @@ export default function DetallePreLiquidacionPage() {
 	}
 
 	async function handleConfirmarRezagar() {
-		if (selectedIds.size === 0) return
+		if (!fileId || selectedIds.size === 0) return
 		const ids = Array.from(selectedIds)
-		const result = await executeRezagar(ids)
+		const result = await executeRezagar(ids, fileId)
 		if (result) {
 			setSelectedIds(new Set())
 			setModalRezagarOpen(false)
 			await refetch()
+			if (result.fileCompleted) {
+				router.push('/dashboard/pre-liquidacion')
+			}
 		}
 	}
 

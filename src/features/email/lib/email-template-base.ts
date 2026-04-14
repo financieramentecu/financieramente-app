@@ -18,6 +18,13 @@ export const EMAIL_DESIGN_TOKENS = {
 } as const
 
 export const EMAIL_BASE_STYLES = `
+	* { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+	html, body { margin: 0 !important; padding: 0 !important; height: 100% !important; width: 100% !important; }
+	table, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
+	table { border-spacing: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; margin: 0 auto !important; }
+	img { -ms-interpolation-mode:bicubic; }
+	a { text-decoration: none; }
+	
 	body {
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 		line-height: 1.6;
@@ -34,7 +41,7 @@ export const EMAIL_BASE_STYLES = `
 		box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
 	}
 	.header {
-		background: linear-gradient(135deg, ${EMAIL_DESIGN_TOKENS.primary} 0%, ${EMAIL_DESIGN_TOKENS.accent} 100%);
+		background: ${EMAIL_DESIGN_TOKENS.primary};
 		color: #ffffff;
 		padding: 40px 30px;
 		text-align: center;
@@ -133,6 +140,7 @@ export const EMAIL_BASE_STYLES = `
 	.footer p { margin: 6px 0; color: ${EMAIL_DESIGN_TOKENS.textMuted}; }
 	@media only screen and (max-width: 600px) {
 		body { padding: 10px; }
+		.container { border-radius: 0; }
 		.content { padding: 25px 20px; }
 		.header { padding: 30px 20px; }
 		.header h1 { font-size: 22px; }

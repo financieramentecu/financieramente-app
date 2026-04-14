@@ -782,13 +782,15 @@ describe('rezagarRegistros', () => {
 		vi.clearAllMocks()
 	})
 
-	it('updates only PRE-SETTLED ids to LAG with lag and user lag tracking', async () => {
+	it('updates only PRE-SETTLED ids to LAG and returns fileCompleted: false if records remain', async () => {
 		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
 			count: 2,
 		})
+		mockFileQueueCounts(1, 0) // Some records still SYNCHRONIZED
 
-		const result = await rezagarRegistros([4, 5], 10)
+		const result = await rezagarRegistros([4, 5], 10, 1)
 		expect(result.lagged).toBe(2)
+		expect(result.fileCompleted).toBe(false)
 		expect(prisma.settlementCommission.updateMany).toHaveBeenCalledWith({
 			where: {
 				idSettlementCommission: { in: [4, 5] },
@@ -803,14 +805,22 @@ describe('rezagarRegistros', () => {
 				updatedAt: expect.any(Date),
 			},
 		})
+		expect(prisma.fileImport.update).not.toHaveBeenCalled()
 	})
 
-	it('does not set FileImport COMPLETED (rezagar never completes file)', async () => {
+	it('sets FileImport as COMPLETED when lagging last records and returns fileCompleted: true', async () => {
 		vi.mocked(prisma.settlementCommission.updateMany).mockResolvedValue({
-			count: 5,
+			count: 3,
 		})
+		mockFileQueueCounts(0, 0) // No records left
+		vi.mocked(prisma.fileImport.update).mockResolvedValue({} as any)
 
-		await rezagarRegistros([1, 2, 3, 4, 5], 10)
-		expect(prisma.fileImport.update).not.toHaveBeenCalled()
+		const result = await rezagarRegistros([1, 2, 3], 10, 1)
+		expect(result.lagged).toBe(3)
+		expect(result.fileCompleted).toBe(true)
+		expect(prisma.fileImport.update).toHaveBeenCalledWith({
+			where: { idFileImport: 1 },
+			data: { status: 'COMPLETED', updatedAt: expect.any(Date) },
+		})
 	})
 })
