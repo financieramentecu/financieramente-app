@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
 	createCommissionRuleSchema,
+	createCommissionRuleApiSchema,
 	updateCommissionRuleSchema,
 	categoryPercentageSchema,
+	COMMISSION_RULE_PORTFOLIO_SUM_MAX_MESSAGE,
 } from '../../lib/commission-rule-schemas'
 
 describe('Commission Rule Schemas', () => {
@@ -120,6 +122,51 @@ describe('Commission Rule Schemas', () => {
 			expect(createCommissionRuleSchema.safeParse(valid).success).toBe(true)
 		})
 
+		it('should require portfolio percentages when hasPortfolio is true', () => {
+			const invalid = {
+				idProductConfiguration: 10,
+				description: 'X',
+				hasPortfolio: true,
+				categories: [{ idCategory: 1, percentage: 100 }],
+			}
+			const result = createCommissionRuleSchema.safeParse(invalid)
+			expect(result.success).toBe(false)
+		})
+
+		it('should fail when portfolio sum exceeds 100 with hasPortfolio true', () => {
+			const invalid = {
+				idProductConfiguration: 10,
+				description: 'X',
+				hasPortfolio: true,
+				categories: [
+					{ idCategory: 1, percentage: 50, portfolioPercentage: 60 },
+					{ idCategory: 2, percentage: 50, portfolioPercentage: 50 },
+				],
+			}
+			const result = createCommissionRuleSchema.safeParse(invalid)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(
+					result.error.issues.some((i) =>
+						i.message.includes(COMMISSION_RULE_PORTFOLIO_SUM_MAX_MESSAGE)
+					)
+				).toBe(true)
+			}
+		})
+
+		it('should accept valid portfolio lines when hasPortfolio is true', () => {
+			const valid = {
+				idProductConfiguration: 10,
+				description: 'X',
+				hasPortfolio: true,
+				categories: [
+					{ idCategory: 1, percentage: 50, portfolioPercentage: 50 },
+					{ idCategory: 2, percentage: 50, portfolioPercentage: 50 },
+				],
+			}
+			expect(createCommissionRuleSchema.safeParse(valid).success).toBe(true)
+		})
+
 		it('should reject category line with undefined percentage', () => {
 			const invalid = {
 				idProductConfiguration: 10,
@@ -152,6 +199,33 @@ describe('Commission Rule Schemas', () => {
 			}
 			const result = updateCommissionRuleSchema.safeParse(valid)
 			expect(result.success).toBe(true)
+		})
+
+		it('should validate update with hasPortfolio and portfolio lines', () => {
+			const valid = {
+				idProductPercentageCommission: 5,
+				hasPortfolio: true,
+				categories: [
+					{ idCategory: 1, percentage: 50, portfolioPercentage: 50 },
+					{ idCategory: 2, percentage: 50, portfolioPercentage: 50 },
+				],
+			}
+			expect(updateCommissionRuleSchema.safeParse(valid).success).toBe(true)
+		})
+	})
+
+	describe('createCommissionRuleApiSchema', () => {
+		it('should map distribution and portfolio to fractions', () => {
+			const parsed = createCommissionRuleApiSchema.parse({
+				idProductConfiguration: 1,
+				description: 'Rule',
+				hasPortfolio: true,
+				categories: [
+					{ idCategory: 1, percentage: 25, portfolioPercentage: 10 },
+				],
+			})
+			expect(parsed.categories[0].percentage).toBe(0.25)
+			expect(parsed.categories[0].portfolioPercentage).toBe(0.1)
 		})
 	})
 })

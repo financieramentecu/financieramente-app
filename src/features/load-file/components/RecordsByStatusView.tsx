@@ -18,7 +18,17 @@ import type {
 	FileImportRecordStatusFilter,
 } from '../types/load-file.types'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
-import { ChevronLeft, ChevronRight, CircleCheck, CircleX, CircleOff, Clock, SearchX, Inbox, type LucideIcon } from 'lucide-react'
+import {
+	ChevronLeft,
+	ChevronRight,
+	CircleCheck,
+	CircleX,
+	CircleOff,
+	Clock,
+	SearchX,
+	Inbox,
+	type LucideIcon,
+} from 'lucide-react'
 
 const PAGE_SIZE = 20
 
@@ -71,9 +81,8 @@ function StatusEmptyState({
 }) {
 	return (
 		<div
-			className={`flex flex-col items-center justify-center text-center ${
-				compact ? 'py-8 px-4' : 'py-16 px-6'
-			} bg-slate-50/50 dark:bg-slate-900/20 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl transition-all duration-300`}
+			className={`flex flex-col items-center justify-center text-center ${compact ? 'py-8 px-4' : 'py-16 px-6'
+				} bg-slate-50/50 dark:bg-slate-900/20 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl transition-all duration-300`}
 		>
 			<div className="rounded-2xl bg-white dark:bg-slate-800 p-4 shadow-sm mb-4 border border-slate-100 dark:border-slate-700">
 				<Icon className="h-8 w-8 text-slate-400" />

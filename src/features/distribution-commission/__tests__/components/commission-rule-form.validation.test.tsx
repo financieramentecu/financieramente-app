@@ -166,9 +166,8 @@ describe('CommissionRuleForm — validation presentation', () => {
 		).toBeInTheDocument()
 	})
 
-	it('calls toast.error on submit when sum of percentages exceeds 100', async () => {
+	it('blocks submit and shows sum error when distribution percentages exceed 100', async () => {
 		const user = userEvent.setup()
-		const { toast } = await import('sonner')
 
 		render(<CommissionRuleForm mode="create" productConfigId={1} />)
 
@@ -184,19 +183,13 @@ describe('CommissionRuleForm — validation presentation', () => {
 		await user.clear(textboxes[2])
 		await user.type(textboxes[2], '50')
 
-		await user.click(
-			screen.getByRole('button', { name: /Crear Distribución/i })
-		)
-
+		const submitBtn = screen.getByRole('button', { name: /Crear Distribución/i })
 		await waitFor(() => {
-			expect(toast.error).toHaveBeenCalled()
+			expect(submitBtn).toBeDisabled()
 		})
-		const sumCall = (toast.error as ReturnType<typeof vi.fn>).mock.calls.find(
-			(call) =>
-				String(call[0]).includes('Suma') ||
-				String(call[1]?.description ?? '').includes('100')
-		)
-		expect(sumCall).toBeTruthy()
+		expect(
+			screen.getByText(/La suma de porcentajes por categoría no puede superar 100/i)
+		).toBeInTheDocument()
 	})
 
 	it('sets aria-invalid on percentage input when blurred invalid', async () => {
@@ -212,5 +205,21 @@ describe('CommissionRuleForm — validation presentation', () => {
 
 		await screen.findByText(/El porcentaje debe ser un número/i)
 		expect(pctInput).toHaveAttribute('aria-invalid', 'true')
+	})
+
+	it('shows Cartera column when portfolio switch is enabled', async () => {
+		const user = userEvent.setup()
+		render(<CommissionRuleForm mode="create" productConfigId={1} />)
+
+		await user.click(screen.getByRole('button', { name: /Agregar Categoría/i }))
+		await selectCategoryForRow(user, 0, /Categoría demo/)
+
+		expect(screen.queryByText(/^Cartera$/)).not.toBeInTheDocument()
+
+		await user.click(
+			screen.getByRole('switch', { name: /Activar porcentajes de cartera/i })
+		)
+
+		expect(screen.getByText(/^Cartera$/)).toBeInTheDocument()
 	})
 })
