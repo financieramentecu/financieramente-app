@@ -3,7 +3,7 @@
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { Button } from '@/features/shared/ui/button'
 import type { ProductConfiguration } from '../types/product-configuration.types'
-import { Plus, Pencil } from 'lucide-react'
+import { CheckCircle2, Plus, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import {
 	Select,
@@ -14,6 +14,7 @@ import {
 } from '@/features/shared/ui/select'
 import { Switch } from '@/features/shared/ui/switch'
 import { ColumnDef } from '@tanstack/react-table'
+import { Badge } from '@/features/shared/ui/badge'
 
 interface PaginationData {
 	page: number
@@ -54,6 +55,53 @@ export function ProductConfigurationsTableSection({
 			cell: ({ row }) => (
 				<span className="font-mono text-sm">{row.original.code}</span>
 			),
+		},
+		{
+			id: 'distributionSetup',
+			header: () => (
+				<span
+					className="cursor-help border-b border-dotted border-muted-foreground/50"
+					title="Pendiente: falta guardar porcentajes por categoría en una regla. Configurada: ya hay al menos una línea guardada."
+				>
+					Distribución
+				</span>
+			),
+			cell: ({ row }) => {
+				const config = row.original
+				const code = config.code?.trim()
+				const incomplete = config.distributionSetupIncomplete === true
+
+				if (incomplete) {
+					return (
+						<div className="flex max-w-56 flex-col gap-1.5">
+							<Badge variant="secondary" className="w-fit font-normal">
+								Pendiente
+							</Badge>
+							{code ? (
+								<Link
+									href={`/dashboard/config-distribucion-comisiones/${encodeURIComponent(code)}/reglas/crear`}
+									className="text-primary text-sm font-medium underline-offset-4 hover:underline"
+								>
+									Continuar configuración
+								</Link>
+							) : null}
+						</div>
+					)
+				}
+
+				return (
+					<span
+						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"
+						title="Ya hay al menos una línea de categoría guardada en una regla de distribución"
+					>
+						<CheckCircle2
+							className="h-4 w-4 shrink-0 text-emerald-600"
+							aria-hidden
+						/>
+						Configurada
+					</span>
+				)
+			},
 		},
 		{
 			accessorKey: 'product.name',

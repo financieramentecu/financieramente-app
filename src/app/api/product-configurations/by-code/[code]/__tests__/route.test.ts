@@ -46,4 +46,24 @@ describe('GET /api/product-configurations/by-code/[code]', () => {
 		const body = await res.json()
 		expect(body.data).toEqual(cfg)
 	})
+
+	it('decodes encoded route param before lookup (e.g. + in product code)', async () => {
+		const cfg = {
+			id: 2,
+			code: 'C+S-PROPIO-JUNIOR',
+		} as unknown as ProductConfiguration
+
+		getProductConfigurationByCode.mockResolvedValueOnce(cfg)
+
+		const res = await GET(new Request('http://localhost'), {
+			params: Promise.resolve({ code: 'C%2BS-PROPIO-JUNIOR' }),
+		})
+
+		expect(res.status).toBe(200)
+		expect(getProductConfigurationByCode).toHaveBeenCalledWith(
+			'C+S-PROPIO-JUNIOR'
+		)
+		const body = await res.json()
+		expect(body.data).toEqual(cfg)
+	})
 })

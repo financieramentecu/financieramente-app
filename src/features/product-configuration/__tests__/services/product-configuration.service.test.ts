@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getProductConfigurationByCode } from '@/features/product-configuration/services/product-configuration.service'
+import {
+	getProductConfigurationByCode,
+	getProductConfigurationIdsWithCategoryLines,
+	isDistributionSetupComplete,
+} from '@/features/product-configuration/services/product-configuration.service'
 
-const { findUnique } = vi.hoisted(() => ({
+const { findUnique, count, findMany } = vi.hoisted(() => ({
 	findUnique: vi.fn(),
+	count: vi.fn(),
+	findMany: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -10,12 +16,18 @@ vi.mock('@/lib/prisma', () => ({
 		productConfiguration: {
 			findUnique,
 		},
+		productPercentageCommissionCategory: {
+			count,
+			findMany,
+		},
 	},
 }))
 
 describe('getProductConfigurationByCode', () => {
 	beforeEach(() => {
 		findUnique.mockReset()
+		count.mockReset()
+		findMany.mockReset()
 	})
 
 	it('returns null for blank code', async () => {
@@ -61,5 +73,63 @@ describe('getProductConfigurationByCode', () => {
 		findUnique.mockResolvedValueOnce(null)
 		const r = await getProductConfigurationByCode('MISSING')
 		expect(r).toBeNull()
+	})
+})
+
+describe('isDistributionSetupComplete', () => {
+	beforeEach(() => {
+		count.mockReset()
+		findMany.mockReset()
+	})
+
+	it('returns false when count is 0', async () => {
+		count.mockResolvedValueOnce(0)
+		const r = await isDistributionSetupComplete(10)
+		expect(r).toBe(false)
+		expect(count).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					productPercentageCommission: {
+						idProductConfiguration: 10,
+					},
+				},
+			})
+		)
+	})
+
+	it('returns true when count is positive', async () => {
+		count.mockResolvedValueOnce(2)
+		const r = await isDistributionSetupComplete(10)
+		expect(r).toBe(true)
+	})
+})
+
+describe('getProductConfigurationIdsWithCategoryLines', () => {
+	beforeEach(() => {
+		findMany.mockReset()
+	})
+
+	it('returns empty set for empty ids', async () => {
+		const r = await getProductConfigurationIdsWithCategoryLines([])
+		expect(r.size).toBe(0)
+		expect(findMany).not.toHaveBeenCalled()
+	})
+
+	it('returns distinct configuration ids from rows', async () => {
+		findMany.mockResolvedValueOnce([
+			{
+				productPercentageCommission: { idProductConfiguration: 1 },
+			},
+			{
+				productPercentageCommission: { idProductConfiguration: 1 },
+			},
+			{
+				productPercentageCommission: { idProductConfiguration: 2 },
+			},
+		])
+		const r = await getProductConfigurationIdsWithCategoryLines([1, 2, 3])
+		expect(r.has(1)).toBe(true)
+		expect(r.has(2)).toBe(true)
+		expect(r.has(3)).toBe(false)
 	})
 })

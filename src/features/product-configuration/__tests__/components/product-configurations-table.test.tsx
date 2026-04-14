@@ -122,4 +122,39 @@ describe('ProductConfigurationsTableSection', () => {
 			)
 		).toBeInTheDocument()
 	})
+
+	it('shows Pendiente when distributionSetupIncomplete is true', () => {
+		render(
+			<ProductConfigurationsTableSection
+				{...defaultProps}
+				data={[
+					createMockProductConfiguration({
+						distributionSetupIncomplete: true,
+					}),
+				]}
+			/>
+		)
+
+		expect(screen.getByText('Pendiente')).toBeInTheDocument()
+		expect(screen.getByRole('link', { name: 'Continuar configuración' })).toHaveAttribute(
+			'href',
+			'/dashboard/config-distribucion-comisiones/CREA_PATRIMONIO-PROPIO-JUNIOR/reglas/crear'
+		)
+	})
+
+	it('shows Configurada when distribution is not incomplete', () => {
+		render(
+			<ProductConfigurationsTableSection
+				{...defaultProps}
+				data={[
+					createMockProductConfiguration({
+						distributionSetupIncomplete: false,
+					}),
+				]}
+			/>
+		)
+
+		expect(screen.getByText('Configurada')).toBeInTheDocument()
+		expect(screen.queryByText('Pendiente')).not.toBeInTheDocument()
+	})
 })

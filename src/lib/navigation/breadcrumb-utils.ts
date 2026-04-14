@@ -25,6 +25,30 @@ const SEGMENT_LABELS: Record<string, string> = {
 	currencies: 'Monedas',
 	origins: 'Orígenes',
 	periodicities: 'Periodicidades',
+	'config-distribucion-comisiones': 'Config. distribución de comisiones',
+	'configuraciones-producto': 'Config. producto',
+	reglas: 'Reglas',
+}
+
+/**
+ * Decodes one path segment. Next.js may leave segments percent-encoded in pathname.
+ */
+function decodePathSegment(raw: string): string {
+	try {
+		return decodeURIComponent(raw)
+	} catch {
+		return raw
+	}
+}
+
+/**
+ * Builds a path prefix with each segment encoded (valid href for dynamic codes with +, etc.).
+ */
+function encodePathPrefix(segments: readonly string[], endExclusive: number): string {
+	const parts = segments.slice(0, endExclusive).map((s) =>
+		encodeURIComponent(decodePathSegment(s))
+	)
+	return `/${parts.join('/')}`
 }
 
 /**
@@ -36,8 +60,12 @@ export function buildBreadcrumbsFromPathname(pathname: string): BreadcrumbItemSh
 	if (segments.length === 0) return []
 
 	return segments.map((segment, index) => {
-		const label = SEGMENT_LABELS[segment] ?? segment
-		const href = index < segments.length - 1 ? `/${segments.slice(0, index + 1).join('/')}` : undefined
+		const decoded = decodePathSegment(segment)
+		const label = SEGMENT_LABELS[decoded] ?? SEGMENT_LABELS[segment] ?? decoded
+		const href =
+			index < segments.length - 1
+				? encodePathPrefix(segments, index + 1)
+				: undefined
 		return { label, href }
 	})
 }

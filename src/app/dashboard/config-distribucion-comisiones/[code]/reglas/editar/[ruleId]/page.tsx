@@ -1,7 +1,6 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { CommissionRuleForm } from '@/features/distribution-commission/components/commission-rule-form'
 import { CommissionRuleFormSkeleton } from '@/features/distribution-commission/components/commission-rule-form-skeleton'
 import { useCommissionRule } from '@/features/distribution-commission/hooks/use-commission-rule'
@@ -86,20 +85,14 @@ export default function EditCommissionRuleByCodePage() {
 
 	if (resolveState.status === 'loading') {
 		return (
-			<DashboardLayout currentPage="Editar Distribución de Comisión">
-				<div className="flex h-40 items-center justify-center">
-					<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-				</div>
-			</DashboardLayout>
+			<div className="flex h-40 items-center justify-center">
+				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+			</div>
 		)
 	}
 
 	if (resolveState.status === 'error') {
-		return (
-			<DashboardLayout currentPage="Editar Distribución de Comisión">
-				<p className="text-destructive">{resolveState.error}</p>
-			</DashboardLayout>
-		)
+		return <p className="text-destructive">{resolveState.error}</p>
 	}
 
 	if (isNaN(ruleId)) {
@@ -114,23 +107,21 @@ export default function EditCommissionRuleByCodePage() {
 	const distributionBasePath = `/dashboard/config-distribucion-comisiones/${encodeURIComponent(resolvedCode)}`
 
 	return (
-		<DashboardLayout currentPage="Editar Distribución de Comisión">
-			<div className="space-y-6">
-				<div>
-					<h2 className="text-3xl font-bold tracking-tight">
-						Editar Distribución de Comisión
-					</h2>
-					<p className="text-muted-foreground">
-						Modifica los detalles y porcentajes (código: {resolvedCode}).
-					</p>
-				</div>
-
-				<EditRuleBody
-					productConfigId={id}
-					ruleId={ruleId}
-					distributionBasePath={distributionBasePath}
-				/>
+		<div className="space-y-6">
+			<div>
+				<h2 className="text-3xl font-bold tracking-tight">
+					Editar Distribución de Comisión
+				</h2>
+				<p className="text-muted-foreground">
+					Modifica los detalles y porcentajes (código: {resolvedCode}).
+				</p>
 			</div>
-		</DashboardLayout>
+
+			<EditRuleBody
+				productConfigId={id}
+				ruleId={ruleId}
+				distributionBasePath={distributionBasePath}
+			/>
+		</div>
 	)
 }

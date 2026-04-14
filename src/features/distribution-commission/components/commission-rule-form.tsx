@@ -272,8 +272,8 @@ export function CommissionRuleForm({
 						<Button
 							type="button"
 							variant="outline"
-							size="sm"
-							className="shrink-0 self-start sm:self-auto"
+							size="default"
+							className="shrink-0 self-start border-primary/40 bg-primary/5 font-semibold text-primary shadow-sm transition-colors hover:bg-primary/15 hover:text-primary sm:self-auto"
 							onClick={() =>
 								append({
 									idCategory: 0,
@@ -282,7 +282,7 @@ export function CommissionRuleForm({
 								})
 							}
 						>
-							<Plus className="mr-2 h-4 w-4" />
+							<Plus className="h-4 w-4" aria-hidden />
 							Agregar Categoría
 						</Button>
 					</div>
