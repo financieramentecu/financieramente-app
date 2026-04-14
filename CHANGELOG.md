@@ -5,6 +5,16 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.5] - 2026-04-14
+
+### Mejorado
+
+- **Configuración de producto – Listado:** La tabla compartida (configuración de producto y vista de distribución de comisiones que reutiliza el mismo listado) **ya no muestra** la columna **Distribución para nuevos negocios**. La asignación de la distribución para nuevos negocios sigue haciéndose en los flujos de edición/asignación (B/C); solo se simplifica lo que ves en el listado.
+
+### Documentación / Interno
+
+- **OpenSpec:** Requisito RF-09 en el spec principal `product-configuration`; change `rf-09-remove-list-column-nuevos-negocios` archivado con informe de verificación.
+
 ## [1.0.0-beta.4] - 2026-04-13
 
 ### Añadido
