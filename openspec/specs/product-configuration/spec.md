@@ -5,20 +5,21 @@ Manages the rules and distributions for product commissions in the administratio
 
 ## Requirements
 
-### Requirement: Active Distribution Display
-The system SHALL display the description of the currently active commission distribution for a product configuration in the administration list.
+### Requirement: No “Distribución para nuevos negocios” list column (RF-09)
 
-#### Scenario: One active distribution exists
-- **WHEN** a product configuration has multiple distributions, but only one is marked as active
-- **THEN** the "Distribución para nuevos negocios" column SHALL show the description of that active distribution
+In the **product configuration administration list** (shared table for configuration A), the system SHALL NOT render a column whose purpose is to show the active or linked new-business distribution description (including headers titled **«Distribución para nuevos negocios»**). Assignment for new businesses remains in **B/C** flows; this requirement only forbids that **list** column.
 
-#### Scenario: No active distribution exists
-- **WHEN** a product configuration has no distributions marked as active
-- **THEN** the "Distribución para nuevos negocios" column SHALL show "Sin descripción"
+#### Scenario: List renders without the column
 
-#### Scenario: Active distribution is different from the linked New Business distribution
-- **WHEN** the distribution linked in `idProductPercentageCommissionNewBusinesses` is inactive, but there is another active distribution for the same product configuration
-- **THEN** the system SHALL prioritize the active distribution's description for display
+- **GIVEN** a user views the product configurations table
+- **WHEN** the table headers are visible
+- **THEN** the system SHALL NOT display a column titled **Distribución para nuevos negocios** (or synonymous copy used for the same purpose)
+
+#### Scenario: Applies regardless of role
+
+- **GIVEN** any authenticated role that can access the product configuration list
+- **WHEN** the list is shown
+- **THEN** the column SHALL remain absent (no role-based exception)
 
 ### Requirement: Active Distribution Uniqueness
 The system SHALL prevent having more than one active commission distribution for the same product configuration.

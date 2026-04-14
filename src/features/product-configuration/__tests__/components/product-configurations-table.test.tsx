@@ -62,6 +62,14 @@ describe('ProductConfigurationsTableSection', () => {
 		expect(screen.getByText('Junior')).toBeInTheDocument()
 	})
 
+	it('does not render Distribución para nuevos negocios column header (RF-09)', () => {
+		render(<ProductConfigurationsTableSection {...defaultProps} />)
+
+		expect(
+			screen.queryByText('Distribución para nuevos negocios')
+		).not.toBeInTheDocument()
+	})
+
 	it('should render active switch', () => {
 		render(<ProductConfigurationsTableSection {...defaultProps} />)
 

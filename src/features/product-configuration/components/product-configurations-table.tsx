@@ -86,25 +86,6 @@ export function ProductConfigurationsTableSection({
 			),
 		},
 		{
-			accessorKey: 'newBusinessesDistributionDescription',
-			header: 'Distribución para nuevos negocios',
-			cell: ({ row }) => {
-				const description =
-					row.original.newBusinessesDistributionDescription ||
-					row.original.ppcNewBusinesses?.description ||
-					'Sin descripción'
-
-				return (
-					<span
-						className={`text-sm ${description === 'Sin asignar' ? 'text-muted-foreground' : ''
-							}`}
-					>
-						{description}
-					</span>
-				)
-			},
-		},
-		{
 			accessorKey: 'active',
 			header: 'Estado',
 			cell: ({ row }) => (
