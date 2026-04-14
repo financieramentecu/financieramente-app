@@ -95,6 +95,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 		idProductConfiguration: 1,
 		active: true,
 		description: null,
+		hasPortfolio: false,
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		productConfiguration: {

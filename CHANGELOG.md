@@ -5,6 +5,27 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.3] - 2026-04-12
+
+### Añadido
+
+- **Distribución de comisiones – Cartera por regla:** Cada regla puede indicar si aplica **cartera**. Si está activa, verás un **porcentaje de cartera** por línea de categoría, con validación de rango **1 %–100 %** y **suma máxima 100 %** entre líneas, independiente de la suma de distribución.
+- **Persistencia al desactivar cartera:** Si quitas la marca de cartera y guardas, los porcentajes de cartera guardados **no se borran**; vuelven a mostrarse cuando vuelves a activar la opción.
+- **Tabla de reglas – Columna Cartera:** Cuando al menos una regla usa cartera, el listado muestra la columna **Cartera** con el mismo criterio de formato que el resto de porcentajes en lectura.
+
+### Mejorado
+
+- **Validación al salir del campo (RF-02):** En porcentajes de **distribución** y, si la cartera está visible, en **cartera**, los errores por valor vacío o fuera de rango pueden mostrarse al **perder el foco**, sin depender solo del botón guardar.
+- **Lista de reglas:** Un solo **buscador** integrado en la tabla (menos controles duplicados en la página).
+- **Formulario de regla:** El interruptor de cartera queda dentro del bloque de categorías; el pie de totales **alinea** columnas de porcentaje y cartera con las filas.
+- **Porcentajes en lectura:** Presentación más limpia, evitando ceros decimales finales innecesarios cuando el valor es entero o ya está redondeado de forma natural.
+
+### Documentación / Interno
+
+- **Prisma:** Migración para `hasPortfolio` en configuración producto–categoría; ampliación de decimales en porcentajes por categoría; seeds ajustados para que las fracciones sumen coherencia con la UI.
+- **API:** Documentación y contratos de creación/edición de reglas con cartera y fusión en servidor al desactivar el flag.
+- **OpenSpec:** Cambio `explore-rf-03-hasportfolio` archivado; spec principal `commission-distribution-ui` actualizada (RF-03, RF-04, cartera).
+
 ## [1.0.0-beta.2] - 2026-04-10
 
 ### Añadido

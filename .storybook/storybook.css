@@ -1,6 +1,8 @@
 /* Importar Tailwind CSS v4 */
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Variables CSS del sidebar */
 @layer base {
 	:root {

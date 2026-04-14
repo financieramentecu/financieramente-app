@@ -4,6 +4,7 @@ import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
 	COMMISSION_RULE_CATEGORIES_SUM_MAX_MESSAGE,
+	COMMISSION_RULE_PORTFOLIO_SUM_MAX_MESSAGE,
 	createCommissionRuleSchema,
 	updateCommissionRuleSchema,
 	CreateCommissionRuleFormData,
@@ -30,6 +31,7 @@ import { CategoryPercentageRow } from '@/features/distribution-commission/compon
 import { formatPercentDisplay } from '@/features/shared/lib/format-percent'
 import { getAppLocale } from '@/features/shared/lib/app-locale'
 import { useState } from 'react'
+import { Switch } from '@/features/shared/ui/switch'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -85,15 +87,21 @@ export function CommissionRuleForm({
 				? {
 						idProductConfiguration: productConfigId,
 						description: '',
+						hasPortfolio: false,
 						categories: [],
 					}
 				: {
 						idProductPercentageCommission: initialData?.id,
 						description: initialData?.description || '',
+						hasPortfolio: initialData?.hasPortfolio ?? false,
 						categories:
 							initialData?.categories?.map((cat) => ({
 								idCategory: cat.idCategory,
 								percentage: Number(cat.porcentajeDistribucion),
+								portfolioPercentage:
+									cat.porcentajePortfolio !== undefined
+										? Number(cat.porcentajePortfolio)
+										: undefined,
 							})) || [],
 					},
 	})
@@ -107,6 +115,12 @@ export function CommissionRuleForm({
 		control: form.control,
 		name: 'categories',
 	})
+	const watchedHasPortfolio = useWatch({
+		control: form.control,
+		name: 'hasPortfolio',
+	})
+	const hasPortfolioActive = watchedHasPortfolio === true
+
 	const selectedCategoryIds = (watchedCategories || []).map(
 		(item) => item?.idCategory
 	)
@@ -118,6 +132,15 @@ export function CommissionRuleForm({
 
 	const sumExceeds100 = totalPercentage > 100 + 1e-6
 
+	const totalPortfolioPercentage = (watchedCategories || []).reduce(
+		(acc, item) =>
+			acc + (hasPortfolioActive ? Number(item?.portfolioPercentage) || 0 : 0),
+		0
+	)
+
+	const sumPortfolioExceeds100 =
+		hasPortfolioActive && totalPortfolioPercentage > 100 + 1e-6
+
 	const submitData = async (data: CommissionRuleFormData) => {
 		try {
 			let success = false
@@ -125,6 +148,7 @@ export function CommissionRuleForm({
 				const createData = data as CreateCommissionRuleFormData
 				success = await create({
 					description: createData.description,
+					hasPortfolio: createData.hasPortfolio,
 					categories: createData.categories,
 				})
 			} else {
@@ -133,6 +157,7 @@ export function CommissionRuleForm({
 				success = await update(initialData.id, {
 					description: updateData.description,
 					active: initialData.active,
+					hasPortfolio: updateData.hasPortfolio,
 					categories: updateData.categories,
 				})
 			}
@@ -190,6 +215,18 @@ export function CommissionRuleForm({
 				description: COMMISSION_RULE_CATEGORIES_SUM_MAX_MESSAGE,
 			})
 		}
+		const hp = form.getValues('hasPortfolio')
+		if (hp === true) {
+			const pTotal = (form.getValues('categories') || []).reduce(
+				(acc, item) => acc + (Number(item?.portfolioPercentage) || 0),
+				0
+			)
+			if (pTotal > 100 + 1e-6) {
+				toast.error('Suma de cartera', {
+					description: COMMISSION_RULE_PORTFOLIO_SUM_MAX_MESSAGE,
+				})
+			}
+		}
 	}
 
 	return (
@@ -198,7 +235,7 @@ export function CommissionRuleForm({
 				onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)}
 				className="space-y-6"
 			>
-				<div className="max-w-2xl">
+				<div className="max-w-2xl space-y-6">
 					<FormField
 						control={form.control}
 						name="description"
@@ -233,7 +270,13 @@ export function CommissionRuleForm({
 							variant="outline"
 							size="sm"
 							className="shrink-0 self-start sm:self-auto"
-							onClick={() => append({ idCategory: 0, percentage: 1 })}
+							onClick={() =>
+								append({
+									idCategory: 0,
+									percentage: 1,
+									portfolioPercentage: undefined,
+								})
+							}
 						>
 							<Plus className="mr-2 h-4 w-4" />
 							Agregar Categoría
@@ -241,6 +284,24 @@ export function CommissionRuleForm({
 					</div>
 
 					<div className="overflow-hidden rounded-xl border border-border/90 bg-card shadow-sm">
+						<FormField
+							control={form.control}
+							name="hasPortfolio"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between gap-4 border-b border-border bg-muted/10 px-4 py-3 sm:px-5">
+									<FormLabel className="cursor-pointer text-base font-medium text-foreground">
+										Porcentajes de cartera
+									</FormLabel>
+									<FormControl>
+										<Switch
+											checked={field.value === true}
+											onCheckedChange={field.onChange}
+											aria-label="Activar porcentajes de cartera"
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
 						{fields.length > 0 ? (
 							<div className="divide-y divide-border px-4 sm:px-5">
 								{fields.map((field, index) => (
@@ -251,6 +312,7 @@ export function CommissionRuleForm({
 										categories={categoriesState.data?.categories ?? []}
 										selectedCategoryIds={selectedCategoryIds}
 										onRemove={() => remove(index)}
+										hasPortfolio={hasPortfolioActive}
 									/>
 								))}
 							</div>
@@ -262,35 +324,92 @@ export function CommissionRuleForm({
 						)}
 
 						<div className="border-t border-border bg-muted/15 px-4 py-4 sm:px-5 sm:py-4">
-							<div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-end sm:gap-4">
-								<p className="text-sm font-medium text-muted-foreground sm:text-right">
-									Total (informativo)
-								</p>
-								<p
+							{/*
+								Una sola fila en sm+ para alinear totales con Porcentaje / Cartera.
+								11rem ≈ max-w-44 de los inputs; gap-x-5 como CategoryPercentageRow.
+							*/}
+							<div
+								className={cn(
+									'grid grid-cols-1 gap-y-4 gap-x-5',
+									hasPortfolioActive
+										? 'sm:grid-cols-[minmax(0,1fr)_11rem_11rem_2.75rem] sm:items-end'
+										: 'sm:grid-cols-[minmax(0,1fr)_11rem_2.75rem] sm:items-end'
+								)}
+							>
+								<div className="hidden min-w-0 sm:block" aria-hidden />
+								<div
 									className={cn(
-										'text-lg font-semibold tabular-nums tracking-tight sm:text-xl',
-										sumExceeds100
-											? 'text-destructive'
-											: totalPercentage > 0
-												? 'text-foreground'
-												: 'text-muted-foreground'
+										'flex flex-col gap-0.5 sm:items-end sm:text-right',
+										hasPortfolioActive &&
+											'border-t border-border pt-4 sm:border-t-0 sm:pt-0'
 									)}
 								>
-									{formatPercentDisplay(totalPercentage, getAppLocale())}
-								</p>
-							</div>
-							{sumExceeds100 && (
-								<div
-									role="alert"
-									className="mt-3 flex items-start gap-1.5 text-sm font-medium text-destructive"
-								>
-									<AlertCircle
-										className="mt-0.5 size-3.5 shrink-0"
-										aria-hidden
-									/>
-									<span>{COMMISSION_RULE_CATEGORIES_SUM_MAX_MESSAGE}</span>
+									<p className="text-sm font-medium leading-tight text-muted-foreground">
+										Total{' '}
+									</p>
+									<p
+										className={cn(
+											'text-lg font-semibold tabular-nums tracking-tight sm:text-xl',
+											sumExceeds100
+												? 'text-destructive'
+												: totalPercentage > 0
+													? 'text-foreground'
+													: 'text-muted-foreground'
+										)}
+									>
+										{formatPercentDisplay(totalPercentage, getAppLocale())}
+									</p>
 								</div>
-							)}
+								{hasPortfolioActive ? (
+									<div className="flex flex-col gap-0.5 border-t border-border pt-4 sm:items-end sm:border-t-0 sm:pt-0 sm:text-right">
+										<p className="text-sm font-medium leading-tight text-muted-foreground">
+											Total cartera
+										</p>
+										<p
+											className={cn(
+												'text-lg font-semibold tabular-nums tracking-tight sm:text-xl',
+												sumPortfolioExceeds100
+													? 'text-destructive'
+													: totalPortfolioPercentage > 0
+														? 'text-foreground'
+														: 'text-muted-foreground'
+											)}
+										>
+											{formatPercentDisplay(
+												totalPortfolioPercentage,
+												getAppLocale()
+											)}
+										</p>
+									</div>
+								) : null}
+								<div className="hidden sm:block" aria-hidden />
+
+								{sumExceeds100 ? (
+									<div
+										role="alert"
+										className="col-span-full flex items-start gap-1.5 text-sm font-medium text-destructive"
+									>
+										<AlertCircle
+											className="mt-0.5 size-3.5 shrink-0"
+											aria-hidden
+										/>
+										<span>{COMMISSION_RULE_CATEGORIES_SUM_MAX_MESSAGE}</span>
+									</div>
+								) : null}
+
+								{sumPortfolioExceeds100 ? (
+									<div
+										role="alert"
+										className="col-span-full flex items-start gap-1.5 text-sm font-medium text-destructive"
+									>
+										<AlertCircle
+											className="mt-0.5 size-3.5 shrink-0"
+											aria-hidden
+										/>
+										<span>{COMMISSION_RULE_PORTFOLIO_SUM_MAX_MESSAGE}</span>
+									</div>
+								) : null}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -336,7 +455,7 @@ export function CommissionRuleForm({
 					</Button>
 					<Button
 						type="submit"
-						disabled={isLoading}
+						disabled={isLoading || sumExceeds100 || sumPortfolioExceeds100}
 						className="w-full sm:w-auto"
 					>
 						{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

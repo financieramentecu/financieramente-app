@@ -40,6 +40,7 @@ const mockRule = (overrides?: Partial<CommissionRule>): CommissionRule => ({
 	idProductConfiguration: 1,
 	description: 'Distribución Test',
 	active: true,
+	hasPortfolio: false,
 	createdAt: '2024-01-01T00:00:00.000Z',
 	updatedAt: '2024-01-01T00:00:00.000Z',
 	categories: [],
@@ -101,5 +102,30 @@ describe('CommissionRulesTable', () => {
 			expect(assignNewBusinesses).toHaveBeenCalledWith(10)
 			expect(onAssignmentSuccess).toHaveBeenCalled()
 		})
+	})
+
+	it('shows Cartera column when any rule has hasPortfolio', () => {
+		const formatted = formatPercentDisplay(30, 'es-CO')
+		const rule = mockRule({
+			hasPortfolio: true,
+			categories: [
+				{
+					id: 1,
+					idCategory: 1,
+					idProductPercentageCommission: 10,
+					porcentajeDistribucion: 50,
+					porcentajePortfolio: 30,
+					active: true,
+					createdAt: '2024-01-01T00:00:00.000Z',
+					updatedAt: '2024-01-01T00:00:00.000Z',
+					category: { idCategory: 1, name: 'Demo' },
+				},
+			],
+		})
+
+		render(<CommissionRulesTable data={[rule]} productConfigId={1} />)
+
+		expect(screen.getByText('Cartera')).toBeInTheDocument()
+		expect(screen.getByText(new RegExp(`cartera:.*${formatted}`, 'i'))).toBeTruthy()
 	})
 })

@@ -77,6 +77,7 @@ export function FileImportCard({
 	canPreliquidar,
 	isPreliquidarLoading,
 	onDelete,
+	onPreliquidar,
 	onViewDetail,
 	onGoToPreliquidacion,
 }: FileImportCardProps) {
@@ -179,15 +180,15 @@ export function FileImportCard({
 						</Button>
 					)}
 
-					{/* Preliquidar — only for LOAD with sincronizados > 0 and permission */}
-					{canPreliquidar && onGoToPreliquidacion && (
+					{/* Preliquidar — modal flow via parent; distinct from "Ir a Pre-liquidación" */}
+					{canPreliquidar && (
 						<Button
 							variant="outline"
 							size="sm"
-							onClick={() => onGoToPreliquidacion(carga.idFileImport)}
+							onClick={() => onPreliquidar(carga)}
 							disabled={isPreliquidarLoading}
 							className="p-2 cursor-pointer transition-colors duration-200"
-							title="ir a Pre-liquidar archivo"
+							title="Pre-liquidar archivo"
 						>
 							{isPreliquidarLoading ? (
 								<Loader2 className="h-4 w-4 mr-1 animate-spin" />

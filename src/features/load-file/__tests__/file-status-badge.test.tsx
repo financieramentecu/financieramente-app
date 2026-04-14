@@ -19,12 +19,12 @@ describe('FileStatusBadge', () => {
 	it('renders distinct label and classes for LOAD vs PRE-SETTLED (REQ-7)', () => {
 		const { rerender, container } = render(<FileStatusBadge status="LOAD" />)
 		expect(screen.getByText('Sincronizado')).toBeInTheDocument()
-		const loadBadge = container.querySelector('[class*="bg-blue-100"]')
+		const loadBadge = container.querySelector('[class*="bg-emerald-50"]')
 		expect(loadBadge).toBeTruthy()
 
 		rerender(<FileStatusBadge status="PRE-SETTLED" />)
 		expect(screen.getByText('Pre-liquidado')).toBeInTheDocument()
-		const preBadge = container.querySelector('[class*="bg-amber-100"]')
+		const preBadge = container.querySelector('[class*="bg-amber-50"]')
 		expect(preBadge).toBeTruthy()
 	})
 
