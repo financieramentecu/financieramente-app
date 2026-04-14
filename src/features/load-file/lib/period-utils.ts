@@ -2,6 +2,10 @@ export function getDefaultPeriod(now: Date = new Date()): {
 	month: number
 	year: number
 } {
-	const currentMonth = now.getMonth() + 1 // 1-based
-	return { month: currentMonth, year: now.getFullYear() }
+	const d = new Date(now)
+	d.setMonth(d.getMonth() - 1)
+	return {
+		month: d.getMonth() + 1,
+		year: d.getFullYear(),
+	}
 }

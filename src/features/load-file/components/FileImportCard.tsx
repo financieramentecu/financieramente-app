@@ -203,7 +203,7 @@ export function FileImportCard({
 							onClick={() => onGoToPreliquidacion(carga.idFileImport)}
 							disabled={isPreliquidarLoading}
 							className="p-2 cursor-pointer transition-colors duration-200"
-							title="ir a Pre-liquidar archivo"
+							title="Pre-liquidar archivo"
 						>
 							{isPreliquidarLoading ? (
 								<Loader2 className="h-4 w-4 mr-1 animate-spin" />
