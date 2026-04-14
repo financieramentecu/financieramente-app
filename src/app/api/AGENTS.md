@@ -99,6 +99,7 @@ Manages the configuration linking Products, Companies, and Commissions.
 | `GET`  | `/api/product-configurations`           | List configurations.                             |
 | `POST` | `/api/product-configurations`           | Create a new configuration.                      |
 | `GET`  | `/api/product-configurations/[id]`      | Get configuration details.                       |
+| `GET`  | `/api/product-configurations/by-code/[code]` | Get configuration by unique `code` (URL-encoded segment). |
 | `PUT`  | `/api/product-configurations/[id]`      | Update configuration.                            |
 | `GET`  | `/api/product-configurations/[id]/ppcs` | Get Product Percentage Commissions for a config. |
 | `GET`  | `/api/product-configurations/[id]/distribution-commission` | List commission rules (paginated). Rules include `hasPortfolio` and optional per-line `porcentajePortfolio` (0–100 in JSON). |

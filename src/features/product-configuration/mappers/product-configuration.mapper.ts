@@ -13,7 +13,7 @@ interface PrismaProductConfigurationWithIncludes {
 	idProduct: number
 	idClientOrigin: number
 	idCategory: number
-	code: string | null
+	code: string
 	active: boolean
 	idProductPercentageCommissionNewBusinesses: number | null
 	createdAt: Date
@@ -53,7 +53,7 @@ export function prismaProductConfigToProductConfig(
 		idProduct: prisma.idProduct,
 		idClientOrigin: prisma.idClientOrigin,
 		idCategory: prisma.idCategory,
-		code: prisma.code ?? '',
+		code: prisma.code,
 		active: prisma.active,
 		idProductPercentageCommissionNewBusinesses:
 			prisma.idProductPercentageCommissionNewBusinesses,

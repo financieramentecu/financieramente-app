@@ -90,12 +90,7 @@ describe('CommissionRulesTable', () => {
 
 		const user = userEvent.setup()
 		await user.click(
-			screen.getByRole('button', { name: /abrir menú/i })
-		)
-		await user.click(
-			await screen.findByRole('menuitem', {
-				name: /Asignar a Nuevos Negocios/i,
-			})
+			screen.getByRole('button', { name: /Asignar a nuevos negocios/i })
 		)
 
 		await waitFor(() => {
@@ -127,5 +122,24 @@ describe('CommissionRulesTable', () => {
 
 		expect(screen.getByText('Cartera')).toBeInTheDocument()
 		expect(screen.getByText(new RegExp(`cartera:.*${formatted}`, 'i'))).toBeTruthy()
+	})
+
+	it('exposes edit link and assign button without overflow menu (RF-10)', () => {
+		render(
+			<CommissionRulesTable
+				data={[mockRule()]}
+				productConfigId={7}
+				distributionBasePath="/dashboard/config-distribucion-comisiones/X-Y-Z"
+			/>
+		)
+
+		const edit = screen.getByRole('link', { name: /editar/i })
+		expect(edit).toHaveAttribute(
+			'href',
+			'/dashboard/config-distribucion-comisiones/X-Y-Z/reglas/editar/10'
+		)
+		expect(
+			screen.getByRole('button', { name: /Asignar a nuevos negocios/i })
+		).toBeInTheDocument()
 	})
 })

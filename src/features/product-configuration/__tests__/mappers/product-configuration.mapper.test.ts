@@ -81,14 +81,14 @@ describe('product-configuration.mapper', () => {
 			expect(result.idProductPercentageCommissionNewBusinesses).toBeNull()
 		})
 
-		it('should handle null code', () => {
+		it('maps non-null code through (RF-07)', () => {
 			const prismaConfig = createMockPrismaProductConfiguration({
-				code: null,
+				code: 'ALT-CODE-XYZ',
 			})
 
 			const result = prismaProductConfigToProductConfig(prismaConfig)
 
-			expect(result.code).toBe('')
+			expect(result.code).toBe('ALT-CODE-XYZ')
 		})
 	})
 

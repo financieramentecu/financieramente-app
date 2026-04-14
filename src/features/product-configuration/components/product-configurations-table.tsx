@@ -163,10 +163,16 @@ export function ProductConfigurationsTableSection({
 				loading={isSearching}
 				renderAdditionalFilters={renderAdditionalFilters}
 				actions={(row) => (
-					<div className="flex items-center gap-1">
+					<div className="flex flex-wrap items-center gap-1">
 						<Button asChild variant="default" size="sm" className="cursor-pointer">
-							<Link href={`/dashboard/distribucion-comisiones/${row.id}/reglas`}>
-								Configuración comisión
+							<Link
+								href={
+									row.code?.trim()
+										? `/dashboard/config-distribucion-comisiones/${encodeURIComponent(row.code.trim())}/reglas`
+										: '/dashboard/config-distribucion-comisiones'
+								}
+							>
+								Distribución de Comisión
 							</Link>
 						</Button>
 						<Button
