@@ -21,18 +21,17 @@ export function ProductConfigurationCreateClient() {
 			const created = await createProductConfiguration(
 				data as unknown as CreateProductConfigurationInput
 			)
-			if (created?.code?.trim()) {
-				toast.success('Configuración de producto creada exitosamente')
+			if (created === null) {
+				return
+			}
+			toast.success('Configuración de producto creada exitosamente')
+			if (created.code?.trim()) {
 				const encoded = encodeURIComponent(created.code.trim())
 				router.replace(
 					`/dashboard/config-distribucion-comisiones/${encoded}/reglas/crear`
 				)
 				return
 			}
-			if (created === null) {
-				return
-			}
-			toast.success('Configuración de producto creada exitosamente')
 			router.replace('/dashboard/configuraciones-producto')
 		},
 		[createProductConfiguration, router]
