@@ -27,24 +27,9 @@ export const mockCommissionRule = (
 	idProductConfiguration: 50,
 	description: 'Mock Rule Description',
 	active: true,
+	hasPortfolio: false,
 	createdAt: new Date().toISOString(),
 	updatedAt: new Date().toISOString(),
 	categories: [mockCommissionRuleCategory()],
-	// @ts-expect-error Mocking Prisma structure which differs from domain
-	productPercentageCommissionCategories: [
-		{
-			id: 1,
-			idCategory: 101,
-			idProductPercentageCommission: 1,
-			porcentajeDistribucion: 50,
-			active: true,
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString(),
-			category: {
-				idCategory: 101,
-				name: 'Mock Category',
-			},
-		},
-	],
 	...overrides,
 })

@@ -31,7 +31,6 @@ export function createMockProductConfiguration(
 			description: 'Distribución Estándar',
 			active: true,
 		},
-		newBusinessesDistributionDescription: 'Distribución Estándar',
 		...overrides,
 	}
 }

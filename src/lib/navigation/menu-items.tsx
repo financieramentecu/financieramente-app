@@ -15,6 +15,7 @@ import {
 	Tag,
 	Sliders,
 	Percent,
+	PieChart,
 } from 'lucide-react'
 
 /**
@@ -125,6 +126,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				title: 'Config. Producto',
 				url: '/dashboard/configuraciones-producto',
 				icon: <Sliders className="h-4 w-4" />,
+			},
+			{
+				title: 'Config. distribución de comisiones',
+				url: '/dashboard/config-distribucion-comisiones',
+				icon: <PieChart className="h-4 w-4" />,
 			},
 			{
 				title: 'Descuentos',

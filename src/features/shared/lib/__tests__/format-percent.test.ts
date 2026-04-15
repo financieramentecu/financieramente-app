@@ -36,8 +36,13 @@ describe('format-percent', () => {
 	})
 
 	describe('formatPercentDisplay', () => {
-		it('pads integer to four fractional digits', () => {
-			expect(formatPercentDisplay(10, LOCALE)).toMatch(/10[,.]0000%/)
+		it('omits trailing fractional zeros (integers show without decimals)', () => {
+			expect(formatPercentDisplay(10, LOCALE)).toBe('10%')
+			expect(formatPercentDisplay(20, LOCALE)).toBe('20%')
+		})
+
+		it('shows decimals only when needed', () => {
+			expect(formatPercentDisplay(10.5, LOCALE)).toMatch(/10[,.]5%/)
 		})
 
 		it('preserves fractional values with up to six decimals', () => {

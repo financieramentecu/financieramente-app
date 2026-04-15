@@ -1,5 +1,6 @@
 import { Trash2 } from 'lucide-react'
-import type { Control } from 'react-hook-form'
+import type { Control, FieldPath } from 'react-hook-form'
+import { useFormContext } from 'react-hook-form'
 import type { Category } from '@/features/categories/types/category.types'
 import type {
 	CreateCommissionRuleFormData,
@@ -32,6 +33,7 @@ interface CategoryPercentageRowProps {
 	categories: Category[]
 	selectedCategoryIds: Array<number | undefined>
 	onRemove: () => void
+	hasPortfolio: boolean
 }
 
 export function CategoryPercentageRow({
@@ -40,7 +42,14 @@ export function CategoryPercentageRow({
 	categories,
 	selectedCategoryIds,
 	onRemove,
+	hasPortfolio,
 }: CategoryPercentageRowProps) {
+	const { trigger } = useFormContext<CommissionRuleFormData>()
+	const percentagePath =
+		`categories.${index}.percentage` as FieldPath<CommissionRuleFormData>
+	const portfolioPath =
+		`categories.${index}.portfolioPercentage` as FieldPath<CommissionRuleFormData>
+
 	return (
 		<div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-start sm:gap-5 sm:py-5">
 			<FormField
@@ -87,7 +96,7 @@ export function CategoryPercentageRow({
 				control={control}
 				name={`categories.${index}.percentage`}
 				render={({ field }) => (
-					<FormItem className="w-full space-y-2 sm:w-40 sm:max-w-44 sm:shrink-0">
+					<FormItem className="w-full space-y-2 sm:w-44 sm:max-w-44 sm:shrink-0">
 						<FormLabel className={index !== 0 ? 'sr-only' : ''}>
 							Porcentaje
 						</FormLabel>
@@ -95,7 +104,12 @@ export function CategoryPercentageRow({
 							<PercentageField
 								value={field.value}
 								onChange={field.onChange}
-								onBlur={field.onBlur}
+								onBlur={() => {
+									field.onBlur()
+									queueMicrotask(() => {
+										void trigger(percentagePath)
+									})
+								}}
 								name={field.name}
 								ref={field.ref}
 							/>
@@ -104,6 +118,35 @@ export function CategoryPercentageRow({
 					</FormItem>
 				)}
 			/>
+
+			{hasPortfolio ? (
+				<FormField
+					control={control}
+					name={`categories.${index}.portfolioPercentage`}
+					render={({ field }) => (
+						<FormItem className="w-full space-y-2 sm:w-44 sm:max-w-44 sm:shrink-0">
+							<FormLabel className={index !== 0 ? 'sr-only' : ''}>
+								Cartera
+							</FormLabel>
+							<FormControl>
+								<PercentageField
+									value={field.value}
+									onChange={field.onChange}
+									onBlur={() => {
+										field.onBlur()
+										queueMicrotask(() => {
+											void trigger(portfolioPath)
+										})
+									}}
+									name={field.name}
+									ref={field.ref}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			) : null}
 
 			<div className="flex justify-end sm:w-11 sm:shrink-0 sm:self-center">
 				<Button

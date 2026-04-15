@@ -131,12 +131,39 @@ export async function PUT(
 				throw new Error('Regla no encontrada o no pertenece a la configuración')
 			}
 
+			const previousCategories =
+				data.categories !== undefined
+					? await tx.productPercentageCommissionCategory.findMany({
+							where: { idProductPercentageCommission: ruleId },
+							select: {
+								idCategory: true,
+								porcentajePortfolio: true,
+							},
+						})
+					: []
+
+			const portfolioByCategory = new Map<
+				number,
+				(typeof previousCategories)[0]['porcentajePortfolio']
+			>()
+			for (const row of previousCategories) {
+				portfolioByCategory.set(row.idCategory, row.porcentajePortfolio)
+			}
+
+			const effectiveHasPortfolio =
+				data.hasPortfolio !== undefined
+					? data.hasPortfolio
+					: existingRule.hasPortfolio
+
 			// Update header
 			await tx.productPercentageCommission.update({
 				where: { idProductPercentageCommission: ruleId },
 				data: {
 					description: data.description,
 					active: data.active,
+					...(data.hasPortfolio !== undefined
+						? { hasPortfolio: data.hasPortfolio }
+						: {}),
 				},
 			})
 
@@ -154,6 +181,12 @@ export async function PUT(
 							idProductPercentageCommission: ruleId,
 							idCategory: cat.idCategory,
 							porcentajeDistribucion: cat.percentage,
+							porcentajePortfolio: effectiveHasPortfolio
+								? cat.portfolioPercentage !== undefined &&
+									cat.portfolioPercentage !== null
+									? cat.portfolioPercentage
+									: (portfolioByCategory.get(cat.idCategory) ?? null)
+								: (portfolioByCategory.get(cat.idCategory) ?? null),
 							active: true,
 						})),
 					})

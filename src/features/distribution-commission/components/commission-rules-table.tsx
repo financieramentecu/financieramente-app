@@ -6,14 +6,7 @@ import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableC
 import { Switch } from '@/features/shared/ui/switch'
 import { Button } from '@/features/shared/ui/button'
 import { Badge } from '@/features/shared/ui/badge'
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuTrigger,
-} from '@/features/shared/ui/dropdown-menu'
-import { Edit, MoreHorizontal, Star } from 'lucide-react'
+import { Edit, Star } from 'lucide-react'
 import Link from 'next/link'
 import { CommissionRule } from '@/features/distribution-commission/types/commission-rule.types'
 import { useCommissionRuleMutations } from '@/features/distribution-commission/hooks/use-commission-rule-mutations'
@@ -24,23 +17,43 @@ import { ColumnDef } from '@tanstack/react-table'
 import { formatPercentDisplay } from '@/features/shared/lib/format-percent'
 import { getAppLocale } from '@/features/shared/lib/app-locale'
 
+/** Badges de % en tabla: verde oscuro, texto blanco (distribución y cartera). */
+const READONLY_PERCENT_BADGE_CLASS =
+	'h-auto shrink-0 max-w-full whitespace-normal break-words rounded-md border-transparent bg-emerald-900 px-2 py-1 text-left text-[10px] font-medium leading-snug text-white shadow-none hover:bg-emerald-900'
+
 interface CommissionRulesTableProps {
 	data: CommissionRule[]
 	productConfigId: number
+	/** Base path without `/reglas`; default legacy id route. */
+	distributionBasePath?: string
 	onAssignmentSuccess?: () => void
+	/** Si se define, el buscador del DataTable dispara búsqueda en servidor (p. ej. descripción). */
+	onSearchChange?: (query: string) => void
+	searchPlaceholder?: string
 }
 
 export function CommissionRulesTable({
 	data,
 	productConfigId,
+	distributionBasePath,
 	onAssignmentSuccess,
+	onSearchChange,
+	searchPlaceholder,
 }: CommissionRulesTableProps) {
+	const rulesBasePath =
+		distributionBasePath ??
+		`/dashboard/distribucion-comisiones/${productConfigId}`
 	const { toggleActive, assignNewBusinesses } = useCommissionRuleMutations(
 		productConfigId,
 		onAssignmentSuccess
 	)
 	const [togglingId, setTogglingId] = useState<number | null>(null)
 	const [assigningId, setAssigningId] = useState<number | null>(null)
+
+	const showPortfolioColumn = useMemo(
+		() => data.some((r) => r.hasPortfolio),
+		[data]
+	)
 
 	const handleToggleActive = async (rule: CommissionRule) => {
 		// If trying to activate, check if another distribution is already active
@@ -105,14 +118,18 @@ export function CommissionRulesTable({
 		}
 	}
 
-	const columns = useMemo<ColumnDef<CommissionRule>[]>(
-		() => [
+	const columns = useMemo<ColumnDef<CommissionRule>[]>(() => {
+		const cols: ColumnDef<CommissionRule>[] = [
 			{
 				accessorKey: 'description',
-				header: ({ column }) => <DataTableColumnHeader column={column} title="Descripción" />,
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Descripción" />
+				),
 				cell: ({ row }) => (
 					<div className="flex flex-wrap items-center gap-2">
-						<span className="font-medium">{row.original.description || 'Sin descripción'}</span>
+						<span className="font-medium">
+							{row.original.description || 'Sin descripción'}
+						</span>
 						{row.original.isDefaultForNewBusinesses && (
 							<Badge
 								variant="secondary"
@@ -127,12 +144,22 @@ export function CommissionRulesTable({
 			},
 			{
 				id: 'categories',
-				header: ({ column }) => <DataTableColumnHeader column={column} title="Categorías/Distribución" />,
+				header: ({ column }) => (
+					<DataTableColumnHeader
+						column={column}
+						title="Categorías/Distribución"
+					/>
+				),
 				cell: ({ row }) => (
-					<div className="flex flex-wrap gap-1">
-						{row.original.categories && row.original.categories.length > 0 ? (
+					<div className="flex min-w-0 max-w-xl flex-wrap content-start items-start gap-x-2 gap-y-2">
+						{row.original.categories &&
+						row.original.categories.length > 0 ? (
 							row.original.categories.map((cat) => (
-								<Badge key={cat.idCategory} variant="outline" className="text-[10px]">
+								<Badge
+									key={cat.idCategory}
+									variant="outline"
+									className={READONLY_PERCENT_BADGE_CLASS}
+								>
 									{cat.category?.name || `Cat ${cat.idCategory}`}:{' '}
 									{formatPercentDisplay(
 										cat.porcentajeDistribucion,
@@ -148,9 +175,58 @@ export function CommissionRulesTable({
 					</div>
 				),
 			},
+		]
+
+		if (showPortfolioColumn) {
+			cols.push({
+				id: 'portfolio',
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Cartera" />
+				),
+				cell: ({ row }) => {
+					if (!row.original.hasPortfolio) {
+						return (
+							<span className="text-muted-foreground text-sm">—</span>
+						)
+					}
+					if (
+						!row.original.categories ||
+						row.original.categories.length === 0
+					) {
+						return (
+							<span className="text-muted-foreground text-sm">—</span>
+						)
+					}
+					return (
+						<div className="flex min-w-0 max-w-xl flex-wrap content-start items-start gap-x-2 gap-y-2">
+							{row.original.categories.map((cat) => (
+								<Badge
+									key={cat.idCategory}
+									variant="secondary"
+									className={READONLY_PERCENT_BADGE_CLASS}
+								>
+									{cat.category?.name || `Cat ${cat.idCategory}`}{' '}
+									cartera:{' '}
+									{cat.porcentajePortfolio != null
+										? formatPercentDisplay(
+												cat.porcentajePortfolio,
+												getAppLocale()
+											)
+										: '—'}
+								</Badge>
+							))}
+						</div>
+					)
+				},
+			})
+		}
+
+		cols.push(
 			{
 				accessorKey: 'active',
-				header: ({ column }) => <DataTableColumnHeader column={column} title="Estado" />,
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Estado" />
+				),
 				cell: ({ row }) => (
 					<Switch
 						checked={row.original.active}
@@ -161,7 +237,9 @@ export function CommissionRulesTable({
 			},
 			{
 				accessorKey: 'createdAt',
-				header: ({ column }) => <DataTableColumnHeader column={column} title="Fecha Creación" />,
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Fecha Creación" />
+				),
 				cell: ({ row }) => (
 					<span className="text-muted-foreground text-sm">
 						{format(new Date(row.original.createdAt), 'dd/MM/yyyy', {
@@ -170,46 +248,52 @@ export function CommissionRulesTable({
 					</span>
 				),
 			},
-		],
+			{
+				id: 'rowActions',
+				header: () => <span className="text-muted-foreground text-sm">Acciones</span>,
+				cell: ({ row }) => {
+					const rule = row.original
+					return (
+						<div className="flex flex-wrap items-center gap-2">
+							<Button variant="outline" size="sm" asChild>
+								<Link
+									href={`${rulesBasePath}/reglas/editar/${rule.id}`}
+									className="inline-flex items-center gap-1"
+								>
+									<Edit className="h-3.5 w-3.5" />
+									Editar
+								</Link>
+							</Button>
+							<Button
+								variant="secondary"
+								size="sm"
+								type="button"
+								disabled={
+									rule.isDefaultForNewBusinesses ||
+									assigningId === rule.id
+								}
+								onClick={() => handleAssignDefault(rule)}
+							>
+								Asignar a nuevos negocios
+							</Button>
+						</div>
+					)
+				},
+			}
+		)
+
+		return cols
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[togglingId]
-	)
+	}, [showPortfolioColumn, togglingId, assigningId, rulesBasePath])
 
 	return (
 		<DataTable
 			columns={columns}
 			data={data}
 			emptyMessage="No hay distribuciones de comisión registradas."
-			actions={(rule) => (
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant="ghost" className="h-8 w-8 p-0">
-							<span className="sr-only">Abrir menú</span>
-							<MoreHorizontal className="h-4 w-4" />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
-						<DropdownMenuLabel>Acciones</DropdownMenuLabel>
-						<DropdownMenuItem asChild>
-							<Link
-								href={`/dashboard/distribucion-comisiones/${productConfigId}/reglas/editar/${rule.id}`}
-							>
-								<Edit className="mr-2 h-4 w-4" />
-								Editar
-							</Link>
-						</DropdownMenuItem>
-						<DropdownMenuItem
-							onClick={() => handleAssignDefault(rule)}
-							disabled={
-								rule.isDefaultForNewBusinesses ||
-								assigningId === rule.id
-							}
-						>
-							Asignar a Nuevos Negocios
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			)}
+			onGlobalSearch={onSearchChange}
+			searchDebounceMs={0}
+			searchPlaceholder={searchPlaceholder}
 		/>
 	)
 }
