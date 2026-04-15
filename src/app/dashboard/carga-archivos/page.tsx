@@ -62,13 +62,14 @@ export default function CargaArchivosPage() {
 							canDeleteFn={canDeleteActiveFile}
 							showPreliquidarAction={true}
 							onGoToLiquidacion={handleGoToLiquidacion}
+							title='En Proceso'
 						/>
 					</TabsContent>
 
 					<TabsContent value="historial">
 						<HistorialCargasTab
 							allowedStatuses={['COMPLETED', 'ERROR', 'CANCELADO']}
-							title="Detalle"
+							title="Historial de Carga"
 							canDeleteFn={canDeleteCompletedFile}
 							emptyStateDescription="No hay archivos en el historial"
 							showPreliquidarAction={false}

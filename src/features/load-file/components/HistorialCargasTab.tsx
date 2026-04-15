@@ -6,7 +6,6 @@ import {
 	RefreshCw,
 	AlertCircle,
 	Search,
-	Filter,
 	X,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -222,11 +221,8 @@ export function HistorialCargasTab({
 
 			{/* Panel de Filtros */}
 			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-				<div className="flex items-center justify-between mb-4">
-					<h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-						<Filter className="h-4 w-4" /> Filtros
-					</h3>
-					{hasActiveFilters && (
+				{hasActiveFilters && (
+					<div className="flex items-center justify-between mb-4">
 						<Button
 							variant="ghost"
 							size="sm"
@@ -236,8 +232,8 @@ export function HistorialCargasTab({
 						>
 							<X className="h-3.5 w-3.5 mr-1" /> Limpiar filtros
 						</Button>
-					)}
-				</div>
+					</div>
+				)}
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 					{/* Buscador */}
@@ -305,12 +301,11 @@ export function HistorialCargasTab({
 				</div>
 			</div>
 
-			{/* Sección de Historial de Cargas */}
+			{/* Sección de En proceso */}
 			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 				{/* Header con título y botón recargar */}
 				<div className="flex items-center justify-between mb-6">
 					<div className="flex items-center gap-2">
-						<RefreshCw className="h-5 w-5 text-primary" />
 						<h2 className="text-lg font-semibold text-primary">
 							{title}
 						</h2>
@@ -340,7 +335,7 @@ export function HistorialCargasTab({
 				) : historial.length === 0 ? (
 					<EmptyState
 						icon={<FileText className="h-12 w-12" />}
-						title="No hay historial de cargas disponible"
+						title="No hay archivos en proceso disponible"
 						description={emptyStateDescription}
 					/>
 				) : (
