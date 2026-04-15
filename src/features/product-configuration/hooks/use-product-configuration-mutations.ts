@@ -13,9 +13,10 @@ interface UseProductConfigurationMutationsReturn {
 	createState: AsyncState<ProductConfiguration>
 	updateState: AsyncState<ProductConfiguration>
 	toggleActiveState: AsyncState<ProductConfiguration>
+	/** Resolves to the created configuration on success, or null on failure. */
 	createProductConfiguration: (
 		data: CreateProductConfigurationInput
-	) => Promise<void>
+	) => Promise<ProductConfiguration | null>
 	updateProductConfiguration: (
 		id: number,
 		data: UpdateProductConfigurationInput
@@ -52,7 +53,9 @@ export function useProductConfigurationMutations(): UseProductConfigurationMutat
 	})
 
 	const createProductConfiguration = useCallback(
-		async (data: CreateProductConfigurationInput) => {
+		async (
+			data: CreateProductConfigurationInput
+		): Promise<ProductConfiguration | null> => {
 			setCreateState({
 				status: 'loading',
 				data: undefined,
@@ -65,19 +68,25 @@ export function useProductConfigurationMutations(): UseProductConfigurationMutat
 						data
 					)
 
-				if ('error' in response) {
-					setCreateState({
-						status: 'error',
-						data: undefined,
-						error: response.error,
-					})
-				} else {
+				if (response.data != null) {
 					setCreateState({
 						status: 'success',
 						data: response.data,
 						error: '',
 					})
+					return response.data
 				}
+
+				const message =
+					'error' in response && response.error
+						? response.error
+						: 'Error al crear configuración de producto'
+				setCreateState({
+					status: 'error',
+					data: undefined,
+					error: message,
+				})
+				return null
 			} catch (error) {
 				console.error(
 					'Error al crear configuración de producto:',
@@ -91,6 +100,7 @@ export function useProductConfigurationMutations(): UseProductConfigurationMutat
 							? error.message
 							: 'Error desconocido al crear configuración de producto',
 				})
+				return null
 			}
 		},
 		[]

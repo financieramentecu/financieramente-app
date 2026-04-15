@@ -12,6 +12,9 @@ describe('product-configuration.mapper', () => {
 
 			const result = prismaProductConfigToProductConfig(prismaConfig)
 
+			expect(
+				Object.hasOwn(result, 'newBusinessesDistributionDescription')
+			).toBe(false)
 			expect(result.id).toBe(1)
 			expect(result.idProduct).toBe(1)
 			expect(result.idClientOrigin).toBe(1)

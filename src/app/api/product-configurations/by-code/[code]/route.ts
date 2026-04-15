@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { ProductConfiguration } from '@/features/product-configuration/types/product-configuration.types'
 import { getProductConfigurationByCode } from '@/features/product-configuration/services/product-configuration.service'
+import { normalizeProductConfigurationCodeParam } from '@/features/product-configuration/lib/product-configuration-code-route'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,8 @@ export async function GET(
 	{ params }: { params: Promise<{ code: string }> }
 ) {
 	try {
-		const { code } = await params
+		const { code: rawCode } = await params
+		const code = normalizeProductConfigurationCodeParam(rawCode)
 
 		const config = await getProductConfigurationByCode(code)
 

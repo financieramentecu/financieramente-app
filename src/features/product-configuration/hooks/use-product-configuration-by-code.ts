@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 import { productConfigurationApi } from '@/features/product-configuration/lib/product-configuration-api'
+import { normalizeProductConfigurationCodeParam } from '@/features/product-configuration/lib/product-configuration-code-route'
 
 export interface ResolvedConfigByCode {
 	readonly id: number
@@ -20,7 +21,7 @@ export function useProductConfigurationByCode(
 	})
 
 	useEffect(() => {
-		const trimmed = code.trim()
+		const trimmed = normalizeProductConfigurationCodeParam(code)
 		if (!trimmed) {
 			setState({
 				status: 'error',

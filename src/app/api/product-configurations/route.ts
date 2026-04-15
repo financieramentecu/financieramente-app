@@ -12,6 +12,7 @@ import {
 	prismaProductConfigListToProductConfigs,
 } from '@/features/product-configuration/mappers/product-configuration.mapper'
 import { buildProductConfigurationCode } from '@/features/negocios/lib/product-configuration-code'
+import { getProductConfigurationIdsWithCategoryLines } from '@/features/product-configuration/services/product-configuration.service'
 
 /**
  * Shared Prisma include for ProductConfiguration queries
@@ -100,8 +101,15 @@ export async function GET(request: Request) {
 			take: pageSize,
 		})
 
-		const configurationsFormatted =
+		const configurationsMapped =
 			prismaProductConfigListToProductConfigs(configurations)
+		const listIds = configurationsMapped.map((c) => c.id)
+		const idsWithCategoryLines =
+			await getProductConfigurationIdsWithCategoryLines(listIds)
+		const configurationsFormatted = configurationsMapped.map((c) => ({
+			...c,
+			distributionSetupIncomplete: !idsWithCategoryLines.has(c.id),
+		}))
 
 		const response: ApiResponse<ProductConfigurationListResponse> = {
 			data: {
