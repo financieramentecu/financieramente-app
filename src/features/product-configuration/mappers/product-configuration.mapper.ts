@@ -43,11 +43,6 @@ interface PrismaProductConfigurationWithIncludes {
 export function prismaProductConfigToProductConfig(
 	prisma: PrismaProductConfigurationWithIncludes
 ): ProductConfiguration {
-	// Find the currently active distribution from the list
-	const activeDistribution = prisma.productPercentageCommissions.find(
-		(d) => d.active
-	)
-
 	return {
 		id: prisma.id,
 		idProduct: prisma.idProduct,
@@ -84,11 +79,6 @@ export function prismaProductConfigToProductConfig(
 					active: prisma.productPercentageCommissionNewBusinesses.active,
 				}
 			: null,
-		// Prioritize the active distribution's description, fallback to the linked one
-		newBusinessesDistributionDescription:
-			activeDistribution?.description ??
-			prisma.productPercentageCommissionNewBusinesses?.description ??
-			null,
 	}
 }
 

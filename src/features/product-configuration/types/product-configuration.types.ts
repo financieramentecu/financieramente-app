@@ -27,7 +27,8 @@ export interface ProductConfiguration extends Record<string, unknown> {
 		description?: string | null
 		active: boolean
 	} | null
-	newBusinessesDistributionDescription: string | null
+	/** Set on list responses: true when no saved category lines exist for any rule under this configuration. */
+	readonly distributionSetupIncomplete?: boolean
 }
 
 /**

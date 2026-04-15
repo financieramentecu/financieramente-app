@@ -56,3 +56,49 @@ export async function getProductConfigurationByCode(
 
 	return prismaProductConfigToProductConfig(row)
 }
+
+/**
+ * Product configuration IDs that have at least one saved
+ * `ProductPercentageCommissionCategory` row (distribution setup started).
+ */
+export async function getProductConfigurationIdsWithCategoryLines(
+	ids: readonly number[]
+): Promise<Set<number>> {
+	if (ids.length === 0) {
+		return new Set()
+	}
+
+	const rows = await prisma.productPercentageCommissionCategory.findMany({
+		where: {
+			productPercentageCommission: {
+				idProductConfiguration: { in: [...ids] },
+			},
+		},
+		select: {
+			productPercentageCommission: {
+				select: { idProductConfiguration: true },
+			},
+		},
+	})
+
+	return new Set(
+		rows.map((r) => r.productPercentageCommission.idProductConfiguration)
+	)
+}
+
+/**
+ * True when at least one category line exists for any commission rule under this configuration.
+ */
+export async function isDistributionSetupComplete(
+	idProductConfiguration: number
+): Promise<boolean> {
+	const count = await prisma.productPercentageCommissionCategory.count({
+		where: {
+			productPercentageCommission: {
+				idProductConfiguration,
+			},
+		},
+	})
+
+	return count > 0
+}

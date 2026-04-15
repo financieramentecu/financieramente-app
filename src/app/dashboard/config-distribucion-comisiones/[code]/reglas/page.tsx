@@ -13,7 +13,6 @@ import {
 	CardDescription,
 	CardHeader,
 } from '@/features/shared/ui/card'
-import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { useProductConfigurationByCode } from '@/features/product-configuration/hooks/use-product-configuration-by-code'
 
 function CommissionRulesBody({
@@ -88,20 +87,14 @@ export default function CommissionRulesByCodePage() {
 
 	if (resolveState.status === 'loading') {
 		return (
-			<DashboardLayout currentPage="Config. distribución de comisiones">
-				<div className="flex h-40 items-center justify-center">
-					<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-				</div>
-			</DashboardLayout>
+			<div className="flex h-40 items-center justify-center">
+				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+			</div>
 		)
 	}
 
 	if (resolveState.status === 'error') {
-		return (
-			<DashboardLayout currentPage="Config. distribución de comisiones">
-				<p className="text-destructive">{resolveState.error}</p>
-			</DashboardLayout>
-		)
+		return <p className="text-destructive">{resolveState.error}</p>
 	}
 
 	if (resolveState.status !== 'success') {
@@ -112,30 +105,28 @@ export default function CommissionRulesByCodePage() {
 	const distributionBasePath = `/dashboard/config-distribucion-comisiones/${encodeURIComponent(resolvedCode)}`
 
 	return (
-		<DashboardLayout currentPage="Config. distribución de comisiones">
-			<div className="space-y-6">
-				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-					<div>
-						<h2 className="text-3xl font-bold tracking-tight">
-							Distribución de comisión
-						</h2>
-						<p className="text-muted-foreground">
-							Código producto: {resolvedCode}
-						</p>
-					</div>
-					<Button variant="outline" size="sm" className="shrink-0" asChild>
-						<Link href="/dashboard/config-distribucion-comisiones">
-							<ArrowLeft className="mr-2 h-4 w-4" />
-							Buscar nueva distribución
-						</Link>
-					</Button>
+		<div className="space-y-6">
+			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+				<div>
+					<h2 className="text-3xl font-bold tracking-tight">
+						Distribución de comisión
+					</h2>
+					<p className="text-muted-foreground">
+						Código producto: {resolvedCode}
+					</p>
 				</div>
-
-				<CommissionRulesBody
-					productConfigId={id}
-					distributionBasePath={distributionBasePath}
-				/>
+				<Button variant="outline" size="sm" className="shrink-0" asChild>
+					<Link href="/dashboard/config-distribucion-comisiones">
+						<ArrowLeft className="mr-2 h-4 w-4" />
+						Buscar nueva distribución
+					</Link>
+				</Button>
 			</div>
-		</DashboardLayout>
+
+			<CommissionRulesBody
+				productConfigId={id}
+				distributionBasePath={distributionBasePath}
+			/>
+		</div>
 	)
 }
