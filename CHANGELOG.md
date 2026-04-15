@@ -5,6 +5,29 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.6] - 2026-04-15
+
+### Añadido
+
+- **Asistente en dos pasos** para el flujo **configuración de producto → distribución de comisiones**: siempre ves en qué paso estás (indicador con “Paso 1 de 2” / “Paso 2 de 2”).
+- **Tras crear una configuración nueva**, la app te lleva al **formulario de distribución** usando el **código** de la configuración (ruta por código), para seguir sin buscar la fila a mano.
+- **Columna Distribución** en el listado de configuraciones de producto: muestra si la distribución está **pendiente** o **configurada** y un enlace **Continuar configuración** cuando aún falta completarla.
+
+### Mejorado
+
+- El control **Agregar categoría** en la pantalla de distribución se ve claramente como **acción principal** (no solo como texto suelto).
+- **Migas de pan:** los códigos con caracteres especiales (por ejemplo `+`) se leen bien en la ruta y los enlaces intermedios llevan a páginas válidas.
+
+### Corregido
+
+- **Primera distribución tras crear la configuración:** ya no aparece el error por “distribución activa duplicada”; se **actualiza** la regla inicial que crea el sistema en lugar de intentar crear otra.
+- **Enlaces y redirecciones con código en la URL** (segmentos codificados como `%2B`): la configuración se encuentra correctamente al abrir el flujo desde el listado o tras guardar.
+- **Redirección inmediata** tras guardar la configuración: es fiable porque usa el resultado devuelto al guardar, no solo el estado async en segundo plano.
+
+### Documentación / Interno
+
+- Requisitos **RF-11** incorporados al spec principal `product-configuration`; cambio OpenSpec **archivado** (`openspec/changes/archive/2026-04-14-rf-11-wizard-post-crear-a/`) con informe de verificación.
+
 ## [1.0.0-beta.5] - 2026-04-14
 
 ### Corregido
