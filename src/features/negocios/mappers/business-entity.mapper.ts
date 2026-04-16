@@ -6,8 +6,8 @@
 import type {
 	BusinessEntity,
 	BusinessStatus,
-	PrismaBusinessWithRelations,
 } from '../types/business-entity.types'
+import type { PrismaBusinessWithRelations } from '../types/business-prisma.types'
 
 /**
  * Transforma un Business de Prisma a BusinessEntity

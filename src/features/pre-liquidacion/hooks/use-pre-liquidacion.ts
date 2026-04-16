@@ -155,6 +155,76 @@ export function usePreLiquidacion() {
 		[fetchArchivos]
 	)
 
+	const liquidarArchivo = useCallback(
+		async (fileImportId: number) => {
+			setIsProcesando(true)
+			setErrorProcesamiento(null)
+			setMensajeExito(null)
+
+			try {
+				const response = await fetch('/api/pre-liquidacion/liquidar-archivo', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fileImportId }),
+				})
+
+				const data = await response.json()
+
+				if (!response.ok) {
+					throw new Error(data.error || 'Error al liquidar archivo')
+				}
+
+				setMensajeExito(data.mensaje || 'Archivo liquidado exitosamente')
+				await fetchArchivos()
+				return true
+			} catch (error) {
+				console.error('Error al liquidar archivo:', error)
+				setErrorProcesamiento(
+					error instanceof Error ? error.message : 'Error desconocido'
+				)
+				return false
+			} finally {
+				setIsProcesando(false)
+			}
+		},
+		[fetchArchivos]
+	)
+
+	const notificarArchivo = useCallback(
+		async (fileImportId: number) => {
+			setIsProcesando(true)
+			setErrorProcesamiento(null)
+			setMensajeExito(null)
+
+			try {
+				const response = await fetch('/api/pre-liquidacion/notificar', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fileImportId }),
+				})
+
+				const data = await response.json()
+
+				if (!response.ok) {
+					throw new Error(data.error || 'Error al notificar archivo')
+				}
+
+				setMensajeExito(data.mensaje || 'Archivo notificado y completado')
+				await fetchArchivos()
+				return true
+			} catch (error) {
+				console.error('Error al notificar archivo:', error)
+				setErrorProcesamiento(
+					error instanceof Error ? error.message : 'Error desconocido'
+				)
+				return false
+			} finally {
+				setIsProcesando(false)
+			}
+		},
+		[fetchArchivos]
+	)
+
 	useEffect(() => {
 		fetchArchivos()
 	}, [fetchArchivos])
@@ -166,6 +236,8 @@ export function usePreLiquidacion() {
 		error: state.error || null,
 		refetch: fetchArchivos,
 		procesarPreLiquidacion,
+		liquidarArchivo,
+		notificarArchivo,
 		isProcesando,
 		errorProcesamiento,
 		mensajeExito,

@@ -23,6 +23,8 @@ function makeRegistro(
 		fechaRezagado: null,
 		fechaInicio: null,
 		fechaFin: null,
+		status: 'SYNCHRONIZED',
+		nombreCliente: `Cliente ${id}`,
 		...overrides,
 	}
 }

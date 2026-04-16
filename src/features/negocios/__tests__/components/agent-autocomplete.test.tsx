@@ -20,7 +20,6 @@ function createMockAgent(overrides: Partial<UserWithRole> = {}): UserWithRole {
 		password: null,
 		ssoOnly: false,
 		phone: '3001234567',
-		idCategoria: null,
 		idRole: 1,
 		idUserLeader: null,
 		entryDate: baseDate,

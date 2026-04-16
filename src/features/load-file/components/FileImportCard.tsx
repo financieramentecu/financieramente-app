@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { FileText, Trash2, Eye, Loader2, ArrowRight, Info } from 'lucide-react'
+import { FileText, Trash2, Eye, ArrowRight, Info } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import { FileStatusBadge } from './ui/FileStatusBadge'
 import type { CargaHistorial } from '../hooks/use-file-history'
@@ -60,9 +60,7 @@ export interface FileImportCardProps {
 	 * Typically `carga.estado === 'LOAD' && carga.sincronizados > 0 && userCanPreliquidar`.
 	 */
 	readonly canPreliquidar: boolean
-	readonly isPreliquidarLoading: boolean
 	readonly onDelete: (id: string) => void
-	readonly onPreliquidar: (carga: CargaHistorial) => void
 	readonly onViewDetail: (id: number) => void
 	readonly onGoToPreliquidacion?: (idFileImport: number) => void
 	readonly onGoToLiquidacion?: () => void
@@ -76,9 +74,7 @@ export function FileImportCard({
 	carga,
 	canDelete,
 	canPreliquidar,
-	isPreliquidarLoading,
 	onDelete,
-	onPreliquidar,
 	onViewDetail,
 	onGoToPreliquidacion,
 	onGoToLiquidacion,
@@ -196,19 +192,16 @@ export function FileImportCard({
 						</Button>
 					)}
 
-					{/* Preliquidar — modal flow via parent; distinct from "Ir a Pre-liquidación" */}
-					{canPreliquidar && (
+					{/* Ir a Pre-liquidar — redirect to pre-liquidación module */}
+					{canPreliquidar && onGoToPreliquidacion && (
 						<Button
 							variant="outline"
 							size="sm"
-							onClick={() => onPreliquidar(carga)}
-							disabled={isPreliquidarLoading}
-							className="p-2 cursor-pointer transition-colors duration-200"
+							onClick={() => onGoToPreliquidacion(carga.idFileImport)}
+							className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary cursor-pointer transition-colors duration-200"
 							title="Pre-liquidar archivo"
 						>
-							{isPreliquidarLoading ? (
-								<Loader2 className="h-4 w-4 mr-1 animate-spin" />
-							) : null}
+							<ArrowRight className="h-4 w-4 mr-1" />
 							Preliquidar
 						</Button>
 					)}

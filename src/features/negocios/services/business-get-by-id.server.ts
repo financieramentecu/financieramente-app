@@ -2,7 +2,7 @@ import 'server-only'
 
 import { UserRole } from '@/features/auth/lib/roles'
 import { prisma } from '@/lib/prisma'
-import { businessWithRelations } from '../types/business-entity.types'
+import { businessWithRelations } from '../types/business-prisma.types'
 
 /**
  * Loads a business by id for server-side edit flows.

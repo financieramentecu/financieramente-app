@@ -15,7 +15,7 @@ import { Separator } from '@/features/shared/ui/separator'
 import { ClientAutocomplete } from '@/features/negocios/components/fields/client-autocomplete'
 import { ContractAutocomplete } from '@/features/negocios/components/fields/contract-autocomplete'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
-import { Client } from '@prisma/client'
+import type { Client } from '@prisma/client'
 
 export interface ClientInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>

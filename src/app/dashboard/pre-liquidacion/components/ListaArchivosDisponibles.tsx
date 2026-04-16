@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye } from 'lucide-react'
+import { Eye, Calculator } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Button } from '@/features/shared/ui/button'
@@ -11,6 +11,8 @@ import type { ArchivoDisponible } from '@/features/pre-liquidacion/types/types'
 
 interface ListaArchivosDisponiblesProps {
 	archivos: ArchivoDisponible[]
+	onPreliquidar?: (archivo: ArchivoDisponible) => void
+	onNotificar?: (fileId: number) => Promise<boolean>
 }
 
 /**
@@ -19,6 +21,8 @@ interface ListaArchivosDisponiblesProps {
  */
 export function ListaArchivosDisponibles({
 	archivos,
+	onPreliquidar,
+	onNotificar,
 }: ListaArchivosDisponiblesProps) {
 	const router = useRouter()
 
@@ -42,9 +46,54 @@ export function ListaArchivosDisponibles({
 			{
 				accessorKey: 'registrosPreliquidados',
 				header: 'Cantidad de Registros',
-				cell: ({ row }) => (
-					<span>{row.original.registrosPreliquidados ?? 0} registros</span>
-				),
+				cell: ({ row }) => {
+					const count =
+						row.original.registrosPreliquidados || row.original.sincronizados
+					return <span>{count ?? 0} registros</span>
+				},
+			},
+			{
+				accessorKey: 'estado',
+				header: 'Estado',
+				cell: ({ row }) => {
+					const status = row.original.estado
+					if (status === 'LOAD') {
+						return (
+							<span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+								Sincronizado
+							</span>
+						)
+					}
+					if (status === 'PRE-SETTLED') {
+						return (
+							<span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-700/10">
+								Pre-liquidado
+							</span>
+						)
+					}
+					if (status === 'PRE-SETTLE-APROVED') {
+						return (
+							<span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-700/10">
+								Pre-liquidación Aprobada
+							</span>
+						)
+					}
+					if (status === 'SETTLED') {
+						return (
+							<span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-700/10">
+								Liquidado
+							</span>
+						)
+					}
+					if (status === 'COMPLETED') {
+						return (
+							<span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-700/10">
+								Completado
+							</span>
+						)
+					}
+					return <span>{status}</span>
+				},
 			},
 			{
 				id: 'actions',
@@ -64,7 +113,29 @@ export function ListaArchivosDisponibles({
 					}
 
 					return (
-						<div className="text-right">
+						<div className="text-right flex items-center justify-end gap-2">
+							{archivo.estado === 'LOAD' && (
+								<Button
+									variant="default"
+									size="sm"
+									onClick={() => onPreliquidar?.(archivo)}
+									className="cursor-pointer bg-primary hover:bg-primary/90"
+								>
+									<Calculator className="h-4 w-4 mr-2" />
+									Pre-Liquidar
+								</Button>
+							)}
+							{archivo.estado === 'SETTLED' && (
+								<Button
+									variant="default"
+									size="sm"
+									onClick={() => onNotificar?.(archivo.idFileImport)}
+									className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white"
+								>
+									<Calculator className="h-4 w-4 mr-2" />
+									Notificar
+								</Button>
+							)}
 							<Button
 								variant="outline"
 								size="sm"
@@ -83,7 +154,7 @@ export function ListaArchivosDisponibles({
 				},
 			},
 		],
-		[router]
+		[router, onNotificar, onPreliquidar]
 	)
 
 	return (
