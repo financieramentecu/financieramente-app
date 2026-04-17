@@ -47,6 +47,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	status: 'VENTA_EFECTUADA',
 	createdAt: baseDate,
 	updatedAt: baseDate,
+	dateIssued: null,
 	client: {
 		idClient: 1,
 		name: 'María',

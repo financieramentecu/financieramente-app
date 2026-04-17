@@ -146,5 +146,21 @@ describe('prismaBusinessToEntity', () => {
 
 			expect(result.agent.roleName).toBeNull()
 		})
+
+		it('should map null dateIssued to null', () => {
+			const result = prismaBusinessToEntity(mockPrismaBusiness)
+
+			expect(result.dateIssued).toBeNull()
+		})
+
+		it('should map dateIssued to ISO string', () => {
+			const issued = new Date('2024-03-20T14:30:00.000Z')
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				dateIssued: issued,
+			})
+
+			expect(result.dateIssued).toBe('2024-03-20T14:30:00.000Z')
+		})
 	})
 })

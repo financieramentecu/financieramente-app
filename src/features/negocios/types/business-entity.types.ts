@@ -100,6 +100,8 @@ export interface BusinessEntity {
 	value: number
 	status: BusinessStatus
 	readonly createdAt: string // ISO string para serialización
+	/** Fecha de primera emisión (ISO); null si nunca estuvo EMITIDO o legacy sin backfill */
+	dateIssued: string | null
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo
