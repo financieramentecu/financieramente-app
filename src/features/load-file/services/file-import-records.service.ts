@@ -24,18 +24,18 @@ function whereForStatus(
 			return {
 				...base,
 				status: 'SYNCHRONIZED',
-				lagDate: null,
 			}
 		case 'REZAGADOS':
 			return {
 				...base,
-				status: 'SYNCHRONIZED',
-				lagDate: { not: null },
+				status: 'LAG',
+				idBusiness: { not: null },
 			}
 		case 'NO_SYNC':
 			return {
 				...base,
 				status: 'LAG',
+				idBusiness: null,
 			}
 		default:
 			return base

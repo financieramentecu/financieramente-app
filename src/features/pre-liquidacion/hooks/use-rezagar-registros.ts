@@ -5,10 +5,11 @@ import type { AsyncState } from '@/features/shared/types/async-state.types'
 
 interface RezagarResult {
 	lagged: number
+	fileCompleted: boolean
 }
 
 interface UseRezagarRegistrosReturn {
-	execute: (ids: number[]) => Promise<RezagarResult | null>
+	execute: (ids: number[], fileId: number) => Promise<RezagarResult | null>
 	state: AsyncState<RezagarResult>
 }
 
@@ -22,29 +23,35 @@ export function useRezagarRegistros(): UseRezagarRegistrosReturn {
 		error: '',
 	})
 
-	const execute = useCallback(async (ids: number[]): Promise<RezagarResult | null> => {
-		setState({ status: 'loading', data: undefined, error: '' })
+	const execute = useCallback(
+		async (ids: number[], fileId: number): Promise<RezagarResult | null> => {
+			setState({ status: 'loading', data: undefined, error: '' })
 
-		try {
-			const response = await fetch('/api/pre-liquidacion/rezagar', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ ids }),
-			})
+			try {
+				const response = await fetch('/api/pre-liquidacion/rezagar', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ ids, fileId }),
+				})
 
-			const parsed = await response.json().catch(() => ({}))
-			const data = parsed.data !== undefined ? parsed.data : parsed
+				const parsed = await response.json().catch(() => ({}))
+				const data = parsed.data !== undefined ? parsed.data : parsed
 
-			if (!response.ok) {
-				const errorMsg =
-					typeof parsed.error === 'string' ? parsed.error : 'Error al rezagar'
-				setState({ status: 'error', data: undefined, error: errorMsg })
-				return null
-			}
+				if (!response.ok) {
+					const errorMsg =
+						typeof parsed.error === 'string'
+							? parsed.error
+							: 'Error al rezagar'
+					setState({ status: 'error', data: undefined, error: errorMsg })
+					return null
+				}
 
-			const result: RezagarResult = { lagged: data.lagged ?? 0 }
-			setState({ status: 'success', data: result, error: '' })
-			return result
+				const result: RezagarResult = {
+					lagged: data.lagged ?? 0,
+					fileCompleted: data.fileCompleted ?? false,
+				}
+				setState({ status: 'success', data: result, error: '' })
+				return result
 		} catch (err) {
 			console.error('Error al rezagar registros:', err)
 			setState({

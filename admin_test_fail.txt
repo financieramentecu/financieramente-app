@@ -1,0 +1,482 @@
+
+> financieramente-app@1.0.0-beta.2 test:unit
+> vitest --config vitest.unit.config.ts src/features/email/__tests__/admin-notifications.test.ts --run --reporter=verbose
+
+
+ RUN  v3.2.4 /Users/andres/Documents/financieramente/financieramente-app
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe obtener administradores activos
+✅ Notificación enviada exitosamente a admin1@example.com
+✅ Notificación enviada exitosamente a admin2@example.com
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe obtener administradores activos
+[sendNewUserNotificationToAdmins] Resultado: 2 exitosos, 0 fallidos
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar NEXTAUTH_URL como baseUrl si está disponible
+✅ Notificación enviada exitosamente a admin1@example.com
+✅ Notificación enviada exitosamente a admin2@example.com
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar NEXTAUTH_URL como baseUrl si está disponible
+[sendNewUserNotificationToAdmins] Resultado: 2 exitosos, 0 fallidos
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar NEXT_PUBLIC_API_URL como baseUrl si NEXTAUTH_URL no está disponible
+✅ Notificación enviada exitosamente a admin1@example.com
+✅ Notificación enviada exitosamente a admin2@example.com
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar NEXT_PUBLIC_API_URL como baseUrl si NEXTAUTH_URL no está disponible
+[sendNewUserNotificationToAdmins] Resultado: 2 exitosos, 0 fallidos
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar localhost como fallback si no hay variables de entorno
+✅ Notificación enviada exitosamente a admin1@example.com
+✅ Notificación enviada exitosamente a admin2@example.com
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar localhost como fallback si no hay variables de entorno
+[sendNewUserNotificationToAdmins] Resultado: 2 exitosos, 0 fallidos
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe enviar email a cada administrador
+✅ Notificación enviada exitosamente a admin1@example.com
+✅ Notificación enviada exitosamente a admin2@example.com
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe enviar email a cada administrador
+[sendNewUserNotificationToAdmins] Resultado: 2 exitosos, 0 fallidos
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe manejar errores sin propagar
+[sendNewUserNotificationToAdmins] Resultado: 2 exitosos, 0 fallidos
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe manejar errores individuales sin afectar otros envíos
+✅ Notificación enviada exitosamente a admin2@example.com
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe manejar errores individuales sin afectar otros envíos
+[sendNewUserNotificationToAdmins] Resultado: 2 exitosos, 0 fallidos
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar Promise.allSettled para envío paralelo
+✅ Notificación enviada exitosamente a admin1@example.com
+✅ Notificación enviada exitosamente a admin2@example.com
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar Promise.allSettled para envío paralelo
+[sendNewUserNotificationToAdmins] Resultado: 2 exitosos, 0 fallidos
+
+stdout | src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe loggear error cuando el email falla
+[sendNewUserNotificationToAdmins] Resultado: 2 exitosos, 0 fallidos
+
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > getActiveAdminUsers > debe retornar administradores activos 2ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > getActiveAdminUsers > debe retornar array vacío si no hay administradores 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > getActiveAdminUsers > debe manejar errores de Prisma y retornar array vacío 1ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe generar HTML válido con DOCTYPE 28ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir información del usuario 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir link correcto a dashboard/admin/users 0ms
+ × src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir colores de marca 6ms
+   → expected '<!DOCTYPE html>\n<html>\n<head>\n\t<m…' to contain '#83D874'
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir fecha formateada en español 0ms
+ × src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir título y estructura correcta 3ms
+   → expected '<!DOCTYPE html>\n<html>\n<head>\n\t<m…' to contain 'Nuevo Usuario Requiere Activación'
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir saludo personalizado con nombre del administrador 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir logo de Financieramente 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir footer con copyright 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationPlainText > debe incluir toda la información del usuario 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationPlainText > debe incluir link directo 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationPlainText > debe incluir título y mensaje principal 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationPlainText > debe incluir fecha formateada 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationPlainText > debe incluir saludo personalizado con nombre del administrador 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe obtener administradores activos 1ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar NEXTAUTH_URL como baseUrl si está disponible 1ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar NEXT_PUBLIC_API_URL como baseUrl si NEXTAUTH_URL no está disponible 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar localhost como fallback si no hay variables de entorno 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe enviar email a cada administrador 1ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe manejar caso sin administradores 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe manejar errores sin propagar 1ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe manejar errores individuales sin afectar otros envíos 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe usar Promise.allSettled para envío paralelo 0ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe loggear éxito cuando el email se envía correctamente 1ms
+ ✓ src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > sendNewUserNotificationToAdmins > debe loggear error cuando el email falla 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir colores de marca
+AssertionError: expected '<!DOCTYPE html>\n<html>\n<head>\n\t<m…' to contain '#83D874'
+
+- Expected
++ Received
+
+- #83D874
++ <!DOCTYPE html>
++ <html>
++ <head>
++ 	<meta charset="utf-8">
++ 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
++ 	<style>
++ 	* { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
++ 	html, body { margin: 0 !important; padding: 0 !important; height: 100% !important; width: 100% !important; }
++ 	table, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
++ 	table { border-spacing: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; margin: 0 auto !important; }
++ 	img { -ms-interpolation-mode:bicubic; }
++ 	a { text-decoration: none; }
++ 	
++ 	body {
++ 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
++ 		line-height: 1.6;
++ 		color: #1a1a1a;
++ 		max-width: 600px;
++ 		margin: 0 auto;
++ 		padding: 20px;
++ 		background-color: #f5f5f5;
++ 	}
++ 	.container {
++ 		background: #ffffff;
++ 		border-radius: 12px;
++ 		overflow: hidden;
++ 		box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
++ 	}
++ 	.header {
++ 		background: #00505C;
++ 		color: #ffffff;
++ 		padding: 40px 30px;
++ 		text-align: center;
++ 	}
++ 	.logo-container { margin-bottom: 20px; }
++ 	.logo {
++ 		max-width: 180px;
++ 		height: auto;
++ 		display: block;
++ 		margin: 0 auto;
++ 	}
++ 	.header h1 {
++ 		margin: 0;
++ 		font-size: 26px;
++ 		font-weight: 700;
++ 		color: #ffffff;
++ 		text-shadow: 0 2px 4px rgba(0,0,0,0.2);
++ 	}
++ 	.header p {
++ 		margin: 8px 0 0 0;
++ 		font-size: 14px;
++ 		color: #ffffff;
++ 		opacity: 0.95;
++ 	}
++ 	.content {
++ 		padding: 35px 30px;
++ 		background: #ffffff;
++ 	}
++ 	.greeting {
++ 		font-size: 18px;
++ 		font-weight: 600;
++ 		color: #1a1a1a;
++ 		margin-bottom: 16px;
++ 	}
++ 	.message {
++ 		font-size: 16px;
++ 		color: #333333;
++ 		margin-bottom: 24px;
++ 		line-height: 1.7;
++ 	}
++ 	.info-box {
++ 		background: #f8f9fa;
++ 		padding: 24px;
++ 		border-left: 5px solid #00505C;
++ 		margin: 24px 0;
++ 		border-radius: 6px;
++ 		box-shadow: 0 1px 3px rgba(0,0,0,0.05);
++ 	}
++ 	.info-box h3 {
++ 		margin: 0 0 16px 0;
++ 		font-size: 18px;
++ 		font-weight: 600;
++ 		color: #00505C;
++ 	}
++ 	.info-box p { margin: 10px 0; font-size: 15px; color: #1a1a1a; line-height: 1.6; }
++ 	.info-box strong { color: #333333; font-weight: 600; }
++ 	.info-box a {
++ 		color: #00505C;
++ 		text-decoration: none;
++ 		font-weight: 500;
++ 	}
++ 	.cta-container { text-align: center; margin: 32px 0; }
++ 	.cta-button {
++ 		display: inline-block;
++ 		background: #00505C;
++ 		color: #ffffff !important;
++ 		padding: 16px 32px;
++ 		text-decoration: none !important;
++ 		border-radius: 8px;
++ 		font-weight: 700;
++ 		font-size: 16px;
++ 		box-shadow: 0 4px 6px rgba(0,80,92,0.3);
++ 		letter-spacing: 0.3px;
++ 	}
++ 	.cta-button:hover { background: #003d47; }
++ 	.link-alternative {
++ 		color: #666666;
++ 		font-size: 14px;
++ 		margin-top: 24px;
++ 		line-height: 1.6;
++ 	}
++ 	.link-alternative a {
++ 		color: #00505C;
++ 		word-break: break-all;
++ 		text-decoration: none;
++ 		font-weight: 500;
++ 	}
++ 	.footer {
++ 		text-align: center;
++ 		color: #666666;
++ 		font-size: 13px;
++ 		padding: 24px 20px;
++ 		background: #f8f9fa;
++ 		border-top: 1px solid #e9ecef;
++ 	}
++ 	.footer p { margin: 6px 0; color: #666666; }
++ 	@media only screen and (max-width: 600px) {
++ 		body { padding: 10px; }
++ 		.container { border-radius: 0; }
++ 		.content { padding: 25px 20px; }
++ 		.header { padding: 30px 20px; }
++ 		.header h1 { font-size: 22px; }
++ 		.cta-button { padding: 14px 28px; font-size: 15px; display: block; width: 100%; max-width: 280px; margin: 0 auto; text-align: center; box-sizing: border-box; }
++ 	}
++ </style>
++ </head>
++ <body>
++ 	<div class="container">
++ 		<div class="header">
++ 			<div class="logo-container"><img src="https://example.com/logos/logo-verde.svg" alt="Financieramente" class="logo" /></div>
++ 			<h1>🔔 Nuevo Usuario Registrado</h1>
++ 			<p>Sistema Financieramente</p>
++ 		</div>
++ 		<div class="content">
++ 			
++ 		<p class="greeting">Hola Admin Test,</p>
++ 		<p class="message">Un nuevo usuario ha iniciado sesión en el sistema y requiere que actives su cuenta para poder operar.</p>
++ 		
++ 		<div class="info-box">
++ 			<h3>Información del Usuario:</h3>
++ 			<p><strong>Nombre:</strong> Juan Pérez</p>
++ 			<p><strong>Email:</strong> <a href="mailto:juan@example.com">juan@example.com</a></p>
++ 			<p><strong>Fecha de Registro:</strong> 14 de abril de 2026</p>
++ 			<p><strong>Estado:</strong> <span style="color: #ff9800; font-weight: bold;">Pendiente de Activación</span></p>
++ 		</div>
++
++ 		<div class="cta-container">
++ 			<a href="https://example.com/dashboard/admin/users/123" class="cta-button">Revisar y Activar</a>
++ 		</div>
++
++ 		<p class="link-alternative">
++ 			O copia y pega este enlace en tu navegador:<br>
++ 			<a href="https://example.com/dashboard/admin/users/123">https://example.com/dashboard/admin/users/123</a>
++ 		</p>
++ 	
++ 		</div>
++ 		<div class="footer">
++ 			<p>Este es un correo automático del sistema Financieramente.</p>
++ 			<p>© 2026 Financieramente. Todos los derechos reservados.</p>
++ 		</div>
++ 	</div>
++ </body>
++ </html>
+
+ ❯ src/features/email/__tests__/admin-notifications.test.ts:149:17
+    147| 
+    148|    expect(html).toContain('#00505C')
+    149|    expect(html).toContain('#83D874')
+       |                 ^
+    150|   })
+    151| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/email/__tests__/admin-notifications.test.ts > admin-notifications > generateNotificationHTML > debe incluir título y estructura correcta
+AssertionError: expected '<!DOCTYPE html>\n<html>\n<head>\n\t<m…' to contain 'Nuevo Usuario Requiere Activación'
+
+- Expected
++ Received
+
+- Nuevo Usuario Requiere Activación
++ <!DOCTYPE html>
++ <html>
++ <head>
++ 	<meta charset="utf-8">
++ 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
++ 	<style>
++ 	* { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
++ 	html, body { margin: 0 !important; padding: 0 !important; height: 100% !important; width: 100% !important; }
++ 	table, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
++ 	table { border-spacing: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; margin: 0 auto !important; }
++ 	img { -ms-interpolation-mode:bicubic; }
++ 	a { text-decoration: none; }
++ 	
++ 	body {
++ 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
++ 		line-height: 1.6;
++ 		color: #1a1a1a;
++ 		max-width: 600px;
++ 		margin: 0 auto;
++ 		padding: 20px;
++ 		background-color: #f5f5f5;
++ 	}
++ 	.container {
++ 		background: #ffffff;
++ 		border-radius: 12px;
++ 		overflow: hidden;
++ 		box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
++ 	}
++ 	.header {
++ 		background: #00505C;
++ 		color: #ffffff;
++ 		padding: 40px 30px;
++ 		text-align: center;
++ 	}
++ 	.logo-container { margin-bottom: 20px; }
++ 	.logo {
++ 		max-width: 180px;
++ 		height: auto;
++ 		display: block;
++ 		margin: 0 auto;
++ 	}
++ 	.header h1 {
++ 		margin: 0;
++ 		font-size: 26px;
++ 		font-weight: 700;
++ 		color: #ffffff;
++ 		text-shadow: 0 2px 4px rgba(0,0,0,0.2);
++ 	}
++ 	.header p {
++ 		margin: 8px 0 0 0;
++ 		font-size: 14px;
++ 		color: #ffffff;
++ 		opacity: 0.95;
++ 	}
++ 	.content {
++ 		padding: 35px 30px;
++ 		background: #ffffff;
++ 	}
++ 	.greeting {
++ 		font-size: 18px;
++ 		font-weight: 600;
++ 		color: #1a1a1a;
++ 		margin-bottom: 16px;
++ 	}
++ 	.message {
++ 		font-size: 16px;
++ 		color: #333333;
++ 		margin-bottom: 24px;
++ 		line-height: 1.7;
++ 	}
++ 	.info-box {
++ 		background: #f8f9fa;
++ 		padding: 24px;
++ 		border-left: 5px solid #00505C;
++ 		margin: 24px 0;
++ 		border-radius: 6px;
++ 		box-shadow: 0 1px 3px rgba(0,0,0,0.05);
++ 	}
++ 	.info-box h3 {
++ 		margin: 0 0 16px 0;
++ 		font-size: 18px;
++ 		font-weight: 600;
++ 		color: #00505C;
++ 	}
++ 	.info-box p { margin: 10px 0; font-size: 15px; color: #1a1a1a; line-height: 1.6; }
++ 	.info-box strong { color: #333333; font-weight: 600; }
++ 	.info-box a {
++ 		color: #00505C;
++ 		text-decoration: none;
++ 		font-weight: 500;
++ 	}
++ 	.cta-container { text-align: center; margin: 32px 0; }
++ 	.cta-button {
++ 		display: inline-block;
++ 		background: #00505C;
++ 		color: #ffffff !important;
++ 		padding: 16px 32px;
++ 		text-decoration: none !important;
++ 		border-radius: 8px;
++ 		font-weight: 700;
++ 		font-size: 16px;
++ 		box-shadow: 0 4px 6px rgba(0,80,92,0.3);
++ 		letter-spacing: 0.3px;
++ 	}
++ 	.cta-button:hover { background: #003d47; }
++ 	.link-alternative {
++ 		color: #666666;
++ 		font-size: 14px;
++ 		margin-top: 24px;
++ 		line-height: 1.6;
++ 	}
++ 	.link-alternative a {
++ 		color: #00505C;
++ 		word-break: break-all;
++ 		text-decoration: none;
++ 		font-weight: 500;
++ 	}
++ 	.footer {
++ 		text-align: center;
++ 		color: #666666;
++ 		font-size: 13px;
++ 		padding: 24px 20px;
++ 		background: #f8f9fa;
++ 		border-top: 1px solid #e9ecef;
++ 	}
++ 	.footer p { margin: 6px 0; color: #666666; }
++ 	@media only screen and (max-width: 600px) {
++ 		body { padding: 10px; }
++ 		.container { border-radius: 0; }
++ 		.content { padding: 25px 20px; }
++ 		.header { padding: 30px 20px; }
++ 		.header h1 { font-size: 22px; }
++ 		.cta-button { padding: 14px 28px; font-size: 15px; display: block; width: 100%; max-width: 280px; margin: 0 auto; text-align: center; box-sizing: border-box; }
++ 	}
++ </style>
++ </head>
++ <body>
++ 	<div class="container">
++ 		<div class="header">
++ 			<div class="logo-container"><img src="https://example.com/logos/logo-verde.svg" alt="Financieramente" class="logo" /></div>
++ 			<h1>🔔 Nuevo Usuario Registrado</h1>
++ 			<p>Sistema Financieramente</p>
++ 		</div>
++ 		<div class="content">
++ 			
++ 		<p class="greeting">Hola Admin Test,</p>
++ 		<p class="message">Un nuevo usuario ha iniciado sesión en el sistema y requiere que actives su cuenta para poder operar.</p>
++ 		
++ 		<div class="info-box">
++ 			<h3>Información del Usuario:</h3>
++ 			<p><strong>Nombre:</strong> Juan Pérez</p>
++ 			<p><strong>Email:</strong> <a href="mailto:juan@example.com">juan@example.com</a></p>
++ 			<p><strong>Fecha de Registro:</strong> 14 de abril de 2026</p>
++ 			<p><strong>Estado:</strong> <span style="color: #ff9800; font-weight: bold;">Pendiente de Activación</span></p>
++ 		</div>
++
++ 		<div class="cta-container">
++ 			<a href="https://example.com/dashboard/admin/users/123" class="cta-button">Revisar y Activar</a>
++ 		</div>
++
++ 		<p class="link-alternative">
++ 			O copia y pega este enlace en tu navegador:<br>
++ 			<a href="https://example.com/dashboard/admin/users/123">https://example.com/dashboard/admin/users/123</a>
++ 		</p>
++ 	
++ 		</div>
++ 		<div class="footer">
++ 			<p>Este es un correo automático del sistema Financieramente.</p>
++ 			<p>© 2026 Financieramente. Todos los derechos reservados.</p>
++ 		</div>
++ 	</div>
++ </body>
++ </html>
+
+ ❯ src/features/email/__tests__/admin-notifications.test.ts:164:17
+    162|    const html = generateNotificationHTML(params)
+    163| 
+    164|    expect(html).toContain('Nuevo Usuario Requiere Activación')
+       |                 ^
+    165|    expect(html).toContain('Sistema Financieramente')
+    166|    expect(html).toContain('Activar Usuario')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 26 passed (28)
+   Start at  12:33:11
+   Duration  922ms (transform 77ms, setup 177ms, collect 36ms, tests 51ms, environment 493ms, prepare 64ms)
+

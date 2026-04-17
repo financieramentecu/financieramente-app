@@ -23,6 +23,7 @@ function agentInfoToUserWithRole(agentInfo: AgentInfo): UserWithRole {
 	const lastName = nameParts.slice(1).join(' ') || null
 
 	return {
+		id: agentInfo.id,
 		idUser: agentInfo.id,
 		name,
 		lastName,
@@ -34,6 +35,7 @@ function agentInfoToUserWithRole(agentInfo: AgentInfo): UserWithRole {
 		updatedAt: new Date(),
 		role: agentInfo.roleName
 			? {
+					id: 0,
 					idRole: 0, // No disponible en AgentInfo
 					code: UserRole.AGENTE, // Asumimos que es agente
 					name: agentInfo.roleName,

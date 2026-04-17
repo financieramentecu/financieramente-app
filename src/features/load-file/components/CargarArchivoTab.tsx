@@ -53,10 +53,10 @@ export function CargarArchivoTab() {
 	)
 	const [processingResult, setProcessingResult] = useState<
 		| (ProcessResult & {
-				sincronizadoCount: number
-				rezagadoCount: number
-				noSincronizadoCount?: number
-		  })
+			sincronizadoCount: number
+			rezagadoCount: number
+			noSincronizadoCount?: number
+		})
 		| null
 	>(null)
 	const [processingProgress, setProcessingProgress] = useState<{
@@ -506,13 +506,13 @@ export function CargarArchivoTab() {
 								Math.max(
 									0,
 									(processingResult.successCount ?? 0) -
-										(processingResult.sincronizadoCount ?? 0) -
-										(processingResult.rezagadoCount ?? 0)
+									(processingResult.sincronizadoCount ?? 0) -
+									(processingResult.rezagadoCount ?? 0)
 								),
 							rezagados: processingResult.rezagadoCount ?? 0,
 						}}
 					/>
-					<div className="flex justify-center pt-4">
+					<div className="flex justify-center pt-4 gap-4">
 						<Button
 							onClick={handleUploadAnother}
 							variant="outline"
@@ -522,14 +522,17 @@ export function CargarArchivoTab() {
 							<FileUp className="h-5 w-5 mr-2" />
 							Subir otro
 						</Button>
-						<Button
-							onClick={() => router.push(`/dashboard/pre-liquidacion/${currentFileImportId}`)}
-							className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
-							size="lg"
-						>
-							<ArrowRight className="h-5 w-5 mr-2" />
-							Ir a preliquidar
-						</Button>
+						{((processingResult.sincronizadoCount ?? 0) > 0 ||
+							(processingResult.rezagadoCount ?? 0) > 0) && (
+								<Button
+									onClick={() => router.push(`/dashboard/pre-liquidacion/${currentFileImportId}`)}
+									className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
+									size="lg"
+								>
+									<ArrowRight className="h-5 w-5 mr-2" />
+									Ir a preliquidar
+								</Button>
+							)}
 					</div>
 				</div>
 			) : !processingProgress ? (
