@@ -5,7 +5,8 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { Company } from '@/features/company/types/company.types'
 import { prismaCompanyToCompany } from '@/features/company/mappers/company.mapper'
 import { z } from 'zod'
-import { auth } from '@/auth'
+import { requireAuth, requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -21,6 +22,11 @@ export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { id } = await params
 		const company = await prisma.company.findUnique({
@@ -58,16 +64,13 @@ export async function PUT(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	try {
-		const session = await auth()
-		if (!session?.user) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'No autorizado',
-			}
-			return NextResponse.json(errorResponse, { status: 401 })
-		}
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+	const { session } = guard
 
+	try {
 		const { id } = await params
 		const companyId = parseInt(id)
 		const body = await request.json()
@@ -233,16 +236,13 @@ export async function DELETE(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	try {
-		const session = await auth()
-		if (!session?.user) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'No autorizado',
-			}
-			return NextResponse.json(errorResponse, { status: 401 })
-		}
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+	const { session } = guard
 
+	try {
 		const { id } = await params
 		const companyId = parseInt(id)
 

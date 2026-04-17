@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from 'next-auth'
 import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
+import { resolveAuthSecret } from '@/lib/auth/auth-secret'
 import { isValidCorporateEmail } from '@/features/auth/types/auth.types'
 import {
 	validateUserByEmail,
@@ -328,10 +329,7 @@ export const authConfig: NextAuthConfig = {
 			},
 		},
 	},
-	secret:
-		process.env.AUTH_SECRET ||
-		process.env.NEXTAUTH_SECRET ||
-		'fallback-secret-for-development-only',
+	secret: resolveAuthSecret(),
 	trustHost: true,
 	debug: process.env.AUTH_DEBUG === 'true',
 }

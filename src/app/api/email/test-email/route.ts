@@ -4,22 +4,34 @@ import {
 	sendEmail,
 	sendTemplatedEmail,
 } from '@/features/email/lib/email-service'
+import { requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
+
+/**
+ * Whether the test-email debug endpoints are reachable at all. Restricted to
+ * `development` and `test` envs — NOT QA or staging, where `NODE_ENV` is `qa`
+ * but the endpoint would otherwise have leaked SendGrid configuration and
+ * allowed unauthenticated mail sending.
+ */
+function isTestEmailEnvironmentAllowed(): boolean {
+	const env = process.env.NODE_ENV
+	return env === 'development' || env === 'test'
+}
 
 /**
  * GET /api/email/test-email
  *
  * Verifica la configuración de SendGrid sin enviar emails.
- * Solo disponible en desarrollo.
+ * Solo disponible en desarrollo/test y para usuarios administradores.
  */
 export async function GET() {
-	// Solo permitir en desarrollo
-	if (process.env.NODE_ENV === 'production') {
-		return NextResponse.json(
-			{
-				error: 'Este endpoint solo está disponible en desarrollo',
-			},
-			{ status: 403 }
-		)
+	if (!isTestEmailEnvironmentAllowed()) {
+		return NextResponse.json({ error: 'Not found' }, { status: 404 })
+	}
+
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
 	}
 
 	try {
@@ -62,14 +74,13 @@ export async function GET() {
  * }
  */
 export async function POST(request: Request) {
-	// Solo permitir en desarrollo
-	if (process.env.NODE_ENV === 'production') {
-		return NextResponse.json(
-			{
-				error: 'Este endpoint solo está disponible en desarrollo',
-			},
-			{ status: 403 }
-		)
+	if (!isTestEmailEnvironmentAllowed()) {
+		return NextResponse.json({ error: 'Not found' }, { status: 404 })
+	}
+
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
 	}
 
 	try {
