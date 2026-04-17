@@ -3,8 +3,6 @@
  * Independientes de Prisma, optimizados para la UI
  */
 
-import { Prisma } from '@prisma/client'
-
 // ============================================
 // ESTADOS Y MODOS
 // ============================================
@@ -109,43 +107,3 @@ export interface BusinessEntity {
 	periodicity: PeriodicityInfo | null
 	clientOrigin: ClientOriginInfo
 }
-
-// ============================================
-// SELECTOR DE PRISMA
-// ============================================
-
-/**
- * Selector de Prisma para incluir todas las relaciones necesarias
- * Se usa en las queries de la API
- */
-export const businessWithRelations = {
-	client: true,
-	user: {
-		include: {
-			role: true,
-		},
-	},
-	productPercentageCommission: {
-		include: {
-			productConfiguration: {
-				include: {
-					product: {
-						include: {
-							company: true,
-						},
-					},
-				},
-			},
-		},
-	},
-	currency: true,
-	buyPeriodicity: true,
-	clientOrigin: true,
-} satisfies Prisma.BusinessInclude
-
-/**
- * Tipo derivado de Prisma con todas las relaciones
- */
-export type PrismaBusinessWithRelations = Prisma.BusinessGetPayload<{
-	include: typeof businessWithRelations
-}>

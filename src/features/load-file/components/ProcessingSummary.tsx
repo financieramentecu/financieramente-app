@@ -307,7 +307,7 @@ export function ProcessingSummary({
 			)}
 
 			{/* Botón para subir otro archivo */}
-			<div className="flex justify-center pt-6">
+			<div className="flex justify-center pt-6 mr-2">
 				<Button
 					onClick={onUploadAnother}
 					className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"

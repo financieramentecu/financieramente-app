@@ -40,7 +40,7 @@ test.describe('Pre-liquidación Flow', () => {
 			'Pre-liquidación flow skipped on mobile'
 		)
 		// Mock the files API: shape must match ArchivoDisponible and ResumenArchivos
-		const currentYear = new Date().getFullYear()
+		const currentYear = new Date().getUTCFullYear()
 		const fechaCarga = `${currentYear}-01-15` // Enero para coincidir con filtro del test
 		await page.route('/api/pre-liquidacion/archivos', async (route) => {
 			const json = {
@@ -88,6 +88,14 @@ test.describe('Pre-liquidación Flow', () => {
 		await expect(preLiquidacionLink).toBeVisible({ timeout: 10000 })
 		await preLiquidacionLink.click()
 
+		// Set filters using stable IDs from the page to make January file appear
+		await page.locator('#filtro-mes').click()
+		await page.getByRole('option', { name: 'Enero' }).click()
+
+		const yearOption = currentYear.toString()
+		await page.locator('#filtro-anio').click()
+		await page.getByRole('option', { name: yearOption }).click()
+
 		// Verify we are on the right page and table with file is visible
 		await expect(page).toHaveURL(/.*pre-liquidacion/, { timeout: 20000 })
 		
@@ -96,22 +104,11 @@ test.describe('Pre-liquidación Flow', () => {
 			timeout: 20000,
 		})
 
-		// First click without filters (may show alert "Selecciona mes y año")
+		// Click Pre-liquidar
 		const preLiquidarBtn = page
 			.locator('table')
 			.getByRole('button', { name: /Pre-liquidar/i })
 		await expect(preLiquidarBtn).toBeVisible({ timeout: 10000 })
-		await preLiquidarBtn.click()
-
-		// Set filters using stable IDs from the page
-		await page.locator('#filtro-mes').click()
-		await page.getByRole('option', { name: 'Enero' }).click()
-
-		const yearOption = new Date().getFullYear().toString()
-		await page.locator('#filtro-anio').click()
-		await page.getByRole('option', { name: yearOption }).click()
-
-		// Click Pre-liquidar again (Valid)
 		await preLiquidarBtn.click()
 
 		// Modal should appear
@@ -119,8 +116,8 @@ test.describe('Pre-liquidación Flow', () => {
 			page.getByRole('dialog').getByText(/Confirmar Pre-liquidación/i)
 		).toBeVisible({ timeout: 15000 })
 
-		// Confirm (button text is "Confirmar y Liquidar")
-		await page.getByRole('button', { name: /Confirmar/i }).click()
+		// Confirm (button text is "Iniciar Procesamiento")
+		await page.getByRole('button', { name: /Iniciar Procesamiento/i }).click()
 
 		// Mensaje de éxito (toast Sonner: "Pre-liquidación completada")
 		await expect(page.getByText(/Pre-liquidación completada/i)).toBeVisible({

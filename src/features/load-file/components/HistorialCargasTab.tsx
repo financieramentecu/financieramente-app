@@ -6,10 +6,8 @@ import {
 	RefreshCw,
 	AlertCircle,
 	Search,
-	Filter,
 	X,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/features/shared/ui/button'
 import { EmptyState } from '@/features/shared/ui/empty-state'
@@ -29,9 +27,6 @@ import { RecordsByStatusView } from './RecordsByStatusView'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
 import type { UserRole } from '@/features/auth/lib/roles'
-import { loadFileApi } from '../lib/load-file-api'
-import { ModalErroresConfiguracion } from '@/features/pre-liquidacion/components/ModalErroresConfiguracion'
-import type { RegistroConError } from '@/features/pre-liquidacion/types/types'
 import { FileImportCard } from './FileImportCard'
 import type { FileImportStatus } from './ui/FileStatusBadge'
 
@@ -41,9 +36,11 @@ import type { FileImportStatus } from './ui/FileStatusBadge'
 
 export interface HistorialCargasTabProps {
 	readonly allowedStatuses: FileImportStatus[]
+	readonly title?: string
 	readonly canDeleteFn?: (carga: CargaHistorial) => boolean
 	readonly emptyStateDescription?: string
 	readonly showPreliquidarAction?: boolean
+	readonly onGoToLiquidacion?: () => void
 }
 
 const defaultCanDeleteFn = (carga: CargaHistorial): boolean =>
@@ -51,9 +48,11 @@ const defaultCanDeleteFn = (carga: CargaHistorial): boolean =>
 
 export function HistorialCargasTab({
 	allowedStatuses,
+	title = 'Historial de Cargas',
 	canDeleteFn = defaultCanDeleteFn,
 	emptyStateDescription,
 	showPreliquidarAction = true,
+	onGoToLiquidacion,
 }: HistorialCargasTabProps) {
 	const router = useRouter()
 	const { user } = useAuthSession()
@@ -67,17 +66,6 @@ export function HistorialCargasTab({
 	const [detailFileImportId, setDetailFileImportId] = useState<number | null>(
 		null
 	)
-	const [preliquidarModalOpen, setPreliquidarModalOpen] = useState(false)
-	const [preliquidarTarget, setPreliquidarTarget] = useState<{
-		idFileImport: number
-		mes: string
-		id: string
-	} | null>(null)
-	const [preliquidarLoading, setPreliquidarLoading] = useState<
-		Record<string, boolean>
-	>({})
-	const [registrosConError, setRegistrosConError] = useState<RegistroConError[]>([])
-	const [modalErroresOpen, setModalErroresOpen] = useState(false)
 
 	// Filter States
 	const [searchTerm, setSearchTerm] = useState('')
@@ -120,47 +108,6 @@ export function HistorialCargasTab({
 		setAnioFilter('ALL')
 	}
 
-	const handlePreliquidarClick = (carga: CargaHistorial) => {
-		const date = new Date(carga.createdAt)
-		const month = String(date.getMonth() + 1).padStart(2, '0')
-		const mes = `${date.getFullYear()}-${month}`
-		setPreliquidarTarget({
-			idFileImport: carga.idFileImport,
-			mes,
-			id: carga.id,
-		})
-		setPreliquidarModalOpen(true)
-	}
-
-	const handleConfirmPreliquidar = async () => {
-		if (!preliquidarTarget) return
-		const { idFileImport, mes, id } = preliquidarTarget
-		setPreliquidarModalOpen(false)
-		setPreliquidarLoading((prev) => ({ ...prev, [id]: true }))
-		try {
-			const result = await loadFileApi.preliquidar(idFileImport, mes)
-			if ('error' in result) {
-				toast.error('Error al pre-liquidar', { description: result.error })
-			} else {
-				toast.success('Pre-liquidación completada', {
-					description:
-						result.data?.mensaje ?? 'Registros procesados correctamente',
-				})
-				if (result.data?.registrosConError && result.data.registrosConError.length > 0) {
-					setRegistrosConError(result.data.registrosConError)
-					setModalErroresOpen(true)
-				}
-				await refetch()
-			}
-		} catch (err) {
-			toast.error('Error inesperado', {
-				description: err instanceof Error ? err.message : 'Error desconocido',
-			})
-		} finally {
-			setPreliquidarLoading((prev) => ({ ...prev, [id]: false }))
-			setPreliquidarTarget(null)
-		}
-	}
 
 	const handleGoToPreliquidacion = (idFileImport: number) => {
 		router.push(`/dashboard/pre-liquidacion/${idFileImport}`)
@@ -184,24 +131,6 @@ export function HistorialCargasTab({
 				destructive={true}
 			/>
 
-			{/* Modal de confirmación de pre-liquidación */}
-			<ConfirmModal
-				open={preliquidarModalOpen}
-				onOpenChange={(open) => {
-					setPreliquidarModalOpen(open)
-					if (!open) setPreliquidarTarget(null)
-				}}
-				title="¿Confirmar pre-liquidación?"
-				message={`Se procesarán los registros sincronizados del archivo para el período ${preliquidarTarget?.mes ?? ''}. Esta acción cambiará su estado a PRE-LIQUIDADO.`}
-				confirmText="Pre-liquidar"
-				cancelText="Cancelar"
-				onConfirm={handleConfirmPreliquidar}
-				onCancel={() => {
-					setPreliquidarModalOpen(false)
-					setPreliquidarTarget(null)
-				}}
-			/>
-
 			<Modal
 				open={detailFileImportId !== null}
 				onOpenChange={(open) => !open && setDetailFileImportId(null)}
@@ -218,11 +147,8 @@ export function HistorialCargasTab({
 
 			{/* Panel de Filtros */}
 			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-				<div className="flex items-center justify-between mb-4">
-					<h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-						<Filter className="h-4 w-4" /> Filtros
-					</h3>
-					{hasActiveFilters && (
+				{hasActiveFilters && (
+					<div className="flex items-center justify-between mb-4">
 						<Button
 							variant="ghost"
 							size="sm"
@@ -232,8 +158,8 @@ export function HistorialCargasTab({
 						>
 							<X className="h-3.5 w-3.5 mr-1" /> Limpiar filtros
 						</Button>
-					)}
-				</div>
+					</div>
+				)}
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 					{/* Buscador */}
@@ -301,14 +227,13 @@ export function HistorialCargasTab({
 				</div>
 			</div>
 
-			{/* Sección de Historial de Cargas */}
+			{/* Sección de En proceso */}
 			<div className="bg-card rounded-lg border border-border p-6 shadow-sm">
 				{/* Header con título y botón recargar */}
 				<div className="flex items-center justify-between mb-6">
 					<div className="flex items-center gap-2">
-						<RefreshCw className="h-5 w-5 text-primary" />
 						<h2 className="text-lg font-semibold text-primary">
-							Historial de Cargas
+							{title}
 						</h2>
 						<Button
 							variant="ghost"
@@ -336,7 +261,7 @@ export function HistorialCargasTab({
 				) : historial.length === 0 ? (
 					<EmptyState
 						icon={<FileText className="h-12 w-12" />}
-						title="No hay historial de cargas disponible"
+						title="No hay archivos en proceso disponible"
 						description={emptyStateDescription}
 					/>
 				) : (
@@ -356,22 +281,16 @@ export function HistorialCargasTab({
 									carga.sincronizados > 0 &&
 									carga.estado === 'LOAD'
 								}
-								isPreliquidarLoading={preliquidarLoading[carga.id] === true}
 								onDelete={handleDeleteClick}
-								onPreliquidar={handlePreliquidarClick}
 								onViewDetail={setDetailFileImportId}
 								onGoToPreliquidacion={handleGoToPreliquidacion}
+								onGoToLiquidacion={onGoToLiquidacion}
 							/>
 						))}
 					</div>
 				)}
 			</div>
 
-			<ModalErroresConfiguracion
-				registrosConError={registrosConError}
-				open={modalErroresOpen}
-				onClose={() => setModalErroresOpen(false)}
-			/>
 
 		</div>
 	)

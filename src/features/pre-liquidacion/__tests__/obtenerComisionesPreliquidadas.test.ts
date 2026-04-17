@@ -79,7 +79,7 @@ describe('obtenerComisionesPreliquidadas', () => {
 			expect.objectContaining({
 				where: expect.objectContaining({
 					idFileImport: 7,
-					status: 'PRE-SETTLED',
+					status: { in: ['SYNCHRONIZED', 'PRE-SETTLED', 'SETTLED', 'LAG'] },
 				}),
 			})
 		)

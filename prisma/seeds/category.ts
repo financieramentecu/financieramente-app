@@ -33,16 +33,19 @@ export async function seedCategoryBeneficiaryLinks(prisma: PrismaClient) {
 		return
 	}
 	const result = await (prisma.category.updateMany)({
-		where: { code: 'AGENCIA' },
+		where: { 
+			code: { in: ['AGENCIA', 'GENERAL', 'COACH', 'SENIOR', 'PRESIDENTE'] } 
+		},
 		data: {
 			beneficiaryMode: 'FIXED_BENEFICIARY',
 			idFixedBeneficiaryUser: agenciaUser.idUser,
 		},
 	})
 	console.log(
-		`✅ Categorías AGENCIA con beneficiario fijo actualizadas: ${result.count}`
+		`✅ Categorías (AGENCIA, GENERAL, COACH) con beneficiario fijo actualizadas: ${result.count}`
 	)
 }
+
 
 export async function seedCategories(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Tipos de Categorías (CategoryTypes)...')

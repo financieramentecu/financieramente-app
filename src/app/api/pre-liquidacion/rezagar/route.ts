@@ -60,16 +60,18 @@ export async function POST(
 			)
 		}
 
-		const { ids } = validation.data
-		const result = await rezagarRegistros(ids, userId)
+		const { ids, fileId } = validation.data
+		const result = await rezagarRegistros(ids, userId, fileId)
 
 		logAuditEvent({
 			userId,
 			action: AuditAction.COMMISSION_LAGGED,
-			details: JSON.stringify({ ids }),
+			details: JSON.stringify({ ids, fileId }),
 		}).catch(console.error)
 
-		return NextResponse.json({ data: { lagged: result.lagged } })
+		return NextResponse.json({
+			data: { lagged: result.lagged, fileCompleted: result.fileCompleted },
+		})
 	} catch (error) {
 		console.error('Error al rezagar registros:', error)
 		return NextResponse.json(

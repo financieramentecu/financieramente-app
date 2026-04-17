@@ -32,9 +32,7 @@ describe('FileImportCard — delete visibility (REQ-4)', () => {
 				carga={makeCarga({ estado: 'PRE-SETTLED' })}
 				canDelete={false}
 				canPreliquidar={false}
-				isPreliquidarLoading={false}
 				onDelete={noop}
-				onPreliquidar={noop}
 				onViewDetail={noop}
 				onGoToPreliquidacion={noop}
 			/>
@@ -49,9 +47,7 @@ describe('FileImportCard — delete visibility (REQ-4)', () => {
 				carga={makeCarga({ estado: 'COMPLETED' })}
 				canDelete={false}
 				canPreliquidar={false}
-				isPreliquidarLoading={false}
 				onDelete={noop}
-				onPreliquidar={noop}
 				onViewDetail={noop}
 			/>
 		)
@@ -65,9 +61,7 @@ describe('FileImportCard — delete visibility (REQ-4)', () => {
 				carga={makeCarga({ estado: 'LOAD' })}
 				canDelete
 				canPreliquidar={false}
-				isPreliquidarLoading={false}
 				onDelete={noop}
-				onPreliquidar={noop}
 				onViewDetail={noop}
 			/>
 		)

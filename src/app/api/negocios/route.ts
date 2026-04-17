@@ -8,11 +8,13 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { BusinessListResponse } from '@/features/negocios/types/business-api.types'
-import { businessWithRelations } from '@/features/negocios/types/business-entity.types'
-import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
+import {
+	businessWithRelations
+} from '@/features/negocios/types/business-prisma.types'
 import { businessListParamsSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { UserRole } from '@/features/auth/lib/roles'
+import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
 import { Prisma } from '@prisma/client'
 
 /**

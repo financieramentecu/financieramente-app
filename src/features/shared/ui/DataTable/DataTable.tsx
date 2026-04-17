@@ -112,6 +112,7 @@ export function DataTable<TData>({
 					<Checkbox
 						checked={row.getIsSelected()}
 						onCheckedChange={(value) => row.toggleSelected(!!value)}
+						disabled={!row.getCanSelect()}
 						aria-label={
 							getRowAriaLabel
 								? getRowAriaLabel(row.original)
@@ -179,7 +180,7 @@ export function DataTable<TData>({
 			expanded,
 			pagination,
 		},
-		enableRowSelection: true,
+		enableRowSelection,
 		enableFilters: true,
 		enableColumnFilters: true,
 		enableGlobalFilter: true,

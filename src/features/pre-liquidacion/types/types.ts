@@ -1,4 +1,4 @@
-import { Decimal } from '@prisma/client/runtime/library'
+import type { Decimal } from '@prisma/client/runtime/library'
 
 /**
  * Archivo disponible para pre-liquidar
@@ -237,6 +237,7 @@ export interface RegistroLiquidacionDetalle {
 	readonly idBusiness: number | null
 	contrato: string | null
 	nombreAsesor: string
+	nombreCliente: string | null
 	tipo: string | null
 	monto: number
 	baseComision: number
@@ -244,6 +245,7 @@ export interface RegistroLiquidacionDetalle {
 	porcentajeClawback: number
 	esClawback: boolean
 	esRezagado: boolean
+	status: string
 	fechaSincronizacion: string | null
 	fechaRezagado: string | null
 	fechaInicio: string | null
@@ -262,6 +264,8 @@ export interface RespuestaRegistrosLiquidacion {
 		fechaCarga: string
 		totalRegistros: number
 		sincronizados: number
+		rezagados: number
+		estado: string
 	}
 	registros: RegistroLiquidacionDetalle[]
 }

@@ -27,7 +27,7 @@ describe('POST /api/pre-liquidacion/rezagar', () => {
 			'http://localhost/api/pre-liquidacion/rezagar',
 			{
 				method: 'POST',
-				body: JSON.stringify({ ids: [1, 2] }),
+				body: JSON.stringify({ ids: [1, 2], fileId: 1 }),
 			}
 		)
 		const response = await POST(request as never)
@@ -43,7 +43,7 @@ describe('POST /api/pre-liquidacion/rezagar', () => {
 			'http://localhost/api/pre-liquidacion/rezagar',
 			{
 				method: 'POST',
-				body: JSON.stringify({ ids: [1, 2] }),
+				body: JSON.stringify({ ids: [1, 2], fileId: 1 }),
 			}
 		)
 		const response = await POST(request as never)
@@ -61,7 +61,7 @@ describe('POST /api/pre-liquidacion/rezagar', () => {
 			'http://localhost/api/pre-liquidacion/rezagar',
 			{
 				method: 'POST',
-				body: JSON.stringify({ ids: [] }),
+				body: JSON.stringify({ ids: [], fileId: 1 }),
 			}
 		)
 		const response = await POST(request as never)
@@ -76,20 +76,20 @@ describe('POST /api/pre-liquidacion/rezagar', () => {
 		mockAuth.mockResolvedValue({
 			user: { id: '10', role: UserRole.ASISTENTE_GERENCIA_OPERATIVA },
 		} as never)
-		mockRezagarRegistros.mockResolvedValue({ lagged: 2 })
+		mockRezagarRegistros.mockResolvedValue({ lagged: 2, fileCompleted: false })
 
 		const request = new Request(
 			'http://localhost/api/pre-liquidacion/rezagar',
 			{
 				method: 'POST',
-				body: JSON.stringify({ ids: [4, 5] }),
+				body: JSON.stringify({ ids: [4, 5], fileId: 1 }),
 			}
 		)
 		const response = await POST(request as never)
 		expect(response.status).toBe(200)
 		const body = await response.json()
-		expect(body.data).toEqual({ lagged: 2 })
-		expect(mockRezagarRegistros).toHaveBeenCalledWith([4, 5], 10)
+		expect(body.data).toEqual({ lagged: 2, fileCompleted: false })
+		expect(mockRezagarRegistros).toHaveBeenCalledWith([4, 5], 10, 1)
 	})
 
 	it('delegates isLagByUser and isLagByUserDate tracking to rezagarRegistros service', async () => {
@@ -97,20 +97,20 @@ describe('POST /api/pre-liquidacion/rezagar', () => {
 			user: { id: '15', role: UserRole.ADMIN },
 		} as never)
 		// Service sets isLagByUser/isLagByUserDate internally; route only receives the count
-		mockRezagarRegistros.mockResolvedValue({ lagged: 3 })
+		mockRezagarRegistros.mockResolvedValue({ lagged: 3, fileCompleted: true })
 
 		const request = new Request(
 			'http://localhost/api/pre-liquidacion/rezagar',
 			{
 				method: 'POST',
-				body: JSON.stringify({ ids: [7, 8, 9] }),
+				body: JSON.stringify({ ids: [7, 8, 9], fileId: 1 }),
 			}
 		)
 		const response = await POST(request as never)
 		expect(response.status).toBe(200)
 		const body = await response.json()
-		expect(body.data).toEqual({ lagged: 3 })
+		expect(body.data).toEqual({ lagged: 3, fileCompleted: true })
 		// Route delegates the user-initiated lag tracking to the service
-		expect(mockRezagarRegistros).toHaveBeenCalledWith([7, 8, 9], 15)
+		expect(mockRezagarRegistros).toHaveBeenCalledWith([7, 8, 9], 15, 1)
 	})
 })

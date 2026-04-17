@@ -103,6 +103,11 @@ export async function GET(request: Request) {
 
 		const configurationsMapped =
 			prismaProductConfigListToProductConfigs(configurations)
+
+		// Second query to determine distribution setup status per configuration.
+		// Currently 2 queries total (not N+1). If the list grows significantly,
+		// consider consolidating with a Prisma `groupBy` or a sub-select inside
+		// the main `findMany` include to reduce to a single round-trip.
 		const listIds = configurationsMapped.map((c) => c.id)
 		const idsWithCategoryLines =
 			await getProductConfigurationIdsWithCategoryLines(listIds)

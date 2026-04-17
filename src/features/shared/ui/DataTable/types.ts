@@ -125,7 +125,7 @@ export interface DataTableProps<TData> {
 	/**
 	 * Habilita la selección de filas
 	 */
-	enableRowSelection?: boolean
+	enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
 	/**
 	 * El ID de la fila seleccionada (opcional)
 	 */

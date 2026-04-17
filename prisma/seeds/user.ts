@@ -57,11 +57,23 @@ export const agentUser = {
 	identityNumber: '1234567890',
 	email: 'agente.prueba@financieramentecu.com',
 	roleCode: 'AGENTE',
-	idUserLeader: null,
 	entryDate: new Date(),
 	active: true,
 	ssoOnly: false,
 }
+
+export const liderUser = {
+	name: 'Lider',
+	lastName: 'Prueba',
+	typeIdentity: 'CC',
+	identityNumber: '9876543210',
+	email: 'lider.prueba@financieramentecu.com',
+	roleCode: 'AGENTE',
+	entryDate: new Date(),
+	active: true,
+	ssoOnly: false,
+}
+
 
 /** System user for FIXED_BENEFICIARY category AGENCIA (pool / company). */
 export const agenciaSystemUser = {
@@ -129,17 +141,23 @@ export async function seedAgenciaSystemUser(
 
 export async function seedUsers(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Usuarios (Users)...')
-
-	// 1. Obtener ID del rol ADMIN
+	
 	const adminRole = await prisma.role.findFirst({
-		where: { code: adminUser.roleCode },
+		where: { code: 'ADMIN' },
+	})
+	if (!adminRole) {
+		throw new Error('Rol ADMIN no encontrado')
+	}
+
+	const agentRole = await prisma.role.findFirst({
+		where: { code: 'AGENTE' },
 	})
 
-	if (!adminRole) {
-		console.error(
-			`❌ Error: No se encontró el rol ${adminUser.roleCode}. Ejecuta el seed de roles primero.`
-		)
-		return
+	const juniorCategory = await prisma.category.findUnique({ where: { code: 'JUNIOR' } })
+	const liderCategory = await prisma.category.findUnique({ where: { code: 'LIDER' } })
+
+	if (!juniorCategory) {
+		console.warn('⚠️  Categoría JUNIOR no encontrada. Los cálculos de comisión podrían fallar.')
 	}
 
 	// 2. Verificar si el usuario ya existe
@@ -164,6 +182,7 @@ export async function seedUsers(prisma: PrismaClient) {
 		email: adminUser.email,
 		idRole: adminRole.idRole,
 		idUserLeader: adminUser.idUserLeader,
+		idCategoria: juniorCategory?.idCategory || null, // Asignar categoría por defecto
 		entryDate: adminUser.entryDate,
 		active: adminUser.active,
 		ssoOnly: adminUser.ssoOnly,
@@ -177,6 +196,7 @@ export async function seedUsers(prisma: PrismaClient) {
 			email: adminUser.email,
 			idRole: adminRole.idRole,
 			idUserLeader: adminUser.idUserLeader,
+			idCategoria: juniorCategory?.idCategory || null,
 			entryDate: adminUser.entryDate,
 			active: adminUser.active,
 			ssoOnly: adminUser.ssoOnly,
@@ -219,17 +239,81 @@ export async function seedUsers(prisma: PrismaClient) {
 	if (existingAndres) {
 		await prisma.user.update({
 			where: { idUser: existingAndres.idUser },
-			data: andresData,
+			data: { ...andresData, idCategoria: juniorCategory?.idCategory || null },
 		})
 		console.log(
 			`✅ Usuario actualizado: ${andresUser.name} ${andresUser.lastName} (${andresUser.email})`
 		)
 	} else {
-		await prisma.user.create({ data: andresData })
+		await prisma.user.create({ data: { ...andresData, idCategoria: juniorCategory?.idCategory || null } })
 		console.log(
 			`✅ Usuario creado: ${andresUser.name} ${andresUser.lastName} (${andresUser.email})`
 		)
 	}
+
+	// 2.5.1.1 Procesar Líder Prueba
+	console.log('👉 Procesando Líder Prueba…')
+	const existingLider = await prisma.user.findUnique({ where: { email: liderUser.email } })
+
+	const liderData = {
+		name: liderUser.name,
+		lastName: liderUser.lastName,
+		typeIdentity: liderUser.typeIdentity,
+		identityNumber: liderUser.identityNumber,
+		email: liderUser.email,
+		idRole: agentRole?.idRole || adminRole.idRole,
+		idCategoria: liderCategory?.idCategory || juniorCategory?.idCategory || null,
+		entryDate: liderUser.entryDate,
+		active: liderUser.active,
+		ssoOnly: liderUser.ssoOnly,
+	} as Prisma.UserUncheckedCreateInput
+
+	let createdLiderId: number | null = null
+
+	if (existingLider) {
+		const updated = await prisma.user.update({
+			where: { idUser: existingLider.idUser },
+			data: liderData,
+		})
+		createdLiderId = updated.idUser
+		console.log(`✅ Usuario actualizado: ${liderUser.name} (${liderUser.email})`)
+	} else {
+		const created = await prisma.user.create({ data: liderData })
+		createdLiderId = created.idUser
+		console.log(`✅ Usuario creado: ${liderUser.name} (${liderUser.email})`)
+	}
+
+	// 2.5.1.2 Procesar Agente Prueba (con líder asignado)
+	console.log('👉 Procesando Agente Prueba…')
+	const existingAgent = await prisma.user.findFirst({
+		where: { email: agentUser.email },
+	})
+
+	const agentData = {
+		name: agentUser.name,
+		lastName: agentUser.lastName,
+		typeIdentity: agentUser.typeIdentity,
+		identityNumber: agentUser.identityNumber,
+		email: agentUser.email,
+		idRole: agentRole?.idRole || adminRole.idRole,
+		idUserLeader: createdLiderId, // Asignar el líder recién creado/actualizado
+		idCategoria: juniorCategory?.idCategory || null,
+		entryDate: agentUser.entryDate,
+		active: agentUser.active,
+		ssoOnly: agentUser.ssoOnly,
+	} as Prisma.UserUncheckedCreateInput
+
+	if (existingAgent) {
+		await prisma.user.update({
+			where: { idUser: existingAgent.idUser },
+			data: agentData,
+		})
+		console.log(`✅ Usuario actualizado: ${agentUser.name} (${agentUser.email})`)
+	} else {
+		await prisma.user.create({ data: agentData })
+		console.log(`✅ Usuario creado: ${agentUser.name} (${agentUser.email})`)
+	}
+
 
 	// 2.6 Usuario sistema Agencia (beneficiario fijo categoría AGENCIA)
 	await seedAgenciaSystemUser(prisma, adminRole)

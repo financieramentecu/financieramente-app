@@ -4,7 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { BusinessForm } from '@/features/negocios/components/business-form'
 import { toast } from 'sonner'
-import {
+import type {
 	Company,
 	Currency,
 	BuyPeriodicity,

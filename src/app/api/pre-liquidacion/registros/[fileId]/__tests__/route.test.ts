@@ -58,6 +58,8 @@ describe('GET /api/pre-liquidacion/registros/[fileId]', () => {
 				fechaCarga: '2024-01-15',
 				totalRegistros: 10,
 				sincronizados: 2,
+				rezagados: 0,
+				estado: 'LOAD',
 			},
 			registros: [
 				{
@@ -65,6 +67,8 @@ describe('GET /api/pre-liquidacion/registros/[fileId]', () => {
 					idBusiness: 1,
 					contrato: 'C-001',
 					nombreAsesor: 'Jane Smith',
+					nombreCliente: 'John Doe',
+					status: 'SYNCHRONIZED',
 					tipo: 'BASE',
 					monto: 1000,
 					baseComision: 1000,
