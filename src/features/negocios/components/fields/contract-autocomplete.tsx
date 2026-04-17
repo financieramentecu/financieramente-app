@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/features/shared/ui/button'
 import {
@@ -38,7 +38,7 @@ export function ContractAutocomplete({
 	value = '',
 	onChange,
 	onSelectLag,
-	placeholder = 'Buscar contrato rezagado...',
+	placeholder = 'Buscar contrato en comisiones rezagadas',
 	className,
 	disabled = false,
 }: ContractAutocompleteProps) {
@@ -48,6 +48,10 @@ export function ContractAutocomplete({
 	const [isSearching, setIsSearching] = React.useState(false)
 
 	React.useEffect(() => {
+		if (!value) {
+			setSearchQuery('')
+			return
+		}
 		if (open && value) {
 			setSearchQuery(value)
 		}
@@ -101,6 +105,15 @@ export function ContractAutocomplete({
 		setSearchQuery('')
 	}
 
+	const handleClear = (event: React.MouseEvent) => {
+		event.preventDefault()
+		event.stopPropagation()
+		onChange?.('')
+		onSelectLag?.(null)
+		setSearchQuery('')
+		setOpen(false)
+	}
+
 	// Determinar si mostrar la opción manual
 	const shouldShowManual = React.useMemo(() => {
 		if (!searchQuery || searchQuery.length < 1) return false
@@ -111,84 +124,99 @@ export function ContractAutocomplete({
 	}, [searchQuery, records])
 
 	return (
-		<Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
-			<PopoverTrigger asChild>
-				<Button
-					variant="outline"
-					role="combobox"
-					aria-expanded={open}
-					disabled={disabled}
-					className={cn(
-						'w-full justify-between',
-						!value && 'text-muted-foreground',
-						className
-					)}
+		<div className="flex w-full items-stretch gap-1">
+			<Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
+				<PopoverTrigger asChild>
+					<Button
+						variant="outline"
+						role="combobox"
+						aria-expanded={open}
+						disabled={disabled}
+						className={cn(
+							'min-w-0 flex-1 justify-between',
+							!value && 'text-muted-foreground',
+							className
+						)}
+					>
+						<span className="truncate text-left">{value || placeholder}</span>
+						<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent
+					className="w-[var(--radix-popover-trigger-width)] p-0"
+					align="start"
 				>
-					{value || placeholder}
-					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-				</Button>
-			</PopoverTrigger>
-			<PopoverContent
-				className="w-[var(--radix-popover-trigger-width)] p-0"
-				align="start"
-			>
-				<Command shouldFilter={false}>
-					<CommandInput
-						placeholder="Buscar por contrato..."
-						value={searchQuery}
-						onValueChange={setSearchQuery}
-					/>
-					<CommandList>
-						<CommandEmpty>
-							{isSearching
-								? 'Buscando...'
-								: searchQuery.length >= 3
-									? 'No se encontraron contratos'
-									: 'Ingrese al menos 3 caracteres'}
-						</CommandEmpty>
+					<Command shouldFilter={false}>
+						<CommandInput
+							placeholder="Buscar por contrato..."
+							value={searchQuery}
+							onValueChange={setSearchQuery}
+						/>
+						<CommandList>
+							<CommandEmpty>
+								{isSearching
+									? 'Buscando...'
+									: searchQuery.length >= 3
+										? 'No se encontraron contratos'
+										: 'Ingrese al menos 3 caracteres'}
+							</CommandEmpty>
 
-						{shouldShowManual && !isSearching && (
-							<CommandGroup>
-								<CommandItem
-									value="__manual__"
-									onSelect={() => handleSelect(null)}
-									className="text-primary cursor-pointer"
-								>
-									Usar contrato manual: {searchQuery}
-								</CommandItem>
-							</CommandGroup>
-						)}
-
-						{records.length > 0 && (
-							<CommandGroup heading="Contratos Rezagados">
-								{records.map((record) => (
+							{shouldShowManual && !isSearching && (
+								<CommandGroup>
 									<CommandItem
-										key={record.id}
-										value={record.contract}
-										onSelect={() => handleSelect(record)}
-										className="cursor-pointer"
+										value="__manual__"
+										onSelect={() => handleSelect(null)}
+										className="text-primary cursor-pointer"
 									>
-										<Check
-											className={cn(
-												'mr-2 h-4 w-4',
-												value === record.contract
-													? 'opacity-100'
-													: 'opacity-0'
-											)}
-										/>
-										<div className="flex flex-col">
-											<span className="font-medium">{record.contract}</span>
-											<span className="text-xs text-muted-foreground">
-												Valor: ${record.value} {record.description ? `- ${record.description}` : ''}
-											</span>
-										</div>
+										Usar contrato manual: {searchQuery}
 									</CommandItem>
-								))}
-							</CommandGroup>
-						)}
-					</CommandList>
-				</Command>
-			</PopoverContent>
-		</Popover>
+								</CommandGroup>
+							)}
+
+							{records.length > 0 && (
+								<CommandGroup heading="Contratos Rezagados">
+									{records.map((record) => (
+										<CommandItem
+											key={record.id}
+											value={record.contract}
+											onSelect={() => handleSelect(record)}
+											className="cursor-pointer"
+										>
+											<Check
+												className={cn(
+													'mr-2 h-4 w-4',
+													value === record.contract
+														? 'opacity-100'
+														: 'opacity-0'
+												)}
+											/>
+											<div className="flex flex-col">
+												<span className="font-medium">{record.contract}</span>
+												<span className="text-xs text-muted-foreground">
+													Valor: ${record.value}{' '}
+													{record.description ? `- ${record.description}` : ''}
+												</span>
+											</div>
+										</CommandItem>
+									))}
+								</CommandGroup>
+							)}
+						</CommandList>
+					</Command>
+				</PopoverContent>
+			</Popover>
+			{value && !disabled ? (
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					className="shrink-0"
+					aria-label="Limpiar contrato"
+					onClick={handleClear}
+				>
+					<X className="h-4 w-4" />
+				</Button>
+			) : null}
+		</div>
 	)
 }
