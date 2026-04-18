@@ -18,6 +18,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Skandia',
 		status: 'Emitido',
 		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -40,6 +41,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Trinity',
 		status: 'Venta Efectuado',
 		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -62,6 +64,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Skandia',
 		status: 'Emitido',
 		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -84,6 +87,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Trinity',
 		status: 'Venta Efectuado',
 		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -106,6 +110,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Skandia',
 		status: 'Emitido',
 		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -128,6 +133,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Trinity',
 		status: 'Venta Efectuado',
 		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		currency: {
 			id: 1,
 			name: 'COP',

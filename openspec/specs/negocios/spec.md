@@ -223,54 +223,123 @@ Canonical business responses (list rows and detail) MUST expose issuance: a time
 
 ---
 
-### Requirement: Fondeo action for EMITIDO businesses without annuities
+### Requirement: Fondeo action visibility for EMITIDO businesses
 
-The system MUST display a "Fondear" action in the business list for every business whose `status === EMITIDO` AND that has zero `AnnualPayment` rows. The action MUST be visible only to authorized roles: AGENTE (own businesses), ASISTENTE_GERENCIA_OPERATIVA (all businesses), ADMIN (all businesses).
+| Condition | Label |
+|-----------|--------|
+| `EMITIDO`, zero `AnnualPayment`, authorized | **Fondear** (direct HU3) |
+| `EMITIDO` or `FONDEADO`, annual rows + ≥1 **`SIN_FONDEAR`**, authorized | **Fondear anualidad** (modal) |
+| Roles | **AGENTE** own; **ASISTENTE_GERENCIA_OPERATIVA**, **ADMIN** all |
+| **ANALISTA_SOPORTE** | No funding action |
 
-#### Scenario: Authorized role sees Fondear on eligible business
+If **`SIN_FONDEAR`** remain, parent MUST NOT fund except via the annual flow.
 
-- GIVEN an EMITIDO business with no AnnualPayment rows, viewed by an authorized role
-- WHEN the business list renders
-- THEN the "Fondear" action MUST appear in the actions column for that row
+(Previously: *Fondeo action for EMITIDO businesses without annuities*.)
 
-#### Scenario: Unauthorized role cannot see Fondear
+#### Scenario: Fondear — sin cuotas anuales
 
-- GIVEN an EMITIDO business with no AnnualPayment rows, viewed by ANALISTA_SOPORTE
-- WHEN the business list renders
-- THEN the "Fondear" action SHALL NOT appear for that row
+- **GIVEN** `EMITIDO`, zero `AnnualPayment`, authorized viewer
+- **WHEN** the list renders
+- **THEN** **"Fondear"** MUST appear
+
+#### Scenario: Fondear anualidad — con cuotas pendientes (EMITIDO)
+
+- **GIVEN** `EMITIDO`, ≥1 `AnnualPayment` with at least one **`SIN_FONDEAR`**, authorized viewer
+- **WHEN** the list renders
+- **THEN** **"Fondear anualidad"** MUST appear
+
+#### Scenario: Fondear anualidad — padre ya FONDEADO y cuotas pendientes
+
+- **GIVEN** `FONDEADO`, ≥1 **`SIN_FONDEAR`** installment, authorized viewer
+- **WHEN** the list renders
+- **THEN** **"Fondear anualidad"** MUST appear
+
+#### Scenario: ANALISTA_SOPORTE — sin acción
+
+- **GIVEN** `EMITIDO` eligible otherwise and **ANALISTA_SOPORTE**
+- **WHEN** the list renders
+- **THEN** neither **"Fondear"** nor **"Fondear anualidad"** SHALL appear
 
 ---
 
-### Requirement: FONDEADO transition on confirm
+### Requirement: FONDEADO transition on funding confirmation
 
-When an authorized user confirms the fondear action on an eligible business, the system MUST atomically set `dateAnchored = now()` and transition `status` to `FONDEADO`. No modal SHALL appear for non-annual businesses (zero AnnualPayment rows).
+| Path | Rule |
+|------|------|
+| No annual rows | Direct: `FONDEADO` + `dateAnchored` (atomic). |
+| Annual rows | Updates installments; first batch while **`EMITIDO`** sets parent **`FONDEADO`** + `dateAnchored`. |
+| Parent already **FONDEADO** | Later batches update rows only; parent unchanged. |
+| **POST** `/fondear` | MUST fail if any `AnnualPayment` exists. |
+| Wrong status/method | MUST reject (e.g. **VENTA_EFECTUADA**, direct when ineligible). |
 
-#### Scenario: Happy path — EMITIDO no annuities → FONDEADO
+(Previously: *FONDEADO transition on confirm*; modal deferral was "out of scope — HU4".)
 
-- GIVEN an EMITIDO business with no AnnualPayment rows and an authorized user
-- WHEN the user confirms the fondear action
-- THEN `status` SHALL become `FONDEADO`
-- AND `dateAnchored` SHALL be set to the current timestamp
+#### Scenario: Direct — sin anualidades
 
-#### Scenario: VENTA_EFECTUADA business cannot be fondeada
+- **GIVEN** `EMITIDO`, zero annual rows
+- **WHEN** direct fondear completes successfully
+- **THEN** `status` SHALL be **FONDEADO** and `dateAnchored` set
 
-- GIVEN a business in `VENTA_EFECTUADA` state
-- WHEN a fondear request is submitted for it
-- THEN the system MUST reject the request with a validation error
-- AND `status` and `dateAnchored` SHALL remain unchanged
+#### Scenario: Anual — primera tanda promueve padre
 
-#### Scenario: Already FONDEADO business cannot be fondeada again
+- **GIVEN** `EMITIDO`, all installments unfunded
+- **WHEN** annual confirm funds ≥1 row
+- **THEN** parent SHALL be **FONDEADO** with `dateAnchored` set for that funding
 
-- GIVEN a business already in `FONDEADO` state
-- WHEN a fondear request is submitted for it
-- THEN the system MUST reject the request with a validation error
+#### Scenario: Anual — más cuotas con padre ya FONDEADO
 
-#### Scenario: Business with AnnualPayment rows redirects to modal (out of scope — HU4)
+- **GIVEN** parent **FONDEADO**, some rows still **`SIN_FONDEAR`**
+- **WHEN** annual confirm funds more rows
+- **THEN** those rows get `dateAnchored`; parent remains **FONDEADO**
 
-- GIVEN an EMITIDO business with one or more AnnualPayment rows
-- WHEN the fondear action is triggered
-- THEN the system MUST NOT execute the direct FONDEADO transition
-- AND SHALL defer to the annual fondeo modal flow (HU4)
+#### Scenario: POST directo bloqueado con anualidades
+
+- **GIVEN** `EMITIDO` and ≥1 `AnnualPayment`
+- **WHEN** direct **POST** `/fondear` runs
+- **THEN** the request MUST be rejected; no state change
+
+#### Scenario: Rechazo por estado inelegible
+
+- **GIVEN** invalid status or wrong HTTP path for that business
+- **WHEN** funding is requested
+- **THEN** the system MUST reject
+
+---
+
+### Requirement: Annual funding modal
+
+List all installments; **`SIN_FONDEAR`** MUST be markable; funded rows MUST show `dateAnchored`. Title MUST include **`Business.contract`** when non-empty; else MAY use **«Negocio #id»**.
+
+#### Scenario: Lista y fechas en el modal
+
+- **GIVEN** mixed funded/unfunded annual rows for an eligible business
+- **WHEN** the user opens the annual funding flow
+- **THEN** all rows appear; funded rows show `dateAnchored`
+
+#### Scenario: Título con contrato
+
+- **GIVEN** non-empty contract on the list row and the modal open
+- **WHEN** the modal title is shown
+- **THEN** it MUST include the contract text (not only numeric business id)
+
+### Requirement: No funded downgrade in v1
+
+The system MUST NOT revert an installment from **FONDEADO** to **`SIN_FONDEAR`** (API or UI).
+
+#### Scenario: Cuota ya fondeada permanece fondeada
+
+- **GIVEN** installment **FONDEADO** with `dateAnchored`
+- **WHEN** annual funding is submitted again
+- **THEN** that installment MUST remain **FONDEADO**
+
+### Requirement: Annual funding audit
+
+Each successful annual funding confirmation MUST emit an audit record consistent with existing business-audit conventions.
+
+#### Scenario: Auditoría en éxito
+
+- **GIVEN** successful annual funding
+- **THEN** an audit entry MUST exist
 
 ---
 

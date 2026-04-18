@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MisNegociosPage } from '@/features/negocios/components/MisNegociosPage'
 import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
+import { AnnualFundingModal } from '@/features/negocios/components/modals/AnnualFundingModal'
 import { businessService } from '@/features/negocios/services/business.service'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
@@ -16,10 +17,14 @@ import type {
 	BusinessEntity,
 	BusinessStatus,
 } from '@/features/negocios/types/business-entity.types'
-import type { BusinessListParams } from '@/features/negocios/types/business-api.types'
+import type {
+	AnnualInstallmentDto,
+	BusinessListParams,
+} from '@/features/negocios/types/business-api.types'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-status.types'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { PiggyBank } from 'lucide-react'
+import { toast } from 'sonner'
 
 const SEARCH_DEBOUNCE_DELAY = 500
 const DEFAULT_CURRENCY = 'COP'
@@ -44,6 +49,18 @@ export function NegociosPageClient({
 	const [selectedBusiness, setSelectedBusiness] =
 		useState<BusinessEntity | null>(null)
 	const [isLoadingBusiness, setIsLoadingBusiness] = useState(false)
+
+	const [annualFundingOpen, setAnnualFundingOpen] = useState(false)
+	const [annualFundingBusinessId, setAnnualFundingBusinessId] = useState<
+		number | null
+	>(null)
+	const [annualFundingInstallments, setAnnualFundingInstallments] = useState<
+		AnnualInstallmentDto[]
+	>([])
+	const [annualFundingContract, setAnnualFundingContract] = useState<
+		string | null
+	>(null)
+	const [annualFundingLoading, setAnnualFundingLoading] = useState(false)
 
 	// Estado para currency seleccionada
 	const [selectedCurrency, setSelectedCurrency] =
@@ -120,7 +137,13 @@ export function NegociosPageClient({
 		}
 	}, [stats?.currencies, selectedCurrency])
 
-	const { cancelBusiness, isCancelling, fondearBusiness } = useBusinessMutation()
+	const {
+		cancelBusiness,
+		isCancelling,
+		fondearBusiness,
+		fondearAnualidadesBusiness,
+		isFondeandoAnualidades,
+	} = useBusinessMutation()
 
 	// Handler para cambio de currency
 	const handleCurrencyChange = useCallback((currency: string) => {
@@ -181,10 +204,40 @@ export function NegociosPageClient({
 	}, [])
 
 	/**
-	 * Fondea un negocio directamente (sin modal para negocios sin anualidades)
+	 * Fondeo: sin anualidades → POST directo; con anualidades → modal HU4
 	 */
 	const handleFondearBusiness = useCallback(
 		async (business: Business) => {
+			if (business.hasAnnualPayments) {
+				setAnnualFundingBusinessId(Number(business.id))
+				setAnnualFundingContract(
+					typeof business.contract === 'string' ? business.contract : null
+				)
+				setAnnualFundingOpen(true)
+				setAnnualFundingLoading(true)
+				setAnnualFundingInstallments([])
+
+				const res = await businessService.getAnnualPayments(
+					Number(business.id)
+				)
+				setAnnualFundingLoading(false)
+
+				if ('error' in res && res.error) {
+					toast.error('No se pudieron cargar las anualidades', {
+						description: res.error,
+					})
+					setAnnualFundingOpen(false)
+					setAnnualFundingBusinessId(null)
+					setAnnualFundingContract(null)
+					return
+				}
+
+				if (res.data) {
+					setAnnualFundingInstallments(res.data.installments)
+				}
+				return
+			}
+
 			const result = await fondearBusiness(Number(business.id))
 
 			if (result) {
@@ -193,6 +246,41 @@ export function NegociosPageClient({
 			}
 		},
 		[fondearBusiness, refetch, refetchStats]
+	)
+
+	const handleAnnualFundingOpenChange = useCallback((open: boolean) => {
+		setAnnualFundingOpen(open)
+		if (!open) {
+			setAnnualFundingBusinessId(null)
+			setAnnualFundingContract(null)
+			setAnnualFundingInstallments([])
+		}
+	}, [])
+
+	const handleConfirmAnnualFunding = useCallback(
+		async (fundedInstallmentIndexes: number[]) => {
+			if (annualFundingBusinessId === null) return
+
+			const result = await fondearAnualidadesBusiness(
+				annualFundingBusinessId,
+				{ fundedInstallmentIndexes }
+			)
+
+			if (result) {
+				setAnnualFundingOpen(false)
+				setAnnualFundingBusinessId(null)
+				setAnnualFundingContract(null)
+				setAnnualFundingInstallments([])
+				refetch()
+				refetchStats()
+			}
+		},
+		[
+			annualFundingBusinessId,
+			fondearAnualidadesBusiness,
+			refetch,
+			refetchStats,
+		]
 	)
 
 	/**
@@ -285,6 +373,7 @@ export function NegociosPageClient({
 									? 'Fondeado'
 									: 'Cancelado',
 				hasAnnualPayments: b.hasAnnualPayments,
+				hasPendingAnnualFunding: b.hasPendingAnnualFunding,
 				currency: b.currency,
 			})),
 		[businesses]
@@ -394,6 +483,17 @@ export function NegociosPageClient({
 				business={selectedBusiness}
 				isLoading={isCancelling || isLoadingBusiness}
 				onConfirm={handleConfirmCancel}
+			/>
+
+			<AnnualFundingModal
+				open={annualFundingOpen}
+				onOpenChange={handleAnnualFundingOpenChange}
+				businessId={annualFundingBusinessId}
+				contractLabel={annualFundingContract}
+				installments={annualFundingInstallments}
+				isLoadingInstallments={annualFundingLoading}
+				isSubmitting={isFondeandoAnualidades}
+				onConfirm={handleConfirmAnnualFunding}
 			/>
 		</div>
 	)

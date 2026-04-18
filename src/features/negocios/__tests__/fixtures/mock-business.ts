@@ -74,6 +74,7 @@ export function createMockBusiness(
 		dateIssued: null,
 		dateAnchored: null,
 		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		client: createMockClientInfo(overrides.client),
 		agent: createMockAgentInfo(overrides.agent),
 		product: createMockProductInfo(overrides.product),

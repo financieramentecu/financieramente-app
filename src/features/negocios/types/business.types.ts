@@ -20,6 +20,8 @@ export interface Business extends Record<string, unknown> {
 	companyName: string
 	status: 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado' | 'Fondeado'
 	hasAnnualPayments: boolean
+	/** Anual: aún hay cuotas SIN_FONDEAR (mostrar Fondear aunque el padre sea Fondeado) */
+	hasPendingAnnualFunding: boolean
 	currency: {
 		id: number
 		name: string

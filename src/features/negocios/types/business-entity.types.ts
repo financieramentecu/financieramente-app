@@ -107,6 +107,8 @@ export interface BusinessEntity {
 	dateAnchored: string | null
 	/** Indica si el negocio tiene pagos anuales asociados */
 	hasAnnualPayments: boolean
+	/** Anual: queda al menos una cuota sin fondear (sigue visible “Fondear”) */
+	hasPendingAnnualFunding: boolean
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo

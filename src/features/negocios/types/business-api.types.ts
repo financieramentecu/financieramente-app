@@ -70,6 +70,25 @@ export interface CancelBusinessRequest {
 	reason: string // 20-500 caracteres
 }
 
+/** Cuota anual para modal HU4 (API annual-payments) */
+export type AnnualInstallmentStatusUi = 'SIN_FONDEAR' | 'FONDEADO'
+
+export interface AnnualInstallmentDto {
+	installmentIndex: number
+	status: AnnualInstallmentStatusUi
+	dateAnchored: string | null
+}
+
+export interface AnnualPaymentsResponse {
+	businessId: number
+	status: BusinessStatus
+	installments: AnnualInstallmentDto[]
+}
+
+export interface FondearAnualidadesRequest {
+	fundedInstallmentIndexes: number[]
+}
+
 // ============================================
 // ESTADÍSTICAS
 // ============================================
