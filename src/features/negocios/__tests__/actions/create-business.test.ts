@@ -48,6 +48,7 @@ function mockCreatedBusiness(overrides: Partial<Business> = {}): Business {
 		updatedAt: now,
 		idClientOrigin: 1,
 		dateIssued: null,
+		dateAnchored: null,
 		...overrides,
 	}
 }

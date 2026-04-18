@@ -72,6 +72,8 @@ export function createMockBusiness(
 		status: 'VENTA_EFECTUADA',
 		createdAt: '2024-01-15T10:00:00.000Z',
 		dateIssued: null,
+		dateAnchored: null,
+		hasAnnualPayments: false,
 		client: createMockClientInfo(overrides.client),
 		agent: createMockAgentInfo(overrides.agent),
 		product: createMockProductInfo(overrides.product),

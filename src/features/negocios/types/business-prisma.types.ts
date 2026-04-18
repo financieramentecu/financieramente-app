@@ -31,6 +31,11 @@ export const businessWithRelations = {
 	currency: true,
 	buyPeriodicity: true,
 	clientOrigin: true,
+	_count: {
+		select: {
+			annualPayments: true,
+		},
+	},
 } satisfies Prisma.BusinessInclude
 
 /**

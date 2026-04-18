@@ -17,6 +17,7 @@ export const mockBusinessList: Business[] = [
 		product: 'Crédito Personal',
 		companyName: 'Skandia',
 		status: 'Emitido',
+		hasAnnualPayments: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -38,6 +39,7 @@ export const mockBusinessList: Business[] = [
 		product: 'Crédito Hipotecario',
 		companyName: 'Trinity',
 		status: 'Venta Efectuado',
+		hasAnnualPayments: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -59,6 +61,7 @@ export const mockBusinessList: Business[] = [
 		product: 'Crédito Vehicular',
 		companyName: 'Skandia',
 		status: 'Emitido',
+		hasAnnualPayments: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -80,6 +83,7 @@ export const mockBusinessList: Business[] = [
 		product: 'Crédito Comercial',
 		companyName: 'Trinity',
 		status: 'Venta Efectuado',
+		hasAnnualPayments: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -101,6 +105,7 @@ export const mockBusinessList: Business[] = [
 		product: 'Crédito de Libre Inversión',
 		companyName: 'Skandia',
 		status: 'Emitido',
+		hasAnnualPayments: false,
 		currency: {
 			id: 1,
 			name: 'COP',
@@ -122,6 +127,7 @@ export const mockBusinessList: Business[] = [
 		product: 'Crédito Personal',
 		companyName: 'Trinity',
 		status: 'Venta Efectuado',
+		hasAnnualPayments: false,
 		currency: {
 			id: 1,
 			name: 'COP',

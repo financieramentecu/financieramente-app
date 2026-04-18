@@ -17,6 +17,7 @@ import type {
 interface UseBusinessMutationReturn {
 	isUpdating: boolean
 	isCancelling: boolean
+	isFondeando: boolean
 	updateBusiness: (
 		id: number,
 		data: UpdateBusinessRequest
@@ -25,6 +26,7 @@ interface UseBusinessMutationReturn {
 		id: number,
 		data: CancelBusinessRequest
 	) => Promise<BusinessEntity | null>
+	fondearBusiness: (id: number) => Promise<BusinessEntity | null>
 }
 
 /**
@@ -47,6 +49,7 @@ interface UseBusinessMutationReturn {
 export function useBusinessMutation(): UseBusinessMutationReturn {
 	const [isUpdating, setIsUpdating] = useState(false)
 	const [isCancelling, setIsCancelling] = useState(false)
+	const [isFondeando, setIsFondeando] = useState(false)
 
 	const updateBusiness = useCallback(
 		async (
@@ -124,10 +127,47 @@ export function useBusinessMutation(): UseBusinessMutationReturn {
 		[]
 	)
 
+	const fondearBusiness = useCallback(
+		async (id: number): Promise<BusinessEntity | null> => {
+			setIsFondeando(true)
+
+			try {
+				const response = await businessService.fondear(id)
+
+				if ('error' in response && response.error) {
+					toast.error('Error al fondear', {
+						description: response.error,
+					})
+					return null
+				}
+
+				if (response.data) {
+					toast.success(`Negocio #${id} fondeado exitosamente`, {
+						description: 'El negocio ha sido fondeado.',
+					})
+					return response.data
+				}
+
+				return null
+			} catch (error) {
+				console.error('Error al fondear negocio:', error)
+				toast.error('Error inesperado', {
+					description: 'No se pudo fondear el negocio.',
+				})
+				return null
+			} finally {
+				setIsFondeando(false)
+			}
+		},
+		[]
+	)
+
 	return {
 		isUpdating,
 		isCancelling,
+		isFondeando,
 		updateBusiness,
 		cancelBusiness,
+		fondearBusiness,
 	}
 }

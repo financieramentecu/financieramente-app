@@ -17,6 +17,21 @@ describe('BusinessStatusBadge', () => {
 		})
 	})
 
+	// ── 4.7: FONDEADO status ──────────────────────────────────────────────────
+	describe('FONDEADO status', () => {
+		it('renders the label "Fondeado" for FONDEADO status', () => {
+			render(<BusinessStatusBadge status="FONDEADO" />)
+			expect(screen.getByText('Fondeado')).toBeInTheDocument()
+		})
+
+		it('applies indigo color classes for FONDEADO badge', () => {
+			render(<BusinessStatusBadge status="FONDEADO" />)
+			const badge = screen.getByText('Fondeado')
+			expect(badge).toHaveClass('bg-indigo-100')
+			expect(badge).toHaveClass('text-indigo-800')
+		})
+	})
+
 	describe('existing statuses remain unaffected', () => {
 		it('renders "Venta Efectuada" for VENTA_EFECTUADA', () => {
 			render(<BusinessStatusBadge status="VENTA_EFECTUADA" />)

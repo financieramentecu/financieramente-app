@@ -11,11 +11,44 @@ import {
 	AvatarImage,
 } from '@/features/shared/ui/avatar'
 import { Badge } from '@/features/shared/ui/badge'
-import { Plus, Pencil, Eye, Trash2 } from 'lucide-react'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/features/shared/ui/select'
+import { Plus, Pencil, Eye, Trash2, Coins } from 'lucide-react'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { ColumnDef } from '@tanstack/react-table'
-import type { UserRole } from '@/features/auth/lib/roles'
-import { canEditContractWhenBusinessEmitido } from '@/features/auth/lib/roles'
+import { UserRole, canEditContractWhenBusinessEmitido } from '@/features/auth/lib/roles'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from '@/features/shared/ui/tooltip'
+import { FONDEAR_ACTION_TOOLTIP } from '@/features/negocios/lib/fondear-action-copy'
+import {
+	BUSINESS_STATUS,
+	type BusinessStatus,
+} from '@/features/negocios/types/business-entity.types'
+import { cn } from '@/lib/utils'
+
+/** Valor sentinela del Select para “todos los estados” (Radix no admite value vacío). */
+const LIST_STATUS_FILTER_ALL = '__all__'
+
+const LIST_STATUS_OPTIONS: { value: BusinessStatus; label: string }[] = [
+	{ value: BUSINESS_STATUS.VENTA_EFECTUADA, label: 'Venta efectuada' },
+	{ value: BUSINESS_STATUS.EMITIDO, label: 'Emitido' },
+	{ value: BUSINESS_STATUS.COMISIONANDO, label: 'Comisionando' },
+	{ value: BUSINESS_STATUS.CANCELADO, label: 'Cancelado' },
+	{ value: BUSINESS_STATUS.FONDEADO, label: 'Fondeado' },
+]
+
+/** Celda compacta para iconos en toolbar de acciones (sin saltos entre filas). */
+const ACTION_ICON_BTN =
+	'inline-flex size-9 shrink-0 items-center justify-center rounded-md cursor-pointer'
 
 interface PaginationData {
 	page: number
@@ -31,11 +64,15 @@ interface BusinessTableSectionProps {
 	onEditBusiness: (business: Business) => void
 	onViewBusiness?: (business: Business) => void
 	onCancelBusiness?: (business: Business) => void
+	onFondearBusiness?: (business: Business) => void
 	pagination?: PaginationData
 	onPageChange?: (page: number) => void
 	isSearching?: boolean
 	/** Used to show edit on Emitido only for roles allowed by API */
 	userRole?: UserRole
+	/** Filtro por estado en la lista (`undefined` = todos) */
+	listStatus?: BusinessStatus
+	onListStatusChange?: (status: BusinessStatus | undefined) => void
 }
 
 export function BusinessTableSection({
@@ -45,10 +82,13 @@ export function BusinessTableSection({
 	onEditBusiness,
 	onViewBusiness,
 	onCancelBusiness,
+	onFondearBusiness,
 	pagination,
 	onPageChange,
 	isSearching = false,
 	userRole,
+	listStatus,
+	onListStatusChange,
 }: BusinessTableSectionProps) {
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('es-CO')
@@ -93,6 +133,17 @@ export function BusinessTableSection({
 				<Badge
 					variant="default"
 					className="bg-red-100 text-red-800 border-red-200 truncate"
+				>
+					{status}
+				</Badge>
+			)
+		}
+
+		if (status === 'Fondeado') {
+			return (
+				<Badge
+					variant="default"
+					className="bg-indigo-100 text-indigo-800 border-indigo-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -232,70 +283,139 @@ export function BusinessTableSection({
 			</div>
 
 			{/* Data Table */}
-			<DataTable
-				columns={columns}
-				data={data}
-				searchable={true}
-				onGlobalSearch={onGlobalSearch}
-				loading={isSearching}
-				searchPlaceholder="Buscar por cédula, nombre, email, # negocio o contrato..."
-				manualPagination={true}
-				currentPage={pagination?.page || 1}
-				pageSize={pagination?.pageSize || 10}
-				totalItems={pagination?.total || data.length}
-				onPageChange={onPageChange}
-				actions={(row) => {
-					const isVentaEfectuado = row.status === 'Venta Efectuado'
-					const isEmitido = row.status === 'Emitido'
-					const canEditEmitido =
-						isEmitido &&
-						userRole !== undefined &&
-						canEditContractWhenBusinessEmitido(userRole)
-					const isEditable = isVentaEfectuado || canEditEmitido
-					const isCancelable =
-						row.status === 'Venta Efectuado' || row.status === 'Emitido'
+			<TooltipProvider>
+				<DataTable
+					columns={columns}
+					data={data}
+					searchable={true}
+					onGlobalSearch={onGlobalSearch}
+					loading={isSearching}
+					searchPlaceholder="Buscar por cédula, nombre, email, # negocio o contrato..."
+					manualPagination={true}
+					currentPage={pagination?.page || 1}
+					pageSize={pagination?.pageSize || 10}
+					totalItems={pagination?.total || data.length}
+					onPageChange={onPageChange}
+					renderAdditionalFilters={
+						onListStatusChange
+							? () => (
+									<Select
+										value={listStatus ?? LIST_STATUS_FILTER_ALL}
+										onValueChange={(v) =>
+											onListStatusChange(
+												v === LIST_STATUS_FILTER_ALL
+													? undefined
+													: (v as BusinessStatus)
+											)
+										}
+									>
+										<SelectTrigger
+											className="h-8 w-[140px] lg:w-[170px]"
+											aria-label="Filtrar por estado del negocio"
+										>
+											<SelectValue placeholder="Estado" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value={LIST_STATUS_FILTER_ALL}>
+												Todos los estados
+											</SelectItem>
+											{LIST_STATUS_OPTIONS.map(({ value, label }) => (
+												<SelectItem key={value} value={value}>
+													{label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)
+							: undefined
+					}
+					actions={(row) => {
+						const isVentaEfectuado = row.status === 'Venta Efectuado'
+						const isEmitido = row.status === 'Emitido'
+						const canEditEmitido =
+							isEmitido &&
+							userRole !== undefined &&
+							canEditContractWhenBusinessEmitido(userRole)
+						const isEditable = isVentaEfectuado || canEditEmitido
+						const isCancelable =
+							row.status === 'Venta Efectuado' || row.status === 'Emitido'
+						const canFondearRole =
+							userRole === UserRole.ADMIN ||
+							userRole === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+							userRole === UserRole.AGENTE
+						const isFondeable =
+							isEmitido && !row.hasAnnualPayments && canFondearRole
 
-					return (
-						<div className="flex items-center gap-1">
-							{isEditable && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => onEditBusiness(row)}
-									className="h-8 w-8 p-1 cursor-pointer"
-									title="Editar"
-								>
-									<Pencil className="h-4 w-4" />
-								</Button>
-							)}
+						return (
+							<div
+								role="toolbar"
+								aria-label="Acciones del negocio"
+								className="inline-flex max-w-full flex-nowrap items-center gap-1"
+							>
+								{isEditable && (
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={() => onEditBusiness(row)}
+										className={ACTION_ICON_BTN}
+										title="Editar"
+									>
+										<Pencil className="h-4 w-4" />
+									</Button>
+								)}
 
-							{onViewBusiness && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => onViewBusiness(row)}
-									className="h-8 w-8 p-1 cursor-pointer"
-									title="Ver detalle"
-								>
-									<Eye className="h-4 w-4" />
-								</Button>
-							)}
+								{onViewBusiness && (
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={() => onViewBusiness(row)}
+										className={ACTION_ICON_BTN}
+										title="Ver detalle"
+									>
+										<Eye className="h-4 w-4" />
+									</Button>
+								)}
 
-							{onCancelBusiness && isCancelable && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => onCancelBusiness(row)}
-									className="h-8 w-8 p-1 text-destructive hover:text-destructive cursor-pointer"
-									title="Cancelar negocio"
-								>
-									<Trash2 className="h-4 w-4" />
-								</Button>
-							)}
-						</div>
-					)
-				}}
-			/>
+								{onFondearBusiness && isFondeable && (
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => onFondearBusiness(row)}
+												className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
+											>
+												<Coins className="h-4 w-4 shrink-0" aria-hidden />
+												<span className="text-xs font-medium whitespace-nowrap">
+													Fondear
+												</span>
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent side="top" className="max-w-xs">
+											<p>{FONDEAR_ACTION_TOOLTIP}</p>
+										</TooltipContent>
+									</Tooltip>
+								)}
+
+								{onCancelBusiness && isCancelable && (
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={() => onCancelBusiness(row)}
+										className={cn(
+											ACTION_ICON_BTN,
+											'text-destructive hover:text-destructive'
+										)}
+										title="Cancelar negocio"
+									>
+										<Trash2 className="h-4 w-4" />
+									</Button>
+								)}
+							</div>
+						)
+					}}
+				/>
+			</TooltipProvider>
 		</div>
 	)
 }

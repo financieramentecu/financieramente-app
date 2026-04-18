@@ -18,7 +18,8 @@ export interface Business extends Record<string, unknown> {
 	value: number
 	product: string
 	companyName: string
-	status: 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado'
+	status: 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado' | 'Fondeado'
+	hasAnnualPayments: boolean
 	currency: {
 		id: number
 		name: string
@@ -43,7 +44,7 @@ export interface BusinessSearchParams {
 	searchCriteria: string
 }
 
-export type BusinessStatus = 'Emitido' | 'Venta Efectuado'
+export type BusinessStatus = 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado' | 'Fondeado'
 
 /**
  * Interface de usuario con rol simplificada para el cliente
