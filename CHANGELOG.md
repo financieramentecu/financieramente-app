@@ -5,6 +5,22 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.9] - 2026-04-18
+
+### Añadido
+
+- **Negocios – Fondeo sin anualidades:** En el listado, si el negocio está **Emitido** y **no tiene anualidades** registradas, aparece la acción **Fondear** para **Agente** (sus negocios), **Asistente gerencia operativa** y **Administrador**. Al confirmar, el estado pasa a **Fondeado**, se guarda la **fecha de anclaje** y queda registrado en auditoría.
+- **Listado de negocios:** Puedes **filtrar por estado Fondeado** y ver el **badge Fondeado** (estilo distintivo) en la tabla y vistas coherentes con el estado.
+
+### Mejorado
+
+- **Estados del negocio:** La definición canónica de estados (`BUSINESS_STATUS`) queda centralizada para evitar discrepancias entre pantallas y API.
+
+### Documentación / Interno
+
+- **Base de datos:** Columna `date_anchored` en `business` y migración Prisma; en cada entorno aplicar **`prisma migrate deploy`** antes de usar esta versión en producción.
+- **OpenSpec:** Requisitos de fondeo sin anualidades y SSOT de estados incorporados al spec `negocios`; change **hu3-fondeo-sin-anualidades** archivado (`openspec/changes/archive/2026-04-18-hu3-fondeo-sin-anualidades/`) con informe de verificación.
+
 ## [1.0.0-beta.8] - 2026-04-17
 
 ### Añadido
