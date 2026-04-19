@@ -47,6 +47,7 @@
 		"prepare": "husky"
 	},
 	"dependencies": {
+		"@date-fns/tz": "^1.4.1",
 		"@hookform/resolvers": "^5.2.2",
 		"@playwright/test": "^1.56.1",
 		"@prisma/client": "^6.18.0",
