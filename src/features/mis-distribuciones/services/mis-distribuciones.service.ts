@@ -534,6 +534,25 @@ export async function registrarAprobacionDistribucion(params: {
 }
 
 /**
+ * Información mínima de un usuario beneficiario para encabezados de la
+ * pantalla "Mis distribuciones". Devuelve `null` si no existe.
+ */
+export async function obtenerInfoBeneficiario(
+	idUser: number
+): Promise<{ idUser: number; nombreUsuario: string } | null> {
+	if (!Number.isFinite(idUser) || idUser <= 0) return null
+	const user = await prisma.user.findUnique({
+		where: { idUser },
+		select: { idUser: true, name: true, lastName: true },
+	})
+	if (!user) return null
+	return {
+		idUser: user.idUser,
+		nombreUsuario: `${user.name} ${user.lastName ?? ''}`.trim(),
+	}
+}
+
+/**
  * Cuenta beneficiarios únicos y aprobaciones existentes para un archivo.
  * Útil para mostrar "X/Y coaches aprobaron" en la tabla del backoffice.
  */

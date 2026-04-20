@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { UserRole } from '@/features/auth/lib/roles'
-import { obtenerDistribucionComision } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
+import {
+	obtenerDistribucionComision,
+	puedeVerDistribucionComision,
+} from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { RespuestaDistribucionComision } from '@/features/pre-liquidacion/types/types'
-import { prisma } from '@/lib/prisma'
-import {
-	canViewUserDistributions,
-	isHierarchyBypassRole,
-} from '@/features/auth/lib/hierarchy'
+import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 
 const BACKOFFICE_ROLES: UserRole[] = [
 	UserRole.ADMIN,
@@ -50,28 +49,12 @@ export async function GET(
 		const isBackoffice = !!role && BACKOFFICE_ROLES.includes(role)
 		const bypasses = isHierarchyBypassRole(role ?? null)
 		if (!isBackoffice && !bypasses) {
-			const beneficiarios = await prisma.comissionDistribution.findMany({
-				where: {
-					idSettlementCommission: settlementCommissionId,
-				},
-				select: { idBeneficiaryUser: true },
-				distinct: ['idBeneficiaryUser'],
+			const allowed = await puedeVerDistribucionComision({
+				settlementCommissionId,
+				viewerId,
+				viewerRole: role,
 			})
-			const beneficiarioIds = beneficiarios.map(
-				(b) => b.idBeneficiaryUser
-			)
-			if (beneficiarioIds.length === 0) {
-				return NextResponse.json(
-					{ data: null, error: 'Sin permisos para este recurso' },
-					{ status: 403 }
-				)
-			}
-			const checks = await Promise.all(
-				beneficiarioIds.map((id) =>
-					canViewUserDistributions(viewerId, id, role)
-				)
-			)
-			if (!checks.some(Boolean)) {
+			if (!allowed) {
 				return NextResponse.json(
 					{ data: null, error: 'Sin permisos para este recurso' },
 					{ status: 403 }

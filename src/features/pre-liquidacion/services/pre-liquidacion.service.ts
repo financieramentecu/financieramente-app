@@ -4,6 +4,8 @@ import { enviarNotificacionesPorArchivo } from './notificar-preliquidacion.servi
 import { Decimal } from '@prisma/client/runtime/library'
 import { Prisma } from '@prisma/client'
 import { computeLineDistributionAmounts } from '@/features/pre-liquidacion/lib/compute-line-distribution'
+import { canViewUserDistributions } from '@/features/auth/lib/hierarchy'
+import type { UserRole } from '@/features/auth/lib/roles'
 
 export interface ConfigCategoryItem {
 	id: number
@@ -644,6 +646,43 @@ export async function obtenerRegistrosParaLiquidacion(
 }
 
 /**
+ * Resuelve si `viewerId` puede ver la distribución de un
+ * `settlementCommissionId` dado, según jerarquía sobre sus beneficiarios.
+ *
+ * Devuelve:
+ *  - `true` si alguno de los beneficiarios está en la jerarquía visible
+ *    para el viewer (según {@link canViewUserDistributions}).
+ *  - `false` si no hay beneficiarios, o si ninguno es visible.
+ *
+ * El chequeo de roles de bypass (backoffice) se debe hacer antes por el
+ * caller para evitar llamadas innecesarias.
+ */
+export async function puedeVerDistribucionComision(params: {
+	settlementCommissionId: number
+	viewerId: number
+	viewerRole?: UserRole | string | null
+}): Promise<boolean> {
+	const { settlementCommissionId, viewerId, viewerRole } = params
+	if (!Number.isFinite(settlementCommissionId) || settlementCommissionId <= 0) {
+		return false
+	}
+
+	const beneficiarios = await prisma.comissionDistribution.findMany({
+		where: { idSettlementCommission: settlementCommissionId },
+		select: { idBeneficiaryUser: true },
+		distinct: ['idBeneficiaryUser'],
+	})
+	if (beneficiarios.length === 0) return false
+
+	const checks = await Promise.all(
+		beneficiarios.map((b) =>
+			canViewUserDistributions(viewerId, b.idBeneficiaryUser, viewerRole)
+		)
+	)
+	return checks.some(Boolean)
+}
+
+/**
  * Returns the commission distribution breakdown for a given settlement commission.
  * Performs a single findMany with a 4-level include chain to avoid N+1 queries.
  * Returns null when no ComissionDistribution rows exist for the given id.
@@ -915,7 +954,13 @@ export async function liquidarRegistros(
 	_userId: number,
 	fileId: number
 ): Promise<{ liquidated: number; fileCompleted: boolean }> {
-	return prisma.$transaction(async (tx) => {
+	return prisma.$transaction(async (
+		tx
+	): Promise<{
+		liquidated: number
+		fileCompleted: boolean
+		settledIds: number[]
+	}> => {
 		const now = new Date()
 
 		// 1. Fetch commissions with all related data
@@ -936,7 +981,7 @@ export async function liquidarRegistros(
 		const settledIds = commissions.map((c) => c.idSettlementCommission)
 
 		if (settledIds.length === 0) {
-			return { liquidated: 0, fileCompleted: false }
+			return { liquidated: 0, fileCompleted: false, settledIds: [] }
 		}
 
 		// 2. Update settlement_commission: status=SETTLED, settledDate=now()
@@ -970,13 +1015,17 @@ export async function liquidarRegistros(
 		return {
 			liquidated: result.count,
 			fileCompleted,
+			settledIds,
 		}
 	}).then(async (out) => {
-		// Fire-and-forget: enviar comprobante final de liquidación a beneficiarios.
-		if (out.liquidated > 0) {
+		// Fire-and-forget: enviar comprobante final de liquidación sólo a los
+		// beneficiarios de los settlements recién liquidados en este batch
+		// (evita duplicar correos si hay múltiples batches parciales).
+		if (out.liquidated > 0 && out.settledIds.length > 0) {
 			enviarNotificacionesPorArchivo({
 				fileImportId: fileId,
 				kind: 'LIQUIDACION',
+				settlementCommissionIds: out.settledIds,
 			}).catch((err) => {
 				console.error(
 					'Error enviando comprobante final de liquidación:',
@@ -984,7 +1033,7 @@ export async function liquidarRegistros(
 				)
 			})
 		}
-		return out
+		return { liquidated: out.liquidated, fileCompleted: out.fileCompleted }
 	})
 }
 
@@ -2050,32 +2099,6 @@ export async function liquidarArchivoCompleto(
 			success: false,
 			mensaje: error instanceof Error ? error.message : 'Error desconocido',
 			liquidados: 0,
-		}
-	}
-}
-
-/**
- * Finaliza el flujo de liquidación de un archivo (Notificación).
- * Cambia el estado del archivo a COMPLETED.
- */
-export async function notificarArchivoCompleto(
-	fileId: number
-): Promise<{ success: boolean; mensaje: string }> {
-	try {
-		await prisma.fileImport.update({
-			where: { idFileImport: fileId },
-			data: { status: 'COMPLETED', updatedAt: new Date() },
-		})
-
-		return {
-			success: true,
-			mensaje: 'Archivo marcado como Completado y Notificado',
-		}
-	} catch (error) {
-		console.error('Error en notificarArchivoCompleto:', error)
-		return {
-			success: false,
-			mensaje: error instanceof Error ? error.message : 'Error desconocido',
 		}
 	}
 }

@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
-import { obtenerMisArchivosConDistribucion } from '@/features/mis-distribuciones/services/mis-distribuciones.service'
+import {
+	obtenerMisArchivosConDistribucion,
+	obtenerInfoBeneficiario,
+} from '@/features/mis-distribuciones/services/mis-distribuciones.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { RespuestaMisArchivos } from '@/features/mis-distribuciones/types/types'
-import { prisma } from '@/lib/prisma'
-import {
-	canViewUserDistributions,
-	isHierarchyBypassRole,
-} from '@/features/auth/lib/hierarchy'
+import { canViewUserDistributions } from '@/features/auth/lib/hierarchy'
 import type { UserRole } from '@/features/auth/lib/roles'
 
 /**
@@ -60,10 +59,7 @@ export async function GET(
 
 		const [archivos, target] = await Promise.all([
 			obtenerMisArchivosConDistribucion(targetId),
-			prisma.user.findUnique({
-				where: { idUser: targetId },
-				select: { idUser: true, name: true, lastName: true },
-			}),
+			obtenerInfoBeneficiario(targetId),
 		])
 
 		if (!target) {
@@ -76,13 +72,11 @@ export async function GET(
 		const payload: RespuestaMisArchivos = {
 			archivos,
 			idUser: target.idUser,
-			nombreUsuario: `${target.name} ${target.lastName ?? ''}`.trim(),
+			nombreUsuario: target.nombreUsuario,
 		}
 		return NextResponse.json({ data: payload })
 	} catch (error) {
 		console.error('Error al obtener mis distribuciones:', error)
-		const isBypass = isHierarchyBypassRole(null)
-		void isBypass // no-op: keeps helper import in server tree
 		return NextResponse.json(
 			{ data: null, error: 'Error al obtener distribuciones' },
 			{ status: 500 }

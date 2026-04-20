@@ -10,17 +10,10 @@ vi.mock(
 	'@/features/pre-liquidacion/services/pre-liquidacion.service',
 	() => ({
 		obtenerDistribucionComision: vi.fn(),
+		puedeVerDistribucionComision: vi.fn().mockResolvedValue(false),
 	})
 )
-vi.mock('@/lib/prisma', () => ({
-	prisma: {
-		comissionDistribution: {
-			findMany: vi.fn().mockResolvedValue([]),
-		},
-	},
-}))
 vi.mock('@/features/auth/lib/hierarchy', () => ({
-	canViewUserDistributions: vi.fn().mockResolvedValue(false),
 	isHierarchyBypassRole: vi.fn().mockReturnValue(false),
 }))
 

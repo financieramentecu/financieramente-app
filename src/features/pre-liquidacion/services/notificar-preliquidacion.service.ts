@@ -78,35 +78,40 @@ function extractPeriodo(file: {
  */
 async function obtenerResumenBeneficiarios(
 	fileImportId: number,
-	settlementStatus: string[]
+	settlementStatus: string[],
+	settlementCommissionIds?: number[]
 ): Promise<ResumenBeneficiarioArchivo[]> {
-	const distribuciones = await prisma.comissionDistribution.findMany({
-		where: {
-			settlementCommission: {
-				idFileImport: fileImportId,
-				status: { in: settlementStatus },
-			},
-		},
-		select: {
-			idBeneficiaryUser: true,
-			valueComissionFinal: true,
-			settlementCommission: {
-				select: {
-					idSettlementCommission: true,
-					idBusiness: true,
+	const distribuciones =
+		(await prisma.comissionDistribution.findMany({
+			where: {
+				settlementCommission: {
+					idFileImport: fileImportId,
+					status: { in: settlementStatus },
+					...(settlementCommissionIds && settlementCommissionIds.length > 0
+						? { idSettlementCommission: { in: settlementCommissionIds } }
+						: {}),
 				},
 			},
-			beneficiaryUser: {
-				select: {
-					idUser: true,
-					name: true,
-					lastName: true,
-					email: true,
-					active: true,
+			select: {
+				idBeneficiaryUser: true,
+				valueComissionFinal: true,
+				settlementCommission: {
+					select: {
+						idSettlementCommission: true,
+						idBusiness: true,
+					},
+				},
+				beneficiaryUser: {
+					select: {
+						idUser: true,
+						name: true,
+						lastName: true,
+						email: true,
+						active: true,
+					},
 				},
 			},
-		},
-	})
+		})) ?? []
 
 	const byUser = new Map<
 		number,
@@ -161,14 +166,27 @@ async function obtenerResumenBeneficiarios(
  * Envía un correo por cada beneficiario del archivo con el resumen y el link
  * al detalle. `kind` determina el asunto y las leyendas.
  *
+ * Si `kind` no se provee, se infiere del estado del archivo
+ * (`SETTLED`/`COMPLETED` → `LIQUIDACION`, caso contrario → `PRE_LIQUIDACION`).
+ *
  * Si `targetIdUser` está definido, solo se envía al beneficiario indicado.
+ *
+ * Si `settlementCommissionIds` está definido, sólo se consideran las
+ * distribuciones de esos settlements (usado por `liquidarRegistros` para
+ * evitar notificar dos veces a beneficiarios ya liquidados en batches
+ * anteriores).
+ *
+ * Cuando el envío corresponde a `kind === 'LIQUIDACION'` y el archivo está en
+ * estado `SETTLED`, el archivo se marca como `COMPLETED` al finalizar (equivalente
+ * a la anterior `notificarArchivoCompleto`).
  */
 export async function enviarNotificacionesPorArchivo(params: {
 	fileImportId: number
-	kind: DistribucionLinkKind
+	kind?: DistribucionLinkKind
 	targetIdUser?: number
+	settlementCommissionIds?: number[]
 }): Promise<ResultadoEnvioNotificaciones> {
-	const { fileImportId, kind, targetIdUser } = params
+	const { fileImportId, targetIdUser, settlementCommissionIds } = params
 
 	const fileImport = await prisma.fileImport.findUnique({
 		where: { idFileImport: fileImportId },
@@ -177,11 +195,18 @@ export async function enviarNotificacionesPorArchivo(params: {
 			nameFile: true,
 			month: true,
 			year: true,
+			status: true,
 		},
 	})
 	if (!fileImport) {
 		return { enviados: 0, fallidos: 0, omitidos: 0, destinatarios: [] }
 	}
+
+	const kind: DistribucionLinkKind =
+		params.kind ??
+		(fileImport.status === 'SETTLED' || fileImport.status === 'COMPLETED'
+			? 'LIQUIDACION'
+			: 'PRE_LIQUIDACION')
 
 	const status =
 		kind === 'LIQUIDACION'
@@ -189,7 +214,8 @@ export async function enviarNotificacionesPorArchivo(params: {
 			: ['PRE-SETTLED']
 	const beneficiarios = await obtenerResumenBeneficiarios(
 		fileImportId,
-		status
+		status,
+		settlementCommissionIds
 	)
 
 	const filtered = targetIdUser
@@ -240,6 +266,22 @@ export async function enviarNotificacionesPorArchivo(params: {
 				ok: false,
 				error: err instanceof Error ? err.message : String(err),
 			})
+		}
+	}
+
+	// Tras notificar el comprobante final, el archivo queda COMPLETED.
+	// Equivale al antiguo `notificarArchivoCompleto` pero ahora vive aquí.
+	if (kind === 'LIQUIDACION' && fileImport.status === 'SETTLED') {
+		try {
+			await prisma.fileImport.update({
+				where: { idFileImport: fileImport.idFileImport },
+				data: { status: 'COMPLETED', updatedAt: new Date() },
+			})
+		} catch (err) {
+			console.error(
+				'Error marcando archivo como COMPLETED tras notificación:',
+				err
+			)
 		}
 	}
 

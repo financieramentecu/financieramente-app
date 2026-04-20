@@ -3,11 +3,19 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import type { RespuestaAprobarDistribucion } from '../types/types'
+import type { AsyncState } from '@/features/shared/types/async-state.types'
 
 interface UseAprobarDistribucionReturn {
 	aprobar: (fileId: number) => Promise<RespuestaAprobarDistribucion | null>
+	state: AsyncState<RespuestaAprobarDistribucion>
 	isApproving: boolean
 	error: string | null
+}
+
+const INITIAL_STATE: AsyncState<RespuestaAprobarDistribucion> = {
+	status: 'idle',
+	data: undefined,
+	error: '',
 }
 
 /**
@@ -15,13 +23,12 @@ interface UseAprobarDistribucionReturn {
  * su distribución de un archivo.
  */
 export function useAprobarDistribucion(): UseAprobarDistribucionReturn {
-	const [isApproving, setIsApproving] = useState(false)
-	const [error, setError] = useState<string | null>(null)
+	const [state, setState] =
+		useState<AsyncState<RespuestaAprobarDistribucion>>(INITIAL_STATE)
 
 	const aprobar = useCallback(
-		async (fileId: number) => {
-			setIsApproving(true)
-			setError(null)
+		async (fileId: number): Promise<RespuestaAprobarDistribucion | null> => {
+			setState({ status: 'loading', data: undefined, error: '' })
 			try {
 				const res = await fetch(
 					`/api/mis-distribuciones/${fileId}/aprobar`,
@@ -36,12 +43,13 @@ export function useAprobarDistribucion(): UseAprobarDistribucionReturn {
 						typeof body.error === 'string'
 							? body.error
 							: `Error ${res.status}`
-					setError(msg)
+					setState({ status: 'error', data: undefined, error: msg })
 					toast.error(msg)
 					return null
 				}
 				const parsed = await res.json()
 				const data: RespuestaAprobarDistribucion = parsed.data ?? parsed
+				setState({ status: 'success', data, error: '' })
 				toast.success('Aprobación registrada correctamente')
 				return data
 			} catch (err) {
@@ -49,15 +57,18 @@ export function useAprobarDistribucion(): UseAprobarDistribucionReturn {
 					err instanceof Error
 						? err.message
 						: 'Error al registrar aprobación'
-				setError(msg)
+				setState({ status: 'error', data: undefined, error: msg })
 				toast.error(msg)
 				return null
-			} finally {
-				setIsApproving(false)
 			}
 		},
 		[]
 	)
 
-	return { aprobar, isApproving, error }
+	return {
+		aprobar,
+		state,
+		isApproving: state.status === 'loading',
+		error: state.status === 'error' ? state.error : null,
+	}
 }
