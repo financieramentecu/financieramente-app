@@ -1,20 +1,9 @@
 /**
- * Tipos y constantes para estados de negocio
+ * Re-exporta tipos y constantes de estado de negocio desde business-entity.types.ts
+ * (fuente canónica)
  */
 
-/**
- * Estados posibles de un negocio
- */
-export type BusinessStatus = 'VENTA_EFECTUADA' | 'EMITIDO' | 'COMISIONANDO'
-
-/**
- * Constantes para los estados de negocio
- */
-export const BUSINESS_STATUS = {
-	VENTA_EFECTUADA: 'VENTA_EFECTUADA' as const,
-	EMITIDO: 'EMITIDO' as const,
-	COMISIONANDO: 'COMISIONANDO' as const,
-} as const
+export { BUSINESS_STATUS, type BusinessStatus } from './business-entity.types'
 
 /**
  * Determina el estado del negocio basado en si tiene contrato o no
@@ -24,9 +13,9 @@ export const BUSINESS_STATUS = {
  */
 export function determineBusinessStatus(
 	contract?: string | null
-): BusinessStatus {
+): import('./business-entity.types').BusinessStatus {
 	if (contract && contract.trim().length > 0) {
-		return BUSINESS_STATUS.EMITIDO
+		return 'EMITIDO'
 	}
-	return BUSINESS_STATUS.VENTA_EFECTUADA
+	return 'VENTA_EFECTUADA'
 }

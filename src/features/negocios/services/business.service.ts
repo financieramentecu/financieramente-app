@@ -127,6 +127,25 @@ export const businessService = {
 	},
 
 	/**
+	 * Fondea un negocio (transición EMITIDO → FONDEADO)
+	 *
+	 * @param id - ID del negocio
+	 * @returns Negocio fondeado
+	 */
+	async fondear(id: number): Promise<ApiResponse<BusinessEntity>> {
+		try {
+			const response = await fetch(`${BASE_URL}/${id}/fondear`, {
+				method: 'POST',
+			})
+
+			return await response.json()
+		} catch (error) {
+			console.error('Error al fondear negocio:', error)
+			return { data: null, error: 'Error al fondear el negocio' }
+		}
+	},
+
+	/**
 	 * Valida si un número de contrato está disponible
 	 *
 	 * @param contract - Número de contrato a validar

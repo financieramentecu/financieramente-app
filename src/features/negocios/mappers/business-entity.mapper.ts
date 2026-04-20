@@ -35,6 +35,8 @@ export function prismaBusinessToEntity(
 		status: prisma.status as BusinessStatus,
 		createdAt: prisma.createdAt.toISOString(), // Date → string
 		dateIssued: prisma.dateIssued?.toISOString() ?? null,
+		dateAnchored: prisma.dateAnchored?.toISOString() ?? null,
+		hasAnnualPayments: prisma._count.annualPayments > 0,
 
 		client: {
 			id: prisma.client.idClient,

@@ -12,7 +12,10 @@ import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business, StatsData } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
-import type { BusinessEntity } from '@/features/negocios/types/business-entity.types'
+import type {
+	BusinessEntity,
+	BusinessStatus,
+} from '@/features/negocios/types/business-entity.types'
 import type { BusinessListParams } from '@/features/negocios/types/business-api.types'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-status.types'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
@@ -117,7 +120,7 @@ export function NegociosPageClient({
 		}
 	}, [stats?.currencies, selectedCurrency])
 
-	const { cancelBusiness, isCancelling } = useBusinessMutation()
+	const { cancelBusiness, isCancelling, fondearBusiness } = useBusinessMutation()
 
 	// Handler para cambio de currency
 	const handleCurrencyChange = useCallback((currency: string) => {
@@ -178,6 +181,21 @@ export function NegociosPageClient({
 	}, [])
 
 	/**
+	 * Fondea un negocio directamente (sin modal para negocios sin anualidades)
+	 */
+	const handleFondearBusiness = useCallback(
+		async (business: Business) => {
+			const result = await fondearBusiness(Number(business.id))
+
+			if (result) {
+				refetch()
+				refetchStats()
+			}
+		},
+		[fondearBusiness, refetch, refetchStats]
+	)
+
+	/**
 	 * Confirma la cancelación del negocio
 	 */
 	const handleConfirmCancel = useCallback(
@@ -211,6 +229,17 @@ export function NegociosPageClient({
 	const handlePageChange = useCallback((page: number) => {
 		setSearchParams((prev) => ({ ...prev, page }))
 	}, [])
+
+	const handleListStatusChange = useCallback(
+		(status: BusinessStatus | undefined) => {
+			setSearchParams((prev) => ({
+				...prev,
+				status,
+				page: 1,
+			}))
+		},
+		[]
+	)
 
 	// Limpiar business seleccionado al cerrar modales
 	const handleViewModalClose = useCallback((open: boolean) => {
@@ -252,7 +281,10 @@ export function NegociosPageClient({
 							? 'Venta Efectuado'
 							: b.status === BUSINESS_STATUS.COMISIONANDO
 								? 'Comisionando'
-								: 'Cancelado',
+								: b.status === BUSINESS_STATUS.FONDEADO
+									? 'Fondeado'
+									: 'Cancelado',
+				hasAnnualPayments: b.hasAnnualPayments,
 				currency: b.currency,
 			})),
 		[businesses]
@@ -340,8 +372,11 @@ export function NegociosPageClient({
 				onEditBusiness={handleEditBusiness}
 				onViewBusiness={handleViewBusiness}
 				onCancelBusiness={handleCancelBusiness}
+				onFondearBusiness={handleFondearBusiness}
 				onGlobalSearch={handleGlobalSearch}
 				onPageChange={handlePageChange}
+				listStatus={searchParams.status}
+				onListStatusChange={handleListStatusChange}
 			/>
 
 			{/* Modal de Visualización */}

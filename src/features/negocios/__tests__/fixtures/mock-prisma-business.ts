@@ -24,6 +24,7 @@ export type PrismaBusinessWithRelations = Prisma.BusinessGetPayload<{
 		currency: true
 		buyPeriodicity: true
 		clientOrigin: true
+		_count: { select: { annualPayments: true } }
 	}
 }>
 
@@ -48,6 +49,8 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	createdAt: baseDate,
 	updatedAt: baseDate,
 	dateIssued: null,
+	dateAnchored: null,
+	_count: { annualPayments: 0 },
 	client: {
 		idClient: 1,
 		name: 'María',

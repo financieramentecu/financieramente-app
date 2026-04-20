@@ -162,5 +162,43 @@ describe('prismaBusinessToEntity', () => {
 
 			expect(result.dateIssued).toBe('2024-03-20T14:30:00.000Z')
 		})
+
+		// ── 4.5: dateAnchored and hasAnnualPayments mapping ──────────────────
+		it('should map null dateAnchored to null', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				dateAnchored: null,
+			})
+
+			expect(result.dateAnchored).toBeNull()
+		})
+
+		it('should map dateAnchored DateTime to ISO string', () => {
+			const anchored = new Date('2025-04-18T12:00:00.000Z')
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				dateAnchored: anchored,
+			})
+
+			expect(result.dateAnchored).toBe('2025-04-18T12:00:00.000Z')
+		})
+
+		it('should map _count.annualPayments === 0 to hasAnnualPayments: false', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				_count: { annualPayments: 0 },
+			})
+
+			expect(result.hasAnnualPayments).toBe(false)
+		})
+
+		it('should map _count.annualPayments > 0 to hasAnnualPayments: true', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				_count: { annualPayments: 3 },
+			})
+
+			expect(result.hasAnnualPayments).toBe(true)
+		})
 	})
 })

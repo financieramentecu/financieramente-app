@@ -263,6 +263,65 @@ describe('GET /api/negocios', () => {
 			expect(responseData.data.businesses).toEqual(mockEntities)
 		})
 
+		it('debe filtrar negocios por estado FONDEADO', async () => {
+			const mockSession = {
+				user: {
+					email: 'admin@example.com',
+				},
+			}
+
+			const mockAdminUser = {
+				...mockUserWithRole,
+				email: 'admin@example.com',
+				role: {
+					idRole: 1,
+					code: UserRole.ADMIN,
+					name: 'Administrador del Sistema',
+					description: 'Acceso total',
+					active: true,
+					createdAt: new Date('2024-01-01'),
+					updatedAt: new Date('2024-01-01'),
+				},
+			}
+
+			const mockBusinesses = [mockPrismaBusinessEmitido]
+			const mockEntities = [{ id: 2, contract: 'PN0005678' }]
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockBusinessListParamsSchema.safeParse.mockReturnValue({
+				success: true,
+				data: {
+					page: 1,
+					pageSize: 10,
+					search: null,
+					status: BUSINESS_STATUS.FONDEADO,
+				},
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaCount.mockResolvedValue(1)
+			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			mockPrismaBusinessListToEntities.mockReturnValue(mockEntities as never)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios?status=FONDEADO'
+			)
+			const response = await GET(request)
+			const responseData = await response.json()
+
+			expect(mockPrismaCount).toHaveBeenCalledWith({
+				where: { AND: [{ status: BUSINESS_STATUS.FONDEADO }] },
+			})
+			expect(mockPrismaFindMany).toHaveBeenCalledWith({
+				where: { AND: [{ status: BUSINESS_STATUS.FONDEADO }] },
+				include: expect.any(Object),
+				orderBy: { createdAt: 'desc' },
+				skip: 0,
+				take: 10,
+			})
+			expect(response.status).toBe(200)
+			expect(responseData.data.businesses).toEqual(mockEntities)
+		})
+
 		it('debe filtrar negocios por rol AGENTE (solo sus negocios)', async () => {
 			const mockSession = {
 				user: {

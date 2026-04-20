@@ -20,7 +20,7 @@ export const businessListParamsSchema = z.object({
 	pageSize: z.coerce.number().int().positive().max(100).optional().default(10),
 	search: z.string().nullish(),
 	status: z
-		.enum(['VENTA_EFECTUADA', 'EMITIDO', 'COMISIONANDO', 'CANCELADO'])
+		.enum(['VENTA_EFECTUADA', 'EMITIDO', 'COMISIONANDO', 'CANCELADO', 'FONDEADO'])
 		.nullish(),
 })
 
@@ -115,6 +115,7 @@ export const businessEntitySchema = z.object({
 		BUSINESS_STATUS.EMITIDO,
 		BUSINESS_STATUS.COMISIONANDO,
 		BUSINESS_STATUS.CANCELADO,
+		BUSINESS_STATUS.FONDEADO,
 	]),
 	createdAt: z.string(),
 	dateIssued: z.string().nullable(),
