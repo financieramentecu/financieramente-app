@@ -27,7 +27,13 @@ export interface ProductConfiguration extends Record<string, unknown> {
 		description?: string | null
 		active: boolean
 	} | null
-	newBusinessesDistributionDescription: string | null
+	/**
+	 * Only present on **list** responses (`GET /api/product-configurations`).
+	 * `true`  → no `ProductPercentageCommissionCategory` rows exist for any rule under this config (setup pending).
+	 * `false` → at least one category line is saved (setup complete).
+	 * `undefined` → not populated (e.g. detail endpoint `/by-code/[code]` or single-item responses).
+	 */
+	readonly distributionSetupIncomplete?: boolean
 }
 
 /**

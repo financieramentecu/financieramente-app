@@ -46,6 +46,7 @@ export function resolveBeneficiaryUserId(
 	chain: ReadonlyArray<UplineChainLink>
 ): ResolveBeneficiaryResult {
 	if (category.beneficiaryMode === 'FIXED_BENEFICIARY') {
+		console.log(`[DEBUG] Resolviendo FIXED para ${category.code} -> idFixedUser: ${category.idFixedBeneficiaryUser}`)
 		if (category.idFixedBeneficiaryUser == null) {
 			return {
 				ok: false,
@@ -71,13 +72,19 @@ export function resolveBeneficiaryUserId(
 		return { ok: true, idUser: fu.idUser }
 	}
 
+	console.log(`[DEBUG] Resolviendo UPLINE para ${category.code} (idCat: ${category.idCategory}) en cadena de ${chain.length} eslabones:`)
+	chain.forEach((l, i) => console.log(`   [${i}] User: ${l.idUser}, Cat: ${l.idCategoria}`))
+
 	for (const link of chain) {
 		if (link.idCategoria === category.idCategory) {
+			console.log(`   [MATCH] Encontrado beneficiario id: ${link.idUser}`)
 			return { ok: true, idUser: link.idUser }
 		}
 	}
 
 	// Diagnose why no match was found for a more specific error message
+	console.log(`   [FAIL] No hay coincidencia para idCat: ${category.idCategory}`)
+
 	const agent = chain[0]
 	if (!agent || agent.idCategoria == null) {
 		return {

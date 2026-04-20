@@ -7,7 +7,8 @@ export interface CommissionRuleCategory {
 	readonly id: number
 	readonly idCategory: number
 	readonly idProductPercentageCommission: number
-	porcentajeDistribucion: number // Whole number (15 = 15%). Stored as Decimal(5,4) in DB.
+	porcentajeDistribucion: number // 0–100 scale for UI. Stored as fraction in DB (Decimal(8,6)).
+	porcentajePortfolio?: number // 0–100 when present (portfolio enabled historically or stored)
 	active: boolean
 	readonly createdAt: string
 	readonly updatedAt: string
@@ -22,6 +23,7 @@ export interface CommissionRule {
 	readonly idProductConfiguration: number
 	description: string | null
 	active: boolean
+	hasPortfolio: boolean
 	readonly createdAt: string
 	readonly updatedAt: string
 	categories: CommissionRuleCategory[]
@@ -31,9 +33,11 @@ export interface CommissionRule {
 export interface CreateCommissionRuleInput {
 	idProductConfiguration: number
 	description?: string
+	hasPortfolio?: boolean
 	categories?: {
 		idCategory: number
 		percentage: number
+		portfolioPercentage?: number
 	}[]
 }
 
@@ -41,9 +45,11 @@ export interface UpdateCommissionRuleInput {
 	idProductPercentageCommission: number
 	description?: string
 	active?: boolean
+	hasPortfolio?: boolean
 	categories?: {
 		idCategory: number
 		percentage: number
+		portfolioPercentage?: number
 	}[]
 }
 

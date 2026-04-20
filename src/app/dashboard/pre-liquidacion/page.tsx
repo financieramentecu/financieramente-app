@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 import {
 	FileText,
 	Calculator,
-	AlertCircle,
 	Filter,
 } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
@@ -14,8 +13,10 @@ import { ListaArchivosDisponibles } from './components/ListaArchivosDisponibles'
 import { ProcesandoPreLiquidacion } from './components/ProcesandoPreLiquidacion'
 import { ResultadosPreLiquidacion } from './components/ResultadosPreLiquidacion'
 import { ModalErroresConfiguracion } from '@/features/pre-liquidacion/components/ModalErroresConfiguracion'
+import { ModalConfirmacionPreliquidar } from '@/features/pre-liquidacion/components/ModalConfirmacionPreliquidar'
 import { EmptyState } from '@/features/shared/ui/empty-state'
 import { TableRowsLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
+import type { ArchivoDisponible } from '@/features/pre-liquidacion/types/types'
 import {
 	Select,
 	SelectContent,
@@ -39,7 +40,13 @@ export default function PreLiquidacionPage() {
 		registrosConError,
 		modalErroresOpen,
 		cerrarModalErrores,
+		procesarPreLiquidacion,
+		notificarArchivo,
+		isProcesando,
 	} = usePreLiquidacion()
+
+	const [archivoParaPreliquidar, setArchivoParaPreliquidar] = useState<ArchivoDisponible | null>(null)
+	const [modalConfirmacionOpen, setModalConfirmacionOpen] = useState(false)
 
 	const [archivoSeleccionado, setArchivoSeleccionado] = useState<number | null>(
 		null
@@ -67,6 +74,39 @@ export default function PreLiquidacionPage() {
 		setArchivoSeleccionado(null)
 		if (refetch) refetch()
 	}
+
+	const handlePreliquidarClick = (archivo: ArchivoDisponible) => {
+		setArchivoParaPreliquidar(archivo)
+		setModalConfirmacionOpen(true)
+	}
+
+	const handleConfirmarPreliquidar = async () => {
+		if (!archivoParaPreliquidar) return
+
+		// Extraer periodo del nombre del archivo (ej: SINCRONIZACION-VOLUNTARIA-ABRIL-2026.xlsx)
+		const nombre = archivoParaPreliquidar.nombreArchivo
+		const nombreSinExtension = nombre.split('.')[0]
+		const parts = nombreSinExtension.split('-')
+		
+		const year = (parts[parts.length - 1] || '').replace(/\D/g, '')
+		const monthName = (parts[parts.length - 2] || '').toUpperCase()
+		
+		const monthMap: Record<string, string> = {
+			'ENERO': '01', 'FEBRERO': '02', 'MARZO': '03', 'ABRIL': '04',
+			'MAYO': '05', 'JUNIO': '06', 'JULIO': '07', 'AGOSTO': '08',
+			'SEPTIEMBRE': '09', 'OCTUBRE': '10', 'NOVIEMBRE': '11', 'DICIEMBRE': '12'
+		}
+		
+		const mes = `${year}-${monthMap[monthName] || '04'}` // Default to April (04) for test data
+
+		setArchivoSeleccionado(archivoParaPreliquidar.idFileImport)
+		setModalConfirmacionOpen(false)
+		
+		// Iniciar procesamiento
+		setViewState('PROCESSING')
+		await procesarPreLiquidacion(archivoParaPreliquidar.idFileImport, mes)
+	}
+
 
 	// Generar opciones de años (actual y 4 anteriores)
 	const currentYear = new Date().getFullYear()
@@ -114,9 +154,9 @@ export default function PreLiquidacionPage() {
 		})
 	}
 
-	// Archivos para pre-liquidar: Estado PRE-SETTLED (ya pre-liquidados, pendientes de revisión/aprobación)
+	// Archivos en flujo: LOAD, PRE-SETTLED, PRE-SETTLE-APROVED, SETTLED, COMPLETED
 	const archivosPendientes = archivos.filter(
-		(a) => a.estado === 'PRE-SETTLED'
+		(a) => ['LOAD', 'PRE-SETTLED', 'PRE-SETTLE-APROVED', 'SETTLED', 'COMPLETED'].includes(a.estado)
 	)
 	const archivosPendientesFiltrados = filterArchivosByDate(
 		archivosPendientes,
@@ -127,18 +167,30 @@ export default function PreLiquidacionPage() {
 	// Resumen calculado basado en archivos filtrados
 	const resumenFiltrado = useMemo(() => {
 		const totalArchivos = archivosPendientesFiltrados.length
-		const totalRegistrosPreliquidados = archivosPendientesFiltrados.reduce(
-			(sum, a) => sum + (a.registrosPreliquidados ?? 0),
+		const totalRegistros = archivosPendientesFiltrados.reduce(
+			(sum, a) => sum + (a.registrosPreliquidados || a.sincronizados || 0),
 			0
 		)
+		const preLiquidados = archivosPendientesFiltrados.filter(
+			(a) => a.estado === 'PRE-SETTLED'
+		).length
+		const liquidados = archivosPendientesFiltrados.filter(
+			(a) => a.estado === 'SETTLED'
+		).length
+		const completados = archivosPendientesFiltrados.filter(
+			(a) => a.estado === 'COMPLETED'
+		).length
 		const totalRezagados = archivosPendientesFiltrados.reduce(
-			(sum, a) => sum + a.rezagados,
+			(sum, a) => sum + (a.rezagados || 0),
 			0
 		)
 
 		return {
 			totalArchivos,
-			totalRegistros: totalRegistrosPreliquidados,
+			totalRegistros,
+			preLiquidados,
+			liquidados,
+			completados,
 			rezagados: totalRezagados,
 		}
 	}, [archivosPendientesFiltrados])
@@ -212,8 +264,7 @@ export default function PreLiquidacionPage() {
 						</h1>
 					</div>
 					<p className="text-muted-foreground">
-						Procesa archivos sincronizados y genera cálculos de distribución
-						comisional automáticos
+						Procesa archivos sincronizados y gestiona las pre-liquidaciones generadas
 					</p>
 				</div>
 
@@ -234,7 +285,7 @@ export default function PreLiquidacionPage() {
 						</div>
 
 						{/* Panel de Resumen */}
-						<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+						<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 							<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
 								<div className="flex items-center justify-between">
 									<div>
@@ -252,26 +303,39 @@ export default function PreLiquidacionPage() {
 								<div className="flex items-center justify-between">
 									<div>
 										<p className="text-sm text-muted-foreground">
-											Total Registros
+											Pre-liquidados
 										</p>
-										<p className="text-2xl font-bold text-chart-2">
-											{resumenFiltrado.totalRegistros}
+										<p className="text-2xl font-bold text-amber-600">
+											{resumenFiltrado.preLiquidados}
 										</p>
 									</div>
-									<FileText className="h-8 w-8 text-chart-2 opacity-50" />
+									<Calculator className="h-8 w-8 text-amber-600 opacity-50" />
 								</div>
 							</div>
 							<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
 								<div className="flex items-center justify-between">
 									<div>
 										<p className="text-sm text-muted-foreground">
-											Rezagados
+											Liquidados
 										</p>
-										<p className="text-2xl font-bold text-chart-4">
-											{resumenFiltrado.rezagados}
+										<p className="text-2xl font-bold text-green-600">
+											{resumenFiltrado.liquidados}
 										</p>
 									</div>
-									<AlertCircle className="h-8 w-8 text-chart-4 opacity-50" />
+									<FileText className="h-8 w-8 text-green-600 opacity-50" />
+								</div>
+							</div>
+							<div className="bg-card rounded-lg border border-border p-4 shadow-sm">
+								<div className="flex items-center justify-between">
+									<div>
+										<p className="text-sm text-muted-foreground">
+											Completados
+										</p>
+										<p className="text-2xl font-bold text-blue-600">
+											{resumenFiltrado.completados}
+										</p>
+									</div>
+									<FileText className="h-8 w-8 text-blue-600 opacity-50" />
 								</div>
 							</div>
 						</div>
@@ -281,9 +345,10 @@ export default function PreLiquidacionPage() {
 							<div className="flex items-center gap-2 mb-4">
 								<FileText className="h-5 w-5 text-primary" />
 								<h2 className="text-lg font-semibold text-primary">
-									Archivos pendientes para validar la Pre-Liquidación
+									Historial de Archivos y Pre-liquidaciones
 								</h2>
 							</div>
+
 
 							{isLoading ? (
 								<TableRowsLoadingSkeleton rows={6} />
@@ -299,6 +364,8 @@ export default function PreLiquidacionPage() {
 							) : (
 								<ListaArchivosDisponibles
 									archivos={archivosPendientesFiltrados}
+									onPreliquidar={handlePreliquidarClick}
+									onNotificar={notificarArchivo}
 								/>
 							)}
 						</div>
@@ -309,6 +376,13 @@ export default function PreLiquidacionPage() {
 				registrosConError={registrosConError}
 				open={modalErroresOpen}
 				onClose={cerrarModalErrores}
+			/>
+			<ModalConfirmacionPreliquidar
+				open={modalConfirmacionOpen}
+				onOpenChange={setModalConfirmacionOpen}
+				onConfirmar={handleConfirmarPreliquidar}
+				isConfirmando={isProcesando}
+				fileName={archivoParaPreliquidar?.nombreArchivo}
 			/>
 		</DashboardLayout>
 	)

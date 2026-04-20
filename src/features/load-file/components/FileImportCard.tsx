@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { FileText, Trash2, Eye, Loader2, ArrowRight } from 'lucide-react'
+import { FileText, Trash2, Eye, ArrowRight, Info } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import { FileStatusBadge } from './ui/FileStatusBadge'
 import type { CargaHistorial } from '../hooks/use-file-history'
@@ -60,11 +60,10 @@ export interface FileImportCardProps {
 	 * Typically `carga.estado === 'LOAD' && carga.sincronizados > 0 && userCanPreliquidar`.
 	 */
 	readonly canPreliquidar: boolean
-	readonly isPreliquidarLoading: boolean
 	readonly onDelete: (id: string) => void
-	readonly onPreliquidar: (carga: CargaHistorial) => void
 	readonly onViewDetail: (id: number) => void
 	readonly onGoToPreliquidacion?: (idFileImport: number) => void
+	readonly onGoToLiquidacion?: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -75,14 +74,14 @@ export function FileImportCard({
 	carga,
 	canDelete,
 	canPreliquidar,
-	isPreliquidarLoading,
 	onDelete,
-	onPreliquidar,
 	onViewDetail,
 	onGoToPreliquidacion,
+	onGoToLiquidacion,
 }: FileImportCardProps) {
 	const isPreSettled = carga.estado === 'PRE-SETTLED'
 	const isLoad = carga.estado === 'LOAD'
+	const isCompleted = carga.estado === 'COMPLETED'
 
 	return (
 		<div className="bg-muted rounded-lg p-4 border border-border">
@@ -107,15 +106,16 @@ export function FileImportCard({
 						{/* Statistics badges */}
 						<div className="flex flex-wrap items-center gap-2">
 							<StatBadge
-								label="exitosos"
+								label="Procesados"
 								value={carga.exitosos}
-								bgColor="#dcfce7"
-								textColor="#166534"
-								borderColor="#86efac"
-								dotColor="#16a34a"
+								bgColor="#dbeafe"
+								textColor="#1e40af"
+								borderColor="#93c5fd"
+								dotColor="#3b82f6"
+
 							/>
 							<StatBadge
-								label="errores"
+								label="Errores"
 								value={carga.errores}
 								bgColor="#fee2e2"
 								textColor="#991b1b"
@@ -123,15 +123,15 @@ export function FileImportCard({
 								dotColor="#dc2626"
 							/>
 							<StatBadge
-								label="sincronizados"
+								label="Sincronizados"
 								value={carga.sincronizados}
-								bgColor="#dbeafe"
-								textColor="#1e40af"
-								borderColor="#93c5fd"
-								dotColor="#3b82f6"
+								bgColor="#dcfce7"
+								textColor="#166534"
+								borderColor="#86efac"
+								dotColor="#16a34a"
 							/>
 							<StatBadge
-								label="sin registro"
+								label="No sincronizados"
 								value={carga.sinRegistro}
 								bgColor="#fef9c3"
 								textColor="#854d0e"
@@ -139,7 +139,7 @@ export function FileImportCard({
 								dotColor="#eab308"
 							/>
 							<StatBadge
-								label="rezagados"
+								label="Rezagados"
 								value={carga.rezagados}
 								bgColor="#fef3c7"
 								textColor="#92400e"
@@ -166,6 +166,19 @@ export function FileImportCard({
 						</Button>
 					)}
 
+					{/* Ir a Liquidación — only for COMPLETED */}
+					{isCompleted && onGoToLiquidacion && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={onGoToLiquidacion}
+							className="bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700 cursor-pointer transition-colors duration-200"
+						>
+							<ArrowRight className="h-4 w-4 mr-1" />
+							Ir a Liquidación
+						</Button>
+					)}
+
 					{/* Ir a Pre-liquidación — only for PRE-SETTLED */}
 					{isPreSettled && onGoToPreliquidacion && (
 						<Button
@@ -179,19 +192,16 @@ export function FileImportCard({
 						</Button>
 					)}
 
-					{/* Preliquidar — only for LOAD with sincronizados > 0 and permission */}
-					{canPreliquidar && (
+					{/* Ir a Pre-liquidar — redirect to pre-liquidación module */}
+					{canPreliquidar && onGoToPreliquidacion && (
 						<Button
 							variant="outline"
 							size="sm"
-							onClick={() => onPreliquidar(carga)}
-							disabled={isPreliquidarLoading}
-							className="p-2 cursor-pointer transition-colors duration-200"
+							onClick={() => onGoToPreliquidacion(carga.idFileImport)}
+							className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary cursor-pointer transition-colors duration-200"
 							title="Pre-liquidar archivo"
 						>
-							{isPreliquidarLoading ? (
-								<Loader2 className="h-4 w-4 mr-1 animate-spin" />
-							) : null}
+							<ArrowRight className="h-4 w-4 mr-1" />
 							Preliquidar
 						</Button>
 					)}
@@ -210,6 +220,16 @@ export function FileImportCard({
 					)}
 				</div>
 			</div>
+
+			{/* Caption for no items to pre-liquidate */}
+			{isLoad && carga.sincronizados === 0 && carga.rezagados === 0 && (
+				<div className="mt-4 flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg">
+					<Info className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+					<p className="text-[11px] font-medium text-amber-700 dark:text-amber-300">
+						No hay registros (Sincronizados o Rezagados) disponibles para realizar la pre-liquidación en este archivo.
+					</p>
+				</div>
+			)}
 		</div>
 	)
 }

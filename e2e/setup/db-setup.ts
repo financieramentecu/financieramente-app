@@ -105,6 +105,9 @@ export async function setupSSOUsers() {
 		const proRole = await getPrisma().role.findUnique({
 			where: { code: 'PRO' },
 		})
+		const analistaRole = await getPrisma().role.findUnique({
+			where: { code: 'ANALISTA_SOPORTE' },
+		})
 
 		if (!adminRole || !agenteRole) {
 			console.warn(
@@ -150,6 +153,19 @@ export async function setupSSOUsers() {
 				idRole: agenteRole.idRole || (agenteRole as any).role_id,
 				identity: '888888884',
 			},
+			...(analistaRole
+				? ([
+						{
+							email: 'analista@financieramentecu.com',
+							name: 'Analista Soporte',
+							password: hashedPassword,
+							ssoOnly: false,
+							idRole:
+								analistaRole.idRole || (analistaRole as any).role_id,
+							identity: '888888886',
+						},
+					] as const)
+				: []),
 			{
 				email: 'inactive@financieramentecu.com',
 				name: 'Inactive User',

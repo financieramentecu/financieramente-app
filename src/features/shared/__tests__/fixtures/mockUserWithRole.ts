@@ -5,6 +5,7 @@ import { UserWithRole } from '@/features/negocios/types/business.types'
  * Mock de usuario con rol para testing
  */
 export const mockUserWithRole: UserWithRole = {
+	id: 1,
 	idUser: 1,
 	name: 'Test',
 	lastName: 'User',
@@ -14,7 +15,6 @@ export const mockUserWithRole: UserWithRole = {
 	password: null,
 	ssoOnly: false,
 	phone: '3001234567',
-	idCategoria: null,
 	idRole: 1,
 	idUserLeader: null,
 	entryDate: new Date('2024-01-01'),
@@ -23,6 +23,7 @@ export const mockUserWithRole: UserWithRole = {
 	createdAt: new Date('2024-01-01'),
 	updatedAt: new Date('2024-01-01'),
 	role: {
+		id: 1,
 		idRole: 1,
 		code: UserRole.ANALISTA_SOPORTE,
 		name: 'Analista de Soporte',
@@ -38,10 +39,12 @@ export const mockUserWithRole: UserWithRole = {
  */
 export const mockAgentUser: UserWithRole = {
 	...mockUserWithRole,
+	id: 2,
 	idUser: 2,
 	email: 'agent@example.com',
 	idRole: 2,
 	role: {
+		id: 2,
 		idRole: 2,
 		code: UserRole.AGENTE,
 		name: 'Agente/Coach',

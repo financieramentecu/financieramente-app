@@ -109,6 +109,48 @@ export const productConfigurationApi = {
 	},
 
 	/**
+	 * Gets a product configuration by unique code (URL segment must be encoded).
+	 */
+	async getProductConfigurationByCode(
+		code: string
+	): Promise<ApiResponse<ProductConfiguration>> {
+		try {
+			const encoded = encodeURIComponent(code)
+			const response = await fetch(
+				`/api/product-configurations/by-code/${encoded}`,
+				{
+					credentials: 'include',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				}
+			)
+
+			const data: ApiResponse<ProductConfiguration> = await response.json()
+
+			if (!response.ok) {
+				return {
+					data: null,
+					error:
+						'error' in data
+							? data.error
+							: 'Error al obtener configuración de producto',
+				}
+			}
+
+			return data
+		} catch (error) {
+			return {
+				data: null,
+				error:
+					error instanceof Error
+						? error.message
+						: 'Error desconocido al obtener configuración de producto',
+			}
+		}
+	},
+
+	/**
 	 * Creates a new product configuration
 	 */
 	async createProductConfiguration(

@@ -38,13 +38,12 @@ import {
 } from '@/features/shared/ui/card';
 
 import { cn } from '@/lib/utils';
+import { formatPercentFromFraction } from '@/features/shared/lib/format-percent';
+import { getAppLocale } from '@/features/shared/lib/app-locale';
 
 // Helper formatting functions
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
-
-const formatPercentage = (value: number) =>
-  new Intl.NumberFormat('es-CO', { style: 'percent', minimumFractionDigits: 2 }).format(value);
 
 /**
  * Tabla interna para mostrar el detalle de las distribuciones de una comisión
@@ -101,7 +100,7 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
         header: () => <div className="text-right">% Dist.</div>,
         cell: ({ row }) => (
           <div className="text-right text-xs font-medium text-slate-500">
-            {formatPercentage(Number(row.original.productPercentageCommissionCategory?.porcentajeDistribucion || 0))}
+            {formatPercentFromFraction(Number(row.original.productPercentageCommissionCategory?.porcentajeDistribucion || 0), getAppLocale())}
           </div>
         ),
       },
@@ -120,8 +119,8 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
         cell: ({ row }) => (
           <div className="text-right text-xs text-amber-600 font-medium">
             {row.original.appliedDiscountPercentage
-              ? formatPercentage(Number(row.original.appliedDiscountPercentage))
-              : '0%'}
+              ? formatPercentFromFraction(Number(row.original.appliedDiscountPercentage), getAppLocale())
+              : formatPercentFromFraction(0, getAppLocale())}
           </div>
         ),
       },
@@ -142,8 +141,8 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
         cell: ({ row }) => (
           <div className="text-right text-xs text-red-500 font-medium">
             {row.original.clawback
-              ? formatPercentage(Number(row.original.clawback.porcentajeApplied))
-              : '0%'}
+              ? formatPercentFromFraction(Number(row.original.clawback.porcentajeApplied), getAppLocale())
+              : formatPercentFromFraction(0, getAppLocale())}
           </div>
         ),
       },

@@ -5,18 +5,29 @@ import { useRouter } from 'next/navigation'
 import { MisNegociosPage } from '@/features/negocios/components/MisNegociosPage'
 import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
+import { AnnualFundingModal } from '@/features/negocios/components/modals/AnnualFundingModal'
 import { businessService } from '@/features/negocios/services/business.service'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
+import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
+import { UserRole } from '@/features/auth/lib/roles'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business, StatsData } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
-import type { BusinessEntity } from '@/features/negocios/types/business-entity.types'
-import type { BusinessListParams } from '@/features/negocios/types/business-api.types'
+import type {
+	BusinessEntity,
+	BusinessStatus,
+} from '@/features/negocios/types/business-entity.types'
+import type {
+	AnnualInstallmentDto,
+	BusinessListParams,
+	NegociosExportBody,
+} from '@/features/negocios/types/business-api.types'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-status.types'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { PiggyBank } from 'lucide-react'
+import { toast } from 'sonner'
 
 const SEARCH_DEBOUNCE_DELAY = 500
 const DEFAULT_CURRENCY = 'COP'
@@ -41,6 +52,18 @@ export function NegociosPageClient({
 	const [selectedBusiness, setSelectedBusiness] =
 		useState<BusinessEntity | null>(null)
 	const [isLoadingBusiness, setIsLoadingBusiness] = useState(false)
+
+	const [annualFundingOpen, setAnnualFundingOpen] = useState(false)
+	const [annualFundingBusinessId, setAnnualFundingBusinessId] = useState<
+		number | null
+	>(null)
+	const [annualFundingInstallments, setAnnualFundingInstallments] = useState<
+		AnnualInstallmentDto[]
+	>([])
+	const [annualFundingContract, setAnnualFundingContract] = useState<
+		string | null
+	>(null)
+	const [annualFundingLoading, setAnnualFundingLoading] = useState(false)
 
 	// Estado para currency seleccionada
 	const [selectedCurrency, setSelectedCurrency] =
@@ -117,7 +140,24 @@ export function NegociosPageClient({
 		}
 	}, [stats?.currencies, selectedCurrency])
 
-	const { cancelBusiness, isCancelling } = useBusinessMutation()
+	const {
+		cancelBusiness,
+		isCancelling,
+		fondearBusiness,
+		fondearAnualidadesBusiness,
+		isFondeandoAnualidades,
+	} = useBusinessMutation()
+
+	const {
+		exportReport,
+		isExporting: isExportingExcel,
+		error: exportExcelError,
+	} = useBusinessExport()
+
+	const canExportExcel =
+		_currentUser?.role?.code === UserRole.ADMIN ||
+		_currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+		_currentUser?.role?.code === UserRole.ANALISTA_SOPORTE
 
 	// Handler para cambio de currency
 	const handleCurrencyChange = useCallback((currency: string) => {
@@ -178,6 +218,86 @@ export function NegociosPageClient({
 	}, [])
 
 	/**
+	 * Fondeo: sin anualidades → POST directo; con anualidades → modal HU4
+	 */
+	const handleFondearBusiness = useCallback(
+		async (business: Business) => {
+			if (business.hasAnnualPayments) {
+				setAnnualFundingBusinessId(Number(business.id))
+				setAnnualFundingContract(
+					typeof business.contract === 'string' ? business.contract : null
+				)
+				setAnnualFundingOpen(true)
+				setAnnualFundingLoading(true)
+				setAnnualFundingInstallments([])
+
+				const res = await businessService.getAnnualPayments(
+					Number(business.id)
+				)
+				setAnnualFundingLoading(false)
+
+				if ('error' in res && res.error) {
+					toast.error('No se pudieron cargar las anualidades', {
+						description: res.error,
+					})
+					setAnnualFundingOpen(false)
+					setAnnualFundingBusinessId(null)
+					setAnnualFundingContract(null)
+					return
+				}
+
+				if (res.data) {
+					setAnnualFundingInstallments(res.data.installments)
+				}
+				return
+			}
+
+			const result = await fondearBusiness(Number(business.id))
+
+			if (result) {
+				refetch()
+				refetchStats()
+			}
+		},
+		[fondearBusiness, refetch, refetchStats]
+	)
+
+	const handleAnnualFundingOpenChange = useCallback((open: boolean) => {
+		setAnnualFundingOpen(open)
+		if (!open) {
+			setAnnualFundingBusinessId(null)
+			setAnnualFundingContract(null)
+			setAnnualFundingInstallments([])
+		}
+	}, [])
+
+	const handleConfirmAnnualFunding = useCallback(
+		async (fundedInstallmentIndexes: number[]) => {
+			if (annualFundingBusinessId === null) return
+
+			const result = await fondearAnualidadesBusiness(
+				annualFundingBusinessId,
+				{ fundedInstallmentIndexes }
+			)
+
+			if (result) {
+				setAnnualFundingOpen(false)
+				setAnnualFundingBusinessId(null)
+				setAnnualFundingContract(null)
+				setAnnualFundingInstallments([])
+				refetch()
+				refetchStats()
+			}
+		},
+		[
+			annualFundingBusinessId,
+			fondearAnualidadesBusiness,
+			refetch,
+			refetchStats,
+		]
+	)
+
+	/**
 	 * Confirma la cancelación del negocio
 	 */
 	const handleConfirmCancel = useCallback(
@@ -212,6 +332,76 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({ ...prev, page }))
 	}, [])
 
+	const handleListStatusChange = useCallback(
+		(status: BusinessStatus | undefined) => {
+			setSearchParams((prev) => ({
+				...prev,
+				status,
+				page: 1,
+			}))
+		},
+		[]
+	)
+
+	const handleFundDateFromChange = useCallback((value: string) => {
+		if (!value) {
+			setSearchParams((prev) => ({
+				...prev,
+				dateFrom: undefined,
+				dateTo: undefined,
+				page: 1,
+			}))
+			return
+		}
+		setSearchParams((prev) => ({
+			...prev,
+			dateFrom: value,
+			page: 1,
+		}))
+	}, [])
+
+	const handleFundDateToChange = useCallback((value: string) => {
+		if (!value) {
+			setSearchParams((prev) => ({
+				...prev,
+				dateFrom: undefined,
+				dateTo: undefined,
+				page: 1,
+			}))
+			return
+		}
+		setSearchParams((prev) => ({
+			...prev,
+			dateTo: value,
+			page: 1,
+		}))
+	}, [])
+
+	const handleExportExcel = useCallback(async () => {
+		const df = searchParams.dateFrom
+		const dt = searchParams.dateTo
+		const body: NegociosExportBody = {
+			search: debouncedSearch || undefined,
+			status: searchParams.status,
+		}
+		if (df && dt) {
+			body.dateFrom = df
+			body.dateTo = dt
+		}
+		const result = await exportReport(body)
+		if (result.ok) {
+			toast.success('Archivo descargado')
+		} else {
+			toast.error(result.error ?? 'No se pudo exportar')
+		}
+	}, [
+		exportReport,
+		searchParams.dateFrom,
+		searchParams.dateTo,
+		searchParams.status,
+		debouncedSearch,
+	])
+
 	// Limpiar business seleccionado al cerrar modales
 	const handleViewModalClose = useCallback((open: boolean) => {
 		setViewModalOpen(open)
@@ -241,10 +431,15 @@ export function NegociosPageClient({
 				},
 				email: b.client.email || '',
 				termPeriod: `${b.term || 0}/${b.periodicity?.name || ''}`,
+				term: b.term,
+				periodicityName: b.periodicity?.name ?? null,
+				dateIssued: b.dateIssued,
+				dateAnchored: b.dateAnchored,
 				date: b.createdAt,
 				value: b.value,
 				product: b.product.name,
 				companyName: b.product.companyName,
+				clientOriginName: b.clientOrigin.name,
 				status:
 					b.status === BUSINESS_STATUS.EMITIDO
 						? 'Emitido'
@@ -252,7 +447,11 @@ export function NegociosPageClient({
 							? 'Venta Efectuado'
 							: b.status === BUSINESS_STATUS.COMISIONANDO
 								? 'Comisionando'
-								: 'Cancelado',
+								: b.status === BUSINESS_STATUS.FONDEADO
+									? 'Fondeado'
+									: 'Cancelado',
+				hasAnnualPayments: b.hasAnnualPayments,
+				hasPendingAnnualFunding: b.hasPendingAnnualFunding,
 				currency: b.currency,
 			})),
 		[businesses]
@@ -340,8 +539,19 @@ export function NegociosPageClient({
 				onEditBusiness={handleEditBusiness}
 				onViewBusiness={handleViewBusiness}
 				onCancelBusiness={handleCancelBusiness}
+				onFondearBusiness={handleFondearBusiness}
 				onGlobalSearch={handleGlobalSearch}
 				onPageChange={handlePageChange}
+				listStatus={searchParams.status}
+				onListStatusChange={handleListStatusChange}
+				fundDateFrom={searchParams.dateFrom ?? ''}
+				fundDateTo={searchParams.dateTo ?? ''}
+				onFundDateFromChange={handleFundDateFromChange}
+				onFundDateToChange={handleFundDateToChange}
+				canExportExcel={canExportExcel}
+				onExportExcel={handleExportExcel}
+				isExportingExcel={isExportingExcel}
+				exportExcelError={exportExcelError}
 			/>
 
 			{/* Modal de Visualización */}
@@ -359,6 +569,17 @@ export function NegociosPageClient({
 				business={selectedBusiness}
 				isLoading={isCancelling || isLoadingBusiness}
 				onConfirm={handleConfirmCancel}
+			/>
+
+			<AnnualFundingModal
+				open={annualFundingOpen}
+				onOpenChange={handleAnnualFundingOpenChange}
+				businessId={annualFundingBusinessId}
+				contractLabel={annualFundingContract}
+				installments={annualFundingInstallments}
+				isLoadingInstallments={annualFundingLoading}
+				isSubmitting={isFondeandoAnualidades}
+				onConfirm={handleConfirmAnnualFunding}
 			/>
 		</div>
 	)

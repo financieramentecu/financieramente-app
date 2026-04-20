@@ -1,8 +1,7 @@
 /**
  * Tipos para el feature de Negocios
+ * 100% Libres de dependencias de Prisma para uso en el Cliente
  */
-
-import { Prisma } from '@prisma/client'
 
 export interface Business extends Record<string, unknown> {
 	id: string
@@ -15,11 +14,24 @@ export interface Business extends Record<string, unknown> {
 	}
 	email: string
 	termPeriod: string
+	/** Plazo numérico (p. ej. meses u horizonte del producto); null si no aplica */
+	term: number | null
+	/** Nombre de periodicidad de compra; null si no hay */
+	periodicityName: string | null
+	/** ISO — fecha de primera emisión del contrato */
+	dateIssued: string | null
+	/** ISO — fecha de fondeo del negocio */
+	dateAnchored: string | null
 	date: string
 	value: number
 	product: string
 	companyName: string
-	status: 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado'
+	/** Origen del cliente (canal) */
+	clientOriginName: string
+	status: 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado' | 'Fondeado'
+	hasAnnualPayments: boolean
+	/** Anual: aún hay cuotas SIN_FONDEAR (mostrar Fondear aunque el padre sea Fondeado) */
+	hasPendingAnnualFunding: boolean
 	currency: {
 		id: number
 		name: string
@@ -44,13 +56,40 @@ export interface BusinessSearchParams {
 	searchCriteria: string
 }
 
-export type BusinessStatus = 'Emitido' | 'Venta Efectuado'
+export type BusinessStatus = 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado' | 'Fondeado'
 
-export type UserWithRole = Prisma.UserGetPayload<{
-	include: {
-		role: true
-	}
-}>
+/**
+ * Interface de usuario con rol simplificada para el cliente
+ */
+export interface UserWithRole {
+	id?: number // Opcional para compatibilidad con objetos de Prisma (idUser)
+	idUser: number // Alias para compatibilidad con código existente
+	name: string
+	lastName: string | null
+	email: string
+	typeIdentity?: string | null
+	identityNumber?: string | null
+	phone?: string | null
+	active?: boolean
+	idRole?: number | null // Opcional para compatibilidad
+	idUserLeader?: number | null
+	entryDate?: Date | string
+	retirementDate?: Date | string | null
+	password?: string | null
+	ssoOnly?: boolean
+	createdAt?: Date | string
+	updatedAt?: Date | string
+	role: {
+		id?: number // Opcional para compatibilidad con código que solo usa idRole
+		idRole: number // Alias para compatibilidad con código existente
+		name: string
+		code: string
+		description?: string | null
+		active?: boolean
+		createdAt?: Date | string
+		updatedAt?: Date | string
+	} | null
+}
 
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { AgentInfo } from '@/features/negocios/types/business-entity.types'

@@ -15,10 +15,13 @@ export const auth = async () => {
 			const headersList = await headers()
 			if (isE2ETestAuthAllowed((name) => headersList.get(name))) {
 				console.log('[Auth Wrapper] 🔓 Bypassing auth for E2E test')
+				const email =
+					headersList.get('x-test-user-email') ??
+					'test@financieramentecu.com'
 				return {
 					user: {
 						name: 'Test User',
-						email: 'test@financieramentecu.com',
+						email,
 						image: 'https://via.placeholder.com/150',
 						id: 'test-user-id',
 						role: 'AGENTE',

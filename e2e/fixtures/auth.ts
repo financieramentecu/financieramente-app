@@ -87,6 +87,8 @@ export async function mockAuth(
 	// Esto permite que las pruebas e2e accedan a rutas protegidas sin autenticación real
 	await page.setExtraHTTPHeaders({
 		'x-test-auth': 'true',
+		// El wrapper `auth()` usa este email para Session / `getCurrentUserByEmail` en Server Components
+		'x-test-user-email': user.email,
 	})
 
 	// Establecer cookies de contexto para que las páginas del servidor puedan detectar el modo de prueba

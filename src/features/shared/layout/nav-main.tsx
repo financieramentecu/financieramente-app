@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
@@ -14,13 +14,76 @@ import {
 	SidebarMenuSub,
 	SidebarMenuSubItem,
 	SidebarMenuSubButton,
+	useSidebar,
 } from '@/features/shared/ui/sidebar'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from '@/features/shared/ui/tooltip'
 
 export interface NavItem {
 	title: string
 	url: string
 	icon?: React.ReactNode
 	subItems?: NavItem[]
+}
+
+function NavSubMenuLink({
+	subItem,
+	isActive,
+}: {
+	subItem: NavItem
+	isActive: boolean
+}) {
+	const labelRef = useRef<HTMLSpanElement>(null)
+	const [truncated, setTruncated] = useState(false)
+	const { state, isMobile } = useSidebar()
+
+	const measure = useCallback(() => {
+		const el = labelRef.current
+		if (!el) {
+			setTruncated(false)
+			return
+		}
+		setTruncated(el.scrollWidth > el.clientWidth)
+	}, [])
+
+	useLayoutEffect(() => {
+		const el = labelRef.current
+		if (!el) return
+		measure()
+		const ro = new ResizeObserver(() => measure())
+		ro.observe(el)
+		return () => ro.disconnect()
+	}, [measure, subItem.title])
+
+	const showOverflowTooltip =
+		!isMobile && state === 'expanded' && truncated
+
+	const link = (
+		<SidebarMenuSubButton asChild isActive={isActive}>
+			<Link href={subItem.url}>
+				{subItem.icon}
+				<span ref={labelRef} className="min-w-0 flex-1 truncate">
+					{subItem.title}
+				</span>
+			</Link>
+		</SidebarMenuSubButton>
+	)
+
+	if (!showOverflowTooltip) {
+		return link
+	}
+
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>{link}</TooltipTrigger>
+			<TooltipContent side="right" align="center" className="max-w-xs">
+				{subItem.title}
+			</TooltipContent>
+		</Tooltip>
+	)
 }
 
 export function NavMain({ items }: { items: NavItem[] }) {
@@ -86,7 +149,9 @@ export function NavMain({ items }: { items: NavItem[] }) {
 										}}
 									>
 										{item.icon}
-										<span className="flex-1">{item.title}</span>
+										<span className="min-w-0 flex-1 truncate">
+											{item.title}
+										</span>
 										<ChevronRight
 											className={cn(
 												'ml-auto h-4 w-4 min-w-[1rem] transition-all duration-200',
@@ -105,7 +170,9 @@ export function NavMain({ items }: { items: NavItem[] }) {
 									>
 										<Link href={item.url}>
 											{item.icon}
-											<span>{item.title}</span>
+											<span className="min-w-0 flex-1 truncate">
+												{item.title}
+											</span>
 										</Link>
 									</SidebarMenuButton>
 								)}
@@ -115,12 +182,10 @@ export function NavMain({ items }: { items: NavItem[] }) {
 											const isSubActive = pathname === subItem.url
 											return (
 												<SidebarMenuSubItem key={subItem.title}>
-													<SidebarMenuSubButton asChild isActive={isSubActive}>
-														<Link href={subItem.url}>
-															{subItem.icon}
-															<span>{subItem.title}</span>
-														</Link>
-													</SidebarMenuSubButton>
+													<NavSubMenuLink
+														subItem={subItem}
+														isActive={isSubActive}
+													/>
 												</SidebarMenuSubItem>
 											)
 										})}

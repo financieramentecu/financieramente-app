@@ -44,6 +44,11 @@ const STATUS_CONFIG: Record<
 		variant: 'secondary',
 		className: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
 	},
+	FONDEADO: {
+		label: 'Fondeado',
+		variant: 'default',
+		className: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
+	},
 }
 
 /**

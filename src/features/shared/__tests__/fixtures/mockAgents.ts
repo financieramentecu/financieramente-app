@@ -9,6 +9,7 @@ const baseDate = new Date('2024-01-01T00:00:00.000Z')
  */
 export const mockAgents: UserWithRole[] = [
 	{
+		id: 1,
 		idUser: 1,
 		name: 'Vanesa',
 		lastName: 'Cardona',
@@ -18,7 +19,6 @@ export const mockAgents: UserWithRole[] = [
 		password: null,
 		ssoOnly: false,
 		phone: '3001234567',
-		idCategoria: null,
 		idRole: 1,
 		idUserLeader: null,
 		entryDate: baseDate,
@@ -27,6 +27,7 @@ export const mockAgents: UserWithRole[] = [
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		role: {
+			id: 1,
 			idRole: 1,
 			code: UserRole.AGENTE,
 			name: 'Agente/Coach',
@@ -37,6 +38,7 @@ export const mockAgents: UserWithRole[] = [
 		},
 	},
 	{
+		id: 2,
 		idUser: 2,
 		name: 'Carlos',
 		lastName: 'Mendoza',
@@ -46,7 +48,6 @@ export const mockAgents: UserWithRole[] = [
 		password: null,
 		ssoOnly: false,
 		phone: '3002345678',
-		idCategoria: null,
 		idRole: 1,
 		idUserLeader: null,
 		entryDate: baseDate,
@@ -55,6 +56,7 @@ export const mockAgents: UserWithRole[] = [
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		role: {
+			id: 1,
 			idRole: 1,
 			code: UserRole.AGENTE,
 			name: 'Agente/Coach',
@@ -65,6 +67,7 @@ export const mockAgents: UserWithRole[] = [
 		},
 	},
 	{
+		id: 3,
 		idUser: 3,
 		name: 'Ana',
 		lastName: 'Rodríguez',
@@ -74,7 +77,6 @@ export const mockAgents: UserWithRole[] = [
 		password: null,
 		ssoOnly: false,
 		phone: '3003456789',
-		idCategoria: null,
 		idRole: 1,
 		idUserLeader: null,
 		entryDate: baseDate,
@@ -83,6 +85,7 @@ export const mockAgents: UserWithRole[] = [
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		role: {
+			id: 1,
 			idRole: 1,
 			code: UserRole.AGENTE,
 			name: 'Agente/Coach',
@@ -93,6 +96,7 @@ export const mockAgents: UserWithRole[] = [
 		},
 	},
 	{
+		id: 4,
 		idUser: 4,
 		name: 'Luis',
 		lastName: 'Fernández',
@@ -102,7 +106,6 @@ export const mockAgents: UserWithRole[] = [
 		password: null,
 		ssoOnly: false,
 		phone: '3004567890',
-		idCategoria: null,
 		idRole: 1,
 		idUserLeader: null,
 		entryDate: baseDate,
@@ -111,6 +114,7 @@ export const mockAgents: UserWithRole[] = [
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		role: {
+			id: 1,
 			idRole: 1,
 			code: UserRole.AGENTE,
 			name: 'Agente/Coach',
@@ -121,6 +125,7 @@ export const mockAgents: UserWithRole[] = [
 		},
 	},
 	{
+		id: 5,
 		idUser: 5,
 		name: 'María',
 		lastName: 'González',
@@ -130,7 +135,6 @@ export const mockAgents: UserWithRole[] = [
 		password: null,
 		ssoOnly: false,
 		phone: '3005678901',
-		idCategoria: null,
 		idRole: 1,
 		idUserLeader: null,
 		entryDate: baseDate,
@@ -139,6 +143,7 @@ export const mockAgents: UserWithRole[] = [
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		role: {
+			id: 1,
 			idRole: 1,
 			code: UserRole.AGENTE,
 			name: 'Agente/Coach',
@@ -149,6 +154,7 @@ export const mockAgents: UserWithRole[] = [
 		},
 	},
 	{
+		id: 6,
 		idUser: 6,
 		name: 'Pedro',
 		lastName: 'Martínez',
@@ -158,7 +164,6 @@ export const mockAgents: UserWithRole[] = [
 		password: null,
 		ssoOnly: false,
 		phone: '3006789012',
-		idCategoria: null,
 		idRole: 1,
 		idUserLeader: null,
 		entryDate: baseDate,
@@ -167,6 +172,7 @@ export const mockAgents: UserWithRole[] = [
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		role: {
+			id: 1,
 			idRole: 1,
 			code: UserRole.AGENTE,
 			name: 'Agente/Coach',
@@ -177,6 +183,7 @@ export const mockAgents: UserWithRole[] = [
 		},
 	},
 	{
+		id: 7,
 		idUser: 7,
 		name: 'Laura',
 		lastName: 'Sánchez',
@@ -186,7 +193,6 @@ export const mockAgents: UserWithRole[] = [
 		password: null,
 		ssoOnly: false,
 		phone: '3007890123',
-		idCategoria: null,
 		idRole: 1,
 		idUserLeader: null,
 		entryDate: baseDate,
@@ -195,6 +201,7 @@ export const mockAgents: UserWithRole[] = [
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		role: {
+			id: 1,
 			idRole: 1,
 			code: UserRole.AGENTE,
 			name: 'Agente/Coach',
@@ -205,6 +212,7 @@ export const mockAgents: UserWithRole[] = [
 		},
 	},
 	{
+		id: 8,
 		idUser: 8,
 		name: 'Diego',
 		lastName: 'Ramírez',
@@ -214,7 +222,6 @@ export const mockAgents: UserWithRole[] = [
 		password: null,
 		ssoOnly: false,
 		phone: '3008901234',
-		idCategoria: null,
 		idRole: 1,
 		idUserLeader: null,
 		entryDate: baseDate,
@@ -223,6 +230,7 @@ export const mockAgents: UserWithRole[] = [
 		createdAt: baseDate,
 		updatedAt: baseDate,
 		role: {
+			id: 1,
 			idRole: 1,
 			code: UserRole.AGENTE,
 			name: 'Agente/Coach',

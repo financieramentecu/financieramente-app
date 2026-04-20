@@ -85,6 +85,7 @@ export const rezagarRegistrosSchema = z.object({
 	ids: z
 		.array(z.number().int().positive())
 		.min(1, 'Debe seleccionar al menos un registro'),
+	fileId: z.number().int().positive(),
 })
 
 /**

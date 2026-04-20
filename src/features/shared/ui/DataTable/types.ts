@@ -125,7 +125,7 @@ export interface DataTableProps<TData> {
 	/**
 	 * Habilita la selección de filas
 	 */
-	enableRowSelection?: boolean
+	enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
 	/**
 	 * El ID de la fila seleccionada (opcional)
 	 */
@@ -142,6 +142,10 @@ export interface DataTableProps<TData> {
 	 * Función para renderizar filtros adicionales en el toolbar
 	 */
 	renderAdditionalFilters?: () => ReactNode
+	/**
+	 * Acciones a la derecha del toolbar, junto a «Vista» (columnas)
+	 */
+	toolbarTrailingActions?: () => ReactNode
 	/**
 	 * Callback cuando se solicita exportar los datos
 	 */

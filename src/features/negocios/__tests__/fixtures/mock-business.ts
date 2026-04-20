@@ -71,6 +71,10 @@ export function createMockBusiness(
 		value: 15000000,
 		status: 'VENTA_EFECTUADA',
 		createdAt: '2024-01-15T10:00:00.000Z',
+		dateIssued: null,
+		dateAnchored: null,
+		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		client: createMockClientInfo(overrides.client),
 		agent: createMockAgentInfo(overrides.agent),
 		product: createMockProductInfo(overrides.product),
@@ -97,6 +101,7 @@ export const mockEmitido = createMockBusiness({
 	id: 2,
 	status: 'EMITIDO',
 	contract: 'PN0005678',
+	dateIssued: '2024-02-01T12:00:00.000Z',
 })
 
 /**

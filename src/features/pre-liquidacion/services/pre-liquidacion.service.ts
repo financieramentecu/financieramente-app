@@ -41,11 +41,11 @@ import {
 export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<RespuestaArchivosDisponibles> {
 	const todosArchivos = await prisma.fileImport.findMany({
 		where: {
-			status: { in: ['LOAD', 'PRE-SETTLED', 'PRE-SETTLE-APROVED'] },
+			status: { in: ['LOAD', 'PRE-SETTLED', 'PRE-SETTLE-APROVED', 'SETTLED', 'COMPLETED'] },
 			settlementCommissions: {
 				some: {
 					status: {
-						in: ['SYNCHRONIZED', 'PRE-SETTLED', 'PRE-SETTLE-APROVED'],
+						in: ['SYNCHRONIZED', 'PRE-SETTLED', 'PRE-SETTLE-APROVED', 'SETTLED'],
 					},
 				},
 			},
@@ -83,7 +83,15 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 			by: ['idFileImport', 'status'],
 			where: {
 				idFileImport: { in: fileIds },
-				status: { in: ['SYNCHRONIZED', 'PRE-SETTLED', 'PRE-SETTLE-APROVED'] },
+				status: {
+					in: [
+						'SYNCHRONIZED',
+						'PRE-SETTLED',
+						'PRE-SETTLE-APROVED',
+						'SETTLED',
+						'LAG',
+					],
+				},
 			},
 			_count: { idSettlementCommission: true },
 		})
@@ -99,7 +107,9 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 				countsMap[row.idFileImport].sincronizados = count
 			} else if (
 				row.status === 'PRE-SETTLED' ||
-				row.status === 'PRE-SETTLE-APROVED'
+				row.status === 'PRE-SETTLE-APROVED' ||
+				row.status === 'SETTLED' ||
+				row.status === 'LAG'
 			) {
 				countsMap[row.idFileImport].registrosPreliquidados += count
 			}
@@ -408,6 +418,7 @@ export async function obtenerComisionesPreliquidadas(
 			totalRecord: true,
 			sincronizadoRecord: true,
 			rezagadoRecord: true,
+			status: true,
 			user: {
 				select: { name: true, lastName: true },
 			},
@@ -419,12 +430,15 @@ export async function obtenerComisionesPreliquidadas(
 	const registros = await prisma.settlementCommission.findMany({
 		where: {
 			idFileImport: fileId,
-			status: 'PRE-SETTLED',
+			status: { in: ['SYNCHRONIZED', 'PRE-SETTLED', 'SETTLED', 'LAG'] },
 		},
 		include: {
 			business: {
 				select: {
 					contract: true,
+					client: {
+						select: { name: true, lastName: true },
+					},
 					user: {
 						select: { name: true, lastName: true },
 					},
@@ -438,17 +452,20 @@ export async function obtenerComisionesPreliquidadas(
 		const nombreAsesor = r.business?.user
 			? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
 			: ''
+
+		const clientNameRow = r.business?.client
+			? `${r.business.client.name} ${r.business.client.lastName ?? ''}`.trim()
+			: null
+
 		return {
 			idSettlementCommission: r.idSettlementCommission,
 			idBusiness: r.idBusiness,
 			contrato: r.contract ?? r.business?.contract ?? null,
 			nombreAsesor,
+			nombreCliente: clientNameRow,
+			status: r.status,
 			tipo: r.descripcion,
-			monto: (
-				r.commissionValue ??
-				r.baseCommission ??
-				new Decimal(0)
-			).toNumber(),
+			monto: (r.commissionValue ?? r.baseCommission ?? new Decimal(0)).toNumber(),
 			baseComision: (
 				r.baseCommission ??
 				r.commissionValue ??
@@ -476,7 +493,9 @@ export async function obtenerComisionesPreliquidadas(
 				`${fileImport.user.name} ${fileImport.user.lastName ?? ''}`.trim(),
 			fechaCarga: fileImport.loadDate.toISOString().split('T')[0],
 			totalRegistros: fileImport.totalRecord,
-			sincronizados: flat.length,
+			sincronizados: fileImport.sincronizadoRecord,
+			rezagados: fileImport.rezagadoRecord,
+			estado: fileImport.status,
 		},
 		registros: flat,
 	}
@@ -499,6 +518,7 @@ export async function obtenerRegistrosParaLiquidacion(
 			totalRecord: true,
 			sincronizadoRecord: true,
 			rezagadoRecord: true,
+			status: true,
 			user: {
 				select: { name: true, lastName: true },
 			},
@@ -510,12 +530,15 @@ export async function obtenerRegistrosParaLiquidacion(
 	const registros = await prisma.settlementCommission.findMany({
 		where: {
 			idFileImport: fileId,
-			status: 'SYNCHRONIZED',
+			status: { in: ['SYNCHRONIZED', 'PRE-SETTLED', 'SETTLED', 'LAG'] },
 		},
 		include: {
 			business: {
 				select: {
 					contract: true,
+					client: {
+						select: { name: true, lastName: true },
+					},
 					user: {
 						select: { name: true, lastName: true },
 					},
@@ -529,11 +552,17 @@ export async function obtenerRegistrosParaLiquidacion(
 		const nombreAsesor = r.business?.user
 			? `${r.business.user.name} ${r.business.user.lastName ?? ''}`.trim()
 			: ''
+		
+		const clientNameRow = r.business?.client
+			? `${r.business.client.name} ${r.business.client.lastName ?? ''}`.trim()
+			: null
+
 		return {
 			idSettlementCommission: r.idSettlementCommission,
 			idBusiness: r.idBusiness,
 			contrato: r.contract ?? r.business?.contract ?? null,
 			nombreAsesor,
+			nombreCliente: clientNameRow,
 			tipo: r.descripcion,
 			monto: (
 				r.commissionValue ??
@@ -549,6 +578,7 @@ export async function obtenerRegistrosParaLiquidacion(
 			porcentajeClawback: (r.clawbackPercentage ?? new Decimal(0)).toNumber(),
 			esClawback: r.isClawback ?? false,
 			esRezagado: r.isLag ?? false,
+			status: r.status,
 			fechaSincronizacion: r.syncDate?.toISOString() ?? null,
 			fechaRezagado: r.lagDate?.toISOString() ?? null,
 			fechaInicio: r.startDate?.toISOString().split('T')[0] ?? null,
@@ -568,6 +598,8 @@ export async function obtenerRegistrosParaLiquidacion(
 			fechaCarga: fileImport.loadDate.toISOString().split('T')[0],
 			totalRegistros: fileImport.totalRecord,
 			sincronizados: flat.length,
+			rezagados: fileImport.rezagadoRecord ?? 0,
+			estado: fileImport.status,
 		},
 		registros: flat,
 	}
@@ -797,6 +829,41 @@ async function updateBusinessStatusOnSettle(
 // ---------------------------------------------------------------------------
 
 /**
+ * Checks if a file import has any remaining SYNCHRONIZED or PRE-SETTLED commissions.
+ * If none remain, transitions the file status to COMPLETED.
+ */
+async function checkAndSetFileImportStatus(
+	tx: Prisma.TransactionClient,
+	fileId: number,
+	now: Date
+): Promise<boolean> {
+	const remainingSynchronized = await tx.settlementCommission.count({
+		where: {
+			idFileImport: fileId,
+			status: 'SYNCHRONIZED',
+		},
+	})
+	const remainingPreSettled = await tx.settlementCommission.count({
+		where: {
+			idFileImport: fileId,
+			status: 'PRE-SETTLED',
+		},
+	})
+
+	const fileCompleted =
+		remainingSynchronized === 0 && remainingPreSettled === 0
+
+	if (fileCompleted) {
+		await tx.fileImport.update({
+			where: { idFileImport: fileId },
+			data: { status: 'SETTLED', updatedAt: now },
+		})
+	}
+
+	return fileCompleted
+}
+
+/**
  * Transitions selected PRE-SETTLED records to SETTLED.
  * Within a single transaction:
  *   - Updates settlement_commission: status=SETTLED, settledDate=now()
@@ -860,28 +927,7 @@ export async function liquidarRegistros(
 		await updateBusinessStatusOnSettle(tx, businessIds)
 
 		// 6. COMPLETED only when no sync backlog and no pre-liquidation queue left for this import
-		const remainingSynchronized = await tx.settlementCommission.count({
-			where: {
-				idFileImport: fileId,
-				status: 'SYNCHRONIZED',
-			},
-		})
-		const remainingPreSettled = await tx.settlementCommission.count({
-			where: {
-				idFileImport: fileId,
-				status: 'PRE-SETTLED',
-			},
-		})
-
-		const fileCompleted =
-			remainingSynchronized === 0 && remainingPreSettled === 0
-
-		if (fileCompleted) {
-			await tx.fileImport.update({
-				where: { idFileImport: fileId },
-				data: { status: 'COMPLETED', updatedAt: now },
-			})
-		}
+		const fileCompleted = await checkAndSetFileImportStatus(tx, fileId, now)
 
 		return {
 			liquidated: result.count,
@@ -893,28 +939,37 @@ export async function liquidarRegistros(
 /**
  * Transitions selected PRE-SETTLED records to LAG with lagDate, isLag,
  * isLagByUser and isLagByUserDate set (user-initiated lag tracking).
- * Does not update FileImport.status.
+ * Also transitions FileImport.status to COMPLETED if no records remain.
  */
 export async function rezagarRegistros(
 	ids: number[],
-	_userId: number
-): Promise<{ lagged: number }> {
-	const now = new Date()
-	const result = await prisma.settlementCommission.updateMany({
-		where: {
-			idSettlementCommission: { in: ids },
-			status: 'PRE-SETTLED',
-		},
-		data: {
-			status: 'LAG',
-			isLag: true,
-			lagDate: now,
-			isLagByUser: true,
-			isLagByUserDate: now,
-			updatedAt: now,
-		},
+	_userId: number,
+	fileId: number
+): Promise<{ lagged: number; fileCompleted: boolean }> {
+	return prisma.$transaction(async (tx) => {
+		const now = new Date()
+		const result = await tx.settlementCommission.updateMany({
+			where: {
+				idSettlementCommission: { in: ids },
+				status: 'PRE-SETTLED',
+			},
+			data: {
+				status: 'LAG',
+				isLag: true,
+				lagDate: now,
+				isLagByUser: true,
+				isLagByUserDate: now,
+				updatedAt: now,
+			},
+		})
+
+		const fileCompleted = await checkAndSetFileImportStatus(tx, fileId, now)
+
+		return {
+			lagged: result.count,
+			fileCompleted,
+		}
 	})
-	return { lagged: result.count }
 }
 
 /**
@@ -1031,7 +1086,7 @@ export async function obtenerResumenPreliquidacionPorUsuario(
 	rangoFecha: { inicio: Date; fin: Date },
 	archivoNombre: string
 ): Promise<ResumenUsuarioPreliquidacion[]> {
-	const settlements = await prisma.settlementCommission.findMany({
+	const settlements = (await prisma.settlementCommission.findMany({
 		where: {
 			idFileImport: fileImportId,
 			status: 'PRE-SETTLED',
@@ -1041,7 +1096,7 @@ export async function obtenerResumenPreliquidacionPorUsuario(
 			},
 		},
 		select: { idSettlementCommission: true },
-	})
+	})) || []
 	const ids = settlements.map((s) => s.idSettlementCommission)
 	if (ids.length === 0) return []
 
@@ -1913,4 +1968,81 @@ export async function recalcularComisionesPorCambioOrigen(
 
 		return { success: true, business: updatedBusiness, countRecreados }
 	})
+}
+
+/**
+ * Liquida todos los registros PRE-SETTLED de un archivo importado.
+ * Cambia el estado del archivo a SETTLED al finalizar.
+ */
+export async function liquidarArchivoCompleto(
+	fileId: number,
+	userId: number
+): Promise<{ success: boolean; mensaje: string; liquidados: number }> {
+	try {
+		const preSettledRecords = await prisma.settlementCommission.findMany({
+			where: {
+				idFileImport: fileId,
+				status: 'PRE-SETTLED',
+			},
+			select: { idSettlementCommission: true },
+		})
+
+		if (preSettledRecords.length === 0) {
+			return {
+				success: false,
+				mensaje: 'No hay registros en estado Pre-liquidado para liquidar',
+				liquidados: 0,
+			}
+		}
+
+		const ids = preSettledRecords.map((r) => r.idSettlementCommission)
+		const { liquidated } = await liquidarRegistros(ids, userId, fileId)
+
+		// Una vez liquidados todos, forzamos el estado SETTLED del archivo
+		// (aunque liquidarRegistros podría haberlo puesto en COMPLETED,
+		//  queremos que pase por SETTLED para el paso de Notificación según el nuevo flujo)
+		await prisma.fileImport.update({
+			where: { idFileImport: fileId },
+			data: { status: 'SETTLED', updatedAt: new Date() },
+		})
+
+		return {
+			success: true,
+			mensaje: `Se han liquidado exitosamente ${liquidated} registros`,
+			liquidados: liquidated,
+		}
+	} catch (error) {
+		console.error('Error en liquidarArchivoCompleto:', error)
+		return {
+			success: false,
+			mensaje: error instanceof Error ? error.message : 'Error desconocido',
+			liquidados: 0,
+		}
+	}
+}
+
+/**
+ * Finaliza el flujo de liquidación de un archivo (Notificación).
+ * Cambia el estado del archivo a COMPLETED.
+ */
+export async function notificarArchivoCompleto(
+	fileId: number
+): Promise<{ success: boolean; mensaje: string }> {
+	try {
+		await prisma.fileImport.update({
+			where: { idFileImport: fileId },
+			data: { status: 'COMPLETED', updatedAt: new Date() },
+		})
+
+		return {
+			success: true,
+			mensaje: 'Archivo marcado como Completado y Notificado',
+		}
+	} catch (error) {
+		console.error('Error en notificarArchivoCompleto:', error)
+		return {
+			success: false,
+			mensaje: error instanceof Error ? error.message : 'Error desconocido',
+		}
+	}
 }

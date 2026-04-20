@@ -5,6 +5,180 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.11] - 2026-04-18
+
+### Añadido
+
+- **Negocios – Exportar a Excel:** **Administrador**, **Asistente de gerencia operativa** y **Analista de soporte** pueden descargar un archivo **.xlsx** con el mismo conjunto de negocios que resulta de aplicar **búsqueda**, **estado** y **rango de fechas** en el listado. El archivo incluye identificador y contrato, estado, fechas de creación, emisión y fondeo, datos de cliente y producto, periodicidad y anualidades, categoría del coach, **cadena de líderes** y **fechas de fondeo por cuota anual** cuando aplica. Si el resultado supera **5 000 filas**, la exportación se rechaza con un mensaje claro en lugar de generar un archivo desmedido.
+
+### Mejorado
+
+- **Negocios – Fechas:** Las fechas relevantes en listado y export usan una zona horaria consistente (**América/Bogotá**) para una lectura uniforme.
+
+### Documentación / Interno
+
+- **OpenSpec:** Requisitos H5 de exportación Excel incorporados al spec `negocios`; change **2026-04-18-h5-reporte-excel-negocios** archivado (`openspec/changes/archive/2026-04-18-h5-reporte-excel-negocios/`) con diseño, tareas, verificación e informe de archivo.
+
+## [1.0.0-beta.10] - 2026-04-18
+
+### Añadido
+
+- **Negocios – Fondeo por cuotas anuales:** Si el negocio tiene **anualidades** con al menos una cuota **sin fondear**, en el listado aparece **Fondear anualidad** (también cuando el padre ya está **Fondeado** y aún quedan cuotas pendientes). El **modal** muestra el **contrato en el título**, lista **todas las cuotas**, las ya fondeadas con **fecha de anclaje**, y permite elegir cuotas pendientes antes de confirmar. La confirmación usa una **API dedicada** para anualidades y queda **auditada**. El botón **Fondear** directo solo aplica cuando **no hay filas de anualidad**; si existen, el fondeo general por la ruta antigua queda **bloqueado** para evitar inconsistencias.
+
+### Documentación / Interno
+
+- **OpenSpec:** Requisitos HU4 de fondeo por anualidades incorporados al spec `negocios`; change **hu4-fondeo-anualidades** archivado (`openspec/changes/archive/2026-04-18-2026-04-18-hu4-fondeo-anualidades/`) con informe de verificación.
+
+## [1.0.0-beta.9] - 2026-04-18
+
+### Añadido
+
+- **Negocios – Fondeo sin anualidades:** En el listado, si el negocio está **Emitido** y **no tiene anualidades** registradas, aparece la acción **Fondear** para **Agente** (sus negocios), **Asistente gerencia operativa** y **Administrador**. Al confirmar, el estado pasa a **Fondeado**, se guarda la **fecha de anclaje** y queda registrado en auditoría.
+- **Listado de negocios:** Puedes **filtrar por estado Fondeado** y ver el **badge Fondeado** (estilo distintivo) en la tabla y vistas coherentes con el estado.
+
+### Mejorado
+
+- **Estados del negocio:** La definición canónica de estados (`BUSINESS_STATUS`) queda centralizada para evitar discrepancias entre pantallas y API.
+
+### Documentación / Interno
+
+- **Base de datos:** Columna `date_anchored` en `business` y migración Prisma; en cada entorno aplicar **`prisma migrate deploy`** antes de usar esta versión en producción.
+- **OpenSpec:** Requisitos de fondeo sin anualidades y SSOT de estados incorporados al spec `negocios`; change **hu3-fondeo-sin-anualidades** archivado (`openspec/changes/archive/2026-04-18-hu3-fondeo-sin-anualidades/`) con informe de verificación.
+
+## [1.0.0-beta.8] - 2026-04-17
+
+### Añadido
+
+- **Negocios – Fecha de emisión:** Al registrar el **contrato** por primera vez (ya sea en la creación del negocio o al pasar de **Venta efectuada** a **Emitido**), el sistema guarda la **fecha de emisión** para trazabilidad y reportes. Si solo se **corrige el número de contrato** cuando el negocio ya está emitido, la fecha de emisión **no se modifica**.
+
+### Documentación / Interno
+
+- **Base de datos:** Columna `date_issued` en `business` y migración Prisma; en cada entorno aplicar **`prisma migrate deploy`** antes de usar esta versión en producción.
+- **OpenSpec:** Requisitos de fecha de emisión incorporados al spec `negocios`; change **business-date-issued-hu2** archivado con artefactos SDD y verificación.
+
+## [1.0.0-beta.7] - 2026-04-17
+
+### Añadido
+
+- **Negocios – Periodicidad Anual:** Al crear un negocio con periodicidad de compra **Anual** y un **plazo** entre **1 y 25**, el sistema **registra en la base de datos** una fila de anualidad por cada año de plazo (índices 1…n), en estado inicial **sin fondear** y **sin fecha de fondeo** hasta un proceso posterior. En este caso el plazo **es obligatorio**; la regla de **Venta efectuada** sin contrato al crear se mantiene.
+
+### Mejorado
+
+- **Plazo del negocio:** Tope **máximo 25** (años) alineado entre formulario y validación en servidor, coherente con el registro de anualidades.
+- **Contrato (rezagos):** Texto de ayuda más claro en la búsqueda de contrato y forma de **vaciar** la selección sin quedar anclado al valor anterior.
+
+### Documentación / Interno
+
+- **Base de datos:** Tabla `annual_payment` y migración Prisma; en cada entorno aplicar **`prisma migrate deploy`**.
+- **OpenSpec:** Requisitos de anualidades al crear negocio en el spec `negocios`; change **annual-payment-rows-on-create-h1** archivado con informe de verificación.
+- **PRDs:** Documentos de configuración de comisiones movidos a `PRDs/configuration-distribution/`; borrador de reporte de negocios en `PRDs/bussines-report/`.
+
+## [1.0.0-beta.6] - 2026-04-15
+
+### Añadido
+
+- **Asistente en dos pasos** para el flujo **configuración de producto → distribución de comisiones**: siempre ves en qué paso estás (indicador con “Paso 1 de 2” / “Paso 2 de 2”).
+- **Tras crear una configuración nueva**, la app te lleva al **formulario de distribución** usando el **código** de la configuración (ruta por código), para seguir sin buscar la fila a mano.
+- **Columna Distribución** en el listado de configuraciones de producto: muestra si la distribución está **pendiente** o **configurada** y un enlace **Continuar configuración** cuando aún falta completarla.
+
+### Mejorado
+
+- El control **Agregar categoría** en la pantalla de distribución se ve claramente como **acción principal** (no solo como texto suelto).
+- **Migas de pan:** los códigos con caracteres especiales (por ejemplo `+`) se leen bien en la ruta y los enlaces intermedios llevan a páginas válidas.
+
+### Corregido
+
+- **Primera distribución tras crear la configuración:** ya no aparece el error por “distribución activa duplicada”; se **actualiza** la regla inicial que crea el sistema en lugar de intentar crear otra.
+- **Enlaces y redirecciones con código en la URL** (segmentos codificados como `%2B`): la configuración se encuentra correctamente al abrir el flujo desde el listado o tras guardar.
+- **Redirección inmediata** tras guardar la configuración: es fiable porque usa el resultado devuelto al guardar, no solo el estado async en segundo plano.
+
+### Documentación / Interno
+
+- Requisitos **RF-11** incorporados al spec principal `product-configuration`; cambio OpenSpec **archivado** (`openspec/changes/archive/2026-04-14-rf-11-wizard-post-crear-a/`) con informe de verificación.
+
+## [1.0.0-beta.5] - 2026-04-14
+
+### Corregido
+
+- **RF-11 Wizard (post–crear configuración):** Tras crear la configuración de producto, la redirección al **paso 2** (`/config-distribucion-comisiones/{código}/reglas/crear`) se hace de forma fiable en el **submit** usando el valor devuelto por la mutación (`createProductConfiguration` → `ProductConfiguration | null`), en lugar de depender solo de `useEffect` sobre el estado async.
+- **Distribución – “Continuar configuración”:** Al completar la distribución no se intenta crear un segundo `ProductPercentageCommission` (rechazado si ya hay uno activo); se detecta la regla semilla sin líneas de categoría y el formulario pasa a **editar** (actualizar la existente).
+- **Resolución por código en URL:** Normalización con `decodeURIComponent` en cliente y en `GET /api/product-configurations/by-code/[code]` para códigos con caracteres codificados (p. ej. `+` como `%2B`), evitando “Configuración no encontrada” tras redirección.
+- **Migas de pan:** Las etiquetas muestran el código decodificado y los enlaces usan segmentos codificados correctamente; etiquetas amigables para rutas de configuración de distribución y reglas.
+
+### Mejorado
+
+- **Configuración de producto – Listado:** La tabla compartida (configuración de producto y vista de distribución de comisiones que reutiliza el mismo listado) **ya no muestra** la columna **Distribución para nuevos negocios**. La asignación de la distribución para nuevos negocios sigue haciéndose en los flujos de edición/asignación (B/C); solo se simplifica lo que ves en el listado.
+
+### Documentación / Interno
+
+- **OpenSpec:** Requisito RF-09 en el spec principal `product-configuration`; change `rf-09-remove-list-column-nuevos-negocios` archivado con informe de verificación.
+- **OpenSpec (RF-11):** Change `rf-11-wizard-post-crear-a` — `tasks.md` actualizado (fase 3 redirección a `/reglas/crear`, fase 7 seguimiento); `exploration.md` con tabla de implementación aplicada.
+
+## [1.0.0-beta.4] - 2026-04-13
+
+### Añadido
+
+- **Administración – Config. distribución de comisiones:** Nuevo acceso en el menú lateral (dentro de **Administración**) que abre un flujo donde **identificas la configuración de producto por código** antes de ver la tabla de reglas de distribución. Incluye búsqueda, selección y **enlaces directos** que conservan el código en la URL cuando es válido.
+- **Reglas (flujo por código):** Botón **Buscar nueva distribución** para volver a la pantalla de búsqueda y elegir otra configuración sin perder el contexto del flujo nuevo.
+- **Tabla de reglas de distribución:** Las acciones **Editar** y **Asignar a nuevos negocios** quedan **visibles en cada fila**, sin tener que abrir primero el menú de tres puntos.
+
+### Mejorado
+
+- **Configuración de producto:** El enlace principal **Distribución de Comisión** en el listado lleva al **flujo por código** (ruta nueva del dashboard). Si una fila no tiene código usable (datos heredados), el enlace te dirige a la **entrada de búsqueda** para localizar la configuración correctamente.
+- **Barra lateral y tooltips:** Ajustes en submenús anidados y en tooltips para que textos largos (por ejemplo nombres de secciones) se lean bien y no queden recortados de forma confusa.
+- **Carga de archivos:** Navegación más clara, pestañas tipo tarjeta y etiquetas alineadas con el flujo de archivos e historial.
+
+### Compatibilidad
+
+- Siguen disponibles las URLs **por id** del flujo clásico (`…/distribucion-comisiones/[id]/…`) para favoritos y enlaces antiguos; el listado de configuración de producto ya no usa ese camino como acción principal hacia la distribución.
+
+### Documentación / Interno
+
+- **Base de datos:** Migración Prisma que asegura **código obligatorio y único** en cada configuración de producto. En cada entorno hay que aplicar **`prisma migrate deploy`** (ver runbook del proyecto si hubo estados intermedios de despliegue).
+- **API:** Documentado `GET /api/product-configurations/by-code/[code]` para resolución por código exacto.
+- **OpenSpec:** Requisitos RF-06 / RF-07 integrados en los specs principales (`product-configuration`, `navigation`, `commission-distribution-ui`); cambio OpenSpec correspondiente archivado.
+- **Pruebas:** Scripts de Vitest unificados con la bandera `--run` en los comandos `npm` de test; limpieza menor en mocks de integración.
+
+## [1.0.0-beta.3] - 2026-04-12
+
+### Añadido
+
+- **Distribución de comisiones – Cartera por regla:** Cada regla puede indicar si aplica **cartera**. Si está activa, verás un **porcentaje de cartera** por línea de categoría, con validación de rango **1 %–100 %** y **suma máxima 100 %** entre líneas, independiente de la suma de distribución.
+- **Persistencia al desactivar cartera:** Si quitas la marca de cartera y guardas, los porcentajes de cartera guardados **no se borran**; vuelven a mostrarse cuando vuelves a activar la opción.
+- **Tabla de reglas – Columna Cartera:** Cuando al menos una regla usa cartera, el listado muestra la columna **Cartera** con el mismo criterio de formato que el resto de porcentajes en lectura.
+
+### Mejorado
+
+- **Validación al salir del campo (RF-02):** En porcentajes de **distribución** y, si la cartera está visible, en **cartera**, los errores por valor vacío o fuera de rango pueden mostrarse al **perder el foco**, sin depender solo del botón guardar.
+- **Lista de reglas:** Un solo **buscador** integrado en la tabla (menos controles duplicados en la página).
+- **Formulario de regla:** El interruptor de cartera queda dentro del bloque de categorías; el pie de totales **alinea** columnas de porcentaje y cartera con las filas.
+- **Porcentajes en lectura:** Presentación más limpia, evitando ceros decimales finales innecesarios cuando el valor es entero o ya está redondeado de forma natural.
+
+### Documentación / Interno
+
+- **Prisma:** Migración para `hasPortfolio` en configuración producto–categoría; ampliación de decimales en porcentajes por categoría; seeds ajustados para que las fracciones sumen coherencia con la UI.
+- **API:** Documentación y contratos de creación/edición de reglas con cartera y fusión en servidor al desactivar el flag.
+- **OpenSpec:** Cambio `explore-rf-03-hasportfolio` archivado; spec principal `commission-distribution-ui` actualizada (RF-03, RF-04, cartera).
+
+## [1.0.0-beta.2] - 2026-04-10
+
+### Añadido
+
+- **Distribución de comisiones – Campo de porcentaje dedicado:** Al editar categorías en una regla, el porcentaje usa un control con el símbolo **%** como adorno (no mezclado con el número), entrada tipo texto con teclado decimal, y **pegado normalizado** para formatos como `12,5 %` o `12.5%` según el locale de la aplicación. Mientras escribes se permiten hasta **cuatro** decimales; si borras todo el campo, **no** se fuerza el valor a cero antes de validar.
+- **Porcentajes en lectura unificados:** Las vistas que muestran porcentajes de distribución (tabla de reglas, totales del formulario, **pre-liquidación** vía `formatPct`, **histórico de liquidaciones**) comparten la misma regla de presentación: separadores según locale, precisión coherente con el valor del servidor (sin redondeo caprichoso en cliente) y entero mostrado con relleno de decimales en pantalla según RF-01.
+
+### Mejorado
+
+- **Distribución de comisiones – Validación RF-05:** Cada línea de categoría exige un porcentaje entre **1 % y 100 %**; la **suma** de todas las líneas no puede superar **100 %**. Los errores son explícitos en el formulario, con indicación en vivo cuando el total se excede y mensajes al intentar guardar si algo falla.
+- **Distribución de comisiones – Precisión al cargar reglas:** El mapeo desde Prisma usa aritmética **Decimal** al pasar de fracción al modelo de dominio (0–100), evitando la pérdida de precisión que imponía un redondeo fijo a dos decimales.
+- **Distribución de comisiones – Formulario y edición:** Errores de campo más visibles (estilo destructivo, icono, `role="alert"` donde aplica, `aria-invalid` en select y campo de porcentaje); filas de categoría con separación y altura consistentes; página **editar regla** sin título duplicado; skeleton alineado al formulario sin columna “Activo” en el flujo de lista.
+
+### Documentación / Interno
+
+- **PRDs:** Documentos de requisitos de producto para configuración de comisiones y tema MAPA (UX / configuración producto-comisión) en `PRDs/`.
+- **OpenSpec:** Change `rf-01-presentacion-porcentajes` con propuesta, diseño, tareas, especificaciones delta (`ui-system`, `commission-distribution-ui`), exploración e informe de verificación SDD.
+- **Repositorio:** Entrada en `.gitignore` para la carpeta `.atl/` (artefactos locales de agentes).
+
 ## [1.0.0-beta.1] - 2026-04-05
 
 ### Añadido

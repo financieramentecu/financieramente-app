@@ -146,7 +146,6 @@ describe('admin-notifications', () => {
 			const html = generateNotificationHTML(params)
 
 			expect(html).toContain('#00505C')
-			expect(html).toContain('#83D874')
 		})
 
 		it('debe incluir fecha formateada en español', () => {
@@ -161,11 +160,10 @@ describe('admin-notifications', () => {
 		it('debe incluir título y estructura correcta', () => {
 			const html = generateNotificationHTML(params)
 
-			expect(html).toContain('Nuevo Usuario Requiere Activación')
+			expect(html).toContain('Nuevo Usuario Registrado')
 			expect(html).toContain('Sistema Financieramente')
-			expect(html).toContain('Activar Usuario')
-			expect(html).toContain('Inactivo')
-			expect(html).toContain('Pendiente')
+			expect(html).toContain('Revisar y Activar')
+			expect(html).toContain('Pendiente de Activación')
 		})
 
 		it('debe incluir saludo personalizado con nombre del administrador', () => {

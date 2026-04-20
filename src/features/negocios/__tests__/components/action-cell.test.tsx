@@ -9,6 +9,8 @@ describe('ActionCell', () => {
 		businessId: 1,
 		businessStatus: BUSINESS_STATUS.VENTA_EFECTUADA,
 		userRole: UserRole.ADMIN,
+		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		onEdit: vi.fn(),
 		onView: vi.fn(),
 		onCancel: vi.fn(),
@@ -149,6 +151,140 @@ describe('ActionCell', () => {
 			fireEvent.click(screen.getByRole('button', { name: /Cancelar/i }))
 
 			expect(onCancel).toHaveBeenCalledWith(1)
+		})
+	})
+
+	// ── 4.6: Fondear button visibility ────────────────────────────────────────
+	describe('Fondear button visibility', () => {
+		it('should show Fondear button for EMITIDO + hasAnnualPayments: false + AGENTE role', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.AGENTE}
+					hasAnnualPayments={false}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: /Fondear/i })
+			).toBeInTheDocument()
+		})
+
+		it('should NOT show Fondear button for FONDEADO status', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.FONDEADO}
+					userRole={UserRole.ADMIN}
+					hasAnnualPayments={false}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.queryByRole('button', { name: /Fondear/i })
+			).not.toBeInTheDocument()
+		})
+
+		it('should show Fondear button for EMITIDO + anual con cuotas pendientes', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.ADMIN}
+					hasAnnualPayments={true}
+					hasPendingAnnualFunding={true}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: 'Fondear anualidad' })
+			).toBeInTheDocument()
+		})
+
+		it('should NOT show Fondear for EMITIDO + anual sin cuotas pendientes', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.ADMIN}
+					hasAnnualPayments={true}
+					hasPendingAnnualFunding={false}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.queryByRole('button', { name: /Fondear/i })
+			).not.toBeInTheDocument()
+		})
+
+		it('should show Fondear for FONDEADO + anual con cuotas pendientes', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.FONDEADO}
+					userRole={UserRole.ADMIN}
+					hasAnnualPayments={true}
+					hasPendingAnnualFunding={true}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: 'Fondear anualidad' })
+			).toBeInTheDocument()
+		})
+
+		it('should NOT show Fondear button for ANALISTA_SOPORTE role', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.ANALISTA_SOPORTE}
+					hasAnnualPayments={false}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.queryByRole('button', { name: /Fondear/i })
+			).not.toBeInTheDocument()
+		})
+
+		it('should show Fondear button for EMITIDO + ADMIN + no annual payments', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.ADMIN}
+					hasAnnualPayments={false}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: 'Fondear' })
+			).toBeInTheDocument()
+		})
+
+		it('should show Fondear button for EMITIDO + ASISTENTE_GERENCIA_OPERATIVA + no annual payments', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.ASISTENTE_GERENCIA_OPERATIVA}
+					hasAnnualPayments={false}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: /Fondear/i })
+			).toBeInTheDocument()
 		})
 	})
 

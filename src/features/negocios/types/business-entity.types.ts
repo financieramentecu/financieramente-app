@@ -3,8 +3,6 @@
  * Independientes de Prisma, optimizados para la UI
  */
 
-import { Prisma } from '@prisma/client'
-
 // ============================================
 // ESTADOS Y MODOS
 // ============================================
@@ -17,6 +15,7 @@ export const BUSINESS_STATUS = {
 	EMITIDO: 'EMITIDO',
 	COMISIONANDO: 'COMISIONANDO',
 	CANCELADO: 'CANCELADO',
+	FONDEADO: 'FONDEADO',
 } as const
 
 export type BusinessStatus =
@@ -102,6 +101,14 @@ export interface BusinessEntity {
 	value: number
 	status: BusinessStatus
 	readonly createdAt: string // ISO string para serialización
+	/** Fecha de primera emisión (ISO); null si nunca estuvo EMITIDO o legacy sin backfill */
+	dateIssued: string | null
+	/** Fecha de fondeo (ISO); null si el negocio aún no fue fondeado */
+	dateAnchored: string | null
+	/** Indica si el negocio tiene pagos anuales asociados */
+	hasAnnualPayments: boolean
+	/** Anual: queda al menos una cuota sin fondear (sigue visible “Fondear”) */
+	hasPendingAnnualFunding: boolean
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo
@@ -109,43 +116,3 @@ export interface BusinessEntity {
 	periodicity: PeriodicityInfo | null
 	clientOrigin: ClientOriginInfo
 }
-
-// ============================================
-// SELECTOR DE PRISMA
-// ============================================
-
-/**
- * Selector de Prisma para incluir todas las relaciones necesarias
- * Se usa en las queries de la API
- */
-export const businessWithRelations = {
-	client: true,
-	user: {
-		include: {
-			role: true,
-		},
-	},
-	productPercentageCommission: {
-		include: {
-			productConfiguration: {
-				include: {
-					product: {
-						include: {
-							company: true,
-						},
-					},
-				},
-			},
-		},
-	},
-	currency: true,
-	buyPeriodicity: true,
-	clientOrigin: true,
-} satisfies Prisma.BusinessInclude
-
-/**
- * Tipo derivado de Prisma con todas las relaciones
- */
-export type PrismaBusinessWithRelations = Prisma.BusinessGetPayload<{
-	include: typeof businessWithRelations
-}>

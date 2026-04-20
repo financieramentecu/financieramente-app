@@ -1,5 +1,6 @@
 import { Trash2 } from 'lucide-react'
-import type { Control } from 'react-hook-form'
+import type { Control, FieldPath } from 'react-hook-form'
+import { useFormContext } from 'react-hook-form'
 import type { Category } from '@/features/categories/types/category.types'
 import type {
 	CreateCommissionRuleFormData,
@@ -13,7 +14,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from '@/features/shared/ui/form'
-import { Input } from '@/features/shared/ui/input'
+import { PercentageField } from '@/features/shared/ui/percentage-field'
 import {
 	Select,
 	SelectContent,
@@ -32,6 +33,7 @@ interface CategoryPercentageRowProps {
 	categories: Category[]
 	selectedCategoryIds: Array<number | undefined>
 	onRemove: () => void
+	hasPortfolio: boolean
 }
 
 export function CategoryPercentageRow({
@@ -40,14 +42,21 @@ export function CategoryPercentageRow({
 	categories,
 	selectedCategoryIds,
 	onRemove,
+	hasPortfolio,
 }: CategoryPercentageRowProps) {
+	const { trigger } = useFormContext<CommissionRuleFormData>()
+	const percentagePath =
+		`categories.${index}.percentage` as FieldPath<CommissionRuleFormData>
+	const portfolioPath =
+		`categories.${index}.portfolioPercentage` as FieldPath<CommissionRuleFormData>
+
 	return (
-		<div className="flex items-start gap-4">
+		<div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-start sm:gap-5 sm:py-5">
 			<FormField
 				control={control}
 				name={`categories.${index}.idCategory`}
 				render={({ field }) => (
-					<FormItem className="flex-1">
+					<FormItem className="min-w-0 flex-1 space-y-2">
 						<FormLabel className={index !== 0 ? 'sr-only' : ''}>
 							Categoría
 						</FormLabel>
@@ -58,7 +67,7 @@ export function CategoryPercentageRow({
 							value={field.value ? String(field.value) : undefined}
 						>
 							<FormControl>
-								<SelectTrigger>
+								<SelectTrigger className="h-9 w-full">
 									<SelectValue placeholder="Seleccionar categoría" />
 								</SelectTrigger>
 							</FormControl>
@@ -87,25 +96,22 @@ export function CategoryPercentageRow({
 				control={control}
 				name={`categories.${index}.percentage`}
 				render={({ field }) => (
-					<FormItem className="w-[150px]">
+					<FormItem className="w-full space-y-2 sm:w-44 sm:max-w-44 sm:shrink-0">
 						<FormLabel className={index !== 0 ? 'sr-only' : ''}>
-							Porcentaje (%)
+							Porcentaje
 						</FormLabel>
 						<FormControl>
-							<Input
-								type="number"
-								step="0.0001"
-								min="0"
-								max="100"
-								placeholder="0.0000"
-								value={field.value ?? ''}
-								onChange={(event) => {
-									const nextValue =
-										event.target.value === ''
-											? 0
-											: Number(event.target.value)
-									field.onChange(nextValue)
+							<PercentageField
+								value={field.value}
+								onChange={field.onChange}
+								onBlur={() => {
+									field.onBlur()
+									queueMicrotask(() => {
+										void trigger(percentagePath)
+									})
 								}}
+								name={field.name}
+								ref={field.ref}
 							/>
 						</FormControl>
 						<FormMessage />
@@ -113,14 +119,43 @@ export function CategoryPercentageRow({
 				)}
 			/>
 
-			<div className="flex flex-col">
-				{index === 0 && <div className="h-[20px] mb-2" aria-hidden="true" />}
+			{hasPortfolio ? (
+				<FormField
+					control={control}
+					name={`categories.${index}.portfolioPercentage`}
+					render={({ field }) => (
+						<FormItem className="w-full space-y-2 sm:w-44 sm:max-w-44 sm:shrink-0">
+							<FormLabel className={index !== 0 ? 'sr-only' : ''}>
+								Cartera
+							</FormLabel>
+							<FormControl>
+								<PercentageField
+									value={field.value}
+									onChange={field.onChange}
+									onBlur={() => {
+										field.onBlur()
+										queueMicrotask(() => {
+											void trigger(portfolioPath)
+										})
+									}}
+									name={field.name}
+									ref={field.ref}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			) : null}
+
+			<div className="flex justify-end sm:w-11 sm:shrink-0 sm:self-center">
 				<Button
 					type="button"
 					variant="ghost"
 					size="icon"
-					className="h-10 w-10 shrink-0 text-destructive"
+					className="h-10 w-10 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
 					onClick={onRemove}
+					aria-label="Eliminar categoría de la distribución"
 				>
 					<Trash2 className="h-4 w-4" />
 				</Button>

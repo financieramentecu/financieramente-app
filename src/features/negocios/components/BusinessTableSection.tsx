@@ -11,11 +11,57 @@ import {
 	AvatarImage,
 } from '@/features/shared/ui/avatar'
 import { Badge } from '@/features/shared/ui/badge'
-import { Plus, Pencil, Eye, Trash2 } from 'lucide-react'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/features/shared/ui/select'
+import {
+	Plus,
+	Pencil,
+	Eye,
+	Trash2,
+	Coins,
+	Download,
+	CalendarRange,
+} from 'lucide-react'
+import { Input } from '@/features/shared/ui/input'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { ColumnDef } from '@tanstack/react-table'
-import type { UserRole } from '@/features/auth/lib/roles'
-import { canEditContractWhenBusinessEmitido } from '@/features/auth/lib/roles'
+import { UserRole, canEditContractWhenBusinessEmitido } from '@/features/auth/lib/roles'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from '@/features/shared/ui/tooltip'
+import {
+	FONDEAR_ACTION_TOOLTIP,
+	FONDEAR_ANNUAL_ACTION_TOOLTIP,
+	FONDEAR_ANNUAL_LABEL,
+} from '@/features/negocios/lib/fondear-action-copy'
+import {
+	BUSINESS_STATUS,
+	type BusinessStatus,
+} from '@/features/negocios/types/business-entity.types'
+import { cn } from '@/lib/utils'
+
+/** Valor sentinela del Select para “todos los estados” (Radix no admite value vacío). */
+const LIST_STATUS_FILTER_ALL = '__all__'
+
+const LIST_STATUS_OPTIONS: { value: BusinessStatus; label: string }[] = [
+	{ value: BUSINESS_STATUS.VENTA_EFECTUADA, label: 'Venta efectuada' },
+	{ value: BUSINESS_STATUS.EMITIDO, label: 'Emitido' },
+	{ value: BUSINESS_STATUS.COMISIONANDO, label: 'Comisionando' },
+	{ value: BUSINESS_STATUS.CANCELADO, label: 'Cancelado' },
+	{ value: BUSINESS_STATUS.FONDEADO, label: 'Fondeado' },
+]
+
+/** Celda compacta para iconos en toolbar de acciones (sin saltos entre filas). */
+const ACTION_ICON_BTN =
+	'inline-flex size-9 shrink-0 items-center justify-center rounded-md cursor-pointer'
 
 interface PaginationData {
 	page: number
@@ -27,15 +73,28 @@ interface PaginationData {
 interface BusinessTableSectionProps {
 	data: Business[]
 	onAddBusiness: () => void
-	onGlobalSearch: (query: string) => void
+	onGlobalSearch?: (query: string) => void
 	onEditBusiness: (business: Business) => void
 	onViewBusiness?: (business: Business) => void
 	onCancelBusiness?: (business: Business) => void
+	onFondearBusiness?: (business: Business) => void
 	pagination?: PaginationData
 	onPageChange?: (page: number) => void
 	isSearching?: boolean
 	/** Used to show edit on Emitido only for roles allowed by API */
 	userRole?: UserRole
+	/** Filtro por estado en la lista (`undefined` = todos) */
+	listStatus?: BusinessStatus
+	onListStatusChange?: (status: BusinessStatus | undefined) => void
+	/** YYYY-MM-DD — filtro por `date_anchored` del negocio */
+	fundDateFrom?: string
+	fundDateTo?: string
+	onFundDateFromChange?: (value: string) => void
+	onFundDateToChange?: (value: string) => void
+	canExportExcel?: boolean
+	onExportExcel?: () => void
+	isExportingExcel?: boolean
+	exportExcelError?: string | null
 }
 
 export function BusinessTableSection({
@@ -45,13 +104,31 @@ export function BusinessTableSection({
 	onEditBusiness,
 	onViewBusiness,
 	onCancelBusiness,
+	onFondearBusiness,
 	pagination,
 	onPageChange,
 	isSearching = false,
 	userRole,
+	listStatus,
+	onListStatusChange,
+	fundDateFrom = '',
+	fundDateTo = '',
+	onFundDateFromChange,
+	onFundDateToChange,
+	canExportExcel = false,
+	onExportExcel,
+	isExportingExcel = false,
+	exportExcelError = null,
 }: BusinessTableSectionProps) {
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('es-CO')
+	}
+
+	const formatOptionalDate = (iso: string | null | undefined) => {
+		if (!iso) {
+			return '—'
+		}
+		return formatDate(iso)
 	}
 
 	const getStatusBadge = (status: string) => {
@@ -59,7 +136,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-orange-100 text-orange-800 border-orange-200"
+					className="bg-orange-100 text-orange-800 border-orange-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -70,7 +147,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-emerald-100 text-emerald-800 border-emerald-200"
+					className="bg-emerald-100 text-emerald-800 border-emerald-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -81,7 +158,7 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-blue-100 text-blue-800 border-blue-200"
+					className="bg-blue-100 text-blue-800 border-blue-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -92,7 +169,18 @@ export function BusinessTableSection({
 			return (
 				<Badge
 					variant="default"
-					className="bg-red-100 text-red-800 border-red-200"
+					className="bg-red-100 text-red-800 border-red-200 truncate"
+				>
+					{status}
+				</Badge>
+			)
+		}
+
+		if (status === 'Fondeado') {
+			return (
+				<Badge
+					variant="default"
+					className="bg-indigo-100 text-indigo-800 border-indigo-200 truncate"
 				>
 					{status}
 				</Badge>
@@ -103,7 +191,7 @@ export function BusinessTableSection({
 		return (
 			<Badge
 				variant="secondary"
-				className="bg-secondary/10 text-secondary-foreground border-secondary/20"
+				className="bg-secondary/10 text-secondary-foreground border-secondary/20 truncate"
 			>
 				{status}
 			</Badge>
@@ -187,6 +275,22 @@ export function BusinessTableSection({
 			),
 		},
 		{
+			accessorKey: 'product',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Producto" />
+			),
+			cell: ({ row }) => <span>{row.getValue('product')}</span>,
+		},
+		{
+			accessorKey: 'clientOriginName',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Origen" />
+			),
+			cell: ({ row }) => (
+				<span className="font-medium">{row.original.clientOriginName}</span>
+			),
+		},
+		{
 			accessorKey: 'date',
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Fecha" />
@@ -194,11 +298,62 @@ export function BusinessTableSection({
 			cell: ({ row }) => formatDate(row.getValue('date')),
 		},
 		{
-			accessorKey: 'product',
+			accessorKey: 'dateAnchored',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Producto" />
+				<DataTableColumnHeader column={column} title="Fecha fondeo" />
 			),
-			cell: ({ row }) => <span>{row.getValue('product')}</span>,
+			cell: ({ row }) => (
+				<span
+					className={
+						row.original.dateAnchored ? '' : 'text-muted-foreground'
+					}
+				>
+					{formatOptionalDate(row.original.dateAnchored)}
+				</span>
+			),
+		},
+		{
+			accessorKey: 'dateIssued',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Fecha emisión" />
+			),
+			cell: ({ row }) => (
+				<span
+					className={
+						row.original.dateIssued ? '' : 'text-muted-foreground'
+					}
+				>
+					{formatOptionalDate(row.original.dateIssued)}
+				</span>
+			),
+		},
+		{
+			accessorKey: 'term',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Plazo" />
+			),
+			cell: ({ row }) => {
+				const t = row.original.term
+				return (
+					<span className={t != null ? '' : 'text-muted-foreground'}>
+						{t != null ? String(t) : '—'}
+					</span>
+				)
+			},
+		},
+		{
+			accessorKey: 'periodicityName',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Periodicidad" />
+			),
+			cell: ({ row }) => {
+				const name = row.original.periodicityName
+				return (
+					<span className={name ? '' : 'text-muted-foreground'}>
+						{name ?? '—'}
+					</span>
+				)
+			},
 		},
 		{
 			accessorKey: 'value',
@@ -232,70 +387,230 @@ export function BusinessTableSection({
 			</div>
 
 			{/* Data Table */}
-			<DataTable
-				columns={columns}
-				data={data}
-				searchable={true}
-				onGlobalSearch={onGlobalSearch}
-				loading={isSearching}
-				searchPlaceholder="Buscar por cédula, nombre, email, # negocio o contrato..."
-				manualPagination={true}
-				currentPage={pagination?.page || 1}
-				pageSize={pagination?.pageSize || 10}
-				totalItems={pagination?.total || data.length}
-				onPageChange={onPageChange}
-				actions={(row) => {
-					const isVentaEfectuado = row.status === 'Venta Efectuado'
-					const isEmitido = row.status === 'Emitido'
-					const canEditEmitido =
-						isEmitido &&
-						userRole !== undefined &&
-						canEditContractWhenBusinessEmitido(userRole)
-					const isEditable = isVentaEfectuado || canEditEmitido
-					const isCancelable =
-						row.status === 'Venta Efectuado' || row.status === 'Emitido'
+			<TooltipProvider>
+				<DataTable
+					columns={columns}
+					data={data}
+					searchable={true}
+					onGlobalSearch={onGlobalSearch}
+					loading={isSearching}
+					searchPlaceholder="Buscar por cédula, nombre, email, # negocio o contrato..."
+					manualPagination={true}
+					currentPage={pagination?.page || 1}
+					pageSize={pagination?.pageSize || 10}
+					totalItems={pagination?.total || data.length}
+					onPageChange={onPageChange}
+					renderAdditionalFilters={
+						onListStatusChange ||
+						(onFundDateFromChange && onFundDateToChange)
+							? () => (
+									<div className="flex flex-wrap items-center gap-2">
+										{onFundDateFromChange && onFundDateToChange ? (
+											<fieldset className="border-input bg-muted/25 m-0 inline-flex h-9 max-h-9 min-h-9 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-0 shadow-xs">
+												<legend className="sr-only">
+													Rango de fechas de fondeo para filtrar la tabla
+												</legend>
+												<span className="text-muted-foreground inline-flex shrink-0 items-center gap-1.5">
+													<CalendarRange
+														className="pointer-events-none size-4 shrink-0"
+														aria-hidden
+													/>
+													<span className="hidden text-xs font-medium whitespace-nowrap md:inline">
+														Fondeo
+													</span>
+												</span>
+												<div className="flex min-w-0 flex-nowrap items-center gap-1.5">
+													<Input
+														id="fund-date-from"
+														type="date"
+														value={fundDateFrom}
+														onChange={(e) =>
+															onFundDateFromChange(e.target.value)
+														}
+														className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+														aria-label="Fecha de fondeo desde"
+													/>
+													<span
+														className="text-muted-foreground shrink-0 select-none text-xs tabular-nums"
+														aria-hidden
+													>
+														–
+													</span>
+													<Input
+														id="fund-date-to"
+														type="date"
+														value={fundDateTo}
+														onChange={(e) =>
+															onFundDateToChange(e.target.value)
+														}
+														className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+														aria-label="Fecha de fondeo hasta"
+													/>
+												</div>
+											</fieldset>
+										) : null}
+										{onListStatusChange ? (
+											<Select
+												value={listStatus ?? LIST_STATUS_FILTER_ALL}
+												onValueChange={(v) =>
+													onListStatusChange(
+														v === LIST_STATUS_FILTER_ALL
+															? undefined
+															: (v as BusinessStatus)
+													)
+												}
+											>
+												<SelectTrigger
+													className="h-9 w-[140px] lg:w-[170px]"
+													aria-label="Filtrar por estado del negocio"
+												>
+													<SelectValue placeholder="Estado" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value={LIST_STATUS_FILTER_ALL}>
+														Todos los estados
+													</SelectItem>
+													{LIST_STATUS_OPTIONS.map(({ value, label }) => (
+														<SelectItem key={value} value={value}>
+															{label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										) : null}
+									</div>
+								)
+							: undefined
+					}
+					toolbarTrailingActions={
+						canExportExcel && onExportExcel
+							? () => (
+									<div className="flex max-w-[min(100%,16rem)] flex-col items-end gap-1">
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											className="h-9 gap-1.5 shrink-0"
+											disabled={isExportingExcel}
+											onClick={onExportExcel}
+										>
+											<Download className="h-4 w-4" aria-hidden />
+											{isExportingExcel
+												? 'Exportando…'
+												: 'Exportar Excel'}
+										</Button>
+										{exportExcelError ? (
+											<p className="text-destructive max-w-[220px] text-right text-xs">
+												{exportExcelError}
+											</p>
+										) : null}
+									</div>
+								)
+							: undefined
+					}
+					actions={(row) => {
+						const isVentaEfectuado = row.status === 'Venta Efectuado'
+						const isEmitido = row.status === 'Emitido'
+						const canEditEmitido =
+							isEmitido &&
+							userRole !== undefined &&
+							canEditContractWhenBusinessEmitido(userRole)
+						const isEditable = isVentaEfectuado || canEditEmitido
+						const isCancelable =
+							row.status === 'Venta Efectuado' || row.status === 'Emitido'
+						const canFondearRole =
+							userRole === UserRole.ADMIN ||
+							userRole === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+							userRole === UserRole.AGENTE
+						const isFondeado = row.status === 'Fondeado'
+						const showFondearDirect =
+							isEmitido &&
+							!row.hasAnnualPayments
+						const showFondearAnnual =
+							row.hasAnnualPayments &&
+							row.hasPendingAnnualFunding &&
+							(isEmitido || isFondeado)
+						const isFondeable =
+							canFondearRole &&
+							(showFondearDirect || showFondearAnnual)
 
-					return (
-						<div className="flex items-center gap-1">
-							{isEditable && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => onEditBusiness(row)}
-									className="h-8 w-8 p-1 cursor-pointer"
-									title="Editar"
-								>
-									<Pencil className="h-4 w-4" />
-								</Button>
-							)}
+						const fondearToolbarLabel = showFondearAnnual
+							? FONDEAR_ANNUAL_LABEL
+							: 'Fondear'
+						const fondearToolbarTooltip = showFondearAnnual
+							? FONDEAR_ANNUAL_ACTION_TOOLTIP
+							: FONDEAR_ACTION_TOOLTIP
 
-							{onViewBusiness && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => onViewBusiness(row)}
-									className="h-8 w-8 p-1 cursor-pointer"
-									title="Ver detalle"
-								>
-									<Eye className="h-4 w-4" />
-								</Button>
-							)}
+						return (
+							<div
+								role="toolbar"
+								aria-label="Acciones del negocio"
+								className="inline-flex max-w-full flex-nowrap items-center gap-1"
+							>
+								{isEditable && (
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={() => onEditBusiness(row)}
+										className={ACTION_ICON_BTN}
+										title="Editar"
+									>
+										<Pencil className="h-4 w-4" />
+									</Button>
+								)}
 
-							{onCancelBusiness && isCancelable && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => onCancelBusiness(row)}
-									className="h-8 w-8 p-1 text-destructive hover:text-destructive cursor-pointer"
-									title="Cancelar negocio"
-								>
-									<Trash2 className="h-4 w-4" />
-								</Button>
-							)}
-						</div>
-					)
-				}}
-			/>
+								{onViewBusiness && (
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={() => onViewBusiness(row)}
+										className={ACTION_ICON_BTN}
+										title="Ver detalle"
+									>
+										<Eye className="h-4 w-4" />
+									</Button>
+								)}
+
+								{onFondearBusiness && isFondeable && (
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => onFondearBusiness(row)}
+												className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
+											>
+												<Coins className="h-4 w-4 shrink-0" aria-hidden />
+												<span className="text-xs font-medium whitespace-nowrap">
+													{fondearToolbarLabel}
+												</span>
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent side="top" className="max-w-xs">
+											<p>{fondearToolbarTooltip}</p>
+										</TooltipContent>
+									</Tooltip>
+								)}
+
+								{onCancelBusiness && isCancelable && (
+									<Button
+										variant="ghost"
+										size="icon"
+										onClick={() => onCancelBusiness(row)}
+										className={cn(
+											ACTION_ICON_BTN,
+											'text-destructive hover:text-destructive'
+										)}
+										title="Cancelar negocio"
+									>
+										<Trash2 className="h-4 w-4" />
+									</Button>
+								)}
+							</div>
+						)
+					}}
+				/>
+			</TooltipProvider>
 		</div>
 	)
 }

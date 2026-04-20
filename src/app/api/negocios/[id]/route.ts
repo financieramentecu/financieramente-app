@@ -5,19 +5,23 @@
  */
 
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import type { BusinessEntity } from '@/features/negocios/types/business-entity.types'
 import {
-	businessWithRelations,
 	BUSINESS_STATUS,
+	type BusinessEntity
 } from '@/features/negocios/types/business-entity.types'
+import {
+	businessWithRelations
+} from '@/features/negocios/types/business-prisma.types'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
+
 import {
 	UserRole,
 	canEditContractWhenBusinessEmitido,
@@ -247,7 +251,7 @@ export async function PUT(
 					idClientOrigin,
 					{ idUser: currentUser.idUser, name: currentUser.name }
 				)
-			} catch(error: unknown) {
+			} catch (error: unknown) {
 				return NextResponse.json(
 					{ data: null, error: error instanceof Error ? error.message : 'Error al actualizar el origen del negocio' },
 					{ status: 400 }
@@ -327,12 +331,23 @@ export async function PUT(
 			? BUSINESS_STATUS.EMITIDO
 			: existingBusiness.status
 
+		const becomesEmitido =
+			Boolean(contract) &&
+			existingBusiness.status === BUSINESS_STATUS.VENTA_EFECTUADA &&
+			newStatus === BUSINESS_STATUS.EMITIDO
+
+		const contractUpdateData: Prisma.BusinessUpdateInput = {
+			contract: contract || null,
+			status: newStatus,
+		}
+		if (becomesEmitido) {
+			contractUpdateData.dateIssued =
+				existingBusiness.dateIssued ?? new Date()
+		}
+
 		const updatedBusiness = await prisma.business.update({
 			where: { idBusiness: businessId },
-			data: {
-				contract: contract || null,
-				status: newStatus,
-			},
+			data: contractUpdateData,
 			include: businessWithRelations,
 		})
 
