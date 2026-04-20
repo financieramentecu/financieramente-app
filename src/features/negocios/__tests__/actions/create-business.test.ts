@@ -47,6 +47,7 @@ function mockCreatedBusiness(overrides: Partial<Business> = {}): Business {
 		createdAt: now,
 		updatedAt: now,
 		idClientOrigin: 1,
+		dateIssued: null,
 		...overrides,
 	}
 }
@@ -181,6 +182,40 @@ describe('createBusiness', () => {
 			data: expect.objectContaining({
 				status: 'VENTA_EFECTUADA',
 				contract: null,
+				dateIssued: null,
+			}),
+		})
+	})
+
+	it('sets dateIssued when contract is provided on create', async () => {
+		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+			name: 'Mensual',
+		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+		const created = mockCreatedBusiness({
+			idBusiness: 20,
+			contract: 'PN9999999',
+			status: 'EMITIDO',
+		})
+		const businessCreate = vi.fn().mockResolvedValue(created)
+		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+			return callback({
+				business: { create: businessCreate },
+				annualPayment: { createMany: vi.fn() },
+			} as never)
+		})
+
+		const result = await createBusiness({
+			...basePayload,
+			idBuyPeriodicity: 2,
+			contract: 'PN9999999',
+		})
+
+		expect(result.data?.status).toBe('EMITIDO')
+		expect(businessCreate).toHaveBeenCalledWith({
+			data: expect.objectContaining({
+				status: 'EMITIDO',
+				contract: 'PN9999999',
+				dateIssued: expect.any(Date),
 			}),
 		})
 	})

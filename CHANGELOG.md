@@ -5,6 +5,17 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.8] - 2026-04-17
+
+### Añadido
+
+- **Negocios – Fecha de emisión:** Al registrar el **contrato** por primera vez (ya sea en la creación del negocio o al pasar de **Venta efectuada** a **Emitido**), el sistema guarda la **fecha de emisión** para trazabilidad y reportes. Si solo se **corrige el número de contrato** cuando el negocio ya está emitido, la fecha de emisión **no se modifica**.
+
+### Documentación / Interno
+
+- **Base de datos:** Columna `date_issued` en `business` y migración Prisma; en cada entorno aplicar **`prisma migrate deploy`** antes de usar esta versión en producción.
+- **OpenSpec:** Requisitos de fecha de emisión incorporados al spec `negocios`; change **business-date-issued-hu2** archivado con artefactos SDD y verificación.
+
 ## [1.0.0-beta.7] - 2026-04-17
 
 ### Añadido

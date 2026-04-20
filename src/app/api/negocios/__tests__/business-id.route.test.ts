@@ -468,6 +468,7 @@ describe('PUT /api/negocios/[id]', () => {
 				...mockExistingBusiness,
 				contract: 'PN0005678',
 				status: BUSINESS_STATUS.EMITIDO,
+				dateIssued: new Date('2025-01-10T12:00:00.000Z'),
 			}
 
 			const mockEntity = {
@@ -519,6 +520,7 @@ describe('PUT /api/negocios/[id]', () => {
 				data: {
 					contract: 'PN0005678',
 					status: BUSINESS_STATUS.EMITIDO,
+					dateIssued: expect.any(Date),
 				},
 				include: expect.any(Object),
 			})
@@ -555,6 +557,7 @@ describe('PUT /api/negocios/[id]', () => {
 				...mockExistingBusiness,
 				contract: 'PN0009999',
 				status: BUSINESS_STATUS.EMITIDO,
+				dateIssued: new Date('2025-01-10T12:00:00.000Z'),
 			}
 
 			const mockEntity = {

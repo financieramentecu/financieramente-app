@@ -317,6 +317,7 @@ model Business {
   status                        String?                     @db.VarChar(20)
   createdAt                     DateTime                    @default(now()) @map("created_at")
   updatedAt                     DateTime                    @updatedAt @map("updated_at")
+  dateIssued                    DateTime?                   @map("date_issued")
   idClientOrigin                Int                         @map("id_client_origin")
   buyPeriodicity                BuyPeriodicity?             @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
   client                        Client                      @relation(fields: [idClient], references: [idClient])

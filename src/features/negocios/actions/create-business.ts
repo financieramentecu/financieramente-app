@@ -6,7 +6,10 @@ import {
 	BUSINESS_TERM_MAX,
 	BUY_PERIODICITY_ANUAL_NAME,
 } from '@/features/negocios/lib/business-term-limits'
-import { determineBusinessStatus } from '@/features/negocios/types/business-status.types'
+import {
+	BUSINESS_STATUS,
+	determineBusinessStatus,
+} from '@/features/negocios/types/business-status.types'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { findProductPercentageCommission } from './find-product-percentage-commission'
@@ -114,6 +117,8 @@ export async function createBusiness(
 		}
 
 		const business = await prisma.$transaction(async (tx) => {
+			const issuedAt =
+				status === BUSINESS_STATUS.EMITIDO ? new Date() : null
 			const created = await tx.business.create({
 				data: {
 					contract: contractValue || null,
@@ -128,6 +133,7 @@ export async function createBusiness(
 					idCurrency: validatedData.idCurrency,
 					idClientOrigin: validatedData.idClientOrigin,
 					status,
+					dateIssued: issuedAt,
 				},
 			})
 

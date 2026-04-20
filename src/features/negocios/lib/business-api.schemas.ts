@@ -117,6 +117,7 @@ export const businessEntitySchema = z.object({
 		BUSINESS_STATUS.CANCELADO,
 	]),
 	createdAt: z.string(),
+	dateIssued: z.string().nullable(),
 	client: clientInfoSchema,
 	agent: agentInfoSchema,
 	product: productInfoSchema,
