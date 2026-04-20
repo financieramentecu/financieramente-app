@@ -12,6 +12,17 @@ vi.mock(
 		obtenerDistribucionComision: vi.fn(),
 	})
 )
+vi.mock('@/lib/prisma', () => ({
+	prisma: {
+		comissionDistribution: {
+			findMany: vi.fn().mockResolvedValue([]),
+		},
+	},
+}))
+vi.mock('@/features/auth/lib/hierarchy', () => ({
+	canViewUserDistributions: vi.fn().mockResolvedValue(false),
+	isHierarchyBypassRole: vi.fn().mockReturnValue(false),
+}))
 
 const mockAuth = vi.mocked(auth)
 const mockObtenerDistribucion = vi.mocked(obtenerDistribucionComision)
