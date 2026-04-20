@@ -146,5 +146,74 @@ describe('prismaBusinessToEntity', () => {
 
 			expect(result.agent.roleName).toBeNull()
 		})
+
+		it('should map null dateIssued to null', () => {
+			const result = prismaBusinessToEntity(mockPrismaBusiness)
+
+			expect(result.dateIssued).toBeNull()
+		})
+
+		it('should map dateIssued to ISO string', () => {
+			const issued = new Date('2024-03-20T14:30:00.000Z')
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				dateIssued: issued,
+			})
+
+			expect(result.dateIssued).toBe('2024-03-20T14:30:00.000Z')
+		})
+
+		// ── 4.5: dateAnchored and hasAnnualPayments mapping ──────────────────
+		it('should map null dateAnchored to null', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				dateAnchored: null,
+			})
+
+			expect(result.dateAnchored).toBeNull()
+		})
+
+		it('should map dateAnchored DateTime to ISO string', () => {
+			const anchored = new Date('2025-04-18T12:00:00.000Z')
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				dateAnchored: anchored,
+			})
+
+			expect(result.dateAnchored).toBe('2025-04-18T12:00:00.000Z')
+		})
+
+		it('should map _count.annualPayments === 0 to hasAnnualPayments: false', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				_count: { annualPayments: 0 },
+				annualPayments: [],
+			})
+
+			expect(result.hasAnnualPayments).toBe(false)
+			expect(result.hasPendingAnnualFunding).toBe(false)
+		})
+
+		it('should map _count.annualPayments > 0 to hasAnnualPayments: true', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				_count: { annualPayments: 3 },
+				annualPayments: [{ idAnnualPayment: 1 }],
+			})
+
+			expect(result.hasAnnualPayments).toBe(true)
+			expect(result.hasPendingAnnualFunding).toBe(true)
+		})
+
+		it('should map hasPendingAnnualFunding false when no cuotas SIN_FONDEAR', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				_count: { annualPayments: 3 },
+				annualPayments: [],
+			})
+
+			expect(result.hasAnnualPayments).toBe(true)
+			expect(result.hasPendingAnnualFunding).toBe(false)
+		})
 	})
 })

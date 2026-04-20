@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
@@ -330,12 +331,23 @@ export async function PUT(
 			? BUSINESS_STATUS.EMITIDO
 			: existingBusiness.status
 
+		const becomesEmitido =
+			Boolean(contract) &&
+			existingBusiness.status === BUSINESS_STATUS.VENTA_EFECTUADA &&
+			newStatus === BUSINESS_STATUS.EMITIDO
+
+		const contractUpdateData: Prisma.BusinessUpdateInput = {
+			contract: contract || null,
+			status: newStatus,
+		}
+		if (becomesEmitido) {
+			contractUpdateData.dateIssued =
+				existingBusiness.dateIssued ?? new Date()
+		}
+
 		const updatedBusiness = await prisma.business.update({
 			where: { idBusiness: businessId },
-			data: {
-				contract: contract || null,
-				status: newStatus,
-			},
+			data: contractUpdateData,
 			include: businessWithRelations,
 		})
 

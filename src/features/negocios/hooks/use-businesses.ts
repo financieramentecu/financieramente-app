@@ -70,11 +70,17 @@ export function useBusinesses(
 		setState({ status: 'loading', data: undefined, error: '' })
 
 		try {
+			const hasFullFundDateRange = Boolean(
+				params.dateFrom && params.dateTo
+			)
+
 			const response = await businessService.getAll({
 				page: params.page || 1,
 				pageSize: params.pageSize || 10,
 				search: params.search,
 				status: params.status,
+				dateFrom: hasFullFundDateRange ? params.dateFrom : undefined,
+				dateTo: hasFullFundDateRange ? params.dateTo : undefined,
 			})
 
 			if ('error' in response && response.error) {
@@ -90,7 +96,14 @@ export function useBusinesses(
 				error: 'Error al cargar negocios',
 			})
 		}
-	}, [params.page, params.pageSize, params.search, params.status])
+	}, [
+		params.page,
+		params.pageSize,
+		params.search,
+		params.status,
+		params.dateFrom,
+		params.dateTo,
+	])
 
 	useEffect(() => {
 		fetchBusinesses()

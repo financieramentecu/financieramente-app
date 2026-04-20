@@ -4,28 +4,9 @@
  */
 
 import { Prisma } from '@prisma/client'
+import type { PrismaBusinessWithRelations } from '@/features/negocios/types/business-prisma.types'
 
-/**
- * Tipo para Business con todas las relaciones incluidas
- */
-export type PrismaBusinessWithRelations = Prisma.BusinessGetPayload<{
-	include: {
-		client: true
-		user: { include: { role: true } }
-		productPercentageCommission: {
-			include: {
-				productConfiguration: {
-					include: {
-						product: { include: { company: true } }
-					}
-				}
-			}
-		}
-		currency: true
-		buyPeriodicity: true
-		clientOrigin: true
-	}
-}>
+export type { PrismaBusinessWithRelations }
 
 const baseDate = new Date('2024-01-15T10:00:00.000Z')
 
@@ -47,6 +28,10 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	status: 'VENTA_EFECTUADA',
 	createdAt: baseDate,
 	updatedAt: baseDate,
+	dateIssued: null,
+	dateAnchored: null,
+	_count: { annualPayments: 0 },
+	annualPayments: [],
 	client: {
 		idClient: 1,
 		name: 'María',

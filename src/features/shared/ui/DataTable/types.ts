@@ -143,6 +143,10 @@ export interface DataTableProps<TData> {
 	 */
 	renderAdditionalFilters?: () => ReactNode
 	/**
+	 * Acciones a la derecha del toolbar, junto a «Vista» (columnas)
+	 */
+	toolbarTrailingActions?: () => ReactNode
+	/**
 	 * Callback cuando se solicita exportar los datos
 	 */
 	onExport?: (data: TData[]) => void

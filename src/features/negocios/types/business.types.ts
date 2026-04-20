@@ -14,11 +14,24 @@ export interface Business extends Record<string, unknown> {
 	}
 	email: string
 	termPeriod: string
+	/** Plazo numérico (p. ej. meses u horizonte del producto); null si no aplica */
+	term: number | null
+	/** Nombre de periodicidad de compra; null si no hay */
+	periodicityName: string | null
+	/** ISO — fecha de primera emisión del contrato */
+	dateIssued: string | null
+	/** ISO — fecha de fondeo del negocio */
+	dateAnchored: string | null
 	date: string
 	value: number
 	product: string
 	companyName: string
-	status: 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado'
+	/** Origen del cliente (canal) */
+	clientOriginName: string
+	status: 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado' | 'Fondeado'
+	hasAnnualPayments: boolean
+	/** Anual: aún hay cuotas SIN_FONDEAR (mostrar Fondear aunque el padre sea Fondeado) */
+	hasPendingAnnualFunding: boolean
 	currency: {
 		id: number
 		name: string
@@ -43,7 +56,7 @@ export interface BusinessSearchParams {
 	searchCriteria: string
 }
 
-export type BusinessStatus = 'Emitido' | 'Venta Efectuado'
+export type BusinessStatus = 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado' | 'Fondeado'
 
 /**
  * Interface de usuario con rol simplificada para el cliente

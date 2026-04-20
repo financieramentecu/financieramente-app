@@ -12,14 +12,17 @@ export const auth = async () => {
             // Verificar header y cookie (por si acaso)
             if (headersList.get('x-test-auth') === 'true') {
                 console.log('[Auth Wrapper] 🔓 Bypassing auth for E2E test')
-                // Retornar sesión mockeada que coincide con e2e/fixtures/auth.ts
+                const email =
+                    headersList.get('x-test-user-email') ??
+                    'test@financieramentecu.com'
+                // Sesión alineada con `e2e/fixtures/auth.ts`; el email debe coincidir con la DB para `getCurrentUserByEmail`.
                 return {
                     user: {
                         name: 'Test User',
-                        email: 'test@financieramentecu.com',
+                        email,
                         image: 'https://via.placeholder.com/150',
                         id: 'test-user-id',
-                        role: 'AGENTE', // Rol por defecto para tests
+                        role: 'AGENTE',
                     },
                     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 }

@@ -34,6 +34,10 @@ export function prismaBusinessToEntity(
 		value: Number(prisma.value), // Decimal → number
 		status: prisma.status as BusinessStatus,
 		createdAt: prisma.createdAt.toISOString(), // Date → string
+		dateIssued: prisma.dateIssued?.toISOString() ?? null,
+		dateAnchored: prisma.dateAnchored?.toISOString() ?? null,
+		hasAnnualPayments: prisma._count.annualPayments > 0,
+		hasPendingAnnualFunding: prisma.annualPayments.length > 0,
 
 		client: {
 			id: prisma.client.idClient,

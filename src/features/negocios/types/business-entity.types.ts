@@ -15,6 +15,7 @@ export const BUSINESS_STATUS = {
 	EMITIDO: 'EMITIDO',
 	COMISIONANDO: 'COMISIONANDO',
 	CANCELADO: 'CANCELADO',
+	FONDEADO: 'FONDEADO',
 } as const
 
 export type BusinessStatus =
@@ -100,6 +101,14 @@ export interface BusinessEntity {
 	value: number
 	status: BusinessStatus
 	readonly createdAt: string // ISO string para serialización
+	/** Fecha de primera emisión (ISO); null si nunca estuvo EMITIDO o legacy sin backfill */
+	dateIssued: string | null
+	/** Fecha de fondeo (ISO); null si el negocio aún no fue fondeado */
+	dateAnchored: string | null
+	/** Indica si el negocio tiene pagos anuales asociados */
+	hasAnnualPayments: boolean
+	/** Anual: queda al menos una cuota sin fondear (sigue visible “Fondear”) */
+	hasPendingAnnualFunding: boolean
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo
