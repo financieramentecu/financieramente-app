@@ -5,6 +5,20 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.11] - 2026-04-18
+
+### Añadido
+
+- **Negocios – Exportar a Excel:** **Administrador**, **Asistente de gerencia operativa** y **Analista de soporte** pueden descargar un archivo **.xlsx** con el mismo conjunto de negocios que resulta de aplicar **búsqueda**, **estado** y **rango de fechas** en el listado. El archivo incluye identificador y contrato, estado, fechas de creación, emisión y fondeo, datos de cliente y producto, periodicidad y anualidades, categoría del coach, **cadena de líderes** y **fechas de fondeo por cuota anual** cuando aplica. Si el resultado supera **5 000 filas**, la exportación se rechaza con un mensaje claro en lugar de generar un archivo desmedido.
+
+### Mejorado
+
+- **Negocios – Fechas:** Las fechas relevantes en listado y export usan una zona horaria consistente (**América/Bogotá**) para una lectura uniforme.
+
+### Documentación / Interno
+
+- **OpenSpec:** Requisitos H5 de exportación Excel incorporados al spec `negocios`; change **2026-04-18-h5-reporte-excel-negocios** archivado (`openspec/changes/archive/2026-04-18-h5-reporte-excel-negocios/`) con diseño, tareas, verificación e informe de archivo.
+
 ## [1.0.0-beta.10] - 2026-04-18
 
 ### Añadido

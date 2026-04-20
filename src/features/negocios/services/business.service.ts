@@ -14,6 +14,7 @@ import type {
 	CancelBusinessRequest,
 	BusinessListParams,
 	FondearAnualidadesRequest,
+	NegociosExportBody,
 } from '../types/business-api.types'
 
 /**
@@ -52,7 +53,9 @@ export const businessService = {
 	): Promise<ApiResponse<BusinessListResponse>> {
 		try {
 			const queryString = buildQueryString(params as Record<string, unknown>)
-			const response = await fetch(`${BASE_URL}${queryString}`)
+			const response = await fetch(`${BASE_URL}${queryString}`, {
+				cache: 'no-store',
+			})
 
 			return await response.json()
 		} catch (error) {
@@ -221,6 +224,59 @@ export const businessService = {
 		} catch (error) {
 			console.error('Error al obtener estadísticas:', error)
 			return { data: null, error: 'Error al obtener estadísticas' }
+		}
+	},
+
+	/**
+	 * Exporta negocios a Excel (roles operación / admin / analista).
+	 */
+	async exportReport(body: NegociosExportBody): Promise<
+		{ ok: true } | { ok: false; error: string }
+	> {
+		try {
+			const response = await fetch(`${BASE_URL}/export`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			})
+
+			if (!response.ok) {
+				const contentType = response.headers.get('content-type')
+				const errPayload =
+					contentType?.includes('application/json')
+						? await response.json().catch(() => ({
+								error: `Error ${response.status}`,
+							}))
+						: { error: `Error ${response.status}` }
+				const msg =
+					typeof errPayload === 'object' &&
+					errPayload !== null &&
+					'error' in errPayload &&
+					typeof (errPayload as { error: unknown }).error === 'string'
+						? (errPayload as { error: string }).error
+						: 'Error al exportar'
+				return { ok: false, error: msg }
+			}
+
+			const blob = await response.blob()
+			const url = window.URL.createObjectURL(blob)
+			const a = document.createElement('a')
+			a.href = url
+			const cd = response.headers.get('Content-Disposition')
+			const match = cd?.match(/filename="([^"]+)"/)
+			a.download = match?.[1] ?? `negocios_${new Date().toISOString().split('T')[0]}.xlsx`
+			document.body.appendChild(a)
+			a.click()
+			window.URL.revokeObjectURL(url)
+			document.body.removeChild(a)
+			return { ok: true }
+		} catch (error) {
+			console.error('Error al exportar negocios:', error)
+			return {
+				ok: false,
+				error:
+					error instanceof Error ? error.message : 'Error al exportar negocios',
+			}
 		}
 	},
 }

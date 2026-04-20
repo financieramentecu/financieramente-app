@@ -36,6 +36,14 @@ interface MisNegociosPageProps {
 	onPageChange?: (page: number) => void
 	listStatus?: BusinessStatus
 	onListStatusChange?: (status: BusinessStatus | undefined) => void
+	fundDateFrom?: string
+	fundDateTo?: string
+	onFundDateFromChange?: (value: string) => void
+	onFundDateToChange?: (value: string) => void
+	canExportExcel?: boolean
+	onExportExcel?: () => void
+	isExportingExcel?: boolean
+	exportExcelError?: string | null
 }
 
 function StatsLoadingSkeleton() {
@@ -90,6 +98,14 @@ export function MisNegociosPage({
 	onPageChange,
 	listStatus,
 	onListStatusChange,
+	fundDateFrom = '',
+	fundDateTo = '',
+	onFundDateFromChange,
+	onFundDateToChange,
+	canExportExcel = false,
+	onExportExcel,
+	isExportingExcel = false,
+	exportExcelError = null,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
 	const isAgentUser = user?.role === UserRole.AGENTE
@@ -131,6 +147,14 @@ export function MisNegociosPage({
 					userRole={user?.role ?? undefined}
 					listStatus={listStatus}
 					onListStatusChange={onListStatusChange}
+					fundDateFrom={fundDateFrom}
+					fundDateTo={fundDateTo}
+					onFundDateFromChange={onFundDateFromChange}
+					onFundDateToChange={onFundDateToChange}
+					canExportExcel={canExportExcel}
+					onExportExcel={onExportExcel}
+					isExportingExcel={isExportingExcel}
+					exportExcelError={exportExcelError}
 				/>
 			)}
 		</div>

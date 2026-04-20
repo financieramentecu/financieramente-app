@@ -9,7 +9,9 @@ import { AnnualFundingModal } from '@/features/negocios/components/modals/Annual
 import { businessService } from '@/features/negocios/services/business.service'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
+import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
+import { UserRole } from '@/features/auth/lib/roles'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business, StatsData } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
@@ -20,6 +22,7 @@ import type {
 import type {
 	AnnualInstallmentDto,
 	BusinessListParams,
+	NegociosExportBody,
 } from '@/features/negocios/types/business-api.types'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-status.types'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
@@ -144,6 +147,17 @@ export function NegociosPageClient({
 		fondearAnualidadesBusiness,
 		isFondeandoAnualidades,
 	} = useBusinessMutation()
+
+	const {
+		exportReport,
+		isExporting: isExportingExcel,
+		error: exportExcelError,
+	} = useBusinessExport()
+
+	const canExportExcel =
+		_currentUser?.role?.code === UserRole.ADMIN ||
+		_currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+		_currentUser?.role?.code === UserRole.ANALISTA_SOPORTE
 
 	// Handler para cambio de currency
 	const handleCurrencyChange = useCallback((currency: string) => {
@@ -329,6 +343,65 @@ export function NegociosPageClient({
 		[]
 	)
 
+	const handleFundDateFromChange = useCallback((value: string) => {
+		if (!value) {
+			setSearchParams((prev) => ({
+				...prev,
+				dateFrom: undefined,
+				dateTo: undefined,
+				page: 1,
+			}))
+			return
+		}
+		setSearchParams((prev) => ({
+			...prev,
+			dateFrom: value,
+			page: 1,
+		}))
+	}, [])
+
+	const handleFundDateToChange = useCallback((value: string) => {
+		if (!value) {
+			setSearchParams((prev) => ({
+				...prev,
+				dateFrom: undefined,
+				dateTo: undefined,
+				page: 1,
+			}))
+			return
+		}
+		setSearchParams((prev) => ({
+			...prev,
+			dateTo: value,
+			page: 1,
+		}))
+	}, [])
+
+	const handleExportExcel = useCallback(async () => {
+		const df = searchParams.dateFrom
+		const dt = searchParams.dateTo
+		const body: NegociosExportBody = {
+			search: debouncedSearch || undefined,
+			status: searchParams.status,
+		}
+		if (df && dt) {
+			body.dateFrom = df
+			body.dateTo = dt
+		}
+		const result = await exportReport(body)
+		if (result.ok) {
+			toast.success('Archivo descargado')
+		} else {
+			toast.error(result.error ?? 'No se pudo exportar')
+		}
+	}, [
+		exportReport,
+		searchParams.dateFrom,
+		searchParams.dateTo,
+		searchParams.status,
+		debouncedSearch,
+	])
+
 	// Limpiar business seleccionado al cerrar modales
 	const handleViewModalClose = useCallback((open: boolean) => {
 		setViewModalOpen(open)
@@ -358,10 +431,15 @@ export function NegociosPageClient({
 				},
 				email: b.client.email || '',
 				termPeriod: `${b.term || 0}/${b.periodicity?.name || ''}`,
+				term: b.term,
+				periodicityName: b.periodicity?.name ?? null,
+				dateIssued: b.dateIssued,
+				dateAnchored: b.dateAnchored,
 				date: b.createdAt,
 				value: b.value,
 				product: b.product.name,
 				companyName: b.product.companyName,
+				clientOriginName: b.clientOrigin.name,
 				status:
 					b.status === BUSINESS_STATUS.EMITIDO
 						? 'Emitido'
@@ -466,6 +544,14 @@ export function NegociosPageClient({
 				onPageChange={handlePageChange}
 				listStatus={searchParams.status}
 				onListStatusChange={handleListStatusChange}
+				fundDateFrom={searchParams.dateFrom ?? ''}
+				fundDateTo={searchParams.dateTo ?? ''}
+				onFundDateFromChange={handleFundDateFromChange}
+				onFundDateToChange={handleFundDateToChange}
+				canExportExcel={canExportExcel}
+				onExportExcel={handleExportExcel}
+				isExportingExcel={isExportingExcel}
+				exportExcelError={exportExcelError}
 			/>
 
 			{/* Modal de Visualización */}

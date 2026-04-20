@@ -28,6 +28,19 @@ export interface BusinessListParams {
 	pageSize?: number
 	search?: string
 	status?: BusinessStatus
+	/** YYYY-MM-DD; debe ir junto con `dateTo` (filtro por `date_anchored` negocio, Bogotá) */
+	dateFrom?: string
+	/** YYYY-MM-DD */
+	dateTo?: string
+}
+
+/** Body POST `/api/negocios/export` */
+export interface NegociosExportBody {
+	/** Con `dateTo`, filtra por `date_anchored` (Bogotá). Sin fechas = sin filtro de rango. */
+	dateFrom?: string
+	dateTo?: string
+	search?: string
+	status?: BusinessStatus
 }
 
 // ============================================
