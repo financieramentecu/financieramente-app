@@ -29,6 +29,7 @@ export async function seedBusinesses(prisma: PrismaClient) {
 	const currency = await prisma.currency.findFirst({
 		where: { symbol: 'COP' },
 	})
+	// Mensual only; annual_payment rows are created by app logic on create when periodicidad is Anual.
 	const periodicity = await prisma.buyPeriodicity.findFirst({
 		where: { name: 'Mensual' },
 	})

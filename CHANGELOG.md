@@ -5,6 +5,23 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.7] - 2026-04-17
+
+### Añadido
+
+- **Negocios – Periodicidad Anual:** Al crear un negocio con periodicidad de compra **Anual** y un **plazo** entre **1 y 25**, el sistema **registra en la base de datos** una fila de anualidad por cada año de plazo (índices 1…n), en estado inicial **sin fondear** y **sin fecha de fondeo** hasta un proceso posterior. En este caso el plazo **es obligatorio**; la regla de **Venta efectuada** sin contrato al crear se mantiene.
+
+### Mejorado
+
+- **Plazo del negocio:** Tope **máximo 25** (años) alineado entre formulario y validación en servidor, coherente con el registro de anualidades.
+- **Contrato (rezagos):** Texto de ayuda más claro en la búsqueda de contrato y forma de **vaciar** la selección sin quedar anclado al valor anterior.
+
+### Documentación / Interno
+
+- **Base de datos:** Tabla `annual_payment` y migración Prisma; en cada entorno aplicar **`prisma migrate deploy`**.
+- **OpenSpec:** Requisitos de anualidades al crear negocio en el spec `negocios`; change **annual-payment-rows-on-create-h1** archivado con informe de verificación.
+- **PRDs:** Documentos de configuración de comisiones movidos a `PRDs/configuration-distribution/`; borrador de reporte de negocios en `PRDs/bussines-report/`.
+
 ## [1.0.0-beta.6] - 2026-04-15
 
 ### Añadido

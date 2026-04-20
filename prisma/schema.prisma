@@ -16,6 +16,11 @@ enum BeneficiaryMode {
   FIXED_BENEFICIARY
 }
 
+enum AnnualPaymentStatus {
+  SIN_FONDEAR
+  FONDEADO
+}
+
 model Company {
   idCompany     Int       @id @default(autoincrement()) @map("id_company")
   name          String    @db.VarChar(100)
@@ -320,11 +325,27 @@ model Business {
   productPercentageCommission   ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
   user                          User                        @relation(fields: [idUser], references: [idUser])
   settlementCommissions         SettlementCommission[]
+  annualPayments                AnnualPayment[]
 
   @@index([idUser])
   @@index([contract])
   @@index([idClientOrigin])
   @@map("business")
+}
+
+model AnnualPayment {
+  idAnnualPayment   Int                 @id @default(autoincrement()) @map("id_annual_payment")
+  idBusiness        Int                 @map("id_business")
+  installmentIndex Int                @map("installment_index")
+  status            AnnualPaymentStatus @default(SIN_FONDEAR)
+  dateAnchored      DateTime?           @map("date_anchored")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  business          Business            @relation(fields: [idBusiness], references: [idBusiness], onDelete: Cascade)
+
+  @@unique([idBusiness, installmentIndex])
+  @@index([idBusiness])
+  @@map("annual_payment")
 }
 
 // =====================================================

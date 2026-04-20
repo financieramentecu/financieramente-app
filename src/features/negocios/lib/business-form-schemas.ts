@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { BUSINESS_TERM_MAX } from '@/features/negocios/lib/business-term-limits'
+
 /**
  * Schemas y tipos para formularios de negocios
  */
@@ -35,7 +37,10 @@ export const businessFormSchema = z.object({
 	terms: z
 		.number()
 		.min(1, 'El plazo debe ser mayor a 0')
-		.max(1200, 'El plazo no puede ser mayor a 1200 meses'),
+		.max(
+			BUSINESS_TERM_MAX,
+			`El plazo no puede ser mayor a ${BUSINESS_TERM_MAX}`
+		),
 
 	// Información del negocio
 	currency: z.string().min(1, 'La moneda es obligatoria'),

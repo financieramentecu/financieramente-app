@@ -1,31 +1,35 @@
 schema: spec-driven
 
-# SDD artifact persistence: engram | openspec | hybrid | none
-# hybrid = persist to both Engram and OpenSpec (file artifacts)
 artifact_store:
   mode: hybrid
 
 context: |
-  Domain: Financieramente - A commission settlement platform for financial services.
-  Tech stack: Next.js 15 App Router, React 19, TypeScript 5, Prisma ORM, PostgreSQL 15, Zod, React Hook Form, Shadcn/UI, Tailwind CSS v4, NextAuth v5, Vitest, Playwright.
-
-  Architecture & Core Principles:
-  - Feature-Based Architecture: All code lives in `src/features/[feature-name]/` (components, hooks, lib, types, services, mappers, __tests__).
-  - Imports: Use path aliases (`@/`) for all module imports, NO relative paths (`../..`).
-  - SOLID & Clean Code: Single responsibility, small functions (< 50 lines, max 3 params), no static classes for business logic (use factory functions or plain functions).
-  - React Separation: Components handle UI only. Hooks handle logic, state, and side effects.
-  - Data Fetching: All React hooks fetching data MUST return `AsyncState<T>`. 
-  - Server Actions validate input (Zod) -> call Services. Services handle all Prisma queries.
-  - APIs return `ApiResponse<T>`. Protected routes check session.
-  - Client API calls use `apiClient` from `src/lib/api/client.ts`.
-  - UI/React: React 19 (no useMemo/useCallback). Pages are Server Components, interactive parts are Client Components.
-  - TypeScript: Fully typed, no `any` (use `unknown`), use `readonly` in interfaces.
-  - Process: Small incremental tasks, Test-Driven Development (TDD), min 80% coverage for business logic.
-  - Language: All technical artifacts (code, docs, commits) MUST be in English. GitHub issues MUST be in Spanish.
-  - Git: Use conventional commits.
+  Domain: Financieramente — commission settlement for coaches and operations (liquidación de comisiones).
+  Stack: Next.js 15 App Router, React 19, TypeScript 5, Prisma 6, PostgreSQL, Zod, React Hook Form, Tailwind CSS v4, NextAuth v5 (beta).
+  Data: prisma/schema.prisma, migrations, seeds under prisma/seeds/.
+  Testing: Vitest (unit + integration), Playwright E2E; ESLint 9 + Prettier; Husky.
+  Layout: Feature-based in src/features/<feature>/ (components, hooks, lib, types, services, mappers, __tests__).
+  Imports: Use path alias @/ only; avoid deep relative imports.
+  API: src/app/api/ route handlers; Server Actions validate with Zod; use ApiResponse<T> for JSON.
+  SDD: openspec/specs (baselines); openspec/changes/<change>/ (active); openspec/changes/archive/ (completed).
 
 rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
   tasks:
-    - Break tasks into small, focused baby steps, one at a time.
-    - Start with failing tests for any new functionality (TDD).
-    - Specify that changes should be incremental.
+    - Break tasks into small, focused steps; prefer TDD for new behavior
+    - Group by phase (infrastructure, implementation, testing); use numbering 1.1, 1.2
+  apply:
+    - Match existing patterns in src/features and src/app/api
+    - Use stack skills: nextjs-16, react-19, typescript, prisma-expert as needed
+  verify:
+    - Run npm test scripts when relevant; align with spec scenarios
+  archive:
+    - Warn before destructive deltas; sync delta specs to openspec/specs when appropriate
