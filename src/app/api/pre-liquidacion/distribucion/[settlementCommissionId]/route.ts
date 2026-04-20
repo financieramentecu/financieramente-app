@@ -4,8 +4,13 @@ import { UserRole } from '@/features/auth/lib/roles'
 import { obtenerDistribucionComision } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { RespuestaDistribucionComision } from '@/features/pre-liquidacion/types/types'
+import { prisma } from '@/lib/prisma'
+import {
+	canViewUserDistributions,
+	isHierarchyBypassRole,
+} from '@/features/auth/lib/hierarchy'
 
-const ALLOWED_ROLES: UserRole[] = [
+const BACKOFFICE_ROLES: UserRole[] = [
 	UserRole.ADMIN,
 	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 	UserRole.ANALISTA_SOPORTE,
@@ -29,12 +34,7 @@ export async function GET(
 		}
 
 		const role = session.user?.role as UserRole | undefined
-		if (!role || !ALLOWED_ROLES.includes(role)) {
-			return NextResponse.json(
-				{ data: null, error: 'Sin permisos para este recurso' },
-				{ status: 403 }
-			)
-		}
+		const viewerId = Number(session.user.id)
 
 		const params = await props.params
 		const settlementCommissionId = parseInt(params.settlementCommissionId, 10)
@@ -43,6 +43,40 @@ export async function GET(
 				{ data: null, error: 'ID de comisión inválido' },
 				{ status: 400 }
 			)
+		}
+
+		// Backoffice roles ven todo. El resto (coach/líder) sólo si el negocio
+		// tiene alguna distribución hacia ellos o hacia un subordinado suyo.
+		const isBackoffice = !!role && BACKOFFICE_ROLES.includes(role)
+		const bypasses = isHierarchyBypassRole(role ?? null)
+		if (!isBackoffice && !bypasses) {
+			const beneficiarios = await prisma.comissionDistribution.findMany({
+				where: {
+					idSettlementCommission: settlementCommissionId,
+				},
+				select: { idBeneficiaryUser: true },
+				distinct: ['idBeneficiaryUser'],
+			})
+			const beneficiarioIds = beneficiarios.map(
+				(b) => b.idBeneficiaryUser
+			)
+			if (beneficiarioIds.length === 0) {
+				return NextResponse.json(
+					{ data: null, error: 'Sin permisos para este recurso' },
+					{ status: 403 }
+				)
+			}
+			const checks = await Promise.all(
+				beneficiarioIds.map((id) =>
+					canViewUserDistributions(viewerId, id, role)
+				)
+			)
+			if (!checks.some(Boolean)) {
+				return NextResponse.json(
+					{ data: null, error: 'Sin permisos para este recurso' },
+					{ status: 403 }
+				)
+			}
 		}
 
 		const result = await obtenerDistribucionComision(settlementCommissionId)

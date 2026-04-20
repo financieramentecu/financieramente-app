@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, Calculator } from 'lucide-react'
+import { Eye, Calculator, Mail, Users } from 'lucide-react'
 import { ColumnDef } from '@tanstack/react-table'
 
 import { Button } from '@/features/shared/ui/button'
@@ -50,6 +50,35 @@ export function ListaArchivosDisponibles({
 					const count =
 						row.original.registrosPreliquidados || row.original.sincronizados
 					return <span>{count ?? 0} registros</span>
+				},
+			},
+			{
+				id: 'aprobaciones',
+				header: () => (
+					<div className="text-center inline-flex items-center gap-1">
+						<Users className="h-3.5 w-3.5" />
+						Aprob.
+					</div>
+				),
+				cell: ({ row }) => {
+					const total = row.original.totalBeneficiarios ?? 0
+					const aprobados = row.original.aprobaciones ?? 0
+					if (total === 0) {
+						return (
+							<div className="text-center text-xs text-muted-foreground">—</div>
+						)
+					}
+					const complete = aprobados >= total
+					return (
+						<div
+							className={`text-center text-xs font-medium tabular-nums ${
+								complete ? 'text-emerald-700' : 'text-amber-700'
+							}`}
+							title={`${aprobados} de ${total} beneficiarios aprobaron la pre-liquidación`}
+						>
+							{aprobados}/{total}
+						</div>
+					)
 				},
 			},
 			{
@@ -125,14 +154,17 @@ export function ListaArchivosDisponibles({
 									Pre-Liquidar
 								</Button>
 							)}
-							{archivo.estado === 'SETTLED' && (
+							{(archivo.estado === 'PRE-SETTLED' ||
+								archivo.estado === 'PRE-SETTLE-APROVED' ||
+								archivo.estado === 'SETTLED' ||
+								archivo.estado === 'COMPLETED') && (
 								<Button
 									variant="default"
 									size="sm"
 									onClick={() => onNotificar?.(archivo.idFileImport)}
 									className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white"
 								>
-									<Calculator className="h-4 w-4 mr-2" />
+									<Mail className="h-4 w-4 mr-2" />
 									Notificar
 								</Button>
 							)}

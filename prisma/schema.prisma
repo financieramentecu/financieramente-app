@@ -232,6 +232,7 @@ model User {
   subordinates    User[]           @relation("UserLeader")
   categoriesAsFixedBeneficiary Category[] @relation("CategoryFixedBeneficiary")
   comissionDistributionsAsBeneficiary ComissionDistribution[] @relation("BeneficiaryUser")
+  distributionApprovals               DistributionApproval[]
 
   // Relaciones recursivas y jerárquicas
   commissionDiscountsCreated CommissionDiscount[] @relation("DiscountCreatedBy")
@@ -291,6 +292,7 @@ model FileImport {
   user                  User                   @relation(fields: [idUser], references: [idUser])
   fileImportErrors      FileImportError[]
   settlementCommissions SettlementCommission[]
+  distributionApprovals DistributionApproval[]
 
   @@index([loadDate])
   @@index([status])
@@ -481,5 +483,29 @@ model FileImportError {
 
   @@index([idFileImport])
   @@map("file_import_error")
+}
+
+// =====================================================
+// APROBACIONES DE DISTRIBUCIÓN (PRE-LIQUIDACIÓN)
+// =====================================================
+
+/// Registra la aprobación ("Estoy de acuerdo") de un beneficiario (coach/líder)
+/// respecto de su distribución para un archivo de pre-liquidación. Una aprobación
+/// por usuario por archivo.
+model DistributionApproval {
+  idDistributionApproval Int      @id @default(autoincrement()) @map("id_distribution_approval")
+  idFileImport           Int      @map("id_file_import")
+  idUser                 Int      @map("id_user")
+  approvedAt             DateTime @default(now()) @map("approved_at")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  fileImport FileImport @relation(fields: [idFileImport], references: [idFileImport], onDelete: Cascade)
+  user       User       @relation(fields: [idUser], references: [idUser], onDelete: Cascade)
+
+  @@unique([idFileImport, idUser], map: "distribution_approval_file_user_key")
+  @@index([idFileImport])
+  @@index([idUser])
+  @@map("distribution_approval")
 }
 

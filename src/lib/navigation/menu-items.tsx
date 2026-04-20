@@ -16,6 +16,7 @@ import {
 	Sliders,
 	Percent,
 	PieChart,
+	Receipt,
 } from 'lucide-react'
 
 /**
@@ -64,6 +65,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				icon: <FileText className="h-4 w-4" />,
 			},
 		],
+	},
+	{
+		title: 'Mis distribuciones',
+		url: '/dashboard/mis-distribuciones',
+		icon: <Receipt className="h-4 w-4" />,
 	},
 	{
 		title: 'Reportes',

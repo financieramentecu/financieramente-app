@@ -1,6 +1,6 @@
 import type { Business, SettlementCommission } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidacion-resumen-notification'
+import { enviarNotificacionesPorArchivo } from './notificar-preliquidacion.service'
 import { Decimal } from '@prisma/client/runtime/library'
 import { Prisma } from '@prisma/client'
 import { computeLineDistributionAmounts } from '@/features/pre-liquidacion/lib/compute-line-distribution'
@@ -116,6 +116,42 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 		}
 	}
 
+	// Cuenta beneficiarios únicos y aprobaciones por archivo (para UI backoffice)
+	const approvalsByFile: Record<number, number> = {}
+	const beneficiariesByFile: Record<number, number> = {}
+	if (fileIds.length > 0) {
+		const [approvals, beneficiaries] = await Promise.all([
+			prisma.distributionApproval.groupBy({
+				by: ['idFileImport'],
+				where: { idFileImport: { in: fileIds } },
+				_count: { idUser: true },
+			}),
+			prisma.comissionDistribution.findMany({
+				where: {
+					settlementCommission: {
+						idFileImport: { in: fileIds },
+					},
+				},
+				select: {
+					idBeneficiaryUser: true,
+					settlementCommission: { select: { idFileImport: true } },
+				},
+			}),
+		])
+		for (const a of approvals) {
+			approvalsByFile[a.idFileImport] = a._count.idUser
+		}
+		const benefSet: Record<number, Set<number>> = {}
+		for (const d of beneficiaries) {
+			const fid = d.settlementCommission.idFileImport
+			if (!benefSet[fid]) benefSet[fid] = new Set<number>()
+			benefSet[fid].add(d.idBeneficiaryUser)
+		}
+		for (const fid of Object.keys(benefSet)) {
+			beneficiariesByFile[Number(fid)] = benefSet[Number(fid)].size
+		}
+	}
+
 	const archivos: ArchivoDisponible[] = todosArchivos.map((archivo) => {
 		const counts = countsMap[archivo.idFileImport] ?? {
 			sincronizados: 0,
@@ -137,6 +173,8 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 			rezagados: archivo.rezagadoRecord,
 			estado: archivo.status,
 			registrosPreliquidados: counts.registrosPreliquidados,
+			totalBeneficiarios: beneficiariesByFile[archivo.idFileImport] ?? 0,
+			aprobaciones: approvalsByFile[archivo.idFileImport] ?? 0,
 		}
 	})
 
@@ -933,6 +971,20 @@ export async function liquidarRegistros(
 			liquidated: result.count,
 			fileCompleted,
 		}
+	}).then(async (out) => {
+		// Fire-and-forget: enviar comprobante final de liquidación a beneficiarios.
+		if (out.liquidated > 0) {
+			enviarNotificacionesPorArchivo({
+				fileImportId: fileId,
+				kind: 'LIQUIDACION',
+			}).catch((err) => {
+				console.error(
+					'Error enviando comprobante final de liquidación:',
+					err
+				)
+			})
+		}
+		return out
 	})
 }
 
@@ -1701,39 +1753,20 @@ export async function procesarPreLiquidacion(
 			})
 		}
 
-		// Envío de correos con resumen por usuario (fire-and-forget: no bloquea la respuesta)
+		// Envío de correos con link al detalle (fire-and-forget: no bloquea la respuesta).
+		// Antes enviábamos un resumen tabular en el correo; ahora enviamos un
+		// link al recibo de distribución en la plataforma (ver
+		// `notificar-preliquidacion.service.ts`).
 		if (registrosProcesados > 0) {
-			obtenerResumenPreliquidacionPorUsuario(
+			enviarNotificacionesPorArchivo({
 				fileImportId,
-				rangoFecha,
-				fileImport.nameFile
-			)
-				.then((resumenes) => {
-					for (const r of resumenes) {
-						sendResumenPreliquidacionEmail({
-							to: r.email,
-							nombreUsuario: r.nombreUsuario,
-							archivoNombre: r.archivoNombre,
-							periodo: r.periodo,
-							filas: r.filas.map((f) => ({
-								nombreNegocio: f.nombreNegocio,
-								valorComision: f.valorComision,
-								categoriaConcepto: f.categoriaConcepto,
-							})),
-						}).catch((err) => {
-							console.error(
-								`Error enviando resumen pre-liquidación a ${r.email}:`,
-								err
-							)
-						})
-					}
-				})
-				.catch((err) => {
-					console.error(
-						'Error obteniendo resumen pre-liquidación para correos:',
-						err
-					)
-				})
+				kind: 'PRE_LIQUIDACION',
+			}).catch((err) => {
+				console.error(
+					'Error enviando notificaciones de pre-liquidación:',
+					err
+				)
+			})
 		}
 
 		const omitSuffix =
