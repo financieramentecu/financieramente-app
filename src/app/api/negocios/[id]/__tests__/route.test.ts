@@ -233,7 +233,6 @@ describe('PUT /api/negocios/[id]', () => {
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 
 		expect(res.status).toBe(200)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		expect(prisma.business.update).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: { idBusiness: 10 },

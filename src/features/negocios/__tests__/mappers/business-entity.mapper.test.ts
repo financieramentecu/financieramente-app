@@ -187,18 +187,33 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				_count: { annualPayments: 0 },
+				annualPayments: [],
 			})
 
 			expect(result.hasAnnualPayments).toBe(false)
+			expect(result.hasPendingAnnualFunding).toBe(false)
 		})
 
 		it('should map _count.annualPayments > 0 to hasAnnualPayments: true', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				_count: { annualPayments: 3 },
+				annualPayments: [{ idAnnualPayment: 1 }],
 			})
 
 			expect(result.hasAnnualPayments).toBe(true)
+			expect(result.hasPendingAnnualFunding).toBe(true)
+		})
+
+		it('should map hasPendingAnnualFunding false when no cuotas SIN_FONDEAR', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				_count: { annualPayments: 3 },
+				annualPayments: [],
+			})
+
+			expect(result.hasAnnualPayments).toBe(true)
+			expect(result.hasPendingAnnualFunding).toBe(false)
 		})
 	})
 })

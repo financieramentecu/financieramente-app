@@ -17,13 +17,18 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/features/shared/ui/tooltip'
-import { FONDEAR_ACTION_TOOLTIP } from '@/features/negocios/lib/fondear-action-copy'
+import {
+	FONDEAR_ACTION_TOOLTIP,
+	FONDEAR_ANNUAL_ACTION_TOOLTIP,
+	FONDEAR_ANNUAL_LABEL,
+} from '@/features/negocios/lib/fondear-action-copy'
 
 interface ActionCellProps {
 	businessId: number
 	businessStatus: BusinessStatus
 	userRole: UserRole
 	hasAnnualPayments: boolean
+	hasPendingAnnualFunding: boolean
 	onEdit?: (id: number) => void
 	onView?: (id: number) => void
 	onCancel?: (id: number) => void
@@ -68,6 +73,7 @@ export function ActionCell({
 	businessStatus,
 	userRole,
 	hasAnnualPayments,
+	hasPendingAnnualFunding,
 	onEdit,
 	onView,
 	onCancel,
@@ -88,10 +94,25 @@ export function ActionCell({
 		CANCEL_ALLOWED_ROLES.includes(userRole) &&
 		CANCELABLE_STATUSES.includes(businessStatus)
 
-	const canFondear =
-		businessStatus === BUSINESS_STATUS.EMITIDO &&
+	const showFondearDirect =
 		!hasAnnualPayments &&
-		FONDEAR_ALLOWED_ROLES.includes(userRole)
+		businessStatus === BUSINESS_STATUS.EMITIDO
+	const showFondearAnnual =
+		hasAnnualPayments &&
+		hasPendingAnnualFunding &&
+		(businessStatus === BUSINESS_STATUS.EMITIDO ||
+			businessStatus === BUSINESS_STATUS.FONDEADO)
+
+	const canFondear =
+		FONDEAR_ALLOWED_ROLES.includes(userRole) &&
+		(showFondearDirect || showFondearAnnual)
+
+	const fondearButtonLabel = showFondearAnnual
+		? FONDEAR_ANNUAL_LABEL
+		: 'Fondear'
+	const fondearTooltip = showFondearAnnual
+		? FONDEAR_ANNUAL_ACTION_TOOLTIP
+		: FONDEAR_ACTION_TOOLTIP
 
 	return (
 		<TooltipProvider>
@@ -134,7 +155,7 @@ export function ActionCell({
 					</TooltipContent>
 				</Tooltip>
 
-				{/* Botón Fondear - Solo EMITIDO sin anualidades y rol autorizado */}
+				{/* Botón Fondear — directo sin cuotas anuales o flujo anual */}
 				{canFondear && (
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -146,12 +167,12 @@ export function ActionCell({
 							>
 								<Coins className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
 								<span className="text-xs font-medium whitespace-nowrap">
-									Fondear
+									{fondearButtonLabel}
 								</span>
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="top" className="max-w-xs">
-							<p>{FONDEAR_ACTION_TOOLTIP}</p>
+							<p>{fondearTooltip}</p>
 						</TooltipContent>
 					</Tooltip>
 				)}

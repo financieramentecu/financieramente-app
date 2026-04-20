@@ -5,6 +5,16 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.10] - 2026-04-18
+
+### Añadido
+
+- **Negocios – Fondeo por cuotas anuales:** Si el negocio tiene **anualidades** con al menos una cuota **sin fondear**, en el listado aparece **Fondear anualidad** (también cuando el padre ya está **Fondeado** y aún quedan cuotas pendientes). El **modal** muestra el **contrato en el título**, lista **todas las cuotas**, las ya fondeadas con **fecha de anclaje**, y permite elegir cuotas pendientes antes de confirmar. La confirmación usa una **API dedicada** para anualidades y queda **auditada**. El botón **Fondear** directo solo aplica cuando **no hay filas de anualidad**; si existen, el fondeo general por la ruta antigua queda **bloqueado** para evitar inconsistencias.
+
+### Documentación / Interno
+
+- **OpenSpec:** Requisitos HU4 de fondeo por anualidades incorporados al spec `negocios`; change **hu4-fondeo-anualidades** archivado (`openspec/changes/archive/2026-04-18-2026-04-18-hu4-fondeo-anualidades/`) con informe de verificación.
+
 ## [1.0.0-beta.9] - 2026-04-18
 
 ### Añadido

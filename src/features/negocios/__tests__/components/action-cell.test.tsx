@@ -10,6 +10,7 @@ describe('ActionCell', () => {
 		businessStatus: BUSINESS_STATUS.VENTA_EFECTUADA,
 		userRole: UserRole.ADMIN,
 		hasAnnualPayments: false,
+		hasPendingAnnualFunding: false,
 		onEdit: vi.fn(),
 		onView: vi.fn(),
 		onCancel: vi.fn(),
@@ -187,13 +188,31 @@ describe('ActionCell', () => {
 			).not.toBeInTheDocument()
 		})
 
-		it('should NOT show Fondear button for EMITIDO + hasAnnualPayments: true', () => {
+		it('should show Fondear button for EMITIDO + anual con cuotas pendientes', () => {
 			render(
 				<ActionCell
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.EMITIDO}
 					userRole={UserRole.ADMIN}
 					hasAnnualPayments={true}
+					hasPendingAnnualFunding={true}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: 'Fondear anualidad' })
+			).toBeInTheDocument()
+		})
+
+		it('should NOT show Fondear for EMITIDO + anual sin cuotas pendientes', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.ADMIN}
+					hasAnnualPayments={true}
+					hasPendingAnnualFunding={false}
 					onFondear={vi.fn()}
 				/>
 			)
@@ -201,6 +220,23 @@ describe('ActionCell', () => {
 			expect(
 				screen.queryByRole('button', { name: /Fondear/i })
 			).not.toBeInTheDocument()
+		})
+
+		it('should show Fondear for FONDEADO + anual con cuotas pendientes', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.FONDEADO}
+					userRole={UserRole.ADMIN}
+					hasAnnualPayments={true}
+					hasPendingAnnualFunding={true}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: 'Fondear anualidad' })
+			).toBeInTheDocument()
 		})
 
 		it('should NOT show Fondear button for ANALISTA_SOPORTE role', () => {
@@ -231,7 +267,7 @@ describe('ActionCell', () => {
 			)
 
 			expect(
-				screen.getByRole('button', { name: /Fondear/i })
+				screen.getByRole('button', { name: 'Fondear' })
 			).toBeInTheDocument()
 		})
 

@@ -28,7 +28,11 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/features/shared/ui/tooltip'
-import { FONDEAR_ACTION_TOOLTIP } from '@/features/negocios/lib/fondear-action-copy'
+import {
+	FONDEAR_ACTION_TOOLTIP,
+	FONDEAR_ANNUAL_ACTION_TOOLTIP,
+	FONDEAR_ANNUAL_LABEL,
+} from '@/features/negocios/lib/fondear-action-copy'
 import {
 	BUSINESS_STATUS,
 	type BusinessStatus,
@@ -343,8 +347,24 @@ export function BusinessTableSection({
 							userRole === UserRole.ADMIN ||
 							userRole === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
 							userRole === UserRole.AGENTE
+						const isFondeado = row.status === 'Fondeado'
+						const showFondearDirect =
+							isEmitido &&
+							!row.hasAnnualPayments
+						const showFondearAnnual =
+							row.hasAnnualPayments &&
+							row.hasPendingAnnualFunding &&
+							(isEmitido || isFondeado)
 						const isFondeable =
-							isEmitido && !row.hasAnnualPayments && canFondearRole
+							canFondearRole &&
+							(showFondearDirect || showFondearAnnual)
+
+						const fondearToolbarLabel = showFondearAnnual
+							? FONDEAR_ANNUAL_LABEL
+							: 'Fondear'
+						const fondearToolbarTooltip = showFondearAnnual
+							? FONDEAR_ANNUAL_ACTION_TOOLTIP
+							: FONDEAR_ACTION_TOOLTIP
 
 						return (
 							<div
@@ -387,12 +407,12 @@ export function BusinessTableSection({
 											>
 												<Coins className="h-4 w-4 shrink-0" aria-hidden />
 												<span className="text-xs font-medium whitespace-nowrap">
-													Fondear
+													{fondearToolbarLabel}
 												</span>
 											</Button>
 										</TooltipTrigger>
 										<TooltipContent side="top" className="max-w-xs">
-											<p>{FONDEAR_ACTION_TOOLTIP}</p>
+											<p>{fondearToolbarTooltip}</p>
 										</TooltipContent>
 									</Tooltip>
 								)}

@@ -6,12 +6,14 @@
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { BusinessEntity } from '../types/business-entity.types'
 import type {
+	AnnualPaymentsResponse,
 	BusinessListResponse,
 	BusinessStatsResponse,
 	ContractValidationResponse,
 	UpdateBusinessRequest,
 	CancelBusinessRequest,
 	BusinessListParams,
+	FondearAnualidadesRequest,
 } from '../types/business-api.types'
 
 /**
@@ -142,6 +144,38 @@ export const businessService = {
 		} catch (error) {
 			console.error('Error al fondear negocio:', error)
 			return { data: null, error: 'Error al fondear el negocio' }
+		}
+	},
+
+	async getAnnualPayments(
+		id: number
+	): Promise<ApiResponse<AnnualPaymentsResponse>> {
+		try {
+			const response = await fetch(`${BASE_URL}/${id}/annual-payments`)
+			return await response.json()
+		} catch (error) {
+			console.error('Error al obtener anualidades:', error)
+			return { data: null, error: 'Error al obtener las anualidades' }
+		}
+	},
+
+	async fondearAnualidades(
+		id: number,
+		body: FondearAnualidadesRequest
+	): Promise<ApiResponse<BusinessEntity>> {
+		try {
+			const response = await fetch(
+				`${BASE_URL}/${id}/fondear-anualidades`,
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(body),
+				}
+			)
+			return await response.json()
+		} catch (error) {
+			console.error('Error al fondear anualidades:', error)
+			return { data: null, error: 'Error al fondear las anualidades' }
 		}
 	},
 
