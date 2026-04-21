@@ -5,6 +5,22 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.12] - 2026-04-21
+
+### Añadido
+
+- **Negocios – Estado Liquidado:** En el **listado principal** ves el estado **Liquidado** con la **misma presentación** que en el detalle (modal), gracias al badge compartido. El filtro de estado incluye **Liquidado**; la opción heredada **Comisionando** **no** aparece en el desplegable renovado (si la API aún devuelve ese valor legacy, la fila sigue mostrando un **indicador de estado** sin quedar en blanco).
+
+### Mejorado
+
+- **Listado de negocios:** La columna de creación se llama **Fecha creación** para distinguirla de emisión y fondeo; el mapeo desde la API evita etiquetar por error como **Cancelado** estados válidos o aún no contemplados en la UI.
+- **Liquidación de comisiones:** Los negocios vinculados pasan a **Liquidado** solo cuando ya estaban **Fondeados**, en línea con el flujo **Emitido → Fondeado → Liquidado** (no se promueve desde **Emitido** en ese paso).
+
+### Documentación / Interno
+
+- **Base de datos:** Migración Prisma que alinea el valor legacy **COMISIONANDO** con **LIQUIDADO** en el enum de estado del negocio; en cada entorno aplicar **`prisma migrate deploy`** antes de usar esta versión en producción.
+- **OpenSpec:** Specs principales `negocios` y `pre-liquidacion` actualizados; change **2026-04-20-h6-listado-negocios-mejorado** archivado (`openspec/changes/archive/2026-04-21-2026-04-20-h6-listado-negocios-mejorado/`) con verificación y reporte de archivo.
+
 ## [1.0.0-beta.11] - 2026-04-18
 
 ### Añadido
