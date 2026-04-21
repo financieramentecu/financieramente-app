@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { headers } from 'next/headers'
 import { getRedirectUrlByRole } from '@/lib/navigation/menu-builder'
 import { UserRole } from '@/features/auth/lib/roles'
+import { isE2ETestAuthAllowed } from '@/lib/auth/test-auth'
 
 /**
  * Página de Dashboard (Ruta Privada)
@@ -13,17 +14,16 @@ import { UserRole } from '@/features/auth/lib/roles'
  * - Usuarios inactivos o con rol DEFAULT → /access-denied
  */
 export default async function DashboardPage() {
-	// En modo de prueba, permitir acceso sin verificar auth
+	// E2E bypass: sólo en NODE_ENV=test con E2E_TEST_AUTH_TOKEN válido.
 	let isTestAuth = false
 	try {
 		const headersList = await headers()
-		isTestAuth = headersList.get('x-test-auth') === 'true'
+		isTestAuth = isE2ETestAuthAllowed((name) => headersList.get(name))
 	} catch {
 		// headers() no está disponible
 	}
 
-	if (process.env.NODE_ENV !== 'production' && isTestAuth) {
-		// En modo de prueba, redirigir a negocios directamente
+	if (isTestAuth) {
 		redirect('/dashboard/negocios')
 		return
 	}

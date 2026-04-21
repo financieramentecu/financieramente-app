@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth/nextauth'
+import { requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import { Prisma } from '@prisma/client'
 
 /**
@@ -12,21 +13,13 @@ import { Prisma } from '@prisma/client'
  * - search: búsqueda por nombre o email
  */
 export async function GET(request: Request) {
+	// Requiere sesión + rol ADMIN.
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
-		// Verificar autenticación
-		const session = await auth()
-		if (!session?.user) {
-			return NextResponse.json(
-				{ success: false, error: 'No autorizado' },
-				{ status: 401 }
-			)
-		}
-
-		// TODO: Verificar permisos de administración
-		// if (!hasAdminPermission(session.user)) {
-		//   return NextResponse.json({ success: false, error: 'Sin permisos' }, { status: 403 })
-		// }
-
 		const { searchParams } = new URL(request.url)
 		const status = searchParams.get('status') // 'active' | 'inactive' | null
 		const roleCode = searchParams.get('role')

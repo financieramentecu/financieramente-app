@@ -5,8 +5,14 @@ import { isValidRole, UserRole } from '@/features/auth/lib/roles'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { Prisma } from '@prisma/client'
 import { UserWithRole } from '@/features/negocios/types/business.types'
+import { requireAuth } from '@/lib/auth/require-role'
 
 export async function GET(request: Request) {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { searchParams } = new URL(request.url)
 		const query = searchParams.get('query')?.trim() ?? ''

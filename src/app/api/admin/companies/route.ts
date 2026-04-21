@@ -8,7 +8,8 @@ import type {
 } from '@/features/company/types/company.types'
 import { prismaCompanyToCompany } from '@/features/company/mappers/company.mapper'
 import { z } from 'zod'
-import { auth } from '@/auth'
+import { requireAuth, requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -21,6 +22,11 @@ import {
  * Lists companies with pagination and search
  */
 export async function GET(request: Request) {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { searchParams } = new URL(request.url)
 		const search = searchParams.get('search')
@@ -80,16 +86,13 @@ export async function GET(request: Request) {
  * Creates a new company
  */
 export async function POST(request: Request) {
-	try {
-		const session = await auth()
-		if (!session?.user) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'No autorizado',
-			}
-			return NextResponse.json(errorResponse, { status: 401 })
-		}
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+	const { session } = guard
 
+	try {
 		const body = await request.json()
 		const data = createCompanySchema.parse(body)
 
