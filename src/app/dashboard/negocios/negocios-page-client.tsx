@@ -24,7 +24,7 @@ import type {
 	BusinessListParams,
 	NegociosExportBody,
 } from '@/features/negocios/types/business-api.types'
-import { BUSINESS_STATUS } from '@/features/negocios/types/business-status.types'
+import { mapBusinessToTableRow } from '@/features/negocios/lib/map-business-to-table-row'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { PiggyBank } from 'lucide-react'
 import { toast } from 'sonner'
@@ -419,41 +419,7 @@ export function NegociosPageClient({
 
 	// Convertir BusinessEntity[] a Business[] para compatibilidad con componentes existentes
 	const businessDataForTable: Business[] = useMemo(
-		() =>
-			businesses.map((b) => ({
-				id: String(b.id),
-				identification: b.client.identityNumber,
-				clientName: b.client.fullName,
-				contract: b.contract || '-',
-				user: {
-					avatar: '',
-					name: b.agent.fullName,
-				},
-				email: b.client.email || '',
-				termPeriod: `${b.term || 0}/${b.periodicity?.name || ''}`,
-				term: b.term,
-				periodicityName: b.periodicity?.name ?? null,
-				dateIssued: b.dateIssued,
-				dateAnchored: b.dateAnchored,
-				date: b.createdAt,
-				value: b.value,
-				product: b.product.name,
-				companyName: b.product.companyName,
-				clientOriginName: b.clientOrigin.name,
-				status:
-					b.status === BUSINESS_STATUS.EMITIDO
-						? 'Emitido'
-						: b.status === BUSINESS_STATUS.VENTA_EFECTUADA
-							? 'Venta Efectuado'
-							: b.status === BUSINESS_STATUS.COMISIONANDO
-								? 'Comisionando'
-								: b.status === BUSINESS_STATUS.FONDEADO
-									? 'Fondeado'
-									: 'Cancelado',
-				hasAnnualPayments: b.hasAnnualPayments,
-				hasPendingAnnualFunding: b.hasPendingAnnualFunding,
-				currency: b.currency,
-			})),
+		() => businesses.map(mapBusinessToTableRow),
 		[businesses]
 	)
 

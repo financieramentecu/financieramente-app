@@ -69,39 +69,107 @@ The system MUST accept `COMISIONANDO` in types, API validation, and filters.
 
 ---
 
-### Requirement: Liquidar sets EMITIDO to COMISIONANDO
+### Requirement: Liquidación advances linked negocio from FONDEADO to LIQUIDADO
 
-Liquidar MUST set linked businesses from `EMITIDO` to `COMISIONANDO` only; other statuses unchanged.
+When commission liquidation (Liquidar) completes settlement for linked businesses, the system MUST set a linked business to `LIQUIDADO` only if its current status is `FONDEADO`. The system MUST NOT promote from `EMITIDO` directly to `LIQUIDADO` in this settlement step. The canonical lifecycle is **`EMITIDO` → `FONDEADO` → `LIQUIDADO`**.
 
-#### Scenario: EMITIDO promoted
+#### Scenario: Fondeado becomes liquidado after settle
 
-- GIVEN linked business `EMITIDO`
-- WHEN Liquidar completes
-- THEN status SHALL be `COMISIONANDO`
+- **GIVEN** a business linked to the settled commissions with `status` `FONDEADO`
+- **WHEN** the settlement transaction applies the business status update
+- **THEN** that business MUST end with `status` `LIQUIDADO`
 
-#### Scenario: Not EMITIDO
+#### Scenario: Emitido unchanged by settle
 
-- GIVEN linked business not `EMITIDO`
-- WHEN Liquidar completes
-- THEN status SHALL be unchanged
-
-#### Scenario: Idempotent COMISIONANDO
-
-- GIVEN business already `COMISIONANDO`
-- WHEN Liquidar completes again
-- THEN status SHALL remain `COMISIONANDO`
+- **GIVEN** a business with `status` `EMITIDO` (not yet fondeado)
+- **WHEN** the same settlement flow runs its business update
+- **THEN** that business MUST remain `EMITIDO` (the conditional update MUST NOT match it)
 
 ---
 
 ### Requirement: COMISIONANDO in business list UI
 
-The system SHOULD show a `COMISIONANDO` badge in business lists.
+Until legacy data is migrated, the system SHOULD still indicate `COMISIONANDO` when the API returns that status so rows are not blank. The renewed status filter MUST NOT offer `COMISIONANDO` as a filter option (see **Renewed list status filter options**).
 
-#### Scenario: Badge visible
+(Previously: The system SHOULD show a `COMISIONANDO` badge in business lists.)
 
-- GIVEN row with `COMISIONANDO`
-- WHEN rendered
-- THEN a status indicator SHALL appear
+#### Scenario: Legacy COMISIONANDO row
+
+- **GIVEN** API returns `COMISIONANDO` before migration completes
+- **WHEN** the principal list renders the row
+- **THEN** a status indicator MUST appear
+
+---
+
+### Requirement: LIQUIDADO visible in principal business list
+
+The system MUST present `LIQUIDADO` as its own status when the canonical business list API returns that status. In the product lifecycle, `LIQUIDADO` is the terminal state after **`EMITIDO` → `FONDEADO` → `LIQUIDADO`**; commission settlement MUST only promote businesses already in **`FONDEADO`** to `LIQUIDADO` (see **pre-liquidación** spec: settlement business status).
+
+#### Scenario: Distinct from other terminals
+
+- **GIVEN** a business whose API status is `LIQUIDADO`
+- **WHEN** the principal list renders the row
+- **THEN** the status MUST NOT be shown as `CANCELADO`, `EMITIDO`, or `FONDEADO`
+
+---
+
+### Requirement: Renewed list status filter options
+
+The principal business-list status filter MUST include `LIQUIDADO` as a selectable value. The filter MUST NOT include `COMISIONANDO` as a selectable value.
+
+#### Scenario: LIQUIDADO selectable
+
+- **GIVEN** the user opens the status filter on the principal list
+- **WHEN** they inspect the options
+- **THEN** a choice corresponding to `LIQUIDADO` MUST be available
+
+#### Scenario: COMISIONANDO not in filter
+
+- **GIVEN** the user opens the status filter on the principal list
+- **WHEN** they inspect the options
+- **THEN** `COMISIONANDO` MUST NOT appear as a filter choice
+
+---
+
+### Requirement: Accurate canceled presentation in list
+
+For rows backed by canonical list API data, the system MUST NOT show the business as canceled unless the API status is `CANCELADO`.
+
+#### Scenario: Non-canceled API status
+
+- **GIVEN** API status is not `CANCELADO`
+- **WHEN** the row is rendered in the principal list
+- **THEN** the status MUST NOT read as canceled
+
+#### Scenario: Unknown or unmapped status
+
+- **GIVEN** API returns a status value not yet mapped to a presentation label
+- **WHEN** the row is rendered
+- **THEN** the system MUST NOT label it as `Cancelado` by default
+
+---
+
+### Requirement: Creation date column header
+
+The column that shows business creation time on the principal list MUST use a header that clearly denotes creation (equivalent to «Fecha creación»), not a generic single-word date header alone.
+
+#### Scenario: Header wording
+
+- **GIVEN** the principal business list table is visible
+- **WHEN** column headers render
+- **THEN** the creation-time column header MUST convey “creation” explicitly
+
+---
+
+### Requirement: Status presentation parity list and detail
+
+For the same API status code, the principal list and business detail/modal views MUST use the same status labeling semantics (same human-readable label for that code).
+
+#### Scenario: Same code, same label
+
+- **GIVEN** the same API status code on a list row and on the detail/modal view
+- **WHEN** both surfaces render
+- **THEN** the visible status label MUST match between them
 
 ---
 

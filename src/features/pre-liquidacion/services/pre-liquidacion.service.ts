@@ -803,8 +803,8 @@ async function applyClawbacksForSettlement(
 }
 
 /**
- * Transitions businesses from EMITIDO to COMISIONANDO within a settlement transaction.
- * Only affects businesses currently in EMITIDO status (idempotent for others).
+ * Transitions businesses from FONDEADO to LIQUIDADO within a settlement transaction.
+ * Only affects businesses currently in FONDEADO (flow EMITIDO → FONDEADO → LIQUIDADO).
  */
 async function updateBusinessStatusOnSettle(
 	tx: PrismaTx,
@@ -815,10 +815,10 @@ async function updateBusinessStatusOnSettle(
 	await tx.business.updateMany({
 		where: {
 			idBusiness: { in: businessIds },
-			status: 'EMITIDO',
+			status: 'FONDEADO',
 		},
 		data: {
-			status: 'COMISIONANDO',
+			status: 'LIQUIDADO',
 			updatedAt: new Date(),
 		},
 	})
@@ -869,7 +869,7 @@ async function checkAndSetFileImportStatus(
  *   - Updates settlement_commission: status=SETTLED, settledDate=now()
  *   - Updates all linked comission_distribution rows: status=SETTLED
  *   - Applies clawbacks for POLIZA commissions (appliedDate, state=APPLIED, reason append, balance upsert)
- *   - Transitions linked businesses from EMITIDO to COMISIONANDO
+ *   - Transitions linked businesses from FONDEADO to LIQUIDADO
  *   - Sets FileImport.status=COMPLETED only when no SYNCHRONIZED and no PRE-SETTLED remain for the file
  */
 export async function liquidarRegistros(
@@ -916,7 +916,7 @@ export async function liquidarRegistros(
 		// 4. Apply clawbacks for POLIZA commissions
 		await applyClawbacksForSettlement(tx, commissions)
 
-		// 5. Transition linked businesses from EMITIDO to COMISIONANDO
+		// 5. Transition linked businesses from FONDEADO to LIQUIDADO
 		const businessIds = [
 			...new Set(
 				commissions
