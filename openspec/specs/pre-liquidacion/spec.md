@@ -694,21 +694,21 @@ For POLIZA flows with persisted pre-liquidación clawbacks, the system MUST appl
 
 ---
 
-### Requirement: Linked business becomes COMISIONANDO only from EMITIDO (pre-liquidación Liquidar)
+### Requirement: Settlement promotes only FONDEADO businesses to LIQUIDADO
 
-Liquidar MUST promote linked businesses from `EMITIDO` to `COMISIONANDO` only; other statuses MUST NOT change.
+The canonical business status flow is **`EMITIDO` → `FONDEADO` → `LIQUIDADO`**. When commission settlement completes, the system MUST set a linked business to `LIQUIDADO` only if its current status is **`FONDEADO`**. The system MUST NOT promote from `EMITIDO` directly to `LIQUIDADO` in that settlement step.
 
-#### Scenario: EMITIDO promoted
+#### Scenario: Fondeado becomes liquidado after settle
 
-- GIVEN a business linked to a settled commission with `status=EMITIDO`
-- WHEN Liquidar completes
-- THEN that business SHALL have `status=COMISIONANDO`
+- **GIVEN** a business linked to the settled commissions with `status` `FONDEADO`
+- **WHEN** the settlement transaction applies the business status update
+- **THEN** that business MUST end with `status` `LIQUIDADO`
 
-#### Scenario: Already COMISIONANDO
+#### Scenario: Emitido unchanged by settle
 
-- GIVEN the linked business has `status=COMISIONANDO`
-- WHEN Liquidar completes
-- THEN that business SHALL stay `COMISIONANDO` without redundant update
+- **GIVEN** a business with `status` `EMITIDO` (not yet fondeado)
+- **WHEN** the same settlement flow runs its business update
+- **THEN** that business MUST remain `EMITIDO` (the conditional update MUST NOT match it)
 
 ---
 

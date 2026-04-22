@@ -13,7 +13,7 @@
 export const BUSINESS_STATUS = {
 	VENTA_EFECTUADA: 'VENTA_EFECTUADA',
 	EMITIDO: 'EMITIDO',
-	COMISIONANDO: 'COMISIONANDO',
+	LIQUIDADO: 'LIQUIDADO',
 	CANCELADO: 'CANCELADO',
 	FONDEADO: 'FONDEADO',
 } as const
@@ -48,6 +48,7 @@ export interface AgentInfo {
 	readonly id: number
 	fullName: string
 	roleName: string | null
+	categoryName: string | null
 	email: string
 	phone: string | null
 }

@@ -10,7 +10,6 @@ import {
 	AvatarFallback,
 	AvatarImage,
 } from '@/features/shared/ui/avatar'
-import { Badge } from '@/features/shared/ui/badge'
 import {
 	Select,
 	SelectContent,
@@ -46,6 +45,7 @@ import {
 	BUSINESS_STATUS,
 	type BusinessStatus,
 } from '@/features/negocios/types/business-entity.types'
+import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
 import { cn } from '@/lib/utils'
 
 /** Valor sentinela del Select para “todos los estados” (Radix no admite value vacío). */
@@ -54,7 +54,7 @@ const LIST_STATUS_FILTER_ALL = '__all__'
 const LIST_STATUS_OPTIONS: { value: BusinessStatus; label: string }[] = [
 	{ value: BUSINESS_STATUS.VENTA_EFECTUADA, label: 'Venta efectuada' },
 	{ value: BUSINESS_STATUS.EMITIDO, label: 'Emitido' },
-	{ value: BUSINESS_STATUS.COMISIONANDO, label: 'Comisionando' },
+	{ value: BUSINESS_STATUS.LIQUIDADO, label: 'Liquidado' },
 	{ value: BUSINESS_STATUS.CANCELADO, label: 'Cancelado' },
 	{ value: BUSINESS_STATUS.FONDEADO, label: 'Fondeado' },
 ]
@@ -131,83 +131,7 @@ export function BusinessTableSection({
 		return formatDate(iso)
 	}
 
-	const getStatusBadge = (status: string) => {
-		if (status === 'Venta Efectuado') {
-			return (
-				<Badge
-					variant="default"
-					className="bg-orange-100 text-orange-800 border-orange-200 truncate"
-				>
-					{status}
-				</Badge>
-			)
-		}
-
-		if (status === 'Emitido') {
-			return (
-				<Badge
-					variant="default"
-					className="bg-emerald-100 text-emerald-800 border-emerald-200 truncate"
-				>
-					{status}
-				</Badge>
-			)
-		}
-
-		if (status === 'Comisionando') {
-			return (
-				<Badge
-					variant="default"
-					className="bg-blue-100 text-blue-800 border-blue-200 truncate"
-				>
-					{status}
-				</Badge>
-			)
-		}
-
-		if (status === 'Cancelado') {
-			return (
-				<Badge
-					variant="default"
-					className="bg-red-100 text-red-800 border-red-200 truncate"
-				>
-					{status}
-				</Badge>
-			)
-		}
-
-		if (status === 'Fondeado') {
-			return (
-				<Badge
-					variant="default"
-					className="bg-indigo-100 text-indigo-800 border-indigo-200 truncate"
-				>
-					{status}
-				</Badge>
-			)
-		}
-
-		// Fallback para estados desconocidos
-		return (
-			<Badge
-				variant="secondary"
-				className="bg-secondary/10 text-secondary-foreground border-secondary/20 truncate"
-			>
-				{status}
-			</Badge>
-		)
-	}
-
 	const columns: ColumnDef<Business>[] = [
-		{
-			accessorKey: 'id',
-			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="# Negocio" />
-			),
-			cell: ({ row }) => (
-				<span className="font-medium">#{row.original.id}</span>
-			),
-		},
 		{
 			accessorKey: 'clientName',
 			header: ({ column }) => (
@@ -227,29 +151,6 @@ export function BusinessTableSection({
 			),
 		},
 		{
-			accessorKey: 'user',
-			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Agente" />
-			),
-			cell: ({ row }) => {
-				const userData = row.original.user
-				return (
-					<div className="flex items-center gap-3">
-						<Avatar className="h-8 w-8">
-							<AvatarImage src={userData.avatar} alt={userData.name} />
-							<AvatarFallback>
-								{userData.name
-									.split(' ')
-									.map((n: string) => n[0])
-									.join('')}
-							</AvatarFallback>
-						</Avatar>
-						<span className="font-medium">{userData.name}</span>
-					</div>
-				)
-			},
-		},
-		{
 			accessorKey: 'contract',
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Contrato" />
@@ -264,6 +165,53 @@ export function BusinessTableSection({
 					</span>
 				)
 			},
+		},
+		{
+			accessorKey: 'status',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Estado" />
+			),
+			cell: ({ row }) => (
+				<BusinessStatusBadge status={row.original.statusCode} />
+			),
+		},
+		{
+			accessorKey: 'user',
+			size: 220,
+			minSize: 180,
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Agente" />
+			),
+			cell: ({ row }) => {
+				const userData = row.original.user
+				return (
+					<div className="flex min-w-0 items-center gap-3">
+						<Avatar className="h-8 w-8">
+							<AvatarImage src={userData.avatar} alt={userData.name} />
+							<AvatarFallback className="bg-[#11525B]/18 text-[#11525B] ring-1 ring-[#11525B]/35 text-[11px] font-semibold">
+								{userData.name
+									.split(' ')
+									.map((n: string) => n[0])
+									.join('')}
+							</AvatarFallback>
+						</Avatar>
+						<span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis text-[#11525B]">
+							{userData.name}
+						</span>
+					</div>
+				)
+			},
+		},
+		{
+			id: 'agentCategory',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Categoría agente" />
+			),
+			cell: ({ row }) => (
+				<span className={row.original.user.categoryName ? '' : 'text-muted-foreground'}>
+					{row.original.user.categoryName ?? '—'}
+				</span>
+			),
 		},
 		{
 			accessorKey: 'companyName',
@@ -288,43 +236,6 @@ export function BusinessTableSection({
 			),
 			cell: ({ row }) => (
 				<span className="font-medium">{row.original.clientOriginName}</span>
-			),
-		},
-		{
-			accessorKey: 'date',
-			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Fecha" />
-			),
-			cell: ({ row }) => formatDate(row.getValue('date')),
-		},
-		{
-			accessorKey: 'dateAnchored',
-			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Fecha fondeo" />
-			),
-			cell: ({ row }) => (
-				<span
-					className={
-						row.original.dateAnchored ? '' : 'text-muted-foreground'
-					}
-				>
-					{formatOptionalDate(row.original.dateAnchored)}
-				</span>
-			),
-		},
-		{
-			accessorKey: 'dateIssued',
-			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Fecha emisión" />
-			),
-			cell: ({ row }) => (
-				<span
-					className={
-						row.original.dateIssued ? '' : 'text-muted-foreground'
-					}
-				>
-					{formatOptionalDate(row.original.dateIssued)}
-				</span>
 			),
 		},
 		{
@@ -367,11 +278,43 @@ export function BusinessTableSection({
 			),
 		},
 		{
-			accessorKey: 'status',
+			accessorKey: 'dateIssued',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Estado" />
+				<DataTableColumnHeader column={column} title="Fecha emisión" />
 			),
-			cell: ({ row }) => getStatusBadge(row.getValue('status')),
+			cell: ({ row }) => (
+				<span
+					className={
+						row.original.dateIssued ? '' : 'text-muted-foreground'
+					}
+				>
+					{formatOptionalDate(row.original.dateIssued)}
+				</span>
+			),
+		},
+		{
+			accessorKey: 'dateAnchored',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Fecha fondeo" />
+			),
+			cell: ({ row }) => (
+				<span
+					className={
+						row.original.dateAnchored ? '' : 'text-muted-foreground'
+					}
+				>
+					{formatOptionalDate(row.original.dateAnchored)}
+				</span>
+			),
+		},
+		{
+			accessorKey: 'date',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Fecha creación" />
+			),
+			cell: ({ row }) => (
+				<span>{formatDate(row.getValue('date'))}</span>
+			),
 		},
 	]
 
@@ -509,20 +452,20 @@ export function BusinessTableSection({
 							: undefined
 					}
 					actions={(row) => {
-						const isVentaEfectuado = row.status === 'Venta Efectuado'
-						const isEmitido = row.status === 'Emitido'
+						const isVentaEfectuado =
+							row.statusCode === BUSINESS_STATUS.VENTA_EFECTUADA
+						const isEmitido = row.statusCode === BUSINESS_STATUS.EMITIDO
 						const canEditEmitido =
 							isEmitido &&
 							userRole !== undefined &&
 							canEditContractWhenBusinessEmitido(userRole)
 						const isEditable = isVentaEfectuado || canEditEmitido
-						const isCancelable =
-							row.status === 'Venta Efectuado' || row.status === 'Emitido'
+						const isCancelable = isVentaEfectuado || isEmitido
 						const canFondearRole =
 							userRole === UserRole.ADMIN ||
 							userRole === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
 							userRole === UserRole.AGENTE
-						const isFondeado = row.status === 'Fondeado'
+						const isFondeado = row.statusCode === BUSINESS_STATUS.FONDEADO
 						const showFondearDirect =
 							isEmitido &&
 							!row.hasAnnualPayments

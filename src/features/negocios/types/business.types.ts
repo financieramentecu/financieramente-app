@@ -11,6 +11,7 @@ export interface Business extends Record<string, unknown> {
 	user: {
 		avatar: string
 		name: string
+		categoryName?: string | null
 	}
 	email: string
 	termPeriod: string
@@ -28,7 +29,13 @@ export interface Business extends Record<string, unknown> {
 	companyName: string
 	/** Origen del cliente (canal) */
 	clientOriginName: string
-	status: 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado' | 'Fondeado'
+	status:
+		| 'Emitido'
+		| 'Venta Efectuado'
+		| 'Liquidado'
+		| 'Cancelado'
+		| 'Fondeado'
+	statusCode: BusinessStatusCode
 	hasAnnualPayments: boolean
 	/** Anual: aún hay cuotas SIN_FONDEAR (mostrar Fondear aunque el padre sea Fondeado) */
 	hasPendingAnnualFunding: boolean
@@ -56,7 +63,12 @@ export interface BusinessSearchParams {
 	searchCriteria: string
 }
 
-export type BusinessStatus = 'Emitido' | 'Venta Efectuado' | 'Comisionando' | 'Cancelado' | 'Fondeado'
+export type BusinessStatus =
+	| 'Emitido'
+	| 'Venta Efectuado'
+	| 'Liquidado'
+	| 'Cancelado'
+	| 'Fondeado'
 
 /**
  * Interface de usuario con rol simplificada para el cliente
@@ -92,7 +104,10 @@ export interface UserWithRole {
 }
 
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
-import type { AgentInfo } from '@/features/negocios/types/business-entity.types'
+import type {
+	AgentInfo,
+	BusinessStatus as BusinessStatusCode,
+} from '@/features/negocios/types/business-entity.types'
 
 // Tipo para compatibilidad con código existente
 export type CurrentUser = UserWithRole

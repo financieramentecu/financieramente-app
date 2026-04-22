@@ -22,6 +22,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Skandia',
 		clientOriginName: 'Referido',
 		status: 'Emitido',
+		statusCode: 'EMITIDO',
 		hasAnnualPayments: false,
 		hasPendingAnnualFunding: false,
 		currency: {
@@ -50,6 +51,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Trinity',
 		clientOriginName: 'Digital',
 		status: 'Venta Efectuado',
+		statusCode: 'VENTA_EFECTUADA',
 		hasAnnualPayments: false,
 		hasPendingAnnualFunding: false,
 		currency: {
@@ -78,6 +80,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Skandia',
 		clientOriginName: 'Referido',
 		status: 'Emitido',
+		statusCode: 'EMITIDO',
 		hasAnnualPayments: false,
 		hasPendingAnnualFunding: false,
 		currency: {
@@ -106,6 +109,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Trinity',
 		clientOriginName: 'Digital',
 		status: 'Venta Efectuado',
+		statusCode: 'VENTA_EFECTUADA',
 		hasAnnualPayments: false,
 		hasPendingAnnualFunding: false,
 		currency: {
@@ -134,6 +138,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Skandia',
 		clientOriginName: 'Referido',
 		status: 'Emitido',
+		statusCode: 'EMITIDO',
 		hasAnnualPayments: false,
 		hasPendingAnnualFunding: false,
 		currency: {
@@ -162,6 +167,7 @@ export const mockBusinessList: Business[] = [
 		companyName: 'Trinity',
 		clientOriginName: 'Digital',
 		status: 'Venta Efectuado',
+		statusCode: 'VENTA_EFECTUADA',
 		hasAnnualPayments: false,
 		hasPendingAnnualFunding: false,
 		currency: {

@@ -51,6 +51,7 @@ export function prismaBusinessToEntity(
 			id: prisma.user.idUser,
 			fullName: buildFullName(prisma.user.name, prisma.user.lastName),
 			roleName: prisma.user.role?.name ?? null,
+			categoryName: prisma.user.category?.name ?? null,
 			email: prisma.user.email,
 			phone: prisma.user.phone,
 		},

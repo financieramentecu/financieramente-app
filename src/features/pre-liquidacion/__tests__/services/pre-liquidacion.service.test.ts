@@ -710,6 +710,16 @@ describe('liquidarRegistros', () => {
 		expect(prisma.settlementCommission.count).toHaveBeenCalledWith({
 			where: { idFileImport: 1, status: 'PRE-SETTLED' },
 		})
+		expect(prisma.business.updateMany).toHaveBeenCalledWith({
+			where: {
+				idBusiness: { in: [1] },
+				status: 'FONDEADO',
+			},
+			data: {
+				status: 'LIQUIDADO',
+				updatedAt: expect.any(Date),
+			},
+		})
 	})
 
 	it('sets FileImport SETTLED when 0 SYNCHRONIZED and 0 PRE-SETTLED remain', async () => {

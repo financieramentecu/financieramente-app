@@ -26,7 +26,7 @@ export const businessListParamsSchema = z
 			.enum([
 				'VENTA_EFECTUADA',
 				'EMITIDO',
-				'COMISIONANDO',
+				'LIQUIDADO',
 				'CANCELADO',
 				'FONDEADO',
 			])
@@ -64,7 +64,7 @@ export const negociosExportBodySchema = z
 			.enum([
 				'VENTA_EFECTUADA',
 				'EMITIDO',
-				'COMISIONANDO',
+				'LIQUIDADO',
 				'CANCELADO',
 				'FONDEADO',
 			])
@@ -146,6 +146,7 @@ export const agentInfoSchema = z.object({
 	id: z.number(),
 	fullName: z.string(),
 	roleName: z.string().nullable(),
+	categoryName: z.string().nullable(),
 	email: z.string(),
 	phone: z.string().nullable(),
 })
@@ -171,7 +172,7 @@ export const businessEntitySchema = z.object({
 	status: z.enum([
 		BUSINESS_STATUS.VENTA_EFECTUADA,
 		BUSINESS_STATUS.EMITIDO,
-		BUSINESS_STATUS.COMISIONANDO,
+		BUSINESS_STATUS.LIQUIDADO,
 		BUSINESS_STATUS.CANCELADO,
 		BUSINESS_STATUS.FONDEADO,
 	]),

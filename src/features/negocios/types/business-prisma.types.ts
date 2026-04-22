@@ -13,6 +13,11 @@ export const businessWithRelations = {
 	user: {
 		include: {
 			role: true,
+			category: {
+				select: {
+					name: true,
+				},
+			},
 		},
 	},
 	productPercentageCommission: {
