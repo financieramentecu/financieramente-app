@@ -73,8 +73,9 @@ export function DataTable<TData>({
 	toolbarTrailingActions,
 	getRowAriaLabel,
 	showFooter = false,
+	initialSorting = [],
 }: DataTableProps<TData>) {
-	const [sorting, setSorting] = useState<SortingState>([])
+	const [sorting, setSorting] = useState<SortingState>(initialSorting)
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 	const [globalFilter, setGlobalFilter] = useState<string>('')
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})

@@ -28,6 +28,12 @@ export async function findProductPercentageCommission(
 	try {
 		const { configExists, ppc } = await getPpcForNewBusinesses(params)
 
+		if (ppc) {
+			return {
+				data: ppc,
+			}
+		}
+
 		if (!configExists) {
 			return {
 				data: null,
@@ -36,16 +42,10 @@ export async function findProductPercentageCommission(
 			}
 		}
 
-		if (!ppc) {
-			return {
-				data: null,
-				error:
-					'No hay configuración de comisión para nuevos negocios en esta combinación producto/origen/categoría.',
-			}
-		}
-
 		return {
-			data: ppc,
+			data: null,
+			error:
+				'No hay configuración de comisión para nuevos negocios en esta combinación producto/origen/categoría.',
 		}
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error)

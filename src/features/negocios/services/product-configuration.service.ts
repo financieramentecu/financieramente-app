@@ -26,7 +26,8 @@ export interface GetPpcForNewBusinessesResult {
  * idProductPercentageCommissionNewBusinesses.
  *
  * @param params - Parámetros de búsqueda (producto, origen, categoría del agente)
- * @returns Objeto con configExists (si existe la combinación) y ppc (PPC para nuevos negocios o null)
+ * @returns Objeto con configExists (si existe la combinación) y ppc.
+ * `ppc` puede venir de la configuración específica o de un fallback global.
  */
 export async function getPpcForNewBusinesses(
 	params: GetPpcForNewBusinessesParams
@@ -46,13 +47,30 @@ export async function getPpcForNewBusinesses(
 		},
 	})
 
-	if (!productConfiguration) {
-		return { configExists: false, ppc: null }
+	if (productConfiguration?.productPercentageCommissionNewBusinesses) {
+		return {
+			configExists: true,
+			ppc: productConfiguration.productPercentageCommissionNewBusinesses,
+		}
 	}
 
+	const fallbackPpc = await prisma.productPercentageCommission.findFirst({
+		where: {
+			active: true,
+			productPercentageCommissionCategories: {
+				some: {
+					active: true,
+				},
+			},
+		},
+		orderBy: {
+			idProductPercentageCommission: 'asc',
+		},
+	})
+
 	return {
-		configExists: true,
-		ppc: productConfiguration.productPercentageCommissionNewBusinesses,
+		configExists: Boolean(productConfiguration),
+		ppc: fallbackPpc,
 	}
 }
 

@@ -220,4 +220,33 @@ describe('createBusiness', () => {
 			}),
 		})
 	})
+
+	it('uses the commission id returned by lookup action (specific or fallback)', async () => {
+		vi.mocked(findProductPercentageCommission).mockResolvedValue({
+			data: {
+				idProductPercentageCommission: 123,
+			} as ProductPercentageCommission,
+		})
+		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+			name: 'Mensual',
+		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+		const businessCreate = vi.fn().mockResolvedValue(mockCreatedBusiness())
+		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+			return callback({
+				business: { create: businessCreate },
+				annualPayment: { createMany: vi.fn() },
+			} as never)
+		})
+
+		await createBusiness({
+			...basePayload,
+			idBuyPeriodicity: 2,
+		})
+
+		expect(businessCreate).toHaveBeenCalledWith({
+			data: expect.objectContaining({
+				idProductPercentageCommission: 123,
+			}),
+		})
+	})
 })
