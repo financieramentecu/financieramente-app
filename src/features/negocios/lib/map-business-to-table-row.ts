@@ -30,7 +30,7 @@ export function mapBusinessToTableRow(b: BusinessEntity): Business {
 		user: {
 			avatar: '',
 			name: b.agent.fullName,
-			categoryName: b.agent.roleName,
+			categoryName: b.agent.categoryName,
 		},
 		email: b.client.email || '',
 		termPeriod: `${b.term || 0}/${b.periodicity?.name || ''}`,

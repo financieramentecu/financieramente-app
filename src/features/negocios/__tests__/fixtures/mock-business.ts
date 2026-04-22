@@ -36,6 +36,7 @@ export function createMockAgentInfo(
 		id: 2,
 		fullName: 'Carlos Agente Pérez',
 		roleName: 'Agente/Coach',
+		categoryName: 'Junior',
 		email: 'carlos.agente@financieramente.com',
 		phone: '3009876543',
 		...overrides,

@@ -44,6 +44,7 @@ describe('prismaBusinessToEntity', () => {
 
 			expect(result.agent.fullName).toBe('Carlos Agente Pérez')
 			expect(result.agent.roleName).toBe('Agente/Coach')
+			expect(result.agent.categoryName).toBe('Junior')
 			expect(result.agent.email).toBe('carlos.agente@financieramente.com')
 		})
 
@@ -145,6 +146,20 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity(businessWithNullRole)
 
 			expect(result.agent.roleName).toBeNull()
+		})
+
+		it('should handle null category in user', () => {
+			const businessWithNullCategory = {
+				...mockPrismaBusiness,
+				user: {
+					...mockPrismaBusiness.user,
+					category: null,
+				},
+			}
+
+			const result = prismaBusinessToEntity(businessWithNullCategory)
+
+			expect(result.agent.categoryName).toBeNull()
 		})
 
 		it('should map null dateIssued to null', () => {

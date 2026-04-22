@@ -146,6 +146,7 @@ export const agentInfoSchema = z.object({
 	id: z.number(),
 	fullName: z.string(),
 	roleName: z.string().nullable(),
+	categoryName: z.string().nullable(),
 	email: z.string(),
 	phone: z.string().nullable(),
 })

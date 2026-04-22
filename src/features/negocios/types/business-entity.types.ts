@@ -48,6 +48,7 @@ export interface AgentInfo {
 	readonly id: number
 	fullName: string
 	roleName: string | null
+	categoryName: string | null
 	email: string
 	phone: string | null
 }

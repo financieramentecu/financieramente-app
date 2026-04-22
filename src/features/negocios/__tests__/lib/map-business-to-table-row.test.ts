@@ -28,6 +28,7 @@ function createBusinessEntity(status: string): BusinessEntity {
 			id: 2,
 			fullName: 'Agent Doe',
 			roleName: 'AGENTE',
+			categoryName: 'Junior',
 			email: 'agent@example.com',
 			phone: null,
 		},

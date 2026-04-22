@@ -74,6 +74,9 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 			createdAt: baseDate,
 			updatedAt: baseDate,
 		},
+		category: {
+			name: 'Junior',
+		},
 	},
 	productPercentageCommission: {
 		idProductPercentageCommission: 1,
