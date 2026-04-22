@@ -47,6 +47,7 @@ export async function getPpcForNewBusinesses(
 		},
 	})
 
+	// TODO: Temporary fallback for new businesses, change
 	if (productConfiguration?.productPercentageCommissionNewBusinesses) {
 		return {
 			configExists: true,
@@ -114,7 +115,8 @@ export async function validateProductConfigurationExists(
 	if (!productConfiguration) {
 		return {
 			valid: false,
-			reason: 'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
+			reason:
+				'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
 		}
 	}
 
@@ -122,14 +124,16 @@ export async function validateProductConfigurationExists(
 	if (!activePpc) {
 		return {
 			valid: false,
-			reason: 'La configuración de ese origen no tiene comisiones activas configuradas.',
+			reason:
+				'La configuración de ese origen no tiene comisiones activas configuradas.',
 		}
 	}
 
 	if (activePpc.productPercentageCommissionCategories.length === 0) {
 		return {
 			valid: false,
-			reason: 'La configuración de ese origen no tiene reglas de distribución configuradas.',
+			reason:
+				'La configuración de ese origen no tiene reglas de distribución configuradas.',
 		}
 	}
 

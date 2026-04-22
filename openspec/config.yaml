@@ -12,6 +12,20 @@ context: |
   Imports: Use path alias @/ only; avoid deep relative imports.
   API: src/app/api/ route handlers; Server Actions validate with Zod; use ApiResponse<T> for JSON.
   SDD: openspec/specs (baselines); openspec/changes/<change>/ (active); openspec/changes/archive/ (completed).
+  Tech stack: Next.js 15.5.0, React 19.1.0, Tailwind CSS v4, Postgres, Prisma 6.18.0
+  Architecture: Feature-Based Architecture (Screaming Architecture)
+  Testing: vitest
+  Style: default
+
+strict_tdd: true
+
+testing:
+  runner: vitest
+  unit: true
+  integration: true
+  e2e: true
+  coverage: vitest --coverage
+  linters: eslint
 
 rules:
   proposal:
@@ -24,12 +38,14 @@ rules:
     - Include sequence diagrams for complex flows
     - Document architecture decisions with rationale
   tasks:
-    - Break tasks into small, focused steps; prefer TDD for new behavior
-    - Group by phase (infrastructure, implementation, testing); use numbering 1.1, 1.2
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
   apply:
-    - Match existing patterns in src/features and src/app/api
-    - Use stack skills: nextjs-16, react-19, typescript, prisma-expert as needed
+    - Follow existing code patterns and conventions
+    - Load relevant coding skills for the project stack
   verify:
-    - Run npm test scripts when relevant; align with spec scenarios
+    - Run tests if test infrastructure exists
+    - Compare implementation against every spec scenario
   archive:
-    - Warn before destructive deltas; sync delta specs to openspec/specs when appropriate
+    - Warn before merging destructive deltas (large removals)
