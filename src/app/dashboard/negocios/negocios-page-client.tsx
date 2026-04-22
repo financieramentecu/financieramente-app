@@ -26,8 +26,18 @@ import type {
 } from '@/features/negocios/types/business-api.types'
 import { mapBusinessToTableRow } from '@/features/negocios/lib/map-business-to-table-row'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
-import { PiggyBank } from 'lucide-react'
+import { Loader2, PiggyBank } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/features/shared/ui/alert-dialog'
 
 const SEARCH_DEBOUNCE_DELAY = 500
 const DEFAULT_CURRENCY = 'COP'
@@ -64,6 +74,10 @@ export function NegociosPageClient({
 		string | null
 	>(null)
 	const [annualFundingLoading, setAnnualFundingLoading] = useState(false)
+	const [fondearConfirmOpen, setFondearConfirmOpen] = useState(false)
+	const [pendingFondearBusiness, setPendingFondearBusiness] =
+		useState<Business | null>(null)
+	const [isConfirmingFondear, setIsConfirmingFondear] = useState(false)
 
 	// Estado para currency seleccionada
 	const [selectedCurrency, setSelectedCurrency] =
@@ -145,6 +159,7 @@ export function NegociosPageClient({
 		isCancelling,
 		fondearBusiness,
 		fondearAnualidadesBusiness,
+		isFondeando,
 		isFondeandoAnualidades,
 	} = useBusinessMutation()
 
@@ -220,7 +235,7 @@ export function NegociosPageClient({
 	/**
 	 * Fondeo: sin anualidades → POST directo; con anualidades → modal HU4
 	 */
-	const handleFondearBusiness = useCallback(
+	const executeFondearBusiness = useCallback(
 		async (business: Business) => {
 			if (business.hasAnnualPayments) {
 				setAnnualFundingBusinessId(Number(business.id))
@@ -231,9 +246,7 @@ export function NegociosPageClient({
 				setAnnualFundingLoading(true)
 				setAnnualFundingInstallments([])
 
-				const res = await businessService.getAnnualPayments(
-					Number(business.id)
-				)
+				const res = await businessService.getAnnualPayments(Number(business.id))
 				setAnnualFundingLoading(false)
 
 				if ('error' in res && res.error) {
@@ -262,6 +275,44 @@ export function NegociosPageClient({
 		[fondearBusiness, refetch, refetchStats]
 	)
 
+	const handleFondearBusiness = useCallback(
+		(business: Business) => {
+			if (business.hasAnnualPayments) {
+				void executeFondearBusiness(business)
+				return
+			}
+
+			setPendingFondearBusiness(business)
+			setFondearConfirmOpen(true)
+		},
+		[executeFondearBusiness]
+	)
+
+	const handleConfirmFondear = useCallback(async () => {
+		if (!pendingFondearBusiness) return
+		setIsConfirmingFondear(true)
+		try {
+			await executeFondearBusiness(pendingFondearBusiness)
+			setFondearConfirmOpen(false)
+			setPendingFondearBusiness(null)
+		} finally {
+			setIsConfirmingFondear(false)
+		}
+	}, [pendingFondearBusiness, executeFondearBusiness])
+
+	const handleFondearConfirmOpenChange = useCallback(
+		(open: boolean) => {
+			if (isConfirmingFondear) {
+				return
+			}
+			setFondearConfirmOpen(open)
+			if (!open) {
+				setPendingFondearBusiness(null)
+			}
+		},
+		[isConfirmingFondear]
+	)
+
 	const handleAnnualFundingOpenChange = useCallback((open: boolean) => {
 		setAnnualFundingOpen(open)
 		if (!open) {
@@ -275,10 +326,9 @@ export function NegociosPageClient({
 		async (fundedInstallmentIndexes: number[]) => {
 			if (annualFundingBusinessId === null) return
 
-			const result = await fondearAnualidadesBusiness(
-				annualFundingBusinessId,
-				{ fundedInstallmentIndexes }
-			)
+			const result = await fondearAnualidadesBusiness(annualFundingBusinessId, {
+				fundedInstallmentIndexes,
+			})
 
 			if (result) {
 				setAnnualFundingOpen(false)
@@ -289,12 +339,7 @@ export function NegociosPageClient({
 				refetchStats()
 			}
 		},
-		[
-			annualFundingBusinessId,
-			fondearAnualidadesBusiness,
-			refetch,
-			refetchStats,
-		]
+		[annualFundingBusinessId, fondearAnualidadesBusiness, refetch, refetchStats]
 	)
 
 	/**
@@ -419,7 +464,17 @@ export function NegociosPageClient({
 
 	// Convertir BusinessEntity[] a Business[] para compatibilidad con componentes existentes
 	const businessDataForTable: Business[] = useMemo(
-		() => businesses.map(mapBusinessToTableRow),
+		() =>
+			[...businesses]
+				.sort((a, b) => {
+					const createdAtDiff =
+						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+					if (createdAtDiff !== 0) {
+						return createdAtDiff
+					}
+					return b.id - a.id
+				})
+				.map(mapBusinessToTableRow),
 		[businesses]
 	)
 
@@ -547,6 +602,49 @@ export function NegociosPageClient({
 				isSubmitting={isFondeandoAnualidades}
 				onConfirm={handleConfirmAnnualFunding}
 			/>
+
+			<AlertDialog
+				open={fondearConfirmOpen}
+				onOpenChange={handleFondearConfirmOpenChange}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>¿Confirmar fondeo?</AlertDialogTitle>
+						<AlertDialogDescription>
+							{pendingFondearBusiness?.hasAnnualPayments
+								? 'Se abrirá el flujo para seleccionar y confirmar anualidades a fondear.'
+								: 'Esta acción registrará el fondeo del negocio, ¿Desea continuar?'}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel
+							disabled={
+								isConfirmingFondear || isFondeando || isFondeandoAnualidades
+							}
+						>
+							Cancelar
+						</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={(e) => {
+								e.preventDefault()
+								void handleConfirmFondear()
+							}}
+							disabled={
+								isConfirmingFondear || isFondeando || isFondeandoAnualidades
+							}
+						>
+							{isConfirmingFondear ? (
+								<span className="inline-flex items-center gap-2">
+									<Loader2 className="h-4 w-4 animate-spin" />
+									Procesando...
+								</span>
+							) : (
+								'Confirmar'
+							)}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	)
 }

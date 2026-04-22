@@ -93,7 +93,7 @@ export async function GET(
 			prisma.business.findMany({
 				where,
 				include: businessWithRelations,
-				orderBy: { createdAt: 'desc' },
+				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
 				skip: (page - 1) * pageSize,
 				take: pageSize,
 			}),

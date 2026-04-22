@@ -5,6 +5,25 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.13] - 2026-04-22
+
+### Añadido
+
+- **Crear negocio – Comisión por porcentaje (PPC):** Si no hay reglas específicas de comisión para producto, origen o categoría, el sistema puede usar una **configuración global porcentual** cuando exista, para no bloquear la creación por falta de una distribución puntual.
+
+### Mejorado
+
+- **Listado de negocios:** El orden por defecto es por **fecha de creación** (más recientes primero), con **desempate estable** por identificador del negocio. En la tabla puedes **ordenar** por **Estado** y **Fecha creación**.
+- **Fondeo directo:** Antes de **Fondear** un negocio **Emitido** cuando aplica el flujo sin anualidades, aparece un **diálogo de confirmación** y, al confirmar, un **indicador de carga** mientras se procesa. Si el negocio tiene **cuotas anuales** en juego, este paso no interrumpe el **flujo de fondeo por anualidades**.
+
+### Corregido
+
+- **Categoría del agente:** La categoría queda **alineada con la categoría asignada** al negocio cuando corresponde ese mapeo.
+
+### Documentación / Interno
+
+- **OpenSpec:** Requisitos de PPC global, orden de listado y UX de fondeo incorporados al spec `negocios`; change **default-global-ppc-for-business-create** archivado (`openspec/changes/archive/2026-04-22-default-global-ppc-for-business-create/`).
+
 ## [1.0.0-beta.12] - 2026-04-21
 
 ### Añadido

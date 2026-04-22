@@ -1,4 +1,10 @@
-import { ColumnDef, OnChangeFn, Row, RowSelectionState } from '@tanstack/react-table'
+import {
+	ColumnDef,
+	OnChangeFn,
+	Row,
+	RowSelectionState,
+	SortingState,
+} from '@tanstack/react-table'
 import { ReactNode } from 'react'
 
 export interface DataTableProps<TData> {
@@ -159,5 +165,10 @@ export interface DataTableProps<TData> {
 	 * @default false
 	 */
 	showFooter?: boolean
+	/**
+	 * Orden inicial de la tabla
+	 * @default []
+	 */
+	initialSorting?: SortingState
 }
 
