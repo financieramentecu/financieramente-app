@@ -5,6 +5,18 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.14] - 2026-04-22
+
+### Añadido
+
+- **Base de Datos – Carga Inicial (Seed):** Refactorizado el proceso de carga maestro (`prisma db seed`). El sistema ya no inserta datos parciales harcodeados, sino que pobla dinámicamente todo el portafolio de la operación basándose en el catálogo documentado (8 compañías y decenas de productos financieros asociados listos para operar).
+- **Carga Inicial – Trazabilidad Dinámica:** Garantizada la integridad relacional (_Foreign Keys_) mediante un motor de _lookup asíncrono_ que asocia nativamente los productos a la empresa propietaria sin importar el desfasaje de IDs autoincrementales.
+
+### Documentación / Interno
+
+- **OpenSpec:** Desarrolladas e integradas las especificaciones de comportamiento `seed-pipeline`; cerrado y archivado de manera completa el registro `register-companies-products-csv`.
+
+
 ## [1.0.0-beta.13] - 2026-04-22
 
 ### Añadido
