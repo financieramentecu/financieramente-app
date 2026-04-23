@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import {
 	Receipt,
 	FileText,
@@ -27,7 +27,7 @@ import { useSearchParams } from 'next/navigation'
  * Acepta `?userId=` para que líderes o backoffice con jerarquía consulten a
  * otro usuario; el acceso se valida server-side.
  */
-export default function MisDistribucionesPage() {
+function MisDistribucionesContent() {
 	const searchParams = useSearchParams()
 	const userIdParam = searchParams.get('userId')
 	const targetUserId = userIdParam ? Number(userIdParam) : undefined
@@ -171,6 +171,20 @@ export default function MisDistribucionesPage() {
 				)}
 			</div>
 		</DashboardLayout>
+	)
+}
+
+export default function MisDistribucionesPage() {
+	return (
+		<Suspense fallback={
+			<DashboardLayout currentPage="Mis distribuciones">
+				<div className="flex items-center justify-center p-12 text-muted-foreground">
+					<Loader2 className="h-8 w-8 animate-spin" />
+				</div>
+			</DashboardLayout>
+		}>
+			<MisDistribucionesContent />
+		</Suspense>
 	)
 }
 
