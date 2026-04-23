@@ -52,7 +52,7 @@ export function buildBusinessListWhere(
 			},
 		]
 
-		if (isNumeric && searchNumber <= 2147483647) {
+		if (isNumeric && searchNumber > 0 && searchNumber <= 2147483647) {
 			searchOrConditions.push({ idBusiness: searchNumber })
 		}
 
