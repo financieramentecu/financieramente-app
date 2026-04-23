@@ -22,12 +22,14 @@ function normalizeSegment(segment: string): string {
  * // => 'CREA_PATRIMONIO-PROPIO-JUNIOR'
  */
 export function buildProductConfigurationCode(
+	companyName: string,
 	productName: string,
 	originName: string,
 	categoryName: string
 ): string {
+	const company = normalizeSegment(companyName)
 	const product = normalizeSegment(productName)
 	const origin = normalizeSegment(originName)
 	const category = normalizeSegment(categoryName)
-	return [product, origin, category].join(SEPARATOR)
+	return [company, product, origin, category].join(SEPARATOR)
 }

@@ -47,7 +47,7 @@ export async function getPpcForNewBusinesses(
 		},
 	})
 
-	// TODO: Temporary fallback for new businesses, change
+	// Intenta buscar el PPC asignado específicamente para nuevos negocios en esta configuración
 	if (productConfiguration?.productPercentageCommissionNewBusinesses) {
 		return {
 			configExists: true,
@@ -55,13 +55,13 @@ export async function getPpcForNewBusinesses(
 		}
 	}
 
+	// Fallback DETERMINÍSTICO: busca CUALQUIER PPC activo que pertenezca AL MISMO producto
 	const fallbackPpc = await prisma.productPercentageCommission.findFirst({
 		where: {
 			active: true,
-			productPercentageCommissionCategories: {
-				some: {
-					active: true,
-				},
+			productConfiguration: {
+				idProduct: idProduct,
+				active: true,
 			},
 		},
 		orderBy: {

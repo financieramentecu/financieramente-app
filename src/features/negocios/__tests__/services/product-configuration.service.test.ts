@@ -162,6 +162,10 @@ describe('getPpcForNewBusinesses', () => {
 			expect.objectContaining({
 				where: expect.objectContaining({
 					active: true,
+					productConfiguration: {
+						idProduct: 1,
+						active: true,
+					},
 				}),
 				orderBy: { idProductPercentageCommission: 'asc' },
 			})
