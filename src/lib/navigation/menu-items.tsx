@@ -173,9 +173,9 @@ export const AGENTE_MENU_ITEMS: MenuItem[] = [
 			},
 		],
 	},
-	{
-		title: 'Mis Reportes',
-		url: '/dashboard/reportes/personales',
-		icon: <BarChart3 className="h-4 w-4" />,
-	},
+	/* 	{
+			title: 'Mis Reportes',
+			url: '/dashboard/reportes/personales',
+			icon: <BarChart3 className="h-4 w-4" />,
+		}, */
 ]
