@@ -5,6 +5,21 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.15] - 2026-04-23
+
+### Añadido
+
+- **Negocios – Exportación a Excel mejorada:** Rediseño completo del formato de exportación para análisis de liquidación. El archivo incluye cabeceras profesionales con fondo azul claro y texto en negrita, así como ajuste automático del ancho de todas las columnas según el contenido.
+- **Negocios – Campos de tiempo y moneda:** Se añadieron las columnas **Mes** (nombre completo en español) y **Año** calculados desde la emisión. La columna **Valor negocio** cuenta ahora con formato nativo de moneda (`$#,##0.00`).
+
+### Mejorado
+
+- **Negocios – Orden Operativo:** Reordenamiento y renombramiento de las 22 columnas críticas (Agente, Nombres y Apellidos del Cliente, etc.) para cumplir con el flujo de auditoría operativa y liquidación manual.
+
+### Documentación / Interno
+
+- **OpenSpec:** Sincronización de requerimientos de exportación avanzada en el spec maestro de `negocios` y archivo completo del cambio `excel-negocios-export` con todas sus verificaciones.
+
 ## [1.0.0-beta.14] - 2026-04-22
 
 ### Añadido
