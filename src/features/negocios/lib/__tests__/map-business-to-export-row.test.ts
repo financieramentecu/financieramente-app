@@ -96,6 +96,19 @@ describe('mapBusinessToExportRow', () => {
         const row = mapBusinessToExportRow(businessWithAnnuity as unknown as BusinessExportPayload, [], 0, 0)
         expect(row['Es anualidad']).toBe('Sí')
     })
+
+    it('debe extraer Mes y Año basándose en la zona horaria de Bogotá (Regresión)', () => {
+        // 2024-01-01T02:00:00Z es 2023-12-31T21:00:00-05:00 en Bogotá
+        const midnightBussiness = {
+            ...mockBusiness,
+            dateIssued: new Date('2024-01-01T02:00:00Z')
+        }
+        
+        const row = mapBusinessToExportRow(midnightBussiness as unknown as BusinessExportPayload, [], 0, 0)
+        
+        expect(row['Mes']).toBe('Diciembre')
+        expect(row['Año']).toBe(2023)
+    })
 })
 
 describe('computeMaxAnnualColumns', () => {

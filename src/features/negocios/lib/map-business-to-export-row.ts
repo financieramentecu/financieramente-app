@@ -4,6 +4,8 @@
  */
 import type { LeaderExportLevel } from './resolve-leader-chain-export'
 import type { BusinessExportPayload } from './business-export-include'
+import { TZDate } from '@date-fns/tz'
+import { BOGOTA_TZ } from './bogota-date-range'
 
 export const PERIODICIDAD_ANUAL_NAME = 'Anual'
 
@@ -111,11 +113,12 @@ export function mapBusinessToExportRow(
 	const clientName = [b.client.name, b.client.lastName].filter(Boolean).join(' ').trim()
 	const product = b.productPercentageCommission.productConfiguration.product
 	
-	// Cálculo de Mes y Año (de la fecha de emisión preferiblemente)
+	// Cálculo de Mes y Año (de la fecha de emisión preferiblemente) en zona Bogotá
 	const dateForPeriod = b.dateIssued || b.createdAt
-	const mesIndex = dateForPeriod ? dateForPeriod.getMonth() : null
+	const bogotaDate = dateForPeriod ? new TZDate(dateForPeriod.getTime(), BOGOTA_TZ) : null
+	const mesIndex = bogotaDate ? bogotaDate.getMonth() : null
 	const mesText = mesIndex !== null ? MONTH_NAMES[mesIndex] : ''
-	const año = dateForPeriod ? dateForPeriod.getFullYear() : null
+	const año = bogotaDate ? bogotaDate.getFullYear() : null
 
 	const row: Record<string, string | number | null> = {
 		'Agente': agentName,
