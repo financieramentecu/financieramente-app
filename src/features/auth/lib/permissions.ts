@@ -153,7 +153,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 		reportes: {
 			all: false,
 			business: false,
-			personal: true,
+			personal: false,
 		},
 		configuracion: false,
 		administracion: false,
