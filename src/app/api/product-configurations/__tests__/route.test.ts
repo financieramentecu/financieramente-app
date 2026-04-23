@@ -99,6 +99,7 @@ describe('POST /api/product-configurations', () => {
 				name: 'Product A',
 				idCompany: 100, // Valid Company is 100
 				status: true,
+				company: { name: 'Company B' },
 			} as any)
 
 			const request = new Request(
@@ -135,6 +136,7 @@ describe('POST /api/product-configurations', () => {
 				name: 'Product A',
 				idCompany: 1,
 				status: true,
+				company: { name: 'Company A' },
 			} as any)
 			mockPrismaOrigin.mockResolvedValue({
 				idClientOrigin: 1,
