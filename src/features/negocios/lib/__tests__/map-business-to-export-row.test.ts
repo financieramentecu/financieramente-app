@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { 
     negociosExportColumnHeaders, 
-    mapBusinessToExportRow 
+    mapBusinessToExportRow,
+    computeMaxAnnualColumns
 } from '../map-business-to-export-row'
 import { BusinessExportPayload } from '../business-export-include'
 import { LeaderExportLevel } from '../resolve-leader-chain-export'
@@ -94,5 +95,15 @@ describe('mapBusinessToExportRow', () => {
         }
         const row = mapBusinessToExportRow(businessWithAnnuity as unknown as BusinessExportPayload, [], 0, 0)
         expect(row['Es anualidad']).toBe('Sí')
+    })
+})
+
+describe('computeMaxAnnualColumns', () => {
+    it('debe calcular el máximo de columnas de anualidad basado en el plazo', () => {
+        const b1 = { term: 5, buyPeriodicity: { name: 'Anual' } } as unknown as BusinessExportPayload
+        const b2 = { term: 2, buyPeriodicity: { name: 'Anual' } } as unknown as BusinessExportPayload
+        const b3 = { term: 10, buyPeriodicity: { name: 'Mensual' } } as unknown as BusinessExportPayload
+        
+        expect(computeMaxAnnualColumns([b1, b2, b3])).toBe(5) // Solo considera Anual
     })
 })
