@@ -1,6 +1,9 @@
 import type { Prisma } from '@prisma/client'
 import { UserRole } from '@/features/auth/lib/roles'
 
+// Límite máximo para un entero de 32 bits en PostgreSQL (INT4)
+const POSTGRES_INT_MAX = 2147483647
+
 export interface BusinessListFilterInput {
 	search?: string
 	status?: string
@@ -52,7 +55,7 @@ export function buildBusinessListWhere(
 			},
 		]
 
-		if (isNumeric && searchNumber > 0 && searchNumber <= 2147483647) {
+		if (isNumeric && searchNumber > 0 && searchNumber <= POSTGRES_INT_MAX) {
 			searchOrConditions.push({ idBusiness: searchNumber })
 		}
 
