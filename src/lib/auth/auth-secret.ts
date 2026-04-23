@@ -1,5 +1,3 @@
-import { randomBytes } from 'crypto'
-
 /**
  * Resolves the NextAuth signing secret.
  *
@@ -22,9 +20,10 @@ export function resolveAuthSecret(): string {
 	const env = process.env.NODE_ENV
 	if (env === 'development' || env === 'test') {
 		if (!devFallback) {
-			devFallback = randomBytes(32).toString('base64')
+			devFallback =
+				'dev-fallback-secret-key-replace-in-production-never-use-this'
 			console.warn(
-				`[auth] AUTH_SECRET is not set; using a random per-process secret (env=${env}). ` +
+				`[auth] AUTH_SECRET is not set; using a static per-process secret (env=${env}). ` +
 					'Set AUTH_SECRET in your environment to persist sessions across restarts.'
 			)
 		}
