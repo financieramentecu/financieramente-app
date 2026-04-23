@@ -51,6 +51,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=https://negocios.financieramentecu.co
             NEXT_TELEMETRY_DISABLED=1
+            AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_PROD }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
