@@ -4,8 +4,25 @@
  */
 import type { LeaderExportLevel } from './resolve-leader-chain-export'
 import type { BusinessExportPayload } from './business-export-include'
+import { TZDate } from '@date-fns/tz'
+import { BOGOTA_TZ } from './bogota-date-range'
 
 export const PERIODICIDAD_ANUAL_NAME = 'Anual'
+
+const MONTH_NAMES = [
+	'Enero',
+	'Febrero',
+	'Marzo',
+	'Abril',
+	'Mayo',
+	'Junio',
+	'Julio',
+	'Agosto',
+	'Septiembre',
+	'Octubre',
+	'Noviembre',
+	'Diciembre',
+]
 
 const TERM_CAP = 25
 
@@ -51,32 +68,38 @@ export function negociosExportColumnHeaders(
 	maxAnnualCols: number
 ): string[] {
 	const base: string[] = [
-		'ID negocio',
-		'Contrato',
-		'Estado',
-		'Fecha creación',
-		'Fecha emisión',
-		'Fecha fondeo (negocio)',
-		'Cliente',
-		'Documento cliente',
-		'Email cliente',
+		'Agente',
+		'Nombres y Apellidos del Cliente',
+		'Cedula del cliente',
+		'Origen del cliente',
+		'Email Cliente',
 		'Compañía',
-		'Producto',
-		'Origen',
-		'Valor',
-		'Moneda',
 		'Plazo',
 		'Periodicidad',
-		'Anualidades',
-		'Coach',
-		'Categoría coach',
+		'Es anualidad',
+		'Producto',
+		'Número de contrato',
+		'Moneda',
+		'Valor negocio',
+		'Líder encargado',
+		'Categoría líder',
+		'Estado del negocio',
+		'Fecha de emisión',
+		'Fecha de fondeo',
+		'Fecha de creación',
 	]
-	for (let i = 0; i < maxLeaderLevels; i++) {
+	
+	// Si hay más niveles de líderes (el primero ya está como Líder encargado)
+	for (let i = 1; i < maxLeaderLevels; i++) {
 		base.push(`Líder ${i + 1} nombre`, `Líder ${i + 1} categoría`)
 	}
+
 	for (let i = 1; i <= maxAnnualCols; i++) {
 		base.push(`Fecha fondeo anualidad ${i}`)
 	}
+
+	base.push('Mes', 'Año')
+	
 	return base
 }
 
@@ -86,33 +109,41 @@ export function mapBusinessToExportRow(
 	maxLeaderLevels: number,
 	maxAnnualCols: number
 ): Record<string, string | number | null> {
-	const coachName = [b.user.name, b.user.lastName].filter(Boolean).join(' ').trim()
-	const product =
-		b.productPercentageCommission.productConfiguration.product
+	const agentName = [b.user.name, b.user.lastName].filter(Boolean).join(' ').trim()
+	const clientName = [b.client.name, b.client.lastName].filter(Boolean).join(' ').trim()
+	const product = b.productPercentageCommission.productConfiguration.product
+	
+	// Cálculo de Mes y Año (de la fecha de emisión preferiblemente) en zona Bogotá
+	const dateForPeriod = b.dateIssued || b.createdAt
+	const bogotaDate = dateForPeriod ? new TZDate(dateForPeriod.getTime(), BOGOTA_TZ) : null
+	const mesIndex = bogotaDate ? bogotaDate.getMonth() : null
+	const mesText = mesIndex !== null ? MONTH_NAMES[mesIndex] : ''
+	const año = bogotaDate ? bogotaDate.getFullYear() : null
+
 	const row: Record<string, string | number | null> = {
-		'ID negocio': b.idBusiness,
-		Contrato: b.contract ?? '',
-		Estado: b.status ?? '',
-		'Fecha creación': fmtDate(b.createdAt),
-		'Fecha emisión': fmtDate(b.dateIssued ?? null),
-		'Fecha fondeo (negocio)': fmtDate(b.dateAnchored ?? null),
-		Cliente: [b.client.name, b.client.lastName].filter(Boolean).join(' ').trim(),
-		'Documento cliente': b.client.identityNumber ?? '',
-		'Email cliente': b.client.email ?? '',
-		Compañía: product.company.name,
-		Producto: product.name,
-		Origen: b.clientOrigin.name,
-		Valor: Number(b.value),
-		Moneda: b.currency.name,
-		Plazo: b.term ?? '',
-		Periodicidad: b.buyPeriodicity?.name ?? '',
-		Anualidades:
-			b.annualPayments.length > 0 ? 'Sí' : 'No',
-		Coach: coachName,
-		'Categoría coach': b.user.category?.name ?? '',
+		'Agente': agentName,
+		'Nombres y Apellidos del Cliente': clientName,
+		'Cedula del cliente': b.client.identityNumber ?? '',
+		'Origen del cliente': b.clientOrigin.name,
+		'Email Cliente': b.client.email ?? '',
+		'Compañía': product.company.name,
+		'Plazo': b.term ?? '',
+		'Periodicidad': b.buyPeriodicity?.name ?? '',
+		'Es anualidad': b.annualPayments.length > 0 ? 'Sí' : 'No',
+		'Producto': product.name,
+		'Número de contrato': b.contract ?? '',
+		'Moneda': b.currency.name,
+		'Valor negocio': Number(b.value),
+		'Líder encargado': leaders[0]?.fullName ?? '',
+		'Categoría líder': leaders[0]?.categoryName ?? '',
+		'Estado del negocio': b.status ?? '',
+		'Fecha de emisión': fmtDate(b.dateIssued ?? null),
+		'Fecha de fondeo': fmtDate(b.dateAnchored ?? null),
+		'Fecha de creación': fmtDate(b.createdAt),
 	}
 
-	for (let i = 0; i < maxLeaderLevels; i++) {
+	// Extras de líderes si existen
+	for (let i = 1; i < maxLeaderLevels; i++) {
 		const lvl = leaders[i]
 		row[`Líder ${i + 1} nombre`] = lvl?.fullName ?? ''
 		row[`Líder ${i + 1} categoría`] = lvl?.categoryName ?? ''
@@ -128,6 +159,9 @@ export function mapBusinessToExportRow(
 		const ap = b.annualPayments.find((a) => a.installmentIndex === i)
 		row[key] = fmtDate(ap?.dateAnchored ?? null)
 	}
+
+	row['Mes'] = mesText
+	row['Año'] = año
 
 	return row
 }

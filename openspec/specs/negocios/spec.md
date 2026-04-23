@@ -522,77 +522,78 @@ For shared filters (optional funding-date pair, status, unified search), export 
 - **WHEN** list (unpaginated) and export both run
 - **THEN** exported business identifiers MUST equal the list match set
 
----
+### Requirement: Enhanced operational Excel export
 
-### Requirement: Spreadsheet columns for commissions context
+The system MUST provide professional Excel exports with advanced styling, auto-sizing columns, and specific fields for liquidation analysis.
 
-Each row MUST include core business facts, client, product, company, value, term, periodicity or annuity indicator, coach name and category, leader chain (name and category per level), origin, and **dynamic annuity funding-date columns** through the batch’s maximum installment index. Inapplicable cells SHALL be empty.
+#### Scenario: Professional Styling and Auto-sizing
+- **GIVEN** the Excel export is requested
+- **WHEN** the file is generated
+- **THEN** header cells MUST have a light blue background (`#ADD8E6`) and bold font.
+- **AND** all columns MUST automatically adjust their width to fit the content (header or data).
 
-#### Scenario: Multiple annuity installments
+#### Scenario: Formatting and Calculated Fields
+- **GIVEN** the report is generated
+- **WHEN** the data rows are populated
+- **THEN** the "Valor negocio" column MUST use currency format `$#,##0.00`.
+- **AND** a "Mes" column MUST contain the month name in Spanish (e.g., "Enero").
+- **AND** an "Año" column MUST contain the 4-digit year.
 
-- **GIVEN** annual periodicity with several funded installments
-- **WHEN** export completes
-- **THEN** each installment instant MUST appear under the correct heading
-
----
+#### Scenario: Specific Column Order and Naming
+- **GIVEN** the Excel report is generated
+- **WHEN** the columns are populated
+- **THEN** they MUST follow this exact order:
+  1. Agente, 2. Nombres y Apellidos del Cliente, 3. Cedula del cliente, 4. Origen del cliente, 5. Email Cliente, 6. Compañía, 7. Plazo, 8. Periodicidad, 9. Es anualidad, 10. Producto, 11. Número de contrato, 12. Moneda, 13. Valor negocio, 14. Líder encargado, 15. Categoría líder, 16. Estado del negocio, 17. Fecha de emisión, 18. Fecha de fondeo, 19. Fecha de creación, 20. Fecha de anualidades (dinámicas), 21. Mes, 22. Año.
 
 ### Requirement: Export volume limit
 
 The system MUST enforce a documented maximum row count. If matches exceed it, the operation MUST fail; it MUST NOT succeed with a truncated file.
 
 #### Scenario: Over maximum
-
 - **GIVEN** candidates above the configured maximum
 - **WHEN** export is requested
 - **THEN** no successful full export SHALL occur
-
----
 
 ### Requirement: Empty export result
 
 Zero matches MUST NOT yield a successful spreadsheet download.
 
 #### Scenario: No rows
-
 - **GIVEN** zero matches
 - **WHEN** export is requested
 - **THEN** no successful spreadsheet SHALL be delivered
 
 ---
 
-### Requirement: Fallback global de comisión en creación de negocio
+### Requirement: Fallback dinámico de comisión restringido al Producto
 
-Durante la creación de negocio, el sistema SHALL resolver un `ProductPercentageCommission` válido aun cuando no exista configuración específica para la combinación producto/origen/categoría.  
-El sistema MUST priorizar la comisión específica para nuevos negocios cuando exista; en su ausencia, MUST usar un fallback global elegible.
+Durante la creación de negocio, el sistema SHALL resolver un `ProductPercentageCommission` válido garantizando la identidad del negocio. El sistema SHALL priorizar la configuración exacta y, en su defecto, buscar un fallback restringido exclusivamente al producto seleccionado.
 
-#### Scenario: Se usa comisión específica cuando existe
+#### Scenario: Uso de comisión específica (Prioridad 1)
+- **GIVEN** una configuración de producto activa para el `idProduct`, `idClientOrigin` e `idCategory` seleccionados.
+- **WHEN** se crea el negocio.
+- **THEN** el sistema SHALL usar el `idProductPercentageCommissionNewBusinesses` definido en esa configuración.
 
-- GIVEN una configuración de producto para `idProduct`, `idClientOrigin`, `idCategory` con comisión de nuevos negocios asignada
-- WHEN se crea un negocio con esa combinación y agente válido
-- THEN el negocio SHALL persistirse con esa comisión específica
-- AND el sistema SHALL NOT usar el fallback global
+#### Scenario: Fallback dentro del producto (Prioridad 2)
+- **GIVEN** que no existe una configuración exacta para la combinación Origen/Categoría del agente.
+- **AND** existe al menos una configuración activa para el mismo `idProduct`.
+- **WHEN** se crea el negocio.
+- **THEN** el sistema SHALL asignar el primer `ProductPercentageCommission` activo encontrado para ese producto.
+- **AND** el negocio SHALL mantener la identidad del producto y compañía seleccionados.
 
-#### Scenario: Se usa fallback global cuando no existe configuración específica
+#### Scenario: Error por falta de configuración activa
+- **GIVEN** que el producto seleccionado no tiene ninguna configuración de comisiones activa en el sistema.
+- **WHEN** se intenta crear el negocio.
+- **THEN** la creación SHALL fallar con un error controlado: "Este producto no tiene una configuración de comisiones activa".
+- **AND** el sistema SHALL NOT persistir el negocio ni usar fallbacks de otros productos o compañías.
 
-- GIVEN que no existe configuración específica para la combinación solicitada
-- AND existe al menos un `ProductPercentageCommission` activo elegible como fallback global
-- WHEN se crea el negocio
-- THEN el sistema SHALL persistir el negocio usando esa comisión global
+### Requirement: Generación determinística de códigos de configuración
+Para evitar colisiones de nombres entre diferentes compañías (ej. producto "STANDARD" en dos compañías distintas), el código único de configuración MUST incluir el nombre de la compañía.
 
-#### Scenario: Se usa fallback global cuando existe configuración sin comisión de nuevos negocios
-
-- GIVEN que existe configuración específica pero sin comisión asignada para nuevos negocios
-- AND existe un `ProductPercentageCommission` activo elegible como fallback global
-- WHEN se crea el negocio
-- THEN el sistema MUST completar la creación usando el fallback global
-
-#### Scenario: Error cuando no hay comisión específica ni fallback global
-
-- GIVEN que no hay comisión específica utilizable para la combinación solicitada
-- AND no existe fallback global elegible
-- WHEN se intenta crear el negocio
-- THEN la creación SHALL fallar con error controlado de configuración de comisión
-- AND el sistema SHALL NOT persistir el negocio
+#### Scenario: Código único de 4 segmentos
+- **WHEN** se genera el código de una `ProductConfiguration`.
+- **THEN** el formato SHALL ser `[COMPAÑÍA]-[PRODUCTO]-[ORIGEN]-[CATEGORÍA]`.
+- **AND** todos los segmentos MUST estar normalizados (mayúsculas y espacios reemplazados por `_`).
 
 ### Requirement: Orden por fecha de creación en listado de negocios
 

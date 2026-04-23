@@ -151,6 +151,7 @@ export async function POST(request: Request) {
 		// Validate product exists and is active
 		const product = await prisma.product.findUnique({
 			where: { idProduct: data.idProduct },
+			include: { company: true },
 		})
 
 		if (!product) {
@@ -243,6 +244,7 @@ export async function POST(request: Request) {
 
 		// Generate code
 		const code = buildProductConfigurationCode(
+			product.company.name,
 			product.name,
 			clientOrigin.name,
 			category.name
