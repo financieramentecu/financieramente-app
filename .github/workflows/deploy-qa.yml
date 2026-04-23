@@ -52,6 +52,7 @@ jobs:
             NEXT_PUBLIC_API_URL=https://negocios.qa.financieramentecu.co
             NEXT_TELEMETRY_DISABLED=1
             BUILD_SHA=${{ github.sha }}
+            AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_QA }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

@@ -53,11 +53,14 @@ RUN npx prisma generate
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_TELEMETRY_DISABLED=1
 ARG BUILD_SHA
+# NextAuth: required during `next build` because auth config resolves the secret at import time
+ARG AUTH_SECRET
 
 ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV BUILD_SHA=${BUILD_SHA}
+ENV AUTH_SECRET=${AUTH_SECRET}
 
 # Note: Type checking and ESLint are disabled in next.config.ts
 # They are executed in CI/CD tests before deployment
