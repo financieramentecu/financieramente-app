@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server'
 
 import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/auth/require-role'
 
 export async function GET() {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const agents = await prisma.user.findMany({
 			where: {

@@ -145,23 +145,21 @@ describe('procesarPreLiquidacion', () => {
 			},
 		] as any)
 
-		// Primera findMany: registros SYNCHRONIZED; segunda: settlements PRE-SETTLED (para resumen email)
-		vi.mocked(prisma.settlementCommission.findMany)
-			.mockResolvedValueOnce([
-				{
-					idSettlementCommission: 100,
-					status: 'SYNCHRONIZED',
-					commissionValue: new Decimal(100000),
-					baseCommission: new Decimal(100000),
-					discountPercentage: new Decimal(0.1),
-					clawbackPercentage: new Decimal(0.05),
-					originCommission: 'CARTERA',
-					business: {
-						idProductPercentageCommission: 50,
-					},
+		// Primera findMany: registros SYNCHRONIZED (procesarPreLiquidacion)
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValueOnce([
+			{
+				idSettlementCommission: 100,
+				status: 'SYNCHRONIZED',
+				commissionValue: new Decimal(100000),
+				baseCommission: new Decimal(100000),
+				discountPercentage: new Decimal(0.1),
+				clawbackPercentage: new Decimal(0.05),
+				originCommission: 'CARTERA',
+				business: {
+					idProductPercentageCommission: 50,
 				},
-			] as any)
-			.mockResolvedValueOnce([])
+			},
+		] as any)
 
 		vi.mocked(prisma.comissionDistribution.findMany).mockResolvedValue([])
 		// 0 remaining SYNCHRONIZED → FileImport status advances to PRE-SETTLED
@@ -214,25 +212,23 @@ describe('procesarPreLiquidacion', () => {
 			nameFile: 'Test.xlsx',
 		} as any)
 
-		vi.mocked(prisma.settlementCommission.findMany)
-			.mockResolvedValueOnce([
-				{
-					idSettlementCommission: 200,
-					status: 'SYNCHRONIZED',
-					commissionType: 'POLIZA',
-					originCommission: null,
-					isClawback: false,
-					commissionValue: new Decimal(100000),
-					baseCommission: new Decimal(100000),
-					discountPercentage: new Decimal(0.1),
-					clawbackPercentage: new Decimal(0.1),
-					business: {
-						idProductPercentageCommission: 50,
-						user: { idUser: 42 },
-					},
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValueOnce([
+			{
+				idSettlementCommission: 200,
+				status: 'SYNCHRONIZED',
+				commissionType: 'POLIZA',
+				originCommission: null,
+				isClawback: false,
+				commissionValue: new Decimal(100000),
+				baseCommission: new Decimal(100000),
+				discountPercentage: new Decimal(0.1),
+				clawbackPercentage: new Decimal(0.1),
+				business: {
+					idProductPercentageCommission: 50,
+					user: { idUser: 42 },
 				},
-			] as any)
-			.mockResolvedValueOnce([])
+			},
+		] as any)
 
 		vi.mocked(
 			prisma.productPercentageCommissionCategory.findMany
@@ -306,25 +302,23 @@ describe('procesarPreLiquidacion', () => {
 			nameFile: 'Test.xlsx',
 		} as never)
 
-		vi.mocked(prisma.settlementCommission.findMany)
-			.mockResolvedValueOnce([
-				{
-					idSettlementCommission: 300,
-					status: 'SYNCHRONIZED',
-					commissionType: 'VOLUNTARIA',
-					originCommission: null,
-					isClawback: false,
-					commissionValue: new Decimal(100000),
-					baseCommission: new Decimal(100000),
-					discountPercentage: new Decimal(0.1),
-					clawbackPercentage: new Decimal(0),
-					business: {
-						idProductPercentageCommission: 50,
-						user: { idUser: 1 },
-					},
+		vi.mocked(prisma.settlementCommission.findMany).mockResolvedValueOnce([
+			{
+				idSettlementCommission: 300,
+				status: 'SYNCHRONIZED',
+				commissionType: 'VOLUNTARIA',
+				originCommission: null,
+				isClawback: false,
+				commissionValue: new Decimal(100000),
+				baseCommission: new Decimal(100000),
+				discountPercentage: new Decimal(0.1),
+				clawbackPercentage: new Decimal(0),
+				business: {
+					idProductPercentageCommission: 50,
+					user: { idUser: 1 },
 				},
-			] as never)
-			.mockResolvedValueOnce([])
+			},
+		] as never)
 
 		vi.mocked(
 			prisma.productPercentageCommissionCategory.findMany
@@ -715,6 +709,16 @@ describe('liquidarRegistros', () => {
 		})
 		expect(prisma.settlementCommission.count).toHaveBeenCalledWith({
 			where: { idFileImport: 1, status: 'PRE-SETTLED' },
+		})
+		expect(prisma.business.updateMany).toHaveBeenCalledWith({
+			where: {
+				idBusiness: { in: [1] },
+				status: 'FONDEADO',
+			},
+			data: {
+				status: 'LIQUIDADO',
+				updatedAt: expect.any(Date),
+			},
 		})
 	})
 

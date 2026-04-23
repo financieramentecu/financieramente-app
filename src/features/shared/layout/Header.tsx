@@ -57,19 +57,20 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 				/>
 				<h1 className="text-base font-medium truncate min-w-0 flex-1">{title}</h1>
 				<div className="ml-auto flex items-center gap-2">
-					<ThemeToggle />
+					<ThemeToggle className="h-9 w-9 rounded-lg border-[#11525B]/40 px-0 text-[#11525B] hover:bg-[#11525B]/10 hover:text-[#11525B]" />
 					{user && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
 									variant="ghost"
-									size="icon"
-									className="h-9 w-9 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-auto sm:gap-2 sm:px-3"
+									className="h-10 rounded-lg border border-[#11525B]/40 bg-[#11525B]/8 px-2 text-[#11525B] hover:bg-[#11525B]/15 hover:text-[#11525B] min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:gap-2 sm:px-3"
 									aria-label="Menú de usuario"
 								>
 									<div className="hidden sm:flex flex-col items-end">
-										<span className="text-sm font-medium">{user.name || user.email}</span>
-										<span className="text-xs text-muted-foreground">
+										<span className="text-sm font-semibold leading-tight">
+											{user.name || user.email}
+										</span>
+										<span className="text-[11px] uppercase tracking-wide text-[#11525B]/90">
 											{user.role || 'Sin rol'}
 										</span>
 									</div>
@@ -78,7 +79,9 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 											src={user.image || undefined}
 											alt={user.name || ''}
 										/>
-										<AvatarFallback>{userInitials}</AvatarFallback>
+										<AvatarFallback className="bg-[#11525B]/18 text-[#11525B] ring-1 ring-[#11525B]/35 text-[11px] font-semibold">
+											{userInitials}
+										</AvatarFallback>
 									</Avatar>
 								</Button>
 							</DropdownMenuTrigger>

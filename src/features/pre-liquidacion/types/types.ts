@@ -16,6 +16,10 @@ export interface ArchivoDisponible {
 	estado: string
 	registrosPreliquidados?: number
 	fileType: string | null
+	/** Total de beneficiarios únicos con distribución en el archivo */
+	totalBeneficiarios?: number
+	/** Cantidad de beneficiarios que ya aprobaron la pre-liquidación */
+	aprobaciones?: number
 }
 
 /**

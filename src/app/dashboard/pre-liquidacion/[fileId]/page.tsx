@@ -183,7 +183,10 @@ export default function DetallePreLiquidacionPage() {
 						</div>
 					</div>
 					<div className="flex items-center gap-3 shrink-0">
-						{archivo?.estado === 'SETTLED' && (
+						{(archivo?.estado === 'PRE-SETTLED' ||
+							archivo?.estado === 'PRE-SETTLE-APROVED' ||
+							archivo?.estado === 'SETTLED' ||
+							archivo?.estado === 'COMPLETED') && (
 							<Button
 								onClick={async () => {
 									if (!fileId) return
@@ -195,9 +198,18 @@ export default function DetallePreLiquidacionPage() {
 								disabled={isProcesando}
 								className="bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all border-none cursor-pointer"
 								size="sm"
+								title={
+									archivo?.estado === 'SETTLED' ||
+									archivo?.estado === 'COMPLETED'
+										? 'Reenviar el comprobante final a todos los beneficiarios'
+										: 'Reenviar el correo de pre-liquidación con el link al recibo a todos los beneficiarios'
+								}
 							>
 								<Mail className="h-4 w-4 mr-2" />
-								Notificar a Coach
+								{archivo?.estado === 'SETTLED' ||
+								archivo?.estado === 'COMPLETED'
+									? 'Notificar comprobante a coaches'
+									: 'Notificar pre-liquidación a coaches'}
 							</Button>
 						)}
 						{registros.length > 0 && (

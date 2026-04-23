@@ -70,10 +70,12 @@ export function DataTable<TData>({
 	getRowCanExpand,
 	className,
 	renderAdditionalFilters,
+	toolbarTrailingActions,
 	getRowAriaLabel,
 	showFooter = false,
+	initialSorting = [],
 }: DataTableProps<TData>) {
-	const [sorting, setSorting] = useState<SortingState>([])
+	const [sorting, setSorting] = useState<SortingState>(initialSorting)
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 	const [globalFilter, setGlobalFilter] = useState<string>('')
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -261,9 +263,15 @@ export function DataTable<TData>({
 
 	const isExportable = exportable || !!onExport
 
+	const showToolbar =
+		searchable ||
+		isExportable ||
+		!!renderAdditionalFilters ||
+		!!toolbarTrailingActions
+
 	return (
 		<div className={cn('space-y-4', className)}>
-			{(searchable || isExportable || renderAdditionalFilters) && (
+			{showToolbar && (
 				<DataTableToolbar
 					table={table}
 					setColumnFilters={setColumnFilters}
@@ -277,6 +285,7 @@ export function DataTable<TData>({
 					onGlobalSearch={onGlobalSearch}
 					searchPlaceholder={searchPlaceholder}
 					renderAdditionalFilters={renderAdditionalFilters}
+					toolbarTrailingActions={toolbarTrailingActions}
 				/>
 			)}
 			<div className="rounded-md border bg-card">

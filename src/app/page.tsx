@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { headers } from 'next/headers'
 import { getRedirectUrlByRole } from '@/lib/navigation/menu-builder'
 import { UserRole } from '@/features/auth/lib/roles'
+import { isE2ETestAuthAllowed } from '@/lib/auth/test-auth'
 
 /**
  * Página raíz
@@ -17,20 +18,16 @@ import { UserRole } from '@/features/auth/lib/roles'
 export default async function Home() {
 	console.log('[Root Page] ====== PAGE LOADED ======')
 	
-	// En modo de prueba, permitir acceso si hay un header especial de test
-	// Solo verificar headers si estamos en un contexto de solicitud (no en tests unitarios)
+	// E2E bypass: sólo en NODE_ENV=test con E2E_TEST_AUTH_TOKEN válido.
 	let isTestAuth = false
 	try {
 		const headersList = await headers()
-		isTestAuth = headersList.get('x-test-auth') === 'true'
+		isTestAuth = isE2ETestAuthAllowed((name) => headersList.get(name))
 	} catch {
 		// headers() no está disponible (por ejemplo, en tests unitarios)
-		// Continuar con el flujo normal de autenticación
 	}
 
-	if (process.env.NODE_ENV !== 'production' && isTestAuth) {
-		// En modo de prueba, redirigir directamente al dashboard sin verificar auth
-		// El middleware ya permitió el acceso con el header x-test-auth
+	if (isTestAuth) {
 		redirect('/dashboard')
 		return
 	}

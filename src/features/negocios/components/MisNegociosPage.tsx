@@ -9,6 +9,7 @@ import { TableLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { AlertCircle } from 'lucide-react'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { UserRole } from '@/features/auth/lib/roles'
+import type { BusinessStatus } from '@/features/negocios/types/business-entity.types'
 
 interface PaginationData {
 	page: number
@@ -30,8 +31,19 @@ interface MisNegociosPageProps {
 	onEditBusiness?: (business: Business) => void
 	onViewBusiness?: (business: Business) => void
 	onCancelBusiness?: (business: Business) => void
+	onFondearBusiness?: (business: Business) => void
 	onGlobalSearch?: (query: string) => void
 	onPageChange?: (page: number) => void
+	listStatus?: BusinessStatus
+	onListStatusChange?: (status: BusinessStatus | undefined) => void
+	fundDateFrom?: string
+	fundDateTo?: string
+	onFundDateFromChange?: (value: string) => void
+	onFundDateToChange?: (value: string) => void
+	canExportExcel?: boolean
+	onExportExcel?: () => void
+	isExportingExcel?: boolean
+	exportExcelError?: string | null
 }
 
 function StatsLoadingSkeleton() {
@@ -81,8 +93,19 @@ export function MisNegociosPage({
 	onEditBusiness = () => { },
 	onViewBusiness,
 	onCancelBusiness,
+	onFondearBusiness,
 	onGlobalSearch,
 	onPageChange,
+	listStatus,
+	onListStatusChange,
+	fundDateFrom = '',
+	fundDateTo = '',
+	onFundDateFromChange,
+	onFundDateToChange,
+	canExportExcel = false,
+	onExportExcel,
+	isExportingExcel = false,
+	exportExcelError = null,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
 	const isAgentUser = user?.role === UserRole.AGENTE
@@ -117,10 +140,21 @@ export function MisNegociosPage({
 					onEditBusiness={onEditBusiness}
 					onViewBusiness={onViewBusiness}
 					onCancelBusiness={onCancelBusiness}
+					onFondearBusiness={onFondearBusiness}
 					pagination={pagination}
 					onPageChange={onPageChange}
 					isSearching={showTableLoading}
 					userRole={user?.role ?? undefined}
+					listStatus={listStatus}
+					onListStatusChange={onListStatusChange}
+					fundDateFrom={fundDateFrom}
+					fundDateTo={fundDateTo}
+					onFundDateFromChange={onFundDateFromChange}
+					onFundDateToChange={onFundDateToChange}
+					canExportExcel={canExportExcel}
+					onExportExcel={onExportExcel}
+					isExportingExcel={isExportingExcel}
+					exportExcelError={exportExcelError}
 				/>
 			)}
 		</div>

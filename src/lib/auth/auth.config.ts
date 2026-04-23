@@ -1,6 +1,8 @@
 import type { NextAuthConfig } from 'next-auth'
 import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
+import { resolveAuthSecret } from '@/lib/auth/auth-secret'
+import { isE2ETestAuthAllowed } from '@/lib/auth/test-auth'
 
 /**
  * Configuración base de NextAuth - Edge Compatible
@@ -11,11 +13,10 @@ import Credentials from 'next-auth/providers/credentials'
  * Los callbacks que necesitan acceso a la base de datos están en config.ts
  */
 export const authConfigEdge: NextAuthConfig = {
-	// Requerido por Auth.js. En CI/e2e no hay .env: usar fallback para que no falle MissingSecret
-	secret:
-		process.env.AUTH_SECRET ||
-		process.env.NEXTAUTH_SECRET ||
-		'fallback-secret-for-development-only',
+	// Secret resolver: in production/qa/staging a missing AUTH_SECRET throws so
+	// misconfigured deployments fail fast instead of silently using a public
+	// hardcoded fallback. In dev/test, a random per-process value is used.
+	secret: resolveAuthSecret(),
 	providers: [
 		Google({
 			clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -43,11 +44,11 @@ export const authConfigEdge: NextAuthConfig = {
 		// El callback authorized se usa en el middleware para verificar autenticación
 		authorized({ auth, request }) {
 			const { nextUrl } = request
-			// Permitir acceso en modo prueba (E2E) cuando se envía el header x-test-auth
-			if (
-				process.env.NODE_ENV !== 'production' &&
-				request.headers.get('x-test-auth') === 'true'
-			) {
+			// Permitir acceso en modo prueba (E2E) sólo cuando:
+			//  - NODE_ENV === 'test', y
+			//  - el caller envía x-test-auth: true, y
+			//  - x-test-auth-token coincide con E2E_TEST_AUTH_TOKEN configurado.
+			if (isE2ETestAuthAllowed((name) => request.headers.get(name))) {
 				return true
 			}
 			const isLoggedIn = !!auth?.user

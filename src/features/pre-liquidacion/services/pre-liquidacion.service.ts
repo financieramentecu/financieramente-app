@@ -1,9 +1,11 @@
 import type { Business, SettlementCommission } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { sendResumenPreliquidacionEmail } from '@/features/email/lib/preliquidacion-resumen-notification'
+import { enviarNotificacionesPorArchivo } from './notificar-preliquidacion.service'
 import { Decimal } from '@prisma/client/runtime/library'
 import { Prisma } from '@prisma/client'
 import { computeLineDistributionAmounts } from '@/features/pre-liquidacion/lib/compute-line-distribution'
+import { canViewUserDistributions } from '@/features/auth/lib/hierarchy'
+import type { UserRole } from '@/features/auth/lib/roles'
 
 export interface ConfigCategoryItem {
 	id: number
@@ -116,6 +118,42 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 		}
 	}
 
+	// Cuenta beneficiarios únicos y aprobaciones por archivo (para UI backoffice)
+	const approvalsByFile: Record<number, number> = {}
+	const beneficiariesByFile: Record<number, number> = {}
+	if (fileIds.length > 0) {
+		const [approvals, beneficiaries] = await Promise.all([
+			prisma.distributionApproval.groupBy({
+				by: ['idFileImport'],
+				where: { idFileImport: { in: fileIds } },
+				_count: { idUser: true },
+			}),
+			prisma.comissionDistribution.findMany({
+				where: {
+					settlementCommission: {
+						idFileImport: { in: fileIds },
+					},
+				},
+				select: {
+					idBeneficiaryUser: true,
+					settlementCommission: { select: { idFileImport: true } },
+				},
+			}),
+		])
+		for (const a of approvals) {
+			approvalsByFile[a.idFileImport] = a._count.idUser
+		}
+		const benefSet: Record<number, Set<number>> = {}
+		for (const d of beneficiaries) {
+			const fid = d.settlementCommission.idFileImport
+			if (!benefSet[fid]) benefSet[fid] = new Set<number>()
+			benefSet[fid].add(d.idBeneficiaryUser)
+		}
+		for (const fid of Object.keys(benefSet)) {
+			beneficiariesByFile[Number(fid)] = benefSet[Number(fid)].size
+		}
+	}
+
 	const archivos: ArchivoDisponible[] = todosArchivos.map((archivo) => {
 		const counts = countsMap[archivo.idFileImport] ?? {
 			sincronizados: 0,
@@ -137,6 +175,8 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 			rezagados: archivo.rezagadoRecord,
 			estado: archivo.status,
 			registrosPreliquidados: counts.registrosPreliquidados,
+			totalBeneficiarios: beneficiariesByFile[archivo.idFileImport] ?? 0,
+			aprobaciones: approvalsByFile[archivo.idFileImport] ?? 0,
 		}
 	})
 
@@ -606,6 +646,43 @@ export async function obtenerRegistrosParaLiquidacion(
 }
 
 /**
+ * Resuelve si `viewerId` puede ver la distribución de un
+ * `settlementCommissionId` dado, según jerarquía sobre sus beneficiarios.
+ *
+ * Devuelve:
+ *  - `true` si alguno de los beneficiarios está en la jerarquía visible
+ *    para el viewer (según {@link canViewUserDistributions}).
+ *  - `false` si no hay beneficiarios, o si ninguno es visible.
+ *
+ * El chequeo de roles de bypass (backoffice) se debe hacer antes por el
+ * caller para evitar llamadas innecesarias.
+ */
+export async function puedeVerDistribucionComision(params: {
+	settlementCommissionId: number
+	viewerId: number
+	viewerRole?: UserRole | string | null
+}): Promise<boolean> {
+	const { settlementCommissionId, viewerId, viewerRole } = params
+	if (!Number.isFinite(settlementCommissionId) || settlementCommissionId <= 0) {
+		return false
+	}
+
+	const beneficiarios = await prisma.comissionDistribution.findMany({
+		where: { idSettlementCommission: settlementCommissionId },
+		select: { idBeneficiaryUser: true },
+		distinct: ['idBeneficiaryUser'],
+	})
+	if (beneficiarios.length === 0) return false
+
+	const checks = await Promise.all(
+		beneficiarios.map((b) =>
+			canViewUserDistributions(viewerId, b.idBeneficiaryUser, viewerRole)
+		)
+	)
+	return checks.some(Boolean)
+}
+
+/**
  * Returns the commission distribution breakdown for a given settlement commission.
  * Performs a single findMany with a 4-level include chain to avoid N+1 queries.
  * Returns null when no ComissionDistribution rows exist for the given id.
@@ -803,8 +880,8 @@ async function applyClawbacksForSettlement(
 }
 
 /**
- * Transitions businesses from EMITIDO to COMISIONANDO within a settlement transaction.
- * Only affects businesses currently in EMITIDO status (idempotent for others).
+ * Transitions businesses from FONDEADO to LIQUIDADO within a settlement transaction.
+ * Only affects businesses currently in FONDEADO (flow EMITIDO → FONDEADO → LIQUIDADO).
  */
 async function updateBusinessStatusOnSettle(
 	tx: PrismaTx,
@@ -815,10 +892,10 @@ async function updateBusinessStatusOnSettle(
 	await tx.business.updateMany({
 		where: {
 			idBusiness: { in: businessIds },
-			status: 'EMITIDO',
+			status: 'FONDEADO',
 		},
 		data: {
-			status: 'COMISIONANDO',
+			status: 'LIQUIDADO',
 			updatedAt: new Date(),
 		},
 	})
@@ -869,7 +946,7 @@ async function checkAndSetFileImportStatus(
  *   - Updates settlement_commission: status=SETTLED, settledDate=now()
  *   - Updates all linked comission_distribution rows: status=SETTLED
  *   - Applies clawbacks for POLIZA commissions (appliedDate, state=APPLIED, reason append, balance upsert)
- *   - Transitions linked businesses from EMITIDO to COMISIONANDO
+ *   - Transitions linked businesses from FONDEADO to LIQUIDADO
  *   - Sets FileImport.status=COMPLETED only when no SYNCHRONIZED and no PRE-SETTLED remain for the file
  */
 export async function liquidarRegistros(
@@ -877,7 +954,13 @@ export async function liquidarRegistros(
 	_userId: number,
 	fileId: number
 ): Promise<{ liquidated: number; fileCompleted: boolean }> {
-	return prisma.$transaction(async (tx) => {
+	return prisma.$transaction(async (
+		tx
+	): Promise<{
+		liquidated: number
+		fileCompleted: boolean
+		settledIds: number[]
+	}> => {
 		const now = new Date()
 
 		// 1. Fetch commissions with all related data
@@ -898,7 +981,7 @@ export async function liquidarRegistros(
 		const settledIds = commissions.map((c) => c.idSettlementCommission)
 
 		if (settledIds.length === 0) {
-			return { liquidated: 0, fileCompleted: false }
+			return { liquidated: 0, fileCompleted: false, settledIds: [] }
 		}
 
 		// 2. Update settlement_commission: status=SETTLED, settledDate=now()
@@ -916,7 +999,7 @@ export async function liquidarRegistros(
 		// 4. Apply clawbacks for POLIZA commissions
 		await applyClawbacksForSettlement(tx, commissions)
 
-		// 5. Transition linked businesses from EMITIDO to COMISIONANDO
+		// 5. Transition linked businesses from FONDEADO to LIQUIDADO
 		const businessIds = [
 			...new Set(
 				commissions
@@ -932,7 +1015,25 @@ export async function liquidarRegistros(
 		return {
 			liquidated: result.count,
 			fileCompleted,
+			settledIds,
 		}
+	}).then(async (out) => {
+		// Fire-and-forget: enviar comprobante final de liquidación sólo a los
+		// beneficiarios de los settlements recién liquidados en este batch
+		// (evita duplicar correos si hay múltiples batches parciales).
+		if (out.liquidated > 0 && out.settledIds.length > 0) {
+			enviarNotificacionesPorArchivo({
+				fileImportId: fileId,
+				kind: 'LIQUIDACION',
+				settlementCommissionIds: out.settledIds,
+			}).catch((err) => {
+				console.error(
+					'Error enviando comprobante final de liquidación:',
+					err
+				)
+			})
+		}
+		return { liquidated: out.liquidated, fileCompleted: out.fileCompleted }
 	})
 }
 
@@ -1701,39 +1802,20 @@ export async function procesarPreLiquidacion(
 			})
 		}
 
-		// Envío de correos con resumen por usuario (fire-and-forget: no bloquea la respuesta)
+		// Envío de correos con link al detalle (fire-and-forget: no bloquea la respuesta).
+		// Antes enviábamos un resumen tabular en el correo; ahora enviamos un
+		// link al recibo de distribución en la plataforma (ver
+		// `notificar-preliquidacion.service.ts`).
 		if (registrosProcesados > 0) {
-			obtenerResumenPreliquidacionPorUsuario(
+			enviarNotificacionesPorArchivo({
 				fileImportId,
-				rangoFecha,
-				fileImport.nameFile
-			)
-				.then((resumenes) => {
-					for (const r of resumenes) {
-						sendResumenPreliquidacionEmail({
-							to: r.email,
-							nombreUsuario: r.nombreUsuario,
-							archivoNombre: r.archivoNombre,
-							periodo: r.periodo,
-							filas: r.filas.map((f) => ({
-								nombreNegocio: f.nombreNegocio,
-								valorComision: f.valorComision,
-								categoriaConcepto: f.categoriaConcepto,
-							})),
-						}).catch((err) => {
-							console.error(
-								`Error enviando resumen pre-liquidación a ${r.email}:`,
-								err
-							)
-						})
-					}
-				})
-				.catch((err) => {
-					console.error(
-						'Error obteniendo resumen pre-liquidación para correos:',
-						err
-					)
-				})
+				kind: 'PRE_LIQUIDACION',
+			}).catch((err) => {
+				console.error(
+					'Error enviando notificaciones de pre-liquidación:',
+					err
+				)
+			})
 		}
 
 		const omitSuffix =
@@ -2017,32 +2099,6 @@ export async function liquidarArchivoCompleto(
 			success: false,
 			mensaje: error instanceof Error ? error.message : 'Error desconocido',
 			liquidados: 0,
-		}
-	}
-}
-
-/**
- * Finaliza el flujo de liquidación de un archivo (Notificación).
- * Cambia el estado del archivo a COMPLETED.
- */
-export async function notificarArchivoCompleto(
-	fileId: number
-): Promise<{ success: boolean; mensaje: string }> {
-	try {
-		await prisma.fileImport.update({
-			where: { idFileImport: fileId },
-			data: { status: 'COMPLETED', updatedAt: new Date() },
-		})
-
-		return {
-			success: true,
-			mensaje: 'Archivo marcado como Completado y Notificado',
-		}
-	} catch (error) {
-		console.error('Error en notificarArchivoCompleto:', error)
-		return {
-			success: false,
-			mensaje: error instanceof Error ? error.message : 'Error desconocido',
 		}
 	}
 }
