@@ -1,6 +1,15 @@
 import { PrismaClient } from '@prisma/client'
 
-export const companies = [{ name: 'SKANDIA', type: 'NACIONAL' }]
+export const companies = [
+	{ name: 'SKANDIA', type: 'NACIONAL' },
+	{ name: 'MEJORCDT', type: 'NACIONAL' },
+	{ name: 'TRINITY', type: 'INTERNACIONAL' },
+	{ name: 'ITA', type: 'INTERNACIONAL' },
+	{ name: 'MANHATTAN', type: 'INTERNACIONAL' },
+	{ name: 'AFIBL', type: 'INTERNACIONAL' },
+	{ name: 'DOMINION', type: 'INTERNACIONAL' },
+	{ name: 'STONEX', type: 'INTERNACIONAL' },
+]
 
 export async function seedCompanies(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Compañías (Companies)...')

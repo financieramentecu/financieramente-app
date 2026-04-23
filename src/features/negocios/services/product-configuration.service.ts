@@ -47,6 +47,7 @@ export async function getPpcForNewBusinesses(
 		},
 	})
 
+	// Intenta buscar el PPC asignado específicamente para nuevos negocios en esta configuración
 	if (productConfiguration?.productPercentageCommissionNewBusinesses) {
 		return {
 			configExists: true,
@@ -54,13 +55,13 @@ export async function getPpcForNewBusinesses(
 		}
 	}
 
+	// Fallback DETERMINÍSTICO: busca CUALQUIER PPC activo que pertenezca AL MISMO producto
 	const fallbackPpc = await prisma.productPercentageCommission.findFirst({
 		where: {
 			active: true,
-			productPercentageCommissionCategories: {
-				some: {
-					active: true,
-				},
+			productConfiguration: {
+				idProduct: idProduct,
+				active: true,
 			},
 		},
 		orderBy: {
@@ -114,7 +115,8 @@ export async function validateProductConfigurationExists(
 	if (!productConfiguration) {
 		return {
 			valid: false,
-			reason: 'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
+			reason:
+				'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
 		}
 	}
 
@@ -122,14 +124,16 @@ export async function validateProductConfigurationExists(
 	if (!activePpc) {
 		return {
 			valid: false,
-			reason: 'La configuración de ese origen no tiene comisiones activas configuradas.',
+			reason:
+				'La configuración de ese origen no tiene comisiones activas configuradas.',
 		}
 	}
 
 	if (activePpc.productPercentageCommissionCategories.length === 0) {
 		return {
 			valid: false,
-			reason: 'La configuración de ese origen no tiene reglas de distribución configuradas.',
+			reason:
+				'La configuración de ese origen no tiene reglas de distribución configuradas.',
 		}
 	}
 

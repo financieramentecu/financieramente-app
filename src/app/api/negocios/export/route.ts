@@ -3,7 +3,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx-js-style'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { negociosExportBodySchema } from '@/features/negocios/lib/business-api.schemas'
@@ -110,6 +110,7 @@ export async function POST(request: Request) {
 		const maxLeaderLevels = computeMaxLeaderLevels(chains)
 		const maxAnnualCols = computeMaxAnnualColumns(businesses)
 
+		const headers = negociosExportColumnHeaders(maxLeaderLevels, maxAnnualCols)
 		const rows = businessesToExportRows(
 			businesses,
 			leaderCache,
@@ -118,8 +119,67 @@ export async function POST(request: Request) {
 		)
 
 		const worksheet = XLSX.utils.json_to_sheet(rows, {
-			header: negociosExportColumnHeaders(maxLeaderLevels, maxAnnualCols),
+			header: headers,
 		})
+
+		interface StyledCell extends XLSX.CellObject {
+			s?: {
+				font?: { bold?: boolean };
+				fill?: { fgColor?: { rgb?: string } };
+				alignment?: { horizontal?: string };
+				border?: {
+					bottom?: { style: string; color: { rgb: string } };
+				};
+			};
+		}
+
+		// Aplicar estilos, formatos y auto-ajuste de columnas
+		if (worksheet['!ref']) {
+			const range = XLSX.utils.decode_range(worksheet['!ref'])
+			const VALOR_NEGOCIO_COL_NAME = 'Valor negocio'
+			const colIndexValor = headers.indexOf(VALOR_NEGOCIO_COL_NAME)
+
+			// Inicializar anchos con el tamaño de los headers
+			const colWidths = headers.map((h) => ({ wch: h.length + 2 }))
+
+			for (let C = range.s.c; C <= range.e.c; ++C) {
+				// Estilo de Cabecera (Fila 1)
+				const headerAddr = XLSX.utils.encode_cell({ r: 0, c: C })
+				const headerCell = worksheet[headerAddr] as StyledCell | undefined
+				if (headerCell) {
+					headerCell.s = {
+						font: { bold: true },
+						fill: { fgColor: { rgb: 'ADD8E6' } }, // Azul claro
+						alignment: { horizontal: 'center' },
+						border: {
+							bottom: { style: 'thin', color: { rgb: '000000' } }
+						}
+					}
+				}
+
+				// Formato de Moneda y Cálculo de Ancho para datos
+				for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+					const cellAddr = XLSX.utils.encode_cell({ r: R, c: C })
+					const cell = worksheet[cellAddr]
+					if (!cell) continue
+
+					// Formato de moneda
+					if (C === colIndexValor) {
+						cell.z = '$#,##0.00'
+					}
+
+					// Actualizar ancho máximo
+					const valStr = cell.v ? String(cell.v) : ''
+					if (valStr.length + 2 > colWidths[C].wch) {
+						colWidths[C].wch = valStr.length + 2
+					}
+				}
+			}
+
+			// Limitar ancho máximo para evitar columnas excesivamente anchas
+			worksheet['!cols'] = colWidths.map(w => ({ wch: Math.min(w.wch, 50) }))
+		}
+
 		const workbook = XLSX.utils.book_new()
 		XLSX.utils.book_append_sheet(workbook, worksheet, 'Negocios')
 

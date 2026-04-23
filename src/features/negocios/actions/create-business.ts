@@ -91,6 +91,13 @@ export async function createBusiness(
 			return commisionResult
 		}
 
+		if (!commisionResult.data) {
+			return {
+				data: null,
+				error: 'Este producto no tiene una configuración de comisiones activa.',
+			}
+		}
+
 		const contractValue =
 			validatedData.contract && validatedData.contract.trim().length > 0
 				? validatedData.contract.trim()

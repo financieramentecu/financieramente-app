@@ -5,6 +5,33 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.15] - 2026-04-23
+
+### Añadido
+
+- **Negocios – Exportación a Excel mejorada:** Rediseño completo del formato de exportación para análisis de liquidación. El archivo incluye cabeceras profesionales con fondo azul claro y texto en negrita, así como ajuste automático del ancho de todas las columnas según el contenido.
+- **Negocios – Campos de tiempo y moneda:** Se añadieron las columnas **Mes** (nombre completo en español) y **Año** calculados desde la emisión. La columna **Valor negocio** cuenta ahora con formato nativo de moneda (`$#,##0.00`).
+
+### Mejorado
+
+- **Negocios – Orden Operativo:** Reordenamiento y renombramiento de las 22 columnas críticas (Agente, Nombres y Apellidos del Cliente, etc.) para cumplir con el flujo de auditoría operativa y liquidación manual.
+
+### Documentación / Interno
+
+- **OpenSpec:** Sincronización de requerimientos de exportación avanzada en el spec maestro de `negocios` y archivo completo del cambio `excel-negocios-export` con todas sus verificaciones.
+
+## [1.0.0-beta.14] - 2026-04-22
+
+### Añadido
+
+- **Base de Datos – Carga Inicial (Seed):** Refactorizado el proceso de carga maestro (`prisma db seed`). El sistema ya no inserta datos parciales harcodeados, sino que pobla dinámicamente todo el portafolio de la operación basándose en el catálogo documentado (8 compañías y decenas de productos financieros asociados listos para operar).
+- **Carga Inicial – Trazabilidad Dinámica:** Garantizada la integridad relacional (_Foreign Keys_) mediante un motor de _lookup asíncrono_ que asocia nativamente los productos a la empresa propietaria sin importar el desfasaje de IDs autoincrementales.
+
+### Documentación / Interno
+
+- **OpenSpec:** Desarrolladas e integradas las especificaciones de comportamiento `seed-pipeline`; cerrado y archivado de manera completa el registro `register-companies-products-csv`.
+
+
 ## [1.0.0-beta.13] - 2026-04-22
 
 ### Añadido
