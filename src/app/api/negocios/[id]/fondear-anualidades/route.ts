@@ -194,6 +194,11 @@ export async function POST(
 						dateAnchored: now,
 					},
 				})
+			} else {
+				await tx.business.update({
+					where: { idBusiness: businessId },
+					data: { dateAnchored: now },
+				})
 			}
 
 			return tx.business.findUniqueOrThrow({

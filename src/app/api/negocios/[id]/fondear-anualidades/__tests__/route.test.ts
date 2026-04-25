@@ -224,7 +224,7 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 		)
 	})
 
-	it('200 FONDEADO padre — solo actualiza cuotas; sin business.updateMany', async () => {
+	it('200 FONDEADO padre — actualiza cuotas y dateAnchored del padre', async () => {
 		mockAuth.mockResolvedValue({ user: { email: 'admin@test.com' } } as never)
 		mockGetCurrentUserByEmail.mockResolvedValue(
 			buildUserWithRole('admin@test.com', UserRole.ADMIN) as never
@@ -245,7 +245,8 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 			_count: { annualPayments: 3 },
 		}
 
-		const updateMany = vi.fn().mockResolvedValue({ count: 0 })
+		const updateMany = vi.fn().mockResolvedValue({ count: 1 })
+		const businessUpdate = vi.fn().mockResolvedValue({})
 		const annualUpdate = vi.fn().mockResolvedValue({})
 
 		mockTransaction.mockImplementation(async (fn) => {
@@ -262,6 +263,7 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 				},
 				business: {
 					updateMany,
+					update: businessUpdate,
 					findUniqueOrThrow: vi.fn().mockResolvedValue(fundedReturn),
 				},
 			}
@@ -289,6 +291,7 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 
 		expect(response.status).toBe(200)
 		expect(updateMany).not.toHaveBeenCalled()
+		expect(businessUpdate).toHaveBeenCalled()
 		expect(annualUpdate).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: { idAnnualPayment: 200 },
