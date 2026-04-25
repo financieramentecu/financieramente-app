@@ -5,6 +5,23 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.16] - 2026-04-25
+
+### Añadido
+
+- **Negocios – Exportación a Excel dinámica:** La exportación ahora incluye el campo **Celular** e inserta dinámicamente columnas de **Fecha inicial/final fondeo** al principio del documento si el reporte se generó usando un filtro de rango de fechas, agilizando las revisiones operativas.
+
+### Mejorado
+
+- **Negocios – UI del formulario simplificada:** La interfaz de creación y edición de negocios consolidó el antiguo bloque de "Información de producto" directamente dentro de la sección de negocio, agrupando armónicamente contrato, producto, compañía, plazo y periodicidad.
+- **Negocios – Exportación Excel optimizada:** Se eliminaron las columnas "Mes", "Año" y "Es anualidad", limpiando el reporte de datos redundantes. Se implementó parsing robusto de fechas hidratadas para prevenir cierres inesperados en la exportación por inconsistencia de tipos.
+- **Negocios – Coherencia de fondeo de anualidades:** Al fondear anualidades, el sistema actualiza incondicionalmente el campo de anclaje (`dateAnchored`) del negocio padre para garantizar que la transición al estado FONDEADO mantenga una traza temporal inmutable a nivel de dominio.
+
+### Documentación / Interno
+
+- **Pruebas y SDD:** La suite de pruebas fue completamente adaptada (169 tests pasando), cubriendo inserción dinámica de columnas, transacciones directas a nivel de Prisma en el proceso de fondeo y validaciones unitarias en la exportación. Delta specs sincronizados y archivada la propuesta SDD `2026-04-25-ajustes-negocio-excel-fondeo`.
+
+
 ## [1.0.0-beta.15] - 2026-04-23
 
 ### Añadido
