@@ -4,36 +4,22 @@
  */
 import type { LeaderExportLevel } from './resolve-leader-chain-export'
 import type { BusinessExportPayload } from './business-export-include'
-import { TZDate } from '@date-fns/tz'
-import { BOGOTA_TZ } from './bogota-date-range'
 
 export const PERIODICIDAD_ANUAL_NAME = 'Anual'
 
-const MONTH_NAMES = [
-	'Enero',
-	'Febrero',
-	'Marzo',
-	'Abril',
-	'Mayo',
-	'Junio',
-	'Julio',
-	'Agosto',
-	'Septiembre',
-	'Octubre',
-	'Noviembre',
-	'Diciembre',
-]
-
 const TERM_CAP = 25
 
-function fmtDate(iso: Date | null | undefined): string {
+function fmtDate(iso: Date | string | null | undefined): string {
 	if (!iso) {
 		return ''
 	}
 	try {
-		return iso.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' })
+		const d = typeof iso === 'string' ? new Date(iso) : iso
+		return d.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' })
 	} catch {
-		return iso.toISOString().slice(0, 10)
+		const d = typeof iso === 'string' ? new Date(iso) : iso
+		if (!(d instanceof Date) || isNaN(d.getTime())) return ''
+		return d.toISOString().slice(0, 10)
 	}
 }
 
@@ -65,18 +51,24 @@ export function computeMaxLeaderLevels(chains: LeaderExportLevel[][]): number {
  */
 export function negociosExportColumnHeaders(
 	maxLeaderLevels: number,
-	maxAnnualCols: number
+	maxAnnualCols: number,
+	dateFrom?: Date | null,
+	dateTo?: Date | null
 ): string[] {
-	const base: string[] = [
+	const base: string[] = []
+	if (dateFrom || dateTo) {
+		base.push('Fecha inicial fondeo', 'Fecha final fondeo')
+	}
+	base.push(
 		'Agente',
 		'Nombres y Apellidos del Cliente',
 		'Cedula del cliente',
 		'Origen del cliente',
 		'Email Cliente',
+		'Celular',
 		'Compañía',
 		'Plazo',
 		'Periodicidad',
-		'Es anualidad',
 		'Producto',
 		'Número de contrato',
 		'Moneda',
@@ -86,9 +78,9 @@ export function negociosExportColumnHeaders(
 		'Estado del negocio',
 		'Fecha de emisión',
 		'Fecha de fondeo',
-		'Fecha de creación',
-	]
-	
+		'Fecha de creación'
+	)
+
 	// Si hay más niveles de líderes (el primero ya está como Líder encargado)
 	for (let i = 1; i < maxLeaderLevels; i++) {
 		base.push(`Líder ${i + 1} nombre`, `Líder ${i + 1} categoría`)
@@ -98,8 +90,6 @@ export function negociosExportColumnHeaders(
 		base.push(`Fecha fondeo anualidad ${i}`)
 	}
 
-	base.push('Mes', 'Año')
-	
 	return base
 }
 
@@ -107,40 +97,45 @@ export function mapBusinessToExportRow(
 	b: BusinessExportPayload,
 	leaders: LeaderExportLevel[],
 	maxLeaderLevels: number,
-	maxAnnualCols: number
+	maxAnnualCols: number,
+	dateFrom?: Date | null,
+	dateTo?: Date | null
 ): Record<string, string | number | null> {
-	const agentName = [b.user.name, b.user.lastName].filter(Boolean).join(' ').trim()
-	const clientName = [b.client.name, b.client.lastName].filter(Boolean).join(' ').trim()
+	const agentName = [b.user.name, b.user.lastName]
+		.filter(Boolean)
+		.join(' ')
+		.trim()
+	const clientName = [b.client.name, b.client.lastName]
+		.filter(Boolean)
+		.join(' ')
+		.trim()
 	const product = b.productPercentageCommission.productConfiguration.product
-	
-	// Cálculo de Mes y Año (de la fecha de emisión preferiblemente) en zona Bogotá
-	const dateForPeriod = b.dateIssued || b.createdAt
-	const bogotaDate = dateForPeriod ? new TZDate(dateForPeriod.getTime(), BOGOTA_TZ) : null
-	const mesIndex = bogotaDate ? bogotaDate.getMonth() : null
-	const mesText = mesIndex !== null ? MONTH_NAMES[mesIndex] : ''
-	const año = bogotaDate ? bogotaDate.getFullYear() : null
 
-	const row: Record<string, string | number | null> = {
-		'Agente': agentName,
-		'Nombres y Apellidos del Cliente': clientName,
-		'Cedula del cliente': b.client.identityNumber ?? '',
-		'Origen del cliente': b.clientOrigin.name,
-		'Email Cliente': b.client.email ?? '',
-		'Compañía': product.company.name,
-		'Plazo': b.term ?? '',
-		'Periodicidad': b.buyPeriodicity?.name ?? '',
-		'Es anualidad': b.annualPayments.length > 0 ? 'Sí' : 'No',
-		'Producto': product.name,
-		'Número de contrato': b.contract ?? '',
-		'Moneda': b.currency.name,
-		'Valor negocio': Number(b.value),
-		'Líder encargado': leaders[0]?.fullName ?? '',
-		'Categoría líder': leaders[0]?.categoryName ?? '',
-		'Estado del negocio': b.status ?? '',
-		'Fecha de emisión': fmtDate(b.dateIssued ?? null),
-		'Fecha de fondeo': fmtDate(b.dateAnchored ?? null),
-		'Fecha de creación': fmtDate(b.createdAt),
+	const row: Record<string, string | number | null> = {}
+	if (dateFrom || dateTo) {
+		row['Fecha inicial fondeo'] = fmtDate(dateFrom)
+		row['Fecha final fondeo'] = fmtDate(dateTo)
 	}
+
+	row['Agente'] = agentName
+	row['Nombres y Apellidos del Cliente'] = clientName
+	row['Cedula del cliente'] = b.client.identityNumber ?? ''
+	row['Origen del cliente'] = b.clientOrigin.name
+	row['Email Cliente'] = b.client.email ?? ''
+	row['Celular'] = b.client.phone ?? ''
+	row['Compañía'] = product.company.name
+	row['Plazo'] = b.term ?? ''
+	row['Periodicidad'] = b.buyPeriodicity?.name ?? ''
+	row['Producto'] = product.name
+	row['Número de contrato'] = b.contract ?? ''
+	row['Moneda'] = b.currency.name
+	row['Valor negocio'] = Number(b.value)
+	row['Líder encargado'] = leaders[0]?.fullName ?? ''
+	row['Categoría líder'] = leaders[0]?.categoryName ?? ''
+	row['Estado del negocio'] = b.status ?? ''
+	row['Fecha de emisión'] = fmtDate(b.dateIssued ?? null)
+	row['Fecha de fondeo'] = fmtDate(b.dateAnchored ?? null)
+	row['Fecha de creación'] = fmtDate(b.createdAt)
 
 	// Extras de líderes si existen
 	for (let i = 1; i < maxLeaderLevels; i++) {
@@ -160,9 +155,6 @@ export function mapBusinessToExportRow(
 		row[key] = fmtDate(ap?.dateAnchored ?? null)
 	}
 
-	row['Mes'] = mesText
-	row['Año'] = año
-
 	return row
 }
 
@@ -170,14 +162,18 @@ export function businessesToExportRows(
 	businesses: BusinessExportPayload[],
 	leaderChains: Map<number, LeaderExportLevel[]>,
 	maxAnnualCols: number,
-	maxLeaderLevels: number
+	maxLeaderLevels: number,
+	dateFrom?: Date | null,
+	dateTo?: Date | null
 ): Record<string, string | number | null>[] {
 	return businesses.map((b) =>
 		mapBusinessToExportRow(
 			b,
 			leaderChains.get(b.user.idUser) ?? [],
 			maxLeaderLevels,
-			maxAnnualCols
+			maxAnnualCols,
+			dateFrom,
+			dateTo
 		)
 	)
 }

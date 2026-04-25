@@ -22,7 +22,8 @@ describe('mapBusinessToExportRow', () => {
             name: 'Juan',
             lastName: 'Perez',
             identityNumber: '123456',
-            email: 'juan@example.com'
+            email: 'juan@example.com',
+            phone: '+57 300 000 0000'
         },
         user: {
             name: 'Agente',
@@ -49,17 +50,17 @@ describe('mapBusinessToExportRow', () => {
         { fullName: 'Lider Dos', categoryName: 'Gerente' }
     ]
 
-    it('debe tener las cabeceras en el orden y nombres correctos', () => {
+    it('debe tener las cabeceras en el orden y nombres correctos sin filtros de fecha', () => {
         const headers = negociosExportColumnHeaders(1, 0)
         expect(headers[0]).toBe('Agente')
         expect(headers[1]).toBe('Nombres y Apellidos del Cliente')
         expect(headers[2]).toBe('Cedula del cliente')
         expect(headers[3]).toBe('Origen del cliente')
         expect(headers[4]).toBe('Email Cliente')
-        expect(headers[5]).toBe('Compañía')
-        expect(headers[6]).toBe('Plazo')
-        expect(headers[7]).toBe('Periodicidad')
-        expect(headers[8]).toBe('Es anualidad')
+        expect(headers[5]).toBe('Celular')
+        expect(headers[6]).toBe('Compañía')
+        expect(headers[7]).toBe('Plazo')
+        expect(headers[8]).toBe('Periodicidad')
         expect(headers[9]).toBe('Producto')
         expect(headers[10]).toBe('Número de contrato')
         expect(headers[11]).toBe('Moneda')
@@ -70,44 +71,41 @@ describe('mapBusinessToExportRow', () => {
         expect(headers[16]).toBe('Fecha de emisión')
         expect(headers[17]).toBe('Fecha de fondeo')
         expect(headers[18]).toBe('Fecha de creación')
-        // ... anualidades si existen
-        expect(headers[headers.length - 2]).toBe('Mes')
-        expect(headers[headers.length - 1]).toBe('Año')
+        expect(headers).not.toContain('Mes')
+        expect(headers).not.toContain('Año')
+        expect(headers).not.toContain('Es anualidad')
     })
 
-    it('debe mapear los datos correctamente incluyendo Mes y Año', () => {
+    it('debe tener las cabeceras condicionales si hay filtros de fecha', () => {
+        const dateFrom = new Date('2024-01-01T00:00:00Z')
+        const dateTo = new Date('2024-01-31T00:00:00Z')
+        const headers = negociosExportColumnHeaders(1, 0, dateFrom, dateTo)
+        expect(headers[0]).toBe('Fecha inicial fondeo')
+        expect(headers[1]).toBe('Fecha final fondeo')
+        expect(headers[2]).toBe('Agente')
+    })
+
+    it('debe mapear los datos correctamente incluyendo Celular', () => {
         const row = mapBusinessToExportRow(mockBusiness as unknown as BusinessExportPayload, mockLeaders, 1, 0)
         
         expect(row['Agente']).toBe('Agente Pro')
         expect(row['Nombres y Apellidos del Cliente']).toBe('Juan Perez')
         expect(row['Cedula del cliente']).toBe('123456')
-        expect(row['Mes']).toBe('Febrero') // Nombre del mes del mock data
-        expect(row['Año']).toBe(2024)
-        expect(row['Es anualidad']).toBe('No')
+        expect(row['Celular']).toBe('+57 300 000 0000')
         expect(row['Líder encargado']).toBe('Lider Uno')
         expect(row['Categoría líder']).toBe('Director')
     })
 
-    it('debe marcar "Sí" en Es anualidad si tiene pagos anuales', () => {
-        const businessWithAnnuity = {
-            ...mockBusiness,
-            annualPayments: [{ id: 1 }]
-        }
-        const row = mapBusinessToExportRow(businessWithAnnuity as unknown as BusinessExportPayload, [], 0, 0)
-        expect(row['Es anualidad']).toBe('Sí')
-    })
-
-    it('debe extraer Mes y Año basándose en la zona horaria de Bogotá (Regresión)', () => {
-        // 2024-01-01T02:00:00Z es 2023-12-31T21:00:00-05:00 en Bogotá
-        const midnightBussiness = {
-            ...mockBusiness,
-            dateIssued: new Date('2024-01-01T02:00:00Z')
-        }
+    it('debe mapear las fechas dinámicas cuando se proveen filtros', () => {
+        const dateFrom = new Date('2024-01-01T10:00:00Z')
+        const dateTo = new Date('2024-01-31T10:00:00Z')
+        const row = mapBusinessToExportRow(mockBusiness as unknown as BusinessExportPayload, mockLeaders, 1, 0, dateFrom, dateTo)
         
-        const row = mapBusinessToExportRow(midnightBussiness as unknown as BusinessExportPayload, [], 0, 0)
-        
-        expect(row['Mes']).toBe('Diciembre')
-        expect(row['Año']).toBe(2023)
+        // El formato de fecha depende del entorno, pero podemos verificar que la clave existe y tiene un string de fecha
+        expect(row['Fecha inicial fondeo']).toBeDefined()
+        expect(row['Fecha final fondeo']).toBeDefined()
+        expect(typeof row['Fecha inicial fondeo']).toBe('string')
+        expect(row['Fecha inicial fondeo']).not.toBe('')
     })
 })
 
