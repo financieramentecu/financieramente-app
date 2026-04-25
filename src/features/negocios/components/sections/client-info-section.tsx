@@ -13,7 +13,6 @@ import {
 } from '@/features/shared/ui/select'
 import { Separator } from '@/features/shared/ui/separator'
 import { ClientAutocomplete } from '@/features/negocios/components/fields/client-autocomplete'
-import { ContractAutocomplete } from '@/features/negocios/components/fields/contract-autocomplete'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { Client } from '@prisma/client'
 
@@ -24,7 +23,6 @@ export interface ClientInfoSectionProps {
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
 	isEditMode?: boolean
-	onSelectLag?: (id: number | null) => void
 }
 
 export function ClientInfoSection({
@@ -34,7 +32,6 @@ export function ClientInfoSection({
 	onSearchClient,
 	onClientSelected,
 	isEditMode = false,
-	onSelectLag,
 }: ClientInfoSectionProps) {
 	const {
 		register,
@@ -48,13 +45,10 @@ export function ClientInfoSection({
 	const nameValue = watch('name')
 	const lastNamesValue = watch('lastNames')
 	const phoneValue = watch('phone')
-	const contractValue = watch('contract')
 
 	// En modo edición, todos los campos de cliente están deshabilitados
 	// En modo creación, se habilitan cuando el documento tiene 5+ caracteres
 	const isBlocked = isEditMode || !documentValue || documentValue.length < 5
-	// El campo de contrato está habilitado en modo edición pero sigue las reglas de isBlocked en creación
-	const isContractDisabled = !isEditMode && isBlocked
 
 	// Referencia para el campo email (para mover el foco)
 	const emailInputRef = React.useRef<HTMLInputElement>(null)
@@ -64,7 +58,6 @@ export function ClientInfoSection({
 	const nameRegister = register('name')
 	const lastNamesRegister = register('lastNames')
 	const phoneRegister = register('phone')
-	const contractRegister = register('contract')
 
 	// Combinar el ref de react-hook-form con nuestro ref personalizado para email
 	const emailRefCallback = React.useCallback(
@@ -302,44 +295,6 @@ export function ClientInfoSection({
 					)}
 				</div>
 
-				<div className="space-y-2">
-					<Label htmlFor="contract" className="text-sm font-medium">
-						Nro. Contrato{' '}
-						{isEditMode && <span className="text-red-500">*</span>}
-					</Label>
-					{isEditMode ? (
-						<ContractAutocomplete
-							value={contractValue || ''}
-							onChange={(val) => setValue('contract', val, { shouldValidate: true })}
-							onSelectLag={onSelectLag}
-							disabled={isContractDisabled}
-							className={errors.contract ? 'border-red-500' : ''}
-						/>
-					) : (
-						<Input
-							id="contract"
-							name={contractRegister.name}
-							value={contractValue || ''}
-							onChange={(e) => {
-								contractRegister.onChange(e)
-								setValue('contract', e.target.value, { shouldValidate: true })
-							}}
-							onBlur={contractRegister.onBlur}
-							ref={contractRegister.ref}
-							placeholder="XXX XXX X"
-							disabled={isContractDisabled}
-							className={errors.contract ? 'border-red-500' : ''}
-						/>
-					)}
-					{errors.contract && (
-						<p className="text-xs text-red-500">{errors.contract.message}</p>
-					)}
-					{isEditMode && (
-						<p className="text-xs text-muted-foreground">
-							Ingrese el número de contrato para cambiar el estado a Emitido
-						</p>
-					)}
-				</div>
 			</div>
 		</div>
 	)

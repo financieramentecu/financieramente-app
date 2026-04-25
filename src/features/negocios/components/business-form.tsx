@@ -5,7 +5,6 @@ import { UseFormReturn } from 'react-hook-form'
 import { Header } from './header'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { ClientInfoSection } from '@/features/negocios/components/sections/client-info-section'
-import { ProductInfoSection } from '@/features/negocios/components/sections/product-info-section'
 import { BusinessInfoSection } from '@/features/negocios/components/sections/business-info-section'
 import { FormActions } from '@/features/negocios/components/form-actions'
 import { useBusinessForm } from '@/features/negocios/hooks/use-business-form'
@@ -62,6 +61,9 @@ export const BusinessForm = React.forwardRef<
 			businessAgent,
 		})
 
+		const documentValue = form.watch('identityNumber')
+		const isContractDisabled = !isEditMode && (isBlocked || !documentValue || documentValue.length < 5)
+
 		return (
 			<div className="max-w-4xl mx-auto p-6 bg-card">
 				<Header />
@@ -74,27 +76,21 @@ export const BusinessForm = React.forwardRef<
 						onSearchClient={handleSearchClient}
 						onClientSelected={handleClientSelected}
 						isEditMode={isEditMode}
-						onSelectLag={setIdSettlementCommission}
-					/>
-
-					<ProductInfoSection
-						form={form as unknown as UseFormReturn<BusinessFormData>}
-						companiesOptions={companiesOptions}
-						productsOptions={productsOptions}
-						filteredProducts={filteredProducts}
-						isBlocked={isBlocked}
-						isEditMode={isEditMode}
 					/>
 
 					<BusinessInfoSection
 						form={form as unknown as UseFormReturn<BusinessFormData>}
 						currenciesOptions={currenciesOptions}
 						periodicitiesOptions={periodicitiesOptions}
+						companiesOptions={companiesOptions}
+						filteredProducts={filteredProducts}
 						agentsList={agentsList}
 						onSearchAgents={canSearchAgents ? handleAgentSearch : undefined}
+						onSelectLag={setIdSettlementCommission}
 						isBlocked={isBlocked}
 						isAgentUser={isAgentUser}
 						isEditMode={isEditMode}
+						contractDisabled={isContractDisabled}
 					/>
 
 					<FormActions

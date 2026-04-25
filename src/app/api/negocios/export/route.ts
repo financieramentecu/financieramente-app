@@ -110,12 +110,17 @@ export async function POST(request: Request) {
 		const maxLeaderLevels = computeMaxLeaderLevels(chains)
 		const maxAnnualCols = computeMaxAnnualColumns(businesses)
 
-		const headers = negociosExportColumnHeaders(maxLeaderLevels, maxAnnualCols)
+		const dateFromObj = dateFrom ? new Date(dateFrom) : undefined
+		const dateToObj = dateTo ? new Date(dateTo) : undefined
+
+		const headers = negociosExportColumnHeaders(maxLeaderLevels, maxAnnualCols, dateFromObj, dateToObj)
 		const rows = businessesToExportRows(
 			businesses,
 			leaderCache,
 			maxAnnualCols,
-			maxLeaderLevels
+			maxLeaderLevels,
+			dateFromObj,
+			dateToObj
 		)
 
 		const worksheet = XLSX.utils.json_to_sheet(rows, {
