@@ -18,6 +18,7 @@ import {
 	computeMaxAnnualColumns,
 	computeMaxLeaderLevels,
 	negociosExportColumnHeaders,
+	NEGOCIOS_EXPORT_VALOR_COLUMN,
 } from '@/features/negocios/lib/map-business-to-export-row'
 import {
 	resolveLeaderChainForExport,
@@ -144,8 +145,7 @@ export async function POST(request: Request) {
 		// Aplicar estilos, formatos y auto-ajuste de columnas
 		if (worksheet['!ref']) {
 			const range = XLSX.utils.decode_range(worksheet['!ref'])
-			const VALOR_NEGOCIO_COL_NAME = 'Valor negocio'
-			const colIndexValor = headers.indexOf(VALOR_NEGOCIO_COL_NAME)
+			const colIndexValor = headers.indexOf(NEGOCIOS_EXPORT_VALOR_COLUMN)
 
 			// Inicializar anchos con el tamaño de los headers
 			const colWidths = headers.map((h) => ({ wch: h.length + 2 }))
