@@ -5,6 +5,26 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.17] - 2026-04-26
+
+### Añadido
+
+- **Coach – KPIs en Mis negocios:** Tarjetas compactas con indicadores clave para el perfil coach, coherentes con los filtros por **fecha de creación** del negocio cuando defines un rango de fechas.
+
+### Mejorado
+
+- **Negocios – Exportación Excel operativa:** El archivo descargado respeta el **orden y los nombres de columnas** definidos con operación (por ejemplo **Número de Cédula**, **Correo electrónico**, **Teléfono**, **Periodicidad del pago**, bloque **Creación → Emisión → Fondeo**, líderes adicionales después de **Fecha de Fondeo** y cabeceras **Fecha Fondeo Anualidad** por cuota cuando aplica). La columna **Valor de Negocio** sigue exportándose con **formato moneda** en Excel.
+- **Coach – Listado y rutas:** Para coach, el listado puede filtrarse por **fecha de creación** en línea con las estadísticas; las exportaciones usan rangos **inclusivos en calendario Bogotá** donde corresponde. La entrada **/dashboard/agente** redirige al listado de negocios y se eliminó la duplicidad en el menú lateral.
+
+### Corregido
+
+- **Negocios:** Eliminado un import no utilizado en la página del listado que podía generar advertencias en el análisis estático.
+
+### Documentación / Interno
+
+- **OpenSpec:** El spec maestro `negocios` incorpora el requerimiento actualizado de exportación Excel operacional; archivado el cambio SDD `excel-negocios-export-columnas` (`openspec/changes/archive/2026-04-26-excel-negocios-export-columnas/`).
+
+
 ## [1.0.0-beta.16] - 2026-04-25
 
 ### Añadido
