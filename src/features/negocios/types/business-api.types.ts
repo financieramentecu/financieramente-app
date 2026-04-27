@@ -32,6 +32,10 @@ export interface BusinessListParams {
 	dateFrom?: string
 	/** YYYY-MM-DD */
 	dateTo?: string
+	/** YYYY-MM-DD; filtra por createdAt del negocio */
+	createdFrom?: string
+	/** YYYY-MM-DD; filtra por createdAt del negocio */
+	createdTo?: string
 }
 
 /** Body POST `/api/negocios/export` */
@@ -107,44 +111,20 @@ export interface FondearAnualidadesRequest {
 // ============================================
 
 /**
- * Datos mensuales para gráficos
+ * KPI data containing item count and grouped values
  */
-export interface MonthlyData {
-	month: string // "2024-01", "2024-02"
-	totalValue: number
+export interface KpiCardData {
+	count: number
+	totalCop: number
+	totalUsd: number
 }
 
 /**
- * Estadísticas por estado
+ * Respuesta de estadísticas de negocios planas para el Coach
  */
-export interface StatusStats {
-	totalValue: number
-	totalMonth: number
-	totalLastMonth: number
-	monthlyData: MonthlyData[]
-	growthPercentage: number
+export interface CoachKpiResponse {
+	ventasEfectuadas: KpiCardData
+	emitidos: KpiCardData
+	fondeados: KpiCardData
 }
 
-/**
- * Información de currency para estadísticas
- */
-export interface StatsCurrencyInfo {
-	symbol: string
-	name: string
-}
-
-/**
- * Estadísticas agrupadas por currency
- * Record con symbol de currency como key (ej: "COP", "USD")
- */
-export type StatsByCurrency = Record<string, StatusStats>
-
-/**
- * Respuesta de estadísticas de negocios agrupadas por currency
- */
-export interface BusinessStatsResponse {
-	currencies: StatsCurrencyInfo[]
-	efectuados: StatsByCurrency
-	emitidos: StatsByCurrency
-	clawbackBalance?: number
-}

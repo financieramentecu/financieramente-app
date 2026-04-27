@@ -152,11 +152,6 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
  */
 export const AGENTE_MENU_ITEMS: MenuItem[] = [
 	{
-		title: 'Mi Dashboard',
-		url: '/dashboard/agente',
-		icon: <LayoutDashboard className="h-4 w-4" />,
-	},
-	{
 		title: 'Mis Negocios',
 		url: '/dashboard/negocios',
 		icon: <Folder className="h-4 w-4" />,

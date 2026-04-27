@@ -1,30 +1,43 @@
 'use client'
 
 import React from 'react'
-import { StatsCard } from '@/features/shared/ui/StatsCard'
-import { StatsData } from '@/features/negocios/types/business.types'
+import { CoachKpiCard } from './CoachKpiCard'
+import { CoachKpiResponse } from '../types/business-api.types'
+import { CheckCircle2, FileText, Landmark } from 'lucide-react'
 
 interface StatsOverviewProps {
-	statsData: StatsData[]
+	stats: CoachKpiResponse | null
 }
 
-export function StatsOverview({ statsData }: StatsOverviewProps) {
+export function StatsOverview({ stats }: StatsOverviewProps) {
+	if (!stats) return null
+
 	return (
-		<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-			{statsData?.map((stat, index) => (
-				<StatsCard
-					key={index}
-					title={stat.title}
-					value={stat.value}
-					change={stat.change}
-					trend={stat.trend}
-					description={stat.description}
-					monthlyData={stat.monthlyData}
-					currencies={stat.currencies}
-					selectedCurrency={stat.selectedCurrency}
-					onCurrencyChange={stat.onCurrencyChange}
-				/>
-			)) || []}
+		<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+			<CoachKpiCard
+				title="Ventas Efectuadas"
+				icon={FileText}
+				count={stats.ventasEfectuadas.count}
+				valueLocal={stats.ventasEfectuadas.totalCop}
+				valueForeign={stats.ventasEfectuadas.totalUsd}
+				colorScheme="orange"
+			/>
+			<CoachKpiCard
+				title="Emitidos"
+				icon={CheckCircle2}
+				count={stats.emitidos.count}
+				valueLocal={stats.emitidos.totalCop}
+				valueForeign={stats.emitidos.totalUsd}
+				colorScheme="emerald"
+			/>
+			<CoachKpiCard
+				title="Fondeados"
+				icon={Landmark}
+				count={stats.fondeados.count}
+				valueLocal={stats.fondeados.totalCop}
+				valueForeign={stats.fondeados.totalUsd}
+				colorScheme="indigo"
+			/>
 		</div>
 	)
 }

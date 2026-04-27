@@ -9,11 +9,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { businessService } from '../services/business.service'
-import type { BusinessStatsResponse } from '../types/business-api.types'
+import type { CoachKpiResponse } from '../types/business-api.types'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 
 interface UseBusinessStatsReturn {
-	stats: BusinessStatsResponse | null
+	stats: CoachKpiResponse | null
 	isLoading: boolean
 	error: string | null
 	refetch: () => Promise<void>
@@ -22,31 +22,26 @@ interface UseBusinessStatsReturn {
 /**
  * Hook para obtener estadísticas de negocios
  *
+ * @param params - Opcionales filtros de fecha
  * @returns Estado de estadísticas y función de refetch
- *
- * @example
- * ```typescript
- * const { stats, isLoading, error, refetch } = useBusinessStats()
- *
- * if (isLoading) return <Loading />
- * if (error) return <Error message={error} />
- *
- * // Usar stats para mostrar estadísticas
- * return <StatsOverview statsData={statsData} />
- * ```
  */
-export function useBusinessStats(): UseBusinessStatsReturn {
-	const [state, setState] = useState<AsyncState<BusinessStatsResponse>>({
+export function useBusinessStats(params: {
+	dateFrom?: string
+	dateTo?: string
+} = {}): UseBusinessStatsReturn {
+	const [state, setState] = useState<AsyncState<CoachKpiResponse>>({
 		status: 'loading',
 		data: undefined,
 		error: '',
 	})
 
+	const { dateFrom, dateTo } = params
+
 	const fetchStats = useCallback(async () => {
 		setState({ status: 'loading', data: undefined, error: '' })
 
 		try {
-			const response = await businessService.getStats()
+			const response = await businessService.getStats({ dateFrom, dateTo })
 
 			if ('error' in response && response.error) {
 				setState({ status: 'error', data: undefined, error: response.error })
@@ -61,7 +56,7 @@ export function useBusinessStats(): UseBusinessStatsReturn {
 				error: 'Error al cargar estadísticas',
 			})
 		}
-	}, [])
+	}, [dateFrom, dateTo])
 
 	useEffect(() => {
 		fetchStats()
@@ -75,3 +70,4 @@ export function useBusinessStats(): UseBusinessStatsReturn {
 		refetch: fetchStats,
 	}
 }
+

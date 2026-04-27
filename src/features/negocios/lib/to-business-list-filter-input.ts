@@ -11,14 +11,21 @@ export function toBusinessListFilterInput(params: {
 	status?: string | null
 	dateFrom?: string | null
 	dateTo?: string | null
+	createdFrom?: string | null
+	createdTo?: string | null
 }): BusinessListFilterInput {
 	const dateAnchoredRange =
 		params.dateFrom && params.dateTo
 			? parseBogotaInclusiveUtcRange(params.dateFrom, params.dateTo)
 			: undefined
+	const createdAtRange =
+		params.createdFrom && params.createdTo
+			? parseBogotaInclusiveUtcRange(params.createdFrom, params.createdTo)
+			: undefined
 	return {
 		search: params.search ?? undefined,
 		status: params.status ?? undefined,
 		dateAnchoredRange,
+		createdAtRange,
 	}
 }

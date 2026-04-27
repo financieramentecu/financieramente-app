@@ -1,35 +1,27 @@
 /**
  * API Route: /api/negocios/stats
- * GET - Obtener estadísticas de negocios agrupadas por currency
+ * GET - Obtener estadísticas de negocios para el dashboard del Coach
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
-	BusinessStatsResponse,
-	StatusStats,
-	MonthlyData,
-	StatsCurrencyInfo,
-	StatsByCurrency,
+	CoachKpiResponse,
+	KpiCardData,
 } from '@/features/negocios/types/business-api.types'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
-import { getClawbackBalance } from '@/features/shared/services/agent.service'
+import { parseBogotaInclusiveUtcRange } from '@/features/negocios/lib/bogota-date-range'
 
-/**
- * GET /api/negocios/stats
- * Obtiene estadísticas de negocios efectuados y emitidos agrupadas por currency
- */
-export async function GET(): Promise<
-	NextResponse<ApiResponse<BusinessStatsResponse>>
-> {
+export async function GET(
+	req: NextRequest
+): Promise<NextResponse<ApiResponse<CoachKpiResponse>>> {
 	try {
 		const session = await auth()
-
 		if (!session?.user?.email) {
 			return NextResponse.json(
 				{ data: null, error: 'No autorizado' },
@@ -39,7 +31,6 @@ export async function GET(): Promise<
 
 		// Obtener usuario actual
 		const currentUser = await getCurrentUserByEmail(session.user.email)
-
 		if (!currentUser) {
 			return NextResponse.json(
 				{ data: null, error: 'Usuario no encontrado' },
@@ -47,45 +38,38 @@ export async function GET(): Promise<
 			)
 		}
 
-		// Obtener todas las currencies activas desde la BD
-		const activeCurrencies = await prisma.currency.findMany({
-			where: { active: true },
-		})
-
-		// Mapear currencies para la respuesta
-		const currencies: StatsCurrencyInfo[] = activeCurrencies.map((c) => ({
-			symbol: c.symbol || c.name,
-			name: c.name,
-		}))
-
 		// Determinar filtro según rol
 		const isAgent = currentUser.role?.code === UserRole.AGENTE
 		const userFilter = isAgent ? currentUser.idUser : undefined
 
-		// Calcular estadísticas para cada estado agrupadas por currency
-		const [efectuadosStats, emitidosStats, clawbackBalance] = await Promise.all([
-			calculateStatsForStatusByCurrency(
-				BUSINESS_STATUS.VENTA_EFECTUADA,
-				activeCurrencies,
-				userFilter
+		// Fechas opcionales
+		const { searchParams } = new URL(req.url)
+		const dateFrom = searchParams.get('dateFrom') || undefined
+		const dateTo = searchParams.get('dateTo') || undefined
+
+		let createdAtFilter: Prisma.DateTimeFilter | undefined = undefined
+		if (dateFrom && dateTo) {
+			try {
+				const { gte, lte } = parseBogotaInclusiveUtcRange(dateFrom, dateTo)
+				createdAtFilter = { gte, lte }
+			} catch (err) {
+				// Invalid dates just log and ignore or return 400
+				console.warn('Fechas inválidas para KPIs de creación:', err)
+			}
+		}
+
+		const [ventasEfectuadas, emitidos, fondeados] = await Promise.all([
+			calculateAggregateForStatus(BUSINESS_STATUS.VENTA_EFECTUADA, userFilter, createdAtFilter),
+			calculateAggregateForStatus(BUSINESS_STATUS.EMITIDO, userFilter, createdAtFilter),
+			calculateAggregateForStatus(
+				BUSINESS_STATUS.FONDEADO,
+				userFilter,
+				createdAtFilter
 			),
-			calculateStatsForStatusByCurrency(
-				BUSINESS_STATUS.EMITIDO,
-				activeCurrencies,
-				userFilter
-			),
-			isAgent
-				? getClawbackBalance(currentUser.idUser)
-				: Promise.resolve(undefined),
 		])
 
 		return NextResponse.json({
-			data: {
-				currencies,
-				efectuados: efectuadosStats,
-				emitidos: emitidosStats,
-				clawbackBalance,
-			},
+			data: { ventasEfectuadas, emitidos, fondeados },
 		})
 	} catch (error) {
 		console.error('Error al obtener estadísticas:', error)
@@ -97,177 +81,74 @@ export async function GET(): Promise<
 }
 
 /**
- * Tipo para currency desde Prisma
+ * Calcula estadísticas agregadas para un estado agrupando por moneda
  */
-interface CurrencyRecord {
-	idCurrency: number
-	name: string
-	symbol: string | null
-	active: boolean
-	createdAt: Date
-	updatedAt: Date
-}
-
-/**
- * Calcula estadísticas para un estado específico agrupadas por currency
- */
-async function calculateStatsForStatusByCurrency(
+async function calculateAggregateForStatus(
 	status: string,
-	currencies: CurrencyRecord[],
-	userFilter?: number
-): Promise<StatsByCurrency> {
-	const result: StatsByCurrency = {}
-
-	// Calcular stats para cada currency
-	await Promise.all(
-		currencies.map(async (currency) => {
-			const currencyKey = currency.symbol || currency.name
-			const stats = await calculateStatsForCurrency(
-				status,
-				currency.idCurrency,
-				userFilter
-			)
-			result[currencyKey] = stats
-		})
-	)
-
-	return result
-}
-
-/**
- * Calcula estadísticas para un estado y currency específicos
- */
-async function calculateStatsForCurrency(
-	status: string,
-	idCurrency: number,
-	userFilter?: number
-): Promise<StatusStats> {
+	userFilter?: number,
+	createdAtFilter?: Prisma.DateTimeFilter
+): Promise<KpiCardData> {
 	const whereClause: Prisma.BusinessWhereInput = {
 		status,
-		idCurrency,
 		...(userFilter ? { idUser: userFilter } : {}),
+		...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
 	}
 
-	// 1. Total de valores
-	const totalResult = await prisma.business.aggregate({
+	const groupResult = await prisma.business.groupBy({
+		by: ['idCurrency'],
 		where: whereClause,
+		_count: { idBusiness: true },
 		_sum: { value: true },
 	})
-	const totalValue = Number(totalResult._sum.value || 0)
 
-	// 2. Obtener datos mensuales (últimos 12 meses)
-	const monthlyData = await getMonthlyData(status, idCurrency, userFilter)
+	console.log(groupResult)
 
-	// 3. Calcular crecimiento vs mes anterior
-	const growthPercentage = calculateGrowth(monthlyData)
+	let count = 0
+	let valueLocal = 0
+	let valueForeign = 0
 
-	// 4. Extraer valores del mes actual y anterior
-	const totalMonth =
-		monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].totalValue : 0
-	const totalLastMonth =
-		monthlyData.length > 1 ? monthlyData[monthlyData.length - 2].totalValue : 0
-
-	return {
-		totalValue,
-		totalMonth,
-		totalLastMonth,
-		monthlyData,
-		growthPercentage,
-	}
-}
-
-/**
- * Obtiene datos mensuales agregados para los últimos 12 meses
- */
-async function getMonthlyData(
-	status: string,
-	idCurrency: number,
-	userFilter?: number
-): Promise<MonthlyData[]> {
-	const twelveMonthsAgo = new Date()
-	twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
-	twelveMonthsAgo.setDate(1)
-	twelveMonthsAgo.setHours(0, 0, 0, 0)
-
-	// Obtener negocios filtrados por currency
-	const businesses = await prisma.business.findMany({
-		where: {
-			status,
-			idCurrency,
-			createdAt: { gte: twelveMonthsAgo },
-			...(userFilter ? { idUser: userFilter } : {}),
-		},
-		select: {
-			createdAt: true,
-			value: true,
-			currency: {
-				select: {
-					idCurrency: true,
-					symbol: true,
-				},
-			},
-		},
+	const activeCurrencies = await prisma.currency.findMany({
+		where: { active: true },
+		select: { idCurrency: true, symbol: true, name: true },
 	})
 
-	// Agrupar por mes manualmente
-	const monthlyMap = new Map<string, number>()
+	for (const group of groupResult) {
+		const currency = activeCurrencies.find(
+			(c) => c.idCurrency === group.idCurrency
+		)
+		const groupCount = group._count.idBusiness
+		const rawValue = group._sum.value
+		const groupValue =
+			rawValue !== null && rawValue !== undefined
+				? typeof rawValue === 'object' && 'toNumber' in rawValue
+					? (rawValue as { toNumber(): number }).toNumber()
+					: Number(rawValue)
+				: 0
+		const safeValue = isNaN(groupValue) ? 0 : groupValue
 
-	businesses.forEach((b) => {
-		const month = `${b.createdAt.getFullYear()}-${String(b.createdAt.getMonth() + 1).padStart(2, '0')}`
-		const current = monthlyMap.get(month) || 0
-		monthlyMap.set(month, current + Number(b.value))
-	})
+		count += groupCount
 
-	// Convertir a array y ordenar
-	const result: MonthlyData[] = Array.from(monthlyMap.entries())
-		.map(([month, totalValue]) => ({ month, totalValue }))
-		.sort((a, b) => a.month.localeCompare(b.month))
+		const sym = (currency?.symbol ?? '').toUpperCase()
+		const nam = (currency?.name ?? '').toUpperCase()
+		const isLocal =
+			sym.includes('COP') || nam.includes('COP') || sym.includes('PESO')
+		const isForeign =
+			sym.includes('USD') ||
+			nam.includes('DOLLAR') ||
+			sym.includes('US$') ||
+			nam.includes('DOLAR')
 
-	// Rellenar meses faltantes con 0
-	const filledResult = fillMissingMonths(result, twelveMonthsAgo)
-
-	return filledResult
-}
-
-/**
- * Rellena los meses faltantes con valor 0
- */
-function fillMissingMonths(
-	data: MonthlyData[],
-	startDate: Date
-): MonthlyData[] {
-	const result: MonthlyData[] = []
-	const dataMap = new Map(data.map((d) => [d.month, d.totalValue]))
-
-	const current = new Date(startDate)
-	const now = new Date()
-
-	while (current <= now) {
-		const month = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`
-		result.push({
-			month,
-			totalValue: dataMap.get(month) || 0,
-		})
-		current.setMonth(current.getMonth() + 1)
+		if (isLocal) {
+			valueLocal += safeValue
+		} else if (isForeign) {
+			valueForeign += safeValue
+		} else {
+			// Fallback por ID: moneda 1 = local, moneda 2 = extranjera
+			if (group.idCurrency === 1) valueLocal += safeValue
+			else if (group.idCurrency === 2) valueForeign += safeValue
+			else valueLocal += safeValue // última opción: asumir local
+		}
 	}
 
-	return result
-}
-
-/**
- * Calcula el porcentaje de crecimiento comparado con el mes anterior
- */
-function calculateGrowth(monthlyData: MonthlyData[]): number {
-	if (monthlyData.length < 2) {
-		return 0
-	}
-
-	const currentMonth = monthlyData[monthlyData.length - 1].totalValue
-	const previousMonth = monthlyData[monthlyData.length - 2].totalValue
-
-	if (previousMonth === 0) {
-		return currentMonth > 0 ? 100 : 0
-	}
-
-	return ((currentMonth - previousMonth) / previousMonth) * 100
+	return { count, totalCop: valueLocal, totalUsd: valueForeign }
 }

@@ -54,3 +54,21 @@ export const mockAgentUser: UserWithRole = {
 		updatedAt: new Date('2024-01-01'),
 	},
 }
+
+/** Usuario mock con rol explícito (evita confundir con el objeto `mockUserWithRole`). */
+export function createMockUserWithRole(roleCode: UserRole): UserWithRole {
+	const r = mockUserWithRole.role!
+	return {
+		...mockUserWithRole,
+		role: {
+			id: r.id,
+			idRole: r.idRole,
+			code: roleCode,
+			name: r.name,
+			description: r.description ?? null,
+			active: r.active,
+			createdAt: r.createdAt,
+			updatedAt: r.updatedAt,
+		},
+	}
+}

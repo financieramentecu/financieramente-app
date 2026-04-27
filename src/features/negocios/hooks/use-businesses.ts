@@ -73,6 +73,7 @@ export function useBusinesses(
 			const hasFullFundDateRange = Boolean(
 				params.dateFrom && params.dateTo
 			)
+			const hasFullCreatedDateRange = Boolean(params.createdFrom && params.createdTo)
 
 			const response = await businessService.getAll({
 				page: params.page || 1,
@@ -81,6 +82,8 @@ export function useBusinesses(
 				status: params.status,
 				dateFrom: hasFullFundDateRange ? params.dateFrom : undefined,
 				dateTo: hasFullFundDateRange ? params.dateTo : undefined,
+				createdFrom: hasFullCreatedDateRange ? params.createdFrom : undefined,
+				createdTo: hasFullCreatedDateRange ? params.createdTo : undefined,
 			})
 
 			if ('error' in response && response.error) {
@@ -103,6 +106,8 @@ export function useBusinesses(
 		params.status,
 		params.dateFrom,
 		params.dateTo,
+		params.createdFrom,
+		params.createdTo,
 	])
 
 	useEffect(() => {
