@@ -107,6 +107,29 @@ describe('mapBusinessToExportRow', () => {
         expect(typeof row['Fecha inicial fondeo']).toBe('string')
         expect(row['Fecha inicial fondeo']).not.toBe('')
     })
+
+    it('formatea filtros de fecha del export en calendario Bogotá (regresión timezone)', () => {
+        const dateFrom = new Date('2024-06-10T05:00:00.000Z')
+        const dateTo = new Date('2024-06-15T05:00:00.000Z')
+        const row = mapBusinessToExportRow(
+            mockBusiness as unknown as BusinessExportPayload,
+            mockLeaders,
+            1,
+            0,
+            dateFrom,
+            dateTo
+        )
+        const expectedFrom = dateFrom.toLocaleDateString('es-CO', {
+            timeZone: 'America/Bogota',
+        })
+        const expectedTo = dateTo.toLocaleDateString('es-CO', {
+            timeZone: 'America/Bogota',
+        })
+        expect(row['Fecha inicial fondeo']).toBe(expectedFrom)
+        expect(row['Fecha final fondeo']).toBe(expectedTo)
+        expect(expectedFrom).toBe('10/6/2024')
+        expect(expectedTo).toBe('15/6/2024')
+    })
 })
 
 describe('computeMaxAnnualColumns', () => {

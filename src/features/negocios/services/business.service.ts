@@ -7,8 +7,8 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { BusinessEntity } from '../types/business-entity.types'
 import type {
 	AnnualPaymentsResponse,
+	CoachKpiResponse,
 	BusinessListResponse,
-	BusinessStatsResponse,
 	ContractValidationResponse,
 	UpdateBusinessRequest,
 	CancelBusinessRequest,
@@ -214,11 +214,18 @@ export const businessService = {
 	/**
 	 * Obtiene estadísticas de negocios
 	 *
-	 * @returns Estadísticas de negocios efectuados y emitidos
+	 * @param params - Parámetros de filtrado por fecha
+	 * @returns Estadísticas de negocios planas (CoachKpiResponse)
 	 */
-	async getStats(): Promise<ApiResponse<BusinessStatsResponse>> {
+	async getStats(params: {
+		dateFrom?: string
+		dateTo?: string
+	} = {}): Promise<ApiResponse<CoachKpiResponse>> {
 		try {
-			const response = await fetch(`${BASE_URL}/stats`)
+			const queryString = buildQueryString(params)
+			const response = await fetch(`${BASE_URL}/stats${queryString}`, {
+				cache: 'no-store',
+			})
 
 			return await response.json()
 		} catch (error) {

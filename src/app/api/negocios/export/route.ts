@@ -11,6 +11,7 @@ import { getCurrentUserByEmail } from '@/features/negocios/services/user.service
 import { UserRole } from '@/features/auth/lib/roles'
 import { buildBusinessListWhere } from '@/features/negocios/lib/build-business-list-where'
 import { toBusinessListFilterInput } from '@/features/negocios/lib/to-business-list-filter-input'
+import { parseBogotaInclusiveUtcRange } from '@/features/negocios/lib/bogota-date-range'
 import { businessExportInclude } from '@/features/negocios/lib/business-export-include'
 import {
 	businessesToExportRows,
@@ -110,8 +111,10 @@ export async function POST(request: Request) {
 		const maxLeaderLevels = computeMaxLeaderLevels(chains)
 		const maxAnnualCols = computeMaxAnnualColumns(businesses)
 
-		const dateFromObj = dateFrom ? new Date(dateFrom) : undefined
-		const dateToObj = dateTo ? new Date(dateTo) : undefined
+		const { gte: dateFromObj, lte: dateToObj } =
+			dateFrom && dateTo
+				? parseBogotaInclusiveUtcRange(dateFrom, dateTo)
+				: { gte: undefined, lte: undefined }
 
 		const headers = negociosExportColumnHeaders(maxLeaderLevels, maxAnnualCols, dateFromObj, dateToObj)
 		const rows = businessesToExportRows(

@@ -91,6 +91,7 @@ interface BusinessTableSectionProps {
 	fundDateTo?: string
 	onFundDateFromChange?: (value: string) => void
 	onFundDateToChange?: (value: string) => void
+	fundDateRangeActive?: boolean
 	canExportExcel?: boolean
 	onExportExcel?: () => void
 	isExportingExcel?: boolean
@@ -115,6 +116,7 @@ export function BusinessTableSection({
 	fundDateTo = '',
 	onFundDateFromChange,
 	onFundDateToChange,
+	fundDateRangeActive = false,
 	canExportExcel = false,
 	onExportExcel,
 	isExportingExcel = false,
@@ -359,7 +361,7 @@ export function BusinessTableSection({
 														aria-hidden
 													/>
 													<span className="hidden text-xs font-medium whitespace-nowrap md:inline">
-														Fondeo
+														{userRole === UserRole.AGENTE ? 'Creación' : 'Fondeo'}
 													</span>
 												</span>
 												<div className="flex min-w-0 flex-nowrap items-center gap-1.5">
@@ -402,10 +404,12 @@ export function BusinessTableSection({
 															: (v as BusinessStatus)
 													)
 												}
+												disabled={fundDateRangeActive}
 											>
 												<SelectTrigger
 													className="h-9 w-[140px] lg:w-[170px]"
 													aria-label="Filtrar por estado del negocio"
+													title={fundDateRangeActive ? 'Estado fijo a Fondeado cuando hay rango de fechas' : undefined}
 												>
 													<SelectValue placeholder="Estado" />
 												</SelectTrigger>
@@ -460,7 +464,7 @@ export function BusinessTableSection({
 							userRole !== undefined &&
 							canEditContractWhenBusinessEmitido(userRole)
 						const isEditable = isVentaEfectuado || canEditEmitido
-						const isCancelable = isVentaEfectuado || isEmitido
+						const isCancelable = (isVentaEfectuado || isEmitido) && userRole !== UserRole.AGENTE
 						const canFondearRole =
 							userRole === UserRole.ADMIN ||
 							userRole === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||

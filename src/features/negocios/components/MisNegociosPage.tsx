@@ -18,9 +18,11 @@ interface PaginationData {
 	totalPages: number
 }
 
+import { CoachKpiResponse } from '@/features/negocios/types/business-api.types'
+
 interface MisNegociosPageProps {
 	businessData?: Business[]
-	statsData?: StatsData[]
+	stats?: CoachKpiResponse | null
 	isLoading?: boolean
 	isLoadingStats?: boolean
 	isSearching?: boolean
@@ -40,6 +42,7 @@ interface MisNegociosPageProps {
 	fundDateTo?: string
 	onFundDateFromChange?: (value: string) => void
 	onFundDateToChange?: (value: string) => void
+	fundDateRangeActive?: boolean
 	canExportExcel?: boolean
 	onExportExcel?: () => void
 	isExportingExcel?: boolean
@@ -82,7 +85,7 @@ function ErrorMessage({ message }: { message: string }) {
 
 export function MisNegociosPage({
 	businessData = [],
-	statsData = [],
+	stats = null,
 	isLoading = false,
 	isLoadingStats = false,
 	isSearching = false,
@@ -102,6 +105,7 @@ export function MisNegociosPage({
 	fundDateTo = '',
 	onFundDateFromChange,
 	onFundDateToChange,
+	fundDateRangeActive = false,
 	canExportExcel = false,
 	onExportExcel,
 	isExportingExcel = false,
@@ -123,7 +127,7 @@ export function MisNegociosPage({
 				(isLoadingStats ? (
 					<StatsLoadingSkeleton />
 				) : (
-					<StatsOverview statsData={statsData} />
+					<StatsOverview stats={stats} />
 				))}
 
 			{/* Error Message */}
@@ -151,6 +155,7 @@ export function MisNegociosPage({
 					fundDateTo={fundDateTo}
 					onFundDateFromChange={onFundDateFromChange}
 					onFundDateToChange={onFundDateToChange}
+					fundDateRangeActive={fundDateRangeActive}
 					canExportExcel={canExportExcel}
 					onExportExcel={onExportExcel}
 					isExportingExcel={isExportingExcel}

@@ -13,7 +13,7 @@ import { useBusinessExport } from '@/features/negocios/hooks/use-business-export
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
 import { UserRole } from '@/features/auth/lib/roles'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
-import { Business, StatsData } from '@/features/negocios/types/business.types'
+import { Business } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
 import type {
 	BusinessEntity,
@@ -25,8 +25,7 @@ import type {
 	NegociosExportBody,
 } from '@/features/negocios/types/business-api.types'
 import { mapBusinessToTableRow } from '@/features/negocios/lib/map-business-to-table-row'
-import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
-import { Loader2, PiggyBank } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
 	AlertDialog,
@@ -40,7 +39,6 @@ import {
 } from '@/features/shared/ui/alert-dialog'
 
 const SEARCH_DEBOUNCE_DELAY = 500
-const DEFAULT_CURRENCY = 'COP'
 
 interface NegociosPageClientProps {
 	currentUser?: UserWithRole
@@ -55,6 +53,8 @@ export function NegociosPageClient({
 	currentUser: _currentUser,
 }: NegociosPageClientProps) {
 	const router = useRouter()
+
+	const isAgentRole = _currentUser?.role?.code === UserRole.AGENTE
 
 	// Estado para modales
 	const [viewModalOpen, setViewModalOpen] = useState(false)
@@ -79,18 +79,29 @@ export function NegociosPageClient({
 		useState<Business | null>(null)
 	const [isConfirmingFondear, setIsConfirmingFondear] = useState(false)
 
-	// Estado para currency seleccionada
-	const [selectedCurrency, setSelectedCurrency] =
-		useState<string>(DEFAULT_CURRENCY)
-
 	// Estado para búsqueda con debounce
 	const [searchInput, setSearchInput] = useState('')
 	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
 
+	// Fechas por defecto para el Coach (Mes actual)
+	const defaultDates = useMemo(() => {
+		const now = new Date()
+		const year = now.getFullYear()
+		const month = String(now.getMonth() + 1).padStart(2, '0')
+		const day = String(now.getDate()).padStart(2, '0')
+		return {
+			from: `${year}-${month}-01`,
+			to: `${year}-${month}-${day}`,
+		}
+	}, [])
+
 	// Estado para paginación
+	// Sin dateFrom/dateTo por defecto: el listado muestra todos los negocios;
+	// los KPI de stats usan las fechas del picker o el rango por defecto.
 	const [searchParams, setSearchParams] = useState<BusinessListParams>({
 		page: 1,
 		pageSize: 10,
+		...(isAgentRole ? { dateFrom: defaultDates.from, dateTo: defaultDates.to } : {}),
 	})
 
 	// Trackear si la tabla ya se inicializó (cargó datos al menos una vez)
@@ -110,9 +121,20 @@ export function NegociosPageClient({
 		}))
 	}, [debouncedSearch])
 
+	// Para Coach: mapear dateFrom/dateTo a createdFrom/createdTo en el listado
+	const listParams: BusinessListParams = isAgentRole
+		? {
+				...searchParams,
+				dateFrom: undefined,
+				dateTo: undefined,
+				createdFrom: searchParams.dateFrom,
+				createdTo: searchParams.dateTo,
+			}
+		: searchParams
+
 	// Hooks para datos
 	const { businesses, isLoading, error, pagination, refetch } =
-		useBusinesses(searchParams)
+		useBusinesses(listParams)
 
 	// Detectar si se está esperando el debounce (usuario escribiendo)
 	const isDebouncing = searchInput !== debouncedSearch
@@ -139,20 +161,10 @@ export function NegociosPageClient({
 		isLoading: isLoadingStats,
 		error: statsError,
 		refetch: refetchStats,
-	} = useBusinessStats()
-
-	// Actualizar currency seleccionada cuando los stats se cargan por primera vez
-	useEffect(() => {
-		if (stats?.currencies && stats.currencies.length > 0) {
-			// Si la currency seleccionada no existe en los datos, usar la primera disponible
-			const currencyExists = stats.currencies.some(
-				(c) => c.symbol === selectedCurrency
-			)
-			if (!currencyExists) {
-				setSelectedCurrency(stats.currencies[0].symbol)
-			}
-		}
-	}, [stats?.currencies, selectedCurrency])
+	} = useBusinessStats({
+		dateFrom: searchParams.dateFrom || defaultDates.from,
+		dateTo: searchParams.dateTo || defaultDates.to,
+	})
 
 	const {
 		cancelBusiness,
@@ -173,11 +185,6 @@ export function NegociosPageClient({
 		_currentUser?.role?.code === UserRole.ADMIN ||
 		_currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
 		_currentUser?.role?.code === UserRole.ANALISTA_SOPORTE
-
-	// Handler para cambio de currency
-	const handleCurrencyChange = useCallback((currency: string) => {
-		setSelectedCurrency(currency)
-	}, [])
 
 	// Handlers
 	const handleAddBusiness = useCallback(() => {
@@ -389,38 +396,28 @@ export function NegociosPageClient({
 	)
 
 	const handleFundDateFromChange = useCallback((value: string) => {
-		if (!value) {
-			setSearchParams((prev) => ({
-				...prev,
-				dateFrom: undefined,
-				dateTo: undefined,
-				page: 1,
-			}))
-			return
-		}
-		setSearchParams((prev) => ({
-			...prev,
-			dateFrom: value,
-			page: 1,
-		}))
-	}, [])
+		setSearchParams((prev) => {
+			const newFrom = isAgentRole ? (value || defaultDates.from) : (value || undefined)
+			const newTo = prev.dateTo ?? (isAgentRole ? defaultDates.to : undefined)
+			const next: BusinessListParams = { ...prev, dateFrom: newFrom, dateTo: newTo, page: 1 }
+			if (!isAgentRole) {
+				next.status = (newFrom && newTo) ? 'FONDEADO' : undefined
+			}
+			return next
+		})
+	}, [isAgentRole, defaultDates.from, defaultDates.to])
 
 	const handleFundDateToChange = useCallback((value: string) => {
-		if (!value) {
-			setSearchParams((prev) => ({
-				...prev,
-				dateFrom: undefined,
-				dateTo: undefined,
-				page: 1,
-			}))
-			return
-		}
-		setSearchParams((prev) => ({
-			...prev,
-			dateTo: value,
-			page: 1,
-		}))
-	}, [])
+		setSearchParams((prev) => {
+			const newTo = isAgentRole ? (value || defaultDates.to) : (value || undefined)
+			const newFrom = prev.dateFrom ?? (isAgentRole ? defaultDates.from : undefined)
+			const next: BusinessListParams = { ...prev, dateTo: newTo, dateFrom: newFrom, page: 1 }
+			if (!isAgentRole) {
+				next.status = (newFrom && newTo) ? 'FONDEADO' : undefined
+			}
+			return next
+		})
+	}, [isAgentRole, defaultDates.from, defaultDates.to])
 
 	const handleExportExcel = useCallback(async () => {
 		const df = searchParams.dateFrom
@@ -478,68 +475,8 @@ export function NegociosPageClient({
 		[businesses]
 	)
 
-	// Convertir stats a formato esperado por StatsOverview (agrupado por currency)
-	const statsDataForDisplay: StatsData[] = useMemo(() => {
-		if (!stats) return []
-
-		// Obtener stats para la currency seleccionada
-		const efectuadosStats = stats.efectuados[selectedCurrency]
-		const emitidosStats = stats.emitidos[selectedCurrency]
-
-		// Si no hay stats para la currency, usar valores por defecto
-		const defaultStats = {
-			totalValue: 0,
-			totalMonth: 0,
-			totalLastMonth: 0,
-			monthlyData: [],
-			growthPercentage: 0,
-		}
-
-		const efectuados = efectuadosStats || defaultStats
-		const emitidos = emitidosStats || defaultStats
-
-		return [
-			{
-				title: 'Resumen Negocios Efectuados',
-				value: formatCurrency(efectuados.totalMonth, selectedCurrency),
-				change: Number(efectuados.growthPercentage.toFixed(2)),
-				trend:
-					efectuados.growthPercentage >= 0
-						? ('up' as const)
-						: ('down' as const),
-				description: `Último mes: ${formatCurrency(efectuados.totalLastMonth, selectedCurrency)}`,
-				monthlyData: efectuados.monthlyData.map((m) => m.totalValue),
-				currencies: stats.currencies,
-				selectedCurrency,
-				onCurrencyChange: handleCurrencyChange,
-			},
-			{
-				title: 'Total Negocios Emitidos',
-				value: formatCurrency(emitidos.totalMonth, selectedCurrency),
-				change: Number(emitidos.growthPercentage.toFixed(2)),
-				trend:
-					emitidos.growthPercentage >= 0 ? ('up' as const) : ('down' as const),
-				description: `Último mes: ${formatCurrency(emitidos.totalLastMonth, selectedCurrency)}`,
-				monthlyData: emitidos.monthlyData.map((m) => m.totalValue),
-				currencies: stats.currencies,
-				selectedCurrency,
-				onCurrencyChange: handleCurrencyChange,
-			},
-			{
-				title: 'Reserva de Clawback',
-				value: formatCurrency(stats.clawbackBalance || 0, selectedCurrency),
-				change: 0,
-				trend: 'up' as const,
-				description: 'Saldo acumulado',
-				icon: <PiggyBank className="h-5 w-5" />,
-				variant: 'amber' as const,
-				monthlyData: [],
-				currencies: stats.currencies,
-				selectedCurrency,
-				onCurrencyChange: handleCurrencyChange,
-			},
-		]
-	}, [stats, selectedCurrency, handleCurrencyChange])
+	// Rango de fondeo activo (no-agente con ambas fechas): bloquea el selector de estado
+	const isFundDateRangeActive = !isAgentRole && Boolean(searchParams.dateFrom && searchParams.dateTo)
 
 	// Combinar errores de negocios y estadísticas
 	const displayError = error || statsError
@@ -549,7 +486,7 @@ export function NegociosPageClient({
 			{/* Contenido de la página de negocios */}
 			<MisNegociosPage
 				businessData={businessDataForTable}
-				statsData={statsDataForDisplay}
+				stats={stats || undefined}
 				isLoading={isLoading}
 				isLoadingStats={isLoadingStats}
 				isSearching={isSearching}
@@ -565,8 +502,9 @@ export function NegociosPageClient({
 				onPageChange={handlePageChange}
 				listStatus={searchParams.status}
 				onListStatusChange={handleListStatusChange}
-				fundDateFrom={searchParams.dateFrom ?? ''}
-				fundDateTo={searchParams.dateTo ?? ''}
+				fundDateFrom={searchParams.dateFrom ?? (isAgentRole ? defaultDates.from : '')}
+				fundDateTo={searchParams.dateTo ?? (isAgentRole ? defaultDates.to : '')}
+				fundDateRangeActive={isFundDateRangeActive}
 				onFundDateFromChange={handleFundDateFromChange}
 				onFundDateToChange={handleFundDateToChange}
 				canExportExcel={canExportExcel}
