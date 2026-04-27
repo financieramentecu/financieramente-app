@@ -8,12 +8,14 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { BusinessListResponse } from '@/features/negocios/types/business-api.types'
-import { businessWithRelations } from '@/features/negocios/types/business-entity.types'
-import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
+import {
+	businessWithRelations
+} from '@/features/negocios/types/business-prisma.types'
 import { businessListParamsSchema } from '@/features/negocios/lib/business-api.schemas'
+import { buildBusinessListWhere } from '@/features/negocios/lib/build-business-list-where'
+import { toBusinessListFilterInput } from '@/features/negocios/lib/to-business-list-filter-input'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/features/auth/lib/roles'
-import { Prisma } from '@prisma/client'
+import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
 
 /**
  * GET /api/negocios
@@ -46,6 +48,10 @@ export async function GET(
 			pageSize: searchParams.get('pageSize'),
 			search: searchParams.get('search'),
 			status: searchParams.get('status'),
+			dateFrom: searchParams.get('dateFrom'),
+			dateTo: searchParams.get('dateTo'),
+			createdFrom: searchParams.get('createdFrom'),
+			createdTo: searchParams.get('createdTo'),
 		}
 
 		const validationResult = businessListParamsSchema.safeParse(params)
@@ -60,7 +66,8 @@ export async function GET(
 			)
 		}
 
-		const { page, pageSize, search, status } = validationResult.data
+		const { page, pageSize, search, status, dateFrom, dateTo, createdFrom, createdTo } =
+			validationResult.data
 
 		// Obtener usuario actual
 		const currentUser = await getCurrentUserByEmail(session.user.email)
@@ -72,53 +79,17 @@ export async function GET(
 			)
 		}
 
-		// Construir filtros
-		const isAgent = currentUser.role?.code === UserRole.AGENTE
-		const whereConditions: Prisma.BusinessWhereInput[] = []
-
-		// Filtro por rol (agentes solo ven sus negocios)
-		if (isAgent) {
-			whereConditions.push({ idUser: currentUser.idUser })
-		}
-
-		// Filtro por estado
-		if (status) {
-			whereConditions.push({ status })
-		}
-
-		// Filtro por búsqueda unificada
-		if (search && search.trim()) {
-			const searchTerm = search.trim()
-			const searchNumber = parseInt(searchTerm, 10)
-			const isNumeric = !isNaN(searchNumber)
-
-			// Construir condiciones OR para búsqueda unificada
-			const searchOrConditions: Prisma.BusinessWhereInput[] = [
-				// Búsqueda en campos del cliente
-				{
-					client: {
-						OR: [
-							{ identityNumber: { contains: searchTerm, mode: 'insensitive' } },
-							{ name: { contains: searchTerm, mode: 'insensitive' } },
-							{ lastName: { contains: searchTerm, mode: 'insensitive' } },
-							{ email: { contains: searchTerm, mode: 'insensitive' } },
-						],
-					},
-				},
-				// Búsqueda por número de contrato
-				{ contract: { contains: searchTerm, mode: 'insensitive' } },
-			]
-
-			// Si el término es numérico, también buscar por ID del negocio
-			if (isNumeric) {
-				searchOrConditions.push({ idBusiness: searchNumber })
-			}
-
-			whereConditions.push({ OR: searchOrConditions })
-		}
-
-		const where: Prisma.BusinessWhereInput =
-			whereConditions.length > 0 ? { AND: whereConditions } : {}
+		const where = buildBusinessListWhere(
+			currentUser,
+			toBusinessListFilterInput({
+				search,
+				status,
+				dateFrom,
+				dateTo,
+				createdFrom,
+				createdTo,
+			})
+		)
 
 		// Obtener total y negocios
 		const [total, businesses] = await Promise.all([
@@ -126,7 +97,7 @@ export async function GET(
 			prisma.business.findMany({
 				where,
 				include: businessWithRelations,
-				orderBy: { createdAt: 'desc' },
+				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
 				skip: (page - 1) * pageSize,
 				take: pageSize,
 			}),

@@ -13,7 +13,7 @@ interface PrismaProductConfigurationWithIncludes {
 	idProduct: number
 	idClientOrigin: number
 	idCategory: number
-	code: string | null
+	code: string
 	active: boolean
 	idProductPercentageCommissionNewBusinesses: number | null
 	createdAt: Date
@@ -43,17 +43,12 @@ interface PrismaProductConfigurationWithIncludes {
 export function prismaProductConfigToProductConfig(
 	prisma: PrismaProductConfigurationWithIncludes
 ): ProductConfiguration {
-	// Find the currently active distribution from the list
-	const activeDistribution = prisma.productPercentageCommissions.find(
-		(d) => d.active
-	)
-
 	return {
 		id: prisma.id,
 		idProduct: prisma.idProduct,
 		idClientOrigin: prisma.idClientOrigin,
 		idCategory: prisma.idCategory,
-		code: prisma.code ?? '',
+		code: prisma.code,
 		active: prisma.active,
 		idProductPercentageCommissionNewBusinesses:
 			prisma.idProductPercentageCommissionNewBusinesses,
@@ -84,11 +79,6 @@ export function prismaProductConfigToProductConfig(
 					active: prisma.productPercentageCommissionNewBusinesses.active,
 				}
 			: null,
-		// Prioritize the active distribution's description, fallback to the linked one
-		newBusinessesDistributionDescription:
-			activeDistribution?.description ??
-			prisma.productPercentageCommissionNewBusinesses?.description ??
-			null,
 	}
 }
 

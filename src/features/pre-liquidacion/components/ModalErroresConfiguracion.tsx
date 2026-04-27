@@ -171,15 +171,15 @@ export function ModalErroresConfiguracion({
 						</p>
 					</div>
 					<div className="ml-auto bg-destructive/10 px-3 py-1.5 rounded-lg border border-destructive/20 text-xs font-bold whitespace-nowrap">
-						{registrosConError.length}{' '}
-						{registrosConError.length === 1 ? 'registro' : 'registros'}
+						{registrosConError?.length || 0}{' '}
+						{registrosConError?.length === 1 ? 'registro' : 'registros'}
 					</div>
 				</div>
 
 				<div className="rounded-xl border border-border shadow-sm overflow-hidden bg-background">
 					<DataTable
 						columns={columns}
-						data={registrosConError}
+						data={registrosConError || []}
 						searchable={true}
 						searchColumn="contrato"
 						searchPlaceholder="Buscar por contrato..."

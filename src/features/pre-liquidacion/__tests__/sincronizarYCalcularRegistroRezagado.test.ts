@@ -34,7 +34,6 @@ describe('sincronizarYCalcularRegistroRezagado', () => {
 	it('debería sincronizar exitosamente un registro rezagado', async () => {
 		const mockIdSettlementCommission = 1
 		const mockIdBusiness = 100
-		const mockActiveFileId = 50
 
 		const mockSettlement = {
 			idSettlementCommission: mockIdSettlementCommission,
@@ -120,8 +119,6 @@ describe('sincronizarYCalcularRegistroRezagado', () => {
 
 	it('debería lanzar error si el registro no está en estado LAG', async () => {
 		const mockIdSettlementCommission = 1
-		const mockIdBusiness = 100
-		const mockActiveFileId = 50
 
 		const mockSettlement = {
 			idSettlementCommission: mockIdSettlementCommission,

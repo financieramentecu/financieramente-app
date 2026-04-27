@@ -3,6 +3,8 @@
 import { useParams } from 'next/navigation'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { CommissionRuleForm } from '@/features/distribution-commission/components/commission-rule-form'
+import { useDistributionWizardFormMode } from '@/features/distribution-commission/hooks/use-distribution-wizard-form-mode'
+import { Loader2 } from 'lucide-react'
 import {
 	Card,
 	CardContent,
@@ -14,10 +16,37 @@ import {
 export default function CreateCommissionRulePage() {
 	const params = useParams()
 	const productConfigId = Number(params.id)
+	const formModeState = useDistributionWizardFormMode(
+		Number.isFinite(productConfigId) ? productConfigId : undefined
+	)
 
-	if (isNaN(productConfigId)) {
+	if (!Number.isFinite(productConfigId)) {
 		return <div>ID de configuración inválido</div>
 	}
+
+	if (formModeState.status === 'loading') {
+		return (
+			<DashboardLayout currentPage="Crear Distribución de Comisión">
+				<div className="flex h-40 items-center justify-center">
+					<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+				</div>
+			</DashboardLayout>
+		)
+	}
+
+	if (formModeState.status === 'error') {
+		return (
+			<DashboardLayout currentPage="Crear Distribución de Comisión">
+				<p className="text-destructive">{formModeState.error}</p>
+			</DashboardLayout>
+		)
+	}
+
+	if (formModeState.status !== 'success') {
+		return null
+	}
+
+	const { mode: formMode, initialRule } = formModeState.data
 
 	return (
 		<DashboardLayout currentPage="Crear Distribución de Comisión">
@@ -41,7 +70,8 @@ export default function CreateCommissionRulePage() {
 					<CardContent>
 						<CommissionRuleForm
 							productConfigId={productConfigId}
-							mode="create"
+							mode={formMode}
+							initialData={initialRule}
 						/>
 					</CardContent>
 				</Card>

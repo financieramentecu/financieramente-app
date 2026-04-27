@@ -20,6 +20,18 @@ SENDGRID_TEMPLATE_ID=d-7bddba2ac2ba49ff952c4c2c689d55b7
 2. **Verificar Sender**: https://app.sendgrid.com/settings/sender_auth/senders/new
    - Email debe estar verificado antes de enviar
 
+## ⚠️ Estado de Entregabilidad (Pendiente)
+
+> [!WARNING]
+> **Actualización de DNS Requerida** (Ultima auditoría: Abril 2026)
+> Actualmente, SendGrid no está autorizado en el SPF del dominio `financieramentecu.com`. Esto puede causar que los correos lleguen a la carpeta de SPAM.
+
+**Requerimientos pendientes:**
+1.  **SPF**: Actualizar el registro TXT para incluir `include:sendgrid.net`.
+2.  **DKIM**: Completar la "Domain Authentication" en el panel de SendGrid y configurar los CNAMEs en GoDaddy.
+
+Refiérase a `docs/dns_requirements.md` (o archivo de auditoría actual) para los valores exactos.
+
 ---
 
 ## 🧪 Pruebas y Validación

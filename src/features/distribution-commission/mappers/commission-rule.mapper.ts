@@ -1,3 +1,4 @@
+import { Decimal } from '@prisma/client/runtime/library'
 import {
 	CommissionRule,
 	CommissionRuleCategory,
@@ -15,7 +16,8 @@ type PrismaCommissionRuleCategory = {
 	id: number
 	idCategory: number
 	idProductPercentageCommission: number
-	porcentajeDistribucion: DecimalLike // Prisma Decimal
+	porcentajeDistribucion: DecimalLike
+	porcentajePortfolio?: DecimalLike | null
 	active: boolean
 	createdAt: Date
 	updatedAt: Date
@@ -30,9 +32,20 @@ type PrismaCommissionRule = {
 	idProductConfiguration: number
 	description: string | null
 	active: boolean
+	hasPortfolio?: boolean
 	createdAt: Date
 	updatedAt: Date
 	productPercentageCommissionCategories?: PrismaCommissionRuleCategory[]
+}
+
+function fractionToPercent0to100(value: DecimalLike): number {
+	const asString =
+		typeof value === 'object' &&
+		value !== null &&
+		'toString' in value
+			? (value as { toString(): string }).toString()
+			: String(value)
+	return new Decimal(asString).times(100).toNumber()
 }
 
 /**
@@ -41,18 +54,19 @@ type PrismaCommissionRule = {
 export function prismaCommissionRuleCategoryToDomain(
 	prisma: PrismaCommissionRuleCategory
 ): CommissionRuleCategory {
-	const rawPercentage =
-		typeof prisma.porcentajeDistribucion === 'object' &&
-		'toNumber' in prisma.porcentajeDistribucion
-			? prisma.porcentajeDistribucion.toNumber()
-			: Number(prisma.porcentajeDistribucion)
+	const porcentajePortfolio =
+		prisma.porcentajePortfolio != null
+			? fractionToPercent0to100(prisma.porcentajePortfolio)
+			: undefined
 
 	return {
 		id: prisma.id,
 		idCategory: prisma.idCategory,
 		idProductPercentageCommission: prisma.idProductPercentageCommission,
-		// Handle Decimal -> number conversion safely
-		porcentajeDistribucion: Number((rawPercentage * 100).toFixed(2)),
+		porcentajeDistribucion: fractionToPercent0to100(prisma.porcentajeDistribucion),
+		...(porcentajePortfolio !== undefined
+			? { porcentajePortfolio }
+			: {}),
 		active: prisma.active,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
@@ -76,6 +90,7 @@ export function prismaCommissionRuleToDomain(
 		idProductConfiguration: prisma.idProductConfiguration,
 		description: prisma.description,
 		active: prisma.active,
+		hasPortfolio: prisma.hasPortfolio ?? false,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
 		categories: prisma.productPercentageCommissionCategories

@@ -5,84 +5,44 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Porcentajes de Comisión (ProductPercentages)...')
 
 	// 1. Obtener dependencias necesarias
-	const company = await prisma.company.findFirst({
-		where: { name: 'SKANDIA' },
-	})
-	const product = await prisma.product.findFirst({
-		where: { name: 'CREA PATRIMONIO' },
-	})
 	const clientOriginPropio = await prisma.clientOrigin.findFirst({
 		where: { name: 'Propio' },
 	})
 
-	// Categorías
 	const catJunior = await prisma.category.findUnique({
 		where: { code: 'JUNIOR' },
 	})
-	const catSenior = await prisma.category.findUnique({
-		where: { code: 'SENIOR' },
-	})
-	const catLider = await prisma.category.findUnique({
-		where: { code: 'LIDER' },
-	})
-	const catCoach = await prisma.category.findUnique({
-		where: { code: 'COACH' },
-	})
-	const catAgencia = await prisma.category.findUnique({
-		where: { code: 'AGENCIA' },
-	})
-	const catGeneral = await prisma.category.findUnique({
-		where: { code: 'GENERAL' },
-	})
 
-	if (!company || !product || !clientOriginPropio || !catJunior) {
+	if (!clientOriginPropio || !catJunior) {
 		console.warn(
-			'⚠️ Faltan datos base (Company, Product, Origin, Category) para crear porcentajes. Saltando...'
+			'⚠️ Faltan datos base (Origin Propio o Category JUNIOR) para crear porcentajes. Saltando...'
 		)
 		return
 	}
 
-	const configs = [
-		{
-			origin: clientOriginPropio,
-			category: catJunior,
-			percentages: [
-				{ targetCat: catGeneral, pct: 1.0 },
-				{ targetCat: catAgencia, pct: 0.3 },
-				{ targetCat: catLider, pct: 0.1 },
-				{ targetCat: catCoach, pct: 0.05 },
-				{ targetCat: catJunior, pct: 0.4 },
-			],
-		},
-		{
-			origin: clientOriginPropio,
-			category: catSenior,
-			percentages: [
-				{ targetCat: catGeneral, pct: 1.0 },
-				{ targetCat: catAgencia, pct: 0.3 },
-				{ targetCat: catLider, pct: 0.1 },
-				{ targetCat: catCoach, pct: 0.05 },
-				{ targetCat: catSenior, pct: 0.55 },
-			],
-		},
-	]
+	// Obtener TODOS los productos activos con su compañía
+	const allProducts = await prisma.product.findMany({
+		where: { status: true },
+		include: { company: true },
+	})
 
-	for (const config of configs) {
-		if (!config.category) continue
+	console.log(`🔍 Se encontraron ${allProducts.length} productos para configurar.`)
 
+	for (const product of allProducts) {
 		const code = buildProductConfigurationCode(
+			product.company.name,
 			product.name,
-			config.origin.name,
-			config.category.name
+			clientOriginPropio.name,
+			catJunior.name
 		)
 
-		// Obtener o crear ProductConfiguration (combinación producto, origen, categoría)
+		// 1. Obtener o crear ProductConfiguration
 		let productConfiguration = await prisma.productConfiguration.findUnique({
 			where: {
 				idProduct_idClientOrigin_idCategory: {
 					idProduct: product.idProduct,
-					idClientOrigin: config.origin.idClientOrigin,
-					idCategory: config.category.idCategory,
+					idClientOrigin: clientOriginPropio.idClientOrigin,
+					idCategory: catJunior.idCategory,
 				},
 			},
 		})
@@ -91,14 +51,20 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 			productConfiguration = await prisma.productConfiguration.create({
 				data: {
 					idProduct: product.idProduct,
-					idClientOrigin: config.origin.idClientOrigin,
-					idCategory: config.category.idCategory,
+					idClientOrigin: clientOriginPropio.idClientOrigin,
+					idCategory: catJunior.idCategory,
 					code,
+					active: true,
 				},
+			})
+		} else if (!productConfiguration.active) {
+			await prisma.productConfiguration.update({
+				where: { id: productConfiguration.id },
+				data: { active: true },
 			})
 		}
 
-		// Buscar o crear PPC bajo esta configuración
+		// 2. Buscar o crear PPC bajo esta configuración
 		let ppc = await prisma.productPercentageCommission.findFirst({
 			where: {
 				idProductConfiguration: productConfiguration.id,
@@ -108,11 +74,19 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 		if (!ppc) {
 			ppc = await prisma.productPercentageCommission.create({
 				data: {
+					idProductPercentageCommission: undefined, // Let DB handle id
 					idProductConfiguration: productConfiguration.id,
 					active: true,
+					description: `Comisión default seed para ${product.name}`,
 				},
 			})
-			// Marcar este PPC como el activo para nuevos negocios en esta configuración
+		}
+
+		// Asegurar que este PPC sea el plan para nuevos negocios
+		if (
+			productConfiguration.idProductPercentageCommissionNewBusinesses !==
+			ppc.idProductPercentageCommission
+		) {
 			await prisma.productConfiguration.update({
 				where: { id: productConfiguration.id },
 				data: {
@@ -120,33 +94,29 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 						ppc.idProductPercentageCommission,
 				},
 			})
-			console.log(
-				`✅ Configuración Maestra creada: ${productConfiguration.code ?? code}`
-			)
 		}
 
-		// Crear detalles (Distribución)
-		for (const dist of config.percentages) {
-			if (!dist.targetCat) continue
+		// 3. Crear detalle de distribución (JUNIOR 60%)
+		const existingDetail =
+			await prisma.productPercentageCommissionCategory.findFirst({
+				where: {
+					idProductPercentageCommission: ppc.idProductPercentageCommission,
+					idCategory: catJunior.idCategory,
+				},
+			})
 
-			const existingDetail =
-				await prisma.productPercentageCommissionCategory.findFirst({
-					where: {
-						idProductPercentageCommission: ppc.idProductPercentageCommission,
-						idCategory: dist.targetCat.idCategory,
-					},
-				})
-
-			if (!existingDetail) {
-				await prisma.productPercentageCommissionCategory.create({
-					data: {
-						idProductPercentageCommission: ppc.idProductPercentageCommission,
-						idCategory: dist.targetCat.idCategory,
-						porcentajeDistribucion: dist.pct,
-						active: true,
-					},
-				})
-			}
+		if (!existingDetail) {
+			await prisma.productPercentageCommissionCategory.create({
+				data: {
+					idProductPercentageCommission: ppc.idProductPercentageCommission,
+					idCategory: catJunior.idCategory,
+					porcentajeDistribucion: 0.60, // 60%
+					active: true,
+				},
+			})
+			console.log(
+				`✅ Configuración default creada p/: ${product.name} (Junior 60%)`
+			)
 		}
 	}
 }

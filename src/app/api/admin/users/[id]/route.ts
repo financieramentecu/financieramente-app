@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth/nextauth'
+import { requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { Prisma } from '@prisma/client'
 
@@ -28,15 +29,12 @@ export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	try {
-		const session = await auth()
-		if (!session?.user) {
-			return NextResponse.json(
-				{ success: false, error: 'No autorizado' },
-				{ status: 401 }
-			)
-		}
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
 
+	try {
 		const { id } = await params
 		const userId = parseInt(id)
 		if (isNaN(userId)) {
@@ -138,15 +136,13 @@ export async function PUT(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	try {
-		const session = await auth()
-		if (!session?.user) {
-			return NextResponse.json(
-				{ success: false, error: 'No autorizado' },
-				{ status: 401 }
-			)
-		}
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+	const { session } = guard
 
+	try {
 		const { id } = await params
 		const userId = parseInt(id)
 		if (isNaN(userId)) {

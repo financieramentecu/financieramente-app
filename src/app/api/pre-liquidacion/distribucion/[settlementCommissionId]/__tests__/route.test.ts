@@ -10,8 +10,12 @@ vi.mock(
 	'@/features/pre-liquidacion/services/pre-liquidacion.service',
 	() => ({
 		obtenerDistribucionComision: vi.fn(),
+		puedeVerDistribucionComision: vi.fn().mockResolvedValue(false),
 	})
 )
+vi.mock('@/features/auth/lib/hierarchy', () => ({
+	isHierarchyBypassRole: vi.fn().mockReturnValue(false),
+}))
 
 const mockAuth = vi.mocked(auth)
 const mockObtenerDistribucion = vi.mocked(obtenerDistribucionComision)

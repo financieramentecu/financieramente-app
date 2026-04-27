@@ -15,6 +15,8 @@ import {
 	Tag,
 	Sliders,
 	Percent,
+	PieChart,
+	Receipt,
 } from 'lucide-react'
 
 /**
@@ -63,6 +65,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				icon: <FileText className="h-4 w-4" />,
 			},
 		],
+	},
+	{
+		title: 'Mis distribuciones',
+		url: '/dashboard/mis-distribuciones',
+		icon: <Receipt className="h-4 w-4" />,
 	},
 	{
 		title: 'Reportes',
@@ -127,6 +134,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				icon: <Sliders className="h-4 w-4" />,
 			},
 			{
+				title: 'Config. distribución de comisiones',
+				url: '/dashboard/config-distribucion-comisiones',
+				icon: <PieChart className="h-4 w-4" />,
+			},
+			{
 				title: 'Descuentos',
 				url: '/dashboard/admin/discounts',
 				icon: <Percent className="h-4 w-4" />,
@@ -139,11 +151,6 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
  * Items de menú específicos para Agente
  */
 export const AGENTE_MENU_ITEMS: MenuItem[] = [
-	{
-		title: 'Mi Dashboard',
-		url: '/dashboard/agente',
-		icon: <LayoutDashboard className="h-4 w-4" />,
-	},
 	{
 		title: 'Mis Negocios',
 		url: '/dashboard/negocios',
@@ -161,9 +168,9 @@ export const AGENTE_MENU_ITEMS: MenuItem[] = [
 			},
 		],
 	},
-	{
-		title: 'Mis Reportes',
-		url: '/dashboard/reportes/personales',
-		icon: <BarChart3 className="h-4 w-4" />,
-	},
+	/* 	{
+			title: 'Mis Reportes',
+			url: '/dashboard/reportes/personales',
+			icon: <BarChart3 className="h-4 w-4" />,
+		}, */
 ]

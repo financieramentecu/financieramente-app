@@ -1,6 +1,6 @@
 {
 	"name": "financieramente-app",
-	"version": "1.0.0-beta.1",
+	"version": "1.0.0-beta.17",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -10,10 +10,10 @@
 		"lint": "eslint",
 		"type-check": "tsc --noEmit",
 		"test": "vitest",
-		"test:unit": "vitest --config vitest.unit.config.ts",
-		"test:unit:coverage": "vitest --config vitest.unit.config.ts --coverage",
-		"test:integration": "vitest --config vitest.integration.config.ts",
-		"test:integration:coverage": "vitest --config vitest.integration.config.ts --coverage",
+		"test:unit": "vitest --config vitest.unit.config.ts --run",
+		"test:unit:coverage": "vitest --config vitest.unit.config.ts --coverage --run",
+		"test:integration": "vitest --config vitest.integration.config.ts --run",
+		"test:integration:coverage": "vitest --config vitest.integration.config.ts --coverage --run",
 		"test:e2e": "playwright test",
 		"test:e2e:ui": "playwright test --ui",
 		"test:e2e:debug": "playwright test --debug",
@@ -23,7 +23,12 @@
 		"test:watch": "vitest --watch",
 		"test:ui": "vitest --ui",
 		"test:snapshot": "vitest --run --reporter=verbose",
-		"test:email": "tsx scripts/test-email.ts",
+		"test:email": "tsx scripts/test-notifications.ts",
+		"test:email:all": "tsx scripts/test-notifications.ts all",
+		"test:email:preliquidacion": "tsx scripts/test-notifications.ts preliquidacion",
+		"test:email:liquidacion": "tsx scripts/test-notifications.ts liquidacion",
+		"test:email:admin": "tsx scripts/test-notifications.ts admin",
+		"test:email:activation": "tsx scripts/test-notifications.ts activation",
 		"test:email:integration": "vitest --config vitest.integration.config.ts --run src/features/email",
 		"storybook": "storybook dev -p 6006",
 		"build-storybook": "storybook build",
@@ -42,6 +47,7 @@
 		"prepare": "husky"
 	},
 	"dependencies": {
+		"@date-fns/tz": "^1.4.1",
 		"@hookform/resolvers": "^5.2.2",
 		"@playwright/test": "^1.56.1",
 		"@prisma/client": "^6.18.0",
@@ -84,6 +90,7 @@
 		"tailwind-merge": "^3.3.1",
 		"tailwindcss-animate": "^1.0.7",
 		"xlsx": "^0.18.5",
+		"xlsx-js-style": "^1.2.0",
 		"zod": "^4.1.12"
 	},
 	"devDependencies": {

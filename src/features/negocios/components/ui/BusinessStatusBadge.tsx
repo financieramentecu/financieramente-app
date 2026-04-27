@@ -39,10 +39,15 @@ const STATUS_CONFIG: Record<
 		variant: 'destructive',
 		className: 'bg-red-100 text-red-800 hover:bg-red-200',
 	},
-	COMISIONANDO: {
-		label: 'Comisionando',
-		variant: 'secondary',
-		className: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+	LIQUIDADO: {
+		label: 'Liquidado',
+		variant: 'default',
+		className: 'bg-green-100 text-green-800 hover:bg-green-200',
+	},
+	FONDEADO: {
+		label: 'Fondeado',
+		variant: 'default',
+		className: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
 	},
 }
 

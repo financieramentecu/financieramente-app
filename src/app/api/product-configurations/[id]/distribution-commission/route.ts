@@ -192,6 +192,7 @@ export async function POST(
 					idProductConfiguration: data.idProductConfiguration,
 					description: data.description,
 					active: true,
+					hasPortfolio: data.hasPortfolio,
 				},
 			})
 
@@ -202,6 +203,11 @@ export async function POST(
 						idProductPercentageCommission: rule.idProductPercentageCommission,
 						idCategory: cat.idCategory,
 						porcentajeDistribucion: cat.percentage,
+						porcentajePortfolio:
+							data.hasPortfolio &&
+							cat.portfolioPercentage !== undefined
+								? cat.portfolioPercentage
+								: null,
 						active: true,
 					})),
 				})

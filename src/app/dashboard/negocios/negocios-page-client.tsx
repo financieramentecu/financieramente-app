@@ -5,21 +5,40 @@ import { useRouter } from 'next/navigation'
 import { MisNegociosPage } from '@/features/negocios/components/MisNegociosPage'
 import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
+import { AnnualFundingModal } from '@/features/negocios/components/modals/AnnualFundingModal'
 import { businessService } from '@/features/negocios/services/business.service'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
+import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
+import { UserRole } from '@/features/auth/lib/roles'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
-import { Business, StatsData } from '@/features/negocios/types/business.types'
+import { Business } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
-import type { BusinessEntity } from '@/features/negocios/types/business-entity.types'
-import type { BusinessListParams } from '@/features/negocios/types/business-api.types'
-import { BUSINESS_STATUS } from '@/features/negocios/types/business-status.types'
-import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
-import { PiggyBank } from 'lucide-react'
+import type {
+	BusinessEntity,
+	BusinessStatus,
+} from '@/features/negocios/types/business-entity.types'
+import type {
+	AnnualInstallmentDto,
+	BusinessListParams,
+	NegociosExportBody,
+} from '@/features/negocios/types/business-api.types'
+import { mapBusinessToTableRow } from '@/features/negocios/lib/map-business-to-table-row'
+import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/features/shared/ui/alert-dialog'
 
 const SEARCH_DEBOUNCE_DELAY = 500
-const DEFAULT_CURRENCY = 'COP'
 
 interface NegociosPageClientProps {
 	currentUser?: UserWithRole
@@ -35,6 +54,8 @@ export function NegociosPageClient({
 }: NegociosPageClientProps) {
 	const router = useRouter()
 
+	const isAgentRole = _currentUser?.role?.code === UserRole.AGENTE
+
 	// Estado para modales
 	const [viewModalOpen, setViewModalOpen] = useState(false)
 	const [cancelModalOpen, setCancelModalOpen] = useState(false)
@@ -42,18 +63,45 @@ export function NegociosPageClient({
 		useState<BusinessEntity | null>(null)
 	const [isLoadingBusiness, setIsLoadingBusiness] = useState(false)
 
-	// Estado para currency seleccionada
-	const [selectedCurrency, setSelectedCurrency] =
-		useState<string>(DEFAULT_CURRENCY)
+	const [annualFundingOpen, setAnnualFundingOpen] = useState(false)
+	const [annualFundingBusinessId, setAnnualFundingBusinessId] = useState<
+		number | null
+	>(null)
+	const [annualFundingInstallments, setAnnualFundingInstallments] = useState<
+		AnnualInstallmentDto[]
+	>([])
+	const [annualFundingContract, setAnnualFundingContract] = useState<
+		string | null
+	>(null)
+	const [annualFundingLoading, setAnnualFundingLoading] = useState(false)
+	const [fondearConfirmOpen, setFondearConfirmOpen] = useState(false)
+	const [pendingFondearBusiness, setPendingFondearBusiness] =
+		useState<Business | null>(null)
+	const [isConfirmingFondear, setIsConfirmingFondear] = useState(false)
 
 	// Estado para búsqueda con debounce
 	const [searchInput, setSearchInput] = useState('')
 	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
 
+	// Fechas por defecto para el Coach (Mes actual)
+	const defaultDates = useMemo(() => {
+		const now = new Date()
+		const year = now.getFullYear()
+		const month = String(now.getMonth() + 1).padStart(2, '0')
+		const day = String(now.getDate()).padStart(2, '0')
+		return {
+			from: `${year}-${month}-01`,
+			to: `${year}-${month}-${day}`,
+		}
+	}, [])
+
 	// Estado para paginación
+	// Sin dateFrom/dateTo por defecto: el listado muestra todos los negocios;
+	// los KPI de stats usan las fechas del picker o el rango por defecto.
 	const [searchParams, setSearchParams] = useState<BusinessListParams>({
 		page: 1,
 		pageSize: 10,
+		...(isAgentRole ? { dateFrom: defaultDates.from, dateTo: defaultDates.to } : {}),
 	})
 
 	// Trackear si la tabla ya se inicializó (cargó datos al menos una vez)
@@ -73,9 +121,20 @@ export function NegociosPageClient({
 		}))
 	}, [debouncedSearch])
 
+	// Para Coach: mapear dateFrom/dateTo a createdFrom/createdTo en el listado
+	const listParams: BusinessListParams = isAgentRole
+		? {
+				...searchParams,
+				dateFrom: undefined,
+				dateTo: undefined,
+				createdFrom: searchParams.dateFrom,
+				createdTo: searchParams.dateTo,
+			}
+		: searchParams
+
 	// Hooks para datos
 	const { businesses, isLoading, error, pagination, refetch } =
-		useBusinesses(searchParams)
+		useBusinesses(listParams)
 
 	// Detectar si se está esperando el debounce (usuario escribiendo)
 	const isDebouncing = searchInput !== debouncedSearch
@@ -102,27 +161,30 @@ export function NegociosPageClient({
 		isLoading: isLoadingStats,
 		error: statsError,
 		refetch: refetchStats,
-	} = useBusinessStats()
+	} = useBusinessStats({
+		dateFrom: searchParams.dateFrom || defaultDates.from,
+		dateTo: searchParams.dateTo || defaultDates.to,
+	})
 
-	// Actualizar currency seleccionada cuando los stats se cargan por primera vez
-	useEffect(() => {
-		if (stats?.currencies && stats.currencies.length > 0) {
-			// Si la currency seleccionada no existe en los datos, usar la primera disponible
-			const currencyExists = stats.currencies.some(
-				(c) => c.symbol === selectedCurrency
-			)
-			if (!currencyExists) {
-				setSelectedCurrency(stats.currencies[0].symbol)
-			}
-		}
-	}, [stats?.currencies, selectedCurrency])
+	const {
+		cancelBusiness,
+		isCancelling,
+		fondearBusiness,
+		fondearAnualidadesBusiness,
+		isFondeando,
+		isFondeandoAnualidades,
+	} = useBusinessMutation()
 
-	const { cancelBusiness, isCancelling } = useBusinessMutation()
+	const {
+		exportReport,
+		isExporting: isExportingExcel,
+		error: exportExcelError,
+	} = useBusinessExport()
 
-	// Handler para cambio de currency
-	const handleCurrencyChange = useCallback((currency: string) => {
-		setSelectedCurrency(currency)
-	}, [])
+	const canExportExcel =
+		_currentUser?.role?.code === UserRole.ADMIN ||
+		_currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+		_currentUser?.role?.code === UserRole.ANALISTA_SOPORTE
 
 	// Handlers
 	const handleAddBusiness = useCallback(() => {
@@ -178,6 +240,116 @@ export function NegociosPageClient({
 	}, [])
 
 	/**
+	 * Fondeo: sin anualidades → POST directo; con anualidades → modal HU4
+	 */
+	const executeFondearBusiness = useCallback(
+		async (business: Business) => {
+			if (business.hasAnnualPayments) {
+				setAnnualFundingBusinessId(Number(business.id))
+				setAnnualFundingContract(
+					typeof business.contract === 'string' ? business.contract : null
+				)
+				setAnnualFundingOpen(true)
+				setAnnualFundingLoading(true)
+				setAnnualFundingInstallments([])
+
+				const res = await businessService.getAnnualPayments(Number(business.id))
+				setAnnualFundingLoading(false)
+
+				if ('error' in res && res.error) {
+					toast.error('No se pudieron cargar las anualidades', {
+						description: res.error,
+					})
+					setAnnualFundingOpen(false)
+					setAnnualFundingBusinessId(null)
+					setAnnualFundingContract(null)
+					return
+				}
+
+				if (res.data) {
+					setAnnualFundingInstallments(res.data.installments)
+				}
+				return
+			}
+
+			const result = await fondearBusiness(Number(business.id))
+
+			if (result) {
+				refetch()
+				refetchStats()
+			}
+		},
+		[fondearBusiness, refetch, refetchStats]
+	)
+
+	const handleFondearBusiness = useCallback(
+		(business: Business) => {
+			if (business.hasAnnualPayments) {
+				void executeFondearBusiness(business)
+				return
+			}
+
+			setPendingFondearBusiness(business)
+			setFondearConfirmOpen(true)
+		},
+		[executeFondearBusiness]
+	)
+
+	const handleConfirmFondear = useCallback(async () => {
+		if (!pendingFondearBusiness) return
+		setIsConfirmingFondear(true)
+		try {
+			await executeFondearBusiness(pendingFondearBusiness)
+			setFondearConfirmOpen(false)
+			setPendingFondearBusiness(null)
+		} finally {
+			setIsConfirmingFondear(false)
+		}
+	}, [pendingFondearBusiness, executeFondearBusiness])
+
+	const handleFondearConfirmOpenChange = useCallback(
+		(open: boolean) => {
+			if (isConfirmingFondear) {
+				return
+			}
+			setFondearConfirmOpen(open)
+			if (!open) {
+				setPendingFondearBusiness(null)
+			}
+		},
+		[isConfirmingFondear]
+	)
+
+	const handleAnnualFundingOpenChange = useCallback((open: boolean) => {
+		setAnnualFundingOpen(open)
+		if (!open) {
+			setAnnualFundingBusinessId(null)
+			setAnnualFundingContract(null)
+			setAnnualFundingInstallments([])
+		}
+	}, [])
+
+	const handleConfirmAnnualFunding = useCallback(
+		async (fundedInstallmentIndexes: number[]) => {
+			if (annualFundingBusinessId === null) return
+
+			const result = await fondearAnualidadesBusiness(annualFundingBusinessId, {
+				fundedInstallmentIndexes,
+			})
+
+			if (result) {
+				setAnnualFundingOpen(false)
+				setAnnualFundingBusinessId(null)
+				setAnnualFundingContract(null)
+				setAnnualFundingInstallments([])
+				refetch()
+				refetchStats()
+			}
+		},
+		[annualFundingBusinessId, fondearAnualidadesBusiness, refetch, refetchStats]
+	)
+
+	/**
 	 * Confirma la cancelación del negocio
 	 */
 	const handleConfirmCancel = useCallback(
@@ -212,6 +384,66 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({ ...prev, page }))
 	}, [])
 
+	const handleListStatusChange = useCallback(
+		(status: BusinessStatus | undefined) => {
+			setSearchParams((prev) => ({
+				...prev,
+				status,
+				page: 1,
+			}))
+		},
+		[]
+	)
+
+	const handleFundDateFromChange = useCallback((value: string) => {
+		setSearchParams((prev) => {
+			const newFrom = isAgentRole ? (value || defaultDates.from) : (value || undefined)
+			const newTo = prev.dateTo ?? (isAgentRole ? defaultDates.to : undefined)
+			const next: BusinessListParams = { ...prev, dateFrom: newFrom, dateTo: newTo, page: 1 }
+			if (!isAgentRole) {
+				next.status = (newFrom && newTo) ? 'FONDEADO' : undefined
+			}
+			return next
+		})
+	}, [isAgentRole, defaultDates.from, defaultDates.to])
+
+	const handleFundDateToChange = useCallback((value: string) => {
+		setSearchParams((prev) => {
+			const newTo = isAgentRole ? (value || defaultDates.to) : (value || undefined)
+			const newFrom = prev.dateFrom ?? (isAgentRole ? defaultDates.from : undefined)
+			const next: BusinessListParams = { ...prev, dateTo: newTo, dateFrom: newFrom, page: 1 }
+			if (!isAgentRole) {
+				next.status = (newFrom && newTo) ? 'FONDEADO' : undefined
+			}
+			return next
+		})
+	}, [isAgentRole, defaultDates.from, defaultDates.to])
+
+	const handleExportExcel = useCallback(async () => {
+		const df = searchParams.dateFrom
+		const dt = searchParams.dateTo
+		const body: NegociosExportBody = {
+			search: debouncedSearch || undefined,
+			status: searchParams.status,
+		}
+		if (df && dt) {
+			body.dateFrom = df
+			body.dateTo = dt
+		}
+		const result = await exportReport(body)
+		if (result.ok) {
+			toast.success('Archivo descargado')
+		} else {
+			toast.error(result.error ?? 'No se pudo exportar')
+		}
+	}, [
+		exportReport,
+		searchParams.dateFrom,
+		searchParams.dateTo,
+		searchParams.status,
+		debouncedSearch,
+	])
+
 	// Limpiar business seleccionado al cerrar modales
 	const handleViewModalClose = useCallback((open: boolean) => {
 		setViewModalOpen(open)
@@ -230,96 +462,21 @@ export function NegociosPageClient({
 	// Convertir BusinessEntity[] a Business[] para compatibilidad con componentes existentes
 	const businessDataForTable: Business[] = useMemo(
 		() =>
-			businesses.map((b) => ({
-				id: String(b.id),
-				identification: b.client.identityNumber,
-				clientName: b.client.fullName,
-				contract: b.contract || '-',
-				user: {
-					avatar: '',
-					name: b.agent.fullName,
-				},
-				email: b.client.email || '',
-				termPeriod: `${b.term || 0}/${b.periodicity?.name || ''}`,
-				date: b.createdAt,
-				value: b.value,
-				product: b.product.name,
-				companyName: b.product.companyName,
-				status:
-					b.status === BUSINESS_STATUS.EMITIDO
-						? 'Emitido'
-						: b.status === BUSINESS_STATUS.VENTA_EFECTUADA
-							? 'Venta Efectuado'
-							: b.status === BUSINESS_STATUS.COMISIONANDO
-								? 'Comisionando'
-								: 'Cancelado',
-				currency: b.currency,
-			})),
+			[...businesses]
+				.sort((a, b) => {
+					const createdAtDiff =
+						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+					if (createdAtDiff !== 0) {
+						return createdAtDiff
+					}
+					return b.id - a.id
+				})
+				.map(mapBusinessToTableRow),
 		[businesses]
 	)
 
-	// Convertir stats a formato esperado por StatsOverview (agrupado por currency)
-	const statsDataForDisplay: StatsData[] = useMemo(() => {
-		if (!stats) return []
-
-		// Obtener stats para la currency seleccionada
-		const efectuadosStats = stats.efectuados[selectedCurrency]
-		const emitidosStats = stats.emitidos[selectedCurrency]
-
-		// Si no hay stats para la currency, usar valores por defecto
-		const defaultStats = {
-			totalValue: 0,
-			totalMonth: 0,
-			totalLastMonth: 0,
-			monthlyData: [],
-			growthPercentage: 0,
-		}
-
-		const efectuados = efectuadosStats || defaultStats
-		const emitidos = emitidosStats || defaultStats
-
-		return [
-			{
-				title: 'Resumen Negocios Efectuados',
-				value: formatCurrency(efectuados.totalMonth, selectedCurrency),
-				change: Number(efectuados.growthPercentage.toFixed(2)),
-				trend:
-					efectuados.growthPercentage >= 0
-						? ('up' as const)
-						: ('down' as const),
-				description: `Último mes: ${formatCurrency(efectuados.totalLastMonth, selectedCurrency)}`,
-				monthlyData: efectuados.monthlyData.map((m) => m.totalValue),
-				currencies: stats.currencies,
-				selectedCurrency,
-				onCurrencyChange: handleCurrencyChange,
-			},
-			{
-				title: 'Total Negocios Emitidos',
-				value: formatCurrency(emitidos.totalMonth, selectedCurrency),
-				change: Number(emitidos.growthPercentage.toFixed(2)),
-				trend:
-					emitidos.growthPercentage >= 0 ? ('up' as const) : ('down' as const),
-				description: `Último mes: ${formatCurrency(emitidos.totalLastMonth, selectedCurrency)}`,
-				monthlyData: emitidos.monthlyData.map((m) => m.totalValue),
-				currencies: stats.currencies,
-				selectedCurrency,
-				onCurrencyChange: handleCurrencyChange,
-			},
-			{
-				title: 'Reserva de Clawback',
-				value: formatCurrency(stats.clawbackBalance || 0, selectedCurrency),
-				change: 0,
-				trend: 'up' as const,
-				description: 'Saldo acumulado',
-				icon: <PiggyBank className="h-5 w-5" />,
-				variant: 'amber' as const,
-				monthlyData: [],
-				currencies: stats.currencies,
-				selectedCurrency,
-				onCurrencyChange: handleCurrencyChange,
-			},
-		]
-	}, [stats, selectedCurrency, handleCurrencyChange])
+	// Rango de fondeo activo (no-agente con ambas fechas): bloquea el selector de estado
+	const isFundDateRangeActive = !isAgentRole && Boolean(searchParams.dateFrom && searchParams.dateTo)
 
 	// Combinar errores de negocios y estadísticas
 	const displayError = error || statsError
@@ -329,7 +486,7 @@ export function NegociosPageClient({
 			{/* Contenido de la página de negocios */}
 			<MisNegociosPage
 				businessData={businessDataForTable}
-				statsData={statsDataForDisplay}
+				stats={stats || undefined}
 				isLoading={isLoading}
 				isLoadingStats={isLoadingStats}
 				isSearching={isSearching}
@@ -340,8 +497,20 @@ export function NegociosPageClient({
 				onEditBusiness={handleEditBusiness}
 				onViewBusiness={handleViewBusiness}
 				onCancelBusiness={handleCancelBusiness}
+				onFondearBusiness={handleFondearBusiness}
 				onGlobalSearch={handleGlobalSearch}
 				onPageChange={handlePageChange}
+				listStatus={searchParams.status}
+				onListStatusChange={handleListStatusChange}
+				fundDateFrom={searchParams.dateFrom ?? (isAgentRole ? defaultDates.from : '')}
+				fundDateTo={searchParams.dateTo ?? (isAgentRole ? defaultDates.to : '')}
+				fundDateRangeActive={isFundDateRangeActive}
+				onFundDateFromChange={handleFundDateFromChange}
+				onFundDateToChange={handleFundDateToChange}
+				canExportExcel={canExportExcel}
+				onExportExcel={handleExportExcel}
+				isExportingExcel={isExportingExcel}
+				exportExcelError={exportExcelError}
 			/>
 
 			{/* Modal de Visualización */}
@@ -360,6 +529,60 @@ export function NegociosPageClient({
 				isLoading={isCancelling || isLoadingBusiness}
 				onConfirm={handleConfirmCancel}
 			/>
+
+			<AnnualFundingModal
+				open={annualFundingOpen}
+				onOpenChange={handleAnnualFundingOpenChange}
+				businessId={annualFundingBusinessId}
+				contractLabel={annualFundingContract}
+				installments={annualFundingInstallments}
+				isLoadingInstallments={annualFundingLoading}
+				isSubmitting={isFondeandoAnualidades}
+				onConfirm={handleConfirmAnnualFunding}
+			/>
+
+			<AlertDialog
+				open={fondearConfirmOpen}
+				onOpenChange={handleFondearConfirmOpenChange}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>¿Confirmar fondeo?</AlertDialogTitle>
+						<AlertDialogDescription>
+							{pendingFondearBusiness?.hasAnnualPayments
+								? 'Se abrirá el flujo para seleccionar y confirmar anualidades a fondear.'
+								: 'Esta acción registrará el fondeo del negocio, ¿Desea continuar?'}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel
+							disabled={
+								isConfirmingFondear || isFondeando || isFondeandoAnualidades
+							}
+						>
+							Cancelar
+						</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={(e) => {
+								e.preventDefault()
+								void handleConfirmFondear()
+							}}
+							disabled={
+								isConfirmingFondear || isFondeando || isFondeandoAnualidades
+							}
+						>
+							{isConfirmingFondear ? (
+								<span className="inline-flex items-center gap-2">
+									<Loader2 className="h-4 w-4 animate-spin" />
+									Procesando...
+								</span>
+							) : (
+								'Confirmar'
+							)}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	)
 }

@@ -1,26 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { isE2ETestAuthAllowed } from '@/lib/auth/test-auth'
 
 /**
- * Endpoint de prueba para establecer sesión mockeada en pruebas e2e
+ * Endpoint de prueba para establecer sesión mockeada en pruebas e2e.
  *
- * SOLO disponible en modo desarrollo/test
- * Permite establecer una sesión de prueba sin necesidad de OAuth real
- *
- * Uso en Playwright:
- * ```typescript
- * await page.request.post('/api/test-auth', {
- *   data: { email: 'test@financieramentecu.com' }
- * })
- * ```
+ * Restringido a `NODE_ENV === 'test'` y requiere el mismo secret
+ * `E2E_TEST_AUTH_TOKEN` que el bypass de headers (ver `lib/auth/test-auth.ts`).
+ * En cualquier otro escenario responde 404 para no revelar la existencia del
+ * endpoint.
  */
 export async function POST(request: NextRequest) {
-	// Solo permitir en desarrollo o test
-	if (process.env.NODE_ENV === 'production') {
-		return NextResponse.json(
-			{ error: 'Not available in production' },
-			{ status: 403 }
-		)
+	if (!isE2ETestAuthAllowed((name) => request.headers.get(name))) {
+		return NextResponse.json({ error: 'Not found' }, { status: 404 })
 	}
 
 	try {

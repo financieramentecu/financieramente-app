@@ -29,6 +29,9 @@ vi.mock('@/lib/prisma', () => ({
 		productPercentageCommission: {
 			create: vi.fn(),
 		},
+		productPercentageCommissionCategory: {
+			findMany: vi.fn(),
+		},
 		$transaction: vi.fn((callback) => callback(prisma)),
 	},
 }))
@@ -96,6 +99,7 @@ describe('POST /api/product-configurations', () => {
 				name: 'Product A',
 				idCompany: 100, // Valid Company is 100
 				status: true,
+				company: { name: 'Company B' },
 			} as any)
 
 			const request = new Request(
@@ -132,6 +136,7 @@ describe('POST /api/product-configurations', () => {
 				name: 'Product A',
 				idCompany: 1,
 				status: true,
+				company: { name: 'Company A' },
 			} as any)
 			mockPrismaOrigin.mockResolvedValue({
 				idClientOrigin: 1,
@@ -188,9 +193,13 @@ describe('POST /api/product-configurations', () => {
 describe('GET /api/product-configurations', () => {
 	const mockPrismaCount = vi.mocked(prisma.productConfiguration.count)
 	const mockPrismaFindMany = vi.mocked(prisma.productConfiguration.findMany)
+	const mockCategoryLinesFindMany = vi.mocked(
+		prisma.productPercentageCommissionCategory.findMany
+	)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockCategoryLinesFindMany.mockResolvedValue([])
 	})
 
 	it('debe listar configuraciones con paginación por defecto', async () => {

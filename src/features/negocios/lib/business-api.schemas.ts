@@ -15,14 +15,91 @@ import { BUSINESS_STATUS } from '../types/business-entity.types'
  * Búsqueda unificada por identityNumber, nombres, apellidos, email del cliente,
  * ID del negocio y número de contrato
  */
-export const businessListParamsSchema = z.object({
-	page: z.coerce.number().int().positive().optional().default(1),
-	pageSize: z.coerce.number().int().positive().max(100).optional().default(10),
-	search: z.string().nullish(),
-	status: z.enum(['VENTA_EFECTUADA', 'EMITIDO', 'COMISIONANDO', 'CANCELADO']).nullish(),
-})
+const isoCalendarDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
+export const businessListParamsSchema = z
+	.object({
+		page: z.coerce.number().int().positive().optional().default(1),
+		pageSize: z.coerce.number().int().positive().max(100).optional().default(10),
+		search: z.string().nullish(),
+		status: z
+			.enum([
+				'VENTA_EFECTUADA',
+				'EMITIDO',
+				'LIQUIDADO',
+				'CANCELADO',
+				'FONDEADO',
+			])
+			.nullish(),
+		dateFrom: z.preprocess(
+			(v) => (v === '' || v === null ? undefined : v),
+			isoCalendarDay.optional()
+		),
+		dateTo: z.preprocess(
+			(v) => (v === '' || v === null ? undefined : v),
+			isoCalendarDay.optional()
+		),
+		createdFrom: z.preprocess(
+			(v) => (v === '' || v === null ? undefined : v),
+			isoCalendarDay.optional()
+		),
+		createdTo: z.preprocess(
+			(v) => (v === '' || v === null ? undefined : v),
+			isoCalendarDay.optional()
+		),
+	})
+	.superRefine((data, ctx) => {
+		const hasFrom = data.dateFrom !== undefined
+		const hasTo = data.dateTo !== undefined
+		if (hasFrom !== hasTo) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: 'dateFrom y dateTo deben enviarse juntos',
+				path: ['dateTo'],
+			})
+		}
+		const hasCreatedFrom = data.createdFrom !== undefined
+		const hasCreatedTo = data.createdTo !== undefined
+		if (hasCreatedFrom !== hasCreatedTo) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: 'createdFrom y createdTo deben enviarse juntos',
+				path: ['createdTo'],
+			})
+		}
+	})
 
 export type BusinessListParamsSchema = z.infer<typeof businessListParamsSchema>
+
+/** Body POST export Excel negocios (H5). Fechas opcionales = mismo criterio que la lista sin rango. */
+export const negociosExportBodySchema = z
+	.object({
+		dateFrom: isoCalendarDay.optional(),
+		dateTo: isoCalendarDay.optional(),
+		search: z.string().optional(),
+		status: z
+			.enum([
+				'VENTA_EFECTUADA',
+				'EMITIDO',
+				'LIQUIDADO',
+				'CANCELADO',
+				'FONDEADO',
+			])
+			.optional(),
+	})
+	.superRefine((data, ctx) => {
+		const hasFrom = data.dateFrom !== undefined
+		const hasTo = data.dateTo !== undefined
+		if (hasFrom !== hasTo) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: 'dateFrom y dateTo deben enviarse juntos',
+				path: ['dateTo'],
+			})
+		}
+	})
+
+export type NegociosExportBodySchema = z.infer<typeof negociosExportBodySchema>
 
 /**
  * Schema para actualización de negocio (contrato y/o origen del cliente)
@@ -86,6 +163,7 @@ export const agentInfoSchema = z.object({
 	id: z.number(),
 	fullName: z.string(),
 	roleName: z.string().nullable(),
+	categoryName: z.string().nullable(),
 	email: z.string(),
 	phone: z.string().nullable(),
 })
@@ -111,10 +189,12 @@ export const businessEntitySchema = z.object({
 	status: z.enum([
 		BUSINESS_STATUS.VENTA_EFECTUADA,
 		BUSINESS_STATUS.EMITIDO,
-		BUSINESS_STATUS.COMISIONANDO,
+		BUSINESS_STATUS.LIQUIDADO,
 		BUSINESS_STATUS.CANCELADO,
+		BUSINESS_STATUS.FONDEADO,
 	]),
 	createdAt: z.string(),
+	dateIssued: z.string().nullable(),
 	client: clientInfoSchema,
 	agent: agentInfoSchema,
 	product: productInfoSchema,

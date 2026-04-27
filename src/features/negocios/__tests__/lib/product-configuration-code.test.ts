@@ -4,35 +4,36 @@ import { buildProductConfigurationCode } from '../../lib/product-configuration-c
 describe('buildProductConfigurationCode', () => {
 	it('normaliza espacios a guión bajo y une con guión en mayúsculas', () => {
 		expect(
-			buildProductConfigurationCode('CREA PATRIMONIO', 'Propio', 'Junior')
-		).toBe('CREA_PATRIMONIO-PROPIO-JUNIOR')
+			buildProductConfigurationCode('Skandia', 'CREA PATRIMONIO', 'Propio', 'Junior')
+		).toBe('SKANDIA-CREA_PATRIMONIO-PROPIO-JUNIOR')
 	})
 
-	it('devuelve CREA_PATRIMONIO-PROPIO-JUNIOR para el ejemplo del plan', () => {
+	it('devuelve SKANDIA-CREA_PATRIMONIO-PROPIO-JUNIOR para el ejemplo del plan', () => {
 		expect(
-			buildProductConfigurationCode('Crea Patrimonio', 'Propio', 'Junior')
-		).toBe('CREA_PATRIMONIO-PROPIO-JUNIOR')
+			buildProductConfigurationCode('Skandia', 'Crea Patrimonio', 'Propio', 'Junior')
+		).toBe('SKANDIA-CREA_PATRIMONIO-PROPIO-JUNIOR')
 	})
 
 	it('maneja nombres ya en mayúsculas sin espacios', () => {
-		expect(buildProductConfigurationCode('SKANDIA', 'PROPIO', 'JUNIOR')).toBe(
-			'SKANDIA-PROPIO-JUNIOR'
+		expect(buildProductConfigurationCode('SKANDIA', 'PRODUCTO', 'PROPIO', 'JUNIOR')).toBe(
+			'SKANDIA-PRODUCTO-PROPIO-JUNIOR'
 		)
 	})
 
 	it('reemplaza múltiples espacios por un solo guión bajo', () => {
 		expect(
-			buildProductConfigurationCode('CREA   PATRIMONIO', 'Propio', 'Junior')
-		).toBe('CREA_PATRIMONIO-PROPIO-JUNIOR')
+			buildProductConfigurationCode('Skandia', 'CREA   PATRIMONIO', 'Propio', 'Junior')
+		).toBe('SKANDIA-CREA_PATRIMONIO-PROPIO-JUNIOR')
 	})
 
 	it('recorta espacios al inicio y final', () => {
 		expect(
 			buildProductConfigurationCode(
+				' Skandia ',
 				'  CREA PATRIMONIO  ',
 				' Propio ',
 				' Junior '
 			)
-		).toBe('CREA_PATRIMONIO-PROPIO-JUNIOR')
+		).toBe('SKANDIA-CREA_PATRIMONIO-PROPIO-JUNIOR')
 	})
 })

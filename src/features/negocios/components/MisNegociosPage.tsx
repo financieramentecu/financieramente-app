@@ -3,12 +3,13 @@
 import React from 'react'
 import { StatsOverview } from '@/features/negocios/components/StatsOverview'
 import { BusinessTableSection } from '@/features/negocios/components/BusinessTableSection'
-import { Business, StatsData } from '@/features/negocios/types/business.types'
+import { Business } from '@/features/negocios/types/business.types'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { TableLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { AlertCircle } from 'lucide-react'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { UserRole } from '@/features/auth/lib/roles'
+import type { BusinessStatus } from '@/features/negocios/types/business-entity.types'
 
 interface PaginationData {
 	page: number
@@ -17,9 +18,11 @@ interface PaginationData {
 	totalPages: number
 }
 
+import { CoachKpiResponse } from '@/features/negocios/types/business-api.types'
+
 interface MisNegociosPageProps {
 	businessData?: Business[]
-	statsData?: StatsData[]
+	stats?: CoachKpiResponse | null
 	isLoading?: boolean
 	isLoadingStats?: boolean
 	isSearching?: boolean
@@ -30,8 +33,20 @@ interface MisNegociosPageProps {
 	onEditBusiness?: (business: Business) => void
 	onViewBusiness?: (business: Business) => void
 	onCancelBusiness?: (business: Business) => void
+	onFondearBusiness?: (business: Business) => void
 	onGlobalSearch?: (query: string) => void
 	onPageChange?: (page: number) => void
+	listStatus?: BusinessStatus
+	onListStatusChange?: (status: BusinessStatus | undefined) => void
+	fundDateFrom?: string
+	fundDateTo?: string
+	onFundDateFromChange?: (value: string) => void
+	onFundDateToChange?: (value: string) => void
+	fundDateRangeActive?: boolean
+	canExportExcel?: boolean
+	onExportExcel?: () => void
+	isExportingExcel?: boolean
+	exportExcelError?: string | null
 }
 
 function StatsLoadingSkeleton() {
@@ -70,19 +85,31 @@ function ErrorMessage({ message }: { message: string }) {
 
 export function MisNegociosPage({
 	businessData = [],
-	statsData = [],
+	stats = null,
 	isLoading = false,
 	isLoadingStats = false,
 	isSearching = false,
 	hasInitialized = false,
 	error = null,
 	pagination,
-	onAddBusiness = () => {},
-	onEditBusiness = () => {},
+	onAddBusiness = () => { },
+	onEditBusiness = () => { },
 	onViewBusiness,
 	onCancelBusiness,
-	onGlobalSearch = () => {},
+	onFondearBusiness,
+	onGlobalSearch,
 	onPageChange,
+	listStatus,
+	onListStatusChange,
+	fundDateFrom = '',
+	fundDateTo = '',
+	onFundDateFromChange,
+	onFundDateToChange,
+	fundDateRangeActive = false,
+	canExportExcel = false,
+	onExportExcel,
+	isExportingExcel = false,
+	exportExcelError = null,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
 	const isAgentUser = user?.role === UserRole.AGENTE
@@ -100,7 +127,7 @@ export function MisNegociosPage({
 				(isLoadingStats ? (
 					<StatsLoadingSkeleton />
 				) : (
-					<StatsOverview statsData={statsData} />
+					<StatsOverview stats={stats} />
 				))}
 
 			{/* Error Message */}
@@ -117,10 +144,22 @@ export function MisNegociosPage({
 					onEditBusiness={onEditBusiness}
 					onViewBusiness={onViewBusiness}
 					onCancelBusiness={onCancelBusiness}
+					onFondearBusiness={onFondearBusiness}
 					pagination={pagination}
 					onPageChange={onPageChange}
 					isSearching={showTableLoading}
 					userRole={user?.role ?? undefined}
+					listStatus={listStatus}
+					onListStatusChange={onListStatusChange}
+					fundDateFrom={fundDateFrom}
+					fundDateTo={fundDateTo}
+					onFundDateFromChange={onFundDateFromChange}
+					onFundDateToChange={onFundDateToChange}
+					fundDateRangeActive={fundDateRangeActive}
+					canExportExcel={canExportExcel}
+					onExportExcel={onExportExcel}
+					isExportingExcel={isExportingExcel}
+					exportExcelError={exportExcelError}
 				/>
 			)}
 		</div>

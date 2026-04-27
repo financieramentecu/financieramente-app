@@ -17,7 +17,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from '@/features/shared/ui/popover'
-import { Client } from '@prisma/client'
+import type { Client } from '@prisma/client'
 
 export interface ClientAutocompleteProps {
 	value?: string

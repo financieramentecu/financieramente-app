@@ -127,7 +127,7 @@ describe('GET /api/negocios', () => {
 			expect(mockPrismaFindMany).toHaveBeenCalledWith({
 				where: {},
 				include: expect.any(Object),
-				orderBy: { createdAt: 'desc' },
+				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
 				skip: 0,
 				take: 10,
 			})
@@ -142,6 +142,43 @@ describe('GET /api/negocios', () => {
 				total: 2,
 				totalPages: 1,
 			})
+		})
+
+		it('aplica desempate por idBusiness cuando createdAt empata', async () => {
+			const mockSession = {
+				user: {
+					email: 'admin@example.com',
+				},
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockBusinessListParamsSchema.safeParse.mockReturnValue({
+				success: true,
+				data: {
+					page: 1,
+					pageSize: 10,
+					search: null,
+					status: null,
+				},
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue({
+				...mockUserWithRole,
+				email: 'admin@example.com',
+			})
+			mockPrismaCount.mockResolvedValue(2)
+			mockPrismaFindMany.mockResolvedValue(
+				[mockPrismaBusiness, mockPrismaBusinessEmitido] as never
+			)
+			mockPrismaBusinessListToEntities.mockReturnValue([] as never)
+
+			const request = new Request('http://localhost:3000/api/negocios')
+			await GET(request)
+
+			expect(mockPrismaFindMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
+				})
+			)
 		})
 
 		it('debe listar negocios con paginación personalizada', async () => {
@@ -192,7 +229,7 @@ describe('GET /api/negocios', () => {
 			expect(mockPrismaFindMany).toHaveBeenCalledWith({
 				where: {},
 				include: expect.any(Object),
-				orderBy: { createdAt: 'desc' },
+				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
 				skip: 5, // (page - 1) * pageSize = (2 - 1) * 5 = 5
 				take: 5,
 			})
@@ -255,7 +292,66 @@ describe('GET /api/negocios', () => {
 			expect(mockPrismaFindMany).toHaveBeenCalledWith({
 				where: { AND: [{ status: BUSINESS_STATUS.EMITIDO }] },
 				include: expect.any(Object),
-				orderBy: { createdAt: 'desc' },
+				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
+				skip: 0,
+				take: 10,
+			})
+			expect(response.status).toBe(200)
+			expect(responseData.data.businesses).toEqual(mockEntities)
+		})
+
+		it('debe filtrar negocios por estado FONDEADO', async () => {
+			const mockSession = {
+				user: {
+					email: 'admin@example.com',
+				},
+			}
+
+			const mockAdminUser = {
+				...mockUserWithRole,
+				email: 'admin@example.com',
+				role: {
+					idRole: 1,
+					code: UserRole.ADMIN,
+					name: 'Administrador del Sistema',
+					description: 'Acceso total',
+					active: true,
+					createdAt: new Date('2024-01-01'),
+					updatedAt: new Date('2024-01-01'),
+				},
+			}
+
+			const mockBusinesses = [mockPrismaBusinessEmitido]
+			const mockEntities = [{ id: 2, contract: 'PN0005678' }]
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockBusinessListParamsSchema.safeParse.mockReturnValue({
+				success: true,
+				data: {
+					page: 1,
+					pageSize: 10,
+					search: null,
+					status: BUSINESS_STATUS.FONDEADO,
+				},
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaCount.mockResolvedValue(1)
+			mockPrismaFindMany.mockResolvedValue(mockBusinesses as never)
+			mockPrismaBusinessListToEntities.mockReturnValue(mockEntities as never)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios?status=FONDEADO'
+			)
+			const response = await GET(request)
+			const responseData = await response.json()
+
+			expect(mockPrismaCount).toHaveBeenCalledWith({
+				where: { AND: [{ status: BUSINESS_STATUS.FONDEADO }] },
+			})
+			expect(mockPrismaFindMany).toHaveBeenCalledWith({
+				where: { AND: [{ status: BUSINESS_STATUS.FONDEADO }] },
+				include: expect.any(Object),
+				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
 				skip: 0,
 				take: 10,
 			})
@@ -298,7 +394,7 @@ describe('GET /api/negocios', () => {
 			expect(mockPrismaFindMany).toHaveBeenCalledWith({
 				where: { AND: [{ idUser: mockAgentUser.idUser }] },
 				include: expect.any(Object),
-				orderBy: { createdAt: 'desc' },
+				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
 				skip: 0,
 				take: 10,
 			})
@@ -439,7 +535,7 @@ describe('GET /api/negocios', () => {
 					],
 				},
 				include: expect.any(Object),
-				orderBy: { createdAt: 'desc' },
+				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
 				skip: 0,
 				take: 10,
 			})

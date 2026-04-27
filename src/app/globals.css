@@ -175,6 +175,11 @@
 		color: hsl(var(--destructive-foreground)) !important;
 	}
 
+	/* Asegura mensajes de error visibles (WCAG / admin); mismo token que --destructive */
+	.text-destructive {
+		color: hsl(var(--destructive)) !important;
+	}
+
 	.sidebar-button {
 		color: var(--sidebar-text) !important;
 	}

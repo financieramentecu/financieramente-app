@@ -1,4 +1,10 @@
-import { ColumnDef, OnChangeFn, Row, RowSelectionState } from '@tanstack/react-table'
+import {
+	ColumnDef,
+	OnChangeFn,
+	Row,
+	RowSelectionState,
+	SortingState,
+} from '@tanstack/react-table'
 import { ReactNode } from 'react'
 
 export interface DataTableProps<TData> {
@@ -125,7 +131,7 @@ export interface DataTableProps<TData> {
 	/**
 	 * Habilita la selección de filas
 	 */
-	enableRowSelection?: boolean
+	enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
 	/**
 	 * El ID de la fila seleccionada (opcional)
 	 */
@@ -143,6 +149,10 @@ export interface DataTableProps<TData> {
 	 */
 	renderAdditionalFilters?: () => ReactNode
 	/**
+	 * Acciones a la derecha del toolbar, junto a «Vista» (columnas)
+	 */
+	toolbarTrailingActions?: () => ReactNode
+	/**
 	 * Callback cuando se solicita exportar los datos
 	 */
 	onExport?: (data: TData[]) => void
@@ -155,5 +165,10 @@ export interface DataTableProps<TData> {
 	 * @default false
 	 */
 	showFooter?: boolean
+	/**
+	 * Orden inicial de la tabla
+	 * @default []
+	 */
+	initialSorting?: SortingState
 }
 

@@ -10,6 +10,8 @@ import {
   useFormContext,
 } from "react-hook-form"
 
+import { AlertCircle } from "lucide-react"
+
 import { cn } from "@/lib/utils"
 import { Label } from "@/features/shared/ui/label"
 
@@ -88,12 +90,12 @@ const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
-  const { error, formItemId } = useFormField()
+  const { formItemId } = useFormField()
 
   return (
     <Label
       ref={ref}
-      className={cn(error && "text-destructive", className)}
+      className={cn("text-foreground", className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -155,10 +157,18 @@ const FormMessage = React.forwardRef<
     <p
       ref={ref}
       id={formMessageId}
-      className={cn("text-sm font-medium text-destructive", className)}
+      role="alert"
+      className={cn(
+        "flex items-start gap-1.5 text-sm font-medium text-destructive",
+        className
+      )}
       {...props}
     >
-      {body}
+      <AlertCircle
+        className="mt-0.5 size-3.5 shrink-0 text-destructive"
+        aria-hidden
+      />
+      <span>{body}</span>
     </p>
   )
 })

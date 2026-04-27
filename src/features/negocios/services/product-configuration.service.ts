@@ -26,7 +26,8 @@ export interface GetPpcForNewBusinessesResult {
  * idProductPercentageCommissionNewBusinesses.
  *
  * @param params - Parámetros de búsqueda (producto, origen, categoría del agente)
- * @returns Objeto con configExists (si existe la combinación) y ppc (PPC para nuevos negocios o null)
+ * @returns Objeto con configExists (si existe la combinación) y ppc.
+ * `ppc` puede venir de la configuración específica o de un fallback global.
  */
 export async function getPpcForNewBusinesses(
 	params: GetPpcForNewBusinessesParams
@@ -46,13 +47,31 @@ export async function getPpcForNewBusinesses(
 		},
 	})
 
-	if (!productConfiguration) {
-		return { configExists: false, ppc: null }
+	// Intenta buscar el PPC asignado específicamente para nuevos negocios en esta configuración
+	if (productConfiguration?.productPercentageCommissionNewBusinesses) {
+		return {
+			configExists: true,
+			ppc: productConfiguration.productPercentageCommissionNewBusinesses,
+		}
 	}
 
+	// Fallback DETERMINÍSTICO: busca CUALQUIER PPC activo que pertenezca AL MISMO producto
+	const fallbackPpc = await prisma.productPercentageCommission.findFirst({
+		where: {
+			active: true,
+			productConfiguration: {
+				idProduct: idProduct,
+				active: true,
+			},
+		},
+		orderBy: {
+			idProductPercentageCommission: 'asc',
+		},
+	})
+
 	return {
-		configExists: true,
-		ppc: productConfiguration.productPercentageCommissionNewBusinesses,
+		configExists: Boolean(productConfiguration),
+		ppc: fallbackPpc,
 	}
 }
 
@@ -96,7 +115,8 @@ export async function validateProductConfigurationExists(
 	if (!productConfiguration) {
 		return {
 			valid: false,
-			reason: 'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
+			reason:
+				'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
 		}
 	}
 
@@ -104,14 +124,16 @@ export async function validateProductConfigurationExists(
 	if (!activePpc) {
 		return {
 			valid: false,
-			reason: 'La configuración de ese origen no tiene comisiones activas configuradas.',
+			reason:
+				'La configuración de ese origen no tiene comisiones activas configuradas.',
 		}
 	}
 
 	if (activePpc.productPercentageCommissionCategories.length === 0) {
 		return {
 			valid: false,
-			reason: 'La configuración de ese origen no tiene reglas de distribución configuradas.',
+			reason:
+				'La configuración de ese origen no tiene reglas de distribución configuradas.',
 		}
 	}
 

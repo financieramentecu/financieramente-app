@@ -32,6 +32,9 @@
 # production
 /build
 
+# agent local artifacts
+.atl/
+
 # misc
 .DS_Store
 *.pem
@@ -55,3 +58,9 @@ next-env.d.ts
 
 *storybook.log
 storybook-static
+
+# .specsmd
+*.specsmd
+.specsmd/*
+memory-bank/*
+.memory-bank/*

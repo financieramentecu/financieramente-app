@@ -3,8 +3,14 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Client } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
+import { requireAuth } from '@/lib/auth/require-role'
 
 export async function GET(request: Request) {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { searchParams } = new URL(request.url)
 		const query = searchParams.get('query')?.trim() ?? ''

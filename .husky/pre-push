@@ -1,5 +1,5 @@
-#!/usr/bin/env sh
-. "$(dirname "$0")/_/husky.sh"
+# Fix for npm not found in some git environments
+export PATH="$PATH:/usr/local/bin:/opt/homebrew/bin"
 
 echo "🔍 Ejecutando validaciones pre-push..."
 

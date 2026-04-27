@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ProductConfigurationForm } from './product-configuration-form'
+import { ConfigurationDistributionStepper } from './configuration-distribution-stepper'
 import { useProductConfigurationMutations } from '../hooks/use-product-configuration-mutations'
 import type { CreateProductConfigurationInput } from '../types/product-configuration.types'
 import { toast } from 'sonner'
@@ -17,33 +18,42 @@ export function ProductConfigurationCreateClient() {
 
 	const handleSubmit = useCallback(
 		async (data: Record<string, unknown>) => {
-			await createProductConfiguration(
+			const created = await createProductConfiguration(
 				data as unknown as CreateProductConfigurationInput
 			)
+			if (created === null) {
+				return
+			}
+			toast.success('Configuración de producto creada exitosamente')
+			if (created.code?.trim()) {
+				const encoded = encodeURIComponent(created.code.trim())
+				router.replace(
+					`/dashboard/config-distribucion-comisiones/${encoded}/reglas/crear`
+				)
+				return
+			}
+			router.replace('/dashboard/configuraciones-producto')
 		},
-		[createProductConfiguration]
+		[createProductConfiguration, router]
 	)
 
 	const handleCancel = useCallback(() => {
 		router.push('/dashboard/configuraciones-producto')
 	}, [router])
 
-	// Handle create response
 	useEffect(() => {
-		if (createState.status === 'success') {
-			toast.success('Configuración de producto creada exitosamente')
-			router.push('/dashboard/configuraciones-producto')
-		} else if (createState.status === 'error') {
+		if (createState.status === 'error') {
 			toast.error(
 				createState.error ||
 					'Error al crear configuración de producto'
 			)
 		}
-	}, [createState.status, createState.error, router])
+	}, [createState.status, createState.error])
 
 	return (
 		<div className="max-w-2xl mx-auto">
 			<div className="space-y-6">
+				<ConfigurationDistributionStepper currentStep={1} />
 				<div>
 					<h1 className="text-3xl font-bold">
 						Nueva Configuración de Producto

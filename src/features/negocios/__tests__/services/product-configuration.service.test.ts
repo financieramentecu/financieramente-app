@@ -1,11 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '@/lib/prisma'
-import { validateProductConfigurationExists } from '../../services/product-configuration.service'
+import {
+	getPpcForNewBusinesses,
+	validateProductConfigurationExists,
+} from '../../services/product-configuration.service'
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		productConfiguration: {
 			findUnique: vi.fn(),
+		},
+		productPercentageCommission: {
+			findFirst: vi.fn(),
 		},
 	},
 }))
@@ -111,5 +117,97 @@ describe('validateProductConfigurationExists', () => {
 				},
 			})
 		)
+	})
+})
+
+describe('getPpcForNewBusinesses', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+	})
+
+	it('returns specific PPC and skips fallback lookup when new-business PPC exists', async () => {
+		const specificPpc = { idProductPercentageCommission: 10, active: true }
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.productConfiguration.findUnique as any).mockResolvedValue({
+			productPercentageCommissionNewBusinesses: specificPpc,
+		})
+
+		const result = await getPpcForNewBusinesses({
+			idCategory: 3,
+			idClientOrigin: 2,
+			idProduct: 1,
+		})
+
+		expect(result).toEqual({ configExists: true, ppc: specificPpc })
+		expect(prisma.productPercentageCommission.findFirst).not.toHaveBeenCalled()
+	})
+
+	it('returns fallback PPC when configuration does not exist', async () => {
+		const fallbackPpc = { idProductPercentageCommission: 77, active: true }
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.productConfiguration.findUnique as any).mockResolvedValue(null)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.productPercentageCommission.findFirst as any).mockResolvedValue(
+			fallbackPpc
+		)
+
+		const result = await getPpcForNewBusinesses({
+			idCategory: 3,
+			idClientOrigin: 2,
+			idProduct: 1,
+		})
+
+		expect(result).toEqual({ configExists: false, ppc: fallbackPpc })
+		expect(prisma.productPercentageCommission.findFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({
+					active: true,
+					productConfiguration: {
+						idProduct: 1,
+						active: true,
+					},
+				}),
+				orderBy: { idProductPercentageCommission: 'asc' },
+			})
+		)
+	})
+
+	it('returns fallback PPC when configuration exists but has no new-business PPC', async () => {
+		const fallbackPpc = { idProductPercentageCommission: 88, active: true }
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.productConfiguration.findUnique as any).mockResolvedValue({
+			productPercentageCommissionNewBusinesses: null,
+		})
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.productPercentageCommission.findFirst as any).mockResolvedValue(
+			fallbackPpc
+		)
+
+		const result = await getPpcForNewBusinesses({
+			idCategory: 3,
+			idClientOrigin: 2,
+			idProduct: 1,
+		})
+
+		expect(result).toEqual({ configExists: true, ppc: fallbackPpc })
+	})
+
+	it('returns null PPC when neither specific nor fallback exists', async () => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.productConfiguration.findUnique as any).mockResolvedValue({
+			productPercentageCommissionNewBusinesses: null,
+		})
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(prisma.productPercentageCommission.findFirst as any).mockResolvedValue(
+			null
+		)
+
+		const result = await getPpcForNewBusinesses({
+			idCategory: 3,
+			idClientOrigin: 2,
+			idProduct: 1,
+		})
+
+		expect(result).toEqual({ configExists: true, ppc: null })
 	})
 })

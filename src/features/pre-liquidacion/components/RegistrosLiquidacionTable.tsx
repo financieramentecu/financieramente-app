@@ -1,5 +1,3 @@
-'use client'
-
 import React, { useMemo } from 'react'
 import { ExternalLink, BarChart2 } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
@@ -8,6 +6,7 @@ import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableC
 import type { RegistroLiquidacionDetalle } from '../types/types'
 import { formatCurrency, formatPct, formatDate } from '../lib/format-utils'
 import type { ColumnDef, RowSelectionState } from '@tanstack/react-table'
+import { StatusBadge } from './StatusBadge'
 
 interface RegistrosLiquidacionTableProps {
 	registros: RegistroLiquidacionDetalle[]
@@ -17,6 +16,8 @@ interface RegistrosLiquidacionTableProps {
 	onSelectionChange: (ids: Set<number>) => void
 	onVerNegocio: (idBusiness: number) => void
 	onVerDistribucion: (idSettlementCommission: number) => void
+	selectable?: boolean
+	estado?: string
 }
 
 const VOLUNTARIA = 'VOLUNTARIA'
@@ -43,6 +44,8 @@ export function RegistrosLiquidacionTable({
 	onVerNegocio,
 	onVerDistribucion,
 	fileName,
+	selectable = true,
+	estado,
 }: RegistrosLiquidacionTableProps) {
 	const isVoluntaria = fileType === VOLUNTARIA
 
@@ -70,7 +73,9 @@ export function RegistrosLiquidacionTable({
 	}
 
 	const columns = useMemo<ColumnDef<RegistroLiquidacionDetalle>[]>(() => {
-		const cols: ColumnDef<RegistroLiquidacionDetalle>[] = [
+		const cols: ColumnDef<RegistroLiquidacionDetalle>[] = []
+
+		cols.push(
 			{
 				accessorKey: 'contrato',
 				header: ({ column }) => (
@@ -83,6 +88,17 @@ export function RegistrosLiquidacionTable({
 				),
 			},
 			{
+				accessorKey: 'nombreCliente',
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Cliente" />
+				),
+				cell: ({ row }) => (
+					<span className="text-sm text-foreground truncate max-w-[150px] inline-block">
+						{row.original.nombreCliente ?? '—'}
+					</span>
+				),
+			},
+			{
 				accessorKey: 'nombreAsesor',
 				header: ({ column }) => (
 					<DataTableColumnHeader column={column} title="Asesor" />
@@ -91,6 +107,17 @@ export function RegistrosLiquidacionTable({
 					<span className="font-medium text-foreground">
 						{row.original.nombreAsesor}
 					</span>
+				),
+			},
+			{
+				accessorKey: 'status',
+				header: ({ column }) => (
+					<DataTableColumnHeader column={column} title="Estado" className="justify-center" />
+				),
+				cell: ({ row }) => (
+					<div className="flex justify-center">
+						<StatusBadge status={row.original.status} />
+					</div>
 				),
 			},
 			{
@@ -122,8 +149,8 @@ export function RegistrosLiquidacionTable({
 						{formatPct(row.original.porcentajeDescuento)}
 					</div>
 				),
-			},
-		]
+			}
+		)
 
 		if (!isVoluntaria) {
 			cols.push(
@@ -159,26 +186,6 @@ export function RegistrosLiquidacionTable({
 				}
 			)
 		}
-
-		cols.push({
-			accessorKey: 'esRezagado',
-			header: ({ column }) => (
-				<DataTableColumnHeader
-					column={column}
-					title="Rezagado"
-					className="justify-center"
-				/>
-			),
-			cell: ({ row }) => (
-				<div className="flex justify-center">
-					<BoolBadge
-						value={row.original.esRezagado}
-						trueLabel="Sí"
-						falseLabel="No"
-					/>
-				</div>
-			),
-		})
 
 		cols.push({
 			accessorKey: 'fechaSincronizacion',
@@ -242,9 +249,13 @@ export function RegistrosLiquidacionTable({
 			data={registros}
 			getRowId={(row) => row.idSettlementCommission.toString()}
 			getRowAriaLabel={(row) => `Seleccionar registro ${row.idSettlementCommission}`}
-			enableRowSelection={true}
-			selectedRowIds={rowSelection}
-			onRowSelectionChange={handleRowSelectionChange}
+			enableRowSelection={(row) =>
+				selectable &&
+				(row.original.status === 'SYNCHRONIZED' ||
+					row.original.status === 'PRE-SETTLED')
+			}
+			selectedRowIds={selectable ? rowSelection : {}}
+			onRowSelectionChange={selectable ? handleRowSelectionChange : undefined}
 			searchable={true}
 			searchPlaceholder="Filtrar por asesor o contrato..."
 			exportable={true}
@@ -284,15 +295,17 @@ export function RegistrosLiquidacionTable({
 							Negocio
 						</Button>
 					)}
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => onVerDistribucion(row.idSettlementCommission)}
-						className="h-7 px-2 text-xs"
-					>
-						<BarChart2 className="h-3 w-3 mr-1" />
-						Distribución
-					</Button>
+					{estado !== 'LOAD' && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => onVerDistribucion(row.idSettlementCommission)}
+							className="h-7 px-2 text-xs"
+						>
+							<BarChart2 className="h-3 w-3 mr-1" />
+							Distribución
+						</Button>
+					)}
 				</div>
 			)}
 		/>

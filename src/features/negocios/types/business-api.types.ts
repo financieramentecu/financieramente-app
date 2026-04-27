@@ -28,6 +28,23 @@ export interface BusinessListParams {
 	pageSize?: number
 	search?: string
 	status?: BusinessStatus
+	/** YYYY-MM-DD; debe ir junto con `dateTo` (filtro por `date_anchored` negocio, Bogotá) */
+	dateFrom?: string
+	/** YYYY-MM-DD */
+	dateTo?: string
+	/** YYYY-MM-DD; filtra por createdAt del negocio */
+	createdFrom?: string
+	/** YYYY-MM-DD; filtra por createdAt del negocio */
+	createdTo?: string
+}
+
+/** Body POST `/api/negocios/export` */
+export interface NegociosExportBody {
+	/** Con `dateTo`, filtra por `date_anchored` (Bogotá). Sin fechas = sin filtro de rango. */
+	dateFrom?: string
+	dateTo?: string
+	search?: string
+	status?: BusinessStatus
 }
 
 // ============================================
@@ -70,49 +87,44 @@ export interface CancelBusinessRequest {
 	reason: string // 20-500 caracteres
 }
 
+/** Cuota anual para modal HU4 (API annual-payments) */
+export type AnnualInstallmentStatusUi = 'SIN_FONDEAR' | 'FONDEADO'
+
+export interface AnnualInstallmentDto {
+	installmentIndex: number
+	status: AnnualInstallmentStatusUi
+	dateAnchored: string | null
+}
+
+export interface AnnualPaymentsResponse {
+	businessId: number
+	status: BusinessStatus
+	installments: AnnualInstallmentDto[]
+}
+
+export interface FondearAnualidadesRequest {
+	fundedInstallmentIndexes: number[]
+}
+
 // ============================================
 // ESTADÍSTICAS
 // ============================================
 
 /**
- * Datos mensuales para gráficos
+ * KPI data containing item count and grouped values
  */
-export interface MonthlyData {
-	month: string // "2024-01", "2024-02"
-	totalValue: number
+export interface KpiCardData {
+	count: number
+	totalCop: number
+	totalUsd: number
 }
 
 /**
- * Estadísticas por estado
+ * Respuesta de estadísticas de negocios planas para el Coach
  */
-export interface StatusStats {
-	totalValue: number
-	totalMonth: number
-	totalLastMonth: number
-	monthlyData: MonthlyData[]
-	growthPercentage: number
+export interface CoachKpiResponse {
+	ventasEfectuadas: KpiCardData
+	emitidos: KpiCardData
+	fondeados: KpiCardData
 }
 
-/**
- * Información de currency para estadísticas
- */
-export interface StatsCurrencyInfo {
-	symbol: string
-	name: string
-}
-
-/**
- * Estadísticas agrupadas por currency
- * Record con symbol de currency como key (ej: "COP", "USD")
- */
-export type StatsByCurrency = Record<string, StatusStats>
-
-/**
- * Respuesta de estadísticas de negocios agrupadas por currency
- */
-export interface BusinessStatsResponse {
-	currencies: StatsCurrencyInfo[]
-	efectuados: StatsByCurrency
-	emitidos: StatsByCurrency
-	clawbackBalance?: number
-}

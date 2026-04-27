@@ -1,7 +1,10 @@
 import { prisma } from '@/lib/prisma'
 import { UserRole } from '@/features/auth/lib/roles'
 import { sendEmail } from '@/features/email/lib/email-service'
-import { escapeHtml } from '@/features/email/lib/email-template-base'
+import {
+	buildEmailTemplate,
+	escapeHtml,
+} from '@/features/email/lib/email-template-base'
 
 /**
  * Interfaz para usuario administrador
@@ -69,227 +72,37 @@ export function generateNotificationHTML(
 		day: 'numeric',
 	})
 
-	// Formatear nombre del administrador
 	const adminDisplayName = params.adminName.trim()
 
-	return `
-<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<style>
-		body {
-			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-			line-height: 1.6;
-			color: #1a1a1a;
-			max-width: 600px;
-			margin: 0 auto;
-			padding: 20px;
-			background-color: #f5f5f5;
-		}
-		.container {
-			background: #ffffff;
-			border-radius: 12px;
-			overflow: hidden;
-			box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
-		}
-		.header {
-			background: linear-gradient(135deg, #00505C 0%, #83D874 100%);
-			color: #ffffff;
-			padding: 40px 30px;
-			text-align: center;
-		}
-		.logo-container {
-			margin-bottom: 20px;
-		}
-		.logo {
-			max-width: 180px;
-			height: auto;
-			display: block;
-			margin: 0 auto;
-		}
-		.header h1 {
-			margin: 0;
-			font-size: 26px;
-			font-weight: 700;
-			color: #ffffff;
-			text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-		}
-		.header p {
-			margin: 8px 0 0 0;
-			font-size: 14px;
-			color: #ffffff;
-			opacity: 0.95;
-		}
-		.content {
-			padding: 35px 30px;
-			background: #ffffff;
-		}
-		.greeting {
-			font-size: 18px;
-			font-weight: 600;
-			color: #1a1a1a;
-			margin-bottom: 16px;
-		}
-		.message {
-			font-size: 16px;
-			color: #333333;
-			margin-bottom: 24px;
-			line-height: 1.7;
-		}
-		.user-info {
-			background: #f8f9fa;
-			padding: 24px;
-			border-left: 5px solid #00505C;
-			margin: 24px 0;
-			border-radius: 6px;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-		}
-		.user-info h3 {
-			margin: 0 0 16px 0;
-			font-size: 18px;
-			font-weight: 600;
-			color: #00505C;
-		}
-		.user-info p {
-			margin: 10px 0;
-			font-size: 15px;
-			color: #1a1a1a;
-			line-height: 1.6;
-		}
-		.user-info strong {
-			color: #333333;
-			font-weight: 600;
-		}
-		.user-info a {
-			color: #00505C;
-			text-decoration: none;
-			font-weight: 500;
-		}
-		.user-info a:hover {
-			text-decoration: underline;
-		}
-		.cta-container {
-			text-align: center;
-			margin: 32px 0;
-		}
-		.cta-button {
-			display: inline-block;
-			background: #00505C;
-			color: #ffffff !important;
-			padding: 16px 32px;
-			text-decoration: none;
-			border-radius: 8px;
-			font-weight: 700;
-			font-size: 16px;
-			box-shadow: 0 4px 6px rgba(0,80,92,0.3);
-			transition: all 0.2s ease;
-			letter-spacing: 0.3px;
-		}
-		.cta-button:hover {
-			background: #003d47;
-			box-shadow: 0 6px 12px rgba(0,80,92,0.4);
-			transform: translateY(-1px);
-		}
-		.link-alternative {
-			color: #666666;
-			font-size: 14px;
-			margin-top: 24px;
-			line-height: 1.6;
-		}
-		.link-alternative a {
-			color: #00505C;
-			word-break: break-all;
-			text-decoration: none;
-			font-weight: 500;
-		}
-		.link-alternative a:hover {
-			text-decoration: underline;
-		}
-		.footer {
-			text-align: center;
-			color: #666666;
-			font-size: 13px;
-			padding: 24px 20px;
-			background: #f8f9fa;
-			border-top: 1px solid #e9ecef;
-		}
-		.footer p {
-			margin: 6px 0;
-			color: #666666;
-		}
-		.badge {
-			display: inline-block;
-			background: #ff9800;
-			color: #ffffff;
-			padding: 6px 14px;
-			border-radius: 16px;
-			font-size: 12px;
-			font-weight: 700;
-			margin-left: 10px;
-			text-transform: uppercase;
-			letter-spacing: 0.5px;
-			box-shadow: 0 2px 4px rgba(255,152,0,0.3);
-		}
-		@media only screen and (max-width: 600px) {
-			body {
-				padding: 10px;
-			}
-			.content {
-				padding: 25px 20px;
-			}
-			.header {
-				padding: 30px 20px;
-			}
-			.header h1 {
-				font-size: 22px;
-			}
-			.cta-button {
-				padding: 14px 28px;
-				font-size: 15px;
-			}
-		}
-	</style>
-</head>
-<body>
-	<div class="container">
-		<div class="header">
-			<div class="logo-container">
-				<img src="${logoUrl}" alt="Financieramente" class="logo" />
-			</div>
-			<h1>🔔 Nuevo Usuario Requiere Activación</h1>
-			<p>Sistema Financieramente</p>
+	const content = `
+		<p class="greeting">Hola ${escapeHtml(adminDisplayName)},</p>
+		<p class="message">Un nuevo usuario ha iniciado sesión en el sistema y requiere que actives su cuenta para poder operar.</p>
+		
+		<div class="info-box">
+			<h3>Información del Usuario:</h3>
+			<p><strong>Nombre:</strong> ${escapeHtml(params.userName)}</p>
+			<p><strong>Email:</strong> <a href="mailto:${escapeHtml(params.userEmail)}">${escapeHtml(params.userEmail)}</a></p>
+			<p><strong>Fecha de Registro:</strong> ${escapeHtml(currentDate)}</p>
+			<p><strong>Estado:</strong> <span style="color: #ff9800; font-weight: bold;">Pendiente de Activación</span></p>
 		</div>
-		<div class="content">
-			<p class="greeting">Hola ${escapeHtml(adminDisplayName)},</p>
-			<p class="message">Un nuevo usuario ha iniciado sesión en el sistema y requiere que actives su cuenta.</p>
-			
-			<div class="user-info">
-				<h3>Información del Usuario:</h3>
-				<p><strong>Nombre:</strong> ${escapeHtml(params.userName)}</p>
-				<p><strong>Email:</strong> <a href="mailto:${escapeHtml(params.userEmail)}">${escapeHtml(params.userEmail)}</a></p>
-				<p><strong>Fecha de Registro:</strong> ${escapeHtml(currentDate)}</p>
-				<p><strong>Estado:</strong> Inactivo<span class="badge">Pendiente</span></p>
-			</div>
 
-			<div class="cta-container">
-				<a href="${userUrl}" class="cta-button">Activar Usuario</a>
-			</div>
+		<div class="cta-container">
+			<a href="${userUrl}" class="cta-button">Revisar y Activar</a>
+		</div>
 
-			<p class="link-alternative">
-				O copia y pega este enlace en tu navegador:<br>
-				<a href="${userUrl}">${userUrl}</a>
-			</p>
-		</div>
-		<div class="footer">
-			<p>Este es un correo automático del sistema Financieramente.</p>
-			<p>© ${new Date().getFullYear()} Financieramente. Todos los derechos reservados.</p>
-		</div>
-	</div>
-</body>
-</html>
-	`.trim()
+		<p class="link-alternative">
+			O copia y pega este enlace en tu navegador:<br>
+			<a href="${userUrl}">${userUrl}</a>
+		</p>
+	`
+
+	return buildEmailTemplate({
+		title: '🔔 Nuevo Usuario Registrado',
+		subtitle: 'Sistema Financieramente',
+		logoUrl,
+		content,
+		showLogoImage: true,
+	})
 }
 
 /**

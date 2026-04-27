@@ -2,6 +2,7 @@ import { renderHook, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useProductConfigurationMutations } from '../../hooks/use-product-configuration-mutations'
 import { productConfigurationApi } from '../../lib/product-configuration-api'
+import type { ProductConfiguration } from '../../types/product-configuration.types'
 import { createMockProductConfiguration } from '../fixtures/mock-product-configuration'
 
 // Mock productConfigurationApi
@@ -37,8 +38,10 @@ describe('useProductConfigurationMutations', () => {
 
 			const { result } = renderHook(() => useProductConfigurationMutations())
 
+			let created: ProductConfiguration | null = null
+
 			await act(async () => {
-				await result.current.createProductConfiguration({
+				created = await result.current.createProductConfiguration({
 					idProduct: 1,
 					idClientOrigin: 1,
 					idCategory: 1,
@@ -51,6 +54,7 @@ describe('useProductConfigurationMutations', () => {
 			})
 
 			expect(result.current.createState.data).toEqual(mockConfig)
+			expect(created).toEqual(mockConfig)
 		})
 
 		it('should handle API error', async () => {
