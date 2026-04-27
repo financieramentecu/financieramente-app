@@ -3,7 +3,7 @@
 import React from 'react'
 import { StatsOverview } from '@/features/negocios/components/StatsOverview'
 import { BusinessTableSection } from '@/features/negocios/components/BusinessTableSection'
-import { Business, StatsData } from '@/features/negocios/types/business.types'
+import { Business } from '@/features/negocios/types/business.types'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { TableLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { AlertCircle } from 'lucide-react'
