@@ -34,4 +34,43 @@ describe('buildBusinessListWhere', () => {
 			],
 		})
 	})
+
+	it('acota por createdAt cuando hay createdAtRange', () => {
+		const gte = new Date('2026-04-01T05:00:00.000Z')
+		const lte = new Date('2026-04-30T04:59:59.999Z')
+		const w = buildBusinessListWhere(
+			{ idUser: 1, role: { code: UserRole.ADMIN } },
+			{ createdAtRange: { gte, lte } }
+		)
+		expect(w).toEqual({
+			AND: [
+				{
+					createdAt: {
+						gte,
+						lte,
+					},
+				},
+			],
+		})
+	})
+
+	it('combina idUser AGENTE con createdAtRange', () => {
+		const gte = new Date('2026-04-01T05:00:00.000Z')
+		const lte = new Date('2026-04-30T04:59:59.999Z')
+		const w = buildBusinessListWhere(
+			{ idUser: 99, role: { code: UserRole.AGENTE } },
+			{ createdAtRange: { gte, lte } }
+		)
+		expect(w).toEqual({
+			AND: [
+				{ idUser: 99 },
+				{
+					createdAt: {
+						gte,
+						lte,
+					},
+				},
+			],
+		})
+	})
 })

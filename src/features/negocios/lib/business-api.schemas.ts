@@ -39,6 +39,14 @@ export const businessListParamsSchema = z
 			(v) => (v === '' || v === null ? undefined : v),
 			isoCalendarDay.optional()
 		),
+		createdFrom: z.preprocess(
+			(v) => (v === '' || v === null ? undefined : v),
+			isoCalendarDay.optional()
+		),
+		createdTo: z.preprocess(
+			(v) => (v === '' || v === null ? undefined : v),
+			isoCalendarDay.optional()
+		),
 	})
 	.superRefine((data, ctx) => {
 		const hasFrom = data.dateFrom !== undefined
@@ -48,6 +56,15 @@ export const businessListParamsSchema = z
 				code: z.ZodIssueCode.custom,
 				message: 'dateFrom y dateTo deben enviarse juntos',
 				path: ['dateTo'],
+			})
+		}
+		const hasCreatedFrom = data.createdFrom !== undefined
+		const hasCreatedTo = data.createdTo !== undefined
+		if (hasCreatedFrom !== hasCreatedTo) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: 'createdFrom y createdTo deben enviarse juntos',
+				path: ['createdTo'],
 			})
 		}
 	})

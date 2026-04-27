@@ -11,12 +11,14 @@ import { getCurrentUserByEmail } from '@/features/negocios/services/user.service
 import { UserRole } from '@/features/auth/lib/roles'
 import { buildBusinessListWhere } from '@/features/negocios/lib/build-business-list-where'
 import { toBusinessListFilterInput } from '@/features/negocios/lib/to-business-list-filter-input'
+import { parseBogotaInclusiveUtcRange } from '@/features/negocios/lib/bogota-date-range'
 import { businessExportInclude } from '@/features/negocios/lib/business-export-include'
 import {
 	businessesToExportRows,
 	computeMaxAnnualColumns,
 	computeMaxLeaderLevels,
 	negociosExportColumnHeaders,
+	NEGOCIOS_EXPORT_VALOR_COLUMN,
 } from '@/features/negocios/lib/map-business-to-export-row'
 import {
 	resolveLeaderChainForExport,
@@ -110,8 +112,10 @@ export async function POST(request: Request) {
 		const maxLeaderLevels = computeMaxLeaderLevels(chains)
 		const maxAnnualCols = computeMaxAnnualColumns(businesses)
 
-		const dateFromObj = dateFrom ? new Date(dateFrom) : undefined
-		const dateToObj = dateTo ? new Date(dateTo) : undefined
+		const { gte: dateFromObj, lte: dateToObj } =
+			dateFrom && dateTo
+				? parseBogotaInclusiveUtcRange(dateFrom, dateTo)
+				: { gte: undefined, lte: undefined }
 
 		const headers = negociosExportColumnHeaders(maxLeaderLevels, maxAnnualCols, dateFromObj, dateToObj)
 		const rows = businessesToExportRows(
@@ -141,8 +145,7 @@ export async function POST(request: Request) {
 		// Aplicar estilos, formatos y auto-ajuste de columnas
 		if (worksheet['!ref']) {
 			const range = XLSX.utils.decode_range(worksheet['!ref'])
-			const VALOR_NEGOCIO_COL_NAME = 'Valor negocio'
-			const colIndexValor = headers.indexOf(VALOR_NEGOCIO_COL_NAME)
+			const colIndexValor = headers.indexOf(NEGOCIOS_EXPORT_VALOR_COLUMN)
 
 			// Inicializar anchos con el tamaño de los headers
 			const colWidths = headers.map((h) => ({ wch: h.length + 2 }))

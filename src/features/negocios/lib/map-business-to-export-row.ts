@@ -7,6 +7,9 @@ import type { BusinessExportPayload } from './business-export-include'
 
 export const PERIODICIDAD_ANUAL_NAME = 'Anual'
 
+/** Columna monetaria — misma cadena en cabecera y en `route.ts` para formato Excel */
+export const NEGOCIOS_EXPORT_VALOR_COLUMN = 'Valor de Negocio'
+
 const TERM_CAP = 25
 
 function fmtDate(iso: Date | string | null | undefined): string {
@@ -62,32 +65,31 @@ export function negociosExportColumnHeaders(
 	base.push(
 		'Agente',
 		'Nombres y Apellidos del Cliente',
-		'Cedula del cliente',
+		'Número de Cédula',
+		'Correo Electrónico',
+		'Teléfono',
 		'Origen del cliente',
-		'Email Cliente',
-		'Celular',
 		'Compañía',
 		'Plazo',
-		'Periodicidad',
 		'Producto',
-		'Número de contrato',
+		'Número de Contrato',
 		'Moneda',
-		'Valor negocio',
-		'Líder encargado',
-		'Categoría líder',
-		'Estado del negocio',
-		'Fecha de emisión',
-		'Fecha de fondeo',
-		'Fecha de creación'
+		NEGOCIOS_EXPORT_VALOR_COLUMN,
+		'Periodicidad del pago',
+		'Líder Encargado',
+		'Categoría Líder',
+		'Estado de negocio',
+		'Fecha de Creación',
+		'Fecha de Emisión',
+		'Fecha de Fondeo'
 	)
 
-	// Si hay más niveles de líderes (el primero ya está como Líder encargado)
 	for (let i = 1; i < maxLeaderLevels; i++) {
 		base.push(`Líder ${i + 1} nombre`, `Líder ${i + 1} categoría`)
 	}
 
 	for (let i = 1; i <= maxAnnualCols; i++) {
-		base.push(`Fecha fondeo anualidad ${i}`)
+		base.push(`Fecha Fondeo Anualidad ${i}`)
 	}
 
 	return base
@@ -119,25 +121,24 @@ export function mapBusinessToExportRow(
 
 	row['Agente'] = agentName
 	row['Nombres y Apellidos del Cliente'] = clientName
-	row['Cedula del cliente'] = b.client.identityNumber ?? ''
+	row['Número de Cédula'] = b.client.identityNumber ?? ''
+	row['Correo Electrónico'] = b.client.email ?? ''
+	row['Teléfono'] = b.client.phone ?? ''
 	row['Origen del cliente'] = b.clientOrigin.name
-	row['Email Cliente'] = b.client.email ?? ''
-	row['Celular'] = b.client.phone ?? ''
 	row['Compañía'] = product.company.name
 	row['Plazo'] = b.term ?? ''
-	row['Periodicidad'] = b.buyPeriodicity?.name ?? ''
 	row['Producto'] = product.name
-	row['Número de contrato'] = b.contract ?? ''
+	row['Número de Contrato'] = b.contract ?? ''
 	row['Moneda'] = b.currency.name
-	row['Valor negocio'] = Number(b.value)
-	row['Líder encargado'] = leaders[0]?.fullName ?? ''
-	row['Categoría líder'] = leaders[0]?.categoryName ?? ''
-	row['Estado del negocio'] = b.status ?? ''
-	row['Fecha de emisión'] = fmtDate(b.dateIssued ?? null)
-	row['Fecha de fondeo'] = fmtDate(b.dateAnchored ?? null)
-	row['Fecha de creación'] = fmtDate(b.createdAt)
+	row[NEGOCIOS_EXPORT_VALOR_COLUMN] = Number(b.value)
+	row['Periodicidad del pago'] = b.buyPeriodicity?.name ?? ''
+	row['Líder Encargado'] = leaders[0]?.fullName ?? ''
+	row['Categoría Líder'] = leaders[0]?.categoryName ?? ''
+	row['Estado de negocio'] = b.status ?? ''
+	row['Fecha de Creación'] = fmtDate(b.createdAt)
+	row['Fecha de Emisión'] = fmtDate(b.dateIssued ?? null)
+	row['Fecha de Fondeo'] = fmtDate(b.dateAnchored ?? null)
 
-	// Extras de líderes si existen
 	for (let i = 1; i < maxLeaderLevels; i++) {
 		const lvl = leaders[i]
 		row[`Líder ${i + 1} nombre`] = lvl?.fullName ?? ''
@@ -146,7 +147,7 @@ export function mapBusinessToExportRow(
 
 	const isAnual = b.buyPeriodicity?.name === PERIODICIDAD_ANUAL_NAME
 	for (let i = 1; i <= maxAnnualCols; i++) {
-		const key = `Fecha fondeo anualidad ${i}`
+		const key = `Fecha Fondeo Anualidad ${i}`
 		if (!isAnual || (b.term != null && i > b.term)) {
 			row[key] = ''
 			continue

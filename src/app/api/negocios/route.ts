@@ -50,6 +50,8 @@ export async function GET(
 			status: searchParams.get('status'),
 			dateFrom: searchParams.get('dateFrom'),
 			dateTo: searchParams.get('dateTo'),
+			createdFrom: searchParams.get('createdFrom'),
+			createdTo: searchParams.get('createdTo'),
 		}
 
 		const validationResult = businessListParamsSchema.safeParse(params)
@@ -64,7 +66,7 @@ export async function GET(
 			)
 		}
 
-		const { page, pageSize, search, status, dateFrom, dateTo } =
+		const { page, pageSize, search, status, dateFrom, dateTo, createdFrom, createdTo } =
 			validationResult.data
 
 		// Obtener usuario actual
@@ -84,6 +86,8 @@ export async function GET(
 				status,
 				dateFrom,
 				dateTo,
+				createdFrom,
+				createdTo,
 			})
 		)
 

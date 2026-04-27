@@ -526,30 +526,76 @@ For shared filters (optional funding-date pair, status, unified search), export 
 ### Requirement: Enhanced operational Excel export
 
 The system MUST provide professional Excel exports with advanced styling, auto-sizing columns, and specific fields for liquidation analysis.
-(Previously: The system exported Mes, Año, and Es anualidad, and didn't include Celular or dynamic date filter columns at the start.)
+
+(Previously: Fixed column order placed periodicidad before producto, origen before correo/teléfono; date order emisión/fondeo/creación before líder extra; currency column labeled "Valor negocio"; annual columns summarized as "Fecha de anualidades (dinámicas)".)
 
 #### Scenario: Professional Styling and Auto-sizing
+
 - **GIVEN** the Excel export is requested
 - **WHEN** the file is generated
 - **THEN** header cells MUST have a light blue background (`#ADD8E6`) and bold font.
 - **AND** all columns MUST automatically adjust their width to fit the content (header or data).
 
 #### Scenario: Formatting and Calculated Fields
+
 - **GIVEN** the report is generated
 - **WHEN** the data rows are populated
-- **THEN** the "Valor negocio" column MUST use currency format `$#,##0.00`.
+- **THEN** the **Valor de Negocio** column MUST use currency format `$#,##0.00`.
 
 #### Scenario: Specific Column Order and Naming without Date Filters
+
 - **GIVEN** the Excel report is generated without date filters (`dateFrom` and `dateTo` absent)
-- **WHEN** the columns are populated
-- **THEN** they MUST follow this exact order:
-  1. Agente, 2. Nombres y Apellidos del Cliente, 3. Cedula del cliente, 4. Origen del cliente, 5. Email Cliente, 6. Celular, 7. Compañía, 8. Plazo, 9. Periodicidad, 10. Producto, 11. Número de contrato, 12. Moneda, 13. Valor negocio, 14. Líder encargado, 15. Categoría líder, 16. Estado del negocio, 17. Fecha de emisión, 18. Fecha de fondeo, 19. Fecha de creación, 20. Fecha de anualidades (dinámicas).
+- **WHEN** the columns are populated left-to-right
+- **THEN** the fixed columns MUST appear in this exact order and spelling:
+  1. Agente  
+  2. Nombres y Apellidos del Cliente  
+  3. Número de Cédula  
+  4. Correo Electrónico  
+  5. Teléfono  
+  6. Origen del cliente  
+  7. Compañía  
+  8. Plazo  
+  9. Producto  
+  10. Número de Contrato  
+  11. Moneda  
+  12. Valor de Negocio  
+  13. Periodicidad del pago  
+  14. Líder Encargado  
+  15. Categoría Líder  
+  16. Estado de negocio  
+  17. Fecha de Creación  
+  18. Fecha de Emisión  
+  19. Fecha de Fondeo  
+- **AND** IF additional leader hierarchy columns are emitted for leaders beyond the first, they MUST appear immediately after **Fecha de Fondeo** as successive pairs **Líder N nombre**, **Líder N categoría** for N = 2, 3, … as needed.
+- **AND** IF annual installment date columns are emitted for annual periodicity, they MUST appear after any **Líder N** columns and MUST be labeled **Fecha Fondeo Anualidad 1** … **Fecha Fondeo Anualidad n** where **n** is the maximum count required for the exported set.
 
 #### Scenario: Specific Column Order and Naming with Date Filters
+
 - **GIVEN** the Excel report is generated with date filters (`dateFrom` and `dateTo` present)
-- **WHEN** the columns are populated
-- **THEN** they MUST follow this exact order:
-  1. Fecha inicial fondeo, 2. Fecha final fondeo, 3. Agente, 4. Nombres y Apellidos del Cliente, 5. Cedula del cliente, 6. Origen del cliente, 7. Email Cliente, 8. Celular, 9. Compañía, 10. Plazo, 11. Periodicidad, 12. Producto, 13. Número de contrato, 14. Moneda, 15. Valor negocio, 16. Líder encargado, 17. Categoría líder, 18. Estado del negocio, 19. Fecha de emisión, 20. Fecha de fondeo, 21. Fecha de creación, 22. Fecha de anualidades (dinámicas).
+- **WHEN** the columns are populated left-to-right
+- **THEN** the fixed columns MUST appear in this exact order and spelling before any dynamic **Líder N** or **Fecha Fondeo Anualidad** columns:
+  1. Fecha inicial fondeo  
+  2. Fecha final fondeo  
+  3. Agente  
+  4. Nombres y Apellidos del Cliente  
+  5. Número de Cédula  
+  6. Correo Electrónico  
+  7. Teléfono  
+  8. Origen del cliente  
+  9. Compañía  
+  10. Plazo  
+  11. Producto  
+  12. Número de Contrato  
+  13. Moneda  
+  14. Valor de Negocio  
+  15. Periodicidad del pago  
+  16. Líder Encargado  
+  17. Categoría Líder  
+  18. Estado de negocio  
+  19. Fecha de Creación  
+  20. Fecha de Emisión  
+  21. Fecha de Fondeo  
+- **AND** dynamic **Líder N** pairs and **Fecha Fondeo Anualidad 1…n** MUST follow the same placement rules as in **Specific Column Order and Naming without Date Filters**.
 
 ### Requirement: Export volume limit
 
@@ -664,3 +710,108 @@ The business creation and edit forms MUST consolidate product and contract infor
 - **WHEN** the form renders
 - **THEN** exactly two main sections MUST be displayed: "Información del cliente" and "Información del negocio"
 - **AND** the "Información del negocio" section MUST contain the following fields in order: contrato, compañia, producto, periodicidad, plazo, moneda, valor, agente.
+
+---
+
+### Requirement: Dashboard KPIs específicos para Coach
+
+El sistema MUST exponer exactamente tres métricas (Ventas Efectuadas, Emitido, Fondeados) para el rol Coach, sin el indicador de Clawback. Cada métrica MUST incluir simultáneamente la cantidad de negocios y los montos en moneda local y extranjera.
+
+#### Scenario: Visualización de tarjetas para Coach
+
+- GIVEN el usuario tiene el rol de Coach
+- WHEN ingresa a la vista principal de negocios
+- THEN el sistema SHALL renderizar tres tarjetas: «Ventas Efectuadas», «Emitido» y «Fondeados»
+- AND el sistema SHALL NOT mostrar la métrica de Clawback
+
+#### Scenario: Visualización simultánea de monedas
+
+- GIVEN que se renderizan las tarjetas de KPIs del Coach
+- WHEN el usuario observa cualquier tarjeta
+- THEN SHALL visualizar el conteo total de negocios en ese estado
+- AND SHALL visualizar el monto total en moneda local (COP)
+- AND SHALL visualizar el monto total en moneda extranjera (USD)
+
+### Requirement: Contrato GET /api/negocios/stats y filtro createdAt para los tres KPI
+
+El endpoint `GET /api/negocios/stats` SHALL aceptar parámetros opcionales de consulta `dateFrom` y `dateTo` en formato fecha calendario (YYYY-MM-DD). Cuando ambos están presentes y válidos, el sistema SHALL aplicar un único filtro por `createdAt` (límite inferior y superior en UTC derivados de días inclusivos en zona horaria de Bogotá) a las tres agregaciones en paralelo: Ventas Efectuadas, Emitido y Fondeados. Cuando falta uno o ambos parámetros de rango, el sistema SHALL NOT aplicar ese filtro `createdAt` a las agregaciones (totales sin acotar por ese rango). La forma de la respuesta (tres bloques de KPI) MUST permanecer estable respecto al contrato existente del Coach.
+
+#### Scenario: Rango completo acota los tres KPI por createdAt
+
+- GIVEN una petición `GET /api/negocios/stats` con `dateFrom` y `dateTo` válidos y pareados
+- WHEN el backend calcula las tres métricas
+- THEN cada agregación SHALL usar el mismo predicado de rango sobre `createdAt`
+- AND ninguna de las tres SHALL usar únicamente `dateAnchored` para ese filtro de fechas de consulta
+
+#### Scenario: Sin rango — sin filtro createdAt en stats
+
+- GIVEN una petición sin `dateFrom` o sin `dateTo` (o sin ambos)
+- WHEN se calculan las estadísticas
+- THEN el sistema SHALL NOT aplicar el filtro de rango `createdAt` descrito arriba a las agregaciones
+
+### Requirement: Fechas por rol en la vista Negocios (Coach vs Administrador)
+
+Para el Coach, la vista de negocios SHALL inicializar el rango de fechas de la UI al primer día del mes calendario actual hasta el día actual (Bogotá), de modo que el Coach no quede con tabla o KPI vacíos por defecto al faltar fechas. Para el Administrador, los filtros de fecha de la vista SHALL iniciar vacíos por defecto. El Coach SHALL mapear ese rango de UI a `createdFrom`/`createdTo` en la lista y a `dateFrom`/`dateTo` en la llamada a stats según el contrato de API. El Administrador SHALL usar `dateFrom`/`dateTo` en la lista para filtrar por fecha de fondeo (`dateAnchored`) cuando los establezca.
+
+#### Scenario: Coach con mes actual por defecto
+
+- GIVEN un usuario Coach abre negocios
+- WHEN se cargan los parámetros iniciales de fecha
+- THEN el rango visible SHALL abarcar desde el día 1 del mes actual hasta hoy
+- AND las peticiones de lista y estadísticas SHALL usar ese rango según los contratos de query params
+
+#### Scenario: Administrador sin fechas por defecto
+
+- GIVEN un usuario Administrador abre negocios
+- WHEN se cargan los filtros iniciales
+- THEN las fechas SHALL estar vacías por defecto
+- AND el uso de rango para fondeo SHALL corresponder solo a lo que el admin configure
+
+### Requirement: Parámetros de lista y exportación de negocios (createdAt vs dateAnchored)
+
+La API de listado `GET /api/negocios` SHALL aceptar `createdFrom` y `createdTo` (opcionales, YYYY-MM-DD) para filtrar por `createdAt` del negocio. SHALL aceptar `dateFrom` y `dateTo` para filtrar por `dateAnchored` (fondeo). La semántica de fechas inclusive en calendario Bogotá MUST ser coherente entre lista, estadísticas y exportación. La ruta de exportación que aplique rangos de fechas SHALL construir los límites UTC usando la misma regla inclusiva Bogotá que evita el desfase de «día anterior» al interpretar solo cadenas ISO de fecha.
+
+#### Scenario: Coach envía createdFrom y createdTo
+
+- GIVEN un Coach con rango de fechas en UI
+- WHEN se solicita el listado de negocios
+- THEN la petición SHALL incluir `createdFrom` y `createdTo` acordes al rango
+- AND el backend SHALL filtrar por `createdAt` dentro de ese rango
+
+#### Scenario: Administrador envía dateFrom y dateTo para fondeo
+
+- GIVEN un Administrador con ambas fechas de rango configuradas
+- WHEN se solicita el listado
+- THEN la petición SHALL usar `dateFrom`/`dateTo` para el filtro por `dateAnchored`
+
+### Requirement: Tabla de negocios — etiquetas de fecha y rango de fondeo (Administrador)
+
+En la sección de tabla de negocios, el sistema SHALL mostrar una cabecera de columna de fecha etiquetada según el rol: equivalente a «Creación» para Coach y equivalente a «Fondeo» para Administrador. Cuando el Administrador tiene activo un rango de fechas de fondeo (ambas fechas presentes), el sistema SHALL impedir cambiar libremente el filtro de estado de forma que entre en conflicto con la semántica de `dateAnchored` (p. ej. desactivar el selector y fijar estado acorde al diseño de producto para evitar combinaciones inválidas).
+
+#### Scenario: Etiqueta según rol
+
+- GIVEN el usuario es Coach
+- WHEN se muestra la cabecera de la columna de fecha relevante
+- THEN el texto SHALL indicar creación
+
+#### Scenario: Etiqueta fondeo para admin
+
+- GIVEN el usuario es Administrador
+- WHEN se muestra la misma columna
+- THEN el texto SHALL indicar fondeo
+
+### Requirement: Acceso Coach a Negocios sin ruta duplicada
+
+El sistema SHALL redirigir la ruta `/dashboard/agente` a `/dashboard/negocios`. La navegación principal disponible para el rol Agent/Coach SHALL NOT incluir un ítem de menú separado que apunte a un «dashboard del agente» duplicado cuando la experiencia unificada de KPIs y listado vive en negocios.
+
+#### Scenario: Redirect desde agente
+
+- GIVEN un usuario navega a `/dashboard/agente`
+- WHEN la página resuelve
+- THEN el navegador SHALL terminar en `/dashboard/negocios` (redirect)
+
+#### Scenario: Sin entrada de menú redundante
+
+- GIVEN el menú del Coach
+- WHEN inspecciona los enlaces principales
+- THEN SHALL NOT aparecer el ítem eliminado para dashboard duplicado según este cambio

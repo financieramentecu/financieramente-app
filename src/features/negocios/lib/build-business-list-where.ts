@@ -9,6 +9,7 @@ export interface BusinessListFilterInput {
 	status?: string
 	/** Inclusivo en `business.date_anchored`; excluye null en el rango */
 	dateAnchoredRange?: { gte: Date; lte: Date }
+	createdAtRange?: { gte: Date; lte: Date }
 }
 
 /**
@@ -28,7 +29,7 @@ export function buildBusinessListWhere(
 		whereConditions.push({ idUser: currentUser.idUser })
 	}
 
-	const { status, search, dateAnchoredRange } = filters
+	const { status, search, dateAnchoredRange, createdAtRange } = filters
 
 	if (status) {
 		whereConditions.push({ status })
@@ -73,6 +74,15 @@ export function buildBusinessListWhere(
 					},
 				},
 			],
+		})
+	}
+
+	if (createdAtRange) {
+		whereConditions.push({
+			createdAt: {
+				gte: createdAtRange.gte,
+				lte: createdAtRange.lte,
+			},
 		})
 	}
 
