@@ -29,7 +29,7 @@ function TypeBadge({ type, isActive }: { type: string; isActive: boolean }) {
 	}
 	return (
 		<span
-			className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold"
+			className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-semibold truncate"
 			style={{ backgroundColor: '#FFFBEB', color: '#B45309' }}
 		>
 			CLAWBACK

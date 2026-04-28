@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
 
 import { deleteFileImport } from '@/features/load-file/services/delete-file-import.service'
+import { getFileImportSummary } from '@/features/load-file/services/file-import-records.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { FileImport } from '@prisma/client'
 
@@ -29,7 +30,36 @@ export async function GET(
 			)
 		}
 
-		// Obtener FileImport
+		const searchParams = request.nextUrl.searchParams
+		const loadNumberStr = searchParams.get('loadNumber')
+		const loadNumber = loadNumberStr ? parseInt(loadNumberStr, 10) : undefined
+
+		if (loadNumber !== undefined && isNaN(loadNumber)) {
+			return NextResponse.json(
+				{ data: null, error: 'loadNumber inválido' } satisfies ApiResponse<null>,
+				{ status: 400 }
+			)
+		}
+
+		if (loadNumber !== undefined) {
+			const summary = await getFileImportSummary(
+				fileImportId,
+				Number(session.user.id),
+				loadNumber
+			)
+			if (!summary) {
+				return NextResponse.json(
+					{ data: null, error: 'No encontrado' } satisfies ApiResponse<null>,
+					{ status: 404 }
+				)
+			}
+			return NextResponse.json(
+				{ data: summary } satisfies ApiResponse<Record<string, number>>,
+				{ status: 200 }
+			)
+		}
+
+		// Fallback to original behavior: full FileImport object
 		const fileImport = await prisma.fileImport.findFirst({
 			where: {
 				idFileImport: fileImportId,

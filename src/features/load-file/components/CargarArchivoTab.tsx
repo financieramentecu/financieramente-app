@@ -69,6 +69,7 @@ export function CargarArchivoTab() {
 	const [currentFileImportId, setCurrentFileImportId] = useState<
 		number | null
 	>(null)
+	const [currentLoadNumber, setCurrentLoadNumber] = useState<number | null>(null)
 
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	// Refs para control de cancelación
@@ -191,6 +192,7 @@ export function CargarArchivoTab() {
 		setProcessingResult(null)
 		setProcessingProgress(null)
 		setCurrentFileImportId(null)
+		setCurrentLoadNumber(null)
 		if (fileInputRef.current) {
 			fileInputRef.current.value = ''
 		}
@@ -268,7 +270,20 @@ export function CargarArchivoTab() {
 
 			if (!initiateResponse.data) {
 				const errorMsg = initiateResponse.error || 'Error al crear registro de importación'
-				setErrorMessage(errorMsg)
+				
+				// Mejorar mensaje para períodos bloqueados
+				if (errorMsg === 'Período en pre-liquidación') {
+					setErrorMessage(
+						'No se pueden cargar nuevos archivos porque ya existe un proceso de pre-liquidación en curso para este período. Los datos están congelados para asegurar la consistencia del cálculo.'
+					)
+				} else if (errorMsg.includes('ya fue liquidado')) {
+					setErrorMessage(
+						'Este período ya ha sido finalizado y liquidado. No se permite la carga de nuevos datos.'
+					)
+				} else {
+					setErrorMessage(errorMsg)
+				}
+
 				setErrorModalTitle('PERÍODO BLOQUEADO')
 				setErrorModalOpen(true)
 				setIsUploading(false)
@@ -277,6 +292,7 @@ export function CargarArchivoTab() {
 
 			const fileImport = initiateResponse.data.fileImport
 			setCurrentFileImportId(fileImport.idFileImport)
+			setCurrentLoadNumber(fileImport.uploadCount)
 
 			// Procesar y guardar todos los registros (incluyendo los que tienen error previo)
 			const allRecords = [...result.validRecords, ...result.errorRecords]
@@ -297,6 +313,7 @@ export function CargarArchivoTab() {
 						try {
 							const progressResponse = await loadFileApi.getImportProgress(
 								fileImportId,
+								{},
 								{ signal: abortControllerRef.current?.signal }
 							)
 
@@ -403,6 +420,7 @@ export function CargarArchivoTab() {
 					rezagadoCount: sessionRezagado,
 					noSincronizadoCount: sessionNoSincronizado,
 					errorCount: sessionError || result.errorCount,
+					uploadCount: fileImport.uploadCount,
 				})
 			} else {
 				// Si no hay registros válidos, solo mostrar errores
@@ -481,6 +499,7 @@ export function CargarArchivoTab() {
 						rezagado={processingProgress.rezagado}
 						error={processingProgress.error}
 						onCancel={handleCancelUpload}
+						loadNumber={currentLoadNumber ?? undefined}
 					/>
 				</div>
 			)}
@@ -511,6 +530,8 @@ export function CargarArchivoTab() {
 								),
 							rezagados: processingResult.rezagadoCount ?? 0,
 						}}
+						uploadCount={processingResult.uploadCount}
+						loadNumber={currentLoadNumber ?? undefined}
 					/>
 					<div className="flex justify-center pt-4 gap-4">
 						<Button

@@ -23,6 +23,7 @@ export interface ProcessResult {
 	validRecords: ProcessedRecord[]
 	errorRecords: ProcessedRecord[]
 	headers: string[]
+	uploadCount?: number
 }
 
 export interface ProcessBatchSummary {
@@ -51,6 +52,7 @@ export interface FileImportHistory {
 	createdAt: Date
 	month?: number
 	year?: number
+	uploadCount: number
 	user: {
 		name: string | null
 		lastName: string | null

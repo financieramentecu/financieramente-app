@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 
 export const dynamic = 'force-dynamic'
@@ -40,8 +41,17 @@ export async function GET(
 			)
 		}
 
+		const { searchParams } = new URL(request.url)
+		const loadNumberParam = searchParams.get('loadNumber')
+		const loadNumber = loadNumberParam ? parseInt(loadNumberParam, 10) : undefined
+
+		const where: Prisma.FileImportErrorWhereInput = { idFileImport: fileImportId }
+		if (loadNumber !== undefined) {
+			where.loadNumber = loadNumber
+		}
+
 		const errors = await prisma.fileImportError.findMany({
-			where: { idFileImport: fileImportId },
+			where,
 			orderBy: { rowNumber: 'asc' },
 		})
 

@@ -10,6 +10,7 @@ interface ProcessingProgressProps {
 	rezagado: number
 	error: number
 	onCancel?: () => void
+	loadNumber?: number
 }
 
 export function ProcessingProgress({
@@ -19,6 +20,7 @@ export function ProcessingProgress({
 	rezagado,
 	error,
 	onCancel,
+	loadNumber,
 }: ProcessingProgressProps) {
 	const percentage = total > 0 ? Math.round((current / total) * 100) : 0
 
@@ -30,7 +32,12 @@ export function ProcessingProgress({
 						<h3 className="text-lg font-semibold text-primary">
 							Procesando archivo...
 						</h3>
-						<span className="text-sm text-muted-foreground">
+						{loadNumber && (
+							<span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider ml-2">
+								Carga #{loadNumber}
+							</span>
+						)}
+						<span className="text-sm text-muted-foreground ml-auto">
 							{current} de {total} registros
 						</span>
 					</div>

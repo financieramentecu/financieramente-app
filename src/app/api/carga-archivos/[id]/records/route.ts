@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth/nextauth'
 import { getFileImportRecords } from '@/features/load-file/services/file-import-records.service'
 import type { FileImportRecordStatusFilter } from '@/features/load-file/types/load-file.types'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
@@ -46,10 +46,14 @@ export async function GET(
 				? (statusParam as FileImportRecordStatusFilter)
 				: 'SYNCHRONIZED'
 
+		const loadNumberParam = searchParams.get('loadNumber')
+		const loadNumber = loadNumberParam ? parseInt(loadNumberParam, 10) : undefined
+
 		const result = await getFileImportRecords(fileImportId, parseInt(session.user.id, 10), {
 			page,
 			pageSize,
 			status,
+			loadNumber,
 		})
 
 		if (result === null) {
