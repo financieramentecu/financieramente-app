@@ -27,7 +27,10 @@ export const businessFormSchema = z.object({
 	clientOrigin: z.string().min(1, 'El origen del cliente es obligatorio'),
 	contract: z
 		.string()
-		.regex(/^[0-9]*$/, 'El número de contrato solo puede contener números')
+		.regex(
+			/^[A-Za-z0-9-]*$/,
+			'El número de contrato solo puede contener letras, números y guiones'
+		)
 		.transform((val) => (val === '' ? undefined : val))
 		.optional(),
 
