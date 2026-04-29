@@ -105,4 +105,19 @@ describe('useBusinessForm', () => {
 
 		expect(result.current.form.getValues('contract')).toBe('')
 	})
+
+	it('accepts alphanumeric contract numbers', async () => {
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 42,
+				defaultValues: { ...baseDefaults, contract: 'CONT-123' },
+				currentUser: mockUserWithRole,
+				...options,
+			})
+		)
+
+		await result.current.form.trigger('contract')
+		expect(result.current.form.formState.errors.contract).toBeUndefined()
+	})
 })
