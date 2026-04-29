@@ -5,6 +5,17 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0-beta.18] - 2026-04-29
+
+### Añadido
+
+- **Negocios – Contratos alfanuméricos:** El campo de contrato en el formulario ahora acepta letras, números y guiones (ej. `CONT-123`), alineando la validación del frontend con la capacidad de la base de datos. Se incluyeron pruebas unitarias para garantizar la validez de este formato.
+
+### Mejorado
+
+- **Negocios – Legibilidad del encabezado:** Se ajustó el color del texto en el banner principal a `primary-foreground` para asegurar un contraste óptimo en modo claro sobre el fondo verde oscuro. Se simplificó el texto del banner para una interfaz más limpia.
+
+
 ## [1.0.0-beta.17] - 2026-04-26
 
 ### Añadido
