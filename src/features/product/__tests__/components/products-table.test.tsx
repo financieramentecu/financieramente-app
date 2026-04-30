@@ -152,7 +152,7 @@ describe('ProductsTableSection', () => {
 		)
 
 		// Find the company filter select by text content
-		expect(screen.getByText('Todas las empresas')).toBeInTheDocument()
+		expect(screen.getByText('Todas las compañías')).toBeInTheDocument()
 	})
 
 	it('should call onCompanyChange when company filter changes', async () => {
@@ -165,10 +165,10 @@ describe('ProductsTableSection', () => {
 			/>
 		)
 
-		// Find the company filter by looking for the combobox that contains "Todas las empresas"
+		// Find the company filter by looking for the combobox that contains "Todas las compañías"
 		const companyFilters = screen.getAllByRole('combobox')
 		const companyFilter = companyFilters.find((el) =>
-			el.textContent?.includes('Todas las empresas')
+			el.textContent?.includes('Todas las compañías')
 		)
 
 		if (companyFilter) {

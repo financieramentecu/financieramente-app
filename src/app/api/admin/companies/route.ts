@@ -7,6 +7,7 @@ import type {
 	Company,
 } from '@/features/company/types/company.types'
 import { prismaCompanyToCompany } from '@/features/company/mappers/company.mapper'
+// REFRESH: 2026-04-29T19:32:00
 import { z } from 'zod'
 import { requireAuth, requireRole } from '@/lib/auth/require-role'
 import { UserRole } from '@/features/auth/lib/roles'
@@ -53,6 +54,9 @@ export async function GET(request: Request) {
 
 		const companies = await prisma.company.findMany({
 			where,
+			include: {
+				currency: true,
+			},
 			orderBy: { name: 'asc' },
 			skip: (page - 1) * pageSize,
 			take: pageSize,
@@ -120,6 +124,7 @@ export async function POST(request: Request) {
 				name: data.name.trim(),
 				status: data.status,
 				idTypeCompany: 'NACIONAL',
+				idCurrency: parseInt(data.idCurrency),
 			},
 		})
 

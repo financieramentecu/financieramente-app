@@ -29,6 +29,7 @@ describe('useCompanyMutations', () => {
 			const mockCompany = createMockCompany({
 				idCompany: 1,
 				name: 'Skandia Seguros',
+				idCurrency: 1,
 				status: true,
 			})
 
@@ -41,6 +42,7 @@ describe('useCompanyMutations', () => {
 			await act(async () => {
 				await result.current.createCompany({
 					name: 'Skandia Seguros',
+					idCurrency: 1,
 					status: true,
 				})
 			})
@@ -52,6 +54,7 @@ describe('useCompanyMutations', () => {
 			expect(result.current.createState.data).toEqual(mockCompany)
 			expect(companyApi.createCompany).toHaveBeenCalledWith({
 				name: 'Skandia Seguros',
+				idCurrency: 1,
 				status: true,
 			})
 		})
@@ -67,6 +70,7 @@ describe('useCompanyMutations', () => {
 			await act(async () => {
 				await result.current.createCompany({
 					name: 'Skandia Seguros',
+					idCurrency: 1,
 					status: true,
 				})
 			})
@@ -95,6 +99,7 @@ describe('useCompanyMutations', () => {
 			act(() => {
 				result.current.createCompany({
 					name: 'Skandia Seguros',
+					idCurrency: 1,
 					status: true,
 				})
 			})
@@ -124,6 +129,7 @@ describe('useCompanyMutations', () => {
 			const mockCompany = createMockCompany({
 				idCompany: 1,
 				name: 'Skandia Seguros',
+				idCurrency: 1,
 				status: false,
 			})
 

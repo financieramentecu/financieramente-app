@@ -1,6 +1,3 @@
-// Prisma Schema
-// Sistema de Liquidación de Comisiones
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,23 +8,15 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum BeneficiaryMode {
-  UPLINE_CHAIN
-  FIXED_BENEFICIARY
-}
-
-enum AnnualPaymentStatus {
-  SIN_FONDEAR
-  FONDEADO
-}
-
 model Company {
   idCompany     Int       @id @default(autoincrement()) @map("id_company")
   name          String    @db.VarChar(100)
   idTypeCompany String    @map("id_type_company") @db.VarChar(20)
+  idCurrency    Int?      @map("id_currency")
   status        Boolean   @default(true)
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
+  currency      Currency? @relation(fields: [idCurrency], references: [idCurrency])
   products      Product[]
 
   @@index([idTypeCompany])
@@ -53,11 +42,11 @@ model Category {
   idCategory                            Int                                   @id @default(autoincrement()) @map("id_category")
   code                                  String                                @unique @db.VarChar(20)
   name                                  String                                @db.VarChar(50)
-  idCategoryType                        Int                                   @map("id_category_type")
   descripcion                           String?
   status                                Boolean                               @default(true)
   createdAt                             DateTime                              @default(now()) @map("created_at")
   updatedAt                             DateTime                              @updatedAt @map("updated_at")
+  idCategoryType                        Int                                   @map("id_category_type")
   beneficiaryMode                       BeneficiaryMode                       @default(UPLINE_CHAIN) @map("beneficiary_mode")
   idFixedBeneficiaryUser                Int?                                  @map("id_fixed_beneficiary_user")
   categoryType                          CategoryType                          @relation(fields: [idCategoryType], references: [id])
@@ -74,7 +63,7 @@ model Category {
 model CategoryType {
   id          Int        @id @default(autoincrement()) @map("id_category_type")
   name        String     @unique @db.VarChar(100)
-  description String?    @db.Text
+  description String?
   status      Boolean    @default(true)
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
@@ -116,6 +105,7 @@ model Currency {
   createdAt  DateTime   @default(now()) @map("created_at")
   updatedAt  DateTime   @updatedAt @map("updated_at")
   businesses Business[]
+  companies  Company[]
 
   @@map("currency")
 }
@@ -209,43 +199,38 @@ model ProductPercentageCommissionCategory {
 }
 
 model User {
-  idUser          Int              @id @default(autoincrement()) @map("id_user")
-  name            String           @db.VarChar(150)
-  lastName        String?          @map("last_name") @db.VarChar(150)
-  typeIdentity    String           @default("CC") @map("type_identity") @db.VarChar(10)
-  identityNumber  String?          @map("identity_number") @db.VarChar(20)
-  email           String           @unique @db.VarChar(150)
-  phone           String?          @db.VarChar(30)
-  idCategoria     Int?             @map("id_categoria")
-  idUserLeader    Int?             @map("id_user_leader")
-  entryDate       DateTime         @map("entry_date") @db.Date
-  retirementDate  DateTime?        @map("retirement_date") @db.Date
-  active          Boolean          @default(true)
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-  idRole          Int?             @map("id_role")
-  password        String?          @db.VarChar(255)
-  ssoOnly         Boolean          @default(true) @map("sso_only")
-  auditLogs       AuditLog[]
-  businesses      Business[]
-  clawbacks       Clawback[]
-  clawbackBalance ClawbackBalance?
-  fileImports     FileImport[]
-  category        Category?        @relation(fields: [idCategoria], references: [idCategory])
-  role            Role?            @relation(fields: [idRole], references: [idRole])
-  leader          User?            @relation("UserLeader", fields: [idUserLeader], references: [idUser])
-  subordinates    User[]           @relation("UserLeader")
-  categoriesAsFixedBeneficiary Category[] @relation("CategoryFixedBeneficiary")
+  idUser                              Int                     @id @default(autoincrement()) @map("id_user")
+  name                                String                  @db.VarChar(150)
+  lastName                            String?                 @map("last_name") @db.VarChar(150)
+  typeIdentity                        String                  @default("CC") @map("type_identity") @db.VarChar(10)
+  identityNumber                      String?                 @map("identity_number") @db.VarChar(20)
+  email                               String                  @unique @db.VarChar(150)
+  phone                               String?                 @db.VarChar(30)
+  idCategoria                         Int?                    @map("id_categoria")
+  idUserLeader                        Int?                    @map("id_user_leader")
+  entryDate                           DateTime                @map("entry_date") @db.Date
+  retirementDate                      DateTime?               @map("retirement_date") @db.Date
+  active                              Boolean                 @default(true)
+  createdAt                           DateTime                @default(now()) @map("created_at")
+  updatedAt                           DateTime                @updatedAt @map("updated_at")
+  idRole                              Int?                    @map("id_role")
+  password                            String?                 @db.VarChar(255)
+  ssoOnly                             Boolean                 @default(true) @map("sso_only")
+  auditLogs                           AuditLog[]
+  businesses                          Business[]
+  categoriesAsFixedBeneficiary        Category[]              @relation("CategoryFixedBeneficiary")
+  clawbacks                           Clawback[]
+  clawbackBalance                     ClawbackBalance?
   comissionDistributionsAsBeneficiary ComissionDistribution[] @relation("BeneficiaryUser")
+  commissionDiscountsCreated          CommissionDiscount[]    @relation("DiscountCreatedBy")
+  commissionDiscountsUpdated          CommissionDiscount[]    @relation("DiscountUpdatedBy")
   distributionApprovals               DistributionApproval[]
+  fileImports                         FileImport[]
+  category                            Category?               @relation(fields: [idCategoria], references: [idCategory])
+  role                                Role?                   @relation(fields: [idRole], references: [idRole])
+  leader                              User?                   @relation("UserLeader", fields: [idUserLeader], references: [idUser])
+  subordinates                        User[]                  @relation("UserLeader")
 
-  // Relaciones recursivas y jerárquicas
-  commissionDiscountsCreated CommissionDiscount[] @relation("DiscountCreatedBy")
-  commissionDiscountsUpdated CommissionDiscount[] @relation("DiscountUpdatedBy")
-
-  // Note: 'Coaches, líderes, seniors, juniors con jerarquía recursiva'
-
-  // Constraint única parcial: solo aplica cuando ambos campos tienen valores
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
   @@index([idUserLeader])
@@ -275,29 +260,28 @@ model Client {
 }
 
 model FileImport {
-  idFileImport         Int       @id @default(autoincrement()) @map("id_file_import")
-  nameFile             String    @map("name_file") @db.VarChar(255)
-  fileType             String?   @map("file_type") @db.VarChar(20)
-  loadDate             DateTime  @default(now()) @map("load_date")
-  idUser               Int       @map("id_user")
-  totalRecord          Int       @default(0) @map("total_record")
-  successRecord        Int       @default(0) @map("success_record")
-  errorRecord          Int       @default(0) @map("error_record")
-  sincronizadoRecord   Int       @default(0) @map("sincronizado_record")
-  rezagadoRecord       Int       @default(0) @map("rezagado_record")
-  noSincronizadoRecord Int       @default(0) @map("no_sincronizado_record")
-  status               String    @db.VarChar(20) // 'PROCESSING', 'LOAD', 'COMPLETED', 'ERROR', 'CANCELLED', 'PRE-SETTLED', 'SETTLED'
-  preLiquidacionDate   DateTime? @map("pre_liquidacion_date")
-  month                Int?      @map("month")
-  year                 Int?      @map("year")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-
-  // Relaciones
+  idFileImport          Int                    @id @default(autoincrement()) @map("id_file_import")
+  nameFile              String                 @map("name_file") @db.VarChar(255)
+  loadDate              DateTime               @default(now()) @map("load_date")
+  idUser                Int                    @map("id_user")
+  totalRecord           Int                    @default(0) @map("total_record")
+  successRecord         Int                    @default(0) @map("success_record")
+  errorRecord           Int                    @default(0) @map("error_record")
+  status                String                 @db.VarChar(20)
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  rezagadoRecord        Int                    @default(0) @map("rezagado_record")
+  sincronizadoRecord    Int                    @default(0) @map("sincronizado_record")
+  noSincronizadoRecord  Int                    @default(0) @map("no_sincronizado_record")
+  preLiquidacionDate    DateTime?              @map("pre_liquidacion_date")
+  fileType              String?                @map("file_type") @db.VarChar(20)
+  month                 Int?                   @map("month")
+  year                  Int?                   @map("year")
+  upload_count          Int                    @default(0)
+  distributionApprovals DistributionApproval[]
   user                  User                   @relation(fields: [idUser], references: [idUser])
   fileImportErrors      FileImportError[]
   settlementCommissions SettlementCommission[]
-  distributionApprovals DistributionApproval[]
 
   @@index([loadDate])
   @@index([status])
@@ -319,9 +303,10 @@ model Business {
   status                        String?                     @db.VarChar(20)
   createdAt                     DateTime                    @default(now()) @map("created_at")
   updatedAt                     DateTime                    @updatedAt @map("updated_at")
+  idClientOrigin                Int                         @map("id_client_origin")
   dateIssued                    DateTime?                   @map("date_issued")
   dateAnchored                  DateTime?                   @map("date_anchored")
-  idClientOrigin                Int                         @map("id_client_origin")
+  annualPayments                AnnualPayment[]
   buyPeriodicity                BuyPeriodicity?             @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
   client                        Client                      @relation(fields: [idClient], references: [idClient])
   clientOrigin                  ClientOrigin                @relation(fields: [idClientOrigin], references: [idClientOrigin])
@@ -329,7 +314,6 @@ model Business {
   productPercentageCommission   ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
   user                          User                        @relation(fields: [idUser], references: [idUser])
   settlementCommissions         SettlementCommission[]
-  annualPayments                AnnualPayment[]
 
   @@index([idUser])
   @@index([contract])
@@ -338,39 +322,33 @@ model Business {
 }
 
 model AnnualPayment {
-  idAnnualPayment   Int                 @id @default(autoincrement()) @map("id_annual_payment")
-  idBusiness        Int                 @map("id_business")
-  installmentIndex Int                @map("installment_index")
-  status            AnnualPaymentStatus @default(SIN_FONDEAR)
-  dateAnchored      DateTime?           @map("date_anchored")
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
-  business          Business            @relation(fields: [idBusiness], references: [idBusiness], onDelete: Cascade)
+  idAnnualPayment  Int                 @id @default(autoincrement()) @map("id_annual_payment")
+  idBusiness       Int                 @map("id_business")
+  installmentIndex Int                 @map("installment_index")
+  status           AnnualPaymentStatus @default(SIN_FONDEAR)
+  dateAnchored     DateTime?           @map("date_anchored")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  business         Business            @relation(fields: [idBusiness], references: [idBusiness], onDelete: Cascade)
 
   @@unique([idBusiness, installmentIndex])
   @@index([idBusiness])
   @@map("annual_payment")
 }
 
-// =====================================================
-// LIQUIDACIÓN Y CÁLCULOS
-// =====================================================
-
 model CommissionDiscount {
   id          Int      @id @default(autoincrement())
   name        String   @db.VarChar(100)
-  type        String   @db.VarChar(20) // 'IMPUESTO' | 'CLAWBACK'
+  type        String   @db.VarChar(20)
   percentage  Decimal  @db.Decimal(5, 2)
-  description String?  @db.Text
-  status      String   @default("ACTIVE") @db.VarChar(20) // 'ACTIVE' | 'INACTIVE'
+  description String?
+  status      String   @default("ACTIVE") @db.VarChar(20)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   createdById Int?     @map("created_by_id")
   updatedById Int?     @map("updated_by_id")
-
-  // Relaciones
-  createdBy User? @relation("DiscountCreatedBy", fields: [createdById], references: [idUser])
-  updatedBy User? @relation("DiscountUpdatedBy", fields: [updatedById], references: [idUser])
+  createdBy   User?    @relation("DiscountCreatedBy", fields: [createdById], references: [idUser])
+  updatedBy   User?    @relation("DiscountUpdatedBy", fields: [updatedById], references: [idUser])
 
   @@index([status])
   @@index([type])
@@ -378,36 +356,30 @@ model CommissionDiscount {
 }
 
 model SettlementCommission {
-  idSettlementCommission Int     @id @default(autoincrement())
-  idFileImport           Int     @map("id_file_import")
-  idBusiness             Int?    @map("id_business")
-  contract               String? @db.VarChar(50)
-
-  // Campos del excel
-  descripcion        String?
-  commissionValue    Decimal?  @map("commission_value") @db.Decimal(15, 2)
-  baseCommission     Decimal?  @map("base_commission") @db.Decimal(15, 2)
-  discountPercentage Decimal?  @map("discount_percentage") @db.Decimal(5, 4)
-  clawbackPercentage Decimal?  @map("clawback_percentage") @db.Decimal(5, 4)
-  originCommission   String?   @map("origin_commission") @db.VarChar(20)
-  // TODO: cambiarlo a enum
-  commissionType     String    @map("commission_type") @db.VarChar(20)
-  startDate          DateTime? @map("start_date")
-  endDate            DateTime? @map("end_date")
-
-  // Campos de control
-  status      String    @default("PENDING") // PENDING, SYNCHRONIZED, LAG, PRE-SETTLED, SETTLED
-  isLag           Boolean   @default(false) @map("is_lag")
-  isClawback      Boolean   @default(false) @map("is_clawback")
-  lagDate         DateTime? @map("lag_date")
-  isLagByUser     Boolean   @default(false) @map("is_lag_by_user")
-  isLagByUserDate DateTime? @map("is_lag_by_user_date")
-  syncDate    DateTime? @map("sync_date")
-  settledDate DateTime? @map("settled_date")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  // Relaciones
+  idBusiness             Int?                    @map("id_business")
+  isLag                  Boolean                 @default(false) @map("is_lag")
+  status                 String                  @default("PENDING")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  idFileImport           Int                     @map("id_file_import")
+  descripcion            String?
+  idSettlementCommission Int                     @id @default(autoincrement())
+  commissionValue        Decimal?                @map("commission_value") @db.Decimal(15, 2)
+  baseCommission         Decimal?                @map("base_commission") @db.Decimal(15, 2)
+  discountPercentage     Decimal?                @map("discount_percentage") @db.Decimal(5, 4)
+  clawbackPercentage     Decimal?                @map("clawback_percentage") @db.Decimal(5, 4)
+  originCommission       String?                 @map("origin_commission") @db.VarChar(20)
+  commissionType         String                  @map("commission_type") @db.VarChar(20)
+  contract               String?                 @db.VarChar(50)
+  startDate              DateTime?               @map("start_date")
+  endDate                DateTime?               @map("end_date")
+  isClawback             Boolean                 @default(false) @map("is_clawback")
+  lagDate                DateTime?               @map("lag_date")
+  syncDate               DateTime?               @map("sync_date")
+  settledDate            DateTime?               @map("settled_date")
+  isLagByUser            Boolean                 @default(false) @map("is_lag_by_user")
+  isLagByUserDate        DateTime?               @map("is_lag_by_user_date")
+  load_number            Int                     @default(1)
   comissionDistributions ComissionDistribution[]
   business               Business?               @relation(fields: [idBusiness], references: [idBusiness])
   fileImport             FileImport              @relation(fields: [idFileImport], references: [idFileImport])
@@ -421,7 +393,6 @@ model ComissionDistribution {
   idComissionDistribution             Int                                  @id @default(autoincrement()) @map("id_comission_distribution")
   idSettlementCommission              Int                                  @map("id_settlement_comission")
   valueComission                      Decimal                              @map("value_comission") @db.Decimal(15, 2)
-  valueCommissionWithDiscount         Decimal?                             @map("value_commission_with_discount") @db.Decimal(15, 2)
   valueComissionFinal                 Decimal                              @map("value_comission_final") @db.Decimal(15, 2)
   observation                         String?
   status                              String                               @db.VarChar(20)
@@ -431,6 +402,7 @@ model ComissionDistribution {
   totalDiscount                       Decimal?                             @map("total_discount") @db.Decimal(15, 2)
   appliedDiscountPercentage           Decimal?                             @map("applied_discount_percentage") @db.Decimal(5, 4)
   idBeneficiaryUser                   Int                                  @map("id_beneficiary_user")
+  valueCommissionWithDiscount         Decimal?                             @map("value_commission_with_discount") @db.Decimal(15, 2)
   clawback                            Clawback?
   beneficiaryUser                     User                                 @relation("BeneficiaryUser", fields: [idBeneficiaryUser], references: [idUser])
   productPercentageCommissionCategory ProductPercentageCommissionCategory? @relation(fields: [idPercentajeCommisionCategory], references: [id])
@@ -492,39 +464,34 @@ model AuditLog {
 }
 
 model FileImportError {
-  idFileImportError Int       @id @default(autoincrement()) @map("id_file_import_error")
-  idFileImport      Int       @map("id_file_import")
-  rowNumber         Int       @map("row_number")
-  contract          String?   @db.VarChar(50)
-  reason            String    @db.Text
-  rawData           Json      @map("raw_data")
-  resolved          Boolean   @default(false) @map("resolved")
-  resolvedAt        DateTime? @map("resolved_at")
-
-  // Relaciones
-  fileImport FileImport @relation(fields: [idFileImport], references: [idFileImport])
+  idFileImportError Int        @id @default(autoincrement()) @map("id_file_import_error")
+  idFileImport      Int        @map("id_file_import")
+  rowNumber         Int        @map("row_number")
+  contract          String?    @db.VarChar(50)
+  reason            String
+  rawData           Json       @map("raw_data")
+  resolved          Boolean    @default(false) @map("resolved")
+  resolvedAt        DateTime?  @map("resolved_at")
+  created_at        DateTime   @default(now())
+  load_number       Int        @default(1)
+  fileImport        FileImport @relation(fields: [idFileImport], references: [idFileImport])
 
   @@index([idFileImport])
   @@map("file_import_error")
 }
 
-// =====================================================
-// APROBACIONES DE DISTRIBUCIÓN (PRE-LIQUIDACIÓN)
-// =====================================================
-
 /// Registra la aprobación ("Estoy de acuerdo") de un beneficiario (coach/líder)
 /// respecto de su distribución para un archivo de pre-liquidación. Una aprobación
 /// por usuario por archivo.
 model DistributionApproval {
-  idDistributionApproval Int      @id @default(autoincrement()) @map("id_distribution_approval")
-  idFileImport           Int      @map("id_file_import")
-  idUser                 Int      @map("id_user")
-  approvedAt             DateTime @default(now()) @map("approved_at")
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
-
-  fileImport FileImport @relation(fields: [idFileImport], references: [idFileImport], onDelete: Cascade)
-  user       User       @relation(fields: [idUser], references: [idUser], onDelete: Cascade)
+  idDistributionApproval Int        @id @default(autoincrement()) @map("id_distribution_approval")
+  idFileImport           Int        @map("id_file_import")
+  idUser                 Int        @map("id_user")
+  approvedAt             DateTime   @default(now()) @map("approved_at")
+  createdAt              DateTime   @default(now()) @map("created_at")
+  updatedAt              DateTime   @updatedAt @map("updated_at")
+  fileImport             FileImport @relation(fields: [idFileImport], references: [idFileImport], onDelete: Cascade)
+  user                   User       @relation(fields: [idUser], references: [idUser], onDelete: Cascade)
 
   @@unique([idFileImport, idUser], map: "distribution_approval_file_user_key")
   @@index([idFileImport])
@@ -532,3 +499,12 @@ model DistributionApproval {
   @@map("distribution_approval")
 }
 
+enum BeneficiaryMode {
+  UPLINE_CHAIN
+  FIXED_BENEFICIARY
+}
+
+enum AnnualPaymentStatus {
+  SIN_FONDEAR
+  FONDEADO
+}

@@ -30,6 +30,7 @@ interface CompanyFormProps {
 	) => Promise<void>
 	onCancel?: () => void
 	isLoading?: boolean
+	currencies: { idCurrency: number; name: string }[]
 }
 
 export function CompanyForm({
@@ -38,27 +39,40 @@ export function CompanyForm({
 	onSubmit,
 	onCancel,
 	isLoading = false,
+	currencies,
 }: CompanyFormProps) {
 	const schema = mode === 'create' ? createCompanySchema : updateCompanySchema
 	const isEditMode = mode === 'edit'
+
+	const form = useForm<CreateCompanyFormData | UpdateCompanyFormData>({
+		resolver: zodResolver(schema),
+		defaultValues: initialData
+			? {
+					name: initialData.name,
+					status: initialData.status,
+					idCurrency: initialData.idCurrency?.toString() || '',
+				}
+			: {
+					name: '',
+					status: true,
+					idCurrency: '',
+				},
+	})
 
 	const {
 		register,
 		handleSubmit,
 		formState: { errors, isSubmitting },
 		control,
-	} = useForm<CreateCompanyFormData | UpdateCompanyFormData>({
-		resolver: zodResolver(schema),
-		defaultValues: initialData
-			? {
-					name: initialData.name,
-					status: initialData.status,
-				}
-			: {
-					name: '',
-					status: true,
-				},
-	})
+		setValue,
+	} = form
+
+	// Set initial idCurrency when editing
+	React.useEffect(() => {
+		if (initialData?.idCurrency) {
+			setValue('idCurrency', initialData.idCurrency.toString())
+		}
+	}, [initialData, setValue])
 
 	const handleFormSubmit = async (
 		data: CreateCompanyFormData | UpdateCompanyFormData
@@ -118,6 +132,46 @@ export function CompanyForm({
 				{errors.status && (
 					<p className="text-sm text-destructive">
 						{errors.status.message as string}
+					</p>
+				)}
+			</div>
+
+			{/* Moneda */}
+			<div className="space-y-2">
+				<Label htmlFor="idCurrency">
+					Moneda Predeterminada
+					<span className="text-destructive ml-1">*</span>
+				</Label>
+				<Controller
+					name="idCurrency"
+					control={control}
+					render={({ field }) => (
+						<Select
+							value={field.value}
+							onValueChange={field.onChange}
+							disabled={isLoading}
+						>
+							<SelectTrigger
+								className={cn(errors.idCurrency && 'border-destructive')}
+							>
+								<SelectValue placeholder="Seleccione una moneda" />
+							</SelectTrigger>
+							<SelectContent>
+								{currencies.map((currency) => (
+									<SelectItem
+										key={currency.idCurrency}
+										value={currency.idCurrency.toString()}
+									>
+										{currency.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					)}
+				/>
+				{errors.idCurrency && (
+					<p className="text-sm text-destructive">
+						{errors.idCurrency.message as string}
 					</p>
 				)}
 			</div>

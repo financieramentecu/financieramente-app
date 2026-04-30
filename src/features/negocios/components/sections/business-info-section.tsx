@@ -8,26 +8,17 @@ import { Separator } from '@/features/shared/ui/separator'
 import { FormSelectField } from '@/features/negocios/components/fields/form-select-field'
 import { CurrencyInputField } from '@/features/negocios/components/fields/currency-input-field'
 import { NumberInputField } from '@/features/negocios/components/fields/number-input-field'
-import { AgentAutocomplete } from '@/features/negocios/components/fields/agent-autocomplete'
 import { ContractAutocomplete } from '@/features/negocios/components/fields/contract-autocomplete'
-import {
-	getFieldError,
-	getFieldClassName,
-} from '@/features/negocios/lib/form-field-helpers'
-import { UserWithRole } from '@/features/negocios/types/business.types'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 
 export interface BusinessInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
 	currenciesOptions: { value: string; label: string }[]
 	periodicitiesOptions: { value: string; label: string }[]
-	companiesOptions: { value: string; label: string }[]
+	companiesOptions: { value: string; label: string; idCurrency?: string }[]
 	filteredProducts: { value: string; label: string; companyId: string }[]
-	agentsList: UserWithRole[]
-	onSearchAgents?: (query: string) => Promise<UserWithRole[]>
 	onSelectLag?: (id: number | null) => void
 	isBlocked: boolean
-	isAgentUser: boolean
 	isEditMode?: boolean
 	contractDisabled?: boolean
 }
@@ -41,39 +32,90 @@ export function BusinessInfoSection({
 	periodicitiesOptions,
 	companiesOptions,
 	filteredProducts,
-	agentsList,
-	onSearchAgents,
 	onSelectLag,
 	isBlocked,
-	isAgentUser,
 	isEditMode = false,
 	contractDisabled = false,
 }: BusinessInfoSectionProps) {
 	const { register, watch, setValue, formState } = form
 	const { errors } = formState
-	
-	const agentValue = watch('agent')
-	const agentError = errors.agent
+
 	const contractValue = watch('contract')
 	const contractRegister = register('contract')
 
 	const handleCompanyChange = React.useCallback(
-		(_value: string) => {
+		(companyId: string) => {
 			setValue('producto', '', { shouldValidate: true })
+
+			if (!companyId) {
+				setValue('currency', '', { shouldValidate: true })
+				return
+			}
+
+			const selectedCompany = companiesOptions.find((c) => c.value === companyId)
+			if (selectedCompany?.idCurrency) {
+				setValue('currency', selectedCompany.idCurrency, { shouldValidate: true })
+			}
 		},
-		[setValue]
+		[setValue, companiesOptions]
 	)
 
 	return (
 		<div className="space-y-4">
 			<div className="space-y-2">
-				<h3 className="font-bold text-sm text-primary">
+				<h3 className="font-bold text-lg text-primary tracking-wider">
 					Información del negocio
 				</h3>
 				<Separator className="bg-border" />
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
+				<FormSelectField
+					name="company"
+					label="Compañía"
+					placeholder="Seleccione una compañía"
+					options={companiesOptions}
+					form={form}
+					disabled={isBlocked || isEditMode}
+					onValueChange={handleCompanyChange}
+					required
+				/>
+
+				<NumberInputField
+					name="terms"
+					label="Plazo de producto en años"
+					placeholder="10"
+					form={form}
+					disabled={isBlocked || isEditMode}
+					required
+				/>
+
+				<FormSelectField
+					name="producto"
+					label="Producto"
+					placeholder="Seleccione un producto"
+					options={filteredProducts}
+					form={form}
+					disabled={isBlocked || isEditMode || filteredProducts.length === 0}
+					required
+					className="col-span-2"
+					description={
+						<>
+							Si estas registrando un <strong>Negocio Internacional</strong> elige el nombre del producto <strong>teniendo en cuenta la categoria del asesor</strong> que tienes con el aliado. <strong>Esto lo encuentras al final del nombre del producto.</strong>
+						</>
+					}
+				/>
+
+				<FormSelectField
+					name="periodicity"
+					label="Periodicidad"
+					placeholder="Seleccione periodicidad"
+					options={periodicitiesOptions}
+					form={form}
+					disabled={isBlocked || isEditMode}
+					required
+				/>
+
 				<div className="space-y-2">
 					<Label htmlFor="contract" className="text-sm font-medium">
 						Nro. Contrato{' '}
@@ -114,95 +156,34 @@ export function BusinessInfoSection({
 				</div>
 
 				<FormSelectField
-					name="company"
-					label="Compañía"
-					placeholder="Seleccione una compañía"
-					options={companiesOptions}
-					form={form}
-					disabled={isBlocked || isEditMode}
-					onValueChange={handleCompanyChange}
-					required
-				/>
-
-				<FormSelectField
-					name="producto"
-					label="Producto"
-					placeholder="Seleccione un producto"
-					options={filteredProducts}
-					form={form}
-					disabled={isBlocked || isEditMode || filteredProducts.length === 0}
-					required
-				/>
-
-				<FormSelectField
-					name="periodicity"
-					label="Periodicidad"
-					placeholder="Seleccione periodicidad"
-					options={periodicitiesOptions}
-					form={form}
-					disabled={isBlocked || isEditMode}
-					required
-				/>
-
-				<NumberInputField
-					name="terms"
-					label="Plazo"
-					placeholder="10"
-					form={form}
-					disabled={isBlocked || isEditMode}
-					required
-				/>
-
-				<FormSelectField
 					name="currency"
 					label="Moneda"
 					placeholder="Seleccione una moneda"
 					options={currenciesOptions}
 					form={form}
-					disabled={isBlocked || isEditMode}
+					disabled={isBlocked || isEditMode || !!watch('company')}
 					required
+					className="col-span-2"
 				/>
 
-				<div className="space-y-2">
-					<CurrencyInputField
-						name="value"
-						label="Valor"
-						placeholder="0,00"
-						form={form}
-						disabled={isBlocked || isEditMode}
-						required
-					/>
-					{!isEditMode && (
-						<div className="text-xs text-muted-foreground">
-							Recuerde que el campo Valor debe ser equivalente al valor de la prima por 12
+				<CurrencyInputField
+					name="value"
+					label="Valor del Negocio"
+					placeholder="0,00"
+					form={form}
+					disabled={isBlocked || isEditMode}
+					required
+					className="col-span-2"
+					description={
+						<div className="space-y-1 mt-1 text-foreground font-normal">
+							<p className="font-bold">Notas Importantes:</p>
+							<ol className="list-decimal pl-4 space-y-1">
+								<li>Si el negocio es &quot;Crea Patrimonio&quot; de Skandia por favor poner el valor de la prima mensual multiplicado por 12 meses, es decir, el pago anualizado.</li>
+								<li>Si tu cliente toma un producto internacional registra el valor del primer aporte.</li>
+							</ol>
 						</div>
-					)}
-				</div>
-
-				<div className="space-y-2">
-					<Label
-						htmlFor="agent"
-						id="agent-label"
-						className="text-sm font-medium"
-					>
-						Agente <span className="text-red-500">*</span>
-					</Label>
-					<AgentAutocomplete
-						value={agentValue}
-						onChange={(value) =>
-							setValue('agent', value, { shouldValidate: true })
-						}
-						agents={agentsList}
-						placeholder="Buscar agente..."
-						aria-labelledby="agent-label"
-						disabled={isBlocked || isAgentUser || isEditMode}
-						className={getFieldClassName(agentError)}
-						onSearch={onSearchAgents}
-					/>
-					{agentError && (
-						<p className="text-xs text-red-500">{getFieldError(agentError)}</p>
-					)}
-				</div>
+					}
+				/>
 			</div>
 		</div>
 	)

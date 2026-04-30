@@ -50,7 +50,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	user: {
 		idUser: 2,
 		name: 'Carlos',
-		lastName: 'Agente Pérez',
+		lastName: 'Money Strategist Pérez',
 		typeIdentity: 'CC',
 		identityNumber: '9876543210',
 		email: 'carlos.agente@financieramente.com',
@@ -68,7 +68,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 		role: {
 			idRole: 2,
 			code: 'AGENTE',
-			name: 'Agente/Coach',
+			name: 'Money Strategist',
 			description: 'Solo acceso a sus propios negocios',
 			active: true,
 			createdAt: baseDate,
@@ -109,6 +109,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 					idCompany: 1,
 					name: 'Skandia',
 					idTypeCompany: 'NACIONAL',
+					idCurrency: 1,
 					status: true,
 					createdAt: baseDate,
 					updatedAt: baseDate,

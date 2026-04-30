@@ -72,6 +72,19 @@ export function CompaniesTableSection({
 				),
 			},
 			{
+				accessorKey: 'currency',
+				header: 'Moneda',
+				cell: ({ row }) => {
+					const currency = row.original.currency
+					if (!currency) return <span className="text-muted-foreground">-</span>
+					return (
+						<Badge variant="outline" className="font-normal capitalize">
+							{currency.name} ({currency.symbol})
+						</Badge>
+					)
+				},
+			},
+			{
 				accessorKey: 'createdAt',
 				header: 'Fecha de Registro',
 				cell: ({ row }) => formatDate(row.original.createdAt as string),
@@ -83,7 +96,7 @@ export function CompaniesTableSection({
 	return (
 		<div className="space-y-4">
 			<div className="flex justify-between items-center">
-				<h3 className="text-lg font-semibold">Lista de Empresas</h3>
+				<h3 className="text-lg font-semibold">Lista de Compañias</h3>
 				<Button onClick={onAddCompany} className="gap-2 cursor-pointer">
 					<Plus className="h-4 w-4" />
 					Nueva Empresa

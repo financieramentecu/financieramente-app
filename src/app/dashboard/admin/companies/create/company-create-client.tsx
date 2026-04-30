@@ -8,6 +8,7 @@ import type {
 	CreateCompanyFormData,
 	UpdateCompanyFormData,
 } from '@/features/company/lib/company-schemas'
+import { useCurrencies } from '@/features/admin/currencies/hooks/use-currencies'
 import { toast } from 'sonner'
 
 /**
@@ -16,10 +17,15 @@ import { toast } from 'sonner'
 export function CompanyCreateClient() {
 	const router = useRouter()
 	const { createCompany, createState } = useCompanyMutations()
+	const { currencies, isLoading: isLoadingCurrencies } = useCurrencies()
 
 	const handleSubmit = useCallback(
 		async (data: CreateCompanyFormData | UpdateCompanyFormData) => {
-			await createCompany(data as CreateCompanyFormData)
+			const createData = data as CreateCompanyFormData
+			await createCompany({
+				...createData,
+				idCurrency: parseInt(createData.idCurrency),
+			})
 		},
 		[createCompany]
 	)
@@ -37,6 +43,8 @@ export function CompanyCreateClient() {
 		}
 	}, [createState.status, createState.error, router])
 
+	const isLoading = createState.status === 'loading' || isLoadingCurrencies
+
 	return (
 		<div className="max-w-2xl mx-auto">
 			<div className="space-y-6">
@@ -51,7 +59,8 @@ export function CompanyCreateClient() {
 					mode="create"
 					onSubmit={handleSubmit}
 					onCancel={handleCancel}
-					isLoading={createState.status === 'loading'}
+					isLoading={isLoading}
+					currencies={currencies}
 				/>
 			</div>
 		</div>

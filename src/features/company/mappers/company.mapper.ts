@@ -4,7 +4,11 @@
  */
 
 import type { Company } from '../types/company.types'
-import type { Company as PrismaCompany } from '@prisma/client'
+import type { Company as PrismaCompany, Currency as PrismaCurrency } from '@prisma/client'
+
+type PrismaCompanyWithCurrency = PrismaCompany & {
+	currency?: PrismaCurrency | null
+}
 
 /**
  * Transforms a Prisma Company to Company type
@@ -20,13 +24,26 @@ import type { Company as PrismaCompany } from '@prisma/client'
  * const company = prismaCompanyToCompany(prismaCompany)
  * ```
  */
-export function prismaCompanyToCompany(prisma: PrismaCompany): Company {
+export function prismaCompanyToCompany(
+	prisma: PrismaCompanyWithCurrency
+): Company {
 	return {
 		idCompany: prisma.idCompany,
 		name: prisma.name,
+		idCurrency: prisma.idCurrency,
 		status: prisma.status,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
+		currency: prisma.currency
+			? {
+					idCurrency: prisma.currency.idCurrency,
+					name: prisma.currency.name,
+					symbol: prisma.currency.symbol,
+					active: prisma.currency.active,
+					createdAt: prisma.currency.createdAt.toISOString(),
+					updatedAt: prisma.currency.updatedAt.toISOString(),
+				}
+			: undefined,
 	}
 }
 
