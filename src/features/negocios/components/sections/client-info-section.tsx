@@ -118,8 +118,8 @@ export function ClientInfoSection({
 	return (
 		<div className="space-y-4">
 			<div className="space-y-2">
-				<h3 className="font-bold text-sm text-primary">
-					Información básica y general del cliente
+				<h3 className="font-bold text-lg text-primary tracking-wider">
+					Información básica y general
 				</h3>
 				<Separator className="bg-border" />
 			</div>

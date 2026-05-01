@@ -1,6 +1,4 @@
-/**
- * Types for the Company feature
- */
+import { Currency } from '@/features/admin/currencies/types/currency.types'
 
 /**
  * Company interface (mapped from Prisma, not using Prisma types directly)
@@ -8,9 +6,11 @@
 export interface Company extends Record<string, unknown> {
 	readonly idCompany: number
 	name: string
+	idCurrency: number | null
 	status: boolean
 	readonly createdAt: string
 	readonly updatedAt: string
+	currency?: Currency
 }
 
 /**
@@ -26,6 +26,7 @@ export interface CompanyFilters {
  */
 export interface CreateCompanyInput {
 	name: string
+	idCurrency: number
 	status: boolean
 }
 
@@ -34,6 +35,7 @@ export interface CreateCompanyInput {
  */
 export interface UpdateCompanyInput {
 	name?: string
+	idCurrency?: number
 	status?: boolean
 }
 

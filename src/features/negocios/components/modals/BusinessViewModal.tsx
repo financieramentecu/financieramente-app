@@ -189,8 +189,8 @@ export function BusinessViewModal({
 							icon={<Building2 className="h-4 w-4" />}
 						/>
 						<InfoItem
-							label="Plazo"
-							value={business.term ? `${business.term} meses` : '-'}
+							label="Plazo de producto en años"
+							value={business.term ? `${business.term}` : '-'}
 							icon={<Calendar className="h-4 w-4" />}
 						/>
 						<InfoItem
@@ -206,10 +206,10 @@ export function BusinessViewModal({
 					</div>
 				</section>
 
-				{/* Información del Agente */}
+				{/* Información del Money Strategist */}
 				<section className="space-y-3">
 					<h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-						Agente Responsable
+						Money Strategist Responsable
 					</h3>
 					<div className="flex items-start gap-4">
 						<UserAvatar name={business.agent.fullName} size="md" />
@@ -301,14 +301,14 @@ export function BusinessViewModal({
 					</Button>
 				</div>
 			</div>
-			
+
 			<AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>¿Confirmar cambio de origen?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Al cambiar el origen de un negocio Emitido, <strong className="text-foreground">las comisiones van a ser recalculadas</strong> acorde a la nueva configuración de distribución. 
-							<br/><br/>
+							Al cambiar el origen de un negocio Emitido, <strong className="text-foreground">las comisiones van a ser recalculadas</strong> acorde a la nueva configuración de distribución.
+							<br /><br />
 							Se mantendrán los descuentos y clawbacks actuales. Esta acción no se puede deshacer.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
@@ -405,7 +405,7 @@ function BusinessViewSkeleton() {
 				</div>
 			</section>
 
-			{/* Información del Agente */}
+			{/* Información del Money Strategist */}
 			<section className="space-y-3">
 				<Skeleton className="h-4 w-32" />
 				<div className="flex items-start gap-4">

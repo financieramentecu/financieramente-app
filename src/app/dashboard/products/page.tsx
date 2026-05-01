@@ -13,7 +13,7 @@ export default async function ProductsPage() {
 		return null
 	}
 
-	// Obtener empresas activas en el server component para mejor rendimiento
+	// Obtener compañias activas en el server component para mejor rendimiento
 	const companies = await getCompanies()
 
 	// Mapear al formato esperado por el componente

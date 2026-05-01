@@ -78,7 +78,7 @@ describe('AgentAutocomplete', () => {
 		it('should render with placeholder when no value', () => {
 			render(<AgentAutocomplete />)
 
-			expect(screen.getByText('Buscar agente...')).toBeInTheDocument()
+			expect(screen.getByText('Buscar Money Strategist...')).toBeInTheDocument()
 		})
 
 		it('should display selected agent from default agents list', () => {
@@ -101,7 +101,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				expect(screen.getByPlaceholderText(/Buscar agente/i)).toBeInTheDocument()
+				expect(screen.getByPlaceholderText(/Buscar Money Strategist/i)).toBeInTheDocument()
 			})
 		})
 
@@ -148,11 +148,11 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				expect(input).toBeInTheDocument()
 			})
 
-			const input = screen.getByPlaceholderText(/Buscar agente/i)
+			const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 			fireEvent.change(input, { target: { value: 'Juan' } })
 
 			await act(async () => {
@@ -183,7 +183,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'Juan' } })
 			})
 
@@ -221,7 +221,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'Juan' } })
 			})
 
@@ -270,7 +270,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'Juan' } })
 			})
 
@@ -279,7 +279,7 @@ describe('AgentAutocomplete', () => {
 			})
 
 			await waitFor(() => {
-				expect(screen.getByText('Buscando agentes...')).toBeInTheDocument()
+				expect(screen.getByText('Buscando Money Strategist...')).toBeInTheDocument()
 			})
 		})
 
@@ -292,7 +292,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'Ju' } })
 			})
 
@@ -327,7 +327,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'Juan' } })
 			})
 
@@ -361,7 +361,7 @@ describe('AgentAutocomplete', () => {
 			expect(screen.getByText('Juan Pérez')).toBeInTheDocument()
 		})
 
-		it('should not show "Agente no encontrado" when agent is in cache', async () => {
+		it('should not show "Money Strategist no encontrado" when agent is in cache', async () => {
 			const onSearch = vi.fn().mockResolvedValue([mockAgent1])
 			const onChange = vi.fn()
 
@@ -377,7 +377,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'Juan' } })
 			})
 
@@ -403,8 +403,8 @@ describe('AgentAutocomplete', () => {
 				/>
 			)
 
-			// Should not show "Agente no encontrado"
-			expect(screen.queryByText('Agente no encontrado')).not.toBeInTheDocument()
+			// Should not show "Money Strategist no encontrado"
+			expect(screen.queryByText('Money Strategist no encontrado')).not.toBeInTheDocument()
 			expect(screen.getByText('Juan Pérez')).toBeInTheDocument()
 		})
 	})
@@ -491,7 +491,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'María' } })
 			})
 
@@ -531,7 +531,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'Juan' } })
 			})
 
@@ -560,7 +560,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(screen.getByRole('combobox'))
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'María' } })
 			})
 
@@ -652,7 +652,7 @@ describe('AgentAutocomplete', () => {
 				/>
 			)
 
-			expect(screen.getByText('Buscar agente...')).toBeInTheDocument()
+			expect(screen.getByText('Buscar Money Strategist...')).toBeInTheDocument()
 		})
 	})
 
@@ -666,7 +666,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'Nonexistent' } })
 			})
 
@@ -675,7 +675,7 @@ describe('AgentAutocomplete', () => {
 			})
 
 			await waitFor(() => {
-				expect(screen.getByText('No se encontraron agentes')).toBeInTheDocument()
+				expect(screen.getByText('No se encontraron Money Strategists')).toBeInTheDocument()
 			})
 		})
 
@@ -689,7 +689,7 @@ describe('AgentAutocomplete', () => {
 			fireEvent.click(button)
 
 			await waitFor(() => {
-				const input = screen.getByPlaceholderText(/Buscar agente/i)
+				const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 				fireEvent.change(input, { target: { value: 'Juan' } })
 			})
 
@@ -714,7 +714,7 @@ describe('AgentAutocomplete', () => {
 			const button = screen.getByRole('combobox')
 			fireEvent.click(button)
 
-			const input = screen.getByPlaceholderText(/Buscar agente/i)
+			const input = screen.getByPlaceholderText(/Buscar Money Strategist/i)
 			fireEvent.change(input, { target: { value: 'Juan' } })
 
 			expect(screen.getByText('Juan Pérez')).toBeInTheDocument()

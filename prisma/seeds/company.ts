@@ -1,14 +1,14 @@
 import { PrismaClient } from '@prisma/client'
 
 export const companies = [
-	{ name: 'SKANDIA', type: 'NACIONAL' },
-	{ name: 'MEJORCDT', type: 'NACIONAL' },
-	{ name: 'TRINITY', type: 'INTERNACIONAL' },
-	{ name: 'ITA', type: 'INTERNACIONAL' },
-	{ name: 'MANHATTAN', type: 'INTERNACIONAL' },
-	{ name: 'AFIBL', type: 'INTERNACIONAL' },
-	{ name: 'DOMINION', type: 'INTERNACIONAL' },
-	{ name: 'STONEX', type: 'INTERNACIONAL' },
+	{ name: 'SKANDIA', type: 'NACIONAL', idCurrency: 1 },
+	{ name: 'MEJORCDT', type: 'NACIONAL', idCurrency: 2 },
+	{ name: 'TRINITY', type: 'INTERNACIONAL', idCurrency: 2 },
+	{ name: 'ITA', type: 'INTERNACIONAL', idCurrency: 2 },
+	{ name: 'MANHATTAN', type: 'INTERNACIONAL', idCurrency: 2 },
+	{ name: 'AFIBL', type: 'INTERNACIONAL', idCurrency: 2 },
+	{ name: 'DOMINION', type: 'INTERNACIONAL', idCurrency: 2 },
+	{ name: 'STONEX', type: 'INTERNACIONAL', idCurrency: 2 },
 ]
 
 export async function seedCompanies(prisma: PrismaClient) {
@@ -24,6 +24,7 @@ export async function seedCompanies(prisma: PrismaClient) {
 				where: { idCompany: existing.idCompany },
 				data: {
 					idTypeCompany: company.type,
+					idCurrency: company.idCurrency,
 					status: true,
 				},
 			})
@@ -33,6 +34,7 @@ export async function seedCompanies(prisma: PrismaClient) {
 				data: {
 					name: company.name,
 					idTypeCompany: company.type,
+					idCurrency: company.idCurrency,
 					status: true,
 				},
 			})

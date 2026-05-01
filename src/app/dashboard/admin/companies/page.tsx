@@ -13,7 +13,7 @@ export default async function CompaniesPage() {
 	}
 
 	return (
-		<DashboardLayout currentPage="Empresas">
+		<DashboardLayout currentPage="Compañias">
 			<CompaniesPageClient />
 		</DashboardLayout>
 	)

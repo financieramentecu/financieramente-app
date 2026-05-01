@@ -17,6 +17,10 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from '@/features/shared/ui/popover'
+import {
+	Avatar,
+	AvatarFallback,
+} from '@/features/shared/ui/avatar'
 import { UserWithRole } from '../../types/business.types'
 
 export interface AgentAutocompleteProps {
@@ -35,7 +39,7 @@ export function AgentAutocomplete({
 	value = '',
 	onChange,
 	agents = [],
-	placeholder = 'Buscar agente...',
+	placeholder = 'Buscar Money Strategist...',
 	className,
 	'aria-label': ariaLabel,
 	'aria-labelledby': ariaLabelledBy,
@@ -100,7 +104,7 @@ export function AgentAutocomplete({
 		}
 	}, [searchQuery, onSearch, hasRemoteSearch])
 
-	// Filtrar agentes basados en la búsqueda (local o remota)
+	// Filtrar Money Strategist basados en la búsqueda (local o remota)
 	const filteredAgents = React.useMemo(() => {
 		const agentsToFilter = hasRemoteSearch
 			? [...remoteAgents, ...selectedAgentCache]
@@ -148,7 +152,7 @@ export function AgentAutocomplete({
 		}
 	}, [value, agents, remoteAgents])
 
-	// Encontrar el agente seleccionado en todas las fuentes disponibles
+	// Encontrar el Money Strategist seleccionado en todas las fuentes disponibles
 	const selectedAgent = React.useMemo(() => {
 		if (!value) return undefined
 
@@ -157,7 +161,7 @@ export function AgentAutocomplete({
 		return allAgents.find((agent) => agent.idUser.toString() === value)
 	}, [value, agents, remoteAgents, selectedAgentCache])
 
-	// Obtener nombre completo del agente
+	// Obtener nombre completo del Money Strategist
 	const getFullName = (agent: UserWithRole) => {
 		return `${agent.name} ${agent.lastName || ''}`.trim()
 	}
@@ -205,19 +209,27 @@ export function AgentAutocomplete({
 				>
 					{value ? (
 						selectedAgent ? (
-							<div className="flex items-center gap-2">
-								<span className="font-medium">
-									{getFullName(selectedAgent)}
-								</span>
-								{selectedAgent.identityNumber && (
-									<span className="text-xs text-muted-foreground">
-										- {selectedAgent.identityNumber}
+							<div className="flex items-center gap-3 py-1">
+								<Avatar className="h-8 w-8 border border-border shadow-sm">
+									<AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+										{selectedAgent.name[0]}
+										{selectedAgent.lastName?.[0]}
+									</AvatarFallback>
+								</Avatar>
+								<div className="flex flex-col items-start">
+									<span className="font-semibold text-sm">
+										{getFullName(selectedAgent)}
 									</span>
-								)}
+									{selectedAgent.identityNumber && (
+										<span className="text-[10px] text-muted-foreground uppercase tracking-tight">
+											Documento: {selectedAgent.identityNumber}
+										</span>
+									)}
+								</div>
 							</div>
 						) : (
 							<span className="text-muted-foreground">
-								Agente no encontrado
+								Money Strategist no encontrado
 							</span>
 						)
 					) : (
@@ -234,18 +246,18 @@ export function AgentAutocomplete({
 					<CommandInput
 						placeholder={
 							hasRemoteSearch
-								? 'Buscar agente por nombre, apellido o cédula...'
-								: 'Buscar agente por nombre, apellido o cédula...'
+								? 'Buscar Money Strategist por nombre, apellido o cédula...'
+								: 'Buscar Money Strategist por nombre, apellido o cédula...'
 						}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
 					<CommandList>
-						{isSearching && <CommandEmpty>Buscando agentes...</CommandEmpty>}
+						{isSearching && <CommandEmpty>Buscando Money Strategist...</CommandEmpty>}
 						{!isSearching && (
 							<CommandEmpty>
 								{searchQuery.length >= 3
-									? 'No se encontraron agentes'
+									? 'No se encontraron Money Strategists'
 									: hasRemoteSearch
 										? 'Ingrese al menos 3 caracteres para buscar'
 										: 'Ingrese al menos 1 carácter para buscar'}
@@ -253,7 +265,7 @@ export function AgentAutocomplete({
 						)}
 
 						{filteredAgents.length > 0 && (
-							<CommandGroup heading="Agentes">
+							<CommandGroup heading="Money Strategists">
 								{filteredAgents.map((agent) => (
 									<CommandItem
 										key={agent.idUser.toString()}

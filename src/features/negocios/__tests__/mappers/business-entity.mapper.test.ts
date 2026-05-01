@@ -42,8 +42,8 @@ describe('prismaBusinessToEntity', () => {
 		it('should build agent fullName correctly', () => {
 			const result = prismaBusinessToEntity(mockPrismaBusiness)
 
-			expect(result.agent.fullName).toBe('Carlos Agente Pérez')
-			expect(result.agent.roleName).toBe('Agente/Coach')
+			expect(result.agent.fullName).toBe('Carlos Money Strategist Pérez')
+			expect(result.agent.roleName).toBe('Money Strategist')
 			expect(result.agent.categoryName).toBe('Junior')
 			expect(result.agent.email).toBe('carlos.agente@financieramente.com')
 		})

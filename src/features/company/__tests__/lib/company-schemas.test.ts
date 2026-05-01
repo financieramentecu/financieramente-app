@@ -10,6 +10,7 @@ describe('company-schemas', () => {
 			const validData = {
 				name: 'Skandia Seguros',
 				status: true,
+				idCurrency: '1',
 			}
 
 			const result = createCompanySchema.safeParse(validData)
@@ -24,6 +25,7 @@ describe('company-schemas', () => {
 			const data = {
 				name: '  Skandia Seguros  ',
 				status: true,
+				idCurrency: '1',
 			}
 
 			const result = createCompanySchema.safeParse(data)
@@ -37,6 +39,7 @@ describe('company-schemas', () => {
 			const data = {
 				name: '',
 				status: true,
+				idCurrency: '1',
 			}
 
 			const result = createCompanySchema.safeParse(data)
@@ -50,6 +53,7 @@ describe('company-schemas', () => {
 			const data = {
 				name: 'A'.repeat(101),
 				status: true,
+				idCurrency: '1',
 			}
 
 			const result = createCompanySchema.safeParse(data)
@@ -79,6 +83,7 @@ describe('company-schemas', () => {
 			const data = {
 				name: 'Skandia Seguros',
 				status: false,
+				idCurrency: '1',
 			}
 
 			const result = createCompanySchema.safeParse(data)
@@ -92,6 +97,7 @@ describe('company-schemas', () => {
 			const data = {
 				name: 'A'.repeat(100),
 				status: true,
+				idCurrency: '1',
 			}
 
 			const result = createCompanySchema.safeParse(data)

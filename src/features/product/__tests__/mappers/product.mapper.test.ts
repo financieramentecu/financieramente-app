@@ -44,6 +44,7 @@ describe('product.mapper', () => {
 					idCompany: 2,
 					name: 'Sura',
 					idTypeCompany: 'NACIONAL',
+					idCurrency: 1,
 					status: true,
 					createdAt: new Date('2024-01-01T00:00:00.000Z'),
 					updatedAt: new Date('2024-01-01T00:00:00.000Z'),
