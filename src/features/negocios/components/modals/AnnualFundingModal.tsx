@@ -102,7 +102,7 @@ export function AnnualFundingModal({
 			<DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>
-						Fondear anualidades
+						Fondear aportes
 						{contractSuffix}
 					</DialogTitle>
 				</DialogHeader>

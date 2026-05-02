@@ -23,6 +23,7 @@ export const useGetAllData = ({
 			companies.map((company) => ({
 				value: company.idCompany.toString(),
 				label: company.name,
+				idCurrency: company.idCurrency?.toString() || '',
 			})),
 		[companies]
 	)

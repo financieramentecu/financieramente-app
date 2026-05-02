@@ -28,7 +28,7 @@ export const businessExportInclude = {
 	currency: true,
 	buyPeriodicity: true,
 	clientOrigin: true,
-	annualPayments: {
+	payments: {
 		orderBy: { installmentIndex: 'asc' },
 	},
 } satisfies Prisma.BusinessInclude

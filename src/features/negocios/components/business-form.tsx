@@ -6,6 +6,7 @@ import { Header } from './header'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { ClientInfoSection } from '@/features/negocios/components/sections/client-info-section'
 import { BusinessInfoSection } from '@/features/negocios/components/sections/business-info-section'
+import { CoachInfoSection } from '@/features/negocios/components/sections/coach-info-section'
 import { FormActions } from '@/features/negocios/components/form-actions'
 import { useBusinessForm } from '@/features/negocios/hooks/use-business-form'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
@@ -69,6 +70,15 @@ export const BusinessForm = React.forwardRef<
 				<Header />
 
 				<form ref={ref} onSubmit={handleFormSubmit} className="space-y-8">
+					<CoachInfoSection
+						form={form as unknown as UseFormReturn<BusinessFormData>}
+						agentsList={agentsList}
+						onSearchAgents={canSearchAgents ? handleAgentSearch : undefined}
+						isBlocked={isBlocked}
+						isAgentUser={isAgentUser}
+						isEditMode={isEditMode}
+					/>
+
 					<ClientInfoSection
 						form={form as unknown as UseFormReturn<BusinessFormData>}
 						clientOriginsOptions={clientOriginsOptions}
@@ -84,11 +94,8 @@ export const BusinessForm = React.forwardRef<
 						periodicitiesOptions={periodicitiesOptions}
 						companiesOptions={companiesOptions}
 						filteredProducts={filteredProducts}
-						agentsList={agentsList}
-						onSearchAgents={canSearchAgents ? handleAgentSearch : undefined}
 						onSelectLag={setIdSettlementCommission}
 						isBlocked={isBlocked}
-						isAgentUser={isAgentUser}
 						isEditMode={isEditMode}
 						contractDisabled={isContractDisabled}
 					/>

@@ -4,3 +4,4 @@
 
 export * from './BusinessViewModal'
 export * from './BusinessCancelModal'
+export * from './FundingModal'

@@ -59,8 +59,8 @@ describe('BusinessViewModal', () => {
 		it('should display agent information', () => {
 			render(<BusinessViewModal {...defaultProps} />)
 
-			expect(screen.getByText('Carlos Agente Pérez')).toBeInTheDocument()
-			expect(screen.getByText('Agente/Coach')).toBeInTheDocument()
+			expect(screen.getByText('Carlos Money Strategist Pérez')).toBeInTheDocument()
+			expect(screen.getByText('Money Strategist')).toBeInTheDocument()
 		})
 
 		it('should show status badge', () => {
@@ -88,10 +88,10 @@ describe('BusinessViewModal', () => {
 			expect(onOpenChange).toHaveBeenCalledWith(false)
 		})
 
-		it('should display term with months label', () => {
+		it('should display term correctly', () => {
 			render(<BusinessViewModal {...defaultProps} />)
 
-			expect(screen.getByText('12 meses')).toBeInTheDocument()
+			expect(screen.getByText('12')).toBeInTheDocument()
 		})
 
 		it('should display periodicity', () => {

@@ -57,7 +57,7 @@ export async function GET(
 		const business = await prisma.business.findFirst({
 			where: whereClause,
 			include: {
-				annualPayments: {
+				payments: {
 					orderBy: { installmentIndex: 'asc' },
 				},
 			},
@@ -70,10 +70,11 @@ export async function GET(
 			)
 		}
 
-		const installments = business.annualPayments.map((ap) => ({
+		const installments = business.payments.map((ap) => ({
 			installmentIndex: ap.installmentIndex,
 			status: ap.status as 'SIN_FONDEAR' | 'FONDEADO',
 			dateAnchored: ap.dateAnchored?.toISOString() ?? null,
+			expectedDate: null,
 		}))
 
 		const payload: AnnualPaymentsResponse = {

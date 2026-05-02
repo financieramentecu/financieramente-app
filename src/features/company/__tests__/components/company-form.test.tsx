@@ -25,6 +25,7 @@ describe('CompanyForm', () => {
 					mode="create"
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
+					currencies={[]}
 				/>
 			)
 
@@ -32,7 +33,7 @@ describe('CompanyForm', () => {
 				screen.getByLabelText(/nombre completo de la agencia/i)
 			).toBeInTheDocument()
 			expect(screen.getByText(/estado/i)).toBeInTheDocument()
-			expect(screen.getByRole('combobox')).toBeInTheDocument()
+			expect(screen.getAllByRole('combobox')).toHaveLength(2)
 			expect(
 				screen.getByRole('button', { name: /guardar/i })
 			).toBeInTheDocument()
@@ -47,6 +48,7 @@ describe('CompanyForm', () => {
 					mode="create"
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
+					currencies={[]}
 				/>
 			)
 
@@ -63,6 +65,7 @@ describe('CompanyForm', () => {
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					isLoading={true}
+					currencies={[]}
 				/>
 			)
 
@@ -85,6 +88,7 @@ describe('CompanyForm', () => {
 					initialData={mockCompany}
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
+					currencies={[]}
 				/>
 			)
 
@@ -102,6 +106,7 @@ describe('CompanyForm', () => {
 					initialData={mockCompany}
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
+					currencies={[]}
 				/>
 			)
 
@@ -116,6 +121,7 @@ describe('CompanyForm', () => {
 					initialData={mockCompany}
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
+					currencies={[]}
 				/>
 			)
 

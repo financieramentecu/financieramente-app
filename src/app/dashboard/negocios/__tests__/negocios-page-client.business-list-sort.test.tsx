@@ -91,8 +91,8 @@ vi.mock('@/features/negocios/components/modals/BusinessCancelModal', () => ({
 	BusinessCancelModal: () => null,
 }))
 
-vi.mock('@/features/negocios/components/modals/AnnualFundingModal', () => ({
-	AnnualFundingModal: () => null,
+vi.mock('@/features/negocios/components/modals/FundingModal', () => ({
+	FundingModal: () => null,
 }))
 
 vi.mock('@/features/shared/ui/alert-dialog', () => ({

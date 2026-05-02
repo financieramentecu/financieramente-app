@@ -34,8 +34,8 @@ export function createMockAgentInfo(
 ): AgentInfo {
 	return {
 		id: 2,
-		fullName: 'Carlos Agente Pérez',
-		roleName: 'Agente/Coach',
+		fullName: 'Carlos Money Strategist Pérez',
+		roleName: 'Money Strategist',
 		categoryName: 'Junior',
 		email: 'carlos.agente@financieramente.com',
 		phone: '3009876543',
@@ -74,8 +74,10 @@ export function createMockBusiness(
 		createdAt: '2024-01-15T10:00:00.000Z',
 		dateIssued: null,
 		dateAnchored: null,
-		hasAnnualPayments: false,
-		hasPendingAnnualFunding: false,
+		numAportes: null,
+		fundedAportes: 0,
+		hasPayments: false,
+		hasPendingPaymentFunding: false,
 		client: createMockClientInfo(overrides.client),
 		agent: createMockAgentInfo(overrides.agent),
 		product: createMockProductInfo(overrides.product),

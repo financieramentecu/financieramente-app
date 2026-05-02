@@ -78,7 +78,7 @@ describe('GET /api/negocios/[id]/annual-payments', () => {
 
 		mockFindFirst.mockResolvedValue({
 			status: BUSINESS_STATUS.EMITIDO,
-			annualPayments: [
+			payments: [
 				{
 					installmentIndex: 2,
 					status: AnnualPaymentStatus.SIN_FONDEAR,
