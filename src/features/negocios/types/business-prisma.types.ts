@@ -1,4 +1,4 @@
-import { AnnualPaymentStatus, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 // ============================================
 // SELECTOR DE PRISMA
