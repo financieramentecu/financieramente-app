@@ -29,7 +29,7 @@ import {
 import { Input } from '@/features/shared/ui/input'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { ColumnDef } from '@tanstack/react-table'
-import { UserRole, canEditContractWhenBusinessEmitido } from '@/features/auth/lib/roles'
+import { UserRole, canEditContractWhenBusinessEmitido, canFundPayments } from '@/features/auth/lib/roles'
 import {
 	Tooltip,
 	TooltipContent,
@@ -465,28 +465,33 @@ export function BusinessTableSection({
 							canEditContractWhenBusinessEmitido(userRole)
 						const isEditable = isVentaEfectuado || canEditEmitido
 						const isCancelable = (isVentaEfectuado || isEmitido) && userRole !== UserRole.AGENTE
-						const canFondearRole =
-							userRole === UserRole.ADMIN ||
-							userRole === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
-							userRole === UserRole.AGENTE
+						const canFondearRole = canFundPayments(userRole)
 						const isFondeado = row.statusCode === BUSINESS_STATUS.FONDEADO
 						const showFondearDirect =
 							isEmitido &&
-							!row.hasAnnualPayments
+							!row.hasPayments &&
+							canFondearRole
 						const showFondearAnnual =
-							row.hasAnnualPayments &&
-							row.hasPendingAnnualFunding &&
+							row.hasPayments &&
+							row.hasPendingPaymentFunding &&
+							(isEmitido || isFondeado) &&
+							canFondearRole
+						const isCoachRole = userRole === UserRole.AGENTE
+						const showViewFondeoForCoach =
+							isCoachRole &&
+							row.hasPayments &&
 							(isEmitido || isFondeado)
-						const isFondeable =
-							canFondearRole &&
-							(showFondearDirect || showFondearAnnual)
-
-						const fondearToolbarLabel = showFondearAnnual
-							? FONDEAR_ANNUAL_LABEL
-							: 'Fondear'
-						const fondearToolbarTooltip = showFondearAnnual
-							? FONDEAR_ANNUAL_ACTION_TOOLTIP
-							: FONDEAR_ACTION_TOOLTIP
+						const isFondeable = showFondearDirect || showFondearAnnual || showViewFondeoForCoach
+						const fondearToolbarLabel = isCoachRole
+							? 'Ver Fondeo'
+							: showFondearAnnual
+								? FONDEAR_ANNUAL_LABEL
+								: 'Fondear'
+						const fondearToolbarTooltip = isCoachRole
+							? 'Ver estado de fondeo'
+							: showFondearAnnual
+								? FONDEAR_ANNUAL_ACTION_TOOLTIP
+								: FONDEAR_ACTION_TOOLTIP
 
 						return (
 							<div

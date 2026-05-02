@@ -106,10 +106,14 @@ export interface BusinessEntity {
 	dateIssued: string | null
 	/** Fecha de fondeo (ISO); null si el negocio aún no fue fondeado */
 	dateAnchored: string | null
-	/** Indica si el negocio tiene pagos anuales asociados */
-	hasAnnualPayments: boolean
-	/** Anual: queda al menos una cuota sin fondear (sigue visible “Fondear”) */
-	hasPendingAnnualFunding: boolean
+	/** Número de aportes calculado para el negocio; null si no aplica */
+	numAportes: number | null
+	/** Aportes ya fondeados */
+	fundedAportes: number
+	/** Indica si el negocio tiene pagos asociados */
+	hasPayments: boolean
+	/** Queda al menos un aporte sin fondear (sigue visible “Fondear”) */
+	hasPendingPaymentFunding: boolean
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo

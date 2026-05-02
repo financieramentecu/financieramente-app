@@ -20,7 +20,7 @@ vi.mock('@/lib/prisma', () => ({
 		business: {
 			findUnique: vi.fn(),
 		},
-		annualPayment: {
+		payment: {
 			count: vi.fn(),
 		},
 		$transaction: vi.fn(),
@@ -67,7 +67,7 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 	const mockAuth = vi.mocked(auth)
 	const mockGetCurrentUserByEmail = vi.mocked(getCurrentUserByEmail)
 	const mockFindUnique = vi.mocked(prisma.business.findUnique)
-	const mockAnnualCount = vi.mocked(prisma.annualPayment.count)
+	const mockAnnualCount = vi.mocked(prisma.payment.count)
 	const mockTransaction = vi.mocked(prisma.$transaction)
 	const mockPrismaBusinessToEntity = vi.mocked(prismaBusinessToEntity)
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
@@ -120,13 +120,13 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 			idBusiness: 2,
 			idUser: 10,
 			status: BUSINESS_STATUS.EMITIDO,
-			_count: { annualPayments: 2 },
+			_count: { payments: 2 },
 		} as never)
 		mockAnnualCount.mockResolvedValue(2)
 
 		mockTransaction.mockImplementation(async (fn) => {
 			const tx = {
-				annualPayment: {
+				payment: {
 					findMany: vi.fn().mockResolvedValue([]),
 				},
 				business: {
@@ -164,7 +164,7 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 			idBusiness: 2,
 			idUser: 10,
 			status: BUSINESS_STATUS.EMITIDO,
-			_count: { annualPayments: 1 },
+			_count: { payments: 1 },
 		} as never)
 		mockAnnualCount.mockResolvedValue(1)
 
@@ -172,12 +172,12 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 			...mockPrismaBusinessEmitido,
 			status: BUSINESS_STATUS.FONDEADO,
 			dateAnchored: new Date(),
-			_count: { annualPayments: 1 },
+			_count: { payments: 1 },
 		}
 
 		mockTransaction.mockImplementation(async (fn) => {
 			const tx = {
-				annualPayment: {
+				payment: {
 					findMany: vi.fn().mockResolvedValue([
 						{
 							idAnnualPayment: 100,
@@ -219,7 +219,7 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 		expect(body.data?.status).toBe(BUSINESS_STATUS.FONDEADO)
 		expect(mockLogAuditEvent).toHaveBeenCalledWith(
 			expect.objectContaining({
-				action: AuditAction.BUSINESS_ANNUAL_FUNDED,
+				action: AuditAction.BUSINESS_PAYMENT_FUNDED,
 			})
 		)
 	})
@@ -233,7 +233,7 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 			idBusiness: 7,
 			idUser: 10,
 			status: BUSINESS_STATUS.FONDEADO,
-			_count: { annualPayments: 3 },
+			_count: { payments: 3 },
 		} as never)
 		mockAnnualCount.mockResolvedValue(2)
 
@@ -242,7 +242,7 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 			idBusiness: 7,
 			status: BUSINESS_STATUS.FONDEADO,
 			dateAnchored: new Date(),
-			_count: { annualPayments: 3 },
+			_count: { payments: 3 },
 		}
 
 		const updateMany = vi.fn().mockResolvedValue({ count: 1 })
@@ -251,7 +251,7 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 
 		mockTransaction.mockImplementation(async (fn) => {
 			const tx = {
-				annualPayment: {
+				payment: {
 					findMany: vi.fn().mockResolvedValue([
 						{
 							idAnnualPayment: 200,
@@ -313,13 +313,13 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 			idBusiness: 8,
 			idUser: 10,
 			status: BUSINESS_STATUS.FONDEADO,
-			_count: { annualPayments: 2 },
+			_count: { payments: 2 },
 		} as never)
 		mockAnnualCount.mockResolvedValue(1)
 
 		mockTransaction.mockImplementation(async (fn) => {
 			const tx = {
-				annualPayment: {
+				payment: {
 					findMany: vi.fn().mockResolvedValue([]),
 				},
 				business: {

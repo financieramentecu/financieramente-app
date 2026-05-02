@@ -36,9 +36,9 @@ export interface Business extends Record<string, unknown> {
 		| 'Cancelado'
 		| 'Fondeado'
 	statusCode: BusinessStatusCode
-	hasAnnualPayments: boolean
-	/** Anual: aún hay cuotas SIN_FONDEAR (mostrar Fondear aunque el padre sea Fondeado) */
-	hasPendingAnnualFunding: boolean
+	hasPayments: boolean
+	/** Aún hay aportes SIN_FONDEAR (mostrar Fondear aunque el padre sea Fondeado) */
+	hasPendingPaymentFunding: boolean
 	currency: {
 		id: number
 		name: string

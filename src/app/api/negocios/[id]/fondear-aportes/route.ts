@@ -1,6 +1,7 @@
 /**
- * POST /api/negocios/[id]/fondear-anualidades
- * Marca cuotas AnnualPayment como fondeadas (HU4); primera tanda desde EMITIDO → FONDEADO en padre.
+ * POST /api/negocios/[id]/fondear-aportes
+ * Marca aportes (Payment) como fondeados; en la primera tanda EMITIDO → FONDEADO
+ * calcula y persiste expectedDate para todos los aportes del negocio.
  */
 
 import { NextResponse } from 'next/server'
@@ -15,25 +16,19 @@ import {
 import { businessWithRelations } from '@/features/negocios/types/business-prisma.types'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/features/auth/lib/roles'
+import { canFundPayments } from '@/features/auth/lib/roles'
+import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expected-dates'
 import {
 	logAuditEvent,
 	AuditAction,
 	getClientIp,
 	getUserAgent,
 } from '@/features/auth/lib/audit-logger'
-import {
-	fondearAnualidadesBodySchema,
-} from '@/features/negocios/lib/fondear-anualidades.schema'
+import { fondearAnualidadesBodySchema } from '@/features/negocios/lib/fondear-anualidades.schema'
 
 interface RouteParams {
 	params: Promise<{ id: string }>
 }
-
-const FONDEAR_ALLOWED_ROLES = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-]
 
 export async function POST(
 	request: Request,
@@ -93,8 +88,8 @@ export async function POST(
 			)
 		}
 
-		const userRole = currentUser.role?.code as UserRole
-		if (!FONDEAR_ALLOWED_ROLES.includes(userRole)) {
+		const userRole = currentUser.role?.code
+		if (!canFundPayments(userRole)) {
 			return NextResponse.json(
 				{ data: null, error: 'No tiene permisos para fondear negocios' },
 				{ status: 403 }
@@ -105,6 +100,7 @@ export async function POST(
 			where: { idBusiness: businessId },
 			include: {
 				_count: { select: { payments: true } },
+				buyPeriodicity: { select: { name: true } },
 			},
 		})
 
@@ -120,7 +116,7 @@ export async function POST(
 				{
 					data: null,
 					error:
-						'Este negocio no tiene anualidades; use el fondeo directo',
+						'Este negocio no tiene aportes; use el fondeo directo',
 				},
 				{ status: 400 }
 			)
@@ -143,7 +139,7 @@ export async function POST(
 				{
 					data: null,
 					error:
-						'El negocio no admite fondeo de anualidades en su estado actual',
+						'El negocio no admite fondeo de aportes en su estado actual',
 				},
 				{ status: 400 }
 			)
@@ -175,7 +171,33 @@ export async function POST(
 				})
 			}
 
+			// On first fondeo (EMITIDO → FONDEADO): calculate and persist expectedDate for ALL payments
 			if (parentWasEmitido) {
+				const periodicityName = existing.buyPeriodicity?.name ?? null
+				const numAportes = existing.numAportes ?? 0
+
+				if (periodicityName && numAportes > 0) {
+					const expectedDates = calculateExpectedDates(now, numAportes, periodicityName)
+
+					// Update all payment rows with their respective expectedDate
+					const allPayments = await tx.payment.findMany({
+						where: { idBusiness: businessId },
+						orderBy: { installmentIndex: 'asc' },
+						select: { idAnnualPayment: true, installmentIndex: true },
+					})
+
+					for (const payment of allPayments) {
+						const dateIndex = payment.installmentIndex - 1
+						const expectedDate = expectedDates[dateIndex]
+						if (expectedDate != null) {
+							await tx.payment.update({
+								where: { idAnnualPayment: payment.idAnnualPayment },
+								data: { expectedDate },
+							})
+						}
+					}
+				}
+
 				await tx.business.updateMany({
 					where: {
 						idBusiness: businessId,
@@ -225,12 +247,12 @@ export async function POST(
 				{
 					data: null,
 					error:
-						'No hay cuotas pendientes entre los índices seleccionados',
+						'No hay aportes pendientes entre los índices seleccionados',
 				},
 				{ status: 400 }
 			)
 		}
-		console.error('Error al fondear anualidades:', error)
+		console.error('Error al fondear aportes:', error)
 		return NextResponse.json(
 			{ data: null, error: 'Error interno del servidor' },
 			{ status: 500 }

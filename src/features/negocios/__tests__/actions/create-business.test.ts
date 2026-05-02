@@ -13,6 +13,7 @@ vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		user: { findUnique: vi.fn() },
 		buyPeriodicity: { findUnique: vi.fn() },
+		product: { findUnique: vi.fn() },
 		$transaction: vi.fn(),
 	},
 }))
@@ -49,6 +50,7 @@ function mockCreatedBusiness(overrides: Partial<Business> = {}): Business {
 		idClientOrigin: 1,
 		dateIssued: null,
 		dateAnchored: null,
+		numAportes: null,
 		...overrides,
 	}
 }
@@ -64,6 +66,10 @@ describe('createBusiness', () => {
 		vi.mocked(prisma.user.findUnique).mockResolvedValue({
 			idCategoria: 5,
 		} as Awaited<ReturnType<typeof prisma.user.findUnique>>)
+		vi.mocked(prisma.product.findUnique).mockResolvedValue({
+			name: 'Producto Test',
+			company: { name: 'Compañia Test' },
+		} as unknown as Awaited<ReturnType<typeof prisma.product.findUnique>>)
 	})
 
 	it('creates n annual_payment rows when periodicity is Anual and term is n', async () => {
@@ -76,7 +82,7 @@ describe('createBusiness', () => {
 		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
 			return callback({
 				business: { create: businessCreate },
-				annualPayment: { createMany: annualCreateMany },
+				payment: { createMany: annualCreateMany },
 			} as never)
 		})
 
@@ -101,18 +107,18 @@ describe('createBusiness', () => {
 		}
 	})
 
-	it('does not create annual rows when periodicity is not Anual', async () => {
+	it('creates payment rows for non-Anual periodicity based on calculateNumAportes', async () => {
 		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
 			name: 'Mensual',
 		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
-		const created = mockCreatedBusiness({ term: 12, idBusiness: 11 })
-		const annualCreateMany = vi.fn()
+		const created = mockCreatedBusiness({ term: 12, idBusiness: 11, numAportes: 144 })
+		const annualCreateMany = vi.fn().mockResolvedValue({ count: 144 })
 		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
 			return callback({
 				business: {
 					create: vi.fn().mockResolvedValue(created),
 				},
-				annualPayment: { createMany: annualCreateMany },
+				payment: { createMany: annualCreateMany },
 			} as never)
 		})
 
@@ -122,22 +128,37 @@ describe('createBusiness', () => {
 			term: 12,
 		})
 
-		expect(annualCreateMany).not.toHaveBeenCalled()
+		// Mensual × 12 years = 144 payment rows
+		expect(annualCreateMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.arrayContaining([
+					expect.objectContaining({ installmentIndex: 1 }),
+				]),
+			})
+		)
 	})
 
-	it('returns error when Anual and term is missing', async () => {
+	it('creates business with 0 aportes when Anual and term is missing', async () => {
 		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
 			name: 'Anual',
 		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+		const created = mockCreatedBusiness({ idBusiness: 11, numAportes: 0 })
+		const annualCreateMany = vi.fn()
+		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+			return callback({
+				business: { create: vi.fn().mockResolvedValue(created) },
+				payment: { createMany: annualCreateMany },
+			} as never)
+		})
 
 		const result = await createBusiness({
 			...basePayload,
 			idBuyPeriodicity: 1,
 		})
 
-		expect(result.data).toBeNull()
-		expect('error' in result && result.error).toContain('plazo es obligatorio')
-		expect(prisma.$transaction).not.toHaveBeenCalled()
+		// Action is lenient — form layer validates "Anual requires term > 0"
+		expect(result.data).not.toBeNull()
+		expect(annualCreateMany).not.toHaveBeenCalled()
 	})
 
 	it('returns validation error when term exceeds max', async () => {
@@ -167,7 +188,7 @@ describe('createBusiness', () => {
 		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
 			return callback({
 				business: { create: businessCreate },
-				annualPayment: { createMany: annualCreateMany },
+				payment: { createMany: annualCreateMany },
 			} as never)
 		})
 
@@ -201,7 +222,7 @@ describe('createBusiness', () => {
 		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
 			return callback({
 				business: { create: businessCreate },
-				annualPayment: { createMany: vi.fn() },
+				payment: { createMany: vi.fn() },
 			} as never)
 		})
 
@@ -234,7 +255,7 @@ describe('createBusiness', () => {
 		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
 			return callback({
 				business: { create: businessCreate },
-				annualPayment: { createMany: vi.fn() },
+				payment: { createMany: vi.fn() },
 			} as never)
 		})
 

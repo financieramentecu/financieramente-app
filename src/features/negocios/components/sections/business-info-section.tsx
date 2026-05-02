@@ -10,6 +10,7 @@ import { CurrencyInputField } from '@/features/negocios/components/fields/curren
 import { NumberInputField } from '@/features/negocios/components/fields/number-input-field'
 import { ContractAutocomplete } from '@/features/negocios/components/fields/contract-autocomplete'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
+import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
 
 export interface BusinessInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
@@ -43,6 +44,37 @@ export function BusinessInfoSection({
 	const contractValue = watch('contract')
 	const contractRegister = register('contract')
 
+	const watchedTerms = watch('terms')
+	const watchedCompanyId = watch('company')
+	const watchedProductId = watch('producto')
+	const watchedPeriodicityId = watch('periodicity')
+	const watchedNumAportes = watch('numAportes')
+
+	const isSkandiaWithMfund = React.useMemo(() => {
+		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+		return companyName === 'SKANDIA' && productName === 'MFUND'
+	}, [watchedCompanyId, watchedProductId, companiesOptions, filteredProducts])
+
+	React.useEffect(() => {
+		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+		const periodicityName = periodicitiesOptions.find((p) => p.value === watchedPeriodicityId)?.label ?? null
+		const termYears = typeof watchedTerms === 'number' ? watchedTerms : null
+
+		if (companyName === 'SKANDIA' && productName === 'MFUND') {
+			setValue('isSkandiaWithMfund', true, { shouldValidate: false })
+			setValue('terms', 0, { shouldValidate: false })
+			setValue('numAportes', 0, { shouldValidate: false })
+			return
+		}
+
+		setValue('isSkandiaWithMfund', false, { shouldValidate: false })
+
+		const result = calculateNumAportes({ termYears, periodicityName, companyName, productName })
+		setValue('numAportes', result, { shouldValidate: false })
+	}, [watchedTerms, watchedPeriodicityId, watchedCompanyId, watchedProductId, companiesOptions, filteredProducts, periodicitiesOptions, setValue])
+
 	const handleCompanyChange = React.useCallback(
 		(companyId: string) => {
 			setValue('producto', '', { shouldValidate: true })
@@ -52,9 +84,13 @@ export function BusinessInfoSection({
 				return
 			}
 
-			const selectedCompany = companiesOptions.find((c) => c.value === companyId)
+			const selectedCompany = companiesOptions.find(
+				(c) => c.value === companyId
+			)
 			if (selectedCompany?.idCurrency) {
-				setValue('currency', selectedCompany.idCurrency, { shouldValidate: true })
+				setValue('currency', selectedCompany.idCurrency, {
+					shouldValidate: true,
+				})
 			}
 		},
 		[setValue, companiesOptions]
@@ -70,53 +106,7 @@ export function BusinessInfoSection({
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
-				<FormSelectField
-					name="company"
-					label="Compañía"
-					placeholder="Seleccione una compañía"
-					options={companiesOptions}
-					form={form}
-					disabled={isBlocked || isEditMode}
-					onValueChange={handleCompanyChange}
-					required
-				/>
-
-				<NumberInputField
-					name="terms"
-					label="Plazo de producto en años"
-					placeholder="10"
-					form={form}
-					disabled={isBlocked || isEditMode}
-					required
-				/>
-
-				<FormSelectField
-					name="producto"
-					label="Producto"
-					placeholder="Seleccione un producto"
-					options={filteredProducts}
-					form={form}
-					disabled={isBlocked || isEditMode || filteredProducts.length === 0}
-					required
-					className="col-span-2"
-					description={
-						<>
-							Si estas registrando un <strong>Negocio Internacional</strong> elige el nombre del producto <strong>teniendo en cuenta la categoria del asesor</strong> que tienes con el aliado. <strong>Esto lo encuentras al final del nombre del producto.</strong>
-						</>
-					}
-				/>
-
-				<FormSelectField
-					name="periodicity"
-					label="Periodicidad"
-					placeholder="Seleccione periodicidad"
-					options={periodicitiesOptions}
-					form={form}
-					disabled={isBlocked || isEditMode}
-					required
-				/>
-
-				<div className="space-y-2">
+				<div className="col-span-2 space-y-2">
 					<Label htmlFor="contract" className="text-sm font-medium">
 						Nro. Contrato{' '}
 						{isEditMode && <span className="text-red-500">*</span>}
@@ -124,7 +114,9 @@ export function BusinessInfoSection({
 					{isEditMode ? (
 						<ContractAutocomplete
 							value={contractValue || ''}
-							onChange={(val) => setValue('contract', val, { shouldValidate: true })}
+							onChange={(val) =>
+								setValue('contract', val, { shouldValidate: true })
+							}
 							onSelectLag={onSelectLag}
 							disabled={contractDisabled}
 							className={errors.contract ? 'border-red-500' : ''}
@@ -146,13 +138,70 @@ export function BusinessInfoSection({
 						/>
 					)}
 					{errors.contract && (
-						<p className="text-xs text-red-500">{errors.contract.message as string}</p>
+						<p className="text-xs text-red-500">
+							{errors.contract.message as string}
+						</p>
 					)}
 					{isEditMode && (
 						<p className="text-xs text-muted-foreground">
 							Ingrese el número de contrato para cambiar el estado a Emitido
 						</p>
 					)}
+				</div>
+
+				<FormSelectField
+					name="company"
+					label="Compañía"
+					placeholder="Seleccione una compañía"
+					options={companiesOptions}
+					form={form}
+					disabled={isBlocked || isEditMode}
+					onValueChange={handleCompanyChange}
+					required
+				/>
+
+				<FormSelectField
+					name="producto"
+					label="Producto"
+					placeholder="Seleccione un producto"
+					options={filteredProducts}
+					form={form}
+					disabled={isBlocked || isEditMode || filteredProducts.length === 0}
+					required
+					description={''}
+				/>
+
+				<NumberInputField
+					name="terms"
+					label="Plazo de producto en años"
+					placeholder="10"
+					form={form}
+					disabled={isBlocked || isEditMode || isSkandiaWithMfund}
+					required
+				/>
+
+				<FormSelectField
+					name="periodicity"
+					label="Periodicidad"
+					placeholder="Seleccione periodicidad"
+					options={periodicitiesOptions}
+					form={form}
+					disabled={isBlocked || isEditMode}
+					required
+				/>
+
+				<div className="space-y-2">
+					<Label htmlFor="numAportes" className="text-sm font-medium">
+						Número de Aportes
+					</Label>
+					<Input
+						id="numAportes"
+						type="number"
+						value={watchedNumAportes ?? 0}
+						readOnly
+						disabled
+						className="bg-muted cursor-not-allowed"
+					/>
 				</div>
 
 				<FormSelectField
@@ -163,7 +212,6 @@ export function BusinessInfoSection({
 					form={form}
 					disabled={isBlocked || isEditMode || !!watch('company')}
 					required
-					className="col-span-2"
 				/>
 
 				<CurrencyInputField
@@ -176,11 +224,10 @@ export function BusinessInfoSection({
 					className="col-span-2"
 					description={
 						<div className="space-y-1 mt-1 text-foreground font-normal">
-							<p className="font-bold">Notas Importantes:</p>
-							<ol className="list-decimal pl-4 space-y-1">
-								<li>Si el negocio es &quot;Crea Patrimonio&quot; de Skandia por favor poner el valor de la prima mensual multiplicado por 12 meses, es decir, el pago anualizado.</li>
-								<li>Si tu cliente toma un producto internacional registra el valor del primer aporte.</li>
-							</ol>
+							<p>
+								<span className="font-semibold">Nota Importante: </span>
+								<span>Registra únicamente el valor del primer aporte.</span>
+							</p>
 						</div>
 					}
 				/>

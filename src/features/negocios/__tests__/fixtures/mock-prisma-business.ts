@@ -30,8 +30,9 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	updatedAt: baseDate,
 	dateIssued: null,
 	dateAnchored: null,
-	_count: { annualPayments: 0 },
-	annualPayments: [],
+	numAportes: null,
+	_count: { payments: 0 },
+	payments: [],
 	client: {
 		idClient: 1,
 		name: 'María',

@@ -6,6 +6,7 @@ const pendingInstallment = {
 	installmentIndex: 1,
 	status: 'SIN_FONDEAR' as const,
 	dateAnchored: null,
+	expectedDate: null,
 }
 
 describe('AnnualFundingModal', () => {
@@ -24,7 +25,7 @@ describe('AnnualFundingModal', () => {
 
 		expect(
 			screen.getByRole('heading', {
-				name: /Fondear anualidades · Contrato PN-999/i,
+				name: /Fondear aportes · Contrato PN-999/i,
 			})
 		).toBeInTheDocument()
 	})
@@ -40,8 +41,35 @@ describe('AnnualFundingModal', () => {
 
 		expect(
 			screen.getByRole('heading', {
-				name: /Fondear anualidades · Negocio #99/i,
+				name: /Fondear aportes · Negocio #99/i,
 			})
 		).toBeInTheDocument()
+	})
+
+	it('renders pending row with checkbox and label', () => {
+		render(<AnnualFundingModal {...defaults} />)
+
+		expect(screen.getByRole('checkbox', { name: /Anualidad 1/i })).toBeInTheDocument()
+		expect(screen.getByText('Pendiente de fondear')).toBeInTheDocument()
+	})
+
+	it('renders funded row without checkbox and shows dateAnchored', () => {
+		const funded = {
+			installmentIndex: 2,
+			status: 'FONDEADO' as const,
+			dateAnchored: '2025-03-15T10:00:00.000Z',
+			expectedDate: null,
+		}
+		render(<AnnualFundingModal {...defaults} installments={[funded]} />)
+
+		expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+		expect(screen.getByText(/Fondeado/i)).toBeInTheDocument()
+		expect(screen.getByText(/Anualidad 2/i)).toBeInTheDocument()
+	})
+
+	it('shows empty state when installments is empty', () => {
+		render(<AnnualFundingModal {...defaults} installments={[]} />)
+
+		expect(screen.getByText(/No hay cuotas anuales/i)).toBeInTheDocument()
 	})
 })

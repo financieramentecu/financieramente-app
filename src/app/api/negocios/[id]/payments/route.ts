@@ -1,6 +1,6 @@
 /**
- * GET /api/negocios/[id]/annual-payments
- * Lista cuotas anuales del negocio para el modal HU4 (ordenadas por installmentIndex)
+ * GET /api/negocios/[id]/payments
+ * Lista aportes del negocio para el modal de fondeo (ordenados por installmentIndex)
  */
 
 import { NextResponse } from 'next/server'
@@ -60,6 +60,9 @@ export async function GET(
 				payments: {
 					orderBy: { installmentIndex: 'asc' },
 				},
+				buyPeriodicity: {
+					select: { name: true },
+				},
 			},
 		})
 
@@ -70,11 +73,11 @@ export async function GET(
 			)
 		}
 
-		const installments = business.payments.map((ap) => ({
-			installmentIndex: ap.installmentIndex,
-			status: ap.status as 'SIN_FONDEAR' | 'FONDEADO',
-			dateAnchored: ap.dateAnchored?.toISOString() ?? null,
-			expectedDate: null,
+		const installments = business.payments.map((p) => ({
+			installmentIndex: p.installmentIndex,
+			status: p.status as 'SIN_FONDEAR' | 'FONDEADO',
+			dateAnchored: p.dateAnchored?.toISOString() ?? null,
+			expectedDate: p.expectedDate?.toISOString() ?? null,
 		}))
 
 		const payload: AnnualPaymentsResponse = {
@@ -85,7 +88,7 @@ export async function GET(
 
 		return NextResponse.json({ data: payload })
 	} catch (error) {
-		console.error('Error al obtener anualidades:', error)
+		console.error('Error al obtener aportes:', error)
 		return NextResponse.json(
 			{ data: null, error: 'Error interno del servidor' },
 			{ status: 500 }

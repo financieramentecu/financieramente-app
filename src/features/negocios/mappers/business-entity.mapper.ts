@@ -36,8 +36,10 @@ export function prismaBusinessToEntity(
 		createdAt: prisma.createdAt.toISOString(), // Date → string
 		dateIssued: prisma.dateIssued?.toISOString() ?? null,
 		dateAnchored: prisma.dateAnchored?.toISOString() ?? null,
-		hasAnnualPayments: prisma._count.annualPayments > 0,
-		hasPendingAnnualFunding: prisma.annualPayments.length > 0,
+		numAportes: prisma.numAportes ?? null,
+		fundedAportes: prisma.payments.filter(p => p.status === 'FONDEADO').length,
+		hasPayments: prisma._count.payments > 0,
+		hasPendingPaymentFunding: prisma.payments.some(p => p.status === 'SIN_FONDEAR'),
 
 		client: {
 			id: prisma.client.idClient,

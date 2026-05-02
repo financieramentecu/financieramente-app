@@ -19,7 +19,7 @@ import {
 import { BusinessStatusBadge } from '../ui/BusinessStatusBadge'
 import { UserAvatar } from '../ui/UserAvatar'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
-import { Calendar, Phone, Mail, Building2, FileText, Clock } from 'lucide-react'
+import { Calendar, Phone, Mail, Building2, FileText, Clock, Layers } from 'lucide-react'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -105,9 +105,7 @@ export function BusinessViewModal({
 		typeof onSaveOrigin === 'function'
 
 	const currentOriginValue =
-		business?.clientOrigin?.id != null
-			? String(business.clientOrigin.id)
-			: ''
+		business?.clientOrigin?.id != null ? String(business.clientOrigin.id) : ''
 
 	const displayOriginValue = selectedOriginId || currentOriginValue
 	const hasOriginChanged =
@@ -205,6 +203,26 @@ export function BusinessViewModal({
 						/>
 					</div>
 				</section>
+
+				{/* Aportes */}
+				{business.numAportes != null && (
+					<section className="space-y-3">
+						<h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+							Aportes
+						</h3>
+						<div className="grid grid-cols-2 gap-4">
+							<InfoItem
+								label="Total aportes"
+								value={String(business.numAportes)}
+								icon={<Layers className="h-4 w-4" />}
+							/>
+							<InfoItem
+								label="Aportes realizados"
+								value={`${business.fundedAportes ?? 0} de ${business.numAportes}`}
+							/>
+						</div>
+					</section>
+				)}
 
 				{/* Información del Money Strategist */}
 				<section className="space-y-3">
@@ -307,17 +325,28 @@ export function BusinessViewModal({
 					<AlertDialogHeader>
 						<AlertDialogTitle>¿Confirmar cambio de origen?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Al cambiar el origen de un negocio Emitido, <strong className="text-foreground">las comisiones van a ser recalculadas</strong> acorde a la nueva configuración de distribución.
-							<br /><br />
-							Se mantendrán los descuentos y clawbacks actuales. Esta acción no se puede deshacer.
+							Al cambiar el origen de un negocio Emitido,{' '}
+							<strong className="text-foreground">
+								las comisiones van a ser recalculadas
+							</strong>{' '}
+							acorde a la nueva configuración de distribución.
+							<br />
+							<br />
+							Se mantendrán los descuentos y clawbacks actuales. Esta acción no
+							se puede deshacer.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel disabled={isSavingOrigin}>Cancelar</AlertDialogCancel>
-						<AlertDialogAction onClick={(e) => {
-							e.preventDefault()
-							handleConfirmOriginChange()
-						}} disabled={isSavingOrigin}>
+						<AlertDialogCancel disabled={isSavingOrigin}>
+							Cancelar
+						</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={(e) => {
+								e.preventDefault()
+								handleConfirmOriginChange()
+							}}
+							disabled={isSavingOrigin}
+						>
 							{isSavingOrigin ? 'Recalculando...' : 'Sí, continuar'}
 						</AlertDialogAction>
 					</AlertDialogFooter>

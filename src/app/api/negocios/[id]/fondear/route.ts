@@ -16,7 +16,7 @@ import {
 } from '@/features/negocios/types/business-prisma.types'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/features/auth/lib/roles'
+import { UserRole, canFundPayments } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -28,16 +28,6 @@ interface RouteParams {
 	params: Promise<{ id: string }>
 }
 
-/**
- * Roles que pueden fondear negocios sin anualidades
- * AGENTE: solo sus propios negocios
- * ASISTENTE_GERENCIA_OPERATIVA y ADMIN: todos los negocios
- */
-const FONDEAR_ALLOWED_ROLES = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.AGENTE,
-]
 
 /**
  * POST /api/negocios/[id]/fondear
@@ -80,7 +70,7 @@ export async function POST(
 
 		// Verificar que el usuario tiene permiso para fondear
 		const userRole = currentUser.role?.code as UserRole
-		if (!FONDEAR_ALLOWED_ROLES.includes(userRole)) {
+		if (!canFundPayments(userRole)) {
 			return NextResponse.json(
 				{ data: null, error: 'No tiene permisos para fondear negocios' },
 				{ status: 403 }
@@ -93,7 +83,7 @@ export async function POST(
 			include: {
 				_count: {
 					select: {
-						annualPayments: true,
+						payments: true,
 					},
 				},
 			},
@@ -103,14 +93,6 @@ export async function POST(
 			return NextResponse.json(
 				{ data: null, error: 'Negocio no encontrado' },
 				{ status: 404 }
-			)
-		}
-
-		// AGENTE solo puede fondear sus propios negocios
-		if (userRole === UserRole.AGENTE && existingBusiness.idUser !== currentUser.idUser) {
-			return NextResponse.json(
-				{ data: null, error: 'No tiene permisos para fondear este negocio' },
-				{ status: 403 }
 			)
 		}
 
@@ -126,7 +108,7 @@ export async function POST(
 		}
 
 		// Verificar que no tiene anualidades (flujo HU4)
-		if (existingBusiness._count.annualPayments > 0) {
+		if (existingBusiness._count.payments > 0) {
 			return NextResponse.json(
 				{
 					data: null,
