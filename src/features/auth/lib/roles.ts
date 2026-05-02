@@ -77,3 +77,44 @@ export function getRoleName(role: UserRole | string): string {
 	}
 	return role
 }
+
+/**
+ * Roles that can view payment installments (aportes)
+ */
+const ROLES_CAN_VIEW_PAYMENTS: readonly UserRole[] = [
+	UserRole.ADMIN,
+	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+	UserRole.AGENTE,
+]
+
+/**
+ * Whether the role may view payment installments in the UI
+ */
+export function canViewPayments(roleCode: string | undefined): boolean {
+	if (!roleCode) return false
+	return (
+		isValidRole(roleCode) &&
+		ROLES_CAN_VIEW_PAYMENTS.includes(roleCode as UserRole)
+	)
+}
+
+/**
+ * Roles that can fund payment installments (aportes)
+ * AGENTE (Coach) is explicitly excluded — view only
+ */
+const ROLES_CAN_FUND_PAYMENTS: readonly UserRole[] = [
+	UserRole.ADMIN,
+	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+]
+
+/**
+ * Whether the role may fund payment installments
+ * Used for UI guard and API auth
+ */
+export function canFundPayments(roleCode: string | undefined): boolean {
+	if (!roleCode) return false
+	return (
+		isValidRole(roleCode) &&
+		ROLES_CAN_FUND_PAYMENTS.includes(roleCode as UserRole)
+	)
+}

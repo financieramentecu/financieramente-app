@@ -45,8 +45,8 @@ export function mapBusinessToTableRow(b: BusinessEntity): Business {
 		clientOriginName: b.clientOrigin.name,
 		status: getBusinessStatusLabel(b.status),
 		statusCode: b.status,
-		hasAnnualPayments: b.hasAnnualPayments,
-		hasPendingAnnualFunding: b.hasPendingAnnualFunding,
+		hasPayments: b.hasPayments,
+		hasPendingPaymentFunding: b.hasPendingPaymentFunding,
 		currency: b.currency,
 	}
 }

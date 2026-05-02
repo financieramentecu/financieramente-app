@@ -105,8 +105,8 @@ vi.mock('@/features/negocios/components/modals/BusinessCancelModal', () => ({
 	BusinessCancelModal: () => null,
 }))
 
-vi.mock('@/features/negocios/components/modals/AnnualFundingModal', () => ({
-	AnnualFundingModal: ({ open }: { open: boolean }) =>
+vi.mock('@/features/negocios/components/modals/FundingModal', () => ({
+	FundingModal: ({ open }: { open: boolean }) =>
 		open ? <div>annual-funding-modal-open</div> : null,
 }))
 
@@ -181,8 +181,8 @@ function createBusinessRow(mode: 'direct' | 'annual'): Business {
 		clientOriginName: 'Origen',
 		status: 'Emitido',
 		statusCode: 'EMITIDO',
-		hasAnnualPayments: mode === 'annual',
-		hasPendingAnnualFunding: mode === 'annual',
+		hasPayments: mode === 'annual',
+		hasPendingPaymentFunding: mode === 'annual',
 		currency: { id: 1, name: 'COP' },
 	}
 }

@@ -178,7 +178,7 @@ describe('prismaBusinessToEntity', () => {
 			expect(result.dateIssued).toBe('2024-03-20T14:30:00.000Z')
 		})
 
-		// ── 4.5: dateAnchored and hasAnnualPayments mapping ──────────────────
+		// ── 4.5: dateAnchored and hasPayments mapping ──────────────────
 		it('should map null dateAnchored to null', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
@@ -198,37 +198,47 @@ describe('prismaBusinessToEntity', () => {
 			expect(result.dateAnchored).toBe('2025-04-18T12:00:00.000Z')
 		})
 
-		it('should map _count.annualPayments === 0 to hasAnnualPayments: false', () => {
+		it('should map _count.payments === 0 to hasPayments: false', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
-				_count: { annualPayments: 0 },
-				annualPayments: [],
+				numAportes: null,
+				_count: { payments: 0 },
+				payments: [],
 			})
 
-			expect(result.hasAnnualPayments).toBe(false)
-			expect(result.hasPendingAnnualFunding).toBe(false)
+			expect(result.hasPayments).toBe(false)
+			expect(result.hasPendingPaymentFunding).toBe(false)
+			expect(result.fundedAportes).toBe(0)
 		})
 
-		it('should map _count.annualPayments > 0 to hasAnnualPayments: true', () => {
+		it('should map _count.payments > 0 to hasPayments: true', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
-				_count: { annualPayments: 3 },
-				annualPayments: [{ idAnnualPayment: 1 }],
+				numAportes: 3,
+				_count: { payments: 3 },
+				payments: [{ idAnnualPayment: 1, status: 'SIN_FONDEAR' }],
 			})
 
-			expect(result.hasAnnualPayments).toBe(true)
-			expect(result.hasPendingAnnualFunding).toBe(true)
+			expect(result.hasPayments).toBe(true)
+			expect(result.hasPendingPaymentFunding).toBe(true)
+			expect(result.fundedAportes).toBe(0)
 		})
 
-		it('should map hasPendingAnnualFunding false when no cuotas SIN_FONDEAR', () => {
+		it('should map hasPendingPaymentFunding false when no aportes SIN_FONDEAR', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
-				_count: { annualPayments: 3 },
-				annualPayments: [],
+				numAportes: 3,
+				_count: { payments: 3 },
+				payments: [
+					{ idAnnualPayment: 1, status: 'FONDEADO' },
+					{ idAnnualPayment: 2, status: 'FONDEADO' },
+					{ idAnnualPayment: 3, status: 'FONDEADO' },
+				],
 			})
 
-			expect(result.hasAnnualPayments).toBe(true)
-			expect(result.hasPendingAnnualFunding).toBe(false)
+			expect(result.hasPayments).toBe(true)
+			expect(result.hasPendingPaymentFunding).toBe(false)
+			expect(result.fundedAportes).toBe(3)
 		})
 	})
 })
