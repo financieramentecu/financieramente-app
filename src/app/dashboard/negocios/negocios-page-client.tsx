@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation'
 import { MisNegociosPage } from '@/features/negocios/components/MisNegociosPage'
 import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
-import { AnnualFundingModal } from '@/features/negocios/components/modals/AnnualFundingModal'
+import { FundingModal } from '@/features/negocios/components/modals/FundingModal'
 import { businessService } from '@/features/negocios/services/business.service'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
 import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
-import { UserRole } from '@/features/auth/lib/roles'
+import { UserRole, canFundPayments } from '@/features/auth/lib/roles'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
@@ -73,6 +73,11 @@ export function NegociosPageClient({
 	const [annualFundingContract, setAnnualFundingContract] = useState<
 		string | null
 	>(null)
+	const [annualFundingPeriodicidadLabel, setAnnualFundingPeriodicidadLabel] =
+		useState<string | null>(null)
+	const [annualFundingPlazo, setAnnualFundingPlazo] = useState<number | null>(
+		null
+	)
 	const [annualFundingLoading, setAnnualFundingLoading] = useState(false)
 	const [fondearConfirmOpen, setFondearConfirmOpen] = useState(false)
 	const [pendingFondearBusiness, setPendingFondearBusiness] =
@@ -244,11 +249,13 @@ export function NegociosPageClient({
 	 */
 	const executeFondearBusiness = useCallback(
 		async (business: Business) => {
-			if (business.hasAnnualPayments) {
+			if (business.hasPayments) {
 				setAnnualFundingBusinessId(Number(business.id))
 				setAnnualFundingContract(
 					typeof business.contract === 'string' ? business.contract : null
 				)
+				setAnnualFundingPeriodicidadLabel(business.periodicityName ?? null)
+				setAnnualFundingPlazo(typeof business.term === 'number' ? business.term : null)
 				setAnnualFundingOpen(true)
 				setAnnualFundingLoading(true)
 				setAnnualFundingInstallments([])
@@ -257,7 +264,7 @@ export function NegociosPageClient({
 				setAnnualFundingLoading(false)
 
 				if ('error' in res && res.error) {
-					toast.error('No se pudieron cargar las anualidades', {
+					toast.error('No se pudieron cargar los aportes', {
 						description: res.error,
 					})
 					setAnnualFundingOpen(false)
@@ -284,7 +291,7 @@ export function NegociosPageClient({
 
 	const handleFondearBusiness = useCallback(
 		(business: Business) => {
-			if (business.hasAnnualPayments) {
+			if (business.hasPayments) {
 				void executeFondearBusiness(business)
 				return
 			}
@@ -325,6 +332,8 @@ export function NegociosPageClient({
 		if (!open) {
 			setAnnualFundingBusinessId(null)
 			setAnnualFundingContract(null)
+			setAnnualFundingPeriodicidadLabel(null)
+			setAnnualFundingPlazo(null)
 			setAnnualFundingInstallments([])
 		}
 	}, [])
@@ -530,7 +539,7 @@ export function NegociosPageClient({
 				onConfirm={handleConfirmCancel}
 			/>
 
-			<AnnualFundingModal
+			<FundingModal
 				open={annualFundingOpen}
 				onOpenChange={handleAnnualFundingOpenChange}
 				businessId={annualFundingBusinessId}
@@ -538,6 +547,9 @@ export function NegociosPageClient({
 				installments={annualFundingInstallments}
 				isLoadingInstallments={annualFundingLoading}
 				isSubmitting={isFondeandoAnualidades}
+				periodicidadLabel={annualFundingPeriodicidadLabel}
+				plazo={annualFundingPlazo}
+				canFund={canFundPayments(_currentUser?.role?.code)}
 				onConfirm={handleConfirmAnnualFunding}
 			/>
 
@@ -549,8 +561,8 @@ export function NegociosPageClient({
 					<AlertDialogHeader>
 						<AlertDialogTitle>¿Confirmar fondeo?</AlertDialogTitle>
 						<AlertDialogDescription>
-							{pendingFondearBusiness?.hasAnnualPayments
-								? 'Se abrirá el flujo para seleccionar y confirmar anualidades a fondear.'
+							{pendingFondearBusiness?.hasPayments
+								? 'Se abrirá el flujo para seleccionar y confirmar aportes a fondear.'
 								: 'Esta acción registrará el fondeo del negocio, ¿Desea continuar?'}
 						</AlertDialogDescription>
 					</AlertDialogHeader>

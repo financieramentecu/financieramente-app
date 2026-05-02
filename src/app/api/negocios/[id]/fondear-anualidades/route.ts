@@ -33,7 +33,6 @@ interface RouteParams {
 const FONDEAR_ALLOWED_ROLES = [
 	UserRole.ADMIN,
 	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.AGENTE,
 ]
 
 export async function POST(
@@ -105,7 +104,7 @@ export async function POST(
 		const existing = await prisma.business.findUnique({
 			where: { idBusiness: businessId },
 			include: {
-				_count: { select: { annualPayments: true } },
+				_count: { select: { payments: true } },
 			},
 		})
 
@@ -116,14 +115,7 @@ export async function POST(
 			)
 		}
 
-		if (userRole === UserRole.AGENTE && existing.idUser !== currentUser.idUser) {
-			return NextResponse.json(
-				{ data: null, error: 'No tiene permisos para fondear este negocio' },
-				{ status: 403 }
-			)
-		}
-
-		if (existing._count.annualPayments === 0) {
+		if (existing._count.payments === 0) {
 			return NextResponse.json(
 				{
 					data: null,
@@ -134,7 +126,7 @@ export async function POST(
 			)
 		}
 
-		const pendingCount = await prisma.annualPayment.count({
+		const pendingCount = await prisma.payment.count({
 			where: {
 				idBusiness: businessId,
 				status: AnnualPaymentStatus.SIN_FONDEAR,
@@ -158,7 +150,7 @@ export async function POST(
 		}
 
 		const fundedBusiness = await prisma.$transaction(async (tx) => {
-			const rowsToFund = await tx.annualPayment.findMany({
+			const rowsToFund = await tx.payment.findMany({
 				where: {
 					idBusiness: businessId,
 					installmentIndex: { in: fundedInstallmentIndexes },
@@ -174,7 +166,7 @@ export async function POST(
 			const parentWasEmitido = status === BUSINESS_STATUS.EMITIDO
 
 			for (const row of rowsToFund) {
-				await tx.annualPayment.update({
+				await tx.payment.update({
 					where: { idAnnualPayment: row.idAnnualPayment },
 					data: {
 						status: AnnualPaymentStatus.FONDEADO,
@@ -210,7 +202,7 @@ export async function POST(
 		await logAuditEvent({
 			userId: currentUser.idUser,
 			roleId: currentUser.idRole ?? undefined,
-			action: AuditAction.BUSINESS_ANNUAL_FUNDED,
+			action: AuditAction.BUSINESS_PAYMENT_FUNDED,
 			email: session.user.email,
 			ipAddress: getClientIp(new Headers(request.headers)),
 			userAgent: getUserAgent(new Headers(request.headers)),

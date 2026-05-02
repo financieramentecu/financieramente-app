@@ -87,19 +87,23 @@ export interface CancelBusinessRequest {
 	reason: string // 20-500 caracteres
 }
 
-/** Cuota anual para modal HU4 (API annual-payments) */
+/** Estado de cuota de pago para modal (API payments) */
 export type AnnualInstallmentStatusUi = 'SIN_FONDEAR' | 'FONDEADO'
 
-export interface AnnualInstallmentDto {
+/** @deprecated Use PaymentInstallmentDto */
+export type AnnualInstallmentDto = PaymentInstallmentDto
+
+export interface PaymentInstallmentDto {
 	installmentIndex: number
 	status: AnnualInstallmentStatusUi
 	dateAnchored: string | null
+	expectedDate: string | null
 }
 
 export interface AnnualPaymentsResponse {
 	businessId: number
 	status: BusinessStatus
-	installments: AnnualInstallmentDto[]
+	installments: PaymentInstallmentDto[]
 }
 
 export interface FondearAnualidadesRequest {

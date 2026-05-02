@@ -9,8 +9,8 @@ describe('ActionCell', () => {
 		businessId: 1,
 		businessStatus: BUSINESS_STATUS.VENTA_EFECTUADA,
 		userRole: UserRole.ADMIN,
-		hasAnnualPayments: false,
-		hasPendingAnnualFunding: false,
+		hasPayments: false,
+		hasPendingPaymentFunding: false,
 		onEdit: vi.fn(),
 		onView: vi.fn(),
 		onCancel: vi.fn(),
@@ -156,19 +156,36 @@ describe('ActionCell', () => {
 
 	// ── 4.6: Fondear button visibility ────────────────────────────────────────
 	describe('Fondear button visibility', () => {
-		it('should show Fondear button for EMITIDO + hasAnnualPayments: false + AGENTE role', () => {
+		it('should NOT show "Ver Fondeo" button for AGENTE role on EMITIDO without payments', () => {
 			render(
 				<ActionCell
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.EMITIDO}
 					userRole={UserRole.AGENTE}
-					hasAnnualPayments={false}
+					hasPayments={false}
 					onFondear={vi.fn()}
 				/>
 			)
 
 			expect(
-				screen.getByRole('button', { name: /Fondear/i })
+				screen.queryByRole('button', { name: 'Ver Fondeo' })
+			).not.toBeInTheDocument()
+		})
+
+		it('should show "Ver Fondeo" for AGENTE with pending annual payments', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.EMITIDO}
+					userRole={UserRole.AGENTE}
+					hasPayments={true}
+					hasPendingPaymentFunding={true}
+					onFondear={vi.fn()}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: 'Ver Fondeo' })
 			).toBeInTheDocument()
 		})
 
@@ -178,7 +195,7 @@ describe('ActionCell', () => {
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.FONDEADO}
 					userRole={UserRole.ADMIN}
-					hasAnnualPayments={false}
+					hasPayments={false}
 					onFondear={vi.fn()}
 				/>
 			)
@@ -194,14 +211,14 @@ describe('ActionCell', () => {
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.EMITIDO}
 					userRole={UserRole.ADMIN}
-					hasAnnualPayments={true}
-					hasPendingAnnualFunding={true}
+					hasPayments={true}
+					hasPendingPaymentFunding={true}
 					onFondear={vi.fn()}
 				/>
 			)
 
 			expect(
-				screen.getByRole('button', { name: 'Fondear anualidad' })
+				screen.getByRole('button', { name: 'Fondear' })
 			).toBeInTheDocument()
 		})
 
@@ -211,8 +228,8 @@ describe('ActionCell', () => {
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.EMITIDO}
 					userRole={UserRole.ADMIN}
-					hasAnnualPayments={true}
-					hasPendingAnnualFunding={false}
+					hasPayments={true}
+					hasPendingPaymentFunding={false}
 					onFondear={vi.fn()}
 				/>
 			)
@@ -228,14 +245,14 @@ describe('ActionCell', () => {
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.FONDEADO}
 					userRole={UserRole.ADMIN}
-					hasAnnualPayments={true}
-					hasPendingAnnualFunding={true}
+					hasPayments={true}
+					hasPendingPaymentFunding={true}
 					onFondear={vi.fn()}
 				/>
 			)
 
 			expect(
-				screen.getByRole('button', { name: 'Fondear anualidad' })
+				screen.getByRole('button', { name: 'Fondear' })
 			).toBeInTheDocument()
 		})
 
@@ -245,7 +262,7 @@ describe('ActionCell', () => {
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.EMITIDO}
 					userRole={UserRole.ANALISTA_SOPORTE}
-					hasAnnualPayments={false}
+					hasPayments={false}
 					onFondear={vi.fn()}
 				/>
 			)
@@ -261,7 +278,7 @@ describe('ActionCell', () => {
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.EMITIDO}
 					userRole={UserRole.ADMIN}
-					hasAnnualPayments={false}
+					hasPayments={false}
 					onFondear={vi.fn()}
 				/>
 			)
@@ -277,7 +294,7 @@ describe('ActionCell', () => {
 					{...defaultProps}
 					businessStatus={BUSINESS_STATUS.EMITIDO}
 					userRole={UserRole.ASISTENTE_GERENCIA_OPERATIVA}
-					hasAnnualPayments={false}
+					hasPayments={false}
 					onFondear={vi.fn()}
 				/>
 			)

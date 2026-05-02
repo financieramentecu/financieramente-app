@@ -18,6 +18,8 @@ export interface CurrencyInputFieldProps {
 	form: UseFormReturn<BusinessFormData>
 	disabled?: boolean
 	required?: boolean
+	description?: React.ReactNode
+	className?: string
 }
 
 /**
@@ -30,6 +32,8 @@ export function CurrencyInputField({
 	form,
 	disabled = false,
 	required = false,
+	description,
+	className,
 }: CurrencyInputFieldProps) {
 	const { watch, setValue, formState } = form
 	const { errors } = formState
@@ -44,10 +48,15 @@ export function CurrencyInputField({
 	})
 
 	return (
-		<div className="space-y-2">
+		<div className={`space-y-2 ${className || ''}`.trim()}>
 			<Label htmlFor={name} className="text-sm font-medium">
 				{label} {required && <span className="text-red-500">*</span>}
 			</Label>
+			{description && (
+				<div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 text-sm text-amber-900 leading-snug">
+					{description}
+				</div>
+			)}
 			<Input
 				id={name}
 				type="text"

@@ -8,26 +8,18 @@ import { Separator } from '@/features/shared/ui/separator'
 import { FormSelectField } from '@/features/negocios/components/fields/form-select-field'
 import { CurrencyInputField } from '@/features/negocios/components/fields/currency-input-field'
 import { NumberInputField } from '@/features/negocios/components/fields/number-input-field'
-import { AgentAutocomplete } from '@/features/negocios/components/fields/agent-autocomplete'
 import { ContractAutocomplete } from '@/features/negocios/components/fields/contract-autocomplete'
-import {
-	getFieldError,
-	getFieldClassName,
-} from '@/features/negocios/lib/form-field-helpers'
-import { UserWithRole } from '@/features/negocios/types/business.types'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
+import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
 
 export interface BusinessInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
 	currenciesOptions: { value: string; label: string }[]
 	periodicitiesOptions: { value: string; label: string }[]
-	companiesOptions: { value: string; label: string }[]
+	companiesOptions: { value: string; label: string; idCurrency?: string }[]
 	filteredProducts: { value: string; label: string; companyId: string }[]
-	agentsList: UserWithRole[]
-	onSearchAgents?: (query: string) => Promise<UserWithRole[]>
 	onSelectLag?: (id: number | null) => void
 	isBlocked: boolean
-	isAgentUser: boolean
 	isEditMode?: boolean
 	contractDisabled?: boolean
 }
@@ -41,40 +33,80 @@ export function BusinessInfoSection({
 	periodicitiesOptions,
 	companiesOptions,
 	filteredProducts,
-	agentsList,
-	onSearchAgents,
 	onSelectLag,
 	isBlocked,
-	isAgentUser,
 	isEditMode = false,
 	contractDisabled = false,
 }: BusinessInfoSectionProps) {
 	const { register, watch, setValue, formState } = form
 	const { errors } = formState
-	
-	const agentValue = watch('agent')
-	const agentError = errors.agent
+
 	const contractValue = watch('contract')
 	const contractRegister = register('contract')
 
+	const watchedTerms = watch('terms')
+	const watchedCompanyId = watch('company')
+	const watchedProductId = watch('producto')
+	const watchedPeriodicityId = watch('periodicity')
+	const watchedNumAportes = watch('numAportes')
+
+	const isSkandiaWithMfund = React.useMemo(() => {
+		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+		return companyName === 'SKANDIA' && productName === 'MFUND'
+	}, [watchedCompanyId, watchedProductId, companiesOptions, filteredProducts])
+
+	React.useEffect(() => {
+		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+		const periodicityName = periodicitiesOptions.find((p) => p.value === watchedPeriodicityId)?.label ?? null
+		const termYears = typeof watchedTerms === 'number' ? watchedTerms : null
+
+		if (companyName === 'SKANDIA' && productName === 'MFUND') {
+			setValue('isSkandiaWithMfund', true, { shouldValidate: false })
+			setValue('terms', 0, { shouldValidate: false })
+			setValue('numAportes', 0, { shouldValidate: false })
+			return
+		}
+
+		setValue('isSkandiaWithMfund', false, { shouldValidate: false })
+
+		const result = calculateNumAportes({ termYears, periodicityName, companyName, productName })
+		setValue('numAportes', result, { shouldValidate: false })
+	}, [watchedTerms, watchedPeriodicityId, watchedCompanyId, watchedProductId, companiesOptions, filteredProducts, periodicitiesOptions, setValue])
+
 	const handleCompanyChange = React.useCallback(
-		(_value: string) => {
+		(companyId: string) => {
 			setValue('producto', '', { shouldValidate: true })
+
+			if (!companyId) {
+				setValue('currency', '', { shouldValidate: true })
+				return
+			}
+
+			const selectedCompany = companiesOptions.find(
+				(c) => c.value === companyId
+			)
+			if (selectedCompany?.idCurrency) {
+				setValue('currency', selectedCompany.idCurrency, {
+					shouldValidate: true,
+				})
+			}
 		},
-		[setValue]
+		[setValue, companiesOptions]
 	)
 
 	return (
 		<div className="space-y-4">
 			<div className="space-y-2">
-				<h3 className="font-bold text-sm text-primary">
+				<h3 className="font-bold text-lg text-primary tracking-wider">
 					Información del negocio
 				</h3>
 				<Separator className="bg-border" />
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
-				<div className="space-y-2">
+				<div className="col-span-2 space-y-2">
 					<Label htmlFor="contract" className="text-sm font-medium">
 						Nro. Contrato{' '}
 						{isEditMode && <span className="text-red-500">*</span>}
@@ -82,7 +114,9 @@ export function BusinessInfoSection({
 					{isEditMode ? (
 						<ContractAutocomplete
 							value={contractValue || ''}
-							onChange={(val) => setValue('contract', val, { shouldValidate: true })}
+							onChange={(val) =>
+								setValue('contract', val, { shouldValidate: true })
+							}
 							onSelectLag={onSelectLag}
 							disabled={contractDisabled}
 							className={errors.contract ? 'border-red-500' : ''}
@@ -104,7 +138,9 @@ export function BusinessInfoSection({
 						/>
 					)}
 					{errors.contract && (
-						<p className="text-xs text-red-500">{errors.contract.message as string}</p>
+						<p className="text-xs text-red-500">
+							{errors.contract.message as string}
+						</p>
 					)}
 					{isEditMode && (
 						<p className="text-xs text-muted-foreground">
@@ -132,6 +168,16 @@ export function BusinessInfoSection({
 					form={form}
 					disabled={isBlocked || isEditMode || filteredProducts.length === 0}
 					required
+					description={''}
+				/>
+
+				<NumberInputField
+					name="terms"
+					label="Plazo de producto en años"
+					placeholder="10"
+					form={form}
+					disabled={isBlocked || isEditMode || isSkandiaWithMfund}
+					required
 				/>
 
 				<FormSelectField
@@ -144,14 +190,19 @@ export function BusinessInfoSection({
 					required
 				/>
 
-				<NumberInputField
-					name="terms"
-					label="Plazo"
-					placeholder="10"
-					form={form}
-					disabled={isBlocked || isEditMode}
-					required
-				/>
+				<div className="space-y-2">
+					<Label htmlFor="numAportes" className="text-sm font-medium">
+						Número de Aportes
+					</Label>
+					<Input
+						id="numAportes"
+						type="number"
+						value={watchedNumAportes ?? 0}
+						readOnly
+						disabled
+						className="bg-muted cursor-not-allowed"
+					/>
+				</div>
 
 				<FormSelectField
 					name="currency"
@@ -159,50 +210,27 @@ export function BusinessInfoSection({
 					placeholder="Seleccione una moneda"
 					options={currenciesOptions}
 					form={form}
-					disabled={isBlocked || isEditMode}
+					disabled={isBlocked || isEditMode || !!watch('company')}
 					required
 				/>
 
-				<div className="space-y-2">
-					<CurrencyInputField
-						name="value"
-						label="Valor"
-						placeholder="0,00"
-						form={form}
-						disabled={isBlocked || isEditMode}
-						required
-					/>
-					{!isEditMode && (
-						<div className="text-xs text-muted-foreground">
-							Recuerde que el campo Valor debe ser equivalente al valor de la prima por 12
+				<CurrencyInputField
+					name="value"
+					label="Valor del Negocio"
+					placeholder="0,00"
+					form={form}
+					disabled={isBlocked || isEditMode}
+					required
+					className="col-span-2"
+					description={
+						<div className="space-y-1 mt-1 text-foreground font-normal">
+							<p>
+								<span className="font-semibold">Nota Importante: </span>
+								<span>Registra únicamente el valor del primer aporte.</span>
+							</p>
 						</div>
-					)}
-				</div>
-
-				<div className="space-y-2">
-					<Label
-						htmlFor="agent"
-						id="agent-label"
-						className="text-sm font-medium"
-					>
-						Agente <span className="text-red-500">*</span>
-					</Label>
-					<AgentAutocomplete
-						value={agentValue}
-						onChange={(value) =>
-							setValue('agent', value, { shouldValidate: true })
-						}
-						agents={agentsList}
-						placeholder="Buscar agente..."
-						aria-labelledby="agent-label"
-						disabled={isBlocked || isAgentUser || isEditMode}
-						className={getFieldClassName(agentError)}
-						onSearch={onSearchAgents}
-					/>
-					{agentError && (
-						<p className="text-xs text-red-500">{getFieldError(agentError)}</p>
-					)}
-				</div>
+					}
+				/>
 			</div>
 		</div>
 	)

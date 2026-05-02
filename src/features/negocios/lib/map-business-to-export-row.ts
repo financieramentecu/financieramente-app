@@ -152,7 +152,7 @@ export function mapBusinessToExportRow(
 			row[key] = ''
 			continue
 		}
-		const ap = b.annualPayments.find((a) => a.installmentIndex === i)
+		const ap = b.payments.find((a) => a.installmentIndex === i)
 		row[key] = fmtDate(ap?.dateAnchored ?? null)
 	}
 

@@ -4,12 +4,12 @@ import { AnnualPaymentStatus, type Business } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import {
 	BUSINESS_TERM_MAX,
-	BUY_PERIODICITY_ANUAL_NAME,
 } from '@/features/negocios/lib/business-term-limits'
 import {
 	BUSINESS_STATUS,
 	determineBusinessStatus,
 } from '@/features/negocios/types/business-status.types'
+import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { findProductPercentageCommission } from './find-product-percentage-commission'
@@ -22,7 +22,7 @@ const createBusinessSchema = z.object({
 	term: z
 		.number()
 		.int()
-		.min(1, 'El plazo debe ser mayor a 0')
+		.min(0, 'El plazo no puede ser negativo')
 		.max(
 			BUSINESS_TERM_MAX,
 			`El plazo no puede ser mayor a ${BUSINESS_TERM_MAX}`
@@ -104,6 +104,7 @@ export async function createBusiness(
 				: undefined
 		const status = determineBusinessStatus(contractValue)
 
+		// Resolve names needed for calculateNumAportes
 		let periodicityName: string | null = null
 		if (validatedData.idBuyPeriodicity != null) {
 			const bp = await prisma.buyPeriodicity.findUnique({
@@ -113,15 +114,20 @@ export async function createBusiness(
 			periodicityName = bp?.name ?? null
 		}
 
-		const isAnual = periodicityName === BUY_PERIODICITY_ANUAL_NAME
+		const productWithCompany = await prisma.product.findUnique({
+			where: { idProduct: validatedData.idProduct },
+			select: {
+				name: true,
+				company: { select: { name: true } },
+			},
+		})
 
-		if (isAnual && validatedData.term == null) {
-			return {
-				data: null,
-				error:
-					'El plazo es obligatorio cuando la periodicidad de compra es Anual',
-			}
-		}
+		const numAportes = calculateNumAportes({
+			termYears: validatedData.term ?? null,
+			periodicityName,
+			companyName: productWithCompany?.company?.name ?? null,
+			productName: productWithCompany?.name ?? null,
+		})
 
 		const business = await prisma.$transaction(async (tx) => {
 			const issuedAt =
@@ -141,18 +147,14 @@ export async function createBusiness(
 					idClientOrigin: validatedData.idClientOrigin,
 					status,
 					dateIssued: issuedAt,
+					numAportes,
 				},
 			})
 
-			if (
-				isAnual &&
-				validatedData.term != null &&
-				validatedData.term >= 1 &&
-				validatedData.term <= BUSINESS_TERM_MAX
-			) {
+			if (numAportes > 0) {
 				const rowTimestamp = new Date()
-				await tx.annualPayment.createMany({
-					data: Array.from({ length: validatedData.term }, (_, i) => ({
+				await tx.payment.createMany({
+					data: Array.from({ length: numAportes }, (_, i) => ({
 						idBusiness: created.idBusiness,
 						installmentIndex: i + 1,
 						status: AnnualPaymentStatus.SIN_FONDEAR,

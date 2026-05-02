@@ -154,11 +154,11 @@ export const businessService = {
 		id: number
 	): Promise<ApiResponse<AnnualPaymentsResponse>> {
 		try {
-			const response = await fetch(`${BASE_URL}/${id}/annual-payments`)
+			const response = await fetch(`${BASE_URL}/${id}/payments`)
 			return await response.json()
 		} catch (error) {
-			console.error('Error al obtener anualidades:', error)
-			return { data: null, error: 'Error al obtener las anualidades' }
+			console.error('Error al obtener aportes:', error)
+			return { data: null, error: 'Error al obtener los aportes' }
 		}
 	},
 
@@ -168,7 +168,7 @@ export const businessService = {
 	): Promise<ApiResponse<BusinessEntity>> {
 		try {
 			const response = await fetch(
-				`${BASE_URL}/${id}/fondear-anualidades`,
+				`${BASE_URL}/${id}/fondear-aportes`,
 				{
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -177,8 +177,8 @@ export const businessService = {
 			)
 			return await response.json()
 		} catch (error) {
-			console.error('Error al fondear anualidades:', error)
-			return { data: null, error: 'Error al fondear las anualidades' }
+			console.error('Error al fondear aportes:', error)
+			return { data: null, error: 'Error al fondear los aportes' }
 		}
 	},
 

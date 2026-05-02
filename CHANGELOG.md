@@ -5,6 +5,29 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.0] - 2026-05-01
+
+### Añadido
+
+- **Negocios – Aportes y fondeos periódicos:** El sistema ahora calcula y persiste el **número de aportes** (`numAportes`) de cada negocio en el momento de su creación, considerando la periodicidad y las excepciones por compañía/producto (SKANDIA+MFUND → sin aportes; Pago Único / Aportes Ocasionales → 1 aporte). Los aportes se visualizan en el detalle del negocio indicando cuántos han sido fondeados.
+- **Negocios – Fechas esperadas de fondeo:** Al fondear un negocio por primera vez (transición EMITIDO → FONDEADO), el sistema genera automáticamente una **fecha esperada** para cada aporte usando `date-fns/addMonths`, creando así un calendario de fondeos proyectados.
+- **Negocios – Modal de fondeo multi-aporte:** Nuevo `FundingModal` que permite seleccionar individualmente qué aportes fondear, mostrando su estado (pendiente/fondeado) y fecha anclada cuando corresponde.
+- **Compañías – Configuración de moneda:** Las compañías ahora tienen una **moneda asociada** configurable desde el panel de administración. El formulario de compañías incluye un selector de moneda y el campo se persiste en base de datos.
+
+### Mejorado
+
+- **Negocios – Permisos de fondeo por rol:** Los roles `ADMIN` y `ASISTENTE_GERENCIA_OPERATIVA` pueden fondear negocios. El rol `AGENTE` (coach) tiene acceso de **solo lectura** al estado de fondeo — el botón muestra "Ver Fondeo" cuando el negocio tiene aportes registrados, y está oculto si no los tiene.
+- **Negocios – Plataforma renombrada a Money Strategist:** La interfaz refleja el nombre comercial actualizado del producto.
+- **Administración – Gestión de monedas:** Los formularios de creación y edición de compañías permiten asignar la moneda de operación de cada compañía.
+- **Permisos – Funciones de rol centralizadas:** Se reemplazaron las verificaciones de rol inline por funciones reutilizables `canFundPayments()` y `canViewPayments()` en la capa de autorización.
+
+### Interno
+
+- Modelo Prisma `AnnualPayment` renombrado a `Payment` (`@@map("payments")`) para generalizar el concepto más allá de la periodicidad anual. Todas las rutas, servicios, mappers y tests actualizados.
+- Acción de auditoría renombrada a `BUSINESS_PAYMENT_FUNDED`.
+- Cobertura de tests ampliada: ruta `/fondear-aportes` (5 tests) y `AnnualFundingModal` (4 tests).
+
+
 ## [1.0.0-beta.18] - 2026-04-29
 
 ### Añadido

@@ -9,6 +9,7 @@ export const createCompanySchema = z.object({
 		.min(1, 'El nombre de la empresa es obligatorio')
 		.max(100, 'El nombre no puede exceder 100 caracteres')
 		.trim(),
+	idCurrency: z.string().min(1, 'La moneda es obligatoria'),
 	status: z.boolean(),
 })
 
@@ -22,6 +23,7 @@ export const updateCompanySchema = z.object({
 		.max(100, 'El nombre no puede exceder 100 caracteres')
 		.trim()
 		.optional(),
+	idCurrency: z.string().min(1, 'La moneda es obligatoria').optional(),
 	status: z.boolean().optional(),
 })
 

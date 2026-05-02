@@ -1,0 +1,261 @@
+/**
+ * POST /api/negocios/[id]/fondear-aportes
+ * Marca aportes (Payment) como fondeados; en la primera tanda EMITIDO → FONDEADO
+ * calcula y persiste expectedDate para todos los aportes del negocio.
+ */
+
+import { NextResponse } from 'next/server'
+import { AnnualPaymentStatus } from '@prisma/client'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import {
+	BUSINESS_STATUS,
+	type BusinessEntity,
+} from '@/features/negocios/types/business-entity.types'
+import { businessWithRelations } from '@/features/negocios/types/business-prisma.types'
+import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
+import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { canFundPayments } from '@/features/auth/lib/roles'
+import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expected-dates'
+import {
+	logAuditEvent,
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+} from '@/features/auth/lib/audit-logger'
+import { fondearAnualidadesBodySchema } from '@/features/negocios/lib/fondear-anualidades.schema'
+
+interface RouteParams {
+	params: Promise<{ id: string }>
+}
+
+export async function POST(
+	request: Request,
+	{ params }: RouteParams
+): Promise<NextResponse<ApiResponse<BusinessEntity>>> {
+	try {
+		const session = await auth()
+
+		if (!session?.user?.email) {
+			return NextResponse.json(
+				{ data: null, error: 'No autorizado' },
+				{ status: 401 }
+			)
+		}
+
+		const { id } = await params
+		const businessId = parseInt(id, 10)
+
+		if (isNaN(businessId)) {
+			return NextResponse.json(
+				{ data: null, error: 'ID de negocio inválido' },
+				{ status: 400 }
+			)
+		}
+
+		let bodyJson: unknown
+		try {
+			bodyJson = await request.json()
+		} catch {
+			return NextResponse.json(
+				{ data: null, error: 'Cuerpo JSON inválido' },
+				{ status: 400 }
+			)
+		}
+
+		const parsed = fondearAnualidadesBodySchema.safeParse(bodyJson)
+		if (!parsed.success) {
+			return NextResponse.json(
+				{
+					data: null,
+					error:
+						parsed.error.flatten().formErrors.join('; ') ||
+						'Datos inválidos',
+				},
+				{ status: 400 }
+			)
+		}
+
+		const { fundedInstallmentIndexes } = parsed.data
+
+		const currentUser = await getCurrentUserByEmail(session.user.email)
+
+		if (!currentUser) {
+			return NextResponse.json(
+				{ data: null, error: 'Usuario no encontrado' },
+				{ status: 404 }
+			)
+		}
+
+		const userRole = currentUser.role?.code
+		if (!canFundPayments(userRole)) {
+			return NextResponse.json(
+				{ data: null, error: 'No tiene permisos para fondear negocios' },
+				{ status: 403 }
+			)
+		}
+
+		const existing = await prisma.business.findUnique({
+			where: { idBusiness: businessId },
+			include: {
+				_count: { select: { payments: true } },
+				buyPeriodicity: { select: { name: true } },
+			},
+		})
+
+		if (!existing) {
+			return NextResponse.json(
+				{ data: null, error: 'Negocio no encontrado' },
+				{ status: 404 }
+			)
+		}
+
+		if (existing._count.payments === 0) {
+			return NextResponse.json(
+				{
+					data: null,
+					error:
+						'Este negocio no tiene aportes; use el fondeo directo',
+				},
+				{ status: 400 }
+			)
+		}
+
+		const pendingCount = await prisma.payment.count({
+			where: {
+				idBusiness: businessId,
+				status: AnnualPaymentStatus.SIN_FONDEAR,
+			},
+		})
+
+		const status = existing.status
+		const allowedParent =
+			status === BUSINESS_STATUS.EMITIDO ||
+			(status === BUSINESS_STATUS.FONDEADO && pendingCount > 0)
+
+		if (!allowedParent) {
+			return NextResponse.json(
+				{
+					data: null,
+					error:
+						'El negocio no admite fondeo de aportes en su estado actual',
+				},
+				{ status: 400 }
+			)
+		}
+
+		const fundedBusiness = await prisma.$transaction(async (tx) => {
+			const rowsToFund = await tx.payment.findMany({
+				where: {
+					idBusiness: businessId,
+					installmentIndex: { in: fundedInstallmentIndexes },
+					status: AnnualPaymentStatus.SIN_FONDEAR,
+				},
+			})
+
+			if (rowsToFund.length === 0) {
+				throw new Error('NO_PENDING_INSTALLMENTS')
+			}
+
+			const now = new Date()
+			const parentWasEmitido = status === BUSINESS_STATUS.EMITIDO
+
+			for (const row of rowsToFund) {
+				await tx.payment.update({
+					where: { idAnnualPayment: row.idAnnualPayment },
+					data: {
+						status: AnnualPaymentStatus.FONDEADO,
+						dateAnchored: now,
+					},
+				})
+			}
+
+			// On first fondeo (EMITIDO → FONDEADO): calculate and persist expectedDate for ALL payments
+			if (parentWasEmitido) {
+				const periodicityName = existing.buyPeriodicity?.name ?? null
+				const numAportes = existing.numAportes ?? 0
+
+				if (periodicityName && numAportes > 0) {
+					const expectedDates = calculateExpectedDates(now, numAportes, periodicityName)
+
+					// Update all payment rows with their respective expectedDate
+					const allPayments = await tx.payment.findMany({
+						where: { idBusiness: businessId },
+						orderBy: { installmentIndex: 'asc' },
+						select: { idAnnualPayment: true, installmentIndex: true },
+					})
+
+					for (const payment of allPayments) {
+						const dateIndex = payment.installmentIndex - 1
+						const expectedDate = expectedDates[dateIndex]
+						if (expectedDate != null) {
+							await tx.payment.update({
+								where: { idAnnualPayment: payment.idAnnualPayment },
+								data: { expectedDate },
+							})
+						}
+					}
+				}
+
+				await tx.business.updateMany({
+					where: {
+						idBusiness: businessId,
+						status: BUSINESS_STATUS.EMITIDO,
+					},
+					data: {
+						status: BUSINESS_STATUS.FONDEADO,
+						dateAnchored: now,
+					},
+				})
+			} else {
+				await tx.business.update({
+					where: { idBusiness: businessId },
+					data: { dateAnchored: now },
+				})
+			}
+
+			return tx.business.findUniqueOrThrow({
+				where: { idBusiness: businessId },
+				include: businessWithRelations,
+			})
+		})
+
+		await logAuditEvent({
+			userId: currentUser.idUser,
+			roleId: currentUser.idRole ?? undefined,
+			action: AuditAction.BUSINESS_PAYMENT_FUNDED,
+			email: session.user.email,
+			ipAddress: getClientIp(new Headers(request.headers)),
+			userAgent: getUserAgent(new Headers(request.headers)),
+			details: JSON.stringify({
+				businessId,
+				fundedInstallmentIndexes,
+				previousStatus: status,
+			}),
+		})
+
+		const entity = prismaBusinessToEntity(fundedBusiness)
+
+		return NextResponse.json({ data: entity })
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			error.message === 'NO_PENDING_INSTALLMENTS'
+		) {
+			return NextResponse.json(
+				{
+					data: null,
+					error:
+						'No hay aportes pendientes entre los índices seleccionados',
+				},
+				{ status: 400 }
+			)
+		}
+		console.error('Error al fondear aportes:', error)
+		return NextResponse.json(
+			{ data: null, error: 'Error interno del servidor' },
+			{ status: 500 }
+		)
+	}
+}
