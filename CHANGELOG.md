@@ -5,6 +5,13 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.1] - 2026-05-05
+
+### Infraestructura
+
+- **Docker:** Se sincronizaron los nombres de las variables de entorno de producción (`SENDGRID_*_PROD`) y se habilitó la inyección de `SUPER_ADMIN_PASSWORD` en la configuración de producción para asegurar la correcta activación de la cuenta administrativa y el envío de correos.
+
+
 ## [1.0.0] - 2026-05-01
 
 ### Añadido
