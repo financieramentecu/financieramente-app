@@ -5,6 +5,20 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.1.0] - 2026-05-07
+
+### Añadido
+
+- **Tipos de Categoría – Eliminación Lógica:** Al borrar un tipo de categoría, ahora se preservan sus datos en el sistema marcándolo como inactivo, manteniendo la integridad histórica y previniendo errores de referencias en cascada.
+- **Tipos de Categoría – Tabla Genérica:** La vista de administración se ha actualizado para utilizar el componente compartido `DataTable`, ofreciendo sincronización de filtros con la URL, ordenamiento y consistencia visual con el resto de la aplicación.
+
+### Mejorado
+
+- **Formulario de Categorías – Tipos Activos:** Al crear una nueva categoría, el selector de "Tipo de Categoría" ahora muestra exclusivamente los tipos activos.
+- **Formulario de Categorías – Edición Segura:** Si se edita una categoría antigua cuyo tipo asignado fue marcado como inactivo, este se mantendrá visible como opción de respaldo en el formulario, previniendo alteraciones involuntarias.
+- **Rendimiento:** Se creó un endpoint interno optimizado (`/active`) que elimina el procesamiento de paginación para agilizar la carga del selector de tipos de categoría en los formularios.
+
+
 ## [1.0.2] - 2026-05-07
 
 ### Añadido

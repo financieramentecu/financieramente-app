@@ -22,7 +22,7 @@ import {
 import type { Category, CategoryType } from '../types/category.types'
 import { SYSTEM_CATEGORY_TYPE_NAME } from '../types/category.types'
 import { cn } from '@/lib/utils'
-import { useCategoryTypes } from '@/features/category-types/hooks/use-category-types'
+import { useActiveCategoryTypes } from '@/features/category-types/hooks/use-active-category-types'
 import { useActiveUsers } from '../hooks/use-active-users'
 
 interface CategoryOption {
@@ -51,8 +51,17 @@ export function CategoryForm({
 	onCancel,
 	isLoading = false,
 }: CategoryFormProps) {
-	const { data: typesData } = useCategoryTypes()
-	const options = typesData?.categoryTypes.map(t => ({ id: t.id, label: t.name })) || []
+	const { state: typesState } = useActiveCategoryTypes()
+	const activeCategoryTypes = typesState.status === 'success' ? typesState.data : []
+	const options = activeCategoryTypes.map(t => ({ id: t.id, label: t.name }))
+
+	// Si estamos en edición y el tipo actual está inactivo (no viene en activeCategoryTypes), lo añadimos a las opciones
+	if (mode === 'edit' && initialData?.typeCategory) {
+		const typeName = String(initialData.typeCategory)
+		if (!options.some(opt => opt.label === typeName)) {
+			options.push({ id: -1, label: typeName })
+		}
+	}
 
 	const { state: usersState } = useActiveUsers()
 	const activeUsers = usersState.status === 'success' ? usersState.data : []
