@@ -61,7 +61,7 @@ describe('sincronizarYCalcularRegistroRezagado', () => {
 				category: {
 					idCategory: 1,
 					code: 'ASESOR',
-					beneficiaryMode: 'UPLINE_CHAIN',
+					beneficiaryMode: 'OVERRIDE',
 					idFixedBeneficiaryUser: null,
 				},
 			},

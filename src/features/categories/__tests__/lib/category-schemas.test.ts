@@ -13,6 +13,7 @@ describe('category-schemas', () => {
 				typeCategory: 'MMS' as const,
 				descripcion: 'Descripción de la categoría',
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(validData)
@@ -31,6 +32,7 @@ describe('category-schemas', () => {
 				name: '  Agente Experto  ',
 				typeCategory: 'MMS' as const,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -77,6 +79,7 @@ describe('category-schemas', () => {
 				name: 'Agente Experto',
 				typeCategory: 'MMS' as const,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -134,6 +137,7 @@ describe('category-schemas', () => {
 				name: 'AB',
 				typeCategory: 'MMS' as const,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -146,6 +150,7 @@ describe('category-schemas', () => {
 				name: 'A'.repeat(50),
 				typeCategory: 'MMS' as const,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -158,6 +163,7 @@ describe('category-schemas', () => {
 				name: 'Agente',
 				typeCategory: 'MMS' as const,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -170,6 +176,7 @@ describe('category-schemas', () => {
 				name: 'Agente',
 				typeCategory: 'ALIADO' as const,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -182,6 +189,7 @@ describe('category-schemas', () => {
 				name: 'Agente',
 				typeCategory: 'TRINITY' as const,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -197,6 +205,7 @@ describe('category-schemas', () => {
 				typeCategory: 'MMS' as const,
 				descripcion: null,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -212,6 +221,7 @@ describe('category-schemas', () => {
 				name: 'Agente',
 				typeCategory: 'MMS' as const,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -225,6 +235,7 @@ describe('category-schemas', () => {
 				typeCategory: 'MMS' as const,
 				descripcion: 'Esta es una descripción',
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -240,6 +251,7 @@ describe('category-schemas', () => {
 				name: 'Agente',
 				typeCategory: 'MMS' as const,
 				status: false,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -273,14 +285,15 @@ describe('category-schemas', () => {
 		})
 	})
 
-	describe('beneficiaryMode and idFixedBeneficiaryUser validation', () => {
-		it('should fail when FIXED_BENEFICIARY and idFixedBeneficiaryUser is null', () => {
+	describe('beneficiaryMode and idFixedBeneficiaryUser validation (legacy coverage — updated to new enum names)', () => {
+		it('should fail when BENEFICIARIO_GENERAL and idFixedBeneficiaryUser is null', () => {
 			const data = {
 				code: 'CAT001',
 				name: 'Agente',
 				typeCategory: 'MMS' as const,
 				status: true,
-				beneficiaryMode: 'FIXED_BENEFICIARY' as const,
+				color: '#FF5733',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL' as const,
 				idFixedBeneficiaryUser: null,
 			}
 
@@ -295,13 +308,14 @@ describe('category-schemas', () => {
 			}
 		})
 
-		it('should fail when FIXED_BENEFICIARY and idFixedBeneficiaryUser is undefined', () => {
+		it('should fail when BENEFICIARIO_GENERAL and idFixedBeneficiaryUser is undefined', () => {
 			const data = {
 				code: 'CAT001',
 				name: 'Agente',
 				typeCategory: 'MMS' as const,
 				status: true,
-				beneficiaryMode: 'FIXED_BENEFICIARY' as const,
+				color: '#FF5733',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL' as const,
 			}
 
 			const result = createCategorySchema.safeParse(data)
@@ -314,13 +328,14 @@ describe('category-schemas', () => {
 			}
 		})
 
-		it('should pass when UPLINE_CHAIN and idFixedBeneficiaryUser is null', () => {
+		it('should pass when OVERRIDE and idFixedBeneficiaryUser is null', () => {
 			const data = {
 				code: 'CAT001',
 				name: 'Agente',
 				typeCategory: 'MMS' as const,
 				status: true,
-				beneficiaryMode: 'UPLINE_CHAIN' as const,
+				color: '#FF5733',
+				beneficiaryMode: 'OVERRIDE' as const,
 				idFixedBeneficiaryUser: null,
 			}
 
@@ -328,50 +343,191 @@ describe('category-schemas', () => {
 			expect(result.success).toBe(true)
 		})
 
-		it('should pass when UPLINE_CHAIN and idFixedBeneficiaryUser is undefined', () => {
+		it('should pass when OVERRIDE and idFixedBeneficiaryUser is undefined', () => {
 			const data = {
 				code: 'CAT001',
 				name: 'Agente',
 				typeCategory: 'MMS' as const,
 				status: true,
-				beneficiaryMode: 'UPLINE_CHAIN' as const,
+				color: '#FF5733',
+				beneficiaryMode: 'OVERRIDE' as const,
 			}
 
 			const result = createCategorySchema.safeParse(data)
 			expect(result.success).toBe(true)
 		})
 
-		it('should pass when FIXED_BENEFICIARY and idFixedBeneficiaryUser is a valid positive integer', () => {
+		it('should pass when BENEFICIARIO_GENERAL and idFixedBeneficiaryUser is a valid positive integer', () => {
 			const data = {
 				code: 'CAT001',
 				name: 'Agente',
 				typeCategory: 'MMS' as const,
 				status: true,
-				beneficiaryMode: 'FIXED_BENEFICIARY' as const,
+				color: '#FF5733',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL' as const,
 				idFixedBeneficiaryUser: 42,
 			}
 
 			const result = createCategorySchema.safeParse(data)
 			expect(result.success).toBe(true)
 			if (result.success) {
-				expect(result.data.beneficiaryMode).toBe('FIXED_BENEFICIARY')
+				expect(result.data.beneficiaryMode).toBe('BENEFICIARIO_GENERAL')
 				expect(result.data.idFixedBeneficiaryUser).toBe(42)
 			}
 		})
 
-		it('should default beneficiaryMode to UPLINE_CHAIN when not provided', () => {
+		it('should default beneficiaryMode to OVERRIDE when not provided', () => {
 			const data = {
 				code: 'CAT001',
 				name: 'Agente',
 				typeCategory: 'MMS' as const,
 				status: true,
+				color: '#FF5733',
 			}
 
 			const result = createCategorySchema.safeParse(data)
 			expect(result.success).toBe(true)
 			if (result.success) {
-				expect(result.data.beneficiaryMode).toBe('UPLINE_CHAIN')
+				expect(result.data.beneficiaryMode).toBe('OVERRIDE')
 			}
+		})
+	})
+
+	describe('color field validation', () => {
+		it('should fail when color is missing', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				// color intentionally omitted
+			}
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const colorError = result.error.issues.find((i) => i.path[0] === 'color')
+				expect(colorError).toBeDefined()
+			}
+		})
+
+		it('should fail when color is not a valid hex color', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				color: 'red',
+			}
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const colorError = result.error.issues.find((i) => i.path[0] === 'color')
+				expect(colorError).toBeDefined()
+			}
+		})
+
+		it('should pass when color is a valid 6-digit hex color', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				color: '#FF5733',
+			}
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
+		})
+	})
+
+	describe('BENEFICIARIO_GENERAL and OVERRIDE beneficiaryMode validation', () => {
+		it('should fail when BENEFICIARIO_GENERAL and idFixedBeneficiaryUser is missing', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				color: '#FF5733',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL' as const,
+			}
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const issue = result.error.issues.find(
+					(i) => i.path[0] === 'idFixedBeneficiaryUser'
+				)
+				expect(issue).toBeDefined()
+			}
+		})
+
+		it('should pass when OVERRIDE mode without user', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				color: '#FF5733',
+				beneficiaryMode: 'OVERRIDE' as const,
+			}
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
+		})
+
+		it('should default beneficiaryMode to OVERRIDE when not provided', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				color: '#FF5733',
+			}
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.beneficiaryMode).toBe('OVERRIDE')
+			}
+		})
+	})
+
+	describe('idNextCategory field validation', () => {
+		it('should pass when idNextCategory is not provided (optional)', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				color: '#FF5733',
+			}
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
+		})
+
+		it('should pass when idNextCategory is a positive integer', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				color: '#FF5733',
+				idNextCategory: 5,
+			}
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.idNextCategory).toBe(5)
+			}
+		})
+
+		it('should pass when idNextCategory is null', () => {
+			const data = {
+				code: 'CAT001',
+				name: 'Agente',
+				typeCategory: 'MMS' as const,
+				status: true,
+				color: '#FF5733',
+				idNextCategory: null,
+			}
+			const result = createCategorySchema.safeParse(data)
+			expect(result.success).toBe(true)
 		})
 	})
 

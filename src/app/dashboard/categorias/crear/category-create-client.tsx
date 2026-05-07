@@ -4,6 +4,7 @@ import React, { useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CategoryForm } from '@/features/categories/components/category-form'
 import { useCategoryMutations } from '@/features/categories/hooks/use-category-mutations'
+import { useCategories } from '@/features/categories/hooks/use-categories'
 import type {
 	CreateCategoryFormData,
 	UpdateCategoryFormData,
@@ -16,6 +17,14 @@ import { toast } from 'sonner'
 export function CategoryCreateClient() {
 	const router = useRouter()
 	const { createCategory, createState } = useCategoryMutations()
+	const { state: categoriesState } = useCategories({ pageSize: 100 })
+	const allCategories =
+		categoriesState.status === 'success'
+			? categoriesState.data.categories.map((c) => ({
+					idCategory: c.idCategory,
+					name: c.name,
+				}))
+			: []
 
 	const handleSubmit = useCallback(
 		async (data: CreateCategoryFormData | UpdateCategoryFormData) => {
@@ -51,6 +60,7 @@ export function CategoryCreateClient() {
 
 				<CategoryForm
 					mode="create"
+					categories={allCategories}
 					onSubmit={handleSubmit}
 					onCancel={handleCancel}
 					isLoading={createState.status === 'loading'}

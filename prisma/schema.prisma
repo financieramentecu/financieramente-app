@@ -43,20 +43,25 @@ model Category {
   code                                  String                                @unique @db.VarChar(20)
   name                                  String                                @db.VarChar(50)
   descripcion                           String?
+  color                                 String                                @default("#cccccc") @db.VarChar(7)
   status                                Boolean                               @default(true)
   createdAt                             DateTime                              @default(now()) @map("created_at")
   updatedAt                             DateTime                              @updatedAt @map("updated_at")
   idCategoryType                        Int                                   @map("id_category_type")
-  beneficiaryMode                       BeneficiaryMode                       @default(UPLINE_CHAIN) @map("beneficiary_mode")
+  beneficiaryMode                       BeneficiaryMode                       @default(OVERRIDE) @map("beneficiary_mode")
   idFixedBeneficiaryUser                Int?                                  @map("id_fixed_beneficiary_user")
+  idNextCategory                        Int?                                  @map("id_next_category")
   categoryType                          CategoryType                          @relation(fields: [idCategoryType], references: [id])
   fixedBeneficiaryUser                  User?                                 @relation("CategoryFixedBeneficiary", fields: [idFixedBeneficiaryUser], references: [idUser])
+  nextCategory                          Category?                             @relation("CategorySequence", fields: [idNextCategory], references: [idCategory])
+  previousCategories                    Category[]                            @relation("CategorySequence")
   productConfigurations                 ProductConfiguration[]
   productPercentageCommissionCategories ProductPercentageCommissionCategory[]
   users                                 User[]
 
   @@index([idCategoryType])
   @@index([idFixedBeneficiaryUser])
+  @@index([idNextCategory])
   @@map("category")
 }
 
@@ -502,8 +507,8 @@ model DistributionApproval {
 }
 
 enum BeneficiaryMode {
-  UPLINE_CHAIN
-  FIXED_BENEFICIARY
+  OVERRIDE
+  BENEFICIARIO_GENERAL
 }
 
 enum AnnualPaymentStatus {

@@ -45,7 +45,7 @@ export function resolveBeneficiaryUserId(
 	category: CategoryForBeneficiaryResolve,
 	chain: ReadonlyArray<UplineChainLink>
 ): ResolveBeneficiaryResult {
-	if (category.beneficiaryMode === 'FIXED_BENEFICIARY') {
+	if (category.beneficiaryMode === 'BENEFICIARIO_GENERAL') {
 		console.log(`[DEBUG] Resolviendo FIXED para ${category.code} -> idFixedUser: ${category.idFixedBeneficiaryUser}`)
 		if (category.idFixedBeneficiaryUser == null) {
 			return {
@@ -163,5 +163,5 @@ export async function buildUplineChain(
 export function ppcConfigsNeedUplineAgent(
 	configs: ReadonlyArray<{ category: { beneficiaryMode: BeneficiaryMode } }>
 ): boolean {
-	return configs.some((c) => c.category.beneficiaryMode === 'UPLINE_CHAIN')
+	return configs.some((c) => c.category.beneficiaryMode === 'OVERRIDE')
 }

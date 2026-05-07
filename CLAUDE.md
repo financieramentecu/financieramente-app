@@ -238,4 +238,26 @@ Before creating a PR:
 - **Hooks with async calls** must use the shared type `AsyncState<T>` from `src/features/shared/types/async-state.types.ts`. Do **not** manage three separate states (e.g. `isLoading`, `data`, `error` with multiple `useState`). Use a single discriminated state (`idle` | `loading` | `success` | `error`) for consistent UI and type narrowing.
 
 See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed architecture guidelines.
+
+### Soft Delete (eliminación lógica)
+
+- **NEVER use `prisma.model.delete()`** anywhere in the codebase. All deletions MUST be logical: set `status = false` via `prisma.model.update({ data: { status: false } })`.
+- This applies to ALL entities across ALL features. Physical deletes are prohibited.
+- API DELETE handlers return `{ success: true }` after the status update — no content body change needed.
+
+### Audit Log (monitoreo de cambios)
+
+- **ALL data-mutating operations MUST log to `AuditLog`** using `logAuditEvent()` from `src/features/auth/lib/audit-logger.ts`.
+- Applies to: create, update, deactivate (soft delete) on ANY entity.
+- Add new `AuditAction` enum values to `audit-logger.ts` following the pattern `ENTITY_ACTION` (e.g. `CATEGORY_CREATED`, `CATEGORY_UPDATED`, `CATEGORY_DEACTIVATED`).
+- Always include: `userId` (from session), `email`, `ipAddress` (`getClientIp(headers)`), `userAgent` (`getUserAgent(headers)`), and a human-readable `details` string.
+- `logAuditEvent` never throws — errors are swallowed internally so they never block the main flow.
+
+### ERD (Entity Relationship Diagram)
+
+- **ALWAYS update `prisma/ERD.md`** whenever `prisma/schema.prisma` changes — new models, new fields, removed fields, FK changes, or enum value renames.
+- Update the three sections in order: (1) `**Enums**` block at the top, (2) the relationship lines in the `erDiagram`, (3) the entity field list in the diagram.
+- Add a note under `## Índices y convenciones` for any non-obvious change (self-referential FKs, enum renames, composite uniques, etc.).
+- The ERD is the single source of truth for onboarding and cross-feature impact analysis — keep it accurate.
+
 - Git: Use Git Flow (feature/, bugfix/, audit/, hotfix/). Branch from 'develop'. Commits MUST follow Conventional Commits (feat:, fix:, chore:, docs:, refactor:, audit:). PRs must use the provided template.
