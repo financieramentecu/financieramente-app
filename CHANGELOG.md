@@ -5,6 +5,20 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.2.0] - 2026-05-07
+
+### Añadido
+
+- **Negocios – Búsqueda de Agentes:** El campo de búsqueda de agente ahora muestra la categoría del asesor directamente en los resultados del autocompletado, facilitando la identificación.
+- **Configuración de Producto – Eliminación Lógica:** La desactivación de configuraciones de producto y reglas de distribución ahora utiliza un borrado lógico (soft delete) para mantener la integridad histórica.
+- **Configuración de Producto – Auditoría:** Agregados registros de auditoría obligatorios para la creación, actualización y desactivación de configuraciones de producto y sus reglas de distribución.
+
+### Mejorado
+
+- **Configuración de Producto – Independencia del Origen:** La clave de unicidad y el código generado para la configuración de productos ya no incluyen el segmento de Origen del cliente. La asignación de comisiones ahora se realiza exclusivamente mediante la combinación de Producto y Categoría, simplificando significativamente el modelo de datos.
+- **Negocios – Resolución de Comisión:** Al crear un nuevo negocio, el sistema resuelve la comisión aplicable basándose únicamente en el producto y categoría, eliminando la dependencia rígida del origen del cliente.
+
+
 ## [1.1.0] - 2026-05-07
 
 ### Añadido
