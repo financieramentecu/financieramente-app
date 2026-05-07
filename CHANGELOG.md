@@ -5,6 +5,26 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.3.0] - 2026-05-07
+
+### Añadido
+
+- **Administración – Asignación Jerárquica:** Nueva interfaz administrativa para asignar Categoría y Líder a los usuarios. El sistema filtra dinámicamente las categorías de tipo `OVERRIDE` y los líderes disponibles basados en el nivel jerárquico superior (`idNextCategory`).
+- **Administración – UX Jerárquica:** Etiquetas dinámicas en los selectores que indican el nombre de la categoría superior (ej. "Líder (COACH)") y feedback visual de "Nivel Máximo" cuando no hay niveles superiores configurados.
+- **Usuarios – Tabla de Gestión:** Se añadieron columnas de Categoría y Líder a la tabla principal de usuarios para una auditoría visual rápida del árbol jerárquico.
+
+### Mejorado
+
+- **Seguridad – Activación de Usuarios:** El acceso al sistema ahora se rige estrictamente por el estado `active: false`. Los usuarios nuevos creados automáticamente quedan bloqueados y con el rol `AGENTE` por defecto, requiriendo activación manual por un administrador.
+- **Notificaciones – Registro de Usuario:** Se centralizó el envío de correos electrónicos a administradores en la capa de creación de usuarios, eliminando notificaciones duplicadas y asegurando una traza de auditoría única.
+- **Roles – Simplificación:** Eliminado el rol legacy `DEFAULT`. Todos los nuevos integrantes asumen el rol `AGENTE` desde su primer inicio de sesión, manteniendo la restricción de acceso hasta su aprobación.
+
+### Interno
+
+- **Pruebas – Cobertura de Activación:** Suite de pruebas unitarias actualizada para validar el nuevo flujo de creación con rol `AGENTE` y bloqueo por inactividad.
+- **API Admin:** Refactorización del endpoint de usuarios para soportar filtros jerárquicos y relaciones de líder/categoría.
+
+
 ## [1.2.0] - 2026-05-07
 
 ### Añadido
