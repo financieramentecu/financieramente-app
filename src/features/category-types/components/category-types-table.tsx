@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { Input } from '@/features/shared/ui/input'
+import React, { useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Plus, Pencil, Trash2, RotateCcw } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import {
     Select,
@@ -21,300 +22,179 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/features/shared/ui/alert-dialog'
+import { DataTable } from '@/features/shared/ui/DataTable'
+import { useDataTableURLState } from '@/features/shared/ui/DataTable/useDataTableURLState'
 
 import { useCategoryTypes } from '../hooks/use-category-types'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { Search, Plus, Edit, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
-import { useDebounce } from '@/features/shared/hooks/use-debounce'
 import { useCategoryTypeMutations } from '../hooks/use-category-type-mutations'
+import { getCategoryTypesColumns } from './category-types-columns'
 import { CategoryType } from '../types/category-type.types'
 
-
-function StatusBadge({ status }: { status: boolean }) {
-    return (
-        <span
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-            style={
-                status
-                    ? { backgroundColor: '#dcfce7', color: '#166534' }
-                    : { backgroundColor: '#F1F5F5', color: '#529398' }
-            }
-        >
-            <span
-                className="inline-block rounded-full"
-                style={{
-                    width: 5,
-                    height: 5,
-                    backgroundColor: status ? '#16A34A' : '#DDE9EB',
-                    flexShrink: 0,
-                }}
-            />
-            {status ? 'Activo' : 'Inactivo'}
-        </span>
-    )
-}
-
 export function CategoryTypesTable() {
-    const router = useRouter()
-    const pathname = usePathname()
-    const searchParams = useSearchParams()
+    // --- State & URL Sync ---
+    const { pagination: urlPagination, columnFilters, setURLState } = useDataTableURLState()
+    
+    // Extract filters from TanStack structure
+    const searchFilter = columnFilters.find(f => f.id === 'search')?.value as string || ''
+    const statusFilter = columnFilters.find(f => f.id === 'status')?.value as string || ''
+    
+    const filters = useMemo(() => ({
+        search: searchFilter,
+        status: statusFilter
+    }), [searchFilter, statusFilter])
 
-    const currentSearch = searchParams.get('search') || ''
-    const currentStatus = searchParams.get('status') || ''
-    const currentPage = Number(searchParams.get('page')) || 1
-
-    const [searchTerm, setSearchTerm] = useState(currentSearch)
-    const [statusFilter, setStatusFilter] = useState(currentStatus)
-    const debouncedSearch = useDebounce(searchTerm, 500)
-
-    const debouncedFilters = { search: debouncedSearch, status: statusFilter }
-
-    const { data, status, error, setPage, refetch } = useCategoryTypes(
-        debouncedFilters,
-        currentPage,
-        10
+    const { data, status, refetch, setPage } = useCategoryTypes(
+        filters,
+        urlPagination.pageIndex + 1,
+        urlPagination.pageSize
     )
+
+    // --- Mutations ---
     const { toggleCategoryTypeStatus, deleteCategoryType } = useCategoryTypeMutations()
     const [deleteId, setDeleteId] = useState<number | null>(null)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-    const loading = status === 'loading'
-    
-    const handleDeleteClick = (id: number) => {
+
+    // --- Handlers ---
+    const handleToggleStatus = useCallback(async (e: React.MouseEvent, id: number, currentStatus: boolean) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const success = await toggleCategoryTypeStatus(id, currentStatus)
+        if (success) refetch()
+    }, [toggleCategoryTypeStatus, refetch])
+
+    const handleDeleteClick = useCallback((e: React.MouseEvent, id: number) => {
+        e.preventDefault()
+        e.stopPropagation()
         setDeleteId(id)
         setIsDeleteDialogOpen(true)
-    }
+    }, [])
 
     const handleConfirmDelete = async () => {
         if (deleteId !== null) {
             const success = await deleteCategoryType(deleteId)
-            if (success) {
-                refetch()
-            }
+            if (success) refetch()
             setDeleteId(null)
             setIsDeleteDialogOpen(false)
         }
     }
 
+    // --- DataTable Config ---
+    const columns = useMemo(() => getCategoryTypesColumns(), [])
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleGlobalSearch = useCallback((query: string) => {
+        setURLState({
+            filters: [
+                ...columnFilters.filter(f => f.id !== 'search'),
+                ...(query ? [{ id: 'search', value: query }] : [])
+            ],
+            pagination: { ...urlPagination, pageIndex: 0 }
+        })
+    }, [columnFilters, urlPagination, setURLState])
 
-        setSearchTerm(e.target.value)
-        updateQueryParams('search', e.target.value)
-    }
+    const handleStatusChange = useCallback((value: string) => {
+        const nextStatus = value === 'all' ? '' : value
+        setURLState({
+            filters: [
+                ...columnFilters.filter(f => f.id !== 'status'),
+                ...(nextStatus ? [{ id: 'status', value: nextStatus }] : [])
+            ],
+            pagination: { ...urlPagination, pageIndex: 0 }
+        })
+    }, [columnFilters, urlPagination, setURLState])
 
-    const handleStatusChange = (value: string) => {
-        const newStatus = value === 'all' ? '' : value
-        setStatusFilter(newStatus)
-        updateQueryParams('status', newStatus)
-    }
-
-    const handlePageChange = (newPage: number) => {
+    const handlePageChange = useCallback((newPage: number) => {
         setPage(newPage)
-        updateQueryParams('page', newPage.toString())
-    }
+        setURLState({
+            pagination: { ...urlPagination, pageIndex: newPage - 1 }
+        })
+    }, [urlPagination, setPage, setURLState])
 
-    const handleToggleStatus = async (id: number, currentStatus: boolean) => {
-        const success = await toggleCategoryTypeStatus(id, currentStatus)
-        if (success) {
-            refetch()
-        }
-    }
+    const renderAdditionalFilters = useCallback(() => (
+        <Select value={statusFilter || 'all'} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="true">Activos</SelectItem>
+                <SelectItem value="false">Inactivos</SelectItem>
+            </SelectContent>
+        </Select>
+    ), [statusFilter, handleStatusChange])
 
-    const updateQueryParams = (key: string, value: string) => {
-        const params = new URLSearchParams(searchParams)
-        if (value) {
-            params.set(key, value)
-        } else {
-            params.delete(key)
-        }
-        if (key !== 'page') {
-            params.delete('page')
-            setPage(1)
-        }
-        router.replace(`${pathname}?${params.toString()}`)
-    }
+    const renderActions = useCallback((type: CategoryType) => (
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                title="Editar"
+                className="h-8 w-8 cursor-pointer"
+            >
+                <Link href={`/dashboard/admin/category-types/editar/${type.id}`}>
+                    <Pencil className="h-4 w-4" />
+                </Link>
+            </Button>
+            
+            {type.status ? (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => handleDeleteClick(e, type.id)}
+                    title="Eliminar"
+                    className="h-8 w-8 text-destructive hover:text-destructive cursor-pointer"
+                >
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            ) : (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => handleToggleStatus(e, type.id, type.status)}
+                    title="Restaurar"
+                    className="h-8 w-8 text-emerald-500 hover:text-emerald-600 cursor-pointer"
+                >
+                    <RotateCcw className="h-4 w-4" />
+                </Button>
+            )}
+        </div>
+    ), [handleToggleStatus, handleDeleteClick])
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between gap-4">
-                <div className="flex flex-1 items-center space-x-2">
-                    <div className="relative w-full sm:w-[300px]">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Buscar tipo de categoría..."
-                            className="pl-8"
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                        />
-                    </div>
-                    <Select value={statusFilter || 'all'} onValueChange={handleStatusChange}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todos los estados</SelectItem>
-                            <SelectItem value="true">Activos</SelectItem>
-                            <SelectItem value="false">Inactivos</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <Button onClick={() => router.push('/dashboard/admin/category-types/crear')}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nuevo Tipo
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 className="text-xl font-semibold">Tipos de Categoría</h2>
+                <Button asChild className="cursor-pointer">
+                    <Link href="/dashboard/admin/category-types/crear">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nuevo Tipo
+                    </Link>
                 </Button>
             </div>
 
-            <div
-                className="overflow-hidden rounded-lg"
-                style={{
-                    border: '1px solid #DDE9EB',
-                    boxShadow: '0 1px 3px #0000000D',
-                    backgroundColor: '#FFFFFF',
-                }}
-            >
-                {/* Header */}
-                <div
-                    className="flex items-center px-4"
-                    style={{
-                        backgroundColor: '#F1F5F5',
-                        height: 40,
-                        borderBottom: '1px solid #DDE9EB',
-                    }}
-                >
-                    <span className="w-[280px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
-                        NOMBRE / DESCRIPCIÓN
-                    </span>
-                    <span className="w-[120px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
-                        ESTADO
-                    </span>
-                    <span className="w-[140px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
-                        MODIFICADO
-                    </span>
-                    <span className="flex-1 text-right text-[11px] font-semibold tracking-[0.5px]" style={{ color: '#529398' }}>
-                        ACCIONES
-                    </span>
-                </div>
-
-                {/* Rows */}
-                {loading ? (
-                    <div className="py-10 text-center text-sm" style={{ color: '#529398' }}>
-                        Cargando...
-                    </div>
-                ) : error ? (
-                    <div className="py-10 text-center text-sm text-red-500">
-                        Error al cargar los tipos de categoría
-                    </div>
-                ) : !data?.categoryTypes.length ? (
-                    <div className="py-10 text-center text-sm" style={{ color: '#529398' }}>
-                        No se encontraron resultados
-                    </div>
-                ) : (
-                    data.categoryTypes.map((type: CategoryType, idx: number) => {
-                        const isLast = idx === data.categoryTypes.length - 1
-                        return (
-                            <div
-                                key={type.id}
-                                className="flex items-center px-4"
-                                style={{
-                                    backgroundColor: type.status ? '#FFFFFF' : '#FAFAFA',
-                                    height: 54,
-                                    borderBottom: isLast ? 'none' : '1px solid #F1F5F5',
-                                }}
-                            >
-                                {/* Nombre + descripción */}
-                                <div className="w-[280px] shrink-0 flex flex-col justify-center gap-0.5">
-                                    <span
-                                        className="text-[13px] font-medium leading-tight"
-                                        style={{ color: type.status ? '#111827' : '#529398' }}
-                                    >
-                                        {type.name}
-                                    </span>
-                                    <span className="text-[11px] truncate pr-4" style={{ color: type.status ? '#529398' : '#DDE9EB' }}>
-                                        {type.description || <span className="italic">Sin descripción</span>}
-                                    </span>
-                                </div>
-
-                                {/* Estado */}
-                                <div className="w-[120px] shrink-0">
-                                    <StatusBadge status={type.status} />
-                                </div>
-
-                                {/* Modificado */}
-                                <div className="w-[140px] shrink-0">
-                                    <span className="text-[12px]" style={{ color: type.status ? '#529398' : '#DDE9EB' }}>
-                                        {format(new Date(type.updatedAt), 'dd MMM yyyy', { locale: es })}
-                                    </span>
-                                </div>
-
-                                {/* Acciones */}
-                                <div className="flex-1 flex justify-end gap-2">
-                                    <button
-                                        onClick={() => router.push(`/dashboard/admin/category-types/editar/${type.id}`)}
-                                        className="cursor-pointer rounded-md px-1 py-1 hover:bg-slate-100 transition-colors"
-                                    >
-                                        <Edit className="h-4 w-4 text-slate-500" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleToggleStatus(type.id, type.status)}
-                                        className="cursor-pointer rounded-md px-2.5 py-1 text-[12px] font-medium transition-opacity hover:opacity-80"
-                                        style={
-                                            type.status
-                                                ? { backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#ED4337' }
-                                                : { backgroundColor: '#F1FDF4', border: '1px solid #DCFCE7', color: '#166534' }
-                                        }
-                                    >
-                                        {type.status ? 'Inactivar' : 'Activar'}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteClick(type.id)}
-                                        className="cursor-pointer rounded-md px-1.5 py-1 hover:bg-red-50 transition-colors"
-                                        title="Eliminar"
-                                    >
-                                        <Trash2 className="h-4 w-4 text-red-500" />
-                                    </button>
-
-
-                                </div>
-                            </div>
-                        )
-                    })
-                )}
-            </div>
-
-            {data && data.pagination.totalPages > 1 && (
-                <div className="flex items-center justify-end space-x-2 py-4">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(data.pagination.page - 1)}
-                        disabled={data.pagination.page === 1 || loading}
-                    >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Anterior
-                    </Button>
-                    <div className="text-sm text-muted-foreground whitespace-nowrap">
-                        Página {data.pagination.page} de {data.pagination.totalPages}
-                    </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePageChange(data.pagination.page + 1)}
-                        disabled={data.pagination.page === data.pagination.totalPages || loading}
-                    >
-                        Siguiente
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                </div>
-            )}
+            <DataTable
+                data={data?.categoryTypes || []}
+                columns={columns}
+                loading={status === 'loading'}
+                searchable
+                searchPlaceholder="Buscar tipo de categoría..."
+                onGlobalSearch={handleGlobalSearch}
+                manualPagination
+                currentPage={data?.pagination.page}
+                pageSize={data?.pagination.pageSize}
+                totalItems={data?.pagination.total}
+                onPageChange={handlePageChange}
+                renderAdditionalFilters={renderAdditionalFilters}
+                actions={renderActions}
+            />
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>¿Está seguro de que desea eliminar?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Esto eliminará permanentemente el
-                            tipo de categoría si no tiene subcategorías o referencias activas.
+                            Esta acción realizará una eliminación lógica (inactivación). 
+                            El tipo de categoría permanecerá en el sistema pero no podrá ser seleccionado en nuevos registros.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -331,6 +211,5 @@ export function CategoryTypesTable() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
-
     )
 }
