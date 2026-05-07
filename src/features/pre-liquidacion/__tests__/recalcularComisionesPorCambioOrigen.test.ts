@@ -19,7 +19,7 @@ vi.mock('@/lib/prisma', () => ({
 		business: { findUnique: vi.fn(), update: vi.fn() },
 		productConfiguration: { findFirst: vi.fn() },
 		settlementCommission: { findMany: vi.fn() },
-		comissionDistribution: { deleteMany: vi.fn(), create: vi.fn() },
+		comissionDistribution: { updateMany: vi.fn(), create: vi.fn() },
 		clawback: { deleteMany: vi.fn(), create: vi.fn() },
 		productPercentageCommissionCategory: { findMany: vi.fn() },
 		user: { findUnique: vi.fn() },
@@ -142,9 +142,10 @@ describe('recalcularComisionesPorCambioOrigen', () => {
 			}),
 		})
 
-		// verify deletions
-		expect(prisma.comissionDistribution.deleteMany).toHaveBeenCalledWith({
+		// verify soft delete (updateMany instead of deleteMany)
+		expect(prisma.comissionDistribution.updateMany).toHaveBeenCalledWith({
 			where: { idSettlementCommission: { in: [100] } },
+			data: { isActive: false },
 		})
 		expect(prisma.clawback.deleteMany).toHaveBeenCalledWith({
 			where: { 

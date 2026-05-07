@@ -72,8 +72,14 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const selectedProduct = watch('producto')
 	const documentValue = watch('identityNumber')
 
+	// Roles que siempre tienen habilitada la búsqueda (sin esperar el documento)
+	const isPrivilegedRole =
+		currentUser?.role?.code === UserRole.ADMIN ||
+		currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
+
 	// Determinar si los campos deben estar bloqueados
-	const isBlocked = !documentValue || documentValue.length < 5
+	const isBlocked =
+		!isPrivilegedRole && (!documentValue || documentValue.length < 5)
 
 	// Usar hook de filtrado de productos
 	const { filteredProducts } = useProductFilter({

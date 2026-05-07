@@ -49,7 +49,7 @@ interface UseProductConfigurationFormProps {
 }
 
 interface UseProductConfigurationFormReturn {
-	form: UseFormReturn<CreateProductConfigurationFormData>
+	form: UseFormReturn<CreateProductConfigurationFormData, unknown, CreateProductConfigurationFormData>
 	companiesState: AsyncState<CompanyOption[]>
 	productsState: AsyncState<ProductOption[]>
 	clientOriginsState: AsyncState<ClientOriginOption[]>
@@ -72,7 +72,6 @@ export function useProductConfigurationForm({
 		defaultValues: {
 			idCompany: initialData?.product.company.idCompany ?? 0,
 			idProduct: initialData?.idProduct ?? 0,
-			idClientOrigin: initialData?.idClientOrigin ?? 0,
 			idCategory: initialData?.idCategory ?? 0,
 		},
 	})

@@ -24,6 +24,7 @@ export const useSearchAgents = () => {
 				const params = new URLSearchParams({
 					query: query.trim(),
 					limit: '10',
+					beneficiaryMode: 'OVERRIDE',
 				})
 
 				// add role if provided

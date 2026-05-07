@@ -13,9 +13,6 @@ vi.mock('@/lib/prisma', () => ({
 		product: {
 			findUnique: vi.fn(),
 		},
-		clientOrigin: {
-			findUnique: vi.fn(),
-		},
 		category: {
 			findUnique: vi.fn(),
 		},
@@ -32,8 +29,28 @@ vi.mock('@/lib/prisma', () => ({
 		productPercentageCommissionCategory: {
 			findMany: vi.fn(),
 		},
+		auditLog: {
+			create: vi.fn(),
+		},
 		$transaction: vi.fn((callback) => callback(prisma)),
 	},
+}))
+
+vi.mock('@/auth', () => ({
+	auth: vi.fn().mockResolvedValue({
+		user: { id: '1', email: 'admin@test.com' },
+	}),
+}))
+
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	logAuditEvent: vi.fn().mockResolvedValue(undefined),
+	AuditAction: {
+		PRODUCT_CONFIGURATION_CREATED: 'PRODUCT_CONFIGURATION_CREATED',
+		PRODUCT_CONFIGURATION_UPDATED: 'PRODUCT_CONFIGURATION_UPDATED',
+		PRODUCT_CONFIGURATION_DEACTIVATED: 'PRODUCT_CONFIGURATION_DEACTIVATED',
+	},
+	getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
+	getUserAgent: vi.fn().mockReturnValue('test-agent'),
 }))
 
 vi.mock(
@@ -68,7 +85,6 @@ vi.mock('next/server', () => ({
 
 describe('POST /api/product-configurations', () => {
 	const mockPrismaProduct = vi.mocked(prisma.product.findUnique)
-	const mockPrismaOrigin = vi.mocked(prisma.clientOrigin.findUnique)
 	const mockPrismaCategory = vi.mocked(prisma.category.findUnique)
 	const mockPrismaConfig = vi.mocked(prisma.productConfiguration.findUnique)
 	const mockPrismaConfigCreate = vi.mocked(prisma.productConfiguration.create)
@@ -87,7 +103,6 @@ describe('POST /api/product-configurations', () => {
 			const requestBody = {
 				idCompany: 999, // HACKER TRYING TO INJECT INTO COMPANY 999
 				idProduct: 1,
-				idClientOrigin: 1,
 				idCategory: 1,
 			}
 
@@ -120,11 +135,10 @@ describe('POST /api/product-configurations', () => {
 	})
 
 	describe('Happy Path', () => {
-		it('debe crear configuración exitosamente', async () => {
+		it('debe crear configuración exitosamente sin idClientOrigin', async () => {
 			const requestBody = {
 				idCompany: 1,
 				idProduct: 1,
-				idClientOrigin: 1,
 				idCategory: 1,
 			}
 
@@ -137,11 +151,6 @@ describe('POST /api/product-configurations', () => {
 				idCompany: 1,
 				status: true,
 				company: { name: 'Company A' },
-			} as any)
-			mockPrismaOrigin.mockResolvedValue({
-				idClientOrigin: 1,
-				name: 'Origin A',
-				status: true,
 			} as any)
 			mockPrismaCategory.mockResolvedValue({
 				idCategory: 1,
@@ -176,6 +185,14 @@ describe('POST /api/product-configurations', () => {
 					data: expect.objectContaining({
 						idProduct: 1,
 						code: 'TEST-CODE-123',
+					}),
+				})
+			)
+			// Ensure idClientOrigin is NOT in the create call
+			expect(mockPrismaConfigCreate).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.not.objectContaining({
+						idClientOrigin: expect.anything(),
 					}),
 				})
 			)
@@ -215,7 +232,6 @@ describe('GET /api/product-configurations', () => {
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				product: { name: 'P1', company: { name: 'Comp1' } },
-				clientOrigin: { name: 'O1' },
 				category: { name: 'Cat1' },
 			},
 			{
@@ -225,7 +241,6 @@ describe('GET /api/product-configurations', () => {
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				product: { name: 'P2', company: { name: 'Comp2' } },
-				clientOrigin: { name: 'O2' },
 				category: { name: 'Cat2' },
 			},
 		] as any)
@@ -259,7 +274,6 @@ describe('GET /api/product-configurations', () => {
 				id: 1,
 				code: 'TEST',
 				product: { name: 'P' },
-				clientOrigin: { name: 'O' },
 				category: { name: 'C' },
 			},
 		] as any)

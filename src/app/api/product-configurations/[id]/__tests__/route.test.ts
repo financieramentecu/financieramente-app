@@ -16,7 +16,27 @@ vi.mock('@/lib/prisma', () => ({
 		productPercentageCommission: {
 			findUnique: vi.fn(),
 		},
+		auditLog: {
+			create: vi.fn(),
+		},
 	},
+}))
+
+vi.mock('@/auth', () => ({
+	auth: vi.fn().mockResolvedValue({
+		user: { id: '1', email: 'admin@test.com' },
+	}),
+}))
+
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	logAuditEvent: vi.fn().mockResolvedValue(undefined),
+	AuditAction: {
+		PRODUCT_CONFIGURATION_CREATED: 'PRODUCT_CONFIGURATION_CREATED',
+		PRODUCT_CONFIGURATION_UPDATED: 'PRODUCT_CONFIGURATION_UPDATED',
+		PRODUCT_CONFIGURATION_DEACTIVATED: 'PRODUCT_CONFIGURATION_DEACTIVATED',
+	},
+	getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
+	getUserAgent: vi.fn().mockReturnValue('test-agent'),
 }))
 
 vi.mock(

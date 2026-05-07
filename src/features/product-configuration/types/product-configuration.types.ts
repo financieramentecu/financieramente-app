@@ -8,7 +8,6 @@
 export interface ProductConfiguration extends Record<string, unknown> {
 	readonly id: number
 	readonly idProduct: number
-	readonly idClientOrigin: number
 	readonly idCategory: number
 	code: string
 	active: boolean
@@ -20,7 +19,6 @@ export interface ProductConfiguration extends Record<string, unknown> {
 		name: string
 		company: { readonly idCompany: number; name: string }
 	}
-	clientOrigin: { readonly idClientOrigin: number; name: string }
 	category: { readonly idCategory: number; name: string }
 	ppcNewBusinesses: {
 		readonly id: number
@@ -42,7 +40,6 @@ export interface ProductConfiguration extends Record<string, unknown> {
 export interface CreateProductConfigurationInput {
 	idCompany: number
 	idProduct: number
-	idClientOrigin: number
 	idCategory: number
 }
 

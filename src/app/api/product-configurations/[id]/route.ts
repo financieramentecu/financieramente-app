@@ -5,6 +5,13 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { ProductConfiguration } from '@/features/product-configuration/types/product-configuration.types'
 import { z } from 'zod'
 import { prismaProductConfigToProductConfig } from '@/features/product-configuration/mappers/product-configuration.mapper'
+import { auth } from '@/auth'
+import {
+	logAuditEvent,
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+} from '@/features/auth/lib/audit-logger'
 
 /**
  * Shared Prisma include for ProductConfiguration queries
@@ -18,9 +25,6 @@ const productConfigurationInclude = {
 				select: { idCompany: true, name: true },
 			},
 		},
-	},
-	clientOrigin: {
-		select: { idClientOrigin: true, name: true },
 	},
 	category: {
 		select: { idCategory: true, name: true },
@@ -90,6 +94,8 @@ export async function PUT(
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
+		const session = await auth()
+		const headers = request.headers
 		const { id } = await params
 		const configId = parseInt(id)
 		const body = await request.json()
@@ -142,6 +148,15 @@ export async function PUT(
 			include: productConfigurationInclude,
 		})
 
+		await logAuditEvent({
+			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
+			action: AuditAction.PRODUCT_CONFIGURATION_UPDATED,
+			email: session?.user?.email ?? undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `ProductConfiguration ${configId} actualizada: idProductPercentageCommissionNewBusinesses=${data.idProductPercentageCommissionNewBusinesses}`,
+		})
+
 		const configFormatted = prismaProductConfigToProductConfig(config)
 
 		const response: ApiResponse<ProductConfiguration> = {
@@ -188,6 +203,8 @@ export async function PATCH(
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
+		const session = await auth()
+		const headers = request.headers
 		const { id } = await params
 		const configId = parseInt(id)
 		const body = await request.json()
@@ -213,11 +230,22 @@ export async function PATCH(
 			return NextResponse.json(errorResponse, { status: 404 })
 		}
 
-		// Update active status
+		// Update active status (soft delete when active = false)
 		const config = await prisma.productConfiguration.update({
 			where: { id: configId },
 			data: { active: body.active },
 			include: productConfigurationInclude,
+		})
+
+		await logAuditEvent({
+			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
+			action: body.active
+				? AuditAction.PRODUCT_CONFIGURATION_UPDATED
+				: AuditAction.PRODUCT_CONFIGURATION_DEACTIVATED,
+			email: session?.user?.email ?? undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `ProductConfiguration ${configId} ${body.active ? 'activada' : 'desactivada'}`,
 		})
 
 		const configFormatted = prismaProductConfigToProductConfig(config)
