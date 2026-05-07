@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { POST, GET } from '../route'
 import { prisma } from '@/lib/prisma'
 import { createProductConfigurationSchema } from '@/features/product-configuration/lib/product-configuration-schemas'
-import { NextResponse } from 'next/server'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { z } from 'zod'
 
 // Mock modules
@@ -180,6 +180,11 @@ describe('POST /api/product-configurations', () => {
 			const response = await POST(request)
 
 			expect(response.status).toBe(201)
+			expect(vi.mocked(logAuditEvent)).toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: AuditAction.PRODUCT_CONFIGURATION_CREATED,
+				})
+			)
 			expect(mockPrismaConfigCreate).toHaveBeenCalledWith(
 				expect.objectContaining({
 					data: expect.objectContaining({

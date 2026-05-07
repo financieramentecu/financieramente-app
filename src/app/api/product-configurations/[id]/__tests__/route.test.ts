@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PUT, PATCH } from '../route'
 import { prisma } from '@/lib/prisma'
 import { updateProductConfigurationSchema } from '@/features/product-configuration/lib/product-configuration-schemas'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
 
 // Mock modules
@@ -115,6 +116,11 @@ describe('PUT /api/product-configurations/[id]', () => {
 				data: { idProductPercentageCommissionNewBusinesses: ppcId },
 			})
 		)
+		expect(vi.mocked(logAuditEvent)).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: AuditAction.PRODUCT_CONFIGURATION_UPDATED,
+			})
+		)
 	})
 
 	it('should return 404 if configuration not found', async () => {
@@ -194,6 +200,11 @@ describe('PATCH /api/product-configurations/[id]', () => {
 			expect.objectContaining({
 				where: { id: configId },
 				data: { active },
+			})
+		)
+		expect(vi.mocked(logAuditEvent)).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: AuditAction.PRODUCT_CONFIGURATION_DEACTIVATED,
 			})
 		)
 	})

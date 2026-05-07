@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { NextRequest } from 'next/server'
 import { PUT } from '../route'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 
 const createMany = vi.fn()
 const deleteMany = vi.fn()
@@ -101,6 +102,11 @@ describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]'
 				}),
 			],
 		})
+		expect(vi.mocked(logAuditEvent)).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: AuditAction.DISTRIBUTION_COMMISSION_UPDATED,
+			})
+		)
 	})
 
 	it('persists portfolio fractions when hasPortfolio is true', async () => {
