@@ -8,6 +8,13 @@ import {
 	CommissionRule,
 } from '@/features/distribution-commission/types/commission-rule.types'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
+import { auth } from '@/auth'
+import {
+	logAuditEvent,
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+} from '@/features/auth/lib/audit-logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -135,6 +142,8 @@ export async function POST(
 ): Promise<NextResponse<ApiResponse<CommissionRule>>> {
 	const params = await props.params
 	try {
+		const session = await auth()
+		const headers = request.headers
 		const productConfigId = parseInt(params.id)
 		if (isNaN(productConfigId)) {
 			return NextResponse.json(
@@ -239,6 +248,15 @@ export async function POST(
 		const { prismaCommissionRuleToDomain } = await import(
 			'@/features/distribution-commission/mappers/commission-rule.mapper'
 		)
+
+		await logAuditEvent({
+			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
+			action: AuditAction.DISTRIBUTION_COMMISSION_CREATED,
+			email: session?.user?.email ?? undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `DistributionCommission ${newRule.idProductPercentageCommission} creada para ProductConfiguration ${productConfigId}`,
+		})
 
 		return NextResponse.json({
 			data: prismaCommissionRuleToDomain(newRule),

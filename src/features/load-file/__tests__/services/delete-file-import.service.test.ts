@@ -7,7 +7,7 @@ const mockFindUnique = vi.fn()
 const mockSettlementFindMany = vi.fn()
 const mockDistributionFindMany = vi.fn()
 const mockClawbackDeleteMany = vi.fn()
-const mockDistributionDeleteMany = vi.fn()
+const mockDistributionUpdateMany = vi.fn()
 const mockSettlementDeleteMany = vi.fn()
 const mockFileImportErrorDeleteMany = vi.fn()
 const mockFileImportDeleteMany = vi.fn()
@@ -25,7 +25,7 @@ vi.mock('@/lib/prisma', () => ({
 		},
 		comissionDistribution: {
 			findMany: (...args: unknown[]) => mockDistributionFindMany(...args),
-			deleteMany: (...args: unknown[]) => mockDistributionDeleteMany(...args),
+			updateMany: (...args: unknown[]) => mockDistributionUpdateMany(...args),
 		},
 		clawback: {
 			deleteMany: (...args: unknown[]) => mockClawbackDeleteMany(...args),
@@ -52,7 +52,7 @@ async function getMockTx() {
 			},
 			comissionDistribution: {
 				findMany: mockDistributionFindMany,
-				deleteMany: mockDistributionDeleteMany,
+				updateMany: mockDistributionUpdateMany,
 			},
 			clawback: { deleteMany: mockClawbackDeleteMany },
 			fileImportError: { deleteMany: mockFileImportErrorDeleteMany },
@@ -68,7 +68,7 @@ describe('deleteFileImport', () => {
 		mockSettlementFindMany.mockResolvedValue([])
 		mockDistributionFindMany.mockResolvedValue([])
 		mockClawbackDeleteMany.mockResolvedValue({ count: 0 })
-		mockDistributionDeleteMany.mockResolvedValue({ count: 0 })
+		mockDistributionUpdateMany.mockResolvedValue({ count: 0 })
 		mockSettlementDeleteMany.mockResolvedValue({ count: 0 })
 		mockFileImportErrorDeleteMany.mockResolvedValue({ count: 0 })
 		mockFileImportDeleteMany.mockResolvedValue({ count: 1 })

@@ -12,9 +12,6 @@ const productConfigurationInclude = {
 			},
 		},
 	},
-	clientOrigin: {
-		select: { idClientOrigin: true, name: true },
-	},
 	category: {
 		select: { idCategory: true, name: true },
 	},

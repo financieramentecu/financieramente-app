@@ -49,12 +49,6 @@ describe('ProductConfigurationForm', () => {
 			expect(screen.getByText('Producto')).toBeInTheDocument()
 		})
 
-		it('should render client origin select', () => {
-			render(<ProductConfigurationForm {...defaultCreateProps} />)
-
-			expect(screen.getByText('Origen de Cliente')).toBeInTheDocument()
-		})
-
 		it('should render category select', () => {
 			render(<ProductConfigurationForm {...defaultCreateProps} />)
 
@@ -112,13 +106,6 @@ describe('ProductConfigurationForm', () => {
 
 			const productInput = screen.getByDisplayValue('Crea Patrimonio')
 			expect(productInput).toBeDisabled()
-		})
-
-		it('should show client origin as readonly', () => {
-			render(<ProductConfigurationForm {...defaultEditProps} />)
-
-			const originInput = screen.getByDisplayValue('Propio')
-			expect(originInput).toBeDisabled()
 		})
 
 		it('should show category as readonly', () => {

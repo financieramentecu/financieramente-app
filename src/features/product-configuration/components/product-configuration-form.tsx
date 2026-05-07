@@ -42,7 +42,6 @@ export function ProductConfigurationForm({
 		form,
 		companiesState,
 		productsState,
-		clientOriginsState,
 		categoriesState,
 		ppcOptions,
 		selectedPpc,
@@ -80,7 +79,6 @@ export function ProductConfigurationForm({
 					handleFormSubmit({
 						idCompany: initialData.product.company.idCompany,
 						idProduct: initialData.idProduct,
-						idClientOrigin: initialData.idClientOrigin,
 						idCategory: initialData.idCategory,
 					})
 				}}
@@ -99,10 +97,6 @@ export function ProductConfigurationForm({
 							<div className="space-y-2">
 								<Label>Producto</Label>
 								<Input value={initialData.product.name} disabled />
-							</div>
-							<div className="space-y-2">
-								<Label>Origen de Cliente</Label>
-								<Input value={initialData.clientOrigin.name} disabled />
 							</div>
 							<div className="space-y-2">
 								<Label>Categoría</Label>
@@ -277,60 +271,6 @@ export function ProductConfigurationForm({
 						{errors.idProduct && (
 							<p className="text-sm text-destructive">
 								{errors.idProduct.message}
-							</p>
-						)}
-					</div>
-
-					{/* ClientOrigin Select */}
-					<div className="space-y-2">
-						<Label>
-							Origen de Cliente <span className="text-destructive">*</span>
-						</Label>
-						<Controller
-							name="idClientOrigin"
-							control={control}
-							render={({ field }) => (
-								<Select
-									value={field.value ? field.value.toString() : ''}
-									onValueChange={(val) => field.onChange(parseInt(val))}
-									disabled={
-										isFormDisabled || clientOriginsState.status === 'loading'
-									}
-								>
-									<SelectTrigger
-										className={cn(
-											errors.idClientOrigin && 'border-destructive'
-										)}
-									>
-										<SelectValue
-											placeholder={
-												clientOriginsState.status === 'loading'
-													? 'Cargando...'
-													: 'Seleccione un origen de cliente'
-											}
-										/>
-									</SelectTrigger>
-									<SelectContent>
-										{clientOriginsState.data?.map((origin) => (
-											<SelectItem
-												key={origin.idClientOrigin}
-												value={origin.idClientOrigin.toString()}
-											>
-												{origin.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							)}
-						/>
-						{clientOriginsState.status === 'error' && (
-							<p className="text-sm text-destructive">
-								{clientOriginsState.error}
-							</p>
-						)}
-						{errors.idClientOrigin && (
-							<p className="text-sm text-destructive">
-								{errors.idClientOrigin.message}
 							</p>
 						)}
 					</div>

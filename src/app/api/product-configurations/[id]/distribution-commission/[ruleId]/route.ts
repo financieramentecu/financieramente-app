@@ -4,6 +4,13 @@ import { updateCommissionRuleApiSchema } from '@/features/distribution-commissio
 import { prismaCommissionRuleToDomain } from '@/features/distribution-commission/mappers/commission-rule.mapper'
 import { CommissionRule } from '@/features/distribution-commission/types/commission-rule.types'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
+import { auth } from '@/auth'
+import {
+	logAuditEvent,
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+} from '@/features/auth/lib/audit-logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,6 +94,8 @@ export async function PUT(
 ): Promise<NextResponse<ApiResponse<CommissionRule>>> {
 	const params = await props.params
 	try {
+		const session = await auth()
+		const headers = request.headers
 		const productConfigId = parseInt(params.id)
 		const ruleId = parseInt(params.ruleId)
 
@@ -211,6 +220,15 @@ export async function PUT(
 			})
 		})
 
+		await logAuditEvent({
+			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
+			action: AuditAction.DISTRIBUTION_COMMISSION_UPDATED,
+			email: session?.user?.email ?? undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `DistributionCommission ${ruleId} actualizada para ProductConfiguration ${productConfigId}`,
+		})
+
 		return NextResponse.json({
 			data: prismaCommissionRuleToDomain(updatedRule),
 		})
@@ -245,6 +263,8 @@ export async function PATCH(
 ): Promise<NextResponse<ApiResponse<CommissionRule>>> {
 	const params = await props.params
 	try {
+		const session = await auth()
+		const headers = request.headers
 		const productConfigId = parseInt(params.id)
 		const ruleId = parseInt(params.ruleId)
 
@@ -346,6 +366,17 @@ export async function PATCH(
 					},
 				},
 			},
+		})
+
+		await logAuditEvent({
+			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
+			action: active
+				? AuditAction.DISTRIBUTION_COMMISSION_ACTIVATED
+				: AuditAction.DISTRIBUTION_COMMISSION_DEACTIVATED,
+			email: session?.user?.email ?? undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `DistributionCommission ${ruleId} ${active ? 'activada' : 'desactivada'} para ProductConfiguration ${productConfigId}`,
 		})
 
 		return NextResponse.json({

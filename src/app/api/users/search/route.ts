@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { isValidRole, UserRole } from '@/features/auth/lib/roles'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
-import { Prisma } from '@prisma/client'
+import { BeneficiaryMode, Prisma } from '@prisma/client'
 import { UserWithRole } from '@/features/negocios/types/business.types'
 import { requireAuth } from '@/lib/auth/require-role'
 
@@ -18,6 +18,7 @@ export async function GET(request: Request) {
 		const query = searchParams.get('query')?.trim() ?? ''
 		const limitParam = searchParams.get('limit')
 		const roleParam = searchParams.get('role')
+		const beneficiaryModeParam = searchParams.get('beneficiaryMode')
 
 		if (!query || query.length < 3) {
 			return NextResponse.json({ data: [] } satisfies ApiResponse<unknown[]>)
@@ -53,11 +54,19 @@ export async function GET(request: Request) {
 			}
 		}
 
+		// add filter by category beneficiaryMode if provided
+		if (beneficiaryModeParam) {
+			where.category = {
+				beneficiaryMode: beneficiaryModeParam as BeneficiaryMode,
+			}
+		}
+
 		const users = await prisma.user.findMany({
 			where,
 			orderBy: [{ name: 'asc' }, { lastName: 'asc' }],
 			include: {
 				role: true,
+				category: { select: { name: true } },
 			},
 			take: limit,
 		})

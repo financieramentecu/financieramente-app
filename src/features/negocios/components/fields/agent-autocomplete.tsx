@@ -161,9 +161,9 @@ export function AgentAutocomplete({
 		return allAgents.find((agent) => agent.idUser.toString() === value)
 	}, [value, agents, remoteAgents, selectedAgentCache])
 
-	// Obtener nombre completo del Money Strategist
 	const getFullName = (agent: UserWithRole) => {
-		return `${agent.name} ${agent.lastName || ''}`.trim()
+		const base = `${agent.name} ${agent.lastName || ''}`.trim()
+		return agent.category?.name ? `${base} (${agent.category.name})` : base
 	}
 
 	const handleSelect = (selectedValue: string) => {

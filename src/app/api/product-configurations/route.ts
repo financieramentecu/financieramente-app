@@ -13,6 +13,13 @@ import {
 } from '@/features/product-configuration/mappers/product-configuration.mapper'
 import { buildProductConfigurationCode } from '@/features/negocios/lib/product-configuration-code'
 import { getProductConfigurationIdsWithCategoryLines } from '@/features/product-configuration/services/product-configuration.service'
+import { auth } from '@/auth'
+import {
+	logAuditEvent,
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+} from '@/features/auth/lib/audit-logger'
 
 /**
  * Shared Prisma include for ProductConfiguration queries
@@ -26,9 +33,6 @@ const productConfigurationInclude = {
 				select: { idCompany: true, name: true },
 			},
 		},
-	},
-	clientOrigin: {
-		select: { idClientOrigin: true, name: true },
 	},
 	category: {
 		select: { idCategory: true, name: true },
@@ -69,11 +73,6 @@ export async function GET(request: Request) {
 				{ code: { contains: search, mode: 'insensitive' } },
 				{
 					product: {
-						name: { contains: search, mode: 'insensitive' },
-					},
-				},
-				{
-					clientOrigin: {
 						name: { contains: search, mode: 'insensitive' },
 					},
 				},
@@ -145,6 +144,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
 	try {
+		const session = await auth()
+		const headers = request.headers
 		const body = await request.json()
 		const data = createProductConfigurationSchema.parse(body)
 
@@ -180,27 +181,6 @@ export async function POST(request: Request) {
 			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
-		// Validate clientOrigin exists and is active
-		const clientOrigin = await prisma.clientOrigin.findUnique({
-			where: { idClientOrigin: data.idClientOrigin },
-		})
-
-		if (!clientOrigin) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'Origen de cliente no encontrado',
-			}
-			return NextResponse.json(errorResponse, { status: 404 })
-		}
-
-		if (!clientOrigin.status) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'El origen de cliente seleccionado no está activo',
-			}
-			return NextResponse.json(errorResponse, { status: 400 })
-		}
-
 		// Validate category exists and is active
 		const category = await prisma.category.findUnique({
 			where: { idCategory: data.idCategory },
@@ -222,12 +202,11 @@ export async function POST(request: Request) {
 			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
-		// Check uniqueness (product + clientOrigin + category)
+		// Check uniqueness (product + category)
 		const existingConfig = await prisma.productConfiguration.findUnique({
 			where: {
-				idProduct_idClientOrigin_idCategory: {
+				idProduct_idCategory: {
 					idProduct: data.idProduct,
-					idClientOrigin: data.idClientOrigin,
 					idCategory: data.idCategory,
 				},
 			},
@@ -237,7 +216,7 @@ export async function POST(request: Request) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
 				error:
-					'Ya existe una configuración con esta combinación de producto, origen y categoría',
+					'Ya existe una configuración con esta combinación de producto y categoría',
 			}
 			return NextResponse.json(errorResponse, { status: 409 })
 		}
@@ -246,7 +225,6 @@ export async function POST(request: Request) {
 		const code = buildProductConfigurationCode(
 			product.company.name,
 			product.name,
-			clientOrigin.name,
 			category.name
 		)
 
@@ -265,7 +243,6 @@ export async function POST(request: Request) {
 			const config = await tx.productConfiguration.create({
 				data: {
 					idProduct: data.idProduct,
-					idClientOrigin: data.idClientOrigin,
 					idCategory: data.idCategory,
 					code,
 					active: true,
@@ -293,6 +270,15 @@ export async function POST(request: Request) {
 			return updatedConfig
 		})
 
+		await logAuditEvent({
+			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
+			action: AuditAction.PRODUCT_CONFIGURATION_CREATED,
+			email: session?.user?.email ?? undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `ProductConfiguration ${result.id} creada: producto=${data.idProduct}, categoría=${data.idCategory}, código=${result.code}`,
+		})
+
 		const configFormatted = prismaProductConfigToProductConfig(result)
 
 		const response: ApiResponse<ProductConfiguration> = {
@@ -318,7 +304,7 @@ export async function POST(request: Request) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
 				error:
-					'Ya existe una configuración con esta combinación de producto, origen y categoría',
+					'Ya existe una configuración con esta combinación de producto y categoría',
 			}
 			return NextResponse.json(errorResponse, { status: 409 })
 		}

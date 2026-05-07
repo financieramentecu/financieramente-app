@@ -101,6 +101,7 @@ export interface UserWithRole {
 		createdAt?: Date | string
 		updatedAt?: Date | string
 	} | null
+	category?: { name: string } | null
 }
 
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'

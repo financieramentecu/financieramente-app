@@ -9,7 +9,6 @@ import type { ProductPercentageCommission } from '@prisma/client'
 
 export interface GetPpcForNewBusinessesParams {
 	idProduct: number
-	idClientOrigin: number
 	idCategory: number
 }
 
@@ -21,24 +20,22 @@ export interface GetPpcForNewBusinessesResult {
 /**
  * Obtiene el PPC activo para nuevos negocios según ProductConfiguration.
  *
- * Busca ProductConfiguration por (idProduct, idClientOrigin, idCategory)
- * y devuelve el ProductPercentageCommission designado en
- * idProductPercentageCommissionNewBusinesses.
+ * Busca ProductConfiguration por (idProduct, idCategory) únicamente.
+ * Si no existe la configuración lanza un error descriptivo — NO hay fallback silencioso.
  *
- * @param params - Parámetros de búsqueda (producto, origen, categoría del agente)
- * @returns Objeto con configExists (si existe la combinación) y ppc.
- * `ppc` puede venir de la configuración específica o de un fallback global.
+ * @param params - Parámetros de búsqueda (producto y categoría del agente)
+ * @returns Objeto con configExists (true) y ppc.
+ * @throws Error si no existe configuración para el par (idProduct, idCategory).
  */
 export async function getPpcForNewBusinesses(
 	params: GetPpcForNewBusinessesParams
 ): Promise<GetPpcForNewBusinessesResult> {
-	const { idProduct, idClientOrigin, idCategory } = params
+	const { idProduct, idCategory } = params
 
 	const productConfiguration = await prisma.productConfiguration.findUnique({
 		where: {
-			idProduct_idClientOrigin_idCategory: {
+			idProduct_idCategory: {
 				idProduct,
-				idClientOrigin,
 				idCategory,
 			},
 		},
@@ -47,31 +44,15 @@ export async function getPpcForNewBusinesses(
 		},
 	})
 
-	// Intenta buscar el PPC asignado específicamente para nuevos negocios en esta configuración
-	if (productConfiguration?.productPercentageCommissionNewBusinesses) {
-		return {
-			configExists: true,
-			ppc: productConfiguration.productPercentageCommissionNewBusinesses,
-		}
+	if (!productConfiguration) {
+		throw new Error(
+			'No existe configuración de distribución para el producto y categoría seleccionados. Configurá la distribución antes de continuar.'
+		)
 	}
 
-	// Fallback DETERMINÍSTICO: busca CUALQUIER PPC activo que pertenezca AL MISMO producto
-	const fallbackPpc = await prisma.productPercentageCommission.findFirst({
-		where: {
-			active: true,
-			productConfiguration: {
-				idProduct: idProduct,
-				active: true,
-			},
-		},
-		orderBy: {
-			idProductPercentageCommission: 'asc',
-		},
-	})
-
 	return {
-		configExists: Boolean(productConfiguration),
-		ppc: fallbackPpc,
+		configExists: true,
+		ppc: productConfiguration.productPercentageCommissionNewBusinesses,
 	}
 }
 
@@ -80,7 +61,7 @@ export type OriginValidationResult =
 	| { valid: false; reason: string }
 
 /**
- * Valida que la combinación (idCategory, idProduct, idClientOrigin) tenga:
+ * Valida que la combinación (idCategory, idProduct) tenga:
  *  1. ProductConfiguration existente
  *  2. Al menos un ProductPercentageCommission activo
  *  3. Al menos una ProductPercentageCommissionCategory activa en ese PPC
@@ -89,14 +70,12 @@ export type OriginValidationResult =
  */
 export async function validateProductConfigurationExists(
 	idCategory: number,
-	idProduct: number,
-	idClientOrigin: number
+	idProduct: number
 ): Promise<OriginValidationResult> {
 	const productConfiguration = await prisma.productConfiguration.findUnique({
 		where: {
-			idProduct_idClientOrigin_idCategory: {
+			idProduct_idCategory: {
 				idProduct,
-				idClientOrigin,
 				idCategory,
 			},
 		},
@@ -116,7 +95,7 @@ export async function validateProductConfigurationExists(
 		return {
 			valid: false,
 			reason:
-				'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
+				'No existe configuración de distribución para el producto y categoría del negocio. Configurá la distribución antes de continuar.',
 		}
 	}
 
@@ -125,7 +104,7 @@ export async function validateProductConfigurationExists(
 		return {
 			valid: false,
 			reason:
-				'La configuración de ese origen no tiene comisiones activas configuradas.',
+				'La configuración no tiene comisiones activas configuradas.',
 		}
 	}
 
@@ -133,7 +112,7 @@ export async function validateProductConfigurationExists(
 		return {
 			valid: false,
 			reason:
-				'La configuración de ese origen no tiene reglas de distribución configuradas.',
+				'La configuración no tiene reglas de distribución configuradas.',
 		}
 	}
 

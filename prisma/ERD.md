@@ -13,7 +13,6 @@ erDiagram
     Company ||--o{ Product : "tiene productos"
     TypeProduct ||--o{ Product : "clasifica"
     CategoryType ||--o{ Category : "tipo de categoría"
-    ClientOrigin ||--o{ ProductConfiguration : "origen en config"
     ClientOrigin ||--o{ Business : "origen del negocio"
     Category ||--o{ User : "categoría del usuario"
     Category ||--o{ ProductConfiguration : "categoría en config"
@@ -27,7 +26,7 @@ erDiagram
     Currency ||--o{ Company : "moneda compañía"
 
     %% ========== PRODUCTOS Y CONFIGURACIÓN ==========
-    Product ||--o{ ProductConfiguration : "combinación producto/origen/categoría"
+    Product ||--o{ ProductConfiguration : "combinación producto/categoría"
     ProductConfiguration ||--o{ ProductPercentageCommission : "versiones PPC"
     ProductConfiguration ||--o| ProductPercentageCommission : "PPC nuevos negocios"
     ProductPercentageCommission ||--o{ ProductPercentageCommissionCategory : "distribución por categoría"
@@ -152,9 +151,8 @@ erDiagram
     ProductConfiguration {
         int id_product_configuration PK
         int id_product FK
-        int id_client_origin FK
         int id_category FK
-        string code
+        string code UK
         boolean active
         int id_product_percentage_commission_new_businesses FK
         datetime created_at
@@ -269,6 +267,7 @@ erDiagram
         datetime date_anchored
         int num_aportes
         string status
+        boolean is_active
         datetime created_at
         datetime updated_at
     }
@@ -336,6 +335,7 @@ erDiagram
         decimal value_commission_with_discount
         text observation
         string status
+        boolean is_active
         datetime created_at
         datetime updated_at
     }
@@ -402,6 +402,9 @@ erDiagram
 - `Category.id_next_category` es una FK auto-referencial a `category.id_category` (relación nombrada `"CategorySequence"`). Permite modelar la secuencia de jerarquía: MS JUNIOR → MS SENIOR → TEAM LEADER → PERFORMANCE LEADER → BUSINESS LEADER → PARTNER → MIA.
 - `Category.color` almacena un color hex `#RRGGBB` (VARCHAR 7) para identificación visual de cada nivel.
 - `BeneficiaryMode` renombrado (migración manual): `UPLINE_CHAIN → OVERRIDE`, `FIXED_BENEFICIARY → BENEFICIARIO_GENERAL`.
+- `ProductConfiguration`: el campo `id_client_origin` fue eliminado (migración `20260507010000_mejoras_product_configuration_sin_origen`). El unique constraint cambió de `(id_product, id_client_origin, id_category)` a `(id_product, id_category)`. El `code` es único a nivel de columna.
+- `Business`: campo `is_active` agregado (`@default(true)`) para soporte de soft delete lógico.
+- `ComissionDistribution`: campo `is_active` agregado (`@default(true)`) para soft delete lógico (reemplaza `deleteMany` en servicios de pre-liquidación y carga de archivos).
 
 ## Cómo ver el diagrama
 
