@@ -5,6 +5,29 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.0.2] - 2026-05-07
+
+### Añadido
+
+- **Categorías – Color identificador:** Cada categoría ahora tiene un color asignado (`#RRGGBB`) visible como chip circular en la tabla. El formulario de creación y edición incluye un selector de color nativo con paleta HTML completa.
+- **Categorías – Secuencia jerárquica:** Se puede configurar cuál es la siguiente categoría en la jerarquía de la empresa (MS JUNIOR → MS SENIOR → TEAM LEADER → PERFORMANCE LEADER → BUSINESS LEADER → PARTNER → MIA). La tabla muestra la siguiente categoría en una columna dedicada.
+- **Categorías – Audit log:** Toda operación de creación, edición o desactivación de categorías queda registrada en el log de auditoría del sistema.
+
+### Mejorado
+
+- **Categorías – Modo beneficiario:** Los valores internos del modo de beneficiario se renombraron a `OVERRIDE` y `BENEFICIARIO_GENERAL` para mayor claridad semántica. El formulario muestra el selector de usuario beneficiario solo cuando el modo es `BENEFICIARIO_GENERAL`.
+- **Categorías – Filtro de tipo dinámico:** El filtro de tipo de categoría en la tabla admin ahora carga los tipos directamente desde la base de datos en lugar de ser una lista fija.
+- **Categorías – Eliminación segura:** La desactivación de categorías ahora es lógica (cambia el estado a inactivo) en lugar de borrar el registro, preservando la trazabilidad histórica.
+- **Administración – ERD actualizado:** El diagrama entidad-relación (`prisma/ERD.md`) se mantiene sincronizado con el esquema de base de datos y se estableció como regla obligatoria actualizarlo ante cualquier cambio de schema.
+
+### Interno
+
+- Migración manual de enum PostgreSQL: `UPLINE_CHAIN → OVERRIDE`, `FIXED_BENEFICIARY → BENEFICIARIO_GENERAL`.
+- Seed de categorías reescrito con estrategia 3-pass para manejar la FK auto-referencial de secuencia.
+- Nuevas acciones de auditoría: `CATEGORY_CREATED`, `CATEGORY_UPDATED`, `CATEGORY_DEACTIVATED`.
+
+---
+
 ## [1.0.1] - 2026-05-05
 
 ### Infraestructura
