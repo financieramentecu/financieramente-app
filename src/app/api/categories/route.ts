@@ -13,6 +13,8 @@ import {
 	type PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations
 } from '@/features/categories/mappers/category.mapper'
 import { Prisma } from '@prisma/client'
+import { auth } from '@/auth'
+import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
 
 
@@ -64,6 +66,9 @@ export async function GET(request: Request) {
 				fixedBeneficiaryUser: {
 					select: { idUser: true, name: true, lastName: true, email: true },
 				},
+				nextCategory: {
+					select: { idCategory: true, name: true },
+				},
 			},
 			orderBy: { name: 'asc' },
 			skip: (page - 1) * pageSize,
@@ -103,6 +108,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
 	try {
+		const session = await auth()
+		const headers = request.headers
 		const body = await request.json()
 		const data = createCategorySchema.parse(body)
 
@@ -139,7 +146,7 @@ export async function POST(request: Request) {
 
 		// Validate beneficiary constraint before persisting
 		if (
-			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			data.beneficiaryMode === 'BENEFICIARIO_GENERAL' &&
 			(data.idFixedBeneficiaryUser === null ||
 				data.idFixedBeneficiaryUser === undefined)
 		) {
@@ -154,7 +161,7 @@ export async function POST(request: Request) {
 
 		// Verify fixed beneficiary user exists and is active
 		if (
-			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			data.beneficiaryMode === 'BENEFICIARIO_GENERAL' &&
 			data.idFixedBeneficiaryUser != null
 		) {
 			const beneficiaryUser = await prisma.user.findFirst({
@@ -178,9 +185,9 @@ export async function POST(request: Request) {
 				idCategoryType: typeId,
 				descripcion: data.descripcion ?? null,
 				status: data.status,
-				beneficiaryMode: data.beneficiaryMode ?? 'UPLINE_CHAIN',
+				beneficiaryMode: data.beneficiaryMode ?? 'OVERRIDE',
 				idFixedBeneficiaryUser:
-					data.beneficiaryMode === 'FIXED_BENEFICIARY'
+					data.beneficiaryMode === 'BENEFICIARIO_GENERAL'
 						? (data.idFixedBeneficiaryUser ?? null)
 						: null,
 			},
@@ -192,6 +199,15 @@ export async function POST(request: Request) {
 			},
 		})
 		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
+
+		await logAuditEvent({
+			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
+			action: AuditAction.CATEGORY_CREATED,
+			email: session?.user?.email ?? undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `Categoría creada: ${categoryRaw.code} - ${categoryRaw.name}`,
+		})
 
 		const response: ApiResponse<Category> = {
 			data: prismaCategoryToCategory(category),

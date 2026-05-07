@@ -1,15 +1,19 @@
 import { z } from 'zod'
 
-const beneficiaryModeEnum = z.enum(['UPLINE_CHAIN', 'FIXED_BENEFICIARY'])
+const beneficiaryModeEnum = z.enum(['OVERRIDE', 'BENEFICIARIO_GENERAL'])
+
+const colorSchema = z
+	.string()
+	.regex(/^#[0-9A-Fa-f]{6}$/, 'El color debe ser un valor hexadecimal válido (ej. #FF5733)')
 
 /**
- * Cross-field validation: FIXED_BENEFICIARY requires a non-null idFixedBeneficiaryUser
+ * Cross-field validation: BENEFICIARIO_GENERAL requires a non-null idFixedBeneficiaryUser
  */
 function validateBeneficiaryConstraint<
 	T extends { beneficiaryMode?: string; idFixedBeneficiaryUser?: number | null },
 >(data: T, ctx: z.RefinementCtx) {
 	if (
-		data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+		data.beneficiaryMode === 'BENEFICIARIO_GENERAL' &&
 		(data.idFixedBeneficiaryUser === null ||
 			data.idFixedBeneficiaryUser === undefined)
 	) {
@@ -17,7 +21,7 @@ function validateBeneficiaryConstraint<
 			code: z.ZodIssueCode.custom,
 			path: ['idFixedBeneficiaryUser'],
 			message:
-				'El usuario beneficiario fijo es requerido cuando el modo es FIXED_BENEFICIARY',
+				'El usuario beneficiario fijo es requerido cuando el modo es BENEFICIARIO_GENERAL',
 		})
 	}
 }
@@ -39,9 +43,16 @@ export const createCategorySchema = z
 			.trim(),
 		typeCategory: z.string().min(1, 'El tipo de categoría es requerido'),
 		descripcion: z.string().nullable().optional(),
+		color: colorSchema,
 		status: z.boolean(),
-		beneficiaryMode: beneficiaryModeEnum.default('UPLINE_CHAIN'),
+		beneficiaryMode: beneficiaryModeEnum.default('OVERRIDE'),
 		idFixedBeneficiaryUser: z
+			.number()
+			.int()
+			.positive()
+			.nullable()
+			.optional(),
+		idNextCategory: z
 			.number()
 			.int()
 			.positive()
@@ -69,9 +80,16 @@ export const updateCategorySchema = z
 			.optional(),
 		typeCategory: z.string().optional(),
 		descripcion: z.string().nullable().optional(),
+		color: colorSchema.optional(),
 		status: z.boolean().optional(),
 		beneficiaryMode: beneficiaryModeEnum.optional(),
 		idFixedBeneficiaryUser: z
+			.number()
+			.int()
+			.positive()
+			.nullable()
+			.optional(),
+		idNextCategory: z
 			.number()
 			.int()
 			.positive()

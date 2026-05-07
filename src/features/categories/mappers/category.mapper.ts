@@ -6,6 +6,11 @@ export type PrismaCategoryWithRelations = Category & {
 	fixedBeneficiaryUser?: Pick<User, 'idUser' | 'name' | 'lastName' | 'email'> | null
 	beneficiaryMode?: string | null
 	idFixedBeneficiaryUser?: number | null
+	nextCategory?: {
+		idCategory: number
+		name: string
+		[key: string]: unknown
+	} | null
 }
 
 /**
@@ -26,6 +31,17 @@ export const prismaCategoryToCategory = (
 			}
 		: null
 
+	const nextCategory = prisma.nextCategory
+		? {
+				id: prisma.nextCategory.idCategory,
+				name: prisma.nextCategory.name,
+			}
+		: null
+
+	const beneficiaryMode = (prisma.beneficiaryMode as string) === 'BENEFICIARIO_GENERAL'
+		? 'BENEFICIARIO_GENERAL' as const
+		: 'OVERRIDE' as const
+
 	return {
 		idCategory: prisma.idCategory,
 		code: prisma.code,
@@ -33,12 +49,13 @@ export const prismaCategoryToCategory = (
 		typeCategory,
 		idCategoryType: prisma.idCategoryType || 1,
 		descripcion: prisma.descripcion === null ? null : (prisma.descripcion || ''),
+		color: prisma.color,
 		status: prisma.status,
-		beneficiaryMode: (prisma.beneficiaryMode as string) === 'FIXED_BENEFICIARY' 
-			? 'FIXED_BENEFICIARY' 
-			: 'UPLINE_CHAIN',
+		beneficiaryMode,
 		idFixedBeneficiaryUser: prisma.idFixedBeneficiaryUser ?? null,
 		fixedBeneficiaryUser,
+		idNextCategory: prisma.idNextCategory ?? null,
+		nextCategory,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
 	}

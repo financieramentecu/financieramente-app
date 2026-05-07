@@ -60,7 +60,11 @@ export default function CategoriesAdminPage() {
 					name: formData.name as string,
 					typeCategory: formData.typeCategory as 'MMS' | 'ALIADO' | 'TRINITY',
 					descripcion: formData.descripcion as string | undefined,
+					color: formData.color as string,
 					status: formData.status as boolean,
+					beneficiaryMode: (formData.beneficiaryMode as 'OVERRIDE' | 'BENEFICIARIO_GENERAL') ?? 'OVERRIDE',
+					idFixedBeneficiaryUser: formData.idFixedBeneficiaryUser as number | null | undefined,
+					idNextCategory: formData.idNextCategory as number | null | undefined,
 				})
 			} else if (selectedCategory) {
 				await updateCategory(selectedCategory.idCategory, {
@@ -68,7 +72,11 @@ export default function CategoriesAdminPage() {
 					name: formData.name as string,
 					typeCategory: formData.typeCategory as 'MMS' | 'ALIADO' | 'TRINITY',
 					descripcion: formData.descripcion as string | undefined,
+					color: formData.color as string | undefined,
 					status: formData.status as boolean,
+					beneficiaryMode: formData.beneficiaryMode as 'OVERRIDE' | 'BENEFICIARIO_GENERAL' | undefined,
+					idFixedBeneficiaryUser: formData.idFixedBeneficiaryUser as number | null | undefined,
+					idNextCategory: formData.idNextCategory as number | null | undefined,
 				})
 			}
 

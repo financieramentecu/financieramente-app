@@ -19,15 +19,21 @@ import {
 	type CreateCategoryFormData,
 	type UpdateCategoryFormData,
 } from '../lib/category-schemas'
-import type { Category, CategoryType } from '../types/category.types'
+import type { Category, CategoryType, NextCategory } from '../types/category.types'
 import { SYSTEM_CATEGORY_TYPE_NAME } from '../types/category.types'
 import { cn } from '@/lib/utils'
 import { useCategoryTypes } from '@/features/category-types/hooks/use-category-types'
 import { useActiveUsers } from '../hooks/use-active-users'
 
+interface CategoryOption {
+	idCategory: number
+	name: string
+}
+
 interface CategoryFormProps {
 	mode: 'create' | 'edit'
 	initialData?: Category
+	categories?: CategoryOption[]
 	onSubmit: (
 		data: CreateCategoryFormData | UpdateCategoryFormData
 	) => Promise<void>
@@ -40,6 +46,7 @@ type FormValues = CreateCategoryFormData
 export function CategoryForm({
 	mode,
 	initialData,
+	categories = [],
 	onSubmit: submitHandler,
 	onCancel,
 	isLoading = false,
@@ -58,18 +65,22 @@ export function CategoryForm({
 				name: initialData.name,
 				typeCategory: initialData.typeCategory as CategoryType,
 				descripcion: initialData.descripcion,
+				color: initialData.color ?? '#1A73E8',
 				status: initialData.status,
-				beneficiaryMode: initialData.beneficiaryMode ?? 'UPLINE_CHAIN',
+				beneficiaryMode: initialData.beneficiaryMode ?? 'OVERRIDE',
 				idFixedBeneficiaryUser: initialData.idFixedBeneficiaryUser ?? null,
+				idNextCategory: initialData.idNextCategory ?? null,
 			}
 			: {
 				code: '',
 				name: '',
 				typeCategory: 'MMS' as CategoryType,
 				descripcion: '',
+				color: '#1A73E8',
 				status: true,
-				beneficiaryMode: 'UPLINE_CHAIN' as const,
+				beneficiaryMode: 'OVERRIDE' as const,
 				idFixedBeneficiaryUser: null,
+				idNextCategory: null,
 			}) as DefaultValues<FormValues>,
 	})
 
@@ -79,6 +90,7 @@ export function CategoryForm({
 		formState: { errors, isSubmitting },
 		control,
 		watch,
+		setValue,
 	} = form
 
 	const beneficiaryMode = watch('beneficiaryMode')
@@ -163,6 +175,64 @@ export function CategoryForm({
 				)}
 			</div>
 
+			{/* Color Field */}
+			<div className="space-y-2">
+				<Label htmlFor="color">
+					Color <span className="text-destructive">*</span>
+				</Label>
+				<div className="flex items-center gap-3">
+					<input
+						id="color"
+						type="color"
+						disabled={isFormDisabled}
+						className="h-10 w-14 cursor-pointer rounded-md border border-input bg-background p-1 disabled:cursor-not-allowed disabled:opacity-50"
+						{...register('color')}
+					/>
+					{errors.color && (
+						<p className="text-sm text-destructive">{errors.color.message}</p>
+					)}
+				</div>
+			</div>
+
+			{/* Next Category Field */}
+			{categories.length > 0 && (
+				<div className="space-y-2">
+					<Label htmlFor="idNextCategory">Siguiente categoría</Label>
+					<Controller
+						name="idNextCategory"
+						control={control}
+						render={({ field }) => (
+							<Select
+								onValueChange={(val) => field.onChange(val === 'none' ? null : Number(val))}
+								value={field.value != null ? String(field.value) : 'none'}
+								disabled={isFormDisabled}
+							>
+								<SelectTrigger
+									className={cn(errors.idNextCategory && 'border-destructive')}
+								>
+									<SelectValue placeholder="Seleccione la siguiente categoría (opcional)" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">Sin siguiente categoría</SelectItem>
+									{categories
+										.filter((c) => c.idCategory !== initialData?.idCategory)
+										.map((cat) => (
+											<SelectItem key={cat.idCategory} value={String(cat.idCategory)}>
+												{cat.name}
+											</SelectItem>
+										))}
+								</SelectContent>
+							</Select>
+						)}
+					/>
+					{errors.idNextCategory && (
+						<p className="text-sm text-destructive">
+							{errors.idNextCategory.message}
+						</p>
+					)}
+				</div>
+			)}
+
 			{/* Beneficiary Mode Field */}
 			<div className="space-y-2">
 				<Label htmlFor="beneficiaryMode">
@@ -173,19 +243,25 @@ export function CategoryForm({
 					control={control}
 					render={({ field }) => (
 						<Select
-							onValueChange={field.onChange}
+							onValueChange={(val) => {
+								field.onChange(val)
+								if (val === 'OVERRIDE') {
+									setValue('idFixedBeneficiaryUser', null)
+								}
+							}}
 							defaultValue={field.value}
 							value={field.value}
 							disabled={isFormDisabled || isSystemCategory}
 						>
 							<SelectTrigger
+								aria-label="Modo de beneficiario"
 								className={cn(errors.beneficiaryMode && 'border-destructive')}
 							>
 								<SelectValue placeholder="Seleccione un modo" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="UPLINE_CHAIN">Por cadena de ventas</SelectItem>
-								<SelectItem value="FIXED_BENEFICIARY">Beneficiario fijo</SelectItem>
+								<SelectItem value="OVERRIDE">Override (por cadena)</SelectItem>
+								<SelectItem value="BENEFICIARIO_GENERAL">Beneficiario general</SelectItem>
 							</SelectContent>
 						</Select>
 					)}
@@ -197,8 +273,8 @@ export function CategoryForm({
 				)}
 			</div>
 
-			{/* Fixed Beneficiary User Field — only when FIXED_BENEFICIARY */}
-			{beneficiaryMode === 'FIXED_BENEFICIARY' && (
+			{/* Fixed Beneficiary User Field — only when BENEFICIARIO_GENERAL */}
+			{beneficiaryMode === 'BENEFICIARIO_GENERAL' && (
 				<div className="space-y-2">
 					<Label htmlFor="idFixedBeneficiaryUser">
 						Usuario beneficiario fijo <span className="text-destructive">*</span>

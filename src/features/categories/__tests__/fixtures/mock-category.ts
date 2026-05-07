@@ -2,10 +2,9 @@ import type { Category } from '../../types/category.types'
 import { CategoryType as CategoryTypeDomain } from '../../types/category.types'
 import { PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations } from '../../mappers/category.mapper'
 
-// Local redefinition of BeneficiaryMode because Prisma client is outdated
 export enum BeneficiaryMode {
-	UPLINE_CHAIN = 'UPLINE_CHAIN',
-	FIXED_BENEFICIARY = 'FIXED_BENEFICIARY',
+	OVERRIDE = 'OVERRIDE',
+	BENEFICIARIO_GENERAL = 'BENEFICIARIO_GENERAL',
 }
 
 /**
@@ -18,10 +17,13 @@ export const MOCK_CATEGORY: Category = {
 	idCategoryType: 1,
 	typeCategory: 'MMS',
 	descripcion: 'Esta es una categoría de prueba para tests',
+	color: '#1A73E8',
 	status: true,
-	beneficiaryMode: 'UPLINE_CHAIN',
+	beneficiaryMode: 'OVERRIDE',
 	idFixedBeneficiaryUser: null,
 	fixedBeneficiaryUser: null,
+	idNextCategory: null,
+	nextCategory: null,
 	createdAt: new Date().toISOString(),
 	updatedAt: new Date().toISOString(),
 }
@@ -71,9 +73,11 @@ export const createMockPrismaCategory = (
 		name: 'Categoría 1',
 		idCategoryType: 1,
 		descripcion: 'Descripción 1',
+		color: '#1A73E8',
 		status: true,
-		beneficiaryMode: 'UPLINE_CHAIN',
+		beneficiaryMode: 'OVERRIDE',
 		idFixedBeneficiaryUser: null,
+		idNextCategory: null,
 		createdAt: now,
 		updatedAt: now,
 	}

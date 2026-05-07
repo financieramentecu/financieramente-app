@@ -33,9 +33,12 @@ const mockCategory: Category = {
 	name: 'Categoría demo',
 	typeCategory: 'MMS',
 	descripcion: null,
+	color: '#1A73E8',
 	status: true,
-	beneficiaryMode: 'UPLINE_CHAIN',
+	beneficiaryMode: 'OVERRIDE',
 	idFixedBeneficiaryUser: null,
+	idNextCategory: null,
+	nextCategory: null,
 	createdAt: '2026-01-01T00:00:00.000Z',
 	updatedAt: '2026-01-01T00:00:00.000Z',
 }

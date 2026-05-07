@@ -16,7 +16,7 @@ export const SYSTEM_CATEGORY_TYPE_NAME = 'SISTEMA' as const
 /**
  * Beneficiary mode for commission distribution
  */
-export type BeneficiaryMode = 'UPLINE_CHAIN' | 'FIXED_BENEFICIARY'
+export type BeneficiaryMode = 'OVERRIDE' | 'BENEFICIARIO_GENERAL'
 
 /**
  * Fixed beneficiary user data (minimal projection)
@@ -29,6 +29,14 @@ export interface FixedBeneficiaryUser {
 }
 
 /**
+ * Minimal next category projection (for self-referential sequence)
+ */
+export interface NextCategory {
+	readonly id: number
+	name: string
+}
+
+/**
  * Category interface (mapped from Prisma, not using Prisma types directly)
  */
 export interface Category extends Record<string, unknown> {
@@ -38,10 +46,13 @@ export interface Category extends Record<string, unknown> {
 	typeCategory: string
 	idCategoryType?: number
 	descripcion: string | null
+	color: string
 	status: boolean
 	beneficiaryMode: BeneficiaryMode
 	idFixedBeneficiaryUser: number | null
 	fixedBeneficiaryUser?: FixedBeneficiaryUser | null
+	idNextCategory: number | null
+	nextCategory: NextCategory | null
 	readonly createdAt: string
 	readonly updatedAt: string
 }
@@ -63,9 +74,11 @@ export interface CreateCategoryInput {
 	name: string
 	typeCategory: string
 	descripcion?: string | null
+	color: string
 	status: boolean
 	beneficiaryMode?: BeneficiaryMode
 	idFixedBeneficiaryUser?: number | null
+	idNextCategory?: number | null
 }
 
 /**
@@ -76,9 +89,11 @@ export interface UpdateCategoryInput {
 	name?: string
 	typeCategory?: string
 	descripcion?: string | null
+	color?: string
 	status?: boolean
 	beneficiaryMode?: BeneficiaryMode
 	idFixedBeneficiaryUser?: number | null
+	idNextCategory?: number | null
 }
 
 /**

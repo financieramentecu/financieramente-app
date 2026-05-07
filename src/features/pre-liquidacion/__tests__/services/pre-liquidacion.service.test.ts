@@ -138,7 +138,7 @@ describe('procesarPreLiquidacion', () => {
 				category: {
 					idCategory: 1,
 					code: 'GENERAL',
-					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 77,
 					fixedBeneficiaryUser: { idUser: 77, active: true },
 				},
@@ -240,7 +240,7 @@ describe('procesarPreLiquidacion', () => {
 				category: {
 					idCategory: 1,
 					code: 'A',
-					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 77,
 					fixedBeneficiaryUser: { idUser: 77, active: true },
 				},
@@ -252,7 +252,7 @@ describe('procesarPreLiquidacion', () => {
 				category: {
 					idCategory: 2,
 					code: 'B',
-					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 77,
 					fixedBeneficiaryUser: { idUser: 77, active: true },
 				},
@@ -330,7 +330,7 @@ describe('procesarPreLiquidacion', () => {
 				category: {
 					idCategory: 99,
 					code: 'NOMATCH',
-					beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+					beneficiaryMode: BeneficiaryMode.OVERRIDE,
 					idFixedBeneficiaryUser: null,
 					fixedBeneficiaryUser: null,
 				},
@@ -423,7 +423,7 @@ describe('procesarPreLiquidacion', () => {
 					category: {
 						idCategory: 1,
 						code: 'GENERAL',
-						beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+						beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 						idFixedBeneficiaryUser: 77,
 						fixedBeneficiaryUser: { idUser: 77, active: true },
 					},
@@ -437,7 +437,7 @@ describe('procesarPreLiquidacion', () => {
 					category: {
 						idCategory: 99,
 						code: 'NOMATCH',
-						beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+						beneficiaryMode: BeneficiaryMode.OVERRIDE,
 						idFixedBeneficiaryUser: null,
 						fixedBeneficiaryUser: null,
 					},
@@ -526,7 +526,7 @@ describe('procesarPreLiquidacion', () => {
 				category: {
 					idCategory: 1,
 					code: 'AGENCIA',
-					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 50,
 					fixedBeneficiaryUser: { idUser: 50, active: true },
 				},

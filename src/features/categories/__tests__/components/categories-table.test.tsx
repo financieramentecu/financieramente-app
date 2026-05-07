@@ -97,16 +97,62 @@ describe('CategoriesTableSection', () => {
 		it('should display type labels in table', () => {
 			const categories = [
 				createMockCategory({ code: 'CAT-MMS', typeCategory: 'MMS' }),
-				createMockCategory({ code: 'CAT-ALIADO', typeCategory: 'ALIADO' }),
-				createMockCategory({ code: 'CAT-TRINITY', typeCategory: 'TRINITY' }),
+				createMockCategory({ code: 'CAT-ALIADO', typeCategory: 'Aliado' }),
+				createMockCategory({ code: 'CAT-TRINITY', typeCategory: 'Trinity' }),
 			]
 
 			render(<CategoriesTableSection {...defaultProps} data={categories} />)
 
-			// Check type labels are shown (mapped from values)
 			expect(screen.getAllByText('MMS')[0]).toBeInTheDocument()
 			expect(screen.getAllByText('Aliado')[0]).toBeInTheDocument()
 			expect(screen.getAllByText('Trinity')[0]).toBeInTheDocument()
+		})
+	})
+
+	describe('Hierarchy — Batch 2 specs', () => {
+		it('(5.3a) color chip column renders with correct hex color', () => {
+			const categories = [
+				createMockCategory({ idCategory: 1, color: '#10b981', name: 'MS Junior' }),
+			]
+
+			render(<CategoriesTableSection {...defaultProps} data={categories} />)
+
+			// Color chip header
+			expect(screen.getByText('Color')).toBeInTheDocument()
+			// Color chip element with the hex color as background/fill
+			const chip = document.querySelector('[data-testid="color-chip"]')
+			expect(chip).toBeInTheDocument()
+			expect(chip).toHaveStyle({ backgroundColor: '#10b981' })
+		})
+
+		it('(5.3b) next-category name column renders category name', () => {
+			const categories = [
+				createMockCategory({
+					idCategory: 1,
+					name: 'MS Junior',
+					nextCategory: { id: 2, name: 'MS Senior' },
+				}),
+			]
+
+			render(<CategoriesTableSection {...defaultProps} data={categories} />)
+
+			expect(screen.getAllByText('Siguiente')[0]).toBeInTheDocument()
+			expect(screen.getByText('MS Senior')).toBeInTheDocument()
+		})
+
+		it('(5.3b) next-category name column renders "—" when null', () => {
+			const categories = [
+				createMockCategory({
+					idCategory: 1,
+					name: 'Partner',
+					nextCategory: null,
+				}),
+			]
+
+			render(<CategoriesTableSection {...defaultProps} data={categories} />)
+
+			expect(screen.getAllByText('Siguiente')[0]).toBeInTheDocument()
+			expect(screen.getByText('—')).toBeInTheDocument()
 		})
 	})
 })
