@@ -61,6 +61,8 @@
 - [x] 10.3 `src/features/negocios/hooks/use-agent-permissions.ts` o `use-business-form.ts` — actualizar `isBlocked`: para roles `ADMIN` y `ASISTENTE_GERENCIA_OPERATIVA`, retornar `false` siempre (campo habilitado desde el inicio)
 - [x] 10.4 Tests: `src/app/api/users/search/__tests__/route.test.ts` — agregar test que verifica filtro `beneficiaryMode=OVERRIDE`
 - [x] 10.5 Tests: `use-search-agents` o `use-business-form` — verificar que `isBlocked = false` para admin/asistente independientemente del documento
+- [x] 10.6 `src/app/api/users/search/route.ts` — incluir `category { name }` en el `include` del findMany para retornar el nombre de la categoría del usuario
+- [x] 10.7 `src/features/negocios/components/fields/agent-autocomplete.tsx` — mostrar categoría en paréntesis junto al nombre: `John Agudelo (MS Senior)`
 
 ## Phase 9: Verify
 

@@ -66,6 +66,7 @@ export async function GET(request: Request) {
 			orderBy: [{ name: 'asc' }, { lastName: 'asc' }],
 			include: {
 				role: true,
+				category: { select: { name: true } },
 			},
 			take: limit,
 		})
