@@ -19,7 +19,7 @@ import {
 	type CreateCategoryFormData,
 	type UpdateCategoryFormData,
 } from '../lib/category-schemas'
-import type { Category, CategoryType, NextCategory } from '../types/category.types'
+import type { Category, CategoryType } from '../types/category.types'
 import { SYSTEM_CATEGORY_TYPE_NAME } from '../types/category.types'
 import { cn } from '@/lib/utils'
 import { useCategoryTypes } from '@/features/category-types/hooks/use-category-types'
