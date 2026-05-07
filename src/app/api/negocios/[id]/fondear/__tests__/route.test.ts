@@ -98,7 +98,7 @@ describe('POST /api/negocios/[id]/fondear', () => {
 			const mockExistingBusiness = {
 				...mockPrismaBusinessEmitido,
 				status: BUSINESS_STATUS.EMITIDO,
-				_count: { annualPayments: 0 },
+				_count: { payments: 0 },
 			}
 
 			const dateAnchored = new Date('2025-04-18T12:00:00.000Z')
@@ -159,7 +159,7 @@ describe('POST /api/negocios/[id]/fondear', () => {
 			const mockVentaEfectuadaBusiness = {
 				...mockPrismaBusiness,
 				status: BUSINESS_STATUS.VENTA_EFECTUADA,
-				_count: { annualPayments: 0 },
+				_count: { payments: 0 },
 			}
 
 			mockAuth.mockResolvedValue(mockSession as never)
@@ -188,7 +188,7 @@ describe('POST /api/negocios/[id]/fondear', () => {
 			const mockFondeadoBusiness = {
 				...mockPrismaBusinessEmitido,
 				status: BUSINESS_STATUS.FONDEADO,
-				_count: { annualPayments: 0 },
+				_count: { payments: 0 },
 			}
 
 			mockAuth.mockResolvedValue(mockSession as never)
@@ -220,7 +220,7 @@ describe('POST /api/negocios/[id]/fondear', () => {
 			const mockEmitidoWithAPs = {
 				...mockPrismaBusinessEmitido,
 				status: BUSINESS_STATUS.EMITIDO,
-				_count: { annualPayments: 2 },
+				_count: { payments: 2 },
 			}
 
 			mockAuth.mockResolvedValue(mockSession as never)

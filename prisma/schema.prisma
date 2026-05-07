@@ -12,9 +12,11 @@ model Company {
   idCompany     Int       @id @default(autoincrement()) @map("id_company")
   name          String    @db.VarChar(100)
   idTypeCompany String    @map("id_type_company") @db.VarChar(20)
+  idCurrency    Int?      @map("id_currency")
   status        Boolean   @default(true)
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
+  currency      Currency? @relation(fields: [idCurrency], references: [idCurrency])
   products      Product[]
 
   @@index([idTypeCompany])
@@ -41,20 +43,25 @@ model Category {
   code                                  String                                @unique @db.VarChar(20)
   name                                  String                                @db.VarChar(50)
   descripcion                           String?
+  color                                 String                                @default("#cccccc") @db.VarChar(7)
   status                                Boolean                               @default(true)
   createdAt                             DateTime                              @default(now()) @map("created_at")
   updatedAt                             DateTime                              @updatedAt @map("updated_at")
   idCategoryType                        Int                                   @map("id_category_type")
-  beneficiaryMode                       BeneficiaryMode                       @default(UPLINE_CHAIN) @map("beneficiary_mode")
+  beneficiaryMode                       BeneficiaryMode                       @default(OVERRIDE) @map("beneficiary_mode")
   idFixedBeneficiaryUser                Int?                                  @map("id_fixed_beneficiary_user")
+  idNextCategory                        Int?                                  @map("id_next_category")
   categoryType                          CategoryType                          @relation(fields: [idCategoryType], references: [id])
   fixedBeneficiaryUser                  User?                                 @relation("CategoryFixedBeneficiary", fields: [idFixedBeneficiaryUser], references: [idUser])
+  nextCategory                          Category?                             @relation("CategorySequence", fields: [idNextCategory], references: [idCategory])
+  previousCategories                    Category[]                            @relation("CategorySequence")
   productConfigurations                 ProductConfiguration[]
   productPercentageCommissionCategories ProductPercentageCommissionCategory[]
   users                                 User[]
 
   @@index([idCategoryType])
   @@index([idFixedBeneficiaryUser])
+  @@index([idNextCategory])
   @@map("category")
 }
 
@@ -103,6 +110,7 @@ model Currency {
   createdAt  DateTime   @default(now()) @map("created_at")
   updatedAt  DateTime   @updatedAt @map("updated_at")
   businesses Business[]
+  companies  Company[]
 
   @@map("currency")
 }
@@ -303,7 +311,8 @@ model Business {
   idClientOrigin                Int                         @map("id_client_origin")
   dateIssued                    DateTime?                   @map("date_issued")
   dateAnchored                  DateTime?                   @map("date_anchored")
-  annualPayments                AnnualPayment[]
+  numAportes                    Int?                        @map("num_aportes")
+  payments                      Payment[]
   buyPeriodicity                BuyPeriodicity?             @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
   client                        Client                      @relation(fields: [idClient], references: [idClient])
   clientOrigin                  ClientOrigin                @relation(fields: [idClientOrigin], references: [idClientOrigin])
@@ -318,19 +327,20 @@ model Business {
   @@map("business")
 }
 
-model AnnualPayment {
+model Payment {
   idAnnualPayment  Int                 @id @default(autoincrement()) @map("id_annual_payment")
   idBusiness       Int                 @map("id_business")
   installmentIndex Int                 @map("installment_index")
   status           AnnualPaymentStatus @default(SIN_FONDEAR)
   dateAnchored     DateTime?           @map("date_anchored")
+  expectedDate     DateTime?           @map("expected_date")
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
   business         Business            @relation(fields: [idBusiness], references: [idBusiness], onDelete: Cascade)
 
   @@unique([idBusiness, installmentIndex])
   @@index([idBusiness])
-  @@map("annual_payment")
+  @@map("payments")
 }
 
 model CommissionDiscount {
@@ -376,7 +386,7 @@ model SettlementCommission {
   settledDate            DateTime?               @map("settled_date")
   isLagByUser            Boolean                 @default(false) @map("is_lag_by_user")
   isLagByUserDate        DateTime?               @map("is_lag_by_user_date")
-  loadNumber             Int                     @default(1) @map("load_number")
+  loadNumber            Int                     @default(1)  @map("load_number")
   comissionDistributions ComissionDistribution[]
   business               Business?               @relation(fields: [idBusiness], references: [idBusiness])
   fileImport             FileImport              @relation(fields: [idFileImport], references: [idFileImport])
@@ -469,8 +479,8 @@ model FileImportError {
   rawData           Json       @map("raw_data")
   resolved          Boolean    @default(false) @map("resolved")
   resolvedAt        DateTime?  @map("resolved_at")
-  createdAt         DateTime   @default(now()) @map("created_at")
-  loadNumber        Int        @default(1) @map("load_number")
+  createdAt         DateTime   @default(now())  @map("created_at")
+  loadNumber        Int        @default(1)  @map("load_number")
   fileImport        FileImport @relation(fields: [idFileImport], references: [idFileImport])
 
   @@index([idFileImport])
@@ -497,8 +507,8 @@ model DistributionApproval {
 }
 
 enum BeneficiaryMode {
-  UPLINE_CHAIN
-  FIXED_BENEFICIARY
+  OVERRIDE
+  BENEFICIARIO_GENERAL
 }
 
 enum AnnualPaymentStatus {

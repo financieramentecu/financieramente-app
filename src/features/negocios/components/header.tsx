@@ -26,12 +26,9 @@ export function Header() {
 					/>
 				</div>
 				<div className="flex-1 flex flex-col">
-					<h1 className="text-secondary font-bold text-base sm:text-lg">
-						Formulario único de inscripción Nacional
+					<h1 className="text-primary-foreground font-bold text-base sm:text-lg">
+						Formulario único de inscripción de Negocios
 					</h1>
-					<p className="text-secondary/90 text-sm sm:text-base">
-						Formulario único de inscripción Nacional
-					</p>
 				</div>
 			</div>
 		</div>

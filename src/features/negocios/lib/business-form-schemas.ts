@@ -27,7 +27,10 @@ export const businessFormSchema = z.object({
 	clientOrigin: z.string().min(1, 'El origen del cliente es obligatorio'),
 	contract: z
 		.string()
-		.regex(/^[0-9]*$/, 'El número de contrato solo puede contener números')
+		.regex(
+			/^[A-Za-z0-9-]*$/,
+			'El número de contrato solo puede contener letras, números y guiones'
+		)
 		.transform((val) => (val === '' ? undefined : val))
 		.optional(),
 
@@ -36,17 +39,29 @@ export const businessFormSchema = z.object({
 	producto: z.string().min(1, 'El producto es obligatorio'),
 	terms: z
 		.number()
-		.min(1, 'El plazo debe ser mayor a 0')
+		.min(0)
 		.max(
 			BUSINESS_TERM_MAX,
 			`El plazo no puede ser mayor a ${BUSINESS_TERM_MAX}`
 		),
 
 	// Información del negocio
+	isSkandiaWithMfund: z.boolean().optional(),
+	numAportes: z.number().int().min(0).optional(),
 	currency: z.string().min(1, 'La moneda es obligatoria'),
 	periodicity: z.string().min(1, 'La periodicidad es obligatoria'),
-	value: z.number().min(0, 'El valor debe ser mayor o igual a 0'),
+	value: z
+		.number({ message: 'El valor debe ser un número' })
+		.min(0, 'El valor debe ser mayor o igual a 0'),
 	agent: z.string().min(1, 'El agente es obligatorio'),
+}).superRefine((data, ctx) => {
+	if (!data.isSkandiaWithMfund && data.terms < 1) {
+		ctx.addIssue({
+			code: 'custom',
+			message: 'El plazo debe ser mayor a 0',
+			path: ['terms'],
+		})
+	}
 })
 
 export type BusinessFormData = z.infer<typeof businessFormSchema>

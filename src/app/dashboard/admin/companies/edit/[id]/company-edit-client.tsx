@@ -7,6 +7,7 @@ import { EditCompanyFormSkeleton } from '@/features/company/components/company-f
 import { useCompany } from '@/features/company/hooks/use-company'
 import { useCompanyMutations } from '@/features/company/hooks/use-company-mutations'
 import type { UpdateCompanyFormData } from '@/features/company/lib/company-schemas'
+import { useCurrencies } from '@/features/admin/currencies/hooks/use-currencies'
 import { toast } from 'sonner'
 
 interface CompanyEditClientProps {
@@ -20,10 +21,14 @@ export function CompanyEditClient({ id }: CompanyEditClientProps) {
 	const router = useRouter()
 	const { state: companyState } = useCompany(id)
 	const { updateCompany, updateState } = useCompanyMutations()
+	const { currencies, isLoading: isLoadingCurrencies } = useCurrencies()
 
 	const handleSubmit = useCallback(
 		async (data: UpdateCompanyFormData) => {
-			await updateCompany(id, data)
+			await updateCompany(id, {
+				...data,
+				idCurrency: data.idCurrency ? parseInt(data.idCurrency) : undefined,
+			})
 		},
 		[updateCompany, id]
 	)
@@ -41,7 +46,7 @@ export function CompanyEditClient({ id }: CompanyEditClientProps) {
 		}
 	}, [updateState.status, updateState.error, router])
 
-	if (companyState.status === 'loading') {
+	if (companyState.status === 'loading' || isLoadingCurrencies) {
 		return <EditCompanyFormSkeleton />
 	}
 
@@ -77,6 +82,7 @@ export function CompanyEditClient({ id }: CompanyEditClientProps) {
 						onSubmit={handleSubmit}
 						onCancel={handleCancel}
 						isLoading={updateState.status === 'loading'}
+						currencies={currencies}
 					/>
 				</div>
 			</div>

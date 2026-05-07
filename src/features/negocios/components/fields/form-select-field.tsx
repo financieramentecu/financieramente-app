@@ -23,7 +23,9 @@ export interface FormSelectFieldProps {
 	options: { value: string; label: string }[]
 	form: UseFormReturn<BusinessFormData>
 	disabled?: boolean
-	helperText?: string
+	helperText?: string | React.ReactNode
+	description?: React.ReactNode
+	className?: string
 	onValueChange?: (value: string) => void
 	required?: boolean
 }
@@ -39,6 +41,8 @@ export function FormSelectField({
 	form,
 	disabled = false,
 	helperText,
+	description,
+	className,
 	onValueChange,
 	required = false,
 }: FormSelectFieldProps) {
@@ -53,10 +57,15 @@ export function FormSelectField({
 	}
 
 	return (
-		<div className="space-y-2">
+		<div className={`space-y-2 ${className || ''}`.trim()}>
 			<Label htmlFor={name} className="text-sm font-medium">
 				{label} {required && <span className="text-red-500">*</span>}
 			</Label>
+			{description && (
+				<div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 text-sm text-amber-900 leading-snug">
+					{description}
+				</div>
+			)}
 			<Select
 				disabled={disabled}
 				value={value || ''}

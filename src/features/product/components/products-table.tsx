@@ -174,30 +174,30 @@ export function ProductsTableSection({
 				renderAdditionalFilters={
 					companies && onCompanyChange
 						? () => (
-								<Select
-									value={
-										selectedCompanyId === undefined
-											? 'all'
-											: selectedCompanyId.toString()
-									}
-									onValueChange={onCompanyChange}
-								>
-									<SelectTrigger className="w-[250px]">
-										<SelectValue placeholder="Filtrar por empresa" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="all">Todas las empresas</SelectItem>
-										{companies.map((company) => (
-											<SelectItem
-												key={company.idCompany}
-												value={company.idCompany.toString()}
-											>
-												{company.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							)
+							<Select
+								value={
+									selectedCompanyId === undefined
+										? 'all'
+										: selectedCompanyId.toString()
+								}
+								onValueChange={onCompanyChange}
+							>
+								<SelectTrigger className="w-[250px]">
+									<SelectValue placeholder="Filtrar por Compañía" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">Todas las compañías</SelectItem>
+									{companies.map((company) => (
+										<SelectItem
+											key={company.idCompany}
+											value={company.idCompany.toString()}
+										>
+											{company.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)
 						: undefined
 				}
 				manualPagination={!!pagination}

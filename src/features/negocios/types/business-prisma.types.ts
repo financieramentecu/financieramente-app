@@ -1,4 +1,4 @@
-import { AnnualPaymentStatus, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 // ============================================
 // SELECTOR DE PRISMA
@@ -36,14 +36,13 @@ export const businessWithRelations = {
 	currency: true,
 	buyPeriodicity: true,
 	clientOrigin: true,
-	/** Solo cuotas pendientes — para `hasPendingAnnualFunding` en mapper */
-	annualPayments: {
-		where: { status: AnnualPaymentStatus.SIN_FONDEAR },
-		select: { idAnnualPayment: true },
+	/** Todos los aportes con su estado — para hasPayments, hasPendingPaymentFunding y fundedAportes */
+	payments: {
+		select: { idAnnualPayment: true, status: true },
 	},
 	_count: {
 		select: {
-			annualPayments: true,
+			payments: true,
 		},
 	},
 } satisfies Prisma.BusinessInclude

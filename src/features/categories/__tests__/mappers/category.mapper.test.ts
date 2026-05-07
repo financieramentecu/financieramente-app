@@ -156,25 +156,25 @@ describe('category.mapper', () => {
 	})
 
 	describe('beneficiaryMode and fixedBeneficiaryUser mapping', () => {
-		it('should map beneficiaryMode UPLINE_CHAIN correctly', () => {
+		it('should map beneficiaryMode OVERRIDE correctly', () => {
 			const prismaCategory = createMockPrismaCategory({
-				beneficiaryMode: BeneficiaryMode.UPLINE_CHAIN,
+				beneficiaryMode: BeneficiaryMode.OVERRIDE,
 			})
 
 			const result = prismaCategoryToCategory(prismaCategory)
 
-			expect(result.beneficiaryMode).toBe('UPLINE_CHAIN')
+			expect(result.beneficiaryMode).toBe('OVERRIDE')
 		})
 
-		it('should map beneficiaryMode FIXED_BENEFICIARY correctly', () => {
+		it('should map beneficiaryMode BENEFICIARIO_GENERAL correctly', () => {
 			const prismaCategory = createMockPrismaCategory({
-				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 				idFixedBeneficiaryUser: 5,
 			})
 
 			const result = prismaCategoryToCategory(prismaCategory)
 
-			expect(result.beneficiaryMode).toBe('FIXED_BENEFICIARY')
+			expect(result.beneficiaryMode).toBe('BENEFICIARIO_GENERAL')
 		})
 
 		it('should map idFixedBeneficiaryUser as null when not set', () => {
@@ -209,7 +209,7 @@ describe('category.mapper', () => {
 
 		it('should map fixedBeneficiaryUser when relation is included', () => {
 			const prismaCategory = createMockPrismaCategory({
-				beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+				beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 				idFixedBeneficiaryUser: 7,
 				fixedBeneficiaryUser: {
 					idUser: 7,
@@ -227,6 +227,68 @@ describe('category.mapper', () => {
 				lastName: 'García',
 				email: 'ana@example.com',
 			})
+		})
+	})
+
+	describe('color, idNextCategory, and new enum mapping', () => {
+		it('should map color field correctly', () => {
+			const prismaCategory = createMockPrismaCategory({
+				color: '#ABC123',
+			})
+			const result = prismaCategoryToCategory(prismaCategory)
+			expect(result.color).toBe('#ABC123')
+		})
+
+		it('should map idNextCategory and nextCategory.id + nextCategory.name when relation is present', () => {
+			const prismaCategory = createMockPrismaCategory({
+				idNextCategory: 7,
+				nextCategory: {
+					idCategory: 7,
+					name: 'Siguiente Categoría',
+					code: 'CAT-007',
+					idCategoryType: 1,
+					descripcion: null,
+					color: '#FFFFFF',
+					status: true,
+					beneficiaryMode: 'OVERRIDE' as const,
+					idFixedBeneficiaryUser: null,
+					idNextCategory: null,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				},
+			})
+			const result = prismaCategoryToCategory(prismaCategory)
+			expect(result.idNextCategory).toBe(7)
+			expect(result.nextCategory).not.toBeNull()
+			expect(result.nextCategory?.id).toBe(7)
+			expect(result.nextCategory?.name).toBe('Siguiente Categoría')
+		})
+
+		it('should map nextCategory as null when relation is absent', () => {
+			const prismaCategory = createMockPrismaCategory({
+				idNextCategory: null,
+				nextCategory: undefined,
+			})
+			const result = prismaCategoryToCategory(prismaCategory)
+			expect(result.idNextCategory).toBeNull()
+			expect(result.nextCategory).toBeNull()
+		})
+
+		it('should map OVERRIDE beneficiaryMode correctly', () => {
+			const prismaCategory = createMockPrismaCategory({
+				beneficiaryMode: BeneficiaryMode.OVERRIDE,
+			})
+			const result = prismaCategoryToCategory(prismaCategory)
+			expect(result.beneficiaryMode).toBe('OVERRIDE')
+		})
+
+		it('should map BENEFICIARIO_GENERAL beneficiaryMode correctly', () => {
+			const prismaCategory = createMockPrismaCategory({
+				beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
+				idFixedBeneficiaryUser: 5,
+			})
+			const result = prismaCategoryToCategory(prismaCategory)
+			expect(result.beneficiaryMode).toBe('BENEFICIARIO_GENERAL')
 		})
 	})
 

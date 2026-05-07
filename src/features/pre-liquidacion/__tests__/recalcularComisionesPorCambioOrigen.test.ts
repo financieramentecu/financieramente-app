@@ -3,10 +3,9 @@ import { recalcularComisionesPorCambioOrigen } from '../services/pre-liquidacion
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
 
-// Local redefinition of BeneficiaryMode because Prisma client is outdated
 enum BeneficiaryMode {
-	UPLINE_CHAIN = 'UPLINE_CHAIN',
-	FIXED_BENEFICIARY = 'FIXED_BENEFICIARY',
+	OVERRIDE = 'OVERRIDE',
+	BENEFICIARIO_GENERAL = 'BENEFICIARIO_GENERAL',
 }
 
 vi.mock('@/features/email/lib/preliquidacion-resumen-notification', () => ({
@@ -120,7 +119,7 @@ describe('recalcularComisionesPorCambioOrigen', () => {
 					idCategory: 1,
 					code: 'GENERAL',
 					name: 'GENERAL',
-					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 123,
 					fixedBeneficiaryUser: { idUser: 123, active: true },
 				},

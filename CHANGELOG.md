@@ -5,6 +5,84 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.1.0] - 2026-05-07
+
+### Añadido
+
+- **Tipos de Categoría – Eliminación Lógica:** Al borrar un tipo de categoría, ahora se preservan sus datos en el sistema marcándolo como inactivo, manteniendo la integridad histórica y previniendo errores de referencias en cascada.
+- **Tipos de Categoría – Tabla Genérica:** La vista de administración se ha actualizado para utilizar el componente compartido `DataTable`, ofreciendo sincronización de filtros con la URL, ordenamiento y consistencia visual con el resto de la aplicación.
+
+### Mejorado
+
+- **Formulario de Categorías – Tipos Activos:** Al crear una nueva categoría, el selector de "Tipo de Categoría" ahora muestra exclusivamente los tipos activos.
+- **Formulario de Categorías – Edición Segura:** Si se edita una categoría antigua cuyo tipo asignado fue marcado como inactivo, este se mantendrá visible como opción de respaldo en el formulario, previniendo alteraciones involuntarias.
+- **Rendimiento:** Se creó un endpoint interno optimizado (`/active`) que elimina el procesamiento de paginación para agilizar la carga del selector de tipos de categoría en los formularios.
+
+
+## [1.0.2] - 2026-05-07
+
+### Añadido
+
+- **Categorías – Color identificador:** Cada categoría ahora tiene un color asignado (`#RRGGBB`) visible como chip circular en la tabla. El formulario de creación y edición incluye un selector de color nativo con paleta HTML completa.
+- **Categorías – Secuencia jerárquica:** Se puede configurar cuál es la siguiente categoría en la jerarquía de la empresa (MS JUNIOR → MS SENIOR → TEAM LEADER → PERFORMANCE LEADER → BUSINESS LEADER → PARTNER → MIA). La tabla muestra la siguiente categoría en una columna dedicada.
+- **Categorías – Audit log:** Toda operación de creación, edición o desactivación de categorías queda registrada en el log de auditoría del sistema.
+
+### Mejorado
+
+- **Categorías – Modo beneficiario:** Los valores internos del modo de beneficiario se renombraron a `OVERRIDE` y `BENEFICIARIO_GENERAL` para mayor claridad semántica. El formulario muestra el selector de usuario beneficiario solo cuando el modo es `BENEFICIARIO_GENERAL`.
+- **Categorías – Filtro de tipo dinámico:** El filtro de tipo de categoría en la tabla admin ahora carga los tipos directamente desde la base de datos en lugar de ser una lista fija.
+- **Categorías – Eliminación segura:** La desactivación de categorías ahora es lógica (cambia el estado a inactivo) en lugar de borrar el registro, preservando la trazabilidad histórica.
+- **Administración – ERD actualizado:** El diagrama entidad-relación (`prisma/ERD.md`) se mantiene sincronizado con el esquema de base de datos y se estableció como regla obligatoria actualizarlo ante cualquier cambio de schema.
+
+### Interno
+
+- Migración manual de enum PostgreSQL: `UPLINE_CHAIN → OVERRIDE`, `FIXED_BENEFICIARY → BENEFICIARIO_GENERAL`.
+- Seed de categorías reescrito con estrategia 3-pass para manejar la FK auto-referencial de secuencia.
+- Nuevas acciones de auditoría: `CATEGORY_CREATED`, `CATEGORY_UPDATED`, `CATEGORY_DEACTIVATED`.
+
+---
+
+## [1.0.1] - 2026-05-05
+
+### Infraestructura
+
+- **Docker:** Se sincronizaron los nombres de las variables de entorno de producción (`SENDGRID_*_PROD`) y se habilitó la inyección de `SUPER_ADMIN_PASSWORD` en la configuración de producción para asegurar la correcta activación de la cuenta administrativa y el envío de correos.
+
+
+## [1.0.0] - 2026-05-01
+
+### Añadido
+
+- **Negocios – Aportes y fondeos periódicos:** El sistema ahora calcula y persiste el **número de aportes** (`numAportes`) de cada negocio en el momento de su creación, considerando la periodicidad y las excepciones por compañía/producto (SKANDIA+MFUND → sin aportes; Pago Único / Aportes Ocasionales → 1 aporte). Los aportes se visualizan en el detalle del negocio indicando cuántos han sido fondeados.
+- **Negocios – Fechas esperadas de fondeo:** Al fondear un negocio por primera vez (transición EMITIDO → FONDEADO), el sistema genera automáticamente una **fecha esperada** para cada aporte usando `date-fns/addMonths`, creando así un calendario de fondeos proyectados.
+- **Negocios – Modal de fondeo multi-aporte:** Nuevo `FundingModal` que permite seleccionar individualmente qué aportes fondear, mostrando su estado (pendiente/fondeado) y fecha anclada cuando corresponde.
+- **Compañías – Configuración de moneda:** Las compañías ahora tienen una **moneda asociada** configurable desde el panel de administración. El formulario de compañías incluye un selector de moneda y el campo se persiste en base de datos.
+
+### Mejorado
+
+- **Negocios – Permisos de fondeo por rol:** Los roles `ADMIN` y `ASISTENTE_GERENCIA_OPERATIVA` pueden fondear negocios. El rol `AGENTE` (coach) tiene acceso de **solo lectura** al estado de fondeo — el botón muestra "Ver Fondeo" cuando el negocio tiene aportes registrados, y está oculto si no los tiene.
+- **Negocios – Plataforma renombrada a Money Strategist:** La interfaz refleja el nombre comercial actualizado del producto.
+- **Administración – Gestión de monedas:** Los formularios de creación y edición de compañías permiten asignar la moneda de operación de cada compañía.
+- **Permisos – Funciones de rol centralizadas:** Se reemplazaron las verificaciones de rol inline por funciones reutilizables `canFundPayments()` y `canViewPayments()` en la capa de autorización.
+
+### Interno
+
+- Modelo Prisma `AnnualPayment` renombrado a `Payment` (`@@map("payments")`) para generalizar el concepto más allá de la periodicidad anual. Todas las rutas, servicios, mappers y tests actualizados.
+- Acción de auditoría renombrada a `BUSINESS_PAYMENT_FUNDED`.
+- Cobertura de tests ampliada: ruta `/fondear-aportes` (5 tests) y `AnnualFundingModal` (4 tests).
+
+
+## [1.0.0-beta.18] - 2026-04-29
+
+### Añadido
+
+- **Negocios – Contratos alfanuméricos:** El campo de contrato en el formulario ahora acepta letras, números y guiones (ej. `CONT-123`), alineando la validación del frontend con la capacidad de la base de datos. Se incluyeron pruebas unitarias para garantizar la validez de este formato.
+
+### Mejorado
+
+- **Negocios – Legibilidad del encabezado:** Se ajustó el color del texto en el banner principal a `primary-foreground` para asegurar un contraste óptimo en modo claro sobre el fondo verde oscuro. Se simplificó el texto del banner para una interfaz más limpia.
+
+
 ## [1.0.0-beta.17] - 2026-04-26
 
 ### Añadido

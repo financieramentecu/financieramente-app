@@ -7,6 +7,7 @@ import { prismaCompanyToCompany } from '@/features/company/mappers/company.mappe
 import { z } from 'zod'
 import { requireAuth, requireRole } from '@/lib/auth/require-role'
 import { UserRole } from '@/features/auth/lib/roles'
+// REFRESH: 2026-04-29T19:32:00
 import {
 	logAuditEvent,
 	AuditAction,
@@ -139,6 +140,7 @@ export async function PUT(
 		const updateData: {
 			name?: string
 			status?: boolean
+			idCurrency?: number
 		} = {}
 
 		if (data.name !== undefined) {
@@ -147,6 +149,10 @@ export async function PUT(
 
 		if (data.status !== undefined) {
 			updateData.status = data.status
+		}
+
+		if (data.idCurrency !== undefined) {
+			updateData.idCurrency = parseInt(data.idCurrency)
 		}
 
 		const company = await prisma.company.update({
@@ -161,6 +167,10 @@ export async function PUT(
 
 		if (data.name && data.name !== existingCompany.name) {
 			changes.push(`Nombre: "${existingCompany.name}" → "${data.name}"`)
+		}
+
+		if (data.idCurrency !== undefined && parseInt(data.idCurrency) !== existingCompany.idCurrency) {
+			changes.push(`Moneda ID: ${existingCompany.idCurrency} → ${data.idCurrency}`)
 		}
 
 		if (data.status !== undefined && data.status !== existingCompany.status) {

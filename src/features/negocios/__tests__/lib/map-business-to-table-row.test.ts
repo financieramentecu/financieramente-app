@@ -15,8 +15,10 @@ function createBusinessEntity(status: string): BusinessEntity {
 		createdAt: '2026-04-20T12:00:00.000Z',
 		dateIssued: null,
 		dateAnchored: null,
-		hasAnnualPayments: false,
-		hasPendingAnnualFunding: false,
+		numAportes: null,
+		fundedAportes: 0,
+		hasPayments: false,
+		hasPendingPaymentFunding: false,
 		client: {
 			id: 1,
 			fullName: 'Jane Doe',

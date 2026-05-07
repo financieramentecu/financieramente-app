@@ -181,15 +181,15 @@ export function useBusinessMutation(): UseBusinessMutationReturn {
 				const response = await businessService.fondearAnualidades(id, body)
 
 				if ('error' in response && response.error) {
-					toast.error('Error al fondear anualidades', {
+					toast.error('Error al fondear aportes', {
 						description: response.error,
 					})
 					return null
 				}
 
 				if (response.data) {
-					toast.success(`Negocio #${id} — anualidades actualizadas`, {
-						description: 'El fondeo de cuotas se registró correctamente.',
+					toast.success(`Negocio #${id} — aportes actualizados`, {
+						description: 'El fondeo de aportes se registró correctamente.',
 					})
 					return response.data
 				}
@@ -198,7 +198,7 @@ export function useBusinessMutation(): UseBusinessMutationReturn {
 			} catch (error) {
 				console.error('Error al fondear anualidades:', error)
 				toast.error('Error inesperado', {
-					description: 'No se pudo registrar el fondeo de anualidades.',
+					description: 'No se pudo registrar el fondeo de aportes.',
 				})
 				return null
 			} finally {

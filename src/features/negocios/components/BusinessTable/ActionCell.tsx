@@ -8,7 +8,7 @@
 import { Button } from '@/features/shared/ui/button'
 import { Pencil, Eye, Trash2, Coins } from 'lucide-react'
 
-import { UserRole } from '@/features/auth/lib/roles'
+import { UserRole, canFundPayments } from '@/features/auth/lib/roles'
 import type { BusinessStatus } from '../../types/business-entity.types'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
 import {
@@ -27,8 +27,8 @@ interface ActionCellProps {
 	businessId: number
 	businessStatus: BusinessStatus
 	userRole: UserRole
-	hasAnnualPayments: boolean
-	hasPendingAnnualFunding: boolean
+	hasPayments: boolean
+	hasPendingPaymentFunding: boolean
 	onEdit?: (id: number) => void
 	onView?: (id: number) => void
 	onCancel?: (id: number) => void
@@ -50,7 +50,6 @@ const CANCEL_ALLOWED_ROLES: UserRole[] = [
 const FONDEAR_ALLOWED_ROLES: UserRole[] = [
 	UserRole.ADMIN,
 	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.AGENTE,
 ]
 
 /**
@@ -72,8 +71,8 @@ export function ActionCell({
 	businessId,
 	businessStatus,
 	userRole,
-	hasAnnualPayments,
-	hasPendingAnnualFunding,
+	hasPayments,
+	hasPendingPaymentFunding,
 	onEdit,
 	onView,
 	onCancel,
@@ -95,24 +94,34 @@ export function ActionCell({
 		CANCELABLE_STATUSES.includes(businessStatus)
 
 	const showFondearDirect =
-		!hasAnnualPayments &&
+		!hasPayments &&
 		businessStatus === BUSINESS_STATUS.EMITIDO
 	const showFondearAnnual =
-		hasAnnualPayments &&
-		hasPendingAnnualFunding &&
+		hasPayments &&
+		hasPendingPaymentFunding &&
 		(businessStatus === BUSINESS_STATUS.EMITIDO ||
 			businessStatus === BUSINESS_STATUS.FONDEADO)
 
-	const canFondear =
-		FONDEAR_ALLOWED_ROLES.includes(userRole) &&
-		(showFondearDirect || showFondearAnnual)
+	const isCoach = userRole === UserRole.AGENTE
+	const showViewFondeoForCoach =
+		isCoach &&
+		hasPayments &&
+		(businessStatus === BUSINESS_STATUS.EMITIDO ||
+			businessStatus === BUSINESS_STATUS.FONDEADO)
+	const showFondearButton =
+		(canFundPayments(userRole) && (showFondearDirect || showFondearAnnual)) ||
+		showViewFondeoForCoach
 
-	const fondearButtonLabel = showFondearAnnual
-		? FONDEAR_ANNUAL_LABEL
-		: 'Fondear'
-	const fondearTooltip = showFondearAnnual
-		? FONDEAR_ANNUAL_ACTION_TOOLTIP
-		: FONDEAR_ACTION_TOOLTIP
+	const fondearButtonLabel = isCoach
+		? 'Ver Fondeo'
+		: showFondearAnnual
+			? FONDEAR_ANNUAL_LABEL
+			: 'Fondear'
+	const fondearTooltip = isCoach
+		? 'Ver estado de fondeo'
+		: showFondearAnnual
+			? FONDEAR_ANNUAL_ACTION_TOOLTIP
+			: FONDEAR_ACTION_TOOLTIP
 
 	return (
 		<TooltipProvider>
@@ -156,7 +165,7 @@ export function ActionCell({
 				</Tooltip>
 
 				{/* Botón Fondear — directo sin cuotas anuales o flujo anual */}
-				{canFondear && (
+				{showFondearButton && (
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
