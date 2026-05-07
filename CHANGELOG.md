@@ -1,6 +1,11 @@
 # Changelog
 
-## [1.1.0] - $(date +%Y-%m-%d)
+Todos los cambios notables del proyecto se documentan en este archivo.
+
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
+
+
+## [1.1.0] - 2026-05-07
 
 ### Añadido
 
@@ -12,11 +17,6 @@
 - **Formulario de Categorías – Tipos Activos:** Al crear una nueva categoría, el selector de "Tipo de Categoría" ahora muestra exclusivamente los tipos activos.
 - **Formulario de Categorías – Edición Segura:** Si se edita una categoría antigua cuyo tipo asignado fue marcado como inactivo, este se mantendrá visible como opción de respaldo en el formulario, previniendo alteraciones involuntarias.
 - **Rendimiento:** Se creó un endpoint interno optimizado (`/active`) que elimina el procesamiento de paginación para agilizar la carga del selector de tipos de categoría en los formularios.
-
-
-Todos los cambios notables del proyecto se documentan en este archivo.
-
-El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
 ## [1.0.2] - 2026-05-07
