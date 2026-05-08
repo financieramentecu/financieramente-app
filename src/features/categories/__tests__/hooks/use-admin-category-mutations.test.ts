@@ -42,6 +42,7 @@ describe('useAdminCategoryMutations', () => {
 					code: 'CAT001',
 					name: 'Test',
 					typeCategory: 'MMS',
+					color: '#1A73E8',
 					status: true,
 				})
 			})
@@ -64,6 +65,7 @@ describe('useAdminCategoryMutations', () => {
 						code: '',
 						name: 'A',
 						typeCategory: 'MMS',
+						color: '#1A73E8',
 						status: true,
 					})
 				})

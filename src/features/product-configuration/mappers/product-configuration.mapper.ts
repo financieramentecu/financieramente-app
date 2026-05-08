@@ -11,7 +11,6 @@ import type { ProductConfiguration } from '../types/product-configuration.types'
 interface PrismaProductConfigurationWithIncludes {
 	id: number
 	idProduct: number
-	idClientOrigin: number
 	idCategory: number
 	code: string
 	active: boolean
@@ -23,7 +22,6 @@ interface PrismaProductConfigurationWithIncludes {
 		name: string
 		company: { idCompany: number; name: string }
 	}
-	clientOrigin: { idClientOrigin: number; name: string }
 	category: { idCategory: number; name: string }
 	productPercentageCommissionNewBusinesses: {
 		idProductPercentageCommission: number
@@ -46,7 +44,6 @@ export function prismaProductConfigToProductConfig(
 	return {
 		id: prisma.id,
 		idProduct: prisma.idProduct,
-		idClientOrigin: prisma.idClientOrigin,
 		idCategory: prisma.idCategory,
 		code: prisma.code,
 		active: prisma.active,
@@ -61,10 +58,6 @@ export function prismaProductConfigToProductConfig(
 				idCompany: prisma.product.company.idCompany,
 				name: prisma.product.company.name,
 			},
-		},
-		clientOrigin: {
-			idClientOrigin: prisma.clientOrigin.idClientOrigin,
-			name: prisma.clientOrigin.name,
 		},
 		category: {
 			idCategory: prisma.category.idCategory,

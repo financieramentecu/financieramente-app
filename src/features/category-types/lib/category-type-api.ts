@@ -37,6 +37,7 @@ export const categoryTypeApi = {
                 `/api/category-types?${searchParams.toString()}`,
                 {
                     headers: { 'Content-Type': 'application/json' },
+                    cache: 'no-store', // Prevent stale data
                 }
             )
             const result: ApiResponse<CategoryTypeListResponse> =
@@ -61,6 +62,7 @@ export const categoryTypeApi = {
         try {
             const response = await fetch(`/api/category-types/${id}`, {
                 headers: { 'Content-Type': 'application/json' },
+                cache: 'no-store',
             })
             const result: ApiResponse<CategoryType> = await response.json()
             return result
@@ -71,6 +73,25 @@ export const categoryTypeApi = {
                     error instanceof Error
                         ? error.message
                         : 'Error al obtener tipo de categoría',
+            }
+        }
+    },
+
+    getActiveCategoryTypes: async (): Promise<ApiResponse<CategoryType[]>> => {
+        try {
+            const response = await fetch('/api/category-types/active', {
+                headers: { 'Content-Type': 'application/json' },
+                cache: 'no-store',
+            })
+            const result: ApiResponse<CategoryType[]> = await response.json()
+            return result
+        } catch (error) {
+            return {
+                data: null,
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : 'Error al obtener los tipos de categoría activos',
             }
         }
     },

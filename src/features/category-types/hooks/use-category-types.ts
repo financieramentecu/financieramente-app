@@ -27,7 +27,7 @@ export function useCategoryTypes(
         setState({
             status: 'loading',
             data: undefined,
-            error: '',
+            error: ''
         })
 
         try {

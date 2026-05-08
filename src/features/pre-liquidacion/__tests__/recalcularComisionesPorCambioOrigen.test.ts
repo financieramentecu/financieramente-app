@@ -3,10 +3,9 @@ import { recalcularComisionesPorCambioOrigen } from '../services/pre-liquidacion
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
 
-// Local redefinition of BeneficiaryMode because Prisma client is outdated
 enum BeneficiaryMode {
-	UPLINE_CHAIN = 'UPLINE_CHAIN',
-	FIXED_BENEFICIARY = 'FIXED_BENEFICIARY',
+	OVERRIDE = 'OVERRIDE',
+	BENEFICIARIO_GENERAL = 'BENEFICIARIO_GENERAL',
 }
 
 vi.mock('@/features/email/lib/preliquidacion-resumen-notification', () => ({
@@ -20,7 +19,7 @@ vi.mock('@/lib/prisma', () => ({
 		business: { findUnique: vi.fn(), update: vi.fn() },
 		productConfiguration: { findFirst: vi.fn() },
 		settlementCommission: { findMany: vi.fn() },
-		comissionDistribution: { deleteMany: vi.fn(), create: vi.fn() },
+		comissionDistribution: { updateMany: vi.fn(), create: vi.fn() },
 		clawback: { deleteMany: vi.fn(), create: vi.fn() },
 		productPercentageCommissionCategory: { findMany: vi.fn() },
 		user: { findUnique: vi.fn() },
@@ -120,7 +119,7 @@ describe('recalcularComisionesPorCambioOrigen', () => {
 					idCategory: 1,
 					code: 'GENERAL',
 					name: 'GENERAL',
-					beneficiaryMode: BeneficiaryMode.FIXED_BENEFICIARY,
+					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 123,
 					fixedBeneficiaryUser: { idUser: 123, active: true },
 				},
@@ -143,9 +142,10 @@ describe('recalcularComisionesPorCambioOrigen', () => {
 			}),
 		})
 
-		// verify deletions
-		expect(prisma.comissionDistribution.deleteMany).toHaveBeenCalledWith({
+		// verify soft delete (updateMany instead of deleteMany)
+		expect(prisma.comissionDistribution.updateMany).toHaveBeenCalledWith({
 			where: { idSettlementCommission: { in: [100] } },
+			data: { isActive: false },
 		})
 		expect(prisma.clawback.deleteMany).toHaveBeenCalledWith({
 			where: { 

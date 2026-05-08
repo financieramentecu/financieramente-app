@@ -75,10 +75,31 @@ export function UserActionsCard({
     const [validationError, setValidationError] = useState<string | null>(null)
 
     const { roles, isLoading: loadingRoles } = useRoles()
-    const { categories, isLoading: loadingCategories } = useCategories({
+    const { categories: allCategories, isLoading: loadingCategories } = useCategories({
         status: 'active',
     })
-    const { leaders, isLoading: loadingLeaders } = useLeaders(user.id)
+
+    // Filter categories to only show those with beneficiaryMode === 'OVERRIDE'
+    const categories = allCategories.filter(c => c.beneficiaryMode === 'OVERRIDE')
+
+    // Find the next category details based on the selected category
+    const selectedCategory = categories.find(c => c.idCategory === selectedCategoryId)
+    let nextCategoryId = selectedCategory ? selectedCategory.idNextCategory : null
+
+    // If the next category doesn't have beneficiaryMode === 'OVERRIDE', 
+    // it's considered the end of the assignable hierarchy for this flow.
+    if (nextCategoryId) {
+        const nextCategoryFull = allCategories.find(c => c.idCategory === nextCategoryId)
+        if (nextCategoryFull?.beneficiaryMode !== 'OVERRIDE') {
+            nextCategoryId = null
+        }
+    }
+
+    const nextCategoryName = nextCategoryId 
+        ? allCategories.find(c => c.idCategory === nextCategoryId)?.name || null 
+        : null
+
+    const { leaders, isLoading: loadingLeaders } = useLeaders(nextCategoryId, user.id)
     const validation = useUserAccessValidation(user)
 
     // Track changes
@@ -312,92 +333,125 @@ export function UserActionsCard({
                         </p>
                     </div>
 
-                    {/* Category Selection */}
-                    <div className="space-y-3">
-                        <Label htmlFor="category-select">
-                            Categoría
-                            {selectedRole?.code === 'AGENTE' && (
-                                <span className="text-red-500 ml-1">*</span>
-                            )}
-                        </Label>
-                        <Select
-                            value={selectedCategoryId?.toString() || 'none'}
-                            onValueChange={(value) =>
-                                setSelectedCategoryId(
-                                    value === 'none' ? null : parseInt(value)
-                                )
-                            }
-                            disabled={isLoading || loadingCategories}
-                        >
-                            <SelectTrigger id="category-select">
-                                <SelectValue placeholder="Seleccionar categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">Sin categoría asignada</SelectItem>
-                                {categories.map((category) => (
-                                    <SelectItem
-                                        key={category.idCategory}
-                                        value={category.idCategory.toString()}
-                                    >
-                                        {category.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <p className="text-sm text-muted-foreground">
-                            {selectedRole?.code === 'AGENTE'
-                                ? 'La categoría es requerida para usuarios con rol Agente/Coach'
-                                : 'Asigna una categoría al usuario (opcional)'}
-                        </p>
-                    </div>
+                    {/* Role Specific Settings (only for AGENTE) */}
+                    {selectedRole?.code === 'AGENTE' && (
+                        <>
+                            {/* Category Selection */}
+                            <div className="space-y-3">
+                                <Label htmlFor="category-select">
+                                    Categoría
+                                    <span className="text-red-500 ml-1">*</span>
+                                </Label>
+                                <Select
+                                    value={selectedCategoryId?.toString() || 'none'}
+                                    onValueChange={(value) =>
+                                        setSelectedCategoryId(
+                                            value === 'none' ? null : parseInt(value)
+                                        )
+                                    }
+                                    disabled={isLoading || loadingCategories}
+                                >
+                                    <SelectTrigger id="category-select" className="focus-visible:ring-2 transition-all duration-200">
+                                        <SelectValue placeholder="Seleccionar categoría" />
+                                    </SelectTrigger>
+                                     <SelectContent>
+                                         <SelectItem value="none">Sin categoría asignada</SelectItem>
+                                         {categories.map((category) => (
+                                             <SelectItem
+                                                 key={category.idCategory}
+                                                 value={category.idCategory.toString()}
+                                                 className="cursor-pointer transition-colors duration-200"
+                                             >
+                                                 {category.name}
+                                             </SelectItem>
+                                         ))}
+                                     </SelectContent>
+                                </Select>
+                                <p className="text-sm text-muted-foreground">
+                                    Asigna una categoría al agente para el cálculo de comisiones.
+                                </p>
+                            </div>
 
-                    {/* Leader Selection */}
-                    <div className="space-y-3">
-                        <Label htmlFor="leader-select">Líder (Coach)</Label>
-                        <Select
-                            value={selectedLeaderId?.toString() || 'none'}
-                            onValueChange={(value) =>
-                                setSelectedLeaderId(
-                                    value === 'none' ? null : parseInt(value)
-                                )
-                            }
-                            disabled={isLoading || loadingLeaders}
-                        >
-                        <SelectTrigger id="leader-select">
-                            <SelectValue
-                                placeholder="Seleccionar líder"
-                            >
-                                {selectedLeaderName || 'Seleccionar líder'}
-                            </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">Sin líder asignado</SelectItem>
-                            {leaders.length === 0 ? (
-                                <SelectItem value="no-leaders" disabled>
-                                    No hay líderes disponibles
-                                </SelectItem>
-                            ) : (
-                                leaders.map((leader: Leader) => (
-                                    <SelectItem
-                                        key={leader.id}
-                                        value={leader.id.toString()}
-                                    >
-                                        {formatLeaderName(leader)}
-                                        {leader.email && (
-                                            <span className="text-muted-foreground ml-2">
-                                                ({leader.email})
-                                            </span>
-                                        )}
-                                    </SelectItem>
-                                ))
-                            )}
-                        </SelectContent>
-                        </Select>
-                        <p className="text-sm text-muted-foreground">
-                            Asigna un líder (coach) al usuario. Solo usuarios con rol
-                            Agente/Coach pueden ser líderes.
-                        </p>
-                    </div>
+                             {/* Leader Selection */}
+                             <div className="space-y-3">
+                                 <div className="flex items-center justify-between">
+                                     <Label
+                                         htmlFor="leader-select"
+                                         className={!nextCategoryId && selectedCategoryId ? "text-muted-foreground" : ""}
+                                     >
+                                         Líder {nextCategoryName ? `(${nextCategoryName})` : '(Coach)'}
+                                     </Label>
+                                     {!nextCategoryId && selectedCategoryId && (
+                                         <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                                             Nivel Máximo
+                                         </span>
+                                     )}
+                                 </div>
+                                 <Select
+                                     value={selectedLeaderId?.toString() || 'none'}
+                                     onValueChange={(value) =>
+                                         setSelectedLeaderId(
+                                             value === 'none' ? null : parseInt(value)
+                                         )
+                                     }
+                                     disabled={isLoading || loadingLeaders || (!nextCategoryId && selectedCategoryId !== null)}
+                                 >
+                                 <SelectTrigger
+                                     id="leader-select"
+                                     className="focus-visible:ring-2 transition-all duration-200"
+                                 >
+                                     <SelectValue
+                                         placeholder={
+                                             !nextCategoryId && selectedCategoryId
+                                                 ? "No requiere líder"
+                                                 : nextCategoryName 
+                                                     ? `Seleccionar ${nextCategoryName}`
+                                                     : "Seleccionar líder"
+                                         }
+                                     >
+                                         {selectedLeaderName || (
+                                             !nextCategoryId && selectedCategoryId
+                                                 ? "No requiere líder"
+                                                 : nextCategoryName 
+                                                     ? `Seleccionar ${nextCategoryName}`
+                                                     : "Seleccionar líder"
+                                         )}
+                                     </SelectValue>
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                     <SelectItem value="none">Sin líder asignado</SelectItem>
+                                     {leaders.length === 0 ? (
+                                         <SelectItem value="no-leaders" disabled>
+                                             {!nextCategoryId && selectedCategoryId
+                                                 ? "Esta categoría no requiere líder"
+                                                 : "No hay líderes disponibles en el siguiente nivel"}
+                                         </SelectItem>
+                                     ) : (
+                                         leaders.map((leader: Leader) => (
+                                             <SelectItem
+                                                 key={leader.id}
+                                                 value={leader.id.toString()}
+                                                 className="cursor-pointer transition-colors duration-200"
+                                             >
+                                                 {formatLeaderName(leader)}
+                                                 {leader.email && (
+                                                     <span className="text-muted-foreground ml-2 text-xs">
+                                                         ({leader.email})
+                                                     </span>
+                                                 )}
+                                             </SelectItem>
+                                         ))
+                                     )}
+                                 </SelectContent>
+                                 </Select>
+                                 <p className="text-sm text-muted-foreground">
+                                     {!nextCategoryId && selectedCategoryId
+                                         ? "Esta categoría es el nivel superior jerárquico y no requiere un líder."
+                                         : "Asigna un líder del nivel inmediatamente superior."}
+                                 </p>
+                             </div>
+                        </>
+                    )}
 
                     {/* Save Button */}
                     <div className="flex justify-end">

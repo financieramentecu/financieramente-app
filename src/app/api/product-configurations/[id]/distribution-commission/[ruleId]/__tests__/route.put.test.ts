@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { NextRequest } from 'next/server'
 import { PUT } from '../route'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 
 const createMany = vi.fn()
 const deleteMany = vi.fn()
@@ -25,6 +26,24 @@ vi.mock('@/lib/prisma', () => ({
 				},
 			}),
 	},
+}))
+
+vi.mock('@/auth', () => ({
+	auth: vi.fn().mockResolvedValue({
+		user: { id: '1', email: 'admin@test.com' },
+	}),
+}))
+
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	logAuditEvent: vi.fn().mockResolvedValue(undefined),
+	AuditAction: {
+		DISTRIBUTION_COMMISSION_CREATED: 'DISTRIBUTION_COMMISSION_CREATED',
+		DISTRIBUTION_COMMISSION_UPDATED: 'DISTRIBUTION_COMMISSION_UPDATED',
+		DISTRIBUTION_COMMISSION_ACTIVATED: 'DISTRIBUTION_COMMISSION_ACTIVATED',
+		DISTRIBUTION_COMMISSION_DEACTIVATED: 'DISTRIBUTION_COMMISSION_DEACTIVATED',
+	},
+	getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
+	getUserAgent: vi.fn().mockReturnValue('test-agent'),
 }))
 
 describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]', () => {
@@ -83,6 +102,11 @@ describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]'
 				}),
 			],
 		})
+		expect(vi.mocked(logAuditEvent)).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: AuditAction.DISTRIBUTION_COMMISSION_UPDATED,
+			})
+		)
 	})
 
 	it('persists portfolio fractions when hasPortfolio is true', async () => {

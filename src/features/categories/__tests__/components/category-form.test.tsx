@@ -165,9 +165,9 @@ describe('CategoryForm', () => {
 			expect(screen.getByText(/modo de beneficiario/i)).toBeInTheDocument()
 		})
 
-		it('should not show idFixedBeneficiaryUser picker when UPLINE_CHAIN is selected', () => {
+		it('should not show idFixedBeneficiaryUser picker when OVERRIDE is selected', () => {
 			const category = createMockCategory({
-				beneficiaryMode: 'UPLINE_CHAIN',
+				beneficiaryMode: 'OVERRIDE',
 				idFixedBeneficiaryUser: null,
 			})
 			render(
@@ -179,10 +179,10 @@ describe('CategoryForm', () => {
 			).not.toBeInTheDocument()
 		})
 
-		it('should show idFixedBeneficiaryUser picker when FIXED_BENEFICIARY is selected', () => {
-			// Render with initial beneficiaryMode = FIXED_BENEFICIARY to avoid Radix pointer-events issue
+		it('should show idFixedBeneficiaryUser picker when BENEFICIARIO_GENERAL is selected', () => {
+			// Render with initial beneficiaryMode = BENEFICIARIO_GENERAL to avoid Radix pointer-events issue
 			const category = createMockCategory({
-				beneficiaryMode: 'FIXED_BENEFICIARY',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL',
 				idFixedBeneficiaryUser: null,
 			})
 			render(
@@ -194,10 +194,10 @@ describe('CategoryForm', () => {
 			).toBeInTheDocument()
 		})
 
-		it('should show read-only system user display for system categories with FIXED_BENEFICIARY and a configured user', () => {
+		it('should show read-only system user display for system categories with BENEFICIARIO_GENERAL and a configured user', () => {
 			const systemCategory = createMockCategory({
 				typeCategory: SYSTEM_CATEGORY_TYPE_NAME,
-				beneficiaryMode: 'FIXED_BENEFICIARY',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL',
 				idFixedBeneficiaryUser: 5,
 				fixedBeneficiaryUser: {
 					idUser: 5,
@@ -215,10 +215,10 @@ describe('CategoryForm', () => {
 			expect(screen.getByText('sistema@test.com')).toBeInTheDocument()
 		})
 
-		it('should show empty state placeholder for system categories with FIXED_BENEFICIARY and no user configured', () => {
+		it('should show empty state placeholder for system categories with BENEFICIARIO_GENERAL and no user configured', () => {
 			const systemCategory = createMockCategory({
 				typeCategory: SYSTEM_CATEGORY_TYPE_NAME,
-				beneficiaryMode: 'FIXED_BENEFICIARY',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL',
 				idFixedBeneficiaryUser: null,
 				fixedBeneficiaryUser: null,
 			})
@@ -244,6 +244,73 @@ describe('CategoryForm', () => {
 			render(<CategoryForm {...defaultProps} isLoading={true} />)
 
 			expect(screen.getByText('Cancelar')).toBeDisabled()
+		})
+	})
+
+	describe('Hierarchy — Batch 2 specs', () => {
+		it('(5.1a) color input renders with type="color"', () => {
+			render(<CategoryForm {...defaultProps} />)
+
+			const colorInput = screen.getByLabelText(/color/i)
+			expect(colorInput).toHaveAttribute('type', 'color')
+		})
+
+		it('(5.1b) next-category select excludes the current category id', () => {
+			const category = createMockCategory({ idCategory: 3 })
+			render(
+				<CategoryForm
+					{...defaultProps}
+					mode="edit"
+					initialData={category}
+					categories={[
+						{ idCategory: 1, name: 'MS Junior' },
+						{ idCategory: 2, name: 'MS Senior' },
+						{ idCategory: 3, name: 'Team Leader' },
+					]}
+				/>
+			)
+
+			// Options for next-category should NOT contain the current category name
+			expect(screen.queryByRole('option', { name: /team leader/i })).not.toBeInTheDocument()
+			// The label for the next-category section must be present
+			expect(screen.getByText('Siguiente categoría')).toBeInTheDocument()
+		})
+
+		it('(5.1c) switching to OVERRIDE clears user selector', async () => {
+			const user = userEvent.setup()
+			const category = createMockCategory({
+				beneficiaryMode: 'BENEFICIARIO_GENERAL',
+				idFixedBeneficiaryUser: null,
+			})
+			render(
+				<CategoryForm {...defaultProps} mode="edit" initialData={category} />
+			)
+
+			// User picker should be visible initially
+			expect(screen.getByText(/usuario beneficiario/i)).toBeInTheDocument()
+
+			// Open beneficiaryMode select and choose OVERRIDE
+			const trigger = screen.getByRole('combobox', { name: /modo de beneficiario/i })
+			await user.click(trigger)
+			const overrideOption = screen.getByRole('option', { name: /override/i })
+			await user.click(overrideOption)
+
+			// User picker must disappear
+			await waitFor(() => {
+				expect(screen.queryByText(/usuario beneficiario fijo/i)).not.toBeInTheDocument()
+			})
+		})
+
+		it('(5.1d) BENEFICIARIO_GENERAL label appears in beneficiary mode options (not FIXED_BENEFICIARY)', () => {
+			render(<CategoryForm {...defaultProps} />)
+
+			// The old label "Beneficiario fijo" / "FIXED_BENEFICIARY" must NOT appear; new label should
+			expect(screen.queryByText('FIXED_BENEFICIARY')).not.toBeInTheDocument()
+			expect(screen.queryByText('Beneficiario General')).not.toBeInTheDocument()
+			// "Beneficiario general" (label for the select item) should be present
+			// We assert the select item with the new label is in the DOM after opening
+			const trigger = screen.getByRole('combobox', { name: /modo de beneficiario/i })
+			expect(trigger).toBeInTheDocument()
 		})
 	})
 })

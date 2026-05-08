@@ -17,7 +17,6 @@ describe('product-configuration.mapper', () => {
 			).toBe(false)
 			expect(result.id).toBe(1)
 			expect(result.idProduct).toBe(1)
-			expect(result.idClientOrigin).toBe(1)
 			expect(result.idCategory).toBe(1)
 			expect(result.code).toBe('CREA_PATRIMONIO-PROPIO-JUNIOR')
 			expect(result.active).toBe(true)
@@ -42,15 +41,6 @@ describe('product-configuration.mapper', () => {
 			expect(result.product.name).toBe('Crea Patrimonio')
 			expect(result.product.company.idCompany).toBe(1)
 			expect(result.product.company.name).toBe('Empresa Test')
-		})
-
-		it('should map nested clientOrigin', () => {
-			const prismaConfig = createMockPrismaProductConfiguration()
-
-			const result = prismaProductConfigToProductConfig(prismaConfig)
-
-			expect(result.clientOrigin.idClientOrigin).toBe(1)
-			expect(result.clientOrigin.name).toBe('Propio')
 		})
 
 		it('should map nested category', () => {

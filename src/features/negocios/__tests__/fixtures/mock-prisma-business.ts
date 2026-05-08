@@ -26,6 +26,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	idCurrency: 1,
 	idClientOrigin: 1,
 	status: 'VENTA_EFECTUADA',
+	isActive: true,
 	createdAt: baseDate,
 	updatedAt: baseDate,
 	dateIssued: null,
@@ -90,9 +91,8 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 		productConfiguration: {
 			id: 1,
 			idProduct: 1,
-			idClientOrigin: 1,
 			idCategory: 1,
-			code: 'CREA_PATRIMONIO-PROPIO-JUNIOR',
+			code: 'SKANDIA-CREA_PATRIMONIO-JUNIOR',
 			active: true,
 			idProductPercentageCommissionNewBusinesses: 1,
 			createdAt: baseDate,

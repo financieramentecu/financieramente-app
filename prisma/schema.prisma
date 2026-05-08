@@ -32,8 +32,7 @@ model ClientOrigin {
   status                Boolean                @default(true)
   createdAt             DateTime               @default(now()) @map("created_at")
   updatedAt             DateTime               @updatedAt @map("updated_at")
-  businesses            Business[]
-  productConfigurations ProductConfiguration[]
+  businesses Business[]
 
   @@map("client_origin")
 }
@@ -43,20 +42,25 @@ model Category {
   code                                  String                                @unique @db.VarChar(20)
   name                                  String                                @db.VarChar(50)
   descripcion                           String?
+  color                                 String                                @default("#cccccc") @db.VarChar(7)
   status                                Boolean                               @default(true)
   createdAt                             DateTime                              @default(now()) @map("created_at")
   updatedAt                             DateTime                              @updatedAt @map("updated_at")
   idCategoryType                        Int                                   @map("id_category_type")
-  beneficiaryMode                       BeneficiaryMode                       @default(UPLINE_CHAIN) @map("beneficiary_mode")
+  beneficiaryMode                       BeneficiaryMode                       @default(OVERRIDE) @map("beneficiary_mode")
   idFixedBeneficiaryUser                Int?                                  @map("id_fixed_beneficiary_user")
+  idNextCategory                        Int?                                  @map("id_next_category")
   categoryType                          CategoryType                          @relation(fields: [idCategoryType], references: [id])
   fixedBeneficiaryUser                  User?                                 @relation("CategoryFixedBeneficiary", fields: [idFixedBeneficiaryUser], references: [idUser])
+  nextCategory                          Category?                             @relation("CategorySequence", fields: [idNextCategory], references: [idCategory])
+  previousCategories                    Category[]                            @relation("CategorySequence")
   productConfigurations                 ProductConfiguration[]
   productPercentageCommissionCategories ProductPercentageCommissionCategory[]
   users                                 User[]
 
   @@index([idCategoryType])
   @@index([idFixedBeneficiaryUser])
+  @@index([idNextCategory])
   @@map("category")
 }
 
@@ -143,7 +147,6 @@ model Product {
 model ProductConfiguration {
   id                                         Int                           @id @default(autoincrement()) @map("id_product_configuration")
   idProduct                                  Int                           @map("id_product")
-  idClientOrigin                             Int                           @map("id_client_origin")
   idCategory                                 Int                           @map("id_category")
   idProductPercentageCommissionNewBusinesses Int?                          @unique @map("id_product_percentage_commission_new_businesses")
   createdAt                                  DateTime                      @default(now()) @map("created_at")
@@ -151,14 +154,12 @@ model ProductConfiguration {
   code                                       String                        @unique @db.VarChar(50)
   active                                     Boolean                       @default(true) @map("active")
   category                                   Category                      @relation(fields: [idCategory], references: [idCategory])
-  clientOrigin                               ClientOrigin                  @relation(fields: [idClientOrigin], references: [idClientOrigin])
   product                                    Product                       @relation(fields: [idProduct], references: [idProduct])
   productPercentageCommissionNewBusinesses   ProductPercentageCommission?  @relation("PpcNewBusinesses", fields: [idProductPercentageCommissionNewBusinesses], references: [idProductPercentageCommission])
   productPercentageCommissions               ProductPercentageCommission[]
 
-  @@unique([idProduct, idClientOrigin, idCategory])
+  @@unique([idProduct, idCategory])
   @@index([idProduct])
-  @@index([idClientOrigin])
   @@index([idCategory])
   @@map("product_configuration")
 }
@@ -307,6 +308,7 @@ model Business {
   dateIssued                    DateTime?                   @map("date_issued")
   dateAnchored                  DateTime?                   @map("date_anchored")
   numAportes                    Int?                        @map("num_aportes")
+  isActive                      Boolean                     @default(true) @map("is_active")
   payments                      Payment[]
   buyPeriodicity                BuyPeriodicity?             @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
   client                        Client                      @relation(fields: [idClient], references: [idClient])
@@ -405,6 +407,7 @@ model ComissionDistribution {
   appliedDiscountPercentage           Decimal?                             @map("applied_discount_percentage") @db.Decimal(5, 4)
   idBeneficiaryUser                   Int                                  @map("id_beneficiary_user")
   valueCommissionWithDiscount         Decimal?                             @map("value_commission_with_discount") @db.Decimal(15, 2)
+  isActive                            Boolean                              @default(true) @map("is_active")
   clawback                            Clawback?
   beneficiaryUser                     User                                 @relation("BeneficiaryUser", fields: [idBeneficiaryUser], references: [idUser])
   productPercentageCommissionCategory ProductPercentageCommissionCategory? @relation(fields: [idPercentajeCommisionCategory], references: [id])
@@ -502,8 +505,8 @@ model DistributionApproval {
 }
 
 enum BeneficiaryMode {
-  UPLINE_CHAIN
-  FIXED_BENEFICIARY
+  OVERRIDE
+  BENEFICIARIO_GENERAL
 }
 
 enum AnnualPaymentStatus {

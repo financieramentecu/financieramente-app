@@ -14,7 +14,6 @@ import {
 } from '@/features/auth/lib/permissions'
 import { UserRole } from '@/features/auth/lib/roles'
 import { createUserAutomatically } from '@/features/auth/lib/user-creation'
-import { sendNewUserNotificationToAdmins } from '@/features/email/lib/admin-notifications'
 
 /**
  * Configuración de autenticación NextAuth
@@ -143,18 +142,6 @@ export const authConfig: NextAuthConfig = {
 					return '/login?error=AccountDisabled'
 				}
 
-				// SEGUNDA VALIDACIÓN: Bloquear usuarios con rol DEFAULT
-				if (validation.user?.role === UserRole.DEFAULT) {
-					await logAuditEvent({
-						userId: validation.user.id,
-						action: AuditAction.ACCOUNT_DISABLED,
-						email: user.email,
-						details:
-							'Usuario con rol Default intentó acceder - Login bloqueado (requiere activación y asignación de rol)',
-					})
-					// Retornar URL con error específico
-					return '/login?error=AccountDisabled'
-				}
 
 				if (validation.error === 'USER_NOT_FOUND') {
 					try {
@@ -166,7 +153,7 @@ export const authConfig: NextAuthConfig = {
 						})
 
 						if (createResult.success && createResult.userId) {
-							// Usuario creado exitosamente, pero está inactivo y con rol DEFAULT
+							// Usuario creado exitosamente, pero está inactivo y con rol AGENTE
 							// Registrar intento de acceso
 							await logAuditEvent({
 								userId: createResult.userId,
@@ -177,25 +164,7 @@ export const authConfig: NextAuthConfig = {
 							})
 
 							// Notificar al administrador
-							console.log(
-								`[signIn callback] Intentando enviar notificación a administradores para usuario: ${user.email} (ID: ${createResult.userId})`
-							)
-							try {
-								await sendNewUserNotificationToAdmins({
-									userId: createResult.userId,
-									userName: user.name || user.email.split('@')[0],
-									userEmail: user.email,
-								})
-								console.log(
-									`[signIn callback] Notificación enviada exitosamente a administradores`
-								)
-							} catch (notificationError) {
-								console.error(
-									`[signIn callback] Error enviando notificación a administradores:`,
-									notificationError
-								)
-								// No bloquear el flujo si falla el envío de email
-							}
+							// Nota: La notificación ahora se envía centralizadamente desde createUserAutomatically
 
 							// Retornar URL con error específico - usuario debe ser activado primero
 							return '/login?error=AccountDisabled'

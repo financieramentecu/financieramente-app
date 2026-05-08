@@ -704,7 +704,6 @@ export async function obtenerDistribucionComision(
 							productConfiguration: {
 								include: {
 									product: true,
-									clientOrigin: true,
 									category: true,
 								},
 							},
@@ -788,7 +787,7 @@ export async function obtenerDistribucionComision(
 		commission_value: commissionValueParent,
 		categoria: productConfig?.category?.name ?? null,
 		producto: productConfig?.product?.name ?? null,
-		origen: productConfig?.clientOrigin?.name ?? null,
+		origen: null,
 		nombreAsesor: sc.business?.user
 			? `${sc.business.user.name} ${sc.business.user.lastName ?? ''}`.trim()
 			: null,
@@ -1873,7 +1872,6 @@ export async function recalcularComisionesPorCambioOrigen(
 					business.productPercentageCommission.productConfiguration.idProduct,
 				idCategory:
 					business.productPercentageCommission.productConfiguration.idCategory,
-				idClientOrigin,
 			},
 			include: {
 				productPercentageCommissions: {
@@ -1958,8 +1956,9 @@ export async function recalcularComisionesPorCambioOrigen(
 				},
 			})
 
-			await tx.comissionDistribution.deleteMany({
+			await tx.comissionDistribution.updateMany({
 				where: { idSettlementCommission: { in: ids } },
+				data: { isActive: false },
 			})
 
 			for (const record of preSettledCommissions) {

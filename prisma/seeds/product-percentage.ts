@@ -5,17 +5,13 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Porcentajes de Comisión (ProductPercentages)...')
 
 	// 1. Obtener dependencias necesarias
-	const clientOriginPropio = await prisma.clientOrigin.findFirst({
-		where: { name: 'Propio' },
-	})
-
 	const catJunior = await prisma.category.findUnique({
-		where: { code: 'JUNIOR' },
+		where: { code: 'MS_JUNIOR' },
 	})
 
-	if (!clientOriginPropio || !catJunior) {
+	if (!catJunior) {
 		console.warn(
-			'⚠️ Faltan datos base (Origin Propio o Category JUNIOR) para crear porcentajes. Saltando...'
+			'⚠️ Falta Category MS_JUNIOR para crear porcentajes. Saltando...'
 		)
 		return
 	}
@@ -32,16 +28,14 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 		const code = buildProductConfigurationCode(
 			product.company.name,
 			product.name,
-			clientOriginPropio.name,
-			catJunior.name
+			catJunior.code
 		)
 
-		// 1. Obtener o crear ProductConfiguration
+		// 1. Obtener o crear ProductConfiguration (sin idClientOrigin)
 		let productConfiguration = await prisma.productConfiguration.findUnique({
 			where: {
-				idProduct_idClientOrigin_idCategory: {
+				idProduct_idCategory: {
 					idProduct: product.idProduct,
-					idClientOrigin: clientOriginPropio.idClientOrigin,
 					idCategory: catJunior.idCategory,
 				},
 			},
@@ -51,7 +45,6 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 			productConfiguration = await prisma.productConfiguration.create({
 				data: {
 					idProduct: product.idProduct,
-					idClientOrigin: clientOriginPropio.idClientOrigin,
 					idCategory: catJunior.idCategory,
 					code,
 					active: true,

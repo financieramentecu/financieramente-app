@@ -5,6 +5,97 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.3.1] - 2026-05-07
+
+### Mejorado
+
+- **Configuración de Productos – Estabilidad:** Los códigos de configuración de productos ahora se generan utilizando el `code` interno de las categorías en lugar de su nombre visual. Esto garantiza que los identificadores de negocio permanezcan estables aunque se renombren las categorías en la interfaz administrativa.
+- **API – Integridad de Datos:** Refactorización del proceso de creación de configuraciones para asegurar una generación de códigos consistente y libre de dependencias de visualización.
+
+### Interno
+
+- **Scripts – Corrección de Datos:** Nuevo script de seed `fix-product-config-codes.ts` para normalizar retroactivamente todos los códigos de configuración existentes y eliminar duplicados causados por la remoción del origen.
+- **Pruebas – Robustez:** Actualización de la suite de pruebas para validar la nueva lógica de generación de códigos basada en identificadores estables.
+
+
+## [1.3.0] - 2026-05-07
+
+### Añadido
+
+- **Administración – Asignación Jerárquica:** Nueva interfaz administrativa para asignar Categoría y Líder a los usuarios. El sistema filtra dinámicamente las categorías de tipo `OVERRIDE` y los líderes disponibles basados en el nivel jerárquico superior (`idNextCategory`).
+- **Administración – UX Jerárquica:** Etiquetas dinámicas en los selectores que indican el nombre de la categoría superior (ej. "Líder (COACH)") y feedback visual de "Nivel Máximo" cuando no hay niveles superiores configurados.
+- **Usuarios – Tabla de Gestión:** Se añadieron columnas de Categoría y Líder a la tabla principal de usuarios para una auditoría visual rápida del árbol jerárquico.
+
+### Mejorado
+
+- **Seguridad – Activación de Usuarios:** El acceso al sistema ahora se rige estrictamente por el estado `active: false`. Los usuarios nuevos creados automáticamente quedan bloqueados y con el rol `AGENTE` por defecto, requiriendo activación manual por un administrador.
+- **Notificaciones – Registro de Usuario:** Se centralizó el envío de correos electrónicos a administradores en la capa de creación de usuarios, eliminando notificaciones duplicadas y asegurando una traza de auditoría única.
+- **Roles – Simplificación:** Eliminado el rol legacy `DEFAULT`. Todos los nuevos integrantes asumen el rol `AGENTE` desde su primer inicio de sesión, manteniendo la restricción de acceso hasta su aprobación.
+
+### Interno
+
+- **Pruebas – Cobertura de Activación:** Suite de pruebas unitarias actualizada para validar el nuevo flujo de creación con rol `AGENTE` y bloqueo por inactividad.
+- **API Admin:** Refactorización del endpoint de usuarios para soportar filtros jerárquicos y relaciones de líder/categoría.
+
+
+## [1.2.0] - 2026-05-07
+
+### Añadido
+
+- **Negocios – Búsqueda de Agentes:** El campo de búsqueda de agente ahora muestra la categoría del asesor directamente en los resultados del autocompletado, facilitando la identificación.
+- **Configuración de Producto – Eliminación Lógica:** La desactivación de configuraciones de producto y reglas de distribución ahora utiliza un borrado lógico (soft delete) para mantener la integridad histórica.
+- **Configuración de Producto – Auditoría:** Agregados registros de auditoría obligatorios para la creación, actualización y desactivación de configuraciones de producto y sus reglas de distribución.
+
+### Mejorado
+
+- **Configuración de Producto – Independencia del Origen:** La clave de unicidad y el código generado para la configuración de productos ya no incluyen el segmento de Origen del cliente. La asignación de comisiones ahora se realiza exclusivamente mediante la combinación de Producto y Categoría, simplificando significativamente el modelo de datos.
+- **Negocios – Resolución de Comisión:** Al crear un nuevo negocio, el sistema resuelve la comisión aplicable basándose únicamente en el producto y categoría, eliminando la dependencia rígida del origen del cliente.
+
+
+## [1.1.0] - 2026-05-07
+
+### Añadido
+
+- **Tipos de Categoría – Eliminación Lógica:** Al borrar un tipo de categoría, ahora se preservan sus datos en el sistema marcándolo como inactivo, manteniendo la integridad histórica y previniendo errores de referencias en cascada.
+- **Tipos de Categoría – Tabla Genérica:** La vista de administración se ha actualizado para utilizar el componente compartido `DataTable`, ofreciendo sincronización de filtros con la URL, ordenamiento y consistencia visual con el resto de la aplicación.
+
+### Mejorado
+
+- **Formulario de Categorías – Tipos Activos:** Al crear una nueva categoría, el selector de "Tipo de Categoría" ahora muestra exclusivamente los tipos activos.
+- **Formulario de Categorías – Edición Segura:** Si se edita una categoría antigua cuyo tipo asignado fue marcado como inactivo, este se mantendrá visible como opción de respaldo en el formulario, previniendo alteraciones involuntarias.
+- **Rendimiento:** Se creó un endpoint interno optimizado (`/active`) que elimina el procesamiento de paginación para agilizar la carga del selector de tipos de categoría en los formularios.
+
+
+## [1.0.2] - 2026-05-07
+
+### Añadido
+
+- **Categorías – Color identificador:** Cada categoría ahora tiene un color asignado (`#RRGGBB`) visible como chip circular en la tabla. El formulario de creación y edición incluye un selector de color nativo con paleta HTML completa.
+- **Categorías – Secuencia jerárquica:** Se puede configurar cuál es la siguiente categoría en la jerarquía de la empresa (MS JUNIOR → MS SENIOR → TEAM LEADER → PERFORMANCE LEADER → BUSINESS LEADER → PARTNER → MIA). La tabla muestra la siguiente categoría en una columna dedicada.
+- **Categorías – Audit log:** Toda operación de creación, edición o desactivación de categorías queda registrada en el log de auditoría del sistema.
+
+### Mejorado
+
+- **Categorías – Modo beneficiario:** Los valores internos del modo de beneficiario se renombraron a `OVERRIDE` y `BENEFICIARIO_GENERAL` para mayor claridad semántica. El formulario muestra el selector de usuario beneficiario solo cuando el modo es `BENEFICIARIO_GENERAL`.
+- **Categorías – Filtro de tipo dinámico:** El filtro de tipo de categoría en la tabla admin ahora carga los tipos directamente desde la base de datos en lugar de ser una lista fija.
+- **Categorías – Eliminación segura:** La desactivación de categorías ahora es lógica (cambia el estado a inactivo) en lugar de borrar el registro, preservando la trazabilidad histórica.
+- **Administración – ERD actualizado:** El diagrama entidad-relación (`prisma/ERD.md`) se mantiene sincronizado con el esquema de base de datos y se estableció como regla obligatoria actualizarlo ante cualquier cambio de schema.
+
+### Interno
+
+- Migración manual de enum PostgreSQL: `UPLINE_CHAIN → OVERRIDE`, `FIXED_BENEFICIARY → BENEFICIARIO_GENERAL`.
+- Seed de categorías reescrito con estrategia 3-pass para manejar la FK auto-referencial de secuencia.
+- Nuevas acciones de auditoría: `CATEGORY_CREATED`, `CATEGORY_UPDATED`, `CATEGORY_DEACTIVATED`.
+
+---
+
+## [1.0.1] - 2026-05-05
+
+### Infraestructura
+
+- **Docker:** Se sincronizaron los nombres de las variables de entorno de producción (`SENDGRID_*_PROD`) y se habilitó la inyección de `SUPER_ADMIN_PASSWORD` en la configuración de producción para asegurar la correcta activación de la cuenta administrativa y el envío de correos.
+
+
 ## [1.0.0] - 2026-05-01
 
 ### Añadido

@@ -310,7 +310,7 @@ export function DataTable<TData>({
 						{loading ? (
 							Array.from({ length: 5 }).map((_, i) => (
 								<TableRow key={`loading-${i}`}>
-									{columns.map((_, j) => (
+									{finalColumns.map((_, j) => (
 										<TableCell key={`loading-${i}-${j}`}>
 											<Skeleton
 												className="h-6 w-full"

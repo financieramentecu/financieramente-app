@@ -234,8 +234,7 @@ export async function PUT(
 
 			const configValidation = await validateProductConfigurationExists(
 				productConfiguration.idCategory,
-				productConfiguration.idProduct,
-				idClientOrigin
+				productConfiguration.idProduct
 			)
 
 			if (!configValidation.valid) {

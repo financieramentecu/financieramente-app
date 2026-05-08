@@ -50,12 +50,6 @@ describe('ProductConfigurationsTableSection', () => {
 		expect(screen.getByText('Empresa Test')).toBeInTheDocument()
 	})
 
-	it('should render client origin name', () => {
-		render(<ProductConfigurationsTableSection {...defaultProps} />)
-
-		expect(screen.getByText('Propio')).toBeInTheDocument()
-	})
-
 	it('should render category name', () => {
 		render(<ProductConfigurationsTableSection {...defaultProps} />)
 
