@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PUT, PATCH } from '../route'
 import { prisma } from '@/lib/prisma'
 import { updateProductConfigurationSchema } from '@/features/product-configuration/lib/product-configuration-schemas'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
 
 // Mock modules
@@ -16,7 +17,27 @@ vi.mock('@/lib/prisma', () => ({
 		productPercentageCommission: {
 			findUnique: vi.fn(),
 		},
+		auditLog: {
+			create: vi.fn(),
+		},
 	},
+}))
+
+vi.mock('@/auth', () => ({
+	auth: vi.fn().mockResolvedValue({
+		user: { id: '1', email: 'admin@test.com' },
+	}),
+}))
+
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	logAuditEvent: vi.fn().mockResolvedValue(undefined),
+	AuditAction: {
+		PRODUCT_CONFIGURATION_CREATED: 'PRODUCT_CONFIGURATION_CREATED',
+		PRODUCT_CONFIGURATION_UPDATED: 'PRODUCT_CONFIGURATION_UPDATED',
+		PRODUCT_CONFIGURATION_DEACTIVATED: 'PRODUCT_CONFIGURATION_DEACTIVATED',
+	},
+	getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
+	getUserAgent: vi.fn().mockReturnValue('test-agent'),
 }))
 
 vi.mock(
@@ -93,6 +114,11 @@ describe('PUT /api/product-configurations/[id]', () => {
 			expect.objectContaining({
 				where: { id: configId },
 				data: { idProductPercentageCommissionNewBusinesses: ppcId },
+			})
+		)
+		expect(vi.mocked(logAuditEvent)).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: AuditAction.PRODUCT_CONFIGURATION_UPDATED,
 			})
 		)
 	})
@@ -174,6 +200,11 @@ describe('PATCH /api/product-configurations/[id]', () => {
 			expect.objectContaining({
 				where: { id: configId },
 				data: { active },
+			})
+		)
+		expect(vi.mocked(logAuditEvent)).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: AuditAction.PRODUCT_CONFIGURATION_DEACTIVATED,
 			})
 		)
 	})

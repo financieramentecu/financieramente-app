@@ -9,7 +9,6 @@ import { getPpcForNewBusinesses } from '../services/product-configuration.servic
  */
 export interface FindProductPercentageCommissionInput {
 	idProduct: number
-	idClientOrigin: number
 	idCategory: number
 }
 
@@ -17,9 +16,9 @@ export interface FindProductPercentageCommissionInput {
  * Server Action: obtiene el PPC activo para nuevos negocios según ProductConfiguration.
  *
  * Delega la consulta a Prisma al servicio product-configuration.service.
- * Valida el resultado y devuelve ApiResponse con el PPC o mensaje de error.
+ * Si no existe configuración para el par (idProduct, idCategory), retorna el error descriptivo.
  *
- * @param params - Parámetros de búsqueda (producto, origen, categoría del agente)
+ * @param params - Parámetros de búsqueda (producto y categoría del agente)
  * @returns ApiResponse con ProductPercentageCommission para nuevos negocios o error
  */
 export async function findProductPercentageCommission(
@@ -38,22 +37,21 @@ export async function findProductPercentageCommission(
 			return {
 				data: null,
 				error:
-					'No hay configuración de comisión para esta combinación de producto, origen y categoría.',
+					'No hay configuración de comisión para esta combinación de producto y categoría.',
 			}
 		}
 
 		return {
 			data: null,
 			error:
-				'No hay configuración de comisión para nuevos negocios en esta combinación producto/origen/categoría.',
+				'No hay configuración de comisión para nuevos negocios en esta combinación producto/categoría.',
 		}
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error)
 		console.error('Error finding product percentaje commision:', message, error)
 		return {
 			data: null,
-			error:
-				'Error al buscar la configuración de comisión. Por favor, intenta de nuevo.',
+			error: message,
 		}
 	}
 }

@@ -149,7 +149,7 @@ export async function updateCategoryType(
     }
 }
 /**
- * Delete a category type
+ * Delete a category type (Logical Elimination)
  */
 export async function deleteCategoryType(id: number) {
     const existing = await findCategoryTypeById(id)
@@ -158,14 +158,9 @@ export async function deleteCategoryType(id: number) {
         throw new Error('Tipo de categoría no encontrado')
     }
 
-    const refs = await countCategoryTypeReferences(id)
-    if (refs > 0) {
-        throw new Error(
-            'No se puede eliminar el tipo de categoría porque tiene categorías asociadas. Inactívelo en su lugar.'
-        )
-    }
-
-    return prisma.categoryType.delete({
+    // Perform logical delete by setting status to false
+    return prisma.categoryType.update({
         where: { id },
+        data: { status: false },
     })
 }

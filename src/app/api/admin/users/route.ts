@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client'
  * - status: 'active' | 'inactive'
  * - role: código del rol
  * - search: búsqueda por nombre o email
+ * - categoryId: ID de la categoría (opcional)
  */
 export async function GET(request: Request) {
 	// Requiere sesión + rol ADMIN.
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
 		const status = searchParams.get('status') // 'active' | 'inactive' | null
 		const roleCode = searchParams.get('role')
 		const search = searchParams.get('search')
+		const categoryIdParam = searchParams.get('categoryId')
 
 		// Construir filtros
 		const where: Prisma.UserWhereInput = {}
@@ -47,6 +49,13 @@ export async function GET(request: Request) {
 			]
 		}
 
+		if (categoryIdParam) {
+			const categoryId = parseInt(categoryIdParam, 10)
+			if (!isNaN(categoryId)) {
+				where.idCategoria = categoryId
+			}
+		}
+
 		// Obtener usuarios con relaciones
 		const users = await prisma.user.findMany({
 			where,
@@ -62,6 +71,19 @@ export async function GET(request: Request) {
 						idRole: true,
 						code: true,
 						name: true,
+					},
+				},
+				category: {
+					select: {
+						idCategory: true,
+						name: true,
+					},
+				},
+				leader: {
+					select: {
+						idUser: true,
+						name: true,
+						lastName: true,
 					},
 				},
 			},
@@ -106,6 +128,19 @@ export async function GET(request: Request) {
 					id: user.role.idRole,
 					code: user.role.code,
 					name: user.role.name,
+				}
+				: null,
+			category: user.category
+				? {
+					id: user.category.idCategory,
+					name: user.category.name,
+				}
+				: null,
+			leader: user.leader
+				? {
+					id: user.leader.idUser,
+					name: user.leader.name,
+					lastName: user.leader.lastName,
 				}
 				: null,
 			active: user.active,

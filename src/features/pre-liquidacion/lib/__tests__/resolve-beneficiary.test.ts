@@ -11,7 +11,7 @@ function cat(
 	return {
 		idCategory: 10,
 		code: 'TEST',
-		beneficiaryMode: 'UPLINE_CHAIN',
+		beneficiaryMode: 'OVERRIDE',
 		idFixedBeneficiaryUser: null,
 		...overrides,
 	}
@@ -21,7 +21,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY returns fixed user when active and relation loaded', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: 'FIXED_BENEFICIARY',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL',
 				idFixedBeneficiaryUser: 99,
 				fixedBeneficiaryUser: { idUser: 99, active: true },
 			}),
@@ -33,7 +33,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY ignores upline chain', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: 'FIXED_BENEFICIARY',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL',
 				idFixedBeneficiaryUser: 99,
 				fixedBeneficiaryUser: { idUser: 99, active: true },
 			}),
@@ -45,7 +45,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY fails when idFixedBeneficiaryUser is null', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: 'FIXED_BENEFICIARY',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL',
 				idFixedBeneficiaryUser: null,
 			}),
 			[]
@@ -57,7 +57,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY fails when fixed user missing or not loaded', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: 'FIXED_BENEFICIARY',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL',
 				idFixedBeneficiaryUser: 5,
 				fixedBeneficiaryUser: null,
 			}),
@@ -70,7 +70,7 @@ describe('resolveBeneficiaryUserId', () => {
 	it('FIXED_BENEFICIARY fails when fixed user inactive', () => {
 		const r = resolveBeneficiaryUserId(
 			cat({
-				beneficiaryMode: 'FIXED_BENEFICIARY',
+				beneficiaryMode: 'BENEFICIARIO_GENERAL',
 				idFixedBeneficiaryUser: 5,
 				fixedBeneficiaryUser: { idUser: 5, active: false },
 			}),
@@ -176,8 +176,8 @@ describe('ppcConfigsNeedUplineAgent', () => {
 	it('is true when any category is UPLINE_CHAIN', () => {
 		expect(
 			ppcConfigsNeedUplineAgent([
-				{ category: { beneficiaryMode: 'FIXED_BENEFICIARY' } },
-				{ category: { beneficiaryMode: 'UPLINE_CHAIN' } },
+				{ category: { beneficiaryMode: 'BENEFICIARIO_GENERAL' } },
+				{ category: { beneficiaryMode: 'OVERRIDE' } },
 			])
 		).toBe(true)
 	})
@@ -185,7 +185,7 @@ describe('ppcConfigsNeedUplineAgent', () => {
 	it('is false when all FIXED_BENEFICIARY', () => {
 		expect(
 			ppcConfigsNeedUplineAgent([
-				{ category: { beneficiaryMode: 'FIXED_BENEFICIARY' } },
+				{ category: { beneficiaryMode: 'BENEFICIARIO_GENERAL' } },
 			])
 		).toBe(false)
 	})

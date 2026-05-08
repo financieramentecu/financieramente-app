@@ -181,7 +181,6 @@ describe('product-configuration-api', () => {
 
 			const result = await productConfigurationApi.createProductConfiguration({
 				idProduct: 1,
-				idClientOrigin: 1,
 				idCategory: 1,
 				idCompany: 1,
 			})
@@ -201,7 +200,6 @@ describe('product-configuration-api', () => {
 
 			const result = await productConfigurationApi.createProductConfiguration({
 				idProduct: 1,
-				idClientOrigin: 1,
 				idCategory: 1,
 				idCompany: 1,
 			})
@@ -222,7 +220,6 @@ describe('product-configuration-api', () => {
 
 			const data = {
 				idProduct: 1,
-				idClientOrigin: 2,
 				idCategory: 3,
 				idCompany: 1,
 			}
@@ -242,7 +239,6 @@ describe('product-configuration-api', () => {
 
 			const result = await productConfigurationApi.createProductConfiguration({
 				idProduct: 1,
-				idClientOrigin: 1,
 				idCategory: 1,
 				idCompany: 1,
 			})

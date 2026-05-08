@@ -3,7 +3,11 @@
 import React, { useMemo } from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable'
 import { Button } from '@/features/shared/ui/button'
-import { Category, CATEGORY_TYPES, SYSTEM_CATEGORY_TYPE_NAME } from '../types/category.types'
+import {
+	Category,
+	SYSTEM_CATEGORY_TYPE_NAME,
+} from '../types/category.types'
+import { useCategoryTypes } from '@/features/category-types/hooks/use-category-types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import {
@@ -35,12 +39,6 @@ interface CategoriesTableSectionProps {
 	onTypeCategoryChange?: (value: string) => void
 }
 
-const CATEGORY_TYPE_LABELS: Record<string, string> = {
-	MMS: 'MMS',
-	ALIADO: 'Aliado',
-	TRINITY: 'Trinity',
-}
-
 export function CategoriesTableSection({
 	data,
 	onAddCategory,
@@ -53,6 +51,9 @@ export function CategoriesTableSection({
 	selectedTypeCategory,
 	onTypeCategoryChange,
 }: CategoriesTableSectionProps) {
+	const { data: typesData } = useCategoryTypes()
+	const categoryTypeOptions = typesData?.categoryTypes ?? []
+
 	const columns = useMemo<ColumnDef<Category>[]>(
 		() => [
 			{
@@ -67,11 +68,32 @@ export function CategoriesTableSection({
 				header: 'Nombre',
 			},
 			{
+				accessorKey: 'color',
+				header: 'Color',
+				cell: ({ row }) => (
+					<span
+						data-testid="color-chip"
+						className="inline-block h-5 w-5 rounded-full border border-border"
+						style={{ backgroundColor: row.original.color }}
+						title={row.original.color}
+					/>
+				),
+			},
+			{
+				accessorKey: 'nextCategory',
+				header: 'Siguiente',
+				cell: ({ row }) => {
+					const next = row.original.nextCategory
+					if (!next) return <span className="text-muted-foreground">—</span>
+					return <span className="text-sm">{next.name}</span>
+				},
+			},
+			{
 				accessorKey: 'typeCategory',
 				header: 'Tipo',
 				cell: ({ row }) => (
 					<Badge variant="outline">
-						{CATEGORY_TYPE_LABELS[row.original.typeCategory] || row.original.typeCategory}
+						{row.original.typeCategory}
 					</Badge>
 				),
 			},
@@ -79,16 +101,22 @@ export function CategoriesTableSection({
 				accessorKey: 'beneficiaryMode',
 				header: 'Beneficiario',
 				cell: ({ row }) => {
-					const isFixed = row.original.beneficiaryMode === 'FIXED_BENEFICIARY'
-					const isSystemType = row.original.typeCategory === SYSTEM_CATEGORY_TYPE_NAME
+					const isFixed =
+						row.original.beneficiaryMode === 'BENEFICIARIO_GENERAL'
+					const isSystemType =
+						row.original.typeCategory === SYSTEM_CATEGORY_TYPE_NAME
 					return (
 						<div className="flex flex-col gap-0.5">
-							<Badge variant={isFixed ? 'outline' : 'secondary'} className="w-fit text-xs">
-								{isFixed ? 'Fijo' : 'Por cadena'}
+							<Badge
+								variant={isFixed ? 'outline' : 'secondary'}
+								className="w-fit text-xs"
+							>
+								{isFixed ? 'Beneficiario general' : 'Override'}
 							</Badge>
 							{isSystemType && isFixed && row.original.fixedBeneficiaryUser ? (
 								<span className="text-xs text-muted-foreground">
-									{row.original.fixedBeneficiaryUser.name} {row.original.fixedBeneficiaryUser.lastName}
+									{row.original.fixedBeneficiaryUser.name}{' '}
+									{row.original.fixedBeneficiaryUser.lastName}
 								</span>
 							) : null}
 						</div>
@@ -144,9 +172,9 @@ export function CategoriesTableSection({
 				</SelectTrigger>
 				<SelectContent>
 					<SelectItem value="all">Todos los tipos</SelectItem>
-					{CATEGORY_TYPES.map((type) => (
-						<SelectItem key={type} value={type}>
-							{CATEGORY_TYPE_LABELS[type] || type}
+					{categoryTypeOptions.map((type) => (
+						<SelectItem key={type.id} value={type.name}>
+							{type.name}
 						</SelectItem>
 					))}
 				</SelectContent>
@@ -158,7 +186,9 @@ export function CategoriesTableSection({
 		<div className="space-y-4">
 			{/* Header */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-				<h2 className="text-xl font-semibold">Categorías de Agentes</h2>
+				<h2 className="text-xl font-semibold">
+					Categorías (Jerarquía de usuarios)
+				</h2>
 				<Button onClick={onAddCategory} className="cursor-pointer">
 					<Plus className="h-4 w-4 mr-2" />
 					Crear Categoría
@@ -205,5 +235,3 @@ export function CategoriesTableSection({
 		</div>
 	)
 }
-
-

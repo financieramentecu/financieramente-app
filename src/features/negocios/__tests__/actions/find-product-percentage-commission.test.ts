@@ -11,9 +11,9 @@ describe('findProductPercentageCommission', () => {
 		vi.clearAllMocks()
 	})
 
-	it('returns ppc data when service resolves fallback with no specific config', async () => {
+	it('returns ppc data when service returns config with ppc', async () => {
 		vi.mocked(getPpcForNewBusinesses).mockResolvedValue({
-			configExists: false,
+			configExists: true,
 			ppc: {
 				idProductPercentageCommission: 99,
 			},
@@ -21,7 +21,6 @@ describe('findProductPercentageCommission', () => {
 
 		const result = await findProductPercentageCommission({
 			idCategory: 1,
-			idClientOrigin: 2,
 			idProduct: 3,
 		})
 
@@ -32,20 +31,18 @@ describe('findProductPercentageCommission', () => {
 		})
 	})
 
-	it('returns specific-config error when no config and no fallback ppc', async () => {
-		vi.mocked(getPpcForNewBusinesses).mockResolvedValue({
-			configExists: false,
-			ppc: null,
-		})
+	it('propagates descriptive error message when service throws (no config found)', async () => {
+		const errorMsg =
+			'No existe configuración de distribución para el producto y categoría seleccionados. Configurá la distribución antes de continuar.'
+		vi.mocked(getPpcForNewBusinesses).mockRejectedValue(new Error(errorMsg))
 
 		const result = await findProductPercentageCommission({
-			idCategory: 1,
-			idClientOrigin: 2,
+			idCategory: 99,
 			idProduct: 3,
 		})
 
 		expect(result.data).toBeNull()
-		expect('error' in result && result.error).toContain('No hay configuración')
+		expect('error' in result && result.error).toBe(errorMsg)
 	})
 
 	it('returns new-business-config error when config exists but no ppc', async () => {
@@ -56,7 +53,6 @@ describe('findProductPercentageCommission', () => {
 
 		const result = await findProductPercentageCommission({
 			idCategory: 1,
-			idClientOrigin: 2,
 			idProduct: 3,
 		})
 

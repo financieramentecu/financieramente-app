@@ -9,7 +9,6 @@ describe('product-configuration-schemas', () => {
 		it('should validate valid data (happy path)', () => {
 			const validData = {
 				idProduct: 1,
-				idClientOrigin: 2,
 				idCategory: 3,
 				idCompany: 1,
 			}
@@ -18,25 +17,14 @@ describe('product-configuration-schemas', () => {
 			expect(result.success).toBe(true)
 			if (result.success) {
 				expect(result.data.idProduct).toBe(1)
-				expect(result.data.idClientOrigin).toBe(2)
 				expect(result.data.idCategory).toBe(3)
 			}
 		})
 
 		it('should reject missing idProduct', () => {
 			const data = {
-				idClientOrigin: 2,
 				idCategory: 3,
-			}
-
-			const result = createProductConfigurationSchema.safeParse(data)
-			expect(result.success).toBe(false)
-		})
-
-		it('should reject missing idClientOrigin', () => {
-			const data = {
-				idProduct: 1,
-				idCategory: 3,
+				idCompany: 1,
 			}
 
 			const result = createProductConfigurationSchema.safeParse(data)
@@ -46,7 +34,17 @@ describe('product-configuration-schemas', () => {
 		it('should reject missing idCategory', () => {
 			const data = {
 				idProduct: 1,
-				idClientOrigin: 2,
+				idCompany: 1,
+			}
+
+			const result = createProductConfigurationSchema.safeParse(data)
+			expect(result.success).toBe(false)
+		})
+
+		it('should reject missing idCompany', () => {
+			const data = {
+				idProduct: 1,
+				idCategory: 3,
 			}
 
 			const result = createProductConfigurationSchema.safeParse(data)
@@ -56,8 +54,8 @@ describe('product-configuration-schemas', () => {
 		it('should reject zero idProduct', () => {
 			const data = {
 				idProduct: 0,
-				idClientOrigin: 2,
 				idCategory: 3,
+				idCompany: 1,
 			}
 
 			const result = createProductConfigurationSchema.safeParse(data)
@@ -67,8 +65,8 @@ describe('product-configuration-schemas', () => {
 		it('should reject negative idProduct', () => {
 			const data = {
 				idProduct: -1,
-				idClientOrigin: 2,
 				idCategory: 3,
+				idCompany: 1,
 			}
 
 			const result = createProductConfigurationSchema.safeParse(data)
@@ -78,19 +76,8 @@ describe('product-configuration-schemas', () => {
 		it('should reject non-integer idProduct', () => {
 			const data = {
 				idProduct: 1.5,
-				idClientOrigin: 2,
 				idCategory: 3,
-			}
-
-			const result = createProductConfigurationSchema.safeParse(data)
-			expect(result.success).toBe(false)
-		})
-
-		it('should reject zero idClientOrigin', () => {
-			const data = {
-				idProduct: 1,
-				idClientOrigin: 0,
-				idCategory: 3,
+				idCompany: 1,
 			}
 
 			const result = createProductConfigurationSchema.safeParse(data)
@@ -100,8 +87,8 @@ describe('product-configuration-schemas', () => {
 		it('should reject negative idCategory', () => {
 			const data = {
 				idProduct: 1,
-				idClientOrigin: 2,
 				idCategory: -5,
+				idCompany: 1,
 			}
 
 			const result = createProductConfigurationSchema.safeParse(data)
@@ -111,8 +98,8 @@ describe('product-configuration-schemas', () => {
 		it('should reject string values', () => {
 			const data = {
 				idProduct: 'one',
-				idClientOrigin: 2,
 				idCategory: 3,
+				idCompany: 1,
 			}
 
 			const result = createProductConfigurationSchema.safeParse(data)
@@ -122,6 +109,21 @@ describe('product-configuration-schemas', () => {
 		it('should reject empty object', () => {
 			const result = createProductConfigurationSchema.safeParse({})
 			expect(result.success).toBe(false)
+		})
+
+		it('should ignore unexpected fields like idClientOrigin', () => {
+			const data = {
+				idProduct: 1,
+				idCategory: 3,
+				idCompany: 1,
+				idClientOrigin: 99, // should be stripped/ignored
+			}
+
+			const result = createProductConfigurationSchema.safeParse(data)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect('idClientOrigin' in result.data).toBe(false)
+			}
 		})
 	})
 

@@ -83,7 +83,6 @@ export async function createBusiness(
 
 		const commisionResult = await findProductPercentageCommission({
 			idProduct: validatedData.idProduct,
-			idClientOrigin: validatedData.idClientOrigin,
 			idCategory: user.idCategoria,
 		})
 

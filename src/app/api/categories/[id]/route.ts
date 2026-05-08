@@ -4,10 +4,12 @@ import { updateCategorySchema } from '@/features/categories/lib/category-schemas
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { Category } from '@/features/categories/types/category.types'
 import { z } from 'zod'
-import { 
+import {
 	prismaCategoryToCategory,
-	type PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations 
+	type PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations
 } from '@/features/categories/mappers/category.mapper'
+import { auth } from '@/auth'
+import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
 /**
  * GET /api/categories/[id]
@@ -63,6 +65,8 @@ export async function PUT(
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
+		const session = await auth()
+		const headers = request.headers
 		const { id } = await params
 		const categoryId = parseInt(id)
 		const body = await request.json()
@@ -112,7 +116,7 @@ export async function PUT(
 
 		// Validate beneficiary constraint before persisting
 		if (
-			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			data.beneficiaryMode === 'BENEFICIARIO_GENERAL' &&
 			(data.idFixedBeneficiaryUser === null ||
 				data.idFixedBeneficiaryUser === undefined)
 		) {
@@ -126,7 +130,7 @@ export async function PUT(
 
 		// Verify fixed beneficiary user exists and is active
 		if (
-			data.beneficiaryMode === 'FIXED_BENEFICIARY' &&
+			data.beneficiaryMode === 'BENEFICIARIO_GENERAL' &&
 			data.idFixedBeneficiaryUser != null
 		) {
 			const beneficiaryUser = await prisma.user.findFirst({
@@ -147,23 +151,28 @@ export async function PUT(
 			name?: string
 			idCategoryType?: number
 			descripcion?: string | null
+			color?: string
 			status?: boolean
-			beneficiaryMode?: 'UPLINE_CHAIN' | 'FIXED_BENEFICIARY'
+			beneficiaryMode?: 'OVERRIDE' | 'BENEFICIARIO_GENERAL'
 			idFixedBeneficiaryUser?: number | null
+			idNextCategory?: number | null
 		} = {}
 
 		if (data.code) updateData.code = data.code.trim().toUpperCase()
 		if (data.name) updateData.name = data.name.trim()
 		if (data.descripcion !== undefined)
 			updateData.descripcion = data.descripcion
+		if (data.color !== undefined) updateData.color = data.color
 		if (data.status !== undefined) updateData.status = data.status
 		if (data.beneficiaryMode !== undefined)
 			updateData.beneficiaryMode = data.beneficiaryMode
 		if ('idFixedBeneficiaryUser' in data)
 			updateData.idFixedBeneficiaryUser =
-				data.beneficiaryMode === 'UPLINE_CHAIN'
+				data.beneficiaryMode === 'OVERRIDE'
 					? null
 					: (data.idFixedBeneficiaryUser ?? null)
+		if ('idNextCategory' in data)
+			updateData.idNextCategory = data.idNextCategory ?? null
 
 		if (data.typeCategory) {
 			const categoryTypeRec = await prisma.categoryType.findFirst({
@@ -191,6 +200,15 @@ export async function PUT(
 			},
 		})
 		const category = categoryRaw as unknown as MapperPrismaCategoryWithRelations
+
+		await logAuditEvent({
+			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
+			action: AuditAction.CATEGORY_UPDATED,
+			email: session?.user?.email ?? undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `Categoría actualizada: ${categoryRaw.code} - ${categoryRaw.name}`,
+		})
 
 		// Transform using mapper
 		const categoryFormatted = prismaCategoryToCategory(category)
@@ -245,6 +263,8 @@ export async function DELETE(
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
+		const session = await auth()
+		const headers = request.headers
 		const { id } = await params
 		const categoryId = parseInt(id)
 
@@ -261,21 +281,18 @@ export async function DELETE(
 			return NextResponse.json(errorResponse, { status: 404 })
 		}
 
-		// Check for relationships (users assigned to this category)
-		const usersWithCategory = await prisma.user.count({
-			where: { idCategoria: categoryId },
+		await prisma.category.update({
+			where: { idCategory: categoryId },
+			data: { status: false },
 		})
 
-		if (usersWithCategory > 0) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'No se puede eliminar la categoría porque tiene usuarios asociados',
-			}
-			return NextResponse.json(errorResponse, { status: 400 })
-		}
-
-		await prisma.category.delete({
-			where: { idCategory: categoryId },
+		await logAuditEvent({
+			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
+			action: AuditAction.CATEGORY_DEACTIVATED,
+			email: session?.user?.email ?? undefined,
+			ipAddress: getClientIp(headers),
+			userAgent: getUserAgent(headers),
+			details: `Categoría desactivada: ${existingCategory.code} - ${existingCategory.name}`,
 		})
 
 		const response: ApiResponse<{ success: boolean }> = {

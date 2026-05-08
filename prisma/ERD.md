@@ -3,7 +3,9 @@
 Diagrama ER (Entity Relationship) generado a partir de `schema.prisma`.  
 Sistema: Financieramente — liquidación de comisiones.
 
-**Enum** `BeneficiaryMode`: `UPLINE_CHAIN` | `FIXED_BENEFICIARY` (en `category.beneficiary_mode`).
+**Enums**:
+- `BeneficiaryMode`: `OVERRIDE` | `BENEFICIARIO_GENERAL` (en `category.beneficiary_mode`).
+- `AnnualPaymentStatus`: `SIN_FONDEAR` | `FONDEADO` (en `payments.status`).
 
 ```mermaid
 erDiagram
@@ -11,19 +13,20 @@ erDiagram
     Company ||--o{ Product : "tiene productos"
     TypeProduct ||--o{ Product : "clasifica"
     CategoryType ||--o{ Category : "tipo de categoría"
-    ClientOrigin ||--o{ ProductConfiguration : "origen en config"
     ClientOrigin ||--o{ Business : "origen del negocio"
     Category ||--o{ User : "categoría del usuario"
     Category ||--o{ ProductConfiguration : "categoría en config"
     Category ||--o{ ProductPercentageCommissionCategory : "en distribución"
+    Category ||--o| Category : "siguiente en jerarquía"
     User ||--o{ Category : "beneficiario fijo categoría"
     Role ||--o{ User : "rol asignado"
     Role ||--o{ AuditLog : "rol en auditoría"
     BuyPeriodicity ||--o{ Business : "periodicidad de compra"
-    Currency ||--o{ Business : "moneda"
+    Currency ||--o{ Business : "moneda negocio"
+    Currency ||--o{ Company : "moneda compañía"
 
     %% ========== PRODUCTOS Y CONFIGURACIÓN ==========
-    Product ||--o{ ProductConfiguration : "combinación producto/origen/categoría"
+    Product ||--o{ ProductConfiguration : "combinación producto/categoría"
     ProductConfiguration ||--o{ ProductPercentageCommission : "versiones PPC"
     ProductConfiguration ||--o| ProductPercentageCommission : "PPC nuevos negocios"
     ProductPercentageCommission ||--o{ ProductPercentageCommissionCategory : "distribución por categoría"
@@ -39,6 +42,7 @@ erDiagram
     User ||--o| ClawbackBalance : "saldo clawback"
     User ||--o{ ComissionDistribution : "beneficiario distribución"
     User ||--o{ CommissionDiscount : "created_by updated_by"
+    User ||--o{ DistributionApproval : "aprobaciones"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
     Client ||--o{ Business : "negocios"
@@ -46,7 +50,9 @@ erDiagram
     %% ========== IMPORTACIÓN Y LIQUIDACIÓN ==========
     FileImport ||--o{ SettlementCommission : "registros"
     FileImport ||--o{ FileImportError : "errores fila"
+    FileImport ||--o{ DistributionApproval : "aprobaciones archivo"
     Business ||--o{ SettlementCommission : "comisiones"
+    Business ||--o{ Payment : "pagos anuales"
     SettlementCommission ||--o{ ComissionDistribution : "distribuciones"
     ComissionDistribution ||--o| Clawback : "clawback opcional"
 
@@ -55,6 +61,7 @@ erDiagram
         int id_company PK
         string name
         string id_type_company
+        int id_currency FK
         boolean status
         datetime created_at
         datetime updated_at
@@ -84,9 +91,11 @@ erDiagram
         string name
         int id_category_type FK
         text descripcion
+        varchar color
         boolean status
         enum beneficiary_mode
         int id_fixed_beneficiary_user FK
+        int id_next_category FK
         datetime created_at
         datetime updated_at
     }
@@ -142,9 +151,8 @@ erDiagram
     ProductConfiguration {
         int id_product_configuration PK
         int id_product FK
-        int id_client_origin FK
         int id_category FK
-        string code
+        string code UK
         boolean active
         int id_product_percentage_commission_new_businesses FK
         datetime created_at
@@ -156,6 +164,7 @@ erDiagram
         int id_product_configuration FK
         string description
         boolean active
+        boolean has_portfolio
         datetime created_at
         datetime updated_at
     }
@@ -221,6 +230,7 @@ erDiagram
         int sincronizado_record
         int rezagado_record
         int no_sincronizado_record
+        int upload_count
         string status
         datetime pre_liquidacion_date
         int month
@@ -233,6 +243,7 @@ erDiagram
         int id_file_import_error PK
         int id_file_import FK
         int row_number
+        int load_number
         string contract
         text reason
         json raw_data
@@ -252,7 +263,22 @@ erDiagram
         int id_product_percentage_commission FK
         int id_currency FK
         int id_client_origin FK
+        datetime date_issued
+        datetime date_anchored
+        int num_aportes
         string status
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    Payment {
+        int id_annual_payment PK
+        int id_business FK
+        int installment_index
+        enum status
+        datetime date_anchored
+        datetime expected_date
         datetime created_at
         datetime updated_at
     }
@@ -274,6 +300,7 @@ erDiagram
         int id_settlement_commission PK
         int id_file_import FK
         int id_business FK
+        int load_number
         string contract
         text descripcion
         decimal commission_value
@@ -305,8 +332,10 @@ erDiagram
         decimal value_comission_final
         decimal total_discount
         decimal applied_discount_percentage
+        decimal value_commission_with_discount
         text observation
         string status
+        boolean is_active
         datetime created_at
         datetime updated_at
     }
@@ -328,6 +357,15 @@ erDiagram
     ClawbackBalance {
         int id_user PK
         decimal total_amount
+        datetime updated_at
+    }
+
+    DistributionApproval {
+        int id_distribution_approval PK
+        int id_file_import FK
+        int id_user FK
+        datetime approved_at
+        datetime created_at
         datetime updated_at
     }
 
@@ -361,6 +399,12 @@ erDiagram
 - `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor.
 - `SettlementCommission.id_business` es opcional en Prisma (`Int?`); el diagrama refleja la FK habitual hacia `business`.
 - Tablas físicas con typo histórico: `product_percentaje_commision`, `product_percentaje_commision_category` (ver `@@map` en el schema).
+- `Category.id_next_category` es una FK auto-referencial a `category.id_category` (relación nombrada `"CategorySequence"`). Permite modelar la secuencia de jerarquía: MS JUNIOR → MS SENIOR → TEAM LEADER → PERFORMANCE LEADER → BUSINESS LEADER → PARTNER → MIA.
+- `Category.color` almacena un color hex `#RRGGBB` (VARCHAR 7) para identificación visual de cada nivel.
+- `BeneficiaryMode` renombrado (migración manual): `UPLINE_CHAIN → OVERRIDE`, `FIXED_BENEFICIARY → BENEFICIARIO_GENERAL`.
+- `ProductConfiguration`: el campo `id_client_origin` fue eliminado (migración `20260507010000_mejoras_product_configuration_sin_origen`). El unique constraint cambió de `(id_product, id_client_origin, id_category)` a `(id_product, id_category)`. El `code` es único a nivel de columna.
+- `Business`: campo `is_active` agregado (`@default(true)`) para soporte de soft delete lógico.
+- `ComissionDistribution`: campo `is_active` agregado (`@default(true)`) para soft delete lógico (reemplaza `deleteMany` en servicios de pre-liquidación y carga de archivos).
 
 ## Cómo ver el diagrama
 

@@ -64,8 +64,9 @@ export async function deleteFileImport(
 					where: { idComissionDistribution: { in: distributionIds } },
 				})
 			}
-			await tx.comissionDistribution.deleteMany({
+			await tx.comissionDistribution.updateMany({
 				where: { idSettlementCommission: { in: settlementIds } },
+				data: { isActive: false },
 			})
 		}
 

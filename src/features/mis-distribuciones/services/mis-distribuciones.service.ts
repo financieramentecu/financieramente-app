@@ -96,7 +96,6 @@ type DistributionRow = Prisma.ComissionDistributionGetPayload<{
 						productConfiguration: {
 							include: {
 								product: true
-								clientOrigin: true
 							}
 						}
 					}
@@ -315,7 +314,6 @@ export async function obtenerReciboDistribucion(params: {
 							productConfiguration: {
 								include: {
 									product: true,
-									clientOrigin: true,
 								},
 							},
 						},
@@ -343,7 +341,7 @@ export async function obtenerReciboDistribucion(params: {
 		const productConfig =
 			ppcc?.productPercentageCommission?.productConfiguration
 		const producto = productConfig?.product?.name ?? null
-		const origen = productConfig?.clientOrigin?.name ?? null
+		const origen: string | null = null
 
 		const client = sc.business?.client
 		const nombreCliente = client

@@ -16,7 +16,7 @@ export interface CreateUserParams {
 }
 
 /**
- * Crea un usuario nuevo con estado Inactivo y rol Default
+ * Crea un usuario nuevo con estado Inactivo y rol Agente
  */
 export async function createUserAutomatically(
 	params: CreateUserParams
@@ -44,15 +44,15 @@ export async function createUserAutomatically(
 			}
 		}
 
-		// Obtener el rol Default
-		const defaultRole = await prisma.role.findUnique({
-			where: { code: UserRole.DEFAULT },
+		// Obtener el rol Agente
+		const agenteRole = await prisma.role.findUnique({
+			where: { code: UserRole.AGENTE },
 		})
 
-		if (!defaultRole) {
+		if (!agenteRole) {
 			return {
 				success: false,
-				error: 'Rol Default no encontrado. Ejecuta el seed de roles.',
+				error: 'Rol Agente no encontrado. Ejecuta el seed de roles.',
 			}
 		}
 
@@ -71,7 +71,7 @@ export async function createUserAutomatically(
 					lastName: lastName,
 					email: params.email,
 					typeIdentity: 'CC',
-					idRole: defaultRole.idRole,
+					idRole: agenteRole.idRole,
 					active: false, // Estado Inactivo por defecto
 					entryDate: new Date(),
 				},
@@ -110,12 +110,12 @@ export async function createUserAutomatically(
 		// Registrar en audit log solo si el usuario fue creado exitosamente
 		await logAuditEvent({
 			userId: newUser.idUser,
-			roleId: defaultRole.idRole,
+			roleId: agenteRole.idRole,
 			action: AuditAction.USER_CREATED,
 			email: params.email,
 			ipAddress: params.ipAddress,
 			userAgent: params.userAgent,
-			details: `Usuario creado automáticamente con rol Default y estado Inactivo`,
+			details: `Usuario creado automáticamente con rol Agente y estado Inactivo`,
 		})
 
 		// Enviar notificación a administradores

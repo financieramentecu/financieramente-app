@@ -159,6 +159,7 @@ describe('category-api', () => {
 				code: 'CAT001',
 				name: 'Nueva Categoría',
 				typeCategory: 'MMS',
+				color: '#1A73E8',
 				status: true,
 			})
 
@@ -173,6 +174,7 @@ describe('category-api', () => {
 				code: '',
 				name: 'A',
 				typeCategory: 'MMS',
+				color: '#1A73E8',
 				status: true,
 			})
 
@@ -189,6 +191,7 @@ describe('category-api', () => {
 				code: 'CAT001',
 				name: 'Categoría',
 				typeCategory: 'MMS',
+				color: '#1A73E8',
 				status: true,
 			})
 
@@ -205,6 +208,7 @@ describe('category-api', () => {
 				code: 'CAT001',
 				name: 'Nueva Categoría',
 				typeCategory: 'MMS',
+				color: '#1A73E8',
 				status: true,
 			})
 
@@ -220,6 +224,7 @@ describe('category-api', () => {
 				name: 'Nueva Categoría',
 				typeCategory: 'MMS' as const,
 				descripcion: 'Descripción',
+				color: '#1A73E8',
 				status: true,
 			}
 

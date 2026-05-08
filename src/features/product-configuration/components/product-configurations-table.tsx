@@ -120,13 +120,6 @@ export function ProductConfigurationsTableSection({
 			),
 		},
 		{
-			accessorKey: 'clientOrigin.name',
-			header: 'Origen',
-			cell: ({ row }) => (
-				<span className="text-sm">{row.original.clientOrigin.name}</span>
-			),
-		},
-		{
 			accessorKey: 'category.name',
 			header: 'Categoría',
 			cell: ({ row }) => (
