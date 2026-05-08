@@ -101,7 +101,7 @@ describe('GET /api/users/search', () => {
 			const request = new Request(
 				'http://localhost:3000/api/users/search?query=test'
 			)
-			const response = await GET(request)
+			await GET(request)
 
 			expect(mockPrismaFindMany).toHaveBeenCalledWith(
 				expect.objectContaining({

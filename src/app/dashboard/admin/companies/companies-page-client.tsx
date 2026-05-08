@@ -149,23 +149,18 @@ export function CompaniesPageClient() {
 	const handleConfirmDelete = useCallback(async () => {
 		if (!companyToDelete) return
 
-		await deleteCompany(companyToDelete.idCompany)
+		const response = await deleteCompany(companyToDelete.idCompany)
 
-		if (deleteState.status === 'success') {
+		if ('error' in response) {
+			toast.error(response.error || 'Error al eliminar empresa')
+		} else {
 			toast.success('Empresa eliminada exitosamente')
 			setDeleteDialogOpen(false)
 			setCompanyToDelete(null)
 			refetch()
-		} else if (deleteState.status === 'error') {
-			toast.error(deleteState.error || 'Error al eliminar empresa')
 		}
-	}, [companyToDelete, deleteCompany, deleteState, refetch])
+	}, [companyToDelete, deleteCompany, refetch])
 
-	useEffect(() => {
-		if (deleteState.status === 'success') {
-			refetch()
-		}
-	}, [deleteState.status, refetch])
 
 	const showFullSkeleton = state.status === 'loading' && !hasInitialized
 
