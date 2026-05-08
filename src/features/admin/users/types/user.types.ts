@@ -11,12 +11,14 @@ export interface UserRole {
 export interface Category {
 	readonly id: number
 	name: string
+	color: string | null
 }
 
 export interface Leader {
 	readonly id: number
 	name: string
 	lastName: string | null
+	email: string | null
 }
 
 export interface User {

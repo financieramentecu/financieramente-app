@@ -47,6 +47,43 @@ export function UsersTable({ users, isLoading = false }: UsersTableProps) {
 					),
 			},
 			{
+				accessorKey: 'category.name',
+				id: 'category',
+				header: ({ column }) => <DataTableColumnHeader column={column} title="Categoría" />,
+				cell: ({ row }) => (
+					row.original.category ? (
+						<div className="flex items-center gap-2">
+							<div 
+								className="w-2 h-2 rounded-full" 
+								style={{ backgroundColor: row.original.category.color || '#e2e8f0' }}
+							/>
+							<span className="text-sm font-medium">{row.original.category.name}</span>
+						</div>
+					) : (
+						<span className="text-xs text-muted-foreground italic">Sin categoría</span>
+					)
+				),
+			},
+			{
+				accessorKey: 'leader.name',
+				id: 'leader',
+				header: ({ column }) => <DataTableColumnHeader column={column} title="Líder" />,
+				cell: ({ row }) => (
+					row.original.leader ? (
+						<div className="flex flex-col leading-tight">
+							<span className="text-sm font-medium">
+								{row.original.leader.name} {row.original.leader.lastName}
+							</span>
+							<span className="text-[10px] text-muted-foreground truncate max-w-[150px]">
+								{row.original.leader.email}
+							</span>
+						</div>
+					) : (
+						<span className="text-xs text-muted-foreground italic">Sin líder</span>
+					)
+				),
+			},
+			{
 				accessorKey: 'active',
 				header: ({ column }) => <DataTableColumnHeader column={column} title="Estado" />,
 				cell: ({ row }) => (

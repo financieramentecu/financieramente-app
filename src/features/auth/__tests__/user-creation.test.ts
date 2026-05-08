@@ -44,9 +44,9 @@ describe('createUserAutomatically', () => {
 
 	const mockDefaultRole = {
 		idRole: 1,
-		code: UserRole.DEFAULT,
-		name: 'Default',
-		description: 'Rol por defecto',
+		code: UserRole.AGENTE,
+		name: 'Agente',
+		description: 'Rol de Agente',
 		active: true,
 		createdAt: new Date(),
 		updatedAt: new Date(),
@@ -77,7 +77,7 @@ describe('createUserAutomatically', () => {
 	})
 
 	describe('Creación exitosa', () => {
-		it('debe crear un usuario nuevo con estado Inactivo y rol Default', async () => {
+		it('debe crear un usuario nuevo con estado Inactivo y rol Agente', async () => {
 			// Usuario no existe
 			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
 			// Rol Default existe
@@ -97,9 +97,9 @@ describe('createUserAutomatically', () => {
 				include: { role: true },
 			})
 
-			// Verificar que se buscó el rol Default
+			// Verificar que se buscó el rol Agente
 			expect(prisma.role.findUnique).toHaveBeenCalledWith({
-				where: { code: UserRole.DEFAULT },
+				where: { code: UserRole.AGENTE },
 			})
 
 			// Verificar que se creó el usuario con los datos correctos
@@ -124,7 +124,7 @@ describe('createUserAutomatically', () => {
 				ipAddress: mockParams.ipAddress,
 				userAgent: mockParams.userAgent,
 				details:
-					'Usuario creado automáticamente con rol Default y estado Inactivo',
+					'Usuario creado automáticamente con rol Agente y estado Inactivo',
 			})
 		})
 
@@ -250,7 +250,7 @@ describe('createUserAutomatically', () => {
 	})
 
 	describe('Errores de validación', () => {
-		it('debe retornar error si el rol Default no existe', async () => {
+		it('debe retornar error si el rol Agente no existe', async () => {
 			vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
 			vi.mocked(prisma.role.findUnique).mockResolvedValueOnce(null)
 
@@ -258,7 +258,7 @@ describe('createUserAutomatically', () => {
 
 			expect(result.success).toBe(false)
 			expect(result.error).toBe(
-				'Rol Default no encontrado. Ejecuta el seed de roles.'
+				'Rol Agente no encontrado. Ejecuta el seed de roles.'
 			)
 			expect(result.userId).toBeUndefined()
 
@@ -341,7 +341,7 @@ describe('createUserAutomatically', () => {
 				ipAddress: mockParams.ipAddress,
 				userAgent: mockParams.userAgent,
 				details:
-					'Usuario creado automáticamente con rol Default y estado Inactivo',
+					'Usuario creado automáticamente con rol Agente y estado Inactivo',
 			})
 		})
 
@@ -365,7 +365,7 @@ describe('createUserAutomatically', () => {
 				ipAddress: undefined,
 				userAgent: undefined,
 				details:
-					'Usuario creado automáticamente con rol Default y estado Inactivo',
+					'Usuario creado automáticamente con rol Agente y estado Inactivo',
 			})
 		})
 	})

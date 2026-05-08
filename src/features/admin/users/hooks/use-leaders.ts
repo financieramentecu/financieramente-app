@@ -16,10 +16,12 @@ export interface Leader {
  * Solo incluye usuarios con rol AGENTE que están activos
  * Excluye el usuario actual si se proporciona
  *
+ * @param categoryId - ID de la categoría para filtrar líderes (opcional)
  * @param excludeUserId - ID del usuario a excluir de la lista (opcional)
  * @returns {leaders, isLoading, error, refreshLeaders}
  */
 export function useLeaders(
+	categoryId?: number | null,
 	excludeUserId?: number
 ): {
 	leaders: Leader[]
@@ -34,12 +36,29 @@ export function useLeaders(
 	useEffect(() => {
 		loadLeaders()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [excludeUserId])
+	}, [excludeUserId, categoryId])
 
 	const loadLeaders = async () => {
 		try {
 			setIsLoading(true)
 			setError(null)
+
+			// Si categoryId está definido explícitamente pero no existe, no cargar líderes (ej. último nivel)
+			if (categoryId === null) {
+				setLeaders([])
+				setIsLoading(false)
+				return
+			}
+
+			const urlParams = new URLSearchParams({
+				role: UserRole.AGENTE,
+				status: 'active'
+			})
+
+			if (categoryId) {
+				urlParams.append('categoryId', categoryId.toString())
+			}
+
 			const response = await apiClient.get<{
 				success: boolean
 				data: Array<{
@@ -50,7 +69,7 @@ export function useLeaders(
 					role: { code: string; name: string } | null
 					active: boolean
 				}>
-			}>(`/admin/users?role=${UserRole.AGENTE}&status=active`)
+			}>(`/admin/users?${urlParams.toString()}`)
 
 			// Verificar que la respuesta tenga la estructura correcta
 			if (!response.success || !Array.isArray(response.data)) {
