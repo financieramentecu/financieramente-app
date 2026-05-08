@@ -1,9 +1,8 @@
 /**
- * Migration script: Deduplicates ProductConfiguration by (idProduct, idCategory),
- * keeps the newest active record, deactivates duplicates, and regenerates codes
- * without origin using buildProductConfigurationCode.
+ * Fix script: Updates ProductConfiguration codes using Category.code instead of Category.name.
+ * Deduplicates by (idProduct, idCategory), keeps newest active record, deactivates duplicates.
  *
- * Run with: npx tsx prisma/seeds/migrate-product-configurations.ts
+ * Run with: npx tsx prisma/seeds/fix-product-config-codes.ts
  */
 
 import { PrismaClient } from '@prisma/client'
@@ -12,9 +11,9 @@ import { buildProductConfigurationCode } from '../../src/features/negocios/lib/p
 const prisma = new PrismaClient()
 
 async function main() {
-	console.log('🔄 Iniciando migración de ProductConfiguration...')
+	console.log('🔄 Iniciando corrección de códigos de ProductConfiguration usando Category.code...')
 
-	// Fetch all active configurations with product and category names
+	// Fetch all active configurations with product and category codes
 	const allConfigs = await prisma.productConfiguration.findMany({
 		where: { active: true },
 		include: {
@@ -28,7 +27,7 @@ async function main() {
 
 	console.log(`📋 Total configuraciones activas encontradas: ${allConfigs.length}`)
 
-	// Group by (idProduct, idCategory) — key is a composite string
+	// Group by (idProduct, idCategory)
 	const grouped = new Map<string, typeof allConfigs>()
 	for (const config of allConfigs) {
 		const key = `${config.idProduct}-${config.idCategory}`
@@ -45,11 +44,11 @@ async function main() {
 		// Ordered by createdAt desc — first entry is the newest
 		const [keeper, ...duplicates] = configs
 
-		// Regenerate code without origin
+		// Regenerate code using Category.code
 		const newCode = buildProductConfigurationCode(
 			keeper.product.company.name,
 			keeper.product.name,
-			keeper.category.code
+			keeper.category.code // Using category code instead of name
 		)
 
 		// Update code on the keeper if it changed
@@ -73,14 +72,14 @@ async function main() {
 		}
 	}
 
-	console.log(`\n✨ Migración completa.`)
+	console.log(`\n✨ Corrección completa.`)
 	console.log(`   Códigos actualizados: ${updated}`)
 	console.log(`   Duplicados desactivados: ${deactivated}`)
 }
 
 main()
 	.catch((e) => {
-		console.error('❌ Error durante la migración:', e)
+		console.error('❌ Error durante la corrección:', e)
 		process.exit(1)
 	})
 	.finally(async () => {

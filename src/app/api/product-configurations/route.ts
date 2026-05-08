@@ -225,7 +225,7 @@ export async function POST(request: Request) {
 		const code = buildProductConfigurationCode(
 			product.company.name,
 			product.name,
-			category.name
+			category.code
 		)
 
 		// Validate code length
