@@ -42,10 +42,10 @@ export function CompanyForm({
 	currencies,
 }: CompanyFormProps) {
 	const schema = mode === 'create' ? createCompanySchema : updateCompanySchema
-	const isEditMode = mode === 'edit'
 
 	const form = useForm<CreateCompanyFormData | UpdateCompanyFormData>({
-		resolver: zodResolver(schema),
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		resolver: zodResolver(schema as any),
 		defaultValues: initialData
 			? {
 					name: initialData.name,
@@ -85,14 +85,14 @@ export function CompanyForm({
 			{/* Nombre */}
 			<div className="space-y-2">
 				<Label htmlFor="name">
-					Nombre Completo de la Agencia
+					Nombre de la Compañia
 					<span className="text-destructive ml-1">*</span>
 				</Label>
 				<Input
 					id="name"
 					{...register('name')}
 					placeholder="Ej: Skandia Seguros"
-					disabled={isEditMode || isLoading}
+					disabled={isLoading}
 					className={cn(errors.name && 'border-destructive')}
 				/>
 				{errors.name && (

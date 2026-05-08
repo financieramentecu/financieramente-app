@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Pencil, Trash2, RotateCcw } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'

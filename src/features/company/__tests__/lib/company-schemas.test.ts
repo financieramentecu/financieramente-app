@@ -6,7 +6,7 @@ import {
 
 describe('company-schemas', () => {
 	describe('createCompanySchema', () => {
-		it('should validate valid company data', () => {
+		it('should validate valid company data with string currency id', () => {
 			const validData = {
 				name: 'Skandia Seguros',
 				status: true,
@@ -18,6 +18,21 @@ describe('company-schemas', () => {
 			if (result.success) {
 				expect(result.data.name).toBe('Skandia Seguros')
 				expect(result.data.status).toBe(true)
+				expect(result.data.idCurrency).toBe('1')
+			}
+		})
+
+		it('should validate valid company data with numeric currency id (coerced)', () => {
+			const validData = {
+				name: 'Skandia Seguros',
+				status: true,
+				idCurrency: 1,
+			}
+
+			const result = createCompanySchema.safeParse(validData)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.idCurrency).toBe('1')
 			}
 		})
 
@@ -106,14 +121,30 @@ describe('company-schemas', () => {
 	})
 
 	describe('updateCompanySchema', () => {
-		it('should validate with all fields', () => {
+		it('should validate with all fields and string currency id', () => {
 			const data = {
 				name: 'Skandia Seguros',
 				status: true,
+				idCurrency: '1',
 			}
 
 			const result = updateCompanySchema.safeParse(data)
 			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.idCurrency).toBe('1')
+			}
+		})
+
+		it('should validate with numeric currency id (coerced)', () => {
+			const data = {
+				idCurrency: 1,
+			}
+
+			const result = updateCompanySchema.safeParse(data)
+			expect(result.success).toBe(true)
+			if (result.success) {
+				expect(result.data.idCurrency).toBe('1')
+			}
 		})
 
 		it('should validate with only name', () => {

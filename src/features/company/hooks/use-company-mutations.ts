@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
+import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
 	Company,
 	CreateCompanyInput,
@@ -13,9 +14,9 @@ interface UseCompanyMutationsReturn {
 	createState: AsyncState<Company>
 	updateState: AsyncState<Company>
 	deleteState: AsyncState<void>
-	createCompany: (data: CreateCompanyInput) => Promise<void>
-	updateCompany: (id: number, data: UpdateCompanyInput) => Promise<void>
-	deleteCompany: (id: number) => Promise<void>
+	createCompany: (data: CreateCompanyInput) => Promise<ApiResponse<Company>>
+	updateCompany: (id: number, data: UpdateCompanyInput) => Promise<ApiResponse<Company>>
+	deleteCompany: (id: number) => Promise<ApiResponse<void>>
 }
 
 /**
@@ -73,16 +74,22 @@ export function useCompanyMutations(): UseCompanyMutationsReturn {
 					error: '',
 				})
 			}
+			return response
 		} catch (error) {
 			console.error('Error al crear empresa:', error)
-			setCreateState({
-				status: 'error',
-				data: undefined,
+			const errorResponse: ApiResponse<Company> = {
+				data: null,
 				error:
 					error instanceof Error
 						? error.message
 						: 'Error desconocido al crear empresa',
+			}
+			setCreateState({
+				status: 'error',
+				data: undefined,
+				error: errorResponse.error,
 			})
+			return errorResponse
 		}
 	}, [])
 
@@ -106,16 +113,22 @@ export function useCompanyMutations(): UseCompanyMutationsReturn {
 						error: '',
 					})
 				}
+				return response
 			} catch (error) {
 				console.error('Error al actualizar empresa:', error)
-				setUpdateState({
-					status: 'error',
-					data: undefined,
+				const errorResponse: ApiResponse<Company> = {
+					data: null,
 					error:
 						error instanceof Error
 							? error.message
 							: 'Error desconocido al actualizar empresa',
+				}
+				setUpdateState({
+					status: 'error',
+					data: undefined,
+					error: errorResponse.error,
 				})
+				return errorResponse
 			}
 		},
 		[]
@@ -140,16 +153,22 @@ export function useCompanyMutations(): UseCompanyMutationsReturn {
 					error: '',
 				})
 			}
+			return response
 		} catch (error) {
 			console.error('Error al eliminar empresa:', error)
-			setDeleteState({
-				status: 'error',
-				data: undefined,
+			const errorResponse: ApiResponse<void> = {
+				data: null,
 				error:
 					error instanceof Error
 						? error.message
 						: 'Error desconocido al eliminar empresa',
+			}
+			setDeleteState({
+				status: 'error',
+				data: undefined,
+				error: errorResponse.error,
 			})
+			return errorResponse
 		}
 	}, [])
 
