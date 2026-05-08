@@ -18,16 +18,16 @@ function normalizeSegment(segment: string): string {
  * Formato: {COMPANY}-{PRODUCT}-{CATEGORY} (mayúsculas; espacios reemplazados por '_').
  *
  * @example
- * buildProductConfigurationCode('CREA PATRIMONIO', 'Propio', 'Junior')
- * // => 'CREA_PATRIMONIO-PROPIO-JUNIOR'
+ * buildProductConfigurationCode('CREA PATRIMONIO', 'Propio', 'MS_JUNIOR')
+ * // => 'CREA_PATRIMONIO-PROPIO-MS_JUNIOR'
  */
 export function buildProductConfigurationCode(
 	companyName: string,
 	productName: string,
-	categoryName: string
+	categoryCode: string
 ): string {
 	const company = normalizeSegment(companyName)
 	const product = normalizeSegment(productName)
-	const category = normalizeSegment(categoryName)
+	const category = normalizeSegment(categoryCode)
 	return [company, product, category].join(SEPARATOR)
 }

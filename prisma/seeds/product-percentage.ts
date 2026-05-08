@@ -6,12 +6,12 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 
 	// 1. Obtener dependencias necesarias
 	const catJunior = await prisma.category.findUnique({
-		where: { code: 'JUNIOR' },
+		where: { code: 'MS_JUNIOR' },
 	})
 
 	if (!catJunior) {
 		console.warn(
-			'⚠️ Falta Category JUNIOR para crear porcentajes. Saltando...'
+			'⚠️ Falta Category MS_JUNIOR para crear porcentajes. Saltando...'
 		)
 		return
 	}
@@ -28,7 +28,7 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 		const code = buildProductConfigurationCode(
 			product.company.name,
 			product.name,
-			catJunior.name
+			catJunior.code
 		)
 
 		// 1. Obtener o crear ProductConfiguration (sin idClientOrigin)

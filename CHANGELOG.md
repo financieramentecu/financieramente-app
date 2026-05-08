@@ -5,6 +5,19 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
 
+## [1.3.1] - 2026-05-07
+
+### Mejorado
+
+- **Configuración de Productos – Estabilidad:** Los códigos de configuración de productos ahora se generan utilizando el `code` interno de las categorías en lugar de su nombre visual. Esto garantiza que los identificadores de negocio permanezcan estables aunque se renombren las categorías en la interfaz administrativa.
+- **API – Integridad de Datos:** Refactorización del proceso de creación de configuraciones para asegurar una generación de códigos consistente y libre de dependencias de visualización.
+
+### Interno
+
+- **Scripts – Corrección de Datos:** Nuevo script de seed `fix-product-config-codes.ts` para normalizar retroactivamente todos los códigos de configuración existentes y eliminar duplicados causados por la remoción del origen.
+- **Pruebas – Robustez:** Actualización de la suite de pruebas para validar la nueva lógica de generación de códigos basada en identificadores estables.
+
+
 ## [1.3.0] - 2026-05-07
 
 ### Añadido
