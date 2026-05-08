@@ -55,7 +55,7 @@ export function CompaniesTableSection({
 			},
 			{
 				accessorKey: 'name',
-				header: 'Nombre Completo de la Agencia',
+				header: 'Nombre de la Compañia',
 				cell: ({ row }) => (
 					<span className="font-medium">{row.original.name}</span>
 				),
@@ -64,9 +64,7 @@ export function CompaniesTableSection({
 				accessorKey: 'status',
 				header: 'Estado',
 				cell: ({ row }) => (
-					<Badge
-						variant={row.original.status ? 'success' : 'destructive'}
-					>
+					<Badge variant={row.original.status ? 'success' : 'destructive'}>
 						{row.original.status ? 'Activa' : 'Inactiva'}
 					</Badge>
 				),
@@ -142,5 +140,3 @@ export function CompaniesTableSection({
 		</div>
 	)
 }
-
-
