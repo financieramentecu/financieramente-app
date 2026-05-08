@@ -24,10 +24,10 @@ function normalizeSegment(segment: string): string {
 export function buildProductConfigurationCode(
 	companyName: string,
 	productName: string,
-	categoryName: string
+	categoryCode: string
 ): string {
 	const company = normalizeSegment(companyName)
 	const product = normalizeSegment(productName)
-	const category = normalizeSegment(categoryName)
+	const category = normalizeSegment(categoryCode)
 	return [company, product, category].join(SEPARATOR)
 }
