@@ -30,7 +30,7 @@ describe('CompanyForm', () => {
 			)
 
 			expect(
-				screen.getByLabelText(/nombre completo de la agencia/i)
+				screen.getByLabelText(/nombre de la compañia/i)
 			).toBeInTheDocument()
 			expect(screen.getByText(/estado/i)).toBeInTheDocument()
 			expect(screen.getAllByRole('combobox')).toHaveLength(2)
@@ -93,13 +93,13 @@ describe('CompanyForm', () => {
 			)
 
 			const nameInput = screen.getByLabelText(
-				/nombre completo de la agencia/i
+				/nombre de la compañia/i
 			) as HTMLInputElement
 			expect(nameInput.value).toBe('Skandia Seguros')
-			expect(nameInput).toBeDisabled()
+			expect(nameInput).not.toBeDisabled()
 		})
 
-		it('should disable name field in edit mode', () => {
+		it('should enable name field in edit mode', () => {
 			render(
 				<CompanyForm
 					mode="edit"
@@ -110,8 +110,8 @@ describe('CompanyForm', () => {
 				/>
 			)
 
-			const nameInput = screen.getByLabelText(/nombre completo de la agencia/i)
-			expect(nameInput).toBeDisabled()
+			const nameInput = screen.getByLabelText(/nombre de la compañia/i)
+			expect(nameInput).not.toBeDisabled()
 		})
 
 		it('should show update button text in edit mode', () => {
