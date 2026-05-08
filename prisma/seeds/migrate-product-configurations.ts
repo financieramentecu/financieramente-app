@@ -49,7 +49,7 @@ async function main() {
 		const newCode = buildProductConfigurationCode(
 			keeper.product.company.name,
 			keeper.product.name,
-			keeper.category.name
+			keeper.category.code
 		)
 
 		// Update code on the keeper if it changed

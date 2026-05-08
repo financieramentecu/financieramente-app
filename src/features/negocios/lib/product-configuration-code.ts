@@ -18,8 +18,8 @@ function normalizeSegment(segment: string): string {
  * Formato: {COMPANY}-{PRODUCT}-{CATEGORY} (mayúsculas; espacios reemplazados por '_').
  *
  * @example
- * buildProductConfigurationCode('CREA PATRIMONIO', 'Propio', 'Junior')
- * // => 'CREA_PATRIMONIO-PROPIO-JUNIOR'
+ * buildProductConfigurationCode('CREA PATRIMONIO', 'Propio', 'MS_JUNIOR')
+ * // => 'CREA_PATRIMONIO-PROPIO-MS_JUNIOR'
  */
 export function buildProductConfigurationCode(
 	companyName: string,
