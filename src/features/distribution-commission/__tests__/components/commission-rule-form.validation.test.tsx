@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { Category } from '@/features/categories/types/category.types'
+import type { Level } from '@/features/levels/types/level.types'
 import { CommissionRuleForm } from '@/features/distribution-commission/components/commission-rule-form'
 
 vi.mock('next/navigation', () => ({
@@ -27,35 +27,36 @@ vi.mock('@/features/distribution-commission/hooks/use-commission-rule-mutations'
 	}),
 }))
 
-const mockCategory: Category = {
-	idCategory: 1,
-	code: 'C1',
+const mockLevel: Level = {
+	idLevel: 1,
+	code: 'LEVEL_1',
 	name: 'Categoría demo',
-	typeCategory: 'MMS',
+	typeLevel: 'MMS',
 	descripcion: null,
-	color: '#1A73E8',
+	color: '#000000',
 	status: true,
 	beneficiaryMode: 'OVERRIDE',
 	idFixedBeneficiaryUser: null,
-	idNextCategory: null,
-	nextCategory: null,
+	fixedBeneficiaryUser: null,
+	idNextLevel: null,
+	nextLevel: null,
 	createdAt: '2026-01-01T00:00:00.000Z',
 	updatedAt: '2026-01-01T00:00:00.000Z',
 }
 
-const mockCategory2: Category = {
-	...mockCategory,
-	idCategory: 2,
-	code: 'C2',
+const mockLevel2: Level = {
+	...mockLevel,
+	idLevel: 2,
+	code: 'LEVEL_2',
 	name: 'Categoría dos',
 }
 
-vi.mock('@/features/categories/hooks/use-categories', () => ({
-	useCategories: () => ({
+vi.mock('@/features/levels/hooks/use-levels', () => ({
+	useLevels: () => ({
 		state: {
 			status: 'success',
 			data: {
-				categories: [mockCategory, mockCategory2],
+				levels: [mockLevel, mockLevel2],
 				pagination: {
 					page: 1,
 					pageSize: 100,
@@ -74,7 +75,7 @@ describe('CommissionRuleForm — validation presentation', () => {
 		const user = userEvent.setup()
 		render(<CommissionRuleForm mode="create" productConfigId={1} />)
 
-		await user.click(screen.getByRole('button', { name: /Agregar Categoría/i }))
+		await user.click(screen.getByRole('button', { name: /Agregar Nivel/i }))
 		await user.click(
 			screen.getByRole('button', { name: /Crear Distribución/i })
 		)
@@ -105,7 +106,7 @@ describe('CommissionRuleForm — validation presentation', () => {
 		const user = userEvent.setup()
 		render(<CommissionRuleForm mode="create" productConfigId={1} />)
 
-		await user.click(screen.getByRole('button', { name: /Agregar Categoría/i }))
+		await user.click(screen.getByRole('button', { name: /Agregar Nivel/i }))
 		await selectCategoryForRow(user, 0, /Categoría demo/)
 
 		const textboxes = screen.getAllByRole('textbox')
@@ -122,7 +123,7 @@ describe('CommissionRuleForm — validation presentation', () => {
 		const user = userEvent.setup()
 		render(<CommissionRuleForm mode="create" productConfigId={1} />)
 
-		await user.click(screen.getByRole('button', { name: /Agregar Categoría/i }))
+		await user.click(screen.getByRole('button', { name: /Agregar Nivel/i }))
 		await selectCategoryForRow(user, 0, /Categoría demo/)
 
 		const textboxes = screen.getAllByRole('textbox')
@@ -147,7 +148,7 @@ describe('CommissionRuleForm — validation presentation', () => {
 		const user = userEvent.setup()
 		render(<CommissionRuleForm mode="create" productConfigId={1} />)
 
-		await user.click(screen.getByRole('button', { name: /Agregar Categoría/i }))
+		await user.click(screen.getByRole('button', { name: /Agregar Nivel/i }))
 		await selectCategoryForRow(user, 0, /Categoría demo/)
 
 		const pctInput = screen.getAllByRole('textbox')[1]
@@ -174,10 +175,10 @@ describe('CommissionRuleForm — validation presentation', () => {
 
 		render(<CommissionRuleForm mode="create" productConfigId={1} />)
 
-		await user.click(screen.getByRole('button', { name: /Agregar Categoría/i }))
+		await user.click(screen.getByRole('button', { name: /Agregar Nivel/i }))
 		await selectCategoryForRow(user, 0, /Categoría demo/)
 
-		await user.click(screen.getByRole('button', { name: /Agregar Categoría/i }))
+		await user.click(screen.getByRole('button', { name: /Agregar Nivel/i }))
 		await selectCategoryForRow(user, 1, /Categoría dos/)
 
 		const textboxes = screen.getAllByRole('textbox')
@@ -199,7 +200,7 @@ describe('CommissionRuleForm — validation presentation', () => {
 		const user = userEvent.setup()
 		render(<CommissionRuleForm mode="create" productConfigId={1} />)
 
-		await user.click(screen.getByRole('button', { name: /Agregar Categoría/i }))
+		await user.click(screen.getByRole('button', { name: /Agregar Nivel/i }))
 		await selectCategoryForRow(user, 0, /Categoría demo/)
 
 		const pctInput = screen.getAllByRole('textbox')[1]
@@ -214,7 +215,7 @@ describe('CommissionRuleForm — validation presentation', () => {
 		const user = userEvent.setup()
 		render(<CommissionRuleForm mode="create" productConfigId={1} />)
 
-		await user.click(screen.getByRole('button', { name: /Agregar Categoría/i }))
+		await user.click(screen.getByRole('button', { name: /Agregar Nivel/i }))
 		await selectCategoryForRow(user, 0, /Categoría demo/)
 
 		expect(screen.queryByText(/^Cartera$/)).not.toBeInTheDocument()

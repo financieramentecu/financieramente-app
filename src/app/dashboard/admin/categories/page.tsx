@@ -10,28 +10,21 @@ import {
 import { DeleteConfirmModal } from '@/features/admin/shared/DeleteConfirmModal'
 import { Button } from '@/features/shared/ui/button'
 import { AdminCategoriesTable as CategoriesTable } from '@/features/categories/components/admin-categories-table'
-import { CategoryFilters } from '@/features/categories/components/category-filters'
 import { useAdminCategories as useCategories } from '@/features/categories/hooks/use-admin-categories'
 import { useAdminCategoryMutations as useCategoryMutations } from '@/features/categories/hooks/use-admin-category-mutations'
 import {
 	createCategorySchema,
 	updateCategorySchema,
 } from '@/features/categories/lib/category-schemas'
-import type {
-	Category,
-	CategoryFilters as CategoryFiltersType,
-} from '@/features/categories/types/category.types'
+import type { Category } from '@/features/categories/types/category.types'
 
 export default function CategoriesAdminPage() {
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-	const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-		null
-	)
+	const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
 	const [mode, setMode] = useState<'create' | 'edit'>('create')
-	const [filters, setFilters] = useState<CategoryFiltersType>({})
 
-	const { categories, isLoading, refreshCategories } = useCategories(filters)
+	const { categories, isLoading, refreshCategories } = useCategories()
 	const { createCategory, updateCategory, deleteCategory, isSubmitting } =
 		useCategoryMutations()
 
@@ -56,27 +49,17 @@ export default function CategoriesAdminPage() {
 		try {
 			if (mode === 'create') {
 				await createCategory({
-					code: formData.code as string,
 					name: formData.name as string,
-					typeCategory: formData.typeCategory as 'MMS' | 'ALIADO' | 'TRINITY',
-					descripcion: formData.descripcion as string | undefined,
-					color: formData.color as string,
+					idCategoryType: formData.idCategoryType as number,
+					description: formData.description as string | undefined,
 					status: formData.status as boolean,
-					beneficiaryMode: (formData.beneficiaryMode as 'OVERRIDE' | 'BENEFICIARIO_GENERAL') ?? 'OVERRIDE',
-					idFixedBeneficiaryUser: formData.idFixedBeneficiaryUser as number | null | undefined,
-					idNextCategory: formData.idNextCategory as number | null | undefined,
 				})
 			} else if (selectedCategory) {
-				await updateCategory(selectedCategory.idCategory, {
-					code: formData.code as string,
-					name: formData.name as string,
-					typeCategory: formData.typeCategory as 'MMS' | 'ALIADO' | 'TRINITY',
-					descripcion: formData.descripcion as string | undefined,
-					color: formData.color as string | undefined,
-					status: formData.status as boolean,
-					beneficiaryMode: formData.beneficiaryMode as 'OVERRIDE' | 'BENEFICIARIO_GENERAL' | undefined,
-					idFixedBeneficiaryUser: formData.idFixedBeneficiaryUser as number | null | undefined,
-					idNextCategory: formData.idNextCategory as number | null | undefined,
+				await updateCategory(selectedCategory.id, {
+					name: formData.name as string | undefined,
+					idCategoryType: formData.idCategoryType as number | undefined,
+					description: formData.description as string | undefined,
+					status: formData.status as boolean | undefined,
 				})
 			}
 
@@ -84,7 +67,7 @@ export default function CategoriesAdminPage() {
 			setSelectedCategory(null)
 			refreshCategories()
 		} catch {
-			// Error ya manejado en el hook
+			// Error already handled in hook
 		}
 	}
 
@@ -92,24 +75,17 @@ export default function CategoriesAdminPage() {
 		if (!selectedCategory) return
 
 		try {
-			await deleteCategory(selectedCategory.idCategory)
+			await deleteCategory(selectedCategory.id)
 			setIsDeleteModalOpen(false)
 			setSelectedCategory(null)
 			refreshCategories()
 		} catch {
-			// Error ya manejado en el hook
+			// Error already handled in hook
 		}
 	}
 
 	const fields: CrudModalField[] = useMemo(
 		() => [
-			{
-				name: 'code',
-				label: 'Código',
-				type: 'text',
-				placeholder: 'Ej: CAT001',
-				required: true,
-			},
 			{
 				name: 'name',
 				label: 'Nombre',
@@ -118,17 +94,10 @@ export default function CategoriesAdminPage() {
 				required: true,
 			},
 			{
-				name: 'typeCategory',
-				label: 'Tipo de Categoría',
-				type: 'enum',
-				enumValues: ['MMS', 'ALIADO', 'TRINITY'],
-				required: true,
-			},
-			{
-				name: 'descripcion',
+				name: 'description',
 				label: 'Descripción',
 				type: 'textarea',
-				placeholder: 'Descripción opcional de la categoría',
+				placeholder: 'Descripción opcional',
 			},
 			{
 				name: 'status',
@@ -156,8 +125,6 @@ export default function CategoriesAdminPage() {
 					</Button>
 				</div>
 
-				<CategoryFilters filters={filters} onFilterChange={setFilters} />
-
 				<CategoriesTable
 					categories={categories}
 					isLoading={isLoading}
@@ -168,6 +135,7 @@ export default function CategoriesAdminPage() {
 				<CrudModal
 					open={isModalOpen}
 					onOpenChange={setIsModalOpen}
+					contentClassName="max-w-lg"
 					title={mode === 'create' ? 'Crear Categoría' : 'Editar Categoría'}
 					description={
 						mode === 'create'
@@ -175,16 +143,12 @@ export default function CategoriesAdminPage() {
 							: 'Modifica los datos de la categoría'
 					}
 					fields={fields}
-					schema={
-						mode === 'create' ? createCategorySchema : updateCategorySchema
-					}
+					schema={mode === 'create' ? createCategorySchema : updateCategorySchema}
 					initialData={
 						mode === 'edit' && selectedCategory
 							? {
-								code: selectedCategory.code,
 								name: selectedCategory.name,
-								typeCategory: selectedCategory.typeCategory,
-								descripcion: selectedCategory.descripcion ?? '',
+								description: selectedCategory.description ?? '',
 								status: selectedCategory.status,
 							}
 							: {

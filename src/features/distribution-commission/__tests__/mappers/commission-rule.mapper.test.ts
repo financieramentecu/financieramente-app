@@ -16,6 +16,7 @@ describe('Commission Rule Mappers', () => {
 		it('should map flat fields correctly', () => {
 			const prismaCategory = {
 				id: 10,
+				idLevel: 100,
 				idCategory: 100,
 				idProductPercentageCommission: 50,
 				porcentajeDistribucion: mockDecimal(0.155),
@@ -28,7 +29,7 @@ describe('Commission Rule Mappers', () => {
 
 			expect(domain).toEqual({
 				id: 10,
-				idCategory: 100,
+				idLevel: 100,
 				idProductPercentageCommission: 50,
 				porcentajeDistribucion: 15.5,
 				active: true,
@@ -41,6 +42,7 @@ describe('Commission Rule Mappers', () => {
 		it('should preserve precision beyond two decimal places when mapping', () => {
 			const prismaCategory = {
 				id: 10,
+				idLevel: 100,
 				idCategory: 100,
 				idProductPercentageCommission: 50,
 				porcentajeDistribucion: new Decimal('0.15555'),
@@ -56,6 +58,7 @@ describe('Commission Rule Mappers', () => {
 		it('should handle string decimal values', () => {
 			const prismaCategory = {
 				id: 10,
+				idLevel: 100,
 				idCategory: 100,
 				idProductPercentageCommission: 50,
 				porcentajeDistribucion: '0.155', // String representation
@@ -71,6 +74,7 @@ describe('Commission Rule Mappers', () => {
 		it('should map nested category if present', () => {
 			const prismaCategory = {
 				id: 10,
+				idLevel: 100,
 				idCategory: 100,
 				idProductPercentageCommission: 50,
 				porcentajeDistribucion: mockDecimal(0.1),
@@ -85,7 +89,7 @@ describe('Commission Rule Mappers', () => {
 
 			const domain = prismaCommissionRuleCategoryToDomain(prismaCategory)
 			expect(domain.category).toEqual({
-				idCategory: 100,
+				idLevel: 100,
 				name: 'Test Category',
 			})
 		})
@@ -93,6 +97,7 @@ describe('Commission Rule Mappers', () => {
 		it('should map porcentajePortfolio when present', () => {
 			const prismaCategory = {
 				id: 10,
+				idLevel: 100,
 				idCategory: 100,
 				idProductPercentageCommission: 50,
 				porcentajeDistribucion: mockDecimal(0.5),
@@ -121,6 +126,7 @@ describe('Commission Rule Mappers', () => {
 				productPercentageCommissionCategories: [
 					{
 						id: 10,
+						idLevel: 100,
 						idCategory: 100,
 						idProductPercentageCommission: 1,
 						porcentajeDistribucion: mockDecimal(0.2),

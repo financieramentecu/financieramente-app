@@ -118,6 +118,43 @@ class ApiClient {
 		}
 	}
 
+	async patch<T>(url: string, data: unknown): Promise<T> {
+		const response = await fetch(`${this.baseUrl}${url}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(data),
+			credentials: 'include',
+		})
+
+		if (!response.ok) {
+			const contentType = response.headers.get('content-type')
+			const error = contentType?.includes('application/json')
+				? await response.json().catch(() => ({}))
+				: { error: `Error ${response.status}: ${response.statusText}` }
+			throw new Error(error.message || error.error || 'Error en la solicitud')
+		}
+
+		const contentType = response.headers.get('content-type')
+		if (!contentType?.includes('application/json')) {
+			const text = await response.text()
+			if (!text) {
+				throw new Error('Respuesta vacía del servidor')
+			}
+			throw new Error(`Respuesta no-JSON recibida: ${text.substring(0, 100)}`)
+		}
+
+		const text = await response.text()
+		if (!text) {
+			throw new Error('Respuesta vacía del servidor')
+		}
+
+		try {
+			return JSON.parse(text) as T
+		} catch (error) {
+			throw new Error(`Error parseando JSON: ${error instanceof Error ? error.message : 'Unknown error'}`)
+		}
+	}
+
 	async delete<T>(url: string): Promise<T> {
 		const response = await fetch(`${this.baseUrl}${url}`, {
 			method: 'DELETE',

@@ -48,7 +48,7 @@ export async function resolveLeaderChainForExport(
 				name: true,
 				lastName: true,
 				idUserLeader: true,
-				category: { select: { name: true } },
+				level: { select: { name: true } },
 			},
 		})
 
@@ -59,7 +59,7 @@ export async function resolveLeaderChainForExport(
 		const fullName = [row.name, row.lastName].filter(Boolean).join(' ').trim()
 		levels.push({
 			fullName,
-			categoryName: row.category?.name ?? null,
+			categoryName: row.level?.name ?? null,
 		})
 
 		currentId = row.idUserLeader

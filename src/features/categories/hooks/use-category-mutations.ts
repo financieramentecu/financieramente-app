@@ -125,7 +125,7 @@ export function useCategoryMutations(): UseCategoryMutationsReturn {
 		setDeleteState({ status: 'loading', data: undefined, error: '' })
 
 		try {
-			const response = await categoryApi.deleteCategory(id)
+			const response = await categoryApi.deactivateCategory(id)
 
 			if ('error' in response) {
 				setDeleteState({
@@ -141,14 +141,14 @@ export function useCategoryMutations(): UseCategoryMutationsReturn {
 				})
 			}
 		} catch (error) {
-			console.error('Error al eliminar categoría:', error)
+			console.error('Error al desactivar categoría:', error)
 			setDeleteState({
 				status: 'error',
 				data: undefined,
 				error:
 					error instanceof Error
 						? error.message
-						: 'Error desconocido al eliminar categoría',
+						: 'Error desconocido al desactivar categoría',
 			})
 		}
 	}, [])

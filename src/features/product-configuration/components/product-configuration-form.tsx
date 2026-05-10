@@ -79,7 +79,7 @@ export function ProductConfigurationForm({
 					handleFormSubmit({
 						idCompany: initialData.product.company.idCompany,
 						idProduct: initialData.idProduct,
-						idCategory: initialData.idCategory,
+						idLevel: initialData.idLevel,
 					})
 				}}
 				className="space-y-6"
@@ -100,7 +100,10 @@ export function ProductConfigurationForm({
 							</div>
 							<div className="space-y-2">
 								<Label>Categoría</Label>
-								<Input value={initialData.category.name} disabled />
+								<Input
+									value={(initialData.level as { name: string }).name}
+									disabled
+								/>
 							</div>
 						</div>
 						<div className="space-y-2">
@@ -275,13 +278,13 @@ export function ProductConfigurationForm({
 						)}
 					</div>
 
-					{/* Category Select */}
+					{/* Level Select */}
 					<div className="space-y-2">
 						<Label>
-							Categoría <span className="text-destructive">*</span>
+							Nivel (Jerarquía) <span className="text-destructive">*</span>
 						</Label>
 						<Controller
-							name="idCategory"
+							name="idLevel"
 							control={control}
 							render={({ field }) => (
 								<Select
@@ -292,21 +295,21 @@ export function ProductConfigurationForm({
 									}
 								>
 									<SelectTrigger
-										className={cn(errors.idCategory && 'border-destructive')}
+										className={cn(errors.idLevel && 'border-destructive')}
 									>
 										<SelectValue
 											placeholder={
 												categoriesState.status === 'loading'
 													? 'Cargando...'
-													: 'Seleccione una categoría'
+													: 'Seleccione un nivel (Jerarquía)'
 											}
 										/>
 									</SelectTrigger>
 									<SelectContent>
 										{categoriesState.data?.map((cat) => (
 											<SelectItem
-												key={cat.idCategory}
-												value={cat.idCategory.toString()}
+												key={cat.idLevel}
+												value={cat.idLevel.toString()}
 											>
 												{cat.name}
 											</SelectItem>
@@ -320,9 +323,9 @@ export function ProductConfigurationForm({
 								{categoriesState.error}
 							</p>
 						)}
-						{errors.idCategory && (
+						{errors.idLevel && (
 							<p className="text-sm text-destructive">
-								{errors.idCategory.message}
+								{errors.idLevel.message}
 							</p>
 						)}
 					</div>

@@ -82,8 +82,7 @@ export default function CreateCommissionRuleByCodePage() {
 					Crear Distribución de Comisión
 				</h2>
 				<p className="text-muted-foreground">
-					Define una nueva distribución de comisiones (código:{' '}
-					{resolvedCode}).
+					Define una nueva distribución de comisiones (código: {resolvedCode}).
 				</p>
 			</div>
 
@@ -91,12 +90,13 @@ export default function CreateCommissionRuleByCodePage() {
 				<CardHeader>
 					<CardTitle>Detalles de la Distribución</CardTitle>
 					<CardDescription>
-						Ingresa la descripción y asigna los porcentajes por categoría.
+						Ingresa la descripción y asigna los porcentajes por nivel.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<CommissionRuleForm
 						productConfigId={id}
+						configLevelCode={resolveState.data.level.code}
 						distributionBasePath={distributionBasePath}
 						mode={formMode}
 						initialData={initialRule}

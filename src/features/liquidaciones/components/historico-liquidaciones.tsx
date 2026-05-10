@@ -52,11 +52,11 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
   const detailColumns = useMemo<ColumnDef<LiquidacionConRelaciones['comissionDistributions'][0]>[]>(
     () => [
       {
-        accessorKey: 'productPercentageCommissionCategory.category.name',
+        accessorKey: 'productPercentageCommissionCategory.level.name',
         header: 'Categoría',
         cell: ({ row }) => (
           <span className="font-semibold text-xs text-slate-700 dark:text-slate-300">
-            {row.original.productPercentageCommissionCategory?.category?.name || 'Desconocido'}
+            {row.original.productPercentageCommissionCategory?.level?.name || 'Desconocido'}
           </span>
         ),
       },
@@ -65,7 +65,7 @@ function DistributionDetailTable({ comision }: { comision: LiquidacionConRelacio
         header: () => <div className="text-center">Participante</div>,
         cell: ({ row }) => {
           const dist = row.original;
-          const catName = dist.productPercentageCommissionCategory?.category?.name || 'Desconocido';
+          const catName = dist.productPercentageCommissionCategory?.level?.name || 'Desconocido';
           const upperCat = catName.toUpperCase();
 
           let participant = '-';

@@ -13,6 +13,11 @@ export const businessWithRelations = {
 	user: {
 		include: {
 			role: true,
+			level: {
+				select: {
+					name: true,
+				},
+			},
 			category: {
 				select: {
 					name: true,

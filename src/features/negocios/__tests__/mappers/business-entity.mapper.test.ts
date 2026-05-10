@@ -153,6 +153,7 @@ describe('prismaBusinessToEntity', () => {
 				...mockPrismaBusiness,
 				user: {
 					...mockPrismaBusiness.user,
+					idCategory: null,
 					category: null,
 				},
 			}

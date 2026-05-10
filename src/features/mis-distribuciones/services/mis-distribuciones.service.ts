@@ -90,7 +90,7 @@ type DistributionRow = Prisma.ComissionDistributionGetPayload<{
 		}
 		productPercentageCommissionCategory: {
 			include: {
-				category: true
+				level: true
 				productPercentageCommission: {
 					include: {
 						productConfiguration: {
@@ -308,7 +308,7 @@ export async function obtenerReciboDistribucion(params: {
 			},
 			productPercentageCommissionCategory: {
 				include: {
-					category: true,
+					level: true,
 					productPercentageCommission: {
 						include: {
 							productConfiguration: {
@@ -332,7 +332,7 @@ export async function obtenerReciboDistribucion(params: {
 		const sc = row.settlementCommission
 		const usePortfolio = sc.originCommission === 'CARTERA'
 		const ppcc = row.productPercentageCommissionCategory
-		const categoria = ppcc?.category?.name ?? ''
+		const categoria = ppcc?.level?.name ?? ''
 		const porcentajeCategoria =
 			usePortfolio && ppcc?.porcentajePortfolio != null
 				? ppcc.porcentajePortfolio.toNumber()

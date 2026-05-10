@@ -182,7 +182,7 @@ export function BusinessTableSection({
 			size: 220,
 			minSize: 180,
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Agente" />
+				<DataTableColumnHeader column={column} title="Money Strategist" />
 			),
 			cell: ({ row }) => {
 				const userData = row.original.user
@@ -207,7 +207,7 @@ export function BusinessTableSection({
 		{
 			id: 'agentCategory',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Categoría agente" />
+				<DataTableColumnHeader column={column} title="Categoría Money Strategist" />
 			),
 			cell: ({ row }) => (
 				<span className={row.original.user.categoryName ? '' : 'text-muted-foreground'}>

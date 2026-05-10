@@ -26,7 +26,7 @@ export interface ClientOriginOption {
 }
 
 export interface CategoryOption {
-	idCategory: number
+	idLevel: number
 	name: string
 }
 
@@ -72,7 +72,7 @@ export function useProductConfigurationForm({
 		defaultValues: {
 			idCompany: initialData?.product.company.idCompany ?? 0,
 			idProduct: initialData?.idProduct ?? 0,
-			idCategory: initialData?.idCategory ?? 0,
+			idLevel: initialData?.idLevel ?? 0,
 		},
 	})
 
@@ -193,7 +193,7 @@ export function useProductConfigurationForm({
 		}
 	}, [])
 
-	// Fetch Categories (Endpoint: /api/categories)
+	// Fetch Levels (Endpoint: /api/levels) — used as "Categoría" in product configuration
 	const fetchCategories = useCallback(async () => {
 		setCategoriesState((prev) => ({
 			...prev,
@@ -202,12 +202,15 @@ export function useProductConfigurationForm({
 			error: '',
 		}))
 		try {
-			const response = await fetch('/api/categories?status=active')
+			const response = await fetch('/api/levels?status=active')
 			const result = await response.json()
-			if (result.data?.categories) {
+			if (result.data?.levels) {
 				setCategoriesState({
 					status: 'success',
-					data: result.data.categories,
+					data: result.data.levels.map((l: { idLevel: number; name: string }) => ({
+						idLevel: l.idLevel,
+						name: l.name,
+					})),
 					error: '',
 				})
 			} else {

@@ -135,8 +135,8 @@ describe('procesarPreLiquidacion', () => {
 				id: 10,
 				porcentajeDistribucion: new Decimal(0.5),
 				porcentajePortfolio: new Decimal(0.6),
-				category: {
-					idCategory: 1,
+				level: {
+					idLevel: 1,
 					code: 'GENERAL',
 					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 77,
@@ -237,8 +237,8 @@ describe('procesarPreLiquidacion', () => {
 				id: 10,
 				porcentajeDistribucion: new Decimal(0.5),
 				porcentajePortfolio: null,
-				category: {
-					idCategory: 1,
+				level: {
+					idLevel: 1,
 					code: 'A',
 					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 77,
@@ -249,8 +249,8 @@ describe('procesarPreLiquidacion', () => {
 				id: 11,
 				porcentajeDistribucion: new Decimal(0.5),
 				porcentajePortfolio: null,
-				category: {
-					idCategory: 2,
+				level: {
+					idLevel: 2,
 					code: 'B',
 					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 77,
@@ -327,8 +327,8 @@ describe('procesarPreLiquidacion', () => {
 				id: 10,
 				porcentajeDistribucion: new Decimal(1),
 				porcentajePortfolio: null,
-				category: {
-					idCategory: 99,
+				level: {
+					idLevel: 99,
 					code: 'NOMATCH',
 					beneficiaryMode: BeneficiaryMode.OVERRIDE,
 					idFixedBeneficiaryUser: null,
@@ -339,7 +339,7 @@ describe('procesarPreLiquidacion', () => {
 
 		vi.mocked(prisma.user.findUnique).mockResolvedValue({
 			idUser: 1,
-			idCategoria: 1,
+			idLevel: 1,
 			idUserLeader: null,
 		} as never)
 
@@ -420,8 +420,8 @@ describe('procesarPreLiquidacion', () => {
 					id: 10,
 					porcentajeDistribucion: new Decimal(1),
 					porcentajePortfolio: null,
-					category: {
-						idCategory: 1,
+					level: {
+						idLevel: 1,
 						code: 'GENERAL',
 						beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 						idFixedBeneficiaryUser: 77,
@@ -434,8 +434,8 @@ describe('procesarPreLiquidacion', () => {
 					id: 20,
 					porcentajeDistribucion: new Decimal(1),
 					porcentajePortfolio: null,
-					category: {
-						idCategory: 99,
+					level: {
+						idLevel: 99,
 						code: 'NOMATCH',
 						beneficiaryMode: BeneficiaryMode.OVERRIDE,
 						idFixedBeneficiaryUser: null,
@@ -447,7 +447,7 @@ describe('procesarPreLiquidacion', () => {
 		// user.findUnique for chain of record 501 — no leader, no category match
 		vi.mocked(prisma.user.findUnique).mockResolvedValue({
 			idUser: 2,
-			idCategoria: 5, // doesn't match category 99
+			idLevel: 5, // doesn't match idLevel 99
 			idUserLeader: null,
 		} as never)
 
@@ -523,8 +523,8 @@ describe('procesarPreLiquidacion', () => {
 				id: 30,
 				porcentajeDistribucion: new Decimal(1),
 				porcentajePortfolio: null,
-				category: {
-					idCategory: 1,
+				level: {
+					idLevel: 1,
 					code: 'AGENCIA',
 					beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
 					idFixedBeneficiaryUser: 50,

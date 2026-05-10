@@ -14,6 +14,7 @@ export const updateUserSchema = (
 			active: z.boolean().optional(),
 			roleId: z.number().int().positive().nullable().optional(),
 			categoryId: z.number().int().positive().nullable().optional(),
+			levelId: z.number().int().positive().nullable().optional(),
 			leaderId: z.number().int().positive().nullable().optional(),
 		})
 		.refine(

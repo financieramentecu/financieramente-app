@@ -77,7 +77,7 @@ const liquidacionInclude = {
     include: {
       productPercentageCommissionCategory: {
         include: {
-          category: true
+          level: true
         }
       },
       clawback: {

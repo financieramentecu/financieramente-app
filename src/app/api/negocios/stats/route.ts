@@ -13,6 +13,7 @@ import type {
 	KpiCardData,
 } from '@/features/negocios/types/business-api.types'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
 import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 import { parseBogotaInclusiveUtcRange } from '@/features/negocios/lib/bogota-date-range'
@@ -38,9 +39,16 @@ export async function GET(
 			)
 		}
 
-		// Determinar filtro según rol
-		const isAgent = currentUser.role?.code === UserRole.AGENTE
-		const userFilter = isAgent ? currentUser.idUser : undefined
+		// Visibility scope:
+		// ADMIN → no idUser filter (see all)
+		// All other roles → hierarchical scope: [self, ...subordinates]
+		const isAdmin = currentUser.role?.code === UserRole.ADMIN
+		let userFilter: number[] | undefined
+
+		if (!isAdmin) {
+			const subordinates = await getSubordinateUserIds(prisma, currentUser.idUser)
+			userFilter = [currentUser.idUser, ...subordinates]
+		}
 
 		// Fechas opcionales
 		const { searchParams } = new URL(req.url)
@@ -85,12 +93,12 @@ export async function GET(
  */
 async function calculateAggregateForStatus(
 	status: string,
-	userFilter?: number,
+	userFilter?: number[],
 	createdAtFilter?: Prisma.DateTimeFilter
 ): Promise<KpiCardData> {
 	const whereClause: Prisma.BusinessWhereInput = {
 		status,
-		...(userFilter ? { idUser: userFilter } : {}),
+		...(userFilter ? { idUser: { in: userFilter } } : {}),
 		...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
 	}
 

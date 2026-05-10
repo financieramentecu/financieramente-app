@@ -43,7 +43,7 @@ describe('useProductConfigurationMutations', () => {
 			await act(async () => {
 				created = await result.current.createProductConfiguration({
 					idProduct: 1,
-					idCategory: 1,
+					idLevel: 1,
 					idCompany: 1,
 				})
 			})
@@ -69,7 +69,7 @@ describe('useProductConfigurationMutations', () => {
 			await act(async () => {
 				await result.current.createProductConfiguration({
 					idProduct: 1,
-					idCategory: 1,
+					idLevel: 1,
 					idCompany: 1,
 				})
 			})
@@ -97,7 +97,7 @@ describe('useProductConfigurationMutations', () => {
 			await act(async () => {
 				await result.current.createProductConfiguration({
 					idProduct: 1,
-					idCategory: 1,
+					idLevel: 1,
 					idCompany: 1,
 				})
 			})
@@ -231,7 +231,7 @@ describe('useProductConfigurationMutations', () => {
 		await act(async () => {
 			await result.current.createProductConfiguration({
 				idProduct: 1,
-				idCategory: 1,
+				idLevel: 1,
 				idCompany: 1,
 			})
 		})

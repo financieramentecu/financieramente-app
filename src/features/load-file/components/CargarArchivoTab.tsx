@@ -700,7 +700,7 @@ export function CargarArchivoTab() {
 					<p>
 						<strong>Póliza:</strong> Polizas Periodo, Plan de Compensación,
 						Valor Comisión, BASE, Polizas Producto, Contrato Largo, Polizas Id
-						Agente, Polizas Nombre Agente, Polizas Id Sociedad, Nombre Sociedad,
+						Money Strategist, Polizas Nombre Money Strategist, Polizas Id Sociedad, Nombre Sociedad,
 						Polizas Clasificación.
 					</p>
 				</div>

@@ -14,12 +14,6 @@ interface CategoriesTableProps {
 	onDelete: (category: Category) => void
 }
 
-const CATEGORY_LABELS: Record<Category['typeCategory'], string> = {
-	MMS: 'MMS',
-	ALIADO: 'Aliado',
-	TRINITY: 'Trinity',
-}
-
 export function AdminCategoriesTable({
 	categories,
 	isLoading,
@@ -28,21 +22,12 @@ export function AdminCategoriesTable({
 }: CategoriesTableProps) {
 	const columns: ColumnDef<Category>[] = [
 		{
-			accessorKey: 'idCategory',
+			accessorKey: 'id',
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="ID" />
 			),
 			cell: ({ row }) => (
-				<span className="font-medium">#{row.getValue('idCategory')}</span>
-			),
-		},
-		{
-			accessorKey: 'code',
-			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Código" />
-			),
-			cell: ({ row }) => (
-				<span className="font-medium">{row.getValue('code')}</span>
+				<span className="font-medium">#{row.getValue('id')}</span>
 			),
 		},
 		{
@@ -55,13 +40,14 @@ export function AdminCategoriesTable({
 			),
 		},
 		{
-			accessorKey: 'typeCategory',
+			accessorKey: 'categoryType',
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Tipo" />
 			),
 			cell: ({ row }) => {
-				const value = row.getValue('typeCategory') as Category['typeCategory']
-				return <span className="text-sm">{CATEGORY_LABELS[value]}</span>
+				const ct = row.original.categoryType
+				if (!ct?.name) return <span className="text-muted-foreground">—</span>
+				return <span className="text-sm">{ct.name}</span>
 			},
 		},
 		{
@@ -111,4 +97,3 @@ export function AdminCategoriesTable({
 		/>
 	)
 }
-

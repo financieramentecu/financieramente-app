@@ -20,7 +20,7 @@ describe('findProductPercentageCommission', () => {
 		} as Awaited<ReturnType<typeof getPpcForNewBusinesses>>)
 
 		const result = await findProductPercentageCommission({
-			idCategory: 1,
+			idLevel: 1,
 			idProduct: 3,
 		})
 
@@ -37,7 +37,7 @@ describe('findProductPercentageCommission', () => {
 		vi.mocked(getPpcForNewBusinesses).mockRejectedValue(new Error(errorMsg))
 
 		const result = await findProductPercentageCommission({
-			idCategory: 99,
+			idLevel: 99,
 			idProduct: 3,
 		})
 
@@ -52,7 +52,7 @@ describe('findProductPercentageCommission', () => {
 		})
 
 		const result = await findProductPercentageCommission({
-			idCategory: 1,
+			idLevel: 1,
 			idProduct: 3,
 		})
 

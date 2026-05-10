@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react'
 import type { Control, FieldPath } from 'react-hook-form'
 import { useFormContext } from 'react-hook-form'
-import type { Category } from '@/features/categories/types/category.types'
+import type { Level } from '@/features/levels/types/level.types'
 import type {
 	CreateCommissionRuleFormData,
 	UpdateCommissionRuleFormData,
@@ -30,7 +30,7 @@ type CommissionRuleFormData =
 interface CategoryPercentageRowProps {
 	index: number
 	control: Control<CommissionRuleFormData>
-	categories: Category[]
+	levels: Level[]
 	selectedCategoryIds: Array<number | undefined>
 	onRemove: () => void
 	hasPortfolio: boolean
@@ -39,7 +39,7 @@ interface CategoryPercentageRowProps {
 export function CategoryPercentageRow({
 	index,
 	control,
-	categories,
+	levels,
 	selectedCategoryIds,
 	onRemove,
 	hasPortfolio,
@@ -54,11 +54,11 @@ export function CategoryPercentageRow({
 		<div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-start sm:gap-5 sm:py-5">
 			<FormField
 				control={control}
-				name={`categories.${index}.idCategory`}
+				name={`categories.${index}.idLevel`}
 				render={({ field }) => (
 					<FormItem className="min-w-0 flex-1 space-y-2">
 						<FormLabel className={index !== 0 ? 'sr-only' : ''}>
-							Categoría
+							Nivel (Jerarquía)
 						</FormLabel>
 						<Select
 							onValueChange={(value) =>
@@ -68,21 +68,21 @@ export function CategoryPercentageRow({
 						>
 							<FormControl>
 								<SelectTrigger className="h-9 w-full">
-									<SelectValue placeholder="Seleccionar categoría" />
+									<SelectValue placeholder="Seleccionar nivel" />
 								</SelectTrigger>
 							</FormControl>
 							<SelectContent>
-								{categories.map((category) => (
+								{levels.map((level) => (
 									<SelectItem
-										key={category.idCategory}
-										value={String(category.idCategory)}
+										key={level.idLevel}
+										value={String(level.idLevel)}
 										disabled={selectedCategoryIds.some(
 											(id, selectedIndex) =>
 												selectedIndex !== index &&
-												id === category.idCategory
+												id === level.idLevel
 										)}
 									>
-										{category.name} ({category.code})
+										{level.name}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -155,7 +155,7 @@ export function CategoryPercentageRow({
 					size="icon"
 					className="h-10 w-10 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
 					onClick={onRemove}
-					aria-label="Eliminar categoría de la distribución"
+					aria-label="Eliminar nivel de la distribución"
 				>
 					<Trash2 className="h-4 w-4" />
 				</Button>
