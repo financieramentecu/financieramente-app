@@ -27,6 +27,6 @@
 
 ## Phase 5: Cleanup
 
-- [ ] 5.1 Run `npm run type-check` and `npm run lint` — fix any TypeScript errors from `number | undefined` → `number[] | undefined` change in stats `userFilter`
-- [ ] 5.2 Run `npm run test:unit` — confirm all unit tests pass
-- [ ] 5.3 Resolve open question in design: confirm no other roles beyond `AGENTE` require scoped visibility; add inline comment in route handler documenting the role-scope decision
+- [x] 5.1 Run `npm run type-check` and `npm run lint` — fix any TypeScript errors from `number | undefined` → `number[] | undefined` change in stats `userFilter`
+- [x] 5.2 Run `npm run test:unit` — confirm all unit tests pass
+- [x] 5.3 Resolve open question in design: confirm no other roles beyond `AGENTE` require scoped visibility; add inline comment in route handler documenting the role-scope decision

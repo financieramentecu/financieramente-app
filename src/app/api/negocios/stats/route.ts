@@ -109,8 +109,6 @@ async function calculateAggregateForStatus(
 		_sum: { value: true },
 	})
 
-	console.log(groupResult)
-
 	let count = 0
 	let valueLocal = 0
 	let valueForeign = 0
