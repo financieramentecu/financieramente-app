@@ -6,6 +6,7 @@ import { normalizeProductConfigurationCodeParam } from '@/features/product-confi
 export interface ResolvedConfigByCode {
 	readonly id: number
 	readonly code: string
+	readonly level: { readonly idLevel: number; readonly code: string }
 }
 
 /**
@@ -44,7 +45,14 @@ export function useProductConfigurationByCode(
 			if (res.data) {
 				setState({
 					status: 'success',
-					data: { id: res.data.id, code: res.data.code },
+					data: {
+						id: res.data.id,
+						code: res.data.code,
+						level: {
+							idLevel: res.data.level.idLevel,
+							code: res.data.level.code,
+						},
+					},
 					error: '',
 				})
 			} else {

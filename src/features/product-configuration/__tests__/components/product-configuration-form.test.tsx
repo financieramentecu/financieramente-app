@@ -49,10 +49,10 @@ describe('ProductConfigurationForm', () => {
 			expect(screen.getByText('Producto')).toBeInTheDocument()
 		})
 
-		it('should render category select', () => {
+		it('should render level select', () => {
 			render(<ProductConfigurationForm {...defaultCreateProps} />)
 
-			expect(screen.getByText('Categoría')).toBeInTheDocument()
+			expect(screen.getByText(/Nivel \(Jerarquía\)/i)).toBeInTheDocument()
 		})
 
 		it('should render create button', () => {

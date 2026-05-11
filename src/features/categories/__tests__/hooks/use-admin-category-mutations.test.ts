@@ -39,11 +39,8 @@ describe('useAdminCategoryMutations', () => {
 
 			await act(async () => {
 				await result.current.createCategory({
-					code: 'CAT001',
-					name: 'Test',
-					typeCategory: 'MMS',
-					color: '#1A73E8',
-					status: true,
+					name: 'Nueva Categoría',
+					idCategoryType: 1,
 				})
 			})
 
@@ -62,11 +59,8 @@ describe('useAdminCategoryMutations', () => {
 			await expect(
 				act(async () => {
 					await result.current.createCategory({
-						code: '',
-						name: 'A',
-						typeCategory: 'MMS',
-						color: '#1A73E8',
-						status: true,
+						name: '',
+						idCategoryType: 1,
 					})
 				})
 			).rejects.toThrow('Datos inválidos')
@@ -79,13 +73,13 @@ describe('useAdminCategoryMutations', () => {
 
 	describe('updateCategory', () => {
 		it('should update category and show success toast', async () => {
-			const mockCategory = createMockCategory({ name: 'Updated' })
+			const mockCategory = createMockCategory({ name: 'Actualizada' })
 			mockUpdateCategory.mockResolvedValueOnce({ data: mockCategory })
 
 			const { result } = renderHook(() => useAdminCategoryMutations())
 
 			await act(async () => {
-				await result.current.updateCategory(1, { name: 'Updated' })
+				await result.current.updateCategory(1, { name: 'Actualizada' })
 			})
 
 			expect(toast.success).toHaveBeenCalledWith(
@@ -129,19 +123,6 @@ describe('useAdminCategoryMutations', () => {
 			expect(toast.success).toHaveBeenCalledWith(
 				'Categoría desactivada exitosamente'
 			)
-		})
-
-		it('should NOT call categoryApi.deleteCategory (hard delete)', async () => {
-			const mockCategory = createMockCategory({ status: false })
-			mockDeactivateCategory.mockResolvedValueOnce({ data: mockCategory })
-
-			const { result } = renderHook(() => useAdminCategoryMutations())
-
-			await act(async () => {
-				await result.current.deleteCategory(1)
-			})
-
-			expect(mockDeactivateCategory).toHaveBeenCalledWith(1)
 		})
 
 		it('should handle API error response and show error toast', async () => {

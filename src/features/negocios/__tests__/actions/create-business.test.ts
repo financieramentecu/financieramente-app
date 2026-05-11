@@ -65,7 +65,7 @@ describe('createBusiness', () => {
 			} as ProductPercentageCommission,
 		})
 		vi.mocked(prisma.user.findUnique).mockResolvedValue({
-			idCategoria: 5,
+			idLevel: 5,
 		} as Awaited<ReturnType<typeof prisma.user.findUnique>>)
 		vi.mocked(prisma.product.findUnique).mockResolvedValue({
 			name: 'Producto Test',

@@ -62,7 +62,7 @@ export function CoachInfoSection({
 							setValue('agent', value, { shouldValidate: true })
 						}
 						agents={agentsList}
-						placeholder="Buscar agente..."
+						placeholder="Buscar Money Strategist..."
 						aria-labelledby="agent-label"
 						disabled={isBlocked || isAgentUser || isEditMode}
 						className={getFieldClassName(agentError)}

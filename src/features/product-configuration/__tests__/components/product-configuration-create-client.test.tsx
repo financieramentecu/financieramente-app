@@ -50,7 +50,7 @@ vi.mock('../../components/product-configuration-form', () => ({
 			void onSubmit({
 				idProduct: 1,
 				idClientOrigin: 1,
-				idCategory: 1,
+				idLevel: 1,
 				idCompany: 1,
 			})
 		}, [onSubmit])

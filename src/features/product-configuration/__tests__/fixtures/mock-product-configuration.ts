@@ -12,7 +12,7 @@ export function createMockProductConfiguration(
 	return {
 		id: 1,
 		idProduct: 1,
-		idCategory: 1,
+		idLevel: 1,
 		code: 'CREA_PATRIMONIO-PROPIO-JUNIOR',
 		active: true,
 		idProductPercentageCommissionNewBusinesses: 1,
@@ -23,7 +23,7 @@ export function createMockProductConfiguration(
 			name: 'Crea Patrimonio',
 			company: { idCompany: 1, name: 'Empresa Test' },
 		},
-		category: { idCategory: 1, name: 'Junior' },
+		level: { idLevel: 1, name: 'Junior', code: 'JUNIOR' },
 		ppcNewBusinesses: {
 			id: 1,
 			description: 'Distribución Estándar',
@@ -61,7 +61,7 @@ export function createMockPrismaProductConfiguration(
 	return {
 		id: 1,
 		idProduct: 1,
-		idCategory: 1,
+		idLevel: 1,
 		code: 'CREA_PATRIMONIO-PROPIO-JUNIOR',
 		active: true,
 		idProductPercentageCommissionNewBusinesses: 1,
@@ -72,7 +72,7 @@ export function createMockPrismaProductConfiguration(
 			name: 'Crea Patrimonio',
 			company: { idCompany: 1, name: 'Empresa Test' },
 		},
-		category: { idCategory: 1, name: 'Junior' },
+		level: { idLevel: 1, name: 'Junior', code: 'JUNIOR' },
 		productPercentageCommissionNewBusinesses: {
 			idProductPercentageCommission: 1,
 			description: 'Distribución Estándar',

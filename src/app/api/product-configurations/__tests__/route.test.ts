@@ -13,7 +13,7 @@ vi.mock('@/lib/prisma', () => ({
 		product: {
 			findUnique: vi.fn(),
 		},
-		category: {
+		level: {
 			findUnique: vi.fn(),
 		},
 		productConfiguration: {
@@ -85,7 +85,7 @@ vi.mock('next/server', () => ({
 
 describe('POST /api/product-configurations', () => {
 	const mockPrismaProduct = vi.mocked(prisma.product.findUnique)
-	const mockPrismaCategory = vi.mocked(prisma.category.findUnique)
+	const mockPrismaLevel = vi.mocked(prisma.level.findUnique)
 	const mockPrismaConfig = vi.mocked(prisma.productConfiguration.findUnique)
 	const mockPrismaConfigCreate = vi.mocked(prisma.productConfiguration.create)
 	const mockPrismaPpcCreate = vi.mocked(
@@ -103,7 +103,7 @@ describe('POST /api/product-configurations', () => {
 			const requestBody = {
 				idCompany: 999, // HACKER TRYING TO INJECT INTO COMPANY 999
 				idProduct: 1,
-				idCategory: 1,
+				idLevel: 1,
 			}
 
 			mockSchemaParse.parse.mockReturnValue(requestBody)
@@ -139,7 +139,7 @@ describe('POST /api/product-configurations', () => {
 			const requestBody = {
 				idCompany: 1,
 				idProduct: 1,
-				idCategory: 1,
+				idLevel: 1,
 			}
 
 			mockSchemaParse.parse.mockReturnValue(requestBody)
@@ -152,9 +152,10 @@ describe('POST /api/product-configurations', () => {
 				status: true,
 				company: { name: 'Company A' },
 			} as any)
-			mockPrismaCategory.mockResolvedValue({
-				idCategory: 1,
-				name: 'Category A',
+			mockPrismaLevel.mockResolvedValue({
+				idLevel: 1,
+				name: 'Level A',
+				code: 'JUNIOR',
 				status: true,
 			} as any)
 			mockPrismaConfig.mockResolvedValue(null) // Not exists

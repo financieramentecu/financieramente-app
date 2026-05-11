@@ -62,7 +62,7 @@ export async function seedSettlements(prisma: PrismaClient) {
       productPercentageCommission: { 
         include: { 
           productPercentageCommissionCategories: { 
-            include: { category: true } 
+            include: { level: true }
           } 
         } 
       } 
@@ -79,7 +79,7 @@ export async function seedSettlements(prisma: PrismaClient) {
       productPercentageCommission: { 
         include: { 
           productPercentageCommissionCategories: { 
-            include: { category: true } 
+            include: { level: true }
           } 
         } 
       } 
@@ -170,9 +170,9 @@ export async function seedSettlements(prisma: PrismaClient) {
 
         // Determinar el beneficiario basado en la categoría
         let idBeneficiaryUser = business.idUser;
-        if (cat.category.code === 'LIDER' && business.user.idUserLeader) {
+        if (cat.level.code === 'LIDER' && business.user.idUserLeader) {
           idBeneficiaryUser = business.user.idUserLeader;
-        } else if (cat.category.code === 'PRESIDENTE' || cat.category.code === 'COACH') {
+        } else if (cat.level.code === 'PRESIDENTE' || cat.level.code === 'COACH') {
           // Buscamos al líder del líder si existe
           const leader = await prisma.user.findUnique({
             where: { idUser: business.user.idUserLeader || 0 },

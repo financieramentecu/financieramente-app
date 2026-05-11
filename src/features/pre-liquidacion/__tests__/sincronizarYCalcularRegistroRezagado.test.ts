@@ -58,8 +58,8 @@ describe('sincronizarYCalcularRegistroRezagado', () => {
 				id: 10,
 				porcentajeDistribucion: new Decimal(0.1), // 10%
 				porcentajePortfolio: null,
-				category: {
-					idCategory: 1,
+				level: {
+					idLevel: 1,
 					code: 'ASESOR',
 					beneficiaryMode: 'OVERRIDE',
 					idFixedBeneficiaryUser: null,
@@ -82,7 +82,7 @@ describe('sincronizarYCalcularRegistroRezagado', () => {
 			user: {
 				findUnique: vi.fn().mockResolvedValue({
 					idUser: 5,
-					idCategoria: 1,
+					idLevel: 1,
 					idUserLeader: null,
 				}),
 			},

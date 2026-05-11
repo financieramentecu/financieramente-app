@@ -54,7 +54,7 @@ describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]'
 			hasPortfolio: true,
 		})
 		findManyCategories.mockResolvedValue([
-			{ idCategory: 1, porcentajePortfolio: 0.3 },
+			{ idLevel: 1, porcentajePortfolio: 0.3 },
 		])
 		findUniqueOrThrow.mockResolvedValue({
 			idProductPercentageCommission: 1,
@@ -67,14 +67,14 @@ describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]'
 			productPercentageCommissionCategories: [
 				{
 					id: 1,
-					idCategory: 1,
+					idLevel: 1,
 					idProductPercentageCommission: 1,
 					porcentajeDistribucion: 0.5,
 					porcentajePortfolio: 0.3,
 					active: true,
 					createdAt: new Date(),
 					updatedAt: new Date(),
-					category: { idCategory: 1, name: 'A' },
+					category: { idLevel: 1, name: 'A' },
 				},
 			],
 		})
@@ -85,7 +85,7 @@ describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]'
 			json: async () => ({
 				description: 'd',
 				hasPortfolio: false,
-				categories: [{ idCategory: 1, percentage: 50 }],
+				categories: [{ idLevel: 1, percentage: 50 }],
 			}),
 		} as unknown as NextRequest
 
@@ -96,7 +96,7 @@ describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]'
 		expect(createMany).toHaveBeenCalledWith({
 			data: [
 				expect.objectContaining({
-					idCategory: 1,
+					idLevel: 1,
 					porcentajeDistribucion: 0.5,
 					porcentajePortfolio: 0.3,
 				}),
@@ -119,7 +119,7 @@ describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]'
 				description: 'd',
 				hasPortfolio: true,
 				categories: [
-					{ idCategory: 1, percentage: 50, portfolioPercentage: 40 },
+					{ idLevel: 1, percentage: 50, portfolioPercentage: 40 },
 				],
 			}),
 		} as unknown as NextRequest

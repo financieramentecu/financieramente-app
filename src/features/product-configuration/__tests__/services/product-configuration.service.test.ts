@@ -41,7 +41,7 @@ describe('getProductConfigurationByCode', () => {
 			id: 5,
 			idProduct: 1,
 			idClientOrigin: 2,
-			idCategory: 3,
+			idLevel: 3,
 			code: 'P-O-C',
 			active: true,
 			idProductPercentageCommissionNewBusinesses: null,
@@ -53,7 +53,7 @@ describe('getProductConfigurationByCode', () => {
 				company: { idCompany: 1, name: 'Co' },
 			},
 			clientOrigin: { idClientOrigin: 2, name: 'Or' },
-			category: { idCategory: 3, name: 'Cat' },
+			level: { idLevel: 3, name: 'Cat' },
 			productPercentageCommissionNewBusinesses: null,
 			productPercentageCommissions: [],
 		})

@@ -4,7 +4,7 @@ Diagrama ER (Entity Relationship) generado a partir de `schema.prisma`.
 Sistema: Financieramente — liquidación de comisiones.
 
 **Enums**:
-- `BeneficiaryMode`: `OVERRIDE` | `BENEFICIARIO_GENERAL` (en `category.beneficiary_mode`).
+- `BeneficiaryMode`: `OVERRIDE` | `BENEFICIARIO_GENERAL` (en `level.beneficiary_mode`).
 - `AnnualPaymentStatus`: `SIN_FONDEAR` | `FONDEADO` (en `payments.status`).
 
 ```mermaid
@@ -14,11 +14,12 @@ erDiagram
     TypeProduct ||--o{ Product : "clasifica"
     CategoryType ||--o{ Category : "tipo de categoría"
     ClientOrigin ||--o{ Business : "origen del negocio"
+    Level ||--o{ User : "nivel del usuario"
+    Level ||--o{ ProductConfiguration : "nivel en config"
+    Level ||--o{ ProductPercentageCommissionCategory : "en distribución"
+    Level ||--o| Level : "siguiente en jerarquía"
+    User ||--o{ Level : "beneficiario fijo nivel"
     Category ||--o{ User : "categoría del usuario"
-    Category ||--o{ ProductConfiguration : "categoría en config"
-    Category ||--o{ ProductPercentageCommissionCategory : "en distribución"
-    Category ||--o| Category : "siguiente en jerarquía"
-    User ||--o{ Category : "beneficiario fijo categoría"
     Role ||--o{ User : "rol asignado"
     Role ||--o{ AuditLog : "rol en auditoría"
     BuyPeriodicity ||--o{ Business : "periodicidad de compra"
@@ -26,10 +27,10 @@ erDiagram
     Currency ||--o{ Company : "moneda compañía"
 
     %% ========== PRODUCTOS Y CONFIGURACIÓN ==========
-    Product ||--o{ ProductConfiguration : "combinación producto/categoría"
+    Product ||--o{ ProductConfiguration : "combinación producto/nivel"
     ProductConfiguration ||--o{ ProductPercentageCommission : "versiones PPC"
     ProductConfiguration ||--o| ProductPercentageCommission : "PPC nuevos negocios"
-    ProductPercentageCommission ||--o{ ProductPercentageCommissionCategory : "distribución por categoría"
+    ProductPercentageCommission ||--o{ ProductPercentageCommissionCategory : "distribución por nivel"
     ProductPercentageCommission ||--o{ Business : "config aplicada"
     ProductPercentageCommissionCategory ||--o{ ComissionDistribution : "distribución"
 
@@ -85,17 +86,26 @@ erDiagram
         datetime updated_at
     }
 
-    Category {
-        int id_category PK
+    Level {
+        int id_level PK
         string code UK
         string name
-        int id_category_type FK
         text descripcion
         varchar color
         boolean status
         enum beneficiary_mode
         int id_fixed_beneficiary_user FK
-        int id_next_category FK
+        int id_next_level FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    Category {
+        int id_category PK
+        string name
+        int id_category_type FK
+        text description
+        boolean status
         datetime created_at
         datetime updated_at
     }
@@ -151,7 +161,7 @@ erDiagram
     ProductConfiguration {
         int id_product_configuration PK
         int id_product FK
-        int id_category FK
+        int id_level FK
         string code UK
         boolean active
         int id_product_percentage_commission_new_businesses FK
@@ -171,7 +181,7 @@ erDiagram
 
     ProductPercentageCommissionCategory {
         int id PK
-        int id_category FK
+        int id_level FK
         int id_product_percentage_commission FK
         decimal porcentaje_distribucion
         decimal porcentaje_portfolio
@@ -191,7 +201,8 @@ erDiagram
         string password
         boolean sso_only
         string phone
-        int id_categoria FK
+        int id_level FK
+        int id_category FK
         int id_role FK
         int id_user_leader FK
         date entry_date
@@ -399,13 +410,12 @@ erDiagram
 - `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor.
 - `SettlementCommission.id_business` es opcional en Prisma (`Int?`); el diagrama refleja la FK habitual hacia `business`.
 - Tablas físicas con typo histórico: `product_percentaje_commision`, `product_percentaje_commision_category` (ver `@@map` en el schema).
-- `Category.id_next_category` es una FK auto-referencial a `category.id_category` (relación nombrada `"CategorySequence"`). Permite modelar la secuencia de jerarquía: MS JUNIOR → MS SENIOR → TEAM LEADER → PERFORMANCE LEADER → BUSINESS LEADER → PARTNER → MIA.
-- `Category.color` almacena un color hex `#RRGGBB` (VARCHAR 7) para identificación visual de cada nivel.
+- `Level.id_next_level` es una FK auto-referencial a `level.id_level` (relación nombrada `"LevelSequence"`). Permite modelar la secuencia de jerarquía: LEVEL_0 → LEVEL_1 → LEVEL_2 → LEVEL_3 → LEVEL_4 → LEVEL_5 → GENERAL_LEVEL.
+- `Level.color` almacena un color hex `#RRGGBB` (VARCHAR 7) para identificación visual de cada nivel.
 - `BeneficiaryMode` renombrado (migración manual): `UPLINE_CHAIN → OVERRIDE`, `FIXED_BENEFICIARY → BENEFICIARIO_GENERAL`.
-- `ProductConfiguration`: el campo `id_client_origin` fue eliminado (migración `20260507010000_mejoras_product_configuration_sin_origen`). El unique constraint cambió de `(id_product, id_client_origin, id_category)` a `(id_product, id_category)`. El `code` es único a nivel de columna.
+- `ProductConfiguration`: el campo `id_client_origin` fue eliminado (migración `20260507010000_mejoras_product_configuration_sin_origen`). El unique constraint cambió de `(id_product, id_client_origin, id_category)` a `(id_product, id_level)`. El `code` es único a nivel de columna.
 - `Business`: campo `is_active` agregado (`@default(true)`) para soporte de soft delete lógico.
 - `ComissionDistribution`: campo `is_active` agregado (`@default(true)`) para soft delete lógico (reemplaza `deleteMany` en servicios de pre-liquidación y carga de archivos).
-
-## Cómo ver el diagrama
-
-- Pegar el bloque de código mermaid en [mermaid.live](https://mermaid.live) o en cualquier visor que soporte Mermaid (GitHub, GitLab, Notion, etc.).
+- **Renombre `Category → Level`** (migración `20260509000000_rename_category_to_level`): la tabla `category` fue renombrada a `level`; la columna `id_category_type` fue eliminada de `level` (migración `20260509010000_create_category_and_populate`). El modelo Prisma `Category` ahora mapea a la tabla `level` bajo el nombre `Level`.
+- **Nueva tabla `category`** (migración `20260509010000_create_category_and_populate`): representa la categoría comercial/organizacional de un usuario (p. ej. MS Junior, MS Senior). Tiene FK a `category_type`. `User.id_category` apunta a esta tabla. La antigua jerarquía técnica es ahora `Level`; la nueva `Category` es la clasificación de negocio.
+- `ProductConfiguration`: el unique constraint parcial `(id_product, id_level)` preserva el comportamiento de índice parcial `WHERE active = true` heredado de la migración de renombre. El `@@map` del constraint es `product_configuration_idProduct_idLevel_key`.

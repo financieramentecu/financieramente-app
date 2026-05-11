@@ -34,8 +34,8 @@ const productConfigurationInclude = {
 			},
 		},
 	},
-	category: {
-		select: { idCategory: true, name: true },
+	level: {
+		select: { idLevel: true, name: true, code: true },
 	},
 	productPercentageCommissionNewBusinesses: {
 		select: {
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
 					},
 				},
 				{
-					category: {
+					level: {
 						name: { contains: search, mode: 'insensitive' },
 					},
 				},
@@ -181,33 +181,33 @@ export async function POST(request: Request) {
 			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
-		// Validate category exists and is active
-		const category = await prisma.category.findUnique({
-			where: { idCategory: data.idCategory },
+		// Validate level exists and is active
+		const level = await prisma.level.findUnique({
+			where: { idLevel: data.idLevel },
 		})
 
-		if (!category) {
+		if (!level) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
-				error: 'Categoría no encontrada',
+				error: 'Nivel no encontrado',
 			}
 			return NextResponse.json(errorResponse, { status: 404 })
 		}
 
-		if (!category.status) {
+		if (!level.status) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
-				error: 'La categoría seleccionada no está activa',
+				error: 'El nivel seleccionado no está activo',
 			}
 			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
-		// Check uniqueness (product + category)
+		// Check uniqueness (product + level)
 		const existingConfig = await prisma.productConfiguration.findUnique({
 			where: {
-				idProduct_idCategory: {
+				idProduct_idLevel: {
 					idProduct: data.idProduct,
-					idCategory: data.idCategory,
+					idLevel: data.idLevel,
 				},
 			},
 		})
@@ -216,7 +216,7 @@ export async function POST(request: Request) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
 				error:
-					'Ya existe una configuración con esta combinación de producto y categoría',
+					'Ya existe una configuración con esta combinación de producto y nivel',
 			}
 			return NextResponse.json(errorResponse, { status: 409 })
 		}
@@ -225,7 +225,7 @@ export async function POST(request: Request) {
 		const code = buildProductConfigurationCode(
 			product.company.name,
 			product.name,
-			category.code
+			level.code
 		)
 
 		// Validate code length
@@ -243,7 +243,7 @@ export async function POST(request: Request) {
 			const config = await tx.productConfiguration.create({
 				data: {
 					idProduct: data.idProduct,
-					idCategory: data.idCategory,
+					idLevel: data.idLevel,
 					code,
 					active: true,
 				},
@@ -276,7 +276,7 @@ export async function POST(request: Request) {
 			email: session?.user?.email ?? undefined,
 			ipAddress: getClientIp(headers),
 			userAgent: getUserAgent(headers),
-			details: `ProductConfiguration ${result.id} creada: producto=${data.idProduct}, categoría=${data.idCategory}, código=${result.code}`,
+			details: `ProductConfiguration ${result.id} creada: producto=${data.idProduct}, nivel=${data.idLevel}, código=${result.code}`,
 		})
 
 		const configFormatted = prismaProductConfigToProductConfig(result)
@@ -304,7 +304,7 @@ export async function POST(request: Request) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
 				error:
-					'Ya existe una configuración con esta combinación de producto y categoría',
+					'Ya existe una configuración con esta combinación de producto y nivel',
 			}
 			return NextResponse.json(errorResponse, { status: 409 })
 		}

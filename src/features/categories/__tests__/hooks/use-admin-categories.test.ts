@@ -46,7 +46,7 @@ describe('useAdminCategories', () => {
 		)
 	})
 
-	it('should pass filters to getCategories', async () => {
+	it('should pass status filter to getCategories', async () => {
 		mockGetCategories.mockResolvedValueOnce({
 			data: createMockCategoryListResponse([]),
 		})
@@ -54,7 +54,6 @@ describe('useAdminCategories', () => {
 		renderHook(() =>
 			useAdminCategories({
 				search: 'test',
-				typeCategory: 'MMS',
 				status: 'active',
 			})
 		)
@@ -62,7 +61,6 @@ describe('useAdminCategories', () => {
 		await waitFor(() =>
 			expect(mockGetCategories).toHaveBeenCalledWith({
 				search: 'test',
-				typeCategory: 'MMS',
 				status: 'active',
 				pageSize: 1000,
 			})
@@ -106,7 +104,7 @@ describe('useAdminCategories', () => {
 		await waitFor(() => expect(result.current.isLoading).toBe(false))
 
 		const updatedCategories = [
-			createMockCategory({ idCategory: 2, name: 'Updated' }),
+			createMockCategory({ id: 2, name: 'Updated' }),
 		]
 		mockGetCategories.mockResolvedValueOnce({
 			data: createMockCategoryListResponse(updatedCategories),

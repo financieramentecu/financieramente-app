@@ -24,11 +24,9 @@ describe('useCategory', () => {
 
 		const { result } = renderHook(() => useCategory(1))
 
-		// Initial state should be loading
 		expect(result.current.state.status).toBe('loading')
 		expect(result.current.state.data).toBeUndefined()
 
-		// Wait for the effect to complete
 		await waitFor(() => {
 			expect(result.current.state.status).not.toBe('loading')
 		})
@@ -36,9 +34,8 @@ describe('useCategory', () => {
 
 	it('should fetch category successfully (happy path)', async () => {
 		const mockCategory = createMockCategory({
-			idCategory: 1,
-			code: 'CAT001',
-			name: 'Agente Experto',
+			id: 1,
+			name: 'Categoría Test',
 		})
 
 		vi.mocked(categoryApi.getCategory).mockResolvedValueOnce({
@@ -123,10 +120,9 @@ describe('useCategory', () => {
 
 	it('should update state correctly on success', async () => {
 		const mockCategory = createMockCategory({
-			idCategory: 5,
-			code: 'CAT005',
+			id: 5,
 			name: 'Categoría Específica',
-			typeCategory: 'ALIADO',
+			idCategoryType: 2,
 		})
 
 		vi.mocked(categoryApi.getCategory).mockResolvedValueOnce({
@@ -139,10 +135,9 @@ describe('useCategory', () => {
 			expect(result.current.state.status).toBe('success')
 		})
 
-		expect(result.current.state.data?.idCategory).toBe(5)
-		expect(result.current.state.data?.code).toBe('CAT005')
+		expect(result.current.state.data?.id).toBe(5)
 		expect(result.current.state.data?.name).toBe('Categoría Específica')
-		expect(result.current.state.data?.typeCategory).toBe('ALIADO')
+		expect(result.current.state.data?.idCategoryType).toBe(2)
 	})
 
 	it('should handle invalid ID (zero)', async () => {

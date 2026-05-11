@@ -10,25 +10,25 @@ import {
 describe('Commission Rule Schemas', () => {
 	describe('categoryPercentageSchema', () => {
 		it('should validate valid category percentage', () => {
-			const valid = { idCategory: 1, percentage: 15.5 }
+			const valid = { idLevel: 1, percentage: 15.5 }
 			const result = categoryPercentageSchema.safeParse(valid)
 			expect(result.success).toBe(true)
 		})
 
 		it('should reject percentage below 1', () => {
-			const invalid = { idCategory: 1, percentage: 0 }
+			const invalid = { idLevel: 1, percentage: 0 }
 			const result = categoryPercentageSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
 		})
 
 		it('should fail if percentage is negative', () => {
-			const invalid = { idCategory: 1, percentage: -1 }
+			const invalid = { idLevel: 1, percentage: -1 }
 			const result = categoryPercentageSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
 		})
 
 		it('should fail if percentage exceeds maximum', () => {
-			const invalid = { idCategory: 1, percentage: 1000 }
+			const invalid = { idLevel: 1, percentage: 1000 }
 			const result = categoryPercentageSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
 			if (!result.success) {
@@ -40,7 +40,7 @@ describe('Commission Rule Schemas', () => {
 
 		it('should reject undefined percentage (RF-02 empty state)', () => {
 			const result = categoryPercentageSchema.safeParse({
-				idCategory: 1,
+				idLevel: 1,
 				percentage: undefined,
 			})
 			expect(result.success).toBe(false)
@@ -50,7 +50,7 @@ describe('Commission Rule Schemas', () => {
 		})
 
 		it('should reject missing percentage key', () => {
-			const result = categoryPercentageSchema.safeParse({ idCategory: 1 })
+			const result = categoryPercentageSchema.safeParse({ idLevel: 1 })
 			expect(result.success).toBe(false)
 		})
 	})
@@ -60,7 +60,7 @@ describe('Commission Rule Schemas', () => {
 			const valid = {
 				idProductConfiguration: 10,
 				description: 'Valid Description',
-				categories: [{ idCategory: 1, percentage: 100 }],
+				categories: [{ idLevel: 1, percentage: 100 }],
 			}
 			const result = createCommissionRuleSchema.safeParse(valid)
 			expect(result.success).toBe(true)
@@ -81,8 +81,8 @@ describe('Commission Rule Schemas', () => {
 				idProductConfiguration: 10,
 				description: 'Duplicados',
 				categories: [
-					{ idCategory: 1, percentage: 10 },
-					{ idCategory: 1, percentage: 20 },
+					{ idLevel: 1, percentage: 10 },
+					{ idLevel: 1, percentage: 20 },
 				],
 			}
 			const result = createCommissionRuleSchema.safeParse(invalid)
@@ -97,8 +97,8 @@ describe('Commission Rule Schemas', () => {
 				idProductConfiguration: 10,
 				description: 'Suma inválida',
 				categories: [
-					{ idCategory: 1, percentage: 60 },
-					{ idCategory: 2, percentage: 50 },
+					{ idLevel: 1, percentage: 60 },
+					{ idLevel: 2, percentage: 50 },
 				],
 			}
 			const result = createCommissionRuleSchema.safeParse(invalid)
@@ -115,8 +115,8 @@ describe('Commission Rule Schemas', () => {
 				idProductConfiguration: 10,
 				description: 'OK',
 				categories: [
-					{ idCategory: 1, percentage: 40 },
-					{ idCategory: 2, percentage: 60 },
+					{ idLevel: 1, percentage: 40 },
+					{ idLevel: 2, percentage: 60 },
 				],
 			}
 			expect(createCommissionRuleSchema.safeParse(valid).success).toBe(true)
@@ -127,7 +127,7 @@ describe('Commission Rule Schemas', () => {
 				idProductConfiguration: 10,
 				description: 'X',
 				hasPortfolio: true,
-				categories: [{ idCategory: 1, percentage: 100 }],
+				categories: [{ idLevel: 1, percentage: 100 }],
 			}
 			const result = createCommissionRuleSchema.safeParse(invalid)
 			expect(result.success).toBe(false)
@@ -139,8 +139,8 @@ describe('Commission Rule Schemas', () => {
 				description: 'X',
 				hasPortfolio: true,
 				categories: [
-					{ idCategory: 1, percentage: 50, portfolioPercentage: 60 },
-					{ idCategory: 2, percentage: 50, portfolioPercentage: 50 },
+					{ idLevel: 1, percentage: 50, portfolioPercentage: 60 },
+					{ idLevel: 2, percentage: 50, portfolioPercentage: 50 },
 				],
 			}
 			const result = createCommissionRuleSchema.safeParse(invalid)
@@ -160,8 +160,8 @@ describe('Commission Rule Schemas', () => {
 				description: 'X',
 				hasPortfolio: true,
 				categories: [
-					{ idCategory: 1, percentage: 50, portfolioPercentage: 50 },
-					{ idCategory: 2, percentage: 50, portfolioPercentage: 50 },
+					{ idLevel: 1, percentage: 50, portfolioPercentage: 50 },
+					{ idLevel: 2, percentage: 50, portfolioPercentage: 50 },
 				],
 			}
 			expect(createCommissionRuleSchema.safeParse(valid).success).toBe(true)
@@ -171,7 +171,7 @@ describe('Commission Rule Schemas', () => {
 			const invalid = {
 				idProductConfiguration: 10,
 				description: 'X',
-				categories: [{ idCategory: 1, percentage: undefined }],
+				categories: [{ idLevel: 1, percentage: undefined }],
 			}
 			expect(createCommissionRuleSchema.safeParse(invalid).success).toBe(false)
 		})
@@ -193,8 +193,8 @@ describe('Commission Rule Schemas', () => {
 				description: 'Updated Desc',
 				active: true,
 				categories: [
-					{ idCategory: 1, percentage: 50 },
-					{ idCategory: 2, percentage: 50 },
+					{ idLevel: 1, percentage: 50 },
+					{ idLevel: 2, percentage: 50 },
 				],
 			}
 			const result = updateCommissionRuleSchema.safeParse(valid)
@@ -206,8 +206,8 @@ describe('Commission Rule Schemas', () => {
 				idProductPercentageCommission: 5,
 				hasPortfolio: true,
 				categories: [
-					{ idCategory: 1, percentage: 50, portfolioPercentage: 50 },
-					{ idCategory: 2, percentage: 50, portfolioPercentage: 50 },
+					{ idLevel: 1, percentage: 50, portfolioPercentage: 50 },
+					{ idLevel: 2, percentage: 50, portfolioPercentage: 50 },
 				],
 			}
 			expect(updateCommissionRuleSchema.safeParse(valid).success).toBe(true)
@@ -221,7 +221,7 @@ describe('Commission Rule Schemas', () => {
 				description: 'Rule',
 				hasPortfolio: true,
 				categories: [
-					{ idCategory: 1, percentage: 25, portfolioPercentage: 10 },
+					{ idLevel: 1, percentage: 25, portfolioPercentage: 10 },
 				],
 			})
 			expect(parsed.categories[0].percentage).toBe(0.25)

@@ -39,7 +39,7 @@ export function UsersTable({ users, isLoading = false }: UsersTableProps) {
 				header: ({ column }) => <DataTableColumnHeader column={column} title="Rol" />,
 				cell: ({ row }) =>
 					row.original.role ? (
-						<Badge variant="outline" className="capitalize">
+						<Badge variant="outline" className="capitalize whitespace-nowrap">
 							{row.original.role.name}
 						</Badge>
 					) : (
@@ -52,17 +52,30 @@ export function UsersTable({ users, isLoading = false }: UsersTableProps) {
 				header: ({ column }) => <DataTableColumnHeader column={column} title="Categoría" />,
 				cell: ({ row }) => (
 					row.original.category ? (
-						<div className="flex items-center gap-2">
-							<div 
-								className="w-2 h-2 rounded-full" 
-								style={{ backgroundColor: row.original.category.color || '#e2e8f0' }}
-							/>
-							<span className="text-sm font-medium">{row.original.category.name}</span>
-						</div>
+						<span className="text-sm font-medium">{row.original.category.name}</span>
 					) : (
 						<span className="text-xs text-muted-foreground italic">Sin categoría</span>
 					)
 				),
+			},
+			{
+				accessorKey: 'level.name',
+				id: 'level',
+				header: ({ column }) => <DataTableColumnHeader column={column} title="Nivel (Jerarquía)" />,
+				cell: ({ row }) => {
+					const level = row.original.level
+					if (!level) return <span className="text-xs text-muted-foreground italic">Sin nivel</span>
+					const color = level.color || '#94a3b8'
+					return (
+						<span
+							className="inline-flex items-center gap-1.5 text-sm font-medium px-2.5 py-0.5 rounded-full border whitespace-nowrap"
+							style={{ color, borderColor: color, backgroundColor: `${color}18` }}
+						>
+							<span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+							{level.name}
+						</span>
+					)
+				},
 			},
 			{
 				accessorKey: 'leader.name',

@@ -25,7 +25,7 @@ describe('findActiveRulePendingDistribution', () => {
 			categories: [
 				{
 					id: 10,
-					idCategory: 3,
+					idLevel: 3,
 					idProductPercentageCommission: 2,
 					porcentajeDistribucion: 50,
 					active: true,
@@ -43,7 +43,7 @@ describe('findActiveRulePendingDistribution', () => {
 			categories: [
 				{
 					id: 10,
-					idCategory: 3,
+					idLevel: 3,
 					idProductPercentageCommission: 2,
 					porcentajeDistribucion: 50,
 					active: true,

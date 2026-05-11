@@ -11,7 +11,10 @@ export interface ConfigCategoryItem {
 	id: number
 	porcentajePortfolio: Decimal | null
 	porcentajeDistribucion: Decimal
-	category: CategoryForBeneficiaryResolve
+	level: CategoryForBeneficiaryResolve
+	/** @deprecated use level */
+	category?: CategoryForBeneficiaryResolve
+	idLevel?: number
 }
 import type {
 	AgenteDistribucion,
@@ -248,37 +251,38 @@ export async function obtenerConfiguracionPorcentajes(
 				active: true,
 			},
 			include: {
-				category: true,
+				level: true,
 			},
 		})
 
-	return configFromCategories(configuracion, usePortfolio)
+	return configFromLevelRows(configuracion, usePortfolio)
 }
 
 /**
- * Construye ConfiguracionPorcentajes desde categorías ya cargadas (evita N+1)
+ * Builds ConfiguracionPorcentajes from level-based PPCC rows (avoids N+1).
+ * Maps level codes to the general/agencia/lider/coach buckets.
  */
-function configFromCategories(
-	cats: Array<{
-		category: { name: string }
+function configFromLevelRows(
+	rows: Array<{
+		level: { code: string }
 		porcentajeDistribucion: Decimal
 		porcentajePortfolio: Decimal | null
 	}>,
 	usePortfolio: boolean
 ): ConfiguracionPorcentajes {
 	const porcentajes: ConfiguracionPorcentajes = {}
-	for (const cat of cats) {
-		const name = cat.category.name.toUpperCase()
+	for (const row of rows) {
+		const code = row.level.code.toUpperCase()
 		const pctSource =
-			usePortfolio && cat.porcentajePortfolio !== null
-				? cat.porcentajePortfolio
-				: cat.porcentajeDistribucion
+			usePortfolio && row.porcentajePortfolio !== null
+				? row.porcentajePortfolio
+				: row.porcentajeDistribucion
 		const pct = pctSource.toNumber()
-		if (name.includes('GENERAL')) porcentajes.general = pct
-		else if (name.includes('AGENCIA')) porcentajes.agencia = pct
-		else if (name.includes('LIDER') || name.includes('LÍDER'))
+		if (code.includes('GENERAL')) porcentajes.general = pct
+		else if (code.includes('AGENCIA')) porcentajes.agencia = pct
+		else if (code.includes('LIDER') || code.includes('LÍDER'))
 			porcentajes.lider = pct
-		else if (name.includes('COACH')) porcentajes.coach = pct
+		else if (code.includes('COACH')) porcentajes.coach = pct
 	}
 	return porcentajes
 }
@@ -319,7 +323,7 @@ export async function obtenerDetallePreLiquidacion(
 					productPercentageCommission: {
 						include: {
 							productPercentageCommissionCategories: {
-								include: { category: true },
+								include: { level: true },
 								where: { active: true },
 							},
 						},
@@ -341,7 +345,7 @@ export async function obtenerDetallePreLiquidacion(
 		const categorias =
 			r.business?.productPercentageCommission
 				?.productPercentageCommissionCategories ?? []
-		const porcentajes = configFromCategories(categorias, usePortfolio)
+		const porcentajes = configFromLevelRows(categorias, usePortfolio)
 		const comisiones = aplicarFormulas(
 			comisionBase,
 			porcentajes,
@@ -698,13 +702,13 @@ export async function obtenerDistribucionComision(
 			},
 			productPercentageCommissionCategory: {
 				include: {
-					category: true,
+					level: true,
 					productPercentageCommission: {
 						include: {
 							productConfiguration: {
 								include: {
 									product: true,
-									category: true,
+									level: true,
 								},
 							},
 						},
@@ -741,7 +745,7 @@ export async function obtenerDistribucionComision(
 
 	const distribuciones = rows.map((row) => {
 		const ppcc = row.productPercentageCommissionCategory
-		const categoriaNombre = ppcc?.category?.name ?? ''
+		const categoriaNombre = ppcc?.level?.name ?? ''
 		const porcentajeDistribucion =
 			usePortfolio && ppcc?.porcentajePortfolio != null
 				? ppcc.porcentajePortfolio.toNumber()
@@ -785,7 +789,7 @@ export async function obtenerDistribucionComision(
 	const distribucion: DistribucionComision = {
 		idSettlementCommission: id,
 		commission_value: commissionValueParent,
-		categoria: productConfig?.category?.name ?? null,
+		categoria: productConfig?.level?.name ?? null,
 		producto: productConfig?.product?.name ?? null,
 		origen: null,
 		nombreAsesor: sc.business?.user
@@ -1220,7 +1224,7 @@ export async function obtenerResumenPreliquidacionPorUsuario(
 				},
 			},
 			productPercentageCommissionCategory: {
-				include: { category: { select: { name: true } } },
+				include: { level: { select: { name: true } } },
 			},
 		},
 	})
@@ -1248,7 +1252,7 @@ export async function obtenerResumenPreliquidacionPorUsuario(
 			: `Negocio #${idBusiness}`
 		const valor = d.valueComissionFinal.toNumber()
 		const categoria =
-			d.productPercentageCommissionCategory?.category?.name ?? ''
+			d.productPercentageCommissionCategory?.level?.name ?? ''
 
 		if (!byUser.has(u.idUser)) {
 			byUser.set(u.idUser, {
@@ -1333,7 +1337,7 @@ export async function calcularYGuardarDistribucion(
 
 		const idBeneficiaryUser = beneficiaryByConfigId.get(config.id)
 		if (idBeneficiaryUser === undefined) {
-			throw new Error(`No se pudo resolver el beneficiario para la categoría ${config.category.code}`)
+			throw new Error(`No se pudo resolver el beneficiario para la categoría ${config.level.code}`)
 		}
 
 		const created = await tx.comissionDistribution.create({
@@ -1449,7 +1453,7 @@ export async function sincronizarYCalcularRegistroRezagado(
 						active: true,
 					},
 					include: {
-						category: {
+						level: {
 							include: {
 								fixedBeneficiaryUser: {
 									select: {
@@ -1481,10 +1485,10 @@ export async function sincronizarYCalcularRegistroRezagado(
 
 			const beneficiaryByConfigId = new Map<number, number>()
 			for (const cfg of configCategorias) {
-				const res = resolveBeneficiaryUserId(cfg.category, chain)
+				const res = resolveBeneficiaryUserId(cfg.level, chain)
 				if (!res.ok) {
 					throw new Error(
-						`Error resolviendo beneficiario para ${cfg.category.code}: ${res.code}`
+						`Error resolviendo beneficiario para ${cfg.level.code}: ${res.code}`
 					)
 				}
 				beneficiaryByConfigId.set(cfg.id, res.idUser)
@@ -1646,7 +1650,7 @@ export async function procesarPreLiquidacion(
 						active: true,
 					},
 					include: {
-						category: {
+						level: {
 							include: {
 								fixedBeneficiaryUser: {
 									select: { idUser: true, active: true },
@@ -1681,7 +1685,7 @@ export async function procesarPreLiquidacion(
 					: []
 
 			const resolutions = configCategorias.map((cfg) =>
-				resolveBeneficiaryUserId(cfg.category, chain)
+				resolveBeneficiaryUserId(cfg.level, chain)
 			)
 			const failed = resolutions.find((r) => !r.ok)
 			if (failed && !failed.ok) {
@@ -1870,8 +1874,8 @@ export async function recalcularComisionesPorCambioOrigen(
 			where: {
 				idProduct:
 					business.productPercentageCommission.productConfiguration.idProduct,
-				idCategory:
-					business.productPercentageCommission.productConfiguration.idCategory,
+				idLevel:
+					business.productPercentageCommission.productConfiguration.idLevel,
 			},
 			include: {
 				productPercentageCommissions: {
@@ -1921,7 +1925,7 @@ export async function recalcularComisionesPorCambioOrigen(
 						active: true,
 					},
 					include: {
-						category: {
+						level: {
 							include: {
 								fixedBeneficiaryUser: {
 									select: { idUser: true, active: true },
@@ -1973,7 +1977,7 @@ export async function recalcularComisionesPorCambioOrigen(
 				const clawbackPorcentaje = record.clawbackPercentage ?? new Decimal(0)
 
 				for (const cat of newCategories) {
-					const resolved = resolveBeneficiaryUserId(cat.category, chain)
+					const resolved = resolveBeneficiaryUserId(cat.level, chain)
 					if (!resolved.ok) {
 						throw new Error(
 							`No se pudo resolver beneficiario (categoría ${resolved.categoryCode}): ${resolved.code}`

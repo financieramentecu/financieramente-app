@@ -27,7 +27,7 @@ const optionalPortfolioPercentageSchema = z.preprocess(
 
 // Category line (form): distribution + optional portfolio (validated when hasPortfolio)
 export const categoryPercentageSchema = z.object({
-	idCategory: z
+	idLevel: z
 		.number()
 		.int('Categoría inválida')
 		.positive('Categoría inválida'),
@@ -42,15 +42,15 @@ function refineDuplicateCategoriesAndDistributionSum(
 ) {
 	const seen = new Set<number>()
 	items.forEach((item, index) => {
-		if (item.idCategory && seen.has(item.idCategory)) {
+		if (item.idLevel && seen.has(item.idLevel)) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				message: 'Categoría duplicada en la regla',
-				path: [...pathPrefix, index, 'idCategory'],
+				path: [...pathPrefix, index, 'idLevel'],
 			})
 		}
-		if (item.idCategory) {
-			seen.add(item.idCategory)
+		if (item.idLevel) {
+			seen.add(item.idLevel)
 		}
 	})
 
@@ -156,7 +156,7 @@ function mapCategoriesToApiFractions(
 	items: z.infer<typeof categoryPercentageSchema>[]
 ) {
 	return items.map((item) => ({
-		idCategory: item.idCategory,
+		idLevel: item.idLevel,
 		percentage: Number(item.percentage) / 100,
 		portfolioPercentage:
 			item.portfolioPercentage !== undefined &&

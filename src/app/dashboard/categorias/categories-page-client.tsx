@@ -6,7 +6,7 @@ import { CategoriesTableSection } from '@/features/categories/components/categor
 import { useCategories } from '@/features/categories/hooks/use-categories'
 import { useCategoryMutations } from '@/features/categories/hooks/use-category-mutations'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
-import type { Category, CategoryType } from '@/features/categories/types/category.types'
+import type { Category } from '@/features/categories/types/category.types'
 import { toast } from 'sonner'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { AlertCircle } from 'lucide-react'
@@ -102,11 +102,6 @@ export function CategoriesPageClient() {
 	const [searchInput, setSearchInput] = useState('')
 	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
 
-	// State for type category filter
-	const [selectedTypeCategory, setSelectedTypeCategory] = useState<
-		CategoryType | undefined
-	>(undefined)
-
 	// State for pagination
 	const [page, setPage] = useState(1)
 	const pageSize = 10
@@ -114,11 +109,8 @@ export function CategoriesPageClient() {
 	// Track if table has initialized (loaded data at least once)
 	const [hasInitialized, setHasInitialized] = useState(false)
 
-	// Track last loaded search and type category
+	// Track last loaded search
 	const [lastLoadedSearch, setLastLoadedSearch] = useState<string>('')
-	const [lastLoadedTypeCategory, setLastLoadedTypeCategory] = useState<
-		CategoryType | undefined
-	>(undefined)
 
 	// State for delete confirmation modal
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -127,7 +119,6 @@ export function CategoriesPageClient() {
 	// Hook to get categories
 	const { state, refetch } = useCategories({
 		search: debouncedSearch || undefined,
-		typeCategory: selectedTypeCategory,
 		page,
 		pageSize,
 	})
@@ -141,16 +132,11 @@ export function CategoriesPageClient() {
 	// Detect if there's a pending search
 	const hasPendingSearch = debouncedSearch !== (lastLoadedSearch ?? '')
 
-	// Detect if there's a pending type category change
-	const hasPendingTypeCategoryChange =
-		selectedTypeCategory !== (lastLoadedTypeCategory ?? undefined)
-
-	// Show loading if debouncing, loading, or pending search/type
+	// Show loading if debouncing, loading, or pending search
 	const isSearching =
 		isDebouncing ||
 		state.status === 'loading' ||
-		hasPendingSearch ||
-		hasPendingTypeCategoryChange
+		hasPendingSearch
 
 	// Mark as initialized and update last loaded values
 	useEffect(() => {
@@ -159,20 +145,12 @@ export function CategoriesPageClient() {
 				setHasInitialized(true)
 			}
 			setLastLoadedSearch(debouncedSearch)
-			setLastLoadedTypeCategory(selectedTypeCategory)
 		}
-	}, [state.status, hasInitialized, debouncedSearch, selectedTypeCategory])
+	}, [state.status, hasInitialized, debouncedSearch])
 
 	// Handle search
 	const handleSearch = useCallback((query: string) => {
 		setSearchInput(query)
-		setPage(1)
-	}, [])
-
-	// Handle type category change
-	const handleTypeCategoryChange = useCallback((value: string) => {
-		const typeCategory = value === 'all' ? undefined : (value as CategoryType)
-		setSelectedTypeCategory(typeCategory)
 		setPage(1)
 	}, [])
 
@@ -189,7 +167,7 @@ export function CategoriesPageClient() {
 	// Handle edit category
 	const handleEditCategory = useCallback(
 		(category: Category) => {
-			router.push(`/dashboard/categorias/editar/${category.idCategory}`)
+			router.push(`/dashboard/categorias/editar/${category.id}`)
 		},
 		[router]
 	)
@@ -204,18 +182,18 @@ export function CategoriesPageClient() {
 	const handleConfirmDelete = useCallback(async () => {
 		if (!categoryToDelete) return
 
-		await deleteCategory(categoryToDelete.idCategory)
+		await deleteCategory(categoryToDelete.id)
 	}, [categoryToDelete, deleteCategory])
 
 	// Handle delete state changes
 	useEffect(() => {
 		if (deleteState.status === 'success') {
-			toast.success('Categoría eliminada exitosamente')
+			toast.success('Categoría desactivada exitosamente')
 			setDeleteDialogOpen(false)
 			setCategoryToDelete(null)
 			refetch()
 		} else if (deleteState.status === 'error') {
-			toast.error(deleteState.error || 'Error al eliminar categoría')
+			toast.error(deleteState.error || 'Error al desactivar categoría')
 		}
 	}, [deleteState.status, deleteState.error, refetch])
 
@@ -247,8 +225,6 @@ export function CategoriesPageClient() {
 					}
 					onPageChange={handlePageChange}
 					isSearching={showTableLoading}
-					selectedTypeCategory={selectedTypeCategory}
-					onTypeCategoryChange={handleTypeCategoryChange}
 				/>
 			)}
 
@@ -256,12 +232,11 @@ export function CategoriesPageClient() {
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>¿Eliminar categoría?</AlertDialogTitle>
+						<AlertDialogTitle>¿Desactivar categoría?</AlertDialogTitle>
 						<AlertDialogDescription>
-							¿Está seguro de que desea eliminar la categoría{' '}
-							<strong>{categoryToDelete?.name}</strong> (código:{' '}
-							<strong>{categoryToDelete?.code}</strong>)? Esta acción no se puede
-							deshacer.
+							¿Está seguro de que desea desactivar la categoría{' '}
+							<strong>{categoryToDelete?.name}</strong>? La categoría quedará
+							inactiva pero no será eliminada permanentemente.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -271,7 +246,7 @@ export function CategoriesPageClient() {
 							disabled={deleteState.status === 'loading'}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							{deleteState.status === 'loading' ? 'Eliminando...' : 'Eliminar'}
+							{deleteState.status === 'loading' ? 'Desactivando...' : 'Desactivar'}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

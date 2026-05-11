@@ -12,6 +12,15 @@ export interface BusinessListFilterInput {
 	createdAtRange?: { gte: Date; lte: Date }
 }
 
+export interface BuildBusinessListWhereOptions {
+	/**
+	 * When provided and non-empty, restricts results to businesses owned by these user IDs.
+	 * Used for hierarchical visibility: [self, ...subordinates].
+	 * Ignored for ADMIN / SUPER_ADMIN roles.
+	 */
+	visibleUserIds?: number[]
+}
+
 /**
  * Construye el WHERE de lista/export de negocios (visibilidad agente + filtros).
  */
@@ -20,13 +29,22 @@ export function buildBusinessListWhere(
 		idUser: number
 		role?: { code: string } | null
 	},
-	filters: BusinessListFilterInput
+	filters: BusinessListFilterInput,
+	options: BuildBusinessListWhereOptions = {}
 ): Prisma.BusinessWhereInput {
 	const whereConditions: Prisma.BusinessWhereInput[] = []
 
-	const isAgent = currentUser.role?.code === UserRole.AGENTE
-	if (isAgent) {
-		whereConditions.push({ idUser: currentUser.idUser })
+	const roleCode = currentUser.role?.code
+	const isAdmin = roleCode === UserRole.ADMIN
+	const isScoped = !isAdmin
+
+	if (isScoped) {
+		const { visibleUserIds } = options
+		if (visibleUserIds && visibleUserIds.length > 0) {
+			whereConditions.push({ idUser: { in: visibleUserIds } })
+		} else {
+			whereConditions.push({ idUser: currentUser.idUser })
+		}
 	}
 
 	const { status, search, dateAnchoredRange, createdAtRange } = filters

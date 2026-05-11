@@ -17,6 +17,7 @@ import {
 	Percent,
 	PieChart,
 	Receipt,
+	Pyramid,
 } from 'lucide-react'
 
 /**
@@ -112,6 +113,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				title: 'Productos',
 				url: '/dashboard/products',
 				icon: <Package className="h-4 w-4" />,
+			},
+			{
+				title: 'Niveles (Jerarquía)',
+				url: '/dashboard/niveles',
+				icon: <Pyramid className="h-4 w-4" />,
 			},
 			{
 				title: 'Categorías',
