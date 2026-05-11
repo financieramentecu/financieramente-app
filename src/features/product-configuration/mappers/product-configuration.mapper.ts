@@ -11,7 +11,7 @@ import type { ProductConfiguration } from '../types/product-configuration.types'
 interface PrismaProductConfigurationWithIncludes {
 	id: number
 	idProduct: number
-	idCategory: number
+	idLevel: number
 	code: string
 	active: boolean
 	idProductPercentageCommissionNewBusinesses: number | null
@@ -22,7 +22,7 @@ interface PrismaProductConfigurationWithIncludes {
 		name: string
 		company: { idCompany: number; name: string }
 	}
-	category: { idCategory: number; name: string }
+	level: { idLevel: number; name: string; code: string }
 	productPercentageCommissionNewBusinesses: {
 		idProductPercentageCommission: number
 		description: string | null
@@ -44,7 +44,7 @@ export function prismaProductConfigToProductConfig(
 	return {
 		id: prisma.id,
 		idProduct: prisma.idProduct,
-		idCategory: prisma.idCategory,
+		idLevel: prisma.idLevel,
 		code: prisma.code,
 		active: prisma.active,
 		idProductPercentageCommissionNewBusinesses:
@@ -59,9 +59,10 @@ export function prismaProductConfigToProductConfig(
 				name: prisma.product.company.name,
 			},
 		},
-		category: {
-			idCategory: prisma.category.idCategory,
-			name: prisma.category.name,
+		level: {
+			idLevel: prisma.level.idLevel,
+			name: prisma.level.name,
+			code: prisma.level.code,
 		},
 		ppcNewBusinesses: prisma.productPercentageCommissionNewBusinesses
 			? {

@@ -22,7 +22,8 @@ import {
 import { Input } from '@/features/shared/ui/input'
 import { CommissionRule } from '@/features/distribution-commission/types/commission-rule.types'
 import { useCommissionRuleMutations } from '@/features/distribution-commission/hooks/use-commission-rule-mutations'
-import { useCategories } from '@/features/categories/hooks/use-categories'
+import { useLevels } from '@/features/levels/hooks/use-levels'
+import type { Level } from '@/features/levels/types/level.types'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, Loader2, Plus } from 'lucide-react'
@@ -48,8 +49,15 @@ type CommissionRuleFormData =
 	| CreateCommissionRuleFormData
 	| UpdateCommissionRuleFormData
 
+function getLevelNumericSuffix(code: string): number | null {
+	const match = /^LEVEL_(\d+)$/.exec(code)
+	return match ? parseInt(match[1], 10) : null
+}
+
 interface CommissionRuleFormProps {
 	productConfigId: number
+	/** The code of the product configuration's level — used to compute minimum level suffix. */
+	configLevelCode?: string
 	initialData?: CommissionRule
 	mode: 'create' | 'edit'
 	/** Base path without `/reglas` (e.g. `/dashboard/distribucion-comisiones/1` or code-based path). */
@@ -58,6 +66,7 @@ interface CommissionRuleFormProps {
 
 export function CommissionRuleForm({
 	productConfigId,
+	configLevelCode,
 	initialData,
 	mode,
 	distributionBasePath,
@@ -73,10 +82,25 @@ export function CommissionRuleForm({
 		null
 	)
 
-	// Fetch categories for selection
-	const { state: categoriesState } = useCategories({
-		status: 'true', // Only active categories
-		pageSize: 100, // Fetch enough categories
+	// Fetch levels for selection (only OVERRIDE, active)
+	const { state: levelsState } = useLevels({
+		status: 'true',
+		pageSize: 100,
+	})
+
+	const configLevelSuffix = configLevelCode
+		? getLevelNumericSuffix(configLevelCode)
+		: null
+
+	const availableLevels: Level[] = (levelsState.status === 'success'
+		? levelsState.data.levels
+		: []
+	).filter((level) => {
+		if (level.beneficiaryMode !== 'OVERRIDE') return false
+		const suffix = getLevelNumericSuffix(level.code)
+		if (suffix === null) return false
+		if (configLevelSuffix !== null && suffix < configLevelSuffix) return false
+		return true
 	})
 
 	const isLoading = isCreating || isUpdating
@@ -102,7 +126,7 @@ export function CommissionRuleForm({
 						hasPortfolio: initialData?.hasPortfolio ?? false,
 						categories:
 							initialData?.categories?.map((cat) => ({
-								idCategory: cat.idCategory,
+								idLevel: cat.idLevel,
 								percentage: Number(cat.porcentajeDistribucion),
 								portfolioPercentage:
 									cat.porcentajePortfolio !== undefined
@@ -128,7 +152,7 @@ export function CommissionRuleForm({
 	const hasPortfolioActive = watchedHasPortfolio === true
 
 	const selectedCategoryIds = (watchedCategories || []).map(
-		(item) => item?.idCategory
+		(item) => item?.idLevel
 	)
 
 	const totalPercentage = (watchedCategories || []).reduce(
@@ -263,10 +287,10 @@ export function CommissionRuleForm({
 					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 						<div className="min-w-0 space-y-1">
 							<h3 className="text-lg font-semibold tracking-tight text-foreground">
-								Categorías
+								Niveles
 							</h3>
 							<p className="text-sm text-muted-foreground">
-								Distribución de porcentajes por categoría.
+								Asigna los porcentajes desde el nivel correspondiente.
 							</p>
 						</div>
 						<Button
@@ -276,26 +300,24 @@ export function CommissionRuleForm({
 							className="shrink-0 self-start border-primary/40 bg-primary/5 font-semibold text-primary shadow-sm transition-colors hover:bg-primary/15 hover:text-primary sm:self-auto"
 							onClick={() =>
 								append({
-									idCategory: 0,
+									idLevel: 0,
 									percentage: 1,
 									portfolioPercentage: undefined,
 								})
 							}
 						>
 							<Plus className="h-4 w-4" aria-hidden />
-							Agregar Categoría
+							Agregar Nivel
 						</Button>
 					</div>
 
 					<div className="overflow-hidden rounded-xl border border-border/90 bg-card shadow-sm">
+						{/* hasPortfolio toggle — kept for future use, hidden from UI */}
 						<FormField
 							control={form.control}
 							name="hasPortfolio"
 							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between gap-4 border-b border-border bg-muted/10 px-4 py-3 sm:px-5">
-									<FormLabel className="cursor-pointer text-base font-medium text-foreground">
-										Porcentajes de cartera
-									</FormLabel>
+								<FormItem className="hidden">
 									<FormControl>
 										<Switch
 											checked={field.value === true}
@@ -313,7 +335,7 @@ export function CommissionRuleForm({
 										key={field.id}
 										index={index}
 										control={form.control}
-										categories={categoriesState.data?.categories ?? []}
+										levels={availableLevels}
 										selectedCategoryIds={selectedCategoryIds}
 										onRemove={() => remove(index)}
 										hasPortfolio={hasPortfolioActive}
@@ -322,7 +344,7 @@ export function CommissionRuleForm({
 							</div>
 						) : (
 							<div className="px-4 py-10 text-center text-sm text-muted-foreground sm:px-5">
-								No hay categorías agregadas. Agrega una para comenzar la
+								No hay niveles agregados. Agrega uno para comenzar la
 								distribución.
 							</div>
 						)}

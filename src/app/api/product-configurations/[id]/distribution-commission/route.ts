@@ -90,9 +90,9 @@ export async function GET(
 			include: {
 				productPercentageCommissionCategories: {
 					include: {
-						category: {
+						level: {
 							select: {
-								idCategory: true,
+								idLevel: true,
 								name: true,
 							},
 						},
@@ -210,7 +210,7 @@ export async function POST(
 				await tx.productPercentageCommissionCategory.createMany({
 					data: data.categories.map((cat) => ({
 						idProductPercentageCommission: rule.idProductPercentageCommission,
-						idCategory: cat.idCategory,
+						idLevel: cat.idLevel,
 						porcentajeDistribucion: cat.percentage,
 						porcentajePortfolio:
 							data.hasPortfolio &&
@@ -230,9 +230,9 @@ export async function POST(
 				include: {
 					productPercentageCommissionCategories: {
 						include: {
-							category: {
+							level: {
 								select: {
-									idCategory: true,
+									idLevel: true,
 									name: true,
 								},
 							},

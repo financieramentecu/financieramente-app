@@ -59,7 +59,7 @@ describe('obtenerResumenPreliquidacionPorUsuario', () => {
 					},
 				},
 				productPercentageCommissionCategory: {
-					category: { name: 'Agencia' },
+					level: { name: 'Agencia' },
 				},
 			},
 			{
@@ -78,7 +78,7 @@ describe('obtenerResumenPreliquidacionPorUsuario', () => {
 					},
 				},
 				productPercentageCommissionCategory: {
-					category: { name: 'General' },
+					level: { name: 'General' },
 				},
 			},
 		] as any)

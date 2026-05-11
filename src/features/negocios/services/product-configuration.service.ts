@@ -9,7 +9,7 @@ import type { ProductPercentageCommission } from '@prisma/client'
 
 export interface GetPpcForNewBusinessesParams {
 	idProduct: number
-	idCategory: number
+	idLevel: number
 }
 
 export interface GetPpcForNewBusinessesResult {
@@ -20,24 +20,25 @@ export interface GetPpcForNewBusinessesResult {
 /**
  * Obtiene el PPC activo para nuevos negocios según ProductConfiguration.
  *
- * Busca ProductConfiguration por (idProduct, idCategory) únicamente.
+ * Busca ProductConfiguration por (idProduct, idLevel) filtrando nivel y producto activos.
  * Si no existe la configuración lanza un error descriptivo — NO hay fallback silencioso.
  *
- * @param params - Parámetros de búsqueda (producto y categoría del agente)
+ * @param params - Parámetros de búsqueda (producto y nivel del agente)
  * @returns Objeto con configExists (true) y ppc.
- * @throws Error si no existe configuración para el par (idProduct, idCategory).
+ * @throws Error si no existe configuración para el par (idProduct, idLevel).
  */
 export async function getPpcForNewBusinesses(
 	params: GetPpcForNewBusinessesParams
 ): Promise<GetPpcForNewBusinessesResult> {
-	const { idProduct, idCategory } = params
+	const { idProduct, idLevel } = params
 
-	const productConfiguration = await prisma.productConfiguration.findUnique({
+	const productConfiguration = await prisma.productConfiguration.findFirst({
 		where: {
-			idProduct_idCategory: {
-				idProduct,
-				idCategory,
-			},
+			idProduct,
+			idLevel,
+			active: true,
+			level: { status: true },
+			product: { status: true },
 		},
 		include: {
 			productPercentageCommissionNewBusinesses: true,
@@ -46,13 +47,22 @@ export async function getPpcForNewBusinesses(
 
 	if (!productConfiguration) {
 		throw new Error(
-			'No existe configuración de distribución para el producto y categoría seleccionados. Configurá la distribución antes de continuar.'
+			'No existe configuración de distribución para el producto y nivel seleccionados. Configurá la distribución antes de continuar.'
 		)
+	}
+
+	const ppc = productConfiguration.productPercentageCommissionNewBusinesses
+
+	if (!ppc || !ppc.active) {
+		return {
+			configExists: true,
+			ppc: null,
+		}
 	}
 
 	return {
 		configExists: true,
-		ppc: productConfiguration.productPercentageCommissionNewBusinesses,
+		ppc,
 	}
 }
 
@@ -61,23 +71,24 @@ export type OriginValidationResult =
 	| { valid: false; reason: string }
 
 /**
- * Valida que la combinación (idCategory, idProduct) tenga:
- *  1. ProductConfiguration existente
+ * Valida que la combinación (idLevel, idProduct) tenga:
+ *  1. ProductConfiguration existente con nivel y producto activos
  *  2. Al menos un ProductPercentageCommission activo
  *  3. Al menos una ProductPercentageCommissionCategory activa en ese PPC
  *
  * Devuelve `{ valid: true }` si todo está presente, o `{ valid: false, reason }` si falta algo.
  */
 export async function validateProductConfigurationExists(
-	idCategory: number,
+	idLevel: number,
 	idProduct: number
 ): Promise<OriginValidationResult> {
-	const productConfiguration = await prisma.productConfiguration.findUnique({
+	const productConfiguration = await prisma.productConfiguration.findFirst({
 		where: {
-			idProduct_idCategory: {
-				idProduct,
-				idCategory,
-			},
+			idProduct,
+			idLevel,
+			active: true,
+			level: { status: true },
+			product: { status: true },
 		},
 		include: {
 			productPercentageCommissions: {
@@ -95,7 +106,7 @@ export async function validateProductConfigurationExists(
 		return {
 			valid: false,
 			reason:
-				'No existe configuración de distribución para el producto y categoría del negocio. Configurá la distribución antes de continuar.',
+				'No existe configuración de distribución para el producto y nivel del negocio. Configurá la distribución antes de continuar.',
 		}
 	}
 

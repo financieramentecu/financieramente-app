@@ -6,7 +6,7 @@ import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { Prisma } from '@prisma/client'
 
 type CategorySummary = {
-	idCategory: number
+	id: number
 	name: string
 }
 
@@ -15,8 +15,25 @@ async function fetchCategorySummary(
 ): Promise<CategorySummary | null> {
 	if (!categoryId) return null
 	return prisma.category.findUnique({
-		where: { idCategory: categoryId },
-		select: { idCategory: true, name: true },
+		where: { id: categoryId },
+		select: { id: true, name: true },
+	})
+}
+
+type LevelSummary = {
+	idLevel: number
+	code: string
+	name: string
+	idNextLevel: number | null
+}
+
+async function fetchLevelSummary(
+	levelId: number | null | undefined
+): Promise<LevelSummary | null> {
+	if (!levelId) return null
+	return prisma.level.findUnique({
+		where: { idLevel: levelId },
+		select: { idLevel: true, code: true, name: true, idNextLevel: true },
 	})
 }
 
@@ -65,7 +82,8 @@ export async function GET(
 			)
 		}
 
-		const category = await fetchCategorySummary(user.idCategoria)
+		const category = await fetchCategorySummary(user.idCategory)
+		const level = await fetchLevelSummary(user.idLevel)
 
 		// Obtener último acceso
 		const lastLogin = await prisma.auditLog.findFirst({
@@ -98,8 +116,16 @@ export async function GET(
 					: null,
 				category: category
 					? {
-							id: category.idCategory,
+							id: category.id,
 							name: category.name,
+						}
+					: null,
+				level: level
+					? {
+							id: level.idLevel,
+							code: level.code,
+							name: level.name,
+							idNextLevel: level.idNextLevel,
 						}
 					: null,
 				leader: user.leader
@@ -153,7 +179,7 @@ export async function PUT(
 		}
 
 		const body = await request.json()
-		const { active, roleId, categoryId, leaderId } = body
+		const { active, roleId, categoryId, levelId, leaderId } = body
 
 		// Validar que el usuario existe
 		const existingUser = await prisma.user.findUnique({
@@ -169,7 +195,7 @@ export async function PUT(
 		}
 
 		const existingCategory = await fetchCategorySummary(
-			existingUser.idCategoria
+			existingUser.idCategory
 		)
 
 		// Preparar datos de actualización
@@ -204,7 +230,7 @@ export async function PUT(
 			} else {
 				// Verificar que la categoría existe
 				const category = await prisma.category.findUnique({
-					where: { idCategory: parseInt(categoryId) },
+					where: { id: parseInt(categoryId) },
 				})
 				if (!category) {
 					return NextResponse.json(
@@ -223,7 +249,25 @@ export async function PUT(
 						{ status: 400 }
 					)
 				}
-				updateData.category = { connect: { idCategory: category.idCategory } }
+				updateData.category = { connect: { id: category.id } }
+			}
+		}
+
+		// Validar y actualizar nivel
+		if (levelId !== undefined) {
+			if (levelId === null) {
+				updateData.level = { disconnect: true }
+			} else {
+				const level = await prisma.level.findUnique({
+					where: { idLevel: parseInt(levelId) },
+				})
+				if (!level) {
+					return NextResponse.json(
+						{ success: false, error: 'Nivel no encontrado' },
+						{ status: 400 }
+					)
+				}
+				updateData.level = { connect: { idLevel: level.idLevel } }
 			}
 		}
 
@@ -289,8 +333,9 @@ export async function PUT(
 		})
 
 		const updatedCategory = await fetchCategorySummary(
-			updatedUser.idCategoria
+			updatedUser.idCategory
 		)
+		const updatedLevel = await fetchLevelSummary(updatedUser.idLevel)
 
 		// Registrar en audit log
 		const adminUserId = session.user.id ? parseInt(session.user.id) : undefined
@@ -337,7 +382,7 @@ export async function PUT(
 		// Registrar cambios de categoría
 		if (
 			categoryId !== undefined &&
-			updatedUser.idCategoria !== existingUser.idCategoria
+			updatedUser.idCategory !== existingUser.idCategory
 		) {
 			await logAuditEvent({
 				userId: adminUserId,
@@ -378,8 +423,16 @@ export async function PUT(
 					: null,
 				category: updatedCategory
 					? {
-							id: updatedCategory.idCategory,
+							id: updatedCategory.id,
 							name: updatedCategory.name,
+						}
+					: null,
+				level: updatedLevel
+					? {
+							id: updatedLevel.idLevel,
+							code: updatedLevel.code,
+							name: updatedLevel.name,
+							idNextLevel: updatedLevel.idNextLevel,
 						}
 					: null,
 				leader: updatedUser.leader

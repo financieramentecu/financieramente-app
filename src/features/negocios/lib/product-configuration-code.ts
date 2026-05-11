@@ -1,6 +1,6 @@
 /**
  * Construcción del código de ProductConfiguration.
- * Formato: {COMPANY}-{PRODUCT}-{CATEGORY} en mayúsculas; espacios → '_'.
+ * Formato: {COMPANY}-{PRODUCT}-{LEVEL} en mayúsculas; espacios → '_'.
  */
 
 const SEPARATOR = '-'
@@ -14,20 +14,20 @@ function normalizeSegment(segment: string): string {
 }
 
 /**
- * Construye el código de configuración company/product/category.
- * Formato: {COMPANY}-{PRODUCT}-{CATEGORY} (mayúsculas; espacios reemplazados por '_').
+ * Construye el código de configuración company/product/level.
+ * Formato: {COMPANY}-{PRODUCT}-{LEVEL} (mayúsculas; espacios reemplazados por '_').
  *
  * @example
- * buildProductConfigurationCode('CREA PATRIMONIO', 'Propio', 'MS_JUNIOR')
- * // => 'CREA_PATRIMONIO-PROPIO-MS_JUNIOR'
+ * buildProductConfigurationCode('CREA PATRIMONIO', 'Propio', 'LEVEL_0')
+ * // => 'CREA_PATRIMONIO-PROPIO-LEVEL_0'
  */
 export function buildProductConfigurationCode(
 	companyName: string,
 	productName: string,
-	categoryCode: string
+	levelCode: string
 ): string {
 	const company = normalizeSegment(companyName)
 	const product = normalizeSegment(productName)
-	const category = normalizeSegment(categoryCode)
-	return [company, product, category].join(SEPARATOR)
+	const level = normalizeSegment(levelCode)
+	return [company, product, level].join(SEPARATOR)
 }

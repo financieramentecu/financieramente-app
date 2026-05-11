@@ -37,8 +37,8 @@ model ClientOrigin {
   @@map("client_origin")
 }
 
-model Category {
-  idCategory                            Int                                   @id @default(autoincrement()) @map("id_category")
+model Level {
+  idLevel                               Int                                   @id @default(autoincrement()) @map("id_level")
   code                                  String                                @unique @db.VarChar(20)
   name                                  String                                @db.VarChar(50)
   descripcion                           String?
@@ -46,21 +46,32 @@ model Category {
   status                                Boolean                               @default(true)
   createdAt                             DateTime                              @default(now()) @map("created_at")
   updatedAt                             DateTime                              @updatedAt @map("updated_at")
-  idCategoryType                        Int                                   @map("id_category_type")
   beneficiaryMode                       BeneficiaryMode                       @default(OVERRIDE) @map("beneficiary_mode")
   idFixedBeneficiaryUser                Int?                                  @map("id_fixed_beneficiary_user")
-  idNextCategory                        Int?                                  @map("id_next_category")
-  categoryType                          CategoryType                          @relation(fields: [idCategoryType], references: [id])
-  fixedBeneficiaryUser                  User?                                 @relation("CategoryFixedBeneficiary", fields: [idFixedBeneficiaryUser], references: [idUser])
-  nextCategory                          Category?                             @relation("CategorySequence", fields: [idNextCategory], references: [idCategory])
-  previousCategories                    Category[]                            @relation("CategorySequence")
+  idNextLevel                           Int?                                  @map("id_next_level")
+  fixedBeneficiaryUser                  User?                                 @relation("LevelFixedBeneficiary", fields: [idFixedBeneficiaryUser], references: [idUser])
+  nextLevel                             Level?                                @relation("LevelSequence", fields: [idNextLevel], references: [idLevel])
+  previousLevels                        Level[]                               @relation("LevelSequence")
   productConfigurations                 ProductConfiguration[]
   productPercentageCommissionCategories ProductPercentageCommissionCategory[]
   users                                 User[]
 
-  @@index([idCategoryType])
   @@index([idFixedBeneficiaryUser])
-  @@index([idNextCategory])
+  @@index([idNextLevel])
+  @@map("level")
+}
+
+model Category {
+  id             Int          @id @default(autoincrement()) @map("id_category")
+  name           String       @db.VarChar(100)
+  description    String?
+  status         Boolean      @default(true)
+  idCategoryType Int          @map("id_category_type")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  categoryType   CategoryType @relation(fields: [idCategoryType], references: [id])
+  users          User[]
+
   @@map("category")
 }
 
@@ -147,20 +158,20 @@ model Product {
 model ProductConfiguration {
   id                                         Int                           @id @default(autoincrement()) @map("id_product_configuration")
   idProduct                                  Int                           @map("id_product")
-  idCategory                                 Int                           @map("id_category")
+  idLevel                                    Int                           @map("id_level")
   idProductPercentageCommissionNewBusinesses Int?                          @unique @map("id_product_percentage_commission_new_businesses")
   createdAt                                  DateTime                      @default(now()) @map("created_at")
   updatedAt                                  DateTime                      @updatedAt @map("updated_at")
   code                                       String                        @unique @db.VarChar(50)
   active                                     Boolean                       @default(true) @map("active")
-  category                                   Category                      @relation(fields: [idCategory], references: [idCategory])
+  level                                      Level                         @relation(fields: [idLevel], references: [idLevel])
   product                                    Product                       @relation(fields: [idProduct], references: [idProduct])
   productPercentageCommissionNewBusinesses   ProductPercentageCommission?  @relation("PpcNewBusinesses", fields: [idProductPercentageCommissionNewBusinesses], references: [idProductPercentageCommission])
   productPercentageCommissions               ProductPercentageCommission[]
 
-  @@unique([idProduct, idCategory])
+  @@unique([idProduct, idLevel])
   @@index([idProduct])
-  @@index([idCategory])
+  @@index([idLevel])
   @@map("product_configuration")
 }
 
@@ -183,7 +194,7 @@ model ProductPercentageCommission {
 
 model ProductPercentageCommissionCategory {
   id                            Int                         @id @default(autoincrement())
-  idCategory                    Int                         @map("id_category")
+  idLevel                       Int                         @map("id_level")
   idProductPercentageCommission Int                         @map("id_product_percentage_commission")
   porcentajeDistribucion        Decimal                     @map("porcentaje_distribucion") @db.Decimal(8, 6)
   active                        Boolean                     @default(true)
@@ -191,12 +202,12 @@ model ProductPercentageCommissionCategory {
   updatedAt                     DateTime                    @updatedAt @map("updated_at")
   porcentajePortfolio           Decimal?                    @map("porcentaje_portfolio") @db.Decimal(8, 6)
   comissionDistributions        ComissionDistribution[]
-  category                      Category                    @relation(fields: [idCategory], references: [idCategory])
+  level                         Level                       @relation(fields: [idLevel], references: [idLevel])
   productPercentageCommission   ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
 
-  @@index([idCategory])
+  @@index([idLevel])
   @@index([idProductPercentageCommission])
-  @@map("product_percentaje_commision_category")
+  @@map("product_percentaje_commision_level")
 }
 
 model User {
@@ -207,7 +218,8 @@ model User {
   identityNumber                      String?                 @map("identity_number") @db.VarChar(20)
   email                               String                  @unique @db.VarChar(150)
   phone                               String?                 @db.VarChar(30)
-  idCategoria                         Int?                    @map("id_categoria")
+  idLevel                             Int?                    @map("id_level")
+  idCategory                          Int?                    @map("id_category")
   idUserLeader                        Int?                    @map("id_user_leader")
   entryDate                           DateTime                @map("entry_date") @db.Date
   retirementDate                      DateTime?               @map("retirement_date") @db.Date
@@ -219,7 +231,7 @@ model User {
   ssoOnly                             Boolean                 @default(true) @map("sso_only")
   auditLogs                           AuditLog[]
   businesses                          Business[]
-  categoriesAsFixedBeneficiary        Category[]              @relation("CategoryFixedBeneficiary")
+  levelsAsFixedBeneficiary            Level[]                 @relation("LevelFixedBeneficiary")
   clawbacks                           Clawback[]
   clawbackBalance                     ClawbackBalance?
   comissionDistributionsAsBeneficiary ComissionDistribution[] @relation("BeneficiaryUser")
@@ -227,7 +239,8 @@ model User {
   commissionDiscountsUpdated          CommissionDiscount[]    @relation("DiscountUpdatedBy")
   distributionApprovals               DistributionApproval[]
   fileImports                         FileImport[]
-  category                            Category?               @relation(fields: [idCategoria], references: [idCategory])
+  category                            Category?               @relation(fields: [idCategory], references: [id])
+  level                               Level?                  @relation(fields: [idLevel], references: [idLevel])
   role                                Role?                   @relation(fields: [idRole], references: [idRole])
   leader                              User?                   @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates                        User[]                  @relation("UserLeader")

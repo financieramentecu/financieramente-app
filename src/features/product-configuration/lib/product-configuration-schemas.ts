@@ -6,7 +6,7 @@ import { z } from 'zod'
 export const createProductConfigurationSchema = z.object({
 	idCompany: z.number().int().positive('Debe seleccionar una compañía'),
 	idProduct: z.number().int().positive('Debe seleccionar un producto'),
-	idCategory: z.number().int().positive('Debe seleccionar una categoría'),
+	idLevel: z.number().int().positive('Debe seleccionar un nivel'),
 })
 
 /**

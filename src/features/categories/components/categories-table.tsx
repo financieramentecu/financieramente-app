@@ -3,21 +3,10 @@
 import React, { useMemo } from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable'
 import { Button } from '@/features/shared/ui/button'
-import {
-	Category,
-	SYSTEM_CATEGORY_TYPE_NAME,
-} from '../types/category.types'
-import { useCategoryTypes } from '@/features/category-types/hooks/use-category-types'
 import { Badge } from '@/features/shared/ui/badge'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/features/shared/ui/select'
 import { ColumnDef } from '@tanstack/react-table'
+import type { Category } from '../types/category.types'
 
 interface PaginationData {
 	page: number
@@ -35,8 +24,6 @@ interface CategoriesTableSectionProps {
 	pagination?: PaginationData
 	onPageChange?: (page: number) => void
 	isSearching?: boolean
-	selectedTypeCategory?: string
-	onTypeCategoryChange?: (value: string) => void
 }
 
 export function CategoriesTableSection({
@@ -48,87 +35,28 @@ export function CategoriesTableSection({
 	pagination,
 	onPageChange,
 	isSearching = false,
-	selectedTypeCategory,
-	onTypeCategoryChange,
 }: CategoriesTableSectionProps) {
-	const { data: typesData } = useCategoryTypes()
-	const categoryTypeOptions = typesData?.categoryTypes ?? []
-
 	const columns = useMemo<ColumnDef<Category>[]>(
 		() => [
-			{
-				accessorKey: 'code',
-				header: 'Código',
-				cell: ({ row }) => (
-					<span className="font-mono text-sm">{row.original.code}</span>
-				),
-			},
 			{
 				accessorKey: 'name',
 				header: 'Nombre',
 			},
 			{
-				accessorKey: 'color',
-				header: 'Color',
-				cell: ({ row }) => (
-					<span
-						data-testid="color-chip"
-						className="inline-block h-5 w-5 rounded-full border border-border"
-						style={{ backgroundColor: row.original.color }}
-						title={row.original.color}
-					/>
-				),
-			},
-			{
-				accessorKey: 'nextCategory',
-				header: 'Siguiente',
-				cell: ({ row }) => {
-					const next = row.original.nextCategory
-					if (!next) return <span className="text-muted-foreground">—</span>
-					return <span className="text-sm">{next.name}</span>
-				},
-			},
-			{
-				accessorKey: 'typeCategory',
+				accessorKey: 'categoryType',
 				header: 'Tipo',
-				cell: ({ row }) => (
-					<Badge variant="outline">
-						{row.original.typeCategory}
-					</Badge>
-				),
-			},
-			{
-				accessorKey: 'beneficiaryMode',
-				header: 'Beneficiario',
 				cell: ({ row }) => {
-					const isFixed =
-						row.original.beneficiaryMode === 'BENEFICIARIO_GENERAL'
-					const isSystemType =
-						row.original.typeCategory === SYSTEM_CATEGORY_TYPE_NAME
-					return (
-						<div className="flex flex-col gap-0.5">
-							<Badge
-								variant={isFixed ? 'outline' : 'secondary'}
-								className="w-fit text-xs"
-							>
-								{isFixed ? 'Beneficiario general' : 'Override'}
-							</Badge>
-							{isSystemType && isFixed && row.original.fixedBeneficiaryUser ? (
-								<span className="text-xs text-muted-foreground">
-									{row.original.fixedBeneficiaryUser.name}{' '}
-									{row.original.fixedBeneficiaryUser.lastName}
-								</span>
-							) : null}
-						</div>
-					)
+					const ct = row.original.categoryType
+					if (!ct?.name) return <span className="text-muted-foreground">—</span>
+					return <Badge variant="outline">{ct.name}</Badge>
 				},
 			},
 			{
-				accessorKey: 'descripcion',
+				accessorKey: 'description',
 				header: 'Descripción',
 				cell: ({ row }) => (
 					<span className="text-muted-foreground text-sm truncate max-w-xs block">
-						{row.original.descripcion || '-'}
+						{row.original.description || '-'}
 					</span>
 				),
 			},
@@ -159,36 +87,11 @@ export function CategoriesTableSection({
 		[]
 	)
 
-	// Additional filters for type category
-	const renderAdditionalFilters = () => {
-		if (!onTypeCategoryChange) return null
-		return (
-			<Select
-				value={selectedTypeCategory || 'all'}
-				onValueChange={onTypeCategoryChange}
-			>
-				<SelectTrigger className="w-full sm:w-[180px] min-w-0">
-					<SelectValue placeholder="Filtrar por tipo" />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="all">Todos los tipos</SelectItem>
-					{categoryTypeOptions.map((type) => (
-						<SelectItem key={type.id} value={type.name}>
-							{type.name}
-						</SelectItem>
-					))}
-				</SelectContent>
-			</Select>
-		)
-	}
-
 	return (
 		<div className="space-y-4">
 			{/* Header */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-				<h2 className="text-xl font-semibold">
-					Categorías (Jerarquía de usuarios)
-				</h2>
+				<h2 className="text-xl font-semibold">Categorías</h2>
 				<Button onClick={onAddCategory} className="cursor-pointer">
 					<Plus className="h-4 w-4 mr-2" />
 					Crear Categoría
@@ -200,7 +103,7 @@ export function CategoriesTableSection({
 				data={data}
 				columns={columns}
 				onGlobalSearch={onGlobalSearch}
-				searchPlaceholder="Buscar por código o nombre..."
+				searchPlaceholder="Buscar por nombre..."
 				manualPagination={!!pagination}
 				currentPage={pagination?.page}
 				pageSize={pagination?.pageSize}
@@ -208,7 +111,6 @@ export function CategoriesTableSection({
 				onPageChange={onPageChange}
 				searchable
 				loading={isSearching}
-				renderAdditionalFilters={renderAdditionalFilters}
 				actions={(category) => (
 					<div className="flex items-center gap-1">
 						<Button

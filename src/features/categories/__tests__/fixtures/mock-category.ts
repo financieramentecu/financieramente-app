@@ -1,29 +1,16 @@
 import type { Category } from '../../types/category.types'
-import { CategoryType as CategoryTypeDomain } from '../../types/category.types'
-import { PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations } from '../../mappers/category.mapper'
-
-export enum BeneficiaryMode {
-	OVERRIDE = 'OVERRIDE',
-	BENEFICIARIO_GENERAL = 'BENEFICIARIO_GENERAL',
-}
+import type { PrismaCategoryWithRelations as MapperPrismaCategoryWithRelations } from '../../mappers/category.mapper'
 
 /**
- * Mock category for testing (Domain Type)
+ * Mock category for testing (Domain Type — new simple model)
  */
 export const MOCK_CATEGORY: Category = {
-	idCategory: 1,
-	code: 'CAT-001',
+	id: 1,
 	name: 'Categoría de Prueba',
-	idCategoryType: 1,
-	typeCategory: 'MMS',
-	descripcion: 'Esta es una categoría de prueba para tests',
-	color: '#1A73E8',
+	description: 'Esta es una categoría de prueba para tests',
 	status: true,
-	beneficiaryMode: 'OVERRIDE',
-	idFixedBeneficiaryUser: null,
-	fixedBeneficiaryUser: null,
-	idNextCategory: null,
-	nextCategory: null,
+	idCategoryType: 1,
+	categoryType: { name: 'Tipo A' },
 	createdAt: new Date().toISOString(),
 	updatedAt: new Date().toISOString(),
 }
@@ -47,15 +34,15 @@ export const createMockCategoryListResponse = (
 	},
 })
 
-export const createMockCategoriesByType = (
-	type: CategoryTypeDomain = 'MMS',
+export const createMockCategoriesByStatus = (
+	status: boolean = true,
 	count = 3
 ) => {
 	return Array.from({ length: count }, (_, i) => ({
 		...MOCK_CATEGORY,
-		idCategory: i + 1,
-		code: `CAT-${type}-${i + 1}`,
-		typeCategory: type,
+		id: i + 1,
+		name: `Categoría ${i + 1}`,
+		status,
 	}))
 }
 
@@ -68,16 +55,11 @@ export const createMockPrismaCategory = (
 ): MapperPrismaCategoryWithRelations => {
 	const now = new Date()
 	const base: MapperPrismaCategoryWithRelations = {
-		idCategory: 1,
-		code: 'CAT-001',
+		id: 1,
 		name: 'Categoría 1',
-		idCategoryType: 1,
-		descripcion: 'Descripción 1',
-		color: '#1A73E8',
+		description: 'Descripción 1',
 		status: true,
-		beneficiaryMode: 'OVERRIDE',
-		idFixedBeneficiaryUser: null,
-		idNextCategory: null,
+		idCategoryType: 1,
 		createdAt: now,
 		updatedAt: now,
 	}

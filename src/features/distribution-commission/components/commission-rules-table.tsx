@@ -74,8 +74,9 @@ export function CommissionRulesTable({
 				toast.success(
 					rule.active ? 'Distribución desactivada' : 'Distribución activada',
 					{
-						description: `La distribución "${rule.description}" ha sido ${rule.active ? 'desactivada' : 'activada'
-							} correctamente.`,
+						description: `La distribución "${rule.description}" ha sido ${
+							rule.active ? 'desactivada' : 'activada'
+						} correctamente.`,
 					}
 				)
 			} else {
@@ -147,20 +148,19 @@ export function CommissionRulesTable({
 				header: ({ column }) => (
 					<DataTableColumnHeader
 						column={column}
-						title="Categorías/Distribución"
+						title="Nivel (Jerarquía) / Distribución"
 					/>
 				),
 				cell: ({ row }) => (
 					<div className="flex min-w-0 max-w-xl flex-wrap content-start items-start gap-x-2 gap-y-2">
-						{row.original.categories &&
-						row.original.categories.length > 0 ? (
+						{row.original.categories && row.original.categories.length > 0 ? (
 							row.original.categories.map((cat) => (
 								<Badge
-									key={cat.idCategory}
+									key={cat.idLevel}
 									variant="outline"
 									className={READONLY_PERCENT_BADGE_CLASS}
 								>
-									{cat.category?.name || `Cat ${cat.idCategory}`}:{' '}
+									{cat.category?.name || `Cat ${cat.idLevel}`}:{' '}
 									{formatPercentDisplay(
 										cat.porcentajeDistribucion,
 										getAppLocale()
@@ -185,28 +185,23 @@ export function CommissionRulesTable({
 				),
 				cell: ({ row }) => {
 					if (!row.original.hasPortfolio) {
-						return (
-							<span className="text-muted-foreground text-sm">—</span>
-						)
+						return <span className="text-muted-foreground text-sm">—</span>
 					}
 					if (
 						!row.original.categories ||
 						row.original.categories.length === 0
 					) {
-						return (
-							<span className="text-muted-foreground text-sm">—</span>
-						)
+						return <span className="text-muted-foreground text-sm">—</span>
 					}
 					return (
 						<div className="flex min-w-0 max-w-xl flex-wrap content-start items-start gap-x-2 gap-y-2">
 							{row.original.categories.map((cat) => (
 								<Badge
-									key={cat.idCategory}
+									key={cat.idLevel}
 									variant="secondary"
 									className={READONLY_PERCENT_BADGE_CLASS}
 								>
-									{cat.category?.name || `Cat ${cat.idCategory}`}{' '}
-									cartera:{' '}
+									{cat.category?.name || `Cat ${cat.idLevel}`} cartera:{' '}
 									{cat.porcentajePortfolio != null
 										? formatPercentDisplay(
 												cat.porcentajePortfolio,
@@ -250,7 +245,9 @@ export function CommissionRulesTable({
 			},
 			{
 				id: 'rowActions',
-				header: () => <span className="text-muted-foreground text-sm">Acciones</span>,
+				header: () => (
+					<span className="text-muted-foreground text-sm">Acciones</span>
+				),
 				cell: ({ row }) => {
 					const rule = row.original
 					return (
@@ -269,8 +266,7 @@ export function CommissionRulesTable({
 								size="sm"
 								type="button"
 								disabled={
-									rule.isDefaultForNewBusinesses ||
-									assigningId === rule.id
+									rule.isDefaultForNewBusinesses || assigningId === rule.id
 								}
 								onClick={() => handleAssignDefault(rule)}
 							>

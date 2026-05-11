@@ -20,7 +20,7 @@ async function main() {
 			product: {
 				include: { company: true },
 			},
-			category: true,
+			level: true,
 		},
 		orderBy: { createdAt: 'desc' },
 	})
@@ -30,7 +30,7 @@ async function main() {
 	// Group by (idProduct, idCategory)
 	const grouped = new Map<string, typeof allConfigs>()
 	for (const config of allConfigs) {
-		const key = `${config.idProduct}-${config.idCategory}`
+		const key = `${config.idProduct}-${config.idLevel}`
 		if (!grouped.has(key)) {
 			grouped.set(key, [])
 		}
@@ -48,7 +48,7 @@ async function main() {
 		const newCode = buildProductConfigurationCode(
 			keeper.product.company.name,
 			keeper.product.name,
-			keeper.category.code // Using category code instead of name
+			keeper.level.code // Using level code instead of name
 		)
 
 		// Update code on the keeper if it changed

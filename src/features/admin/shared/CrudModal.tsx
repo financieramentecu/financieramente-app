@@ -49,6 +49,7 @@ export interface CrudModalProps {
 	onSubmit: (data: Record<string, unknown>) => Promise<void>
 	mode: 'create' | 'edit'
 	isLoading?: boolean
+	contentClassName?: string
 }
 
 export function CrudModal({
@@ -62,6 +63,7 @@ export function CrudModal({
 	onSubmit,
 	mode,
 	isLoading = false,
+	contentClassName,
 }: CrudModalProps) {
 	const {
 		register,
@@ -279,7 +281,7 @@ export function CrudModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+			<DialogContent className={cn("max-w-2xl max-h-[90vh] overflow-y-auto", contentClassName)}>
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 					{description && <DialogDescription>{description}</DialogDescription>}

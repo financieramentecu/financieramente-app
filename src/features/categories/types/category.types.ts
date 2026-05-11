@@ -1,58 +1,18 @@
 /**
- * Types for the Categories feature
+ * Types for the Categories feature (new simple model tied to CategoryType)
  */
 
 /**
- * Category type constants
- */
-export const CATEGORY_TYPES = ['MMS', 'ALIADO', 'TRINITY'] as const
-export type CategoryType = (typeof CATEGORY_TYPES)[number]
-
-/**
- * System category type name constant — used to detect system-managed categories
- */
-export const SYSTEM_CATEGORY_TYPE_NAME = 'SISTEMA' as const
-
-/**
- * Beneficiary mode for commission distribution
- */
-export type BeneficiaryMode = 'OVERRIDE' | 'BENEFICIARIO_GENERAL'
-
-/**
- * Fixed beneficiary user data (minimal projection)
- */
-export interface FixedBeneficiaryUser {
-	readonly idUser: number
-	name: string
-	lastName: string
-	email: string
-}
-
-/**
- * Minimal next category projection (for self-referential sequence)
- */
-export interface NextCategory {
-	readonly id: number
-	name: string
-}
-
-/**
- * Category interface (mapped from Prisma, not using Prisma types directly)
+ * Category domain interface (mapped from Prisma Category model)
+ * Simpler model: no code, no color, no beneficiaryMode, no self-ref
  */
 export interface Category extends Record<string, unknown> {
-	readonly idCategory: number
-	code: string
+	readonly id: number
 	name: string
-	typeCategory: string
-	idCategoryType?: number
-	descripcion: string | null
-	color: string
+	description?: string | null
 	status: boolean
-	beneficiaryMode: BeneficiaryMode
-	idFixedBeneficiaryUser: number | null
-	fixedBeneficiaryUser?: FixedBeneficiaryUser | null
-	idNextCategory: number | null
-	nextCategory: NextCategory | null
+	idCategoryType: number
+	categoryType?: { name: string }
 	readonly createdAt: string
 	readonly updatedAt: string
 }
@@ -62,7 +22,6 @@ export interface Category extends Record<string, unknown> {
  */
 export interface CategoryFilters {
 	search?: string
-	typeCategory?: string
 	status?: string
 }
 
@@ -70,30 +29,20 @@ export interface CategoryFilters {
  * Input for creating a new category
  */
 export interface CreateCategoryInput {
-	code: string
 	name: string
-	typeCategory: string
-	descripcion?: string | null
-	color: string
-	status: boolean
-	beneficiaryMode?: BeneficiaryMode
-	idFixedBeneficiaryUser?: number | null
-	idNextCategory?: number | null
+	idCategoryType: number
+	description?: string | null
+	status?: boolean
 }
 
 /**
  * Input for updating an existing category
  */
 export interface UpdateCategoryInput {
-	code?: string
 	name?: string
-	typeCategory?: string
-	descripcion?: string | null
-	color?: string
+	idCategoryType?: number
+	description?: string | null
 	status?: boolean
-	beneficiaryMode?: BeneficiaryMode
-	idFixedBeneficiaryUser?: number | null
-	idNextCategory?: number | null
 }
 
 /**

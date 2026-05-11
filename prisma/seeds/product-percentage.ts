@@ -5,7 +5,7 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Porcentajes de Comisión (ProductPercentages)...')
 
 	// 1. Obtener dependencias necesarias
-	const catJunior = await prisma.category.findUnique({
+	const catJunior = await prisma.level.findUnique({
 		where: { code: 'MS_JUNIOR' },
 	})
 
@@ -34,9 +34,9 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 		// 1. Obtener o crear ProductConfiguration (sin idClientOrigin)
 		let productConfiguration = await prisma.productConfiguration.findUnique({
 			where: {
-				idProduct_idCategory: {
+				idProduct_idLevel: {
 					idProduct: product.idProduct,
-					idCategory: catJunior.idCategory,
+					idLevel: catJunior.idLevel,
 				},
 			},
 		})
@@ -45,7 +45,7 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 			productConfiguration = await prisma.productConfiguration.create({
 				data: {
 					idProduct: product.idProduct,
-					idCategory: catJunior.idCategory,
+					idLevel: catJunior.idLevel,
 					code,
 					active: true,
 				},
@@ -94,7 +94,7 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 			await prisma.productPercentageCommissionCategory.findFirst({
 				where: {
 					idProductPercentageCommission: ppc.idProductPercentageCommission,
-					idCategory: catJunior.idCategory,
+					idLevel: catJunior.idLevel,
 				},
 			})
 
@@ -102,7 +102,7 @@ export async function seedProductPercentages(prisma: PrismaClient) {
 			await prisma.productPercentageCommissionCategory.create({
 				data: {
 					idProductPercentageCommission: ppc.idProductPercentageCommission,
-					idCategory: catJunior.idCategory,
+					idLevel: catJunior.idLevel,
 					porcentajeDistribucion: 0.60, // 60%
 					active: true,
 				},

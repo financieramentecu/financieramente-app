@@ -153,8 +153,8 @@ export async function seedUsers(prisma: PrismaClient) {
 		where: { code: 'AGENTE' },
 	})
 
-	const juniorCategory = await prisma.category.findUnique({ where: { code: 'JUNIOR' } })
-	const liderCategory = await prisma.category.findUnique({ where: { code: 'LIDER' } })
+	const juniorCategory = await prisma.level.findUnique({ where: { code: 'JUNIOR' } })
+	const liderCategory = await prisma.level.findUnique({ where: { code: 'LIDER' } })
 
 	if (!juniorCategory) {
 		console.warn('⚠️  Categoría JUNIOR no encontrada. Los cálculos de comisión podrían fallar.')
@@ -182,7 +182,7 @@ export async function seedUsers(prisma: PrismaClient) {
 		email: adminUser.email,
 		idRole: adminRole.idRole,
 		idUserLeader: adminUser.idUserLeader,
-		idCategoria: juniorCategory?.idCategory || null, // Asignar categoría por defecto
+		idLevel: juniorCategory?.idLevel || null, // Asignar nivel por defecto
 		entryDate: adminUser.entryDate,
 		active: adminUser.active,
 		ssoOnly: adminUser.ssoOnly,
@@ -196,7 +196,7 @@ export async function seedUsers(prisma: PrismaClient) {
 			email: adminUser.email,
 			idRole: adminRole.idRole,
 			idUserLeader: adminUser.idUserLeader,
-			idCategoria: juniorCategory?.idCategory || null,
+			idLevel: juniorCategory?.idLevel || null,
 			entryDate: adminUser.entryDate,
 			active: adminUser.active,
 			ssoOnly: adminUser.ssoOnly,
@@ -239,13 +239,13 @@ export async function seedUsers(prisma: PrismaClient) {
 	if (existingAndres) {
 		await prisma.user.update({
 			where: { idUser: existingAndres.idUser },
-			data: { ...andresData, idCategoria: juniorCategory?.idCategory || null },
+			data: { ...andresData, idLevel: juniorCategory?.idLevel || null },
 		})
 		console.log(
 			`✅ Usuario actualizado: ${andresUser.name} ${andresUser.lastName} (${andresUser.email})`
 		)
 	} else {
-		await prisma.user.create({ data: { ...andresData, idCategoria: juniorCategory?.idCategory || null } })
+		await prisma.user.create({ data: { ...andresData, idLevel: juniorCategory?.idLevel || null } })
 		console.log(
 			`✅ Usuario creado: ${andresUser.name} ${andresUser.lastName} (${andresUser.email})`
 		)
@@ -262,7 +262,7 @@ export async function seedUsers(prisma: PrismaClient) {
 		identityNumber: liderUser.identityNumber,
 		email: liderUser.email,
 		idRole: agentRole?.idRole || adminRole.idRole,
-		idCategoria: liderCategory?.idCategory || juniorCategory?.idCategory || null,
+		idLevel: liderCategory?.idLevel || juniorCategory?.idLevel || null,
 		entryDate: liderUser.entryDate,
 		active: liderUser.active,
 		ssoOnly: liderUser.ssoOnly,
@@ -297,7 +297,7 @@ export async function seedUsers(prisma: PrismaClient) {
 		email: agentUser.email,
 		idRole: agentRole?.idRole || adminRole.idRole,
 		idUserLeader: createdLiderId, // Asignar el líder recién creado/actualizado
-		idCategoria: juniorCategory?.idCategory || null,
+		idLevel: juniorCategory?.idLevel || null,
 		entryDate: agentUser.entryDate,
 		active: agentUser.active,
 		ssoOnly: agentUser.ssoOnly,

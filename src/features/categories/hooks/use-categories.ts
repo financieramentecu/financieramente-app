@@ -20,23 +20,9 @@ interface UseCategoriesReturn {
 
 /**
  * Hook for getting the list of categories with pagination and search
- *
- * @param params - Search and pagination parameters
- * @returns Async state and refetch function
- *
- * @example
- * ```typescript
- * const { state, refetch } = useCategories({ page: 1, pageSize: 10, search: 'MMS' })
- *
- * if (state.status === 'loading') return <Loading />
- * if (state.status === 'error') return <Error message={state.error} />
- * if (state.status === 'success') {
- *   return <CategoriesTable categories={state.data.categories} />
- * }
- * ```
  */
 export function useCategories(params: UseCategoriesParams = {}): UseCategoriesReturn {
-	const { page, pageSize, search, status, typeCategory } = params
+	const { page, pageSize, search, status } = params
 
 	const [state, setState] = useState<AsyncState<CategoryListResponse>>({
 		status: 'loading',
@@ -53,7 +39,6 @@ export function useCategories(params: UseCategoriesParams = {}): UseCategoriesRe
 				pageSize,
 				search,
 				status,
-				typeCategory,
 			})
 
 			if ('error' in response) {
@@ -80,7 +65,7 @@ export function useCategories(params: UseCategoriesParams = {}): UseCategoriesRe
 						: 'Error desconocido al obtener categorías',
 			})
 		}
-	}, [page, pageSize, search, status, typeCategory])
+	}, [page, pageSize, search, status])
 
 	useEffect(() => {
 		fetchCategories()

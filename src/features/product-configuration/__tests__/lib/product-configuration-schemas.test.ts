@@ -9,7 +9,7 @@ describe('product-configuration-schemas', () => {
 		it('should validate valid data (happy path)', () => {
 			const validData = {
 				idProduct: 1,
-				idCategory: 3,
+				idLevel: 3,
 				idCompany: 1,
 			}
 
@@ -17,13 +17,13 @@ describe('product-configuration-schemas', () => {
 			expect(result.success).toBe(true)
 			if (result.success) {
 				expect(result.data.idProduct).toBe(1)
-				expect(result.data.idCategory).toBe(3)
+				expect(result.data.idLevel).toBe(3)
 			}
 		})
 
 		it('should reject missing idProduct', () => {
 			const data = {
-				idCategory: 3,
+				idLevel: 3,
 				idCompany: 1,
 			}
 
@@ -31,7 +31,7 @@ describe('product-configuration-schemas', () => {
 			expect(result.success).toBe(false)
 		})
 
-		it('should reject missing idCategory', () => {
+		it('should reject missing idLevel', () => {
 			const data = {
 				idProduct: 1,
 				idCompany: 1,
@@ -44,7 +44,7 @@ describe('product-configuration-schemas', () => {
 		it('should reject missing idCompany', () => {
 			const data = {
 				idProduct: 1,
-				idCategory: 3,
+				idLevel: 3,
 			}
 
 			const result = createProductConfigurationSchema.safeParse(data)
@@ -54,7 +54,7 @@ describe('product-configuration-schemas', () => {
 		it('should reject zero idProduct', () => {
 			const data = {
 				idProduct: 0,
-				idCategory: 3,
+				idLevel: 3,
 				idCompany: 1,
 			}
 
@@ -65,7 +65,7 @@ describe('product-configuration-schemas', () => {
 		it('should reject negative idProduct', () => {
 			const data = {
 				idProduct: -1,
-				idCategory: 3,
+				idLevel: 3,
 				idCompany: 1,
 			}
 
@@ -76,7 +76,7 @@ describe('product-configuration-schemas', () => {
 		it('should reject non-integer idProduct', () => {
 			const data = {
 				idProduct: 1.5,
-				idCategory: 3,
+				idLevel: 3,
 				idCompany: 1,
 			}
 
@@ -84,10 +84,10 @@ describe('product-configuration-schemas', () => {
 			expect(result.success).toBe(false)
 		})
 
-		it('should reject negative idCategory', () => {
+		it('should reject negative idLevel', () => {
 			const data = {
 				idProduct: 1,
-				idCategory: -5,
+				idLevel: -5,
 				idCompany: 1,
 			}
 
@@ -98,7 +98,7 @@ describe('product-configuration-schemas', () => {
 		it('should reject string values', () => {
 			const data = {
 				idProduct: 'one',
-				idCategory: 3,
+				idLevel: 3,
 				idCompany: 1,
 			}
 
@@ -114,7 +114,7 @@ describe('product-configuration-schemas', () => {
 		it('should ignore unexpected fields like idClientOrigin', () => {
 			const data = {
 				idProduct: 1,
-				idCategory: 3,
+				idLevel: 3,
 				idCompany: 1,
 				idClientOrigin: 99, // should be stripped/ignored
 			}

@@ -51,9 +51,9 @@ export async function GET(
 			include: {
 				productPercentageCommissionCategories: {
 					include: {
-						category: {
+						level: {
 							select: {
-								idCategory: true,
+								idLevel: true,
 								name: true,
 							},
 						},
@@ -145,7 +145,7 @@ export async function PUT(
 					? await tx.productPercentageCommissionCategory.findMany({
 							where: { idProductPercentageCommission: ruleId },
 							select: {
-								idCategory: true,
+								idLevel: true,
 								porcentajePortfolio: true,
 							},
 						})
@@ -156,7 +156,7 @@ export async function PUT(
 				(typeof previousCategories)[0]['porcentajePortfolio']
 			>()
 			for (const row of previousCategories) {
-				portfolioByCategory.set(row.idCategory, row.porcentajePortfolio)
+				portfolioByCategory.set(row.idLevel, row.porcentajePortfolio)
 			}
 
 			const effectiveHasPortfolio =
@@ -188,14 +188,14 @@ export async function PUT(
 					await tx.productPercentageCommissionCategory.createMany({
 						data: data.categories.map((cat) => ({
 							idProductPercentageCommission: ruleId,
-							idCategory: cat.idCategory,
+							idLevel: cat.idLevel,
 							porcentajeDistribucion: cat.percentage,
 							porcentajePortfolio: effectiveHasPortfolio
 								? cat.portfolioPercentage !== undefined &&
 									cat.portfolioPercentage !== null
 									? cat.portfolioPercentage
-									: (portfolioByCategory.get(cat.idCategory) ?? null)
-								: (portfolioByCategory.get(cat.idCategory) ?? null),
+									: (portfolioByCategory.get(cat.idLevel) ?? null)
+								: (portfolioByCategory.get(cat.idLevel) ?? null),
 							active: true,
 						})),
 					})
@@ -208,9 +208,9 @@ export async function PUT(
 				include: {
 					productPercentageCommissionCategories: {
 						include: {
-							category: {
+							level: {
 								select: {
-									idCategory: true,
+									idLevel: true,
 									name: true,
 								},
 							},
@@ -357,9 +357,9 @@ export async function PATCH(
 			include: {
 				productPercentageCommissionCategories: {
 					include: {
-						category: {
+						level: {
 							select: {
-								idCategory: true,
+								idLevel: true,
 								name: true,
 							},
 						},

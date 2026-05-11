@@ -19,8 +19,10 @@ export async function GET(request: Request) {
 		const limitParam = searchParams.get('limit')
 		const roleParam = searchParams.get('role')
 		const beneficiaryModeParam = searchParams.get('beneficiaryMode')
+		const idLevelParam = searchParams.get('idLevel')
 
-		if (!query || query.length < 3) {
+		// Require at least 3 chars unless an idLevel filter is present (leader listing)
+		if ((!query || query.length < 3) && !idLevelParam) {
 			return NextResponse.json({ data: [] } satisfies ApiResponse<unknown[]>)
 		}
 
@@ -35,16 +37,20 @@ export async function GET(request: Request) {
 			)
 		}
 
-		const limit = Math.min(Math.max(Number(limitParam) || 10, 1), 25)
+		// When listing by level (no text query), allow up to 100; otherwise cap at 25
+		const defaultLimit = idLevelParam && !query ? 100 : 10
+		const limit = Math.min(Math.max(Number(limitParam) || defaultLimit, 1), 100)
 
 		// Construir filtros
 		const where: Prisma.UserWhereInput = {
 			active: true,
-			OR: [
-				{ identityNumber: { contains: query, mode: 'insensitive' } },
-				{ name: { contains: query, mode: 'insensitive' } },
-				{ lastName: { contains: query, mode: 'insensitive' } },
-			],
+			...(query.length >= 3 && {
+				OR: [
+					{ identityNumber: { contains: query, mode: 'insensitive' } },
+					{ name: { contains: query, mode: 'insensitive' } },
+					{ lastName: { contains: query, mode: 'insensitive' } },
+				],
+			}),
 		}
 
 		// add filter if there is a code role
@@ -54,11 +60,20 @@ export async function GET(request: Request) {
 			}
 		}
 
-		// add filter by category beneficiaryMode if provided
-		if (beneficiaryModeParam) {
-			where.category = {
-				beneficiaryMode: beneficiaryModeParam as BeneficiaryMode,
+		// Combine idLevel + beneficiaryMode filters into a single `level` relation block
+		// to avoid Prisma generating conflicting JOIN conditions
+		if (idLevelParam || beneficiaryModeParam) {
+			const levelFilter: Prisma.LevelWhereInput = {}
+			if (idLevelParam) {
+				const idLevelNum = Number(idLevelParam)
+				if (!isNaN(idLevelNum)) {
+					levelFilter.idLevel = idLevelNum
+				}
 			}
+			if (beneficiaryModeParam) {
+				levelFilter.beneficiaryMode = beneficiaryModeParam as BeneficiaryMode
+			}
+			where.level = levelFilter
 		}
 
 		const users = await prisma.user.findMany({
@@ -71,7 +86,7 @@ export async function GET(request: Request) {
 			take: limit,
 		})
 
-		return NextResponse.json({ data: users } satisfies ApiResponse<
+return NextResponse.json({ data: users } satisfies ApiResponse<
 			UserWithRole[]
 		>)
 	} catch (error) {

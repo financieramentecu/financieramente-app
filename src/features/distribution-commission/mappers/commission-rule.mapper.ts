@@ -14,13 +14,19 @@ type DecimalLike = {
 
 type PrismaCommissionRuleCategory = {
 	id: number
-	idCategory: number
+	idLevel: number
 	idProductPercentageCommission: number
 	porcentajeDistribucion: DecimalLike
 	porcentajePortfolio?: DecimalLike | null
 	active: boolean
 	createdAt: Date
 	updatedAt: Date
+	level?: {
+		idLevel: number
+		name: string
+	}
+	// Legacy alias — old DB column, kept for backward compat during migration
+	idCategory?: number
 	category?: {
 		idCategory: number
 		name: string
@@ -59,9 +65,13 @@ export function prismaCommissionRuleCategoryToDomain(
 			? fractionToPercent0to100(prisma.porcentajePortfolio)
 			: undefined
 
+	// Support both old (category) and new (level) shape
+	const levelId = prisma.idLevel ?? prisma.idCategory ?? 0
+	const levelInfo = prisma.level ?? (prisma.category ? { idLevel: prisma.category.idCategory, name: prisma.category.name } : undefined)
+
 	return {
 		id: prisma.id,
-		idCategory: prisma.idCategory,
+		idLevel: levelId,
 		idProductPercentageCommission: prisma.idProductPercentageCommission,
 		porcentajeDistribucion: fractionToPercent0to100(prisma.porcentajeDistribucion),
 		...(porcentajePortfolio !== undefined
@@ -70,10 +80,10 @@ export function prismaCommissionRuleCategoryToDomain(
 		active: prisma.active,
 		createdAt: prisma.createdAt.toISOString(),
 		updatedAt: prisma.updatedAt.toISOString(),
-		category: prisma.category
+		category: levelInfo
 			? {
-					idCategory: prisma.category.idCategory,
-					name: prisma.category.name,
+					idLevel: levelInfo.idLevel,
+					name: levelInfo.name,
 				}
 			: undefined,
 	}

@@ -11,7 +11,7 @@
  */
 import { PrismaClient } from '@prisma/client'
 import { seedAgenciaSystemUser } from './seeds/user'
-import { seedCategoryBeneficiaryLinks } from './seeds/category'
+import { seedLevelBeneficiaryLinks } from './seeds/level'
 
 const prisma = new PrismaClient()
 
@@ -29,7 +29,7 @@ async function main() {
 	}
 
 	await seedAgenciaSystemUser(prisma, adminRole)
-	await seedCategoryBeneficiaryLinks(prisma)
+	await seedLevelBeneficiaryLinks(prisma)
 
 	console.log('\n✨ Seed Agencia completado.')
 }

@@ -73,7 +73,7 @@ describe('GET /api/users/search', () => {
 			expect(mockPrismaFindMany).toHaveBeenCalledWith(
 				expect.objectContaining({
 					where: expect.objectContaining({
-						category: {
+						level: {
 							beneficiaryMode: 'OVERRIDE',
 						},
 					}),
@@ -106,7 +106,7 @@ describe('GET /api/users/search', () => {
 			expect(mockPrismaFindMany).toHaveBeenCalledWith(
 				expect.objectContaining({
 					where: expect.not.objectContaining({
-						category: expect.anything(),
+						level: expect.anything(),
 					}),
 				})
 			)
