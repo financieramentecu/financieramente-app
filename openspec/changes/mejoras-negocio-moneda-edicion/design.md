@@ -11,9 +11,18 @@ El objetivo es permitir una gestión flexible de los negocios tanto en la creaci
 | Opción | Tradeoff | Decisión |
 |--------|----------|----------|
 | Duplicar lógica en componentes | Difícil de mantener | Usar `isPrivilegedRole` en el hook `useBusinessForm` y propagarlo a las secciones. |
-| Crear un nuevo endpoint | Más limpio pero requiere migrar frontend | Extender el endpoint `PUT` existente con lógica condicional por rol. |
+| Crear un nuevo endpoint | Más limpio pero requiere migrar frontend | Extender el endpoint `PUT` existente con lógica condicional por rol y validaciones de estado/fondeo. |
 
 **Rationale**: Extender el endpoint existente permite aprovechar la infraestructura de auditoría y validación de estado que ya posee `PUT /api/negocios/[id]`, minimizando el impacto en el cliente.
+
+### Decision: Reglas de Edición de Plazo y Periodicidad
+
+**Choice**: La edición de `term` y `idBuyPeriodicity` estará restringida por estado y fondeo.
+**Rationale**: Evitar inconsistencias financieras al modificar la estructura de cuotas de un negocio que ya tiene flujos de caja registrados.
+
+- **Estados Permitidos**: `VENTA_EFECTUADA`, `EMITIDO`.
+- **Condición de Fondeo**: El negocio debe tener **cero (0)** pagos con estado `FONDEADO`.
+- **Acción**: Si se permite el cambio, se eliminarán los pagos existentes (todos `SIN_FONDEAR`) y se recrearán según el nuevo `numAportes`.
 
 ### Decision: Resolución dinámica de PPC en Update
 
@@ -71,6 +80,4 @@ El objetivo es permitir una gestión flexible de los negocios tanto en la creaci
 
 No se requiere migración de datos. El cambio es puramente funcional sobre la lógica de edición y creación.
 
-## Open Questions
-
-- [ ] **Pagos Existentes**: Si un negocio ya tiene registros en la tabla `Payment` (numAportes > 0) y se cambia el producto/periodicidad resultando en un nuevo `numAportes`, ¿debemos recrear los pagos? (Decisión: Para esta fase, solo se actualizará el campo `numAportes` en `Business`, la gestión de pagos históricos se tratará como caso excepcional manual).
+- **Sincronización de Pagos**: Cuando un Admin cambie `term`, `idBuyPeriodicity` o `idProduct` (que afecte `numAportes`), el backend eliminará los `Payment` actuales y creará los nuevos basados en el cálculo actualizado, siempre que se cumpla la pre-condición de cero fondeos.

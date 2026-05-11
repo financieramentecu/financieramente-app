@@ -28,8 +28,9 @@ Chain strategy: size-exception
 - [ ] 1.1 Modificar `src/features/negocios/lib/business-api.schemas.ts` para expandir `updateBusinessSchema` con campos: `idProduct`, `term`, `value`, `idBuyPeriodicity`, `idCurrency`, `idUser`.
 - [ ] 1.2 Actualizar interfaz `UpdateBusinessRequest` en `src/features/negocios/types/business-api.types.ts`.
 - [ ] 1.3 Refactorizar `PUT` handler en `src/app/api/negocios/[id]/route.ts` para validar roles `ADMIN`/`ASISTENTE`.
-- [ ] 1.4 Implementar en el handler la resolución de `idProductPercentageCommission` mediante `findProductPercentageCommission` si cambia producto o agente.
-- [ ] 1.5 Implementar en el handler el recalculo de `numAportes` y actualización en DB si cambian campos base.
+- [ ] 1.4 Implementar validación estricta para `term` y `idBuyPeriodicity`: Solo si estado es `VENTA_EFECTUADA`/`EMITIDO` y cero pagos `FONDEADO`.
+- [ ] 1.5 Implementar resolución de `idProductPercentageCommission` mediante `findProductPercentageCommission` si cambia producto o agente.
+- [ ] 1.6 Implementar actualización de `numAportes` y sincronización de tabla `Payment` (delete/recreate) si los campos base cambian.
 
 ## Phase 2: Core Implementation (Frontend)
 
