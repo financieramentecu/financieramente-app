@@ -14,7 +14,6 @@ import {
 import { UserWithRole } from '@/features/negocios/types/business.types'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 
-import type { BusinessFormField, FieldPermission } from '@/features/negocios/hooks/use-business-permissions'
 
 export interface CoachInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>

@@ -74,8 +74,8 @@ vi.mock('@/features/negocios/services/business.service', () => ({
 	},
 }))
 
-vi.mock('@/features/negocios/components/MisNegociosPage', () => ({
-	MisNegociosPage: ({
+vi.mock('@/features/negocios/components/MisNegociosPage', () => {
+	const MisNegociosPage = ({
 		onFondearBusiness,
 	}: {
 		onFondearBusiness?: (business: Business) => void
@@ -94,8 +94,12 @@ vi.mock('@/features/negocios/components/MisNegociosPage', () => ({
 				trigger-fondear-annual
 			</button>
 		</div>
-	),
-}))
+	)
+	return {
+		MisNegociosPage,
+		default: MisNegociosPage,
+	}
+})
 
 vi.mock('@/features/negocios/components/modals/BusinessViewModal', () => ({
 	BusinessViewModal: () => null,

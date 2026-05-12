@@ -107,7 +107,7 @@ export function DataTable<TData>({
 		} else if (initialSorting && initialSorting.length === 0 && sorting.length > 0) {
 			setSorting([])
 		}
-	}, [initialSorting])
+	}, [initialSorting, sorting.length])
 
 	// Definición final de columnas (inyectando selección y acciones)
 	const finalColumns = useMemo(() => {
@@ -296,7 +296,7 @@ export function DataTable<TData>({
 	return (
 		<div className={cn('grid grid-rows-[auto_1fr_auto] h-full w-full min-w-0 overflow-hidden gap-4', className)}>
 			{showToolbar && (
-				<div className="min-h-0 shrink-0 w-full py-1">
+				<div className="min-h-0 shrink-0 w-full py-2">
 					<DataTableToolbar
 						table={table}
 						setColumnFilters={setColumnFilters}

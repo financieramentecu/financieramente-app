@@ -408,7 +408,7 @@ export function BusinessTableSection({
 										</div>
 									) : null}
 									{onFundDateFromChange && onFundDateToChange ? (
-										<fieldset className="border-input bg-muted/25 m-0 inline-flex h-10 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-0 shadow-xs">
+										<fieldset className="border-input bg-muted/25 m-0 inline-flex min-h-10 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-1 shadow-xs">
 											<legend className="sr-only">
 												Rango de fechas de fondeo para filtrar la tabla
 											</legend>

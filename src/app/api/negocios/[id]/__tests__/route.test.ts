@@ -7,10 +7,46 @@ import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 
 vi.mock('@/auth', () => ({ auth: vi.fn() }))
+
+const { mockPrismaUpdate, mockPrismaFindFirst } = vi.hoisted(() => ({
+	mockPrismaUpdate: vi.fn().mockResolvedValue({ idBusiness: 10, status: 'EMITIDO' }),
+	mockPrismaFindFirst: vi.fn().mockResolvedValue(null),
+}))
+
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
-		business: { findFirst: vi.fn(), update: vi.fn() },
+		business: { 
+			findFirst: (...args: unknown[]) => mockPrismaFindFirst(...args),
+			update: (...args: unknown[]) => mockPrismaUpdate(...args)
+		},
 		clientOrigin: { findFirst: vi.fn() },
+		user: { findUnique: vi.fn() },
+		buyPeriodicity: { findUnique: vi.fn() },
+		product: { findUnique: vi.fn() },
+		payment: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
+		$transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => unknown) => {
+			const tx = {
+				business: {
+					update: mockPrismaUpdate,
+					findMany: vi.fn().mockResolvedValue([]),
+					deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+					createMany: vi.fn().mockResolvedValue({ count: 0 }),
+					findFirst: mockPrismaFindFirst,
+				},
+				payment: {
+					findMany: vi.fn().mockResolvedValue([]),
+					deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+					createMany: vi.fn().mockResolvedValue({ count: 0 }),
+				},
+				user: {
+					findUnique: vi.fn().mockResolvedValue({ idLevel: 1 }),
+				},
+				productConfiguration: {
+					findFirst: vi.fn().mockResolvedValue({ idProductConfiguration: 1 }),
+				},
+			}
+			return await cb(tx)
+		}),
 	},
 }))
 vi.mock('@/features/pre-liquidacion/services/pre-liquidacion.service', () => ({
@@ -26,11 +62,19 @@ vi.mock('@/features/negocios/services/product-configuration.service', () => ({
 vi.mock('@/features/negocios/services/user.service', () => ({
 	getCurrentUserByEmail: vi.fn(),
 }))
+vi.mock('@/features/negocios/actions/find-product-percentage-commission', () => ({
+	findProductPercentageCommission: vi.fn().mockResolvedValue({
+		data: { idProductPercentageCommission: 1 },
+	}),
+}))
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn().mockResolvedValue(undefined),
 	AuditAction: { BUSINESS_UPDATED: 'BUSINESS_UPDATED' },
 	getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
 	getUserAgent: vi.fn().mockReturnValue('test-agent'),
+}))
+vi.mock('@/features/negocios/actions/find-product-percentage-commission', () => ({
+	findProductPercentageCommission: vi.fn().mockResolvedValue({ data: { idProductPercentageCommission: 1 } }),
 }))
 vi.mock('@/features/negocios/mappers/business-entity.mapper', () => ({
 	prismaBusinessToEntity: vi.fn().mockReturnValue({
@@ -47,14 +91,6 @@ const mockProductConfiguration = {
 	idCategory: 3,
 }
 
-const mockBusinessWithPpc = {
-	idBusiness: 10,
-	status: 'EMITIDO',
-	productPercentageCommission: {
-		idProductPercentageCommission: 1,
-		productConfiguration: mockProductConfiguration,
-	},
-}
 
 describe('PUT /api/negocios/[id]', () => {
 	beforeEach(() => {
@@ -71,10 +107,10 @@ describe('PUT /api/negocios/[id]', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(prisma.business.findFirst as any)
-			.mockResolvedValueOnce(mockBusiness)        // 1st: validate business exists
-			.mockResolvedValueOnce(mockBusinessWithPpc) // 2nd: fetch PPC/productConfiguration
-			.mockResolvedValueOnce(mockBusiness)        // 3rd: fetch updated business after recalculate
+		mockPrismaFindFirst.mockImplementation(({ where }: any) => {
+			if (typeof where.idBusiness === 'number' || typeof where.idBusiness === 'string') return Promise.resolve(mockBusiness)
+			return Promise.resolve(null)
+		})
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(prisma.clientOrigin.findFirst as any).mockResolvedValue({ idClientOrigin: 2, status: true })
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,7 +144,10 @@ describe('PUT /api/negocios/[id]', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(prisma.business.findFirst as any).mockResolvedValue(mockBusiness)
+		mockPrismaFindFirst.mockImplementation(({ where }: any) => {
+			if (typeof where.idBusiness === 'number' || typeof where.idBusiness === 'string') return Promise.resolve(mockBusiness)
+			return Promise.resolve(null)
+		})
 
 		const req = new Request('http://localhost:3000/api/negocios/10', {
 			method: 'PUT',
@@ -121,7 +160,7 @@ describe('PUT /api/negocios/[id]', () => {
 		const data = await res.json() as { error: string }
 
 		expect(res.status).toBe(400)
-		expect(data.error).toContain('Solo se puede cambiar el origen en negocios en estado Emitido')
+		expect(data.error).toContain('Solo se puede cambiar el origen en negocios con estado EMITIDO.')
 		expect(recalcularComisionesPorCambioOrigen).not.toHaveBeenCalled()
 	})
 
@@ -135,9 +174,10 @@ describe('PUT /api/negocios/[id]', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(prisma.business.findFirst as any)
-			.mockResolvedValueOnce(mockBusiness)        // 1st: validate business exists
-			.mockResolvedValueOnce(mockBusinessWithPpc) // 2nd: fetch PPC/productConfiguration
+		mockPrismaFindFirst.mockImplementation(({ where }: any) => {
+			if (typeof where.idBusiness === 'number' || typeof where.idBusiness === 'string') return Promise.resolve(mockBusiness)
+			return Promise.resolve(null)
+		})
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(prisma.clientOrigin.findFirst as any).mockResolvedValue({ idClientOrigin: 2, status: true })
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,10 +211,10 @@ describe('PUT /api/negocios/[id]', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(prisma.business.findFirst as any)
-			.mockResolvedValueOnce(mockBusiness)        // 1st: validate business exists
-			.mockResolvedValueOnce(mockBusinessWithPpc) // 2nd: fetch PPC/productConfiguration
-			.mockResolvedValueOnce(mockBusiness)        // 3rd: fetch updated business after recalculate
+		mockPrismaFindFirst.mockImplementation(({ where }: any) => {
+			if (typeof where.idBusiness === 'number' || typeof where.idBusiness === 'string') return Promise.resolve(mockBusiness)
+			return Promise.resolve(null)
+		})
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(prisma.clientOrigin.findFirst as any).mockResolvedValue({ idClientOrigin: 2, status: true })
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -215,13 +255,12 @@ describe('PUT /api/negocios/[id]', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(auth as any).mockResolvedValue(mockSession)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
+		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(prisma.business.findFirst as any)
+		mockPrismaFindFirst
 			.mockResolvedValueOnce(mockBusinessVe)
 			.mockResolvedValueOnce(null)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(prisma.business.update as any).mockResolvedValue({})
+		mockPrismaUpdate.mockResolvedValue({ idBusiness: 10, status: 'EMITIDO' })
 
 		const req = new Request('http://localhost:3000/api/negocios/10', {
 			method: 'PUT',
@@ -233,7 +272,7 @@ describe('PUT /api/negocios/[id]', () => {
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 
 		expect(res.status).toBe(200)
-		expect(prisma.business.update).toHaveBeenCalledWith(
+		expect(mockPrismaUpdate).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: { idBusiness: 10 },
 				data: expect.objectContaining({
@@ -264,13 +303,12 @@ describe('PUT /api/negocios/[id]', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(auth as any).mockResolvedValue(mockSession)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
+		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(prisma.business.findFirst as any)
+		mockPrismaFindFirst
 			.mockResolvedValueOnce(mockBusinessEmitido)
 			.mockResolvedValueOnce(null)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		;(prisma.business.update as any).mockResolvedValue({})
+		mockPrismaUpdate.mockResolvedValue({ idBusiness: 10, status: 'EMITIDO' })
 
 		const req = new Request('http://localhost:3000/api/negocios/10', {
 			method: 'PUT',
@@ -282,7 +320,7 @@ describe('PUT /api/negocios/[id]', () => {
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 
 		expect(res.status).toBe(200)
-		const updateArg = vi.mocked(prisma.business.update).mock.calls[0][0]
+		const updateArg = mockPrismaUpdate.mock.calls[0][0]
 		expect(updateArg.data).not.toHaveProperty('dateIssued')
 		expect(updateArg.data).toEqual(
 			expect.objectContaining({

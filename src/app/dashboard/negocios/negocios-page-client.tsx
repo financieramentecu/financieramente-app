@@ -2,9 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import MisNegociosPage, { 
-	type MisNegociosPageProps 
-} from '@/features/negocios/components/MisNegociosPage'
+import MisNegociosPage from '@/features/negocios/components/MisNegociosPage'
 import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
 import { FundingModal } from '@/features/negocios/components/modals/FundingModal'

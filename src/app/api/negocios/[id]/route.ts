@@ -175,6 +175,13 @@ export async function PUT(
 			idUser,
 			numAportes,
 		} = validationResult.data
+		
+		if (Object.keys(validationResult.data).length === 0) {
+			return NextResponse.json(
+				{ data: null, error: 'Debe enviar al menos un campo para actualizar' },
+				{ status: 400 }
+			)
+		}
 
 		// Obtener usuario actual
 		const currentUser = await getCurrentUserByEmail(session.user.email)
@@ -222,8 +229,19 @@ export async function PUT(
 
 		if (!existingBusiness) {
 			return NextResponse.json(
-				{ data: null, error: 'Negocio no encontrado o sin acceso' },
+				{ data: null, error: 'Negocio no encontrado' },
 				{ status: 404 }
+			)
+		}
+
+		// Validar que el negocio esté en un estado editable
+		if (
+			existingBusiness.status !== BUSINESS_STATUS.VENTA_EFECTUADA &&
+			existingBusiness.status !== BUSINESS_STATUS.EMITIDO
+		) {
+			return NextResponse.json(
+				{ data: null, error: 'Solo se pueden editar negocios en estado VENTA_EFECTUADA o EMITIDO' },
+				{ status: 400 }
 			)
 		}
 
@@ -242,22 +260,44 @@ export async function PUT(
 			)
 		}
 
-		// --- FLUJO ESPECIAL: CAMBIO DE ORIGEN ---
-		if (idClientOrigin !== undefined && isUpdatingSensitive === false && contract === undefined) {
-			// (Mantenemos la lógica existente de origen para no romper nada)
-			if (existingBusiness.status !== BUSINESS_STATUS.EMITIDO) {
-				return NextResponse.json(
-					{ data: null, error: 'Solo se puede cambiar el origen en negocios en estado Emitido' },
-					{ status: 400 }
-				)
-			}
-			// ... (resto de validaciones de origen se simplifican o se integran abajo)
+		// Validar permisos para contrato si ya está emitido
+		if (
+			isNotDraft &&
+			contract !== undefined &&
+			!canEditContractWhenBusinessEmitido(currentUser.role?.code)
+		) {
+			return NextResponse.json(
+				{ data: null, error: 'No tienes permisos para editar el contrato de un negocio ya emitido' },
+				{ status: 403 }
+			)
 		}
 
 		// --- RESOLUCIÓN DE DATOS PARA ACTUALIZACIÓN ---
 		let finalIdPpc = existingBusiness.idProductPercentageCommission
 		let finalNumAportes = existingBusiness.numAportes ?? 0
 		let shouldSyncPayments = false
+
+		// --- FLUJO ESPECIAL: CAMBIO DE ORIGEN ---
+		if (idClientOrigin !== undefined && isUpdatingSensitive === false && contract === undefined) {
+			if (existingBusiness.status !== BUSINESS_STATUS.EMITIDO) {
+				return NextResponse.json(
+					{ data: null, error: 'Solo se puede cambiar el origen en negocios con estado EMITIDO.' },
+					{ status: 400 }
+				)
+			}
+
+			const validation = await validateProductConfigurationExists(
+				existingBusiness.productPercentageCommission.productConfiguration.idLevel,
+				idProduct ?? existingBusiness.productPercentageCommission.productConfiguration.idProduct
+			)
+
+			if (!validation.valid) {
+				return NextResponse.json(
+					{ data: null, error: validation.reason || 'No existe configuración para este origen' },
+					{ status: 400 }
+				)
+			}
+		}
 
 		// 1. Resolver PPC si cambia producto o agente
 		if (idProduct !== undefined || idUser !== undefined) {
@@ -300,7 +340,6 @@ export async function PUT(
 				finalNumAportes = numAportes
 			} else {
 				const targetTerm = term ?? existingBusiness.term
-				const targetIdBuyPeriodicity = idBuyPeriodicity ?? existingBusiness.idBuyPeriodicity
 
 				let periodicityName = existingBusiness.buyPeriodicity?.name ?? null
 				if (idBuyPeriodicity !== undefined && idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) {
@@ -425,6 +464,10 @@ export async function PUT(
 
 		// --- TAREAS POST-ACTUALIZACIÓN ---
 
+		if (!updatedBusiness) {
+			throw new Error('La actualización del negocio no devolvió datos')
+		}
+
 		// A. Cambio de origen o PPC -> Recalcular comisiones
 		if (idClientOrigin !== undefined || finalIdPpc !== existingBusiness.idProductPercentageCommission) {
 			try {
@@ -453,7 +496,9 @@ export async function PUT(
 			userAgent: getUserAgent(new Headers(request.headers)),
 			details: JSON.stringify({
 				businessId,
-				updatedFields: Object.keys(validationResult.data),
+				previousStatus: existingBusiness.status,
+				newStatus: updatedBusiness.status,
+				...validationResult.data,
 				wasPrivileged: isPrivileged,
 			}),
 		})

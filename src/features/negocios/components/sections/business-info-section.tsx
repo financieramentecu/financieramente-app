@@ -41,11 +41,11 @@ export function BusinessInfoSection({
 	companiesOptions,
 	filteredProducts,
 	onSelectLag,
-	isBlocked,
+	isBlocked: _isBlocked,
 	isEditMode = false,
 	contractDisabled = false,
-	isPrivilegedRole = false,
-	roleCode,
+	isPrivilegedRole: _isPrivilegedRole = false,
+	roleCode: _roleCode,
 	getFieldPermission,
 }: BusinessInfoSectionProps) {
 	const { register, watch, setValue, formState } = form
@@ -58,8 +58,6 @@ export function BusinessInfoSection({
 	const watchedCompanyId = watch('company')
 	const watchedProductId = watch('producto')
 	const watchedPeriodicityId = watch('periodicity')
-	const watchedNumAportes = watch('numAportes')
-
 	const isSkandiaWithMfund = React.useMemo(() => {
 		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
 		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null

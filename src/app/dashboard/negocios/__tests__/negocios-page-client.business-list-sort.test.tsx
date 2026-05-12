@@ -122,8 +122,8 @@ vi.mock('@/features/shared/ui/alert-dialog', () => ({
 	),
 }))
 
-vi.mock('@/features/negocios/components/MisNegociosPage', () => ({
-	MisNegociosPage: ({ businessData = [] }: { businessData?: Business[] }) => (
+vi.mock('@/features/negocios/components/MisNegociosPage', () => {
+	const MisNegociosPage = ({ businessData = [] }: { businessData?: Business[] }) => (
 		<table>
 			<tbody>
 				{businessData.map((b) => (
@@ -133,8 +133,12 @@ vi.mock('@/features/negocios/components/MisNegociosPage', () => ({
 				))}
 			</tbody>
 		</table>
-	),
-}))
+	)
+	return {
+		MisNegociosPage,
+		default: MisNegociosPage,
+	}
+})
 
 describe('NegociosPageClient - orden del listado por fecha de creación', () => {
 	beforeEach(() => {
