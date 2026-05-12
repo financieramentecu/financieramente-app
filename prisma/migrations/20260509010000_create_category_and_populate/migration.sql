@@ -26,14 +26,14 @@ FROM "level";
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Step 3: Add id_category column to users (nullable — populated below)
 -- ─────────────────────────────────────────────────────────────────────────────
-ALTER TABLE "user" ADD COLUMN "id_category" INTEGER REFERENCES "category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "user" ADD COLUMN "id_category" INTEGER REFERENCES "category"("id_category") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Step 4: Assign each user their matching category based on their current level name
 --         Joins: user → level (by id_level), level → category (by name match)
 -- ─────────────────────────────────────────────────────────────────────────────
 UPDATE "user" u
-SET id_category = c.id
+SET id_category = c.id_category
 FROM "category" c,
      "level" l
 WHERE u.id_level = l.id_level
