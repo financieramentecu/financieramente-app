@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET } from '../route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { businessListParamsSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
@@ -20,11 +21,17 @@ import {
 
 // Mock de módulos externos
 vi.mock('@/auth')
+vi.mock('@/features/negocios/services/user-hierarchy.service', () => ({
+	getSubordinateUserIds: vi.fn().mockImplementation(() => Promise.resolve([])),
+}))
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		business: {
 			count: vi.fn(),
 			findMany: vi.fn(),
+		},
+		user: {
+			findMany: vi.fn().mockResolvedValue([]),
 		},
 	},
 }))
@@ -54,9 +61,12 @@ describe('GET /api/negocios', () => {
 		prismaBusinessListToEntities
 	)
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
+	const mockGetSubordinateUserIds = vi.mocked(getSubordinateUserIds)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		// Default: no subordinates (returns empty array so visibleUserIds = [self])
+		mockGetSubordinateUserIds.mockResolvedValue([])
 		mockNextResponseJson.mockImplementation(
 			(data: unknown, init?: { status?: number }) => {
 				return {
@@ -389,10 +399,10 @@ describe('GET /api/negocios', () => {
 			const responseData = await response.json()
 
 			expect(mockPrismaCount).toHaveBeenCalledWith({
-				where: { AND: [{ idUser: mockAgentUser.idUser }] },
+				where: { AND: [{ idUser: { in: [mockAgentUser.idUser] } }] },
 			})
 			expect(mockPrismaFindMany).toHaveBeenCalledWith({
-				where: { AND: [{ idUser: mockAgentUser.idUser }] },
+				where: { AND: [{ idUser: { in: [mockAgentUser.idUser] } }] },
 				include: expect.any(Object),
 				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
 				skip: 0,
@@ -435,7 +445,7 @@ describe('GET /api/negocios', () => {
 			expect(mockPrismaCount).toHaveBeenCalledWith({
 				where: {
 					AND: [
-						{ idUser: mockAgentUser.idUser },
+						{ idUser: { in: [mockAgentUser.idUser] } },
 						{ status: BUSINESS_STATUS.VENTA_EFECTUADA },
 					],
 				},
@@ -827,7 +837,7 @@ describe('GET /api/negocios', () => {
 			expect(mockPrismaCount).toHaveBeenCalledWith({
 				where: {
 					AND: [
-						{ idUser: mockAgentUser.idUser },
+						{ idUser: { in: [mockAgentUser.idUser] } },
 						{ status: BUSINESS_STATUS.VENTA_EFECTUADA },
 						{
 							OR: expect.arrayContaining([

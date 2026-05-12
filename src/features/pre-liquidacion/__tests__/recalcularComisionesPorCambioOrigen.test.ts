@@ -115,7 +115,7 @@ describe('recalcularComisionesPorCambioOrigen', () => {
 		vi.mocked(prisma.productPercentageCommissionCategory.findMany).mockResolvedValue([
 			{
 				id: 77,
-				category: {
+				level: {
 					idCategory: 1,
 					code: 'GENERAL',
 					name: 'GENERAL',

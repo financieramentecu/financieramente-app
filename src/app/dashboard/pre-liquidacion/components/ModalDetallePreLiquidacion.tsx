@@ -220,7 +220,7 @@ export function ModalDetallePreLiquidacion({
 								</TabsTrigger>
 								<TabsTrigger value="distribucion">
 									<Users className="h-4 w-4 mr-2" />
-									Distribución por Agente ({data.distribucion.length})
+									Distribución por Money Strategist ({data.distribucion.length})
 								</TabsTrigger>
 							</TabsList>
 
@@ -243,10 +243,10 @@ export function ModalDetallePreLiquidacion({
 														Cliente
 													</th>
 													<th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">
-														Cédula Agente
+														Cédula Money Strategist
 													</th>
 													<th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">
-														Agente
+														Money Strategist
 													</th>
 													<th className="text-left py-2 px-1 font-semibold text-foreground whitespace-nowrap">
 														Contrato
@@ -387,7 +387,7 @@ export function ModalDetallePreLiquidacion({
 											<thead className="bg-muted sticky top-0">
 												<tr>
 													<th className="text-left py-2 px-2 font-semibold text-foreground">
-														Agente
+														Money Strategist
 													</th>
 													<th className="text-left py-2 px-2 font-semibold text-foreground">
 														Cédula

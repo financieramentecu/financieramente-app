@@ -56,13 +56,13 @@ describe('CommissionRulesTable', () => {
 			categories: [
 				{
 					id: 1,
-					idCategory: 1,
+					idLevel: 1,
 					idProductPercentageCommission: 10,
 					porcentajeDistribucion: pct,
 					active: true,
 					createdAt: '2024-01-01T00:00:00.000Z',
 					updatedAt: '2024-01-01T00:00:00.000Z',
-					category: { idCategory: 1, name: 'Demo' },
+					category: { idLevel: 1, name: 'Demo' },
 				},
 			],
 		})
@@ -106,14 +106,14 @@ describe('CommissionRulesTable', () => {
 			categories: [
 				{
 					id: 1,
-					idCategory: 1,
+					idLevel: 1,
 					idProductPercentageCommission: 10,
 					porcentajeDistribucion: 50,
 					porcentajePortfolio: 30,
 					active: true,
 					createdAt: '2024-01-01T00:00:00.000Z',
 					updatedAt: '2024-01-01T00:00:00.000Z',
-					category: { idCategory: 1, name: 'Demo' },
+					category: { idLevel: 1, name: 'Demo' },
 				},
 			],
 		})

@@ -59,7 +59,11 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 		password: null,
 		ssoOnly: true,
 		phone: '3009876543',
-		idCategoria: 1,
+		idLevel: 1,
+		idCategory: 1,
+		category: {
+			name: 'Junior',
+		},
 		idRole: 2,
 		idUserLeader: null,
 		entryDate: baseDate,
@@ -76,7 +80,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 			createdAt: baseDate,
 			updatedAt: baseDate,
 		},
-		category: {
+		level: {
 			name: 'Junior',
 		},
 	},
@@ -91,7 +95,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 		productConfiguration: {
 			id: 1,
 			idProduct: 1,
-			idCategory: 1,
+			idLevel: 1,
 			code: 'SKANDIA-CREA_PATRIMONIO-JUNIOR',
 			active: true,
 			idProductPercentageCommissionNewBusinesses: 1,

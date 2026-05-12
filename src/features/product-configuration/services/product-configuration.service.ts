@@ -12,8 +12,8 @@ const productConfigurationInclude = {
 			},
 		},
 	},
-	category: {
-		select: { idCategory: true, name: true },
+	level: {
+		select: { idLevel: true, name: true, code: true },
 	},
 	productPercentageCommissionNewBusinesses: {
 		select: {

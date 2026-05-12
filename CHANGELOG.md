@@ -6,6 +6,35 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 
 
+## [1.4.0] - 2026-05-09
+
+### Añadido
+
+- **Jerarquía de Niveles:** Se separó el concepto de jerarquía de comisiones (ahora llamado **Nivel**) del concepto de agrupación de agentes (ahora llamado **Categoría**). Los niveles van de MS Junior (LEVEL_0) hasta Partner (LEVEL_5) más el nivel General para la agencia. Cada nivel tiene su propio color identificador.
+
+- **Distribución de Comisiones por Nivel:** Se cargó la tabla estándar de distribución para todos los productos activos. Cada nivel de configuración (LEVEL_0 al LEVEL_5) tiene su propio plan de porcentajes hacia los niveles superiores de la cadena.
+
+- **Visibilidad Jerárquica de Negocios:** Los líderes ahora pueden ver los negocios de todas las personas a su cargo en la cadena de jerarquía — no solo los directos, sino toda la red hacia abajo. Un LEVEL_4 ve negocios de LEVEL_3, 2, 1 y 0 que estén bajo su liderazgo. El detalle de cada negocio también es accesible para el líder correspondiente.
+
+- **Selector de Líder en Formulario de Usuario:** Al asignar un líder a un usuario, ahora se selecciona primero el nivel del líder y luego se listan solo los usuarios de ese nivel — reemplazando el buscador anterior por un flujo más preciso y guiado.
+
+- **Indicador de Carga en Selectores:** Todos los selectores del formulario de usuario muestran un indicador visual mientras cargan sus opciones.
+
+### Mejorado
+
+- **Tabla de Usuarios:** La columna de nivel ahora muestra un chip coloreado con el color asignado al nivel. La columna de categoría muestra solo el nombre sin decoración adicional.
+
+- **Reglas de Distribución:** El formulario de reglas filtra y muestra solo los niveles relevantes por encima del nivel de configuración del producto, evitando configuraciones inválidas.
+
+- **Terminología:** El término "Agente" fue reemplazado por **"Money Strategist"** en toda la interfaz visible al usuario.
+
+- **Configuración de Productos:** La clave única de configuración cambió de Compañía-Producto-Categoría a Compañía-Producto-Nivel, alineada con la nueva estructura jerárquica.
+
+### Interno
+
+- Migración de base de datos: modelo `Category` renombrado a `Level`; nueva tabla `Category` para agrupación de agentes; tabla de distribución renombrada a `product_percentaje_commision_level`. 6 migraciones Prisma incluidas.
+- 1880 pruebas pasando, 0 errores de TypeScript.
+
 ## [1.3.3] - 2026-05-08
 
 ### Corregido

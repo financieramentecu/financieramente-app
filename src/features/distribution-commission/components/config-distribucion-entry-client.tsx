@@ -128,7 +128,7 @@ export function ConfigDistribucionEntryClient() {
 											{c.code}
 										</span>
 										<span className="text-muted-foreground ml-2 text-xs">
-											{c.product.name} · {c.category.name}
+											{(c.product as { name: string }).name} · {(c.level as { name: string }).name}
 										</span>
 									</Button>
 								</li>

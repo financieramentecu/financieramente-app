@@ -149,7 +149,7 @@ export function ResultadosPreLiquidacion({
                                         <th className="py-3 px-4 text-left font-semibold text-primary whitespace-nowrap" scope="col">Registro</th>
                                         <th className="py-3 px-4 text-left font-semibold text-primary whitespace-nowrap" scope="col">Producto</th>
                                         <th className="py-3 px-4 text-left font-semibold text-primary whitespace-nowrap" scope="col">Cliente</th>
-                                        <th className="py-3 px-4 text-left font-semibold text-primary whitespace-nowrap" scope="col">Agente</th>
+                                        <th className="py-3 px-4 text-left font-semibold text-primary whitespace-nowrap" scope="col">Money Strategist</th>
                                         <th className="py-3 px-4 text-right font-semibold text-primary whitespace-nowrap bg-info-muted" scope="col">Comisión Base</th>
 
                                         {/* Columnas dinámicas generadas desde categoriasUnicas */}

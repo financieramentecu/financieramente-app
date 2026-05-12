@@ -27,11 +27,9 @@ describe('useCategories', () => {
 
 		const { result } = renderHook(() => useCategories())
 
-		// Initial state should be loading
 		expect(result.current.state.status).toBe('loading')
 		expect(result.current.state.data).toBeUndefined()
 
-		// Wait for the effect to complete
 		await waitFor(() => {
 			expect(result.current.state.status).not.toBe('loading')
 		})
@@ -39,8 +37,8 @@ describe('useCategories', () => {
 
 	it('should fetch categories successfully (happy path)', async () => {
 		const mockResponse = createMockCategoryListResponse([
-			createMockCategory({ idCategory: 1, name: 'Agente MMS' }),
-			createMockCategory({ idCategory: 2, name: 'Agente Aliado' }),
+			createMockCategory({ id: 1, name: 'Categoría A' }),
+			createMockCategory({ id: 2, name: 'Categoría B' }),
 		])
 
 		vi.mocked(categoryApi.getCategories).mockResolvedValueOnce({
@@ -79,7 +77,6 @@ describe('useCategories', () => {
 			new Error('Network error')
 		)
 
-		// Suppress console.error for this test
 		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
 		const { result } = renderHook(() => useCategories())
@@ -119,29 +116,14 @@ describe('useCategories', () => {
 		})
 
 		renderHook(() =>
-			useCategories({ search: 'Agente', page: 1, pageSize: 10 })
+			useCategories({ search: 'Categoría', page: 1, pageSize: 10 })
 		)
 
 		await waitFor(() => {
 			expect(categoryApi.getCategories).toHaveBeenCalledWith({
-				search: 'Agente',
+				search: 'Categoría',
 				page: 1,
 				pageSize: 10,
-			})
-		})
-	})
-
-	it('should pass typeCategory filter to API', async () => {
-		const mockResponse = createMockCategoryListResponse()
-		vi.mocked(categoryApi.getCategories).mockResolvedValueOnce({
-			data: mockResponse,
-		})
-
-		renderHook(() => useCategories({ typeCategory: 'MMS' }))
-
-		await waitFor(() => {
-			expect(categoryApi.getCategories).toHaveBeenCalledWith({
-				typeCategory: 'MMS',
 			})
 		})
 	})
@@ -157,22 +139,6 @@ describe('useCategories', () => {
 		await waitFor(() => {
 			expect(categoryApi.getCategories).toHaveBeenCalledWith({
 				status: 'active',
-			})
-		})
-	})
-
-	it('should pass pagination params to API', async () => {
-		const mockResponse = createMockCategoryListResponse()
-		vi.mocked(categoryApi.getCategories).mockResolvedValueOnce({
-			data: mockResponse,
-		})
-
-		renderHook(() => useCategories({ page: 2, pageSize: 20 }))
-
-		await waitFor(() => {
-			expect(categoryApi.getCategories).toHaveBeenCalledWith({
-				page: 2,
-				pageSize: 20,
 			})
 		})
 	})
@@ -209,42 +175,29 @@ describe('useCategories', () => {
 		const { rerender } = renderHook(
 			({ search }: { search?: string }) => useCategories({ search }),
 			{
-				initialProps: { search: 'Agente' },
+				initialProps: { search: 'Alpha' },
 			}
 		)
 
 		await waitFor(() => {
 			expect(categoryApi.getCategories).toHaveBeenCalledWith({
-				search: 'Agente',
+				search: 'Alpha',
 			})
 		})
 
-		rerender({ search: 'MMS' })
+		rerender({ search: 'Beta' })
 
 		await waitFor(() => {
 			expect(categoryApi.getCategories).toHaveBeenCalledWith({
-				search: 'MMS',
+				search: 'Beta',
 			})
-		})
-	})
-
-	it('should handle empty params', async () => {
-		const mockResponse = createMockCategoryListResponse()
-		vi.mocked(categoryApi.getCategories).mockResolvedValueOnce({
-			data: mockResponse,
-		})
-
-		renderHook(() => useCategories({}))
-
-		await waitFor(() => {
-			expect(categoryApi.getCategories).toHaveBeenCalledWith({})
 		})
 	})
 
 	it('should update state correctly on success', async () => {
 		const mockCategories = [
-			createMockCategory({ idCategory: 1, name: 'Cat 1' }),
-			createMockCategory({ idCategory: 2, name: 'Cat 2' }),
+			createMockCategory({ id: 1, name: 'Cat 1' }),
+			createMockCategory({ id: 2, name: 'Cat 2' }),
 		]
 		const mockResponse = createMockCategoryListResponse(mockCategories)
 

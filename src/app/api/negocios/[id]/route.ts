@@ -21,6 +21,7 @@ import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schem
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
+import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
 
 import {
 	UserRole,
@@ -76,11 +77,21 @@ export async function GET(
 			)
 		}
 
-		// Construir query según rol
-		const isAgent = currentUser.role?.code === UserRole.AGENTE
-		const whereClause = isAgent
-			? { idBusiness: businessId, idUser: currentUser.idUser }
-			: { idBusiness: businessId }
+		// Visibility scope for detail:
+		// ADMIN → see any business, no idUser restriction
+		// All other roles → hierarchical scope: [self, ...subordinates]
+		//   PUT handler intentionally keeps the simpler isAgent check (leaders editing
+		//   subordinate businesses is out of scope — leaders may only view, not edit, those).
+		const isAdmin = currentUser.role?.code === UserRole.ADMIN
+		let whereClause: { idBusiness: number; idUser?: { in: number[] } }
+
+		if (isAdmin) {
+			whereClause = { idBusiness: businessId }
+		} else {
+			const subordinates = await getSubordinateUserIds(prisma, currentUser.idUser)
+			const visibleUserIds = [currentUser.idUser, ...subordinates]
+			whereClause = { idBusiness: businessId, idUser: { in: visibleUserIds } }
+		}
 
 		const business = await prisma.business.findFirst({
 			where: whereClause,
@@ -233,7 +244,7 @@ export async function PUT(
 			}
 
 			const configValidation = await validateProductConfigurationExists(
-				productConfiguration.idCategory,
+				productConfiguration.idLevel,
 				productConfiguration.idProduct
 			)
 

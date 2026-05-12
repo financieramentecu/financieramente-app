@@ -17,7 +17,7 @@ describe('product-configuration.mapper', () => {
 			).toBe(false)
 			expect(result.id).toBe(1)
 			expect(result.idProduct).toBe(1)
-			expect(result.idCategory).toBe(1)
+			expect(result.idLevel).toBe(1)
 			expect(result.code).toBe('CREA_PATRIMONIO-PROPIO-JUNIOR')
 			expect(result.active).toBe(true)
 			expect(result.idProductPercentageCommissionNewBusinesses).toBe(1)
@@ -47,9 +47,10 @@ describe('product-configuration.mapper', () => {
 			const prismaConfig = createMockPrismaProductConfiguration()
 
 			const result = prismaProductConfigToProductConfig(prismaConfig)
+			const level = result.level as { idLevel: number; name: string }
 
-			expect(result.category.idCategory).toBe(1)
-			expect(result.category.name).toBe('Junior')
+			expect(level.idLevel).toBe(1)
+			expect(level.name).toBe('Junior')
 		})
 
 		it('should map ppcNewBusinesses when present', () => {

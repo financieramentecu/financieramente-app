@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET, PUT } from '../[id]/route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
@@ -25,6 +26,9 @@ import {
 vi.mock('@/auth')
 vi.mock('@/features/pre-liquidacion/services/pre-liquidacion.service')
 vi.mock('@/features/negocios/services/product-configuration.service')
+vi.mock('@/features/negocios/services/user-hierarchy.service', () => ({
+	getSubordinateUserIds: vi.fn().mockImplementation(() => Promise.resolve([])),
+}))
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		business: {
@@ -33,6 +37,9 @@ vi.mock('@/lib/prisma', () => ({
 		},
 		clientOrigin: {
 			findFirst: vi.fn(),
+		},
+		user: {
+			findMany: vi.fn().mockResolvedValue([]),
 		},
 	},
 }))
@@ -66,9 +73,12 @@ describe('GET /api/negocios/[id]', () => {
 	const mockPrismaFindFirst = vi.mocked(prisma.business.findFirst)
 	const mockPrismaBusinessToEntity = vi.mocked(prismaBusinessToEntity)
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
+	const mockGetSubordinateUserIds = vi.mocked(getSubordinateUserIds)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		// Default: no subordinates (returns empty array so visibleUserIds = [self])
+		mockGetSubordinateUserIds.mockResolvedValue([])
 		mockNextResponseJson.mockImplementation(
 			(data: unknown, init?: { status?: number }) => {
 				return {
@@ -163,7 +173,7 @@ describe('GET /api/negocios/[id]', () => {
 			expect(mockPrismaFindFirst).toHaveBeenCalledWith({
 				where: {
 					idBusiness: 1,
-					idUser: mockAgentUser.idUser,
+					idUser: { in: [mockAgentUser.idUser] },
 				},
 				include: expect.any(Object),
 			})
@@ -333,7 +343,7 @@ describe('GET /api/negocios/[id]', () => {
 			expect(mockPrismaFindFirst).toHaveBeenCalledWith({
 				where: {
 					idBusiness: 999,
-					idUser: mockAgentUser.idUser,
+					idUser: { in: [mockAgentUser.idUser] },
 				},
 				include: expect.any(Object),
 			})

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { CategoryForm } from '@/features/categories/components/category-form'
 import { EditCategoryFormSkeleton } from '@/features/categories/components/category-form-skeleton'
 import { useCategory } from '@/features/categories/hooks/use-category'
-import { useCategories } from '@/features/categories/hooks/use-categories'
 import { useCategoryMutations } from '@/features/categories/hooks/use-category-mutations'
 import type { UpdateCategoryFormData } from '@/features/categories/lib/category-schemas'
 import { toast } from 'sonner'
@@ -21,14 +20,6 @@ export function CategoryEditClient({ id }: CategoryEditClientProps) {
 	const router = useRouter()
 	const { state: categoryState } = useCategory(id)
 	const { updateCategory, updateState } = useCategoryMutations()
-	const { state: categoriesState } = useCategories({ pageSize: 100 })
-	const allCategories =
-		categoriesState.status === 'success'
-			? categoriesState.data.categories.map((c) => ({
-					idCategory: c.idCategory,
-					name: c.name,
-				}))
-			: []
 
 	const handleSubmit = useCallback(
 		async (data: UpdateCategoryFormData) => {
@@ -72,7 +63,7 @@ export function CategoryEditClient({ id }: CategoryEditClientProps) {
 
 	if (categoryState.status === 'success') {
 		return (
-			<div className="max-w-2xl mx-auto">
+			<div className="max-w-2xl w-full mx-auto">
 				<div className="space-y-6">
 					<div>
 						<h1 className="text-3xl font-bold">Editar Categoría</h1>
@@ -84,7 +75,6 @@ export function CategoryEditClient({ id }: CategoryEditClientProps) {
 					<CategoryForm
 						mode="edit"
 						initialData={categoryState.data}
-						categories={allCategories}
 						onSubmit={handleSubmit}
 						onCancel={handleCancel}
 						isLoading={updateState.status === 'loading'}

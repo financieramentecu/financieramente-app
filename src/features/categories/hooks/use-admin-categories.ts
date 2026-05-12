@@ -12,7 +12,7 @@ export function useAdminCategories(filters?: CategoryFilters) {
 	useEffect(() => {
 		loadCategories()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filters?.search, filters?.typeCategory, filters?.status])
+	}, [filters?.search, filters?.status])
 
 	const loadCategories = async () => {
 		try {

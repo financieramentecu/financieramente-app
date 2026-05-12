@@ -9,7 +9,7 @@ export const businessExportInclude = {
 	user: {
 		include: {
 			role: true,
-			category: { select: { name: true } },
+			level: { select: { name: true } },
 		},
 	},
 	productPercentageCommission: {

@@ -11,6 +11,7 @@ vi.mock('@/lib/api/client', () => ({
 		get: vi.fn(),
 		post: vi.fn(),
 		put: vi.fn(),
+		patch: vi.fn(),
 		delete: vi.fn(),
 	},
 }))
@@ -20,7 +21,7 @@ import { apiClient } from '@/lib/api/client'
 const mockGet = vi.mocked(apiClient.get)
 const mockPost = vi.mocked(apiClient.post)
 const mockPut = vi.mocked(apiClient.put)
-const mockDelete = vi.mocked(apiClient.delete)
+const mockPatch = vi.mocked(apiClient.patch)
 
 describe('category-api', () => {
 	beforeEach(() => {
@@ -68,16 +69,6 @@ describe('category-api', () => {
 			expect(mockGet).toHaveBeenCalledWith('/categories?search=test')
 		})
 
-		it('should pass typeCategory filter correctly', async () => {
-			mockGet.mockResolvedValueOnce({
-				data: createMockCategoryListResponse(),
-			})
-
-			await categoryApi.getCategories({ typeCategory: 'MMS' })
-
-			expect(mockGet).toHaveBeenCalledWith('/categories?typeCategory=MMS')
-		})
-
 		it('should pass status filter correctly', async () => {
 			mockGet.mockResolvedValueOnce({
 				data: createMockCategoryListResponse(),
@@ -105,7 +96,6 @@ describe('category-api', () => {
 
 			await categoryApi.getCategories({
 				search: 'test',
-				typeCategory: 'MMS',
 				status: 'active',
 				page: 1,
 				pageSize: 10,
@@ -113,7 +103,6 @@ describe('category-api', () => {
 
 			const url = mockGet.mock.calls[0][0] as string
 			expect(url).toContain('search=test')
-			expect(url).toContain('typeCategory=MMS')
 			expect(url).toContain('status=active')
 			expect(url).toContain('page=1')
 			expect(url).toContain('pageSize=10')
@@ -156,60 +145,32 @@ describe('category-api', () => {
 			mockPost.mockResolvedValueOnce({ data: mockCategory })
 
 			const result = await categoryApi.createCategory({
-				code: 'CAT001',
 				name: 'Nueva Categoría',
-				typeCategory: 'MMS',
-				color: '#1A73E8',
-				status: true,
+				idCategoryType: 1,
 			})
 
 			expect(result.data).toEqual(mockCategory)
 			expect('error' in result).toBe(false)
 		})
 
-		it('should handle validation error (Zod)', async () => {
+		it('should handle validation error', async () => {
 			mockPost.mockRejectedValueOnce(new Error('Datos inválidos'))
 
 			const result = await categoryApi.createCategory({
-				code: '',
-				name: 'A',
-				typeCategory: 'MMS',
-				color: '#1A73E8',
-				status: true,
+				name: '',
+				idCategoryType: 1,
 			})
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBe('Datos inválidos')
 		})
 
-		it('should handle duplicate code error (409)', async () => {
-			mockPost.mockRejectedValueOnce(
-				new Error('Ya existe una categoría con este código')
-			)
-
-			const result = await categoryApi.createCategory({
-				code: 'CAT001',
-				name: 'Categoría',
-				typeCategory: 'MMS',
-				color: '#1A73E8',
-				status: true,
-			})
-
-			expect(result.data).toBeNull()
-			expect('error' in result && result.error).toBe(
-				'Ya existe una categoría con este código'
-			)
-		})
-
 		it('should handle network error', async () => {
 			mockPost.mockRejectedValueOnce(new Error('Network error'))
 
 			const result = await categoryApi.createCategory({
-				code: 'CAT001',
 				name: 'Nueva Categoría',
-				typeCategory: 'MMS',
-				color: '#1A73E8',
-				status: true,
+				idCategoryType: 1,
 			})
 
 			expect(result.data).toBeNull()
@@ -220,11 +181,9 @@ describe('category-api', () => {
 			mockPost.mockResolvedValueOnce({ data: createMockCategory() })
 
 			const input = {
-				code: 'CAT001',
 				name: 'Nueva Categoría',
-				typeCategory: 'MMS' as const,
-				descripcion: 'Descripción',
-				color: '#1A73E8',
+				idCategoryType: 1,
+				description: 'Descripción',
 				status: true,
 			}
 
@@ -247,15 +206,6 @@ describe('category-api', () => {
 			expect('error' in result).toBe(false)
 		})
 
-		it('should handle validation error (Zod)', async () => {
-			mockPut.mockRejectedValueOnce(new Error('Datos inválidos'))
-
-			const result = await categoryApi.updateCategory(1, { name: 'A' })
-
-			expect(result.data).toBeNull()
-			expect('error' in result && result.error).toBe('Datos inválidos')
-		})
-
 		it('should handle 404 error (category not found)', async () => {
 			mockPut.mockRejectedValueOnce(new Error('Categoría no encontrada'))
 
@@ -263,19 +213,6 @@ describe('category-api', () => {
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBe('Categoría no encontrada')
-		})
-
-		it('should handle duplicate code error (409)', async () => {
-			mockPut.mockRejectedValueOnce(
-				new Error('Ya existe una categoría con este código')
-			)
-
-			const result = await categoryApi.updateCategory(1, { code: 'CAT002' })
-
-			expect(result.data).toBeNull()
-			expect('error' in result && result.error).toBe(
-				'Ya existe una categoría con este código'
-			)
 		})
 
 		it('should handle network error', async () => {
@@ -298,63 +235,20 @@ describe('category-api', () => {
 		})
 	})
 
-	describe('deleteCategory', () => {
-		it('should delete category successfully (happy path)', async () => {
-			mockDelete.mockResolvedValueOnce({})
-
-			const result = await categoryApi.deleteCategory(1)
-
-			expect('error' in result).toBe(false)
-		})
-
-		it('should handle 404 error (category not found)', async () => {
-			mockDelete.mockRejectedValueOnce(new Error('Categoría no encontrada'))
-
-			const result = await categoryApi.deleteCategory(999)
-
-			expect(result.data).toBeNull()
-			expect('error' in result && result.error).toBe('Categoría no encontrada')
-		})
-
-		it('should handle foreign key constraint error', async () => {
-			mockDelete.mockRejectedValueOnce(
-				new Error(
-					'No se puede eliminar la categoría porque tiene usuarios asignados'
-				)
-			)
-
-			const result = await categoryApi.deleteCategory(1)
-
-			expect(result.data).toBeNull()
-			expect('error' in result && result.error).toBe(
-				'No se puede eliminar la categoría porque tiene usuarios asignados'
-			)
-		})
-
-		it('should handle network error', async () => {
-			mockDelete.mockRejectedValueOnce(new Error('Network error'))
-
-			const result = await categoryApi.deleteCategory(1)
-
-			expect(result.data).toBeNull()
-			expect('error' in result && result.error).toBe('Network error')
-		})
-	})
-
 	describe('deactivateCategory', () => {
-		it('should deactivate category successfully (happy path)', async () => {
+		it('should deactivate category via PATCH successfully (happy path)', async () => {
 			const mockCategory = createMockCategory({ status: false })
-			mockPut.mockResolvedValueOnce({ data: mockCategory })
+			mockPatch.mockResolvedValueOnce({ data: mockCategory })
 
 			const result = await categoryApi.deactivateCategory(1)
 
 			expect(result.data).toEqual(mockCategory)
 			expect('error' in result).toBe(false)
-			expect(mockPut).toHaveBeenCalledWith('/categories/1', { status: false })
+			expect(mockPatch).toHaveBeenCalledWith('/categories/1', { status: false })
 		})
 
 		it('should handle 404 error (category not found)', async () => {
-			mockPut.mockRejectedValueOnce(new Error('Categoría no encontrada'))
+			mockPatch.mockRejectedValueOnce(new Error('Categoría no encontrada'))
 
 			const result = await categoryApi.deactivateCategory(999)
 
@@ -363,7 +257,7 @@ describe('category-api', () => {
 		})
 
 		it('should handle network error', async () => {
-			mockPut.mockRejectedValueOnce(new Error('Network error'))
+			mockPatch.mockRejectedValueOnce(new Error('Network error'))
 
 			const result = await categoryApi.deactivateCategory(1)
 
@@ -372,7 +266,7 @@ describe('category-api', () => {
 		})
 
 		it('should handle unknown error', async () => {
-			mockPut.mockRejectedValueOnce('Unknown error')
+			mockPatch.mockRejectedValueOnce('Unknown error')
 
 			const result = await categoryApi.deactivateCategory(1)
 

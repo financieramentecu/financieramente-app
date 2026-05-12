@@ -9,16 +9,16 @@ import { getPpcForNewBusinesses } from '../services/product-configuration.servic
  */
 export interface FindProductPercentageCommissionInput {
 	idProduct: number
-	idCategory: number
+	idLevel: number
 }
 
 /**
  * Server Action: obtiene el PPC activo para nuevos negocios según ProductConfiguration.
  *
  * Delega la consulta a Prisma al servicio product-configuration.service.
- * Si no existe configuración para el par (idProduct, idCategory), retorna el error descriptivo.
+ * Si no existe configuración para el par (idProduct, idLevel), retorna el error descriptivo.
  *
- * @param params - Parámetros de búsqueda (producto y categoría del agente)
+ * @param params - Parámetros de búsqueda (producto y nivel del agente)
  * @returns ApiResponse con ProductPercentageCommission para nuevos negocios o error
  */
 export async function findProductPercentageCommission(

@@ -1,12 +1,12 @@
 import type { PrismaClient } from '@prisma/client'
-import type { BeneficiaryMode } from '@/features/categories/types/category.types'
+import type { BeneficiaryMode } from '@/features/levels/types/level.types'
 
 /** Max leader hops when walking the upline chain (cycle guard uses visited set). */
 export const MAX_UPLINE_DEPTH = 50
 
 export interface UplineChainLink {
 	readonly idUser: number
-	readonly idCategoria: number | null
+	readonly idLevel: number | null
 }
 
 export type ResolveBeneficiaryErrorCode =
@@ -26,7 +26,7 @@ export type ResolveBeneficiaryResult =
 	  }
 
 export interface CategoryForBeneficiaryResolve {
-	readonly idCategory: number
+	readonly idLevel: number
 	readonly code: string
 	readonly beneficiaryMode: BeneficiaryMode
 	readonly idFixedBeneficiaryUser: number | null
@@ -72,21 +72,21 @@ export function resolveBeneficiaryUserId(
 		return { ok: true, idUser: fu.idUser }
 	}
 
-	console.log(`[DEBUG] Resolviendo UPLINE para ${category.code} (idCat: ${category.idCategory}) en cadena de ${chain.length} eslabones:`)
-	chain.forEach((l, i) => console.log(`   [${i}] User: ${l.idUser}, Cat: ${l.idCategoria}`))
+	console.log(`[DEBUG] Resolviendo UPLINE para ${category.code} (idLevel: ${category.idLevel}) en cadena de ${chain.length} eslabones:`)
+	chain.forEach((l, i) => console.log(`   [${i}] User: ${l.idUser}, Level: ${l.idLevel}`))
 
 	for (const link of chain) {
-		if (link.idCategoria === category.idCategory) {
+		if (link.idLevel === category.idLevel) {
 			console.log(`   [MATCH] Encontrado beneficiario id: ${link.idUser}`)
 			return { ok: true, idUser: link.idUser }
 		}
 	}
 
 	// Diagnose why no match was found for a more specific error message
-	console.log(`   [FAIL] No hay coincidencia para idCat: ${category.idCategory}`)
+	console.log(`   [FAIL] No hay coincidencia para idLevel: ${category.idLevel}`)
 
 	const agent = chain[0]
-	if (!agent || agent.idCategoria == null) {
+	if (!agent || agent.idLevel == null) {
 		return {
 			ok: false,
 			code: 'UPLINE_AGENT_NO_CATEGORY',
@@ -100,7 +100,7 @@ export function resolveBeneficiaryUserId(
 			categoryCode: category.code,
 		}
 	}
-	const leaderHasNoCategory = chain.slice(1).some((l) => l.idCategoria == null)
+	const leaderHasNoCategory = chain.slice(1).some((l) => l.idLevel == null)
 	if (leaderHasNoCategory) {
 		return {
 			ok: false,
@@ -134,13 +134,13 @@ export async function buildUplineChain(
 
 		const row: {
 			idUser: number
-			idCategoria: number | null
+			idLevel: number | null
 			idUserLeader: number | null
 		} | null = await db.user.findUnique({
 			where: { idUser: currentId },
 			select: {
 				idUser: true,
-				idCategoria: true,
+				idLevel: true,
 				idUserLeader: true,
 			},
 		})
@@ -151,7 +151,7 @@ export async function buildUplineChain(
 
 		chain.push({
 			idUser: row.idUser,
-			idCategoria: row.idCategoria,
+			idLevel: row.idLevel,
 		})
 
 		currentId = row.idUserLeader
@@ -161,7 +161,7 @@ export async function buildUplineChain(
 }
 
 export function ppcConfigsNeedUplineAgent(
-	configs: ReadonlyArray<{ category: { beneficiaryMode: BeneficiaryMode } }>
+	configs: ReadonlyArray<{ level?: { beneficiaryMode: BeneficiaryMode }; category?: { beneficiaryMode: BeneficiaryMode } }>
 ): boolean {
-	return configs.some((c) => c.category.beneficiaryMode === 'OVERRIDE')
+	return configs.some((c) => (c.level ?? c.category)?.beneficiaryMode === 'OVERRIDE')
 }

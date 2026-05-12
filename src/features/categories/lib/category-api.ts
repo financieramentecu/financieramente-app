@@ -9,13 +9,12 @@ import type {
 } from '../types/category.types'
 
 /**
- * API client for categories
+ * API client for categories (new simple Category model)
  * Returns ApiResponse<T> following project standards
  */
 export const categoryApi = {
 	/**
-	 * Gets the list of categories with pagination and search
-	 * Used by both Domain and Admin views.
+	 * Gets the list of categories with pagination and optional filters
 	 */
 	async getCategories(
 		params?: CategoryFilters & { page?: number; pageSize?: number }
@@ -23,7 +22,6 @@ export const categoryApi = {
 		try {
 			const queryParams = new URLSearchParams()
 			if (params?.search) queryParams.set('search', params.search)
-			if (params?.typeCategory) queryParams.set('typeCategory', params.typeCategory)
 			if (params?.status) queryParams.set('status', params.status)
 			if (params?.page) queryParams.set('page', params.page.toString())
 			if (params?.pageSize) queryParams.set('pageSize', params.pageSize.toString())
@@ -111,30 +109,11 @@ export const categoryApi = {
 	},
 
 	/**
-	 * Hard-deletes a category (validates no relations exist)
-	 */
-	async deleteCategory(id: number): Promise<ApiResponse<void>> {
-		try {
-			await apiClient.delete(`/categories/${id}`)
-			return { data: undefined }
-		} catch (error) {
-			return {
-				data: null,
-				error:
-					error instanceof Error
-						? error.message
-						: 'Error desconocido al eliminar categoría',
-			}
-		}
-	},
-
-	/**
-	 * Soft-deletes (deactivates) a category by setting status to false.
-	 * Used by admin views instead of hard delete.
+	 * Soft-deactivates a category via PATCH (sets status = false)
 	 */
 	async deactivateCategory(id: number): Promise<ApiResponse<Category>> {
 		try {
-			const data = await apiClient.put<ApiResponse<Category>>(
+			const data = await apiClient.patch<ApiResponse<Category>>(
 				`/categories/${id}`,
 				{ status: false }
 			)

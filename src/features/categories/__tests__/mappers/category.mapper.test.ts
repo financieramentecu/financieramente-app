@@ -3,403 +3,112 @@ import {
 	prismaCategoryToCategory,
 	prismaCategoryListToCategories,
 } from '../../mappers/category.mapper'
-import { createMockPrismaCategory, BeneficiaryMode } from '../fixtures/mock-category'
+import { createMockPrismaCategory } from '../fixtures/mock-category'
 
 describe('category.mapper', () => {
 	describe('prismaCategoryToCategory', () => {
-		it('should transform Prisma Category to Category (happy path)', () => {
-			const prismaCategory = createMockPrismaCategory({
-				idCategory: 1,
-				code: 'CAT001',
-				name: 'Agente Experto',
-				categoryType: {
-					id: 1,
-					name: 'MMS',
-					description: 'Descripción completa',
-					status: true,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				},
-				descripcion: 'Descripción completa',
+		it('should map a Prisma category to domain Category (happy path)', () => {
+			const now = new Date('2024-01-15T10:00:00.000Z')
+			const prisma = createMockPrismaCategory({
+				id: 1,
+				name: 'Categoría Test',
+				description: 'Una descripción',
 				status: true,
+				idCategoryType: 2,
+				createdAt: now,
+				updatedAt: now,
 			})
 
-			const result = prismaCategoryToCategory(prismaCategory)
+			const result = prismaCategoryToCategory(prisma)
 
-			expect(result.idCategory).toBe(1)
-			expect(result.code).toBe('CAT001')
-			expect(result.name).toBe('Agente Experto')
-			expect(result.typeCategory).toBe('MMS')
-			expect(result.descripcion).toBe('Descripción completa')
+			expect(result.id).toBe(1)
+			expect(result.name).toBe('Categoría Test')
+			expect(result.description).toBe('Una descripción')
 			expect(result.status).toBe(true)
+			expect(result.idCategoryType).toBe(2)
+			expect(result.createdAt).toBe(now.toISOString())
+			expect(result.updatedAt).toBe(now.toISOString())
 		})
 
-		it('should convert Date to ISO string', () => {
-			const prismaCategory = createMockPrismaCategory({
-				createdAt: new Date('2024-01-15T10:00:00.000Z'),
-				updatedAt: new Date('2024-01-15T11:00:00.000Z'),
+		it('should map categoryType relation when present', () => {
+			const prisma = createMockPrismaCategory({
+				categoryType: { name: 'Tipo Especial' },
 			})
 
-			const result = prismaCategoryToCategory(prismaCategory)
+			const result = prismaCategoryToCategory(prisma)
 
-			expect(typeof result.createdAt).toBe('string')
-			expect(result.createdAt).toBe('2024-01-15T10:00:00.000Z')
-			expect(typeof result.updatedAt).toBe('string')
-			expect(result.updatedAt).toBe('2024-01-15T11:00:00.000Z')
+			expect(result.categoryType).toEqual({ name: 'Tipo Especial' })
 		})
 
-		it('should handle null descripcion correctly', () => {
-			const prismaCategory = createMockPrismaCategory({
-				descripcion: null,
-			})
+		it('should set categoryType to undefined when not present', () => {
+			const prisma = createMockPrismaCategory()
 
-			const result = prismaCategoryToCategory(prismaCategory)
+			const result = prismaCategoryToCategory(prisma)
 
-			expect(result.descripcion).toBeNull()
+			expect(result.categoryType).toBeUndefined()
 		})
 
-		it('should handle status as true', () => {
-			const prismaCategory = createMockPrismaCategory({
-				status: true,
-			})
+		it('should handle null description', () => {
+			const prisma = createMockPrismaCategory({ description: null })
 
-			const result = prismaCategoryToCategory(prismaCategory)
+			const result = prismaCategoryToCategory(prisma)
 
-			expect(result.status).toBe(true)
+			expect(result.description).toBeNull()
 		})
 
-		it('should handle status as false', () => {
-			const prismaCategory = createMockPrismaCategory({
-				status: false,
-			})
+		it('should convert Date objects to ISO strings', () => {
+			const now = new Date('2024-06-15T12:30:00.000Z')
+			const prisma = createMockPrismaCategory({ createdAt: now, updatedAt: now })
 
-			const result = prismaCategoryToCategory(prismaCategory)
+			const result = prismaCategoryToCategory(prisma)
+
+			expect(result.createdAt).toBe('2024-06-15T12:30:00.000Z')
+			expect(result.updatedAt).toBe('2024-06-15T12:30:00.000Z')
+		})
+
+		it('should map status = false correctly', () => {
+			const prisma = createMockPrismaCategory({ status: false })
+
+			const result = prismaCategoryToCategory(prisma)
 
 			expect(result.status).toBe(false)
-		})
-
-		it('should preserve all field values correctly', () => {
-			const prismaCategory = createMockPrismaCategory({
-				idCategory: 42,
-				code: 'UNIQUE_CODE',
-				name: 'Unique Name',
-				categoryType: {
-					id: 2,
-					name: 'ALIADO',
-					description: 'Unique description',
-					status: true,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				},
-				descripcion: 'Unique description',
-			})
-
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.idCategory).toBe(42)
-			expect(result.code).toBe('UNIQUE_CODE')
-			expect(result.name).toBe('Unique Name')
-			expect(result.typeCategory).toBe('ALIADO')
-			expect(result.descripcion).toBe('Unique description')
-		})
-
-		it('should handle typeCategory MMS', () => {
-			const prismaCategory = createMockPrismaCategory({
-				categoryType: {
-					id: 1,
-					name: 'MMS',
-					description: null,
-					status: true,
-					createdAt: new Date(),
-					updatedAt: new Date()
-				}
-			})
-
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.typeCategory).toBe('MMS')
-		})
-
-		it('should handle typeCategory ALIADO', () => {
-			const prismaCategory = createMockPrismaCategory({
-				categoryType: {
-					id: 2,
-					name: 'ALIADO',
-					description: null,
-					status: true,
-					createdAt: new Date(),
-					updatedAt: new Date()
-				}
-			})
-
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.typeCategory).toBe('ALIADO')
-		})
-
-		it('should handle typeCategory TRINITY', () => {
-			const prismaCategory = createMockPrismaCategory({
-				categoryType: {
-					id: 3,
-					name: 'TRINITY',
-					description: null,
-					status: true,
-					createdAt: new Date(),
-					updatedAt: new Date()
-				}
-			})
-
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.typeCategory).toBe('TRINITY')
-		})
-	})
-
-	describe('beneficiaryMode and fixedBeneficiaryUser mapping', () => {
-		it('should map beneficiaryMode OVERRIDE correctly', () => {
-			const prismaCategory = createMockPrismaCategory({
-				beneficiaryMode: BeneficiaryMode.OVERRIDE,
-			})
-
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.beneficiaryMode).toBe('OVERRIDE')
-		})
-
-		it('should map beneficiaryMode BENEFICIARIO_GENERAL correctly', () => {
-			const prismaCategory = createMockPrismaCategory({
-				beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
-				idFixedBeneficiaryUser: 5,
-			})
-
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.beneficiaryMode).toBe('BENEFICIARIO_GENERAL')
-		})
-
-		it('should map idFixedBeneficiaryUser as null when not set', () => {
-			const prismaCategory = createMockPrismaCategory({
-				idFixedBeneficiaryUser: null,
-			})
-
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.idFixedBeneficiaryUser).toBeNull()
-		})
-
-		it('should map idFixedBeneficiaryUser when set', () => {
-			const prismaCategory = createMockPrismaCategory({
-				idFixedBeneficiaryUser: 10,
-			})
-
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.idFixedBeneficiaryUser).toBe(10)
-		})
-
-		it('should map fixedBeneficiaryUser as null when relation not included', () => {
-			const prismaCategory = createMockPrismaCategory({
-				idFixedBeneficiaryUser: null,
-			})
-			// No fixedBeneficiaryUser property — relation not included
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.fixedBeneficiaryUser).toBeNull()
-		})
-
-		it('should map fixedBeneficiaryUser when relation is included', () => {
-			const prismaCategory = createMockPrismaCategory({
-				beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
-				idFixedBeneficiaryUser: 7,
-				fixedBeneficiaryUser: {
-					idUser: 7,
-					name: 'Ana',
-					lastName: 'García',
-					email: 'ana@example.com',
-				},
-			})
-
-			const result = prismaCategoryToCategory(prismaCategory)
-
-			expect(result.fixedBeneficiaryUser).toEqual({
-				idUser: 7,
-				name: 'Ana',
-				lastName: 'García',
-				email: 'ana@example.com',
-			})
-		})
-	})
-
-	describe('color, idNextCategory, and new enum mapping', () => {
-		it('should map color field correctly', () => {
-			const prismaCategory = createMockPrismaCategory({
-				color: '#ABC123',
-			})
-			const result = prismaCategoryToCategory(prismaCategory)
-			expect(result.color).toBe('#ABC123')
-		})
-
-		it('should map idNextCategory and nextCategory.id + nextCategory.name when relation is present', () => {
-			const prismaCategory = createMockPrismaCategory({
-				idNextCategory: 7,
-				nextCategory: {
-					idCategory: 7,
-					name: 'Siguiente Categoría',
-					code: 'CAT-007',
-					idCategoryType: 1,
-					descripcion: null,
-					color: '#FFFFFF',
-					status: true,
-					beneficiaryMode: 'OVERRIDE' as const,
-					idFixedBeneficiaryUser: null,
-					idNextCategory: null,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				},
-			})
-			const result = prismaCategoryToCategory(prismaCategory)
-			expect(result.idNextCategory).toBe(7)
-			expect(result.nextCategory).not.toBeNull()
-			expect(result.nextCategory?.id).toBe(7)
-			expect(result.nextCategory?.name).toBe('Siguiente Categoría')
-		})
-
-		it('should map nextCategory as null when relation is absent', () => {
-			const prismaCategory = createMockPrismaCategory({
-				idNextCategory: null,
-				nextCategory: undefined,
-			})
-			const result = prismaCategoryToCategory(prismaCategory)
-			expect(result.idNextCategory).toBeNull()
-			expect(result.nextCategory).toBeNull()
-		})
-
-		it('should map OVERRIDE beneficiaryMode correctly', () => {
-			const prismaCategory = createMockPrismaCategory({
-				beneficiaryMode: BeneficiaryMode.OVERRIDE,
-			})
-			const result = prismaCategoryToCategory(prismaCategory)
-			expect(result.beneficiaryMode).toBe('OVERRIDE')
-		})
-
-		it('should map BENEFICIARIO_GENERAL beneficiaryMode correctly', () => {
-			const prismaCategory = createMockPrismaCategory({
-				beneficiaryMode: BeneficiaryMode.BENEFICIARIO_GENERAL,
-				idFixedBeneficiaryUser: 5,
-			})
-			const result = prismaCategoryToCategory(prismaCategory)
-			expect(result.beneficiaryMode).toBe('BENEFICIARIO_GENERAL')
 		})
 	})
 
 	describe('prismaCategoryListToCategories', () => {
-		it('should transform list of Prisma categories to Categories array (happy path)', () => {
-			const prismaCategories = [
-				createMockPrismaCategory({
-					idCategory: 1,
-					code: 'CAT001',
-					name: 'Agente Experto',
-				}),
-				createMockPrismaCategory({
-					idCategory: 2,
-					code: 'CAT002',
-					name: 'Agente Básico',
-				}),
+		it('should map a list of Prisma categories', () => {
+			const list = [
+				createMockPrismaCategory({ id: 1, name: 'Categoría A' }),
+				createMockPrismaCategory({ id: 2, name: 'Categoría B' }),
 			]
 
-			const result = prismaCategoryListToCategories(prismaCategories)
+			const result = prismaCategoryListToCategories(list)
 
 			expect(result).toHaveLength(2)
-			expect(result[0].idCategory).toBe(1)
-			expect(result[0].code).toBe('CAT001')
-			expect(result[0].name).toBe('Agente Experto')
-			expect(result[1].idCategory).toBe(2)
-			expect(result[1].code).toBe('CAT002')
-			expect(result[1].name).toBe('Agente Básico')
+			expect(result[0].id).toBe(1)
+			expect(result[0].name).toBe('Categoría A')
+			expect(result[1].id).toBe(2)
+			expect(result[1].name).toBe('Categoría B')
 		})
 
-		it('should handle empty array', () => {
-			const prismaCategories: (ReturnType<typeof createMockPrismaCategory>)[] = []
-
-			const result = prismaCategoryListToCategories(prismaCategories)
+		it('should return empty array for empty list', () => {
+			const result = prismaCategoryListToCategories([])
 
 			expect(result).toHaveLength(0)
-			expect(result).toEqual([])
 		})
 
-		it('should transform single category in array', () => {
-			const prismaCategories = [
-				createMockPrismaCategory({
-					idCategory: 1,
-					code: 'CAT001',
-					name: 'Agente Único',
-				}),
+		it('should maintain list order', () => {
+			const list = [
+				createMockPrismaCategory({ id: 3, name: 'C' }),
+				createMockPrismaCategory({ id: 1, name: 'A' }),
+				createMockPrismaCategory({ id: 2, name: 'B' }),
 			]
 
-			const result = prismaCategoryListToCategories(prismaCategories)
+			const result = prismaCategoryListToCategories(list)
 
-			expect(result).toHaveLength(1)
-			expect(result[0].idCategory).toBe(1)
-			expect(result[0].code).toBe('CAT001')
-			expect(result[0].name).toBe('Agente Único')
-		})
-
-		it('should preserve all category properties in list', () => {
-			const prismaCategories = [
-				createMockPrismaCategory({
-					idCategory: 1,
-					code: 'CAT001',
-					name: 'Agente MMS',
-					categoryType: {
-						id: 1,
-						name: 'MMS',
-						description: 'Descripción 1',
-						status: true,
-						createdAt: new Date(),
-						updatedAt: new Date()
-					},
-					descripcion: 'Descripción 1',
-					status: true,
-				}),
-				createMockPrismaCategory({
-					idCategory: 2,
-					code: 'CAT002',
-					name: 'Agente Aliado',
-					categoryType: {
-						id: 2,
-						name: 'ALIADO',
-						description: null,
-						status: true,
-						createdAt: new Date(),
-						updatedAt: new Date()
-					},
-					descripcion: null,
-					status: false,
-				}),
-			]
-
-			const result = prismaCategoryListToCategories(prismaCategories)
-
-			expect(result[0].typeCategory).toBe('MMS')
-			expect(result[0].descripcion).toBe('Descripción 1')
-			expect(result[0].status).toBe(true)
-			expect(result[1].typeCategory).toBe('ALIADO')
-			expect(result[1].descripcion).toBeNull()
-			expect(result[1].status).toBe(false)
-		})
-
-		it('should maintain order of categories', () => {
-			const prismaCategories = [
-				createMockPrismaCategory({ idCategory: 3, code: 'CAT003' }),
-				createMockPrismaCategory({ idCategory: 1, code: 'CAT001' }),
-				createMockPrismaCategory({ idCategory: 2, code: 'CAT002' }),
-			]
-
-			const result = prismaCategoryListToCategories(prismaCategories)
-
-			expect(result[0].idCategory).toBe(3)
-			expect(result[1].idCategory).toBe(1)
-			expect(result[2].idCategory).toBe(2)
+			expect(result[0].id).toBe(3)
+			expect(result[1].id).toBe(1)
+			expect(result[2].id).toBe(2)
 		})
 	})
 })

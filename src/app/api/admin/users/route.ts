@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 		if (categoryIdParam) {
 			const categoryId = parseInt(categoryIdParam, 10)
 			if (!isNaN(categoryId)) {
-				where.idCategoria = categoryId
+				where.idCategory = categoryId
 			}
 		}
 
@@ -75,8 +75,17 @@ export async function GET(request: Request) {
 				},
 				category: {
 					select: {
-						idCategory: true,
+						id: true,
 						name: true,
+					},
+				},
+				level: {
+					select: {
+						idLevel: true,
+						code: true,
+						name: true,
+						color: true,
+						idNextLevel: true,
 					},
 				},
 				leader: {
@@ -132,8 +141,17 @@ export async function GET(request: Request) {
 				: null,
 			category: user.category
 				? {
-					id: user.category.idCategory,
+					id: user.category.id,
 					name: user.category.name,
+				}
+				: null,
+			level: user.level
+				? {
+					id: user.level.idLevel,
+					code: user.level.code,
+					name: user.level.name,
+					color: user.level.color,
+					idNextLevel: user.level.idNextLevel,
 				}
 				: null,
 			leader: user.leader

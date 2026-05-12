@@ -120,10 +120,10 @@ export function ProductConfigurationsTableSection({
 			),
 		},
 		{
-			accessorKey: 'category.name',
+			accessorKey: 'level.name',
 			header: 'Categoría',
 			cell: ({ row }) => (
-				<span className="text-sm">{row.original.category.name}</span>
+				<span className="text-sm">{(row.original.level as { name: string }).name}</span>
 			),
 		},
 		{

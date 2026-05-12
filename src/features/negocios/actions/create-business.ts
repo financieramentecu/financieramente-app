@@ -63,7 +63,7 @@ export async function createBusiness(
 				idUser: validatedData.idUser,
 			},
 			select: {
-				idCategoria: true,
+				idLevel: true,
 			},
 		})
 
@@ -74,16 +74,16 @@ export async function createBusiness(
 			}
 		}
 
-		if (!user.idCategoria) {
+		if (!user.idLevel) {
 			return {
 				data: null,
-				error: 'El agente seleccionado no tiene una categoría asignada',
+				error: 'El agente seleccionado no tiene un nivel asignado',
 			}
 		}
 
 		const commisionResult = await findProductPercentageCommission({
 			idProduct: validatedData.idProduct,
-			idCategory: user.idCategoria,
+			idLevel: user.idLevel,
 		})
 
 		if ('error' in commisionResult) {

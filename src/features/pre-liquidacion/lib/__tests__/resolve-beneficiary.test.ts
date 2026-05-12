@@ -9,7 +9,7 @@ function cat(
 	overrides: Partial<Parameters<typeof resolveBeneficiaryUserId>[0]> = {}
 ): Parameters<typeof resolveBeneficiaryUserId>[0] {
 	return {
-		idCategory: 10,
+		idLevel: 10,
 		code: 'TEST',
 		beneficiaryMode: 'OVERRIDE',
 		idFixedBeneficiaryUser: null,
@@ -37,7 +37,7 @@ describe('resolveBeneficiaryUserId', () => {
 				idFixedBeneficiaryUser: 99,
 				fixedBeneficiaryUser: { idUser: 99, active: true },
 			}),
-			[{ idUser: 1, idCategoria: 10 }]
+			[{ idUser: 1, idLevel: 10 }]
 		)
 		expect(r).toEqual({ ok: true, idUser: 99 })
 	})
@@ -80,13 +80,13 @@ describe('resolveBeneficiaryUserId', () => {
 		if (!r.ok) expect(r.code).toBe('FIXED_USER_INACTIVE')
 	})
 
-	it('UPLINE_CHAIN returns first chain user matching idCategory', () => {
+	it('UPLINE_CHAIN returns first chain user matching idLevel', () => {
 		const r = resolveBeneficiaryUserId(
-			cat({ idCategory: 3, code: 'LIDER' }),
+			cat({ idLevel: 3, code: 'LIDER' }),
 			[
-				{ idUser: 1, idCategoria: 1 },
-				{ idUser: 2, idCategoria: 3 },
-				{ idUser: 3, idCategoria: 3 },
+				{ idUser: 1, idLevel: 1 },
+				{ idUser: 2, idLevel: 3 },
+				{ idUser: 3, idLevel: 3 },
 			]
 		)
 		expect(r).toEqual({ ok: true, idUser: 2 })
@@ -94,22 +94,22 @@ describe('resolveBeneficiaryUserId', () => {
 
 	it('UPLINE_CHAIN returns UPLINE_NO_MATCH when no category match', () => {
 		const r = resolveBeneficiaryUserId(
-			cat({ idCategory: 99, code: 'X' }),
+			cat({ idLevel: 99, code: 'X' }),
 			[
-				{ idUser: 1, idCategoria: 1 },
-				{ idUser: 2, idCategoria: 2 },
+				{ idUser: 1, idLevel: 1 },
+				{ idUser: 2, idLevel: 2 },
 			]
 		)
 		expect(r.ok).toBe(false)
 		if (!r.ok) expect(r.code).toBe('UPLINE_NO_MATCH')
 	})
 
-	it('UPLINE_CHAIN skips users with null idCategoria', () => {
+	it('UPLINE_CHAIN skips users with null idLevel', () => {
 		const r = resolveBeneficiaryUserId(
-			cat({ idCategory: 5, code: 'C' }),
+			cat({ idLevel: 5, code: 'C' }),
 			[
-				{ idUser: 1, idCategoria: null },
-				{ idUser: 2, idCategoria: 5 },
+				{ idUser: 1, idLevel: null },
+				{ idUser: 2, idLevel: 5 },
 			]
 		)
 		expect(r).toEqual({ ok: true, idUser: 2 })
@@ -127,12 +127,12 @@ describe('buildUplineChain', () => {
 		findUnique
 			.mockResolvedValueOnce({
 				idUser: 1,
-				idCategoria: 10,
+				idLevel: 10,
 				idUserLeader: 2,
 			})
 			.mockResolvedValueOnce({
 				idUser: 2,
-				idCategoria: 20,
+				idLevel: 20,
 				idUserLeader: null,
 			})
 
@@ -142,15 +142,15 @@ describe('buildUplineChain', () => {
 		)
 
 		expect(chain).toEqual([
-			{ idUser: 1, idCategoria: 10 },
-			{ idUser: 2, idCategoria: 20 },
+			{ idUser: 1, idLevel: 10 },
+			{ idUser: 2, idLevel: 20 },
 		])
 	})
 
 	it('breaks on cycle', async () => {
 		findUnique.mockResolvedValue({
 			idUser: 1,
-			idCategoria: 1,
+			idLevel: 1,
 			idUserLeader: 1,
 		})
 

@@ -73,4 +73,41 @@ describe('buildBusinessListWhere', () => {
 			],
 		})
 	})
+
+	describe('visibleUserIds param', () => {
+		it('scoped user with visibleUserIds emits IN predicate', () => {
+			const w = buildBusinessListWhere(
+				{ idUser: 10, role: { code: UserRole.AGENTE } },
+				{},
+				{ visibleUserIds: [10, 20, 30] }
+			)
+			expect(w).toEqual({ AND: [{ idUser: { in: [10, 20, 30] } }] })
+		})
+
+		it('admin with visibleUserIds applies no idUser filter', () => {
+			const w = buildBusinessListWhere(
+				{ idUser: 1, role: { code: UserRole.ADMIN } },
+				{},
+				{ visibleUserIds: [10, 20, 30] }
+			)
+			expect(w).toEqual({})
+		})
+
+		it('scoped user without visibleUserIds falls back to single idUser', () => {
+			const w = buildBusinessListWhere(
+				{ idUser: 42, role: { code: UserRole.AGENTE } },
+				{}
+			)
+			expect(w).toEqual({ AND: [{ idUser: 42 }] })
+		})
+
+		it('scoped user with empty visibleUserIds falls back to single idUser', () => {
+			const w = buildBusinessListWhere(
+				{ idUser: 42, role: { code: UserRole.AGENTE } },
+				{},
+				{ visibleUserIds: [] }
+			)
+			expect(w).toEqual({ AND: [{ idUser: 42 }] })
+		})
+	})
 })
