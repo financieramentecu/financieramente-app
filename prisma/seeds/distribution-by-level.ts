@@ -92,6 +92,7 @@ export async function seedDistributionByLevel(prisma: AnyPrisma) {
 
 			let productConfig = await prisma.productConfiguration.findFirst({
 				where: { idProduct: product.idProduct, idLevel: configLevel.idLevel },
+				orderBy: { active: 'desc' },
 			})
 
 			if (!productConfig) {
