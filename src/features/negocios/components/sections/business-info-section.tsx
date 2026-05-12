@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { UseFormReturn } from 'react-hook-form'
+import { cn } from '@/lib/utils'
 import { Input } from '@/features/shared/ui/input'
 import { Label } from '@/features/shared/ui/label'
 import { Separator } from '@/features/shared/ui/separator'
@@ -11,7 +12,10 @@ import { NumberInputField } from '@/features/negocios/components/fields/number-i
 import { ContractAutocomplete } from '@/features/negocios/components/fields/contract-autocomplete'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
-
+import type {
+	BusinessFormField,
+	FieldPermission,
+} from '@/features/negocios/hooks/use-business-permissions'
 export interface BusinessInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
 	currenciesOptions: { value: string; label: string }[]
@@ -22,6 +26,9 @@ export interface BusinessInfoSectionProps {
 	isBlocked: boolean
 	isEditMode?: boolean
 	contractDisabled?: boolean
+	isPrivilegedRole?: boolean
+	roleCode?: string
+	getFieldPermission: (field: BusinessFormField) => FieldPermission
 }
 
 /**
@@ -37,6 +44,9 @@ export function BusinessInfoSection({
 	isBlocked,
 	isEditMode = false,
 	contractDisabled = false,
+	isPrivilegedRole = false,
+	roleCode,
+	getFieldPermission,
 }: BusinessInfoSectionProps) {
 	const { register, watch, setValue, formState } = form
 	const { errors } = formState
@@ -56,7 +66,27 @@ export function BusinessInfoSection({
 		return companyName === 'SKANDIA' && productName === 'MFUND'
 	}, [watchedCompanyId, watchedProductId, companiesOptions, filteredProducts])
 
+	const isFirstRender = React.useRef(true)
+
 	React.useEffect(() => {
+		// En modo edición, no recalculamos numAportes automáticamente para permitir edición manual
+		if (isEditMode) {
+			if (isFirstRender.current) {
+				isFirstRender.current = false
+			}
+			// Solo actualizamos isSkandiaWithMfund para controlar el campo 'terms'
+			const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+			const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+			if (companyName === 'SKANDIA' && productName === 'MFUND') {
+				setValue('isSkandiaWithMfund', true, { shouldValidate: false })
+				setValue('terms', 0, { shouldValidate: false })
+			} else {
+				setValue('isSkandiaWithMfund', false, { shouldValidate: false })
+			}
+			return
+		}
+
+		// Modo creación: auto-calcular numAportes
 		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
 		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
 		const periodicityName = periodicitiesOptions.find((p) => p.value === watchedPeriodicityId)?.label ?? null
@@ -73,7 +103,7 @@ export function BusinessInfoSection({
 
 		const result = calculateNumAportes({ termYears, periodicityName, companyName, productName })
 		setValue('numAportes', result, { shouldValidate: false })
-	}, [watchedTerms, watchedPeriodicityId, watchedCompanyId, watchedProductId, companiesOptions, filteredProducts, periodicitiesOptions, setValue])
+	}, [watchedTerms, watchedPeriodicityId, watchedCompanyId, watchedProductId, companiesOptions, filteredProducts, periodicitiesOptions, setValue, isEditMode])
 
 	const handleCompanyChange = React.useCallback(
 		(companyId: string) => {
@@ -155,7 +185,7 @@ export function BusinessInfoSection({
 					placeholder="Seleccione una compañía"
 					options={companiesOptions}
 					form={form}
-					disabled={isBlocked || isEditMode}
+					disabled={getFieldPermission('company').disabled}
 					onValueChange={handleCompanyChange}
 					required
 				/>
@@ -166,7 +196,7 @@ export function BusinessInfoSection({
 					placeholder="Seleccione un producto"
 					options={filteredProducts}
 					form={form}
-					disabled={isBlocked || isEditMode || filteredProducts.length === 0}
+					disabled={getFieldPermission('producto').disabled || filteredProducts.length === 0}
 					required
 					description={''}
 				/>
@@ -176,7 +206,7 @@ export function BusinessInfoSection({
 					label="Plazo de producto en años"
 					placeholder="10"
 					form={form}
-					disabled={isBlocked || isEditMode || isSkandiaWithMfund}
+					disabled={getFieldPermission('terms').disabled || isSkandiaWithMfund}
 					required
 				/>
 
@@ -186,7 +216,7 @@ export function BusinessInfoSection({
 					placeholder="Seleccione periodicidad"
 					options={periodicitiesOptions}
 					form={form}
-					disabled={isBlocked || isEditMode}
+					disabled={getFieldPermission('periodicity').disabled}
 					required
 				/>
 
@@ -197,10 +227,12 @@ export function BusinessInfoSection({
 					<Input
 						id="numAportes"
 						type="number"
-						value={watchedNumAportes ?? 0}
-						readOnly
-						disabled
-						className="bg-muted cursor-not-allowed"
+						{...register('numAportes', { valueAsNumber: true })}
+						readOnly={getFieldPermission('numAportes').readonly}
+						disabled={getFieldPermission('numAportes').disabled}
+						className={cn(
+							getFieldPermission('numAportes').disabled && "bg-muted cursor-not-allowed"
+						)}
 					/>
 				</div>
 
@@ -210,7 +242,7 @@ export function BusinessInfoSection({
 					placeholder="Seleccione una moneda"
 					options={currenciesOptions}
 					form={form}
-					disabled={isBlocked || isEditMode || !!watch('company')}
+					disabled={getFieldPermission('currency').disabled}
 					required
 				/>
 
@@ -219,7 +251,7 @@ export function BusinessInfoSection({
 					label="Valor del Negocio"
 					placeholder="0,00"
 					form={form}
-					disabled={isBlocked || isEditMode}
+					disabled={getFieldPermission('value').disabled}
 					required
 					className="col-span-2"
 					description={

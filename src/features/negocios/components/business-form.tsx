@@ -29,6 +29,7 @@ export const BusinessForm = React.forwardRef<
 			currenciesOptions,
 			clientOriginsOptions,
 			businessAgent,
+			businessStatus,
 		},
 		ref
 	) => {
@@ -47,6 +48,8 @@ export const BusinessForm = React.forwardRef<
 			canSearchAgents,
 			handleAgentSearch,
 			setIdSettlementCommission,
+			isPrivilegedRole,
+			getFieldPermission,
 		} = useBusinessForm({
 			mode,
 			businessId,
@@ -60,6 +63,7 @@ export const BusinessForm = React.forwardRef<
 			currenciesOptions,
 			clientOriginsOptions,
 			businessAgent,
+			businessStatus,
 		})
 
 		const documentValue = form.watch('identityNumber')
@@ -86,6 +90,7 @@ export const BusinessForm = React.forwardRef<
 						onSearchClient={handleSearchClient}
 						onClientSelected={handleClientSelected}
 						isEditMode={isEditMode}
+						getFieldPermission={getFieldPermission}
 					/>
 
 					<BusinessInfoSection
@@ -98,6 +103,9 @@ export const BusinessForm = React.forwardRef<
 						isBlocked={isBlocked}
 						isEditMode={isEditMode}
 						contractDisabled={isContractDisabled}
+						isPrivilegedRole={isPrivilegedRole}
+						roleCode={currentUser?.role?.code}
+						getFieldPermission={getFieldPermission}
 					/>
 
 					<FormActions

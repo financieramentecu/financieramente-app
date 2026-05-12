@@ -16,6 +16,11 @@ import { ClientAutocomplete } from '@/features/negocios/components/fields/client
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { Client } from '@prisma/client'
 
+import type {
+	BusinessFormField,
+	FieldPermission,
+} from '@/features/negocios/hooks/use-business-permissions'
+
 export interface ClientInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
 	clientOriginsOptions: { value: string; label: string }[]
@@ -23,6 +28,7 @@ export interface ClientInfoSectionProps {
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
 	isEditMode?: boolean
+	getFieldPermission: (field: BusinessFormField) => FieldPermission
 }
 
 export function ClientInfoSection({
@@ -32,6 +38,7 @@ export function ClientInfoSection({
 	onSearchClient,
 	onClientSelected,
 	isEditMode = false,
+	getFieldPermission,
 }: ClientInfoSectionProps) {
 	const {
 		register,
@@ -46,9 +53,8 @@ export function ClientInfoSection({
 	const lastNamesValue = watch('lastNames')
 	const phoneValue = watch('phone')
 
-	// En modo edición, todos los campos de cliente están deshabilitados
 	// En modo creación, se habilitan cuando el documento tiene 5+ caracteres
-	const isBlocked = isEditMode || !documentValue || documentValue.length < 5
+	const isBlocked = !isEditMode && (!documentValue || documentValue.length < 5)
 
 	// Referencia para el campo email (para mover el foco)
 	const emailInputRef = React.useRef<HTMLInputElement>(null)
@@ -133,11 +139,11 @@ export function ClientInfoSection({
 					>
 						No. Documento <span className="text-red-500">*</span>
 					</Label>
-					{isEditMode ? (
+					{getFieldPermission('identityNumber').readonly ? (
 						<Input
 							id="numeroDocumento"
 							value={documentValue}
-							disabled
+							disabled={getFieldPermission('identityNumber').disabled}
 							className="bg-muted"
 						/>
 					) : (
@@ -185,7 +191,7 @@ export function ClientInfoSection({
 						onBlur={emailRegister.onBlur}
 						ref={emailRefCallback}
 						placeholder="email@gmail.com"
-						disabled={isBlocked}
+						disabled={getFieldPermission('email').disabled || isBlocked}
 						className={errors.email ? 'border-red-500' : ''}
 					/>
 					{errors.email && (
@@ -208,7 +214,7 @@ export function ClientInfoSection({
 						onBlur={lastNamesRegister.onBlur}
 						ref={lastNamesRegister.ref}
 						placeholder="Apellidos"
-						disabled={isBlocked}
+						disabled={getFieldPermission('lastNames').disabled || isBlocked}
 						className={errors.lastNames ? 'border-red-500' : ''}
 					/>
 					{errors.lastNames && (
@@ -231,7 +237,7 @@ export function ClientInfoSection({
 						onBlur={nameRegister.onBlur}
 						ref={nameRegister.ref}
 						placeholder="Nombres"
-						disabled={isBlocked}
+						disabled={getFieldPermission('name').disabled || isBlocked}
 						className={errors.name ? 'border-red-500' : ''}
 					/>
 					{errors.name && (
@@ -254,7 +260,7 @@ export function ClientInfoSection({
 						onBlur={phoneRegister.onBlur}
 						ref={phoneRegister.ref}
 						placeholder="+57 XXXXXXXXXX"
-						disabled={isBlocked}
+						disabled={getFieldPermission('phone').disabled || isBlocked}
 						type="tel"
 						className={errors.phone ? 'border-red-500' : ''}
 					/>
@@ -268,7 +274,7 @@ export function ClientInfoSection({
 						Origen del Cliente <span className="text-red-500">*</span>
 					</Label>
 					<Select
-						disabled={isBlocked}
+						disabled={getFieldPermission('clientOrigin').disabled || isBlocked}
 						value={watch('clientOrigin')}
 						onValueChange={(value) =>
 							setValue('clientOrigin', value, { shouldValidate: true })

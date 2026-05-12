@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import { Button } from '@/features/shared/ui/button'
@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { Input } from '@/features/shared/ui/input'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef, SortingState } from '@tanstack/react-table'
 import { UserRole, canEditContractWhenBusinessEmitido, canFundPayments } from '@/features/auth/lib/roles'
 import {
 	Tooltip,
@@ -86,6 +86,9 @@ interface BusinessTableSectionProps {
 	/** Filtro por estado en la lista (`undefined` = todos) */
 	listStatus?: BusinessStatus
 	onListStatusChange?: (status: BusinessStatus | undefined) => void
+	/** Filtro por nombre de Money Strategist */
+	agentName?: string
+	onAgentNameChange?: (value: string) => void
 	/** YYYY-MM-DD — filtro por `date_anchored` del negocio */
 	fundDateFrom?: string
 	fundDateTo?: string
@@ -96,6 +99,12 @@ interface BusinessTableSectionProps {
 	onExportExcel?: () => void
 	isExportingExcel?: boolean
 	exportExcelError?: string | null
+	/** Callback de sorting server-side */
+	onSortingChange?: (sortBy: string | undefined, sortOrder: 'asc' | 'desc') => void
+	/** Columna actual de ordenamiento */
+	sortBy?: string
+	/** Dirección del ordenamiento */
+	sortOrder?: 'asc' | 'desc'
 }
 
 export function BusinessTableSection({
@@ -112,6 +121,8 @@ export function BusinessTableSection({
 	userRole,
 	listStatus,
 	onListStatusChange,
+	agentName = '',
+	onAgentNameChange,
 	fundDateFrom = '',
 	fundDateTo = '',
 	onFundDateFromChange,
@@ -121,6 +132,9 @@ export function BusinessTableSection({
 	onExportExcel,
 	isExportingExcel = false,
 	exportExcelError = null,
+	onSortingChange,
+	sortBy,
+	sortOrder,
 }: BusinessTableSectionProps) {
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('es-CO')
@@ -157,16 +171,7 @@ export function BusinessTableSection({
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Contrato" />
 			),
-			cell: ({ row }) => {
-				const value = row.getValue('contract') as string
-				return (
-					<span
-						className={value === '-' ? 'text-muted-foreground' : 'font-medium'}
-					>
-						{value}
-					</span>
-				)
-			},
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'status',
@@ -176,11 +181,14 @@ export function BusinessTableSection({
 			cell: ({ row }) => (
 				<BusinessStatusBadge status={row.original.statusCode} />
 			),
+			enableSorting: true,
 		},
 		{
-			accessorKey: 'user',
+			id: 'user',
+			accessorFn: (row) => row.user?.name ?? '',
 			size: 220,
 			minSize: 180,
+			enableSorting: true,
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Money Strategist" />
 			),
@@ -274,10 +282,11 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Valor" />
 			),
 			cell: ({ row }) => (
-				<span className="font-medium text-right">
+				<span className="font-medium text-[#11525B]">
 					{formatCurrency(row.original.value, row.original.currency.name)}
 				</span>
 			),
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'dateIssued',
@@ -315,25 +324,43 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Fecha creación" />
 			),
 			cell: ({ row }) => (
-				<span>{formatDate(row.getValue('date'))}</span>
+				<span className="text-muted-foreground text-xs">
+					{formatDate(row.original.date)}
+				</span>
 			),
+			enableSorting: true,
 		},
 	]
 
-	return (
-		<div className="space-y-4">
-			{/* Table Header with Add Button */}
-			<div className="flex justify-between items-center">
-				<h3 className="text-lg font-semibold">Lista de Negocios</h3>
-				<Button onClick={onAddBusiness} className="gap-2 cursor-pointer">
-					<Plus className="h-4 w-4" />
-					Agregar negocio
-				</Button>
-			</div>
+	const initialSorting = useMemo<SortingState>(() => {
+		if (!sortBy) return []
 
-			{/* Data Table */}
-			<TooltipProvider>
+		const idMapRev: Record<string, string> = {
+			agentName: 'user',
+			status: 'status',
+			value: 'value',
+			createdAt: 'date',
+		}
+
+		const id = idMapRev[sortBy] || sortBy
+		return [{ id, desc: sortOrder === 'desc' }]
+	}, [sortBy, sortOrder])
+
+	return (
+		<TooltipProvider>
+			<div className="grid grid-rows-[auto_1fr] h-full w-full min-w-0 overflow-hidden gap-4">
+				{/* Table Header with Add Button */}
+				<div className="flex justify-between items-center shrink-0">
+					<h3 className="text-lg font-semibold">Lista de Negocios</h3>
+					<Button onClick={onAddBusiness} className="gap-2 cursor-pointer">
+						<Plus className="h-4 w-4" />
+						Agregar negocio
+					</Button>
+				</div>
+
+				{/* Data Table - fills the 1fr row correctly */}
 				<DataTable
+					className="h-full w-full"
 					columns={columns}
 					data={data}
 					searchable={true}
@@ -345,114 +372,144 @@ export function BusinessTableSection({
 					pageSize={pagination?.pageSize || 10}
 					totalItems={pagination?.total || data.length}
 					onPageChange={onPageChange}
+					initialSorting={initialSorting}
+					manualSorting={!!onSortingChange}
+					onSortingChange={(sortingState) => {
+						if (!onSortingChange) return
+						const first = sortingState[0]
+						if (!first) {
+							onSortingChange(undefined, 'desc')
+						} else {
+							// Map TanStack column id → API sortBy key
+							const idMap: Record<string, string> = {
+								user: 'agentName',
+								status: 'status',
+								value: 'value',
+								date: 'createdAt',
+							}
+							const sortBy = idMap[first.id] ?? first.id
+							onSortingChange(sortBy, first.desc ? 'desc' : 'asc')
+						}
+					}}
 					renderAdditionalFilters={
 						onListStatusChange ||
-						(onFundDateFromChange && onFundDateToChange)
+							onAgentNameChange ||
+							(onFundDateFromChange && onFundDateToChange)
 							? () => (
-									<div className="flex flex-wrap items-center gap-2">
-										{onFundDateFromChange && onFundDateToChange ? (
-											<fieldset className="border-input bg-muted/25 m-0 inline-flex h-9 max-h-9 min-h-9 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-0 shadow-xs">
-												<legend className="sr-only">
-													Rango de fechas de fondeo para filtrar la tabla
-												</legend>
-												<span className="text-muted-foreground inline-flex shrink-0 items-center gap-1.5">
-													<CalendarRange
-														className="pointer-events-none size-4 shrink-0"
-														aria-hidden
-													/>
-													<span className="hidden text-xs font-medium whitespace-nowrap md:inline">
-														{userRole === UserRole.AGENTE ? 'Creación' : 'Fondeo'}
-													</span>
+								<div className="flex flex-wrap items-center gap-2 py-1">
+									{onAgentNameChange ? (
+										<div className="w-[180px]">
+											<Input
+												placeholder="Money Strategist..."
+												value={agentName}
+												onChange={(e) => onAgentNameChange(e.target.value)}
+												className="h-9"
+											/>
+										</div>
+									) : null}
+									{onFundDateFromChange && onFundDateToChange ? (
+										<fieldset className="border-input bg-muted/25 m-0 inline-flex h-10 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-0 shadow-xs">
+											<legend className="sr-only">
+												Rango de fechas de fondeo para filtrar la tabla
+											</legend>
+											<span className="text-muted-foreground inline-flex shrink-0 items-center gap-1.5">
+												<CalendarRange
+													className="pointer-events-none size-4 shrink-0"
+													aria-hidden
+												/>
+												<span className="hidden text-xs font-medium whitespace-nowrap md:inline">
+													{userRole === UserRole.AGENTE ? 'Creación' : 'Fondeo'}
 												</span>
-												<div className="flex min-w-0 flex-nowrap items-center gap-1.5">
-													<Input
-														id="fund-date-from"
-														type="date"
-														value={fundDateFrom}
-														onChange={(e) =>
-															onFundDateFromChange(e.target.value)
-														}
-														className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
-														aria-label="Fecha de fondeo desde"
-													/>
-													<span
-														className="text-muted-foreground shrink-0 select-none text-xs tabular-nums"
-														aria-hidden
-													>
-														–
-													</span>
-													<Input
-														id="fund-date-to"
-														type="date"
-														value={fundDateTo}
-														onChange={(e) =>
-															onFundDateToChange(e.target.value)
-														}
-														className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
-														aria-label="Fecha de fondeo hasta"
-													/>
-												</div>
-											</fieldset>
-										) : null}
-										{onListStatusChange ? (
-											<Select
-												value={listStatus ?? LIST_STATUS_FILTER_ALL}
-												onValueChange={(v) =>
-													onListStatusChange(
-														v === LIST_STATUS_FILTER_ALL
-															? undefined
-															: (v as BusinessStatus)
-													)
-												}
-												disabled={fundDateRangeActive}
-											>
-												<SelectTrigger
-													className="h-9 w-[140px] lg:w-[170px]"
-													aria-label="Filtrar por estado del negocio"
-													title={fundDateRangeActive ? 'Estado fijo a Fondeado cuando hay rango de fechas' : undefined}
+											</span>
+											<div className="flex min-w-0 flex-nowrap items-center gap-1.5">
+												<Input
+													id="fund-date-from"
+													type="date"
+													value={fundDateFrom}
+													onChange={(e) =>
+														onFundDateFromChange(e.target.value)
+													}
+													className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+													aria-label="Fecha de fondeo desde"
+												/>
+												<span
+													className="text-muted-foreground shrink-0 select-none text-xs tabular-nums"
+													aria-hidden
 												>
-													<SelectValue placeholder="Estado" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value={LIST_STATUS_FILTER_ALL}>
-														Todos los estados
+													–
+												</span>
+												<Input
+													id="fund-date-to"
+													type="date"
+													value={fundDateTo}
+													onChange={(e) =>
+														onFundDateToChange(e.target.value)
+													}
+													className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+													aria-label="Fecha de fondeo hasta"
+												/>
+											</div>
+										</fieldset>
+									) : null}
+									{onListStatusChange ? (
+										<Select
+											value={listStatus ?? LIST_STATUS_FILTER_ALL}
+											onValueChange={(v) =>
+												onListStatusChange(
+													v === LIST_STATUS_FILTER_ALL
+														? undefined
+														: (v as BusinessStatus)
+												)
+											}
+											disabled={fundDateRangeActive}
+										>
+											<SelectTrigger
+												className="h-9 w-[140px] lg:w-[170px]"
+												aria-label="Filtrar por estado del negocio"
+												title={fundDateRangeActive ? 'Estado fijo a Fondeado cuando hay rango de fechas' : undefined}
+											>
+												<SelectValue placeholder="Estado" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value={LIST_STATUS_FILTER_ALL}>
+													Todos los estados
+												</SelectItem>
+												{LIST_STATUS_OPTIONS.map(({ value, label }) => (
+													<SelectItem key={value} value={value}>
+														{label}
 													</SelectItem>
-													{LIST_STATUS_OPTIONS.map(({ value, label }) => (
-														<SelectItem key={value} value={value}>
-															{label}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										) : null}
-									</div>
-								)
+												))}
+											</SelectContent>
+										</Select>
+									) : null}
+								</div>
+							)
 							: undefined
 					}
 					toolbarTrailingActions={
 						canExportExcel && onExportExcel
 							? () => (
-									<div className="flex max-w-[min(100%,16rem)] flex-col items-end gap-1">
-										<Button
-											type="button"
-											variant="outline"
-											size="sm"
-											className="h-9 gap-1.5 shrink-0"
-											disabled={isExportingExcel}
-											onClick={onExportExcel}
-										>
-											<Download className="h-4 w-4" aria-hidden />
-											{isExportingExcel
-												? 'Exportando…'
-												: 'Exportar Excel'}
-										</Button>
-										{exportExcelError ? (
-											<p className="text-destructive max-w-[220px] text-right text-xs">
-												{exportExcelError}
-											</p>
-										) : null}
-									</div>
-								)
+								<div className="flex max-w-[min(100%,16rem)] flex-col items-end gap-1">
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="h-9 gap-1.5 shrink-0"
+										disabled={isExportingExcel}
+										onClick={onExportExcel}
+									>
+										<Download className="h-4 w-4" aria-hidden />
+										{isExportingExcel
+											? 'Exportando…'
+											: 'Exportar Excel'}
+									</Button>
+									{exportExcelError ? (
+										<p className="text-destructive max-w-[220px] text-right text-xs">
+											{exportExcelError}
+										</p>
+									) : null}
+								</div>
+							)
 							: undefined
 					}
 					actions={(row) => {
@@ -562,7 +619,7 @@ export function BusinessTableSection({
 						)
 					}}
 				/>
-			</TooltipProvider>
-		</div>
+			</div>
+		</TooltipProvider>
 	)
 }

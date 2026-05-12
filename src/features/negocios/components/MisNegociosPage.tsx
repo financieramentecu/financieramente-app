@@ -20,7 +20,7 @@ interface PaginationData {
 
 import { CoachKpiResponse } from '@/features/negocios/types/business-api.types'
 
-interface MisNegociosPageProps {
+export interface MisNegociosPageProps {
 	businessData?: Business[]
 	stats?: CoachKpiResponse | null
 	isLoading?: boolean
@@ -38,6 +38,8 @@ interface MisNegociosPageProps {
 	onPageChange?: (page: number) => void
 	listStatus?: BusinessStatus
 	onListStatusChange?: (status: BusinessStatus | undefined) => void
+	agentName?: string
+	onAgentNameChange?: (value: string) => void
 	fundDateFrom?: string
 	fundDateTo?: string
 	onFundDateFromChange?: (value: string) => void
@@ -47,6 +49,9 @@ interface MisNegociosPageProps {
 	onExportExcel?: () => void
 	isExportingExcel?: boolean
 	exportExcelError?: string | null
+	onSortingChange?: (sortBy: string | undefined, sortOrder: 'asc' | 'desc') => void
+	sortBy?: string
+	sortOrder?: 'asc' | 'desc'
 }
 
 function StatsLoadingSkeleton() {
@@ -101,6 +106,8 @@ export function MisNegociosPage({
 	onPageChange,
 	listStatus,
 	onListStatusChange,
+	agentName = '',
+	onAgentNameChange,
 	fundDateFrom = '',
 	fundDateTo = '',
 	onFundDateFromChange,
@@ -110,6 +117,9 @@ export function MisNegociosPage({
 	onExportExcel,
 	isExportingExcel = false,
 	exportExcelError = null,
+	onSortingChange,
+	sortBy,
+	sortOrder,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
 	const isAgentUser = user?.role === UserRole.AGENTE
@@ -121,7 +131,7 @@ export function MisNegociosPage({
 	const showTableLoading = isSearching || (isLoading && hasInitialized)
 
 	return (
-		<div className="space-y-8">
+		<div className="grid grid-rows-[auto_1fr] h-full w-full min-w-0 overflow-hidden gap-4">
 			{/* Stats Overview - Solo visible para agentes */}
 			{isAgentUser &&
 				(isLoadingStats ? (
@@ -133,35 +143,42 @@ export function MisNegociosPage({
 			{/* Error Message */}
 			{error && <ErrorMessage message={error} />}
 
-			{/* Business Table Section */}
-			{showFullSkeleton ? (
-				<TableLoadingSkeleton />
-			) : (
-				<BusinessTableSection
-					data={businessData}
-					onAddBusiness={onAddBusiness}
-					onGlobalSearch={onGlobalSearch}
-					onEditBusiness={onEditBusiness}
-					onViewBusiness={onViewBusiness}
-					onCancelBusiness={onCancelBusiness}
-					onFondearBusiness={onFondearBusiness}
-					pagination={pagination}
-					onPageChange={onPageChange}
-					isSearching={showTableLoading}
-					userRole={user?.role ?? undefined}
-					listStatus={listStatus}
-					onListStatusChange={onListStatusChange}
-					fundDateFrom={fundDateFrom}
-					fundDateTo={fundDateTo}
-					onFundDateFromChange={onFundDateFromChange}
-					onFundDateToChange={onFundDateToChange}
-					fundDateRangeActive={fundDateRangeActive}
-					canExportExcel={canExportExcel}
-					onExportExcel={onExportExcel}
-					isExportingExcel={isExportingExcel}
-					exportExcelError={exportExcelError}
-				/>
-			)}
+			{/* Business Table Section - fills the 1fr row */}
+			<div className="min-h-0 overflow-hidden">
+				{showFullSkeleton ? (
+					<TableLoadingSkeleton />
+				) : (
+					<BusinessTableSection
+						data={businessData}
+						onAddBusiness={onAddBusiness}
+						onGlobalSearch={onGlobalSearch}
+						onEditBusiness={onEditBusiness}
+						onViewBusiness={onViewBusiness}
+						onCancelBusiness={onCancelBusiness}
+						onFondearBusiness={onFondearBusiness}
+						pagination={pagination}
+						onPageChange={onPageChange}
+						isSearching={showTableLoading}
+						userRole={user?.role ?? undefined}
+						listStatus={listStatus}
+						onListStatusChange={onListStatusChange}
+						agentName={agentName}
+						onAgentNameChange={onAgentNameChange}
+						fundDateFrom={fundDateFrom}
+						fundDateTo={fundDateTo}
+						onFundDateFromChange={onFundDateFromChange}
+						onFundDateToChange={onFundDateToChange}
+						fundDateRangeActive={fundDateRangeActive}
+						canExportExcel={canExportExcel}
+						onExportExcel={onExportExcel}
+						isExportingExcel={isExportingExcel}
+						exportExcelError={exportExcelError}
+						onSortingChange={onSortingChange}
+						sortBy={sortBy}
+						sortOrder={sortOrder}
+					/>
+				)}
+			</div>
 		</div>
 	)
 }

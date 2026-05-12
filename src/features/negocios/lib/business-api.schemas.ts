@@ -47,6 +47,9 @@ export const businessListParamsSchema = z
 			(v) => (v === '' || v === null ? undefined : v),
 			isoCalendarDay.optional()
 		),
+		agentName: z.string().nullish(),
+		sortBy: z.enum(['agentName', 'createdAt', 'status', 'value']).nullish(),
+		sortOrder: z.enum(['asc', 'desc']).nullish(),
 	})
 	.superRefine((data, ctx) => {
 		const hasFrom = data.dateFrom !== undefined
@@ -115,6 +118,13 @@ export const updateBusinessSchema = z.object({
 		.optional(),
 	idClientOrigin: z.number().int().positive().optional(),
 	idSettlementCommission: z.number().int().positive().optional(),
+	idProduct: z.number().int().positive().optional(),
+	term: z.number().int().positive().optional(),
+	value: z.number().positive().optional(),
+	idBuyPeriodicity: z.number().int().positive().optional(),
+	idCurrency: z.number().int().positive().optional(),
+	idUser: z.number().int().positive().optional(),
+	numAportes: z.number().int().positive().optional(),
 })
 
 export type UpdateBusinessSchema = z.infer<typeof updateBusinessSchema>

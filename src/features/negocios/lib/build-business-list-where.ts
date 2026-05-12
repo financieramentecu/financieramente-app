@@ -7,9 +7,9 @@ const POSTGRES_INT_MAX = 2147483647
 export interface BusinessListFilterInput {
 	search?: string
 	status?: string
-	/** Inclusivo en `business.date_anchored`; excluye null en el rango */
 	dateAnchoredRange?: { gte: Date; lte: Date }
 	createdAtRange?: { gte: Date; lte: Date }
+	agentName?: string
 }
 
 export interface BuildBusinessListWhereOptions {
@@ -47,7 +47,7 @@ export function buildBusinessListWhere(
 		}
 	}
 
-	const { status, search, dateAnchoredRange, createdAtRange } = filters
+	const { status, search, dateAnchoredRange, createdAtRange, agentName } = filters
 
 	if (status) {
 		whereConditions.push({ status })
@@ -100,6 +100,22 @@ export function buildBusinessListWhere(
 			createdAt: {
 				gte: createdAtRange.gte,
 				lte: createdAtRange.lte,
+			},
+		})
+	}
+
+	if (agentName?.trim()) {
+		const terms = agentName.trim().split(/\s+/)
+		const agentConditions: Prisma.UserWhereInput[] = terms.map((term) => ({
+			OR: [
+				{ name: { contains: term, mode: 'insensitive' } },
+				{ lastName: { contains: term, mode: 'insensitive' } },
+			],
+		}))
+
+		whereConditions.push({
+			user: {
+				AND: agentConditions,
 			},
 		})
 	}
