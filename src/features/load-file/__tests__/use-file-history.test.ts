@@ -25,6 +25,7 @@ const makeMockItem = (overrides = {}) => ({
 	createdAt: new Date('2026-02-01T10:00:00Z'),
 	month: 2,
 	year: 2026,
+	uploadCount: 1,
 	user: { name: 'John', lastName: 'Doe' },
 	...overrides,
 })

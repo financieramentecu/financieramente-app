@@ -27,11 +27,11 @@ const STATUS_CONFIG: Record<FileImportStatus, StatusConfig> = {
 	},
 	'PRE-SETTLED': {
 		label: 'Pre-liquidado',
-		className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+		className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 truncate',
 	},
 	COMPLETED: {
 		label: 'Liquidado',
-		className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+		className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 truncate',
 	},
 	ERROR: {
 		label: 'Error',
@@ -57,7 +57,7 @@ export function FileStatusBadge({ status, className }: FileStatusBadgeProps) {
 	return (
 		<Badge
 			variant="outline"
-			className={cn(config.className, 'font-semibold text-xs', className)}
+			className={cn(config.className, 'font-semibold text-xs truncate', className)}
 		>
 			{config.label}
 		</Badge>

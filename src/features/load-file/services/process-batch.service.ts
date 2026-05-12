@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { FILE_TYPES } from '../lib/file-types'
 import { ProcessorFactory } from './processors/processor.factory'
 import type {
@@ -80,27 +81,50 @@ export class ProcessBatchService {
 			let resolvedErrorsBatch = 0
 
 			for (const record of batch) {
-				const result = await processor.process(
-					record,
-					headers,
-					fileImportId,
-					snapshots,
-					auditContext
-				)
+				try {
+					const result = await processor.process(
+						record,
+						headers,
+						fileImportId,
+						snapshots,
+						auditContext,
+						fileImport.uploadCount,
+						fileImport.month ?? undefined,
+						fileImport.year ?? undefined
+					)
 
-				if (result.status === 'ERROR') {
+					if (result.status === 'ERROR') {
+						errorBatch++
+					} else if (result.status === 'LAG' && !result.idBusiness) {
+						noSincronizadoBatch++
+					} else if (result.status === 'LAG' && result.idBusiness) {
+						rezagadoBatch++
+					} else if (result.status === 'SYNCHRONIZED') {
+						sincronizadoBatch++
+						if (result.recoveredLag) {
+							recoveredLagsBatch++
+						}
+					}
+					resolvedErrorsBatch += result.resolvedErrors ?? 0
+				} catch (err) {
+					console.error('Error procesando registro individual:', err)
 					errorBatch++
-				} else if (result.status === 'LAG' && !result.idBusiness) {
-					noSincronizadoBatch++
-				} else if (result.status === 'LAG' && result.idBusiness) {
-					rezagadoBatch++
-				} else if (result.status === 'SYNCHRONIZED') {
-					sincronizadoBatch++
-					if (result.recoveredLag) {
-						recoveredLagsBatch++
+					
+					// Log to DB even if processor failed
+					try {
+						await prisma.fileImportError.create({
+							data: {
+								idFileImport: fileImportId,
+								rowNumber: record.rowNumber,
+								reason: err instanceof Error ? err.message : 'Error crítico de base de datos',
+								rawData: record.data as Prisma.InputJsonValue,
+								loadNumber: fileImport.uploadCount
+							}
+						})
+					} catch (logErr) {
+						console.error('Error al guardar log de error:', logErr)
 					}
 				}
-				resolvedErrorsBatch += result.resolvedErrors ?? 0
 			}
 
 			const netErrorDelta = errorBatch - resolvedErrorsBatch
@@ -109,9 +133,12 @@ export class ProcessBatchService {
 				data: {
 					totalRecord: { increment: batch.length },
 					sincronizadoRecord: {
-						increment: sincronizadoBatch + recoveredLagsBatch,
+						increment: sincronizadoBatch,
 					},
-					rezagadoRecord: { increment: rezagadoBatch },
+					rezagadoRecord:
+						rezagadoBatch - recoveredLagsBatch >= 0
+							? { increment: rezagadoBatch - recoveredLagsBatch }
+							: { decrement: -(rezagadoBatch - recoveredLagsBatch) },
 					noSincronizadoRecord: { increment: noSincronizadoBatch },
 					errorRecord:
 						netErrorDelta >= 0

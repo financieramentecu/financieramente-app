@@ -27,6 +27,7 @@ import {
 	Clock,
 	SearchX,
 	Inbox,
+	RefreshCw,
 	type LucideIcon,
 } from 'lucide-react'
 
@@ -51,6 +52,10 @@ interface RecordsByStatusViewProps {
 	counts?: RecordsByStatusCounts | null
 	/** Optional compact mode (e.g. inside modal) */
 	compact?: boolean
+	/** Optional load session filter */
+	loadNumber?: number
+	/** Optional total load count to display */
+	uploadCount?: number
 }
 
 function formatDecimal(value: number | null): string {
@@ -101,6 +106,8 @@ export function RecordsByStatusView({
 	fileImportId,
 	counts: countsProp,
 	compact = false,
+	loadNumber,
+	uploadCount,
 }: RecordsByStatusViewProps) {
 	const [counts, setCounts] = useState<RecordsByStatusCounts | null>(
 		countsProp ?? null
@@ -128,20 +135,33 @@ export function RecordsByStatusView({
 			return
 		}
 		let cancelled = false
-		loadFileApi.getImportProgress(fileImportId).then((res) => {
+		setLoadingCounts(true)
+		loadFileApi.getImportProgress(fileImportId, { loadNumber }).then((res) => {
 			if (cancelled || !res.data) return
+			
+			// Handle both full FileImport model and summary response
+			const d = res.data as {
+				sincronizados?: number
+				sincronizadoRecord?: number
+				errores?: number
+				errorRecord?: number
+				noSincronizados?: number
+				noSincronizadoRecord?: number
+				rezagados?: number
+				rezagadoRecord?: number
+			}
 			setCounts({
-				sincronizados: res.data.sincronizadoRecord ?? 0,
-				errores: res.data.errorRecord ?? 0,
-				noSincronizados: res.data.noSincronizadoRecord ?? 0,
-				rezagados: res.data.rezagadoRecord ?? 0,
+				sincronizados: d.sincronizados ?? d.sincronizadoRecord ?? 0,
+				errores: d.errores ?? d.errorRecord ?? 0,
+				noSincronizados: d.noSincronizados ?? d.noSincronizadoRecord ?? 0,
+				rezagados: d.rezagados ?? d.rezagadoRecord ?? 0,
 			})
 			setLoadingCounts(false)
 		})
 		return () => {
 			cancelled = true
 		}
-	}, [fileImportId, countsProp])
+	}, [fileImportId, countsProp, loadNumber])
 
 	// Fetch records when tab changes (for Sincronizados, No sincronizados, Rezagados)
 	const statusForTab = useMemo<Record<string, FileImportRecordStatusFilter>>(
@@ -156,7 +176,7 @@ export function RecordsByStatusView({
 	useEffect(() => {
 		if (activeTab === 'errores') {
 			setLoadingErrors(true)
-			loadFileApi.getImportErrors(fileImportId).then((res) => {
+			loadFileApi.getImportErrors(fileImportId, { loadNumber }).then((res) => {
 				setErrors(res.data ?? [])
 				setLoadingErrors(false)
 			})
@@ -170,6 +190,7 @@ export function RecordsByStatusView({
 				page: 1,
 				pageSize: PAGE_SIZE,
 				status,
+				loadNumber,
 			})
 			.then((res) => {
 				if (res.data) {
@@ -180,7 +201,7 @@ export function RecordsByStatusView({
 				}
 				setLoadingRecords(false)
 			})
-	}, [fileImportId, activeTab, statusForTab])
+	}, [fileImportId, activeTab, statusForTab, loadNumber])
 
 	const loadPage = (page: number) => {
 		if (activeTab === 'errores') return
@@ -192,6 +213,7 @@ export function RecordsByStatusView({
 				page,
 				pageSize: PAGE_SIZE,
 				status,
+				loadNumber,
 			})
 			.then((res) => {
 				if (res.data) {
@@ -204,12 +226,32 @@ export function RecordsByStatusView({
 
 	return (
 		<div className={`flex flex-col items-stretch ${compact ? 'space-y-3' : 'space-y-4'}`}>
+
 			{/* Summary cards acting as Tabs */}
-			<div className={`grid grid-cols-2 lg:grid-cols-4 ${compact ? 'gap-2' : 'gap-3'}`}>
+			<div className={`grid grid-cols-2 lg:grid-cols-5 ${compact ? 'gap-2' : 'gap-3'}`}>
 				{loadingCounts ? (
-					<div className="col-span-2 lg:col-span-4 h-20 rounded-lg bg-muted animate-pulse" />
+					<div className="col-span-2 lg:col-span-5 h-20 rounded-lg bg-muted animate-pulse" />
 				) : (
 					<>
+						{/* Cargas */}
+						<div
+							className={cn(
+								'rounded-xl p-5 shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
+							)}
+						>
+							<div className="flex items-center justify-between mb-3">
+								<div className="rounded-lg bg-slate-100 dark:bg-slate-800 p-2">
+									<RefreshCw className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+								</div>
+								<span className={`font-extrabold text-slate-900 dark:text-slate-100 ${compact ? 'text-2xl' : 'text-4xl'}`}>
+									{uploadCount ?? 1}
+								</span>
+							</div>
+							<p className={`font-medium text-slate-500 dark:text-slate-400 ${compact ? 'text-xs' : 'text-sm'}`}>
+								{uploadCount === 1 ? 'Carga' : 'Cargas'}
+							</p>
+						</div>
+
 						{/* Sincronizados */}
 						<div
 							onClick={() => setActiveTab('sincronizados')}
