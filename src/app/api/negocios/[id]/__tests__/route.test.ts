@@ -5,6 +5,10 @@ import { validateProductConfigurationExists } from '@/features/negocios/services
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import {
+	mockPrismaBusinessEmitido,
+	mockPrismaBusinessVentaEfectuada,
+} from '@/features/negocios/__tests__/fixtures/mock-prisma-business'
 
 vi.mock('@/auth', () => ({ auth: vi.fn() }))
 
@@ -100,7 +104,7 @@ describe('PUT /api/negocios/[id]', () => {
 	it('should delegate origin updates to recalcularComisionesPorCambioOrigen when business is EMITIDO', async () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
-		const mockBusiness = { idBusiness: 10, status: 'EMITIDO' }
+		const mockBusiness = { ...mockPrismaBusinessEmitido, idBusiness: 10 }
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(auth as any).mockResolvedValue(mockSession)
@@ -137,7 +141,7 @@ describe('PUT /api/negocios/[id]', () => {
 	it('should return 400 if trying to change origin of a non-EMITIDO business', async () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
-		const mockBusiness = { idBusiness: 10, status: 'VENTA_EFECTUADA' } // NOT EMITIDO
+		const mockBusiness = { ...mockPrismaBusinessVentaEfectuada, idBusiness: 10 } // NOT EMITIDO
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(auth as any).mockResolvedValue(mockSession)
@@ -167,7 +171,7 @@ describe('PUT /api/negocios/[id]', () => {
 	it('should return 400 with a clear message when validateProductConfigurationExists returns false', async () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
-		const mockBusiness = { idBusiness: 10, status: 'EMITIDO' }
+		const mockBusiness = { ...mockPrismaBusinessEmitido, idBusiness: 10 }
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(auth as any).mockResolvedValue(mockSession)
@@ -204,7 +208,7 @@ describe('PUT /api/negocios/[id]', () => {
 	it('should call recalcularComisionesPorCambioOrigen and return 200 when validateProductConfigurationExists returns true', async () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
-		const mockBusiness = { idBusiness: 10, status: 'EMITIDO' }
+		const mockBusiness = { ...mockPrismaBusinessEmitido, idBusiness: 10 }
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(auth as any).mockResolvedValue(mockSession)
