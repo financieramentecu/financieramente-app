@@ -81,11 +81,12 @@ export async function GET(
 		}
 
 		// Visibility scope for detail:
-		// ADMIN → see any business, no idUser restriction
+		// ADMIN / ASISTENTE / ANALISTA → see any business, no idUser restriction
 		// All other roles → hierarchical scope: [self, ...subordinates]
-		//   PUT handler intentionally keeps the simpler isAgent check (leaders editing
-		//   subordinate businesses is out of scope — leaders may only view, not edit, those).
-		const isAdmin = currentUser.role?.code === UserRole.ADMIN
+		const isAdmin =
+			currentUser.role?.code === UserRole.ADMIN ||
+			currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+			currentUser.role?.code === UserRole.ANALISTA_SOPORTE
 		let whereClause: { idBusiness: number; idUser?: { in: number[] } }
 
 		if (isAdmin) {
@@ -197,7 +198,8 @@ export async function PUT(
 		const isAgent = currentUser.role?.code === UserRole.AGENTE
 		const isAdmin = currentUser.role?.code === UserRole.ADMIN
 		const isAsistente = currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
-		const isPrivileged = isAdmin || isAsistente
+		const isAnalista = currentUser.role?.code === UserRole.ANALISTA_SOPORTE
+		const isPrivileged = isAdmin || isAsistente || isAnalista
 
 		const whereClause = isAgent
 			? { idBusiness: businessId, idUser: currentUser.idUser }
