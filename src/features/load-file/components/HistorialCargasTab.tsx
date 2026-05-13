@@ -140,7 +140,36 @@ export function HistorialCargasTab({
 			>
 				{detailFileImportId !== null && (
 					<div className="flex-1 min-h-0 overflow-y-auto w-full pt-2">
-						<RecordsByStatusView fileImportId={detailFileImportId} compact />
+						<RecordsByStatusView
+							fileImportId={detailFileImportId}
+							uploadCount={
+								historial.find((c) => parseInt(c.id, 10) === detailFileImportId)
+									?.uploadCount
+							}
+							counts={
+								historial.find((c) => parseInt(c.id, 10) === detailFileImportId)
+									? {
+										sincronizados:
+											historial.find(
+												(c) => parseInt(c.id, 10) === detailFileImportId
+											)?.sincronizados ?? 0,
+										errores:
+											historial.find(
+												(c) => parseInt(c.id, 10) === detailFileImportId
+											)?.errores ?? 0,
+										noSincronizados:
+											historial.find(
+												(c) => parseInt(c.id, 10) === detailFileImportId
+											)?.sinRegistro ?? 0,
+										rezagados:
+											historial.find(
+												(c) => parseInt(c.id, 10) === detailFileImportId
+											)?.rezagados ?? 0,
+									}
+									: null
+							}
+							compact
+						/>
 					</div>
 				)}
 			</Modal>

@@ -20,7 +20,10 @@ export class PolizaProcessor implements ICommissionProcessor {
 			discountPercentage: number | string
 			clawbackPercentage: number | string | null
 		},
-		auditContext: ProcessorAuditContext
+		auditContext: ProcessorAuditContext,
+		loadNumber: number,
+		expectedMonth?: number,
+		expectedYear?: number
 	): Promise<ProcessorResult> {
 		let extracted: ReturnType<typeof rowValidatorService.validateAndExtractRow>
 
@@ -28,7 +31,9 @@ export class PolizaProcessor implements ICommissionProcessor {
 			extracted = rowValidatorService.validateAndExtractRow(
 				record,
 				headers,
-				FILE_TYPES.POLIZA
+				FILE_TYPES.POLIZA,
+				expectedMonth,
+				expectedYear
 			)
 		} catch (error) {
 			await this.logAndSaveFormatError(
@@ -37,7 +42,8 @@ export class PolizaProcessor implements ICommissionProcessor {
 				auditContext,
 				error instanceof Error
 					? error.message
-					: 'Error de validación de formato'
+					: 'Error de validación de formato',
+				loadNumber
 			)
 			return {
 				status: 'ERROR',
@@ -68,6 +74,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 						status: 'LAG',
 						isLag: true,
 						isClawback: false,
+						loadNumber,
 					},
 				})
 				return {
@@ -126,7 +133,8 @@ export class PolizaProcessor implements ICommissionProcessor {
 					effectiveDiscount,
 					effectiveClawback,
 					originCommission,
-					isClawback
+					isClawback,
+					loadNumber
 				)
 				const resolved = await tx.fileImportError.updateMany({
 					where: {
@@ -155,7 +163,8 @@ export class PolizaProcessor implements ICommissionProcessor {
 					effectiveDiscount,
 					effectiveClawback,
 					originCommission,
-					isClawback
+					isClawback,
+					loadNumber
 				)
 				const resolved = await tx.fileImportError.updateMany({
 					where: {
@@ -187,7 +196,8 @@ export class PolizaProcessor implements ICommissionProcessor {
 		discountPercentage: number | string,
 		clawbackPercentage: number,
 		originCommission: string | null,
-		isClawback: boolean
+		isClawback: boolean,
+		loadNumber: number
 	) {
 		await tx.settlementCommission.create({
 			data: {
@@ -205,6 +215,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 				isLag: false,
 				isClawback,
 				syncDate: new Date(),
+				loadNumber,
 			},
 		})
 	}
@@ -213,7 +224,8 @@ export class PolizaProcessor implements ICommissionProcessor {
 		record: ProcessedRecord,
 		fileImportId: number,
 		auditContext: ProcessorAuditContext,
-		reason: string
+		reason: string,
+		loadNumber: number
 	) {
 		await logAuditEvent({
 			userId: auditContext.userId,
@@ -231,6 +243,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 				contract: null,
 				reason,
 				rawData: record.data as Prisma.InputJsonValue,
+				loadNumber,
 			},
 		})
 	}

@@ -19,6 +19,8 @@ function makeCarga(overrides: Partial<CargaHistorial> = {}): CargaHistorial {
 		sinRegistro: 0,
 		rezagados: 0,
 		createdAt: '2026-01-15T10:00:00Z',
+		uploadCount: 1,
+		totalRecord: 1,
 		...overrides,
 	}
 }

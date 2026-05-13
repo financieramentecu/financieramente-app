@@ -1,0 +1,51 @@
+
+> financieramente-app@1.4.0 lint
+> eslint
+
+
+/Users/andres/Documents/financieramente/financieramente-app/prisma/seeds/distribution-by-level.ts
+  57:2  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  59:3  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+/Users/andres/Documents/financieramente/financieramente-app/src/app/api/negocios/[id]/__tests__/route.test.ts
+   19:25  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+   20:22  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+   27:55  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+   94:7   warning  'mockBusinessWithPpc' is assigned a value but never used                                               @typescript-eslint/no-unused-vars
+  267:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  271:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  316:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  320:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+/Users/andres/Documents/financieramente/financieramente-app/src/app/api/negocios/[id]/route.ts
+  343:11  warning  'targetIdBuyPeriodicity' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/andres/Documents/financieramente/financieramente-app/src/app/api/negocios/__tests__/business-id.route.test.ts
+    9:25  warning  'AuditAction' is defined but never used                @typescript-eslint/no-unused-vars
+   21:2   warning  'mockPrismaBusinessEmitido' is defined but never used  @typescript-eslint/no-unused-vars
+   80:35  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+   91:30  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+   92:50  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+   93:56  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+  129:48  error    Unexpected any. Specify a different type               @typescript-eslint/no-explicit-any
+  641:10  warning  'responseData' is assigned a value but never used      @typescript-eslint/no-unused-vars
+
+/Users/andres/Documents/financieramente/financieramente-app/src/app/dashboard/negocios/negocios-page-client.tsx
+  6:7  warning  'MisNegociosPageProps' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/andres/Documents/financieramente/financieramente-app/src/features/negocios/components/sections/business-info-section.tsx
+  44:2  warning  'isBlocked' is defined but never used. Allowed unused args must match /^_/u                  @typescript-eslint/no-unused-vars
+  47:2  warning  'isPrivilegedRole' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  48:2  warning  'roleCode' is defined but never used. Allowed unused args must match /^_/u                   @typescript-eslint/no-unused-vars
+  61:8  warning  'watchedNumAportes' is assigned a value but never used                                       @typescript-eslint/no-unused-vars
+
+/Users/andres/Documents/financieramente/financieramente-app/src/features/negocios/components/sections/coach-info-section.tsx
+  17:15  warning  'BusinessFormField' is defined but never used  @typescript-eslint/no-unused-vars
+  17:34  warning  'FieldPermission' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/andres/Documents/financieramente/financieramente-app/src/features/shared/ui/DataTable/DataTable.tsx
+  110:5  warning  React Hook useEffect has a missing dependency: 'sorting.length'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 27 problems (8 errors, 19 warnings)
+  0 errors and 6 warnings potentially fixable with the `--fix` option.
+

@@ -19,6 +19,7 @@ export interface Leader {
 	name: string
 	lastName: string | null
 	email: string | null
+	idLevel: number | null
 }
 
 export interface Level {

@@ -26,6 +26,9 @@ export interface ICommissionProcessor {
 			discountPercentage: number | string
 			clawbackPercentage: number | string | null
 		},
-		auditContext: ProcessorAuditContext
+		auditContext: ProcessorAuditContext,
+		loadNumber: number,
+		expectedMonth?: number,
+		expectedYear?: number
 	): Promise<ProcessorResult>
 }

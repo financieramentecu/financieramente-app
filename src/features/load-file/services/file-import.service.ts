@@ -81,19 +81,24 @@ export class FileImportService {
 			throw new PeriodPreSettledError(month, year)
 		}
 
-		// 2. Check for LOAD import (dedup)
+		// 2. Check for existing import to increment counter (dedup)
 		const existing = await prisma.fileImport.findFirst({
 			where: {
 				fileType,
 				month,
 				year,
 				idUser,
-				status: 'LOAD',
+				status: { notIn: ['COMPLETED', 'PRE-SETTLED'] },
 			},
+			orderBy: { createdAt: 'desc' },
 		})
 
 		if (existing) {
-			return { created: false, fileImport: existing }
+			const updated = await prisma.fileImport.update({
+				where: { idFileImport: existing.idFileImport },
+				data: { uploadCount: { increment: 1 } },
+			})
+			return { created: false, fileImport: updated }
 		}
 
 		// 3. Create new import
@@ -109,6 +114,7 @@ export class FileImportService {
 				totalRecord: 0,
 				successRecord: 0,
 				errorRecord: 0,
+				uploadCount: 1,
 			},
 		})
 

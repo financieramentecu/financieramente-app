@@ -156,21 +156,36 @@ describe('GET /api/negocios — hierarchical visibility', () => {
 		})
 	})
 
-	describe('Non-ADMIN non-AGENTE role (ASISTENTE_GERENCIA_OPERATIVA) is scoped', () => {
-		it('applies hierarchy scope for ASISTENTE_GERENCIA_OPERATIVA', async () => {
+	describe('ASISTENTE_GERENCIA_OPERATIVA and ANALISTA_SOPORTE see all (no idUser scope)', () => {
+		it('does NOT apply idUser filter for ASISTENTE_GERENCIA_OPERATIVA', async () => {
 			const userId = 40
 			mockAuth.mockResolvedValue(makeSession() as never)
 			mockGetCurrentUser.mockResolvedValue(
 				makeUser(userId, UserRole.ASISTENTE_GERENCIA_OPERATIVA) as never
 			)
-			mockUserFindMany.mockResolvedValue([
-				{ idUser: userId, idUserLeader: null },
-			] as never)
 
 			const res = await GET(makeRequest())
 			expect(res.status).toBe(200)
-			// BFS was called for scoped role
-			expect(mockUserFindMany).toHaveBeenCalledTimes(1)
+			// No BFS call — sees all businesses like ADMIN
+			expect(mockUserFindMany).not.toHaveBeenCalled()
+			const whereArg = mockCount.mock.calls[0][0]?.where
+			const whereStr = JSON.stringify(whereArg ?? {})
+			expect(whereStr).not.toContain('"idUser"')
+		})
+
+		it('does NOT apply idUser filter for ANALISTA_SOPORTE', async () => {
+			const userId = 41
+			mockAuth.mockResolvedValue(makeSession() as never)
+			mockGetCurrentUser.mockResolvedValue(
+				makeUser(userId, UserRole.ANALISTA_SOPORTE) as never
+			)
+
+			const res = await GET(makeRequest())
+			expect(res.status).toBe(200)
+			expect(mockUserFindMany).not.toHaveBeenCalled()
+			const whereArg = mockCount.mock.calls[0][0]?.where
+			const whereStr = JSON.stringify(whereArg ?? {})
+			expect(whereStr).not.toContain('"idUser"')
 		})
 	})
 })

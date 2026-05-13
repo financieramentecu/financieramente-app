@@ -60,6 +60,16 @@ export class RowValidatorService {
 		return null
 	}
 
+	public isDateInPeriod(
+		date: Date,
+		expectedMonth: number,
+		expectedYear: number
+	): boolean {
+		const month = date.getMonth() + 1 // 0-indexed
+		const year = date.getFullYear()
+		return month === expectedMonth && year === expectedYear
+	}
+
 	public getColumnValue(
 		record: ProcessedRecord,
 		columnName: string,
@@ -106,7 +116,9 @@ export class RowValidatorService {
 	public validateAndExtractRow(
 		record: ProcessedRecord,
 		headers: string[],
-		fileType: FileType
+		fileType: FileType,
+		expectedMonth?: number,
+		expectedYear?: number
 	): {
 		contract: string
 		descripcion: string | null
@@ -134,13 +146,21 @@ export class RowValidatorService {
 		}
 
 		const ctoRaw = this.getColumnValue(record, contractCol, headers)
-		const contract = ctoRaw ? String(ctoRaw).trim() : null
+		let contract = ctoRaw ? String(ctoRaw).trim() : null
 		if (!contract) {
 			throw new Error('El campo Cto (ID de contrato) está vacío')
 		}
+		// Truncate to database limit (50)
+		if (contract.length > 50) {
+			contract = contract.substring(0, 50)
+		}
 
 		const descripcionRaw = this.getColumnValue(record, descripCol, headers)
-		const descripcion = this.cleanStringValue(descripcionRaw)
+		let descripcion = this.cleanStringValue(descripcionRaw)
+		// Truncate to database limit (100)
+		if (descripcion && descripcion.length > 100) {
+			descripcion = descripcion.substring(0, 100)
+		}
 
 		const baseRaw = this.getColumnValue(record, baseCol, headers)
 		if (this.isEmptyValue(baseRaw)) {
@@ -180,6 +200,19 @@ export class RowValidatorService {
 
 			if (!startDate || !endDate) {
 				throw new Error('Las fechas Desde o Hasta están vacías o son inválidas')
+			}
+
+			if (expectedMonth !== undefined && expectedYear !== undefined) {
+				if (!this.isDateInPeriod(startDate, expectedMonth, expectedYear)) {
+					throw new Error(
+						`La fecha 'Desde' (${startDate.toLocaleDateString()}) no coincide con el periodo seleccionado (${expectedMonth}/${expectedYear})`
+					)
+				}
+				if (!this.isDateInPeriod(endDate, expectedMonth, expectedYear)) {
+					throw new Error(
+						`La fecha 'Hasta' (${endDate.toLocaleDateString()}) no coincide con el periodo seleccionado (${expectedMonth}/${expectedYear})`
+					)
+				}
 			}
 		}
 

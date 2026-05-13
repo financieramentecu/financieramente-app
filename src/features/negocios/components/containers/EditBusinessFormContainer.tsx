@@ -103,6 +103,7 @@ export function EditBusinessFormContainer({
 				currenciesOptions={currenciesOptions}
 				clientOriginsOptions={clientOriginsOptions}
 				businessAgent={business.agent}
+				businessStatus={business.status}
 			/>
 		</div>
 	)

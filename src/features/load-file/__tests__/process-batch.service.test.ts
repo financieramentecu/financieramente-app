@@ -511,7 +511,13 @@ describe('processBatchService', () => {
 					}),
 				})
 			)
-			expect(prisma.settlementCommission.findMany).not.toHaveBeenCalled()
+			expect(prisma.settlementCommission.findMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: expect.objectContaining({
+						contract: 'VOL-001',
+					}),
+				})
+			)
 			expect(result.summary.noSincronizado).toBe(1)
 		})
 

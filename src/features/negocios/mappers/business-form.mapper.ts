@@ -47,6 +47,7 @@ export function businessEntityToFormData(
 		value: business.value,
 		agent: String(business.agent.id),
 		contract: business.contract || '',
+		numAportes: business.numAportes ?? undefined,
 	}
 }
 
@@ -62,6 +63,7 @@ export function formDataToUpdateRequest(
 ): UpdateBusinessRequest {
 	return {
 		contract: formData.contract || undefined,
+		numAportes: formData.numAportes,
 	}
 }
 
@@ -76,5 +78,5 @@ export function hasFormChanges(
 	current: Partial<BusinessFormData>,
 	original: Partial<BusinessFormData>
 ): boolean {
-	return current.contract !== original.contract
+	return current.contract !== original.contract || current.numAportes !== original.numAportes
 }

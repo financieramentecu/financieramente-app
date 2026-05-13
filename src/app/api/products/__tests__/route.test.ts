@@ -384,6 +384,8 @@ describe('POST /api/products', () => {
 				name: 'seguro de vida',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			const mockCreatedProduct = createMockPrismaProduct({
@@ -426,7 +428,7 @@ describe('POST /api/products', () => {
 				},
 			})
 			expect(mockPrismaCreate).toHaveBeenCalledWith({
-				data: { name: 'Seguro de vida', idCompany: 1, status: true, description: null, idTypeProduct: null },
+				data: { name: 'Seguro de vida', idCompany: 1, status: true, description: null, idTypeProduct: null, commissionPercentage: 0, contributionType: 'REGULAR' },
 				include: { company: true, typeProduct: true },
 			})
 			expect(mockLogAuditEvent).toHaveBeenCalledWith({
@@ -453,6 +455,8 @@ describe('POST /api/products', () => {
 				name: '  seguro de salud  ',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			const mockCreatedProduct = createMockPrismaProduct({
@@ -478,7 +482,7 @@ describe('POST /api/products', () => {
 			await POST(request)
 
 			expect(mockPrismaCreate).toHaveBeenCalledWith({
-				data: { name: 'Seguro de salud', idCompany: 1, status: true, description: null, idTypeProduct: null },
+				data: { name: 'Seguro de salud', idCompany: 1, status: true, description: null, idTypeProduct: null, commissionPercentage: 0, contributionType: 'REGULAR' },
 				include: { company: true, typeProduct: true },
 			})
 		})
@@ -592,6 +596,8 @@ describe('POST /api/products', () => {
 				name: 'Seguro de Vida',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			const mockExistingProduct = createMockPrismaProduct()
@@ -630,6 +636,8 @@ describe('POST /api/products', () => {
 				name: 'Seguro de Vida',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			mockAuth.mockResolvedValue(mockSession as never)
@@ -664,6 +672,8 @@ describe('POST /api/products', () => {
 				name: 'Seguro de Vida',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			const prismaError = {

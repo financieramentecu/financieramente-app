@@ -38,6 +38,8 @@ export function prismaProductToProduct(
 		name: prisma.name,
 		description: prisma.description,
 		status: prisma.status,
+		commissionPercentage: prisma.commissionPercentage.toNumber(),
+		contributionType: prisma.contributionType as Product['contributionType'],
 		createdAt: prisma.createdAt.toISOString(), // Date → string
 		updatedAt: prisma.updatedAt.toISOString(), // Date → string
 		company: {

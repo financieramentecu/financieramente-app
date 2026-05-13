@@ -83,6 +83,11 @@ export async function seedLevels(prisma: PrismaClient) {
 			(await prisma.level.findUnique({ where: { code: lv.oldCode } })) ??
 			(await prisma.level.findUnique({ where: { code: lv.code } }))
 
+		// BENEFICIARIO_GENERAL requires idFixedBeneficiaryUser (check constraint).
+		// Always use OVERRIDE here; Pass 3 sets the final mode + user atomically.
+		const safeBeneficiaryMode =
+			lv.beneficiaryMode === 'BENEFICIARIO_GENERAL' ? 'OVERRIDE' : lv.beneficiaryMode
+
 		if (existing) {
 			await prisma.level.update({
 				where: { idLevel: existing.idLevel },
@@ -90,7 +95,7 @@ export async function seedLevels(prisma: PrismaClient) {
 					code: lv.code,
 					name: lv.name,
 					color: lv.color,
-					beneficiaryMode: lv.beneficiaryMode,
+					beneficiaryMode: safeBeneficiaryMode,
 					status: true,
 				},
 			})
@@ -103,7 +108,7 @@ export async function seedLevels(prisma: PrismaClient) {
 					code: lv.code,
 					name: lv.name,
 					color: lv.color,
-					beneficiaryMode: lv.beneficiaryMode,
+					beneficiaryMode: safeBeneficiaryMode,
 					status: true,
 				},
 			})

@@ -88,3 +88,8 @@ export async function seedNewCategories(prisma: PrismaClient) {
 		}
 	}
 }
+
+const prisma = new PrismaClient()
+seedNewCategories(prisma)
+	.catch(console.error)
+	.finally(() => prisma.$disconnect())

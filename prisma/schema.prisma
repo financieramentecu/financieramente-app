@@ -149,6 +149,8 @@ model Product {
   company               Company                @relation(fields: [idCompany], references: [idCompany])
   typeProduct           TypeProduct?           @relation(fields: [idTypeProduct], references: [idTypeProduct])
   productConfigurations ProductConfiguration[]
+  commissionPercentage  Decimal                @default(0) @db.Decimal(7, 4) @map("commission_percentage")
+  contributionType      ContributionType       @default(REGULAR) @map("contribution_type")
 
   @@unique([idCompany, name])
   @@index([idCompany])
@@ -291,7 +293,7 @@ model FileImport {
   fileType              String?                @map("file_type") @db.VarChar(20)
   month                 Int?                   @map("month")
   year                  Int?                   @map("year")
-  upload_count          Int                    @default(0)
+  uploadCount           Int                    @default(0) @map("upload_count")
   distributionApprovals DistributionApproval[]
   user                  User                   @relation(fields: [idUser], references: [idUser])
   fileImportErrors      FileImportError[]
@@ -396,7 +398,7 @@ model SettlementCommission {
   settledDate            DateTime?               @map("settled_date")
   isLagByUser            Boolean                 @default(false) @map("is_lag_by_user")
   isLagByUserDate        DateTime?               @map("is_lag_by_user_date")
-  load_number            Int                     @default(1)
+  loadNumber            Int                     @default(1)  @map("load_number")
   comissionDistributions ComissionDistribution[]
   business               Business?               @relation(fields: [idBusiness], references: [idBusiness])
   fileImport             FileImport              @relation(fields: [idFileImport], references: [idFileImport])
@@ -490,8 +492,8 @@ model FileImportError {
   rawData           Json       @map("raw_data")
   resolved          Boolean    @default(false) @map("resolved")
   resolvedAt        DateTime?  @map("resolved_at")
-  created_at        DateTime   @default(now())
-  load_number       Int        @default(1)
+  createdAt         DateTime   @default(now())  @map("created_at")
+  loadNumber        Int        @default(1)  @map("load_number")
   fileImport        FileImport @relation(fields: [idFileImport], references: [idFileImport])
 
   @@index([idFileImport])
@@ -525,4 +527,9 @@ enum BeneficiaryMode {
 enum AnnualPaymentStatus {
   SIN_FONDEAR
   FONDEADO
+}
+
+enum ContributionType {
+  REGULAR
+  UNICO
 }

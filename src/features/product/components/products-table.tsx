@@ -96,6 +96,24 @@ export function ProductsTableSection({
 				),
 			},
 			{
+				accessorKey: 'commissionPercentage',
+				header: '% PAgo de Comisión',
+				cell: ({ row }) => (
+					<span className="font-medium text-emerald-600">
+						{row.original.commissionPercentage}%
+					</span>
+				),
+			},
+			{
+				accessorKey: 'contributionType',
+				header: 'Tipo de Aporte',
+				cell: ({ row }) => (
+					<Badge variant="outline" className="font-medium">
+						{row.original.contributionType}
+					</Badge>
+				),
+			},
+			{
 				id: 'company',
 				header: 'Compañía',
 				cell: ({ row }) => (
@@ -174,30 +192,30 @@ export function ProductsTableSection({
 				renderAdditionalFilters={
 					companies && onCompanyChange
 						? () => (
-							<Select
-								value={
-									selectedCompanyId === undefined
-										? 'all'
-										: selectedCompanyId.toString()
-								}
-								onValueChange={onCompanyChange}
-							>
-								<SelectTrigger className="w-[250px]">
-									<SelectValue placeholder="Filtrar por Compañía" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">Todas las compañías</SelectItem>
-									{companies.map((company) => (
-										<SelectItem
-											key={company.idCompany}
-											value={company.idCompany.toString()}
-										>
-											{company.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						)
+								<Select
+									value={
+										selectedCompanyId === undefined
+											? 'all'
+											: selectedCompanyId.toString()
+									}
+									onValueChange={onCompanyChange}
+								>
+									<SelectTrigger className="w-[250px]">
+										<SelectValue placeholder="Filtrar por Compañía" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="all">Todas las compañías</SelectItem>
+										{companies.map((company) => (
+											<SelectItem
+												key={company.idCompany}
+												value={company.idCompany.toString()}
+											>
+												{company.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							)
 						: undefined
 				}
 				manualPagination={!!pagination}
@@ -209,4 +227,3 @@ export function ProductsTableSection({
 		</div>
 	)
 }
-

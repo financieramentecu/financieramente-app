@@ -17,6 +17,8 @@ export interface CargaHistorial {
 	createdAt: string // Raw ISO string for filtering
 	fileType: 'POLIZA' | 'VOLUNTARIA' | string
 	idFileImport: number
+	uploadCount: number
+	totalRecord: number
 }
 
 interface FileHistoryParams {
@@ -76,6 +78,8 @@ export function useFileHistory(params: FileHistoryParams = {}) {
 								: String(item.createdAt),
 						fileType: item.fileType,
 						idFileImport: item.idFileImport,
+						uploadCount: item.uploadCount,
+						totalRecord: item.totalRecord,
 					}
 				}
 			)

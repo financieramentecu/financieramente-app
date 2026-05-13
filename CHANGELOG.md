@@ -4,7 +4,47 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.5.1] - 2026-05-13
 
+### Corregido
+
+- **Visibilidad de Negocios – Roles Operativos:** Los usuarios con rol Asistente Operativo de Gerencia y Analista de Soporte ahora pueden ver todos los negocios y estadísticas del sistema, al igual que el Administrador. Antes solo veían los negocios de su propia cadena jerárquica.
+
+- **Estadísticas del Dashboard:** Los indicadores de negocios (Ventas Efectuadas, Emitidos, Fondeados) ahora son visibles para todos los roles. Los datos se filtran automáticamente según lo que cada usuario tiene permitido ver.
+
+- **Selector de Líder en Formulario de Usuario:** Al editar un usuario que ya tiene un líder asignado, el nivel y el nombre del líder ahora se pre-cargan correctamente en los selectores.
+
+- **Migración de Base de Datos – Estabilidad:** Se corrigió una migración que fallaba en ambientes QA y producción al encontrar configuraciones de producto duplicadas. Ahora se depuran automáticamente los duplicados antes de crear el índice único, y todas las operaciones son idempotentes (seguras de re-ejecutar).
+
+### Interno
+
+- 1886 pruebas pasando, 0 errores de TypeScript.
+- **Listado de Negocios – Ordenamiento por Columnas:** Se habilitó el ordenamiento funcional en el servidor para las columnas Cliente, Identificación, Contrato, Compañía y Producto. Se eliminó el ordenamiento forzado en el cliente que impedía que la selección del usuario se reflejara correctamente tras la carga de datos.
+- **Formulario de Negocio – Limpieza de Etiquetas:** Se eliminaron las etiquetas de depuración "(No editable - Sin Rol)" del campo Money Strategist en el formulario de edición, proporcionando una interfaz más limpia para el usuario.
+- **Dashboard – Layout de Filtros:** Se ajustó el espaciado vertical de los filtros en el listado de negocios para evitar recortes visuales en ciertas resoluciones.
+
+### Interno
+
+- **API – Validación de Ordenamiento:** Se actualizaron los esquemas de validación Zod en `business-api.schemas.ts` para soportar las nuevas claves de ordenamiento del servidor.
+- **Pruebas Unitarias – Sincronización de Comportamiento:** Se ajustaron las pruebas unitarias del listado de negocios para validar el ordenamiento delegado al servidor en lugar de la lógica de ordenamiento local previa.
+
+## [1.5.0] - 2026-05-13
+
+### Añadido
+
+- **Comisión y Tipo de Aporte por Producto:** Cada producto ahora tiene dos campos nuevos: el porcentaje de comisión que aplica al momento de la liquidación (0–100%) y el tipo de aporte que recibe (`REGULAR` o `UNICO`). Ambos campos están disponibles en el formulario de creación y edición de productos, y se muestran en la tabla de administración.
+
+- **Sincronización de Comisiones desde CSV:** Se incluye un script de seed que lee el archivo `docs/product-percentage-payment-commission.csv` y actualiza automáticamente los productos existentes con sus porcentajes de comisión y tipo de aporte. El proceso reporta en consola los productos que no se encontraron en la base de datos.
+
+### Corregido
+
+- **Carga de Archivos – Contadores de Sincronización:** Se corrigieron los contadores de registros nuevos y duplicados durante la importación de archivos LAG. El sistema ahora detecta correctamente los duplicados por número de carga y evita insertar registros repetidos.
+
+### Interno
+
+- 3 migraciones Prisma: campo `commissionPercentage` (Decimal), enumeración `ContributionType`, renombre de valor `INICIO → UNICO` en la DB.
+- 18 pruebas unitarias nuevas (schemas Zod, mapper de Decimal, utilidades del seed).
+- 1885 pruebas pasando, 0 errores de TypeScript.
 
 ## [1.4.0] - 2026-05-09
 
@@ -51,7 +91,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - **Pruebas – Cobertura de Validación:** Actualización de la suite de pruebas unitarias para cubrir casos de tipos de moneda mixtos (string/number) y asegurar la estabilidad de los esquemas de Zod.
 - **SDD – Documentación de Cambio:** Generación de especificaciones, diseño y reporte de verificación para el ciclo de vida del cambio `fix-company-validation-delete`.
 
-
 ## [1.3.2] - 2026-05-08
 
 ### Corregido
@@ -62,7 +101,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 - **Componentes – Refactor de Altura:** Eliminación de restricciones de altura vinculadas dinámicamente al disparador (`trigger-height`) en el `Viewport` de Radix UI para permitir el crecimiento natural del contenido hasta el límite máximo.
 - **Pruebas – Validación de UI:** Implementación de suite de pruebas unitarias para el componente `Select` que garantiza la persistencia de las clases de scroll y límites de altura.
-
 
 ## [1.3.1] - 2026-05-07
 
@@ -75,7 +113,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 - **Scripts – Corrección de Datos:** Nuevo script de seed `fix-product-config-codes.ts` para normalizar retroactivamente todos los códigos de configuración existentes y eliminar duplicados causados por la remoción del origen.
 - **Pruebas – Robustez:** Actualización de la suite de pruebas para validar la nueva lógica de generación de códigos basada en identificadores estables.
-
 
 ## [1.3.0] - 2026-05-07
 
@@ -96,7 +133,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - **Pruebas – Cobertura de Activación:** Suite de pruebas unitarias actualizada para validar el nuevo flujo de creación con rol `AGENTE` y bloqueo por inactividad.
 - **API Admin:** Refactorización del endpoint de usuarios para soportar filtros jerárquicos y relaciones de líder/categoría.
 
-
 ## [1.2.0] - 2026-05-07
 
 ### Añadido
@@ -110,7 +146,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - **Configuración de Producto – Independencia del Origen:** La clave de unicidad y el código generado para la configuración de productos ya no incluyen el segmento de Origen del cliente. La asignación de comisiones ahora se realiza exclusivamente mediante la combinación de Producto y Categoría, simplificando significativamente el modelo de datos.
 - **Negocios – Resolución de Comisión:** Al crear un nuevo negocio, el sistema resuelve la comisión aplicable basándose únicamente en el producto y categoría, eliminando la dependencia rígida del origen del cliente.
 
-
 ## [1.1.0] - 2026-05-07
 
 ### Añadido
@@ -123,7 +158,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - **Formulario de Categorías – Tipos Activos:** Al crear una nueva categoría, el selector de "Tipo de Categoría" ahora muestra exclusivamente los tipos activos.
 - **Formulario de Categorías – Edición Segura:** Si se edita una categoría antigua cuyo tipo asignado fue marcado como inactivo, este se mantendrá visible como opción de respaldo en el formulario, previniendo alteraciones involuntarias.
 - **Rendimiento:** Se creó un endpoint interno optimizado (`/active`) que elimina el procesamiento de paginación para agilizar la carga del selector de tipos de categoría en los formularios.
-
 
 ## [1.0.2] - 2026-05-07
 
@@ -154,7 +188,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 - **Docker:** Se sincronizaron los nombres de las variables de entorno de producción (`SENDGRID_*_PROD`) y se habilitó la inyección de `SUPER_ADMIN_PASSWORD` en la configuración de producción para asegurar la correcta activación de la cuenta administrativa y el envío de correos.
 
-
 ## [1.0.0] - 2026-05-01
 
 ### Añadido
@@ -177,7 +210,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - Acción de auditoría renombrada a `BUSINESS_PAYMENT_FUNDED`.
 - Cobertura de tests ampliada: ruta `/fondear-aportes` (5 tests) y `AnnualFundingModal` (4 tests).
 
-
 ## [1.0.0-beta.18] - 2026-04-29
 
 ### Añadido
@@ -187,7 +219,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 ### Mejorado
 
 - **Negocios – Legibilidad del encabezado:** Se ajustó el color del texto en el banner principal a `primary-foreground` para asegurar un contraste óptimo en modo claro sobre el fondo verde oscuro. Se simplificó el texto del banner para una interfaz más limpia.
-
 
 ## [1.0.0-beta.17] - 2026-04-26
 
@@ -208,7 +239,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 - **OpenSpec:** El spec maestro `negocios` incorpora el requerimiento actualizado de exportación Excel operacional; archivado el cambio SDD `excel-negocios-export-columnas` (`openspec/changes/archive/2026-04-26-excel-negocios-export-columnas/`).
 
-
 ## [1.0.0-beta.16] - 2026-04-25
 
 ### Añadido
@@ -224,7 +254,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 ### Documentación / Interno
 
 - **Pruebas y SDD:** La suite de pruebas fue completamente adaptada (169 tests pasando), cubriendo inserción dinámica de columnas, transacciones directas a nivel de Prisma en el proceso de fondeo y validaciones unitarias en la exportación. Delta specs sincronizados y archivada la propuesta SDD `2026-04-25-ajustes-negocio-excel-fondeo`.
-
 
 ## [1.0.0-beta.15] - 2026-04-23
 
@@ -251,7 +280,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 ### Documentación / Interno
 
 - **OpenSpec:** Desarrolladas e integradas las especificaciones de comportamiento `seed-pipeline`; cerrado y archivado de manera completa el registro `register-companies-products-csv`.
-
 
 ## [1.0.0-beta.13] - 2026-04-22
 

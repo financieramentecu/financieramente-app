@@ -19,7 +19,7 @@ export default async function NegociosPage() {
 	const currentUser = await getCurrentUserByEmail(session.user.email)
 
 	return (
-		<DashboardLayout currentPage="Negocio">
+		<DashboardLayout currentPage="Negocio" disableScroll={true}>
 			<NegociosPageClient currentUser={currentUser ?? undefined} />
 		</DashboardLayout>
 	)
