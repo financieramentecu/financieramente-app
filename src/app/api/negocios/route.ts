@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { BusinessListResponse } from '@/features/negocios/types/business-api.types'
 import {
@@ -54,6 +55,9 @@ export async function GET(
 			dateTo: searchParams.get('dateTo'),
 			createdFrom: searchParams.get('createdFrom'),
 			createdTo: searchParams.get('createdTo'),
+			agentName: searchParams.get('agentName'),
+			sortBy: searchParams.get('sortBy'),
+			sortOrder: searchParams.get('sortOrder'),
 		}
 
 		const validationResult = businessListParamsSchema.safeParse(params)
@@ -68,7 +72,7 @@ export async function GET(
 			)
 		}
 
-		const { page, pageSize, search, status, dateFrom, dateTo, createdFrom, createdTo } =
+		const { page, pageSize, search, status, dateFrom, dateTo, createdFrom, createdTo, agentName, sortBy, sortOrder } =
 			validationResult.data
 
 		// Obtener usuario actual
@@ -101,9 +105,43 @@ export async function GET(
 				dateTo,
 				createdFrom,
 				createdTo,
+				agentName,
 			}),
 			{ visibleUserIds }
 		)
+
+		const dir: Prisma.SortOrder = sortOrder === 'asc' ? 'asc' : 'desc'
+
+		// Construir orderBy basado en sortBy
+		let orderBy: Prisma.BusinessOrderByWithRelationInput[]
+		if (sortBy === 'agentName') {
+			orderBy = [
+				{ user: { name: dir } },
+				{ user: { lastName: dir } },
+			]
+		} else if (sortBy === 'status') {
+			orderBy = [{ status: dir }, { createdAt: 'desc' }, { idBusiness: 'desc' }]
+		} else if (sortBy === 'value') {
+			orderBy = [{ value: dir }, { createdAt: 'desc' }, { idBusiness: 'desc' }]
+		} else if (sortBy === 'clientName') {
+			orderBy = [
+				{ client: { name: dir } },
+				{ client: { lastName: dir } },
+			]
+		} else if (sortBy === 'identification') {
+			orderBy = [{ client: { identityNumber: dir } }]
+		} else if (sortBy === 'contract') {
+			orderBy = [{ contract: dir }]
+		} else if (sortBy === 'companyName') {
+			orderBy = [{ productPercentageCommission: { productConfiguration: { product: { company: { name: dir } } } } }]
+		} else if (sortBy === 'product') {
+			orderBy = [{ productPercentageCommission: { productConfiguration: { product: { name: dir } } } }]
+		} else if (sortBy === 'createdAt') {
+			orderBy = [{ createdAt: dir }, { idBusiness: 'desc' }]
+		} else {
+			// default: createdAt desc
+			orderBy = [{ createdAt: 'desc' }, { idBusiness: 'desc' }]
+		}
 
 		// Obtener total y negocios
 		const [total, businesses] = await Promise.all([
@@ -111,7 +149,7 @@ export async function GET(
 			prisma.business.findMany({
 				where,
 				include: businessWithRelations,
-				orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
+				orderBy,
 				skip: (page - 1) * pageSize,
 				take: pageSize,
 			}),

@@ -16,6 +16,7 @@ import { useProductFilter } from '@/features/negocios/hooks/use-product-filter'
 import { useAgentPermissions } from '@/features/negocios/hooks/use-agent-permissions'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { UserRole } from '@/features/auth/lib/roles'
+import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-permissions'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 
 /**
@@ -62,6 +63,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			value: defaultValues?.value || undefined,
 			agent: defaultValues?.agent || '',
 			contract: defaultValues?.contract ?? '',
+			numAportes: defaultValues?.numAportes || undefined,
 		},
 	})
 
@@ -98,6 +100,13 @@ export function useBusinessForm(props: BusinessFormProps) {
 			businessAgent,
 		})
 
+	// Usar hook de permisos centralizado
+	const { getFieldPermission } = useBusinessPermissions({
+		mode,
+		currentUser,
+		businessStatus: props.businessStatus,
+	})
+
 	// Handler para cuando se selecciona un cliente existente
 	const handleClientSelected = React.useCallback((client: Client) => {
 		setSelectedClient(client)
@@ -125,11 +134,17 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const handleFormSubmit = React.useCallback(
 		async (data: BusinessFormData) => {
 			try {
-				// En modo edición, solo actualizar el contrato
+				// En modo edición, enviar todos los campos que hayan cambiado (o todos los disponibles)
 				if (isEditMode && businessId) {
 					const result = await updateBusiness(businessId, {
 						contract: data.contract || undefined,
 						idSettlementCommission: idSettlementCommission || undefined,
+						idProduct: data.producto ? parseInt(data.producto) : undefined,
+						term: data.terms,
+						value: data.value,
+						idBuyPeriodicity: data.periodicity ? parseInt(data.periodicity) : undefined,
+						idCurrency: data.currency ? parseInt(data.currency) : undefined,
+						numAportes: data.numAportes,
 					})
 
 					if (result) {
@@ -260,5 +275,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 		canSearchAgents,
 		handleAgentSearch,
 		setIdSettlementCommission,
+		isPrivilegedRole,
+		getFieldPermission,
 	}
 }

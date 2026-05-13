@@ -170,5 +170,13 @@ export interface DataTableProps<TData> {
 	 * @default []
 	 */
 	initialSorting?: SortingState
+	/**
+	 * Habilita el ordenamiento manual (server-side)
+	 */
+	manualSorting?: boolean
+	/**
+	 * Callback cuando cambia el ordenamiento (requerido para manualSorting)
+	 */
+	onSortingChange?: (sorting: SortingState) => void
 }
 

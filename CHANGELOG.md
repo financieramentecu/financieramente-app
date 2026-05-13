@@ -6,6 +6,19 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 
 
+## [1.5.1] - 2026-05-13
+
+### Corregido
+
+- **Listado de Negocios – Ordenamiento por Columnas:** Se habilitó el ordenamiento funcional en el servidor para las columnas Cliente, Identificación, Contrato, Compañía y Producto. Se eliminó el ordenamiento forzado en el cliente que impedía que la selección del usuario se reflejara correctamente tras la carga de datos.
+- **Formulario de Negocio – Limpieza de Etiquetas:** Se eliminaron las etiquetas de depuración "(No editable - Sin Rol)" del campo Money Strategist en el formulario de edición, proporcionando una interfaz más limpia para el usuario.
+- **Dashboard – Layout de Filtros:** Se ajustó el espaciado vertical de los filtros en el listado de negocios para evitar recortes visuales en ciertas resoluciones.
+
+### Interno
+
+- **API – Validación de Ordenamiento:** Se actualizaron los esquemas de validación Zod en `business-api.schemas.ts` para soportar las nuevas claves de ordenamiento del servidor.
+- **Pruebas Unitarias – Sincronización de Comportamiento:** Se ajustaron las pruebas unitarias del listado de negocios para validar el ordenamiento delegado al servidor en lugar de la lógica de ordenamiento local previa.
+
 ## [1.5.0] - 2026-05-13
 
 ### Añadido
@@ -23,6 +36,7 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - 3 migraciones Prisma: campo `commissionPercentage` (Decimal), enumeración `ContributionType`, renombre de valor `INICIO → UNICO` en la DB.
 - 18 pruebas unitarias nuevas (schemas Zod, mapper de Decimal, utilidades del seed).
 - 1885 pruebas pasando, 0 errores de TypeScript.
+
 
 ## [1.4.0] - 2026-05-09
 

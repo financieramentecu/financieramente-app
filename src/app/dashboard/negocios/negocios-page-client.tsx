@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { MisNegociosPage } from '@/features/negocios/components/MisNegociosPage'
+import MisNegociosPage from '@/features/negocios/components/MisNegociosPage'
 import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
 import { FundingModal } from '@/features/negocios/components/modals/FundingModal'
@@ -88,6 +88,9 @@ export function NegociosPageClient({
 	const [searchInput, setSearchInput] = useState('')
 	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
 
+	const [agentNameInput, setAgentNameInput] = useState('')
+	const debouncedAgentName = useDebounce(agentNameInput, SEARCH_DEBOUNCE_DELAY)
+
 	// Fechas por defecto para el Coach (Mes actual)
 	const defaultDates = useMemo(() => {
 		const now = new Date()
@@ -122,9 +125,10 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({
 			...prev,
 			search: debouncedSearch || undefined,
+			agentName: debouncedAgentName || undefined,
 			page: 1,
 		}))
-	}, [debouncedSearch])
+	}, [debouncedSearch, debouncedAgentName])
 
 	// Para Coach: mapear dateFrom/dateTo a createdFrom/createdTo en el listado
 	const listParams: BusinessListParams = isAgentRole
@@ -141,8 +145,7 @@ export function NegociosPageClient({
 	const { businesses, isLoading, error, pagination, refetch } =
 		useBusinesses(listParams)
 
-	// Detectar si se está esperando el debounce (usuario escribiendo)
-	const isDebouncing = searchInput !== debouncedSearch
+	const isDebouncing = searchInput !== debouncedSearch || agentNameInput !== debouncedAgentName
 
 	// Detectar si hay una búsqueda pendiente (el término actual no coincide con lo cargado)
 	const hasPendingSearch = debouncedSearch !== (lastLoadedSearch ?? '')
@@ -404,6 +407,25 @@ export function NegociosPageClient({
 		[]
 	)
 
+	const handleAgentNameChange = useCallback(
+		(agentName: string) => {
+			setAgentNameInput(agentName)
+		},
+		[]
+	)
+
+	const handleSortingChange = useCallback(
+		(sortBy: string | undefined, sortOrder: 'asc' | 'desc') => {
+			setSearchParams((prev) => ({
+				...prev,
+				sortBy,
+				sortOrder,
+				page: 1,
+			}))
+		},
+		[]
+	)
+
 	const handleFundDateFromChange = useCallback((value: string) => {
 		setSearchParams((prev) => {
 			const newFrom = isAgentRole ? (value || defaultDates.from) : (value || undefined)
@@ -468,19 +490,8 @@ export function NegociosPageClient({
 		}
 	}, [])
 
-	// Convertir BusinessEntity[] a Business[] para compatibilidad con componentes existentes
 	const businessDataForTable: Business[] = useMemo(
-		() =>
-			[...businesses]
-				.sort((a, b) => {
-					const createdAtDiff =
-						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-					if (createdAtDiff !== 0) {
-						return createdAtDiff
-					}
-					return b.id - a.id
-				})
-				.map(mapBusinessToTableRow),
+		() => businesses.map(mapBusinessToTableRow),
 		[businesses]
 	)
 
@@ -491,7 +502,7 @@ export function NegociosPageClient({
 	const displayError = error || statsError
 
 	return (
-		<div className="space-y-6">
+		<div className="flex flex-col flex-1 min-h-0 gap-4 overflow-hidden">
 			{/* Contenido de la página de negocios */}
 			<MisNegociosPage
 				businessData={businessDataForTable}
@@ -511,6 +522,8 @@ export function NegociosPageClient({
 				onPageChange={handlePageChange}
 				listStatus={searchParams.status}
 				onListStatusChange={handleListStatusChange}
+				agentName={agentNameInput}
+				onAgentNameChange={handleAgentNameChange}
 				fundDateFrom={searchParams.dateFrom ?? (isAgentRole ? defaultDates.from : '')}
 				fundDateTo={searchParams.dateTo ?? (isAgentRole ? defaultDates.to : '')}
 				fundDateRangeActive={isFundDateRangeActive}
@@ -520,6 +533,9 @@ export function NegociosPageClient({
 				onExportExcel={handleExportExcel}
 				isExportingExcel={isExportingExcel}
 				exportExcelError={exportExcelError}
+				onSortingChange={handleSortingChange}
+				sortBy={searchParams.sortBy}
+				sortOrder={searchParams.sortOrder}
 			/>
 
 			{/* Modal de Visualización */}

@@ -36,6 +36,12 @@ export interface BusinessListParams {
 	createdFrom?: string
 	/** YYYY-MM-DD; filtra por createdAt del negocio */
 	createdTo?: string
+	/** Filtro por nombre del Money Strategist (agente) */
+	agentName?: string
+	/** Campo por el que ordenar: 'agentName' | 'createdAt' | etc. */
+	sortBy?: string
+	/** Dirección del orden: 'asc' | 'desc' */
+	sortOrder?: 'asc' | 'desc'
 }
 
 /** Body POST `/api/negocios/export` */
@@ -78,6 +84,13 @@ export interface UpdateBusinessRequest {
 	contract?: string
 	idClientOrigin?: number
 	idSettlementCommission?: number
+	idProduct?: number
+	term?: number
+	value?: number
+	idBuyPeriodicity?: number
+	idCurrency?: number
+	idUser?: number
+	numAportes?: number
 }
 
 /**

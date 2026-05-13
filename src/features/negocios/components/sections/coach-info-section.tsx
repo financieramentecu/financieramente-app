@@ -2,6 +2,8 @@
 
 import * as React from 'react'
 import { UseFormReturn } from 'react-hook-form'
+import { cn } from '@/lib/utils'
+import { Input } from '@/features/shared/ui/input'
 import { Label } from '@/features/shared/ui/label'
 import { Separator } from '@/features/shared/ui/separator'
 import { AgentAutocomplete } from '@/features/negocios/components/fields/agent-autocomplete'
@@ -12,13 +14,14 @@ import {
 import { UserWithRole } from '@/features/negocios/types/business.types'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 
+
 export interface CoachInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
 	agentsList: UserWithRole[]
 	onSearchAgents?: (query: string) => Promise<UserWithRole[]>
 	isBlocked: boolean
-	isAgentUser: boolean
 	isEditMode?: boolean
+	isAgentUser?: boolean
 }
 
 /**
@@ -29,8 +32,8 @@ export function CoachInfoSection({
 	agentsList,
 	onSearchAgents,
 	isBlocked,
-	isAgentUser,
 	isEditMode = false,
+	isAgentUser,
 }: CoachInfoSectionProps) {
 	const { watch, setValue, formState } = form
 	const { errors } = formState
@@ -56,18 +59,34 @@ export function CoachInfoSection({
 					>
 						Money Strategist <span className="text-red-500">*</span>
 					</Label>
-					<AgentAutocomplete
-						value={agentValue}
-						onChange={(value) =>
-							setValue('agent', value, { shouldValidate: true })
-						}
-						agents={agentsList}
-						placeholder="Buscar Money Strategist..."
-						aria-labelledby="agent-label"
-						disabled={isBlocked || isAgentUser || isEditMode}
-						className={getFieldClassName(agentError)}
-						onSearch={onSearchAgents}
-					/>
+					{isEditMode ? (
+						<Input
+							value={(() => {
+								const selected = agentsList.find(a => a.idUser.toString() === agentValue)
+								if (!selected) return 'Money Strategist no encontrado'
+								const name = `${selected.name} ${selected.lastName || ''}`.trim()
+								return selected.category?.name ? `${name} (${selected.category.name})` : name
+							})()}
+							readOnly
+							disabled
+							className="bg-muted cursor-not-allowed font-medium"
+						/>
+					) : (
+						<div className={cn("transition-opacity", isBlocked && "pointer-events-none opacity-70")}>
+							<AgentAutocomplete
+								value={agentValue}
+								onChange={(value) =>
+									setValue('agent', value, { shouldValidate: true })
+								}
+								agents={agentsList}
+								placeholder="Buscar Money Strategist..."
+								aria-labelledby="agent-label"
+								disabled={isBlocked || isAgentUser}
+								className={getFieldClassName(agentError)}
+								onSearch={onSearchAgents}
+							/>
+						</div>
+					)}
 					{agentError && (
 						<p className="text-xs text-red-500">{getFieldError(agentError)}</p>
 					)}

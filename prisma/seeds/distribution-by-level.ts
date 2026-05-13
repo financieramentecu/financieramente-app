@@ -54,9 +54,7 @@ export async function seedDistributionByLevel(prisma: AnyPrisma) {
 
 	// Load all levels indexed by code
 	const allLevels = await prisma.level.findMany()
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const levelByCode = new Map<string, AnyPrisma>(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		allLevels.map((l: AnyPrisma) => [l.code, l])
 	)
 

@@ -126,4 +126,5 @@ export interface BusinessFormProps {
 	currenciesOptions: { value: string; label: string }[]
 	clientOriginsOptions: { value: string; label: string }[]
 	businessAgent?: AgentInfo
+	businessStatus?: string | null
 }
