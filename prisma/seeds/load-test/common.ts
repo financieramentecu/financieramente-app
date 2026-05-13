@@ -39,8 +39,8 @@ export async function getBaseLoadTestData(prisma: PrismaClient) {
         where: { idCompany: company?.idCompany }
     })
 
-    const category = await prisma.category.findUnique({
-        where: { code: 'JUNIOR' }
+    const category = await prisma.category.findFirst({
+        where: { status: true }
     })
 
     const currency = await prisma.currency.findFirst({
@@ -60,19 +60,14 @@ export async function getBaseLoadTestData(prisma: PrismaClient) {
     }
 
     // Asegurar configuración de producto de prueba
-    const productConfig = await prisma.productConfiguration.upsert({
-        where: {
-            idProduct_idClientOrigin_idCategory: {
-                idProduct: product.idProduct,
-                idClientOrigin: origin.idClientOrigin,
-                idCategory: category.idCategory
-            }
-        },
-        update: { active: true },
-        create: {
+    const level = await prisma.level.findFirst({ where: { status: true } })
+    if (!level) throw new Error('No se encontró un nivel activo para el load test.')
+    const productConfig = await prisma.productConfiguration.findFirst({
+        where: { idProduct: product.idProduct, active: true }
+    }) || await prisma.productConfiguration.create({
+        data: {
             idProduct: product.idProduct,
-            idClientOrigin: origin.idClientOrigin,
-            idCategory: category.idCategory,
+            idLevel: level.idLevel,
             code: 'LOAD-TEST-CFG',
             active: true
         }

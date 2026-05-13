@@ -149,6 +149,8 @@ model Product {
   company               Company                @relation(fields: [idCompany], references: [idCompany])
   typeProduct           TypeProduct?           @relation(fields: [idTypeProduct], references: [idTypeProduct])
   productConfigurations ProductConfiguration[]
+  commissionPercentage  Decimal                @default(0) @db.Decimal(7, 4) @map("commission_percentage")
+  contributionType      ContributionType       @default(REGULAR) @map("contribution_type")
 
   @@unique([idCompany, name])
   @@index([idCompany])
@@ -525,4 +527,9 @@ enum BeneficiaryMode {
 enum AnnualPaymentStatus {
   SIN_FONDEAR
   FONDEADO
+}
+
+enum ContributionType {
+  REGULAR
+  UNICO
 }

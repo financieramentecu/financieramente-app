@@ -152,6 +152,8 @@ export async function POST(request: Request) {
 				idCompany: data.idCompany,
 				idTypeProduct: data.idTypeProduct ?? null,
 				status: data.status,
+				commissionPercentage: data.commissionPercentage,
+				contributionType: data.contributionType,
 			},
 			include: {
 				company: true,

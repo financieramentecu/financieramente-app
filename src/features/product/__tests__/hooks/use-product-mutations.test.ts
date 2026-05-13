@@ -36,6 +36,8 @@ describe('useProductMutations', () => {
 				name: 'Nuevo Seguro',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			vi.mocked(productApi.createProduct).mockResolvedValueOnce({
@@ -63,6 +65,8 @@ describe('useProductMutations', () => {
 				name: 'Nuevo Seguro',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			vi.mocked(productApi.createProduct).mockImplementation(
@@ -90,6 +94,8 @@ describe('useProductMutations', () => {
 				name: 'Nuevo Seguro',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			vi.mocked(productApi.createProduct).mockResolvedValueOnce({
@@ -116,6 +122,8 @@ describe('useProductMutations', () => {
 				name: 'Nuevo Seguro',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			vi.mocked(productApi.createProduct).mockRejectedValueOnce(
@@ -146,6 +154,8 @@ describe('useProductMutations', () => {
 				name: 'Nuevo Seguro',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			vi.mocked(productApi.createProduct).mockRejectedValueOnce('Unknown error')

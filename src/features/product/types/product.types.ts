@@ -2,6 +2,8 @@
  * Tipos para el feature de Products
  */
 
+export type ContributionType = 'REGULAR' | 'UNICO'
+
 export interface Product extends Record<string, unknown> {
 	readonly idProduct: number
 	readonly idCompany: number
@@ -9,6 +11,8 @@ export interface Product extends Record<string, unknown> {
 	name: string
 	description: string | null
 	status: boolean
+	commissionPercentage: number
+	contributionType: ContributionType
 	readonly createdAt: string
 	readonly updatedAt: string
 	company: {
@@ -34,6 +38,8 @@ export interface CreateProductInput {
 	idTypeProduct?: number
 	description?: string
 	status: boolean
+	commissionPercentage: number
+	contributionType: ContributionType
 }
 
 export interface UpdateProductInput {
@@ -42,6 +48,8 @@ export interface UpdateProductInput {
 	idTypeProduct?: number
 	description?: string
 	status?: boolean
+	commissionPercentage?: number
+	contributionType?: ContributionType
 }
 
 export interface ProductListResponse {
