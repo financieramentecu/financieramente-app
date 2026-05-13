@@ -72,6 +72,9 @@ export function useBusinessPermissions({
 
 		// --- LÓGICA BASE PARA CREACIÓN ---
 		if (mode !== 'edit') {
+			if (field === 'numAportes') {
+				return { readonly: true, disabled: true, hidden: false }
+			}
 			return { readonly: false, disabled: false, hidden: false }
 		}
 
