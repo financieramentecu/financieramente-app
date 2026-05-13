@@ -3,6 +3,7 @@ import {
 	prismaProductToProduct,
 	prismaProductListToProducts,
 } from '../../mappers/product.mapper'
+import { Prisma } from '@prisma/client'
 import { createMockPrismaProduct } from '../fixtures/mock-product'
 
 describe('product.mapper', () => {
@@ -13,6 +14,8 @@ describe('product.mapper', () => {
 				name: 'Seguro de Vida',
 				description: 'Seguro completo',
 				status: true,
+				commissionPercentage: new Prisma.Decimal(76.5),
+				contributionType: 'UNICO',
 			})
 
 			const result = prismaProductToProduct(prismaProduct)
@@ -22,6 +25,30 @@ describe('product.mapper', () => {
 			expect(result.name).toBe('Seguro de Vida')
 			expect(result.description).toBe('Seguro completo')
 			expect(result.status).toBe(true)
+			expect(result.commissionPercentage).toBe(76.5)
+			expect(result.contributionType).toBe('UNICO')
+		})
+
+		it('should map Decimal(76.5) to JavaScript number 76.5', () => {
+			const prismaProduct = createMockPrismaProduct({
+				commissionPercentage: new Prisma.Decimal(76.5),
+			})
+
+			const result = prismaProductToProduct(prismaProduct)
+
+			expect(typeof result.commissionPercentage).toBe('number')
+			expect(result.commissionPercentage).toBe(76.5)
+		})
+
+		it('should map Decimal(0) to JavaScript number 0', () => {
+			const prismaProduct = createMockPrismaProduct({
+				commissionPercentage: new Prisma.Decimal(0),
+			})
+
+			const result = prismaProductToProduct(prismaProduct)
+
+			expect(typeof result.commissionPercentage).toBe('number')
+			expect(result.commissionPercentage).toBe(0)
 		})
 
 		it('should convert Date to ISO string', () => {

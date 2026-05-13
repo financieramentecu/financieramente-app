@@ -16,10 +16,15 @@ export const createProductSchema = z.object({
 		.positive('Debe seleccionar una compañía'),
 	idTypeProduct: z.coerce.number().int().optional(),
 	status: z.boolean().default(true),
+	commissionPercentage: z.coerce.number().min(0).max(100).default(0),
+	// No default: contributionType is required on create (spec: "no domain default")
+	contributionType: z.enum(['REGULAR', 'UNICO']),
 })
 
 /**
- * Schema para actualizar un producto
+ * Schema para actualizar un producto.
+ * .partial() makes all fields optional — including contributionType — so PATCH
+ * requests can omit it without failing validation. No code change needed here.
  */
 export const updateProductSchema = createProductSchema.partial()
 

@@ -11,6 +11,8 @@ describe('product-schemas', () => {
 				name: 'Seguro de Vida',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 76.5,
+				contributionType: 'UNICO',
 			}
 
 			const result = createProductSchema.safeParse(validData)
@@ -19,6 +21,8 @@ describe('product-schemas', () => {
 				expect(result.data.name).toBe('Seguro de Vida')
 				expect(result.data.idCompany).toBe(1)
 				expect(result.data.status).toBe(true)
+				expect(result.data.commissionPercentage).toBe(76.5)
+				expect(result.data.contributionType).toBe('UNICO')
 			}
 		})
 
@@ -27,6 +31,7 @@ describe('product-schemas', () => {
 				name: '  Seguro de Vida  ',
 				idCompany: 1,
 				status: true,
+				contributionType: 'REGULAR',
 			}
 
 			const result = createProductSchema.safeParse(data)
@@ -41,6 +46,7 @@ describe('product-schemas', () => {
 				name: '',
 				idCompany: 1,
 				status: true,
+				contributionType: 'REGULAR',
 			}
 
 			const result = createProductSchema.safeParse(data)
@@ -55,6 +61,7 @@ describe('product-schemas', () => {
 				name: 'A',
 				idCompany: 1,
 				status: true,
+				contributionType: 'REGULAR',
 			}
 
 			const result = createProductSchema.safeParse(data)
@@ -66,6 +73,7 @@ describe('product-schemas', () => {
 				name: 'A'.repeat(201),
 				idCompany: 1,
 				status: true,
+				contributionType: 'REGULAR',
 			}
 
 			const result = createProductSchema.safeParse(data)
@@ -80,6 +88,7 @@ describe('product-schemas', () => {
 				name: 'A'.repeat(200),
 				idCompany: 1,
 				status: true,
+				contributionType: 'REGULAR',
 			}
 
 			const result = createProductSchema.safeParse(data)
@@ -159,6 +168,7 @@ describe('product-schemas', () => {
 				idCompany: 1,
 				description: 'Mi descripción',
 				status: true,
+				contributionType: 'REGULAR',
 			}
 
 			const result = createProductSchema.safeParse(data)
@@ -174,6 +184,7 @@ describe('product-schemas', () => {
 				idCompany: 1,
 				idTypeProduct: 5,
 				status: true,
+				contributionType: 'REGULAR',
 			}
 
 			const result = createProductSchema.safeParse(data)
@@ -183,16 +194,121 @@ describe('product-schemas', () => {
 			}
 		})
 
-		it('should default status to true', () => {
+		it('should default status to true and commissionPercentage to 0', () => {
 			const data = {
 				name: 'Seguro de Vida',
 				idCompany: 1,
+				contributionType: 'REGULAR',
 			}
 
 			const result = createProductSchema.safeParse(data)
 			expect(result.success).toBe(true)
 			if (result.success) {
 				expect(result.data.status).toBe(true)
+				expect(result.data.commissionPercentage).toBe(0)
+			}
+		})
+
+		it('should reject commissionPercentage greater than 100', () => {
+			const data = {
+				name: 'Seguro de Vida',
+				idCompany: 1,
+				commissionPercentage: 101,
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(false)
+		})
+
+		it('should reject negative commissionPercentage', () => {
+			const data = {
+				name: 'Seguro de Vida',
+				idCompany: 1,
+				commissionPercentage: -1,
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(false)
+		})
+
+		it('should reject invalid contributionType', () => {
+			const data = {
+				name: 'Seguro de Vida',
+				idCompany: 1,
+				contributionType: 'INVALID',
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(false)
+		})
+
+		it('should reject omitted contributionType on create (field is required)', () => {
+			const data = {
+				name: 'Seguro de Vida',
+				idCompany: 1,
+				// contributionType intentionally omitted
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const ctError = result.error.issues.find(
+					(issue) => issue.path[0] === 'contributionType'
+				)
+				expect(ctError).toBeDefined()
+			}
+		})
+
+		it('should reject contributionType = "OTRO" on create', () => {
+			const data = {
+				name: 'Seguro de Vida',
+				idCompany: 1,
+				contributionType: 'OTRO',
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const ctError = result.error.issues.find(
+					(issue) => issue.path[0] === 'contributionType'
+				)
+				expect(ctError).toBeDefined()
+			}
+		})
+
+		it('should reject commissionPercentage = -1', () => {
+			const data = {
+				name: 'Seguro de Vida',
+				idCompany: 1,
+				contributionType: 'REGULAR',
+				commissionPercentage: -1,
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const cpError = result.error.issues.find(
+					(issue) => issue.path[0] === 'commissionPercentage'
+				)
+				expect(cpError).toBeDefined()
+			}
+		})
+
+		it('should reject commissionPercentage = 101', () => {
+			const data = {
+				name: 'Seguro de Vida',
+				idCompany: 1,
+				contributionType: 'REGULAR',
+				commissionPercentage: 101,
+			}
+
+			const result = createProductSchema.safeParse(data)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const cpError = result.error.issues.find(
+					(issue) => issue.path[0] === 'commissionPercentage'
+				)
+				expect(cpError).toBeDefined()
 			}
 		})
 	})

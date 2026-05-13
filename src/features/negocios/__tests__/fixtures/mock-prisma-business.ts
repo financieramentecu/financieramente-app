@@ -108,6 +108,8 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 				description: 'Crédito de libre inversión',
 				idTypeProduct: 1,
 				status: true,
+				commissionPercentage: new Prisma.Decimal(0),
+				contributionType: 'REGULAR' as const,
 				createdAt: baseDate,
 				updatedAt: baseDate,
 				company: {

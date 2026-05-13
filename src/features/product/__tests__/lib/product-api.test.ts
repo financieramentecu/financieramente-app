@@ -205,6 +205,8 @@ describe('productApi', () => {
 				name: 'Nuevo Seguro',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			vi.mocked(fetch).mockResolvedValueOnce({
@@ -230,6 +232,8 @@ describe('productApi', () => {
 				name: 'Nuevo Seguro',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			vi.mocked(fetch).mockResolvedValueOnce({
@@ -253,6 +257,8 @@ describe('productApi', () => {
 				name: 'Nuevo Seguro',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'))
@@ -270,6 +276,8 @@ describe('productApi', () => {
 				name: 'Nuevo Seguro',
 				idCompany: 1,
 				status: true,
+				commissionPercentage: 0,
+				contributionType: 'REGULAR' as const,
 			}
 
 			vi.mocked(fetch).mockRejectedValueOnce('Unknown error')
