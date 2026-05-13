@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import {
 	ColumnFiltersState,
 	SortingState,
@@ -15,6 +15,7 @@ import {
 	ExpandedState,
 	HeaderContext,
 	CellContext,
+	type Updater,
 } from '@tanstack/react-table'
 
 import {
@@ -74,8 +75,21 @@ export function DataTable<TData>({
 	getRowAriaLabel,
 	showFooter = false,
 	initialSorting = [],
+	manualSorting = false,
+	onSortingChange: onExternalSortingChange,
 }: DataTableProps<TData>) {
 	const [sorting, setSorting] = useState<SortingState>(initialSorting)
+
+	const handleSortingChange = useCallback(
+		(updater: Updater<SortingState>) => {
+			const next = typeof updater === 'function' ? updater(sorting) : updater
+			setSorting(next)
+			if (manualSorting && onExternalSortingChange) {
+				onExternalSortingChange(next)
+			}
+		},
+		[sorting, manualSorting, onExternalSortingChange]
+	)
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 	const [globalFilter, setGlobalFilter] = useState<string>('')
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -85,6 +99,15 @@ export function DataTable<TData>({
 		pageIndex: (currentPage ?? 1) - 1,
 		pageSize: propPageSize ?? defaultPageSize,
 	})
+
+	// Sincronizar sorting inicial si cambia desde afuera
+	useEffect(() => {
+		if (initialSorting && initialSorting.length > 0) {
+			setSorting(initialSorting)
+		} else if (initialSorting && initialSorting.length === 0 && sorting.length > 0) {
+			setSorting([])
+		}
+	}, [initialSorting, sorting.length])
 
 	// Definición final de columnas (inyectando selección y acciones)
 	const finalColumns = useMemo(() => {
@@ -187,11 +210,12 @@ export function DataTable<TData>({
 		enableColumnFilters: true,
 		enableGlobalFilter: true,
 		manualPagination,
+		manualSorting,
 		manualFiltering: false,
 		autoResetPageIndex: !manualPagination,
 		rowCount: manualPagination ? totalItems : undefined,
 		onRowSelectionChange,
-		onSortingChange: setSorting,
+		onSortingChange: handleSortingChange,
 		onColumnFiltersChange: setColumnFilters,
 		onGlobalFilterChange: setGlobalFilter,
 		onColumnVisibilityChange: setColumnVisibility,
@@ -201,7 +225,7 @@ export function DataTable<TData>({
 		onPaginationChange: (updater) => {
 			const nextState =
 				typeof updater === 'function' ? updater(pagination) : updater
-			
+
 			setPagination(nextState)
 
 			if (manualPagination && onPageChange && nextState.pageIndex !== pagination.pageIndex) {
@@ -250,9 +274,9 @@ export function DataTable<TData>({
 		const exportData = exportConfig?.transformData
 			? exportConfig.transformData(rawData)
 			: rawData.map((row) => {
-					// Eliminar campos que no queremos en el excel si es necesario
-					return { ...row }
-			  })
+				// Eliminar campos que no queremos en el excel si es necesario
+				return { ...row }
+			})
 
 		exportToExcel(
 			exportData as unknown[],
@@ -270,27 +294,29 @@ export function DataTable<TData>({
 		!!toolbarTrailingActions
 
 	return (
-		<div className={cn('space-y-4', className)}>
+		<div className={cn('grid grid-rows-[auto_1fr_auto] h-full w-full min-w-0 overflow-hidden gap-4', className)}>
 			{showToolbar && (
-				<DataTableToolbar
-					table={table}
-					setColumnFilters={setColumnFilters}
-					globalFilter={globalFilter}
-					setGlobalFilter={setGlobalFilter}
-					searchable={searchable}
-					searchColumn={searchColumn}
-					searchDebounceMs={searchDebounceMs}
-					exportable={isExportable}
-					onExport={handleExport}
-					onGlobalSearch={onGlobalSearch}
-					searchPlaceholder={searchPlaceholder}
-					renderAdditionalFilters={renderAdditionalFilters}
-					toolbarTrailingActions={toolbarTrailingActions}
-				/>
+				<div className="min-h-0 shrink-0 w-full py-2">
+					<DataTableToolbar
+						table={table}
+						setColumnFilters={setColumnFilters}
+						globalFilter={globalFilter}
+						setGlobalFilter={setGlobalFilter}
+						searchable={searchable}
+						searchColumn={searchColumn}
+						searchDebounceMs={searchDebounceMs}
+						exportable={isExportable}
+						onExport={handleExport}
+						onGlobalSearch={onGlobalSearch}
+						searchPlaceholder={searchPlaceholder}
+						renderAdditionalFilters={renderAdditionalFilters}
+						toolbarTrailingActions={toolbarTrailingActions}
+					/>
+				</div>
 			)}
-			<div className="rounded-md border bg-card">
-				<Table>
-					<TableHeader>
+			<div className="rounded-md border bg-card min-h-0 w-full overflow-hidden flex flex-col relative">
+				<Table className="relative" containerClassName="flex-1 overflow-auto max-h-none">
+					<TableHeader className="sticky top-0 z-10">
 						{table.getHeaderGroups().map((headerGroup) => (
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map((header) => (
@@ -298,9 +324,9 @@ export function DataTable<TData>({
 										{header.isPlaceholder
 											? null
 											: flexRender(
-													header.column.columnDef.header,
-													header.getContext()
-												)}
+												header.column.columnDef.header,
+												header.getContext()
+											)}
 									</TableHead>
 								))}
 							</TableRow>
@@ -358,7 +384,7 @@ export function DataTable<TData>({
 						)}
 					</TableBody>
 					{showFooter && (
-						<TableFooter>
+						<TableFooter className="sticky bottom-0 z-10 bg-muted/50">
 							{table.getFooterGroups().map((footerGroup) => (
 								<TableRow
 									key={footerGroup.id}
@@ -372,9 +398,9 @@ export function DataTable<TData>({
 											{header.isPlaceholder
 												? null
 												: flexRender(
-														header.column.columnDef.footer,
-														header.getContext()
-													)}
+													header.column.columnDef.footer,
+													header.getContext()
+												)}
 										</TableCell>
 									))}
 								</TableRow>
@@ -384,7 +410,9 @@ export function DataTable<TData>({
 				</Table>
 			</div>
 			{paginable && (
-				<DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
+				<div className="shrink-0 pt-2">
+					<DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
+				</div>
 			)}
 		</div>
 	)
