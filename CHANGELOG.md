@@ -6,6 +6,24 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 
 
+## [1.5.0] - 2026-05-13
+
+### Añadido
+
+- **Comisión y Tipo de Aporte por Producto:** Cada producto ahora tiene dos campos nuevos: el porcentaje de comisión que aplica al momento de la liquidación (0–100%) y el tipo de aporte que recibe (`REGULAR` o `UNICO`). Ambos campos están disponibles en el formulario de creación y edición de productos, y se muestran en la tabla de administración.
+
+- **Sincronización de Comisiones desde CSV:** Se incluye un script de seed que lee el archivo `docs/product-percentage-payment-commission.csv` y actualiza automáticamente los productos existentes con sus porcentajes de comisión y tipo de aporte. El proceso reporta en consola los productos que no se encontraron en la base de datos.
+
+### Corregido
+
+- **Carga de Archivos – Contadores de Sincronización:** Se corrigieron los contadores de registros nuevos y duplicados durante la importación de archivos LAG. El sistema ahora detecta correctamente los duplicados por número de carga y evita insertar registros repetidos.
+
+### Interno
+
+- 3 migraciones Prisma: campo `commissionPercentage` (Decimal), enumeración `ContributionType`, renombre de valor `INICIO → UNICO` en la DB.
+- 18 pruebas unitarias nuevas (schemas Zod, mapper de Decimal, utilidades del seed).
+- 1885 pruebas pasando, 0 errores de TypeScript.
+
 ## [1.4.0] - 2026-05-09
 
 ### Añadido
