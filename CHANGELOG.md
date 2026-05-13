@@ -6,6 +6,22 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 
 
+## [1.5.1] - 2026-05-13
+
+### Corregido
+
+- **Visibilidad de Negocios – Roles Operativos:** Los usuarios con rol Asistente Operativo de Gerencia y Analista de Soporte ahora pueden ver todos los negocios y estadísticas del sistema, al igual que el Administrador. Antes solo veían los negocios de su propia cadena jerárquica.
+
+- **Estadísticas del Dashboard:** Los indicadores de negocios (Ventas Efectuadas, Emitidos, Fondeados) ahora son visibles para todos los roles. Los datos se filtran automáticamente según lo que cada usuario tiene permitido ver.
+
+- **Selector de Líder en Formulario de Usuario:** Al editar un usuario que ya tiene un líder asignado, el nivel y el nombre del líder ahora se pre-cargan correctamente en los selectores.
+
+- **Migración de Base de Datos – Estabilidad:** Se corrigió una migración que fallaba en ambientes QA y producción al encontrar configuraciones de producto duplicadas. Ahora se depuran automáticamente los duplicados antes de crear el índice único, y todas las operaciones son idempotentes (seguras de re-ejecutar).
+
+### Interno
+
+- 1886 pruebas pasando, 0 errores de TypeScript.
+
 ## [1.5.0] - 2026-05-13
 
 ### Añadido
