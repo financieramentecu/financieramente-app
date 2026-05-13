@@ -164,18 +164,19 @@ describe('NegociosPageClient - orden del listado por fecha de creación', () => 
 		listCtx.mockBusinesses.splice(0, listCtx.mockBusinesses.length, older, newer)
 	})
 
-	it('renderiza el listado con el negocio más reciente primero aunque el hook devuelva primero el más antiguo', async () => {
+	it('renderiza el listado en el orden en que lo devuelve el hook (ordenamiento ahora es en servidor)', async () => {
 		const { container } = render(<NegociosPageClient />)
 
 		await waitFor(() => {
-			expect(screen.getByTestId('business-row-SORT-NEW')).toBeInTheDocument()
+			expect(screen.getByTestId('business-row-SORT-OLD')).toBeInTheDocument()
 		})
 
 		const tbody = container.querySelector('tbody')
 		expect(tbody).toBeTruthy()
 		const rows = tbody!.querySelectorAll('tr')
 		expect(rows.length).toBe(2)
-		expect(rows[0]).toHaveAttribute('data-testid', 'business-row-SORT-NEW')
-		expect(rows[1]).toHaveAttribute('data-testid', 'business-row-SORT-OLD')
+		// El hook devuelve older y luego newer, y ya no hay sort manual en el cliente
+		expect(rows[0]).toHaveAttribute('data-testid', 'business-row-SORT-OLD')
+		expect(rows[1]).toHaveAttribute('data-testid', 'business-row-SORT-NEW')
 	})
 })
