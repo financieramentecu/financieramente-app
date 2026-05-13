@@ -63,7 +63,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			value: defaultValues?.value || undefined,
 			agent: defaultValues?.agent || '',
 			contract: defaultValues?.contract ?? '',
-			numAportes: defaultValues?.numAportes || undefined,
+			numAportes: defaultValues?.numAportes ?? undefined,
 		},
 	})
 

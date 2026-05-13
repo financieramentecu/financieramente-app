@@ -77,14 +77,17 @@ export function useBusinessPermissions({
 
 		// --- LÓGICA PARA EDICIÓN ---
 		
-		// 1. Información del Cliente - Siempre editable en edición
+		// 1. Información del Cliente - Solo lectura en edición (según especificación)
 		const clientFields: BusinessFormField[] = ['identityNumber', 'email', 'name', 'lastNames', 'phone', 'clientOrigin']
 		if (clientFields.includes(field)) {
-			return { readonly: false, disabled: false, hidden: false }
+			return { readonly: true, disabled: true, hidden: false }
 		}
 
 		// 2. Campos Financieros (Producto, Valor, Plazo, etc.)
-		const financialFields: BusinessFormField[] = ['company', 'producto', 'terms', 'currency', 'periodicity', 'value', 'numAportes']
+		const financialFields: BusinessFormField[] = ['company', 'producto', 'terms', 'currency', 'periodicity', 'value']
+		if (field === 'numAportes') {
+			return { readonly: true, disabled: true, hidden: false }
+		}
 		if (financialFields.includes(field)) {
 			const status = businessStatus?.toUpperCase()
 			
