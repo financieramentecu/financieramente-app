@@ -21,10 +21,10 @@ describe('canEditContractWhenBusinessEmitido', () => {
 		expect(canEditContractWhenBusinessEmitido(UserRole.AGENTE)).toBe(false)
 	})
 
-	it('returns false for ANALISTA_SOPORTE', () => {
+	it('returns true for ANALISTA_SOPORTE', () => {
 		expect(
 			canEditContractWhenBusinessEmitido(UserRole.ANALISTA_SOPORTE)
-		).toBe(false)
+		).toBe(true)
 	})
 
 	it('returns false for DEFAULT', () => {

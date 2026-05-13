@@ -695,7 +695,7 @@ describe('PUT /api/negocios/[id]', () => {
 			expect(response.status).toBe(200)
 		})
 
-		it('debe retornar 403 cuando el negocio está en estado EMITIDO y el usuario es analista de soporte', async () => {
+		it('debe permitir editar negocio EMITIDO cuando el usuario es analista de soporte', async () => {
 			const analystUser = { ...commonAdminUser, role: { ...commonAdminUser.role, code: UserRole.ANALISTA_SOPORTE } }
 			const emitidoBusiness = { ...commonExistingBusiness, status: BUSINESS_STATUS.EMITIDO }
 			mockAuth.mockResolvedValue({ user: { email: 'analyst@example.com' } } as never)
@@ -704,9 +704,10 @@ describe('PUT /api/negocios/[id]', () => {
 			mockFindFirst
 				.mockResolvedValueOnce(emitidoBusiness as never)
 				.mockResolvedValueOnce(null)
+			mockUpdate.mockResolvedValue({ ...emitidoBusiness, contract: 'PN123' } as never)
 
 			const response = await PUT(new Request('http://localhost:3000/api/negocios/1', { method: 'PUT', body: JSON.stringify({ contract: 'PN123' }) }), { params: Promise.resolve({ id: '1' }) })
-			expect(response.status).toBe(403)
+			expect(response.status).toBe(200)
 		})
 	})
 
