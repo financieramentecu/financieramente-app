@@ -215,19 +215,23 @@ export const loadFileApi = {
 
 	/**
 	 * Obtiene el progreso de una importación individual.
+	 * Si se pasa loadNumber, devuelve los contadores filtrados por esa carga.
 	 */
 	getImportProgress: async (
 		fileImportId: number,
+		options: { loadNumber?: number } = {},
 		config?: { signal?: AbortSignal }
 	): Promise<ApiResponse<FileImport>> => {
 		try {
-			const res = await fetch(
-				`/api/carga-archivos/file-import/${fileImportId}`,
-				{
-					method: 'GET',
-					signal: config?.signal,
-				}
-			)
+			const params = new URLSearchParams()
+			if (options.loadNumber != null) params.set('loadNumber', String(options.loadNumber))
+			const query = params.toString()
+			const url = `/api/carga-archivos/file-import/${fileImportId}${query ? `?${query}` : ''}`
+
+			const res = await fetch(url, {
+				method: 'GET',
+				signal: config?.signal,
+			})
 
 			const json = await res.json()
 
@@ -260,6 +264,7 @@ export const loadFileApi = {
 			page?: number
 			pageSize?: number
 			status?: FileImportRecordStatusFilter
+			loadNumber?: number
 		} = {},
 		config?: { signal?: AbortSignal }
 	): Promise<ApiResponse<FileImportRecordsResponse>> => {
@@ -269,6 +274,7 @@ export const loadFileApi = {
 			if (options.pageSize != null)
 				params.set('pageSize', String(options.pageSize))
 			if (options.status) params.set('status', options.status)
+			if (options.loadNumber != null) params.set('loadNumber', String(options.loadNumber))
 			const query = params.toString()
 			const url = `/api/carga-archivos/${fileImportId}/records${query ? `?${query}` : ''}`
 			const res = await fetch(url, { method: 'GET', signal: config?.signal })
@@ -369,15 +375,17 @@ export const loadFileApi = {
 	 */
 	getImportErrors: async (
 		fileImportId: number,
+		options: { loadNumber?: number } = {},
 		config?: { signal?: AbortSignal }
 	): Promise<
 		ApiResponse<{ rowNumber: number; contract: string | null; reason: string; rawData: unknown }[]>
 	> => {
 		try {
-			const res = await fetch(
-				`/api/carga-archivos/${fileImportId}/errors`,
-				{ method: 'GET', signal: config?.signal }
-			)
+			const params = new URLSearchParams()
+			if (options.loadNumber != null) params.set('loadNumber', String(options.loadNumber))
+			const query = params.toString()
+			const url = `/api/carga-archivos/${fileImportId}/errors${query ? `?${query}` : ''}`
+			const res = await fetch(url, { method: 'GET', signal: config?.signal })
 			const json = await res.json()
 			if (!res.ok) {
 				return {

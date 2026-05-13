@@ -13,6 +13,7 @@ vi.mock('@/lib/prisma', () => ({
 			findFirst: vi.fn(),
 			create: vi.fn(),
 			findMany: vi.fn(),
+			update: vi.fn(),
 		},
 	},
 }))
@@ -125,6 +126,7 @@ describe('FileImportService', () => {
 				vi.mocked(prisma.fileImport.findFirst)
 					.mockResolvedValueOnce(null)
 					.mockResolvedValueOnce(mockFileImportLoad as never)
+				vi.mocked(prisma.fileImport.update).mockResolvedValueOnce(mockFileImportLoad as never)
 
 				const result = await FileImportService.initiateImport({
 					fileType: FILE_TYPES.POLIZA,
@@ -135,12 +137,19 @@ describe('FileImportService', () => {
 
 				expect(result.created).toBe(false)
 				expect(result.fileImport).toEqual(mockFileImportLoad)
+				expect(prisma.fileImport.update).toHaveBeenCalledWith(
+					expect.objectContaining({
+						where: { idFileImport: mockFileImportLoad.idFileImport },
+						data: { uploadCount: { increment: 1 } },
+					})
+				)
 			})
 
 			it('does NOT call prisma.fileImport.create', async () => {
 				vi.mocked(prisma.fileImport.findFirst)
 					.mockResolvedValueOnce(null)
 					.mockResolvedValueOnce(mockFileImportLoad as never)
+				vi.mocked(prisma.fileImport.update).mockResolvedValueOnce(mockFileImportLoad as never)
 
 				await FileImportService.initiateImport({
 					fileType: FILE_TYPES.POLIZA,
@@ -149,6 +158,7 @@ describe('FileImportService', () => {
 					idUser: 10,
 				})
 
+				expect(prisma.fileImport.update).toHaveBeenCalled()
 				expect(prisma.fileImport.create).not.toHaveBeenCalled()
 			})
 		})
@@ -207,6 +217,7 @@ describe('FileImportService', () => {
 						totalRecord: 0,
 						successRecord: 0,
 						errorRecord: 0,
+						uploadCount: 1,
 					},
 				})
 			})

@@ -12,7 +12,7 @@ export function StatusBadge({ status }: { status: string }) {
 	> = {
 		SYNCHRONIZED: {
 			label: 'Sincronizado',
-			className: 'bg-blue-50 text-blue-700 ring-blue-600/20',
+			className: 'bg-blue-50 text-blue-700 ring-blue-600/20 ',
 			dot: 'bg-blue-500',
 		},
 		'PRE-SETTLED': {
@@ -50,7 +50,7 @@ export function StatusBadge({ status }: { status: string }) {
 
 	return (
 		<span
-			className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${className}`}
+			className={`truncate inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${className}`}
 		>
 			<span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
 			{label}

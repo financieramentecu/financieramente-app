@@ -16,9 +16,13 @@ const MAX_PAGE_SIZE = 100
  */
 function whereForStatus(
 	idFileImport: number,
-	status: FileImportRecordStatusFilter
+	status: FileImportRecordStatusFilter,
+	loadNumber?: number
 ): Record<string, unknown> {
-	const base = { idFileImport }
+	const base: Record<string, unknown> = { idFileImport }
+	if (loadNumber !== undefined) {
+		base.loadNumber = loadNumber
+	}
 	switch (status) {
 		case 'SYNCHRONIZED':
 			return {
@@ -74,6 +78,7 @@ export async function getFileImportRecords(
 		page?: number
 		pageSize?: number
 		status?: FileImportRecordStatusFilter
+		loadNumber?: number
 	} = {}
 ): Promise<FileImportRecordsResponse | null> {
 	const fileImport = await prisma.fileImport.findFirst({
@@ -88,7 +93,7 @@ export async function getFileImportRecords(
 	)
 	const status = options.status ?? 'SYNCHRONIZED'
 
-	const where = whereForStatus(fileImportId, status)
+	const where = whereForStatus(fileImportId, status, options.loadNumber)
 
 	const [items, totalItems] = await Promise.all([
 		prisma.settlementCommission.findMany({
@@ -141,5 +146,54 @@ export async function getFileImportRecords(
 			totalItems,
 			totalPages,
 		},
+	}
+}
+
+/**
+ * Calculates counts for summary cards, optionally filtered by loadNumber.
+ */
+export async function getFileImportSummary(
+	fileImportId: number,
+	userId: number,
+	loadNumber?: number
+) {
+	const fileImport = await prisma.fileImport.findFirst({
+		where: { idFileImport: fileImportId, idUser: userId },
+	})
+	if (!fileImport) return null
+
+	// If no loadNumber, we can return the accumulated counts from FileImport model
+	if (loadNumber === undefined) {
+		return {
+			sincronizados: fileImport.sincronizadoRecord,
+			rezagados: fileImport.rezagadoRecord,
+			noSincronizados: fileImport.noSincronizadoRecord,
+			errores: fileImport.errorRecord,
+			uploadCount: fileImport.uploadCount,
+		}
+	}
+
+	// Otherwise, we must count records in DB for that specific loadNumber
+	const [syncCount, rezagadoCount, noSyncCount, errorCount] = await Promise.all([
+		prisma.settlementCommission.count({
+			where: whereForStatus(fileImportId, 'SYNCHRONIZED', loadNumber),
+		}),
+		prisma.settlementCommission.count({
+			where: whereForStatus(fileImportId, 'REZAGADOS', loadNumber),
+		}),
+		prisma.settlementCommission.count({
+			where: whereForStatus(fileImportId, 'NO_SYNC', loadNumber),
+		}),
+		prisma.fileImportError.count({
+			where: { idFileImport: fileImportId, loadNumber },
+		}),
+	])
+
+	return {
+		sincronizados: syncCount,
+		rezagados: rezagadoCount,
+		noSincronizados: noSyncCount,
+		errores: errorCount,
+		uploadCount: fileImport.uploadCount,
 	}
 }

@@ -20,7 +20,10 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 			discountPercentage: number | string
 			clawbackPercentage: number | string | null
 		},
-		auditContext: ProcessorAuditContext
+		auditContext: ProcessorAuditContext,
+		loadNumber: number,
+		expectedMonth?: number,
+		expectedYear?: number
 	): Promise<ProcessorResult> {
 		let extracted: ReturnType<typeof rowValidatorService.validateAndExtractRow>
 
@@ -28,7 +31,9 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 			extracted = rowValidatorService.validateAndExtractRow(
 				record,
 				headers,
-				FILE_TYPES.VOLUNTARIA
+				FILE_TYPES.VOLUNTARIA,
+				expectedMonth,
+				expectedYear
 			)
 		} catch (error) {
 			await this.logAndSaveFormatError(
@@ -37,7 +42,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				auditContext,
 				error instanceof Error
 					? error.message
-					: 'Error de validación de formato'
+					: 'Error de validación de formato',
+				loadNumber
 			)
 			return {
 				status: 'ERROR',
@@ -52,7 +58,39 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 		const business = await findBusinessByContract(extracted.contract)
 
 		return await prisma.$transaction(async (tx) => {
+			const priorCommissions = await tx.settlementCommission.findMany({
+				where: {
+					contract: extracted.contract,
+					commissionType: FILE_TYPES.VOLUNTARIA,
+				},
+			})
+
 			if (!business) {
+				const isDuplicateLag = priorCommissions.some(
+					(pc) =>
+						pc.status === 'LAG' &&
+						pc.startDate?.getTime() === extracted.startDate!.getTime() &&
+						pc.endDate?.getTime() === extracted.endDate!.getTime()
+				)
+
+				if (isDuplicateLag) {
+					await this.logAndSaveDuplicateError(
+						record,
+						fileImportId,
+						auditContext,
+						extracted.contract,
+						loadNumber
+					)
+					return {
+						status: 'ERROR',
+						isLag: true,
+						idBusiness: null,
+						recoveredLag: false,
+						errorReason: 'Duplicate LAG commission',
+						resolvedErrors: 0,
+					}
+				}
+
 				await tx.settlementCommission.create({
 					data: {
 						idFileImport: fileImportId,
@@ -70,6 +108,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						status: 'LAG',
 						isLag: true,
 						isClawback: false,
+						loadNumber,
 					},
 				})
 				return {
@@ -80,13 +119,6 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 					resolvedErrors: 0,
 				}
 			}
-
-			const priorCommissions = await tx.settlementCommission.findMany({
-				where: {
-					contract: extracted.contract,
-					commissionType: FILE_TYPES.VOLUNTARIA,
-				},
-			})
 
 			if (priorCommissions.length === 0) {
 				const createdAt = business.createdAt
@@ -99,7 +131,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						extracted,
 						fileImportId,
 						business.idBusiness,
-						snapshots.discountPercentage
+						snapshots.discountPercentage,
+						loadNumber
 					)
 					const resolved = await tx.fileImportError.updateMany({
 						where: {
@@ -120,7 +153,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						resolvedErrors: resolved.count,
 					}
 				} else {
-					await this.createLag(tx, extracted, fileImportId, business.idBusiness)
+					await this.createLag(tx, extracted, fileImportId, business.idBusiness, loadNumber)
 					return {
 						status: 'LAG',
 						isLag: true,
@@ -130,7 +163,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 					}
 				}
 			} else {
-				// Exact match duplicate detection
+				// Exact match duplicate detection for ANY record (LAG or SYNC)
 				const isDuplicate = priorCommissions.some(
 					(pc) =>
 						pc.startDate?.getTime() === extracted.startDate!.getTime() &&
@@ -142,7 +175,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						record,
 						fileImportId,
 						auditContext,
-						extracted.contract
+						extracted.contract,
+						loadNumber
 					)
 					return {
 						status: 'ERROR',
@@ -176,7 +210,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						extracted,
 						fileImportId,
 						business.idBusiness,
-						snapshots.discountPercentage
+						snapshots.discountPercentage,
+						loadNumber
 					)
 					const resolved = await tx.fileImportError.updateMany({
 						where: {
@@ -202,7 +237,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						extracted,
 						fileImportId,
 						business.idBusiness,
-						snapshots.discountPercentage
+						snapshots.discountPercentage,
+						loadNumber
 					)
 					const resolved = await tx.fileImportError.updateMany({
 						where: {
@@ -232,7 +268,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 		extracted: ReturnType<typeof rowValidatorService.validateAndExtractRow>,
 		fileImportId: number,
 		idBusiness: number,
-		discountPercentage: number | string
+		discountPercentage: number | string,
+		loadNumber: number
 	) {
 		await tx.settlementCommission.create({
 			data: {
@@ -252,6 +289,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				isLag: false,
 				isClawback: false,
 				syncDate: new Date(),
+				loadNumber,
 			},
 		})
 	}
@@ -260,7 +298,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 		tx: Prisma.TransactionClient,
 		extracted: ReturnType<typeof rowValidatorService.validateAndExtractRow>,
 		fileImportId: number,
-		idBusiness: number
+		idBusiness: number,
+		loadNumber: number
 	) {
 		await tx.settlementCommission.create({
 			data: {
@@ -279,6 +318,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				status: 'LAG',
 				isLag: true,
 				isClawback: false,
+				loadNumber,
 			},
 		})
 	}
@@ -287,7 +327,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 		record: ProcessedRecord,
 		fileImportId: number,
 		auditContext: ProcessorAuditContext,
-		reason: string
+		reason: string,
+		loadNumber: number
 	) {
 		await logAuditEvent({
 			userId: auditContext.userId,
@@ -305,6 +346,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				contract: null,
 				reason,
 				rawData: record.data as Prisma.InputJsonValue,
+				loadNumber,
 			},
 		})
 	}
@@ -313,7 +355,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 		record: ProcessedRecord,
 		fileImportId: number,
 		auditContext: ProcessorAuditContext,
-		contract: string
+		contract: string,
+		loadNumber: number
 	) {
 		await logAuditEvent({
 			userId: auditContext.userId,
@@ -331,6 +374,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				contract,
 				reason: 'Duplicate commission',
 				rawData: record.data as Prisma.InputJsonValue,
+				loadNumber,
 			},
 		})
 	}

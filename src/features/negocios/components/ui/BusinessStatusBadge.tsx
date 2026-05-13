@@ -27,7 +27,7 @@ const STATUS_CONFIG: Record<
 	VENTA_EFECTUADA: {
 		label: 'Venta Efectuada',
 		variant: 'default',
-		className: 'bg-orange-100 text-orange-800 hover:bg-orange-200',
+		className: 'bg-orange-100 text-orange-800 hover:bg-orange-200 truncate',
 	},
 	EMITIDO: {
 		label: 'Emitido',

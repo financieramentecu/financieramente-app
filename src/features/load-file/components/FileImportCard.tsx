@@ -28,7 +28,7 @@ function StatBadge({
 }: StatBadgeProps) {
 	return (
 		<span
-			className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+			className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold truncate"
 			style={{
 				backgroundColor: bgColor,
 				color: textColor,
@@ -36,7 +36,7 @@ function StatBadge({
 			}}
 		>
 			<span
-				className="w-1.5 h-1.5 rounded-full"
+				className="w-1.5 h-1.5 rounded-full truncate"
 				style={{ backgroundColor: dotColor }}
 			/>
 			{value} {label}
@@ -95,6 +95,10 @@ export function FileImportCard({
 							<h3 className="font-semibold text-primary">
 								{carga.nombreArchivo}
 							</h3>
+							<span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-bold uppercase tracking-tight">
+								<span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+								{carga?.uploadCount || 1} {carga?.uploadCount === 1 ? 'carga' : 'cargas'}
+							</span>
 							<FileStatusBadge status={carga.estado as import('./ui/FileStatusBadge').FileImportStatus} />
 						</div>
 
@@ -107,13 +111,13 @@ export function FileImportCard({
 						<div className="flex flex-wrap items-center gap-2">
 							<StatBadge
 								label="Procesados"
-								value={carga.exitosos}
+								value={carga?.totalRecord || 1}
 								bgColor="#dbeafe"
 								textColor="#1e40af"
 								borderColor="#93c5fd"
 								dotColor="#3b82f6"
-
 							/>
+
 							<StatBadge
 								label="Errores"
 								value={carga.errores}

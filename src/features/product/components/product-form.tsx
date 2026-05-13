@@ -56,11 +56,15 @@ export function ProductForm({
 					name: initialData.name,
 					idCompany: initialData.idCompany,
 					status: initialData.status,
+					commissionPercentage: initialData.commissionPercentage,
+					contributionType: initialData.contributionType,
 				}
 			: {
 					name: '',
 					idCompany: undefined,
 					status: true,
+					commissionPercentage: 0,
+					contributionType: 'REGULAR',
 				},
 	})
 
@@ -164,6 +168,64 @@ export function ProductForm({
 						{errors.status.message as string}
 					</p>
 				)}
+			</div>
+
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+				{/* Porcentaje Comisional */}
+				<div className="space-y-2">
+					<Label htmlFor="commissionPercentage">
+						% Comisional Pago Liquidación
+						<span className="text-destructive ml-1">*</span>
+					</Label>
+					<Input
+						id="commissionPercentage"
+						type="number"
+						step="0.01"
+						{...register('commissionPercentage', { valueAsNumber: true })}
+						placeholder="Ej: 76.5"
+						disabled={isLoading}
+						className={cn(errors.commissionPercentage && 'border-destructive')}
+					/>
+					{errors.commissionPercentage && (
+						<p className="text-sm text-destructive">
+							{errors.commissionPercentage.message as string}
+						</p>
+					)}
+				</div>
+
+				{/* Tipo de Aporte */}
+				<div className="space-y-2">
+					<Label htmlFor="contributionType">
+						Tipo de Aporte
+						<span className="text-destructive ml-1">*</span>
+					</Label>
+					<Controller
+						name="contributionType"
+						control={control}
+						render={({ field }) => (
+							<Select
+								value={field.value}
+								onValueChange={field.onChange}
+								disabled={isLoading}
+							>
+								<SelectTrigger
+									className={cn(errors.contributionType && 'border-destructive')}
+								>
+									<SelectValue placeholder="Seleccione tipo de aporte" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="REGULAR">REGULAR</SelectItem>
+									<SelectItem value="UNICO">UNICO</SelectItem>
+								</SelectContent>
+							</Select>
+						)}
+					/>
+					{errors.contributionType && (
+						<p className="text-sm text-destructive">
+							{errors.contributionType.message as string}
+						</p>
+					)}
+				</div>
 			</div>
 
 			{/* Botones de acción */}

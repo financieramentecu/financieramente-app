@@ -65,6 +65,8 @@ export default function ProductsAdminPage() {
 					? Number(formData.idTypeProduct)
 					: undefined,
 				status: formData.status as boolean,
+				commissionPercentage: Number(formData.commissionPercentage ?? 0),
+				contributionType: (formData.contributionType as 'REGULAR' | 'UNICO') ?? 'REGULAR',
 			})
 		} else if (selectedProduct) {
 			result = await update(selectedProduct.idProduct, {

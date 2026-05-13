@@ -16,7 +16,7 @@ function EstadoBadge({ estado }: { estado: string }) {
 	const normalized = estado.toUpperCase()
 	if (normalized === 'SETTLED' || normalized === 'COMPLETED') {
 		return (
-			<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+			<span className="truncate inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
 				<Receipt className="h-3 w-3" />
 				Comprobante de liquidación
 			</span>
@@ -24,13 +24,13 @@ function EstadoBadge({ estado }: { estado: string }) {
 	}
 	if (normalized === 'PRE-SETTLED') {
 		return (
-			<span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+			<span className="truncate inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
 				En revisión
 			</span>
 		)
 	}
 	return (
-		<span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+		<span className="truncate inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
 			{estado}
 		</span>
 	)

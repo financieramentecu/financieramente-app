@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateProductSchema } from '@/features/product/lib/product-schemas'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import type { Product } from '@/features/product/types/product.types'
+import type { Product, ContributionType } from '@/features/product/types/product.types'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import {
@@ -153,6 +153,8 @@ export async function PUT(
 			idCompany?: number
 			idTypeProduct?: number | null
 			status?: boolean
+			commissionPercentage?: number
+			contributionType?: ContributionType
 		} = {}
 
 		if (data.name !== undefined) {
@@ -175,6 +177,14 @@ export async function PUT(
 
 		if (data.status !== undefined) {
 			updateData.status = data.status
+		}
+
+		if (data.commissionPercentage !== undefined) {
+			updateData.commissionPercentage = data.commissionPercentage
+		}
+
+		if (data.contributionType !== undefined) {
+			updateData.contributionType = data.contributionType
 		}
 
 		// Actualizar producto
@@ -205,6 +215,24 @@ export async function PUT(
 		if (data.status !== undefined && data.status !== existingProduct.status) {
 			changes.push(
 				`Estado: ${existingProduct.status ? 'Activo' : 'Inactivo'} → ${data.status ? 'Activo' : 'Inactivo'}`
+			)
+		}
+
+		if (
+			data.commissionPercentage !== undefined &&
+			data.commissionPercentage !== existingProduct.commissionPercentage.toNumber()
+		) {
+			changes.push(
+				`Comisión: ${existingProduct.commissionPercentage}% → ${data.commissionPercentage}%`
+			)
+		}
+
+		if (
+			data.contributionType !== undefined &&
+			data.contributionType !== existingProduct.contributionType
+		) {
+			changes.push(
+				`Tipo Aporte: ${existingProduct.contributionType} → ${data.contributionType}`
 			)
 		}
 
