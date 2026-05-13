@@ -84,6 +84,9 @@ export function useBusinesses(
 				dateTo: hasFullFundDateRange ? params.dateTo : undefined,
 				createdFrom: hasFullCreatedDateRange ? params.createdFrom : undefined,
 				createdTo: hasFullCreatedDateRange ? params.createdTo : undefined,
+				agentName: params.agentName,
+				sortBy: params.sortBy,
+				sortOrder: params.sortOrder,
 			})
 
 			if ('error' in response && response.error) {
@@ -108,6 +111,9 @@ export function useBusinesses(
 		params.dateTo,
 		params.createdFrom,
 		params.createdTo,
+		params.agentName,
+		params.sortBy,
+		params.sortOrder,
 	])
 
 	useEffect(() => {

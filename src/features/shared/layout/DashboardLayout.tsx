@@ -6,32 +6,45 @@ import { SidebarProvider, SidebarInset } from '@/features/shared/ui/sidebar'
 import { AppSidebar } from './Sidebar'
 import { SiteHeader } from './Header'
 import { buildBreadcrumbsFromPathname } from '@/lib/navigation/breadcrumb-utils'
+import { cn } from '@/lib/utils'
 
 interface DashboardLayoutProps {
 	children: React.ReactNode
 	currentPage?: string
 	breadcrumbs?: { label: string; href?: string }[]
+	disableScroll?: boolean
 }
 
 export function DashboardLayout({
 	children,
 	currentPage = 'Dashboard',
 	breadcrumbs: breadcrumbsProp,
+	disableScroll = false,
 }: DashboardLayoutProps) {
 	const pathname = usePathname()
 	const breadcrumbs = breadcrumbsProp ?? (pathname ? buildBreadcrumbsFromPathname(pathname) : [])
 
 	return (
-		<SidebarProvider defaultOpen={true}>
+		<SidebarProvider defaultOpen={true} className="h-[100dvh] overflow-hidden">
+			{/* Forzar el body a no tener scroll cuando disableScroll es true */}
+			{disableScroll && (
+				<style jsx global>{`
+					html, body {
+						overflow: hidden !important;
+						height: 100% !important;
+					}
+				`}</style>
+			)}
 			<AppSidebar />
-			<SidebarInset className="flex flex-col h-screen overflow-hidden">
-				{/* Header fijo */}
-				<div className="sticky top-0 z-50 bg-background">
-					<SiteHeader title={currentPage} breadcrumbs={breadcrumbs} />
-				</div>
-				{/* Contenido con scroll */}
-				<div className="flex-1 overflow-y-auto">
-					<div className="flex flex-col gap-4 p-4 pt-4">{children}</div>
+			<SidebarInset className="flex flex-col flex-1 min-h-0 min-w-0 w-full overflow-hidden bg-background">
+				{/* Header y Miga de pan - Altura automática */}
+				<SiteHeader title={currentPage} breadcrumbs={breadcrumbs} />
+				
+				{/* Contenido que llena el resto de la pantalla (100vh - header) */}
+				<div className={cn('flex-1 flex flex-col min-h-0 min-w-0 w-full', !disableScroll ? 'overflow-y-auto' : 'overflow-hidden')}>
+					<div className={cn('flex flex-col gap-4 p-4 min-h-0 min-w-0 w-full', disableScroll ? 'flex-1 overflow-hidden' : '')}>
+						{children}
+					</div>
 				</div>
 			</SidebarInset>
 		</SidebarProvider>

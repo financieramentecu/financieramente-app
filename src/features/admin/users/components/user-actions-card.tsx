@@ -94,10 +94,11 @@ export function UserActionsCard({
 
 	const [selectedLeaderLevelId, setSelectedLeaderLevelId] = useState<
 		number | null
-	>(null)
+	>(user.leader?.idLevel ?? null)
 	const [leaderUsers, setLeaderUsers] = useState<UserWithRole[]>([])
 	const [loadingLeaderUsers, setLoadingLeaderUsers] = useState(false)
 
+	const isFirstRender = React.useRef(true)
 	const validation = useUserAccessValidation(user)
 
 	// Numeric suffix from level code e.g. "LEVEL_3" → 3; null for non-numeric codes
@@ -121,11 +122,32 @@ export function UserActionsCard({
 		return suffix > selectedLevelSuffix
 	})
 
+	// Always include the pre-existing leader's level in the dropdown so it can be displayed
+	const preExistingLeaderLevel = user.leader?.idLevel
+		? levels.find((l) => l.idLevel === user.leader!.idLevel)
+		: null
+	const displayLeaderLevels =
+		preExistingLeaderLevel &&
+		!leaderLevels.find((l) => l.idLevel === preExistingLeaderLevel.idLevel)
+			? [preExistingLeaderLevel, ...leaderLevels]
+			: leaderLevels
+
 	const showLeaderSection =
 		selectedLevelId !== null && selectedLevelSuffix !== null
 
-	// Reset leader fields when user's level changes
+	// Once levels finish loading, restore the pre-existing leader level
 	useEffect(() => {
+		if (!loadingLevels && user.leader?.idLevel && isFirstRender.current) {
+			setSelectedLeaderLevelId(user.leader.idLevel)
+		}
+	}, [loadingLevels, user.leader?.idLevel])
+
+	// Reset leader fields when user's level changes (skip first render)
+	useEffect(() => {
+		if (isFirstRender.current) {
+			isFirstRender.current = false
+			return
+		}
 		setSelectedLeaderLevelId(null)
 		setSelectedLeaderId('')
 		setLeaderUsers([])
@@ -484,7 +506,7 @@ export function UserActionsCard({
 									</SelectTrigger>
 									<SelectContent>
 										<SelectItem value="none">Sin nivel seleccionado</SelectItem>
-										{leaderLevels.map((l) => (
+										{displayLeaderLevels.map((l) => (
 											<SelectItem key={l.idLevel} value={l.idLevel.toString()}>
 												{l.name}
 											</SelectItem>
