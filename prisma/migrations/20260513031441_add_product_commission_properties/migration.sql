@@ -50,7 +50,48 @@ END $$;
 -- Deduplicate product_configuration before creating unique index
 -- Keep the row with the highest id_product_configuration per (id_product, id_level) group
 
--- Step 1: remove ppc_level rows that reference ppc rows linked to duplicate configs
+-- Deduplicate product_configuration rows before creating unique index.
+-- For each duplicate group (id_product, id_level), keep the config with the
+-- highest id_product_configuration and cascade-clean the discarded ones.
+
+-- Step 1: reasign businesses that point to a PPC of a duplicate config
+--         to the equivalent PPC of the surviving config (same product+level group).
+UPDATE business b
+SET id_product_percentage_commission = (
+  SELECT ppc_keep.id_product_percentage_commission
+  FROM product_percentaje_commision ppc_keep
+  WHERE ppc_keep.id_product_configuration = (
+    SELECT id_product_configuration FROM (
+      SELECT id_product_configuration,
+        ROW_NUMBER() OVER (PARTITION BY id_product, id_level ORDER BY id_product_configuration DESC) AS rn
+      FROM product_configuration
+      WHERE id_product = (
+        SELECT pc2.id_product FROM product_configuration pc2
+        JOIN product_percentaje_commision ppc2 ON ppc2.id_product_configuration = pc2.id_product_configuration
+        WHERE ppc2.id_product_percentage_commission = b.id_product_percentage_commission
+      )
+      AND id_level = (
+        SELECT pc2.id_level FROM product_configuration pc2
+        JOIN product_percentaje_commision ppc2 ON ppc2.id_product_configuration = pc2.id_product_configuration
+        WHERE ppc2.id_product_percentage_commission = b.id_product_percentage_commission
+      )
+    ) t WHERE rn = 1
+  )
+  LIMIT 1
+)
+WHERE b.id_product_percentage_commission IN (
+  SELECT ppc.id_product_percentage_commission
+  FROM product_percentaje_commision ppc
+  WHERE ppc.id_product_configuration IN (
+    SELECT id_product_configuration FROM (
+      SELECT id_product_configuration,
+        ROW_NUMBER() OVER (PARTITION BY id_product, id_level ORDER BY id_product_configuration DESC) AS rn
+      FROM product_configuration
+    ) t WHERE rn > 1
+  )
+);
+
+-- Step 2: remove ppc_level rows referencing PPCs of duplicate configs
 DELETE FROM product_percentaje_commision_level
 WHERE id_product_percentage_commission IN (
   SELECT ppc.id_product_percentage_commission
@@ -64,7 +105,7 @@ WHERE id_product_percentage_commission IN (
   )
 );
 
--- Step 2: remove ppc rows linked to duplicate configs
+-- Step 3: remove PPC rows of duplicate configs
 DELETE FROM product_percentaje_commision
 WHERE id_product_configuration IN (
   SELECT id_product_configuration FROM (
@@ -74,7 +115,7 @@ WHERE id_product_configuration IN (
   ) t WHERE rn > 1
 );
 
--- Step 3: remove duplicate product_configuration rows
+-- Step 4: remove duplicate product_configuration rows
 DELETE FROM product_configuration
 WHERE id_product_configuration IN (
   SELECT id_product_configuration FROM (
