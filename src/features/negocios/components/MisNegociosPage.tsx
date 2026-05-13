@@ -112,7 +112,7 @@ export function MisNegociosPage({
 	exportExcelError = null,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
-	const isAgentUser = user?.role === UserRole.AGENTE
+	const isAgentUser = true // Stats visible for all roles; data is scoped server-side
 
 	// Una vez inicializado, nunca mostrar el skeleton completo de nuevo
 	const showFullSkeleton = isLoading && !hasInitialized

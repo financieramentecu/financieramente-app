@@ -70,6 +70,7 @@ export async function GET(
 						idUser: true,
 						name: true,
 						lastName: true,
+						idLevel: true,
 					},
 				},
 			},
@@ -133,6 +134,7 @@ export async function GET(
 						id: user.leader.idUser,
 						name: user.leader.name,
 						lastName: user.leader.lastName,
+						idLevel: user.leader.idLevel,
 					}
 					: null,
 				active: user.active,
@@ -286,7 +288,7 @@ export async function PUT(
 						{ status: 400 }
 					)
 				}
-				// Verificar que el líder existe y tiene rol AGENTE
+				// Verificar que el líder existe y tiene nivel asignado
 				const leader = await prisma.user.findUnique({
 					where: { idUser: parseInt(leaderId) },
 					include: { role: true },
@@ -303,11 +305,11 @@ export async function PUT(
 						{ status: 400 }
 					)
 				}
-				if (leader.role?.code !== 'AGENTE') {
+				if (!leader.idLevel) {
 					return NextResponse.json(
 						{
 							success: false,
-							error: 'Solo usuarios con rol Agente/Coach pueden ser líderes',
+							error: 'El líder debe tener un nivel asignado',
 						},
 						{ status: 400 }
 					)
@@ -327,6 +329,7 @@ export async function PUT(
 						idUser: true,
 						name: true,
 						lastName: true,
+						idLevel: true,
 					},
 				},
 			},
@@ -440,6 +443,7 @@ export async function PUT(
 						id: updatedUser.leader.idUser,
 						name: updatedUser.leader.name,
 						lastName: updatedUser.leader.lastName,
+						idLevel: updatedUser.leader.idLevel,
 					}
 					: null,
 				active: updatedUser.active,

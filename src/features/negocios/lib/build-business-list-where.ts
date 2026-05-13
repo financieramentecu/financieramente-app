@@ -35,7 +35,10 @@ export function buildBusinessListWhere(
 	const whereConditions: Prisma.BusinessWhereInput[] = []
 
 	const roleCode = currentUser.role?.code
-	const isAdmin = roleCode === UserRole.ADMIN
+	const isAdmin =
+		roleCode === UserRole.ADMIN ||
+		roleCode === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+		roleCode === UserRole.ANALISTA_SOPORTE
 	const isScoped = !isAdmin
 
 	if (isScoped) {
