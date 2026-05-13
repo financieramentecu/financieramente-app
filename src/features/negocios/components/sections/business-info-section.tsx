@@ -65,24 +65,6 @@ export function BusinessInfoSection({
 	const isFirstRender = React.useRef(true)
 
 	React.useEffect(() => {
-		// En modo edición, no recalculamos numAportes automáticamente para permitir edición manual
-		if (isEditMode) {
-			if (isFirstRender.current) {
-				isFirstRender.current = false
-			}
-			// Solo actualizamos isSkandiaWithMfund para controlar el campo 'terms'
-			const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
-			const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
-			if (companyName === 'SKANDIA' && productName === 'MFUND') {
-				setValue('isSkandiaWithMfund', true, { shouldValidate: false })
-				setValue('terms', 0, { shouldValidate: false })
-			} else {
-				setValue('isSkandiaWithMfund', false, { shouldValidate: false })
-			}
-			return
-		}
-
-		// Modo creación: auto-calcular numAportes
 		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
 		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
 		const periodicityName = periodicitiesOptions.find((p) => p.value === watchedPeriodicityId)?.label ?? null
@@ -96,6 +78,13 @@ export function BusinessInfoSection({
 		}
 
 		setValue('isSkandiaWithMfund', false, { shouldValidate: false })
+
+		// En modo edición, si es la primera vez que se carga, no sobrescribimos con el cálculo
+		// para preservar el valor que viene de la DB.
+		if (isEditMode && isFirstRender.current) {
+			isFirstRender.current = false
+			return
+		}
 
 		const result = calculateNumAportes({ termYears, periodicityName, companyName, productName })
 		setValue('numAportes', result, { shouldValidate: false })
@@ -216,21 +205,14 @@ export function BusinessInfoSection({
 					required
 				/>
 
-				<div className="space-y-2">
-					<Label htmlFor="numAportes" className="text-sm font-medium">
-						Número de Aportes
-					</Label>
-					<Input
-						id="numAportes"
-						type="number"
-						{...register('numAportes', { valueAsNumber: true })}
-						readOnly={getFieldPermission('numAportes').readonly}
-						disabled={getFieldPermission('numAportes').disabled}
-						className={cn(
-							getFieldPermission('numAportes').disabled && "bg-muted cursor-not-allowed"
-						)}
-					/>
-				</div>
+				<NumberInputField
+					name="numAportes"
+					label="Número de Aportes"
+					placeholder="0"
+					form={form}
+					disabled={getFieldPermission('numAportes').disabled}
+					required={false}
+				/>
 
 				<FormSelectField
 					name="currency"

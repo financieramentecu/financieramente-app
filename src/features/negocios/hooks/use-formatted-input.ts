@@ -67,7 +67,7 @@ export function useFormattedInput({
 					return
 				}
 				const numValue = Number(rawValue)
-				if (!isNaN(numValue) && isFinite(numValue) && numValue > 0) {
+				if (!isNaN(numValue) && isFinite(numValue) && numValue >= 0) {
 					setValue(fieldName, numValue as never, { shouldValidate: true })
 				}
 			}
