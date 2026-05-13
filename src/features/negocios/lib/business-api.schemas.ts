@@ -48,7 +48,19 @@ export const businessListParamsSchema = z
 			isoCalendarDay.optional()
 		),
 		agentName: z.string().nullish(),
-		sortBy: z.enum(['agentName', 'createdAt', 'status', 'value']).nullish(),
+		sortBy: z
+			.enum([
+				'agentName',
+				'createdAt',
+				'status',
+				'value',
+				'clientName',
+				'identification',
+				'contract',
+				'companyName',
+				'product',
+			])
+			.nullish(),
 		sortOrder: z.enum(['asc', 'desc']).nullish(),
 	})
 	.superRefine((data, ctx) => {

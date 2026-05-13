@@ -21,7 +21,6 @@ export interface CoachInfoSectionProps {
 	onSearchAgents?: (query: string) => Promise<UserWithRole[]>
 	isBlocked: boolean
 	isEditMode?: boolean
-	roleCode?: string
 	isAgentUser?: boolean
 }
 
@@ -33,9 +32,8 @@ export function CoachInfoSection({
 	agentsList,
 	onSearchAgents,
 	isBlocked,
-	isAgentUser,
 	isEditMode = false,
-	roleCode,
+	isAgentUser,
 }: CoachInfoSectionProps) {
 	const { watch, setValue, formState } = form
 	const { errors } = formState
@@ -59,7 +57,7 @@ export function CoachInfoSection({
 						id="agent-label"
 						className="text-sm font-medium"
 					>
-						Money Strategist {isEditMode ? `(No editable - ${roleCode || 'Sin Rol'})` : `(Editable - ${roleCode || 'Sin Rol'})`} <span className="text-red-500">*</span>
+						Money Strategist <span className="text-red-500">*</span>
 					</Label>
 					{isEditMode ? (
 						<Input

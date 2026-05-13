@@ -490,19 +490,8 @@ export function NegociosPageClient({
 		}
 	}, [])
 
-	// Convertir BusinessEntity[] a Business[] para compatibilidad con componentes existentes
 	const businessDataForTable: Business[] = useMemo(
-		() =>
-			[...businesses]
-				.sort((a, b) => {
-					const createdAtDiff =
-						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-					if (createdAtDiff !== 0) {
-						return createdAtDiff
-					}
-					return b.id - a.id
-				})
-				.map(mapBusinessToTableRow),
+		() => businesses.map(mapBusinessToTableRow),
 		[businesses]
 	)
 

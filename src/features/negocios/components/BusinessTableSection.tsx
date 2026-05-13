@@ -396,7 +396,7 @@ export function BusinessTableSection({
 							onAgentNameChange ||
 							(onFundDateFromChange && onFundDateToChange)
 							? () => (
-								<div className="flex flex-wrap items-center gap-2 py-1">
+								<div className="flex flex-wrap items-center gap-2 py-2">
 									{onAgentNameChange ? (
 										<div className="w-[180px]">
 											<Input

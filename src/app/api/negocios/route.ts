@@ -123,6 +123,21 @@ export async function GET(
 			orderBy = [{ status: dir }, { createdAt: 'desc' }, { idBusiness: 'desc' }]
 		} else if (sortBy === 'value') {
 			orderBy = [{ value: dir }, { createdAt: 'desc' }, { idBusiness: 'desc' }]
+		} else if (sortBy === 'clientName') {
+			orderBy = [
+				{ client: { name: dir } },
+				{ client: { lastName: dir } },
+			]
+		} else if (sortBy === 'identification') {
+			orderBy = [{ client: { identityNumber: dir } }]
+		} else if (sortBy === 'contract') {
+			orderBy = [{ contract: dir }]
+		} else if (sortBy === 'companyName') {
+			orderBy = [{ productPercentageCommission: { productConfiguration: { product: { company: { name: dir } } } } }]
+		} else if (sortBy === 'product') {
+			orderBy = [{ productPercentageCommission: { productConfiguration: { product: { name: dir } } } }]
+		} else if (sortBy === 'createdAt') {
+			orderBy = [{ createdAt: dir }, { idBusiness: 'desc' }]
 		} else {
 			// default: createdAt desc
 			orderBy = [{ createdAt: 'desc' }, { idBusiness: 'desc' }]

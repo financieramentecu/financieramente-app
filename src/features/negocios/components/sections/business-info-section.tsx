@@ -27,7 +27,6 @@ export interface BusinessInfoSectionProps {
 	isEditMode?: boolean
 	contractDisabled?: boolean
 	isPrivilegedRole?: boolean
-	roleCode?: string
 	getFieldPermission: (field: BusinessFormField) => FieldPermission
 }
 
@@ -44,8 +43,7 @@ export function BusinessInfoSection({
 	isBlocked: _isBlocked,
 	isEditMode = false,
 	contractDisabled = false,
-	isPrivilegedRole: _isPrivilegedRole = false,
-	roleCode: _roleCode,
+	isPrivilegedRole = false,
 	getFieldPermission,
 }: BusinessInfoSectionProps) {
 	const { register, watch, setValue, formState } = form

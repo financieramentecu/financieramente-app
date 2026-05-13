@@ -104,7 +104,6 @@ export const BusinessForm = React.forwardRef<
 						isEditMode={isEditMode}
 						contractDisabled={isContractDisabled}
 						isPrivilegedRole={isPrivilegedRole}
-						roleCode={currentUser?.role?.code}
 						getFieldPermission={getFieldPermission}
 					/>
 
