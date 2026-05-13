@@ -88,7 +88,10 @@ export async function GET(
 		// Visibility scope:
 		// ADMIN → no idUser filter (see all)
 		// All other roles → hierarchical scope: [self, ...subordinates]
-		const isAdmin = currentUser.role?.code === UserRole.ADMIN
+		const isAdmin =
+			currentUser.role?.code === UserRole.ADMIN ||
+			currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+			currentUser.role?.code === UserRole.ANALISTA_SOPORTE
 		let visibleUserIds: number[] | undefined
 
 		if (!isAdmin) {

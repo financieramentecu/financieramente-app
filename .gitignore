@@ -64,3 +64,6 @@ storybook-static
 .specsmd/*
 memory-bank/*
 .memory-bank/*
+
+
+*.dump

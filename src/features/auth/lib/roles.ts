@@ -51,6 +51,7 @@ export function isValidRole(role: string): role is UserRole {
 export const ROLES_CAN_EDIT_CONTRACT_WHEN_EMITIDO: readonly UserRole[] = [
 	UserRole.ADMIN,
 	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+	UserRole.ANALISTA_SOPORTE,
 ]
 
 /**
