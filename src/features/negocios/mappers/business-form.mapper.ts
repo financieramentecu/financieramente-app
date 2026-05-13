@@ -47,7 +47,7 @@ export function businessEntityToFormData(
 		value: business.value,
 		agent: String(business.agent.id),
 		contract: business.contract || '',
-		numAportes: business.numAportes || 0,
+		numAportes: business.numAportes ?? undefined,
 	}
 }
 

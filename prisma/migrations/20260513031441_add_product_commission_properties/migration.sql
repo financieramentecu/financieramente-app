@@ -49,6 +49,22 @@ END $$;
 
 -- Deduplicate product_configuration before creating unique index
 -- Keep the row with the highest id_product_configuration per (id_product, id_level) group
+
+-- Step 1: remove ppc_level rows that reference ppc rows linked to duplicate configs
+DELETE FROM product_percentaje_commision_level
+WHERE id_product_percentage_commission IN (
+  SELECT ppc.id_product_percentage_commission
+  FROM product_percentaje_commision ppc
+  WHERE ppc.id_product_configuration IN (
+    SELECT id_product_configuration FROM (
+      SELECT id_product_configuration,
+        ROW_NUMBER() OVER (PARTITION BY id_product, id_level ORDER BY id_product_configuration DESC) AS rn
+      FROM product_configuration
+    ) t WHERE rn > 1
+  )
+);
+
+-- Step 2: remove ppc rows linked to duplicate configs
 DELETE FROM product_percentaje_commision
 WHERE id_product_configuration IN (
   SELECT id_product_configuration FROM (
@@ -58,6 +74,7 @@ WHERE id_product_configuration IN (
   ) t WHERE rn > 1
 );
 
+-- Step 3: remove duplicate product_configuration rows
 DELETE FROM product_configuration
 WHERE id_product_configuration IN (
   SELECT id_product_configuration FROM (
