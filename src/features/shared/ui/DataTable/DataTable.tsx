@@ -77,6 +77,7 @@ export function DataTable<TData>({
 	initialSorting = [],
 	manualSorting = false,
 	onSortingChange: onExternalSortingChange,
+	dense = false,
 }: DataTableProps<TData>) {
 	const [sorting, setSorting] = useState<SortingState>(initialSorting)
 
@@ -168,6 +169,9 @@ export function DataTable<TData>({
 				),
 				enableSorting: false,
 				enableHiding: false,
+				meta: {
+					sticky: 'right',
+				},
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as unknown as any)
 		}
@@ -315,20 +319,33 @@ export function DataTable<TData>({
 				</div>
 			)}
 			<div className="rounded-md border bg-card min-h-0 w-full overflow-hidden flex flex-col relative">
-				<Table className="relative" containerClassName="flex-1 overflow-auto max-h-none">
+				<Table
+					className={cn('relative', dense && 'dense')}
+					containerClassName="flex-1 overflow-auto max-h-none"
+				>
 					<TableHeader className="sticky top-0 z-10">
 						{table.getHeaderGroups().map((headerGroup) => (
 							<TableRow key={headerGroup.id}>
-								{headerGroup.headers.map((header) => (
-									<TableHead key={header.id}>
-										{header.isPlaceholder
-											? null
-											: flexRender(
-												header.column.columnDef.header,
-												header.getContext()
+								{headerGroup.headers.map((header) => {
+									const meta = header.column.columnDef.meta as Record<string, unknown> | undefined
+									const sticky = meta?.sticky as string | undefined
+									return (
+										<TableHead
+											key={header.id}
+											className={cn(
+												sticky === 'left' && 'sticky left-0 z-30 bg-card shadow-[1px_0_0_0_hsl(var(--border))]',
+												sticky === 'right' && 'sticky right-0 z-30 bg-card shadow-[-1px_0_0_0_hsl(var(--border))]'
 											)}
-									</TableHead>
-								))}
+										>
+											{header.isPlaceholder
+												? null
+												: flexRender(
+													header.column.columnDef.header,
+													header.getContext()
+												)}
+										</TableHead>
+									)
+								})}
 							</TableRow>
 						))}
 					</TableHeader>
@@ -354,14 +371,24 @@ export function DataTable<TData>({
 										onClick={() => onRowClick?.(row.original)}
 										className={onRowClick ? 'cursor-pointer' : ''}
 									>
-										{row.getVisibleCells().map((cell) => (
-											<TableCell key={cell.id}>
-												{flexRender(
-													cell.column.columnDef.cell,
-													cell.getContext()
-												)}
-											</TableCell>
-										))}
+										{row.getVisibleCells().map((cell) => {
+											const meta = cell.column.columnDef.meta as Record<string, unknown> | undefined
+											const sticky = meta?.sticky as string | undefined
+											return (
+												<TableCell
+													key={cell.id}
+													className={cn(
+														sticky === 'left' && 'sticky left-0 z-20 bg-card shadow-[1px_0_0_0_hsl(var(--border))]',
+														sticky === 'right' && 'sticky right-0 z-20 bg-card shadow-[-1px_0_0_0_hsl(var(--border))]'
+													)}
+												>
+													{flexRender(
+														cell.column.columnDef.cell,
+														cell.getContext()
+													)}
+												</TableCell>
+											)
+										})}
 									</TableRow>
 									{row.getIsExpanded() && renderSubComponent && (
 										<TableRow>

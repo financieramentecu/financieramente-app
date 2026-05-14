@@ -178,5 +178,10 @@ export interface DataTableProps<TData> {
 	 * Callback cuando cambia el ordenamiento (requerido para manualSorting)
 	 */
 	onSortingChange?: (sorting: SortingState) => void
+	/**
+	 * Habilita el diseño compacto (menor padding)
+	 * @default false
+	 */
+	dense?: boolean
 }
 

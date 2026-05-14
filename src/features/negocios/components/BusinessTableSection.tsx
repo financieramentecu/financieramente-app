@@ -154,8 +154,13 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Cliente" />
 			),
 			cell: ({ row }) => (
-				<span className="font-medium">{row.getValue('clientName')}</span>
+				<span className="font-semibold text-[#11525B]">{row.getValue('clientName')}</span>
 			),
+			meta: {
+				sticky: 'left',
+			},
+			enableSorting: true,
+			size: 180,
 		},
 		{
 			accessorKey: 'identification',
@@ -163,15 +168,21 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Identificación" />
 			),
 			cell: ({ row }) => (
-				<span className="font-medium">{row.getValue('identification')}</span>
+				<span className="font-medium tabular-nums whitespace-nowrap">{row.getValue('identification')}</span>
 			),
+			enableSorting: true,
+			size: 130,
 		},
 		{
 			accessorKey: 'contract',
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Contrato" />
 			),
+			cell: ({ row }) => (
+				<span className="font-medium tabular-nums whitespace-nowrap">{row.getValue('contract')}</span>
+			),
 			enableSorting: true,
+			size: 120,
 		},
 		{
 			accessorKey: 'status',
@@ -190,7 +201,7 @@ export function BusinessTableSection({
 			minSize: 180,
 			enableSorting: true,
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Money Strategist" />
+				<DataTableColumnHeader column={column} title="MS" />
 			),
 			cell: ({ row }) => {
 				const userData = row.original.user
@@ -215,13 +226,15 @@ export function BusinessTableSection({
 		{
 			id: 'agentCategory',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Categoría Money Strategist" />
+				<DataTableColumnHeader column={column} title="Cat. MS" />
 			),
+			size: 100,
 			cell: ({ row }) => (
 				<span className={row.original.user.categoryName ? '' : 'text-muted-foreground'}>
 					{row.original.user.categoryName ?? '—'}
 				</span>
 			),
+			enableSorting: false,
 		},
 		{
 			accessorKey: 'companyName',
@@ -231,6 +244,7 @@ export function BusinessTableSection({
 			cell: ({ row }) => (
 				<span className="font-medium">{row.getValue('companyName')}</span>
 			),
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'product',
@@ -238,6 +252,7 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Producto" />
 			),
 			cell: ({ row }) => <span>{row.getValue('product')}</span>,
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'clientOriginName',
@@ -247,11 +262,12 @@ export function BusinessTableSection({
 			cell: ({ row }) => (
 				<span className="font-medium">{row.original.clientOriginName}</span>
 			),
+			enableSorting: false,
 		},
 		{
 			accessorKey: 'term',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Plazo" />
+				<DataTableColumnHeader column={column} title="Pzo." />
 			),
 			cell: ({ row }) => {
 				const t = row.original.term
@@ -261,11 +277,12 @@ export function BusinessTableSection({
 					</span>
 				)
 			},
+			enableSorting: false,
 		},
 		{
 			accessorKey: 'periodicityName',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Periodicidad" />
+				<DataTableColumnHeader column={column} title="Per." />
 			),
 			cell: ({ row }) => {
 				const name = row.original.periodicityName
@@ -275,6 +292,7 @@ export function BusinessTableSection({
 					</span>
 				)
 			},
+			enableSorting: false,
 		},
 		{
 			accessorKey: 'value',
@@ -302,6 +320,7 @@ export function BusinessTableSection({
 					{formatOptionalDate(row.original.dateIssued)}
 				</span>
 			),
+			enableSorting: false,
 		},
 		{
 			accessorKey: 'dateAnchored',
@@ -317,18 +336,20 @@ export function BusinessTableSection({
 					{formatOptionalDate(row.original.dateAnchored)}
 				</span>
 			),
+			enableSorting: false,
 		},
 		{
 			accessorKey: 'date',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Fecha creación" />
+				<DataTableColumnHeader column={column} title="Creación" />
 			),
 			cell: ({ row }) => (
-				<span className="text-muted-foreground text-xs">
+				<span className="text-muted-foreground text-xs whitespace-nowrap">
 					{formatDate(row.original.date)}
 				</span>
 			),
 			enableSorting: true,
+			size: 100,
 		},
 	]
 
@@ -361,6 +382,7 @@ export function BusinessTableSection({
 				{/* Data Table - fills the 1fr row correctly */}
 				<DataTable
 					className="h-full w-full"
+					dense={true}
 					columns={columns}
 					data={data}
 					searchable={true}
