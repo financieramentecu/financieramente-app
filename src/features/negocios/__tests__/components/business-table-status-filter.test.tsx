@@ -89,7 +89,7 @@ describe('BusinessTableSection status filter options', () => {
 		expect(screen.queryByText('Comisionando')).not.toBeInTheDocument()
 	})
 
-	it('renders "Fecha creación" as the creation column header', () => {
+	it('renders "Creación" as the creation column header', () => {
 		render(
 			<BusinessTableSection
 				data={[]}
@@ -98,6 +98,6 @@ describe('BusinessTableSection status filter options', () => {
 			/>
 		)
 
-		expect(screen.getByText('Fecha creación')).toBeInTheDocument()
+		expect(screen.getByText('Creación')).toBeInTheDocument()
 	})
 })
