@@ -127,21 +127,21 @@ export type NegociosExportBodySchema = z.infer<typeof negociosExportBodySchema>
 export const updateBusinessSchema = z.object({
 	contract: z
 		.string()
-		.min(1, 'El número de contrato es obligatorio')
+		.min(1, 'El número de contrato no puede estar vacío')
 		.regex(
 			/^[A-Za-z0-9-]+$/,
 			'El contrato solo puede contener letras, números y guiones'
 		)
 		.optional(),
-	idClientOrigin: z.number().int().positive().optional(),
-	idSettlementCommission: z.number().int().positive().optional(),
-	idProduct: z.number().int().positive().optional(),
-	term: z.number().int().positive().optional(),
-	value: z.number().positive().optional(),
-	idBuyPeriodicity: z.number().int().positive().optional(),
-	idCurrency: z.number().int().positive().optional(),
-	idUser: z.number().int().positive().optional(),
-	numAportes: z.number().int().positive().optional(),
+	idClientOrigin: z.number({ message: 'El origen del cliente debe ser un número válido' }).int('El origen del cliente debe ser un número entero').positive('El origen del cliente debe ser un ID válido mayor a 0').optional(),
+	idSettlementCommission: z.number({ message: 'La liquidación debe ser un número válido' }).int('La liquidación debe ser un número entero').positive('La liquidación debe ser un ID válido mayor a 0').optional(),
+	idProduct: z.number({ message: 'El producto debe ser un número válido' }).int('El producto debe ser un número entero').positive('El producto debe ser un ID válido mayor a 0').optional(),
+	term: z.number({ message: 'El plazo debe ser un número válido' }).int('El plazo debe ser un número entero').min(0, 'El plazo no puede ser negativo').optional(),
+	value: z.number({ message: 'El valor debe ser un número válido' }).min(0, 'El valor no puede ser negativo').optional(),
+	idBuyPeriodicity: z.number({ message: 'La periodicidad debe ser un número válido' }).int('La periodicidad debe ser un número entero').positive('La periodicidad debe ser un ID válido mayor a 0').optional(),
+	idCurrency: z.number({ message: 'La moneda debe ser un número válido' }).int('La moneda debe ser un número entero').positive('La moneda debe ser un ID válido mayor a 0').optional(),
+	idUser: z.number({ message: 'El agente debe ser un número válido' }).int('El agente debe ser un número entero').positive('El agente debe ser un ID válido mayor a 0').optional(),
+	numAportes: z.number({ message: 'El número de aportes debe ser un número válido' }).int('El número de aportes debe ser un número entero').min(0, 'El número de aportes no puede ser negativo').optional(),
 })
 
 export type UpdateBusinessSchema = z.infer<typeof updateBusinessSchema>
