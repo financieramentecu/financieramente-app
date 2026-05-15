@@ -69,15 +69,20 @@ export async function GET(
 			}
 		}
 
-		const [ventasEfectuadas, emitidos, fondeados] = await Promise.all([
+		const [ventasEfectuadas, emitidosBase, fondeados, sinSoporte] = await Promise.all([
 			calculateAggregateForStatus(BUSINESS_STATUS.VENTA_EFECTUADA, userFilter, createdAtFilter),
 			calculateAggregateForStatus(BUSINESS_STATUS.EMITIDO, userFilter, createdAtFilter),
-			calculateAggregateForStatus(
-				BUSINESS_STATUS.FONDEADO,
-				userFilter,
-				createdAtFilter
-			),
+			calculateAggregateForStatus(BUSINESS_STATUS.FONDEADO, userFilter, createdAtFilter),
+			prisma.business.count({
+				where: {
+					status: BUSINESS_STATUS.EMITIDO,
+					...(userFilter ? { idUser: { in: userFilter } } : {}),
+					supports: { none: { status: true } },
+				},
+			}),
 		])
+
+		const emitidos = { ...emitidosBase, sinSoporte }
 
 		return NextResponse.json({
 			data: { ventasEfectuadas, emitidos, fondeados },

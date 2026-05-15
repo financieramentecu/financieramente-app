@@ -78,6 +78,7 @@ export function createMockBusiness(
 		fundedAportes: 0,
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
+		supportCount: 0,
 		client: createMockClientInfo(overrides.client),
 		agent: createMockAgentInfo(overrides.agent),
 		product: createMockProductInfo(overrides.product),

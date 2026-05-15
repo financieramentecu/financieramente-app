@@ -132,6 +132,11 @@ jobs:
             SENDGRID_FROM_NAME=${{ secrets.SENDGRID_FROM_NAME_QA }}
             SENDGRID_TEMPLATE_ID=${{ secrets.SENDGRID_TEMPLATE_ID_QA }}
             SUPER_ADMIN_PASSWORD=${{ secrets.SUPER_ADMIN_PASSWORD_QA }}
+            DO_SPACES_KEY=${{ secrets.DO_SPACES_KEY }}
+            DO_SPACES_SECRET=${{ secrets.DO_SPACES_SECRET }}
+            DO_SPACES_ENDPOINT=${{ secrets.DO_SPACES_ENDPOINT }}
+            DO_SPACES_BUCKET=${{ secrets.DO_SPACES_BUCKET }}
+            DO_SPACES_PREFIX=qa
             ENVEOF
             sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" /opt/financieramente/.env
 
