@@ -396,6 +396,10 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({ ...prev, page }))
 	}, [])
 
+	const handlePageSizeChange = useCallback((pageSize: number) => {
+		setSearchParams((prev) => ({ ...prev, pageSize, page: 1 }))
+	}, [])
+
 	const handleListStatusChange = useCallback(
 		(status: BusinessStatus | undefined) => {
 			setSearchParams((prev) => ({
@@ -520,6 +524,7 @@ export function NegociosPageClient({
 				onFondearBusiness={handleFondearBusiness}
 				onGlobalSearch={handleGlobalSearch}
 				onPageChange={handlePageChange}
+				onPageSizeChange={handlePageSizeChange}
 				listStatus={searchParams.status}
 				onListStatusChange={handleListStatusChange}
 				agentName={agentNameInput}

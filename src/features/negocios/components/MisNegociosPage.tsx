@@ -36,6 +36,7 @@ export interface MisNegociosPageProps {
 	onFondearBusiness?: (business: Business) => void
 	onGlobalSearch?: (query: string) => void
 	onPageChange?: (page: number) => void
+	onPageSizeChange?: (pageSize: number) => void
 	listStatus?: BusinessStatus
 	onListStatusChange?: (status: BusinessStatus | undefined) => void
 	agentName?: string
@@ -106,6 +107,7 @@ export function MisNegociosPage({
 	onFondearBusiness,
 	onGlobalSearch,
 	onPageChange,
+	onPageSizeChange,
 	listStatus,
 	onListStatusChange,
 	agentName = '',
@@ -176,6 +178,7 @@ export function MisNegociosPage({
 						onFondearBusiness={onFondearBusiness}
 						pagination={pagination}
 						onPageChange={onPageChange}
+						onPageSizeChange={onPageSizeChange}
 						isSearching={showTableLoading}
 						userRole={user?.role ?? undefined}
 						listStatus={listStatus}

@@ -125,6 +125,10 @@ export interface DataTableProps<TData> {
 	 */
 	onPageChange?: (page: number) => void
 	/**
+	 * Callback cuando cambia el tamaño de página (manualPagination)
+	 */
+	onPageSizeChange?: (pageSize: number) => void
+	/**
 	 * Función para obtener el ID de una fila
 	 */
 	getRowId?: (row: TData) => string

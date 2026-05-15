@@ -56,6 +56,7 @@ export function DataTable<TData>({
 	currentPage,
 	pageSize: propPageSize,
 	onPageChange,
+	onPageSizeChange,
 	getRowId,
 	enableRowSelection,
 	selectedRowIds,
@@ -234,6 +235,9 @@ export function DataTable<TData>({
 
 			if (manualPagination && onPageChange && nextState.pageIndex !== pagination.pageIndex) {
 				onPageChange(nextState.pageIndex + 1)
+			}
+			if (manualPagination && onPageSizeChange && nextState.pageSize !== pagination.pageSize) {
+				onPageSizeChange(nextState.pageSize)
 			}
 		},
 		getCoreRowModel: getCoreRowModel(),

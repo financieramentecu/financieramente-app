@@ -72,6 +72,7 @@ interface BusinessTableSectionProps {
 	onFondearBusiness?: (business: Business) => void
 	pagination?: PaginationData
 	onPageChange?: (page: number) => void
+	onPageSizeChange?: (pageSize: number) => void
 	isSearching?: boolean
 	/** Used to show edit on Emitido only for roles allowed by API */
 	userRole?: UserRole
@@ -112,6 +113,7 @@ export function BusinessTableSection({
 	onFondearBusiness,
 	pagination,
 	onPageChange,
+	onPageSizeChange,
 	isSearching = false,
 	userRole,
 	listStatus,
@@ -417,6 +419,7 @@ export function BusinessTableSection({
 					pageSize={pagination?.pageSize || 10}
 					totalItems={pagination?.total || data.length}
 					onPageChange={onPageChange}
+					onPageSizeChange={onPageSizeChange}
 					initialSorting={initialSorting}
 					manualSorting={!!onSortingChange}
 					onSortingChange={(sortingState) => {
@@ -453,7 +456,7 @@ export function BusinessTableSection({
 										</div>
 									) : null}
 									{onFundDateFromChange && onFundDateToChange ? (
-										<fieldset className="border-input bg-muted/25 m-0 inline-flex min-h-10 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-1 shadow-xs">
+										<fieldset className="border-input bg-muted/25 m-0 inline-flex h-9 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-0 shadow-xs">
 											<legend className="sr-only">
 												Rango de fechas de fondeo para filtrar la tabla
 											</legend>
@@ -476,7 +479,7 @@ export function BusinessTableSection({
 													onChange={(e) =>
 														onFundDateFromChange(e.target.value)
 													}
-													className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+													className="border-0 bg-transparent py-0 leading-none shadow-none h-full min-w-[7.5rem] flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
 													aria-label="Fecha de fondeo desde"
 												/>
 												<span
@@ -490,7 +493,7 @@ export function BusinessTableSection({
 													type="date"
 													value={fundDateTo}
 													onChange={(e) => onFundDateToChange(e.target.value)}
-													className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+													className="border-0 bg-transparent py-0 leading-none shadow-none h-full min-w-[7.5rem] flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
 													aria-label="Fecha de fondeo hasta"
 												/>
 											</div>
