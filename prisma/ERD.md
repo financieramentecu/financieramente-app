@@ -6,6 +6,8 @@ Sistema: Financieramente — liquidación de comisiones.
 **Enums**:
 - `BeneficiaryMode`: `OVERRIDE` | `BENEFICIARIO_GENERAL` (en `level.beneficiary_mode`).
 - `AnnualPaymentStatus`: `SIN_FONDEAR` | `FONDEADO` (en `payments.status`).
+- `ContributionType`: `REGULAR` | `UNICO` (en `product.contribution_type`).
+- `BusinessSupport.status`: Boolean (`true` = activo, `false` = eliminado lógicamente).
 
 ```mermaid
 erDiagram
@@ -54,6 +56,8 @@ erDiagram
     FileImport ||--o{ DistributionApproval : "aprobaciones archivo"
     Business ||--o{ SettlementCommission : "comisiones"
     Business ||--o{ Payment : "pagos anuales"
+    Business ||--o{ BusinessSupport : "comprobantes"
+    User ||--o{ BusinessSupport : "comprobantes subidos"
     SettlementCommission ||--o{ ComissionDistribution : "distribuciones"
     ComissionDistribution ||--o| Clawback : "clawback opcional"
 
@@ -391,6 +395,18 @@ erDiagram
         text details
         datetime created_at
     }
+
+    BusinessSupport {
+        string id PK
+        int business_id FK
+        string object_key UK
+        string mime_type
+        int size_bytes
+        int uploaded_by FK
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ## Leyenda de cardinalidad (Mermaid)
@@ -417,5 +433,6 @@ erDiagram
 - `Business`: campo `is_active` agregado (`@default(true)`) para soporte de soft delete lógico.
 - `ComissionDistribution`: campo `is_active` agregado (`@default(true)`) para soft delete lógico (reemplaza `deleteMany` en servicios de pre-liquidación y carga de archivos).
 - **Renombre `Category → Level`** (migración `20260509000000_rename_category_to_level`): la tabla `category` fue renombrada a `level`; la columna `id_category_type` fue eliminada de `level` (migración `20260509010000_create_category_and_populate`). El modelo Prisma `Category` ahora mapea a la tabla `level` bajo el nombre `Level`.
+- **Nueva tabla `business_support`** (migración `20260514000000_add_business_support`): almacena comprobantes de pago por negocio respaldados en Digital Ocean Spaces. `object_key` es único (ruta en el bucket). Soft delete vía `status = false`. Índice compuesto `(business_id, status)` para filtrar activos eficientemente. FK a `business` y `user` (uploader).
 - **Nueva tabla `category`** (migración `20260509010000_create_category_and_populate`): representa la categoría comercial/organizacional de un usuario (p. ej. MS Junior, MS Senior). Tiene FK a `category_type`. `User.id_category` apunta a esta tabla. La antigua jerarquía técnica es ahora `Level`; la nueva `Category` es la clasificación de negocio.
 - `ProductConfiguration`: el unique constraint parcial `(id_product, id_level)` preserva el comportamiento de índice parcial `WHERE active = true` heredado de la migración de renombre. El `@@map` del constraint es `product_configuration_idProduct_idLevel_key`.

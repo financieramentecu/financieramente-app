@@ -4,6 +4,34 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.6.0] - 2026-05-14
+
+### Nuevo
+
+- **Soportes de Pago por Negocio:** Los usuarios pueden adjuntar imágenes de comprobantes (JPEG, PNG, WebP) a cada negocio directamente desde la tabla de negocios. Las imágenes se almacenan de forma segura en Digital Ocean Spaces, organizadas por número de contrato.
+
+- **Visor de Comprobantes:** Un panel lateral permite visualizar todos los comprobantes de un negocio con lista de miniaturas a la izquierda y vista previa grande a la derecha. Incluye información del archivo (fecha, tamaño, formato, usuario que subió) y botón para ver el original.
+
+- **Columna "Soporte de Pago":** La tabla de negocios ahora muestra una columna con el estado de comprobantes por negocio: chip verde con la cantidad de soportes subidos, o chip ámbar "Sin soporte" cuando no tiene ninguno.
+
+- **Indicador de Emitidos sin Soporte:** La tarjeta de "Emitidos" en el dashboard ahora muestra cuántos negocios emitidos no tienen comprobante de pago adjunto, facilitando el seguimiento de casos pendientes.
+
+- **Gestión de Acciones por Fila:** Las acciones de cada negocio (Editar, Ver detalle, Eliminar) se agrupan en un menú desplegable "⋮" para liberar espacio. Los íconos de subir y ver comprobantes quedan visibles directamente en la fila.
+
+- **Tarjetas de Estadísticas Compactas:** El panel de KPIs del dashboard ocupa menos espacio vertical y puede ocultarse con un botón para maximizar el espacio de la tabla de negocios.
+
+### Permisos
+
+- **Eliminar comprobantes** está restringido a los roles Administrador, Asistente Operativo de Gerencia y Analista de Soporte.
+- Subir y visualizar comprobantes está disponible para todos los roles.
+- El botón de subir comprobante solo aparece cuando el negocio tiene estado Emitido o Fondeado y tiene número de contrato asignado.
+
+### Interno
+
+- 1969 pruebas pasando, 0 errores de TypeScript.
+- Nueva regla de proyecto: todo el código debe escribirse en inglés (nombres de variables, archivos, comentarios). El español se reserva para cadenas de texto visibles al usuario.
+- Variables de entorno `DO_SPACES_*` configuradas en Docker Compose (QA y Prod) y workflows de CI/CD.
+
 ## [1.5.1] - 2026-05-13
 
 ### Corregido

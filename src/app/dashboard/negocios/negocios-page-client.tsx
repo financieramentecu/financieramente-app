@@ -536,6 +536,8 @@ export function NegociosPageClient({
 				onSortingChange={handleSortingChange}
 				sortBy={searchParams.sortBy}
 				sortOrder={searchParams.sortOrder}
+				onUploadSuccess={() => { refetch(); refetchStats() }}
+				onDeleteSuccess={() => { refetch(); refetchStats() }}
 			/>
 
 			{/* Modal de Visualización */}

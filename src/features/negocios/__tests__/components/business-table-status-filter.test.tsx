@@ -20,7 +20,9 @@ vi.mock('@/features/shared/ui/DataTable/DataTable', () => ({
 		<div>
 			{columns?.map((column, index) => (
 				<div key={`${String(column.accessorKey)}-${index}`}>
-					{column.header?.({ column: {} })}
+					{typeof column.header === 'function'
+						? column.header({ column: {} })
+						: column.header}
 				</div>
 			))}
 			{columns
