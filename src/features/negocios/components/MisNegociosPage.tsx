@@ -1,14 +1,15 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { StatsOverview } from '@/features/negocios/components/StatsOverview'
 import { BusinessTableSection } from '@/features/negocios/components/BusinessTableSection'
 import { Business } from '@/features/negocios/types/business.types'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { TableLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import type { BusinessStatus } from '@/features/negocios/types/business-entity.types'
+import { Button } from '@/features/shared/ui/button'
 
 interface PaginationData {
 	page: number
@@ -44,6 +45,8 @@ export interface MisNegociosPageProps {
 	onFundDateFromChange?: (value: string) => void
 	onFundDateToChange?: (value: string) => void
 	fundDateRangeActive?: boolean
+	onUploadSuccess?: () => void
+	onDeleteSuccess?: () => void
 	canExportExcel?: boolean
 	onExportExcel?: () => void
 	isExportingExcel?: boolean
@@ -112,6 +115,8 @@ export function MisNegociosPage({
 	onFundDateFromChange,
 	onFundDateToChange,
 	fundDateRangeActive = false,
+	onUploadSuccess,
+	onDeleteSuccess,
 	canExportExcel = false,
 	onExportExcel,
 	isExportingExcel = false,
@@ -122,6 +127,7 @@ export function MisNegociosPage({
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
 	const isAgentUser = true // Stats visible for all roles; data is scoped server-side
+	const [statsCollapsed, setStatsCollapsed] = useState(false)
 
 	// Una vez inicializado, nunca mostrar el skeleton completo de nuevo
 	const showFullSkeleton = isLoading && !hasInitialized
@@ -131,13 +137,26 @@ export function MisNegociosPage({
 
 	return (
 		<div className="grid grid-rows-[auto_1fr] h-full w-full min-w-0 overflow-hidden gap-4">
-			{/* Stats Overview - Solo visible para agentes */}
-			{isAgentUser &&
-				(isLoadingStats ? (
-					<StatsLoadingSkeleton />
-				) : (
-					<StatsOverview stats={stats} />
-				))}
+			{/* Stats Overview */}
+			{isAgentUser && (
+				<div className="shrink-0">
+					<div className="flex items-center justify-between mb-2">
+						<span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Resumen</span>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-6 px-2 gap-1 text-xs text-muted-foreground cursor-pointer"
+							onClick={() => setStatsCollapsed((v) => !v)}
+						>
+							{statsCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+							{statsCollapsed ? 'Mostrar' : 'Ocultar'}
+						</Button>
+					</div>
+					{!statsCollapsed && (
+						isLoadingStats ? <StatsLoadingSkeleton /> : <StatsOverview stats={stats} />
+					)}
+				</div>
+			)}
 
 			{/* Error Message */}
 			{error && <ErrorMessage message={error} />}
@@ -168,6 +187,8 @@ export function MisNegociosPage({
 						onFundDateFromChange={onFundDateFromChange}
 						onFundDateToChange={onFundDateToChange}
 						fundDateRangeActive={fundDateRangeActive}
+						onUploadSuccess={onUploadSuccess}
+						onDeleteSuccess={onDeleteSuccess}
 						canExportExcel={canExportExcel}
 						onExportExcel={onExportExcel}
 						isExportingExcel={isExportingExcel}

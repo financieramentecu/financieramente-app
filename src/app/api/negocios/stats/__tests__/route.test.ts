@@ -15,6 +15,7 @@ vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		business: {
 			groupBy: vi.fn(),
+			count: vi.fn(),
 		},
 		currency: {
 			findMany: vi.fn(),
@@ -47,6 +48,7 @@ describe('GET /api/negocios/stats', () => {
 	const mockAuth = vi.mocked(auth)
 	const mockGetCurrentUserByEmail = vi.mocked(getCurrentUserByEmail)
 	const mockGroupBy = vi.mocked(prisma.business.groupBy)
+	const mockCount = vi.mocked(prisma.business.count)
 	const mockCurrencyFindMany = vi.mocked(prisma.currency.findMany)
 
 	const currencies = [
@@ -57,8 +59,9 @@ describe('GET /api/negocios/stats', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		mockCurrencyFindMany.mockResolvedValue(currencies as never)
-		// Default groupBy returns empty
+		// Default groupBy returns empty, default count returns 0
 		mockGroupBy.mockResolvedValue([])
+		mockCount.mockResolvedValue(0)
 	})
 
 	it('returns 401 when no session', async () => {
@@ -161,7 +164,7 @@ describe('GET /api/negocios/stats', () => {
 			const body = await res.json()
 
 			expect(body.data.ventasEfectuadas).toEqual({ count: 3, totalCop: 1500000, totalUsd: 0 })
-			expect(body.data.emitidos).toEqual({ count: 1, totalCop: 0, totalUsd: 500 })
+			expect(body.data.emitidos).toEqual({ count: 1, totalCop: 0, totalUsd: 500, sinSoporte: 0 })
 			expect(body.data.fondeados).toEqual({ count: 0, totalCop: 0, totalUsd: 0 })
 		})
 

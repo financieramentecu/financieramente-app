@@ -187,6 +187,7 @@ function createBusinessRow(mode: 'direct' | 'annual'): Business {
 		statusCode: 'EMITIDO',
 		hasPayments: mode === 'annual',
 		hasPendingPaymentFunding: mode === 'annual',
+		supportCount: 0,
 		currency: { id: 1, name: 'COP' },
 	}
 }

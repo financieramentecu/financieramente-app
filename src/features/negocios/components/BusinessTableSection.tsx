@@ -17,19 +17,16 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/features/shared/ui/select'
-import {
-	Plus,
-	Pencil,
-	Eye,
-	Trash2,
-	Coins,
-	Download,
-	CalendarRange,
-} from 'lucide-react'
+import { Plus, Coins, Download, CalendarRange } from 'lucide-react'
+import { BusinessRowActions } from './BusinessRowActions'
 import { Input } from '@/features/shared/ui/input'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
-import { UserRole, canEditContractWhenBusinessEmitido, canFundPayments } from '@/features/auth/lib/roles'
+import {
+	UserRole,
+	canEditContractWhenBusinessEmitido,
+	canFundPayments,
+} from '@/features/auth/lib/roles'
 import {
 	Tooltip,
 	TooltipContent,
@@ -46,7 +43,6 @@ import {
 	type BusinessStatus,
 } from '@/features/negocios/types/business-entity.types'
 import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
-import { cn } from '@/lib/utils'
 
 /** Valor sentinela del Select para “todos los estados” (Radix no admite value vacío). */
 const LIST_STATUS_FILTER_ALL = '__all__'
@@ -58,10 +54,6 @@ const LIST_STATUS_OPTIONS: { value: BusinessStatus; label: string }[] = [
 	{ value: BUSINESS_STATUS.CANCELADO, label: 'Cancelado' },
 	{ value: BUSINESS_STATUS.FONDEADO, label: 'Fondeado' },
 ]
-
-/** Celda compacta para iconos en toolbar de acciones (sin saltos entre filas). */
-const ACTION_ICON_BTN =
-	'inline-flex size-9 shrink-0 items-center justify-center rounded-md cursor-pointer'
 
 interface PaginationData {
 	page: number
@@ -100,11 +92,14 @@ interface BusinessTableSectionProps {
 	isExportingExcel?: boolean
 	exportExcelError?: string | null
 	/** Callback de sorting server-side */
-	onSortingChange?: (sortBy: string | undefined, sortOrder: 'asc' | 'desc') => void
-	/** Columna actual de ordenamiento */
+	onSortingChange?: (
+		sortBy: string | undefined,
+		sortOrder: 'asc' | 'desc'
+	) => void
 	sortBy?: string
-	/** Dirección del ordenamiento */
 	sortOrder?: 'asc' | 'desc'
+	onUploadSuccess?: () => void
+	onDeleteSuccess?: () => void
 }
 
 export function BusinessTableSection({
@@ -135,6 +130,8 @@ export function BusinessTableSection({
 	onSortingChange,
 	sortBy,
 	sortOrder,
+	onUploadSuccess,
+	onDeleteSuccess,
 }: BusinessTableSectionProps) {
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('es-CO')
@@ -184,6 +181,24 @@ export function BusinessTableSection({
 			enableSorting: true,
 		},
 		{
+			accessorKey: 'supportCount',
+			size: 160,
+			minSize: 140,
+			header: 'Soporte de Pago',
+			cell: ({ row }) => {
+				const count = row.original.supportCount ?? 0
+				return count > 0 ? (
+					<span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 whitespace-nowrap dark:bg-emerald-900/30 dark:text-emerald-400">
+						{count} soportes
+					</span>
+				) : (
+					<span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 whitespace-nowrap dark:bg-amber-900/30 dark:text-amber-400">
+						Sin soporte
+					</span>
+				)
+			},
+		},
+		{
 			id: 'user',
 			accessorFn: (row) => row.user?.name ?? '',
 			size: 220,
@@ -215,10 +230,17 @@ export function BusinessTableSection({
 		{
 			id: 'agentCategory',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Categoría Money Strategist" />
+				<DataTableColumnHeader
+					column={column}
+					title="Categoría Money Strategist"
+				/>
 			),
 			cell: ({ row }) => (
-				<span className={row.original.user.categoryName ? '' : 'text-muted-foreground'}>
+				<span
+					className={
+						row.original.user.categoryName ? '' : 'text-muted-foreground'
+					}
+				>
 					{row.original.user.categoryName ?? '—'}
 				</span>
 			),
@@ -295,9 +317,7 @@ export function BusinessTableSection({
 			),
 			cell: ({ row }) => (
 				<span
-					className={
-						row.original.dateIssued ? '' : 'text-muted-foreground'
-					}
+					className={row.original.dateIssued ? '' : 'text-muted-foreground'}
 				>
 					{formatOptionalDate(row.original.dateIssued)}
 				</span>
@@ -310,9 +330,7 @@ export function BusinessTableSection({
 			),
 			cell: ({ row }) => (
 				<span
-					className={
-						row.original.dateAnchored ? '' : 'text-muted-foreground'
-					}
+					className={row.original.dateAnchored ? '' : 'text-muted-foreground'}
 				>
 					{formatOptionalDate(row.original.dateAnchored)}
 				</span>
@@ -393,123 +411,125 @@ export function BusinessTableSection({
 					}}
 					renderAdditionalFilters={
 						onListStatusChange ||
-							onAgentNameChange ||
-							(onFundDateFromChange && onFundDateToChange)
+						onAgentNameChange ||
+						(onFundDateFromChange && onFundDateToChange)
 							? () => (
-								<div className="flex flex-wrap items-center gap-2 py-2">
-									{onAgentNameChange ? (
-										<div className="w-[180px]">
-											<Input
-												placeholder="Money Strategist..."
-												value={agentName}
-												onChange={(e) => onAgentNameChange(e.target.value)}
-												className="h-9"
-											/>
-										</div>
-									) : null}
-									{onFundDateFromChange && onFundDateToChange ? (
-										<fieldset className="border-input bg-muted/25 m-0 inline-flex min-h-10 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-1 shadow-xs">
-											<legend className="sr-only">
-												Rango de fechas de fondeo para filtrar la tabla
-											</legend>
-											<span className="text-muted-foreground inline-flex shrink-0 items-center gap-1.5">
-												<CalendarRange
-													className="pointer-events-none size-4 shrink-0"
-													aria-hidden
-												/>
-												<span className="hidden text-xs font-medium whitespace-nowrap md:inline">
-													{userRole === UserRole.AGENTE ? 'Creación' : 'Fondeo'}
-												</span>
-											</span>
-											<div className="flex min-w-0 flex-nowrap items-center gap-1.5">
+									<div className="flex flex-wrap items-center gap-2 py-2">
+										{onAgentNameChange ? (
+											<div className="w-[180px]">
 												<Input
-													id="fund-date-from"
-													type="date"
-													value={fundDateFrom}
-													onChange={(e) =>
-														onFundDateFromChange(e.target.value)
-													}
-													className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
-													aria-label="Fecha de fondeo desde"
-												/>
-												<span
-													className="text-muted-foreground shrink-0 select-none text-xs tabular-nums"
-													aria-hidden
-												>
-													–
-												</span>
-												<Input
-													id="fund-date-to"
-													type="date"
-													value={fundDateTo}
-													onChange={(e) =>
-														onFundDateToChange(e.target.value)
-													}
-													className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
-													aria-label="Fecha de fondeo hasta"
+													placeholder="Money Strategist..."
+													value={agentName}
+													onChange={(e) => onAgentNameChange(e.target.value)}
+													className="h-9"
 												/>
 											</div>
-										</fieldset>
-									) : null}
-									{onListStatusChange ? (
-										<Select
-											value={listStatus ?? LIST_STATUS_FILTER_ALL}
-											onValueChange={(v) =>
-												onListStatusChange(
-													v === LIST_STATUS_FILTER_ALL
-														? undefined
-														: (v as BusinessStatus)
-												)
-											}
-											disabled={fundDateRangeActive}
-										>
-											<SelectTrigger
-												className="h-9 w-[140px] lg:w-[170px]"
-												aria-label="Filtrar por estado del negocio"
-												title={fundDateRangeActive ? 'Estado fijo a Fondeado cuando hay rango de fechas' : undefined}
+										) : null}
+										{onFundDateFromChange && onFundDateToChange ? (
+											<fieldset className="border-input bg-muted/25 m-0 inline-flex min-h-10 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-1 shadow-xs">
+												<legend className="sr-only">
+													Rango de fechas de fondeo para filtrar la tabla
+												</legend>
+												<span className="text-muted-foreground inline-flex shrink-0 items-center gap-1.5">
+													<CalendarRange
+														className="pointer-events-none size-4 shrink-0"
+														aria-hidden
+													/>
+													<span className="hidden text-xs font-medium whitespace-nowrap md:inline">
+														{userRole === UserRole.AGENTE
+															? 'Creación'
+															: 'Fondeo'}
+													</span>
+												</span>
+												<div className="flex min-w-0 flex-nowrap items-center gap-1.5">
+													<Input
+														id="fund-date-from"
+														type="date"
+														value={fundDateFrom}
+														onChange={(e) =>
+															onFundDateFromChange(e.target.value)
+														}
+														className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+														aria-label="Fecha de fondeo desde"
+													/>
+													<span
+														className="text-muted-foreground shrink-0 select-none text-xs tabular-nums"
+														aria-hidden
+													>
+														–
+													</span>
+													<Input
+														id="fund-date-to"
+														type="date"
+														value={fundDateTo}
+														onChange={(e) => onFundDateToChange(e.target.value)}
+														className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+														aria-label="Fecha de fondeo hasta"
+													/>
+												</div>
+											</fieldset>
+										) : null}
+										{onListStatusChange ? (
+											<Select
+												value={listStatus ?? LIST_STATUS_FILTER_ALL}
+												onValueChange={(v) =>
+													onListStatusChange(
+														v === LIST_STATUS_FILTER_ALL
+															? undefined
+															: (v as BusinessStatus)
+													)
+												}
+												disabled={fundDateRangeActive}
 											>
-												<SelectValue placeholder="Estado" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value={LIST_STATUS_FILTER_ALL}>
-													Todos los estados
-												</SelectItem>
-												{LIST_STATUS_OPTIONS.map(({ value, label }) => (
-													<SelectItem key={value} value={value}>
-														{label}
+												<SelectTrigger
+													className="h-9 w-[140px] lg:w-[170px]"
+													aria-label="Filtrar por estado del negocio"
+													title={
+														fundDateRangeActive
+															? 'Estado fijo a Fondeado cuando hay rango de fechas'
+															: undefined
+													}
+												>
+													<SelectValue placeholder="Estado" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value={LIST_STATUS_FILTER_ALL}>
+														Todos los estados
 													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									) : null}
-								</div>
-							)
+													{LIST_STATUS_OPTIONS.map(({ value, label }) => (
+														<SelectItem key={value} value={value}>
+															{label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										) : null}
+									</div>
+								)
 							: undefined
 					}
 					toolbarTrailingActions={
 						canExportExcel && onExportExcel
 							? () => (
-								<div className="flex max-w-[min(100%,16rem)] flex-col items-end gap-1">
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										className="h-9 gap-1.5 shrink-0"
-										disabled={isExportingExcel}
-										onClick={onExportExcel}
-									>
-										<Download className="h-4 w-4" aria-hidden />
-										{isExportingExcel
-											? 'Exportando…'
-											: 'Exportar Excel'}
-									</Button>
-									{exportExcelError ? (
-										<p className="text-destructive max-w-[220px] text-right text-xs">
-											{exportExcelError}
-										</p>
-									) : null}
-								</div>
-							)
+									<div className="flex max-w-[min(100%,16rem)] flex-col items-end gap-1">
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											className="h-9 gap-1.5 shrink-0"
+											disabled={isExportingExcel}
+											onClick={onExportExcel}
+										>
+											<Download className="h-4 w-4" aria-hidden />
+											{isExportingExcel ? 'Exportando…' : 'Exportar Excel'}
+										</Button>
+										{exportExcelError ? (
+											<p className="text-destructive max-w-[220px] text-right text-xs">
+												{exportExcelError}
+											</p>
+										) : null}
+									</div>
+								)
 							: undefined
 					}
 					actions={(row) => {
@@ -521,13 +541,12 @@ export function BusinessTableSection({
 							userRole !== undefined &&
 							canEditContractWhenBusinessEmitido(userRole)
 						const isEditable = isVentaEfectuado || canEditEmitido
-						const isCancelable = (isVentaEfectuado || isEmitido) && userRole !== UserRole.AGENTE
+						const isCancelable =
+							(isVentaEfectuado || isEmitido) && userRole !== UserRole.AGENTE
 						const canFondearRole = canFundPayments(userRole)
 						const isFondeado = row.statusCode === BUSINESS_STATUS.FONDEADO
 						const showFondearDirect =
-							isEmitido &&
-							!row.hasPayments &&
-							canFondearRole
+							isEmitido && !row.hasPayments && canFondearRole
 						const showFondearAnnual =
 							row.hasPayments &&
 							row.hasPendingPaymentFunding &&
@@ -535,10 +554,9 @@ export function BusinessTableSection({
 							canFondearRole
 						const isCoachRole = userRole === UserRole.AGENTE
 						const showViewFondeoForCoach =
-							isCoachRole &&
-							row.hasPayments &&
-							(isEmitido || isFondeado)
-						const isFondeable = showFondearDirect || showFondearAnnual || showViewFondeoForCoach
+							isCoachRole && row.hasPayments && (isEmitido || isFondeado)
+						const isFondeable =
+							showFondearDirect || showFondearAnnual || showViewFondeoForCoach
 						const fondearToolbarLabel = isCoachRole
 							? 'Ver Fondeo'
 							: showFondearAnnual
@@ -556,30 +574,6 @@ export function BusinessTableSection({
 								aria-label="Acciones del negocio"
 								className="inline-flex max-w-full flex-nowrap items-center gap-1"
 							>
-								{isEditable && (
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={() => onEditBusiness(row)}
-										className={ACTION_ICON_BTN}
-										title="Editar"
-									>
-										<Pencil className="h-4 w-4" />
-									</Button>
-								)}
-
-								{onViewBusiness && (
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={() => onViewBusiness(row)}
-										className={ACTION_ICON_BTN}
-										title="Ver detalle"
-									>
-										<Eye className="h-4 w-4" />
-									</Button>
-								)}
-
 								{onFondearBusiness && isFondeable && (
 									<Tooltip>
 										<TooltipTrigger asChild>
@@ -601,20 +595,26 @@ export function BusinessTableSection({
 									</Tooltip>
 								)}
 
-								{onCancelBusiness && isCancelable && (
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={() => onCancelBusiness(row)}
-										className={cn(
-											ACTION_ICON_BTN,
-											'text-destructive hover:text-destructive'
-										)}
-										title="Cancelar negocio"
-									>
-										<Trash2 className="h-4 w-4" />
-									</Button>
-								)}
+								<BusinessRowActions
+									businessId={Number(row.id)}
+									businessStatus={row.statusCode}
+									contract={row.contract ?? null}
+									supportCount={row.supportCount}
+									userRole={userRole}
+									hasPayments={row.hasPayments}
+									hasPendingPaymentFunding={row.hasPendingPaymentFunding}
+									onUploadSuccess={onUploadSuccess}
+								onDeleteSuccess={onDeleteSuccess}
+									onEdit={isEditable ? () => onEditBusiness(row) : undefined}
+									onView={
+										onViewBusiness ? () => onViewBusiness(row) : undefined
+									}
+									onCancel={
+										onCancelBusiness && isCancelable
+											? () => onCancelBusiness(row)
+											: undefined
+									}
+								/>
 							</div>
 						)
 					}}
