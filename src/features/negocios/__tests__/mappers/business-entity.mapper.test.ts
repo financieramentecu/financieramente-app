@@ -203,8 +203,9 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: null,
-				_count: { payments: 0, supports: 0 },
+				_count: { payments: 0 },
 				payments: [],
+				supports: [],
 			})
 
 			expect(result.hasPayments).toBe(false)
@@ -216,8 +217,9 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: 3,
-				_count: { payments: 3, supports: 0 },
+				_count: { payments: 3 },
 				payments: [{ idAnnualPayment: 1, status: 'SIN_FONDEAR' }],
+				supports: [],
 			})
 
 			expect(result.hasPayments).toBe(true)
@@ -229,7 +231,7 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: 3,
-				_count: { payments: 3, supports: 0 },
+				_count: { payments: 3 },
 				payments: [
 					{ idAnnualPayment: 1, status: 'FONDEADO' },
 					{ idAnnualPayment: 2, status: 'FONDEADO' },
