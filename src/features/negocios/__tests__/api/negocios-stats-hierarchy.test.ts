@@ -15,6 +15,7 @@ vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		business: {
 			groupBy: vi.fn(),
+			count: vi.fn(),
 		},
 		user: {
 			findMany: vi.fn(),
@@ -64,6 +65,7 @@ describe('GET /api/negocios/stats — hierarchical visibility', () => {
 		vi.clearAllMocks()
 		mockGroupBy.mockResolvedValue([])
 		mockCurrencyFindMany.mockResolvedValue([])
+		vi.mocked(prisma.business.count).mockResolvedValue(0)
 	})
 
 	describe('ADMIN sees all — no idUser scope in stats', () => {

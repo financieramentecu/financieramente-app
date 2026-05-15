@@ -141,7 +141,7 @@ export interface KpiCardData {
  */
 export interface CoachKpiResponse {
 	ventasEfectuadas: KpiCardData
-	emitidos: KpiCardData
+	emitidos: KpiCardData & { sinSoporte: number }
 	fondeados: KpiCardData
 }
 

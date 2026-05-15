@@ -1,0 +1,104 @@
+'use client'
+
+import { useRef, useEffect } from 'react'
+import { ImageUp } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/features/shared/ui/dialog'
+import { Button } from '@/features/shared/ui/button'
+import { useUploadComprobante } from '../hooks/useUploadComprobante'
+
+interface UploadComprobanteModalProps {
+  businessId: number
+  open: boolean
+  onClose: () => void
+  onSuccess?: () => void
+}
+
+const ACCEPT = 'image/jpeg,image/png,image/webp'
+
+export function UploadComprobanteModal({
+  businessId,
+  open,
+  onClose,
+  onSuccess,
+}: UploadComprobanteModalProps) {
+  const { state, upload, reset } = useUploadComprobante(businessId)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (state.status === 'success') {
+      onSuccess?.()
+      reset()
+      onClose()
+    }
+  }, [state.status, onSuccess, reset, onClose])
+
+  useEffect(() => {
+    if (!open) reset()
+  }, [open, reset])
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await upload(file)
+  }
+
+  const isLoading = state.status === 'loading'
+  const selectedFile = (inputRef.current?.files?.[0]?.name) ?? null
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Subir comprobante</DialogTitle>
+          <DialogDescription>
+            Seleccioná una imagen JPEG, PNG o WebP. Máximo 10 MB.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4 py-2">
+          <input
+            data-testid="file-input"
+            ref={inputRef}
+            type="file"
+            accept={ACCEPT}
+            disabled={isLoading}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isLoading}
+            onClick={() => inputRef.current?.click()}
+            className="w-full gap-2"
+          >
+            <ImageUp className="h-4 w-4" />
+            {selectedFile ?? 'Seleccionar imagen'}
+          </Button>
+
+          {isLoading && (
+            <p className="text-sm text-muted-foreground animate-pulse">Subiendo archivo…</p>
+          )}
+
+          {state.status === 'error' && (
+            <p className="text-sm text-destructive">{state.error}</p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
+            Cancelar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/features/shared/ui/card'
+import { Card } from '@/features/shared/ui/card'
 import { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -9,25 +9,31 @@ type KpiColorScheme = 'orange' | 'emerald' | 'indigo'
 
 const COLOR_SCHEME: Record<
 	KpiColorScheme,
-	{ border: string; title: string; icon: string; header: string }
+	{ border: string; title: string; icon: string; header: string; badge: string }
 > = {
 	orange: {
-		border: 'border-orange-200 border-l-4 border-l-orange-400',
+		border: 'border-l-4 border-l-orange-400',
 		title: 'text-orange-700 dark:text-orange-400',
 		icon: 'text-orange-500',
 		header: 'bg-orange-50/60 dark:bg-orange-950/20',
+		badge:
+			'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 	},
 	emerald: {
-		border: 'border-emerald-200 border-l-4 border-l-emerald-400',
+		border: 'border-l-4 border-l-emerald-400',
 		title: 'text-emerald-700 dark:text-emerald-400',
 		icon: 'text-emerald-500',
 		header: 'bg-emerald-50/60 dark:bg-emerald-950/20',
+		badge:
+			'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 	},
 	indigo: {
-		border: 'border-indigo-200 border-l-4 border-l-indigo-400',
+		border: 'border-l-4 border-l-indigo-400',
 		title: 'text-indigo-700 dark:text-indigo-400',
 		icon: 'text-indigo-500',
 		header: 'bg-indigo-50/60 dark:bg-indigo-950/20',
+		badge:
+			'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 	},
 }
 
@@ -38,12 +44,9 @@ interface CoachKpiCardProps {
 	valueLocal: number
 	valueForeign: number
 	colorScheme?: KpiColorScheme
+	sinSoporte?: number
 }
 
-/**
- * Componente de KPI diseñado para el dashboard del Coach (Data-Dense).
- * Muestra simultáneamente cantidad, moneda local y moneda extranjera.
- */
 export function CoachKpiCard({
 	title,
 	icon: Icon,
@@ -51,59 +54,77 @@ export function CoachKpiCard({
 	valueLocal,
 	valueForeign,
 	colorScheme = 'indigo',
+	sinSoporte,
 }: CoachKpiCardProps) {
 	const scheme = COLOR_SCHEME[colorScheme]
 
-	const formatCurrency = (val: number, currency: string) => {
-		const safe = typeof val === 'number' && isFinite(val) ? val : 0
-		return new Intl.NumberFormat('es-CO', {
+	const fmt = (val: number, currency: string) =>
+		new Intl.NumberFormat('es-CO', {
 			style: 'currency',
 			currency,
 			maximumFractionDigits: 0,
-		}).format(safe)
-	}
+		}).format(typeof val === 'number' && isFinite(val) ? val : 0)
 
 	return (
-		<Card className={cn('overflow-hidden transition-all hover:shadow-md', scheme.border)}>
-			<CardHeader className={cn('flex flex-row items-center justify-between space-y-0 pb-2', scheme.header)}>
-				<CardTitle className={cn('text-sm font-semibold tracking-tight uppercase', scheme.title)}>
+		<Card
+			className={cn(
+				'overflow-hidden transition-all hover:shadow-md',
+				scheme.border
+			)}
+		>
+			{/* Header — flush with top border, no margin */}
+			<div className={cn('flex items-center gap-2 px-4 py-2', scheme.header)}>
+				<Icon className={cn('h-4 w-4 shrink-0', scheme.icon)} />
+				<span
+					className={cn(
+						'text-xs font-semibold uppercase tracking-wide',
+						scheme.title
+					)}
+				>
 					{title}
-				</CardTitle>
-				<Icon className={cn('h-4 w-4 opacity-80', scheme.icon)} />
-			</CardHeader>
-			<CardContent className="pt-4">
-				<div className="flex flex-col gap-3">
-					{/* Contador Principal */}
-					<div className="flex items-baseline gap-2">
-						<span className="text-3xl font-bold tracking-tighter">
-							{count}
-						</span>
-						<span className="text-xs font-medium text-muted-foreground uppercase">
-							Negocios
-						</span>
-					</div>
+				</span>
+			</div>
 
-					{/* Valores por Moneda - Estructura Densa */}
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-muted/50 mt-1">
-						<div className="space-y-1">
-							<p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-								Moneda Local
-							</p>
-							<p className="text-sm font-bold text-foreground">
-								{formatCurrency(valueLocal, 'COP')}
-							</p>
-						</div>
-						<div className="space-y-1">
-							<p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-								Moneda Extranjera
-							</p>
-							<p className="text-sm font-bold text-primary">
-								{formatCurrency(valueForeign, 'USD')}
-							</p>
-						</div>
+			{/* Body */}
+			<div className="flex flex-col gap-3 px-4 py-3">
+				{/* Count */}
+				<div className="flex items-baseline gap-1.5 flex-wrap">
+					<span className="text-2xl font-bold tracking-tighter">{count}</span>
+					<span className="text-[10px] font-medium text-muted-foreground uppercase">
+						Negocios
+					</span>
+					{sinSoporte !== undefined && sinSoporte > 0 && (
+						<span
+							className={cn(
+								'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap',
+								scheme.badge
+							)}
+						>
+							{sinSoporte} sin soporte de pago
+						</span>
+					)}
+				</div>
+
+				{/* Values */}
+				<div className="grid grid-cols-2 gap-4 pt-2 border-t border-muted/50">
+					<div>
+						<p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+							Local
+						</p>
+						<p className="text-sm font-bold text-foreground whitespace-nowrap">
+							{fmt(valueLocal, 'COP')}
+						</p>
+					</div>
+					<div>
+						<p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+							Extranjera
+						</p>
+						<p className="text-sm font-bold text-primary whitespace-nowrap">
+							{fmt(valueForeign, 'USD')}
+						</p>
 					</div>
 				</div>
-			</CardContent>
+			</div>
 		</Card>
 	)
 }

@@ -114,6 +114,8 @@ export interface BusinessEntity {
 	hasPayments: boolean
 	/** Queda al menos un aporte sin fondear (sigue visible “Fondear”) */
 	hasPendingPaymentFunding: boolean
+	/** Number of uploaded supports (comprobantes) for this business */
+	supportCount: number
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo

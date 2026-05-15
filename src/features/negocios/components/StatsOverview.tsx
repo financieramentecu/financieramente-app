@@ -13,7 +13,7 @@ export function StatsOverview({ stats }: StatsOverviewProps) {
 	if (!stats) return null
 
 	return (
-		<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+		<div className="grid grid-cols-1 md:grid-cols-3 gap-2">
 			<CoachKpiCard
 				title="Ventas Efectuadas"
 				icon={FileText}
@@ -29,6 +29,7 @@ export function StatsOverview({ stats }: StatsOverviewProps) {
 				valueLocal={stats.emitidos.totalCop}
 				valueForeign={stats.emitidos.totalUsd}
 				colorScheme="emerald"
+				sinSoporte={stats.emitidos.sinSoporte}
 			/>
 			<CoachKpiCard
 				title="Fondeados"
