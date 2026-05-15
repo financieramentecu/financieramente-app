@@ -369,7 +369,7 @@ export function BusinessTableSection({
 
 	return (
 		<TooltipProvider>
-			<div className="grid grid-rows-[auto_1fr] h-full w-full min-w-0 overflow-hidden gap-4">
+			<div className="grid grid-rows-[auto_1fr] h-full w-full min-w-0 overflow-hidden gap-2">
 				{/* Table Header with Add Button */}
 				<div className="flex justify-between items-center shrink-0">
 					<h3 className="text-lg font-semibold">Lista de Negocios</h3>
@@ -418,7 +418,7 @@ export function BusinessTableSection({
 							onAgentNameChange ||
 							(onFundDateFromChange && onFundDateToChange)
 							? () => (
-								<div className="flex flex-wrap items-center gap-2 py-2">
+								<div className="flex flex-wrap items-center gap-2 py-0">
 									{onAgentNameChange ? (
 										<div className="w-[180px]">
 											<Input

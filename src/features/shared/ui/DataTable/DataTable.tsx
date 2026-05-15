@@ -298,9 +298,9 @@ export function DataTable<TData>({
 		!!toolbarTrailingActions
 
 	return (
-		<div className={cn('grid grid-rows-[auto_1fr_auto] h-full w-full min-w-0 overflow-hidden gap-4', className)}>
+		<div className={cn('grid grid-rows-[auto_1fr_auto] h-full w-full min-w-0 overflow-hidden gap-1.5', className)}>
 			{showToolbar && (
-				<div className="min-h-0 shrink-0 w-full py-2">
+				<div className="min-h-0 shrink-0 w-full py-1">
 					<DataTableToolbar
 						table={table}
 						setColumnFilters={setColumnFilters}
@@ -323,7 +323,7 @@ export function DataTable<TData>({
 					className={cn('relative', dense && 'dense')}
 					containerClassName="flex-1 overflow-auto max-h-none"
 				>
-					<TableHeader className="sticky top-0 z-10">
+					<TableHeader className="sticky top-0 z-30 bg-card">
 						{table.getHeaderGroups().map((headerGroup) => (
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map((header) => {
@@ -333,8 +333,8 @@ export function DataTable<TData>({
 										<TableHead
 											key={header.id}
 											className={cn(
-												sticky === 'left' && 'sticky left-0 z-30 bg-card shadow-[1px_0_0_0_hsl(var(--border))]',
-												sticky === 'right' && 'sticky right-0 z-30 bg-card shadow-[-1px_0_0_0_hsl(var(--border))]'
+												sticky === 'left' && 'sticky left-0 z-40 bg-card shadow-[1px_0_0_0_hsl(var(--border))]',
+												sticky === 'right' && 'sticky right-0 z-40 bg-card shadow-[-1px_0_0_0_hsl(var(--border))]'
 											)}
 										>
 											{header.isPlaceholder
@@ -378,8 +378,8 @@ export function DataTable<TData>({
 												<TableCell
 													key={cell.id}
 													className={cn(
-														sticky === 'left' && 'sticky left-0 z-20 bg-card shadow-[1px_0_0_0_hsl(var(--border))]',
-														sticky === 'right' && 'sticky right-0 z-20 bg-card shadow-[-1px_0_0_0_hsl(var(--border))]'
+														sticky === 'left' && 'sticky left-0 z-20 bg-white dark:bg-card shadow-[1px_0_0_0_hsl(var(--border))]',
+														sticky === 'right' && 'sticky right-0 z-20 bg-white dark:bg-card shadow-[-1px_0_0_0_hsl(var(--border))]'
 													)}
 												>
 													{flexRender(
@@ -437,7 +437,7 @@ export function DataTable<TData>({
 				</Table>
 			</div>
 			{paginable && (
-				<div className="shrink-0 pt-2">
+				<div className="shrink-0 pt-1">
 					<DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
 				</div>
 			)}
