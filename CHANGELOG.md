@@ -4,6 +4,14 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.6.1] - 2026-05-15
+
+### Corregido
+
+- **Actualización de negocio fallaba con plazo o aportes en cero:** Al guardar un negocio con plazo `0` (productos Skandia/Mfund) o con `0` aportes, el sistema devolvía "Error al actualizar" de forma silenciosa. La validación del servidor rechazaba valores cero aunque fueran válidos para esos productos.
+
+- **Mensajes de error de validación ahora en español y descriptivos:** Los mensajes que devuelve la API al detectar datos inválidos en la edición de negocios ahora indican claramente qué campo falló y por qué.
+
 ## [1.6.0] - 2026-05-14
 
 ### Nuevo
