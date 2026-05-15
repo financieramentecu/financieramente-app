@@ -48,6 +48,7 @@ export const businessWithRelations = {
 	_count: {
 		select: {
 			payments: true,
+			supports: { where: { status: true } },
 		},
 	},
 } satisfies Prisma.BusinessInclude

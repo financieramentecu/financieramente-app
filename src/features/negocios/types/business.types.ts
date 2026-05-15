@@ -39,6 +39,7 @@ export interface Business extends Record<string, unknown> {
 	hasPayments: boolean
 	/** Aún hay aportes SIN_FONDEAR (mostrar Fondear aunque el padre sea Fondeado) */
 	hasPendingPaymentFunding: boolean
+	supportCount: number
 	currency: {
 		id: number
 		name: string

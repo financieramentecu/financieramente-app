@@ -219,6 +219,12 @@ Before creating a PR:
 3. Link screenshots for UI changes
 4. Ensure architecture compliance (use `architecture-enforcer` subagent)
 
+## Coding Language Rules
+
+- **All code must be written in English**: variable names, function names, class names, **file names**, directory names, comments, type names, interface names, enum keys.
+- **Spanish is only allowed in user-facing string values**: UI labels, error messages, toast notifications, and any literal string shown to the end user.
+- **No Spanish in**: identifiers, file names, comments, JSDoc, type definitions, test descriptions, or any code construct.
+
 ## Architecture Rules
 
 - **Feature-Based**: All code in `src/features/[feature-name]/`

@@ -246,6 +246,7 @@ model User {
   role                                Role?                   @relation(fields: [idRole], references: [idRole])
   leader                              User?                   @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates                        User[]                  @relation("UserLeader")
+  businessSupports                    BusinessSupport[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -332,6 +333,7 @@ model Business {
   productPercentageCommission   ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
   user                          User                        @relation(fields: [idUser], references: [idUser])
   settlementCommissions         SettlementCommission[]
+  supports                      BusinessSupport[]
 
   @@index([idUser])
   @@index([contract])
@@ -532,4 +534,22 @@ enum AnnualPaymentStatus {
 enum ContributionType {
   REGULAR
   UNICO
+}
+
+model BusinessSupport {
+  id          String   @id @default(cuid())
+  businessId  Int      @map("business_id")
+  objectKey   String   @unique @map("object_key") @db.VarChar(500)
+  mimeType    String   @map("mime_type") @db.VarChar(100)
+  sizeBytes   Int      @map("size_bytes")
+  uploadedBy  Int      @map("uploaded_by")
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  business    Business @relation(fields: [businessId], references: [idBusiness])
+  uploader    User     @relation(fields: [uploadedBy], references: [idUser])
+
+  @@index([businessId, status])
+  @@index([uploadedBy])
+  @@map("business_support")
 }
