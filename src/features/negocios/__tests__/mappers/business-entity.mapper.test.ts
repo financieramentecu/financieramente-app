@@ -203,7 +203,7 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: null,
-				_count: { payments: 0 },
+				_count: { payments: 0, supports: 0 },
 				payments: [],
 				supports: [],
 			})
@@ -217,7 +217,7 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: 3,
-				_count: { payments: 3 },
+				_count: { payments: 3, supports: 0 },
 				payments: [{ idAnnualPayment: 1, status: 'SIN_FONDEAR' }],
 				supports: [],
 			})
@@ -231,7 +231,7 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: 3,
-				_count: { payments: 3 },
+				_count: { payments: 3, supports: 0 },
 				payments: [
 					{ idAnnualPayment: 1, status: 'FONDEADO' },
 					{ idAnnualPayment: 2, status: 'FONDEADO' },

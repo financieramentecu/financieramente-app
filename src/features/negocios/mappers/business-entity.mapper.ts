@@ -40,7 +40,7 @@ export function prismaBusinessToEntity(
 		fundedAportes: prisma.payments.filter(p => p.status === 'FONDEADO').length,
 		hasPayments: prisma._count.payments > 0,
 		hasPendingPaymentFunding: prisma.payments.some(p => p.status === 'SIN_FONDEAR'),
-		supportCount: prisma.supports?.length ?? 0,
+		supportCount: prisma._count.supports,
 
 		client: {
 			id: prisma.client.idClient,
