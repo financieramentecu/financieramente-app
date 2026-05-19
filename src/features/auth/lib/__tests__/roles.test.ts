@@ -49,8 +49,8 @@ describe('canFundPayments', () => {
 		expect(canFundPayments(UserRole.AGENTE)).toBe(false)
 	})
 
-	it('returns false for ANALISTA_SOPORTE', () => {
-		expect(canFundPayments(UserRole.ANALISTA_SOPORTE)).toBe(false)
+	it('returns true for ANALISTA_SOPORTE', () => {
+		expect(canFundPayments(UserRole.ANALISTA_SOPORTE)).toBe(true)
 	})
 
 	it('returns false for DEFAULT', () => {
