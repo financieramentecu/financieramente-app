@@ -34,7 +34,7 @@ export function DataTablePagination<TData>({
 	const total = table.getRowCount()
 
 	return (
-		<div className="flex items-center justify-between px-2 py-4">
+		<div className="flex items-center justify-between px-2 py-1.5">
 			<div className="flex-1 text-sm text-muted-foreground">
 				{`Mostrando ${start} a ${end} de ${total} resultados`}
 			</div>
@@ -42,7 +42,7 @@ export function DataTablePagination<TData>({
 				{table.getFilteredSelectedRowModel().rows.length} de{' '}
 				{table.getRowCount()} fila(s) seleccionada(s).
 			</div>
-			<div className="flex items-center space-x-6 lg:space-x-8">
+			<div className="flex items-center space-x-4 lg:space-x-6">
 				<div className="flex items-center space-x-2">
 					<p className="text-sm font-medium">Filas por página</p>
 					<Select

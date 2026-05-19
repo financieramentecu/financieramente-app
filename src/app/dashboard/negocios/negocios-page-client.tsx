@@ -396,6 +396,10 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({ ...prev, page }))
 	}, [])
 
+	const handlePageSizeChange = useCallback((pageSize: number) => {
+		setSearchParams((prev) => ({ ...prev, pageSize, page: 1 }))
+	}, [])
+
 	const handleListStatusChange = useCallback(
 		(status: BusinessStatus | undefined) => {
 			setSearchParams((prev) => ({
@@ -502,7 +506,7 @@ export function NegociosPageClient({
 	const displayError = error || statsError
 
 	return (
-		<div className="flex flex-col flex-1 min-h-0 gap-4 overflow-hidden">
+		<div className="flex flex-col min-h-0 gap-4 overflow-visible h-auto">
 			{/* Contenido de la página de negocios */}
 			<MisNegociosPage
 				businessData={businessDataForTable}
@@ -520,6 +524,7 @@ export function NegociosPageClient({
 				onFondearBusiness={handleFondearBusiness}
 				onGlobalSearch={handleGlobalSearch}
 				onPageChange={handlePageChange}
+				onPageSizeChange={handlePageSizeChange}
 				listStatus={searchParams.status}
 				onListStatusChange={handleListStatusChange}
 				agentName={agentNameInput}

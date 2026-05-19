@@ -139,6 +139,16 @@ export async function GET(
 			orderBy = [{ productPercentageCommission: { productConfiguration: { product: { company: { name: dir } } } } }]
 		} else if (sortBy === 'product') {
 			orderBy = [{ productPercentageCommission: { productConfiguration: { product: { name: dir } } } }]
+		} else if (sortBy === 'term') {
+			orderBy = [{ term: dir }]
+		} else if (sortBy === 'periodicityName') {
+			orderBy = [{ buyPeriodicity: { name: dir } }]
+		} else if (sortBy === 'dateIssued') {
+			orderBy = [{ dateIssued: dir }]
+		} else if (sortBy === 'dateAnchored') {
+			orderBy = [{ dateAnchored: dir }]
+		} else if (sortBy === 'clientOriginName') {
+			orderBy = [{ clientOrigin: { name: dir } }]
 		} else if (sortBy === 'createdAt') {
 			orderBy = [{ createdAt: dir }, { idBusiness: 'desc' }]
 		} else {

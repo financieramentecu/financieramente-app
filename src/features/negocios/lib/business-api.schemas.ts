@@ -59,6 +59,11 @@ export const businessListParamsSchema = z
 				'contract',
 				'companyName',
 				'product',
+				'term',
+				'periodicityName',
+				'dateIssued',
+				'dateAnchored',
+				'clientOriginName',
 			])
 			.nullish(),
 		sortOrder: z.enum(['asc', 'desc']).nullish(),

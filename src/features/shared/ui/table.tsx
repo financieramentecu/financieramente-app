@@ -8,7 +8,11 @@ export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
 	({ className, containerClassName, ...props }, ref) => (
-		<div className={cn("relative w-full overflow-auto h-full min-h-0", containerClassName)}>
+		<div className={cn(
+			"relative w-full overflow-auto h-full min-h-0",
+			"scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/30",
+			containerClassName
+		)}>
 			<table
 				ref={ref}
 				className={cn('w-full caption-bottom text-sm', className)}
@@ -83,6 +87,7 @@ const TableHead = React.forwardRef<
 		style={{ backgroundColor: 'hsl(var(--card))', ...style }}
 		className={cn(
 			'h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0',
+			'[[class*="dense"]_&]:h-10 [[class*="dense"]_&]:px-2',
 			className
 		)}
 		{...props}
@@ -96,7 +101,11 @@ const TableCell = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<td
 		ref={ref}
-		className={cn('p-4 align-middle [&:has([role=checkbox])]:pr-0', className)}
+		className={cn(
+			'p-4 align-middle [&:has([role=checkbox])]:pr-0',
+			'[[class*="dense"]_&]:p-2',
+			className
+		)}
 		{...props}
 	/>
 ))

@@ -106,6 +106,7 @@ export function canViewPayments(roleCode: string | undefined): boolean {
 const ROLES_CAN_FUND_PAYMENTS: readonly UserRole[] = [
 	UserRole.ADMIN,
 	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+	UserRole.ANALISTA_SOPORTE,
 ]
 
 /**

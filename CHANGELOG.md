@@ -4,13 +4,23 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [1.6.1] - 2026-05-15
+## [1.6.2] - 2026-05-15
+
+### Nuevo
+
+- **Filas por página en tabla de negocios:** Se habilitó el selector de "Filas por página" en la tabla de negocios. Los usuarios ahora pueden elegir ver 10, 20, 50 o 100 registros simultáneamente, mejorando la navegación en listados extensos.
 
 ### Corregido
+
+- **Alineación de filtros en dashboard:** Se estandarizó la altura (`h-9`) y alineación de todos los controles de filtro (búsqueda, fechas, estados) en el listado de negocios, eliminando desajustes visuales y mejorando la estética premium del dashboard.
+
+- **Sincronización de Prisma (Supports):** Se resolvieron errores de ejecución relacionados con la relación `supports` en el modelo `Business`. Se sincronizaron los tipos de Prisma y el mapeo de entidades para garantizar que el conteo de soportes sea robusto tanto en ejecución como en pruebas.
 
 - **Actualización de negocio fallaba con plazo o aportes en cero:** Al guardar un negocio con plazo `0` (productos Skandia/Mfund) o con `0` aportes, el sistema devolvía "Error al actualizar" de forma silenciosa. La validación del servidor rechazaba valores cero aunque fueran válidos para esos productos.
 
 - **Mensajes de error de validación ahora en español y descriptivos:** Los mensajes que devuelve la API al detectar datos inválidos en la edición de negocios ahora indican claramente qué campo falló y por qué.
+
+## [1.6.1] - 2026-05-15 (Legacy)
 
 ## [1.6.0] - 2026-05-14
 

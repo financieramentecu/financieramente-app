@@ -72,6 +72,7 @@ interface BusinessTableSectionProps {
 	onFondearBusiness?: (business: Business) => void
 	pagination?: PaginationData
 	onPageChange?: (page: number) => void
+	onPageSizeChange?: (pageSize: number) => void
 	isSearching?: boolean
 	/** Used to show edit on Emitido only for roles allowed by API */
 	userRole?: UserRole
@@ -112,6 +113,7 @@ export function BusinessTableSection({
 	onFondearBusiness,
 	pagination,
 	onPageChange,
+	onPageSizeChange,
 	isSearching = false,
 	userRole,
 	listStatus,
@@ -151,8 +153,13 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Cliente" />
 			),
 			cell: ({ row }) => (
-				<span className="font-medium">{row.getValue('clientName')}</span>
+				<span className="font-semibold text-[#11525B]">{row.getValue('clientName')}</span>
 			),
+			meta: {
+				sticky: 'left',
+			},
+			enableSorting: true,
+			size: 180,
 		},
 		{
 			accessorKey: 'identification',
@@ -160,15 +167,21 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Identificación" />
 			),
 			cell: ({ row }) => (
-				<span className="font-medium">{row.getValue('identification')}</span>
+				<span className="font-medium tabular-nums whitespace-nowrap">{row.getValue('identification')}</span>
 			),
+			enableSorting: true,
+			size: 130,
 		},
 		{
 			accessorKey: 'contract',
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Contrato" />
 			),
+			cell: ({ row }) => (
+				<span className="font-medium tabular-nums whitespace-nowrap">{row.getValue('contract')}</span>
+			),
 			enableSorting: true,
+			size: 120,
 		},
 		{
 			accessorKey: 'status',
@@ -205,7 +218,7 @@ export function BusinessTableSection({
 			minSize: 180,
 			enableSorting: true,
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Money Strategist" />
+				<DataTableColumnHeader column={column} title="MS" />
 			),
 			cell: ({ row }) => {
 				const userData = row.original.user
@@ -235,6 +248,7 @@ export function BusinessTableSection({
 					title="Categoría Money Strategist"
 				/>
 			),
+			size: 100,
 			cell: ({ row }) => (
 				<span
 					className={
@@ -244,6 +258,7 @@ export function BusinessTableSection({
 					{row.original.user.categoryName ?? '—'}
 				</span>
 			),
+			enableSorting: false,
 		},
 		{
 			accessorKey: 'companyName',
@@ -253,6 +268,7 @@ export function BusinessTableSection({
 			cell: ({ row }) => (
 				<span className="font-medium">{row.getValue('companyName')}</span>
 			),
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'product',
@@ -260,6 +276,7 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Producto" />
 			),
 			cell: ({ row }) => <span>{row.getValue('product')}</span>,
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'clientOriginName',
@@ -269,11 +286,12 @@ export function BusinessTableSection({
 			cell: ({ row }) => (
 				<span className="font-medium">{row.original.clientOriginName}</span>
 			),
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'term',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Plazo" />
+				<DataTableColumnHeader column={column} title="Pzo." />
 			),
 			cell: ({ row }) => {
 				const t = row.original.term
@@ -283,11 +301,12 @@ export function BusinessTableSection({
 					</span>
 				)
 			},
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'periodicityName',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Periodicidad" />
+				<DataTableColumnHeader column={column} title="Per." />
 			),
 			cell: ({ row }) => {
 				const name = row.original.periodicityName
@@ -297,6 +316,7 @@ export function BusinessTableSection({
 					</span>
 				)
 			},
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'value',
@@ -322,6 +342,7 @@ export function BusinessTableSection({
 					{formatOptionalDate(row.original.dateIssued)}
 				</span>
 			),
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'dateAnchored',
@@ -335,18 +356,20 @@ export function BusinessTableSection({
 					{formatOptionalDate(row.original.dateAnchored)}
 				</span>
 			),
+			enableSorting: true,
 		},
 		{
 			accessorKey: 'date',
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Fecha creación" />
+				<DataTableColumnHeader column={column} title="Creación" />
 			),
 			cell: ({ row }) => (
-				<span className="text-muted-foreground text-xs">
+				<span className="text-muted-foreground text-xs whitespace-nowrap">
 					{formatDate(row.original.date)}
 				</span>
 			),
 			enableSorting: true,
+			size: 100,
 		},
 	]
 
@@ -358,6 +381,11 @@ export function BusinessTableSection({
 			status: 'status',
 			value: 'value',
 			createdAt: 'date',
+			term: 'term',
+			periodicityName: 'periodicityName',
+			dateIssued: 'dateIssued',
+			dateAnchored: 'dateAnchored',
+			clientOriginName: 'clientOriginName',
 		}
 
 		const id = idMapRev[sortBy] || sortBy
@@ -366,7 +394,7 @@ export function BusinessTableSection({
 
 	return (
 		<TooltipProvider>
-			<div className="grid grid-rows-[auto_1fr] h-full w-full min-w-0 overflow-hidden gap-4">
+			<div className="flex flex-col h-auto w-full min-w-0 overflow-visible gap-2">
 				{/* Table Header with Add Button */}
 				<div className="flex justify-between items-center shrink-0">
 					<h3 className="text-lg font-semibold">Lista de Negocios</h3>
@@ -379,6 +407,7 @@ export function BusinessTableSection({
 				{/* Data Table - fills the 1fr row correctly */}
 				<DataTable
 					className="h-full w-full"
+					dense={true}
 					columns={columns}
 					data={data}
 					searchable={true}
@@ -390,6 +419,7 @@ export function BusinessTableSection({
 					pageSize={pagination?.pageSize || 10}
 					totalItems={pagination?.total || data.length}
 					onPageChange={onPageChange}
+					onPageSizeChange={onPageSizeChange}
 					initialSorting={initialSorting}
 					manualSorting={!!onSortingChange}
 					onSortingChange={(sortingState) => {
@@ -411,125 +441,125 @@ export function BusinessTableSection({
 					}}
 					renderAdditionalFilters={
 						onListStatusChange ||
-						onAgentNameChange ||
-						(onFundDateFromChange && onFundDateToChange)
+							onAgentNameChange ||
+							(onFundDateFromChange && onFundDateToChange)
 							? () => (
-									<div className="flex flex-wrap items-center gap-2 py-2">
-										{onAgentNameChange ? (
-											<div className="w-[180px]">
+								<div className="flex flex-wrap items-center gap-2 py-2">
+									{onAgentNameChange ? (
+										<div className="w-[180px]">
+											<Input
+												placeholder="Money Strategist..."
+												value={agentName}
+												onChange={(e) => onAgentNameChange(e.target.value)}
+												className="h-9"
+											/>
+										</div>
+									) : null}
+									{onFundDateFromChange && onFundDateToChange ? (
+										<fieldset className="border-input bg-muted/25 m-0 inline-flex h-9 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-0 shadow-xs">
+											<legend className="sr-only">
+												Rango de fechas de fondeo para filtrar la tabla
+											</legend>
+											<span className="text-muted-foreground inline-flex shrink-0 items-center gap-1.5">
+												<CalendarRange
+													className="pointer-events-none size-4 shrink-0"
+													aria-hidden
+												/>
+												<span className="hidden text-xs font-medium whitespace-nowrap md:inline">
+													{userRole === UserRole.AGENTE
+														? 'Creación'
+														: 'Fondeo'}
+												</span>
+											</span>
+											<div className="flex min-w-0 flex-nowrap items-center gap-1.5">
 												<Input
-													placeholder="Money Strategist..."
-													value={agentName}
-													onChange={(e) => onAgentNameChange(e.target.value)}
-													className="h-9"
+													id="fund-date-from"
+													type="date"
+													value={fundDateFrom}
+													onChange={(e) =>
+														onFundDateFromChange(e.target.value)
+													}
+													className="border-0 bg-transparent py-0 leading-none shadow-none h-full min-w-[7.5rem] flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+													aria-label="Fecha de fondeo desde"
+												/>
+												<span
+													className="text-muted-foreground shrink-0 select-none text-xs tabular-nums"
+													aria-hidden
+												>
+													–
+												</span>
+												<Input
+													id="fund-date-to"
+													type="date"
+													value={fundDateTo}
+													onChange={(e) => onFundDateToChange(e.target.value)}
+													className="border-0 bg-transparent py-0 leading-none shadow-none h-full min-w-[7.5rem] flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
+													aria-label="Fecha de fondeo hasta"
 												/>
 											</div>
-										) : null}
-										{onFundDateFromChange && onFundDateToChange ? (
-											<fieldset className="border-input bg-muted/25 m-0 inline-flex min-h-10 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-1 shadow-xs">
-												<legend className="sr-only">
-													Rango de fechas de fondeo para filtrar la tabla
-												</legend>
-												<span className="text-muted-foreground inline-flex shrink-0 items-center gap-1.5">
-													<CalendarRange
-														className="pointer-events-none size-4 shrink-0"
-														aria-hidden
-													/>
-													<span className="hidden text-xs font-medium whitespace-nowrap md:inline">
-														{userRole === UserRole.AGENTE
-															? 'Creación'
-															: 'Fondeo'}
-													</span>
-												</span>
-												<div className="flex min-w-0 flex-nowrap items-center gap-1.5">
-													<Input
-														id="fund-date-from"
-														type="date"
-														value={fundDateFrom}
-														onChange={(e) =>
-															onFundDateFromChange(e.target.value)
-														}
-														className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
-														aria-label="Fecha de fondeo desde"
-													/>
-													<span
-														className="text-muted-foreground shrink-0 select-none text-xs tabular-nums"
-														aria-hidden
-													>
-														–
-													</span>
-													<Input
-														id="fund-date-to"
-														type="date"
-														value={fundDateTo}
-														onChange={(e) => onFundDateToChange(e.target.value)}
-														className="border-0 bg-transparent py-0 leading-none shadow-none h-9 min-w-[7.5rem] max-h-9 flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
-														aria-label="Fecha de fondeo hasta"
-													/>
-												</div>
-											</fieldset>
-										) : null}
-										{onListStatusChange ? (
-											<Select
-												value={listStatus ?? LIST_STATUS_FILTER_ALL}
-												onValueChange={(v) =>
-													onListStatusChange(
-														v === LIST_STATUS_FILTER_ALL
-															? undefined
-															: (v as BusinessStatus)
-													)
+										</fieldset>
+									) : null}
+									{onListStatusChange ? (
+										<Select
+											value={listStatus ?? LIST_STATUS_FILTER_ALL}
+											onValueChange={(v) =>
+												onListStatusChange(
+													v === LIST_STATUS_FILTER_ALL
+														? undefined
+														: (v as BusinessStatus)
+												)
+											}
+											disabled={fundDateRangeActive}
+										>
+											<SelectTrigger
+												className="h-9 w-[140px] lg:w-[170px]"
+												aria-label="Filtrar por estado del negocio"
+												title={
+													fundDateRangeActive
+														? 'Estado fijo a Fondeado cuando hay rango de fechas'
+														: undefined
 												}
-												disabled={fundDateRangeActive}
 											>
-												<SelectTrigger
-													className="h-9 w-[140px] lg:w-[170px]"
-													aria-label="Filtrar por estado del negocio"
-													title={
-														fundDateRangeActive
-															? 'Estado fijo a Fondeado cuando hay rango de fechas'
-															: undefined
-													}
-												>
-													<SelectValue placeholder="Estado" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value={LIST_STATUS_FILTER_ALL}>
-														Todos los estados
+												<SelectValue placeholder="Estado" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value={LIST_STATUS_FILTER_ALL}>
+													Todos los estados
+												</SelectItem>
+												{LIST_STATUS_OPTIONS.map(({ value, label }) => (
+													<SelectItem key={value} value={value}>
+														{label}
 													</SelectItem>
-													{LIST_STATUS_OPTIONS.map(({ value, label }) => (
-														<SelectItem key={value} value={value}>
-															{label}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										) : null}
-									</div>
-								)
+												))}
+											</SelectContent>
+										</Select>
+									) : null}
+								</div>
+							)
 							: undefined
 					}
 					toolbarTrailingActions={
 						canExportExcel && onExportExcel
 							? () => (
-									<div className="flex max-w-[min(100%,16rem)] flex-col items-end gap-1">
-										<Button
-											type="button"
-											variant="outline"
-											size="sm"
-											className="h-9 gap-1.5 shrink-0"
-											disabled={isExportingExcel}
-											onClick={onExportExcel}
-										>
-											<Download className="h-4 w-4" aria-hidden />
-											{isExportingExcel ? 'Exportando…' : 'Exportar Excel'}
-										</Button>
-										{exportExcelError ? (
-											<p className="text-destructive max-w-[220px] text-right text-xs">
-												{exportExcelError}
-											</p>
-										) : null}
-									</div>
-								)
+								<div className="flex max-w-[min(100%,16rem)] flex-col items-end gap-1">
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										className="h-9 gap-1.5 shrink-0"
+										disabled={isExportingExcel}
+										onClick={onExportExcel}
+									>
+										<Download className="h-4 w-4" aria-hidden />
+										{isExportingExcel ? 'Exportando…' : 'Exportar Excel'}
+									</Button>
+									{exportExcelError ? (
+										<p className="text-destructive max-w-[220px] text-right text-xs">
+											{exportExcelError}
+										</p>
+									) : null}
+								</div>
+							)
 							: undefined
 					}
 					actions={(row) => {
@@ -604,7 +634,7 @@ export function BusinessTableSection({
 									hasPayments={row.hasPayments}
 									hasPendingPaymentFunding={row.hasPendingPaymentFunding}
 									onUploadSuccess={onUploadSuccess}
-								onDeleteSuccess={onDeleteSuccess}
+									onDeleteSuccess={onDeleteSuccess}
 									onEdit={isEditable ? () => onEditBusiness(row) : undefined}
 									onView={
 										onViewBusiness ? () => onViewBusiness(row) : undefined
