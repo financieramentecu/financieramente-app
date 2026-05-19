@@ -245,15 +245,15 @@ describe('POST /api/negocios/[id]/fondear', () => {
 
 	// ─── 4.4 Role Guard ──────────────────────────────────────────────────────
 	describe('Role Guard', () => {
-		it('debe retornar 403 cuando el usuario tiene rol ANALISTA_SOPORTE', async () => {
-			const mockSession = { user: { email: 'analista@example.com' } }
-			const mockAnalistaUser = buildUserWithRole(
-				'analista@example.com',
-				UserRole.ANALISTA_SOPORTE
+		it('debe retornar 403 cuando el usuario tiene rol AGENTE', async () => {
+			const mockSession = { user: { email: 'agente@example.com' } }
+			const mockAgenteUser = buildUserWithRole(
+				'agente@example.com',
+				UserRole.AGENTE
 			)
 
 			mockAuth.mockResolvedValue(mockSession as never)
-			mockGetCurrentUserByEmail.mockResolvedValue(mockAnalistaUser)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAgenteUser)
 
 			const request = new Request(
 				'http://localhost:3000/api/negocios/1/fondear',
