@@ -205,6 +205,7 @@ describe('prismaBusinessToEntity', () => {
 				numAportes: null,
 				_count: { payments: 0, supports: 0 },
 				payments: [],
+				supports: [],
 			})
 
 			expect(result.hasPayments).toBe(false)
@@ -218,6 +219,7 @@ describe('prismaBusinessToEntity', () => {
 				numAportes: 3,
 				_count: { payments: 3, supports: 0 },
 				payments: [{ idAnnualPayment: 1, status: 'SIN_FONDEAR' }],
+				supports: [],
 			})
 
 			expect(result.hasPayments).toBe(true)

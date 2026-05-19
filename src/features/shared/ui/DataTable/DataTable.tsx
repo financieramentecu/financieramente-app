@@ -56,6 +56,7 @@ export function DataTable<TData>({
 	currentPage,
 	pageSize: propPageSize,
 	onPageChange,
+	onPageSizeChange,
 	getRowId,
 	enableRowSelection,
 	selectedRowIds,
@@ -77,6 +78,7 @@ export function DataTable<TData>({
 	initialSorting = [],
 	manualSorting = false,
 	onSortingChange: onExternalSortingChange,
+	dense = false,
 }: DataTableProps<TData>) {
 	const [sorting, setSorting] = useState<SortingState>(initialSorting)
 
@@ -168,6 +170,9 @@ export function DataTable<TData>({
 				),
 				enableSorting: false,
 				enableHiding: false,
+				meta: {
+					sticky: 'right',
+				},
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as unknown as any)
 		}
@@ -230,6 +235,9 @@ export function DataTable<TData>({
 
 			if (manualPagination && onPageChange && nextState.pageIndex !== pagination.pageIndex) {
 				onPageChange(nextState.pageIndex + 1)
+			}
+			if (manualPagination && onPageSizeChange && nextState.pageSize !== pagination.pageSize) {
+				onPageSizeChange(nextState.pageSize)
 			}
 		},
 		getCoreRowModel: getCoreRowModel(),
@@ -294,9 +302,9 @@ export function DataTable<TData>({
 		!!toolbarTrailingActions
 
 	return (
-		<div className={cn('grid grid-rows-[auto_1fr_auto] h-full w-full min-w-0 overflow-hidden gap-4', className)}>
+		<div className={cn('flex flex-col h-auto w-full min-w-0 overflow-visible gap-1.5', className)}>
 			{showToolbar && (
-				<div className="min-h-0 shrink-0 w-full py-2">
+				<div className="min-h-0 shrink-0 w-full py-1">
 					<DataTableToolbar
 						table={table}
 						setColumnFilters={setColumnFilters}
@@ -314,21 +322,35 @@ export function DataTable<TData>({
 					/>
 				</div>
 			)}
-			<div className="rounded-md border bg-card min-h-0 w-full overflow-hidden flex flex-col relative">
-				<Table className="relative" containerClassName="flex-1 overflow-auto max-h-none">
-					<TableHeader className="sticky top-0 z-10">
+			<div className="rounded-md border bg-card min-h-0 w-full overflow-visible flex flex-col relative">
+				<Table
+					className={cn('relative', dense && 'dense')}
+					containerClassName="overflow-auto max-h-[520px] h-auto"
+				>
+					<TableHeader className="sticky top-0 z-30 bg-card">
 						{table.getHeaderGroups().map((headerGroup) => (
 							<TableRow key={headerGroup.id}>
-								{headerGroup.headers.map((header) => (
-									<TableHead key={header.id}>
-										{header.isPlaceholder
-											? null
-											: flexRender(
-												header.column.columnDef.header,
-												header.getContext()
+								{headerGroup.headers.map((header) => {
+									const meta = header.column.columnDef.meta as Record<string, unknown> | undefined
+									const sticky = meta?.sticky as string | undefined
+									return (
+										<TableHead
+											key={header.id}
+											className={cn(
+												'sticky top-0 z-30 bg-card',
+												sticky === 'left' && 'left-0 z-40 shadow-[1px_0_0_0_hsl(var(--border))]',
+												sticky === 'right' && 'right-0 z-40 shadow-[-1px_0_0_0_hsl(var(--border))]'
 											)}
-									</TableHead>
-								))}
+										>
+											{header.isPlaceholder
+												? null
+												: flexRender(
+													header.column.columnDef.header,
+													header.getContext()
+												)}
+										</TableHead>
+									)
+								})}
 							</TableRow>
 						))}
 					</TableHeader>
@@ -354,14 +376,24 @@ export function DataTable<TData>({
 										onClick={() => onRowClick?.(row.original)}
 										className={onRowClick ? 'cursor-pointer' : ''}
 									>
-										{row.getVisibleCells().map((cell) => (
-											<TableCell key={cell.id}>
-												{flexRender(
-													cell.column.columnDef.cell,
-													cell.getContext()
-												)}
-											</TableCell>
-										))}
+										{row.getVisibleCells().map((cell) => {
+											const meta = cell.column.columnDef.meta as Record<string, unknown> | undefined
+											const sticky = meta?.sticky as string | undefined
+											return (
+												<TableCell
+													key={cell.id}
+													className={cn(
+														sticky === 'left' && 'sticky left-0 z-20 bg-white dark:bg-card shadow-[1px_0_0_0_hsl(var(--border))]',
+														sticky === 'right' && 'sticky right-0 z-20 bg-white dark:bg-card shadow-[-1px_0_0_0_hsl(var(--border))]'
+													)}
+												>
+													{flexRender(
+														cell.column.columnDef.cell,
+														cell.getContext()
+													)}
+												</TableCell>
+											)
+										})}
 									</TableRow>
 									{row.getIsExpanded() && renderSubComponent && (
 										<TableRow>
@@ -410,7 +442,7 @@ export function DataTable<TData>({
 				</Table>
 			</div>
 			{paginable && (
-				<div className="shrink-0 pt-2">
+				<div className="shrink-0 pt-1">
 					<DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />
 				</div>
 			)}
