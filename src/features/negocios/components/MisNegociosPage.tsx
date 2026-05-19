@@ -138,7 +138,7 @@ export function MisNegociosPage({
 	const showTableLoading = isSearching || (isLoading && hasInitialized)
 
 	return (
-		<div className="grid grid-rows-[auto_1fr] h-full w-full min-w-0 overflow-hidden gap-4">
+		<div className="flex flex-col h-auto w-full min-w-0 overflow-visible gap-4">
 			{/* Stats Overview */}
 			{isAgentUser && (
 				<div className="shrink-0">
@@ -164,7 +164,7 @@ export function MisNegociosPage({
 			{error && <ErrorMessage message={error} />}
 
 			{/* Business Table Section - fills the 1fr row */}
-			<div className="min-h-0 overflow-hidden">
+			<div className="min-h-[520px] h-auto overflow-visible">
 				{showFullSkeleton ? (
 					<TableLoadingSkeleton />
 				) : (

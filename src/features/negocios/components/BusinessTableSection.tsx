@@ -394,7 +394,7 @@ export function BusinessTableSection({
 
 	return (
 		<TooltipProvider>
-			<div className="grid grid-rows-[auto_1fr] h-full w-full min-w-0 overflow-hidden gap-2">
+			<div className="flex flex-col h-auto w-full min-w-0 overflow-visible gap-2">
 				{/* Table Header with Add Button */}
 				<div className="flex justify-between items-center shrink-0">
 					<h3 className="text-lg font-semibold">Lista de Negocios</h3>

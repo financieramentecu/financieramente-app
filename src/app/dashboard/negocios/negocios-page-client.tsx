@@ -506,7 +506,7 @@ export function NegociosPageClient({
 	const displayError = error || statsError
 
 	return (
-		<div className="flex flex-col flex-1 min-h-0 gap-4 overflow-hidden">
+		<div className="flex flex-col min-h-0 gap-4 overflow-visible h-auto">
 			{/* Contenido de la página de negocios */}
 			<MisNegociosPage
 				businessData={businessDataForTable}

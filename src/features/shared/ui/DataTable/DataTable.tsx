@@ -302,7 +302,7 @@ export function DataTable<TData>({
 		!!toolbarTrailingActions
 
 	return (
-		<div className={cn('grid grid-rows-[auto_1fr_auto] h-full w-full min-w-0 overflow-hidden gap-1.5', className)}>
+		<div className={cn('flex flex-col h-auto w-full min-w-0 overflow-visible gap-1.5', className)}>
 			{showToolbar && (
 				<div className="min-h-0 shrink-0 w-full py-1">
 					<DataTableToolbar
@@ -322,10 +322,10 @@ export function DataTable<TData>({
 					/>
 				</div>
 			)}
-			<div className="rounded-md border bg-card min-h-0 w-full overflow-hidden flex flex-col relative">
+			<div className="rounded-md border bg-card min-h-0 w-full overflow-visible flex flex-col relative">
 				<Table
 					className={cn('relative', dense && 'dense')}
-					containerClassName="flex-1 overflow-auto max-h-none"
+					containerClassName="overflow-auto max-h-[520px] h-auto"
 				>
 					<TableHeader className="sticky top-0 z-30 bg-card">
 						{table.getHeaderGroups().map((headerGroup) => (
@@ -337,8 +337,9 @@ export function DataTable<TData>({
 										<TableHead
 											key={header.id}
 											className={cn(
-												sticky === 'left' && 'sticky left-0 z-40 bg-card shadow-[1px_0_0_0_hsl(var(--border))]',
-												sticky === 'right' && 'sticky right-0 z-40 bg-card shadow-[-1px_0_0_0_hsl(var(--border))]'
+												'sticky top-0 z-30 bg-card',
+												sticky === 'left' && 'left-0 z-40 shadow-[1px_0_0_0_hsl(var(--border))]',
+												sticky === 'right' && 'right-0 z-40 shadow-[-1px_0_0_0_hsl(var(--border))]'
 											)}
 										>
 											{header.isPlaceholder
