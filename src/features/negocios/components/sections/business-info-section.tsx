@@ -63,21 +63,42 @@ export function BusinessInfoSection({
 	}, [watchedCompanyId, watchedProductId, companiesOptions, filteredProducts])
 
 	const isFirstRender = React.useRef(true)
+	const prevSkandiaCombo = React.useRef(false)
 
+	// Reacts to company/product changes only — drives derived fields and one-time periodicity autofill.
+	React.useEffect(() => {
+		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+
+		if (companyName === 'SKANDIA' && productName === 'MFUND') {
+			setValue('isSkandiaWithMfund', true, { shouldValidate: false })
+			setValue('terms', 0, { shouldValidate: false })
+			setValue('numAportes', 0, { shouldValidate: false })
+
+			const comboJustActivated = !prevSkandiaCombo.current
+			const shouldAutofillPeriodicity = comboJustActivated && (!isEditMode || !isFirstRender.current)
+			if (shouldAutofillPeriodicity) {
+				const aoOption = periodicitiesOptions.find((p) => p.label === 'Aportes Ocasionales')
+				if (aoOption) {
+					setValue('periodicity', aoOption.value, { shouldValidate: false })
+				}
+			}
+			prevSkandiaCombo.current = true
+			return
+		}
+
+		prevSkandiaCombo.current = false
+		setValue('isSkandiaWithMfund', false, { shouldValidate: false })
+	}, [watchedCompanyId, watchedProductId, companiesOptions, filteredProducts, periodicitiesOptions, setValue, isEditMode])
+
+	// Reacts to periodicity/terms changes — calculates numAportes for non-SKANDIA+MFUND combos.
 	React.useEffect(() => {
 		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
 		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
 		const periodicityName = periodicitiesOptions.find((p) => p.value === watchedPeriodicityId)?.label ?? null
 		const termYears = typeof watchedTerms === 'number' ? watchedTerms : null
 
-		if (companyName === 'SKANDIA' && productName === 'MFUND') {
-			setValue('isSkandiaWithMfund', true, { shouldValidate: false })
-			setValue('terms', 0, { shouldValidate: false })
-			setValue('numAportes', 0, { shouldValidate: false })
-			return
-		}
-
-		setValue('isSkandiaWithMfund', false, { shouldValidate: false })
+		if (companyName === 'SKANDIA' && productName === 'MFUND') return
 
 		// En modo edición, si es la primera vez que se carga, no sobrescribimos con el cálculo
 		// para preservar el valor que viene de la DB.
