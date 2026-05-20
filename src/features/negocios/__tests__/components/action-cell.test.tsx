@@ -256,7 +256,7 @@ describe('ActionCell', () => {
 			).toBeInTheDocument()
 		})
 
-		it('should NOT show Fondear button for ANALISTA_SOPORTE role', () => {
+		it('should show Fondear button for ANALISTA_SOPORTE role', () => {
 			render(
 				<ActionCell
 					{...defaultProps}
@@ -268,8 +268,8 @@ describe('ActionCell', () => {
 			)
 
 			expect(
-				screen.queryByRole('button', { name: /Fondear/i })
-			).not.toBeInTheDocument()
+				screen.getByRole('button', { name: /Fondear/i })
+			).toBeInTheDocument()
 		})
 
 		it('should show Fondear button for EMITIDO + ADMIN + no annual payments', () => {

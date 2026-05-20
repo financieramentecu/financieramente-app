@@ -26,12 +26,14 @@ export function DashboardLayout({
 
 	return (
 		<SidebarProvider defaultOpen={true} className="h-[100dvh] overflow-hidden">
-			{/* Forzar el body a no tener scroll cuando disableScroll es true */}
+			{/* Forzar el body a no tener scroll cuando disableScroll es true (solo en pantallas de escritorio) */}
 			{disableScroll && (
 				<style jsx global>{`
-					html, body {
-						overflow: hidden !important;
-						height: 100% !important;
+					@media (min-width: 1024px) {
+						html, body {
+							overflow: hidden !important;
+							height: 100% !important;
+						}
 					}
 				`}</style>
 			)}
@@ -41,8 +43,8 @@ export function DashboardLayout({
 				<SiteHeader title={currentPage} breadcrumbs={breadcrumbs} />
 				
 				{/* Contenido que llena el resto de la pantalla (100vh - header) */}
-				<div className={cn('flex-1 flex flex-col min-h-0 min-w-0 w-full', !disableScroll ? 'overflow-y-auto' : 'overflow-hidden')}>
-					<div className={cn('flex flex-col gap-4 p-4 min-h-0 min-w-0 w-full', disableScroll ? 'flex-1 overflow-hidden' : '')}>
+				<div className={cn('flex-1 flex flex-col min-h-0 min-w-0 w-full', !disableScroll ? 'overflow-y-auto' : 'overflow-y-auto lg:overflow-hidden')}>
+					<div className={cn('flex flex-col gap-4 p-4 min-h-0 min-w-0 w-full', disableScroll ? 'lg:flex-1 lg:overflow-hidden' : '')}>
 						{children}
 					</div>
 				</div>
