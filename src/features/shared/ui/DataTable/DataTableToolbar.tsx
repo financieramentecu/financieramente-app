@@ -20,6 +20,7 @@ interface DataTableToolbarProps<TData> {
 	searchPlaceholder?: string
 	renderAdditionalFilters?: () => React.ReactNode
 	toolbarTrailingActions?: () => React.ReactNode
+	columnLabels?: Record<string, string>
 }
 
 export function DataTableToolbar<TData>({
@@ -36,6 +37,7 @@ export function DataTableToolbar<TData>({
 	searchPlaceholder,
 	renderAdditionalFilters,
 	toolbarTrailingActions,
+	columnLabels,
 }: DataTableToolbarProps<TData>) {
 	const isFiltered = table.getState().columnFilters.length > 0 || !!table.getState().globalFilter
 	const [searchValue, setSearchValue] = useState<string>(globalFilter || '')
@@ -117,7 +119,7 @@ export function DataTableToolbar<TData>({
 						Exportar
 					</Button>
 				)}
-				<DataTableViewOptions table={table} />
+				<DataTableViewOptions table={table} columnLabels={columnLabels} />
 			</div>
 		</div>
 	)

@@ -13,10 +13,12 @@ import {
 
 interface DataTableViewOptionsProps<TData> {
 	table: Table<TData>
+	columnLabels?: Record<string, string>
 }
 
 export function DataTableViewOptions<TData>({
 	table,
+	columnLabels,
 }: DataTableViewOptionsProps<TData>) {
 	return (
 		<DropdownMenu>
@@ -30,7 +32,7 @@ export function DataTableViewOptions<TData>({
 					Vista
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-[150px]">
+			<DropdownMenuContent align="end" className="w-[200px]">
 				<DropdownMenuLabel>Columnas</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				{table
@@ -40,14 +42,17 @@ export function DataTableViewOptions<TData>({
 							typeof column.accessorFn !== 'undefined' && column.getCanHide()
 					)
 					.map((column) => {
+						const isFriendly = !!columnLabels?.[column.id] || typeof column.columnDef.header === 'string'
+						const label = columnLabels?.[column.id] || (typeof column.columnDef.header === 'string' ? column.columnDef.header : column.id)
+
 						return (
 							<DropdownMenuCheckboxItem
 								key={column.id}
-								className="capitalize"
+								className={isFriendly ? '' : 'capitalize'}
 								checked={column.getIsVisible()}
 								onCheckedChange={(value) => column.toggleVisibility(!!value)}
 							>
-								{column.id}
+								{label}
 							</DropdownMenuCheckboxItem>
 						)
 					})}

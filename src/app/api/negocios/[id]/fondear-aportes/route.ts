@@ -177,7 +177,8 @@ export async function POST(
 				const numAportes = existing.numAportes ?? 0
 
 				if (periodicityName && numAportes > 0) {
-					const expectedDates = calculateExpectedDates(now, numAportes, periodicityName)
+					const anchor = existing.dateIssued || existing.createdAt || now
+					const expectedDates = calculateExpectedDates(anchor, numAportes, periodicityName)
 
 					// Update all payment rows with their respective expectedDate
 					const allPayments = await tx.payment.findMany({

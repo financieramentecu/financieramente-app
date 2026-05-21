@@ -91,6 +91,7 @@ export interface UpdateBusinessRequest {
 	idCurrency?: number
 	idUser?: number
 	numAportes?: number
+	dateIssued?: string
 }
 
 /**

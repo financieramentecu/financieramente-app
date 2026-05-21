@@ -74,7 +74,7 @@ export async function GET(
 			installmentIndex: ap.installmentIndex,
 			status: ap.status as 'SIN_FONDEAR' | 'FONDEADO',
 			dateAnchored: ap.dateAnchored?.toISOString() ?? null,
-			expectedDate: null,
+			expectedDate: ap.expectedDate?.toISOString() ?? null,
 		}))
 
 		const payload: AnnualPaymentsResponse = {
