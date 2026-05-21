@@ -404,7 +404,7 @@ export function BusinessViewModal({
 					)}
 
 					{/* Flujo de Edición de Fecha de Emisión */}
-					{isEditingDate && allowEditDateIssued ? (
+					{isEditingDate && canEditDate ? (
 						<>
 							<Button
 								variant="default"
@@ -428,14 +428,13 @@ export function BusinessViewModal({
 							</Button>
 						</>
 					) : (
-						allowEditDateIssued && !isEditingOrigin && (
+						canEditDate && !isEditingOrigin && (
 							<Button
 								variant="outline"
 								onClick={() => {
 									setSelectedDate(formatToInputDate(business.dateIssued))
 									setIsEditingDate(true)
 								}}
-								disabled={business.status !== EMITIDO}
 								className="cursor-pointer"
 							>
 								Editar fecha de emisión

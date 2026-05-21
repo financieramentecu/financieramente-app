@@ -81,7 +81,7 @@ describe('BusinessViewModal - Edición de Fecha de Emisión', () => {
 	})
 
 	describe('Permisos y Estados del Negocio', () => {
-		it('debería mostrar el campo Fecha de Emisión en modo solo lectura y el botón de editar deshabilitado si el negocio NO está en estado EMITIDO', () => {
+		it('debería mostrar el campo Fecha de Emisión en modo solo lectura y NO debería renderizar el botón de editar si el negocio NO está en estado EMITIDO', () => {
 			const businessNoEmitido = createMockBusiness({
 				id: 2,
 				status: 'VENTA_EFECTUADA',
@@ -94,10 +94,8 @@ describe('BusinessViewModal - Edición de Fecha de Emisión', () => {
 			const expectedFormattedDate = new Date('2026-05-01T12:00:00.000Z').toLocaleDateString('es-CO')
 			expect(screen.getByText(expectedFormattedDate)).toBeInTheDocument()
 
-			// El botón "Editar fecha de emisión" debe estar presente pero deshabilitado
-			const editBtn = screen.getByRole('button', { name: /Editar fecha de emisión/i })
-			expect(editBtn).toBeInTheDocument()
-			expect(editBtn).toBeDisabled()
+			// El botón "Editar fecha de emisión" no debe estar visible en el documento
+			expect(screen.queryByRole('button', { name: /Editar fecha de emisión/i })).not.toBeInTheDocument()
 
 			// No debe renderizarse como un input de fecha
 			expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
