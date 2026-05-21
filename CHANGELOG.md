@@ -8,9 +8,9 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ### Nuevo
 
-- **Recálculo de fechas de fondeo desde Fecha de Emisión:** Se implementó el recálculo dinámico de las fechas esperadas de los aportes basados en la fecha de emisión del negocio y no desde la fecha del primer fondeo. Al registrar o actualizar la fecha de emisión de un negocio en estado recién creado (`VENTA_EFECTUADA`) o emitido (`EMITIDO`), se recalculan automáticamente las fechas de fondeos proyectados.
-- **Edición rápida desde la tabla:** Se añadió la opción de editar la fecha de emisión directamente en la tabla principal de negocios a través de una celda de fecha interactiva. El ícono de lápiz de edición está ahora **para siempre visible** para todos los negocios elegibles sin necesidad de hover.
-- **Restricción de Fechas Futuras:** Tanto en el modal de detalle del negocio como en la celda interactiva de la tabla, se configuró una restricción de fecha máxima (`max`) para impedir la selección de días futuros posteriores a la fecha actual local. Adicionalmente, se incluyó una validación en JavaScript del lado del cliente que emite un toast de error en español (*"La fecha de emisión no puede ser una fecha futura"*) si se digita manualmente un valor en el futuro.
+- **Recálculo de fechas de fondeo desde Fecha de Emisión:** Se implementó el recálculo dinámico de las fechas esperadas de los aportes basados en la fecha de emisión del negocio y no desde la fecha del primer fondeo. Al registrar o actualizar la fecha de emisión de un negocio en estado emitido (`EMITIDO`), se recalculan automáticamente las fechas de fondeos proyectados.
+- **Edición rápida desde la tabla:** Se añadió la opción de editar la fecha de emisión directamente en la tabla principal de negocios a través de una celda de fecha interactiva. El ícono de lápiz de edición está ahora **para siempre visible** para todos los negocios elegibles sin necesidad de hover. El botón está habilitado exclusivamente para negocios en estado emitido (`EMITIDO`).
+- **Selector de Fechas Libre:** Se eliminó la restricción de fecha máxima (`max`) tanto en el modal de detalle del negocio como en la celda interactiva de la tabla, permitiendo seleccionar libremente cualquier fecha en el pasado o futuro según las necesidades operativas, eliminando también las validaciones de cliente que impedían el registro de fechas futuras.
 
 ### Interno
 

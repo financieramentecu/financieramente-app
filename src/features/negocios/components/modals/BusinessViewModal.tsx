@@ -346,7 +346,6 @@ export function BusinessViewModal({
 										value={selectedDate}
 										onChange={(e) => setSelectedDate(e.target.value)}
 										disabled={isSavingDate}
-										max={new Date().toLocaleDateString('sv-SE')}
 										className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 									/>
 								</div>
@@ -411,13 +410,6 @@ export function BusinessViewModal({
 								variant="default"
 								disabled={!selectedDate || !hasDateChanged || isSavingDate}
 								onClick={() => {
-									const today = new Date()
-									today.setHours(23, 59, 59, 999)
-									const selDate = new Date(`${selectedDate}T12:00:00`)
-									if (selDate > today) {
-										toast.error('La fecha de emisión no puede ser una fecha futura')
-										return
-									}
 									setIsDateAlertOpen(true)
 								}}
 								className="cursor-pointer"

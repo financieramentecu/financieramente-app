@@ -404,7 +404,7 @@ export function BusinessTableSection({
 				const isEditing = editingDateId === businessId
 				
 				const isEditable =
-					(business.statusCode === BUSINESS_STATUS.EMITIDO || business.statusCode === BUSINESS_STATUS.VENTA_EFECTUADA) &&
+					business.statusCode === BUSINESS_STATUS.EMITIDO &&
 					(userRole === UserRole.ADMIN || userRole === UserRole.ANALISTA_SOPORTE) &&
 					typeof onSaveDateIssued === 'function'
 
@@ -450,14 +450,7 @@ export function BusinessTableSection({
 						return
 					}
 
-					// Validar que no sea una fecha futura
-					const today = new Date()
-					today.setHours(23, 59, 59, 999)
-					const selectedDateObj = new Date(`${tempDate}T12:00:00`)
-					if (selectedDateObj > today) {
-						toast.error('La fecha de emisión no puede ser una fecha futura')
-						return
-					}
+
 
 					if (business.statusCode === BUSINESS_STATUS.EMITIDO) {
 						setConfirmBusiness(business)
@@ -478,7 +471,6 @@ export function BusinessTableSection({
 								type="date"
 								value={tempDate}
 								disabled={isSavingDate}
-								max={new Date().toLocaleDateString('sv-SE')}
 								onChange={(e) => setTempDate(e.target.value)}
 								className="h-8 py-0.5 px-1.5 text-xs w-[115px] tabular-nums"
 							/>
