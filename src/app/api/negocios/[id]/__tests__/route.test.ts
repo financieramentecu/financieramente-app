@@ -89,12 +89,7 @@ vi.mock('@/features/negocios/mappers/business-entity.mapper', () => ({
 	}),
 }))
 
-const mockProductConfiguration = {
-	idProductConfiguration: 1,
-	idProduct: 5,
-	idClientOrigin: 1,
-	idCategory: 3,
-}
+
 
 
 describe('PUT /api/negocios/[id]', () => {

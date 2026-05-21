@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { UseFormReturn } from 'react-hook-form'
-import { cn } from '@/lib/utils'
+// import { cn } from '@/lib/utils'
 import { Input } from '@/features/shared/ui/input'
 import { Label } from '@/features/shared/ui/label'
 import { Separator } from '@/features/shared/ui/separator'
@@ -43,7 +43,7 @@ export function BusinessInfoSection({
 	isBlocked: _isBlocked,
 	isEditMode = false,
 	contractDisabled = false,
-	isPrivilegedRole = false,
+	isPrivilegedRole: _isPrivilegedRole = false,
 	getFieldPermission,
 }: BusinessInfoSectionProps) {
 	const { register, watch, setValue, formState } = form
