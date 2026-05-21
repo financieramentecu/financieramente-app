@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { UseFormReturn } from 'react-hook-form'
-// import { cn } from '@/lib/utils'
 import { Input } from '@/features/shared/ui/input'
 import { Label } from '@/features/shared/ui/label'
 import { Separator } from '@/features/shared/ui/separator'
@@ -43,7 +42,6 @@ export function BusinessInfoSection({
 	isBlocked: _isBlocked,
 	isEditMode = false,
 	contractDisabled = false,
-	isPrivilegedRole: _isPrivilegedRole = false,
 	getFieldPermission,
 }: BusinessInfoSectionProps) {
 	const { register, watch, setValue, formState } = form
@@ -57,8 +55,10 @@ export function BusinessInfoSection({
 	const watchedProductId = watch('producto')
 	const watchedPeriodicityId = watch('periodicity')
 	const isSkandiaWithMfund = React.useMemo(() => {
-		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
-		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+		const companyName =
+			companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+		const productName =
+			filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
 		return companyName === 'SKANDIA' && productName === 'MFUND'
 	}, [watchedCompanyId, watchedProductId, companiesOptions, filteredProducts])
 
@@ -67,8 +67,10 @@ export function BusinessInfoSection({
 
 	// Reacts to company/product changes only — drives derived fields and one-time periodicity autofill.
 	React.useEffect(() => {
-		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
-		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+		const companyName =
+			companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+		const productName =
+			filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
 
 		if (companyName === 'SKANDIA' && productName === 'MFUND') {
 			setValue('isSkandiaWithMfund', true, { shouldValidate: false })
@@ -76,9 +78,12 @@ export function BusinessInfoSection({
 			setValue('numAportes', 0, { shouldValidate: false })
 
 			const comboJustActivated = !prevSkandiaCombo.current
-			const shouldAutofillPeriodicity = comboJustActivated && (!isEditMode || !isFirstRender.current)
+			const shouldAutofillPeriodicity =
+				comboJustActivated && (!isEditMode || !isFirstRender.current)
 			if (shouldAutofillPeriodicity) {
-				const aoOption = periodicitiesOptions.find((p) => p.label === 'Aportes Ocasionales')
+				const aoOption = periodicitiesOptions.find(
+					(p) => p.label === 'Aportes Ocasionales'
+				)
 				if (aoOption) {
 					setValue('periodicity', aoOption.value, { shouldValidate: false })
 				}
@@ -89,13 +94,25 @@ export function BusinessInfoSection({
 
 		prevSkandiaCombo.current = false
 		setValue('isSkandiaWithMfund', false, { shouldValidate: false })
-	}, [watchedCompanyId, watchedProductId, companiesOptions, filteredProducts, periodicitiesOptions, setValue, isEditMode])
+	}, [
+		watchedCompanyId,
+		watchedProductId,
+		companiesOptions,
+		filteredProducts,
+		periodicitiesOptions,
+		setValue,
+		isEditMode,
+	])
 
 	// Reacts to periodicity/terms changes — calculates numAportes for non-SKANDIA+MFUND combos.
 	React.useEffect(() => {
-		const companyName = companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
-		const productName = filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
-		const periodicityName = periodicitiesOptions.find((p) => p.value === watchedPeriodicityId)?.label ?? null
+		const companyName =
+			companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+		const productName =
+			filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+		const periodicityName =
+			periodicitiesOptions.find((p) => p.value === watchedPeriodicityId)
+				?.label ?? null
 		const termYears = typeof watchedTerms === 'number' ? watchedTerms : null
 
 		if (companyName === 'SKANDIA' && productName === 'MFUND') return
@@ -107,9 +124,24 @@ export function BusinessInfoSection({
 			return
 		}
 
-		const result = calculateNumAportes({ termYears, periodicityName, companyName, productName })
+		const result = calculateNumAportes({
+			termYears,
+			periodicityName,
+			companyName,
+			productName,
+		})
 		setValue('numAportes', result, { shouldValidate: false })
-	}, [watchedTerms, watchedPeriodicityId, watchedCompanyId, watchedProductId, companiesOptions, filteredProducts, periodicitiesOptions, setValue, isEditMode])
+	}, [
+		watchedTerms,
+		watchedPeriodicityId,
+		watchedCompanyId,
+		watchedProductId,
+		companiesOptions,
+		filteredProducts,
+		periodicitiesOptions,
+		setValue,
+		isEditMode,
+	])
 
 	const handleCompanyChange = React.useCallback(
 		(companyId: string) => {
@@ -202,7 +234,10 @@ export function BusinessInfoSection({
 					placeholder="Seleccione un producto"
 					options={filteredProducts}
 					form={form}
-					disabled={getFieldPermission('producto').disabled || filteredProducts.length === 0}
+					disabled={
+						getFieldPermission('producto').disabled ||
+						filteredProducts.length === 0
+					}
 					required
 					description={''}
 				/>
