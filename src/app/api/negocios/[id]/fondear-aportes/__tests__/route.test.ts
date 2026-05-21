@@ -122,6 +122,7 @@ describe('POST /api/negocios/[id]/fondear-aportes', () => {
 	})
 
 	it('200 EMITIDO → FONDEADO: persiste expectedDate y emite audit', async () => {
+		const mockDateIssued = new Date('2026-01-15T12:00:00Z')
 		mockAuth.mockResolvedValue({ user: { email: 'admin@test.com' } } as never)
 		mockGetUser.mockResolvedValue(buildUser('admin@test.com', UserRole.ADMIN) as never)
 		mockFindUnique.mockResolvedValue({
@@ -131,6 +132,7 @@ describe('POST /api/negocios/[id]/fondear-aportes', () => {
 			_count: { payments: 3 },
 			buyPeriodicity: { name: 'Mensual' },
 			numAportes: 3,
+			dateIssued: mockDateIssued,
 		} as never)
 		mockPaymentCount.mockResolvedValue(3)
 
@@ -164,10 +166,27 @@ describe('POST /api/negocios/[id]/fondear-aportes', () => {
 
 		expect(res.status).toBe(200)
 		expect(body.data?.status).toBe(BUSINESS_STATUS.FONDEADO)
-		// expectedDate update called for each payment row
+		
+		// Verificar que se haya llamado a update de pagos con las fechas calculadas a partir de dateIssued (2026-01-15T12:00:00Z)
 		expect(paymentUpdate).toHaveBeenCalledWith(
-			expect.objectContaining({ data: expect.objectContaining({ expectedDate: expect.any(Date) }) })
+			expect.objectContaining({
+				where: { idAnnualPayment: 10 },
+				data: expect.objectContaining({ expectedDate: new Date('2026-01-15T12:00:00.000Z') }),
+			})
 		)
+		expect(paymentUpdate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { idAnnualPayment: 11 },
+				data: expect.objectContaining({ expectedDate: new Date('2026-02-15T12:00:00.000Z') }),
+			})
+		)
+		expect(paymentUpdate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { idAnnualPayment: 12 },
+				data: expect.objectContaining({ expectedDate: new Date('2026-03-15T12:00:00.000Z') }),
+			})
+		)
+
 		expect(mockLog).toHaveBeenCalledWith(
 			expect.objectContaining({ action: AuditAction.BUSINESS_PAYMENT_FUNDED })
 		)

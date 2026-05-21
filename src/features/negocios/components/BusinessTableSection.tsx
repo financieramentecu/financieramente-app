@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import { Button } from '@/features/shared/ui/button'
@@ -17,7 +17,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/features/shared/ui/select'
-import { Plus, Coins, Download, CalendarRange } from 'lucide-react'
+import { Plus, Coins, Download, CalendarRange, Pencil, Check, X } from 'lucide-react'
 import { BusinessRowActions } from './BusinessRowActions'
 import { Input } from '@/features/shared/ui/input'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
@@ -33,6 +33,17 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/features/shared/ui/tooltip'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/features/shared/ui/alert-dialog'
+import { toast } from 'sonner'
 import {
 	FONDEAR_ACTION_TOOLTIP,
 	FONDEAR_ANNUAL_ACTION_TOOLTIP,
@@ -101,7 +112,27 @@ interface BusinessTableSectionProps {
 	sortOrder?: 'asc' | 'desc'
 	onUploadSuccess?: () => void
 	onDeleteSuccess?: () => void
+	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
 }
+
+const BUSINESS_COLUMN_LABELS = {
+	clientName: 'Cliente',
+	identification: 'Identificación',
+	contract: 'Contrato',
+	status: 'Estado',
+	supportCount: 'Soportes de Pago',
+	user: 'Money Strategist',
+	agentCategory: 'Categoría MS',
+	companyName: 'Compañía',
+	product: 'Producto',
+	clientOriginName: 'Origen',
+	term: 'Plazo (Años)',
+	periodicityName: 'Periodicidad',
+	value: 'Valor',
+	dateIssued: 'Fecha de Emisión',
+	dateAnchored: 'Fecha de Fondeo',
+	date: 'Fecha de Creación',
+} as const
 
 export function BusinessTableSection({
 	data,
@@ -134,7 +165,39 @@ export function BusinessTableSection({
 	sortOrder,
 	onUploadSuccess,
 	onDeleteSuccess,
+	onSaveDateIssued,
 }: BusinessTableSectionProps) {
+	const [editingDateId, setEditingDateId] = useState<number | null>(null)
+	const [tempDate, setTempDate] = useState<string>('')
+	const [isSavingDate, setIsSavingDate] = useState(false)
+	const [confirmOpen, setConfirmOpen] = useState(false)
+	const [confirmBusiness, setConfirmBusiness] = useState<Business | null>(null)
+	const [pendingDate, setPendingDate] = useState<string>('')
+
+	const executeSave = async (businessId: number, newDateStr: string) => {
+		if (typeof onSaveDateIssued !== 'function') return
+		setIsSavingDate(true)
+		try {
+			const dateObj = new Date(`${newDateStr}T12:00:00`)
+			await onSaveDateIssued(businessId, dateObj.toISOString())
+			setEditingDateId(null)
+		} catch (error: unknown) {
+			console.error('Error al guardar fecha de emisión:', error)
+			const errMsg = error instanceof Error ? error.message : 'Error desconocido'
+			toast.error(`Error al actualizar la fecha: ${errMsg}`)
+		} finally {
+			setIsSavingDate(false)
+		}
+	}
+
+	const handleConfirmDateChange = async () => {
+		if (!confirmBusiness || !pendingDate) return
+		setConfirmOpen(false)
+		await executeSave(Number(confirmBusiness.id), pendingDate)
+		setConfirmBusiness(null)
+		setPendingDate('')
+	}
+
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString('es-CO')
 	}
@@ -335,13 +398,135 @@ export function BusinessTableSection({
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Fecha emisión" />
 			),
-			cell: ({ row }) => (
-				<span
-					className={row.original.dateIssued ? '' : 'text-muted-foreground'}
-				>
-					{formatOptionalDate(row.original.dateIssued)}
-				</span>
-			),
+			cell: ({ row }) => {
+				const business = row.original
+				const businessId = Number(business.id)
+				const isEditing = editingDateId === businessId
+				
+				const isEditable =
+					(business.statusCode === BUSINESS_STATUS.EMITIDO || business.statusCode === BUSINESS_STATUS.VENTA_EFECTUADA) &&
+					(userRole === UserRole.ADMIN || userRole === UserRole.ANALISTA_SOPORTE) &&
+					typeof onSaveDateIssued === 'function'
+
+				const handleStartEdit = (e: React.MouseEvent) => {
+					e.stopPropagation()
+					const dateStr = business.dateIssued
+					let formatted = ''
+					if (dateStr) {
+						const d = new Date(dateStr)
+						const year = d.getFullYear()
+						const month = String(d.getMonth() + 1).padStart(2, '0')
+						const day = String(d.getDate()).padStart(2, '0')
+						formatted = `${year}-${month}-${day}`
+					}
+					setTempDate(formatted)
+					setEditingDateId(businessId)
+				}
+
+				const handleCancel = (e: React.MouseEvent) => {
+					e.stopPropagation()
+					setEditingDateId(null)
+				}
+
+				const handleSaveClick = (e: React.MouseEvent) => {
+					e.stopPropagation()
+					
+					let originalFormatted = ''
+					if (business.dateIssued) {
+						const d = new Date(business.dateIssued)
+						const year = d.getFullYear()
+						const month = String(d.getMonth() + 1).padStart(2, '0')
+						const day = String(d.getDate()).padStart(2, '0')
+						originalFormatted = `${year}-${month}-${day}`
+					}
+
+					if (tempDate === originalFormatted) {
+						setEditingDateId(null)
+						return
+					}
+
+					if (!tempDate) {
+						toast.error('Debe seleccionar una fecha de emisión válida')
+						return
+					}
+
+					// Validar que no sea una fecha futura
+					const today = new Date()
+					today.setHours(23, 59, 59, 999)
+					const selectedDateObj = new Date(`${tempDate}T12:00:00`)
+					if (selectedDateObj > today) {
+						toast.error('La fecha de emisión no puede ser una fecha futura')
+						return
+					}
+
+					if (business.statusCode === BUSINESS_STATUS.EMITIDO) {
+						setConfirmBusiness(business)
+						setPendingDate(tempDate)
+						setConfirmOpen(true)
+					} else {
+						executeSave(businessId, tempDate)
+					}
+				}
+
+				if (isEditing) {
+					return (
+						<div 
+							className="flex items-center gap-1.5 min-w-[170px]"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<Input
+								type="date"
+								value={tempDate}
+								disabled={isSavingDate}
+								max={new Date().toLocaleDateString('sv-SE')}
+								onChange={(e) => setTempDate(e.target.value)}
+								className="h-8 py-0.5 px-1.5 text-xs w-[115px] tabular-nums"
+							/>
+							<Button
+								size="icon"
+								variant="ghost"
+								disabled={isSavingDate}
+								onClick={handleSaveClick}
+								className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md cursor-pointer shrink-0"
+								title="Confirmar cambio"
+							>
+								<Check className="h-3.5 w-3.5" />
+							</Button>
+							<Button
+								size="icon"
+								variant="ghost"
+								disabled={isSavingDate}
+								onClick={handleCancel}
+								className="h-7 w-7 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-md cursor-pointer shrink-0"
+								title="Cancelar"
+							>
+								<X className="h-3.5 w-3.5" />
+							</Button>
+						</div>
+					)
+				}
+
+				return (
+					<div className="flex items-center justify-between gap-2 min-h-8 min-w-[120px] max-w-[170px]">
+						<span
+							className={business.dateIssued ? 'whitespace-nowrap font-medium' : 'text-muted-foreground whitespace-nowrap'}
+						>
+							{formatOptionalDate(business.dateIssued)}
+						</span>
+						{isEditable && (
+							<Button
+								size="icon"
+								variant="ghost"
+								onClick={handleStartEdit}
+								className="h-7 w-7 text-muted-foreground hover:text-[#11525B] hover:bg-[#11525B]/10 rounded-md transition-all duration-200 cursor-pointer shrink-0"
+								title="Editar fecha de emisión"
+							>
+								<Pencil className="h-3.5 w-3.5" />
+							</Button>
+						)}
+					</div>
+				)
+			},
 			enableSorting: true,
 		},
 		{
@@ -410,6 +595,7 @@ export function BusinessTableSection({
 					dense={true}
 					columns={columns}
 					data={data}
+					columnLabels={BUSINESS_COLUMN_LABELS}
 					searchable={true}
 					onGlobalSearch={onGlobalSearch}
 					loading={isSearching}
@@ -649,6 +835,38 @@ export function BusinessTableSection({
 						)
 					}}
 				/>
+				{/* Modal de confirmación para recálculo de fondeos desde la tabla */}
+				<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>¿Desea cambiar la fecha de emisión?</AlertDialogTitle>
+							<AlertDialogDescription>
+								Está a punto de cambiar la fecha de emisión de{' '}
+								<span className="font-semibold text-foreground">
+									{confirmBusiness?.dateIssued ? formatDate(confirmBusiness.dateIssued) : '—'}
+								</span>{' '}
+								a{' '}
+								<span className="font-semibold text-foreground">
+									{pendingDate ? new Date(`${pendingDate}T12:00:00`).toLocaleDateString('es-CO') : '—'}
+								</span>
+								. Esta acción recalculará las fechas esperadas de Fondeo ¿Desea continuar?
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel disabled={isSavingDate}>Cancelar</AlertDialogCancel>
+							<AlertDialogAction
+								onClick={(e) => {
+									e.preventDefault()
+									handleConfirmDateChange()
+								}}
+								disabled={isSavingDate}
+								className="cursor-pointer"
+							>
+								{isSavingDate ? 'Guardando...' : 'Confirmar'}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
 			</div>
 		</TooltipProvider>
 	)

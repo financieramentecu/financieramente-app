@@ -48,6 +48,10 @@ interface BusinessViewModalProps {
 	clientOriginsOptions?: ClientOriginOption[]
 	/** Called when user saves a new origin from the modal */
 	onSaveOrigin?: (businessId: number, idClientOrigin: number) => Promise<void>
+	/** When true and business.status === 'EMITIDO', show inline input to edit date issued */
+	allowEditDateIssued?: boolean
+	/** Called when user saves a new date issued from the modal */
+	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
 }
 
 /**
@@ -73,11 +77,63 @@ export function BusinessViewModal({
 	allowEditOrigin = false,
 	clientOriginsOptions = [],
 	onSaveOrigin,
+	allowEditDateIssued = false,
+	onSaveDateIssued,
 }: BusinessViewModalProps) {
 	const [isEditingOrigin, setIsEditingOrigin] = useState(false)
 	const [selectedOriginId, setSelectedOriginId] = useState<string>('')
 	const [isSavingOrigin, setIsSavingOrigin] = useState(false)
 	const [isAlertOpen, setIsAlertOpen] = useState(false)
+
+	const [isEditingDate, setIsEditingDate] = useState(false)
+	const [selectedDate, setSelectedDate] = useState('')
+	const [isSavingDate, setIsSavingDate] = useState(false)
+	const [isDateAlertOpen, setIsDateAlertOpen] = useState(false)
+
+	const canEditDate =
+		allowEditDateIssued &&
+		business?.status === EMITIDO &&
+		typeof onSaveDateIssued === 'function'
+
+	const formatToInputDate = (dateStr: string | null) => {
+		if (!dateStr) return ''
+		const d = new Date(dateStr)
+		const year = d.getFullYear()
+		const month = String(d.getMonth() + 1).padStart(2, '0')
+		const day = String(d.getDate()).padStart(2, '0')
+		return `${year}-${month}-${day}`
+	}
+
+	const initialInputDate = business ? formatToInputDate(business.dateIssued) : ''
+	const hasDateChanged = selectedDate !== '' && selectedDate !== initialInputDate
+
+	const handleConfirmDateChange = async () => {
+		if (!onSaveDateIssued || !business || !hasDateChanged || !selectedDate) return
+		setIsSavingDate(true)
+		try {
+			const localDate = new Date(`${selectedDate}T00:00:00`)
+			await onSaveDateIssued(business.id, localDate.toISOString())
+			setSelectedDate('')
+			setIsEditingDate(false)
+			setIsDateAlertOpen(false)
+		} catch (err: unknown) {
+			const message =
+				err instanceof Error
+					? err.message
+					: 'Error al actualizar la fecha de emisión'
+			toast.error(message)
+		} finally {
+			setIsSavingDate(false)
+		}
+	}
+
+	const oldDateFormatted = business?.dateIssued
+		? new Date(business.dateIssued).toLocaleDateString('es-CO')
+		: 'Sin registrar'
+
+	const newDateFormatted = selectedDate
+		? new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-CO')
+		: ''
 
 	const handleConfirmOriginChange = async () => {
 		if (!onSaveOrigin || !business || !hasOriginChanged) return
@@ -254,16 +310,17 @@ export function BusinessViewModal({
 
 				{/* Origen y Fecha */}
 				<section className="space-y-3 pt-4 border-t">
-					<div className="flex justify-between items-start gap-4 flex-wrap">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						{/* Origen */}
 						<div className="space-y-1">
-							<span className="text-sm text-muted-foreground">Origen</span>
+							<span className="text-sm text-muted-foreground block">Origen</span>
 							{isEditingOrigin && canEditOrigin ? (
 								<Select
 									value={displayOriginValue}
 									onValueChange={setSelectedOriginId}
 									disabled={isSavingOrigin}
 								>
-									<SelectTrigger className="w-[200px]">
+									<SelectTrigger className="w-full max-w-[240px]">
 										<SelectValue placeholder="Seleccione origen" />
 									</SelectTrigger>
 									<SelectContent>
@@ -278,26 +335,65 @@ export function BusinessViewModal({
 								<p className="font-medium">{business.clientOrigin.name}</p>
 							)}
 						</div>
-						<span className="text-sm text-muted-foreground">
+
+						{/* Fecha de Emisión */}
+						<div className="space-y-1">
+							<span className="text-sm text-muted-foreground block">Fecha de Emisión</span>
+							{isEditingDate && canEditDate ? (
+								<div className="flex items-center gap-2 max-w-[240px]">
+									<input
+										type="date"
+										value={selectedDate}
+										onChange={(e) => setSelectedDate(e.target.value)}
+										disabled={isSavingDate}
+										max={new Date().toLocaleDateString('sv-SE')}
+										className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+									/>
+								</div>
+							) : (
+								<p className="font-medium">
+									{business.dateIssued
+										? new Date(business.dateIssued).toLocaleDateString('es-CO')
+										: 'Sin registrar'}
+								</p>
+							)}
+						</div>
+					</div>
+
+					<div className="flex justify-between items-center text-sm text-muted-foreground pt-2 border-t border-dashed">
+						<span>
 							Registrado:{' '}
 							{new Date(business.createdAt).toLocaleDateString('es-CO')}
 						</span>
 					</div>
 				</section>
 
-				{/* Footer: Editar origen (si EMITIDO y no editando) o Guardar (si editando) + Cerrar */}
-				<div className="flex justify-end gap-2 pt-4">
+				{/* Footer */}
+				<div className="flex justify-end gap-2 pt-4 flex-wrap">
+					{/* Flujo de Edición de Origen */}
 					{isEditingOrigin && canEditOrigin ? (
-						<Button
-							variant="default"
-							disabled={!hasOriginChanged || isSavingOrigin}
-							onClick={() => setIsAlertOpen(true)}
-							className="cursor-pointer"
-						>
-							{isSavingOrigin ? 'Guardando…' : 'Guardar'}
-						</Button>
+						<>
+							<Button
+								variant="default"
+								disabled={!hasOriginChanged || isSavingOrigin}
+								onClick={() => setIsAlertOpen(true)}
+								className="cursor-pointer"
+							>
+								{isSavingOrigin ? 'Guardando…' : 'Guardar'}
+							</Button>
+							<Button
+								variant="outline"
+								onClick={() => {
+									setIsEditingOrigin(false)
+									setSelectedOriginId('')
+								}}
+								disabled={isSavingOrigin}
+							>
+								Cancelar
+							</Button>
+						</>
 					) : (
-						canEditOrigin && (
+						canEditOrigin && !isEditingDate && (
 							<Button
 								variant="outline"
 								onClick={() => setIsEditingOrigin(true)}
@@ -307,19 +403,70 @@ export function BusinessViewModal({
 							</Button>
 						)
 					)}
+
+					{/* Flujo de Edición de Fecha de Emisión */}
+					{isEditingDate && allowEditDateIssued ? (
+						<>
+							<Button
+								variant="default"
+								disabled={!selectedDate || !hasDateChanged || isSavingDate}
+								onClick={() => {
+									const today = new Date()
+									today.setHours(23, 59, 59, 999)
+									const selDate = new Date(`${selectedDate}T12:00:00`)
+									if (selDate > today) {
+										toast.error('La fecha de emisión no puede ser una fecha futura')
+										return
+									}
+									setIsDateAlertOpen(true)
+								}}
+								className="cursor-pointer"
+							>
+								{isSavingDate ? 'Guardando…' : 'Guardar'}
+							</Button>
+							<Button
+								variant="outline"
+								onClick={() => {
+									setIsEditingDate(false)
+									setSelectedDate(formatToInputDate(business.dateIssued))
+								}}
+								disabled={isSavingDate}
+							>
+								Cancelar
+							</Button>
+						</>
+					) : (
+						allowEditDateIssued && !isEditingOrigin && (
+							<Button
+								variant="outline"
+								onClick={() => {
+									setSelectedDate(formatToInputDate(business.dateIssued))
+									setIsEditingDate(true)
+								}}
+								disabled={business.status !== EMITIDO}
+								className="cursor-pointer"
+							>
+								Editar fecha de emisión
+							</Button>
+						)
+					)}
+
 					<Button
 						variant="outline"
 						onClick={() => {
 							setIsEditingOrigin(false)
 							setSelectedOriginId('')
+							setIsEditingDate(false)
 							onOpenChange(false)
 						}}
+						disabled={isSavingOrigin || isSavingDate}
 					>
 						Cerrar
 					</Button>
 				</div>
 			</div>
 
+			{/* Confirmación cambio de origen */}
 			<AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
@@ -348,6 +495,35 @@ export function BusinessViewModal({
 							disabled={isSavingOrigin}
 						>
 							{isSavingOrigin ? 'Recalculando...' : 'Sí, continuar'}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* Confirmación cambio de fecha de emisión */}
+			<AlertDialog open={isDateAlertOpen} onOpenChange={setIsDateAlertOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Confirmación requerida antes de aplicar el cambio</AlertDialogTitle>
+						<AlertDialogDescription>
+							Está a punto de cambiar la fecha de emisión de{' '}
+							<strong className="text-foreground">{oldDateFormatted}</strong> a{' '}
+							<strong className="text-foreground">{newDateFormatted}</strong>. Esta
+							acción recalculará las fechas esperadas de Fondeo ¿Desea continuar?
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isSavingDate}>
+							Cancelar
+						</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={(e) => {
+								e.preventDefault()
+								handleConfirmDateChange()
+							}}
+							disabled={isSavingDate}
+						>
+							{isSavingDate ? 'Recalculando...' : 'Confirmar'}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

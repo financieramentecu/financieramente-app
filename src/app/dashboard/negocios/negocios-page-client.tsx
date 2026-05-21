@@ -487,6 +487,19 @@ export function NegociosPageClient({
 		}
 	}, [])
 
+	const handleSaveDateIssued = useCallback(async (businessId: number, dateIssued: string) => {
+		const response = await businessService.update(businessId, { dateIssued })
+		if ('error' in response && response.error) {
+			throw new Error(response.error)
+		}
+		if (response.data) {
+			setSelectedBusiness(response.data)
+		}
+		toast.success('La fecha de emisión fue actualizada exitosamente. Los fondeos han sido recalculados')
+		refetch()
+		refetchStats()
+	}, [refetch, refetchStats])
+
 	const handleCancelModalClose = useCallback((open: boolean) => {
 		setCancelModalOpen(open)
 		if (!open) {
@@ -543,6 +556,7 @@ export function NegociosPageClient({
 				sortOrder={searchParams.sortOrder}
 				onUploadSuccess={() => { refetch(); refetchStats() }}
 				onDeleteSuccess={() => { refetch(); refetchStats() }}
+				onSaveDateIssued={handleSaveDateIssued}
 			/>
 
 			{/* Modal de Visualización */}
@@ -551,6 +565,11 @@ export function NegociosPageClient({
 				onOpenChange={handleViewModalClose}
 				business={selectedBusiness}
 				isLoading={isLoadingBusiness}
+				allowEditDateIssued={
+					_currentUser?.role?.code === UserRole.ADMIN ||
+					_currentUser?.role?.code === UserRole.ANALISTA_SOPORTE
+				}
+				onSaveDateIssued={handleSaveDateIssued}
 			/>
 
 			{/* Modal de Cancelación */}

@@ -35,6 +35,7 @@ import {
 } from '@/features/auth/lib/audit-logger'
 import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
 import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
+import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expected-dates'
 import { AnnualPaymentStatus } from '@prisma/client'
 import { sincronizarYCalcularRegistroRezagado } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 
@@ -175,6 +176,7 @@ export async function PUT(
 			idCurrency,
 			idUser,
 			numAportes,
+			dateIssued,
 		} = validationResult.data
 		
 		if (Object.keys(validationResult.data).length === 0) {
@@ -239,17 +241,18 @@ export async function PUT(
 		// Validar que el negocio esté en un estado editable
 		if (
 			existingBusiness.status !== BUSINESS_STATUS.VENTA_EFECTUADA &&
-			existingBusiness.status !== BUSINESS_STATUS.EMITIDO
+			existingBusiness.status !== BUSINESS_STATUS.EMITIDO &&
+			existingBusiness.status !== BUSINESS_STATUS.FONDEADO
 		) {
 			return NextResponse.json(
-				{ data: null, error: 'Solo se pueden editar negocios en estado VENTA_EFECTUADA o EMITIDO' },
+				{ data: null, error: 'Solo se pueden editar negocios en estado VENTA_EFECTUADA, EMITIDO o FONDEADO' },
 				{ status: 400 }
 			)
 		}
 
 		// Validar permisos para campos sensibles si no es borrador
 		const isNotDraft = existingBusiness.status !== BUSINESS_STATUS.VENTA_EFECTUADA
-		const sensitiveFields = [idProduct, term, value, idBuyPeriodicity, idCurrency, idUser, numAportes]
+		const sensitiveFields = [idProduct, term, value, idBuyPeriodicity, idCurrency, idUser, numAportes, dateIssued]
 		const isUpdatingSensitive = sensitiveFields.some((f) => f !== undefined)
 
 		if (isNotDraft && isUpdatingSensitive && !isPrivileged) {
@@ -278,6 +281,7 @@ export async function PUT(
 		let finalIdPpc = existingBusiness.idProductPercentageCommission
 		let finalNumAportes = existingBusiness.numAportes ?? 0
 		let shouldSyncPayments = false
+		let resolvedPeriodicityName: string | null = existingBusiness.buyPeriodicity?.name ?? null
 
 		// --- FLUJO ESPECIAL: CAMBIO DE ORIGEN ---
 		if (idClientOrigin !== undefined && isUpdatingSensitive === false && contract === undefined) {
@@ -343,10 +347,9 @@ export async function PUT(
 			} else {
 				const targetTerm = term ?? existingBusiness.term
 
-				let periodicityName = existingBusiness.buyPeriodicity?.name ?? null
 				if (idBuyPeriodicity !== undefined && idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) {
 					const bp = await prisma.buyPeriodicity.findUnique({ where: { idBuyPeriodicity } })
-					periodicityName = bp?.name ?? null
+					resolvedPeriodicityName = bp?.name ?? null
 				}
 
 				let companyName = existingBusiness.productPercentageCommission.productConfiguration.product.company.name
@@ -363,7 +366,7 @@ export async function PUT(
 
 				finalNumAportes = calculateNumAportes({
 					termYears: targetTerm ?? null,
-					periodicityName,
+					periodicityName: resolvedPeriodicityName,
 					companyName,
 					productName,
 				})
@@ -415,7 +418,9 @@ export async function PUT(
 				updateData.user = { connect: { idUser: idUser } }
 			}
 
-			if (becomesEmitido) {
+			if (dateIssued !== undefined) {
+				updateData.dateIssued = dateIssued ? new Date(dateIssued) : null
+			} else if (becomesEmitido) {
 				updateData.dateIssued = existingBusiness.dateIssued ?? new Date()
 			}
 
@@ -424,6 +429,10 @@ export async function PUT(
 				data: updateData,
 				include: businessWithRelations,
 			})
+
+			const resolvedDateIssued = dateIssued !== undefined
+				? (dateIssued ? new Date(dateIssued) : null)
+				: (becomesEmitido ? (existingBusiness.dateIssued ?? new Date()) : existingBusiness.dateIssued)
 
 			// 2. Sincronizar pagos si es necesario (cambió numAportes, plazo, periodicidad o producto)
 			if (shouldSyncPayments) {
@@ -435,6 +444,11 @@ export async function PUT(
 
 				// Borrar todos los aportes actuales para recrear la secuencia limpia
 				await tx.payment.deleteMany({ where: { idBusiness: businessId } })
+
+				let expectedDates: Date[] = []
+				if ((newStatus === BUSINESS_STATUS.EMITIDO || newStatus === BUSINESS_STATUS.FONDEADO) && resolvedDateIssued && resolvedPeriodicityName && finalNumAportes > 0) {
+					expectedDates = calculateExpectedDates(resolvedDateIssued, finalNumAportes, resolvedPeriodicityName)
+				}
 
 				// Recrear aportes hasta el nuevo finalNumAportes
 				if (finalNumAportes > 0) {
@@ -449,7 +463,7 @@ export async function PUT(
 							installmentIndex: idx,
 							status: previous ? AnnualPaymentStatus.FONDEADO : AnnualPaymentStatus.SIN_FONDEAR,
 							dateAnchored: previous?.dateAnchored ?? null,
-							expectedDate: previous?.expectedDate ?? null,
+							expectedDate: previous ? (previous.expectedDate ?? null) : (expectedDates[i] || null),
 							createdAt: previous?.createdAt ?? now,
 							updatedAt: now,
 						}
@@ -458,6 +472,31 @@ export async function PUT(
 					await tx.payment.createMany({
 						data: paymentsToCreate,
 					})
+				}
+			} else {
+				// Caso 2: Sin cambio estructural, pero cambia la fecha de emisión o se emite/fondea el negocio
+				const dateIssuedChanged = dateIssued !== undefined &&
+					(dateIssued ? new Date(dateIssued).getTime() : 0) !== (existingBusiness.dateIssued ? new Date(existingBusiness.dateIssued).getTime() : 0)
+
+				if ((dateIssuedChanged || becomesEmitido) && (newStatus === BUSINESS_STATUS.EMITIDO || newStatus === BUSINESS_STATUS.FONDEADO) && resolvedDateIssued && resolvedPeriodicityName) {
+					const expectedDates = calculateExpectedDates(resolvedDateIssued, finalNumAportes, resolvedPeriodicityName)
+					const existingPayments = await tx.payment.findMany({
+						where: { idBusiness: businessId },
+					})
+
+					for (const payment of existingPayments) {
+						if (payment.status !== AnnualPaymentStatus.FONDEADO) {
+							const idx = payment.installmentIndex - 1
+							const newExpectedDate = expectedDates[idx] || null
+							await tx.payment.update({
+								where: { idAnnualPayment: payment.idAnnualPayment },
+								data: {
+									expectedDate: newExpectedDate,
+									updatedAt: new Date(),
+								},
+							})
+						}
+					}
 				}
 			}
 
