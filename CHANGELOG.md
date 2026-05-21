@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.6.3] - 2026-05-19
+
+### Nuevo
+
+- **Precarga automática de Periodicidad para SKANDIA + MFUND:** Al seleccionar la compañía Skandia y el producto MFUND en el formulario de creación de negocio, el campo Periodicidad se completa automáticamente con "Aportes Ocasionales". El campo permanece editable: si el agente necesita seleccionar otro valor, el cambio se respeta sin revertirse. En modo edición, el valor guardado en base de datos se preserva tal cual.
+
 ## [1.6.2] - 2026-05-15
 
 ### Nuevo
