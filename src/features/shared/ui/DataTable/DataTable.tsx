@@ -79,6 +79,7 @@ export function DataTable<TData>({
 	manualSorting = false,
 	onSortingChange: onExternalSortingChange,
 	dense = false,
+	columnLabels,
 }: DataTableProps<TData>) {
 	const [sorting, setSorting] = useState<SortingState>(initialSorting)
 
@@ -319,6 +320,7 @@ export function DataTable<TData>({
 						searchPlaceholder={searchPlaceholder}
 						renderAdditionalFilters={renderAdditionalFilters}
 						toolbarTrailingActions={toolbarTrailingActions}
+						columnLabels={columnLabels}
 					/>
 				</div>
 			)}

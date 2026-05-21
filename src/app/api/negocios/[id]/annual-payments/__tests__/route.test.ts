@@ -83,11 +83,13 @@ describe('GET /api/negocios/[id]/annual-payments', () => {
 					installmentIndex: 2,
 					status: AnnualPaymentStatus.SIN_FONDEAR,
 					dateAnchored: null,
+					expectedDate: new Date('2026-06-01T00:00:00.000Z'),
 				},
 				{
 					installmentIndex: 1,
 					status: AnnualPaymentStatus.FONDEADO,
 					dateAnchored: new Date('2025-01-01'),
+					expectedDate: new Date('2025-01-01T00:00:00.000Z'),
 				},
 			],
 		} as never)
@@ -104,7 +106,9 @@ describe('GET /api/negocios/[id]/annual-payments', () => {
 		expect(body.data.businessId).toBe(5)
 		expect(body.data.installments).toHaveLength(2)
 		expect(body.data.installments[0].installmentIndex).toBe(2)
+		expect(body.data.installments[0].expectedDate).toBe('2026-06-01T00:00:00.000Z')
 		expect(body.data.installments[1].installmentIndex).toBe(1)
+		expect(body.data.installments[1].expectedDate).toBe('2025-01-01T00:00:00.000Z')
 	})
 
 	it('AGENTE no ve negocio ajeno (404)', async () => {

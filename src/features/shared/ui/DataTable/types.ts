@@ -187,5 +187,9 @@ export interface DataTableProps<TData> {
 	 * @default false
 	 */
 	dense?: boolean
+	/**
+	 * Mapeo de identificadores de columna a nombres amigables en español
+	 */
+	columnLabels?: Record<string, string>
 }
 

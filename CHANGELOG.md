@@ -4,6 +4,18 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.6.4] - 2026-05-21
+
+### Nuevo
+
+- **Recálculo de fechas de fondeo desde Fecha de Emisión:** Se implementó el recálculo dinámico de las fechas esperadas de los aportes basados en la fecha de emisión del negocio y no desde la fecha del primer fondeo. Al registrar o actualizar la fecha de emisión de un negocio en estado emitido (`EMITIDO`), se recalculan automáticamente las fechas de fondeos proyectados.
+- **Edición rápida desde la tabla:** Se añadió la opción de editar la fecha de emisión directamente en la tabla principal de negocios a través de una celda de fecha interactiva. El ícono de lápiz de edición está ahora **para siempre visible** para todos los negocios elegibles sin necesidad de hover. El botón está habilitado exclusivamente para negocios en estado emitido (`EMITIDO`).
+- **Selector de Fechas Libre:** Se eliminó la restricción de fecha máxima (`max`) tanto en el modal de detalle del negocio como en la celda interactiva de la tabla, permitiendo seleccionar libremente cualquier fecha en el pasado o futuro según las necesidades operativas, eliminando también las validaciones de cliente que impedían el registro de fechas futuras.
+
+### Interno
+
+- **Pruebas y Verificación:** Se crearon y adaptaron suites de pruebas unitarias robustas en el frontend (`business-view-modal.date-issued.test.tsx`) y backend (`route.test.ts`), garantizando el cumplimiento al 100% de los criterios de aceptación sin regresiones.
+
 ## [1.6.3] - 2026-05-19
 
 ### Nuevo
