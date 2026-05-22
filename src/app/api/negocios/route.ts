@@ -58,6 +58,9 @@ export async function GET(
 			agentName: searchParams.get('agentName'),
 			sortBy: searchParams.get('sortBy'),
 			sortOrder: searchParams.get('sortOrder'),
+			companyIds: searchParams.getAll('companyIds').map(Number).filter(n => !Number.isNaN(n)),
+			productIds: searchParams.getAll('productIds').map(Number).filter(n => !Number.isNaN(n)),
+			originIds: searchParams.getAll('originIds').map(Number).filter(n => !Number.isNaN(n)),
 		}
 
 		const validationResult = businessListParamsSchema.safeParse(params)
@@ -72,7 +75,7 @@ export async function GET(
 			)
 		}
 
-		const { page, pageSize, search, status, dateFrom, dateTo, createdFrom, createdTo, agentName, sortBy, sortOrder } =
+		const { page, pageSize, search, status, dateFrom, dateTo, createdFrom, createdTo, agentName, sortBy, sortOrder, companyIds, productIds, originIds } =
 			validationResult.data
 
 		// Obtener usuario actual
@@ -109,6 +112,9 @@ export async function GET(
 				createdFrom,
 				createdTo,
 				agentName,
+				companyIds: companyIds && companyIds.length > 0 ? companyIds : undefined,
+				productIds: productIds && productIds.length > 0 ? productIds : undefined,
+				originIds: originIds && originIds.length > 0 ? originIds : undefined,
 			}),
 			{ visibleUserIds }
 		)
