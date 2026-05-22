@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { Client } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { z } from 'zod'
+import { identityNumberSchema } from '../lib/identity-number.schema'
 
 /**
  * Schema de validación para crear un cliente
@@ -16,14 +17,7 @@ const createClientSchema = z.object({
 		.trim()
 		.optional(),
 	typeIdentity: z.string().default('CC'),
-	identityNumber: z
-		.string()
-		.min(1, 'El número de identificación es obligatorio')
-		.min(5, 'El número de identificación debe tener al menos 5 caracteres')
-		.regex(
-			/^[0-9.]+$/,
-			'El número de identificación solo puede contener números y puntos'
-		),
+	identityNumber: identityNumberSchema.transform((v) => v.toUpperCase()),
 	email: z.string().email('Email inválido').optional(),
 	phone: z
 		.string()
