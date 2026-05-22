@@ -3,17 +3,19 @@ import {
   ALLOWED_MIME_TYPES,
   MAX_BYTES,
   isAllowedMime,
+  isImageMime,
   extensionFor,
   validateUpload,
 } from '../lib/mime-utils'
 
 describe('ALLOWED_MIME_TYPES', () => {
-  it('should include exactly the three allowed types', () => {
+  it('should include exactly the four allowed types', () => {
     expect(ALLOWED_MIME_TYPES).toContain('image/jpeg')
     expect(ALLOWED_MIME_TYPES).toContain('image/png')
     expect(ALLOWED_MIME_TYPES).toContain('image/webp')
+    expect(ALLOWED_MIME_TYPES).toContain('application/pdf')
     expect(ALLOWED_MIME_TYPES).not.toContain('image/gif')
-    expect(ALLOWED_MIME_TYPES).toHaveLength(3)
+    expect(ALLOWED_MIME_TYPES).toHaveLength(4)
   })
 })
 
@@ -34,8 +36,8 @@ describe('isAllowedMime', () => {
     expect(isAllowedMime('image/gif')).toBe(false)
   })
 
-  it('returns false for application/pdf', () => {
-    expect(isAllowedMime('application/pdf')).toBe(false)
+  it('returns true for application/pdf', () => {
+    expect(isAllowedMime('application/pdf')).toBe(true)
   })
 
   it('returns false for video/mp4', () => {
@@ -44,6 +46,28 @@ describe('isAllowedMime', () => {
 
   it('returns false for empty string', () => {
     expect(isAllowedMime('')).toBe(false)
+  })
+})
+
+describe('isImageMime', () => {
+  it('returns true for image/jpeg', () => {
+    expect(isImageMime('image/jpeg')).toBe(true)
+  })
+
+  it('returns true for image/png', () => {
+    expect(isImageMime('image/png')).toBe(true)
+  })
+
+  it('returns true for image/webp', () => {
+    expect(isImageMime('image/webp')).toBe(true)
+  })
+
+  it('returns false for application/pdf', () => {
+    expect(isImageMime('application/pdf')).toBe(false)
+  })
+
+  it('returns false for empty string', () => {
+    expect(isImageMime('')).toBe(false)
   })
 })
 
@@ -64,8 +88,8 @@ describe('extensionFor', () => {
     expect(extensionFor('image/gif')).toBeNull()
   })
 
-  it('returns null for unsupported mime', () => {
-    expect(extensionFor('application/pdf')).toBeNull()
+  it('returns pdf for application/pdf', () => {
+    expect(extensionFor('application/pdf')).toBe('pdf')
   })
 })
 
@@ -83,11 +107,16 @@ describe('validateUpload', () => {
     }
   })
 
-  it('returns error for invalid mime type', () => {
-    const result = validateUpload('application/pdf', 1024)
+  it('returns ok for pdf at 1 MB', () => {
+    const result = validateUpload('application/pdf', 1024 * 1024)
+    expect(result.ok).toBe(true)
+  })
+
+  it('returns FILE_TOO_LARGE for pdf exceeding 10 MB', () => {
+    const result = validateUpload('application/pdf', MAX_BYTES + 1)
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.code).toBe('INVALID_MIME')
+      expect(result.code).toBe('FILE_TOO_LARGE')
     }
   })
 
