@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import { ImageUp } from 'lucide-react'
+import { FileUp } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import {
 } from '@/features/shared/ui/dialog'
 import { Button } from '@/features/shared/ui/button'
 import { useUploadComprobante } from '../hooks/useUploadComprobante'
+import { ALLOWED_MIME_TYPES } from '../lib/mime-utils'
 
 interface UploadComprobanteModalProps {
   businessId: number
@@ -20,7 +21,7 @@ interface UploadComprobanteModalProps {
   onSuccess?: () => void
 }
 
-const ACCEPT = 'image/jpeg,image/png,image/webp'
+const ACCEPT = ALLOWED_MIME_TYPES.join(',')
 
 export function UploadComprobanteModal({
   businessId,
@@ -58,7 +59,7 @@ export function UploadComprobanteModal({
         <DialogHeader>
           <DialogTitle>Subir comprobante</DialogTitle>
           <DialogDescription>
-            Seleccioná una imagen JPEG, PNG o WebP. Máximo 10 MB.
+            Seleccioná una imagen (JPEG, PNG, WebP) o un PDF. Máximo 10 MB.
           </DialogDescription>
         </DialogHeader>
 
@@ -80,8 +81,8 @@ export function UploadComprobanteModal({
             onClick={() => inputRef.current?.click()}
             className="w-full gap-2"
           >
-            <ImageUp className="h-4 w-4" />
-            {selectedFile ?? 'Seleccionar imagen'}
+            <FileUp className="h-4 w-4" />
+            {selectedFile ?? 'Seleccionar archivo'}
           </Button>
 
           {isLoading && (

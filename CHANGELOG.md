@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.8.0] - 2026-05-22
+
+### Nuevo
+
+- **Comprobantes en PDF:** Los usuarios ahora pueden subir archivos PDF como comprobantes de pago, además de las imágenes (JPEG, PNG, WebP). El visor de comprobantes muestra los PDF directamente en pantalla con un visor inline, y el botón "Ver original" sigue disponible para abrirlos en una nueva pestaña. Los PDF se identifican visualmente con un ícono de documento en la lista de comprobantes.
+
 ## [1.7.0] - 2026-05-22
 
 ### Nuevo
