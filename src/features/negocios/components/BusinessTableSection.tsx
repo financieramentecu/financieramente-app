@@ -757,7 +757,6 @@ export function BusinessTableSection({
 							isEmitido && !row.hasPayments && canFondearRole
 						const showFondearAnnual =
 							row.hasPayments &&
-							row.hasPendingPaymentFunding &&
 							(isEmitido || isFondeado) &&
 							canFondearRole
 						const isCoachRole = userRole === UserRole.AGENTE

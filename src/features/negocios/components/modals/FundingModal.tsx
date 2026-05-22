@@ -1,11 +1,7 @@
 'use client'
 
-/**
- * Modal para selección de aportes a marcar como fondeados
- */
-
 import * as React from 'react'
-import { Loader2, CheckCircle2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import { Checkbox } from '@/features/shared/ui/checkbox'
 import { Label } from '@/features/shared/ui/label'
@@ -18,22 +14,43 @@ import {
 	DialogTitle,
 } from '@/features/shared/ui/dialog'
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
+import { AporteRow, type AporteAction } from './AporteRow'
+import { ConfirmActionDialog } from '@/features/shared/ui/confirm-action-dialog'
+import { useAporteTransitions } from '../../hooks/use-aporte-transitions'
+import { canFundPayments } from '@/features/auth/lib/roles'
+
+const DIALOG_CONFIG: Record<AporteAction, { title: string; description: string; confirmLabel: string }> = {
+	MARK_CARTERA: {
+		title: 'Marcar como En Cartera',
+		description: '¿Confirmar que este aporte se marcará como En Cartera? Se registrará la fecha actual.',
+		confirmLabel: 'Marcar Cartera',
+	},
+	UNMARK_CARTERA: {
+		title: 'Quitar de Cartera',
+		description: '¿Confirmar que este aporte se revertirá a FONDEADO? La fecha de cartera será eliminada.',
+		confirmLabel: 'Quitar Cartera',
+	},
+	MARK_ANTICIPADO: {
+		title: 'Marcar como Pago Anticipado',
+		description: '¿Confirmar que el cliente realizó un pago anticipado? Se registrará la fecha actual.',
+		confirmLabel: 'Confirmar Pago Anticipado',
+	},
+}
 
 export interface FundingModalProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	businessId: number | null
-	/** Texto del contrato (columna Contrato); si viene vacío se usa Negocio #id como respaldo */
 	contractLabel?: string | null
 	installments: PaymentInstallmentDto[]
 	isLoadingInstallments?: boolean
 	isSubmitting?: boolean
-	/** Periodicidad del negocio (nombre legible, e.g. "Mensual") */
 	periodicidadLabel?: string | null
-	/** Plazo del negocio en años */
 	plazo?: number | null
-	/** Si false, el modal es solo lectura: sin checkboxes ni botón guardar */
+	/** If false, the modal is read-only: no checkboxes or save button for SIN_FONDEAR rows */
 	canFund?: boolean
+	/** Role code of the current user — used to gate EN_CARTERA / PAGO_ANTICIPADO actions */
+	roleCode?: string
 	onConfirm: (fundedInstallmentIndexes: number[]) => Promise<void> | void
 }
 
@@ -42,21 +59,35 @@ export function FundingModal({
 	onOpenChange,
 	businessId,
 	contractLabel,
-	installments,
+	installments: initialInstallments,
 	isLoadingInstallments = false,
 	isSubmitting = false,
 	periodicidadLabel,
 	plazo,
 	canFund = true,
+	roleCode,
 	onConfirm,
 }: FundingModalProps) {
+	const [installments, setInstallments] =
+		React.useState<PaymentInstallmentDto[]>(initialInstallments)
 	const [selected, setSelected] = React.useState<Set<number>>(new Set())
+	const hasSinFondear = installments.some(i => i.status === 'SIN_FONDEAR')
+	const [pendingConfirm, setPendingConfirm] = React.useState<{ action: AporteAction; index: number } | null>(null)
+	const [loadingIndex, setLoadingIndex] = React.useState<number | null>(null)
+	const now = React.useMemo(() => new Date(), [])
+	const { markCartera, unmarkCartera, markPagoAnticipado } = useAporteTransitions()
+
+	React.useEffect(() => {
+		setInstallments(initialInstallments)
+	}, [initialInstallments])
 
 	React.useEffect(() => {
 		if (!open) {
 			setSelected(new Set())
 		}
 	}, [open])
+
+	const canMutate = canFundPayments(roleCode)
 
 	const pendingIndexes = installments
 		.filter((i) => i.status === 'SIN_FONDEAR')
@@ -82,6 +113,34 @@ export function FundingModal({
 		await onConfirm(Array.from(selected).sort((a, b) => a - b))
 	}
 
+	const handleTransitionSuccess = (updated: PaymentInstallmentDto) => {
+		setInstallments((prev) =>
+			prev.map((row) =>
+				row.installmentIndex === updated.installmentIndex ? updated : row
+			)
+		)
+	}
+
+	const handleRequestAction = (action: AporteAction, index: number) => {
+		setPendingConfirm({ action, index })
+	}
+
+	const handleConfirmAction = async () => {
+		if (!pendingConfirm || businessId === null) return
+		const { action, index } = pendingConfirm
+		setPendingConfirm(null)
+		setLoadingIndex(index)
+
+		const call =
+			action === 'MARK_CARTERA' ? markCartera :
+			action === 'UNMARK_CARTERA' ? unmarkCartera :
+			markPagoAnticipado
+
+		const result = await call(businessId, index)
+		setLoadingIndex(null)
+		if (result.data) handleTransitionSuccess(result.data)
+	}
+
 	const trimmedContract = contractLabel?.trim() ?? ''
 	const contractSuffix =
 		trimmedContract !== ''
@@ -100,27 +159,14 @@ export function FundingModal({
 	const formatExpectedDate = (iso: string | null) => {
 		if (!iso) return 'Por confirmar'
 		try {
-			return new Date(iso).toLocaleDateString('es-CO', {
-				dateStyle: 'medium',
-			})
-		} catch {
-			return iso
-		}
-	}
-
-	const formatAnchoredDate = (iso: string | null) => {
-		if (!iso) return '—'
-		try {
-			return new Date(iso).toLocaleString('es-CO', {
-				dateStyle: 'short',
-				timeStyle: 'short',
-			})
+			return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium' })
 		} catch {
 			return iso
 		}
 	}
 
 	return (
+		<>
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
@@ -129,9 +175,7 @@ export function FundingModal({
 						{contractSuffix}
 					</DialogTitle>
 					{headerMeta && (
-						<p className="text-sm text-muted-foreground pt-0.5">
-							{headerMeta}
-						</p>
+						<p className="text-sm text-muted-foreground pt-0.5">{headerMeta}</p>
 					)}
 				</DialogHeader>
 
@@ -143,30 +187,20 @@ export function FundingModal({
 					</div>
 				) : (
 					<div className="space-y-4 py-2">
-						{canFund && (
-							<p className="text-sm text-muted-foreground">
-								Marque los aportes que el cliente ya pagó. Los ya registrados no
-								se pueden quitar en esta versión.
-							</p>
-						)}
-						<ul className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
+						<ul className="max-h-[50vh] overflow-y-auto space-y-1 pr-1">
 							{installments.map((row) => {
-								const isPending = row.status === 'SIN_FONDEAR'
-								const checked = isPending && selected.has(row.installmentIndex)
-
-								if (!isPending) {
+								if (row.status !== 'SIN_FONDEAR') {
 									return (
-										<li
+										<AporteRow
 											key={row.installmentIndex}
-											className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5"
-										>
-											<CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" aria-hidden />
-											<span className="text-xs text-muted-foreground">
-												<span className="font-medium">Aporte {row.installmentIndex}</span>
-												{' · '}
-												{formatAnchoredDate(row.dateAnchored)}
-											</span>
-										</li>
+											aporte={row}
+											businessId={businessId ?? 0}
+											canMutate={canMutate}
+											isLoading={loadingIndex === row.installmentIndex}
+											now={now}
+											onTransitionSuccess={handleTransitionSuccess}
+											onRequestAction={handleRequestAction}
+										/>
 									)
 								}
 
@@ -187,6 +221,8 @@ export function FundingModal({
 										</li>
 									)
 								}
+
+								const checked = selected.has(row.installmentIndex)
 
 								return (
 									<li
@@ -230,9 +266,9 @@ export function FundingModal({
 						onClick={() => onOpenChange(false)}
 						disabled={isSubmitting}
 					>
-						{canFund ? 'Cancelar' : 'Cerrar'}
+						{canFund && hasSinFondear ? 'Cancelar' : 'Cerrar'}
 					</Button>
-					{canFund && (
+					{canFund && hasSinFondear && (
 						<Button
 							type="button"
 							onClick={() => void handleConfirm()}
@@ -256,5 +292,17 @@ export function FundingModal({
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
+
+		{pendingConfirm && (
+			<ConfirmActionDialog
+				open={true}
+				title={DIALOG_CONFIG[pendingConfirm.action].title}
+				description={DIALOG_CONFIG[pendingConfirm.action].description}
+				confirmLabel={DIALOG_CONFIG[pendingConfirm.action].confirmLabel}
+				onConfirm={() => void handleConfirmAction()}
+				onCancel={() => setPendingConfirm(null)}
+			/>
+		)}
+		</>
 	)
 }

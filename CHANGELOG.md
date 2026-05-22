@@ -4,6 +4,36 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.7.0] - 2026-05-22
+
+### Nuevo
+
+- **Estados de Fondeo Avanzados:** El modal de fondeo ahora soporta dos nuevos estados por aporte: **En Cartera** (marcado en rojo cuando un pago está en gestión de cobro) y **Pago Anticipado** (cuando el cliente pagó antes de la fecha proyectada). Analistas de Soporte y Administradores pueden registrar estos estados directamente desde el modal.
+
+- **Ciclo de vida completo del aporte:** Los aportes ahora nacen automáticamente como Fondeados al momento de emitir el negocio, con sus fechas proyectadas por cuota. El color del aporte (verde o gris) se determina comparando la fecha proyectada de cada cuota con el mes actual — sin necesidad de acciones manuales.
+
+- **Reversión de Cartera:** Los analistas pueden revertir un aporte marcado como En Cartera con un clic en "Quitar Cartera", devolviendo el aporte a su estado anterior y registrando el cambio en el log de auditoría.
+
+- **Confirmación obligatoria en transiciones:** Todas las acciones de cambio de estado (marcar Cartera, Pago Anticipado, Quitar Cartera) requieren confirmación explícita del usuario antes de ejecutarse.
+
+- **Control de acceso por rol:** Los botones de acción solo son visibles para Analistas de Soporte y Administradores. Los Agentes/Coach pueden ver el estado de cada aporte pero no realizar cambios.
+
+- **Auditoría completa:** Cada cambio de estado queda registrado automáticamente en el log de auditoría con usuario, IP, fecha y hora.
+
+- **Script de migración de pagos:** Se incluye un script (`prisma/seeds/migrate-payments-to-fondeado.ts`) para migrar pagos existentes en estado SIN_FONDEAR al nuevo modelo FONDEADO.
+
+### Mejorado
+
+- **Diseño del modal de fondeo:** Las filas de aportes son más compactas. Los botones de acción aparecen al pasar el mouse sobre cada fila y llevan íconos descriptivos. Los aportes de meses pasados se muestran en verde reducido para aprovechar mejor el espacio.
+
+- **Recálculo de fechas al cambiar emisión:** Al modificar la fecha de emisión de un negocio, se recalculan automáticamente las fechas proyectadas de todos los aportes en estado Fondeado, respetando los aportes en Cartera o Pago Anticipado.
+
+### Corregido
+
+- **Rendimiento en actualización de negocios:** Se resolvió un error de timeout (P2028) que ocurría al guardar negocios con muchos aportes. Las actualizaciones de fechas ahora se ejecutan fuera de la transacción principal.
+
+- **Mensaje de validación en cambio de rol:** Al intentar guardar un usuario con rol Agente sin categoría asignada, ahora se muestra el mensaje de error específico en lugar del JSON técnico.
+
 ## [1.6.4] - 2026-05-21
 
 ### Nuevo
