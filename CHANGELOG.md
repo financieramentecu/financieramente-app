@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.9.0] - 2026-05-22
+
+### Nuevo
+
+- **Cédulas y documentos alfanuméricos:** El campo de número de identificación del cliente ahora acepta letras, dígitos, puntos y guiones, eliminando el bloqueo que impedía registrar clientes con Cédula de Extranjería (`CE-123456`), pasaporte (`PE-123456`) u otros documentos con letras. El sistema normaliza automáticamente el número a mayúsculas al guardarlo, garantizando consistencia en la base de datos.
+
 ## [1.8.0] - 2026-05-22
 
 ### Nuevo
