@@ -36,6 +36,7 @@ import { useRoles } from '../hooks/use-roles'
 import { useUserAccessValidation } from '../hooks/use-user-access-validation'
 import { isDefaultRole } from '../utils/user-access.utils'
 import { updateUserSchema } from '../lib/user-schemas'
+import { toast } from 'sonner'
 import { useAdminCategories as useCategories } from '@/features/categories/hooks/use-admin-categories'
 import { useLevels } from '@/features/levels/hooks/use-levels'
 import { apiClient } from '@/lib/api/client'
@@ -241,18 +242,23 @@ export function UserActionsCard({
 			const schema = updateUserSchema(roleCode, user.id)
 			schema.parse(validationData)
 		} catch (error) {
+			let message = 'Error de validación'
+
 			if (error instanceof Error) {
-				setValidationError(error.message)
-			} else if (
-				typeof error === 'object' &&
-				error !== null &&
-				'errors' in error
-			) {
-				const zodError = error as { errors: Array<{ message: string }> }
-				setValidationError(zodError.errors[0]?.message || 'Error de validación')
-			} else {
-				setValidationError('Error de validación')
+				try {
+					const parsed: unknown = JSON.parse(error.message)
+					if (Array.isArray(parsed) && typeof (parsed[0] as { message?: string })?.message === 'string') {
+						message = (parsed[0] as { message: string }).message
+					} else {
+						message = error.message
+					}
+				} catch {
+					message = error.message
+				}
 			}
+
+			setValidationError(message)
+			toast.error(message)
 			return
 		}
 
@@ -343,7 +349,7 @@ export function UserActionsCard({
 					{validationError && (
 						<Alert variant="destructive">
 							<AlertTriangle className="h-4 w-4" />
-							<AlertTitle>Error de validación</AlertTitle>
+							<AlertTitle>No se puede guardar</AlertTitle>
 							<AlertDescription>{validationError}</AlertDescription>
 						</Alert>
 					)}

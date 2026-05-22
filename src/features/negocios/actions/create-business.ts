@@ -151,19 +151,17 @@ export async function createBusiness(
 				},
 			})
 
-			if (numAportes > 0) {
+			if (numAportes > 0 && status === BUSINESS_STATUS.EMITIDO && issuedAt && periodicityName) {
 				const rowTimestamp = new Date()
-				let expectedDates: Date[] = []
-				if (status === BUSINESS_STATUS.EMITIDO && issuedAt && periodicityName) {
-					expectedDates = calculateExpectedDates(issuedAt, numAportes, periodicityName)
-				}
+				const expectedDates = calculateExpectedDates(issuedAt, numAportes, periodicityName)
 
 				await tx.payment.createMany({
 					data: Array.from({ length: numAportes }, (_, i) => ({
 						idBusiness: created.idBusiness,
 						installmentIndex: i + 1,
-						status: AnnualPaymentStatus.SIN_FONDEAR,
-						expectedDate: expectedDates[i] || null,
+						status: AnnualPaymentStatus.FONDEADO,
+						expectedDate: expectedDates[i] ?? null,
+						dateAnchored: expectedDates[i] ?? null,
 						createdAt: rowTimestamp,
 						updatedAt: rowTimestamp,
 					})),

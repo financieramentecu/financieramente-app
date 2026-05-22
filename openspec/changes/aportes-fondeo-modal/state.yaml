@@ -1,0 +1,21 @@
+change: aportes-fondeo-modal
+status: archived
+phases_completed: [explore, proposal, spec, design, tasks, apply, verify, archive]
+next: none
+artifact_store: hybrid
+delivery_strategy: size:exception
+branch: feat/aportes-fondeo-modal
+archived_at: 2026-05-22
+
+post_apply_notes:
+  - Nested Radix portal conflict fixed — ConfirmActionDialog lifted outside FundingModal Dialog
+  - roleCode prop was missing in negocios-page-client.tsx — canMutate was always false
+  - Prisma enum strings bug — payment-state.service used string literals, fixed to AnnualPaymentStatus enum
+  - Transaction P2028 timeout — SOLID refactor extracted payment ops outside $transaction
+  - isSameMonthOrFuture(null) returned true — fixed to false; resolveReferenceDate added
+  - create-business.ts payments now created as FONDEADO (was SIN_FONDEAR)
+  - hasPendingPaymentFunding changed from SIN_FONDEAR to FONDEADO||EN_CARTERA check
+  - Migration seed added: prisma/seeds/migrate-payments-to-fondeado.ts
+
+verification_result: PASS
+test_results: 216/216 files passing, 2031 tests pass, 0 TypeScript errors

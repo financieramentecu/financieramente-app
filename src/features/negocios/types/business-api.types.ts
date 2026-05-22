@@ -102,7 +102,11 @@ export interface CancelBusinessRequest {
 }
 
 /** Estado de cuota de pago para modal (API payments) */
-export type AnnualInstallmentStatusUi = 'SIN_FONDEAR' | 'FONDEADO'
+export type AnnualInstallmentStatusUi =
+	| 'SIN_FONDEAR'
+	| 'FONDEADO'
+	| 'EN_CARTERA'
+	| 'PAGO_ANTICIPADO'
 
 /** @deprecated Use PaymentInstallmentDto */
 export type AnnualInstallmentDto = PaymentInstallmentDto
@@ -112,6 +116,8 @@ export interface PaymentInstallmentDto {
 	status: AnnualInstallmentStatusUi
 	dateAnchored: string | null
 	expectedDate: string | null
+	portfolioDate: string | null
+	earlyPaymentDate: string | null
 }
 
 export interface AnnualPaymentsResponse {

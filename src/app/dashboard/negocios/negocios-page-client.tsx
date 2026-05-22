@@ -592,6 +592,7 @@ export function NegociosPageClient({
 				periodicidadLabel={annualFundingPeriodicidadLabel}
 				plazo={annualFundingPlazo}
 				canFund={canFundPayments(_currentUser?.role?.code)}
+				roleCode={_currentUser?.role?.code}
 				onConfirm={handleConfirmAnnualFunding}
 			/>
 

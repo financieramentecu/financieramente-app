@@ -28,7 +28,7 @@ vi.mock('@/lib/prisma', () => ({
 		user: { findUnique: vi.fn() },
 		buyPeriodicity: { findUnique: vi.fn() },
 		product: { findUnique: vi.fn() },
-		payment: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
+		payment: { findMany: vi.fn(), update: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
 		$transaction: vi.fn().mockImplementation(async (cb: any) => {
 			const tx = {
 				business: {
@@ -330,61 +330,28 @@ describe('PUT /api/negocios/[id]', () => {
 		)
 	})
 
-	it('updates expectedDates for SIN_FONDEAR payments when dateIssued is modified by privileged user', async () => {
+	it('recalculates expectedDate and dateAnchored for FONDEADO payments when dateIssued is modified, skipping EN_CARTERA and PAGO_ANTICIPADO', async () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
-		const mockCurUser = {
-			idUser: 1,
-			name: 'Admin',
-			role: { code: 'ADMIN' },
-			idRole: 1,
-		}
+		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' }, idRole: 1 }
 		const mockBusinessEmitido = {
-			idBusiness: 10,
-			status: 'EMITIDO',
+			idBusiness: 10, status: 'EMITIDO',
 			dateIssued: new Date('2024-01-01T12:00:00Z'),
-			buyPeriodicity: { name: 'Mensual' },
-			numAportes: 3,
+			buyPeriodicity: { name: 'Mensual' }, numAportes: 3,
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(auth as any).mockResolvedValue(mockSession)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		mockPrismaFindFirst.mockResolvedValue(mockBusinessEmitido)
 		mockPrismaUpdate.mockResolvedValue({ idBusiness: 10, status: 'EMITIDO', dateIssued: new Date('2024-02-01T12:00:00Z') })
 
-		const paymentUpdate = vi.fn().mockResolvedValue({})
-		const paymentFindMany = vi.fn().mockResolvedValue([
+		const payments = [
 			{ idAnnualPayment: 101, installmentIndex: 1, status: 'FONDEADO' },
-			{ idAnnualPayment: 102, installmentIndex: 2, status: 'SIN_FONDEAR' },
-			{ idAnnualPayment: 103, installmentIndex: 3, status: 'SIN_FONDEAR' },
-		])
-
-		vi.mocked(prisma.$transaction).mockImplementationOnce(async (cb: any) => {
-			const tx = {
-				business: {
-					update: mockPrismaUpdate,
-					findMany: vi.fn().mockResolvedValue([]),
-					deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-					createMany: vi.fn().mockResolvedValue({ count: 0 }),
-					findFirst: mockPrismaFindFirst,
-				},
-				payment: {
-					findMany: paymentFindMany,
-					update: paymentUpdate,
-					deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-					createMany: vi.fn().mockResolvedValue({ count: 0 }),
-				},
-				user: {
-					findUnique: vi.fn().mockResolvedValue({ idLevel: 1 }),
-				},
-				productConfiguration: {
-					findFirst: vi.fn().mockResolvedValue({ idProductConfiguration: 1 }),
-				},
-			}
-			return await cb(tx)
-		})
+			{ idAnnualPayment: 102, installmentIndex: 2, status: 'EN_CARTERA' },
+			{ idAnnualPayment: 103, installmentIndex: 3, status: 'PAGO_ANTICIPADO' },
+		]
+		// recalculatePaymentExpectedDates uses prisma directly (outside tx)
+		vi.mocked(prisma.payment.findMany).mockResolvedValue(payments as any)
+		vi.mocked(prisma.payment.update).mockResolvedValue({} as any)
 
 		const req = new Request('http://localhost:3000/api/negocios/10', {
 			method: 'PUT',
@@ -392,26 +359,15 @@ describe('PUT /api/negocios/[id]', () => {
 			body: JSON.stringify({ dateIssued: '2024-02-01T00:00:00.000Z' }),
 		})
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
-		const json = await res.json()
-
 		expect(res.status).toBe(200)
-		expect(mockPrismaUpdate).toHaveBeenCalledWith(
-			expect.objectContaining({
-				where: { idBusiness: 10 },
-				data: expect.objectContaining({
-					dateIssued: expect.any(Date),
-				}),
-			})
-		)
 
-		// payment.update should have been called only for the two SIN_FONDEAR payments
-		expect(paymentUpdate).toHaveBeenCalledTimes(2)
-		expect(paymentUpdate).toHaveBeenCalledWith(
+		// Only FONDEADO payment gets updated; EN_CARTERA and PAGO_ANTICIPADO are protected
+		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledTimes(1)
+		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledWith(
 			expect.objectContaining({
-				where: { idAnnualPayment: 102 },
-				data: expect.objectContaining({ expectedDate: expect.any(Date) }),
+				where: { idAnnualPayment: 101 },
+				data: expect.objectContaining({ expectedDate: expect.any(Date), dateAnchored: expect.any(Date) }),
 			})
 		)
 	})
@@ -454,7 +410,7 @@ describe('PUT /api/negocios/[id]', () => {
 		expect(mockPrismaUpdate).not.toHaveBeenCalled()
 	})
 
-	it('updates expectedDates for SIN_FONDEAR payments when dateIssued is modified while business is FONDEADO', async () => {
+	it('recalculates dates for FONDEADO payments when dateIssued is modified while business is FONDEADO', async () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
 		const mockCurUser = {
 			idUser: 1,
@@ -478,37 +434,13 @@ describe('PUT /api/negocios/[id]', () => {
 		mockPrismaFindFirst.mockResolvedValue(mockBusinessFondeado)
 		mockPrismaUpdate.mockResolvedValue({ idBusiness: 10, status: 'FONDEADO', dateIssued: new Date('2024-02-01T12:00:00Z') })
 
-		const paymentUpdate = vi.fn().mockResolvedValue({})
-		const paymentFindMany = vi.fn().mockResolvedValue([
+		const payments = [
 			{ idAnnualPayment: 101, installmentIndex: 1, status: 'FONDEADO' },
-			{ idAnnualPayment: 102, installmentIndex: 2, status: 'SIN_FONDEAR' },
-			{ idAnnualPayment: 103, installmentIndex: 3, status: 'SIN_FONDEAR' },
-		])
-
-		vi.mocked(prisma.$transaction).mockImplementationOnce(async (cb: any) => {
-			const tx = {
-				business: {
-					update: mockPrismaUpdate,
-					findMany: vi.fn().mockResolvedValue([]),
-					deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-					createMany: vi.fn().mockResolvedValue({ count: 0 }),
-					findFirst: mockPrismaFindFirst,
-				},
-				payment: {
-					findMany: paymentFindMany,
-					update: paymentUpdate,
-					deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-					createMany: vi.fn().mockResolvedValue({ count: 0 }),
-				},
-				user: {
-					findUnique: vi.fn().mockResolvedValue({ idLevel: 1 }),
-				},
-				productConfiguration: {
-					findFirst: vi.fn().mockResolvedValue({ idProductConfiguration: 1 }),
-				},
-			}
-			return await cb(tx)
-		})
+			{ idAnnualPayment: 102, installmentIndex: 2, status: 'FONDEADO' },
+			{ idAnnualPayment: 103, installmentIndex: 3, status: 'EN_CARTERA' },
+		]
+		vi.mocked(prisma.payment.findMany).mockResolvedValue(payments as any)
+		vi.mocked(prisma.payment.update).mockResolvedValue({} as any)
 
 		const req = new Request('http://localhost:3000/api/negocios/10', {
 			method: 'PUT',
@@ -516,27 +448,19 @@ describe('PUT /api/negocios/[id]', () => {
 			body: JSON.stringify({ dateIssued: '2024-02-01T00:00:00.000Z' }),
 		})
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
-		await res.json()
-
 		expect(res.status).toBe(200)
-		expect(mockPrismaUpdate).toHaveBeenCalledWith(
+
+		// Two FONDEADO payments get updated; EN_CARTERA is protected
+		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledTimes(2)
+		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledWith(
 			expect.objectContaining({
-				where: { idBusiness: 10 },
-				data: expect.objectContaining({
-					dateIssued: expect.any(Date),
-				}),
+				where: { idAnnualPayment: 101 },
+				data: expect.objectContaining({ expectedDate: expect.any(Date), dateAnchored: expect.any(Date) }),
 			})
 		)
-
-		// payment.update should have been called only for the two SIN_FONDEAR payments
-		expect(paymentUpdate).toHaveBeenCalledTimes(2)
-		expect(paymentUpdate).toHaveBeenCalledWith(
-			expect.objectContaining({
-				where: { idAnnualPayment: 102 },
-				data: expect.objectContaining({ expectedDate: expect.any(Date) }),
-			})
+		expect(vi.mocked(prisma.payment.update)).not.toHaveBeenCalledWith(
+			expect.objectContaining({ where: { idAnnualPayment: 103 } })
 		)
 	})
 })

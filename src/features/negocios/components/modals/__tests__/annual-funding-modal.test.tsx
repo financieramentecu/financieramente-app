@@ -7,6 +7,8 @@ const pendingInstallment = {
 	status: 'SIN_FONDEAR' as const,
 	dateAnchored: null,
 	expectedDate: null,
+	portfolioDate: null,
+	earlyPaymentDate: null,
 }
 
 describe('AnnualFundingModal', () => {
@@ -59,6 +61,8 @@ describe('AnnualFundingModal', () => {
 			status: 'FONDEADO' as const,
 			dateAnchored: '2025-03-15T10:00:00.000Z',
 			expectedDate: null,
+			portfolioDate: null,
+			earlyPaymentDate: null,
 		}
 		render(<AnnualFundingModal {...defaults} installments={[funded]} />)
 

@@ -213,35 +213,35 @@ describe('prismaBusinessToEntity', () => {
 			expect(result.fundedAportes).toBe(0)
 		})
 
-		it('should map _count.payments > 0 to hasPayments: true', () => {
+		it('should map hasPendingPaymentFunding true when payments include FONDEADO', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: 3,
 				_count: { payments: 3, supports: 0 },
-				payments: [{ idAnnualPayment: 1, status: 'SIN_FONDEAR' }],
+				payments: [{ idAnnualPayment: 1, status: 'FONDEADO' }],
 				supports: [],
 			})
 
 			expect(result.hasPayments).toBe(true)
 			expect(result.hasPendingPaymentFunding).toBe(true)
-			expect(result.fundedAportes).toBe(0)
+			expect(result.fundedAportes).toBe(1)
 		})
 
-		it('should map hasPendingPaymentFunding false when no aportes SIN_FONDEAR', () => {
+		it('should map hasPendingPaymentFunding false when all payments are PAGO_ANTICIPADO', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: 3,
 				_count: { payments: 3, supports: 0 },
 				payments: [
-					{ idAnnualPayment: 1, status: 'FONDEADO' },
-					{ idAnnualPayment: 2, status: 'FONDEADO' },
-					{ idAnnualPayment: 3, status: 'FONDEADO' },
+					{ idAnnualPayment: 1, status: 'PAGO_ANTICIPADO' },
+					{ idAnnualPayment: 2, status: 'PAGO_ANTICIPADO' },
+					{ idAnnualPayment: 3, status: 'PAGO_ANTICIPADO' },
 				],
 			})
 
 			expect(result.hasPayments).toBe(true)
 			expect(result.hasPendingPaymentFunding).toBe(false)
-			expect(result.fundedAportes).toBe(3)
+			expect(result.fundedAportes).toBe(0)
 		})
 	})
 })
