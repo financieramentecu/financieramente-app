@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, ImageIcon, ZoomIn } from 'lucide-react'
+import { Trash2, ImageIcon, ZoomIn, FileText } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -14,6 +14,7 @@ import { useBusinessSupports } from '../hooks/useBusinessSupports'
 import { useDeleteComprobante } from '../hooks/useDeleteComprobante'
 import type { BusinessSupportDTO } from '../types/business-support.types'
 import { UserRole } from '@/features/auth/lib/roles'
+import { isImageMime } from '../lib/mime-utils'
 
 const DELETE_ALLOWED_ROLES: UserRole[] = [
   UserRole.ADMIN,
@@ -101,11 +102,18 @@ function SupportGallery({ items, canDelete, onDelete }: SupportGalleryProps) {
             >
               <div className="p-2.5 flex gap-2.5 items-start">
                 <div className="w-10 h-10 shrink-0 rounded overflow-hidden bg-muted border border-border">
-                  <img
-                    src={c.viewUrl ?? '#'}
-                    alt={`Comprobante ${c.id}`}
-                    className="w-full h-full object-cover"
-                  />
+                  {isImageMime(c.mimeType) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={c.viewUrl ?? '#'}
+                      alt={`Comprobante ${c.id}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-foreground truncate">
@@ -161,14 +169,25 @@ function SupportGallery({ items, canDelete, onDelete }: SupportGalleryProps) {
               </a>
             </div>
 
-            {/* Image preview */}
-            <div className="flex flex-1 items-center justify-center bg-muted/20 p-6 overflow-auto">
-              <img
-                src={selected.viewUrl ?? '#'}
-                alt={`Support preview ${selected.id}`}
-                className="max-h-full max-w-full object-contain rounded-md shadow-md"
-              />
-            </div>
+            {/* Preview area */}
+            {isImageMime(selected.mimeType) ? (
+              <div className="flex flex-1 items-center justify-center bg-muted/20 p-6 overflow-auto">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selected.viewUrl ?? '#'}
+                  alt={`Support preview ${selected.id}`}
+                  className="max-h-full max-w-full object-contain rounded-md shadow-md"
+                />
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col min-h-0">
+                <iframe
+                  src={selected.viewUrl ?? '#'}
+                  title="PDF viewer"
+                  className="w-full h-full border-0"
+                />
+              </div>
+            )}
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center">

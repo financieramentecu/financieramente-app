@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../hooks/useUploadComprobante', () => ({
@@ -69,5 +69,12 @@ describe('UploadComprobanteModal', () => {
     )
     render(<UploadComprobanteModal {...defaultProps} />)
     expect(screen.getByText(/subiendo/i)).toBeInTheDocument()
+  })
+
+  it('file input accept attribute contains application/pdf', () => {
+    render(<UploadComprobanteModal {...defaultProps} />)
+    const input = screen.getByTestId('file-input')
+    expect(input).toHaveAttribute('accept')
+    expect(input.getAttribute('accept')).toContain('application/pdf')
   })
 })

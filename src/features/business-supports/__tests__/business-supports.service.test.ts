@@ -159,8 +159,18 @@ describe('presignComprobanteUpload', () => {
     mockPrisma.business.findUnique.mockResolvedValue(ACTIVE_BUSINESS)
 
     await expect(
-      presignComprobanteUpload(10, 'application/pdf', 1024, CTX),
+      presignComprobanteUpload(10, 'application/msword', 1024, CTX),
     ).rejects.toMatchObject({ code: 'INVALID_MIME' })
+  })
+
+  it('succeeds for application/pdf', async () => {
+    mockPrisma.business.findUnique.mockResolvedValue(ACTIVE_BUSINESS)
+    mockPresignPutUrl.mockResolvedValue('https://put.example.com/pdf-url')
+
+    const result = await presignComprobanteUpload(10, 'application/pdf', 1024, CTX)
+
+    expect(result.url).toBe('https://put.example.com/pdf-url')
+    expect(result.key).toContain('CTR-001')
   })
 })
 
@@ -187,14 +197,33 @@ describe('persistComprobante', () => {
     )
   })
 
-  it('throws INVALID_MIME for unsupported extension in key', async () => {
+  it('throws INVALID_MIME for unsupported mime type', async () => {
     await expect(
       persistComprobante(
         10,
-        { key: 'path/file.pdf', mime: 'application/pdf', size: 1024 },
+        { key: 'path/file.docx', mime: 'application/msword', size: 1024 },
         CTX,
       ),
     ).rejects.toMatchObject({ code: 'INVALID_MIME' })
+  })
+
+  it('succeeds for application/pdf', async () => {
+    mockPrisma.businessSupport.create.mockResolvedValue({
+      ...SUPPORT_ROW,
+      objectKey: 'path/file.pdf',
+      mimeType: 'application/pdf',
+      uploader: { idUser: 1, name: 'John' },
+    })
+    mockLogAuditEvent.mockResolvedValue(undefined)
+
+    const result = await persistComprobante(
+      10,
+      { key: 'path/file.pdf', mime: 'application/pdf', size: 1024 },
+      CTX,
+    )
+
+    expect(result.mimeType).toBe('application/pdf')
+    expect(mockLogAuditEvent).toHaveBeenCalledOnce()
   })
 })
 
