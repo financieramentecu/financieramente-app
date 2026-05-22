@@ -1,0 +1,55 @@
+---
+# SDD Change State: alphanumeric-identity-number
+change_name: alphanumeric-identity-number
+status: archived
+archived_at: 2026-05-22
+archive_location: "openspec/changes/archive/2026-05-22-alphanumeric-identity-number"
+verification_verdict: PASS
+verification_report_id: "#791"
+archive_report_id: "#792"
+
+# Artifact Store Mode
+artifact_store:
+  mode: hybrid
+  engram_topic_keys:
+    - sdd/alphanumeric-identity-number/explore
+    - sdd/alphanumeric-identity-number/proposal
+    - sdd/alphanumeric-identity-number/spec
+    - sdd/alphanumeric-identity-number/design
+    - sdd/alphanumeric-identity-number/tasks
+    - sdd/alphanumeric-identity-number/apply-progress
+    - sdd/alphanumeric-identity-number/verify-report
+    - sdd/alphanumeric-identity-number/archive-report
+  openspec_path: "openspec/changes/archive/2026-05-22-alphanumeric-identity-number/"
+
+# Implementation Details
+commit: 4470886
+branch: feat/upload-pdf
+files_changed: 4
+test_count: 17
+build_evidence:
+  unit_tests: "2060 pass, 3 skip, 0 fail"
+  type_check: "0 errors"
+  lint: "0 errors (39 pre-existing warnings)"
+  regex_patterns: "0 duplicates found"
+
+# Specs Merged
+specs_merged:
+  - domain: negocios
+    file: openspec/specs/negocios/spec.md
+    requirements_added: 2
+    scenarios_added: 15
+    merge_status: complete
+
+# SDD Cycle Complete
+phases:
+  - explore: complete (#785)
+  - propose: complete (#786)
+  - spec: complete (#787)
+  - design: complete (#788)
+  - tasks: complete (#789)
+  - apply: complete
+  - verify: complete (#791)
+  - archive: complete (#792)
+
+ready_for_next_change: true
