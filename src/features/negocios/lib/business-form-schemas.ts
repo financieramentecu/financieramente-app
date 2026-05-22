@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { BUSINESS_TERM_MAX } from '@/features/negocios/lib/business-term-limits'
+import { identityNumberSchema } from './identity-number.schema'
 
 /**
  * Schemas y tipos para formularios de negocios
@@ -16,14 +17,7 @@ export const businessFormSchema = z.object({
 		.string()
 		.regex(/^[0-9\s\-+]+$/, 'Formato de contacto inválido')
 		.optional(),
-	identityNumber: z
-		.string()
-		.min(1, 'El número de identificación es obligatorio')
-		.min(5, 'El número de identificación debe tener al menos 5 caracteres')
-		.regex(
-			/^[0-9.]+$/,
-			'El número de identificación solo puede contener números y puntos'
-		),
+	identityNumber: identityNumberSchema,
 	clientOrigin: z.string().min(1, 'El origen del cliente es obligatorio'),
 	contract: z
 		.string()
