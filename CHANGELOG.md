@@ -6,10 +6,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ## [1.10.0] - 2026-05-23
 
-### Nuevo
-
-- **Filtros avanzados con búsqueda en tiempo real:** El panel de "Filtros Avanzados" en Negocios ahora incluye un buscador de texto en los selectores de Compañía, Producto y Origen. Al escribir, la lista de opciones se filtra instantáneamente sin necesidad de hacer scroll. El botón "Limpiar" también reinicia el texto de búsqueda.
-
 ### Infraestructura
 
 - **Gestión de funcionalidades por entorno (Feature Flags):** Se integró Flagsmith como plataforma de feature flags. Esto permite habilitar o deshabilitar funcionalidades de forma remota por entorno (QA / Producción) sin necesidad de un nuevo deploy. Las nuevas funcionalidades de alto impacto se irán lanzando bajo flags de manera progresiva.
