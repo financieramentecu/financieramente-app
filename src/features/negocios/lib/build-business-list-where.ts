@@ -10,6 +10,9 @@ export interface BusinessListFilterInput {
 	dateAnchoredRange?: { gte: Date; lte: Date }
 	createdAtRange?: { gte: Date; lte: Date }
 	agentName?: string
+	companyIds?: number[]
+	productIds?: number[]
+	originIds?: number[]
 }
 
 export interface BuildBusinessListWhereOptions {
@@ -50,7 +53,7 @@ export function buildBusinessListWhere(
 		}
 	}
 
-	const { status, search, dateAnchoredRange, createdAtRange, agentName } = filters
+	const { status, search, dateAnchoredRange, createdAtRange, agentName, companyIds, productIds, originIds } = filters
 
 	if (status) {
 		whereConditions.push({ status })
@@ -120,6 +123,32 @@ export function buildBusinessListWhere(
 			user: {
 				AND: agentConditions,
 			},
+		})
+	}
+
+	if (companyIds && companyIds.length > 0) {
+		whereConditions.push({
+			productPercentageCommission: {
+				productConfiguration: {
+					product: { idCompany: { in: companyIds } },
+				},
+			},
+		})
+	}
+
+	if (productIds && productIds.length > 0) {
+		whereConditions.push({
+			productPercentageCommission: {
+				productConfiguration: {
+					idProduct: { in: productIds },
+				},
+			},
+		})
+	}
+
+	if (originIds && originIds.length > 0) {
+		whereConditions.push({
+			idClientOrigin: { in: originIds },
 		})
 	}
 

@@ -87,6 +87,9 @@ export function useBusinesses(
 				agentName: params.agentName,
 				sortBy: params.sortBy,
 				sortOrder: params.sortOrder,
+				companyIds: params.companyIds,
+				productIds: params.productIds,
+				originIds: params.originIds,
 			})
 
 			if ('error' in response && response.error) {
@@ -114,6 +117,9 @@ export function useBusinesses(
 		params.agentName,
 		params.sortBy,
 		params.sortOrder,
+		params.companyIds,
+		params.productIds,
+		params.originIds,
 	])
 
 	useEffect(() => {

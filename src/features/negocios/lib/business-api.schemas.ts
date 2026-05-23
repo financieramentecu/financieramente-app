@@ -67,6 +67,9 @@ export const businessListParamsSchema = z
 			])
 			.nullish(),
 		sortOrder: z.enum(['asc', 'desc']).nullish(),
+		companyIds: z.array(z.number()).optional(),
+		productIds: z.array(z.number()).optional(),
+		originIds: z.array(z.number()).optional(),
 	})
 	.superRefine((data, ctx) => {
 		const hasFrom = data.dateFrom !== undefined

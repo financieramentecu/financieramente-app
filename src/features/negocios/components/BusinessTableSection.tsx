@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import { Button } from '@/features/shared/ui/button'
+import { AdvancedFiltersModal } from '@/features/negocios/components/modals/AdvancedFiltersModal'
 import { Business } from '@/features/negocios/types/business.types'
 import {
 	Avatar,
@@ -17,7 +18,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/features/shared/ui/select'
-import { Plus, Coins, Download, CalendarRange, Pencil, Check, X } from 'lucide-react'
+import { Plus, Coins, Download, CalendarRange, Pencil, Check, X, Filter } from 'lucide-react'
 import { BusinessRowActions } from './BusinessRowActions'
 import { Input } from '@/features/shared/ui/input'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
@@ -113,6 +114,10 @@ interface BusinessTableSectionProps {
 	onUploadSuccess?: () => void
 	onDeleteSuccess?: () => void
 	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
+	companyIds?: number[]
+	productIds?: number[]
+	originIds?: number[]
+	onAdvancedFiltersChange?: (filters: { companyIds: number[]; productIds: number[]; originIds: number[] }) => void
 }
 
 const BUSINESS_COLUMN_LABELS = {
@@ -166,7 +171,12 @@ export function BusinessTableSection({
 	onUploadSuccess,
 	onDeleteSuccess,
 	onSaveDateIssued,
+	companyIds = [],
+	productIds = [],
+	originIds = [],
+	onAdvancedFiltersChange,
 }: BusinessTableSectionProps) {
+	const [advancedFiltersModalOpen, setAdvancedFiltersModalOpen] = useState(false)
 	const [editingDateId, setEditingDateId] = useState<number | null>(null)
 	const [tempDate, setTempDate] = useState<string>('')
 	const [isSavingDate, setIsSavingDate] = useState(false)
@@ -712,6 +722,32 @@ export function BusinessTableSection({
 											</SelectContent>
 										</Select>
 									) : null}
+									{onAdvancedFiltersChange ? (
+										<Button
+											variant={
+												companyIds.length > 0 ||
+												productIds.length > 0 ||
+												originIds.length > 0
+													? 'secondary'
+													: 'outline'
+											}
+											size="sm"
+											className="h-9 ml-auto"
+											onClick={() => setAdvancedFiltersModalOpen(true)}
+										>
+											<Filter className="mr-2 h-4 w-4" />
+											Filtros avanzados
+											{(companyIds.length > 0 ||
+												productIds.length > 0 ||
+												originIds.length > 0) && (
+												<span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-xs font-semibold text-primary">
+													{companyIds.length +
+														productIds.length +
+														originIds.length}
+												</span>
+											)}
+										</Button>
+									) : null}
 								</div>
 							)
 							: undefined
@@ -826,6 +862,20 @@ export function BusinessTableSection({
 						)
 					}}
 				/>
+
+				{onAdvancedFiltersChange && (
+					<AdvancedFiltersModal
+						isOpen={advancedFiltersModalOpen}
+						onClose={() => setAdvancedFiltersModalOpen(false)}
+						initialCompanyIds={companyIds}
+						initialProductIds={productIds}
+						initialOriginIds={originIds}
+						onApplyFilters={(filters) => {
+							onAdvancedFiltersChange(filters)
+						}}
+					/>
+				)}
+
 				{/* Modal de confirmación para recálculo de fondeos desde la tabla */}
 				<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
 					<AlertDialogContent>

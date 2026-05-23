@@ -109,6 +109,9 @@ export function NegociosPageClient({
 	const [searchParams, setSearchParams] = useState<BusinessListParams>({
 		page: 1,
 		pageSize: 10,
+		companyIds: [],
+		productIds: [],
+		originIds: [],
 		...(isAgentRole ? { dateFrom: defaultDates.from, dateTo: defaultDates.to } : {}),
 	})
 
@@ -430,6 +433,17 @@ export function NegociosPageClient({
 		[]
 	)
 
+	const handleAdvancedFiltersChange = useCallback(
+		(filters: { companyIds: number[]; productIds: number[]; originIds: number[] }) => {
+			setSearchParams((prev) => ({
+				...prev,
+				...filters,
+				page: 1,
+			}))
+		},
+		[]
+	)
+
 	const handleFundDateFromChange = useCallback((value: string) => {
 		setSearchParams((prev) => {
 			const newFrom = isAgentRole ? (value || defaultDates.from) : (value || undefined)
@@ -557,6 +571,10 @@ export function NegociosPageClient({
 				onUploadSuccess={() => { refetch(); refetchStats() }}
 				onDeleteSuccess={() => { refetch(); refetchStats() }}
 				onSaveDateIssued={handleSaveDateIssued}
+				companyIds={searchParams.companyIds}
+				productIds={searchParams.productIds}
+				originIds={searchParams.originIds}
+				onAdvancedFiltersChange={handleAdvancedFiltersChange}
 			/>
 
 			{/* Modal de Visualización */}

@@ -10,6 +10,13 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 - **Cédulas y documentos alfanuméricos:** El campo de número de identificación del cliente ahora acepta letras, dígitos, puntos y guiones, eliminando el bloqueo que impedía registrar clientes con Cédula de Extranjería (`CE-123456`), pasaporte (`PE-123456`) u otros documentos con letras. El sistema normaliza automáticamente el número a mayúsculas al guardarlo, garantizando consistencia en la base de datos.
 
+## [1.8.1] - 2026-05-22
+
+### Nuevo
+
+- **Buscador en filtros avanzados:** Se agregaron campos de texto en el modal de "Filtros Avanzados" para buscar y filtrar en tiempo real las opciones de Compañía, Producto y Origen.
+- **Limpiar filtros de búsqueda:** El botón "Limpiar" ahora también reinicia el texto ingresado en los buscadores.
+
 ## [1.8.0] - 2026-05-22
 
 ### Nuevo
