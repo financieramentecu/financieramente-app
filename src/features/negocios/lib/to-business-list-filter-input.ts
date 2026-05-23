@@ -14,6 +14,9 @@ export function toBusinessListFilterInput(params: {
 	createdFrom?: string | null
 	createdTo?: string | null
 	agentName?: string | null
+	companyIds?: number[]
+	productIds?: number[]
+	originIds?: number[]
 }): BusinessListFilterInput {
 	const dateAnchoredRange =
 		params.dateFrom && params.dateTo
@@ -29,5 +32,8 @@ export function toBusinessListFilterInput(params: {
 		agentName: params.agentName ?? undefined,
 		dateAnchoredRange,
 		createdAtRange,
+		companyIds: params.companyIds,
+		productIds: params.productIds,
+		originIds: params.originIds,
 	}
 }

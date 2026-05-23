@@ -42,6 +42,10 @@ export interface BusinessListParams {
 	sortBy?: string
 	/** Dirección del orden: 'asc' | 'desc' */
 	sortOrder?: 'asc' | 'desc'
+	/** Campos de Filtros Avanzados */
+	companyIds?: number[]
+	productIds?: number[]
+	originIds?: number[]
 }
 
 /** Body POST `/api/negocios/export` */
