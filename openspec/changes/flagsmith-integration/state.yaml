@@ -1,0 +1,29 @@
+---
+# SDD Change State: flagsmith-integration
+change_name: flagsmith-integration
+status: tasks-complete
+
+# Artifact Store Mode
+artifact_store:
+  mode: hybrid
+  engram_topic_keys:
+    - sdd/flagsmith-integration/proposal
+    - sdd/flagsmith-integration/spec
+    - sdd/flagsmith-integration/design
+    - sdd/flagsmith-integration/tasks
+  openspec_path: "openspec/changes/flagsmith-integration/"
+
+# SDD Cycle State
+phases:
+  - explore: skipped
+  - propose: complete (#794)
+  - spec: complete (#795)
+  - design: complete (#796)
+  - tasks: complete (#797)
+  - apply: pending
+  - verify: pending
+  - archive: pending
+
+# Next action
+next_recommended: sdd-apply
+ready_for_apply: true
