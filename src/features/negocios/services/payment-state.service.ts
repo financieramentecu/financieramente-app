@@ -24,6 +24,7 @@ function toDto(p: {
 	expectedDate: Date | null
 	portfolioDate: Date | null
 	earlyPaymentDate: Date | null
+	portfolioPaymentDate?: Date | null
 }): PaymentInstallmentDto {
 	return {
 		installmentIndex: p.installmentIndex,
@@ -32,6 +33,7 @@ function toDto(p: {
 		expectedDate: p.expectedDate?.toISOString() ?? null,
 		portfolioDate: p.portfolioDate?.toISOString() ?? null,
 		earlyPaymentDate: p.earlyPaymentDate?.toISOString() ?? null,
+		portfolioPaymentDate: p.portfolioPaymentDate?.toISOString() ?? null,
 	}
 }
 
@@ -87,56 +89,6 @@ export async function markCartera(
 	return { ok: true, payment: toDto(payment!) }
 }
 
-export async function unmarkCartera(
-	businessId: number,
-	index: number,
-	actor: Actor
-): Promise<TransitionResult> {
-	const result = await prisma.payment.updateMany({
-		where: {
-			idBusiness: businessId,
-			installmentIndex: index,
-			status: AnnualPaymentStatus.EN_CARTERA,
-		},
-		data: {
-			status: AnnualPaymentStatus.FONDEADO,
-			portfolioDate: null,
-		},
-	})
-
-	if (result.count === 0) {
-		const exists = await prisma.payment.findUnique({
-			where: {
-				idBusiness_installmentIndex: {
-					idBusiness: businessId,
-					installmentIndex: index,
-				},
-			},
-		})
-		return { ok: false, code: exists ? 'CONFLICT' : 'NOT_FOUND' }
-	}
-
-	const payment = await prisma.payment.findUnique({
-		where: {
-			idBusiness_installmentIndex: {
-				idBusiness: businessId,
-				installmentIndex: index,
-			},
-		},
-	})
-
-	void logAuditEvent({
-		userId: actor.userId,
-		action: AuditAction.APORTE_CARTERA_UNMARKED,
-		email: actor.email,
-		ipAddress: actor.ip,
-		userAgent: actor.ua,
-		details: `Aporte ${index} del negocio ${businessId} revertido a FONDEADO (cartera quitada)`,
-	})
-
-	return { ok: true, payment: toDto(payment!) }
-}
-
 export async function markPagoAnticipado(
 	businessId: number,
 	index: number,
@@ -184,6 +136,57 @@ export async function markPagoAnticipado(
 		ipAddress: actor.ip,
 		userAgent: actor.ua,
 		details: `Aporte ${index} del negocio ${businessId} marcado como PAGO_ANTICIPADO`,
+	})
+
+	return { ok: true, payment: toDto(payment!) }
+}
+
+export async function markCarteraPagado(
+	businessId: number,
+	index: number,
+	actor: Actor,
+	paymentDate: Date
+): Promise<TransitionResult> {
+	const result = await prisma.payment.updateMany({
+		where: {
+			idBusiness: businessId,
+			installmentIndex: index,
+			status: AnnualPaymentStatus.EN_CARTERA,
+		},
+		data: {
+			status: AnnualPaymentStatus.CARTERA_PAGADO,
+			portfolioPaymentDate: paymentDate,
+		},
+	})
+
+	if (result.count === 0) {
+		const exists = await prisma.payment.findUnique({
+			where: {
+				idBusiness_installmentIndex: {
+					idBusiness: businessId,
+					installmentIndex: index,
+				},
+			},
+		})
+		return { ok: false, code: exists ? 'CONFLICT' : 'NOT_FOUND' }
+	}
+
+	const payment = await prisma.payment.findUnique({
+		where: {
+			idBusiness_installmentIndex: {
+				idBusiness: businessId,
+				installmentIndex: index,
+			},
+		},
+	})
+
+	void logAuditEvent({
+		userId: actor.userId,
+		action: AuditAction.APORTE_CARTERA_PAGADO,
+		email: actor.email,
+		ipAddress: actor.ip,
+		userAgent: actor.ua,
+		details: `Aporte ${index} del negocio ${businessId} marcado como CARTERA_PAGADO con fecha ${paymentDate.toISOString().slice(0, 10)}`,
 	})
 
 	return { ok: true, payment: toDto(payment!) }

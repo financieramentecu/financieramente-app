@@ -28,7 +28,7 @@ export interface AporteRowProps {
 function formatDate(iso: string | null): string {
 	if (!iso) return '—'
 	try {
-		return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium' })
+		return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium', timeZone: 'UTC' })
 	} catch {
 		return iso
 	}
@@ -51,14 +51,16 @@ export function AporteRow({
 	const visualState = getAporteVisualState(aporte, now, canMutate)
 	const isPast = visualState.variant === 'FONDEADO_PAST'
 	const isAnticipado = visualState.variant === 'PAGO_ANTICIPADO'
+	const isCarteraPagado = visualState.variant === 'CARTERA_PAGADO'
 	const isCartera = visualState.variant === 'EN_CARTERA'
 	const isCurrent = visualState.variant === 'FONDEADO_CURRENT'
+	const isGreen = isPast || isAnticipado || isCarteraPagado
 
 	return (
 		<li
 			className={[
 				'group flex items-center gap-2.5 rounded-lg border transition-all duration-200',
-				isPast || isAnticipado
+				isGreen
 					? 'px-3 py-1.5 bg-green-50 border-green-200 opacity-70'
 					: isCartera
 						? 'px-3 py-2.5 bg-red-50 border-red-300'
@@ -69,7 +71,7 @@ export function AporteRow({
 			{isCartera && (
 				<AlertTriangle className="h-4 w-4 shrink-0 text-red-500" aria-hidden />
 			)}
-			{(isPast || isAnticipado) && (
+			{isGreen && (
 				<CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" aria-hidden />
 			)}
 			{isCurrent && (
@@ -84,8 +86,8 @@ export function AporteRow({
 				<span
 					className={[
 						'font-medium',
-						isPast || isAnticipado || isCurrent ? 'text-xs' : 'text-sm',
-						isPast || isAnticipado ? 'text-green-700' : '',
+						isGreen || isCurrent ? 'text-xs' : 'text-sm',
+						isGreen ? 'text-green-700' : '',
 					].join(' ')}
 				>
 					Aporte {aporte.installmentIndex}

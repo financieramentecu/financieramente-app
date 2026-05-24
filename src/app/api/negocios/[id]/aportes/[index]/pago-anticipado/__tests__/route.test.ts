@@ -53,6 +53,7 @@ const updatedPayment = {
 	expectedDate: null,
 	portfolioDate: null,
 	earlyPaymentDate: '2025-05-15T00:00:00.000Z',
+	portfolioPaymentDate: null,
 }
 
 beforeEach(() => {

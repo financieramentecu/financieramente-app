@@ -16,19 +16,17 @@ import {
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
 import { AporteRow, type AporteAction } from './AporteRow'
 import { ConfirmActionDialog } from '@/features/shared/ui/confirm-action-dialog'
+import { ConfirmCarteraPagadoDialog } from './ConfirmCarteraPagadoDialog'
 import { useAporteTransitions } from '../../hooks/use-aporte-transitions'
 import { canFundPayments } from '@/features/auth/lib/roles'
 
-const DIALOG_CONFIG: Record<AporteAction, { title: string; description: string; confirmLabel: string }> = {
+type ConfirmableAction = Exclude<AporteAction, 'UNMARK_CARTERA'>
+
+const DIALOG_CONFIG: Record<ConfirmableAction, { title: string; description: string; confirmLabel: string }> = {
 	MARK_CARTERA: {
 		title: 'Marcar como En Cartera',
 		description: '¿Confirmar que este aporte se marcará como En Cartera? Se registrará la fecha actual.',
 		confirmLabel: 'Marcar Cartera',
-	},
-	UNMARK_CARTERA: {
-		title: 'Quitar de Cartera',
-		description: '¿Confirmar que este aporte se revertirá a FONDEADO? La fecha de cartera será eliminada.',
-		confirmLabel: 'Quitar Cartera',
 	},
 	MARK_ANTICIPADO: {
 		title: 'Marcar como Pago Anticipado',
@@ -73,9 +71,10 @@ export function FundingModal({
 	const [selected, setSelected] = React.useState<Set<number>>(new Set())
 	const hasSinFondear = installments.some(i => i.status === 'SIN_FONDEAR')
 	const [pendingConfirm, setPendingConfirm] = React.useState<{ action: AporteAction; index: number } | null>(null)
+	const [pendingCarteraPagado, setPendingCarteraPagado] = React.useState<{ index: number } | null>(null)
 	const [loadingIndex, setLoadingIndex] = React.useState<number | null>(null)
 	const now = React.useMemo(() => new Date(), [])
-	const { markCartera, unmarkCartera, markPagoAnticipado } = useAporteTransitions()
+	const { markCartera, markPagoAnticipado, markCarteraPagado } = useAporteTransitions()
 
 	React.useEffect(() => {
 		setInstallments(initialInstallments)
@@ -122,7 +121,11 @@ export function FundingModal({
 	}
 
 	const handleRequestAction = (action: AporteAction, index: number) => {
-		setPendingConfirm({ action, index })
+		if (action === 'UNMARK_CARTERA') {
+			setPendingCarteraPagado({ index })
+		} else {
+			setPendingConfirm({ action, index })
+		}
 	}
 
 	const handleConfirmAction = async () => {
@@ -133,10 +136,20 @@ export function FundingModal({
 
 		const call =
 			action === 'MARK_CARTERA' ? markCartera :
-			action === 'UNMARK_CARTERA' ? unmarkCartera :
 			markPagoAnticipado
 
 		const result = await call(businessId, index)
+		setLoadingIndex(null)
+		if (result.data) handleTransitionSuccess(result.data)
+	}
+
+	const handleCarteraPagadoConfirm = async (paymentDate: string) => {
+		if (!pendingCarteraPagado || businessId === null) return
+		const { index } = pendingCarteraPagado
+		setPendingCarteraPagado(null)
+		setLoadingIndex(index)
+
+		const result = await markCarteraPagado(businessId, index, paymentDate)
 		setLoadingIndex(null)
 		if (result.data) handleTransitionSuccess(result.data)
 	}
@@ -159,7 +172,7 @@ export function FundingModal({
 	const formatExpectedDate = (iso: string | null) => {
 		if (!iso) return 'Por confirmar'
 		try {
-			return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium' })
+			return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium', timeZone: 'UTC' })
 		} catch {
 			return iso
 		}
@@ -293,7 +306,7 @@ export function FundingModal({
 			</DialogContent>
 		</Dialog>
 
-		{pendingConfirm && (
+		{pendingConfirm && pendingConfirm.action !== 'UNMARK_CARTERA' && (
 			<ConfirmActionDialog
 				open={true}
 				title={DIALOG_CONFIG[pendingConfirm.action].title}
@@ -303,6 +316,15 @@ export function FundingModal({
 				onCancel={() => setPendingConfirm(null)}
 			/>
 		)}
-		</>
+
+		{pendingCarteraPagado && (
+			<ConfirmCarteraPagadoDialog
+				open={true}
+				index={pendingCarteraPagado.index}
+				onConfirm={(paymentDate) => void handleCarteraPagadoConfirm(paymentDate)}
+				onCancel={() => setPendingCarteraPagado(null)}
+			/>
+		)}
+</>
 	)
 }

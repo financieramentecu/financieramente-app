@@ -5,7 +5,7 @@ Sistema: Financieramente — liquidación de comisiones.
 
 **Enums**:
 - `BeneficiaryMode`: `OVERRIDE` | `BENEFICIARIO_GENERAL` (en `level.beneficiary_mode`).
-- `AnnualPaymentStatus`: `SIN_FONDEAR` | `FONDEADO` | `EN_CARTERA` | `PAGO_ANTICIPADO` (en `payments.status`).
+- `AnnualPaymentStatus`: `SIN_FONDEAR` | `FONDEADO` | `EN_CARTERA` | `PAGO_ANTICIPADO` | `CARTERA_PAGADO` (en `payments.status`).
 - `ContributionType`: `REGULAR` | `UNICO` (en `product.contribution_type`).
 - `BusinessSupport.status`: Boolean (`true` = activo, `false` = eliminado lógicamente).
 
@@ -296,6 +296,7 @@ erDiagram
         datetime expected_date
         datetime cartera_date
         datetime pago_anticipado_date
+        datetime portfolio_payment_date
         datetime created_at
         datetime updated_at
     }
@@ -436,6 +437,7 @@ erDiagram
 - `ComissionDistribution`: campo `is_active` agregado (`@default(true)`) para soft delete lógico (reemplaza `deleteMany` en servicios de pre-liquidación y carga de archivos).
 - **Renombre `Category → Level`** (migración `20260509000000_rename_category_to_level`): la tabla `category` fue renombrada a `level`; la columna `id_category_type` fue eliminada de `level` (migración `20260509010000_create_category_and_populate`). El modelo Prisma `Category` ahora mapea a la tabla `level` bajo el nombre `Level`.
 - **`Payment` — nuevos campos** (migración `20260521220206_aportes_cartera_anticipado`): `cartera_date` y `pago_anticipado_date` son nullable; se rellenan al marcar EN_CARTERA o PAGO_ANTICIPADO respectivamente. Se añaden los valores `EN_CARTERA` y `PAGO_ANTICIPADO` al enum `AnnualPaymentStatus`.
+- **`Payment` — campo `portfolio_payment_date`** (migración `20260524000000_cartera_pagado_transition`): columna nullable `TIMESTAMP(3)` que registra la fecha en que el cliente pagó la cartera. Se rellena al transicionar a `CARTERA_PAGADO`. Corresponde al valor terminal del enum `AnnualPaymentStatus` — una vez en `CARTERA_PAGADO` no hay más transiciones posibles.
 - **Nueva tabla `business_support`** (migración `20260514000000_add_business_support`): almacena comprobantes de pago por negocio respaldados en Digital Ocean Spaces. `object_key` es único (ruta en el bucket). Soft delete vía `status = false`. Índice compuesto `(business_id, status)` para filtrar activos eficientemente. FK a `business` y `user` (uploader).
 - **Nueva tabla `category`** (migración `20260509010000_create_category_and_populate`): representa la categoría comercial/organizacional de un usuario (p. ej. MS Junior, MS Senior). Tiene FK a `category_type`. `User.id_category` apunta a esta tabla. La antigua jerarquía técnica es ahora `Level`; la nueva `Category` es la clasificación de negocio.
 - `ProductConfiguration`: el unique constraint parcial `(id_product, id_level)` preserva el comportamiento de índice parcial `WHERE active = true` heredado de la migración de renombre. El `@@map` del constraint es `product_configuration_idProduct_idLevel_key`.

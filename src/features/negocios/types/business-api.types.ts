@@ -111,6 +111,7 @@ export type AnnualInstallmentStatusUi =
 	| 'FONDEADO'
 	| 'EN_CARTERA'
 	| 'PAGO_ANTICIPADO'
+	| 'CARTERA_PAGADO'
 
 /** @deprecated Use PaymentInstallmentDto */
 export type AnnualInstallmentDto = PaymentInstallmentDto
@@ -122,6 +123,7 @@ export interface PaymentInstallmentDto {
 	expectedDate: string | null
 	portfolioDate: string | null
 	earlyPaymentDate: string | null
+	portfolioPaymentDate: string | null
 }
 
 export interface AnnualPaymentsResponse {

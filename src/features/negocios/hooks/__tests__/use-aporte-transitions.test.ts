@@ -9,6 +9,17 @@ const basePayment = {
 	expectedDate: null,
 	portfolioDate: '2025-05-15T00:00:00.000Z',
 	earlyPaymentDate: null,
+	portfolioPaymentDate: null,
+}
+
+const carteraPagadoPayment = {
+	installmentIndex: 1,
+	status: 'CARTERA_PAGADO' as const,
+	dateAnchored: null,
+	expectedDate: null,
+	portfolioDate: '2025-05-15T00:00:00.000Z',
+	earlyPaymentDate: null,
+	portfolioPaymentDate: '2025-05-20T00:00:00.000Z',
 }
 
 beforeEach(() => {
@@ -53,7 +64,7 @@ describe('useAporteTransitions', () => {
 		const { result } = renderHook(() => useAporteTransitions())
 
 		act(() => {
-			void result.current.unmarkCartera(10, 1)
+			void result.current.markCartera(10, 1)
 		})
 
 		await waitFor(() => {
@@ -80,6 +91,58 @@ describe('useAporteTransitions', () => {
 
 		if (result.current.state.status === 'error') {
 			expect(result.current.state.error).toBe('Network failure')
+		}
+	})
+
+	it('markCarteraPagado — posts body with paymentDate and transitions to success', async () => {
+		const mockFetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ data: carteraPagadoPayment }),
+		})
+		global.fetch = mockFetch
+
+		const { result } = renderHook(() => useAporteTransitions())
+
+		act(() => {
+			void result.current.markCarteraPagado(10, 1, '2025-05-20')
+		})
+
+		await waitFor(() => {
+			expect(result.current.state.status).toBe('success')
+		})
+
+		expect(mockFetch).toHaveBeenCalledWith(
+			'/api/negocios/10/aportes/1/cartera-pagado',
+			expect.objectContaining({
+				method: 'POST',
+				body: JSON.stringify({ paymentDate: '2025-05-20' }),
+				headers: { 'Content-Type': 'application/json' },
+			})
+		)
+
+		if (result.current.state.status === 'success') {
+			expect(result.current.state.data.status).toBe('CARTERA_PAGADO')
+		}
+	})
+
+	it('markCarteraPagado — transitions to error on 409 conflict', async () => {
+		global.fetch = vi.fn().mockResolvedValue({
+			ok: false,
+			json: () => Promise.resolve({ data: null, error: 'INVALID_TRANSITION' }),
+		})
+
+		const { result } = renderHook(() => useAporteTransitions())
+
+		act(() => {
+			void result.current.markCarteraPagado(10, 1, '2025-05-20')
+		})
+
+		await waitFor(() => {
+			expect(result.current.state.status).toBe('error')
+		})
+
+		if (result.current.state.status === 'error') {
+			expect(result.current.state.error).toBe('INVALID_TRANSITION')
 		}
 	})
 })

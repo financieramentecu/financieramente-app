@@ -9,6 +9,7 @@ const pendingInstallment = {
 	expectedDate: null,
 	portfolioDate: null,
 	earlyPaymentDate: null,
+	portfolioPaymentDate: null,
 }
 
 describe('AnnualFundingModal', () => {
@@ -63,6 +64,7 @@ describe('AnnualFundingModal', () => {
 			expectedDate: null,
 			portfolioDate: null,
 			earlyPaymentDate: null,
+			portfolioPaymentDate: null,
 		}
 		render(<AnnualFundingModal {...defaults} installments={[funded]} />)
 
