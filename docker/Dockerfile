@@ -55,12 +55,17 @@ ARG NEXT_TELEMETRY_DISABLED=1
 ARG BUILD_SHA
 # NextAuth: required during `next build` because auth config resolves the secret at import time
 ARG AUTH_SECRET
+# Flagsmith: required during `next build` because SSR pages initialize the server SDK at prerender time
+ARG FLAGSMITH_SERVER_KEY
+ARG NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY
 
 ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV BUILD_SHA=${BUILD_SHA}
 ENV AUTH_SECRET=${AUTH_SECRET}
+ENV FLAGSMITH_SERVER_KEY=${FLAGSMITH_SERVER_KEY}
+ENV NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY=${NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY}
 
 # Note: Type checking and ESLint are disabled in next.config.ts
 # They are executed in CI/CD tests before deployment
