@@ -13,6 +13,7 @@ function baseAporte(
 		expectedDate: '2025-05-01T00:00:00.000Z',
 		portfolioDate: null,
 		earlyPaymentDate: null,
+		portfolioPaymentDate: null,
 		...overrides,
 	}
 }
@@ -136,5 +137,46 @@ describe('AporteRow', () => {
 		)
 		expect(screen.getByText(/Pago anticipado/i)).toBeInTheDocument()
 		expect(container.querySelector('.bg-green-50')).not.toBeNull()
+	})
+
+	it('renders CARTERA_PAGADO with green styling, date label, and no buttons', () => {
+		const { container } = render(
+			<ul>
+				<AporteRow
+					aporte={baseAporte({
+						status: 'CARTERA_PAGADO',
+						portfolioPaymentDate: '2025-05-20T00:00:00.000Z',
+					})}
+					businessId={10}
+					canMutate={true}
+					now={now}
+					onTransitionSuccess={vi.fn()}
+					onRequestAction={vi.fn()}
+				/>
+			</ul>
+		)
+		expect(screen.getByText(/Cartera pagada/i)).toBeInTheDocument()
+		expect(container.querySelector('.bg-green-50')).not.toBeNull()
+		expect(screen.queryByRole('button')).not.toBeInTheDocument()
+	})
+
+	it('renders CARTERA_PAGADO with no buttons even for read-only role', () => {
+		render(
+			<ul>
+				<AporteRow
+					aporte={baseAporte({
+						status: 'CARTERA_PAGADO',
+						portfolioPaymentDate: '2025-05-20T00:00:00.000Z',
+					})}
+					businessId={10}
+					canMutate={false}
+					now={now}
+					onTransitionSuccess={vi.fn()}
+					onRequestAction={vi.fn()}
+				/>
+			</ul>
+		)
+		expect(screen.queryByRole('button')).not.toBeInTheDocument()
+		expect(screen.getByText(/Cartera pagada/i)).toBeInTheDocument()
 	})
 })

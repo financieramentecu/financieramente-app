@@ -5,6 +5,7 @@ export type AporteVariant =
 	| 'FONDEADO_CURRENT'
 	| 'EN_CARTERA'
 	| 'PAGO_ANTICIPADO'
+	| 'CARTERA_PAGADO'
 
 export type AporteButton = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO'
 
@@ -30,7 +31,7 @@ function resolveReferenceDate(aporte: Pick<PaymentInstallmentDto, 'expectedDate'
 
 function formatDate(iso: string): string {
 	try {
-		return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium' })
+		return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium', timeZone: 'UTC' })
 	} catch {
 		return iso
 	}
@@ -41,6 +42,17 @@ export function getAporteVisualState(
 	now: Date,
 	canMutate: boolean
 ): AporteVisualState {
+	if (aporte.status === 'CARTERA_PAGADO') {
+		return {
+			variant: 'CARTERA_PAGADO',
+			rowClass: 'bg-green-50 border-green-300',
+			label: aporte.portfolioPaymentDate
+				? `Cartera pagada: ${formatDate(aporte.portfolioPaymentDate)}`
+				: 'Cartera pagada',
+			buttons: [],
+		}
+	}
+
 	if (aporte.status === 'EN_CARTERA') {
 		return {
 			variant: 'EN_CARTERA',

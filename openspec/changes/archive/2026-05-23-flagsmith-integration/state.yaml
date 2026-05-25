@@ -1,0 +1,40 @@
+---
+# SDD Change State: flagsmith-integration (ARCHIVED)
+change_name: flagsmith-integration
+status: archived
+
+# Artifact Store Mode
+artifact_store:
+  mode: hybrid
+  engram_topic_keys:
+    - sdd/flagsmith-integration/proposal (#794)
+    - sdd/flagsmith-integration/spec (#795)
+    - sdd/flagsmith-integration/design (#796)
+    - sdd/flagsmith-integration/tasks (#797)
+    - sdd/flagsmith-integration/apply-progress (#798)
+    - sdd/flagsmith-integration/verify-report (#799)
+    - sdd/flagsmith-integration/archive-report
+  openspec_path: "openspec/changes/archive/2026-05-23-flagsmith-integration/"
+  main_spec_path: "openspec/specs/flagsmith-integration/spec.md"
+
+# SDD Cycle State
+phases:
+  - explore: skipped
+  - propose: complete (#794)
+  - spec: complete (#795)
+  - design: complete (#796)
+  - tasks: complete (#797)
+  - apply: complete (#798)
+  - verify: complete (#799)
+  - archive: complete
+
+# Verdict
+verdict: PASS WITH WARNINGS
+
+# Tasks completion
+total_tasks: 14
+completed_tasks: 14
+status_tasks: all complete (T7 manually fixed post-verification)
+
+# Date archived
+date_archived: 2026-05-23

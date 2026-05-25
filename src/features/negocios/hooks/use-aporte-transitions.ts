@@ -8,8 +8,8 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 type UseAporteTransitionsReturn = {
 	state: AsyncState<PaymentInstallmentDto>
 	markCartera: (businessId: number, index: number) => Promise<ApiResponse<PaymentInstallmentDto>>
-	unmarkCartera: (businessId: number, index: number) => Promise<ApiResponse<PaymentInstallmentDto>>
 	markPagoAnticipado: (businessId: number, index: number) => Promise<ApiResponse<PaymentInstallmentDto>>
+	markCarteraPagado: (businessId: number, index: number, paymentDate: string) => Promise<ApiResponse<PaymentInstallmentDto>>
 }
 
 const IDLE: AsyncState<PaymentInstallmentDto> = {
@@ -22,10 +22,15 @@ export function useAporteTransitions(): UseAporteTransitionsReturn {
 	const [state, setState] =
 		useState<AsyncState<PaymentInstallmentDto>>(IDLE)
 
-	async function callEndpoint(url: string, method: string): Promise<ApiResponse<PaymentInstallmentDto>> {
+	async function callEndpoint(url: string, method: string, body?: unknown): Promise<ApiResponse<PaymentInstallmentDto>> {
 		setState({ status: 'loading', data: undefined, error: '' })
 		try {
-			const res = await fetch(url, { method })
+			const fetchOptions: RequestInit = { method }
+			if (body !== undefined) {
+				fetchOptions.headers = { 'Content-Type': 'application/json' }
+				fetchOptions.body = JSON.stringify(body)
+			}
+			const res = await fetch(url, fetchOptions)
 			const json = (await res.json()) as ApiResponse<PaymentInstallmentDto>
 
 			if (!res.ok || !json.data) {
@@ -47,13 +52,17 @@ export function useAporteTransitions(): UseAporteTransitionsReturn {
 		return callEndpoint(`/api/negocios/${businessId}/aportes/${index}/cartera`, 'PATCH')
 	}
 
-	function unmarkCartera(businessId: number, index: number) {
-		return callEndpoint(`/api/negocios/${businessId}/aportes/${index}/cartera`, 'DELETE')
-	}
-
 	function markPagoAnticipado(businessId: number, index: number) {
 		return callEndpoint(`/api/negocios/${businessId}/aportes/${index}/pago-anticipado`, 'POST')
 	}
 
-	return { state, markCartera, unmarkCartera, markPagoAnticipado }
+	function markCarteraPagado(businessId: number, index: number, paymentDate: string) {
+		return callEndpoint(
+			`/api/negocios/${businessId}/aportes/${index}/cartera-pagado`,
+			'POST',
+			{ paymentDate }
+		)
+	}
+
+	return { state, markCartera, markPagoAnticipado, markCarteraPagado }
 }

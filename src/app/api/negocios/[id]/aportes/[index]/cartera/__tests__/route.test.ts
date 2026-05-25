@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PATCH, DELETE } from '../route'
+import { PATCH } from '../route'
 import { UserRole } from '@/features/auth/lib/roles'
 
 vi.mock('@/auth', () => ({
@@ -12,7 +12,6 @@ vi.mock('@/features/negocios/services/user.service', () => ({
 
 vi.mock('@/features/negocios/services/payment-state.service', () => ({
 	markCartera: vi.fn(),
-	unmarkCartera: vi.fn(),
 }))
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
@@ -22,10 +21,7 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import {
-	markCartera,
-	unmarkCartera,
-} from '@/features/negocios/services/payment-state.service'
+import { markCartera } from '@/features/negocios/services/payment-state.service'
 
 function makeRequest() {
 	return new Request('http://localhost/api/negocios/10/aportes/1/cartera', {
@@ -57,6 +53,7 @@ const updatedPayment = {
 	expectedDate: null,
 	portfolioDate: '2025-05-15T00:00:00.000Z',
 	earlyPaymentDate: null,
+	portfolioPaymentDate: null,
 }
 
 beforeEach(() => {
@@ -107,33 +104,3 @@ describe('PATCH /api/negocios/[id]/aportes/[index]/cartera', () => {
 	})
 })
 
-describe('DELETE /api/negocios/[id]/aportes/[index]/cartera', () => {
-	it('returns 200 on happy path', async () => {
-		vi.mocked(getCurrentUserByEmail).mockResolvedValue(adminUser as never)
-		vi.mocked(unmarkCartera).mockResolvedValue({
-			ok: true,
-			payment: { ...updatedPayment, status: 'FONDEADO', portfolioDate: null },
-		})
-
-		const deleteReq = new Request(
-			'http://localhost/api/negocios/10/aportes/1/cartera',
-			{ method: 'DELETE' }
-		)
-		const res = await DELETE(deleteReq, makeParams())
-		const body = await res.json()
-
-		expect(res.status).toBe(200)
-		expect(body.data.status).toBe('FONDEADO')
-	})
-
-	it('returns 403 for AGENTE role', async () => {
-		vi.mocked(getCurrentUserByEmail).mockResolvedValue(agenteUser as never)
-
-		const deleteReq = new Request(
-			'http://localhost/api/negocios/10/aportes/1/cartera',
-			{ method: 'DELETE' }
-		)
-		const res = await DELETE(deleteReq, makeParams())
-		expect(res.status).toBe(403)
-	})
-})

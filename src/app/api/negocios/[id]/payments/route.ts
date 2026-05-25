@@ -75,11 +75,12 @@ export async function GET(
 
 		const installments = business.payments.map((p) => ({
 			installmentIndex: p.installmentIndex,
-			status: p.status as 'SIN_FONDEAR' | 'FONDEADO' | 'EN_CARTERA' | 'PAGO_ANTICIPADO',
+			status: p.status as 'SIN_FONDEAR' | 'FONDEADO' | 'EN_CARTERA' | 'PAGO_ANTICIPADO' | 'CARTERA_PAGADO',
 			dateAnchored: p.dateAnchored?.toISOString() ?? null,
 			expectedDate: p.expectedDate?.toISOString() ?? null,
 			portfolioDate: p.portfolioDate?.toISOString() ?? null,
 			earlyPaymentDate: p.earlyPaymentDate?.toISOString() ?? null,
+			portfolioPaymentDate: p.portfolioPaymentDate?.toISOString() ?? null,
 		}))
 
 		const payload: AnnualPaymentsResponse = {

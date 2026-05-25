@@ -4,6 +4,26 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.11.0] - 2026-05-24
+
+### Nuevo
+
+- **Cartera pagada:** Cuando un cliente paga una deuda en cartera, el sistema ahora registra el pago como **Cartera Pagada** — un estado definitivo que deja constancia permanente del cobro. Ya no es posible revertir un aporte pagado, garantizando la trazabilidad del ciclo de cobro completo.
+
+- **Confirmación con fecha de pago:** Al marcar un aporte como pagado desde cartera, se muestra un diálogo de confirmación donde el analista ingresa la fecha exacta en que el cliente realizó el pago. Esa fecha queda registrada y visible en el detalle del aporte.
+
+### Corregido
+
+- **Fecha de cartera mostraba un día menos:** Las fechas de aportes en estado Cartera, Pago Anticipado y Cartera Pagada se mostraban con un día de desfase (por ejemplo, 24 de mayo aparecía como 23 de mayo). Corregido para todos los estados del modal de fondeo.
+
+## [1.10.0] - 2026-05-23
+
+### Infraestructura
+
+- **Gestión de funcionalidades por entorno (Feature Flags):** Se integró Flagsmith como plataforma de feature flags. Esto permite habilitar o deshabilitar funcionalidades de forma remota por entorno (QA / Producción) sin necesidad de un nuevo deploy. Las nuevas funcionalidades de alto impacto se irán lanzando bajo flags de manera progresiva.
+
+- **Política de seguridad de contenido ampliada:** Se reforzó la cabecera `Content-Security-Policy` del servidor para incluir directivas `frame-src` y `object-src`, mejorando la protección contra ataques de inyección de contenido embebido.
+
 ## [1.9.0] - 2026-05-22
 
 ### Nuevo
