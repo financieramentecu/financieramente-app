@@ -14,6 +14,7 @@ function makeAporte(
 		expectedDate: null,
 		portfolioDate: null,
 		earlyPaymentDate: null,
+		portfolioPaymentDate: null,
 		...overrides,
 	}
 }
@@ -121,6 +122,31 @@ describe('getAporteVisualState', () => {
 			expect(getAporteVisualState(aporte, now, true).rowClass).toContain(
 				'green'
 			)
+		})
+	})
+
+	describe('CARTERA_PAGADO', () => {
+		const aporte = makeAporte({
+			status: 'CARTERA_PAGADO',
+			portfolioPaymentDate: '2025-05-20T00:00:00.000Z',
+		})
+
+		it('returns CARTERA_PAGADO variant', () => {
+			expect(getAporteVisualState(aporte, now, true).variant).toBe('CARTERA_PAGADO')
+		})
+
+		it('returns no buttons for any role — terminal state', () => {
+			expect(getAporteVisualState(aporte, now, true).buttons).toEqual([])
+			expect(getAporteVisualState(aporte, now, false).buttons).toEqual([])
+		})
+
+		it('includes portfolioPaymentDate in label', () => {
+			const vs = getAporteVisualState(aporte, now, true)
+			expect(vs.label).toMatch(/Cartera pagada/)
+		})
+
+		it('has green row class', () => {
+			expect(getAporteVisualState(aporte, now, true).rowClass).toContain('green')
 		})
 	})
 })

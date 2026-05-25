@@ -1,17 +1,24 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { PaymentInstallmentDto } from '@/features/negocios/types/business-api.types'
 import { canFundPayments } from '@/features/auth/lib/roles'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { markCartera } from '@/features/negocios/services/payment-state.service'
+import { markCarteraPagado } from '@/features/negocios/services/payment-state.service'
 
 interface RouteParams {
 	params: Promise<{ id: string; index: string }>
 }
 
-export async function PATCH(
+const bodySchema = z.object({
+	paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+		message: 'paymentDate must be in YYYY-MM-DD format',
+	}),
+})
+
+export async function POST(
 	request: Request,
 	{ params }: RouteParams
 ): Promise<NextResponse<ApiResponse<PaymentInstallmentDto>>> {
@@ -41,6 +48,16 @@ export async function PATCH(
 			)
 		}
 
+		const rawBody = await request.json().catch(() => null)
+		const parsed = bodySchema.safeParse(rawBody)
+
+		if (!parsed.success) {
+			return NextResponse.json(
+				{ data: null, error: 'Datos inválidos', details: parsed.error.flatten() },
+				{ status: 400 }
+			)
+		}
+
 		const { id, index } = await params
 		const businessId = parseInt(id, 10)
 		const installmentIndex = parseInt(index, 10)
@@ -52,13 +69,15 @@ export async function PATCH(
 			)
 		}
 
+		const paymentDate = new Date(parsed.data.paymentDate)
 		const headers = new Headers(request.headers)
-		const result = await markCartera(businessId, installmentIndex, {
+
+		const result = await markCarteraPagado(businessId, installmentIndex, {
 			userId: currentUser.idUser,
 			email: currentUser.email,
 			ip: getClientIp(headers) ?? '',
 			ua: getUserAgent(headers) ?? '',
-		})
+		}, paymentDate)
 
 		if (!result.ok) {
 			if (result.code === 'NOT_FOUND') {
@@ -75,11 +94,10 @@ export async function PATCH(
 
 		return NextResponse.json({ data: result.payment })
 	} catch (error) {
-		console.error('Error al marcar cartera:', error)
+		console.error('Error al marcar cartera pagado:', error)
 		return NextResponse.json(
 			{ data: null, error: 'Error interno del servidor' },
 			{ status: 500 }
 		)
 	}
 }
-
