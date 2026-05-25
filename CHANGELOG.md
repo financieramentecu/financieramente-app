@@ -4,6 +4,14 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.10.0] - 2026-05-23
+
+### Infraestructura
+
+- **Gestión de funcionalidades por entorno (Feature Flags):** Se integró Flagsmith como plataforma de feature flags. Esto permite habilitar o deshabilitar funcionalidades de forma remota por entorno (QA / Producción) sin necesidad de un nuevo deploy. Las nuevas funcionalidades de alto impacto se irán lanzando bajo flags de manera progresiva.
+
+- **Política de seguridad de contenido ampliada:** Se reforzó la cabecera `Content-Security-Policy` del servidor para incluir directivas `frame-src` y `object-src`, mejorando la protección contra ataques de inyección de contenido embebido.
+
 ## [1.9.0] - 2026-05-22
 
 ### Nuevo

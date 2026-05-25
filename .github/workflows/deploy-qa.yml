@@ -137,6 +137,8 @@ jobs:
             DO_SPACES_ENDPOINT=${{ secrets.DO_SPACES_ENDPOINT }}
             DO_SPACES_BUCKET=${{ secrets.DO_SPACES_BUCKET }}
             DO_SPACES_PREFIX=qa
+            NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY=${{ secrets.FLAGSMITH_CLIENT_KEY_QA }}
+            FLAGSMITH_SERVER_KEY=${{ secrets.FLAGSMITH_SERVER_KEY_QA }}
             ENVEOF
             sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" /opt/financieramente/.env
 
