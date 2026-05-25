@@ -2,6 +2,7 @@ export const ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/png',
   'image/webp',
+  'application/pdf',
 ] as const
 
 export type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number]
@@ -13,10 +14,15 @@ const MIME_TO_EXT: Record<AllowedMimeType, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
+  'application/pdf': 'pdf',
 }
 
 export function isAllowedMime(mime: string): mime is AllowedMimeType {
   return (ALLOWED_MIME_TYPES as readonly string[]).includes(mime)
+}
+
+export function isImageMime(mime: string): boolean {
+  return mime.startsWith('image/')
 }
 
 export function extensionFor(mime: string): string | null {

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../hooks/useBusinessSupports', () => ({
@@ -33,6 +33,17 @@ const mockComprobante = {
   uploadedBy: { id: 1, name: 'Ana García' },
   createdAt: '2026-05-14T10:00:00Z',
   viewUrl: 'https://cdn.example.com/abc.jpg',
+}
+
+const mockPdfComprobante = {
+  id: 'cuid-2',
+  businessId: 42,
+  objectKey: 'negocios/42/doc.pdf',
+  mimeType: 'application/pdf',
+  sizeBytes: 204800,
+  uploadedBy: { id: 1, name: 'Ana García' },
+  createdAt: '2026-05-14T11:00:00Z',
+  viewUrl: 'https://cdn.example.com/doc.pdf',
 }
 
 const makeDeleteHook = (overrides = {}) => ({
@@ -98,5 +109,42 @@ describe('ViewComprobantesSheet', () => {
     render(<ViewComprobantesSheet {...defaultProps} />)
     // Should show the image via alt or thumbnail
     expect(screen.getByAltText(/comprobante/i)).toBeInTheDocument()
+  })
+
+  it('shows FileText icon (no img thumbnail) for PDF comprobante', () => {
+    mockUseBusinessSupports.mockReturnValue({
+      state: { status: 'success', data: [mockPdfComprobante], error: '' },
+      refetch: vi.fn(),
+    })
+    render(<ViewComprobantesSheet {...defaultProps} />)
+    // No thumbnail img for the comprobante (alt matches /comprobante/i)
+    expect(screen.queryByAltText(/comprobante/i)).not.toBeInTheDocument()
+    // The FileText icon is rendered (via lucide svg with title or data-testid)
+    // It renders as an SVG — we check it exists by querying role img or by the container
+    const svgIcons = document.querySelectorAll('svg')
+    expect(svgIcons.length).toBeGreaterThan(0)
+  })
+
+  it('renders iframe preview when PDF comprobante is selected', () => {
+    mockUseBusinessSupports.mockReturnValue({
+      state: { status: 'success', data: [mockPdfComprobante], error: '' },
+      refetch: vi.fn(),
+    })
+    render(<ViewComprobantesSheet {...defaultProps} />)
+    const iframe = screen.getByTitle(/PDF/i)
+    expect(iframe).toBeInTheDocument()
+    expect(iframe.tagName).toBe('IFRAME')
+    expect(iframe).toHaveAttribute('src', mockPdfComprobante.viewUrl)
+  })
+
+  it('renders img preview when image comprobante is selected', () => {
+    mockUseBusinessSupports.mockReturnValue({
+      state: { status: 'success', data: [mockComprobante], error: '' },
+      refetch: vi.fn(),
+    })
+    render(<ViewComprobantesSheet {...defaultProps} />)
+    // Preview img with alt matching /preview/i
+    expect(screen.getByAltText(/preview/i)).toBeInTheDocument()
+    expect(screen.queryByTitle(/PDF/i)).not.toBeInTheDocument()
   })
 })

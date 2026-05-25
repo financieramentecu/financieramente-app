@@ -227,7 +227,48 @@ Before creating a PR:
 
 ## Architecture Rules
 
-- **Feature-Based**: All code in `src/features/[feature-name]/`
+### SOLID Principles (MANDATORY — no exceptions)
+
+Every class, function, service, hook, and component MUST follow these principles:
+
+- **S — Single Responsibility**: One reason to change. Route handlers handle HTTP only. Services handle data only. Components render only. Never mix concerns.
+- **O — Open/Closed**: Extend behavior via new functions/components — do NOT modify working code to add unrelated logic. Add a new service function instead of bloating an existing one.
+- **L — Liskov Substitution**: Subtypes must be substitutable. If a function accepts `PaymentInstallmentDto`, any variant must satisfy the full contract — no silent omissions.
+- **I — Interface Segregation**: Small, focused interfaces. `PaymentInstallmentDto` should not carry fields that only one screen needs. Split when callers diverge.
+- **D — Dependency Inversion**: Depend on abstractions, not concretions. Route handlers call service functions (not `prisma` directly). Components call hooks (not `fetch` directly).
+
+**Code smells that signal a SOLID violation** (fix immediately):
+- A function has more than one `await` chain doing unrelated things → split it
+- A variable named `resolvedX2` or `newStatusInner` → derived state computed twice → compute once before use
+- A component imports from `prisma` or calls `fetch` directly → wrong layer
+- A `prisma.$transaction` block with 4+ distinct operations → extract helpers
+
+### Screaming Architecture (MANDATORY)
+
+The folder structure must SCREAM the domain, not the technology:
+
+```
+src/features/
+  negocios/          ← domain: commission contracts
+    components/      ← UI only, no business logic
+    hooks/           ← async state + API calls
+    lib/             ← pure functions, calculations, visual-state derivation
+    services/        ← ALL Prisma calls live here
+    actions/         ← Server Actions: validate → call service → return ApiResponse
+    types/           ← domain types + DTOs
+    mappers/         ← Prisma model → domain entity
+    __tests__/       ← colocated tests
+  shared/            ← cross-feature UI, hooks, types ONLY
+```
+
+**Violations to reject immediately**:
+- `src/utils/`, `src/helpers/`, `src/services/` at root level → move to `src/features/[domain]/`
+- Business logic inside a React component → move to `lib/` or a hook
+- Prisma call inside a route handler → move to `services/`
+- A service that returns `ApiResponse` → services return domain data, never HTTP shapes
+
+### Feature-Based
+- All code in `src/features/[feature-name]/`
 - **Structure**: Each feature has `components/`, `hooks/`, `lib/`, `types/`, `__tests__/`
 - **Shared Resources**: Use `src/features/shared/` for truly shared components/hooks/types
 - **No Root Services**: Don't create files in `src/services/`, `src/utils/`, `src/types/` (use features)

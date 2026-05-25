@@ -73,16 +73,40 @@ describe('createBusiness', () => {
 		} as unknown as Awaited<ReturnType<typeof prisma.product.findUnique>>)
 	})
 
-	it('creates n annual_payment rows when periodicity is Anual and term is n', async () => {
+	it('does NOT create payment rows when business is VENTA_EFECTUADA', async () => {
 		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
 			name: 'Anual',
 		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
-		const created = mockCreatedBusiness({ term: 3, idBusiness: 10 })
-		const annualCreateMany = vi.fn().mockResolvedValue({ count: 3 })
-		const businessCreate = vi.fn().mockResolvedValue(created)
+		const created = mockCreatedBusiness({ term: 3, idBusiness: 10, status: 'VENTA_EFECTUADA' })
+		const annualCreateMany = vi.fn().mockResolvedValue({ count: 0 })
 		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
 			return callback({
-				business: { create: businessCreate },
+				business: { create: vi.fn().mockResolvedValue(created) },
+				payment: { createMany: annualCreateMany },
+			} as never)
+		})
+
+		const result = await createBusiness({ ...basePayload, idBuyPeriodicity: 1, term: 3 })
+
+		expect(result.data?.idBusiness).toBe(10)
+		expect(annualCreateMany).not.toHaveBeenCalled()
+	})
+
+	it('creates FONDEADO payment rows with expectedDate and dateAnchored when business is created with contract', async () => {
+		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+			name: 'Anual',
+		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+		const created = mockCreatedBusiness({
+			term: 3,
+			idBusiness: 10,
+			status: 'EMITIDO',
+			dateIssued: new Date('2024-01-01'),
+			contract: 'CONTRACT-123',
+		})
+		const annualCreateMany = vi.fn().mockResolvedValue({ count: 3 })
+		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+			return callback({
+				business: { create: vi.fn().mockResolvedValue(created) },
 				payment: { createMany: annualCreateMany },
 			} as never)
 		})
@@ -91,34 +115,34 @@ describe('createBusiness', () => {
 			...basePayload,
 			idBuyPeriodicity: 1,
 			term: 3,
+			contract: 'CONTRACT-123',
 		})
 
 		expect(result.data?.idBusiness).toBe(10)
 		expect(annualCreateMany).toHaveBeenCalledTimes(1)
-		const payload = annualCreateMany.mock.calls[0][0] as {
-			data: Array<Record<string, unknown>>
-		}
+		const payload = annualCreateMany.mock.calls[0][0] as { data: Array<Record<string, unknown>> }
 		expect(payload.data).toHaveLength(3)
-		expect(payload.data[0].installmentIndex).toBe(1)
-		expect(payload.data[2].installmentIndex).toBe(3)
-		expect(payload.data[0].status).toBe(AnnualPaymentStatus.SIN_FONDEAR)
-		expect(payload.data[0].idBusiness).toBe(10)
-		for (const row of payload.data) {
-			expect(row).not.toHaveProperty('dateAnchored')
-		}
+		expect(payload.data[0].status).toBe(AnnualPaymentStatus.FONDEADO)
+		expect(payload.data[0].expectedDate).toBeDefined()
+		expect(payload.data[0].dateAnchored).toBeDefined()
 	})
 
-	it('creates payment rows for non-Anual periodicity based on calculateNumAportes', async () => {
+	it('creates FONDEADO payment rows when business is created with contract (EMITIDO)', async () => {
 		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
 			name: 'Mensual',
 		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
-		const created = mockCreatedBusiness({ term: 12, idBusiness: 11, numAportes: 144 })
+		const created = mockCreatedBusiness({
+			term: 12,
+			idBusiness: 11,
+			numAportes: 144,
+			status: 'EMITIDO',
+			dateIssued: new Date('2024-01-01'),
+			contract: 'CONTRACT-001',
+		})
 		const annualCreateMany = vi.fn().mockResolvedValue({ count: 144 })
 		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
 			return callback({
-				business: {
-					create: vi.fn().mockResolvedValue(created),
-				},
+				business: { create: vi.fn().mockResolvedValue(created) },
 				payment: { createMany: annualCreateMany },
 			} as never)
 		})
@@ -127,13 +151,13 @@ describe('createBusiness', () => {
 			...basePayload,
 			idBuyPeriodicity: 2,
 			term: 12,
+			contract: 'CONTRACT-001',
 		})
 
-		// Mensual × 12 years = 144 payment rows
 		expect(annualCreateMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				data: expect.arrayContaining([
-					expect.objectContaining({ installmentIndex: 1 }),
+					expect.objectContaining({ installmentIndex: 1, status: AnnualPaymentStatus.FONDEADO }),
 				]),
 			})
 		)
@@ -210,7 +234,7 @@ describe('createBusiness', () => {
 		})
 	})
 
-	it('sets dateIssued when contract is provided on create', async () => {
+	it('sets dateIssued and calculates expectedDates when contract is provided on create', async () => {
 		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
 			name: 'Mensual',
 		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
@@ -220,10 +244,11 @@ describe('createBusiness', () => {
 			status: 'EMITIDO',
 		})
 		const businessCreate = vi.fn().mockResolvedValue(created)
+		const paymentCreateMany = vi.fn().mockResolvedValue({ count: 12 })
 		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
 			return callback({
 				business: { create: businessCreate },
-				payment: { createMany: vi.fn() },
+				payment: { createMany: paymentCreateMany },
 			} as never)
 		})
 
@@ -231,6 +256,7 @@ describe('createBusiness', () => {
 			...basePayload,
 			idBuyPeriodicity: 2,
 			contract: 'PN9999999',
+			term: 3,
 		})
 
 		expect(result.data?.status).toBe('EMITIDO')
@@ -240,6 +266,14 @@ describe('createBusiness', () => {
 				contract: 'PN9999999',
 				dateIssued: expect.any(Date),
 			}),
+		})
+		expect(paymentCreateMany).toHaveBeenCalledWith({
+			data: expect.arrayContaining([
+				expect.objectContaining({
+					installmentIndex: 1,
+					expectedDate: expect.any(Date),
+				}),
+			]),
 		})
 	})
 

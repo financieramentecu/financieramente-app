@@ -5,6 +5,116 @@ Gestionar la creación, edición y visualización de los negocios (vouchers/comi
 
 ## Requirements
 
+### Requirement: Identity Number Validation Rule
+
+The system MUST validate `identityNumber` using the regex `/^[A-Za-z0-9.\-]+$/` — accepting letters (upper and lower), digits, dots, and hyphens. The minimum length MUST be 5 characters and the maximum MUST be 20 characters.
+
+The system MUST normalize the accepted value to uppercase server-side before storage.
+
+The validation rule MUST be defined in exactly one location (`identity-number.schema.ts`). Both the client-creation action and the business form schema MUST import from that single source. No inline regex definition of this rule MAY exist elsewhere.
+
+(Previously: `identityNumber` validated against `/^[0-9.]+$/`, accepting only digits and dots. No normalization was applied.)
+
+#### Scenario: Digits-only identity number accepted (backward compat)
+
+- GIVEN `identityNumber = '12345678'`
+- WHEN the schema validates the input
+- THEN validation SHALL succeed
+- AND the stored value SHALL be `'12345678'`
+
+#### Scenario: Digit-dot identity number accepted (backward compat)
+
+- GIVEN `identityNumber = '12.345.678'`
+- WHEN the schema validates the input
+- THEN validation SHALL succeed
+- AND the stored value SHALL be `'12.345.678'`
+
+#### Scenario: Alphanumeric-hyphen identity number accepted (new)
+
+- GIVEN `identityNumber = 'A-12345678'`
+- WHEN the schema validates the input
+- THEN validation SHALL succeed
+- AND the stored value SHALL be `'A-12345678'`
+
+#### Scenario: Passport-style identity number accepted (new)
+
+- GIVEN `identityNumber = 'PE-123456'`
+- WHEN the schema validates the input
+- THEN validation SHALL succeed
+- AND the stored value SHALL be `'PE-123456'`
+
+#### Scenario: CE without separator accepted (new)
+
+- GIVEN `identityNumber = 'CE987654'`
+- WHEN the schema validates the input
+- THEN validation SHALL succeed
+- AND the stored value SHALL be `'CE987654'`
+
+#### Scenario: Uppercase normalization applied
+
+- GIVEN `identityNumber = 'ce-123456'` (lowercase input)
+- WHEN the schema validates and transforms the input
+- THEN validation SHALL succeed
+- AND the stored value SHALL be `'CE-123456'`
+
+#### Scenario: Mixed-case normalized to uppercase
+
+- GIVEN `identityNumber = 'ab1234'`
+- WHEN the schema validates and transforms the input
+- THEN the stored value SHALL be `'AB1234'`
+
+#### Scenario: Empty string rejected
+
+- GIVEN `identityNumber = ''`
+- WHEN the schema validates the input
+- THEN validation MUST fail with a length or required error
+
+#### Scenario: Space in identity number rejected
+
+- GIVEN `identityNumber = '12 345'`
+- WHEN the schema validates the input
+- THEN validation MUST fail
+
+#### Scenario: At-sign rejected
+
+- GIVEN `identityNumber = 'abc@123'`
+- WHEN the schema validates the input
+- THEN validation MUST fail
+
+#### Scenario: Underscore rejected
+
+- GIVEN `identityNumber = 'A_1234'`
+- WHEN the schema validates the input
+- THEN validation MUST fail
+
+#### Scenario: Too-short identity number rejected
+
+- GIVEN `identityNumber = 'AB1'` (fewer than 5 characters)
+- WHEN the schema validates the input
+- THEN validation MUST fail with a minimum-length error
+
+#### Scenario: Too-long identity number rejected
+
+- GIVEN `identityNumber` with 21 characters
+- WHEN the schema validates the input
+- THEN validation MUST fail with a maximum-length error
+
+### Requirement: Single-source identity number schema module
+
+The system MUST provide `src/features/negocios/lib/identity-number.schema.ts` exporting `identityNumberSchema` as the canonical Zod schema for client identity numbers. This module MUST be the only location where the validation regex, min/max bounds, and uppercase transform are defined.
+
+#### Scenario: Schema module is importable
+
+- GIVEN `identity-number.schema.ts` exists
+- WHEN any feature module imports `identityNumberSchema`
+- THEN the import SHALL resolve without error and expose a Zod schema with parse and safeParse methods
+
+#### Scenario: No duplicate regex definitions remain
+
+- GIVEN the codebase after implementation
+- WHEN checked for inline identity-number regex definitions
+- THEN no inline `/^[0-9.]+$/` or equivalent identity-number regex MUST exist outside `identity-number.schema.ts`
+
 ### Requirement: Simplificación de Textos de Ayuda y Opciones de Moneda
 El sistema debe reducir la carga cognitiva y confusión del usuario en el formulario de creación de negocios mediante la limpieza y precisión de los textos informativos.
 
@@ -457,6 +567,176 @@ When `numAportes` is 0 or 1, the system MUST bypass the FundingModal and execute
 
 ---
 
+### Requirement: Aporte Visual State Rendering
+
+The FundingModal MUST derive the visual state of each aporte from `(status, expectedDate, now, role)` and render exactly one of five mutually exclusive variants. No aporte MAY display in two variants simultaneously.
+
+| Variant | Condition | Row color | Label | Buttons (ADMIN/ANALISTA_SOPORTE) | Buttons (AGENTE/COACH) |
+|---|---|---|---|---|---|
+| FONDEADO-PAST | status=FONDEADO AND dateAnchored month/year < current month/year | Green | "Fondeado: {dateAnchored}" | — | — |
+| FONDEADO-CURRENT | status=FONDEADO AND dateAnchored month/year >= current month/year | Gray | "Se fondeará en: {expectedDate}" | Marcar Cartera, Pago Anticipado | — |
+| EN_CARTERA | status=EN_CARTERA | Red (fila completa) | "En cartera: {portfolioDate}" | Quitar Cartera | — |
+| PAGO_ANTICIPADO | status=PAGO_ANTICIPADO | Green | "Pago anticipado: {earlyPaymentDate}" | — | — |
+| CARTERA_PAGADO | status=CARTERA_PAGADO | Green | "Cartera pagada: {portfolioPaymentDate}" | — | — |
+
+**Date resolution rule**: use `expectedDate ?? dateAnchored` as reference for month comparison. If both null → FONDEADO_CURRENT (gray, "Fecha por confirmar").
+
+**Payment lifecycle**:
+- Payments are ONLY created when negocio transitions to EMITIDO
+- Created with `status=FONDEADO`, `expectedDate=calculatedDate`, `dateAnchored=calculatedDate`
+- VENTA_EFECTUADA negocios have NO payments
+- `dateAnchored` is preserved on structural syncs; `expectedDate` is always recalculated from emission date
+
+#### Scenario: Past-month aporte renders green, no buttons
+
+- GIVEN an aporte with status=FONDEADO and expectedDate in a prior month/year
+- WHEN any role opens the FundingModal
+- THEN the row is green with no action buttons visible
+
+#### Scenario: Current/future aporte renders gray with action buttons for privileged roles
+
+- GIVEN an aporte with status=FONDEADO and expectedDate in the current or a future month/year
+- WHEN a user with role ADMIN or ANALISTA_SOPORTE opens the modal
+- THEN the row is gray AND both "Marcar Cartera" and "Pago Anticipado" buttons are visible
+
+#### Scenario: Current/future aporte renders gray, no buttons for read-only roles
+
+- GIVEN an aporte with status=FONDEADO and expectedDate in the current or a future month/year
+- WHEN a user with role AGENTE or COACH opens the modal
+- THEN the row is gray AND no action buttons are visible
+
+#### Scenario: EN_CARTERA aporte renders red with only Quitar Cartera
+
+- GIVEN an aporte with status=EN_CARTERA
+- WHEN a user with role ADMIN or ANALISTA_SOPORTE opens the modal
+- THEN the row is red, an alert icon is shown, and only "Quitar Cartera" button is visible
+- AND "Pago Anticipado" button is NOT present
+
+#### Scenario: PAGO_ANTICIPADO aporte renders green with date label, no buttons
+
+- GIVEN an aporte with status=PAGO_ANTICIPADO
+- WHEN any role opens the modal
+- THEN the row is green with label "Pago anticipado {earlyPaymentDate}"
+- AND no action buttons are visible for any role
+
+#### Scenario: CARTERA_PAGADO aporte renders green with date label, no buttons
+
+- GIVEN an aporte with status=CARTERA_PAGADO
+- WHEN any role opens the FundingModal
+- THEN the row is green with label "Cartera pagada: {portfolioPaymentDate}"
+- AND no action buttons are visible for any role
+
+---
+
+### Requirement: Mark EN_CARTERA Transition
+
+A user with role ADMIN or ANALISTA_SOPORTE MUST be able to mark a FONDEADO aporte as EN_CARTERA. The system MUST require confirmation before persisting. The system MUST log the action to AuditLog. The transition MUST only succeed if current status is FONDEADO.
+
+#### Scenario: Analista marks aporte as EN_CARTERA — happy path
+
+- GIVEN an aporte with status=FONDEADO and the user has role ADMIN or ANALISTA_SOPORTE
+- WHEN the user clicks "Marcar Cartera" and confirms the dialog
+- THEN the aporte status becomes EN_CARTERA, portfolioDate is set to now
+- AND an AuditLog entry is created with action=APORTE_CARTERA_MARKED, userId, email, ipAddress, userAgent, and human-readable details
+- AND the modal row re-renders as the EN_CARTERA variant without a page reload
+
+#### Scenario: User cancels confirmation dialog — no change
+
+- GIVEN an aporte with status=FONDEADO
+- WHEN the user clicks "Marcar Cartera" and dismisses the confirmation dialog
+- THEN the aporte status remains FONDEADO and no AuditLog entry is created
+
+#### Scenario: Transition rejected when status is not FONDEADO
+
+- GIVEN an aporte with status=EN_CARTERA or PAGO_ANTICIPADO
+- WHEN an API POST to the cartera endpoint is attempted
+- THEN the API returns 409 Conflict and the status is unchanged
+
+---
+
+### Requirement: Revert EN_CARTERA (Quitar Cartera)
+
+The "Quitar Cartera" button on an EN_CARTERA aporte SHALL open `ConfirmCarteraPagadoDialog` to collect a `portfolioPaymentDate` and transition the aporte forward to CARTERA_PAGADO (terminal). The system MUST require confirmation. The system MUST log the action as APORTE_CARTERA_PAGADO.
+
+(Previously: "Quitar Cartera" reverted the aporte from EN_CARTERA back to FONDEADO, nulling portfolioDate, with action=APORTE_CARTERA_UNMARKED.)
+
+#### Scenario: Quitar Cartera opens ConfirmCarteraPagadoDialog
+
+- GIVEN an aporte with status=EN_CARTERA and the user has role ADMIN or ANALISTA_SOPORTE
+- WHEN the user clicks "Quitar Cartera"
+- THEN ConfirmCarteraPagadoDialog SHALL open with today's date pre-filled
+
+#### Scenario: Confirming transitions to CARTERA_PAGADO
+
+- GIVEN the ConfirmCarteraPagadoDialog is open with a valid portfolioPaymentDate
+- WHEN the user confirms
+- THEN the aporte status becomes CARTERA_PAGADO and portfolioPaymentDate is persisted
+- AND an AuditLog entry is created with action=APORTE_CARTERA_PAGADO
+- AND the modal row re-renders as the CARTERA_PAGADO variant
+
+#### Scenario: Cancel confirmation on Quitar Cartera
+
+- GIVEN an aporte with status=EN_CARTERA
+- WHEN the user clicks "Quitar Cartera" and cancels the dialog
+- THEN status remains EN_CARTERA, no AuditLog entry is created
+
+---
+
+### Requirement: Mark PAGO_ANTICIPADO Transition
+
+A user with role ADMIN or ANALISTA_SOPORTE MUST be able to mark a FONDEADO aporte as PAGO_ANTICIPADO. The system MUST require confirmation. The system MUST log the action. This transition MUST only succeed from FONDEADO status.
+
+#### Scenario: Analista marks pago anticipado — happy path
+
+- GIVEN an aporte with status=FONDEADO and the user has role ADMIN or ANALISTA_SOPORTE
+- WHEN the user clicks "Pago Anticipado" and confirms
+- THEN the aporte status becomes PAGO_ANTICIPADO, earlyPaymentDate is set to now
+- AND an AuditLog entry is created with action=APORTE_PAGO_ANTICIPADO_MARKED
+- AND the modal row re-renders as PAGO_ANTICIPADO variant showing the date label
+
+#### Scenario: Cancel confirmation on Pago Anticipado
+
+- GIVEN an aporte with status=FONDEADO
+- WHEN the user clicks "Pago Anticipado" and cancels
+- THEN status remains FONDEADO, no AuditLog entry is created
+
+#### Scenario: Transition rejected when status is EN_CARTERA
+
+- GIVEN an aporte with status=EN_CARTERA
+- WHEN an API POST to the pago-anticipado endpoint is attempted
+- THEN the API returns 409 Conflict
+
+---
+
+### Requirement: Role-Based API Authorization
+
+Every mutation endpoint (cartera POST, cartera DELETE, pago-anticipado POST, cartera-pagado POST) MUST reject requests from users without role ADMIN or ANALISTA_SOPORTE. The role check MUST be enforced server-side regardless of UI state.
+
+(Previously: Covered cartera POST, cartera DELETE, pago-anticipado POST only.)
+
+#### Scenario: Unauthorized role attempts mutation
+
+- GIVEN a user with role AGENTE or COACH
+- WHEN they send a POST/DELETE to any aporte state mutation endpoint (including /cartera-pagado)
+- THEN the API returns 403 Forbidden and no state change or AuditLog entry is written
+
+---
+
+### Requirement: AuditLog Coverage
+
+Every successful state mutation MUST produce exactly one AuditLog entry. The entry MUST include: userId, email, ipAddress (via getClientIp), userAgent (via getUserAgent), and a human-readable details string naming the aporte index and resulting status. The `APORTE_CARTERA_PAGADO` action MUST be registered in the AuditAction enum.
+
+(Previously: Covered APORTE_CARTERA_MARKED, APORTE_CARTERA_UNMARKED, APORTE_PAGO_ANTICIPADO_MARKED. Did not include APORTE_CARTERA_PAGADO.)
+
+#### Scenario: Audit entry content for CARTERA_PAGADO
+
+- GIVEN a successful CARTERA_PAGADO transition
+- WHEN the service completes
+- THEN AuditLog contains action=APORTE_CARTERA_PAGADO, the aporte index, negocioId, portfolioPaymentDate, and actor identity fields
+- AND logAuditEvent MUST NOT throw or block the response if it fails internally
+
+---
+
 ### Requirement: Annual funding modal
 
 The FundingModal MUST display all payment rows with funded rows shown in a **compact read-only format**. The modal MUST be scrollable when rows exceed visible area. Each row MUST show `expectedDate`, `periodicidad`, and `plazo`. Unfunded (`SIN_FONDEAR`) rows MUST be markable. Title MUST include `Business.contract` when non-empty; else MAY use **«Negocio #id»**.
@@ -506,6 +786,81 @@ Each successful annual funding confirmation MUST emit an audit record consistent
 
 - **GIVEN** successful annual funding
 - **THEN** an audit entry MUST exist
+
+---
+
+### Requirement: CARTERA_PAGADO Terminal Transition
+
+The system MUST provide a forward-only, terminal transition from `EN_CARTERA` to `CARTERA_PAGADO` when a user with role ADMIN or ANALISTA_SOPORTE confirms the client has paid the cartera. The transition MUST record a `portfolioPaymentDate` supplied by the actor. Once in `CARTERA_PAGADO`, the aporte MUST NOT offer any further transition buttons.
+
+#### Scenario: Happy path — EN_CARTERA confirmed as paid
+
+- GIVEN an aporte with status=EN_CARTERA and the user has role ADMIN or ANALISTA_SOPORTE
+- WHEN the user clicks "Quitar Cartera", provides a `portfolioPaymentDate`, and confirms the dialog
+- THEN the aporte status becomes CARTERA_PAGADO and `portfolioPaymentDate` is persisted
+- AND an AuditLog entry is created with action=APORTE_CARTERA_PAGADO, userId, email, ipAddress, userAgent, and human-readable details
+- AND the modal row re-renders as the CARTERA_PAGADO variant with no action buttons
+
+#### Scenario: User cancels the confirmation dialog
+
+- GIVEN an aporte with status=EN_CARTERA
+- WHEN the user opens the dialog and cancels without confirming
+- THEN the aporte status remains EN_CARTERA and no AuditLog entry is created
+
+#### Scenario: API rejects transition when status is not EN_CARTERA
+
+- GIVEN an aporte with status FONDEADO, PAGO_ANTICIPADO, or CARTERA_PAGADO
+- WHEN POST /api/negocios/[id]/aportes/[index]/cartera-pagado is called
+- THEN the API returns 409 Conflict and no state change occurs
+
+#### Scenario: Unauthorized role is rejected
+
+- GIVEN a user with role AGENTE or COACH
+- WHEN POST /api/negocios/[id]/aportes/[index]/cartera-pagado is called
+- THEN the API returns 403 Forbidden and no state change or AuditLog entry is written
+
+#### Scenario: Missing portfolioPaymentDate is rejected
+
+- GIVEN a POST to /cartera-pagado with no portfolioPaymentDate in the body
+- WHEN the server validates the request
+- THEN the API returns 400 Bad Request and no state change occurs
+
+---
+
+### Requirement: ConfirmCarteraPagadoDialog UI
+
+The system MUST render a dedicated `ConfirmCarteraPagadoDialog` component (not the generic `ConfirmActionDialog`) for the CARTERA_PAGADO confirmation. The dialog MUST include a date input pre-filled with today's date, green color styling, and the warning copy: "La cartera cambiará a pagado, ya no se va poder registrarlo como cartera."
+
+#### Scenario: Dialog opens with today's date pre-filled
+
+- GIVEN the user clicks "Quitar Cartera" on an EN_CARTERA aporte
+- WHEN the dialog renders
+- THEN the date input value SHALL default to today's date (YYYY-MM-DD)
+- AND the dialog SHALL display green styling and the warning message
+
+#### Scenario: User changes the date before confirming
+
+- GIVEN the ConfirmCarteraPagadoDialog is open
+- WHEN the user updates the date input to a past date and confirms
+- THEN the POST request body SHALL include that user-selected date as portfolioPaymentDate
+
+---
+
+### Requirement: portfolioPaymentDate in PaymentInstallmentDto
+
+The `PaymentInstallmentDto` MUST include `portfolioPaymentDate: string | null`. The API MUST return this field on all aporte detail payloads. The UI MUST display this date when the aporte is in CARTERA_PAGADO variant.
+
+#### Scenario: portfolioPaymentDate present in API response
+
+- GIVEN an aporte that has transitioned to CARTERA_PAGADO
+- WHEN the aporte detail is fetched
+- THEN the response SHALL include `portfolioPaymentDate` with the recorded ISO date string
+
+#### Scenario: portfolioPaymentDate null for non-CARTERA_PAGADO aportes
+
+- GIVEN an aporte with status FONDEADO, EN_CARTERA, or PAGO_ANTICIPADO
+- WHEN the aporte detail is fetched
+- THEN `portfolioPaymentDate` SHALL be null
 
 ---
 

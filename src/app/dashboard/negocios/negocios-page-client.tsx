@@ -109,6 +109,9 @@ export function NegociosPageClient({
 	const [searchParams, setSearchParams] = useState<BusinessListParams>({
 		page: 1,
 		pageSize: 10,
+		companyIds: [],
+		productIds: [],
+		originIds: [],
 		...(isAgentRole ? { dateFrom: defaultDates.from, dateTo: defaultDates.to } : {}),
 	})
 
@@ -430,6 +433,17 @@ export function NegociosPageClient({
 		[]
 	)
 
+	const handleAdvancedFiltersChange = useCallback(
+		(filters: { companyIds: number[]; productIds: number[]; originIds: number[] }) => {
+			setSearchParams((prev) => ({
+				...prev,
+				...filters,
+				page: 1,
+			}))
+		},
+		[]
+	)
+
 	const handleFundDateFromChange = useCallback((value: string) => {
 		setSearchParams((prev) => {
 			const newFrom = isAgentRole ? (value || defaultDates.from) : (value || undefined)
@@ -487,6 +501,19 @@ export function NegociosPageClient({
 		}
 	}, [])
 
+	const handleSaveDateIssued = useCallback(async (businessId: number, dateIssued: string) => {
+		const response = await businessService.update(businessId, { dateIssued })
+		if ('error' in response && response.error) {
+			throw new Error(response.error)
+		}
+		if (response.data) {
+			setSelectedBusiness(response.data)
+		}
+		toast.success('La fecha de emisión fue actualizada exitosamente. Los fondeos han sido recalculados')
+		refetch()
+		refetchStats()
+	}, [refetch, refetchStats])
+
 	const handleCancelModalClose = useCallback((open: boolean) => {
 		setCancelModalOpen(open)
 		if (!open) {
@@ -543,6 +570,11 @@ export function NegociosPageClient({
 				sortOrder={searchParams.sortOrder}
 				onUploadSuccess={() => { refetch(); refetchStats() }}
 				onDeleteSuccess={() => { refetch(); refetchStats() }}
+				onSaveDateIssued={handleSaveDateIssued}
+				companyIds={searchParams.companyIds}
+				productIds={searchParams.productIds}
+				originIds={searchParams.originIds}
+				onAdvancedFiltersChange={handleAdvancedFiltersChange}
 			/>
 
 			{/* Modal de Visualización */}
@@ -551,6 +583,11 @@ export function NegociosPageClient({
 				onOpenChange={handleViewModalClose}
 				business={selectedBusiness}
 				isLoading={isLoadingBusiness}
+				allowEditDateIssued={
+					_currentUser?.role?.code === UserRole.ADMIN ||
+					_currentUser?.role?.code === UserRole.ANALISTA_SOPORTE
+				}
+				onSaveDateIssued={handleSaveDateIssued}
 			/>
 
 			{/* Modal de Cancelación */}
@@ -573,6 +610,7 @@ export function NegociosPageClient({
 				periodicidadLabel={annualFundingPeriodicidadLabel}
 				plazo={annualFundingPlazo}
 				canFund={canFundPayments(_currentUser?.role?.code)}
+				roleCode={_currentUser?.role?.code}
 				onConfirm={handleConfirmAnnualFunding}
 			/>
 

@@ -342,15 +342,18 @@ model Business {
 }
 
 model Payment {
-  idAnnualPayment  Int                 @id @default(autoincrement()) @map("id_annual_payment")
-  idBusiness       Int                 @map("id_business")
-  installmentIndex Int                 @map("installment_index")
-  status           AnnualPaymentStatus @default(SIN_FONDEAR)
-  dateAnchored     DateTime?           @map("date_anchored")
-  expectedDate     DateTime?           @map("expected_date")
-  createdAt        DateTime            @default(now()) @map("created_at")
-  updatedAt        DateTime            @updatedAt @map("updated_at")
-  business         Business            @relation(fields: [idBusiness], references: [idBusiness], onDelete: Cascade)
+  idAnnualPayment      Int                 @id @default(autoincrement()) @map("id_annual_payment")
+  idBusiness           Int                 @map("id_business")
+  installmentIndex     Int                 @map("installment_index")
+  status               AnnualPaymentStatus @default(SIN_FONDEAR)
+  dateAnchored         DateTime?           @map("date_anchored")
+  expectedDate         DateTime?           @map("expected_date")
+  portfolioDate        DateTime?           @map("portfolio_date")
+  earlyPaymentDate     DateTime?           @map("early_payment_date")
+  portfolioPaymentDate DateTime?           @map("portfolio_payment_date")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+  business             Business            @relation(fields: [idBusiness], references: [idBusiness], onDelete: Cascade)
 
   @@unique([idBusiness, installmentIndex])
   @@index([idBusiness])
@@ -529,6 +532,9 @@ enum BeneficiaryMode {
 enum AnnualPaymentStatus {
   SIN_FONDEAR
   FONDEADO
+  EN_CARTERA
+  PAGO_ANTICIPADO
+  CARTERA_PAGADO
 }
 
 enum ContributionType {

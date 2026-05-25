@@ -52,6 +52,8 @@ jobs:
             NEXT_PUBLIC_API_URL=https://negocios.financieramentecu.co
             NEXT_TELEMETRY_DISABLED=1
             AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_PROD }}
+            FLAGSMITH_SERVER_KEY=${{ secrets.FLAGSMITH_SERVER_KEY_PROD }}
+            NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY=${{ secrets.FLAGSMITH_CLIENT_KEY_PROD }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -143,6 +145,8 @@ jobs:
           DO_SPACES_ENDPOINT=${{ secrets.DO_SPACES_ENDPOINT }}
           DO_SPACES_BUCKET=${{ secrets.DO_SPACES_BUCKET }}
           DO_SPACES_PREFIX=prod
+          NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY=${{ secrets.FLAGSMITH_CLIENT_KEY_PROD }}
+          FLAGSMITH_SERVER_KEY=${{ secrets.FLAGSMITH_SERVER_KEY_PROD }}
           ENVEOF
           sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" .env
 

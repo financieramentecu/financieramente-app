@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PUT } from '../route'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
@@ -27,8 +28,8 @@ vi.mock('@/lib/prisma', () => ({
 		user: { findUnique: vi.fn() },
 		buyPeriodicity: { findUnique: vi.fn() },
 		product: { findUnique: vi.fn() },
-		payment: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
-		$transaction: vi.fn().mockImplementation(async (cb: (tx: unknown) => unknown) => {
+		payment: { findMany: vi.fn(), update: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
+		$transaction: vi.fn().mockImplementation(async (cb: any) => {
 			const tx = {
 				business: {
 					update: mockPrismaUpdate,
@@ -88,12 +89,7 @@ vi.mock('@/features/negocios/mappers/business-entity.mapper', () => ({
 	}),
 }))
 
-const mockProductConfiguration = {
-	idProductConfiguration: 1,
-	idProduct: 5,
-	idClientOrigin: 1,
-	idCategory: 3,
-}
+
 
 
 describe('PUT /api/negocios/[id]', () => {
@@ -333,4 +329,139 @@ describe('PUT /api/negocios/[id]', () => {
 			})
 		)
 	})
+
+	it('recalculates expectedDate and dateAnchored for FONDEADO payments when dateIssued is modified, skipping EN_CARTERA and PAGO_ANTICIPADO', async () => {
+		const mockSession = { user: { email: 'admin@test.com' } }
+		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' }, idRole: 1 }
+		const mockBusinessEmitido = {
+			idBusiness: 10, status: 'EMITIDO',
+			dateIssued: new Date('2024-01-01T12:00:00Z'),
+			buyPeriodicity: { name: 'Mensual' }, numAportes: 3,
+		}
+
+		;(auth as any).mockResolvedValue(mockSession)
+		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
+		mockPrismaFindFirst.mockResolvedValue(mockBusinessEmitido)
+		mockPrismaUpdate.mockResolvedValue({ idBusiness: 10, status: 'EMITIDO', dateIssued: new Date('2024-02-01T12:00:00Z') })
+
+		const payments = [
+			{ idAnnualPayment: 101, installmentIndex: 1, status: 'FONDEADO' },
+			{ idAnnualPayment: 102, installmentIndex: 2, status: 'EN_CARTERA' },
+			{ idAnnualPayment: 103, installmentIndex: 3, status: 'PAGO_ANTICIPADO' },
+		]
+		// recalculatePaymentExpectedDates uses prisma directly (outside tx)
+		vi.mocked(prisma.payment.findMany).mockResolvedValue(payments as any)
+		vi.mocked(prisma.payment.update).mockResolvedValue({} as any)
+
+		const req = new Request('http://localhost:3000/api/negocios/10', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ dateIssued: '2024-02-01T00:00:00.000Z' }),
+		})
+
+		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
+		expect(res.status).toBe(200)
+
+		// Only FONDEADO payment gets updated; EN_CARTERA and PAGO_ANTICIPADO are protected
+		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledTimes(1)
+		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { idAnnualPayment: 101 },
+				data: expect.objectContaining({ expectedDate: expect.any(Date), dateAnchored: expect.any(Date) }),
+			})
+		)
+	})
+
+	it('returns 403 when updating dateIssued while EMITIDO and user is not privileged (agent)', async () => {
+		const mockSession = { user: { email: 'agent@test.com' } }
+		const mockCurUser = {
+			idUser: 1,
+			name: 'Agent',
+			role: { code: 'AGENTE' },
+			idRole: 1,
+		}
+		const mockBusinessEmitido = {
+			idBusiness: 10,
+			status: 'EMITIDO',
+			dateIssued: new Date('2024-01-01T12:00:00Z'),
+			buyPeriodicity: { name: 'Mensual' },
+			numAportes: 3,
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(auth as any).mockResolvedValue(mockSession)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockPrismaFindFirst.mockResolvedValue(mockBusinessEmitido)
+
+		const req = new Request('http://localhost:3000/api/negocios/10', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ dateIssued: '2024-02-01T00:00:00.000Z' }),
+		})
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
+		const data = await res.json() as { error: string }
+
+		expect(res.status).toBe(403)
+		expect(data.error).toContain('campos clave')
+		expect(mockPrismaUpdate).not.toHaveBeenCalled()
+	})
+
+	it('recalculates dates for FONDEADO payments when dateIssued is modified while business is FONDEADO', async () => {
+		const mockSession = { user: { email: 'admin@test.com' } }
+		const mockCurUser = {
+			idUser: 1,
+			name: 'Admin',
+			role: { code: 'ADMIN' },
+			idRole: 1,
+		}
+		const mockBusinessFondeado = {
+			idBusiness: 10,
+			status: 'FONDEADO',
+			dateIssued: new Date('2024-01-01T12:00:00Z'),
+			buyPeriodicity: { name: 'Mensual' },
+			numAportes: 3,
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(auth as any).mockResolvedValue(mockSession)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockPrismaFindFirst.mockResolvedValue(mockBusinessFondeado)
+		mockPrismaUpdate.mockResolvedValue({ idBusiness: 10, status: 'FONDEADO', dateIssued: new Date('2024-02-01T12:00:00Z') })
+
+		const payments = [
+			{ idAnnualPayment: 101, installmentIndex: 1, status: 'FONDEADO' },
+			{ idAnnualPayment: 102, installmentIndex: 2, status: 'FONDEADO' },
+			{ idAnnualPayment: 103, installmentIndex: 3, status: 'EN_CARTERA' },
+		]
+		vi.mocked(prisma.payment.findMany).mockResolvedValue(payments as any)
+		vi.mocked(prisma.payment.update).mockResolvedValue({} as any)
+
+		const req = new Request('http://localhost:3000/api/negocios/10', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ dateIssued: '2024-02-01T00:00:00.000Z' }),
+		})
+
+		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
+		expect(res.status).toBe(200)
+
+		// Two FONDEADO payments get updated; EN_CARTERA is protected
+		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledTimes(2)
+		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { idAnnualPayment: 101 },
+				data: expect.objectContaining({ expectedDate: expect.any(Date), dateAnchored: expect.any(Date) }),
+			})
+		)
+		expect(vi.mocked(prisma.payment.update)).not.toHaveBeenCalledWith(
+			expect.objectContaining({ where: { idAnnualPayment: 103 } })
+		)
+	})
 })
+

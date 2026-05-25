@@ -42,6 +42,10 @@ export interface BusinessListParams {
 	sortBy?: string
 	/** Dirección del orden: 'asc' | 'desc' */
 	sortOrder?: 'asc' | 'desc'
+	/** Campos de Filtros Avanzados */
+	companyIds?: number[]
+	productIds?: number[]
+	originIds?: number[]
 }
 
 /** Body POST `/api/negocios/export` */
@@ -91,6 +95,7 @@ export interface UpdateBusinessRequest {
 	idCurrency?: number
 	idUser?: number
 	numAportes?: number
+	dateIssued?: string
 }
 
 /**
@@ -101,7 +106,12 @@ export interface CancelBusinessRequest {
 }
 
 /** Estado de cuota de pago para modal (API payments) */
-export type AnnualInstallmentStatusUi = 'SIN_FONDEAR' | 'FONDEADO'
+export type AnnualInstallmentStatusUi =
+	| 'SIN_FONDEAR'
+	| 'FONDEADO'
+	| 'EN_CARTERA'
+	| 'PAGO_ANTICIPADO'
+	| 'CARTERA_PAGADO'
 
 /** @deprecated Use PaymentInstallmentDto */
 export type AnnualInstallmentDto = PaymentInstallmentDto
@@ -111,6 +121,9 @@ export interface PaymentInstallmentDto {
 	status: AnnualInstallmentStatusUi
 	dateAnchored: string | null
 	expectedDate: string | null
+	portfolioDate: string | null
+	earlyPaymentDate: string | null
+	portfolioPaymentDate: string | null
 }
 
 export interface AnnualPaymentsResponse {

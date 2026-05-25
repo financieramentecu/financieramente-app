@@ -1,0 +1,22 @@
+'use client'
+import { FlagsmithProvider as VendorProvider } from '@flagsmith/flagsmith/react'
+import flagsmith from '@flagsmith/flagsmith/isomorphic'
+import type { ReactNode } from 'react'
+import type { FlagsmithServerState } from '@/features/shared/types/feature-flags.types'
+
+interface FlagsmithProviderProps {
+	children: ReactNode
+	serverState: FlagsmithServerState
+}
+
+export function FlagsmithProvider({ children, serverState }: FlagsmithProviderProps) {
+	return (
+		<VendorProvider
+			flagsmith={flagsmith}
+			serverState={JSON.parse(serverState)}
+			options={{ environmentID: process.env.NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY! }}
+		>
+			{children}
+		</VendorProvider>
+	)
+}

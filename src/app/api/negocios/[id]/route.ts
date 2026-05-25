@@ -35,6 +35,7 @@ import {
 } from '@/features/auth/lib/audit-logger'
 import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
 import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
+import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expected-dates'
 import { AnnualPaymentStatus } from '@prisma/client'
 import { sincronizarYCalcularRegistroRezagado } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 
@@ -175,6 +176,7 @@ export async function PUT(
 			idCurrency,
 			idUser,
 			numAportes,
+			dateIssued,
 		} = validationResult.data
 		
 		if (Object.keys(validationResult.data).length === 0) {
@@ -239,17 +241,18 @@ export async function PUT(
 		// Validar que el negocio esté en un estado editable
 		if (
 			existingBusiness.status !== BUSINESS_STATUS.VENTA_EFECTUADA &&
-			existingBusiness.status !== BUSINESS_STATUS.EMITIDO
+			existingBusiness.status !== BUSINESS_STATUS.EMITIDO &&
+			existingBusiness.status !== BUSINESS_STATUS.FONDEADO
 		) {
 			return NextResponse.json(
-				{ data: null, error: 'Solo se pueden editar negocios en estado VENTA_EFECTUADA o EMITIDO' },
+				{ data: null, error: 'Solo se pueden editar negocios en estado VENTA_EFECTUADA, EMITIDO o FONDEADO' },
 				{ status: 400 }
 			)
 		}
 
 		// Validar permisos para campos sensibles si no es borrador
 		const isNotDraft = existingBusiness.status !== BUSINESS_STATUS.VENTA_EFECTUADA
-		const sensitiveFields = [idProduct, term, value, idBuyPeriodicity, idCurrency, idUser, numAportes]
+		const sensitiveFields = [idProduct, term, value, idBuyPeriodicity, idCurrency, idUser, numAportes, dateIssued]
 		const isUpdatingSensitive = sensitiveFields.some((f) => f !== undefined)
 
 		if (isNotDraft && isUpdatingSensitive && !isPrivileged) {
@@ -278,6 +281,7 @@ export async function PUT(
 		let finalIdPpc = existingBusiness.idProductPercentageCommission
 		let finalNumAportes = existingBusiness.numAportes ?? 0
 		let shouldSyncPayments = false
+		let resolvedPeriodicityName: string | null = existingBusiness.buyPeriodicity?.name ?? null
 
 		// --- FLUJO ESPECIAL: CAMBIO DE ORIGEN ---
 		if (idClientOrigin !== undefined && isUpdatingSensitive === false && contract === undefined) {
@@ -343,10 +347,9 @@ export async function PUT(
 			} else {
 				const targetTerm = term ?? existingBusiness.term
 
-				let periodicityName = existingBusiness.buyPeriodicity?.name ?? null
 				if (idBuyPeriodicity !== undefined && idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) {
 					const bp = await prisma.buyPeriodicity.findUnique({ where: { idBuyPeriodicity } })
-					periodicityName = bp?.name ?? null
+					resolvedPeriodicityName = bp?.name ?? null
 				}
 
 				let companyName = existingBusiness.productPercentageCommission.productConfiguration.product.company.name
@@ -363,7 +366,7 @@ export async function PUT(
 
 				finalNumAportes = calculateNumAportes({
 					termYears: targetTerm ?? null,
-					periodicityName,
+					periodicityName: resolvedPeriodicityName,
 					companyName,
 					productName,
 				})
@@ -372,6 +375,13 @@ export async function PUT(
 			if (finalNumAportes !== (existingBusiness.numAportes ?? 0)) {
 				shouldSyncPayments = true
 			}
+		}
+
+		// Si el negocio recién se emite, crear los payments (no existían en VENTA_EFECTUADA)
+		const becomesEmitidoEarly = Boolean(contract) &&
+			existingBusiness.status === BUSINESS_STATUS.VENTA_EFECTUADA
+		if (becomesEmitidoEarly) {
+			shouldSyncPayments = true
 		}
 
 		// 3. Validar duplicado de contrato
@@ -387,17 +397,26 @@ export async function PUT(
 			}
 		}
 
-		// --- EJECUCIÓN DE ACTUALIZACIÓN ---
+		// --- DERIVACIÓN DE ESTADO (antes de la transacción para evitar duplicación) ---
+		const newStatus = contract && existingBusiness.status === BUSINESS_STATUS.VENTA_EFECTUADA
+			? BUSINESS_STATUS.EMITIDO
+			: existingBusiness.status
+
+		const becomesEmitido = Boolean(contract) &&
+			existingBusiness.status === BUSINESS_STATUS.VENTA_EFECTUADA &&
+			newStatus === BUSINESS_STATUS.EMITIDO
+
+		const resolvedDateIssued = dateIssued !== undefined
+			? (dateIssued ? new Date(dateIssued) : null)
+			: (becomesEmitido ? (existingBusiness.dateIssued ?? new Date()) : existingBusiness.dateIssued)
+
+		const dateIssuedChanged = dateIssued !== undefined &&
+			(dateIssued ? new Date(dateIssued).getTime() : 0) !== (existingBusiness.dateIssued ? new Date(existingBusiness.dateIssued).getTime() : 0)
+
+		const isEmittedStatus = newStatus === BUSINESS_STATUS.EMITIDO || newStatus === BUSINESS_STATUS.FONDEADO
+
+		// --- TRANSACCIÓN: solo la actualización del negocio y sincronización estructural de aportes ---
 		const updatedBusiness = await prisma.$transaction(async (tx) => {
-			const newStatus = contract && existingBusiness.status === BUSINESS_STATUS.VENTA_EFECTUADA
-				? BUSINESS_STATUS.EMITIDO
-				: existingBusiness.status
-
-			const becomesEmitido = Boolean(contract) &&
-				existingBusiness.status === BUSINESS_STATUS.VENTA_EFECTUADA &&
-				newStatus === BUSINESS_STATUS.EMITIDO
-
-			// Preparar data de actualización
 			const updateData: Prisma.BusinessUpdateInput = {
 				contract: contract !== undefined ? (contract || null) : undefined,
 				clientOrigin: idClientOrigin !== undefined ? { connect: { idClientOrigin } } : undefined,
@@ -410,12 +429,13 @@ export async function PUT(
 				numAportes: finalNumAportes,
 			}
 
-			// Solo permitir cambiar el agente si es borrador
 			if (idUser !== undefined && !isNotDraft) {
 				updateData.user = { connect: { idUser: idUser } }
 			}
 
-			if (becomesEmitido) {
+			if (dateIssued !== undefined) {
+				updateData.dateIssued = dateIssued ? new Date(dateIssued) : null
+			} else if (becomesEmitido) {
 				updateData.dateIssued = existingBusiness.dateIssued ?? new Date()
 			}
 
@@ -425,44 +445,34 @@ export async function PUT(
 				include: businessWithRelations,
 			})
 
-			// 2. Sincronizar pagos si es necesario (cambió numAportes, plazo, periodicidad o producto)
 			if (shouldSyncPayments) {
-				// Obtener aportes fondeados para preservarlos
-				const fundedPayments = await tx.payment.findMany({
-					where: { idBusiness: businessId, status: AnnualPaymentStatus.FONDEADO },
-					orderBy: { installmentIndex: 'asc' },
+				await syncPaymentsStructure(tx, {
+					businessId,
+					newStatus,
+					resolvedDateIssued,
+					resolvedPeriodicityName,
+					finalNumAportes,
 				})
-
-				// Borrar todos los aportes actuales para recrear la secuencia limpia
-				await tx.payment.deleteMany({ where: { idBusiness: businessId } })
-
-				// Recrear aportes hasta el nuevo finalNumAportes
-				if (finalNumAportes > 0) {
-					const now = new Date()
-					const paymentsToCreate = Array.from({ length: finalNumAportes }, (_, i) => {
-						const idx = i + 1
-						// Buscar si este índice ya estaba fondeado
-						const previous = fundedPayments.find((p) => p.installmentIndex === idx)
-						
-						return {
-							idBusiness: businessId,
-							installmentIndex: idx,
-							status: previous ? AnnualPaymentStatus.FONDEADO : AnnualPaymentStatus.SIN_FONDEAR,
-							dateAnchored: previous?.dateAnchored ?? null,
-							expectedDate: previous?.expectedDate ?? null,
-							createdAt: previous?.createdAt ?? now,
-							updatedAt: now,
-						}
-					})
-
-					await tx.payment.createMany({
-						data: paymentsToCreate,
-					})
-				}
 			}
 
 			return updated
 		})
+
+		// --- POST-TRANSACCIÓN: recalcular fechas esperadas (no requiere atomicidad con el negocio) ---
+		const needsDateRecalculation = !shouldSyncPayments &&
+			(dateIssuedChanged || becomesEmitido) &&
+			isEmittedStatus &&
+			resolvedDateIssued !== null &&
+			resolvedPeriodicityName !== null
+
+		if (needsDateRecalculation) {
+			await recalculatePaymentExpectedDates(prisma, {
+				businessId,
+				resolvedDateIssued: resolvedDateIssued!,
+				resolvedPeriodicityName: resolvedPeriodicityName!,
+				finalNumAportes,
+			})
+		}
 
 		// --- TAREAS POST-ACTUALIZACIÓN ---
 
@@ -514,4 +524,87 @@ export async function PUT(
 			{ status: 500 }
 		)
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Helpers de sincronización de aportes
+// ---------------------------------------------------------------------------
+
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
+interface SyncPaymentsStructureParams {
+	businessId: number
+	newStatus: string
+	resolvedDateIssued: Date | null
+	resolvedPeriodicityName: string | null
+	finalNumAportes: number
+}
+
+async function syncPaymentsStructure(tx: PrismaTx, params: SyncPaymentsStructureParams): Promise<void> {
+	const { businessId, newStatus, resolvedDateIssued, resolvedPeriodicityName, finalNumAportes } = params
+
+	const isEmitted = newStatus === BUSINESS_STATUS.EMITIDO || newStatus === BUSINESS_STATUS.FONDEADO
+
+	const existingPayments = await tx.payment.findMany({
+		where: { idBusiness: businessId },
+		orderBy: { installmentIndex: 'asc' },
+	})
+
+	await tx.payment.deleteMany({ where: { idBusiness: businessId } })
+
+	if (finalNumAportes === 0 || !isEmitted || !resolvedDateIssued || !resolvedPeriodicityName) return
+
+	const expectedDates = calculateExpectedDates(resolvedDateIssued, finalNumAportes, resolvedPeriodicityName)
+	const now = new Date()
+
+	const paymentsToCreate = Array.from({ length: finalNumAportes }, (_, i) => {
+		const installmentIndex = i + 1
+		const previous = existingPayments.find(p => p.installmentIndex === installmentIndex)
+		const calculatedDate = expectedDates[i] ?? null
+		return {
+			idBusiness: businessId,
+			installmentIndex,
+			status: previous?.status ?? AnnualPaymentStatus.FONDEADO,
+			expectedDate: calculatedDate,
+			dateAnchored: previous?.dateAnchored ?? calculatedDate,
+			portfolioDate: previous?.portfolioDate ?? null,
+			earlyPaymentDate: previous?.earlyPaymentDate ?? null,
+			createdAt: previous?.createdAt ?? now,
+			updatedAt: now,
+		}
+	})
+
+	await tx.payment.createMany({ data: paymentsToCreate })
+}
+
+interface RecalculatePaymentDatesParams {
+	businessId: number
+	resolvedDateIssued: Date
+	resolvedPeriodicityName: string
+	finalNumAportes: number
+}
+
+async function recalculatePaymentExpectedDates(
+	db: typeof prisma,
+	params: RecalculatePaymentDatesParams
+): Promise<void> {
+	const { businessId, resolvedDateIssued, resolvedPeriodicityName, finalNumAportes } = params
+
+	const expectedDates = calculateExpectedDates(resolvedDateIssued, finalNumAportes, resolvedPeriodicityName)
+	const payments = await db.payment.findMany({ where: { idBusiness: businessId } })
+	const now = new Date()
+
+	const recalculable = payments.filter(
+		p => p.status !== AnnualPaymentStatus.EN_CARTERA && p.status !== AnnualPaymentStatus.PAGO_ANTICIPADO
+	)
+
+	await Promise.all(
+		recalculable.map(p => {
+			const newDate = expectedDates[p.installmentIndex - 1] ?? null
+			return db.payment.update({
+				where: { idAnnualPayment: p.idAnnualPayment },
+				data: { expectedDate: newDate, dateAnchored: newDate, updatedAt: now },
+			})
+		})
+	)
 }

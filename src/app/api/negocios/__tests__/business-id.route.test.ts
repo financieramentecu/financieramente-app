@@ -140,6 +140,9 @@ describe('GET /api/negocios/[id]', () => {
 				} as unknown as NextResponse
 			}
 		)
+		vi.mocked(prisma.payment.findMany).mockResolvedValue([])
+		vi.mocked(prisma.payment.createMany).mockResolvedValue({ count: 0 })
+		vi.mocked(prisma.payment.deleteMany).mockResolvedValue({ count: 0 })
 	})
 
 	afterEach(() => {
@@ -529,6 +532,10 @@ describe('PUT /api/negocios/[id]', () => {
 				} as unknown as NextResponse
 			}
 		)
+		mockUpdate.mockResolvedValue(commonUpdatedBusiness as never)
+		vi.mocked(prisma.payment.findMany).mockResolvedValue([])
+		vi.mocked(prisma.payment.createMany).mockResolvedValue({ count: 0 })
+		vi.mocked(prisma.payment.deleteMany).mockResolvedValue({ count: 0 })
 	})
 
 	afterEach(() => {

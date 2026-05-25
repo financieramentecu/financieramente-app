@@ -67,6 +67,9 @@ export const businessListParamsSchema = z
 			])
 			.nullish(),
 		sortOrder: z.enum(['asc', 'desc']).nullish(),
+		companyIds: z.array(z.number()).optional(),
+		productIds: z.array(z.number()).optional(),
+		originIds: z.array(z.number()).optional(),
 	})
 	.superRefine((data, ctx) => {
 		const hasFrom = data.dateFrom !== undefined
@@ -142,6 +145,12 @@ export const updateBusinessSchema = z.object({
 	idCurrency: z.number({ message: 'La moneda debe ser un número válido' }).int('La moneda debe ser un número entero').positive('La moneda debe ser un ID válido mayor a 0').optional(),
 	idUser: z.number({ message: 'El agente debe ser un número válido' }).int('El agente debe ser un número entero').positive('El agente debe ser un ID válido mayor a 0').optional(),
 	numAportes: z.number({ message: 'El número de aportes debe ser un número válido' }).int('El número de aportes debe ser un número entero').min(0, 'El número de aportes no puede ser negativo').optional(),
+	dateIssued: z
+		.preprocess(
+			(val) => (val === '' || val === null ? undefined : val),
+			z.string().datetime().or(z.date())
+		)
+		.optional(),
 })
 
 export type UpdateBusinessSchema = z.infer<typeof updateBusinessSchema>

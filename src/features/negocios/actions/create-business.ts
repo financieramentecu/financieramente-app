@@ -10,6 +10,7 @@ import {
 	determineBusinessStatus,
 } from '@/features/negocios/types/business-status.types'
 import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
+import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expected-dates'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { findProductPercentageCommission } from './find-product-percentage-commission'
@@ -150,13 +151,17 @@ export async function createBusiness(
 				},
 			})
 
-			if (numAportes > 0) {
+			if (numAportes > 0 && status === BUSINESS_STATUS.EMITIDO && issuedAt && periodicityName) {
 				const rowTimestamp = new Date()
+				const expectedDates = calculateExpectedDates(issuedAt, numAportes, periodicityName)
+
 				await tx.payment.createMany({
 					data: Array.from({ length: numAportes }, (_, i) => ({
 						idBusiness: created.idBusiness,
 						installmentIndex: i + 1,
-						status: AnnualPaymentStatus.SIN_FONDEAR,
+						status: AnnualPaymentStatus.FONDEADO,
+						expectedDate: expectedDates[i] ?? null,
+						dateAnchored: expectedDates[i] ?? null,
 						createdAt: rowTimestamp,
 						updatedAt: rowTimestamp,
 					})),

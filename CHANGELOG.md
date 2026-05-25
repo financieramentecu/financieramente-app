@@ -4,6 +4,93 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.11.0] - 2026-05-24
+
+### Nuevo
+
+- **Cartera pagada:** Cuando un cliente paga una deuda en cartera, el sistema ahora registra el pago como **Cartera Pagada** — un estado definitivo que deja constancia permanente del cobro. Ya no es posible revertir un aporte pagado, garantizando la trazabilidad del ciclo de cobro completo.
+
+- **Confirmación con fecha de pago:** Al marcar un aporte como pagado desde cartera, se muestra un diálogo de confirmación donde el analista ingresa la fecha exacta en que el cliente realizó el pago. Esa fecha queda registrada y visible en el detalle del aporte.
+
+### Corregido
+
+- **Fecha de cartera mostraba un día menos:** Las fechas de aportes en estado Cartera, Pago Anticipado y Cartera Pagada se mostraban con un día de desfase (por ejemplo, 24 de mayo aparecía como 23 de mayo). Corregido para todos los estados del modal de fondeo.
+
+## [1.10.0] - 2026-05-23
+
+### Infraestructura
+
+- **Gestión de funcionalidades por entorno (Feature Flags):** Se integró Flagsmith como plataforma de feature flags. Esto permite habilitar o deshabilitar funcionalidades de forma remota por entorno (QA / Producción) sin necesidad de un nuevo deploy. Las nuevas funcionalidades de alto impacto se irán lanzando bajo flags de manera progresiva.
+
+- **Política de seguridad de contenido ampliada:** Se reforzó la cabecera `Content-Security-Policy` del servidor para incluir directivas `frame-src` y `object-src`, mejorando la protección contra ataques de inyección de contenido embebido.
+
+## [1.9.0] - 2026-05-22
+
+### Nuevo
+
+- **Cédulas y documentos alfanuméricos:** El campo de número de identificación del cliente ahora acepta letras, dígitos, puntos y guiones, eliminando el bloqueo que impedía registrar clientes con Cédula de Extranjería (`CE-123456`), pasaporte (`PE-123456`) u otros documentos con letras. El sistema normaliza automáticamente el número a mayúsculas al guardarlo, garantizando consistencia en la base de datos.
+
+## [1.8.1] - 2026-05-22
+
+### Nuevo
+
+- **Buscador en filtros avanzados:** Se agregaron campos de texto en el modal de "Filtros Avanzados" para buscar y filtrar en tiempo real las opciones de Compañía, Producto y Origen.
+- **Limpiar filtros de búsqueda:** El botón "Limpiar" ahora también reinicia el texto ingresado en los buscadores.
+
+## [1.8.0] - 2026-05-22
+
+### Nuevo
+
+- **Comprobantes en PDF:** Los usuarios ahora pueden subir archivos PDF como comprobantes de pago, además de las imágenes (JPEG, PNG, WebP). El visor de comprobantes muestra los PDF directamente en pantalla con un visor inline, y el botón "Ver original" sigue disponible para abrirlos en una nueva pestaña. Los PDF se identifican visualmente con un ícono de documento en la lista de comprobantes.
+
+## [1.7.0] - 2026-05-22
+
+### Nuevo
+
+- **Estados de Fondeo Avanzados:** El modal de fondeo ahora soporta dos nuevos estados por aporte: **En Cartera** (marcado en rojo cuando un pago está en gestión de cobro) y **Pago Anticipado** (cuando el cliente pagó antes de la fecha proyectada). Analistas de Soporte y Administradores pueden registrar estos estados directamente desde el modal.
+
+- **Ciclo de vida completo del aporte:** Los aportes ahora nacen automáticamente como Fondeados al momento de emitir el negocio, con sus fechas proyectadas por cuota. El color del aporte (verde o gris) se determina comparando la fecha proyectada de cada cuota con el mes actual — sin necesidad de acciones manuales.
+
+- **Reversión de Cartera:** Los analistas pueden revertir un aporte marcado como En Cartera con un clic en "Quitar Cartera", devolviendo el aporte a su estado anterior y registrando el cambio en el log de auditoría.
+
+- **Confirmación obligatoria en transiciones:** Todas las acciones de cambio de estado (marcar Cartera, Pago Anticipado, Quitar Cartera) requieren confirmación explícita del usuario antes de ejecutarse.
+
+- **Control de acceso por rol:** Los botones de acción solo son visibles para Analistas de Soporte y Administradores. Los Agentes/Coach pueden ver el estado de cada aporte pero no realizar cambios.
+
+- **Auditoría completa:** Cada cambio de estado queda registrado automáticamente en el log de auditoría con usuario, IP, fecha y hora.
+
+- **Script de migración de pagos:** Se incluye un script (`prisma/seeds/migrate-payments-to-fondeado.ts`) para migrar pagos existentes en estado SIN_FONDEAR al nuevo modelo FONDEADO.
+
+### Mejorado
+
+- **Diseño del modal de fondeo:** Las filas de aportes son más compactas. Los botones de acción aparecen al pasar el mouse sobre cada fila y llevan íconos descriptivos. Los aportes de meses pasados se muestran en verde reducido para aprovechar mejor el espacio.
+
+- **Recálculo de fechas al cambiar emisión:** Al modificar la fecha de emisión de un negocio, se recalculan automáticamente las fechas proyectadas de todos los aportes en estado Fondeado, respetando los aportes en Cartera o Pago Anticipado.
+
+### Corregido
+
+- **Rendimiento en actualización de negocios:** Se resolvió un error de timeout (P2028) que ocurría al guardar negocios con muchos aportes. Las actualizaciones de fechas ahora se ejecutan fuera de la transacción principal.
+
+- **Mensaje de validación en cambio de rol:** Al intentar guardar un usuario con rol Agente sin categoría asignada, ahora se muestra el mensaje de error específico en lugar del JSON técnico.
+
+## [1.6.4] - 2026-05-21
+
+### Nuevo
+
+- **Recálculo de fechas de fondeo desde Fecha de Emisión:** Se implementó el recálculo dinámico de las fechas esperadas de los aportes basados en la fecha de emisión del negocio y no desde la fecha del primer fondeo. Al registrar o actualizar la fecha de emisión de un negocio en estado emitido (`EMITIDO`), se recalculan automáticamente las fechas de fondeos proyectados.
+- **Edición rápida desde la tabla:** Se añadió la opción de editar la fecha de emisión directamente en la tabla principal de negocios a través de una celda de fecha interactiva. El ícono de lápiz de edición está ahora **para siempre visible** para todos los negocios elegibles sin necesidad de hover. El botón está habilitado exclusivamente para negocios en estado emitido (`EMITIDO`).
+- **Selector de Fechas Libre:** Se eliminó la restricción de fecha máxima (`max`) tanto en el modal de detalle del negocio como en la celda interactiva de la tabla, permitiendo seleccionar libremente cualquier fecha en el pasado o futuro según las necesidades operativas, eliminando también las validaciones de cliente que impedían el registro de fechas futuras.
+
+### Interno
+
+- **Pruebas y Verificación:** Se crearon y adaptaron suites de pruebas unitarias robustas en el frontend (`business-view-modal.date-issued.test.tsx`) y backend (`route.test.ts`), garantizando el cumplimiento al 100% de los criterios de aceptación sin regresiones.
+
+## [1.6.3] - 2026-05-19
+
+### Nuevo
+
+- **Precarga automática de Periodicidad para SKANDIA + MFUND:** Al seleccionar la compañía Skandia y el producto MFUND en el formulario de creación de negocio, el campo Periodicidad se completa automáticamente con "Aportes Ocasionales". El campo permanece editable: si el agente necesita seleccionar otro valor, el cambio se respeta sin revertirse. En modo edición, el valor guardado en base de datos se preserva tal cual.
+
 ## [1.6.2] - 2026-05-15
 
 ### Nuevo

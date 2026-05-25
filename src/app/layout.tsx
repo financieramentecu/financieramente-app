@@ -4,6 +4,8 @@ import './globals.css'
 import { ThemeProvider } from '@/features/shared/ui/ThemeProvider'
 import { Toaster } from '@/features/shared/ui/sonner'
 import { AuthProvider } from '@/features/shared/providers/auth-provider'
+import { FlagsmithProvider } from '@/features/shared/providers/flagsmith-provider'
+import { getFlagsmithServerState } from '@/features/shared/lib/flagsmith-server'
 import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -11,11 +13,13 @@ export const metadata: Metadata = {
 	description: 'Sistema de gestión y liquidación de comisiones financieras',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode
 }>) {
+	const flagsmithServerState = await getFlagsmithServerState()
+
 	return (
 		<html lang="es" suppressHydrationWarning>
 			<body className={cn('font-sans antialiased')}>
@@ -26,8 +30,10 @@ export default function RootLayout({
 					disableTransitionOnChange
 				>
 					<AuthProvider>
-						{children}
-						<Toaster />
+						<FlagsmithProvider serverState={flagsmithServerState}>
+							{children}
+							<Toaster />
+						</FlagsmithProvider>
 					</AuthProvider>
 				</ThemeProvider>
 			</body>
