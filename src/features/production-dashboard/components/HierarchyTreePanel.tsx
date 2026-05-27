@@ -27,9 +27,9 @@ function HierarchyTreeSkeleton() {
 		>
 		{[80, 64, 72, 56, 68].map((w) => (
 			<div key={w} className="flex items-center gap-2 px-2 py-1.5">
-				<Skeleton className="size-3.5 rounded-sm bg-primary/10" />
-				<Skeleton className="size-3.5 rounded-full bg-primary/10" />
-				<Skeleton className="h-3.5 rounded bg-primary/10" style={{ width: `${w}%` }} />
+				<Skeleton className="size-3.5 rounded-sm" />
+				<Skeleton className="size-3.5 rounded-full" />
+				<Skeleton className="h-3.5 rounded" style={{ width: `${w}%` }} />
 			</div>
 		))}
 		</div>
@@ -42,9 +42,10 @@ function HierarchyTreeSkeleton() {
 
 type PanelContentProps = {
 	apiState: AsyncState<HierarchyTreeData>
+	activeCategoryIds?: number[]
 }
 
-function PanelContent({ apiState }: PanelContentProps) {
+function PanelContent({ apiState, activeCategoryIds = [] }: PanelContentProps) {
 	const { nodes, dispatch, selectedUserIds } = useHierarchySelection()
 	const totalNodes = countNodes(0, ...nodes)
 	const allSelected = nodes.length > 0 && selectedUserIds.length === totalNodes
@@ -119,7 +120,11 @@ function PanelContent({ apiState }: PanelContentProps) {
 			>
 				<ul className="space-y-px" role="tree">
 					{nodes.map((node) => (
-						<HierarchyTreeNode key={node.userId} node={node} />
+						<HierarchyTreeNode
+							key={node.userId}
+							node={node}
+							activeCategoryIds={activeCategoryIds}
+						/>
 					))}
 				</ul>
 			</nav>
@@ -153,7 +158,12 @@ function countNodes(acc: number, ...nodesArr: HierarchyTreeData['nodes'][number]
 // Public export
 // ---------------------------------------------------------------------------
 
-export function HierarchyTreePanel() {
+type HierarchyTreePanelProps = {
+	/** Category IDs from DashboardFilterContext. Non-matching nodes are dimmed. */
+	activeCategoryIds?: number[]
+}
+
+export function HierarchyTreePanel({ activeCategoryIds = [] }: HierarchyTreePanelProps) {
 	const { state } = useHierarchyTree()
 
 	// Spec: panel must NOT render when nodes is empty (MS Junior case)
@@ -165,7 +175,7 @@ export function HierarchyTreePanel() {
 		<TooltipProvider delayDuration={400}>
 			<div className="flex h-full flex-col bg-white">
 				<HierarchySelectionProvider>
-					<PanelContent apiState={state} />
+					<PanelContent apiState={state} activeCategoryIds={activeCategoryIds} />
 				</HierarchySelectionProvider>
 			</div>
 		</TooltipProvider>

@@ -54,6 +54,7 @@ function buildNode(
 		levelCode: level?.code ?? '',
 		levelColor: level?.color ?? '#003c45',
 		categoryName: user.category?.name ?? '',
+		idCategory: user.idCategory,
 		included: true,
 		children,
 	}

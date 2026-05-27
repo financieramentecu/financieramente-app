@@ -46,6 +46,7 @@ const childNode: HierarchyNode = {
 	levelCode: 'MS_JUNIOR',
 	levelColor: '#444444',
 	categoryName: 'Categoría D',
+	idCategory: null,
 	included: true,
 	children: [],
 }
@@ -56,6 +57,7 @@ const parentNode: HierarchyNode = {
 	levelCode: 'TEAM_LEADER',
 	levelColor: '#222222',
 	categoryName: 'Categoría B',
+	idCategory: null,
 	included: true,
 	children: [childNode],
 }
@@ -66,6 +68,7 @@ const leafNode: HierarchyNode = {
 	levelCode: 'GENERAL_LEVEL',
 	levelColor: '#111111',
 	categoryName: 'Categoría A',
+	idCategory: null,
 	included: true,
 	children: [],
 }

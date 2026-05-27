@@ -56,6 +56,7 @@ const mockNodes: HierarchyNode[] = [
 		levelCode: 'GENERAL_LEVEL',
 		levelColor: '#111111',
 		categoryName: 'Categoría A',
+		idCategory: null,
 		included: true,
 		children: [
 			{
@@ -64,6 +65,7 @@ const mockNodes: HierarchyNode[] = [
 				levelCode: 'TEAM_LEADER',
 				levelColor: '#222222',
 				categoryName: 'Categoría B',
+				idCategory: null,
 				included: true,
 				children: [],
 			},

@@ -6,6 +6,8 @@ export interface HierarchyNode {
 	levelColor: string
 	/** Category assigned to the user (shown in the badge) */
 	categoryName: string
+	/** Category ID — used for filter-driven dimming from DashboardFilterContext */
+	idCategory: number | null
 	/** Default true; toggled client-side only — never mutated server-side */
 	included: boolean
 	children: HierarchyNode[]
