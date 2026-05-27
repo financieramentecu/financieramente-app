@@ -15,12 +15,14 @@ import {
 } from '@/features/shared/ui/dialog'
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
 import { AporteRow, type AporteAction } from './AporteRow'
+import { formatDateBogota } from '@/features/shared/lib/format-date'
 import { ConfirmActionDialog } from '@/features/shared/ui/confirm-action-dialog'
 import { ConfirmCarteraPagadoDialog } from './ConfirmCarteraPagadoDialog'
+import { ConfirmFondeoDialog } from './ConfirmFondeoDialog'
 import { useAporteTransitions } from '../../hooks/use-aporte-transitions'
 import { canFundPayments } from '@/features/auth/lib/roles'
 
-type ConfirmableAction = Exclude<AporteAction, 'UNMARK_CARTERA'>
+type ConfirmableAction = Exclude<AporteAction, 'UNMARK_CARTERA' | 'MARK_FONDEAR'>
 
 const DIALOG_CONFIG: Record<ConfirmableAction, { title: string; description: string; confirmLabel: string }> = {
 	MARK_CARTERA: {
@@ -34,6 +36,7 @@ const DIALOG_CONFIG: Record<ConfirmableAction, { title: string; description: str
 		confirmLabel: 'Confirmar Pago Anticipado',
 	},
 }
+
 
 export interface FundingModalProps {
 	open: boolean
@@ -49,7 +52,12 @@ export interface FundingModalProps {
 	canFund?: boolean
 	/** Role code of the current user — used to gate EN_CARTERA / PAGO_ANTICIPADO actions */
 	roleCode?: string
+	/** Business status — used to gate the MARK_FONDEAR button on installment index 1 */
+	businessStatus?: string
+	/** Business dateAnchored — if set, MARK_FONDEAR button is hidden */
+	businessDateAnchored?: string | null
 	onConfirm: (fundedInstallmentIndexes: number[]) => Promise<void> | void
+	onFondeoSuccess?: () => void
 }
 
 export function FundingModal({
@@ -64,17 +72,28 @@ export function FundingModal({
 	plazo,
 	canFund = true,
 	roleCode,
+	businessStatus: businessStatusProp,
+	businessDateAnchored: businessDateAnchoredProp,
 	onConfirm,
+	onFondeoSuccess,
 }: FundingModalProps) {
+	const [businessStatus, setBusinessStatus] = React.useState(businessStatusProp ?? '')
+	const [businessDateAnchored, setBusinessDateAnchored] = React.useState(businessDateAnchoredProp ?? null)
+
+	React.useEffect(() => {
+		setBusinessStatus(businessStatusProp ?? '')
+		setBusinessDateAnchored(businessDateAnchoredProp ?? null)
+	}, [businessStatusProp, businessDateAnchoredProp])
 	const [installments, setInstallments] =
 		React.useState<PaymentInstallmentDto[]>(initialInstallments)
 	const [selected, setSelected] = React.useState<Set<number>>(new Set())
 	const hasSinFondear = installments.some(i => i.status === 'SIN_FONDEAR')
-	const [pendingConfirm, setPendingConfirm] = React.useState<{ action: AporteAction; index: number } | null>(null)
+	const [pendingConfirm, setPendingConfirm] = React.useState<{ action: ConfirmableAction; index: number } | null>(null)
 	const [pendingCarteraPagado, setPendingCarteraPagado] = React.useState<{ index: number } | null>(null)
+	const [pendingFondeo, setPendingFondeo] = React.useState<{ index: number } | null>(null)
 	const [loadingIndex, setLoadingIndex] = React.useState<number | null>(null)
 	const now = React.useMemo(() => new Date(), [])
-	const { markCartera, markPagoAnticipado, markCarteraPagado } = useAporteTransitions()
+	const { markCartera, markPagoAnticipado, markCarteraPagado, markPrimerPagoFondeado } = useAporteTransitions()
 
 	React.useEffect(() => {
 		setInstallments(initialInstallments)
@@ -123,6 +142,8 @@ export function FundingModal({
 	const handleRequestAction = (action: AporteAction, index: number) => {
 		if (action === 'UNMARK_CARTERA') {
 			setPendingCarteraPagado({ index })
+		} else if (action === 'MARK_FONDEAR') {
+			setPendingFondeo({ index })
 		} else {
 			setPendingConfirm({ action, index })
 		}
@@ -143,6 +164,22 @@ export function FundingModal({
 		if (result.data) handleTransitionSuccess(result.data)
 	}
 
+	const handleFondeoConfirm = async (fondeoDate: string) => {
+		if (!pendingFondeo || businessId === null) return
+		const { index } = pendingFondeo
+		setPendingFondeo(null)
+		setLoadingIndex(index)
+
+		const result = await markPrimerPagoFondeado(businessId, index, fondeoDate)
+		setLoadingIndex(null)
+		if (result.data) {
+			handleTransitionSuccess(result.data)
+			setBusinessStatus('FONDEADO')
+			setBusinessDateAnchored(fondeoDate)
+			onFondeoSuccess?.()
+		}
+	}
+
 	const handleCarteraPagadoConfirm = async (paymentDate: string) => {
 		if (!pendingCarteraPagado || businessId === null) return
 		const { index } = pendingCarteraPagado
@@ -151,7 +188,14 @@ export function FundingModal({
 
 		const result = await markCarteraPagado(businessId, index, paymentDate)
 		setLoadingIndex(null)
-		if (result.data) handleTransitionSuccess(result.data)
+		if (result.data) {
+			handleTransitionSuccess(result.data)
+			if (index === 1 && businessStatus === 'EMITIDO') {
+				setBusinessStatus('FONDEADO')
+				setBusinessDateAnchored(paymentDate)
+				onFondeoSuccess?.()
+			}
+		}
 	}
 
 	const trimmedContract = contractLabel?.trim() ?? ''
@@ -171,11 +215,7 @@ export function FundingModal({
 
 	const formatExpectedDate = (iso: string | null) => {
 		if (!iso) return 'Por confirmar'
-		try {
-			return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium', timeZone: 'UTC' })
-		} catch {
-			return iso
-		}
+		return formatDateBogota(iso)
 	}
 
 	return (
@@ -208,6 +248,7 @@ export function FundingModal({
 											key={row.installmentIndex}
 											aporte={row}
 											businessId={businessId ?? 0}
+											business={{ status: businessStatus ?? '', dateAnchored: businessDateAnchored ?? null }}
 											canMutate={canMutate}
 											isLoading={loadingIndex === row.installmentIndex}
 											now={now}
@@ -306,7 +347,7 @@ export function FundingModal({
 			</DialogContent>
 		</Dialog>
 
-		{pendingConfirm && pendingConfirm.action !== 'UNMARK_CARTERA' && (
+		{pendingConfirm && (
 			<ConfirmActionDialog
 				open={true}
 				title={DIALOG_CONFIG[pendingConfirm.action].title}
@@ -323,6 +364,15 @@ export function FundingModal({
 				index={pendingCarteraPagado.index}
 				onConfirm={(paymentDate) => void handleCarteraPagadoConfirm(paymentDate)}
 				onCancel={() => setPendingCarteraPagado(null)}
+			/>
+		)}
+
+		{pendingFondeo && (
+			<ConfirmFondeoDialog
+				open={true}
+				index={pendingFondeo.index}
+				onConfirm={(fondeoDate) => void handleFondeoConfirm(fondeoDate)}
+				onCancel={() => setPendingFondeo(null)}
 			/>
 		)}
 </>
