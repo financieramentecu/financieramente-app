@@ -4,6 +4,18 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.12.0] - 2026-05-27
+
+### Nuevo
+
+- **Fondear el primer pago:** Administradores y Analistas de Soporte ahora pueden registrar el fondeo del primer aporte directamente desde el modal de aportes. Al hacer clic en "Fondear", se ingresa la fecha de fondeo y el sistema cambia el estado del negocio de **Emitido** a **Fondeado** de forma automática y atómica. Si el primer aporte estaba en cartera y el cliente lo pagó, el negocio también transiciona a Fondeado al registrar el pago de cartera.
+
+- **Fechas en zona horaria de Bogotá:** Todas las fechas del sistema (modal de aportes y tabla de negocios) ahora se muestran correctamente en hora Colombia (UTC-5), eliminando el desfase de un día que aparecía en ciertos casos.
+
+### Infraestructura
+
+- **Llaves Flagsmith por entorno:** Se configuraron las claves de servidor de Flagsmith para los entornos de QA y Producción, completando la integración de feature flags iniciada en 1.10.0.
+
 ## [1.11.0] - 2026-05-24
 
 ### Nuevo
