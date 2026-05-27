@@ -4,6 +4,32 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.13.0] - 2026-05-26
+
+### Nuevo
+
+- **Dashboard de producción — Árbol jerárquico:** Nuevo panel lateral en el dashboard que muestra la estructura organizacional del equipo. Cada usuario aparece con su nombre, categoría y color de nivel. Los nodos se pueden marcar o desmarcar para filtrar los datos del dashboard; al desmarcar un líder, sus subordinados también se excluyen del filtro. Solo se listan usuarios con nivel asignado.
+
+- **Activación gradual del dashboard:** El módulo de dashboard de producción se controla con el feature flag `production_dashboard` en Flagsmith, permitiendo habilitarlo por usuario o por entorno sin un nuevo deploy. Cuando el flag está desactivado, la opción de menú no aparece y el acceso directo a `/dashboard` redirige a Negocios.
+
+### Mejorado
+
+- **Redirección después del login:** Todos los usuarios ingresan por defecto a **Negocios** (`/dashboard/negocios`) en lugar del dashboard de producción, simplificando el flujo de entrada habitual.
+
+- **Feature flags por identidad:** Flagsmith evalúa los flags por correo del usuario autenticado, de modo que las pruebas en QA y desarrollo reflejan los overrides configurados por persona.
+
+## [1.12.0] - 2026-05-27
+
+### Nuevo
+
+- **Fondear el primer pago:** Administradores y Analistas de Soporte ahora pueden registrar el fondeo del primer aporte directamente desde el modal de aportes. Al hacer clic en "Fondear", se ingresa la fecha de fondeo y el sistema cambia el estado del negocio de **Emitido** a **Fondeado** de forma automática y atómica. Si el primer aporte estaba en cartera y el cliente lo pagó, el negocio también transiciona a Fondeado al registrar el pago de cartera.
+
+- **Fechas en zona horaria de Bogotá:** Todas las fechas del sistema (modal de aportes y tabla de negocios) ahora se muestran correctamente en hora Colombia (UTC-5), eliminando el desfase de un día que aparecía en ciertos casos.
+
+### Infraestructura
+
+- **Llaves Flagsmith por entorno:** Se configuraron las claves de servidor de Flagsmith para los entornos de QA y Producción, completando la integración de feature flags iniciada en 1.10.0.
+
 ## [1.11.0] - 2026-05-24
 
 ### Nuevo

@@ -15,19 +15,25 @@ import Image from 'next/image'
 import { useSidebar } from '@/features/shared/ui/sidebar'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { buildMenuByRole } from '@/lib/navigation/menu-builder'
+import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar()
 	const { session } = useAuthSession()
 	const isCollapsed = state === 'collapsed'
+	const { enabled: isDashboardEnabled } = useFeatureFlag('production_dashboard')
 
 	// Construir menú dinámico según rol y permisos
 	const menuItems = React.useMemo(() => {
 		if (!session?.user) {
 			return []
 		}
-		return buildMenuByRole(session.user.role, session.user.permissions)
-	}, [session])
+		const items = buildMenuByRole(session.user.role, session.user.permissions)
+		if (!isDashboardEnabled) {
+			return items.filter((item) => item.url !== '/dashboard')
+		}
+		return items
+	}, [session, isDashboardEnabled])
 
 
 

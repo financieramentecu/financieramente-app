@@ -55,6 +55,7 @@ import {
 	type BusinessStatus,
 } from '@/features/negocios/types/business-entity.types'
 import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
+import { formatDateBogota } from '@/features/shared/lib/format-date'
 
 /** Valor sentinela del Select para “todos los estados” (Radix no admite value vacío). */
 const LIST_STATUS_FILTER_ALL = '__all__'
@@ -208,16 +209,9 @@ export function BusinessTableSection({
 		setPendingDate('')
 	}
 
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString('es-CO')
-	}
+	const formatDate = (dateString: string) => formatDateBogota(dateString)
 
-	const formatOptionalDate = (iso: string | null | undefined) => {
-		if (!iso) {
-			return '—'
-		}
-		return formatDate(iso)
-	}
+	const formatOptionalDate = (iso: string | null | undefined) => formatDateBogota(iso)
 
 	const columns: ColumnDef<Business>[] = [
 		{
@@ -888,7 +882,7 @@ export function BusinessTableSection({
 								</span>{' '}
 								a{' '}
 								<span className="font-semibold text-foreground">
-									{pendingDate ? new Date(`${pendingDate}T12:00:00`).toLocaleDateString('es-CO') : '—'}
+									{pendingDate ? formatDateBogota(`${pendingDate}T12:00:00`) : '—'}
 								</span>
 								. Esta acción recalculará las fechas esperadas de Fondeo ¿Desea continuar?
 							</AlertDialogDescription>

@@ -12,20 +12,24 @@ function getInstance(): Flagsmith {
 	if (!environmentKey) throw new Error('FLAGSMITH_SERVER_KEY is not set')
 	instance = new Flagsmith({
 		environmentKey,
-		enableLocalEvaluation: true,
-		environmentRefreshIntervalSeconds: 60,
+		enableLocalEvaluation: false,
 	})
 	return instance
 }
 
 /**
  * Returns a serialized IState-compatible JSON string for use with @flagsmith/flagsmith FlagsmithProvider.
- * Converts the server-side Flags object into the client SDK's IState shape.
+ * When `identity` is provided, evaluates flags for that specific user (respects identity overrides
+ * and segment rules). Falls back to environment-level flags when no identity is given.
  * FLAGSMITH_SERVER_KEY is used only on the server and MUST NOT appear in the client bundle.
  */
-export async function getFlagsmithServerState(): Promise<FlagsmithServerState> {
+export async function getFlagsmithServerState(
+	identity?: string
+): Promise<FlagsmithServerState> {
 	const fs = getInstance()
-	const flagsObj = await fs.getEnvironmentFlags()
+	const flagsObj = identity
+		? await fs.getIdentityFlags(identity)
+		: await fs.getEnvironmentFlags()
 
 	// Convert flagsmith-nodejs Flags to @flagsmith/flagsmith IState shape
 	const clientFlags: Record<string, { id?: number; enabled: boolean; value: string | number | boolean | null }> = {}
@@ -47,11 +51,20 @@ export async function getFlagsmithServerState(): Promise<FlagsmithServerState> {
 
 /**
  * Checks if a feature flag is enabled server-side.
- * Uses the server singleton — safe for Server Components and Route Handlers.
+ *
+ * When `identity` is provided, Flagsmith evaluates the flag for that specific
+ * user — respecting identity overrides and segment rules configured in the
+ * Flagsmith dashboard. Falls back to the environment-level value when no
+ * identity is given.
  */
-export async function isFeatureEnabledServer(flag: FeatureFlag): Promise<boolean> {
+export async function isFeatureEnabledServer(
+	flag: FeatureFlag,
+	identity?: string
+): Promise<boolean> {
 	const fs = getInstance()
-	const flagsObj = await fs.getEnvironmentFlags()
+	const flagsObj = identity
+		? await fs.getIdentityFlags(identity)
+		: await fs.getEnvironmentFlags()
 	const entry = flagsObj.flags[flag]
 	return entry?.enabled ?? false
 }
