@@ -4,6 +4,20 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.13.0] - 2026-05-26
+
+### Nuevo
+
+- **Dashboard de producción — Árbol jerárquico:** Nuevo panel lateral en el dashboard que muestra la estructura organizacional del equipo. Cada usuario aparece con su nombre, categoría y color de nivel. Los nodos se pueden marcar o desmarcar para filtrar los datos del dashboard; al desmarcar un líder, sus subordinados también se excluyen del filtro. Solo se listan usuarios con nivel asignado.
+
+- **Activación gradual del dashboard:** El módulo de dashboard de producción se controla con el feature flag `production_dashboard` en Flagsmith, permitiendo habilitarlo por usuario o por entorno sin un nuevo deploy. Cuando el flag está desactivado, la opción de menú no aparece y el acceso directo a `/dashboard` redirige a Negocios.
+
+### Mejorado
+
+- **Redirección después del login:** Todos los usuarios ingresan por defecto a **Negocios** (`/dashboard/negocios`) en lugar del dashboard de producción, simplificando el flujo de entrada habitual.
+
+- **Feature flags por identidad:** Flagsmith evalúa los flags por correo del usuario autenticado, de modo que las pruebas en QA y desarrollo reflejan los overrides configurados por persona.
+
 ## [1.12.0] - 2026-05-27
 
 ### Nuevo
