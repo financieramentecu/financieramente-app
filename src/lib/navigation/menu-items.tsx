@@ -157,6 +157,12 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
  * Items de menú específicos para Agente
  */
 export const AGENTE_MENU_ITEMS: MenuItem[] = [
+	// Dashboard: product sign-off granted — Production Dashboard
+	{
+		title: 'Dashboard',
+		url: '/dashboard',
+		icon: <LayoutDashboard className="h-4 w-4" />,
+	},
 	{
 		title: 'Mis Negocios',
 		url: '/dashboard/negocios',
