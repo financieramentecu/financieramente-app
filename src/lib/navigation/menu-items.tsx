@@ -73,6 +73,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		icon: <Receipt className="h-4 w-4" />,
 	},
 	{
+		title: 'Simulador',
+		url: '/dashboard/simulador',
+		icon: <Sliders className="h-4 w-4" />,
+	},
+	{
 		title: 'Reportes',
 		url: '/dashboard/reportes',
 		icon: <BarChart3 className="h-4 w-4" />,
@@ -173,6 +178,11 @@ export const AGENTE_MENU_ITEMS: MenuItem[] = [
 				icon: <Plus className="h-4 w-4" />,
 			},
 		],
+	},
+	{
+		title: 'Simulador',
+		url: '/dashboard/simulador',
+		icon: <Sliders className="h-4 w-4" />,
 	},
 	/* 	{
 			title: 'Mis Reportes',

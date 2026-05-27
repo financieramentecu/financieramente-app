@@ -63,6 +63,18 @@ export function buildMenuByRole(
 			continue
 		}
 
+		// Simulador
+		if (item.title === 'Simulador') {
+			filteredItems.push(item)
+			continue
+		}
+
+		// Mis distribuciones
+		if (item.title === 'Mis distribuciones') {
+			filteredItems.push(item)
+			continue
+		}
+
 		// Reportes
 		if (item.title === 'Reportes') {
 			if (
