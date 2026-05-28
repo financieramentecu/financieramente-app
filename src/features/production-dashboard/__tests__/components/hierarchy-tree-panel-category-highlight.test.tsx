@@ -10,6 +10,7 @@ vi.mock('@/features/production-dashboard/hooks/use-hierarchy-tree', () => ({
 
 import { useHierarchyTree } from '@/features/production-dashboard/hooks/use-hierarchy-tree'
 import { HierarchyTreePanel } from '../../components/HierarchyTreePanel'
+import { HierarchySelectionProvider } from '../../components/HierarchySelectionContext'
 
 const mockUseHierarchyTree = vi.mocked(useHierarchyTree)
 
@@ -49,7 +50,7 @@ function makeSuccessState(nodes: HierarchyNode[]): ReturnType<typeof useHierarch
 describe('HierarchyTreePanel — category highlight', () => {
   it('when activeCategoryIds is empty, all nodes appear at normal opacity', () => {
     mockUseHierarchyTree.mockReturnValue(makeSuccessState([matchingNode, nonMatchingNode]))
-    render(<HierarchyTreePanel activeCategoryIds={[]} />)
+    render(<HierarchySelectionProvider><HierarchyTreePanel activeCategoryIds={[]} /></HierarchySelectionProvider>)
 
     // When no category filter, no node should be dimmed at 0.3 opacity
     const matchingLabel = screen.getByText('Matching User').closest('label')
@@ -60,7 +61,7 @@ describe('HierarchyTreePanel — category highlight', () => {
 
   it('when activeCategoryIds is [5], node with idCategory=5 is at normal opacity', () => {
     mockUseHierarchyTree.mockReturnValue(makeSuccessState([matchingNode, nonMatchingNode]))
-    render(<HierarchyTreePanel activeCategoryIds={[5]} />)
+    render(<HierarchySelectionProvider><HierarchyTreePanel activeCategoryIds={[5]} /></HierarchySelectionProvider>)
 
     const matchingLabel = screen.getByText('Matching User').closest('label')
     expect(matchingLabel?.getAttribute('style')).not.toContain('0.3')
@@ -68,7 +69,7 @@ describe('HierarchyTreePanel — category highlight', () => {
 
   it('when activeCategoryIds is [5], node with idCategory=9 is dimmed (opacity 0.3)', () => {
     mockUseHierarchyTree.mockReturnValue(makeSuccessState([matchingNode, nonMatchingNode]))
-    render(<HierarchyTreePanel activeCategoryIds={[5]} />)
+    render(<HierarchySelectionProvider><HierarchyTreePanel activeCategoryIds={[5]} /></HierarchySelectionProvider>)
 
     const nonMatchingLabel = screen.getByText('Non Matching User').closest('label')
     expect(nonMatchingLabel?.getAttribute('style')).toContain('0.3')

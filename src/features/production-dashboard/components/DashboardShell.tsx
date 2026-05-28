@@ -5,6 +5,7 @@ import { HierarchySelectionProvider } from './HierarchySelectionContext'
 import { DashboardFilterProvider, useDashboardFilter } from './DashboardFilterContext'
 import { HierarchyTreePanel } from './HierarchyTreePanel'
 import { DashboardFilterPanel } from './DashboardFilterPanel'
+import { UsdKpiPanel } from './UsdKpiPanel'
 
 function ShellContent({ children }: { children?: ReactNode }) {
   const { appliedFilters } = useDashboardFilter()
@@ -22,13 +23,8 @@ function ShellContent({ children }: { children?: ReactNode }) {
       {/* Right — Filters + KPIs */}
       <main className="flex-1 overflow-y-auto p-6 space-y-4">
         <DashboardFilterPanel />
-        {children ?? (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">
-              Selecciona usuarios en el árbol para ver su producción
-            </p>
-          </div>
-        )}
+        <UsdKpiPanel />
+        {children ?? null}
       </main>
     </div>
   )

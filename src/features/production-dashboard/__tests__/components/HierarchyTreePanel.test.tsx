@@ -117,7 +117,7 @@ describe('HierarchyTreePanel', () => {
 	it('(b) renders root node full names when nodes are present', () => {
 		mockUseHierarchyTree.mockReturnValue(makeSuccessState([leafNode]))
 
-		render(<HierarchyTreePanel />)
+		render(<HierarchySelectionProvider><HierarchyTreePanel /></HierarchySelectionProvider>)
 
 		expect(screen.getByText('Leaf Node')).toBeInTheDocument()
 	})
@@ -125,7 +125,7 @@ describe('HierarchyTreePanel', () => {
 	it('(b2) shows loading skeleton while data is loading', () => {
 		mockUseHierarchyTree.mockReturnValue(makeLoadingState())
 
-		render(<HierarchyTreePanel />)
+		render(<HierarchySelectionProvider><HierarchyTreePanel /></HierarchySelectionProvider>)
 
 		expect(screen.getByTestId('hierarchy-panel-skeleton')).toBeInTheDocument()
 	})
@@ -133,7 +133,7 @@ describe('HierarchyTreePanel', () => {
 	it('(c) unchecking parent cascades — all descendant checkboxes become unchecked', () => {
 		mockUseHierarchyTree.mockReturnValue(makeSuccessState([parentNode]))
 
-		render(<HierarchyTreePanel />)
+		render(<HierarchySelectionProvider><HierarchyTreePanel /></HierarchySelectionProvider>)
 
 		// Nodes are open by default (useState(true)) — child is already visible
 		expect(screen.getByText('Child Node')).toBeInTheDocument()

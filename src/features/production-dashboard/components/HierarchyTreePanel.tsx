@@ -4,7 +4,6 @@ import { useEffect } from 'react'
 import { Users, CheckSquare, Square } from 'lucide-react'
 import { useHierarchyTree } from '@/features/production-dashboard/hooks/use-hierarchy-tree'
 import {
-	HierarchySelectionProvider,
 	useHierarchySelection,
 } from '@/features/production-dashboard/components/HierarchySelectionContext'
 import { HierarchyTreeNode } from '@/features/production-dashboard/components/HierarchyTreeNode'
@@ -174,9 +173,7 @@ export function HierarchyTreePanel({ activeCategoryIds = [] }: HierarchyTreePane
 	return (
 		<TooltipProvider delayDuration={400}>
 			<div className="flex h-full flex-col bg-white">
-				<HierarchySelectionProvider>
-					<PanelContent apiState={state} activeCategoryIds={activeCategoryIds} />
-				</HierarchySelectionProvider>
+				<PanelContent apiState={state} activeCategoryIds={activeCategoryIds} />
 			</div>
 		</TooltipProvider>
 	)
