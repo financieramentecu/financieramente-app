@@ -55,3 +55,15 @@ export { isDraftEqualToApplied } from './lib/is-draft-equal-to-applied'
 export { MsGroupedBarChart } from './components/MsGroupedBarChart'
 export { useMsBarChart, collectNodesInOrder } from './hooks/use-ms-bar-chart'
 export type { MsKpiRaw, MsBarDatum, MsChartQueryParams } from './types/production-kpi.types'
+
+// Heatmap Table
+export { HeatmapTablePanel } from './components/HeatmapTablePanel'
+export { useHeatmapTable } from './hooks/use-heatmap-table'
+export type {
+  HeatmapRaw,
+  HeatmapQueryParams,
+  PersonRow,
+  CompanyColumn,
+  CategoryLegendItem,
+  HeatmapViewModel,
+} from './types/production-kpi.types'
