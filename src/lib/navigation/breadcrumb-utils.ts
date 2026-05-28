@@ -57,15 +57,20 @@ function encodePathPrefix(segments: readonly string[], endExclusive: number): st
  * Último segmento no lleva href (página actual).
  */
 export function buildBreadcrumbsFromPathname(pathname: string): BreadcrumbItemShape[] {
-	const segments = pathname.split('/').filter(Boolean)
-	if (segments.length === 0) return []
+	const allSegments = pathname.split('/').filter(Boolean)
+	// Skip root 'dashboard' segment — it maps to "Inicio" which adds no navigational value
+	const visible = allSegments
+		.map((segment, originalIndex) => ({ segment, originalIndex }))
+		.filter(({ segment }) => segment !== 'dashboard')
 
-	return segments.map((segment, index) => {
+	if (visible.length === 0) return []
+
+	return visible.map(({ segment, originalIndex }, index) => {
 		const decoded = decodePathSegment(segment)
 		const label = SEGMENT_LABELS[decoded] ?? SEGMENT_LABELS[segment] ?? decoded
 		const href =
-			index < segments.length - 1
-				? encodePathPrefix(segments, index + 1)
+			index < visible.length - 1
+				? encodePathPrefix(allSegments, originalIndex + 1)
 				: undefined
 		return { label, href }
 	})

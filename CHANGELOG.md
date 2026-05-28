@@ -4,6 +4,36 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.15.0] - 2026-05-27
+
+### Nuevo
+
+- **Panel de KPIs en USD con TRM automática:** El dashboard de producción ahora muestra tres tarjetas de métricas en dólares: **Detalle Internacional** (negocios en USD), **Nacional convertido a USD** (total COP dividido por la TRM) y **Total USD** (suma de ambos). La TRM del día se consulta automáticamente al Banco de la República; si la consulta falla, se puede ingresar la TRM manualmente para recalcular los valores al instante. El valor en COP equivalente aparece debajo del monto en USD en la tarjeta Nacional para facilitar la comparativa.
+
+- **Período activo visible en el panel:** El encabezado del panel de ventas muestra el rango de fechas que está aplicado actualmente, así siempre es claro qué período representan los números.
+
+### Mejorado
+
+- **Skeletons de carga en las tarjetas:** Mientras los datos se están cargando (al entrar al dashboard o al aplicar filtros), las tarjetas muestran un indicador animado en lugar de mostrar brevemente valores en cero, evitando lecturas erróneas durante la transición.
+
+## [1.14.0] - 2026-05-27
+
+### Nuevo
+
+- **Panel de filtros del dashboard:** El dashboard de producción ahora incluye un panel de filtros completo con 8 controles: rango de fechas (selección por día), estado del negocio, categoría, compañía, producto, origen, plazo y periodicidad. Los cambios en los filtros no se aplican hasta que el usuario confirma con el botón **Aplicar**, preservando los datos visibles mientras se ajusta la selección.
+
+- **Filtros de compañía y producto con búsqueda:** Los selectores de compañía y producto incluyen campo de búsqueda para encontrar opciones rápidamente en listas largas. Al seleccionar una compañía, el listado de productos se reduce automáticamente a los productos de esa compañía.
+
+- **Catálogo de periodicidad desde la base de datos:** Las opciones de periodicidad (Mensual, Trimestral, Anual, etc.) se cargan directamente desde la tabla de datos, de modo que cualquier periodicidad configurada en el sistema aparece automáticamente en el filtro sin cambios de código.
+
+### Mejorado
+
+- **Árbol jerárquico con resaltado por categoría:** Al aplicar un filtro de categoría, los nodos del árbol que no pertenecen a esa categoría se atenúan visualmente, facilitando identificar qué usuarios contribuyen a los resultados filtrados.
+
+- **Navegación más compacta:** Se eliminó el elemento "Inicio" del breadcrumb para ganar espacio vertical. El panel de filtros también se redujo en altura (padding y tamaño de fuente optimizados) para mostrar más contenido útil en pantalla.
+
+- **Skeleton de jerarquía visible:** El indicador de carga del árbol jerárquico ahora muestra el gris estándar del sistema en lugar de un color casi invisible.
+
 ## [1.13.0] - 2026-05-26
 
 ### Nuevo

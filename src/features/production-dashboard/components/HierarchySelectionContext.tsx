@@ -3,6 +3,7 @@
 import {
 	createContext,
 	useContext,
+	useMemo,
 	useReducer,
 	type ReactNode,
 	type Dispatch,
@@ -138,7 +139,10 @@ export function HierarchySelectionProvider({
 	const toggle = (userId: number) =>
 		dispatch({ type: 'TOGGLE_NODE', userId })
 
-	const selectedUserIds = collectSelectedIds(state.nodes)
+	// useMemo ensures selectedUserIds is a stable reference between renders.
+	// Without it, collectSelectedIds creates a new array each render, causing
+	// use-production-kpis to cancel in-flight fetches on every re-render.
+	const selectedUserIds = useMemo(() => collectSelectedIds(state.nodes), [state.nodes])
 
 	return (
 		<HierarchySelectionContext.Provider

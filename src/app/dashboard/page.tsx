@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import { UserRole } from '@/features/auth/lib/roles'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
-import { HierarchyTreePanel } from '@/features/production-dashboard/components/HierarchyTreePanel'
+import { DashboardShell } from '@/features/production-dashboard/components/DashboardShell'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 
 /**
@@ -10,7 +10,7 @@ import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
  *
  * Renders the Production Dashboard with:
  * - Left column: HierarchyTreePanel (hidden for MS Junior via empty-nodes guard)
- * - Right column: KPIs and filters placeholder (future slice)
+ * - Right column: DashboardFilterPanel + KPIs (future slice)
  *
  * Auth:
  * - No session → redirects to /login
@@ -18,6 +18,9 @@ import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
  *
  * Feature flag:
  * - production_dashboard disabled → redirects to /access-denied?reason=feature_disabled
+ *
+ * Context hierarchy (client-side, in DashboardShell):
+ *   HierarchySelectionProvider > DashboardFilterProvider > children
  */
 export default async function DashboardPage() {
 	const session = await auth()
@@ -40,21 +43,7 @@ export default async function DashboardPage() {
 
 	return (
 		<DashboardLayout currentPage="Dashboard de Producción" disableScroll>
-			<div className="flex flex-1 min-h-0 overflow-hidden">
-				{/* Left — Hierarchy tree panel */}
-				<aside className="w-72 shrink-0 overflow-hidden flex flex-col" style={{ borderRight: '1px solid rgba(0,60,69,0.15)' }}>
-					<HierarchyTreePanel />
-				</aside>
-
-				{/* Right — KPIs, filters (future slice) */}
-				<main className="flex-1 overflow-y-auto p-6">
-					<div className="flex h-full items-center justify-center">
-						<p className="text-sm text-muted-foreground">
-							Selecciona usuarios en el árbol para ver su producción
-						</p>
-					</div>
-				</main>
-			</div>
+			<DashboardShell />
 		</DashboardLayout>
 	)
 }
