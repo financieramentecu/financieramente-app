@@ -4,6 +4,20 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.16.0] - 2026-05-27
+
+### Nuevo
+
+- **Gráfica de producción por Money Strategist:** El dashboard incluye una gráfica de barras agrupadas que compara, para cada persona visible en el árbol jerárquico, la producción en **moneda extranjera (USD)** frente a la producción **nacional convertida a USD** con la TRM vigente. Cada agente aparece con dos barras (azul y verde); al pasar el cursor se muestra el monto y la cantidad de negocios del período y filtros aplicados.
+
+- **Comparación visual por equipo:** Los grupos se ordenan según la jerarquía activa (el usuario autenticado primero, luego su equipo). Al marcar o desmarcar nodos en el árbol, o al aplicar filtros de fechas y catálogos, la gráfica se actualiza con los mismos criterios que el panel de KPIs. Si hay muchos agentes, la gráfica permite desplazamiento horizontal para revisar todos los nombres.
+
+### Mejorado
+
+- **TRM compartida entre KPIs y gráfica:** La tasa de cambio se consulta una sola vez al cargar el dashboard y alimenta tanto las tarjetas de KPIs como la conversión de la barra nacional en la gráfica. Si la consulta automática falla, la TRM manual ingresada en el panel general sigue recalculando ambas vistas.
+
+- **Estado vacío en la gráfica:** Cuando no hay producción para la combinación de árbol y filtros seleccionados, se muestra el mensaje *Sin producción registrada para los filtros aplicados* en lugar de una gráfica vacía confusa.
+
 ## [1.15.0] - 2026-05-27
 
 ### Nuevo
