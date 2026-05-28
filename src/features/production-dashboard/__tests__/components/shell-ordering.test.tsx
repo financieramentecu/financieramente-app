@@ -25,6 +25,10 @@ vi.mock('../../hooks/use-heatmap-table', () => ({
   useHeatmapTable: vi.fn().mockReturnValue({ status: 'idle', data: undefined, error: '' }),
 }))
 
+vi.mock('../../hooks/use-origin-donut', () => ({
+  useOriginDonut: vi.fn().mockReturnValue({ status: 'idle', data: undefined, error: '' }),
+}))
+
 vi.mock('../../hooks/use-production-kpis', () => ({
   useProductionKpis: vi.fn().mockReturnValue({ isLoading: false, computed: null }),
 }))
@@ -57,6 +61,8 @@ vi.mock('next-auth/react', () => ({
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="chart">{children}</div>,
   BarChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  PieChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Pie: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Bar: () => <div />,
   XAxis: () => <div />,
   YAxis: () => <div />,
@@ -86,5 +92,22 @@ describe('DashboardShell — panel ordering', () => {
     expect(msChartIdx).toBeGreaterThanOrEqual(0)
     expect(heatmapIdx).toBeGreaterThanOrEqual(0)
     expect(heatmapIdx).toBeGreaterThan(msChartIdx)
+  })
+
+  it('OriginDonutPanel section appears between UsdKpiPanel and MsBarChartPanel (ADR-D6)', () => {
+    const { container } = render(<DashboardShell />)
+
+    const sections = Array.from(container.querySelectorAll('section'))
+
+    const donutIdx = sections.findIndex((s) =>
+      s.textContent?.includes('Distribución por origen del cliente')
+    )
+    const msChartIdx = sections.findIndex((s) =>
+      s.textContent?.includes('Producción por Money Strategist')
+    )
+
+    expect(donutIdx).toBeGreaterThanOrEqual(0)
+    expect(msChartIdx).toBeGreaterThanOrEqual(0)
+    expect(donutIdx).toBeLessThan(msChartIdx)
   })
 })

@@ -10,6 +10,7 @@ import { DashboardFilterPanel } from './DashboardFilterPanel'
 import { UsdKpiPanel } from './UsdKpiPanel'
 import { MsGroupedBarChart } from './MsGroupedBarChart'
 import { HeatmapTablePanel } from './HeatmapTablePanel'
+import { OriginDonutPanel } from './OriginDonutPanel'
 import { useTrm } from '../hooks/use-trm'
 import { useMsBarChart } from '../hooks/use-ms-bar-chart'
 
@@ -77,6 +78,7 @@ function ShellContent({ children }: { children?: ReactNode }) {
           error={error}
           setManualTrm={setManualTrm}
         />
+        <OriginDonutPanel trmRate={trmRate} />
         <MsBarChartPanel trmRate={trmRate} />
         <HeatmapTablePanel trmRate={trmRate} />
         {children ?? null}
