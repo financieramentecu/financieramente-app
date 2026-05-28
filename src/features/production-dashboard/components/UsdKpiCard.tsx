@@ -1,5 +1,7 @@
 'use client'
 
+import type React from 'react'
+
 interface UsdKpiCardProps {
   label: string
   /** null when TRM is unavailable (conversion-dependent cards) */
@@ -30,36 +32,39 @@ function formatCop(value: number): string {
  * Shows "—" when valueUsd is null (TRM not available).
  */
 export function UsdKpiCard({ label, valueUsd, count, isLoading, legend, copAmount }: UsdKpiCardProps) {
+  const cardStyle: React.CSSProperties = { backgroundColor: 'rgba(255,255,255,0.10)' }
+
   if (isLoading) {
     return (
       <div
         data-testid="kpi-skeleton"
-        className="flex flex-col gap-1.5 rounded-xl border border-l-4 border-l-green-500 bg-card p-3 shadow-sm"
+        className="flex flex-col gap-1.5 rounded-xl p-3"
+        style={cardStyle}
       >
-        <div className="h-2.5 w-20 animate-pulse rounded bg-slate-200" />
-        <div className="h-6 w-32 animate-pulse rounded bg-slate-200" />
-        <div className="h-2.5 w-14 animate-pulse rounded bg-slate-200" />
-        <div className="h-4 w-28 animate-pulse rounded bg-slate-200" />
+        <div className="h-2.5 w-20 animate-pulse rounded" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <div className="h-6 w-32 animate-pulse rounded" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <div className="h-2.5 w-14 animate-pulse rounded" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+        <div className="h-4 w-28 animate-pulse rounded" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col rounded-xl border border-l-4 border-l-green-500 bg-card p-3 shadow-sm">
-      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+    <div className="flex flex-col rounded-xl p-3" style={cardStyle}>
+      <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.65)' }}>{label}</p>
       {valueUsd === null ? (
-        <p className="text-xl font-bold text-foreground">—</p>
+        <p className="text-xl font-bold text-white">—</p>
       ) : (
         <>
-          <p className="text-xl font-bold tabular-nums text-green-700">{formatUsd(valueUsd)}</p>
-          <p className="text-xs text-muted-foreground">{count} {count === 1 ? 'negocio' : 'negocios'}</p>
+          <p className="text-xl font-bold tabular-nums text-white">{formatUsd(valueUsd)}</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>{count} {count === 1 ? 'negocio' : 'negocios'}</p>
           {copAmount !== undefined && (
-            <p className="mt-0.5 text-sm font-semibold tabular-nums text-slate-600">
+            <p className="mt-0.5 text-sm font-semibold tabular-nums" style={{ color: 'rgba(255,255,255,0.80)' }}>
               ≈ {formatCop(copAmount)}
             </p>
           )}
           {legend && (
-            <p className="text-xs text-muted-foreground/80">{legend}</p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>{legend}</p>
           )}
         </>
       )}

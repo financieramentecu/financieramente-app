@@ -57,27 +57,29 @@ function joinAndConvert(
     byUser.set(row.userId, entry)
   }
 
-  return orderedNodes.map((node) => {
-    const entry = byUser.get(node.userId) ?? {}
-    const totalCop = entry.cop?.totalAmount ?? 0
-    const foreignUsd = entry.foreign?.totalAmount ?? 0
-    const nationalUsd =
-      trmRate !== null && trmRate > 0
-        ? Math.round((totalCop / trmRate) * 100) / 100
-        : null
+  return orderedNodes
+    .map((node) => {
+      const entry = byUser.get(node.userId) ?? {}
+      const totalCop = entry.cop?.totalAmount ?? 0
+      const foreignUsd = entry.foreign?.totalAmount ?? 0
+      const nationalUsd =
+        trmRate !== null && trmRate > 0
+          ? Math.round((totalCop / trmRate) * 100) / 100
+          : null
 
-    return {
-      userId: node.userId,
-      fullName: node.fullName,
-      levelCode: node.levelCode,
-      foreignUsd,
-      nationalUsd,
-      nationalUsdDisplay: nationalUsd ?? 0,
-      totalCop,
-      foreignCount: entry.foreign?.count ?? 0,
-      nationalCount: entry.cop?.count ?? 0,
-    }
-  })
+      return {
+        userId: node.userId,
+        fullName: node.fullName,
+        levelCode: node.levelCode,
+        foreignUsd,
+        nationalUsd,
+        nationalUsdDisplay: nationalUsd ?? 0,
+        totalCop,
+        foreignCount: entry.foreign?.count ?? 0,
+        nationalCount: entry.cop?.count ?? 0,
+      }
+    })
+    .sort((a, b) => (b.foreignUsd + b.nationalUsdDisplay) - (a.foreignUsd + a.nationalUsdDisplay))
 }
 
 type FetchStatus = 'idle' | 'loading' | 'error'
