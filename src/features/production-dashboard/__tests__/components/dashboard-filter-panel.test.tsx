@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 
@@ -36,13 +36,15 @@ describe('DashboardFilterPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUseDashboardCatalogs.mockReturnValue({
-      companies: [],
-      products: [],
-      origins: [],
-      categories: [],
-      periodicidades: [],
-      isLoading: false,
-      isError: false,
+      status: 'success',
+      data: {
+        companies: [],
+        products: [],
+        origins: [],
+        categories: [],
+        periodicidades: [],
+      },
+      error: '',
     })
     mockUseHierarchySelection.mockReturnValue({
       nodes: [],

@@ -43,8 +43,11 @@ export function DashboardFilterPanel() {
   const { draft, dispatch, isApplyEnabled, activeBadges } =
     useDashboardFilter()
   const { dispatch: hierarchyDispatch } = useHierarchySelection()
+  const catalogState = useDashboardCatalogs()
   const { companies, products, categories, origins, periodicidades } =
-    useDashboardCatalogs()
+    catalogState.status === 'success'
+      ? catalogState.data
+      : { companies: [], products: [], origins: [], categories: [], periodicidades: [] }
 
   const dateRangeError = !isDateRangeValid(draft.dateRange.start, draft.dateRange.end)
     ? 'La fecha de inicio debe ser anterior a la fecha fin'

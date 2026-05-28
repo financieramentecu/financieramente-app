@@ -18,7 +18,7 @@ describe('useDashboardCatalogs', () => {
   it('starts in loading state', () => {
     mockGet.mockReturnValue(new Promise(() => {}))
     const { result } = renderHook(() => useDashboardCatalogs())
-    expect(result.current.isLoading).toBe(true)
+    expect(result.current.status).toBe('loading')
   })
 
   it('returns catalog data on success', async () => {
@@ -34,34 +34,32 @@ describe('useDashboardCatalogs', () => {
 
     const { result } = renderHook(() => useDashboardCatalogs())
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    await waitFor(() => expect(result.current.status).toBe('success'))
 
-    expect(result.current.isError).toBe(false)
-    expect(result.current.companies).toHaveLength(1)
-    expect(result.current.companies[0].name).toBe('Skandia')
-    expect(result.current.products).toHaveLength(1)
-    expect(result.current.products[0].idCompany).toBe(1)
-    expect(result.current.origins).toHaveLength(1)
-    expect(result.current.categories).toHaveLength(1)
-    expect(result.current.periodicidades).toHaveLength(1)
-    expect(result.current.periodicidades[0].name).toBe('MENSUAL')
+    if (result.current.status !== 'success') throw new Error('Expected success')
+    expect(result.current.data.companies).toHaveLength(1)
+    expect(result.current.data.companies[0].name).toBe('Skandia')
+    expect(result.current.data.products).toHaveLength(1)
+    expect(result.current.data.products[0].idCompany).toBe(1)
+    expect(result.current.data.origins).toHaveLength(1)
+    expect(result.current.data.categories).toHaveLength(1)
+    expect(result.current.data.periodicidades).toHaveLength(1)
+    expect(result.current.data.periodicidades[0].name).toBe('MENSUAL')
   })
 
-  it('sets isError=true when API returns null data', async () => {
+  it('sets status to error when API returns null data', async () => {
     mockGet.mockResolvedValue({ data: null, error: 'Server error' })
 
     const { result } = renderHook(() => useDashboardCatalogs())
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
-    expect(result.current.isError).toBe(true)
+    await waitFor(() => expect(result.current.status).toBe('error'))
   })
 
-  it('sets isError=true when API throws', async () => {
+  it('sets status to error when API throws', async () => {
     mockGet.mockRejectedValue(new Error('Network error'))
 
     const { result } = renderHook(() => useDashboardCatalogs())
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false))
-    expect(result.current.isError).toBe(true)
+    await waitFor(() => expect(result.current.status).toBe('error'))
   })
 })

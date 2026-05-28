@@ -3,44 +3,36 @@
 import { useState, useEffect } from 'react'
 import { apiClient } from '@/lib/api/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import type { AsyncState } from '@/features/shared/types/async-state.types'
 import type {
   DashboardCatalogItem,
   DashboardProductCatalogItem,
   DashboardCatalogsResponse,
 } from '@/app/api/production-dashboard/catalogs/route'
 
-interface DashboardCatalogs {
+export interface DashboardCatalogsData {
   companies: DashboardCatalogItem[]
   products: DashboardProductCatalogItem[]
   origins: DashboardCatalogItem[]
   categories: DashboardCatalogItem[]
   periodicidades: DashboardCatalogItem[]
-  isLoading: boolean
-  isError: boolean
-}
-
-const EMPTY: DashboardCatalogs = {
-  companies: [],
-  products: [],
-  origins: [],
-  categories: [],
-  periodicidades: [],
-  isLoading: true,
-  isError: false,
 }
 
 /**
  * Fetches all active catalog items for dashboard filter dropdowns in a single request.
  * Uses a dedicated unpaginated endpoint — no truncation risk.
  */
-export function useDashboardCatalogs(): DashboardCatalogs {
-  const [state, setState] = useState<DashboardCatalogs>(EMPTY)
+export function useDashboardCatalogs(): AsyncState<DashboardCatalogsData> {
+  const [state, setState] = useState<AsyncState<DashboardCatalogsData>>({
+    status: 'loading',
+    data: undefined,
+    error: '',
+  })
 
   useEffect(() => {
     let cancelled = false
 
-    async function fetch() {
-      setState((prev) => ({ ...prev, isLoading: true, isError: false }))
+    async function fetchCatalogs() {
       try {
         const response = await apiClient.get<ApiResponse<DashboardCatalogsResponse>>(
           '/production-dashboard/catalogs'
@@ -50,23 +42,25 @@ export function useDashboardCatalogs(): DashboardCatalogs {
 
         if (response.data) {
           setState({
-            companies: response.data.companies,
-            products: response.data.products,
-            origins: response.data.origins,
-            categories: response.data.categories,
-            periodicidades: response.data.periodicidades,
-            isLoading: false,
-            isError: false,
+            status: 'success',
+            data: {
+              companies: response.data.companies,
+              products: response.data.products,
+              origins: response.data.origins,
+              categories: response.data.categories,
+              periodicidades: response.data.periodicidades,
+            },
+            error: '',
           })
         } else {
-          setState((prev) => ({ ...prev, isLoading: false, isError: true }))
+          setState({ status: 'error', data: undefined, error: 'Failed to load catalogs' })
         }
       } catch {
-        if (!cancelled) setState((prev) => ({ ...prev, isLoading: false, isError: true }))
+        if (!cancelled) setState({ status: 'error', data: undefined, error: 'Failed to load catalogs' })
       }
     }
 
-    fetch()
+    fetchCatalogs()
     return () => { cancelled = true }
   }, [])
 
