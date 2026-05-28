@@ -28,18 +28,29 @@ const config: StorybookConfig & {
 		},
 	},
 	viteFinal: async (config: Record<string, unknown>) => {
-		// Mock de módulos de Next.js que no están disponibles en Storybook
+		// Mock modules not available in Storybook/Chromatic
 		const viteConfig = config as {
-			resolve?: { alias?: Record<string, string> }
+			resolve?: {
+				alias?:
+					| Array<{ find: string | RegExp; replacement: string }>
+					| Record<string, string>
+			}
 		}
 		viteConfig.resolve = viteConfig.resolve || {}
-		viteConfig.resolve.alias = {
-			...viteConfig.resolve.alias,
-			'next/navigation': require.resolve('./mocks/next-navigation.ts'),
-			'next-auth/react': require.resolve('./mocks/next-auth-react.tsx'),
-			'@/auth': require.resolve('./mocks/auth.ts'),
-			'@flagsmith/flagsmith/react': require.resolve('./mocks/flagsmith-react.ts'),
-		}
+		const existingAlias = viteConfig.resolve.alias ?? {}
+		const existingEntries = Array.isArray(existingAlias)
+			? existingAlias
+			: Object.entries(existingAlias as Record<string, string>).map(
+					([find, replacement]) => ({ find, replacement })
+				)
+		viteConfig.resolve.alias = [
+			...existingEntries,
+			{ find: 'next/navigation', replacement: require.resolve('./mocks/next-navigation.ts') },
+			{ find: 'next-auth/react', replacement: require.resolve('./mocks/next-auth-react.tsx') },
+			{ find: '@/auth', replacement: require.resolve('./mocks/auth.ts') },
+			// RegExp required for scoped subpath packages (@flagsmith/flagsmith/react)
+			{ find: /^@flagsmith\/flagsmith\/react$/, replacement: require.resolve('./mocks/flagsmith-react.ts') },
+		]
 		return config
 	},
 }
