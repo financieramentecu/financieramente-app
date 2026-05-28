@@ -38,6 +38,7 @@ const config: StorybookConfig & {
 			'next/navigation': require.resolve('./mocks/next-navigation.ts'),
 			'next-auth/react': require.resolve('./mocks/next-auth-react.tsx'),
 			'@/auth': require.resolve('./mocks/auth.ts'),
+			'@flagsmith/flagsmith/react': require.resolve('./mocks/flagsmith-react.ts'),
 		}
 		return config
 	},
