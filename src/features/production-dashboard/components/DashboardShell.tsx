@@ -11,6 +11,7 @@ import { UsdKpiPanel } from './UsdKpiPanel'
 import { MsGroupedBarChart } from './MsGroupedBarChart'
 import { HeatmapTablePanel } from './HeatmapTablePanel'
 import { OriginDonutPanel } from './OriginDonutPanel'
+import { CompanyDonutPanel } from './CompanyDonutPanel'
 import { useTrm } from '../hooks/use-trm'
 import { useMsBarChart } from '../hooks/use-ms-bar-chart'
 
@@ -78,7 +79,10 @@ function ShellContent({ children }: { children?: ReactNode }) {
           error={error}
           setManualTrm={setManualTrm}
         />
-        <OriginDonutPanel trmRate={trmRate} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <OriginDonutPanel trmRate={trmRate} />
+          <CompanyDonutPanel trmRate={trmRate} />
+        </div>
         <MsBarChartPanel trmRate={trmRate} />
         <HeatmapTablePanel trmRate={trmRate} />
         {children ?? null}

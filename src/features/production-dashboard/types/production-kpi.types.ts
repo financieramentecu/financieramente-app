@@ -188,6 +188,53 @@ export interface HeatmapViewModel {
   readonly legend: ReadonlyArray<CategoryLegendItem>
 }
 
+// ─── Company Donut Chart types ─────────────────────────────────────────────────
+
+/**
+ * Query parameter contract for GET /api/production-dashboard/by-company.
+ * Mirrors OriginDonutQueryParams for filter parity.
+ */
+export interface CompanyDonutQueryParams {
+  readonly userIds: readonly number[]
+  readonly appliedFilters: DashboardAppliedFilters
+}
+
+/**
+ * One row from the service: (company × currency) aggregation.
+ * No percentage or fill — those are computed client-side.
+ */
+export interface CompanyDonutRaw {
+  readonly companyId: number
+  readonly companyName: string
+  readonly currencyId: number
+  readonly currencyName: string
+  readonly currencySymbol: string
+  readonly count: number
+  /** Sum of Business.value for this (company × currency) segment */
+  readonly totalValue: number
+}
+
+/**
+ * Client-side computed slice ready for the chart.
+ * Extends CompanyDonutRaw with percentage and color fill.
+ */
+export interface CompanyDonutSlice {
+  readonly companyId: number
+  readonly companyName: string
+  readonly currencyId: number
+  readonly currencyName: string
+  readonly currencySymbol: string
+  readonly count: number
+  /** Sum of Business.value for this (company × currency) segment */
+  readonly totalValue: number
+  /** 0–100, rounded to 1 decimal */
+  readonly percentage: number
+  /** Resolved hex fill from company-donut-colors (solid for non-COP) */
+  readonly fill: string
+  /** Resolved hex fill (light variant for COP) */
+  readonly fillLight: string
+}
+
 // ─── Origin Donut Chart types ──────────────────────────────────────────────────
 
 /**

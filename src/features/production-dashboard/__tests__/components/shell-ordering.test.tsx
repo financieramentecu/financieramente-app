@@ -29,6 +29,10 @@ vi.mock('../../hooks/use-origin-donut', () => ({
   useOriginDonut: vi.fn().mockReturnValue({ status: 'idle', data: undefined, error: '' }),
 }))
 
+vi.mock('../../hooks/use-company-donut', () => ({
+  useCompanyDonut: vi.fn().mockReturnValue({ status: 'idle', data: undefined, error: '' }),
+}))
+
 vi.mock('../../hooks/use-production-kpis', () => ({
   useProductionKpis: vi.fn().mockReturnValue({ isLoading: false, computed: null }),
 }))
@@ -109,5 +113,22 @@ describe('DashboardShell — panel ordering', () => {
     expect(donutIdx).toBeGreaterThanOrEqual(0)
     expect(msChartIdx).toBeGreaterThanOrEqual(0)
     expect(donutIdx).toBeLessThan(msChartIdx)
+  })
+
+  it('CompanyDonutPanel section appears alongside OriginDonutPanel (before MsBarChartPanel)', () => {
+    const { container } = render(<DashboardShell />)
+
+    const sections = Array.from(container.querySelectorAll('section'))
+
+    const companyDonutIdx = sections.findIndex((s) =>
+      s.textContent?.includes('Distribución por compañía')
+    )
+    const msChartIdx = sections.findIndex((s) =>
+      s.textContent?.includes('Producción por Money Strategist')
+    )
+
+    expect(companyDonutIdx).toBeGreaterThanOrEqual(0)
+    expect(msChartIdx).toBeGreaterThanOrEqual(0)
+    expect(companyDonutIdx).toBeLessThan(msChartIdx)
   })
 })
