@@ -4,6 +4,18 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.15.0] - 2026-05-27
+
+### Nuevo
+
+- **Panel de KPIs en USD con TRM automática:** El dashboard de producción ahora muestra tres tarjetas de métricas en dólares: **Detalle Internacional** (negocios en USD), **Nacional convertido a USD** (total COP dividido por la TRM) y **Total USD** (suma de ambos). La TRM del día se consulta automáticamente al Banco de la República; si la consulta falla, se puede ingresar la TRM manualmente para recalcular los valores al instante. El valor en COP equivalente aparece debajo del monto en USD en la tarjeta Nacional para facilitar la comparativa.
+
+- **Período activo visible en el panel:** El encabezado del panel de ventas muestra el rango de fechas que está aplicado actualmente, así siempre es claro qué período representan los números.
+
+### Mejorado
+
+- **Skeletons de carga en las tarjetas:** Mientras los datos se están cargando (al entrar al dashboard o al aplicar filtros), las tarjetas muestran un indicador animado en lugar de mostrar brevemente valores en cero, evitando lecturas erróneas durante la transición.
+
 ## [1.14.0] - 2026-05-27
 
 ### Nuevo
