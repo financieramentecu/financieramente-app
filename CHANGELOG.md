@@ -4,6 +4,18 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.18.0] - 2026-05-28
+
+### Nuevo
+
+- **Gráfica de dona "Origen del cliente":** El dashboard incluye una nueva gráfica de dona que muestra la distribución de los negocios del scope jerárquico agrupados por tipo de origen del cliente (Método Vortex, Propio, Asesoría Gratuita, KAM/Influencer, etc.) y por moneda. Cada origen recibe un color identificador consistente; los negocios en moneda extranjera aparecen con el tono sólido y los de moneda local con una variante más clara del mismo color.
+
+- **Desglose por moneda en el origen:** Cada tipo de origen puede mostrar hasta dos segmentos: uno para negocios en **USD** y otro para negocios en **COP**. La leyenda lateral lista cada combinación con su porcentaje (ej. *Método Vortex USD · 30%* / *Método Vortex COP · 16.7%*).
+
+- **Tooltip con equivalencia monetaria:** Al posicionarse sobre un segmento, aparece un tooltip con la cantidad de negocios, el porcentaje y el monto total. Los segmentos en USD muestran el valor directamente en dólares. Los segmentos en COP muestran el equivalente en USD (calculado con la TRM vigente) y el monto original en pesos como referencia.
+
+- **Integración con árbol y filtros:** La gráfica respeta el scope jerárquico activo y todos los filtros del dashboard (compañía, categoría, rango de fechas, origen, etc.). Al marcar o desmarcar nodos en el árbol o cambiar cualquier filtro, los porcentajes y conteos se recalculan automáticamente.
+
 ## [1.17.0] - 2026-05-28
 
 ### Nuevo
