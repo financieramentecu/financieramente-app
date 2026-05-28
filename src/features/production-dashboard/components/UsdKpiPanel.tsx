@@ -1,20 +1,29 @@
 'use client'
 
-import { useTrm } from '../hooks/use-trm'
 import { useProductionKpis } from '../hooks/use-production-kpis'
 import { useDashboardFilter } from './DashboardFilterContext'
 import { formatPeriodLabel } from '../lib/format-period-label'
 import { TrmDisplay } from './TrmDisplay'
 import { UsdKpiCard } from './UsdKpiCard'
+import type { TrmState } from '../types/trm.types'
+
+interface UsdKpiPanelProps {
+  readonly isLoading: boolean
+  readonly trmRate: number | null
+  readonly trmState: TrmState
+  readonly isManual: boolean
+  readonly error: string
+  readonly setManualTrm: (rate: number) => void
+}
 
 /**
  * Composed panel showing the TRM display and three USD KPI cards.
  * Reads selectedUserIds and appliedFilters from their respective contexts.
- * Mounts inside DashboardShell (which provides both contexts).
+ * TRM values are received as props (lifted to ShellContent in DashboardShell).
  */
-export function UsdKpiPanel() {
+export function UsdKpiPanel(props: UsdKpiPanelProps) {
+  const { isLoading: trmLoading, trmRate, trmState, isManual, error, setManualTrm } = props
   const { appliedFilters } = useDashboardFilter()
-  const { isLoading: trmLoading, trmRate, trmState, isManual, error, setManualTrm } = useTrm()
 
   const effectiveTrmRate = trmRate ?? 0
   const { isLoading: kpiLoading, computed } = useProductionKpis(effectiveTrmRate)

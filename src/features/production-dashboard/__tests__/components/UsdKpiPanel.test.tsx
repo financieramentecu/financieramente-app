@@ -2,9 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 // Mock hooks before importing the panel
-vi.mock('../../hooks/use-trm', () => ({
-  useTrm: vi.fn(),
-}))
 vi.mock('../../hooks/use-production-kpis', () => ({
   useProductionKpis: vi.fn(),
 }))
@@ -15,16 +12,23 @@ vi.mock('../../components/DashboardFilterContext', () => ({
   useDashboardFilter: vi.fn(),
 }))
 
-import { useTrm } from '../../hooks/use-trm'
 import { useProductionKpis } from '../../hooks/use-production-kpis'
 import { useHierarchySelection } from '../../components/HierarchySelectionContext'
 import { useDashboardFilter } from '../../components/DashboardFilterContext'
 import { UsdKpiPanel } from '../../components/UsdKpiPanel'
 
-const mockUseTrm = vi.mocked(useTrm)
 const mockUseProductionKpis = vi.mocked(useProductionKpis)
 const mockUseHierarchySelection = vi.mocked(useHierarchySelection)
 const mockUseDashboardFilter = vi.mocked(useDashboardFilter)
+
+const defaultTrmProps = {
+  isLoading: false,
+  trmRate: 4050 as number | null,
+  trmState: 'auto' as const,
+  isManual: false,
+  error: '',
+  setManualTrm: vi.fn(),
+}
 
 function setupContextMocks() {
   mockUseHierarchySelection.mockReturnValue({
@@ -60,14 +64,6 @@ beforeEach(() => {
 
 describe('UsdKpiPanel', () => {
   it('renders section heading', () => {
-    mockUseTrm.mockReturnValue({
-      isLoading: false,
-      trmRate: 4050,
-      trmState: 'auto',
-      isManual: false,
-      error: '',
-      setManualTrm: vi.fn(),
-    })
     mockUseProductionKpis.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -82,19 +78,11 @@ describe('UsdKpiPanel', () => {
       },
     })
 
-    render(<UsdKpiPanel />)
+    render(<UsdKpiPanel {...defaultTrmProps} />)
     expect(screen.getByText(/Venta total/i)).toBeTruthy()
   })
 
   it('renders TrmDisplay and 3 UsdKpiCard components', () => {
-    mockUseTrm.mockReturnValue({
-      isLoading: false,
-      trmRate: 4050,
-      trmState: 'auto',
-      isManual: false,
-      error: '',
-      setManualTrm: vi.fn(),
-    })
     mockUseProductionKpis.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -109,7 +97,7 @@ describe('UsdKpiPanel', () => {
       },
     })
 
-    render(<UsdKpiPanel />)
+    render(<UsdKpiPanel {...defaultTrmProps} />)
     // 3 cards rendered
     expect(screen.getByText(/Detalle internacional/i)).toBeTruthy()
     expect(screen.getByText(/Nacional convertido/i)).toBeTruthy()
@@ -117,14 +105,6 @@ describe('UsdKpiPanel', () => {
   })
 
   it('shows nacional and total as null (—) when trmState is error and no manual TRM', () => {
-    mockUseTrm.mockReturnValue({
-      isLoading: false,
-      trmRate: null,
-      trmState: 'error',
-      isManual: false,
-      error: 'No fue posible consultar la TRM automáticamente',
-      setManualTrm: vi.fn(),
-    })
     mockUseProductionKpis.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -139,21 +119,20 @@ describe('UsdKpiPanel', () => {
       },
     })
 
-    render(<UsdKpiPanel />)
+    render(<UsdKpiPanel
+      isLoading={false}
+      trmRate={null}
+      trmState="error"
+      isManual={false}
+      error="No fue posible consultar la TRM automáticamente"
+      setManualTrm={vi.fn()}
+    />)
     // Nacional and Total show "—" when no TRM
     const dashes = screen.getAllByText('—')
     expect(dashes.length).toBeGreaterThanOrEqual(2)
   })
 
   it('shows detalle internacional value regardless of TRM state', () => {
-    mockUseTrm.mockReturnValue({
-      isLoading: false,
-      trmRate: null,
-      trmState: 'error',
-      isManual: false,
-      error: 'No fue posible consultar la TRM automáticamente',
-      setManualTrm: vi.fn(),
-    })
     mockUseProductionKpis.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -168,28 +147,34 @@ describe('UsdKpiPanel', () => {
       },
     })
 
-    render(<UsdKpiPanel />)
+    render(<UsdKpiPanel
+      isLoading={false}
+      trmRate={null}
+      trmState="error"
+      isManual={false}
+      error="No fue posible consultar la TRM automáticamente"
+      setManualTrm={vi.fn()}
+    />)
     // Detalle card shows value even in error state
     expect(screen.getByText(/USD.*500/i)).toBeTruthy()
   })
 
   it('calls setManualTrm when Recalcular is clicked in TrmDisplay', async () => {
     const mockSetManualTrm = vi.fn()
-    mockUseTrm.mockReturnValue({
-      isLoading: false,
-      trmRate: null,
-      trmState: 'error',
-      isManual: false,
-      error: 'Error',
-      setManualTrm: mockSetManualTrm,
-    })
     mockUseProductionKpis.mockReturnValue({
       isLoading: false,
       isError: false,
       computed: null,
     })
 
-    render(<UsdKpiPanel />)
+    render(<UsdKpiPanel
+      isLoading={false}
+      trmRate={null}
+      trmState="error"
+      isManual={false}
+      error="Error"
+      setManualTrm={mockSetManualTrm}
+    />)
 
     const input = screen.getByRole('spinbutton')
     fireEvent.change(input, { target: { value: '4200' } })

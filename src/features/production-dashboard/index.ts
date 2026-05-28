@@ -50,3 +50,8 @@ export { toggleItem } from './lib/toggle-todas'
 export { formatPeriodLabel } from './lib/format-period-label'
 export { getActiveBadges } from './lib/derive-active-badges'
 export { isDraftEqualToApplied } from './lib/is-draft-equal-to-applied'
+
+// MS Bar Chart
+export { MsGroupedBarChart } from './components/MsGroupedBarChart'
+export { useMsBarChart, collectNodesInOrder } from './hooks/use-ms-bar-chart'
+export type { MsKpiRaw, MsBarDatum, MsChartQueryParams } from './types/production-kpi.types'
