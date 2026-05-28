@@ -149,13 +149,12 @@ export async function PUT(
 		const updateData: {
 			code?: string
 			name?: string
-			idLevelType?: number
 			descripcion?: string | null
 			color?: string
 			status?: boolean
 			beneficiaryMode?: 'OVERRIDE' | 'BENEFICIARIO_GENERAL'
-			idFixedBeneficiaryUser?: number | null
-			idNextLevel?: number | null
+			fixedBeneficiaryUser?: { connect: { idUser: number } } | { disconnect: true }
+			nextLevel?: { connect: { idLevel: number } } | { disconnect: true }
 		} = {}
 
 		if (data.code) updateData.code = data.code.trim().toUpperCase()
@@ -166,33 +165,22 @@ export async function PUT(
 		if (data.status !== undefined) updateData.status = data.status
 		if (data.beneficiaryMode !== undefined)
 			updateData.beneficiaryMode = data.beneficiaryMode
-		if ('idFixedBeneficiaryUser' in data)
-			updateData.idFixedBeneficiaryUser =
-				data.beneficiaryMode === 'OVERRIDE'
-					? null
-					: (data.idFixedBeneficiaryUser ?? null)
-		if ('idNextLevel' in data)
-			updateData.idNextLevel = data.idNextLevel ?? null
-
-		if (data.typeLevel) {
-			const levelTypeRec = await prisma.categoryType.findFirst({
-				where: { name: { equals: data.typeLevel, mode: 'insensitive' } },
-			})
-
-			if (!levelTypeRec) {
-				const errorResponse: ApiResponse<null> = {
-					data: null,
-					error: 'Tipo de nivel no válido',
-				}
-				return NextResponse.json(errorResponse, { status: 400 })
-			}
-
-			updateData.idLevelType = levelTypeRec.id
+		if ('idFixedBeneficiaryUser' in data) {
+			const targetId = data.beneficiaryMode === 'OVERRIDE' ? null : (data.idFixedBeneficiaryUser ?? null)
+			updateData.fixedBeneficiaryUser = targetId !== null
+				? { connect: { idUser: targetId } }
+				: { disconnect: true }
 		}
+		if ('idNextLevel' in data) {
+			updateData.nextLevel = (data.idNextLevel ?? null) !== null
+				? { connect: { idLevel: data.idNextLevel! } }
+				: { disconnect: true }
+		}
+
 
 		const levelRaw = await prisma.level.update({
 			where: { idLevel: levelId },
-			data: updateData,
+			data: updateData as Parameters<typeof prisma.level.update>[0]['data'],
 			include: {
 				fixedBeneficiaryUser: {
 					select: { idUser: true, name: true, lastName: true, email: true },
