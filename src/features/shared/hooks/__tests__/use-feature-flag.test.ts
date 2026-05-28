@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Mock @flagsmith/flagsmith/react before importing the hook
 vi.mock('@flagsmith/flagsmith/react', () => ({
 	useFlags: vi.fn(),
+	useFlagsmith: vi.fn(() => ({ getValue: vi.fn() })),
 }))
 
 describe('useFeatureFlag', () => {
