@@ -24,9 +24,19 @@ function getInitials(fullName: string): string {
 type HierarchyTreeNodeProps = {
 	node: HierarchyNode
 	depth?: number
+	/** Category IDs from filter context — non-matching nodes are dimmed */
+	activeCategoryIds?: number[]
 }
 
-export function HierarchyTreeNode({ node, depth = 0 }: HierarchyTreeNodeProps) {
+export function HierarchyTreeNode({
+	node,
+	depth = 0,
+	activeCategoryIds = [],
+}: HierarchyTreeNodeProps) {
+	const isCategoryDimmed =
+		activeCategoryIds.length > 0 &&
+		node.idCategory !== null &&
+		!activeCategoryIds.includes(node.idCategory)
 	const hasChildren = node.children.length > 0
 	const [isExpanded, setIsExpanded] = useState(true)
 	const { toggle } = useHierarchySelection()
@@ -89,7 +99,7 @@ export function HierarchyTreeNode({ node, depth = 0 }: HierarchyTreeNodeProps) {
 						<label
 							htmlFor={`node-${node.userId}`}
 							className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
-							style={{ opacity: isActive ? 1 : 0.45 }}
+							style={{ opacity: isCategoryDimmed ? 0.3 : isActive ? 1 : 0.45 }}
 						>
 							{/* Initials avatar */}
 							<span
@@ -166,6 +176,7 @@ export function HierarchyTreeNode({ node, depth = 0 }: HierarchyTreeNodeProps) {
 							key={child.userId}
 							node={child}
 							depth={depth + 1}
+							activeCategoryIds={activeCategoryIds}
 						/>
 					))}
 				</ul>

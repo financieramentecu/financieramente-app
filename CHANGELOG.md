@@ -4,6 +4,50 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.16.0] - 2026-05-27
+
+### Nuevo
+
+- **Gráfica de producción por Money Strategist:** El dashboard incluye una gráfica de barras agrupadas que compara, para cada persona visible en el árbol jerárquico, la producción en **moneda extranjera (USD)** frente a la producción **nacional convertida a USD** con la TRM vigente. Cada agente aparece con dos barras (azul y verde); al pasar el cursor se muestra el monto y la cantidad de negocios del período y filtros aplicados.
+
+- **Comparación visual por equipo:** Los grupos se ordenan según la jerarquía activa (el usuario autenticado primero, luego su equipo). Al marcar o desmarcar nodos en el árbol, o al aplicar filtros de fechas y catálogos, la gráfica se actualiza con los mismos criterios que el panel de KPIs. Si hay muchos agentes, la gráfica permite desplazamiento horizontal para revisar todos los nombres.
+
+### Mejorado
+
+- **TRM compartida entre KPIs y gráfica:** La tasa de cambio se consulta una sola vez al cargar el dashboard y alimenta tanto las tarjetas de KPIs como la conversión de la barra nacional en la gráfica. Si la consulta automática falla, la TRM manual ingresada en el panel general sigue recalculando ambas vistas.
+
+- **Estado vacío en la gráfica:** Cuando no hay producción para la combinación de árbol y filtros seleccionados, se muestra el mensaje *Sin producción registrada para los filtros aplicados* en lugar de una gráfica vacía confusa.
+
+## [1.15.0] - 2026-05-27
+
+### Nuevo
+
+- **Panel de KPIs en USD con TRM automática:** El dashboard de producción ahora muestra tres tarjetas de métricas en dólares: **Detalle Internacional** (negocios en USD), **Nacional convertido a USD** (total COP dividido por la TRM) y **Total USD** (suma de ambos). La TRM del día se consulta automáticamente al Banco de la República; si la consulta falla, se puede ingresar la TRM manualmente para recalcular los valores al instante. El valor en COP equivalente aparece debajo del monto en USD en la tarjeta Nacional para facilitar la comparativa.
+
+- **Período activo visible en el panel:** El encabezado del panel de ventas muestra el rango de fechas que está aplicado actualmente, así siempre es claro qué período representan los números.
+
+### Mejorado
+
+- **Skeletons de carga en las tarjetas:** Mientras los datos se están cargando (al entrar al dashboard o al aplicar filtros), las tarjetas muestran un indicador animado en lugar de mostrar brevemente valores en cero, evitando lecturas erróneas durante la transición.
+
+## [1.14.0] - 2026-05-27
+
+### Nuevo
+
+- **Panel de filtros del dashboard:** El dashboard de producción ahora incluye un panel de filtros completo con 8 controles: rango de fechas (selección por día), estado del negocio, categoría, compañía, producto, origen, plazo y periodicidad. Los cambios en los filtros no se aplican hasta que el usuario confirma con el botón **Aplicar**, preservando los datos visibles mientras se ajusta la selección.
+
+- **Filtros de compañía y producto con búsqueda:** Los selectores de compañía y producto incluyen campo de búsqueda para encontrar opciones rápidamente en listas largas. Al seleccionar una compañía, el listado de productos se reduce automáticamente a los productos de esa compañía.
+
+- **Catálogo de periodicidad desde la base de datos:** Las opciones de periodicidad (Mensual, Trimestral, Anual, etc.) se cargan directamente desde la tabla de datos, de modo que cualquier periodicidad configurada en el sistema aparece automáticamente en el filtro sin cambios de código.
+
+### Mejorado
+
+- **Árbol jerárquico con resaltado por categoría:** Al aplicar un filtro de categoría, los nodos del árbol que no pertenecen a esa categoría se atenúan visualmente, facilitando identificar qué usuarios contribuyen a los resultados filtrados.
+
+- **Navegación más compacta:** Se eliminó el elemento "Inicio" del breadcrumb para ganar espacio vertical. El panel de filtros también se redujo en altura (padding y tamaño de fuente optimizados) para mostrar más contenido útil en pantalla.
+
+- **Skeleton de jerarquía visible:** El indicador de carga del árbol jerárquico ahora muestra el gris estándar del sistema en lugar de un color casi invisible.
+
 ## [1.13.0] - 2026-05-26
 
 ### Nuevo

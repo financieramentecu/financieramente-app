@@ -1,0 +1,28 @@
+---
+change: dashboard-filters
+date: 2026-05-27
+status: archived
+verdict: PASS WITH WARNINGS
+criticals: 0
+warnings: 2
+suggestions: 2
+test_pass_rate: 110/110
+type_check_errors: 0
+
+# Resolved before archive
+resolved_issues:
+  - W-1: "HierarchyTreePanel.activeCategoryIds wired via DashboardShell ShellContent pattern"
+  - W-2: "use-dashboard-catalogs async state - accepted as tech debt per spec deviation approval"
+
+documented_deviations:
+  - "Internacional toggle removed per user approval"
+  - "Date picker is day-level, not MonthYear per user approval"
+  - "Periodicidad from DB (buy_periodicity) per spec"
+  - "Single /api/production-dashboard/catalogs endpoint per spec"
+  - "Searchable autocomplete on Compañía and Producto"
+  - "isInternacional kept in types for forward compatibility"
+
+branch: feat/dashboard-levels-users
+implementation_status: complete
+tests_passing: true
+type_safety: clean
