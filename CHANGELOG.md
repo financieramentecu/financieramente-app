@@ -4,6 +4,54 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.19.0] - 2026-05-28
+
+### Nuevo
+
+- **Gráfica de dona "Negocios por Compañía":** El dashboard incluye una nueva gráfica de dona que muestra la distribución de los negocios del scope jerárquico agrupados por compañía (SKANDIA, DOMINION, ITA, MANHATTAN, MEJORCDT, TRINITY, entre otras) y por moneda. Cada compañía recibe un color identificador propio tomado de una paleta distinta a la del origen; los negocios en moneda extranjera aparecen con el tono sólido y los de moneda local con una variante más clara del mismo color.
+
+- **Vista lado a lado de las dos donuts:** La gráfica de compañías se muestra a la derecha de la gráfica de origen del cliente en una grilla de dos columnas, permitiendo comparar de un vistazo la concentración de producción por aliado y por canal de origen sin necesidad de desplazarse.
+
+- **Tooltip con valor monetario:** Al posicionarse sobre un segmento, el tooltip muestra el nombre de la compañía, la moneda, la cantidad de negocios y el porcentaje del total. Los segmentos en COP también muestran el equivalente en USD calculado con la TRM vigente y el monto original en pesos como referencia.
+
+- **Integración completa con árbol y filtros:** La gráfica respeta el scope jerárquico activo y todos los filtros del dashboard (rango de fechas, estado, origen, categoría, compañía, etc.). Al marcar o desmarcar nodos en el árbol o cambiar cualquier filtro, los porcentajes y conteos se recalculan automáticamente. Si los filtros no producen resultados, se muestra un estado vacío con el mensaje *"Sin negocios para los filtros aplicados"*.
+
+## [1.18.0] - 2026-05-28
+
+### Nuevo
+
+- **Gráfica de dona "Origen del cliente":** El dashboard incluye una nueva gráfica de dona que muestra la distribución de los negocios del scope jerárquico agrupados por tipo de origen del cliente (Método Vortex, Propio, Asesoría Gratuita, KAM/Influencer, etc.) y por moneda. Cada origen recibe un color identificador consistente; los negocios en moneda extranjera aparecen con el tono sólido y los de moneda local con una variante más clara del mismo color.
+
+- **Desglose por moneda en el origen:** Cada tipo de origen puede mostrar hasta dos segmentos: uno para negocios en **USD** y otro para negocios en **COP**. La leyenda lateral lista cada combinación con su porcentaje (ej. *Método Vortex USD · 30%* / *Método Vortex COP · 16.7%*).
+
+- **Tooltip con equivalencia monetaria:** Al posicionarse sobre un segmento, aparece un tooltip con la cantidad de negocios, el porcentaje y el monto total. Los segmentos en USD muestran el valor directamente en dólares. Los segmentos en COP muestran el equivalente en USD (calculado con la TRM vigente) y el monto original en pesos como referencia.
+
+- **Integración con árbol y filtros:** La gráfica respeta el scope jerárquico activo y todos los filtros del dashboard (compañía, categoría, rango de fechas, origen, etc.). Al marcar o desmarcar nodos en el árbol o cambiar cualquier filtro, los porcentajes y conteos se recalculan automáticamente.
+
+## [1.17.0] - 2026-05-28
+
+### Nuevo
+
+- **Tabla heatmap de producción por compañía:** El dashboard incluye una nueva tabla que muestra la producción de cada Money Strategist del scope jerárquico desglosada por compañía. Cada compañía aparece con dos columnas: el monto total en **USD** con intensidad de color según el volumen (a mayor producción, fondo más oscuro) y la cantidad de **negocios**. Para producción en moneda local, la celda también muestra el equivalente en **COP** debajo del valor en USD. El texto de celdas oscuras cambia a blanco automáticamente para mantener la legibilidad.
+
+- **Agrupación jerárquica en la tabla:** Las filas se agrupan por nivel (Team Leader, MS Senior, MS Junior, etc.) con un separador de sección que identifica cada grupo por su color de nivel. Un botón en el encabezado de la columna **Money Strategist** permite invertir el orden jerárquico (de mayor a menor rango y viceversa).
+
+- **Buscador en el árbol de jerarquía:** El panel izquierdo del dashboard incluye un campo de búsqueda para filtrar personas en el árbol. Los resultados se muestran en lista plana con el nombre resaltado, el avatar de iniciales y el nivel de cada persona; hacer clic en un resultado activa o desactiva esa persona directamente.
+
+- **Colapso del panel de jerarquía:** Un nuevo botón en el encabezado del árbol permite colapsar o expandir el panel lateral izquierdo para ganar espacio en la vista principal. El panel se anima suavemente al abrirse o cerrarse.
+
+### Mejorado
+
+- **Diseño del panel Venta Total:** El bloque de KPIs en USD ahora tiene fondo verde oscuro (#003c45) —el mismo color del menú principal— con texto blanco y tarjetas translúcidas. El indicador de TRM automática muestra un punto pulsante animado que señala que el valor es en tiempo real. El formulario de TRM manual solo aparece cuando la consulta automática falla, no durante la carga inicial.
+
+- **Gráfica de barras ordenada por producción:** Las barras de la gráfica por Money Strategist ahora se ordenan de mayor a menor producción total en USD, facilitando identificar quién lidera el período.
+
+- **Árbol de jerarquía sin niveles beneficiarios:** Los usuarios con nivel de tipo `BENEFICIARIO_GENERAL` ya no aparecen en el árbol del dashboard, evitando confusión con los niveles comerciales activos.
+
+### Corregido
+
+- **Actualización de niveles en administración:** Se corrigió un error que impedía guardar cambios en la configuración de un nivel cuando se modificaba el beneficiario fijo o el nivel siguiente. Prisma rechazaba los campos por nombres incorrectos; ahora se usan los campos correctos de la API de relaciones.
+
 ## [1.16.0] - 2026-05-27
 
 ### Nuevo

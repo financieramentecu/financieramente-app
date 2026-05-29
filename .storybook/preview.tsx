@@ -3,6 +3,17 @@ import React from 'react'
 import { ThemeProvider } from '../src/features/shared/ui/ThemeProvider'
 import { Toaster } from '../src/features/shared/ui/sonner'
 import { SessionProvider } from 'next-auth/react'
+import { FlagsmithProvider } from '@flagsmith/flagsmith/react'
+import { createFlagsmithInstance } from '@flagsmith/flagsmith'
+
+// Flagsmith instance pre-initialized with all flags enabled for Storybook
+const storybookFlagsmith = createFlagsmithInstance()
+storybookFlagsmith.setState({
+  flags: {
+    negocios_advanced_filters: { enabled: true, value: null },
+    production_dashboard: { enabled: true, value: null },
+  },
+})
 
 // Importar Tailwind CSS
 import '../src/app/tailwind.css'
@@ -101,14 +112,16 @@ const preview: Preview = {
 	},
 	decorators: [
 		(Story) => (
-			<SessionProvider session={mockSession}>
-				<ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-					<div className="sidebar-storybook">
-						<Story />
-						<Toaster />
-					</div>
-				</ThemeProvider>
-			</SessionProvider>
+			<FlagsmithProvider flagsmith={storybookFlagsmith}>
+				<SessionProvider session={mockSession}>
+					<ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+						<div className="sidebar-storybook">
+							<Story />
+							<Toaster />
+						</div>
+					</ThemeProvider>
+				</SessionProvider>
+			</FlagsmithProvider>
 		),
 	],
 	globalTypes: {

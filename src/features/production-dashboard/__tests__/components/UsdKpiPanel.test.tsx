@@ -99,8 +99,8 @@ describe('UsdKpiPanel', () => {
 
     render(<UsdKpiPanel {...defaultTrmProps} />)
     // 3 cards rendered
-    expect(screen.getByText(/Detalle internacional/i)).toBeTruthy()
-    expect(screen.getByText(/Nacional convertido/i)).toBeTruthy()
+    expect(screen.getByText(/Venta en moneda extranjera/i)).toBeTruthy()
+    expect(screen.getByText(/Venta en moneda local COP/i)).toBeTruthy()
     expect(screen.getByText(/Total USD/i)).toBeTruthy()
   })
 

@@ -1,0 +1,13 @@
+change: origen-cliente-donut
+status: archived
+artifact_store: hybrid
+phases_completed:
+  - explore
+  - proposal
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+archived_at: 2026-05-28

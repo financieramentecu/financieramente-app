@@ -1,12 +1,17 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { useState } from 'react'
+import { PanelLeftOpen } from 'lucide-react'
 import { HierarchySelectionProvider } from './HierarchySelectionContext'
 import { DashboardFilterProvider, useDashboardFilter } from './DashboardFilterContext'
 import { HierarchyTreePanel } from './HierarchyTreePanel'
 import { DashboardFilterPanel } from './DashboardFilterPanel'
 import { UsdKpiPanel } from './UsdKpiPanel'
 import { MsGroupedBarChart } from './MsGroupedBarChart'
+import { HeatmapTablePanel } from './HeatmapTablePanel'
+import { OriginDonutPanel } from './OriginDonutPanel'
+import { CompanyDonutPanel } from './CompanyDonutPanel'
 import { useTrm } from '../hooks/use-trm'
 import { useMsBarChart } from '../hooks/use-ms-bar-chart'
 
@@ -34,19 +39,37 @@ function MsBarChartPanel({ trmRate }: MsBarChartPanelProps) {
 function ShellContent({ children }: { children?: ReactNode }) {
   const { appliedFilters } = useDashboardFilter()
   const { isLoading: trmLoading, trmRate, trmState, isManual, error, setManualTrm } = useTrm()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Left — Hierarchy tree panel */}
       <aside
-        className="w-72 shrink-0 overflow-hidden flex flex-col"
-        style={{ borderRight: '1px solid rgba(0,60,69,0.15)' }}
+        className="shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out"
+        style={{
+          width: sidebarCollapsed ? 0 : 288,
+          borderRight: '1px solid rgba(0,60,69,0.15)',
+        }}
       >
-        <HierarchyTreePanel activeCategoryIds={appliedFilters.categoryIds} />
+        <HierarchyTreePanel
+          activeCategoryIds={appliedFilters.categoryIds}
+          onCollapse={() => setSidebarCollapsed(true)}
+        />
       </aside>
 
       {/* Right — Filters + KPIs */}
       <main className="flex-1 overflow-y-auto p-6 space-y-4">
+        {sidebarCollapsed && (
+          <button
+            type="button"
+            aria-label="Expandir panel de jerarquía"
+            onClick={() => setSidebarCollapsed(false)}
+            className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          >
+            <PanelLeftOpen className="size-3.5" />
+            Jerarquía
+          </button>
+        )}
         <DashboardFilterPanel />
         <UsdKpiPanel
           isLoading={trmLoading}
@@ -56,7 +79,12 @@ function ShellContent({ children }: { children?: ReactNode }) {
           error={error}
           setManualTrm={setManualTrm}
         />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <OriginDonutPanel trmRate={trmRate} />
+          <CompanyDonutPanel trmRate={trmRate} />
+        </div>
         <MsBarChartPanel trmRate={trmRate} />
+        <HeatmapTablePanel trmRate={trmRate} />
         {children ?? null}
       </main>
     </div>
