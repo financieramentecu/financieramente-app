@@ -66,17 +66,17 @@ describe('aggregateCompanyDonut', () => {
     })
   })
 
-  it('assigns base palette fill for non-COP currency', () => {
+  it('assigns base palette fill regardless of currency (currencies are merged)', () => {
     const raw = [makeRaw({ companyId: 10, currencyId: 2, count: 5 })]
     const result = aggregateCompanyDonut(raw)
     // companyId 10 → sorted → index 0 → base palette[0]
     expect(result[0].fill).toBe(COMPANY_BASE_PALETTE[0])
   })
 
-  it('assigns light palette fill for COP currency', () => {
+  it('assigns base palette fill even for COP-only company (currencies merged into one slice)', () => {
     const raw = [makeRaw({ companyId: 10, currencyId: COP_CURRENCY_ID, count: 5 })]
     const result = aggregateCompanyDonut(raw)
-    expect(result[0].fill).toBe(COMPANY_LIGHT_PALETTE[0])
+    expect(result[0].fill).toBe(COMPANY_BASE_PALETTE[0])
   })
 
   it('fills match expected palette indices by sorted companyId', () => {
@@ -98,14 +98,13 @@ describe('aggregateCompanyDonut', () => {
     expect(result[0].fillLight).toBe(COMPANY_LIGHT_PALETTE[0])
   })
 
-  it('preserves all CompanyDonutRaw fields in the output slices', () => {
-    const raw = [makeRaw({ companyId: 5, companyName: 'TRINITY', currencyId: 2, currencyName: 'Dólar', currencySymbol: 'USD', count: 10 })]
+  it('preserves companyId, companyName, count and exposes copTotal/foreignUsd in output slices', () => {
+    const raw = [makeRaw({ companyId: 5, companyName: 'TRINITY', currencyId: 2, count: 10, totalValue: 50000 })]
     const result = aggregateCompanyDonut(raw)
     expect(result[0].companyId).toBe(5)
     expect(result[0].companyName).toBe('TRINITY')
-    expect(result[0].currencyId).toBe(2)
-    expect(result[0].currencyName).toBe('Dólar')
-    expect(result[0].currencySymbol).toBe('USD')
     expect(result[0].count).toBe(10)
+    expect(result[0].foreignUsd).toBe(50000)
+    expect(result[0].copTotal).toBe(0)
   })
 })

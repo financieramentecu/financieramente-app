@@ -78,7 +78,7 @@ export function CompanyDonutChart({ chartState, trmRate }: CompanyDonutChartProp
     <div
       role="img"
       aria-label="Distribución de negocios por compañía"
-      className="rounded-xl border bg-card p-4"
+      className="rounded-xl border bg-card p-4 flex-1 flex flex-col"
     >
       <ResponsiveContainer width="100%" height={320}>
         <PieChart>
@@ -91,7 +91,7 @@ export function CompanyDonutChart({ chartState, trmRate }: CompanyDonutChartProp
           >
             {slices.map((slice) => (
               <Cell
-                key={`${slice.companyId}-${slice.currencyId}`}
+                key={`${slice.companyId}`}
                 fill={slice.fill}
               />
             ))}

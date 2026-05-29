@@ -7,11 +7,10 @@ function makeSlice(overrides: Partial<OriginDonutSlice> = {}): OriginDonutSlice 
   return {
     originId: 1,
     originName: 'Método Vortex',
-    currencyId: 2,
-    currencyName: 'Dólar',
-    currencySymbol: 'USD',
     count: 17,
-    totalValue: 150000,
+    copCount: 5,
+    copTotal: 50000000,
+    foreignUsd: 150000,
     percentage: 12.2,
     fill: '#2563eb',
     fillLight: '#93c5fd',
@@ -19,8 +18,20 @@ function makeSlice(overrides: Partial<OriginDonutSlice> = {}): OriginDonutSlice 
   }
 }
 
-const usdPayload = [{ payload: makeSlice() }]
-const copPayload = [{ payload: makeSlice({ currencyId: 1, currencyName: 'Peso colombiano', currencySymbol: 'COP', totalValue: 280000000 }) }]
+// Mixed slice used for generic rendering tests (copCount:5 of 17 are COP, rest USD)
+const mixedPayload = [{ payload: makeSlice() }]
+// Pure USD slice (no COP businesses)
+const usdPayload = [{ payload: makeSlice({ copCount: 0, copTotal: 0, foreignUsd: 150000 }) }]
+// Pure COP slice (no USD businesses)
+const copPayload = [
+  {
+    payload: makeSlice({
+      copCount: 17,
+      copTotal: 280000000,
+      foreignUsd: 0,
+    }),
+  },
+]
 
 describe('OriginDonutTooltip', () => {
   it('renders nothing when inactive', () => {
@@ -33,59 +44,60 @@ describe('OriginDonutTooltip', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders origin name and currency symbol in header', () => {
-    render(<OriginDonutTooltip active payload={usdPayload} />)
-    expect(screen.getByText('Método Vortex · USD')).toBeInTheDocument()
+  it('renders origin name in header', () => {
+    render(<OriginDonutTooltip active payload={mixedPayload} />)
+    expect(screen.getByText('Método Vortex')).toBeInTheDocument()
   })
 
   it('renders count and percentage', () => {
-    render(<OriginDonutTooltip active payload={usdPayload} />)
+    render(<OriginDonutTooltip active payload={mixedPayload} />)
     expect(screen.getByText(/17 negocios \(12\.2%\)/)).toBeInTheDocument()
   })
 
   it('uses singular "negocio" when count is 1', () => {
-    const payload = [{ payload: makeSlice({ count: 1 }) }]
+    const payload = [{ payload: makeSlice({ count: 1, copCount: 1, foreignUsd: 0 }) }]
     render(<OriginDonutTooltip active payload={payload} />)
     expect(screen.getByText(/1 negocio/)).toBeInTheDocument()
   })
 
-  describe('USD segment', () => {
-    it('shows USD value directly', () => {
+  describe('USD-only segment (no COP)', () => {
+    it('shows total USD when foreignUsd > 0 and trmRate is provided', () => {
       render(<OriginDonutTooltip active payload={usdPayload} trmRate={4000} />)
-      expect(screen.getByText(/150\.000.*USD/)).toBeInTheDocument()
+      expect(screen.getAllByText('$150,000').length).toBeGreaterThan(0)
     })
 
-    it('does NOT show COP line for USD segments', () => {
+    it('does NOT show COP breakdown line for USD-only segments', () => {
       render(<OriginDonutTooltip active payload={usdPayload} trmRate={4000} />)
-      expect(screen.queryByText(/COP/)).toBeNull()
+      expect(screen.queryByText(/Moneda local/)).toBeNull()
     })
 
-    it('shows USD value even without trmRate', () => {
+    it('shows USD value even without trmRate when foreignUsd > 0', () => {
       render(<OriginDonutTooltip active payload={usdPayload} />)
-      expect(screen.getByText(/150\.000.*USD/)).toBeInTheDocument()
+      expect(screen.getByText('$150,000')).toBeInTheDocument()
     })
   })
 
-  describe('COP segment', () => {
-    it('shows USD equivalent (totalValue ÷ trmRate) when trmRate is available', () => {
+  describe('COP-only segment', () => {
+    it('shows USD equivalent (copTotal ÷ trmRate) when trmRate is available', () => {
       render(<OriginDonutTooltip active payload={copPayload} trmRate={4000} />)
-      // 280.000.000 / 4000 = 70.000
-      expect(screen.getByText(/70\.000.*USD/)).toBeInTheDocument()
+      // 280,000,000 / 4000 = 70,000
+      expect(screen.getByText('$70,000')).toBeInTheDocument()
     })
 
-    it('shows original COP value as reference line', () => {
+    it('shows COP breakdown line when trmRate is available', () => {
       render(<OriginDonutTooltip active payload={copPayload} trmRate={4000} />)
+      expect(screen.getByText(/Moneda local/)).toBeInTheDocument()
       expect(screen.getByText(/280\.000\.000 COP/)).toBeInTheDocument()
     })
 
     it('hides USD line when trmRate is not available', () => {
       render(<OriginDonutTooltip active payload={copPayload} />)
-      expect(screen.queryByText(/USD/)).toBeNull()
+      expect(screen.queryByText(/\$/)).toBeNull()
     })
 
-    it('still shows COP reference when trmRate is not available', () => {
+    it('hides COP breakdown line when trmRate is not available', () => {
       render(<OriginDonutTooltip active payload={copPayload} />)
-      expect(screen.getByText(/280\.000\.000 COP/)).toBeInTheDocument()
+      expect(screen.queryByText(/Moneda local/)).toBeNull()
     })
   })
 })

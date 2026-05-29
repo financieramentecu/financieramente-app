@@ -9,7 +9,7 @@ interface OriginDonutLegendProps {
 /**
  * Custom legend for the Origin Donut chart.
  * Renders items sorted descending by percentage.
- * Each item: color swatch + "[originName] [currencySymbol] · XX.X%"
+ * Each item: color swatch + "[originName] · XX.X%"
  *
  * Pure component — no hooks, no Recharts Legend dependency.
  * Empty slices array renders nothing.
@@ -23,7 +23,7 @@ export function OriginDonutLegend({ slices }: OriginDonutLegendProps) {
     <ul className="mt-4 space-y-1.5 text-sm">
       {sorted.map((slice) => (
         <li
-          key={`${slice.originId}-${slice.currencyId}`}
+          key={String(slice.originId)}
           className="flex items-center gap-2"
         >
           <span
@@ -32,7 +32,7 @@ export function OriginDonutLegend({ slices }: OriginDonutLegendProps) {
             aria-hidden="true"
           />
           <span className="text-foreground">
-            {slice.originName} {slice.currencySymbol}
+            {slice.originName}
           </span>
           <span className="ml-auto text-muted-foreground tabular-nums">
             {slice.percentage.toFixed(1)}%
