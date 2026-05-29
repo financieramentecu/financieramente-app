@@ -46,7 +46,7 @@ export function TrmDisplay({
 
   if (isLoading) {
     if (compact) {
-      return <div className="h-4 w-32 animate-pulse rounded bg-muted" aria-label="Cargando TRM..." />
+      return <div className="h-6 w-36 animate-pulse rounded-md" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} aria-label="Cargando TRM..." />
     }
     return (
       <div
@@ -57,7 +57,7 @@ export function TrmDisplay({
     )
   }
 
-  if (trmState === 'error') {
+  if (trmState === 'error' && !isLoading) {
     // In compact mode, the error block is handled by the parent (shown outside the header)
     if (compact) return null
     return (
@@ -100,10 +100,17 @@ export function TrmDisplay({
   // trmState === 'auto'
   if (trmRate !== null) {
     return (
-      <div className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1 text-xs ring-1 ring-border">
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
-        <span className="font-semibold tabular-nums text-foreground">{formatTrm(trmRate)}</span>
-        <span className="text-muted-foreground">(TRM automática)</span>
+      <div
+        className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs"
+        style={{ backgroundColor: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.20)' }}
+      >
+        {/* Pulsing dot — indicates real-time value */}
+        <span className="relative flex h-2 w-2 shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
+        </span>
+        <span className="font-semibold tabular-nums text-white">{formatTrm(trmRate)}</span>
+        <span style={{ color: 'rgba(255,255,255,0.65)' }}>(TRM automático)</span>
       </div>
     )
   }

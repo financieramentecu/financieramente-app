@@ -19,6 +19,7 @@ type LevelRow = {
 	name: string
 	color: string
 	idNextLevel: number | null
+	beneficiaryMode: string
 }
 
 function isFullTreeViewer(viewer: SessionUser): boolean {
@@ -85,17 +86,22 @@ export async function buildHierarchyTree(
 				name: true,
 				color: true,
 				idNextLevel: true,
+				beneficiaryMode: true,
 			},
 		}) as unknown as Promise<LevelRow[]>,
 	])
 
 	const levelMap = new Map<number, Pick<LevelRow, 'code' | 'color'>>()
+	const overrideLevelIds = new Set<number>()
 	for (const level of levels) {
 		levelMap.set(level.idLevel, { code: level.code, color: level.color })
+		if (level.beneficiaryMode === 'OVERRIDE') overrideLevelIds.add(level.idLevel)
 	}
 
-	// Defensive: only include users with an assigned level
-	const eligibleUsers = users.filter((u) => u.idLevel !== null)
+	// Only include users with an assigned level of type OVERRIDE (exclude BENEFICIARIO_GENERAL)
+	const eligibleUsers = users.filter(
+		(u) => u.idLevel !== null && overrideLevelIds.has(u.idLevel)
+	)
 
 	const userMap = new Map<number, UserRow>()
 	for (const user of eligibleUsers) {

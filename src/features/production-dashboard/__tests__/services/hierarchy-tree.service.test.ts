@@ -8,10 +8,10 @@ import { buildHierarchyTree } from '@/features/production-dashboard/services/hie
 // ---------------------------------------------------------------------------
 
 const LEVELS = [
-	{ idLevel: 1, code: 'GENERAL_LEVEL', name: 'MIA', color: '#111111', status: true, idNextLevel: 2 },
-	{ idLevel: 2, code: 'TEAM_LEADER', name: 'Team Leader', color: '#222222', status: true, idNextLevel: 3 },
-	{ idLevel: 3, code: 'MS_SENIOR', name: 'MS Senior', color: '#333333', status: true, idNextLevel: 4 },
-	{ idLevel: 4, code: 'MS_JUNIOR', name: 'MS Junior', color: '#444444', status: true, idNextLevel: null },
+	{ idLevel: 1, code: 'GENERAL_LEVEL', name: 'MIA', color: '#111111', status: true, idNextLevel: 2, beneficiaryMode: 'OVERRIDE' },
+	{ idLevel: 2, code: 'TEAM_LEADER', name: 'Team Leader', color: '#222222', status: true, idNextLevel: 3, beneficiaryMode: 'OVERRIDE' },
+	{ idLevel: 3, code: 'MS_SENIOR', name: 'MS Senior', color: '#333333', status: true, idNextLevel: 4, beneficiaryMode: 'OVERRIDE' },
+	{ idLevel: 4, code: 'MS_JUNIOR', name: 'MS Junior', color: '#444444', status: true, idNextLevel: null, beneficiaryMode: 'OVERRIDE' },
 ]
 
 const ACTIVE_USERS = [
@@ -184,7 +184,7 @@ describe('buildHierarchyTree', () => {
 	it('(f) Dynamic depth — new Level in chain appears in tree without code change', async () => {
 		const deepLevels = [
 			...LEVELS,
-			{ idLevel: 5, code: 'LEVEL_5', name: 'Level Five', color: '#555555', status: true, idNextLevel: null },
+			{ idLevel: 5, code: 'LEVEL_5', name: 'Level Five', color: '#555555', status: true, idNextLevel: null, beneficiaryMode: 'OVERRIDE' },
 		]
 		const deepUsers = [
 			...ACTIVE_USERS,
