@@ -4,6 +4,18 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.19.0] - 2026-05-28
+
+### Nuevo
+
+- **Gráfica de dona "Negocios por Compañía":** El dashboard incluye una nueva gráfica de dona que muestra la distribución de los negocios del scope jerárquico agrupados por compañía (SKANDIA, DOMINION, ITA, MANHATTAN, MEJORCDT, TRINITY, entre otras) y por moneda. Cada compañía recibe un color identificador propio tomado de una paleta distinta a la del origen; los negocios en moneda extranjera aparecen con el tono sólido y los de moneda local con una variante más clara del mismo color.
+
+- **Vista lado a lado de las dos donuts:** La gráfica de compañías se muestra a la derecha de la gráfica de origen del cliente en una grilla de dos columnas, permitiendo comparar de un vistazo la concentración de producción por aliado y por canal de origen sin necesidad de desplazarse.
+
+- **Tooltip con valor monetario:** Al posicionarse sobre un segmento, el tooltip muestra el nombre de la compañía, la moneda, la cantidad de negocios y el porcentaje del total. Los segmentos en COP también muestran el equivalente en USD calculado con la TRM vigente y el monto original en pesos como referencia.
+
+- **Integración completa con árbol y filtros:** La gráfica respeta el scope jerárquico activo y todos los filtros del dashboard (rango de fechas, estado, origen, categoría, compañía, etc.). Al marcar o desmarcar nodos en el árbol o cambiar cualquier filtro, los porcentajes y conteos se recalculan automáticamente. Si los filtros no producen resultados, se muestra un estado vacío con el mensaje *"Sin negocios para los filtros aplicados"*.
+
 ## [1.18.0] - 2026-05-28
 
 ### Nuevo

@@ -1,0 +1,20 @@
+change: company-donut
+phase: archive
+status: closed
+archived_at: 2026-05-28T17:47:00Z
+artifact_store: hybrid
+artifacts:
+  proposal: openspec/changes/archive/2026-05-28-company-donut/proposal.md
+  spec: openspec/changes/archive/2026-05-28-company-donut/specs/production-dashboard/spec.md
+  design: openspec/changes/archive/2026-05-28-company-donut/design.md
+  tasks: openspec/changes/archive/2026-05-28-company-donut/tasks.md
+  verify_report: openspec/changes/archive/2026-05-28-company-donut/verify-report.md
+  apply_progress: sdd/company-donut/apply-progress
+  engram:
+    proposal: sdd/company-donut/proposal
+    spec: sdd/company-donut/spec
+    design: sdd/company-donut/design
+    tasks: sdd/company-donut/tasks
+    apply_progress: sdd/company-donut/apply-progress
+    verify_report: sdd/company-donut/verify-report
+    archive_report: sdd/company-donut/archive-report
