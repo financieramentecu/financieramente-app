@@ -187,3 +187,50 @@ export interface HeatmapViewModel {
   readonly companyColumns: ReadonlyArray<CompanyColumn>
   readonly legend: ReadonlyArray<CategoryLegendItem>
 }
+
+// ─── Origin Donut Chart types ──────────────────────────────────────────────────
+
+/**
+ * Query parameter contract for GET /api/production-dashboard/by-origin.
+ * Mirrors MsChartQueryParams for filter parity.
+ */
+export interface OriginDonutQueryParams {
+  readonly userIds: readonly number[]
+  readonly appliedFilters: DashboardAppliedFilters
+}
+
+/**
+ * One row from the service: (origin × currency) aggregation.
+ * No percentage or fill — those are computed client-side.
+ */
+export interface OriginDonutRaw {
+  readonly originId: number
+  readonly originName: string
+  readonly currencyId: number
+  readonly currencyName: string
+  readonly currencySymbol: string
+  readonly count: number
+  /** Sum of Business.value for this (origin × currency) segment */
+  readonly totalValue: number
+}
+
+/**
+ * Client-side computed slice ready for the chart.
+ * Extends OriginDonutRaw with percentage and color fill.
+ */
+export interface OriginDonutSlice {
+  readonly originId: number
+  readonly originName: string
+  readonly currencyId: number
+  readonly currencyName: string
+  readonly currencySymbol: string
+  readonly count: number
+  /** Sum of Business.value for this (origin × currency) segment */
+  readonly totalValue: number
+  /** 0–100, rounded to 1 decimal */
+  readonly percentage: number
+  /** Resolved hex fill from origin-donut-colors (solid for non-COP) */
+  readonly fill: string
+  /** Resolved hex fill (light variant for COP) */
+  readonly fillLight: string
+}
