@@ -633,6 +633,13 @@ The system MUST render `CompanyDonutPanel` to the RIGHT of `OriginDonutPanel` an
 - THEN the EmptyState component is shown with message "Sin negocios para los filtros aplicados"
 - AND no legend items or segments are rendered
 
+#### Scenario: StatusDonut renders as third column on xl
+
+- GIVEN the viewport is xl or wider
+- WHEN `DashboardShell` renders
+- THEN OriginDonutPanel, CompanyDonutPanel, and StatusDonut appear in a single row
+- AND on md viewports CompanyDonutPanel and StatusDonut wrap to a second row
+
 ---
 
 ### Requirement: Company Donut Filter Reactivity

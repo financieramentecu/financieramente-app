@@ -18,7 +18,7 @@ export function OriginDonutPanel({ trmRate }: OriginDonutPanelProps) {
   const chartState = useOriginDonut()
 
   return (
-    <section>
+    <section className="flex flex-col h-full">
       <h2 className="mb-2 text-sm font-semibold text-foreground">
         Distribución por origen del cliente
       </h2>

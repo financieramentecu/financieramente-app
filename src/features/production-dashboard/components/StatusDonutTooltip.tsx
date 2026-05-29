@@ -1,12 +1,12 @@
 'use client'
 
-import type { CompanyDonutSlice } from '../types/production-kpi.types'
+import type { StatusDonutSlice } from '../types/production-kpi.types'
 
 interface TooltipPayloadEntry {
-  payload?: CompanyDonutSlice
+  payload?: StatusDonutSlice
 }
 
-interface CompanyDonutTooltipProps {
+interface StatusDonutTooltipProps {
   readonly active?: boolean
   readonly payload?: TooltipPayloadEntry[]
   readonly trmRate?: number | null
@@ -24,7 +24,13 @@ function formatUSD(value: number): string {
   }).format(value)
 }
 
-export function CompanyDonutTooltip({ active, payload, trmRate }: CompanyDonutTooltipProps) {
+/**
+ * Custom tooltip for the Status Donut chart.
+ * Format: entity name header, "COUNT negocios (PCT%)", optional total USD, optional COP breakdown.
+ * Disappears on mouse-out (controlled by Recharts active prop).
+ * No default Recharts tooltip used.
+ */
+export function StatusDonutTooltip({ active, payload, trmRate }: StatusDonutTooltipProps) {
   if (!active || !payload || payload.length === 0) return null
 
   const slice = payload[0]?.payload
@@ -50,12 +56,12 @@ export function CompanyDonutTooltip({ active, payload, trmRate }: CompanyDonutTo
 
   return (
     <div className="rounded-lg border bg-popover px-3 py-2 shadow-md text-sm space-y-1">
-      <p className="font-semibold text-foreground">{slice.companyName}</p>
+      <p className="font-semibold text-foreground">{slice.label}</p>
       <p className="text-muted-foreground">
-        {slice.count} {slice.count === 1 ? 'negocio' : 'negocios'} ({slice.percentage.toFixed(1)}%)
+        {slice.count} {slice.count === 1 ? 'negocio' : 'negocios'} ({slice.percentage}%)
       </p>
       {totalUSD !== null && (
-        <p className="text-foreground">{formatUSD(totalUSD)}</p>
+        <p className="text-muted-foreground">{formatUSD(totalUSD)}</p>
       )}
       {foreignCount > 0 && slice.foreignUsd > 0 && (
         <p className="text-muted-foreground text-xs">
