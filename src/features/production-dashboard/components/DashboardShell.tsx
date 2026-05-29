@@ -12,6 +12,7 @@ import { MsGroupedBarChart } from './MsGroupedBarChart'
 import { HeatmapTablePanel } from './HeatmapTablePanel'
 import { OriginDonutPanel } from './OriginDonutPanel'
 import { CompanyDonutPanel } from './CompanyDonutPanel'
+import { StatusDonutPanel } from './StatusDonutPanel'
 import { useTrm } from '../hooks/use-trm'
 import { useMsBarChart } from '../hooks/use-ms-bar-chart'
 
@@ -79,9 +80,10 @@ function ShellContent({ children }: { children?: ReactNode }) {
           error={error}
           setManualTrm={setManualTrm}
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <OriginDonutPanel trmRate={trmRate} />
           <CompanyDonutPanel trmRate={trmRate} />
+          <StatusDonutPanel trmRate={trmRate} />
         </div>
         <MsBarChartPanel trmRate={trmRate} />
         <HeatmapTablePanel trmRate={trmRate} />

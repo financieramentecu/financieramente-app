@@ -188,6 +188,60 @@ export interface HeatmapViewModel {
   readonly legend: ReadonlyArray<CategoryLegendItem>
 }
 
+// ─── Status Donut Chart types ──────────────────────────────────────────────────
+
+/** The three in-scope business statuses for the status distribution donut. */
+export const STATUS_DONUT_ALLOWED = ['VENTA_EFECTUADA', 'EMITIDO', 'FONDEADO'] as const
+
+/** Union of the allowed status values. */
+export type StatusDonutKey = (typeof STATUS_DONUT_ALLOWED)[number]
+
+/**
+ * Query parameter contract for GET /api/production-dashboard/by-status.
+ * Mirrors CompanyDonutQueryParams for filter parity.
+ */
+export interface StatusDonutQueryParams {
+  readonly userIds: readonly number[]
+  readonly appliedFilters: DashboardAppliedFilters
+}
+
+/**
+ * One row from the service: (status × currency) aggregation.
+ * No percentage or fill — those are computed client-side.
+ */
+export interface StatusDonutRaw {
+  readonly status: StatusDonutKey
+  readonly count: number
+  /** Currency id from Business.idCurrency. 1 = COP, other = USD-denominated. */
+  readonly currencyId: number
+  /** Raw sum of Business.value in native currency (COP or USD). NOT yet converted. */
+  readonly totalValue: number
+}
+
+/**
+ * Client-side computed slice ready for the chart.
+ * Extends per-status aggregation with label, percentage, color fill, and monetary total.
+ * Multiple (status × currency) raw rows are merged into one slice per status.
+ */
+export interface StatusDonutSlice {
+  readonly status: StatusDonutKey
+  /** Display label e.g. "Venta Efectuada" */
+  readonly label: string
+  readonly count: number
+  /** Count of businesses with COP currency (currencyId=1). */
+  readonly copCount: number
+  /** 0–100, rounded to 1 decimal */
+  readonly percentage: number
+  /** Resolved hex fill from STATUS_COLORS */
+  readonly fill: string
+  /** Total monetary value in USD (COP rows converted via trmRate, USD rows used as-is). */
+  readonly totalUSD: number
+  /** Sum of Business.value for COP (currencyId=1) rows — NOT converted. */
+  readonly copTotal: number
+  /** Sum of Business.value for non-COP (USD) rows — already in USD. */
+  readonly foreignUsd: number
+}
+
 // ─── Company Donut Chart types ─────────────────────────────────────────────────
 
 /**
@@ -216,22 +270,23 @@ export interface CompanyDonutRaw {
 
 /**
  * Client-side computed slice ready for the chart.
- * Extends CompanyDonutRaw with percentage and color fill.
+ * One slice per company — currencies merged.
  */
 export interface CompanyDonutSlice {
   readonly companyId: number
   readonly companyName: string
-  readonly currencyId: number
-  readonly currencyName: string
-  readonly currencySymbol: string
   readonly count: number
-  /** Sum of Business.value for this (company × currency) segment */
-  readonly totalValue: number
+  /** Count of businesses with COP currency (currencyId=1). */
+  readonly copCount: number
+  /** Sum of Business.value for COP (currencyId=1) rows — NOT converted. */
+  readonly copTotal: number
+  /** Sum of Business.value for non-COP (USD) rows — already in USD. */
+  readonly foreignUsd: number
   /** 0–100, rounded to 1 decimal */
   readonly percentage: number
-  /** Resolved hex fill from company-donut-colors (solid for non-COP) */
+  /** Resolved hex fill from company-donut-colors */
   readonly fill: string
-  /** Resolved hex fill (light variant for COP) */
+  /** Resolved hex fill (light variant) */
   readonly fillLight: string
 }
 
@@ -263,21 +318,22 @@ export interface OriginDonutRaw {
 
 /**
  * Client-side computed slice ready for the chart.
- * Extends OriginDonutRaw with percentage and color fill.
+ * One slice per origin — currencies merged.
  */
 export interface OriginDonutSlice {
   readonly originId: number
   readonly originName: string
-  readonly currencyId: number
-  readonly currencyName: string
-  readonly currencySymbol: string
   readonly count: number
-  /** Sum of Business.value for this (origin × currency) segment */
-  readonly totalValue: number
+  /** Count of businesses with COP currency (currencyId=1). */
+  readonly copCount: number
+  /** Sum of Business.value for COP (currencyId=1) rows — NOT converted. */
+  readonly copTotal: number
+  /** Sum of Business.value for non-COP (USD) rows — already in USD. */
+  readonly foreignUsd: number
   /** 0–100, rounded to 1 decimal */
   readonly percentage: number
-  /** Resolved hex fill from origin-donut-colors (solid for non-COP) */
+  /** Resolved hex fill from origin-donut-colors */
   readonly fill: string
-  /** Resolved hex fill (light variant for COP) */
+  /** Resolved hex fill (light variant) */
   readonly fillLight: string
 }
