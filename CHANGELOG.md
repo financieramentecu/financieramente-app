@@ -4,6 +4,20 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.20.0] - 2026-05-29
+
+### Nuevo
+
+- **Gráfica de dona "Distribución por estado":** El dashboard incluye una tercera gráfica de dona que muestra cuántos negocios del scope activo están en cada etapa del ciclo de vida: **Venta Efectuada**, **Emitido** y **Fondeado**. Los colores son fijos: naranja para venta efectuada, azul para emitido y verde para fondeado. La gráfica se ubica a la derecha de las donuts de origen y compañía, completando una grilla de tres columnas en pantallas grandes.
+
+### Mejorado
+
+- **Tooltip con desglose por moneda en todas las donuts:** Al posicionarse sobre cualquier segmento de las tres gráficas de dona (origen, compañía o estado), el tooltip ahora muestra el total en USD consolidado más, cuando aplica, dos líneas de detalle: **Moneda extranjera** (cantidad de negocios, porcentaje global y monto en USD) y **Moneda local** (cantidad de negocios, porcentaje global, equivalente en USD y monto original en COP). Los porcentajes del desglose siempre suman el porcentaje total del segmento.
+
+- **Segmentos unificados por entidad en origen y compañía:** Las donuts de origen del cliente y de compañía ahora muestran un único segmento por entidad en lugar de dos segmentos separados (uno COP y uno USD). Toda la producción de una misma entidad queda agrupada visualmente en un solo color; el detalle monetario por tipo de moneda sigue disponible en el tooltip.
+
+- **Altura uniforme entre las tres donuts:** Las tres tarjetas del panel de distribución tienen ahora la misma altura, eliminando el desalineado visual cuando las leyendas tienen distinto número de ítems.
+
 ## [1.19.0] - 2026-05-28
 
 ### Nuevo

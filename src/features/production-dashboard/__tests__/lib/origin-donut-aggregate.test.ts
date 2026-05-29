@@ -16,6 +16,9 @@ function makeRaw(overrides: Partial<OriginDonutRaw> = {}): OriginDonutRaw {
   }
 }
 
+// Suppress unused import warning — COP_CURRENCY_ID is used in raw fixtures
+void COP_CURRENCY_ID
+
 describe('aggregateOriginDonut', () => {
   it('returns [] for empty input', () => {
     expect(aggregateOriginDonut([])).toEqual([])
@@ -66,17 +69,17 @@ describe('aggregateOriginDonut', () => {
     })
   })
 
-  it('assigns base palette fill for non-COP currency', () => {
+  it('assigns base palette fill regardless of currency (currencies are merged)', () => {
     const raw = [makeRaw({ originId: 10, currencyId: 2, count: 5 })]
     const result = aggregateOriginDonut(raw)
     // originId 10 → sorted → index 0 → base palette[0]
     expect(result[0].fill).toBe(ORIGIN_BASE_PALETTE[0])
   })
 
-  it('assigns light palette fill for COP currency', () => {
+  it('assigns base palette fill even for COP-only origin (currencies merged into one slice)', () => {
     const raw = [makeRaw({ originId: 10, currencyId: COP_CURRENCY_ID, count: 5 })]
     const result = aggregateOriginDonut(raw)
-    expect(result[0].fill).toBe(ORIGIN_LIGHT_PALETTE[0])
+    expect(result[0].fill).toBe(ORIGIN_BASE_PALETTE[0])
   })
 
   it('fills match expected palette indices by sorted originId', () => {
@@ -99,14 +102,13 @@ describe('aggregateOriginDonut', () => {
     expect(result[0].fillLight).toBe(ORIGIN_LIGHT_PALETTE[0])
   })
 
-  it('preserves all OriginDonutRaw fields in the output slices', () => {
-    const raw = [makeRaw({ originId: 5, originName: 'Digital', currencyId: 2, currencyName: 'Dólar', currencySymbol: 'USD', count: 10 })]
+  it('preserves originId, originName, count and exposes copTotal/foreignUsd in output slices', () => {
+    const raw = [makeRaw({ originId: 5, originName: 'Digital', currencyId: 2, count: 10, totalValue: 50000 })]
     const result = aggregateOriginDonut(raw)
     expect(result[0].originId).toBe(5)
     expect(result[0].originName).toBe('Digital')
-    expect(result[0].currencyId).toBe(2)
-    expect(result[0].currencyName).toBe('Dólar')
-    expect(result[0].currencySymbol).toBe('USD')
     expect(result[0].count).toBe(10)
+    expect(result[0].foreignUsd).toBe(50000)
+    expect(result[0].copTotal).toBe(0)
   })
 })

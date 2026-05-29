@@ -11,7 +11,7 @@ export function CompanyDonutPanel({ trmRate }: CompanyDonutPanelProps) {
   const chartState = useCompanyDonut()
 
   return (
-    <section>
+    <section className="flex flex-col h-full">
       <h2 className="mb-2 text-sm font-semibold text-foreground">
         Distribución por compañía
       </h2>

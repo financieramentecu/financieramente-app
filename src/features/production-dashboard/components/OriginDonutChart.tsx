@@ -78,7 +78,7 @@ export function OriginDonutChart({ chartState, trmRate }: OriginDonutChartProps)
     <div
       role="img"
       aria-label="Distribución de negocios por origen del cliente"
-      className="rounded-xl border bg-card p-4"
+      className="rounded-xl border bg-card p-4 flex-1 flex flex-col"
     >
       <ResponsiveContainer width="100%" height={320}>
         <PieChart>
@@ -91,7 +91,7 @@ export function OriginDonutChart({ chartState, trmRate }: OriginDonutChartProps)
           >
             {slices.map((slice) => (
               <Cell
-                key={`${slice.originId}-${slice.currencyId}`}
+                key={`${slice.originId}`}
                 fill={slice.fill}
               />
             ))}

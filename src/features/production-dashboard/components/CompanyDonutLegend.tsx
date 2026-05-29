@@ -9,7 +9,7 @@ interface CompanyDonutLegendProps {
 /**
  * Custom legend for the Company Donut chart.
  * Renders items sorted descending by percentage.
- * Each item: color swatch + "[companyName] [currencySymbol] · XX.X%"
+ * Each item: color swatch + "[companyName] · XX.X%"
  *
  * Pure component — no hooks, no Recharts Legend dependency.
  * Empty slices array renders nothing.
@@ -23,7 +23,7 @@ export function CompanyDonutLegend({ slices }: CompanyDonutLegendProps) {
     <ul className="mt-4 space-y-1.5 text-sm">
       {sorted.map((slice) => (
         <li
-          key={`${slice.companyId}-${slice.currencyId}`}
+          key={String(slice.companyId)}
           className="flex items-center gap-2"
         >
           <span
@@ -32,7 +32,7 @@ export function CompanyDonutLegend({ slices }: CompanyDonutLegendProps) {
             aria-hidden="true"
           />
           <span className="text-foreground">
-            {slice.companyName} {slice.currencySymbol}
+            {slice.companyName}
           </span>
           <span className="ml-auto text-muted-foreground tabular-nums">
             {slice.percentage.toFixed(1)}%
