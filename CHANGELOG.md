@@ -4,6 +4,112 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.20.0] - 2026-05-29
+
+### Nuevo
+
+- **Gráfica de dona "Distribución por estado":** El dashboard incluye una tercera gráfica de dona que muestra cuántos negocios del scope activo están en cada etapa del ciclo de vida: **Venta Efectuada**, **Emitido** y **Fondeado**. Los colores son fijos: naranja para venta efectuada, azul para emitido y verde para fondeado. La gráfica se ubica a la derecha de las donuts de origen y compañía, completando una grilla de tres columnas en pantallas grandes.
+
+### Mejorado
+
+- **Tooltip con desglose por moneda en todas las donuts:** Al posicionarse sobre cualquier segmento de las tres gráficas de dona (origen, compañía o estado), el tooltip ahora muestra el total en USD consolidado más, cuando aplica, dos líneas de detalle: **Moneda extranjera** (cantidad de negocios, porcentaje global y monto en USD) y **Moneda local** (cantidad de negocios, porcentaje global, equivalente en USD y monto original en COP). Los porcentajes del desglose siempre suman el porcentaje total del segmento.
+
+- **Segmentos unificados por entidad en origen y compañía:** Las donuts de origen del cliente y de compañía ahora muestran un único segmento por entidad en lugar de dos segmentos separados (uno COP y uno USD). Toda la producción de una misma entidad queda agrupada visualmente en un solo color; el detalle monetario por tipo de moneda sigue disponible en el tooltip.
+
+- **Altura uniforme entre las tres donuts:** Las tres tarjetas del panel de distribución tienen ahora la misma altura, eliminando el desalineado visual cuando las leyendas tienen distinto número de ítems.
+
+## [1.19.0] - 2026-05-28
+
+### Nuevo
+
+- **Gráfica de dona "Negocios por Compañía":** El dashboard incluye una nueva gráfica de dona que muestra la distribución de los negocios del scope jerárquico agrupados por compañía (SKANDIA, DOMINION, ITA, MANHATTAN, MEJORCDT, TRINITY, entre otras) y por moneda. Cada compañía recibe un color identificador propio tomado de una paleta distinta a la del origen; los negocios en moneda extranjera aparecen con el tono sólido y los de moneda local con una variante más clara del mismo color.
+
+- **Vista lado a lado de las dos donuts:** La gráfica de compañías se muestra a la derecha de la gráfica de origen del cliente en una grilla de dos columnas, permitiendo comparar de un vistazo la concentración de producción por aliado y por canal de origen sin necesidad de desplazarse.
+
+- **Tooltip con valor monetario:** Al posicionarse sobre un segmento, el tooltip muestra el nombre de la compañía, la moneda, la cantidad de negocios y el porcentaje del total. Los segmentos en COP también muestran el equivalente en USD calculado con la TRM vigente y el monto original en pesos como referencia.
+
+- **Integración completa con árbol y filtros:** La gráfica respeta el scope jerárquico activo y todos los filtros del dashboard (rango de fechas, estado, origen, categoría, compañía, etc.). Al marcar o desmarcar nodos en el árbol o cambiar cualquier filtro, los porcentajes y conteos se recalculan automáticamente. Si los filtros no producen resultados, se muestra un estado vacío con el mensaje *"Sin negocios para los filtros aplicados"*.
+
+## [1.18.0] - 2026-05-28
+
+### Nuevo
+
+- **Gráfica de dona "Origen del cliente":** El dashboard incluye una nueva gráfica de dona que muestra la distribución de los negocios del scope jerárquico agrupados por tipo de origen del cliente (Método Vortex, Propio, Asesoría Gratuita, KAM/Influencer, etc.) y por moneda. Cada origen recibe un color identificador consistente; los negocios en moneda extranjera aparecen con el tono sólido y los de moneda local con una variante más clara del mismo color.
+
+- **Desglose por moneda en el origen:** Cada tipo de origen puede mostrar hasta dos segmentos: uno para negocios en **USD** y otro para negocios en **COP**. La leyenda lateral lista cada combinación con su porcentaje (ej. *Método Vortex USD · 30%* / *Método Vortex COP · 16.7%*).
+
+- **Tooltip con equivalencia monetaria:** Al posicionarse sobre un segmento, aparece un tooltip con la cantidad de negocios, el porcentaje y el monto total. Los segmentos en USD muestran el valor directamente en dólares. Los segmentos en COP muestran el equivalente en USD (calculado con la TRM vigente) y el monto original en pesos como referencia.
+
+- **Integración con árbol y filtros:** La gráfica respeta el scope jerárquico activo y todos los filtros del dashboard (compañía, categoría, rango de fechas, origen, etc.). Al marcar o desmarcar nodos en el árbol o cambiar cualquier filtro, los porcentajes y conteos se recalculan automáticamente.
+
+## [1.17.0] - 2026-05-28
+
+### Nuevo
+
+- **Tabla heatmap de producción por compañía:** El dashboard incluye una nueva tabla que muestra la producción de cada Money Strategist del scope jerárquico desglosada por compañía. Cada compañía aparece con dos columnas: el monto total en **USD** con intensidad de color según el volumen (a mayor producción, fondo más oscuro) y la cantidad de **negocios**. Para producción en moneda local, la celda también muestra el equivalente en **COP** debajo del valor en USD. El texto de celdas oscuras cambia a blanco automáticamente para mantener la legibilidad.
+
+- **Agrupación jerárquica en la tabla:** Las filas se agrupan por nivel (Team Leader, MS Senior, MS Junior, etc.) con un separador de sección que identifica cada grupo por su color de nivel. Un botón en el encabezado de la columna **Money Strategist** permite invertir el orden jerárquico (de mayor a menor rango y viceversa).
+
+- **Buscador en el árbol de jerarquía:** El panel izquierdo del dashboard incluye un campo de búsqueda para filtrar personas en el árbol. Los resultados se muestran en lista plana con el nombre resaltado, el avatar de iniciales y el nivel de cada persona; hacer clic en un resultado activa o desactiva esa persona directamente.
+
+- **Colapso del panel de jerarquía:** Un nuevo botón en el encabezado del árbol permite colapsar o expandir el panel lateral izquierdo para ganar espacio en la vista principal. El panel se anima suavemente al abrirse o cerrarse.
+
+### Mejorado
+
+- **Diseño del panel Venta Total:** El bloque de KPIs en USD ahora tiene fondo verde oscuro (#003c45) —el mismo color del menú principal— con texto blanco y tarjetas translúcidas. El indicador de TRM automática muestra un punto pulsante animado que señala que el valor es en tiempo real. El formulario de TRM manual solo aparece cuando la consulta automática falla, no durante la carga inicial.
+
+- **Gráfica de barras ordenada por producción:** Las barras de la gráfica por Money Strategist ahora se ordenan de mayor a menor producción total en USD, facilitando identificar quién lidera el período.
+
+- **Árbol de jerarquía sin niveles beneficiarios:** Los usuarios con nivel de tipo `BENEFICIARIO_GENERAL` ya no aparecen en el árbol del dashboard, evitando confusión con los niveles comerciales activos.
+
+### Corregido
+
+- **Actualización de niveles en administración:** Se corrigió un error que impedía guardar cambios en la configuración de un nivel cuando se modificaba el beneficiario fijo o el nivel siguiente. Prisma rechazaba los campos por nombres incorrectos; ahora se usan los campos correctos de la API de relaciones.
+
+## [1.16.0] - 2026-05-27
+
+### Nuevo
+
+- **Gráfica de producción por Money Strategist:** El dashboard incluye una gráfica de barras agrupadas que compara, para cada persona visible en el árbol jerárquico, la producción en **moneda extranjera (USD)** frente a la producción **nacional convertida a USD** con la TRM vigente. Cada agente aparece con dos barras (azul y verde); al pasar el cursor se muestra el monto y la cantidad de negocios del período y filtros aplicados.
+
+- **Comparación visual por equipo:** Los grupos se ordenan según la jerarquía activa (el usuario autenticado primero, luego su equipo). Al marcar o desmarcar nodos en el árbol, o al aplicar filtros de fechas y catálogos, la gráfica se actualiza con los mismos criterios que el panel de KPIs. Si hay muchos agentes, la gráfica permite desplazamiento horizontal para revisar todos los nombres.
+
+### Mejorado
+
+- **TRM compartida entre KPIs y gráfica:** La tasa de cambio se consulta una sola vez al cargar el dashboard y alimenta tanto las tarjetas de KPIs como la conversión de la barra nacional en la gráfica. Si la consulta automática falla, la TRM manual ingresada en el panel general sigue recalculando ambas vistas.
+
+- **Estado vacío en la gráfica:** Cuando no hay producción para la combinación de árbol y filtros seleccionados, se muestra el mensaje *Sin producción registrada para los filtros aplicados* en lugar de una gráfica vacía confusa.
+
+## [1.15.0] - 2026-05-27
+
+### Nuevo
+
+- **Panel de KPIs en USD con TRM automática:** El dashboard de producción ahora muestra tres tarjetas de métricas en dólares: **Detalle Internacional** (negocios en USD), **Nacional convertido a USD** (total COP dividido por la TRM) y **Total USD** (suma de ambos). La TRM del día se consulta automáticamente al Banco de la República; si la consulta falla, se puede ingresar la TRM manualmente para recalcular los valores al instante. El valor en COP equivalente aparece debajo del monto en USD en la tarjeta Nacional para facilitar la comparativa.
+
+- **Período activo visible en el panel:** El encabezado del panel de ventas muestra el rango de fechas que está aplicado actualmente, así siempre es claro qué período representan los números.
+
+### Mejorado
+
+- **Skeletons de carga en las tarjetas:** Mientras los datos se están cargando (al entrar al dashboard o al aplicar filtros), las tarjetas muestran un indicador animado en lugar de mostrar brevemente valores en cero, evitando lecturas erróneas durante la transición.
+
+## [1.14.0] - 2026-05-27
+
+### Nuevo
+
+- **Panel de filtros del dashboard:** El dashboard de producción ahora incluye un panel de filtros completo con 8 controles: rango de fechas (selección por día), estado del negocio, categoría, compañía, producto, origen, plazo y periodicidad. Los cambios en los filtros no se aplican hasta que el usuario confirma con el botón **Aplicar**, preservando los datos visibles mientras se ajusta la selección.
+
+- **Filtros de compañía y producto con búsqueda:** Los selectores de compañía y producto incluyen campo de búsqueda para encontrar opciones rápidamente en listas largas. Al seleccionar una compañía, el listado de productos se reduce automáticamente a los productos de esa compañía.
+
+- **Catálogo de periodicidad desde la base de datos:** Las opciones de periodicidad (Mensual, Trimestral, Anual, etc.) se cargan directamente desde la tabla de datos, de modo que cualquier periodicidad configurada en el sistema aparece automáticamente en el filtro sin cambios de código.
+
+### Mejorado
+
+- **Árbol jerárquico con resaltado por categoría:** Al aplicar un filtro de categoría, los nodos del árbol que no pertenecen a esa categoría se atenúan visualmente, facilitando identificar qué usuarios contribuyen a los resultados filtrados.
+
+- **Navegación más compacta:** Se eliminó el elemento "Inicio" del breadcrumb para ganar espacio vertical. El panel de filtros también se redujo en altura (padding y tamaño de fuente optimizados) para mostrar más contenido útil en pantalla.
+
+- **Skeleton de jerarquía visible:** El indicador de carga del árbol jerárquico ahora muestra el gris estándar del sistema en lugar de un color casi invisible.
+
 ## [1.13.0] - 2026-05-26
 
 ### Nuevo
