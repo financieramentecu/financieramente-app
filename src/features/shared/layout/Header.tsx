@@ -25,6 +25,7 @@ import {
 } from '@/features/shared/ui/breadcrumb'
 import { User, Mail, LogOut } from 'lucide-react'
 import { ThemeToggle } from '@/features/shared/ui/theme-toggle'
+import { HeaderImpersonationSelect } from './HeaderImpersonationSelect'
 
 export interface BreadcrumbItemProps {
 	label: string
@@ -57,6 +58,9 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 				/>
 				<h1 className="text-base font-medium truncate min-w-0 flex-1">{title}</h1>
 				<div className="ml-auto flex items-center gap-2">
+					<div className="hidden sm:block">
+						<HeaderImpersonationSelect />
+					</div>
 					<ThemeToggle className="h-9 w-9 rounded-lg border-[#11525B]/40 px-0 text-[#11525B] hover:bg-[#11525B]/10 hover:text-[#11525B]" />
 					{user && (
 						<DropdownMenu>
