@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 
 export const metadata = {
-	title: 'Simulador Comisional',
+	title: 'Calculadora Comisional',
 	description: 'Calcula y simula la distribución de comisiones',
 }
 
@@ -25,7 +25,11 @@ export default async function SimuladorPage() {
 	const [companies, products, origins, allLevels] = await Promise.all([
 		prisma.company.findMany({
 			where: { status: true },
-			select: { idCompany: true, name: true },
+			select: { 
+				idCompany: true, 
+				name: true,
+				currency: { select: { symbol: true } }
+			},
 			orderBy: { name: 'asc' },
 		}),
 		prisma.product.findMany({
@@ -77,10 +81,10 @@ export default async function SimuladorPage() {
 	})
 
 	return (
-		<DashboardLayout currentPage="Simulador">
+		<DashboardLayout currentPage="Calculadora">
 			<div className="container mx-auto py-8 max-w-7xl">
 				<div className="mb-8">
-					<h1 className="text-3xl font-bold tracking-tight">Simulador</h1>
+					<h1 className="text-3xl font-bold tracking-tight">Calculadora</h1>
 					<p className="text-muted-foreground">
 						Simula la distribución de comisiones para proyectar tus ganancias
 					</p>
@@ -91,6 +95,8 @@ export default async function SimuladorPage() {
 						products={products}
 						origins={origins}
 						levels={allowedLevels}
+						userRole={userRole as UserRole}
+						userLevelId={currentUser?.idLevel || null}
 					/>
 				</Suspense>
 			</div>
