@@ -4,6 +4,8 @@ import { auth } from '@/auth'
 import { UserRole } from '@/features/auth/lib/roles'
 import { prisma } from '@/lib/prisma'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
+import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
+import { redirect } from 'next/navigation'
 
 export const metadata = {
 	title: 'Calculadora Comisional',
@@ -11,6 +13,12 @@ export const metadata = {
 }
 
 export default async function SimuladorPage() {
+	// Verificar feature flag
+	const isEnabled = await isFeatureEnabledServer('dashboard_simulador')
+	if (!isEnabled) {
+		redirect('/dashboard')
+	}
+
 	const session = await auth()
 	const userIdStr = (session?.user as { idUser?: number })?.idUser || session?.user?.id
 	const userRole = session?.user?.role

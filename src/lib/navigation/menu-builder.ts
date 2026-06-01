@@ -7,7 +7,8 @@ import { ALL_MENU_ITEMS, AGENTE_MENU_ITEMS, MenuItem } from './menu-items'
  */
 export function buildMenuByRole(
 	role: UserRole | string | null | undefined,
-	permissions: RolePermissions | null | undefined
+	permissions: RolePermissions | null | undefined,
+	flags?: { isSimuladorEnabled?: boolean }
 ): MenuItem[] {
 	// Si no hay rol, retornar menú vacío
 	if (!role || !permissions) {
@@ -16,6 +17,10 @@ export function buildMenuByRole(
 
 	// Agente tiene un menú completamente personalizado
 	if (role === UserRole.AGENTE) {
+		// Si el simulador está deshabilitado, filtrarlo
+		if (flags?.isSimuladorEnabled === false) {
+			return AGENTE_MENU_ITEMS.filter(item => item.title !== 'Simulador')
+		}
 		return AGENTE_MENU_ITEMS
 	}
 
@@ -65,7 +70,9 @@ export function buildMenuByRole(
 
 		// Simulador
 		if (item.title === 'Simulador') {
-			filteredItems.push(item)
+			if (flags?.isSimuladorEnabled !== false) {
+				filteredItems.push(item)
+			}
 			continue
 		}
 

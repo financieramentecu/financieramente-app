@@ -15,10 +15,12 @@ import Image from 'next/image'
 import { useSidebar } from '@/features/shared/ui/sidebar'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { buildMenuByRole } from '@/lib/navigation/menu-builder'
+import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar()
 	const { session } = useAuthSession()
+	const { enabled: isSimuladorEnabled } = useFeatureFlag('dashboard_simulador')
 	const isCollapsed = state === 'collapsed'
 
 	// Construir menú dinámico según rol y permisos
@@ -26,8 +28,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		if (!session?.user) {
 			return []
 		}
-		return buildMenuByRole(session.user.role, session.user.permissions)
-	}, [session])
+		return buildMenuByRole(session.user.role, session.user.permissions, {
+			isSimuladorEnabled,
+		})
+	}, [session, isSimuladorEnabled])
 
 
 
