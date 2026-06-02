@@ -72,7 +72,6 @@ describe('GET /api/production-dashboard/by-origin', () => {
   it('returns 400 when userIds contains floats', async () => {
     mockAuth.mockResolvedValue(authedSession as never)
     const res = await GET(makeRequest({ userIds: '1.5,2' }))
-    const body = await res.json()
     expect(res.status).toBe(400)
   })
 

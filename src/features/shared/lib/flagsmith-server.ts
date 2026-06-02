@@ -1,8 +1,16 @@
 import 'server-only'
 import { Flagsmith } from 'flagsmith-nodejs'
+import { ALL_FEATURE_FLAGS } from '@/features/shared/types/feature-flags.types'
 import type { FeatureFlag, FlagsmithServerState } from '@/features/shared/types/feature-flags.types'
 
 const FLAGSMITH_API_URL = 'https://edge.api.flagsmith.com/api/v1/'
+
+const FALLBACK_FLAGS: Record<FeatureFlag, boolean> = {
+	negocios_advanced_filters: false,
+	dashboard_simulador: true,
+	impersonation_select: false,
+	production_dashboard: true,
+}
 
 let instance: Flagsmith | null = null
 
@@ -17,6 +25,20 @@ function getInstance(): Flagsmith {
 	return instance
 }
 
+function getFallbackState(): FlagsmithServerState {
+	const flags = Object.fromEntries(
+		ALL_FEATURE_FLAGS.map((key) => [key, { enabled: FALLBACK_FLAGS[key], value: null }])
+	)
+	return JSON.stringify({ api: FLAGSMITH_API_URL, flags })
+}
+
+function getDevStubState(): FlagsmithServerState {
+	const flags = Object.fromEntries(
+		ALL_FEATURE_FLAGS.map((key) => [key, { enabled: true, value: null }])
+	)
+	return JSON.stringify({ api: FLAGSMITH_API_URL, flags })
+}
+
 /**
  * Returns a serialized IState-compatible JSON string for use with @flagsmith/flagsmith FlagsmithProvider.
  * When `identity` is provided, evaluates flags for that specific user (respects identity overrides
@@ -26,27 +48,27 @@ function getInstance(): Flagsmith {
 export async function getFlagsmithServerState(
 	identity?: string
 ): Promise<FlagsmithServerState> {
-	const fs = getInstance()
-	const flagsObj = identity
-		? await fs.getIdentityFlags(identity)
-		: await fs.getEnvironmentFlags()
+	if (process.env.NODE_ENV === 'development') return getDevStubState()
+	try {
+		const fs = getInstance()
+		const flagsObj = identity
+			? await fs.getIdentityFlags(identity)
+			: await fs.getEnvironmentFlags()
 
-	// Convert flagsmith-nodejs Flags to @flagsmith/flagsmith IState shape
-	const clientFlags: Record<string, { id?: number; enabled: boolean; value: string | number | boolean | null }> = {}
-	for (const [name, flag] of Object.entries(flagsObj.flags)) {
-		clientFlags[name] = {
-			id: flag.featureId,
-			enabled: flag.enabled,
-			value: flag.value ?? null,
+		// Convert flagsmith-nodejs Flags to @flagsmith/flagsmith IState shape
+		const clientFlags: Record<string, { id?: number; enabled: boolean; value: string | number | boolean | null }> = {}
+		for (const [name, flag] of Object.entries(flagsObj.flags)) {
+			clientFlags[name] = {
+				id: flag.featureId,
+				enabled: flag.enabled,
+				value: flag.value ?? null,
+			}
 		}
-	}
 
-	const state = {
-		api: FLAGSMITH_API_URL,
-		flags: clientFlags,
+		return JSON.stringify({ api: FLAGSMITH_API_URL, flags: clientFlags })
+	} catch {
+		return getFallbackState()
 	}
-
-	return JSON.stringify(state)
 }
 
 /**
@@ -61,10 +83,15 @@ export async function isFeatureEnabledServer(
 	flag: FeatureFlag,
 	identity?: string
 ): Promise<boolean> {
-	const fs = getInstance()
-	const flagsObj = identity
-		? await fs.getIdentityFlags(identity)
-		: await fs.getEnvironmentFlags()
-	const entry = flagsObj.flags[flag]
-	return entry?.enabled ?? false
+	if (process.env.NODE_ENV === 'development') return true
+	try {
+		const fs = getInstance()
+		const flagsObj = identity
+			? await fs.getIdentityFlags(identity)
+			: await fs.getEnvironmentFlags()
+		const entry = flagsObj.flags[flag]
+		return entry?.enabled ?? false
+	} catch {
+		return FALLBACK_FLAGS[flag]
+	}
 }

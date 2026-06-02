@@ -406,7 +406,7 @@ export function BusinessTableSection({
 				const business = row.original
 				const businessId = Number(business.id)
 				const isEditing = editingDateId === businessId
-				
+
 				const isEditable =
 					business.statusCode === BUSINESS_STATUS.EMITIDO &&
 					(userRole === UserRole.ADMIN || userRole === UserRole.ANALISTA_SOPORTE) &&
@@ -434,7 +434,7 @@ export function BusinessTableSection({
 
 				const handleSaveClick = (e: React.MouseEvent) => {
 					e.stopPropagation()
-					
+
 					let originalFormatted = ''
 					if (business.dateIssued) {
 						const d = new Date(business.dateIssued)
@@ -467,7 +467,7 @@ export function BusinessTableSection({
 
 				if (isEditing) {
 					return (
-						<div 
+						<div
 							className="flex items-center gap-1.5 min-w-[170px]"
 							onClick={(e) => e.stopPropagation()}
 						>
@@ -718,15 +718,14 @@ export function BusinessTableSection({
 									) : null}
 									{onAdvancedFiltersChange ? (
 										<Button
-											variant={
-												companyIds.length > 0 ||
-												productIds.length > 0 ||
-												originIds.length > 0
-													? 'secondary'
-													: 'outline'
-											}
+											variant="outline"
 											size="sm"
-											className="h-9 ml-auto"
+											className={`h-9 ml-auto transition-colors ${companyIds.length > 0 ||
+													productIds.length > 0 ||
+													originIds.length > 0
+													? 'border-[#11525B] text-[#11525B]  '
+													: 'text-slate-600 hover:text-slate-900'
+												}`}
 											onClick={() => setAdvancedFiltersModalOpen(true)}
 										>
 											<Filter className="mr-2 h-4 w-4" />
@@ -734,12 +733,12 @@ export function BusinessTableSection({
 											{(companyIds.length > 0 ||
 												productIds.length > 0 ||
 												originIds.length > 0) && (
-												<span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-xs font-semibold text-primary">
-													{companyIds.length +
-														productIds.length +
-														originIds.length}
-												</span>
-											)}
+													<span className="ml-2 inline-flex items-center justify-center rounded-full bg-[#11525B] px-2 py-0.5 text-xs font-bold text-white">
+														{companyIds.length +
+															productIds.length +
+															originIds.length}
+													</span>
+												)}
 										</Button>
 									) : null}
 								</div>

@@ -6,6 +6,7 @@ import { isValidCorporateEmail } from '@/features/auth/types/auth.types'
 import {
 	validateUserByEmail,
 	validateUserCredentials,
+	validateUserById,
 } from '@/features/auth/lib/user-validation'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import {
@@ -223,7 +224,7 @@ export const authConfig: NextAuthConfig = {
 
 			return true
 		},
-		async jwt({ token, user, trigger: _trigger }) {
+		async jwt({ token, user, trigger, session }) {
 			// Primera vez que se crea el token (después de signIn)
 			if (user) {
 				token.userId = parseInt(user.id || '0')
@@ -235,6 +236,66 @@ export const authConfig: NextAuthConfig = {
 				// Obtener permisos del rol
 				if (token.role && typeof token.role === 'string') {
 					token.permissions = getRolePermissions(token.role as UserRole)
+				}
+			}
+
+			// Manejo de impersonation (Ver Como)
+			if (trigger === 'update' && session?.impersonateUserId) {
+				// Solo permitimos impersonar si el rol original es ADMIN
+				const isAdmin = token.originalRole === UserRole.ADMIN || token.role === UserRole.ADMIN
+				
+				if (isAdmin) {
+					if (session.impersonateUserId === 'STOP') {
+						// Restaurar la sesión del ADMIN
+						if (token.originalUserId) {
+							token.userId = token.originalUserId
+							token.role = token.originalRole
+							token.email = token.originalEmail || undefined
+							token.name = token.originalName || null
+							if (token.role && typeof token.role === 'string') {
+								token.permissions = getRolePermissions(token.role as UserRole)
+							}
+							
+							// Limpiar datos originales
+							delete token.originalUserId
+							delete token.originalRole
+							delete token.originalEmail
+							delete token.originalName
+						}
+					} else {
+						// Iniciar impersonation
+						const targetId = parseInt(session.impersonateUserId)
+						
+						// Validar que no estemos intentando impersonar si ya perdimos privilegios de Admin
+						if (targetId && !isNaN(targetId)) {
+							const validation = await validateUserById(targetId)
+							
+							if (validation.isValid && validation.user) {
+								// Bloquear impersonación de otro ADMIN por seguridad
+								if (validation.user.role !== UserRole.ADMIN) {
+									// Guardar la sesión actual (del Admin) si es la primera vez que impersonamos
+									if (!token.originalUserId) {
+										token.originalUserId = token.userId
+										token.originalRole = token.role
+										token.originalEmail = token.email || null
+										token.originalName = token.name || null
+									}
+
+									// Sobreescribir con datos del usuario objetivo
+									token.userId = validation.user.id
+									token.role = validation.user.role
+									token.email = validation.user.email
+									token.name = validation.user.name
+									
+									if (token.role && typeof token.role === 'string') {
+										token.permissions = getRolePermissions(token.role as UserRole)
+									}
+								} else {
+									console.warn(`Admin ${token.email} intentó impersonar a otro Admin (ID: ${targetId}) - Acción bloqueada por seguridad.`)
+								}
+							}
+						}
+					}
 				}
 			}
 
@@ -271,6 +332,16 @@ export const authConfig: NextAuthConfig = {
 					session.user.permissions = token.permissions as RolePermissions
 				} else {
 					session.user.permissions = null
+				}
+				
+				// Pasar datos de impersonation si existen
+				if (token.originalUserId) {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					const userAny = session.user as any
+					userAny.originalUserId = token.originalUserId
+					userAny.originalRole = token.originalRole
+					userAny.originalEmail = token.originalEmail
+					userAny.originalName = token.originalName
 				}
 			}
 			return session

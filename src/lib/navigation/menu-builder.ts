@@ -7,7 +7,8 @@ import { ALL_MENU_ITEMS, AGENTE_MENU_ITEMS, MenuItem } from './menu-items'
  */
 export function buildMenuByRole(
 	role: UserRole | string | null | undefined,
-	permissions: RolePermissions | null | undefined
+	permissions: RolePermissions | null | undefined,
+	flags?: { isSimuladorEnabled?: boolean }
 ): MenuItem[] {
 	// Si no hay rol, retornar menú vacío
 	if (!role || !permissions) {
@@ -16,6 +17,10 @@ export function buildMenuByRole(
 
 	// Agente tiene un menú completamente personalizado
 	if (role === UserRole.AGENTE) {
+		// Si el simulador está deshabilitado, filtrarlo
+		if (flags?.isSimuladorEnabled === false) {
+			return AGENTE_MENU_ITEMS.filter(item => item.title !== 'Simulador')
+		}
 		return AGENTE_MENU_ITEMS
 	}
 
@@ -60,6 +65,20 @@ export function buildMenuByRole(
 					subItems: subItems && subItems.length > 0 ? subItems : undefined,
 				})
 			}
+			continue
+		}
+
+		// Simulador
+		if (item.title === 'Simulador') {
+			if (flags?.isSimuladorEnabled !== false) {
+				filteredItems.push(item)
+			}
+			continue
+		}
+
+		// Mis distribuciones
+		if (item.title === 'Mis distribuciones') {
+			filteredItems.push(item)
 			continue
 		}
 
@@ -111,7 +130,7 @@ export function buildMenuByRole(
  * Obtiene la URL de redirección post-login según el rol
  */
 export function getRedirectUrlByRole(
-	role: UserRole | string | null | undefined
+	_role: UserRole | string | null | undefined
 ): string {
 	return '/dashboard/negocios'
 }

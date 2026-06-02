@@ -4,6 +4,18 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.21.0] - 2026-06-01
+
+### Nuevo
+
+- **Feature Flag para el Simulador:** Se integró el flag `dashboard_simulador` en Flagsmith para controlar el acceso al Simulador (Calculadora) de forma dinámica.
+- **Simulador de comisiones mejorado:** El simulador (Calculadora) ahora soporta configuración dinámica de moneda dependiendo del negocio. Además, la selección de niveles jerárquicos ahora respeta estrictamente la cadena de mando del usuario, permitiendo a los roles como *Money Strategist* ver solo sus subniveles.
+- **Modo Suplantación ("Ver como"):** Los administradores ahora pueden simular la sesión de cualquier usuario (agentes, soporte, etc.) desde la tabla de usuarios o un menú en el header. Esto permite revisar problemas o probar flujos sin necesidad de credenciales adicionales, mostrando siempre un banner de advertencia para regresar al rol original.
+
+### Mejorado
+
+- **Filtros Avanzados (Negocios):** Mejoras visuales en la sección de filtros avanzados, incluyendo una presentación en tres columnas, badge de conteo de filtros aplicados, e integración profunda con la paleta de colores oficial de la app (verde corporativo).
+
 ## [1.20.0] - 2026-05-29
 
 ### Nuevo

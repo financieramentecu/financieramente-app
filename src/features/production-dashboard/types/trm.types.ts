@@ -14,13 +14,7 @@ export interface TrmResponse {
 
 // ─── TRM source state ─────────────────────────────────────────────────────────
 
-const TRM_STATE = {
-  AUTO: 'auto',
-  MANUAL: 'manual',
-  ERROR: 'error',
-} as const
-
-export type TrmState = (typeof TRM_STATE)[keyof typeof TRM_STATE]
+export type TrmState = 'auto' | 'manual' | 'error'
 
 // ─── TRM display data ─────────────────────────────────────────────────────────
 

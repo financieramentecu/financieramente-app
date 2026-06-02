@@ -1,6 +1,5 @@
 'use client'
 
-import { X } from 'lucide-react'
 import { Badge } from '@/features/shared/ui/badge'
 import type { ActiveBadge } from '../../types/dashboard-filter.types'
 

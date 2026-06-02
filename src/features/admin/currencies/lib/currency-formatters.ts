@@ -180,8 +180,8 @@ export function formatCurrency(
 	const formatter = new Intl.NumberFormat(COLOMBIAN_LOCALE, {
 		style: 'currency',
 		currency: isoCode,
-		minimumFractionDigits: 0,
-		maximumFractionDigits: 0,
+		minimumFractionDigits: isUSD ? 2 : 0,
+		maximumFractionDigits: isUSD ? 2 : 0,
 	})
 
 	// Formatear el valor
@@ -193,8 +193,8 @@ export function formatCurrency(
 	if (!isCOP && !isUSD) {
 		// Para currencies desconocidos, usar formato numérico + symbol
 		const numFormatter = new Intl.NumberFormat(COLOMBIAN_LOCALE, {
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
+			minimumFractionDigits: isUSD ? 2 : 0,
+			maximumFractionDigits: isUSD ? 2 : 0,
 		})
 		return `$${numFormatter.format(value)} ${currency}`
 	}

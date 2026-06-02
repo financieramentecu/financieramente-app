@@ -17,6 +17,7 @@ export function FlagsmithProvider({ children, serverState, identity }: Flagsmith
 			serverState={JSON.parse(serverState)}
 			options={{
 				environmentID: process.env.NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY!,
+				preventFetch: process.env.NODE_ENV === 'development',
 				...(identity ? { identity } : {}),
 			}}
 		>
