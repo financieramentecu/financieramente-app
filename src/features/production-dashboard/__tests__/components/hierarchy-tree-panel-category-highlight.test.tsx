@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import type { HierarchyNode } from '../../types/hierarchy.types'
-import type { AsyncState, AsyncSuccessState } from '@/features/shared/types/async-state.types'
+import type { AsyncSuccessState } from '@/features/shared/types/async-state.types'
 import type { HierarchyTreeData } from '../../types/hierarchy.types'
 
 vi.mock('@/features/production-dashboard/hooks/use-hierarchy-tree', () => ({

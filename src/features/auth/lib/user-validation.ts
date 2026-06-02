@@ -250,3 +250,73 @@ export async function validateUserCredentials(
 		}
 	}
 }
+
+/**
+ * Valida y obtiene información del usuario por ID (usado para suplantación)
+ */
+export async function validateUserById(
+	idUser: number
+): Promise<UserValidationResult> {
+	try {
+		const user = await prisma.user.findUnique({
+			where: { idUser },
+			include: {
+				role: true,
+			},
+		})
+
+		if (!user) {
+			return {
+				isValid: false,
+				user: null,
+				error: 'USER_NOT_FOUND',
+			}
+		}
+
+		if (!user.active) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: (user.role?.code as UserRole | null) || null,
+				},
+				error: 'USER_INACTIVE',
+			}
+		}
+
+		if (!user.role) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: null,
+				},
+				error: 'NO_ROLE',
+			}
+		}
+
+		return {
+			isValid: true,
+			user: {
+				id: user.idUser,
+				email: user.email || '',
+				name: user.name,
+				active: user.active,
+				role: user.role.code as UserRole,
+			},
+		}
+	} catch (error) {
+		console.error('Error validating user by ID:', error)
+		return {
+			isValid: false,
+			user: null,
+			error: 'USER_NOT_FOUND',
+		}
+	}
+}

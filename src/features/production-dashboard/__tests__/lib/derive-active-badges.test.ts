@@ -3,7 +3,6 @@ import { getActiveBadges } from '../../lib/derive-active-badges'
 import type { DashboardAppliedFilters } from '../../types/dashboard-filter.types'
 
 function defaultApplied(): DashboardAppliedFilters {
-  const year = 2025
   return {
     dateRange: { start: new Date(2025, 5, 1), end: new Date(2025, 5, 30) },
     statuses: [],

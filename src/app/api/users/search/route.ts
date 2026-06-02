@@ -20,9 +20,10 @@ export async function GET(request: Request) {
 		const roleParam = searchParams.get('role')
 		const beneficiaryModeParam = searchParams.get('beneficiaryMode')
 		const idLevelParam = searchParams.get('idLevel')
+		const forImpersonation = searchParams.get('forImpersonation') === 'true'
 
-		// Require at least 3 chars unless an idLevel filter is present (leader listing)
-		if ((!query || query.length < 3) && !idLevelParam) {
+		// Require at least 3 chars unless an idLevel filter is present (leader listing) or forImpersonation is true
+		if ((!query || query.length < 3) && !idLevelParam && !forImpersonation) {
 			return NextResponse.json({ data: [] } satisfies ApiResponse<unknown[]>)
 		}
 

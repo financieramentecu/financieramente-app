@@ -22,7 +22,7 @@ interface UsdKpiPanelProps {
  * TRM values are received as props (lifted to ShellContent in DashboardShell).
  */
 export function UsdKpiPanel(props: UsdKpiPanelProps) {
-  const { isLoading: trmLoading, trmRate, trmState, isManual, error, setManualTrm } = props
+  const { isLoading: trmLoading, trmRate, trmState, error, setManualTrm } = props
   const { appliedFilters } = useDashboardFilter()
 
   const effectiveTrmRate = trmRate ?? 0

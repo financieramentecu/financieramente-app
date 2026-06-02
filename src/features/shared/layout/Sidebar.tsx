@@ -20,22 +20,27 @@ import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar()
 	const { session } = useAuthSession()
-	const isCollapsed = state === 'collapsed'
+	const { enabled: isSimuladorEnabled } = useFeatureFlag('dashboard_simulador')
 	const { enabled: isDashboardEnabled } = useFeatureFlag('production_dashboard')
+	const isCollapsed = state === 'collapsed'
 
 	// Construir menú dinámico según rol y permisos
 	const menuItems = React.useMemo(() => {
 		if (!session?.user) {
 			return []
 		}
-		const items = buildMenuByRole(session.user.role, session.user.permissions)
+		
+		let items = buildMenuByRole(session.user.role, session.user.permissions, {
+			isSimuladorEnabled,
+		})
+
+		// Filtrar dashboard si el flag está apagado
 		if (!isDashboardEnabled) {
-			return items.filter((item) => item.url !== '/dashboard')
+			items = items.filter((item) => item.url !== '/dashboard')
 		}
+
 		return items
-	}, [session, isDashboardEnabled])
-
-
+	}, [session, isSimuladorEnabled, isDashboardEnabled])
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
