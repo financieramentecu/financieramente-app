@@ -48,7 +48,7 @@ export function HeaderImpersonationSelect() {
 					const res = await apiClient.get<ApiResponse<UserWithRole[]>>(`/users/search?${params.toString()}`)
 					if (isMounted && res.data) {
 						// Filtramos al propio admin para que no se vea a sí mismo en la lista
-						const currentOriginalId = user?.originalUserId || user?.id
+						const currentOriginalId = originalUserId || userId
 						const filtered = res.data.filter(u => u.idUser.toString() !== currentOriginalId?.toString() && u.role?.code !== UserRole.ADMIN)
 						setUsers(filtered)
 					}

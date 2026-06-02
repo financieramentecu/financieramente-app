@@ -34,7 +34,7 @@ export function SimuladorClient({
 	const [error, setError] = useState<string | null>(null)
 	const [submittedCurrency, setSubmittedCurrency] = useState<'USD' | 'COP'>('USD')
 
-	const handleFormChange = useCallback((data: { distributionData?: { levelCode: string, levelName: string, porcentaje: number }[] }) => {
+	const handleFormChange = useCallback((_data: { distributionData?: { levelCode: string, levelName: string, porcentaje: number }[] }) => {
 		// handle changes if needed
 	}, [])
 

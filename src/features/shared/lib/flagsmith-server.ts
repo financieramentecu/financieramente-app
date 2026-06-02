@@ -1,5 +1,6 @@
 import 'server-only'
 import { Flagsmith } from 'flagsmith-nodejs'
+import { ALL_FEATURE_FLAGS } from '@/features/shared/types/feature-flags.types'
 import type { FeatureFlag, FlagsmithServerState } from '@/features/shared/types/feature-flags.types'
 
 const FLAGSMITH_API_URL = 'https://edge.api.flagsmith.com/api/v1/'
@@ -13,7 +14,7 @@ function getInstance(): Flagsmith {
 	instance = new Flagsmith({
 		environmentKey,
 		enableLocalEvaluation: true,
-		environmentRefreshIntervalSeconds: 60,
+		environmentRefreshIntervalSeconds: process.env.NODE_ENV === 'production' ? 1800 : 3600,
 	})
 	return instance
 }
@@ -23,7 +24,15 @@ function getInstance(): Flagsmith {
  * Converts the server-side Flags object into the client SDK's IState shape.
  * FLAGSMITH_SERVER_KEY is used only on the server and MUST NOT appear in the client bundle.
  */
+function getDevStubState(): FlagsmithServerState {
+  const flags = Object.fromEntries(
+    ALL_FEATURE_FLAGS.map((key) => [key, { enabled: true, value: null }])
+  )
+  return JSON.stringify({ api: FLAGSMITH_API_URL, flags })
+}
+
 export async function getFlagsmithServerState(): Promise<FlagsmithServerState> {
+	if (process.env.NODE_ENV === 'development') return getDevStubState()
 	const fs = getInstance()
 	const flagsObj = await fs.getEnvironmentFlags()
 
@@ -50,6 +59,7 @@ export async function getFlagsmithServerState(): Promise<FlagsmithServerState> {
  * Uses the server singleton — safe for Server Components and Route Handlers.
  */
 export async function isFeatureEnabledServer(flag: FeatureFlag): Promise<boolean> {
+	if (process.env.NODE_ENV === 'development') return true
 	const fs = getInstance()
 	const flagsObj = await fs.getEnvironmentFlags()
 	const entry = flagsObj.flags[flag]

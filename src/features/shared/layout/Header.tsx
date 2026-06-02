@@ -26,6 +26,7 @@ import {
 import { User, Mail, LogOut } from 'lucide-react'
 import { ThemeToggle } from '@/features/shared/ui/theme-toggle'
 import { HeaderImpersonationSelect } from './HeaderImpersonationSelect'
+import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 
 export interface BreadcrumbItemProps {
 	label: string
@@ -39,6 +40,7 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: SiteHeaderProps) {
 	const { user } = useAuthSession()
+	const { enabled: impersonationEnabled } = useFeatureFlag('impersonation_select')
 
 	const userInitials =
 		user?.name
@@ -58,9 +60,11 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 				/>
 				<h1 className="text-base font-medium truncate min-w-0 flex-1">{title}</h1>
 				<div className="ml-auto flex items-center gap-2">
-					<div className="hidden sm:block">
-						<HeaderImpersonationSelect />
-					</div>
+					{impersonationEnabled && (
+						<div className="hidden sm:block">
+							<HeaderImpersonationSelect />
+						</div>
+					)}
 					<ThemeToggle className="h-9 w-9 rounded-lg border-[#11525B]/40 px-0 text-[#11525B] hover:bg-[#11525B]/10 hover:text-[#11525B]" />
 					{user && (
 						<DropdownMenu>

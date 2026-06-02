@@ -9,12 +9,18 @@ interface FlagsmithProviderProps {
 	serverState: FlagsmithServerState
 }
 
-export function FlagsmithProvider({ children, serverState }: FlagsmithProviderProps) {
+export function FlagsmithProvider({
+	children,
+	serverState,
+}: FlagsmithProviderProps) {
 	return (
 		<VendorProvider
 			flagsmith={flagsmith}
 			serverState={JSON.parse(serverState)}
-			options={{ environmentID: process.env.NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY! }}
+			options={{
+				environmentID: process.env.NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY!,
+				preventFetch: true,
+			}}
 		>
 			{children}
 		</VendorProvider>
