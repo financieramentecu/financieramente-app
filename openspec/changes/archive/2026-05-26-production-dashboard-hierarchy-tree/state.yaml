@@ -1,0 +1,36 @@
+---
+# SDD Change State: production-dashboard-hierarchy-tree
+change_name: production-dashboard-hierarchy-tree
+status: archived
+
+artifact_store:
+  mode: hybrid
+  engram_topic_keys:
+    - sdd/production-dashboard-hierarchy-tree/explore
+    - sdd/production-dashboard-hierarchy-tree/proposal
+    - sdd/production-dashboard-hierarchy-tree/spec
+    - sdd/production-dashboard-hierarchy-tree/design
+    - sdd/production-dashboard-hierarchy-tree/tasks
+  openspec_path: "openspec/changes/production-dashboard-hierarchy-tree/"
+
+phases:
+  - explore: complete
+  - propose: complete
+  - spec: complete (#822)
+  - design: complete (obs-0c9fce65ddcda241)
+  - tasks: complete (#824)
+  - apply: complete
+  - verify: complete
+  - archive: complete
+
+archived_at: "2026-05-26"
+archived_to: "openspec/changes/archive/2026-05-26-production-dashboard-hierarchy-tree/"
+
+next_recommended: none
+ready_for_apply: true
+delivery_strategy: stacked-to-main
+budget_risk: High
+chained_prs:
+  - pr1: "Phase 0+1 — types + service + tests (~300 lines)"
+  - pr2: "Phase 2+3 — API route + React components + tests (~380 lines)"
+  - pr3: "Phase 4+5 — navigation, shell, E2E (~130 lines)"

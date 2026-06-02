@@ -9,15 +9,18 @@ import {
 	Zap,
 	X,
 	Loader2,
+	Banknote,
 } from 'lucide-react'
-import { getAporteVisualState } from '../../lib/aporte-visual-state'
+import { getAporteVisualState, getFirstPaymentFondeoButton } from '../../lib/aporte-visual-state'
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
+import { formatDateBogota } from '@/features/shared/lib/format-date'
 
-export type AporteAction = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO'
+export type AporteAction = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO' | 'MARK_FONDEAR'
 
 export interface AporteRowProps {
 	aporte: PaymentInstallmentDto
 	businessId: number
+	business?: { status: string; dateAnchored: string | null }
 	canMutate: boolean
 	isLoading?: boolean
 	now?: Date
@@ -28,7 +31,7 @@ export interface AporteRowProps {
 function formatDate(iso: string | null): string {
 	if (!iso) return '—'
 	try {
-		return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium', timeZone: 'UTC' })
+		return formatDateBogota(iso)
 	} catch {
 		return iso
 	}
@@ -36,6 +39,7 @@ function formatDate(iso: string | null): string {
 
 export function AporteRow({
 	aporte: initialAporte,
+	business = { status: '', dateAnchored: null },
 	canMutate,
 	isLoading = false,
 	now = new Date(),
@@ -49,12 +53,22 @@ export function AporteRow({
 	}, [initialAporte])
 
 	const visualState = getAporteVisualState(aporte, now, canMutate)
+	const isPrimerPagoFondeado =
+		aporte.installmentIndex === 1 &&
+		business.status === 'FONDEADO' &&
+		!!business.dateAnchored
+	const fondeoButtons = getFirstPaymentFondeoButton(aporte, business, canMutate)
+	const hasFondeoButton = fondeoButtons.includes('MARK_FONDEAR')
+	const baseButtons = hasFondeoButton
+		? visualState.buttons.filter((b) => b !== 'MARK_ANTICIPADO')
+		: visualState.buttons
+	const allButtons = isPrimerPagoFondeado ? [] : [...baseButtons, ...fondeoButtons]
 	const isPast = visualState.variant === 'FONDEADO_PAST'
 	const isAnticipado = visualState.variant === 'PAGO_ANTICIPADO'
 	const isCarteraPagado = visualState.variant === 'CARTERA_PAGADO'
 	const isCartera = visualState.variant === 'EN_CARTERA'
-	const isCurrent = visualState.variant === 'FONDEADO_CURRENT'
-	const isGreen = isPast || isAnticipado || isCarteraPagado
+	const isCurrent = visualState.variant === 'FONDEADO_CURRENT' && !isPrimerPagoFondeado
+	const isGreen = isPast || isAnticipado || isCarteraPagado || isPrimerPagoFondeado
 
 	return (
 		<li
@@ -92,12 +106,17 @@ export function AporteRow({
 				>
 					Aporte {aporte.installmentIndex}
 				</span>
-				{visualState.label && (
+				{isPrimerPagoFondeado && business.dateAnchored && (
+					<span className="text-xs text-muted-foreground">
+						Fondeado: {formatDate(business.dateAnchored)}
+					</span>
+				)}
+				{!isPrimerPagoFondeado && visualState.label && !hasFondeoButton && (
 					<span className="text-xs text-muted-foreground">
 						{visualState.label}
 					</span>
 				)}
-				{!visualState.label && aporte.expectedDate && (
+				{!isPrimerPagoFondeado && !visualState.label && !hasFondeoButton && aporte.expectedDate && (
 					<span className="text-xs text-muted-foreground">
 						{formatDate(aporte.expectedDate)}
 					</span>
@@ -105,14 +124,14 @@ export function AporteRow({
 			</div>
 
 			{/* Botones — visibles solo on hover para FONDEADO_CURRENT */}
-			{visualState.buttons.length > 0 && (
+			{allButtons.length > 0 && (
 				<div
 					className={[
 						'flex shrink-0 gap-1 transition-opacity duration-200',
-						isCurrent ? 'opacity-0 group-hover:opacity-100' : 'opacity-100',
+						isCurrent && !hasFondeoButton ? 'opacity-0 group-hover:opacity-100' : 'opacity-100',
 					].join(' ')}
 				>
-					{visualState.buttons.includes('MARK_CARTERA') && (
+					{allButtons.includes('MARK_CARTERA') && (
 						<button
 							type="button"
 							aria-label="Marcar como Cartera"
@@ -130,7 +149,7 @@ export function AporteRow({
 							Cartera
 						</button>
 					)}
-					{visualState.buttons.includes('MARK_ANTICIPADO') && (
+					{allButtons.includes('MARK_ANTICIPADO') && (
 						<button
 							type="button"
 							aria-label="Registrar Pago Anticipado"
@@ -148,7 +167,7 @@ export function AporteRow({
 							Pago Anticipado
 						</button>
 					)}
-					{visualState.buttons.includes('UNMARK_CARTERA') && (
+					{allButtons.includes('UNMARK_CARTERA') && (
 						<button
 							type="button"
 							aria-label="Quitar de Cartera"
@@ -164,6 +183,24 @@ export function AporteRow({
 								<X className="h-3 w-3" aria-hidden />
 							)}
 							Quitar Cartera
+						</button>
+					)}
+					{allButtons.includes('MARK_FONDEAR') && (
+						<button
+							type="button"
+							aria-label="Fondear primer pago"
+							disabled={isLoading}
+							onClick={() =>
+								onRequestAction('MARK_FONDEAR', aporte.installmentIndex)
+							}
+							className="inline-flex items-center gap-1.5 rounded-md border border-green-300 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 shadow-sm transition-colors duration-150 hover:bg-green-100 hover:border-green-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+						>
+							{isLoading ? (
+								<Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+							) : (
+								<Banknote className="h-3 w-3" aria-hidden />
+							)}
+							Fondear
 						</button>
 					)}
 				</div>

@@ -64,6 +64,6 @@ describe('Home Page Integration', () => {
 
 		await Page()
 
-		expect(redirect).toHaveBeenCalledWith('/dashboard')
+		expect(redirect).toHaveBeenCalledWith('/dashboard/negocios')
 	})
 })

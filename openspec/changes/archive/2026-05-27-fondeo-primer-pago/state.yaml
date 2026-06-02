@@ -1,0 +1,21 @@
+change: fondeo-primer-pago
+status: archived
+phases_completed: [explore, proposal, spec, design, tasks, apply, verify, archive]
+next: none
+artifact_store: hybrid
+delivery_strategy: size:exception
+branch: feat/first-payment-anchored
+archived_at: 2026-05-27
+
+post_apply_notes:
+  - UTC midnight date parsing bug — new Date("YYYY-MM-DD") parses as midnight UTC, shows wrong day in Bogotá (UTC-5); fixed with T12:00:00Z in route and formatDateBogota normalization
+  - Service used updateMany with status guard instead of findUnique pre-check — returned CONFLICT silently; rewritten to fetch first then update
+  - FundingModal businessStatus/businessDateAnchored were not threaded from page client — button never appeared; fixed by adding internal state + useEffect sync
+  - businessStatus passed as display value ('Emitido') instead of code ('EMITIDO') — getFirstPaymentFondeoButton never matched; fixed to use statusCode
+  - MARK_ANTICIPADO visible on first payment — filtered when hasFondeoButton; isCurrent caused hover-only opacity; fixed with !hasFondeoButton guards
+  - UI not updating after fondeo — converted props to internal state, added onFondeoSuccess callback triggering refetch
+  - markCarteraPagado also fondea business when index=1 + EMITIDO (scope addition post-verify)
+  - getFirstPaymentFondeoButton now checks aporte.status === 'FONDEADO' to hide Fondear button when payment is EN_CARTERA (scope addition post-verify)
+
+verification_result: PASS WITH WARNINGS (CRITICAL fixed post-verify)
+test_results: 224 files passing, 2127 tests pass, 0 TypeScript errors, 0 lint errors

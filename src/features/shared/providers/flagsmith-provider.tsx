@@ -7,19 +7,18 @@ import type { FlagsmithServerState } from '@/features/shared/types/feature-flags
 interface FlagsmithProviderProps {
 	children: ReactNode
 	serverState: FlagsmithServerState
+	identity?: string
 }
 
-export function FlagsmithProvider({
-	children,
-	serverState,
-}: FlagsmithProviderProps) {
+export function FlagsmithProvider({ children, serverState, identity }: FlagsmithProviderProps) {
 	return (
 		<VendorProvider
 			flagsmith={flagsmith}
 			serverState={JSON.parse(serverState)}
 			options={{
 				environmentID: process.env.NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY!,
-				preventFetch: true,
+				preventFetch: process.env.NODE_ENV === 'development',
+				...(identity ? { identity } : {}),
 			}}
 		>
 			{children}

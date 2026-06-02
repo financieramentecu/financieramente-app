@@ -18,6 +18,7 @@ import {
 	DialogTitle,
 } from '@/features/shared/ui/dialog'
 import type { AnnualInstallmentDto } from '../../types/business-api.types'
+import { formatDateBogota } from '@/features/shared/lib/format-date'
 
 export interface AnnualFundingModalProps {
 	open: boolean
@@ -85,17 +86,7 @@ export function AnnualFundingModal({
 				? ` · Negocio #${businessId}`
 				: ''
 
-	const formatDate = (iso: string | null) => {
-		if (!iso) return '—'
-		try {
-			return new Date(iso).toLocaleString('es-CO', {
-				dateStyle: 'short',
-				timeStyle: 'short',
-			})
-		} catch {
-			return iso
-		}
-	}
+	const formatDate = (iso: string | null) => formatDateBogota(iso, 'short')
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
