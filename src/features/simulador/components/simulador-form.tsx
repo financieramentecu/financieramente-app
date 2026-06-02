@@ -19,17 +19,17 @@ import { Badge } from '@/features/shared/ui/badge'
 import { getProductDistribution } from '@/features/simulador/actions/get-product-distribution'
 
 const formSchema = z.object({
-	idCompany: z.number().positive('Seleccione una compañía'),
-	idProduct: z.number().positive('Seleccione un producto'),
-	idClientOrigin: z.number().positive('Seleccione un origen'),
+	idCompany: z.number({ message: 'Seleccione una compañía' }).positive('Seleccione una compañía'),
+	idProduct: z.number({ message: 'Seleccione un producto' }).positive('Seleccione un producto'),
+	idClientOrigin: z.number({ message: 'Seleccione un origen' }).positive('Seleccione un origen'),
 	/** El nivel hasta donde el usuario quiere ver el desglose */
-	idLevelView: z.number().positive('Seleccione el nivel a visualizar'),
+	idLevelView: z.number({ message: 'Seleccione el nivel a visualizar' }).positive('Seleccione el nivel a visualizar'),
 	/** El nivel del MS que realmente vendió (define la distribución) */
-	idLevelOrigin: z.number().positive('Seleccione el nivel que vendió'),
-	montoVenta: z.number().positive('Ingrese un monto válido mayor a 0'),
+	idLevelOrigin: z.number({ message: 'Seleccione el nivel que vendió' }).positive('Seleccione el nivel que vendió'),
+	montoVenta: z.number({ message: 'Ingrese un monto válido' }).positive('Ingrese un monto válido mayor a 0'),
 	currency: z.enum(['USD', 'COP']),
-	descuento: z.number().min(0).max(100),
-	clawback: z.number().min(0).max(100),
+	descuento: z.number({ message: 'Debe ser un número' }).min(0).max(100),
+	clawback: z.number({ message: 'Debe ser un número' }).min(0).max(100),
 })
 
 export type SimuladorFormData = z.infer<typeof formSchema>

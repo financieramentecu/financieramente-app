@@ -76,13 +76,16 @@ export async function simulateCommission(
 		// 1. Obtener nivel del usuario
 		const user = await prisma.user.findUnique({
 			where: { idUser },
-			include: { level: true },
+			include: { level: true, role: true },
 		})
 
-		if (!user?.idLevel) {
+		const userRoleCode = user?.role?.code ?? ''
+		const isBackoffice = ['ADMIN', 'ANALISTA_SOPORTE', 'SOPORTE', 'GERENCIA'].includes(userRoleCode)
+
+		if (!user?.idLevel && !isBackoffice) {
 			return {
 				success: false,
-				error: 'El usuario no tiene un nivel configurado.',
+				error: 'Tu usuario no tiene un nivel configurado en la red de ventas. Por favor, comunícate con soporte.',
 				comisionBase: 0,
 				trmAplicada: params.trm,
 				desglose: [],
@@ -103,7 +106,7 @@ export async function simulateCommission(
 		const levelById = new Map(allLevels.map(l => [l.idLevel, l]))
 
 		// Regla de visibilidad: MIA solo se muestra desde NIVEL 4 en adelante
-		const userLevelCode = user.level?.code ?? ''
+		const userLevelCode = user?.level?.code ?? ''
 		const userLevelNum = parseInt(userLevelCode.replace('LEVEL_', ''), 10)
 		
 		const viewLevelCodeAux = levelById.get(params.idLevelView)?.code ?? ''
@@ -124,7 +127,7 @@ export async function simulateCommission(
 			steps++
 		}
 
-		const miaLevel = allLevels.find(l => l.name.toUpperCase().includes('MIA'))
+		const miaLevel = allLevels.find(l => !l.idNextLevel)
 		const miaLevelId = miaLevel ? miaLevel.idLevel : -1
 
 		// Solo incluir MIA en la consulta si el usuario tiene nivel suficiente
@@ -244,10 +247,19 @@ export async function simulateCommission(
 			const valorComisionBruta = comisionBase.mul(porcentajeCalculo)
 
 			// Clawback SOLO sobre el monto base del vendedor (idLevelOrigin)
+			let clawbackAmount = new Decimal(0)
 			if (catLevelId === params.idLevelOrigin) {
-				const clawbackAmount = valorComisionBruta.mul(clawbackDecimal)
+				clawbackAmount = valorComisionBruta.mul(clawbackDecimal)
 				totalClawback = totalClawback.add(clawbackAmount)
-				comisionNetaEstimada = valorComisionBruta.sub(clawbackAmount)
+			}
+
+			// Guardar la comisión neta estimada del nivel que está visualizando (Tu Nivel)
+			if (catLevelId === params.idLevelView) {
+				if (catLevelId === params.idLevelOrigin) {
+					comisionNetaEstimada = valorComisionBruta.sub(clawbackAmount)
+				} else {
+					comisionNetaEstimada = valorComisionBruta
+				}
 			}
 
 			desglose.push({
@@ -265,8 +277,10 @@ export async function simulateCommission(
 				const bonoPct = new Decimal(0.02)
 				const bonoMonto = comisionBase.mul(bonoPct)
 				leadBonusAmount = bonoMonto
-				// El vendedor también recibe este bono, así que suma a su neto estimado
-				comisionNetaEstimada = comisionNetaEstimada.add(bonoMonto)
+				// El vendedor también recibe este bono
+				if (catLevelId === params.idLevelView) {
+					comisionNetaEstimada = comisionNetaEstimada.add(bonoMonto)
+				}
 			}
 		}
 
