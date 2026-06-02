@@ -21,12 +21,36 @@ describe('flagsmith-server', () => {
 	})
 
 	describe('getFlagsmithServerState', () => {
-		it('throws when FLAGSMITH_SERVER_KEY is not set', async () => {
+		it('returns fallback state when FLAGSMITH_SERVER_KEY is not set', async () => {
 			delete process.env.FLAGSMITH_SERVER_KEY
 
 			const { getFlagsmithServerState } = await import('../flagsmith-server')
 
-			await expect(getFlagsmithServerState()).rejects.toThrow('FLAGSMITH_SERVER_KEY is not set')
+			const result = await getFlagsmithServerState()
+			const parsed = JSON.parse(result)
+
+			expect(parsed).toHaveProperty('api')
+			expect(parsed).toHaveProperty('flags')
+			expect(parsed.flags['negocios_advanced_filters'].enabled).toBe(false)
+			expect(parsed.flags['dashboard_simulador'].enabled).toBe(true)
+			expect(parsed.flags['impersonation_select'].enabled).toBe(false)
+		})
+
+		it('returns fallback state when Flagsmith API throws', async () => {
+			process.env.FLAGSMITH_SERVER_KEY = 'test-key'
+
+			const { Flagsmith } = await import('flagsmith-nodejs')
+			const mockInstance = { getEnvironmentFlags: vi.fn().mockRejectedValue(new Error('API down')) }
+			vi.mocked(Flagsmith).mockReturnValueOnce(mockInstance as never)
+
+			const { getFlagsmithServerState } = await import('../flagsmith-server')
+
+			const result = await getFlagsmithServerState()
+			const parsed = JSON.parse(result)
+
+			expect(parsed.flags['negocios_advanced_filters'].enabled).toBe(false)
+			expect(parsed.flags['dashboard_simulador'].enabled).toBe(true)
+			expect(parsed.flags['impersonation_select'].enabled).toBe(false)
 		})
 
 		it('returns a JSON string with api and flags keys when key is set', async () => {
@@ -79,6 +103,20 @@ describe('flagsmith-server', () => {
 	})
 
 	describe('isFeatureEnabledServer', () => {
+		it('returns the defined fallback value when Flagsmith API throws', async () => {
+			process.env.FLAGSMITH_SERVER_KEY = 'test-key'
+
+			const { Flagsmith } = await import('flagsmith-nodejs')
+			const mockInstance = { getEnvironmentFlags: vi.fn().mockRejectedValue(new Error('API down')) }
+			vi.mocked(Flagsmith).mockReturnValue(mockInstance as never)
+
+			const { isFeatureEnabledServer } = await import('../flagsmith-server')
+
+			expect(await isFeatureEnabledServer('dashboard_simulador')).toBe(true)
+			expect(await isFeatureEnabledServer('negocios_advanced_filters')).toBe(false)
+			expect(await isFeatureEnabledServer('impersonation_select')).toBe(false)
+		})
+
 		it('returns true when the feature flag is enabled', async () => {
 			process.env.FLAGSMITH_SERVER_KEY = 'test-key'
 
