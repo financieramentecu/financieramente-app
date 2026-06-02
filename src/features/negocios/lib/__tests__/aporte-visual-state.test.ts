@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { getAporteVisualState } from '../aporte-visual-state'
+import { getAporteVisualState, getFirstPaymentFondeoButton } from '../aporte-visual-state'
+import type { AporteButton } from '../aporte-visual-state'
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
 
 const now = new Date(2025, 4, 15) // May 15, 2025
@@ -18,6 +19,73 @@ function makeAporte(
 		...overrides,
 	}
 }
+
+describe('getFirstPaymentFondeoButton', () => {
+	it('is exported from aporte-visual-state', () => {
+		expect(getFirstPaymentFondeoButton).toBeDefined()
+		expect(typeof getFirstPaymentFondeoButton).toBe('function')
+	})
+
+	it('MARK_FONDEAR is a valid AporteButton member — type check via value', () => {
+		const btn: AporteButton = 'MARK_FONDEAR'
+		expect(btn).toBe('MARK_FONDEAR')
+	})
+
+	// Task 1.3 — truth table
+	it('returns MARK_FONDEAR when business=EMITIDO, no dateAnchored, index=1, status=FONDEADO, canMutate=true', () => {
+		const result = getFirstPaymentFondeoButton(
+			{ installmentIndex: 1, status: 'FONDEADO' },
+			{ status: 'EMITIDO', dateAnchored: null },
+			true
+		)
+		expect(result).toEqual(['MARK_FONDEAR'])
+	})
+
+	it('returns [] when payment is EN_CARTERA (payment in cartera, button must be hidden)', () => {
+		const result = getFirstPaymentFondeoButton(
+			{ installmentIndex: 1, status: 'EN_CARTERA' },
+			{ status: 'EMITIDO', dateAnchored: null },
+			true
+		)
+		expect(result).toEqual([])
+	})
+
+	it('returns [] when business is FONDEADO (already fondeado)', () => {
+		const result = getFirstPaymentFondeoButton(
+			{ installmentIndex: 1, status: 'FONDEADO' },
+			{ status: 'FONDEADO', dateAnchored: null },
+			true
+		)
+		expect(result).toEqual([])
+	})
+
+	it('returns [] when dateAnchored is set (already has fondeo date)', () => {
+		const result = getFirstPaymentFondeoButton(
+			{ installmentIndex: 1, status: 'FONDEADO' },
+			{ status: 'EMITIDO', dateAnchored: '2024-01-15T00:00:00.000Z' },
+			true
+		)
+		expect(result).toEqual([])
+	})
+
+	it('returns [] when installmentIndex > 1 (non-first installment)', () => {
+		const result = getFirstPaymentFondeoButton(
+			{ installmentIndex: 2, status: 'FONDEADO' },
+			{ status: 'EMITIDO', dateAnchored: null },
+			true
+		)
+		expect(result).toEqual([])
+	})
+
+	it('returns [] when canMutate=false (unauthorized role)', () => {
+		const result = getFirstPaymentFondeoButton(
+			{ installmentIndex: 1, status: 'FONDEADO' },
+			{ status: 'EMITIDO', dateAnchored: null },
+			false
+		)
+		expect(result).toEqual([])
+	})
+})
 
 describe('getAporteVisualState', () => {
 	describe('FONDEADO_PAST — past month', () => {

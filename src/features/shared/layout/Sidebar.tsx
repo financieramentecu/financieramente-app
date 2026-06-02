@@ -21,6 +21,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar()
 	const { session } = useAuthSession()
 	const { enabled: isSimuladorEnabled } = useFeatureFlag('dashboard_simulador')
+	const { enabled: isDashboardEnabled } = useFeatureFlag('production_dashboard')
 	const isCollapsed = state === 'collapsed'
 
 	// Construir menú dinámico según rol y permisos
@@ -28,12 +29,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		if (!session?.user) {
 			return []
 		}
-		return buildMenuByRole(session.user.role, session.user.permissions, {
+		
+		let items = buildMenuByRole(session.user.role, session.user.permissions, {
 			isSimuladorEnabled,
 		})
-	}, [session, isSimuladorEnabled])
 
+		// Filtrar dashboard si el flag está apagado
+		if (!isDashboardEnabled) {
+			items = items.filter((item) => item.url !== '/dashboard')
+		}
 
+		return items
+	}, [session, isSimuladorEnabled, isDashboardEnabled])
 
 	return (
 		<Sidebar collapsible="icon" {...props}>

@@ -7,17 +7,17 @@ describe('buildBreadcrumbsFromPathname', () => {
 			'/dashboard/config-distribucion-comisiones/C%2BS-PROPIO-JUNIOR/reglas'
 		const crumbs = buildBreadcrumbsFromPathname(path)
 
-		expect(crumbs).toHaveLength(4)
-		expect(crumbs[0]).toEqual({ label: 'Inicio', href: '/dashboard' })
-		expect(crumbs[1]).toEqual({
+		// 'dashboard' is filtered out — only 3 visible items
+		expect(crumbs).toHaveLength(3)
+		expect(crumbs[0]).toEqual({
 			label: 'Config. distribución de comisiones',
 			href: '/dashboard/config-distribucion-comisiones',
 		})
-		expect(crumbs[2]).toEqual({
+		expect(crumbs[1]).toEqual({
 			label: 'C+S-PROPIO-JUNIOR',
 			href: '/dashboard/config-distribucion-comisiones/C%2BS-PROPIO-JUNIOR',
 		})
-		expect(crumbs[3]).toEqual({
+		expect(crumbs[2]).toEqual({
 			label: 'Reglas',
 			href: undefined,
 		})
@@ -28,8 +28,9 @@ describe('buildBreadcrumbsFromPathname', () => {
 			'/dashboard/config-distribucion-comisiones/C+S-PROPIO-JUNIOR/reglas'
 		const crumbs = buildBreadcrumbsFromPathname(path)
 
-		expect(crumbs[2]?.label).toBe('C+S-PROPIO-JUNIOR')
-		expect(crumbs[2]?.href).toBe(
+		// 'dashboard' filtered out → crumbs[0] = config, crumbs[1] = C+S-PROPIO-JUNIOR
+		expect(crumbs[1]?.label).toBe('C+S-PROPIO-JUNIOR')
+		expect(crumbs[1]?.href).toBe(
 			'/dashboard/config-distribucion-comisiones/C%2BS-PROPIO-JUNIOR'
 		)
 	})

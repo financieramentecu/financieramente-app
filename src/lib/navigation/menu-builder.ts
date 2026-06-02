@@ -132,8 +132,5 @@ export function buildMenuByRole(
 export function getRedirectUrlByRole(
 	role: UserRole | string | null | undefined
 ): string {
-	if (role === UserRole.AGENTE) {
-		return '/dashboard/agente'
-	}
-	return '/dashboard'
+	return '/dashboard/negocios'
 }

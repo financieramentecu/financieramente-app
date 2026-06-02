@@ -6,6 +6,7 @@ import { Toaster } from '@/features/shared/ui/sonner'
 import { AuthProvider } from '@/features/shared/providers/auth-provider'
 import { FlagsmithProvider } from '@/features/shared/providers/flagsmith-provider'
 import { getFlagsmithServerState } from '@/features/shared/lib/flagsmith-server'
+import { auth } from '@/auth'
 import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -18,7 +19,10 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode
 }>) {
-	const flagsmithServerState = await getFlagsmithServerState()
+	const session = await auth()
+	const flagsmithServerState = await getFlagsmithServerState(
+		session?.user?.email ?? undefined
+	)
 
 	return (
 		<html lang="es" suppressHydrationWarning>
@@ -30,7 +34,10 @@ export default async function RootLayout({
 					disableTransitionOnChange
 				>
 					<AuthProvider>
-						<FlagsmithProvider serverState={flagsmithServerState}>
+						<FlagsmithProvider
+					serverState={flagsmithServerState}
+					identity={session?.user?.email ?? undefined}
+				>
 							{children}
 							<Toaster />
 						</FlagsmithProvider>
