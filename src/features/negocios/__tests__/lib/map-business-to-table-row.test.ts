@@ -20,6 +20,7 @@ function createBusinessEntity(status: string): BusinessEntity {
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
 		supportCount: 0,
+		observations: null,
 		client: {
 			id: 1,
 			fullName: 'Jane Doe',

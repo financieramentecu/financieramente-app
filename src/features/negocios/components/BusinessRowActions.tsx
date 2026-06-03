@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2 } from 'lucide-react'
+import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2, ScrollText } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -38,6 +38,7 @@ export interface BusinessRowActionsProps {
   onEdit?: (id: number) => void
   onView?: (id: number) => void
   onCancel?: (id: number) => void
+  onViewObservations?: (id: number) => void
   onFondear?: (id: number) => void
   onUploadSuccess?: () => void
   onDeleteSuccess?: () => void
@@ -56,6 +57,7 @@ export function BusinessRowActions({
   onEdit,
   onView,
   onCancel,
+  onViewObservations,
   onUploadComprobante,
   onViewComprobantes,
 }: BusinessRowActionsProps) {
@@ -135,6 +137,12 @@ export function BusinessRowActions({
               <DropdownMenuItem onClick={() => onView(businessId)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalle
+              </DropdownMenuItem>
+            )}
+            {onViewObservations && (
+              <DropdownMenuItem onClick={() => onViewObservations(businessId)}>
+                <ScrollText className="mr-2 h-4 w-4" />
+                Ver motivo cancelación
               </DropdownMenuItem>
             )}
             {onCancel && (

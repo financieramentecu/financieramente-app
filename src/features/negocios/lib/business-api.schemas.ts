@@ -9,118 +9,127 @@ import { BUSINESS_STATUS } from '../types/business-entity.types'
 // SCHEMAS DE REQUEST
 // ============================================
 
-/**
- * Schema para parámetros de lista de negocios
- * Usa nullish() para aceptar null de searchParams.get()
- * Búsqueda unificada por identityNumber, nombres, apellidos, email del cliente,
- * ID del negocio y número de contrato
- */
 const isoCalendarDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
-export const businessListParamsSchema = z
+const preprocessDate = (v: unknown) => (v === '' || v === null ? undefined : v)
+
+const BUSINESS_STATUS_VALUES = [
+	'VENTA_EFECTUADA',
+	'EMITIDO',
+	'LIQUIDADO',
+	'CANCELADO',
+	'FONDEADO',
+] as const
+
+/**
+ * Paired date-range check: both fields must be sent together.
+ */
+function pairedRangeCheck(
+	data: Record<string, unknown>,
+	ctx: z.RefinementCtx
+) {
+	const pairs: Array<[string, string, string]> = [
+		['dateFrom', 'dateTo', 'dateFrom y dateTo deben enviarse juntos'],
+		['createdFrom', 'createdTo', 'createdFrom y createdTo deben enviarse juntos'],
+		[
+			'dateIssuedFrom',
+			'dateIssuedTo',
+			'dateIssuedFrom y dateIssuedTo deben enviarse juntos',
+		],
+	]
+	for (const [fromKey, toKey, msg] of pairs) {
+		const hasFrom = data[fromKey] !== undefined
+		const hasTo = data[toKey] !== undefined
+		if (hasFrom !== hasTo) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: msg,
+				path: [toKey],
+			})
+		}
+	}
+}
+
+/**
+ * Core filter params shared by both GET /api/negocios and POST /api/negocios/export.
+ * This is the single source of truth for all list/export filter fields.
+ */
+export const businessFilterParamsSchema = z
 	.object({
-		page: z.coerce.number().int().positive().optional().default(1),
-		pageSize: z.coerce.number().int().positive().max(100).optional().default(10),
 		search: z.string().nullish(),
-		status: z
-			.enum([
-				'VENTA_EFECTUADA',
-				'EMITIDO',
-				'LIQUIDADO',
-				'CANCELADO',
-				'FONDEADO',
-			])
-			.nullish(),
-		dateFrom: z.preprocess(
-			(v) => (v === '' || v === null ? undefined : v),
-			isoCalendarDay.optional()
-		),
-		dateTo: z.preprocess(
-			(v) => (v === '' || v === null ? undefined : v),
-			isoCalendarDay.optional()
-		),
-		createdFrom: z.preprocess(
-			(v) => (v === '' || v === null ? undefined : v),
-			isoCalendarDay.optional()
-		),
-		createdTo: z.preprocess(
-			(v) => (v === '' || v === null ? undefined : v),
-			isoCalendarDay.optional()
-		),
+		// Back-compat single status
+		status: z.enum(BUSINESS_STATUS_VALUES).nullish(),
+		// New multiselect statuses
+		statuses: z.array(z.enum(BUSINESS_STATUS_VALUES)).optional(),
+		// Fund date range (dateAnchored)
+		dateFrom: z.preprocess(preprocessDate, isoCalendarDay.optional()),
+		dateTo: z.preprocess(preprocessDate, isoCalendarDay.optional()),
+		// Created date range
+		createdFrom: z.preprocess(preprocessDate, isoCalendarDay.optional()),
+		createdTo: z.preprocess(preprocessDate, isoCalendarDay.optional()),
+		// Issued date range (nullable column — NOT NULL guard applied in WHERE)
+		dateIssuedFrom: z.preprocess(preprocessDate, isoCalendarDay.optional()),
+		dateIssuedTo: z.preprocess(preprocessDate, isoCalendarDay.optional()),
 		agentName: z.string().nullish(),
-		sortBy: z
-			.enum([
-				'agentName',
-				'createdAt',
-				'status',
-				'value',
-				'clientName',
-				'identification',
-				'contract',
-				'companyName',
-				'product',
-				'term',
-				'periodicityName',
-				'dateIssued',
-				'dateAnchored',
-				'clientOriginName',
-			])
-			.nullish(),
-		sortOrder: z.enum(['asc', 'desc']).nullish(),
+		// Boolean filter for comprobantes/supports
+		// null/undefined/'' → undefined; 'true' → true; 'false' → false
+		hasSupports: z.preprocess(
+			(v) => (v === 'true' ? true : v === 'false' ? false : v === null || v === '' ? undefined : v),
+			z.boolean().optional()
+		),
+		// Array filters
 		companyIds: z.array(z.number()).optional(),
 		productIds: z.array(z.number()).optional(),
 		originIds: z.array(z.number()).optional(),
+		terms: z.array(z.number().int()).optional(),
+		periodicityIds: z.array(z.number()).optional(),
+		/** IDs de categoría del Money Strategist (User.idCategory) */
+		agentCategoryIds: z.array(z.number()).optional(),
+		/** IDs de Money Strategist (User.idUser) — multiselect */
+		agentIds: z.array(z.number()).optional(),
 	})
 	.superRefine((data, ctx) => {
-		const hasFrom = data.dateFrom !== undefined
-		const hasTo = data.dateTo !== undefined
-		if (hasFrom !== hasTo) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: 'dateFrom y dateTo deben enviarse juntos',
-				path: ['dateTo'],
-			})
-		}
-		const hasCreatedFrom = data.createdFrom !== undefined
-		const hasCreatedTo = data.createdTo !== undefined
-		if (hasCreatedFrom !== hasCreatedTo) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: 'createdFrom y createdTo deben enviarse juntos',
-				path: ['createdTo'],
-			})
-		}
+		pairedRangeCheck(data as Record<string, unknown>, ctx)
 	})
+
+export type BusinessFilterParams = z.infer<typeof businessFilterParamsSchema>
+
+/**
+ * Schema para parámetros de lista de negocios (filtros + paginación/ordenamiento).
+ * Búsqueda unificada por identityNumber, nombres, apellidos, email del cliente,
+ * ID del negocio y número de contrato.
+ */
+export const businessListParamsSchema = businessFilterParamsSchema.extend({
+	page: z.coerce.number().int().positive().optional().default(1),
+	pageSize: z.coerce.number().int().positive().max(100).optional().default(10),
+	sortBy: z
+		.enum([
+			'agentName',
+			'createdAt',
+			'status',
+			'value',
+			'clientName',
+			'identification',
+			'contract',
+			'companyName',
+			'product',
+			'term',
+			'periodicityName',
+			'dateIssued',
+			'dateAnchored',
+			'clientOriginName',
+		])
+		.nullish(),
+	sortOrder: z.enum(['asc', 'desc']).nullish(),
+})
 
 export type BusinessListParamsSchema = z.infer<typeof businessListParamsSchema>
 
-/** Body POST export Excel negocios (H5). Fechas opcionales = mismo criterio que la lista sin rango. */
-export const negociosExportBodySchema = z
-	.object({
-		dateFrom: isoCalendarDay.optional(),
-		dateTo: isoCalendarDay.optional(),
-		search: z.string().optional(),
-		status: z
-			.enum([
-				'VENTA_EFECTUADA',
-				'EMITIDO',
-				'LIQUIDADO',
-				'CANCELADO',
-				'FONDEADO',
-			])
-			.optional(),
-	})
-	.superRefine((data, ctx) => {
-		const hasFrom = data.dateFrom !== undefined
-		const hasTo = data.dateTo !== undefined
-		if (hasFrom !== hasTo) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: 'dateFrom y dateTo deben enviarse juntos',
-				path: ['dateTo'],
-			})
-		}
-	})
+/**
+ * Body POST export Excel negocios.
+ * Identical to businessFilterParamsSchema — single source of truth.
+ */
+export const negociosExportBodySchema = businessFilterParamsSchema
 
 export type NegociosExportBodySchema = z.infer<typeof negociosExportBodySchema>
 

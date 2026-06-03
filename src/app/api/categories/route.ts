@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { BeneficiaryMode } from '@prisma/client'
 import { createCategorySchema } from '@/features/categories/lib/category-schemas'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
@@ -25,6 +26,7 @@ export async function GET(request: Request) {
 		const { searchParams } = new URL(request.url)
 		const search = searchParams.get('search')
 		const status = searchParams.get('status')
+		const beneficiaryMode = searchParams.get('beneficiaryMode')
 		const page = parseInt(searchParams.get('page') || '1')
 		const pageSize = parseInt(searchParams.get('pageSize') || '10')
 
@@ -41,6 +43,12 @@ export async function GET(request: Request) {
 			where.status = true
 		} else if (status === 'inactive') {
 			where.status = false
+		}
+
+		if (beneficiaryMode === 'OVERRIDE' || beneficiaryMode === 'FIXED') {
+			where.users = {
+				some: { active: true, level: { beneficiaryMode: beneficiaryMode as BeneficiaryMode } },
+			}
 		}
 
 		const total = await prisma.category.count({ where })
