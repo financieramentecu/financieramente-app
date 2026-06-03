@@ -4,6 +4,34 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.0] - 2026-06-03
+
+### Nuevo
+
+- **Filtros avanzados en negocios (Sheet completo):** La lista de negocios ahora cuenta con un panel deslizable de filtros avanzados que reemplaza el modal anterior. Incluye diez dimensiones de filtrado: rango de fechas con selector de campo (fondeo, creación o emisión), Money Strategist (multiselect de usuarios), estado (multiselect), soportes/comprobantes (todos / con / sin), compañía, producto, origen, plazo, periodicidad y categoría del Money Strategist. El cambio de compañía filtra automáticamente los productos disponibles.
+
+- **Badge de filtros activos:** El botón "Filtros avanzados" muestra un badge ámbar con la cantidad de dimensiones activas. Se oculta cuando no hay filtros aplicados.
+
+- **Exportación Excel con paridad de filtros:** La descarga de Excel respeta exactamente los mismos filtros que se aplican en la tabla, sin excepción. Ambas rutas (lista y exportación) comparten el mismo esquema de validación.
+
+- **Eliminar negocio fondeado:** Los roles Administrador, Analista de Soporte y Asistente Operativo de Gerencia pueden cancelar negocios en estado Fondeado directamente desde el menú de acciones de la tabla, sin necesidad de cambiar el estado manualmente.
+
+- **Ver motivo de cancelación:** Los negocios cancelados muestran ahora una nueva opción "Ver motivo cancelación" en el menú de acciones, que abre un modal con la observación registrada al momento de la cancelación.
+
+- **Control de acceso "Ver como" por feature flag:** El botón para suplantar usuarios en la tabla de administración ahora está gobernado por el feature flag `impersonation_select` (fallback: desactivado). Permite activar o desactivar la funcionalidad sin re-desplegar.
+
+### Mejorado
+
+- **Nuevos endpoints de catálogo:** Se agregaron `GET /api/periodicities` y `GET /api/negocios/terms` para exponer los catálogos de periodicidades y plazos disponibles en la base de datos, usados por los filtros avanzados.
+
+- **Categorías override:** El endpoint `GET /api/categories` soporta el parámetro `?beneficiaryMode=OVERRIDE` para retornar únicamente las categorías asociadas a usuarios con nivel de tipo Override.
+
+### Corregido
+
+- **Filtro "Sin soportes" no funcionaba:** El parámetro `hasSupports` llegaba al hook de la lista pero no se enviaba al API. Ahora todos los filtros del Sheet se propagan correctamente hasta la consulta.
+
+- **Modal de cancelación se cerraba solo:** Al abrir el modal de cancelación en un negocio fondeado, el modal se cerraba inmediatamente si la carga de datos fallaba. Ahora se pre-carga con los datos disponibles de la tabla antes de iniciar la petición al API.
+
 ## [1.21.0] - 2026-06-01
 
 ### Nuevo
