@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale'
 import { Eye, LogIn } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
+import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import { Badge } from '@/features/shared/ui/badge'
@@ -22,6 +23,7 @@ interface UsersTableProps {
 export function UsersTable({ users, isLoading = false }: UsersTableProps) {
 	const router = useRouter()
 	const { update } = useSession()
+	const { enabled: impersonationEnabled } = useFeatureFlag('impersonation_select')
 
 	const handleImpersonate = async (targetUserId: number) => {
 		try {
@@ -163,15 +165,17 @@ export function UsersTable({ users, isLoading = false }: UsersTableProps) {
 						<Eye className="h-4 w-4" />
 						Ver detalle
 					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => handleImpersonate(user.id)}
-						className="gap-2 h-8 border-orange-200 hover:bg-orange-50 hover:text-orange-700 text-orange-600"
-					>
-						<LogIn className="h-4 w-4" />
-						Ver como
-					</Button>
+					{impersonationEnabled && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => handleImpersonate(user.id)}
+							className="gap-2 h-8 border-orange-200 hover:bg-orange-50 hover:text-orange-700 text-orange-600"
+						>
+							<LogIn className="h-4 w-4" />
+							Ver como
+						</Button>
+					)}
 				</div>
 			)}
 		/>
