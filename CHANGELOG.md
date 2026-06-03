@@ -4,6 +4,13 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.21.1] - 2026-06-02
+
+### Corregido
+
+- **Validación de nivel en el Simulador:** Los usuarios de la fuerza de ventas que no tienen un nivel asignado ahora son bloqueados correctamente al intentar simular comisiones, mostrando un mensaje claro de error. Se garantiza que los roles de backoffice (Soporte, Admin) puedan simular libremente sin esta restricción.
+- **Mensajes de validación en formulario:** Se reemplazaron los errores genéricos de tipo (`Invalid input`) en el formulario del simulador por mensajes descriptivos como "Seleccione una compañía" o "Seleccione un producto", mejorando la retroalimentación al usuario.
+
 ## [1.21.0] - 2026-06-01
 
 ### Nuevo
