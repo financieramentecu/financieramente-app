@@ -32,7 +32,7 @@ describe('flagsmith-server', () => {
 			expect(parsed).toHaveProperty('api')
 			expect(parsed).toHaveProperty('flags')
 			expect(parsed.flags['negocios_advanced_filters'].enabled).toBe(false)
-			expect(parsed.flags['dashboard_simulador'].enabled).toBe(true)
+			expect(parsed.flags['dashboard_calculadora'].enabled).toBe(true)
 			expect(parsed.flags['impersonation_select'].enabled).toBe(false)
 		})
 
@@ -49,7 +49,7 @@ describe('flagsmith-server', () => {
 			const parsed = JSON.parse(result)
 
 			expect(parsed.flags['negocios_advanced_filters'].enabled).toBe(false)
-			expect(parsed.flags['dashboard_simulador'].enabled).toBe(true)
+			expect(parsed.flags['dashboard_calculadora'].enabled).toBe(true)
 			expect(parsed.flags['impersonation_select'].enabled).toBe(false)
 		})
 
@@ -112,7 +112,7 @@ describe('flagsmith-server', () => {
 
 			const { isFeatureEnabledServer } = await import('../flagsmith-server')
 
-			expect(await isFeatureEnabledServer('dashboard_simulador')).toBe(true)
+			expect(await isFeatureEnabledServer('dashboard_calculadora')).toBe(true)
 			expect(await isFeatureEnabledServer('negocios_advanced_filters')).toBe(false)
 			expect(await isFeatureEnabledServer('impersonation_select')).toBe(false)
 		})

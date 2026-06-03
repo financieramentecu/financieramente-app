@@ -73,8 +73,8 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		icon: <Receipt className="h-4 w-4" />,
 	},
 	{
-		title: 'Simulador',
-		url: '/dashboard/simulador',
+		title: 'Calculadora',
+		url: '/dashboard/calculadora',
 		icon: <Sliders className="h-4 w-4" />,
 	},
 	{
@@ -186,8 +186,8 @@ export const AGENTE_MENU_ITEMS: MenuItem[] = [
 		],
 	},
 	{
-		title: 'Simulador',
-		url: '/dashboard/simulador',
+		title: 'Calculadora',
+		url: '/dashboard/calculadora',
 		icon: <Sliders className="h-4 w-4" />,
 	},
 	/* 	{

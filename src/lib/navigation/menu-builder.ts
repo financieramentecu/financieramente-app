@@ -8,7 +8,7 @@ import { ALL_MENU_ITEMS, AGENTE_MENU_ITEMS, MenuItem } from './menu-items'
 export function buildMenuByRole(
 	role: UserRole | string | null | undefined,
 	permissions: RolePermissions | null | undefined,
-	flags?: { isSimuladorEnabled?: boolean }
+	flags?: { isCalculadoraEnabled?: boolean }
 ): MenuItem[] {
 	// Si no hay rol, retornar menú vacío
 	if (!role || !permissions) {
@@ -17,9 +17,9 @@ export function buildMenuByRole(
 
 	// Agente tiene un menú completamente personalizado
 	if (role === UserRole.AGENTE) {
-		// Si el simulador está deshabilitado, filtrarlo
-		if (flags?.isSimuladorEnabled === false) {
-			return AGENTE_MENU_ITEMS.filter(item => item.title !== 'Simulador')
+		// Si la calculadora está deshabilitada, filtrarla
+		if (flags?.isCalculadoraEnabled === false) {
+			return AGENTE_MENU_ITEMS.filter(item => item.title !== 'Calculadora')
 		}
 		return AGENTE_MENU_ITEMS
 	}
@@ -68,9 +68,9 @@ export function buildMenuByRole(
 			continue
 		}
 
-		// Simulador
-		if (item.title === 'Simulador') {
-			if (flags?.isSimuladorEnabled !== false) {
+		// Calculadora
+		if (item.title === 'Calculadora') {
+			if (flags?.isCalculadoraEnabled !== false) {
 				filteredItems.push(item)
 			}
 			continue

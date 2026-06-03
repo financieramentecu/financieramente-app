@@ -4,7 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
 
-export interface SimuladorParams {
+export interface CalculadoraParams {
 	idCompany: number
 	idProduct: number
 	idClientOrigin: number
@@ -48,8 +48,8 @@ export interface SimulationResult {
 	leadBonus: number
 }
 
-export async function simulateCommission(
-	params: SimuladorParams
+export async function calculateCommission(
+	params: CalculadoraParams
 ): Promise<SimulationResult> {
 	try {
 		const session = await auth()
@@ -246,20 +246,16 @@ export async function simulateCommission(
 			const porcentajeDisplay = porcentajeCalculo.mul(100)
 			const valorComisionBruta = comisionBase.mul(porcentajeCalculo)
 
-			// Clawback SOLO sobre el monto base del vendedor (idLevelOrigin)
+			// Clawback SOLO sobre el monto base del nivel visualizado (Tu Nivel / idLevelView)
 			let clawbackAmount = new Decimal(0)
-			if (catLevelId === params.idLevelOrigin) {
+			if (catLevelId === params.idLevelView) {
 				clawbackAmount = valorComisionBruta.mul(clawbackDecimal)
 				totalClawback = totalClawback.add(clawbackAmount)
 			}
 
 			// Guardar la comisión neta estimada del nivel que está visualizando (Tu Nivel)
 			if (catLevelId === params.idLevelView) {
-				if (catLevelId === params.idLevelOrigin) {
-					comisionNetaEstimada = valorComisionBruta.sub(clawbackAmount)
-				} else {
-					comisionNetaEstimada = valorComisionBruta
-				}
+				comisionNetaEstimada = valorComisionBruta.sub(clawbackAmount)
 			}
 
 			desglose.push({
@@ -290,11 +286,11 @@ export async function simulateCommission(
 			desglose.push({
 				levelCode: miaLevel.code,
 				levelName: miaLevel.name,
-				porcentaje: 0,
-				monto: 0,
+				porcentaje: miaDisplayPct,
+				monto: miaMonto,
 				puntos: 0,
-				porcentajeMia: 0,
-				montoMia: 0,
+				porcentajeMia: miaDisplayPct,
+				montoMia: miaMonto,
 			})
 		}
 
@@ -328,7 +324,7 @@ export async function simulateCommission(
 		}
 
 	} catch (error) {
-		console.error('Error en simulateCommission:', error)
+		console.error('Error en calculateCommission:', error)
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : 'Error interno de simulación',

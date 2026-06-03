@@ -2,20 +2,20 @@
 
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/features/shared/ui/card'
-import type { SimulationResult } from '@/features/simulador/actions/simulate-commission'
+import type { SimulationResult } from '@/features/calculadora/actions/calculate-commission'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 
-interface SimuladorResultadosProps {
+interface CalculadoraResultadosProps {
 	result: SimulationResult | null
 	isLoading: boolean
 	currency: 'USD' | 'COP'
 }
 
-export function SimuladorResultados({
+export function CalculadoraResultados({
 	result,
 	isLoading,
 	currency,
-}: SimuladorResultadosProps) {
+}: CalculadoraResultadosProps) {
 
 	if (isLoading) {
 		return (
@@ -184,13 +184,13 @@ export function SimuladorResultados({
 					</span>
 				</div>
 
-				{(result as { leadBonus?: number }).leadBonus && (result as { leadBonus?: number }).leadBonus! > 0 && (
+				{result.leadBonus > 0 && (
 					<div className="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4 flex flex-col justify-between items-start h-[80px] flex-1">
 						<span className="text-sm font-medium text-emerald-700">
 							Comisión por fuente de leads (2%)
 						</span>
 						<span className="text-xl font-bold text-emerald-700">
-							{formatCurrency((result as { leadBonus?: number }).leadBonus!, currency)}
+							{formatCurrency(result.leadBonus, currency)}
 						</span>
 					</div>
 				)}
