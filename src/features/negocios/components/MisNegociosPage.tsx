@@ -8,7 +8,6 @@ import { Skeleton } from '@/features/shared/ui/skeleton'
 import { TableLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { AlertCircle, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
-import type { BusinessStatus } from '@/features/negocios/types/business-entity.types'
 import { Button } from '@/features/shared/ui/button'
 
 interface PaginationData {

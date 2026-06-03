@@ -46,7 +46,6 @@ import {
 } from '@/features/negocios/lib/fondear-action-copy'
 import {
 	BUSINESS_STATUS,
-	type BusinessStatus,
 } from '@/features/negocios/types/business-entity.types'
 import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
 import { formatDateBogota } from '@/features/shared/lib/format-date'

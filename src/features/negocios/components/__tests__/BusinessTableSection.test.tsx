@@ -47,31 +47,6 @@ vi.mock('@/features/shared/lib/format-date', () => ({
 	formatDateBogota: (d: string) => d ?? '',
 }))
 
-// Minimal business mock
-const mockBusiness = {
-	id: 1,
-	clientName: 'Test Client',
-	identification: '12345',
-	contract: 'C001',
-	statusCode: 'EMITIDO',
-	status: 'Emitido',
-	agentName: 'Agent',
-	agentCategory: 'Cat',
-	companyName: 'Company',
-	product: 'Product',
-	clientOriginName: 'Origin',
-	term: 12,
-	periodicityName: 'Anual',
-	value: 1000,
-	currency: 'COP',
-	dateIssued: null,
-	dateAnchored: null,
-	date: '2026-01-01',
-	hasPayments: false,
-	supportCount: 0,
-	agentAvatarUrl: null,
-}
-
 describe('BusinessTableSection — new toolbar', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()

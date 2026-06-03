@@ -133,9 +133,6 @@ export function NegociosPageClient({
 	const [searchInput, setSearchInput] = useState('')
 	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
 
-	const [agentNameInput, setAgentNameInput] = useState('')
-	const debouncedAgentName = useDebounce(agentNameInput, SEARCH_DEBOUNCE_DELAY)
-
 	// Fechas por defecto para el Coach (Mes actual)
 	const defaultDates = useMemo(() => {
 		const now = new Date()
@@ -173,13 +170,12 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({
 			...prev,
 			search: debouncedSearch || undefined,
-			agentName: debouncedAgentName || undefined,
 			page: 1,
 		}))
-	}, [debouncedSearch, debouncedAgentName])
+	}, [debouncedSearch])
 
 	// Merge URL filter params (from AdvancedFiltersSheet) into listParams
-	const mergedParams: BusinessListParams = {
+	const mergedParams: BusinessListParams = useMemo(() => ({
 		...searchParams,
 		// URL params take precedence for filter dimensions
 		...(urlFilterParams.statuses ? { statuses: urlFilterParams.statuses } : {}),
@@ -198,7 +194,7 @@ export function NegociosPageClient({
 		...(urlFilterParams.periodicityIds ? { periodicityIds: urlFilterParams.periodicityIds } : {}),
 		...(urlFilterParams.agentCategoryIds ? { agentCategoryIds: urlFilterParams.agentCategoryIds } : {}),
 		...(urlFilterParams.agentIds ? { agentIds: urlFilterParams.agentIds } : {}),
-	}
+	}), [searchParams, urlFilterParams])
 
 	// Para Coach: mapear dateFrom/dateTo a createdFrom/createdTo en el listado
 	const listParams: BusinessListParams = isAgentRole
@@ -215,7 +211,7 @@ export function NegociosPageClient({
 	const { businesses, isLoading, error, pagination, refetch } =
 		useBusinesses(listParams)
 
-	const isDebouncing = searchInput !== debouncedSearch || agentNameInput !== debouncedAgentName
+	const isDebouncing = searchInput !== debouncedSearch
 
 	// Detectar si hay una búsqueda pendiente (el término actual no coincide con lo cargado)
 	const hasPendingSearch = debouncedSearch !== (lastLoadedSearch ?? '')
@@ -482,24 +478,6 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({ ...prev, pageSize, page: 1 }))
 	}, [])
 
-	const handleListStatusChange = useCallback(
-		(status: BusinessStatus | undefined) => {
-			setSearchParams((prev) => ({
-				...prev,
-				status,
-				page: 1,
-			}))
-		},
-		[]
-	)
-
-	const handleAgentNameChange = useCallback(
-		(agentName: string) => {
-			setAgentNameInput(agentName)
-		},
-		[]
-	)
-
 	const handleSortingChange = useCallback(
 		(sortBy: string | undefined, sortOrder: 'asc' | 'desc') => {
 			setSearchParams((prev) => ({
@@ -511,41 +489,6 @@ export function NegociosPageClient({
 		},
 		[]
 	)
-
-	const handleAdvancedFiltersChange = useCallback(
-		(filters: { companyIds: number[]; productIds: number[]; originIds: number[] }) => {
-			setSearchParams((prev) => ({
-				...prev,
-				...filters,
-				page: 1,
-			}))
-		},
-		[]
-	)
-
-	const handleFundDateFromChange = useCallback((value: string) => {
-		setSearchParams((prev) => {
-			const newFrom = isAgentRole ? (value || defaultDates.from) : (value || undefined)
-			const newTo = prev.dateTo ?? (isAgentRole ? defaultDates.to : undefined)
-			const next: BusinessListParams = { ...prev, dateFrom: newFrom, dateTo: newTo, page: 1 }
-			if (!isAgentRole) {
-				next.status = (newFrom && newTo) ? 'FONDEADO' : undefined
-			}
-			return next
-		})
-	}, [isAgentRole, defaultDates.from, defaultDates.to])
-
-	const handleFundDateToChange = useCallback((value: string) => {
-		setSearchParams((prev) => {
-			const newTo = isAgentRole ? (value || defaultDates.to) : (value || undefined)
-			const newFrom = prev.dateFrom ?? (isAgentRole ? defaultDates.from : undefined)
-			const next: BusinessListParams = { ...prev, dateTo: newTo, dateFrom: newFrom, page: 1 }
-			if (!isAgentRole) {
-				next.status = (newFrom && newTo) ? 'FONDEADO' : undefined
-			}
-			return next
-		})
-	}, [isAgentRole, defaultDates.from, defaultDates.to])
 
 	const handleExportExcel = useCallback(async () => {
 		// Export uses all current filter params (list and URL-based) for parity
@@ -615,9 +558,6 @@ export function NegociosPageClient({
 		() => businesses.map(mapBusinessToTableRow),
 		[businesses]
 	)
-
-	// Rango de fondeo activo (no-agente con ambas fechas): bloquea el selector de estado
-	const isFundDateRangeActive = !isAgentRole && Boolean(searchParams.dateFrom && searchParams.dateTo)
 
 	// Combinar errores de negocios y estadísticas
 	const displayError = error || statsError

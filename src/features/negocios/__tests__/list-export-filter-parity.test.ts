@@ -124,7 +124,7 @@ describe('lista GET vs export POST — paridad de filtros (tasks 5.5)', () => {
 		const exportParsed = negociosExportBodySchema.parse(allParams)
 		const filterOnly = businessFilterParamsSchema.parse(allParams)
 
-		const { page: _p, pageSize: _ps, sortBy: _sb, sortOrder: _so, ...listFilters } = listParsed
+		const listFilters = businessFilterParamsSchema.parse(listParsed)
 
 		// All three must produce the same core filter params
 		expect(listFilters).toEqual(filterOnly)

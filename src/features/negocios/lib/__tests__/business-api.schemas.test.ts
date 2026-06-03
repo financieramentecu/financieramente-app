@@ -37,7 +37,7 @@ describe('businessFilterParamsSchema — schema parity (tasks 2.1)', () => {
 		const fromExport = negociosExportBodySchema.parse(filterInput)
 
 		// All filter fields should be equal between list and export
-		const { page: _p, pageSize: _ps, sortBy: _sb, sortOrder: _so, ...listFilters } = fromList
+		const listFilters = businessFilterParamsSchema.parse(fromList)
 		expect(listFilters).toEqual(fromFilter)
 		expect(fromExport).toEqual(fromFilter)
 	})

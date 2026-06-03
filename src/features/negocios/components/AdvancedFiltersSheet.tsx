@@ -269,8 +269,6 @@ export function AdvancedFiltersSheet() {
 		})
 	}, [reset])
 
-	const watchedDateField = watch('dateField')
-
 	return (
 		<Sheet open={open} onOpenChange={setOpen}>
 			<SheetTrigger asChild>
