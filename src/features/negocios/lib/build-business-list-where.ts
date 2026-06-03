@@ -7,12 +7,26 @@ const POSTGRES_INT_MAX = 2147483647
 export interface BusinessListFilterInput {
 	search?: string
 	status?: string
+	/** Multiselect statuses — takes precedence over single `status` when provided */
+	statuses?: string[]
 	dateAnchoredRange?: { gte: Date; lte: Date }
 	createdAtRange?: { gte: Date; lte: Date }
+	/** dateIssued range — column is nullable so NOT NULL guard is applied automatically */
+	dateIssuedRange?: { gte: Date; lte: Date }
 	agentName?: string
+	/** true → has at least one active support; false → has no active supports */
+	hasSupports?: boolean
 	companyIds?: number[]
 	productIds?: number[]
 	originIds?: number[]
+	/** Term (loan duration in years) multiselect */
+	terms?: number[]
+	/** Buy periodicity IDs multiselect */
+	periodicityIds?: number[]
+	/** Agent (Money Strategist) category IDs — filters by User.idCategory */
+	agentCategoryIds?: number[]
+	/** Money Strategist user IDs — filters by Business.idUser */
+	agentIds?: number[]
 }
 
 export interface BuildBusinessListWhereOptions {
@@ -53,9 +67,28 @@ export function buildBusinessListWhere(
 		}
 	}
 
-	const { status, search, dateAnchoredRange, createdAtRange, agentName, companyIds, productIds, originIds } = filters
+	const {
+		status,
+		statuses,
+		search,
+		dateAnchoredRange,
+		createdAtRange,
+		dateIssuedRange,
+		agentName,
+		hasSupports,
+		companyIds,
+		productIds,
+		originIds,
+		terms,
+		periodicityIds,
+		agentCategoryIds,
+		agentIds,
+	} = filters
 
-	if (status) {
+	// statuses[] takes precedence over single status (back-compat)
+	if (statuses && statuses.length > 0) {
+		whereConditions.push({ status: { in: statuses } })
+	} else if (status) {
 		whereConditions.push({ status })
 	}
 
@@ -110,6 +143,27 @@ export function buildBusinessListWhere(
 		})
 	}
 
+	if (dateIssuedRange) {
+		// dateIssued is nullable — must guard against null rows leaking into range results
+		whereConditions.push({
+			AND: [
+				{ dateIssued: { not: null } },
+				{
+					dateIssued: {
+						gte: dateIssuedRange.gte,
+						lte: dateIssuedRange.lte,
+					},
+				},
+			],
+		})
+	}
+
+	if (hasSupports === true) {
+		whereConditions.push({ supports: { some: { status: true } } })
+	} else if (hasSupports === false) {
+		whereConditions.push({ supports: { none: { status: true } } })
+	}
+
 	if (agentName?.trim()) {
 		const terms = agentName.trim().split(/\s+/)
 		const agentConditions: Prisma.UserWhereInput[] = terms.map((term) => ({
@@ -150,6 +204,22 @@ export function buildBusinessListWhere(
 		whereConditions.push({
 			idClientOrigin: { in: originIds },
 		})
+	}
+
+	if (terms && terms.length > 0) {
+		whereConditions.push({ term: { in: terms } })
+	}
+
+	if (periodicityIds && periodicityIds.length > 0) {
+		whereConditions.push({ idBuyPeriodicity: { in: periodicityIds } })
+	}
+
+	if (agentCategoryIds && agentCategoryIds.length > 0) {
+		whereConditions.push({ user: { idCategory: { in: agentCategoryIds } } })
+	}
+
+	if (agentIds && agentIds.length > 0) {
+		whereConditions.push({ idUser: { in: agentIds } })
 	}
 
 	return whereConditions.length > 0 ? { AND: whereConditions } : {}

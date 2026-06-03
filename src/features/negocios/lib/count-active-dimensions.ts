@@ -1,0 +1,50 @@
+/**
+ * Counts how many active filter DIMENSIONS are present in the URL search params.
+ * Each dimension counts as 1 regardless of how many values it has.
+ *
+ * Dimensions:
+ * - statuses[] or status → 1
+ * - date range (any pair: dateFrom+dateTo, createdFrom+createdTo, dateIssuedFrom+dateIssuedTo) → 1
+ * - hasSupports (when not absent) → 1
+ * - agentName (when non-empty) → 1
+ * - companyIds[] → 1
+ * - productIds[] → 1
+ * - originIds[] → 1
+ * - terms[] → 1
+ * - periodicityIds[] → 1
+ * - agentCategoryIds[] → 1
+ */
+export function countActiveDimensions(searchParams: URLSearchParams): number {
+	let count = 0
+
+	// Status dimension
+	if (searchParams.getAll('statuses').length > 0 || searchParams.get('status')) {
+		count++
+	}
+
+	// Date range dimension (any date range counts as 1)
+	const hasDateRange =
+		(searchParams.get('dateFrom') && searchParams.get('dateTo')) ||
+		(searchParams.get('createdFrom') && searchParams.get('createdTo')) ||
+		(searchParams.get('dateIssuedFrom') && searchParams.get('dateIssuedTo'))
+	if (hasDateRange) count++
+
+	// hasSupports dimension
+	const hasSupports = searchParams.get('hasSupports')
+	if (hasSupports === 'true' || hasSupports === 'false') count++
+
+	// agentName dimension
+	const agentName = searchParams.get('agentName')
+	if (agentName?.trim()) count++
+
+	// Catalog array dimensions
+	if (searchParams.getAll('companyIds').length > 0) count++
+	if (searchParams.getAll('productIds').length > 0) count++
+	if (searchParams.getAll('originIds').length > 0) count++
+	if (searchParams.getAll('terms').length > 0) count++
+	if (searchParams.getAll('periodicityIds').length > 0) count++
+	if (searchParams.getAll('agentCategoryIds').length > 0) count++
+	if (searchParams.getAll('agentIds').length > 0) count++
+
+	return count
+}

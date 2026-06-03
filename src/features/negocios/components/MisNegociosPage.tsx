@@ -8,7 +8,6 @@ import { Skeleton } from '@/features/shared/ui/skeleton'
 import { TableLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { AlertCircle, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
-import type { BusinessStatus } from '@/features/negocios/types/business-entity.types'
 import { Button } from '@/features/shared/ui/button'
 
 interface PaginationData {
@@ -33,19 +32,11 @@ export interface MisNegociosPageProps {
 	onEditBusiness?: (business: Business) => void
 	onViewBusiness?: (business: Business) => void
 	onCancelBusiness?: (business: Business) => void
+	onViewObservations?: (business: Business) => void
 	onFondearBusiness?: (business: Business) => void
 	onGlobalSearch?: (query: string) => void
 	onPageChange?: (page: number) => void
 	onPageSizeChange?: (pageSize: number) => void
-	listStatus?: BusinessStatus
-	onListStatusChange?: (status: BusinessStatus | undefined) => void
-	agentName?: string
-	onAgentNameChange?: (value: string) => void
-	fundDateFrom?: string
-	fundDateTo?: string
-	onFundDateFromChange?: (value: string) => void
-	onFundDateToChange?: (value: string) => void
-	fundDateRangeActive?: boolean
 	onUploadSuccess?: () => void
 	onDeleteSuccess?: () => void
 	canExportExcel?: boolean
@@ -56,10 +47,6 @@ export interface MisNegociosPageProps {
 	sortBy?: string
 	sortOrder?: 'asc' | 'desc'
 	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
-	companyIds?: number[]
-	productIds?: number[]
-	originIds?: number[]
-	onAdvancedFiltersChange?: (filters: { companyIds: number[]; productIds: number[]; originIds: number[] }) => void
 }
 
 function StatsLoadingSkeleton() {
@@ -109,19 +96,11 @@ export function MisNegociosPage({
 	onEditBusiness = () => { },
 	onViewBusiness,
 	onCancelBusiness,
+	onViewObservations,
 	onFondearBusiness,
 	onGlobalSearch,
 	onPageChange,
 	onPageSizeChange,
-	listStatus,
-	onListStatusChange,
-	agentName = '',
-	onAgentNameChange,
-	fundDateFrom = '',
-	fundDateTo = '',
-	onFundDateFromChange,
-	onFundDateToChange,
-	fundDateRangeActive = false,
 	onUploadSuccess,
 	onDeleteSuccess,
 	canExportExcel = false,
@@ -132,10 +111,6 @@ export function MisNegociosPage({
 	sortBy,
 	sortOrder,
 	onSaveDateIssued,
-	companyIds,
-	productIds,
-	originIds,
-	onAdvancedFiltersChange,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
 	const isAgentUser = true // Stats visible for all roles; data is scoped server-side
@@ -185,21 +160,13 @@ export function MisNegociosPage({
 						onEditBusiness={onEditBusiness}
 						onViewBusiness={onViewBusiness}
 						onCancelBusiness={onCancelBusiness}
+						onViewObservations={onViewObservations}
 						onFondearBusiness={onFondearBusiness}
 						pagination={pagination}
 						onPageChange={onPageChange}
 						onPageSizeChange={onPageSizeChange}
 						isSearching={showTableLoading}
 						userRole={user?.role ?? undefined}
-						listStatus={listStatus}
-						onListStatusChange={onListStatusChange}
-						agentName={agentName}
-						onAgentNameChange={onAgentNameChange}
-						fundDateFrom={fundDateFrom}
-						fundDateTo={fundDateTo}
-						onFundDateFromChange={onFundDateFromChange}
-						onFundDateToChange={onFundDateToChange}
-						fundDateRangeActive={fundDateRangeActive}
 						onUploadSuccess={onUploadSuccess}
 						onDeleteSuccess={onDeleteSuccess}
 						canExportExcel={canExportExcel}
@@ -210,10 +177,6 @@ export function MisNegociosPage({
 						sortBy={sortBy}
 						sortOrder={sortOrder}
 						onSaveDateIssued={onSaveDateIssued}
-						companyIds={companyIds}
-						productIds={productIds}
-						originIds={originIds}
-						onAdvancedFiltersChange={onAdvancedFiltersChange}
 					/>
 				)}
 			</div>

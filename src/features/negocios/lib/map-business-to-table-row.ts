@@ -48,6 +48,7 @@ export function mapBusinessToTableRow(b: BusinessEntity): Business {
 		hasPayments: b.hasPayments,
 		hasPendingPaymentFunding: b.hasPendingPaymentFunding,
 		supportCount: b.supportCount,
+		observations: b.observations,
 		currency: b.currency,
 	}
 }

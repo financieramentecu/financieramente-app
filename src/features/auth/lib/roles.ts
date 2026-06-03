@@ -113,6 +113,20 @@ const ROLES_CAN_FUND_PAYMENTS: readonly UserRole[] = [
  * Whether the role may fund payment installments
  * Used for UI guard and API auth
  */
+const ROLES_CAN_ELIMINATE_FONDEADO = [
+	UserRole.ADMIN,
+	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+	UserRole.ANALISTA_SOPORTE,
+]
+
+export function canEliminateFondeado(roleCode: string | undefined): boolean {
+	if (!roleCode) return false
+	return (
+		isValidRole(roleCode) &&
+		ROLES_CAN_ELIMINATE_FONDEADO.includes(roleCode as UserRole)
+	)
+}
+
 export function canFundPayments(roleCode: string | undefined): boolean {
 	if (!roleCode) return false
 	return (

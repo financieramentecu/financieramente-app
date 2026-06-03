@@ -824,7 +824,7 @@ describe('PATCH /api/negocios/[id]/cancel', () => {
 
 			expect(response.status).toBe(400)
 			expect(responseData.error).toBe(
-				'Solo se pueden cancelar negocios en estado Venta Efectuada o Emitido'
+				'Solo se pueden cancelar negocios en estado Venta Efectuada, Emitido o Fondeado'
 			)
 			expect(mockPrismaUpdate).not.toHaveBeenCalled()
 		})
