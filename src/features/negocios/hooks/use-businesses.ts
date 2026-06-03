@@ -75,21 +75,31 @@ export function useBusinesses(
 			)
 			const hasFullCreatedDateRange = Boolean(params.createdFrom && params.createdTo)
 
+			const hasFullIssuedDateRange = Boolean(params.dateIssuedFrom && params.dateIssuedTo)
+
 			const response = await businessService.getAll({
 				page: params.page || 1,
 				pageSize: params.pageSize || 10,
 				search: params.search,
 				status: params.status,
+				statuses: params.statuses,
 				dateFrom: hasFullFundDateRange ? params.dateFrom : undefined,
 				dateTo: hasFullFundDateRange ? params.dateTo : undefined,
 				createdFrom: hasFullCreatedDateRange ? params.createdFrom : undefined,
 				createdTo: hasFullCreatedDateRange ? params.createdTo : undefined,
+				dateIssuedFrom: hasFullIssuedDateRange ? params.dateIssuedFrom : undefined,
+				dateIssuedTo: hasFullIssuedDateRange ? params.dateIssuedTo : undefined,
 				agentName: params.agentName,
+				hasSupports: params.hasSupports,
 				sortBy: params.sortBy,
 				sortOrder: params.sortOrder,
 				companyIds: params.companyIds,
 				productIds: params.productIds,
 				originIds: params.originIds,
+				terms: params.terms,
+				periodicityIds: params.periodicityIds,
+				agentCategoryIds: params.agentCategoryIds,
+				agentIds: params.agentIds,
 			})
 
 			if ('error' in response && response.error) {
@@ -110,16 +120,24 @@ export function useBusinesses(
 		params.pageSize,
 		params.search,
 		params.status,
+		params.statuses,
 		params.dateFrom,
 		params.dateTo,
 		params.createdFrom,
 		params.createdTo,
+		params.dateIssuedFrom,
+		params.dateIssuedTo,
 		params.agentName,
+		params.hasSupports,
 		params.sortBy,
 		params.sortOrder,
 		params.companyIds,
 		params.productIds,
 		params.originIds,
+		params.terms,
+		params.periodicityIds,
+		params.agentCategoryIds,
+		params.agentIds,
 	])
 
 	useEffect(() => {

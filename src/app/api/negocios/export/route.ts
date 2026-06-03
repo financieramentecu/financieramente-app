@@ -64,15 +64,48 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 		}
 
-		const { dateFrom, dateTo, search, status } = parsed.data
+		const {
+			search,
+			status,
+			statuses,
+			dateFrom,
+			dateTo,
+			createdFrom,
+			createdTo,
+			dateIssuedFrom,
+			dateIssuedTo,
+			agentName,
+			hasSupports,
+			companyIds,
+			productIds,
+			originIds,
+			terms,
+			periodicityIds,
+			agentCategoryIds,
+			agentIds,
+		} = parsed.data
 
 		const where = buildBusinessListWhere(
 			currentUser,
 			toBusinessListFilterInput({
 				search,
 				status,
+				statuses: statuses && statuses.length > 0 ? (statuses as string[]) : undefined,
 				dateFrom,
 				dateTo,
+				createdFrom,
+				createdTo,
+				dateIssuedFrom,
+				dateIssuedTo,
+				agentName,
+				hasSupports,
+				companyIds: companyIds && companyIds.length > 0 ? companyIds : undefined,
+				productIds: productIds && productIds.length > 0 ? productIds : undefined,
+				originIds: originIds && originIds.length > 0 ? originIds : undefined,
+				terms: terms && terms.length > 0 ? terms : undefined,
+				periodicityIds: periodicityIds && periodicityIds.length > 0 ? periodicityIds : undefined,
+				agentCategoryIds: agentCategoryIds && agentCategoryIds.length > 0 ? agentCategoryIds : undefined,
+				agentIds: agentIds && agentIds.length > 0 ? agentIds : undefined,
 			})
 		)
 

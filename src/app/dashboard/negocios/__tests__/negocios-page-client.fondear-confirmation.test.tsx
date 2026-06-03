@@ -23,6 +23,7 @@ vi.mock('next/navigation', () => ({
 	useRouter: () => ({
 		push: vi.fn(),
 	}),
+	useSearchParams: () => new URLSearchParams(),
 }))
 
 vi.mock('@/features/admin/users/hooks/use-debounce', () => ({
@@ -188,6 +189,7 @@ function createBusinessRow(mode: 'direct' | 'annual'): Business {
 		hasPayments: mode === 'annual',
 		hasPendingPaymentFunding: mode === 'annual',
 		supportCount: 0,
+		observations: null,
 		currency: { id: 1, name: 'COP' },
 	}
 }
