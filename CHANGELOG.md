@@ -4,9 +4,18 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [1.21.1] - 2026-06-02
+## [1.22.0] - 2026-06-03
+
+### Nuevo
+
+- **Renombre de Simulador a Calculadora:** Se actualizó la nomenclatura en toda la aplicación, cambiando "Simulador" por "Calculadora" en las rutas (`/dashboard/calculadora`), componentes y menú de navegación para reflejar mejor su propósito.
+- **Integración con Sentry:** Se completó la configuración del SDK de Sentry (`@sentry/nextjs`) para el monitoreo de errores en producción, incluyendo la configuración de cliente, servidor y edge, y se deshabilitó su inicialización en entornos de desarrollo local para evitar ruido.
 
 ### Corregido
+
+- **Visualización de 0 en bono de leads:** Se solucionó un problema visual en la Calculadora de Comisiones donde, al no existir un bono por fuente de leads, se mostraba un "0" suelto en la interfaz en lugar de ocultar el bloque por completo.
+
+## [1.21.1] - 2026-06-02
 
 - **Validación de nivel en el Simulador:** Los usuarios de la fuerza de ventas que no tienen un nivel asignado ahora son bloqueados correctamente al intentar simular comisiones, mostrando un mensaje claro de error. Se garantiza que los roles de backoffice (Soporte, Admin) puedan simular libremente sin esta restricción.
 - **Mensajes de validación en formulario:** Se reemplazaron los errores genéricos de tipo (`Invalid input`) en el formulario del simulador por mensajes descriptivos como "Seleccione una compañía" o "Seleccione un producto", mejorando la retroalimentación al usuario.
