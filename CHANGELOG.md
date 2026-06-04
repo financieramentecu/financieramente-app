@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.1] - 2026-06-04
+
+### Mejorado
+
+- **CI/CD Sentry Env Injection:** Se actualizaron los pipelines de GitHub Actions (QA y Producción) y el `Dockerfile` para inyectar automáticamente las variables `SENTRY_AUTH_TOKEN` y `NEXT_PUBLIC_SENTRY_DSN`, garantizando que el mapeo de sourcemaps y el registro de eventos en Sentry funcionen de manera nativa sin configuraciones manuales en los droplets.
+
 ## [1.22.0] - 2026-06-03
 
 ### Nuevo
