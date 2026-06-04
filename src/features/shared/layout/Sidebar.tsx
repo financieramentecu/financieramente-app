@@ -20,7 +20,7 @@ import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar()
 	const { session } = useAuthSession()
-	const { enabled: isSimuladorEnabled } = useFeatureFlag('dashboard_simulador')
+	const { enabled: isCalculadoraEnabled } = useFeatureFlag('dashboard_calculadora')
 	const { enabled: isDashboardEnabled } = useFeatureFlag('production_dashboard')
 	const isCollapsed = state === 'collapsed'
 
@@ -31,7 +31,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		}
 		
 		let items = buildMenuByRole(session.user.role, session.user.permissions, {
-			isSimuladorEnabled,
+			isCalculadoraEnabled,
 		})
 
 		// Filtrar dashboard si el flag está apagado
@@ -40,7 +40,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		}
 
 		return items
-	}, [session, isSimuladorEnabled, isDashboardEnabled])
+	}, [session, isCalculadoraEnabled, isDashboardEnabled])
 
 	return (
 		<Sidebar collapsible="icon" {...props}>

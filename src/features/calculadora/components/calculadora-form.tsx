@@ -16,7 +16,7 @@ import {
 } from '@/features/shared/ui/select'
 import { Card, CardContent } from '@/features/shared/ui/card'
 import { Badge } from '@/features/shared/ui/badge'
-import { getProductDistribution } from '@/features/simulador/actions/get-product-distribution'
+import { getProductDistribution } from '@/features/calculadora/actions/get-product-distribution'
 
 const formSchema = z.object({
 	idCompany: z.number({ message: 'Seleccione una compañía' }).positive('Seleccione una compañía'),
@@ -32,22 +32,22 @@ const formSchema = z.object({
 	clawback: z.number({ message: 'Debe ser un número' }).min(0).max(100),
 })
 
-export type SimuladorFormData = z.infer<typeof formSchema>
+export type CalculadoraFormData = z.infer<typeof formSchema>
 
-interface SimuladorFormProps {
+interface CalculadoraFormProps {
 	companies: { idCompany: number; name: string; currency?: { symbol: string | null } | null }[]
 	products: { idProduct: number; name: string; idCompany: number; discountPercentage?: number | null; clawbackPercentage?: number | null }[]
 	origins: { idClientOrigin: number; name: string }[]
 	levels: { idLevel: number; name: string; code?: string; idNextLevel?: number | null }[]
 	userRole?: string
 	userLevelId?: number | null
-	onSubmit: (data: SimuladorFormData) => void
+	onSubmit: (data: CalculadoraFormData) => void
 	onClear: () => void
 	onChange?: (data: { distributionData: { levelCode: string, levelName: string, porcentaje: number }[] }) => void
 	isPending: boolean
 }
 
-export function SimuladorForm({
+export function CalculadoraForm({
 	companies,
 	products,
 	origins,
@@ -58,7 +58,7 @@ export function SimuladorForm({
 	onClear,
 	onChange,
 	isPending,
-}: SimuladorFormProps) {
+}: CalculadoraFormProps) {
 	const {
 		register,
 		handleSubmit,
@@ -66,7 +66,7 @@ export function SimuladorForm({
 		watch,
 		reset,
 		formState: { errors },
-	} = useForm<SimuladorFormData>({
+	} = useForm<CalculadoraFormData>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			idCompany: undefined,

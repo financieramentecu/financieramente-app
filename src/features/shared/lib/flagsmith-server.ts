@@ -7,7 +7,7 @@ const FLAGSMITH_API_URL = 'https://edge.api.flagsmith.com/api/v1/'
 
 const FALLBACK_FLAGS: Record<FeatureFlag, boolean> = {
 	negocios_advanced_filters: false,
-	dashboard_simulador: true,
+	dashboard_calculadora: true,
 	impersonation_select: false,
 	production_dashboard: true,
 }
