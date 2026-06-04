@@ -1,18 +1,18 @@
 'use client'
 
 import React, { useState, useTransition, useCallback } from 'react'
-import { SimuladorForm, type SimuladorFormData } from './simulador-form'
-import { SimuladorResultados } from './simulador-resultados'
+import { CalculadoraForm, type CalculadoraFormData } from './calculadora-form'
+import { CalculadoraResultados } from './calculadora-resultados'
 import {
-	simulateCommission,
+	calculateCommission,
 	SimulationResult,
-} from '@/features/simulador/actions/simulate-commission'
+} from '@/features/calculadora/actions/calculate-commission'
 import { Alert, AlertDescription } from '@/features/shared/ui/alert'
 import { AlertCircle } from 'lucide-react'
 
 
 
-interface SimuladorClientProps {
+interface CalculadoraClientProps {
 	companies: { idCompany: number; name: string; currency?: { symbol: string | null } | null }[]
 	products: { idProduct: number; name: string; idCompany: number }[]
 	origins: { idClientOrigin: number; name: string }[]
@@ -21,14 +21,14 @@ interface SimuladorClientProps {
 	userLevelId?: number | null
 }
 
-export function SimuladorClient({
+export function CalculadoraClient({
 	companies,
 	products,
 	origins,
 	levels,
 	userRole,
 	userLevelId,
-}: SimuladorClientProps) {
+}: CalculadoraClientProps) {
 	const [isPending, startTransition] = useTransition()
 	const [result, setResult] = useState<SimulationResult | null>(null)
 	const [error, setError] = useState<string | null>(null)
@@ -38,14 +38,14 @@ export function SimuladorClient({
 		// handle changes if needed
 	}, [])
 
-	const handleSimulate = (data: SimuladorFormData) => {
+	const handleCalculate = (data: CalculadoraFormData) => {
 		setError(null)
 		setSubmittedCurrency(data.currency)
 		startTransition(async () => {
 			try {
 				const dataWithTrm = { ...data, trm: 1, idLevelView: data.idLevelView }
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const simResult = await simulateCommission(dataWithTrm as any)
+				const simResult = await calculateCommission(dataWithTrm as any)
 				if (!simResult.success) {
 					setError(simResult.error || 'Error desconocido al simular.')
 					setResult(null)
@@ -74,14 +74,14 @@ export function SimuladorClient({
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
-					<SimuladorForm
+					<CalculadoraForm
 						companies={companies}
 						products={products}
 						origins={origins}
 						levels={levels}
 						userRole={userRole}
 						userLevelId={userLevelId}
-						onSubmit={handleSimulate}
+						onSubmit={handleCalculate}
 						onClear={handleClear}
 						onChange={handleFormChange}
 						isPending={isPending}
@@ -89,7 +89,7 @@ export function SimuladorClient({
 				</div>
 
 				<div className="flex flex-col">
-					<SimuladorResultados
+					<CalculadoraResultados
 						result={result}
 						isLoading={isPending}
 						currency={submittedCurrency}

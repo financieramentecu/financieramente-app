@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { SimuladorClient } from '@/features/simulador/components/simulador-client'
+import { CalculadoraClient } from '@/features/calculadora/components/calculadora-client'
 import { auth } from '@/auth'
 import { UserRole } from '@/features/auth/lib/roles'
 import { prisma } from '@/lib/prisma'
@@ -12,9 +12,9 @@ export const metadata = {
 	description: 'Calcula y simula la distribución de comisiones',
 }
 
-export default async function SimuladorPage() {
+export default async function CalculadoraPage() {
 	// Verificar feature flag
-	const isEnabled = await isFeatureEnabledServer('dashboard_simulador')
+	const isEnabled = await isFeatureEnabledServer('dashboard_calculadora')
 	if (!isEnabled) {
 		redirect('/dashboard')
 	}
@@ -97,8 +97,8 @@ export default async function SimuladorPage() {
 						Simula la distribución de comisiones para proyectar tus ganancias
 					</p>
 				</div>
-				<Suspense fallback={<div>Cargando simulador...</div>}>
-					<SimuladorClient
+				<Suspense fallback={<div>Cargando calculadora...</div>}>
+					<CalculadoraClient
 						companies={companies}
 						products={products}
 						origins={origins}
