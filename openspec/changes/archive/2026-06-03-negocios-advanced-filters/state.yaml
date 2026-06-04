@@ -1,0 +1,27 @@
+change: negocios-advanced-filters
+status: archived
+archived_date: 2026-06-03
+archive_location: openspec/changes/archive/2026-06-03-negocios-advanced-filters/
+artifacts:
+  proposal: openspec/changes/negocios-advanced-filters/proposal.md
+  spec: openspec/changes/negocios-advanced-filters/spec.md
+  design: openspec/changes/negocios-advanced-filters/design.md
+  tasks: openspec/changes/negocios-advanced-filters/tasks.md
+  verify_report: openspec/changes/negocios-advanced-filters/verify-report.md
+  archive_report: openspec/changes/negocios-advanced-filters/archive-report.md
+last_updated: 2026-06-03
+apply_progress:
+  phases_completed: [1, 2, 3, 4, 5, 6, 7, 8]
+  tasks_completed: 29/29
+  tasks_pending: []
+  test_files_passed: 296
+  tests_passed: 2647
+  tests_failed: 0
+verify:
+  verdict: PASS WITH WARNINGS
+  critical: 0
+  warnings: 2
+  suggestions: 1
+  test_files_passed: 296
+  tests_passed: 2647
+  type_check_errors: 0

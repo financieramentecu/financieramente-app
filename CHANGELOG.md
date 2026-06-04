@@ -10,13 +10,35 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 - **Renombre de Simulador a Calculadora:** Se actualizó la nomenclatura en toda la aplicación, cambiando "Simulador" por "Calculadora" en las rutas (`/dashboard/calculadora`), componentes y menú de navegación para reflejar mejor su propósito.
 - **Integración con Sentry:** Se completó la configuración del SDK de Sentry (`@sentry/nextjs`) para el monitoreo de errores en producción, incluyendo la configuración de cliente, servidor y edge, y se deshabilitó su inicialización en entornos de desarrollo local para evitar ruido.
+- **Filtros avanzados en negocios (Sheet completo):** La lista de negocios ahora cuenta con un panel deslizable de filtros avanzados que reemplaza el modal anterior. Incluye diez dimensiones de filtrado: rango de fechas con selector de campo (fondeo, creación o emisión), Money Strategist (multiselect de usuarios), estado (multiselect), soportes/comprobantes (todos / con / sin), compañía, producto, origen, plazo, periodicidad y categoría del Money Strategist. El cambio de compañía filtra automáticamente los productos disponibles.
+
+- **Badge de filtros activos:** El botón "Filtros avanzados" muestra un badge ámbar con la cantidad de dimensiones activas. Se oculta cuando no hay filtros aplicados.
+
+- **Exportación Excel con paridad de filtros:** La descarga de Excel respeta exactamente los mismos filtros que se aplican en la tabla, sin excepción. Ambas rutas (lista y exportación) comparten el mismo esquema de validación.
+
+- **Eliminar negocio fondeado:** Los roles Administrador, Analista de Soporte y Asistente Operativo de Gerencia pueden cancelar negocios en estado Fondeado directamente desde el menú de acciones de la tabla, sin necesidad de cambiar el estado manualmente.
+
+- **Ver motivo de cancelación:** Los negocios cancelados muestran ahora una nueva opción "Ver motivo cancelación" en el menú de acciones, que abre un modal con la observación registrada al momento de la cancelación.
+
+- **Control de acceso "Ver como" por feature flag:** El botón para suplantar usuarios en la tabla de administración ahora está gobernado por el feature flag `impersonation_select` (fallback: desactivado). Permite activar o desactivar la funcionalidad sin re-desplegar.
+
+### Mejorado
+
+- **Nuevos endpoints de catálogo:** Se agregaron `GET /api/periodicities` y `GET /api/negocios/terms` para exponer los catálogos de periodicidades y plazos disponibles en la base de datos, usados por los filtros avanzados.
+
+- **Categorías override:** El endpoint `GET /api/categories` soporta el parámetro `?beneficiaryMode=OVERRIDE` para retornar únicamente las categorías asociadas a usuarios con nivel de tipo Override.
+
+### Corregido
+
+- **Filtro "Sin soportes" no funcionaba:** El parámetro `hasSupports` llegaba al hook de la lista pero no se enviaba al API. Ahora todos los filtros del Sheet se propagan correctamente hasta la consulta.
+
+- **Modal de cancelación se cerraba solo:** Al abrir el modal de cancelación en un negocio fondeado, el modal se cerraba inmediatamente si la carga de datos fallaba. Ahora se pre-carga con los datos disponibles de la tabla antes de iniciar la petición al API.
+
+## [1.21.1] - 2026-06-02
 
 ### Corregido
 
 - **Visualización de 0 en bono de leads:** Se solucionó un problema visual en la Calculadora de Comisiones donde, al no existir un bono por fuente de leads, se mostraba un "0" suelto en la interfaz en lugar de ocultar el bloque por completo.
-
-## [1.21.1] - 2026-06-02
-
 - **Validación de nivel en el Simulador:** Los usuarios de la fuerza de ventas que no tienen un nivel asignado ahora son bloqueados correctamente al intentar simular comisiones, mostrando un mensaje claro de error. Se garantiza que los roles de backoffice (Soporte, Admin) puedan simular libremente sin esta restricción.
 - **Mensajes de validación en formulario:** Se reemplazaron los errores genéricos de tipo (`Invalid input`) en el formulario del simulador por mensajes descriptivos como "Seleccione una compañía" o "Seleccione un producto", mejorando la retroalimentación al usuario.
 
@@ -568,7 +590,7 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 ### Añadido
 
 - **Base de Datos – Carga Inicial (Seed):** Refactorizado el proceso de carga maestro (`prisma db seed`). El sistema ya no inserta datos parciales harcodeados, sino que pobla dinámicamente todo el portafolio de la operación basándose en el catálogo documentado (8 compañías y decenas de productos financieros asociados listos para operar).
-- **Carga Inicial – Trazabilidad Dinámica:** Garantizada la integridad relacional (_Foreign Keys_) mediante un motor de _lookup asíncrono_ que asocia nativamente los productos a la empresa propietaria sin importar el desfasaje de IDs autoincrementales.
+- **Carga Inicial – Trazabilidad Dinámica:** Garantizada la integridad relacional (*Foreign Keys*) mediante un motor de *lookup asíncrono* que asocia nativamente los productos a la empresa propietaria sin importar el desfasaje de IDs autoincrementales.
 
 ### Documentación / Interno
 
@@ -962,7 +984,7 @@ Primera versión **beta** pública del ciclo 1.x: refuerza la pre-liquidación, 
 ### Añadido
 
 - **Administrador:** Integradas documentación y directrices estructuradas para orquestador SDD, y se mejoró la visibilidad del modelo de archivos en el área de administración.
-- **Pre-liquidación:** La creación histórica del desglose de _Clawback_ fue condicionado al flujo de la comisión, refinando la trazabilidad.
+- **Pre-liquidación:** La creación histórica del desglose de *Clawback* fue condicionado al flujo de la comisión, refinando la trazabilidad.
 
 ### Mejorado / Refactorizado
 

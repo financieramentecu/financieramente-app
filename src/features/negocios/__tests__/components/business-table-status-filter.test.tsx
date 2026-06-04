@@ -50,44 +50,28 @@ vi.mock('@/features/shared/ui/DataTable/DataTableColumnHeader', () => ({
 	DataTableColumnHeader: ({ title }: { title: string }) => <span>{title}</span>,
 }))
 
-vi.mock('@/features/shared/ui/select', () => ({
-	Select: ({ children }: { children: React.ReactNode }) => (
-		<div data-testid="mock-select">{children}</div>
-	),
-	SelectTrigger: ({ children }: { children: React.ReactNode }) => (
-		<button type="button">{children}</button>
-	),
-	SelectValue: ({ placeholder }: { placeholder?: string }) => (
-		<span>{placeholder ?? ''}</span>
-	),
-	SelectContent: ({ children }: { children: React.ReactNode }) => (
-		<div>{children}</div>
-	),
-	SelectItem: ({
-		children,
-		value,
-	}: {
-		children: React.ReactNode
-		value: string
-	}) => <div data-value={value}>{children}</div>,
+vi.mock('@/features/negocios/components/AdvancedFiltersSheet', () => ({
+	AdvancedFiltersSheet: () => <button data-testid="advanced-filters-sheet">Filtros avanzados</button>,
+}))
+
+vi.mock('next/navigation', () => ({
+	useRouter: () => ({ replace: vi.fn() }),
+	useSearchParams: () => new URLSearchParams(),
 }))
 
 describe('BusinessTableSection status filter options', () => {
-	it('includes Liquidado and excludes Comisionando', () => {
+	it('renders AdvancedFiltersSheet in the toolbar (inline status filter removed)', () => {
 		render(
 			<BusinessTableSection
 				data={[]}
 				onAddBusiness={vi.fn()}
 				onEditBusiness={vi.fn()}
-				onListStatusChange={vi.fn()}
 			/>
 		)
 
-		expect(
-			screen.getByText('Liquidado', {
-				selector: '[data-value="LIQUIDADO"]',
-			})
-		).toBeInTheDocument()
+		// The inline status Select is gone; AdvancedFiltersSheet replaces it
+		expect(screen.getByTestId('advanced-filters-sheet')).toBeInTheDocument()
+		// Verify no legacy inline filter items (Comisionando never existed)
 		expect(screen.queryByText('Comisionando')).not.toBeInTheDocument()
 	})
 
