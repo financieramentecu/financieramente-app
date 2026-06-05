@@ -4,6 +4,14 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.3] - 2026-06-05
+
+### Corregido
+
+- **Filtro de Money Strategist visible para todos los roles:** El selector de Money Strategist en los filtros avanzados de la lista de negocios ahora carga correctamente para cualquier usuario autenticado. Anteriormente retornaba un error 401 para roles distintos de Administrador porque consultaba un endpoint restringido.
+- **Lista de Money Strategists acotada por jerarquía:** Los usuarios con rol Agente/Coach ven únicamente los money strategists que tienen a su cargo (toda la cadena descendente), no todos los del sistema. Los roles de backoffice (Administrador, Asistente Operativo de Gerencia, Analista de Soporte) siguen viendo la lista completa.
+- **Campos ocultos para MS Junior:** Los campos "Money Strategist" y "Categoría del Money Strategist" se ocultan automáticamente para los usuarios en el nivel más bajo de la jerarquía (MS Junior / LEVEL_0), ya que no tienen agentes a cargo que filtrar.
+
 ## [1.22.2] - 2026-06-05
 
 ### Corregido
