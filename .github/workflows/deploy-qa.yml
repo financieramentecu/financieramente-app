@@ -57,6 +57,7 @@ jobs:
             NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY=${{ secrets.FLAGSMITH_CLIENT_KEY_QA }}
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
             NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN_QA }}
+            SENTRY_PROJECT=financieramente-qa
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
