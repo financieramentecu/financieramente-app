@@ -26,8 +26,6 @@ export interface SimulationHierarchyResult {
 	monto: number
 	puntos: number // Opcional, si hay puntos
 	error?: string
-	porcentajeMia: number
-	montoMia: number
 }
 
 export interface SimulationResult {
@@ -81,9 +79,9 @@ export async function calculateCommission(
 		})
 
 		const userRoleCode = user?.role?.code ?? ''
-		const isBackoffice = ['ADMIN', 'ANALISTA_SOPORTE', 'SOPORTE', 'GERENCIA'].includes(userRoleCode)
+		const userLevelCode = user?.level?.code ?? ''
 
-		if (!user?.idLevel && !isBackoffice) {
+		if (!user?.idLevel && userRoleCode === 'AGENTE') {
 			return {
 				success: false,
 				error: 'Tu usuario no tiene un nivel configurado en la red de ventas. Por favor, comunícate con soporte.',
@@ -106,15 +104,6 @@ export async function calculateCommission(
 		// Construir un mapa rápido id -> level
 		const levelById = new Map(allLevels.map(l => [l.idLevel, l]))
 
-		// Regla de visibilidad: MIA solo se muestra desde NIVEL 4 en adelante
-		const userLevelCode = user?.level?.code ?? ''
-		const userLevelNum = parseInt(userLevelCode.replace('LEVEL_', ''), 10)
-		
-		const viewLevelCodeAux = levelById.get(params.idLevelView)?.code ?? ''
-		const viewLevelNum = parseInt(viewLevelCodeAux.replace('LEVEL_', ''), 10)
-		
-		const canSeeMia = (!isNaN(userLevelNum) && userLevelNum >= 4) || (!isNaN(viewLevelNum) && viewLevelNum >= 4)
-
 		// Construir los IDs permitidos caminando la cadena desde idLevelOrigin hasta idLevelView
 		// La cadena sube usando idNextLevel: LEVEL_0 -> LEVEL_1 -> ... -> LEVEL_5
 		const allowedIds = new Set<number>()
@@ -128,13 +117,6 @@ export async function calculateCommission(
 			steps++
 		}
 
-		const miaLevel = allLevels.find(l => !l.idNextLevel)
-		const miaLevelId = miaLevel ? miaLevel.idLevel : -1
-
-		// Solo incluir MIA en la consulta si el usuario tiene nivel suficiente
-		if (miaLevelId !== -1 && canSeeMia) {
-			allowedIds.add(miaLevelId)
-		}
 
 		// Obtener la config del VENDEDOR (idLevelOrigin) — sus categorías definen
 		// cuánto recibe CADA nivel cuando ese vendedor coloca un negocio.
@@ -182,7 +164,7 @@ export async function calculateCommission(
 		const pctComision = sellerProductConfig.product.commissionPercentage
 			? new Decimal(sellerProductConfig.product.commissionPercentage).div(100)
 			: new Decimal(0)
-			
+
 		const trm = new Decimal(params.trm || 1)
 		const montoVenta = new Decimal(params.montoVenta)
 		const comisionBase = montoVenta.mul(trm).mul(pctComision)
@@ -225,25 +207,18 @@ export async function calculateCommission(
 
 		const allCategories = activePpc.productPercentageCommissionCategories
 
-		// Porcentaje y monto de MIA (para mostrar en cada fila como referencia)
-		const categoryForMia = allCategories.find(c => c.idLevel === miaLevelId)
-		const miaDisplayPct = categoryForMia ? categoryForMia.porcentajeDistribucion.mul(100).toNumber() : 0
-		const miaMonto = categoryForMia ? comisionBase.mul(categoryForMia.porcentajeDistribucion).toNumber() : 0
-
 		// Iterar sobre TODAS las categorías del vendedor y mostrar las que están en allowedIds
 		for (const category of allCategories) {
 			const catLevelId = category.idLevel
-			const isMiaCategory = catLevelId === miaLevelId
 
-			// Solo mostrar niveles dentro del rango seleccionado (o MIA con permiso)
+			// Solo mostrar niveles dentro del rango seleccionado
 			if (!allowedIds.has(catLevelId)) continue
-			if (isMiaCategory && !canSeeMia) continue
 
 			const categoryLevel = levelById.get(catLevelId)
 			if (!categoryLevel) continue
 
 			const porcentajeCalculo = new Decimal(category.porcentajeDistribucion)
-			
+
 			const porcentajeDisplay = porcentajeCalculo.mul(100)
 			const valorComisionBruta = comisionBase.mul(porcentajeCalculo)
 
@@ -262,11 +237,9 @@ export async function calculateCommission(
 			desglose.push({
 				levelCode: categoryLevel.code,
 				levelName: categoryLevel.name,
-				porcentaje: isMiaCategory ? miaDisplayPct : porcentajeDisplay.toNumber(),
-				monto: isMiaCategory ? miaMonto : valorComisionBruta.toNumber(),
+				porcentaje: porcentajeDisplay.toNumber(),
+				monto: valorComisionBruta.toNumber(),
 				puntos: 0,
-				porcentajeMia: miaDisplayPct,
-				montoMia: miaMonto,
 			})
 
 			// Regla: Si el origen es Propio, se calcula un 2% extra
@@ -281,19 +254,6 @@ export async function calculateCommission(
 			}
 		}
 
-		// Si MIA tiene permiso pero no apareció en las categorías, agregar fila vacía
-		const hasMiaRow = desglose.some(d => d.levelCode === (miaLevel?.code || 'LEVEL_6'))
-		if (!hasMiaRow && miaLevel && canSeeMia) {
-			desglose.push({
-				levelCode: miaLevel.code,
-				levelName: miaLevel.name,
-				porcentaje: miaDisplayPct,
-				monto: miaMonto,
-				puntos: 0,
-				porcentajeMia: miaDisplayPct,
-				montoMia: miaMonto,
-			})
-		}
 
 		// Ordenar el desglose por número de nivel (LEVEL_0 primero)
 		desglose.sort((a, b) => {
@@ -327,9 +287,9 @@ export async function calculateCommission(
 	} catch (error) {
 		console.error('Error en calculateCommission:', error)
 		Sentry.captureException(error)
-		
+
 		let errorMessage = error instanceof Error ? error.message : 'Error interno de simulación'
-		
+
 		// Manejar errores de Prisma por columnas o tablas faltantes (migraciones pendientes)
 		if (error && typeof error === 'object' && 'code' in error) {
 			if (error.code === 'P2021' || error.code === 'P2022') {

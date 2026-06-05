@@ -64,7 +64,9 @@ export function HeaderImpersonationSelect() {
 		}
 	}, [isAdmin, userId, originalUserId])
 
-	if (!isAdmin) return null
+	// Solo habilitado en entornos de desarrollo y QA
+	const isDevOrQa = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_API_URL?.includes('.qa.')
+	if (!isAdmin || !isDevOrQa) return null
 
 	const handleImpersonate = async (targetId: string) => {
 		try {
