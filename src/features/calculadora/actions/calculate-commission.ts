@@ -3,6 +3,7 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
+import * as Sentry from '@sentry/nextjs'
 
 export interface CalculadoraParams {
 	idCompany: number
@@ -325,9 +326,20 @@ export async function calculateCommission(
 
 	} catch (error) {
 		console.error('Error en calculateCommission:', error)
+		Sentry.captureException(error)
+		
+		let errorMessage = error instanceof Error ? error.message : 'Error interno de simulación'
+		
+		// Manejar errores de Prisma por columnas o tablas faltantes (migraciones pendientes)
+		if (error && typeof error === 'object' && 'code' in error) {
+			if (error.code === 'P2021' || error.code === 'P2022') {
+				errorMessage = 'La base de datos se encuentra desactualizada (faltan aplicar migraciones). Por favor, contacte a soporte técnico para actualizar la base de datos.'
+			}
+		}
+
 		return {
 			success: false,
-			error: error instanceof Error ? error.message : 'Error interno de simulación',
+			error: errorMessage,
 			comisionBase: 0,
 			trmAplicada: params.trm,
 			desglose: [],

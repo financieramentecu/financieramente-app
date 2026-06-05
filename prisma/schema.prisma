@@ -166,8 +166,7 @@ model ProductConfiguration {
   updatedAt                                  DateTime                      @updatedAt @map("updated_at")
   code                                       String                        @unique @db.VarChar(50)
   active                                     Boolean                       @default(true) @map("active")
-  clawback_percentage                        Decimal                       @default(0) @db.Decimal(5, 2)
-  discount_percentage                        Decimal                       @default(12) @db.Decimal(5, 2)
+
   level                                      Level                         @relation(fields: [idLevel], references: [idLevel])
   product                                    Product                       @relation(fields: [idProduct], references: [idProduct])
   productPercentageCommissionNewBusinesses   ProductPercentageCommission?  @relation("PpcNewBusinesses", fields: [idProductPercentageCommissionNewBusinesses], references: [idProductPercentageCommission])
