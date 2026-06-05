@@ -1,5 +1,72 @@
 import { prisma } from '@/lib/prisma'
 
+export interface AgentCatalogItem {
+	id: number
+	name: string
+	lastName: string | null
+}
+
+export interface AgentCatalogResult {
+	agents: AgentCatalogItem[]
+	showFilter: boolean
+}
+
+const MS_JUNIOR_LEVEL_CODE = 'LEVEL_0'
+
+const HIERARCHY_BYPASS_ROLE_CODES = new Set(['ADMIN', 'ASISTENTE_GERENCIA_OPERATIVA', 'ANALISTA_SOPORTE'])
+
+async function fetchAgentsByIds(userIds: number[]): Promise<AgentCatalogItem[]> {
+	const users = await prisma.user.findMany({
+		where: {
+			active: true,
+			role: { code: 'AGENTE' },
+			idUser: { in: userIds },
+		},
+		select: { idUser: true, name: true, lastName: true },
+		orderBy: [{ name: 'asc' }, { lastName: 'asc' }],
+	})
+	return users.map((u) => ({ id: u.idUser, name: u.name, lastName: u.lastName }))
+}
+
+export async function listActiveAgents(viewer: {
+	idUser: number
+	roleCode: string | null
+	levelCode: string | null
+}): Promise<AgentCatalogResult> {
+	const { idUser, roleCode, levelCode } = viewer
+
+	// Backoffice roles — return all active AGENTEs
+	if (roleCode && HIERARCHY_BYPASS_ROLE_CODES.has(roleCode)) {
+		const users = await prisma.user.findMany({
+			where: { active: true, role: { code: 'AGENTE' } },
+			select: { idUser: true, name: true, lastName: true },
+			orderBy: [{ name: 'asc' }, { lastName: 'asc' }],
+		})
+		return {
+			agents: users.map((u) => ({ id: u.idUser, name: u.name, lastName: u.lastName })),
+			showFilter: true,
+		}
+	}
+
+	// AGENTE at lowest level — hide the filter entirely
+	if (levelCode === MS_JUNIOR_LEVEL_CODE) {
+		return { agents: [], showFilter: false }
+	}
+
+	// AGENTE at a higher level — return only their tree (descendants + self)
+	const { getAccessibleUserIds } = await import('@/features/auth/lib/hierarchy')
+	const accessibleIds = await getAccessibleUserIds(idUser)
+	// Exclude the viewer from the list (they are filtering OTHER agents)
+	const subordinateIds = accessibleIds.filter((id) => id !== idUser)
+
+	if (subordinateIds.length === 0) {
+		return { agents: [], showFilter: false }
+	}
+
+	const agents = await fetchAgentsByIds(subordinateIds)
+	return { agents, showFilter: true }
+}
+
 /**
  * Obtiene el saldo de Clawback acumulado para un usuario.
  */

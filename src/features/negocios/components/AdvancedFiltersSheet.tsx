@@ -178,9 +178,12 @@ export function AdvancedFiltersSheet() {
 			}))
 			: []
 
+	const showMoneyStrategistFilter =
+		moneyStrategistsState.status === 'success' && moneyStrategistsState.data.showFilter
+
 	const moneyStrategistOptions =
 		moneyStrategistsState.status === 'success'
-			? moneyStrategistsState.data.map((u) => ({ value: String(u.id), label: u.name }))
+			? moneyStrategistsState.data.strategists.map((u) => ({ value: String(u.id), label: u.name }))
 			: []
 
 	const agentCategoryOptions =
@@ -335,21 +338,23 @@ export function AdvancedFiltersSheet() {
 						</section>
 
 						{/* Money Strategist multiselect */}
-						<section className="space-y-2">
-							<Label className="text-sm font-semibold">Money Strategist</Label>
-							<Controller
-								control={control}
-								name="agentIds"
-								render={({ field }) => (
-									<MultiSelect
-										options={moneyStrategistOptions}
-										value={field.value}
-										onChange={field.onChange}
-										placeholder="Todos los money strategists"
-									/>
-								)}
-							/>
-						</section>
+						{showMoneyStrategistFilter && (
+							<section className="space-y-2">
+								<Label className="text-sm font-semibold">Money Strategist</Label>
+								<Controller
+									control={control}
+									name="agentIds"
+									render={({ field }) => (
+										<MultiSelect
+											options={moneyStrategistOptions}
+											value={field.value}
+											onChange={field.onChange}
+											placeholder="Todos los money strategists"
+										/>
+									)}
+								/>
+							</section>
+						)}
 
 						{/* Status multiselect */}
 						<section className="space-y-2">
@@ -369,21 +374,23 @@ export function AdvancedFiltersSheet() {
 						</section>
 
 						{/* Agent category multiselect */}
-						<section className="space-y-2">
-							<Label className="text-sm font-semibold">Categoría del Money Strategist</Label>
-							<Controller
-								control={control}
-								name="agentCategoryIds"
-								render={({ field }) => (
-									<MultiSelect
-										options={agentCategoryOptions}
-										value={field.value}
-										onChange={field.onChange}
-										placeholder="Todas las categorías"
-									/>
-								)}
-							/>
-						</section>
+						{showMoneyStrategistFilter && (
+							<section className="space-y-2">
+								<Label className="text-sm font-semibold">Categoría del Money Strategist</Label>
+								<Controller
+									control={control}
+									name="agentCategoryIds"
+									render={({ field }) => (
+										<MultiSelect
+											options={agentCategoryOptions}
+											value={field.value}
+											onChange={field.onChange}
+											placeholder="Todas las categorías"
+										/>
+									)}
+								/>
+							</section>
+						)}
 
 						{/* hasSupports radio */}
 						<section className="space-y-2">
