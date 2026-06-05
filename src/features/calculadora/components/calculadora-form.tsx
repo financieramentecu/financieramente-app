@@ -105,13 +105,7 @@ export function CalculadoraForm({
 
 	const sellLevels = useMemo(() => {
 		if (!selectedLevelViewId) return []
-		
-		// Si es Money Strategy (NO ADMIN), siempre ve sus niveles permitidos independientemente de "Tu Nivel"
-		if (userRole !== 'ADMIN') {
-			return levels
-		}
-
-		// Si es ADMIN, respeta la lógica de filtrar hacia abajo desde "Tu Nivel"
+		// Respeta la lógica de filtrar hacia abajo desde "Tu Nivel" para todos los roles
 		const allowedSellIds = new Set<number>()
 		allowedSellIds.add(selectedLevelViewId)
 

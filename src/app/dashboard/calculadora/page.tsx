@@ -29,6 +29,22 @@ export default async function CalculadoraPage() {
 		select: { idLevel: true }
 	})
 
+	// Validar que el agente tenga nivel configurado desde la carga inicial
+	if (userRole === UserRole.AGENTE && !currentUser?.idLevel) {
+		return (
+			<DashboardLayout currentPage="Calculadora">
+				<div className="container mx-auto py-8 max-w-7xl">
+					<div className="mb-8">
+						<h1 className="text-3xl font-bold tracking-tight text-destructive">Acceso Denegado</h1>
+						<p className="text-muted-foreground mt-2">
+							Tu usuario no tiene un nivel configurado en la red de ventas. Por favor, comunícate con soporte para configurar tu cuenta.
+						</p>
+					</div>
+				</div>
+			</DashboardLayout>
+		)
+	}
+
 	// Obtener datos iniciales para los selects
 	const [companies, products, origins, allLevels] = await Promise.all([
 		prisma.company.findMany({
@@ -51,7 +67,7 @@ export default async function CalculadoraPage() {
 			orderBy: { name: 'asc' },
 		}),
 		prisma.level.findMany({
-			where: { status: true },
+			where: { status: true, beneficiaryMode: 'OVERRIDE' },
 			select: { idLevel: true, name: true, idNextLevel: true, code: true },
 			orderBy: { idLevel: 'asc' },
 		})
