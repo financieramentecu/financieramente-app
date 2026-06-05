@@ -27,7 +27,10 @@ export interface BusinessListParams {
 	page?: number
 	pageSize?: number
 	search?: string
+	/** Back-compat single status filter */
 	status?: BusinessStatus
+	/** Multiselect statuses — takes precedence over `status` when provided */
+	statuses?: BusinessStatus[]
 	/** YYYY-MM-DD; debe ir junto con `dateTo` (filtro por `date_anchored` negocio, Bogotá) */
 	dateFrom?: string
 	/** YYYY-MM-DD */
@@ -36,25 +39,53 @@ export interface BusinessListParams {
 	createdFrom?: string
 	/** YYYY-MM-DD; filtra por createdAt del negocio */
 	createdTo?: string
+	/** YYYY-MM-DD; filtra por dateIssued (fecha de emisión, columna nullable) */
+	dateIssuedFrom?: string
+	/** YYYY-MM-DD */
+	dateIssuedTo?: string
 	/** Filtro por nombre del Money Strategist (agente) */
 	agentName?: string
 	/** Campo por el que ordenar: 'agentName' | 'createdAt' | etc. */
 	sortBy?: string
 	/** Dirección del orden: 'asc' | 'desc' */
 	sortOrder?: 'asc' | 'desc'
-	/** Campos de Filtros Avanzados */
+	/** Filter by whether the business has active support records */
+	hasSupports?: boolean
+	/** Filtros Avanzados — catálogos */
 	companyIds?: number[]
 	productIds?: number[]
 	originIds?: number[]
+	/** Plazo en años (distinct values from Business.term) */
+	terms?: number[]
+	/** IDs de periodicidad de compra */
+	periodicityIds?: number[]
+	/** IDs de categoría del Money Strategist */
+	agentCategoryIds?: number[]
+	/** IDs de Money Strategist (User.idUser) */
+	agentIds?: number[]
 }
 
-/** Body POST `/api/negocios/export` */
+/** Body POST `/api/negocios/export` — mirrors all filter params from BusinessListParams */
 export interface NegociosExportBody {
+	search?: string
+	status?: BusinessStatus
+	statuses?: BusinessStatus[]
 	/** Con `dateTo`, filtra por `date_anchored` (Bogotá). Sin fechas = sin filtro de rango. */
 	dateFrom?: string
 	dateTo?: string
-	search?: string
-	status?: BusinessStatus
+	createdFrom?: string
+	createdTo?: string
+	dateIssuedFrom?: string
+	dateIssuedTo?: string
+	agentName?: string
+	hasSupports?: boolean
+	companyIds?: number[]
+	productIds?: number[]
+	originIds?: number[]
+	terms?: number[]
+	periodicityIds?: number[]
+	agentCategoryIds?: number[]
+	agentIds?: number[]
 }
 
 // ============================================

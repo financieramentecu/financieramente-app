@@ -54,6 +54,9 @@ jobs:
             AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_PROD }}
             FLAGSMITH_SERVER_KEY=${{ secrets.FLAGSMITH_SERVER_KEY_PROD }}
             NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY=${{ secrets.FLAGSMITH_CLIENT_KEY_PROD }}
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN_PROD }}
+            SENTRY_PROJECT=financieramente-prod
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -147,6 +150,8 @@ jobs:
           DO_SPACES_PREFIX=prod
           NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY=${{ secrets.FLAGSMITH_CLIENT_KEY_PROD }}
           FLAGSMITH_SERVER_KEY=${{ secrets.FLAGSMITH_SERVER_KEY_PROD }}
+          NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN_PROD }}
+          SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           ENVEOF
           sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" .env
 

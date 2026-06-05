@@ -126,27 +126,27 @@ export async function PATCH(
 			BUSINESS_STATUS.VENTA_EFECTUADA,
 			BUSINESS_STATUS.EMITIDO,
 		]
-		if (
-			!cancelableStatuses.includes(
-				existingBusiness.status as typeof BUSINESS_STATUS.VENTA_EFECTUADA
-			)
-		) {
+		const isFondeado = existingBusiness.status === BUSINESS_STATUS.FONDEADO
+		const canCancelFondeado = isFondeado && CANCEL_ALLOWED_ROLES.includes(userRole)
+
+		if (!cancelableStatuses.includes(existingBusiness.status as typeof BUSINESS_STATUS.VENTA_EFECTUADA) && !canCancelFondeado) {
 			return NextResponse.json(
 				{
 					data: null,
-					error:
-						'Solo se pueden cancelar negocios en estado Venta Efectuada o Emitido',
+					error: 'Solo se pueden cancelar negocios en estado Venta Efectuada, Emitido o Fondeado',
 				},
 				{ status: 400 }
 			)
 		}
+
+		const observationsPrefix = isFondeado ? '[ELIMINADO]' : '[CANCELADO]'
 
 		// Cancelar negocio
 		const cancelledBusiness = await prisma.business.update({
 			where: { idBusiness: businessId },
 			data: {
 				status: BUSINESS_STATUS.CANCELADO,
-				observations: `[CANCELADO] ${reason}`,
+				observations: `${observationsPrefix} ${reason}`,
 			},
 			include: businessWithRelations,
 		})

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { SidebarProvider, SidebarInset } from '@/features/shared/ui/sidebar'
 import { AppSidebar } from './Sidebar'
 import { SiteHeader } from './Header'
+import { ImpersonationBanner } from './ImpersonationBanner'
 import { buildBreadcrumbsFromPathname } from '@/lib/navigation/breadcrumb-utils'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +40,7 @@ export function DashboardLayout({
 			)}
 			<AppSidebar />
 			<SidebarInset className="flex flex-col flex-1 min-h-0 min-w-0 w-full overflow-hidden bg-background">
+				<ImpersonationBanner />
 				{/* Header y Miga de pan - Altura automática */}
 				<SiteHeader title={currentPage} breadcrumbs={breadcrumbs} />
 				

@@ -4,21 +4,14 @@ import React, { useMemo, useState } from 'react'
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { DataTableColumnHeader } from '@/features/shared/ui/DataTable/DataTableColumnHeader'
 import { Button } from '@/features/shared/ui/button'
-import { AdvancedFiltersModal } from '@/features/negocios/components/modals/AdvancedFiltersModal'
+import { AdvancedFiltersSheet } from '@/features/negocios/components/AdvancedFiltersSheet'
 import { Business } from '@/features/negocios/types/business.types'
 import {
 	Avatar,
 	AvatarFallback,
 	AvatarImage,
 } from '@/features/shared/ui/avatar'
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/features/shared/ui/select'
-import { Plus, Coins, Download, CalendarRange, Pencil, Check, X, Filter } from 'lucide-react'
+import { Plus, Coins, Download, Pencil, Check, X } from 'lucide-react'
 import { BusinessRowActions } from './BusinessRowActions'
 import { Input } from '@/features/shared/ui/input'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
@@ -27,6 +20,7 @@ import {
 	UserRole,
 	canEditContractWhenBusinessEmitido,
 	canFundPayments,
+	canEliminateFondeado,
 } from '@/features/auth/lib/roles'
 import {
 	Tooltip,
@@ -52,21 +46,10 @@ import {
 } from '@/features/negocios/lib/fondear-action-copy'
 import {
 	BUSINESS_STATUS,
-	type BusinessStatus,
 } from '@/features/negocios/types/business-entity.types'
 import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
 import { formatDateBogota } from '@/features/shared/lib/format-date'
 
-/** Valor sentinela del Select para “todos los estados” (Radix no admite value vacío). */
-const LIST_STATUS_FILTER_ALL = '__all__'
-
-const LIST_STATUS_OPTIONS: { value: BusinessStatus; label: string }[] = [
-	{ value: BUSINESS_STATUS.VENTA_EFECTUADA, label: 'Venta efectuada' },
-	{ value: BUSINESS_STATUS.EMITIDO, label: 'Emitido' },
-	{ value: BUSINESS_STATUS.LIQUIDADO, label: 'Liquidado' },
-	{ value: BUSINESS_STATUS.CANCELADO, label: 'Cancelado' },
-	{ value: BUSINESS_STATUS.FONDEADO, label: 'Fondeado' },
-]
 
 interface PaginationData {
 	page: number
@@ -89,18 +72,6 @@ interface BusinessTableSectionProps {
 	isSearching?: boolean
 	/** Used to show edit on Emitido only for roles allowed by API */
 	userRole?: UserRole
-	/** Filtro por estado en la lista (`undefined` = todos) */
-	listStatus?: BusinessStatus
-	onListStatusChange?: (status: BusinessStatus | undefined) => void
-	/** Filtro por nombre de Money Strategist */
-	agentName?: string
-	onAgentNameChange?: (value: string) => void
-	/** YYYY-MM-DD — filtro por `date_anchored` del negocio */
-	fundDateFrom?: string
-	fundDateTo?: string
-	onFundDateFromChange?: (value: string) => void
-	onFundDateToChange?: (value: string) => void
-	fundDateRangeActive?: boolean
 	canExportExcel?: boolean
 	onExportExcel?: () => void
 	isExportingExcel?: boolean
@@ -114,11 +85,8 @@ interface BusinessTableSectionProps {
 	sortOrder?: 'asc' | 'desc'
 	onUploadSuccess?: () => void
 	onDeleteSuccess?: () => void
+	onViewObservations?: (business: Business) => void
 	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
-	companyIds?: number[]
-	productIds?: number[]
-	originIds?: number[]
-	onAdvancedFiltersChange?: (filters: { companyIds: number[]; productIds: number[]; originIds: number[] }) => void
 }
 
 const BUSINESS_COLUMN_LABELS = {
@@ -153,15 +121,6 @@ export function BusinessTableSection({
 	onPageSizeChange,
 	isSearching = false,
 	userRole,
-	listStatus,
-	onListStatusChange,
-	agentName = '',
-	onAgentNameChange,
-	fundDateFrom = '',
-	fundDateTo = '',
-	onFundDateFromChange,
-	onFundDateToChange,
-	fundDateRangeActive = false,
 	canExportExcel = false,
 	onExportExcel,
 	isExportingExcel = false,
@@ -171,13 +130,9 @@ export function BusinessTableSection({
 	sortOrder,
 	onUploadSuccess,
 	onDeleteSuccess,
+	onViewObservations,
 	onSaveDateIssued,
-	companyIds = [],
-	productIds = [],
-	originIds = [],
-	onAdvancedFiltersChange,
 }: BusinessTableSectionProps) {
-	const [advancedFiltersModalOpen, setAdvancedFiltersModalOpen] = useState(false)
 	const [editingDateId, setEditingDateId] = useState<number | null>(null)
 	const [tempDate, setTempDate] = useState<string>('')
 	const [isSavingDate, setIsSavingDate] = useState(false)
@@ -406,7 +361,7 @@ export function BusinessTableSection({
 				const business = row.original
 				const businessId = Number(business.id)
 				const isEditing = editingDateId === businessId
-				
+
 				const isEditable =
 					business.statusCode === BUSINESS_STATUS.EMITIDO &&
 					(userRole === UserRole.ADMIN || userRole === UserRole.ANALISTA_SOPORTE) &&
@@ -434,7 +389,7 @@ export function BusinessTableSection({
 
 				const handleSaveClick = (e: React.MouseEvent) => {
 					e.stopPropagation()
-					
+
 					let originalFormatted = ''
 					if (business.dateIssued) {
 						const d = new Date(business.dateIssued)
@@ -467,7 +422,7 @@ export function BusinessTableSection({
 
 				if (isEditing) {
 					return (
-						<div 
+						<div
 							className="flex items-center gap-1.5 min-w-[170px]"
 							onClick={(e) => e.stopPropagation()}
 						>
@@ -621,131 +576,11 @@ export function BusinessTableSection({
 							onSortingChange(sortBy, first.desc ? 'desc' : 'asc')
 						}
 					}}
-					renderAdditionalFilters={
-						onListStatusChange ||
-							onAgentNameChange ||
-							(onFundDateFromChange && onFundDateToChange)
-							? () => (
-								<div className="flex flex-wrap items-center gap-2 py-2">
-									{onAgentNameChange ? (
-										<div className="w-[180px]">
-											<Input
-												placeholder="Money Strategist..."
-												value={agentName}
-												onChange={(e) => onAgentNameChange(e.target.value)}
-												className="h-9"
-											/>
-										</div>
-									) : null}
-									{onFundDateFromChange && onFundDateToChange ? (
-										<fieldset className="border-input bg-muted/25 m-0 inline-flex h-9 max-w-full min-w-0 shrink-0 flex-nowrap items-center gap-x-2 rounded-lg border px-2 py-0 shadow-xs">
-											<legend className="sr-only">
-												Rango de fechas de fondeo para filtrar la tabla
-											</legend>
-											<span className="text-muted-foreground inline-flex shrink-0 items-center gap-1.5">
-												<CalendarRange
-													className="pointer-events-none size-4 shrink-0"
-													aria-hidden
-												/>
-												<span className="hidden text-xs font-medium whitespace-nowrap md:inline">
-													{userRole === UserRole.AGENTE
-														? 'Creación'
-														: 'Fondeo'}
-												</span>
-											</span>
-											<div className="flex min-w-0 flex-nowrap items-center gap-1.5">
-												<Input
-													id="fund-date-from"
-													type="date"
-													value={fundDateFrom}
-													onChange={(e) =>
-														onFundDateFromChange(e.target.value)
-													}
-													className="border-0 bg-transparent py-0 leading-none shadow-none h-full min-w-[7.5rem] flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
-													aria-label="Fecha de fondeo desde"
-												/>
-												<span
-													className="text-muted-foreground shrink-0 select-none text-xs tabular-nums"
-													aria-hidden
-												>
-													–
-												</span>
-												<Input
-													id="fund-date-to"
-													type="date"
-													value={fundDateTo}
-													onChange={(e) => onFundDateToChange(e.target.value)}
-													className="border-0 bg-transparent py-0 leading-none shadow-none h-full min-w-[7.5rem] flex-1 px-1.5 text-sm focus-visible:ring-2 sm:w-[132px] sm:flex-initial md:w-[145px]"
-													aria-label="Fecha de fondeo hasta"
-												/>
-											</div>
-										</fieldset>
-									) : null}
-									{onListStatusChange ? (
-										<Select
-											value={listStatus ?? LIST_STATUS_FILTER_ALL}
-											onValueChange={(v) =>
-												onListStatusChange(
-													v === LIST_STATUS_FILTER_ALL
-														? undefined
-														: (v as BusinessStatus)
-												)
-											}
-											disabled={fundDateRangeActive}
-										>
-											<SelectTrigger
-												className="h-9 w-[140px] lg:w-[170px]"
-												aria-label="Filtrar por estado del negocio"
-												title={
-													fundDateRangeActive
-														? 'Estado fijo a Fondeado cuando hay rango de fechas'
-														: undefined
-												}
-											>
-												<SelectValue placeholder="Estado" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value={LIST_STATUS_FILTER_ALL}>
-													Todos los estados
-												</SelectItem>
-												{LIST_STATUS_OPTIONS.map(({ value, label }) => (
-													<SelectItem key={value} value={value}>
-														{label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									) : null}
-									{onAdvancedFiltersChange ? (
-										<Button
-											variant={
-												companyIds.length > 0 ||
-												productIds.length > 0 ||
-												originIds.length > 0
-													? 'secondary'
-													: 'outline'
-											}
-											size="sm"
-											className="h-9 ml-auto"
-											onClick={() => setAdvancedFiltersModalOpen(true)}
-										>
-											<Filter className="mr-2 h-4 w-4" />
-											Filtros avanzados
-											{(companyIds.length > 0 ||
-												productIds.length > 0 ||
-												originIds.length > 0) && (
-												<span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-xs font-semibold text-primary">
-													{companyIds.length +
-														productIds.length +
-														originIds.length}
-												</span>
-											)}
-										</Button>
-									) : null}
-								</div>
-							)
-							: undefined
-					}
+					renderAdditionalFilters={() => (
+						<div className="flex flex-wrap items-center gap-2 py-2">
+							<AdvancedFiltersSheet />
+						</div>
+					)}
 					toolbarTrailingActions={
 						canExportExcel && onExportExcel
 							? () => (
@@ -779,10 +614,12 @@ export function BusinessTableSection({
 							userRole !== undefined &&
 							canEditContractWhenBusinessEmitido(userRole)
 						const isEditable = isVentaEfectuado || canEditEmitido
+						const isCancelado = row.statusCode === BUSINESS_STATUS.CANCELADO
+					const isFondeado = row.statusCode === BUSINESS_STATUS.FONDEADO
 						const isCancelable =
-							(isVentaEfectuado || isEmitido) && userRole !== UserRole.AGENTE
+							((isVentaEfectuado || isEmitido) && userRole !== UserRole.AGENTE) ||
+							(isFondeado && canEliminateFondeado(userRole))
 						const canFondearRole = canFundPayments(userRole)
-						const isFondeado = row.statusCode === BUSINESS_STATUS.FONDEADO
 						const showFondearDirect =
 							isEmitido && !row.hasPayments && canFondearRole
 						const showFondearAnnual =
@@ -846,6 +683,11 @@ export function BusinessTableSection({
 									onView={
 										onViewBusiness ? () => onViewBusiness(row) : undefined
 									}
+									onViewObservations={
+										onViewObservations && isCancelado && row.observations
+											? () => onViewObservations(row)
+											: undefined
+									}
 									onCancel={
 										onCancelBusiness && isCancelable
 											? () => onCancelBusiness(row)
@@ -856,19 +698,6 @@ export function BusinessTableSection({
 						)
 					}}
 				/>
-
-				{onAdvancedFiltersChange && (
-					<AdvancedFiltersModal
-						isOpen={advancedFiltersModalOpen}
-						onClose={() => setAdvancedFiltersModalOpen(false)}
-						initialCompanyIds={companyIds}
-						initialProductIds={productIds}
-						initialOriginIds={originIds}
-						onApplyFilters={(filters) => {
-							onAdvancedFiltersChange(filters)
-						}}
-					/>
-				)}
 
 				{/* Modal de confirmación para recálculo de fondeos desde la tabla */}
 				<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

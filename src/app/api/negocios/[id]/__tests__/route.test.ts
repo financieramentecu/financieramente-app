@@ -102,18 +102,18 @@ describe('PUT /api/negocios/[id]', () => {
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
 		const mockBusiness = { ...mockPrismaBusinessEmitido, idBusiness: 10 }
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(auth as any).mockResolvedValue(mockSession)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		mockPrismaFindFirst.mockImplementation(({ where }: any) => {
 			if (typeof where.idBusiness === 'number' || typeof where.idBusiness === 'string') return Promise.resolve(mockBusiness)
 			return Promise.resolve(null)
 		})
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(prisma.clientOrigin.findFirst as any).mockResolvedValue({ idClientOrigin: 2, status: true })
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(validateProductConfigurationExists as any).mockResolvedValue({ valid: true })
 
 		const req = new Request('http://localhost:3000/api/negocios/10', {
@@ -122,7 +122,7 @@ describe('PUT /api/negocios/[id]', () => {
 			body: JSON.stringify({ idClientOrigin: 2 }),
 		})
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 		await res.json()
 
@@ -139,11 +139,11 @@ describe('PUT /api/negocios/[id]', () => {
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
 		const mockBusiness = { ...mockPrismaBusinessVentaEfectuada, idBusiness: 10 } // NOT EMITIDO
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(auth as any).mockResolvedValue(mockSession)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		mockPrismaFindFirst.mockImplementation(({ where }: any) => {
 			if (typeof where.idBusiness === 'number' || typeof where.idBusiness === 'string') return Promise.resolve(mockBusiness)
 			return Promise.resolve(null)
@@ -155,7 +155,7 @@ describe('PUT /api/negocios/[id]', () => {
 			body: JSON.stringify({ idClientOrigin: 2 }),
 		})
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 		const data = await res.json() as { error: string }
 
@@ -169,18 +169,18 @@ describe('PUT /api/negocios/[id]', () => {
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
 		const mockBusiness = { ...mockPrismaBusinessEmitido, idBusiness: 10 }
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(auth as any).mockResolvedValue(mockSession)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		mockPrismaFindFirst.mockImplementation(({ where }: any) => {
 			if (typeof where.idBusiness === 'number' || typeof where.idBusiness === 'string') return Promise.resolve(mockBusiness)
 			return Promise.resolve(null)
 		})
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(prisma.clientOrigin.findFirst as any).mockResolvedValue({ idClientOrigin: 2, status: true })
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(validateProductConfigurationExists as any).mockResolvedValue({
 			valid: false,
 			reason: 'No existe configuración de distribución para el origen, producto y categoría del negocio. Configurá la distribución antes de cambiar el origen.',
@@ -192,7 +192,7 @@ describe('PUT /api/negocios/[id]', () => {
 			body: JSON.stringify({ idClientOrigin: 2 }),
 		})
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 		const data = await res.json() as { error: string }
 
@@ -206,18 +206,18 @@ describe('PUT /api/negocios/[id]', () => {
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' } }
 		const mockBusiness = { ...mockPrismaBusinessEmitido, idBusiness: 10 }
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(auth as any).mockResolvedValue(mockSession)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(getCurrentUserByEmail as any).mockResolvedValue(mockCurUser)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		mockPrismaFindFirst.mockImplementation(({ where }: any) => {
 			if (typeof where.idBusiness === 'number' || typeof where.idBusiness === 'string') return Promise.resolve(mockBusiness)
 			return Promise.resolve(null)
 		})
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(prisma.clientOrigin.findFirst as any).mockResolvedValue({ idClientOrigin: 2, status: true })
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(validateProductConfigurationExists as any).mockResolvedValue({ valid: true })
 
 		const req = new Request('http://localhost:3000/api/negocios/10', {
@@ -226,7 +226,7 @@ describe('PUT /api/negocios/[id]', () => {
 			body: JSON.stringify({ idClientOrigin: 2 }),
 		})
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 		await res.json()
 
@@ -252,11 +252,11 @@ describe('PUT /api/negocios/[id]', () => {
 			dateIssued: null,
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(auth as any).mockResolvedValue(mockSession)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		mockPrismaFindFirst
 			.mockResolvedValueOnce(mockBusinessVe)
 			.mockResolvedValueOnce(null)
@@ -268,7 +268,7 @@ describe('PUT /api/negocios/[id]', () => {
 			body: JSON.stringify({ contract: 'PN7777777' }),
 		})
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 
 		expect(res.status).toBe(200)
@@ -300,11 +300,11 @@ describe('PUT /api/negocios/[id]', () => {
 			contract: 'PN-OLD',
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(auth as any).mockResolvedValue(mockSession)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		mockPrismaFindFirst
 			.mockResolvedValueOnce(mockBusinessEmitido)
 			.mockResolvedValueOnce(null)
@@ -316,7 +316,7 @@ describe('PUT /api/negocios/[id]', () => {
 			body: JSON.stringify({ contract: 'PN-NEW999' }),
 		})
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 
 		expect(res.status).toBe(200)
@@ -388,11 +388,11 @@ describe('PUT /api/negocios/[id]', () => {
 			numAportes: 3,
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(auth as any).mockResolvedValue(mockSession)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		mockPrismaFindFirst.mockResolvedValue(mockBusinessEmitido)
 
 		const req = new Request('http://localhost:3000/api/negocios/10', {
@@ -401,7 +401,7 @@ describe('PUT /api/negocios/[id]', () => {
 			body: JSON.stringify({ dateIssued: '2024-02-01T00:00:00.000Z' }),
 		})
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
 		const data = await res.json() as { error: string }
 
@@ -426,11 +426,11 @@ describe('PUT /api/negocios/[id]', () => {
 			numAportes: 3,
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(auth as any).mockResolvedValue(mockSession)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		mockPrismaFindFirst.mockResolvedValue(mockBusinessFondeado)
 		mockPrismaUpdate.mockResolvedValue({ idBusiness: 10, status: 'FONDEADO', dateIssued: new Date('2024-02-01T12:00:00Z') })
 

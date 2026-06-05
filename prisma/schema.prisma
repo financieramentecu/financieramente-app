@@ -12,10 +12,10 @@ model Company {
   idCompany     Int       @id @default(autoincrement()) @map("id_company")
   name          String    @db.VarChar(100)
   idTypeCompany String    @map("id_type_company") @db.VarChar(20)
-  idCurrency    Int?      @map("id_currency")
   status        Boolean   @default(true)
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
+  idCurrency    Int?      @map("id_currency")
   currency      Currency? @relation(fields: [idCurrency], references: [idCurrency])
   products      Product[]
 
@@ -26,13 +26,13 @@ model Company {
 }
 
 model ClientOrigin {
-  idClientOrigin        Int                    @id @default(autoincrement()) @map("id_client_origin")
-  name                  String                 @db.VarChar(100)
-  description           String?
-  status                Boolean                @default(true)
-  createdAt             DateTime               @default(now()) @map("created_at")
-  updatedAt             DateTime               @updatedAt @map("updated_at")
-  businesses Business[]
+  idClientOrigin Int        @id @default(autoincrement()) @map("id_client_origin")
+  name           String     @db.VarChar(100)
+  description    String?
+  status         Boolean    @default(true)
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  businesses     Business[]
 
   @@map("client_origin")
 }
@@ -42,12 +42,12 @@ model Level {
   code                                  String                                @unique @db.VarChar(20)
   name                                  String                                @db.VarChar(50)
   descripcion                           String?
-  color                                 String                                @default("#cccccc") @db.VarChar(7)
   status                                Boolean                               @default(true)
   createdAt                             DateTime                              @default(now()) @map("created_at")
   updatedAt                             DateTime                              @updatedAt @map("updated_at")
   beneficiaryMode                       BeneficiaryMode                       @default(OVERRIDE) @map("beneficiary_mode")
   idFixedBeneficiaryUser                Int?                                  @map("id_fixed_beneficiary_user")
+  color                                 String                                @default("#cccccc") @db.VarChar(7)
   idNextLevel                           Int?                                  @map("id_next_level")
   fixedBeneficiaryUser                  User?                                 @relation("LevelFixedBeneficiary", fields: [idFixedBeneficiaryUser], references: [idUser])
   nextLevel                             Level?                                @relation("LevelSequence", fields: [idNextLevel], references: [idLevel])
@@ -146,11 +146,11 @@ model Product {
   status                Boolean                @default(true)
   createdAt             DateTime               @default(now()) @map("created_at")
   updatedAt             DateTime               @updatedAt @map("updated_at")
+  commissionPercentage  Decimal                @default(0) @map("commission_percentage") @db.Decimal(7, 4)
+  contributionType      ContributionType       @default(REGULAR) @map("contribution_type")
   company               Company                @relation(fields: [idCompany], references: [idCompany])
   typeProduct           TypeProduct?           @relation(fields: [idTypeProduct], references: [idTypeProduct])
   productConfigurations ProductConfiguration[]
-  commissionPercentage  Decimal                @default(0) @db.Decimal(7, 4) @map("commission_percentage")
-  contributionType      ContributionType       @default(REGULAR) @map("contribution_type")
 
   @@unique([idCompany, name])
   @@index([idCompany])
@@ -166,6 +166,7 @@ model ProductConfiguration {
   updatedAt                                  DateTime                      @updatedAt @map("updated_at")
   code                                       String                        @unique @db.VarChar(50)
   active                                     Boolean                       @default(true) @map("active")
+
   level                                      Level                         @relation(fields: [idLevel], references: [idLevel])
   product                                    Product                       @relation(fields: [idProduct], references: [idProduct])
   productPercentageCommissionNewBusinesses   ProductPercentageCommission?  @relation("PpcNewBusinesses", fields: [idProductPercentageCommissionNewBusinesses], references: [idProductPercentageCommission])
@@ -221,7 +222,6 @@ model User {
   email                               String                  @unique @db.VarChar(150)
   phone                               String?                 @db.VarChar(30)
   idLevel                             Int?                    @map("id_level")
-  idCategory                          Int?                    @map("id_category")
   idUserLeader                        Int?                    @map("id_user_leader")
   entryDate                           DateTime                @map("entry_date") @db.Date
   retirementDate                      DateTime?               @map("retirement_date") @db.Date
@@ -231,9 +231,10 @@ model User {
   idRole                              Int?                    @map("id_role")
   password                            String?                 @db.VarChar(255)
   ssoOnly                             Boolean                 @default(true) @map("sso_only")
+  idCategory                          Int?                    @map("id_category")
   auditLogs                           AuditLog[]
   businesses                          Business[]
-  levelsAsFixedBeneficiary            Level[]                 @relation("LevelFixedBeneficiary")
+  businessSupports                    BusinessSupport[]
   clawbacks                           Clawback[]
   clawbackBalance                     ClawbackBalance?
   comissionDistributionsAsBeneficiary ComissionDistribution[] @relation("BeneficiaryUser")
@@ -241,12 +242,12 @@ model User {
   commissionDiscountsUpdated          CommissionDiscount[]    @relation("DiscountUpdatedBy")
   distributionApprovals               DistributionApproval[]
   fileImports                         FileImport[]
+  levelsAsFixedBeneficiary            Level[]                 @relation("LevelFixedBeneficiary")
   category                            Category?               @relation(fields: [idCategory], references: [id])
   level                               Level?                  @relation(fields: [idLevel], references: [idLevel])
   role                                Role?                   @relation(fields: [idRole], references: [idRole])
   leader                              User?                   @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates                        User[]                  @relation("UserLeader")
-  businessSupports                    BusinessSupport[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -325,15 +326,15 @@ model Business {
   dateAnchored                  DateTime?                   @map("date_anchored")
   numAportes                    Int?                        @map("num_aportes")
   isActive                      Boolean                     @default(true) @map("is_active")
-  payments                      Payment[]
   buyPeriodicity                BuyPeriodicity?             @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
   client                        Client                      @relation(fields: [idClient], references: [idClient])
   clientOrigin                  ClientOrigin                @relation(fields: [idClientOrigin], references: [idClientOrigin])
   currency                      Currency                    @relation(fields: [idCurrency], references: [idCurrency])
   productPercentageCommission   ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
   user                          User                        @relation(fields: [idUser], references: [idUser])
-  settlementCommissions         SettlementCommission[]
   supports                      BusinessSupport[]
+  payments                      Payment[]
+  settlementCommissions         SettlementCommission[]
 
   @@index([idUser])
   @@index([contract])
@@ -348,11 +349,11 @@ model Payment {
   status               AnnualPaymentStatus @default(SIN_FONDEAR)
   dateAnchored         DateTime?           @map("date_anchored")
   expectedDate         DateTime?           @map("expected_date")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
   portfolioDate        DateTime?           @map("portfolio_date")
   earlyPaymentDate     DateTime?           @map("early_payment_date")
   portfolioPaymentDate DateTime?           @map("portfolio_payment_date")
-  createdAt            DateTime            @default(now()) @map("created_at")
-  updatedAt            DateTime            @updatedAt @map("updated_at")
   business             Business            @relation(fields: [idBusiness], references: [idBusiness], onDelete: Cascade)
 
   @@unique([idBusiness, installmentIndex])
@@ -403,7 +404,7 @@ model SettlementCommission {
   settledDate            DateTime?               @map("settled_date")
   isLagByUser            Boolean                 @default(false) @map("is_lag_by_user")
   isLagByUserDate        DateTime?               @map("is_lag_by_user_date")
-  loadNumber            Int                     @default(1)  @map("load_number")
+  loadNumber             Int                     @default(1) @map("load_number")
   comissionDistributions ComissionDistribution[]
   business               Business?               @relation(fields: [idBusiness], references: [idBusiness])
   fileImport             FileImport              @relation(fields: [idFileImport], references: [idFileImport])
@@ -497,8 +498,8 @@ model FileImportError {
   rawData           Json       @map("raw_data")
   resolved          Boolean    @default(false) @map("resolved")
   resolvedAt        DateTime?  @map("resolved_at")
-  createdAt         DateTime   @default(now())  @map("created_at")
-  loadNumber        Int        @default(1)  @map("load_number")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  loadNumber        Int        @default(1) @map("load_number")
   fileImport        FileImport @relation(fields: [idFileImport], references: [idFileImport])
 
   @@index([idFileImport])
@@ -524,6 +525,24 @@ model DistributionApproval {
   @@map("distribution_approval")
 }
 
+model BusinessSupport {
+  id         String   @id @default(cuid())
+  businessId Int      @map("business_id")
+  objectKey  String   @unique @map("object_key") @db.VarChar(500)
+  mimeType   String   @map("mime_type") @db.VarChar(100)
+  sizeBytes  Int      @map("size_bytes")
+  uploadedBy Int      @map("uploaded_by")
+  status     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  business   Business @relation(fields: [businessId], references: [idBusiness])
+  uploader   User     @relation(fields: [uploadedBy], references: [idUser])
+
+  @@index([businessId, status])
+  @@index([uploadedBy])
+  @@map("business_support")
+}
+
 enum BeneficiaryMode {
   OVERRIDE
   BENEFICIARIO_GENERAL
@@ -540,22 +559,4 @@ enum AnnualPaymentStatus {
 enum ContributionType {
   REGULAR
   UNICO
-}
-
-model BusinessSupport {
-  id          String   @id @default(cuid())
-  businessId  Int      @map("business_id")
-  objectKey   String   @unique @map("object_key") @db.VarChar(500)
-  mimeType    String   @map("mime_type") @db.VarChar(100)
-  sizeBytes   Int      @map("size_bytes")
-  uploadedBy  Int      @map("uploaded_by")
-  status      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  business    Business @relation(fields: [businessId], references: [idBusiness])
-  uploader    User     @relation(fields: [uploadedBy], references: [idUser])
-
-  @@index([businessId, status])
-  @@index([uploadedBy])
-  @@map("business_support")
 }

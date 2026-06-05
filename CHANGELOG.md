@@ -4,6 +4,77 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.3] - 2026-06-05
+
+### Corregido
+
+- **Filtro de Money Strategist visible para todos los roles:** El selector de Money Strategist en los filtros avanzados de la lista de negocios ahora carga correctamente para cualquier usuario autenticado. Anteriormente retornaba un error 401 para roles distintos de Administrador porque consultaba un endpoint restringido.
+- **Lista de Money Strategists acotada por jerarquía:** Los usuarios con rol Agente/Coach ven únicamente los money strategists que tienen a su cargo (toda la cadena descendente), no todos los del sistema. Los roles de backoffice (Administrador, Asistente Operativo de Gerencia, Analista de Soporte) siguen viendo la lista completa.
+- **Campos ocultos para MS Junior:** Los campos "Money Strategist" y "Categoría del Money Strategist" se ocultan automáticamente para los usuarios en el nivel más bajo de la jerarquía (MS Junior / LEVEL_0), ya que no tienen agentes a cargo que filtrar.
+
+## [1.22.2] - 2026-06-05
+
+### Corregido
+
+- **Error del Simulador en QA:** Se corrigió un error que impedía visualizar el resultado de la calculadora en el entorno de QA tras la migración de la base de datos (`idProductPercentageCommissionNewBusinesses`).
+- **Validación de Usuarios sin Nivel:** La validación que impide el uso del simulador a usuarios sin nivel asignado ahora restringe específicamente al rol de `AGENTE`. Los usuarios con roles administrativos (ej. `ASISTENTE_GERENCIA_OPERATIVA`, `ADMIN`) pueden usar el simulador sin nivel.
+
+## [1.22.1] - 2026-06-04
+
+### Mejorado
+
+- **CI/CD Sentry Env Injection:** Se actualizaron los pipelines de GitHub Actions (QA y Producción) y el `Dockerfile` para inyectar automáticamente las variables `SENTRY_AUTH_TOKEN` y `NEXT_PUBLIC_SENTRY_DSN`, garantizando que el mapeo de sourcemaps y el registro de eventos en Sentry funcionen de manera nativa sin configuraciones manuales en los droplets.
+
+## [1.22.0] - 2026-06-03
+
+### Nuevo
+
+- **Renombre de Simulador a Calculadora:** Se actualizó la nomenclatura en toda la aplicación, cambiando "Simulador" por "Calculadora" en las rutas (`/dashboard/calculadora`), componentes y menú de navegación para reflejar mejor su propósito.
+- **Integración con Sentry:** Se completó la configuración del SDK de Sentry (`@sentry/nextjs`) para el monitoreo de errores en producción, incluyendo la configuración de cliente, servidor y edge, y se deshabilitó su inicialización en entornos de desarrollo local para evitar ruido.
+- **Filtros avanzados en negocios (Sheet completo):** La lista de negocios ahora cuenta con un panel deslizable de filtros avanzados que reemplaza el modal anterior. Incluye diez dimensiones de filtrado: rango de fechas con selector de campo (fondeo, creación o emisión), Money Strategist (multiselect de usuarios), estado (multiselect), soportes/comprobantes (todos / con / sin), compañía, producto, origen, plazo, periodicidad y categoría del Money Strategist. El cambio de compañía filtra automáticamente los productos disponibles.
+
+- **Badge de filtros activos:** El botón "Filtros avanzados" muestra un badge ámbar con la cantidad de dimensiones activas. Se oculta cuando no hay filtros aplicados.
+
+- **Exportación Excel con paridad de filtros:** La descarga de Excel respeta exactamente los mismos filtros que se aplican en la tabla, sin excepción. Ambas rutas (lista y exportación) comparten el mismo esquema de validación.
+
+- **Eliminar negocio fondeado:** Los roles Administrador, Analista de Soporte y Asistente Operativo de Gerencia pueden cancelar negocios en estado Fondeado directamente desde el menú de acciones de la tabla, sin necesidad de cambiar el estado manualmente.
+
+- **Ver motivo de cancelación:** Los negocios cancelados muestran ahora una nueva opción "Ver motivo cancelación" en el menú de acciones, que abre un modal con la observación registrada al momento de la cancelación.
+
+- **Control de acceso "Ver como" por feature flag:** El botón para suplantar usuarios en la tabla de administración ahora está gobernado por el feature flag `impersonation_select` (fallback: desactivado). Permite activar o desactivar la funcionalidad sin re-desplegar.
+
+### Mejorado
+
+- **Nuevos endpoints de catálogo:** Se agregaron `GET /api/periodicities` y `GET /api/negocios/terms` para exponer los catálogos de periodicidades y plazos disponibles en la base de datos, usados por los filtros avanzados.
+
+- **Categorías override:** El endpoint `GET /api/categories` soporta el parámetro `?beneficiaryMode=OVERRIDE` para retornar únicamente las categorías asociadas a usuarios con nivel de tipo Override.
+
+### Corregido
+
+- **Filtro "Sin soportes" no funcionaba:** El parámetro `hasSupports` llegaba al hook de la lista pero no se enviaba al API. Ahora todos los filtros del Sheet se propagan correctamente hasta la consulta.
+
+- **Modal de cancelación se cerraba solo:** Al abrir el modal de cancelación en un negocio fondeado, el modal se cerraba inmediatamente si la carga de datos fallaba. Ahora se pre-carga con los datos disponibles de la tabla antes de iniciar la petición al API.
+
+## [1.21.1] - 2026-06-02
+
+### Corregido
+
+- **Visualización de 0 en bono de leads:** Se solucionó un problema visual en la Calculadora de Comisiones donde, al no existir un bono por fuente de leads, se mostraba un "0" suelto en la interfaz en lugar de ocultar el bloque por completo.
+- **Validación de nivel en el Simulador:** Los usuarios de la fuerza de ventas que no tienen un nivel asignado ahora son bloqueados correctamente al intentar simular comisiones, mostrando un mensaje claro de error. Se garantiza que los roles de backoffice (Soporte, Admin) puedan simular libremente sin esta restricción.
+- **Mensajes de validación en formulario:** Se reemplazaron los errores genéricos de tipo (`Invalid input`) en el formulario del simulador por mensajes descriptivos como "Seleccione una compañía" o "Seleccione un producto", mejorando la retroalimentación al usuario.
+
+## [1.21.0] - 2026-06-01
+
+### Nuevo
+
+- **Feature Flag para el Simulador:** Se integró el flag `dashboard_simulador` en Flagsmith para controlar el acceso al Simulador (Calculadora) de forma dinámica.
+- **Simulador de comisiones mejorado:** El simulador (Calculadora) ahora soporta configuración dinámica de moneda dependiendo del negocio. Además, la selección de niveles jerárquicos ahora respeta estrictamente la cadena de mando del usuario, permitiendo a los roles como *Money Strategist* ver solo sus subniveles.
+- **Modo Suplantación ("Ver como"):** Los administradores ahora pueden simular la sesión de cualquier usuario (agentes, soporte, etc.) desde la tabla de usuarios o un menú en el header. Esto permite revisar problemas o probar flujos sin necesidad de credenciales adicionales, mostrando siempre un banner de advertencia para regresar al rol original.
+
+### Mejorado
+
+- **Filtros Avanzados (Negocios):** Mejoras visuales en la sección de filtros avanzados, incluyendo una presentación en tres columnas, badge de conteo de filtros aplicados, e integración profunda con la paleta de colores oficial de la app (verde corporativo).
+
 ## [1.20.0] - 2026-05-29
 
 ### Nuevo
@@ -540,7 +611,7 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 ### Añadido
 
 - **Base de Datos – Carga Inicial (Seed):** Refactorizado el proceso de carga maestro (`prisma db seed`). El sistema ya no inserta datos parciales harcodeados, sino que pobla dinámicamente todo el portafolio de la operación basándose en el catálogo documentado (8 compañías y decenas de productos financieros asociados listos para operar).
-- **Carga Inicial – Trazabilidad Dinámica:** Garantizada la integridad relacional (_Foreign Keys_) mediante un motor de _lookup asíncrono_ que asocia nativamente los productos a la empresa propietaria sin importar el desfasaje de IDs autoincrementales.
+- **Carga Inicial – Trazabilidad Dinámica:** Garantizada la integridad relacional (*Foreign Keys*) mediante un motor de *lookup asíncrono* que asocia nativamente los productos a la empresa propietaria sin importar el desfasaje de IDs autoincrementales.
 
 ### Documentación / Interno
 
@@ -934,7 +1005,7 @@ Primera versión **beta** pública del ciclo 1.x: refuerza la pre-liquidación, 
 ### Añadido
 
 - **Administrador:** Integradas documentación y directrices estructuradas para orquestador SDD, y se mejoró la visibilidad del modelo de archivos en el área de administración.
-- **Pre-liquidación:** La creación histórica del desglose de _Clawback_ fue condicionado al flujo de la comisión, refinando la trazabilidad.
+- **Pre-liquidación:** La creación histórica del desglose de *Clawback* fue condicionado al flujo de la comisión, refinando la trazabilidad.
 
 ### Mejorado / Refactorizado
 

@@ -100,6 +100,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 			code: 'SKANDIA-CREA_PATRIMONIO-JUNIOR',
 			active: true,
 			idProductPercentageCommissionNewBusinesses: 1,
+
 			createdAt: baseDate,
 			updatedAt: baseDate,
 			product: {

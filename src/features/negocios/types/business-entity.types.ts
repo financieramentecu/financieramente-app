@@ -116,6 +116,8 @@ export interface BusinessEntity {
 	hasPendingPaymentFunding: boolean
 	/** Number of uploaded supports (comprobantes) for this business */
 	supportCount: number
+	/** Observación de cancelación (prefijada con [CANCELADO] o [ELIMINADO]) */
+	observations: string | null
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo

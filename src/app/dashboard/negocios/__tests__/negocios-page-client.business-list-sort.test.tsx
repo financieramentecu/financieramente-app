@@ -32,6 +32,7 @@ vi.mock('next/navigation', () => ({
 	useRouter: () => ({
 		push: vi.fn(),
 	}),
+	useSearchParams: () => new URLSearchParams(),
 }))
 
 vi.mock('@/features/admin/users/hooks/use-debounce', () => ({

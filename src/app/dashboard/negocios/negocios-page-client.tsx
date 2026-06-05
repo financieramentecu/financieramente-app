@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'
 import MisNegociosPage from '@/features/negocios/components/MisNegociosPage'
 import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
+import { BusinessObservationsModal } from '@/features/negocios/components/modals/BusinessObservationsModal'
 import { FundingModal } from '@/features/negocios/components/modals/FundingModal'
 import { businessService } from '@/features/negocios/services/business.service'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
@@ -42,6 +43,8 @@ const SEARCH_DEBOUNCE_DELAY = 500
 
 interface NegociosPageClientProps {
 	currentUser?: UserWithRole
+	/** Initial searchParams from the server component (for SSR hydration) */
+	initialSearchParams?: Record<string, string | string[] | undefined>
 }
 
 /**
@@ -51,14 +54,52 @@ interface NegociosPageClientProps {
  */
 export function NegociosPageClient({
 	currentUser: _currentUser,
+	initialSearchParams: _initialSearchParams,
 }: NegociosPageClientProps) {
 	const router = useRouter()
+	const urlSearchParams = useNextSearchParams()
 
 	const isAgentRole = _currentUser?.role?.code === UserRole.AGENTE
+
+	// Derive filter params from URL search params (written by AdvancedFiltersSheet)
+	const urlFilterParams: Partial<BusinessListParams> = useMemo(() => {
+		const statuses = urlSearchParams.getAll('statuses') as BusinessStatus[]
+		const companyIds = urlSearchParams.getAll('companyIds').map(Number).filter(n => !isNaN(n))
+		const productIds = urlSearchParams.getAll('productIds').map(Number).filter(n => !isNaN(n))
+		const originIds = urlSearchParams.getAll('originIds').map(Number).filter(n => !isNaN(n))
+		const terms = urlSearchParams.getAll('terms').map(Number).filter(n => !isNaN(n))
+		const periodicityIds = urlSearchParams.getAll('periodicityIds').map(Number).filter(n => !isNaN(n))
+		const agentCategoryIds = urlSearchParams.getAll('agentCategoryIds').map(Number).filter(n => !isNaN(n))
+		const agentIds = urlSearchParams.getAll('agentIds').map(Number).filter(n => !isNaN(n))
+		const hasSupportsParam = urlSearchParams.get('hasSupports')
+		const hasSupports = hasSupportsParam === 'true' ? true : hasSupportsParam === 'false' ? false : undefined
+		const agentNameFromUrl = urlSearchParams.get('agentName') ?? undefined
+
+		return {
+			statuses: statuses.length > 0 ? statuses : undefined,
+			dateFrom: urlSearchParams.get('dateFrom') ?? undefined,
+			dateTo: urlSearchParams.get('dateTo') ?? undefined,
+			createdFrom: urlSearchParams.get('createdFrom') ?? undefined,
+			createdTo: urlSearchParams.get('createdTo') ?? undefined,
+			dateIssuedFrom: urlSearchParams.get('dateIssuedFrom') ?? undefined,
+			dateIssuedTo: urlSearchParams.get('dateIssuedTo') ?? undefined,
+			agentName: agentNameFromUrl,
+			hasSupports,
+			companyIds: companyIds.length > 0 ? companyIds : undefined,
+			productIds: productIds.length > 0 ? productIds : undefined,
+			originIds: originIds.length > 0 ? originIds : undefined,
+			terms: terms.length > 0 ? terms : undefined,
+			periodicityIds: periodicityIds.length > 0 ? periodicityIds : undefined,
+			agentCategoryIds: agentCategoryIds.length > 0 ? agentCategoryIds : undefined,
+			agentIds: agentIds.length > 0 ? agentIds : undefined,
+		}
+	}, [urlSearchParams])
 
 	// Estado para modales
 	const [viewModalOpen, setViewModalOpen] = useState(false)
 	const [cancelModalOpen, setCancelModalOpen] = useState(false)
+	const [observationsModalOpen, setObservationsModalOpen] = useState(false)
+	const [observationsBusiness, setObservationsBusiness] = useState<Business | null>(null)
 	const [selectedBusiness, setSelectedBusiness] =
 		useState<BusinessEntity | null>(null)
 	const [isLoadingBusiness, setIsLoadingBusiness] = useState(false)
@@ -91,9 +132,6 @@ export function NegociosPageClient({
 	// Estado para búsqueda con debounce
 	const [searchInput, setSearchInput] = useState('')
 	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
-
-	const [agentNameInput, setAgentNameInput] = useState('')
-	const debouncedAgentName = useDebounce(agentNameInput, SEARCH_DEBOUNCE_DELAY)
 
 	// Fechas por defecto para el Coach (Mes actual)
 	const defaultDates = useMemo(() => {
@@ -132,27 +170,48 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({
 			...prev,
 			search: debouncedSearch || undefined,
-			agentName: debouncedAgentName || undefined,
 			page: 1,
 		}))
-	}, [debouncedSearch, debouncedAgentName])
+	}, [debouncedSearch])
+
+	// Merge URL filter params (from AdvancedFiltersSheet) into listParams
+	const mergedParams: BusinessListParams = useMemo(() => ({
+		...searchParams,
+		// URL params take precedence for filter dimensions
+		...(urlFilterParams.statuses ? { statuses: urlFilterParams.statuses } : {}),
+		...(urlFilterParams.dateFrom ? { dateFrom: urlFilterParams.dateFrom } : {}),
+		...(urlFilterParams.dateTo ? { dateTo: urlFilterParams.dateTo } : {}),
+		...(urlFilterParams.createdFrom ? { createdFrom: urlFilterParams.createdFrom } : {}),
+		...(urlFilterParams.createdTo ? { createdTo: urlFilterParams.createdTo } : {}),
+		...(urlFilterParams.dateIssuedFrom ? { dateIssuedFrom: urlFilterParams.dateIssuedFrom } : {}),
+		...(urlFilterParams.dateIssuedTo ? { dateIssuedTo: urlFilterParams.dateIssuedTo } : {}),
+		...(urlFilterParams.agentName ? { agentName: urlFilterParams.agentName } : {}),
+		...(urlFilterParams.hasSupports !== undefined ? { hasSupports: urlFilterParams.hasSupports } : {}),
+		...(urlFilterParams.companyIds ? { companyIds: urlFilterParams.companyIds } : {}),
+		...(urlFilterParams.productIds ? { productIds: urlFilterParams.productIds } : {}),
+		...(urlFilterParams.originIds ? { originIds: urlFilterParams.originIds } : {}),
+		...(urlFilterParams.terms ? { terms: urlFilterParams.terms } : {}),
+		...(urlFilterParams.periodicityIds ? { periodicityIds: urlFilterParams.periodicityIds } : {}),
+		...(urlFilterParams.agentCategoryIds ? { agentCategoryIds: urlFilterParams.agentCategoryIds } : {}),
+		...(urlFilterParams.agentIds ? { agentIds: urlFilterParams.agentIds } : {}),
+	}), [searchParams, urlFilterParams])
 
 	// Para Coach: mapear dateFrom/dateTo a createdFrom/createdTo en el listado
 	const listParams: BusinessListParams = isAgentRole
 		? {
-				...searchParams,
+				...mergedParams,
 				dateFrom: undefined,
 				dateTo: undefined,
-				createdFrom: searchParams.dateFrom,
-				createdTo: searchParams.dateTo,
+				createdFrom: mergedParams.dateFrom,
+				createdTo: mergedParams.dateTo,
 			}
-		: searchParams
+		: mergedParams
 
 	// Hooks para datos
 	const { businesses, isLoading, error, pagination, refetch } =
 		useBusinesses(listParams)
 
-	const isDebouncing = searchInput !== debouncedSearch || agentNameInput !== debouncedAgentName
+	const isDebouncing = searchInput !== debouncedSearch
 
 	// Detectar si hay una búsqueda pendiente (el término actual no coincide con lo cargado)
 	const hasPendingSearch = debouncedSearch !== (lastLoadedSearch ?? '')
@@ -239,10 +298,13 @@ export function NegociosPageClient({
 	 * Abre el modal de cancelación con el negocio seleccionado
 	 */
 	const handleCancelBusiness = useCallback(async (business: Business) => {
-		setIsLoadingBusiness(true)
+		// Set immediately from row data so the modal never closes due to null business
+		setSelectedBusiness(business as unknown as BusinessEntity)
 		setCancelModalOpen(true)
 
+		// Enrich with full data in the background
 		try {
+			setIsLoadingBusiness(true)
 			const response = await businessService.getById(Number(business.id))
 			if (response.data) {
 				setSelectedBusiness(response.data)
@@ -392,6 +454,11 @@ export function NegociosPageClient({
 		[selectedBusiness, cancelBusiness, refetch, refetchStats]
 	)
 
+	const handleViewObservations = useCallback((business: Business) => {
+		setObservationsBusiness(business)
+		setObservationsModalOpen(true)
+	}, [])
+
 	/**
 	 * Maneja la búsqueda global con debounce
 	 * Actualiza el input de búsqueda, el debounce se encarga del resto
@@ -411,24 +478,6 @@ export function NegociosPageClient({
 		setSearchParams((prev) => ({ ...prev, pageSize, page: 1 }))
 	}, [])
 
-	const handleListStatusChange = useCallback(
-		(status: BusinessStatus | undefined) => {
-			setSearchParams((prev) => ({
-				...prev,
-				status,
-				page: 1,
-			}))
-		},
-		[]
-	)
-
-	const handleAgentNameChange = useCallback(
-		(agentName: string) => {
-			setAgentNameInput(agentName)
-		},
-		[]
-	)
-
 	const handleSortingChange = useCallback(
 		(sortBy: string | undefined, sortOrder: 'asc' | 'desc') => {
 			setSearchParams((prev) => ({
@@ -441,51 +490,27 @@ export function NegociosPageClient({
 		[]
 	)
 
-	const handleAdvancedFiltersChange = useCallback(
-		(filters: { companyIds: number[]; productIds: number[]; originIds: number[] }) => {
-			setSearchParams((prev) => ({
-				...prev,
-				...filters,
-				page: 1,
-			}))
-		},
-		[]
-	)
-
-	const handleFundDateFromChange = useCallback((value: string) => {
-		setSearchParams((prev) => {
-			const newFrom = isAgentRole ? (value || defaultDates.from) : (value || undefined)
-			const newTo = prev.dateTo ?? (isAgentRole ? defaultDates.to : undefined)
-			const next: BusinessListParams = { ...prev, dateFrom: newFrom, dateTo: newTo, page: 1 }
-			if (!isAgentRole) {
-				next.status = (newFrom && newTo) ? 'FONDEADO' : undefined
-			}
-			return next
-		})
-	}, [isAgentRole, defaultDates.from, defaultDates.to])
-
-	const handleFundDateToChange = useCallback((value: string) => {
-		setSearchParams((prev) => {
-			const newTo = isAgentRole ? (value || defaultDates.to) : (value || undefined)
-			const newFrom = prev.dateFrom ?? (isAgentRole ? defaultDates.from : undefined)
-			const next: BusinessListParams = { ...prev, dateTo: newTo, dateFrom: newFrom, page: 1 }
-			if (!isAgentRole) {
-				next.status = (newFrom && newTo) ? 'FONDEADO' : undefined
-			}
-			return next
-		})
-	}, [isAgentRole, defaultDates.from, defaultDates.to])
-
 	const handleExportExcel = useCallback(async () => {
-		const df = searchParams.dateFrom
-		const dt = searchParams.dateTo
+		// Export uses all current filter params (list and URL-based) for parity
 		const body: NegociosExportBody = {
 			search: debouncedSearch || undefined,
 			status: searchParams.status,
-		}
-		if (df && dt) {
-			body.dateFrom = df
-			body.dateTo = dt
+			statuses: urlFilterParams.statuses,
+			dateFrom: mergedParams.dateFrom,
+			dateTo: mergedParams.dateTo,
+			createdFrom: mergedParams.createdFrom,
+			createdTo: mergedParams.createdTo,
+			dateIssuedFrom: mergedParams.dateIssuedFrom,
+			dateIssuedTo: mergedParams.dateIssuedTo,
+			agentName: urlFilterParams.agentName,
+			hasSupports: urlFilterParams.hasSupports,
+			companyIds: mergedParams.companyIds,
+			productIds: mergedParams.productIds,
+			originIds: mergedParams.originIds,
+			terms: urlFilterParams.terms,
+			periodicityIds: urlFilterParams.periodicityIds,
+			agentCategoryIds: urlFilterParams.agentCategoryIds,
+			agentIds: urlFilterParams.agentIds,
 		}
 		const result = await exportReport(body)
 		if (result.ok) {
@@ -495,10 +520,10 @@ export function NegociosPageClient({
 		}
 	}, [
 		exportReport,
-		searchParams.dateFrom,
-		searchParams.dateTo,
 		searchParams.status,
 		debouncedSearch,
+		urlFilterParams,
+		mergedParams,
 	])
 
 	// Limpiar business seleccionado al cerrar modales
@@ -534,9 +559,6 @@ export function NegociosPageClient({
 		[businesses]
 	)
 
-	// Rango de fondeo activo (no-agente con ambas fechas): bloquea el selector de estado
-	const isFundDateRangeActive = !isAgentRole && Boolean(searchParams.dateFrom && searchParams.dateTo)
-
 	// Combinar errores de negocios y estadísticas
 	const displayError = error || statsError
 
@@ -556,19 +578,11 @@ export function NegociosPageClient({
 				onEditBusiness={handleEditBusiness}
 				onViewBusiness={handleViewBusiness}
 				onCancelBusiness={handleCancelBusiness}
+				onViewObservations={handleViewObservations}
 				onFondearBusiness={handleFondearBusiness}
 				onGlobalSearch={handleGlobalSearch}
 				onPageChange={handlePageChange}
 				onPageSizeChange={handlePageSizeChange}
-				listStatus={searchParams.status}
-				onListStatusChange={handleListStatusChange}
-				agentName={agentNameInput}
-				onAgentNameChange={handleAgentNameChange}
-				fundDateFrom={searchParams.dateFrom ?? (isAgentRole ? defaultDates.from : '')}
-				fundDateTo={searchParams.dateTo ?? (isAgentRole ? defaultDates.to : '')}
-				fundDateRangeActive={isFundDateRangeActive}
-				onFundDateFromChange={handleFundDateFromChange}
-				onFundDateToChange={handleFundDateToChange}
 				canExportExcel={canExportExcel}
 				onExportExcel={handleExportExcel}
 				isExportingExcel={isExportingExcel}
@@ -579,10 +593,6 @@ export function NegociosPageClient({
 				onUploadSuccess={() => { refetch(); refetchStats() }}
 				onDeleteSuccess={() => { refetch(); refetchStats() }}
 				onSaveDateIssued={handleSaveDateIssued}
-				companyIds={searchParams.companyIds}
-				productIds={searchParams.productIds}
-				originIds={searchParams.originIds}
-				onAdvancedFiltersChange={handleAdvancedFiltersChange}
 			/>
 
 			{/* Modal de Visualización */}
@@ -599,6 +609,14 @@ export function NegociosPageClient({
 			/>
 
 			{/* Modal de Cancelación */}
+			<BusinessObservationsModal
+				open={observationsModalOpen}
+				onOpenChange={setObservationsModalOpen}
+				businessId={Number(observationsBusiness?.id)}
+				contract={observationsBusiness?.contract ?? null}
+				observations={(observationsBusiness?.observations as string | null) ?? null}
+			/>
+
 			<BusinessCancelModal
 				open={cancelModalOpen}
 				onOpenChange={handleCancelModalClose}

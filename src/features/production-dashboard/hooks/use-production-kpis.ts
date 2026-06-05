@@ -121,7 +121,6 @@ export function useProductionKpis(trmRate: number): UseProductionKpisResult {
       cancelled = true
     }
     // Intentionally NOT including trmRate — conversion is client-side (CAP-4)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUserIds, appliedFilters])
 
   const computed = raw !== null ? computeKpis(raw, trmRate) : null
