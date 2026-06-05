@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
 
 export default withSentryConfig(nextConfig, {
   org: "financieramente",
-  project: "financieramente-app",
+  project: process.env.SENTRY_PROJECT || "financieramente-app",
   silent: !process.env.CI,
   widenClientFileUpload: true,
 });
