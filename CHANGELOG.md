@@ -4,6 +4,13 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.2] - 2026-06-05
+
+### Corregido
+
+- **Error del Simulador en QA:** Se corrigió un error que impedía visualizar el resultado de la calculadora en el entorno de QA tras la migración de la base de datos (`idProductPercentageCommissionNewBusinesses`).
+- **Validación de Usuarios sin Nivel:** La validación que impide el uso del simulador a usuarios sin nivel asignado ahora restringe específicamente al rol de `AGENTE`. Los usuarios con roles administrativos (ej. `ASISTENTE_GERENCIA_OPERATIVA`, `ADMIN`) pueden usar el simulador sin nivel.
+
 ## [1.22.1] - 2026-06-04
 
 ### Mejorado
