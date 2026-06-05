@@ -53,13 +53,22 @@ export function useProductConfigurations(): UseProductConfigurationsReturn {
 	// Debounce search
 	const debouncedSearch = useDebounce(filters.search || '', 500)
 
+	const [isFetching, setIsFetching] = useState(false)
+
 	const fetchConfigurations = useCallback(async () => {
-		setState((prev) => ({
-			...prev,
-			status: 'loading',
-			data: undefined,
-			error: '',
-		}))
+		setIsFetching(true)
+		// Si es la primera carga, podemos poner loading. Si ya hay datos, lo mantenemos en success para no borrarlos.
+		setState((prev) => {
+			if (!prev.data) {
+				return {
+					...prev,
+					status: 'loading',
+					data: undefined,
+					error: '',
+				}
+			}
+			return prev
+		})
 		try {
 			const params = new URLSearchParams()
 			if (debouncedSearch) params.append('search', debouncedSearch)
@@ -108,6 +117,8 @@ export function useProductConfigurations(): UseProductConfigurationsReturn {
 						? error.message
 						: 'Error desconocido al cargar configuraciones',
 			})
+		} finally {
+			setIsFetching(false)
 		}
 	}, [debouncedSearch, filters.active, filters.page, filters.pageSize])
 
@@ -132,7 +143,7 @@ export function useProductConfigurations(): UseProductConfigurationsReturn {
 	return {
 		data: state.data?.configurations || [],
 		pagination: state.data?.pagination,
-		isLoading: state.status === 'loading',
+		isLoading: state.status === 'loading' || isFetching,
 		isError: state.status === 'error',
 		error: state.error || '',
 		filters,
