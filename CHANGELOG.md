@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.4] - 2026-06-10
+
+### Mejorado
+
+- **Backup automático de base de datos:** Se implementó un sistema de respaldo automático de PostgreSQL hacia Digital Ocean Spaces. Los backups se ejecutan 3 veces al día (00:00, 08:00 y 16:00 UTC) y se retienen los 2 más recientes. Reemplaza el servicio de backup anterior que no funcionaba correctamente.
+
 ## [1.22.3] - 2026-06-05
 
 ### Corregido
