@@ -4,6 +4,13 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.5] - 2026-06-10
+
+### Corregido
+
+- **Filtro por campo de fecha en negocios:** Al cambiar el campo de fecha en los filtros avanzados (Fondeo, Creación o Emisión), el rango seleccionado ahora se conserva y la búsqueda se aplica sobre la fecha correspondiente en la base de datos. Antes, cambiar de campo descartaba el filtro silenciosamente (la lista quedaba sin filtrar aunque el rango se veía seleccionado) y, para el rol Agente/Coach, cualquier filtro de fecha se aplicaba siempre sobre la fecha de creación.
+- **Filtro de fecha por defecto visible:** El filtro de fecha que se aplica automáticamente al entrar a la lista de negocios (mes actual: por fecha de creación para Agente/Coach y por fecha de fondeo para Administrador, Asistente Operativo de Gerencia y Analista de Soporte) ahora se refleja en el panel de filtros avanzados y en el badge de filtros activos. Puede modificarse o limpiarse como cualquier otro filtro y nunca pisa una selección hecha por el usuario.
+
 ## [1.22.4] - 2026-06-10
 
 ### Mejorado
