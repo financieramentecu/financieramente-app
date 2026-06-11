@@ -121,7 +121,7 @@ export function CalculadoraForm({
 		}
 
 		return levels.filter(l => allowedSellIds.has(l.idLevel))
-	}, [levels, selectedLevelViewId, userRole])
+	}, [levels, selectedLevelViewId])
 
 	// Si el nivel de origen seleccionado ya no es válido, resetearlo
 	useEffect(() => {

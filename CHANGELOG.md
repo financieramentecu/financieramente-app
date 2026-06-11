@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.4] - 2026-06-09
+
+### Corregido
+
+- **Filtros del dashboard con selección múltiple:** Los selectores de Compañía, Producto, Categoría y Origen ahora muestran todos los ítems marcados cuando el filtro está en modo "todas". Al hacer clic en un ítem individual desde ese estado se deselecciona solo ese ítem, manteniendo los demás activos. El botón "Todas/Todos" funciona ahora como toggle real: si todo está seleccionado, desmarca todo y permite construir una selección desde cero.
+
 ## [1.22.3] - 2026-06-05
 
 ### Corregido

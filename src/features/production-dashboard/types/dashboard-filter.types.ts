@@ -54,6 +54,10 @@ export type DashboardFilterAction =
   | { type: 'TOGGLE_COMPANY'; id: number; allProducts: ProductForCascade[] }
   | { type: 'TOGGLE_PRODUCT'; id: number }
   | { type: 'TOGGLE_ORIGIN'; id: number }
+  | { type: 'SET_COMPANY_IDS'; ids: number[]; allProducts: ProductForCascade[] }
+  | { type: 'SET_PRODUCT_IDS'; ids: number[] }
+  | { type: 'SET_CATEGORY_IDS'; ids: number[] }
+  | { type: 'SET_ORIGIN_IDS'; ids: number[] }
   | { type: 'SET_PLAZO'; payload: number }
   | { type: 'SET_PERIODICIDAD'; payload: string }
   | { type: 'SET_INTERNACIONAL'; value: boolean }
