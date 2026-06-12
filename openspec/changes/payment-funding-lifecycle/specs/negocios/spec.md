@@ -196,20 +196,21 @@ The `isSameMonthOrFuture` function MUST use America/Bogota for all month/year co
 ### Requirement: Idempotent Migration — Reset Future Payments to SIN_FONDEAR
 
 The migration script `prisma/seeds/reset-future-payments-to-sin-fondear.ts` MUST:
-1. For every payment with `status = FONDEADO` and `expectedDate >= today` (Bogota): set `status = SIN_FONDEAR` and `dateAnchored = null`.
+1. For every payment with `status = FONDEADO` and `dateAnchored` strictly after today (Bogota): set `status = SIN_FONDEAR`, preserve the schedule by setting `expectedDate = dateAnchored` when `expectedDate` is null, and set `dateAnchored = null`. (Legacy rows store the scheduled date in `dateAnchored`; `expectedDate` is often null — a funded date in the future means the payment was never actually funded.)
 2. Leave `EN_CARTERA` payments and any non-`FONDEADO` payments untouched.
 3. For every business with at least one `EN_CARTERA` payment: set business `status = CARTERA`.
 4. Be idempotent — running it twice MUST produce the same result as running it once.
 
-#### Scenario: Future FONDEADO payment reset to SIN_FONDEAR
+#### Scenario: Future-funded FONDEADO payment reset to SIN_FONDEAR
 
-- GIVEN a payment with `status = FONDEADO` and `expectedDate >= today` (Bogota)
+- GIVEN a payment with `status = FONDEADO` and `dateAnchored` strictly after today (Bogota)
 - WHEN the migration runs
 - THEN that payment SHALL have `status = SIN_FONDEAR` and `dateAnchored = null`
+- AND its `expectedDate` SHALL hold the original `dateAnchored` value if `expectedDate` was null, otherwise remain unchanged
 
-#### Scenario: Past FONDEADO payment not touched
+#### Scenario: Past-funded FONDEADO payment not touched
 
-- GIVEN a payment with `status = FONDEADO` and `expectedDate` before today (Bogota)
+- GIVEN a payment with `status = FONDEADO` and `dateAnchored` today or earlier (Bogota)
 - WHEN the migration runs
 - THEN that payment MUST remain `FONDEADO` with its `dateAnchored` unchanged
 

@@ -58,37 +58,50 @@ async function main() {
 	console.log(`[reset-future-payments] Starting migration. Dry run: ${isDryRun}`)
 	console.log(`[reset-future-payments] Bogota today (UTC boundary): ${today.toISOString()}`)
 
-	// ─── Step 1: Reset future FONDEADO payments to SIN_FONDEAR ───────────────
-	console.log('\n[Step 1] Counting future FONDEADO payments to reset...')
+	// ─── Step 1: Reset future-funded FONDEADO payments to SIN_FONDEAR ────────
+	// Legacy rows were pre-marked FONDEADO with the scheduled date stored in
+	// dateAnchored (expectedDate is often null on old rows). A payment whose
+	// funded date is strictly AFTER today was never actually funded — reset it.
+	// The scheduled date is preserved into expectedDate (when null) so the cron
+	// and visibility rules, which filter by expectedDate, can still see it.
+	console.log('\n[Step 1] Counting FONDEADO payments with dateAnchored > today...')
+
+	const startOfTomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
 
 	const futurePayments = await prisma.payment.findMany({
 		where: {
 			status: AnnualPaymentStatus.FONDEADO,
-			expectedDate: { gte: today },
+			dateAnchored: { gte: startOfTomorrow },
 		},
-		select: { idAnnualPayment: true },
+		select: { idAnnualPayment: true, dateAnchored: true, expectedDate: true },
 	})
 
-	console.log(`[Step 1] Found ${futurePayments.length} FONDEADO payment(s) with expectedDate >= today.`)
+	console.log(`[Step 1] Found ${futurePayments.length} FONDEADO payment(s) with dateAnchored > today.`)
 
 	if (!isDryRun && futurePayments.length > 0) {
-		await prisma.$transaction(async (tx) => {
-			const result = await tx.payment.updateMany({
-				where: {
-					status: AnnualPaymentStatus.FONDEADO,
-					expectedDate: { gte: today },
-				},
-				data: {
-					status: AnnualPaymentStatus.SIN_FONDEAR,
-					dateAnchored: null,
-				},
-			})
-			console.log(`[Step 1] Reset ${result.count} payment(s) to SIN_FONDEAR.`)
-		})
+		const CHUNK_SIZE = 500
+		let resetCount = 0
+		for (let i = 0; i < futurePayments.length; i += CHUNK_SIZE) {
+			const chunk = futurePayments.slice(i, i + CHUNK_SIZE)
+			await prisma.$transaction(
+				chunk.map((payment) =>
+					prisma.payment.update({
+						where: { idAnnualPayment: payment.idAnnualPayment },
+						data: {
+							status: AnnualPaymentStatus.SIN_FONDEAR,
+							expectedDate: payment.expectedDate ?? payment.dateAnchored,
+							dateAnchored: null,
+						},
+					})
+				)
+			)
+			resetCount += chunk.length
+		}
+		console.log(`[Step 1] Reset ${resetCount} payment(s) to SIN_FONDEAR.`)
 
 		await logMigrationAudit({
-			action: AuditAction.PAYMENT_CRON_FUNDED,
-			details: `Migration Step 1: Reset ${futurePayments.length} future FONDEADO payment(s) to SIN_FONDEAR (expectedDate >= ${today.toISOString().slice(0, 10)})`,
+			action: AuditAction.PAYMENT_MIGRATION_RESET,
+			details: `Migration Step 1: Reset ${futurePayments.length} FONDEADO payment(s) with dateAnchored > ${today.toISOString().slice(0, 10)} to SIN_FONDEAR (schedule preserved in expectedDate, dateAnchored nulled)`,
 		})
 	} else if (isDryRun) {
 		console.log(`[Step 1] DRY RUN — would reset ${futurePayments.length} payment(s).`)

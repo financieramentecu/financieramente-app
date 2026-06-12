@@ -19,7 +19,7 @@ Today, payments generated on the EMITIDO transition are stamped `FONDEADO` with 
 - Fix the ISO-slicing timezone bug in `isSameMonthOrFuture`; standardize on America/Bogota.
 - New `PATCH` endpoint for `Payment.dateAnchored` + edit modal mirroring the "adelantar pago" flow.
 - UI visual state: cartera button only for current month or later; pago anticipado only strictly after current month; dedicated `SIN_FONDEAR` variant with no action buttons.
-- Idempotent one-time migration `prisma/seeds/reset-future-payments-to-sin-fondear.ts`: payments with due date >= today (Bogota) currently `FONDEADO` → `SIN_FONDEAR` with `dateAnchored: null`. Payments in `EN_CARTERA` (or any non-FONDEADO state) are untouched. In the same run, every business with ≥1 `EN_CARTERA` payment is backfilled to `CARTERA` status (invariant applied at migration time).
+- Idempotent one-time migration `prisma/seeds/reset-future-payments-to-sin-fondear.ts`: payments `FONDEADO` with funded date (`dateAnchored`) strictly after today (Bogota) → `SIN_FONDEAR` with `dateAnchored: null`, preserving the schedule into `expectedDate` when null (legacy rows store the scheduled date in `dateAnchored`). Payments in `EN_CARTERA` (or any non-FONDEADO state) are untouched. In the same run, every business with ≥1 `EN_CARTERA` payment is backfilled to `CARTERA` status (invariant applied at migration time).
 - Audit logging for all mutations (new `PAYMENT_CRON_FUNDED`, `BUSINESS_CRON_FONDEADO`, `BUSINESS_CARTERA`, `BUSINESS_REFONDEADO`).
 - Update affected mocks/tests (`business-id.route.test.ts`, `route.test.ts`, `payment-state.service.test.ts`, status-badge / filter / donut tests).
 
