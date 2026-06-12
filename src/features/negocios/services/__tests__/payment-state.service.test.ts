@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { markCartera, markPagoAnticipado, markCarteraPagado, markPrimerPagoFondeado, fundDuePayments, updatePaymentDateAnchored } from '../payment-state.service'
+import { markCartera, markPagoAnticipado, markCarteraPagado, fundDuePayments, updatePaymentDateAnchored } from '../payment-state.service'
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
@@ -306,89 +306,6 @@ describe('markPagoAnticipado', () => {
 		if (!result.ok) {
 			expect(result.code).toBe('CONFLICT')
 		}
-	})
-})
-
-describe('markPrimerPagoFondeado', () => {
-	const fondeoDate = new Date('2024-01-15')
-
-	const fondeadoPayment = {
-		installmentIndex: 1,
-		status: 'FONDEADO',
-		dateAnchored: fondeoDate,
-		expectedDate: null,
-		portfolioDate: null,
-		earlyPaymentDate: null,
-		portfolioPaymentDate: null,
-	}
-
-	beforeEach(() => {
-		const txBusiness = { update: vi.fn() }
-		const txPayment = { updateMany: vi.fn(), findUnique: vi.fn() }
-		mockPrisma.$transaction.mockImplementation(
-			(cb: (tx: { business: typeof txBusiness; payment: typeof txPayment }) => unknown) =>
-				cb({ business: txBusiness, payment: txPayment })
-		)
-	})
-
-	it('happy path — returns ok: true, updates both Business and Payment, logs audit', async () => {
-		mockPrisma.business.findUnique.mockResolvedValue({ idBusiness: 10, status: 'EMITIDO', dateAnchored: null })
-		const txBusiness = { update: vi.fn().mockResolvedValue(null) }
-		const txPayment = {
-			updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-			findUnique: vi.fn().mockResolvedValue(fondeadoPayment),
-		}
-		mockPrisma.$transaction.mockImplementation(
-			(cb: (tx: { business: typeof txBusiness; payment: typeof txPayment }) => unknown) =>
-				cb({ business: txBusiness, payment: txPayment })
-		)
-
-		const result = await markPrimerPagoFondeado(10, 1, actor, fondeoDate)
-
-		expect(result.ok).toBe(true)
-		if (result.ok) {
-			expect(result.payment.status).toBe('FONDEADO')
-			expect(result.payment.dateAnchored).toBe(fondeoDate.toISOString())
-		}
-		expect(txBusiness.update).toHaveBeenCalledOnce()
-		expect(txPayment.updateMany).toHaveBeenCalledOnce()
-		expect(logAuditEvent).toHaveBeenCalledOnce()
-	})
-
-	it('conflict — returns CONFLICT when business count=0 (already FONDEADO)', async () => {
-		const txBusiness = { updateMany: vi.fn().mockResolvedValue({ count: 0 }) }
-		const txPayment = { updateMany: vi.fn() }
-		mockPrisma.$transaction.mockImplementation(
-			(cb: (tx: { business: typeof txBusiness; payment: typeof txPayment }) => unknown) =>
-				cb({ business: txBusiness, payment: txPayment })
-		)
-		mockPrisma.business.findUnique.mockResolvedValue({ id: 10, status: 'FONDEADO' })
-
-		const result = await markPrimerPagoFondeado(10, 1, actor, fondeoDate)
-
-		expect(result.ok).toBe(false)
-		if (!result.ok) {
-			expect(result.code).toBe('CONFLICT')
-		}
-		expect(logAuditEvent).not.toHaveBeenCalled()
-	})
-
-	it('not found — returns NOT_FOUND when business does not exist', async () => {
-		const txBusiness = { updateMany: vi.fn().mockResolvedValue({ count: 0 }) }
-		const txPayment = { updateMany: vi.fn() }
-		mockPrisma.$transaction.mockImplementation(
-			(cb: (tx: { business: typeof txBusiness; payment: typeof txPayment }) => unknown) =>
-				cb({ business: txBusiness, payment: txPayment })
-		)
-		mockPrisma.business.findUnique.mockResolvedValue(null)
-
-		const result = await markPrimerPagoFondeado(10, 1, actor, fondeoDate)
-
-		expect(result.ok).toBe(false)
-		if (!result.ok) {
-			expect(result.code).toBe('NOT_FOUND')
-		}
-		expect(logAuditEvent).not.toHaveBeenCalled()
 	})
 })
 

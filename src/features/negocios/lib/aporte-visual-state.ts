@@ -9,7 +9,7 @@ export type AporteVariant =
 	| 'CARTERA_PAGADO'
 	| 'SIN_FONDEAR'
 
-export type AporteButton = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO' | 'MARK_FONDEAR'
+export type AporteButton = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO'
 
 export type AporteVisualState = {
 	variant: AporteVariant
@@ -28,23 +28,6 @@ function formatDate(iso: string): string {
 	} catch {
 		return iso
 	}
-}
-
-export function getFirstPaymentFondeoButton(
-	aporte: Pick<PaymentInstallmentDto, 'installmentIndex' | 'status'>,
-	business: { status: string; dateAnchored: string | null },
-	canMutate: boolean
-): AporteButton[] {
-	if (
-		business.status === 'EMITIDO' &&
-		!business.dateAnchored &&
-		aporte.installmentIndex === 1 &&
-		aporte.status === 'FONDEADO' &&
-		canMutate
-	) {
-		return ['MARK_FONDEAR']
-	}
-	return []
 }
 
 export function getAporteVisualState(

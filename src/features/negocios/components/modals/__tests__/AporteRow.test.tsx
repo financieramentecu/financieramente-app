@@ -3,9 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { AporteRow } from '../AporteRow'
 import type { PaymentInstallmentDto } from '../../../types/business-api.types'
 
-const emitidoBusiness = { status: 'EMITIDO', dateAnchored: null }
-const fondeadoBusiness = { status: 'FONDEADO', dateAnchored: '2024-01-15T00:00:00.000Z' }
-
 function baseAporte(
 	overrides: Partial<PaymentInstallmentDto>
 ): PaymentInstallmentDto {
@@ -201,78 +198,6 @@ describe('AporteRow', () => {
 		)
 		expect(screen.queryByRole('button')).not.toBeInTheDocument()
 		expect(screen.getByText(/Cartera pagada/i)).toBeInTheDocument()
-	})
-
-	describe('MARK_FONDEAR button (business-level gate)', () => {
-		it('renders Fondear button when business=EMITIDO, no dateAnchored, installmentIndex=1, canMutate=true', () => {
-			render(
-				<ul>
-					<AporteRow
-						aporte={baseAporte({ installmentIndex: 1 })}
-						businessId={10}
-						business={emitidoBusiness}
-						canMutate={true}
-						now={now}
-						onTransitionSuccess={vi.fn()}
-						onRequestAction={vi.fn()}
-					/>
-				</ul>
-			)
-			expect(screen.getByRole('button', { name: /fondear/i })).toBeInTheDocument()
-		})
-
-		it('does NOT render Fondear button when business=FONDEADO', () => {
-			render(
-				<ul>
-					<AporteRow
-						aporte={baseAporte({ installmentIndex: 1 })}
-						businessId={10}
-						business={fondeadoBusiness}
-						canMutate={true}
-						now={now}
-						onTransitionSuccess={vi.fn()}
-						onRequestAction={vi.fn()}
-					/>
-				</ul>
-			)
-			expect(screen.queryByRole('button', { name: /fondear/i })).not.toBeInTheDocument()
-		})
-
-		it('does NOT render Fondear button when installmentIndex=2', () => {
-			render(
-				<ul>
-					<AporteRow
-						aporte={baseAporte({ installmentIndex: 2, expectedDate: '2025-05-01T00:00:00.000Z' })}
-						businessId={10}
-						business={emitidoBusiness}
-						canMutate={true}
-						now={now}
-						onTransitionSuccess={vi.fn()}
-						onRequestAction={vi.fn()}
-					/>
-				</ul>
-			)
-			expect(screen.queryByRole('button', { name: /fondear/i })).not.toBeInTheDocument()
-		})
-
-		it('calls onRequestAction with MARK_FONDEAR when Fondear button is clicked', () => {
-			const onRequestAction = vi.fn()
-			render(
-				<ul>
-					<AporteRow
-						aporte={baseAporte({ installmentIndex: 1 })}
-						businessId={10}
-						business={emitidoBusiness}
-						canMutate={true}
-						now={now}
-						onTransitionSuccess={vi.fn()}
-						onRequestAction={onRequestAction}
-					/>
-				</ul>
-			)
-			fireEvent.click(screen.getByRole('button', { name: /fondear/i }))
-			expect(onRequestAction).toHaveBeenCalledWith('MARK_FONDEAR', 1)
-		})
 	})
 
 	describe('edit funded date affordance (pencil button)', () => {

@@ -146,44 +146,4 @@ describe('useAporteTransitions', () => {
 		}
 	})
 
-	it('markPrimerPagoFondeado — posts to correct endpoint with fondeoDate body', async () => {
-		const fondeadoPayment = {
-			installmentIndex: 1,
-			status: 'FONDEADO' as const,
-			dateAnchored: '2024-01-15T00:00:00.000Z',
-			expectedDate: null,
-			portfolioDate: null,
-			earlyPaymentDate: null,
-			portfolioPaymentDate: null,
-		}
-
-		const mockFetch = vi.fn().mockResolvedValue({
-			ok: true,
-			json: () => Promise.resolve({ data: fondeadoPayment }),
-		})
-		global.fetch = mockFetch
-
-		const { result } = renderHook(() => useAporteTransitions())
-
-		act(() => {
-			void result.current.markPrimerPagoFondeado(10, 1, '2024-01-15')
-		})
-
-		await waitFor(() => {
-			expect(result.current.state.status).toBe('success')
-		})
-
-		expect(mockFetch).toHaveBeenCalledWith(
-			'/api/negocios/10/aportes/1/fondear',
-			expect.objectContaining({
-				method: 'POST',
-				body: JSON.stringify({ fondeoDate: '2024-01-15' }),
-				headers: { 'Content-Type': 'application/json' },
-			})
-		)
-
-		if (result.current.state.status === 'success') {
-			expect(result.current.state.data.status).toBe('FONDEADO')
-		}
-	})
 })

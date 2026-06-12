@@ -274,6 +274,8 @@ The FundingModal MUST derive the visual state of each aporte from `(status, expe
 
 **Date resolution rule**: reference = `expectedDate ?? dateAnchored`. If both null → FONDEADO_CURRENT (gray, "Fecha por confirmar"). All month comparisons MUST use America/Bogota.
 
+**Round 6 note — no "Fondear primer pago" button**: The table above does NOT include a manual "Fondear primer pago" button. The EMITIDO→FONDEADO business flip is owned exclusively by the daily cron (`fundDuePayments`) and the migration backfill (Decision 7). A FONDEADO first payment (installment index 1) MUST render identically to any other FONDEADO payment — no special button is shown. This was implemented in Round 6 by removing `getFirstPaymentFondeoButton`, `MARK_FONDEAR` from `AporteButton`, and the entire `POST /api/negocios/[id]/aportes/[index]/fondear` route.
+
 #### Scenario: SIN_FONDEAR payment renders no action buttons
 
 - GIVEN a payment with `status = SIN_FONDEAR`

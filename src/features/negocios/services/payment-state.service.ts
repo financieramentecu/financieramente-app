@@ -128,60 +128,6 @@ async function fundSingleBusiness(
 // Public service functions
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function markPrimerPagoFondeado(
-	businessId: number,
-	index: number,
-	actor: Actor,
-	fondeoDate: Date
-): Promise<TransitionResult> {
-	const existing = await prisma.business.findUnique({
-		where: { idBusiness: businessId },
-	})
-
-	if (!existing) return { ok: false, code: 'NOT_FOUND' }
-	if (existing.status !== 'EMITIDO') return { ok: false, code: 'CONFLICT' }
-
-	const payment = await prisma.$transaction(async (tx) => {
-		await tx.business.update({
-			where: { idBusiness: businessId },
-			data: {
-				status: 'FONDEADO',
-				dateAnchored: fondeoDate,
-			},
-		})
-
-		await tx.payment.updateMany({
-			where: {
-				idBusiness: businessId,
-				installmentIndex: index,
-			},
-			data: {
-				dateAnchored: fondeoDate,
-			},
-		})
-
-		return tx.payment.findUnique({
-			where: {
-				idBusiness_installmentIndex: {
-					idBusiness: businessId,
-					installmentIndex: index,
-				},
-			},
-		})
-	})
-
-	void logAuditEvent({
-		userId: actor.userId,
-		action: AuditAction.APORTE_PRIMER_PAGO_FONDEADO,
-		email: actor.email,
-		ipAddress: actor.ip,
-		userAgent: actor.ua,
-		details: `Primer pago del negocio ${businessId} fondeado con fecha ${fondeoDate.toISOString().slice(0, 10)}`,
-	})
-
-	return { ok: true, payment: toDto(payment!) }
-}
-
 export async function markCartera(
 	businessId: number,
 	index: number,

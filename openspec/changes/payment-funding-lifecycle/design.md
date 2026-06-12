@@ -13,6 +13,7 @@ Approach A (proposal): system cron → authenticated Next.js route → `fundDueP
 
 ### Decision 2: `fundDuePayments(today)` transaction shape
 **Choice**: Single function. (1) `payment.findMany` where `status=SIN_FONDEAR` AND `expectedDate <= endOfTodayBogota`, select `idBusiness, installmentIndex, expectedDate`. (2) One `$transaction` per affected business: `updateMany` payments→FONDEADO stamping `dateAnchored = today` (the cron run's Bogota date — per requirement, the funded date records when the funding happened, not the due date; this is why the field stays user-editable via the PATCH endpoint); then the race-free first-funding flip via conditional `updateMany` on the business (`where: { idBusiness, status: 'EMITIDO', dateAnchored: null }, data: { status: 'FONDEADO', dateAnchored: today }`). Returns `{ fundedPayments, fondeadoBusinesses }` counts.
+**Round 6 addendum (manual Fondear flow removed):** The manual "Fondear primer pago" button that previously let an operator flip EMITIDO→FONDEADO through the UI is removed. The cron (Decision 2) now exclusively owns this transition for new businesses, and the migration script (Decision 7) backfills legacy businesses. Deleted artifacts: `getFirstPaymentFondeoButton` lib function, `MARK_FONDEAR` from `AporteButton`, the Fondear button in `AporteRow`, `ConfirmFondeoDialog` component, `markPrimerPagoFondeado` hook/service, and the `POST /api/negocios/[id]/aportes/[index]/fondear` API route.
 **Alternatives**: one giant transaction for all (long lock, poor partial-failure isolation); per-payment transactions (N flips race on the business row).
 **Rationale**: `updateMany` with `status='EMITIDO'` guard is the race-free flip — only the first matching write succeeds; concurrent runs are idempotent. CARTERA invariant respected: the flip guard is `status='EMITIDO'`, so a CARTERA business is never touched, and `dateAnchored: null` keeps it write-once.
 **Implementation constraint (SRP / transaction-helper rule):** The per-business `$transaction` body MUST be extracted into a named private helper, e.g. `async function fundSingleBusiness(tx: PrismaTransactionClient, businessId: number, paymentIndexes: number[], today: Date, actor: Actor): Promise<void>`. `fundDuePayments` only queries, groups, and delegates to this helper per business — never a `$transaction` block with 4+ distinct operations in a single body.
@@ -81,7 +82,14 @@ Approach A (proposal): system cron → authenticated Next.js route → `fundDueP
 | `src/features/production-dashboard/lib/by-status-colors.ts` + `types/production-kpi.types.ts` | Modify | CARTERA donut color/label/allowed-key |
 | `src/features/negocios/components/modals/EditFundedDateModal.tsx` | Create | Edit funded date modal component |
 | `src/features/negocios/hooks/use-update-funded-date.ts` | Create | `useUpdateFundedDate` hook (AsyncState) |
-| `src/features/negocios/components/modals/AporteRow.tsx` | Modify | Edit affordance for funded variants |
+| `src/features/negocios/components/modals/AporteRow.tsx` | Modify | Edit affordance for funded variants; remove `business` prop, `isPrimerPagoFondeado` logic, `MARK_FONDEAR` button (Round 6) |
+| `src/features/negocios/components/modals/FundingModal.tsx` | Modify | Remove `businessStatus`, `businessDateAnchored`, `onFondeoSuccess` props; remove `ConfirmFondeoDialog` and fondeo state (Round 6) |
+| `src/features/negocios/lib/aporte-visual-state.ts` | Modify (R6) | Remove `getFirstPaymentFondeoButton`; drop `MARK_FONDEAR` from `AporteButton` |
+| `src/features/negocios/services/payment-state.service.ts` | Modify (R6) | Remove `markPrimerPagoFondeado` |
+| `src/features/negocios/hooks/use-aporte-transitions.ts` | Modify (R6) | Remove `markPrimerPagoFondeado` |
+| `src/features/negocios/components/modals/ConfirmFondeoDialog.tsx` | Delete (R6) | No other callers |
+| `src/app/api/negocios/[id]/aportes/[index]/fondear/route.ts` | Delete (R6) | No other callers |
+| `src/app/dashboard/negocios/negocios-page-client.tsx` | Modify (R6) | Remove removed FundingModal props + state |
 | `src/features/auth/lib/audit-logger.ts` | Modify | 4 new AuditAction values |
 | `prisma/seeds/reset-future-payments-to-sin-fondear.ts` | Create | Idempotent migration + dry-run |
 | `terraform/scripts/run-script.md` + `docker/env.example` | Modify | Cron entry + CRON_SECRET |

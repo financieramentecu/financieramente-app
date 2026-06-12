@@ -1,7 +1,6 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { AnnualFundingModal } from '../AnnualFundingModal'
-import { FundingModal } from '../FundingModal'
 
 const pendingInstallment = {
 	installmentIndex: 1,
@@ -81,74 +80,3 @@ describe('AnnualFundingModal', () => {
 	})
 })
 
-// Task 6.3 — FundingModal MARK_FONDEAR wiring tests
-vi.mock('@/features/negocios/hooks/use-aporte-transitions', () => ({
-	useAporteTransitions: () => ({
-		state: { status: 'idle', data: undefined, error: '' },
-		markCartera: vi.fn(),
-		markPagoAnticipado: vi.fn(),
-		markCarteraPagado: vi.fn(),
-		markPrimerPagoFondeado: vi.fn().mockResolvedValue({ data: null, error: 'mocked' }),
-	}),
-}))
-
-const fondeadoInstallment = {
-	installmentIndex: 1,
-	status: 'FONDEADO' as const,
-	dateAnchored: null,
-	expectedDate: '2025-05-01T00:00:00.000Z',
-	portfolioDate: null,
-	earlyPaymentDate: null,
-	portfolioPaymentDate: null,
-}
-
-describe('FundingModal — MARK_FONDEAR wiring', () => {
-	it('renders FundingModal without crashing when businessStatus=EMITIDO prop is provided', () => {
-		render(
-			<FundingModal
-				open={true}
-				onOpenChange={vi.fn()}
-				businessId={42}
-				installments={[fondeadoInstallment]}
-				onConfirm={vi.fn()}
-				businessStatus="EMITIDO"
-				businessDateAnchored={null}
-				roleCode="ADMIN"
-			/>
-		)
-		expect(screen.getByRole('dialog')).toBeInTheDocument()
-	})
-
-	it('passes businessStatus and businessDateAnchored to AporteRow so Fondear button appears', () => {
-		render(
-			<FundingModal
-				open={true}
-				onOpenChange={vi.fn()}
-				businessId={42}
-				installments={[fondeadoInstallment]}
-				onConfirm={vi.fn()}
-				businessStatus="EMITIDO"
-				businessDateAnchored={null}
-				roleCode="ADMIN"
-			/>
-		)
-		expect(screen.getByRole('button', { name: /fondear primer pago/i })).toBeInTheDocument()
-	})
-
-	it('clicking Fondear button opens ConfirmFondeoDialog', () => {
-		render(
-			<FundingModal
-				open={true}
-				onOpenChange={vi.fn()}
-				businessId={42}
-				installments={[fondeadoInstallment]}
-				onConfirm={vi.fn()}
-				businessStatus="EMITIDO"
-				businessDateAnchored={null}
-				roleCode="ADMIN"
-			/>
-		)
-		fireEvent.click(screen.getByRole('button', { name: /fondear primer pago/i }))
-		expect(screen.getByRole('button', { name: /confirmar fondeo/i })).toBeInTheDocument()
-	})
-})

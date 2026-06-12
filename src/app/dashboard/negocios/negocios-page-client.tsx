@@ -120,10 +120,6 @@ export function NegociosPageClient({
 		null
 	)
 	const [annualFundingLoading, setAnnualFundingLoading] = useState(false)
-	const [annualFundingBusinessStatus, setAnnualFundingBusinessStatus] =
-		useState<string>('')
-	const [annualFundingBusinessDateAnchored, setAnnualFundingBusinessDateAnchored] =
-		useState<string | null>(null)
 	const [fondearConfirmOpen, setFondearConfirmOpen] = useState(false)
 	const [pendingFondearBusiness, setPendingFondearBusiness] =
 		useState<Business | null>(null)
@@ -328,8 +324,6 @@ export function NegociosPageClient({
 				)
 				setAnnualFundingPeriodicidadLabel(business.periodicityName ?? null)
 				setAnnualFundingPlazo(typeof business.term === 'number' ? business.term : null)
-				setAnnualFundingBusinessStatus(business.statusCode ?? '')
-				setAnnualFundingBusinessDateAnchored(business.dateAnchored ?? null)
 				setAnnualFundingOpen(true)
 				setAnnualFundingLoading(true)
 				setAnnualFundingInstallments([])
@@ -409,8 +403,6 @@ export function NegociosPageClient({
 			setAnnualFundingPeriodicidadLabel(null)
 			setAnnualFundingPlazo(null)
 			setAnnualFundingInstallments([])
-			setAnnualFundingBusinessStatus('')
-			setAnnualFundingBusinessDateAnchored(null)
 		}
 	}, [])
 
@@ -638,9 +630,6 @@ export function NegociosPageClient({
 				canFund={canFundPayments(_currentUser?.role?.code)}
 				roleCode={_currentUser?.role?.code}
 				onConfirm={handleConfirmAnnualFunding}
-				businessStatus={annualFundingBusinessStatus}
-				businessDateAnchored={annualFundingBusinessDateAnchored}
-				onFondeoSuccess={refetch}
 			/>
 
 			<AlertDialog

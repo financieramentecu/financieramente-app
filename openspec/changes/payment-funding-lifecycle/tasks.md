@@ -119,3 +119,24 @@ Chain strategy: pending
 - [x] **L4.3** Run `npm run type-check` — zero TS errors across all modified files.
 - [x] **L4.4** Run `npm run lint` — no lint errors.
 - [ ] **L4.5** (Manual / staging) Run migration script with `--dry-run`; verify logged counts match expectations before running for real.
+
+---
+
+## Round 6 — Remove Manual First-Payment Fondear Flow
+
+The manual "Fondear primer pago" button flow is superseded by the daily cron (which owns EMITIDO→FONDEADO) and the migration backfill (already committed in Step 3). All pieces exclusively reachable from this button are deleted.
+
+- [x] **R6.1** RED: Remove `describe('getFirstPaymentFondeoButton')` block from `aporte-visual-state.test.ts`; remove its import.
+- [x] **R6.2** RED: Remove `describe('MARK_FONDEAR button')` block from `AporteRow.test.tsx`; remove unused `emitidoBusiness`/`fondeadoBusiness` constants.
+- [x] **R6.3** RED: Remove `FundingModal — MARK_FONDEAR wiring` describe block from `annual-funding-modal.test.tsx`; remove unused imports (`FundingModal`, `fireEvent`).
+- [x] **R6.4** RED: Remove `markPrimerPagoFondeado` test from `use-aporte-transitions.test.ts`.
+- [x] **R6.5** RED: Remove `describe('markPrimerPagoFondeado')` block from `payment-state.service.test.ts`; update import.
+- [x] **R6.6** GREEN: Remove `getFirstPaymentFondeoButton` export and `MARK_FONDEAR` from `AporteButton` union in `aporte-visual-state.ts`.
+- [x] **R6.7** GREEN: Simplify `AporteRow.tsx` — remove `business` prop, `getFirstPaymentFondeoButton` call, `isPrimerPagoFondeado` logic, and `MARK_FONDEAR` button JSX. `AporteAction` type drops `MARK_FONDEAR`. Remove `Banknote` import.
+- [x] **R6.8** GREEN: Clean up `FundingModal.tsx` — remove `businessStatus`, `businessDateAnchored`, `onFondeoSuccess` props; remove `ConfirmFondeoDialog` import and render; remove `pendingFondeo` state; remove `handleFondeoConfirm`; remove `MARK_FONDEAR` branch from `handleRequestAction`; remove `markPrimerPagoFondeado` from hook destructure. Update `ConfirmableAction` type.
+- [x] **R6.9** GREEN: Remove `markPrimerPagoFondeado` from `use-aporte-transitions.ts` (type + implementation + return).
+- [x] **R6.10** GREEN: Remove `markPrimerPagoFondeado` service function from `payment-state.service.ts`.
+- [x] **R6.11** GREEN: Delete `src/app/api/negocios/[id]/aportes/[index]/fondear/route.ts` and its `__tests__/route.test.ts` (entire directory).
+- [x] **R6.12** GREEN: Delete `ConfirmFondeoDialog.tsx` and `__tests__/ConfirmFondeoDialog.test.tsx`.
+- [x] **R6.13** GREEN: Remove `annualFundingBusinessStatus` / `annualFundingBusinessDateAnchored` state and their set calls from `negocios-page-client.tsx`; remove removed props from `FundingModal` JSX.
+- [x] **R6.14** VERIFY: `npm run type-check` + `npm run lint` + `npm run test:unit` — all pass (302 files, 2723 tests, 0 failures).
