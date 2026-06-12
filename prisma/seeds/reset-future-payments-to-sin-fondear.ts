@@ -15,7 +15,13 @@
  *           or schedules — reset their FONDEADO/SIN_FONDEAR payments to
  *           SIN_FONDEAR with null dates (the real schedule is generated on
  *           emission). Payments in other states are logged for manual review.
- *   Step 3: backfill business status CARTERA for businesses with >= 1
+ *   Step 3: businesses still EMITIDO that have >= 1 FONDEADO payment and no
+ *           EN_CARTERA payment are flipped to FONDEADO, stamping the
+ *           business funded date with the earliest payment funding date
+ *           (write-once: only when the business date is null). The manual
+ *           first-payment button is removed — the cron owns the flip for new
+ *           fundings; this step closes the gap for legacy funded payments.
+ *   Step 4: backfill business status CARTERA for businesses with >= 1
  *           EN_CARTERA payment (lifecycle invariant).
  *
  * Run with: npx tsx prisma/seeds/reset-future-payments-to-sin-fondear.ts [--dry-run]
@@ -246,9 +252,70 @@ async function cleanupNonEmittedBusinesses(): Promise<void> {
 	}
 }
 
-/** Step 3: lifecycle invariant — business with >= 1 EN_CARTERA payment is CARTERA */
+/** Step 3: lifecycle invariant — EMITIDO business with >= 1 FONDEADO payment (and no cartera) is FONDEADO */
+async function backfillFondeadoBusinesses(): Promise<void> {
+	console.log('\n[Step 3] Backfilling FONDEADO status for businesses with funded payments...')
+
+	const candidates = await prisma.business.findMany({
+		where: {
+			status: 'EMITIDO',
+			payments: { some: { status: AnnualPaymentStatus.FONDEADO } },
+			NOT: { payments: { some: { status: AnnualPaymentStatus.EN_CARTERA } } },
+		},
+		select: {
+			idBusiness: true,
+			contract: true,
+			dateAnchored: true,
+			payments: {
+				where: { status: AnnualPaymentStatus.FONDEADO, dateAnchored: { not: null } },
+				orderBy: { dateAnchored: 'asc' },
+				take: 1,
+				select: { dateAnchored: true },
+			},
+		},
+	})
+
+	console.log(`[Step 3] Found ${candidates.length} EMITIDO business(es) with funded payments.`)
+
+	let flipped = 0
+	const missingDate: string[] = []
+
+	for (const business of candidates) {
+		const firstFundingDate = business.payments[0]?.dateAnchored ?? null
+		if (!firstFundingDate && !business.dateAnchored) {
+			missingDate.push(`business ${business.idBusiness} (contract ${business.contract ?? 'n/a'})`)
+		}
+
+		if (!isDryRun) {
+			await prisma.business.update({
+				where: { idBusiness: business.idBusiness },
+				data: {
+					status: 'FONDEADO',
+					// Write-once: keep an existing business funded date.
+					dateAnchored: business.dateAnchored ?? firstFundingDate,
+				},
+			})
+		}
+		flipped++
+	}
+
+	const verb = isDryRun ? 'would flip' : 'flipped'
+	console.log(`[Step 3] ${verb} ${flipped} business(es) to FONDEADO.`)
+	for (const label of missingDate) {
+		console.warn(`[Step 3] WARNING: ${label} flipped without funded date (no FONDEADO payment has dateAnchored) — review manually.`)
+	}
+
+	if (!isDryRun && flipped > 0) {
+		await logMigrationAudit(
+			AuditAction.BUSINESS_MIGRATION_FONDEADO,
+			`Migration Step 3: Flipped ${flipped} EMITIDO business(es) with funded payments to FONDEADO, stamping earliest payment funding date; ${missingDate.length} without funded date flagged`
+		)
+	}
+}
+
+/** Step 4: lifecycle invariant — business with >= 1 EN_CARTERA payment is CARTERA */
 async function backfillCarteraBusinesses(): Promise<void> {
-	console.log('\n[Step 3] Counting businesses with EN_CARTERA payments...')
+	console.log('\n[Step 4] Counting businesses with EN_CARTERA payments...')
 
 	const businessesWithCartera = await prisma.payment.findMany({
 		where: { status: AnnualPaymentStatus.EN_CARTERA },
@@ -257,25 +324,25 @@ async function backfillCarteraBusinesses(): Promise<void> {
 	})
 
 	const businessIds = businessesWithCartera.map(p => p.idBusiness)
-	console.log(`[Step 3] Found ${businessIds.length} business(es) with at least one EN_CARTERA payment.`)
+	console.log(`[Step 4] Found ${businessIds.length} business(es) with at least one EN_CARTERA payment.`)
 
 	if (!isDryRun && businessIds.length > 0) {
 		const result = await prisma.business.updateMany({
 			where: { idBusiness: { in: businessIds }, status: { not: 'CARTERA' } },
 			data: { status: 'CARTERA' },
 		})
-		console.log(`[Step 3] Backfilled ${result.count} business(es) to CARTERA status.`)
+		console.log(`[Step 4] Backfilled ${result.count} business(es) to CARTERA status.`)
 
 		if (result.count > 0) {
 			await logMigrationAudit(
 				AuditAction.BUSINESS_CARTERA,
-				`Migration Step 3: Backfilled ${result.count} business(es) to CARTERA status (had EN_CARTERA payments)`
+				`Migration Step 4: Backfilled ${result.count} business(es) to CARTERA status (had EN_CARTERA payments)`
 			)
 		}
 	} else if (isDryRun) {
-		console.log(`[Step 3] DRY RUN — would backfill ${businessIds.length} business(es) to CARTERA.`)
+		console.log(`[Step 4] DRY RUN — would backfill ${businessIds.length} business(es) to CARTERA.`)
 	} else {
-		console.log('[Step 3] No businesses to backfill.')
+		console.log('[Step 4] No businesses to backfill.')
 	}
 }
 
@@ -287,6 +354,7 @@ async function main() {
 	await backfillExpectedDates()
 	await resetFutureFundedPayments(today)
 	await cleanupNonEmittedBusinesses()
+	await backfillFondeadoBusinesses()
 	await backfillCarteraBusinesses()
 
 	console.log('\n[reset-future-payments] Migration complete.')

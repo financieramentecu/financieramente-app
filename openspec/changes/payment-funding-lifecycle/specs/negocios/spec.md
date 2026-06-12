@@ -195,13 +195,21 @@ The `isSameMonthOrFuture` function MUST use America/Bogota for all month/year co
 
 ### Requirement: Idempotent Migration — Reset Future Payments to SIN_FONDEAR
 
-The migration script `prisma/seeds/reset-future-payments-to-sin-fondear.ts` MUST run four idempotent steps in order:
+The migration script `prisma/seeds/reset-future-payments-to-sin-fondear.ts` MUST run five idempotent steps in order:
 1. **Schedule backfill (emitted businesses)**: for every business in an emitted lifecycle status (`EMITIDO`, `FONDEADO`, `CARTERA`) with payments missing `expectedDate`, recompute the schedule via `calculateExpectedDates(dateIssued, numAportes, periodicityName)` and persist `expectedDate` per `installmentIndex`. Businesses with missing `dateIssued`/`numAportes`/periodicity, or an unknown periodicity (which would clone dates), MUST be skipped and logged for manual review — never guessed.
 2. **Future reset (emitted businesses)**: every payment with `status = FONDEADO` and `expectedDate` strictly after today (Bogota): set `status = SIN_FONDEAR` and `dateAnchored = null`.
 3. **Non-emitted cleanup**: payments of `VENTA_EFECTUADA` businesses in `FONDEADO` or `SIN_FONDEAR` state are reset to `SIN_FONDEAR` with `dateAnchored = null` AND `expectedDate = null` (the real schedule is generated on emission). Cartera/anticipado payments on non-emitted businesses are left untouched and logged as anomalies.
-4. **Cartera invariant backfill**: every business with at least one `EN_CARTERA` payment: set business `status = CARTERA`.
+4. **FONDEADO invariant backfill**: every business with `status = EMITIDO`, at least one `FONDEADO` payment, and zero `EN_CARTERA` payments: set business `status = FONDEADO` and stamp `Business.dateAnchored` with the earliest payment funding date (write-once — only when the business date is null). This closes the legacy gap the cron cannot resolve (the cron only flips a business when IT funds a payment). Audited with `BUSINESS_MIGRATION_FONDEADO`.
+5. **Cartera invariant backfill**: every business with at least one `EN_CARTERA` payment: set business `status = CARTERA`.
 
 `EN_CARTERA` payments are never modified by any step. Running the script twice MUST produce the same result as running it once.
+
+#### Scenario: EMITIDO business with funded payment flipped to FONDEADO
+
+- GIVEN an `EMITIDO` business with at least one `FONDEADO` payment and no `EN_CARTERA` payment
+- WHEN the migration runs
+- THEN the business `status` SHALL become `FONDEADO`
+- AND `Business.dateAnchored` SHALL equal the earliest `dateAnchored` among its FONDEADO payments (only if it was null)
 
 #### Scenario: Legacy payment without schedule gets expectedDate recomputed
 
