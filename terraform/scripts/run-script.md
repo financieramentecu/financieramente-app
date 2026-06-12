@@ -21,3 +21,7 @@ Ruta del script en servidor: `/opt/financieramente/terraform/scripts/ssl-renew.s
 
 ## Verificar
 crontab -l
+
+## Cron: fund payments daily at 6 AM Bogotá time (UTC-5 → 11:00 UTC)
+(crontab -l 2>/dev/null | grep -v 'fund-payments' || true
+ echo "0 11 * * * curl -fsS -X POST -H \"Authorization: Bearer \$CRON_SECRET\" http://localhost:3000/api/negocios/cron/fund-payments >> /var/log/financieramente/cron-fund-payments.log 2>&1") | crontab -
