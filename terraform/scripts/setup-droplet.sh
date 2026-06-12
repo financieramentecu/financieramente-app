@@ -44,7 +44,8 @@ apt-get install -y \
 	apt-transport-https \
 	ca-certificates \
 	gnupg \
-	lsb-release
+	lsb-release \
+	awscli
 
 # Install Docker with timeout and error handling
 echo "Installing Docker..."

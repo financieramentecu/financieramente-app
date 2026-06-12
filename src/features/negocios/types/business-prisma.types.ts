@@ -48,7 +48,9 @@ export const businessWithRelations = {
 	_count: {
 		select: {
 			payments: true,
-			supports: true,
+			supports: {
+				where: { status: true },
+			},
 		},
 	},
 	supports: true,
