@@ -4,6 +4,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { STATUS_COLORS, STATUS_DISPLAY_LABELS } from '../../lib/by-status-colors'
+import { STATUS_DONUT_ALLOWED } from '../../types/production-kpi.types'
 
 describe('STATUS_COLORS', () => {
   it('maps VENTA_EFECTUADA to orange-500 (#f97316)', () => {
@@ -18,8 +19,13 @@ describe('STATUS_COLORS', () => {
     expect(STATUS_COLORS.FONDEADO).toBe('#22c55e')
   })
 
-  it('contains exactly three entries', () => {
-    expect(Object.keys(STATUS_COLORS)).toHaveLength(3)
+  // L2.5 — CARTERA color test
+  it('maps CARTERA to amber-500 (#f59e0b)', () => {
+    expect(STATUS_COLORS.CARTERA).toBe('#f59e0b')
+  })
+
+  it('contains exactly four entries', () => {
+    expect(Object.keys(STATUS_COLORS)).toHaveLength(4)
   })
 })
 
@@ -36,7 +42,24 @@ describe('STATUS_DISPLAY_LABELS', () => {
     expect(STATUS_DISPLAY_LABELS.FONDEADO).toBe('Fondeado')
   })
 
-  it('contains exactly three entries', () => {
-    expect(Object.keys(STATUS_DISPLAY_LABELS)).toHaveLength(3)
+  // L2.5 — CARTERA label test
+  it('maps CARTERA to "Cartera"', () => {
+    expect(STATUS_DISPLAY_LABELS.CARTERA).toBe('Cartera')
+  })
+
+  it('contains exactly four entries', () => {
+    expect(Object.keys(STATUS_DISPLAY_LABELS)).toHaveLength(4)
+  })
+})
+
+describe('STATUS_DONUT_ALLOWED', () => {
+  it('includes CARTERA as a donut key', () => {
+    expect(STATUS_DONUT_ALLOWED).toContain('CARTERA')
+  })
+
+  it('includes VENTA_EFECTUADA, EMITIDO, and FONDEADO', () => {
+    expect(STATUS_DONUT_ALLOWED).toContain('VENTA_EFECTUADA')
+    expect(STATUS_DONUT_ALLOWED).toContain('EMITIDO')
+    expect(STATUS_DONUT_ALLOWED).toContain('FONDEADO')
   })
 })

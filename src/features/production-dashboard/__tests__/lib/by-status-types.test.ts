@@ -9,8 +9,8 @@ import {
 } from '../../types/production-kpi.types'
 
 describe('STATUS_DONUT_ALLOWED', () => {
-  it('contains exactly three statuses', () => {
-    expect(STATUS_DONUT_ALLOWED).toHaveLength(3)
+  it('contains exactly four statuses', () => {
+    expect(STATUS_DONUT_ALLOWED).toHaveLength(4)
   })
 
   it('includes VENTA_EFECTUADA', () => {
@@ -23,6 +23,10 @@ describe('STATUS_DONUT_ALLOWED', () => {
 
   it('includes FONDEADO', () => {
     expect(STATUS_DONUT_ALLOWED).toContain('FONDEADO')
+  })
+
+  it('includes CARTERA', () => {
+    expect(STATUS_DONUT_ALLOWED).toContain('CARTERA')
   })
 
   it('does not include CANCELADO or LIQUIDADO', () => {

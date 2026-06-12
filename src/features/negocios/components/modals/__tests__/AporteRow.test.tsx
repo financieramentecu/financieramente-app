@@ -274,4 +274,126 @@ describe('AporteRow', () => {
 			expect(onRequestAction).toHaveBeenCalledWith('MARK_FONDEAR', 1)
 		})
 	})
+
+	describe('edit funded date affordance (pencil button)', () => {
+		it('renders pencil edit button for FONDEADO past month when canMutate=true', () => {
+			// Past month = expectedDate in April (before now=May 2025)
+			render(
+				<ul>
+					<AporteRow
+						aporte={baseAporte({
+							installmentIndex: 2,
+							status: 'FONDEADO',
+							dateAnchored: '2025-04-10T12:00:00.000Z',
+							expectedDate: '2025-04-01T00:00:00.000Z',
+						})}
+						businessId={10}
+						canMutate={true}
+						now={now}
+						onTransitionSuccess={vi.fn()}
+						onRequestAction={vi.fn()}
+						onEditFundedDate={vi.fn()}
+					/>
+				</ul>
+			)
+			expect(
+				screen.getByRole('button', { name: /editar fecha de fondeo/i })
+			).toBeInTheDocument()
+		})
+
+		it('renders pencil edit button for FONDEADO current month when canMutate=true', () => {
+			// Current month = expectedDate in May 2025 (same as now)
+			render(
+				<ul>
+					<AporteRow
+						aporte={baseAporte({
+							installmentIndex: 2,
+							status: 'FONDEADO',
+							dateAnchored: '2025-05-10T12:00:00.000Z',
+							expectedDate: '2025-05-01T00:00:00.000Z',
+						})}
+						businessId={10}
+						canMutate={true}
+						now={now}
+						onTransitionSuccess={vi.fn()}
+						onRequestAction={vi.fn()}
+						onEditFundedDate={vi.fn()}
+					/>
+				</ul>
+			)
+			expect(
+				screen.getByRole('button', { name: /editar fecha de fondeo/i })
+			).toBeInTheDocument()
+		})
+
+		it('does NOT render pencil edit button when canMutate=false (AGENTE/COACH)', () => {
+			render(
+				<ul>
+					<AporteRow
+						aporte={baseAporte({
+							installmentIndex: 2,
+							status: 'FONDEADO',
+							dateAnchored: '2025-04-10T12:00:00.000Z',
+							expectedDate: '2025-04-01T00:00:00.000Z',
+						})}
+						businessId={10}
+						canMutate={false}
+						now={now}
+						onTransitionSuccess={vi.fn()}
+						onRequestAction={vi.fn()}
+						onEditFundedDate={vi.fn()}
+					/>
+				</ul>
+			)
+			expect(
+				screen.queryByRole('button', { name: /editar fecha de fondeo/i })
+			).not.toBeInTheDocument()
+		})
+
+		it('does NOT render pencil edit button for EN_CARTERA variant', () => {
+			render(
+				<ul>
+					<AporteRow
+						aporte={baseAporte({
+							status: 'EN_CARTERA',
+							portfolioDate: '2025-05-10T00:00:00.000Z',
+						})}
+						businessId={10}
+						canMutate={true}
+						now={now}
+						onTransitionSuccess={vi.fn()}
+						onRequestAction={vi.fn()}
+						onEditFundedDate={vi.fn()}
+					/>
+				</ul>
+			)
+			expect(
+				screen.queryByRole('button', { name: /editar fecha de fondeo/i })
+			).not.toBeInTheDocument()
+		})
+
+		it('calls onEditFundedDate with index when pencil button is clicked', () => {
+			const onEditFundedDate = vi.fn()
+			render(
+				<ul>
+					<AporteRow
+						aporte={baseAporte({
+							installmentIndex: 3,
+							status: 'FONDEADO',
+							dateAnchored: '2025-04-10T12:00:00.000Z',
+							expectedDate: '2025-04-01T00:00:00.000Z',
+						})}
+						businessId={10}
+						canMutate={true}
+						now={now}
+						onTransitionSuccess={vi.fn()}
+						onRequestAction={vi.fn()}
+						onEditFundedDate={onEditFundedDate}
+					/>
+				</ul>
+			)
+			fireEvent.click(screen.getByRole('button', { name: /editar fecha de fondeo/i }))
+			expect(onEditFundedDate).toHaveBeenCalledWith(3)
+		})
+	})
 })

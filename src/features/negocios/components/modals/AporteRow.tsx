@@ -10,6 +10,7 @@ import {
 	X,
 	Loader2,
 	Banknote,
+	Pencil,
 } from 'lucide-react'
 import { getAporteVisualState, getFirstPaymentFondeoButton } from '../../lib/aporte-visual-state'
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
@@ -26,6 +27,7 @@ export interface AporteRowProps {
 	now?: Date
 	onTransitionSuccess: (updated: PaymentInstallmentDto) => void
 	onRequestAction: (action: AporteAction, index: number) => void
+	onEditFundedDate?: (index: number) => void
 }
 
 function formatDate(iso: string | null): string {
@@ -45,6 +47,7 @@ export function AporteRow({
 	now = new Date(),
 	onTransitionSuccess: _onTransitionSuccess,
 	onRequestAction,
+	onEditFundedDate,
 }: AporteRowProps) {
 	const [aporte, setAporte] = React.useState(initialAporte)
 
@@ -204,6 +207,19 @@ export function AporteRow({
 						</button>
 					)}
 				</div>
+			)}
+
+			{/* Edit funded date affordance — visible for FONDEADO_PAST / FONDEADO_CURRENT with canMutate */}
+			{(isPast || isCurrent) && canMutate && onEditFundedDate && (
+				<button
+					type="button"
+					aria-label="Editar fecha de fondeo"
+					disabled={isLoading}
+					onClick={() => onEditFundedDate(aporte.installmentIndex)}
+					className="shrink-0 inline-flex items-center justify-center rounded-md border border-border bg-background p-1 text-muted-foreground shadow-sm transition-colors duration-150 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100"
+				>
+					<Pencil className="h-3 w-3" aria-hidden />
+				</button>
 			)}
 		</li>
 	)

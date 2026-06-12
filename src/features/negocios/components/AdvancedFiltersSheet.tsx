@@ -42,6 +42,7 @@ const STATUS_OPTIONS = [
 	{ value: BUSINESS_STATUS.LIQUIDADO, label: 'Liquidado' },
 	{ value: BUSINESS_STATUS.CANCELADO, label: 'Cancelado' },
 	{ value: BUSINESS_STATUS.FONDEADO, label: 'Fondeado' },
+	{ value: BUSINESS_STATUS.CARTERA, label: 'Cartera' },
 ]
 
 interface FilterFormValues {
