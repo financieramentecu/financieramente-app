@@ -195,24 +195,44 @@ The `isSameMonthOrFuture` function MUST use America/Bogota for all month/year co
 
 ### Requirement: Idempotent Migration — Reset Future Payments to SIN_FONDEAR
 
-The migration script `prisma/seeds/reset-future-payments-to-sin-fondear.ts` MUST:
-1. For every payment with `status = FONDEADO` and `dateAnchored` strictly after today (Bogota): set `status = SIN_FONDEAR`, preserve the schedule by setting `expectedDate = dateAnchored` when `expectedDate` is null, and set `dateAnchored = null`. (Legacy rows store the scheduled date in `dateAnchored`; `expectedDate` is often null — a funded date in the future means the payment was never actually funded.)
-2. Leave `EN_CARTERA` payments and any non-`FONDEADO` payments untouched.
-3. For every business with at least one `EN_CARTERA` payment: set business `status = CARTERA`.
-4. Be idempotent — running it twice MUST produce the same result as running it once.
+The migration script `prisma/seeds/reset-future-payments-to-sin-fondear.ts` MUST run four idempotent steps in order:
+1. **Schedule backfill (emitted businesses)**: for every business in an emitted lifecycle status (`EMITIDO`, `FONDEADO`, `CARTERA`) with payments missing `expectedDate`, recompute the schedule via `calculateExpectedDates(dateIssued, numAportes, periodicityName)` and persist `expectedDate` per `installmentIndex`. Businesses with missing `dateIssued`/`numAportes`/periodicity, or an unknown periodicity (which would clone dates), MUST be skipped and logged for manual review — never guessed.
+2. **Future reset (emitted businesses)**: every payment with `status = FONDEADO` and `expectedDate` strictly after today (Bogota): set `status = SIN_FONDEAR` and `dateAnchored = null`.
+3. **Non-emitted cleanup**: payments of `VENTA_EFECTUADA` businesses in `FONDEADO` or `SIN_FONDEAR` state are reset to `SIN_FONDEAR` with `dateAnchored = null` AND `expectedDate = null` (the real schedule is generated on emission). Cartera/anticipado payments on non-emitted businesses are left untouched and logged as anomalies.
+4. **Cartera invariant backfill**: every business with at least one `EN_CARTERA` payment: set business `status = CARTERA`.
 
-#### Scenario: Future-funded FONDEADO payment reset to SIN_FONDEAR
+`EN_CARTERA` payments are never modified by any step. Running the script twice MUST produce the same result as running it once.
 
-- GIVEN a payment with `status = FONDEADO` and `dateAnchored` strictly after today (Bogota)
+#### Scenario: Legacy payment without schedule gets expectedDate recomputed
+
+- GIVEN an `EMITIDO` business with valid `dateIssued`, `numAportes`, and periodicity, and a payment with `expectedDate = null`
+- WHEN the migration runs
+- THEN that payment's `expectedDate` SHALL equal the recomputed schedule date for its `installmentIndex`
+
+#### Scenario: Business with unrecoverable schedule is skipped
+
+- GIVEN an emitted business missing `dateIssued` or with an unknown periodicity
+- WHEN the migration runs
+- THEN none of its payments SHALL be modified by steps 1–2
+- AND the business SHALL be logged for manual review
+
+#### Scenario: Future-due FONDEADO payment reset to SIN_FONDEAR
+
+- GIVEN an emitted business and a payment with `status = FONDEADO` and `expectedDate` strictly after today (Bogota)
 - WHEN the migration runs
 - THEN that payment SHALL have `status = SIN_FONDEAR` and `dateAnchored = null`
-- AND its `expectedDate` SHALL hold the original `dateAnchored` value if `expectedDate` was null, otherwise remain unchanged
 
-#### Scenario: Past-funded FONDEADO payment not touched
+#### Scenario: Past-due FONDEADO payment not touched
 
-- GIVEN a payment with `status = FONDEADO` and `dateAnchored` today or earlier (Bogota)
+- GIVEN a payment with `status = FONDEADO` and `expectedDate` today or earlier (Bogota)
 - WHEN the migration runs
 - THEN that payment MUST remain `FONDEADO` with its `dateAnchored` unchanged
+
+#### Scenario: Non-emitted business fully cleaned
+
+- GIVEN a `VENTA_EFECTUADA` business with payments in `FONDEADO` state
+- WHEN the migration runs
+- THEN those payments SHALL be `SIN_FONDEAR` with `dateAnchored = null` and `expectedDate = null`
 
 #### Scenario: EN_CARTERA payment untouched
 

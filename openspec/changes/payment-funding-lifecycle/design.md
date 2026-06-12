@@ -71,7 +71,7 @@ Approach A (proposal): system cron → authenticated Next.js route → `fundDueP
 | `src/features/negocios/lib/bogota-date.ts` | Create | Centralized Bogota today/month helpers |
 | `src/features/negocios/lib/aporte-visual-state.ts` | Modify | Use helpers; SIN_FONDEAR no-buttons variant; cartera=same-month+, anticipado=strict-future |
 | `src/features/negocios/services/payment-state.service.ts` | Modify | `fundDuePayments` (+ `fundSingleBusiness` helper); `updatePaymentDateAnchored`; `markCartera`→business CARTERA; `markCarteraPagado` refondeo invariant + write-once (shared `countRemainingCartera` helper); `Actor.userId` → `number \| undefined` |
-| `src/app/api/negocios/[id]/route.ts` (~567) | Modify | Default new payments `SIN_FONDEAR`, `dateAnchored: null` |
+| `src/app/api/negocios/[id]/route.ts` (~567) | Modify | Default new payments `SIN_FONDEAR`, `dateAnchored: null`; `recalculatePaymentExpectedDates` updates ONLY `expectedDate` — it must never stamp/overwrite `dateAnchored` (the real funding date) |
 | `src/app/api/negocios/cron/fund-payments/route.ts` | Create | Bearer-auth POST → fundDuePayments |
 | `src/app/api/negocios/[id]/aportes/[index]/date-anchored/route.ts` | Create | PATCH funded date |
 | `src/features/negocios/types/business-entity.types.ts` | Modify | Add `CARTERA` to const + union |
