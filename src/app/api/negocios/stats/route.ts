@@ -69,10 +69,30 @@ export async function GET(
 			}
 		}
 
-		const [ventasEfectuadas, emitidosBase, fondeados, sinSoporte] = await Promise.all([
-			calculateAggregateForStatus(BUSINESS_STATUS.VENTA_EFECTUADA, userFilter, createdAtFilter),
-			calculateAggregateForStatus(BUSINESS_STATUS.EMITIDO, userFilter, createdAtFilter),
-			calculateAggregateForStatus(BUSINESS_STATUS.FONDEADO, userFilter, createdAtFilter),
+		const activeCurrencies = await prisma.currency.findMany({
+			where: { active: true },
+			select: { idCurrency: true, symbol: true, name: true },
+		})
+
+		const whereClause: Prisma.BusinessWhereInput = {
+			status: {
+				in: [
+					BUSINESS_STATUS.VENTA_EFECTUADA,
+					BUSINESS_STATUS.EMITIDO,
+					BUSINESS_STATUS.FONDEADO,
+				],
+			},
+			...(userFilter ? { idUser: { in: userFilter } } : {}),
+			...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
+		}
+
+		const [groupResults, sinSoporte] = await Promise.all([
+			prisma.business.groupBy({
+				by: ['status', 'idCurrency'],
+				where: whereClause,
+				_count: { idBusiness: true },
+				_sum: { value: true },
+			}),
 			prisma.business.count({
 				where: {
 					status: BUSINESS_STATUS.EMITIDO,
@@ -81,6 +101,59 @@ export async function GET(
 				},
 			}),
 		])
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const parseGroupValue = (rawValue: any): number => {
+			const groupValue =
+				rawValue !== null && rawValue !== undefined
+					? typeof rawValue === 'object' && 'toNumber' in rawValue
+						? (rawValue as { toNumber(): number }).toNumber()
+						: Number(rawValue)
+					: 0
+			return isNaN(groupValue) ? 0 : groupValue
+		}
+
+		const extractKpi = (status: string): KpiCardData => {
+			let count = 0
+			let valueLocal = 0
+			let valueForeign = 0
+
+			const filteredGroups = groupResults.filter((g) => g.status === status)
+
+			for (const group of filteredGroups) {
+				const currency = activeCurrencies.find(
+					(c) => c.idCurrency === group.idCurrency
+				)
+				count += group._count.idBusiness
+				const safeValue = parseGroupValue(group._sum.value)
+
+				const sym = (currency?.symbol ?? '').toUpperCase()
+				const nam = (currency?.name ?? '').toUpperCase()
+				const isLocal =
+					sym.includes('COP') || nam.includes('COP') || sym.includes('PESO')
+				const isForeign =
+					sym.includes('USD') ||
+					nam.includes('DOLLAR') ||
+					sym.includes('US$') ||
+					nam.includes('DOLAR')
+
+				if (isLocal) {
+					valueLocal += safeValue
+				} else if (isForeign) {
+					valueForeign += safeValue
+				} else {
+					if (group.idCurrency === 1) valueLocal += safeValue
+					else if (group.idCurrency === 2) valueForeign += safeValue
+					else valueLocal += safeValue
+				}
+			}
+
+			return { count, totalCop: valueLocal, totalUsd: valueForeign }
+		}
+
+		const ventasEfectuadas = extractKpi(BUSINESS_STATUS.VENTA_EFECTUADA)
+		const emitidosBase = extractKpi(BUSINESS_STATUS.EMITIDO)
+		const fondeados = extractKpi(BUSINESS_STATUS.FONDEADO)
 
 		const emitidos = { ...emitidosBase, sinSoporte }
 
@@ -94,75 +167,4 @@ export async function GET(
 			{ status: 500 }
 		)
 	}
-}
-
-/**
- * Calcula estadísticas agregadas para un estado agrupando por moneda
- */
-async function calculateAggregateForStatus(
-	status: string,
-	userFilter?: number[],
-	createdAtFilter?: Prisma.DateTimeFilter
-): Promise<KpiCardData> {
-	const whereClause: Prisma.BusinessWhereInput = {
-		status,
-		...(userFilter ? { idUser: { in: userFilter } } : {}),
-		...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
-	}
-
-	const groupResult = await prisma.business.groupBy({
-		by: ['idCurrency'],
-		where: whereClause,
-		_count: { idBusiness: true },
-		_sum: { value: true },
-	})
-
-	let count = 0
-	let valueLocal = 0
-	let valueForeign = 0
-
-	const activeCurrencies = await prisma.currency.findMany({
-		where: { active: true },
-		select: { idCurrency: true, symbol: true, name: true },
-	})
-
-	for (const group of groupResult) {
-		const currency = activeCurrencies.find(
-			(c) => c.idCurrency === group.idCurrency
-		)
-		const groupCount = group._count.idBusiness
-		const rawValue = group._sum.value
-		const groupValue =
-			rawValue !== null && rawValue !== undefined
-				? typeof rawValue === 'object' && 'toNumber' in rawValue
-					? (rawValue as { toNumber(): number }).toNumber()
-					: Number(rawValue)
-				: 0
-		const safeValue = isNaN(groupValue) ? 0 : groupValue
-
-		count += groupCount
-
-		const sym = (currency?.symbol ?? '').toUpperCase()
-		const nam = (currency?.name ?? '').toUpperCase()
-		const isLocal =
-			sym.includes('COP') || nam.includes('COP') || sym.includes('PESO')
-		const isForeign =
-			sym.includes('USD') ||
-			nam.includes('DOLLAR') ||
-			sym.includes('US$') ||
-			nam.includes('DOLAR')
-
-		if (isLocal) {
-			valueLocal += safeValue
-		} else if (isForeign) {
-			valueForeign += safeValue
-		} else {
-			// Fallback por ID: moneda 1 = local, moneda 2 = extranjera
-			if (group.idCurrency === 1) valueLocal += safeValue
-			else if (group.idCurrency === 2) valueForeign += safeValue
-			else valueLocal += safeValue // última opción: asumir local
-		}
-	}
-
-	return { count, totalCop: valueLocal, totalUsd: valueForeign }
 }
