@@ -7,7 +7,7 @@ import {
 import type { PaymentInstallmentDto } from '../types/business-api.types'
 
 export type Actor = {
-	userId: number
+	userId: number | undefined
 	email: string
 	ip: string
 	ua: string

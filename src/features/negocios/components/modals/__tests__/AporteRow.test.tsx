@@ -28,7 +28,7 @@ beforeEach(() => {
 })
 
 describe('AporteRow', () => {
-	it('renders action buttons for FONDEADO current month with canMutate=true', () => {
+	it('renders Marcar Cartera button for FONDEADO current month with canMutate=true', () => {
 		render(
 			<ul>
 				<AporteRow
@@ -40,6 +40,26 @@ describe('AporteRow', () => {
 				/>
 			</ul>
 		)
+		// Same month → only MARK_CARTERA, NOT MARK_ANTICIPADO
+		expect(screen.getByRole('button', { name: /cartera/i })).toBeInTheDocument()
+		expect(
+			screen.queryByRole('button', { name: /pago anticipado/i })
+		).not.toBeInTheDocument()
+	})
+
+	it('renders both Cartera and Pago Anticipado buttons for FONDEADO strictly future month', () => {
+		render(
+			<ul>
+				<AporteRow
+					aporte={baseAporte({ expectedDate: '2025-07-01T00:00:00.000Z' })}
+					businessId={10}
+					canMutate={true}
+					now={now}
+					onTransitionSuccess={vi.fn()} onRequestAction={vi.fn()}
+				/>
+			</ul>
+		)
+		// Strictly future month → both buttons
 		expect(screen.getByRole('button', { name: /cartera/i })).toBeInTheDocument()
 		expect(
 			screen.getByRole('button', { name: /pago anticipado/i })
@@ -105,12 +125,12 @@ describe('AporteRow', () => {
 		expect(onRequestAction).toHaveBeenCalledWith('MARK_CARTERA', 1)
 	})
 
-	it('calls onRequestAction with MARK_ANTICIPADO when Pago Anticipado button is clicked', () => {
+	it('calls onRequestAction with MARK_ANTICIPADO when Pago Anticipado button is clicked for future month', () => {
 		const onRequestAction = vi.fn()
 		render(
 			<ul>
 				<AporteRow
-					aporte={baseAporte({})}
+					aporte={baseAporte({ expectedDate: '2025-07-01T00:00:00.000Z' })}
 					businessId={10}
 					canMutate={true}
 					now={now}

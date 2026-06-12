@@ -1,0 +1,15 @@
+change: payment-funding-lifecycle
+phase: tasks
+artifact_store: hybrid
+artifacts:
+  exploration: true
+  proposal: true
+  specs: true
+  design: true
+  tasks: true
+  apply: false
+  verify: false
+tasks_progress:
+  completed: []
+  pending: []
+last_updated: 2026-06-11T22:30:00-05:00

@@ -564,9 +564,9 @@ async function syncPaymentsStructure(tx: PrismaTx, params: SyncPaymentsStructure
 		return {
 			idBusiness: businessId,
 			installmentIndex,
-			status: previous?.status ?? AnnualPaymentStatus.FONDEADO,
+			status: previous?.status ?? AnnualPaymentStatus.SIN_FONDEAR,
 			expectedDate: calculatedDate,
-			dateAnchored: previous?.dateAnchored ?? calculatedDate,
+			dateAnchored: previous?.dateAnchored ?? null,
 			portfolioDate: previous?.portfolioDate ?? null,
 			earlyPaymentDate: previous?.earlyPaymentDate ?? null,
 			createdAt: previous?.createdAt ?? now,

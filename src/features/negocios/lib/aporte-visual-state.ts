@@ -1,4 +1,5 @@
 import type { PaymentInstallmentDto } from '../types/business-api.types'
+import { isSameMonthOrFuture, isStrictlyFutureMonth } from './bogota-date'
 
 export type AporteVariant =
 	| 'FONDEADO_PAST'
@@ -6,6 +7,7 @@ export type AporteVariant =
 	| 'EN_CARTERA'
 	| 'PAGO_ANTICIPADO'
 	| 'CARTERA_PAGADO'
+	| 'SIN_FONDEAR'
 
 export type AporteButton = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO' | 'MARK_FONDEAR'
 
@@ -16,17 +18,8 @@ export type AporteVisualState = {
 	buttons: AporteButton[]
 }
 
-function isSameMonthOrFuture(date: string | null, now: Date): boolean {
-	if (!date) return false
-	const expYearMonth = date.slice(0, 7)
-	const nowYear = now.getFullYear()
-	const nowMonth = String(now.getMonth() + 1).padStart(2, '0')
-	const nowYearMonth = `${nowYear}-${nowMonth}`
-	return expYearMonth >= nowYearMonth
-}
-
 function resolveReferenceDate(aporte: Pick<PaymentInstallmentDto, 'expectedDate' | 'dateAnchored'>): string | null {
-	return aporte.dateAnchored ?? aporte.expectedDate ?? null
+	return aporte.expectedDate ?? aporte.dateAnchored ?? null
 }
 
 function formatDate(iso: string): string {
@@ -59,6 +52,15 @@ export function getAporteVisualState(
 	now: Date,
 	canMutate: boolean
 ): AporteVisualState {
+	if (aporte.status === 'SIN_FONDEAR') {
+		return {
+			variant: 'SIN_FONDEAR',
+			rowClass: 'bg-gray-50 border-border',
+			label: 'Sin fondear',
+			buttons: [],
+		}
+	}
+
 	if (aporte.status === 'CARTERA_PAGADO') {
 		return {
 			variant: 'CARTERA_PAGADO',
@@ -96,32 +98,42 @@ export function getAporteVisualState(
 				variant: 'FONDEADO_CURRENT',
 				rowClass: 'bg-gray-50 border-border',
 				label: 'Fecha por confirmar',
-				buttons: canMutate ? ['MARK_CARTERA', 'MARK_ANTICIPADO'] : [],
+				buttons: canMutate ? ['MARK_CARTERA'] : [],
 			}
 		}
 
-		if (isSameMonthOrFuture(refDate, now)) {
-			const dateLabel = aporte.expectedDate
-				? `Se fondeará en: ${formatDate(aporte.expectedDate)}`
-				: aporte.dateAnchored
-					? `Se fondeará en: ${formatDate(aporte.dateAnchored)}`
-					: null
+		// Past month — no buttons
+		if (!isSameMonthOrFuture(refDate, now)) {
+			const dateLabel = aporte.dateAnchored
+				? `Fondeado: ${formatDate(aporte.dateAnchored)}`
+				: `Fecha esperada: ${formatDate(aporte.expectedDate!)}`
 			return {
-				variant: 'FONDEADO_CURRENT',
-				rowClass: 'bg-gray-50 border-border',
+				variant: 'FONDEADO_PAST',
+				rowClass: 'bg-green-50 border-green-200',
 				label: dateLabel,
-				buttons: canMutate ? ['MARK_CARTERA', 'MARK_ANTICIPADO'] : [],
+				buttons: [],
 			}
 		}
 
-		const dateLabel = aporte.dateAnchored
-			? `Fondeado: ${formatDate(aporte.dateAnchored)}`
-			: `Fecha esperada: ${formatDate(aporte.expectedDate!)}`
+		// Same month: Marcar Cartera only (no anticipado)
+		// Future month: both Marcar Cartera and Pago Anticipado
+		const dateLabel = aporte.expectedDate
+			? `Se fondeará en: ${formatDate(aporte.expectedDate)}`
+			: aporte.dateAnchored
+				? `Se fondeará en: ${formatDate(aporte.dateAnchored)}`
+				: null
+
+		const buttons: AporteButton[] = canMutate
+			? isStrictlyFutureMonth(refDate, now)
+				? ['MARK_CARTERA', 'MARK_ANTICIPADO']
+				: ['MARK_CARTERA']
+			: []
+
 		return {
-			variant: 'FONDEADO_PAST',
-			rowClass: 'bg-green-50 border-green-200',
+			variant: 'FONDEADO_CURRENT',
+			rowClass: 'bg-gray-50 border-border',
 			label: dateLabel,
-			buttons: [],
+			buttons,
 		}
 	}
 
@@ -129,6 +141,6 @@ export function getAporteVisualState(
 		variant: 'FONDEADO_CURRENT',
 		rowClass: 'bg-gray-50 border-border',
 		label: 'Fecha por confirmar',
-		buttons: canMutate ? ['MARK_CARTERA', 'MARK_ANTICIPADO'] : [],
+		buttons: canMutate ? ['MARK_CARTERA'] : [],
 	}
 }
