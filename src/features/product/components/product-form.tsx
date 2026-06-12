@@ -180,7 +180,7 @@ export function ProductForm({
 					<Input
 						id="commissionPercentage"
 						type="number"
-						step="0.01"
+						step="0.0001"
 						{...register('commissionPercentage', { valueAsNumber: true })}
 						placeholder="Ej: 76.5"
 						disabled={isLoading}

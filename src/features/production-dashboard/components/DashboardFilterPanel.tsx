@@ -117,11 +117,7 @@ export function DashboardFilterPanel() {
                 if (ids.length === 0) {
                   dispatch({ type: 'SET_TODAS', field: 'categoryIds' })
                 } else {
-                  const prev = draft.categoryIds
-                  const added = ids.find((id) => !prev.includes(id))
-                  const removed = prev.find((id) => !ids.includes(id))
-                  if (added !== undefined) dispatch({ type: 'TOGGLE_CATEGORY', id: added })
-                  else if (removed !== undefined) dispatch({ type: 'TOGGLE_CATEGORY', id: removed })
+                  dispatch({ type: 'SET_CATEGORY_IDS', ids })
                 }
               }}
               placeholder="Categoría"
@@ -138,14 +134,11 @@ export function DashboardFilterPanel() {
                 if (ids.length === 0) {
                   dispatch({ type: 'SET_TODAS', field: 'companyIds' })
                 } else {
-                  const prev = draft.companyIds
-                  const added = ids.find((id) => !prev.includes(id))
-                  const removed = prev.find((id) => !ids.includes(id))
-                  if (added !== undefined) {
-                    dispatch({ type: 'TOGGLE_COMPANY', id: added, allProducts: products.map((p) => ({ idProduct: p.id, idCompany: p.idCompany })) })
-                  } else if (removed !== undefined) {
-                    dispatch({ type: 'TOGGLE_COMPANY', id: removed, allProducts: products.map((p) => ({ idProduct: p.id, idCompany: p.idCompany })) })
-                  }
+                  dispatch({
+                    type: 'SET_COMPANY_IDS',
+                    ids,
+                    allProducts: products.map((p) => ({ idProduct: p.id, idCompany: p.idCompany })),
+                  })
                 }
               }}
               placeholder="Compañía"
@@ -160,11 +153,7 @@ export function DashboardFilterPanel() {
                 if (ids.length === 0) {
                   dispatch({ type: 'SET_TODAS', field: 'productIds' })
                 } else {
-                  const prev = draft.productIds
-                  const added = ids.find((id) => !prev.includes(id))
-                  const removed = prev.find((id) => !ids.includes(id))
-                  if (added !== undefined) dispatch({ type: 'TOGGLE_PRODUCT', id: added })
-                  else if (removed !== undefined) dispatch({ type: 'TOGGLE_PRODUCT', id: removed })
+                  dispatch({ type: 'SET_PRODUCT_IDS', ids })
                 }
               }}
               placeholder="Producto"
@@ -179,11 +168,7 @@ export function DashboardFilterPanel() {
                 if (ids.length === 0) {
                   dispatch({ type: 'SET_TODAS', field: 'originIds' })
                 } else {
-                  const prev = draft.originIds
-                  const added = ids.find((id) => !prev.includes(id))
-                  const removed = prev.find((id) => !ids.includes(id))
-                  if (added !== undefined) dispatch({ type: 'TOGGLE_ORIGIN', id: added })
-                  else if (removed !== undefined) dispatch({ type: 'TOGGLE_ORIGIN', id: removed })
+                  dispatch({ type: 'SET_ORIGIN_IDS', ids })
                 }
               }}
               placeholder="Origen"

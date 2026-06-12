@@ -37,13 +37,18 @@ export function MultiSelectFilter<T extends FilterItem>({
 }: MultiSelectFilterProps<T>) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
+  // Tracks "deselect all" intent within a popover session.
+  // value=[] means "all" in the parent, so we need local state for "none selected".
+  // Resets on popover close so the trigger always reflects committed state.
+  const [noneMode, setNoneMode] = useState(false)
 
-  const summaryLabel =
-    value.length === 0
-      ? todasLabel
-      : value.length === 1
-        ? (items.find((i) => i.id === value[0])?.label ?? todasLabel)
-        : `${value.length} seleccionados`
+  const allSelected = value.length === 0 && !noneMode
+
+  const summaryLabel = allSelected
+    ? todasLabel
+    : value.length === 1
+      ? (items.find((i) => i.id === value[0])?.label ?? todasLabel)
+      : `${value.length} seleccionados`
 
   const filtered = useMemo(() => {
     if (!searchable || query.trim() === '') return items
@@ -52,17 +57,35 @@ export function MultiSelectFilter<T extends FilterItem>({
   }, [items, query, searchable])
 
   const handleTodasClick = () => {
-    onChange([])
-    setOpen(false)
+    if (allSelected) {
+      // Enter "none selected" mode — local only until user picks a specific item
+      setNoneMode(true)
+    } else {
+      setNoneMode(false)
+      onChange([])
+    }
   }
 
   const handleItemClick = (id: number) => {
-    onChange(toggleItem(value, id))
+    if (noneMode) {
+      // First click after "deselect all" — start a fresh specific selection
+      setNoneMode(false)
+      onChange([id])
+    } else if (allSelected) {
+      // Deselect this one item — keep all others explicitly
+      const remaining = items.map((i) => i.id).filter((i) => i !== id)
+      onChange(remaining.length === 0 ? [] : remaining)
+    } else {
+      onChange(toggleItem(value, id))
+    }
   }
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next)
-    if (!next) setQuery('')
+    if (!next) {
+      setQuery('')
+      setNoneMode(false)
+    }
   }
 
   return (
@@ -120,18 +143,23 @@ export function MultiSelectFilter<T extends FilterItem>({
             {!query && (
               <li
                 role="option"
-                aria-selected={value.length === 0}
+                aria-selected={allSelected}
                 aria-label={todasLabel}
                 onClick={handleTodasClick}
                 className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-muted"
               >
                 <span
-                  className="flex h-4 w-4 items-center justify-center rounded-sm border border-border"
+                  className={[
+                    'flex h-4 w-4 items-center justify-center rounded-sm border',
+                    noneMode ? 'border-border opacity-40' : 'border-border',
+                  ].join(' ')}
                   aria-hidden="true"
                 >
-                  {value.length === 0 && <Check className="h-3 w-3" />}
+                  {allSelected && <Check className="h-3 w-3" />}
                 </span>
-                <span className="font-medium">{todasLabel}</span>
+                <span className={['font-medium', noneMode ? 'opacity-40' : ''].join(' ')}>
+                  {todasLabel}
+                </span>
               </li>
             )}
 
@@ -142,7 +170,7 @@ export function MultiSelectFilter<T extends FilterItem>({
               </li>
             ) : (
               filtered.map((item) => {
-                const isSelected = value.includes(item.id)
+                const isSelected = allSelected || value.includes(item.id)
                 return (
                   <li
                     key={item.id}

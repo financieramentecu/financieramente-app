@@ -70,7 +70,47 @@ describe('MultiSelectFilter', () => {
     expect(onChange).toHaveBeenCalledWith([])
   })
 
-  it('calls onChange with toggled id when a specific item is clicked', async () => {
+  it('enters none-mode when Todas is clicked while all selected — does not call onChange', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(
+      <MultiSelectFilter
+        items={items}
+        value={[]}
+        onChange={onChange}
+        placeholder="Compañía"
+        todasLabel="Todas"
+      />
+    )
+    await user.click(screen.getByRole('button'))
+    const todasOption = screen.getByRole('option', { name: 'Todas' })
+    await user.click(todasOption)
+    // No onChange emitted — noneMode is local only
+    expect(onChange).not.toHaveBeenCalled()
+    // All items now appear unchecked
+    expect(screen.getByRole('option', { name: 'Skandia' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByRole('option', { name: 'Suramericana' })).toHaveAttribute('aria-selected', 'false')
+  })
+
+  it('exits none-mode and selects only the clicked item on first pick after deselect-all', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(
+      <MultiSelectFilter
+        items={items}
+        value={[]}
+        onChange={onChange}
+        placeholder="Compañía"
+        todasLabel="Todas"
+      />
+    )
+    await user.click(screen.getByRole('button'))
+    await user.click(screen.getByRole('option', { name: 'Todas' })) // enter noneMode
+    await user.click(screen.getByRole('option', { name: 'Skandia' })) // pick one
+    expect(onChange).toHaveBeenCalledWith([1])
+  })
+
+  it('deselects clicked item from all — keeps all others — when value is []', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
     render(
@@ -85,7 +125,43 @@ describe('MultiSelectFilter', () => {
     await user.click(screen.getByRole('button'))
     const skandiaOption = screen.getByRole('option', { name: 'Skandia' })
     await user.click(skandiaOption)
-    expect(onChange).toHaveBeenCalledWith([1])
+    // Clicking Skandia (id=1) when all are selected → keep [2, 3], exclude 1
+    expect(onChange).toHaveBeenCalledWith([2, 3])
+  })
+
+  it('toggles a specific item when value is a partial selection', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(
+      <MultiSelectFilter
+        items={items}
+        value={[2, 3]}
+        onChange={onChange}
+        placeholder="Compañía"
+        todasLabel="Todas"
+      />
+    )
+    await user.click(screen.getByRole('button'))
+    const skandiaOption = screen.getByRole('option', { name: 'Skandia' })
+    await user.click(skandiaOption)
+    expect(onChange).toHaveBeenCalledWith([2, 3, 1])
+  })
+
+  it('shows all items as checked when value is []', async () => {
+    const user = userEvent.setup()
+    render(
+      <MultiSelectFilter
+        items={items}
+        value={[]}
+        onChange={vi.fn()}
+        placeholder="Compañía"
+        todasLabel="Todas"
+      />
+    )
+    await user.click(screen.getByRole('button'))
+    expect(screen.getByRole('option', { name: 'Skandia' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('option', { name: 'Suramericana' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('option', { name: 'Bolivar' })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('has correct aria label on trigger', () => {
