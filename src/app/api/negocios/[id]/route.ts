@@ -601,9 +601,11 @@ async function recalculatePaymentExpectedDates(
 	await Promise.all(
 		recalculable.map(p => {
 			const newDate = expectedDates[p.installmentIndex - 1] ?? null
+			// dateAnchored is the REAL funding date (cron or manual) — recalculating
+			// the schedule must never stamp or overwrite it.
 			return db.payment.update({
 				where: { idAnnualPayment: p.idAnnualPayment },
-				data: { expectedDate: newDate, dateAnchored: newDate, updatedAt: now },
+				data: { expectedDate: newDate, updatedAt: now },
 			})
 		})
 	)
