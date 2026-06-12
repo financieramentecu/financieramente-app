@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.6] - 2026-06-12
+
+### Corregido
+
+- **Conteo de Soportes Activos:** Se corrigió el conteo de soportes de pago en la vista de negocios para incluir únicamente los soportes que están en estado activo, excluyendo los eliminados lógicamente.
+
 ## [1.22.5] - 2026-06-10
 
 ### Corregido
