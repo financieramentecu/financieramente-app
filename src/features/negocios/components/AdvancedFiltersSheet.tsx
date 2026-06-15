@@ -256,6 +256,15 @@ export function AdvancedFiltersSheet() {
 		[router, searchParams]
 	)
 
+	// Resync draft form with current URL params on every open — the URL may have
+	// changed since mount (agent default seed, back/forward navigation).
+	const handleOpenChange = (nextOpen: boolean) => {
+		if (nextOpen) {
+			reset(getDefaultValues(searchParams))
+		}
+		setOpen(nextOpen)
+	}
+
 	const onClear = useCallback(() => {
 		reset({
 			dateField: 'fondeo',
@@ -274,7 +283,7 @@ export function AdvancedFiltersSheet() {
 	}, [reset])
 
 	return (
-		<Sheet open={open} onOpenChange={setOpen}>
+		<Sheet open={open} onOpenChange={handleOpenChange}>
 			<SheetTrigger asChild>
 				<Button variant="outline" className="relative cursor-pointer gap-2">
 					<Filter className="h-4 w-4" />
@@ -314,10 +323,7 @@ export function AdvancedFiltersSheet() {
 												type="button"
 												variant={field.value === f.value ? 'default' : 'outline'}
 												size="sm"
-												onClick={() => {
-													field.onChange(f.value)
-													setValue('dateRange', undefined)
-												}}
+												onClick={() => field.onChange(f.value)}
 											>
 												{f.label}
 											</Button>

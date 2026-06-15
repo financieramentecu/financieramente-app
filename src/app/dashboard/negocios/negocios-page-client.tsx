@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'
 import MisNegociosPage from '@/features/negocios/components/MisNegociosPage'
 import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
@@ -26,6 +26,11 @@ import type {
 	NegociosExportBody,
 } from '@/features/negocios/types/business-api.types'
 import { mapBusinessToTableRow } from '@/features/negocios/lib/map-business-to-table-row'
+import {
+	getCurrentMonthRange,
+	getDefaultDateParamPair,
+	hasAnyDateParam,
+} from '@/features/negocios/lib/default-date-filter'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -58,8 +63,6 @@ export function NegociosPageClient({
 }: NegociosPageClientProps) {
 	const router = useRouter()
 	const urlSearchParams = useNextSearchParams()
-
-	const isAgentRole = _currentUser?.role?.code === UserRole.AGENTE
 
 	// Derive filter params from URL search params (written by AdvancedFiltersSheet)
 	const urlFilterParams: Partial<BusinessListParams> = useMemo(() => {
@@ -130,16 +133,7 @@ export function NegociosPageClient({
 	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
 
 	// Fechas por defecto para el Coach (Mes actual)
-	const defaultDates = useMemo(() => {
-		const now = new Date()
-		const year = now.getFullYear()
-		const month = String(now.getMonth() + 1).padStart(2, '0')
-		const day = String(now.getDate()).padStart(2, '0')
-		return {
-			from: `${year}-${month}-01`,
-			to: `${year}-${month}-${day}`,
-		}
-	}, [])
+	const defaultDates = useMemo(() => getCurrentMonthRange(), [])
 
 	// Estado para paginación
 	// Sin dateFrom/dateTo por defecto: el listado muestra todos los negocios;
@@ -150,8 +144,24 @@ export function NegociosPageClient({
 		companyIds: [],
 		productIds: [],
 		originIds: [],
-		...(isAgentRole ? { dateFrom: defaultDates.from, dateTo: defaultDates.to } : {}),
 	})
+
+	// Seed the role's default date filter (current month: AGENTE by creation
+	// date, back-office roles by funding date) into the URL once per mount, so
+	// the AdvancedFiltersSheet and the active-filter badge reflect it. Never
+	// runs when the URL already carries a date filter, and never re-seeds
+	// after the user clears filters.
+	const defaultDatePair = getDefaultDateParamPair(_currentUser?.role?.code)
+	const hasSeededDefaultDateRef = useRef(false)
+	useEffect(() => {
+		if (!defaultDatePair || hasSeededDefaultDateRef.current) return
+		hasSeededDefaultDateRef.current = true
+		if (hasAnyDateParam(urlSearchParams)) return
+		const params = new URLSearchParams(urlSearchParams.toString())
+		params.set(defaultDatePair.fromKey, defaultDates.from)
+		params.set(defaultDatePair.toKey, defaultDates.to)
+		router.replace(`?${params.toString()}`, { scroll: false })
+	}, [defaultDatePair, urlSearchParams, router, defaultDates])
 
 	// Trackear si la tabla ya se inicializó (cargó datos al menos una vez)
 	const [hasInitialized, setHasInitialized] = useState(false)
@@ -192,20 +202,11 @@ export function NegociosPageClient({
 		...(urlFilterParams.agentIds ? { agentIds: urlFilterParams.agentIds } : {}),
 	}), [searchParams, urlFilterParams])
 
-	// Para Coach: mapear dateFrom/dateTo a createdFrom/createdTo en el listado
-	const listParams: BusinessListParams = isAgentRole
-		? {
-				...mergedParams,
-				dateFrom: undefined,
-				dateTo: undefined,
-				createdFrom: mergedParams.dateFrom,
-				createdTo: mergedParams.dateTo,
-			}
-		: mergedParams
-
-	// Hooks para datos
+	// Each URL date pair filters its own DB column (dateFrom/dateTo → dateAnchored,
+	// createdFrom/createdTo → createdAt, dateIssuedFrom/dateIssuedTo → dateIssued)
+	// with no role-based remapping.
 	const { businesses, isLoading, error, pagination, refetch } =
-		useBusinesses(listParams)
+		useBusinesses(mergedParams)
 
 	const isDebouncing = searchInput !== debouncedSearch
 
