@@ -4,7 +4,6 @@ import * as React from 'react'
 import {
 	AlertTriangle,
 	CheckCircle2,
-	Circle,
 	Briefcase,
 	Zap,
 	X,
@@ -59,14 +58,16 @@ export function AporteRow({
 	const isCarteraPagado = visualState.variant === 'CARTERA_PAGADO'
 	const isCartera = visualState.variant === 'EN_CARTERA'
 	const isCurrent = visualState.variant === 'FONDEADO_CURRENT'
-	const isGreen = isPast || isAnticipado || isCarteraPagado
+	const isGreen = isPast || isCurrent || isAnticipado || isCarteraPagado
+	// Past/terminal states are dimmed — current still has interactive buttons so no opacity
+	const isDimmed = isPast || isAnticipado || isCarteraPagado
 
 	return (
 		<li
 			className={[
 				'group flex items-center gap-2.5 rounded-lg border transition-all duration-200',
 				isGreen
-					? 'px-3 py-1.5 bg-green-50 border-green-200 opacity-70'
+					? `px-3 py-1.5 bg-green-50 border-green-200${isDimmed ? ' opacity-70' : ''}`
 					: isCartera
 						? 'px-3 py-2.5 bg-red-50 border-red-300'
 						: 'px-2.5 py-1.5 border-border bg-background hover:bg-muted/40',
@@ -79,20 +80,13 @@ export function AporteRow({
 			{isGreen && (
 				<CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" aria-hidden />
 			)}
-			{isCurrent && (
-				<Circle
-					className="h-4 w-4 shrink-0 text-muted-foreground"
-					aria-hidden
-				/>
-			)}
 
 			{/* Texto */}
 			<div className="flex min-w-0 flex-1 flex-col">
 				<span
 					className={[
 						'font-medium',
-						isGreen || isCurrent ? 'text-xs' : 'text-sm',
-						isGreen ? 'text-green-700' : '',
+						isGreen ? 'text-xs text-green-700' : 'text-sm',
 					].join(' ')}
 				>
 					Aporte {aporte.installmentIndex}
@@ -114,7 +108,7 @@ export function AporteRow({
 				<div
 					className={[
 						'flex shrink-0 gap-1 transition-opacity duration-200',
-						isCurrent ? 'opacity-0 group-hover:opacity-100' : 'opacity-100',
+						isCartera ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
 					].join(' ')}
 				>
 					{allButtons.includes('MARK_CARTERA') && (

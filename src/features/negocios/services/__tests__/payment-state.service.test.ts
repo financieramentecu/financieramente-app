@@ -91,8 +91,7 @@ describe('markCartera', () => {
 		}
 	})
 
-	it('happy path from SIN_FONDEAR — accepted and transitions to EN_CARTERA', async () => {
-		const sinFondearPayment = { ...basePayment, status: 'SIN_FONDEAR' }
+	it('happy path from SIN_FONDEAR — WHERE clause includes SIN_FONDEAR and transitions to EN_CARTERA', async () => {
 		const updated = { ...basePayment, status: 'EN_CARTERA', portfolioDate: new Date() }
 		const txBusiness = { updateMany: vi.fn().mockResolvedValue({ count: 1 }) }
 		const txPayment = {
@@ -104,15 +103,15 @@ describe('markCartera', () => {
 				cb({ payment: txPayment, business: txBusiness })
 		)
 
-		// Simulate: the updateMany WHERE clause accepts FONDEADO OR SIN_FONDEAR
-		// The mock returns count: 1 so it should succeed
 		const result = await markCartera(10, 1, actor)
 
 		expect(result.ok).toBe(true)
 		if (result.ok) {
 			expect(result.payment.status).toBe('EN_CARTERA')
 		}
-		void sinFondearPayment // used for documentation
+		// Verify WHERE includes SIN_FONDEAR (not just FONDEADO)
+		const updateManyCall = txPayment.updateMany.mock.calls[0][0] as { where: { status: { in: string[] } } }
+		expect(updateManyCall.where.status).toEqual({ in: ['FONDEADO', 'SIN_FONDEAR'] })
 	})
 
 	it('conflict — returns ok: false, code: CONFLICT when count=0 and row exists (e.g. already EN_CARTERA)', async () => {
@@ -334,6 +333,17 @@ describe('markPagoAnticipado', () => {
 			expect(result.payment.status).toBe('PAGO_ANTICIPADO')
 		}
 		expect(logAuditEvent).toHaveBeenCalledOnce()
+	})
+
+	it('WHERE clause includes SIN_FONDEAR — not just FONDEADO', async () => {
+		const updated = { ...basePayment, status: 'PAGO_ANTICIPADO', earlyPaymentDate: new Date() }
+		mockPrisma.payment.updateMany.mockResolvedValue({ count: 1 })
+		mockPrisma.payment.findUnique.mockResolvedValue(updated)
+
+		await markPagoAnticipado(10, 1, actor)
+
+		const updateManyCall = mockPrisma.payment.updateMany.mock.calls[0][0] as { where: { status: { in: string[] } } }
+		expect(updateManyCall.where.status).toEqual({ in: ['FONDEADO', 'SIN_FONDEAR'] })
 	})
 
 	it('conflict when status is EN_CARTERA', async () => {

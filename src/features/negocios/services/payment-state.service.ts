@@ -136,12 +136,12 @@ export async function markCartera(
 	const now = new Date()
 
 	const payment = await prisma.$transaction(async (tx) => {
-		// Transition payment to EN_CARTERA
+		// Transition payment to EN_CARTERA from FONDEADO or SIN_FONDEAR
 		const result = await tx.payment.updateMany({
 			where: {
 				idBusiness: businessId,
 				installmentIndex: index,
-				status: AnnualPaymentStatus.FONDEADO,
+				status: { in: [AnnualPaymentStatus.FONDEADO, AnnualPaymentStatus.SIN_FONDEAR] },
 			},
 			data: {
 				status: AnnualPaymentStatus.EN_CARTERA,
@@ -213,7 +213,7 @@ export async function markPagoAnticipado(
 		where: {
 			idBusiness: businessId,
 			installmentIndex: index,
-			status: AnnualPaymentStatus.FONDEADO,
+			status: { in: [AnnualPaymentStatus.FONDEADO, AnnualPaymentStatus.SIN_FONDEAR] },
 		},
 		data: {
 			status: AnnualPaymentStatus.PAGO_ANTICIPADO,
