@@ -159,9 +159,9 @@ export async function createBusiness(
 					data: Array.from({ length: numAportes }, (_, i) => ({
 						idBusiness: created.idBusiness,
 						installmentIndex: i + 1,
-						status: AnnualPaymentStatus.FONDEADO,
+						status: AnnualPaymentStatus.SIN_FONDEAR,
 						expectedDate: expectedDates[i] ?? null,
-						dateAnchored: expectedDates[i] ?? null,
+						dateAnchored: null,
 						createdAt: rowTimestamp,
 						updatedAt: rowTimestamp,
 					})),

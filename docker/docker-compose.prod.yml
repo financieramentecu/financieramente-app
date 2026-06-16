@@ -68,6 +68,7 @@ services:
       DO_SPACES_PREFIX: ${DO_SPACES_PREFIX:-prod}
       NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY: ${NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY}
       FLAGSMITH_SERVER_KEY: ${FLAGSMITH_SERVER_KEY}
+      CRON_SECRET: ${CRON_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

@@ -146,6 +146,7 @@ jobs:
             FLAGSMITH_SERVER_KEY=${{ secrets.FLAGSMITH_SERVER_KEY_QA }}
             NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN_QA }}
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            CRON_SECRET=${{ secrets.CRON_SECRET_QA }}
             ENVEOF
             sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" /opt/financieramente/.env
 
@@ -299,9 +300,13 @@ jobs:
             # Check container status
             docker-compose -f "$COMPOSE_FILE_PATH" ps
 
-            # Ensure SSL renewal cron (idempotent): remove old ssl-renew entries, add correct path (no app/ on server)
+            # Ensure SSL renewal cron (idempotent)
             (crontab -l 2>/dev/null | grep -v 'ssl-renew.sh' || true
              echo "0 3 * * 0 /opt/financieramente/terraform/scripts/ssl-renew.sh qa >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
+
+            # Ensure fund-payments cron (idempotent, daily at 06:00 UTC = 01:00 Bogotá)
+            (crontab -l 2>/dev/null | grep -v 'fund-payments' || true
+             echo "0 6 * * * curl -s -X POST https://negocios.qa.financieramentecu.co/api/negocios/cron/fund-payments -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_QA }}' >> /var/log/financieramente/fund-payments.log 2>&1") | crontab -
 
       - name: Health check
         uses: appleboy/ssh-action@v1.0.3
