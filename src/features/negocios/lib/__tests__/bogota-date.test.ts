@@ -7,6 +7,12 @@ describe('todayBogota', () => {
 		expect(result).toBeInstanceOf(Date)
 	})
 
+	it('output is always UTC midnight (T00:00:00.000Z) of the Bogota calendar day', () => {
+		// UTC 2026-06-15T22:00:00Z = Bogota 2026-06-15 17:00:00 (UTC-5)
+		const result = todayBogota(new Date('2026-06-15T22:00:00Z'))
+		expect(result.toISOString()).toBe('2026-06-15T00:00:00.000Z')
+	})
+
 	it('accepts injectable now for determinism — UTC 03:00 = Bogota previous day', () => {
 		// UTC 2026-06-12T03:00:00Z = Bogota 2026-06-11 22:00:00 (UTC-5)
 		const nowUtc = new Date('2026-06-12T03:00:00Z')
