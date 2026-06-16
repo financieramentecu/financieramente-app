@@ -1,4 +1,5 @@
 import type { PaymentInstallmentDto } from '../types/business-api.types'
+import { isSameMonthOrFuture, isStrictlyFutureMonth } from './bogota-date'
 
 export type AporteVariant =
 	| 'FONDEADO_PAST'
@@ -6,27 +7,15 @@ export type AporteVariant =
 	| 'EN_CARTERA'
 	| 'PAGO_ANTICIPADO'
 	| 'CARTERA_PAGADO'
+	| 'SIN_FONDEAR'
 
-export type AporteButton = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO' | 'MARK_FONDEAR'
+export type AporteButton = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO'
 
 export type AporteVisualState = {
 	variant: AporteVariant
 	rowClass: string
 	label: string | null
 	buttons: AporteButton[]
-}
-
-function isSameMonthOrFuture(date: string | null, now: Date): boolean {
-	if (!date) return false
-	const expYearMonth = date.slice(0, 7)
-	const nowYear = now.getFullYear()
-	const nowMonth = String(now.getMonth() + 1).padStart(2, '0')
-	const nowYearMonth = `${nowYear}-${nowMonth}`
-	return expYearMonth >= nowYearMonth
-}
-
-function resolveReferenceDate(aporte: Pick<PaymentInstallmentDto, 'expectedDate' | 'dateAnchored'>): string | null {
-	return aporte.dateAnchored ?? aporte.expectedDate ?? null
 }
 
 function formatDate(iso: string): string {
@@ -37,28 +26,39 @@ function formatDate(iso: string): string {
 	}
 }
 
-export function getFirstPaymentFondeoButton(
-	aporte: Pick<PaymentInstallmentDto, 'installmentIndex' | 'status'>,
-	business: { status: string; dateAnchored: string | null },
-	canMutate: boolean
-): AporteButton[] {
-	if (
-		business.status === 'EMITIDO' &&
-		!business.dateAnchored &&
-		aporte.installmentIndex === 1 &&
-		aporte.status === 'FONDEADO' &&
-		canMutate
-	) {
-		return ['MARK_FONDEAR']
-	}
-	return []
-}
-
 export function getAporteVisualState(
 	aporte: PaymentInstallmentDto,
 	now: Date,
 	canMutate: boolean
 ): AporteVisualState {
+	// ─── SIN_FONDEAR — scheduled payment ──────────────────────────────
+	if (aporte.status === 'SIN_FONDEAR') {
+		const expectedDate = aporte.expectedDate
+
+		const label = expectedDate
+			? `Se fondeará en: ${formatDate(expectedDate)}`
+			: 'Sin fondear'
+
+		let buttons: AporteButton[] = []
+		if (canMutate && expectedDate) {
+			if (isStrictlyFutureMonth(expectedDate, now)) {
+				buttons = ['MARK_CARTERA', 'MARK_ANTICIPADO']
+			} else if (isSameMonthOrFuture(expectedDate, now)) {
+				// same month (current-or-future but not strictly future = same month)
+				buttons = ['MARK_CARTERA']
+			}
+			// past month → no buttons (cron will handle overdue)
+		}
+
+		return {
+			variant: 'SIN_FONDEAR',
+			rowClass: 'bg-gray-50 border-border',
+			label,
+			buttons,
+		}
+	}
+
+	// ─── CARTERA_PAGADO ────────────────────────────────────────────────
 	if (aporte.status === 'CARTERA_PAGADO') {
 		return {
 			variant: 'CARTERA_PAGADO',
@@ -70,6 +70,7 @@ export function getAporteVisualState(
 		}
 	}
 
+	// ─── EN_CARTERA ────────────────────────────────────────────────────
 	if (aporte.status === 'EN_CARTERA') {
 		return {
 			variant: 'EN_CARTERA',
@@ -79,6 +80,7 @@ export function getAporteVisualState(
 		}
 	}
 
+	// ─── PAGO_ANTICIPADO ───────────────────────────────────────────────
 	if (aporte.status === 'PAGO_ANTICIPADO') {
 		return {
 			variant: 'PAGO_ANTICIPADO',
@@ -88,47 +90,49 @@ export function getAporteVisualState(
 		}
 	}
 
+	// ─── FONDEADO — actually funded ────────────────────────────────────
 	if (aporte.status === 'FONDEADO') {
-		const refDate = resolveReferenceDate(aporte)
-
-		if (!refDate) {
+		// Legacy edge: dateAnchored not set — show "Fecha por confirmar"
+		if (!aporte.dateAnchored) {
 			return {
 				variant: 'FONDEADO_CURRENT',
 				rowClass: 'bg-gray-50 border-border',
 				label: 'Fecha por confirmar',
-				buttons: canMutate ? ['MARK_CARTERA', 'MARK_ANTICIPADO'] : [],
+				buttons: canMutate ? ['MARK_CARTERA'] : [],
 			}
 		}
 
-		if (isSameMonthOrFuture(refDate, now)) {
-			const dateLabel = aporte.expectedDate
-				? `Se fondeará en: ${formatDate(aporte.expectedDate)}`
-				: aporte.dateAnchored
-					? `Se fondeará en: ${formatDate(aporte.dateAnchored)}`
-					: null
+		// dateAnchored is set: this is an actually funded payment.
+		// Variant depends on the FUNDING month (dateAnchored), not the due month.
+		// MARK_CARTERA is available only while the funding month is current-or-future
+		// (human correction window for funding events that turned out unpaid).
+		// MARK_ANTICIPADO is NEVER shown — a funded payment cannot be advanced.
+		const label = `Fondeado: ${formatDate(aporte.dateAnchored)}`
+
+		if (isSameMonthOrFuture(aporte.dateAnchored, now)) {
+			// Funding month is current or future — within correction window
 			return {
 				variant: 'FONDEADO_CURRENT',
-				rowClass: 'bg-gray-50 border-border',
-				label: dateLabel,
-				buttons: canMutate ? ['MARK_CARTERA', 'MARK_ANTICIPADO'] : [],
+				rowClass: 'bg-green-50 border-green-200',
+				label,
+				buttons: canMutate ? ['MARK_CARTERA'] : [],
 			}
 		}
 
-		const dateLabel = aporte.dateAnchored
-			? `Fondeado: ${formatDate(aporte.dateAnchored)}`
-			: `Fecha esperada: ${formatDate(aporte.expectedDate!)}`
+		// Funding month is past — no correction window
 		return {
 			variant: 'FONDEADO_PAST',
 			rowClass: 'bg-green-50 border-green-200',
-			label: dateLabel,
+			label,
 			buttons: [],
 		}
 	}
 
+	// Fallback (unknown status)
 	return {
 		variant: 'FONDEADO_CURRENT',
 		rowClass: 'bg-gray-50 border-border',
 		label: 'Fecha por confirmar',
-		buttons: canMutate ? ['MARK_CARTERA', 'MARK_ANTICIPADO'] : [],
+		buttons: canMutate ? ['MARK_CARTERA'] : [],
 	}
 }

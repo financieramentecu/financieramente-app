@@ -3,9 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { AporteRow } from '../AporteRow'
 import type { PaymentInstallmentDto } from '../../../types/business-api.types'
 
-const emitidoBusiness = { status: 'EMITIDO', dateAnchored: null }
-const fondeadoBusiness = { status: 'FONDEADO', dateAnchored: '2024-01-15T00:00:00.000Z' }
-
 function baseAporte(
 	overrides: Partial<PaymentInstallmentDto>
 ): PaymentInstallmentDto {
@@ -28,7 +25,7 @@ beforeEach(() => {
 })
 
 describe('AporteRow', () => {
-	it('renders action buttons for FONDEADO current month with canMutate=true', () => {
+	it('renders Marcar Cartera button for FONDEADO current month with canMutate=true', () => {
 		render(
 			<ul>
 				<AporteRow
@@ -40,6 +37,26 @@ describe('AporteRow', () => {
 				/>
 			</ul>
 		)
+		// Same month → only MARK_CARTERA, NOT MARK_ANTICIPADO
+		expect(screen.getByRole('button', { name: /cartera/i })).toBeInTheDocument()
+		expect(
+			screen.queryByRole('button', { name: /pago anticipado/i })
+		).not.toBeInTheDocument()
+	})
+
+	it('renders both Cartera and Pago Anticipado buttons for SIN_FONDEAR strictly future month', () => {
+		render(
+			<ul>
+				<AporteRow
+					aporte={baseAporte({ status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: '2025-07-01T00:00:00.000Z' })}
+					businessId={10}
+					canMutate={true}
+					now={now}
+					onTransitionSuccess={vi.fn()} onRequestAction={vi.fn()}
+				/>
+			</ul>
+		)
+		// Strictly future month → both buttons
 		expect(screen.getByRole('button', { name: /cartera/i })).toBeInTheDocument()
 		expect(
 			screen.getByRole('button', { name: /pago anticipado/i })
@@ -105,12 +122,12 @@ describe('AporteRow', () => {
 		expect(onRequestAction).toHaveBeenCalledWith('MARK_CARTERA', 1)
 	})
 
-	it('calls onRequestAction with MARK_ANTICIPADO when Pago Anticipado button is clicked', () => {
+	it('calls onRequestAction with MARK_ANTICIPADO when Pago Anticipado button is clicked for SIN_FONDEAR future month', () => {
 		const onRequestAction = vi.fn()
 		render(
 			<ul>
 				<AporteRow
-					aporte={baseAporte({})}
+					aporte={baseAporte({ status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: '2025-07-01T00:00:00.000Z' })}
 					businessId={10}
 					canMutate={true}
 					now={now}
@@ -183,75 +200,125 @@ describe('AporteRow', () => {
 		expect(screen.getByText(/Cartera pagada/i)).toBeInTheDocument()
 	})
 
-	describe('MARK_FONDEAR button (business-level gate)', () => {
-		it('renders Fondear button when business=EMITIDO, no dateAnchored, installmentIndex=1, canMutate=true', () => {
+	describe('edit funded date affordance (pencil button)', () => {
+		it('renders pencil edit button for FONDEADO past month when canMutate=true', () => {
+			// Past month = expectedDate in April (before now=May 2025)
 			render(
 				<ul>
 					<AporteRow
-						aporte={baseAporte({ installmentIndex: 1 })}
+						aporte={baseAporte({
+							installmentIndex: 2,
+							status: 'FONDEADO',
+							dateAnchored: '2025-04-10T12:00:00.000Z',
+							expectedDate: '2025-04-01T00:00:00.000Z',
+						})}
 						businessId={10}
-						business={emitidoBusiness}
 						canMutate={true}
 						now={now}
 						onTransitionSuccess={vi.fn()}
 						onRequestAction={vi.fn()}
+						onEditFundedDate={vi.fn()}
 					/>
 				</ul>
 			)
-			expect(screen.getByRole('button', { name: /fondear/i })).toBeInTheDocument()
+			expect(
+				screen.getByRole('button', { name: /editar fecha de fondeo/i })
+			).toBeInTheDocument()
 		})
 
-		it('does NOT render Fondear button when business=FONDEADO', () => {
+		it('renders pencil edit button for FONDEADO current month when canMutate=true', () => {
+			// Current month = expectedDate in May 2025 (same as now)
 			render(
 				<ul>
 					<AporteRow
-						aporte={baseAporte({ installmentIndex: 1 })}
+						aporte={baseAporte({
+							installmentIndex: 2,
+							status: 'FONDEADO',
+							dateAnchored: '2025-05-10T12:00:00.000Z',
+							expectedDate: '2025-05-01T00:00:00.000Z',
+						})}
 						businessId={10}
-						business={fondeadoBusiness}
 						canMutate={true}
 						now={now}
 						onTransitionSuccess={vi.fn()}
 						onRequestAction={vi.fn()}
+						onEditFundedDate={vi.fn()}
 					/>
 				</ul>
 			)
-			expect(screen.queryByRole('button', { name: /fondear/i })).not.toBeInTheDocument()
+			expect(
+				screen.getByRole('button', { name: /editar fecha de fondeo/i })
+			).toBeInTheDocument()
 		})
 
-		it('does NOT render Fondear button when installmentIndex=2', () => {
+		it('does NOT render pencil edit button when canMutate=false (AGENTE/COACH)', () => {
 			render(
 				<ul>
 					<AporteRow
-						aporte={baseAporte({ installmentIndex: 2, expectedDate: '2025-05-01T00:00:00.000Z' })}
+						aporte={baseAporte({
+							installmentIndex: 2,
+							status: 'FONDEADO',
+							dateAnchored: '2025-04-10T12:00:00.000Z',
+							expectedDate: '2025-04-01T00:00:00.000Z',
+						})}
 						businessId={10}
-						business={emitidoBusiness}
+						canMutate={false}
+						now={now}
+						onTransitionSuccess={vi.fn()}
+						onRequestAction={vi.fn()}
+						onEditFundedDate={vi.fn()}
+					/>
+				</ul>
+			)
+			expect(
+				screen.queryByRole('button', { name: /editar fecha de fondeo/i })
+			).not.toBeInTheDocument()
+		})
+
+		it('does NOT render pencil edit button for EN_CARTERA variant', () => {
+			render(
+				<ul>
+					<AporteRow
+						aporte={baseAporte({
+							status: 'EN_CARTERA',
+							portfolioDate: '2025-05-10T00:00:00.000Z',
+						})}
+						businessId={10}
 						canMutate={true}
 						now={now}
 						onTransitionSuccess={vi.fn()}
 						onRequestAction={vi.fn()}
+						onEditFundedDate={vi.fn()}
 					/>
 				</ul>
 			)
-			expect(screen.queryByRole('button', { name: /fondear/i })).not.toBeInTheDocument()
+			expect(
+				screen.queryByRole('button', { name: /editar fecha de fondeo/i })
+			).not.toBeInTheDocument()
 		})
 
-		it('calls onRequestAction with MARK_FONDEAR when Fondear button is clicked', () => {
-			const onRequestAction = vi.fn()
+		it('calls onEditFundedDate with index when pencil button is clicked', () => {
+			const onEditFundedDate = vi.fn()
 			render(
 				<ul>
 					<AporteRow
-						aporte={baseAporte({ installmentIndex: 1 })}
+						aporte={baseAporte({
+							installmentIndex: 3,
+							status: 'FONDEADO',
+							dateAnchored: '2025-04-10T12:00:00.000Z',
+							expectedDate: '2025-04-01T00:00:00.000Z',
+						})}
 						businessId={10}
-						business={emitidoBusiness}
 						canMutate={true}
 						now={now}
 						onTransitionSuccess={vi.fn()}
-						onRequestAction={onRequestAction}
+						onRequestAction={vi.fn()}
+						onEditFundedDate={onEditFundedDate}
 					/>
 				</ul>
 			)
-			fireEvent.click(screen.getByRole('button', { name: /fondear/i }))
-			expect(onRequestAction).toHaveBeenCalledWith('MARK_FONDEAR', 1)
+			fireEvent.click(screen.getByRole('button', { name: /editar fecha de fondeo/i }))
+			expect(onEditFundedDate).toHaveBeenCalledWith(3)
 		})
 	})
 })

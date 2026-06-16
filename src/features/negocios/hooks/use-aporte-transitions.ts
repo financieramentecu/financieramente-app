@@ -10,7 +10,6 @@ type UseAporteTransitionsReturn = {
 	markCartera: (businessId: number, index: number) => Promise<ApiResponse<PaymentInstallmentDto>>
 	markPagoAnticipado: (businessId: number, index: number) => Promise<ApiResponse<PaymentInstallmentDto>>
 	markCarteraPagado: (businessId: number, index: number, paymentDate: string) => Promise<ApiResponse<PaymentInstallmentDto>>
-	markPrimerPagoFondeado: (businessId: number, index: number, fondeoDate: string) => Promise<ApiResponse<PaymentInstallmentDto>>
 }
 
 const IDLE: AsyncState<PaymentInstallmentDto> = {
@@ -65,13 +64,5 @@ export function useAporteTransitions(): UseAporteTransitionsReturn {
 		)
 	}
 
-	function markPrimerPagoFondeado(businessId: number, index: number, fondeoDate: string) {
-		return callEndpoint(
-			`/api/negocios/${businessId}/aportes/${index}/fondear`,
-			'POST',
-			{ fondeoDate }
-		)
-	}
-
-	return { state, markCartera, markPagoAnticipado, markCarteraPagado, markPrimerPagoFondeado }
+	return { state, markCartera, markPagoAnticipado, markCarteraPagado }
 }

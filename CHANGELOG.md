@@ -4,6 +4,21 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.7] - 2026-06-15
+
+### Corregido
+
+- **Aportes en Cartera desde pagos pendientes:** El botón "Cartera" ahora funciona correctamente sobre aportes en estado Sin Fondear. Antes, al hacer clic no ocurría nada porque el servicio solo aceptaba aportes ya Fondeados como origen de la transición.
+- **Color verde en aportes fondeados del mes actual:** Los aportes marcados como Fondeados en el mes en curso ahora muestran el fondo verde y el ícono de check, igual que los aportes de meses anteriores. Antes aparecían en gris como si estuvieran pendientes.
+- **Botones de acción visibles solo al pasar el cursor:** Los botones "Cartera" y "Pago Anticipado" en la lista de aportes ahora se muestran únicamente al pasar el cursor sobre la fila, evitando el ruido visual cuando hay muchos aportes. El botón "Quitar Cartera" sigue siempre visible por ser una acción de alerta.
+- **Modal de aportes unificado:** Todos los aportes (fondeados y sin fondear) ahora se gestionan desde la misma interfaz de fila con botones contextuales. Se eliminó el flujo de selección masiva con checkboxes que ya no aplica con el nuevo ciclo de vida del cron.
+- **Fecha de fondeo no se sobreescribe al editar un negocio:** Al modificar los datos de un negocio ya emitido, el sistema ya no pisaba la fecha real de fondeo con una fecha recalculada del calendario de aportes.
+
+### Mejorado
+
+- **Nuevo ciclo de vida de aportes (SIN_FONDEAR → FONDEADO):** Los aportes generados al emitir un negocio ahora nacen en estado Sin Fondear. Un cron diario los fondea automáticamente cuando llega su fecha esperada, reflejando con precisión el estado real de cada pago. Antes todos los aportes nacían Fondeados inmediatamente, independientemente de su fecha.
+- **Fecha de portfolio con hora exacta:** Las fechas de registro de Cartera y Pago Anticipado ahora incluyen la hora del evento (UTC), lo que permite monitoreo y trazabilidad precisos en los logs.
+
 ## [1.22.6] - 2026-06-12
 
 ### Corregido

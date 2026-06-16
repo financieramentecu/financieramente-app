@@ -16,6 +16,7 @@ export const BUSINESS_STATUS = {
 	LIQUIDADO: 'LIQUIDADO',
 	CANCELADO: 'CANCELADO',
 	FONDEADO: 'FONDEADO',
+	CARTERA: 'CARTERA',
 } as const
 
 export type BusinessStatus =

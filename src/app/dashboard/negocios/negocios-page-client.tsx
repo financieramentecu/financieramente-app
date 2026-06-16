@@ -12,7 +12,7 @@ import { useBusinessMutation } from '@/features/negocios/hooks/use-business-muta
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
 import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
-import { UserRole, canFundPayments } from '@/features/auth/lib/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
@@ -123,10 +123,6 @@ export function NegociosPageClient({
 		null
 	)
 	const [annualFundingLoading, setAnnualFundingLoading] = useState(false)
-	const [annualFundingBusinessStatus, setAnnualFundingBusinessStatus] =
-		useState<string>('')
-	const [annualFundingBusinessDateAnchored, setAnnualFundingBusinessDateAnchored] =
-		useState<string | null>(null)
 	const [fondearConfirmOpen, setFondearConfirmOpen] = useState(false)
 	const [pendingFondearBusiness, setPendingFondearBusiness] =
 		useState<Business | null>(null)
@@ -245,7 +241,6 @@ export function NegociosPageClient({
 		cancelBusiness,
 		isCancelling,
 		fondearBusiness,
-		fondearAnualidadesBusiness,
 		isFondeando,
 		isFondeandoAnualidades,
 	} = useBusinessMutation()
@@ -329,8 +324,6 @@ export function NegociosPageClient({
 				)
 				setAnnualFundingPeriodicidadLabel(business.periodicityName ?? null)
 				setAnnualFundingPlazo(typeof business.term === 'number' ? business.term : null)
-				setAnnualFundingBusinessStatus(business.statusCode ?? '')
-				setAnnualFundingBusinessDateAnchored(business.dateAnchored ?? null)
 				setAnnualFundingOpen(true)
 				setAnnualFundingLoading(true)
 				setAnnualFundingInstallments([])
@@ -410,30 +403,8 @@ export function NegociosPageClient({
 			setAnnualFundingPeriodicidadLabel(null)
 			setAnnualFundingPlazo(null)
 			setAnnualFundingInstallments([])
-			setAnnualFundingBusinessStatus('')
-			setAnnualFundingBusinessDateAnchored(null)
 		}
 	}, [])
-
-	const handleConfirmAnnualFunding = useCallback(
-		async (fundedInstallmentIndexes: number[]) => {
-			if (annualFundingBusinessId === null) return
-
-			const result = await fondearAnualidadesBusiness(annualFundingBusinessId, {
-				fundedInstallmentIndexes,
-			})
-
-			if (result) {
-				setAnnualFundingOpen(false)
-				setAnnualFundingBusinessId(null)
-				setAnnualFundingContract(null)
-				setAnnualFundingInstallments([])
-				refetch()
-				refetchStats()
-			}
-		},
-		[annualFundingBusinessId, fondearAnualidadesBusiness, refetch, refetchStats]
-	)
 
 	/**
 	 * Confirma la cancelación del negocio
@@ -633,15 +604,9 @@ export function NegociosPageClient({
 				contractLabel={annualFundingContract}
 				installments={annualFundingInstallments}
 				isLoadingInstallments={annualFundingLoading}
-				isSubmitting={isFondeandoAnualidades}
 				periodicidadLabel={annualFundingPeriodicidadLabel}
 				plazo={annualFundingPlazo}
-				canFund={canFundPayments(_currentUser?.role?.code)}
 				roleCode={_currentUser?.role?.code}
-				onConfirm={handleConfirmAnnualFunding}
-				businessStatus={annualFundingBusinessStatus}
-				businessDateAnchored={annualFundingBusinessDateAnchored}
-				onFondeoSuccess={refetch}
 			/>
 
 			<AlertDialog

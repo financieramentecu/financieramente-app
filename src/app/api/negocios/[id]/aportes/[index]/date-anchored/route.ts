@@ -6,19 +6,19 @@ import type { PaymentInstallmentDto } from '@/features/negocios/types/business-a
 import { canFundPayments } from '@/features/auth/lib/roles'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { markPrimerPagoFondeado } from '@/features/negocios/services/payment-state.service'
+import { updatePaymentDateAnchored } from '@/features/negocios/services/payment-state.service'
 
 interface RouteParams {
 	params: Promise<{ id: string; index: string }>
 }
 
 const bodySchema = z.object({
-	fondeoDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
-		message: 'fondeoDate must be in YYYY-MM-DD format',
+	dateAnchored: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+		message: 'dateAnchored must be in YYYY-MM-DD format',
 	}),
 })
 
-export async function POST(
+export async function PATCH(
 	request: Request,
 	{ params }: RouteParams
 ): Promise<NextResponse<ApiResponse<PaymentInstallmentDto>>> {
@@ -69,32 +69,38 @@ export async function POST(
 			)
 		}
 
-		const fondeoDate = new Date(`${parsed.data.fondeoDate}T12:00:00Z`)
+		// Convert YYYY-MM-DD to noon UTC to match markPrimerPagoFondeado convention
+		const dateAnchored = new Date(`${parsed.data.dateAnchored}T12:00:00Z`)
 		const headers = new Headers(request.headers)
 
-		const result = await markPrimerPagoFondeado(businessId, installmentIndex, {
-			userId: currentUser.idUser,
-			email: currentUser.email,
-			ip: getClientIp(headers) ?? '',
-			ua: getUserAgent(headers) ?? '',
-		}, fondeoDate)
+		const result = await updatePaymentDateAnchored(
+			businessId,
+			installmentIndex,
+			{
+				userId: currentUser.idUser,
+				email: currentUser.email,
+				ip: getClientIp(headers) ?? '',
+				ua: getUserAgent(headers) ?? '',
+			},
+			dateAnchored
+		)
 
 		if (!result.ok) {
 			if (result.code === 'NOT_FOUND') {
 				return NextResponse.json(
-					{ data: null, error: 'Negocio o aporte no encontrado' },
+					{ data: null, error: 'Aporte no encontrado' },
 					{ status: 404 }
 				)
 			}
 			return NextResponse.json(
-				{ data: null, error: 'El negocio no está en estado EMITIDO o ya fue fondeado' },
+				{ data: null, error: 'El aporte no está en estado FONDEADO' },
 				{ status: 409 }
 			)
 		}
 
 		return NextResponse.json({ data: result.payment })
 	} catch (error) {
-		console.error('Error al fondear primer pago:', error)
+		console.error('Error al actualizar fecha de fondeo:', error)
 		return NextResponse.json(
 			{ data: null, error: 'Error interno del servidor' },
 			{ status: 500 }

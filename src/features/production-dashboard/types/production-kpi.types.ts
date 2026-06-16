@@ -190,8 +190,8 @@ export interface HeatmapViewModel {
 
 // ─── Status Donut Chart types ──────────────────────────────────────────────────
 
-/** The three in-scope business statuses for the status distribution donut. */
-export const STATUS_DONUT_ALLOWED = ['VENTA_EFECTUADA', 'EMITIDO', 'FONDEADO'] as const
+/** The four in-scope business statuses for the status distribution donut. */
+export const STATUS_DONUT_ALLOWED = ['VENTA_EFECTUADA', 'EMITIDO', 'FONDEADO', 'CARTERA'] as const
 
 /** Union of the allowed status values. */
 export type StatusDonutKey = (typeof STATUS_DONUT_ALLOWED)[number]

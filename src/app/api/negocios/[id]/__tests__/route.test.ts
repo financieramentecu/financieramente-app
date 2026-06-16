@@ -330,7 +330,7 @@ describe('PUT /api/negocios/[id]', () => {
 		)
 	})
 
-	it('recalculates expectedDate and dateAnchored for FONDEADO payments when dateIssued is modified, skipping EN_CARTERA and PAGO_ANTICIPADO', async () => {
+	it('recalculates expectedDate for FONDEADO payments when dateIssued is modified, never touching dateAnchored, skipping EN_CARTERA and PAGO_ANTICIPADO', async () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
 		const mockCurUser = { idUser: 1, name: 'Admin', role: { code: 'ADMIN' }, idRole: 1 }
 		const mockBusinessEmitido = {
@@ -367,7 +367,13 @@ describe('PUT /api/negocios/[id]', () => {
 		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: { idAnnualPayment: 101 },
-				data: expect.objectContaining({ expectedDate: expect.any(Date), dateAnchored: expect.any(Date) }),
+				data: expect.objectContaining({ expectedDate: expect.any(Date) }),
+			})
+		)
+		// Recalculating the schedule must never stamp or overwrite the funding date
+		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.not.objectContaining({ dateAnchored: expect.anything() }),
 			})
 		)
 	})
@@ -456,7 +462,13 @@ describe('PUT /api/negocios/[id]', () => {
 		expect(vi.mocked(prisma.payment.update)).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: { idAnnualPayment: 101 },
-				data: expect.objectContaining({ expectedDate: expect.any(Date), dateAnchored: expect.any(Date) }),
+				data: expect.objectContaining({ expectedDate: expect.any(Date) }),
+			})
+		)
+		// Recalculating the schedule must never stamp or overwrite the funding date
+		expect(vi.mocked(prisma.payment.update)).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ dateAnchored: expect.anything() }),
 			})
 		)
 		expect(vi.mocked(prisma.payment.update)).not.toHaveBeenCalledWith(
