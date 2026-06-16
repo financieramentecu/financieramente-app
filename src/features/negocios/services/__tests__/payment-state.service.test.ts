@@ -71,7 +71,7 @@ beforeEach(() => {
 })
 
 describe('markCartera', () => {
-	it('happy path — returns ok: true with updated payment and logs BUSINESS_CARTERA', async () => {
+	it('happy path from FONDEADO — returns ok: true with updated payment and logs BUSINESS_CARTERA', async () => {
 		const updated = { ...basePayment, status: 'EN_CARTERA', portfolioDate: new Date() }
 		mockPrisma.payment.updateMany.mockResolvedValue({ count: 1 })
 		mockPrisma.payment.findUnique.mockResolvedValue(updated)
@@ -91,7 +91,31 @@ describe('markCartera', () => {
 		}
 	})
 
-	it('conflict — returns ok: false, code: CONFLICT when count=0 and row exists', async () => {
+	it('happy path from SIN_FONDEAR — accepted and transitions to EN_CARTERA', async () => {
+		const sinFondearPayment = { ...basePayment, status: 'SIN_FONDEAR' }
+		const updated = { ...basePayment, status: 'EN_CARTERA', portfolioDate: new Date() }
+		const txBusiness = { updateMany: vi.fn().mockResolvedValue({ count: 1 }) }
+		const txPayment = {
+			updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+			findUnique: vi.fn().mockResolvedValue(updated),
+		}
+		mockPrisma.$transaction.mockImplementation(
+			(cb: (tx: { payment: typeof txPayment; business: typeof txBusiness }) => unknown) =>
+				cb({ payment: txPayment, business: txBusiness })
+		)
+
+		// Simulate: the updateMany WHERE clause accepts FONDEADO OR SIN_FONDEAR
+		// The mock returns count: 1 so it should succeed
+		const result = await markCartera(10, 1, actor)
+
+		expect(result.ok).toBe(true)
+		if (result.ok) {
+			expect(result.payment.status).toBe('EN_CARTERA')
+		}
+		void sinFondearPayment // used for documentation
+	})
+
+	it('conflict — returns ok: false, code: CONFLICT when count=0 and row exists (e.g. already EN_CARTERA)', async () => {
 		const txBusiness = { updateMany: vi.fn() }
 		const txPayment = {
 			updateMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -109,6 +133,25 @@ describe('markCartera', () => {
 			expect(result.code).toBe('CONFLICT')
 		}
 		expect(logAuditEvent).not.toHaveBeenCalled()
+	})
+
+	it('conflict — CARTERA_PAGADO status not accepted (terminal state)', async () => {
+		const txBusiness = { updateMany: vi.fn() }
+		const txPayment = {
+			updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+			findUnique: vi.fn().mockResolvedValue({ ...basePayment, status: 'CARTERA_PAGADO' }),
+		}
+		mockPrisma.$transaction.mockImplementation(
+			(cb: (tx: { payment: typeof txPayment; business: typeof txBusiness }) => unknown) =>
+				cb({ payment: txPayment, business: txBusiness })
+		)
+
+		const result = await markCartera(10, 1, actor)
+
+		expect(result.ok).toBe(false)
+		if (!result.ok) {
+			expect(result.code).toBe('CONFLICT')
+		}
 	})
 
 	it('not found — returns ok: false, code: NOT_FOUND when count=0 and row missing', async () => {

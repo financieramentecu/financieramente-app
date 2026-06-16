@@ -44,11 +44,11 @@ describe('AporteRow', () => {
 		).not.toBeInTheDocument()
 	})
 
-	it('renders both Cartera and Pago Anticipado buttons for FONDEADO strictly future month', () => {
+	it('renders both Cartera and Pago Anticipado buttons for SIN_FONDEAR strictly future month', () => {
 		render(
 			<ul>
 				<AporteRow
-					aporte={baseAporte({ expectedDate: '2025-07-01T00:00:00.000Z' })}
+					aporte={baseAporte({ status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: '2025-07-01T00:00:00.000Z' })}
 					businessId={10}
 					canMutate={true}
 					now={now}
@@ -122,12 +122,12 @@ describe('AporteRow', () => {
 		expect(onRequestAction).toHaveBeenCalledWith('MARK_CARTERA', 1)
 	})
 
-	it('calls onRequestAction with MARK_ANTICIPADO when Pago Anticipado button is clicked for future month', () => {
+	it('calls onRequestAction with MARK_ANTICIPADO when Pago Anticipado button is clicked for SIN_FONDEAR future month', () => {
 		const onRequestAction = vi.fn()
 		render(
 			<ul>
 				<AporteRow
-					aporte={baseAporte({ expectedDate: '2025-07-01T00:00:00.000Z' })}
+					aporte={baseAporte({ status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: '2025-07-01T00:00:00.000Z' })}
 					businessId={10}
 					canMutate={true}
 					now={now}

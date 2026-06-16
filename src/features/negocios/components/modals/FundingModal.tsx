@@ -1,10 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Loader2 } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
-import { Checkbox } from '@/features/shared/ui/checkbox'
-import { Label } from '@/features/shared/ui/label'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import {
 	Dialog,
@@ -15,9 +12,9 @@ import {
 } from '@/features/shared/ui/dialog'
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
 import { AporteRow, type AporteAction } from './AporteRow'
-import { formatDateBogota } from '@/features/shared/lib/format-date'
 import { ConfirmActionDialog } from '@/features/shared/ui/confirm-action-dialog'
 import { ConfirmCarteraPagadoDialog } from './ConfirmCarteraPagadoDialog'
+import { EditFundedDateModal } from './EditFundedDateModal'
 import { useAporteTransitions } from '../../hooks/use-aporte-transitions'
 import { canFundPayments } from '@/features/auth/lib/roles'
 
@@ -36,7 +33,6 @@ const DIALOG_CONFIG: Record<ConfirmableAction, { title: string; description: str
 	},
 }
 
-
 export interface FundingModalProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
@@ -44,14 +40,10 @@ export interface FundingModalProps {
 	contractLabel?: string | null
 	installments: PaymentInstallmentDto[]
 	isLoadingInstallments?: boolean
-	isSubmitting?: boolean
 	periodicidadLabel?: string | null
 	plazo?: number | null
-	/** If false, the modal is read-only: no checkboxes or save button for SIN_FONDEAR rows */
-	canFund?: boolean
-	/** Role code of the current user — used to gate EN_CARTERA / PAGO_ANTICIPADO actions */
+	/** Role code of the current user — used to gate action buttons */
 	roleCode?: string
-	onConfirm: (fundedInstallmentIndexes: number[]) => Promise<void> | void
 }
 
 export function FundingModal({
@@ -61,20 +53,16 @@ export function FundingModal({
 	contractLabel,
 	installments: initialInstallments,
 	isLoadingInstallments = false,
-	isSubmitting = false,
 	periodicidadLabel,
 	plazo,
-	canFund = true,
 	roleCode,
-	onConfirm,
 }: FundingModalProps) {
 	const [installments, setInstallments] =
 		React.useState<PaymentInstallmentDto[]>(initialInstallments)
-	const [selected, setSelected] = React.useState<Set<number>>(new Set())
-	const hasSinFondear = installments.some(i => i.status === 'SIN_FONDEAR')
 	const [pendingConfirm, setPendingConfirm] = React.useState<{ action: ConfirmableAction; index: number } | null>(null)
 	const [pendingCarteraPagado, setPendingCarteraPagado] = React.useState<{ index: number } | null>(null)
 	const [loadingIndex, setLoadingIndex] = React.useState<number | null>(null)
+	const [editFundedDateIndex, setEditFundedDateIndex] = React.useState<number | null>(null)
 	const now = React.useMemo(() => new Date(), [])
 	const { markCartera, markPagoAnticipado, markCarteraPagado } = useAporteTransitions()
 
@@ -82,37 +70,7 @@ export function FundingModal({
 		setInstallments(initialInstallments)
 	}, [initialInstallments])
 
-	React.useEffect(() => {
-		if (!open) {
-			setSelected(new Set())
-		}
-	}, [open])
-
 	const canMutate = canFundPayments(roleCode)
-
-	const pendingIndexes = installments
-		.filter((i) => i.status === 'SIN_FONDEAR')
-		.map((i) => i.installmentIndex)
-
-	const toggleIndex = (idx: number) => {
-		setSelected((prev) => {
-			const next = new Set(prev)
-			if (next.has(idx)) {
-				next.delete(idx)
-			} else {
-				next.add(idx)
-			}
-			return next
-		})
-	}
-
-	const canSubmit =
-		selected.size > 0 && pendingIndexes.some((p) => selected.has(p))
-
-	const handleConfirm = async () => {
-		if (!canSubmit || isSubmitting) return
-		await onConfirm(Array.from(selected).sort((a, b) => a - b))
-	}
 
 	const handleTransitionSuccess = (updated: PaymentInstallmentDto) => {
 		setInstallments((prev) =>
@@ -173,11 +131,6 @@ export function FundingModal({
 		.filter(Boolean)
 		.join(' · ')
 
-	const formatExpectedDate = (iso: string | null) => {
-		if (!iso) return 'Por confirmar'
-		return formatDateBogota(iso)
-	}
-
 	return (
 		<>
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,68 +154,19 @@ export function FundingModal({
 				) : (
 					<div className="space-y-4 py-2">
 						<ul className="max-h-[50vh] overflow-y-auto space-y-1 pr-1">
-							{installments.map((row) => {
-								if (row.status !== 'SIN_FONDEAR') {
-									return (
-										<AporteRow
-											key={row.installmentIndex}
-											aporte={row}
-											businessId={businessId ?? 0}
-											canMutate={canMutate}
-											isLoading={loadingIndex === row.installmentIndex}
-											now={now}
-											onTransitionSuccess={handleTransitionSuccess}
-											onRequestAction={handleRequestAction}
-										/>
-									)
-								}
-
-								if (!canFund) {
-									return (
-										<li
-											key={row.installmentIndex}
-											className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm"
-										>
-											<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-												<span className="font-medium">
-													Aporte {row.installmentIndex}
-												</span>
-												<span className="text-xs text-muted-foreground">
-													Fecha esperada: {formatExpectedDate(row.expectedDate)}
-												</span>
-											</div>
-										</li>
-									)
-								}
-
-								const checked = selected.has(row.installmentIndex)
-
-								return (
-									<li
-										key={row.installmentIndex}
-										className="flex flex-wrap items-start gap-3 rounded-md border border-border p-3"
-									>
-										<Checkbox
-											id={`aporte-${row.installmentIndex}`}
-											checked={checked}
-											onCheckedChange={() => toggleIndex(row.installmentIndex)}
-											disabled={isSubmitting}
-											aria-label={`Aporte ${row.installmentIndex}`}
-										/>
-										<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-											<Label
-												htmlFor={`aporte-${row.installmentIndex}`}
-												className="cursor-pointer font-medium"
-											>
-												Aporte {row.installmentIndex}
-											</Label>
-											<span className="text-xs text-muted-foreground">
-												Fecha esperada: {formatExpectedDate(row.expectedDate)}
-											</span>
-										</div>
-									</li>
-								)
-							})}
+							{installments.map((row) => (
+								<AporteRow
+									key={row.installmentIndex}
+									aporte={row}
+									businessId={businessId ?? 0}
+									canMutate={canMutate}
+									isLoading={loadingIndex === row.installmentIndex}
+									now={now}
+									onTransitionSuccess={handleTransitionSuccess}
+									onRequestAction={handleRequestAction}
+									onEditFundedDate={canMutate ? (idx) => setEditFundedDateIndex(idx) : undefined}
+								/>
+							))}
 						</ul>
 						{installments.length === 0 && !isLoadingInstallments && (
 							<p className="text-sm text-muted-foreground">
@@ -272,36 +176,14 @@ export function FundingModal({
 					</div>
 				)}
 
-				<DialogFooter className="gap-2 sm:gap-0">
+				<DialogFooter>
 					<Button
 						type="button"
 						variant="outline"
 						onClick={() => onOpenChange(false)}
-						disabled={isSubmitting}
 					>
-						{canFund && hasSinFondear ? 'Cancelar' : 'Cerrar'}
+						Cerrar
 					</Button>
-					{canFund && hasSinFondear && (
-						<Button
-							type="button"
-							onClick={() => void handleConfirm()}
-							disabled={
-								!canSubmit ||
-								isSubmitting ||
-								isLoadingInstallments ||
-								installments.length === 0
-							}
-						>
-							{isSubmitting ? (
-								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Guardando…
-								</>
-							) : (
-								'Guardar fondeo'
-							)}
-						</Button>
-					)}
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
@@ -323,6 +205,19 @@ export function FundingModal({
 				index={pendingCarteraPagado.index}
 				onConfirm={(paymentDate) => void handleCarteraPagadoConfirm(paymentDate)}
 				onCancel={() => setPendingCarteraPagado(null)}
+			/>
+		)}
+
+		{editFundedDateIndex !== null && businessId !== null && (
+			<EditFundedDateModal
+				open={true}
+				businessId={businessId}
+				index={editFundedDateIndex}
+				onSuccess={(updated) => {
+					handleTransitionSuccess(updated)
+					setEditFundedDateIndex(null)
+				}}
+				onCancel={() => setEditFundedDateIndex(null)}
 			/>
 		)}
 
