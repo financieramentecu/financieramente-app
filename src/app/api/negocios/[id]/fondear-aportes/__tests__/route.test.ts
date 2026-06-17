@@ -192,6 +192,58 @@ describe('POST /api/negocios/[id]/fondear-aportes', () => {
 		)
 	})
 
+	it('dateAnchored del pago y del negocio usan expectedDate, no la fecha de ejecución', async () => {
+		mockAuth.mockResolvedValue({ user: { email: 'admin@test.com' } } as never)
+		mockGetUser.mockResolvedValue(buildUser('admin@test.com', UserRole.ADMIN) as never)
+		mockFindUnique.mockResolvedValue({
+			idBusiness: 7,
+			idUser: 99,
+			status: BUSINESS_STATUS.FONDEADO,
+			_count: { payments: 3 },
+			buyPeriodicity: { name: 'Mensual' },
+			numAportes: 3,
+			dateIssued: new Date('2026-01-15T12:00:00Z'),
+		} as never)
+		mockPaymentCount.mockResolvedValue(1)
+
+		const overdueExpectedDate = new Date('2026-02-15T12:00:00Z')
+		const paymentUpdate = vi.fn().mockResolvedValue({})
+		const paymentFindMany = vi.fn().mockResolvedValueOnce([
+			{ idAnnualPayment: 11, installmentIndex: 2, status: AnnualPaymentStatus.SIN_FONDEAR, expectedDate: overdueExpectedDate },
+		])
+		const businessUpdate = vi.fn().mockResolvedValue({})
+		const fundedReturn = { ...mockPrismaBusinessEmitido, idBusiness: 7, status: BUSINESS_STATUS.FONDEADO }
+
+		mockTransaction.mockImplementation(async (fn) => fn({
+			payment: { findMany: paymentFindMany, update: paymentUpdate },
+			business: {
+				updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+				update: businessUpdate,
+				findUniqueOrThrow: vi.fn().mockResolvedValue(fundedReturn),
+			},
+		} as never))
+
+		mockToEntity.mockReturnValue({ id: 7, status: BUSINESS_STATUS.FONDEADO } as never)
+
+		await POST(new Request('http://localhost/api/negocios/7/fondear-aportes', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ fundedInstallmentIndexes: [2] }),
+		}), { params: Promise.resolve({ id: '7' }) })
+
+		expect(paymentUpdate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { idAnnualPayment: 11 },
+				data: expect.objectContaining({ dateAnchored: overdueExpectedDate }),
+			})
+		)
+		expect(businessUpdate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ dateAnchored: overdueExpectedDate }),
+			})
+		)
+	})
+
 	it('400 sin cuotas pendientes entre los índices', async () => {
 		mockAuth.mockResolvedValue({ user: { email: 'admin@test.com' } } as never)
 		mockGetUser.mockResolvedValue(buildUser('admin@test.com', UserRole.ADMIN) as never)

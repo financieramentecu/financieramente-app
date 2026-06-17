@@ -31,6 +31,8 @@ import {
 	AlertDialogTitle,
 } from '@/features/shared/ui/alert-dialog'
 import type { BusinessEntity } from '../../types/business-entity.types'
+import { formatDateBogota } from '@/features/shared/lib/format-date'
+import { dateOnlyToBogotaNoonUtc } from '../../lib/bogota-date'
 
 export interface ClientOriginOption {
 	value: string
@@ -97,11 +99,10 @@ export function BusinessViewModal({
 
 	const formatToInputDate = (dateStr: string | null) => {
 		if (!dateStr) return ''
-		const d = new Date(dateStr)
-		const year = d.getFullYear()
-		const month = String(d.getMonth() + 1).padStart(2, '0')
-		const day = String(d.getDate()).padStart(2, '0')
-		return `${year}-${month}-${day}`
+		// Derive the calendar day from the Bogota timezone, not the browser's
+		// local timezone, so the input pre-fills with the same day shown
+		// everywhere else in the UI (e.g. expectedDate via formatDateBogota).
+		return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
 	}
 
 	const initialInputDate = business ? formatToInputDate(business.dateIssued) : ''
@@ -111,8 +112,8 @@ export function BusinessViewModal({
 		if (!onSaveDateIssued || !business || !hasDateChanged || !selectedDate) return
 		setIsSavingDate(true)
 		try {
-			const localDate = new Date(`${selectedDate}T00:00:00`)
-			await onSaveDateIssued(business.id, localDate.toISOString())
+			const anchoredDate = dateOnlyToBogotaNoonUtc(selectedDate)
+			await onSaveDateIssued(business.id, anchoredDate.toISOString())
 			setSelectedDate('')
 			setIsEditingDate(false)
 			setIsDateAlertOpen(false)
@@ -128,12 +129,10 @@ export function BusinessViewModal({
 	}
 
 	const oldDateFormatted = business?.dateIssued
-		? new Date(business.dateIssued).toLocaleDateString('es-CO')
+		? formatDateBogota(business.dateIssued)
 		: 'Sin registrar'
 
-	const newDateFormatted = selectedDate
-		? new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-CO')
-		: ''
+	const newDateFormatted = selectedDate ? formatDateBogota(selectedDate) : ''
 
 	const handleConfirmOriginChange = async () => {
 		if (!onSaveOrigin || !business || !hasOriginChanged) return
@@ -352,7 +351,7 @@ export function BusinessViewModal({
 							) : (
 								<p className="font-medium">
 									{business.dateIssued
-										? new Date(business.dateIssued).toLocaleDateString('es-CO')
+										? formatDateBogota(business.dateIssued)
 										: 'Sin registrar'}
 								</p>
 							)}
@@ -362,7 +361,7 @@ export function BusinessViewModal({
 					<div className="flex justify-between items-center text-sm text-muted-foreground pt-2 border-t border-dashed">
 						<span>
 							Registrado:{' '}
-							{new Date(business.createdAt).toLocaleDateString('es-CO')}
+							{formatDateBogota(business.createdAt)}
 						</span>
 					</div>
 				</section>

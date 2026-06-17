@@ -304,6 +304,79 @@ describe('POST /api/negocios/[id]/fondear-anualidades', () => {
 		expect(mockLogAuditEvent).toHaveBeenCalled()
 	})
 
+	it('dateAnchored del pago y del negocio usan expectedDate, no la fecha de ejecución', async () => {
+		mockAuth.mockResolvedValue({ user: { email: 'admin@test.com' } } as never)
+		mockGetCurrentUserByEmail.mockResolvedValue(
+			buildUserWithRole('admin@test.com', UserRole.ADMIN) as never
+		)
+		mockFindUnique.mockResolvedValue({
+			idBusiness: 9,
+			idUser: 10,
+			status: BUSINESS_STATUS.FONDEADO,
+			_count: { payments: 3 },
+		} as never)
+		mockAnnualCount.mockResolvedValue(1)
+
+		const overdueExpectedDate = new Date('2026-02-15T12:00:00Z')
+		const fundedReturn = {
+			...mockPrismaBusinessEmitido,
+			idBusiness: 9,
+			status: BUSINESS_STATUS.FONDEADO,
+			_count: { payments: 3 },
+		}
+
+		const annualUpdate = vi.fn().mockResolvedValue({})
+		const businessUpdate = vi.fn().mockResolvedValue({})
+
+		mockTransaction.mockImplementation(async (fn) => {
+			const tx = {
+				payment: {
+					findMany: vi.fn().mockResolvedValue([
+						{
+							idAnnualPayment: 300,
+							installmentIndex: 2,
+							status: AnnualPaymentStatus.SIN_FONDEAR,
+							expectedDate: overdueExpectedDate,
+						},
+					]),
+					update: annualUpdate,
+				},
+				business: {
+					updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+					update: businessUpdate,
+					findUniqueOrThrow: vi.fn().mockResolvedValue(fundedReturn),
+				},
+			}
+			return fn(tx as never)
+		})
+
+		mockPrismaBusinessToEntity.mockReturnValue({
+			id: 9,
+			status: BUSINESS_STATUS.FONDEADO,
+		} as never)
+
+		await POST(
+			new Request('http://localhost/api/negocios/9/fondear-anualidades', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ fundedInstallmentIndexes: [2] }),
+			}),
+			{ params: Promise.resolve({ id: '9' }) }
+		)
+
+		expect(annualUpdate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { idAnnualPayment: 300 },
+				data: expect.objectContaining({ dateAnchored: overdueExpectedDate }),
+			})
+		)
+		expect(businessUpdate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ dateAnchored: overdueExpectedDate }),
+			})
+		)
+	})
+
 	it('400 cuando los índices no tienen cuota SIN_FONDEAR (ya FONDEADAS)', async () => {
 		mockAuth.mockResolvedValue({ user: { email: 'admin@test.com' } } as never)
 		mockGetCurrentUserByEmail.mockResolvedValue(

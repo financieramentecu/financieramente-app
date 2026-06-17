@@ -7,6 +7,7 @@ import { canFundPayments } from '@/features/auth/lib/roles'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { markCarteraPagado } from '@/features/negocios/services/payment-state.service'
+import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 
 interface RouteParams {
 	params: Promise<{ id: string; index: string }>
@@ -69,7 +70,7 @@ export async function POST(
 			)
 		}
 
-		const paymentDate = new Date(parsed.data.paymentDate)
+		const paymentDate = dateOnlyToBogotaNoonUtc(parsed.data.paymentDate)
 		const headers = new Headers(request.headers)
 
 		const result = await markCarteraPagado(businessId, installmentIndex, {

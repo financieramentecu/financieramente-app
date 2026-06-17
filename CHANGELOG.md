@@ -4,6 +4,15 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.8] - 2026-06-17
+
+### Corregido
+
+- **Cron de fondeo no detectaba pagos vencidos el mismo día:** Si el cron diario corría temprano (por ejemplo, 6 a.m.), no fondeaba los aportes cuya fecha esperada era ese mismo día — quedaban para el día siguiente. Ahora el cron reconoce correctamente los pagos vencidos el día en curso.
+- **Fecha de fondeo no coincidía con la fecha programada:** Al fondear un aporte (por cron o manualmente), la fecha que quedaba registrada era la del momento en que se ejecutaba la acción, no la fecha originalmente programada. Si el fondeo se atrasaba varios días, se perdía la fecha real esperada. Ahora la fecha de fondeo del aporte y del negocio respeta siempre la fecha programada.
+- **Fechas de negocio podían mostrarse con un día de diferencia:** La fecha de emisión, la fecha esperada de fondeo y los filtros avanzados por fecha (Fondeo, Creación, Emisión) podían mostrarse o guardarse con un día de diferencia según el huso horario del navegador o del servidor. Ahora todas las fechas de negocio se calculan de forma consistente en hora de Bogotá, sin importar desde dónde se acceda a la plataforma.
+- **Filtrar la lista de negocios podía devolver "sin resultados":** Si se aplicaba un filtro (de fecha, estado, soportes, etc.) estando en una página distinta a la primera, la lista podía mostrarse vacía aunque sí existieran negocios que cumplían el filtro. Ahora aplicar cualquier filtro vuelve siempre a la primera página de resultados.
+
 ## [1.22.7] - 2026-06-15
 
 ### Corregido
