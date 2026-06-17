@@ -27,6 +27,7 @@ import { useAgentCategories } from '@/features/negocios/hooks/use-agent-categori
 import { useMoneyStrategists } from '@/features/negocios/hooks/use-money-strategists'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 import { countActiveDimensions } from '@/features/negocios/lib/count-active-dimensions'
+import { dateOnlyToBogotaNoonUtc, bogotaDateOnly } from '@/features/negocios/lib/bogota-date'
 
 const DATE_FIELDS = [
 	{ value: 'fondeo', label: 'Fondeo', fromParam: 'dateFrom', toParam: 'dateTo' },
@@ -74,20 +75,20 @@ function getDefaultValues(searchParams: URLSearchParams): FilterFormValues {
 	if (dateIssuedFrom && dateIssuedTo) {
 		dateField = 'emision'
 		dateRange = {
-			from: new Date(`${dateIssuedFrom}T12:00:00`),
-			to: new Date(`${dateIssuedTo}T12:00:00`),
+			from: dateOnlyToBogotaNoonUtc(dateIssuedFrom),
+			to: dateOnlyToBogotaNoonUtc(dateIssuedTo),
 		}
 	} else if (createdFrom && createdTo) {
 		dateField = 'creacion'
 		dateRange = {
-			from: new Date(`${createdFrom}T12:00:00`),
-			to: new Date(`${createdTo}T12:00:00`),
+			from: dateOnlyToBogotaNoonUtc(createdFrom),
+			to: dateOnlyToBogotaNoonUtc(createdTo),
 		}
 	} else if (dateFrom && dateTo) {
 		dateField = 'fondeo'
 		dateRange = {
-			from: new Date(`${dateFrom}T12:00:00`),
-			to: new Date(`${dateTo}T12:00:00`),
+			from: dateOnlyToBogotaNoonUtc(dateFrom),
+			to: dateOnlyToBogotaNoonUtc(dateTo),
 		}
 	}
 
@@ -112,10 +113,7 @@ function getDefaultValues(searchParams: URLSearchParams): FilterFormValues {
 }
 
 function toDateStr(date: Date): string {
-	const y = date.getFullYear()
-	const m = String(date.getMonth() + 1).padStart(2, '0')
-	const d = String(date.getDate()).padStart(2, '0')
-	return `${y}-${m}-${d}`
+	return bogotaDateOnly(date)
 }
 
 /**
