@@ -307,4 +307,10 @@ See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed 
 - Add a note under `## Índices y convenciones` for any non-obvious change (self-referential FKs, enum renames, composite uniques, etc.).
 - The ERD is the single source of truth for onboarding and cross-feature impact analysis — keep it accurate.
 
+### Date Handling (Bogotá / UTC)
+
+- **NEVER** construct or format a business date by hand (`new Date(dateOnlyString)`, `new Date(\`${str}T12:00:00\`)` without `Z`, `.toLocaleDateString()` without `timeZone`, `.getFullYear()/.getMonth()/.getDate()` on a Bogotá business date). These desync the displayed/stored calendar day by ±1 day depending on the runtime's local timezone.
+- Use `dateOnlyToBogotaNoonUtc()` (`src/features/negocios/lib/bogota-date.ts`) to convert a `YYYY-MM-DD` input into a `Date`, and `formatDateBogota()` (`src/features/shared/lib/format-date.ts`) to display any business date to the user.
+- Full guide and migration tracking: [docs/DATE_HANDLING_CONVENTIONS.md](docs/DATE_HANDLING_CONVENTIONS.md). When you touch a file that handles business dates by hand, migrate it to the helpers as part of the same change and update its row in that doc.
+
 - Git: Use Git Flow (feature/, bugfix/, audit/, hotfix/). Branch from 'develop'. Commits MUST follow Conventional Commits (feat:, fix:, chore:, docs:, refactor:, audit:). PRs must use the provided template.

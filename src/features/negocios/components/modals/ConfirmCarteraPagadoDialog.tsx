@@ -12,6 +12,7 @@ import {
 import { Button } from '@/features/shared/ui/button'
 import { Label } from '@/features/shared/ui/label'
 import { Input } from '@/features/shared/ui/input'
+import { bogotaDateOnly } from '../../lib/bogota-date'
 
 export interface ConfirmCarteraPagadoDialogProps {
 	open: boolean
@@ -21,7 +22,7 @@ export interface ConfirmCarteraPagadoDialogProps {
 }
 
 function getTodayIso(): string {
-	return new Date().toISOString().slice(0, 10)
+	return bogotaDateOnly(new Date())
 }
 
 export function ConfirmCarteraPagadoDialog({

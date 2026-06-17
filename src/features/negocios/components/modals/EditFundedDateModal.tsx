@@ -14,6 +14,7 @@ import { Label } from '@/features/shared/ui/label'
 import { Input } from '@/features/shared/ui/input'
 import { useUpdateFundedDate } from '../../hooks/use-update-funded-date'
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
+import { bogotaDateOnly } from '../../lib/bogota-date'
 
 export interface EditFundedDateModalProps {
 	open: boolean
@@ -24,7 +25,7 @@ export interface EditFundedDateModalProps {
 }
 
 function getTodayIso(): string {
-	return new Date().toISOString().slice(0, 10)
+	return bogotaDateOnly(new Date())
 }
 
 export function EditFundedDateModal({

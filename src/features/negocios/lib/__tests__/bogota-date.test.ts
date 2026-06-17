@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { todayBogota, bogotaYearMonth, isSameMonthOrFuture, isStrictlyFutureMonth } from '../bogota-date'
+import { todayBogota, bogotaYearMonth, isSameMonthOrFuture, isStrictlyFutureMonth, dateOnlyToBogotaNoonUtc, bogotaDateOnly } from '../bogota-date'
 
 describe('todayBogota', () => {
 	it('returns a Date object', () => {
@@ -78,6 +78,38 @@ describe('isSameMonthOrFuture', () => {
 		expect(isSameMonthOrFuture('2026-07-15', nowUtc)).toBe(true)
 		// For a payment in May, that is past from June → false
 		expect(isSameMonthOrFuture('2026-05-15', nowUtc)).toBe(false)
+	})
+})
+
+describe('dateOnlyToBogotaNoonUtc', () => {
+	it('anchors a YYYY-MM-DD string at noon UTC', () => {
+		const result = dateOnlyToBogotaNoonUtc('2026-06-17')
+		expect(result.toISOString()).toBe('2026-06-17T12:00:00.000Z')
+	})
+
+	it('does not roll back to the previous day in Bogota', () => {
+		const result = dateOnlyToBogotaNoonUtc('2026-06-17')
+		// Noon UTC = 07:00 Bogota, same calendar day
+		expect(result.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })).toBe('2026-06-17')
+	})
+
+	it('is independent of the runtime/browser local timezone', () => {
+		const a = dateOnlyToBogotaNoonUtc('2026-01-01')
+		const b = dateOnlyToBogotaNoonUtc('2026-01-01')
+		expect(a.getTime()).toBe(b.getTime())
+	})
+})
+
+describe('bogotaDateOnly', () => {
+	it('round-trips with dateOnlyToBogotaNoonUtc', () => {
+		const anchored = dateOnlyToBogotaNoonUtc('2026-06-17')
+		expect(bogotaDateOnly(anchored)).toBe('2026-06-17')
+	})
+
+	it('derives the Bogota calendar day, not the UTC day', () => {
+		// UTC 2026-06-18T02:00:00Z = Bogota 2026-06-17 21:00:00 (UTC-5)
+		const result = bogotaDateOnly(new Date('2026-06-18T02:00:00Z'))
+		expect(result).toBe('2026-06-17')
 	})
 })
 
