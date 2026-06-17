@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { BusinessViewModal } from '../../components/modals/BusinessViewModal'
 import { createMockBusiness } from '../fixtures/mock-business'
+import { formatDateBogota } from '@/features/shared/lib/format-date'
 
 vi.mock('sonner', () => ({
 	toast: {
@@ -91,7 +92,7 @@ describe('BusinessViewModal - Edición de Fecha de Emisión', () => {
 			render(<BusinessViewModal {...defaultProps} business={businessNoEmitido} />)
 
 			// El valor de la fecha se muestra formateado en local de Colombia es-CO
-			const expectedFormattedDate = new Date('2026-05-01T12:00:00.000Z').toLocaleDateString('es-CO')
+			const expectedFormattedDate = formatDateBogota('2026-05-01T12:00:00.000Z')
 			expect(screen.getByText(expectedFormattedDate)).toBeInTheDocument()
 
 			// El botón "Editar fecha de emisión" no debe estar visible en el documento
@@ -108,7 +109,7 @@ describe('BusinessViewModal - Edición de Fecha de Emisión', () => {
 			expect(screen.queryByRole('button', { name: /Editar fecha de emisión/i })).not.toBeInTheDocument()
 
 			// La fecha se sigue visualizando
-			const expectedFormattedDate = new Date('2026-05-01T12:00:00.000Z').toLocaleDateString('es-CO')
+			const expectedFormattedDate = formatDateBogota('2026-05-01T12:00:00.000Z')
 			expect(screen.getByText(expectedFormattedDate)).toBeInTheDocument()
 		})
 
@@ -156,7 +157,7 @@ describe('BusinessViewModal - Edición de Fecha de Emisión', () => {
 			fireEvent.click(screen.getByRole('button', { name: /Cancelar/i }))
 
 			// Vuelve al modo lectura
-			const expectedFormattedDate = new Date('2026-05-01T12:00:00.000Z').toLocaleDateString('es-CO')
+			const expectedFormattedDate = formatDateBogota('2026-05-01T12:00:00.000Z')
 			expect(screen.getByText(expectedFormattedDate)).toBeInTheDocument()
 
 			// El botón "Editar fecha de emisión" está visible de nuevo
@@ -203,8 +204,8 @@ describe('BusinessViewModal - Edición de Fecha de Emisión', () => {
 			// Validar el mensaje de confirmación exacto
 			// Fecha anterior: '2026-05-01T12:00:00.000Z' -> Formato es-CO local
 			// Fecha nueva: '2026-05-15T00:00:00' -> Formato es-CO local
-			const expectedOldDateStr = new Date('2026-05-01T12:00:00.000Z').toLocaleDateString('es-CO')
-			const expectedNewDateStr = new Date('2026-05-15T00:00:00').toLocaleDateString('es-CO')
+			const expectedOldDateStr = formatDateBogota('2026-05-01T12:00:00.000Z')
+			const expectedNewDateStr = formatDateBogota('2026-05-15')
 
 			expect(dialog.textContent).toContain('Confirmación requerida antes de aplicar el cambio')
 			expect(dialog.textContent).toContain('Está a punto de cambiar la fecha de emisión de')
@@ -258,7 +259,7 @@ describe('BusinessViewModal - Edición de Fecha de Emisión', () => {
 
 			// Debería invocar a la prop de guardado con el ID de negocio y el string ISO de la fecha local
 			// '2026-05-15T00:00:00' -> convertido a ISO
-			const expectedIsoString = new Date('2026-05-15T00:00:00').toISOString()
+			const expectedIsoString = '2026-05-15T12:00:00.000Z'
 			expect(onSaveDateIssuedMock).toHaveBeenCalledWith(1, expectedIsoString)
 
 			// Debería cerrar el modo de edición y volver a la vista normal

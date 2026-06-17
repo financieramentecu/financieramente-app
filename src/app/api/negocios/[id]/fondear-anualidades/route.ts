@@ -165,15 +165,24 @@ export async function POST(
 			const now = new Date()
 			const parentWasEmitido = status === BUSINESS_STATUS.EMITIDO
 
+			// dateAnchored mirrors each payment's own expectedDate so the
+			// funding date matches the originally scheduled date, regardless
+			// of when the operator actually performs the fondeo.
+			let businessAnchorDate: Date | null = null
 			for (const row of rowsToFund) {
+				const anchorDate = row.expectedDate ?? now
+				if (!businessAnchorDate || anchorDate > businessAnchorDate) {
+					businessAnchorDate = anchorDate
+				}
 				await tx.payment.update({
 					where: { idAnnualPayment: row.idAnnualPayment },
 					data: {
 						status: AnnualPaymentStatus.FONDEADO,
-						dateAnchored: now,
+						dateAnchored: anchorDate,
 					},
 				})
 			}
+			businessAnchorDate ??= now
 
 			if (parentWasEmitido) {
 				await tx.business.updateMany({
@@ -183,13 +192,13 @@ export async function POST(
 					},
 					data: {
 						status: BUSINESS_STATUS.FONDEADO,
-						dateAnchored: now,
+						dateAnchored: businessAnchorDate,
 					},
 				})
 			} else {
 				await tx.business.update({
 					where: { idBusiness: businessId },
-					data: { dateAnchored: now },
+					data: { dateAnchored: businessAnchorDate },
 				})
 			}
 

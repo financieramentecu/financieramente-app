@@ -11,6 +11,7 @@ vi.mock('../../../hooks/use-update-funded-date', () => ({
 
 import { EditFundedDateModal } from '../EditFundedDateModal'
 import { useUpdateFundedDate } from '../../../hooks/use-update-funded-date'
+import { bogotaDateOnly } from '../../../lib/bogota-date'
 
 const mockUpdateFundedDate = vi.fn()
 
@@ -24,7 +25,7 @@ beforeEach(() => {
 
 describe('EditFundedDateModal', () => {
 	it('renders date input defaulting to today when open', () => {
-		const today = new Date().toISOString().slice(0, 10)
+		const today = bogotaDateOnly(new Date())
 		render(
 			<EditFundedDateModal
 				open={true}

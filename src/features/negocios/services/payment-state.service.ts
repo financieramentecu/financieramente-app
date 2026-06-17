@@ -61,28 +61,40 @@ async function countRemainingCartera(
 
 /**
  * Per-business transaction body for cron funding.
- * Funds all given payment indexes for a business and conditionally flips
+ * Funds the given due payments for a business and conditionally flips
  * the business status from EMITIDO to FONDEADO (write-once via guard).
+ *
+ * dateAnchored is stamped with each payment's own expectedDate (not the
+ * execution date) so funding reflects the originally scheduled date even
+ * when the cron catches up overdue installments days later.
  */
 async function fundSingleBusiness(
 	tx: PrismaTx,
 	businessId: number,
-	paymentIndexes: number[],
+	duePayments: { idAnnualPayment: number; expectedDate: Date | null }[],
 	today: Date,
 	actor: Actor
 ): Promise<{ fundedPayments: number; fondeadoFlipped: boolean }> {
-	// Fund all due payments for this business
-	const paymentResult = await tx.payment.updateMany({
-		where: {
-			idBusiness: businessId,
-			installmentIndex: { in: paymentIndexes },
-			status: AnnualPaymentStatus.SIN_FONDEAR,
-		},
-		data: {
-			status: AnnualPaymentStatus.FONDEADO,
-			dateAnchored: today,
-		},
-	})
+	// Fund each due payment with its own expectedDate as dateAnchored
+	let fundedCount = 0
+	for (const payment of duePayments) {
+		const result = await tx.payment.updateMany({
+			where: {
+				idAnnualPayment: payment.idAnnualPayment,
+				status: AnnualPaymentStatus.SIN_FONDEAR,
+			},
+			data: {
+				status: AnnualPaymentStatus.FONDEADO,
+				dateAnchored: payment.expectedDate ?? today,
+			},
+		})
+		fundedCount += result.count
+	}
+
+	const businessAnchorDate = duePayments.reduce<Date | null>((max, p) => {
+		if (!p.expectedDate) return max
+		return !max || p.expectedDate > max ? p.expectedDate : max
+	}, null) ?? today
 
 	// Race-free first-funding flip: only matches EMITIDO with null dateAnchored
 	const businessResult = await tx.business.updateMany({
@@ -93,7 +105,7 @@ async function fundSingleBusiness(
 		},
 		data: {
 			status: 'FONDEADO',
-			dateAnchored: today,
+			dateAnchored: businessAnchorDate,
 		},
 	})
 
@@ -106,7 +118,7 @@ async function fundSingleBusiness(
 		email: actor.email,
 		ipAddress: actor.ip,
 		userAgent: actor.ua,
-		details: `Cron funded ${paymentResult.count} payment(s) for business ${businessId} on ${today.toISOString().slice(0, 10)}`,
+		details: `Cron funded ${fundedCount} payment(s) for business ${businessId} (run on ${today.toISOString().slice(0, 10)})`,
 	})
 
 	// Audit: business flipped to FONDEADO
@@ -117,11 +129,11 @@ async function fundSingleBusiness(
 			email: actor.email,
 			ipAddress: actor.ip,
 			userAgent: actor.ua,
-			details: `Business ${businessId} flipped to FONDEADO by cron on ${today.toISOString().slice(0, 10)}`,
+			details: `Business ${businessId} flipped to FONDEADO by cron on ${businessAnchorDate.toISOString().slice(0, 10)} (run on ${today.toISOString().slice(0, 10)})`,
 		})
 	}
 
-	return { fundedPayments: paymentResult.count, fondeadoFlipped }
+	return { fundedPayments: fundedCount, fondeadoFlipped }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -337,8 +349,9 @@ export async function fundDuePayments(
 			expectedDate: { lte: today },
 		},
 		select: {
+			idAnnualPayment: true,
 			idBusiness: true,
-			installmentIndex: true,
+			expectedDate: true,
 		},
 	})
 
@@ -347,10 +360,10 @@ export async function fundDuePayments(
 	}
 
 	// Group by business
-	const byBusiness = new Map<number, number[]>()
+	const byBusiness = new Map<number, { idAnnualPayment: number; expectedDate: Date | null }[]>()
 	for (const payment of duePayments) {
 		const existing = byBusiness.get(payment.idBusiness) ?? []
-		existing.push(payment.installmentIndex)
+		existing.push({ idAnnualPayment: payment.idAnnualPayment, expectedDate: payment.expectedDate })
 		byBusiness.set(payment.idBusiness, existing)
 	}
 
@@ -358,9 +371,9 @@ export async function fundDuePayments(
 	let totalFondeado = 0
 
 	// One transaction per business (SRP: fundSingleBusiness helper)
-	for (const [businessId, paymentIndexes] of byBusiness) {
+	for (const [businessId, payments] of byBusiness) {
 		const result = await prisma.$transaction(async (tx) => {
-			return fundSingleBusiness(tx as PrismaTx, businessId, paymentIndexes, today, systemActor)
+			return fundSingleBusiness(tx as PrismaTx, businessId, payments, today, systemActor)
 		})
 
 		totalFunded += result.fundedPayments

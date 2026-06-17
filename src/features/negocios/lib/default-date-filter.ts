@@ -6,6 +6,7 @@
  */
 
 import { UserRole } from '@/features/auth/lib/roles'
+import { bogotaDateOnly } from '@/features/negocios/lib/bogota-date'
 
 const DATE_PARAM_KEYS = [
 	'dateFrom',
@@ -21,14 +22,13 @@ export interface MonthRange {
 	to: string
 }
 
-/** First day of the current month through today, as local YYYY-MM-DD strings. */
+/** First day of the current month through today, as Bogota YYYY-MM-DD strings. */
 export function getCurrentMonthRange(now: Date = new Date()): MonthRange {
-	const year = now.getFullYear()
-	const month = String(now.getMonth() + 1).padStart(2, '0')
-	const day = String(now.getDate()).padStart(2, '0')
+	const today = bogotaDateOnly(now)
+	const [year, month] = today.split('-')
 	return {
 		from: `${year}-${month}-01`,
-		to: `${year}-${month}-${day}`,
+		to: today,
 	}
 }
 

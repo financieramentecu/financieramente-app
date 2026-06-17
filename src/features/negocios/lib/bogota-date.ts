@@ -20,6 +20,41 @@ export function todayBogota(now: Date = new Date()): Date {
 }
 
 /**
+ * Returns the current calendar day in America/Bogota anchored at noon UTC —
+ * the same anchor used for `expectedDate` (see dateOnlyToBogotaNoonUtc).
+ * Use this (not `todayBogota`) when comparing against `expectedDate`: midnight
+ * UTC is earlier than noon UTC, so a `expectedDate <= todayBogota()` query
+ * would wrongly exclude payments due *today* until the next day.
+ */
+export function todayBogotaNoonUtc(now: Date = new Date()): Date {
+	return dateOnlyToBogotaNoonUtc(bogotaDateOnly(now))
+}
+
+/**
+ * Converts a date-only string (YYYY-MM-DD) to a Date anchored at noon UTC.
+ * Date-only strings have no timezone of their own — anchoring at midnight
+ * UTC rolls back to the previous calendar day in Bogota (UTC-5), and
+ * anchoring without an explicit "Z" makes the result depend on whatever
+ * local timezone happens to run the parsing (browser or server).
+ * Noon UTC (= 07:00 Bogota) stays within the same calendar day regardless
+ * of where it's parsed, so this is the single safe anchor for the whole app.
+ */
+export function dateOnlyToBogotaNoonUtc(dateOnly: string): Date {
+	return new Date(`${dateOnly}T12:00:00Z`)
+}
+
+/**
+ * Inverse of dateOnlyToBogotaNoonUtc: derives the 'YYYY-MM-DD' calendar day
+ * a Date falls on in America/Bogota, regardless of the runtime's local
+ * timezone. Use this instead of `.getFullYear()/.getMonth()/.getDate()`
+ * (which read the runtime's local time) when round-tripping a business
+ * date back into a date-only string (e.g. URL filter params).
+ */
+export function bogotaDateOnly(d: Date): string {
+	return d.toLocaleDateString('en-CA', { timeZone: BOGOTA_TZ })
+}
+
+/**
  * Returns the 'YYYY-MM' string for the given date in America/Bogota timezone.
  */
 export function bogotaYearMonth(d: Date): string {

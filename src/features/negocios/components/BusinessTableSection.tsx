@@ -49,6 +49,7 @@ import {
 } from '@/features/negocios/types/business-entity.types'
 import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
 import { formatDateBogota } from '@/features/shared/lib/format-date'
+import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 
 
 interface PaginationData {
@@ -144,7 +145,7 @@ export function BusinessTableSection({
 		if (typeof onSaveDateIssued !== 'function') return
 		setIsSavingDate(true)
 		try {
-			const dateObj = new Date(`${newDateStr}T12:00:00`)
+			const dateObj = dateOnlyToBogotaNoonUtc(newDateStr)
 			await onSaveDateIssued(businessId, dateObj.toISOString())
 			setEditingDateId(null)
 		} catch (error: unknown) {
@@ -711,7 +712,7 @@ export function BusinessTableSection({
 								</span>{' '}
 								a{' '}
 								<span className="font-semibold text-foreground">
-									{pendingDate ? formatDateBogota(`${pendingDate}T12:00:00`) : '—'}
+									{pendingDate ? formatDateBogota(pendingDate) : '—'}
 								</span>
 								. Esta acción recalculará las fechas esperadas de Fondeo ¿Desea continuar?
 							</AlertDialogDescription>

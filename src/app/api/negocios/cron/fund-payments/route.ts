@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { fundDuePayments } from '@/features/negocios/services/payment-state.service'
-import { todayBogota } from '@/features/negocios/lib/bogota-date'
+import { todayBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 
 interface FundPaymentsSummary {
 	fundedPayments: number
@@ -41,7 +41,7 @@ export async function POST(
 	}
 
 	try {
-		const today = todayBogota()
+		const today = todayBogotaNoonUtc()
 		const summary = await fundDuePayments(today)
 
 		return NextResponse.json({ data: summary })

@@ -33,8 +33,8 @@ describe('getDefaultDateParamPair', () => {
 })
 
 describe('getCurrentMonthRange', () => {
-	it('returns first day of current month through today as YYYY-MM-DD', () => {
-		const now = new Date(2026, 5, 10) // 2026-06-10
+	it('returns first day of current month through today as YYYY-MM-DD (Bogota calendar day)', () => {
+		const now = new Date('2026-06-10T12:00:00Z') // 07:00 Bogota, June 10
 		expect(getCurrentMonthRange(now)).toEqual({
 			from: '2026-06-01',
 			to: '2026-06-10',
@@ -42,7 +42,7 @@ describe('getCurrentMonthRange', () => {
 	})
 
 	it('zero-pads month and day', () => {
-		const now = new Date(2026, 0, 5) // 2026-01-05
+		const now = new Date('2026-01-05T12:00:00Z')
 		expect(getCurrentMonthRange(now)).toEqual({
 			from: '2026-01-01',
 			to: '2026-01-05',
@@ -50,10 +50,19 @@ describe('getCurrentMonthRange', () => {
 	})
 
 	it('handles last day of month', () => {
-		const now = new Date(2026, 11, 31) // 2026-12-31
+		const now = new Date('2026-12-31T12:00:00Z')
 		expect(getCurrentMonthRange(now)).toEqual({
 			from: '2026-12-01',
 			to: '2026-12-31',
+		})
+	})
+
+	it('uses the Bogota calendar day, not the UTC day, near the UTC midnight boundary', () => {
+		// UTC 2026-06-11T02:00:00Z = Bogota 2026-06-10 21:00:00 (UTC-5)
+		const now = new Date('2026-06-11T02:00:00Z')
+		expect(getCurrentMonthRange(now)).toEqual({
+			from: '2026-06-01',
+			to: '2026-06-10',
 		})
 	})
 })

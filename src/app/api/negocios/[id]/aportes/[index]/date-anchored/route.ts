@@ -7,6 +7,7 @@ import { canFundPayments } from '@/features/auth/lib/roles'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { updatePaymentDateAnchored } from '@/features/negocios/services/payment-state.service'
+import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 
 interface RouteParams {
 	params: Promise<{ id: string; index: string }>
@@ -69,8 +70,7 @@ export async function PATCH(
 			)
 		}
 
-		// Convert YYYY-MM-DD to noon UTC to match markPrimerPagoFondeado convention
-		const dateAnchored = new Date(`${parsed.data.dateAnchored}T12:00:00Z`)
+		const dateAnchored = dateOnlyToBogotaNoonUtc(parsed.data.dateAnchored)
 		const headers = new Headers(request.headers)
 
 		const result = await updatePaymentDateAnchored(

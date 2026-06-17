@@ -180,6 +180,15 @@ export function NegociosPageClient({
 		}))
 	}, [debouncedSearch])
 
+	// Reset the local page back to 1 whenever an AdvancedFiltersSheet/URL filter
+	// dimension changes. `page` lives in local state, separate from the URL —
+	// without this, applying a filter while on page 2+ keeps the stale page
+	// number, which can request an offset beyond the (smaller) filtered result
+	// set and silently return zero rows even though matching data exists.
+	useEffect(() => {
+		setSearchParams((prev) => (prev.page === 1 ? prev : { ...prev, page: 1 }))
+	}, [urlFilterParams])
+
 	// Merge URL filter params (from AdvancedFiltersSheet) into listParams
 	const mergedParams: BusinessListParams = useMemo(() => ({
 		...searchParams,

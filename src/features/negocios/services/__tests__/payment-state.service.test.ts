@@ -399,6 +399,42 @@ describe('fundDuePayments', () => {
 		expect(result.fundedPayments).toBe(1)
 	})
 
+	it('overdue payment funded late by cron — dateAnchored uses expectedDate, not the execution date', async () => {
+		// Cron didn't run on the scheduled day; it catches up days later.
+		// dateAnchored must reflect the original schedule (expectedDate), not `today`.
+		const duePayment = {
+			idAnnualPayment: 1,
+			idBusiness: 10,
+			installmentIndex: 1,
+			status: 'SIN_FONDEAR',
+			expectedDate: new Date('2026-06-10T00:00:00Z'),
+			dateAnchored: null,
+		}
+
+		mockPrisma.payment.findMany = vi.fn().mockResolvedValue([duePayment])
+
+		const txPayment = { updateMany: vi.fn().mockResolvedValue({ count: 1 }) }
+		const txBusiness = { updateMany: vi.fn().mockResolvedValue({ count: 1 }) }
+		mockPrisma.$transaction.mockImplementation(
+			(cb: (tx: { payment: typeof txPayment; business: typeof txBusiness }) => unknown) =>
+				cb({ payment: txPayment, business: txBusiness })
+		)
+
+		await fundDuePayments(today)
+
+		expect(txPayment.updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ dateAnchored: duePayment.expectedDate }),
+			})
+		)
+		// Business flip should also anchor on the payment's expectedDate, not the run date
+		expect(txBusiness.updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ dateAnchored: duePayment.expectedDate }),
+			})
+		)
+	})
+
 	it('future payment not funded — skipped in query results', async () => {
 		// fundDuePayments queries only SIN_FONDEAR with expectedDate <= today
 		// so if the mock returns empty, that means no future payments were picked up
