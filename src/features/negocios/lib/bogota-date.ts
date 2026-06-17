@@ -20,6 +20,17 @@ export function todayBogota(now: Date = new Date()): Date {
 }
 
 /**
+ * Returns the current calendar day in America/Bogota anchored at noon UTC —
+ * the same anchor used for `expectedDate` (see dateOnlyToBogotaNoonUtc).
+ * Use this (not `todayBogota`) when comparing against `expectedDate`: midnight
+ * UTC is earlier than noon UTC, so a `expectedDate <= todayBogota()` query
+ * would wrongly exclude payments due *today* until the next day.
+ */
+export function todayBogotaNoonUtc(now: Date = new Date()): Date {
+	return dateOnlyToBogotaNoonUtc(bogotaDateOnly(now))
+}
+
+/**
  * Converts a date-only string (YYYY-MM-DD) to a Date anchored at noon UTC.
  * Date-only strings have no timezone of their own — anchoring at midnight
  * UTC rolls back to the previous calendar day in Bogota (UTC-5), and

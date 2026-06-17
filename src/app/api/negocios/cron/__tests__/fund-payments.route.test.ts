@@ -5,12 +5,12 @@ vi.mock('@/features/negocios/services/payment-state.service', () => ({
 	fundDuePayments: vi.fn(),
 }))
 vi.mock('@/features/negocios/lib/bogota-date', () => ({
-	todayBogota: vi.fn(() => new Date('2026-06-15T00:00:00Z')),
+	todayBogotaNoonUtc: vi.fn(() => new Date('2026-06-15T12:00:00Z')),
 }))
 
 import { POST } from '../fund-payments/route'
 import { fundDuePayments } from '@/features/negocios/services/payment-state.service'
-import { todayBogota } from '@/features/negocios/lib/bogota-date'
+import { todayBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 
 const VALID_SECRET = 'test-cron-secret'
 
@@ -44,13 +44,13 @@ describe('POST /api/negocios/cron/fund-payments', () => {
 			expect(body.data.fondeadoBusinesses).toBe(1)
 		})
 
-		it('calls fundDuePayments with Bogota today', async () => {
+		it('calls fundDuePayments with Bogota today anchored at noon UTC (matches expectedDate anchor)', async () => {
 			const req = makeRequest(`Bearer ${VALID_SECRET}`)
 			await POST(req)
 
 			expect(fundDuePayments).toHaveBeenCalledOnce()
-			expect(fundDuePayments).toHaveBeenCalledWith(new Date('2026-06-15T00:00:00Z'))
-			expect(todayBogota).toHaveBeenCalledOnce()
+			expect(fundDuePayments).toHaveBeenCalledWith(new Date('2026-06-15T12:00:00Z'))
+			expect(todayBogotaNoonUtc).toHaveBeenCalledOnce()
 		})
 	})
 

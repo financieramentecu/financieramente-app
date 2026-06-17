@@ -22,7 +22,8 @@ Todo el manejo de fechas de negocio pasa por dos módulos. **No se construye ni 
 | Convertir un string `YYYY-MM-DD` (de un `<input type="date">` o un body de API) a `Date` | `dateOnlyToBogotaNoonUtc(dateStr)` — `src/features/negocios/lib/bogota-date.ts` |
 | Mostrar una fecha (`Date` o ISO string) al usuario | `formatDateBogota(value)` — `src/features/shared/lib/format-date.ts` |
 | Convertir un `Date` de vuelta a `YYYY-MM-DD` (ej. para escribirlo en un param de URL) | `bogotaDateOnly(date)` — `src/features/negocios/lib/bogota-date.ts` |
-| Obtener el "hoy" calendario de Bogotá (para cron, comparaciones de mes, etc.) | `todayBogota()` / `bogotaYearMonth()` — `src/features/negocios/lib/bogota-date.ts` |
+| Obtener el "hoy" calendario de Bogotá como medianoche UTC (comparaciones de mes, `bogotaYearMonth`) | `todayBogota()` — `src/features/negocios/lib/bogota-date.ts` |
+| Obtener el "hoy" calendario de Bogotá **anclado igual que `expectedDate`** (mediodía UTC) — para comparar `expectedDate <= hoy` (ej. cron de fondeo) | `todayBogotaNoonUtc()` — `src/features/negocios/lib/bogota-date.ts` |
 
 ### Por qué mediodía UTC (`T12:00:00Z`) y no medianoche
 
@@ -35,6 +36,7 @@ Mediodía UTC = 07:00 Bogotá. Sin importar en qué timezone corra el código qu
 3. **Nunca** `.toLocaleDateString(...)` sin `{ timeZone: 'America/Bogota' }` para mostrar una fecha de negocio — usar `formatDateBogota()`.
 4. **Nunca** derivar año/mes/día de una fecha con `.getFullYear()/.getMonth()/.getDate()` (son locales) cuando el valor representa una fecha de negocio en Bogotá — usar `Intl.DateTimeFormat` con `timeZone: 'America/Bogota'` (ver `formatToInputDate` en `BusinessViewModal.tsx` como ejemplo).
 5. Una fecha-instante real con hora (timestamps de auditoría, `createdAt`, `now()` para anclar fondeos) **sí** puede usar `new Date()` normal — la convención aplica a fechas *de negocio* (`dateIssued`, `expectedDate`, `paymentDate`, `dateAnchored` cuando se construye desde un input de usuario).
+6. **Nunca mezclar anchors al comparar contra `expectedDate`**: `expectedDate` siempre está anclado a mediodía UTC (`dateOnlyToBogotaNoonUtc`). Si necesitás un "hoy" para comparar (`expectedDate <= hoy`), usá `todayBogotaNoonUtc()` — **no** `todayBogota()` (medianoche UTC), porque medianoche UTC es *anterior* a mediodía UTC del mismo día, y la comparación excluiría incorrectamente los registros vencidos hoy mismo hasta el día siguiente.
 
 ## Migración (granular, no big-bang)
 
@@ -60,6 +62,7 @@ No se migra todo de una sola vez. Cada vez que se toque un archivo que maneje fe
 | `src/features/negocios/components/modals/EditFundedDateModal.tsx` | ✅ Migrado | `getTodayIso()` ahora usa `bogotaDateOnly(new Date())` |
 | `src/features/negocios/components/modals/ConfirmCarteraPagadoDialog.tsx` | ✅ Migrado | Mismo fix que arriba |
 | `src/features/negocios/components/modals/BusinessViewModal.tsx` (display de `createdAt` — "Registrado:") | ✅ Migrado | (nota: la fila anterior apuntaba por error a `[id]/route.ts`, que es un API route sin UI; el display real estaba acá) |
+| `src/app/api/negocios/cron/fund-payments/route.ts` | ✅ Migrado | Usaba `todayBogota()` (medianoche UTC) para comparar contra `expectedDate` (mediodía UTC) — el cron corrido a las 6am Bogotá no encontraba los pagos vencidos el mismo día. Fix: `todayBogotaNoonUtc()` |
 
 Cuando un archivo se migre, mover su fila a "✅ Migrado" en el mismo PR.
 
