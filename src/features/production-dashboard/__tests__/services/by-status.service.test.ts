@@ -72,6 +72,33 @@ describe('getBusinessesByStatusRaw', () => {
     expect(statusFilter.in).not.toContain('CANCELADO')
   })
 
+  it('restricts status IN filter to the user-selected statuses, not all allowed statuses', async () => {
+    mockGroupBy.mockResolvedValue([] as never)
+    const filters: DashboardAppliedFilters = { ...defaultFilters, statuses: ['EMITIDO'] }
+
+    await getBusinessesByStatusRaw(makeParams([1], filters))
+
+    const callArgs = mockGroupBy.mock.calls[0][0] as Record<string, unknown>
+    const where = callArgs.where as Record<string, unknown>
+    const statusFilter = where.status as { in: string[] }
+    expect(statusFilter.in).toEqual(['EMITIDO'])
+  })
+
+  it('drops user-selected statuses that fall outside the donut allow-list', async () => {
+    mockGroupBy.mockResolvedValue([] as never)
+    const filters: DashboardAppliedFilters = {
+      ...defaultFilters,
+      statuses: ['EMITIDO', 'CANCELADO'],
+    }
+
+    await getBusinessesByStatusRaw(makeParams([1], filters))
+
+    const callArgs = mockGroupBy.mock.calls[0][0] as Record<string, unknown>
+    const where = callArgs.where as Record<string, unknown>
+    const statusFilter = where.status as { in: string[] }
+    expect(statusFilter.in).toEqual(['EMITIDO'])
+  })
+
   it('forwards filter params via buildProductionWhereClause', async () => {
     mockGroupBy.mockResolvedValue([] as never)
     const params = makeParams([5, 6])

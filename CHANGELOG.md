@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.9] - 2026-06-20
+
+### Corregido
+
+- **Gráfica de Estado del dashboard ignoraba el filtro de estado:** Al aplicar un filtro por estado en el dashboard de producción, la gráfica de pastel "Distribución por Estado" seguía mostrando siempre los mismos estados, sin reflejar la selección. Ahora la gráfica respeta el filtro aplicado.
+
 ## [1.22.8] - 2026-06-17
 
 ### Corregido
