@@ -8,7 +8,8 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { negociosExportBodySchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/features/auth/lib/roles'
+import { canExportBusinessList } from '@/features/negocios/lib/can-export-business-list'
+import { resolveVisibleUserIds } from '@/features/negocios/services/user-hierarchy.service'
 import { buildBusinessListWhere } from '@/features/negocios/lib/build-business-list-where'
 import { toBusinessListFilterInput } from '@/features/negocios/lib/to-business-list-filter-input'
 import { parseBogotaInclusiveUtcRange } from '@/features/negocios/lib/bogota-date-range'
@@ -25,12 +26,12 @@ import {
 	type LeaderExportLevel,
 } from '@/features/negocios/lib/resolve-leader-chain-export'
 import { EXPORT_MAX_ROWS } from '@/features/negocios/lib/export-limits'
-
-const EXPORT_ROLES: readonly string[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-]
+import {
+	logAuditEvent,
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+} from '@/features/auth/lib/audit-logger'
 
 export async function POST(request: Request) {
 	try {
@@ -59,10 +60,18 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
 		}
 
-		const roleCode = currentUser.role?.code
-		if (!roleCode || !EXPORT_ROLES.includes(roleCode)) {
+		const isAuthorized = canExportBusinessList({
+			roleCode: currentUser.role?.code,
+			levelCode: currentUser.level?.code,
+		})
+		if (!isAuthorized) {
 			return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 		}
+
+		// Hierarchical visibility scope — same rule as GET /api/negocios.
+		// Bug fix: this was previously never computed/applied here, leaking
+		// rows outside the exporter's subtree to non-admin users.
+		const visibleUserIds = await resolveVisibleUserIds(prisma, currentUser)
 
 		const {
 			search,
@@ -106,7 +115,8 @@ export async function POST(request: Request) {
 				periodicityIds: periodicityIds && periodicityIds.length > 0 ? periodicityIds : undefined,
 				agentCategoryIds: agentCategoryIds && agentCategoryIds.length > 0 ? agentCategoryIds : undefined,
 				agentIds: agentIds && agentIds.length > 0 ? agentIds : undefined,
-			})
+			}),
+			{ visibleUserIds }
 		)
 
 		const total = await prisma.business.count({ where })
@@ -126,6 +136,16 @@ export async function POST(request: Request) {
 				{ status: 413 }
 			)
 		}
+
+		await logAuditEvent({
+			userId: currentUser.idUser,
+			roleId: currentUser.idRole ?? undefined,
+			action: AuditAction.BUSINESS_EXPORTED,
+			email: currentUser.email,
+			ipAddress: getClientIp(request.headers),
+			userAgent: getUserAgent(request.headers),
+			details: `Exportación de negocios a Excel: ${total} fila(s)${parsed.data.search ? `, búsqueda: "${parsed.data.search}"` : ''}${parsed.data.status ? `, estado: ${parsed.data.status}` : ''}`,
+		})
 
 		const businesses = await prisma.business.findMany({
 			where,

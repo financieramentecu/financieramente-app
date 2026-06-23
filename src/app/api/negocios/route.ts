@@ -17,9 +17,8 @@ import type { BusinessStatus } from '@/features/negocios/types/business-entity.t
 import { buildBusinessListWhere } from '@/features/negocios/lib/build-business-list-where'
 import { toBusinessListFilterInput } from '@/features/negocios/lib/to-business-list-filter-input'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
+import { resolveVisibleUserIds } from '@/features/negocios/services/user-hierarchy.service'
 import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
-import { UserRole } from '@/features/auth/lib/roles'
 
 /**
  * GET /api/negocios
@@ -120,18 +119,9 @@ export async function GET(
 		}
 
 		// Visibility scope:
-		// ADMIN → no idUser filter (see all)
+		// ADMIN-like roles → no idUser filter (see all)
 		// All other roles → hierarchical scope: [self, ...subordinates]
-		const isAdmin =
-			currentUser.role?.code === UserRole.ADMIN ||
-			currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
-			currentUser.role?.code === UserRole.ANALISTA_SOPORTE
-		let visibleUserIds: number[] | undefined
-
-		if (!isAdmin) {
-			const subordinates = await getSubordinateUserIds(prisma, currentUser.idUser)
-			visibleUserIds = [currentUser.idUser, ...subordinates]
-		}
+		const visibleUserIds = await resolveVisibleUserIds(prisma, currentUser)
 
 		const where = buildBusinessListWhere(
 			currentUser,
