@@ -31,11 +31,21 @@ export async function getBusinessesByStatusRaw(
 ): Promise<StatusDonutRaw[]> {
   if (params.userIds.length === 0) return []
 
+  // Respect the user's status filter, but never go outside the donut's in-scope
+  // statuses. With no status filter applied, fall back to all allowed statuses.
+  const { statuses } = params.appliedFilters
+  const inScopeStatuses =
+    statuses.length > 0
+      ? statuses.filter((s): s is StatusDonutRaw['status'] =>
+          (STATUS_DONUT_ALLOWED as readonly string[]).includes(s)
+        )
+      : [...STATUS_DONUT_ALLOWED]
+
   const rows = await prisma.business.groupBy({
     by: ['status', 'idCurrency'],
     where: {
       ...buildProductionWhereClause(params),
-      status: { in: [...STATUS_DONUT_ALLOWED] },
+      status: { in: inScopeStatuses },
     },
     _count: { _all: true },
     _sum: { value: true },

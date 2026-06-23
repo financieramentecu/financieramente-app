@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { getAporteVisualState, getFirstPaymentFondeoButton } from '../aporte-visual-state'
-import type { AporteButton } from '../aporte-visual-state'
+import { getAporteVisualState } from '../aporte-visual-state'
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
 
-const now = new Date(2025, 4, 15) // May 15, 2025
+// Fixed "now" in UTC: June 15, 2026 at noon UTC = June 15, 2026 07:00 Bogota
+const now = new Date('2026-06-15T12:00:00Z')
 
 function makeAporte(
 	overrides: Partial<PaymentInstallmentDto>
@@ -20,129 +20,163 @@ function makeAporte(
 	}
 }
 
-describe('getFirstPaymentFondeoButton', () => {
-	it('is exported from aporte-visual-state', () => {
-		expect(getFirstPaymentFondeoButton).toBeDefined()
-		expect(typeof getFirstPaymentFondeoButton).toBe('function')
-	})
-
-	it('MARK_FONDEAR is a valid AporteButton member — type check via value', () => {
-		const btn: AporteButton = 'MARK_FONDEAR'
-		expect(btn).toBe('MARK_FONDEAR')
-	})
-
-	// Task 1.3 — truth table
-	it('returns MARK_FONDEAR when business=EMITIDO, no dateAnchored, index=1, status=FONDEADO, canMutate=true', () => {
-		const result = getFirstPaymentFondeoButton(
-			{ installmentIndex: 1, status: 'FONDEADO' },
-			{ status: 'EMITIDO', dateAnchored: null },
-			true
-		)
-		expect(result).toEqual(['MARK_FONDEAR'])
-	})
-
-	it('returns [] when payment is EN_CARTERA (payment in cartera, button must be hidden)', () => {
-		const result = getFirstPaymentFondeoButton(
-			{ installmentIndex: 1, status: 'EN_CARTERA' },
-			{ status: 'EMITIDO', dateAnchored: null },
-			true
-		)
-		expect(result).toEqual([])
-	})
-
-	it('returns [] when business is FONDEADO (already fondeado)', () => {
-		const result = getFirstPaymentFondeoButton(
-			{ installmentIndex: 1, status: 'FONDEADO' },
-			{ status: 'FONDEADO', dateAnchored: null },
-			true
-		)
-		expect(result).toEqual([])
-	})
-
-	it('returns [] when dateAnchored is set (already has fondeo date)', () => {
-		const result = getFirstPaymentFondeoButton(
-			{ installmentIndex: 1, status: 'FONDEADO' },
-			{ status: 'EMITIDO', dateAnchored: '2024-01-15T00:00:00.000Z' },
-			true
-		)
-		expect(result).toEqual([])
-	})
-
-	it('returns [] when installmentIndex > 1 (non-first installment)', () => {
-		const result = getFirstPaymentFondeoButton(
-			{ installmentIndex: 2, status: 'FONDEADO' },
-			{ status: 'EMITIDO', dateAnchored: null },
-			true
-		)
-		expect(result).toEqual([])
-	})
-
-	it('returns [] when canMutate=false (unauthorized role)', () => {
-		const result = getFirstPaymentFondeoButton(
-			{ installmentIndex: 1, status: 'FONDEADO' },
-			{ status: 'EMITIDO', dateAnchored: null },
-			false
-		)
-		expect(result).toEqual([])
-	})
-})
-
 describe('getAporteVisualState', () => {
-	describe('FONDEADO_PAST — past month', () => {
-		const aporte = makeAporte({
-			status: 'FONDEADO',
-			expectedDate: '2025-03-01T00:00:00.000Z',
+	// ─── SIN_FONDEAR ──────────────────────────────────────────────────
+	describe('SIN_FONDEAR — scheduled (buttons on due-date month)', () => {
+		it('returns SIN_FONDEAR variant', () => {
+			const aporte = makeAporte({ status: 'SIN_FONDEAR' })
+			expect(getAporteVisualState(aporte, now, true).variant).toBe('SIN_FONDEAR')
 		})
 
-		it('returns FONDEADO_PAST variant for any role', () => {
-			expect(getAporteVisualState(aporte, now, true).variant).toBe(
-				'FONDEADO_PAST'
-			)
-			expect(getAporteVisualState(aporte, now, false).variant).toBe(
-				'FONDEADO_PAST'
-			)
+		it('has gray row class', () => {
+			const aporte = makeAporte({ status: 'SIN_FONDEAR' })
+			expect(getAporteVisualState(aporte, now, true).rowClass).toContain('gray')
 		})
 
-		it('returns no buttons regardless of canMutate', () => {
-			expect(getAporteVisualState(aporte, now, true).buttons).toEqual([])
-			expect(getAporteVisualState(aporte, now, false).buttons).toEqual([])
+		it('label is "Sin fondear" when expectedDate is null', () => {
+			const aporte = makeAporte({ status: 'SIN_FONDEAR', expectedDate: null })
+			expect(getAporteVisualState(aporte, now, true).label).toBe('Sin fondear')
 		})
 
-		it('has green row class', () => {
-			expect(getAporteVisualState(aporte, now, true).rowClass).toContain(
-				'green'
-			)
-		})
-	})
-
-	describe('FONDEADO_CURRENT — current/future month', () => {
-		const aporte = makeAporte({
-			status: 'FONDEADO',
-			expectedDate: '2025-05-01T00:00:00.000Z',
+		it('label includes "Se fondeará en" when expectedDate is set', () => {
+			const aporte = makeAporte({ status: 'SIN_FONDEAR', expectedDate: '2026-08-01T00:00:00.000Z' })
+			const vs = getAporteVisualState(aporte, now, true)
+			expect(vs.label).toMatch(/Se fondeará en/)
 		})
 
-		it('returns FONDEADO_CURRENT variant', () => {
-			expect(getAporteVisualState(aporte, now, true).variant).toBe(
-				'FONDEADO_CURRENT'
-			)
+		// now = June 15 2026; expectedDate June 2026 → same month → MARK_CARTERA only
+		it('shows MARK_CARTERA only when expectedDate is in the current month (same month)', () => {
+			const aporte = makeAporte({ status: 'SIN_FONDEAR', expectedDate: '2026-06-01T00:00:00.000Z' })
+			const vs = getAporteVisualState(aporte, now, true)
+			expect(vs.buttons).toContain('MARK_CARTERA')
+			expect(vs.buttons).not.toContain('MARK_ANTICIPADO')
 		})
 
-		it('returns MARK_CARTERA and MARK_ANTICIPADO for privileged roles', () => {
+		// now = June 15 2026; expectedDate August 2026 → strictly future → both buttons
+		it('shows MARK_CARTERA and MARK_ANTICIPADO when expectedDate is strictly future month', () => {
+			const aporte = makeAporte({ status: 'SIN_FONDEAR', expectedDate: '2026-08-01T00:00:00.000Z' })
 			const vs = getAporteVisualState(aporte, now, true)
 			expect(vs.buttons).toContain('MARK_CARTERA')
 			expect(vs.buttons).toContain('MARK_ANTICIPADO')
 		})
 
-		it('returns no buttons for read-only roles', () => {
-			const vs = getAporteVisualState(aporte, now, false)
+		// now = June 15 2026; expectedDate March 2026 → past → no buttons
+		it('shows no buttons when expectedDate is in a past month', () => {
+			const aporte = makeAporte({ status: 'SIN_FONDEAR', expectedDate: '2026-03-01T00:00:00.000Z' })
+			const vs = getAporteVisualState(aporte, now, true)
 			expect(vs.buttons).toEqual([])
+		})
+
+		it('shows no buttons when expectedDate is null regardless of canMutate', () => {
+			const aporte = makeAporte({ status: 'SIN_FONDEAR', expectedDate: null })
+			expect(getAporteVisualState(aporte, now, true).buttons).toEqual([])
+			expect(getAporteVisualState(aporte, now, false).buttons).toEqual([])
+		})
+
+		it('returns no buttons for read-only role even in current month', () => {
+			const aporte = makeAporte({ status: 'SIN_FONDEAR', expectedDate: '2026-06-01T00:00:00.000Z' })
+			expect(getAporteVisualState(aporte, now, false).buttons).toEqual([])
 		})
 	})
 
+	// ─── FONDEADO — actually funded (dateAnchored set) ────────────────
+	describe('FONDEADO with dateAnchored set — actually funded', () => {
+		// now = June 15 2026; dateAnchored = June 10 2026 → funding month is current → FONDEADO_CURRENT
+		it('returns FONDEADO_CURRENT variant when funding month is current', () => {
+			const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: '2026-06-10T12:00:00.000Z', expectedDate: '2027-05-01T00:00:00.000Z' })
+			expect(getAporteVisualState(aporte, now, true).variant).toBe('FONDEADO_CURRENT')
+		})
+
+		it('label says "Fondeado: <date>" — never "Se fondeará en"', () => {
+			const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: '2026-06-10T12:00:00.000Z', expectedDate: '2027-05-01T00:00:00.000Z' })
+			const vs = getAporteVisualState(aporte, now, true)
+			expect(vs.label).toMatch(/Fondeado/)
+			expect(vs.label).not.toMatch(/fondeará/)
+		})
+
+		it('shows green row when funding month is current', () => {
+			const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: '2026-06-10T12:00:00.000Z', expectedDate: '2027-05-01T00:00:00.000Z' })
+			expect(getAporteVisualState(aporte, now, true).rowClass).toContain('green')
+		})
+
+		it('shows MARK_CARTERA only (no MARK_ANTICIPADO) within funding-month correction window', () => {
+			const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: '2026-06-10T12:00:00.000Z', expectedDate: '2027-05-01T00:00:00.000Z' })
+			const vs = getAporteVisualState(aporte, now, true)
+			expect(vs.buttons).toContain('MARK_CARTERA')
+			expect(vs.buttons).not.toContain('MARK_ANTICIPADO')
+		})
+
+		// now = June 15 2026; dateAnchored = March 10 2026 → funding month is past → FONDEADO_PAST
+		it('returns FONDEADO_PAST variant when funding month is past', () => {
+			const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: '2026-03-10T12:00:00.000Z', expectedDate: '2027-05-01T00:00:00.000Z' })
+			expect(getAporteVisualState(aporte, now, true).variant).toBe('FONDEADO_PAST')
+		})
+
+		it('shows no buttons when funding month is past', () => {
+			const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: '2026-03-10T12:00:00.000Z', expectedDate: '2027-05-01T00:00:00.000Z' })
+			expect(getAporteVisualState(aporte, now, true).buttons).toEqual([])
+		})
+
+		it('shows green row when funding month is past', () => {
+			const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: '2026-03-10T12:00:00.000Z', expectedDate: '2027-05-01T00:00:00.000Z' })
+			expect(getAporteVisualState(aporte, now, true).rowClass).toContain('green')
+		})
+
+		it('NEVER shows MARK_ANTICIPADO regardless of expectedDate month (funded = cannot be advanced)', () => {
+			// expectedDate is strictly future month — should still NOT show MARK_ANTICIPADO
+			const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: '2026-06-10T12:00:00.000Z', expectedDate: '2027-05-01T00:00:00.000Z' })
+			const vs = getAporteVisualState(aporte, now, true)
+			expect(vs.buttons).not.toContain('MARK_ANTICIPADO')
+		})
+
+		it('shows no buttons for read-only role even within correction window', () => {
+			const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: '2026-06-10T12:00:00.000Z', expectedDate: '2027-05-01T00:00:00.000Z' })
+			expect(getAporteVisualState(aporte, now, false).buttons).toEqual([])
+		})
+	})
+
+	// ─── FONDEADO — null dateAnchored (legacy edge) ──────────────────
+	describe('FONDEADO with dateAnchored null — legacy edge "Fecha por confirmar"', () => {
+		const aporte = makeAporte({ status: 'FONDEADO', dateAnchored: null, expectedDate: null })
+
+		it('returns FONDEADO_CURRENT variant', () => {
+			expect(getAporteVisualState(aporte, now, true).variant).toBe('FONDEADO_CURRENT')
+		})
+
+		it('shows "Fecha por confirmar" label', () => {
+			expect(getAporteVisualState(aporte, now, true).label).toMatch(/confirmar/i)
+		})
+
+		it('shows MARK_CARTERA for privileged role', () => {
+			expect(getAporteVisualState(aporte, now, true).buttons).toContain('MARK_CARTERA')
+		})
+
+		it('shows no buttons for read-only role', () => {
+			expect(getAporteVisualState(aporte, now, false).buttons).toEqual([])
+		})
+	})
+
+	// ─── Bogota timezone edge (SIN_FONDEAR) ───────────────────────────
+	describe('Bogota UTC midnight edge — isSameMonthOrFuture uses Bogota TZ (SIN_FONDEAR)', () => {
+		it('UTC 2026-07-01T03:00Z = Bogota June 30: SIN_FONDEAR with July expectedDate → both buttons', () => {
+			// now in UTC is July 1 2026 at 03:00Z = Bogota June 30 22:00
+			// Bogota month is June, so July expectedDate is strictly future → both buttons
+			const nowEdge = new Date('2026-07-01T03:00:00Z')
+			const aporte = makeAporte({
+				status: 'SIN_FONDEAR',
+				expectedDate: '2026-07-01T00:00:00.000Z',
+			})
+			const vs = getAporteVisualState(aporte, nowEdge, true)
+			expect(vs.buttons).toContain('MARK_CARTERA')
+			expect(vs.buttons).toContain('MARK_ANTICIPADO')
+		})
+	})
+
+	// ─── EN_CARTERA ───────────────────────────────────────────────────
 	describe('EN_CARTERA', () => {
 		const aporte = makeAporte({
 			status: 'EN_CARTERA',
-			portfolioDate: '2025-05-10T00:00:00.000Z',
+			portfolioDate: '2026-05-10T00:00:00.000Z',
 		})
 
 		it('returns EN_CARTERA variant', () => {
@@ -164,16 +198,15 @@ describe('getAporteVisualState', () => {
 		})
 	})
 
+	// ─── PAGO_ANTICIPADO ──────────────────────────────────────────────
 	describe('PAGO_ANTICIPADO', () => {
 		const aporte = makeAporte({
 			status: 'PAGO_ANTICIPADO',
-			earlyPaymentDate: '2025-05-12T00:00:00.000Z',
+			earlyPaymentDate: '2026-05-12T00:00:00.000Z',
 		})
 
 		it('returns PAGO_ANTICIPADO variant', () => {
-			expect(getAporteVisualState(aporte, now, true).variant).toBe(
-				'PAGO_ANTICIPADO'
-			)
+			expect(getAporteVisualState(aporte, now, true).variant).toBe('PAGO_ANTICIPADO')
 		})
 
 		it('returns no buttons for any role', () => {
@@ -187,16 +220,15 @@ describe('getAporteVisualState', () => {
 		})
 
 		it('has green row class', () => {
-			expect(getAporteVisualState(aporte, now, true).rowClass).toContain(
-				'green'
-			)
+			expect(getAporteVisualState(aporte, now, true).rowClass).toContain('green')
 		})
 	})
 
+	// ─── CARTERA_PAGADO ───────────────────────────────────────────────
 	describe('CARTERA_PAGADO', () => {
 		const aporte = makeAporte({
 			status: 'CARTERA_PAGADO',
-			portfolioPaymentDate: '2025-05-20T00:00:00.000Z',
+			portfolioPaymentDate: '2026-05-20T00:00:00.000Z',
 		})
 
 		it('returns CARTERA_PAGADO variant', () => {

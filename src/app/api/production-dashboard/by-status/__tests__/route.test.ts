@@ -92,6 +92,27 @@ describe('GET /api/production-dashboard/by-status', () => {
     expect(body.data[0].count).toBe(30)
   })
 
+  it('parses the statuses query param and forwards it to the service as appliedFilters.statuses', async () => {
+    mockAuth.mockResolvedValue(authedSession as never)
+    mockGetByStatusRaw.mockResolvedValue([])
+
+    await GET(makeRequest({ userIds: '1', statuses: 'EMITIDO,FONDEADO' }))
+
+    expect(mockGetByStatusRaw).toHaveBeenCalledOnce()
+    const callArgs = mockGetByStatusRaw.mock.calls[0][0]
+    expect(callArgs.appliedFilters.statuses).toEqual(['EMITIDO', 'FONDEADO'])
+  })
+
+  it('defaults appliedFilters.statuses to [] when statuses param is absent', async () => {
+    mockAuth.mockResolvedValue(authedSession as never)
+    mockGetByStatusRaw.mockResolvedValue([])
+
+    await GET(makeRequest({ userIds: '1' }))
+
+    const callArgs = mockGetByStatusRaw.mock.calls[0][0]
+    expect(callArgs.appliedFilters.statuses).toEqual([])
+  })
+
   it('returns 200 with empty array when service returns empty result', async () => {
     mockAuth.mockResolvedValue(authedSession as never)
     mockGetByStatusRaw.mockResolvedValue([])

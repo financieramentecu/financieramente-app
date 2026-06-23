@@ -7,8 +7,11 @@ export function formatDateBogota(
 	if (!iso) return '—'
 	let input: string | Date
 	if (typeof iso === 'string') {
-		const dateMatch = iso.match(/^(\d{4}-\d{2}-\d{2})/)
-		input = dateMatch ? `${dateMatch[1]}T12:00:00Z` : iso
+		// Date-only strings (YYYY-MM-DD) have no timezone — anchor at noon UTC to
+		// prevent midnight UTC rolling back one day in Bogotá (UTC-5).
+		// Full datetime strings must be parsed as-is so the Bogotá calendar day is
+		// derived from the actual timestamp, not from the UTC date portion.
+		input = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00Z` : iso
 	} else {
 		input = iso
 	}

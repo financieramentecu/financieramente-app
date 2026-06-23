@@ -18,6 +18,7 @@ export const STATUS_COLORS: Record<StatusDonutKey, string> = {
   VENTA_EFECTUADA: '#f97316',
   EMITIDO: '#3b82f6',
   FONDEADO: '#22c55e',
+  CARTERA: '#f59e0b',
 } as const
 
 /**
@@ -28,4 +29,5 @@ export const STATUS_DISPLAY_LABELS: Record<StatusDonutKey, string> = {
   VENTA_EFECTUADA: 'Venta Efectuada',
   EMITIDO: 'Emitido',
   FONDEADO: 'Fondeado',
+  CARTERA: 'Cartera',
 } as const

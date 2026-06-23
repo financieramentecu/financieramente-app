@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ConfirmCarteraPagadoDialog } from '../ConfirmCarteraPagadoDialog'
+import { bogotaDateOnly } from '../../../lib/bogota-date'
 
-const TODAY_ISO = new Date().toISOString().slice(0, 10)
+const TODAY_ISO = bogotaDateOnly(new Date())
 
 beforeEach(() => {
 	vi.clearAllMocks()

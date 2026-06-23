@@ -92,7 +92,7 @@ describe('createBusiness', () => {
 		expect(annualCreateMany).not.toHaveBeenCalled()
 	})
 
-	it('creates FONDEADO payment rows with expectedDate and dateAnchored when business is created with contract', async () => {
+	it('creates SIN_FONDEAR payment rows with expectedDate and null dateAnchored when business is created with contract', async () => {
 		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
 			name: 'Anual',
 		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
@@ -122,12 +122,12 @@ describe('createBusiness', () => {
 		expect(annualCreateMany).toHaveBeenCalledTimes(1)
 		const payload = annualCreateMany.mock.calls[0][0] as { data: Array<Record<string, unknown>> }
 		expect(payload.data).toHaveLength(3)
-		expect(payload.data[0].status).toBe(AnnualPaymentStatus.FONDEADO)
+		expect(payload.data[0].status).toBe(AnnualPaymentStatus.SIN_FONDEAR)
 		expect(payload.data[0].expectedDate).toBeDefined()
-		expect(payload.data[0].dateAnchored).toBeDefined()
+		expect(payload.data[0].dateAnchored).toBeNull()
 	})
 
-	it('creates FONDEADO payment rows when business is created with contract (EMITIDO)', async () => {
+	it('creates SIN_FONDEAR payment rows when business is created with contract (EMITIDO)', async () => {
 		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
 			name: 'Mensual',
 		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
@@ -157,7 +157,7 @@ describe('createBusiness', () => {
 		expect(annualCreateMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				data: expect.arrayContaining([
-					expect.objectContaining({ installmentIndex: 1, status: AnnualPaymentStatus.FONDEADO }),
+					expect.objectContaining({ installmentIndex: 1, status: AnnualPaymentStatus.SIN_FONDEAR }),
 				]),
 			})
 		)

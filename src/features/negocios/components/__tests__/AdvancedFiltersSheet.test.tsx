@@ -125,4 +125,42 @@ describe('AdvancedFiltersSheet', () => {
 			expect(mockReplace).toHaveBeenCalled()
 		})
 	})
+
+	// L2.3 - CARTERA filter option tests
+	it('renders CARTERA as a status filter option after opening the status MultiSelect', async () => {
+		render(<AdvancedFiltersSheet />)
+
+		// Open the filters sheet
+		fireEvent.click(screen.getByText(/Filtros avanzados/i))
+
+		await waitFor(() => {
+			expect(screen.getByText(/Todos los estados/i)).toBeInTheDocument()
+		})
+
+		// Open the status MultiSelect dropdown
+		fireEvent.click(screen.getByText(/Todos los estados/i))
+
+		await waitFor(() => {
+			// CARTERA should appear as a selectable option in the dropdown
+			expect(screen.getByText('Cartera')).toBeInTheDocument()
+		})
+	})
+
+	it('does not include COMISIONANDO as a status filter option', async () => {
+		render(<AdvancedFiltersSheet />)
+
+		fireEvent.click(screen.getByText(/Filtros avanzados/i))
+
+		await waitFor(() => {
+			expect(screen.getByText(/Todos los estados/i)).toBeInTheDocument()
+		})
+
+		// Open status MultiSelect dropdown
+		fireEvent.click(screen.getByText(/Todos los estados/i))
+
+		await waitFor(() => {
+			expect(screen.queryByText('Comisionando')).not.toBeInTheDocument()
+			expect(screen.queryByText('COMISIONANDO')).not.toBeInTheDocument()
+		})
+	})
 })

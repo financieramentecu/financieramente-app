@@ -19,6 +19,7 @@ const BUSINESS_STATUS_VALUES = [
 	'LIQUIDADO',
 	'CANCELADO',
 	'FONDEADO',
+	'CARTERA',
 ] as const
 
 /**

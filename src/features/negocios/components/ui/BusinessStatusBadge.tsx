@@ -49,6 +49,11 @@ const STATUS_CONFIG: Record<
 		variant: 'default',
 		className: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
 	},
+	CARTERA: {
+		label: 'Cartera',
+		variant: 'default',
+		className: 'bg-amber-100 text-amber-800 hover:bg-amber-200',
+	},
 }
 
 /**

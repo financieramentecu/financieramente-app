@@ -4,6 +4,60 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.9] - 2026-06-20
+
+### Corregido
+
+- **Gráfica de Estado del dashboard ignoraba el filtro de estado:** Al aplicar un filtro por estado en el dashboard de producción, la gráfica de pastel "Distribución por Estado" seguía mostrando siempre los mismos estados, sin reflejar la selección. Ahora la gráfica respeta el filtro aplicado.
+
+## [1.22.8] - 2026-06-17
+
+### Corregido
+
+- **Cron de fondeo no detectaba pagos vencidos el mismo día:** Si el cron diario corría temprano (por ejemplo, 6 a.m.), no fondeaba los aportes cuya fecha esperada era ese mismo día — quedaban para el día siguiente. Ahora el cron reconoce correctamente los pagos vencidos el día en curso.
+- **Fecha de fondeo no coincidía con la fecha programada:** Al fondear un aporte (por cron o manualmente), la fecha que quedaba registrada era la del momento en que se ejecutaba la acción, no la fecha originalmente programada. Si el fondeo se atrasaba varios días, se perdía la fecha real esperada. Ahora la fecha de fondeo del aporte y del negocio respeta siempre la fecha programada.
+- **Fechas de negocio podían mostrarse con un día de diferencia:** La fecha de emisión, la fecha esperada de fondeo y los filtros avanzados por fecha (Fondeo, Creación, Emisión) podían mostrarse o guardarse con un día de diferencia según el huso horario del navegador o del servidor. Ahora todas las fechas de negocio se calculan de forma consistente en hora de Bogotá, sin importar desde dónde se acceda a la plataforma.
+- **Filtrar la lista de negocios podía devolver "sin resultados":** Si se aplicaba un filtro (de fecha, estado, soportes, etc.) estando en una página distinta a la primera, la lista podía mostrarse vacía aunque sí existieran negocios que cumplían el filtro. Ahora aplicar cualquier filtro vuelve siempre a la primera página de resultados.
+
+## [1.22.7] - 2026-06-15
+
+### Corregido
+
+- **Aportes en Cartera desde pagos pendientes:** El botón "Cartera" ahora funciona correctamente sobre aportes en estado Sin Fondear. Antes, al hacer clic no ocurría nada porque el servicio solo aceptaba aportes ya Fondeados como origen de la transición.
+- **Color verde en aportes fondeados del mes actual:** Los aportes marcados como Fondeados en el mes en curso ahora muestran el fondo verde y el ícono de check, igual que los aportes de meses anteriores. Antes aparecían en gris como si estuvieran pendientes.
+- **Botones de acción visibles solo al pasar el cursor:** Los botones "Cartera" y "Pago Anticipado" en la lista de aportes ahora se muestran únicamente al pasar el cursor sobre la fila, evitando el ruido visual cuando hay muchos aportes. El botón "Quitar Cartera" sigue siempre visible por ser una acción de alerta.
+- **Modal de aportes unificado:** Todos los aportes (fondeados y sin fondear) ahora se gestionan desde la misma interfaz de fila con botones contextuales. Se eliminó el flujo de selección masiva con checkboxes que ya no aplica con el nuevo ciclo de vida del cron.
+- **Fecha de fondeo no se sobreescribe al editar un negocio:** Al modificar los datos de un negocio ya emitido, el sistema ya no pisaba la fecha real de fondeo con una fecha recalculada del calendario de aportes.
+
+### Mejorado
+
+- **Nuevo ciclo de vida de aportes (SIN_FONDEAR → FONDEADO):** Los aportes generados al emitir un negocio ahora nacen en estado Sin Fondear. Un cron diario los fondea automáticamente cuando llega su fecha esperada, reflejando con precisión el estado real de cada pago. Antes todos los aportes nacían Fondeados inmediatamente, independientemente de su fecha.
+- **Fecha de portfolio con hora exacta:** Las fechas de registro de Cartera y Pago Anticipado ahora incluyen la hora del evento (UTC), lo que permite monitoreo y trazabilidad precisos en los logs.
+
+## [1.22.6] - 2026-06-12
+
+### Corregido
+
+- **Conteo de Soportes Activos:** Se corrigió el conteo de soportes de pago en la vista de negocios para incluir únicamente los soportes que están en estado activo, excluyendo los eliminados lógicamente.
+- **Rendimiento Dashboard (N+1):** Se optimizó la ruta `/api/negocios/stats` para realizar una sola agrupación masiva (`groupBy`) en base de datos en lugar de consultar individualmente cada estado (Venta Efectuada, Emitido, Fondeado). Esto resuelve el problema de "Repeating Spans" (N+1) reportado por Sentry.
+
+## [1.22.5] - 2026-06-10
+
+### Corregido
+
+- **Filtro por campo de fecha en negocios:** Al cambiar el campo de fecha en los filtros avanzados (Fondeo, Creación o Emisión), el rango seleccionado ahora se conserva y la búsqueda se aplica sobre la fecha correspondiente en la base de datos. Antes, cambiar de campo descartaba el filtro silenciosamente (la lista quedaba sin filtrar aunque el rango se veía seleccionado) y, para el rol Agente/Coach, cualquier filtro de fecha se aplicaba siempre sobre la fecha de creación.
+- **Filtro de fecha por defecto visible:** El filtro de fecha que se aplica automáticamente al entrar a la lista de negocios (mes actual: por fecha de creación para Agente/Coach y por fecha de fondeo para Administrador, Asistente Operativo de Gerencia y Analista de Soporte) ahora se refleja en el panel de filtros avanzados y en el badge de filtros activos. Puede modificarse o limpiarse como cualquier otro filtro y nunca pisa una selección hecha por el usuario.
+
+## [1.22.4] - 2026-06-10
+
+### Mejorado
+
+- **Backup automático de base de datos:** Se implementó un sistema de respaldo automático de PostgreSQL hacia Digital Ocean Spaces. Los backups se ejecutan 3 veces al día (00:00, 08:00 y 16:00 UTC) y se retienen los 2 más recientes. Reemplaza el servicio de backup anterior que no funcionaba correctamente.
+
+### Corregido
+
+- **Filtros del dashboard con selección múltiple:** Los selectores de Compañía, Producto, Categoría y Origen ahora muestran todos los ítems marcados cuando el filtro está en modo "todas". Al hacer clic en un ítem individual desde ese estado se deselecciona solo ese ítem, manteniendo los demás activos. El botón "Todas/Todos" funciona ahora como toggle real: si todo está seleccionado, desmarca todo y permite construir una selección desde cero.
+
 ## [1.22.3] - 2026-06-05
 
 ### Corregido

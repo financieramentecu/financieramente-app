@@ -112,6 +112,56 @@ describe('dashboardFilterReducer', () => {
     })
   })
 
+  describe('SET_COMPANY_IDS', () => {
+    it('preserves [] sentinel when productIds was already all', () => {
+      // productIds=[] means "all products of the current company scope"
+      // Changing companies should keep that sentinel — same as TOGGLE_COMPANY behaviour
+      const state = makeState({ companyIds: [], productIds: [] })
+      const next = dashboardFilterReducer(state, {
+        type: 'SET_COMPANY_IDS',
+        ids: [2],
+        allProducts,
+      })
+      expect(next.draft.companyIds).toEqual([2])
+      expect(next.draft.productIds).toEqual([])
+    })
+
+    it('drops products that no longer belong to the new company set', () => {
+      const state = makeState({ companyIds: [1, 2], productIds: [10, 20, 30] })
+      const next = dashboardFilterReducer(state, {
+        type: 'SET_COMPANY_IDS',
+        ids: [1],
+        allProducts,
+      })
+      expect(next.draft.companyIds).toEqual([1])
+      expect(next.draft.productIds).toEqual([10])
+    })
+  })
+
+  describe('SET_PRODUCT_IDS', () => {
+    it('sets productIds directly', () => {
+      const state = makeState({ productIds: [] })
+      const next = dashboardFilterReducer(state, { type: 'SET_PRODUCT_IDS', ids: [10, 20] })
+      expect(next.draft.productIds).toEqual([10, 20])
+    })
+  })
+
+  describe('SET_CATEGORY_IDS', () => {
+    it('sets categoryIds directly', () => {
+      const state = makeState({ categoryIds: [] })
+      const next = dashboardFilterReducer(state, { type: 'SET_CATEGORY_IDS', ids: [3, 7] })
+      expect(next.draft.categoryIds).toEqual([3, 7])
+    })
+  })
+
+  describe('SET_ORIGIN_IDS', () => {
+    it('sets originIds directly', () => {
+      const state = makeState({ originIds: [] })
+      const next = dashboardFilterReducer(state, { type: 'SET_ORIGIN_IDS', ids: [5] })
+      expect(next.draft.originIds).toEqual([5])
+    })
+  })
+
   describe('SET_TODAS', () => {
     it('resets the specified array field to []', () => {
       const state = makeState({ categoryIds: [1, 2] })

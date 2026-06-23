@@ -68,6 +68,7 @@ services:
       DO_SPACES_PREFIX: ${DO_SPACES_PREFIX:-prod}
       NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY: ${NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY}
       FLAGSMITH_SERVER_KEY: ${FLAGSMITH_SERVER_KEY}
+      CRON_SECRET: ${CRON_SECRET}
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,34 +118,6 @@ services:
       retries: 3
       start_period: 30s
 
-  # Backup service for production
-  backup:
-    image: postgres:15-alpine
-    container_name: financieramente-backup-prod
-    restart: "no"
-    environment:
-      PGUSER: ${POSTGRES_USER}
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-      PGDATABASE: ${POSTGRES_DB}
-      PGHOST: postgres
-    volumes:
-      - ../backups:/backups
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: >
-      sh -c "
-      while true; do
-        pg_dump -h postgres -U $${PGUSER} $${PGDATABASE} > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql
-        find /backups -name 'backup_*.sql' -mtime +7 -delete
-        sleep 86400
-      done
-      "
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "0.25"
 
 volumes:
   postgres_data:

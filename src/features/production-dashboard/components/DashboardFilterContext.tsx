@@ -87,6 +87,27 @@ export function dashboardFilterReducer(
         },
       }
 
+    case 'SET_COMPANY_IDS': {
+      const newProductIds = deriveActiveProductIds(
+        state.draft.productIds,
+        action.ids,
+        action.allProducts,
+      )
+      return {
+        ...state,
+        draft: { ...state.draft, companyIds: action.ids, productIds: newProductIds },
+      }
+    }
+
+    case 'SET_PRODUCT_IDS':
+      return { ...state, draft: { ...state.draft, productIds: action.ids } }
+
+    case 'SET_CATEGORY_IDS':
+      return { ...state, draft: { ...state.draft, categoryIds: action.ids } }
+
+    case 'SET_ORIGIN_IDS':
+      return { ...state, draft: { ...state.draft, originIds: action.ids } }
+
     case 'SET_PLAZO':
       return { ...state, draft: { ...state.draft, plazos: [action.payload] } }
 

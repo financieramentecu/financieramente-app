@@ -105,11 +105,16 @@ jobs:
             -e "ssh -o StrictHostKeyChecking=no" \
             ./docker/ root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/docker/
 
-      - name: Copy SSL scripts to server
+      - name: Bootstrap awscli on existing server
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.PROD_DROPLET_IP }} \
+            "command -v aws > /dev/null 2>&1 || apt-get install -y awscli"
+
+      - name: Copy SSL and backup scripts to server
         run: |
           ssh -o StrictHostKeyChecking=no root@${{ secrets.PROD_DROPLET_IP }} "mkdir -p /opt/financieramente/terraform/scripts"
-          scp -o StrictHostKeyChecking=no terraform/scripts/ssl-renew.sh terraform/scripts/setup-ssl.sh root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/terraform/scripts/
-          ssh -o StrictHostKeyChecking=no root@${{ secrets.PROD_DROPLET_IP }} "chmod +x /opt/financieramente/terraform/scripts/ssl-renew.sh /opt/financieramente/terraform/scripts/setup-ssl.sh"
+          scp -o StrictHostKeyChecking=no terraform/scripts/ssl-renew.sh terraform/scripts/setup-ssl.sh terraform/scripts/backup-db.sh root@${{ secrets.PROD_DROPLET_IP }}:/opt/financieramente/terraform/scripts/
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.PROD_DROPLET_IP }} "chmod +x /opt/financieramente/terraform/scripts/ssl-renew.sh /opt/financieramente/terraform/scripts/setup-ssl.sh /opt/financieramente/terraform/scripts/backup-db.sh"
 
       - name: Setup environment variables
         run: |
@@ -152,6 +157,7 @@ jobs:
           FLAGSMITH_SERVER_KEY=${{ secrets.FLAGSMITH_SERVER_KEY_PROD }}
           NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN_PROD }}
           SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+          CRON_SECRET=${{ secrets.CRON_SECRET_PROD }}
           ENVEOF
           sed -i "s#__ENCODED_PASSWORD__#${ENCODED_PASSWORD}#g" .env
 
@@ -258,6 +264,14 @@ jobs:
           # Ensure SSL renewal cron (idempotent): remove old ssl-renew entries, add correct path (no app/ on server)
           (crontab -l 2>/dev/null | grep -v 'ssl-renew.sh' || true
            echo "0 3 * * * /opt/financieramente/terraform/scripts/ssl-renew.sh prod >> /var/log/financieramente/ssl-renew-cron.log 2>&1") | crontab -
+
+          # Ensure DB backup cron (idempotent, 3x/day at 00:00, 08:00, 16:00 UTC)
+          (crontab -l 2>/dev/null | grep -v 'backup-db.sh' || true
+           echo "0 0,8,16 * * * /opt/financieramente/terraform/scripts/backup-db.sh >> /var/log/financieramente/backup.log 2>&1") | crontab -
+
+          # Ensure fund-payments cron (idempotent, daily at 06:00 UTC = 01:00 Bogotá)
+          (crontab -l 2>/dev/null | grep -v 'fund-payments' || true
+           echo "0 6 * * * curl -s -X POST https://negocios.financieramentecu.co/api/negocios/cron/fund-payments -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_PROD }}' >> /var/log/financieramente/fund-payments.log 2>&1") | crontab -
 
           # Wait for services to be ready
           echo "Waiting for services to start..."
