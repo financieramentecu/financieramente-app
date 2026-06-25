@@ -4,6 +4,16 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.10] - 2026-06-23
+
+### Agregado
+
+- **Exportar a Excel para roles con jerarquía (Nivel 2 a Nivel 6):** Los usuarios con jerarquía asignada entre Team Leader y MIA ahora pueden exportar a Excel la Lista de Negocios desde la pantalla, respetando los filtros avanzados aplicados y mostrando únicamente la información dentro de su alcance jerárquico. Antes dependían de un Analista Operativo u otro rol con permisos adicionales para obtener este archivo.
+
+### Corregido
+
+- **Exportación a Excel podía incluir negocios fuera del alcance del usuario:** El archivo Excel generado no filtraba por el árbol jerárquico del usuario como sí lo hace la lista en pantalla, por lo que un usuario podía exportar negocios que no le correspondían ver. Ahora la exportación respeta el mismo alcance que la vista de tabla.
+
 ## [1.22.9] - 2026-06-20
 
 ### Corregido

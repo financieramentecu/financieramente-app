@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET } from '../route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
+import {
+	getSubordinateUserIds,
+	resolveVisibleUserIds,
+} from '@/features/negocios/services/user-hierarchy.service'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { businessListParamsSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
@@ -21,9 +24,29 @@ import {
 
 // Mock de módulos externos
 vi.mock('@/auth')
-vi.mock('@/features/negocios/services/user-hierarchy.service', () => ({
-	getSubordinateUserIds: vi.fn().mockImplementation(() => Promise.resolve([])),
-}))
+vi.mock('@/features/negocios/services/user-hierarchy.service', () => {
+	const getSubordinateUserIds = vi
+		.fn()
+		.mockImplementation(() => Promise.resolve([]))
+	return {
+		getSubordinateUserIds,
+		// Re-implemented (not `importOriginal`) so it calls the SAME mocked
+		// `getSubordinateUserIds` reference above — keeps test control over
+		// subordinate resolution while preserving the real admin/scoped branch logic.
+		resolveVisibleUserIds: vi.fn(async (
+			_prisma: unknown,
+			currentUser: { idUser: number; role?: { code: string } | null }
+		) => {
+			const ADMIN_LIKE_CODES = ['ADMIN', 'ASISTENTE_GERENCIA_OPERATIVA', 'ANALISTA_SOPORTE']
+			const isAdmin = currentUser.role?.code
+				? ADMIN_LIKE_CODES.includes(currentUser.role.code)
+				: false
+			if (isAdmin) return undefined
+			const subordinates = await getSubordinateUserIds(_prisma, currentUser.idUser)
+			return [currentUser.idUser, ...(subordinates as number[])]
+		}),
+	}
+})
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		business: {
