@@ -140,9 +140,12 @@ export async function persistComprobante(
   })
 
   try {
-    // Buscar analistas de soporte (y admins)
+    // Notificar a: Admin, Analistas de Soporte y Asistentes Operativos de Gerencia
     const targetUsers = await prisma.user.findMany({
-      where: { role: { code: { in: ['SUPPORT', 'ADMIN'] } }, active: true },
+      where: {
+        role: { code: { in: ['ADMIN', 'ANALISTA_SOPORTE', 'ASISTENTE_GERENCIA_OPERATIVA'] } },
+        active: true,
+      },
       select: { idUser: true }
     })
 
@@ -160,7 +163,7 @@ export async function persistComprobante(
       }))
     )
 
-    const { notificationProvider } = await import('@/features/shared/services/notifications/pusher-notification-provider')
+    const { notificationProvider } = await import('@/features/shared/services/notifications/sse-notification-provider')
     for (const n of createdNotifications) {
       await notificationProvider.sendNotification(n.idUser, n).catch(err => {
         console.error('Error in sendNotification:', err)

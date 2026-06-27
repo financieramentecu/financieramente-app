@@ -1,7 +1,7 @@
 import { auth } from '@/auth'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { ProductsPageClient } from './products-page-client'
-import { getCompanies } from '@/features/company/lib/company-api'
+import { getCompanies } from '@/features/company/services/company.service'
 
 /**
  * Página de Listado de Productos (Server Component)

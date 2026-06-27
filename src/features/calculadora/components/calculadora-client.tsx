@@ -14,7 +14,7 @@ import { AlertCircle } from 'lucide-react'
 
 interface CalculadoraClientProps {
 	companies: { idCompany: number; name: string; currency?: { symbol: string | null } | null }[]
-	products: { idProduct: number; name: string; idCompany: number }[]
+	products: { idProduct: number; name: string; idCompany: number; commissionPercentage?: number }[]
 	origins: { idClientOrigin: number; name: string }[]
 	levels: { idLevel: number; name: string; code?: string; idNextLevel?: number | null }[]
 	userRole?: string
