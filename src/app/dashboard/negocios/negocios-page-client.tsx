@@ -112,6 +112,9 @@ export function NegociosPageClient({
 	const [annualFundingBusinessId, setAnnualFundingBusinessId] = useState<
 		number | null
 	>(null)
+	const [annualFundingBusinessStatus, setAnnualFundingBusinessStatus] = useState<
+		string | null
+	>(null)
 	const [annualFundingInstallments, setAnnualFundingInstallments] = useState<
 		AnnualInstallmentDto[]
 	>([])
@@ -329,6 +332,7 @@ export function NegociosPageClient({
 		async (business: Business) => {
 			if (business.hasPayments) {
 				setAnnualFundingBusinessId(Number(business.id))
+				setAnnualFundingBusinessStatus(business.status ?? null)
 				setAnnualFundingContract(
 					typeof business.contract === 'string' ? business.contract : null
 				)
@@ -409,6 +413,7 @@ export function NegociosPageClient({
 		setAnnualFundingOpen(open)
 		if (!open) {
 			setAnnualFundingBusinessId(null)
+			setAnnualFundingBusinessStatus(null)
 			setAnnualFundingContract(null)
 			setAnnualFundingPeriodicidadLabel(null)
 			setAnnualFundingPlazo(null)
@@ -617,6 +622,7 @@ export function NegociosPageClient({
 				periodicidadLabel={annualFundingPeriodicidadLabel}
 				plazo={annualFundingPlazo}
 				roleCode={_currentUser?.role?.code}
+				businessStatus={annualFundingBusinessStatus ?? undefined}
 			/>
 
 			<AlertDialog

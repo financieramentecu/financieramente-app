@@ -31,11 +31,11 @@ export function getAporteVisualState(
 	now: Date,
 	canMutate: boolean,
 	installmentIndex?: number,
-	hasAnyFondeado: boolean = true
+	isBusinessEmitido: boolean = false
 ): AporteVisualState {
-	// If no payment is FONDEADO yet, only index 1 can have active buttons
+	// If business is EMITIDO (not yet funded), only index 1 can have active buttons
 	const isFirstPayment = installmentIndex === 1
-	const blockedByFirstPaymentRule = !hasAnyFondeado && !isFirstPayment
+	const blockedByFirstPaymentRule = isBusinessEmitido && !isFirstPayment
 
 	// ─── SIN_FONDEAR — scheduled payment ──────────────────────────────
 	if (aporte.status === 'SIN_FONDEAR') {

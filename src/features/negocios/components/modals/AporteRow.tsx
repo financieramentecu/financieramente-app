@@ -27,7 +27,7 @@ export interface AporteRowProps {
 	onRequestAction: (action: AporteAction, index: number) => void
 	onEditFundedDate?: (index: number) => void
 	installmentIndex?: number
-	hasAnyFondeado?: boolean
+	isBusinessEmitido?: boolean
 }
 
 function formatDate(iso: string | null): string {
@@ -48,7 +48,7 @@ export function AporteRow({
 	onRequestAction,
 	onEditFundedDate,
 	installmentIndex,
-	hasAnyFondeado = true,
+	isBusinessEmitido = false,
 }: AporteRowProps) {
 	const [aporte, setAporte] = React.useState(initialAporte)
 
@@ -56,7 +56,7 @@ export function AporteRow({
 		setAporte(initialAporte)
 	}, [initialAporte])
 
-	const visualState = getAporteVisualState(aporte, now, canMutate, installmentIndex, hasAnyFondeado)
+	const visualState = getAporteVisualState(aporte, now, canMutate, installmentIndex, isBusinessEmitido)
 	const allButtons = visualState.buttons
 	const hasFondear = allButtons.includes('FONDEAR')
 	const isPast = visualState.variant === 'FONDEADO_PAST'

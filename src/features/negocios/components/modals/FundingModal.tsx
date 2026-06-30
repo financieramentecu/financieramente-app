@@ -46,6 +46,8 @@ export interface FundingModalProps {
 	plazo?: number | null
 	/** Role code of the current user — used to gate action buttons */
 	roleCode?: string
+	/** Business status: 'EMITIDO' (not funded) or 'FONDEADO' (funded) etc */
+	businessStatus?: string
 }
 
 export function FundingModal({
@@ -58,6 +60,7 @@ export function FundingModal({
 	periodicidadLabel,
 	plazo,
 	roleCode,
+	businessStatus = 'FONDEADO',
 }: FundingModalProps) {
 	const [installments, setInstallments] =
 		React.useState<PaymentInstallmentDto[]>(initialInstallments)
@@ -75,10 +78,8 @@ export function FundingModal({
 
 	const canMutate = canFundPayments(roleCode)
 
-	const hasAnyFondeado = React.useMemo(
-		() => installments.some((a) => a.status === 'FONDEADO'),
-		[installments]
-	)
+	// If business is EMITIDO (not yet funded), only first payment has active buttons
+	const isBusinessEmitido = businessStatus === 'EMITIDO'
 
 	const handleTransitionSuccess = (updated: PaymentInstallmentDto) => {
 		setInstallments((prev) =>
@@ -182,7 +183,7 @@ export function FundingModal({
 									onRequestAction={handleRequestAction}
 									onEditFundedDate={canMutate ? (idx) => setEditFundedDateIndex(idx) : undefined}
 						installmentIndex={row.installmentIndex}
-						hasAnyFondeado={hasAnyFondeado}
+						isBusinessEmitido={isBusinessEmitido}
 								/>
 							))}
 						</ul>
