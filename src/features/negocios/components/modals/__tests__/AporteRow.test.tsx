@@ -29,7 +29,7 @@ describe('AporteRow', () => {
 		render(
 			<ul>
 				<AporteRow
-					aporte={baseAporte({})}
+					aporte={baseAporte({ installmentIndex: 2 })}
 					businessId={10}
 					canMutate={true}
 					now={now}
@@ -44,11 +44,11 @@ describe('AporteRow', () => {
 		).not.toBeInTheDocument()
 	})
 
-	it('renders both Cartera and Pago Anticipado buttons for SIN_FONDEAR strictly future month', () => {
+	it('renders both Cartera and Pago Anticipado buttons for SIN_FONDEAR strictly future month (index 2)', () => {
 		render(
 			<ul>
 				<AporteRow
-					aporte={baseAporte({ status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: '2025-07-01T00:00:00.000Z' })}
+					aporte={baseAporte({ installmentIndex: 2, status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: '2025-07-01T00:00:00.000Z' })}
 					businessId={10}
 					canMutate={true}
 					now={now}
@@ -61,6 +61,56 @@ describe('AporteRow', () => {
 		expect(
 			screen.getByRole('button', { name: /pago anticipado/i })
 		).toBeInTheDocument()
+	})
+
+	it('renders FONDEAR button for SIN_FONDEAR installment 1 with canMutate=true', () => {
+		render(
+			<ul>
+				<AporteRow
+					aporte={baseAporte({ installmentIndex: 1, status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: null })}
+					businessId={10}
+					canMutate={true}
+					now={now}
+					onTransitionSuccess={vi.fn()} onRequestAction={vi.fn()}
+				/>
+			</ul>
+		)
+		expect(screen.getByRole('button', { name: /fondear primer aporte/i })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: /cartera/i })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: /pago anticipado/i })).not.toBeInTheDocument()
+	})
+
+	it('does NOT render FONDEAR button for SIN_FONDEAR installment 1 with canMutate=false', () => {
+		render(
+			<ul>
+				<AporteRow
+					aporte={baseAporte({ installmentIndex: 1, status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: null })}
+					businessId={10}
+					canMutate={false}
+					now={now}
+					onTransitionSuccess={vi.fn()} onRequestAction={vi.fn()}
+				/>
+			</ul>
+		)
+		expect(screen.queryByRole('button', { name: /fondear primer aporte/i })).not.toBeInTheDocument()
+	})
+
+	it('calls onRequestAction with FONDEAR and installment 1 index when Fondear button is clicked', () => {
+		const onRequestAction = vi.fn()
+		render(
+			<ul>
+				<AporteRow
+					aporte={baseAporte({ installmentIndex: 1, status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: null })}
+					businessId={10}
+					canMutate={true}
+					now={now}
+					onTransitionSuccess={vi.fn()}
+					onRequestAction={onRequestAction}
+				/>
+			</ul>
+		)
+		fireEvent.click(screen.getByRole('button', { name: /fondear primer aporte/i }))
+		expect(onRequestAction).toHaveBeenCalledWith('FONDEAR', 1)
 	})
 
 	it('renders no action buttons for read-only role', () => {
@@ -104,12 +154,12 @@ describe('AporteRow', () => {
 		expect(screen.queryByRole('button', { name: /^marcar como cartera$/i })).not.toBeInTheDocument()
 	})
 
-	it('calls onRequestAction with MARK_CARTERA when Cartera button is clicked', () => {
+	it('calls onRequestAction with MARK_CARTERA when Cartera button is clicked (FONDEADO index=2)', () => {
 		const onRequestAction = vi.fn()
 		render(
 			<ul>
 				<AporteRow
-					aporte={baseAporte({})}
+					aporte={baseAporte({ installmentIndex: 2 })}
 					businessId={10}
 					canMutate={true}
 					now={now}
@@ -119,15 +169,15 @@ describe('AporteRow', () => {
 			</ul>
 		)
 		fireEvent.click(screen.getByRole('button', { name: /cartera/i }))
-		expect(onRequestAction).toHaveBeenCalledWith('MARK_CARTERA', 1)
+		expect(onRequestAction).toHaveBeenCalledWith('MARK_CARTERA', 2)
 	})
 
-	it('calls onRequestAction with MARK_ANTICIPADO when Pago Anticipado button is clicked for SIN_FONDEAR future month', () => {
+	it('calls onRequestAction with MARK_ANTICIPADO when Pago Anticipado button is clicked for SIN_FONDEAR future month (index=2)', () => {
 		const onRequestAction = vi.fn()
 		render(
 			<ul>
 				<AporteRow
-					aporte={baseAporte({ status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: '2025-07-01T00:00:00.000Z' })}
+					aporte={baseAporte({ installmentIndex: 2, status: 'SIN_FONDEAR', dateAnchored: null, expectedDate: '2025-07-01T00:00:00.000Z' })}
 					businessId={10}
 					canMutate={true}
 					now={now}
@@ -137,7 +187,7 @@ describe('AporteRow', () => {
 			</ul>
 		)
 		fireEvent.click(screen.getByRole('button', { name: /pago anticipado/i }))
-		expect(onRequestAction).toHaveBeenCalledWith('MARK_ANTICIPADO', 1)
+		expect(onRequestAction).toHaveBeenCalledWith('MARK_ANTICIPADO', 2)
 	})
 
 	it('renders green row for PAGO_ANTICIPADO and shows label', () => {

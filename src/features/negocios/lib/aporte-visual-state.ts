@@ -9,7 +9,7 @@ export type AporteVariant =
 	| 'CARTERA_PAGADO'
 	| 'SIN_FONDEAR'
 
-export type AporteButton = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO'
+export type AporteButton = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO' | 'FONDEAR'
 
 export type AporteVisualState = {
 	variant: AporteVariant
@@ -29,10 +29,32 @@ function formatDate(iso: string): string {
 export function getAporteVisualState(
 	aporte: PaymentInstallmentDto,
 	now: Date,
-	canMutate: boolean
+	canMutate: boolean,
+	installmentIndex?: number,
+	hasAnyFondeado: boolean = true
 ): AporteVisualState {
+	// If no payment is FONDEADO yet, only index 1 can have active buttons
+	const isFirstPayment = installmentIndex === 1
+	const blockedByFirstPaymentRule = !hasAnyFondeado && !isFirstPayment
+
 	// ─── SIN_FONDEAR — scheduled payment ──────────────────────────────
 	if (aporte.status === 'SIN_FONDEAR') {
+		// Installment 1 is manually funded by operators; cron skips it.
+		// Show FONDEAR button only for privileged roles; no cartera/anticipado.
+		if (isFirstPayment) {
+			const label = aporte.expectedDate
+				? `Se fondeará en: ${formatDate(aporte.expectedDate)}`
+				: 'Sin fondear'
+			return {
+				variant: 'SIN_FONDEAR',
+				rowClass: 'bg-gray-50 border-border',
+				label,
+				buttons: canMutate ? ['FONDEAR'] : [],
+			}
+		}
+
+		// Installments 2+ — scheduled, cron-auto-funded
+		// If no payment is FONDEADO yet, disable these buttons
 		const expectedDate = aporte.expectedDate
 
 		const label = expectedDate
@@ -40,7 +62,7 @@ export function getAporteVisualState(
 			: 'Sin fondear'
 
 		let buttons: AporteButton[] = []
-		if (canMutate && expectedDate) {
+		if (canMutate && expectedDate && !blockedByFirstPaymentRule) {
 			if (isStrictlyFutureMonth(expectedDate, now)) {
 				buttons = ['MARK_CARTERA', 'MARK_ANTICIPADO']
 			} else if (isSameMonthOrFuture(expectedDate, now)) {
@@ -72,11 +94,13 @@ export function getAporteVisualState(
 
 	// ─── EN_CARTERA ────────────────────────────────────────────────────
 	if (aporte.status === 'EN_CARTERA') {
+		// If no payment is FONDEADO and this is NOT the first payment, button is disabled
+		const isDisabled = blockedByFirstPaymentRule
 		return {
 			variant: 'EN_CARTERA',
 			rowClass: 'bg-red-50 border-red-300',
 			label: aporte.portfolioDate ? `En cartera: ${formatDate(aporte.portfolioDate)}` : 'En cartera',
-			buttons: canMutate ? ['UNMARK_CARTERA'] : [],
+			buttons: canMutate && !isDisabled ? ['UNMARK_CARTERA'] : [],
 		}
 	}
 

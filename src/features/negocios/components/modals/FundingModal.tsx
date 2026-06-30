@@ -15,10 +15,12 @@ import { AporteRow, type AporteAction } from './AporteRow'
 import { ConfirmActionDialog } from '@/features/shared/ui/confirm-action-dialog'
 import { ConfirmCarteraPagadoDialog } from './ConfirmCarteraPagadoDialog'
 import { EditFundedDateModal } from './EditFundedDateModal'
+import { FundFirstPaymentDialog } from './FundFirstPaymentDialog'
 import { useAporteTransitions } from '../../hooks/use-aporte-transitions'
 import { canFundPayments } from '@/features/auth/lib/roles'
+import type { BusinessEntity } from '../../types/business-entity.types'
 
-type ConfirmableAction = Exclude<AporteAction, 'UNMARK_CARTERA'>
+type ConfirmableAction = Exclude<AporteAction, 'UNMARK_CARTERA' | 'FONDEAR'>
 
 const DIALOG_CONFIG: Record<ConfirmableAction, { title: string; description: string; confirmLabel: string }> = {
 	MARK_CARTERA: {
@@ -61,6 +63,7 @@ export function FundingModal({
 		React.useState<PaymentInstallmentDto[]>(initialInstallments)
 	const [pendingConfirm, setPendingConfirm] = React.useState<{ action: ConfirmableAction; index: number } | null>(null)
 	const [pendingCarteraPagado, setPendingCarteraPagado] = React.useState<{ index: number } | null>(null)
+	const [pendingFondearIndex, setPendingFondearIndex] = React.useState<number | null>(null)
 	const [loadingIndex, setLoadingIndex] = React.useState<number | null>(null)
 	const [editFundedDateIndex, setEditFundedDateIndex] = React.useState<number | null>(null)
 	const now = React.useMemo(() => new Date(), [])
@@ -71,6 +74,11 @@ export function FundingModal({
 	}, [initialInstallments])
 
 	const canMutate = canFundPayments(roleCode)
+
+	const hasAnyFondeado = React.useMemo(
+		() => installments.some((a) => a.status === 'FONDEADO'),
+		[installments]
+	)
 
 	const handleTransitionSuccess = (updated: PaymentInstallmentDto) => {
 		setInstallments((prev) =>
@@ -83,9 +91,17 @@ export function FundingModal({
 	const handleRequestAction = (action: AporteAction, index: number) => {
 		if (action === 'UNMARK_CARTERA') {
 			setPendingCarteraPagado({ index })
+		} else if (action === 'FONDEAR') {
+			setPendingFondearIndex(index)
 		} else {
 			setPendingConfirm({ action, index })
 		}
+	}
+
+	const handleFundFirstPaymentSuccess = (_updatedBusiness: BusinessEntity) => {
+		// BusinessEntity does not include payment detail; close the dialog.
+		// The caller is responsible for re-fetching installments when needed.
+		setPendingFondearIndex(null)
 	}
 
 	const handleConfirmAction = async () => {
@@ -165,6 +181,8 @@ export function FundingModal({
 									onTransitionSuccess={handleTransitionSuccess}
 									onRequestAction={handleRequestAction}
 									onEditFundedDate={canMutate ? (idx) => setEditFundedDateIndex(idx) : undefined}
+						installmentIndex={row.installmentIndex}
+						hasAnyFondeado={hasAnyFondeado}
 								/>
 							))}
 						</ul>
@@ -218,6 +236,15 @@ export function FundingModal({
 					setEditFundedDateIndex(null)
 				}}
 				onCancel={() => setEditFundedDateIndex(null)}
+			/>
+		)}
+
+		{pendingFondearIndex !== null && businessId !== null && (
+			<FundFirstPaymentDialog
+				open={true}
+				businessId={businessId}
+				onSuccess={handleFundFirstPaymentSuccess}
+				onCancel={() => setPendingFondearIndex(null)}
 			/>
 		)}
 

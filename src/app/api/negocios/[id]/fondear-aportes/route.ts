@@ -25,6 +25,7 @@ import {
 	getUserAgent,
 } from '@/features/auth/lib/audit-logger'
 import { fondearAnualidadesBodySchema } from '@/features/negocios/lib/fondear-anualidades.schema'
+import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 
 interface RouteParams {
 	params: Promise<{ id: string }>
@@ -77,7 +78,7 @@ export async function POST(
 			)
 		}
 
-		const { fundedInstallmentIndexes } = parsed.data
+		const { fundedInstallmentIndexes, fundedDate } = parsed.data
 
 		const currentUser = await getCurrentUserByEmail(session.user.email)
 
@@ -161,12 +162,16 @@ export async function POST(
 			const now = new Date()
 			const parentWasEmitido = status === BUSINESS_STATUS.EMITIDO
 
-			// dateAnchored mirrors each payment's own expectedDate so the
-			// funding date matches the originally scheduled date, regardless
-			// of when the operator actually performs the fondeo.
+			// Operator-supplied fundedDate (only valid for installment 1 manual funding).
+			// When provided, it becomes the anchor for that row and for the business flip.
+			// For all other installments, each row's expectedDate is used as anchor.
+			const operatorAnchorDate: Date | undefined =
+				fundedDate ? dateOnlyToBogotaNoonUtc(fundedDate) : undefined
+
 			let businessAnchorDate: Date | null = null
 			for (const row of rowsToFund) {
-				const anchorDate = row.expectedDate ?? now
+				const anchorDate =
+					operatorAnchorDate ?? row.expectedDate ?? now
 				if (!businessAnchorDate || anchorDate > businessAnchorDate) {
 					businessAnchorDate = anchorDate
 				}
@@ -231,16 +236,22 @@ export async function POST(
 			})
 		})
 
+		const isManualFirstPayment =
+			fundedDate !== undefined && fundedInstallmentIndexes.includes(1)
+
 		await logAuditEvent({
 			userId: currentUser.idUser,
 			roleId: currentUser.idRole ?? undefined,
-			action: AuditAction.BUSINESS_PAYMENT_FUNDED,
+			action: isManualFirstPayment
+				? AuditAction.APORTE_PRIMER_PAGO_FONDEADO
+				: AuditAction.BUSINESS_PAYMENT_FUNDED,
 			email: session.user.email,
 			ipAddress: getClientIp(new Headers(request.headers)),
 			userAgent: getUserAgent(new Headers(request.headers)),
 			details: JSON.stringify({
 				businessId,
 				fundedInstallmentIndexes,
+				fundedDate: fundedDate ?? null,
 				previousStatus: status,
 			}),
 		})
