@@ -115,7 +115,7 @@ export function NegociosPageClient({
 	const [annualFundingBusinessStatus, setAnnualFundingBusinessStatus] = useState<
 		string | null
 	>(null)
-	const [annualFundingDateIssued, setAnnualFundingDateIssued] = useState<
+	const [annualFundingDateAnchored, setAnnualFundingDateAnchored] = useState<
 		string | null
 	>(null)
 	const [annualFundingInstallments, setAnnualFundingInstallments] = useState<
@@ -336,7 +336,7 @@ export function NegociosPageClient({
 			if (business.hasPayments) {
 				setAnnualFundingBusinessId(Number(business.id))
 				setAnnualFundingBusinessStatus(business.status ?? null)
-				setAnnualFundingDateIssued(typeof business.dateIssued === 'string' ? business.dateIssued : null)
+				setAnnualFundingDateAnchored(typeof business.dateAnchored === 'string' ? business.dateAnchored : null)
 				setAnnualFundingContract(
 					typeof business.contract === 'string' ? business.contract : null
 				)
@@ -418,7 +418,7 @@ export function NegociosPageClient({
 		if (!open) {
 			setAnnualFundingBusinessId(null)
 			setAnnualFundingBusinessStatus(null)
-			setAnnualFundingDateIssued(null)
+			setAnnualFundingDateAnchored(null)
 			setAnnualFundingContract(null)
 			setAnnualFundingPeriodicidadLabel(null)
 			setAnnualFundingPlazo(null)
@@ -628,7 +628,7 @@ export function NegociosPageClient({
 				plazo={annualFundingPlazo}
 				roleCode={_currentUser?.role?.code}
 				businessStatus={annualFundingBusinessStatus ?? undefined}
-				dateIssued={annualFundingDateIssued}
+				dateAnchored={annualFundingDateAnchored}
 			/>
 
 			<AlertDialog

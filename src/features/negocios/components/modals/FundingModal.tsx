@@ -48,8 +48,8 @@ export interface FundingModalProps {
 	roleCode?: string
 	/** Business status: 'EMITIDO' (not funded) or 'FONDEADO' (funded) etc */
 	businessStatus?: string
-	/** ISO date of business funding/issuance; null if not yet funded */
-	dateIssued?: string | null
+	/** ISO date of business funding; null if not yet funded */
+	dateAnchored?: string | null
 }
 
 export function FundingModal({
@@ -63,7 +63,7 @@ export function FundingModal({
 	plazo,
 	roleCode,
 	businessStatus = 'FONDEADO',
-	dateIssued = null,
+	dateAnchored = null,
 }: FundingModalProps) {
 	const [installments, setInstallments] =
 		React.useState<PaymentInstallmentDto[]>(initialInstallments)
@@ -81,10 +81,10 @@ export function FundingModal({
 
 	const canMutate = canFundPayments(roleCode)
 
-	// Business is considered "not funded" if: status is EMITIDO OR dateIssued is null.
+	// Business is considered "not funded" if: status is EMITIDO OR dateAnchored is null.
 	// This handles both: (1) initial EMITIDO state, and (2) edge case where status changed to CARTERA
-	// but dateIssued remains null. When not funded, only first payment can have active buttons.
-	const isBusinessEmitido = businessStatus === 'EMITIDO' || dateIssued === null
+	// but dateAnchored remains null. When not funded, only first payment can have active buttons.
+	const isBusinessEmitido = businessStatus === 'EMITIDO' || dateAnchored === null
 
 	const handleTransitionSuccess = (updated: PaymentInstallmentDto) => {
 		setInstallments((prev) =>
