@@ -640,6 +640,7 @@ export function NegociosPageClient({
 				businessStatus={annualFundingBusinessStatus ?? undefined}
 				dateAnchored={annualFundingDateAnchored}
 				onRefetchInstallments={handleRefetchAnnualPayments}
+				onFundingSuccess={() => { refetch(); refetchStats() }}
 			/>
 
 			<AlertDialog

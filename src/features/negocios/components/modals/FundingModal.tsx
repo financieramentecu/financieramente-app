@@ -52,6 +52,8 @@ export interface FundingModalProps {
 	dateAnchored?: string | null
 	/** Callback to refetch installments after funding changes */
 	onRefetchInstallments?: () => void
+	/** Callback to refetch main business list after funding changes */
+	onFundingSuccess?: () => void
 }
 
 export function FundingModal({
@@ -67,6 +69,7 @@ export function FundingModal({
 	businessStatus = 'FONDEADO',
 	dateAnchored = null,
 	onRefetchInstallments,
+	onFundingSuccess,
 }: FundingModalProps) {
 	const [installments, setInstallments] =
 		React.useState<PaymentInstallmentDto[]>(initialInstallments)
@@ -108,9 +111,10 @@ export function FundingModal({
 	}
 
 	const handleFundFirstPaymentSuccess = (_updatedBusiness: BusinessEntity) => {
-		// After funding first payment, refetch installments to reflect updated state
+		// After funding first payment, refetch installments and main list to reflect updated state
 		setPendingFondearIndex(null)
 		onRefetchInstallments?.()
+		onFundingSuccess?.()
 	}
 
 	const handleConfirmAction = async () => {
