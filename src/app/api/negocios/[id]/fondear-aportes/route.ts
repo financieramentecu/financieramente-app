@@ -234,7 +234,7 @@ export async function POST(
 				where: { idBusiness: businessId },
 				include: businessWithRelations,
 			})
-		})
+		}, { timeout: 15000 })
 
 		const isManualFirstPayment =
 			fundedDate !== undefined && fundedInstallmentIndexes.includes(1)
