@@ -72,6 +72,8 @@ describe('AporteRow', () => {
 					canMutate={true}
 					now={now}
 					onTransitionSuccess={vi.fn()} onRequestAction={vi.fn()}
+					installmentIndex={1}
+					isBusinessEmitido={false}
 				/>
 			</ul>
 		)
@@ -106,6 +108,8 @@ describe('AporteRow', () => {
 					now={now}
 					onTransitionSuccess={vi.fn()}
 					onRequestAction={onRequestAction}
+					installmentIndex={1}
+					isBusinessEmitido={false}
 				/>
 			</ul>
 		)
