@@ -413,6 +413,16 @@ export function NegociosPageClient({
 		[isConfirmingFondear]
 	)
 
+	const handleRefetchAnnualPayments = useCallback(async () => {
+		if (!annualFundingBusinessId) return
+		setAnnualFundingLoading(true)
+		const res = await businessService.getAnnualPayments(annualFundingBusinessId)
+		setAnnualFundingLoading(false)
+		if (res.data) {
+			setAnnualFundingInstallments(res.data.installments)
+		}
+	}, [annualFundingBusinessId])
+
 	const handleAnnualFundingOpenChange = useCallback((open: boolean) => {
 		setAnnualFundingOpen(open)
 		if (!open) {
@@ -629,6 +639,7 @@ export function NegociosPageClient({
 				roleCode={_currentUser?.role?.code}
 				businessStatus={annualFundingBusinessStatus ?? undefined}
 				dateAnchored={annualFundingDateAnchored}
+				onRefetchInstallments={handleRefetchAnnualPayments}
 			/>
 
 			<AlertDialog
