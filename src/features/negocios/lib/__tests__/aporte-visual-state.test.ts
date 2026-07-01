@@ -35,10 +35,11 @@ describe('getAporteVisualState', () => {
 			expect(vs.buttons).not.toContain('FONDEAR')
 		})
 
-		it('does NOT emit MARK_CARTERA or MARK_ANTICIPADO for index=1', () => {
+		it('emits FONDEAR + MARK_CARTERA for index=1 when expectedDate is current month', () => {
 			const aporte = makeAporte({ status: 'SIN_FONDEAR', installmentIndex: 1, expectedDate: '2026-06-01T00:00:00.000Z' })
 			const vs = getAporteVisualState(aporte, now, true, 1, false)
-			expect(vs.buttons).not.toContain('MARK_CARTERA')
+			expect(vs.buttons).toContain('FONDEAR')
+			expect(vs.buttons).toContain('MARK_CARTERA')
 			expect(vs.buttons).not.toContain('MARK_ANTICIPADO')
 		})
 

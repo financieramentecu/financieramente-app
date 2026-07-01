@@ -40,16 +40,27 @@ export function getAporteVisualState(
 	// ─── SIN_FONDEAR — scheduled payment ──────────────────────────────
 	if (aporte.status === 'SIN_FONDEAR') {
 		// Installment 1 is manually funded by operators; cron skips it.
-		// Show FONDEAR button only for privileged roles; no cartera/anticipado.
+		// Show FONDEAR button + CARTERA if the expectedDate allows it.
 		if (isFirstPayment) {
 			const label = aporte.expectedDate
 				? `Se fondeará en: ${formatDate(aporte.expectedDate)}`
 				: 'Sin fondear'
+
+			const expectedDate = aporte.expectedDate
+			const buttons: AporteButton[] = []
+			if (canMutate) {
+				buttons.push('FONDEAR')
+				// Also allow CARTERA if expectedDate is current or future month
+				if (expectedDate && isSameMonthOrFuture(expectedDate, now)) {
+					buttons.push('MARK_CARTERA')
+				}
+			}
+
 			return {
 				variant: 'SIN_FONDEAR',
 				rowClass: 'bg-gray-50 border-border',
 				label,
-				buttons: canMutate ? ['FONDEAR'] : [],
+				buttons,
 			}
 		}
 
