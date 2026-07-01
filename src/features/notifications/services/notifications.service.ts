@@ -4,14 +4,6 @@ export async function getUserNotifications(userId: number) {
 	return prisma.notification.findMany({
 		where: { idUser: userId, isClosed: false },
 		orderBy: { createdAt: 'desc' },
-		include: {
-			business: {
-				select: {
-					contract: true,
-					user: { select: { name: true } },
-				},
-			},
-		},
 	})
 }
 

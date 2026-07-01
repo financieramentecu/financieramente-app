@@ -5,16 +5,12 @@ import { useState, useEffect, useCallback } from 'react'
 export interface Notification {
 	idNotification: number
 	idUser: number
-	idBusiness: number
 	title: string
 	message: string
+	callbackUrl: string | null
 	isRead: boolean
 	isClosed: boolean
 	createdAt: string
-	business?: {
-		contract: string
-		user: { name: string }
-	}
 }
 
 export function useNotifications(userId: number) {

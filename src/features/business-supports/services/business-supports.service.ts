@@ -156,9 +156,9 @@ export async function persistComprobante(
       targetUsers.map(u => prisma.notification.create({ 
         data: {
           idUser: u.idUser,
-          idBusiness: businessId,
           title,
-          message
+          message,
+          callbackUrl: `/dashboard/negocios?detailBusiness=${businessId}`
         }
       }))
     )

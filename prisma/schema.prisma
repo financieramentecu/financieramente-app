@@ -336,7 +336,6 @@ model Business {
   supports                      BusinessSupport[]
   payments                      Payment[]
   settlementCommissions         SettlementCommission[]
-  notifications                 Notification[]
 
   @@index([idUser])
   @@index([contract])
@@ -566,18 +565,16 @@ enum ContributionType {
 model Notification {
   idNotification Int      @id @default(autoincrement()) @map("id_notification")
   idUser         Int      @map("id_user")
-  idBusiness     Int      @map("id_business")
   title          String
   message        String
+  callbackUrl    String?  @map("callback_url")
   isRead         Boolean  @default(false) @map("is_read")
   isClosed       Boolean  @default(false) @map("is_closed")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   user           User     @relation(fields: [idUser], references: [idUser], onDelete: Cascade)
-  business       Business @relation(fields: [idBusiness], references: [idBusiness], onDelete: Cascade)
 
   @@index([idUser])
-  @@index([idBusiness])
   @@map("notification")
 }

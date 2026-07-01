@@ -20,12 +20,9 @@ interface NotificationsContextType {
 	
 	statusFilter: StatusFilter
 	setStatusFilter: (s: StatusFilter) => void
-	agentFilter: string
-	setAgentFilter: (a: string) => void
 	dateFilter: DateFilter
 	setDateFilter: (d: DateFilter) => void
 	
-	uniqueAgents: string[]
 	filteredNotifications: Notification[]
 }
 
@@ -43,17 +40,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
 	const [isOpen, setIsOpen] = useState(false)
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
-	const [agentFilter, setAgentFilter] = useState<string>('ALL')
 	const [dateFilter, setDateFilter] = useState<DateFilter>('ALL')
 
 	const filteredNotifications = notifications.filter((n) => {
 		// 1. Status Filter
 		if (statusFilter === 'UNREAD' && n.isRead) return false
 
-		// 2. Agent Filter
-		if (agentFilter !== 'ALL' && n.business?.user?.name !== agentFilter) return false
-
-		// 3. Date Filter
+		// 2. Date Filter
 		if (dateFilter !== 'ALL') {
 			const date = new Date(n.createdAt)
 			const now = new Date()
@@ -66,10 +59,6 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
 		return true
 	})
-
-	const uniqueAgents = Array.from(
-		new Set(notifications.map((n) => n.business?.user?.name).filter(Boolean))
-	) as string[]
 
 	return (
 		<NotificationsContext.Provider
@@ -84,12 +73,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 				
 				statusFilter,
 				setStatusFilter,
-				agentFilter,
-				setAgentFilter,
 				dateFilter,
 				setDateFilter,
 				
-				uniqueAgents,
 				filteredNotifications,
 			}}
 		>

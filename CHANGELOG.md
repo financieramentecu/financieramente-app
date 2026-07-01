@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [Unreleased]
+
+### Cambiado
+
+- **Notificaciones genéricas:** Las notificaciones en la plataforma han sido desacopladas de la entidad `Business`, volviéndolas completamente genéricas. Ahora soportan un `callbackUrl` para redirección flexible y se pueden utilizar en cualquier flujo del sistema (no sólo para negocios). También se simplificó la interfaz del Drawer de notificaciones, eliminando los filtros condicionales acoplados a negocios.
+
 ## [1.22.10] - 2026-06-23
 
 ### Agregado

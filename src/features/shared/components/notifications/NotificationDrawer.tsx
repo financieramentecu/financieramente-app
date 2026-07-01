@@ -15,8 +15,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { ChevronsUpDown } from 'lucide-react'
 
 export function NotificationDrawer() {
-	const [openUserDropdown, setOpenUserDropdown] = React.useState(false)
-	
 	const {
 		isOpen,
 		setIsOpen,
@@ -26,11 +24,8 @@ export function NotificationDrawer() {
 		closeNotification,
 		statusFilter,
 		setStatusFilter,
-		agentFilter,
-		setAgentFilter,
 		dateFilter,
 		setDateFilter,
-		uniqueAgents,
 		filteredNotifications,
 	} = useNotificationsContext()
 	
@@ -43,7 +38,9 @@ export function NotificationDrawer() {
 			await markAsRead(notif.idNotification)
 		}
 		setIsOpen(false)
-		router.push(`/dashboard/negocios/${notif.idBusiness}`)
+		if (notif.callbackUrl) {
+			router.push(notif.callbackUrl)
+		}
 	}
 
 	return (
@@ -91,69 +88,8 @@ export function NotificationDrawer() {
 					</Button>
 				</div>
 
-				{/* Filtros de Dropdown (Usuario y Fecha) */}
+				{/* Filtros de Dropdown (Fecha) */}
 				<div className="flex gap-2">
-					<div className="flex-1 min-w-0">
-						<Popover open={openUserDropdown} onOpenChange={setOpenUserDropdown}>
-							<PopoverTrigger asChild>
-								<Button
-									variant="outline"
-									role="combobox"
-									aria-expanded={openUserDropdown}
-									className="w-full justify-between h-8 text-xs font-normal bg-white"
-								>
-									{agentFilter === 'ALL'
-										? 'Todos los usuarios'
-										: agentFilter}
-									<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent className="w-[200px] p-0" align="start">
-								<Command>
-									<CommandInput placeholder="Buscar usuario..." className="text-xs" />
-									<CommandList>
-										<CommandEmpty>No se encontró el usuario.</CommandEmpty>
-										<CommandGroup>
-											<CommandItem
-												value="ALL"
-												onSelect={() => {
-													setAgentFilter('ALL')
-													setOpenUserDropdown(false)
-												}}
-												className="text-xs"
-											>
-												<Check
-													className={`mr-2 h-4 w-4 ${
-														agentFilter === 'ALL' ? 'opacity-100' : 'opacity-0'
-													}`}
-												/>
-												Todos los usuarios
-											</CommandItem>
-											{uniqueAgents.map((agent) => (
-												<CommandItem
-													key={agent}
-													value={agent}
-													onSelect={(currentValue) => {
-														setAgentFilter(currentValue === agentFilter ? 'ALL' : agent)
-														setOpenUserDropdown(false)
-													}}
-													className="text-xs"
-												>
-													<Check
-														className={`mr-2 h-4 w-4 ${
-															agentFilter === agent ? 'opacity-100' : 'opacity-0'
-														}`}
-													/>
-													{agent}
-												</CommandItem>
-											))}
-										</CommandGroup>
-									</CommandList>
-								</Command>
-							</PopoverContent>
-						</Popover>
-					</div>
-
 					<div className="flex-1 min-w-0">
 						<Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
 							<SelectTrigger className="h-8 text-xs bg-white">
