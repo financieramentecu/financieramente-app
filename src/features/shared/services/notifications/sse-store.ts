@@ -10,7 +10,12 @@
 type Controller = ReadableStreamDefaultController<Uint8Array>
 
 // Map: userId -> Set of open SSE controllers (one user can have multiple tabs)
-const sseClients = new Map<number, Set<Controller>>()
+// Uses globalThis to survive Next.js Fast Refresh and ensure a true singleton
+const globalForSse = globalThis as unknown as { sseClients: Map<number, Set<Controller>> }
+const sseClients = globalForSse.sseClients || new Map<number, Set<Controller>>()
+if (process.env.NODE_ENV !== 'production') {
+  globalForSse.sseClients = sseClients
+}
 
 export const sseStore = {
   add(userId: number, controller: Controller): void {
