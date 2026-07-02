@@ -49,7 +49,7 @@ export function DashboardLayout({
 					<SiteHeader title={currentPage} breadcrumbs={breadcrumbs} />
 					
 					{/* Contenedor principal que flexiona con el Drawer */}
-					<div className="flex-1 flex overflow-hidden w-full">
+					<div className="flex-1 flex overflow-hidden w-full relative">
 						{/* Contenido que llena el resto de la pantalla (100vh - header) */}
 						<div className={cn('flex-1 flex flex-col min-h-0 min-w-0', !disableScroll ? 'overflow-y-auto' : 'overflow-y-auto lg:overflow-hidden')}>
 							<div className={cn('flex flex-col gap-4 p-4 min-h-0 min-w-0 w-full', disableScroll ? 'lg:flex-1 lg:overflow-hidden' : '')}>

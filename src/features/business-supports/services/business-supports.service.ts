@@ -158,7 +158,7 @@ export async function persistComprobante(
           idUser: u.idUser,
           title,
           message,
-          callbackUrl: `/dashboard/negocios?detailBusiness=${businessId}`
+          callbackUrl: `/dashboard/negocios/${businessId}`
         }
       }))
     )

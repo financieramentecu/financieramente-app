@@ -44,7 +44,7 @@ export function NotificationDrawer() {
 	}
 
 	return (
-		<div className="w-80 sm:w-96 shrink-0 bg-background border-l flex flex-col h-full animate-in slide-in-from-right duration-300">
+		<div className="absolute right-0 top-0 h-full z-50 shadow-xl w-80 sm:w-96 shrink-0 bg-background border-l flex flex-col animate-in slide-in-from-right duration-300">
 			<div className="p-4 border-b flex items-center justify-between shrink-0">
 				<h2 className="font-semibold text-lg">Notificaciones</h2>
 				<div className="flex gap-2">
