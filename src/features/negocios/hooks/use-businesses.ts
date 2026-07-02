@@ -34,7 +34,7 @@ interface UseBusinessesReturn {
 		total: number
 		totalPages: number
 	}
-	refetch: () => Promise<void>
+	refetch: (isBackground?: boolean) => Promise<void>
 }
 
 /**
@@ -66,8 +66,10 @@ export function useBusinesses(
 		error: '',
 	})
 
-	const fetchBusinesses = useCallback(async () => {
-		setState({ status: 'loading', data: undefined, error: '' })
+	const fetchBusinesses = useCallback(async (isBackground: boolean = false) => {
+		if (!isBackground) {
+			setState({ status: 'loading', data: undefined, error: '' })
+		}
 
 		try {
 			const hasFullFundDateRange = Boolean(

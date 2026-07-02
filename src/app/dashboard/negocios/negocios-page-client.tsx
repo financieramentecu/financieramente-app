@@ -345,8 +345,8 @@ export function NegociosPageClient({
 			const result = await fondearBusiness(Number(business.id))
 
 			if (result) {
-				refetch()
-				refetchStats()
+				refetch(true)
+				refetchStats(true)
 			}
 		},
 		[fondearBusiness, refetch, refetchStats]
@@ -414,8 +414,8 @@ export function NegociosPageClient({
 				setCancelModalOpen(false)
 				setSelectedBusiness(null)
 				// Refrescar lista de negocios y estadísticas
-				refetch()
-				refetchStats()
+				refetch(true)
+				refetchStats(true)
 			}
 		},
 		[selectedBusiness, cancelBusiness, refetch, refetchStats]
@@ -510,8 +510,8 @@ export function NegociosPageClient({
 			setSelectedBusiness(response.data)
 		}
 		toast.success('La fecha de emisión fue actualizada exitosamente. Los fondeos han sido recalculados')
-		refetch()
-		refetchStats()
+		refetch(true)
+		refetchStats(true)
 	}, [refetch, refetchStats])
 
 	const businessDataForTable: Business[] = useMemo(
@@ -550,8 +550,8 @@ export function NegociosPageClient({
 				onSortingChange={handleSortingChange}
 				sortBy={searchParams.sortBy}
 				sortOrder={searchParams.sortOrder}
-				onUploadSuccess={() => { refetch(); refetchStats() }}
-				onDeleteSuccess={() => { refetch(); refetchStats() }}
+				onUploadSuccess={() => { refetch(true); refetchStats(true) }}
+				onDeleteSuccess={() => { refetch(true); refetchStats(true) }}
 				onSaveDateIssued={handleSaveDateIssued}
 			/>
 

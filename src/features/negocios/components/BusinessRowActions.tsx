@@ -167,13 +167,15 @@ export function BusinessRowActions({
         />
       )}
 
-      <ViewComprobantesSheet
-        businessId={businessId}
-        userRole={userRole}
-        open={viewOpen}
-        onClose={() => setViewOpen(false)}
-        onSupportDeleted={onDeleteSuccess}
-      />
+      {viewOpen && (
+        <ViewComprobantesSheet
+          businessId={businessId}
+          userRole={userRole}
+          open={viewOpen}
+          onClose={() => setViewOpen(false)}
+          onSupportDeleted={onDeleteSuccess}
+        />
+      )}
     </TooltipProvider>
   )
 }
