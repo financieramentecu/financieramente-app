@@ -1,6 +1,6 @@
 {
 	"name": "financieramente-app",
-	"version": "1.22.9",
+	"version": "1.22.11",
 	"private": true,
 	"type": "module",
 	"scripts": {

@@ -9,6 +9,7 @@ export const getCurrentUserByEmail = async (
 			where: { email },
 			include: {
 				role: true,
+				level: { select: { code: true } },
 			},
 		})
 

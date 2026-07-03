@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
-import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
+import {
+	getSubordinateUserIds,
+	resolveVisibleUserIds,
+} from '@/features/negocios/services/user-hierarchy.service'
+import { UserRole } from '@/features/auth/lib/roles'
 
 // Minimal prisma mock shape
 const makeUsers = (rows: { idUser: number; idUserLeader: number | null }[]) => {
@@ -102,5 +106,78 @@ describe('getSubordinateUserIds', () => {
 		const result = await getSubordinateUserIds(prisma as never, 50)
 		expect(result).toEqual(expect.arrayContaining([51, 52, 53]))
 		expect(result).toHaveLength(3)
+	})
+})
+
+describe('resolveVisibleUserIds', () => {
+	it('returns undefined for ADMIN role (no scope filter)', async () => {
+		const prisma = makeUsers([])
+		const currentUser = {
+			idUser: 1,
+			role: { code: UserRole.ADMIN },
+		}
+
+		const result = await resolveVisibleUserIds(prisma as never, currentUser)
+		expect(result).toBeUndefined()
+	})
+
+	it('returns undefined for ASISTENTE_GERENCIA_OPERATIVA role', async () => {
+		const prisma = makeUsers([])
+		const currentUser = {
+			idUser: 1,
+			role: { code: UserRole.ASISTENTE_GERENCIA_OPERATIVA },
+		}
+
+		const result = await resolveVisibleUserIds(prisma as never, currentUser)
+		expect(result).toBeUndefined()
+	})
+
+	it('returns undefined for ANALISTA_SOPORTE role', async () => {
+		const prisma = makeUsers([])
+		const currentUser = {
+			idUser: 1,
+			role: { code: UserRole.ANALISTA_SOPORTE },
+		}
+
+		const result = await resolveVisibleUserIds(prisma as never, currentUser)
+		expect(result).toBeUndefined()
+	})
+
+	it('returns [self, ...subordinates] for non-admin roles', async () => {
+		const prisma = makeUsers([
+			{ idUser: 60, idUserLeader: null }, // root (currentUser)
+			{ idUser: 61, idUserLeader: 60 }, // subordinate
+			{ idUser: 62, idUserLeader: 61 }, // sub-subordinate
+		])
+		const currentUser = {
+			idUser: 60,
+			role: { code: UserRole.AGENTE },
+		}
+
+		const result = await resolveVisibleUserIds(prisma as never, currentUser)
+		expect(result).toEqual(expect.arrayContaining([60, 61, 62]))
+		expect(result).toHaveLength(3)
+	})
+
+	it('returns [self] only when non-admin has no subordinates', async () => {
+		const prisma = makeUsers([{ idUser: 70, idUserLeader: null }])
+		const currentUser = {
+			idUser: 70,
+			role: { code: UserRole.AGENTE },
+		}
+
+		const result = await resolveVisibleUserIds(prisma as never, currentUser)
+		expect(result).toEqual([70])
+	})
+
+	it('treats user with no role as non-admin (scoped)', async () => {
+		const prisma = makeUsers([{ idUser: 80, idUserLeader: null }])
+		const currentUser = {
+			idUser: 80,
+			role: null,
+		}
+
+		const result = await resolveVisibleUserIds(prisma as never, currentUser)
+		expect(result).toEqual([80])
 	})
 })

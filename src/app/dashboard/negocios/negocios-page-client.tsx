@@ -13,6 +13,7 @@ import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
 import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
 import { UserRole } from '@/features/auth/lib/roles'
+import { canExportBusinessList } from '@/features/negocios/lib/can-export-business-list'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
@@ -110,6 +111,12 @@ export function NegociosPageClient({
 	const [annualFundingOpen, setAnnualFundingOpen] = useState(false)
 	const [annualFundingBusinessId, setAnnualFundingBusinessId] = useState<
 		number | null
+	>(null)
+	const [annualFundingBusinessStatus, setAnnualFundingBusinessStatus] = useState<
+		string | null
+	>(null)
+	const [annualFundingDateAnchored, setAnnualFundingDateAnchored] = useState<
+		string | null
 	>(null)
 	const [annualFundingInstallments, setAnnualFundingInstallments] = useState<
 		AnnualInstallmentDto[]
@@ -260,10 +267,10 @@ export function NegociosPageClient({
 		error: exportExcelError,
 	} = useBusinessExport()
 
-	const canExportExcel =
-		_currentUser?.role?.code === UserRole.ADMIN ||
-		_currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
-		_currentUser?.role?.code === UserRole.ANALISTA_SOPORTE
+	const canExportExcel = canExportBusinessList({
+		roleCode: _currentUser?.role?.code,
+		levelCode: _currentUser?.level?.code,
+	})
 
 	// Handlers
 	const handleAddBusiness = useCallback(() => {
@@ -328,6 +335,8 @@ export function NegociosPageClient({
 		async (business: Business) => {
 			if (business.hasPayments) {
 				setAnnualFundingBusinessId(Number(business.id))
+				setAnnualFundingBusinessStatus(business.status ?? null)
+				setAnnualFundingDateAnchored(typeof business.dateAnchored === 'string' ? business.dateAnchored : null)
 				setAnnualFundingContract(
 					typeof business.contract === 'string' ? business.contract : null
 				)
@@ -404,10 +413,22 @@ export function NegociosPageClient({
 		[isConfirmingFondear]
 	)
 
+	const handleRefetchAnnualPayments = useCallback(async () => {
+		if (!annualFundingBusinessId) return
+		setAnnualFundingLoading(true)
+		const res = await businessService.getAnnualPayments(annualFundingBusinessId)
+		setAnnualFundingLoading(false)
+		if (res.data) {
+			setAnnualFundingInstallments(res.data.installments)
+		}
+	}, [annualFundingBusinessId])
+
 	const handleAnnualFundingOpenChange = useCallback((open: boolean) => {
 		setAnnualFundingOpen(open)
 		if (!open) {
 			setAnnualFundingBusinessId(null)
+			setAnnualFundingBusinessStatus(null)
+			setAnnualFundingDateAnchored(null)
 			setAnnualFundingContract(null)
 			setAnnualFundingPeriodicidadLabel(null)
 			setAnnualFundingPlazo(null)
@@ -616,6 +637,10 @@ export function NegociosPageClient({
 				periodicidadLabel={annualFundingPeriodicidadLabel}
 				plazo={annualFundingPlazo}
 				roleCode={_currentUser?.role?.code}
+				businessStatus={annualFundingBusinessStatus ?? undefined}
+				dateAnchored={annualFundingDateAnchored}
+				onRefetchInstallments={handleRefetchAnnualPayments}
+				onFundingSuccess={() => { refetch(); refetchStats() }}
 			/>
 
 			<AlertDialog

@@ -556,6 +556,21 @@ describe('fundDuePayments', () => {
 		// Should not throw even with no payments
 		await expect(fundDuePayments(today)).resolves.toBeDefined()
 	})
+
+	it('cron query excludes installmentIndex 1 — findMany where must include installmentIndex: { gt: 1 }', async () => {
+		// Verify the cron does NOT pick up installment 1, even if due
+		mockPrisma.payment.findMany = vi.fn().mockResolvedValue([])
+
+		await fundDuePayments(today)
+
+		expect(mockPrisma.payment.findMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({
+					installmentIndex: { gt: 1 },
+				}),
+			})
+		)
+	})
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

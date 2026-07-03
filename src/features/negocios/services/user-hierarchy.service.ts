@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
+import { UserRole } from '@/features/auth/lib/roles'
 
 /**
  * BFS traversal over the User.idUserLeader chain to collect all subordinate IDs.
@@ -42,4 +43,29 @@ export async function getSubordinateUserIds(
 	}
 
 	return subordinates
+}
+
+/**
+ * Resolves the hierarchical visibility scope for the business list/export endpoints.
+ * - ADMIN-like roles (ADMIN, ASISTENTE_GERENCIA_OPERATIVA, ANALISTA_SOPORTE) → `undefined`
+ *   (no `idUser` filter — sees all businesses).
+ * - Every other role → `[self, ...subordinates]` (hierarchical subtree only).
+ *
+ * Shared by `GET /api/negocios` and `POST /api/negocios/export` so both endpoints
+ * apply the exact same visibility rule (see spec "Export Rows Scoped to Hierarchy
+ * Subtree (Bug Fix)").
+ */
+export async function resolveVisibleUserIds(
+	prisma: Pick<PrismaClient, 'user'>,
+	currentUser: { idUser: number; role?: { code: string } | null }
+): Promise<number[] | undefined> {
+	const isAdmin =
+		currentUser.role?.code === UserRole.ADMIN ||
+		currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
+		currentUser.role?.code === UserRole.ANALISTA_SOPORTE
+
+	if (isAdmin) return undefined
+
+	const subordinates = await getSubordinateUserIds(prisma, currentUser.idUser)
+	return [currentUser.idUser, ...subordinates]
 }
