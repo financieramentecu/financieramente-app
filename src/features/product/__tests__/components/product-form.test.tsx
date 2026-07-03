@@ -89,8 +89,12 @@ describe('ProductForm', () => {
 
 		it('should show loading text when submitting', async () => {
 			const user = userEvent.setup()
+			let resolveSubmit: (value?: unknown) => void
 			mockOnSubmit.mockImplementation(
-				() => new Promise((resolve) => setTimeout(resolve, 100))
+				() =>
+					new Promise((resolve) => {
+						resolveSubmit = resolve
+					})
 			)
 
 			render(
@@ -123,6 +127,9 @@ describe('ProductForm', () => {
 					screen.getByRole('button', { name: /guardando/i })
 				).toBeInTheDocument()
 			})
+
+			// Resolve to cleanup
+			resolveSubmit!()
 		})
 
 		it.skip('should validate required fields', async () => {
