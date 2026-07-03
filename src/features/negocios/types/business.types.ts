@@ -104,6 +104,8 @@ export interface UserWithRole {
 		createdAt?: Date | string
 		updatedAt?: Date | string
 	} | null
+	/** Nivel de jerarquía del usuario (Level.code) — usado para gating de exportación */
+	level?: { code: string } | null
 	category?: { name: string } | null
 }
 

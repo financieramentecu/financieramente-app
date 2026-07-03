@@ -4,6 +4,36 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.11] - 2026-06-30
+
+### Agregado
+
+- **Fondeo manual del primer aporte con fecha personalizada:** Los operadores ahora pueden fondear manualmente el primer aporte de un negocio seleccionando una fecha específica. Esto proporciona mejor control sobre el calendario de liquidación de comisiones. El primer aporte es el único que permite fondeo manual; los aportes 2 en adelante se fondean automáticamente mediante el cron cuando llega su fecha programada.
+
+- **Botón de Cartera en el primer aporte:** El primer aporte ahora muestra tanto el botón "Fondear" como el botón "Cartera" cuando la fecha esperada es en el mes actual o futuro, permitiendo marcar el pago como en cartera sin esperar a que el cron lo fondee automáticamente.
+
+### Mejorado
+
+- **Restricción inteligente de pagos durante emisión:** Cuando un negocio aún no ha sido fondeado (estado EMITIDO), únicamente el primer aporte puede ser modificado manualmente. Los aportes 2 en adelante aparecen desactivados visualmente, previniendo operaciones accidentales en pagos futuros antes de que el primer aporte sea procesado.
+
+- **Sincronización en tiempo real de la interfaz:** Después de fondear el primer aporte, tanto el modal de fondeo como la lista principal de negocios se actualizan automáticamente, mostrando el cambio de estado del negocio (EMITIDO → FONDEADO) y la fecha de fondeo sin necesidad de refrescar la página.
+
+- **Timeout ampliado para fondeo de aportes múltiples:** El timeout de la transacción de fondeo se aumentó de 5 a 15 segundos para acomodar la actualización de múltiples aportes y cálculo de fechas esperadas sin expiración, mejorando la confiabilidad del proceso.
+
+### Corregido
+
+- **Cálculo de bloqueo de pagos usa fecha de fondeo correcta:** La lógica de restricción ahora verifica correctamente `dateAnchored` (fecha real de fondeo del negocio) en lugar de `dateIssued` (fecha de emisión del contrato), asegurando que los pagos 2+ se desbloqueacen correctamente una vez que el negocio es fondeado.
+
+## [1.22.10] - 2026-06-23
+
+### Agregado
+
+- **Exportar a Excel para roles con jerarquía (Nivel 2 a Nivel 6):** Los usuarios con jerarquía asignada entre Team Leader y MIA ahora pueden exportar a Excel la Lista de Negocios desde la pantalla, respetando los filtros avanzados aplicados y mostrando únicamente la información dentro de su alcance jerárquico. Antes dependían de un Analista Operativo u otro rol con permisos adicionales para obtener este archivo.
+
+### Corregido
+
+- **Exportación a Excel podía incluir negocios fuera del alcance del usuario:** El archivo Excel generado no filtraba por el árbol jerárquico del usuario como sí lo hace la lista en pantalla, por lo que un usuario podía exportar negocios que no le correspondían ver. Ahora la exportación respeta el mismo alcance que la vista de tabla.
+
 ## [1.22.9] - 2026-06-20
 
 ### Corregido
