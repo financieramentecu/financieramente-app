@@ -9,12 +9,13 @@ import {
 	X,
 	Loader2,
 	Pencil,
+	BadgeDollarSign,
 } from 'lucide-react'
 import { getAporteVisualState } from '../../lib/aporte-visual-state'
 import type { PaymentInstallmentDto } from '../../types/business-api.types'
 import { formatDateBogota } from '@/features/shared/lib/format-date'
 
-export type AporteAction = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO'
+export type AporteAction = 'MARK_CARTERA' | 'UNMARK_CARTERA' | 'MARK_ANTICIPADO' | 'FONDEAR'
 
 export interface AporteRowProps {
 	aporte: PaymentInstallmentDto
@@ -25,6 +26,8 @@ export interface AporteRowProps {
 	onTransitionSuccess: (updated: PaymentInstallmentDto) => void
 	onRequestAction: (action: AporteAction, index: number) => void
 	onEditFundedDate?: (index: number) => void
+	installmentIndex?: number
+	isBusinessEmitido?: boolean
 }
 
 function formatDate(iso: string | null): string {
@@ -44,6 +47,8 @@ export function AporteRow({
 	onTransitionSuccess: _onTransitionSuccess,
 	onRequestAction,
 	onEditFundedDate,
+	installmentIndex,
+	isBusinessEmitido = false,
 }: AporteRowProps) {
 	const [aporte, setAporte] = React.useState(initialAporte)
 
@@ -51,8 +56,9 @@ export function AporteRow({
 		setAporte(initialAporte)
 	}, [initialAporte])
 
-	const visualState = getAporteVisualState(aporte, now, canMutate)
+	const visualState = getAporteVisualState(aporte, now, canMutate, installmentIndex, isBusinessEmitido)
 	const allButtons = visualState.buttons
+	const hasFondear = allButtons.includes('FONDEAR')
 	const isPast = visualState.variant === 'FONDEADO_PAST'
 	const isAnticipado = visualState.variant === 'PAGO_ANTICIPADO'
 	const isCarteraPagado = visualState.variant === 'CARTERA_PAGADO'
@@ -66,11 +72,13 @@ export function AporteRow({
 		<li
 			className={[
 				'group flex items-center gap-2.5 rounded-lg border transition-all duration-200',
-				isGreen
-					? `px-3 py-1.5 bg-green-50 border-green-200${isDimmed ? ' opacity-70' : ''}`
-					: isCartera
-						? 'px-3 py-2.5 bg-red-50 border-red-300'
-						: 'px-2.5 py-1.5 border-border bg-background hover:bg-muted/40',
+				hasFondear
+					? 'px-2.5 py-1.5 bg-amber-50 border-amber-300'
+					: isGreen
+						? `px-3 py-1.5 bg-green-50 border-green-200${isDimmed ? ' opacity-70' : ''}`
+						: isCartera
+							? 'px-3 py-2.5 bg-red-50 border-red-300'
+							: 'px-2.5 py-1.5 border-border bg-background hover:bg-muted/40',
 			].join(' ')}
 		>
 			{/* Ícono de estado */}
@@ -163,6 +171,24 @@ export function AporteRow({
 								<X className="h-3 w-3" aria-hidden />
 							)}
 							Quitar Cartera
+						</button>
+					)}
+					{allButtons.includes('FONDEAR') && (
+						<button
+							type="button"
+							aria-label="Fondear primer aporte"
+							disabled={isLoading}
+							onClick={() =>
+								onRequestAction('FONDEAR', aporte.installmentIndex)
+							}
+							className="inline-flex items-center gap-1.5 rounded-md border border-green-400 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 shadow-sm transition-colors duration-150 hover:bg-green-100 hover:border-green-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+						>
+							{isLoading ? (
+								<Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+							) : (
+								<BadgeDollarSign className="h-3 w-3" aria-hidden />
+							)}
+							Fondear
 						</button>
 					)}
 				</div>

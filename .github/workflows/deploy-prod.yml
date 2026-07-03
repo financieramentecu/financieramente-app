@@ -143,10 +143,10 @@ jobs:
           GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_PROD }}
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_PROD }}
           NEXT_TELEMETRY_DISABLED=1
-          SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY_PROD }}
-          SENDGRID_FROM_EMAIL=${{ secrets.SENDGRID_FROM_EMAIL_PROD }}
-          SENDGRID_FROM_NAME=${{ secrets.SENDGRID_FROM_NAME_PROD }}
-          SENDGRID_TEMPLATE_ID=${{ secrets.SENDGRID_TEMPLATE_ID_PROD }}
+          SENDGRID_API_KEY="${{ secrets.SENDGRID_API_KEY_PROD }}"
+          SENDGRID_FROM_EMAIL="${{ secrets.SENDGRID_FROM_EMAIL_PROD }}"
+          SENDGRID_FROM_NAME="${{ secrets.SENDGRID_FROM_NAME_PROD }}"
+          SENDGRID_TEMPLATE_ID="${{ secrets.SENDGRID_TEMPLATE_ID_PROD }}"
           SUPER_ADMIN_PASSWORD=${{ secrets.SUPER_ADMIN_PASSWORD_PROD }}
           DO_SPACES_KEY=${{ secrets.DO_SPACES_KEY }}
           DO_SPACES_SECRET=${{ secrets.DO_SPACES_SECRET }}
@@ -232,7 +232,7 @@ jobs:
           # Wait for PostgreSQL to be ready
           echo "Waiting for PostgreSQL to be ready..."
           for i in {1..30}; do
-            if docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres pg_isready -U financieramente_user -d financieramente_prod > /dev/null 2>&1; then
+            if docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres pg_isready -U financieramente_user -d financieramente_prod < /dev/null > /dev/null 2>&1; then
               echo "✅ PostgreSQL is ready"
               break
             fi
@@ -241,7 +241,7 @@ jobs:
           done
 
           # Verify PostgreSQL is accessible
-          docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres psql -U financieramente_user -d financieramente_prod -c "SELECT 1" > /dev/null 2>&1 || {
+          docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres psql -U financieramente_user -d financieramente_prod -c "SELECT 1" < /dev/null > /dev/null 2>&1 || {
             echo "❌ PostgreSQL connection failed"
             exit 1
           }
@@ -249,12 +249,12 @@ jobs:
           # Run database migrations inside the nextjs container
           echo "Running Prisma migrations inside nextjs container..."
           # Verify prisma directory exists before running migrations
-          docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la prisma/ && test -f prisma/schema.prisma && echo '✅ Prisma schema found'" || {
+          docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la prisma/ && test -f prisma/schema.prisma && echo '✅ Prisma schema found'" < /dev/null || {
             echo "❌ Prisma schema not found in container"
-            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la && pwd"
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la && pwd" < /dev/null
             exit 1
           }
-          docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && npx prisma@6.18.0 migrate deploy" || {
+          docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && npx prisma@6.18.0 migrate deploy" < /dev/null || {
             echo "❌ Migration failed"
             docker-compose -f "$COMPOSE_FILE_PATH" logs nextjs --tail=50
             exit 1

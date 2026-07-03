@@ -132,10 +132,10 @@ jobs:
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_QA }}
             AUTH_DEBUG=true
             NEXT_TELEMETRY_DISABLED=1
-            SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY_QA }}
-            SENDGRID_FROM_EMAIL=${{ secrets.SENDGRID_FROM_EMAIL_QA }}
-            SENDGRID_FROM_NAME=${{ secrets.SENDGRID_FROM_NAME_QA }}
-            SENDGRID_TEMPLATE_ID=${{ secrets.SENDGRID_TEMPLATE_ID_QA }}
+            SENDGRID_API_KEY="${{ secrets.SENDGRID_API_KEY_QA }}"
+            SENDGRID_FROM_EMAIL="${{ secrets.SENDGRID_FROM_EMAIL_QA }}"
+            SENDGRID_FROM_NAME="${{ secrets.SENDGRID_FROM_NAME_QA }}"
+            SENDGRID_TEMPLATE_ID="${{ secrets.SENDGRID_TEMPLATE_ID_QA }}"
             SUPER_ADMIN_PASSWORD=${{ secrets.SUPER_ADMIN_PASSWORD_QA }}
             DO_SPACES_KEY=${{ secrets.DO_SPACES_KEY }}
             DO_SPACES_SECRET=${{ secrets.DO_SPACES_SECRET }}
@@ -246,16 +246,16 @@ jobs:
             # Wait a moment and verify nginx can see the certificates
             sleep 3
             echo "=== Verifying nginx can access SSL certificates ==="
-            if docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx test -f /etc/nginx/ssl/cert.pem && \
-               docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx test -f /etc/nginx/ssl/key.pem; then
+            if docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx test -f /etc/nginx/ssl/cert.pem < /dev/null && \
+               docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx test -f /etc/nginx/ssl/key.pem < /dev/null; then
               echo "✅ Nginx can access SSL certificates inside container"
-              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx ls -lh /etc/nginx/ssl/
+              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx ls -lh /etc/nginx/ssl/ < /dev/null
             else
               echo "❌ Nginx cannot access SSL certificates inside container"
               echo "Host SSL directory: $SSL_DIR"
               ls -la "$SSL_DIR"
               echo "Container SSL directory:"
-              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx ls -la /etc/nginx/ssl/ || echo "Cannot access container SSL directory"
+              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nginx ls -la /etc/nginx/ssl/ < /dev/null || echo "Cannot access container SSL directory"
               docker-compose -f "$COMPOSE_FILE_PATH" logs nginx --tail=20
               exit 1
             fi
@@ -263,7 +263,7 @@ jobs:
             # Wait for PostgreSQL to be ready
             echo "Waiting for PostgreSQL to be ready..."
             for i in {1..30}; do
-              if docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres pg_isready -U financieramente_user -d financieramente_qa > /dev/null 2>&1; then
+              if docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres pg_isready -U financieramente_user -d financieramente_qa < /dev/null > /dev/null 2>&1; then
                 echo "✅ PostgreSQL is ready"
                 break
               fi
@@ -272,7 +272,7 @@ jobs:
             done
 
             # Verify PostgreSQL is accessible
-            docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres psql -U financieramente_user -d financieramente_qa -c "SELECT 1" > /dev/null 2>&1 || {
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T postgres psql -U financieramente_user -d financieramente_qa -c "SELECT 1" < /dev/null > /dev/null 2>&1 || {
               echo "❌ PostgreSQL connection failed"
               exit 1
             }
@@ -280,12 +280,12 @@ jobs:
             # Run database migrations inside the nextjs container
             echo "Running Prisma migrations inside nextjs container..."
             # Verify prisma directory exists before running migrations
-            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la prisma/ && test -f prisma/schema.prisma && echo '✅ Prisma schema found'" || {
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la prisma/ && test -f prisma/schema.prisma && echo '✅ Prisma schema found'" < /dev/null || {
               echo "❌ Prisma schema not found in container"
-              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la && pwd"
+              docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && ls -la && pwd" < /dev/null
               exit 1
             }
-            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && npx prisma@6.18.0 migrate deploy" || {
+            docker-compose -f "$COMPOSE_FILE_PATH" exec -T nextjs sh -c "cd /app && npx prisma@6.18.0 migrate deploy" < /dev/null || {
               echo "❌ Migration failed"
               docker-compose -f "$COMPOSE_FILE_PATH" logs nextjs --tail=50
               exit 1

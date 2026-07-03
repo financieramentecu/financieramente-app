@@ -4,11 +4,35 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [Unreleased]
+## [1.22.12] - 2026-07-03
 
 ### Cambiado
 
 - **Notificaciones genéricas:** Las notificaciones en la plataforma han sido desacopladas de la entidad `Business`, volviéndolas completamente genéricas. Ahora soportan un `callbackUrl` para redirección flexible y se pueden utilizar en cualquier flujo del sistema (no sólo para negocios). También se simplificó la interfaz del Drawer de notificaciones, eliminando los filtros condicionales acoplados a negocios.
+
+### Corregido
+
+- **Bucle infinito en Storybook:** Se corrigió un error que causaba que `useBusinesses` entrara en un bucle infinito de re-renderizados en entornos de prueba (como Chromatic) al recibir arreglos creados dinámicamente. La función ahora maneja sus dependencias de forma inmutable usando `JSON.stringify`.
+
+## [1.22.11] - 2026-06-30
+
+### Agregado
+
+- **Fondeo manual del primer aporte con fecha personalizada:** Los operadores ahora pueden fondear manualmente el primer aporte de un negocio seleccionando una fecha específica. Esto proporciona mejor control sobre el calendario de liquidación de comisiones. El primer aporte es el único que permite fondeo manual; los aportes 2 en adelante se fondean automáticamente mediante el cron cuando llega su fecha programada.
+
+- **Botón de Cartera en el primer aporte:** El primer aporte ahora muestra tanto el botón "Fondear" como el botón "Cartera" cuando la fecha esperada es en el mes actual o futuro, permitiendo marcar el pago como en cartera sin esperar a que el cron lo fondee automáticamente.
+
+### Mejorado
+
+- **Restricción inteligente de pagos durante emisión:** Cuando un negocio aún no ha sido fondeado (estado EMITIDO), únicamente el primer aporte puede ser modificado manualmente. Los aportes 2 en adelante aparecen desactivados visualmente, previniendo operaciones accidentales en pagos futuros antes de que el primer aporte sea procesado.
+
+- **Sincronización en tiempo real de la interfaz:** Después de fondear el primer aporte, tanto el modal de fondeo como la lista principal de negocios se actualizan automáticamente, mostrando el cambio de estado del negocio (EMITIDO → FONDEADO) y la fecha de fondeo sin necesidad de refrescar la página.
+
+- **Timeout ampliado para fondeo de aportes múltiples:** El timeout de la transacción de fondeo se aumentó de 5 a 15 segundos para acomodar la actualización de múltiples aportes y cálculo de fechas esperadas sin expiración, mejorando la confiabilidad del proceso.
+
+### Corregido
+
+- **Cálculo de bloqueo de pagos usa fecha de fondeo correcta:** La lógica de restricción ahora verifica correctamente `dateAnchored` (fecha real de fondeo del negocio) en lugar de `dateIssued` (fecha de emisión del contrato), asegurando que los pagos 2+ se desbloqueacen correctamente una vez que el negocio es fondeado.
 
 ## [1.22.10] - 2026-06-23
 
