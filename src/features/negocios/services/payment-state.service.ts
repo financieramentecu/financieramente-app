@@ -342,11 +342,13 @@ export async function fundDuePayments(
 		ua: 'cron/fund-payments',
 	}
 
-	// Query all SIN_FONDEAR payments due today or overdue
+	// Query all SIN_FONDEAR payments due today or overdue.
+	// Installment 1 is excluded: it must be manually funded by an operator.
 	const duePayments = await prisma.payment.findMany({
 		where: {
 			status: AnnualPaymentStatus.SIN_FONDEAR,
 			expectedDate: { lte: today },
+			installmentIndex: { gt: 1 },
 		},
 		select: {
 			idAnnualPayment: true,
