@@ -4,7 +4,6 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import {
 	getSubordinateUserIds,
-	resolveVisibleUserIds,
 } from '@/features/negocios/services/user-hierarchy.service'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { businessListParamsSchema } from '@/features/negocios/lib/business-api.schemas'

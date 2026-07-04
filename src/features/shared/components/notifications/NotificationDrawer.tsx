@@ -10,9 +10,6 @@ import { useNotificationsContext, DateFilter } from './NotificationsContext'
 import { Notification } from '@/features/shared/hooks/use-notifications'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/features/shared/ui/select'
-import { Popover, PopoverContent, PopoverTrigger } from '@/features/shared/ui/popover'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/features/shared/ui/command'
-import { ChevronsUpDown } from 'lucide-react'
 
 export function NotificationDrawer() {
 	const {

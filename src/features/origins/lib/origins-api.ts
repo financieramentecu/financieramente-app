@@ -1,5 +1,4 @@
 import { apiClient } from '@/lib/api/client'
-import type { ClientOrigin as PrismaClientOrigin } from '@prisma/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
 	ClientOrigin,
