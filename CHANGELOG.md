@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.13] - 2026-07-04
+
+### Corregido
+
+- **Error de enrutamiento en Storybook:** Se corrigió el error `SB_FRAMEWORK_NEXTJS_0002` (NextjsRouterMocksNotAvailable) que impedía la renderización correcta de los componentes con `next/navigation` en los tests visuales y estáticos de Chromatic. La solución elimina aliases redundantes en la configuración de webpack de Storybook.
+
 ## [1.22.12] - 2026-07-03
 
 ### Cambiado
