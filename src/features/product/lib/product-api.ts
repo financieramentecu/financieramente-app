@@ -1,5 +1,3 @@
-import { prisma } from '@/lib/prisma'
-import type { Product as PrismaProduct } from '@prisma/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
 	Product,
@@ -9,25 +7,6 @@ import type {
 	ProductListResponse,
 	CompanyOption,
 } from '../types/product.types'
-
-/**
- * --- SERVER-SIDE FUNCTIONS ---
- * Use these in Server Components and API Routes.
- */
-
-/**
- * Server-side function to get active products.
- */
-export async function getProducts(): Promise<PrismaProduct[]> {
-	return await prisma.product.findMany({
-		where: {
-			status: true,
-		},
-		orderBy: {
-			name: 'asc',
-		},
-	})
-}
 
 /**
  * --- CLIENT-SIDE API ---

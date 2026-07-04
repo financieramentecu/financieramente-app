@@ -34,7 +34,7 @@ interface UseBusinessesReturn {
 		total: number
 		totalPages: number
 	}
-	refetch: () => Promise<void>
+	refetch: (isBackground?: boolean) => Promise<void>
 }
 
 /**
@@ -66,8 +66,10 @@ export function useBusinesses(
 		error: '',
 	})
 
-	const fetchBusinesses = useCallback(async () => {
-		setState({ status: 'loading', data: undefined, error: '' })
+	const fetchBusinesses = useCallback(async (isBackground: boolean = false) => {
+		if (!isBackground) {
+			setState({ status: 'loading', data: undefined, error: '' })
+		}
 
 		try {
 			const hasFullFundDateRange = Boolean(
@@ -115,30 +117,8 @@ export function useBusinesses(
 				error: 'Error al cargar negocios',
 			})
 		}
-	}, [
-		params.page,
-		params.pageSize,
-		params.search,
-		params.status,
-		params.statuses,
-		params.dateFrom,
-		params.dateTo,
-		params.createdFrom,
-		params.createdTo,
-		params.dateIssuedFrom,
-		params.dateIssuedTo,
-		params.agentName,
-		params.hasSupports,
-		params.sortBy,
-		params.sortOrder,
-		params.companyIds,
-		params.productIds,
-		params.originIds,
-		params.terms,
-		params.periodicityIds,
-		params.agentCategoryIds,
-		params.agentIds,
-	])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [JSON.stringify(params)])
 
 	useEffect(() => {
 		fetchBusinesses()

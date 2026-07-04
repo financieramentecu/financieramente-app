@@ -248,6 +248,7 @@ model User {
   role                                Role?                   @relation(fields: [idRole], references: [idRole])
   leader                              User?                   @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates                        User[]                  @relation("UserLeader")
+  notifications                       Notification[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -559,4 +560,21 @@ enum AnnualPaymentStatus {
 enum ContributionType {
   REGULAR
   UNICO
+}
+
+model Notification {
+  idNotification Int      @id @default(autoincrement()) @map("id_notification")
+  idUser         Int      @map("id_user")
+  title          String
+  message        String
+  callbackUrl    String?  @map("callback_url")
+  isRead         Boolean  @default(false) @map("is_read")
+  isClosed       Boolean  @default(false) @map("is_closed")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user           User     @relation(fields: [idUser], references: [idUser], onDelete: Cascade)
+
+  @@index([idUser])
+  @@map("notification")
 }

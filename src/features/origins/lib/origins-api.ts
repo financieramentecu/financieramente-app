@@ -1,6 +1,4 @@
 import { apiClient } from '@/lib/api/client'
-import { prisma } from '@/lib/prisma'
-import type { ClientOrigin as PrismaClientOrigin } from '@prisma/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type {
 	ClientOrigin,
@@ -12,25 +10,6 @@ import type {
 	CreateProductOriginInput,
 	UpdateProductOriginInput,
 } from '../types/origins.types'
-
-/**
- * --- SERVER-SIDE FUNCTIONS ---
- * Use these in Server Components and API Routes.
- */
-
-/**
- * Server-side function to get active client origins.
- */
-export async function getClientOrigins(): Promise<PrismaClientOrigin[]> {
-	return await prisma.clientOrigin.findMany({
-		where: {
-			status: true,
-		},
-		orderBy: {
-			name: 'asc',
-		},
-	})
-}
 
 /**
  * Server-side function to get active product origins.

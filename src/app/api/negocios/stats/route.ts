@@ -74,25 +74,37 @@ export async function GET(
 			select: { idCurrency: true, symbol: true, name: true },
 		})
 
-		const whereClause: Prisma.BusinessWhereInput = {
-			status: {
-				in: [
-					BUSINESS_STATUS.VENTA_EFECTUADA,
-					BUSINESS_STATUS.EMITIDO,
-					BUSINESS_STATUS.FONDEADO,
-				],
-			},
-			...(userFilter ? { idUser: { in: userFilter } } : {}),
-			...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
+		const statuses = [
+			BUSINESS_STATUS.VENTA_EFECTUADA,
+			BUSINESS_STATUS.EMITIDO,
+			BUSINESS_STATUS.FONDEADO,
+		]
+
+		const conditions: Prisma.Sql[] = [
+			Prisma.sql`status IN (${Prisma.join(statuses)})`
+		]
+
+		if (userFilter && userFilter.length > 0) {
+			conditions.push(Prisma.sql`id_user IN (${Prisma.join(userFilter)})`)
 		}
 
-		const [groupResults, sinSoporte] = await Promise.all([
-			prisma.business.groupBy({
-				by: ['status', 'idCurrency'],
-				where: whereClause,
-				_count: { idBusiness: true },
-				_sum: { value: true },
-			}),
+		if (createdAtFilter?.gte && createdAtFilter?.lte) {
+			conditions.push(Prisma.sql`created_at >= ${createdAtFilter.gte}::timestamp`)
+			conditions.push(Prisma.sql`created_at <= ${createdAtFilter.lte}::timestamp`)
+		}
+
+		const whereSql = conditions.length > 0 
+			? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+			: Prisma.empty
+
+		// Using raw sql for aggregation to prevent Prisma N+1 issue on groupBy with IN clause
+		const [groupResultsRaw, sinSoporte] = await Promise.all([
+			prisma.$queryRaw<{status: string, idCurrency: number, _count: bigint, _sum: Prisma.Decimal | null}[]>`
+				SELECT status, id_currency as "idCurrency", COUNT(id_business) as "_count", SUM(value) as "_sum"
+				FROM business
+				${whereSql}
+				GROUP BY status, id_currency
+			`,
 			prisma.business.count({
 				where: {
 					status: BUSINESS_STATUS.EMITIDO,
@@ -101,6 +113,13 @@ export async function GET(
 				},
 			}),
 		])
+
+		const groupResults = groupResultsRaw.map(g => ({
+			status: g.status,
+			idCurrency: Number(g.idCurrency),
+			_count: { idBusiness: Number(g._count) },
+			_sum: { value: g._sum ? Number(g._sum) : 0 }
+		}))
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const parseGroupValue = (rawValue: any): number => {

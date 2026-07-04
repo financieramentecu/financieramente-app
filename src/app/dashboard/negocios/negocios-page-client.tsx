@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'
 import MisNegociosPage from '@/features/negocios/components/MisNegociosPage'
-import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
 import { BusinessObservationsModal } from '@/features/negocios/components/modals/BusinessObservationsModal'
 import { FundingModal } from '@/features/negocios/components/modals/FundingModal'
@@ -12,7 +11,6 @@ import { useBusinessMutation } from '@/features/negocios/hooks/use-business-muta
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
 import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
-import { UserRole } from '@/features/auth/lib/roles'
 import { canExportBusinessList } from '@/features/negocios/lib/can-export-business-list'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business } from '@/features/negocios/types/business.types'
@@ -100,7 +98,6 @@ export function NegociosPageClient({
 	}, [urlSearchParams])
 
 	// Estado para modales
-	const [viewModalOpen, setViewModalOpen] = useState(false)
 	const [cancelModalOpen, setCancelModalOpen] = useState(false)
 	const [observationsModalOpen, setObservationsModalOpen] = useState(false)
 	const [observationsBusiness, setObservationsBusiness] = useState<Business | null>(null)
@@ -249,8 +246,8 @@ export function NegociosPageClient({
 		error: statsError,
 		refetch: refetchStats,
 	} = useBusinessStats({
-		dateFrom: searchParams.dateFrom || defaultDates.from,
-		dateTo: searchParams.dateTo || defaultDates.to,
+		dateFrom: mergedParams.dateFrom || defaultDates.from,
+		dateTo: mergedParams.dateTo || defaultDates.to,
 	})
 
 	const {
@@ -288,23 +285,11 @@ export function NegociosPageClient({
 	)
 
 	/**
-	 * Abre el modal de visualización con el negocio seleccionado
+	 * Redirige a la ruta de detalle del negocio
 	 */
-	const handleViewBusiness = useCallback(async (business: Business) => {
-		setIsLoadingBusiness(true)
-		setViewModalOpen(true)
-
-		try {
-			const response = await businessService.getById(Number(business.id))
-			if (response.data) {
-				setSelectedBusiness(response.data)
-			}
-		} catch (err) {
-			console.error('Error al cargar negocio:', err)
-		} finally {
-			setIsLoadingBusiness(false)
-		}
-	}, [])
+	const handleViewBusiness = useCallback((business: Business) => {
+		router.push(`/dashboard/negocios/${business.id}`)
+	}, [router])
 
 	/**
 	 * Abre el modal de cancelación con el negocio seleccionado
@@ -368,8 +353,8 @@ export function NegociosPageClient({
 			const result = await fondearBusiness(Number(business.id))
 
 			if (result) {
-				refetch()
-				refetchStats()
+				refetch(true)
+				refetchStats(true)
 			}
 		},
 		[fondearBusiness, refetch, refetchStats]
@@ -449,8 +434,8 @@ export function NegociosPageClient({
 				setCancelModalOpen(false)
 				setSelectedBusiness(null)
 				// Refrescar lista de negocios y estadísticas
-				refetch()
-				refetchStats()
+				refetch(true)
+				refetchStats(true)
 			}
 		},
 		[selectedBusiness, cancelBusiness, refetch, refetchStats]
@@ -529,8 +514,8 @@ export function NegociosPageClient({
 	])
 
 	// Limpiar business seleccionado al cerrar modales
-	const handleViewModalClose = useCallback((open: boolean) => {
-		setViewModalOpen(open)
+	const handleCancelModalClose = useCallback((open: boolean) => {
+		setCancelModalOpen(open)
 		if (!open) {
 			setSelectedBusiness(null)
 		}
@@ -545,16 +530,9 @@ export function NegociosPageClient({
 			setSelectedBusiness(response.data)
 		}
 		toast.success('La fecha de emisión fue actualizada exitosamente. Los fondeos han sido recalculados')
-		refetch()
-		refetchStats()
+		refetch(true)
+		refetchStats(true)
 	}, [refetch, refetchStats])
-
-	const handleCancelModalClose = useCallback((open: boolean) => {
-		setCancelModalOpen(open)
-		if (!open) {
-			setSelectedBusiness(null)
-		}
-	}, [])
 
 	const businessDataForTable: Business[] = useMemo(
 		() => businesses.map(mapBusinessToTableRow),
@@ -592,21 +570,8 @@ export function NegociosPageClient({
 				onSortingChange={handleSortingChange}
 				sortBy={searchParams.sortBy}
 				sortOrder={searchParams.sortOrder}
-				onUploadSuccess={() => { refetch(); refetchStats() }}
-				onDeleteSuccess={() => { refetch(); refetchStats() }}
-				onSaveDateIssued={handleSaveDateIssued}
-			/>
-
-			{/* Modal de Visualización */}
-			<BusinessViewModal
-				open={viewModalOpen}
-				onOpenChange={handleViewModalClose}
-				business={selectedBusiness}
-				isLoading={isLoadingBusiness}
-				allowEditDateIssued={
-					_currentUser?.role?.code === UserRole.ADMIN ||
-					_currentUser?.role?.code === UserRole.ANALISTA_SOPORTE
-				}
+				onUploadSuccess={() => { refetch(true); refetchStats(true) }}
+				onDeleteSuccess={() => { refetch(true); refetchStats(true) }}
 				onSaveDateIssued={handleSaveDateIssued}
 			/>
 

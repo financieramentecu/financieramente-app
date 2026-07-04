@@ -5,6 +5,12 @@ const meta: Meta<typeof DashboardLayout> = {
 	title: 'Layouts/DashboardLayout',
 	component: DashboardLayout,
 	parameters: {
+		nextjs: {
+			appDirectory: true,
+			router: {
+				pathname: '/',
+			},
+		},
 		layout: 'fullscreen',
 		viewport: {
 			defaultViewport: 'desktop',

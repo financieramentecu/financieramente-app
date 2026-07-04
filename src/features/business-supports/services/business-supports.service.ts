@@ -124,6 +124,9 @@ export async function persistComprobante(
       uploader: {
         select: { idUser: true, name: true },
       },
+      business: {
+        select: { contract: true, user: { select: { name: true } } }
+      }
     },
   })
 
@@ -135,6 +138,40 @@ export async function persistComprobante(
     action: AuditAction.COMPROBANTE_UPLOADED,
     details: `Comprobante uploaded for negocio ${businessId}: ${input.key}`,
   })
+
+  try {
+    // Notificar a: Admin, Analistas de Soporte y Asistentes Operativos de Gerencia
+    const targetUsers = await prisma.user.findMany({
+      where: {
+        role: { code: { in: ['ADMIN', 'ANALISTA_SOPORTE', 'ASISTENTE_GERENCIA_OPERATIVA'] } },
+        active: true,
+      },
+      select: { idUser: true }
+    })
+
+    const title = 'Nuevo soporte adjuntado'
+    const message = `Se ha subido un soporte para el contrato ${row.business.contract} (Agente: ${row.business.user.name})`
+
+    const createdNotifications = await Promise.all(
+      targetUsers.map(u => prisma.notification.create({ 
+        data: {
+          idUser: u.idUser,
+          title,
+          message,
+          callbackUrl: `/dashboard/negocios/${businessId}`
+        }
+      }))
+    )
+
+    const { notificationProvider } = await import('@/features/shared/services/notifications/sse-notification-provider')
+    for (const n of createdNotifications) {
+      await notificationProvider.sendNotification(n.idUser, n).catch(err => {
+        console.error('Error in sendNotification:', err)
+      })
+    }
+  } catch (error) {
+    console.error('Error creating notifications for uploaded support:', error)
+  }
 
   return toDTO(row as Parameters<typeof toDTO>[0])
 }

@@ -14,9 +14,9 @@ vi.mock('@/auth')
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		business: {
-			groupBy: vi.fn(),
 			count: vi.fn(),
 		},
+		$queryRaw: vi.fn(),
 		currency: {
 			findMany: vi.fn(),
 		},
@@ -53,7 +53,7 @@ function makeRequest(params: Record<string, string> = {}): NextRequest {
 describe('GET /api/negocios/stats', () => {
 	const mockAuth = vi.mocked(auth)
 	const mockGetCurrentUserByEmail = vi.mocked(getCurrentUserByEmail)
-	const mockGroupBy = vi.mocked(prisma.business.groupBy)
+	const mockQueryRaw = vi.mocked(prisma.$queryRaw)
 	const mockCount = vi.mocked(prisma.business.count)
 	const mockCurrencyFindMany = vi.mocked(prisma.currency.findMany)
 
@@ -65,8 +65,8 @@ describe('GET /api/negocios/stats', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		mockCurrencyFindMany.mockResolvedValue(currencies as never)
-		// Default groupBy returns empty, default count returns 0
-		mockGroupBy.mockResolvedValue([])
+		// Default queryRaw returns empty, default count returns 0
+		mockQueryRaw.mockResolvedValue([])
 		mockCount.mockResolvedValue(0)
 	})
 
@@ -91,29 +91,28 @@ describe('GET /api/negocios/stats', () => {
 			)
 		})
 
-		it('calls groupBy 1 time with no createdAt filter when no dates provided', async () => {
+		it('calls queryRaw 1 time with no createdAt filter when no dates provided', async () => {
 			await GET(makeRequest())
-			expect(mockGroupBy).toHaveBeenCalledTimes(1)
-			const call = mockGroupBy.mock.calls[0]
-			expect(call[0].where).not.toHaveProperty('createdAt')
+			expect(mockQueryRaw).toHaveBeenCalledTimes(1)
+			const call = mockQueryRaw.mock.calls[0]
+			const callStr = JSON.stringify(call)
+			expect(callStr).not.toContain('created_at >=')
 		})
 
 		it('applies createdAt filter when dateFrom and dateTo are provided', async () => {
 			await GET(makeRequest({ dateFrom: '2026-04-01', dateTo: '2026-04-30' }))
-			expect(mockGroupBy).toHaveBeenCalledTimes(1)
-			const call = mockGroupBy.mock.calls[0]
-			expect(call[0].where).toMatchObject({
-				createdAt: expect.objectContaining({
-					gte: expect.any(Date),
-					lte: expect.any(Date),
-				}),
-			})
+			expect(mockQueryRaw).toHaveBeenCalledTimes(1)
+			const call = mockQueryRaw.mock.calls[0]
+			const callStr = JSON.stringify(call)
+			expect(callStr).toContain('created_at >=')
+			expect(callStr).toContain('created_at <=')
 		})
 
 		it('does NOT apply createdAt filter when only dateFrom is provided', async () => {
 			await GET(makeRequest({ dateFrom: '2026-04-01' }))
-			const call = mockGroupBy.mock.calls[0]
-			expect(call[0].where).not.toHaveProperty('createdAt')
+			const call = mockQueryRaw.mock.calls[0]
+			const callStr = JSON.stringify(call)
+			expect(callStr).not.toContain('created_at >=')
 		})
 	})
 
@@ -125,16 +124,17 @@ describe('GET /api/negocios/stats', () => {
 
 		it('scopes KPI query to the agent idUser', async () => {
 			await GET(makeRequest({ dateFrom: '2026-04-01', dateTo: '2026-04-30' }))
-			const call = mockGroupBy.mock.calls[0]
-			expect(call[0].where).toMatchObject({
-				idUser: { in: expect.arrayContaining([mockAgentUser.idUser]) },
-			})
+			const call = mockQueryRaw.mock.calls[0]
+			const callStr = JSON.stringify(call)
+			expect(callStr).toContain('id_user IN')
+			expect(callStr).toContain(`${mockAgentUser.idUser}`)
 		})
 
 		it('applies createdAt filter when dates given', async () => {
 			await GET(makeRequest({ dateFrom: '2026-04-01', dateTo: '2026-04-30' }))
-			const call = mockGroupBy.mock.calls[0]
-			expect(call[0].where).toHaveProperty('createdAt')
+			const call = mockQueryRaw.mock.calls[0]
+			const callStr = JSON.stringify(call)
+			expect(callStr).toContain('created_at >=')
 		})
 	})
 
@@ -147,10 +147,10 @@ describe('GET /api/negocios/stats', () => {
 		})
 
 		it('sums COP values into totalCop and USD into totalUsd', async () => {
-			mockGroupBy
+			mockQueryRaw
 				.mockResolvedValueOnce([
-					{ status: 'VENTA_EFECTUADA', idCurrency: 1, _count: { idBusiness: 3 }, _sum: { value: { toNumber: () => 1500000 } } },
-					{ status: 'EMITIDO', idCurrency: 2, _count: { idBusiness: 1 }, _sum: { value: { toNumber: () => 500 } } },
+					{ status: 'VENTA_EFECTUADA', idCurrency: 1, _count: BigInt(3), _sum: 1500000 },
+					{ status: 'EMITIDO', idCurrency: 2, _count: BigInt(1), _sum: 500 },
 				] as never)
 
 			const res = await GET(makeRequest())
@@ -162,8 +162,8 @@ describe('GET /api/negocios/stats', () => {
 		})
 
 		it('handles null _sum.value without NaN', async () => {
-			mockGroupBy.mockResolvedValueOnce([
-				{ status: 'VENTA_EFECTUADA', idCurrency: 1, _count: { idBusiness: 2 }, _sum: { value: null } },
+			mockQueryRaw.mockResolvedValueOnce([
+				{ status: 'VENTA_EFECTUADA', idCurrency: 1, _count: BigInt(2), _sum: null },
 			] as never)
 
 			const res = await GET(makeRequest())

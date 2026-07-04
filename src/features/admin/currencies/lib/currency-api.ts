@@ -1,28 +1,10 @@
 import { apiClient } from '@/lib/api/client'
-import { prisma } from '@/lib/prisma'
-import type { Currency as PrismaCurrency } from '@prisma/client'
 import type {
 	Currency,
 	CurrencyFilters,
 	CreateCurrencyInput,
 	UpdateCurrencyInput,
 } from '../types/currency.types'
-
-/**
- * Server-side function to get active currencies.
- * Use this in Server Components and API Routes.
- * For Client Components, use currencyApi.getCurrencies() instead.
- */
-export async function getCurrencies(): Promise<PrismaCurrency[]> {
-	return await prisma.currency.findMany({
-		where: {
-			active: true,
-		},
-		orderBy: {
-			name: 'asc',
-		},
-	})
-}
 
 export const currencyApi = {
 	async getCurrencies(filters?: CurrencyFilters): Promise<Currency[]> {

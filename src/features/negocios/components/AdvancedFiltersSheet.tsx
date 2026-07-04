@@ -278,7 +278,19 @@ export function AdvancedFiltersSheet() {
 			agentIds: [],
 			agentName: '',
 		})
-	}, [reset])
+
+		const params = new URLSearchParams(searchParams.toString())
+		const filterKeys = [
+			'statuses', 'dateFrom', 'dateTo', 'createdFrom', 'createdTo',
+			'dateIssuedFrom', 'dateIssuedTo', 'hasSupports', 'agentName', 'agentCategoryIds', 'agentIds',
+			'companyIds', 'productIds', 'originIds', 'terms', 'periodicityIds',
+		]
+		filterKeys.forEach((k) => params.delete(k))
+		params.set('page', '1')
+
+		router.replace(`?${params.toString()}`, { scroll: false })
+		setOpen(false)
+	}, [reset, searchParams, router])
 
 	return (
 		<Sheet open={open} onOpenChange={handleOpenChange}>

@@ -46,7 +46,7 @@ export default async function CalculadoraPage() {
 	}
 
 	// Obtener datos iniciales para los selects
-	const [companies, products, origins, allLevels] = await Promise.all([
+	const [companies, productsRaw, origins, allLevels] = await Promise.all([
 		prisma.company.findMany({
 			where: { status: true },
 			select: { 
@@ -58,7 +58,7 @@ export default async function CalculadoraPage() {
 		}),
 		prisma.product.findMany({
 			where: { status: true },
-			select: { idProduct: true, name: true, idCompany: true },
+			select: { idProduct: true, name: true, idCompany: true, commissionPercentage: true },
 			orderBy: { name: 'asc' },
 		}),
 		prisma.clientOrigin.findMany({
@@ -72,6 +72,11 @@ export default async function CalculadoraPage() {
 			orderBy: { idLevel: 'asc' },
 		})
 	])
+
+	const products = productsRaw.map(p => ({
+		...p,
+		commissionPercentage: p.commissionPercentage ? Number(p.commissionPercentage) : 0
+	}))
 
 	// Filtrar niveles permitidos (hacia abajo) si no es ADMIN
 	let allowedLevels = allLevels
