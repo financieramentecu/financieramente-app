@@ -4,6 +4,22 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.22.13] - 2026-07-04
+
+### Corregido
+
+- **Error de enrutamiento en Storybook:** Se corrigió el error `SB_FRAMEWORK_NEXTJS_0002` (NextjsRouterMocksNotAvailable) que impedía la renderización correcta de los componentes con `next/navigation` en los tests visuales y estáticos de Chromatic. La solución elimina aliases redundantes en la configuración de webpack de Storybook.
+
+## [1.22.12] - 2026-07-03
+
+### Cambiado
+
+- **Notificaciones genéricas:** Las notificaciones en la plataforma han sido desacopladas de la entidad `Business`, volviéndolas completamente genéricas. Ahora soportan un `callbackUrl` para redirección flexible y se pueden utilizar en cualquier flujo del sistema (no sólo para negocios). También se simplificó la interfaz del Drawer de notificaciones, eliminando los filtros condicionales acoplados a negocios.
+
+### Corregido
+
+- **Bucle infinito en Storybook:** Se corrigió un error que causaba que `useBusinesses` entrara en un bucle infinito de re-renderizados en entornos de prueba (como Chromatic) al recibir arreglos creados dinámicamente. La función ahora maneja sus dependencias de forma inmutable usando `JSON.stringify`.
+
 ## [1.22.11] - 2026-06-30
 
 ### Agregado

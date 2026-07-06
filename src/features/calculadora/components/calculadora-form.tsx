@@ -16,6 +16,8 @@ import {
 } from '@/features/shared/ui/select'
 import { Card, CardContent } from '@/features/shared/ui/card'
 import { Badge } from '@/features/shared/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/features/shared/ui/alert'
+import { AlertCircle } from 'lucide-react'
 import { getProductDistribution } from '@/features/calculadora/actions/get-product-distribution'
 
 const formSchema = z.object({
@@ -36,7 +38,7 @@ export type CalculadoraFormData = z.infer<typeof formSchema>
 
 interface CalculadoraFormProps {
 	companies: { idCompany: number; name: string; currency?: { symbol: string | null } | null }[]
-	products: { idProduct: number; name: string; idCompany: number; discountPercentage?: number | null; clawbackPercentage?: number | null }[]
+	products: { idProduct: number; name: string; idCompany: number; commissionPercentage?: number; discountPercentage?: number | null; clawbackPercentage?: number | null }[]
 	origins: { idClientOrigin: number; name: string }[]
 	levels: { idLevel: number; name: string; code?: string; idNextLevel?: number | null }[]
 	userRole?: string
@@ -133,6 +135,8 @@ export function CalculadoraForm({
 		}
 	}, [selectedLevelViewId, selectedLevelOriginId, sellLevels, setValue])
 
+	const [distributionHasConfig, setDistributionHasConfig] = React.useState<boolean>(true)
+
 	// Carga el clawback del producto/nivel al cambiar la selección
 	useEffect(() => {
 		const updateDistribution = async () => {
@@ -140,16 +144,19 @@ export function CalculadoraForm({
 				const res = await getProductDistribution(selectedProductId, selectedLevelOriginId)
 				// Siempre aplicar el clawback (viene de CommissionDiscount incluso si success=false)
 				setValue('clawback', res.clawbackPercentage ?? 10)
-				if (res.success) {
+				if (res.success && res.data && res.data.length > 0) {
+					setDistributionHasConfig(true)
 					if (onChange) {
 						onChange({ distributionData: res.data })
 					}
 				} else {
+					setDistributionHasConfig(false)
 					if (onChange) {
 						onChange({ distributionData: [] })
 					}
 				}
 			} else {
+				setDistributionHasConfig(true)
 				if (onChange) {
 					onChange({ distributionData: [] })
 				}
@@ -158,6 +165,13 @@ export function CalculadoraForm({
 
 		updateDistribution()
 	}, [selectedProductId, selectedLevelOriginId, setValue, onChange])
+
+	const selectedProduct = useMemo(() => {
+		if (!selectedProductId) return null;
+		return products.find(p => p.idProduct === selectedProductId) || null;
+	}, [products, selectedProductId])
+
+	const productHasZeroCommission = selectedProduct ? (selectedProduct.commissionPercentage === 0 || selectedProduct.commissionPercentage == null) : false;
 
 	const handleClear = () => {
 		reset()
@@ -356,10 +370,24 @@ export function CalculadoraForm({
 						)}
 					</div>
 
+					{selectedProductId && selectedLevelOriginId && (!distributionHasConfig || productHasZeroCommission) && (
+						<Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
+							<AlertCircle className="h-4 w-4" />
+							<AlertTitle>Configuración incompleta</AlertTitle>
+							<AlertDescription>
+								{productHasZeroCommission && !distributionHasConfig 
+									? "Este producto no tiene porcentaje de comisión ni configuración de jerarquía. Ve a configurar el producto en el administrador."
+									: productHasZeroCommission
+									? "Este producto tiene una comisión base de 0% o no tiene comisión configurada. Asegúrate de configurar la comisión del producto."
+									: "No hay configuración de distribución en la jerarquía para el producto y nivel seleccionado."}
+							</AlertDescription>
+						</Alert>
+					)}
+
 					<div className="flex flex-col sm:flex-row gap-4 pt-4">
 						<Button
 							type="submit"
-							disabled={isPending}
+							disabled={isPending || !distributionHasConfig || productHasZeroCommission}
 							className="flex-1 bg-[#0D5B69] hover:bg-[#09424c]"
 						>
 							{isPending ? 'Calculando...' : 'Calcular'}

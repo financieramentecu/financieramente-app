@@ -23,6 +23,7 @@ vi.mock('@/lib/prisma', () => ({
 		currency: {
 			findMany: vi.fn(),
 		},
+		$queryRaw: vi.fn(),
 	},
 }))
 vi.mock('@/features/negocios/services/user.service', () => ({
@@ -38,7 +39,7 @@ import type { NextRequest } from 'next/server'
 
 const mockAuth = vi.mocked(auth)
 const mockGetCurrentUser = vi.mocked(getCurrentUserByEmail)
-const mockGroupBy = vi.mocked(prisma.business.groupBy)
+const mockQueryRaw = vi.mocked(prisma.$queryRaw)
 const mockUserFindMany = vi.mocked(prisma.user.findMany)
 const mockCurrencyFindMany = vi.mocked(prisma.currency.findMany)
 
@@ -63,7 +64,7 @@ function makeUser(idUser: number, roleCode: string) {
 describe('GET /api/negocios/stats — hierarchical visibility', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		mockGroupBy.mockResolvedValue([])
+		mockQueryRaw.mockResolvedValue([])
 		mockCurrencyFindMany.mockResolvedValue([])
 		vi.mocked(prisma.business.count).mockResolvedValue(0)
 	})
@@ -79,12 +80,12 @@ describe('GET /api/negocios/stats — hierarchical visibility', () => {
 			// No BFS for admin
 			expect(mockUserFindMany).not.toHaveBeenCalled()
 
-			// groupBy where must NOT have idUser restriction
-			const calls = mockGroupBy.mock.calls
+			// queryRaw where must NOT have id_user restriction
+			const calls = mockQueryRaw.mock.calls
 			expect(calls.length).toBeGreaterThan(0)
 			for (const call of calls) {
-				const whereStr = JSON.stringify(call[0]?.where ?? {})
-				expect(whereStr).not.toContain('"idUser"')
+				const callStr = JSON.stringify(call)
+				expect(callStr).not.toContain('id_user IN')
 			}
 		})
 	})
@@ -107,12 +108,14 @@ describe('GET /api/negocios/stats — hierarchical visibility', () => {
 
 			expect(mockUserFindMany).toHaveBeenCalledTimes(1)
 
-			// All groupBy calls must use IN predicate
-			for (const call of mockGroupBy.mock.calls) {
-				const whereStr = JSON.stringify(call[0]?.where ?? {})
-				expect(whereStr).toContain('"in"')
-				expect(whereStr).toContain(`${leaderId}`)
-				expect(whereStr).toContain(`${subordinateId}`)
+			// All queryRaw calls must use IN predicate with user ids
+			for (const call of mockQueryRaw.mock.calls) {
+				const callStr = JSON.stringify(call)
+				expect(callStr).toContain('id_user IN')
+				
+				// Ensure the actual values are in the parameter list (call bounds or values)
+				expect(callStr).toContain(`${leaderId}`)
+				expect(callStr).toContain(`${subordinateId}`)
 			}
 		})
 
@@ -128,9 +131,10 @@ describe('GET /api/negocios/stats — hierarchical visibility', () => {
 			const res = await GET(makeRequest())
 			expect(res.status).toBe(200)
 
-			for (const call of mockGroupBy.mock.calls) {
-				const whereStr = JSON.stringify(call[0]?.where ?? {})
-				expect(whereStr).toContain(`${agentId}`)
+			for (const call of mockQueryRaw.mock.calls) {
+				const callStr = JSON.stringify(call)
+				expect(callStr).toContain('id_user IN')
+				expect(callStr).toContain(`${agentId}`)
 			}
 		})
 	})

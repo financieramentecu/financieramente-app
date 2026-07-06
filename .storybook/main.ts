@@ -27,6 +27,17 @@ const config: StorybookConfig & {
 				prop.parent ? !/node_modules/.test(prop.parent.fileName) : true,
 		},
 	},
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	webpackFinal: async (config: any) => {
+		config.resolve = config.resolve || {}
+		config.resolve.alias = {
+			...config.resolve.alias,
+			'next-auth/react': require.resolve('./mocks/next-auth-react.tsx'),
+			'@/auth': require.resolve('./mocks/auth.ts'),
+			'@flagsmith/flagsmith/react': require.resolve('./mocks/flagsmith-react.ts'),
+		}
+		return config
+	},
 	viteFinal: async (config: Record<string, unknown>) => {
 		// Mock modules not available in Storybook/Chromatic
 		const viteConfig = config as {
@@ -45,7 +56,6 @@ const config: StorybookConfig & {
 				)
 		viteConfig.resolve.alias = [
 			...existingEntries,
-			{ find: 'next/navigation', replacement: require.resolve('./mocks/next-navigation.ts') },
 			{ find: 'next-auth/react', replacement: require.resolve('./mocks/next-auth-react.tsx') },
 			{ find: '@/auth', replacement: require.resolve('./mocks/auth.ts') },
 			// RegExp required for scoped subpath packages (@flagsmith/flagsmith/react)

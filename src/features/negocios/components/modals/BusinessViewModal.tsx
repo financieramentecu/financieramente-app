@@ -60,6 +60,8 @@ interface BusinessViewModalProps {
  * Modal de visualización de negocio
  * Muestra información completa del negocio en modo solo lectura
  *
+ * @deprecated Use `/dashboard/negocios/[id]` instead. This modal is being phased out.
+ *
  * @example
  * ```tsx
  * <BusinessViewModal

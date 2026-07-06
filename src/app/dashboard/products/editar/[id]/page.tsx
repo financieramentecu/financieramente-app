@@ -2,7 +2,7 @@ import { auth } from '@/auth'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { ProductEditClient } from './product-edit-client'
 import { notFound } from 'next/navigation'
-import { getCompanies } from '@/features/company/lib/company-api'
+import { getCompanies } from '@/features/company/services/company.service'
 import type { CompanyOption } from '@/features/product/types/product.types'
 
 interface EditProductPageProps {
