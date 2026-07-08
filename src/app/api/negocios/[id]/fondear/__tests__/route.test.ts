@@ -353,4 +353,160 @@ describe('POST /api/negocios/[id]/fondear', () => {
 			})
 		})
 	})
+
+	// ─── 4.5 fundedDate (fondeo directo con fecha) ────────────────────────
+	describe('fundedDate', () => {
+		it('debe anclar dateAnchored a las 12:00 UTC de la fundedDate provista', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			const mockExistingBusiness = {
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.EMITIDO,
+				_count: { payments: 0 },
+			}
+
+			const dateAnchored = new Date('2026-06-15T12:00:00.000Z')
+			const mockFundedBusiness = {
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.FONDEADO,
+				dateAnchored,
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindUnique.mockResolvedValue(mockExistingBusiness as never)
+			mockPrismaUpdate.mockResolvedValue(mockFundedBusiness as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 2,
+				status: BUSINESS_STATUS.FONDEADO,
+				dateAnchored: dateAnchored.toISOString(),
+			} as never)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fundedDate: '2026-06-15' }),
+				}
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(200)
+			expect(mockPrismaUpdate).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({
+						status: BUSINESS_STATUS.FONDEADO,
+						dateAnchored: new Date('2026-06-15T12:00:00.000Z'),
+					}),
+				})
+			)
+			expect(mockLogAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					details: expect.stringContaining('2026-06-15'),
+				})
+			)
+			expect(responseData.data.status).toBe(BUSINESS_STATUS.FONDEADO)
+		})
+
+		it('debe retornar 400 cuando fundedDate tiene formato inválido', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fundedDate: '15-06-2026' }),
+				}
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(responseData.data).toBeNull()
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
+		})
+
+		it('debe retornar 400 cuando fundedDate es una fecha futura', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+
+			const farFutureDate = '2099-01-01'
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fundedDate: farFutureDate }),
+				}
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(responseData.data).toBeNull()
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
+		})
+
+		it('debe fondear sin fundedDate usando la fecha actual (comportamiento previo intacto)', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			const mockExistingBusiness = {
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.EMITIDO,
+				_count: { payments: 0 },
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindUnique.mockResolvedValue(mockExistingBusiness as never)
+			mockPrismaUpdate.mockResolvedValue({
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.FONDEADO,
+				dateAnchored: new Date(),
+			} as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 2,
+				status: BUSINESS_STATUS.FONDEADO,
+			} as never)
+
+			// No body at all — preserves the original no-body request shape
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{ method: 'POST' }
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(200)
+			expect(mockPrismaUpdate).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({
+						status: BUSINESS_STATUS.FONDEADO,
+						dateAnchored: expect.any(Date),
+					}),
+				})
+			)
+			expect(responseData.data.status).toBe(BUSINESS_STATUS.FONDEADO)
+		})
+	})
 })

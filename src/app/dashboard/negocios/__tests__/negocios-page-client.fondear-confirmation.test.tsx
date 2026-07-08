@@ -94,6 +94,12 @@ vi.mock('@/features/negocios/components/MisNegociosPage', () => {
 			>
 				trigger-fondear-annual
 			</button>
+			<button
+				type="button"
+				onClick={() => onFondearBusiness?.(createBusinessRow('directZero'))}
+			>
+				trigger-fondear-direct-zero
+			</button>
 		</div>
 	)
 	return {
@@ -101,6 +107,29 @@ vi.mock('@/features/negocios/components/MisNegociosPage', () => {
 		default: MisNegociosPage,
 	}
 })
+
+vi.mock('@/features/negocios/components/modals/FundDirectFundingModal', () => ({
+	FundDirectFundingModal: ({
+		open,
+		onConfirm,
+		onOpenChange,
+	}: {
+		open: boolean
+		onConfirm: (date: string) => void
+		onOpenChange: (open: boolean) => void
+	}) =>
+		open ? (
+			<div>
+				<p>direct-funding-modal-open</p>
+				<button type="button" onClick={() => onConfirm('2026-06-15')}>
+					fund-direct-confirm
+				</button>
+				<button type="button" onClick={() => onOpenChange(false)}>
+					fund-direct-cancel
+				</button>
+			</div>
+		) : null,
+}))
 
 vi.mock('@/features/negocios/components/modals/BusinessViewModal', () => ({
 	BusinessViewModal: () => null,
@@ -166,12 +195,13 @@ vi.mock('@/features/shared/ui/alert-dialog', () => ({
 	),
 }))
 
-function createBusinessRow(mode: 'direct' | 'annual'): Business {
+function createBusinessRow(mode: 'direct' | 'annual' | 'directZero'): Business {
 	return {
-		id: mode === 'direct' ? '101' : '202',
+		id: mode === 'direct' ? '101' : mode === 'annual' ? '202' : '303',
 		identification: '123',
 		clientName: 'Cliente Demo',
-		contract: mode === 'direct' ? 'PN001' : 'PN002',
+		contract:
+			mode === 'direct' ? 'PN001' : mode === 'annual' ? 'PN002' : 'PN003',
 		user: { avatar: '', name: 'Agente Demo', categoryName: null },
 		email: 'demo@test.com',
 		termPeriod: '12/Mensual',
@@ -188,6 +218,7 @@ function createBusinessRow(mode: 'direct' | 'annual'): Business {
 		statusCode: 'EMITIDO',
 		hasPayments: mode === 'annual',
 		hasPendingPaymentFunding: mode === 'annual',
+		numAportes: mode === 'directZero' ? 0 : null,
 		supportCount: 0,
 		observations: null,
 		currency: { id: 1, name: 'COP' },
@@ -258,5 +289,49 @@ describe('NegociosPageClient - confirmacion de fondeo', () => {
 		expect(mockGetAnnualPayments).toHaveBeenCalledWith(202)
 		expect(await screen.findByText('annual-funding-modal-open')).toBeInTheDocument()
 		expect(mockFondearBusiness).not.toHaveBeenCalled()
+	})
+
+	it('abre FundDirectFundingModal (con selector de fecha) cuando numAportes = 0', async () => {
+		const user = userEvent.setup()
+		render(<NegociosPageClient />)
+
+		await user.click(
+			screen.getByRole('button', { name: 'trigger-fondear-direct-zero' })
+		)
+
+		expect(screen.getByText('direct-funding-modal-open')).toBeInTheDocument()
+		expect(screen.queryByText('¿Confirmar fondeo?')).not.toBeInTheDocument()
+		expect(mockFondearBusiness).not.toHaveBeenCalled()
+	})
+
+	it('confirma fondeo directo con fecha seleccionada (numAportes = 0)', async () => {
+		const user = userEvent.setup()
+		render(<NegociosPageClient />)
+
+		await user.click(
+			screen.getByRole('button', { name: 'trigger-fondear-direct-zero' })
+		)
+		await user.click(screen.getByRole('button', { name: 'fund-direct-confirm' }))
+
+		await waitFor(() => {
+			expect(mockFondearBusiness).toHaveBeenCalledWith(303, '2026-06-15')
+		})
+		await waitFor(() => {
+			expect(mockRefetchBusinesses).toHaveBeenCalled()
+			expect(mockRefetchStats).toHaveBeenCalled()
+		})
+	})
+
+	it('no ejecuta fondeo directo con fecha cuando el usuario cancela', async () => {
+		const user = userEvent.setup()
+		render(<NegociosPageClient />)
+
+		await user.click(
+			screen.getByRole('button', { name: 'trigger-fondear-direct-zero' })
+		)
+		await user.click(screen.getByRole('button', { name: 'fund-direct-cancel' }))
+
+		expect(mockFondearBusiness).not.toHaveBeenCalled()
+		expect(screen.queryByText('direct-funding-modal-open')).not.toBeInTheDocument()
 	})
 })
