@@ -6,6 +6,7 @@ import MisNegociosPage from '@/features/negocios/components/MisNegociosPage'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
 import { BusinessObservationsModal } from '@/features/negocios/components/modals/BusinessObservationsModal'
 import { FundingModal } from '@/features/negocios/components/modals/FundingModal'
+import { FundDirectFundingModal } from '@/features/negocios/components/modals/FundDirectFundingModal'
 import { businessService } from '@/features/negocios/services/business.service'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
@@ -131,6 +132,8 @@ export function NegociosPageClient({
 	const [pendingFondearBusiness, setPendingFondearBusiness] =
 		useState<Business | null>(null)
 	const [isConfirmingFondear, setIsConfirmingFondear] = useState(false)
+	const [fundDirectModalOpen, setFundDirectModalOpen] = useState(false)
+	const [fundDirectError, setFundDirectError] = useState<string | null>(null)
 
 	// Estado para búsqueda con debounce
 	const [searchInput, setSearchInput] = useState('')
@@ -317,7 +320,7 @@ export function NegociosPageClient({
 	 * Fondeo: sin anualidades → POST directo; con anualidades → modal HU4
 	 */
 	const executeFondearBusiness = useCallback(
-		async (business: Business) => {
+		async (business: Business, fundedDate?: string) => {
 			if (business.hasPayments) {
 				setAnnualFundingBusinessId(Number(business.id))
 				setAnnualFundingBusinessStatus(business.status ?? null)
@@ -350,12 +353,14 @@ export function NegociosPageClient({
 				return
 			}
 
-			const result = await fondearBusiness(Number(business.id))
+			const result = await fondearBusiness(Number(business.id), fundedDate)
 
 			if (result) {
 				refetch(true)
 				refetchStats(true)
 			}
+
+			return result
 		},
 		[fondearBusiness, refetch, refetchStats]
 	)
@@ -368,6 +373,13 @@ export function NegociosPageClient({
 			}
 
 			setPendingFondearBusiness(business)
+
+			if (business.numAportes === 0) {
+				setFundDirectError(null)
+				setFundDirectModalOpen(true)
+				return
+			}
+
 			setFondearConfirmOpen(true)
 		},
 		[executeFondearBusiness]
@@ -396,6 +408,36 @@ export function NegociosPageClient({
 			}
 		},
 		[isConfirmingFondear]
+	)
+
+	const handleFundDirectModalOpenChange = useCallback(
+		(open: boolean) => {
+			if (isFondeando) {
+				return
+			}
+			setFundDirectModalOpen(open)
+			if (!open) {
+				setPendingFondearBusiness(null)
+				setFundDirectError(null)
+			}
+		},
+		[isFondeando]
+	)
+
+	const handleConfirmFundDirect = useCallback(
+		async (fundedDate: string) => {
+			if (!pendingFondearBusiness) return
+			setFundDirectError(null)
+			const result = await executeFondearBusiness(
+				pendingFondearBusiness,
+				fundedDate
+			)
+			if (result) {
+				setFundDirectModalOpen(false)
+				setPendingFondearBusiness(null)
+			}
+		},
+		[pendingFondearBusiness, executeFondearBusiness]
 	)
 
 	const handleRefetchAnnualPayments = useCallback(async () => {
@@ -606,6 +648,15 @@ export function NegociosPageClient({
 				dateAnchored={annualFundingDateAnchored}
 				onRefetchInstallments={handleRefetchAnnualPayments}
 				onFundingSuccess={() => { refetch(); refetchStats() }}
+			/>
+
+			<FundDirectFundingModal
+				open={fundDirectModalOpen}
+				onOpenChange={handleFundDirectModalOpenChange}
+				business={pendingFondearBusiness}
+				onConfirm={(fundedDate) => void handleConfirmFundDirect(fundedDate)}
+				isLoading={isFondeando}
+				error={fundDirectError}
 			/>
 
 			<AlertDialog

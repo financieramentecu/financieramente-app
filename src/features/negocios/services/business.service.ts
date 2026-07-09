@@ -143,12 +143,23 @@ export const businessService = {
 	 * Fondea un negocio (transición EMITIDO → FONDEADO)
 	 *
 	 * @param id - ID del negocio
+	 * @param fundedDate - Fecha de fondeo (YYYY-MM-DD); si se omite, el
+	 *   servidor usa la fecha actual (Bogotá)
 	 * @returns Negocio fondeado
 	 */
-	async fondear(id: number): Promise<ApiResponse<BusinessEntity>> {
+	async fondear(
+		id: number,
+		fundedDate?: string
+	): Promise<ApiResponse<BusinessEntity>> {
 		try {
 			const response = await fetch(`${BASE_URL}/${id}/fondear`, {
 				method: 'POST',
+				...(fundedDate
+					? {
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ fundedDate }),
+						}
+					: {}),
 			})
 
 			return await response.json()

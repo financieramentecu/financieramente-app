@@ -73,4 +73,21 @@ describe('mapBusinessToTableRow', () => {
 		expect(row.status).toBe('DESCONOCIDO')
 		expect(row.status).not.toBe('Cancelado')
 	})
+
+	it('threads numAportes from the entity into the table row', () => {
+		const entity = createBusinessEntity(BUSINESS_STATUS.EMITIDO)
+		entity.numAportes = 0
+
+		const row = mapBusinessToTableRow(entity)
+
+		expect(row.numAportes).toBe(0)
+	})
+
+	it('keeps numAportes null when the entity has no annual rows configured', () => {
+		const row = mapBusinessToTableRow(
+			createBusinessEntity(BUSINESS_STATUS.EMITIDO)
+		)
+
+		expect(row.numAportes).toBeNull()
+	})
 })

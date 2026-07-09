@@ -9,6 +9,7 @@ import type {
 	AgentInfo,
 	ProductInfo,
 } from '../../types/business-entity.types'
+import type { Business } from '../../types/business.types'
 
 /**
  * Crea un mock de información de cliente
@@ -163,4 +164,44 @@ export const mockBusinessesByStatus = {
 	),
 	emitido: mockBusinessList.filter((b) => b.status === 'EMITIDO'),
 	cancelado: mockBusinessList.filter((b) => b.status === 'CANCELADO'),
+}
+
+/**
+ * Crea un mock del tipo Business usado en la tabla/listado (post-mapper)
+ * @param overrides - Propiedades para sobrescribir los valores por defecto
+ */
+export function createMockTableBusiness(
+	overrides: Partial<Business> = {}
+): Business {
+	return {
+		id: '2',
+		identification: '1234567890',
+		clientName: 'María García López',
+		contract: 'PN0005678',
+		user: {
+			avatar: '',
+			name: 'Carlos Pérez',
+			categoryName: 'Junior',
+		},
+		email: 'maria.garcia@email.com',
+		termPeriod: '12/Mensual',
+		term: 12,
+		periodicityName: 'Mensual',
+		dateIssued: '2024-02-01T12:00:00.000Z',
+		dateAnchored: null,
+		date: '2024-02-01T12:00:00.000Z',
+		value: 15000000,
+		product: 'Crédito Personal',
+		companyName: 'Skandia',
+		clientOriginName: 'Referido',
+		status: 'Emitido',
+		statusCode: 'EMITIDO',
+		hasPayments: false,
+		hasPendingPaymentFunding: false,
+		numAportes: 0,
+		supportCount: 0,
+		observations: null,
+		currency: { id: 1, name: 'COP' },
+		...overrides,
+	}
 }

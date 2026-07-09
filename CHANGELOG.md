@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.23.0] - 2026-07-08
+
+### Agregado
+
+- **Modal de fecha de fondeo para negocios sin aportes:** Los Administradores y Analistas de Soporte ahora pueden seleccionar la fecha real de fondeo cuando un negocio sin aportes (como MFUND de Skandia con modalidad única) es fondeado. Antes la fecha se asignaba automáticamente a la fecha del servidor, lo que podía no coincidir con la fecha real en que se realizó el aporte. El modal "Confirmar Fondeo" permite elegir la fecha exacta, mejorando la precisión del registro de operaciones.
+
 ## [1.22.13] - 2026-07-04
 
 ### Corregido
