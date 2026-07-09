@@ -25,6 +25,7 @@ export const mockBusinessList: Business[] = [
 		statusCode: 'EMITIDO',
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
+		numAportes: null,
 		supportCount: 0 ,
 		observations: null,
 		currency: {
@@ -56,6 +57,7 @@ export const mockBusinessList: Business[] = [
 		statusCode: 'VENTA_EFECTUADA',
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
+		numAportes: null,
 		supportCount: 0 ,
 		observations: null,
 		currency: {
@@ -87,6 +89,7 @@ export const mockBusinessList: Business[] = [
 		statusCode: 'EMITIDO',
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
+		numAportes: null,
 		supportCount: 0 ,
 		observations: null,
 		currency: {
@@ -118,6 +121,7 @@ export const mockBusinessList: Business[] = [
 		statusCode: 'VENTA_EFECTUADA',
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
+		numAportes: null,
 		supportCount: 0 ,
 		observations: null,
 		currency: {
@@ -149,6 +153,7 @@ export const mockBusinessList: Business[] = [
 		statusCode: 'EMITIDO',
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
+		numAportes: null,
 		supportCount: 0 ,
 		observations: null,
 		currency: {
@@ -180,6 +185,7 @@ export const mockBusinessList: Business[] = [
 		statusCode: 'VENTA_EFECTUADA',
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
+		numAportes: null,
 		supportCount: 0 ,
 		observations: null,
 		currency: {

@@ -10,6 +10,7 @@ vi.mock('../../services/business.service', () => ({
 	businessService: {
 		update: vi.fn(),
 		cancel: vi.fn(),
+		fondear: vi.fn(),
 	},
 }))
 
@@ -184,6 +185,63 @@ describe('useBusinessMutation', () => {
 			await waitFor(() => {
 				expect(result.current.isCancelling).toBe(false)
 			})
+		})
+	})
+
+	describe('fondearBusiness', () => {
+		it('forwards fundedDate to businessService.fondear when provided', async () => {
+			const mockBusiness = createMockBusiness({
+				id: 1,
+				status: 'FONDEADO',
+			})
+
+			vi.mocked(businessService.fondear).mockResolvedValueOnce({
+				data: mockBusiness,
+			})
+
+			const { result } = renderHook(() => useBusinessMutation())
+
+			let fondearResult: BusinessEntity | null = null
+
+			await act(async () => {
+				fondearResult = await result.current.fondearBusiness(1, '2026-06-15')
+			})
+
+			expect(fondearResult).toEqual(mockBusiness)
+			expect(businessService.fondear).toHaveBeenCalledWith(1, '2026-06-15')
+		})
+
+		it('calls businessService.fondear without a date (backward compatible)', async () => {
+			const mockBusiness = createMockBusiness({ id: 1, status: 'FONDEADO' })
+
+			vi.mocked(businessService.fondear).mockResolvedValueOnce({
+				data: mockBusiness,
+			})
+
+			const { result } = renderHook(() => useBusinessMutation())
+
+			await act(async () => {
+				await result.current.fondearBusiness(1)
+			})
+
+			expect(businessService.fondear).toHaveBeenCalledWith(1, undefined)
+		})
+
+		it('returns null and shows error toast on API error', async () => {
+			vi.mocked(businessService.fondear).mockResolvedValueOnce({
+				data: null,
+				error: 'Este negocio tiene anualidades',
+			})
+
+			const { result } = renderHook(() => useBusinessMutation())
+
+			let fondearResult: unknown = undefined
+
+			await act(async () => {
+				fondearResult = await result.current.fondearBusiness(1)
+			})
+
+			expect(fondearResult).toBeNull()
 		})
 	})
 })
