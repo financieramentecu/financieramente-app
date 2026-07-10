@@ -88,6 +88,7 @@ interface BusinessTableSectionProps {
 	onDeleteSuccess?: () => void
 	onViewObservations?: (business: Business) => void
 	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
+	onSaveDateAnchored?: (businessId: number, dateAnchored: string) => Promise<void>
 }
 
 const BUSINESS_COLUMN_LABELS = {
@@ -133,6 +134,7 @@ export function BusinessTableSection({
 	onDeleteSuccess,
 	onViewObservations,
 	onSaveDateIssued,
+	onSaveDateAnchored,
 }: BusinessTableSectionProps) {
 	const [editingDateId, setEditingDateId] = useState<number | null>(null)
 	const [tempDate, setTempDate] = useState<string>('')
@@ -140,6 +142,9 @@ export function BusinessTableSection({
 	const [confirmOpen, setConfirmOpen] = useState(false)
 	const [confirmBusiness, setConfirmBusiness] = useState<Business | null>(null)
 	const [pendingDate, setPendingDate] = useState<string>('')
+	const [editingAnchoredId, setEditingAnchoredId] = useState<number | null>(null)
+	const [tempAnchoredDate, setTempAnchoredDate] = useState<string>('')
+	const [isSavingAnchoredDate, setIsSavingAnchoredDate] = useState(false)
 
 	const executeSave = async (businessId: number, newDateStr: string) => {
 		if (typeof onSaveDateIssued !== 'function') return
@@ -154,6 +159,21 @@ export function BusinessTableSection({
 			toast.error(`Error al actualizar la fecha: ${errMsg}`)
 		} finally {
 			setIsSavingDate(false)
+		}
+	}
+
+	const executeSaveAnchored = async (businessId: number, newDateStr: string) => {
+		if (typeof onSaveDateAnchored !== 'function') return
+		setIsSavingAnchoredDate(true)
+		try {
+			await onSaveDateAnchored(businessId, newDateStr)
+			setEditingAnchoredId(null)
+		} catch (error: unknown) {
+			console.error('Error al guardar fecha de fondeo:', error)
+			const errMsg = error instanceof Error ? error.message : 'Error desconocido'
+			toast.error(`Error al actualizar la fecha de fondeo: ${errMsg}`)
+		} finally {
+			setIsSavingAnchoredDate(false)
 		}
 	}
 
@@ -486,13 +506,111 @@ export function BusinessTableSection({
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Fecha fondeo" />
 			),
-			cell: ({ row }) => (
-				<span
-					className={row.original.dateAnchored ? '' : 'text-muted-foreground'}
-				>
-					{formatOptionalDate(row.original.dateAnchored)}
-				</span>
-			),
+			cell: ({ row }) => {
+				const business = row.original
+				const businessId = Number(business.id)
+				const isEditing = editingAnchoredId === businessId
+
+				const isEditable =
+					canFundPayments(userRole) &&
+					typeof onSaveDateAnchored === 'function'
+
+				const toDateOnly = (iso: string | null | undefined) => {
+					if (!iso) return ''
+					const d = new Date(iso)
+					const year = d.getFullYear()
+					const month = String(d.getMonth() + 1).padStart(2, '0')
+					const day = String(d.getDate()).padStart(2, '0')
+					return `${year}-${month}-${day}`
+				}
+
+				const handleStartEdit = (e: React.MouseEvent) => {
+					e.stopPropagation()
+					setTempAnchoredDate(toDateOnly(business.dateAnchored))
+					setEditingAnchoredId(businessId)
+				}
+
+				const handleCancel = (e: React.MouseEvent) => {
+					e.stopPropagation()
+					setEditingAnchoredId(null)
+				}
+
+				const handleSaveClick = (e: React.MouseEvent) => {
+					e.stopPropagation()
+
+					const originalFormatted = toDateOnly(business.dateAnchored)
+
+					if (tempAnchoredDate === originalFormatted) {
+						setEditingAnchoredId(null)
+						return
+					}
+
+					if (!tempAnchoredDate) {
+						toast.error('Debe seleccionar una fecha de fondeo válida')
+						return
+					}
+
+					void executeSaveAnchored(businessId, tempAnchoredDate)
+				}
+
+				if (isEditing) {
+					return (
+						<div
+							className="flex items-center gap-1.5 min-w-[170px]"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<Input
+								type="date"
+								value={tempAnchoredDate}
+								disabled={isSavingAnchoredDate}
+								onChange={(e) => setTempAnchoredDate(e.target.value)}
+								className="h-8 py-0.5 px-1.5 text-xs w-[115px] tabular-nums"
+							/>
+							<Button
+								size="icon"
+								variant="ghost"
+								disabled={isSavingAnchoredDate}
+								onClick={handleSaveClick}
+								className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md cursor-pointer shrink-0"
+								title="Confirmar cambio"
+							>
+								<Check className="h-3.5 w-3.5" />
+							</Button>
+							<Button
+								size="icon"
+								variant="ghost"
+								disabled={isSavingAnchoredDate}
+								onClick={handleCancel}
+								className="h-7 w-7 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-md cursor-pointer shrink-0"
+								title="Cancelar"
+							>
+								<X className="h-3.5 w-3.5" />
+							</Button>
+						</div>
+					)
+				}
+
+				return (
+					<div className="flex items-center justify-between gap-2 min-h-8 min-w-[120px] max-w-[170px]">
+						<span
+							className={business.dateAnchored ? '' : 'text-muted-foreground'}
+						>
+							{formatOptionalDate(business.dateAnchored)}
+						</span>
+						{isEditable && (
+							<Button
+								size="icon"
+								variant="ghost"
+								onClick={handleStartEdit}
+								className="h-7 w-7 text-muted-foreground hover:text-[#11525B] hover:bg-[#11525B]/10 rounded-md transition-all duration-200 cursor-pointer shrink-0"
+								title="Editar fecha de fondeo"
+							>
+								<Pencil className="h-3.5 w-3.5" />
+							</Button>
+						)}
+					</div>
+				)
+			},
 			enableSorting: true,
 		},
 		{
