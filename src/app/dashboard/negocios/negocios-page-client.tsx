@@ -576,6 +576,19 @@ export function NegociosPageClient({
 		refetchStats(true)
 	}, [refetch, refetchStats])
 
+	const handleSaveDateAnchored = useCallback(async (businessId: number, dateAnchored: string) => {
+		const response = await businessService.updateDateAnchored(businessId, dateAnchored)
+		if ('error' in response && response.error) {
+			throw new Error(response.error)
+		}
+		if (response.data) {
+			setSelectedBusiness(response.data)
+		}
+		toast.success('La fecha de fondeo fue actualizada exitosamente')
+		refetch(true)
+		refetchStats(true)
+	}, [refetch, refetchStats])
+
 	const businessDataForTable: Business[] = useMemo(
 		() => businesses.map(mapBusinessToTableRow),
 		[businesses]
@@ -615,6 +628,7 @@ export function NegociosPageClient({
 				onUploadSuccess={() => { refetch(true); refetchStats(true) }}
 				onDeleteSuccess={() => { refetch(true); refetchStats(true) }}
 				onSaveDateIssued={handleSaveDateIssued}
+				onSaveDateAnchored={handleSaveDateAnchored}
 			/>
 
 			{/* Modal de Cancelación */}

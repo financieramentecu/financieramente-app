@@ -4,11 +4,43 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [1.23.0] - 2026-07-08
+## [1.23.0] - 2026-07-09
 
 ### Agregado
 
-- **Modal de fecha de fondeo para negocios sin aportes:** Los Administradores y Analistas de Soporte ahora pueden seleccionar la fecha real de fondeo cuando un negocio sin aportes (como MFUND de Skandia con modalidad única) es fondeado. Antes la fecha se asignaba automáticamente a la fecha del servidor, lo que podía no coincidir con la fecha real en que se realizó el aporte. El modal "Confirmar Fondeo" permite elegir la fecha exacta, mejorando la precisión del registro de operaciones.
+- **Edición de fecha de fondeo desde tabla de negocios:** Los operadores (ADMIN, Asistente Operativo de Gerencia, Analista de Soporte) ahora pueden editar la fecha de fondeo (`dateAnchored`) directamente desde la tabla de negocios, de manera similar a cómo editan la fecha de emisión. La edición automáticamente sincroniza la fecha del primer pago para mantener la consistencia.
+
+- **Modal de fecha de fondeo para negocios sin aportes:** Los Administradores y Analistas de Soporte ahora pueden seleccionar la fecha real de fondeo cuando un negocio sin aportes (como MFUND de Skandia con modalidad única) es fondeado. El modal "Confirmar Fondeo" permite elegir la fecha exacta, mejorando la precisión del registro de operaciones.
+
+- **Script de remediación de fondeos sin soporte:** Nueva herramienta administrativa para revertir negocios que fueron fondeados sin tener soportes adjuntos (error que podía ocurrir antes de implementar la validación). El script permite modo `--dry-run` para inspeccionar cambios antes de aplicarlos.
+
+### Mejorado
+
+- **Validación obligatoria de soportes antes de fondear:** Ahora es imposible fondear un negocio (en ambos flujos: fondeo directo y fondeo de aportes) si no tiene al menos un comprobante de pago adjunto. Si falta soporte, el sistema muestra un mensaje claro: "No se puede fondear sin soportes adjuntos", mejorando la conformidad normativa.
+
+- **Sincronización transaccional de fechas de fondeo:** Cuando se edita la fecha de fondeo de un negocio, la fecha del primer pago se actualiza automáticamente en la misma transacción, garantizando consistencia incluso si hay fallos parciales.
+
+- **Notificaciones genéricas mejoradas:** Las notificaciones ahora son completamente desacopladas de la entidad `Business` y soportan `callbackUrl` para redirección flexible, permitiendo su uso en cualquier flujo del sistema.
+
+- **Refrescado automático de datos en tabla de negocios:** La tabla ahora refrescaba los datos de negocio en background, garantizando que los cambios realizados por otros operadores sean visibles sin necesidad de F5.
+
+- **Botón "Limpiar Filtros" mejorado:** El botón ahora aplica cambios inmediatamente sin necesidad de hacer clic adicional.
+
+### Corregido
+
+- **Eliminación de código huérfano:** Se removió el endpoint `/fondear-anualidades` que estaba siendo reemplazado por `/fondear-aportes`. Esta limpieza reduce la deuda técnica sin impactar funcionalidad.
+
+- **Error de conexión SSE en navegador:** Se corrigió problema que causaba error en almacenamiento de SSE cuando se ejecutaba en entornos browser (se añadió validación de `typeof process`).
+
+- **Bucle infinito en hook `useBusinesses`:** Se corrigió problema en Storybook donde el hook entraba en bucle infinito por dependencias dinámicas.
+
+- **Botón "Limpiar Filtros" se aplica al hacer clic:** Antes requería un paso adicional; ahora aplica inmediatamente.
+
+- **Sidebar de notificaciones ahora flota correctamente:** Se corrigió desplazamiento visual y comportamiento del drawer de notificaciones.
+
+- **Optimización de query N+1 en calculadora:** Se resolvió problema de performance donde la calculadora hacía múltiples queries innecesarias.
+
+- **Error de Storybook con NextJS Router:** Se corrigió error `SB_FRAMEWORK_NEXTJS_0002` (NextjsRouterMocksNotAvailable) que impedía renderización en Chromatic.
 
 ## [1.22.13] - 2026-07-04
 

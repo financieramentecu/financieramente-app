@@ -47,6 +47,7 @@ export interface MisNegociosPageProps {
 	sortBy?: string
 	sortOrder?: 'asc' | 'desc'
 	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
+	onSaveDateAnchored?: (businessId: number, dateAnchored: string) => Promise<void>
 }
 
 function StatsLoadingSkeleton() {
@@ -111,6 +112,7 @@ export function MisNegociosPage({
 	sortBy,
 	sortOrder,
 	onSaveDateIssued,
+	onSaveDateAnchored,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
 	const isAgentUser = true // Stats visible for all roles; data is scoped server-side
@@ -177,6 +179,7 @@ export function MisNegociosPage({
 						sortBy={sortBy}
 						sortOrder={sortOrder}
 						onSaveDateIssued={onSaveDateIssued}
+						onSaveDateAnchored={onSaveDateAnchored}
 					/>
 				)}
 			</div>
