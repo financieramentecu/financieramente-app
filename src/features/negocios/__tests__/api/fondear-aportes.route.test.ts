@@ -46,6 +46,10 @@ vi.mock('@/features/negocios/mappers/business-entity.mapper', () => ({
 	prismaBusinessToEntity: vi.fn((b: unknown) => b),
 }))
 
+vi.mock('@/features/negocios/services/business-date-anchored.service', () => ({
+	assertHasSupports: vi.fn().mockResolvedValue({ ok: true }),
+}))
+
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn().mockResolvedValue(undefined),
 	AuditAction: {

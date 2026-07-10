@@ -26,6 +26,7 @@ import {
 } from '@/features/auth/lib/audit-logger'
 import { fondearAnualidadesBodySchema } from '@/features/negocios/lib/fondear-anualidades.schema'
 import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
+import { assertHasSupports } from '@/features/negocios/services/business-date-anchored.service'
 
 interface RouteParams {
 	params: Promise<{ id: string }>
@@ -143,6 +144,28 @@ export async function POST(
 						'El negocio no admite fondeo de aportes en su estado actual',
 				},
 				{ status: 400 }
+			)
+		}
+
+		// Verificar que el negocio tiene soportes adjuntos antes de fondear
+		const supportsCheck = await assertHasSupports(businessId)
+		if (!supportsCheck.ok) {
+			await logAuditEvent({
+				userId: currentUser.idUser,
+				roleId: currentUser.idRole ?? undefined,
+				action: AuditAction.BUSINESS_PAYMENT_FUNDED,
+				email: session.user.email,
+				ipAddress: getClientIp(new Headers(request.headers)),
+				userAgent: getUserAgent(new Headers(request.headers)),
+				details: JSON.stringify({
+					businessId,
+					blocked: true,
+					reason: 'NO_SUPPORTS',
+				}),
+			})
+			return NextResponse.json(
+				{ data: null, error: 'No se puede fondear sin soportes adjuntos' },
+				{ status: 409 }
 			)
 		}
 

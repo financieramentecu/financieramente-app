@@ -169,6 +169,32 @@ export const businessService = {
 		}
 	},
 
+	/**
+	 * Actualiza la fecha de fondeo (dateAnchored) de un negocio.
+	 * El servidor sincroniza Payment[installmentIndex=1] en la misma transacción.
+	 *
+	 * @param id - ID del negocio
+	 * @param dateAnchored - Fecha en formato YYYY-MM-DD
+	 * @returns Negocio actualizado
+	 */
+	async updateDateAnchored(
+		id: number,
+		dateAnchored: string
+	): Promise<ApiResponse<BusinessEntity>> {
+		try {
+			const response = await fetch(`${BASE_URL}/${id}/date-anchored`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ dateAnchored }),
+			})
+
+			return await response.json()
+		} catch (error) {
+			console.error('Error al actualizar la fecha de fondeo:', error)
+			return { data: null, error: 'Error al actualizar la fecha de fondeo' }
+		}
+	},
+
 	async getAnnualPayments(
 		id: number
 	): Promise<ApiResponse<AnnualPaymentsResponse>> {

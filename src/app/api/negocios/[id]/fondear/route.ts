@@ -28,6 +28,7 @@ import {
 	dateOnlyToBogotaNoonUtc,
 	todayBogotaNoonUtc,
 } from '@/features/negocios/lib/bogota-date'
+import { assertHasSupports } from '@/features/negocios/services/business-date-anchored.service'
 
 interface RouteParams {
 	params: Promise<{ id: string }>
@@ -164,6 +165,28 @@ export async function POST(
 					error: 'Este negocio tiene anualidades y debe fondearse mediante el flujo de anualidades',
 				},
 				{ status: 400 }
+			)
+		}
+
+		// Verificar que el negocio tiene soportes adjuntos antes de fondear
+		const supportsCheck = await assertHasSupports(businessId)
+		if (!supportsCheck.ok) {
+			await logAuditEvent({
+				userId: currentUser.idUser,
+				roleId: currentUser.idRole ?? undefined,
+				action: AuditAction.BUSINESS_FUNDED,
+				email: session.user.email,
+				ipAddress: getClientIp(new Headers(request.headers)),
+				userAgent: getUserAgent(new Headers(request.headers)),
+				details: JSON.stringify({
+					businessId,
+					blocked: true,
+					reason: 'NO_SUPPORTS',
+				}),
+			})
+			return NextResponse.json(
+				{ data: null, error: 'No se puede fondear sin soportes adjuntos' },
+				{ status: 409 }
 			)
 		}
 

@@ -11,6 +11,7 @@ import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types
 import { AnnualPaymentStatus } from '@prisma/client'
 import { mockUserWithRole } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
 import { mockPrismaBusinessEmitido } from '@/features/negocios/__tests__/fixtures/mock-prisma-business'
+import { assertHasSupports } from '@/features/negocios/services/business-date-anchored.service'
 
 vi.mock('@/auth')
 vi.mock('@/lib/prisma', () => ({
@@ -24,9 +25,15 @@ vi.mock('@/features/negocios/services/user.service')
 vi.mock('@/features/negocios/mappers/business-entity.mapper')
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
-	AuditAction: { BUSINESS_PAYMENT_FUNDED: 'BUSINESS_PAYMENT_FUNDED' },
+	AuditAction: {
+		BUSINESS_PAYMENT_FUNDED: 'BUSINESS_PAYMENT_FUNDED',
+		APORTE_PRIMER_PAGO_FONDEADO: 'APORTE_PRIMER_PAGO_FONDEADO',
+	},
 	getClientIp: vi.fn(() => '127.0.0.1'),
 	getUserAgent: vi.fn(() => 'test-agent'),
+}))
+vi.mock('@/features/negocios/services/business-date-anchored.service', () => ({
+	assertHasSupports: vi.fn(),
 }))
 vi.mock('next/server', () => ({
 	NextResponse: {
@@ -64,9 +71,11 @@ describe('POST /api/negocios/[id]/fondear-aportes', () => {
 	const mockToEntity = vi.mocked(prismaBusinessToEntity)
 	const mockLog = vi.mocked(logAuditEvent)
 	const mockNextJson = vi.mocked(NextResponse.json)
+	const mockAssertHasSupports = vi.mocked(assertHasSupports)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockAssertHasSupports.mockResolvedValue({ ok: true })
 		mockNextJson.mockImplementation((data: unknown, init?: { status?: number }) => ({
 			json: () => Promise.resolve(data),
 			status: init?.status || 200,
@@ -273,5 +282,30 @@ describe('POST /api/negocios/[id]/fondear-aportes', () => {
 
 		expect(res.status).toBe(400)
 		expect(body.error).toContain('pendientes')
+	})
+
+	it('409 cuando el negocio tiene 0 soportes activos', async () => {
+		mockAuth.mockResolvedValue({ user: { email: 'admin@test.com' } } as never)
+		mockGetUser.mockResolvedValue(buildUser('admin@test.com', UserRole.ADMIN) as never)
+		mockFindUnique.mockResolvedValue({
+			idBusiness: 8,
+			status: BUSINESS_STATUS.EMITIDO,
+			_count: { payments: 3 },
+			buyPeriodicity: { name: 'Mensual' },
+			numAportes: 3,
+		} as never)
+		mockAssertHasSupports.mockResolvedValue({ ok: false, code: 'NO_SUPPORTS' })
+
+		const res = await POST(new Request('http://localhost/api/negocios/8/fondear-aportes', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ fundedInstallmentIndexes: [1] }),
+		}), { params: Promise.resolve({ id: '8' }) })
+		const body = await res.json()
+
+		expect(res.status).toBe(409)
+		expect(body.data).toBeNull()
+		expect(body.error).toBe('No se puede fondear sin soportes adjuntos')
+		expect(mockTransaction).not.toHaveBeenCalled()
 	})
 })
