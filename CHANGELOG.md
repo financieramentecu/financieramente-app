@@ -4,6 +4,34 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.24.0] - 2026-07-10
+
+### Agregado
+
+- **Comentarios integrados en contratos:** Money Strategist y Analistas de Soporte ahora pueden agregar comentarios directamente en cada contrato. Los comentarios se visualizan en un hilo ordenado cronológicamente con estilos diferenciados según el rol (Money Strategist a la izquierda, Analista de Soporte a la derecha).
+
+- **Dos puntos de entrada para agregar comentarios:** Abre el menú de acciones de un contrato y selecciona "Agregar comentario" para usar un modal, o accede al panel lateral de comentarios desde la vista de detalle del contrato.
+
+- **Notificaciones bidireccionales en tiempo real:** Cuando un Money Strategist comenta, todos los Analistas de Soporte reciben notificación automáticamente. Cuando un Analista comenta, el Money Strategist asignado al contrato recibe notificación. Las notificaciones incluyen el nombre del autor, tiempo relativo, y número de contrato.
+
+- **Panel de notificaciones mejorado:** Las notificaciones de comentarios aparecen en la campana con indicador visual de punto azul para no leídas. Al hacer clic en una notificación, el sistema navega al contrato y abre automáticamente el panel de comentarios en el comentario nuevo, marcándolo como leído.
+
+- **Validación de caracteres en comentarios:** El nombre del comentario está limitado a 40 caracteres y el detalle a 200 caracteres, con contadores visuales que muestran el límite en tiempo real.
+
+### Mejorado
+
+- **Comunicación centralizada:** Toda la conversación sobre un contrato queda registrada en el sistema sin depender de canales externos (email, chat), mejorando la trazabilidad y la conformidad normativa.
+
+- **Auditoría completa:** Todos los comentarios quedan registrados en el audit log del sistema, con identificación del usuario, timestamp y contenido.
+
+### Técnico
+
+- **Modelo de datos:** Nuevo modelo `Comment` con relaciones a `Business` (contrato) y `User` (autor). Incluye soft-delete (`status` boolean) siguiendo convención del proyecto.
+
+- **Servicio de notificaciones extendido:** El sistema de notificaciones SSE existente ahora soporta eventos de `comment-added` para actualizaciones en tiempo real del hilo de comentarios.
+
+- **API routes:** Nuevos endpoints `/api/negocios/[id]/comments` (GET para listar, POST para crear) con validación Zod y respuestas `ApiResponse<T>`.
+
 ## [1.23.0] - 2026-07-09
 
 ### Agregado
