@@ -11,12 +11,14 @@ import { Calendar, Phone, Mail, Building2, FileText, Clock, Layers, Edit } from 
 import { formatDateBogota } from '@/features/shared/lib/format-date'
 import { ViewSupportsButton } from '@/features/business-supports/components/ViewSupportsButton'
 import { UploadSupportButton } from '@/features/business-supports/components/UploadSupportButton'
+import { CommentsSidebar } from '@/features/comments/components/CommentsSidebar'
 import { UserRole } from '@/features/auth/lib/roles'
 import Link from 'next/link'
 import { buttonVariants } from '@/features/shared/ui/button'
 
 interface PageProps {
 	params: Promise<{ id: string }>
+	searchParams: Promise<{ openComments?: string }>
 }
 
 function InfoItem({
@@ -41,8 +43,9 @@ function InfoItem({
 	)
 }
 
-export default async function DetalleNegocioPage({ params }: PageProps) {
+export default async function DetalleNegocioPage({ params, searchParams }: PageProps) {
 	const { id } = await params
+	const { openComments } = await searchParams
 	const session = await auth()
 
 	if (!session?.user?.email) {
@@ -94,6 +97,13 @@ export default async function DetalleNegocioPage({ params }: PageProps) {
 								userRole={currentUser.role?.name as UserRole}
 							/>
 							<UploadSupportButton businessId={business.id} />
+							<CommentsSidebar
+								businessId={business.id}
+								authorName={currentUser.name}
+								authorEmail={currentUser.email}
+								contract={business.contract || `Negocio #${business.id}`}
+								defaultOpen={openComments === 'true'}
+							/>
 						</div>
 					</div>
 				</div>

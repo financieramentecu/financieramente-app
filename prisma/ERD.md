@@ -47,6 +47,8 @@ erDiagram
     User ||--o{ CommissionDiscount : "created_by updated_by"
     User ||--o{ DistributionApproval : "aprobaciones"
     User ||--o{ Notification : "notificaciones"
+    User ||--o{ Comment : "comentarios creados"
+    Business ||--o{ Comment : "comentarios del contrato"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
     Client ||--o{ Business : "negocios"
@@ -425,6 +427,17 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+
+    Comment {
+        string id PK
+        int business_id FK
+        int author_id FK
+        string title
+        string detail
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ## Leyenda de cardinalidad (Mermaid)
@@ -458,3 +471,4 @@ erDiagram
 - `ProductConfiguration`: el unique constraint parcial `(id_product, id_level)` preserva el comportamiento de índice parcial `WHERE active = true` heredado de la migración de renombre. El `@@map` del constraint es `product_configuration_idProduct_idLevel_key`.
 - `Product`: campos `commission_percentage` (Decimal 7,4) y `contribution_type` (enum REGULAR | UNICO) agregados para configuración de comisiones y tipos de contribución.
 - **Nueva tabla `Notification`** (migración `notificaciones`): almacena notificaciones genéricas para usuarios con soporte de `callbackUrl` para acciones interactivas. Campos `is_read` e `is_closed` para estado. Soft delete a través de `is_closed`. FK a `user` con `onDelete: Cascade`.
+- **Nueva tabla `comment`** (migración `20260710180400_add_comment_model`): comentarios por contrato, creados por `AGENTE` (Money Strategist) o `ANALISTA_SOPORTE` (Analista de Soporte). `title` `VARCHAR(40)` y `detail` `VARCHAR(200)` reflejan los límites de UI. `status` (boolean, default `true`) se mantiene reservado para soft-delete futuro — esta iteración es create-only, sin endpoints de edición/borrado. Índice compuesto `(business_id, created_at)` para listar el hilo ordenado cronológicamente. FK a `business` y `user` (autor).
