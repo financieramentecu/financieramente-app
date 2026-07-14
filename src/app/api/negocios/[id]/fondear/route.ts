@@ -23,6 +23,12 @@ import {
 	getClientIp,
 	getUserAgent,
 } from '@/features/auth/lib/audit-logger'
+import { fondearBodySchema } from '@/features/negocios/lib/fondear.schema'
+import {
+	dateOnlyToBogotaNoonUtc,
+	todayBogotaNoonUtc,
+} from '@/features/negocios/lib/bogota-date'
+import { assertHasSupports } from '@/features/negocios/services/business-date-anchored.service'
 
 interface RouteParams {
 	params: Promise<{ id: string }>
@@ -56,6 +62,50 @@ export async function POST(
 				{ data: null, error: 'ID de negocio inválido' },
 				{ status: 400 }
 			)
+		}
+
+		// Body es opcional: fondeo directo sin fecha usa la fecha actual (Bogotá)
+		let bodyJson: unknown = {}
+		try {
+			const rawText = await request.text()
+			bodyJson = rawText ? JSON.parse(rawText) : {}
+		} catch {
+			return NextResponse.json(
+				{ data: null, error: 'Cuerpo JSON inválido' },
+				{ status: 400 }
+			)
+		}
+
+		const parsedBody = fondearBodySchema.safeParse(bodyJson)
+		if (!parsedBody.success) {
+			return NextResponse.json(
+				{
+					data: null,
+					error:
+						parsedBody.error.flatten().formErrors.join('; ') ||
+						'Datos inválidos',
+				},
+				{ status: 400 }
+			)
+		}
+
+		const { fundedDate } = parsedBody.data
+
+		let resolvedFundedDate: Date
+		if (fundedDate) {
+			const candidate = dateOnlyToBogotaNoonUtc(fundedDate)
+			if (candidate > todayBogotaNoonUtc()) {
+				return NextResponse.json(
+					{
+						data: null,
+						error: 'La fecha de fondeo no puede ser futura',
+					},
+					{ status: 400 }
+				)
+			}
+			resolvedFundedDate = candidate
+		} else {
+			resolvedFundedDate = new Date()
 		}
 
 		// Obtener usuario actual y verificar permisos
@@ -118,12 +168,34 @@ export async function POST(
 			)
 		}
 
+		// Verificar que el negocio tiene soportes adjuntos antes de fondear
+		const supportsCheck = await assertHasSupports(businessId)
+		if (!supportsCheck.ok) {
+			await logAuditEvent({
+				userId: currentUser.idUser,
+				roleId: currentUser.idRole ?? undefined,
+				action: AuditAction.BUSINESS_FUNDED,
+				email: session.user.email,
+				ipAddress: getClientIp(new Headers(request.headers)),
+				userAgent: getUserAgent(new Headers(request.headers)),
+				details: JSON.stringify({
+					businessId,
+					blocked: true,
+					reason: 'NO_SUPPORTS',
+				}),
+			})
+			return NextResponse.json(
+				{ data: null, error: 'No se puede fondear sin soportes adjuntos' },
+				{ status: 409 }
+			)
+		}
+
 		// Fondear negocio: transición atómica EMITIDO → FONDEADO
 		const fundedBusiness = await prisma.business.update({
 			where: { idBusiness: businessId },
 			data: {
 				status: BUSINESS_STATUS.FONDEADO,
-				dateAnchored: new Date(),
+				dateAnchored: resolvedFundedDate,
 			},
 			include: businessWithRelations,
 		})
@@ -138,7 +210,9 @@ export async function POST(
 			userAgent: getUserAgent(new Headers(request.headers)),
 			details: JSON.stringify({
 				businessId,
+				contract: existingBusiness.contract,
 				previousStatus: existingBusiness.status,
+				fundedDate: fundedDate ?? null,
 				dateAnchored: fundedBusiness.dateAnchored?.toISOString(),
 			}),
 		})

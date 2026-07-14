@@ -16,7 +16,7 @@ interface UseBusinessStatsReturn {
 	stats: CoachKpiResponse | null
 	isLoading: boolean
 	error: string | null
-	refetch: () => Promise<void>
+	refetch: (isBackground?: boolean) => Promise<void>
 }
 
 /**
@@ -37,8 +37,10 @@ export function useBusinessStats(params: {
 
 	const { dateFrom, dateTo } = params
 
-	const fetchStats = useCallback(async () => {
-		setState({ status: 'loading', data: undefined, error: '' })
+	const fetchStats = useCallback(async (isBackground: boolean = false) => {
+		if (!isBackground) {
+			setState({ status: 'loading', data: undefined, error: '' })
+		}
 
 		try {
 			const response = await businessService.getStats({ dateFrom, dateTo })

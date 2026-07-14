@@ -143,18 +143,55 @@ export const businessService = {
 	 * Fondea un negocio (transición EMITIDO → FONDEADO)
 	 *
 	 * @param id - ID del negocio
+	 * @param fundedDate - Fecha de fondeo (YYYY-MM-DD); si se omite, el
+	 *   servidor usa la fecha actual (Bogotá)
 	 * @returns Negocio fondeado
 	 */
-	async fondear(id: number): Promise<ApiResponse<BusinessEntity>> {
+	async fondear(
+		id: number,
+		fundedDate?: string
+	): Promise<ApiResponse<BusinessEntity>> {
 		try {
 			const response = await fetch(`${BASE_URL}/${id}/fondear`, {
 				method: 'POST',
+				...(fundedDate
+					? {
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ fundedDate }),
+						}
+					: {}),
 			})
 
 			return await response.json()
 		} catch (error) {
 			console.error('Error al fondear negocio:', error)
 			return { data: null, error: 'Error al fondear el negocio' }
+		}
+	},
+
+	/**
+	 * Actualiza la fecha de fondeo (dateAnchored) de un negocio.
+	 * El servidor sincroniza Payment[installmentIndex=1] en la misma transacción.
+	 *
+	 * @param id - ID del negocio
+	 * @param dateAnchored - Fecha en formato YYYY-MM-DD
+	 * @returns Negocio actualizado
+	 */
+	async updateDateAnchored(
+		id: number,
+		dateAnchored: string
+	): Promise<ApiResponse<BusinessEntity>> {
+		try {
+			const response = await fetch(`${BASE_URL}/${id}/date-anchored`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ dateAnchored }),
+			})
+
+			return await response.json()
+		} catch (error) {
+			console.error('Error al actualizar la fecha de fondeo:', error)
+			return { data: null, error: 'Error al actualizar la fecha de fondeo' }
 		}
 	},
 

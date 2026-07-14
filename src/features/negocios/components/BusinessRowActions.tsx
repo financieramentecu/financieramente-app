@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2, ScrollText } from 'lucide-react'
+import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2, ScrollText, MessageSquarePlus } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -20,6 +20,7 @@ import { BUSINESS_STATUS } from '../types/business-entity.types'
 import type { UserRole } from '@/features/auth/lib/roles'
 import { UploadComprobanteModal } from '@/features/business-supports/components/UploadComprobanteModal'
 import { ViewComprobantesSheet } from '@/features/business-supports/components/BusinessSupportsSheet'
+import { CommentModal } from '@/features/comments/components/CommentModal'
 
 const UPLOAD_ALLOWED_STATUSES: BusinessStatus[] = [
   BUSINESS_STATUS.EMITIDO,
@@ -65,6 +66,8 @@ export function BusinessRowActions({
     UPLOAD_ALLOWED_STATUSES.includes(businessStatus) && contract !== null
   const [uploadOpen, setUploadOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
+  const [commentOpen, setCommentOpen] = useState(false)
+  const commentContract = contract ?? `Negocio #${businessId}`
 
   const handleUploadClick = () => {
     onUploadComprobante?.(businessId)
@@ -145,6 +148,10 @@ export function BusinessRowActions({
                 Ver motivo cancelación
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onClick={() => setCommentOpen(true)}>
+              <MessageSquarePlus className="mr-2 h-4 w-4" />
+              Agregar comentario
+            </DropdownMenuItem>
             {onCancel && (
               <DropdownMenuItem
                 onClick={() => onCancel(businessId)}
@@ -167,13 +174,24 @@ export function BusinessRowActions({
         />
       )}
 
-      <ViewComprobantesSheet
-        businessId={businessId}
-        userRole={userRole}
-        open={viewOpen}
-        onClose={() => setViewOpen(false)}
-        onSupportDeleted={onDeleteSuccess}
-      />
+      {viewOpen && (
+        <ViewComprobantesSheet
+          businessId={businessId}
+          userRole={userRole}
+          open={viewOpen}
+          onClose={() => setViewOpen(false)}
+          onSupportDeleted={onDeleteSuccess}
+        />
+      )}
+
+      {commentOpen && (
+        <CommentModal
+          businessId={businessId}
+          contract={commentContract}
+          open={commentOpen}
+          onClose={() => setCommentOpen(false)}
+        />
+      )}
     </TooltipProvider>
   )
 }

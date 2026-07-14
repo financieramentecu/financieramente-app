@@ -489,36 +489,42 @@ When `numAportes` is 0 or 1, the system MUST bypass the FundingModal and execute
 
 | Condition | Label |
 |-----------|--------|
-| `EMITIDO`, `numAportes ∈ {0,1}`, authorized | **Fondear** (direct, no modal) |
-| `EMITIDO` or `FONDEADO`, `numAportes ≥ 2` + ≥1 **`SIN_FONDEAR`**, authorized | **Fondear** (opens modal) |
-| Roles | **AGENTE (Coach)** → view-only, no funding action; **ASISTENTE_GERENCIA_OPERATIVA**, **ADMIN** → can fund |
-| **ANALISTA_SOPORTE** | No funding action |
+| `EMITIDO`, `numAportes = 0`, ADMIN/ANALISTA_SOPORTE/ASISTENTE_GERENCIA_OPERATIVA | **Fondear** (opens date-picker modal) |
+| `EMITIDO`, `numAportes = 1`, authorized | **Fondear** (direct, no modal) |
+| `EMITIDO`/`FONDEADO`, `numAportes ≥ 2` + ≥1 `SIN_FONDEAR`, authorized | **Fondear** (opens modal) |
+| AGENTE (Coach) | view-only, no funding action |
 
-(Previously: AGENTE could fund own businesses; modal/direct split was based on zero AnnualPayment rows vs. annual rows.)
+(Previously: `numAportes ∈ {0,1}` fondeaba directo sin modal en ambos casos; ANALISTA_SOPORTE no tenía ninguna acción de fondeo.)
 
-#### Scenario: Fondear directo — numAportes 0 o 1
+#### Scenario: numAportes = 0 con modal de fecha
 
-- GIVEN `EMITIDO`, `numAportes ∈ {0,1}`, ADMIN or ASISTENTE_GERENCIA_OPERATIVA viewer
+- GIVEN `EMITIDO`, `numAportes = 0`, ADMIN, ANALISTA_SOPORTE o ASISTENTE_GERENCIA_OPERATIVA
+- WHEN the list renders
+- THEN **"Fondear"** MUST appear and clicking it MUST open the date-picker modal
+
+#### Scenario: numAportes = 1 directo (sin cambios)
+
+- GIVEN `EMITIDO`, `numAportes = 1`, authorized viewer
 - WHEN the list renders
 - THEN **"Fondear"** MUST appear and clicking it MUST NOT open a modal
 
-#### Scenario: Fondear con modal — numAportes ≥ 2
+#### Scenario: numAportes ≥ 2 con modal (sin cambios)
 
-- GIVEN `EMITIDO` or `FONDEADO`, `numAportes ≥ 2`, ≥1 `SIN_FONDEAR`, authorized viewer
+- GIVEN `EMITIDO`/`FONDEADO`, `numAportes ≥ 2`, ≥1 `SIN_FONDEAR`, authorized
 - WHEN the list renders
 - THEN **"Fondear"** MUST appear and clicking it SHALL open FundingModal
 
-#### Scenario: AGENTE (Coach) — sin acción de fondeo
+#### Scenario: AGENTE (Coach) sin acción (sin cambios)
 
 - GIVEN any eligible business and role AGENTE/Coach
 - WHEN the list renders
 - THEN neither direct fondeo nor modal fondeo SHALL appear
 
-#### Scenario: ANALISTA_SOPORTE — sin acción
+#### Scenario: ANALISTA_SOPORTE ahora autorizado (numAportes = 0)
 
-- GIVEN `EMITIDO` eligible otherwise and **ANALISTA_SOPORTE**
+- GIVEN `EMITIDO`, `numAportes = 0`, rol ANALISTA_SOPORTE
 - WHEN the list renders
-- THEN neither **"Fondear"** nor the modal trigger SHALL appear
+- THEN **"Fondear"** MUST appear and clicking it MUST open the date-picker modal
 
 ---
 
@@ -527,43 +533,56 @@ When `numAportes` is 0 or 1, the system MUST bypass the FundingModal and execute
 | Path | Rule |
 |------|------|
 | No annual rows | Direct: `FONDEADO` + `dateAnchored` (atomic). |
-| Annual rows | Updates installments; first batch while **`EMITIDO`** sets parent **`FONDEADO`** + `dateAnchored`. |
-| Parent already **FONDEADO** | Later batches update rows only; parent status unchanged, but parent `dateAnchored` MUST be updated to latest funding date. |
+| `numAportes = 0` | `dateAnchored` MUST derive from request `fundedDate` (YYYY-MM-DD) via `dateOnlyToBogotaNoonUtc()`; if absent, fallback to today (Bogotá). |
+| Annual rows | Updates installments; first batch while `EMITIDO` sets parent `FONDEADO` + `dateAnchored`. |
+| Parent already FONDEADO | Later batches update rows only; parent `dateAnchored` MUST update to latest funding date. |
 | **POST** `/fondear` | MUST fail if any `AnnualPayment` exists. |
-| Wrong status/method | MUST reject (e.g. **VENTA_EFECTUADA**, direct when ineligible). |
+| Invalid/future `fundedDate` | MUST reject with 400. |
+| Wrong status/method | MUST reject (e.g. VENTA_EFECTUADA, direct when ineligible) with 400/404 as applicable. |
 
-(Previously: Parent `dateAnchored` was unchanged for later batches if parent was already FONDEADO.)
+(Previously: `dateAnchored` for direct fondeo without annual rows always used server's `new Date()`; no request body date accepted; no explicit date validation.)
 
-#### Scenario: Direct — sin anualidades
+#### Scenario: Direct con fecha provista
 
-- **GIVEN** `EMITIDO`, zero annual rows
-- **WHEN** direct fondear completes successfully
-- **THEN** `status` SHALL be **FONDEADO** and `dateAnchored` set
+- GIVEN `EMITIDO`, `numAportes = 0`, request body `{ fundedDate: "2026-06-15" }`
+- WHEN direct fondear completes
+- THEN `status` SHALL be `FONDEADO` and `dateAnchored` SHALL equal noon Bogotá UTC for `2026-06-15`
 
-#### Scenario: Anual — primera tanda promueve padre
+#### Scenario: Direct sin fecha — fallback a hoy
 
-- **GIVEN** `EMITIDO`, all installments unfunded
-- **WHEN** annual confirm funds ≥1 row
-- **THEN** parent SHALL be **FONDEADO** with `dateAnchored` set for that funding
+- GIVEN `EMITIDO`, `numAportes = 0`, request body sin `fundedDate`
+- WHEN direct fondear completes
+- THEN `dateAnchored` SHALL equal today's date at noon Bogotá UTC
 
-#### Scenario: Anual — más cuotas con padre ya FONDEADO actualiza fecha
+#### Scenario: Fecha inválida o futura rechazada
 
-- **GIVEN** parent **FONDEADO**, some rows still **`SIN_FONDEAR`**
-- **WHEN** annual confirm funds more rows
-- **THEN** those rows get `dateAnchored`
-- **AND** parent remains **FONDEADO** but its `dateAnchored` SHALL be updated to the new funding date
+- GIVEN request body con `fundedDate` inválida o posterior a hoy
+- WHEN direct fondear se solicita
+- THEN the API MUST return 400 Bad Request and no state change
 
-#### Scenario: POST directo bloqueado con anualidades
+#### Scenario: Negocio inexistente
 
-- **GIVEN** `EMITIDO` and ≥1 `AnnualPayment`
-- **WHEN** direct **POST** `/fondear` runs
-- **THEN** the request MUST be rejected; no state change
+- GIVEN `id` de negocio inexistente
+- WHEN direct fondear se solicita
+- THEN the API MUST return 404 and no state change
 
-#### Scenario: Rechazo por estado inelegible
+#### Scenario: Sin permiso
 
-- **GIVEN** invalid status or wrong HTTP path for that business
-- **WHEN** funding is requested
-- **THEN** the system MUST reject
+- GIVEN usuario sin rol autorizado (`canFundPayments` false)
+- WHEN direct fondear se solicita
+- THEN the API MUST return 403 and no state change
+
+#### Scenario: AuditLog en fondeo directo con fecha
+
+- GIVEN direct fondeo exitoso con `numAportes = 0`
+- WHEN la transacción se confirma
+- THEN an AuditLog entry MUST be created with action `BUSINESS_FUNDED` (or equivalent), `userId`, `email`, `ipAddress`, `userAgent`, and a human-readable `details` string including business id, contract, and the selected `fundedDate`
+
+#### Scenario: POST directo bloqueado con anualidades (sin cambios)
+
+- GIVEN `EMITIDO` and ≥1 `AnnualPayment`
+- WHEN direct **POST** `/fondear` runs
+- THEN the request MUST be rejected; no state change
 
 ---
 
@@ -1118,19 +1137,33 @@ Cuando exista empate por marca de tiempo de creación, el sistema SHALL aplicar 
 
 ### Requirement: Confirmación previa para fondeo directo
 
-Cuando el negocio no tiene anualidades, el sistema MUST solicitar confirmación explícita antes de ejecutar el fondeo para prevenir errores de usuario.
+Cuando el negocio no tiene anualidades, el sistema MUST solicitar confirmación explícita antes de ejecutar el fondeo. Cuando `numAportes = 0`, la confirmación MUST ser un modal "Confirmar Fondeo" con selector de fecha (default: hoy, Bogotá), visible SOLO para ADMIN, ANALISTA_SOPORTE y ASISTENTE_GERENCIA_OPERATIVA. Cuando `numAportes = 1`, la confirmación SHALL mantener el AlertDialog simple sin selector de fecha.
 
-#### Scenario: Usuario confirma fondeo directo
+(Previously: siempre AlertDialog simple sin fecha, para cualquier `numAportes` sin anualidades; fondeo anclado a `new Date()` del servidor.)
 
-- GIVEN un negocio elegible para fondeo directo (sin anualidades)
-- WHEN el usuario hace clic en fondear y confirma la acción
-- THEN el sistema SHALL ejecutar el fondeo
+#### Scenario: Modal con fecha para numAportes = 0
 
-#### Scenario: Usuario cancela fondeo directo
+- GIVEN negocio `EMITIDO`, `numAportes = 0`, usuario autorizado
+- WHEN hace clic en "Fondear"
+- THEN el modal "Confirmar Fondeo" MUST mostrarse con selector de fecha inicializado en hoy (Bogotá)
 
-- GIVEN un negocio elegible para fondeo directo
-- WHEN el usuario cierra o cancela la confirmación
+#### Scenario: Confirmar con fecha seleccionada
+
+- GIVEN modal abierto para negocio con `numAportes = 0`
+- WHEN el usuario elige fecha y confirma
+- THEN el sistema SHALL enviar `fundedDate` (YYYY-MM-DD) al backend y ejecutar el fondeo con esa fecha
+
+#### Scenario: Cancelar fondeo directo
+
+- GIVEN modal o AlertDialog de fondeo directo abierto
+- WHEN el usuario cancela o cierra
 - THEN el sistema SHALL NOT ejecutar el fondeo
+
+#### Scenario: numAportes = 1 sin cambios
+
+- GIVEN negocio `EMITIDO`, `numAportes = 1`
+- WHEN el usuario confirma fondeo
+- THEN el sistema SHALL ejecutar el fondeo vía AlertDialog simple, sin selector de fecha
 
 ### Requirement: Fondeo con anualidades sin confirmación intermedia
 
@@ -1899,3 +1932,113 @@ The system MUST continue to show a "No hay registros para exportar" message when
 - WHEN the user triggers "Exportar Excel"
 - THEN the system SHALL show "No hay registros para exportar"
 - AND no file SHALL be generated or downloaded
+
+---
+
+## ADDED Requirements (sdd/editar-fecha-fondeo-soportes)
+
+### Requirement: Inline edit of Business.dateAnchored with Payment sync
+
+The system MUST allow inline editing of `Business.dateAnchored` in the negocios table, following the existing `dateIssued` inline-edit pattern (`BusinessTableSection.tsx`). Editing MUST be restricted to users authorized by `canFundPayments()` (ADMIN, ASISTENTE_GERENCIA_OPERATIVA, ANALISTA_SOPORTE). The edit MUST be permitted regardless of the business's current status (no state-machine restriction beyond the permission check), and MUST NOT trigger commission or period recalculation. On save, the system MUST persist the new date via `dateOnlyToBogotaNoonUtc()` inside a `prisma.$transaction` that ALSO updates `Payment.dateAnchored` where `installmentIndex === 1` for that business, in the same atomic operation. Payments with `installmentIndex !== 1` MUST remain unchanged. Every successful edit MUST create an `AuditLog` entry with action `BUSINESS_DATE_ANCHORED_UPDATED`.
+
+#### Scenario: Authorized user edits dateAnchored — Payment[1] syncs
+
+- GIVEN a user with role ADMIN, ASISTENTE_GERENCIA_OPERATIVA, or ANALISTA_SOPORTE viewing the negocios table
+- WHEN they inline-edit `dateAnchored` to a valid past or present date and save
+- THEN `Business.dateAnchored` SHALL update to the noon-Bogotá-UTC value
+- AND `Payment.dateAnchored` for `installmentIndex = 1` SHALL update to the same value in the same transaction
+- AND an `AuditLog` entry with action `BUSINESS_DATE_ANCHORED_UPDATED` SHALL be created
+
+#### Scenario: Other installments are not affected
+
+- GIVEN a business with payment rows for installments 1, 2, and 3
+- WHEN `dateAnchored` is edited and saved
+- THEN only the `installmentIndex = 1` payment row's `dateAnchored` SHALL change
+- AND installments 2 and 3 SHALL retain their existing `dateAnchored` values
+
+#### Scenario: Unauthorized user cannot edit
+
+- GIVEN a user without `canFundPayments()` permission (e.g. AGENTE)
+- WHEN they view the negocios table
+- THEN the `dateAnchored` cell MUST remain read-only or the edit request MUST be rejected with 403
+
+#### Scenario: Future date rejected
+
+- GIVEN an authorized user attempts to save `dateAnchored` set to a date after today (Bogotá)
+- WHEN the request is submitted
+- THEN the API MUST reject with 400 and no state change MUST occur
+
+#### Scenario: Transaction rollback on partial failure
+
+- GIVEN the Payment[1] update fails after the Business update was staged within the same `prisma.$transaction`
+- WHEN the transaction is evaluated
+- THEN neither `Business.dateAnchored` nor `Payment.dateAnchored` MUST be persisted (full rollback)
+
+### Requirement: Support validation before funding
+
+Both funding endpoints, `/fondear` (direct/no-annualities) and `/fondear-aportes` (annual installments), MUST reject the funding action when `supportCount === 0` for the target business. The block MUST occur before any status or date mutation. The UI MUST present the modal message "No se puede fondear sin soportes adjuntos" when blocked. Editing an ALREADY-funded business's `dateAnchored` MUST NOT be subject to this guard (guard applies only to the funding action, not to date correction).
+
+#### Scenario: Funding blocked with zero supports (direct)
+
+- GIVEN an `EMITIDO` business with `supportCount = 0`
+- WHEN an authorized user attempts `/fondear`
+- THEN the API MUST reject with an error the UI maps to "No se puede fondear sin soportes adjuntos"
+- AND no status or date change MUST occur
+
+#### Scenario: Funding blocked with zero supports (annual)
+
+- GIVEN an `EMITIDO`/`FONDEADO` business with pending annual installments and `supportCount = 0`
+- WHEN an authorized user attempts `/fondear-aportes`
+- THEN the API MUST reject with the same block behavior
+- AND no installment status change MUST occur
+
+#### Scenario: Funding proceeds when supports exist
+
+- GIVEN a business with `supportCount >= 1` and otherwise-eligible funding conditions
+- WHEN an authorized user funds via either endpoint
+- THEN the funding action MUST proceed per existing FONDEADO transition rules
+
+#### Scenario: Blocked attempt is audited
+
+- GIVEN a funding attempt blocked due to `supportCount = 0`
+- WHEN the block is enforced
+- THEN an `AuditLog` entry MUST be created recording the blocked attempt, businessId, and actor identity
+
+#### Scenario: Editing dateAnchored on already-funded business is not blocked by support guard
+
+- GIVEN a `FONDEADO` business with `supportCount = 0` (e.g. legacy data pending remediation)
+- WHEN an authorized user edits `dateAnchored` (not a funding action)
+- THEN the support guard MUST NOT block the date edit
+
+### Requirement: Remediation of businesses funded without supports
+
+The system MUST provide `scripts/remediate-unsupported-funded-businesses.js` to identify and revert businesses with `status = FONDEADO` and `supportCount === 0` (funded before this validation existed). The script MUST support `--dry-run` (report only, no writes) and `--apply` (execute) modes.
+
+#### Scenario: Dry-run reports affected businesses without mutating data
+
+- GIVEN businesses exist with `status = FONDEADO` and zero active supports
+- WHEN the script runs with `--dry-run`
+- THEN it MUST output the list of affected business IDs and counts
+- AND no database rows MUST change
+
+#### Scenario: Apply mode reverts state atomically per business
+
+- GIVEN the same affected set
+- WHEN the script runs with `--apply`
+- THEN for each affected business: `status` MUST become `EMITIDO`, `Business.dateAnchored` MUST become `NULL`, all its `Payment` rows MUST become `status = SIN_FONDEAR` with `dateAnchored = NULL`
+- AND an `AuditLog` entry with action `BUSINESS_REMEDIATION_REVERTED` MUST be created per business, including businessId, previous status, operator, and timestamp
+
+#### Scenario: Business with supports is excluded
+
+- GIVEN a `FONDEADO` business with `supportCount >= 1`
+- WHEN the script identifies candidates (dry-run or apply)
+- THEN that business MUST NOT appear in the affected set
+
+---
+
+## REMOVED Requirements
+
+### Requirement: Fondeo por anualidades vía /fondear-anualidades (dead route)
+
+(Reason: superseded by `/fondear-aportes`; the `/fondear-anualidades` route, its schema, and its tests are unused dead code with only self-referencing test callers.)
+(Migration: None — no active callers found; `/fondear-aportes` already covers annual-installment funding.)

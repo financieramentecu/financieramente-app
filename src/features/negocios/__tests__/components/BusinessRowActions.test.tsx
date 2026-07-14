@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { BusinessRowActions } from '../../components/BusinessRowActions'
 import { UserRole } from '@/features/auth/lib/roles'
@@ -19,6 +19,15 @@ vi.mock('@/features/shared/ui/dropdown-menu', () => ({
     <button onClick={onClick}>{children}</button>
   ),
   DropdownMenuSeparator: () => <hr />,
+}))
+
+vi.mock('@/features/comments/components/CommentModal', () => ({
+  CommentModal: ({ open, businessId, contract }: { open: boolean; businessId: number; contract: string }) =>
+    open ? (
+      <div data-testid="comment-modal">
+        Comment modal for {businessId} - {contract}
+      </div>
+    ) : null,
 }))
 
 const defaultProps = {
@@ -73,6 +82,30 @@ describe('BusinessRowActions', () => {
     it('shows view comprobantes button even when status is VENTA_EFECTUADA', () => {
       render(<BusinessRowActions {...defaultProps} businessStatus={BUSINESS_STATUS.VENTA_EFECTUADA} />)
       expect(screen.getByRole('button', { name: /ver comprobantes/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('Add comment action', () => {
+    it('renders the "Agregar comentario" menu item', () => {
+      render(<BusinessRowActions {...defaultProps} />)
+      expect(screen.getByRole('button', { name: /agregar comentario/i })).toBeInTheDocument()
+    })
+
+    it('opens the comment modal with the row contract when clicked', () => {
+      render(<BusinessRowActions {...defaultProps} contract="CON-001" />)
+      expect(screen.queryByTestId('comment-modal')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: /agregar comentario/i }))
+
+      expect(screen.getByTestId('comment-modal')).toHaveTextContent('Comment modal for 42 - CON-001')
+    })
+
+    it('falls back to a business-id label when contract is null', () => {
+      render(<BusinessRowActions {...defaultProps} contract={null} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /agregar comentario/i }))
+
+      expect(screen.getByTestId('comment-modal')).toHaveTextContent('Comment modal for 42 - Negocio #42')
     })
   })
 })

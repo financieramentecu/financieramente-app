@@ -15,6 +15,7 @@ import {
 	mockPrismaBusiness,
 	mockPrismaBusinessEmitido,
 } from '@/features/negocios/__tests__/fixtures/mock-prisma-business'
+import { assertHasSupports } from '@/features/negocios/services/business-date-anchored.service'
 
 // Mock de módulos externos
 vi.mock('@/auth')
@@ -28,6 +29,9 @@ vi.mock('@/lib/prisma', () => ({
 }))
 vi.mock('@/features/negocios/services/user.service')
 vi.mock('@/features/negocios/mappers/business-entity.mapper')
+vi.mock('@/features/negocios/services/business-date-anchored.service', () => ({
+	assertHasSupports: vi.fn(),
+}))
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
@@ -72,9 +76,11 @@ describe('POST /api/negocios/[id]/fondear', () => {
 	const mockPrismaBusinessToEntity = vi.mocked(prismaBusinessToEntity)
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
+	const mockAssertHasSupports = vi.mocked(assertHasSupports)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockAssertHasSupports.mockResolvedValue({ ok: true })
 		mockNextResponseJson.mockImplementation(
 			(data: unknown, init?: { status?: number }) => {
 				return {
@@ -351,6 +357,239 @@ describe('POST /api/negocios/[id]/fondear', () => {
 				data: null,
 				error: 'ID de negocio inválido',
 			})
+		})
+	})
+
+	// ─── 4.5 fundedDate (fondeo directo con fecha) ────────────────────────
+	describe('fundedDate', () => {
+		it('debe anclar dateAnchored a las 12:00 UTC de la fundedDate provista', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			const mockExistingBusiness = {
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.EMITIDO,
+				_count: { payments: 0 },
+			}
+
+			const dateAnchored = new Date('2026-06-15T12:00:00.000Z')
+			const mockFundedBusiness = {
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.FONDEADO,
+				dateAnchored,
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindUnique.mockResolvedValue(mockExistingBusiness as never)
+			mockPrismaUpdate.mockResolvedValue(mockFundedBusiness as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 2,
+				status: BUSINESS_STATUS.FONDEADO,
+				dateAnchored: dateAnchored.toISOString(),
+			} as never)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fundedDate: '2026-06-15' }),
+				}
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(200)
+			expect(mockPrismaUpdate).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({
+						status: BUSINESS_STATUS.FONDEADO,
+						dateAnchored: new Date('2026-06-15T12:00:00.000Z'),
+					}),
+				})
+			)
+			expect(mockLogAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					details: expect.stringContaining('2026-06-15'),
+				})
+			)
+			expect(responseData.data.status).toBe(BUSINESS_STATUS.FONDEADO)
+		})
+
+		it('debe retornar 400 cuando fundedDate tiene formato inválido', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fundedDate: '15-06-2026' }),
+				}
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(responseData.data).toBeNull()
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
+		})
+
+		it('debe retornar 400 cuando fundedDate es una fecha futura', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+
+			const farFutureDate = '2099-01-01'
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fundedDate: farFutureDate }),
+				}
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(responseData.data).toBeNull()
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
+		})
+
+		it('debe fondear sin fundedDate usando la fecha actual (comportamiento previo intacto)', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			const mockExistingBusiness = {
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.EMITIDO,
+				_count: { payments: 0 },
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindUnique.mockResolvedValue(mockExistingBusiness as never)
+			mockPrismaUpdate.mockResolvedValue({
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.FONDEADO,
+				dateAnchored: new Date(),
+			} as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 2,
+				status: BUSINESS_STATUS.FONDEADO,
+			} as never)
+
+			// No body at all — preserves the original no-body request shape
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{ method: 'POST' }
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(200)
+			expect(mockPrismaUpdate).toHaveBeenCalledWith(
+				expect.objectContaining({
+					data: expect.objectContaining({
+						status: BUSINESS_STATUS.FONDEADO,
+						dateAnchored: expect.any(Date),
+					}),
+				})
+			)
+			expect(responseData.data.status).toBe(BUSINESS_STATUS.FONDEADO)
+		})
+	})
+
+	// ─── 4.6 Support Guard ───────────────────────────────────────────────────
+	describe('Support Guard', () => {
+		it('debe retornar 409 cuando el negocio tiene 0 soportes activos', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			const mockExistingBusiness = {
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.EMITIDO,
+				_count: { payments: 0 },
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindUnique.mockResolvedValue(mockExistingBusiness as never)
+			mockAssertHasSupports.mockResolvedValue({ ok: false, code: 'NO_SUPPORTS' })
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{ method: 'POST' }
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(409)
+			expect(responseData.data).toBeNull()
+			expect(responseData.error).toBe('No se puede fondear sin soportes adjuntos')
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
+			expect(mockLogAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					details: expect.stringContaining('"businessId":2'),
+				})
+			)
+		})
+
+		it('debe proceder con el fondeo cuando el negocio tiene soportes activos (happy path sin cambios)', async () => {
+			const mockSession = { user: { email: 'admin@example.com' } }
+			const mockAdminUser = buildUserWithRole('admin@example.com', UserRole.ADMIN)
+
+			const mockExistingBusiness = {
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.EMITIDO,
+				_count: { payments: 0 },
+			}
+
+			const dateAnchored = new Date('2025-04-18T12:00:00.000Z')
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindUnique.mockResolvedValue(mockExistingBusiness as never)
+			mockAssertHasSupports.mockResolvedValue({ ok: true })
+			mockPrismaUpdate.mockResolvedValue({
+				...mockPrismaBusinessEmitido,
+				status: BUSINESS_STATUS.FONDEADO,
+				dateAnchored,
+			} as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 2,
+				status: BUSINESS_STATUS.FONDEADO,
+				dateAnchored: dateAnchored.toISOString(),
+			} as never)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios/2/fondear',
+				{ method: 'POST' }
+			)
+
+			const params = Promise.resolve({ id: '2' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(200)
+			expect(responseData.data.status).toBe(BUSINESS_STATUS.FONDEADO)
 		})
 	})
 })

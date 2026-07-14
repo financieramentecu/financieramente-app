@@ -4,6 +4,88 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.24.0] - 2026-07-10
+
+### Agregado
+
+- **Comentarios integrados en contratos:** Money Strategist y Analistas de Soporte ahora pueden agregar comentarios directamente en cada contrato. Los comentarios se visualizan en un hilo ordenado cronológicamente con estilos diferenciados según el rol (Money Strategist a la izquierda, Analista de Soporte a la derecha).
+
+- **Dos puntos de entrada para agregar comentarios:** Abre el menú de acciones de un contrato y selecciona "Agregar comentario" para usar un modal, o accede al panel lateral de comentarios desde la vista de detalle del contrato.
+
+- **Notificaciones bidireccionales en tiempo real:** Cuando un Money Strategist comenta, todos los Analistas de Soporte reciben notificación automáticamente. Cuando un Analista comenta, el Money Strategist asignado al contrato recibe notificación. Las notificaciones incluyen el nombre del autor, tiempo relativo, y número de contrato.
+
+- **Panel de notificaciones mejorado:** Las notificaciones de comentarios aparecen en la campana con indicador visual de punto azul para no leídas. Al hacer clic en una notificación, el sistema navega al contrato y abre automáticamente el panel de comentarios en el comentario nuevo, marcándolo como leído.
+
+- **Validación de caracteres en comentarios:** El nombre del comentario está limitado a 40 caracteres y el detalle a 200 caracteres, con contadores visuales que muestran el límite en tiempo real.
+
+### Mejorado
+
+- **Comunicación centralizada:** Toda la conversación sobre un contrato queda registrada en el sistema sin depender de canales externos (email, chat), mejorando la trazabilidad y la conformidad normativa.
+
+- **Auditoría completa:** Todos los comentarios quedan registrados en el audit log del sistema, con identificación del usuario, timestamp y contenido.
+
+### Técnico
+
+- **Modelo de datos:** Nuevo modelo `Comment` con relaciones a `Business` (contrato) y `User` (autor). Incluye soft-delete (`status` boolean) siguiendo convención del proyecto.
+
+- **Servicio de notificaciones extendido:** El sistema de notificaciones SSE existente ahora soporta eventos de `comment-added` para actualizaciones en tiempo real del hilo de comentarios.
+
+- **API routes:** Nuevos endpoints `/api/negocios/[id]/comments` (GET para listar, POST para crear) con validación Zod y respuestas `ApiResponse<T>`.
+
+## [1.23.0] - 2026-07-09
+
+### Agregado
+
+- **Edición de fecha de fondeo desde tabla de negocios:** Los operadores (ADMIN, Asistente Operativo de Gerencia, Analista de Soporte) ahora pueden editar la fecha de fondeo (`dateAnchored`) directamente desde la tabla de negocios, de manera similar a cómo editan la fecha de emisión. La edición automáticamente sincroniza la fecha del primer pago para mantener la consistencia.
+
+- **Modal de fecha de fondeo para negocios sin aportes:** Los Administradores y Analistas de Soporte ahora pueden seleccionar la fecha real de fondeo cuando un negocio sin aportes (como MFUND de Skandia con modalidad única) es fondeado. El modal "Confirmar Fondeo" permite elegir la fecha exacta, mejorando la precisión del registro de operaciones.
+
+- **Script de remediación de fondeos sin soporte:** Nueva herramienta administrativa para revertir negocios que fueron fondeados sin tener soportes adjuntos (error que podía ocurrir antes de implementar la validación). El script permite modo `--dry-run` para inspeccionar cambios antes de aplicarlos.
+
+### Mejorado
+
+- **Validación obligatoria de soportes antes de fondear:** Ahora es imposible fondear un negocio (en ambos flujos: fondeo directo y fondeo de aportes) si no tiene al menos un comprobante de pago adjunto. Si falta soporte, el sistema muestra un mensaje claro: "No se puede fondear sin soportes adjuntos", mejorando la conformidad normativa.
+
+- **Sincronización transaccional de fechas de fondeo:** Cuando se edita la fecha de fondeo de un negocio, la fecha del primer pago se actualiza automáticamente en la misma transacción, garantizando consistencia incluso si hay fallos parciales.
+
+- **Notificaciones genéricas mejoradas:** Las notificaciones ahora son completamente desacopladas de la entidad `Business` y soportan `callbackUrl` para redirección flexible, permitiendo su uso en cualquier flujo del sistema.
+
+- **Refrescado automático de datos en tabla de negocios:** La tabla ahora refrescaba los datos de negocio en background, garantizando que los cambios realizados por otros operadores sean visibles sin necesidad de F5.
+
+- **Botón "Limpiar Filtros" mejorado:** El botón ahora aplica cambios inmediatamente sin necesidad de hacer clic adicional.
+
+### Corregido
+
+- **Eliminación de código huérfano:** Se removió el endpoint `/fondear-anualidades` que estaba siendo reemplazado por `/fondear-aportes`. Esta limpieza reduce la deuda técnica sin impactar funcionalidad.
+
+- **Error de conexión SSE en navegador:** Se corrigió problema que causaba error en almacenamiento de SSE cuando se ejecutaba en entornos browser (se añadió validación de `typeof process`).
+
+- **Bucle infinito en hook `useBusinesses`:** Se corrigió problema en Storybook donde el hook entraba en bucle infinito por dependencias dinámicas.
+
+- **Botón "Limpiar Filtros" se aplica al hacer clic:** Antes requería un paso adicional; ahora aplica inmediatamente.
+
+- **Sidebar de notificaciones ahora flota correctamente:** Se corrigió desplazamiento visual y comportamiento del drawer de notificaciones.
+
+- **Optimización de query N+1 en calculadora:** Se resolvió problema de performance donde la calculadora hacía múltiples queries innecesarias.
+
+- **Error de Storybook con NextJS Router:** Se corrigió error `SB_FRAMEWORK_NEXTJS_0002` (NextjsRouterMocksNotAvailable) que impedía renderización en Chromatic.
+
+## [1.22.13] - 2026-07-04
+
+### Corregido
+
+- **Error de enrutamiento en Storybook:** Se corrigió el error `SB_FRAMEWORK_NEXTJS_0002` (NextjsRouterMocksNotAvailable) que impedía la renderización correcta de los componentes con `next/navigation` en los tests visuales y estáticos de Chromatic. La solución elimina aliases redundantes en la configuración de webpack de Storybook.
+
+## [1.22.12] - 2026-07-03
+
+### Cambiado
+
+- **Notificaciones genéricas:** Las notificaciones en la plataforma han sido desacopladas de la entidad `Business`, volviéndolas completamente genéricas. Ahora soportan un `callbackUrl` para redirección flexible y se pueden utilizar en cualquier flujo del sistema (no sólo para negocios). También se simplificó la interfaz del Drawer de notificaciones, eliminando los filtros condicionales acoplados a negocios.
+
+### Corregido
+
+- **Bucle infinito en Storybook:** Se corrigió un error que causaba que `useBusinesses` entrara en un bucle infinito de re-renderizados en entornos de prueba (como Chromatic) al recibir arreglos creados dinámicamente. La función ahora maneja sus dependencias de forma inmutable usando `JSON.stringify`.
+
 ## [1.22.11] - 2026-06-30
 
 ### Agregado

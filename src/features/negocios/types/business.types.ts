@@ -39,6 +39,8 @@ export interface Business extends Record<string, unknown> {
 	hasPayments: boolean
 	/** Aún hay aportes SIN_FONDEAR (mostrar Fondear aunque el padre sea Fondeado) */
 	hasPendingPaymentFunding: boolean
+	/** Número de aportes configurados; null/0 cuando el negocio no tiene anualidades */
+	numAportes: number | null
 	supportCount: number
 	/** Observación de cancelación; null si no está cancelado o no tiene observación */
 	observations: string | null

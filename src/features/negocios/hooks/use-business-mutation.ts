@@ -28,7 +28,10 @@ interface UseBusinessMutationReturn {
 		id: number,
 		data: CancelBusinessRequest
 	) => Promise<BusinessEntity | null>
-	fondearBusiness: (id: number) => Promise<BusinessEntity | null>
+	fondearBusiness: (
+		id: number,
+		fundedDate?: string
+	) => Promise<BusinessEntity | null>
 	fondearAnualidadesBusiness: (
 		id: number,
 		body: FondearAnualidadesRequest
@@ -136,11 +139,14 @@ export function useBusinessMutation(): UseBusinessMutationReturn {
 	)
 
 	const fondearBusiness = useCallback(
-		async (id: number): Promise<BusinessEntity | null> => {
+		async (
+			id: number,
+			fundedDate?: string
+		): Promise<BusinessEntity | null> => {
 			setIsFondeando(true)
 
 			try {
-				const response = await businessService.fondear(id)
+				const response = await businessService.fondear(id, fundedDate)
 
 				if ('error' in response && response.error) {
 					toast.error('Error al fondear', {

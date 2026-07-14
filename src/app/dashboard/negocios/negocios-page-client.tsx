@@ -3,16 +3,15 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'
 import MisNegociosPage from '@/features/negocios/components/MisNegociosPage'
-import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
 import { BusinessObservationsModal } from '@/features/negocios/components/modals/BusinessObservationsModal'
 import { FundingModal } from '@/features/negocios/components/modals/FundingModal'
+import { FundDirectFundingModal } from '@/features/negocios/components/modals/FundDirectFundingModal'
 import { businessService } from '@/features/negocios/services/business.service'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
 import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
-import { UserRole } from '@/features/auth/lib/roles'
 import { canExportBusinessList } from '@/features/negocios/lib/can-export-business-list'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business } from '@/features/negocios/types/business.types'
@@ -100,7 +99,6 @@ export function NegociosPageClient({
 	}, [urlSearchParams])
 
 	// Estado para modales
-	const [viewModalOpen, setViewModalOpen] = useState(false)
 	const [cancelModalOpen, setCancelModalOpen] = useState(false)
 	const [observationsModalOpen, setObservationsModalOpen] = useState(false)
 	const [observationsBusiness, setObservationsBusiness] = useState<Business | null>(null)
@@ -134,6 +132,8 @@ export function NegociosPageClient({
 	const [pendingFondearBusiness, setPendingFondearBusiness] =
 		useState<Business | null>(null)
 	const [isConfirmingFondear, setIsConfirmingFondear] = useState(false)
+	const [fundDirectModalOpen, setFundDirectModalOpen] = useState(false)
+	const [fundDirectError, setFundDirectError] = useState<string | null>(null)
 
 	// Estado para búsqueda con debounce
 	const [searchInput, setSearchInput] = useState('')
@@ -249,8 +249,8 @@ export function NegociosPageClient({
 		error: statsError,
 		refetch: refetchStats,
 	} = useBusinessStats({
-		dateFrom: searchParams.dateFrom || defaultDates.from,
-		dateTo: searchParams.dateTo || defaultDates.to,
+		dateFrom: mergedParams.dateFrom || defaultDates.from,
+		dateTo: mergedParams.dateTo || defaultDates.to,
 	})
 
 	const {
@@ -288,23 +288,11 @@ export function NegociosPageClient({
 	)
 
 	/**
-	 * Abre el modal de visualización con el negocio seleccionado
+	 * Redirige a la ruta de detalle del negocio
 	 */
-	const handleViewBusiness = useCallback(async (business: Business) => {
-		setIsLoadingBusiness(true)
-		setViewModalOpen(true)
-
-		try {
-			const response = await businessService.getById(Number(business.id))
-			if (response.data) {
-				setSelectedBusiness(response.data)
-			}
-		} catch (err) {
-			console.error('Error al cargar negocio:', err)
-		} finally {
-			setIsLoadingBusiness(false)
-		}
-	}, [])
+	const handleViewBusiness = useCallback((business: Business) => {
+		router.push(`/dashboard/negocios/${business.id}`)
+	}, [router])
 
 	/**
 	 * Abre el modal de cancelación con el negocio seleccionado
@@ -332,7 +320,7 @@ export function NegociosPageClient({
 	 * Fondeo: sin anualidades → POST directo; con anualidades → modal HU4
 	 */
 	const executeFondearBusiness = useCallback(
-		async (business: Business) => {
+		async (business: Business, fundedDate?: string) => {
 			if (business.hasPayments) {
 				setAnnualFundingBusinessId(Number(business.id))
 				setAnnualFundingBusinessStatus(business.status ?? null)
@@ -365,12 +353,14 @@ export function NegociosPageClient({
 				return
 			}
 
-			const result = await fondearBusiness(Number(business.id))
+			const result = await fondearBusiness(Number(business.id), fundedDate)
 
 			if (result) {
-				refetch()
-				refetchStats()
+				refetch(true)
+				refetchStats(true)
 			}
+
+			return result
 		},
 		[fondearBusiness, refetch, refetchStats]
 	)
@@ -383,6 +373,13 @@ export function NegociosPageClient({
 			}
 
 			setPendingFondearBusiness(business)
+
+			if (business.numAportes === 0) {
+				setFundDirectError(null)
+				setFundDirectModalOpen(true)
+				return
+			}
+
 			setFondearConfirmOpen(true)
 		},
 		[executeFondearBusiness]
@@ -411,6 +408,36 @@ export function NegociosPageClient({
 			}
 		},
 		[isConfirmingFondear]
+	)
+
+	const handleFundDirectModalOpenChange = useCallback(
+		(open: boolean) => {
+			if (isFondeando) {
+				return
+			}
+			setFundDirectModalOpen(open)
+			if (!open) {
+				setPendingFondearBusiness(null)
+				setFundDirectError(null)
+			}
+		},
+		[isFondeando]
+	)
+
+	const handleConfirmFundDirect = useCallback(
+		async (fundedDate: string) => {
+			if (!pendingFondearBusiness) return
+			setFundDirectError(null)
+			const result = await executeFondearBusiness(
+				pendingFondearBusiness,
+				fundedDate
+			)
+			if (result) {
+				setFundDirectModalOpen(false)
+				setPendingFondearBusiness(null)
+			}
+		},
+		[pendingFondearBusiness, executeFondearBusiness]
 	)
 
 	const handleRefetchAnnualPayments = useCallback(async () => {
@@ -449,8 +476,8 @@ export function NegociosPageClient({
 				setCancelModalOpen(false)
 				setSelectedBusiness(null)
 				// Refrescar lista de negocios y estadísticas
-				refetch()
-				refetchStats()
+				refetch(true)
+				refetchStats(true)
 			}
 		},
 		[selectedBusiness, cancelBusiness, refetch, refetchStats]
@@ -529,8 +556,8 @@ export function NegociosPageClient({
 	])
 
 	// Limpiar business seleccionado al cerrar modales
-	const handleViewModalClose = useCallback((open: boolean) => {
-		setViewModalOpen(open)
+	const handleCancelModalClose = useCallback((open: boolean) => {
+		setCancelModalOpen(open)
 		if (!open) {
 			setSelectedBusiness(null)
 		}
@@ -545,16 +572,22 @@ export function NegociosPageClient({
 			setSelectedBusiness(response.data)
 		}
 		toast.success('La fecha de emisión fue actualizada exitosamente. Los fondeos han sido recalculados')
-		refetch()
-		refetchStats()
+		refetch(true)
+		refetchStats(true)
 	}, [refetch, refetchStats])
 
-	const handleCancelModalClose = useCallback((open: boolean) => {
-		setCancelModalOpen(open)
-		if (!open) {
-			setSelectedBusiness(null)
+	const handleSaveDateAnchored = useCallback(async (businessId: number, dateAnchored: string) => {
+		const response = await businessService.updateDateAnchored(businessId, dateAnchored)
+		if ('error' in response && response.error) {
+			throw new Error(response.error)
 		}
-	}, [])
+		if (response.data) {
+			setSelectedBusiness(response.data)
+		}
+		toast.success('La fecha de fondeo fue actualizada exitosamente')
+		refetch(true)
+		refetchStats(true)
+	}, [refetch, refetchStats])
 
 	const businessDataForTable: Business[] = useMemo(
 		() => businesses.map(mapBusinessToTableRow),
@@ -592,22 +625,10 @@ export function NegociosPageClient({
 				onSortingChange={handleSortingChange}
 				sortBy={searchParams.sortBy}
 				sortOrder={searchParams.sortOrder}
-				onUploadSuccess={() => { refetch(); refetchStats() }}
-				onDeleteSuccess={() => { refetch(); refetchStats() }}
+				onUploadSuccess={() => { refetch(true); refetchStats(true) }}
+				onDeleteSuccess={() => { refetch(true); refetchStats(true) }}
 				onSaveDateIssued={handleSaveDateIssued}
-			/>
-
-			{/* Modal de Visualización */}
-			<BusinessViewModal
-				open={viewModalOpen}
-				onOpenChange={handleViewModalClose}
-				business={selectedBusiness}
-				isLoading={isLoadingBusiness}
-				allowEditDateIssued={
-					_currentUser?.role?.code === UserRole.ADMIN ||
-					_currentUser?.role?.code === UserRole.ANALISTA_SOPORTE
-				}
-				onSaveDateIssued={handleSaveDateIssued}
+				onSaveDateAnchored={handleSaveDateAnchored}
 			/>
 
 			{/* Modal de Cancelación */}
@@ -641,6 +662,15 @@ export function NegociosPageClient({
 				dateAnchored={annualFundingDateAnchored}
 				onRefetchInstallments={handleRefetchAnnualPayments}
 				onFundingSuccess={() => { refetch(); refetchStats() }}
+			/>
+
+			<FundDirectFundingModal
+				open={fundDirectModalOpen}
+				onOpenChange={handleFundDirectModalOpenChange}
+				business={pendingFondearBusiness}
+				onConfirm={(fundedDate) => void handleConfirmFundDirect(fundedDate)}
+				isLoading={isFondeando}
+				error={fundDirectError}
 			/>
 
 			<AlertDialog

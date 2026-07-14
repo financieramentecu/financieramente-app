@@ -27,6 +27,7 @@ import { User, Mail, LogOut } from 'lucide-react'
 import { ThemeToggle } from '@/features/shared/ui/theme-toggle'
 import { HeaderImpersonationSelect } from './HeaderImpersonationSelect'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
+import { NotificationBell } from '@/features/shared/components/notifications/NotificationBell'
 
 export interface BreadcrumbItemProps {
 	label: string
@@ -65,6 +66,7 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 							<HeaderImpersonationSelect />
 						</div>
 					)}
+					<NotificationBell />
 					<ThemeToggle className="h-9 w-9 rounded-lg border-[#11525B]/40 px-0 text-[#11525B] hover:bg-[#11525B]/10 hover:text-[#11525B]" />
 					{user && (
 						<DropdownMenu>

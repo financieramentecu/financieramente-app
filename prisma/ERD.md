@@ -5,9 +5,9 @@ Sistema: Financieramente — liquidación de comisiones.
 
 **Enums**:
 - `BeneficiaryMode`: `OVERRIDE` | `BENEFICIARIO_GENERAL` (en `level.beneficiary_mode`).
-- `AnnualPaymentStatus`: `SIN_FONDEAR` | `FONDEADO` | `EN_CARTERA` | `PAGO_ANTICIPADO` | `CARTERA_PAGADO` (en `payments.status`).
+- `AnnualPaymentStatus`: `SIN_FONDEAR` | `FONDEADO` | `EN_CARTERA` | `PAGO_ANTICIPADO` | `CARTERA_PAGADO` (en `payment.status`).
 - `ContributionType`: `REGULAR` | `UNICO` (en `product.contribution_type`).
-- `BusinessSupport.status`: Boolean (`true` = activo, `false` = eliminado lógicamente).
+- `Notification.status`: Boolean (`is_read`, `is_closed`) para marcar lectura y cierre.
 
 ```mermaid
 erDiagram
@@ -46,6 +46,9 @@ erDiagram
     User ||--o{ ComissionDistribution : "beneficiario distribución"
     User ||--o{ CommissionDiscount : "created_by updated_by"
     User ||--o{ DistributionApproval : "aprobaciones"
+    User ||--o{ Notification : "notificaciones"
+    User ||--o{ Comment : "comentarios creados"
+    Business ||--o{ Comment : "comentarios del contrato"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
     Client ||--o{ Business : "negocios"
@@ -157,6 +160,8 @@ erDiagram
         string name
         text description
         int id_type_product FK
+        decimal commission_percentage
+        enum contribution_type
         boolean status
         datetime created_at
         datetime updated_at
@@ -410,6 +415,29 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+
+    Notification {
+        int id_notification PK
+        int id_user FK
+        string title
+        text message
+        string callback_url
+        boolean is_read
+        boolean is_closed
+        datetime created_at
+        datetime updated_at
+    }
+
+    Comment {
+        string id PK
+        int business_id FK
+        int author_id FK
+        string title
+        string detail
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ## Leyenda de cardinalidad (Mermaid)
@@ -441,3 +469,6 @@ erDiagram
 - **Nueva tabla `business_support`** (migración `20260514000000_add_business_support`): almacena comprobantes de pago por negocio respaldados en Digital Ocean Spaces. `object_key` es único (ruta en el bucket). Soft delete vía `status = false`. Índice compuesto `(business_id, status)` para filtrar activos eficientemente. FK a `business` y `user` (uploader).
 - **Nueva tabla `category`** (migración `20260509010000_create_category_and_populate`): representa la categoría comercial/organizacional de un usuario (p. ej. MS Junior, MS Senior). Tiene FK a `category_type`. `User.id_category` apunta a esta tabla. La antigua jerarquía técnica es ahora `Level`; la nueva `Category` es la clasificación de negocio.
 - `ProductConfiguration`: el unique constraint parcial `(id_product, id_level)` preserva el comportamiento de índice parcial `WHERE active = true` heredado de la migración de renombre. El `@@map` del constraint es `product_configuration_idProduct_idLevel_key`.
+- `Product`: campos `commission_percentage` (Decimal 7,4) y `contribution_type` (enum REGULAR | UNICO) agregados para configuración de comisiones y tipos de contribución.
+- **Nueva tabla `Notification`** (migración `notificaciones`): almacena notificaciones genéricas para usuarios con soporte de `callbackUrl` para acciones interactivas. Campos `is_read` e `is_closed` para estado. Soft delete a través de `is_closed`. FK a `user` con `onDelete: Cascade`.
+- **Nueva tabla `comment`** (migración `20260710180400_add_comment_model`): comentarios por contrato, creados por `AGENTE` (Money Strategist) o `ANALISTA_SOPORTE` (Analista de Soporte). `title` `VARCHAR(40)` y `detail` `VARCHAR(200)` reflejan los límites de UI. `status` (boolean, default `true`) se mantiene reservado para soft-delete futuro — esta iteración es create-only, sin endpoints de edición/borrado. Índice compuesto `(business_id, created_at)` para listar el hilo ordenado cronológicamente. FK a `business` y `user` (autor).

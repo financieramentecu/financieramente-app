@@ -248,6 +248,8 @@ model User {
   role                                Role?                   @relation(fields: [idRole], references: [idRole])
   leader                              User?                   @relation("UserLeader", fields: [idUserLeader], references: [idUser])
   subordinates                        User[]                  @relation("UserLeader")
+  notifications                       Notification[]
+  comments                            Comment[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -335,6 +337,7 @@ model Business {
   supports                      BusinessSupport[]
   payments                      Payment[]
   settlementCommissions         SettlementCommission[]
+  comments                      Comment[]
 
   @@index([idUser])
   @@index([contract])
@@ -559,4 +562,41 @@ enum AnnualPaymentStatus {
 enum ContributionType {
   REGULAR
   UNICO
+}
+
+model Notification {
+  idNotification Int      @id @default(autoincrement()) @map("id_notification")
+  idUser         Int      @map("id_user")
+  title          String
+  message        String
+  callbackUrl    String?  @map("callback_url")
+  isRead         Boolean  @default(false) @map("is_read")
+  isClosed       Boolean  @default(false) @map("is_closed")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user           User     @relation(fields: [idUser], references: [idUser], onDelete: Cascade)
+
+  @@index([idUser])
+  @@map("notification")
+}
+
+/// Per-contract comment thread — created by AGENTE (Money Strategist) or
+/// ANALISTA_SOPORTE (Support Analyst), fans out a Notification on create.
+/// Create-only in this slice; `status` kept for future soft-delete support.
+model Comment {
+  id         String   @id @default(cuid())
+  businessId Int      @map("business_id")
+  authorId   Int      @map("author_id")
+  title      String   @db.VarChar(40)
+  detail     String   @db.VarChar(200)
+  status     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  business   Business @relation(fields: [businessId], references: [idBusiness])
+  author     User     @relation(fields: [authorId], references: [idUser])
+
+  @@index([businessId, createdAt])
+  @@map("comment")
 }
