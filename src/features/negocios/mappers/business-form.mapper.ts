@@ -22,17 +22,12 @@ import type { UpdateBusinessRequest } from '../types/business-api.types'
 export function businessEntityToFormData(
 	business: BusinessEntity
 ): Partial<BusinessFormData> {
-	// Separar nombre y apellidos del fullName del cliente
-	const nameParts = business.client.fullName.split(' ')
-	const firstName = nameParts[0] || ''
-	const lastNames = nameParts.slice(1).join(' ') || ''
-
 	return {
 		// Información del cliente
 		identityNumber: business.client.identityNumber,
 		email: business.client.email || '',
-		name: firstName,
-		lastNames: lastNames,
+		name: business.client.name,
+		lastNames: business.client.lastName || '',
 		phone: business.client.phone || '',
 		clientOrigin: String(business.clientOrigin.id),
 

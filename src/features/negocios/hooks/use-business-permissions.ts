@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { UserWithRole } from '@/features/negocios/types/business.types'
+import { canRoleEditClientInfo } from '@/features/negocios/lib/client-edit-permissions'
 
 export type FieldPermission = {
 	readonly: boolean
@@ -55,6 +56,11 @@ export function useBusinessPermissions({
 		)
 	}, [roleCode])
 
+	// Roles que pueden editar datos del cliente en la sección "Información básica y general"
+	const canEditClientInfo = useMemo(() => {
+		return canRoleEditClientInfo(roleCode)
+	}, [roleCode])
+
 	// El negocio es un borrador (Venta Efectuada)
 	const isDraft = useMemo(() => {
 		const status = businessStatus?.toUpperCase()
@@ -79,10 +85,20 @@ export function useBusinessPermissions({
 		}
 
 		// --- LÓGICA PARA EDICIÓN ---
-		
-		// 1. Información del Cliente - Solo lectura en edición (según especificación)
-		const clientFields: BusinessFormField[] = ['identityNumber', 'email', 'name', 'lastNames', 'phone', 'clientOrigin']
+
+		// 1. Información del Cliente — editable para Asistente Operativo de Gerencia y Admin (COM-63)
+		const clientFields: BusinessFormField[] = [
+			'identityNumber',
+			'email',
+			'name',
+			'lastNames',
+			'phone',
+			'clientOrigin',
+		]
 		if (clientFields.includes(field)) {
+			if (canEditClientInfo) {
+				return { readonly: false, disabled: false, hidden: false }
+			}
 			return { readonly: true, disabled: true, hidden: false }
 		}
 
@@ -126,6 +142,7 @@ export function useBusinessPermissions({
 	return {
 		isEditMode,
 		isPrivileged,
+		canEditClientInfo,
 		isDraft,
 		getFieldPermission,
 	}

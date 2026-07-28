@@ -37,6 +37,10 @@ export type BusinessFormMode = 'create' | 'edit' | 'view' | 'cancel'
 export interface ClientInfo {
 	readonly id: number
 	fullName: string
+	/** Nombre(s) del cliente (sin apellidos) */
+	name: string
+	/** Apellido(s) del cliente */
+	lastName: string | null
 	identityNumber: string
 	email: string | null
 	phone: string | null
