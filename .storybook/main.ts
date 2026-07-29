@@ -33,8 +33,8 @@ const config: StorybookConfig & {
 		config.resolve = config.resolve || {}
 		config.resolve.alias = {
 			...config.resolve.alias,
-			// next-auth package itself — prevents resolveAuthSecret() at module init
-			'next-auth': require.resolve('./mocks/next-auth.ts'),
+			// next-auth$ = exact match; without $ it would also match next-auth/react as a prefix
+			'next-auth$': require.resolve('./mocks/next-auth.ts'),
 			'next-auth/react': require.resolve('./mocks/next-auth-react.tsx'),
 			'@/auth': require.resolve('./mocks/auth.ts'),
 			// Both the @/ alias and the absolute path to catch whichever webpack sees first
@@ -62,8 +62,8 @@ const config: StorybookConfig & {
 				)
 		viteConfig.resolve.alias = [
 			...existingEntries,
-			// next-auth package itself — prevents resolveAuthSecret() at module init
-			{ find: 'next-auth', replacement: require.resolve('./mocks/next-auth.ts') },
+			// /^next-auth$/ = exact match; plain string would also match next-auth/react as a prefix
+			{ find: /^next-auth$/, replacement: require.resolve('./mocks/next-auth.ts') },
 			{ find: 'next-auth/react', replacement: require.resolve('./mocks/next-auth-react.tsx') },
 			{ find: '@/auth', replacement: require.resolve('./mocks/auth.ts') },
 			{ find: '@/lib/auth/nextauth', replacement: require.resolve('./mocks/nextauth.ts') },
