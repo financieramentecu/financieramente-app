@@ -105,14 +105,14 @@ describe('NegociosPageClient — role-based default date filter seed', () => {
 		UserRole.ADMIN,
 		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 		UserRole.ANALISTA_SOPORTE,
-	])('%s seeds funding date params (current month) into the URL', (role) => {
+	])('%s seeds creation date params (current month) into the URL', (role) => {
 		render(<NegociosPageClient currentUser={userWithRole(role)} />)
 
 		const { from, to } = getCurrentMonthRange()
 		const params = seededParams()
-		expect(params.get('dateFrom')).toBe(from)
-		expect(params.get('dateTo')).toBe(to)
-		expect(params.get('createdFrom')).toBeNull()
+		expect(params.get('createdFrom')).toBe(from)
+		expect(params.get('createdTo')).toBe(to)
+		expect(params.get('dateFrom')).toBeNull()
 	})
 
 	it('AGENTE seeds creation date params (current month) into the URL', () => {
