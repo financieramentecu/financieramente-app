@@ -46,6 +46,8 @@ export function prismaBusinessToEntity(
 		client: {
 			id: prisma.client.idClient,
 			fullName: buildFullName(prisma.client.name, prisma.client.lastName),
+			name: prisma.client.name,
+			lastName: prisma.client.lastName,
 			identityNumber: prisma.client.identityNumber,
 			email: prisma.client.email,
 			phone: prisma.client.phone,

@@ -31,6 +31,14 @@ describe('prismaBusinessToEntity', () => {
 			expect(result.createdAt).toBe('2024-01-15T10:00:00.000Z')
 		})
 
+		it('should map name and lastName on client', () => {
+			const result = prismaBusinessToEntity(mockPrismaBusiness)
+
+			expect(result.client.name).toBe('María')
+			expect(result.client.lastName).toBe('García López')
+			expect(result.client.fullName).toBe('María García López')
+		})
+
 		it('should build client fullName correctly', () => {
 			const result = prismaBusinessToEntity(mockPrismaBusiness)
 

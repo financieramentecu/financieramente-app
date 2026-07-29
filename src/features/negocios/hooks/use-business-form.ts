@@ -27,6 +27,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const {
 		mode = 'create',
 		businessId,
+		clientId,
 		onSubmit,
 		defaultValues,
 		currentUser,
@@ -101,7 +102,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 		})
 
 	// Usar hook de permisos centralizado
-	const { getFieldPermission } = useBusinessPermissions({
+	const { getFieldPermission, canEditClientInfo } = useBusinessPermissions({
 		mode,
 		currentUser,
 		businessStatus: props.businessStatus,
@@ -130,22 +131,72 @@ export function useBusinessForm(props: BusinessFormProps) {
 		[canSearchAgents, handleSearchAgents, setAgentsList]
 	)
 
+	const handleInvalidSubmit = React.useCallback(() => {
+		toast.error('Campos obligatorios incompletos', {
+			description:
+				'Revisa los campos marcados con asterisco rojo e intenta guardar de nuevo.',
+		})
+	}, [])
+
 	// Handler para submit del formulario
 	const handleFormSubmit = React.useCallback(
 		async (data: BusinessFormData) => {
 			try {
 				// En modo edición, enviar todos los campos que hayan cambiado (o todos los disponibles)
 				if (isEditMode && businessId) {
-					const result = await updateBusiness(businessId, {
-						contract: data.contract || undefined,
-						idSettlementCommission: idSettlementCommission || undefined,
-						idProduct: data.producto ? parseInt(data.producto) : undefined,
-						term: data.terms,
-						value: data.value,
-						idBuyPeriodicity: data.periodicity ? parseInt(data.periodicity) : undefined,
-						idCurrency: data.currency ? parseInt(data.currency) : undefined,
-						numAportes: data.numAportes,
-					})
+					if (canEditClientInfo && !clientId) {
+						toast.error('Error al actualizar cliente', {
+							description:
+								'No se encontró el cliente asociado al negocio. Recarga la página e intenta de nuevo.',
+						})
+						return
+					}
+
+					if (canEditClientInfo && clientId) {
+						const updateResult = await updateClient({
+							idClient: clientId,
+							name: data.name,
+							lastName: data.lastNames,
+							email: data.email,
+							phone: data.phone,
+							identityNumber: data.identityNumber,
+							context: 'business-edit',
+							businessId,
+						})
+
+						if ('error' in updateResult && updateResult.error) {
+							toast.error('Error al actualizar cliente', {
+								description: updateResult.error,
+							})
+							return
+						}
+					}
+
+					const result = await updateBusiness(
+						businessId,
+						{
+							contract: data.contract || undefined,
+							idSettlementCommission: idSettlementCommission || undefined,
+							idProduct: data.producto ? parseInt(data.producto) : undefined,
+							term: data.terms,
+							value: data.value,
+							idBuyPeriodicity: data.periodicity
+								? parseInt(data.periodicity)
+								: undefined,
+							idCurrency: data.currency ? parseInt(data.currency) : undefined,
+							numAportes: data.numAportes,
+							...(canEditClientInfo && data.clientOrigin
+								? { idClientOrigin: parseInt(data.clientOrigin) }
+								: {}),
+						},
+						canEditClientInfo
+							? {
+									successTitle: 'Información actualizada exitosamente',
+									successDescription:
+										'Los datos del cliente y del negocio se guardaron correctamente.',
+								}
+							: undefined
+					)
 
 					if (result) {
 						await onSubmit?.(data)
@@ -155,11 +206,11 @@ export function useBusinessForm(props: BusinessFormProps) {
 
 				// --- Modo creación ---
 				let clientToUse = selectedClient
-				let clientId = selectedClient?.idClient ?? null
+				let resolvedClientId = selectedClient?.idClient ?? null
 
 				// Si no hay un cliente seleccionado, significa que es un nuevo cliente
 				// y necesitamos crearlo antes de crear el negocio
-				if (!clientId) {
+				if (!resolvedClientId) {
 					// Crear el nuevo cliente usando el action
 					const createResult = await createClient({
 						name: data.name,
@@ -180,7 +231,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 
 					if (createResult.data) {
 						clientToUse = createResult.data
-						clientId = createResult.data.idClient
+						resolvedClientId = createResult.data.idClient
 						setSelectedClient(clientToUse)
 					} else {
 						toast.error('Error al crear cliente', {
@@ -191,7 +242,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 				}
 
 				// Si el cliente existe, verificar si fue modificado y actualizarlo
-				if (clientId && clientToUse) {
+				if (resolvedClientId && clientToUse) {
 					const hasChanges =
 						clientToUse.name !== data.name ||
 						clientToUse.lastName !== data.lastNames ||
@@ -200,11 +251,12 @@ export function useBusinessForm(props: BusinessFormProps) {
 
 					if (hasChanges) {
 						const updateResult = await updateClient({
-							idClient: clientId,
+							idClient: resolvedClientId,
 							name: data.name,
 							lastName: data.lastNames,
 							email: data.email,
 							phone: data.phone,
+							context: 'business-create',
 						})
 
 						if ('error' in updateResult) {
@@ -231,7 +283,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 					value: data.value,
 					idBuyPeriodicity: parseInt(data.periodicity),
 					idUser: parseInt(data.agent),
-					idClient: clientId!,
+					idClient: resolvedClientId!,
 					idProduct: parseInt(data.producto),
 					idCurrency: parseInt(data.currency),
 					idClientOrigin: parseInt(data.clientOrigin),
@@ -254,7 +306,16 @@ export function useBusinessForm(props: BusinessFormProps) {
 				})
 			}
 		},
-		[selectedClient, onSubmit, isEditMode, businessId, updateBusiness, idSettlementCommission]
+		[
+			selectedClient,
+			onSubmit,
+			isEditMode,
+			businessId,
+			clientId,
+			updateBusiness,
+			idSettlementCommission,
+			canEditClientInfo,
+		]
 	)
 
 	return {
@@ -263,7 +324,8 @@ export function useBusinessForm(props: BusinessFormProps) {
 		isSubmitting: isSubmitting || isUpdating,
 		isEditMode,
 		handleFormSubmit: handleSubmit(
-			handleFormSubmit as (data: BusinessFormData) => Promise<void>
+			handleFormSubmit as (data: BusinessFormData) => Promise<void>,
+			handleInvalidSubmit
 		),
 		handleClientSelected,
 		handleCreateNew,

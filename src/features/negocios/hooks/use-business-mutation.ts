@@ -15,6 +15,11 @@ import type {
 	FondearAnualidadesRequest,
 } from '../types/business-api.types'
 
+interface UpdateBusinessToastOptions {
+	successTitle?: string
+	successDescription?: string
+}
+
 interface UseBusinessMutationReturn {
 	isUpdating: boolean
 	isCancelling: boolean
@@ -22,7 +27,8 @@ interface UseBusinessMutationReturn {
 	isFondeandoAnualidades: boolean
 	updateBusiness: (
 		id: number,
-		data: UpdateBusinessRequest
+		data: UpdateBusinessRequest,
+		toastOptions?: UpdateBusinessToastOptions
 	) => Promise<BusinessEntity | null>
 	cancelBusiness: (
 		id: number,
@@ -65,7 +71,8 @@ export function useBusinessMutation(): UseBusinessMutationReturn {
 	const updateBusiness = useCallback(
 		async (
 			id: number,
-			data: UpdateBusinessRequest
+			data: UpdateBusinessRequest,
+			toastOptions?: UpdateBusinessToastOptions
 		): Promise<BusinessEntity | null> => {
 			setIsUpdating(true)
 
@@ -80,9 +87,14 @@ export function useBusinessMutation(): UseBusinessMutationReturn {
 				}
 
 				if (response.data) {
-					toast.success('Negocio actualizado exitosamente', {
-						description: `El negocio #${id} ha sido actualizado.`,
-					})
+					toast.success(
+						toastOptions?.successTitle ?? 'Negocio actualizado exitosamente',
+						{
+							description:
+								toastOptions?.successDescription ??
+								`El negocio #${id} ha sido actualizado.`,
+						}
+					)
 					return response.data
 				}
 

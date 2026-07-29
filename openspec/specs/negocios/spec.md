@@ -1571,10 +1571,18 @@ El sistema MUST permitir la corrección total de la información de un negocio e
 - **AND** el sistema SHALL permitir únicamente la edición del número de Contrato (comportamiento actual)
 
 #### Scenario: Bloqueo de información del cliente en edición de negocio
-- **GIVEN** cualquier usuario en modo edición de un negocio
-- **WHEN** visualiza la sección "Información del cliente"
-- **THEN** el sistema MUST mantener todos los campos del cliente (Nombre, Documento, etc.) como solo lectura
+- **GIVEN** un usuario sin rol `ADMIN` ni `ASISTENTE_GERENCIA_OPERATIVA` en modo edición de un negocio
+- **WHEN** visualiza la sección "Información básica y general"
+- **THEN** el sistema MUST mantener todos los campos del cliente (Nombre, Documento, Email, Teléfono, Origen, etc.) como solo lectura
 - **AND** el sistema SHALL NOT permitir cambios en la entidad cliente desde este formulario
+
+#### Scenario: Asistente Operativo de Gerencia edita información básica del cliente
+- **GIVEN** un usuario con rol `ASISTENTE_GERENCIA_OPERATIVA` (o `ADMIN`) en modo edición de un negocio
+- **WHEN** visualiza la sección "Información básica y general"
+- **THEN** el sistema MUST permitir editar: No. Documento, Email, Apellidos, Nombres, Teléfono y Origen del Cliente
+- **AND** al guardar con campos obligatorios vacíos el sistema MUST prevenir el guardado y mostrar errores de validación
+- **AND** al guardar correctamente el sistema MUST persistir los datos del cliente (y origen en el negocio), registrar auditoría `CLIENT_UPDATED`, mostrar un mensaje de éxito y refrescar la vista de edición con los datos actualizados
+- **AND** el endpoint/action de actualización del cliente MUST rechazar la edición en contexto `business-edit` si el rol no es `ADMIN` ni `ASISTENTE_GERENCIA_OPERATIVA`
 
 ---
 
