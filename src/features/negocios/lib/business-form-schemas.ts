@@ -15,8 +15,8 @@ export const businessFormSchema = z.object({
 	lastNames: z.string().min(2, 'Los apellidos son obligatorios').trim(),
 	phone: z
 		.string()
-		.regex(/^[0-9\s\-+]+$/, 'Formato de contacto inválido')
-		.optional(),
+		.min(1, 'El teléfono es obligatorio')
+		.regex(/^[0-9\s\-+]+$/, 'Formato de contacto inválido'),
 	identityNumber: identityNumberSchema,
 	clientOrigin: z.string().min(1, 'El origen del cliente es obligatorio'),
 	contract: z

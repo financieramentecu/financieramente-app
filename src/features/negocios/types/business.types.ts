@@ -123,6 +123,8 @@ export type CurrentUser = UserWithRole
 export interface BusinessFormProps {
 	mode?: 'create' | 'edit'
 	businessId?: number
+	/** ID del cliente asociado (requerido en edición para actualizar datos del cliente) */
+	clientId?: number
 	onSubmit?: (data: BusinessFormData) => void | Promise<void>
 	onCancel?: () => void
 	defaultValues?: Partial<BusinessFormData>

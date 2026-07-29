@@ -197,6 +197,8 @@ export type ValidateContractSchema = z.infer<typeof validateContractSchema>
 export const clientInfoSchema = z.object({
 	id: z.number(),
 	fullName: z.string(),
+	name: z.string(),
+	lastName: z.string().nullable(),
 	identityNumber: z.string(),
 	email: z.string().nullable(),
 	phone: z.string().nullable(),
