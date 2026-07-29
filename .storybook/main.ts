@@ -34,6 +34,7 @@ const config: StorybookConfig & {
 			...config.resolve.alias,
 			'next-auth/react': require.resolve('./mocks/next-auth-react.tsx'),
 			'@/auth': require.resolve('./mocks/auth.ts'),
+			'@/lib/auth/nextauth': require.resolve('./mocks/nextauth.ts'),
 			'@flagsmith/flagsmith/react': require.resolve('./mocks/flagsmith-react.ts'),
 		}
 		return config
@@ -58,6 +59,7 @@ const config: StorybookConfig & {
 			...existingEntries,
 			{ find: 'next-auth/react', replacement: require.resolve('./mocks/next-auth-react.tsx') },
 			{ find: '@/auth', replacement: require.resolve('./mocks/auth.ts') },
+			{ find: '@/lib/auth/nextauth', replacement: require.resolve('./mocks/nextauth.ts') },
 			// RegExp required for scoped subpath packages (@flagsmith/flagsmith/react)
 			{ find: /^@flagsmith\/flagsmith\/react$/, replacement: require.resolve('./mocks/flagsmith-react.ts') },
 		]
