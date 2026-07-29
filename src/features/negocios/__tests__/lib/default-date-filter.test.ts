@@ -18,10 +18,10 @@ describe('getDefaultDateParamPair', () => {
 		UserRole.ADMIN,
 		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 		UserRole.ANALISTA_SOPORTE,
-	])('%s defaults to funding date params', (role) => {
+	])('%s defaults to creation date params', (role) => {
 		expect(getDefaultDateParamPair(role)).toEqual({
-			fromKey: 'dateFrom',
-			toKey: 'dateTo',
+			fromKey: 'createdFrom',
+			toKey: 'createdTo',
 		})
 	})
 
