@@ -15,7 +15,7 @@ const STICKY_CELL_STYLE: React.CSSProperties = {
   position: 'sticky',
   left: 0,
   zIndex: 2,
-  backgroundColor: 'var(--card)',
+  backgroundColor: 'hsl(var(--card))',
   boxShadow: '2px 0 6px -2px rgba(0,0,0,0.12)',
 }
 

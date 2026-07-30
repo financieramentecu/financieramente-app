@@ -1,3 +1,5 @@
+import { getCurrentMonthRange } from './default-date-filter'
+
 /**
  * Counts how many active filter DIMENSIONS are present in the URL search params.
  * Each dimension counts as 1 regardless of how many values it has.
@@ -5,6 +7,8 @@
  * Dimensions:
  * - statuses[] or status → 1
  * - date range (any pair: dateFrom+dateTo, createdFrom+createdTo, dateIssuedFrom+dateIssuedTo) → 1
+ *   Exception: createdFrom+createdTo matching the current month default is NOT counted
+ *   (it is the seeded default and should not trigger the active-filter badge).
  * - hasSupports (when not absent) → 1
  * - agentName (when non-empty) → 1
  * - companyIds[] → 1
@@ -22,10 +26,17 @@ export function countActiveDimensions(searchParams: URLSearchParams): number {
 		count++
 	}
 
-	// Date range dimension (any date range counts as 1)
+	// Date range dimension (any date range counts as 1).
+	// createdFrom+createdTo matching the current-month default is excluded —
+	// it is seeded automatically on load and is not a user-applied filter.
+	const createdFrom = searchParams.get('createdFrom')
+	const createdTo = searchParams.get('createdTo')
+	const { from: defaultFrom, to: defaultTo } = getCurrentMonthRange()
+	const isDefaultCreatedRange = createdFrom === defaultFrom && createdTo === defaultTo
+
 	const hasDateRange =
 		(searchParams.get('dateFrom') && searchParams.get('dateTo')) ||
-		(searchParams.get('createdFrom') && searchParams.get('createdTo')) ||
+		(!isDefaultCreatedRange && createdFrom && createdTo) ||
 		(searchParams.get('dateIssuedFrom') && searchParams.get('dateIssuedTo'))
 	if (hasDateRange) count++
 

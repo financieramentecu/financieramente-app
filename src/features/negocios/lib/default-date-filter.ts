@@ -46,19 +46,19 @@ export interface DateParamPair {
 }
 
 /**
- * Default date dimension per role: AGENTE filters by creation date,
- * back-office roles by funding date. Roles not listed get no default.
+ * Default date dimension per role: all mapped roles (AGENTE, ADMIN,
+ * ASISTENTE_GERENCIA_OPERATIVA, ANALISTA_SOPORTE) filter by creation date.
+ * Roles not listed get no default.
  */
 export function getDefaultDateParamPair(
 	roleCode: string | undefined
 ): DateParamPair | null {
 	switch (roleCode) {
 		case UserRole.AGENTE:
-			return { fromKey: 'createdFrom', toKey: 'createdTo' }
 		case UserRole.ADMIN:
 		case UserRole.ASISTENTE_GERENCIA_OPERATIVA:
 		case UserRole.ANALISTA_SOPORTE:
-			return { fromKey: 'dateFrom', toKey: 'dateTo' }
+			return { fromKey: 'createdFrom', toKey: 'createdTo' }
 		default:
 			return null
 	}

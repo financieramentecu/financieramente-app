@@ -78,10 +78,20 @@ export function EditBusinessFormContainer({
 	// Convertir business entity a form data
 	const defaultValues = businessEntityToFormData(business)
 
+	// Remount form when persisted client/business data changes after save + refresh
+	const formResetKey = [
+		business.id,
+		business.client.name,
+		business.client.lastName ?? '',
+		business.client.email ?? '',
+		business.client.phone ?? '',
+		business.client.identityNumber,
+		business.clientOrigin.id,
+	].join('|')
+
 	const handleSubmit = async () => {
-		// El submit se maneja internamente en useBusinessForm
-		// Después de una actualización exitosa, redirigir a la lista
-		router.push('/dashboard/negocios')
+		// Stay on edit view and reload server data so "Información básica y general" shows updates
+		router.refresh()
 	}
 
 	const handleCancel = () => {
@@ -91,8 +101,10 @@ export function EditBusinessFormContainer({
 	return (
 		<div className="space-y-6">
 			<BusinessForm
+				key={formResetKey}
 				mode="edit"
 				businessId={business.id}
+				clientId={business.client.id}
 				defaultValues={defaultValues}
 				onSubmit={handleSubmit}
 				onCancel={handleCancel}
