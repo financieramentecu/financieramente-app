@@ -1,4 +1,5 @@
 import type { StorybookConfig } from '@storybook/nextjs'
+import path from 'path'
 
 const config: StorybookConfig & {
 	viteFinal?: (
@@ -32,8 +33,13 @@ const config: StorybookConfig & {
 		config.resolve = config.resolve || {}
 		config.resolve.alias = {
 			...config.resolve.alias,
+			// next-auth$ = exact match; without $ it would also match next-auth/react as a prefix
+			'next-auth$': require.resolve('./mocks/next-auth.ts'),
 			'next-auth/react': require.resolve('./mocks/next-auth-react.tsx'),
 			'@/auth': require.resolve('./mocks/auth.ts'),
+			// Both the @/ alias and the absolute path to catch whichever webpack sees first
+			'@/lib/auth/nextauth': require.resolve('./mocks/nextauth.ts'),
+			[path.resolve(__dirname, '../src/lib/auth/nextauth')]: require.resolve('./mocks/nextauth.ts'),
 			'@flagsmith/flagsmith/react': require.resolve('./mocks/flagsmith-react.ts'),
 		}
 		return config
@@ -56,8 +62,13 @@ const config: StorybookConfig & {
 				)
 		viteConfig.resolve.alias = [
 			...existingEntries,
+			// /^next-auth$/ = exact match; plain string would also match next-auth/react as a prefix
+			{ find: /^next-auth$/, replacement: require.resolve('./mocks/next-auth.ts') },
 			{ find: 'next-auth/react', replacement: require.resolve('./mocks/next-auth-react.tsx') },
 			{ find: '@/auth', replacement: require.resolve('./mocks/auth.ts') },
+			{ find: '@/lib/auth/nextauth', replacement: require.resolve('./mocks/nextauth.ts') },
+			// Absolute path alias — catches tsconfig-resolved @/ imports before vite sees them
+			{ find: path.resolve(__dirname, '../src/lib/auth/nextauth'), replacement: require.resolve('./mocks/nextauth.ts') },
 			// RegExp required for scoped subpath packages (@flagsmith/flagsmith/react)
 			{ find: /^@flagsmith\/flagsmith\/react$/, replacement: require.resolve('./mocks/flagsmith-react.ts') },
 		]

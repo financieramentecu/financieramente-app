@@ -4,6 +4,30 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.25.0] - 2026-07-30
+
+### Agregado
+
+- **Acordeón de negocios por celda en el heatmap:** En el panel "Producción por empresa (heatmap)", cada celda asesor-empresa ahora se puede expandir con un ícono dedicado para ver el listado de negocios detrás de esa cifra, agrupados por empresa. Cada negocio muestra producto, número de contrato, valor (USD/COP), y estado, con un enlace "Ir a negocio" que abre el detalle en una pestaña nueva sin perder el contexto del análisis.
+
+- **Expansión múltiple y persistente:** Varias celdas pueden quedar expandidas al mismo tiempo. Si se aplica un filtro del dashboard mientras una celda está expandida, esta permanece abierta y solo se refresca su contenido; un recargado completo de la página sí reinicia el estado de expansión.
+
+### Mejorado
+
+- **Filtro por defecto en lista de negocios:** Todos los roles (ADMIN, Asistente Operativo de Gerencia, Analista de Soporte) ahora ven por defecto los negocios del mes actual filtrados por **fecha de creación**, en lugar de fecha de fondeo. Esto permite ver los negocios recién ingresados sin necesidad de cambiar el filtro manualmente. Si se requiere filtrar por fecha de fondeo, se puede aplicar desde el panel de filtros avanzados.
+
+- **Panel de filtros avanzados:** Al abrir el panel de filtros o al limpiar filtros, el selector de tipo de fecha se posiciona en "Creación" como punto de partida, alineado con el nuevo comportamiento por defecto.
+
+### Corregido
+
+- **Indicador de filtros activos en negocios:** El ícono de badge en el botón "Filtros avanzados" ya no aparece al cargar la página con el filtro por defecto (mes actual por creación). El badge solo se activa cuando el usuario aplica filtros adicionales más allá del estado inicial.
+
+- **Heatmap del dashboard no cargaba datos en el primer render:** El heatmap permanecía vacío al cargar la página por primera vez y solo mostraba datos al cambiar un filtro. El problema era que la tasa TRM (necesaria para la conversión) carga de forma asíncrona y el efecto de carga de datos no se reactivaba al resolverse. Corregido.
+
+- **Celdas expandidas del heatmap volvían a "Cargando…" sin motivo:** Al abrir una nueva celda del acordeón o al plegar/desplegar el menú lateral, las celdas ya expandidas se recargaban innecesariamente. Corregido memoizando el mapa de periodicidades usado por el acordeón.
+
+- **Columna "Money Strategist" del heatmap con fondo transparente:** Al hacer scroll horizontal en la tabla del heatmap, el texto de otras columnas se superponía sobre la columna fija "Money Strategist". El fondo de la columna ahora es sólido y correctamente opaco tanto en modo claro como oscuro.
+
 ## [1.24.0] - 2026-07-10
 
 ### Agregado
