@@ -16,6 +16,7 @@ import type {
 	FondearAnualidadesRequest,
 	NegociosExportBody,
 } from '../types/business-api.types'
+import type { BusinessFilterParams } from '../lib/business-api.schemas'
 
 /**
  * Base URL para las APIs de negocios
@@ -257,17 +258,16 @@ export const businessService = {
 	},
 
 	/**
-	 * Obtiene estadísticas de negocios
+	 * Obtiene estadísticas de negocios (Resumen KPIs)
 	 *
-	 * @param params - Parámetros de filtrado por fecha
+	 * @param params - Mismos filtros avanzados que la lista (sin paginación)
 	 * @returns Estadísticas de negocios planas (CoachKpiResponse)
 	 */
-	async getStats(params: {
-		dateFrom?: string
-		dateTo?: string
-	} = {}): Promise<ApiResponse<CoachKpiResponse>> {
+	async getStats(
+		params: Partial<BusinessFilterParams> = {}
+	): Promise<ApiResponse<CoachKpiResponse>> {
 		try {
-			const queryString = buildQueryString(params)
+			const queryString = buildQueryString(params as Record<string, unknown>)
 			const response = await fetch(`${BASE_URL}/stats${queryString}`, {
 				cache: 'no-store',
 			})

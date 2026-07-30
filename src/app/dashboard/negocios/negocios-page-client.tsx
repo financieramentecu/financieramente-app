@@ -248,10 +248,7 @@ export function NegociosPageClient({
 		isLoading: isLoadingStats,
 		error: statsError,
 		refetch: refetchStats,
-	} = useBusinessStats({
-		dateFrom: mergedParams.dateFrom || defaultDates.from,
-		dateTo: mergedParams.dateTo || defaultDates.to,
-	})
+	} = useBusinessStats(urlFilterParams)
 
 	const {
 		cancelBusiness,

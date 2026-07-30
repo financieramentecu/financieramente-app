@@ -4,6 +4,22 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.25.0] - 2026-07-30
+
+### Agregado
+
+- **KPIs del Resumen filtrados (COM-73):** Al aplicar filtros avanzados en Negocios (fechas, Money Strategist, estado, categoría, soportes, compañía, producto, origen, plazo, periodicidad), las tarjetas de Resumen (Ventas Efectuadas, Emitidos y Fondeados) se recalculan automáticamente con el mismo criterio que la tabla, incluyendo montos en moneda local y extranjera y el indicador de soportes pendientes en Emitidos.
+
+### Mejorado
+
+- **Paridad lista ↔ Resumen:** Los KPIs usan la misma semántica de filtros que el listado (`dateFrom`/`dateTo` = fondeo, `createdFrom`/`createdTo` = creación, etc.). Al limpiar filtros, el Resumen vuelve al consolidado global (según el alcance del rol).
+
+### Corregido
+
+- **Resultados sin coincidencias en KPIs:** Si los filtros no arrojan negocios, las tarjetas muestran `0` en conteos y montos (sin `null`/`NaN` ni errores visuales).
+
+- **Hydration en filtros avanzados:** Se corrigió el warning de HTML inválido (`button` anidado) en el selector múltiple del panel de filtros avanzados.
+
 ## [1.24.0] - 2026-07-10
 
 ### Agregado

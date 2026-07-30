@@ -9,14 +9,15 @@ import {
 	createMockUserWithRole,
 	mockAgentUser,
 } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
+import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 
 vi.mock('@/auth')
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		business: {
 			count: vi.fn(),
+			groupBy: vi.fn(),
 		},
-		$queryRaw: vi.fn(),
 		currency: {
 			findMany: vi.fn(),
 		},
@@ -27,6 +28,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 vi.mock('@/features/negocios/services/user.service')
 vi.mock('@/features/negocios/services/user-hierarchy.service', () => ({
+	resolveVisibleUserIds: vi.fn().mockResolvedValue(undefined),
 	getSubordinateUserIds: vi.fn().mockResolvedValue([]),
 }))
 vi.mock('next/server', async (importOriginal) => {
@@ -44,16 +46,24 @@ vi.mock('next/server', async (importOriginal) => {
 
 const BASE_URL = 'http://localhost/api/negocios/stats'
 
-function makeRequest(params: Record<string, string> = {}): NextRequest {
+function makeRequest(
+	params: Record<string, string | string[]> = {}
+): NextRequest {
 	const url = new URL(BASE_URL)
-	Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
+	Object.entries(params).forEach(([k, v]) => {
+		if (Array.isArray(v)) {
+			v.forEach((item) => url.searchParams.append(k, item))
+		} else {
+			url.searchParams.set(k, v)
+		}
+	})
 	return new NextRequest(url)
 }
 
-describe('GET /api/negocios/stats', () => {
+describe('GET /api/negocios/stats (COM-73)', () => {
 	const mockAuth = vi.mocked(auth)
 	const mockGetCurrentUserByEmail = vi.mocked(getCurrentUserByEmail)
-	const mockQueryRaw = vi.mocked(prisma.$queryRaw)
+	const mockGroupBy = vi.mocked(prisma.business.groupBy)
 	const mockCount = vi.mocked(prisma.business.count)
 	const mockCurrencyFindMany = vi.mocked(prisma.currency.findMany)
 
@@ -65,9 +75,12 @@ describe('GET /api/negocios/stats', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		mockCurrencyFindMany.mockResolvedValue(currencies as never)
-		// Default queryRaw returns empty, default count returns 0
-		mockQueryRaw.mockResolvedValue([])
+		mockGroupBy.mockResolvedValue([])
 		mockCount.mockResolvedValue(0)
+		mockAuth.mockResolvedValue({ user: { email: 'admin@b.com' } } as never)
+		mockGetCurrentUserByEmail.mockResolvedValue(
+			createMockUserWithRole(UserRole.ADMIN) as never
+		)
 	})
 
 	it('returns 401 when no session', async () => {
@@ -77,100 +90,88 @@ describe('GET /api/negocios/stats', () => {
 	})
 
 	it('returns 404 when user not found', async () => {
-		mockAuth.mockResolvedValue({ user: { email: 'a@b.com' } } as never)
 		mockGetCurrentUserByEmail.mockResolvedValue(null)
 		const res = await GET(makeRequest())
 		expect(res.status).toBe(404)
 	})
 
-	describe('as admin (no date filter)', () => {
-		beforeEach(() => {
-			mockAuth.mockResolvedValue({ user: { email: 'admin@b.com' } } as never)
-			mockGetCurrentUserByEmail.mockResolvedValue(
-				createMockUserWithRole(UserRole.ADMIN) as never
-			)
-		})
-
-		it('calls queryRaw 1 time with no createdAt filter when no dates provided', async () => {
-			await GET(makeRequest())
-			expect(mockQueryRaw).toHaveBeenCalledTimes(1)
-			const call = mockQueryRaw.mock.calls[0]
-			const callStr = JSON.stringify(call)
-			expect(callStr).not.toContain('created_at >=')
-		})
-
-		it('applies createdAt filter when dateFrom and dateTo are provided', async () => {
-			await GET(makeRequest({ dateFrom: '2026-04-01', dateTo: '2026-04-30' }))
-			expect(mockQueryRaw).toHaveBeenCalledTimes(1)
-			const call = mockQueryRaw.mock.calls[0]
-			const callStr = JSON.stringify(call)
-			expect(callStr).toContain('created_at >=')
-			expect(callStr).toContain('created_at <=')
-		})
-
-		it('does NOT apply createdAt filter when only dateFrom is provided', async () => {
-			await GET(makeRequest({ dateFrom: '2026-04-01' }))
-			const call = mockQueryRaw.mock.calls[0]
-			const callStr = JSON.stringify(call)
-			expect(callStr).not.toContain('created_at >=')
+	it('returns zeros when no matching businesses (CA3)', async () => {
+		const res = await GET(makeRequest())
+		const body = await res.json()
+		expect(body.data).toEqual({
+			ventasEfectuadas: { count: 0, totalCop: 0, totalUsd: 0 },
+			emitidos: { count: 0, totalCop: 0, totalUsd: 0, sinSoporte: 0 },
+			fondeados: { count: 0, totalCop: 0, totalUsd: 0 },
 		})
 	})
 
-	describe('as agent (scoped by user)', () => {
-		beforeEach(() => {
-			mockAuth.mockResolvedValue({ user: { email: 'agent@b.com' } } as never)
-			mockGetCurrentUserByEmail.mockResolvedValue(mockAgentUser as never)
-		})
+	it('applies dateFrom/dateTo as dateAnchored (parity with list)', async () => {
+		await GET(makeRequest({ dateFrom: '2026-04-01', dateTo: '2026-04-30' }))
+		expect(mockGroupBy).toHaveBeenCalled()
+		const whereArg = mockGroupBy.mock.calls[0]?.[0]?.where as {
+			AND?: unknown[]
+		}
+		expect(JSON.stringify(whereArg)).toContain('dateAnchored')
+		expect(JSON.stringify(whereArg)).not.toMatch(/"createdAt":\{/)
+	})
 
-		it('scopes KPI query to the agent idUser', async () => {
-			await GET(makeRequest({ dateFrom: '2026-04-01', dateTo: '2026-04-30' }))
-			const call = mockQueryRaw.mock.calls[0]
-			const callStr = JSON.stringify(call)
-			expect(callStr).toContain('id_user IN')
-			expect(callStr).toContain(`${mockAgentUser.idUser}`)
-		})
+	it('applies createdFrom/createdTo as createdAt', async () => {
+		await GET(
+			makeRequest({ createdFrom: '2026-04-01', createdTo: '2026-04-30' })
+		)
+		const whereArg = mockGroupBy.mock.calls[0]?.[0]?.where
+		expect(JSON.stringify(whereArg)).toContain('createdAt')
+	})
 
-		it('applies createdAt filter when dates given', async () => {
-			await GET(makeRequest({ dateFrom: '2026-04-01', dateTo: '2026-04-30' }))
-			const call = mockQueryRaw.mock.calls[0]
-			const callStr = JSON.stringify(call)
-			expect(callStr).toContain('created_at >=')
+	it('applies advanced catalog filters (companyIds, statuses)', async () => {
+		await GET(
+			makeRequest({
+				companyIds: ['5'],
+				statuses: [BUSINESS_STATUS.EMITIDO],
+			})
+		)
+		const whereArg = mockGroupBy.mock.calls[0]?.[0]?.where
+		const whereStr = JSON.stringify(whereArg)
+		expect(whereStr).toContain('"idCompany":{"in":[5]}')
+		expect(whereStr).toContain(BUSINESS_STATUS.EMITIDO)
+	})
+
+	it('sums COP into totalCop and USD into totalUsd', async () => {
+		mockGroupBy.mockResolvedValue([
+			{
+				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				idCurrency: 1,
+				_count: { idBusiness: 2 },
+				_sum: { value: 1_000_000 },
+			},
+			{
+				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				idCurrency: 2,
+				_count: { idBusiness: 1 },
+				_sum: { value: 500 },
+			},
+		] as never)
+
+		const res = await GET(makeRequest())
+		const body = await res.json()
+		expect(body.data.ventasEfectuadas).toEqual({
+			count: 3,
+			totalCop: 1_000_000,
+			totalUsd: 500,
 		})
 	})
 
-	describe('aggregate calculation', () => {
-		beforeEach(() => {
-			mockAuth.mockResolvedValue({ user: { email: 'admin@b.com' } } as never)
-			mockGetCurrentUserByEmail.mockResolvedValue(
-				createMockUserWithRole(UserRole.ADMIN) as never
-			)
-		})
+	it('scopes agent KPIs via resolveVisibleUserIds', async () => {
+		const { resolveVisibleUserIds } = await import(
+			'@/features/negocios/services/user-hierarchy.service'
+		)
+		vi.mocked(resolveVisibleUserIds).mockResolvedValue([mockAgentUser.idUser])
+		mockAuth.mockResolvedValue({ user: { email: 'agent@b.com' } } as never)
+		mockGetCurrentUserByEmail.mockResolvedValue(mockAgentUser as never)
 
-		it('sums COP values into totalCop and USD into totalUsd', async () => {
-			mockQueryRaw
-				.mockResolvedValueOnce([
-					{ status: 'VENTA_EFECTUADA', idCurrency: 1, _count: BigInt(3), _sum: 1500000 },
-					{ status: 'EMITIDO', idCurrency: 2, _count: BigInt(1), _sum: 500 },
-				] as never)
-
-			const res = await GET(makeRequest())
-			const body = await res.json()
-
-			expect(body.data.ventasEfectuadas).toEqual({ count: 3, totalCop: 1500000, totalUsd: 0 })
-			expect(body.data.emitidos).toEqual({ count: 1, totalCop: 0, totalUsd: 500, sinSoporte: 0 })
-			expect(body.data.fondeados).toEqual({ count: 0, totalCop: 0, totalUsd: 0 })
-		})
-
-		it('handles null _sum.value without NaN', async () => {
-			mockQueryRaw.mockResolvedValueOnce([
-				{ status: 'VENTA_EFECTUADA', idCurrency: 1, _count: BigInt(2), _sum: null },
-			] as never)
-
-			const res = await GET(makeRequest())
-			const body = await res.json()
-
-			expect(body.data.ventasEfectuadas.totalCop).toBe(0)
-			expect(body.data.ventasEfectuadas.count).toBe(2)
-		})
+		await GET(makeRequest())
+		expect(resolveVisibleUserIds).toHaveBeenCalled()
+		const whereArg = mockGroupBy.mock.calls[0]?.[0]?.where
+		expect(JSON.stringify(whereArg)).toContain(`"in":[${mockAgentUser.idUser}]`)
 	})
 })
