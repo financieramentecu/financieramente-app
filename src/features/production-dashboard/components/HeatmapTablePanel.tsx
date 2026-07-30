@@ -1,9 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { ArrowUpDown } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ArrowUpDown, ChevronDown, ChevronRight } from 'lucide-react'
 import { useHeatmapTable } from '../hooks/use-heatmap-table'
+import { useDashboardFilter } from './DashboardFilterContext'
+import { useDashboardCatalogs } from '../hooks/use-dashboard-catalogs'
+import { HeatmapCellBusinessList } from './HeatmapCellBusinessList'
 import type { PersonRow, CompanyColumn } from '../types/production-kpi.types'
+import type { CellExpansionKey } from '../types/heatmap-cell-expansion.types'
 import React from 'react'
 
 interface HeatmapTablePanelProps {
@@ -84,6 +88,28 @@ function NegCell({ row, column }: { row: PersonRow; column: CompanyColumn }) {
 export function HeatmapTablePanel({ trmRate }: HeatmapTablePanelProps) {
   const state = useHeatmapTable(trmRate)
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc')
+  const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<CellExpansionKey>>(new Set())
+  const { appliedFilters } = useDashboardFilter()
+  const catalogsState = useDashboardCatalogs()
+
+  const periodicidades = catalogsState.status === 'success' ? catalogsState.data.periodicidades : null
+  const periodicityIdByName = useMemo(
+    () => new Map<string, number>(periodicidades?.map((p) => [p.name, p.id]) ?? []),
+    [periodicidades]
+  )
+
+  function toggleRow(rowKeys: CellExpansionKey[]) {
+    if (rowKeys.length === 0) return
+    setExpandedKeys((prev) => {
+      const next = new Set(prev)
+      const anyExpanded = rowKeys.some((key) => next.has(key))
+      for (const key of rowKeys) {
+        if (anyExpanded) next.delete(key)
+        else next.add(key)
+      }
+      return next
+    })
+  }
 
   if (state.status === 'idle') {
     return (
@@ -193,7 +219,7 @@ export function HeatmapTablePanel({ trmRate }: HeatmapTablePanelProps) {
       {/* Scrollable table */}
       <div className="overflow-x-auto rounded-md border border-border">
         <table className="w-full border-collapse text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-background">
             {/* Row 1: "MS" header spanning both header rows + company names spanning 2 cols each */}
             <tr className="bg-muted/50">
               <th
@@ -246,6 +272,12 @@ export function HeatmapTablePanel({ trmRate }: HeatmapTablePanelProps) {
             {sortedRows.map((row, idx) => {
               const isNewGroup = idx === 0 || sortedRows[idx - 1].categoryName !== row.categoryName
               const totalCols = 1 + companyColumns.length * 2
+
+              const rowKeys: CellExpansionKey[] = companyColumns
+                .filter((col) => (row.cellsByCompany.get(col.idCompany)?.count ?? 0) > 0)
+                .map((col) => `${row.idUser}:${col.idCompany}` as CellExpansionKey)
+              const isRowExpanded = rowKeys.some((key) => expandedKeys.has(key))
+
               return (
                 <React.Fragment key={row.idUser}>
                   {isNewGroup && (
@@ -265,6 +297,21 @@ export function HeatmapTablePanel({ trmRate }: HeatmapTablePanelProps) {
                       style={STICKY_CELL_STYLE}
                     >
                       <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleRow(rowKeys)}
+                          disabled={rowKeys.length === 0}
+                          aria-expanded={isRowExpanded}
+                          aria-label={isRowExpanded ? 'Colapsar negocios del asesor' : 'Expandir negocios del asesor'}
+                          title={isRowExpanded ? 'Colapsar negocios del asesor' : 'Expandir negocios del asesor'}
+                          className="shrink-0 cursor-pointer rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted/40 disabled:cursor-default disabled:opacity-30"
+                        >
+                          {isRowExpanded ? (
+                            <ChevronDown className="size-3.5" />
+                          ) : (
+                            <ChevronRight className="size-3.5" />
+                          )}
+                        </button>
                         <span
                           className="inline-block h-2 w-2 rounded-full shrink-0"
                           style={{ backgroundColor: row.levelColor }}
@@ -279,6 +326,34 @@ export function HeatmapTablePanel({ trmRate }: HeatmapTablePanelProps) {
                       </>
                     ))}
                   </tr>
+                  {isRowExpanded && (
+                    <tr>
+                      <td colSpan={totalCols} className="border-b border-border bg-muted/10 p-0">
+                        <div className="divide-y divide-border">
+                          {rowKeys
+                            .filter((key) => expandedKeys.has(key))
+                            .map((key) => {
+                              const idCompany = Number(key.split(':')[1])
+                              const companyName =
+                                companyColumns.find((c) => c.idCompany === idCompany)?.companyName ?? ''
+                              return (
+                                <div key={key} className="border-l-2 border-primary/40 bg-gray-100 pl-3">
+                                  <div className="bg-gray-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    {companyName}
+                                  </div>
+                                  <HeatmapCellBusinessList
+                                    idUser={row.idUser}
+                                    idCompany={idCompany}
+                                    appliedFilters={appliedFilters}
+                                    periodicityIdByName={periodicityIdByName}
+                                  />
+                                </div>
+                              )
+                            })}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </React.Fragment>
               )
             })}
