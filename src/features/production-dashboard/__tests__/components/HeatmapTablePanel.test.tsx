@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import type { HeatmapViewModel, PersonRow, CompanyColumn, CategoryLegendItem } from '../../types/production-kpi.types'
 
 // Mock the hook so we control what the panel sees
@@ -16,19 +16,39 @@ vi.mock('../../components/HierarchySelectionContext', () => ({
     dispatch: vi.fn(),
   }),
 }))
+const mockAppliedFilters = {
+  dateRange: { start: new Date('2026-01-01'), end: new Date('2026-01-31') },
+  statuses: [], categoryIds: [], companyIds: [], productIds: [],
+  originIds: [], plazos: [], periodicidades: [], isInternacional: false,
+}
 vi.mock('../../components/DashboardFilterContext', () => ({
-  useDashboardFilter: vi.fn().mockReturnValue({
-    appliedFilters: {
-      dateRange: { start: new Date('2026-01-01'), end: new Date('2026-01-31') },
-      statuses: [], categoryIds: [], companyIds: [], productIds: [],
-      originIds: [], plazos: [], periodicidades: [], isInternacional: false,
-    },
+  useDashboardFilter: vi.fn(() => ({
+    appliedFilters: mockAppliedFilters,
     draft: {},
     dispatch: vi.fn(),
     isApplyEnabled: false,
     periodLabel: '',
     activeBadges: [],
-  }),
+  })),
+}))
+
+// Catalogs are only needed for periodicidad name→id mapping — irrelevant to
+// these panel-level tests, so a minimal empty resolved state suffices.
+vi.mock('../../hooks/use-dashboard-catalogs', () => ({
+  useDashboardCatalogs: vi.fn(() => ({
+    status: 'success',
+    data: { companies: [], products: [], origins: [], categories: [], periodicidades: [] },
+    error: '',
+  })),
+}))
+
+// Stub the expanded detail component — its own behavior is covered by
+// HeatmapCellBusinessList.test.tsx. Here we only verify wiring (which
+// idUser/idCompany get rendered, in which row, how many times).
+vi.mock('../../components/HeatmapCellBusinessList', () => ({
+  HeatmapCellBusinessList: ({ idUser, idCompany }: { idUser: number; idCompany: number }) => (
+    <div data-testid={`cell-detail-${idUser}-${idCompany}`}>Detail {idUser}:{idCompany}</div>
+  ),
 }))
 
 import { useHeatmapTable } from '../../hooks/use-heatmap-table'
@@ -227,5 +247,186 @@ describe('HeatmapTablePanel', () => {
     render(<HeatmapTablePanel trmRate={null} />)
     // Should render gracefully without crashing
     expect(screen.queryByRole('table')).toBeNull()
+  })
+
+  // ─── Accordion expand/collapse (heatmap-cell-business-accordion) ────────────
+
+  it('(j) chevron toggles from chevron-right to chevron-down and renders a detail row', () => {
+    mockUseHeatmapTable.mockReturnValue({
+      status: 'success',
+      data: makeViewModel({
+        rows: [makeRow({ idUser: 1, cellsByCompany: new Map([[5, { usdTotal: 500, copTotal: 0, count: 3 }]]) })],
+        companyColumns: [makeColumn({ idCompany: 5 })],
+      }),
+      error: '',
+    })
+
+    const { container } = render(<HeatmapTablePanel trmRate={4600} />)
+
+    expect(container.querySelector('svg.lucide-chevron-right')).toBeTruthy()
+    expect(container.querySelector('svg.lucide-chevron-down')).toBeNull()
+    expect(screen.queryByTestId('cell-detail-1-5')).toBeNull()
+
+    const chevronButton = screen.getByRole('button', { name: /expandir/i })
+    fireEvent.click(chevronButton)
+
+    expect(container.querySelector('svg.lucide-chevron-down')).toBeTruthy()
+    expect(screen.getByTestId('cell-detail-1-5')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /colapsar/i }))
+    expect(screen.queryByTestId('cell-detail-1-5')).toBeNull()
+  })
+
+  it('(k) clicking the USD/NEG value sub-cells does not toggle the row', () => {
+    mockUseHeatmapTable.mockReturnValue({
+      status: 'success',
+      data: makeViewModel({
+        rows: [makeRow({ idUser: 1, cellsByCompany: new Map([[5, { usdTotal: 500, copTotal: 0, count: 3 }]]) })],
+        companyColumns: [makeColumn({ idCompany: 5 })],
+      }),
+      error: '',
+    })
+
+    render(<HeatmapTablePanel trmRate={4600} />)
+
+    const usdCell = screen.getByText(/500/).closest('td')!
+    fireEvent.click(usdCell)
+
+    expect(screen.queryByTestId('cell-detail-1-5')).toBeNull()
+  })
+
+  it('(l) multiple advisor rows expand independently', () => {
+    mockUseHeatmapTable.mockReturnValue({
+      status: 'success',
+      data: makeViewModel({
+        rows: [
+          makeRow({ idUser: 1, fullName: 'Ana', cellsByCompany: new Map([[5, { usdTotal: 500, copTotal: 0, count: 1 }]]) }),
+          makeRow({ idUser: 2, fullName: 'Carlos', cellsByCompany: new Map([[5, { usdTotal: 600, copTotal: 0, count: 1 }]]) }),
+        ],
+        companyColumns: [makeColumn({ idCompany: 5 })],
+      }),
+      error: '',
+    })
+
+    render(<HeatmapTablePanel trmRate={4600} />)
+
+    const buttons = screen.getAllByRole('button', { name: /expandir/i })
+    fireEvent.click(buttons[0])
+
+    expect(screen.getByTestId('cell-detail-1-5')).toBeInTheDocument()
+    expect(screen.queryByTestId('cell-detail-2-5')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /expandir/i }))
+    expect(screen.getByTestId('cell-detail-2-5')).toBeInTheDocument()
+    // Row 1 stays expanded — independent multi-expansion
+    expect(screen.getByTestId('cell-detail-1-5')).toBeInTheDocument()
+  })
+
+  it('(m) the detail <tr colSpan> row appears immediately after the advisor row and pushes subsequent rows down', () => {
+    mockUseHeatmapTable.mockReturnValue({
+      status: 'success',
+      data: makeViewModel({
+        rows: [
+          makeRow({ idUser: 1, fullName: 'Ana', cellsByCompany: new Map([[5, { usdTotal: 500, copTotal: 0, count: 1 }]]) }),
+          makeRow({ idUser: 2, fullName: 'Carlos', cellsByCompany: new Map([[5, { usdTotal: 600, copTotal: 0, count: 1 }]]) }),
+        ],
+        companyColumns: [makeColumn({ idCompany: 5 })],
+      }),
+      error: '',
+    })
+
+    const { container } = render(<HeatmapTablePanel trmRate={4600} />)
+
+    fireEvent.click(screen.getAllByRole('button', { name: /expandir/i })[0])
+
+    const rows = Array.from(container.querySelectorAll('tbody tr'))
+    const advisorRowIdx = rows.findIndex((r) => r.textContent?.includes('Ana'))
+    const detailRowIdx = rows.findIndex((r) => r.querySelector('[data-testid="cell-detail-1-5"]'))
+    const carlosRowIdx = rows.findIndex((r) => r.textContent?.includes('Carlos'))
+
+    expect(detailRowIdx).toBe(advisorRowIdx + 1)
+    expect(carlosRowIdx).toBeGreaterThan(detailRowIdx)
+
+    const detailTd = rows[detailRowIdx].querySelector('td')
+    expect(detailTd?.getAttribute('colspan')).toBe('3') // 1 + 1 company * 2
+  })
+
+  it('(n) expansion survives a re-render triggered by a filter change (no collapse)', () => {
+    mockUseHeatmapTable.mockReturnValue({
+      status: 'success',
+      data: makeViewModel({
+        rows: [makeRow({ idUser: 1, cellsByCompany: new Map([[5, { usdTotal: 500, copTotal: 0, count: 1 }]]) })],
+        companyColumns: [makeColumn({ idCompany: 5 })],
+      }),
+      error: '',
+    })
+
+    const { rerender } = render(<HeatmapTablePanel trmRate={4600} />)
+    fireEvent.click(screen.getByRole('button', { name: /expandir/i }))
+    expect(screen.getByTestId('cell-detail-1-5')).toBeInTheDocument()
+
+    // Simulate a filter re-render: same component instance, hook returns a new
+    // (but equivalent) view model — the panel does not remount.
+    mockUseHeatmapTable.mockReturnValue({
+      status: 'success',
+      data: makeViewModel({
+        rows: [makeRow({ idUser: 1, cellsByCompany: new Map([[5, { usdTotal: 700, copTotal: 0, count: 2 }]]) })],
+        companyColumns: [makeColumn({ idCompany: 5 })],
+      }),
+      error: '',
+    })
+    rerender(<HeatmapTablePanel trmRate={4600} />)
+
+    expect(screen.getByTestId('cell-detail-1-5')).toBeInTheDocument()
+  })
+
+  it('(o) a full unmount/remount (page reload) resets expansion', () => {
+    mockUseHeatmapTable.mockReturnValue({
+      status: 'success',
+      data: makeViewModel({
+        rows: [makeRow({ idUser: 1, cellsByCompany: new Map([[5, { usdTotal: 500, copTotal: 0, count: 1 }]]) })],
+        companyColumns: [makeColumn({ idCompany: 5 })],
+      }),
+      error: '',
+    })
+
+    const { unmount } = render(<HeatmapTablePanel trmRate={4600} />)
+    fireEvent.click(screen.getByRole('button', { name: /expandir/i }))
+    expect(screen.getByTestId('cell-detail-1-5')).toBeInTheDocument()
+    unmount()
+
+    render(<HeatmapTablePanel trmRate={4600} />)
+    expect(screen.queryByTestId('cell-detail-1-5')).toBeNull()
+  })
+
+  it('(p) expanding an advisor row with businesses in 2 companies renders 2 distinct per-company group sections', () => {
+    mockUseHeatmapTable.mockReturnValue({
+      status: 'success',
+      data: makeViewModel({
+        rows: [
+          makeRow({
+            idUser: 1,
+            cellsByCompany: new Map([
+              [5, { usdTotal: 500, copTotal: 0, count: 2 }],
+              [6, { usdTotal: 300, copTotal: 0, count: 1 }],
+            ]),
+          }),
+        ],
+        companyColumns: [
+          makeColumn({ idCompany: 5, companyName: 'Empresa X' }),
+          makeColumn({ idCompany: 6, companyName: 'Empresa Y' }),
+        ],
+      }),
+      error: '',
+    })
+
+    render(<HeatmapTablePanel trmRate={4600} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /expandir/i }))
+
+    expect(screen.getByTestId('cell-detail-1-5')).toBeInTheDocument()
+    expect(screen.getByTestId('cell-detail-1-6')).toBeInTheDocument()
+    expect(screen.getByText('Empresa X')).toBeInTheDocument()
+    expect(screen.getByText('Empresa Y')).toBeInTheDocument()
   })
 })

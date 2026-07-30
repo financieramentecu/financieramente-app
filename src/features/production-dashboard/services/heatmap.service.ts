@@ -91,19 +91,22 @@ export function buildLevelOrderMap(levels: LevelInput[]): Map<number, number> {
 
 /**
  * Resolves the set of userIds the viewer is allowed to see.
- * Bypass roles and GENERAL_LEVEL → all active users.
- * All other roles → viewer's own subtree (viewer + active subordinates).
+ * Bypass roles (HIERARCHY_BYPASS_ROLES) → all active users.
+ * All other roles → viewer's own subtree (viewer + active subordinates),
+ * regardless of level code. GENERAL_LEVEL is a commission-calculation
+ * concept only — it never grants dashboard visibility bypass.
  */
 export async function resolveViewerScope(
   viewerId: number,
   roleCode: string | null | undefined,
-  levelCode?: string | null
+  // levelCode is intentionally unused for scope resolution — see doc comment above.
+  // Kept in the signature for call-site compatibility.
+  _levelCode?: string | null
 ): Promise<number[]> {
   const isFullScope =
-    levelCode === 'GENERAL_LEVEL' ||
-    (roleCode !== null &&
-      roleCode !== undefined &&
-      (HIERARCHY_BYPASS_ROLES as ReadonlyArray<string>).includes(roleCode))
+    roleCode !== null &&
+    roleCode !== undefined &&
+    (HIERARCHY_BYPASS_ROLES as ReadonlyArray<string>).includes(roleCode)
 
   if (isFullScope) {
     // Return all active users

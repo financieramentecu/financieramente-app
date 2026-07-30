@@ -45,8 +45,8 @@ const miaViewer: SessionUser = {
 	idLevel: 1,
 	idCategory: null,
 	idUserLeader: null,
-	role: { code: 'DEFAULT' },
-	level: { code: 'GENERAL_LEVEL' },
+	role: { code: 'ADMIN' },
+	level: { code: 'LEVEL_6' },
 }
 
 const mockNodes: HierarchyNode[] = [
@@ -110,7 +110,7 @@ describe('GET /api/production-dashboard/hierarchy-tree', () => {
 		expect(body).toEqual({ data: { nodes: [] } })
 	})
 
-	it('(c) returns 200 with non-empty nodes for MIA viewer (GENERAL_LEVEL)', async () => {
+	it('(c) returns 200 with non-empty nodes for MIA viewer (bypass role ADMIN)', async () => {
 		mockAuth.mockResolvedValue({
 			user: { email: 'mia@test.com' },
 			expires: '2099-01-01',
