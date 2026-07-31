@@ -4,6 +4,23 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.25.0] - 2026-07-31
+
+### Agregado
+
+- **Money Strategist puede eliminar comprobantes:** Los Money Strategists (rol AGENTE) ahora pueden eliminar comprobantes de pago desde el panel "Comprobantes del negocio", con diálogo de confirmación ("¿Está seguro de eliminar este comprobante?") y mensaje de error claro si la operación falla. La eliminación aplica solo a negocios de su alcance (propios o de su jerarquía).
+
+### Mejorado
+
+- **Permisos de eliminación de comprobantes:** Además de Administrador, Asistente Operativo de Gerencia y Analista de Soporte, el Money Strategist queda autorizado a eliminar comprobantes dentro de su alcance visible.
+
+### Técnico
+
+- **Role helper:** `canDeleteBusinessComprobante` includes `AGENTE` alongside existing back-office roles.
+- **DELETE API:** `DELETE /api/negocios/[id]/comprobantes/[supportId]` enforces role auth and, for AGENTE, hierarchy-scoped ownership via `resolveVisibleUserIds`; validates support belongs to the business in the URL.
+- **Service:** `deactivateComprobante` soft-deletes (`status = false`) with optional ownership checks and `FORBIDDEN` when out of scope.
+- **UI:** Delete affordance + `AlertDialog` confirmation and Sonner error toast in `BusinessSupportsSheet`; `useDeleteComprobante` rethrows after setting error state.
+
 ## [1.24.0] - 2026-07-10
 
 ### Agregado
