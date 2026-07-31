@@ -209,6 +209,8 @@ function createBusinessRow(mode: 'direct' | 'annual' | 'directZero'): Business {
 		periodicityName: 'Mensual',
 		dateIssued: null,
 		dateAnchored: null,
+		novedadStatus: null,
+		novedadMarkedAt: null,
 		date: '2026-05-31T10:00:00.000Z',
 		value: 1000,
 		product: 'Producto',

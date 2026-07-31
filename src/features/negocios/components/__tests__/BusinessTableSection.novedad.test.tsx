@@ -1,12 +1,11 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { BusinessTableSection } from '../BusinessTableSection'
-import { UserRole } from '@/features/auth/lib/roles'
 import type { Business } from '@/features/negocios/types/business.types'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 
 vi.mock('@/features/shared/lib/format-date', () => ({
-	formatDateBogota: (d: string | null | undefined) => d ?? '—',
+	formatDateBogota: (d: string | null | undefined) => (d ? `formatted:${d}` : '—'),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -34,8 +33,8 @@ function buildBusiness(overrides: Partial<Business> = {}): Business {
 		product: 'Producto',
 		companyName: 'Compañía',
 		clientOriginName: 'Origen',
-		status: 'Fondeado',
-		statusCode: BUSINESS_STATUS.FONDEADO,
+		status: 'Venta Efectuado',
+		statusCode: BUSINESS_STATUS.VENTA_EFECTUADA,
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
 		numAportes: null,
@@ -46,51 +45,51 @@ function buildBusiness(overrides: Partial<Business> = {}): Business {
 	}
 }
 
-describe('BusinessTableSection — dateAnchored editable cell', () => {
-	it('shows the edit button for a user with canFundPayments permission (ADMIN)', () => {
+describe('BusinessTableSection — Novedad column', () => {
+	it('renders "Novedad" and "Fecha de Novedad" column headers', () => {
 		render(
 			<BusinessTableSection
 				data={[buildBusiness()]}
 				onAddBusiness={vi.fn()}
 				onEditBusiness={vi.fn()}
-				userRole={UserRole.ADMIN}
-				onSaveDateAnchored={vi.fn()}
 			/>
 		)
-
-		expect(
-			screen.getByTitle('Editar fecha de fondeo')
-		).toBeInTheDocument()
+		expect(screen.getByText('Novedad')).toBeInTheDocument()
+		expect(screen.getByText('Fecha de Novedad')).toBeInTheDocument()
 	})
 
-	it('does not show the edit button for a user without canFundPayments permission (AGENTE)', () => {
+	it('renders an empty Novedad cell when novedadStatus is null', () => {
 		render(
 			<BusinessTableSection
-				data={[buildBusiness()]}
+				data={[buildBusiness({ novedadStatus: null })]}
 				onAddBusiness={vi.fn()}
 				onEditBusiness={vi.fn()}
-				userRole={UserRole.AGENTE}
-				onSaveDateAnchored={vi.fn()}
 			/>
 		)
-
-		expect(
-			screen.queryByTitle('Editar fecha de fondeo')
-		).not.toBeInTheDocument()
+		expect(screen.queryByText('Pendiente')).not.toBeInTheDocument()
+		expect(screen.queryByText('Resuelta')).not.toBeInTheDocument()
 	})
 
-	it('does not show the edit button when onSaveDateAnchored is not provided', () => {
+	it('renders "Pendiente" badge when novedadStatus is PENDIENTE', () => {
 		render(
 			<BusinessTableSection
-				data={[buildBusiness()]}
+				data={[buildBusiness({ novedadStatus: 'PENDIENTE', novedadMarkedAt: '2026-07-30T12:00:00.000Z' })]}
 				onAddBusiness={vi.fn()}
 				onEditBusiness={vi.fn()}
-				userRole={UserRole.ADMIN}
 			/>
 		)
+		expect(screen.getByText('Pendiente')).toBeInTheDocument()
+		expect(screen.getByText('formatted:2026-07-30T12:00:00.000Z')).toBeInTheDocument()
+	})
 
-		expect(
-			screen.queryByTitle('Editar fecha de fondeo')
-		).not.toBeInTheDocument()
+	it('renders "Resuelta" badge when novedadStatus is RESUELTA', () => {
+		render(
+			<BusinessTableSection
+				data={[buildBusiness({ novedadStatus: 'RESUELTA', novedadMarkedAt: '2026-07-30T12:00:00.000Z' })]}
+				onAddBusiness={vi.fn()}
+				onEditBusiness={vi.fn()}
+			/>
+		)
+		expect(screen.getByText('Resuelta')).toBeInTheDocument()
 	})
 })

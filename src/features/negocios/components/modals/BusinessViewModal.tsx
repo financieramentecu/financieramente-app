@@ -17,6 +17,8 @@ import {
 	SelectValue,
 } from '@/features/shared/ui/select'
 import { BusinessStatusBadge } from '../ui/BusinessStatusBadge'
+import { BusinessNovedadBadge } from '../ui/BusinessNovedadBadge'
+import { NovedadActionButton } from '../ui/NovedadActionButton'
 import { UserAvatar } from '../ui/UserAvatar'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { Calendar, Phone, Mail, Building2, FileText, Clock, Layers } from 'lucide-react'
@@ -194,7 +196,10 @@ export function BusinessViewModal({
 			<div className="space-y-6">
 				{/* Header con estado y valor */}
 				<div className="flex items-center justify-between pb-4 border-b">
-					<BusinessStatusBadge status={business.status} />
+					<div className="flex items-center gap-2">
+						<BusinessStatusBadge status={business.status} />
+						<BusinessNovedadBadge novedadStatus={business.novedadStatus} variant="detailed" />
+					</div>
 					<span className="text-2xl font-bold text-primary">
 						{formatCurrency(business.value, business.currency.name)}
 					</span>
@@ -360,6 +365,15 @@ export function BusinessViewModal({
 						</div>
 					</div>
 
+					{business.novedadStatus && (
+						<div className="space-y-1">
+							<span className="text-sm text-muted-foreground block">Fecha de Novedad</span>
+							<p className="font-medium">
+								{formatDateBogota(business.novedadMarkedAt)}
+							</p>
+						</div>
+					)}
+
 					<div className="flex justify-between items-center text-sm text-muted-foreground pt-2 border-t border-dashed">
 						<span>
 							Registrado:{' '}
@@ -370,6 +384,12 @@ export function BusinessViewModal({
 
 				{/* Footer */}
 				<div className="flex justify-end gap-2 pt-4 flex-wrap">
+					<NovedadActionButton
+						businessId={business.id}
+						businessStatus={business.status}
+						novedadStatus={business.novedadStatus}
+					/>
+
 					{/* Flujo de Edición de Origen */}
 					{isEditingOrigin && canEditOrigin ? (
 						<>

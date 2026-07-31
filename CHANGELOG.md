@@ -4,6 +4,40 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.26.0] - 2026-07-31
+
+### Agregado
+
+- **Marcador de "Novedad" para negocios en VENTA_EFECTUADA:** Los gestores de negocios ahora pueden marcar con "Con Novedad" los negocios que están bloqueados esperando información o correcciones (datos faltantes, contrato pendiente, etc.). El flag se resuelve automáticamente cuando el negocio pasa a estado EMITIDO, manteniendo un historial de auditoría completo.
+
+- **Columna de Novedad en tabla de negocios:** La tabla principal de negocios incluye una nueva columna "Novedad" inmediatamente después de "Estado", mostrando el estado del marcador (vacío cuando no hay novedad, "Pendiente" en naranja, "Resuelta" en verde).
+
+- **Acciones de Novedad en fila de negocios:** El menú desplegable de acciones permite "Marcar Con Novedad" (visible solo en VENTA_EFECTUADA sin novedad pendiente) y "Desmarcar Novedad" (visible solo si hay novedad pendiente), disponible para todos los roles autenticados sin restricción de permisos.
+
+- **Auto-resolución de Novedad:** Cuando un negocio con novedad pendiente transiciona a EMITIDO (por cualquier motivo), el sistema automáticamente resuelve el flag y registra la resolución en el audit log.
+
+- **Persistencia de novedad en cancelación:** Si un negocio con novedad pendiente es cancelado, el flag se mantiene para auditoría y referencia.
+
+- **Display en vista de detalle:** La vista de detalle del negocio (modal y página de dashboard) muestra el estado de novedad con la misma semántica de colores que la tabla.
+
+- **Auditoría completa:** Nuevas acciones de audit log: `BUSINESS_NOVEDAD_MARKED`, `BUSINESS_NOVEDAD_UNMARKED`, `BUSINESS_NOVEDAD_RESOLVED` con registro de usuario, IP, user agent y detalles.
+
+- **Excel export:** La columna de Novedad se incluye automáticamente en las exportaciones de negocios con los mismos valores (vacío/"Pendiente"/"Resuelta").
+
+### Técnico
+
+- **Campos de datos:** Tres nuevos campos nullable en `Business`: `novedadStatus` (PENDIENTE | RESUELTA), `novedadMarkedAt`, `novedadResolvedAt`.
+
+- **API endpoint:** Nuevo `PATCH /api/negocios/[id]/mark-novedad` con soporte dual para acciones MARK/UNMARK, validación de precondiciones (409 Conflict), y respuestas `ApiResponse<BusinessEntity>`.
+
+- **Auto-resolución transaccional:** La resolución automática ocurre dentro de la transacción existente de `PUT /api/negocios/[id]` sin redondas adicionales.
+
+- **Hook de estado:** Nueva `useMarkNovedad` que retorna `AsyncState<BusinessEntity>` siguiendo patrones de proyecto.
+
+- **Componentes:** `BusinessNovedadBadge` con patrón STATUS_CONFIG, integrado en `BusinessRowActions`, `BusinessTableSection`, `BusinessViewModal`, y página de detalle.
+
+- **Migración Prisma:** Migración generada (pendiente aplicación a DB antes de deploy).
+
 ## [1.25.0] - 2026-07-30
 
 ### Agregado
