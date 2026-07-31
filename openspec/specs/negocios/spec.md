@@ -1753,7 +1753,7 @@ The Sheet MUST include multiselect controls for: Company (`companyIds[]`), Produ
 
 ### Requirement: Apply and Clear Actions
 
-Clicking "Aplicar" MUST commit all filter state to URL search params and close the Sheet. Clicking "Limpiar filtros" MUST reset all filter dimensions to defaults (date field stays "Fondeo", date range cleared, all multiselects cleared, hasSupports reset to "Todos", agentName cleared) without closing the Sheet.
+Clicking "Aplicar" MUST commit all filter state to URL search params and close the Sheet. Clicking "Limpiar filtros" MUST reset all filter dimensions to defaults (date field "Creación", date range = current month via `createdFrom`/`createdTo`, all multiselects cleared, hasSupports reset to "Todos", agentName cleared).
 
 #### Scenario: Apply commits and closes
 
@@ -1762,14 +1762,15 @@ Clicking "Aplicar" MUST commit all filter state to URL search params and close t
 - THEN URL params MUST be updated with the new filter state
 - AND the Sheet MUST close
 
-#### Scenario: Clear resets all dimensions
+#### Scenario: Clear resets to current-month creation default
 
 - GIVEN filters are active in the Sheet
 - WHEN the user clicks "Limpiar filtros"
 - THEN all multiselects MUST show no selections
-- AND date range MUST be empty with date field at "Fondeo"
+- AND date field MUST be "Creación" with range = first day of current month through today (`createdFrom`/`createdTo`)
+- AND fondeo/emisión date params MUST be cleared
 - AND hasSupports MUST be "Todos"
-- AND the Sheet MUST remain open
+- AND the list MUST NOT show the full history (empty date filter)
 
 ---
 
