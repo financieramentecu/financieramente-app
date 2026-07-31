@@ -7,6 +7,7 @@ import { toBusinessListFilterInput } from '@/features/negocios/lib/to-business-l
 import { buildBusinessListWhere } from '@/features/negocios/lib/build-business-list-where'
 import { UserRole } from '@/features/auth/lib/roles'
 import { countActiveDimensions } from '@/features/negocios/lib/count-active-dimensions'
+import { getCurrentMonthRange } from '@/features/negocios/lib/default-date-filter'
 
 const adminUser = { idUser: 1, role: { code: UserRole.ADMIN } }
 
@@ -107,5 +108,22 @@ describe('filter-flow integration', () => {
 
 		expect(countActiveDimensions(params1)).toBe(1)
 		expect(countActiveDimensions(params2)).toBe(1)
+	})
+
+	it('createdFrom+createdTo matching current month default does NOT count (no badge on initial load)', () => {
+		const { from, to } = getCurrentMonthRange()
+		const params = new URLSearchParams()
+		params.set('createdFrom', from)
+		params.set('createdTo', to)
+
+		expect(countActiveDimensions(params)).toBe(0)
+	})
+
+	it('createdFrom+createdTo with non-default dates counts as 1 active dimension', () => {
+		const params = new URLSearchParams()
+		params.set('createdFrom', '2025-01-01')
+		params.set('createdTo', '2025-01-31')
+
+		expect(countActiveDimensions(params)).toBe(1)
 	})
 })

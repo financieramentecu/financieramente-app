@@ -42,10 +42,15 @@ export function prismaBusinessToEntity(
 		hasPendingPaymentFunding: prisma.payments.some(p => p.status === 'FONDEADO' || p.status === 'EN_CARTERA'),
 		supportCount: prisma._count.supports,
 		observations: prisma.observations ?? null,
+		novedadStatus: prisma.novedadStatus as BusinessEntity['novedadStatus'],
+		novedadMarkedAt: prisma.novedadMarkedAt?.toISOString() ?? null,
+		novedadResolvedAt: prisma.novedadResolvedAt?.toISOString() ?? null,
 
 		client: {
 			id: prisma.client.idClient,
 			fullName: buildFullName(prisma.client.name, prisma.client.lastName),
+			name: prisma.client.name,
+			lastName: prisma.client.lastName,
 			identityNumber: prisma.client.identityNumber,
 			email: prisma.client.email,
 			phone: prisma.client.phone,

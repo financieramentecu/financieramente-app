@@ -1,9 +1,20 @@
 'use server'
 
+import { headers } from 'next/headers'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { Client } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { z } from 'zod'
+import { auth } from '@/lib/auth/nextauth'
+import {
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+	logAuditEvent,
+} from '@/features/auth/lib/audit-logger'
+import { identityNumberSchema } from '../lib/identity-number.schema'
+import { canRoleEditClientInfo } from '../lib/client-edit-permissions'
 
 /**
  * Schema de validación para actualizar un cliente
@@ -20,14 +31,34 @@ const updateClientSchema = z.object({
 	email: z.email('Email inválido').optional(),
 	phone: z
 		.string()
+		.min(1, 'El teléfono es obligatorio')
 		.regex(/^[0-9\s\-+]+$/, 'Formato de contacto inválido')
+		.optional(),
+	identityNumber: identityNumberSchema
+		.transform((v) => v.toUpperCase())
 		.optional(),
 	direcction: z.string().optional(),
 	city: z.string().optional(),
 	country: z.string().optional(),
+	/**
+	 * business-edit: edición desde formulario de negocio (COM-63) — requiere AGO/Admin.
+	 * business-create: ajuste de cliente durante creación de negocio — autenticado.
+	 */
+	context: z.enum(['business-create', 'business-edit']).default('business-create'),
+	/** Used to revalidate the edit page after a privileged client update */
+	businessId: z.number().int().positive().optional(),
 })
 
 export type UpdateClientInput = z.infer<typeof updateClientSchema>
+
+function requiresPrivilegedRole(data: {
+	context: 'business-create' | 'business-edit'
+	identityNumber?: string
+}): boolean {
+	return (
+		data.context === 'business-edit' || data.identityNumber !== undefined
+	)
+}
 
 /**
  * Server Action para actualizar un cliente
@@ -42,10 +73,27 @@ export async function updateClient(
 	data: UpdateClientInput
 ): Promise<ApiResponse<Client>> {
 	try {
-		// Validar los datos de entrada
+		const session = await auth()
+		if (!session?.user) {
+			return {
+				data: null,
+				error: 'No autorizado',
+			}
+		}
+
 		const validatedData = updateClientSchema.parse(data)
 
-		// Verificar que el cliente existe
+		const role = session.user.role
+		if (requiresPrivilegedRole(validatedData)) {
+			if (!canRoleEditClientInfo(role)) {
+				return {
+					data: null,
+					error:
+						'No tienes permisos para editar la información del cliente',
+				}
+			}
+		}
+
 		const existingClient = await prisma.client.findUnique({
 			where: {
 				idClient: validatedData.idClient,
@@ -58,11 +106,29 @@ export async function updateClient(
 				error: 'El cliente no existe',
 			}
 		}
+
+		if (validatedData.identityNumber !== undefined) {
+			const duplicate = await prisma.client.findFirst({
+				where: {
+					typeIdentity: existingClient.typeIdentity,
+					identityNumber: validatedData.identityNumber,
+					NOT: { idClient: existingClient.idClient },
+				},
+			})
+			if (duplicate) {
+				return {
+					data: null,
+					error: 'Ya existe un cliente con este número de identificación',
+				}
+			}
+		}
+
 		const updateData: Partial<{
 			name: string
 			lastName: string | null
 			email: string | null
 			phone: string | null
+			identityNumber: string
 			direcction: string | null
 			city: string | null
 			country: string
@@ -80,6 +146,9 @@ export async function updateClient(
 		if (validatedData.phone !== undefined) {
 			updateData.phone = validatedData.phone
 		}
+		if (validatedData.identityNumber !== undefined) {
+			updateData.identityNumber = validatedData.identityNumber
+		}
 		if (validatedData.direcction !== undefined) {
 			updateData.direcction = validatedData.direcction
 		}
@@ -90,7 +159,12 @@ export async function updateClient(
 			updateData.country = validatedData.country
 		}
 
-		// Actualizar el cliente
+		if (Object.keys(updateData).length === 0) {
+			return {
+				data: existingClient,
+			}
+		}
+
 		const client = await prisma.client.update({
 			where: {
 				idClient: validatedData.idClient,
@@ -98,11 +172,26 @@ export async function updateClient(
 			data: updateData,
 		})
 
+		const reqHeaders = await headers()
+		const userId = session.user.id ? parseInt(session.user.id, 10) : undefined
+		await logAuditEvent({
+			userId: Number.isFinite(userId) ? userId : undefined,
+			email: session.user.email,
+			ipAddress: getClientIp(reqHeaders),
+			userAgent: getUserAgent(reqHeaders),
+			action: AuditAction.CLIENT_UPDATED,
+			details: `Client ${client.idClient} updated (${Object.keys(updateData).join(', ')}) via ${validatedData.context}`,
+		})
+
+		if (validatedData.businessId !== undefined) {
+			revalidatePath(`/dashboard/negocios/editar/${validatedData.businessId}`)
+		}
+		revalidatePath('/dashboard/negocios')
+
 		return {
 			data: client,
 		}
 	} catch (error) {
-		// Manejar errores de validación de Zod
 		if (error instanceof z.ZodError) {
 			const firstError = error.issues[0]
 			return {
@@ -111,12 +200,17 @@ export async function updateClient(
 			}
 		}
 
-		// Manejar errores de Prisma
 		if (error && typeof error === 'object' && 'code' in error) {
 			if (error.code === 'P2025') {
 				return {
 					data: null,
 					error: 'El cliente no existe',
+				}
+			}
+			if (error.code === 'P2002') {
+				return {
+					data: null,
+					error: 'Ya existe un cliente con este número de identificación',
 				}
 			}
 		}

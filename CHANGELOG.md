@@ -8,18 +8,59 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ### Agregado
 
-- **Money Strategist puede eliminar comprobantes:** Los Money Strategists (rol AGENTE) ahora pueden eliminar comprobantes de pago desde el panel "Comprobantes del negocio", con diálogo de confirmación ("¿Está seguro de eliminar este comprobante?") y mensaje de error claro si la operación falla. La eliminación aplica solo a negocios de su alcance (propios o de su jerarquía).
+- **Marcador de "Novedad" para negocios en VENTA_EFECTUADA:** Los gestores de negocios ahora pueden marcar con "Con Novedad" los negocios que están bloqueados esperando información o correcciones (datos faltantes, contrato pendiente, etc.). El flag se resuelve automáticamente cuando el negocio pasa a estado EMITIDO, manteniendo un historial de auditoría completo.
 
-### Mejorado
+- **Columna de Novedad en tabla de negocios:** La tabla principal de negocios incluye una nueva columna "Novedad" inmediatamente después de "Estado", mostrando el estado del marcador (vacío cuando no hay novedad, "Pendiente" en naranja, "Resuelta" en verde).
 
-- **Permisos de eliminación de comprobantes:** Además de Administrador, Asistente Operativo de Gerencia y Analista de Soporte, el Money Strategist queda autorizado a eliminar comprobantes dentro de su alcance visible.
+- **Acciones de Novedad en fila de negocios:** El menú desplegable de acciones permite "Marcar Con Novedad" (visible solo en VENTA_EFECTUADA sin novedad pendiente) y "Desmarcar Novedad" (visible solo si hay novedad pendiente), disponible para todos los roles autenticados sin restricción de permisos.
+
+- **Auto-resolución de Novedad:** Cuando un negocio con novedad pendiente transiciona a EMITIDO (por cualquier motivo), el sistema automáticamente resuelve el flag y registra la resolución en el audit log.
+
+- **Persistencia de novedad en cancelación:** Si un negocio con novedad pendiente es cancelado, el flag se mantiene para auditoría y referencia.
+
+- **Display en vista de detalle:** La vista de detalle del negocio (modal y página de dashboard) muestra el estado de novedad con la misma semántica de colores que la tabla.
+
+- **Auditoría completa:** Nuevas acciones de audit log: `BUSINESS_NOVEDAD_MARKED`, `BUSINESS_NOVEDAD_UNMARKED`, `BUSINESS_NOVEDAD_RESOLVED` con registro de usuario, IP, user agent y detalles.
+
+- **Excel export:** La columna de Novedad se incluye automáticamente en las exportaciones de negocios con los mismos valores (vacío/"Pendiente"/"Resuelta").
 
 ### Técnico
 
-- **Role helper:** `canDeleteBusinessComprobante` includes `AGENTE` alongside existing back-office roles.
-- **DELETE API:** `DELETE /api/negocios/[id]/comprobantes/[supportId]` enforces role auth and, for AGENTE, hierarchy-scoped ownership via `resolveVisibleUserIds`; validates support belongs to the business in the URL.
-- **Service:** `deactivateComprobante` soft-deletes (`status = false`) with optional ownership checks and `FORBIDDEN` when out of scope.
-- **UI:** Delete affordance + `AlertDialog` confirmation and Sonner error toast in `BusinessSupportsSheet`; `useDeleteComprobante` rethrows after setting error state.
+- **Campos de datos:** Tres nuevos campos nullable en `Business`: `novedadStatus` (PENDIENTE | RESUELTA), `novedadMarkedAt`, `novedadResolvedAt`.
+
+- **API endpoint:** Nuevo `PATCH /api/negocios/[id]/mark-novedad` con soporte dual para acciones MARK/UNMARK, validación de precondiciones (409 Conflict), y respuestas `ApiResponse<BusinessEntity>`.
+
+- **Auto-resolución transaccional:** La resolución automática ocurre dentro de la transacción existente de `PUT /api/negocios/[id]` sin redondas adicionales.
+
+- **Hook de estado:** Nueva `useMarkNovedad` que retorna `AsyncState<BusinessEntity>` siguiendo patrones de proyecto.
+
+- **Componentes:** `BusinessNovedadBadge` con patrón STATUS_CONFIG, integrado en `BusinessRowActions`, `BusinessTableSection`, `BusinessViewModal`, y página de detalle.
+
+- **Migración Prisma:** Migración generada (pendiente aplicación a DB antes de deploy).
+
+## [1.25.0] - 2026-07-30
+
+### Agregado
+
+- **Acordeón de negocios por celda en el heatmap:** En el panel "Producción por empresa (heatmap)", cada celda asesor-empresa ahora se puede expandir con un ícono dedicado para ver el listado de negocios detrás de esa cifra, agrupados por empresa. Cada negocio muestra producto, número de contrato, valor (USD/COP), y estado, con un enlace "Ir a negocio" que abre el detalle en una pestaña nueva sin perder el contexto del análisis.
+
+- **Expansión múltiple y persistente:** Varias celdas pueden quedar expandidas al mismo tiempo. Si se aplica un filtro del dashboard mientras una celda está expandida, esta permanece abierta y solo se refresca su contenido; un recargado completo de la página sí reinicia el estado de expansión.
+
+### Mejorado
+
+- **Filtro por defecto en lista de negocios:** Todos los roles (ADMIN, Asistente Operativo de Gerencia, Analista de Soporte) ahora ven por defecto los negocios del mes actual filtrados por **fecha de creación**, en lugar de fecha de fondeo. Esto permite ver los negocios recién ingresados sin necesidad de cambiar el filtro manualmente. Si se requiere filtrar por fecha de fondeo, se puede aplicar desde el panel de filtros avanzados.
+
+- **Panel de filtros avanzados:** Al abrir el panel de filtros o al limpiar filtros, el selector de tipo de fecha se posiciona en "Creación" como punto de partida, alineado con el nuevo comportamiento por defecto.
+
+### Corregido
+
+- **Indicador de filtros activos en negocios:** El ícono de badge en el botón "Filtros avanzados" ya no aparece al cargar la página con el filtro por defecto (mes actual por creación). El badge solo se activa cuando el usuario aplica filtros adicionales más allá del estado inicial.
+
+- **Heatmap del dashboard no cargaba datos en el primer render:** El heatmap permanecía vacío al cargar la página por primera vez y solo mostraba datos al cambiar un filtro. El problema era que la tasa TRM (necesaria para la conversión) carga de forma asíncrona y el efecto de carga de datos no se reactivaba al resolverse. Corregido.
+
+- **Celdas expandidas del heatmap volvían a "Cargando…" sin motivo:** Al abrir una nueva celda del acordeón o al plegar/desplegar el menú lateral, las celdas ya expandidas se recargaban innecesariamente. Corregido memoizando el mapa de periodicidades usado por el acordeón.
+
+- **Columna "Money Strategist" del heatmap con fondo transparente:** Al hacer scroll horizontal en la tabla del heatmap, el texto de otras columnas se superponía sobre la columna fija "Money Strategist". El fondo de la columna ahora es sólido y correctamente opaco tanto en modo claro como oscuro.
 
 ## [1.24.0] - 2026-07-10
 

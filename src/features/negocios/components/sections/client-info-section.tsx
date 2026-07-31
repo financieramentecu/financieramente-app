@@ -139,12 +139,24 @@ export function ClientInfoSection({
 					>
 						No. Documento <span className="text-red-500">*</span>
 					</Label>
-					{getFieldPermission('identityNumber').readonly ? (
+					{isEditMode ? (
 						<Input
 							id="numeroDocumento"
 							value={documentValue}
 							disabled={getFieldPermission('identityNumber').disabled}
-							className="bg-muted"
+							onChange={(e) =>
+								setValue('identityNumber', e.target.value, {
+									shouldValidate: true,
+								})
+							}
+							placeholder="Número de documento"
+							className={
+								getFieldPermission('identityNumber').disabled
+									? 'bg-muted'
+									: errors.identityNumber
+										? 'border-red-500'
+										: ''
+							}
 						/>
 					) : (
 						<ClientAutocomplete

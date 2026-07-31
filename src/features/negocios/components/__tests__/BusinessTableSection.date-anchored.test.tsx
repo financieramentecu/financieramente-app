@@ -27,6 +27,8 @@ function buildBusiness(overrides: Partial<Business> = {}): Business {
 		periodicityName: 'Mensual',
 		dateIssued: '2026-01-15T12:00:00.000Z',
 		dateAnchored: '2026-02-15T12:00:00.000Z',
+		novedadStatus: null,
+		novedadMarkedAt: null,
 		date: '2026-01-01T12:00:00.000Z',
 		value: 1000,
 		product: 'Producto',

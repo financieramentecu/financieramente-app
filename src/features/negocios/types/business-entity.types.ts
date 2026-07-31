@@ -23,6 +23,17 @@ export type BusinessStatus =
 	(typeof BUSINESS_STATUS)[keyof typeof BUSINESS_STATUS]
 
 /**
+ * Estados posibles de la "novedad" marcada sobre un negocio en VENTA_EFECTUADA
+ */
+export const BUSINESS_NOVEDAD_STATUS = {
+	PENDIENTE: 'PENDIENTE',
+	RESUELTA: 'RESUELTA',
+} as const
+
+export type BusinessNovedadStatus =
+	(typeof BUSINESS_NOVEDAD_STATUS)[keyof typeof BUSINESS_NOVEDAD_STATUS]
+
+/**
  * Modos del formulario de negocio
  */
 export type BusinessFormMode = 'create' | 'edit' | 'view' | 'cancel'
@@ -37,6 +48,10 @@ export type BusinessFormMode = 'create' | 'edit' | 'view' | 'cancel'
 export interface ClientInfo {
 	readonly id: number
 	fullName: string
+	/** Nombre(s) del cliente (sin apellidos) */
+	name: string
+	/** Apellido(s) del cliente */
+	lastName: string | null
 	identityNumber: string
 	email: string | null
 	phone: string | null
@@ -119,6 +134,12 @@ export interface BusinessEntity {
 	supportCount: number
 	/** Observación de cancelación (prefijada con [CANCELADO] o [ELIMINADO]) */
 	observations: string | null
+	/** Estado de la novedad marcada sobre el negocio; null si nunca fue marcado */
+	novedadStatus: BusinessNovedadStatus | null
+	/** Fecha (ISO) en que se marcó la novedad; null si nunca fue marcado */
+	novedadMarkedAt: string | null
+	/** Fecha (ISO) en que la novedad quedó resuelta (auto al emitir); null si no resuelta */
+	novedadResolvedAt: string | null
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo

@@ -19,6 +19,7 @@ export const BusinessForm = React.forwardRef<
 		{
 			mode = 'create',
 			businessId,
+			clientId,
 			onSubmit,
 			onCancel,
 			defaultValues,
@@ -53,6 +54,7 @@ export const BusinessForm = React.forwardRef<
 		} = useBusinessForm({
 			mode,
 			businessId,
+			clientId,
 			onSubmit,
 			onCancel,
 			defaultValues,

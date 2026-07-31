@@ -146,6 +146,57 @@ describe('AdvancedFiltersSheet', () => {
 		})
 	})
 
+	it('defaults dateField to "creacion": applying with no changes uses createdFrom/createdTo params', async () => {
+		render(<AdvancedFiltersSheet />)
+
+		fireEvent.click(screen.getByText(/Filtros avanzados/i))
+
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: /Aplicar/i })).toBeInTheDocument()
+		})
+
+		fireEvent.click(screen.getByRole('button', { name: /Aplicar/i }))
+
+		await waitFor(() => {
+			expect(mockReplace).toHaveBeenCalled()
+		})
+
+		const calledUrl = mockReplace.mock.calls[0][0] as string
+		const params = new URLSearchParams(calledUrl.split('?')[1] ?? '')
+		// The default date dimension should be creacion — NOT fondeo
+		expect(params.has('dateFrom')).toBe(false)
+		expect(params.has('dateTo')).toBe(false)
+	})
+
+	it('resets dateField to "creacion" after Limpiar: Limpiar clears date params without re-seeding', async () => {
+		// Seed URL with fondeo params so the sheet opens on fondeo dimension
+		mockSearchParams.set('dateFrom', '2026-07-01')
+		mockSearchParams.set('dateTo', '2026-07-28')
+
+		render(<AdvancedFiltersSheet />)
+
+		fireEvent.click(screen.getByText(/Filtros avanzados/i))
+
+		await waitFor(() => {
+			expect(screen.getByText(/Limpiar filtros/i)).toBeInTheDocument()
+		})
+
+		// Click Limpiar — resets form (dateField → 'creacion') and calls router.replace with cleared params
+		fireEvent.click(screen.getByText(/Limpiar filtros/i))
+
+		await waitFor(() => {
+			expect(mockReplace).toHaveBeenCalled()
+		})
+
+		const calledUrl = mockReplace.mock.calls[0][0] as string
+		const params = new URLSearchParams(calledUrl.split('?')[1] ?? '')
+		// Limpiar must clear both fondeo and creacion date params — no re-seeding
+		expect(params.has('dateFrom')).toBe(false)
+		expect(params.has('dateTo')).toBe(false)
+		expect(params.has('createdFrom')).toBe(false)
+		expect(params.has('createdTo')).toBe(false)
+	})
+
 	it('does not include COMISIONANDO as a status filter option', async () => {
 		render(<AdvancedFiltersSheet />)
 

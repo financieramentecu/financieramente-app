@@ -20,6 +20,8 @@ export function createMockClientInfo(
 	return {
 		id: 1,
 		fullName: 'María García López',
+		name: 'María',
+		lastName: 'García López',
 		identityNumber: '1234567890',
 		email: 'maria.garcia@email.com',
 		phone: '3001234567',
@@ -66,6 +68,7 @@ export function createMockProductInfo(
 export function createMockBusiness(
 	overrides: Partial<BusinessEntity> = {}
 ): BusinessEntity {
+	const { client, agent, product, ...rest } = overrides
 	return {
 		id: 1,
 		contract: 'PN0001234',
@@ -81,13 +84,16 @@ export function createMockBusiness(
 		hasPendingPaymentFunding: false,
 		supportCount: 0,
 		observations: null,
-		client: createMockClientInfo(overrides.client),
-		agent: createMockAgentInfo(overrides.agent),
-		product: createMockProductInfo(overrides.product),
+		novedadStatus: null,
+		novedadMarkedAt: null,
+		novedadResolvedAt: null,
+		client: createMockClientInfo(client),
+		agent: createMockAgentInfo(agent),
+		product: createMockProductInfo(product),
 		currency: { id: 1, name: 'COP' },
 		periodicity: { id: 1, name: 'Mensual' },
 		clientOrigin: { id: 1, name: 'Referido' },
-		...overrides,
+		...rest,
 	}
 }
 
@@ -189,6 +195,8 @@ export function createMockTableBusiness(
 		periodicityName: 'Mensual',
 		dateIssued: '2024-02-01T12:00:00.000Z',
 		dateAnchored: null,
+		novedadStatus: null,
+		novedadMarkedAt: null,
 		date: '2024-02-01T12:00:00.000Z',
 		value: 15000000,
 		product: 'Crédito Personal',

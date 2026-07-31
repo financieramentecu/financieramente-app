@@ -262,9 +262,10 @@ export function useHeatmapTable(trmRate: number | null): AsyncState<HeatmapViewM
     return () => {
       cancelled = true
     }
-    // trmRate intentionally excluded — TRM conversion is client-side only
+    // trmRate value excluded — TRM conversion is client-side only.
+    // trmRate !== null is included to trigger the initial fetch once trmRate resolves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUserIds, appliedFilters])
+  }, [selectedUserIds, appliedFilters, trmRate !== null])
 
   // Handle null trmRate → remain idle
   if (trmRate === null) {

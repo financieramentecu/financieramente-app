@@ -23,7 +23,8 @@ type LevelRow = {
 }
 
 function isFullTreeViewer(viewer: SessionUser): boolean {
-	if (viewer.level?.code === 'GENERAL_LEVEL') return true
+	// GENERAL_LEVEL is a commission-calculation concept only — it never grants
+	// dashboard visibility bypass. Only HIERARCHY_BYPASS_ROLES sees the full tree.
 	if (!viewer.role) return false
 	return (HIERARCHY_BYPASS_ROLES as ReadonlyArray<string>).includes(viewer.role.code)
 }
