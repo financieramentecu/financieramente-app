@@ -2,25 +2,30 @@
 
 import { useState } from 'react'
 import { Trash2, ImageIcon, ZoomIn, FileText } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from '@/features/shared/ui/sheet'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/features/shared/ui/alert-dialog'
 import { Button } from '@/features/shared/ui/button'
 import { Badge } from '@/features/shared/ui/badge'
 import { useBusinessSupports } from '../hooks/useBusinessSupports'
 import { useDeleteComprobante } from '../hooks/useDeleteComprobante'
 import type { BusinessSupportDTO } from '../types/business-support.types'
-import { UserRole } from '@/features/auth/lib/roles'
+import { UserRole, canDeleteBusinessComprobante } from '@/features/auth/lib/roles'
 import { isImageMime } from '../lib/mime-utils'
-
-const DELETE_ALLOWED_ROLES: UserRole[] = [
-  UserRole.ADMIN,
-  UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-  UserRole.ANALISTA_SOPORTE,
-]
 
 interface ViewComprobantesSheetProps {
   businessId: number
@@ -33,7 +38,8 @@ interface ViewComprobantesSheetProps {
 interface SupportGalleryProps {
   items: BusinessSupportDTO[]
   canDelete: boolean
-  onDelete: (id: string) => Promise<void>
+  pendingDeleteId: string | null
+  onRequestDelete: (id: string) => void
 }
 
 function formatBytes(bytes: number): string {
@@ -66,19 +72,13 @@ function EmptyState() {
   )
 }
 
-function SupportGallery({ items, canDelete, onDelete }: SupportGalleryProps) {
+function SupportGallery({
+  items,
+  canDelete,
+  pendingDeleteId,
+  onRequestDelete,
+}: SupportGalleryProps) {
   const [selected, setSelected] = useState<BusinessSupportDTO>(items[0])
-  const [deleting, setDeleting] = useState<string | null>(null)
-
-  const handleDelete = async (id: string) => {
-    setDeleting(id)
-    await onDelete(id)
-    setDeleting(null)
-    if (selected?.id === id) {
-      const next = items.find((i) => i.id !== id)
-      if (next) setSelected(next)
-    }
-  }
 
   return (
     <div className="flex flex-1 gap-0 min-h-0 overflow-hidden rounded-lg border border-border">
@@ -128,12 +128,15 @@ function SupportGallery({ items, canDelete, onDelete }: SupportGalleryProps) {
                 </div>
               </div>
 
-              {/* Delete button — visible on hover, restricted to allowed roles */}
               {canDelete && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); void handleDelete(c.id) }}
-                  disabled={deleting === c.id}
-                  aria-label={`Delete support ${c.id}`}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onRequestDelete(c.id)
+                  }}
+                  disabled={pendingDeleteId === c.id}
+                  aria-label={`Eliminar comprobante ${c.id}`}
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex h-6 w-6 items-center justify-center rounded-md bg-background border border-border hover:border-destructive hover:text-destructive disabled:opacity-50"
                 >
                   <Trash2 className="h-3 w-3" />
@@ -148,7 +151,6 @@ function SupportGallery({ items, canDelete, onDelete }: SupportGalleryProps) {
       <main className="flex flex-1 flex-col min-w-0">
         {selected ? (
           <>
-            {/* Preview toolbar */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-background shrink-0">
               <div>
                 <p className="text-sm font-medium text-foreground">{formatDate(selected.createdAt)}</p>
@@ -169,7 +171,6 @@ function SupportGallery({ items, canDelete, onDelete }: SupportGalleryProps) {
               </a>
             </div>
 
-            {/* Preview area */}
             {isImageMime(selected.mimeType) ? (
               <div className="flex flex-1 items-center justify-center bg-muted/20 p-6 overflow-auto">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -208,39 +209,94 @@ export function ViewComprobantesSheet({
 }: ViewComprobantesSheetProps) {
   const { state, refetch } = useBusinessSupports(businessId)
   const { remove } = useDeleteComprobante(businessId)
-  const canDelete = userRole !== undefined && DELETE_ALLOWED_ROLES.includes(userRole)
+  const canDelete = canDeleteBusinessComprobante(userRole)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [isConfirming, setIsConfirming] = useState(false)
 
-  const handleDelete = async (id: string) => {
-    await remove(id)
-    onSupportDeleted?.()
-    void refetch()
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteId) return
+    setIsConfirming(true)
+    try {
+      await remove(pendingDeleteId)
+      setPendingDeleteId(null)
+      onSupportDeleted?.()
+      void refetch()
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'No se pudo eliminar el comprobante. Intente nuevamente.'
+      toast.error('No se pudo completar la acción', {
+        description: message,
+      })
+    } finally {
+      setIsConfirming(false)
+    }
   }
 
   return (
-    <Sheet open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <SheetContent className="w-full sm:max-w-[900px] flex flex-col gap-4 overflow-hidden p-6">
-        <SheetHeader className="shrink-0">
-          <SheetTitle>Comprobantes del negocio</SheetTitle>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+        <SheetContent className="w-full sm:max-w-[900px] flex flex-col gap-4 overflow-hidden p-6">
+          <SheetHeader className="shrink-0">
+            <SheetTitle>Comprobantes del negocio</SheetTitle>
+          </SheetHeader>
 
-        {state.status === 'loading' && (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-sm text-muted-foreground animate-pulse">Cargando comprobantes…</p>
-          </div>
-        )}
+          {state.status === 'loading' && (
+            <div className="flex flex-1 items-center justify-center">
+              <p className="text-sm text-muted-foreground animate-pulse">Cargando comprobantes…</p>
+            </div>
+          )}
 
-        {state.status === 'error' && (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-sm text-destructive">{state.error}</p>
-          </div>
-        )}
+          {state.status === 'error' && (
+            <div className="flex flex-1 items-center justify-center">
+              <p className="text-sm text-destructive">{state.error}</p>
+            </div>
+          )}
 
-        {state.status === 'success' && (
-          state.data.length === 0
-            ? <EmptyState />
-            : <SupportGallery items={state.data} canDelete={canDelete} onDelete={handleDelete} />
-        )}
-      </SheetContent>
-    </Sheet>
+          {state.status === 'success' && (
+            state.data.length === 0
+              ? <EmptyState />
+              : (
+                <SupportGallery
+                  items={state.data}
+                  canDelete={canDelete}
+                  pendingDeleteId={pendingDeleteId}
+                  onRequestDelete={setPendingDeleteId}
+                />
+              )
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <AlertDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !isConfirming) setPendingDeleteId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Está seguro de eliminar este comprobante?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El comprobante se eliminará de la lista de evidencias del negocio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isConfirming}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isConfirming}
+              onClick={(e) => {
+                e.preventDefault()
+                void handleConfirmDelete()
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isConfirming ? 'Eliminando…' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

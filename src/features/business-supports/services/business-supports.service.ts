@@ -176,17 +176,45 @@ export async function persistComprobante(
   return toDTO(row as Parameters<typeof toDTO>[0])
 }
 
+export interface DeactivateComprobanteAuth {
+  /** When set, support must belong to this business (path id) */
+  readonly businessId?: number
+  /** When set, caller may only delete supports on businesses owned by these users */
+  readonly visibleUserIds?: readonly number[]
+}
+
 /** Soft-delete a BusinessSupport record (status = false) */
 export async function deactivateComprobante(
   supportId: string,
   ctx: RequestContext,
+  auth?: DeactivateComprobanteAuth,
 ): Promise<void> {
   const existing = await prisma.businessSupport.findUnique({
     where: { id: supportId },
+    include: {
+      business: { select: { idUser: true } },
+    },
   })
 
   if (!existing) {
     throw new ComprobanteError('NOT_FOUND', `BusinessSupport ${supportId} not found`)
+  }
+
+  if (
+    auth?.businessId !== undefined &&
+    existing.businessId !== auth.businessId
+  ) {
+    throw new ComprobanteError('NOT_FOUND', `BusinessSupport ${supportId} not found`)
+  }
+
+  if (
+    auth?.visibleUserIds !== undefined &&
+    !auth.visibleUserIds.includes(existing.business.idUser)
+  ) {
+    throw new ComprobanteError(
+      'FORBIDDEN',
+      'No tiene permiso para eliminar este comprobante',
+    )
   }
 
   await prisma.businessSupport.update({

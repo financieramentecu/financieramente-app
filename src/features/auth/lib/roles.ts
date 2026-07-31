@@ -134,3 +134,28 @@ export function canFundPayments(roleCode: string | undefined): boolean {
 		ROLES_CAN_FUND_PAYMENTS.includes(roleCode as UserRole)
 	)
 }
+
+/**
+ * Roles that can soft-delete business payment supports (comprobantes).
+ * Includes Money Strategist (AGENTE) so agents can correct their own uploads
+ * without depending on operational analysts (COM-75).
+ */
+const ROLES_CAN_DELETE_BUSINESS_COMPROBANTE: readonly UserRole[] = [
+	UserRole.ADMIN,
+	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+	UserRole.ANALISTA_SOPORTE,
+	UserRole.AGENTE,
+]
+
+/**
+ * Whether the role may delete (soft-delete) business comprobantes in the UI/API
+ */
+export function canDeleteBusinessComprobante(
+	roleCode: string | undefined
+): boolean {
+	if (!roleCode) return false
+	return (
+		isValidRole(roleCode) &&
+		ROLES_CAN_DELETE_BUSINESS_COMPROBANTE.includes(roleCode as UserRole)
+	)
+}
