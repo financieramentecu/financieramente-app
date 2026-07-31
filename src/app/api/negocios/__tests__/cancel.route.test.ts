@@ -8,7 +8,10 @@ import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-ent
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
 import { UserRole } from '@/features/auth/lib/roles'
-import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
+import {
+	BUSINESS_STATUS,
+	BUSINESS_NOVEDAD_STATUS,
+} from '@/features/negocios/types/business-entity.types'
 import {
 	mockUserWithRole,
 	mockAgentUser,
@@ -1140,6 +1143,80 @@ describe('PATCH /api/negocios/[id]/cancel', () => {
 			expect(details.businessId).toBe(123)
 			expect(details.previousStatus).toBe(BUSINESS_STATUS.EMITIDO)
 			expect(details.reason).toBe('Razón de cancelación')
+		})
+	})
+
+	describe('Persistencia de Novedad al Cancelar', () => {
+		it('debe dejar intacta una novedad PENDIENTE al cancelar el negocio', async () => {
+			const mockSession = {
+				user: { email: 'admin@example.com' },
+			}
+
+			const mockAdminUser = {
+				...mockUserWithRole,
+				email: 'admin@example.com',
+				role: {
+					idRole: 1,
+					code: UserRole.ADMIN,
+					name: 'Administrador del Sistema',
+					description: 'Acceso total',
+					active: true,
+					createdAt: new Date('2024-01-01'),
+					updatedAt: new Date('2024-01-01'),
+				},
+			}
+
+			const markedAt = new Date('2026-07-01T10:00:00.000Z')
+
+			const mockExistingBusiness = {
+				...mockPrismaBusiness,
+				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+				novedadMarkedAt: markedAt,
+			}
+
+			const mockCancelledBusiness = {
+				...mockExistingBusiness,
+				status: BUSINESS_STATUS.CANCELADO,
+				observations: '[CANCELADO] Motivo de prueba con novedad pendiente',
+			}
+
+			const requestBody = {
+				reason: 'Motivo de prueba con novedad pendiente',
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockCancelBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: requestBody,
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindUnique.mockResolvedValue(mockExistingBusiness as never)
+			mockPrismaUpdate.mockResolvedValue(mockCancelledBusiness as never)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios/1/cancel',
+				{
+					method: 'PATCH',
+					body: JSON.stringify(requestBody),
+				}
+			)
+
+			const params = Promise.resolve({ id: '1' })
+			await PATCH(request, { params })
+
+			expect(mockPrismaUpdate).toHaveBeenCalledWith({
+				where: { idBusiness: 1 },
+				data: {
+					status: BUSINESS_STATUS.CANCELADO,
+					observations: `[CANCELADO] ${requestBody.reason}`,
+				},
+				include: expect.any(Object),
+			})
+
+			const updateCallData = mockPrismaUpdate.mock.calls[0][0].data
+			expect(updateCallData).not.toHaveProperty('novedadStatus')
+			expect(updateCallData).not.toHaveProperty('novedadMarkedAt')
 		})
 	})
 })

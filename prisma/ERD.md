@@ -287,6 +287,9 @@ erDiagram
         datetime date_anchored
         int num_aportes
         string status
+        string novedad_status
+        datetime novedad_marked_at
+        datetime novedad_resolved_at
         boolean is_active
         datetime created_at
         datetime updated_at
@@ -462,6 +465,7 @@ erDiagram
 - `BeneficiaryMode` renombrado (migración manual): `UPLINE_CHAIN → OVERRIDE`, `FIXED_BENEFICIARY → BENEFICIARIO_GENERAL`.
 - `ProductConfiguration`: el campo `id_client_origin` fue eliminado (migración `20260507010000_mejoras_product_configuration_sin_origen`). El unique constraint cambió de `(id_product, id_client_origin, id_category)` a `(id_product, id_level)`. El `code` es único a nivel de columna.
 - `Business`: campo `is_active` agregado (`@default(true)`) para soporte de soft delete lógico.
+- `Business`: campos `novedad_status` (nullable, `PENDIENTE` | `RESUELTA` — enum solo en TS), `novedad_marked_at` y `novedad_resolved_at` agregados (migración `20260731043040_add_business_novedad_fields`) para el flag de "novedad" sobre negocios en `VENTA_EFECTUADA`. Sin relación nueva; `novedad_status = null` es el estado por defecto/pre-existente.
 - `ComissionDistribution`: campo `is_active` agregado (`@default(true)`) para soft delete lógico (reemplaza `deleteMany` en servicios de pre-liquidación y carga de archivos).
 - **Renombre `Category → Level`** (migración `20260509000000_rename_category_to_level`): la tabla `category` fue renombrada a `level`; la columna `id_category_type` fue eliminada de `level` (migración `20260509010000_create_category_and_populate`). El modelo Prisma `Category` ahora mapea a la tabla `level` bajo el nombre `Level`.
 - **`Payment` — nuevos campos** (migración `20260521220206_aportes_cartera_anticipado`): `cartera_date` y `pago_anticipado_date` son nullable; se rellenan al marcar EN_CARTERA o PAGO_ANTICIPADO respectivamente. Se añaden los valores `EN_CARTERA` y `PAGO_ANTICIPADO` al enum `AnnualPaymentStatus`.

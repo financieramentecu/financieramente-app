@@ -15,8 +15,8 @@ export function UploadSupportButton({ businessId, onSuccess }: UploadSupportButt
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} className="gap-2">
-        <FileUp className="h-4 w-4" />
+      <Button size="sm" onClick={() => setOpen(true)} className="gap-1.5">
+        <FileUp className="h-3.5 w-3.5" />
         Subir Soporte
       </Button>
 

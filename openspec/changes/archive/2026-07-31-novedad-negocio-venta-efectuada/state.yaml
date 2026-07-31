@@ -1,0 +1,46 @@
+---
+# SDD Change State: novedad-negocio-venta-efectuada (ARCHIVED)
+change_name: novedad-negocio-venta-efectuada
+status: archived
+archived_date: 2026-07-31
+
+# Artifact Store Mode
+artifact_store:
+  mode: hybrid
+  engram_topic_keys:
+    - sdd/explore/novedad-negocio-venta-efectuada
+    - sdd/novedad-negocio-venta-efectuada/proposal
+    - sdd/novedad-negocio-venta-efectuada/spec
+    - sdd/novedad-negocio-venta-efectuada/design
+    - sdd/novedad-negocio-venta-efectuada/tasks
+    - sdd/novedad-negocio-venta-efectuada/apply-progress
+    - sdd/novedad-negocio-venta-efectuada/verify-report
+    - sdd/novedad-negocio-venta-efectuada/archive-report
+  openspec_path: "openspec/changes/archive/2026-07-31-novedad-negocio-venta-efectuada/"
+
+# Specs targeted
+specs_targeted:
+  - domain: negocios
+    file: openspec/changes/archive/2026-07-31-novedad-negocio-venta-efectuada/specs/negocios/spec.md
+    main_spec_synced_to: openspec/specs/negocios/spec.md
+    change_type: added
+    requirements: 8
+    scenarios: 19
+
+phases:
+  - explore: complete
+  - propose: complete
+  - spec: complete
+  - design: complete
+  - tasks: complete (31/31 tasks)
+  - apply: complete (31/31 tasks, Phase 1-3)
+  - verify: complete (PASS — 19/19 scenarios covered, 0 CRITICAL, 0 WARNING; re-verified after post-cycle UI/UX polish, still PASS)
+  - archive: complete
+
+archive_summary:
+  synced_to_main_specs: true
+  main_spec_location: openspec/specs/negocios/spec.md
+  folder_moved: openspec/changes/archive/2026-07-31-novedad-negocio-venta-efectuada/
+  archive_report_engram_topic: sdd/novedad-negocio-venta-efectuada/archive-report
+
+ready_for_next_change: true
