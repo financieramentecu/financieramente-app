@@ -57,14 +57,19 @@ describe('BusinessRowActions', () => {
       expect(screen.getByRole('button', { name: /subir comprobante/i })).toBeInTheDocument()
     })
 
-    it('hides upload button when status is VENTA_EFECTUADA', () => {
+    it('shows upload button when status is VENTA_EFECTUADA with contract', () => {
       render(<BusinessRowActions {...defaultProps} businessStatus={BUSINESS_STATUS.VENTA_EFECTUADA} contract="CON-001" />)
-      expect(screen.queryByRole('button', { name: /subir comprobante/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /subir comprobante/i })).toBeInTheDocument()
     })
 
-    it('hides upload button when contract is null', () => {
+    it('shows upload button when status is VENTA_EFECTUADA without contract', () => {
+      render(<BusinessRowActions {...defaultProps} businessStatus={BUSINESS_STATUS.VENTA_EFECTUADA} contract={null} />)
+      expect(screen.getByRole('button', { name: /subir comprobante/i })).toBeInTheDocument()
+    })
+
+    it('shows upload button when status is EMITIDO and contract is null', () => {
       render(<BusinessRowActions {...defaultProps} businessStatus={BUSINESS_STATUS.EMITIDO} contract={null} />)
-      expect(screen.queryByRole('button', { name: /subir comprobante/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /subir comprobante/i })).toBeInTheDocument()
     })
 
     it('hides upload button when status is CANCELADO', () => {

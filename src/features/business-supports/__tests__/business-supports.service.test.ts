@@ -144,15 +144,18 @@ describe('presignComprobanteUpload', () => {
     ).rejects.toMatchObject({ code: 'INVALID_STATUS' })
   })
 
-  it('throws NO_CONTRACT when contract is null', async () => {
+  it('succeeds for VENTA_EFECTUADA without contract using negocio-{id} key', async () => {
     mockPrisma.business.findUnique.mockResolvedValue({
       ...ACTIVE_BUSINESS,
+      status: 'VENTA_EFECTUADA',
       contract: null,
     })
+    mockPresignPutUrl.mockResolvedValue('https://put.example.com/url')
 
-    await expect(
-      presignComprobanteUpload(10, 'image/jpeg', 1024, CTX),
-    ).rejects.toMatchObject({ code: 'NO_CONTRACT' })
+    const result = await presignComprobanteUpload(10, 'image/jpeg', 1024, CTX)
+
+    expect(result.url).toBe('https://put.example.com/url')
+    expect(result.key).toContain('negocio-10')
   })
 
   it('throws INVALID_MIME for unsupported mime type', async () => {
