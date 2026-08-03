@@ -15,6 +15,7 @@ export interface BusinessSupportDTO {
 
 export type ComprobanteErrorCode =
   | 'NOT_FOUND'
+  | 'FORBIDDEN'
   | 'INVALID_STATUS'
   | 'INVALID_MIME'
   | 'FILE_TOO_LARGE'

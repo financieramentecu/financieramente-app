@@ -153,11 +153,11 @@ export function NegociosPageClient({
 		originIds: [],
 	})
 
-	// Seed the role's default date filter (current month: AGENTE by creation
-	// date, back-office roles by funding date) into the URL once per mount, so
-	// the AdvancedFiltersSheet and the active-filter badge reflect it. Never
-	// runs when the URL already carries a date filter, and never re-seeds
-	// after the user clears filters.
+	// Seed the role's default date filter (current month on creation date) into
+	// the URL once per mount, so the AdvancedFiltersSheet and the active-filter
+	// badge reflect it. Skips when the URL already carries a date filter.
+	// "Limpiar filtros" in AdvancedFiltersSheet re-seeds the current month
+	// itself (this effect does not run again after the first mount seed).
 	const defaultDatePair = getDefaultDateParamPair(_currentUser?.role?.code)
 	const hasSeededDefaultDateRef = useRef(false)
 	useEffect(() => {
@@ -248,10 +248,7 @@ export function NegociosPageClient({
 		isLoading: isLoadingStats,
 		error: statsError,
 		refetch: refetchStats,
-	} = useBusinessStats({
-		dateFrom: mergedParams.dateFrom || defaultDates.from,
-		dateTo: mergedParams.dateTo || defaultDates.to,
-	})
+	} = useBusinessStats(urlFilterParams)
 
 	const {
 		cancelBusiness,
@@ -589,6 +586,30 @@ export function NegociosPageClient({
 		refetchStats(true)
 	}, [refetch, refetchStats])
 
+	const handleMarkNovedad = useCallback(async (business: Business) => {
+		const response = await businessService.markNovedad(Number(business.id), 'MARK')
+		if ('error' in response && response.error) {
+			toast.error('No se pudo marcar la novedad', {
+				description: response.error,
+			})
+			return
+		}
+		toast.success('Negocio marcado con novedad')
+		refetch(true)
+	}, [refetch])
+
+	const handleUnmarkNovedad = useCallback(async (business: Business) => {
+		const response = await businessService.markNovedad(Number(business.id), 'UNMARK')
+		if ('error' in response && response.error) {
+			toast.error('No se pudo desmarcar la novedad', {
+				description: response.error,
+			})
+			return
+		}
+		toast.success('Novedad desmarcada')
+		refetch(true)
+	}, [refetch])
+
 	const businessDataForTable: Business[] = useMemo(
 		() => businesses.map(mapBusinessToTableRow),
 		[businesses]
@@ -629,6 +650,8 @@ export function NegociosPageClient({
 				onDeleteSuccess={() => { refetch(true); refetchStats(true) }}
 				onSaveDateIssued={handleSaveDateIssued}
 				onSaveDateAnchored={handleSaveDateAnchored}
+				onMarkNovedad={handleMarkNovedad}
+				onUnmarkNovedad={handleUnmarkNovedad}
 			/>
 
 			{/* Modal de Cancelación */}

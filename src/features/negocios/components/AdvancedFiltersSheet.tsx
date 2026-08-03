@@ -27,6 +27,7 @@ import { useAgentCategories } from '@/features/negocios/hooks/use-agent-categori
 import { useMoneyStrategists } from '@/features/negocios/hooks/use-money-strategists'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 import { countActiveDimensions } from '@/features/negocios/lib/count-active-dimensions'
+import { getCurrentMonthRange } from '@/features/negocios/lib/default-date-filter'
 import { dateOnlyToBogotaNoonUtc, bogotaDateOnly } from '@/features/negocios/lib/bogota-date'
 
 const DATE_FIELDS = [
@@ -264,9 +265,14 @@ export function AdvancedFiltersSheet() {
 	}
 
 	const onClear = useCallback(() => {
+		// Reset to role default: creation date = current month (not full history).
+		const { from: monthFrom, to: monthTo } = getCurrentMonthRange()
 		reset({
 			dateField: 'creacion',
-			dateRange: undefined,
+			dateRange: {
+				from: dateOnlyToBogotaNoonUtc(monthFrom),
+				to: dateOnlyToBogotaNoonUtc(monthTo),
+			},
 			statuses: [],
 			hasSupports: 'all',
 			companyIds: [],
@@ -286,6 +292,8 @@ export function AdvancedFiltersSheet() {
 			'companyIds', 'productIds', 'originIds', 'terms', 'periodicityIds',
 		]
 		filterKeys.forEach((k) => params.delete(k))
+		params.set('createdFrom', monthFrom)
+		params.set('createdTo', monthTo)
 		params.set('page', '1')
 
 		router.replace(`?${params.toString()}`, { scroll: false })

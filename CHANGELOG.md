@@ -14,19 +14,84 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ### Agregado
 
+- **Money Strategist puede eliminar sus comprobantes (COM-75):** El rol Money Strategist (Agente) ahora puede eliminar comprobantes de los negocios que gestiona directamente, sin depender de un Analista de Soporte u otro rol operativo.
+- **Confirmación antes de eliminar:** Al eliminar un comprobante se muestra un diálogo de confirmación explicando que la acción no se puede deshacer, evitando borrados accidentales.
+
+### Mejorado
+
+- **Feedback de error al eliminar:** Si la eliminación falla, se muestra una notificación (toast) con un mensaje claro en lugar de fallar en silencio.
+
+### Corregido
+
+- **Alcance de permisos en la API:** La eliminación de comprobantes valida en el backend que el comprobante pertenezca al negocio indicado y, para Money Strategist, que el negocio esté dentro de su jerarquía visible; de lo contrario responde 403.
+
+### Técnico
+
+- `canDeleteBusinessComprobante()` en `src/features/auth/lib/roles.ts` centraliza la validación de rol (ADMIN, ASISTENTE_GERENCIA_OPERATIVA, ANALISTA_SOPORTE, AGENTE), usada tanto en la UI como en la API.
+- `deactivateComprobante()` (`business-supports.service.ts`) acepta un parámetro `auth` opcional (`businessId`, `visibleUserIds`) para forzar pertenencia al negocio y, cuando aplica, la jerarquía visible del usuario vía `resolveVisibleUserIds`.
+- Nuevo código de error `FORBIDDEN` en `ComprobanteErrorCode`, mapeado a HTTP 403 en la ruta `DELETE /api/negocios/[id]/comprobantes/[supportId]`.
+- `ViewComprobantesSheet` reemplaza el borrado directo por un flujo de confirmación (`AlertDialog`) con estado `pendingDeleteId`/`isConfirming` y notificación de error vía `sonner`.
+
+## [1.26.1] - 2026-08-03
+
+### Agregado
+
+- **KPIs del Resumen filtrados (COM-73):** Al aplicar filtros avanzados en Negocios (fechas, Money Strategist, estado, categoría, soportes, compañía, producto, origen, plazo, periodicidad), las tarjetas de Resumen (Ventas Efectuadas, Emitidos y Fondeados) se recalculan automáticamente con el mismo criterio que la tabla, incluyendo montos en moneda local y extranjera y el indicador de soportes pendientes en Emitidos.
+
+### Mejorado
+
+- **Paridad lista ↔ Resumen:** Los KPIs usan la misma semántica de filtros que el listado (`dateFrom`/`dateTo` = fondeo, `createdFrom`/`createdTo` = creación, etc.). Al limpiar filtros, el Resumen vuelve al consolidado global (según el alcance del rol).
+
+### Corregido
+
+- **Resultados sin coincidencias en KPIs:** Si los filtros no arrojan negocios, las tarjetas muestran `0` en conteos y montos (sin `null`/`NaN` ni errores visuales).
+- **Hydration en filtros avanzados:** Se corrigió el warning de HTML inválido (`button` anidado) en el selector múltiple del panel de filtros avanzados.
+
+## [1.26.0] - 2026-07-31
+
+### Agregado
+
+- **Marcador de "Novedad" para negocios en VENTA_EFECTUADA:** Los gestores de negocios ahora pueden marcar con "Con Novedad" los negocios que están bloqueados esperando información o correcciones (datos faltantes, contrato pendiente, etc.). El flag se resuelve automáticamente cuando el negocio pasa a estado EMITIDO, manteniendo un historial de auditoría completo.
+
+- **Columna de Novedad en tabla de negocios:** La tabla principal de negocios incluye una nueva columna "Novedad" inmediatamente después de "Estado", mostrando el estado del marcador (vacío cuando no hay novedad, "Pendiente" en naranja, "Resuelta" en verde).
+
+- **Acciones de Novedad en fila de negocios:** El menú desplegable de acciones permite "Marcar Con Novedad" (visible solo en VENTA_EFECTUADA sin novedad pendiente) y "Desmarcar Novedad" (visible solo si hay novedad pendiente), disponible para todos los roles autenticados sin restricción de permisos.
+
+- **Auto-resolución de Novedad:** Cuando un negocio con novedad pendiente transiciona a EMITIDO (por cualquier motivo), el sistema automáticamente resuelve el flag y registra la resolución en el audit log.
+
+- **Persistencia de novedad en cancelación:** Si un negocio con novedad pendiente es cancelado, el flag se mantiene para auditoría y referencia.
+
+- **Display en vista de detalle:** La vista de detalle del negocio (modal y página de dashboard) muestra el estado de novedad con la misma semántica de colores que la tabla.
+
+- **Auditoría completa:** Nuevas acciones de audit log: `BUSINESS_NOVEDAD_MARKED`, `BUSINESS_NOVEDAD_UNMARKED`, `BUSINESS_NOVEDAD_RESOLVED` con registro de usuario, IP, user agent y detalles.
+
+- **Excel export:** La columna de Novedad se incluye automáticamente en las exportaciones de negocios con los mismos valores (vacío/"Pendiente"/"Resuelta").
+
+### Técnico
+
+- **Campos de datos:** Tres nuevos campos nullable en `Business`: `novedadStatus` (PENDIENTE | RESUELTA), `novedadMarkedAt`, `novedadResolvedAt`.
+
+- **API endpoint:** Nuevo `PATCH /api/negocios/[id]/mark-novedad` con soporte dual para acciones MARK/UNMARK, validación de precondiciones (409 Conflict), y respuestas `ApiResponse<BusinessEntity>`.
+
+- **Auto-resolución transaccional:** La resolución automática ocurre dentro de la transacción existente de `PUT /api/negocios/[id]` sin redondas adicionales.
+
+- **Hook de estado:** Nueva `useMarkNovedad` que retorna `AsyncState<BusinessEntity>` siguiendo patrones de proyecto.
+
+- **Componentes:** `BusinessNovedadBadge` con patrón STATUS_CONFIG, integrado en `BusinessRowActions`, `BusinessTableSection`, `BusinessViewModal`, y página de detalle.
+
+- **Migración Prisma:** Migración generada (pendiente aplicación a DB antes de deploy).
+
+## [1.25.0] - 2026-07-30
+
+### Agregado
+
+- **Edición de datos básicos del cliente desde el negocio:** Administrador y Asistente Operativo de Gerencia ahora pueden editar documento, correo, nombres, teléfono y origen del cliente directamente desde la edición del negocio, con validación, control de permisos por rol y registro en el log de auditoría.
+
 - **Acordeón de negocios por celda en el heatmap:** En el panel "Producción por empresa (heatmap)", cada celda asesor-empresa ahora se puede expandir con un ícono dedicado para ver el listado de negocios detrás de esa cifra, agrupados por empresa. Cada negocio muestra producto, número de contrato, valor (USD/COP), y estado, con un enlace "Ir a negocio" que abre el detalle en una pestaña nueva sin perder el contexto del análisis.
 
 - **Expansión múltiple y persistente:** Varias celdas pueden quedar expandidas al mismo tiempo. Si se aplica un filtro del dashboard mientras una celda está expandida, esta permanece abierta y solo se refresca su contenido; un recargado completo de la página sí reinicia el estado de expansión.
 
-### Mejorado
-
-- **Filtro por defecto en lista de negocios:** Todos los roles (ADMIN, Asistente Operativo de Gerencia, Analista de Soporte) ahora ven por defecto los negocios del mes actual filtrados por **fecha de creación**, en lugar de fecha de fondeo. Esto permite ver los negocios recién ingresados sin necesidad de cambiar el filtro manualmente. Si se requiere filtrar por fecha de fondeo, se puede aplicar desde el panel de filtros avanzados.
-
-- **Panel de filtros avanzados:** Al abrir el panel de filtros o al limpiar filtros, el selector de tipo de fecha se posiciona en "Creación" como punto de partida, alineado con el nuevo comportamiento por defecto.
-
 ### Corregido
-
-- **Indicador de filtros activos en negocios:** El ícono de badge en el botón "Filtros avanzados" ya no aparece al cargar la página con el filtro por defecto (mes actual por creación). El badge solo se activa cuando el usuario aplica filtros adicionales más allá del estado inicial.
 
 - **Heatmap del dashboard no cargaba datos en el primer render:** El heatmap permanecía vacío al cargar la página por primera vez y solo mostraba datos al cambiar un filtro. El problema era que la tasa TRM (necesaria para la conversión) carga de forma asíncrona y el efecto de carga de datos no se reactivaba al resolverse. Corregido.
 

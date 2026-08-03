@@ -113,4 +113,96 @@ describe('BusinessRowActions', () => {
       expect(screen.getByTestId('comment-modal')).toHaveTextContent('Comment modal for 42 - Negocio #42')
     })
   })
+
+  describe('Novedad actions', () => {
+    it('shows "Marcar Con Novedad" when status is VENTA_EFECTUADA and novedadStatus is null', () => {
+      render(
+        <BusinessRowActions
+          {...defaultProps}
+          businessStatus={BUSINESS_STATUS.VENTA_EFECTUADA}
+          novedadStatus={null}
+          onMarkNovedad={vi.fn()}
+        />
+      )
+      expect(screen.getByRole('button', { name: /marcar con novedad/i })).toBeInTheDocument()
+    })
+
+    it('hides "Marcar Con Novedad" when status is not VENTA_EFECTUADA', () => {
+      render(
+        <BusinessRowActions
+          {...defaultProps}
+          businessStatus={BUSINESS_STATUS.EMITIDO}
+          novedadStatus={null}
+          onMarkNovedad={vi.fn()}
+        />
+      )
+      expect(screen.queryByRole('button', { name: /marcar con novedad/i })).not.toBeInTheDocument()
+    })
+
+    it('hides "Marcar Con Novedad" when novedadStatus is already PENDIENTE', () => {
+      render(
+        <BusinessRowActions
+          {...defaultProps}
+          businessStatus={BUSINESS_STATUS.VENTA_EFECTUADA}
+          novedadStatus="PENDIENTE"
+          onMarkNovedad={vi.fn()}
+        />
+      )
+      expect(screen.queryByRole('button', { name: /marcar con novedad/i })).not.toBeInTheDocument()
+    })
+
+    it('shows "Desmarcar Novedad" when novedadStatus is PENDIENTE', () => {
+      render(
+        <BusinessRowActions
+          {...defaultProps}
+          novedadStatus="PENDIENTE"
+          onUnmarkNovedad={vi.fn()}
+        />
+      )
+      expect(screen.getByRole('button', { name: /desmarcar novedad/i })).toBeInTheDocument()
+    })
+
+    it('hides "Desmarcar Novedad" when novedadStatus is null or RESUELTA', () => {
+      const { rerender } = render(
+        <BusinessRowActions {...defaultProps} novedadStatus={null} onUnmarkNovedad={vi.fn()} />
+      )
+      expect(screen.queryByRole('button', { name: /desmarcar novedad/i })).not.toBeInTheDocument()
+
+      rerender(
+        <BusinessRowActions {...defaultProps} novedadStatus="RESUELTA" onUnmarkNovedad={vi.fn()} />
+      )
+      expect(screen.queryByRole('button', { name: /desmarcar novedad/i })).not.toBeInTheDocument()
+    })
+
+    it('calls onMarkNovedad with businessId when clicked', () => {
+      const onMarkNovedad = vi.fn()
+      render(
+        <BusinessRowActions
+          {...defaultProps}
+          businessStatus={BUSINESS_STATUS.VENTA_EFECTUADA}
+          novedadStatus={null}
+          onMarkNovedad={onMarkNovedad}
+        />
+      )
+      fireEvent.click(screen.getByRole('button', { name: /marcar con novedad/i }))
+      expect(onMarkNovedad).toHaveBeenCalledWith(42)
+    })
+
+    it('calls onUnmarkNovedad with businessId when clicked', () => {
+      const onUnmarkNovedad = vi.fn()
+      render(
+        <BusinessRowActions {...defaultProps} novedadStatus="PENDIENTE" onUnmarkNovedad={onUnmarkNovedad} />
+      )
+      fireEvent.click(screen.getByRole('button', { name: /desmarcar novedad/i }))
+      expect(onUnmarkNovedad).toHaveBeenCalledWith(42)
+    })
+
+    it('does not render either novedad action when no novedad callbacks or gates match', () => {
+      render(
+        <BusinessRowActions {...defaultProps} businessStatus={BUSINESS_STATUS.EMITIDO} novedadStatus={null} />
+      )
+      expect(screen.queryByRole('button', { name: /marcar con novedad/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /desmarcar novedad/i })).not.toBeInTheDocument()
+    })
+  })
 })

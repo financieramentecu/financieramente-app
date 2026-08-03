@@ -219,6 +219,31 @@ Before creating a PR:
 3. Link screenshots for UI changes
 4. Ensure architecture compliance (use `architecture-enforcer` subagent)
 
+## Release Management: Changelog & Versioning
+
+**MANDATORY RULE:** When archiving a feature/functionality via SDD, you MUST:
+
+1. **Update `CHANGELOG.md`** with the complete feature description:
+   - Add a new version header `## [X.Y.Z] - YYYY-MM-DD` at the top
+   - Include all changes under `### Agregado`, `### Mejorado`, `### Corregido`, and optionally `### Técnico` sections
+   - Write from user/product perspective for "Agregado"/"Mejorado"/"Corregido"
+   - Include technical implementation details under `### Técnico` (models, endpoints, new files, migrations)
+
+2. **Increment `package.json` version** following **Semantic Versioning**:
+   - **MAJOR** (X.0.0): Breaking changes (API incompatibilities, data schema removals)
+   - **MINOR** (1.X.0): New features, backward-compatible additions
+   - **PATCH** (1.0.X): Bug fixes, documentation, internal optimizations
+   - Example: `1.25.0` → `1.26.0` (new feature) or `1.26.0` → `1.26.1` (bug fix)
+
+3. **Timing:** Update version and changelog **when archiving the change**, NOT before (to ensure accurate date and content).
+
+4. **Format:** Keep CHANGELOG.md structured and readable per [Keep a Changelog](https://keepachangelog.com/es-ES/) standards with Spanish UI copy and English technical details.
+
+**Example (already applied for `novedad-negocio-venta-efectuada`):**
+- Version bumped: `1.25.0` → `1.26.0`
+- Changelog entry added with Agregado/Técnico sections
+- Archive happens at archive-report time
+
 ## Coding Language Rules
 
 - **All code must be written in English**: variable names, function names, class names, **file names**, directory names, comments, type names, interface names, enum keys.

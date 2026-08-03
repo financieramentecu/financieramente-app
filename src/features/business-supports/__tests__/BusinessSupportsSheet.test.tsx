@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { UserRole } from '@/features/auth/lib/roles'
 
 vi.mock('../hooks/useBusinessSupports', () => ({
   useBusinessSupports: vi.fn(),
@@ -7,6 +9,10 @@ vi.mock('../hooks/useBusinessSupports', () => ({
 
 vi.mock('../hooks/useDeleteComprobante', () => ({
   useDeleteComprobante: vi.fn(),
+}))
+
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
 }))
 
 vi.mock('@/features/shared/ui/sheet', () => ({
@@ -17,9 +23,49 @@ vi.mock('@/features/shared/ui/sheet', () => ({
   SheetTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
 }))
 
+vi.mock('@/features/shared/ui/alert-dialog', () => ({
+  AlertDialog: ({
+    children,
+    open,
+  }: {
+    children: React.ReactNode
+    open?: boolean
+  }) => (open ? <div role="alertdialog">{children}</div> : null),
+  AlertDialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }: { children: React.ReactNode }) => <h3>{children}</h3>,
+  AlertDialogDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+  AlertDialogAction: ({
+    children,
+    onClick,
+    disabled,
+  }: {
+    children: React.ReactNode
+    onClick?: (e: React.MouseEvent) => void
+    disabled?: boolean
+  }) => (
+    <button type="button" onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  ),
+  AlertDialogCancel: ({
+    children,
+    disabled,
+  }: {
+    children: React.ReactNode
+    disabled?: boolean
+  }) => (
+    <button type="button" disabled={disabled}>
+      {children}
+    </button>
+  ),
+}))
+
 import { ViewComprobantesSheet } from '../components/BusinessSupportsSheet'
 import { useBusinessSupports } from '../hooks/useBusinessSupports'
 import { useDeleteComprobante } from '../hooks/useDeleteComprobante'
+import { toast } from 'sonner'
 
 const mockUseBusinessSupports = vi.mocked(useBusinessSupports)
 const mockUseDeleteComprobante = vi.mocked(useDeleteComprobante)
@@ -146,5 +192,81 @@ describe('ViewComprobantesSheet', () => {
     // Preview img with alt matching /preview/i
     expect(screen.getByAltText(/preview/i)).toBeInTheDocument()
     expect(screen.queryByTitle(/PDF/i)).not.toBeInTheDocument()
+  })
+
+  it('shows delete control for Money Strategist (AGENTE)', () => {
+    mockUseBusinessSupports.mockReturnValue({
+      state: { status: 'success', data: [mockComprobante], error: '' },
+      refetch: vi.fn(),
+    })
+    render(
+      <ViewComprobantesSheet {...defaultProps} userRole={UserRole.AGENTE} />,
+    )
+    expect(
+      screen.getByRole('button', { name: /eliminar comprobante/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('hides delete control when role cannot delete', () => {
+    mockUseBusinessSupports.mockReturnValue({
+      state: { status: 'success', data: [mockComprobante], error: '' },
+      refetch: vi.fn(),
+    })
+    render(
+      <ViewComprobantesSheet {...defaultProps} userRole={UserRole.DEFAULT} />,
+    )
+    expect(
+      screen.queryByRole('button', { name: /eliminar comprobante/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('asks for confirmation before deleting (CA1)', async () => {
+    const user = userEvent.setup()
+    const remove = vi.fn().mockResolvedValue(undefined)
+    mockUseDeleteComprobante.mockReturnValue(makeDeleteHook({ remove }))
+    mockUseBusinessSupports.mockReturnValue({
+      state: { status: 'success', data: [mockComprobante], error: '' },
+      refetch: vi.fn(),
+    })
+
+    render(
+      <ViewComprobantesSheet {...defaultProps} userRole={UserRole.AGENTE} />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: /eliminar comprobante/i }),
+    )
+
+    expect(
+      screen.getByText('¿Está seguro de eliminar este comprobante?'),
+    ).toBeInTheDocument()
+    expect(remove).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: /^eliminar$/i }))
+    expect(remove).toHaveBeenCalledWith('cuid-1')
+  })
+
+  it('shows toast error when delete fails (CA2)', async () => {
+    const user = userEvent.setup()
+    const remove = vi.fn().mockRejectedValue(new Error('Fallo de red'))
+    mockUseDeleteComprobante.mockReturnValue(makeDeleteHook({ remove }))
+    mockUseBusinessSupports.mockReturnValue({
+      state: { status: 'success', data: [mockComprobante], error: '' },
+      refetch: vi.fn(),
+    })
+
+    render(
+      <ViewComprobantesSheet {...defaultProps} userRole={UserRole.AGENTE} />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: /eliminar comprobante/i }),
+    )
+    await user.click(screen.getByRole('button', { name: /^eliminar$/i }))
+
+    expect(toast.error).toHaveBeenCalledWith(
+      'No se pudo completar la acción',
+      expect.objectContaining({ description: 'Fallo de red' }),
+    )
   })
 })

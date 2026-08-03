@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Check, ChevronsUpDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/features/shared/ui/button"
-import { Checkbox } from "@/features/shared/ui/checkbox"
 import {
   Popover,
   PopoverContent,
@@ -113,23 +112,34 @@ export function MultiSelect({
             filtered.map((opt) => {
               const checked = value.includes(opt.value)
               return (
-                <button
+                <div
                   key={opt.value}
-                  type="button"
+                  role="option"
+                  aria-selected={checked}
+                  tabIndex={0}
                   onClick={() => toggle(opt.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      toggle(opt.value)
+                    }
+                  }}
                   className={cn(
                     "flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-accent",
                     checked && "bg-accent/50"
                   )}
                 >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggle(opt.value)}
-                    className="pointer-events-none"
-                  />
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "grid h-4 w-4 shrink-0 place-content-center rounded-sm border border-primary",
+                      checked && "bg-primary text-primary-foreground"
+                    )}
+                  >
+                    {checked ? <Check className="h-3 w-3" /> : null}
+                  </span>
                   <span>{opt.label}</span>
-                  {checked && <Check className="ml-auto h-4 w-4 text-primary" />}
-                </button>
+                </div>
               )
             })
           )}

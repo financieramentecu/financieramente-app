@@ -233,8 +233,13 @@ describe('persistComprobante', () => {
 // ─── deactivateComprobante ────────────────────────────────────────────────────
 
 describe('deactivateComprobante', () => {
+  const SUPPORT_WITH_BUSINESS = {
+    ...SUPPORT_ROW,
+    business: { idUser: 1 },
+  }
+
   it('sets status false and calls logAuditEvent', async () => {
-    mockPrisma.businessSupport.findUnique.mockResolvedValue(SUPPORT_ROW)
+    mockPrisma.businessSupport.findUnique.mockResolvedValue(SUPPORT_WITH_BUSINESS)
     mockPrisma.businessSupport.update.mockResolvedValue({
       ...SUPPORT_ROW,
       status: false,
@@ -260,5 +265,45 @@ describe('deactivateComprobante', () => {
     await expect(deactivateComprobante('missing', CTX)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
+  })
+
+  it('throws NOT_FOUND when support belongs to another business', async () => {
+    mockPrisma.businessSupport.findUnique.mockResolvedValue(SUPPORT_WITH_BUSINESS)
+
+    await expect(
+      deactivateComprobante('supp-1', CTX, { businessId: 999 }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+
+    expect(mockPrisma.businessSupport.update).not.toHaveBeenCalled()
+  })
+
+  it('throws FORBIDDEN when AGENTE scope excludes the business owner', async () => {
+    mockPrisma.businessSupport.findUnique.mockResolvedValue({
+      ...SUPPORT_ROW,
+      business: { idUser: 99 },
+    })
+
+    await expect(
+      deactivateComprobante('supp-1', CTX, {
+        visibleUserIds: [1, 2],
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+
+    expect(mockPrisma.businessSupport.update).not.toHaveBeenCalled()
+  })
+
+  it('allows AGENTE when business owner is in visible scope', async () => {
+    mockPrisma.businessSupport.findUnique.mockResolvedValue(SUPPORT_WITH_BUSINESS)
+    mockPrisma.businessSupport.update.mockResolvedValue({
+      ...SUPPORT_ROW,
+      status: false,
+    })
+    mockLogAuditEvent.mockResolvedValue(undefined)
+
+    await deactivateComprobante('supp-1', CTX, {
+      visibleUserIds: [1, 2],
+    })
+
+    expect(mockPrisma.businessSupport.update).toHaveBeenCalled()
   })
 })

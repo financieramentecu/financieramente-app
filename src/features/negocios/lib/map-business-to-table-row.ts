@@ -38,6 +38,8 @@ export function mapBusinessToTableRow(b: BusinessEntity): Business {
 		periodicityName: b.periodicity?.name ?? null,
 		dateIssued: b.dateIssued,
 		dateAnchored: b.dateAnchored,
+		novedadStatus: b.novedadStatus,
+		novedadMarkedAt: b.novedadMarkedAt,
 		date: b.createdAt,
 		value: b.value,
 		product: b.product.name,
