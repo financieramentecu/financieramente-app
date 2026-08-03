@@ -32,12 +32,12 @@ describe('useDeleteComprobante', () => {
     expect(result.current.state.status).toBe('success')
   })
 
-  it('transitions to error on failure', async () => {
+  it('transitions to error on failure and rethrows', async () => {
     mockRemove.mockRejectedValue(new Error('Server error'))
     const { result } = renderHook(() => useDeleteComprobante(42))
 
     await act(async () => {
-      await result.current.remove('cuid-1')
+      await expect(result.current.remove('cuid-1')).rejects.toThrow('Server error')
     })
 
     expect(result.current.state.status).toBe('error')
@@ -47,7 +47,9 @@ describe('useDeleteComprobante', () => {
     mockRemove.mockRejectedValue(new Error('fail'))
     const { result } = renderHook(() => useDeleteComprobante(42))
 
-    await act(async () => { await result.current.remove('x') })
+    await act(async () => {
+      await expect(result.current.remove('x')).rejects.toThrow('fail')
+    })
     expect(result.current.state.status).toBe('error')
 
     act(() => { result.current.reset() })
