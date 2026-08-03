@@ -1217,26 +1217,47 @@ El sistema MUST exponer exactamente tres métricas (Ventas Efectuadas, Emitido, 
 - AND SHALL visualizar el monto total en moneda local (COP)
 - AND SHALL visualizar el monto total en moneda extranjera (USD)
 
-### Requirement: Contrato GET /api/negocios/stats y filtro createdAt para los tres KPI
+### Requirement: Contrato GET /api/negocios/stats y paridad con filtros avanzados (COM-73)
 
-El endpoint `GET /api/negocios/stats` SHALL aceptar parámetros opcionales de consulta `dateFrom` y `dateTo` en formato fecha calendario (YYYY-MM-DD). Cuando ambos están presentes y válidos, el sistema SHALL aplicar un único filtro por `createdAt` (límite inferior y superior en UTC derivados de días inclusivos en zona horaria de Bogotá) a las tres agregaciones en paralelo: Ventas Efectuadas, Emitido y Fondeados. Cuando falta uno o ambos parámetros de rango, el sistema SHALL NOT aplicar ese filtro `createdAt` a las agregaciones (totales sin acotar por ese rango). La forma de la respuesta (tres bloques de KPI) MUST permanecer estable respecto al contrato existente del Coach.
+El endpoint `GET /api/negocios/stats` SHALL aceptar los mismos parámetros de filtro avanzado que `GET /api/negocios` (`BusinessFilterParams`: rangos de fecha de fondeo/creación/emisión, estados, Money Strategist, categoría, soportes, compañía, producto, origen, plazo, periodicidad, etc.). La semántica de cada dimensión MUST coincidir con la lista: `dateFrom`/`dateTo` filtran `dateAnchored`; `createdFrom`/`createdTo` filtran `createdAt`; `dateIssuedFrom`/`dateIssuedTo` filtran `dateIssued`. Al aplicar filtros desde la UI (botón «Aplicar»), los KPIs de «Resumen» MUST recalcularse sobre el mismo conjunto filtrado. Al limpiar filtros, los KPIs MUST volver a totales sin esas restricciones (dentro del alcance jerárquico del rol). Si no hay coincidencias, cada tarjeta MUST mostrar `0` negocios y montos `0` (nunca `null`/`NaN`). La forma de la respuesta (tres bloques: Ventas Efectuadas, Emitidos —incl. `sinSoporte`—, Fondeados) MUST permanecer estable.
 
-#### Scenario: Rango completo acota los tres KPI por createdAt
+#### Scenario: Aplicar filtros avanzados actualiza los tres KPI
 
-- GIVEN una petición `GET /api/negocios/stats` con `dateFrom` y `dateTo` válidos y pareados
-- WHEN el backend calcula las tres métricas
-- THEN cada agregación SHALL usar el mismo predicado de rango sobre `createdAt`
-- AND ninguna de las tres SHALL usar únicamente `dateAnchored` para ese filtro de fechas de consulta
+- **GIVEN** el usuario aplica uno o más filtros avanzados en la vista de negocios
+- **WHEN** el cliente solicita `GET /api/negocios/stats` con esos mismos query params
+- **THEN** cada agregación SHALL usar el mismo predicado `WHERE` que la lista (vía `buildBusinessListWhere`)
+- **AND** las tarjetas Ventas Efectuadas, Emitidos y Fondeados SHALL reflejar solo negocios que cumplan los filtros
 
-#### Scenario: Sin rango — sin filtro createdAt en stats
+#### Scenario: Limpiar filtros restablece KPIs globales
 
-- GIVEN una petición sin `dateFrom` o sin `dateTo` (o sin ambos)
-- WHEN se calculan las estadísticas
-- THEN el sistema SHALL NOT aplicar el filtro de rango `createdAt` descrito arriba a las agregaciones
+- **GIVEN** existían filtros aplicados en la URL
+- **WHEN** el usuario limpia filtros y confirma
+- **THEN** la solicitud de stats SHALL omitir esas dimensiones
+- **AND** los KPIs SHALL mostrar el consolidado sin restricciones de filtro avanzado (respetando visibilidad jerárquica)
+
+#### Scenario: Sin coincidencias — ceros seguros
+
+- **GIVEN** la combinación de filtros no arroja negocios
+- **WHEN** se calculan las estadísticas
+- **THEN** cada KPI SHALL retornar `count: 0`, `totalCop: 0`, `totalUsd: 0` (y `sinSoporte: 0` en Emitidos)
+- **AND** el sistema SHALL NOT retornar `null` ni `NaN` en esos campos
+
+#### Scenario: Rango de fondeo usa dateAnchored (no createdAt)
+
+- **GIVEN** una petición con `dateFrom` y `dateTo` válidos y pareados
+- **WHEN** el backend calcula las métricas
+- **THEN** el filtro de fechas SHALL aplicarse sobre `dateAnchored` (paridad con la lista)
+- **AND** SHALL NOT reinterpretar `dateFrom`/`dateTo` como `createdAt`
+
+#### Scenario: Rango de creación usa createdAt
+
+- **GIVEN** una petición con `createdFrom` y `createdTo` válidos y pareados
+- **WHEN** el backend calcula las métricas
+- **THEN** cada agregación SHALL usar el predicado de rango sobre `createdAt`
 
 ### Requirement: Fechas por rol en la vista Negocios (Coach vs Administrador)
 
-Para el Coach, la vista de negocios SHALL inicializar el rango de fechas de la UI al primer día del mes calendario actual hasta el día actual (Bogotá), de modo que el Coach no quede con tabla o KPI vacíos por defecto al faltar fechas. Para el Administrador, los filtros de fecha de la vista SHALL iniciar vacíos por defecto. El Coach SHALL mapear ese rango de UI a `createdFrom`/`createdTo` en la lista y a `dateFrom`/`dateTo` en la llamada a stats según el contrato de API. El Administrador SHALL usar `dateFrom`/`dateTo` en la lista para filtrar por fecha de fondeo (`dateAnchored`) cuando los establezca.
+Para el Coach, la vista de negocios SHALL inicializar el rango de fechas de la UI al primer día del mes calendario actual hasta el día actual (Bogotá), de modo que el Coach no quede con tabla o KPI vacíos por defecto al faltar fechas. Para el Administrador, los filtros de fecha de la vista SHALL iniciar vacíos por defecto. El Coach SHALL mapear ese rango de UI a `createdFrom`/`createdTo` tanto en la lista como en stats (misma semántica). El Administrador SHALL usar `dateFrom`/`dateTo` para filtrar por fecha de fondeo (`dateAnchored`) cuando los establezca. Los KPIs de «Resumen» MUST usar exactamente los mismos query params de filtro avanzado que la lista (COM-73).
 
 #### Scenario: Coach con mes actual por defecto
 
@@ -1732,7 +1753,7 @@ The Sheet MUST include multiselect controls for: Company (`companyIds[]`), Produ
 
 ### Requirement: Apply and Clear Actions
 
-Clicking "Aplicar" MUST commit all filter state to URL search params and close the Sheet. Clicking "Limpiar filtros" MUST reset all filter dimensions to defaults (date field stays "Fondeo", date range cleared, all multiselects cleared, hasSupports reset to "Todos", agentName cleared) without closing the Sheet.
+Clicking "Aplicar" MUST commit all filter state to URL search params and close the Sheet. Clicking "Limpiar filtros" MUST reset all filter dimensions to defaults (date field "Creación", date range = current month via `createdFrom`/`createdTo`, all multiselects cleared, hasSupports reset to "Todos", agentName cleared).
 
 #### Scenario: Apply commits and closes
 
@@ -1741,14 +1762,15 @@ Clicking "Aplicar" MUST commit all filter state to URL search params and close t
 - THEN URL params MUST be updated with the new filter state
 - AND the Sheet MUST close
 
-#### Scenario: Clear resets all dimensions
+#### Scenario: Clear resets to current-month creation default
 
 - GIVEN filters are active in the Sheet
 - WHEN the user clicks "Limpiar filtros"
 - THEN all multiselects MUST show no selections
-- AND date range MUST be empty with date field at "Fondeo"
+- AND date field MUST be "Creación" with range = first day of current month through today (`createdFrom`/`createdTo`)
+- AND fondeo/emisión date params MUST be cleared
 - AND hasSupports MUST be "Todos"
-- AND the Sheet MUST remain open
+- AND the list MUST NOT show the full history (empty date filter)
 
 ---
 
