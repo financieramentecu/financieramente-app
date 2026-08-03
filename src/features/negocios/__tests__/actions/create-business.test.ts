@@ -51,6 +51,9 @@ function mockCreatedBusiness(overrides: Partial<Business> = {}): Business {
 		dateIssued: null,
 		dateAnchored: null,
 		numAportes: null,
+		novedadStatus: null,
+		novedadMarkedAt: null,
+		novedadResolvedAt: null,
 		isActive: true,
 		...overrides,
 	}

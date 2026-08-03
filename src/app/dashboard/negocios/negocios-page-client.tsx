@@ -586,6 +586,30 @@ export function NegociosPageClient({
 		refetchStats(true)
 	}, [refetch, refetchStats])
 
+	const handleMarkNovedad = useCallback(async (business: Business) => {
+		const response = await businessService.markNovedad(Number(business.id), 'MARK')
+		if ('error' in response && response.error) {
+			toast.error('No se pudo marcar la novedad', {
+				description: response.error,
+			})
+			return
+		}
+		toast.success('Negocio marcado con novedad')
+		refetch(true)
+	}, [refetch])
+
+	const handleUnmarkNovedad = useCallback(async (business: Business) => {
+		const response = await businessService.markNovedad(Number(business.id), 'UNMARK')
+		if ('error' in response && response.error) {
+			toast.error('No se pudo desmarcar la novedad', {
+				description: response.error,
+			})
+			return
+		}
+		toast.success('Novedad desmarcada')
+		refetch(true)
+	}, [refetch])
+
 	const businessDataForTable: Business[] = useMemo(
 		() => businesses.map(mapBusinessToTableRow),
 		[businesses]
@@ -626,6 +650,8 @@ export function NegociosPageClient({
 				onDeleteSuccess={() => { refetch(true); refetchStats(true) }}
 				onSaveDateIssued={handleSaveDateIssued}
 				onSaveDateAnchored={handleSaveDateAnchored}
+				onMarkNovedad={handleMarkNovedad}
+				onUnmarkNovedad={handleUnmarkNovedad}
 			/>
 
 			{/* Modal de Cancelación */}

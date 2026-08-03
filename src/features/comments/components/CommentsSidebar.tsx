@@ -50,8 +50,13 @@ export function CommentsSidebar({
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)} className="gap-2">
-        <MessageSquare className="h-4 w-4" />
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="gap-1.5 border-violet-200 text-violet-700 hover:bg-violet-50 hover:text-violet-800"
+      >
+        <MessageSquare className="h-3.5 w-3.5" />
         Comentarios
       </Button>
 

@@ -42,6 +42,9 @@ export function prismaBusinessToEntity(
 		hasPendingPaymentFunding: prisma.payments.some(p => p.status === 'FONDEADO' || p.status === 'EN_CARTERA'),
 		supportCount: prisma._count.supports,
 		observations: prisma.observations ?? null,
+		novedadStatus: prisma.novedadStatus as BusinessEntity['novedadStatus'],
+		novedadMarkedAt: prisma.novedadMarkedAt?.toISOString() ?? null,
+		novedadResolvedAt: prisma.novedadResolvedAt?.toISOString() ?? null,
 
 		client: {
 			id: prisma.client.idClient,

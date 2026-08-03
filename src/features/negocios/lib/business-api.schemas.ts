@@ -178,6 +178,15 @@ export const cancelBusinessSchema = z.object({
 export type CancelBusinessSchema = z.infer<typeof cancelBusinessSchema>
 
 /**
+ * Schema para marcar/desmarcar novedad de negocio
+ */
+export const markNovedadSchema = z.object({
+	action: z.enum(['MARK', 'UNMARK']),
+})
+
+export type MarkNovedadSchema = z.infer<typeof markNovedadSchema>
+
+/**
  * Schema para validación de contrato
  */
 export const validateContractSchema = z.object({

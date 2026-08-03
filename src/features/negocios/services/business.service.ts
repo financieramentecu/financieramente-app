@@ -196,6 +196,31 @@ export const businessService = {
 		}
 	},
 
+	/**
+	 * Marca o desmarca la novedad de un negocio.
+	 *
+	 * @param id - ID del negocio
+	 * @param action - 'MARK' para marcar, 'UNMARK' para desmarcar
+	 * @returns Negocio actualizado
+	 */
+	async markNovedad(
+		id: number,
+		action: 'MARK' | 'UNMARK'
+	): Promise<ApiResponse<BusinessEntity>> {
+		try {
+			const response = await fetch(`${BASE_URL}/${id}/mark-novedad`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action }),
+			})
+
+			return await response.json()
+		} catch (error) {
+			console.error('Error al actualizar la novedad del negocio:', error)
+			return { data: null, error: 'Error al actualizar la novedad del negocio' }
+		}
+	},
+
 	async getAnnualPayments(
 		id: number
 	): Promise<ApiResponse<AnnualPaymentsResponse>> {
