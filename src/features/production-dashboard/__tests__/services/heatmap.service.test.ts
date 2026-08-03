@@ -248,13 +248,36 @@ describe('resolveViewerScope', () => {
     expect(result).toEqual([1, 2, 3])
   })
 
-  it('(b) GENERAL_LEVEL code returns all active users', async () => {
+  it('(b) non-bypass role with GENERAL_LEVEL code still gets subtree only — no full-scope bypass', async () => {
+    // GENERAL_LEVEL is a commission-calculation concept, never a visibility bypass.
+    // Only HIERARCHY_BYPASS_ROLES may see all active users.
     mockUserFindMany.mockResolvedValue([
-      { idUser: 1 }, { idUser: 2 },
+      { idUser: 1, idUserLeader: null }, { idUser: 2, idUserLeader: 1 },
     ] as never)
 
     const result = await resolveViewerScope(1, 'DEFAULT', 'GENERAL_LEVEL')
-    expect(result).toEqual([1, 2])
+    // Subtree call: prisma.user.findMany is invoked with the subtree query shape
+    // (select idUser + idUserLeader), not the full-scope shape (select idUser only)
+    expect(mockUserFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ idUserLeader: true }),
+      })
+    )
+    expect(result).toContain(1)
+  })
+
+  it('(b2) non-bypass role with any other level code also gets subtree only', async () => {
+    mockUserFindMany.mockResolvedValue([
+      { idUser: 5, idUserLeader: null },
+    ] as never)
+
+    const result = await resolveViewerScope(5, 'DEFAULT', 'MS_JUNIOR')
+    expect(mockUserFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ idUserLeader: true }),
+      })
+    )
+    expect(result).toContain(5)
   })
 
   it('(c) non-bypass role returns subtree via user query', async () => {

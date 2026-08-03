@@ -31,6 +31,22 @@ const miaViewer: SessionUser = {
 	idLevel: 1,
 	idCategory: null,
 	idUserLeader: null,
+	role: { code: 'ADMIN' },
+	level: { code: 'GENERAL_LEVEL' },
+}
+
+// Non-root viewer (MS Senior position) whose level code is GENERAL_LEVEL but
+// whose role is NOT in HIERARCHY_BYPASS_ROLES — must get subtree-only scope,
+// distinguishable from full-tree because idUser 3 is not the tree root.
+const generalLevelNonBypassViewer: SessionUser = {
+	idUser: 3,
+	name: 'MS',
+	lastName: 'Senior',
+	email: 'ms-general@test.com',
+	active: true,
+	idLevel: 3,
+	idCategory: null,
+	idUserLeader: 2,
 	role: { code: 'DEFAULT' },
 	level: { code: 'GENERAL_LEVEL' },
 }
@@ -110,7 +126,7 @@ function collectUserIds(nodes: Awaited<ReturnType<typeof buildHierarchyTree>>): 
 // ---------------------------------------------------------------------------
 
 describe('buildHierarchyTree', () => {
-	it('(a) MIA viewer — level.code GENERAL_LEVEL — receives all root nodes (users with no leader)', async () => {
+	it('(a) MIA viewer with bypass role (ADMIN) — receives all root nodes (users with no leader)', async () => {
 		const prisma = makeMockPrisma(ACTIVE_USERS)
 		const result = await buildHierarchyTree(miaViewer, prisma)
 
@@ -124,6 +140,20 @@ describe('buildHierarchyTree', () => {
 		expect(ids).toContain(3)
 		expect(ids).toContain(4)
 		expect(ids).toContain(5)
+	})
+
+	it('(a2) non-bypass role with GENERAL_LEVEL code does NOT get a full tree — subtree only', async () => {
+		// GENERAL_LEVEL is a commission-calculation concept, never a visibility bypass.
+		const prisma = makeMockPrisma(ACTIVE_USERS)
+		const result = await buildHierarchyTree(generalLevelNonBypassViewer, prisma)
+
+		// Non-bypass viewer roots at themselves — result should be a single subtree
+		// rooted at their own idUser (3), never at the actual tree root (1).
+		expect(result).toHaveLength(1)
+		expect(result[0].userId).toBe(3)
+		const ids = collectUserIds(result)
+		expect(ids).not.toContain(1)
+		expect(ids).not.toContain(2)
 	})
 
 	it('(b) Team Leader viewer — receives only own subtree (self + descendants)', async () => {

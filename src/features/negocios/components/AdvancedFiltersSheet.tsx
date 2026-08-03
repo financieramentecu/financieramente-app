@@ -69,7 +69,7 @@ function getDefaultValues(searchParams: URLSearchParams): FilterFormValues {
 	const dateIssuedFrom = searchParams.get('dateIssuedFrom')
 	const dateIssuedTo = searchParams.get('dateIssuedTo')
 
-	let dateField: DateFieldValue = 'fondeo'
+	let dateField: DateFieldValue = 'creacion'
 	let dateRange: DateRange | undefined = undefined
 
 	if (dateIssuedFrom && dateIssuedTo) {
@@ -265,7 +265,7 @@ export function AdvancedFiltersSheet() {
 
 	const onClear = useCallback(() => {
 		reset({
-			dateField: 'fondeo',
+			dateField: 'creacion',
 			dateRange: undefined,
 			statuses: [],
 			hasSupports: 'all',

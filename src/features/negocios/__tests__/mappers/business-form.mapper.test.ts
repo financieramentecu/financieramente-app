@@ -19,11 +19,13 @@ describe('businessEntityToFormData', () => {
 			expect(result.value).toBe(business.value)
 		})
 
-		it('should split fullName into name and lastNames', () => {
+		it('should map name and lastName from client entity', () => {
 			const business = createMockBusiness({
 				client: {
 					id: 1,
 					fullName: 'María García López',
+					name: 'María',
+					lastName: 'García López',
 					identityNumber: '1234567890',
 					email: 'maria@test.com',
 					phone: '3001234567',
@@ -64,6 +66,8 @@ describe('businessEntityToFormData', () => {
 				client: {
 					id: 1,
 					fullName: 'Test User',
+					name: 'Test',
+					lastName: 'User',
 					identityNumber: '123',
 					email: null,
 					phone: null,
@@ -104,6 +108,8 @@ describe('businessEntityToFormData', () => {
 				client: {
 					id: 1,
 					fullName: 'María',
+					name: 'María',
+					lastName: null,
 					identityNumber: '123',
 					email: null,
 					phone: null,

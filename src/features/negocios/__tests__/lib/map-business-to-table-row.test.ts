@@ -24,6 +24,8 @@ function createBusinessEntity(status: string): BusinessEntity {
 		client: {
 			id: 1,
 			fullName: 'Jane Doe',
+			name: 'Jane',
+			lastName: 'Doe',
 			identityNumber: '123',
 			email: 'jane@example.com',
 			phone: null,

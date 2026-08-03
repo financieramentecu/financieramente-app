@@ -281,7 +281,52 @@ describe('useHeatmapTable', () => {
     expect(result.current.error).toBeTruthy()
   })
 
-  it('(j) companyColumns maxUsd equals highest individual row usdTotal for that company', async () => {
+  it('(j) fetches on initial load once trmRate transitions from null to a number', async () => {
+    setupMocks([1])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [] }),
+    } as Response)
+    global.fetch = fetchMock
+
+    // Start with null — no fetch expected
+    const { result, rerender } = renderHook(({ trm }) => useHeatmapTable(trm), {
+      initialProps: { trm: null as number | null },
+    })
+
+    expect(result.current.status).toBe('idle')
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    // trmRate resolves — should trigger the initial fetch
+    rerender({ trm: 4600 })
+
+    await waitFor(() => expect(result.current.status).toBe('success'))
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('(k) does NOT re-fetch when only the trmRate value changes (stays non-null)', async () => {
+    setupMocks([1])
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [] }),
+    } as Response)
+    global.fetch = fetchMock
+
+    const { result, rerender } = renderHook(({ trm }) => useHeatmapTable(trm), {
+      initialProps: { trm: 4600 as number | null },
+    })
+
+    await waitFor(() => expect(result.current.status).toBe('success'))
+    const callsAfterFirst = fetchMock.mock.calls.length
+
+    // TRM changes value but remains non-null — no new fetch
+    rerender({ trm: 4700 })
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(fetchMock.mock.calls.length).toBe(callsAfterFirst)
+  })
+
+  it('(l) companyColumns maxUsd equals highest individual row usdTotal for that company', async () => {
     setupMocks([1, 2])
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
