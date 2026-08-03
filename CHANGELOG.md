@@ -4,6 +4,28 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.26.2] - 2026-08-03
+
+### Agregado
+
+- **Money Strategist puede eliminar sus comprobantes (COM-75):** El rol Money Strategist (Agente) ahora puede eliminar comprobantes de los negocios que gestiona directamente, sin depender de un Analista de Soporte u otro rol operativo.
+- **Confirmación antes de eliminar:** Al eliminar un comprobante se muestra un diálogo de confirmación explicando que la acción no se puede deshacer, evitando borrados accidentales.
+
+### Mejorado
+
+- **Feedback de error al eliminar:** Si la eliminación falla, se muestra una notificación (toast) con un mensaje claro en lugar de fallar en silencio.
+
+### Corregido
+
+- **Alcance de permisos en la API:** La eliminación de comprobantes valida en el backend que el comprobante pertenezca al negocio indicado y, para Money Strategist, que el negocio esté dentro de su jerarquía visible; de lo contrario responde 403.
+
+### Técnico
+
+- `canDeleteBusinessComprobante()` en `src/features/auth/lib/roles.ts` centraliza la validación de rol (ADMIN, ASISTENTE_GERENCIA_OPERATIVA, ANALISTA_SOPORTE, AGENTE), usada tanto en la UI como en la API.
+- `deactivateComprobante()` (`business-supports.service.ts`) acepta un parámetro `auth` opcional (`businessId`, `visibleUserIds`) para forzar pertenencia al negocio y, cuando aplica, la jerarquía visible del usuario vía `resolveVisibleUserIds`.
+- Nuevo código de error `FORBIDDEN` en `ComprobanteErrorCode`, mapeado a HTTP 403 en la ruta `DELETE /api/negocios/[id]/comprobantes/[supportId]`.
+- `ViewComprobantesSheet` reemplaza el borrado directo por un flujo de confirmación (`AlertDialog`) con estado `pendingDeleteId`/`isConfirming` y notificación de error vía `sonner`.
+
 ## [1.26.1] - 2026-08-03
 
 ### Agregado
