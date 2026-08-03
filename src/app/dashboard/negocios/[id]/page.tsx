@@ -5,6 +5,8 @@ import { getBusinessById } from '@/features/negocios/services/business-get-by-id
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
+import { BusinessNovedadBadge } from '@/features/negocios/components/ui/BusinessNovedadBadge'
+import { NovedadActionButton } from '@/features/negocios/components/ui/NovedadActionButton'
 import { UserAvatar } from '@/features/negocios/components/ui/UserAvatar'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { Calendar, Phone, Mail, Building2, FileText, Clock, Layers, Edit } from 'lucide-react'
@@ -72,39 +74,60 @@ export default async function DetalleNegocioPage({ params, searchParams }: PageP
 	return (
 		<DashboardLayout currentPage={`Negocio #${business.id}`}>
 			<div className="bg-background rounded-xl p-6 shadow-sm border max-w-4xl mx-auto w-full space-y-8 mt-4">
-				{/* Header con estado y valor */}
-				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b">
-					<div className="flex flex-col gap-2">
-						<BusinessStatusBadge status={business.status} />
-						<span className="text-sm text-muted-foreground">
-							Registrado: {formatDateBogota(business.createdAt)}
-						</span>
-					</div>
-					<div className="flex flex-col sm:items-end gap-2">
-						<span className="text-3xl font-bold text-primary">
+				{/* Header con estado, valor y acciones */}
+				<div className="flex flex-col gap-4 pb-6 border-b">
+					<div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+						<div className="flex flex-col gap-2 min-w-0">
+							<div className="flex flex-wrap items-center gap-2">
+								<BusinessStatusBadge status={business.status} />
+								<BusinessNovedadBadge novedadStatus={business.novedadStatus} variant="detailed" />
+							</div>
+							<span className="text-sm text-muted-foreground">
+								Registrado: {formatDateBogota(business.createdAt)}
+							</span>
+							{business.novedadStatus && (
+								<span className="text-sm text-muted-foreground">
+									Fecha de Novedad:{' '}
+									<span className="font-medium text-foreground">
+										{formatDateBogota(business.novedadMarkedAt)}
+									</span>
+								</span>
+							)}
+						</div>
+						<span className="text-3xl font-bold text-primary shrink-0">
 							{formatCurrency(business.value, business.currency.name)}
 						</span>
-						<div className="flex items-center gap-2">
-							<Link
-								href={`/dashboard/negocios/editar/${business.id}`}
-								className={buttonVariants({ variant: 'outline' })}
-							>
-								<Edit className="h-4 w-4 mr-2" />
-								Editar
-							</Link>
-							<ViewSupportsButton
-								businessId={business.id}
-								userRole={currentUser.role?.name as UserRole}
-							/>
-							<UploadSupportButton businessId={business.id} />
-							<CommentsSidebar
-								businessId={business.id}
-								authorName={currentUser.name}
-								authorEmail={currentUser.email}
-								contract={business.contract || `Negocio #${business.id}`}
-								defaultOpen={openComments === 'true'}
-							/>
-						</div>
+					</div>
+
+					<div className="flex flex-wrap items-center justify-end gap-2">
+						<NovedadActionButton
+							businessId={business.id}
+							businessStatus={business.status}
+							novedadStatus={business.novedadStatus}
+						/>
+						<UploadSupportButton businessId={business.id} />
+						<Link
+							href={`/dashboard/negocios/editar/${business.id}`}
+							className={buttonVariants({
+								variant: 'outline',
+								size: 'sm',
+								className: 'gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800',
+							})}
+						>
+							<Edit className="h-3.5 w-3.5" />
+							Editar
+						</Link>
+						<ViewSupportsButton
+							businessId={business.id}
+							userRole={currentUser.role?.name as UserRole}
+						/>
+						<CommentsSidebar
+							businessId={business.id}
+							authorName={currentUser.name}
+							authorEmail={currentUser.email}
+							contract={business.contract || `Negocio #${business.id}`}
+							defaultOpen={openComments === 'true'}
+						/>
 					</div>
 				</div>
 
