@@ -1,8 +1,7 @@
 /**
  * Integration tests for GET /api/negocios/stats — hierarchical visibility
  *
- * RED phase: written before route modifications.
- * These tests verify that the stats route applies the same scope as the list.
+ * Verifies that stats apply the same scope as the list (via groupBy WHERE).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -23,7 +22,6 @@ vi.mock('@/lib/prisma', () => ({
 		currency: {
 			findMany: vi.fn(),
 		},
-		$queryRaw: vi.fn(),
 	},
 }))
 vi.mock('@/features/negocios/services/user.service', () => ({
@@ -39,7 +37,7 @@ import type { NextRequest } from 'next/server'
 
 const mockAuth = vi.mocked(auth)
 const mockGetCurrentUser = vi.mocked(getCurrentUserByEmail)
-const mockQueryRaw = vi.mocked(prisma.$queryRaw)
+const mockGroupBy = vi.mocked(prisma.business.groupBy)
 const mockUserFindMany = vi.mocked(prisma.user.findMany)
 const mockCurrencyFindMany = vi.mocked(prisma.currency.findMany)
 
@@ -64,7 +62,7 @@ function makeUser(idUser: number, roleCode: string) {
 describe('GET /api/negocios/stats — hierarchical visibility', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		mockQueryRaw.mockResolvedValue([])
+		mockGroupBy.mockResolvedValue([])
 		mockCurrencyFindMany.mockResolvedValue([])
 		vi.mocked(prisma.business.count).mockResolvedValue(0)
 	})
@@ -77,16 +75,11 @@ describe('GET /api/negocios/stats — hierarchical visibility', () => {
 			const res = await GET(makeRequest())
 			expect(res.status).toBe(200)
 
-			// No BFS for admin
 			expect(mockUserFindMany).not.toHaveBeenCalled()
+			expect(mockGroupBy).toHaveBeenCalled()
 
-			// queryRaw where must NOT have id_user restriction
-			const calls = mockQueryRaw.mock.calls
-			expect(calls.length).toBeGreaterThan(0)
-			for (const call of calls) {
-				const callStr = JSON.stringify(call)
-				expect(callStr).not.toContain('id_user IN')
-			}
+			const whereStr = JSON.stringify(mockGroupBy.mock.calls[0]?.[0]?.where)
+			expect(whereStr).not.toContain('"idUser"')
 		})
 	})
 
@@ -96,7 +89,9 @@ describe('GET /api/negocios/stats — hierarchical visibility', () => {
 			const subordinateId = 20
 
 			mockAuth.mockResolvedValue(makeSession() as never)
-			mockGetCurrentUser.mockResolvedValue(makeUser(leaderId, UserRole.AGENTE) as never)
+			mockGetCurrentUser.mockResolvedValue(
+				makeUser(leaderId, UserRole.AGENTE) as never
+			)
 
 			mockUserFindMany.mockResolvedValue([
 				{ idUser: leaderId, idUserLeader: null },
@@ -107,22 +102,20 @@ describe('GET /api/negocios/stats — hierarchical visibility', () => {
 			expect(res.status).toBe(200)
 
 			expect(mockUserFindMany).toHaveBeenCalledTimes(1)
+			expect(mockGroupBy).toHaveBeenCalled()
 
-			// All queryRaw calls must use IN predicate with user ids
-			for (const call of mockQueryRaw.mock.calls) {
-				const callStr = JSON.stringify(call)
-				expect(callStr).toContain('id_user IN')
-				
-				// Ensure the actual values are in the parameter list (call bounds or values)
-				expect(callStr).toContain(`${leaderId}`)
-				expect(callStr).toContain(`${subordinateId}`)
-			}
+			const whereStr = JSON.stringify(mockGroupBy.mock.calls[0]?.[0]?.where)
+			expect(whereStr).toContain('"idUser"')
+			expect(whereStr).toContain(`${leaderId}`)
+			expect(whereStr).toContain(`${subordinateId}`)
 		})
 
 		it('AGENTE with no subordinates scopes stats to own idUser only', async () => {
 			const agentId = 5
 			mockAuth.mockResolvedValue(makeSession() as never)
-			mockGetCurrentUser.mockResolvedValue(makeUser(agentId, UserRole.AGENTE) as never)
+			mockGetCurrentUser.mockResolvedValue(
+				makeUser(agentId, UserRole.AGENTE) as never
+			)
 
 			mockUserFindMany.mockResolvedValue([
 				{ idUser: agentId, idUserLeader: null },
@@ -131,11 +124,9 @@ describe('GET /api/negocios/stats — hierarchical visibility', () => {
 			const res = await GET(makeRequest())
 			expect(res.status).toBe(200)
 
-			for (const call of mockQueryRaw.mock.calls) {
-				const callStr = JSON.stringify(call)
-				expect(callStr).toContain('id_user IN')
-				expect(callStr).toContain(`${agentId}`)
-			}
+			const whereStr = JSON.stringify(mockGroupBy.mock.calls[0]?.[0]?.where)
+			expect(whereStr).toContain('"idUser"')
+			expect(whereStr).toContain(`${agentId}`)
 		})
 	})
 })
