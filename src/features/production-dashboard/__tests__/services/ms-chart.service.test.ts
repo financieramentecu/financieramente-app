@@ -149,4 +149,35 @@ describe('buildProductionWhereClause', () => {
     const where = buildProductionWhereClause(makeParams([1], filters)) as Record<string, unknown>
     expect(where.user).toEqual({ idCategory: { in: [3, 4] } })
   })
+
+  describe('hasSupports', () => {
+    it('applies supports.some when hasSupports=true (Con)', () => {
+      const filters: DashboardAppliedFilters = { ...defaultFilters, hasSupports: true }
+      const where = buildProductionWhereClause(makeParams([1], filters)) as Record<string, unknown>
+      expect(where.supports).toEqual({ some: { status: true } })
+    })
+
+    it('applies supports.none when hasSupports=false (Sin)', () => {
+      const filters: DashboardAppliedFilters = { ...defaultFilters, hasSupports: false }
+      const where = buildProductionWhereClause(makeParams([1], filters)) as Record<string, unknown>
+      expect(where.supports).toEqual({ none: { status: true } })
+    })
+
+    it('omits supports key when hasSupports is undefined (Todos)', () => {
+      const where = buildProductionWhereClause(makeParams([1], defaultFilters)) as Record<string, unknown>
+      expect(where.supports).toBeUndefined()
+    })
+
+    it('ANDs hasSupports with statuses and userIds', () => {
+      const filters: DashboardAppliedFilters = {
+        ...defaultFilters,
+        hasSupports: true,
+        statuses: ['EMITIDO', 'FONDEADO'],
+      }
+      const where = buildProductionWhereClause(makeParams([10, 20], filters)) as Record<string, unknown>
+      expect(where.idUser).toEqual({ in: [10, 20] })
+      expect(where.status).toEqual({ in: ['EMITIDO', 'FONDEADO'] })
+      expect(where.supports).toEqual({ some: { status: true } })
+    })
+  })
 })

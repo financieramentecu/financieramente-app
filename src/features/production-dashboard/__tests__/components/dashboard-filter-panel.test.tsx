@@ -54,8 +54,8 @@ describe('DashboardFilterPanel', () => {
     })
   })
 
-  // Scenario 9.1: All 8 filter cells visible
-  it('renders all filter cells: date range, status, category, company, product, origin, plazo, periodicidad', () => {
+  // Scenario 9.1: All filter cells visible (including Soporte)
+  it('renders all filter cells: date range, status, category, company, product, origin, plazo, periodicidad, soporte', () => {
     renderPanel()
     expect(screen.getByText('Desde')).toBeInTheDocument()
     expect(screen.getByText('Hasta')).toBeInTheDocument()
@@ -66,6 +66,7 @@ describe('DashboardFilterPanel', () => {
     expect(screen.getByText('Origen')).toBeInTheDocument()
     expect(screen.getByText('Plazo (Años)')).toBeInTheDocument()
     expect(screen.getByText('Periodicidad')).toBeInTheDocument()
+    expect(screen.getByText('Soporte')).toBeInTheDocument()
   })
 
   // Scenario 9.1: Aplicar disabled on initial render (draft == applied)

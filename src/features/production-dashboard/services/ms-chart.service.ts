@@ -26,6 +26,7 @@ export function buildProductionWhereClause(params: MsChartQueryParams) {
     originIds,
     plazos,
     periodicidades,
+    hasSupports,
   } = appliedFilters
 
   let createdAtFilter: { gte: Date; lte: Date } | undefined
@@ -65,6 +66,12 @@ export function buildProductionWhereClause(params: MsChartQueryParams) {
     ...(periodicidades.length > 0 ? {
       buyPeriodicity: { name: { in: periodicidades } },
     } : {}),
+    // Soft-delete: only status:true supports count (mirrors negocios list)
+    ...(hasSupports === true
+      ? { supports: { some: { status: true } } }
+      : hasSupports === false
+        ? { supports: { none: { status: true } } }
+        : {}),
   }
 }
 

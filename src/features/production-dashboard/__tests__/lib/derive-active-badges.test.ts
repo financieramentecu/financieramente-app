@@ -72,4 +72,23 @@ describe('getActiveBadges', () => {
     const keys = badges.map((b) => b.key)
     expect(new Set(keys).size).toBe(keys.length)
   })
+
+  it('emits Soporte: Con when hasSupports is true', () => {
+    const applied = defaultApplied()
+    applied.hasSupports = true
+    const badge = getActiveBadges(applied).find((b) => b.field === 'hasSupports')
+    expect(badge?.label).toBe('Soporte: Con')
+  })
+
+  it('emits Soporte: Sin when hasSupports is false', () => {
+    const applied = defaultApplied()
+    applied.hasSupports = false
+    const badge = getActiveBadges(applied).find((b) => b.field === 'hasSupports')
+    expect(badge?.label).toBe('Soporte: Sin')
+  })
+
+  it('does not emit a Soporte badge when hasSupports is undefined (Todos)', () => {
+    const badges = getActiveBadges(defaultApplied())
+    expect(badges.some((b) => b.field === 'hasSupports')).toBe(false)
+  })
 })
