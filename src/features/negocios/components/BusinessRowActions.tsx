@@ -65,8 +65,7 @@ export function BusinessRowActions({
   onMarkNovedad,
   onUnmarkNovedad,
 }: BusinessRowActionsProps) {
-  const canUpload =
-    UPLOAD_ALLOWED_STATUSES.includes(businessStatus) && contract !== null
+  const canUpload = isUploadAllowedStatus(businessStatus)
   const canMarkNovedad =
     businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA &&
     novedadStatus !== BUSINESS_NOVEDAD_STATUS.PENDIENTE
