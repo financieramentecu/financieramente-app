@@ -11,6 +11,7 @@ import type {
 	Product,
 	ClientOrigin,
 } from '@prisma/client'
+import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { UserWithRole } from '../types/business.types'
 import { useGetAllData } from '../hooks/use-get-all-data'
 
@@ -21,10 +22,16 @@ interface Props {
 	currencies: Currency[]
 	clientOrigins: ClientOrigin[]
 	currentUser: UserWithRole | null
+	/** Prefill from a lead conversion (leads-crm-sync feature) */
+	defaultValues?: Partial<BusinessFormData>
+	/** Present when opened from a lead conversion; forwarded to createBusiness */
+	leadId?: number
 }
 
 export default function BusinessWrapper({
 	currentUser,
+	defaultValues,
+	leadId,
 	...props
 }: Props) {
 	const router = useRouter()
@@ -67,6 +74,8 @@ export default function BusinessWrapper({
 				periodicitiesOptions={periodicitiesOptions}
 				currenciesOptions={currenciesOptions}
 				clientOriginsOptions={clientOriginsOptions}
+				defaultValues={defaultValues}
+				leadId={leadId}
 			/>
 		</div>
 	)

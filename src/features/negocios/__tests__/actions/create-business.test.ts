@@ -7,6 +7,7 @@ import {
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createBusiness } from '@/features/negocios/actions/create-business'
 import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
+import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
 import { prisma } from '@/lib/prisma'
 
 vi.mock('@/lib/prisma', () => ({
@@ -20,6 +21,10 @@ vi.mock('@/lib/prisma', () => ({
 
 vi.mock('@/features/negocios/actions/find-product-percentage-commission', () => ({
 	findProductPercentageCommission: vi.fn(),
+}))
+
+vi.mock('@/features/leads/services/lead-conversion.service', () => ({
+	linkLeadToBusinessTx: vi.fn(),
 }))
 
 const basePayload = {
@@ -306,6 +311,82 @@ describe('createBusiness', () => {
 			data: expect.objectContaining({
 				idProductPercentageCommission: 123,
 			}),
+		})
+	})
+
+	describe('optional idLead (leads-crm-sync conversion)', () => {
+		it('REGRESSION: createBusiness() without idLead behaves exactly as before — never calls linkLeadToBusinessTx', async () => {
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				name: 'Anual',
+			} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+			const created = mockCreatedBusiness({ idBusiness: 10, status: 'VENTA_EFECTUADA' })
+			vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+				return callback({
+					business: { create: vi.fn().mockResolvedValue(created) },
+					payment: { createMany: vi.fn() },
+				} as never)
+			})
+
+			const result = await createBusiness({ ...basePayload, idBuyPeriodicity: 1, term: 3 })
+
+			expect(result.data?.idBusiness).toBe(10)
+			expect(linkLeadToBusinessTx).not.toHaveBeenCalled()
+		})
+
+		it('sets Lead.idBusiness in-transaction when idLead is provided', async () => {
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				name: 'Anual',
+			} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+			const created = mockCreatedBusiness({ idBusiness: 77, status: 'VENTA_EFECTUADA' })
+			const businessCreate = vi.fn().mockResolvedValue(created)
+			let capturedTx: unknown
+			vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+				capturedTx = {
+					business: { create: businessCreate },
+					payment: { createMany: vi.fn() },
+				}
+				return callback(capturedTx as never)
+			})
+			vi.mocked(linkLeadToBusinessTx).mockResolvedValue(undefined)
+
+			const result = await createBusiness({
+				...basePayload,
+				idBuyPeriodicity: 1,
+				term: 3,
+				idLead: 5,
+			})
+
+			expect(result.data?.idBusiness).toBe(77)
+			expect(linkLeadToBusinessTx).toHaveBeenCalledWith(capturedTx, 5, 77)
+		})
+
+		it('rolls back the whole transaction (no Business created) when the lead is already converted', async () => {
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				name: 'Anual',
+			} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+			const created = mockCreatedBusiness({ idBusiness: 88, status: 'VENTA_EFECTUADA' })
+			const businessCreate = vi.fn().mockResolvedValue(created)
+			vi.mocked(linkLeadToBusinessTx).mockRejectedValue(
+				new Error('El lead ya fue convertido a negocio o no está disponible para conversión')
+			)
+			vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+				// A real Prisma $transaction propagates the callback's rejection —
+				// no Business row is committed when the callback throws.
+				return callback({
+					business: { create: businessCreate },
+					payment: { createMany: vi.fn() },
+				} as never)
+			})
+
+			const result = await createBusiness({
+				...basePayload,
+				idBuyPeriodicity: 1,
+				term: 3,
+				idLead: 5,
+			})
+
+			expect(result.data).toBeNull()
+			expect('error' in result && result.error).toBeTruthy()
 		})
 	})
 })
