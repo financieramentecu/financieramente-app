@@ -69,6 +69,7 @@ services:
       NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY: ${NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY}
       FLAGSMITH_SERVER_KEY: ${FLAGSMITH_SERVER_KEY}
       CRON_SECRET: ${CRON_SECRET}
+      LEADS_CRM_SYNC_API_KEY: ${LEADS_CRM_SYNC_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy

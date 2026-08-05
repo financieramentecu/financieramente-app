@@ -4,6 +4,65 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.27.0] - 2026-08-05
+
+### Agregado
+
+- **Módulo Leads completo — Sincronización CRM + Kanban de funnel:** Los usuarios pueden ahora ingerir leads desde un CRM externo (vía webhook normalizado a través de n8n) y verlos en un tablero Kanban de solo lectura organizado por columnas configurables. El webhook es autenticado por API key (sin HMAC), rate limitado (~120 req/min) y upsert idempotente por `externalCrmId`. Incluye visibilidad por jerarquía (los leads sin dueño asignado solo son visibles para administradores).
+
+- **Conversión manual de lead a Cliente + Negocio:** Desde el detalle de un lead, los usuarios pueden convertirlo manualmente en un Cliente y un Negocio, reutilizando el formulario de creación de negocios existente. La conversión requiere `identityNumber` en el momento de la conversión, guarda contra conversiones duplicadas con un único FK opcional `idBusiness` en `Lead`, y produce una entrada de auditoría completa.
+
+- **Administración de columnas de funnel:** Los administradores pueden crear, renombrar, reordenar y eliminar (soft-delete) columnas del funnel de leads desde la sección Administración/Configuración. Cada columna mapea a un `externalStatusKey` único del CRM. Las columnas con leads activos no pueden eliminarse. La columna "Sin mapear" es fija y no eliminable, recibiendo cualquier `statusKey` no mapeado.
+
+- **Estado de resultado (outcomeStatus) con bloqueo de WON terminal:** Los leads tienen un estado de resultado fijo (`OPEN`, `WON`, `LOST`, `ABANDONED`, por defecto `OPEN`). Una vez que un lead alcanza `WON`, ese estado se vuelve terminal: no puede ser cambiado por webhooks posteriores (aunque otros campos sí se actualizan). Los estados `LOST` y `ABANDONED` permanecen mutables. El estado aparece como un badge visual en las tarjetas del Kanban.
+
+- **Filtros avanzados en el tablero de Leads:** El tablero Kanban ofrece filtros por resultado (chips multiseleccionables con OR) y rango de fechas de creación (por defecto, mes actual). Los filtros se combinan con AND y respetan la visibilidad por jerarquía del usuario.
+
+- **Entrada de navegación Leads:** Se agregó un elemento de menú top-level "Leads" que navega al tablero Kanban, visible para todos los roles (incluyendo AGENTE). Se agregó también una sub-entrada bajo Administración para la gestión de columnas del funnel.
+
+- **Bugfix app-wide — DateRangePicker ahora muestra rangos seleccionados:** Se corrigió un bug preexistente en el que el `DateRangePicker` (y todo picker de rangos de fechas en la app) nunca resaltaba el rango seleccionado. La raíz es que `src/app/tailwind.css` importa Tailwind v4 sin la directiva `@config`, impidiendo que las clases de colores personalizados se generen. Se agregaron reglas explícitas en `globals.css` para `[data-slot='calendar']` que seleccionan el rango. Este fix beneficia a todos los pickers de rango en la aplicación. (La solución completa de `@config` se deja fuera de alcance como una mejora futura).
+
+### Mejorado
+
+- **Drag & drop accesible en el panel admin de columnas:** Se reemplazaron los botones ↑/↓ con una solución de arrastrar y soltar usando `@dnd-kit` (primer uso de esta librería en el repo), que incluye soporte para teclado (KeyboardSensor) y es accesible.
+
+- **Inmovilidad de clave de estado del CRM:** La clave `externalStatusKey` de una columna es inmutable después de su creación (enforced en el servicio, no solo en UI). Cambiarla haría que el webhook routing se quiebre. Si se necesita una clave diferente, se crea una nueva columna.
+
+- **Soft-delete con tombstone para reutilización de claves:** Al eliminar una columna, su `externalStatusKey` se reescribe como `${key}__deleted_${id}` para liberar el valor único y permitir crear una nueva columna con la misma clave después.
+
+### Corregido
+
+- **Leads visibles para todos los roles:** Se corrigió un bug donde "Leads" fue agregado a `ALL_MENU_ITEMS` pero no tenía rama en el allow-list `buildMenuByRole()`, haciéndolo invisible. Se agregaron ramas condicionales en `menu-builder.ts` y explícitas en `AGENTE_MENU_ITEMS`.
+
+### Técnico
+
+- **Modelos Prisma nuevos:** `Lead` (nullable unique `externalCrmId`, nullable FK a `User`, FK a `LeadFunnelColumn`, unique FK opcional a `Business`, soft delete `active`) y `LeadFunnelColumn` (`name`, unique `externalStatusKey`, `position`, `isFallback` para la columna "Sin mapear", soft delete `active`).
+
+- **Migraciones Prisma:** `20260803190000_add_leads_module` (modelos, índices, FKs) y `20260804000000_add_lead_outcome_status` (enum `LeadOutcomeStatus` con valores OPEN/WON/LOST/ABANDONED). Nota: ambas generadas y validadas, pero no aplicadas a la DB compartida de dev (Neon) debido a un drift preexistente no relacionado en columnas `novedad_*`; el propietario debe ejecutar `prisma migrate resolve --applied` antes del deploy.
+
+- **Endpoints nuevos:**
+  - `POST /api/leads/crm-sync` — webhook de ingesta, autenticado por `x-api-key` (timingSafeEqual sobre SHA-256), rate limit en memoria, upsert idempotente, fallback para `statusKey`/`outcomeStatus` no mapeados, resolución de dueño sin "sticky owner", auditoría completa.
+  - `GET /api/leads` — devuelve tablero (leads agrupados por columna server-side, visibilidad por jerarquía, filtros por outcome + fecha).
+  - `GET /api/leads/[id]` — detalle del lead (scope jerárquico).
+  - `GET/POST /api/leads/funnel-columns` — CRUD de columnas (admin).
+  - `PATCH/DELETE /api/leads/funnel-columns/[id]` — actualizar/eliminar columna (admin).
+
+- **Nuevas acciones de auditoría:** `LEAD_CREATED`, `LEAD_STATUS_CHANGED`, `LEAD_OWNER_ASSIGNED`, `LEAD_OWNER_UNRESOLVED`, `LEAD_OUTCOME_STATUS_LOCKED`, `LEAD_CONVERTED_TO_BUSINESS`, `LEAD_FUNNEL_COLUMN_CREATED`, `LEAD_FUNNEL_COLUMN_UPDATED`.
+
+- **Función pura `resolveOutcomeStatus(raw, current)`:** Mapea valores entrantes (case-insensitive) a enum interno, maneja valores no reconocidos (fallback a OPEN + audit), y aplica lógica de bloqueo terminal cuando `current === 'WON'` (retorna `{value, unresolved, locked}`).
+
+- **Normalización de claves de estado:** Nueva `normalizeFunnelStatusKey()` (uppercase + espacios→guiones bajos) aplicada en create/update de columnas y en matching del webhook, permitiendo admins escribir `lead nuevo` que el CRM envía como `LEAD_NUEVO` sin desincronización.
+
+- **Interfaz de mapeo:** `mapLeadToBusinessDefaults()` en `src/features/leads/mappers/` (now uses `Pick<LeadDetail, 'name'|'lastName'|'email'|'phone'|'identityNumber'>` para evitar requerir campos derivados como `ownerName`).
+
+- **Actualización ERD.md:** Nuevos modelos `Lead` y `LeadFunnelColumn`, relaciones a `User`/`Business`, índices, notas sobre claves tombstoned y la columna isFallback.
+
+- **Tests:** 40 archivos, 285 tests (lib puro, services, routes, componentes, integración full-flow). Type check limpio (`npx tsc --noEmit`), lint limpio.
+
+- **Documentación:** `docs/LEADS_WEBHOOK_INTEGRATION_GUIDE.md` (guía para configurar n8n), `docs/LEADS_CRM_SYNC_TESTING_GUIDE.md` (curls de prueba del webhook incl. bloqueo WON y rate limit), `docs/ENVIRONMENT_VARIABLES.md` (documentación de `LEADS_CRM_SYNC_API_KEY`).
+
+- **Seed:** `prisma/seeds/lead-funnel-columns.ts` — upsert idempotente de las 22 columnas reales del funnel de negocio + columna "Sin mapear" (isFallback).
+
 ## [1.26.2] - 2026-08-03
 
 ### Agregado

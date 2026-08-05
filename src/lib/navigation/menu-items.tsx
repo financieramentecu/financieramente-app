@@ -18,6 +18,7 @@ import {
 	PieChart,
 	Receipt,
 	Pyramid,
+	Kanban,
 } from 'lucide-react'
 
 /**
@@ -43,6 +44,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		title: 'Negocios',
 		url: '/dashboard/negocios',
 		icon: <Folder className="h-4 w-4" />,
+	},
+	{
+		title: 'Leads',
+		url: '/dashboard/leads',
+		icon: <Kanban className="h-4 w-4" />,
 	},
 	{
 		title: 'Carga Archivos',
@@ -154,6 +160,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				url: '/dashboard/admin/discounts',
 				icon: <Percent className="h-4 w-4" />,
 			},
+			{
+				title: 'Columnas del Funnel de Leads',
+				url: '/dashboard/admin/lead-funnel-columns',
+				icon: <Kanban className="h-4 w-4" />,
+			},
 		],
 	},
 ]
@@ -184,6 +195,11 @@ export const AGENTE_MENU_ITEMS: MenuItem[] = [
 				icon: <Plus className="h-4 w-4" />,
 			},
 		],
+	},
+	{
+		title: 'Leads',
+		url: '/dashboard/leads',
+		icon: <Kanban className="h-4 w-4" />,
 	},
 	{
 		title: 'Calculadora',

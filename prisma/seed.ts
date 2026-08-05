@@ -12,6 +12,7 @@ import { seedRoles } from './seeds/roles'
 import { seedUsers } from './seeds/user'
 import { seedProductPercentages } from './seeds/product-percentage'
 import { seedDistributionByLevel } from './seeds/distribution-by-level'
+import { seedLeadFunnelColumns } from './seeds/lead-funnel-columns'
 // import { seedSettlements } from './seeds/settlements'
 
 const prisma = new PrismaClient()
@@ -32,6 +33,7 @@ async function main() {
 		await seedBuyPeriodicities(prisma)
 		await seedClientOrigins(prisma)
 		await seedTypeProducts(prisma)
+		await seedLeadFunnelColumns(prisma)
 
 		// 2. Estructura de negocio
 		await seedLevels(prisma)

@@ -31,6 +31,7 @@ export const BusinessForm = React.forwardRef<
 			clientOriginsOptions,
 			businessAgent,
 			businessStatus,
+			leadId,
 		},
 		ref
 	) => {
@@ -66,6 +67,7 @@ export const BusinessForm = React.forwardRef<
 			clientOriginsOptions,
 			businessAgent,
 			businessStatus,
+			leadId,
 		})
 
 		const documentValue = form.watch('identityNumber')

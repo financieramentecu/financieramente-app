@@ -428,3 +428,62 @@ curl -X POST http://localhost:3000/api/email/send \
     }
   }'
 ```
+
+## LEADS_CRM_SYNC_API_KEY (leads-crm-sync)
+
+Secreto estático usado por `POST /api/leads/crm-sync` para autenticar al
+llamador (n8n) vía el header `x-api-key`. Es el primer endpoint del sistema
+autenticado por API key en lugar de sesión de usuario — nunca sustituye ni
+acepta una sesión NextAuth.
+
+### Generar el valor
+
+```bash
+openssl rand -base64 32
+```
+
+### Configurar
+
+- **Local (`.env.local`)**: agregar `LEADS_CRM_SYNC_API_KEY="<valor-generado>"`.
+- **Cada ambiente de despliegue** (QA, producción) necesita su **propio**
+  valor — nunca reutilizar el mismo secreto entre ambientes.
+- El flujo n8n en `n8n.financieramentecu.co` debe enviar exactamente ese
+  valor en el header `x-api-key` de cada request a `/api/leads/crm-sync`.
+
+### CI/CD (GitHub Actions)
+
+La variable se inyecta en QA y producción vía GitHub Secrets — no se
+hardcodea en ningún archivo del repo:
+
+1. En GitHub → **Settings → Secrets and variables → Actions**, crear:
+   - `LEADS_CRM_SYNC_API_KEY_QA` (valor propio para QA)
+   - `LEADS_CRM_SYNC_API_KEY_PROD` (valor propio para producción, distinto del de QA)
+2. Los workflows ya están conectados para leerlos:
+   - `.github/workflows/deploy-qa.yml` → escribe `LEADS_CRM_SYNC_API_KEY=${{ secrets.LEADS_CRM_SYNC_API_KEY_QA }}` en el `.env` del droplet de QA.
+   - `.github/workflows/deploy-prod.yml` → mismo patrón con `LEADS_CRM_SYNC_API_KEY_PROD`.
+3. `docker/docker-compose.qa.yml` y `docker/docker-compose.prod.yml` reenvían `LEADS_CRM_SYNC_API_KEY` desde ese `.env` al contenedor `nextjs` (`environment:` explícito — este proyecto no usa `env_file` genérico, cada variable se lista a mano).
+
+Sin crear esos dos secrets en GitHub, el próximo deploy a QA/producción arranca el contenedor con `LEADS_CRM_SYNC_API_KEY` vacía — el webhook responde 401 a todo hasta que se configuren.
+
+### Comparación timing-safe
+
+`src/features/leads/lib/api-key-guard.ts` compara el header recibido contra
+`LEADS_CRM_SYNC_API_KEY` mediante `crypto.timingSafeEqual` sobre digests
+SHA-256 de ambos valores — nunca `===` sobre el string crudo, para evitar
+un timing oracle sobre el secreto.
+
+### Rotación
+
+Rotar el valor: (1) generar un nuevo secreto, (2) actualizarlo en el
+ambiente de despliegue, (3) actualizar el workflow de n8n con el nuevo
+valor, (4) desplegar. No hay periodo de gracia con dos claves válidas
+simultáneamente en la v1 — coordinar la rotación con una ventana de
+mantenimiento corta si el volumen de webhooks es alto.
+
+### Deshabilitar la ingesta sin tocar datos
+
+Eliminar o vaciar `LEADS_CRM_SYNC_API_KEY` en el ambiente detiene toda
+ingesta del webhook (401 en cada request) sin afectar los leads ya
+almacenados ni el resto del sistema — ver Rollback Plan en
+`openspec/changes/leads-crm-sync/proposal.md`.
+
