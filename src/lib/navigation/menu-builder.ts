@@ -40,6 +40,12 @@ export function buildMenuByRole(
 			continue
 		}
 
+		// Leads (visibilidad de qué leads ve cada usuario se resuelve por jerarquía dentro del módulo)
+		if (item.title === 'Leads') {
+			filteredItems.push(item)
+			continue
+		}
+
 		// Carga Archivos (usa permiso de cargas)
 		if (item.title === 'Carga Archivos' && permissions.cargas.cargaMasiva) {
 			filteredItems.push(item)

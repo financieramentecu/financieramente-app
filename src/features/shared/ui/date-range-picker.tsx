@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
@@ -20,6 +20,14 @@ interface DateRangePickerProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  /**
+   * Optional per-instance calendar theming: inline CSS custom-property
+   * overrides (e.g. `--primary`, `--accent`) applied only to this
+   * DateRangePicker's Calendar root — never changes the shared default,
+   * since it cascades through normal CSS inheritance rather than a
+   * build-time-compiled Tailwind class.
+   */
+  calendarStyle?: CSSProperties
 }
 
 /**
@@ -33,6 +41,7 @@ export function DateRangePicker({
   placeholder = "Seleccionar rango",
   className,
   disabled = false,
+  calendarStyle,
 }: DateRangePickerProps) {
   const [open, setOpen] = useState(false)
 
@@ -70,6 +79,7 @@ export function DateRangePicker({
             }}
             locale={es}
             numberOfMonths={2}
+            style={calendarStyle}
           />
         </PopoverContent>
       </Popover>

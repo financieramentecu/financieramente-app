@@ -33,6 +33,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 		currentUser,
 		productsOptions,
 		businessAgent,
+		leadId,
 	} = props
 
 	const isEditMode = mode === 'edit'
@@ -287,6 +288,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 					idProduct: parseInt(data.producto),
 					idCurrency: parseInt(data.currency),
 					idClientOrigin: parseInt(data.clientOrigin),
+					...(leadId ? { idLead: leadId } : {}),
 				})
 
 				if ('error' in businessResult) {
@@ -315,6 +317,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			updateBusiness,
 			idSettlementCommission,
 			canEditClientInfo,
+			leadId,
 		]
 	)
 

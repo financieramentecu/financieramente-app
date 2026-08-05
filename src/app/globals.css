@@ -199,6 +199,26 @@
 		color: var(--sidebar-text) !important;
 	}
 
+	/*
+	 * Fix robusto para el Calendar (react-day-picker): las clases utilitarias
+	 * condicionales (ej. `data-[range-start=true]:bg-primary`) nunca se
+	 * generan por el mismo motivo que `.bg-primary` arriba (tailwind.config.js
+	 * no está cargado vía @config en tailwind.css), así que el rango
+	 * seleccionado quedaba sin ningún color. Mismo patrón de fix aplicado
+	 * directamente sobre los data-attributes que ya emite `CalendarDayButton`.
+	 */
+	[data-slot='calendar'] [data-selected-single='true'],
+	[data-slot='calendar'] [data-range-start='true'],
+	[data-slot='calendar'] [data-range-end='true'] {
+		background-color: hsl(var(--primary)) !important;
+		color: hsl(var(--primary-foreground)) !important;
+	}
+
+	[data-slot='calendar'] [data-range-middle='true'] {
+		background-color: hsl(var(--accent)) !important;
+		color: hsl(var(--accent-foreground)) !important;
+	}
+
 	/* Fix robusto para el fondo del Switch */
 	.radix-switch-root[data-state='checked'] {
 		background-color: hsl(var(--primary)) !important;

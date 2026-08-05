@@ -14,6 +14,7 @@ import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expect
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { findProductPercentageCommission } from './find-product-percentage-commission'
+import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
 
 /**
  * Schema de validación para crear un negocio
@@ -40,6 +41,12 @@ const createBusinessSchema = z.object({
 		.number()
 		.int()
 		.positive('El origen del cliente es obligatorio'),
+	/**
+	 * Optional lead-to-business conversion link (leads-crm-sync feature).
+	 * When provided, `linkLeadToBusinessTx` is called inside the same
+	 * transaction that creates the business — see design D10.
+	 */
+	idLead: z.number().int().positive().optional(),
 })
 
 export type CreateBusinessInput = z.infer<typeof createBusinessSchema>
@@ -166,6 +173,13 @@ export async function createBusiness(
 						updatedAt: rowTimestamp,
 					})),
 				})
+			}
+
+			if (validatedData.idLead != null) {
+				// Re-checked inside this same transaction: an already-converted
+				// lead throws here, which rolls back the whole transaction —
+				// no orphaned Business is ever created.
+				await linkLeadToBusinessTx(tx, validatedData.idLead, created.idBusiness)
 			}
 
 			return created

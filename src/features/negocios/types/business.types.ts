@@ -141,4 +141,11 @@ export interface BusinessFormProps {
 	clientOriginsOptions: { value: string; label: string }[]
 	businessAgent?: AgentInfo
 	businessStatus?: string | null
+	/**
+	 * Present when this form was opened from a lead conversion
+	 * (`?leadId=` on `/dashboard/negocios/crear`). Forwarded to
+	 * `createBusiness({ idLead })` so `linkLeadToBusinessTx` runs in the
+	 * same transaction that creates the business (leads-crm-sync feature).
+	 */
+	leadId?: number
 }
