@@ -116,4 +116,23 @@ describe('toBusinessListQueryParams', () => {
     expect(params.get('sortBy')).toBe('createdAt')
     expect(params.get('sortOrder')).toBe('desc')
   })
+
+  it('forwards hasSupports=true when filters.hasSupports is true', () => {
+    const params = toBusinessListQueryParams(
+      baseInput({ filters: { ...baseFilters, hasSupports: true } })
+    )
+    expect(params.get('hasSupports')).toBe('true')
+  })
+
+  it('forwards hasSupports=false when filters.hasSupports is false', () => {
+    const params = toBusinessListQueryParams(
+      baseInput({ filters: { ...baseFilters, hasSupports: false } })
+    )
+    expect(params.get('hasSupports')).toBe('false')
+  })
+
+  it('omits hasSupports when filters.hasSupports is undefined', () => {
+    const params = toBusinessListQueryParams(baseInput())
+    expect(params.has('hasSupports')).toBe(false)
+  })
 })

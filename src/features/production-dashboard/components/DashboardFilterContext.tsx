@@ -117,6 +117,9 @@ export function dashboardFilterReducer(
     case 'SET_INTERNACIONAL':
       return { ...state, draft: { ...state.draft, isInternacional: action.value } }
 
+    case 'SET_HAS_SUPPORTS':
+      return { ...state, draft: { ...state.draft, hasSupports: action.payload } }
+
     case 'SET_TODAS': {
       // Resetting companyIds also resets productIds (cascade)
       if (action.field === 'companyIds') {

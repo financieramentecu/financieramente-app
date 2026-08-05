@@ -168,4 +168,37 @@ describe('useProductionKpis', () => {
       expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(initialCallCount)
     })
   })
+
+  it('serializes hasSupports=true in the KPIs query string', async () => {
+    setupMocks([1], { ...defaultFilters, hasSupports: true })
+    mockKpiFetch({ totalCop: 0, totalForeignUsd: 0, nationalCount: 0, foreignCount: 0 })
+
+    renderHook(() => useProductionKpis(4050))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+    expect(url).toContain('hasSupports=true')
+  })
+
+  it('serializes hasSupports=false in the KPIs query string', async () => {
+    setupMocks([1], { ...defaultFilters, hasSupports: false })
+    mockKpiFetch({ totalCop: 0, totalForeignUsd: 0, nationalCount: 0, foreignCount: 0 })
+
+    renderHook(() => useProductionKpis(4050))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+    expect(url).toContain('hasSupports=false')
+  })
+
+  it('omits hasSupports from the KPIs query string when undefined', async () => {
+    setupMocks([1])
+    mockKpiFetch({ totalCop: 0, totalForeignUsd: 0, nationalCount: 0, foreignCount: 0 })
+
+    renderHook(() => useProductionKpis(4050))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+    expect(url).not.toContain('hasSupports')
+  })
 })

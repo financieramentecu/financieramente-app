@@ -4,6 +4,23 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.28.0] - 2026-08-04
+
+### Agregado
+
+- **Filtro "Soporte" en el Dashboard de producción (COM-79):** En el panel "Filtros del reporte" se puede segmentar por negocios con o sin comprobantes cargados (`Todos` / `Con` / `Sin`). El valor por defecto es `Todos`.
+- **Reactividad de widgets al filtro de soporte:** Al aplicar el filtro, se recalculan VENTA TOTAL (FX, local y total USD), las donas de origen/compañía/estado, las barras de producción por Money Strategist y el heatmap por empresa (USD y NEG), con intersección AND respecto al resto de filtros y a la jerarquía seleccionada.
+- **Consistencia heatmap ↔ listado:** El acordeón de la celda del heatmap reenvía el mismo criterio de soporte al listado de negocios, evitando desalineación entre el agregado y el detalle.
+
+### Técnico
+
+- Extensión del contrato `DashboardFilterDraft` / `DashboardAppliedFilters` con `hasSupports?: boolean` (`undefined` = Todos; `true` = Con; `false` = Sin), acción `SET_HAS_SUPPORTS`, badges activos y igualdad draft/applied.
+- Predicado compartido en `buildProductionWhereClause`: `supports.some/none` solo con `status: true` (misma semántica soft-delete que el listado de negocios).
+- Helper `parseDashboardAppliedFilters` reutilizado por las rutas `kpis`, `by-origin`, `by-company`, `by-status`, `ms-chart` y `heatmap`; serialización del query param en los 6 hooks de agregación.
+- Forward de `hasSupports` en `toBusinessListQueryParams` para el bridge heatmap → `/api/negocios`.
+- Cobertura unitaria de WHERE, reducer/badges, parser de query params y bridge del heatmap.
+- OpenSpec change `dashboard-filtro-soporte` (proposal, design, specs, tasks).
+
 ## [1.27.0] - 2026-08-03
 
 ### Agregado

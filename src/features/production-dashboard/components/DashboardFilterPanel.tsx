@@ -36,6 +36,12 @@ const PLAZO_OPTIONS = [
   { value: '20', label: '20 años' },
 ]
 
+const SUPPORT_OPTIONS = [
+  { value: TODAS_SENTINEL, label: 'Todos' },
+  { value: 'true', label: 'Con' },
+  { value: 'false', label: 'Sin' },
+]
+
 
 // ─── DashboardFilterPanel ────────────────────────────────────────────────────
 
@@ -202,6 +208,30 @@ export function DashboardFilterPanel() {
                 }
               }}
               placeholder="Periodicidad"
+            />
+          </div>
+
+          {/* Filter grid — Row 3: Soporte */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2">
+            <SingleSelectFilter
+              options={SUPPORT_OPTIONS}
+              value={
+                draft.hasSupports === true
+                  ? 'true'
+                  : draft.hasSupports === false
+                    ? 'false'
+                    : TODAS_SENTINEL
+              }
+              onChange={(v) => {
+                if (v === TODAS_SENTINEL) {
+                  dispatch({ type: 'SET_HAS_SUPPORTS', payload: undefined })
+                } else if (v === 'true') {
+                  dispatch({ type: 'SET_HAS_SUPPORTS', payload: true })
+                } else {
+                  dispatch({ type: 'SET_HAS_SUPPORTS', payload: false })
+                }
+              }}
+              placeholder="Soporte"
             />
           </div>
         </div>
