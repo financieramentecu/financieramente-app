@@ -21,16 +21,12 @@ import type { UserRole } from '@/features/auth/lib/roles'
 import { UploadComprobanteModal } from '@/features/business-supports/components/UploadComprobanteModal'
 import { ViewComprobantesSheet } from '@/features/business-supports/components/BusinessSupportsSheet'
 import { CommentModal } from '@/features/comments/components/CommentModal'
-
-const UPLOAD_ALLOWED_STATUSES: BusinessStatus[] = [
-  BUSINESS_STATUS.EMITIDO,
-  BUSINESS_STATUS.FONDEADO,
-]
+import { isUploadAllowedStatus } from '@/features/business-supports/lib/upload-allowed-statuses'
 
 export interface BusinessRowActionsProps {
   businessId: number
   businessStatus: BusinessStatus
-  /** Contract number — upload is only available when not null */
+  /** Contract number — may be null for early-stage businesses */
   contract: string | null
   supportCount?: number
   userRole?: UserRole
@@ -69,8 +65,7 @@ export function BusinessRowActions({
   onMarkNovedad,
   onUnmarkNovedad,
 }: BusinessRowActionsProps) {
-  const canUpload =
-    UPLOAD_ALLOWED_STATUSES.includes(businessStatus) && contract !== null
+  const canUpload = isUploadAllowedStatus(businessStatus)
   const canMarkNovedad =
     businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA &&
     novedadStatus !== BUSINESS_NOVEDAD_STATUS.PENDIENTE
@@ -93,7 +88,7 @@ export function BusinessRowActions({
   return (
     <TooltipProvider>
       <div className="inline-flex items-center gap-1">
-        {/* Upload comprobante — visible only when status allows and contract exists */}
+        {/* Upload comprobante — visible when status is VENTA_EFECTUADA, EMITIDO, or FONDEADO */}
         {canUpload && (
           <Tooltip>
             <TooltipTrigger asChild>

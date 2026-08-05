@@ -24,7 +24,6 @@ function comprobanteErrorToStatus(code: ComprobanteError['code']): number {
     case 'FORBIDDEN':
       return 403
     case 'INVALID_STATUS':
-    case 'NO_CONTRACT':
     case 'INVALID_MIME':
     case 'FILE_TOO_LARGE':
       return 422

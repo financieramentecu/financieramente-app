@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from 'react'
 import { FileUp } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ export function UploadComprobanteModal({
 
   useEffect(() => {
     if (state.status === 'success') {
+      toast.success('Comprobante subido exitosamente')
       onSuccess?.()
       reset()
       onClose()

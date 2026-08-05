@@ -10,7 +10,13 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 - **URLs clickeables en comentarios (COM-82):** Al visualizar comentarios, las direcciones que empiezan con `http://`, `https://` o `www.` se muestran como hipervínculos (estilo diferenciado) y se abren en una nueva pestaña con `noopener noreferrer`. El resto del texto del comentario se mantiene como texto plano, incluso cuando hay varias URLs en el mismo mensaje.
 
-## [1.26.2] - 2026-08-03
+## [1.26.3] - 2026-08-03
+
+### Agregado
+
+- **Carga de comprobantes desde Venta Efectuada (COM-76):** Money Strategists y Analistas de Soporte pueden subir comprobantes desde el estado "Venta Efectuada", sin esperar a que el negocio esté en "Emitido" ni a que exista número de contrato. La acción "Subir comprobante" en la columna Acciones queda habilitada también en esa etapa temprana, y al completar la carga se muestra un mensaje de éxito.
+
+## [1.26.2] - 2026-07-30
 
 ### Agregado
 
