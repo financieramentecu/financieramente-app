@@ -4,14 +4,16 @@ import { presignPutUrl, presignGetUrl, getSpacesConfig } from '../lib/spaces-cli
 import { buildComprobanteKey } from '../lib/object-key'
 import { isAllowedMime, extensionFor } from '../lib/mime-utils'
 import {
+  comprobantePathId,
+  isUploadAllowedStatus,
+} from '../lib/upload-allowed-statuses'
+import {
   BusinessSupportDTO,
   ComprobanteError,
   PersistComprobanteInput,
   PresignResponse,
   RequestContext,
 } from '../types/business-support.types'
-
-const ALLOWED_STATUSES = ['EMITIDO', 'FONDEADO']
 
 function toDTO(
   row: {
@@ -79,15 +81,11 @@ export async function presignComprobanteUpload(
     throw new ComprobanteError('NOT_FOUND', `Negocio ${businessId} not found`)
   }
 
-  if (!business.status || !ALLOWED_STATUSES.includes(business.status)) {
+  if (!isUploadAllowedStatus(business.status)) {
     throw new ComprobanteError(
       'INVALID_STATUS',
       `Negocio status '${business.status}' is not allowed for uploads`,
     )
-  }
-
-  if (!business.contract) {
-    throw new ComprobanteError('NO_CONTRACT', 'Negocio has no contract number')
   }
 
   if (!isAllowedMime(mime)) {
@@ -96,7 +94,8 @@ export async function presignComprobanteUpload(
 
   const ext = extensionFor(mime)!
   const { prefix } = getSpacesConfig()
-  const key = buildComprobanteKey({ prefix, contract: business.contract, ext })
+  const pathId = comprobantePathId(business.contract, businessId)
+  const key = buildComprobanteKey({ prefix, pathId, ext })
   const url = await presignPutUrl(key, mime)
 
   return { url, key }
@@ -150,7 +149,8 @@ export async function persistComprobante(
     })
 
     const title = 'Nuevo soporte adjuntado'
-    const message = `Se ha subido un soporte para el contrato ${row.business.contract} (Agente: ${row.business.user.name})`
+    const contractLabel = row.business.contract ?? `Negocio #${businessId}`
+    const message = `Se ha subido un soporte para el contrato ${contractLabel} (Agente: ${row.business.user.name})`
 
     const createdNotifications = await Promise.all(
       targetUsers.map(u => prisma.notification.create({ 

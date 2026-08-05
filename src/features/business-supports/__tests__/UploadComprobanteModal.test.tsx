@@ -1,5 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { toast } from 'sonner'
+
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}))
 
 vi.mock('../hooks/useUploadComprobante', () => ({
   useUploadComprobante: vi.fn(),
@@ -76,5 +81,22 @@ describe('UploadComprobanteModal', () => {
     const input = screen.getByTestId('file-input')
     expect(input).toHaveAttribute('accept')
     expect(input.getAttribute('accept')).toContain('application/pdf')
+  })
+
+  it('shows success toast and calls onSuccess when upload succeeds', () => {
+    const reset = vi.fn()
+    mockUseUpload.mockReturnValue(
+      makeIdleHook({
+        state: { status: 'success', data: { id: 'supp-1' }, error: '' },
+        reset,
+      }),
+    )
+
+    render(<UploadComprobanteModal {...defaultProps} />)
+
+    expect(toast.success).toHaveBeenCalledWith('Comprobante subido exitosamente')
+    expect(defaultProps.onSuccess).toHaveBeenCalled()
+    expect(defaultProps.onClose).toHaveBeenCalled()
+    expect(reset).toHaveBeenCalled()
   })
 })

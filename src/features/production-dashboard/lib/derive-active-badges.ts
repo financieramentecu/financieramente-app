@@ -41,5 +41,10 @@ export function getActiveBadges(applied: DashboardAppliedFilters): ActiveBadge[]
   if (applied.periodicidades.length > 0)
     badges.push({ key: 'periodicidades', label: `Periodicidad: ${applied.periodicidades.join(', ')}`, field: 'periodicidades' })
 
+  if (applied.hasSupports === true)
+    badges.push({ key: 'hasSupports', label: 'Soporte: Con', field: 'hasSupports' })
+  else if (applied.hasSupports === false)
+    badges.push({ key: 'hasSupports', label: 'Soporte: Sin', field: 'hasSupports' })
+
   return badges
 }

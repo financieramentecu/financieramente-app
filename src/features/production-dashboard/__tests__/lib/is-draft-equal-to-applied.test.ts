@@ -63,4 +63,24 @@ describe('isDraftEqualToApplied', () => {
     // Order matters — reducer always appends; same filter state has same order
     expect(isDraftEqualToApplied(draft, applied)).toBe(false)
   })
+
+  it('returns true when both omit hasSupports (Todos)', () => {
+    expect(isDraftEqualToApplied(base(), base())).toBe(true)
+  })
+
+  it('returns true when one has hasSupports undefined and the other omits it', () => {
+    const draft = { ...base(), hasSupports: undefined }
+    expect(isDraftEqualToApplied(draft, base())).toBe(true)
+  })
+
+  it('returns false when hasSupports differs (true vs undefined)', () => {
+    const draft = { ...base(), hasSupports: true }
+    expect(isDraftEqualToApplied(draft, base())).toBe(false)
+  })
+
+  it('returns false when hasSupports differs (true vs false)', () => {
+    const draft = { ...base(), hasSupports: true }
+    const applied = { ...base(), hasSupports: false }
+    expect(isDraftEqualToApplied(draft, applied)).toBe(false)
+  })
 })

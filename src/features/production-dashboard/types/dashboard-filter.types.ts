@@ -15,6 +15,8 @@ export interface DashboardFilterDraft {
   plazos: number[]
   periodicidades: string[]
   isInternacional: boolean
+  /** undefined = Todos; true = Con (some active supports); false = Sin */
+  hasSupports?: boolean
 }
 
 /** Applied snapshot — same shape as draft, committed after "Aplicar". */
@@ -61,6 +63,7 @@ export type DashboardFilterAction =
   | { type: 'SET_PLAZO'; payload: number }
   | { type: 'SET_PERIODICIDAD'; payload: string }
   | { type: 'SET_INTERNACIONAL'; value: boolean }
+  | { type: 'SET_HAS_SUPPORTS'; payload: boolean | undefined }
   | { type: 'SET_TODAS'; field: FilterField }
   | { type: 'APPLY' }
   | { type: 'CLEAR' }
