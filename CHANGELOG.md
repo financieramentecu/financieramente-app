@@ -4,6 +4,12 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.27.0] - 2026-08-03
+
+### Agregado
+
+- **URLs clickeables en comentarios (COM-82):** Al visualizar comentarios, las direcciones que empiezan con `http://`, `https://` o `www.` se muestran como hipervínculos (estilo diferenciado) y se abren en una nueva pestaña con `noopener noreferrer`. El resto del texto del comentario se mantiene como texto plano, incluso cuando hay varias URLs en el mismo mensaje.
+
 ## [1.26.3] - 2026-08-03
 
 ### Agregado
