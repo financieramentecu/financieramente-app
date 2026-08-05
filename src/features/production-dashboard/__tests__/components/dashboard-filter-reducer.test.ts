@@ -234,4 +234,38 @@ describe('dashboardFilterReducer', () => {
       expect(next.draft.periodicidades).toEqual(['MENSUAL'])
     })
   })
+
+  describe('SET_HAS_SUPPORTS', () => {
+    it('sets hasSupports in draft only', () => {
+      const state = makeState()
+      const next = dashboardFilterReducer(state, { type: 'SET_HAS_SUPPORTS', payload: true })
+      expect(next.draft.hasSupports).toBe(true)
+      expect(next.applied.hasSupports).toBeUndefined()
+    })
+
+    it('clears hasSupports to undefined (Todos) in draft only', () => {
+      const state = makeState({ hasSupports: true })
+      const next = dashboardFilterReducer(state, { type: 'SET_HAS_SUPPORTS', payload: undefined })
+      expect(next.draft.hasSupports).toBeUndefined()
+      expect(next.applied.hasSupports).toBe(true)
+    })
+
+    it('APPLY copies hasSupports from draft to applied', () => {
+      const state = makeState()
+      const withDraft = dashboardFilterReducer(state, { type: 'SET_HAS_SUPPORTS', payload: false })
+      const next = dashboardFilterReducer(withDraft, { type: 'APPLY' })
+      expect(next.applied.hasSupports).toBe(false)
+    })
+
+    it('CLEAR resets hasSupports to undefined on both snapshots', () => {
+      const state = makeState({ hasSupports: true })
+      const withApplied = {
+        draft: { ...state.draft, hasSupports: true },
+        applied: { ...state.applied, hasSupports: true },
+      }
+      const next = dashboardFilterReducer(withApplied, { type: 'CLEAR' })
+      expect(next.draft.hasSupports).toBeUndefined()
+      expect(next.applied.hasSupports).toBeUndefined()
+    })
+  })
 })

@@ -37,6 +37,11 @@ describe('buildDefaultFilters', () => {
     expect(result.isInternacional).toBe(false)
   })
 
+  it('omits hasSupports (Todos = undefined)', () => {
+    const result = buildDefaultFilters()
+    expect(result.hasSupports).toBeUndefined()
+  })
+
   it('returns a fresh object each call (no shared reference)', () => {
     const a = buildDefaultFilters()
     const b = buildDefaultFilters()
