@@ -19,6 +19,7 @@ const column: LeadBoardColumn = {
 			idUser: 5,
 			ownerName: 'Ana Torres',
 			outcomeStatus: 'OPEN',
+			idBusiness: null,
 		},
 	],
 }

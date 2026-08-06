@@ -14,6 +14,7 @@ import type {
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { UserWithRole } from '../types/business.types'
 import { useGetAllData } from '../hooks/use-get-all-data'
+import type { AgentInfo } from '../types/business-entity.types'
 
 interface Props {
 	companies: Company[]
@@ -26,12 +27,18 @@ interface Props {
 	defaultValues?: Partial<BusinessFormData>
 	/** Present when opened from a lead conversion; forwarded to createBusiness */
 	leadId?: number
+	/**
+	 * The lead's owner, when opened from a lead conversion and the lead has
+	 * one assigned. Locks and defaults the `agent` (Money Strategist) field.
+	 */
+	businessAgent?: AgentInfo
 }
 
 export default function BusinessWrapper({
 	currentUser,
 	defaultValues,
 	leadId,
+	businessAgent,
 	...props
 }: Props) {
 	const router = useRouter()
@@ -76,6 +83,7 @@ export default function BusinessWrapper({
 				clientOriginsOptions={clientOriginsOptions}
 				defaultValues={defaultValues}
 				leadId={leadId}
+				businessAgent={businessAgent}
 			/>
 		</div>
 	)

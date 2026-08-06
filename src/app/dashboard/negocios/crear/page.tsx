@@ -17,7 +17,9 @@ import {
 } from '@/features/auth/lib/hierarchy'
 import { getLeadForConversion } from '@/features/leads/services/lead-conversion.service'
 import { mapLeadToBusinessDefaults } from '@/features/leads/mappers/lead-to-business-defaults'
+import { mapLeadOwnerToAgentInfo } from '@/features/leads/mappers/lead-owner-to-agent-info'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
+import type { AgentInfo } from '@/features/negocios/types/business-entity.types'
 
 const getCompaniesCached = unstable_cache(getCompanies, ['companies'], {
 	revalidate: 300, // 5 minutes
@@ -81,6 +83,9 @@ export default async function CrearNegocioPage({
 	// Lead conversion prefill (leads-crm-sync feature): ?leadId=<id>
 	let leadId: number | undefined
 	let leadDefaultValues: Partial<BusinessFormData> | undefined
+	// R1: when the lead has an owner, the `agent` field defaults to and
+	// locks on that owner — reuses the existing `businessAgent` prop.
+	let leadOwnerAgent: AgentInfo | undefined
 
 	const rawLeadId = resolvedSearchParams.leadId
 	if (rawLeadId && currentUser) {
@@ -94,12 +99,16 @@ export default async function CrearNegocioPage({
 				visibleUserIds,
 			})
 
-			// Not found, out of the viewer's hierarchy, or already converted
-			// (getLeadForConversion excludes all three cases): redirect to the
-			// same page without ?leadId, falling back to a blank creation form.
+			// Not found, out of the viewer's hierarchy, already converted, or
+			// without an assigned owner (getLeadForConversion excludes all four
+			// cases — R2): redirect to the same page without ?leadId, falling
+			// back to a blank creation form.
 			if (lead) {
 				leadId = lead.idLead
 				leadDefaultValues = mapLeadToBusinessDefaults(lead)
+				if (lead.user) {
+					leadOwnerAgent = mapLeadOwnerToAgentInfo(lead.user)
+				}
 			} else {
 				redirect('/dashboard/negocios/crear')
 			}
@@ -118,6 +127,7 @@ export default async function CrearNegocioPage({
 					currentUser={currentUser}
 					defaultValues={leadDefaultValues}
 					leadId={leadId}
+					businessAgent={leadOwnerAgent}
 				/>
 			</div>
 		</DashboardLayout>

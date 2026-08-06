@@ -38,6 +38,7 @@ export const BusinessForm = React.forwardRef<
 		const {
 			form,
 			isBlocked,
+			isContractBlocked,
 			isSubmitting,
 			isEditMode,
 			handleFormSubmit,
@@ -51,7 +52,10 @@ export const BusinessForm = React.forwardRef<
 			handleAgentSearch,
 			setIdSettlementCommission,
 			isPrivilegedRole,
+			isLeadOwnerLocked,
 			getFieldPermission,
+			identityConflict,
+			resolveIdentityConflict,
 		} = useBusinessForm({
 			mode,
 			businessId,
@@ -70,9 +74,6 @@ export const BusinessForm = React.forwardRef<
 			leadId,
 		})
 
-		const documentValue = form.watch('identityNumber')
-		const isContractDisabled = !isEditMode && (isBlocked || !documentValue || documentValue.length < 5)
-
 		return (
 			<div className="max-w-4xl mx-auto p-6 bg-card">
 				<Header />
@@ -85,6 +86,7 @@ export const BusinessForm = React.forwardRef<
 						isBlocked={isBlocked}
 						isAgentUser={isAgentUser}
 						isEditMode={isEditMode}
+						isAgentLocked={isLeadOwnerLocked}
 					/>
 
 					<ClientInfoSection
@@ -94,7 +96,13 @@ export const BusinessForm = React.forwardRef<
 						onSearchClient={handleSearchClient}
 						onClientSelected={handleClientSelected}
 						isEditMode={isEditMode}
+						isBlocked={isBlocked}
+						isLeadConversion={Boolean(leadId)}
 						getFieldPermission={getFieldPermission}
+						identityConflict={identityConflict}
+						onResolveIdentityConflict={resolveIdentityConflict}
+						canUpdateDocument={isPrivilegedRole}
+						isSubmitting={isSubmitting}
 					/>
 
 					<BusinessInfoSection
@@ -106,7 +114,7 @@ export const BusinessForm = React.forwardRef<
 						onSelectLag={setIdSettlementCommission}
 						isBlocked={isBlocked}
 						isEditMode={isEditMode}
-						contractDisabled={isContractDisabled}
+						contractDisabled={isContractBlocked}
 						isPrivilegedRole={isPrivilegedRole}
 						getFieldPermission={getFieldPermission}
 					/>
