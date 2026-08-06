@@ -16,31 +16,34 @@ import { useSidebar } from '@/features/shared/ui/sidebar'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { buildMenuByRole } from '@/lib/navigation/menu-builder'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
+import { useAuthorizedReportCodes } from '@/features/report-permissions/hooks/use-authorized-report-codes'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar()
 	const { session } = useAuthSession()
 	const { enabled: isCalculadoraEnabled } = useFeatureFlag('dashboard_calculadora')
 	const { enabled: isDashboardEnabled } = useFeatureFlag('production_dashboard')
+	const { codes: authorizedReportCodes } = useAuthorizedReportCodes()
 	const isCollapsed = state === 'collapsed'
 
-	// Construir menú dinámico según rol y permisos
+	// Build menu from role, permissions, and authorized report codes
 	const menuItems = React.useMemo(() => {
 		if (!session?.user) {
 			return []
 		}
-		
+
 		let items = buildMenuByRole(session.user.role, session.user.permissions, {
 			isCalculadoraEnabled,
+			authorizedReportCodes,
 		})
 
-		// Filtrar dashboard si el flag está apagado
+		// Hide production dashboard when feature flag is off
 		if (!isDashboardEnabled) {
 			items = items.filter((item) => item.url !== '/dashboard')
 		}
 
 		return items
-	}, [session, isCalculadoraEnabled, isDashboardEnabled])
+	}, [session, isCalculadoraEnabled, isDashboardEnabled, authorizedReportCodes])
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
@@ -78,7 +81,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			<SidebarContent>
 				<NavMain items={menuItems} />
 			</SidebarContent>
-
 		</Sidebar>
 	)
 }
