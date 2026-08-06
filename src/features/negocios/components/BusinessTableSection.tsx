@@ -92,6 +92,7 @@ interface BusinessTableSectionProps {
 	onSaveDateAnchored?: (businessId: number, dateAnchored: string) => Promise<void>
 	onMarkNovedad?: (business: Business) => void
 	onUnmarkNovedad?: (business: Business) => void
+	onManageNovedadSuccess?: (business: Business) => void
 }
 
 const BUSINESS_COLUMN_LABELS = {
@@ -142,6 +143,7 @@ export function BusinessTableSection({
 	onSaveDateAnchored,
 	onMarkNovedad,
 	onUnmarkNovedad,
+	onManageNovedadSuccess,
 }: BusinessTableSectionProps) {
 	const [editingDateId, setEditingDateId] = useState<number | null>(null)
 	const [tempDate, setTempDate] = useState<string>('')
@@ -853,6 +855,11 @@ export function BusinessTableSection({
 									}
 									onUnmarkNovedad={
 										onUnmarkNovedad ? () => onUnmarkNovedad(row) : undefined
+									}
+									onManageNovedadSuccess={
+										onManageNovedadSuccess
+											? () => onManageNovedadSuccess(row)
+											: undefined
 									}
 								/>
 							</div>
