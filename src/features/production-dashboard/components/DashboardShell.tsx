@@ -41,26 +41,33 @@ function ShellContent({ children }: { children?: ReactNode }) {
   const { appliedFilters } = useDashboardFilter()
   const { isLoading: trmLoading, trmRate, trmState, isManual, error, setManualTrm } = useTrm()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // Undetermined until HierarchyTreePanel's fetch resolves — defaults to
+  // "has hierarchy" so the reserved width doesn't flash/collapse during load.
+  const [hierarchyEmpty, setHierarchyEmpty] = useState(false)
+  const isSidebarHidden = sidebarCollapsed || hierarchyEmpty
 
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden">
-      {/* Left — Hierarchy tree panel */}
+      {/* Left — Hierarchy tree panel. Collapses to 0 width with no border
+          when the user has no hierarchy/tree (CA: no blank reserved column). */}
       <aside
+        data-testid="hierarchy-sidebar"
         className="shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out"
         style={{
-          width: sidebarCollapsed ? 0 : 288,
-          borderRight: '1px solid rgba(0,60,69,0.15)',
+          width: isSidebarHidden ? 0 : 288,
+          borderRight: isSidebarHidden ? 'none' : '1px solid rgba(0,60,69,0.15)',
         }}
       >
         <HierarchyTreePanel
           activeCategoryIds={appliedFilters.categoryIds}
           onCollapse={() => setSidebarCollapsed(true)}
+          onEmptyChange={setHierarchyEmpty}
         />
       </aside>
 
       {/* Right — Filters + KPIs */}
       <main className="flex-1 overflow-y-auto p-6 space-y-4">
-        {sidebarCollapsed && (
+        {sidebarCollapsed && !hierarchyEmpty && (
           <button
             type="button"
             aria-label="Expandir panel de jerarquía"
