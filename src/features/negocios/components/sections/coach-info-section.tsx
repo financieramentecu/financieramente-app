@@ -22,6 +22,12 @@ export interface CoachInfoSectionProps {
 	isBlocked: boolean
 	isEditMode?: boolean
 	isAgentUser?: boolean
+	/**
+	 * True when the lead being converted already has an owner — the `agent`
+	 * field is defaulted to that owner (via `useAgentPermissions`) and must
+	 * stay locked so the assigned Money Strategist cannot be changed.
+	 */
+	isAgentLocked?: boolean
 }
 
 /**
@@ -34,6 +40,7 @@ export function CoachInfoSection({
 	isBlocked,
 	isEditMode = false,
 	isAgentUser,
+	isAgentLocked,
 }: CoachInfoSectionProps) {
 	const { watch, setValue, formState } = form
 	const { errors } = formState
@@ -81,11 +88,16 @@ export function CoachInfoSection({
 								agents={agentsList}
 								placeholder="Buscar Money Strategist..."
 								aria-labelledby="agent-label"
-								disabled={isBlocked || isAgentUser}
+								disabled={isBlocked || isAgentUser || isAgentLocked}
 								className={getFieldClassName(agentError)}
 								onSearch={onSearchAgents}
 							/>
 						</div>
+					)}
+					{isAgentLocked && (
+						<p className="text-xs text-muted-foreground">
+							Money Strategist responsable del lead — no se puede modificar.
+						</p>
 					)}
 					{agentError && (
 						<p className="text-xs text-red-500">{getFieldError(agentError)}</p>

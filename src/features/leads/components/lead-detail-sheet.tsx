@@ -28,7 +28,9 @@ interface LeadDetailSheetProps {
  * Read-only lead detail. "Ver en CRM" only renders when `externalUrl` is
  * present and non-empty. "Convertir a negocio" links to the existing
  * business-creation form (`?leadId=`); it becomes "Ver negocio" once the
- * lead is already linked to a `Business` (`idBusiness != null`).
+ * lead is already linked to a `Business` (`idBusiness != null`). A lead
+ * with no owner (`idUser == null`) cannot be converted — the button is
+ * disabled with an explanatory caption instead of navigating.
  */
 export function LeadDetailSheet({
 	lead,
@@ -40,6 +42,7 @@ export function LeadDetailSheet({
 	const fullName = [lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
 	const hasExternalUrl = Boolean(lead.externalUrl && lead.externalUrl.trim() !== '')
 	const isConverted = lead.idBusiness != null
+	const hasOwner = lead.idUser != null
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -104,12 +107,21 @@ export function LeadDetailSheet({
 								Ver negocio
 							</Link>
 						</Button>
-					) : (
+					) : hasOwner ? (
 						<Button asChild>
 							<Link href={`/dashboard/negocios/crear?leadId=${lead.idLead}`}>
 								Convertir a negocio
 							</Link>
 						</Button>
+					) : (
+						<div className="space-y-1">
+							<Button disabled className="w-full">
+								Convertir a negocio
+							</Button>
+							<p className="text-xs text-slate-500 dark:text-slate-400">
+								Asigna un owner al lead antes de convertirlo a negocio.
+							</p>
+						</div>
 					)}
 					{hasExternalUrl && (
 						<Button asChild variant="outline">

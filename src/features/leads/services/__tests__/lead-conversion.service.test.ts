@@ -48,6 +48,7 @@ describe('getLeadForConversion', () => {
 		vi.mocked(prisma.lead.findFirst).mockResolvedValue({
 			idLead: 1,
 			idBusiness: null,
+			idUser: 5,
 			outcomeStatus: 'OPEN',
 		} as never)
 
@@ -59,9 +60,69 @@ describe('getLeadForConversion', () => {
 
 		expect(result?.idLead).toBe(1)
 	})
+
+	it('excludes leads without an assigned owner from the DB query (idUser required)', async () => {
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue(null)
+
+		const result = await getLeadForConversion(
+			1,
+			{ idUser: 5, role: { code: UserRole.ADMIN } },
+			{ visibleUserIds: [] }
+		)
+
+		expect(result).toBeNull()
+		const callArgs = vi.mocked(prisma.lead.findFirst).mock.calls[0][0]
+		expect(JSON.stringify(callArgs?.where)).toContain('"idUser":{"not":null}')
+	})
+
+	it('includes the owner (user + role + category) in a single query, for R1 agent defaulting', async () => {
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue({
+			idLead: 1,
+			idBusiness: null,
+			idUser: 5,
+			user: {
+				idUser: 5,
+				name: 'Ana',
+				lastName: 'Torres',
+				email: 'ana@example.com',
+				phone: '3001234567',
+				role: { name: 'Agente/Coach' },
+				category: { name: 'Junior' },
+			},
+		} as never)
+
+		await getLeadForConversion(
+			1,
+			{ idUser: 5, role: { code: UserRole.ADMIN } },
+			{ visibleUserIds: [] }
+		)
+
+		const callArgs = vi.mocked(prisma.lead.findFirst).mock.calls[0][0]
+		expect(callArgs?.include).toEqual({
+			user: { include: { role: true, category: true } },
+		})
+	})
 })
 
 describe('linkLeadToBusinessTx', () => {
+	it('throws (rolling back the transaction) when the lead has no owner', async () => {
+		const tx = {
+			lead: {
+				findUnique: vi.fn().mockResolvedValue({
+					idLead: 1,
+					idBusiness: null,
+					idUser: null,
+					active: true,
+					outcomeStatus: 'OPEN',
+				}),
+				update: vi.fn(),
+			},
+		}
+
+		await expect(linkLeadToBusinessTx(tx as never, 1, 55)).rejects.toThrow()
+		expect(tx.lead.update).not.toHaveBeenCalled()
+	})
+
 	it('throws (rolling back the transaction) when the lead was converted concurrently', async () => {
 		const tx = {
 			lead: {
@@ -87,6 +148,7 @@ describe('linkLeadToBusinessTx', () => {
 				findUnique: vi.fn().mockResolvedValue({
 					idLead: 1,
 					idBusiness: null,
+					idUser: 5,
 					active: true,
 					outcomeStatus: 'OPEN',
 				}),

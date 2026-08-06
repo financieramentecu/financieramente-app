@@ -10,6 +10,14 @@ interface UseAgentPermissionsOptions {
 	setValue: UseFormSetValue<BusinessFormData>
 	mode?: 'create' | 'edit'
 	businessAgent?: AgentInfo
+	/**
+	 * Present when the form was opened from a lead conversion. When the lead
+	 * already has an owner (`businessAgent` resolved server-side from
+	 * `Lead.idUser`), the `agent` field defaults to that owner and is locked
+	 * — the Money Strategist responsible for the lead stays responsible for
+	 * the resulting business.
+	 */
+	leadId?: number
 }
 
 /**
@@ -56,6 +64,7 @@ export function useAgentPermissions({
 	setValue,
 	mode = 'create',
 	businessAgent,
+	leadId,
 }: UseAgentPermissionsOptions) {
 	const [agentsList, setAgentsList] = React.useState<UserWithRole[]>([])
 
@@ -68,6 +77,13 @@ export function useAgentPermissions({
 		currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
 		currentUser?.role?.code === UserRole.ADMIN
 
+	// Conversión de lead con owner ya asignado: el campo `agent` se bloquea
+	// y se fija al owner del lead. Nunca aplica en edición (ahí el agente
+	// asignado al negocio ya es inmutable por otra vía — COM-63).
+	const isLeadOwnerLocked = Boolean(
+		mode === 'create' && leadId && businessAgent
+	)
+
 	// Pre-cargar el usuario actual si es AGENTE y establecer el valor del formulario
 	React.useEffect(() => {
 		if (isAgentUser && currentUser) {
@@ -77,7 +93,19 @@ export function useAgentPermissions({
 		}
 	}, [isAgentUser, currentUser, setValue])
 
-	// Cargar agentes en la lista: usuario actual si es AGENTE, y agente del negocio en modo edición
+	// Conversión de lead con owner: fija el campo al owner, sobrescribiendo
+	// cualquier auto-asignación anterior (p. ej. si el usuario actual también
+	// es AGENTE) — el owner del lead siempre gana.
+	React.useEffect(() => {
+		if (isLeadOwnerLocked && businessAgent) {
+			setValue('agent', businessAgent.id.toString(), {
+				shouldValidate: true,
+			})
+		}
+	}, [isLeadOwnerLocked, businessAgent, setValue])
+
+	// Cargar agentes en la lista: usuario actual si es AGENTE, y agente del
+	// negocio en modo edición o cuando el lead ya trae un owner asignado
 	React.useEffect(() => {
 		const agents: UserWithRole[] = []
 
@@ -86,8 +114,7 @@ export function useAgentPermissions({
 			agents.push(currentUser)
 		}
 
-		// En modo edición, agregar el agente del negocio si existe
-		if (mode === 'edit' && businessAgent) {
+		if ((mode === 'edit' || isLeadOwnerLocked) && businessAgent) {
 			const agentUser = agentInfoToUserWithRole(businessAgent)
 			// Evitar duplicados
 			const exists = agents.some((agent) => agent.idUser === agentUser.idUser)
@@ -97,12 +124,13 @@ export function useAgentPermissions({
 		}
 
 		setAgentsList(agents)
-	}, [mode, businessAgent, isAgentUser, currentUser])
+	}, [mode, businessAgent, isAgentUser, currentUser, isLeadOwnerLocked])
 
 	return {
 		agentsList,
 		setAgentsList,
 		isAgentUser,
 		canSearchAgents,
+		isLeadOwnerLocked,
 	}
 }

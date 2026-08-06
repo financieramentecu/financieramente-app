@@ -4,6 +4,44 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.29.1] - 2026-08-05
+
+### Corregido
+
+- **Conversión de lead a negocio sin bloques de documentación:** Se corrigió la puerta de campo `isBlocked` que bloqueaba todos los campos de contacto cuando se convertía un lead desde `/dashboard/negocios/crear?leadId=<id>`. Ahora, los campos (`email`, `name`, `lastNames`, `phone`, `clientOrigin`, `agent`) se desbloquean cuando un lead tiene `leadId`, independientemente de si el documento está completo. El formulario de creación manual (sin `leadId`) sigue bloqueando hasta 5+ caracteres de documento, sin cambios.
+
+- **Resolución automática de cliente existente al convertir lead:** Al convertir un lead a negocio, el sistema ahora resuelve silenciosamente un cliente existente (por documento exacto, luego por email exacto) y lo reutiliza, evitando la creación de duplicados. Si el cliente encontrado por email tiene un documento diferente, se muestra una alerta de decisión en línea para que el usuario elija actualizar o mantener el documento existente. Si no hay coincidencia, el sistema crea un cliente nuevo como antes. La reactivación de clientes inactivos ocurre automáticamente cuando la conversión usa un documento exacto bajo un lead.
+
+- **Indicador visual mejorado de lead convertido en el Kanban:** Se reemplazó el badge de texto "Negocio creado" con un ícono de estrella esmeralda + tooltip, ocupando menos espacio horizontal en las tarjetas del tablero. El indicador persiste independientemente del estado del negocio vinculado (incluso si se cancela).
+
+- **Bloqueo de conversión para leads sin dueño asignado:** Se agregó un bloqueo en tres capas (UI, servicio y transacción) para evitar convertir leads que no tienen propietario (`idUser == null`). El botón de conversión está deshabilitado con una leyenda explicativa en la UI; la consulta de servicio excluye leads sin dueño; y la transacción falla si se intenta una conversión directa. Este bloqueo solo afecta a leads sin propietario; los administradores y roles bypass ven y pueden convertir leads normalmente.
+
+- **Money Strategist fijado y bloqueado al propietario del lead:** Cuando se convierte un lead que tiene un propietario asignado, el campo `agent` (Money Strategist) del formulario se prefill con ese propietario y se bloquea para que no pueda cambiar, incluso para usuarios AGENTE que normalmente se autoasignan. Este comportamiento aplica solo en conversión de lead; la creación manual y la edición no se ven afectadas.
+
+### Técnico
+
+- **Nuevos archivos:**
+  - `src/features/negocios/services/client-resolution.service.ts` — Resuelve clientes existentes por documento (activo), email (activo único), o reactivación de documento inactivo bajo contexto de lead.
+  - `src/features/negocios/actions/resolve-existing-client.ts` — Server Action autenticado que expone la resolución con auditoría `CLIENT_REACTIVATED`.
+  - `src/features/negocios/components/sections/client-identity-conflict-alert.tsx` — Alerta en línea para conflictos de documento en coincidencias de email, con acciones "Actualizar documento" (deshabilitada para roles no privilegiados) y "Mantener el existente".
+  - `src/features/leads/mappers/lead-owner-to-agent-info.ts` — Mapea el propietario del lead a la forma `AgentInfo`.
+
+- **Archivos modificados:**
+  - `src/features/negocios/hooks/use-business-form.ts` — `isBlocked` y `isContractBlocked` centralizados (D3/D4); llamada a resolución (D2); estado y resumidor de `identityConflict` (D5).
+  - `src/features/negocios/components/sections/client-info-section.tsx` — Consume prop `isBlocked`; renderiza `ClientIdentityConflictAlert`.
+  - `src/features/negocios/components/sections/coach-info-section.tsx` — Consume prop `isAgentLocked`; deshabilita `AgentAutocomplete` cuando `isAgentLocked` es true.
+  - `src/features/negocios/components/business-form.tsx` — Pasa `isBlocked`/`isContractBlocked` a hijos.
+  - `src/features/negocios/components/business-wrapper.tsx` — Acepta/reenvía prop `businessAgent`.
+  - `src/features/leads/services/lead-board.service.ts` — Selecciona `idBusiness` en la consulta de tablero.
+  - `src/features/leads/types/lead.types.ts` — Agrega `idBusiness: number | null` a `LeadCard`.
+  - `src/features/leads/components/lead-card.tsx` — Renderiza ícono de estrella con tooltip y bordes esmeralda cuando `idBusiness !== null`.
+  - `src/features/leads/components/lead-detail-sheet.tsx` — Deshabilita botón "Convertir a negocio" con leyenda cuando `lead.idUser == null`.
+  - `src/features/leads/services/lead-conversion.service.ts` — Agrega `idUser: { not: null }` a `getLeadForConversion`; `linkLeadToBusinessTx` lanza excepción si `idUser == null` (defensa en profundidad).
+  - `src/features/leads/hooks/use-agent-permissions.ts` — Nueva opción `leadId` con `isLeadOwnerLocked`; bloquea autoasignación cuando hay propietario de lead.
+  - `src/features/auth/lib/audit-logger.ts` — Agrega acción `CLIENT_REACTIVATED`.
+
+- **Nueva acción de auditoría:** `CLIENT_REACTIVATED` — registra reactivación de clientes inactivos durante conversión de lead.
+
 ## [1.29.0] - 2026-08-05
 
 ### Agregado
