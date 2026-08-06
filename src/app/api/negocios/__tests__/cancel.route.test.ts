@@ -1218,5 +1218,64 @@ describe('PATCH /api/negocios/[id]/cancel', () => {
 			expect(updateCallData).not.toHaveProperty('novedadStatus')
 			expect(updateCallData).not.toHaveProperty('novedadMarkedAt')
 		})
+
+		it('debe dejar intacta cualquier novedad no-null (ej. SOMETIDA_DEVOLUCION) al cancelar el negocio (D10)', async () => {
+			const mockSession = {
+				user: { email: 'admin@example.com' },
+			}
+
+			const mockAdminUser = {
+				...mockUserWithRole,
+				email: 'admin@example.com',
+				role: {
+					idRole: 1,
+					code: UserRole.ADMIN,
+					name: 'Administrador del Sistema',
+					description: 'Acceso total',
+					active: true,
+					createdAt: new Date('2024-01-01'),
+					updatedAt: new Date('2024-01-01'),
+				},
+			}
+
+			const mockExistingBusiness = {
+				...mockPrismaBusiness,
+				status: BUSINESS_STATUS.EMITIDO,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.SOMETIDA_DEVOLUCION,
+			}
+
+			const mockCancelledBusiness = {
+				...mockExistingBusiness,
+				status: BUSINESS_STATUS.CANCELADO,
+				observations: '[CANCELADO] Motivo de prueba con novedad sometida a devolución',
+			}
+
+			const requestBody = {
+				reason: 'Motivo de prueba con novedad sometida a devolución',
+			}
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockCancelBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: requestBody,
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockPrismaFindUnique.mockResolvedValue(mockExistingBusiness as never)
+			mockPrismaUpdate.mockResolvedValue(mockCancelledBusiness as never)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios/1/cancel',
+				{
+					method: 'PATCH',
+					body: JSON.stringify(requestBody),
+				}
+			)
+
+			const params = Promise.resolve({ id: '1' })
+			await PATCH(request, { params })
+
+			const updateCallData = mockPrismaUpdate.mock.calls[0][0].data
+			expect(updateCallData).not.toHaveProperty('novedadStatus')
+		})
 	})
 })
