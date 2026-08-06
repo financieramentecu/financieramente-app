@@ -19,6 +19,7 @@ import {
 import { BusinessStatusBadge } from '../ui/BusinessStatusBadge'
 import { BusinessNovedadBadge } from '../ui/BusinessNovedadBadge'
 import { NovedadActionButton } from '../ui/NovedadActionButton'
+import { NovedadManageTrigger } from '../ui/NovedadManageTrigger'
 import { UserAvatar } from '../ui/UserAvatar'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { Calendar, Phone, Mail, Building2, FileText, Clock, Layers } from 'lucide-react'
@@ -56,6 +57,16 @@ interface BusinessViewModalProps {
 	allowEditDateIssued?: boolean
 	/** Called when user saves a new date issued from the modal */
 	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
+	/** Current user's role code — gates the "Gestionar Novedad" trigger to ANALISTA_SOPORTE/ADMIN */
+	currentUserRoleCode?: string | null
+	/**
+	 * Called after a successful mark/unmark/manage novedad action from within
+	 * this modal. Lets the embedding parent (e.g. `ModalVerNegocio`) refetch
+	 * its own state — this modal's `business` prop otherwise stays stale, and
+	 * `router.refresh()` alone (used internally by the novedad buttons) does
+	 * nothing for a client-fetched parent.
+	 */
+	onNovedadChange?: (business: BusinessEntity) => void
 }
 
 /**
@@ -85,6 +96,8 @@ export function BusinessViewModal({
 	onSaveOrigin,
 	allowEditDateIssued = false,
 	onSaveDateIssued,
+	currentUserRoleCode = null,
+	onNovedadChange,
 }: BusinessViewModalProps) {
 	const [isEditingOrigin, setIsEditingOrigin] = useState(false)
 	const [selectedOriginId, setSelectedOriginId] = useState<string>('')
@@ -388,6 +401,13 @@ export function BusinessViewModal({
 						businessId={business.id}
 						businessStatus={business.status}
 						novedadStatus={business.novedadStatus}
+						onSuccess={onNovedadChange}
+					/>
+					<NovedadManageTrigger
+						businessId={business.id}
+						novedadStatus={business.novedadStatus}
+						userRoleCode={currentUserRoleCode}
+						onSuccess={onNovedadChange}
 					/>
 
 					{/* Flujo de Edición de Origen */}
