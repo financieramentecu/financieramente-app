@@ -6,7 +6,7 @@
 
 import { Badge } from '@/features/shared/ui/badge'
 import { cn } from '@/lib/utils'
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, Undo2, Clock, XCircle, Ban, HelpCircle } from 'lucide-react'
 import type { BusinessNovedadStatus } from '../../types/business-entity.types'
 
 interface BusinessNovedadBadgeProps {
@@ -21,26 +21,53 @@ interface BusinessNovedadBadgeProps {
 }
 
 /**
- * Configuración de colores, ícono y etiqueta por estado de novedad
+ * Configuración de colores, ícono y etiqueta por estado de novedad.
+ * Cada estado combina color e ícono (no solo color) para accesibilidad
+ * (WCAG 1.4.1 — no depender únicamente del color para transmitir información).
  */
 const STATUS_CONFIG: Record<
 	BusinessNovedadStatus,
 	{
 		label: string
 		className: string
-		icon: typeof AlertTriangle
+		icon: typeof AlertCircle
 	}
 > = {
+	NUEVA: {
+		label: 'Nueva',
+		className: 'bg-blue-100 text-blue-800 hover:bg-blue-200 border border-blue-300',
+		icon: AlertCircle,
+	},
+	SOMETIDA_DEVOLUCION: {
+		label: 'Sometida a Devolución',
+		className: 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300',
+		icon: Undo2,
+	},
 	PENDIENTE: {
 		label: 'Pendiente',
 		className: 'bg-orange-100 text-orange-800 hover:bg-orange-200 border border-orange-300',
-		icon: AlertTriangle,
+		icon: Clock,
 	},
-	RESUELTA: {
-		label: 'Resuelta',
-		className: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300',
-		icon: CheckCircle2,
+	DECLINADA: {
+		label: 'Declinada',
+		className: 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-300',
+		icon: XCircle,
 	},
+	CANCELADA: {
+		label: 'Cancelada',
+		className: 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300',
+		icon: Ban,
+	},
+}
+
+/**
+ * Chip neutro de respaldo cuando `novedadStatus` no coincide con ninguna
+ * clave conocida de `STATUS_CONFIG` (defiende contra un backfill no
+ * ejecutado o un valor legado inesperado en la base de datos — D9).
+ */
+const FALLBACK_CONFIG = {
+	className: 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300',
+	icon: HelpCircle,
 }
 
 /**
@@ -49,8 +76,8 @@ const STATUS_CONFIG: Record<
  *
  * @example
  * ```tsx
- * <BusinessNovedadBadge novedadStatus="PENDIENTE" />
- * <BusinessNovedadBadge novedadStatus="RESUELTA" />
+ * <BusinessNovedadBadge novedadStatus="NUEVA" />
+ * <BusinessNovedadBadge novedadStatus="SOMETIDA_DEVOLUCION" />
  * <BusinessNovedadBadge novedadStatus={null} />
  * ```
  */
@@ -64,11 +91,16 @@ export function BusinessNovedadBadge({
 	}
 
 	const config = STATUS_CONFIG[novedadStatus]
-	const Icon = config.icon
-	const label = variant === 'detailed' ? `Novedad ${config.label}` : config.label
+	const Icon = config?.icon ?? FALLBACK_CONFIG.icon
+	const badgeClassName = config?.className ?? FALLBACK_CONFIG.className
+	const label = config
+		? variant === 'detailed'
+			? `Novedad ${config.label}`
+			: config.label
+		: novedadStatus
 
 	return (
-		<Badge className={cn('gap-1', config.className, className)}>
+		<Badge className={cn('gap-1', badgeClassName, className)}>
 			<Icon className="h-3.5 w-3.5" />
 			{label}
 		</Badge>

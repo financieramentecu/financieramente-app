@@ -8,6 +8,22 @@ describe('BusinessNovedadBadge', () => {
 		expect(container).toBeEmptyDOMElement()
 	})
 
+	it('renders "Nueva" in blue when NUEVA', () => {
+		render(<BusinessNovedadBadge novedadStatus="NUEVA" />)
+		const badge = screen.getByText('Nueva')
+		expect(badge).toBeInTheDocument()
+		expect(badge).toHaveClass('bg-blue-100')
+		expect(badge).toHaveClass('text-blue-800')
+	})
+
+	it('renders "Sometida a Devolución" in amber when SOMETIDA_DEVOLUCION', () => {
+		render(<BusinessNovedadBadge novedadStatus="SOMETIDA_DEVOLUCION" />)
+		const badge = screen.getByText('Sometida a Devolución')
+		expect(badge).toBeInTheDocument()
+		expect(badge).toHaveClass('bg-amber-100')
+		expect(badge).toHaveClass('text-amber-800')
+	})
+
 	it('renders "Pendiente" in orange when PENDIENTE', () => {
 		render(<BusinessNovedadBadge novedadStatus="PENDIENTE" />)
 		const badge = screen.getByText('Pendiente')
@@ -16,21 +32,32 @@ describe('BusinessNovedadBadge', () => {
 		expect(badge).toHaveClass('text-orange-800')
 	})
 
-	it('renders "Resuelta" in green/neutral when RESUELTA', () => {
-		render(<BusinessNovedadBadge novedadStatus="RESUELTA" />)
-		const badge = screen.getByText('Resuelta')
+	it('renders "Declinada" in red when DECLINADA', () => {
+		render(<BusinessNovedadBadge novedadStatus="DECLINADA" />)
+		const badge = screen.getByText('Declinada')
 		expect(badge).toBeInTheDocument()
-		expect(badge).toHaveClass('bg-emerald-100')
-		expect(badge).toHaveClass('text-emerald-800')
+		expect(badge).toHaveClass('bg-red-100')
+		expect(badge).toHaveClass('text-red-800')
 	})
 
-	it('renders "Novedad Pendiente" when variant is "detailed" and PENDIENTE', () => {
-		render(<BusinessNovedadBadge novedadStatus="PENDIENTE" variant="detailed" />)
-		expect(screen.getByText('Novedad Pendiente')).toBeInTheDocument()
+	it('renders "Cancelada" in slate when CANCELADA', () => {
+		render(<BusinessNovedadBadge novedadStatus="CANCELADA" />)
+		const badge = screen.getByText('Cancelada')
+		expect(badge).toBeInTheDocument()
+		expect(badge).toHaveClass('bg-slate-100')
+		expect(badge).toHaveClass('text-slate-800')
 	})
 
-	it('renders "Novedad Resuelta" when variant is "detailed" and RESUELTA', () => {
-		render(<BusinessNovedadBadge novedadStatus="RESUELTA" variant="detailed" />)
-		expect(screen.getByText('Novedad Resuelta')).toBeInTheDocument()
+	it('renders "Novedad Nueva" when variant is "detailed" and NUEVA', () => {
+		render(<BusinessNovedadBadge novedadStatus="NUEVA" variant="detailed" />)
+		expect(screen.getByText('Novedad Nueva')).toBeInTheDocument()
+	})
+
+	it('renders a neutral fallback chip for an unrecognized status string (D9)', () => {
+		// @ts-expect-error — intentionally invalid to exercise the defensive fallback
+		render(<BusinessNovedadBadge novedadStatus="UNKNOWN_LEGACY_VALUE" />)
+		const badge = screen.getByText('UNKNOWN_LEGACY_VALUE')
+		expect(badge).toBeInTheDocument()
+		expect(badge).toHaveClass('bg-slate-100')
 	})
 })
