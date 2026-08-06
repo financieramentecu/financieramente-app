@@ -4,6 +4,71 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.30.0] - 2026-08-06
+
+### Agregado
+
+- **Gestión manual del estado de novedad con cinco estados:** Los usuarios ahora pueden registrar el estado real de una novedad (Nueva, Sometido a Devolución, Declinado, Pendiente, Cancelado) sin depender de cambios automáticos. Los analistas de soporte y administradores pueden usar la nueva opción "Gestionar novedad" en el detalle y el menú (⋮) de la tabla para cambiar el estado en cualquier momento. El estado de novedad ya no se resuelve automáticamente cuando el negocio transiciona a Emitido.
+
+- **Endpoint PATCH `/api/negocios/[id]/manage-novedad` para privilegiados:** Restringido a roles `ANALISTA_SOPORTE` y `ADMIN`. Permite transiciones libres (sin estado terminal) entre los cuatro estados manuales. Rechaza intentos de establecer `NUEVA` como destino (esta se asigna solo automáticamente al marcar).
+
+- **Desmarque de novedad con precondiciones de propiedad:** El desmarque de una novedad (`NUEVA`) ahora solo es permitido para el agente titular del negocio, preservando todos los timestamps de novedad (no se limpian). Otros roles pueden usar "Gestionar novedad" → `CANCELADA` para lograr cambios similares sin restricción de propiedad.
+
+### Mejorado
+
+- **Validación de soporte previo a fondeo:** Ambos endpoints de fondeo (`/fondear`, `/fondear-aportes`) ahora rechazan el fondeo cuando `supportCount === 0`, bloqueando antes de cualquier mutación de estado. El mensaje UI es "No se puede fondear sin soportes adjuntos". La edición de `dateAnchored` en un negocio ya fondeado no está sujeta a este guard (el guard aplica solo a acciones de fondeo).
+
+### Corregido
+
+- **Bypass de rol en desmarque de novedad:** Se corrigió un bug donde el desmarque de novedad permitía a `ADMIN` y `ASISTENTE_GERENCIA_OPERATIVA` desmarcar novedades de otros usuarios sin verificar propiedad. Ahora requiere ser el agente titular.
+
+- **Mensaje de error "novedad pendiente" desactualizado:** Se corrigió el mensaje de error en MARK que seguía refiriéndose a "novedad pendiente" en lugar de "novedad nueva".
+
+- **Opción "Gestionar Novedad" en menú (⋮) de tabla:** Se agregó "Gestionar novedad" al menú desplegable de acciones fila en la tabla de negocios, permitiendo acceso rápido sin entrar al detalle.
+
+- **Race condition en cargas de lista de negocios:** Se corrigió un bug donde respuestas HTTP fuera de orden podían sobrescribir resultados más nuevos con datos obsoletos. Se agregó un guard `latestRequestId` en `useBusinesses`.
+
+- **Sidebar en blanco durante carga inicial de sesión:** Se corrigió un problema de UX donde la barra lateral se mostraba vacía mientras se cargaba la sesión. Ahora muestra un skeleton de carga.
+
+- **Menú acordeón del sidebar colapsándose en navegación:** Se corrigió un bug donde el menú acordeón del sidebar se colapsaba al navegar entre secciones. Ahora mantiene los elementos abiertos usando un merge de estado en lugar de sobrescribir.
+
+- **Panel de jerarquía en blanco para usuarios sin árbol:** Se corrigió un bug en el Dashboard de Producción donde el panel de jerarquía reservaba espacio en blanco para usuarios sin árbol jerárquico. Ahora se colapsa completamente cuando está vacío.
+
+- **Usuarios Junior excluidos de propios nodos raíz:** Se corrigió un bug en `buildHierarchyTree` donde usuarios de nivel Junior (sin `beneficiaryMode` OVERRIDE) fueron excluidos de sus propios nodos raíz. Ahora se incluyen.
+
+- **KPIs y Heatmap sin fallback "MS Junior path":** Se corrigió un bug donde los hooks `useProductionKpis` y `useHeatmapTable` no implementaban el patrón de fallback "MS Junior" existente (retornar al `session.user.id` cuando no hay jerarquía). Ahora replican el patrón correctamente.
+
+### Técnico
+
+- **Ampliación de modelo Business:** El campo `novedadStatus` se amplió de dos estados (`PENDIENTE`, `RESUELTA`) a cinco: `NUEVA`, `SOMETIDA_DEVOLUCION`, `DECLINADA`, `PENDIENTE`, `CANCELADA`. Ningún cambio de schema Prisma (sigue siendo `VARCHAR(20)`).
+
+- **Nuevos archivos:**
+  - `src/features/negocios/services/business-novedad.service.ts` — Servicio Prisma para consultas y actualizaciones de novedad.
+  - `src/app/api/negocios/[id]/manage-novedad/route.ts` — Endpoint PATCH con role gate y auditoría.
+  - `src/features/negocios/components/modals/BusinessNovedadManageModal.tsx` — Modal de gestión de novedad.
+  - `src/features/negocios/hooks/use-manage-novedad.ts` — Hook AsyncState para el endpoint.
+  - `prisma/seeds/backfill-novedad-status.ts` — Backfill idempotente de `PENDIENTE`/`RESUELTA` → `NUEVA`.
+
+- **Archivos modificados:**
+  - `src/features/negocios/types/business-entity.types.ts` — 5-state const + `MANUAL_NOVEDAD_STATUSES` (4 valores).
+  - `src/app/api/negocios/[id]/route.ts` — Rama de auto-resolución deletreada de `becomesEmitido` (CA2).
+  - `src/app/api/negocios/[id]/mark-novedad/route.ts` — MARK sets `NUEVA`; UNMARK requiere `NUEVA` + propiedad.
+  - `src/features/negocios/components/ui/BusinessNovedadBadge.tsx` — 5-state palette con iconos (AlertCircle, Undo2, Clock, XCircle, Ban).
+  - `src/features/negocios/components/ui/NovedadActionButton.tsx` — Gates actualizadas a semántica `NUEVA`.
+  - `src/features/negocios/components/ui/BusinessRowActions.tsx` — Nueva opción "Gestionar novedad" inline.
+  - `src/app/dashboard/negocios/[id]/page.tsx`, `components/modals/BusinessViewModal.tsx` — "Gestionar novedad" trigger wiring.
+  - `src/features/auth/lib/audit-logger.ts` — Nueva acción `BUSINESS_NOVEDAD_STATUS_CHANGED`.
+  - `prisma/ERD.md` — Documentación de 5-state field.
+  - `openspec/specs/negocios/spec.md` — Delta spec fusionada (11 ADDED/MODIFIED requirements).
+
+- **Nueva acción de auditoría:** `BUSINESS_NOVEDAD_STATUS_CHANGED` — registra transiciones manuales de estado con from→to detail.
+
+- **Tests:** 393 archivos de prueba, 3423 tests, 0 fallos. Type check limpio (`npx tsc --noEmit`). Test suite completa validada post-fix de P.4.
+
+- **Scripts de soporte:**
+  - `prisma/seeds/backfill-novedad-status.ts --dry-run|--apply` — Migra datos heredados pre-release.
+  - `scripts/remediate-unsupported-funded-businesses.js --dry-run|--apply` — Remediación de negocios fondeados sin soportes.
+
 ## [1.29.1] - 2026-08-05
 
 ### Corregido
