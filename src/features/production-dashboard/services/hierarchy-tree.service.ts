@@ -100,12 +100,17 @@ export async function buildHierarchyTree(
 	}
 
 	// Only include users with an assigned level of type OVERRIDE (exclude BENEFICIARIO_GENERAL)
+	// as *descendants* — this prunes who can appear as someone else's subordinate
+	// in the tree. It must NEVER erase the viewer's own presence in their own
+	// dashboard, so userMap resolves from the full `users` list (see bug regression
+	// test): a viewer whose own level isn't OVERRIDE still gets a valid self node,
+	// otherwise selectedUserIds ends up empty downstream and KPIs/heatmap show zero.
 	const eligibleUsers = users.filter(
 		(u) => u.idLevel !== null && overrideLevelIds.has(u.idLevel)
 	)
 
 	const userMap = new Map<number, UserRow>()
-	for (const user of eligibleUsers) {
+	for (const user of users) {
 		userMap.set(user.idUser, user)
 	}
 
