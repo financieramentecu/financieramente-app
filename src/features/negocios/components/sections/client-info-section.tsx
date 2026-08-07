@@ -13,8 +13,10 @@ import {
 } from '@/features/shared/ui/select'
 import { Separator } from '@/features/shared/ui/separator'
 import { ClientAutocomplete } from '@/features/negocios/components/fields/client-autocomplete'
+import { ClientIdentityConflictAlert } from '@/features/negocios/components/sections/client-identity-conflict-alert'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { Client } from '@prisma/client'
+import type { IdentityConflict } from '@/features/negocios/hooks/use-business-form'
 
 import type {
 	BusinessFormField,
@@ -28,7 +30,22 @@ export interface ClientInfoSectionProps {
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
 	isEditMode?: boolean
+	isBlocked: boolean
+	/**
+	 * True when the form was opened as a lead conversion (`leadId` present).
+	 * Contact fields are already prefilled from the lead — "Crear nuevo
+	 * cliente" (triggered when the typed document has no match) MUST NOT
+	 * wipe them, unlike the manual creation flow where clearing is correct
+	 * (there is no prior data to protect).
+	 */
+	isLeadConversion?: boolean
 	getFieldPermission: (field: BusinessFormField) => FieldPermission
+	/** D5: identity-document conflict raised by the lead-conversion client resolution. */
+	identityConflict?: IdentityConflict
+	onResolveIdentityConflict?: (choice: 'update' | 'keep') => void
+	/** From `canRoleEditClientInfo(currentUser.role.code)` — gates "Actualizar documento". */
+	canUpdateDocument?: boolean
+	isSubmitting?: boolean
 }
 
 export function ClientInfoSection({
@@ -38,7 +55,13 @@ export function ClientInfoSection({
 	onSearchClient,
 	onClientSelected,
 	isEditMode = false,
+	isBlocked,
+	isLeadConversion = false,
 	getFieldPermission,
+	identityConflict,
+	onResolveIdentityConflict,
+	canUpdateDocument = false,
+	isSubmitting = false,
 }: ClientInfoSectionProps) {
 	const {
 		register,
@@ -52,9 +75,6 @@ export function ClientInfoSection({
 	const nameValue = watch('name')
 	const lastNamesValue = watch('lastNames')
 	const phoneValue = watch('phone')
-
-	// En modo creación, se habilitan cuando el documento tiene 5+ caracteres
-	const isBlocked = !isEditMode && (!documentValue || documentValue.length < 5)
 
 	// Referencia para el campo email (para mover el foco)
 	const emailInputRef = React.useRef<HTMLInputElement>(null)
@@ -107,18 +127,23 @@ export function ClientInfoSection({
 		(identityNumber: string) => {
 			setValue('identityNumber', identityNumber, { shouldValidate: true })
 
-			// Limpiar los campos de información del cliente cuando se crea un nuevo usuario
-			setValue('email', '', { shouldValidate: false })
-			setValue('name', '', { shouldValidate: false })
-			setValue('lastNames', '', { shouldValidate: false })
-			setValue('phone', '', { shouldValidate: false })
+			// En conversión de lead los campos de contacto ya vienen prefilled
+			// desde el lead — "Crear nuevo" no debe borrarlos, solo confirma que
+			// el documento tipeado no coincide con ningún cliente existente. En
+			// el flujo manual sí se limpian: no hay datos previos que proteger.
+			if (!isLeadConversion) {
+				setValue('email', '', { shouldValidate: false })
+				setValue('name', '', { shouldValidate: false })
+				setValue('lastNames', '', { shouldValidate: false })
+				setValue('phone', '', { shouldValidate: false })
+			}
 
 			// Mover el foco al campo email
 			setTimeout(() => {
 				emailInputRef.current?.focus()
 			}, 100)
 		},
-		[setValue]
+		[setValue, isLeadConversion]
 	)
 
 	return (
@@ -176,7 +201,7 @@ export function ClientInfoSection({
 							{errors.identityNumber.message}
 						</p>
 					)}
-					{!isEditMode &&
+					{isBlocked &&
 						!errors.identityNumber &&
 						documentValue &&
 						documentValue.length > 0 &&
@@ -314,6 +339,18 @@ export function ClientInfoSection({
 				</div>
 
 			</div>
+
+			{identityConflict && (
+				<ClientIdentityConflictAlert
+					storedIdentityNumber={identityConflict.storedIdentityNumber}
+					typedIdentityNumber={identityConflict.typedIdentityNumber}
+					canUpdateDocument={canUpdateDocument}
+					isSubmitting={isSubmitting}
+					error={identityConflict.error}
+					onKeep={() => onResolveIdentityConflict?.('keep')}
+					onUpdate={() => onResolveIdentityConflict?.('update')}
+				/>
+			)}
 		</div>
 	)
 }
