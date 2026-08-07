@@ -95,3 +95,33 @@ describe('LeadDetailSheet', () => {
 		expect(screen.queryByText('AT')).not.toBeInTheDocument()
 	})
 })
+
+describe('LeadDetailSheet — conversion requires an owner', () => {
+	it('renders "Convertir a negocio" as an active link when the lead has an owner', () => {
+		render(
+			<LeadDetailSheet
+				lead={buildLead({ idUser: 5, idBusiness: null })}
+				open={true}
+				onOpenChange={vi.fn()}
+			/>
+		)
+		const link = screen.getByText('Convertir a negocio').closest('a')
+		expect(link).toHaveAttribute('href', '/dashboard/negocios/crear?leadId=1')
+	})
+
+	it('disables "Convertir a negocio" and shows an explanatory caption when the lead has no owner', () => {
+		render(
+			<LeadDetailSheet
+				lead={buildLead({ idUser: null, idBusiness: null })}
+				open={true}
+				onOpenChange={vi.fn()}
+			/>
+		)
+		const button = screen.getByRole('button', { name: 'Convertir a negocio' })
+		expect(button).toBeDisabled()
+		expect(screen.queryByText('Convertir a negocio')?.closest('a')).toBeNull()
+		expect(
+			screen.getByText(/asigna un owner/i)
+		).toBeInTheDocument()
+	})
+})

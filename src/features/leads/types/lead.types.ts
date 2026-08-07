@@ -41,6 +41,7 @@ export interface LeadCard {
 	idUser: number | null
 	ownerName: string | null
 	outcomeStatus: LeadOutcomeStatus
+	idBusiness: number | null
 }
 
 /**

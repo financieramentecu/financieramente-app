@@ -50,6 +50,7 @@ export async function getLeadBoard(
 				idUser: true,
 				idLeadFunnelColumn: true,
 				outcomeStatus: true,
+				idBusiness: true,
 				user: { select: { name: true, lastName: true } },
 			},
 		}),
@@ -72,6 +73,7 @@ export async function getLeadBoard(
 				idUser: lead.idUser,
 				ownerName: buildOwnerName(lead.user ?? null),
 				outcomeStatus: lead.outcomeStatus,
+				idBusiness: lead.idBusiness,
 			})),
 	}))
 }

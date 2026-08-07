@@ -27,8 +27,8 @@ describe('getLeadBoard', () => {
 			{ idLeadFunnelColumn: 2, name: 'Nuevo', position: 1, isFallback: false },
 		] as never)
 		vi.mocked(prisma.lead.findMany).mockResolvedValue([
-			{ idLead: 10, idLeadFunnelColumn: 2, idUser: 5, name: 'A', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', user: { name: 'Ana', lastName: 'Torres' } },
-			{ idLead: 11, idLeadFunnelColumn: 1, idUser: 5, name: 'B', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', user: null },
+			{ idLead: 10, idLeadFunnelColumn: 2, idUser: 5, name: 'A', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', idBusiness: 77, user: { name: 'Ana', lastName: 'Torres' } },
+			{ idLead: 11, idLeadFunnelColumn: 1, idUser: 5, name: 'B', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', idBusiness: null, user: null },
 		] as never)
 
 		const board = await getLeadBoard(
@@ -41,9 +41,24 @@ describe('getLeadBoard', () => {
 		expect(nuevoColumn?.leads).toHaveLength(1)
 		expect(nuevoColumn?.leads[0].idLead).toBe(10)
 		expect(nuevoColumn?.leads[0].ownerName).toBe('Ana Torres')
+		expect(nuevoColumn?.leads[0].idBusiness).toBe(77)
 
 		const sinMapearColumn = board.find((c) => c.idLeadFunnelColumn === 1)
 		expect(sinMapearColumn?.leads[0].ownerName).toBeNull()
+		expect(sinMapearColumn?.leads[0].idBusiness).toBeNull()
+	})
+
+	it('selects idBusiness in a single query (no extra query per card)', async () => {
+		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([])
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([])
+
+		await getLeadBoard({ idUser: 1, role: { code: UserRole.ADMIN } })
+
+		expect(prisma.lead.findMany).toHaveBeenCalledTimes(1)
+		const callArgs = vi.mocked(prisma.lead.findMany).mock.calls[0][0]
+		expect(callArgs?.select).toEqual(
+			expect.objectContaining({ idBusiness: true })
+		)
 	})
 
 	it('excludes owner-less leads for non-bypass roles', async () => {
