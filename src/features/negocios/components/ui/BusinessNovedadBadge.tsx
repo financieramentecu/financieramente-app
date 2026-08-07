@@ -6,7 +6,7 @@
 
 import { Badge } from '@/features/shared/ui/badge'
 import { cn } from '@/lib/utils'
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react'
 import type { BusinessNovedadStatus } from '../../types/business-entity.types'
 
 interface BusinessNovedadBadgeProps {
@@ -44,6 +44,16 @@ const STATUS_CONFIG: Record<
 }
 
 /**
+ * Chip neutro de respaldo para cuando `novedadStatus` no coincide con ninguna
+ * clave conocida de `STATUS_CONFIG` — defiende contra datos de otra rama/
+ * migración en curso que ya usa un vocabulario de estados más amplio.
+ */
+const FALLBACK_CONFIG = {
+	className: 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300',
+	icon: HelpCircle,
+}
+
+/**
  * Badge de novedad para negocios
  * No renderiza nada cuando `novedadStatus` es `null` (negocio nunca marcado)
  *
@@ -64,11 +74,16 @@ export function BusinessNovedadBadge({
 	}
 
 	const config = STATUS_CONFIG[novedadStatus]
-	const Icon = config.icon
-	const label = variant === 'detailed' ? `Novedad ${config.label}` : config.label
+	const Icon = config?.icon ?? FALLBACK_CONFIG.icon
+	const badgeClassName = config?.className ?? FALLBACK_CONFIG.className
+	const label = config
+		? variant === 'detailed'
+			? `Novedad ${config.label}`
+			: config.label
+		: novedadStatus
 
 	return (
-		<Badge className={cn('gap-1', config.className, className)}>
+		<Badge className={cn('gap-1', badgeClassName, className)}>
 			<Icon className="h-3.5 w-3.5" />
 			{label}
 		</Badge>

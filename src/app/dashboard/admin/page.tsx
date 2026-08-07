@@ -12,6 +12,7 @@ import {
 	Users,
 	Tag,
 	Percent,
+	ShieldCheck,
 } from 'lucide-react'
 
 export default function AdminDashboardPage() {
@@ -63,6 +64,12 @@ export default function AdminDashboardPage() {
 			description: 'Gestionar descuentos de impuesto y clawback',
 			href: '/dashboard/admin/discounts',
 			icon: <Percent className="h-5 w-5 text-primary" />,
+		},
+		{
+			title: 'Permisos de Reportes',
+			description: 'Configurar qué categorías pueden ver cada reporte',
+			href: '/dashboard/admin/report-permissions',
+			icon: <ShieldCheck className="h-5 w-5 text-primary" />,
 		},
 	]
 

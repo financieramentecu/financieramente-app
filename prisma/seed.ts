@@ -13,6 +13,7 @@ import { seedUsers } from './seeds/user'
 import { seedProductPercentages } from './seeds/product-percentage'
 import { seedDistributionByLevel } from './seeds/distribution-by-level'
 import { seedLeadFunnelColumns } from './seeds/lead-funnel-columns'
+import { seedReportPermissions } from './seeds/report-permissions'
 // import { seedSettlements } from './seeds/settlements'
 
 const prisma = new PrismaClient()
@@ -38,6 +39,9 @@ async function main() {
 		// 2. Estructura de negocio
 		await seedLevels(prisma)
 		await seedNewCategories(prisma)
+
+		// 2.05 Reportes: catálogo + permisos por categoría (después de categorías)
+		await seedReportPermissions(prisma)
 
 		// 2.1 Descuentos (debe estar antes de productos para que puedan usarse)
 		await seedDiscount(prisma)

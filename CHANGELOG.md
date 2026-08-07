@@ -4,6 +4,26 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.30.0] - 2026-08-05
+
+### Agregado
+
+- **Permisos de Reportes por categoría (COM-80):** Nueva sección en Administración para configurar qué categorías de usuario pueden ver cada reporte del catálogo. Incluye selección de reporte, checkboxes por categoría, control **Todas**, validación al guardar (mínimo una categoría) y confirmación en toast.
+- **Menú Reportes dinámico:** El grupo **Reportes** y sus sub-ítems se muestran según los permisos de reporte de la categoría del usuario autenticado (códigos estables), no solo por flags estáticos de rol. Bypass de administrador preservado.
+- **Reporte Producción Real (COM-81):** Nuevo reporte en `/dashboard/reportes/produccion-real` con filtros (fecha de creación con mes actual por defecto en Bogotá, tipo de aporte, compañía incluyendo SKANDIA, modos de moneda), árbol jerárquico reutilizable, cuatro KPIs (Producción Real, Regular, Único, Fondeado con % de conversión), barras Regular vs Única, tabla de detalle con scroll continuo y exportación Excel de tres hojas (Resumen KPI, Regular vs Única, Detalle).
+- **Reglas de negocio del reporte:** Exclusión global MFUND (SKANDIA + MFUND); KPI Único excluye 2ª+ Anualidad; moneda Todas convierte a USD con TRM automática; modos Peso Colombiano y Moneda Extranjera en montos nativos.
+- **Seed por defecto:** Categoría **Performance Leader** habilitada para el código `PRODUCCION_REAL` tras migrar/sembrar.
+
+### Técnico
+
+- **Prisma models:** `ReportDefinition` (`code`, `name`, `description`, `routePath`, soft-delete `status`) and `CategoryReportPermission` (unique per report+category, soft-delete `status`); tables `report_definition` / `category_report_permission`.
+- **Migration:** `20260805150000_add_report_permissions` — additive schema; apply with `prisma migrate deploy` when DB is available, then run seed (`prisma/seeds/report-permissions.ts`).
+- **Features:** `src/features/report-permissions/` (admin UI, hooks with `AsyncState`, Zod schemas, service-layer Prisma, soft-delete replace permissions) and `src/features/reports/produccion-real/` (filters, KPIs, hierarchy scope, currency conversion, detail mapper, Excel builder).
+- **API routes (HTTP only → services):** `GET/PUT /api/report-permissions`, `GET /api/reports/me`, `GET /api/reports/produccion-real/kpis|detail|export`.
+- **Navigation:** `menu-items.tsx` + `menu-builder.ts` gate **Reportes** / **Producción Real** and Administración **Permisos de Reportes** via authorized report codes.
+- **Audit actions:** `REPORT_PERMISSION_UPDATED`, `REPORT_EXPORTED`.
+- **ERD:** Updated `prisma/ERD.md` for new models and Category relations.
+- **Tests:** Unit/integration coverage for permissions helpers, soft-delete replace, can-view-report, menu builder Reportes, Producción Real WHERE/KPI/currency/export helpers and routes.
 ## [1.29.1] - 2026-08-05
 
 ### Corregido

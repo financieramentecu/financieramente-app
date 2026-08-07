@@ -19,6 +19,7 @@ import {
 	Receipt,
 	Pyramid,
 	Kanban,
+	ShieldCheck,
 } from 'lucide-react'
 
 /**
@@ -29,6 +30,8 @@ export interface MenuItem {
 	url: string
 	icon: React.ReactNode
 	subItems?: MenuItem[]
+	/** Stable report code for category-gated Reportes sub-items */
+	reportCode?: string
 }
 
 /**
@@ -89,19 +92,10 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		icon: <BarChart3 className="h-4 w-4" />,
 		subItems: [
 			{
-				title: 'Todos los Reportes',
-				url: '/dashboard/reportes',
+				title: 'Producción Real',
+				url: '/dashboard/reportes/produccion-real',
 				icon: <BarChart3 className="h-4 w-4" />,
-			},
-			{
-				title: 'Reportes de Negocio',
-				url: '/dashboard/reportes/negocio',
-				icon: <BarChart3 className="h-4 w-4" />,
-			},
-			{
-				title: 'Mis Reportes',
-				url: '/dashboard/reportes/personales',
-				icon: <BarChart3 className="h-4 w-4" />,
+				reportCode: 'PRODUCCION_REAL',
 			},
 		],
 	},
@@ -164,6 +158,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				title: 'Columnas del Funnel de Leads',
 				url: '/dashboard/admin/lead-funnel-columns',
 				icon: <Kanban className="h-4 w-4" />,
+			},
+			{
+				title: 'Permisos de Reportes',
+				url: '/dashboard/admin/report-permissions',
+				icon: <ShieldCheck className="h-4 w-4" />,
 			},
 		],
 	},
