@@ -2,13 +2,19 @@ import { UserRole } from '@/features/auth/lib/roles'
 import { RolePermissions } from '@/features/auth/lib/permissions'
 import { ALL_MENU_ITEMS, AGENTE_MENU_ITEMS, MenuItem } from './menu-items'
 
+export interface BuildMenuFlags {
+	isCalculadoraEnabled?: boolean
+	/** Authorized report codes from category permissions (or ADMIN bypass) */
+	authorizedReportCodes?: readonly string[]
+}
+
 /**
  * Construye el menú de navegación según el rol y permisos del usuario
  */
 export function buildMenuByRole(
 	role: UserRole | string | null | undefined,
 	permissions: RolePermissions | null | undefined,
-	flags?: { isCalculadoraEnabled?: boolean }
+	flags?: BuildMenuFlags
 ): MenuItem[] {
 	// Si no hay rol, retornar menú vacío
 	if (!role || !permissions) {
@@ -17,11 +23,17 @@ export function buildMenuByRole(
 
 	// Agente tiene un menú completamente personalizado
 	if (role === UserRole.AGENTE) {
+		let items = AGENTE_MENU_ITEMS
 		// Si la calculadora está deshabilitada, filtrarla
 		if (flags?.isCalculadoraEnabled === false) {
-			return AGENTE_MENU_ITEMS.filter(item => item.title !== 'Calculadora')
+			items = items.filter((item) => item.title !== 'Calculadora')
 		}
-		return AGENTE_MENU_ITEMS
+		// Append authorized Reportes for agents (category-gated)
+		const reportesItem = buildReportesMenuItem(flags?.authorizedReportCodes)
+		if (reportesItem) {
+			items = [...items, reportesItem]
+		}
+		return items
 	}
 
 	// Para otros roles, filtrar items según permisos
@@ -88,27 +100,15 @@ export function buildMenuByRole(
 			continue
 		}
 
-		// Reportes
+		// Reportes — gated by authorized report codes (category permissions).
+		// Legacy stubs without reportCode are hidden.
 		if (item.title === 'Reportes') {
-			if (
-				permissions.reportes.all ||
-				permissions.reportes.business ||
-				permissions.reportes.personal
-			) {
-				const subItems = item.subItems?.filter((subItem) => {
-					if (subItem.title === 'Todos los Reportes')
-						return permissions.reportes.all
-					if (subItem.title === 'Reportes de Negocio')
-						return permissions.reportes.business
-					if (subItem.title === 'Mis Reportes')
-						return permissions.reportes.personal
-					return false
-				})
-
-				filteredItems.push({
-					...item,
-					subItems: subItems && subItems.length > 0 ? subItems : undefined,
-				})
+			const reportesItem = buildReportesMenuItem(
+				flags?.authorizedReportCodes,
+				item
+			)
+			if (reportesItem) {
+				filteredItems.push(reportesItem)
 			}
 			continue
 		}
@@ -130,6 +130,43 @@ export function buildMenuByRole(
 	}
 
 	return filteredItems
+}
+
+/**
+ * Filters Reportes sub-items by authorized report codes.
+ * Items without reportCode (legacy stubs) are never shown.
+ */
+function buildReportesMenuItem(
+	authorizedReportCodes: readonly string[] | undefined,
+	baseItem?: MenuItem
+): MenuItem | null {
+	const codes = authorizedReportCodes ?? []
+	if (codes.length === 0) {
+		return null
+	}
+
+	const source =
+		baseItem ??
+		ALL_MENU_ITEMS.find((item) => item.title === 'Reportes')
+
+	if (!source) {
+		return null
+	}
+
+	const subItems = source.subItems?.filter(
+		(subItem) =>
+			Boolean(subItem.reportCode) && codes.includes(subItem.reportCode!)
+	)
+
+	if (!subItems || subItems.length === 0) {
+		return null
+	}
+
+	return {
+		...source,
+		url: subItems[0]!.url,
+		subItems,
+	}
 }
 
 /**

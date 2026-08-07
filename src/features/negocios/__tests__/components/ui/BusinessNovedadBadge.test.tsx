@@ -33,4 +33,17 @@ describe('BusinessNovedadBadge', () => {
 		render(<BusinessNovedadBadge novedadStatus="RESUELTA" variant="detailed" />)
 		expect(screen.getByText('Novedad Resuelta')).toBeInTheDocument()
 	})
+
+	it('falls back to a neutral chip instead of crashing on an unrecognized novedadStatus', () => {
+		// Guards against shared-database drift: a value written by another
+		// branch's wider status vocabulary must never crash this component.
+		render(
+			<BusinessNovedadBadge
+				novedadStatus={'NUEVA' as unknown as 'PENDIENTE'}
+			/>
+		)
+		const badge = screen.getByText('NUEVA')
+		expect(badge).toBeInTheDocument()
+		expect(badge).toHaveClass('bg-slate-100')
+	})
 })
