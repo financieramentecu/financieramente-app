@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react'
 import { useHierarchySelection } from '@/features/production-dashboard/components/HierarchySelectionContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/features/shared/ui/card'
+import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
+import type { BusinessStatus } from '@/features/negocios/types/business-entity.types'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 import { formatReportMoney } from '../lib/format-report-money'
 import { PRODUCCION_REAL_UI } from '../lib/ui-copy'
@@ -76,36 +78,36 @@ export function ProduccionRealDetailTable({
 
 				<div ref={scrollContainerRef} className="max-h-[28rem] overflow-auto">
 					<table className="w-full min-w-[64rem] text-left text-xs">
-						<thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur">
-							<tr className="border-b border-border">
-								<th className="px-3 py-2 font-semibold">
+						<thead className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
+							<tr>
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_CREATED}
 								</th>
-								<th className="px-3 py-2 font-semibold">
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_CLIENT}
 								</th>
-								<th className="px-3 py-2 font-semibold">
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_AGENT}
 								</th>
-								<th className="px-3 py-2 font-semibold">
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_COMPANY}
 								</th>
-								<th className="px-3 py-2 font-semibold">
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_PRODUCT}
 								</th>
-								<th className="px-3 py-2 font-semibold">
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_TYPE}
 								</th>
-								<th className="px-3 py-2 font-semibold">
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_STATUS}
 								</th>
-								<th className="px-3 py-2 font-semibold text-right">
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground text-right">
 									{PRODUCCION_REAL_UI.COLUMN_VALUE}
 								</th>
-								<th className="px-3 py-2 font-semibold">
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_ISSUED}
 								</th>
-								<th className="px-3 py-2 font-semibold">
+								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_ANCHORED}
 								</th>
 							</tr>
@@ -135,27 +137,40 @@ export function ProduccionRealDetailTable({
 								</tr>
 							) : null}
 
-							{rows.map((row) => (
+							{rows.map((row, index) => (
 								<tr
 									key={row.idBusiness}
-									className="border-b border-border/60 hover:bg-muted/40"
+									className={`border-b border-border/60 transition-colors hover:bg-muted/60 ${
+										index % 2 === 1 ? 'bg-muted/25' : ''
+									}`}
 								>
-									<td className="px-3 py-2 whitespace-nowrap">
+									<td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
 										{row.createdAtLabel}
 									</td>
-									<td className="px-3 py-2">{row.clientName}</td>
-									<td className="px-3 py-2">{row.agentName}</td>
-									<td className="px-3 py-2">{row.companyName}</td>
-									<td className="px-3 py-2">{row.productName}</td>
-									<td className="px-3 py-2">{row.contributionTypeLabel}</td>
-									<td className="px-3 py-2">{row.status ?? '—'}</td>
-									<td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">
+									<td className="px-3 py-2.5 font-semibold text-foreground">
+										{row.clientName}
+									</td>
+									<td className="px-3 py-2.5">{row.agentName}</td>
+									<td className="px-3 py-2.5">{row.companyName}</td>
+									<td className="px-3 py-2.5">{row.productName}</td>
+									<td className="px-3 py-2.5">{row.contributionTypeLabel}</td>
+									<td className="px-3 py-2.5">
+										{row.status ? (
+											<BusinessStatusBadge
+												status={row.status as BusinessStatus}
+												className="text-[11px]"
+											/>
+										) : (
+											<span className="text-muted-foreground">—</span>
+										)}
+									</td>
+									<td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap font-bold text-sm text-foreground">
 										{formatReportMoney(row.value, displayCurrency)}
 									</td>
-									<td className="px-3 py-2 whitespace-nowrap">
+									<td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
 										{row.dateIssuedLabel || '—'}
 									</td>
-									<td className="px-3 py-2 whitespace-nowrap">
+									<td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
 										{row.dateAnchoredLabel || '—'}
 									</td>
 								</tr>

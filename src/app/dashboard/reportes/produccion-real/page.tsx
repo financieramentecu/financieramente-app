@@ -38,14 +38,6 @@ export default async function ProduccionRealPage() {
 	return (
 		<DashboardLayout currentPage={PRODUCCION_REAL_UI.PAGE_TITLE} disableScroll>
 			<div className="flex h-full min-h-0 flex-col">
-				<div className="shrink-0 border-b border-border bg-background px-6 py-4">
-					<h1 className="text-2xl font-bold tracking-tight">
-						{PRODUCCION_REAL_UI.PAGE_TITLE}
-					</h1>
-					<p className="mt-1 text-sm text-muted-foreground">
-						{PRODUCCION_REAL_UI.PAGE_SUBTITLE}
-					</p>
-				</div>
 				<ProduccionRealShell />
 			</div>
 		</DashboardLayout>
