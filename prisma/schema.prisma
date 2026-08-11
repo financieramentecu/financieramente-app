@@ -71,8 +71,39 @@ model Category {
   updatedAt      DateTime     @updatedAt @map("updated_at")
   categoryType   CategoryType @relation(fields: [idCategoryType], references: [id])
   users          User[]
+  reportPermissions CategoryReportPermission[]
 
   @@map("category")
+}
+
+model ReportDefinition {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(150)
+  description String?
+  routePath   String   @map("route_path") @db.VarChar(200)
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  permissions CategoryReportPermission[]
+
+  @@map("report_definition")
+}
+
+model CategoryReportPermission {
+  id         Int              @id @default(autoincrement())
+  idReport   Int              @map("id_report")
+  idCategory Int              @map("id_category")
+  status     Boolean          @default(true)
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+  report     ReportDefinition @relation(fields: [idReport], references: [id])
+  category   Category         @relation(fields: [idCategory], references: [id])
+
+  @@unique([idReport, idCategory])
+  @@index([idCategory])
+  @@index([idReport])
+  @@map("category_report_permission")
 }
 
 model CategoryType {

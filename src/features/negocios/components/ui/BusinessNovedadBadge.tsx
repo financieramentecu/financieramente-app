@@ -6,7 +6,7 @@
 
 import { Badge } from '@/features/shared/ui/badge'
 import { cn } from '@/lib/utils'
-import { AlertCircle, Undo2, Clock, XCircle, Ban, HelpCircle } from 'lucide-react'
+import { AlertCircle, Undo2, Clock, XCircle, Ban, HelpCircle, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import type { BusinessNovedadStatus } from '../../types/business-entity.types'
 
 interface BusinessNovedadBadgeProps {
@@ -64,6 +64,16 @@ const STATUS_CONFIG: Record<
  * Chip neutro de respaldo cuando `novedadStatus` no coincide con ninguna
  * clave conocida de `STATUS_CONFIG` (defiende contra un backfill no
  * ejecutado o un valor legado inesperado en la base de datos — D9).
+ */
+const FALLBACK_CONFIG = {
+	className: 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300',
+	icon: HelpCircle,
+}
+
+/**
+ * Chip neutro de respaldo para cuando `novedadStatus` no coincide con ninguna
+ * clave conocida de `STATUS_CONFIG` — defiende contra datos de otra rama/
+ * migración en curso que ya usa un vocabulario de estados más amplio.
  */
 const FALLBACK_CONFIG = {
 	className: 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300',
