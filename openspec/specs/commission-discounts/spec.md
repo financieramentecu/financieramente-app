@@ -162,18 +162,9 @@ The `commission_configuration` table has been dropped from the database via migr
 - GIVEN `prisma/seeds/discount.ts` is executed
 - WHEN the seed runs
 - THEN it SHALL NOT attempt to read or write to `commission_configuration`
-<<<<<<< HEAD
-# Delta for Commission Discounts
-
-This delta specifies the requirements and scenarios introduced by the admin-discount change. The main spec is `openspec/specs/commission-discounts/spec.md`.
-
-## ADDED Requirements
-=======
-
 ---
 
 ## Requirements (from admin-discount — archived 2026-03-31)
->>>>>>> develop
 
 ### Requirement: CommissionDiscount model and one-active-per-type constraint
 
@@ -286,11 +277,7 @@ The system SHALL record audit log entries for discount lifecycle events. New act
 
 The system SHALL migrate or deprecate existing CommissionConfiguration so that CommissionDiscount becomes the single source of truth for settlement percentages. If migration is chosen, the system SHALL ensure at least one ACTIVE discount per type exists after migration (or seed); process-batch SHALL use CommissionDiscount with fallback defaults when none active.
 
-<<<<<<< HEAD
-#### Scenario: Process-batch uses CommissionDiscount (see load-file-v2 delta)
-=======
 #### Scenario: Process-batch uses CommissionDiscount (see load-file-v2 spec)
->>>>>>> develop
 
 - GIVEN process-batch is saving a synchronized or LAG record
 - WHEN the system resolves discount and clawback percentages
