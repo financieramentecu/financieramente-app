@@ -23,6 +23,8 @@ erDiagram
     Level ||--o| Level : "siguiente en jerarquía"
     User ||--o{ Level : "beneficiario fijo nivel"
     Category ||--o{ User : "categoría del usuario"
+    Category ||--o{ CategoryReportPermission : "permisos de reportes"
+    ReportDefinition ||--o{ CategoryReportPermission : "categorías habilitadas"
     Role ||--o{ User : "rol asignado"
     Role ||--o{ AuditLog : "rol en auditoría"
     BuyPeriodicity ||--o{ Business : "periodicidad de compra"
@@ -116,6 +118,26 @@ erDiagram
         string name
         int id_category_type FK
         text description
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
+
+    ReportDefinition {
+        int id PK
+        string code UK
+        string name
+        text description
+        string route_path
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
+
+    CategoryReportPermission {
+        int id PK
+        int id_report FK
+        int id_category FK
         boolean status
         datetime created_at
         datetime updated_at
@@ -513,3 +535,4 @@ erDiagram
 - **Nueva tabla `comment`** (migración `20260710180400_add_comment_model`): comentarios por contrato, creados por `AGENTE` (Money Strategist) o `ANALISTA_SOPORTE` (Analista de Soporte). `title` `VARCHAR(40)` y `detail` `VARCHAR(200)` reflejan los límites de UI. `status` (boolean, default `true`) se mantiene reservado para soft-delete futuro — esta iteración es create-only, sin endpoints de edición/borrado. Índice compuesto `(business_id, created_at)` para listar el hilo ordenado cronológicamente. FK a `business` y `user` (autor).
 - **Nuevas tablas `lead_funnel_column` y `lead`** (migración `20260803190000_add_leads_module`, feature `leads-crm-sync`): representan el embudo de leads sincronizado desde un CRM externo (GoHighLevel vía n8n) antes de que exista un `Business`. `lead_funnel_column.external_status_key` es único y mapea el `statusKey` agnóstico enviado por el webhook; incluye una columna fija no eliminable `is_fallback = true` ("Sin mapear", `external_status_key = '__unmapped__'`) sembrada por `prisma/seeds/lead-funnel-columns.ts`, que recibe cualquier `statusKey` sin mapeo. `lead.external_crm_id` es único y nullable — motor de idempotencia del webhook vía `upsert`. `lead.id_user` (FK nullable, `ON DELETE SET NULL`) es el propietario resuelto por `ownerEmail`; un lead con `id_user = null` es visible únicamente para roles en `HIERARCHY_BYPASS_ROLES` (ver `src/features/auth/lib/hierarchy.ts`). `lead.id_business` (FK nullable y única, `ON DELETE SET NULL`) se completa solo al convertir manualmente el lead en `Client` + `Business`; el `@unique` es el respaldo a nivel de base de datos contra doble conversión. Soft delete vía `active` en ambas tablas — nunca `delete()` físico. Índices en `lead.id_user`, `lead.id_lead_funnel_column` y `lead_funnel_column.position`.
 - **`Lead.outcome_status`** (migración `20260804000000_add_lead_outcome_status`): nuevo enum Prisma `LeadOutcomeStatus` (`OPEN | WON | LOST | ABANDONED`), `NOT NULL DEFAULT 'OPEN'`, índice compuesto `(outcome_status, created_at)` para el filtro por defecto del tablero. El webhook nunca rechaza un valor desconocido: normaliza a `OPEN` y audita `LEAD_OUTCOME_STATUS_UNRESOLVED`. **`WON` es terminal**: una vez persistido, ningún webhook posterior puede cambiarlo — el intento se descarta silenciosamente (HTTP 200, resto del payload sí se aplica) y se audita `LEAD_OUTCOME_STATUS_LOCKED`; `LOST`/`ABANDONED` no son terminales. El lock vive enteramente en `resolveOutcomeStatus()` (`src/features/leads/lib/lead-outcome-status.ts`), no en un trigger de base de datos.
+- **Nuevas tablas `report_definition` y `category_report_permission`** (migración `20260805150000_add_report_permissions`, feature reportes/COM-80): catálogo de reportes con `code` único estable (p. ej. `PRODUCCION_REAL`) y habilitación por `Category`. Soft delete en ambas vía `status = false` — nunca `delete()` físico. Unique compuesto `(id_report, id_category)`. Save reemplaza el set: upsert `status=true` para seleccionadas; soft-disable las no seleccionadas. Seed habilita **Performance Leader** → `PRODUCCION_REAL`. ADMIN bypasea la validación de categoría al ver reportes.
