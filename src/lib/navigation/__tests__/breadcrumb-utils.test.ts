@@ -34,4 +34,20 @@ describe('buildBreadcrumbsFromPathname', () => {
 			'/dashboard/config-distribucion-comisiones/C%2BS-PROPIO-JUNIOR'
 		)
 	})
+
+	it('uses Spanish labels for report permissions and Producción Real', () => {
+		expect(
+			buildBreadcrumbsFromPathname('/dashboard/admin/report-permissions')
+		).toEqual([
+			{ label: 'Administración', href: '/dashboard/admin' },
+			{ label: 'Permisos de Reportes', href: undefined },
+		])
+
+		expect(
+			buildBreadcrumbsFromPathname('/dashboard/reportes/produccion-real')
+		).toEqual([
+			{ label: 'Reportes', href: '/dashboard/reportes' },
+			{ label: 'Producción Real', href: undefined },
+		])
+	})
 })
