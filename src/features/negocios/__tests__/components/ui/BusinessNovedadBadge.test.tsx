@@ -53,23 +53,13 @@ describe('BusinessNovedadBadge', () => {
 		expect(screen.getByText('Novedad Nueva')).toBeInTheDocument()
 	})
 
-	it('renders a neutral fallback chip for an unrecognized status string (D9)', () => {
+	it('renders a neutral fallback chip for an unrecognized status string instead of crashing (D9)', () => {
+		// Guards against a backfill that hasn't run yet, a legacy DB value, or
+		// data written by another branch with a wider status vocabulary while
+		// both share the same database.
 		// @ts-expect-error — intentionally invalid to exercise the defensive fallback
 		render(<BusinessNovedadBadge novedadStatus="UNKNOWN_LEGACY_VALUE" />)
 		const badge = screen.getByText('UNKNOWN_LEGACY_VALUE')
-		expect(badge).toBeInTheDocument()
-		expect(badge).toHaveClass('bg-slate-100')
-	})
-
-	it('falls back to a neutral chip instead of crashing on an unrecognized novedadStatus', () => {
-		// Guards against shared-database drift: a value written by another
-		// branch's wider status vocabulary must never crash this component.
-		render(
-			<BusinessNovedadBadge
-				novedadStatus={'NUEVA' as unknown as 'PENDIENTE'}
-			/>
-		)
-		const badge = screen.getByText('NUEVA')
 		expect(badge).toBeInTheDocument()
 		expect(badge).toHaveClass('bg-slate-100')
 	})
