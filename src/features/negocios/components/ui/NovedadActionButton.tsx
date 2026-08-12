@@ -37,9 +37,8 @@ export function NovedadActionButton({
 	const isLoading = state.status === 'loading'
 
 	const canMark =
-		businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA &&
-		novedadStatus !== BUSINESS_NOVEDAD_STATUS.PENDIENTE
-	const canUnmark = novedadStatus === BUSINESS_NOVEDAD_STATUS.PENDIENTE
+		businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA && novedadStatus === null
+	const canUnmark = novedadStatus === BUSINESS_NOVEDAD_STATUS.NUEVA
 
 	if (!canMark && !canUnmark) {
 		return null

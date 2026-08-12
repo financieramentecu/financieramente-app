@@ -303,4 +303,39 @@ describe('buildHierarchyTree', () => {
 		}
 		expect(allIncluded(result)).toBe(true)
 	})
+
+	it('(bug regression) a non-bypass viewer whose own level is NOT beneficiaryMode OVERRIDE still sees themselves as a root node (never an empty tree)', async () => {
+		// A level with beneficiaryMode 'BENEFICIARIO_GENERAL' is excluded from
+		// eligibleUsers for tree-pruning purposes — but that must never erase the
+		// viewer's own presence in their own dashboard's hierarchy tree, or every
+		// downstream consumer (selectedUserIds, KPI/heatmap queries) sees zero data.
+		const levelsWithBeneficiarioGeneral = [
+			...LEVELS,
+			{ idLevel: 6, code: 'BENEFICIARIO', name: 'Beneficiario', color: '#666666', status: true, idNextLevel: null, beneficiaryMode: 'BENEFICIARIO_GENERAL' },
+		]
+		const usersWithLeafViewer = [
+			...ACTIVE_USERS,
+			{ idUser: 6, name: 'Leaf', lastName: 'Agent', idLevel: 6, idCategory: 14, idUserLeader: null, category: { name: 'Categoría E' } },
+		]
+		const leafViewer: SessionUser = {
+			idUser: 6,
+			name: 'Leaf',
+			lastName: 'Agent',
+			email: 'leaf@test.com',
+			active: true,
+			idLevel: 6,
+			idCategory: null,
+			idUserLeader: null,
+			role: { code: 'AGENTE' },
+			level: { code: 'BENEFICIARIO' },
+		}
+		const prisma = makeMockPrisma(usersWithLeafViewer, levelsWithBeneficiarioGeneral)
+
+		const result = await buildHierarchyTree(leafViewer, prisma)
+
+		expect(result).toHaveLength(1)
+		expect(result[0].userId).toBe(6)
+		expect(result[0].fullName).toBe('Leaf Agent')
+		expect(result[0].children).toEqual([])
+	})
 })

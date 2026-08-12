@@ -50,6 +50,7 @@ export interface MisNegociosPageProps {
 	onSaveDateAnchored?: (businessId: number, dateAnchored: string) => Promise<void>
 	onMarkNovedad?: (business: Business) => void
 	onUnmarkNovedad?: (business: Business) => void
+	onManageNovedadSuccess?: (business: Business) => void
 }
 
 function StatsLoadingSkeleton() {
@@ -117,6 +118,7 @@ export function MisNegociosPage({
 	onSaveDateAnchored,
 	onMarkNovedad,
 	onUnmarkNovedad,
+	onManageNovedadSuccess,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
 	const isAgentUser = true // Stats visible for all roles; data is scoped server-side
@@ -186,6 +188,7 @@ export function MisNegociosPage({
 						onSaveDateAnchored={onSaveDateAnchored}
 						onMarkNovedad={onMarkNovedad}
 						onUnmarkNovedad={onUnmarkNovedad}
+						onManageNovedadSuccess={onManageNovedadSuccess}
 					/>
 				)}
 			</div>

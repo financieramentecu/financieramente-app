@@ -67,7 +67,7 @@ describe('BusinessTableSection — Novedad column', () => {
 			/>
 		)
 		expect(screen.queryByText('Pendiente')).not.toBeInTheDocument()
-		expect(screen.queryByText('Resuelta')).not.toBeInTheDocument()
+		expect(screen.queryByText('Nueva')).not.toBeInTheDocument()
 	})
 
 	it('renders "Pendiente" badge when novedadStatus is PENDIENTE', () => {
@@ -82,14 +82,14 @@ describe('BusinessTableSection — Novedad column', () => {
 		expect(screen.getByText('formatted:2026-07-30T12:00:00.000Z')).toBeInTheDocument()
 	})
 
-	it('renders "Resuelta" badge when novedadStatus is RESUELTA', () => {
+	it('renders "Nueva" badge when novedadStatus is NUEVA', () => {
 		render(
 			<BusinessTableSection
-				data={[buildBusiness({ novedadStatus: 'RESUELTA', novedadMarkedAt: '2026-07-30T12:00:00.000Z' })]}
+				data={[buildBusiness({ novedadStatus: 'NUEVA', novedadMarkedAt: '2026-07-30T12:00:00.000Z' })]}
 				onAddBusiness={vi.fn()}
 				onEditBusiness={vi.fn()}
 			/>
 		)
-		expect(screen.getByText('Resuelta')).toBeInTheDocument()
+		expect(screen.getByText('Nueva')).toBeInTheDocument()
 	})
 })

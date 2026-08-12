@@ -90,20 +90,24 @@ export function NavMain({ items }: { items: NavItem[] }) {
 	const pathname = usePathname()
 	const [openItems, setOpenItems] = useState<Set<string>>(new Set())
 
-	// Abrir automáticamente el item si alguno de sus subitems está activo
+	// Abrir automáticamente el item cuyo subitem está activo, preservando
+	// cualquier otro item que el usuario ya haya abierto manualmente — navegar
+	// a otra sección no debe cerrar acordeones abiertos previamente.
 	useEffect(() => {
-		const newOpenItems = new Set<string>()
-		items.forEach((item) => {
-			if (item.subItems) {
-				const hasActiveSubItem = item.subItems.some(
-					(subItem) => pathname === subItem.url
-				)
-				if (hasActiveSubItem) {
-					newOpenItems.add(item.title)
+		setOpenItems((prev) => {
+			const next = new Set(prev)
+			items.forEach((item) => {
+				if (item.subItems) {
+					const hasActiveSubItem = item.subItems.some(
+						(subItem) => pathname === subItem.url
+					)
+					if (hasActiveSubItem) {
+						next.add(item.title)
+					}
 				}
-			}
+			})
+			return next
 		})
-		setOpenItems(newOpenItems)
 	}, [pathname, items])
 
 	const toggleItem = (itemTitle: string) => {

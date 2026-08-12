@@ -7,6 +7,7 @@ import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-ent
 import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
 import { BusinessNovedadBadge } from '@/features/negocios/components/ui/BusinessNovedadBadge'
 import { NovedadActionButton } from '@/features/negocios/components/ui/NovedadActionButton'
+import { NovedadManageTrigger } from '@/features/negocios/components/ui/NovedadManageTrigger'
 import { UserAvatar } from '@/features/negocios/components/ui/UserAvatar'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { Calendar, Phone, Mail, Building2, FileText, Clock, Layers, Edit } from 'lucide-react'
@@ -104,6 +105,11 @@ export default async function DetalleNegocioPage({ params, searchParams }: PageP
 							businessId={business.id}
 							businessStatus={business.status}
 							novedadStatus={business.novedadStatus}
+						/>
+						<NovedadManageTrigger
+							businessId={business.id}
+							novedadStatus={business.novedadStatus}
+							userRoleCode={currentUser.role?.code}
 						/>
 						<UploadSupportButton businessId={business.id} />
 						<Link

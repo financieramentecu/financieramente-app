@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import { useHierarchySelection } from '../components/HierarchySelectionContext'
 import { useDashboardFilter } from '../components/DashboardFilterContext'
 import type { ProductionKpiRaw, ProductionKpiComputed } from '../types/production-kpi.types'
@@ -37,11 +38,16 @@ function computeKpis(raw: ProductionKpiRaw, trmRate: number): ProductionKpiCompu
  * Fetches production KPI aggregation from /api/production-dashboard/kpis.
  * Re-fetches when selectedUserIds or appliedFilters changes.
  * Does NOT re-fetch on trmRate change — conversion is client-side.
- * Short-circuits to zeros when selectedUserIds is empty (no fetch).
+ *
+ * Mirrors the auth/hierarchy gating pattern from useOriginDonut/useCompanyDonut:
+ * - No hierarchy nodes (MS Junior path) → uses the session userId, still fetches.
+ * - Hierarchy nodes present but none selected → short-circuits to zeros (no fetch).
+ * - Hierarchy nodes present and selected → uses selectedUserIds.
  */
 export function useProductionKpis(trmRate: number): UseProductionKpisResult {
-  const { selectedUserIds } = useHierarchySelection()
+  const { nodes, selectedUserIds } = useHierarchySelection()
   const { appliedFilters } = useDashboardFilter()
+  const { data: session, status: sessionStatus } = useSession()
 
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
@@ -51,13 +57,34 @@ export function useProductionKpis(trmRate: number): UseProductionKpisResult {
   const trmRateRef = useRef(trmRate)
   trmRateRef.current = trmRate
 
+  const selfUserId = session?.user?.id ? Number(session.user.id) : undefined
+
   useEffect(() => {
-    if (selectedUserIds.length === 0) {
+    // MS Junior path: no hierarchy nodes, use session userId
+    if (nodes.length === 0) {
+      if (sessionStatus === 'loading') {
+        setIsLoading(true)
+        return
+      }
+      if (!selfUserId) {
+        setIsError(true)
+        setIsLoading(false)
+        return
+      }
+    }
+
+    // Hierarchy nodes exist but none selected/included — genuine zero, no fetch
+    if (nodes.length > 0 && selectedUserIds.length === 0) {
       setRaw(ZERO_RAW)
       setIsLoading(false)
       setIsError(false)
       return
     }
+
+    const effectiveUserIds: number[] =
+      nodes.length === 0 && selfUserId !== undefined
+        ? [selfUserId]
+        : [...selectedUserIds]
 
     // Set loading synchronously so React guarantees a loading render before the fetch starts
     setIsLoading(true)
@@ -68,7 +95,7 @@ export function useProductionKpis(trmRate: number): UseProductionKpisResult {
     async function fetchKpis() {
       try {
         const params = new URLSearchParams({
-          userIds: selectedUserIds.join(','),
+          userIds: effectiveUserIds.join(','),
         })
 
         const { dateRange, statuses, categoryIds, productIds, companyIds, originIds, plazos, periodicidades } = appliedFilters
@@ -123,7 +150,7 @@ export function useProductionKpis(trmRate: number): UseProductionKpisResult {
       cancelled = true
     }
     // Intentionally NOT including trmRate — conversion is client-side (CAP-4)
-  }, [selectedUserIds, appliedFilters])
+  }, [selectedUserIds, appliedFilters, selfUserId])
 
   const computed = raw !== null ? computeKpis(raw, trmRate) : null
 

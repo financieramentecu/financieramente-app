@@ -779,12 +779,14 @@ describe('PUT /api/negocios/[id]', () => {
 		})
 	})
 
-	describe('Resolución automática de Novedad', () => {
-		it('debe resolver novedad PENDIENTE a RESUELTA cuando el negocio pasa a EMITIDO', async () => {
+	describe('Novedad unaffected by business-status transitions', () => {
+		it('debe dejar novedadStatus/novedadResolvedAt intactos y NO auditar novedad cuando una novedad PENDIENTE (legado) pasa a EMITIDO', async () => {
+			const markedAt = new Date('2026-07-01T10:00:00.000Z')
 			const businessWithNovedad = {
 				...commonExistingBusiness,
 				novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
-				novedadMarkedAt: new Date('2026-07-01T10:00:00.000Z'),
+				novedadMarkedAt: markedAt,
+				novedadResolvedAt: null,
 			}
 			const requestBody = { contract: 'PN0005678' }
 
@@ -796,8 +798,10 @@ describe('PUT /api/negocios/[id]', () => {
 				.mockResolvedValueOnce(null)
 			mockUpdate.mockResolvedValue({
 				...commonUpdatedBusiness,
-				novedadStatus: BUSINESS_NOVEDAD_STATUS.RESUELTA,
-				novedadResolvedAt: new Date('2026-07-30T12:00:00.000Z'),
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+				novedadMarkedAt: markedAt,
+				novedadResolvedAt: null,
+				dateIssued: new Date('2026-07-30T12:00:00.000Z'),
 			} as never)
 			mockPrismaBusinessToEntity.mockReturnValue(commonEntity as never)
 
@@ -810,17 +814,22 @@ describe('PUT /api/negocios/[id]', () => {
 
 			expect(response.status).toBe(200)
 			expect(mockUpdate).toHaveBeenCalledTimes(1)
+			// dateIssued/payment-sync logic still runs on becomesEmitido
 			expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
 				where: { idBusiness: 1 },
 				data: expect.objectContaining({
-					novedadStatus: BUSINESS_NOVEDAD_STATUS.RESUELTA,
-					novedadResolvedAt: expect.any(Date),
+					dateIssued: expect.any(Date),
 				}),
 			}))
-			expect(mockLogAuditEvent).toHaveBeenCalledWith(
-				expect.objectContaining({
-					action: AuditAction.BUSINESS_NOVEDAD_RESOLVED,
-				})
+			// novedad branch fully removed — never present in the update payload
+			expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+				data: expect.not.objectContaining({
+					novedadStatus: expect.anything(),
+					novedadResolvedAt: expect.anything(),
+				}),
+			}))
+			expect(mockLogAuditEvent).not.toHaveBeenCalledWith(
+				expect.objectContaining({ action: AuditAction.BUSINESS_NOVEDAD_RESOLVED })
 			)
 		})
 
@@ -858,10 +867,10 @@ describe('PUT /api/negocios/[id]', () => {
 			)
 		})
 
-		it('no debe modificar novedadStatus cuando ya es RESUELTA', async () => {
-			const businessAlreadyResolved = {
+		it('deja intacta una novedad CANCELADA (backoffice) al pasar a EMITIDO', async () => {
+			const businessAlreadyManaged = {
 				...commonExistingBusiness,
-				novedadStatus: BUSINESS_NOVEDAD_STATUS.RESUELTA,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.CANCELADA,
 			}
 			const requestBody = { contract: 'PN0005678' }
 
@@ -869,7 +878,7 @@ describe('PUT /api/negocios/[id]', () => {
 			mockUpdateBusinessSchema.safeParse.mockReturnValue({ success: true, data: requestBody } as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
 			mockFindFirst
-				.mockResolvedValueOnce(businessAlreadyResolved as never)
+				.mockResolvedValueOnce(businessAlreadyManaged as never)
 				.mockResolvedValueOnce(null)
 			mockUpdate.mockResolvedValue(commonUpdatedBusiness as never)
 			mockPrismaBusinessToEntity.mockReturnValue(commonEntity as never)

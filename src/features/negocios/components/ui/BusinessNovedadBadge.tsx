@@ -6,7 +6,14 @@
 
 import { Badge } from '@/features/shared/ui/badge'
 import { cn } from '@/lib/utils'
-import { AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react'
+import {
+	AlertCircle,
+	Undo2,
+	Clock,
+	XCircle,
+	Ban,
+	HelpCircle,
+} from 'lucide-react'
 import type { BusinessNovedadStatus } from '../../types/business-entity.types'
 
 interface BusinessNovedadBadgeProps {
@@ -21,35 +28,56 @@ interface BusinessNovedadBadgeProps {
 }
 
 /**
- * Configuración de colores, ícono y etiqueta por estado de novedad
+ * Configuración de colores, ícono y etiqueta por estado de novedad.
+ * Cada estado combina color e ícono (no solo color) para accesibilidad
+ * (WCAG 1.4.1 — no depender únicamente del color para transmitir información).
  */
 const STATUS_CONFIG: Record<
 	BusinessNovedadStatus,
 	{
 		label: string
 		className: string
-		icon: typeof AlertTriangle
+		icon: typeof AlertCircle
 	}
 > = {
+	NUEVA: {
+		label: 'Nueva',
+		className:
+			'bg-blue-100 text-blue-800 hover:bg-blue-200 border border-blue-300',
+		icon: AlertCircle,
+	},
+	SOMETIDA_DEVOLUCION: {
+		label: 'Sometida a Devolución',
+		className:
+			'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300',
+		icon: Undo2,
+	},
 	PENDIENTE: {
 		label: 'Pendiente',
-		className: 'bg-orange-100 text-orange-800 hover:bg-orange-200 border border-orange-300',
-		icon: AlertTriangle,
+		className:
+			'bg-orange-100 text-orange-800 hover:bg-orange-200 border border-orange-300',
+		icon: Clock,
 	},
-	RESUELTA: {
-		label: 'Resuelta',
-		className: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300',
-		icon: CheckCircle2,
+	DECLINADA: {
+		label: 'Declinada',
+		className: 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-300',
+		icon: XCircle,
+	},
+	CANCELADA: {
+		label: 'Cancelada',
+		className:
+			'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300',
+		icon: Ban,
 	},
 }
 
 /**
- * Chip neutro de respaldo para cuando `novedadStatus` no coincide con ninguna
- * clave conocida de `STATUS_CONFIG` — defiende contra datos de otra rama/
- * migración en curso que ya usa un vocabulario de estados más amplio.
+ * Neutral fallback chip when `novedadStatus` is not a known `STATUS_CONFIG`
+ * key (defends against unexpected legacy/backfill values — D9).
  */
 const FALLBACK_CONFIG = {
-	className: 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300',
+	className:
+		'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300',
 	icon: HelpCircle,
 }
 
@@ -59,8 +87,8 @@ const FALLBACK_CONFIG = {
  *
  * @example
  * ```tsx
- * <BusinessNovedadBadge novedadStatus="PENDIENTE" />
- * <BusinessNovedadBadge novedadStatus="RESUELTA" />
+ * <BusinessNovedadBadge novedadStatus="NUEVA" />
+ * <BusinessNovedadBadge novedadStatus="SOMETIDA_DEVOLUCION" />
  * <BusinessNovedadBadge novedadStatus={null} />
  * ```
  */

@@ -610,6 +610,12 @@ export function NegociosPageClient({
 		refetch(true)
 	}, [refetch])
 
+	// El toast de confirmación y la llamada PATCH ya los maneja BusinessRowActions
+	// (abre su propio BusinessNovedadManageModal); aquí solo se refresca la lista.
+	const handleManageNovedadSuccess = useCallback(() => {
+		refetch(true)
+	}, [refetch])
+
 	const businessDataForTable: Business[] = useMemo(
 		() => businesses.map(mapBusinessToTableRow),
 		[businesses]
@@ -652,6 +658,7 @@ export function NegociosPageClient({
 				onSaveDateAnchored={handleSaveDateAnchored}
 				onMarkNovedad={handleMarkNovedad}
 				onUnmarkNovedad={handleUnmarkNovedad}
+				onManageNovedadSuccess={handleManageNovedadSuccess}
 			/>
 
 			{/* Modal de Cancelación */}
