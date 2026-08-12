@@ -3,6 +3,8 @@ export const ALL_FEATURE_FLAGS = [
 	'dashboard_calculadora',
 	'impersonation_select',
 	'production_dashboard',
+	'leads_module',
+	'reportes_produccion_real',
 ] as const
 
 export type FeatureFlag = (typeof ALL_FEATURE_FLAGS)[number]
