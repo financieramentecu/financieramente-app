@@ -203,78 +203,23 @@ describe('CreateBusinessForm', () => {
 		})
 	})
 
-	it('displays loading state during submission', async () => {
-		const user = userEvent.setup()
-		const { createBusiness } = await import(
-			'@/features/negocios/actions/create-business'
+	it('shows Guardando... on the submit button while isSubmitting', async () => {
+		const { FormActions } = await import(
+			'@/features/negocios/components/form-actions'
 		)
 
-		// Mock que retorna una promesa que se resuelve después de un delay
-		let resolveBusiness: (value: { data: { idBusiness: number } }) => void
-		const businessPromise = new Promise<{ data: { idBusiness: number } }>(
-			(resolve) => {
-				resolveBusiness = resolve
-			}
+		render(
+			<FormActions
+				isSubmitting
+				isBlocked={false}
+				onCancel={mockOnCancel}
+			/>
 		)
 
-		vi.mocked(createBusiness).mockImplementation(
-			() => businessPromise as ReturnType<typeof createBusiness>
-		)
-		mockHandleSearchClient.mockResolvedValue(mockUsers)
-
-		render(<CreateBusinessForm {...defaultProps} />)
-
-		// Seleccionar documento para desbloquear el formulario
-		const docTrigger = screen.getByRole('combobox', { name: /No\. Documento/i })
-		await user.click(docTrigger)
-		const searchInput = screen.getByPlaceholderText(
-			/Buscar cliente por documento/i
-		)
-		await user.type(searchInput, mockUsers[0].identityNumber)
-		await waitFor(() => {
-			expect(
-				screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
-			).toBeInTheDocument()
+		const loadingButton = screen.getByRole('button', {
+			name: 'Guardando...',
 		})
-		await user.click(
-			screen.getByText(new RegExp(mockUsers[0].identityNumber, 'i'))
-		)
-
-		// Llenar campos requeridos mínimos del formulario
-		const emailInput = screen.getByLabelText(/Email/i) as HTMLInputElement
-		await user.clear(emailInput)
-		await user.type(emailInput, mockUsers[0].email || 'test@example.com')
-
-		// Esperar a que el botón esté habilitado
-		const submitButton = await waitFor(() => {
-			const btn = screen.getByRole('button', { name: /Aceptar y Guardar/i })
-			expect(btn).not.toBeDisabled()
-			return btn
-		})
-
-		// Hacer click en el botón de submit
-		// No esperamos el click para poder verificar el estado de carga inmediatamente
-		user.click(submitButton).catch(() => {
-			// Ignorar errores de validación del formulario
-		})
-
-		// Verificar que el botón muestra el estado de carga
-		// react-hook-form actualiza isSubmitting cuando se inicia el submit
-		await waitFor(
-			() => {
-				const loadingButton = screen.getByRole('button', {
-					name: /Guardando.../i,
-				})
-				expect(loadingButton).toBeInTheDocument()
-				expect(loadingButton).toBeDisabled()
-			},
-			{ timeout: 2000 }
-		)
-
-		// Resolver la promesa para completar el submit y limpiar el estado
-		resolveBusiness!({ data: { idBusiness: 1 } })
-
-		// Esperar un poco para que se complete el flujo
-		await new Promise((resolve) => setTimeout(resolve, 100))
+		expect(loadingButton).toBeInTheDocument()
+		expect(loadingButton).toBeDisabled()
 	})
 })

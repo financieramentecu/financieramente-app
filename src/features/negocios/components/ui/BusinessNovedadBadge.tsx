@@ -72,11 +72,10 @@ const STATUS_CONFIG: Record<
 }
 
 /**
- * Chip neutro de respaldo cuando `novedadStatus` no coincide con ninguna
- * clave conocida de `STATUS_CONFIG` — defiende tanto contra un backfill no
- * ejecutado o un valor legado inesperado en la base de datos (D9), como
- * contra datos escritos por otra rama con un vocabulario de estados
- * distinto mientras conviven sobre la misma base de datos compartida.
+ * Neutral fallback chip when `novedadStatus` is not a known `STATUS_CONFIG`
+ * key — defends against unexpected legacy/unrun-backfill values (D9), and
+ * against data written by another branch with a different status
+ * vocabulary while both share the same database.
  */
 const FALLBACK_CONFIG = {
 	className:
