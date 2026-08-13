@@ -11,7 +11,6 @@ import { prisma } from '@/lib/prisma'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import {
 	BUSINESS_STATUS,
-	BUSINESS_NOVEDAD_STATUS,
 	type BusinessEntity
 } from '@/features/negocios/types/business-entity.types'
 import {
@@ -440,11 +439,6 @@ export async function PUT(
 				updateData.dateIssued = existingBusiness.dateIssued ?? new Date()
 			}
 
-			if (becomesEmitido && existingBusiness.novedadStatus === BUSINESS_NOVEDAD_STATUS.PENDIENTE) {
-				updateData.novedadStatus = BUSINESS_NOVEDAD_STATUS.RESUELTA
-				updateData.novedadResolvedAt = new Date()
-			}
-
 			const updated = await tx.business.update({
 				where: { idBusiness: businessId },
 				data: updateData,
@@ -520,22 +514,6 @@ export async function PUT(
 				wasPrivileged: isPrivileged,
 			}),
 		})
-
-		// D. Resolución automática de novedad (fuera de la transacción, no debe interrumpir el flujo)
-		if (
-			becomesEmitido &&
-			existingBusiness.novedadStatus === BUSINESS_NOVEDAD_STATUS.PENDIENTE
-		) {
-			await logAuditEvent({
-				userId: currentUser.idUser,
-				roleId: currentUser.idRole ?? undefined,
-				action: AuditAction.BUSINESS_NOVEDAD_RESOLVED,
-				email: session.user.email,
-				ipAddress: getClientIp(new Headers(request.headers)),
-				userAgent: getUserAgent(new Headers(request.headers)),
-				details: JSON.stringify({ businessId }),
-			})
-		}
 
 		const entity = prismaBusinessToEntity(updatedBusiness)
 		return NextResponse.json({ data: entity })

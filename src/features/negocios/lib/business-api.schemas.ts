@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import { BUSINESS_STATUS } from '../types/business-entity.types'
+import { BUSINESS_STATUS, MANUAL_NOVEDAD_STATUSES } from '../types/business-entity.types'
 
 // ============================================
 // SCHEMAS DE REQUEST
@@ -185,6 +185,16 @@ export const markNovedadSchema = z.object({
 })
 
 export type MarkNovedadSchema = z.infer<typeof markNovedadSchema>
+
+/**
+ * Schema para gestión manual del estado de novedad (PATCH /manage-novedad).
+ * NUEVA queda excluido deliberadamente — solo lo asigna el flujo automático de MARK.
+ */
+export const manageNovedadSchema = z.object({
+	novedadStatus: z.enum(MANUAL_NOVEDAD_STATUSES),
+})
+
+export type ManageNovedadSchema = z.infer<typeof manageNovedadSchema>
 
 /**
  * Schema para validación de contrato

@@ -71,13 +71,13 @@ describe('status presentation parity between list and detail', () => {
 	it('renders the novedad badge, marked date, and mark/unmark button in BusinessViewModal', () => {
 		const business = createMockBusiness({
 			status: 'VENTA_EFECTUADA',
-			novedadStatus: 'PENDIENTE',
+			novedadStatus: 'NUEVA',
 			novedadMarkedAt: '2026-07-30T12:00:00.000Z',
 		})
 
 		render(<BusinessViewModal open onOpenChange={vi.fn()} business={business} />)
 
-		expect(screen.getByText('Novedad Pendiente')).toBeInTheDocument()
+		expect(screen.getByText('Novedad Nueva')).toBeInTheDocument()
 		expect(screen.getByText('formatted:2026-07-30T12:00:00.000Z')).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: /desmarcar novedad/i })).toBeInTheDocument()
 	})
@@ -89,7 +89,7 @@ describe('status presentation parity between list and detail', () => {
 		vi.mocked(prismaBusinessToEntity).mockReturnValue(
 			createMockBusiness({
 				status: 'VENTA_EFECTUADA',
-				novedadStatus: 'PENDIENTE',
+				novedadStatus: 'NUEVA',
 				novedadMarkedAt: '2026-07-30T12:00:00.000Z',
 			})
 		)
@@ -101,7 +101,7 @@ describe('status presentation parity between list and detail', () => {
 
 		render(jsx)
 
-		expect(screen.getByText('Novedad Pendiente')).toBeInTheDocument()
+		expect(screen.getByText('Novedad Nueva')).toBeInTheDocument()
 		expect(screen.getByText('formatted:2026-07-30T12:00:00.000Z')).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: /desmarcar novedad/i })).toBeInTheDocument()
 	})

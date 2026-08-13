@@ -57,6 +57,9 @@ export function ModalVerNegocio({
 			allowEditOrigin
 			clientOriginsOptions={clientOriginsOptions}
 			onSaveOrigin={handleSaveOrigin}
+			onNovedadChange={() => {
+				void refetch()
+			}}
 		/>
 	)
 }

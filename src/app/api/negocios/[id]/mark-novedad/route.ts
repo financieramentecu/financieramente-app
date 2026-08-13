@@ -18,6 +18,7 @@ import {
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { markNovedadSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -30,9 +31,19 @@ interface RouteParams {
 }
 
 /**
+ * Roles que pueden desmarcar la novedad de cualquier negocio, sin importar
+ * quién es el Money Strategist dueño (bypass de ownership en UNMARK).
+ */
+const UNMARK_OWNERSHIP_BYPASS_ROLES = [
+	UserRole.ADMIN,
+	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+]
+
+/**
  * PATCH /api/negocios/[id]/mark-novedad
  * Marca ("MARK") o desmarca ("UNMARK") la novedad de un negocio.
- * No hay allowlist de roles: cualquier usuario autenticado puede marcar/desmarcar.
+ * MARK: cualquier usuario autenticado puede marcar. UNMARK: el Money Strategist
+ * dueño del negocio, o ADMIN/ASISTENTE_GERENCIA_OPERATIVA sin restricción de ownership.
  */
 export async function PATCH(
 	request: Request,
@@ -106,19 +117,32 @@ export async function PATCH(
 					{
 						data: null,
 						error:
-							'Solo se puede marcar novedad en negocios en estado Venta Efectuada sin novedad pendiente',
+							'Solo se puede marcar novedad en negocios en estado Venta Efectuada que aún no tengan una novedad marcada',
 					},
 					{ status: 409 }
 				)
 			}
 		} else {
-			if (existingBusiness.novedadStatus !== BUSINESS_NOVEDAD_STATUS.PENDIENTE) {
+			if (existingBusiness.novedadStatus !== BUSINESS_NOVEDAD_STATUS.NUEVA) {
 				return NextResponse.json(
 					{
 						data: null,
-						error: 'Solo se puede desmarcar una novedad en estado Pendiente',
+						error: 'Solo se puede desmarcar una novedad en estado Nueva',
 					},
 					{ status: 409 }
+				)
+			}
+
+			const userRole = currentUser.role?.code as UserRole
+			const canBypassOwnership = UNMARK_OWNERSHIP_BYPASS_ROLES.includes(userRole)
+
+			if (!canBypassOwnership && existingBusiness.idUser !== currentUser.idUser) {
+				return NextResponse.json(
+					{
+						data: null,
+						error: 'Solo el Money Strategist dueño del negocio puede desmarcar su novedad',
+					},
+					{ status: 403 }
 				)
 			}
 		}
@@ -126,12 +150,13 @@ export async function PATCH(
 		const updateData =
 			action === 'MARK'
 				? {
-						novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+						novedadStatus: BUSINESS_NOVEDAD_STATUS.NUEVA,
 						novedadMarkedAt: new Date(),
 					}
 				: {
+						// Solo se limpia novedadStatus — novedadMarkedAt/novedadResolvedAt
+						// se preservan como rastro forense (D7).
 						novedadStatus: null,
-						novedadMarkedAt: null,
 					}
 
 		const updatedBusiness = await prisma.business.update({

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2, ScrollText, MessageSquarePlus, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2, ScrollText, MessageSquarePlus, AlertTriangle, CheckCircle2, Settings2 } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -15,13 +16,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/features/shared/ui/dropdown-menu'
-import type { BusinessStatus, BusinessNovedadStatus } from '../types/business-entity.types'
+import type { BusinessStatus, BusinessNovedadStatus, BusinessEntity } from '../types/business-entity.types'
 import { BUSINESS_STATUS, BUSINESS_NOVEDAD_STATUS } from '../types/business-entity.types'
-import type { UserRole } from '@/features/auth/lib/roles'
+import { UserRole } from '@/features/auth/lib/roles'
 import { UploadComprobanteModal } from '@/features/business-supports/components/UploadComprobanteModal'
 import { ViewComprobantesSheet } from '@/features/business-supports/components/BusinessSupportsSheet'
 import { CommentModal } from '@/features/comments/components/CommentModal'
 import { isUploadAllowedStatus } from '@/features/business-supports/lib/upload-allowed-statuses'
+import { useManageNovedad } from '../hooks/use-manage-novedad'
+import { BusinessNovedadManageModal } from './modals/BusinessNovedadManageModal'
+import { MANAGE_NOVEDAD_ALLOWED_ROLES } from './ui/NovedadManageTrigger'
 
 export interface BusinessRowActionsProps {
   businessId: number
@@ -45,6 +49,8 @@ export interface BusinessRowActionsProps {
   onViewComprobantes?: (id: number) => void
   onMarkNovedad?: (id: number) => void
   onUnmarkNovedad?: (id: number) => void
+  /** Called after a successful manual novedad status change (Gestionar Novedad) */
+  onManageNovedadSuccess?: (id: number) => void
 }
 
 export function BusinessRowActions({
@@ -64,16 +70,33 @@ export function BusinessRowActions({
   onViewComprobantes,
   onMarkNovedad,
   onUnmarkNovedad,
+  onManageNovedadSuccess,
 }: BusinessRowActionsProps) {
   const canUpload = isUploadAllowedStatus(businessStatus)
   const canMarkNovedad =
-    businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA &&
-    novedadStatus !== BUSINESS_NOVEDAD_STATUS.PENDIENTE
-  const canUnmarkNovedad = novedadStatus === BUSINESS_NOVEDAD_STATUS.PENDIENTE
+    businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA && novedadStatus === null
+  const canUnmarkNovedad = novedadStatus === BUSINESS_NOVEDAD_STATUS.NUEVA
+  const canManageNovedad =
+    novedadStatus !== null &&
+    userRole !== undefined &&
+    MANAGE_NOVEDAD_ALLOWED_ROLES.includes(userRole)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
   const [commentOpen, setCommentOpen] = useState(false)
+  const [manageNovedadOpen, setManageNovedadOpen] = useState(false)
   const commentContract = contract ?? `Negocio #${businessId}`
+  const { updateStatus } = useManageNovedad(businessId)
+
+  const handleConfirmManageNovedad = async (target: BusinessNovedadStatus) => {
+    const result = await updateStatus(target)
+    if (result.data) {
+      toast.success('Novedad actualizada correctamente')
+      onManageNovedadSuccess?.(businessId)
+    } else if (result.error) {
+      toast.error(result.error)
+      throw new Error(result.error)
+    }
+  }
 
   const handleUploadClick = () => {
     onUploadComprobante?.(businessId)
@@ -170,6 +193,12 @@ export function BusinessRowActions({
                 Desmarcar Novedad
               </DropdownMenuItem>
             )}
+            {canManageNovedad && (
+              <DropdownMenuItem onClick={() => setManageNovedadOpen(true)}>
+                <Settings2 className="mr-2 h-4 w-4" />
+                Gestionar Novedad
+              </DropdownMenuItem>
+            )}
             {onCancel && (
               <DropdownMenuItem
                 onClick={() => onCancel(businessId)}
@@ -208,6 +237,15 @@ export function BusinessRowActions({
           contract={commentContract}
           open={commentOpen}
           onClose={() => setCommentOpen(false)}
+        />
+      )}
+
+      {manageNovedadOpen && (
+        <BusinessNovedadManageModal
+          open={manageNovedadOpen}
+          onOpenChange={setManageNovedadOpen}
+          business={{ id: businessId, novedadStatus } as BusinessEntity}
+          onConfirm={handleConfirmManageNovedad}
         />
       )}
     </TooltipProvider>

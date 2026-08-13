@@ -5,10 +5,13 @@ import { NavMain } from '../layout/nav-main'
 import {
 	Sidebar,
 	SidebarContent,
+	SidebarGroup,
+	SidebarGroupContent,
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarMenuSkeleton,
 } from '@/features/shared/ui/sidebar'
 
 import Image from 'next/image'
@@ -20,7 +23,7 @@ import { useAuthorizedReportCodes } from '@/features/report-permissions/hooks/us
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar()
-	const { session } = useAuthSession()
+	const { session, isLoading } = useAuthSession()
 	const { enabled: isCalculadoraEnabled } = useFeatureFlag('dashboard_calculadora')
 	const { enabled: isDashboardEnabled } = useFeatureFlag('production_dashboard')
 	const { codes: authorizedReportCodes } = useAuthorizedReportCodes()
@@ -79,8 +82,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				</SidebarMenu>
 			</SidebarHeader>
 			<SidebarContent>
-				<NavMain items={menuItems} />
+				{isLoading ? <NavMainSkeleton /> : <NavMain items={menuItems} />}
 			</SidebarContent>
 		</Sidebar>
+	)
+}
+
+/**
+ * Placeholder mientras la sesión (rol/permisos) todavía está resolviendo.
+ * Evita que el sidebar se vea vacío en el primer render (el menú depende
+ * del rol, que solo se conoce una vez que la sesión de NextAuth resuelve).
+ */
+function NavMainSkeleton() {
+	return (
+		<SidebarGroup>
+			<SidebarGroupContent className="flex flex-col gap-2">
+				<SidebarMenu>
+					{Array.from({ length: 5 }).map((_, i) => (
+						<SidebarMenuItem key={i}>
+							<SidebarMenuSkeleton showIcon />
+						</SidebarMenuItem>
+					))}
+				</SidebarMenu>
+			</SidebarGroupContent>
+		</SidebarGroup>
 	)
 }

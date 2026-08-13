@@ -13,6 +13,7 @@ import {
 } from '@/features/negocios/types/business-entity.types'
 import { mockUserWithRole } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
 import { mockPrismaBusiness } from '@/features/negocios/__tests__/fixtures/mock-prisma-business'
+import { UserRole } from '@/features/auth/lib/roles'
 
 // Mock de módulos externos
 vi.mock('@/auth')
@@ -229,7 +230,7 @@ describe('PATCH /api/negocios/[id]/mark-novedad', () => {
 			expect(mockPrismaUpdate).not.toHaveBeenCalled()
 		})
 
-		it('debe marcar novedad exitosamente y registrar auditoría', async () => {
+		it('debe marcar novedad exitosamente en estado NUEVA y registrar auditoría', async () => {
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockMarkNovedadSchema.safeParse.mockReturnValue({
 				success: true,
@@ -245,11 +246,11 @@ describe('PATCH /api/negocios/[id]/mark-novedad', () => {
 			const updatedBusiness = {
 				...mockPrismaBusiness,
 				status: BUSINESS_STATUS.VENTA_EFECTUADA,
-				novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.NUEVA,
 				novedadMarkedAt: new Date('2026-07-30T12:00:00.000Z'),
 			}
 			mockPrismaUpdate.mockResolvedValue(updatedBusiness as never)
-			const mockEntity = { id: 1, novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE }
+			const mockEntity = { id: 1, novedadStatus: BUSINESS_NOVEDAD_STATUS.NUEVA }
 			mockPrismaBusinessToEntity.mockReturnValue(mockEntity as never)
 
 			const response = await PATCH(buildRequest('1', { action: 'MARK' }), {
@@ -260,7 +261,7 @@ describe('PATCH /api/negocios/[id]/mark-novedad', () => {
 			expect(mockPrismaUpdate).toHaveBeenCalledWith({
 				where: { idBusiness: 1 },
 				data: {
-					novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+					novedadStatus: BUSINESS_NOVEDAD_STATUS.NUEVA,
 					novedadMarkedAt: expect.any(Date),
 				},
 				include: expect.any(Object),
@@ -280,16 +281,16 @@ describe('PATCH /api/negocios/[id]/mark-novedad', () => {
 	})
 
 	describe('UNMARK', () => {
-		it('debe retornar 409 cuando novedadStatus no es PENDIENTE', async () => {
+		it('debe retornar 409 cuando novedadStatus no es NUEVA', async () => {
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockMarkNovedadSchema.safeParse.mockReturnValue({
 				success: true,
 				data: { action: 'UNMARK' },
 			} as never)
-			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockGetCurrentUserByEmail.mockResolvedValue({ ...mockAdminUser, idUser: mockPrismaBusiness.idUser })
 			mockPrismaFindUnique.mockResolvedValue({
 				...mockPrismaBusiness,
-				novedadStatus: null,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
 			} as never)
 
 			const response = await PATCH(buildRequest('1', { action: 'UNMARK' }), {
@@ -300,23 +301,78 @@ describe('PATCH /api/negocios/[id]/mark-novedad', () => {
 			expect(mockPrismaUpdate).not.toHaveBeenCalled()
 		})
 
-		it('debe desmarcar novedad exitosamente y registrar auditoría', async () => {
+		it('debe retornar 403 cuando el usuario no es el dueño del negocio', async () => {
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockMarkNovedadSchema.safeParse.mockReturnValue({
 				success: true,
 				data: { action: 'UNMARK' },
 			} as never)
-			mockGetCurrentUserByEmail.mockResolvedValue(mockAdminUser)
+			mockGetCurrentUserByEmail.mockResolvedValue({ ...mockAdminUser, idUser: 999 })
 			mockPrismaFindUnique.mockResolvedValue({
 				...mockPrismaBusiness,
-				novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+				idUser: mockPrismaBusiness.idUser,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.NUEVA,
+			} as never)
+
+			const response = await PATCH(buildRequest('1', { action: 'UNMARK' }), {
+				params: Promise.resolve({ id: '1' }),
+			})
+
+			expect(response.status).toBe(403)
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
+		})
+
+		it.each([UserRole.ADMIN, UserRole.ASISTENTE_GERENCIA_OPERATIVA])(
+			'permite desmarcar a %s aunque no sea el dueño del negocio',
+			async (roleCode) => {
+				mockAuth.mockResolvedValue(mockSession as never)
+				mockMarkNovedadSchema.safeParse.mockReturnValue({
+					success: true,
+					data: { action: 'UNMARK' },
+				} as never)
+				mockGetCurrentUserByEmail.mockResolvedValue({
+					...mockAdminUser,
+					idUser: 999,
+					role: { ...mockAdminUser.role, code: roleCode },
+				} as never)
+				mockPrismaFindUnique.mockResolvedValue({
+					...mockPrismaBusiness,
+					idUser: mockPrismaBusiness.idUser,
+					novedadStatus: BUSINESS_NOVEDAD_STATUS.NUEVA,
+				} as never)
+				mockPrismaUpdate.mockResolvedValue({
+					...mockPrismaBusiness,
+					novedadStatus: null,
+				} as never)
+				const mockEntity = { id: 1, novedadStatus: null }
+				mockPrismaBusinessToEntity.mockReturnValue(mockEntity as never)
+
+				const response = await PATCH(buildRequest('1', { action: 'UNMARK' }), {
+					params: Promise.resolve({ id: '1' }),
+				})
+
+				expect(response.status).toBe(200)
+				expect(mockPrismaUpdate).toHaveBeenCalled()
+			}
+		)
+
+		it('debe desmarcar novedad exitosamente y registrar auditoría, preservando novedadMarkedAt', async () => {
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockMarkNovedadSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { action: 'UNMARK' },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue({ ...mockAdminUser, idUser: mockPrismaBusiness.idUser })
+			mockPrismaFindUnique.mockResolvedValue({
+				...mockPrismaBusiness,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.NUEVA,
 				novedadMarkedAt: new Date('2026-07-30T12:00:00.000Z'),
 			} as never)
 
 			const updatedBusiness = {
 				...mockPrismaBusiness,
 				novedadStatus: null,
-				novedadMarkedAt: null,
+				novedadMarkedAt: new Date('2026-07-30T12:00:00.000Z'),
 			}
 			mockPrismaUpdate.mockResolvedValue(updatedBusiness as never)
 			const mockEntity = { id: 1, novedadStatus: null }
@@ -331,7 +387,6 @@ describe('PATCH /api/negocios/[id]/mark-novedad', () => {
 				where: { idBusiness: 1 },
 				data: {
 					novedadStatus: null,
-					novedadMarkedAt: null,
 				},
 				include: expect.any(Object),
 			})
