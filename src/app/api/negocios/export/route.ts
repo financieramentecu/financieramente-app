@@ -115,6 +115,10 @@ export async function POST(request: Request) {
 				periodicityIds: periodicityIds && periodicityIds.length > 0 ? periodicityIds : undefined,
 				agentCategoryIds: agentCategoryIds && agentCategoryIds.length > 0 ? agentCategoryIds : undefined,
 				agentIds: agentIds && agentIds.length > 0 ? agentIds : undefined,
+				novedadStatuses:
+					parsed.data.novedadStatuses && parsed.data.novedadStatuses.length > 0
+						? parsed.data.novedadStatuses
+						: undefined,
 			}),
 			{ visibleUserIds }
 		)

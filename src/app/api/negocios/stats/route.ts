@@ -56,6 +56,7 @@ function parseStatsQueryParams(searchParams: URLSearchParams) {
 			.getAll('agentIds')
 			.map(Number)
 			.filter((n) => !Number.isNaN(n)),
+		novedadStatuses: searchParams.getAll('novedadStatuses'),
 	}
 }
 

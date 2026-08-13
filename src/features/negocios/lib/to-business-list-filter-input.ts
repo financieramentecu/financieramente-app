@@ -1,5 +1,6 @@
 import type { BusinessListFilterInput } from '@/features/negocios/lib/build-business-list-where'
 import { parseBogotaInclusiveUtcRange } from '@/features/negocios/lib/bogota-date-range'
+import type { NovedadFilterValue } from '@/features/negocios/types/business-entity.types'
 
 /**
  * Convierte los parámetros comunes de lista (query) y export (body JSON)
@@ -25,6 +26,7 @@ export function toBusinessListFilterInput(params: {
 	periodicityIds?: number[]
 	agentCategoryIds?: number[]
 	agentIds?: number[]
+	novedadStatuses?: NovedadFilterValue[]
 }): BusinessListFilterInput {
 	const dateAnchoredRange =
 		params.dateFrom && params.dateTo
@@ -55,5 +57,9 @@ export function toBusinessListFilterInput(params: {
 		periodicityIds: params.periodicityIds,
 		agentCategoryIds: params.agentCategoryIds,
 		agentIds: params.agentIds,
+		novedadStatuses:
+			params.novedadStatuses && params.novedadStatuses.length > 0
+				? params.novedadStatuses
+				: undefined,
 	}
 }

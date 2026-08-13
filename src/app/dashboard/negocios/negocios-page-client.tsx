@@ -19,6 +19,7 @@ import type { UserWithRole } from '@/features/negocios/types/business.types'
 import type {
 	BusinessEntity,
 	BusinessStatus,
+	NovedadFilterValue,
 } from '@/features/negocios/types/business-entity.types'
 import type {
 	AnnualInstallmentDto,
@@ -74,6 +75,7 @@ export function NegociosPageClient({
 		const periodicityIds = urlSearchParams.getAll('periodicityIds').map(Number).filter(n => !isNaN(n))
 		const agentCategoryIds = urlSearchParams.getAll('agentCategoryIds').map(Number).filter(n => !isNaN(n))
 		const agentIds = urlSearchParams.getAll('agentIds').map(Number).filter(n => !isNaN(n))
+		const novedadStatuses = urlSearchParams.getAll('novedadStatuses') as NovedadFilterValue[]
 		const hasSupportsParam = urlSearchParams.get('hasSupports')
 		const hasSupports = hasSupportsParam === 'true' ? true : hasSupportsParam === 'false' ? false : undefined
 		const agentNameFromUrl = urlSearchParams.get('agentName') ?? undefined
@@ -95,6 +97,7 @@ export function NegociosPageClient({
 			periodicityIds: periodicityIds.length > 0 ? periodicityIds : undefined,
 			agentCategoryIds: agentCategoryIds.length > 0 ? agentCategoryIds : undefined,
 			agentIds: agentIds.length > 0 ? agentIds : undefined,
+			novedadStatuses: novedadStatuses.length > 0 ? novedadStatuses : undefined,
 		}
 	}, [urlSearchParams])
 
@@ -216,6 +219,7 @@ export function NegociosPageClient({
 		...(urlFilterParams.periodicityIds ? { periodicityIds: urlFilterParams.periodicityIds } : {}),
 		...(urlFilterParams.agentCategoryIds ? { agentCategoryIds: urlFilterParams.agentCategoryIds } : {}),
 		...(urlFilterParams.agentIds ? { agentIds: urlFilterParams.agentIds } : {}),
+		...(urlFilterParams.novedadStatuses ? { novedadStatuses: urlFilterParams.novedadStatuses } : {}),
 	}), [searchParams, urlFilterParams])
 
 	// Each URL date pair filters its own DB column (dateFrom/dateTo → dateAnchored,
@@ -537,6 +541,7 @@ export function NegociosPageClient({
 			periodicityIds: urlFilterParams.periodicityIds,
 			agentCategoryIds: urlFilterParams.agentCategoryIds,
 			agentIds: urlFilterParams.agentIds,
+			novedadStatuses: urlFilterParams.novedadStatuses,
 		}
 		const result = await exportReport(body)
 		if (result.ok) {

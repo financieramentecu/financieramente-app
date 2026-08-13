@@ -145,6 +145,10 @@ export async function getBusinessStats(
 		periodicityIds: filters.periodicityIds,
 		agentCategoryIds: filters.agentCategoryIds,
 		agentIds: filters.agentIds,
+		novedadStatuses:
+			filters.novedadStatuses && filters.novedadStatuses.length > 0
+				? filters.novedadStatuses
+				: undefined,
 	})
 
 	const listWhere = buildBusinessListWhere(currentUser, filterInput, {
