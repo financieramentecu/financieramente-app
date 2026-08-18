@@ -40,6 +40,22 @@ vi.mock('@/features/origins/hooks/use-client-origins', () => ({
 	useClientOrigins: () => ({ state: { status: 'success', data: { origins: [] }, error: '' } }),
 }))
 
+vi.mock('@/features/negocios/hooks/use-agent-categories', () => ({
+	useAgentCategories: () => ({
+		status: 'success',
+		data: [],
+		error: '',
+	}),
+}))
+
+vi.mock('@/features/negocios/hooks/use-money-strategists', () => ({
+	useMoneyStrategists: () => ({
+		status: 'success',
+		data: { showFilter: false, strategists: [] },
+		error: '',
+	}),
+}))
+
 describe('AdvancedFiltersSheet', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
@@ -143,6 +159,28 @@ describe('AdvancedFiltersSheet', () => {
 		await waitFor(() => {
 			// CARTERA should appear as a selectable option in the dropdown
 			expect(screen.getByText('Cartera')).toBeInTheDocument()
+		})
+	})
+
+	it('renders Novedades multiselect with expected options', async () => {
+		render(<AdvancedFiltersSheet />)
+
+		fireEvent.click(screen.getByText(/Filtros avanzados/i))
+
+		await waitFor(() => {
+			expect(screen.getByText('Novedades')).toBeInTheDocument()
+			expect(screen.getByText('Todas las novedades')).toBeInTheDocument()
+		})
+
+		fireEvent.click(screen.getByText('Todas las novedades'))
+
+		await waitFor(() => {
+			expect(screen.getByText('Nueva')).toBeInTheDocument()
+			expect(screen.getByText('Sometido o Devolución')).toBeInTheDocument()
+			expect(screen.getByText('Declinado')).toBeInTheDocument()
+			expect(screen.getByText('Pendiente')).toBeInTheDocument()
+			expect(screen.getByText('Cancelado')).toBeInTheDocument()
+			expect(screen.getByText('Sin novedad')).toBeInTheDocument()
 		})
 	})
 

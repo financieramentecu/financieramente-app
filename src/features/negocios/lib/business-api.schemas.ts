@@ -3,7 +3,11 @@
  */
 
 import { z } from 'zod'
-import { BUSINESS_STATUS, MANUAL_NOVEDAD_STATUSES } from '../types/business-entity.types'
+import {
+	BUSINESS_STATUS,
+	MANUAL_NOVEDAD_STATUSES,
+	NOVEDAD_FILTER_VALUES,
+} from '../types/business-entity.types'
 
 // ============================================
 // SCHEMAS DE REQUEST
@@ -88,6 +92,11 @@ export const businessFilterParamsSchema = z
 		agentCategoryIds: z.array(z.number()).optional(),
 		/** IDs de Money Strategist (User.idUser) — multiselect */
 		agentIds: z.array(z.number()).optional(),
+		/**
+		 * Multiselect de estados de novedad.
+		 * Incluye SIN_NOVEDAD (novedadStatus IS NULL). Vacío = Todos.
+		 */
+		novedadStatuses: z.array(z.enum(NOVEDAD_FILTER_VALUES)).optional(),
 	})
 	.superRefine((data, ctx) => {
 		pairedRangeCheck(data as Record<string, unknown>, ctx)

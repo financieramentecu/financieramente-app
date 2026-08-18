@@ -118,6 +118,7 @@ describe('lista GET vs export POST — paridad de filtros (tasks 5.5)', () => {
 			periodicityIds: [10],
 			agentCategoryIds: [4],
 			agentIds: [7, 8],
+			novedadStatuses: ['NUEVA', 'SIN_NOVEDAD'] as const,
 		}
 
 		const listParsed = businessListParamsSchema.parse({ ...allParams, page: '1', pageSize: '10' })
@@ -148,6 +149,9 @@ describe('lista GET vs export POST — paridad de filtros (tasks 5.5)', () => {
 			originIds: listParsed.originIds,
 			terms: listParsed.terms,
 			periodicityIds: listParsed.periodicityIds,
+			agentCategoryIds: listParsed.agentCategoryIds,
+			agentIds: listParsed.agentIds,
+			novedadStatuses: listParsed.novedadStatuses,
 		})
 		const filtersFromExport = toBusinessListFilterInput({
 			search: exportParsed.search,
@@ -166,6 +170,9 @@ describe('lista GET vs export POST — paridad de filtros (tasks 5.5)', () => {
 			originIds: exportParsed.originIds,
 			terms: exportParsed.terms,
 			periodicityIds: exportParsed.periodicityIds,
+			agentCategoryIds: exportParsed.agentCategoryIds,
+			agentIds: exportParsed.agentIds,
+			novedadStatuses: exportParsed.novedadStatuses,
 		})
 
 		expect(filtersFromExport).toEqual(filtersFromList)

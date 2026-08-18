@@ -2,7 +2,11 @@
  * Tipos para requests y responses de la API de negocios
  */
 
-import type { BusinessEntity, BusinessStatus } from './business-entity.types'
+import type {
+	BusinessEntity,
+	BusinessStatus,
+	NovedadFilterValue,
+} from './business-entity.types'
 
 // ============================================
 // PAGINACIÓN
@@ -63,6 +67,11 @@ export interface BusinessListParams {
 	agentCategoryIds?: number[]
 	/** IDs de Money Strategist (User.idUser) */
 	agentIds?: number[]
+	/**
+	 * Estados de novedad (multiselect). Incluye SIN_NOVEDAD.
+	 * Vacío/undefined = Todos (sin criterio de novedad).
+	 */
+	novedadStatuses?: NovedadFilterValue[]
 }
 
 /** Body POST `/api/negocios/export` — mirrors all filter params from BusinessListParams */
@@ -86,6 +95,7 @@ export interface NegociosExportBody {
 	periodicityIds?: number[]
 	agentCategoryIds?: number[]
 	agentIds?: number[]
+	novedadStatuses?: NovedadFilterValue[]
 }
 
 // ============================================

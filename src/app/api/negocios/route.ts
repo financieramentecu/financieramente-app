@@ -69,6 +69,7 @@ export async function GET(
 			periodicityIds: searchParams.getAll('periodicityIds').map(Number).filter(n => !Number.isNaN(n)),
 			agentCategoryIds: searchParams.getAll('agentCategoryIds').map(Number).filter(n => !Number.isNaN(n)),
 			agentIds: searchParams.getAll('agentIds').map(Number).filter(n => !Number.isNaN(n)),
+			novedadStatuses: searchParams.getAll('novedadStatuses'),
 		}
 
 		const validationResult = businessListParamsSchema.safeParse(params)
@@ -106,6 +107,7 @@ export async function GET(
 			periodicityIds,
 			agentCategoryIds,
 			agentIds,
+			novedadStatuses,
 		} = validationResult.data
 
 		// Obtener usuario actual
@@ -144,6 +146,10 @@ export async function GET(
 				periodicityIds: periodicityIds && periodicityIds.length > 0 ? periodicityIds : undefined,
 				agentCategoryIds: agentCategoryIds && agentCategoryIds.length > 0 ? agentCategoryIds : undefined,
 				agentIds: agentIds && agentIds.length > 0 ? agentIds : undefined,
+				novedadStatuses:
+					novedadStatuses && novedadStatuses.length > 0
+						? novedadStatuses
+						: undefined,
 			}),
 			{ visibleUserIds }
 		)

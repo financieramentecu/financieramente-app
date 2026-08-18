@@ -1,5 +1,9 @@
 import type { Prisma } from '@prisma/client'
 import { UserRole } from '@/features/auth/lib/roles'
+import {
+	NOVEDAD_FILTER_SIN_NOVEDAD,
+	type NovedadFilterValue,
+} from '@/features/negocios/types/business-entity.types'
 
 // Límite máximo para un entero de 32 bits en PostgreSQL (INT4)
 const POSTGRES_INT_MAX = 2147483647
@@ -27,6 +31,11 @@ export interface BusinessListFilterInput {
 	agentCategoryIds?: number[]
 	/** Money Strategist user IDs — filters by Business.idUser */
 	agentIds?: number[]
+	/**
+	 * Novedad statuses multiselect. May include SIN_NOVEDAD for null column.
+	 * Empty/undefined → no novedad criterion.
+	 */
+	novedadStatuses?: NovedadFilterValue[]
 }
 
 export interface BuildBusinessListWhereOptions {
@@ -83,6 +92,7 @@ export function buildBusinessListWhere(
 		periodicityIds,
 		agentCategoryIds,
 		agentIds,
+		novedadStatuses,
 	} = filters
 
 	// statuses[] takes precedence over single status (back-compat)
@@ -90,6 +100,27 @@ export function buildBusinessListWhere(
 		whereConditions.push({ status: { in: statuses } })
 	} else if (status) {
 		whereConditions.push({ status })
+	}
+
+	if (novedadStatuses && novedadStatuses.length > 0) {
+		const includeSinNovedad = novedadStatuses.includes(
+			NOVEDAD_FILTER_SIN_NOVEDAD
+		)
+		const concreteStatuses = novedadStatuses.filter(
+			(s) => s !== NOVEDAD_FILTER_SIN_NOVEDAD
+		)
+		const orConditions: Prisma.BusinessWhereInput[] = []
+		if (concreteStatuses.length > 0) {
+			orConditions.push({ novedadStatus: { in: concreteStatuses } })
+		}
+		if (includeSinNovedad) {
+			orConditions.push({ novedadStatus: null })
+		}
+		if (orConditions.length === 1) {
+			whereConditions.push(orConditions[0])
+		} else if (orConditions.length > 1) {
+			whereConditions.push({ OR: orConditions })
+		}
 	}
 
 	if (search?.trim()) {
