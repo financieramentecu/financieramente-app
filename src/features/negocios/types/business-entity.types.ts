@@ -52,6 +52,27 @@ export const MANUAL_NOVEDAD_STATUSES = [
 ] as const
 
 /**
+ * Sentinel for advanced filter "Sin novedad" (Business.novedadStatus IS NULL).
+ */
+export const NOVEDAD_FILTER_SIN_NOVEDAD = 'SIN_NOVEDAD' as const
+
+/**
+ * Values accepted by the Novedades advanced filter (multiselect).
+ * Empty selection = Todos (no novedad criterion applied).
+ */
+export const NOVEDAD_FILTER_VALUES = [
+	BUSINESS_NOVEDAD_STATUS.NUEVA,
+	BUSINESS_NOVEDAD_STATUS.SOMETIDA_DEVOLUCION,
+	BUSINESS_NOVEDAD_STATUS.DECLINADA,
+	BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+	BUSINESS_NOVEDAD_STATUS.CANCELADA,
+	NOVEDAD_FILTER_SIN_NOVEDAD,
+] as const
+
+export type NovedadFilterValue =
+	(typeof NOVEDAD_FILTER_VALUES)[number]
+
+/**
  * Modos del formulario de negocio
  */
 export type BusinessFormMode = 'create' | 'edit' | 'view' | 'cancel'

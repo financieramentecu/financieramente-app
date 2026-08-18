@@ -110,6 +110,7 @@ export function useBusinesses(
 				periodicityIds: params.periodicityIds,
 				agentCategoryIds: params.agentCategoryIds,
 				agentIds: params.agentIds,
+				novedadStatuses: params.novedadStatuses,
 			})
 
 			if (requestId !== latestRequestId.current) return

@@ -4,6 +4,33 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.32.0] - 2026-08-13
+
+### Agregado
+
+- **Filtro "Novedades" en Filtros avanzados de negocios:** Los usuarios pueden filtrar el listado por estado de novedad (Nueva, Sometido o Devolución, Declinado, Pendiente, Cancelado) o por "Sin novedad", solo o en combinación con Fecha, Money Strategist, Estado, Compañía y el resto de criterios existentes. Sin selección = Todos (sin criterio de novedad).
+
+### Técnico
+
+- Query/body param `novedadStatuses` shared across GET `/api/negocios`, GET `/api/negocios/stats`, and POST `/api/negocios/export`.
+- Sentinel `SIN_NOVEDAD` maps to `Business.novedadStatus IS NULL`; multiple selected values OR together and AND with other advanced filters.
+- UI: `AdvancedFiltersSheet` MultiSelect "Novedades"; URL param wiring in `negocios-page-client`; active-filter badge via `countActiveDimensions`.
+- Domain constants: `NOVEDAD_FILTER_SIN_NOVEDAD`, `NOVEDAD_FILTER_VALUES`, `NovedadFilterValue` in `business-entity.types.ts`.
+- OpenSpec change `negocios-filtro-novedades` archived; delta synced to `openspec/specs/negocios/spec.md`.
+- Unit tests: build-business-list-where, schemas, filter-flow, list-export parity, AdvancedFiltersSheet.
+
+## [1.31.1] - 2026-08-12
+
+### Corregido
+
+- **Suspensión de Flagsmith por consumo excesivo de la capa gratuita:** El chequeo de feature flags en el servidor hacía una petición HTTP real a la API de Flagsmith en cada carga de página (sin evaluación local ni caché, y duplicado entre el layout raíz y cada página), agotando la cuota gratuita mensual y provocando la suspensión del servicio. Ahora el SDK evalúa los flags localmente en memoria, refrescando el documento de entorno cada 5 minutos en lugar de en cada request.
+
+### Técnico
+
+- `flagsmith-server.ts`: `enableLocalEvaluation: true` + `environmentRefreshIntervalSeconds: 300` en la instancia de `flagsmith-nodejs`, reduciendo el consumo de ~43,200 a ~14,400 requests/mes por instancia activa.
+- Sin `FLAGSMITH_SERVER_KEY` configurada (uso previsto en QA) todos los flags quedan habilitados para pruebas y no se realiza ninguna petición a Flagsmith, sin afectar el fallback conservador existente para errores reales de la API en producción.
+- Nuevos flags `leads_module` y `reportes_produccion_real`, gateando `/dashboard/leads` y `/dashboard/reportes/produccion-real` con el mismo patrón que `production_dashboard` (redirect si están deshabilitados).
+
 ## [1.31.0] - 2026-08-06
 
 ### Agregado

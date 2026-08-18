@@ -138,6 +138,45 @@ describe('buildBusinessListWhere — new filter branches (Phase 2.4)', () => {
 		})
 	})
 
+	describe('novedadStatuses filter', () => {
+		it('applies novedadStatus.in for concrete statuses', () => {
+			const w = buildBusinessListWhere(adminUser, {
+				novedadStatuses: ['NUEVA', 'PENDIENTE'],
+			})
+			expect(w).toEqual({
+				AND: [{ novedadStatus: { in: ['NUEVA', 'PENDIENTE'] } }],
+			})
+		})
+
+		it('applies novedadStatus null for SIN_NOVEDAD only', () => {
+			const w = buildBusinessListWhere(adminUser, {
+				novedadStatuses: ['SIN_NOVEDAD'],
+			})
+			expect(w).toEqual({ AND: [{ novedadStatus: null }] })
+		})
+
+		it('ORs concrete statuses with SIN_NOVEDAD', () => {
+			const w = buildBusinessListWhere(adminUser, {
+				novedadStatuses: ['PENDIENTE', 'SIN_NOVEDAD'],
+			})
+			expect(w).toEqual({
+				AND: [
+					{
+						OR: [
+							{ novedadStatus: { in: ['PENDIENTE'] } },
+							{ novedadStatus: null },
+						],
+					},
+				],
+			})
+		})
+
+		it('does not add novedad filter for empty array', () => {
+			const w = buildBusinessListWhere(adminUser, { novedadStatuses: [] })
+			expect(w).toEqual({})
+		})
+	})
+
 	describe('combined filters', () => {
 		it('combines statuses, dateIssuedRange, hasSupports, terms, and periodicityIds correctly', () => {
 			const gte = new Date('2026-01-01T05:00:00.000Z')
@@ -161,6 +200,21 @@ describe('buildBusinessListWhere — new filter branches (Phase 2.4)', () => {
 					{ supports: { some: { status: true } } },
 					{ term: { in: [1] } },
 					{ idBuyPeriodicity: { in: [5] } },
+				],
+			})
+		})
+
+		it('combines novedadStatuses with agentIds and statuses (AND)', () => {
+			const w = buildBusinessListWhere(adminUser, {
+				statuses: ['EMITIDO'],
+				agentIds: [9],
+				novedadStatuses: ['PENDIENTE'],
+			})
+			expect(w).toEqual({
+				AND: [
+					{ status: { in: ['EMITIDO'] } },
+					{ novedadStatus: { in: ['PENDIENTE'] } },
+					{ idUser: { in: [9] } },
 				],
 			})
 		})

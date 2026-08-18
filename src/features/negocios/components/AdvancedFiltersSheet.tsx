@@ -25,7 +25,7 @@ import { usePeriodicities } from '@/features/negocios/hooks/use-periodicities'
 import { useBusinessTerms } from '@/features/negocios/hooks/use-business-terms'
 import { useAgentCategories } from '@/features/negocios/hooks/use-agent-categories'
 import { useMoneyStrategists } from '@/features/negocios/hooks/use-money-strategists'
-import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
+import { BUSINESS_STATUS, BUSINESS_NOVEDAD_STATUS, NOVEDAD_FILTER_SIN_NOVEDAD } from '@/features/negocios/types/business-entity.types'
 import { countActiveDimensions } from '@/features/negocios/lib/count-active-dimensions'
 import { getCurrentMonthRange } from '@/features/negocios/lib/default-date-filter'
 import { dateOnlyToBogotaNoonUtc, bogotaDateOnly } from '@/features/negocios/lib/bogota-date'
@@ -47,10 +47,23 @@ const STATUS_OPTIONS = [
 	{ value: BUSINESS_STATUS.CARTERA, label: 'Cartera' },
 ]
 
+const NOVEDAD_OPTIONS = [
+	{ value: BUSINESS_NOVEDAD_STATUS.NUEVA, label: 'Nueva' },
+	{
+		value: BUSINESS_NOVEDAD_STATUS.SOMETIDA_DEVOLUCION,
+		label: 'Sometido o Devolución',
+	},
+	{ value: BUSINESS_NOVEDAD_STATUS.DECLINADA, label: 'Declinado' },
+	{ value: BUSINESS_NOVEDAD_STATUS.PENDIENTE, label: 'Pendiente' },
+	{ value: BUSINESS_NOVEDAD_STATUS.CANCELADA, label: 'Cancelado' },
+	{ value: NOVEDAD_FILTER_SIN_NOVEDAD, label: 'Sin novedad' },
+]
+
 interface FilterFormValues {
 	dateField: DateFieldValue
 	dateRange: DateRange | undefined
 	statuses: string[]
+	novedadStatuses: string[]
 	hasSupports: 'all' | 'true' | 'false'
 	companyIds: string[]
 	productIds: string[]
@@ -101,6 +114,7 @@ function getDefaultValues(searchParams: URLSearchParams): FilterFormValues {
 		dateField,
 		dateRange,
 		statuses: searchParams.getAll('statuses'),
+		novedadStatuses: searchParams.getAll('novedadStatuses'),
 		hasSupports: hasSupports as 'all' | 'true' | 'false',
 		companyIds: searchParams.getAll('companyIds'),
 		productIds: searchParams.getAll('productIds'),
@@ -209,7 +223,7 @@ export function AdvancedFiltersSheet() {
 
 			// Clear all filter params first
 			const filterKeys = [
-				'statuses', 'dateFrom', 'dateTo', 'createdFrom', 'createdTo',
+				'statuses', 'novedadStatuses', 'dateFrom', 'dateTo', 'createdFrom', 'createdTo',
 				'dateIssuedFrom', 'dateIssuedTo', 'hasSupports', 'agentName', 'agentCategoryIds', 'agentIds',
 				'companyIds', 'productIds', 'originIds', 'terms', 'periodicityIds',
 			]
@@ -217,6 +231,7 @@ export function AdvancedFiltersSheet() {
 
 			// Set statuses
 			values.statuses.forEach((s) => params.append('statuses', s))
+			values.novedadStatuses.forEach((s) => params.append('novedadStatuses', s))
 
 			// Set date range
 			if (values.dateRange?.from && values.dateRange?.to) {
@@ -274,6 +289,7 @@ export function AdvancedFiltersSheet() {
 				to: dateOnlyToBogotaNoonUtc(monthTo),
 			},
 			statuses: [],
+			novedadStatuses: [],
 			hasSupports: 'all',
 			companyIds: [],
 			productIds: [],
@@ -287,7 +303,7 @@ export function AdvancedFiltersSheet() {
 
 		const params = new URLSearchParams(searchParams.toString())
 		const filterKeys = [
-			'statuses', 'dateFrom', 'dateTo', 'createdFrom', 'createdTo',
+			'statuses', 'novedadStatuses', 'dateFrom', 'dateTo', 'createdFrom', 'createdTo',
 			'dateIssuedFrom', 'dateIssuedTo', 'hasSupports', 'agentName', 'agentCategoryIds', 'agentIds',
 			'companyIds', 'productIds', 'originIds', 'terms', 'periodicityIds',
 		]
@@ -393,6 +409,23 @@ export function AdvancedFiltersSheet() {
 										value={field.value}
 										onChange={field.onChange}
 										placeholder="Todos los estados"
+									/>
+								)}
+							/>
+						</section>
+
+						{/* Novedades multiselect */}
+						<section className="space-y-2">
+							<Label className="text-sm font-semibold">Novedades</Label>
+							<Controller
+								control={control}
+								name="novedadStatuses"
+								render={({ field }) => (
+									<MultiSelect
+										options={NOVEDAD_OPTIONS}
+										value={field.value}
+										onChange={field.onChange}
+										placeholder="Todas las novedades"
 									/>
 								)}
 							/>

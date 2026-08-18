@@ -27,6 +27,8 @@ describe('filter-flow integration', () => {
 		urlParams.append('companyIds', '1')
 		urlParams.append('terms', '2')
 		urlParams.append('periodicityIds', '3')
+		urlParams.append('novedadStatuses', 'PENDIENTE')
+		urlParams.append('novedadStatuses', 'SIN_NOVEDAD')
 
 		// Parse via list schema (simulating GET /api/negocios)
 		const listParams = businessFilterParamsSchema.parse({
@@ -37,6 +39,7 @@ describe('filter-flow integration', () => {
 			companyIds: urlParams.getAll('companyIds').map(Number),
 			terms: urlParams.getAll('terms').map(Number),
 			periodicityIds: urlParams.getAll('periodicityIds').map(Number),
+			novedadStatuses: urlParams.getAll('novedadStatuses'),
 		})
 
 		// Parse via export schema (simulating POST /api/negocios/export with same params)
@@ -48,6 +51,7 @@ describe('filter-flow integration', () => {
 			companyIds: urlParams.getAll('companyIds').map(Number),
 			terms: urlParams.getAll('terms').map(Number),
 			periodicityIds: urlParams.getAll('periodicityIds').map(Number),
+			novedadStatuses: urlParams.getAll('novedadStatuses'),
 		})
 
 		const listFilterInput = toBusinessListFilterInput({
@@ -58,6 +62,7 @@ describe('filter-flow integration', () => {
 			companyIds: listParams.companyIds,
 			terms: listParams.terms,
 			periodicityIds: listParams.periodicityIds,
+			novedadStatuses: listParams.novedadStatuses,
 		})
 
 		const exportFilterInput = toBusinessListFilterInput({
@@ -68,6 +73,7 @@ describe('filter-flow integration', () => {
 			companyIds: exportParams.companyIds,
 			terms: exportParams.terms,
 			periodicityIds: exportParams.periodicityIds,
+			novedadStatuses: exportParams.novedadStatuses,
 		})
 
 		// Filter inputs must be identical
@@ -86,10 +92,11 @@ describe('filter-flow integration', () => {
 		params.set('dateFrom', '2026-01-01')
 		params.set('dateTo', '2026-01-31')
 		params.set('hasSupports', 'true')
+		params.append('novedadStatuses', 'PENDIENTE')
 
 		const count = countActiveDimensions(params)
-		// statuses=1, date range=1, hasSupports=1
-		expect(count).toBe(3)
+		// statuses=1, date range=1, hasSupports=1, novedadStatuses=1
+		expect(count).toBe(4)
 	})
 
 	it('empty URL params produce zero active dimensions', () => {
