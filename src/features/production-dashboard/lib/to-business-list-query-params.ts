@@ -65,6 +65,12 @@ export function toBusinessListQueryParams(
 
   // isInternacional is never forwarded — the heatmap aggregate ignores it too.
 
+  if (filters.hasSupports === true) {
+    params.set('hasSupports', 'true')
+  } else if (filters.hasSupports === false) {
+    params.set('hasSupports', 'false')
+  }
+
   params.set('page', String(page))
   params.set('pageSize', String(CELL_BUSINESS_LIST_PAGE_SIZE))
   params.set('sortBy', 'createdAt')

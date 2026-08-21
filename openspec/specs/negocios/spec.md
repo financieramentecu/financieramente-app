@@ -1217,26 +1217,122 @@ El sistema MUST exponer exactamente tres métricas (Ventas Efectuadas, Emitido, 
 - AND SHALL visualizar el monto total en moneda local (COP)
 - AND SHALL visualizar el monto total en moneda extranjera (USD)
 
-### Requirement: Contrato GET /api/negocios/stats y filtro createdAt para los tres KPI
+### Requirement: Contrato GET /api/negocios/stats y paridad con filtros avanzados (COM-73)
 
-El endpoint `GET /api/negocios/stats` SHALL aceptar parámetros opcionales de consulta `dateFrom` y `dateTo` en formato fecha calendario (YYYY-MM-DD). Cuando ambos están presentes y válidos, el sistema SHALL aplicar un único filtro por `createdAt` (límite inferior y superior en UTC derivados de días inclusivos en zona horaria de Bogotá) a las tres agregaciones en paralelo: Ventas Efectuadas, Emitido y Fondeados. Cuando falta uno o ambos parámetros de rango, el sistema SHALL NOT aplicar ese filtro `createdAt` a las agregaciones (totales sin acotar por ese rango). La forma de la respuesta (tres bloques de KPI) MUST permanecer estable respecto al contrato existente del Coach.
+El endpoint `GET /api/negocios/stats` SHALL aceptar los mismos parámetros de filtro avanzado que `GET /api/negocios` (`BusinessFilterParams`: rangos de fecha de fondeo/creación/emisión, estados, Money Strategist, categoría, soportes, compañía, producto, origen, plazo, periodicidad, etc.). La semántica de cada dimensión MUST coincidir con la lista: `dateFrom`/`dateTo` filtran `dateAnchored`; `createdFrom`/`createdTo` filtran `createdAt`; `dateIssuedFrom`/`dateIssuedTo` filtran `dateIssued`. Al aplicar filtros desde la UI (botón «Aplicar»), los KPIs de «Resumen» MUST recalcularse sobre el mismo conjunto filtrado. Al limpiar filtros, los KPIs MUST volver a totales sin esas restricciones (dentro del alcance jerárquico del rol). Si no hay coincidencias, cada tarjeta MUST mostrar `0` negocios y montos `0` (nunca `null`/`NaN`). La forma de la respuesta (tres bloques: Ventas Efectuadas, Emitidos —incl. `sinSoporte`—, Fondeados) MUST permanecer estable.
 
-#### Scenario: Rango completo acota los tres KPI por createdAt
+#### Scenario: Aplicar filtros avanzados actualiza los tres KPI
 
-- GIVEN una petición `GET /api/negocios/stats` con `dateFrom` y `dateTo` válidos y pareados
-- WHEN el backend calcula las tres métricas
-- THEN cada agregación SHALL usar el mismo predicado de rango sobre `createdAt`
-- AND ninguna de las tres SHALL usar únicamente `dateAnchored` para ese filtro de fechas de consulta
+- **GIVEN** el usuario aplica uno o más filtros avanzados en la vista de negocios
+- **WHEN** el cliente solicita `GET /api/negocios/stats` con esos mismos query params
+- **THEN** cada agregación SHALL usar el mismo predicado `WHERE` que la lista (vía `buildBusinessListWhere`)
+- **AND** las tarjetas Ventas Efectuadas, Emitidos y Fondeados SHALL reflejar solo negocios que cumplan los filtros
 
-#### Scenario: Sin rango — sin filtro createdAt en stats
+#### Scenario: Limpiar filtros restablece KPIs globales
 
-- GIVEN una petición sin `dateFrom` o sin `dateTo` (o sin ambos)
-- WHEN se calculan las estadísticas
-- THEN el sistema SHALL NOT aplicar el filtro de rango `createdAt` descrito arriba a las agregaciones
+- **GIVEN** existían filtros aplicados en la URL
+- **WHEN** el usuario limpia filtros y confirma
+- **THEN** la solicitud de stats SHALL omitir esas dimensiones
+- **AND** los KPIs SHALL mostrar el consolidado sin restricciones de filtro avanzado (respetando visibilidad jerárquica)
+
+#### Scenario: Sin coincidencias — ceros seguros
+
+- **GIVEN** la combinación de filtros no arroja negocios
+- **WHEN** se calculan las estadísticas
+- **THEN** cada KPI SHALL retornar `count: 0`, `totalCop: 0`, `totalUsd: 0` (y `sinSoporte: 0` en Emitidos)
+- **AND** el sistema SHALL NOT retornar `null` ni `NaN` en esos campos
+
+#### Scenario: Rango de fondeo usa dateAnchored (no createdAt)
+
+- **GIVEN** una petición con `dateFrom` y `dateTo` válidos y pareados
+- **WHEN** el backend calcula las métricas
+- **THEN** el filtro de fechas SHALL aplicarse sobre `dateAnchored` (paridad con la lista)
+
+---
+
+### Requirement: Contact fields unblocked for lead conversion
+
+When the business-creation form is opened for a lead conversion (a `leadId` is present in context), the system MUST NOT apply the document-length gate (`identityNumber.length >= 5`) to the contact fields (`email`, `name`, `lastNames`, `phone`, `clientOrigin`) or to the `agent` selector. This exemption applies for every lead conversion, independent of which lead fields were prefilled. The gate MUST continue to apply unchanged when no `leadId` is present (manual creation flow). The blocking condition MUST be derived in exactly one place in the form's state (no duplicated derivation across sections).
+
+#### Scenario: Lead without identityNumber leaves contact fields editable
+
+- GIVEN the business-creation form is opened with a `leadId` for a lead that has no `identityNumber`
+- WHEN the form renders
+- THEN `email`, `name`, `lastNames`, `phone`, `clientOrigin`, and `agent` SHALL be editable
+- AND the user SHALL be able to submit without first typing a document number
+
+#### Scenario: Lead with identityNumber still leaves contact fields editable
+
+- GIVEN the business-creation form is opened with a `leadId` for a lead that already has an `identityNumber`
+- WHEN the form renders
+- THEN the contact fields and `agent` selector SHALL NOT be blocked by the document-length rule
+
+#### Scenario: Manual creation without leadId still gates on document length
+
+- GIVEN the business-creation form is opened without a `leadId`
+- WHEN `identityNumber` has fewer than 5 characters
+- THEN the contact fields and `agent` selector SHALL remain blocked, unchanged from current behavior
+
+### Requirement: Existing client resolved before creation on lead conversion
+
+When a business is submitted from a lead conversion (`leadId` present), the system MUST attempt to resolve an existing `Client` before creating a new one, using EXACT matching only (never partial/fuzzy): first by the identity composite (`typeIdentity` + `identityNumber`), and if no match, by exact `email`. If a match is found, the system MUST reuse that `Client` instead of creating a new one, routed through the same selection path already used for manual existing-client selection, so existing update-on-change logic synchronizes any differing contact data. The reuse MUST be silent — no confirmation prompt or additional user-facing notice. If no match is found, the system MUST create a new `Client` exactly as it does today.
+
+#### Scenario: Matching client found by identity is reused silently
+
+- GIVEN a `Client` already exists whose identity composite matches the identity supplied on lead conversion
+- WHEN the user submits the business-creation form for that lead
+- THEN the existing `Client` SHALL be reused for the new `Business`
+- AND no new `Client` record SHALL be created
+- AND no confirmation dialog SHALL be shown to the user
+
+#### Scenario: Matching client found by email when identity does not match
+
+- GIVEN no `Client` matches the supplied identity composite, but a `Client` exists with the exact same `email`
+- WHEN the user submits the business-creation form for that lead
+- THEN the existing `Client` matched by `email` SHALL be reused
+- AND no new `Client` record SHALL be created
+
+#### Scenario: No matching client creates a new one as today
+
+- GIVEN no `Client` matches by identity composite or by exact `email`
+- WHEN the user submits the business-creation form for that lead
+- THEN a new `Client` SHALL be created following the current creation path unchanged
+
+#### Scenario: Reused client with differing contact data is synced
+
+- GIVEN a resolved existing `Client` whose stored name, email, or phone differs from the data on the lead
+- WHEN the reused `Client` is routed through the existing selection path
+- THEN the existing change-detection and update logic SHALL persist the differing fields on that `Client`
+
+### Requirement: Money Strategist locked to the lead's owner on conversion
+
+When the business-creation form is opened from a lead conversion (`leadId` present) and the resolved lead has an assigned owner, the system MUST prefill the `agent` (Money Strategist) field with that owner and MUST lock the field so it cannot be changed, overriding any auto-assignment that would otherwise apply (e.g. the logged-in user being an AGENTE who normally self-assigns). This lock MUST apply only in creation mode from a lead conversion; it MUST NOT apply to manual creation (no `leadId`) or to edit mode, which use their own existing agent-assignment rules unchanged.
+
+#### Scenario: Lead owner locks the agent field, overriding self-assignment
+
+- GIVEN the business-creation form is opened with a `leadId` whose lead has an assigned owner
+- AND the logged-in user is an AGENTE who would normally auto-assign themselves as the agent
+- WHEN the form renders
+- THEN the `agent` field SHALL be prefilled with the lead's owner
+- AND the `agent` field SHALL be disabled/non-editable
+- AND an explanatory caption SHALL be shown indicating the Money Strategist is responsible for the lead and cannot be modified
+
+#### Scenario: Manual creation is unaffected by the lock
+
+- GIVEN the business-creation form is opened without a `leadId`
+- WHEN the form renders
+- THEN the `agent` field SHALL follow existing auto-assignment/search rules, unlocked
+- **AND** SHALL NOT reinterpretar `dateFrom`/`dateTo` como `createdAt`
+
+#### Scenario: Rango de creación usa createdAt
+
+- **GIVEN** una petición con `createdFrom` y `createdTo` válidos y pareados
+- **WHEN** el backend calcula las métricas
+- **THEN** cada agregación SHALL usar el predicado de rango sobre `createdAt`
 
 ### Requirement: Fechas por rol en la vista Negocios (Coach vs Administrador)
 
-Para el Coach, la vista de negocios SHALL inicializar el rango de fechas de la UI al primer día del mes calendario actual hasta el día actual (Bogotá), de modo que el Coach no quede con tabla o KPI vacíos por defecto al faltar fechas. Para el Administrador, los filtros de fecha de la vista SHALL iniciar vacíos por defecto. El Coach SHALL mapear ese rango de UI a `createdFrom`/`createdTo` en la lista y a `dateFrom`/`dateTo` en la llamada a stats según el contrato de API. El Administrador SHALL usar `dateFrom`/`dateTo` en la lista para filtrar por fecha de fondeo (`dateAnchored`) cuando los establezca.
+Para el Coach, la vista de negocios SHALL inicializar el rango de fechas de la UI al primer día del mes calendario actual hasta el día actual (Bogotá), de modo que el Coach no quede con tabla o KPI vacíos por defecto al faltar fechas. Para el Administrador, los filtros de fecha de la vista SHALL iniciar vacíos por defecto. El Coach SHALL mapear ese rango de UI a `createdFrom`/`createdTo` tanto en la lista como en stats (misma semántica). El Administrador SHALL usar `dateFrom`/`dateTo` para filtrar por fecha de fondeo (`dateAnchored`) cuando los establezca. Los KPIs de «Resumen» MUST usar exactamente los mismos query params de filtro avanzado que la lista (COM-73).
 
 #### Scenario: Coach con mes actual por defecto
 
@@ -1732,7 +1828,7 @@ The Sheet MUST include multiselect controls for: Company (`companyIds[]`), Produ
 
 ### Requirement: Apply and Clear Actions
 
-Clicking "Aplicar" MUST commit all filter state to URL search params and close the Sheet. Clicking "Limpiar filtros" MUST reset all filter dimensions to defaults (date field stays "Fondeo", date range cleared, all multiselects cleared, hasSupports reset to "Todos", agentName cleared) without closing the Sheet.
+Clicking "Aplicar" MUST commit all filter state to URL search params and close the Sheet. Clicking "Limpiar filtros" MUST reset all filter dimensions to defaults (date field "Creación", date range = current month via `createdFrom`/`createdTo`, all multiselects cleared, hasSupports reset to "Todos", agentName cleared).
 
 #### Scenario: Apply commits and closes
 
@@ -1741,14 +1837,15 @@ Clicking "Aplicar" MUST commit all filter state to URL search params and close t
 - THEN URL params MUST be updated with the new filter state
 - AND the Sheet MUST close
 
-#### Scenario: Clear resets all dimensions
+#### Scenario: Clear resets to current-month creation default
 
 - GIVEN filters are active in the Sheet
 - WHEN the user clicks "Limpiar filtros"
 - THEN all multiselects MUST show no selections
-- AND date range MUST be empty with date field at "Fondeo"
+- AND date field MUST be "Creación" with range = first day of current month through today (`createdFrom`/`createdTo`)
+- AND fondeo/emisión date params MUST be cleared
 - AND hasSupports MUST be "Todos"
-- AND the Sheet MUST remain open
+- AND the list MUST NOT show the full history (empty date filter)
 
 ---
 
@@ -2041,6 +2138,279 @@ The system MUST provide `scripts/remediate-unsupported-funded-businesses.js` to 
 - GIVEN a `FONDEADO` business with `supportCount >= 1`
 - WHEN the script identifies candidates (dry-run or apply)
 - THEN that business MUST NOT appear in the affected set
+
+---
+
+### Requirement: Manual novedad status management endpoint
+
+The system MUST provide `PATCH /api/negocios/[id]/manage-novedad`, restricted to roles `ANALISTA_SOPORTE` and `ADMIN` (403 for any other role). The endpoint MUST accept exactly one target value from `SOMETIDA_DEVOLUCION`, `DECLINADA`, `PENDIENTE`, `CANCELADA` and MUST reject `NUEVA` as a target (400). It MUST allow transitioning from any current `novedadStatus` (including a non-terminal `CANCELADA`) to any of the four manual values, in either direction, with no state treated as terminal. On success it MUST persist the new `novedadStatus` and emit an `AuditLog` entry with action `BUSINESS_NOVEDAD_STATUS_CHANGED` including `userId`, `email`, `ipAddress`, `userAgent`, and a human-readable `details` string naming the from→to values. Prisma access for this operation MUST live in `src/features/negocios/services/`; the route MUST be HTTP-only.
+
+#### Scenario: Analista changes novedad from NUEVA to SOMETIDA_DEVOLUCION
+
+- GIVEN an authenticated `ANALISTA_SOPORTE` and a business with `novedadStatus === 'NUEVA'`
+- WHEN they PATCH `manage-novedad` with target `SOMETIDA_DEVOLUCION`
+- THEN `novedadStatus` SHALL become `SOMETIDA_DEVOLUCION`
+- AND an `AuditLog` entry with action `BUSINESS_NOVEDAD_STATUS_CHANGED` SHALL be created
+
+#### Scenario: Admin reopens a CANCELADA novedad
+
+- GIVEN an authenticated `ADMIN` and a business with `novedadStatus === 'CANCELADA'`
+- WHEN they PATCH `manage-novedad` with target `PENDIENTE`
+- THEN `novedadStatus` SHALL become `PENDIENTE`
+
+#### Scenario: NUEVA is not a selectable manual target
+
+- GIVEN an authenticated `ANALISTA_SOPORTE` or `ADMIN`
+- WHEN they PATCH `manage-novedad` with target `NUEVA`
+- THEN the request MUST fail with 400 and `novedadStatus` MUST remain unchanged
+
+#### Scenario: Unauthorized role rejected
+
+- GIVEN an authenticated user with role other than `ANALISTA_SOPORTE`/`ADMIN`
+- WHEN they PATCH `manage-novedad` with any valid target
+- THEN the request MUST fail with 403 and `novedadStatus` MUST remain unchanged
+
+### Requirement: "Gestionar novedad" trigger visibility
+
+The detail page and `BusinessViewModal` MUST render a "Gestionar novedad" control only for `ANALISTA_SOPORTE` and `ADMIN`, and only when the business has a non-null `novedadStatus`. Activating it MUST open `BusinessNovedadManageModal`, showing the current status and a selector limited to `SOMETIDA_DEVOLUCION`, `DECLINADA`, `PENDIENTE`, `CANCELADA`. On save, the modal MUST call `manage-novedad`, show a success confirmation, and the updated status MUST render immediately in both the detail badge and the business-list "Novedad" column.
+
+#### Scenario: Analista opens and saves the management modal
+
+- GIVEN an `ANALISTA_SOPORTE` viewing a business with `novedadStatus === 'NUEVA'`
+- WHEN they click "Gestionar novedad", pick `DECLINADA`, and click "Guardar"
+- THEN the modal SHALL close showing a confirmation message
+- AND the detail badge and list column SHALL reflect `DECLINADA` without a page reload
+
+#### Scenario: Trigger hidden for non-privileged roles
+
+- GIVEN a business with a non-null `novedadStatus` and a viewer with role `AGENTE`, `ASISTENTE_GERENCIA_OPERATIVA`, or `COACH`
+- WHEN the detail page or `BusinessViewModal` renders
+- THEN "Gestionar novedad" MUST NOT be visible
+
+### Requirement: Legacy novedad data backfill to NUEVA
+
+The system MUST provide an idempotent data backfill (a plain `UPDATE`, not a Prisma schema migration — `novedadStatus` stays `VarChar(20)`) that sets `novedadStatus = 'NUEVA'` for every `Business` row whose current `novedadStatus` is the legacy value `PENDIENTE` (the prior MARK default) OR the legacy value `RESUELTA` (the prior auto-resolve default). Rows already outside `{PENDIENTE, RESUELTA}` MUST NOT be modified. The script MUST be safely re-runnable with no further effect after the first successful run.
+
+#### Scenario: Legacy PENDIENTE rows backfilled
+
+- GIVEN a business with legacy `novedadStatus === 'PENDIENTE'`
+- WHEN the backfill runs
+- THEN `novedadStatus` SHALL become `'NUEVA'`
+
+#### Scenario: Legacy RESUELTA rows backfilled
+
+- GIVEN a business with legacy `novedadStatus === 'RESUELTA'`
+- WHEN the backfill runs
+- THEN `novedadStatus` SHALL become `'NUEVA'`
+
+#### Scenario: Re-run is a no-op
+
+- GIVEN the backfill has already run once
+- WHEN it is executed again
+- THEN no row SHALL change and zero rows SHALL match `{PENDIENTE, RESUELTA}`
+
+### Requirement: Novedad state persisted on Business
+
+The system MUST persist `novedadStatus` (nullable: `NUEVA` | `SOMETIDA_DEVOLUCION` | `DECLINADA` | `PENDIENTE` | `CANCELADA`), `novedadMarkedAt` (nullable timestamp), and `novedadResolvedAt` (nullable timestamp) on the `Business` record. A business never marked MUST have `novedadStatus = null` and both timestamps `null`. No schema/enum migration is required; the column remains `VARCHAR(20)`.
+
+#### Scenario: Never-marked business has null novedad fields
+
+- GIVEN a business that has never been marked with a novedad
+- WHEN the business record is read
+- THEN `novedadStatus` SHALL be `null`
+- AND `novedadMarkedAt` and `novedadResolvedAt` SHALL be `null`
+
+### Requirement: Mark novedad on VENTA_EFECTUADA business
+
+The system MUST allow marking a business as "Con Novedad" only when `status === VENTA_EFECTUADA` and `novedadStatus === null`. Any authenticated role MAY perform this action. On success, the system MUST set `novedadStatus = 'NUEVA'` and `novedadMarkedAt` to the current instant, and MUST emit an `AuditLog` entry with action `BUSINESS_NOVEDAD_MARKED`.
+
+#### Scenario: Mark succeeds on VENTA_EFECTUADA
+
+- GIVEN a business with `status === VENTA_EFECTUADA` and `novedadStatus === null`
+- WHEN any authenticated user calls the mark action
+- THEN `novedadStatus` SHALL become `'NUEVA'`
+- AND `novedadMarkedAt` SHALL be set to the current instant
+- AND this SHALL be visible immediately in the business list
+
+#### Scenario: Mark rejected outside VENTA_EFECTUADA
+
+- GIVEN a business with `status !== VENTA_EFECTUADA`
+- WHEN the mark action is requested
+- THEN the request MUST fail and `novedadStatus` MUST remain unchanged
+
+#### Scenario: Mark rejected when already marked
+
+- GIVEN a business with non-null `novedadStatus`
+- WHEN the mark action is requested again
+- THEN the request MUST fail and no duplicate `AuditLog` entry SHALL be created
+
+### Requirement: Unmark a NUEVA novedad
+
+The system MUST allow unmarking a novedad only when `novedadStatus === 'NUEVA'` AND the requesting user owns the business (`business.idUser === currentUser.idUser`). On success, the system MUST reset only `novedadStatus` to `null`; `novedadMarkedAt`, `novedadResolvedAt`, and any other novedad timestamps MUST be preserved unchanged. The system MUST emit an `AuditLog` entry with action `BUSINESS_NOVEDAD_UNMARKED`.
+
+#### Scenario: Owning agent unmarks a NUEVA novedad
+
+- GIVEN a business with `novedadStatus === 'NUEVA'` owned by the requesting user
+- WHEN the owner calls the unmark action
+- THEN `novedadStatus` SHALL become `null`
+- AND `novedadMarkedAt` SHALL remain unchanged (preserved, not cleared)
+- AND an `AuditLog` entry with action `BUSINESS_NOVEDAD_UNMARKED` SHALL be created
+
+#### Scenario: Unmark rejected when not NUEVA
+
+- GIVEN a business with `novedadStatus` in `{SOMETIDA_DEVOLUCION, DECLINADA, PENDIENTE, CANCELADA, null}`
+- WHEN the unmark action is requested
+- THEN the request MUST fail and `novedadStatus` MUST remain unchanged
+
+#### Scenario: Unmark rejected for non-owning user
+
+- GIVEN a business with `novedadStatus === 'NUEVA'` NOT owned by the requesting user
+- WHEN that user calls the unmark action
+- THEN the request MUST fail and `novedadStatus` MUST remain unchanged
+
+### Requirement: Novedad unaffected by business-status transitions
+
+Within the business-update transaction (including `VENTA_EFECTUADA → EMITIDO`), the system MUST NOT read or write `novedadStatus` or `novedadResolvedAt` for any reason tied to the business-status transition, and MUST NOT emit any novedad-related `AuditLog` entry from that transaction. All other `becomesEmitido` logic (payments, dates) MUST be preserved unchanged.
+
+#### Scenario: Novedad untouched by EMITIDO transition
+
+- GIVEN a business with any `novedadStatus` value (including `NUEVA`)
+- WHEN the update transaction transitions that business to `status === EMITIDO`
+- THEN `novedadStatus` and `novedadResolvedAt` MUST remain byte-identical
+- AND no novedad-related `AuditLog` entry SHALL be created
+- AND payment/date logic driven by `becomesEmitido` MUST still execute as before
+
+### Requirement: Novedad persists through cancellation
+
+Cancelling a business (`/api/negocios/[id]/cancel`) MUST NOT write or otherwise change `novedadStatus`, regardless of its current value.
+
+#### Scenario: Cancelling does not touch novedadStatus
+
+- GIVEN a business with any non-null `novedadStatus`
+- WHEN the business is cancelled
+- THEN `novedadStatus` SHALL remain exactly as it was before cancellation
+
+### Requirement: Novedad column in business list
+
+The principal business list (`BusinessTableSection`) MUST render a "Novedad" column immediately after "Estado". The cell MUST be empty when `novedadStatus === null`, and otherwise MUST show a label and colour + distinct icon per this palette: `NUEVA`=blue/`AlertCircle`, `SOMETIDA_DEVOLUCION`=amber/`Undo2`, `PENDIENTE`=orange/`Clock`, `DECLINADA`=red/`XCircle`, `CANCELADA`=slate/`Ban`. Colour alone MUST NOT be the only differentiator (WCAG 1.4.1).
+
+#### Scenario: Empty cell for never-marked business
+
+- GIVEN a business row with `novedadStatus === null`
+- WHEN the business list renders
+- THEN the Novedad cell SHALL be empty
+
+#### Scenario: Each state renders distinct colour and icon
+
+- GIVEN business rows covering `NUEVA`, `SOMETIDA_DEVOLUCION`, `PENDIENTE`, `DECLINADA`, `CANCELADA`
+- WHEN the business list renders
+- THEN each row SHALL show its mapped label, colour, and icon per the palette above
+- AND no two states SHALL share the same colour+icon pair
+
+### Requirement: Novedad row actions in BusinessRowActions
+
+The row-actions dropdown MUST offer "Marcar Con Novedad" only when `status === VENTA_EFECTUADA` and `novedadStatus === null` (not role-gated). The dropdown MUST offer "Desmarcar Novedad" only when `novedadStatus === 'NUEVA'` AND the current user owns the business.
+
+#### Scenario: Marcar Con Novedad visible on eligible business
+
+- GIVEN a business with `status === VENTA_EFECTUADA` and `novedadStatus === null`
+- WHEN any authenticated user opens the row-actions dropdown
+- THEN "Marcar Con Novedad" SHALL be visible
+
+#### Scenario: Desmarcar Novedad visible only for NUEVA + owner
+
+- GIVEN a business with `novedadStatus === 'NUEVA'` owned by the viewing user
+- WHEN the row-actions dropdown opens
+- THEN "Desmarcar Novedad" SHALL be visible
+
+#### Scenario: Desmarcar Novedad hidden for non-owner or non-NUEVA
+
+- GIVEN a business with `novedadStatus !== 'NUEVA'`, OR `novedadStatus === 'NUEVA'` but not owned by the viewer
+- WHEN the row-actions dropdown opens
+- THEN "Desmarcar Novedad" SHALL NOT be visible
+
+### Requirement: Novedad visible in business detail view
+
+The business detail view MUST display the novedad status with the same five-state colour + icon semantics as the list column (empty when `null`).
+
+#### Scenario: Detail view matches list palette
+
+- GIVEN a business with a non-null `novedadStatus`
+- WHEN the business detail view renders
+- THEN the shown label, colour, and icon SHALL match the business-list mapping for that status
+
+#### Scenario: Detail view shows nothing when never marked
+
+- GIVEN a business with `novedadStatus === null`
+- WHEN the business detail view renders
+- THEN no novedad status indicator SHALL be shown
+
+### Requirement: Advanced filter Novedades (COM-78)
+
+The advanced filters panel (`AdvancedFiltersSheet`) MUST expose a **Novedades** MultiSelect control with the same visual style as the existing **Estado** MultiSelect. The selectable options MUST be exactly: Nueva (`NUEVA`), Sometido o Devolución (`SOMETIDA_DEVOLUCION`), Declinado (`DECLINADA`), Pendiente (`PENDIENTE`), Cancelado (`CANCELADA`), and Sin novedad (`SIN_NOVEDAD`). An empty selection MUST mean **Todos** (default): no novedad criterion is applied. The filter is independent of business status (Emitido, Liquidado, etc.): selecting novedad values MUST NOT imply or require any business-status filter.
+
+#### Scenario: Novedades field visible with expected options
+
+- **GIVEN** the user opens advanced filters on the negocios list
+- **WHEN** the Novedades MultiSelect is displayed
+- **THEN** the control SHALL use the same visual style as Estado
+- **AND** the options SHALL be Nueva, Sometido o Devolución, Declinado, Pendiente, Cancelado, Sin novedad
+- **AND** the default selection SHALL be empty (Todos)
+
+#### Scenario: Empty selection applies no novedad criterion
+
+- **GIVEN** no novedad option is selected (Todos)
+- **WHEN** the user applies filters
+- **THEN** list, export, and stats results MUST NOT be restricted by `novedadStatus`
+
+### Requirement: Filter by selected novedad statuses (OR within dimension)
+
+When one or more novedad options other than empty/Todos are selected, the system MUST return only businesses that match **any** of the selected novedad values (OR semantics within the Novedades dimension). Concrete statuses MUST match `Business.novedadStatus` via an `IN` predicate. Selecting multiple concrete statuses MUST return the union of matching businesses.
+
+#### Scenario: Single concrete status filters list
+
+- **GIVEN** businesses with various `novedadStatus` values
+- **WHEN** the user selects only Pendiente and applies filters
+- **THEN** results SHALL include only businesses with `novedadStatus === 'PENDIENTE'`
+
+#### Scenario: Multiple concrete statuses use OR
+
+- **GIVEN** businesses with `novedadStatus` in `{NUEVA, DECLINADA, PENDIENTE}`
+- **WHEN** the user selects Nueva and Declinado and applies filters
+- **THEN** results SHALL include businesses with `novedadStatus` in `{NUEVA, DECLINADA}`
+- **AND** MUST NOT include businesses with only `PENDIENTE` (unless also selected)
+
+### Requirement: Sin novedad maps to null novedadStatus
+
+Selecting **Sin novedad** MUST restrict results to businesses that were never marked: `novedadStatus IS NULL`. When Sin novedad is combined with one or more concrete statuses, the system MUST OR those predicates (null OR `IN` selected statuses).
+
+#### Scenario: Sin novedad alone
+
+- **GIVEN** some businesses with `novedadStatus === null` and others with non-null statuses
+- **WHEN** the user selects only Sin novedad and applies filters
+- **THEN** results SHALL include only businesses with `novedadStatus IS NULL`
+
+#### Scenario: Sin novedad combined with a concrete status
+
+- **GIVEN** the user selects Pendiente and Sin novedad
+- **WHEN** filters are applied
+- **THEN** results SHALL include businesses with `novedadStatus === 'PENDIENTE'` OR `novedadStatus IS NULL`
+
+### Requirement: Novedades combines with other filters via AND
+
+The Novedades dimension MUST combine with all other advanced-filter dimensions (Estado / business status, Money Strategist, fechas, compañía, producto, etc.) using **AND** semantics. List, Excel export, and stats MUST accept the same `novedadStatuses` parameter values and apply identical WHERE semantics for parity.
+
+#### Scenario: Novedad AND business status
+
+- **GIVEN** the user selects Estado = Emitido and Novedades = Pendiente
+- **WHEN** filters are applied
+- **THEN** results SHALL include only businesses with `status === 'EMITIDO'` AND `novedadStatus === 'PENDIENTE'`
+
+#### Scenario: List export stats parity for novedadStatuses
+
+- **GIVEN** identical `novedadStatuses` (and other shared filter params) on list, export, and stats requests
+- **WHEN** each endpoint builds its filter predicate
+- **THEN** the novedad portion of the WHERE clause MUST be equivalent across the three surfaces
 
 ---
 

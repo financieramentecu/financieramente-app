@@ -6,10 +6,13 @@ import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarc
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
-import { logAuditEvent } from '@/features/auth/lib/audit-logger'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
 import { UserRole } from '@/features/auth/lib/roles'
-import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
+import {
+	BUSINESS_STATUS,
+	BUSINESS_NOVEDAD_STATUS,
+} from '@/features/negocios/types/business-entity.types'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
 import {
@@ -101,6 +104,7 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
 		BUSINESS_UPDATED: 'BUSINESS_UPDATED',
+		BUSINESS_NOVEDAD_RESOLVED: 'BUSINESS_NOVEDAD_RESOLVED',
 	},
 	getClientIp: vi.fn(() => '127.0.0.1'),
 	getUserAgent: vi.fn(() => 'test-agent'),
@@ -772,6 +776,129 @@ describe('PUT /api/negocios/[id]', () => {
 
 			await PUT(new Request('http://localhost:3000/api/negocios/1', { method: 'PUT', body: JSON.stringify({ contract: 'PN123' }) }), { params: Promise.resolve({ id: '1' }) })
 			expect(mockLogAuditEvent).toHaveBeenCalled()
+		})
+	})
+
+	describe('Novedad unaffected by business-status transitions', () => {
+		it('debe dejar novedadStatus/novedadResolvedAt intactos y NO auditar novedad cuando una novedad PENDIENTE (legado) pasa a EMITIDO', async () => {
+			const markedAt = new Date('2026-07-01T10:00:00.000Z')
+			const businessWithNovedad = {
+				...commonExistingBusiness,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+				novedadMarkedAt: markedAt,
+				novedadResolvedAt: null,
+			}
+			const requestBody = { contract: 'PN0005678' }
+
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({ success: true, data: requestBody } as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst
+				.mockResolvedValueOnce(businessWithNovedad as never)
+				.mockResolvedValueOnce(null)
+			mockUpdate.mockResolvedValue({
+				...commonUpdatedBusiness,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+				novedadMarkedAt: markedAt,
+				novedadResolvedAt: null,
+				dateIssued: new Date('2026-07-30T12:00:00.000Z'),
+			} as never)
+			mockPrismaBusinessToEntity.mockReturnValue(commonEntity as never)
+
+			const request = new Request('http://localhost:3000/api/negocios/1', {
+				method: 'PUT',
+				body: JSON.stringify(requestBody),
+			})
+
+			const response = await PUT(request, { params: Promise.resolve({ id: '1' }) })
+
+			expect(response.status).toBe(200)
+			expect(mockUpdate).toHaveBeenCalledTimes(1)
+			// dateIssued/payment-sync logic still runs on becomesEmitido
+			expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+				where: { idBusiness: 1 },
+				data: expect.objectContaining({
+					dateIssued: expect.any(Date),
+				}),
+			}))
+			// novedad branch fully removed — never present in the update payload
+			expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+				data: expect.not.objectContaining({
+					novedadStatus: expect.anything(),
+					novedadResolvedAt: expect.anything(),
+				}),
+			}))
+			expect(mockLogAuditEvent).not.toHaveBeenCalledWith(
+				expect.objectContaining({ action: AuditAction.BUSINESS_NOVEDAD_RESOLVED })
+			)
+		})
+
+		it('no debe modificar novedadStatus cuando es null', async () => {
+			const businessWithoutNovedad = {
+				...commonExistingBusiness,
+				novedadStatus: null,
+			}
+			const requestBody = { contract: 'PN0005678' }
+
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({ success: true, data: requestBody } as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst
+				.mockResolvedValueOnce(businessWithoutNovedad as never)
+				.mockResolvedValueOnce(null)
+			mockUpdate.mockResolvedValue(commonUpdatedBusiness as never)
+			mockPrismaBusinessToEntity.mockReturnValue(commonEntity as never)
+
+			const request = new Request('http://localhost:3000/api/negocios/1', {
+				method: 'PUT',
+				body: JSON.stringify(requestBody),
+			})
+
+			const response = await PUT(request, { params: Promise.resolve({ id: '1' }) })
+
+			expect(response.status).toBe(200)
+			expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+				data: expect.not.objectContaining({
+					novedadStatus: expect.anything(),
+				}),
+			}))
+			expect(mockLogAuditEvent).not.toHaveBeenCalledWith(
+				expect.objectContaining({ action: AuditAction.BUSINESS_NOVEDAD_RESOLVED })
+			)
+		})
+
+		it('deja intacta una novedad CANCELADA (backoffice) al pasar a EMITIDO', async () => {
+			const businessAlreadyManaged = {
+				...commonExistingBusiness,
+				novedadStatus: BUSINESS_NOVEDAD_STATUS.CANCELADA,
+			}
+			const requestBody = { contract: 'PN0005678' }
+
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({ success: true, data: requestBody } as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst
+				.mockResolvedValueOnce(businessAlreadyManaged as never)
+				.mockResolvedValueOnce(null)
+			mockUpdate.mockResolvedValue(commonUpdatedBusiness as never)
+			mockPrismaBusinessToEntity.mockReturnValue(commonEntity as never)
+
+			const request = new Request('http://localhost:3000/api/negocios/1', {
+				method: 'PUT',
+				body: JSON.stringify(requestBody),
+			})
+
+			const response = await PUT(request, { params: Promise.resolve({ id: '1' }) })
+
+			expect(response.status).toBe(200)
+			expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+				data: expect.not.objectContaining({
+					novedadStatus: expect.anything(),
+				}),
+			}))
+			expect(mockLogAuditEvent).not.toHaveBeenCalledWith(
+				expect.objectContaining({ action: AuditAction.BUSINESS_NOVEDAD_RESOLVED })
+			)
 		})
 	})
 })

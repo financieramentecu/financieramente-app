@@ -1,6 +1,7 @@
 import { UserRole } from '@/features/auth/lib/roles'
 import { ROLE_NAMES } from '@/features/auth/lib/roles'
 import type { CommentDTO } from '../types/comment.types'
+import { LinkifiedText } from './LinkifiedText'
 
 interface CommentItemProps {
   comment: CommentDTO
@@ -39,9 +40,11 @@ export function CommentItem({ comment, highlighted }: CommentItemProps) {
             {ROLE_NAMES[comment.author.role]}
           </span>
         </div>
-        <p className="font-medium text-sm text-foreground">{comment.title}</p>
+        <p className="font-medium text-sm text-foreground">
+          <LinkifiedText text={comment.title} />
+        </p>
         <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap break-words">
-          {comment.detail}
+          <LinkifiedText text={comment.detail} />
         </p>
         <p className="text-[11px] text-muted-foreground mt-1.5">{formatCommentDate(comment.createdAt)}</p>
       </div>

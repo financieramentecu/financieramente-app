@@ -1,21 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 
-// Mock context hooks before importing the hook under test
+// Mock context hooks and next-auth before importing the hook under test
 vi.mock('../../components/HierarchySelectionContext', () => ({
   useHierarchySelection: vi.fn(),
 }))
 vi.mock('../../components/DashboardFilterContext', () => ({
   useDashboardFilter: vi.fn(),
 }))
+vi.mock('next-auth/react', () => ({
+  useSession: vi.fn(),
+}))
 
 import { useHierarchySelection } from '../../components/HierarchySelectionContext'
 import { useDashboardFilter } from '../../components/DashboardFilterContext'
+import { useSession } from 'next-auth/react'
 import { useProductionKpis } from '../../hooks/use-production-kpis'
 import type { DashboardAppliedFilters } from '../../types/dashboard-filter.types'
 
 const mockUseHierarchySelection = vi.mocked(useHierarchySelection)
 const mockUseDashboardFilter = vi.mocked(useDashboardFilter)
+const mockUseSession = vi.mocked(useSession)
 
 const defaultFilters: DashboardAppliedFilters = {
   dateRange: { start: new Date('2025-01-01'), end: new Date('2025-01-31') },
@@ -29,10 +34,29 @@ const defaultFilters: DashboardAppliedFilters = {
   isInternacional: false,
 }
 
-function setupMocks(userIds: number[], filters = defaultFilters) {
+function setupMocks(
+  userIds: number[],
+  filters = defaultFilters,
+  opts: {
+    nodes?: { userId: number; included: boolean }[]
+    sessionUserId?: string | null
+    sessionStatus?: 'loading' | 'authenticated' | 'unauthenticated'
+  } = {}
+) {
+  const { nodes = [], sessionUserId = '99', sessionStatus = 'authenticated' } = opts
+
   mockUseHierarchySelection.mockReturnValue({
     selectedUserIds: userIds,
-    nodes: [],
+    nodes: nodes.map((n) => ({
+      userId: n.userId,
+      fullName: `User ${n.userId}`,
+      levelCode: 'MS_JUNIOR',
+      levelColor: '',
+      categoryName: '',
+      idCategory: null,
+      included: n.included,
+      children: [],
+    })),
     toggle: vi.fn(),
     dispatch: vi.fn(),
   })
@@ -44,6 +68,19 @@ function setupMocks(userIds: number[], filters = defaultFilters) {
     periodLabel: 'Jan 2025',
     activeBadges: [],
   })
+  if (sessionUserId) {
+    mockUseSession.mockReturnValue({
+      data: { user: { id: sessionUserId, name: 'Test', email: 'test@test.com' }, expires: '' },
+      status: sessionStatus as 'authenticated',
+      update: vi.fn(),
+    })
+  } else {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: sessionStatus as 'loading' | 'unauthenticated',
+      update: vi.fn(),
+    })
+  }
 }
 
 let originalFetch: typeof global.fetch
@@ -70,8 +107,8 @@ function mockKpiFetch(payload: {
 }
 
 describe('useProductionKpis', () => {
-  it('returns zeros immediately without fetching when selectedUserIds is empty', async () => {
-    setupMocks([])
+  it('returns zeros immediately without fetching when the user has a hierarchy but deselected everyone', async () => {
+    setupMocks([], defaultFilters, { nodes: [{ userId: 10, included: false }] })
     global.fetch = vi.fn()
 
     const { result } = renderHook(() => useProductionKpis(4050))
@@ -82,6 +119,20 @@ describe('useProductionKpis', () => {
     expect(result.current.computed?.detaileForeignUsd).toBe(0)
     expect(result.current.computed?.nationalUsd).toBe(0)
     expect(result.current.computed?.totalUsd).toBe(0)
+  })
+
+  it('(MS Junior path) fetches using the session userId when the user has no hierarchy nodes at all', async () => {
+    setupMocks([], defaultFilters, { nodes: [], sessionUserId: '42' })
+    mockKpiFetch({ totalCop: 4050000, totalForeignUsd: 0, nationalCount: 2, foreignCount: 0 })
+
+    const { result } = renderHook(() => useProductionKpis(4050))
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    expect(global.fetch).toHaveBeenCalledOnce()
+    const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+    expect(url).toContain('userIds=42')
+    expect(result.current.computed?.nationalUsd).toBeCloseTo(1000)
   })
 
   it('fetches KPIs when selectedUserIds is non-empty', async () => {
@@ -167,5 +218,38 @@ describe('useProductionKpis', () => {
     await waitFor(() => {
       expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(initialCallCount)
     })
+  })
+
+  it('serializes hasSupports=true in the KPIs query string', async () => {
+    setupMocks([1], { ...defaultFilters, hasSupports: true })
+    mockKpiFetch({ totalCop: 0, totalForeignUsd: 0, nationalCount: 0, foreignCount: 0 })
+
+    renderHook(() => useProductionKpis(4050))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+    expect(url).toContain('hasSupports=true')
+  })
+
+  it('serializes hasSupports=false in the KPIs query string', async () => {
+    setupMocks([1], { ...defaultFilters, hasSupports: false })
+    mockKpiFetch({ totalCop: 0, totalForeignUsd: 0, nationalCount: 0, foreignCount: 0 })
+
+    renderHook(() => useProductionKpis(4050))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+    expect(url).toContain('hasSupports=false')
+  })
+
+  it('omits hasSupports from the KPIs query string when undefined', async () => {
+    setupMocks([1])
+    mockKpiFetch({ totalCop: 0, totalForeignUsd: 0, nationalCount: 0, foreignCount: 0 })
+
+    renderHook(() => useProductionKpis(4050))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+    expect(url).not.toContain('hasSupports')
   })
 })

@@ -48,6 +48,7 @@ import {
 	BUSINESS_STATUS,
 } from '@/features/negocios/types/business-entity.types'
 import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
+import { BusinessNovedadBadge } from '@/features/negocios/components/ui/BusinessNovedadBadge'
 import { formatDateBogota } from '@/features/shared/lib/format-date'
 import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 
@@ -89,6 +90,9 @@ interface BusinessTableSectionProps {
 	onViewObservations?: (business: Business) => void
 	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
 	onSaveDateAnchored?: (businessId: number, dateAnchored: string) => Promise<void>
+	onMarkNovedad?: (business: Business) => void
+	onUnmarkNovedad?: (business: Business) => void
+	onManageNovedadSuccess?: (business: Business) => void
 }
 
 const BUSINESS_COLUMN_LABELS = {
@@ -96,6 +100,7 @@ const BUSINESS_COLUMN_LABELS = {
 	identification: 'Identificación',
 	contract: 'Contrato',
 	status: 'Estado',
+	novedadStatus: 'Novedad',
 	supportCount: 'Soportes de Pago',
 	user: 'Money Strategist',
 	agentCategory: 'Categoría MS',
@@ -107,6 +112,7 @@ const BUSINESS_COLUMN_LABELS = {
 	value: 'Valor',
 	dateIssued: 'Fecha de Emisión',
 	dateAnchored: 'Fecha de Fondeo',
+	novedadMarkedAt: 'Fecha de Novedad',
 	date: 'Fecha de Creación',
 } as const
 
@@ -135,6 +141,9 @@ export function BusinessTableSection({
 	onViewObservations,
 	onSaveDateIssued,
 	onSaveDateAnchored,
+	onMarkNovedad,
+	onUnmarkNovedad,
+	onManageNovedadSuccess,
 }: BusinessTableSectionProps) {
 	const [editingDateId, setEditingDateId] = useState<number | null>(null)
 	const [tempDate, setTempDate] = useState<string>('')
@@ -235,6 +244,16 @@ export function BusinessTableSection({
 				<BusinessStatusBadge status={row.original.statusCode} />
 			),
 			enableSorting: true,
+		},
+		{
+			accessorKey: 'novedadStatus',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Novedad" />
+			),
+			cell: ({ row }) => (
+				<BusinessNovedadBadge novedadStatus={row.original.novedadStatus} />
+			),
+			enableSorting: false,
 		},
 		{
 			accessorKey: 'supportCount',
@@ -614,6 +633,24 @@ export function BusinessTableSection({
 			enableSorting: true,
 		},
 		{
+			accessorKey: 'novedadMarkedAt',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Fecha de Novedad" />
+			),
+			cell: ({ row }) => (
+				<span
+					className={
+						row.original.novedadMarkedAt
+							? 'whitespace-nowrap font-medium'
+							: 'text-muted-foreground whitespace-nowrap'
+					}
+				>
+					{formatOptionalDate(row.original.novedadMarkedAt)}
+				</span>
+			),
+			enableSorting: true,
+		},
+		{
 			accessorKey: 'date',
 			header: ({ column }) => (
 				<DataTableColumnHeader column={column} title="Creación" />
@@ -796,6 +833,7 @@ export function BusinessTableSection({
 									userRole={userRole}
 									hasPayments={row.hasPayments}
 									hasPendingPaymentFunding={row.hasPendingPaymentFunding}
+									novedadStatus={row.novedadStatus}
 									onUploadSuccess={onUploadSuccess}
 									onDeleteSuccess={onDeleteSuccess}
 									onEdit={isEditable ? () => onEditBusiness(row) : undefined}
@@ -810,6 +848,17 @@ export function BusinessTableSection({
 									onCancel={
 										onCancelBusiness && isCancelable
 											? () => onCancelBusiness(row)
+											: undefined
+									}
+									onMarkNovedad={
+										onMarkNovedad ? () => onMarkNovedad(row) : undefined
+									}
+									onUnmarkNovedad={
+										onUnmarkNovedad ? () => onUnmarkNovedad(row) : undefined
+									}
+									onManageNovedadSuccess={
+										onManageNovedadSuccess
+											? () => onManageNovedadSuccess(row)
 											: undefined
 									}
 								/>

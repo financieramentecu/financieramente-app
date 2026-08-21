@@ -11,6 +11,9 @@ export function isDraftEqualToApplied(
 
   if (draft.isInternacional !== applied.isInternacional) return false
 
+  // Missing and undefined are equivalent (Todos)
+  if (draft.hasSupports !== applied.hasSupports) return false
+
   const eq = (a: readonly (string | number)[], b: readonly (string | number)[]) =>
     a.length === b.length && a.every((v, i) => v === b[i])
 

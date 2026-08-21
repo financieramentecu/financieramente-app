@@ -8,6 +8,7 @@ Sistema: Financieramente — liquidación de comisiones.
 - `AnnualPaymentStatus`: `SIN_FONDEAR` | `FONDEADO` | `EN_CARTERA` | `PAGO_ANTICIPADO` | `CARTERA_PAGADO` (en `payment.status`).
 - `ContributionType`: `REGULAR` | `UNICO` (en `product.contribution_type`).
 - `Notification.status`: Boolean (`is_read`, `is_closed`) para marcar lectura y cierre.
+- `LeadOutcomeStatus`: `OPEN` | `WON` | `LOST` | `ABANDONED` (en `lead.outcome_status`, `@default(OPEN)`, `NOT NULL`). `WON` es terminal: ver nota bajo "Índices y convenciones".
 
 ```mermaid
 erDiagram
@@ -22,6 +23,8 @@ erDiagram
     Level ||--o| Level : "siguiente en jerarquía"
     User ||--o{ Level : "beneficiario fijo nivel"
     Category ||--o{ User : "categoría del usuario"
+    Category ||--o{ CategoryReportPermission : "permisos de reportes"
+    ReportDefinition ||--o{ CategoryReportPermission : "categorías habilitadas"
     Role ||--o{ User : "rol asignado"
     Role ||--o{ AuditLog : "rol en auditoría"
     BuyPeriodicity ||--o{ Business : "periodicidad de compra"
@@ -49,6 +52,9 @@ erDiagram
     User ||--o{ Notification : "notificaciones"
     User ||--o{ Comment : "comentarios creados"
     Business ||--o{ Comment : "comentarios del contrato"
+    LeadFunnelColumn ||--o{ Lead : "columna del embudo"
+    User ||--o{ Lead : "propietario del lead"
+    Business ||--o| Lead : "negocio originado del lead"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
     Client ||--o{ Business : "negocios"
@@ -112,6 +118,26 @@ erDiagram
         string name
         int id_category_type FK
         text description
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
+
+    ReportDefinition {
+        int id PK
+        string code UK
+        string name
+        text description
+        string route_path
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
+
+    CategoryReportPermission {
+        int id PK
+        int id_report FK
+        int id_category FK
         boolean status
         datetime created_at
         datetime updated_at
@@ -287,6 +313,9 @@ erDiagram
         datetime date_anchored
         int num_aportes
         string status
+        string novedad_status
+        datetime novedad_marked_at
+        datetime novedad_resolved_at
         boolean is_active
         datetime created_at
         datetime updated_at
@@ -438,6 +467,36 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+
+    LeadFunnelColumn {
+        int id_lead_funnel_column PK
+        string name
+        string external_status_key UK
+        int position
+        boolean is_fallback
+        boolean active
+        datetime created_at
+        datetime updated_at
+    }
+
+    Lead {
+        int id_lead PK
+        string external_crm_id UK
+        string name
+        string last_name
+        string email
+        string phone
+        string identity_number
+        string origin_tag
+        text external_url
+        int id_user FK
+        int id_lead_funnel_column FK
+        int id_business UK, FK
+        string outcome_status
+        boolean active
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ## Leyenda de cardinalidad (Mermaid)
@@ -462,6 +521,8 @@ erDiagram
 - `BeneficiaryMode` renombrado (migración manual): `UPLINE_CHAIN → OVERRIDE`, `FIXED_BENEFICIARY → BENEFICIARIO_GENERAL`.
 - `ProductConfiguration`: el campo `id_client_origin` fue eliminado (migración `20260507010000_mejoras_product_configuration_sin_origen`). El unique constraint cambió de `(id_product, id_client_origin, id_category)` a `(id_product, id_level)`. El `code` es único a nivel de columna.
 - `Business`: campo `is_active` agregado (`@default(true)`) para soporte de soft delete lógico.
+- `Business`: campos `novedad_status` (nullable, VARCHAR(20), sin cambio de tipo/migración de columna), `novedad_marked_at` y `novedad_resolved_at` agregados (migración `20260731043040_add_business_novedad_fields`) para el flag de "novedad" sobre negocios en `VENTA_EFECTUADA`. Sin relación nueva; `novedad_status = null` es el estado por defecto/pre-existente.
+- `Business.novedad_status` — vocabulario ampliado a 5 estados (`novedad-gestion-manual`, solo TS, sin migración de schema): `NUEVA` (asignado por MARK, punto de partida), `SOMETIDA_DEVOLUCION`, `DECLINADA`, `PENDIENTE`, `CANCELADA` (los 4 últimos gestionables manualmente vía `PATCH /api/negocios/[id]/manage-novedad`, rol `ANALISTA_SOPORTE`/`ADMIN`, sin estado terminal — cualquier estado manual puede volver a cualquier otro). La transición `VENTA_EFECTUADA → EMITIDO` ya NO modifica `novedad_status`/`novedad_resolved_at` automáticamente (auto-resolución eliminada); `PENDIENTE`/`RESUELTA` legados se migran a `NUEVA` vía `prisma/seeds/backfill-novedad-status.ts` (idempotente, `--dry-run`).
 - `ComissionDistribution`: campo `is_active` agregado (`@default(true)`) para soft delete lógico (reemplaza `deleteMany` en servicios de pre-liquidación y carga de archivos).
 - **Renombre `Category → Level`** (migración `20260509000000_rename_category_to_level`): la tabla `category` fue renombrada a `level`; la columna `id_category_type` fue eliminada de `level` (migración `20260509010000_create_category_and_populate`). El modelo Prisma `Category` ahora mapea a la tabla `level` bajo el nombre `Level`.
 - **`Payment` — nuevos campos** (migración `20260521220206_aportes_cartera_anticipado`): `cartera_date` y `pago_anticipado_date` son nullable; se rellenan al marcar EN_CARTERA o PAGO_ANTICIPADO respectivamente. Se añaden los valores `EN_CARTERA` y `PAGO_ANTICIPADO` al enum `AnnualPaymentStatus`.
@@ -472,3 +533,6 @@ erDiagram
 - `Product`: campos `commission_percentage` (Decimal 7,4) y `contribution_type` (enum REGULAR | UNICO) agregados para configuración de comisiones y tipos de contribución.
 - **Nueva tabla `Notification`** (migración `notificaciones`): almacena notificaciones genéricas para usuarios con soporte de `callbackUrl` para acciones interactivas. Campos `is_read` e `is_closed` para estado. Soft delete a través de `is_closed`. FK a `user` con `onDelete: Cascade`.
 - **Nueva tabla `comment`** (migración `20260710180400_add_comment_model`): comentarios por contrato, creados por `AGENTE` (Money Strategist) o `ANALISTA_SOPORTE` (Analista de Soporte). `title` `VARCHAR(40)` y `detail` `VARCHAR(200)` reflejan los límites de UI. `status` (boolean, default `true`) se mantiene reservado para soft-delete futuro — esta iteración es create-only, sin endpoints de edición/borrado. Índice compuesto `(business_id, created_at)` para listar el hilo ordenado cronológicamente. FK a `business` y `user` (autor).
+- **Nuevas tablas `lead_funnel_column` y `lead`** (migración `20260803190000_add_leads_module`, feature `leads-crm-sync`): representan el embudo de leads sincronizado desde un CRM externo (GoHighLevel vía n8n) antes de que exista un `Business`. `lead_funnel_column.external_status_key` es único y mapea el `statusKey` agnóstico enviado por el webhook; incluye una columna fija no eliminable `is_fallback = true` ("Sin mapear", `external_status_key = '__unmapped__'`) sembrada por `prisma/seeds/lead-funnel-columns.ts`, que recibe cualquier `statusKey` sin mapeo. `lead.external_crm_id` es único y nullable — motor de idempotencia del webhook vía `upsert`. `lead.id_user` (FK nullable, `ON DELETE SET NULL`) es el propietario resuelto por `ownerEmail`; un lead con `id_user = null` es visible únicamente para roles en `HIERARCHY_BYPASS_ROLES` (ver `src/features/auth/lib/hierarchy.ts`). `lead.id_business` (FK nullable y única, `ON DELETE SET NULL`) se completa solo al convertir manualmente el lead en `Client` + `Business`; el `@unique` es el respaldo a nivel de base de datos contra doble conversión. Soft delete vía `active` en ambas tablas — nunca `delete()` físico. Índices en `lead.id_user`, `lead.id_lead_funnel_column` y `lead_funnel_column.position`.
+- **`Lead.outcome_status`** (migración `20260804000000_add_lead_outcome_status`): nuevo enum Prisma `LeadOutcomeStatus` (`OPEN | WON | LOST | ABANDONED`), `NOT NULL DEFAULT 'OPEN'`, índice compuesto `(outcome_status, created_at)` para el filtro por defecto del tablero. El webhook nunca rechaza un valor desconocido: normaliza a `OPEN` y audita `LEAD_OUTCOME_STATUS_UNRESOLVED`. **`WON` es terminal**: una vez persistido, ningún webhook posterior puede cambiarlo — el intento se descarta silenciosamente (HTTP 200, resto del payload sí se aplica) y se audita `LEAD_OUTCOME_STATUS_LOCKED`; `LOST`/`ABANDONED` no son terminales. El lock vive enteramente en `resolveOutcomeStatus()` (`src/features/leads/lib/lead-outcome-status.ts`), no en un trigger de base de datos.
+- **Nuevas tablas `report_definition` y `category_report_permission`** (migración `20260805150000_add_report_permissions`, feature reportes/COM-80): catálogo de reportes con `code` único estable (p. ej. `PRODUCCION_REAL`) y habilitación por `Category`. Soft delete en ambas vía `status = false` — nunca `delete()` físico. Unique compuesto `(id_report, id_category)`. Save reemplaza el set: upsert `status=true` para seleccionadas; soft-disable las no seleccionadas. Seed habilita **Performance Leader** → `PRODUCCION_REAL`. ADMIN bypasea la validación de categoría al ver reportes.

@@ -23,6 +23,56 @@ export type BusinessStatus =
 	(typeof BUSINESS_STATUS)[keyof typeof BUSINESS_STATUS]
 
 /**
+ * Estados posibles de la "novedad" marcada sobre un negocio.
+ * NUEVA: recién marcada por el Money Strategist (sistema, MARK); punto de partida.
+ * SOMETIDA_DEVOLUCION | DECLINADA | PENDIENTE | CANCELADA: estados de gestión manual
+ * asignados por ANALISTA_SOPORTE/ADMIN vía manage-novedad. Ningún estado es terminal —
+ * se puede volver a mover libremente entre los 4 estados manuales.
+ */
+export const BUSINESS_NOVEDAD_STATUS = {
+	NUEVA: 'NUEVA',
+	SOMETIDA_DEVOLUCION: 'SOMETIDA_DEVOLUCION',
+	DECLINADA: 'DECLINADA',
+	PENDIENTE: 'PENDIENTE',
+	CANCELADA: 'CANCELADA',
+} as const
+
+export type BusinessNovedadStatus =
+	(typeof BUSINESS_NOVEDAD_STATUS)[keyof typeof BUSINESS_NOVEDAD_STATUS]
+
+/**
+ * Estados de novedad gestionables manualmente vía PATCH /manage-novedad.
+ * Excluye NUEVA — ese estado solo lo asigna el flujo automático de MARK.
+ */
+export const MANUAL_NOVEDAD_STATUSES = [
+	BUSINESS_NOVEDAD_STATUS.SOMETIDA_DEVOLUCION,
+	BUSINESS_NOVEDAD_STATUS.DECLINADA,
+	BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+	BUSINESS_NOVEDAD_STATUS.CANCELADA,
+] as const
+
+/**
+ * Sentinel for advanced filter "Sin novedad" (Business.novedadStatus IS NULL).
+ */
+export const NOVEDAD_FILTER_SIN_NOVEDAD = 'SIN_NOVEDAD' as const
+
+/**
+ * Values accepted by the Novedades advanced filter (multiselect).
+ * Empty selection = Todos (no novedad criterion applied).
+ */
+export const NOVEDAD_FILTER_VALUES = [
+	BUSINESS_NOVEDAD_STATUS.NUEVA,
+	BUSINESS_NOVEDAD_STATUS.SOMETIDA_DEVOLUCION,
+	BUSINESS_NOVEDAD_STATUS.DECLINADA,
+	BUSINESS_NOVEDAD_STATUS.PENDIENTE,
+	BUSINESS_NOVEDAD_STATUS.CANCELADA,
+	NOVEDAD_FILTER_SIN_NOVEDAD,
+] as const
+
+export type NovedadFilterValue =
+	(typeof NOVEDAD_FILTER_VALUES)[number]
+
+/**
  * Modos del formulario de negocio
  */
 export type BusinessFormMode = 'create' | 'edit' | 'view' | 'cancel'
@@ -123,6 +173,12 @@ export interface BusinessEntity {
 	supportCount: number
 	/** Observación de cancelación (prefijada con [CANCELADO] o [ELIMINADO]) */
 	observations: string | null
+	/** Estado de la novedad marcada sobre el negocio; null si nunca fue marcado */
+	novedadStatus: BusinessNovedadStatus | null
+	/** Fecha (ISO) en que se marcó la novedad; null si nunca fue marcado */
+	novedadMarkedAt: string | null
+	/** Fecha (ISO) en que la novedad quedó resuelta; legado — ya no se emite automáticamente */
+	novedadResolvedAt: string | null
 	client: ClientInfo
 	agent: AgentInfo
 	product: ProductInfo

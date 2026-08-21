@@ -1,16 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 
-// Mock context hooks before importing the hook under test
+// Mock context hooks and next-auth before importing the hook under test
 vi.mock('../../components/HierarchySelectionContext', () => ({
   useHierarchySelection: vi.fn(),
 }))
 vi.mock('../../components/DashboardFilterContext', () => ({
   useDashboardFilter: vi.fn(),
 }))
+vi.mock('next-auth/react', () => ({
+  useSession: vi.fn(),
+}))
 
 import { useHierarchySelection } from '../../components/HierarchySelectionContext'
 import { useDashboardFilter } from '../../components/DashboardFilterContext'
+import { useSession } from 'next-auth/react'
 import { useHeatmapTable } from '../../hooks/use-heatmap-table'
 import type { DashboardAppliedFilters } from '../../types/dashboard-filter.types'
 import type { AsyncSuccessState } from '@/features/shared/types/async-state.types'
@@ -18,6 +22,7 @@ import type { HeatmapViewModel } from '../../types/production-kpi.types'
 
 const mockUseHierarchySelection = vi.mocked(useHierarchySelection)
 const mockUseDashboardFilter = vi.mocked(useDashboardFilter)
+const mockUseSession = vi.mocked(useSession)
 
 const defaultFilters: DashboardAppliedFilters = {
   dateRange: { start: new Date('2026-01-01'), end: new Date('2026-01-31') },
@@ -31,9 +36,27 @@ const defaultFilters: DashboardAppliedFilters = {
   isInternacional: false,
 }
 
-function setupMocks(selectedUserIds: readonly number[] = [1]) {
+function setupMocks(
+  selectedUserIds: readonly number[] = [1],
+  opts: {
+    nodes?: { userId: number; included: boolean }[]
+    sessionUserId?: string | null
+    sessionStatus?: 'loading' | 'authenticated' | 'unauthenticated'
+  } = {}
+) {
+  const { nodes = [], sessionUserId = '99', sessionStatus = 'authenticated' } = opts
+
   mockUseHierarchySelection.mockReturnValue({
-    nodes: [],
+    nodes: nodes.map((n) => ({
+      userId: n.userId,
+      fullName: `User ${n.userId}`,
+      levelCode: 'MS_JUNIOR',
+      levelColor: '',
+      categoryName: '',
+      idCategory: null,
+      included: n.included,
+      children: [],
+    })),
     selectedUserIds,
     toggle: vi.fn(),
     dispatch: vi.fn(),
@@ -46,6 +69,19 @@ function setupMocks(selectedUserIds: readonly number[] = [1]) {
     periodLabel: 'Jan 2026',
     activeBadges: [],
   })
+  if (sessionUserId) {
+    mockUseSession.mockReturnValue({
+      data: { user: { id: sessionUserId, name: 'Test', email: 'test@test.com' }, expires: '' },
+      status: sessionStatus as 'authenticated',
+      update: vi.fn(),
+    })
+  } else {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: sessionStatus as 'loading' | 'unauthenticated',
+      update: vi.fn(),
+    })
+  }
 }
 
 // Sample HeatmapRaw[] response from API
@@ -356,5 +392,33 @@ describe('useHeatmapTable', () => {
     // totalUsd = 3000; maxUsd = 2000 (Carlos's row is the max)
     expect(empresaX?.totalUsd).toBe(3000)
     expect(empresaX?.maxUsd).toBe(2000)
+  })
+
+  it('(m, MS Junior path) fetches using the session userId when the user has no hierarchy nodes at all', async () => {
+    setupMocks([], { nodes: [], sessionUserId: '42' })
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [] }),
+    } as Response)
+
+    const { result } = renderHook(() => useHeatmapTable(4600))
+
+    await waitFor(() => expect(result.current.status).toBe('success'))
+
+    const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+    expect(url).toContain('userIds=42')
+  })
+
+  it('(n) does not fetch and returns an empty view model when the user has a hierarchy but deselected everyone', async () => {
+    setupMocks([], { nodes: [{ userId: 10, included: false }] })
+    global.fetch = vi.fn()
+
+    const { result } = renderHook(() => useHeatmapTable(4600))
+
+    await waitFor(() => expect(result.current.status).toBe('success'))
+
+    expect(global.fetch).not.toHaveBeenCalled()
+    const data = (result.current as AsyncSuccessState<HeatmapViewModel>).data
+    expect(data.rows).toHaveLength(0)
   })
 })

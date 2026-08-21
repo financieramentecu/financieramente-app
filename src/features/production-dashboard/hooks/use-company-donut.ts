@@ -93,6 +93,8 @@ export function useCompanyDonut(): AsyncState<CompanyDonutSlice[]> {
         if (originIds.length > 0) params.set('originIds', originIds.join(','))
         if (plazos.length > 0) params.set('plazos', plazos.join(','))
         if (periodicidades.length > 0) params.set('periodicidades', periodicidades.join(','))
+        if (appliedFilters.hasSupports === true) params.set('hasSupports', 'true')
+        else if (appliedFilters.hasSupports === false) params.set('hasSupports', 'false')
 
         const response = await fetch(
           `/api/production-dashboard/by-company?${params.toString()}`,

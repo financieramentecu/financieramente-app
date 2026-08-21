@@ -21,7 +21,7 @@ describe('flagsmith-server', () => {
 	})
 
 	describe('getFlagsmithServerState', () => {
-		it('returns fallback state when FLAGSMITH_SERVER_KEY is not set', async () => {
+		it('returns all flags enabled when FLAGSMITH_SERVER_KEY is not set (e.g. QA)', async () => {
 			delete process.env.FLAGSMITH_SERVER_KEY
 
 			const { getFlagsmithServerState } = await import('../flagsmith-server')
@@ -31,9 +31,9 @@ describe('flagsmith-server', () => {
 
 			expect(parsed).toHaveProperty('api')
 			expect(parsed).toHaveProperty('flags')
-			expect(parsed.flags['negocios_advanced_filters'].enabled).toBe(false)
+			expect(parsed.flags['negocios_advanced_filters'].enabled).toBe(true)
 			expect(parsed.flags['dashboard_calculadora'].enabled).toBe(true)
-			expect(parsed.flags['impersonation_select'].enabled).toBe(false)
+			expect(parsed.flags['impersonation_select'].enabled).toBe(true)
 		})
 
 		it('returns fallback state when Flagsmith API throws', async () => {
@@ -103,6 +103,15 @@ describe('flagsmith-server', () => {
 	})
 
 	describe('isFeatureEnabledServer', () => {
+		it('returns true when FLAGSMITH_SERVER_KEY is not set (e.g. QA)', async () => {
+			delete process.env.FLAGSMITH_SERVER_KEY
+
+			const { isFeatureEnabledServer } = await import('../flagsmith-server')
+
+			expect(await isFeatureEnabledServer('negocios_advanced_filters')).toBe(true)
+			expect(await isFeatureEnabledServer('impersonation_select')).toBe(true)
+		})
+
 		it('returns the defined fallback value when Flagsmith API throws', async () => {
 			process.env.FLAGSMITH_SERVER_KEY = 'test-key'
 

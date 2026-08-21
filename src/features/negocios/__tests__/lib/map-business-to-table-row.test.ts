@@ -21,6 +21,9 @@ function createBusinessEntity(status: string): BusinessEntity {
 		hasPendingPaymentFunding: false,
 		supportCount: 0,
 		observations: null,
+		novedadStatus: null,
+		novedadMarkedAt: null,
+		novedadResolvedAt: null,
 		client: {
 			id: 1,
 			fullName: 'Jane Doe',
@@ -91,5 +94,25 @@ describe('mapBusinessToTableRow', () => {
 		)
 
 		expect(row.numAportes).toBeNull()
+	})
+
+	it('keeps novedadStatus and novedadMarkedAt null by default', () => {
+		const row = mapBusinessToTableRow(
+			createBusinessEntity(BUSINESS_STATUS.VENTA_EFECTUADA)
+		)
+
+		expect(row.novedadStatus).toBeNull()
+		expect(row.novedadMarkedAt).toBeNull()
+	})
+
+	it('threads novedadStatus PENDIENTE and novedadMarkedAt from the entity into the table row', () => {
+		const entity = createBusinessEntity(BUSINESS_STATUS.VENTA_EFECTUADA)
+		entity.novedadStatus = 'PENDIENTE'
+		entity.novedadMarkedAt = '2026-05-10T09:00:00.000Z'
+
+		const row = mapBusinessToTableRow(entity)
+
+		expect(row.novedadStatus).toBe('PENDIENTE')
+		expect(row.novedadMarkedAt).toBe('2026-05-10T09:00:00.000Z')
 	})
 })

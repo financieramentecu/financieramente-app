@@ -50,6 +50,7 @@ describe('businessFilterParamsSchema — schema parity (tasks 2.1)', () => {
 			hasSupports: false,
 			terms: [2],
 			periodicityIds: [3],
+			novedadStatuses: ['PENDIENTE', 'SIN_NOVEDAD'],
 		}
 
 		const result = negociosExportBodySchema.parse(exportInput)
@@ -60,6 +61,14 @@ describe('businessFilterParamsSchema — schema parity (tasks 2.1)', () => {
 		expect(result.hasSupports).toBe(false)
 		expect(result.terms).toEqual([2])
 		expect(result.periodicityIds).toEqual([3])
+		expect(result.novedadStatuses).toEqual(['PENDIENTE', 'SIN_NOVEDAD'])
+	})
+
+	it('rejects invalid novedadStatuses values', () => {
+		const result = businessFilterParamsSchema.safeParse({
+			novedadStatuses: ['RESUELTA'],
+		})
+		expect(result.success).toBe(false)
 	})
 
 	it('list schema includes page/sort fields on top of filter fields', () => {

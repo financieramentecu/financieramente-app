@@ -274,12 +274,26 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
 type HierarchyTreePanelProps = {
 	activeCategoryIds?: number[]
 	onCollapse?: () => void
+	/**
+	 * Called once the tree finishes loading, with whether it came back empty
+	 * (no hierarchy for this user). Lets the parent stop reserving the
+	 * panel's width/border — otherwise an empty tree leaves a blank column.
+	 */
+	onEmptyChange?: (isEmpty: boolean) => void
 }
 
-export function HierarchyTreePanel({ activeCategoryIds = [], onCollapse }: HierarchyTreePanelProps) {
+export function HierarchyTreePanel({ activeCategoryIds = [], onCollapse, onEmptyChange }: HierarchyTreePanelProps) {
 	const { state } = useHierarchyTree()
+	const isEmpty = state.status === 'success' && state.data.nodes.length === 0
 
-	if (state.status === 'success' && state.data.nodes.length === 0) {
+	useEffect(() => {
+		if (state.status === 'success') {
+			onEmptyChange?.(isEmpty)
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [state.status, isEmpty])
+
+	if (isEmpty) {
 		return null
 	}
 

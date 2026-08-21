@@ -251,5 +251,42 @@ describe('prismaBusinessToEntity', () => {
 			expect(result.hasPendingPaymentFunding).toBe(false)
 			expect(result.fundedAportes).toBe(0)
 		})
+
+		// ── novedadStatus / novedadMarkedAt / novedadResolvedAt mapping ──
+		it('should map null novedad fields to null by default', () => {
+			const result = prismaBusinessToEntity(mockPrismaBusiness)
+
+			expect(result.novedadStatus).toBeNull()
+			expect(result.novedadMarkedAt).toBeNull()
+			expect(result.novedadResolvedAt).toBeNull()
+		})
+
+		it('should map novedadStatus PENDIENTE and novedadMarkedAt to ISO string', () => {
+			const markedAt = new Date('2026-05-10T09:00:00.000Z')
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				novedadStatus: 'PENDIENTE',
+				novedadMarkedAt: markedAt,
+			})
+
+			expect(result.novedadStatus).toBe('PENDIENTE')
+			expect(result.novedadMarkedAt).toBe('2026-05-10T09:00:00.000Z')
+			expect(result.novedadResolvedAt).toBeNull()
+		})
+
+		it('should map novedadStatus RESUELTA and novedadResolvedAt to ISO string', () => {
+			const markedAt = new Date('2026-05-10T09:00:00.000Z')
+			const resolvedAt = new Date('2026-05-20T15:30:00.000Z')
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				novedadStatus: 'RESUELTA',
+				novedadMarkedAt: markedAt,
+				novedadResolvedAt: resolvedAt,
+			})
+
+			expect(result.novedadStatus).toBe('RESUELTA')
+			expect(result.novedadMarkedAt).toBe('2026-05-10T09:00:00.000Z')
+			expect(result.novedadResolvedAt).toBe('2026-05-20T15:30:00.000Z')
+		})
 	})
 })

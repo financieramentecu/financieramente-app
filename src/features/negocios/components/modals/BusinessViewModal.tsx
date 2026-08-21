@@ -17,6 +17,9 @@ import {
 	SelectValue,
 } from '@/features/shared/ui/select'
 import { BusinessStatusBadge } from '../ui/BusinessStatusBadge'
+import { BusinessNovedadBadge } from '../ui/BusinessNovedadBadge'
+import { NovedadActionButton } from '../ui/NovedadActionButton'
+import { NovedadManageTrigger } from '../ui/NovedadManageTrigger'
 import { UserAvatar } from '../ui/UserAvatar'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import { Calendar, Phone, Mail, Building2, FileText, Clock, Layers } from 'lucide-react'
@@ -54,6 +57,16 @@ interface BusinessViewModalProps {
 	allowEditDateIssued?: boolean
 	/** Called when user saves a new date issued from the modal */
 	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
+	/** Current user's role code — gates the "Gestionar Novedad" trigger to ANALISTA_SOPORTE/ADMIN */
+	currentUserRoleCode?: string | null
+	/**
+	 * Called after a successful mark/unmark/manage novedad action from within
+	 * this modal. Lets the embedding parent (e.g. `ModalVerNegocio`) refetch
+	 * its own state — this modal's `business` prop otherwise stays stale, and
+	 * `router.refresh()` alone (used internally by the novedad buttons) does
+	 * nothing for a client-fetched parent.
+	 */
+	onNovedadChange?: (business: BusinessEntity) => void
 }
 
 /**
@@ -83,6 +96,8 @@ export function BusinessViewModal({
 	onSaveOrigin,
 	allowEditDateIssued = false,
 	onSaveDateIssued,
+	currentUserRoleCode = null,
+	onNovedadChange,
 }: BusinessViewModalProps) {
 	const [isEditingOrigin, setIsEditingOrigin] = useState(false)
 	const [selectedOriginId, setSelectedOriginId] = useState<string>('')
@@ -194,7 +209,10 @@ export function BusinessViewModal({
 			<div className="space-y-6">
 				{/* Header con estado y valor */}
 				<div className="flex items-center justify-between pb-4 border-b">
-					<BusinessStatusBadge status={business.status} />
+					<div className="flex items-center gap-2">
+						<BusinessStatusBadge status={business.status} />
+						<BusinessNovedadBadge novedadStatus={business.novedadStatus} variant="detailed" />
+					</div>
 					<span className="text-2xl font-bold text-primary">
 						{formatCurrency(business.value, business.currency.name)}
 					</span>
@@ -360,6 +378,15 @@ export function BusinessViewModal({
 						</div>
 					</div>
 
+					{business.novedadStatus && (
+						<div className="space-y-1">
+							<span className="text-sm text-muted-foreground block">Fecha de Novedad</span>
+							<p className="font-medium">
+								{formatDateBogota(business.novedadMarkedAt)}
+							</p>
+						</div>
+					)}
+
 					<div className="flex justify-between items-center text-sm text-muted-foreground pt-2 border-t border-dashed">
 						<span>
 							Registrado:{' '}
@@ -370,6 +397,19 @@ export function BusinessViewModal({
 
 				{/* Footer */}
 				<div className="flex justify-end gap-2 pt-4 flex-wrap">
+					<NovedadActionButton
+						businessId={business.id}
+						businessStatus={business.status}
+						novedadStatus={business.novedadStatus}
+						onSuccess={onNovedadChange}
+					/>
+					<NovedadManageTrigger
+						businessId={business.id}
+						novedadStatus={business.novedadStatus}
+						userRoleCode={currentUserRoleCode}
+						onSuccess={onNovedadChange}
+					/>
+
 					{/* Flujo de Edición de Origen */}
 					{isEditingOrigin && canEditOrigin ? (
 						<>

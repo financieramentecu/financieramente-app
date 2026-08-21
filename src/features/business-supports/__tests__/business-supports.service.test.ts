@@ -144,15 +144,18 @@ describe('presignComprobanteUpload', () => {
     ).rejects.toMatchObject({ code: 'INVALID_STATUS' })
   })
 
-  it('throws NO_CONTRACT when contract is null', async () => {
+  it('succeeds for VENTA_EFECTUADA without contract using negocio-{id} key', async () => {
     mockPrisma.business.findUnique.mockResolvedValue({
       ...ACTIVE_BUSINESS,
+      status: 'VENTA_EFECTUADA',
       contract: null,
     })
+    mockPresignPutUrl.mockResolvedValue('https://put.example.com/url')
 
-    await expect(
-      presignComprobanteUpload(10, 'image/jpeg', 1024, CTX),
-    ).rejects.toMatchObject({ code: 'NO_CONTRACT' })
+    const result = await presignComprobanteUpload(10, 'image/jpeg', 1024, CTX)
+
+    expect(result.url).toBe('https://put.example.com/url')
+    expect(result.key).toContain('negocio-10')
   })
 
   it('throws INVALID_MIME for unsupported mime type', async () => {
@@ -230,8 +233,13 @@ describe('persistComprobante', () => {
 // ─── deactivateComprobante ────────────────────────────────────────────────────
 
 describe('deactivateComprobante', () => {
+  const SUPPORT_WITH_BUSINESS = {
+    ...SUPPORT_ROW,
+    business: { idUser: 1 },
+  }
+
   it('sets status false and calls logAuditEvent', async () => {
-    mockPrisma.businessSupport.findUnique.mockResolvedValue(SUPPORT_ROW)
+    mockPrisma.businessSupport.findUnique.mockResolvedValue(SUPPORT_WITH_BUSINESS)
     mockPrisma.businessSupport.update.mockResolvedValue({
       ...SUPPORT_ROW,
       status: false,
@@ -257,5 +265,45 @@ describe('deactivateComprobante', () => {
     await expect(deactivateComprobante('missing', CTX)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     })
+  })
+
+  it('throws NOT_FOUND when support belongs to another business', async () => {
+    mockPrisma.businessSupport.findUnique.mockResolvedValue(SUPPORT_WITH_BUSINESS)
+
+    await expect(
+      deactivateComprobante('supp-1', CTX, { businessId: 999 }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+
+    expect(mockPrisma.businessSupport.update).not.toHaveBeenCalled()
+  })
+
+  it('throws FORBIDDEN when AGENTE scope excludes the business owner', async () => {
+    mockPrisma.businessSupport.findUnique.mockResolvedValue({
+      ...SUPPORT_ROW,
+      business: { idUser: 99 },
+    })
+
+    await expect(
+      deactivateComprobante('supp-1', CTX, {
+        visibleUserIds: [1, 2],
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+
+    expect(mockPrisma.businessSupport.update).not.toHaveBeenCalled()
+  })
+
+  it('allows AGENTE when business owner is in visible scope', async () => {
+    mockPrisma.businessSupport.findUnique.mockResolvedValue(SUPPORT_WITH_BUSINESS)
+    mockPrisma.businessSupport.update.mockResolvedValue({
+      ...SUPPORT_ROW,
+      status: false,
+    })
+    mockLogAuditEvent.mockResolvedValue(undefined)
+
+    await deactivateComprobante('supp-1', CTX, {
+      visibleUserIds: [1, 2],
+    })
+
+    expect(mockPrisma.businessSupport.update).toHaveBeenCalled()
   })
 })

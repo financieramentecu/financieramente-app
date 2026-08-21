@@ -40,6 +40,22 @@ vi.mock('@/features/origins/hooks/use-client-origins', () => ({
 	useClientOrigins: () => ({ state: { status: 'success', data: { origins: [] }, error: '' } }),
 }))
 
+vi.mock('@/features/negocios/hooks/use-agent-categories', () => ({
+	useAgentCategories: () => ({
+		status: 'success',
+		data: [],
+		error: '',
+	}),
+}))
+
+vi.mock('@/features/negocios/hooks/use-money-strategists', () => ({
+	useMoneyStrategists: () => ({
+		status: 'success',
+		data: { showFilter: false, strategists: [] },
+		error: '',
+	}),
+}))
+
 describe('AdvancedFiltersSheet', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
@@ -146,6 +162,28 @@ describe('AdvancedFiltersSheet', () => {
 		})
 	})
 
+	it('renders Novedades multiselect with expected options', async () => {
+		render(<AdvancedFiltersSheet />)
+
+		fireEvent.click(screen.getByText(/Filtros avanzados/i))
+
+		await waitFor(() => {
+			expect(screen.getByText('Novedades')).toBeInTheDocument()
+			expect(screen.getByText('Todas las novedades')).toBeInTheDocument()
+		})
+
+		fireEvent.click(screen.getByText('Todas las novedades'))
+
+		await waitFor(() => {
+			expect(screen.getByText('Nueva')).toBeInTheDocument()
+			expect(screen.getByText('Sometido o Devolución')).toBeInTheDocument()
+			expect(screen.getByText('Declinado')).toBeInTheDocument()
+			expect(screen.getByText('Pendiente')).toBeInTheDocument()
+			expect(screen.getByText('Cancelado')).toBeInTheDocument()
+			expect(screen.getByText('Sin novedad')).toBeInTheDocument()
+		})
+	})
+
 	it('defaults dateField to "creacion": applying with no changes uses createdFrom/createdTo params', async () => {
 		render(<AdvancedFiltersSheet />)
 
@@ -168,7 +206,12 @@ describe('AdvancedFiltersSheet', () => {
 		expect(params.has('dateTo')).toBe(false)
 	})
 
-	it('resets dateField to "creacion" after Limpiar: Limpiar clears date params without re-seeding', async () => {
+	it('resets to current-month creation range after Limpiar (not full history)', async () => {
+		const { getCurrentMonthRange } = await import(
+			'@/features/negocios/lib/default-date-filter'
+		)
+		const { from, to } = getCurrentMonthRange()
+
 		// Seed URL with fondeo params so the sheet opens on fondeo dimension
 		mockSearchParams.set('dateFrom', '2026-07-01')
 		mockSearchParams.set('dateTo', '2026-07-28')
@@ -181,7 +224,6 @@ describe('AdvancedFiltersSheet', () => {
 			expect(screen.getByText(/Limpiar filtros/i)).toBeInTheDocument()
 		})
 
-		// Click Limpiar — resets form (dateField → 'creacion') and calls router.replace with cleared params
 		fireEvent.click(screen.getByText(/Limpiar filtros/i))
 
 		await waitFor(() => {
@@ -190,11 +232,11 @@ describe('AdvancedFiltersSheet', () => {
 
 		const calledUrl = mockReplace.mock.calls[0][0] as string
 		const params = new URLSearchParams(calledUrl.split('?')[1] ?? '')
-		// Limpiar must clear both fondeo and creacion date params — no re-seeding
+		// Limpiar clears fondeo/emision and re-seeds creation = current month
 		expect(params.has('dateFrom')).toBe(false)
 		expect(params.has('dateTo')).toBe(false)
-		expect(params.has('createdFrom')).toBe(false)
-		expect(params.has('createdTo')).toBe(false)
+		expect(params.get('createdFrom')).toBe(from)
+		expect(params.get('createdTo')).toBe(to)
 	})
 
 	it('does not include COMISIONANDO as a status filter option', async () => {

@@ -29,6 +29,8 @@ const SEGMENT_LABELS: Record<string, string> = {
 	'config-distribucion-comisiones': 'Config. distribución de comisiones',
 	'configuraciones-producto': 'Config. producto',
 	reglas: 'Reglas',
+	'report-permissions': 'Permisos de Reportes',
+	'produccion-real': 'Producción Real',
 }
 
 /**

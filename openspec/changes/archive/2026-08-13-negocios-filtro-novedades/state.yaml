@@ -1,0 +1,55 @@
+---
+# SDD Change State: negocios-filtro-novedades
+change_name: negocios-filtro-novedades
+status: archived
+ticket: COM-78
+created_at: 2026-08-13
+verified_at: 2026-08-13
+archived_at: 2026-08-13
+
+# Artifact Store Mode
+artifact_store:
+  mode: openspec
+  openspec_path: "openspec/changes/archive/2026-08-13-negocios-filtro-novedades/"
+
+# SDD Cycle State
+phases:
+  - explore: skipped
+  - propose: complete
+  - spec: complete
+  - design: complete
+  - tasks: complete
+  - apply: complete-prior-to-artifacts
+  - verify: complete
+  - archive: complete
+
+# Verify
+verify:
+  verdict: PASS_WITH_WARNINGS
+  report_path: "openspec/changes/archive/2026-08-13-negocios-filtro-novedades/verify-report.md"
+  critical: 0
+  warnings: 2
+  unit_tests: "50 passed / 50 (5 files)"
+  notes: >
+    CA1–CA6 covered by impl + unit tests. Warnings: no MultiSelect+Aplicar
+    interaction test for novedadStatuses URL; Cancelado label QA note from design.
+
+# Archive
+archive:
+  path: "openspec/changes/archive/2026-08-13-negocios-filtro-novedades/"
+  specs_synced: true
+  main_spec: "openspec/specs/negocios/spec.md"
+  requirements_added: 4
+  release:
+    version_from: "1.31.1"
+    version_to: "1.32.0"
+    changelog: true
+
+# Notes
+# Implementation on branch COM-78. Specs synced at archive; version/CHANGELOG bumped to 1.32.0.
+
+# Next action
+next_recommended: commit-and-pr
+ready_for_apply: true
+implementation_preexists: true
+ready_for_archive: false

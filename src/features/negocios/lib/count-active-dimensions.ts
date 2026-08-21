@@ -17,6 +17,7 @@ import { getCurrentMonthRange } from './default-date-filter'
  * - terms[] → 1
  * - periodicityIds[] → 1
  * - agentCategoryIds[] → 1
+ * - novedadStatuses[] → 1
  */
 export function countActiveDimensions(searchParams: URLSearchParams): number {
 	let count = 0
@@ -56,6 +57,7 @@ export function countActiveDimensions(searchParams: URLSearchParams): number {
 	if (searchParams.getAll('periodicityIds').length > 0) count++
 	if (searchParams.getAll('agentCategoryIds').length > 0) count++
 	if (searchParams.getAll('agentIds').length > 0) count++
+	if (searchParams.getAll('novedadStatuses').length > 0) count++
 
 	return count
 }

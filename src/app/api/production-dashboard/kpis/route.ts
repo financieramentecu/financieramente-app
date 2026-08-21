@@ -6,19 +6,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getProductionKpiRaw } from '@/features/production-dashboard/services/production-kpi.service'
+import {
+  parseDashboardAppliedFilters,
+  parseIds,
+} from '@/features/production-dashboard/lib/parse-dashboard-applied-filters'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { ProductionKpiRaw } from '@/features/production-dashboard/types/production-kpi.types'
-import type { DashboardAppliedFilters } from '@/features/production-dashboard/types/dashboard-filter.types'
-
-/** Parse a comma-separated string of integers; returns null on invalid input */
-function parseIds(raw: string | null): number[] | null {
-  if (raw === null) return null
-  if (raw.trim() === '') return []
-  const parts = raw.split(',').map((s) => s.trim())
-  const ids = parts.map(Number)
-  if (ids.some((n) => !Number.isInteger(n) || isNaN(n))) return null
-  return ids
-}
 
 export async function GET(
   req: NextRequest
@@ -64,36 +57,7 @@ export async function GET(
       })
     }
 
-    // Parse optional filters
-    const rawStatuses = searchParams.get('statuses')
-    const statuses = rawStatuses ? rawStatuses.split(',').map((s) => s.trim()).filter(Boolean) : []
-    const rawPeriodicidades = searchParams.get('periodicidades')
-    const periodicidades = rawPeriodicidades ? rawPeriodicidades.split(',').map((s) => s.trim()).filter(Boolean) : []
-    const categoryIds = parseIds(searchParams.get('categoryIds')) ?? []
-    const productIds = parseIds(searchParams.get('productIds')) ?? []
-    const companyIds = parseIds(searchParams.get('companyIds')) ?? []
-    const originIds = parseIds(searchParams.get('originIds')) ?? []
-    const plazos = parseIds(searchParams.get('plazos')) ?? []
-
-    const rawDateFrom = searchParams.get('dateFrom')
-    const rawDateTo = searchParams.get('dateTo')
-
-    const dateRange = {
-      start: rawDateFrom ? new Date(rawDateFrom) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      end: rawDateTo ? new Date(rawDateTo) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
-    }
-
-    const appliedFilters: DashboardAppliedFilters = {
-      dateRange,
-      statuses,
-      categoryIds,
-      companyIds,
-      productIds,
-      originIds,
-      plazos,
-      periodicidades,
-      isInternacional: false,
-    }
+    const appliedFilters = parseDashboardAppliedFilters(searchParams)
 
     const result = await getProductionKpiRaw({ userIds, appliedFilters })
 

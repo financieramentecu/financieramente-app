@@ -88,6 +88,8 @@ export function negociosExportColumnHeaders(
 		base.push(`Líder ${i + 1} nombre`, `Líder ${i + 1} categoría`)
 	}
 
+	base.push('Novedad', 'Fecha de Novedad')
+
 	for (let i = 1; i <= maxAnnualCols; i++) {
 		base.push(`Fecha Fondeo Anualidad ${i}`)
 	}
@@ -144,6 +146,13 @@ export function mapBusinessToExportRow(
 		row[`Líder ${i + 1} nombre`] = lvl?.fullName ?? ''
 		row[`Líder ${i + 1} categoría`] = lvl?.categoryName ?? ''
 	}
+
+	const novedadLabels: Record<string, string> = {
+		PENDIENTE: 'Pendiente',
+		RESUELTA: 'Resuelta',
+	}
+	row['Novedad'] = b.novedadStatus ? (novedadLabels[b.novedadStatus] ?? '') : ''
+	row['Fecha de Novedad'] = fmtDate(b.novedadMarkedAt ?? null)
 
 	const isAnual = b.buyPeriodicity?.name === PERIODICIDAD_ANUAL_NAME
 	for (let i = 1; i <= maxAnnualCols; i++) {

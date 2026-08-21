@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2, ScrollText, MessageSquarePlus } from 'lucide-react'
+import { toast } from 'sonner'
+import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2, ScrollText, MessageSquarePlus, AlertTriangle, CheckCircle2, Settings2 } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -15,27 +16,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/features/shared/ui/dropdown-menu'
-import type { BusinessStatus } from '../types/business-entity.types'
-import { BUSINESS_STATUS } from '../types/business-entity.types'
-import type { UserRole } from '@/features/auth/lib/roles'
+import type { BusinessStatus, BusinessNovedadStatus, BusinessEntity } from '../types/business-entity.types'
+import { BUSINESS_STATUS, BUSINESS_NOVEDAD_STATUS } from '../types/business-entity.types'
+import { UserRole } from '@/features/auth/lib/roles'
 import { UploadComprobanteModal } from '@/features/business-supports/components/UploadComprobanteModal'
 import { ViewComprobantesSheet } from '@/features/business-supports/components/BusinessSupportsSheet'
 import { CommentModal } from '@/features/comments/components/CommentModal'
-
-const UPLOAD_ALLOWED_STATUSES: BusinessStatus[] = [
-  BUSINESS_STATUS.EMITIDO,
-  BUSINESS_STATUS.FONDEADO,
-]
+import { isUploadAllowedStatus } from '@/features/business-supports/lib/upload-allowed-statuses'
+import { useManageNovedad } from '../hooks/use-manage-novedad'
+import { BusinessNovedadManageModal } from './modals/BusinessNovedadManageModal'
+import { MANAGE_NOVEDAD_ALLOWED_ROLES } from './ui/NovedadManageTrigger'
 
 export interface BusinessRowActionsProps {
   businessId: number
   businessStatus: BusinessStatus
-  /** Contract number — upload is only available when not null */
+  /** Contract number — may be null for early-stage businesses */
   contract: string | null
   supportCount?: number
   userRole?: UserRole
   hasPayments: boolean
   hasPendingPaymentFunding: boolean
+  /** Estado de la novedad marcada sobre el negocio; null si nunca fue marcado */
+  novedadStatus?: BusinessNovedadStatus | null
   onEdit?: (id: number) => void
   onView?: (id: number) => void
   onCancel?: (id: number) => void
@@ -45,6 +47,10 @@ export interface BusinessRowActionsProps {
   onDeleteSuccess?: () => void
   onUploadComprobante?: (id: number) => void
   onViewComprobantes?: (id: number) => void
+  onMarkNovedad?: (id: number) => void
+  onUnmarkNovedad?: (id: number) => void
+  /** Called after a successful manual novedad status change (Gestionar Novedad) */
+  onManageNovedadSuccess?: (id: number) => void
 }
 
 export function BusinessRowActions({
@@ -53,6 +59,7 @@ export function BusinessRowActions({
   contract,
   supportCount: _supportCount,
   userRole,
+  novedadStatus = null,
   onUploadSuccess,
   onDeleteSuccess,
   onEdit,
@@ -61,13 +68,35 @@ export function BusinessRowActions({
   onViewObservations,
   onUploadComprobante,
   onViewComprobantes,
+  onMarkNovedad,
+  onUnmarkNovedad,
+  onManageNovedadSuccess,
 }: BusinessRowActionsProps) {
-  const canUpload =
-    UPLOAD_ALLOWED_STATUSES.includes(businessStatus) && contract !== null
+  const canUpload = isUploadAllowedStatus(businessStatus)
+  const canMarkNovedad =
+    businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA && novedadStatus === null
+  const canUnmarkNovedad = novedadStatus === BUSINESS_NOVEDAD_STATUS.NUEVA
+  const canManageNovedad =
+    novedadStatus !== null &&
+    userRole !== undefined &&
+    MANAGE_NOVEDAD_ALLOWED_ROLES.includes(userRole)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
   const [commentOpen, setCommentOpen] = useState(false)
+  const [manageNovedadOpen, setManageNovedadOpen] = useState(false)
   const commentContract = contract ?? `Negocio #${businessId}`
+  const { updateStatus } = useManageNovedad(businessId)
+
+  const handleConfirmManageNovedad = async (target: BusinessNovedadStatus) => {
+    const result = await updateStatus(target)
+    if (result.data) {
+      toast.success('Novedad actualizada correctamente')
+      onManageNovedadSuccess?.(businessId)
+    } else if (result.error) {
+      toast.error(result.error)
+      throw new Error(result.error)
+    }
+  }
 
   const handleUploadClick = () => {
     onUploadComprobante?.(businessId)
@@ -82,7 +111,7 @@ export function BusinessRowActions({
   return (
     <TooltipProvider>
       <div className="inline-flex items-center gap-1">
-        {/* Upload comprobante — visible only when status allows and contract exists */}
+        {/* Upload comprobante — visible when status is VENTA_EFECTUADA, EMITIDO, or FONDEADO */}
         {canUpload && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -152,6 +181,24 @@ export function BusinessRowActions({
               <MessageSquarePlus className="mr-2 h-4 w-4" />
               Agregar comentario
             </DropdownMenuItem>
+            {onMarkNovedad && canMarkNovedad && (
+              <DropdownMenuItem onClick={() => onMarkNovedad(businessId)}>
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Marcar Con Novedad
+              </DropdownMenuItem>
+            )}
+            {onUnmarkNovedad && canUnmarkNovedad && (
+              <DropdownMenuItem onClick={() => onUnmarkNovedad(businessId)}>
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Desmarcar Novedad
+              </DropdownMenuItem>
+            )}
+            {canManageNovedad && (
+              <DropdownMenuItem onClick={() => setManageNovedadOpen(true)}>
+                <Settings2 className="mr-2 h-4 w-4" />
+                Gestionar Novedad
+              </DropdownMenuItem>
+            )}
             {onCancel && (
               <DropdownMenuItem
                 onClick={() => onCancel(businessId)}
@@ -190,6 +237,15 @@ export function BusinessRowActions({
           contract={commentContract}
           open={commentOpen}
           onClose={() => setCommentOpen(false)}
+        />
+      )}
+
+      {manageNovedadOpen && (
+        <BusinessNovedadManageModal
+          open={manageNovedadOpen}
+          onOpenChange={setManageNovedadOpen}
+          business={{ id: businessId, novedadStatus } as BusinessEntity}
+          onConfirm={handleConfirmManageNovedad}
         />
       )}
     </TooltipProvider>

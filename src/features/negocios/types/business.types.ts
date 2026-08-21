@@ -23,6 +23,10 @@ export interface Business extends Record<string, unknown> {
 	dateIssued: string | null
 	/** ISO — fecha de fondeo del negocio */
 	dateAnchored: string | null
+	/** Estado de la novedad marcada sobre el negocio; null si nunca fue marcado */
+	novedadStatus: BusinessNovedadStatusCode | null
+	/** ISO — fecha en que se marcó la novedad; null si nunca fue marcado */
+	novedadMarkedAt: string | null
 	date: string
 	value: number
 	product: string
@@ -114,6 +118,7 @@ export interface UserWithRole {
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type {
 	AgentInfo,
+	BusinessNovedadStatus as BusinessNovedadStatusCode,
 	BusinessStatus as BusinessStatusCode,
 } from '@/features/negocios/types/business-entity.types'
 
@@ -136,4 +141,11 @@ export interface BusinessFormProps {
 	clientOriginsOptions: { value: string; label: string }[]
 	businessAgent?: AgentInfo
 	businessStatus?: string | null
+	/**
+	 * Present when this form was opened from a lead conversion
+	 * (`?leadId=` on `/dashboard/negocios/crear`). Forwarded to
+	 * `createBusiness({ idLead })` so `linkLeadToBusinessTx` runs in the
+	 * same transaction that creates the business (leads-crm-sync feature).
+	 */
+	leadId?: number
 }

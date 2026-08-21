@@ -154,6 +154,52 @@ describe('mapBusinessToExportRow', () => {
 		expect(row['Líder 2 nombre']).toBe('Lider Dos')
 		expect(row['Líder 2 categoría']).toBe('Gerente')
 	})
+
+	it('incluye las cabeceras "Novedad" y "Fecha de Novedad" al final', () => {
+		const headers = negociosExportColumnHeaders(1, 0)
+		expect(headers[headers.length - 2]).toBe('Novedad')
+		expect(headers[headers.length - 1]).toBe('Fecha de Novedad')
+	})
+
+	it('mapea Novedad vacía y Fecha de Novedad vacía cuando novedadStatus es null', () => {
+		const row = mapBusinessToExportRow(
+			{ ...mockBusiness, novedadStatus: null, novedadMarkedAt: null } as unknown as BusinessExportPayload,
+			mockLeaders,
+			1,
+			0
+		)
+		expect(row['Novedad']).toBe('')
+		expect(row['Fecha de Novedad']).toBe('')
+	})
+
+	it('mapea Novedad "Pendiente" y su fecha cuando novedadStatus es PENDIENTE', () => {
+		const row = mapBusinessToExportRow(
+			{
+				...mockBusiness,
+				novedadStatus: 'PENDIENTE',
+				novedadMarkedAt: new Date('2024-03-01T10:00:00Z'),
+			} as unknown as BusinessExportPayload,
+			mockLeaders,
+			1,
+			0
+		)
+		expect(row['Novedad']).toBe('Pendiente')
+		expect(row['Fecha de Novedad']).not.toBe('')
+	})
+
+	it('mapea Novedad "Resuelta" cuando novedadStatus es RESUELTA', () => {
+		const row = mapBusinessToExportRow(
+			{
+				...mockBusiness,
+				novedadStatus: 'RESUELTA',
+				novedadMarkedAt: new Date('2024-03-01T10:00:00Z'),
+			} as unknown as BusinessExportPayload,
+			mockLeaders,
+			1,
+			0
+		)
+		expect(row['Novedad']).toBe('Resuelta')
+	})
 })
 
 describe('computeMaxAnnualColumns', () => {

@@ -3,7 +3,11 @@
  */
 
 import { z } from 'zod'
-import { BUSINESS_STATUS } from '../types/business-entity.types'
+import {
+	BUSINESS_STATUS,
+	MANUAL_NOVEDAD_STATUSES,
+	NOVEDAD_FILTER_VALUES,
+} from '../types/business-entity.types'
 
 // ============================================
 // SCHEMAS DE REQUEST
@@ -88,6 +92,11 @@ export const businessFilterParamsSchema = z
 		agentCategoryIds: z.array(z.number()).optional(),
 		/** IDs de Money Strategist (User.idUser) — multiselect */
 		agentIds: z.array(z.number()).optional(),
+		/**
+		 * Multiselect de estados de novedad.
+		 * Incluye SIN_NOVEDAD (novedadStatus IS NULL). Vacío = Todos.
+		 */
+		novedadStatuses: z.array(z.enum(NOVEDAD_FILTER_VALUES)).optional(),
 	})
 	.superRefine((data, ctx) => {
 		pairedRangeCheck(data as Record<string, unknown>, ctx)
@@ -176,6 +185,25 @@ export const cancelBusinessSchema = z.object({
 })
 
 export type CancelBusinessSchema = z.infer<typeof cancelBusinessSchema>
+
+/**
+ * Schema para marcar/desmarcar novedad de negocio
+ */
+export const markNovedadSchema = z.object({
+	action: z.enum(['MARK', 'UNMARK']),
+})
+
+export type MarkNovedadSchema = z.infer<typeof markNovedadSchema>
+
+/**
+ * Schema para gestión manual del estado de novedad (PATCH /manage-novedad).
+ * NUEVA queda excluido deliberadamente — solo lo asigna el flujo automático de MARK.
+ */
+export const manageNovedadSchema = z.object({
+	novedadStatus: z.enum(MANUAL_NOVEDAD_STATUSES),
+})
+
+export type ManageNovedadSchema = z.infer<typeof manageNovedadSchema>
 
 /**
  * Schema para validación de contrato

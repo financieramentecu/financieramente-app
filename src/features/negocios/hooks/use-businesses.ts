@@ -7,7 +7,7 @@
  * permitiendo type narrowing automático basado en el campo status.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { businessService } from '../services/business.service'
 import type { BusinessEntity } from '../types/business-entity.types'
 import type {
@@ -66,7 +66,15 @@ export function useBusinesses(
 		error: '',
 	})
 
+	// Guards against out-of-order responses: if params change quickly (e.g.
+	// applying a filter right after the initial unfiltered load), a slower
+	// older request can resolve AFTER a newer one and overwrite it with stale
+	// results. Only the response matching the latest fired request is applied.
+	const latestRequestId = useRef(0)
+
 	const fetchBusinesses = useCallback(async (isBackground: boolean = false) => {
+		const requestId = ++latestRequestId.current
+
 		if (!isBackground) {
 			setState({ status: 'loading', data: undefined, error: '' })
 		}
@@ -102,7 +110,10 @@ export function useBusinesses(
 				periodicityIds: params.periodicityIds,
 				agentCategoryIds: params.agentCategoryIds,
 				agentIds: params.agentIds,
+				novedadStatuses: params.novedadStatuses,
 			})
+
+			if (requestId !== latestRequestId.current) return
 
 			if ('error' in response && response.error) {
 				setState({ status: 'error', data: undefined, error: response.error })
@@ -110,6 +121,8 @@ export function useBusinesses(
 				setState({ status: 'success', data: response.data, error: '' })
 			}
 		} catch (err) {
+			if (requestId !== latestRequestId.current) return
+
 			console.error('Error al obtener negocios:', err)
 			setState({
 				status: 'error',

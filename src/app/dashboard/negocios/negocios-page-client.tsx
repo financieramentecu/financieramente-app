@@ -19,6 +19,7 @@ import type { UserWithRole } from '@/features/negocios/types/business.types'
 import type {
 	BusinessEntity,
 	BusinessStatus,
+	NovedadFilterValue,
 } from '@/features/negocios/types/business-entity.types'
 import type {
 	AnnualInstallmentDto,
@@ -74,6 +75,7 @@ export function NegociosPageClient({
 		const periodicityIds = urlSearchParams.getAll('periodicityIds').map(Number).filter(n => !isNaN(n))
 		const agentCategoryIds = urlSearchParams.getAll('agentCategoryIds').map(Number).filter(n => !isNaN(n))
 		const agentIds = urlSearchParams.getAll('agentIds').map(Number).filter(n => !isNaN(n))
+		const novedadStatuses = urlSearchParams.getAll('novedadStatuses') as NovedadFilterValue[]
 		const hasSupportsParam = urlSearchParams.get('hasSupports')
 		const hasSupports = hasSupportsParam === 'true' ? true : hasSupportsParam === 'false' ? false : undefined
 		const agentNameFromUrl = urlSearchParams.get('agentName') ?? undefined
@@ -95,6 +97,7 @@ export function NegociosPageClient({
 			periodicityIds: periodicityIds.length > 0 ? periodicityIds : undefined,
 			agentCategoryIds: agentCategoryIds.length > 0 ? agentCategoryIds : undefined,
 			agentIds: agentIds.length > 0 ? agentIds : undefined,
+			novedadStatuses: novedadStatuses.length > 0 ? novedadStatuses : undefined,
 		}
 	}, [urlSearchParams])
 
@@ -153,11 +156,11 @@ export function NegociosPageClient({
 		originIds: [],
 	})
 
-	// Seed the role's default date filter (current month: AGENTE by creation
-	// date, back-office roles by funding date) into the URL once per mount, so
-	// the AdvancedFiltersSheet and the active-filter badge reflect it. Never
-	// runs when the URL already carries a date filter, and never re-seeds
-	// after the user clears filters.
+	// Seed the role's default date filter (current month on creation date) into
+	// the URL once per mount, so the AdvancedFiltersSheet and the active-filter
+	// badge reflect it. Skips when the URL already carries a date filter.
+	// "Limpiar filtros" in AdvancedFiltersSheet re-seeds the current month
+	// itself (this effect does not run again after the first mount seed).
 	const defaultDatePair = getDefaultDateParamPair(_currentUser?.role?.code)
 	const hasSeededDefaultDateRef = useRef(false)
 	useEffect(() => {
@@ -216,6 +219,7 @@ export function NegociosPageClient({
 		...(urlFilterParams.periodicityIds ? { periodicityIds: urlFilterParams.periodicityIds } : {}),
 		...(urlFilterParams.agentCategoryIds ? { agentCategoryIds: urlFilterParams.agentCategoryIds } : {}),
 		...(urlFilterParams.agentIds ? { agentIds: urlFilterParams.agentIds } : {}),
+		...(urlFilterParams.novedadStatuses ? { novedadStatuses: urlFilterParams.novedadStatuses } : {}),
 	}), [searchParams, urlFilterParams])
 
 	// Each URL date pair filters its own DB column (dateFrom/dateTo → dateAnchored,
@@ -248,10 +252,7 @@ export function NegociosPageClient({
 		isLoading: isLoadingStats,
 		error: statsError,
 		refetch: refetchStats,
-	} = useBusinessStats({
-		dateFrom: mergedParams.dateFrom || defaultDates.from,
-		dateTo: mergedParams.dateTo || defaultDates.to,
-	})
+	} = useBusinessStats(urlFilterParams)
 
 	const {
 		cancelBusiness,
@@ -540,6 +541,7 @@ export function NegociosPageClient({
 			periodicityIds: urlFilterParams.periodicityIds,
 			agentCategoryIds: urlFilterParams.agentCategoryIds,
 			agentIds: urlFilterParams.agentIds,
+			novedadStatuses: urlFilterParams.novedadStatuses,
 		}
 		const result = await exportReport(body)
 		if (result.ok) {
@@ -589,6 +591,36 @@ export function NegociosPageClient({
 		refetchStats(true)
 	}, [refetch, refetchStats])
 
+	const handleMarkNovedad = useCallback(async (business: Business) => {
+		const response = await businessService.markNovedad(Number(business.id), 'MARK')
+		if ('error' in response && response.error) {
+			toast.error('No se pudo marcar la novedad', {
+				description: response.error,
+			})
+			return
+		}
+		toast.success('Negocio marcado con novedad')
+		refetch(true)
+	}, [refetch])
+
+	const handleUnmarkNovedad = useCallback(async (business: Business) => {
+		const response = await businessService.markNovedad(Number(business.id), 'UNMARK')
+		if ('error' in response && response.error) {
+			toast.error('No se pudo desmarcar la novedad', {
+				description: response.error,
+			})
+			return
+		}
+		toast.success('Novedad desmarcada')
+		refetch(true)
+	}, [refetch])
+
+	// El toast de confirmación y la llamada PATCH ya los maneja BusinessRowActions
+	// (abre su propio BusinessNovedadManageModal); aquí solo se refresca la lista.
+	const handleManageNovedadSuccess = useCallback(() => {
+		refetch(true)
+	}, [refetch])
+
 	const businessDataForTable: Business[] = useMemo(
 		() => businesses.map(mapBusinessToTableRow),
 		[businesses]
@@ -629,6 +661,9 @@ export function NegociosPageClient({
 				onDeleteSuccess={() => { refetch(true); refetchStats(true) }}
 				onSaveDateIssued={handleSaveDateIssued}
 				onSaveDateAnchored={handleSaveDateAnchored}
+				onMarkNovedad={handleMarkNovedad}
+				onUnmarkNovedad={handleUnmarkNovedad}
+				onManageNovedadSuccess={handleManageNovedadSuccess}
 			/>
 
 			{/* Modal de Cancelación */}

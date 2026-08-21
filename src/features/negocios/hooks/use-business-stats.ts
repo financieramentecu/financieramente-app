@@ -1,15 +1,16 @@
 'use client'
 
 /**
- * Hook para obtener estadísticas de negocios
+ * Hook para obtener estadísticas de negocios (Resumen KPIs)
  *
- * Utiliza AsyncState para manejar el estado asíncrono de forma unificada,
- * permitiendo type narrowing automático basado en el campo status.
+ * Utiliza AsyncState para manejar el estado asíncrono de forma unificada.
+ * Recalcula cuando cambian los filtros avanzados (misma shape que la lista).
  */
 
 import { useState, useEffect, useCallback } from 'react'
 import { businessService } from '../services/business.service'
 import type { CoachKpiResponse } from '../types/business-api.types'
+import type { BusinessFilterParams } from '../lib/business-api.schemas'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 
 interface UseBusinessStatsReturn {
@@ -20,51 +21,68 @@ interface UseBusinessStatsReturn {
 }
 
 /**
- * Hook para obtener estadísticas de negocios
+ * Hook para obtener estadísticas de negocios filtradas
  *
- * @param params - Opcionales filtros de fecha
- * @returns Estado de estadísticas y función de refetch
+ * @param params - Filtros avanzados (misma semántica que GET /api/negocios)
  */
-export function useBusinessStats(params: {
-	dateFrom?: string
-	dateTo?: string
-} = {}): UseBusinessStatsReturn {
+export function useBusinessStats(
+	params: Partial<BusinessFilterParams> = {}
+): UseBusinessStatsReturn {
 	const [state, setState] = useState<AsyncState<CoachKpiResponse>>({
 		status: 'loading',
 		data: undefined,
 		error: '',
 	})
 
-	const { dateFrom, dateTo } = params
+	const paramsKey = JSON.stringify(params)
 
-	const fetchStats = useCallback(async (isBackground: boolean = false) => {
-		if (!isBackground) {
-			setState({ status: 'loading', data: undefined, error: '' })
-		}
-
-		try {
-			const response = await businessService.getStats({ dateFrom, dateTo })
-
-			if ('error' in response && response.error) {
-				setState({ status: 'error', data: undefined, error: response.error })
-			} else if (response.data) {
-				setState({ status: 'success', data: response.data, error: '' })
+	const fetchStats = useCallback(
+		async (isBackground: boolean = false) => {
+			if (!isBackground) {
+				setState({ status: 'loading', data: undefined, error: '' })
 			}
-		} catch (err) {
-			console.error('Error al obtener estadísticas:', err)
-			setState({
-				status: 'error',
-				data: undefined,
-				error: 'Error al cargar estadísticas',
-			})
-		}
-	}, [dateFrom, dateTo])
+
+			const parsed = JSON.parse(paramsKey) as Partial<BusinessFilterParams>
+
+			try {
+				const response = await businessService.getStats(parsed)
+
+				if ('error' in response && response.error) {
+					setState({
+						status: 'error',
+						data: undefined,
+						error: response.error,
+					})
+				} else if (response.data) {
+					setState({ status: 'success', data: response.data, error: '' })
+				} else {
+					// Empty / null payload → zeros (CA3)
+					setState({
+						status: 'success',
+						data: {
+							ventasEfectuadas: { count: 0, totalCop: 0, totalUsd: 0 },
+							emitidos: { count: 0, totalCop: 0, totalUsd: 0, sinSoporte: 0 },
+							fondeados: { count: 0, totalCop: 0, totalUsd: 0 },
+						},
+						error: '',
+					})
+				}
+			} catch (err) {
+				console.error('Error al obtener estadísticas:', err)
+				setState({
+					status: 'error',
+					data: undefined,
+					error: 'Error al cargar estadísticas',
+				})
+			}
+		},
+		[paramsKey]
+	)
 
 	useEffect(() => {
 		fetchStats()
 	}, [fetchStats])
 
-	// Retornar valores compatibles con la interfaz existente
 	return {
 		stats: state.status === 'success' ? state.data : null,
 		isLoading: state.status === 'loading',
@@ -72,4 +90,3 @@ export function useBusinessStats(params: {
 		refetch: fetchStats,
 	}
 }
-

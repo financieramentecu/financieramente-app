@@ -114,6 +114,41 @@ describe('HierarchyTreePanel', () => {
 		expect(container.firstChild).toBeNull()
 	})
 
+	it('(a2) notifies the parent via onEmptyChange(true) when nodes array is empty, so the wrapper can collapse its reserved width', () => {
+		mockUseHierarchyTree.mockReturnValue(makeSuccessState([]))
+		const onEmptyChange = vi.fn()
+
+		render(<HierarchyTreePanel onEmptyChange={onEmptyChange} />)
+
+		expect(onEmptyChange).toHaveBeenCalledWith(true)
+	})
+
+	it('(a3) notifies the parent via onEmptyChange(false) when nodes are present', () => {
+		mockUseHierarchyTree.mockReturnValue(makeSuccessState([leafNode]))
+		const onEmptyChange = vi.fn()
+
+		render(
+			<HierarchySelectionProvider>
+				<HierarchyTreePanel onEmptyChange={onEmptyChange} />
+			</HierarchySelectionProvider>
+		)
+
+		expect(onEmptyChange).toHaveBeenCalledWith(false)
+	})
+
+	it('(a4) does not call onEmptyChange while still loading (no verdict yet)', () => {
+		mockUseHierarchyTree.mockReturnValue(makeLoadingState())
+		const onEmptyChange = vi.fn()
+
+		render(
+			<HierarchySelectionProvider>
+				<HierarchyTreePanel onEmptyChange={onEmptyChange} />
+			</HierarchySelectionProvider>
+		)
+
+		expect(onEmptyChange).not.toHaveBeenCalled()
+	})
+
 	it('(b) renders root node full names when nodes are present', () => {
 		mockUseHierarchyTree.mockReturnValue(makeSuccessState([leafNode]))
 

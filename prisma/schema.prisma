@@ -71,8 +71,39 @@ model Category {
   updatedAt      DateTime     @updatedAt @map("updated_at")
   categoryType   CategoryType @relation(fields: [idCategoryType], references: [id])
   users          User[]
+  reportPermissions CategoryReportPermission[]
 
   @@map("category")
+}
+
+model ReportDefinition {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(150)
+  description String?
+  routePath   String   @map("route_path") @db.VarChar(200)
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  permissions CategoryReportPermission[]
+
+  @@map("report_definition")
+}
+
+model CategoryReportPermission {
+  id         Int              @id @default(autoincrement())
+  idReport   Int              @map("id_report")
+  idCategory Int              @map("id_category")
+  status     Boolean          @default(true)
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+  report     ReportDefinition @relation(fields: [idReport], references: [id])
+  category   Category         @relation(fields: [idCategory], references: [id])
+
+  @@unique([idReport, idCategory])
+  @@index([idCategory])
+  @@index([idReport])
+  @@map("category_report_permission")
 }
 
 model CategoryType {
@@ -158,19 +189,19 @@ model Product {
 }
 
 model ProductConfiguration {
-  id                                         Int                           @id @default(autoincrement()) @map("id_product_configuration")
-  idProduct                                  Int                           @map("id_product")
-  idLevel                                    Int                           @map("id_level")
-  idProductPercentageCommissionNewBusinesses Int?                          @unique @map("id_product_percentage_commission_new_businesses")
-  createdAt                                  DateTime                      @default(now()) @map("created_at")
-  updatedAt                                  DateTime                      @updatedAt @map("updated_at")
-  code                                       String                        @unique @db.VarChar(50)
-  active                                     Boolean                       @default(true) @map("active")
+  id                                         Int      @id @default(autoincrement()) @map("id_product_configuration")
+  idProduct                                  Int      @map("id_product")
+  idLevel                                    Int      @map("id_level")
+  idProductPercentageCommissionNewBusinesses Int?     @unique @map("id_product_percentage_commission_new_businesses")
+  createdAt                                  DateTime @default(now()) @map("created_at")
+  updatedAt                                  DateTime @updatedAt @map("updated_at")
+  code                                       String   @unique @db.VarChar(50)
+  active                                     Boolean  @default(true) @map("active")
 
-  level                                      Level                         @relation(fields: [idLevel], references: [idLevel])
-  product                                    Product                       @relation(fields: [idProduct], references: [idProduct])
-  productPercentageCommissionNewBusinesses   ProductPercentageCommission?  @relation("PpcNewBusinesses", fields: [idProductPercentageCommissionNewBusinesses], references: [idProductPercentageCommission])
-  productPercentageCommissions               ProductPercentageCommission[]
+  level                                    Level                         @relation(fields: [idLevel], references: [idLevel])
+  product                                  Product                       @relation(fields: [idProduct], references: [idProduct])
+  productPercentageCommissionNewBusinesses ProductPercentageCommission?  @relation("PpcNewBusinesses", fields: [idProductPercentageCommissionNewBusinesses], references: [idProductPercentageCommission])
+  productPercentageCommissions             ProductPercentageCommission[]
 
   @@unique([idProduct, idLevel])
   @@index([idProduct])
@@ -250,6 +281,7 @@ model User {
   subordinates                        User[]                  @relation("UserLeader")
   notifications                       Notification[]
   comments                            Comment[]
+  leads                               Lead[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -327,6 +359,9 @@ model Business {
   dateIssued                    DateTime?                   @map("date_issued")
   dateAnchored                  DateTime?                   @map("date_anchored")
   numAportes                    Int?                        @map("num_aportes")
+  novedadStatus                 String?                     @map("novedad_status") @db.VarChar(20)
+  novedadMarkedAt               DateTime?                   @map("novedad_marked_at")
+  novedadResolvedAt             DateTime?                   @map("novedad_resolved_at")
   isActive                      Boolean                     @default(true) @map("is_active")
   buyPeriodicity                BuyPeriodicity?             @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
   client                        Client                      @relation(fields: [idClient], references: [idClient])
@@ -338,6 +373,7 @@ model Business {
   payments                      Payment[]
   settlementCommissions         SettlementCommission[]
   comments                      Comment[]
+  lead                          Lead?
 
   @@index([idUser])
   @@index([contract])
@@ -575,7 +611,7 @@ model Notification {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  user           User     @relation(fields: [idUser], references: [idUser], onDelete: Cascade)
+  user User @relation(fields: [idUser], references: [idUser], onDelete: Cascade)
 
   @@index([idUser])
   @@map("notification")
@@ -594,9 +630,58 @@ model Comment {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  business   Business @relation(fields: [businessId], references: [idBusiness])
-  author     User     @relation(fields: [authorId], references: [idUser])
+  business Business @relation(fields: [businessId], references: [idBusiness])
+  author   User     @relation(fields: [authorId], references: [idUser])
 
   @@index([businessId, createdAt])
   @@map("comment")
+}
+
+model LeadFunnelColumn {
+  idLeadFunnelColumn Int      @id @default(autoincrement()) @map("id_lead_funnel_column")
+  name               String   @db.VarChar(120)
+  externalStatusKey  String   @unique @map("external_status_key") @db.VarChar(150)
+  position           Int      @default(0)
+  isFallback         Boolean  @default(false) @map("is_fallback")
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  leads              Lead[]
+
+  @@index([position])
+  @@map("lead_funnel_column")
+}
+
+enum LeadOutcomeStatus {
+  OPEN
+  WON
+  LOST
+  ABANDONED
+}
+
+model Lead {
+  idLead             Int               @id @default(autoincrement()) @map("id_lead")
+  externalCrmId      String?           @unique @map("external_crm_id") @db.VarChar(150)
+  name               String?           @db.VarChar(200)
+  lastName           String?           @map("last_name") @db.VarChar(200)
+  email              String?           @db.VarChar(150)
+  phone              String?           @db.VarChar(30)
+  identityNumber     String?           @map("identity_number") @db.VarChar(20)
+  originTag          String?           @map("origin_tag") @db.VarChar(120)
+  externalUrl        String?           @map("external_url")
+  idUser             Int?              @map("id_user")
+  idLeadFunnelColumn Int               @map("id_lead_funnel_column")
+  idBusiness         Int?              @unique @map("id_business")
+  outcomeStatus      LeadOutcomeStatus @default(OPEN) @map("outcome_status")
+  active             Boolean           @default(true)
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  user               User?             @relation(fields: [idUser], references: [idUser])
+  funnelColumn       LeadFunnelColumn  @relation(fields: [idLeadFunnelColumn], references: [idLeadFunnelColumn])
+  business           Business?         @relation(fields: [idBusiness], references: [idBusiness])
+
+  @@index([idUser])
+  @@index([idLeadFunnelColumn])
+  @@index([outcomeStatus, createdAt])
+  @@map("lead")
 }

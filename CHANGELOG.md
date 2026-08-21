@@ -4,23 +4,326 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.32.0] - 2026-08-13
+
+### Agregado
+
+- **Filtro "Novedades" en Filtros avanzados de negocios:** Los usuarios pueden filtrar el listado por estado de novedad (Nueva, Sometido o Devolución, Declinado, Pendiente, Cancelado) o por "Sin novedad", solo o en combinación con Fecha, Money Strategist, Estado, Compañía y el resto de criterios existentes. Sin selección = Todos (sin criterio de novedad).
+
+### Técnico
+
+- Query/body param `novedadStatuses` shared across GET `/api/negocios`, GET `/api/negocios/stats`, and POST `/api/negocios/export`.
+- Sentinel `SIN_NOVEDAD` maps to `Business.novedadStatus IS NULL`; multiple selected values OR together and AND with other advanced filters.
+- UI: `AdvancedFiltersSheet` MultiSelect "Novedades"; URL param wiring in `negocios-page-client`; active-filter badge via `countActiveDimensions`.
+- Domain constants: `NOVEDAD_FILTER_SIN_NOVEDAD`, `NOVEDAD_FILTER_VALUES`, `NovedadFilterValue` in `business-entity.types.ts`.
+- OpenSpec change `negocios-filtro-novedades` archived; delta synced to `openspec/specs/negocios/spec.md`.
+- Unit tests: build-business-list-where, schemas, filter-flow, list-export parity, AdvancedFiltersSheet.
+
+## [1.31.1] - 2026-08-12
+
+### Corregido
+
+- **Suspensión de Flagsmith por consumo excesivo de la capa gratuita:** El chequeo de feature flags en el servidor hacía una petición HTTP real a la API de Flagsmith en cada carga de página (sin evaluación local ni caché, y duplicado entre el layout raíz y cada página), agotando la cuota gratuita mensual y provocando la suspensión del servicio. Ahora el SDK evalúa los flags localmente en memoria, refrescando el documento de entorno cada 5 minutos en lugar de en cada request.
+
+### Técnico
+
+- `flagsmith-server.ts`: `enableLocalEvaluation: true` + `environmentRefreshIntervalSeconds: 300` en la instancia de `flagsmith-nodejs`, reduciendo el consumo de ~43,200 a ~14,400 requests/mes por instancia activa.
+- Sin `FLAGSMITH_SERVER_KEY` configurada (uso previsto en QA) todos los flags quedan habilitados para pruebas y no se realiza ninguna petición a Flagsmith, sin afectar el fallback conservador existente para errores reales de la API en producción.
+- Nuevos flags `leads_module` y `reportes_produccion_real`, gateando `/dashboard/leads` y `/dashboard/reportes/produccion-real` con el mismo patrón que `production_dashboard` (redirect si están deshabilitados).
+
+## [1.31.0] - 2026-08-06
+
+### Agregado
+
+- **Gestión manual del estado de novedad con cinco estados:** Los usuarios ahora pueden registrar el estado real de una novedad (Nueva, Sometido a Devolución, Declinado, Pendiente, Cancelado) sin depender de cambios automáticos. Los analistas de soporte y administradores pueden usar la nueva opción "Gestionar novedad" en el detalle y el menú (⋮) de la tabla para cambiar el estado en cualquier momento. El estado de novedad ya no se resuelve automáticamente cuando el negocio transiciona a Emitido.
+
+- **Endpoint PATCH `/api/negocios/[id]/manage-novedad` para privilegiados:** Restringido a roles `ANALISTA_SOPORTE` y `ADMIN`. Permite transiciones libres (sin estado terminal) entre los cuatro estados manuales. Rechaza intentos de establecer `NUEVA` como destino (esta se asigna solo automáticamente al marcar).
+
+- **Desmarque de novedad con precondiciones de propiedad:** El desmarque de una novedad (`NUEVA`) ahora solo es permitido para el agente titular del negocio, preservando todos los timestamps de novedad (no se limpian). Otros roles pueden usar "Gestionar novedad" → `CANCELADA` para lograr cambios similares sin restricción de propiedad.
+
+### Mejorado
+
+- **Validación de soporte previo a fondeo:** Ambos endpoints de fondeo (`/fondear`, `/fondear-aportes`) ahora rechazan el fondeo cuando `supportCount === 0`, bloqueando antes de cualquier mutación de estado. El mensaje UI es "No se puede fondear sin soportes adjuntos". La edición de `dateAnchored` en un negocio ya fondeado no está sujeta a este guard (el guard aplica solo a acciones de fondeo).
+
+### Corregido
+
+- **Bypass de rol en desmarque de novedad:** Se corrigió un bug donde el desmarque de novedad permitía a `ADMIN` y `ASISTENTE_GERENCIA_OPERATIVA` desmarcar novedades de otros usuarios sin verificar propiedad. Ahora requiere ser el agente titular.
+
+- **Mensaje de error "novedad pendiente" desactualizado:** Se corrigió el mensaje de error en MARK que seguía refiriéndose a "novedad pendiente" en lugar de "novedad nueva".
+
+- **Opción "Gestionar Novedad" en menú (⋮) de tabla:** Se agregó "Gestionar novedad" al menú desplegable de acciones fila en la tabla de negocios, permitiendo acceso rápido sin entrar al detalle.
+
+- **Race condition en cargas de lista de negocios:** Se corrigió un bug donde respuestas HTTP fuera de orden podían sobrescribir resultados más nuevos con datos obsoletos. Se agregó un guard `latestRequestId` en `useBusinesses`.
+
+- **Sidebar en blanco durante carga inicial de sesión:** Se corrigió un problema de UX donde la barra lateral se mostraba vacía mientras se cargaba la sesión. Ahora muestra un skeleton de carga.
+
+- **Menú acordeón del sidebar colapsándose en navegación:** Se corrigió un bug donde el menú acordeón del sidebar se colapsaba al navegar entre secciones. Ahora mantiene los elementos abiertos usando un merge de estado en lugar de sobrescribir.
+
+- **Panel de jerarquía en blanco para usuarios sin árbol:** Se corrigió un bug en el Dashboard de Producción donde el panel de jerarquía reservaba espacio en blanco para usuarios sin árbol jerárquico. Ahora se colapsa completamente cuando está vacío.
+
+- **Usuarios Junior excluidos de propios nodos raíz:** Se corrigió un bug en `buildHierarchyTree` donde usuarios de nivel Junior (sin `beneficiaryMode` OVERRIDE) fueron excluidos de sus propios nodos raíz. Ahora se incluyen.
+
+- **KPIs y Heatmap sin fallback "MS Junior path":** Se corrigió un bug donde los hooks `useProductionKpis` y `useHeatmapTable` no implementaban el patrón de fallback "MS Junior" existente (retornar al `session.user.id` cuando no hay jerarquía). Ahora replican el patrón correctamente.
+
+### Técnico
+
+- **Ampliación de modelo Business:** El campo `novedadStatus` se amplió de dos estados (`PENDIENTE`, `RESUELTA`) a cinco: `NUEVA`, `SOMETIDA_DEVOLUCION`, `DECLINADA`, `PENDIENTE`, `CANCELADA`. Ningún cambio de schema Prisma (sigue siendo `VARCHAR(20)`).
+
+- **Nuevos archivos:**
+  - `src/features/negocios/services/business-novedad.service.ts` — Servicio Prisma para consultas y actualizaciones de novedad.
+  - `src/app/api/negocios/[id]/manage-novedad/route.ts` — Endpoint PATCH con role gate y auditoría.
+  - `src/features/negocios/components/modals/BusinessNovedadManageModal.tsx` — Modal de gestión de novedad.
+  - `src/features/negocios/hooks/use-manage-novedad.ts` — Hook AsyncState para el endpoint.
+  - `prisma/seeds/backfill-novedad-status.ts` — Backfill idempotente de `PENDIENTE`/`RESUELTA` → `NUEVA`.
+
+- **Archivos modificados:**
+  - `src/features/negocios/types/business-entity.types.ts` — 5-state const + `MANUAL_NOVEDAD_STATUSES` (4 valores).
+  - `src/app/api/negocios/[id]/route.ts` — Rama de auto-resolución deletreada de `becomesEmitido` (CA2).
+  - `src/app/api/negocios/[id]/mark-novedad/route.ts` — MARK sets `NUEVA`; UNMARK requiere `NUEVA` + propiedad.
+  - `src/features/negocios/components/ui/BusinessNovedadBadge.tsx` — 5-state palette con iconos (AlertCircle, Undo2, Clock, XCircle, Ban).
+  - `src/features/negocios/components/ui/NovedadActionButton.tsx` — Gates actualizadas a semántica `NUEVA`.
+  - `src/features/negocios/components/ui/BusinessRowActions.tsx` — Nueva opción "Gestionar novedad" inline.
+  - `src/app/dashboard/negocios/[id]/page.tsx`, `components/modals/BusinessViewModal.tsx` — "Gestionar novedad" trigger wiring.
+  - `src/features/auth/lib/audit-logger.ts` — Nueva acción `BUSINESS_NOVEDAD_STATUS_CHANGED`.
+  - `prisma/ERD.md` — Documentación de 5-state field.
+  - `openspec/specs/negocios/spec.md` — Delta spec fusionada (11 ADDED/MODIFIED requirements).
+
+- **Nueva acción de auditoría:** `BUSINESS_NOVEDAD_STATUS_CHANGED` — registra transiciones manuales de estado con from→to detail.
+
+- **Tests:** 393 archivos de prueba, 3423 tests, 0 fallos. Type check limpio (`npx tsc --noEmit`). Test suite completa validada post-fix de P.4.
+
+- **Scripts de soporte:**
+  - `prisma/seeds/backfill-novedad-status.ts --dry-run|--apply` — Migra datos heredados pre-release.
+  - `scripts/remediate-unsupported-funded-businesses.js --dry-run|--apply` — Remediación de negocios fondeados sin soportes.
+
+## [1.30.0] - 2026-08-05
+
+### Agregado
+
+- **Permisos de Reportes por categoría (COM-80):** Nueva sección en Administración para configurar qué categorías de usuario pueden ver cada reporte del catálogo. Incluye selección de reporte, checkboxes por categoría, control **Todas**, validación al guardar (mínimo una categoría) y confirmación en toast.
+- **Menú Reportes dinámico:** El grupo **Reportes** y sus sub-ítems se muestran según los permisos de reporte de la categoría del usuario autenticado (códigos estables), no solo por flags estáticos de rol. Bypass de administrador preservado.
+- **Reporte Producción Real (COM-81):** Nuevo reporte en `/dashboard/reportes/produccion-real` con filtros (fecha de creación con mes actual por defecto en Bogotá, tipo de aporte, compañía incluyendo SKANDIA, modos de moneda), árbol jerárquico reutilizable, cuatro KPIs (Producción Real, Regular, Único, Fondeado con % de conversión), barras Regular vs Única, tabla de detalle con scroll continuo y exportación Excel de tres hojas (Resumen KPI, Regular vs Única, Detalle).
+- **Reglas de negocio del reporte:** Exclusión global MFUND (SKANDIA + MFUND); KPI Único excluye 2ª+ Anualidad; moneda Todas convierte a USD con TRM automática; modos Peso Colombiano y Moneda Extranjera en montos nativos.
+- **Seed por defecto:** Categoría **Performance Leader** habilitada para el código `PRODUCCION_REAL` tras migrar/sembrar.
+
+### Técnico
+
+- **Prisma models:** `ReportDefinition` (`code`, `name`, `description`, `routePath`, soft-delete `status`) and `CategoryReportPermission` (unique per report+category, soft-delete `status`); tables `report_definition` / `category_report_permission`.
+- **Migration:** `20260805150000_add_report_permissions` — additive schema; apply with `prisma migrate deploy` when DB is available, then run seed (`prisma/seeds/report-permissions.ts`).
+- **Features:** `src/features/report-permissions/` (admin UI, hooks with `AsyncState`, Zod schemas, service-layer Prisma, soft-delete replace permissions) and `src/features/reports/produccion-real/` (filters, KPIs, hierarchy scope, currency conversion, detail mapper, Excel builder).
+- **API routes (HTTP only → services):** `GET/PUT /api/report-permissions`, `GET /api/reports/me`, `GET /api/reports/produccion-real/kpis|detail|export`.
+- **Navigation:** `menu-items.tsx` + `menu-builder.ts` gate **Reportes** / **Producción Real** and Administración **Permisos de Reportes** via authorized report codes.
+- **Audit actions:** `REPORT_PERMISSION_UPDATED`, `REPORT_EXPORTED`.
+- **ERD:** Updated `prisma/ERD.md` for new models and Category relations.
+- **Tests:** Unit/integration coverage for permissions helpers, soft-delete replace, can-view-report, menu builder Reportes, Producción Real WHERE/KPI/currency/export helpers and routes.
+## [1.29.1] - 2026-08-05
+
+### Corregido
+
+- **Conversión de lead a negocio sin bloques de documentación:** Se corrigió la puerta de campo `isBlocked` que bloqueaba todos los campos de contacto cuando se convertía un lead desde `/dashboard/negocios/crear?leadId=<id>`. Ahora, los campos (`email`, `name`, `lastNames`, `phone`, `clientOrigin`, `agent`) se desbloquean cuando un lead tiene `leadId`, independientemente de si el documento está completo. El formulario de creación manual (sin `leadId`) sigue bloqueando hasta 5+ caracteres de documento, sin cambios.
+
+- **Resolución automática de cliente existente al convertir lead:** Al convertir un lead a negocio, el sistema ahora resuelve silenciosamente un cliente existente (por documento exacto, luego por email exacto) y lo reutiliza, evitando la creación de duplicados. Si el cliente encontrado por email tiene un documento diferente, se muestra una alerta de decisión en línea para que el usuario elija actualizar o mantener el documento existente. Si no hay coincidencia, el sistema crea un cliente nuevo como antes. La reactivación de clientes inactivos ocurre automáticamente cuando la conversión usa un documento exacto bajo un lead.
+
+- **Indicador visual mejorado de lead convertido en el Kanban:** Se reemplazó el badge de texto "Negocio creado" con un ícono de estrella esmeralda + tooltip, ocupando menos espacio horizontal en las tarjetas del tablero. El indicador persiste independientemente del estado del negocio vinculado (incluso si se cancela).
+
+- **Bloqueo de conversión para leads sin dueño asignado:** Se agregó un bloqueo en tres capas (UI, servicio y transacción) para evitar convertir leads que no tienen propietario (`idUser == null`). El botón de conversión está deshabilitado con una leyenda explicativa en la UI; la consulta de servicio excluye leads sin dueño; y la transacción falla si se intenta una conversión directa. Este bloqueo solo afecta a leads sin propietario; los administradores y roles bypass ven y pueden convertir leads normalmente.
+
+- **Money Strategist fijado y bloqueado al propietario del lead:** Cuando se convierte un lead que tiene un propietario asignado, el campo `agent` (Money Strategist) del formulario se prefill con ese propietario y se bloquea para que no pueda cambiar, incluso para usuarios AGENTE que normalmente se autoasignan. Este comportamiento aplica solo en conversión de lead; la creación manual y la edición no se ven afectadas.
+
+### Técnico
+
+- **Nuevos archivos:**
+  - `src/features/negocios/services/client-resolution.service.ts` — Resuelve clientes existentes por documento (activo), email (activo único), o reactivación de documento inactivo bajo contexto de lead.
+  - `src/features/negocios/actions/resolve-existing-client.ts` — Server Action autenticado que expone la resolución con auditoría `CLIENT_REACTIVATED`.
+  - `src/features/negocios/components/sections/client-identity-conflict-alert.tsx` — Alerta en línea para conflictos de documento en coincidencias de email, con acciones "Actualizar documento" (deshabilitada para roles no privilegiados) y "Mantener el existente".
+  - `src/features/leads/mappers/lead-owner-to-agent-info.ts` — Mapea el propietario del lead a la forma `AgentInfo`.
+
+- **Archivos modificados:**
+  - `src/features/negocios/hooks/use-business-form.ts` — `isBlocked` y `isContractBlocked` centralizados (D3/D4); llamada a resolución (D2); estado y resumidor de `identityConflict` (D5).
+  - `src/features/negocios/components/sections/client-info-section.tsx` — Consume prop `isBlocked`; renderiza `ClientIdentityConflictAlert`.
+  - `src/features/negocios/components/sections/coach-info-section.tsx` — Consume prop `isAgentLocked`; deshabilita `AgentAutocomplete` cuando `isAgentLocked` es true.
+  - `src/features/negocios/components/business-form.tsx` — Pasa `isBlocked`/`isContractBlocked` a hijos.
+  - `src/features/negocios/components/business-wrapper.tsx` — Acepta/reenvía prop `businessAgent`.
+  - `src/features/leads/services/lead-board.service.ts` — Selecciona `idBusiness` en la consulta de tablero.
+  - `src/features/leads/types/lead.types.ts` — Agrega `idBusiness: number | null` a `LeadCard`.
+  - `src/features/leads/components/lead-card.tsx` — Renderiza ícono de estrella con tooltip y bordes esmeralda cuando `idBusiness !== null`.
+  - `src/features/leads/components/lead-detail-sheet.tsx` — Deshabilita botón "Convertir a negocio" con leyenda cuando `lead.idUser == null`.
+  - `src/features/leads/services/lead-conversion.service.ts` — Agrega `idUser: { not: null }` a `getLeadForConversion`; `linkLeadToBusinessTx` lanza excepción si `idUser == null` (defensa en profundidad).
+  - `src/features/leads/hooks/use-agent-permissions.ts` — Nueva opción `leadId` con `isLeadOwnerLocked`; bloquea autoasignación cuando hay propietario de lead.
+  - `src/features/auth/lib/audit-logger.ts` — Agrega acción `CLIENT_REACTIVATED`.
+
+- **Nueva acción de auditoría:** `CLIENT_REACTIVATED` — registra reactivación de clientes inactivos durante conversión de lead.
+
+## [1.29.0] - 2026-08-05
+
+### Agregado
+
+- **Módulo Leads completo — Sincronización CRM + Kanban de funnel:** Los usuarios pueden ahora ingerir leads desde un CRM externo (vía webhook normalizado a través de n8n) y verlos en un tablero Kanban de solo lectura organizado por columnas configurables. El webhook es autenticado por API key (sin HMAC), rate limitado (~120 req/min) y upsert idempotente por `externalCrmId`. Incluye visibilidad por jerarquía (los leads sin dueño asignado solo son visibles para administradores).
+
+- **Conversión manual de lead a Cliente + Negocio:** Desde el detalle de un lead, los usuarios pueden convertirlo manualmente en un Cliente y un Negocio, reutilizando el formulario de creación de negocios existente. La conversión requiere `identityNumber` en el momento de la conversión, guarda contra conversiones duplicadas con un único FK opcional `idBusiness` en `Lead`, y produce una entrada de auditoría completa.
+
+- **Administración de columnas de funnel:** Los administradores pueden crear, renombrar, reordenar y eliminar (soft-delete) columnas del funnel de leads desde la sección Administración/Configuración. Cada columna mapea a un `externalStatusKey` único del CRM. Las columnas con leads activos no pueden eliminarse. La columna "Sin mapear" es fija y no eliminable, recibiendo cualquier `statusKey` no mapeado.
+
+- **Estado de resultado (outcomeStatus) con bloqueo de WON terminal:** Los leads tienen un estado de resultado fijo (`OPEN`, `WON`, `LOST`, `ABANDONED`, por defecto `OPEN`). Una vez que un lead alcanza `WON`, ese estado se vuelve terminal: no puede ser cambiado por webhooks posteriores (aunque otros campos sí se actualizan). Los estados `LOST` y `ABANDONED` permanecen mutables. El estado aparece como un badge visual en las tarjetas del Kanban.
+
+- **Filtros avanzados en el tablero de Leads:** El tablero Kanban ofrece filtros por resultado (chips multiseleccionables con OR) y rango de fechas de creación (por defecto, mes actual). Los filtros se combinan con AND y respetan la visibilidad por jerarquía del usuario.
+
+- **Entrada de navegación Leads:** Se agregó un elemento de menú top-level "Leads" que navega al tablero Kanban, visible para todos los roles (incluyendo AGENTE). Se agregó también una sub-entrada bajo Administración para la gestión de columnas del funnel.
+
+- **Bugfix app-wide — DateRangePicker ahora muestra rangos seleccionados:** Se corrigió un bug preexistente en el que el `DateRangePicker` (y todo picker de rangos de fechas en la app) nunca resaltaba el rango seleccionado. La raíz es que `src/app/tailwind.css` importa Tailwind v4 sin la directiva `@config`, impidiendo que las clases de colores personalizados se generen. Se agregaron reglas explícitas en `globals.css` para `[data-slot='calendar']` que seleccionan el rango. Este fix beneficia a todos los pickers de rango en la aplicación. (La solución completa de `@config` se deja fuera de alcance como una mejora futura).
+
+### Mejorado
+
+- **Drag & drop accesible en el panel admin de columnas:** Se reemplazaron los botones ↑/↓ con una solución de arrastrar y soltar usando `@dnd-kit` (primer uso de esta librería en el repo), que incluye soporte para teclado (KeyboardSensor) y es accesible.
+
+- **Inmovilidad de clave de estado del CRM:** La clave `externalStatusKey` de una columna es inmutable después de su creación (enforced en el servicio, no solo en UI). Cambiarla haría que el webhook routing se quiebre. Si se necesita una clave diferente, se crea una nueva columna.
+
+- **Soft-delete con tombstone para reutilización de claves:** Al eliminar una columna, su `externalStatusKey` se reescribe como `${key}__deleted_${id}` para liberar el valor único y permitir crear una nueva columna con la misma clave después.
+
+### Corregido
+
+- **Leads visibles para todos los roles:** Se corrigió un bug donde "Leads" fue agregado a `ALL_MENU_ITEMS` pero no tenía rama en el allow-list `buildMenuByRole()`, haciéndolo invisible. Se agregaron ramas condicionales en `menu-builder.ts` y explícitas en `AGENTE_MENU_ITEMS`.
+
+### Técnico
+
+- **Modelos Prisma nuevos:** `Lead` (nullable unique `externalCrmId`, nullable FK a `User`, FK a `LeadFunnelColumn`, unique FK opcional a `Business`, soft delete `active`) y `LeadFunnelColumn` (`name`, unique `externalStatusKey`, `position`, `isFallback` para la columna "Sin mapear", soft delete `active`).
+
+- **Migraciones Prisma:** `20260803190000_add_leads_module` (modelos, índices, FKs) y `20260804000000_add_lead_outcome_status` (enum `LeadOutcomeStatus` con valores OPEN/WON/LOST/ABANDONED). Nota: ambas generadas y validadas, pero no aplicadas a la DB compartida de dev (Neon) debido a un drift preexistente no relacionado en columnas `novedad_*`; el propietario debe ejecutar `prisma migrate resolve --applied` antes del deploy.
+
+- **Endpoints nuevos:**
+  - `POST /api/leads/crm-sync` — webhook de ingesta, autenticado por `x-api-key` (timingSafeEqual sobre SHA-256), rate limit en memoria, upsert idempotente, fallback para `statusKey`/`outcomeStatus` no mapeados, resolución de dueño sin "sticky owner", auditoría completa.
+  - `GET /api/leads` — devuelve tablero (leads agrupados por columna server-side, visibilidad por jerarquía, filtros por outcome + fecha).
+  - `GET /api/leads/[id]` — detalle del lead (scope jerárquico).
+  - `GET/POST /api/leads/funnel-columns` — CRUD de columnas (admin).
+  - `PATCH/DELETE /api/leads/funnel-columns/[id]` — actualizar/eliminar columna (admin).
+
+- **Nuevas acciones de auditoría:** `LEAD_CREATED`, `LEAD_STATUS_CHANGED`, `LEAD_OWNER_ASSIGNED`, `LEAD_OWNER_UNRESOLVED`, `LEAD_OUTCOME_STATUS_LOCKED`, `LEAD_CONVERTED_TO_BUSINESS`, `LEAD_FUNNEL_COLUMN_CREATED`, `LEAD_FUNNEL_COLUMN_UPDATED`.
+
+- **Función pura `resolveOutcomeStatus(raw, current)`:** Mapea valores entrantes (case-insensitive) a enum interno, maneja valores no reconocidos (fallback a OPEN + audit), y aplica lógica de bloqueo terminal cuando `current === 'WON'` (retorna `{value, unresolved, locked}`).
+
+- **Normalización de claves de estado:** Nueva `normalizeFunnelStatusKey()` (uppercase + espacios→guiones bajos) aplicada en create/update de columnas y en matching del webhook, permitiendo admins escribir `lead nuevo` que el CRM envía como `LEAD_NUEVO` sin desincronización.
+
+- **Interfaz de mapeo:** `mapLeadToBusinessDefaults()` en `src/features/leads/mappers/` (now uses `Pick<LeadDetail, 'name'|'lastName'|'email'|'phone'|'identityNumber'>` para evitar requerir campos derivados como `ownerName`).
+
+- **Actualización ERD.md:** Nuevos modelos `Lead` y `LeadFunnelColumn`, relaciones a `User`/`Business`, índices, notas sobre claves tombstoned y la columna isFallback.
+
+- **Tests:** 40 archivos, 285 tests (lib puro, services, routes, componentes, integración full-flow). Type check limpio (`npx tsc --noEmit`), lint limpio.
+
+- **Documentación:** `docs/LEADS_WEBHOOK_INTEGRATION_GUIDE.md` (guía para configurar n8n), `docs/LEADS_CRM_SYNC_TESTING_GUIDE.md` (curls de prueba del webhook incl. bloqueo WON y rate limit), `docs/ENVIRONMENT_VARIABLES.md` (documentación de `LEADS_CRM_SYNC_API_KEY`).
+
+- **Seed:** `prisma/seeds/lead-funnel-columns.ts` — upsert idempotente de las 22 columnas reales del funnel de negocio + columna "Sin mapear" (isFallback).
+
+## [1.28.0] - 2026-08-04
+
+### Agregado
+
+- **Filtro "Soporte" en el Dashboard de producción (COM-79):** En el panel "Filtros del reporte" se puede segmentar por negocios con o sin comprobantes cargados (`Todos` / `Con` / `Sin`). El valor por defecto es `Todos`.
+- **Reactividad de widgets al filtro de soporte:** Al aplicar el filtro, se recalculan VENTA TOTAL (FX, local y total USD), las donas de origen/compañía/estado, las barras de producción por Money Strategist y el heatmap por empresa (USD y NEG), con intersección AND respecto al resto de filtros y a la jerarquía seleccionada.
+- **Consistencia heatmap ↔ listado:** El acordeón de la celda del heatmap reenvía el mismo criterio de soporte al listado de negocios, evitando desalineación entre el agregado y el detalle.
+
+### Técnico
+
+- Extensión del contrato `DashboardFilterDraft` / `DashboardAppliedFilters` con `hasSupports?: boolean` (`undefined` = Todos; `true` = Con; `false` = Sin), acción `SET_HAS_SUPPORTS`, badges activos y igualdad draft/applied.
+- Predicado compartido en `buildProductionWhereClause`: `supports.some/none` solo con `status: true` (misma semántica soft-delete que el listado de negocios).
+- Helper `parseDashboardAppliedFilters` reutilizado por las rutas `kpis`, `by-origin`, `by-company`, `by-status`, `ms-chart` y `heatmap`; serialización del query param en los 6 hooks de agregación.
+- Forward de `hasSupports` en `toBusinessListQueryParams` para el bridge heatmap → `/api/negocios`.
+- Cobertura unitaria de WHERE, reducer/badges, parser de query params y bridge del heatmap.
+- OpenSpec change `dashboard-filtro-soporte` (proposal, design, specs, tasks).
+
+## [1.27.0] - 2026-08-03
+
+### Agregado
+
+- **URLs clickeables en comentarios (COM-82):** Al visualizar comentarios, las direcciones que empiezan con `http://`, `https://` o `www.` se muestran como hipervínculos (estilo diferenciado) y se abren en una nueva pestaña con `noopener noreferrer`. El resto del texto del comentario se mantiene como texto plano, incluso cuando hay varias URLs en el mismo mensaje.
+
+## [1.26.3] - 2026-08-03
+
+### Agregado
+
+- **Carga de comprobantes desde Venta Efectuada (COM-76):** Money Strategists y Analistas de Soporte pueden subir comprobantes desde el estado "Venta Efectuada", sin esperar a que el negocio esté en "Emitido" ni a que exista número de contrato. La acción "Subir comprobante" en la columna Acciones queda habilitada también en esa etapa temprana, y al completar la carga se muestra un mensaje de éxito.
+
+## [1.26.2] - 2026-07-30
+
+### Agregado
+
+- **Money Strategist puede eliminar sus comprobantes (COM-75):** El rol Money Strategist (Agente) ahora puede eliminar comprobantes de los negocios que gestiona directamente, sin depender de un Analista de Soporte u otro rol operativo.
+- **Confirmación antes de eliminar:** Al eliminar un comprobante se muestra un diálogo de confirmación explicando que la acción no se puede deshacer, evitando borrados accidentales.
+
+### Mejorado
+
+- **Feedback de error al eliminar:** Si la eliminación falla, se muestra una notificación (toast) con un mensaje claro en lugar de fallar en silencio.
+
+### Corregido
+
+- **Alcance de permisos en la API:** La eliminación de comprobantes valida en el backend que el comprobante pertenezca al negocio indicado y, para Money Strategist, que el negocio esté dentro de su jerarquía visible; de lo contrario responde 403.
+
+### Técnico
+
+- `canDeleteBusinessComprobante()` en `src/features/auth/lib/roles.ts` centraliza la validación de rol (ADMIN, ASISTENTE_GERENCIA_OPERATIVA, ANALISTA_SOPORTE, AGENTE), usada tanto en la UI como en la API.
+- `deactivateComprobante()` (`business-supports.service.ts`) acepta un parámetro `auth` opcional (`businessId`, `visibleUserIds`) para forzar pertenencia al negocio y, cuando aplica, la jerarquía visible del usuario vía `resolveVisibleUserIds`.
+- Nuevo código de error `FORBIDDEN` en `ComprobanteErrorCode`, mapeado a HTTP 403 en la ruta `DELETE /api/negocios/[id]/comprobantes/[supportId]`.
+- `ViewComprobantesSheet` reemplaza el borrado directo por un flujo de confirmación (`AlertDialog`) con estado `pendingDeleteId`/`isConfirming` y notificación de error vía `sonner`.
+
+## [1.26.1] - 2026-08-03
+
+### Agregado
+
+- **KPIs del Resumen filtrados (COM-73):** Al aplicar filtros avanzados en Negocios (fechas, Money Strategist, estado, categoría, soportes, compañía, producto, origen, plazo, periodicidad), las tarjetas de Resumen (Ventas Efectuadas, Emitidos y Fondeados) se recalculan automáticamente con el mismo criterio que la tabla, incluyendo montos en moneda local y extranjera y el indicador de soportes pendientes en Emitidos.
+
+### Mejorado
+
+- **Paridad lista ↔ Resumen:** Los KPIs usan la misma semántica de filtros que el listado (`dateFrom`/`dateTo` = fondeo, `createdFrom`/`createdTo` = creación, etc.). Al limpiar filtros, el Resumen vuelve al consolidado global (según el alcance del rol).
+
+### Corregido
+
+- **Resultados sin coincidencias en KPIs:** Si los filtros no arrojan negocios, las tarjetas muestran `0` en conteos y montos (sin `null`/`NaN` ni errores visuales).
+- **Hydration en filtros avanzados:** Se corrigió el warning de HTML inválido (`button` anidado) en el selector múltiple del panel de filtros avanzados.
+
+## [1.26.0] - 2026-07-31
+
+### Agregado
+
+- **Marcador de "Novedad" para negocios en VENTA_EFECTUADA:** Los gestores de negocios ahora pueden marcar con "Con Novedad" los negocios que están bloqueados esperando información o correcciones (datos faltantes, contrato pendiente, etc.). El flag se resuelve automáticamente cuando el negocio pasa a estado EMITIDO, manteniendo un historial de auditoría completo.
+
+- **Columna de Novedad en tabla de negocios:** La tabla principal de negocios incluye una nueva columna "Novedad" inmediatamente después de "Estado", mostrando el estado del marcador (vacío cuando no hay novedad, "Pendiente" en naranja, "Resuelta" en verde).
+
+- **Acciones de Novedad en fila de negocios:** El menú desplegable de acciones permite "Marcar Con Novedad" (visible solo en VENTA_EFECTUADA sin novedad pendiente) y "Desmarcar Novedad" (visible solo si hay novedad pendiente), disponible para todos los roles autenticados sin restricción de permisos.
+
+- **Auto-resolución de Novedad:** Cuando un negocio con novedad pendiente transiciona a EMITIDO (por cualquier motivo), el sistema automáticamente resuelve el flag y registra la resolución en el audit log.
+
+- **Persistencia de novedad en cancelación:** Si un negocio con novedad pendiente es cancelado, el flag se mantiene para auditoría y referencia.
+
+- **Display en vista de detalle:** La vista de detalle del negocio (modal y página de dashboard) muestra el estado de novedad con la misma semántica de colores que la tabla.
+
+- **Auditoría completa:** Nuevas acciones de audit log: `BUSINESS_NOVEDAD_MARKED`, `BUSINESS_NOVEDAD_UNMARKED`, `BUSINESS_NOVEDAD_RESOLVED` con registro de usuario, IP, user agent y detalles.
+
+- **Excel export:** La columna de Novedad se incluye automáticamente en las exportaciones de negocios con los mismos valores (vacío/"Pendiente"/"Resuelta").
+
+### Técnico
+
+- **Campos de datos:** Tres nuevos campos nullable en `Business`: `novedadStatus` (PENDIENTE | RESUELTA), `novedadMarkedAt`, `novedadResolvedAt`.
+
+- **API endpoint:** Nuevo `PATCH /api/negocios/[id]/mark-novedad` con soporte dual para acciones MARK/UNMARK, validación de precondiciones (409 Conflict), y respuestas `ApiResponse<BusinessEntity>`.
+
+- **Auto-resolución transaccional:** La resolución automática ocurre dentro de la transacción existente de `PUT /api/negocios/[id]` sin redondas adicionales.
+
+- **Hook de estado:** Nueva `useMarkNovedad` que retorna `AsyncState<BusinessEntity>` siguiendo patrones de proyecto.
+
+- **Componentes:** `BusinessNovedadBadge` con patrón STATUS_CONFIG, integrado en `BusinessRowActions`, `BusinessTableSection`, `BusinessViewModal`, y página de detalle.
+
+- **Migración Prisma:** Migración generada (pendiente aplicación a DB antes de deploy).
+
 ## [1.25.0] - 2026-07-30
 
 ### Agregado
+
+- **Edición de datos básicos del cliente desde el negocio:** Administrador y Asistente Operativo de Gerencia ahora pueden editar documento, correo, nombres, teléfono y origen del cliente directamente desde la edición del negocio, con validación, control de permisos por rol y registro en el log de auditoría.
 
 - **Acordeón de negocios por celda en el heatmap:** En el panel "Producción por empresa (heatmap)", cada celda asesor-empresa ahora se puede expandir con un ícono dedicado para ver el listado de negocios detrás de esa cifra, agrupados por empresa. Cada negocio muestra producto, número de contrato, valor (USD/COP), y estado, con un enlace "Ir a negocio" que abre el detalle en una pestaña nueva sin perder el contexto del análisis.
 
 - **Expansión múltiple y persistente:** Varias celdas pueden quedar expandidas al mismo tiempo. Si se aplica un filtro del dashboard mientras una celda está expandida, esta permanece abierta y solo se refresca su contenido; un recargado completo de la página sí reinicia el estado de expansión.
 
-### Mejorado
-
-- **Filtro por defecto en lista de negocios:** Todos los roles (ADMIN, Asistente Operativo de Gerencia, Analista de Soporte) ahora ven por defecto los negocios del mes actual filtrados por **fecha de creación**, en lugar de fecha de fondeo. Esto permite ver los negocios recién ingresados sin necesidad de cambiar el filtro manualmente. Si se requiere filtrar por fecha de fondeo, se puede aplicar desde el panel de filtros avanzados.
-
-- **Panel de filtros avanzados:** Al abrir el panel de filtros o al limpiar filtros, el selector de tipo de fecha se posiciona en "Creación" como punto de partida, alineado con el nuevo comportamiento por defecto.
-
 ### Corregido
-
-- **Indicador de filtros activos en negocios:** El ícono de badge en el botón "Filtros avanzados" ya no aparece al cargar la página con el filtro por defecto (mes actual por creación). El badge solo se activa cuando el usuario aplica filtros adicionales más allá del estado inicial.
 
 - **Heatmap del dashboard no cargaba datos en el primer render:** El heatmap permanecía vacío al cargar la página por primera vez y solo mostraba datos al cambiar un filtro. El problema era que la tasa TRM (necesaria para la conversión) carga de forma asíncrona y el efecto de carga de datos no se reactivaba al resolverse. Corregido.
 

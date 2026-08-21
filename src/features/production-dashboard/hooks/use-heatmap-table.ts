@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { useHierarchySelection } from '../components/HierarchySelectionContext'
 import { useDashboardFilter } from '../components/DashboardFilterContext'
 import type {
@@ -173,14 +174,23 @@ type FetchStatus = 'idle' | 'loading' | 'error'
  * Remains idle until trmRate is a non-null number.
  * Re-fetches when selectedUserIds or appliedFilters changes.
  * Does NOT re-fetch on trmRate change — conversion is client-side only.
+ *
+ * Mirrors the auth/hierarchy gating pattern from useOriginDonut/useCompanyDonut:
+ * - No hierarchy nodes (MS Junior path) → uses the session userId, still fetches.
+ * - Hierarchy nodes present but none selected → short-circuits to an empty view
+ *   model (no fetch).
+ * - Hierarchy nodes present and selected → uses selectedUserIds.
  */
 export function useHeatmapTable(trmRate: number | null): AsyncState<HeatmapViewModel> {
-  const { selectedUserIds } = useHierarchySelection()
+  const { nodes, selectedUserIds } = useHierarchySelection()
   const { appliedFilters } = useDashboardFilter()
+  const { data: session, status: sessionStatus } = useSession()
 
   const [rawData, setRawData] = useState<HeatmapRaw[] | null>(null)
   const [fetchStatus, setFetchStatus] = useState<FetchStatus>('idle')
   const [fetchError, setFetchError] = useState('')
+
+  const selfUserId = session?.user?.id ? Number(session.user.id) : undefined
 
   useEffect(() => {
     // Remain idle while trmRate is null — no fetch triggered
@@ -190,6 +200,31 @@ export function useHeatmapTable(trmRate: number | null): AsyncState<HeatmapViewM
       return
     }
 
+    // MS Junior path: no hierarchy nodes, use session userId
+    if (nodes.length === 0) {
+      if (sessionStatus === 'loading') {
+        setFetchStatus('loading')
+        return
+      }
+      if (!selfUserId) {
+        setFetchError('No se pudo obtener el usuario de la sesión')
+        setFetchStatus('error')
+        return
+      }
+    }
+
+    // Hierarchy nodes exist but none selected/included — genuine empty result
+    if (nodes.length > 0 && selectedUserIds.length === 0) {
+      setRawData([])
+      setFetchStatus('idle')
+      return
+    }
+
+    const effectiveUserIds: number[] =
+      nodes.length === 0 && selfUserId !== undefined
+        ? [selfUserId]
+        : [...selectedUserIds]
+
     setFetchStatus('loading')
     setFetchError('')
 
@@ -198,7 +233,7 @@ export function useHeatmapTable(trmRate: number | null): AsyncState<HeatmapViewM
     async function fetchHeatmap() {
       try {
         const params = new URLSearchParams({
-          userIds: [...selectedUserIds].join(','),
+          userIds: effectiveUserIds.join(','),
         })
 
         const {
@@ -222,6 +257,8 @@ export function useHeatmapTable(trmRate: number | null): AsyncState<HeatmapViewM
         if (originIds.length > 0) params.set('originIds', originIds.join(','))
         if (plazos.length > 0) params.set('plazos', plazos.join(','))
         if (periodicidades.length > 0) params.set('periodicidades', periodicidades.join(','))
+        if (appliedFilters.hasSupports === true) params.set('hasSupports', 'true')
+        else if (appliedFilters.hasSupports === false) params.set('hasSupports', 'false')
 
         const response = await fetch(
           `/api/production-dashboard/heatmap?${params.toString()}`,
@@ -265,7 +302,7 @@ export function useHeatmapTable(trmRate: number | null): AsyncState<HeatmapViewM
     // trmRate value excluded — TRM conversion is client-side only.
     // trmRate !== null is included to trigger the initial fetch once trmRate resolves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUserIds, appliedFilters, trmRate !== null])
+  }, [selectedUserIds, appliedFilters, trmRate !== null, selfUserId])
 
   // Handle null trmRate → remain idle
   if (trmRate === null) {

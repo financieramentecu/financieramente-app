@@ -10,6 +10,8 @@ const FALLBACK_FLAGS: Record<FeatureFlag, boolean> = {
 	dashboard_calculadora: true,
 	impersonation_select: false,
 	production_dashboard: true,
+	leads_module: true,
+	reportes_produccion_real: true,
 }
 
 let instance: Flagsmith | null = null
@@ -20,7 +22,8 @@ function getInstance(): Flagsmith {
 	if (!environmentKey) throw new Error('FLAGSMITH_SERVER_KEY is not set')
 	instance = new Flagsmith({
 		environmentKey,
-		enableLocalEvaluation: false,
+		enableLocalEvaluation: true,
+		environmentRefreshIntervalSeconds: 300,
 	})
 	return instance
 }
@@ -49,6 +52,8 @@ export async function getFlagsmithServerState(
 	identity?: string
 ): Promise<FlagsmithServerState> {
 	if (process.env.NODE_ENV === 'development') return getDevStubState()
+	// No key configured (e.g. QA) → all flags enabled for testing, zero Flagsmith requests.
+	if (!process.env.FLAGSMITH_SERVER_KEY) return getDevStubState()
 	try {
 		const fs = getInstance()
 		const flagsObj = identity
@@ -84,6 +89,8 @@ export async function isFeatureEnabledServer(
 	identity?: string
 ): Promise<boolean> {
 	if (process.env.NODE_ENV === 'development') return true
+	// No key configured (e.g. QA) → all flags enabled for testing, zero Flagsmith requests.
+	if (!process.env.FLAGSMITH_SERVER_KEY) return true
 	try {
 		const fs = getInstance()
 		const flagsObj = identity
