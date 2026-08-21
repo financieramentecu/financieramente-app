@@ -4,6 +4,7 @@
  */
 export const REPORT_CODES = {
 	PRODUCCION_REAL: 'PRODUCCION_REAL',
+	LEADS_ANALYTICS: 'LEADS_ANALYTICS',
 } as const
 
 export type ReportCode = (typeof REPORT_CODES)[keyof typeof REPORT_CODES]

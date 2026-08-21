@@ -97,6 +97,12 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				icon: <BarChart3 className="h-4 w-4" />,
 				reportCode: 'PRODUCCION_REAL',
 			},
+			{
+				title: 'Analítica de Leads',
+				url: '/dashboard/reportes/leads-analytics',
+				icon: <Kanban className="h-4 w-4" />,
+				reportCode: 'LEADS_ANALYTICS',
+			},
 		],
 	},
 	{

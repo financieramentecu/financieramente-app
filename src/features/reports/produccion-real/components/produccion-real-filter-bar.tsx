@@ -82,8 +82,8 @@ export function ProduccionRealFilterBar({
 					{PRODUCCION_REAL_UI.FILTERS_TITLE}
 				</h3>
 
-				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-					<div className="col-span-2">
+				<div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3 lg:grid-cols-5">
+					<div className="col-span-2 min-w-0">
 						<MonthRangePicker
 							value={{
 								start: isoDayToPickerDate(draft.dateFrom),
@@ -103,49 +103,55 @@ export function ProduccionRealFilterBar({
 						/>
 					</div>
 
-					<MultiSelectFilter
-						items={[...CONTRIBUTION_ITEMS]}
-						value={contributionTypesToIds(draft.contributionTypes)}
-						onChange={(ids) => {
-							dispatch({
-								type: PRODUCCION_REAL_FILTER_ACTION.SET_CONTRIBUTION_TYPES,
-								contributionTypes: idsToContributionTypes(ids),
-							})
-						}}
-						placeholder={PRODUCCION_REAL_UI.CONTRIBUTION_TYPE}
-						todasLabel={PRODUCCION_REAL_UI.TODAS}
-					/>
+					<div className="min-w-0">
+						<MultiSelectFilter
+							items={[...CONTRIBUTION_ITEMS]}
+							value={contributionTypesToIds(draft.contributionTypes)}
+							onChange={(ids) => {
+								dispatch({
+									type: PRODUCCION_REAL_FILTER_ACTION.SET_CONTRIBUTION_TYPES,
+									contributionTypes: idsToContributionTypes(ids),
+								})
+							}}
+							placeholder={PRODUCCION_REAL_UI.CONTRIBUTION_TYPE}
+							todasLabel={PRODUCCION_REAL_UI.TODAS}
+						/>
+					</div>
 
-					<MultiSelectFilter
-						items={companyItems}
-						value={draft.companyIds}
-						onChange={(ids) => {
-							dispatch({
-								type: PRODUCCION_REAL_FILTER_ACTION.SET_COMPANY_IDS,
-								companyIds: ids,
-							})
-						}}
-						placeholder={PRODUCCION_REAL_UI.COMPANY}
-						todasLabel={PRODUCCION_REAL_UI.TODAS}
-						searchable
-					/>
+					<div className="min-w-0">
+						<MultiSelectFilter
+							items={companyItems}
+							value={draft.companyIds}
+							onChange={(ids) => {
+								dispatch({
+									type: PRODUCCION_REAL_FILTER_ACTION.SET_COMPANY_IDS,
+									companyIds: ids,
+								})
+							}}
+							placeholder={PRODUCCION_REAL_UI.COMPANY}
+							todasLabel={PRODUCCION_REAL_UI.TODAS}
+							searchable
+						/>
+					</div>
 
-					<SingleSelectFilter
-						options={CURRENCY_OPTIONS}
-						value={draft.currencyMode}
-						onChange={(v) => {
-							dispatch({
-								type: PRODUCCION_REAL_FILTER_ACTION.SET_CURRENCY_MODE,
-								currencyMode:
-									v === CURRENCY_MODE.FOREIGN
-										? CURRENCY_MODE.FOREIGN
-										: v === CURRENCY_MODE.COP
-											? CURRENCY_MODE.COP
-											: CURRENCY_MODE.ALL_TRM,
-							})
-						}}
-						placeholder={PRODUCCION_REAL_UI.CURRENCY}
-					/>
+					<div className="min-w-0">
+						<SingleSelectFilter
+							options={CURRENCY_OPTIONS}
+							value={draft.currencyMode}
+							onChange={(v) => {
+								dispatch({
+									type: PRODUCCION_REAL_FILTER_ACTION.SET_CURRENCY_MODE,
+									currencyMode:
+										v === CURRENCY_MODE.FOREIGN
+											? CURRENCY_MODE.FOREIGN
+											: v === CURRENCY_MODE.COP
+												? CURRENCY_MODE.COP
+												: CURRENCY_MODE.ALL_TRM,
+								})
+							}}
+							placeholder={PRODUCCION_REAL_UI.CURRENCY}
+						/>
+					</div>
 				</div>
 
 				<Separator />
