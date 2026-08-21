@@ -1,13 +1,20 @@
+/**
+ * Seed report catalog + default category enablement.
+ * Enables Producción Real for Performance Leader after categories exist.
+ *
+ * Usage (standalone):
+ *   npx tsx prisma/seeds/report-permissions.ts
+ *
+ * Also invoked from prisma/seed.ts after categories exist.
+ */
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { PrismaClient } from '@prisma/client'
 
 const PRODUCCION_REAL_CODE = 'PRODUCCION_REAL'
 const PRODUCCION_REAL_ROUTE = '/dashboard/reportes/produccion-real'
 const PERFORMANCE_LEADER_NAME = 'Performance Leader'
 
-/**
- * Seed report catalog + default category enablement.
- * Enables Producción Real for Performance Leader after categories exist.
- */
 export async function seedReportPermissions(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Report Definitions y permisos...')
 
@@ -60,3 +67,22 @@ export async function seedReportPermissions(prisma: PrismaClient) {
 		`✅ Permiso habilitado: ${PERFORMANCE_LEADER_NAME} → ${PRODUCCION_REAL_CODE}`
 	)
 }
+
+const isMainModule =
+	process.argv[1] != null &&
+	fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
+
+if (isMainModule) {
+	const prisma = new PrismaClient()
+
+	seedReportPermissions(prisma)
+		.catch((error) => {
+			console.error('❌ Error en seed de permisos de reporte:', error)
+			process.exit(1)
+		})
+		.finally(async () => {
+			await prisma.$disconnect()
+		})
+}
+
+
