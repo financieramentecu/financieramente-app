@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
 	canSavePermissions,
 	isTodasSelected,
+	knownReportCodes,
+	mergeKnownReportCodes,
 	toggleCategorySelection,
 	toggleTodas,
 } from '@/features/report-permissions/lib/report-permissions-helpers'
@@ -34,6 +36,18 @@ describe('report-permissions helpers', () => {
 	it('canSavePermissions blocks empty selection', () => {
 		expect(canSavePermissions([])).toBe(false)
 		expect(canSavePermissions([1])).toBe(true)
+	})
+
+	it('knownReportCodes always includes PRODUCCION_REAL', () => {
+		expect(knownReportCodes()).toContain('PRODUCCION_REAL')
+	})
+
+	it('mergeKnownReportCodes keeps ADMIN catalog even if DB returned none', () => {
+		expect(mergeKnownReportCodes([])).toEqual(['PRODUCCION_REAL'])
+		expect(mergeKnownReportCodes(['PRODUCCION_REAL', 'OTRO'])).toEqual([
+			'PRODUCCION_REAL',
+			'OTRO',
+		])
 	})
 })
 
