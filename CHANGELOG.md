@@ -4,6 +4,16 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.32.1] - 2026-08-21
+
+### Corregido
+
+- **Variables de entorno vacías en producción (SendGrid y contraseña de super admin):** `docker-compose.prod.yml` referenciaba `${SENDGRID_API_KEY_PROD}`, `${SENDGRID_FROM_EMAIL_PROD}`, `${SENDGRID_FROM_NAME_PROD}`, `${SENDGRID_TEMPLATE_ID_PROD}` y `${SUPER_ADMIN_PASSWORD_PROD}`, pero el `.env` generado por el workflow de despliegue escribe esas variables sin el sufijo `_PROD` (el sufijo solo existe en el nombre del secret de GitHub Actions). Docker Compose las dejaba en blanco silenciosamente dentro del contenedor.
+
+### Técnico
+
+- `docker/docker-compose.prod.yml`: se quitó el sufijo `_PROD` de las 5 variables del servicio `nextjs` para que coincidan con las claves escritas en `.env` por `.github/workflows/deploy-prod.yml`.
+
 ## [1.32.0] - 2026-08-13
 
 ### Agregado
