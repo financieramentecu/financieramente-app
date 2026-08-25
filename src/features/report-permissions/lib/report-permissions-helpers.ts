@@ -1,4 +1,5 @@
 import { UserRole } from '@/features/auth/lib/roles'
+import { REPORT_CODES } from '@/features/report-permissions/types/report-permissions.types'
 
 /** Roles that bypass category-based report visibility checks. */
 export const REPORT_VIEW_BYPASS_ROLES: readonly UserRole[] = [UserRole.ADMIN]
@@ -8,6 +9,17 @@ export function isReportViewBypassRole(
 ): boolean {
 	if (!roleCode) return false
 	return REPORT_VIEW_BYPASS_ROLES.includes(roleCode as UserRole)
+}
+
+/** Catalog codes that ADMIN must always see in the Reportes menu. */
+export function knownReportCodes(): readonly string[] {
+	return Object.values(REPORT_CODES)
+}
+
+export function mergeKnownReportCodes(
+	codes: readonly string[] | undefined
+): readonly string[] {
+	return [...new Set([...knownReportCodes(), ...(codes ?? [])])]
 }
 
 /**

@@ -70,6 +70,15 @@ export async function getFlagsmithServerState(
 			}
 		}
 
+		for (const name of ALL_FEATURE_FLAGS) {
+			if (!(name in clientFlags)) {
+				clientFlags[name] = {
+					enabled: FALLBACK_FLAGS[name],
+					value: null,
+				}
+			}
+		}
+
 		return JSON.stringify({ api: FLAGSMITH_API_URL, flags: clientFlags })
 	} catch {
 		return getFallbackState()
@@ -97,7 +106,7 @@ export async function isFeatureEnabledServer(
 			? await fs.getIdentityFlags(identity)
 			: await fs.getEnvironmentFlags()
 		const entry = flagsObj.flags[flag]
-		return entry?.enabled ?? false
+		return entry?.enabled ?? FALLBACK_FLAGS[flag]
 	} catch {
 		return FALLBACK_FLAGS[flag]
 	}
