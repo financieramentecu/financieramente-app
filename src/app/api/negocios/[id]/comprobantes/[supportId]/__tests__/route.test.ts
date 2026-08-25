@@ -115,6 +115,18 @@ describe('DELETE /api/negocios/[id]/comprobantes/[supportId]', () => {
     expect(mockDeactivate).not.toHaveBeenCalled()
   })
 
+  it('returns 403 for CONSULTOR (read-only) — canDeleteBusinessComprobante already excludes it', async () => {
+    mockUserFind.mockResolvedValue({
+      idUser: 9,
+      email: 'consultor@example.com',
+      role: { code: 'CONSULTOR' },
+    })
+
+    const res = await DELETE(makeDeleteRequest(), routeParams)
+    expect(res.status).toBe(403)
+    expect(mockDeactivate).not.toHaveBeenCalled()
+  })
+
   it('returns 404 when service throws NOT_FOUND', async () => {
     mockDeactivate.mockRejectedValue(new ComprobanteError('NOT_FOUND', 'not found'))
 

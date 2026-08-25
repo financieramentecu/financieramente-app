@@ -86,6 +86,18 @@ describe('POST /api/negocios/[id]/aportes/[index]/cartera-pagado', () => {
 		expect(res.status).toBe(403)
 	})
 
+	it('returns 403 for CONSULTOR (read-only) — canFundPayments already excludes it', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+			idUser: 9,
+			email: 'consultor@test.com',
+			role: { code: UserRole.CONSULTOR },
+		} as never)
+
+		const res = await POST(makeRequest(), makeParams())
+		expect(res.status).toBe(403)
+		expect(markCarteraPagado).not.toHaveBeenCalled()
+	})
+
 	it('returns 400 when paymentDate is missing from body', async () => {
 		vi.mocked(getCurrentUserByEmail).mockResolvedValue(adminUser as never)
 

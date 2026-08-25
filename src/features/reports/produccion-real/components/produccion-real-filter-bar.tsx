@@ -51,6 +51,8 @@ function idsToContributionTypes(
 interface ProduccionRealFilterBarProps {
 	readonly onExportExcel: () => void
 	readonly isExporting: boolean
+	/** Company-wide read-only role (CONSULTOR) never sees the export action. Defaults to true. */
+	readonly canExport?: boolean
 }
 
 /**
@@ -60,6 +62,7 @@ interface ProduccionRealFilterBarProps {
 export function ProduccionRealFilterBar({
 	onExportExcel,
 	isExporting,
+	canExport = true,
 }: ProduccionRealFilterBarProps) {
 	const { draft, dispatch, isApplyEnabled, dateRangeError } =
 		useProduccionRealFilter()
@@ -171,16 +174,18 @@ export function ProduccionRealFilterBar({
 					>
 						{PRODUCCION_REAL_UI.APPLY}
 					</Button>
-					<Button
-						type="button"
-						size="sm"
-						disabled={isExporting}
-						className="h-7 px-3 text-xs bg-emerald-700 hover:bg-emerald-800 text-white"
-						onClick={onExportExcel}
-					>
-						<Download className="size-3.5" />
-						{PRODUCCION_REAL_UI.DOWNLOAD_EXCEL}
-					</Button>
+					{canExport && (
+						<Button
+							type="button"
+							size="sm"
+							disabled={isExporting}
+							className="h-7 px-3 text-xs bg-emerald-700 hover:bg-emerald-800 text-white"
+							onClick={onExportExcel}
+						>
+							<Download className="size-3.5" />
+							{PRODUCCION_REAL_UI.DOWNLOAD_EXCEL}
+						</Button>
+					)}
 				</div>
 			</CardContent>
 		</Card>

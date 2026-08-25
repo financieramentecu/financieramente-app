@@ -5,7 +5,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { HIERARCHY_BYPASS_ROLES } from '@/features/auth/lib/hierarchy'
+import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 import { buildProductionWhereClause } from './ms-chart.service'
 import type { HeatmapRaw, HeatmapQueryParams } from '../types/production-kpi.types'
 
@@ -103,10 +103,7 @@ export async function resolveViewerScope(
   // Kept in the signature for call-site compatibility.
   _levelCode?: string | null
 ): Promise<number[]> {
-  const isFullScope =
-    roleCode !== null &&
-    roleCode !== undefined &&
-    (HIERARCHY_BYPASS_ROLES as ReadonlyArray<string>).includes(roleCode)
+  const isFullScope = isHierarchyBypassRole(roleCode)
 
   if (isFullScope) {
     // Return all active users

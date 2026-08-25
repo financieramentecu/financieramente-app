@@ -22,6 +22,7 @@ import {
 	canFundPayments,
 	canEliminateFondeado,
 } from '@/features/auth/lib/roles'
+import { hasNestedPermission } from '@/features/auth/lib/permissions'
 import {
 	Tooltip,
 	TooltipContent,
@@ -684,16 +685,26 @@ export function BusinessTableSection({
 		return [{ id, desc: sortOrder === 'desc' }]
 	}, [sortBy, sortOrder])
 
+	// Hide (not disable) the create action for a role without negocios.create
+	// permission — e.g. CONSULTOR. Absent `userRole` keeps the button visible,
+	// matching legacy callers that never passed a role.
+	const canCreateBusiness =
+		userRole === undefined
+			? true
+			: hasNestedPermission(userRole, 'negocios', 'create')
+
 	return (
 		<TooltipProvider>
 			<div className="flex flex-col h-auto w-full min-w-0 overflow-visible gap-2">
 				{/* Table Header with Add Button */}
 				<div className="flex justify-between items-center shrink-0">
 					<h3 className="text-lg font-semibold">Lista de Negocios</h3>
-					<Button onClick={onAddBusiness} className="gap-2 cursor-pointer">
-						<Plus className="h-4 w-4" />
-						Agregar negocio
-					</Button>
+					{canCreateBusiness && (
+						<Button onClick={onAddBusiness} className="gap-2 cursor-pointer">
+							<Plus className="h-4 w-4" />
+							Agregar negocio
+						</Button>
+					)}
 				</div>
 
 				{/* Data Table - fills the 1fr row correctly */}

@@ -251,6 +251,28 @@ describe('buildHierarchyTree', () => {
 		expect(adminIds).toEqual(miaIds)
 	})
 
+	it('(g2) CONSULTOR viewer (read-only, global visibility) — receives full tree same as ADMIN', async () => {
+		const consultorViewer: SessionUser = {
+			...adminViewer,
+			idUser: 99,
+			idUserLeader: null,
+			role: { code: 'CONSULTOR' },
+		}
+		const consultorResult = await buildHierarchyTree(
+			consultorViewer,
+			makeMockPrisma(ACTIVE_USERS)
+		)
+		const adminResult = await buildHierarchyTree(
+			adminViewer,
+			makeMockPrisma(ACTIVE_USERS)
+		)
+
+		const consultorIds = collectUserIds(consultorResult).sort()
+		const adminIds = collectUserIds(adminResult).sort()
+
+		expect(consultorIds).toEqual(adminIds)
+	})
+
 	it('(h) Users without idLevel assigned are excluded from the tree', async () => {
 		const usersWithUnleveled = [
 			...ACTIVE_USERS,

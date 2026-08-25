@@ -11,26 +11,25 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { UserRole } from './roles'
+import { UserRole, WRITE_BYPASS_ROLES, isGlobalVisibilityRole } from './roles'
 
 /**
- * Roles that can view every user's distributions regardless of hierarchy.
- * Kept readonly so callers can't mutate the allow-list.
+ * Roles that can WRITE regardless of hierarchy (unchanged, write-only
+ * semantics). Kept as a re-export of `WRITE_BYPASS_ROLES` for backward
+ * compatibility with existing imports — DO NOT use for visibility checks.
  */
-export const HIERARCHY_BYPASS_ROLES: ReadonlyArray<UserRole> = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-]
+export const HIERARCHY_BYPASS_ROLES: ReadonlyArray<UserRole> =
+	WRITE_BYPASS_ROLES
 
 /**
- * Returns true when the given role bypasses hierarchy restrictions.
+ * Returns true when the given role bypasses hierarchy restrictions for
+ * VISIBILITY purposes (sees every user's distributions). Write-bypass roles
+ * and read-only roles both qualify — see `isGlobalVisibilityRole`.
  */
 export function isHierarchyBypassRole(
 	role: UserRole | string | null | undefined
 ): boolean {
-	if (!role) return false
-	return HIERARCHY_BYPASS_ROLES.includes(role as UserRole)
+	return isGlobalVisibilityRole(role)
 }
 
 interface RawUserId {

@@ -65,6 +65,26 @@ describe('updateClient — COM-63 authorization', () => {
 		} as never)
 	})
 
+	it('rejects CONSULTOR (read-only role)', async () => {
+		vi.mocked(auth).mockResolvedValue({
+			user: {
+				id: '4',
+				email: 'consultor@financieramentecu.com',
+				role: UserRole.CONSULTOR,
+			},
+		} as never)
+
+		const result = await updateClient({
+			idClient: 10,
+			name: 'Ana María',
+			context: 'business-create',
+		})
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toBe('Sin permisos')
+		expect(prisma.client.update).not.toHaveBeenCalled()
+	})
+
 	it('rejects unauthenticated callers', async () => {
 		vi.mocked(auth).mockResolvedValue(null as never)
 

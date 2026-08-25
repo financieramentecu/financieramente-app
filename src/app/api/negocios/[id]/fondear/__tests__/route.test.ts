@@ -276,6 +276,30 @@ describe('POST /api/negocios/[id]/fondear', () => {
 			expect(mockPrismaFindUnique).not.toHaveBeenCalled()
 		})
 
+		it('debe retornar 403 cuando el usuario tiene rol CONSULTOR (solo lectura) — canFundPayments ya lo excluye', async () => {
+			const mockSession = { user: { email: 'consultor@example.com' } }
+			const mockConsultorUser = buildUserWithRole(
+				'consultor@example.com',
+				UserRole.CONSULTOR
+			)
+
+			mockAuth.mockResolvedValue(mockSession as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(mockConsultorUser)
+
+			const request = new Request(
+				'http://localhost:3000/api/negocios/1/fondear',
+				{ method: 'POST' }
+			)
+
+			const params = Promise.resolve({ id: '1' })
+			const response = await POST(request, { params })
+			const responseData = await response.json()
+
+			expect(response.status).toBe(403)
+			expect(responseData.data).toBeNull()
+			expect(mockPrismaFindUnique).not.toHaveBeenCalled()
+		})
+
 		it('debe retornar 401 cuando no hay sesión', async () => {
 			mockAuth.mockResolvedValue(null as never)
 
