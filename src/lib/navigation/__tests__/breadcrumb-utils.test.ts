@@ -49,5 +49,12 @@ describe('buildBreadcrumbsFromPathname', () => {
 			{ label: 'Reportes', href: '/dashboard/reportes' },
 			{ label: 'Producción Real', href: undefined },
 		])
+
+		expect(
+			buildBreadcrumbsFromPathname('/dashboard/reportes/aba-mfund')
+		).toEqual([
+			{ label: 'Reportes', href: '/dashboard/reportes' },
+			{ label: 'ABA-MFUND', href: undefined },
+		])
 	})
 })

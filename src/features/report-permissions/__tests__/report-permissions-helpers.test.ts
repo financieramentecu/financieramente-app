@@ -7,7 +7,10 @@ import {
 	toggleCategorySelection,
 	toggleTodas,
 } from '@/features/report-permissions/lib/report-permissions-helpers'
-import type { CategoryPermissionRow } from '@/features/report-permissions/types/report-permissions.types'
+import {
+	REPORT_CODES,
+	type CategoryPermissionRow,
+} from '@/features/report-permissions/types/report-permissions.types'
 
 describe('report-permissions helpers', () => {
 	const allIds = [1, 2, 3]
@@ -38,14 +41,24 @@ describe('report-permissions helpers', () => {
 		expect(canSavePermissions([1])).toBe(true)
 	})
 
-	it('knownReportCodes always includes PRODUCCION_REAL', () => {
+	it('knownReportCodes always includes PRODUCCION_REAL and ABA_MFUND', () => {
+		expect(knownReportCodes()).toEqual(Object.values(REPORT_CODES))
 		expect(knownReportCodes()).toContain('PRODUCCION_REAL')
+		expect(knownReportCodes()).toContain('ABA_MFUND')
+		expect(knownReportCodes()).toContain(REPORT_CODES.ABA_MFUND)
+	})
+
+	it('ADMIN knownReportCodes catalog includes ABA_MFUND even with an empty DB list', () => {
+		expect(mergeKnownReportCodes([])).toContain(REPORT_CODES.ABA_MFUND)
+		expect(mergeKnownReportCodes(['PRODUCCION_REAL'])).toEqual(
+			Object.values(REPORT_CODES)
+		)
 	})
 
 	it('mergeKnownReportCodes keeps ADMIN catalog even if DB returned none', () => {
-		expect(mergeKnownReportCodes([])).toEqual(['PRODUCCION_REAL'])
+		expect(mergeKnownReportCodes([])).toEqual(Object.values(REPORT_CODES))
 		expect(mergeKnownReportCodes(['PRODUCCION_REAL', 'OTRO'])).toEqual([
-			'PRODUCCION_REAL',
+			...Object.values(REPORT_CODES),
 			'OTRO',
 		])
 	})
