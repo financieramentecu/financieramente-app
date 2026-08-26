@@ -3,7 +3,15 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth/require-role'
 import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
+import { validateRoleLevelPair } from '@/features/admin/users/lib/user-role-level-rules'
 import { Prisma } from '@prisma/client'
+
+/**
+ * Thrown when the effective (roleCode, levelId) pair violates the
+ * read-only-role/level guard, re-checked inside the update transaction.
+ * Caught explicitly to surface a 400 instead of the generic 500 handler.
+ */
+class RoleLevelValidationError extends Error {}
 
 type CategorySummary = {
 	id: number
@@ -207,9 +215,15 @@ export async function PUT(
 			updateData.active = active
 		}
 
+		// Resolved role code for the requested update, `undefined` when the
+		// payload doesn't touch the role (effective role stays whatever is
+		// committed at transaction time), `null` when disconnecting.
+		let resolvedRoleCode: string | null | undefined
+
 		if (roleId !== undefined) {
 			if (roleId === null) {
 				updateData.role = { disconnect: true }
+				resolvedRoleCode = null
 			} else {
 				// Verificar que el rol existe
 				const role = await prisma.role.findUnique({
@@ -222,6 +236,7 @@ export async function PUT(
 					)
 				}
 				updateData.role = { connect: { idRole: role.idRole } }
+				resolvedRoleCode = role.code
 			}
 		}
 
@@ -318,21 +333,46 @@ export async function PUT(
 			}
 		}
 
-		// Actualizar usuario
-		const updatedUser = await prisma.user.update({
-			where: { idUser: userId },
-			data: updateData,
-			include: {
-				role: true,
-				leader: {
-					select: {
-						idUser: true,
-						name: true,
-						lastName: true,
-						idLevel: true,
+		// Actualizar usuario dentro de una transacción: re-leemos el estado
+		// comprometido del usuario y validamos el par (rol, nivel) efectivo
+		// justo antes de escribir, para evitar una condición de carrera entre
+		// dos PUT concurrentes que cambien rol y nivel por separado (D4).
+		const updatedUser = await prisma.$transaction(async (tx) => {
+			const committedUser = await tx.user.findUnique({
+				where: { idUser: userId },
+				select: { idLevel: true, role: { select: { code: true } } },
+			})
+
+			const effectiveRoleCode =
+				resolvedRoleCode !== undefined
+					? resolvedRoleCode
+					: (committedUser?.role?.code ?? null)
+			const effectiveLevelId =
+				'levelId' in body ? levelId : (committedUser?.idLevel ?? null)
+
+			const validation = validateRoleLevelPair({
+				roleCode: effectiveRoleCode,
+				levelId: effectiveLevelId,
+			})
+			if (!validation.ok) {
+				throw new RoleLevelValidationError(validation.error)
+			}
+
+			return tx.user.update({
+				where: { idUser: userId },
+				data: updateData,
+				include: {
+					role: true,
+					leader: {
+						select: {
+							idUser: true,
+							name: true,
+							lastName: true,
+							idLevel: true,
+						},
 					},
 				},
-			},
+			})
 		})
 
 		const updatedCategory = await fetchCategorySummary(
@@ -451,6 +491,12 @@ export async function PUT(
 			message: 'Usuario actualizado exitosamente',
 		})
 	} catch (error) {
+		if (error instanceof RoleLevelValidationError) {
+			return NextResponse.json(
+				{ success: false, error: error.message },
+				{ status: 400 }
+			)
+		}
 		console.error('Error updating user:', error)
 		return NextResponse.json(
 			{

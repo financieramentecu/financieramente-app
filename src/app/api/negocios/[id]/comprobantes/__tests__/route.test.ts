@@ -126,4 +126,17 @@ describe('POST /api/negocios/[id]/comprobantes', () => {
     const res = await POST(req, routeParams)
     expect(res.status).toBe(422)
   })
+
+  it('returns 403 for CONSULTOR (read-only role) and does not call persistComprobante', async () => {
+    const { auth } = await import('@/auth')
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { email: 'consultor@example.com', id: '9', role: 'CONSULTOR' },
+    } as never)
+
+    const req = makeRequest({ key: 'some/key.jpg', mime: 'image/jpeg', size: 1024 })
+    const res = await POST(req, routeParams)
+
+    expect(res.status).toBe(403)
+    expect(mockPersist).not.toHaveBeenCalled()
+  })
 })

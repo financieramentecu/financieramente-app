@@ -18,6 +18,20 @@ describe('buildLeadListWhere', () => {
 		expect(hasIdUserClause).toBe(false)
 	})
 
+	it('CONSULTOR (read-only global visibility) sees all active leads — no idUser scoping', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 9, role: { code: UserRole.CONSULTOR } },
+			{},
+			{ visibleUserIds: [9] }
+		)
+
+		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
+		const hasIdUserClause = andConditions.some(
+			(c) => c && typeof c === 'object' && 'idUser' in c
+		)
+		expect(hasIdUserClause).toBe(false)
+	})
+
 	it('non-bypass role is scoped to visibleUserIds WITHOUT an `OR idUser: null` branch', () => {
 		const where = buildLeadListWhere(
 			{ idUser: 5, role: { code: UserRole.AGENTE } },

@@ -27,6 +27,12 @@ vi.mock('@/features/leads/services/lead-conversion.service', () => ({
 	linkLeadToBusinessTx: vi.fn(),
 }))
 
+vi.mock('@/lib/auth/require-write-access', () => ({
+	requireWriteAccess: vi.fn(),
+}))
+
+import { requireWriteAccess } from '@/lib/auth/require-write-access'
+
 const basePayload = {
 	value: 1_000_000,
 	idUser: 1,
@@ -67,6 +73,10 @@ function mockCreatedBusiness(overrides: Partial<Business> = {}): Business {
 describe('createBusiness', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.mocked(requireWriteAccess).mockResolvedValue({
+			ok: true,
+			session: { user: {} },
+		} as never)
 		vi.mocked(findProductPercentageCommission).mockResolvedValue({
 			data: {
 				idProductPercentageCommission: 99,
@@ -79,6 +89,19 @@ describe('createBusiness', () => {
 			name: 'Producto Test',
 			company: { name: 'Compañia Test' },
 		} as unknown as Awaited<ReturnType<typeof prisma.product.findUnique>>)
+	})
+
+	it('returns rejected ApiResponse for CONSULTOR (read-only role)', async () => {
+		vi.mocked(requireWriteAccess).mockResolvedValueOnce({
+			ok: false,
+			response: { status: 403 },
+		} as never)
+
+		const result = await createBusiness({ ...basePayload, idBuyPeriodicity: 1, term: 3 })
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toBeTruthy()
+		expect(prisma.$transaction).not.toHaveBeenCalled()
 	})
 
 	it('does NOT create payment rows when business is VENTA_EFECTUADA', async () => {

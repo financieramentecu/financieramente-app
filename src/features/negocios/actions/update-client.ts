@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { Client } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { z } from 'zod'
-import { auth } from '@/lib/auth/nextauth'
+import { requireWriteAccess } from '@/lib/auth/require-write-access'
 import {
 	AuditAction,
 	getClientIp,
@@ -73,13 +73,15 @@ export async function updateClient(
 	data: UpdateClientInput
 ): Promise<ApiResponse<Client>> {
 	try {
-		const session = await auth()
-		if (!session?.user) {
+		const guard = await requireWriteAccess()
+		if (!guard.ok) {
 			return {
 				data: null,
-				error: 'No autorizado',
+				error:
+					guard.response.status === 401 ? 'No autorizado' : 'Sin permisos',
 			}
 		}
+		const session = guard.session
 
 		const validatedData = updateClientSchema.parse(data)
 
