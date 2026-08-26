@@ -27,6 +27,9 @@ export interface RolePermissions {
 	}
 	configuracion: boolean
 	administracion: boolean
+	leads: boolean
+	misDistribuciones: boolean
+	calculadora: boolean
 }
 
 /**
@@ -57,6 +60,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 		},
 		configuracion: true,
 		administracion: true,
+		leads: true,
+		misDistribuciones: true,
+		calculadora: true,
 	},
 	[UserRole.DEFAULT]: {
 		dashboard: false,
@@ -82,6 +88,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 		},
 		configuracion: false,
 		administracion: false,
+		leads: false,
+		misDistribuciones: false,
+		calculadora: false,
 	},
 	[UserRole.ASISTENTE_GERENCIA_OPERATIVA]: {
 		dashboard: true,
@@ -107,6 +116,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 		},
 		configuracion: true,
 		administracion: false,
+		leads: true,
+		misDistribuciones: true,
+		calculadora: true,
 	},
 	[UserRole.ANALISTA_SOPORTE]: {
 		dashboard: true,
@@ -132,6 +144,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 		},
 		configuracion: false,
 		administracion: false,
+		leads: true,
+		misDistribuciones: true,
+		calculadora: true,
 	},
 	[UserRole.AGENTE]: {
 		dashboard: true,
@@ -157,6 +172,37 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 		},
 		configuracion: false,
 		administracion: false,
+		leads: true,
+		misDistribuciones: true,
+		calculadora: true,
+	},
+	[UserRole.CONSULTOR]: {
+		dashboard: true,
+		negocios: {
+			create: false,
+			edit: false,
+			list: true,
+			cancel: false,
+			viewAll: true,
+		},
+		cargas: {
+			cargaMasiva: false,
+			historial: false,
+		},
+		liquidaciones: {
+			preliquidacion: false,
+			liquidacion: false,
+		},
+		reportes: {
+			all: true,
+			business: false,
+			personal: false,
+		},
+		configuracion: false,
+		administracion: false,
+		leads: false,
+		misDistribuciones: false,
+		calculadora: true,
 	},
 }
 

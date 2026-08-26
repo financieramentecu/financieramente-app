@@ -69,4 +69,20 @@ describe('CommentsSidebar', () => {
     render(<CommentsSidebar {...defaultProps} defaultOpen />)
     expect(screen.getByText('Seguimiento')).toBeInTheDocument()
   })
+
+  it('shows the add-comment form by default', () => {
+    render(<CommentsSidebar {...defaultProps} defaultOpen />)
+    expect(
+      screen.getByPlaceholderText(/escribí el detalle del comentario/i)
+    ).toBeInTheDocument()
+  })
+
+  it('hides the add-comment form when readOnly (CONSULTOR)', () => {
+    render(<CommentsSidebar {...defaultProps} defaultOpen readOnly />)
+    expect(
+      screen.queryByPlaceholderText(/escribí el detalle del comentario/i)
+    ).not.toBeInTheDocument()
+    // The thread stays visible — read-only means no writes, not no visibility
+    expect(screen.getByText('Seguimiento')).toBeInTheDocument()
+  })
 })

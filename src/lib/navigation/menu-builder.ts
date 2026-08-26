@@ -54,7 +54,9 @@ export function buildMenuByRole(
 
 		// Leads (visibilidad de qué leads ve cada usuario se resuelve por jerarquía dentro del módulo)
 		if (item.title === 'Leads') {
-			filteredItems.push(item)
+			if (permissions.leads) {
+				filteredItems.push(item)
+			}
 			continue
 		}
 
@@ -88,7 +90,7 @@ export function buildMenuByRole(
 
 		// Calculadora
 		if (item.title === 'Calculadora') {
-			if (flags?.isCalculadoraEnabled !== false) {
+			if (permissions.calculadora && flags?.isCalculadoraEnabled !== false) {
 				filteredItems.push(item)
 			}
 			continue
@@ -96,7 +98,9 @@ export function buildMenuByRole(
 
 		// Mis distribuciones
 		if (item.title === 'Mis distribuciones') {
-			filteredItems.push(item)
+			if (permissions.misDistribuciones) {
+				filteredItems.push(item)
+			}
 			continue
 		}
 

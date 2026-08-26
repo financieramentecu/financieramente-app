@@ -5,6 +5,9 @@ import {
 	canViewPayments,
 	canFundPayments,
 	canDeleteBusinessComprobante,
+	isReadOnlyRole,
+	isWriteBypassRole,
+	isGlobalVisibilityRole,
 } from '../roles'
 
 describe('canViewPayments', () => {
@@ -108,5 +111,74 @@ describe('canDeleteBusinessComprobante', () => {
 
 	it('returns false for unknown role string', () => {
 		expect(canDeleteBusinessComprobante('UNKNOWN_ROLE')).toBe(false)
+	})
+})
+
+describe.each([
+	{
+		role: UserRole.ADMIN,
+		readOnly: false,
+		writeBypass: true,
+		globalVisibility: true,
+	},
+	{
+		role: UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+		readOnly: false,
+		writeBypass: true,
+		globalVisibility: true,
+	},
+	{
+		role: UserRole.ANALISTA_SOPORTE,
+		readOnly: false,
+		writeBypass: true,
+		globalVisibility: true,
+	},
+	{
+		role: UserRole.AGENTE,
+		readOnly: false,
+		writeBypass: false,
+		globalVisibility: false,
+	},
+	{
+		role: UserRole.DEFAULT,
+		readOnly: false,
+		writeBypass: false,
+		globalVisibility: false,
+	},
+	{
+		role: UserRole.CONSULTOR,
+		readOnly: true,
+		writeBypass: false,
+		globalVisibility: true,
+	},
+])('read-only / write-bypass / global-visibility predicates for $role', (tc) => {
+	it(`isReadOnlyRole(${tc.role}) === ${tc.readOnly}`, () => {
+		expect(isReadOnlyRole(tc.role)).toBe(tc.readOnly)
+	})
+
+	it(`isWriteBypassRole(${tc.role}) === ${tc.writeBypass}`, () => {
+		expect(isWriteBypassRole(tc.role)).toBe(tc.writeBypass)
+	})
+
+	it(`isGlobalVisibilityRole(${tc.role}) === ${tc.globalVisibility}`, () => {
+		expect(isGlobalVisibilityRole(tc.role)).toBe(tc.globalVisibility)
+	})
+})
+
+describe('read-only / write-bypass / global-visibility predicates edge cases', () => {
+	it('isReadOnlyRole returns false for undefined', () => {
+		expect(isReadOnlyRole(undefined)).toBe(false)
+	})
+
+	it('isReadOnlyRole returns false for null', () => {
+		expect(isReadOnlyRole(null)).toBe(false)
+	})
+
+	it('isWriteBypassRole returns false for unknown role string', () => {
+		expect(isWriteBypassRole('UNKNOWN_ROLE')).toBe(false)
+	})
+
+	it('isGlobalVisibilityRole returns false for empty string', () => {
+		expect(isGlobalVisibilityRole('')).toBe(false)
 	})
 })

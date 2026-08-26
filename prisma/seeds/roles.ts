@@ -32,6 +32,13 @@ export const roles = [
 		description: 'Solo acceso a sus propios negocios y reportes personales',
 		active: true,
 	},
+	{
+		code: 'CONSULTOR',
+		name: 'Consultor (Solo Lectura)',
+		description:
+			'Acceso de solo lectura a Dashboard, Negocios, Reportes y Calculadora, sin permisos de escritura ni exportación',
+		active: true,
+	},
 ]
 
 export async function seedRoles(prisma: PrismaClient) {

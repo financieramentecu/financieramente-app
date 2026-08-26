@@ -10,6 +10,7 @@ export enum UserRole {
 	ASISTENTE_GERENCIA_OPERATIVA = 'ASISTENTE_GERENCIA_OPERATIVA',
 	ANALISTA_SOPORTE = 'ANALISTA_SOPORTE',
 	AGENTE = 'AGENTE',
+	CONSULTOR = 'CONSULTOR',
 }
 
 /**
@@ -21,6 +22,7 @@ export const ROLE_NAMES: Record<UserRole, string> = {
 	[UserRole.ASISTENTE_GERENCIA_OPERATIVA]: 'Asistente Operativo de Gerencia',
 	[UserRole.ANALISTA_SOPORTE]: 'Analista de Soporte',
 	[UserRole.AGENTE]: 'Agente/Coach',
+	[UserRole.CONSULTOR]: 'Consultor (Solo Lectura)',
 }
 
 /**
@@ -36,6 +38,8 @@ export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
 	[UserRole.ANALISTA_SOPORTE]:
 		'Acceso limitado a negocios y reportes de negocio',
 	[UserRole.AGENTE]: 'Solo acceso a sus propios negocios y reportes personales',
+	[UserRole.CONSULTOR]:
+		'Acceso de solo lectura a Dashboard, Negocios, Reportes y Calculadora, sin permisos de escritura ni exportación',
 }
 
 /**
@@ -43,6 +47,56 @@ export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
  */
 export function isValidRole(role: string): role is UserRole {
 	return Object.values(UserRole).includes(role as UserRole)
+}
+
+/**
+ * Roles with unconditional write authority (create/edit/cancel/fund/export)
+ * across the whole system, regardless of hierarchy level.
+ * Exact membership mirrors the pre-existing bypass lists
+ * (HIERARCHY_BYPASS_ROLES / EXPORT_ADMIN_ROLES) — do not change without
+ * re-verifying every consumer's byte-identical behavior.
+ */
+export const WRITE_BYPASS_ROLES: readonly UserRole[] = [
+	UserRole.ADMIN,
+	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+	UserRole.ANALISTA_SOPORTE,
+]
+
+/**
+ * Roles restricted to company-wide read-only access: full visibility,
+ * zero write/export authority.
+ */
+export const READ_ONLY_ROLES: readonly UserRole[] = [UserRole.CONSULTOR]
+
+/**
+ * Whether the role has unconditional write authority (bypasses hierarchy
+ * level restrictions for create/edit/cancel/fund/export actions).
+ */
+export function isWriteBypassRole(
+	roleCode: string | null | undefined
+): boolean {
+	if (!roleCode) return false
+	return isValidRole(roleCode) && WRITE_BYPASS_ROLES.includes(roleCode)
+}
+
+/**
+ * Whether the role is restricted to company-wide read-only access
+ * (no write, no export, no hierarchy level).
+ */
+export function isReadOnlyRole(roleCode: string | null | undefined): boolean {
+	if (!roleCode) return false
+	return isValidRole(roleCode) && READ_ONLY_ROLES.includes(roleCode)
+}
+
+/**
+ * Whether the role sees company-wide data regardless of hierarchy subtree —
+ * true for write-bypass roles AND read-only roles. MUST NOT be used to
+ * authorize a write action; only `isWriteBypassRole` may do that.
+ */
+export function isGlobalVisibilityRole(
+	roleCode: string | null | undefined
+): boolean {
+	return isWriteBypassRole(roleCode) || isReadOnlyRole(roleCode)
 }
 
 /**

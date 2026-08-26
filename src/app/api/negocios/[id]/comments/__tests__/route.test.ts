@@ -122,4 +122,17 @@ describe('POST /api/negocios/[id]/comments', () => {
     const res = await POST(req, routeParams)
     expect(res.status).toBe(404)
   })
+
+  it('returns 403 for CONSULTOR (read-only role) and does not call createComment', async () => {
+    const { auth } = await import('@/auth')
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { email: 'consultor@example.com', id: '9', role: 'CONSULTOR' },
+    } as never)
+
+    const req = makeRequest({ title: 'valid', detail: 'valid' })
+    const res = await POST(req, routeParams)
+
+    expect(res.status).toBe(403)
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
 })

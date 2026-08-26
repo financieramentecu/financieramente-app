@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { BusinessRowActions } from '../../components/BusinessRowActions'
 import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
+import type { BusinessNovedadStatus } from '../../types/business-entity.types'
 
 vi.mock('@/features/shared/ui/tooltip', () => ({
   TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -208,6 +209,73 @@ describe('BusinessRowActions', () => {
       )
       expect(screen.queryByRole('button', { name: /marcar con novedad/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /desmarcar novedad/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Read-only role (CONSULTOR)', () => {
+    const readOnlyProps = {
+      ...defaultProps,
+      userRole: UserRole.CONSULTOR,
+      businessStatus: BUSINESS_STATUS.VENTA_EFECTUADA,
+      novedadStatus: null as BusinessNovedadStatus | null,
+      onMarkNovedad: vi.fn(),
+      onUnmarkNovedad: vi.fn(),
+    }
+
+    it('hides the upload comprobante button', () => {
+      render(<BusinessRowActions {...readOnlyProps} contract="CON-001" />)
+      expect(
+        screen.queryByRole('button', { name: /subir comprobante/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('still shows the view comprobantes button (read action)', () => {
+      render(<BusinessRowActions {...readOnlyProps} />)
+      expect(
+        screen.getByRole('button', { name: /ver comprobantes/i })
+      ).toBeInTheDocument()
+    })
+
+    it('hides the "Editar" menu item', () => {
+      render(<BusinessRowActions {...readOnlyProps} />)
+      expect(
+        screen.queryByRole('button', { name: /^editar$/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('still shows "Ver detalle" (read action)', () => {
+      render(<BusinessRowActions {...readOnlyProps} />)
+      expect(
+        screen.getByRole('button', { name: /ver detalle/i })
+      ).toBeInTheDocument()
+    })
+
+    it('hides "Agregar comentario"', () => {
+      render(<BusinessRowActions {...readOnlyProps} />)
+      expect(
+        screen.queryByRole('button', { name: /agregar comentario/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('hides "Marcar Con Novedad" even when status/novedad gates match', () => {
+      render(<BusinessRowActions {...readOnlyProps} />)
+      expect(
+        screen.queryByRole('button', { name: /marcar con novedad/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('hides "Desmarcar Novedad" even when novedadStatus is NUEVA', () => {
+      render(<BusinessRowActions {...readOnlyProps} novedadStatus="NUEVA" />)
+      expect(
+        screen.queryByRole('button', { name: /desmarcar novedad/i })
+      ).not.toBeInTheDocument()
+    })
+
+    it('hides "Eliminar" (cancel) menu item', () => {
+      render(<BusinessRowActions {...readOnlyProps} />)
+      expect(
+        screen.queryByRole('button', { name: /eliminar/i })
+      ).not.toBeInTheDocument()
     })
   })
 

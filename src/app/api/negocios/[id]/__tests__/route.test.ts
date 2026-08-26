@@ -416,6 +416,35 @@ describe('PUT /api/negocios/[id]', () => {
 		expect(mockPrismaUpdate).not.toHaveBeenCalled()
 	})
 
+	it('returns 403 for CONSULTOR (read-only role) regardless of hierarchy scope, no state change', async () => {
+		const mockSession = { user: { email: 'consultor@test.com', role: 'CONSULTOR' } }
+		const mockCurUser = {
+			idUser: 9,
+			name: 'Consultor',
+			role: { code: 'CONSULTOR' },
+			idRole: 6,
+		}
+
+
+		;(auth as any).mockResolvedValue(mockSession)
+
+		;(getCurrentUserByEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(mockCurUser)
+
+		const req = new Request('http://localhost:3000/api/negocios/10', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ idClientOrigin: 2 }),
+		})
+
+
+		const res = await PUT(req, { params: Promise.resolve({ id: '10' }) } as any)
+		const data = await res.json() as { error: string; data: unknown }
+
+		expect(res.status).toBe(403)
+		expect(data.data).toBeNull()
+		expect(mockPrismaUpdate).not.toHaveBeenCalled()
+	})
+
 	it('recalculates dates for FONDEADO payments when dateIssued is modified while business is FONDEADO', async () => {
 		const mockSession = { user: { email: 'admin@test.com' } }
 		const mockCurUser = {

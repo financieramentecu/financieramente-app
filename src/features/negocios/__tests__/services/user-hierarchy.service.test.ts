@@ -180,4 +180,15 @@ describe('resolveVisibleUserIds', () => {
 		const result = await resolveVisibleUserIds(prisma as never, currentUser)
 		expect(result).toEqual([80])
 	})
+
+	it('returns undefined for CONSULTOR role (global read-only visibility)', async () => {
+		const prisma = makeUsers([])
+		const currentUser = {
+			idUser: 90,
+			role: { code: UserRole.CONSULTOR },
+		}
+
+		const result = await resolveVisibleUserIds(prisma as never, currentUser)
+		expect(result).toBeUndefined()
+	})
 })
