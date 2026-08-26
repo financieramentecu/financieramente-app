@@ -4,6 +4,19 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.33.0] - 2026-08-26
+
+### Agregado
+
+- **Reporte analítico ABA-MFUND:** Administradores, Performance Leader y Business Leader pueden consultar un reporte consolidado de ventas SKANDIA + MFUND, filtrable por jerarquía, rango de fechas (fecha de creación) y estado. Incluye KPIs en COP (ABA Total, Fondeado, Emitido, Ticket promedio ABA), ranking Top 6 “ABA por Agente” con detalle expandible e “Ir a negocio”, tabla de detalle y descarga a Excel.
+
+### Técnico
+
+- New feature `src/features/reports/aba-mfund/` with page `/dashboard/reportes/aba-mfund` and APIs `GET /api/reports/aba-mfund/{kpis,detail,ranking}` plus `POST /api/reports/aba-mfund/export`.
+- Catalog code `ABA_MFUND`; seed enables Performance Leader and Business Leader. ADMIN bypass unchanged. Flag `reportes_aba_mfund` (fallback `true`).
+- Universe is SKANDIA + MFUND only, COP (`idCurrency = 1`), no TRM. Producción Real MFUND exclusion is unchanged.
+- Excel export audited as `REPORT_EXPORTED` (max 5000 rows). OpenSpec change `reporte-aba-mfund` (tasks complete; not archived yet).
+
 ## [1.32.1] - 2026-08-21
 
 ### Corregido
