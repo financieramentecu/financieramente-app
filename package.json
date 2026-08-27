@@ -44,6 +44,7 @@
 		"prisma:seed:agencia": "tsx prisma/seed-agencia.ts",
 		"prisma:seed:lead-funnel-columns": "tsx prisma/seed-lead-funnel-columns.ts",
 		"prisma:seed:report-permissions": "tsx prisma/seed-report-permissions.ts",
+		"prisma:seed:roles": "tsx prisma/seed-roles.ts",
 		"format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
 		"format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
 		"prepare": "husky"

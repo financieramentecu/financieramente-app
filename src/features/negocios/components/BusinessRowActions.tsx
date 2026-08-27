@@ -18,7 +18,7 @@ import {
 } from '@/features/shared/ui/dropdown-menu'
 import type { BusinessStatus, BusinessNovedadStatus, BusinessEntity } from '../types/business-entity.types'
 import { BUSINESS_STATUS, BUSINESS_NOVEDAD_STATUS } from '../types/business-entity.types'
-import { UserRole } from '@/features/auth/lib/roles'
+import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
 import { UploadComprobanteModal } from '@/features/business-supports/components/UploadComprobanteModal'
 import { ViewComprobantesSheet } from '@/features/business-supports/components/BusinessSupportsSheet'
 import { CommentModal } from '@/features/comments/components/CommentModal'
@@ -72,14 +72,22 @@ export function BusinessRowActions({
   onUnmarkNovedad,
   onManageNovedadSuccess,
 }: BusinessRowActionsProps) {
-  const canUpload = isUploadAllowedStatus(businessStatus)
+  // Company-wide read-only roles (CONSULTOR) never get a write action rendered
+  // here, regardless of status/novedad gates below — see spec "UI mutating
+  // actions hidden for read-only role".
+  const isReadOnly = isReadOnlyRole(userRole)
+  const canUpload = isUploadAllowedStatus(businessStatus) && !isReadOnly
   const canMarkNovedad =
-    businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA && novedadStatus === null
-  const canUnmarkNovedad = novedadStatus === BUSINESS_NOVEDAD_STATUS.NUEVA
+    businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA &&
+    novedadStatus === null &&
+    !isReadOnly
+  const canUnmarkNovedad =
+    novedadStatus === BUSINESS_NOVEDAD_STATUS.NUEVA && !isReadOnly
   const canManageNovedad =
     novedadStatus !== null &&
     userRole !== undefined &&
-    MANAGE_NOVEDAD_ALLOWED_ROLES.includes(userRole)
+    MANAGE_NOVEDAD_ALLOWED_ROLES.includes(userRole) &&
+    !isReadOnly
   const [uploadOpen, setUploadOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
   const [commentOpen, setCommentOpen] = useState(false)
@@ -159,7 +167,7 @@ export function BusinessRowActions({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {onEdit && (
+            {onEdit && !isReadOnly && (
               <DropdownMenuItem onClick={() => onEdit(businessId)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Editar
@@ -177,10 +185,12 @@ export function BusinessRowActions({
                 Ver motivo cancelación
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={() => setCommentOpen(true)}>
-              <MessageSquarePlus className="mr-2 h-4 w-4" />
-              Agregar comentario
-            </DropdownMenuItem>
+            {!isReadOnly && (
+              <DropdownMenuItem onClick={() => setCommentOpen(true)}>
+                <MessageSquarePlus className="mr-2 h-4 w-4" />
+                Agregar comentario
+              </DropdownMenuItem>
+            )}
             {onMarkNovedad && canMarkNovedad && (
               <DropdownMenuItem onClick={() => onMarkNovedad(businessId)}>
                 <AlertTriangle className="mr-2 h-4 w-4" />
@@ -199,7 +209,7 @@ export function BusinessRowActions({
                 Gestionar Novedad
               </DropdownMenuItem>
             )}
-            {onCancel && (
+            {onCancel && !isReadOnly && (
               <DropdownMenuItem
                 onClick={() => onCancel(businessId)}
                 className="text-destructive focus:text-destructive"

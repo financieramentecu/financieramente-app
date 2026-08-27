@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	canSavePermissions,
 	isTodasSelected,
+	isReportViewBypassRole,
 	knownReportCodes,
 	mergeKnownReportCodes,
 	toggleCategorySelection,
@@ -11,6 +12,7 @@ import {
 	REPORT_CODES,
 	type CategoryPermissionRow,
 } from '@/features/report-permissions/types/report-permissions.types'
+import { UserRole } from '@/features/auth/lib/roles'
 
 describe('report-permissions helpers', () => {
 	const allIds = [1, 2, 3]
@@ -61,6 +63,29 @@ describe('report-permissions helpers', () => {
 			...Object.values(REPORT_CODES),
 			'OTRO',
 		])
+	})
+})
+
+describe.each([
+	{ role: UserRole.ADMIN, expected: true },
+	{ role: UserRole.ASISTENTE_GERENCIA_OPERATIVA, expected: false },
+	{ role: UserRole.ANALISTA_SOPORTE, expected: false },
+	{ role: UserRole.AGENTE, expected: false },
+	{ role: UserRole.DEFAULT, expected: false },
+	{ role: UserRole.CONSULTOR, expected: true },
+])('isReportViewBypassRole($role)', ({ role, expected }) => {
+	it(`returns ${expected}`, () => {
+		expect(isReportViewBypassRole(role)).toBe(expected)
+	})
+})
+
+describe('isReportViewBypassRole edge cases', () => {
+	it('returns false for undefined', () => {
+		expect(isReportViewBypassRole(undefined)).toBe(false)
+	})
+
+	it('returns false for null', () => {
+		expect(isReportViewBypassRole(null)).toBe(false)
 	})
 })
 

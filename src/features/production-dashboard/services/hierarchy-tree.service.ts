@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 import type { SessionUser } from '@/features/shared/types/session-user.types'
 import type { HierarchyNode } from '@/features/production-dashboard/types/hierarchy.types'
-import { HIERARCHY_BYPASS_ROLES } from '@/features/auth/lib/hierarchy'
+import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 
 type UserRow = {
 	idUser: number
@@ -24,9 +24,9 @@ type LevelRow = {
 
 function isFullTreeViewer(viewer: SessionUser): boolean {
 	// GENERAL_LEVEL is a commission-calculation concept only — it never grants
-	// dashboard visibility bypass. Only HIERARCHY_BYPASS_ROLES sees the full tree.
+	// dashboard visibility bypass. Only global-visibility roles see the full tree.
 	if (!viewer.role) return false
-	return (HIERARCHY_BYPASS_ROLES as ReadonlyArray<string>).includes(viewer.role.code)
+	return isHierarchyBypassRole(viewer.role.code)
 }
 
 function buildNode(

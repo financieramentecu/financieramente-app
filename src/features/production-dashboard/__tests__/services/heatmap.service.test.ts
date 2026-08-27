@@ -296,4 +296,13 @@ describe('resolveViewerScope', () => {
     const result = await resolveViewerScope(5, 'DEFAULT', 'MS_JUNIOR')
     expect(result).toContain(5)
   })
+
+  it('(e) CONSULTOR (read-only global visibility) returns all active users', async () => {
+    mockUserFindMany.mockResolvedValue([
+      { idUser: 1 }, { idUser: 2 }, { idUser: 3 },
+    ] as never)
+
+    const result = await resolveViewerScope(9, 'CONSULTOR')
+    expect(result).toEqual([1, 2, 3])
+  })
 })

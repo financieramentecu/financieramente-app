@@ -108,6 +108,19 @@ describe('POST /api/negocios/[id]/fondear-aportes', () => {
 		expect(body.error).toContain('permisos')
 	})
 
+	it('403 CONSULTOR (solo lectura) no puede fondear — canFundPayments ya lo excluye', async () => {
+		mockAuth.mockResolvedValue({ user: { email: 'consultor@test.com' } } as never)
+		mockGetUser.mockResolvedValue(buildUser('consultor@test.com', UserRole.CONSULTOR) as never)
+
+		const res = await POST(new Request('http://localhost/api/negocios/1/fondear-aportes', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ fundedInstallmentIndexes: [1] }),
+		}), { params: Promise.resolve({ id: '1' }) })
+
+		expect(res.status).toBe(403)
+	})
+
 	it('400 negocio sin aportes → fondeo directo', async () => {
 		mockAuth.mockResolvedValue({ user: { email: 'admin@test.com' } } as never)
 		mockGetUser.mockResolvedValue(buildUser('admin@test.com', UserRole.ADMIN) as never)

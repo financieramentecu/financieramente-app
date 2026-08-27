@@ -95,6 +95,19 @@ describe('PATCH /api/negocios/[id]/date-anchored', () => {
 		expect(updateBusinessDateAnchored).not.toHaveBeenCalled()
 	})
 
+	it('returns 403 for CONSULTOR (read-only) — canFundPayments already excludes it', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+			idUser: 9,
+			email: 'consultor@test.com',
+			role: { code: UserRole.CONSULTOR },
+		} as ReturnType<typeof getCurrentUserByEmail> extends Promise<infer T> ? T : never)
+		const req = makeRequest({ dateAnchored: '2020-01-15' })
+		const res = await PATCH(req, routeParams)
+
+		expect(res.status).toBe(403)
+		expect(updateBusinessDateAnchored).not.toHaveBeenCalled()
+	})
+
 	it('returns 404 when the business does not exist', async () => {
 		vi.mocked(updateBusinessDateAnchored).mockResolvedValue({
 			ok: false,
