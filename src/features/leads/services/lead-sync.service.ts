@@ -95,16 +95,27 @@ export async function upsertLeadFromCrm(
 		resolvedOutcomeStatus
 	)
 
+	// Single shared instant so a create never records `createdAt` and
+	// `updatedAt` microseconds apart (design D2a). Captured before the
+	// upsert since the write destroys the pre-upsert `active` evidence.
+	const receivedAt = new Date()
+	const wasInactive = existing?.active === false
+
 	const lead: Lead = await prisma.lead.upsert({
 		where: { externalCrmId: payload.externalCrmId },
 		create: {
 			...upsertData,
 			externalCrmId: payload.externalCrmId,
 			idLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
+			active: true,
+			createdAt: payload.createdAt ?? receivedAt,
+			updatedAt: payload.updatedAt ?? receivedAt,
 		},
 		update: {
 			...upsertData,
 			idLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
+			active: true,
+			updatedAt: payload.updatedAt ?? receivedAt,
 		},
 	})
 
@@ -156,6 +167,14 @@ export async function upsertLeadFromCrm(
 			action: AuditAction.LEAD_OUTCOME_STATUS_LOCKED,
 			email: 'crm-sync@system',
 			details: `Intento de cambiar outcomeStatus de un lead ya WON descartado (lead externalCrmId: ${payload.externalCrmId}, valor recibido: ${payload.outcomeStatus})`,
+		})
+	}
+
+	if (wasInactive) {
+		await logAuditEvent({
+			action: AuditAction.LEAD_REACTIVATED,
+			email: 'crm-sync@system',
+			details: `Lead reactivado por resync CRM (externalCrmId: ${payload.externalCrmId})`,
 		})
 	}
 

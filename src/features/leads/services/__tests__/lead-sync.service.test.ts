@@ -63,6 +63,7 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 		LEAD_OUTCOME_STATUS_CHANGED: 'LEAD_OUTCOME_STATUS_CHANGED',
 		LEAD_OUTCOME_STATUS_UNRESOLVED: 'LEAD_OUTCOME_STATUS_UNRESOLVED',
 		LEAD_OUTCOME_STATUS_LOCKED: 'LEAD_OUTCOME_STATUS_LOCKED',
+		LEAD_REACTIVATED: 'LEAD_REACTIVATED',
 	},
 	getClientIp: vi.fn(() => '127.0.0.1'),
 	getUserAgent: vi.fn(() => 'n8n'),
@@ -387,6 +388,161 @@ describe('upsertLeadFromCrm', () => {
 				expect.objectContaining({
 					action: AuditAction.LEAD_OUTCOME_STATUS_LOCKED,
 				})
+			)
+		})
+	})
+
+	describe('historical timestamps (createdAt immutability)', () => {
+		it('create without createdAt falls back to receivedAt', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
+
+			await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'new' })
+
+			const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(upsertCall.create).toHaveProperty('createdAt')
+			expect(upsertCall.create.createdAt).toBeInstanceOf(Date)
+		})
+
+		it('create with createdAt stores the payload value', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
+			const createdAt = new Date('2020-06-01T08:00:00-05:00')
+
+			await upsertLeadFromCrm({
+				externalCrmId: 'crm-1',
+				statusKey: 'new',
+				createdAt,
+			})
+
+			const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(upsertCall.create.createdAt).toEqual(createdAt)
+		})
+
+		it('update never includes createdAt, even when the payload carries a different value', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue(
+				makeExistingLead({ createdAt: new Date('2020-01-01') }) as never
+			)
+
+			await upsertLeadFromCrm({
+				externalCrmId: 'crm-1',
+				statusKey: 'new',
+				createdAt: new Date('2025-01-01'),
+			})
+
+			const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(upsertCall.update).not.toHaveProperty('createdAt')
+		})
+
+		it('update without createdAt in payload still omits createdAt', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue(
+				makeExistingLead() as never
+			)
+
+			await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'new' })
+
+			const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(upsertCall.update).not.toHaveProperty('createdAt')
+		})
+	})
+
+	describe('updatedAt resolution on every sync', () => {
+		it('applies updatedAt on create using the payload value', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
+			const updatedAt = new Date('2020-06-02T08:00:00-05:00')
+
+			await upsertLeadFromCrm({
+				externalCrmId: 'crm-1',
+				statusKey: 'new',
+				updatedAt,
+			})
+
+			const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(upsertCall.create.updatedAt).toEqual(updatedAt)
+		})
+
+		it('applies updatedAt on update using the payload value', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue(
+				makeExistingLead() as never
+			)
+			const updatedAt = new Date('2020-06-03T08:00:00-05:00')
+
+			await upsertLeadFromCrm({
+				externalCrmId: 'crm-1',
+				statusKey: 'new',
+				updatedAt,
+			})
+
+			const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(upsertCall.update.updatedAt).toEqual(updatedAt)
+		})
+
+		it('falls back to receivedAt on both branches when updatedAt is absent', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce(null)
+			await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'new' })
+			const createCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(createCall.create.updatedAt).toBeInstanceOf(Date)
+
+			vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce(
+				makeExistingLead() as never
+			)
+			await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'new' })
+			const updateCall = vi.mocked(prisma.lead.upsert).mock.calls[1][0]
+			expect(updateCall.update.updatedAt).toBeInstanceOf(Date)
+		})
+	})
+
+	describe('forced active revival + LEAD_REACTIVATED (D2b)', () => {
+		it('sets active: true on both create and update branches', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce(null)
+			await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'new' })
+			const createCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(createCall.create.active).toBe(true)
+
+			vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce(
+				makeExistingLead({ active: false }) as never
+			)
+			await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'new' })
+			const updateCall = vi.mocked(prisma.lead.upsert).mock.calls[1][0]
+			expect(updateCall.update.active).toBe(true)
+		})
+
+		it('resync of an active lead stays active and does not emit LEAD_REACTIVATED', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue(
+				makeExistingLead({ active: true }) as never
+			)
+
+			await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'new' })
+
+			expect(logAuditEvent).not.toHaveBeenCalledWith(
+				expect.objectContaining({ action: AuditAction.LEAD_REACTIVATED })
+			)
+		})
+
+		it('resync of an inactive lead emits LEAD_REACTIVATED exactly once', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue(
+				makeExistingLead({ active: false }) as never
+			)
+
+			await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'new' })
+
+			expect(logAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({ action: AuditAction.LEAD_REACTIVATED })
+			)
+			expect(
+				vi
+					.mocked(logAuditEvent)
+					.mock.calls.filter(
+						(call) => call[0].action === AuditAction.LEAD_REACTIVATED
+					)
+			).toHaveLength(1)
+		})
+
+		it('a new create never emits LEAD_REACTIVATED', async () => {
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
+
+			await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'new' })
+
+			expect(logAuditEvent).not.toHaveBeenCalledWith(
+				expect.objectContaining({ action: AuditAction.LEAD_REACTIVATED })
 			)
 		})
 	})
