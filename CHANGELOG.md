@@ -4,6 +4,29 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.34.0] - 2026-08-27
+
+### Agregado
+
+- **Sincronización de leads con fechas históricas (CRM):** La API de sincronización `POST /api/leads/crm-sync` ahora acepta campos opcionales `createdAt` y `updatedAt` en formato ISO 8601 con offset explícito (ej: `+05:00` o `Z`). Permite replayer leads históricos desde migraciones manteniendo sus fechas de creación originales. Las fechas ausentes usan la hora de recepción de la solicitud. Fundamental para reportes y análisis de rango de fechas correctos tras importar datos históricos del CRM.
+
+- **Eliminación de leads por administradores con confirmación:** Los administradores ahora pueden eliminar leads problemáticos o mal sincronizados mediante `DELETE /api/leads/[id]`, solo para leads abiertos y no convertidos a negocio (estado `OPEN`, `idBusiness === null`). La eliminación es soft-delete (`active: false`), nunca física, y aparece en el audit trail. El botón de eliminación en el detalle del lead requiere confirmación explícita en diálogo `AlertDialog` antes de procesar. Los leads eliminados desaparecen del Kanban, detalle y conversión manual inmediatamente.
+
+### Mejorado
+
+- **Revivir leads eliminados mediante resync CRM:** Si un lead ya ha sido eliminado por un administrador, una nueva sincronización del mismo `externalCrmId` desde el CRM restaura automáticamente el lead (`active: true`) y lo devuelve al Kanban visible. Nunca hay estado "atrapado" tras eliminación + resync. Abre el camino para correcciones limpias sin perder datos.
+
+### Técnico
+
+- **Schema de sincronización CRM:** `crmSyncPayloadSchema` ahora incluye campos opcionales `createdAt?: Date` y `updatedAt?: Date`, validados con `z.iso.datetime({ offset: true })` para rechazar strings sin offset. Ambos campos usan fallback a `receivedAt` cuando están ausentes.
+- **Timestamps immutables post-creación:** El servicio `upsertLeadFromCrm()` escribe `createdAt` solo en la rama `create` del upsert; la rama `update` **nunca** la toca, incluso si la carga útil la incluye. Garantiza inmutabilidad post-creación de la fecha de origen (el script de migración histórica controla la precisión en la primera sincronización).
+- **Revivir leads blandos eliminados:** `upsertLeadFromCrm()` establece `active: true` sin condición en ambas ramas (create/update). Emite `AuditAction.LEAD_REACTIVATED` solo cuando ocurre la transición `false → true`, sin dispararse en resyncs de leads ya activos o en creación nueva.
+- **Nuevas acciones de auditoría:** `LEAD_REACTIVATED` y `LEAD_DELETED` registran los ciclos de vida administrativo y de resync de los leads.
+- **Predicado de elegibilidad de eliminación:** Función pura `canDeleteLead(lead)` (fuente única de verdad servidor + cliente) retorna `true` solo cuando `idBusiness === null && outcomeStatus === 'OPEN'`. Leads convertidos, WON, LOST, ABANDONED son inelegibles para eliminación.
+- **Nuevos servicios y rutas:** `lead-admin.service.ts` (`deleteLead()`), `DELETE /api/leads/[id]` (controlada por `requireRole([UserRole.ADMIN])`), `use-delete-lead` hook, actualización de `lead-detail-sheet.tsx` y `leads-board.tsx` con role plumbing.
+- **Sin migración de Prisma:** Los campos `createdAt`, `updatedAt`, `active` ya existen en el modelo `Lead`; este cambio no añade columnas nuevas ni requiere migración.
+- **Entrega:** Una PR combinada (commit `6a2e8f3f`, 24 archivos, +1771/-25) en lugar de las 3 rebanadas encadenadas recomendadas (excepción de tamaño de usuario explícita aceptada; Medium 400-500 línea presupuesto de riesgo).
+
 ## [1.33.0] - 2026-08-25
 
 ### Agregado
