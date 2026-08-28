@@ -101,4 +101,17 @@ describe('POST /api/negocios/[id]/comprobantes/presign', () => {
     const res = await POST(req, routeParams)
     expect(res.status).toBe(401)
   })
+
+  it('returns 403 for CONSULTOR (read-only role) and does not call presignComprobanteUpload', async () => {
+    const { auth } = await import('@/auth')
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { email: 'consultor@example.com', id: '9', role: 'CONSULTOR' },
+    } as never)
+
+    const req = makeRequest({ mime: 'image/jpeg', size: 1024 })
+    const res = await POST(req, routeParams)
+
+    expect(res.status).toBe(403)
+    expect(mockPresign).not.toHaveBeenCalled()
+  })
 })

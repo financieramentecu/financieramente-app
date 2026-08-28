@@ -80,6 +80,18 @@ describe('PATCH /api/negocios/[id]/aportes/[index]/cartera', () => {
 		expect(res.status).toBe(403)
 	})
 
+	it('returns 403 for CONSULTOR (read-only) — canFundPayments already excludes it', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+			idUser: 9,
+			email: 'consultor@test.com',
+			role: { code: UserRole.CONSULTOR },
+		} as never)
+
+		const res = await PATCH(makeRequest(), makeParams())
+		expect(res.status).toBe(403)
+		expect(markCartera).not.toHaveBeenCalled()
+	})
+
 	it('returns 409 on CONFLICT', async () => {
 		vi.mocked(getCurrentUserByEmail).mockResolvedValue(adminUser as never)
 		vi.mocked(markCartera).mockResolvedValue({ ok: false, code: 'CONFLICT' })

@@ -113,4 +113,26 @@ describe('getAuthorizedReportCodes', () => {
 		})
 		expect(result.codes).toEqual(['PRODUCCION_REAL'])
 	})
+
+	it('still returns PRODUCCION_REAL for ADMIN when the catalog is empty', async () => {
+		vi.mocked(prisma.reportDefinition.findMany).mockResolvedValue([] as never)
+
+		const result = await getAuthorizedReportCodes({
+			roleCode: UserRole.ADMIN,
+			idCategory: null,
+		})
+		expect(result.codes).toEqual(['PRODUCCION_REAL'])
+	})
+
+	it('still returns PRODUCCION_REAL for ADMIN when the catalog query fails', async () => {
+		vi.mocked(prisma.reportDefinition.findMany).mockRejectedValue(
+			new Error('table missing')
+		)
+
+		const result = await getAuthorizedReportCodes({
+			roleCode: UserRole.ADMIN,
+			idCategory: null,
+		})
+		expect(result.codes).toEqual(['PRODUCCION_REAL'])
+	})
 })

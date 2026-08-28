@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { isReadOnlyRole } from '@/features/auth/lib/roles'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { BusinessSupportDTO } from '@/features/business-supports/types/business-support.types'
@@ -73,6 +74,9 @@ export async function POST(
   const session = await auth()
   if (!session?.user) {
     return NextResponse.json({ data: null, error: 'Unauthorized' }, { status: 401 })
+  }
+  if (isReadOnlyRole(session.user.role)) {
+    return NextResponse.json({ data: null, error: 'Sin permisos' }, { status: 403 })
   }
 
   const { id } = await params

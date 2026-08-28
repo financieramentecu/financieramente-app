@@ -15,7 +15,11 @@ import { useProduccionRealDetail } from '../hooks/use-produccion-real-detail'
 import { useProduccionRealExport } from '../hooks/use-produccion-real-export'
 import { PRODUCCION_REAL_UI } from '../lib/ui-copy'
 
-function ShellContent() {
+interface ShellContentProps {
+	readonly canExport: boolean
+}
+
+function ShellContent({ canExport }: ShellContentProps) {
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 	const {
 		trmRate,
@@ -70,6 +74,7 @@ function ShellContent() {
 				<ProduccionRealFilterBar
 					onExportExcel={exportExcel}
 					isExporting={isExporting}
+					canExport={canExport}
 				/>
 				<ProduccionRealKpiCards
 					state={kpiState}
@@ -90,16 +95,21 @@ function ShellContent() {
 	)
 }
 
+interface ProduccionRealShellProps {
+	/** Company-wide read-only role (CONSULTOR) never sees the export action. Defaults to true. */
+	readonly canExport?: boolean
+}
+
 /**
  * Client shell: HierarchySelectionProvider > FilterProvider > content.
  * Mirrors production dashboard composition (ADR-3 / design D5).
  */
-export function ProduccionRealShell() {
+export function ProduccionRealShell({ canExport = true }: ProduccionRealShellProps) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<HierarchySelectionProvider>
 				<ProduccionRealFilterProvider>
-					<ShellContent />
+					<ShellContent canExport={canExport} />
 				</ProduccionRealFilterProvider>
 			</HierarchySelectionProvider>
 		</div>

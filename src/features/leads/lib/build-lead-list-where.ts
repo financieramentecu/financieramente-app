@@ -1,6 +1,5 @@
 import type { Prisma, LeadOutcomeStatus } from '@prisma/client'
-import { HIERARCHY_BYPASS_ROLES } from '@/features/auth/lib/hierarchy'
-import type { UserRole } from '@/features/auth/lib/roles'
+import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 
 export interface LeadListFilterInput {
 	search?: string
@@ -35,7 +34,7 @@ export function buildLeadListWhere(
 	const whereConditions: Prisma.LeadWhereInput[] = [{ active: true }]
 
 	const roleCode = currentUser.role?.code
-	const isBypass = HIERARCHY_BYPASS_ROLES.includes(roleCode as UserRole)
+	const isBypass = isHierarchyBypassRole(roleCode)
 
 	if (!isBypass) {
 		const { visibleUserIds } = options

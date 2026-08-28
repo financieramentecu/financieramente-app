@@ -15,7 +15,7 @@ import { formatDateBogota } from '@/features/shared/lib/format-date'
 import { ViewSupportsButton } from '@/features/business-supports/components/ViewSupportsButton'
 import { UploadSupportButton } from '@/features/business-supports/components/UploadSupportButton'
 import { CommentsSidebar } from '@/features/comments/components/CommentsSidebar'
-import { UserRole } from '@/features/auth/lib/roles'
+import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
 import Link from 'next/link'
 import { buttonVariants } from '@/features/shared/ui/button'
 
@@ -71,6 +71,9 @@ export default async function DetalleNegocioPage({ params, searchParams }: PageP
 	}
 
 	const business = prismaBusinessToEntity(prismaBusiness)
+	// Company-wide read-only role (CONSULTOR) sees the detail view but never a
+	// mutating action here — same guarantee as the Negocios list actions.
+	const isReadOnly = isReadOnlyRole(currentUser.role?.code)
 
 	return (
 		<DashboardLayout currentPage={`Negocio #${business.id}`}>
@@ -101,28 +104,32 @@ export default async function DetalleNegocioPage({ params, searchParams }: PageP
 					</div>
 
 					<div className="flex flex-wrap items-center justify-end gap-2">
-						<NovedadActionButton
-							businessId={business.id}
-							businessStatus={business.status}
-							novedadStatus={business.novedadStatus}
-						/>
+						{!isReadOnly && (
+							<NovedadActionButton
+								businessId={business.id}
+								businessStatus={business.status}
+								novedadStatus={business.novedadStatus}
+							/>
+						)}
 						<NovedadManageTrigger
 							businessId={business.id}
 							novedadStatus={business.novedadStatus}
 							userRoleCode={currentUser.role?.code}
 						/>
-						<UploadSupportButton businessId={business.id} />
-						<Link
-							href={`/dashboard/negocios/editar/${business.id}`}
-							className={buttonVariants({
-								variant: 'outline',
-								size: 'sm',
-								className: 'gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800',
-							})}
-						>
-							<Edit className="h-3.5 w-3.5" />
-							Editar
-						</Link>
+						{!isReadOnly && <UploadSupportButton businessId={business.id} />}
+						{!isReadOnly && (
+							<Link
+								href={`/dashboard/negocios/editar/${business.id}`}
+								className={buttonVariants({
+									variant: 'outline',
+									size: 'sm',
+									className: 'gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800',
+								})}
+							>
+								<Edit className="h-3.5 w-3.5" />
+								Editar
+							</Link>
+						)}
 						<ViewSupportsButton
 							businessId={business.id}
 							userRole={currentUser.role?.name as UserRole}
@@ -133,6 +140,7 @@ export default async function DetalleNegocioPage({ params, searchParams }: PageP
 							authorEmail={currentUser.email}
 							contract={business.contract || `Negocio #${business.id}`}
 							defaultOpen={openComments === 'true'}
+							readOnly={isReadOnly}
 						/>
 					</div>
 				</div>

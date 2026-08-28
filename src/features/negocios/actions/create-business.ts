@@ -15,6 +15,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { findProductPercentageCommission } from './find-product-percentage-commission'
 import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
+import { requireWriteAccess } from '@/lib/auth/require-write-access'
 
 /**
  * Schema de validación para crear un negocio
@@ -64,6 +65,15 @@ export async function createBusiness(
 	data: CreateBusinessInput
 ): Promise<ApiResponse<Business>> {
 	try {
+		const guard = await requireWriteAccess()
+		if (!guard.ok) {
+			return {
+				data: null,
+				error:
+					guard.response.status === 401 ? 'No autorizado' : 'Sin permisos',
+			}
+		}
+
 		const validatedData = createBusinessSchema.parse(data)
 
 		const user = await prisma.user.findUnique({

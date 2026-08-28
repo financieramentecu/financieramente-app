@@ -203,6 +203,34 @@ describe('POST /api/negocios/export', () => {
 		expect(res.status).toBe(403)
 	})
 
+	it('retorna 403 cuando el rol es CONSULTOR (solo lectura) — canExportBusinessList ya lo excluye (D3)', async () => {
+		mockAuth.mockResolvedValue({
+			user: { email: 'consultor@test.com' },
+		} as never)
+		mockGetUser.mockResolvedValue({
+			idUser: 9,
+			role: {
+				code: UserRole.CONSULTOR,
+				name: 'Consultor',
+			},
+			idLevel: null,
+			level: null,
+		} as never)
+
+		const req = new Request('http://localhost/api/negocios/export', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				dateFrom: '2026-04-01',
+				dateTo: '2026-04-30',
+			}),
+		})
+
+		const res = await POST(req)
+		expect(res.status).toBe(403)
+		expect(mockFindMany).not.toHaveBeenCalled()
+	})
+
 	it('retorna 200, xlsx y cuerpo no vacío cuando hay datos (ADMIN)', async () => {
 		mockAuth.mockResolvedValue({
 			user: { email: 'admin@test.com' },

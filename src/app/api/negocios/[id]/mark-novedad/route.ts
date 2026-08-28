@@ -18,7 +18,7 @@ import {
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { markNovedadSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/features/auth/lib/roles'
+import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -92,6 +92,13 @@ export async function PATCH(
 			return NextResponse.json(
 				{ data: null, error: 'Usuario no encontrado' },
 				{ status: 404 }
+			)
+		}
+
+		if (isReadOnlyRole(currentUser.role?.code)) {
+			return NextResponse.json(
+				{ data: null, error: 'Sin permisos' },
+				{ status: 403 }
 			)
 		}
 

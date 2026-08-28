@@ -4,6 +4,37 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.33.0] - 2026-08-25
+
+### Agregado
+
+- **Nuevo rol "Consultor (Solo Lectura)":** Introduce un rol de solo lectura con acceso global a Dashboard, Negocios, Reportes (todas las categorías) y Calculadora. Los usuarios con este rol NO pueden crear, editar, eliminar ni exportar en ningún módulo. Los botones de acciones de escritura y exportación están ocultos en UI. El acceso a la asignación de este rol está restringido a Administradores.
+
+### Técnico
+
+- **Predicados de rol centralizados:** Nuevos helpers `isReadOnlyRole()`, `isWriteBypassRole()`, `isGlobalVisibilityRole()` en `src/features/auth/lib/roles.ts` como fuente única de verdad para autorización basada en rol.
+- **Separación de permisos de visibilidad vs. escritura:** Las tres listas de bypass existentes ahora se distinguen explícitamente: `READ_ONLY_ROLES` para CONSULTOR (solo visibilidad), `WRITE_BYPASS_ROLES` para ADMIN/ASISTENTE_GERENCIA_OPERATIVA/ANALISTA_SOPORTE (visibilidad + escritura).
+- **Precedencia de rol sobre nivel jerárquico en exportación:** `canExportBusinessList()` evalúa rol primero; si `isReadOnlyRole()` devuelve `false` sin importar el nivel asignado.
+- **Validación de asignación de nivel:** Nuevas reglas en `src/features/admin/users/lib/user-role-level-rules.ts` rechazan la asignación de un nivel jerárquico a un usuario con rol de solo lectura (validación 400 en `PUT /api/admin/users/[id]`).
+- **Guardias de escritura server-side:** Nuevo composable `src/lib/auth/require-write-access.ts` rechaza mutaciones con HTTP 403 para roles de solo lectura en 15+ rutas de negocios, 2 rutas de exportación, y 3 Server Actions.
+- **Primitivo UI compartido:** `src/features/shared/hooks/use-read-only-role.ts` y `src/features/shared/components/read-only-action.tsx` proporcionan un componente reutilizable que desactiva botones con tooltip explicativo para roles de solo lectura.
+- **Composición de menú por permisos:** `menu-builder.ts` ahora gates Leads, Mis distribuciones y Calculadora basado en flags de permiso (en lugar de listas hardcodeadas), permitiendo que CONSULTOR acceda a solo 4 módulos.
+- **Corrección de bug latente en CrearNegocioPage:** Cambió de `isHierarchyBypassRole` (visibilidad) a `isWriteBypassRole` (escritura) para proteger una pantalla de creación contra CONSULTOR.
+- **UI fixes post-apply:** 5 fixes aplicadas después de verify (P.1–P.5) ocultando controles de escritura para CONSULTOR en BusinessTableSection, BusinessRowActions, detalle de negocios, comentarios y Producción Real. Todos los fixes mantienen comportamiento byte-idéntico para ADMIN/ASISTENTE_GERENCIA_OPERATIVA/ANALISTA_SOPORTE/AGENTE/DEFAULT.
+- **Nuevos archivos:** `src/features/shared/hooks/use-read-only-role.ts`, `src/features/shared/components/read-only-action.tsx`, `src/lib/auth/require-write-access.ts`, `src/features/admin/users/lib/user-role-level-rules.ts`.
+- **OpenSpec change `rol-consultor-solo-lectura` archived:** Delta specs fusionadas a `openspec/specs/{read-only-role,security,navigation,negocios,report-permissions}/spec.md`. Nuevos requirements: CONSULTOR permission matrix, level assignment validation, role-based auth rejection, visibility vs. write bypass distinction, menu composition, and export blocking for read-only roles.
+- Tests: 3616 passed / 0 failed / 3 skipped (baseline 420 test files antes de fix, +2 archivos test post-apply, +16 casos test netos).
+
+## [1.32.1] - 2026-08-21
+
+### Corregido
+
+- **Variables de entorno vacías en producción (SendGrid y contraseña de super admin):** `docker-compose.prod.yml` referenciaba `${SENDGRID_API_KEY_PROD}`, `${SENDGRID_FROM_EMAIL_PROD}`, `${SENDGRID_FROM_NAME_PROD}`, `${SENDGRID_TEMPLATE_ID_PROD}` y `${SUPER_ADMIN_PASSWORD_PROD}`, pero el `.env` generado por el workflow de despliegue escribe esas variables sin el sufijo `_PROD` (el sufijo solo existe en el nombre del secret de GitHub Actions). Docker Compose las dejaba en blanco silenciosamente dentro del contenedor.
+
+### Técnico
+
+- `docker/docker-compose.prod.yml`: se quitó el sufijo `_PROD` de las 5 variables del servicio `nextjs` para que coincidan con las claves escritas en `.env` por `.github/workflows/deploy-prod.yml`.
+
 ## [1.32.0] - 2026-08-13
 
 ### Agregado
