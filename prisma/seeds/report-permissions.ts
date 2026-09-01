@@ -19,10 +19,22 @@ const REPORT_SEEDS = [
 		routePath: '/dashboard/reportes/leads-analytics',
 		categoryNames: [PERFORMANCE_LEADER_NAME, BUSINESS_LEADER_NAME],
 	},
+	{
+		code: 'ABA_MFUND',
+		name: 'ABA-MFUND',
+		description:
+			'Reporte ABA-MFUND (SKANDIA + MFUND) con KPIs, ranking y detalle',
+		routePath: '/dashboard/reportes/aba-mfund',
+		categoryNames: [PERFORMANCE_LEADER_NAME, BUSINESS_LEADER_NAME],
+	},
 ] as const
 
 /**
  * Seed report catalog + default category enablement.
+ * Enables Producción Real for Performance Leader after categories exist.
+ * Enables Analítica de Leads and ABA-MFUND for Performance Leader and Business
+ * Leader independently (missing categories are logged and skipped without
+ * aborting the rest).
  */
 export async function seedReportPermissions(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Report Definitions y permisos...')

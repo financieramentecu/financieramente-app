@@ -26,6 +26,7 @@ import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarc
 import {
 	UserRole,
 	canEditContractWhenBusinessEmitido,
+	isReadOnlyRole,
 } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -193,6 +194,13 @@ export async function PUT(
 			return NextResponse.json(
 				{ data: null, error: 'Usuario no encontrado' },
 				{ status: 404 }
+			)
+		}
+
+		if (isReadOnlyRole(currentUser.role?.code)) {
+			return NextResponse.json(
+				{ data: null, error: 'Sin permisos' },
+				{ status: 403 }
 			)
 		}
 

@@ -1,5 +1,9 @@
 import { prisma } from '@/lib/prisma'
-import { isReportViewBypassRole } from '@/features/report-permissions/lib/report-permissions-helpers'
+import {
+	isReportViewBypassRole,
+	knownReportCodes,
+	mergeKnownReportCodes,
+} from '@/features/report-permissions/lib/report-permissions-helpers'
 import type {
 	AuthorizedReportsDto,
 	CategoryPermissionRow,
@@ -186,12 +190,18 @@ export async function getAuthorizedReportCodes(
 	user: ReportAccessUser
 ): Promise<AuthorizedReportsDto> {
 	if (isReportViewBypassRole(user.roleCode)) {
-		const reports = await prisma.reportDefinition.findMany({
-			where: { status: true },
-			select: { code: true },
-			orderBy: { name: 'asc' },
-		})
-		return { codes: reports.map((r) => r.code) }
+		try {
+			const reports = await prisma.reportDefinition.findMany({
+				where: { status: true },
+				select: { code: true },
+				orderBy: { name: 'asc' },
+			})
+			return {
+				codes: mergeKnownReportCodes(reports.map((r) => r.code)),
+			}
+		} catch {
+			return { codes: knownReportCodes() }
+		}
 	}
 
 	if (!user.idCategory) {

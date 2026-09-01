@@ -149,6 +149,52 @@ describe('flagsmith-server', () => {
 			expect(result).toBe(true)
 		})
 
+		it('uses FALLBACK_FLAGS when the flag is missing from Flagsmith (e.g. reportes_produccion_real not created yet)', async () => {
+			process.env.FLAGSMITH_SERVER_KEY = 'test-key'
+
+			const { Flagsmith } = await import('flagsmith-nodejs')
+			const mockGetEnvFlags = vi.fn().mockResolvedValue({
+				flags: {
+					dashboard_calculadora: {
+						enabled: true,
+						value: null,
+						featureId: 5,
+						featureName: 'dashboard_calculadora',
+					},
+				},
+			})
+			const mockInstance = { getEnvironmentFlags: mockGetEnvFlags }
+			vi.mocked(Flagsmith).mockReturnValue(mockInstance as never)
+
+			const { isFeatureEnabledServer } = await import('../flagsmith-server')
+
+			expect(await isFeatureEnabledServer('reportes_produccion_real')).toBe(true)
+			expect(await isFeatureEnabledServer('reportes_aba_mfund')).toBe(true)
+			expect(await isFeatureEnabledServer('negocios_advanced_filters')).toBe(false)
+		})
+
+		it('falls back to true when remote reportes_aba_mfund is missing', async () => {
+			process.env.FLAGSMITH_SERVER_KEY = 'test-key'
+
+			const { Flagsmith } = await import('flagsmith-nodejs')
+			const mockGetEnvFlags = vi.fn().mockResolvedValue({
+				flags: {
+					reportes_produccion_real: {
+						enabled: true,
+						value: null,
+						featureId: 6,
+						featureName: 'reportes_produccion_real',
+					},
+				},
+			})
+			const mockInstance = { getEnvironmentFlags: mockGetEnvFlags }
+			vi.mocked(Flagsmith).mockReturnValue(mockInstance as never)
+
+			const { isFeatureEnabledServer } = await import('../flagsmith-server')
+
+			expect(await isFeatureEnabledServer('reportes_aba_mfund')).toBe(true)
+		})
+
 		it('returns false when the feature flag is disabled', async () => {
 			process.env.FLAGSMITH_SERVER_KEY = 'test-key'
 

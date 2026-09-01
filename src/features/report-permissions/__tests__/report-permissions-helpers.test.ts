@@ -2,10 +2,17 @@ import { describe, expect, it } from 'vitest'
 import {
 	canSavePermissions,
 	isTodasSelected,
+	isReportViewBypassRole,
+	knownReportCodes,
+	mergeKnownReportCodes,
 	toggleCategorySelection,
 	toggleTodas,
 } from '@/features/report-permissions/lib/report-permissions-helpers'
-import type { CategoryPermissionRow } from '@/features/report-permissions/types/report-permissions.types'
+import {
+	REPORT_CODES,
+	type CategoryPermissionRow,
+} from '@/features/report-permissions/types/report-permissions.types'
+import { UserRole } from '@/features/auth/lib/roles'
 
 describe('report-permissions helpers', () => {
 	const allIds = [1, 2, 3]
@@ -34,6 +41,51 @@ describe('report-permissions helpers', () => {
 	it('canSavePermissions blocks empty selection', () => {
 		expect(canSavePermissions([])).toBe(false)
 		expect(canSavePermissions([1])).toBe(true)
+	})
+
+	it('knownReportCodes always includes PRODUCCION_REAL and ABA_MFUND', () => {
+		expect(knownReportCodes()).toEqual(Object.values(REPORT_CODES))
+		expect(knownReportCodes()).toContain('PRODUCCION_REAL')
+		expect(knownReportCodes()).toContain('ABA_MFUND')
+		expect(knownReportCodes()).toContain(REPORT_CODES.ABA_MFUND)
+	})
+
+	it('ADMIN knownReportCodes catalog includes ABA_MFUND even with an empty DB list', () => {
+		expect(mergeKnownReportCodes([])).toContain(REPORT_CODES.ABA_MFUND)
+		expect(mergeKnownReportCodes(['PRODUCCION_REAL'])).toEqual(
+			Object.values(REPORT_CODES)
+		)
+	})
+
+	it('mergeKnownReportCodes keeps ADMIN catalog even if DB returned none', () => {
+		expect(mergeKnownReportCodes([])).toEqual(Object.values(REPORT_CODES))
+		expect(mergeKnownReportCodes(['PRODUCCION_REAL', 'OTRO'])).toEqual([
+			...Object.values(REPORT_CODES),
+			'OTRO',
+		])
+	})
+})
+
+describe.each([
+	{ role: UserRole.ADMIN, expected: true },
+	{ role: UserRole.ASISTENTE_GERENCIA_OPERATIVA, expected: false },
+	{ role: UserRole.ANALISTA_SOPORTE, expected: false },
+	{ role: UserRole.AGENTE, expected: false },
+	{ role: UserRole.DEFAULT, expected: false },
+	{ role: UserRole.CONSULTOR, expected: true },
+])('isReportViewBypassRole($role)', ({ role, expected }) => {
+	it(`returns ${expected}`, () => {
+		expect(isReportViewBypassRole(role)).toBe(expected)
+	})
+})
+
+describe('isReportViewBypassRole edge cases', () => {
+	it('returns false for undefined', () => {
+		expect(isReportViewBypassRole(undefined)).toBe(false)
+	})
+
+	it('returns false for null', () => {
+		expect(isReportViewBypassRole(null)).toBe(false)
 	})
 })
 

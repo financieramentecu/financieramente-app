@@ -120,6 +120,21 @@ describe('PATCH /api/negocios/[id]/aportes/[index]/date-anchored', () => {
 		})
 	})
 
+	describe('CONSULTOR (read-only) → 403', () => {
+		it('returns 403 — canFundPayments already excludes it', async () => {
+			vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+				idUser: 9,
+				email: 'consultor@test.com',
+				role: { code: UserRole.CONSULTOR },
+			} as ReturnType<typeof getCurrentUserByEmail> extends Promise<infer T> ? T : never)
+			const req = makeRequest({ dateAnchored: '2026-06-15' })
+			const res = await PATCH(req, routeParams)
+
+			expect(res.status).toBe(403)
+			expect(updatePaymentDateAnchored).not.toHaveBeenCalled()
+		})
+	})
+
 	describe('invalid body → 400', () => {
 		it('returns 400 for missing dateAnchored field', async () => {
 			const req = makeRequest({})

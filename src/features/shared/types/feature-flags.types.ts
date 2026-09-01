@@ -6,6 +6,7 @@ export const ALL_FEATURE_FLAGS = [
 	'leads_module',
 	'reportes_produccion_real',
 	'reportes_leads_analytics',
+	'reportes_aba_mfund',
 ] as const
 
 export type FeatureFlag = (typeof ALL_FEATURE_FLAGS)[number]

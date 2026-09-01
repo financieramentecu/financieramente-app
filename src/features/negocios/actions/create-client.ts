@@ -5,6 +5,7 @@ import { Client } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { z } from 'zod'
 import { identityNumberSchema } from '../lib/identity-number.schema'
+import { requireWriteAccess } from '@/lib/auth/require-write-access'
 
 /**
  * Schema de validación para crear un cliente
@@ -43,6 +44,15 @@ export async function createClient(
 	data: CreateClientInput
 ): Promise<ApiResponse<Client>> {
 	try {
+		const guard = await requireWriteAccess()
+		if (!guard.ok) {
+			return {
+				data: null,
+				error:
+					guard.response.status === 401 ? 'No autorizado' : 'Sin permisos',
+			}
+		}
+
 		// Validar los datos de entrada
 		const validatedData = createClientSchema.parse(data)
 

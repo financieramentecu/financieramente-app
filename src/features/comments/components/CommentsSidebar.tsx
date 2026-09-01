@@ -19,6 +19,8 @@ interface CommentsSidebarProps {
   focusedCommentId?: string
   /** Called once, after auto-opening from a notification deep link, to mark it as read */
   onAutoOpen?: () => void
+  /** Company-wide read-only role (CONSULTOR): hides the add-comment form, keeps the thread visible */
+  readOnly?: boolean
 }
 
 export function CommentsSidebar({
@@ -29,6 +31,7 @@ export function CommentsSidebar({
   defaultOpen = false,
   focusedCommentId,
   onAutoOpen,
+  readOnly = false,
 }: CommentsSidebarProps) {
   const [open, setOpen] = useState(defaultOpen)
   const { state, createComment } = useComments(businessId)
@@ -82,15 +85,17 @@ export function CommentsSidebar({
             <CommentThread comments={state.data} focusedCommentId={focusedCommentId} />
           )}
 
-          <CommentInput
-            authorName={authorName}
-            authorEmail={authorEmail}
-            contract={contract}
-            onSubmit={async (input) => {
-              await createComment(input)
-            }}
-            onCancel={() => {}}
-          />
+          {!readOnly && (
+            <CommentInput
+              authorName={authorName}
+              authorEmail={authorEmail}
+              contract={contract}
+              onSubmit={async (input) => {
+                await createComment(input)
+              }}
+              onCancel={() => {}}
+            />
+          )}
         </SheetContent>
       </Sheet>
     </>

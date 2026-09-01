@@ -62,4 +62,22 @@ describe('canExportBusinessList', () => {
 			})
 		).toBe(false)
 	})
+
+	it('returns false for CONSULTOR with an assigned level within Nivel 2-6 (read-only precedence)', () => {
+		expect(
+			canExportBusinessList({
+				roleCode: UserRole.CONSULTOR,
+				levelCode: 'LEVEL_3',
+			})
+		).toBe(false)
+	})
+
+	it('returns false for CONSULTOR without any assigned level', () => {
+		expect(
+			canExportBusinessList({
+				roleCode: UserRole.CONSULTOR,
+				levelCode: undefined,
+			})
+		).toBe(false)
+	})
 })
