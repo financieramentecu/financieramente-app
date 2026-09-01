@@ -26,6 +26,53 @@ describe('buildMenuByRole reportes gating', () => {
 		)
 	})
 
+	it('shows ABA-MFUND iff ABA_MFUND is authorized', () => {
+		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
+			authorizedReportCodes: ['ABA_MFUND'],
+		})
+		const reportes = menu.find((item) => item.title === 'Reportes')
+		expect(reportes).toBeDefined()
+		expect(reportes?.subItems?.map((s) => s.title)).toEqual(['ABA-MFUND'])
+		expect(reportes?.subItems?.[0]?.reportCode).toBe('ABA_MFUND')
+		expect(reportes?.subItems?.[0]?.url).toBe('/dashboard/reportes/aba-mfund')
+	})
+
+	it('hides ABA-MFUND when ABA_MFUND is not authorized', () => {
+		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
+			authorizedReportCodes: ['PRODUCCION_REAL'],
+		})
+		const reportes = menu.find((item) => item.title === 'Reportes')
+		const titles = reportes?.subItems?.map((s) => s.title) ?? []
+		expect(titles).not.toContain('ABA-MFUND')
+		expect(titles).toEqual(['Producción Real'])
+	})
+
+	it('keeps Producción Real independently visible when only PRODUCCION_REAL is authorized', () => {
+		const menu = buildMenuByRole(UserRole.AGENTE, getRolePermissions(UserRole.AGENTE), {
+			authorizedReportCodes: ['PRODUCCION_REAL'],
+		})
+		const reportes = menu.find((item) => item.title === 'Reportes')
+		expect(reportes?.subItems?.map((s) => s.title)).toEqual(['Producción Real'])
+		expect(reportes?.subItems?.some((s) => s.reportCode === 'ABA_MFUND')).toBe(
+			false
+		)
+	})
+
+	it('lets ADMIN authorized-codes include both Producción Real and ABA-MFUND', () => {
+		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
+			authorizedReportCodes: ['PRODUCCION_REAL', 'ABA_MFUND'],
+		})
+		const reportes = menu.find((item) => item.title === 'Reportes')
+		expect(reportes?.subItems?.map((s) => s.title)).toEqual([
+			'Producción Real',
+			'ABA-MFUND',
+		])
+		expect(reportes?.subItems?.map((s) => s.reportCode)).toEqual([
+			'PRODUCCION_REAL',
+			'ABA_MFUND',
+		])
+	})
+
 	it('does not show legacy stub report routes', () => {
 		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
 			authorizedReportCodes: ['PRODUCCION_REAL'],
