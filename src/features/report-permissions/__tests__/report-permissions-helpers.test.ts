@@ -8,7 +8,11 @@ import {
 	toggleCategorySelection,
 	toggleTodas,
 } from '@/features/report-permissions/lib/report-permissions-helpers'
-import type { CategoryPermissionRow } from '@/features/report-permissions/types/report-permissions.types'
+import {
+	KNOWN_REPORT_DEFINITIONS,
+	REPORT_CODES,
+	type CategoryPermissionRow,
+} from '@/features/report-permissions/types/report-permissions.types'
 import { UserRole } from '@/features/auth/lib/roles'
 
 describe('report-permissions helpers', () => {
@@ -40,14 +44,34 @@ describe('report-permissions helpers', () => {
 		expect(canSavePermissions([1])).toBe(true)
 	})
 
-	it('knownReportCodes always includes PRODUCCION_REAL', () => {
+	it('knownReportCodes always includes PRODUCCION_REAL and ABA_MFUND', () => {
+		expect(knownReportCodes()).toEqual(Object.values(REPORT_CODES))
 		expect(knownReportCodes()).toContain('PRODUCCION_REAL')
+		expect(knownReportCodes()).toContain('ABA_MFUND')
+		expect(knownReportCodes()).toContain(REPORT_CODES.ABA_MFUND)
+	})
+
+	it('KNOWN_REPORT_DEFINITIONS covers every REPORT_CODES entry including ABA-MFUND', () => {
+		const catalogCodes = KNOWN_REPORT_DEFINITIONS.map((report) => report.code)
+		expect(catalogCodes).toEqual(expect.arrayContaining(Object.values(REPORT_CODES)))
+		expect(catalogCodes).toHaveLength(Object.values(REPORT_CODES).length)
+		expect(
+			KNOWN_REPORT_DEFINITIONS.find((report) => report.code === REPORT_CODES.ABA_MFUND)
+				?.name
+		).toBe('ABA-MFUND')
+	})
+
+	it('ADMIN knownReportCodes catalog includes ABA_MFUND even with an empty DB list', () => {
+		expect(mergeKnownReportCodes([])).toContain(REPORT_CODES.ABA_MFUND)
+		expect(mergeKnownReportCodes(['PRODUCCION_REAL'])).toEqual(
+			Object.values(REPORT_CODES)
+		)
 	})
 
 	it('mergeKnownReportCodes keeps ADMIN catalog even if DB returned none', () => {
-		expect(mergeKnownReportCodes([])).toEqual(['PRODUCCION_REAL'])
+		expect(mergeKnownReportCodes([])).toEqual(Object.values(REPORT_CODES))
 		expect(mergeKnownReportCodes(['PRODUCCION_REAL', 'OTRO'])).toEqual([
-			'PRODUCCION_REAL',
+			...Object.values(REPORT_CODES),
 			'OTRO',
 		])
 	})
