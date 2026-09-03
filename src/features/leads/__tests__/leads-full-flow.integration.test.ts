@@ -5,6 +5,7 @@ import { UserRole } from '@/features/auth/lib/roles'
 import { upsertLeadFromCrm } from '@/features/leads/services/lead-sync.service'
 import { getLeadBoard } from '@/features/leads/services/lead-board.service'
 import { getLeadForConversion } from '@/features/leads/services/lead-conversion.service'
+import { deleteLead } from '@/features/leads/services/lead-admin.service'
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
@@ -18,6 +19,7 @@ vi.mock('@/lib/prisma', () => ({
 		lead: {
 			findUnique: vi.fn(),
 			upsert: vi.fn(),
+			update: vi.fn(),
 			findMany: vi.fn(),
 			findFirst: vi.fn(),
 		},
@@ -34,6 +36,8 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 		LEAD_OUTCOME_STATUS_CHANGED: 'LEAD_OUTCOME_STATUS_CHANGED',
 		LEAD_OUTCOME_STATUS_UNRESOLVED: 'LEAD_OUTCOME_STATUS_UNRESOLVED',
 		LEAD_OUTCOME_STATUS_LOCKED: 'LEAD_OUTCOME_STATUS_LOCKED',
+		LEAD_REACTIVATED: 'LEAD_REACTIVATED',
+		LEAD_DELETED: 'LEAD_DELETED',
 	},
 	getClientIp: vi.fn(() => '127.0.0.1'),
 	getUserAgent: vi.fn(() => 'n8n'),
@@ -244,5 +248,143 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 		expect(
 			wonBoardAfterLock.flatMap((c) => c.leads).map((l) => l.idLead)
 		).toContain(200)
+	})
+
+	describe('historical timestamps: replay-safe createdAt + revive-on-resync', () => {
+		it('a resync carrying createdAt in the payload leaves the stored origin date unchanged', async () => {
+			vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(
+				NEW_COLUMN as never
+			)
+
+			const originalCreatedAt = new Date('2020-01-01T00:00:00Z')
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue({
+				idLead: 300,
+				idBusiness: null,
+				outcomeStatus: 'OPEN',
+				active: true,
+				createdAt: originalCreatedAt,
+			} as never)
+			vi.mocked(prisma.lead.upsert).mockResolvedValue({
+				idLead: 300,
+				idBusiness: null,
+				outcomeStatus: 'OPEN',
+			} as never)
+
+			await upsertLeadFromCrm({
+				externalCrmId: 'crm-historical',
+				statusKey: 'new',
+				createdAt: new Date('2024-06-01T00:00:00Z'),
+			})
+
+			const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(upsertCall.update).not.toHaveProperty('createdAt')
+		})
+
+		it('a CRM resync of a soft-deleted lead revives it — delete then resync round trip', async () => {
+			vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(
+				NEW_COLUMN as never
+			)
+			vi.mocked(prisma.lead.findUnique).mockResolvedValue({
+				idLead: 400,
+				idBusiness: null,
+				outcomeStatus: 'OPEN',
+				active: false,
+			} as never)
+			vi.mocked(prisma.lead.upsert).mockResolvedValue({
+				idLead: 400,
+				idBusiness: null,
+				outcomeStatus: 'OPEN',
+			} as never)
+
+			await upsertLeadFromCrm({
+				externalCrmId: 'crm-deleted-then-resync',
+				statusKey: 'new',
+			})
+
+			const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+			expect(upsertCall.update.active).toBe(true)
+			expect(logAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({ action: AuditAction.LEAD_REACTIVATED })
+			)
+		})
+	})
+
+	describe('admin delete then CRM resync round trip', () => {
+		it('an admin-deleted lead disappears from the board, then a CRM resync of the same externalCrmId restores it', async () => {
+			vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([NEW_COLUMN] as never)
+
+			// --- Admin deletes the eligible lead (soft delete) ---
+			vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce({
+				idLead: 500,
+				idBusiness: null,
+				outcomeStatus: 'OPEN',
+				active: true,
+			} as never)
+			vi.mocked(prisma.lead.update).mockResolvedValueOnce({
+				idLead: 500,
+				active: false,
+			} as never)
+
+			const deleteResult = await deleteLead(500)
+			expect(deleteResult.data).toEqual({ idLead: 500 })
+
+			// --- Board no longer returns it (DB-level `active: true` filter simulated) ---
+			vi.mocked(prisma.lead.findMany).mockResolvedValueOnce([])
+			const boardAfterDelete = await getLeadBoard(
+				{ idUser: 1, role: { code: UserRole.ADMIN } },
+				{}
+			)
+			expect(
+				boardAfterDelete.flatMap((c) => c.leads).map((l) => l.idLead)
+			).not.toContain(500)
+
+			// --- CRM resync of the same externalCrmId revives it ---
+			vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(
+				NEW_COLUMN as never
+			)
+			vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce({
+				idLead: 500,
+				idBusiness: null,
+				outcomeStatus: 'OPEN',
+				active: false,
+			} as never)
+			vi.mocked(prisma.lead.upsert).mockResolvedValueOnce({
+				idLead: 500,
+				idBusiness: null,
+				outcomeStatus: 'OPEN',
+			} as never)
+
+			await upsertLeadFromCrm({
+				externalCrmId: 'crm-deleted-then-resync-full-flow',
+				statusKey: 'new',
+			})
+
+			const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[
+				vi.mocked(prisma.lead.upsert).mock.calls.length - 1
+			][0]
+			expect(upsertCall.update.active).toBe(true)
+
+			// --- Board returns it again ---
+			vi.mocked(prisma.lead.findMany).mockResolvedValueOnce([
+				{
+					idLead: 500,
+					idLeadFunnelColumn: 2,
+					idUser: null,
+					name: null,
+					lastName: null,
+					email: null,
+					phone: null,
+					originTag: null,
+					outcomeStatus: 'OPEN',
+				},
+			] as never)
+			const boardAfterResync = await getLeadBoard(
+				{ idUser: 1, role: { code: UserRole.ADMIN } },
+				{}
+			)
+			expect(
+				boardAfterResync.flatMap((c) => c.leads).map((l) => l.idLead)
+			).toContain(500)
+		})
 	})
 })

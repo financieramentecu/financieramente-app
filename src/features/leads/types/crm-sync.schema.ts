@@ -1,6 +1,16 @@
 import { z } from 'zod'
 
 /**
+ * Offset-aware ISO 8601 instant, accepting only `Z` or `±HH:MM` suffixes
+ * (verified against pinned `zod@4.4.3`). Naive (offset-less) strings,
+ * offsets without a colon (`+0500`), date-only strings, and epoch strings
+ * are all rejected by construction — see design D1.
+ */
+const offsetAwareInstant = z.iso
+	.datetime({ offset: true })
+	.transform((value) => new Date(value))
+
+/**
  * CRM-agnostic ingestion contract for `POST /api/leads/crm-sync`.
  * n8n normalizes the CRM-specific payload (GoHighLevel today) into this shape.
  * Unknown keys are stripped (default Zod object behaviour).
@@ -22,6 +32,8 @@ export const crmSyncPayloadSchema = z.object({
 		.string()
 		.transform((value) => value.trim().toUpperCase())
 		.optional(),
+	createdAt: offsetAwareInstant.optional(),
+	updatedAt: offsetAwareInstant.optional(),
 })
 
 export type CrmSyncPayload = z.infer<typeof crmSyncPayloadSchema>

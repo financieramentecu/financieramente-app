@@ -4,7 +4,44 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [1.34.0] - 2026-09-01
+## [1.34.1] - 2026-09-02
+
+### Mejorado
+
+- **Eliminación de leads por administradores:** Los administradores pueden quitar del tablero leads basura o mal sincronizados desde el detalle, con diálogo de confirmación. Solo aplica a leads abiertos y sin negocio asociado. La eliminación es lógica (`active: false`); el lead desaparece del Kanban, del detalle y de la conversión.
+
+### Corregido
+
+- **Fechas históricas en la sincronización CRM:** `POST /api/leads/crm-sync` ahora acepta `createdAt` y `updatedAt` opcionales (ISO 8601 con offset). Un replay de leads históricos conserva la fecha original de creación en lugar de sellar todos con la hora de importación, de modo que filtros y reportes por rango de fechas quedan correctos. `createdAt` se escribe solo al crear; un resync posterior no la modifica. Si el payload no trae fechas, se sigue usando la hora de recepción.
+- **Reactivación al resincronizar:** Un lead eliminado por un administrador vuelve al tablero si el CRM reenvía el mismo `externalCrmId` (`active: true`) y queda registrado en auditoría como `LEAD_REACTIVATED`.
+
+### Técnico
+
+- `crmSyncPayloadSchema` accepts optional offset-aware `createdAt`/`updatedAt` (`z.iso.datetime({ offset: true })`); naive strings are rejected. Fallback is `receivedAt`.
+- `upsertLeadFromCrm()` writes `createdAt` only on create, `updatedAt` on every sync, and sets `active: true` in both branches. `LEAD_REACTIVATED` fires only on `false → true`.
+- New `canDeleteLead()`, `lead-admin.service.ts` `deleteLead()`, `DELETE /api/leads/[id]` (`requireRole([UserRole.ADMIN])`), `use-delete-lead` hook, and audit actions `LEAD_DELETED` / `LEAD_REACTIVATED`.
+- No Prisma migration: `createdAt`, `updatedAt`, and `active` already exist on `Lead`. OpenSpec change `leads-sync-historical-timestamps` archived.
+
+## [1.34.0] - 2026-08-26
+
+### Agregado
+
+- **Reporte analítico ABA-MFUND:** Administradores, Performance Leader y Business Leader pueden consultar un reporte consolidado de ventas SKANDIA + MFUND, filtrable por jerarquía, rango de fechas (fecha de creación) y estado. Incluye KPIs en COP (ABA Total, Fondeado, Emitido, Ticket promedio ABA), ranking Top 6 “ABA por Agente” con detalle expandible e “Ir a negocio”, tabla de detalle y descarga a Excel.
+- **Reporte Analítica de Leads:** Administradores, Performance Leader y Business Leader pueden consultar un reporte dinámico de leads, filtrable por rango de fechas (fecha de creación; el mes calendario actual en Bogotá por defecto) y acotado a la jerarquía visible del usuario. Incluye barras de “Estado de seguimiento” (columnas activas del funnel), gráfico de “Leads con negocio creado” desglosado por resultado (Abierto, Ganado, Perdido, Abandonado) y heatmap de “Carga por Money Strategist”.
+
+### Técnico
+
+- New feature `src/features/reports/aba-mfund/` with page `/dashboard/reportes/aba-mfund` and APIs `GET /api/reports/aba-mfund/{kpis,detail,ranking}` plus `POST /api/reports/aba-mfund/export`.
+- Catalog code `ABA_MFUND`; seed enables Performance Leader and Business Leader. ADMIN bypass unchanged. Flag `reportes_aba_mfund` (fallback `true`).
+- Universe is SKANDIA + MFUND only, COP (`idCurrency = 1`), no TRM. Producción Real MFUND exclusion is unchanged.
+- Excel export audited as `REPORT_EXPORTED` (max 5000 rows). OpenSpec change `reporte-aba-mfund` (tasks complete; not archived yet).
+- New feature `src/features/reports/leads-analytics/` with page `/dashboard/reportes/leads-analytics` and API `GET /api/reports/leads-analytics`.
+- Catalog code `LEADS_ANALYTICS`; seed enables Performance Leader and Business Leader. ADMIN bypass unchanged. Flag `reportes_leads_analytics` (fallback `true`).
+- Scope reuses `buildLeadListWhere` (same hierarchy as the leads module); empty non-bypass scope returns zeros. Date filter is Bogotá-inclusive `createdAt`.
+- Migration `20260821180000_seed_leads_analytics_report_permissions` seeds the catalog and category permissions.
+
+
+## [1.33.0] - 2026-09-01
 
 ### Agregado
 
@@ -24,19 +61,6 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - **Nuevos archivos:** `src/features/shared/hooks/use-read-only-role.ts`, `src/features/shared/components/read-only-action.tsx`, `src/lib/auth/require-write-access.ts`, `src/features/admin/users/lib/user-role-level-rules.ts`.
 - **OpenSpec change `rol-consultor-solo-lectura` archived:** Delta specs fusionadas a `openspec/specs/{read-only-role,security,navigation,negocios,report-permissions}/spec.md`. Nuevos requirements: CONSULTOR permission matrix, level assignment validation, role-based auth rejection, visibility vs. write bypass distinction, menu composition, and export blocking for read-only roles.
 - Tests: 3616 passed / 0 failed / 3 skipped (baseline 420 test files antes de fix, +2 archivos test post-apply, +16 casos test netos).
-
-## [1.33.0] - 2026-08-26
-
-### Agregado
-
-- **Reporte analítico ABA-MFUND:** Administradores, Performance Leader y Business Leader pueden consultar un reporte consolidado de ventas SKANDIA + MFUND, filtrable por jerarquía, rango de fechas (fecha de creación) y estado. Incluye KPIs en COP (ABA Total, Fondeado, Emitido, Ticket promedio ABA), ranking Top 6 “ABA por Agente” con detalle expandible e “Ir a negocio”, tabla de detalle y descarga a Excel.
-
-### Técnico
-
-- New feature `src/features/reports/aba-mfund/` with page `/dashboard/reportes/aba-mfund` and APIs `GET /api/reports/aba-mfund/{kpis,detail,ranking}` plus `POST /api/reports/aba-mfund/export`.
-- Catalog code `ABA_MFUND`; seed enables Performance Leader and Business Leader. ADMIN bypass unchanged. Flag `reportes_aba_mfund` (fallback `true`).
-- Universe is SKANDIA + MFUND only, COP (`idCurrency = 1`), no TRM. Producción Real MFUND exclusion is unchanged.
-- Excel export audited as `REPORT_EXPORTED` (max 5000 rows). OpenSpec change `reporte-aba-mfund` (tasks complete; not archived yet).
 
 ## [1.32.1] - 2026-08-21
 
