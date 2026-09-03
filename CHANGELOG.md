@@ -4,6 +4,24 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.34.1] - 2026-09-02
+
+### Mejorado
+
+- **Eliminación de leads por administradores:** Los administradores pueden quitar del tablero leads basura o mal sincronizados desde el detalle, con diálogo de confirmación. Solo aplica a leads abiertos y sin negocio asociado. La eliminación es lógica (`active: false`); el lead desaparece del Kanban, del detalle y de la conversión.
+
+### Corregido
+
+- **Fechas históricas en la sincronización CRM:** `POST /api/leads/crm-sync` ahora acepta `createdAt` y `updatedAt` opcionales (ISO 8601 con offset). Un replay de leads históricos conserva la fecha original de creación en lugar de sellar todos con la hora de importación, de modo que filtros y reportes por rango de fechas quedan correctos. `createdAt` se escribe solo al crear; un resync posterior no la modifica. Si el payload no trae fechas, se sigue usando la hora de recepción.
+- **Reactivación al resincronizar:** Un lead eliminado por un administrador vuelve al tablero si el CRM reenvía el mismo `externalCrmId` (`active: true`) y queda registrado en auditoría como `LEAD_REACTIVATED`.
+
+### Técnico
+
+- `crmSyncPayloadSchema` accepts optional offset-aware `createdAt`/`updatedAt` (`z.iso.datetime({ offset: true })`); naive strings are rejected. Fallback is `receivedAt`.
+- `upsertLeadFromCrm()` writes `createdAt` only on create, `updatedAt` on every sync, and sets `active: true` in both branches. `LEAD_REACTIVATED` fires only on `false → true`.
+- New `canDeleteLead()`, `lead-admin.service.ts` `deleteLead()`, `DELETE /api/leads/[id]` (`requireRole([UserRole.ADMIN])`), `use-delete-lead` hook, and audit actions `LEAD_DELETED` / `LEAD_REACTIVATED`.
+- No Prisma migration: `createdAt`, `updatedAt`, and `active` already exist on `Lead`. OpenSpec change `leads-sync-historical-timestamps` archived.
+
 ## [1.34.0] - 2026-08-26
 
 ### Agregado
