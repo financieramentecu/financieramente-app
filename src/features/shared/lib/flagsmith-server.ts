@@ -12,6 +12,7 @@ const FALLBACK_FLAGS: Record<FeatureFlag, boolean> = {
 	production_dashboard: true,
 	leads_module: true,
 	reportes_produccion_real: true,
+	reportes_leads_analytics: true,
 	reportes_aba_mfund: true,
 }
 

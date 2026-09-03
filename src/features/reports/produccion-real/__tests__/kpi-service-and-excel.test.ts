@@ -45,6 +45,12 @@ describe('getProduccionRealKpis', () => {
 
 		expect(prisma.business.groupBy).not.toHaveBeenCalled()
 		expect(result.produccionReal).toEqual({ sum: 0, count: 0 })
+		expect(result.regular).toEqual({
+			sum: 0,
+			count: 0,
+			totalCop: 0,
+			totalForeignUsd: 0,
+		})
 		expect(result.fondeado.conversionPercent).toBe(0)
 	})
 
@@ -89,9 +95,64 @@ describe('getProduccionRealKpis', () => {
 		})
 
 		expect(result.produccionReal.sum).toBe(2)
+		expect(result.regular).toEqual({
+			sum: 1,
+			count: 1,
+			totalCop: 4000,
+			totalForeignUsd: 0,
+		})
+		expect(result.unico).toEqual({
+			sum: 1,
+			count: 1,
+			totalCop: 4000,
+			totalForeignUsd: 0,
+		})
 		expect(result.fondeado.sum).toBe(1)
 		expect(result.fondeado.conversionPercent).toBe(50)
 		expect(prisma.business.groupBy).toHaveBeenCalledTimes(4)
+	})
+
+	it('exposes COP and foreign splits on Regular and Unico metrics', async () => {
+		vi.mocked(prisma.business.groupBy)
+			.mockResolvedValueOnce([] as never)
+			.mockResolvedValueOnce([
+				{
+					idCurrency: 1,
+					_count: { idBusiness: 2 },
+					_sum: { value: 8000 },
+				},
+				{
+					idCurrency: 2,
+					_count: { idBusiness: 1 },
+					_sum: { value: 50 },
+				},
+			] as never)
+			.mockResolvedValueOnce([
+				{
+					idCurrency: 2,
+					_count: { idBusiness: 3 },
+					_sum: { value: 75 },
+				},
+			] as never)
+			.mockResolvedValueOnce([] as never)
+
+		const result = await getProduccionRealKpis({
+			filters: filters(),
+			trmRate: 4000,
+		})
+
+		expect(result.regular).toEqual({
+			sum: 52,
+			count: 3,
+			totalCop: 8000,
+			totalForeignUsd: 50,
+		})
+		expect(result.unico).toEqual({
+			sum: 75,
+			count: 3,
+			totalCop: 0,
+			totalForeignUsd: 75,
+		})
 	})
 })
 
@@ -100,8 +161,8 @@ describe('buildProduccionRealExcelBuffer', () => {
 		const buffer = buildProduccionRealExcelBuffer({
 			kpis: {
 				produccionReal: { sum: 100, count: 2 },
-				regular: { sum: 60, count: 1 },
-				unico: { sum: 40, count: 1 },
+				regular: { sum: 60, count: 1, totalCop: 200000, totalForeignUsd: 10 },
+				unico: { sum: 40, count: 1, totalCop: 0, totalForeignUsd: 40 },
 				fondeado: { sum: 50, count: 1, conversionPercent: 50 },
 				currencyMode: CURRENCY_MODE.ALL_TRM,
 				displayCurrencyCode: 'USD',

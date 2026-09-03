@@ -32,12 +32,14 @@ export function SingleSelectFilter({
 }: SingleSelectFilterProps) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-auto rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold hover:bg-muted">
-        <div className="flex flex-col gap-0 text-left">
+      <SelectTrigger className="h-full min-h-[3.25rem] w-full min-w-0 items-center rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold hover:bg-muted [&>span]:line-clamp-none">
+        <div className="flex min-w-0 flex-1 flex-col gap-0 text-left">
           <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground leading-none">
             {placeholder}
           </span>
-          <SelectValue placeholder={placeholder} />
+          <span className="min-w-0 truncate whitespace-nowrap [&_span]:block [&_span]:truncate [&_span]:whitespace-nowrap">
+            <SelectValue placeholder={placeholder} />
+          </span>
         </div>
       </SelectTrigger>
       <SelectContent>

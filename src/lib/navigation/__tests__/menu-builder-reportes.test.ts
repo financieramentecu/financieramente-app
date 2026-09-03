@@ -26,6 +26,20 @@ describe('buildMenuByRole reportes gating', () => {
 		)
 	})
 
+	it('shows Analítica de Leads when LEADS_ANALYTICS is authorized', () => {
+		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
+			authorizedReportCodes: ['LEADS_ANALYTICS'],
+		})
+		const reportes = menu.find((item) => item.title === 'Reportes')
+		expect(reportes?.subItems?.map((s) => s.title)).toEqual([
+			'Analítica de Leads',
+		])
+		expect(reportes?.subItems?.[0]?.reportCode).toBe('LEADS_ANALYTICS')
+		expect(reportes?.subItems?.[0]?.url).toBe(
+			'/dashboard/reportes/leads-analytics'
+		)
+	})
+
 	it('shows ABA-MFUND iff ABA_MFUND is authorized', () => {
 		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
 			authorizedReportCodes: ['ABA_MFUND'],

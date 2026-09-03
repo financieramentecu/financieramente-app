@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	convertBusinessValue,
 	convertCurrencySplit,
+	consolidatedUsdFromSplit,
 	displayCurrencyForMode,
 } from '../lib/currency-conversion'
 import {
@@ -59,5 +60,17 @@ describe('displayCurrencyForMode', () => {
 		expect(displayCurrencyForMode(CURRENCY_MODE.ALL_TRM)).toBe('USD')
 		expect(displayCurrencyForMode(CURRENCY_MODE.FOREIGN)).toBe('FOREIGN')
 		expect(displayCurrencyForMode(CURRENCY_MODE.COP)).toBe('COP')
+	})
+})
+
+describe('consolidatedUsdFromSplit', () => {
+	const split = { totalCop: 4000, totalForeignUsd: 100 }
+
+	it('adds COP/TRM to foreign USD', () => {
+		expect(consolidatedUsdFromSplit(split, 4000)).toBe(101)
+	})
+
+	it('zeroes the COP portion when TRM is missing', () => {
+		expect(consolidatedUsdFromSplit(split, null)).toBe(100)
 	})
 })

@@ -4,18 +4,7 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [1.33.0] - 2026-08-26
-
-### Agregado
-
-- **Reporte analítico ABA-MFUND:** Administradores, Performance Leader y Business Leader pueden consultar un reporte consolidado de ventas SKANDIA + MFUND, filtrable por jerarquía, rango de fechas (fecha de creación) y estado. Incluye KPIs en COP (ABA Total, Fondeado, Emitido, Ticket promedio ABA), ranking Top 6 “ABA por Agente” con detalle expandible e “Ir a negocio”, tabla de detalle y descarga a Excel.
-
-### Técnico
-
-- New feature `src/features/reports/aba-mfund/` with page `/dashboard/reportes/aba-mfund` and APIs `GET /api/reports/aba-mfund/{kpis,detail,ranking}` plus `POST /api/reports/aba-mfund/export`.
-- Catalog code `ABA_MFUND`; seed enables Performance Leader and Business Leader. ADMIN bypass unchanged. Flag `reportes_aba_mfund` (fallback `true`).
-- Universe is SKANDIA + MFUND only, COP (`idCurrency = 1`), no TRM. Producción Real MFUND exclusion is unchanged.
-- Excel export audited as `REPORT_EXPORTED` (max 5000 rows). OpenSpec change `reporte-aba-mfund` (tasks complete; not archived yet).
+## [1.34.0] - 2026-09-01
 
 ### Agregado
 
@@ -35,6 +24,19 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - **Nuevos archivos:** `src/features/shared/hooks/use-read-only-role.ts`, `src/features/shared/components/read-only-action.tsx`, `src/lib/auth/require-write-access.ts`, `src/features/admin/users/lib/user-role-level-rules.ts`.
 - **OpenSpec change `rol-consultor-solo-lectura` archived:** Delta specs fusionadas a `openspec/specs/{read-only-role,security,navigation,negocios,report-permissions}/spec.md`. Nuevos requirements: CONSULTOR permission matrix, level assignment validation, role-based auth rejection, visibility vs. write bypass distinction, menu composition, and export blocking for read-only roles.
 - Tests: 3616 passed / 0 failed / 3 skipped (baseline 420 test files antes de fix, +2 archivos test post-apply, +16 casos test netos).
+
+## [1.33.0] - 2026-08-26
+
+### Agregado
+
+- **Reporte analítico ABA-MFUND:** Administradores, Performance Leader y Business Leader pueden consultar un reporte consolidado de ventas SKANDIA + MFUND, filtrable por jerarquía, rango de fechas (fecha de creación) y estado. Incluye KPIs en COP (ABA Total, Fondeado, Emitido, Ticket promedio ABA), ranking Top 6 “ABA por Agente” con detalle expandible e “Ir a negocio”, tabla de detalle y descarga a Excel.
+
+### Técnico
+
+- New feature `src/features/reports/aba-mfund/` with page `/dashboard/reportes/aba-mfund` and APIs `GET /api/reports/aba-mfund/{kpis,detail,ranking}` plus `POST /api/reports/aba-mfund/export`.
+- Catalog code `ABA_MFUND`; seed enables Performance Leader and Business Leader. ADMIN bypass unchanged. Flag `reportes_aba_mfund` (fallback `true`).
+- Universe is SKANDIA + MFUND only, COP (`idCurrency = 1`), no TRM. Producción Real MFUND exclusion is unchanged.
+- Excel export audited as `REPORT_EXPORTED` (max 5000 rows). OpenSpec change `reporte-aba-mfund` (tasks complete; not archived yet).
 
 ## [1.32.1] - 2026-08-21
 
