@@ -88,6 +88,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	)
 }
 
+const NAV_SKELETON_WIDTHS = ['64%', '76%', '72%', '79%', '69%'] as const
+
 /**
  * Placeholder mientras la sesión (rol/permisos) todavía está resolviendo.
  * Evita que el sidebar se vea vacío en el primer render (el menú depende
@@ -98,9 +100,9 @@ function NavMainSkeleton() {
 		<SidebarGroup>
 			<SidebarGroupContent className="flex flex-col gap-2">
 				<SidebarMenu>
-					{Array.from({ length: 5 }).map((_, i) => (
+					{NAV_SKELETON_WIDTHS.map((width, i) => (
 						<SidebarMenuItem key={i}>
-							<SidebarMenuSkeleton showIcon />
+							<SidebarMenuSkeleton showIcon width={width} />
 						</SidebarMenuItem>
 					))}
 				</SidebarMenu>

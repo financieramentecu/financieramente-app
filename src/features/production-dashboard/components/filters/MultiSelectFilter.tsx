@@ -97,7 +97,7 @@ export function MultiSelectFilter<T extends FilterItem>({
           aria-label={placeholder}
           aria-haspopup="listbox"
           aria-expanded={open}
-          className="group flex w-full flex-col gap-0 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-left transition-colors hover:bg-muted"
+          className="group flex h-full min-h-[3.25rem] w-full min-w-0 flex-col justify-center gap-0 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-left transition-colors hover:bg-muted"
         >
           <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground leading-none">
             {placeholder}

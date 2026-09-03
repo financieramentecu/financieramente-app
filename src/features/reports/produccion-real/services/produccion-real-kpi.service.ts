@@ -15,10 +15,13 @@ import {
 	convertCurrencySplit,
 	displayCurrencyForMode,
 } from '../lib/currency-conversion'
+import { emptyProduccionRealKpis } from '../lib/empty-kpis'
 import {
 	BUSINESS_STATUS,
 	COP_CURRENCY_ID,
+	type ComparisonMetric,
 	type CurrencySplit,
+	type KpiMetric,
 	type ProduccionRealKpiQuery,
 	type ProduccionRealKpis,
 } from '../types/produccion-real.types'
@@ -29,17 +32,6 @@ const ZERO_SPLIT: CurrencySplit = {
 	totalForeignUsd: 0,
 	count: 0,
 }
-
-const ZERO_KPIS = (
-	query: ProduccionRealKpiQuery
-): ProduccionRealKpis => ({
-	produccionReal: { sum: 0, count: 0 },
-	regular: { sum: 0, count: 0 },
-	unico: { sum: 0, count: 0 },
-	fondeado: { sum: 0, count: 0, conversionPercent: 0 },
-	currencyMode: query.filters.currencyMode,
-	displayCurrencyCode: displayCurrencyForMode(query.filters.currencyMode),
-})
 
 async function aggregateCurrencySplit(
 	where: Prisma.BusinessWhereInput
@@ -73,9 +65,21 @@ function toMetric(
 	split: CurrencySplit,
 	mode: ProduccionRealKpiQuery['filters']['currencyMode'],
 	trmRate: number | null
-): { sum: number; count: number } {
+): KpiMetric {
 	const converted = convertCurrencySplit(split, mode, trmRate)
 	return { sum: converted.amount, count: split.count }
+}
+
+function toComparisonMetric(
+	split: CurrencySplit,
+	mode: ProduccionRealKpiQuery['filters']['currencyMode'],
+	trmRate: number | null
+): ComparisonMetric {
+	return {
+		...toMetric(split, mode, trmRate),
+		totalCop: split.totalCop,
+		totalForeignUsd: split.totalForeignUsd,
+	}
 }
 
 /**
@@ -87,7 +91,7 @@ export async function getProduccionRealKpis(
 	const { filters, trmRate } = query
 
 	if (filters.userIds.length === 0) {
-		return ZERO_KPIS(query)
+		return emptyProduccionRealKpis(filters.currencyMode)
 	}
 
 	const mode = filters.currencyMode
@@ -103,8 +107,8 @@ export async function getProduccionRealKpis(
 		])
 
 	const produccionReal = toMetric(produccionSplit, mode, trmRate)
-	const regular = toMetric(regularSplit, mode, trmRate)
-	const unico = toMetric(unicoSplit, mode, trmRate)
+	const regular = toComparisonMetric(regularSplit, mode, trmRate)
+	const unico = toComparisonMetric(unicoSplit, mode, trmRate)
 	const fondeadoBase = toMetric(fondeadoSplit, mode, trmRate)
 
 	const conversionPercent =

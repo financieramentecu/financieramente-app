@@ -77,37 +77,37 @@ export function ProduccionRealDetailTable({
 				) : null}
 
 				<div ref={scrollContainerRef} className="max-h-[28rem] overflow-auto">
-					<table className="w-full min-w-[64rem] text-left text-xs">
-						<thead className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
+					<table className="w-full min-w-[72rem] border-separate border-spacing-0 text-left text-xs">
+						<thead>
 							<tr>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+								<th className="sticky top-0 z-20 min-w-[8.5rem] whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_CREATED}
 								</th>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+								<th className="sticky top-0 z-20 whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_CLIENT}
 								</th>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+								<th className="sticky top-0 z-20 whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_AGENT}
 								</th>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+								<th className="sticky top-0 z-20 whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_COMPANY}
 								</th>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+								<th className="sticky top-0 z-20 whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_PRODUCT}
 								</th>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+								<th className="sticky top-0 z-20 whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_TYPE}
 								</th>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+								<th className="sticky top-0 z-20 whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_STATUS}
 								</th>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground text-right">
+								<th className="sticky top-0 z-20 whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_VALUE}
 								</th>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+								<th className="sticky top-0 z-20 whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_ISSUED}
 								</th>
-								<th className="px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground">
+								<th className="sticky top-0 z-20 whitespace-nowrap border-b border-border bg-card px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 									{PRODUCCION_REAL_UI.COLUMN_ANCHORED}
 								</th>
 							</tr>
@@ -144,7 +144,7 @@ export function ProduccionRealDetailTable({
 										index % 2 === 1 ? 'bg-muted/25' : ''
 									}`}
 								>
-									<td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
+									<td className="min-w-[8.5rem] whitespace-nowrap px-3 py-2.5 text-muted-foreground">
 										{row.createdAtLabel}
 									</td>
 									<td className="px-3 py-2.5 font-semibold text-foreground">
