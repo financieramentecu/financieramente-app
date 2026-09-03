@@ -25,7 +25,7 @@ export const ABA_MFUND_UI = {
 	KPI_FONDEADO: 'Fondeado',
 	KPI_EMITIDO: 'Emitido',
 	KPI_TICKET_PROMEDIO: 'Ticket promedio ABA',
-	RANKING_TITLE: 'ABA por Agente',
+	RANKING_TITLE: 'ABA por Agente (Top 6)',
 	DETAIL_TITLE: 'Detalle',
 	EMPTY_TABLE: 'Sin negocios para los filtros seleccionados',
 	EMPTY_HIERARCHY: 'Seleccione al menos un usuario en la jerarquía',

@@ -273,12 +273,12 @@ KPI **Ticket promedio ABA** MUST equal **ABA Total** divided by the count of bus
 
 ### Requirement: Ranking heatmap ABA por Agente Top 6
 
-The page SHALL show a ranking titled **ABA por Agente** as a heatmap of the Top 6 agents by sales volume descending. Agente MUST be the business owner, not a commission beneficiary. When two agents have the same volume, the system MUST break ties by agent display name ascending, then by owner user identifier ascending. Ranking volume MUST use the same filtered SKANDIA MFUND set as **ABA Total**.
+The page SHALL show a ranking titled **ABA por Agente (Top 6)** as a heatmap of the Top 6 agents by sales volume descending. Agente MUST be the business owner, not a commission beneficiary. When two agents have the same volume, the system MUST break ties by agent display name ascending, then by owner user identifier ascending. Ranking volume MUST use the same filtered SKANDIA MFUND set as **ABA Total**.
 
 #### Scenario: Top 6 agents by volume
 
 - **GIVEN** more than six owners have filtered SKANDIA MFUND volume
-- **WHEN** **ABA por Agente** renders
+- **WHEN** **ABA por Agente (Top 6)** renders
 - **THEN** exactly the six highest-volume owners SHALL appear
 - **AND** they SHALL be ordered by volume descending
 
@@ -319,21 +319,22 @@ Clicking an agent in **ABA por Agente** MUST expand a row of that agent’s rela
 
 ### Requirement: Detail table columns
 
-The detail table MUST list every business in the filtered set and MUST show exactly these columns: **Fecha de creación**, **Cliente** (Nombre - Apellido), **Periodicidad**, **Estado**, **Valor del Negocio** (COP), **Fecha de emisión**, **Fecha de Fondeo**. Rows MUST use the same universe, dates, hierarchy, and Estado as the KPIs. Business dates MUST display with Bogotá-safe formatting.
+The detail table MUST list every business in the filtered set and MUST show exactly these columns: **Fecha de creación**, **Cliente** (Nombre Apellido), **Periodicidad**, **Estado**, **Valor del Negocio** (COP), **Fecha de emisión**, **Fecha de Fondeo**. Rows MUST use the same universe, dates, hierarchy, and Estado as the KPIs. Business dates MUST display with Bogotá-safe formatting.
 
 #### Scenario: Table columns match the HU and the filtered set
 
 - **GIVEN** applied filters yielding a known set of SKANDIA MFUND businesses used for **ABA Total**
 - **WHEN** the detail table is rendered
 - **THEN** it SHALL include exactly those businesses
-- **AND** the columns SHALL be Fecha de creación, Cliente (Nombre - Apellido), Periodicidad, Estado, Valor del Negocio (COP), Fecha de emisión, and Fecha de Fondeo
+- **AND** the columns SHALL be Fecha de creación, Cliente (Nombre Apellido), Periodicidad, Estado, Valor del Negocio (COP), Fecha de emisión, and Fecha de Fondeo
 - **AND** no extra business columns beyond that set SHALL be required
 
-#### Scenario: Cliente is Nombre - Apellido
+#### Scenario: Cliente is Nombre Apellido without a hyphen
 
 - **GIVEN** a client whose first name is Ana and last name is Gómez
 - **WHEN** that row renders
-- **THEN** Cliente SHALL display **Ana - Gómez**
+- **THEN** Cliente SHALL display **Ana Gómez**
+- **AND** Cliente SHALL NOT display **Ana - Gómez**
 
 ---
 

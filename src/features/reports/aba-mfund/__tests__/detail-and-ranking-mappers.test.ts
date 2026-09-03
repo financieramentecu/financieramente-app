@@ -7,8 +7,8 @@ import { mapRankingBusinessToCellRow } from '../mappers/aba-mfund-ranking.mapper
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
 
 describe('formatClientName', () => {
-	it('joins Nombre - Apellido with a hyphen', () => {
-		expect(formatClientName('Ana', 'Gómez')).toBe('Ana - Gómez')
+	it('joins Nombre and Apellido with a space', () => {
+		expect(formatClientName('Ana', 'Gómez')).toBe('Ana Gómez')
 	})
 
 	it('returns only the first name when lastName is missing', () => {
@@ -28,7 +28,7 @@ describe('mapAbaMfundDetailRow', () => {
 	const dateIssued = new Date('2026-08-12T17:00:00.000Z')
 	const dateAnchored = new Date('2026-08-15T17:00:00.000Z')
 
-	it('maps HU columns: Cliente hyphen, Fecha de Fondeo = dateAnchored', () => {
+	it('maps HU columns: Cliente space-joined, Fecha de Fondeo = dateAnchored', () => {
 		const row = mapAbaMfundDetailRow({
 			idBusiness: 42,
 			value: 1_000_000,
@@ -40,7 +40,7 @@ describe('mapAbaMfundDetailRow', () => {
 			buyPeriodicity: { name: 'Mensual' },
 		})
 
-		expect(row.clientName).toBe('Ana - Gómez')
+		expect(row.clientName).toBe('Ana Gómez')
 		expect(row.periodicityName).toBe('Mensual')
 		expect(row.status).toBe(BUSINESS_STATUS.FONDEADO)
 		expect(row.value).toBe(1_000_000)

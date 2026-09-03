@@ -4,6 +4,7 @@ vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		reportDefinition: {
 			findFirst: vi.fn(),
+			upsert: vi.fn(),
 		},
 		category: {
 			findMany: vi.fn(),
