@@ -106,6 +106,18 @@ describe('AbaMfundRankingPanel expand-row', () => {
 		expect(screen.getByText('C-001')).toBeInTheDocument()
 		expect(screen.getByText(/\$1\.000\.000 COP/)).toBeInTheDocument()
 		expect(screen.getByText('Emitido')).toBeInTheDocument()
+
+		const embed = screen.getByTestId('aba-mfund-ranking-embed-1')
+		const embedValueHeader = [...embed.querySelectorAll('th')].find(
+			(th) => th.textContent === ABA_MFUND_UI.COLUMN_VALUE
+		)
+		const embedStatusHeader = [...embed.querySelectorAll('th')].find(
+			(th) => th.textContent === ABA_MFUND_UI.COLUMN_STATUS
+		)
+		expect(embedValueHeader?.className).toContain('text-left')
+		expect(embedValueHeader?.className).not.toContain('text-right')
+		expect(embedStatusHeader?.className).toContain('text-left')
+		expect(embed.querySelector('table')?.className).toContain('table-fixed')
 		expect(screen.getByRole('link', { name: 'Ir a negocio' })).toHaveAttribute(
 			'href',
 			'/dashboard/negocios/101'

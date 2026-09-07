@@ -9,6 +9,7 @@ import {
 	toggleTodas,
 } from '@/features/report-permissions/lib/report-permissions-helpers'
 import {
+	KNOWN_REPORT_DEFINITIONS,
 	REPORT_CODES,
 	type CategoryPermissionRow,
 } from '@/features/report-permissions/types/report-permissions.types'
@@ -48,6 +49,16 @@ describe('report-permissions helpers', () => {
 		expect(knownReportCodes()).toContain('PRODUCCION_REAL')
 		expect(knownReportCodes()).toContain('ABA_MFUND')
 		expect(knownReportCodes()).toContain(REPORT_CODES.ABA_MFUND)
+	})
+
+	it('KNOWN_REPORT_DEFINITIONS covers every REPORT_CODES entry including ABA-MFUND', () => {
+		const catalogCodes = KNOWN_REPORT_DEFINITIONS.map((report) => report.code)
+		expect(catalogCodes).toEqual(expect.arrayContaining(Object.values(REPORT_CODES)))
+		expect(catalogCodes).toHaveLength(Object.values(REPORT_CODES).length)
+		expect(
+			KNOWN_REPORT_DEFINITIONS.find((report) => report.code === REPORT_CODES.ABA_MFUND)
+				?.name
+		).toBe('ABA-MFUND')
 	})
 
 	it('ADMIN knownReportCodes catalog includes ABA_MFUND even with an empty DB list', () => {
