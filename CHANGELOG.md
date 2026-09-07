@@ -4,6 +4,20 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.35.0] - 2026-09-07
+
+### Agregado
+
+- **Detalle de leads en Analítica de Leads:** En cada punto del funnel (barras de estado de seguimiento y heatmap por Money Strategist) se puede expandir la celda para ver qué leads están ahí, con nombre, asesor, estado y fecha. Desde la lista se abre el detalle del lead y, si ya tiene negocio, se puede ir a ese negocio. El listado se revela de 20 en 20 (tope 500).
+- **Filtro de jerarquía en Analítica de Leads:** El reporte usa el mismo árbol de usuarios que Producción Real y ABA-MFUND, con Aplicar/Limpiar. Sin usuarios seleccionados el reporte queda vacío.
+
+### Técnico
+
+- New API `GET /api/reports/leads-analytics/cell-leads` (`dateFrom`, `dateTo`, `userIds`, `idLeadFunnelColumn`, optional `idUser` / `none` for unassigned). Viewer scope via `intersectUserIdsWithViewerScope` (re-export from Producción Real).
+- Feature updates in `src/features/reports/leads-analytics/`: hierarchy shell, filter reducer, heatmap/bar expansion, `LeadDetailSheet`, `heatmap-cell-leads.service.ts`.
+- Empty `userIds` short-circuits KPIs and cell lists even for ADMIN/Consultor.
+- Colocated unit and integration tests for reducer, cell-leads service/route, heatmap and follow-up expansion.
+
 ## [1.34.0] - 2026-09-01
 
 ### Agregado
