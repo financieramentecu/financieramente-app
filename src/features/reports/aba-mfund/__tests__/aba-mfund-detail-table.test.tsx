@@ -35,7 +35,7 @@ describe('AbaMfundDetailTable', () => {
 		} as never)
 	})
 
-	it('renders Cliente as Nombre - Apellido', () => {
+	it('renders Cliente as Nombre Apellido without a hyphen', () => {
 		render(
 			<AbaMfundDetailTable
 				state={successState([
@@ -43,7 +43,7 @@ describe('AbaMfundDetailTable', () => {
 						idBusiness: 42,
 						createdAt: '2026-08-10T17:00:00.000Z',
 						createdAtLabel: '10 ago 2026',
-						clientName: 'Ana - Gómez',
+						clientName: 'Ana Gómez',
 						periodicityName: 'Mensual',
 						status: BUSINESS_STATUS.FONDEADO,
 						value: 1_000_000,
@@ -59,7 +59,7 @@ describe('AbaMfundDetailTable', () => {
 		)
 
 		expect(screen.getByText(ABA_MFUND_UI.COLUMN_CLIENT)).toBeInTheDocument()
-		expect(screen.getByText('Ana - Gómez')).toBeInTheDocument()
-		expect(screen.queryByText('Ana Gómez')).not.toBeInTheDocument()
+		expect(screen.getByText('Ana Gómez')).toBeInTheDocument()
+		expect(screen.queryByText('Ana - Gómez')).not.toBeInTheDocument()
 	})
 })

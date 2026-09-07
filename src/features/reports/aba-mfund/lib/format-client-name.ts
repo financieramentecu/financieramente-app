@@ -1,5 +1,5 @@
 /**
- * Cliente display: Nombre - Apellido (hyphen, not space-joined).
+ * Cliente display: Nombre Apellido (space-joined, no hyphen).
  */
 export function formatClientName(
 	name: string,
@@ -7,7 +7,7 @@ export function formatClientName(
 ): string {
 	const first = name.trim()
 	const last = lastName?.trim()
-	if (last) return `${first} - ${last}`
+	if (last) return `${first} ${last}`
 	return first
 }
 

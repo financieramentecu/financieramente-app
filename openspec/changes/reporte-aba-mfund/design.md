@@ -140,7 +140,7 @@ Draft vs applied: local reducer (`SET_DATE_*`, `SET_STATUSES`, `APPLY`, `CLEAR`)
 
 Spanish copy lives only in `lib/ui-copy.ts` (`ABA_MFUND_UI`). Status filter labels: Spanish display names for all `BUSINESS_STATUS` values from negocios (dashboard donut labels omit `CANCELADO` / `LIQUIDADO` — do not reuse that incomplete map as the filter catalog).
 
-Cliente column: `Nombre - Apellido` (proposal; not the space-joined Producción Real mapper).
+Cliente column: `Nombre Apellido` (space-joined; no hyphen).
 
 ### D7 — KPI contracts (COP only)
 

@@ -381,7 +381,7 @@ describe('ABA-MFUND report APIs', () => {
 					idBusiness: 9,
 					createdAt: '2026-08-10T17:00:00.000Z',
 					createdAtLabel: '10 ago 2026',
-					clientName: 'Ana - Gómez',
+					clientName: 'Ana Gómez',
 					periodicityName: 'Mensual',
 					status: 'EMITIDO',
 					value: 100,
@@ -400,7 +400,7 @@ describe('ABA-MFUND report APIs', () => {
 
 		expect(res.status).toBe(200)
 		expect(body.data.rows).toHaveLength(1)
-		expect(body.data.rows[0].clientName).toBe('Ana - Gómez')
+		expect(body.data.rows[0].clientName).toBe('Ana Gómez')
 		expect(body.data.hasMore).toBe(false)
 		expect(mockDetail).toHaveBeenCalled()
 		expect(mockFlag).not.toHaveBeenCalled()

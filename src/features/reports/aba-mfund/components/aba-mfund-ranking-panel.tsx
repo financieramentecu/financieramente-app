@@ -24,7 +24,14 @@ function EmbeddedBusinessesTable({
 }) {
 	return (
 		<div className="px-3 py-3">
-			<table className="w-full border-collapse text-xs">
+			<table className="w-full table-fixed border-collapse text-xs">
+				<colgroup>
+					<col className="w-[16%]" />
+					<col className="w-[22%]" />
+					<col className="w-[28%]" />
+					<col className="w-[18%]" />
+					<col className="w-[16%]" />
+				</colgroup>
 				<thead>
 					<tr className="border-b border-border text-left text-muted-foreground">
 						<th className="px-2 py-1.5 font-medium">
@@ -33,10 +40,10 @@ function EmbeddedBusinessesTable({
 						<th className="px-2 py-1.5 font-medium">
 							{ABA_MFUND_UI.COLUMN_CONTRACT}
 						</th>
-						<th className="px-2 py-1.5 text-right font-medium">
+						<th className="px-2 py-1.5 text-left font-medium">
 							{ABA_MFUND_UI.COLUMN_VALUE}
 						</th>
-						<th className="px-2 py-1.5 font-medium">
+						<th className="px-3 py-1.5 text-left font-medium">
 							{ABA_MFUND_UI.COLUMN_STATUS}
 						</th>
 						<th className="px-2 py-1.5 text-right font-medium">
@@ -49,6 +56,7 @@ function EmbeddedBusinessesTable({
 						<HeatmapCellBusinessRow
 							key={business.idBusiness}
 							business={business}
+							valueAlign="left"
 						/>
 					))}
 				</tbody>

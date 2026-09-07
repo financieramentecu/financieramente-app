@@ -1,5 +1,6 @@
+import * as React from 'react'
 import Link from 'next/link'
-import { ExternalLink, Mail, Phone, IdCard, Tag } from 'lucide-react'
+import { ExternalLink, Mail, Phone, IdCard, Tag, Trash2 } from 'lucide-react'
 import {
 	Sheet,
 	SheetContent,
@@ -12,16 +13,31 @@ import { Button } from '@/features/shared/ui/button'
 import { Badge } from '@/features/shared/ui/badge'
 import { Separator } from '@/features/shared/ui/separator'
 import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from '@/features/shared/ui/alert-dialog'
+import {
 	LEAD_OUTCOME_STATUS_LABELS,
 	LEAD_OUTCOME_STATUS_BADGE_VARIANTS,
 } from '@/features/leads/lib/lead-outcome-status'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
+import { canDeleteLead } from '@/features/leads/lib/can-delete-lead'
+import { useDeleteLead } from '@/features/leads/hooks/use-delete-lead'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
 
 interface LeadDetailSheetProps {
 	lead: LeadDetail | null
 	open: boolean
 	onOpenChange: (open: boolean) => void
+	isAdmin?: boolean
+	onDeleted?: () => void
 }
 
 /**
@@ -36,13 +52,25 @@ export function LeadDetailSheet({
 	lead,
 	open,
 	onOpenChange,
+	isAdmin = false,
+	onDeleted,
 }: LeadDetailSheetProps) {
+	const { state: deleteState, deleteLead } = useDeleteLead()
+
+	React.useEffect(() => {
+		if (deleteState.status === 'success') {
+			onDeleted?.()
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [deleteState.status])
+
 	if (!lead) return null
 
 	const fullName = [lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
 	const hasExternalUrl = Boolean(lead.externalUrl && lead.externalUrl.trim() !== '')
 	const isConverted = lead.idBusiness != null
 	const hasOwner = lead.idUser != null
+	const canDelete = isAdmin && canDeleteLead(lead)
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -130,6 +158,33 @@ export function LeadDetailSheet({
 								<ExternalLink className="size-3.5" aria-hidden />
 							</a>
 						</Button>
+					)}
+					{canDelete && (
+						<AlertDialog>
+							<AlertDialogTrigger asChild>
+								<Button variant="destructive" className="w-full">
+									<Trash2 className="size-3.5" aria-hidden />
+									Eliminar lead
+								</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>¿Eliminar este lead?</AlertDialogTitle>
+									<AlertDialogDescription>
+										Esta acción oculta el lead del tablero. Un futuro resync
+										del CRM puede restaurarlo.
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel>Cancelar</AlertDialogCancel>
+									<AlertDialogAction
+										onClick={() => deleteLead(lead.idLead)}
+									>
+										Confirmar
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
 					)}
 				</SheetFooter>
 			</SheetContent>
