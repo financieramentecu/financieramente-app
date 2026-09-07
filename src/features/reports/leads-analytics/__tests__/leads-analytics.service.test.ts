@@ -30,6 +30,18 @@ describe('getLeadsAnalyticsReport', () => {
 		expect(prisma.lead.groupBy).not.toHaveBeenCalled()
 	})
 
+	it('returns an empty report even for bypass when no users are selected', async () => {
+		const result = await getLeadsAnalyticsReport({
+			range: { dateFrom: '2026-08-01', dateTo: '2026-08-31' },
+			viewer: { idUser: 1, role: { code: UserRole.ADMIN } },
+			visibleUserIds: [],
+			isBypass: true,
+		})
+
+		expect(result).toEqual(EMPTY_LEADS_ANALYTICS_REPORT)
+		expect(prisma.lead.groupBy).not.toHaveBeenCalled()
+	})
+
 	it('aggregates bars, converted slices and heatmap from groupBy rows', async () => {
 		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([
 			{ idLeadFunnelColumn: 1, name: 'Lead nuevo', position: 0 },
@@ -58,7 +70,7 @@ describe('getLeadsAnalyticsReport', () => {
 		const result = await getLeadsAnalyticsReport({
 			range: { dateFrom: '2026-08-01', dateTo: '2026-08-31' },
 			viewer: { idUser: 1, role: { code: UserRole.ADMIN } },
-			visibleUserIds: [],
+			visibleUserIds: [10],
 			isBypass: true,
 		})
 
