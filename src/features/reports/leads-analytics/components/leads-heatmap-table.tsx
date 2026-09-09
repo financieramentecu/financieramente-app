@@ -1,12 +1,15 @@
 'use client'
 
-import { Grid3x3 } from 'lucide-react'
+import { Fragment, useState } from 'react'
+import { ChevronDown, ChevronRight, Grid3x3 } from 'lucide-react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/features/shared/ui/card'
 import { EmptyState } from '@/features/shared/ui/empty-state'
+import { HeatmapCellLeadList } from './heatmap-cell-lead-list'
 import { heatmapCellStyle } from '../lib/build-report-view'
+import { cellOwnerFilterFromHeatmapRow } from '../lib/cell-owner-filter'
 import { LEADS_ANALYTICS_UI } from '../lib/ui-copy'
-import type { LeadsAnalyticsReport } from '../types/leads-analytics.types'
+import type { HeatmapRow, LeadsAnalyticsReport } from '../types/leads-analytics.types'
 
 interface LeadsHeatmapTableProps {
 	readonly state: AsyncState<LeadsAnalyticsReport>
@@ -39,15 +42,32 @@ const STICKY_FIRST_COL_STYLE = {
 	boxShadow: '2px 0 6px -2px rgba(0, 0, 0, 0.12)',
 }
 
+function rowExpandKey(row: HeatmapRow): string {
+	return String(row.idUser ?? 'none')
+}
+
 /**
- * Money Strategist × follow-up status heatmap of lead counts.
+ * Money Strategist × follow-up heatmap. Chevron expands lead detail per column.
  */
 export function LeadsHeatmapTable({ state }: LeadsHeatmapTableProps) {
+	const [expandedOwners, setExpandedOwners] = useState<ReadonlySet<string>>(
+		new Set()
+	)
 	const isLoading = state.status === 'loading' || state.status === 'idle'
 	const heatmap =
 		state.status === 'success'
 			? state.data.heatmap
 			: { columns: [], rows: [], maxCellCount: 0 }
+
+	const toggleRow = (row: HeatmapRow) => {
+		const key = rowExpandKey(row)
+		setExpandedOwners((prev) => {
+			const next = new Set(prev)
+			if (next.has(key)) next.delete(key)
+			else next.add(key)
+			return next
+		})
+	}
 
 	return (
 		<Card className="border border-border shadow-sm">
@@ -102,33 +122,90 @@ export function LeadsHeatmapTable({ state }: LeadsHeatmapTableProps) {
 								</tr>
 							</thead>
 							<tbody>
-								{heatmap.rows.map((row) => (
-									<tr key={row.idUser ?? 'unassigned'}>
-										<th
-											scope="row"
-											className="whitespace-nowrap border-b border-border bg-card px-3 py-2.5 font-medium text-foreground"
-											style={STICKY_FIRST_COL_STYLE}
-										>
-											{row.ownerName}
-										</th>
-										{row.cells.map((count, index) => {
-											const column = heatmap.columns[index]
-											const style = heatmapCellStyle(
-												count,
-												heatmap.maxCellCount
-											)
-											return (
-												<td
-													key={`${row.idUser ?? 'unassigned'}-${column.idLeadFunnelColumn}`}
-													className="border-b border-border px-3 py-2.5 text-right tabular-nums"
-													style={style}
+								{heatmap.rows.map((row) => {
+									const ownerKey = rowExpandKey(row)
+									const expandableIndexes = row.cells
+										.map((count, index) => ({ count, index }))
+										.filter((cell) => cell.count > 0)
+									const isExpanded = expandedOwners.has(ownerKey)
+									const colSpan = 1 + heatmap.columns.length
+
+									return (
+										<Fragment key={ownerKey}>
+											<tr>
+												<th
+													scope="row"
+													className="whitespace-nowrap border-b border-border bg-card px-3 py-2.5 font-medium text-foreground"
+													style={STICKY_FIRST_COL_STYLE}
 												>
-													{count > 0 ? count : '—'}
-												</td>
-											)
-										})}
-									</tr>
-								))}
+													<div className="flex items-center gap-1.5">
+														<button
+															type="button"
+															onClick={() => toggleRow(row)}
+															disabled={expandableIndexes.length === 0}
+															aria-expanded={isExpanded}
+															aria-label={
+																isExpanded
+																	? LEADS_ANALYTICS_UI.COLLAPSE_OWNER
+																	: LEADS_ANALYTICS_UI.EXPAND_OWNER
+															}
+															className="shrink-0 cursor-pointer rounded p-0.5 text-muted-foreground hover:bg-muted/40 disabled:cursor-default disabled:opacity-30"
+														>
+															{isExpanded ? (
+																<ChevronDown className="size-3.5" />
+															) : (
+																<ChevronRight className="size-3.5" />
+															)}
+														</button>
+														<span>{row.ownerName}</span>
+													</div>
+												</th>
+												{row.cells.map((count, index) => {
+													const column = heatmap.columns[index]
+													const style = heatmapCellStyle(
+														count,
+														heatmap.maxCellCount
+													)
+													return (
+														<td
+															key={`${ownerKey}-${column.idLeadFunnelColumn}`}
+															className="border-b border-border px-3 py-2.5 text-right tabular-nums"
+															style={style}
+														>
+															{count > 0 ? count : '—'}
+														</td>
+													)
+												})}
+											</tr>
+											{isExpanded ? (
+												<tr>
+													<td
+														colSpan={colSpan}
+														className="border-b border-border bg-muted/10 p-0"
+													>
+														<div className="divide-y divide-border">
+															{expandableIndexes.map(({ index }) => {
+																const column = heatmap.columns[index]
+																return (
+																	<HeatmapCellLeadList
+																		key={`${ownerKey}-${column.idLeadFunnelColumn}`}
+																		idLeadFunnelColumn={
+																			column.idLeadFunnelColumn
+																		}
+																		ownerFilter={cellOwnerFilterFromHeatmapRow(
+																			row.idUser
+																		)}
+																		columnName={column.name}
+																	/>
+																)
+															})}
+														</div>
+													</td>
+												</tr>
+											) : null}
+										</Fragment>
+									)
+								})}
 							</tbody>
 						</table>
 					</div>
