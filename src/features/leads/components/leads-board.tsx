@@ -2,6 +2,8 @@
 
 import * as React from 'react'
 import { RefreshCw } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { UserRole } from '@/features/auth/lib/roles'
 import { useLeadsBoard } from '@/features/leads/hooks/use-leads-board'
 import { LeadFunnelColumnView } from '@/features/leads/components/lead-funnel-column-view'
 import { LeadFunnelColumnSkeleton } from '@/features/leads/components/lead-funnel-column-skeleton'
@@ -20,6 +22,8 @@ import type { LeadDetail } from '@/features/leads/types/lead.types'
  * click.
  */
 export function LeadsBoard() {
+	const { data: session } = useSession()
+	const isAdmin = session?.user?.role === UserRole.ADMIN
 	const [filters, setFilters] = React.useState(getDefaultLeadBoardFilters())
 	const { state, refetch } = useLeadsBoard(filters)
 	const isRefreshing = state.status === 'loading'
@@ -27,6 +31,11 @@ export function LeadsBoard() {
 		null
 	)
 	const [sheetOpen, setSheetOpen] = React.useState(false)
+
+	const handleLeadDeleted = React.useCallback(() => {
+		setSheetOpen(false)
+		refetch()
+	}, [refetch])
 
 	const handleLeadClick = React.useCallback(async (idLead: number) => {
 		try {
@@ -86,6 +95,8 @@ export function LeadsBoard() {
 				lead={selectedLead}
 				open={sheetOpen}
 				onOpenChange={setSheetOpen}
+				isAdmin={isAdmin}
+				onDeleted={handleLeadDeleted}
 			/>
 		</div>
 	)
