@@ -27,6 +27,8 @@ export interface HeatmapCellLeadsQuery {
 	readonly dateFrom: string
 	readonly dateTo: string
 	readonly userIds: readonly number[]
-	readonly idLeadFunnelColumn: number
+	readonly idLeadFunnelColumn: number | null
 	readonly ownerFilter: CellOwnerFilter
+	readonly withBusiness: boolean
+	readonly outcomeStatus: LeadOutcomeStatus | null
 }

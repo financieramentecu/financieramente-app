@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { LeadOutcomeStatus } from '@/features/leads/types/lead.types'
 import { useHeatmapCellLeads } from '../hooks/use-heatmap-cell-leads'
 import type { CellOwnerFilter } from '../lib/cell-owner-filter'
 import { LEADS_ANALYTICS_UI } from '../lib/ui-copy'
@@ -10,23 +11,29 @@ import { useLeadsAnalyticsDetail } from './leads-analytics-detail-context'
 const REVEAL_STEP = 20
 
 interface HeatmapCellLeadListProps {
-	readonly idLeadFunnelColumn: number
+	readonly idLeadFunnelColumn: number | null
 	readonly ownerFilter: CellOwnerFilter
 	readonly columnName: string
+	readonly withBusiness?: boolean
+	readonly outcomeStatus?: LeadOutcomeStatus | null
 }
 
 /**
- * Lazy lead list inside an expanded heatmap row or follow-up bar.
+ * Lazy lead list inside an expanded heatmap row, follow-up bar, or converted bar.
  */
 export function HeatmapCellLeadList({
 	idLeadFunnelColumn,
 	ownerFilter,
 	columnName,
+	withBusiness = false,
+	outcomeStatus = null,
 }: HeatmapCellLeadListProps) {
 	const { openLead } = useLeadsAnalyticsDetail()
 	const state = useHeatmapCellLeads({
 		idLeadFunnelColumn,
 		ownerFilter,
+		withBusiness,
+		outcomeStatus,
 		enabled: true,
 	})
 	const [visibleCount, setVisibleCount] = useState(REVEAL_STEP)
@@ -65,8 +72,8 @@ export function HeatmapCellLeadList({
 					{LEADS_ANALYTICS_UI.HEATMAP_EMPTY}
 				</p>
 			) : (
-				<div className="px-3 py-3">
-					<table className="w-full table-fixed border-collapse text-xs">
+				<div className="overflow-x-auto px-3 py-3">
+					<table className="w-full min-w-[36rem] border-collapse text-xs">
 						<thead>
 							<tr className="border-b border-border text-left text-muted-foreground">
 								<th className="px-2 py-1.5 font-medium">
@@ -81,7 +88,7 @@ export function HeatmapCellLeadList({
 								<th className="px-2 py-1.5 font-medium">
 									{LEADS_ANALYTICS_UI.COLUMN_CREATED}
 								</th>
-								<th className="px-2 py-1.5 text-right font-medium">
+								<th className="px-2 py-1.5 text-right font-medium whitespace-nowrap">
 									{LEADS_ANALYTICS_UI.COLUMN_ACTION}
 								</th>
 							</tr>

@@ -106,4 +106,35 @@ describe('getHeatmapCellLeads', () => {
 			})
 		)
 	})
+
+	it('filters converted leads by business and outcome without a funnel column', async () => {
+		vi.mocked(prisma.lead.count).mockResolvedValue(1)
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([])
+
+		await getHeatmapCellLeads({
+			range: RANGE,
+			viewer: VIEWER,
+			visibleUserIds: [10],
+			idLeadFunnelColumn: null,
+			ownerFilter: CELL_OWNER_SENTINEL.ALL,
+			withBusiness: true,
+			outcomeStatus: 'OPEN',
+		})
+
+		const where = vi.mocked(prisma.lead.findMany).mock.calls[0]?.[0]?.where as {
+			AND: readonly object[]
+		}
+		expect(where.AND).toEqual(
+			expect.arrayContaining([
+				{ idUser: { in: [10] } },
+				{ idBusiness: { not: null } },
+				{ outcomeStatus: 'OPEN' },
+			])
+		)
+		expect(where.AND).not.toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ idLeadFunnelColumn: expect.anything() }),
+			])
+		)
+	})
 })

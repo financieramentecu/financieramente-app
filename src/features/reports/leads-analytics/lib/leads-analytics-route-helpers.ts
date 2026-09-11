@@ -203,6 +203,8 @@ export async function authorizeAndParseLeadsAnalyticsCellQuery(
 				userIds: visibleUserIds,
 				idLeadFunnelColumn: parsed.data.idLeadFunnelColumn,
 				ownerFilter: parsed.data.ownerFilter,
+				withBusiness: parsed.data.withBusiness,
+				outcomeStatus: parsed.data.outcomeStatus,
 			},
 		},
 	}
