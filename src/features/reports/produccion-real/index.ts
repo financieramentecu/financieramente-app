@@ -11,6 +11,7 @@ export {
 export type {
 	CurrencyMode,
 	DisplayCurrencyCode,
+	ComparisonMetric,
 	ProduccionRealFilters,
 	ProduccionRealKpis,
 	ProduccionRealDetailRow,
@@ -27,6 +28,7 @@ export {
 export {
 	convertCurrencySplit,
 	convertBusinessValue,
+	consolidatedUsdFromSplit,
 	displayCurrencyForMode,
 } from './lib/currency-conversion'
 

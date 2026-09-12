@@ -31,6 +31,7 @@ const SEGMENT_LABELS: Record<string, string> = {
 	reglas: 'Reglas',
 	'report-permissions': 'Permisos de Reportes',
 	'produccion-real': 'Producción Real',
+	'aba-mfund': 'ABA-MFUND',
 }
 
 /**

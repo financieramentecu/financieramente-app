@@ -49,4 +49,10 @@ export const PRODUCCION_REAL_UI = {
 	HIERARCHY: 'Jerarquía',
 	NEGOCIO_SINGULAR: 'negocio',
 	NEGOCIOS_PLURAL: 'negocios',
+	OPERACION_SINGULAR: 'operación',
+	OPERACIONES_PLURAL: 'operaciones',
+	TOOLTIP_OPERATIONS: 'Total de operaciones',
+	TOOLTIP_VALUE_COP: 'Valor en pesos',
+	TOOLTIP_VALUE_USD: 'Valor en USD',
+	TOOLTIP_TOTAL_USD: 'Valor total en USD',
 } as const

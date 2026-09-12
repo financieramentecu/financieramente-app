@@ -84,7 +84,7 @@ function ShellContent({ canExport }: ShellContentProps) {
 					trmError={trmError}
 					setManualTrm={setManualTrm}
 				/>
-				<RegularVsUnicaBars state={kpiState} />
+				<RegularVsUnicaBars state={kpiState} trmRate={trmRate} />
 				<ProduccionRealDetailTable
 					state={detailState}
 					loadMore={loadMore}

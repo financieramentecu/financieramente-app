@@ -105,8 +105,8 @@ describe('useProduccionRealKpis hierarchy selection', () => {
 		setup([10, 11])
 		mockFetchKpis.mockResolvedValue({
 			produccionReal: { sum: 150, count: 3 },
-			regular: { sum: 100, count: 2 },
-			unico: { sum: 50, count: 1 },
+			regular: { sum: 100, count: 2, totalCop: 400000, totalForeignUsd: 0 },
+			unico: { sum: 50, count: 1, totalCop: 0, totalForeignUsd: 50 },
 			fondeado: { sum: 75, count: 1, conversionPercent: 50 },
 			currencyMode: CURRENCY_MODE.ALL_TRM,
 			displayCurrencyCode: 'USD',

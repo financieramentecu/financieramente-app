@@ -245,8 +245,8 @@ describe('Producción Real report APIs — authorization', () => {
 		mockCanView.mockResolvedValue(true)
 		mockKpis.mockResolvedValue({
 			produccionReal: { sum: 10, count: 1 },
-			regular: { sum: 10, count: 1 },
-			unico: { sum: 0, count: 0 },
+			regular: { sum: 10, count: 1, totalCop: 40000, totalForeignUsd: 0 },
+			unico: { sum: 0, count: 0, totalCop: 0, totalForeignUsd: 0 },
 			fondeado: { sum: 5, count: 1, conversionPercent: 50 },
 			currencyMode: CURRENCY_MODE.ALL_TRM,
 			displayCurrencyCode: 'USD',
@@ -275,8 +275,8 @@ describe('Producción Real report APIs — authorization', () => {
 		mockCanView.mockResolvedValue(true)
 		mockKpis.mockResolvedValue({
 			produccionReal: { sum: 0, count: 0 },
-			regular: { sum: 0, count: 0 },
-			unico: { sum: 0, count: 0 },
+			regular: { sum: 0, count: 0, totalCop: 0, totalForeignUsd: 0 },
+			unico: { sum: 0, count: 0, totalCop: 0, totalForeignUsd: 0 },
 			fondeado: { sum: 0, count: 0, conversionPercent: 0 },
 			currencyMode: CURRENCY_MODE.ALL_TRM,
 			displayCurrencyCode: 'USD',
@@ -336,8 +336,8 @@ describe('Producción Real report APIs — authorization', () => {
 		const buffer = buildProduccionRealExcelBuffer({
 			kpis: {
 				produccionReal: { sum: 100, count: 1 },
-				regular: { sum: 100, count: 1 },
-				unico: { sum: 0, count: 0 },
+				regular: { sum: 100, count: 1, totalCop: 400000, totalForeignUsd: 0 },
+				unico: { sum: 0, count: 0, totalCop: 0, totalForeignUsd: 0 },
 				fondeado: { sum: 50, count: 1, conversionPercent: 50 },
 				currencyMode: CURRENCY_MODE.ALL_TRM,
 				displayCurrencyCode: 'USD',

@@ -4,25 +4,13 @@ import { useState, useEffect } from 'react'
 import { useHierarchySelection } from '@/features/production-dashboard/components/HierarchySelectionContext'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 import { useProduccionRealFilter } from '../components/produccion-real-filter-context'
+import { emptyProduccionRealKpis } from '../lib/empty-kpis'
 import { fetchProduccionRealKpis } from '../lib/produccion-real-api'
 import { PRODUCCION_REAL_UI } from '../lib/ui-copy'
-import { displayCurrencyForMode } from '../lib/currency-conversion'
 import {
 	CURRENCY_MODE,
-	type CurrencyMode,
 	type ProduccionRealKpis,
 } from '../types/produccion-real.types'
-
-function buildZeroKpis(currencyMode: CurrencyMode): ProduccionRealKpis {
-	return {
-		produccionReal: { sum: 0, count: 0 },
-		regular: { sum: 0, count: 0 },
-		unico: { sum: 0, count: 0 },
-		fondeado: { sum: 0, count: 0, conversionPercent: 0 },
-		currencyMode,
-		displayCurrencyCode: displayCurrencyForMode(currencyMode),
-	}
-}
 
 export interface UseProduccionRealKpisResult {
 	readonly state: AsyncState<ProduccionRealKpis>
@@ -55,7 +43,7 @@ export function useProduccionRealKpis(options: {
 		if (selectedUserIds.length === 0) {
 			setState({
 				status: 'success',
-				data: buildZeroKpis(applied.currencyMode),
+				data: emptyProduccionRealKpis(applied.currencyMode),
 				error: '',
 			})
 			return

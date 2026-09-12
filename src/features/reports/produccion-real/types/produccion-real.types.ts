@@ -78,14 +78,20 @@ export interface KpiMetric {
 	readonly count: number
 }
 
+/** Regular / Único KPI with currency split for comparison tooltips. */
+export interface ComparisonMetric extends KpiMetric {
+	readonly totalCop: number
+	readonly totalForeignUsd: number
+}
+
 export interface FondeadoKpiMetric extends KpiMetric {
 	readonly conversionPercent: number
 }
 
 export interface ProduccionRealKpis {
 	readonly produccionReal: KpiMetric
-	readonly regular: KpiMetric
-	readonly unico: KpiMetric
+	readonly regular: ComparisonMetric
+	readonly unico: ComparisonMetric
 	readonly fondeado: FondeadoKpiMetric
 	readonly currencyMode: CurrencyMode
 	readonly displayCurrencyCode: DisplayCurrencyCode

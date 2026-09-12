@@ -41,7 +41,7 @@ function DatePickerCell({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="group flex flex-col gap-0 w-full rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-left transition-colors duration-150 hover:bg-muted cursor-pointer"
+          className="group flex h-full min-h-[3.25rem] w-full flex-col justify-center gap-0 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-left transition-colors duration-150 hover:bg-muted cursor-pointer"
         >
           <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground leading-none tracking-wide uppercase">
             <CalendarIcon className="h-3 w-3" />
@@ -69,8 +69,8 @@ function DatePickerCell({
 
 export function MonthRangePicker({ value, onChange, error }: MonthRangePickerProps) {
   return (
-    <div className="flex flex-col gap-1.5 lg:col-span-2">
-      <div className="grid grid-cols-2 gap-2">
+    <div className="flex h-full min-h-[3.25rem] flex-col gap-1.5 lg:col-span-2">
+      <div className="grid h-full grid-cols-2 items-stretch gap-2">
         <DatePickerCell
           label="Desde"
           date={value.start}

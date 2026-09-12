@@ -86,6 +86,17 @@ export function convertBusinessValue(
 }
 
 /**
+ * Consolidated USD for tooltips: foreign USD + COP converted with TRM.
+ * Missing / invalid TRM zeroes the COP portion (same rule as ALL_TRM).
+ */
+export function consolidatedUsdFromSplit(
+	split: Pick<CurrencySplit, 'totalCop' | 'totalForeignUsd'>,
+	trmRate: number | null
+): number {
+	return convertCurrencySplit(split, CURRENCY_MODE.ALL_TRM, trmRate).amount
+}
+
+/**
  * Display currency label for UI / Excel headers given mode.
  */
 export function displayCurrencyForMode(mode: CurrencyMode): DisplayCurrencyCode {
