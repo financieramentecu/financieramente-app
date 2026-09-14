@@ -11,7 +11,7 @@ Leadership needs a dedicated **ABA-MFUND** sales analytics report (filters, hier
 - **Default filters:** universe is **only** Compañía = SKANDIA **and** Producto = MFUND (everything else is excluded). **Desde** / **Hasta** = current Bogotá month on **Fecha de creación**. **Jerarquía** = **Toda**. **Estado** = **Todos**.
 - **KPIs (COP only):** **ABA Total** = sum of business value of filtered rows; **Fondeado** = sum where status is Fondeado (`FONDEADO`); **Emitido** = sum where status is Emitido (`EMITIDO`); **Ticket promedio ABA** = ABA Total / count of businesses (0 when count is 0).
 - **Ranking heatmap “ABA por Agente”:** Top 6 agents by sales volume descending (tie-break: agent name, then `idUser`). Clicking an agent expands a row with related businesses: Producto, Contrato, Valor, Estado, **Ir a negocio**. Agente = `Business.idUser` (owner), not commission beneficiary.
-- **Detail table:** Fecha de creación, Cliente (Nombre - Apellido), Periodicidad, Estado, Valor del Negocio (COP), Fecha de emisión, Fecha de Fondeo (`dateAnchored`). Excel export of **all** filtered detail rows (max 5000), audited as `REPORT_EXPORTED`.
+- **Detail table:** Fecha de creación, Cliente (Nombre Apellido, sin guion), Periodicidad, Estado, Valor del Negocio (COP), Fecha de emisión, Fecha de Fondeo (`dateAnchored`). Excel export of **all** filtered detail rows (max 5000), audited as `REPORT_EXPORTED`.
 - **Gating:** Flagsmith flag `reportes_aba_mfund` with fallback `true` (same pattern as Producción Real). Reuse `HierarchySelectionProvider` and viewer-scope intersection (non-admin **Toda** = visible subtree).
 
 ### Product decisions (locked)

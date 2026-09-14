@@ -4,12 +4,13 @@ import {
 	knownReportCodes,
 	mergeKnownReportCodes,
 } from '@/features/report-permissions/lib/report-permissions-helpers'
-import type {
-	AuthorizedReportsDto,
-	CategoryPermissionRow,
-	ReportDefinitionDto,
-	ReportPermissionMatrix,
-	ReportPermissionsCatalog,
+import {
+	KNOWN_REPORT_DEFINITIONS,
+	type AuthorizedReportsDto,
+	type CategoryPermissionRow,
+	type ReportDefinitionDto,
+	type ReportPermissionMatrix,
+	type ReportPermissionsCatalog,
 } from '@/features/report-permissions/types/report-permissions.types'
 
 function toReportDto(row: {
@@ -27,6 +28,31 @@ function toReportDto(row: {
 		description: row.description,
 		routePath: row.routePath,
 		status: row.status,
+	}
+}
+
+/**
+ * Upserts every known report so Permisos de Reportes lists the full catalog
+ * even when migrate/seed has not yet inserted a new code (e.g. ABA_MFUND).
+ */
+export async function ensureKnownReportDefinitions(): Promise<void> {
+	for (const report of KNOWN_REPORT_DEFINITIONS) {
+		await prisma.reportDefinition.upsert({
+			where: { code: report.code },
+			create: {
+				code: report.code,
+				name: report.name,
+				description: report.description,
+				routePath: report.routePath,
+				status: true,
+			},
+			update: {
+				name: report.name,
+				description: report.description,
+				routePath: report.routePath,
+				status: true,
+			},
+		})
 	}
 }
 
@@ -75,6 +101,7 @@ export async function getPermissionMatrix(
 export async function getReportPermissionsCatalog(
 	reportCode?: string
 ): Promise<ReportPermissionsCatalog> {
+	await ensureKnownReportDefinitions()
 	const reports = await listReportDefinitions()
 	const code = reportCode ?? reports[0]?.code
 	const matrix = code ? await getPermissionMatrix(code) : null
@@ -91,6 +118,8 @@ export async function replaceReportPermissions(
 	reportCode: string,
 	categoryIds: readonly number[]
 ): Promise<ReportPermissionMatrix> {
+	await ensureKnownReportDefinitions()
+
 	const report = await prisma.reportDefinition.findFirst({
 		where: { code: reportCode, status: true },
 	})

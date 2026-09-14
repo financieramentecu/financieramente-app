@@ -116,7 +116,7 @@ describe('getAbaMfundDetail', () => {
 		expect(result).toEqual({ rows: [], nextCursor: null, hasMore: false })
 	})
 
-	it('uses keyset take limit+1 and maps Cliente with hyphen', async () => {
+	it('uses keyset take limit+1 and maps Cliente with a space', async () => {
 		const createdAt = new Date('2026-08-10T17:00:00.000Z')
 		vi.mocked(prisma.business.findMany).mockResolvedValueOnce([
 			{
@@ -141,7 +141,7 @@ describe('getAbaMfundDetail', () => {
 			orderBy: [{ createdAt: 'desc' }, { idBusiness: 'desc' }],
 			take: 51,
 		})
-		expect(result.rows[0]?.clientName).toBe('Ana - Gómez')
+		expect(result.rows[0]?.clientName).toBe('Ana Gómez')
 		expect(result.hasMore).toBe(false)
 		expect(result.nextCursor).toBeNull()
 	})
@@ -262,7 +262,7 @@ describe('buildAbaMfundExcelBuffer', () => {
 		idBusiness: 1,
 		createdAt: '2026-08-05T17:00:00.000Z',
 		createdAtLabel: '5 ago 2026',
-		clientName: 'Ana - Gómez',
+		clientName: 'Ana Gómez',
 		periodicityName: 'Mensual',
 		status: BUSINESS_STATUS.FONDEADO,
 		value: 250000,
@@ -289,7 +289,7 @@ describe('buildAbaMfundExcelBuffer', () => {
 			ABA_MFUND_UI.COLUMN_ISSUED,
 			ABA_MFUND_UI.COLUMN_ANCHORED,
 		])
-		expect(aoa[1]?.[1]).toBe('Ana - Gómez')
+		expect(aoa[1]?.[1]).toBe('Ana Gómez')
 		expect(aoa[1]?.[6]).toBe('15 ago 2026')
 	})
 })

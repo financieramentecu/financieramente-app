@@ -19,7 +19,7 @@ interface AbaMfundDetailTableProps {
 
 /**
  * Continuous-scroll detail table (IntersectionObserver on sentinel).
- * Seven HU columns; Cliente is Nombre - Apellido from the mapper.
+ * Seven HU columns; Cliente is Nombre Apellido from the mapper.
  */
 export function AbaMfundDetailTable({
 	state,

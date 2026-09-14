@@ -22,11 +22,27 @@ const catalogSuccess = {
 	data: {
 		reports: [
 			{
+				id: 2,
+				code: 'LEADS_ANALYTICS',
+				name: 'Analítica de Leads',
+				description: null,
+				routePath: '/dashboard/reportes/leads-analytics',
+				status: true,
+			},
+			{
 				id: 1,
 				code: 'PRODUCCION_REAL',
 				name: 'Producción Real',
 				description: null,
 				routePath: '/dashboard/reportes/produccion-real',
+				status: true,
+			},
+			{
+				id: 3,
+				code: 'ABA_MFUND',
+				name: 'ABA-MFUND',
+				description: null,
+				routePath: '/dashboard/reportes/aba-mfund',
 				status: true,
 			},
 		],
@@ -73,6 +89,9 @@ describe('ReportPermissionsAdmin', () => {
 		mockHook()
 		render(<ReportPermissionsAdmin />)
 
+		expect(screen.getByText('Analítica de Leads')).toBeInTheDocument()
+		expect(screen.getAllByText('Producción Real').length).toBeGreaterThan(0)
+		expect(screen.getByText('ABA-MFUND')).toBeInTheDocument()
 		expect(screen.getByText(REPORT_PERMISSIONS_UI.TODAS)).toBeInTheDocument()
 		expect(screen.getByText('MS Junior')).toBeInTheDocument()
 		expect(screen.getByText('Performance Leader')).toBeInTheDocument()

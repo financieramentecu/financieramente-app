@@ -1,11 +1,11 @@
 /**
- * Integration-style authz tests for Leads Analytics.
+ * Authz tests for Leads Analytics cell-leads.
  * Overrides vitest.setup `next/server` stub so query URLs work.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { UserRole } from '@/features/auth/lib/roles'
-import { REPORT_CODES } from '@/features/report-permissions/types/report-permissions.types'
+import { CELL_OWNER_SENTINEL } from '@/features/reports/leads-analytics/lib/cell-owner-filter'
 
 vi.mock('next/server', () => {
 	class MockNextRequest {
@@ -66,9 +66,9 @@ vi.mock('@/features/reports/leads-analytics/lib/leads-analytics-scope', () => ({
 }))
 
 vi.mock(
-	'@/features/reports/leads-analytics/services/leads-analytics.service',
+	'@/features/reports/leads-analytics/services/heatmap-cell-leads.service',
 	() => ({
-		getLeadsAnalyticsReport: vi.fn(),
+		getHeatmapCellLeads: vi.fn(),
 	})
 )
 
@@ -77,55 +77,31 @@ import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/shared/services/user.service'
 import { canViewReport } from '@/features/report-permissions/services/report-permissions.service'
 import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
-import { getLeadsAnalyticsReport } from '@/features/reports/leads-analytics/services/leads-analytics.service'
-import { GET } from '@/app/api/reports/leads-analytics/route'
-import { EMPTY_LEADS_ANALYTICS_REPORT } from '@/features/reports/leads-analytics/lib/empty-report'
+import { getHeatmapCellLeads } from '@/features/reports/leads-analytics/services/heatmap-cell-leads.service'
+import { GET } from '@/app/api/reports/leads-analytics/cell-leads/route'
 
 const mockAuth = vi.mocked(auth)
 const mockGetUser = vi.mocked(getCurrentUserByEmail)
 const mockCanView = vi.mocked(canViewReport)
 const mockBypass = vi.mocked(isHierarchyBypassRole)
-const mockReport = vi.mocked(getLeadsAnalyticsReport)
+const mockCellLeads = vi.mocked(getHeatmapCellLeads)
 
-function reportRequest(
-	from = '2026-08-01',
-	to = '2026-08-31',
-	userIds = '8,10,11'
-): NextRequest {
+function cellRequest(idUser?: string): NextRequest {
+	const sp = new URLSearchParams({
+		dateFrom: '2026-08-01',
+		dateTo: '2026-08-31',
+		userIds: '10,11',
+		idLeadFunnelColumn: '3',
+	})
+	if (idUser !== undefined) sp.set('idUser', idUser)
 	return new NextRequest(
-		`http://localhost/api/reports/leads-analytics?dateFrom=${from}&dateTo=${to}&userIds=${userIds}`
+		`http://localhost/api/reports/leads-analytics/cell-leads?${sp.toString()}`
 	)
 }
 
-describe('GET /api/reports/leads-analytics', () => {
+describe('GET /api/reports/leads-analytics/cell-leads', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-	})
-
-	it('returns 403 when the viewer cannot see LEADS_ANALYTICS', async () => {
-		mockAuth.mockResolvedValue({
-			user: { email: 'agent@test.com', role: UserRole.AGENTE },
-		} as never)
-		mockGetUser.mockResolvedValue({
-			idUser: 5,
-			idCategory: 1,
-			role: { code: UserRole.AGENTE },
-		} as never)
-		mockCanView.mockResolvedValue(false)
-
-		const res = await GET(reportRequest())
-		const body = await res.json()
-
-		expect(res.status).toBe(403)
-		expect(body.error).toBe('No autorizado para este reporte')
-		expect(mockCanView).toHaveBeenCalledWith(
-			expect.objectContaining({ idCategory: 1 }),
-			REPORT_CODES.LEADS_ANALYTICS
-		)
-		expect(mockReport).not.toHaveBeenCalled()
-	})
-
-	it('returns 200 with report data for an authorized Performance Leader', async () => {
 		mockAuth.mockResolvedValue({
 			user: { email: 'leader@test.com', role: UserRole.AGENTE },
 		} as never)
@@ -133,21 +109,41 @@ describe('GET /api/reports/leads-analytics', () => {
 			idUser: 8,
 			idCategory: 4,
 			role: { code: UserRole.AGENTE },
+			level: { code: 'PERFORMANCE_LEADER' },
 		} as never)
 		mockCanView.mockResolvedValue(true)
 		mockBypass.mockReturnValue(false)
-		mockReport.mockResolvedValue(EMPTY_LEADS_ANALYTICS_REPORT)
+		mockCellLeads.mockResolvedValue({ leads: [], total: 0, isTruncated: false })
+	})
 
-		const res = await GET(reportRequest())
+	it('returns 403 when the viewer cannot see LEADS_ANALYTICS', async () => {
+		mockCanView.mockResolvedValue(false)
+
+		const res = await GET(cellRequest())
 		const body = await res.json()
 
+		expect(res.status).toBe(403)
+		expect(body.error).toBe('No autorizado para este reporte')
+		expect(mockCellLeads).not.toHaveBeenCalled()
+	})
+
+	it('passes the intersected userIds and owner filter to the service', async () => {
+		const res = await GET(cellRequest('10'))
 		expect(res.status).toBe(200)
-		expect(body.data.converted.total).toBe(0)
-		expect(mockReport).toHaveBeenCalledWith(
+		expect(mockCellLeads).toHaveBeenCalledWith(
 			expect.objectContaining({
-				range: { dateFrom: '2026-08-01', dateTo: '2026-08-31' },
-				visibleUserIds: [8, 10, 11],
-				isBypass: false,
+				visibleUserIds: [10, 11],
+				idLeadFunnelColumn: 3,
+				ownerFilter: 10,
+			})
+		)
+	})
+
+	it('treats omitted idUser as all selected owners', async () => {
+		await GET(cellRequest())
+		expect(mockCellLeads).toHaveBeenCalledWith(
+			expect.objectContaining({
+				ownerFilter: CELL_OWNER_SENTINEL.ALL,
 			})
 		)
 	})

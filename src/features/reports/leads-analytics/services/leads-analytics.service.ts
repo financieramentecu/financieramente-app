@@ -36,7 +36,7 @@ export interface GetLeadsAnalyticsQuery {
 export async function getLeadsAnalyticsReport(
 	query: GetLeadsAnalyticsQuery
 ): Promise<LeadsAnalyticsReport> {
-	if (!query.isBypass && query.visibleUserIds.length === 0) {
+	if (query.visibleUserIds.length === 0) {
 		return EMPTY_LEADS_ANALYTICS_REPORT
 	}
 
@@ -45,11 +45,14 @@ export async function getLeadsAnalyticsReport(
 		query.range.dateTo
 	)
 
-	const where = buildLeadListWhere(
+	const baseWhere = buildLeadListWhere(
 		query.viewer,
 		{ createdAtRange },
 		{ visibleUserIds: [...query.visibleUserIds] }
 	)
+	const where: Prisma.LeadWhereInput = query.isBypass
+		? { AND: [baseWhere, { idUser: { in: [...query.visibleUserIds] } }] }
+		: baseWhere
 
 	const convertedWhere: Prisma.LeadWhereInput = {
 		AND: [where, { idBusiness: { not: null } }],

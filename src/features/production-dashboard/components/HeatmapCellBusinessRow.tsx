@@ -3,6 +3,7 @@ import type { CellBusinessRowView } from '../types/heatmap-cell-expansion.types'
 
 interface HeatmapCellBusinessRowProps {
   readonly business: CellBusinessRowView
+  readonly valueAlign?: 'left' | 'right'
 }
 
 const numFormatter = new Intl.NumberFormat('es-CO', {
@@ -21,18 +22,25 @@ function formatValue(value: number | null, currencyName: string | null): string 
  * no fetch, no Prisma. Missing value/product renders `-` per product decision;
  * the row still appears.
  */
-export function HeatmapCellBusinessRow({ business }: HeatmapCellBusinessRowProps) {
+export function HeatmapCellBusinessRow({
+  business,
+  valueAlign = 'right',
+}: HeatmapCellBusinessRowProps) {
   return (
     <tr className="border-b border-border/60 last:border-none hover:bg-muted/30">
-      <td className="px-2 py-1.5 text-xs">{business.productName ?? '-'}</td>
-      <td className="px-2 py-1.5 text-xs">{business.contract ?? '-'}</td>
-      <td className="px-2 py-1.5 text-right text-xs font-semibold tabular-nums">
+      <td className="px-2 py-1.5 text-xs align-middle">{business.productName ?? '-'}</td>
+      <td className="px-2 py-1.5 text-xs align-middle">{business.contract ?? '-'}</td>
+      <td
+        className={`px-2 py-1.5 text-xs font-semibold tabular-nums whitespace-nowrap align-middle ${
+          valueAlign === 'left' ? 'text-left' : 'text-right'
+        }`}
+      >
         {formatValue(business.value, business.currencyName)}
       </td>
-      <td className="px-2 py-1.5 text-xs">
+      <td className="px-3 py-1.5 text-xs align-middle">
         <BusinessStatusBadge status={business.status} className="text-xs" />
       </td>
-      <td className="px-2 py-1.5 text-right text-xs">
+      <td className="px-2 py-1.5 text-right text-xs align-middle">
         <a
           href={`/dashboard/negocios/${business.idBusiness}`}
           target="_blank"

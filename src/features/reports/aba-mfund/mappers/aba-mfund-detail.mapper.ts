@@ -1,6 +1,6 @@
 /**
  * Maps Prisma Business rows to ABA-MFUND detail DTOs.
- * Cliente = Nombre - Apellido (hyphen). Fecha de Fondeo = dateAnchored.
+ * Cliente = Nombre Apellido (space-joined). Fecha de Fondeo = dateAnchored.
  */
 
 import { formatDateBogota } from '@/features/shared/lib/format-date'
