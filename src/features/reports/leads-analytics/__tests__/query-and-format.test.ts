@@ -79,6 +79,28 @@ describe('leadsAnalyticsCellQuerySchema', () => {
 			}).ownerFilter
 		).toBe(12)
 	})
+
+	it('accepts withBusiness without a funnel column', () => {
+		const parsed = leadsAnalyticsCellQuerySchema.parse({
+			dateFrom: '2026-08-01',
+			dateTo: '2026-08-31',
+			userIds: '10',
+			withBusiness: 'true',
+			outcomeStatus: 'OPEN',
+		})
+		expect(parsed.idLeadFunnelColumn).toBeNull()
+		expect(parsed.withBusiness).toBe(true)
+		expect(parsed.outcomeStatus).toBe('OPEN')
+	})
+
+	it('rejects queries without a funnel column or withBusiness', () => {
+		const parsed = leadsAnalyticsCellQuerySchema.safeParse({
+			dateFrom: '2026-08-01',
+			dateTo: '2026-08-31',
+			userIds: '10',
+		})
+		expect(parsed.success).toBe(false)
+	})
 })
 
 describe('formatOwnerName', () => {

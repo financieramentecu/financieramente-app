@@ -147,4 +147,28 @@ describe('GET /api/reports/leads-analytics/cell-leads', () => {
 			})
 		)
 	})
+
+	it('accepts withBusiness without a funnel column', async () => {
+		const sp = new URLSearchParams({
+			dateFrom: '2026-08-01',
+			dateTo: '2026-08-31',
+			userIds: '10,11',
+			withBusiness: 'true',
+			outcomeStatus: 'OPEN',
+		})
+		const res = await GET(
+			new NextRequest(
+				`http://localhost/api/reports/leads-analytics/cell-leads?${sp.toString()}`
+			)
+		)
+
+		expect(res.status).toBe(200)
+		expect(mockCellLeads).toHaveBeenCalledWith(
+			expect.objectContaining({
+				idLeadFunnelColumn: null,
+				withBusiness: true,
+				outcomeStatus: 'OPEN',
+			})
+		)
+	})
 })

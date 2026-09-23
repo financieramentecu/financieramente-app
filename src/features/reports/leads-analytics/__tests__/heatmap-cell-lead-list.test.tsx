@@ -77,4 +77,41 @@ describe('HeatmapCellLeadList', () => {
 
 		expect(screen.getByText('Lead 21')).toBeInTheDocument()
 	})
+
+	it('renders a business link when the lead has a related business', () => {
+		mockUseHeatmapCellLeads.mockReturnValue({
+			status: 'success',
+			data: {
+				total: 1,
+				isTruncated: false,
+				leads: [
+					{
+						idLead: 7,
+						leadName: 'Luisa Salazar',
+						ownerName: 'Julieta Villa',
+						outcomeStatus: 'OPEN',
+						outcomeLabel: 'Abierto',
+						createdAtLabel: '8/08/2026',
+						idBusiness: 99,
+					},
+				],
+			},
+			error: '',
+		} satisfies AsyncState<CellLeadList>)
+
+		render(
+			<HeatmapCellLeadList
+				idLeadFunnelColumn={1}
+				ownerFilter={CELL_OWNER_SENTINEL.ALL}
+				columnName="Contacto 1ra vez"
+			/>
+		)
+
+		const link = screen.getByRole('link', {
+			name: LEADS_ANALYTICS_UI.VIEW_BUSINESS,
+		})
+		expect(link).toHaveAttribute('href', '/dashboard/negocios/99')
+		expect(link).toHaveAttribute('target', '_blank')
+		expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+	})
 })
