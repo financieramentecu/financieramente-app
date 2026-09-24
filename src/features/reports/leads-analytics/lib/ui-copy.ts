@@ -35,6 +35,8 @@ export const LEADS_ANALYTICS_UI = {
 	COLUMN_ACTION: 'Acción',
 	VIEW_LEAD: 'Ver lead',
 	VIEW_BUSINESS: 'Ir a negocio',
+	EXPAND_CONVERTED: 'Ver leads con negocio',
+	COLLAPSE_CONVERTED: 'Ocultar leads con negocio',
 	SEE_MORE: 'Ver más',
 	REMAINING: 'restantes',
 	TRUNCATED_HINT: ' — lista truncada; ajuste los filtros para ver el resto',
