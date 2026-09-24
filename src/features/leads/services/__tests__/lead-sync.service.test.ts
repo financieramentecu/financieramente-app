@@ -547,3 +547,14 @@ describe('upsertLeadFromCrm', () => {
 		})
 	})
 })
+
+describe('CSV name-based owner resolution isolation', () => {
+	it('the webhook path never references resolveOwnerByName — name-based assignment stays exclusive to the CSV import', () => {
+		const sources = [resolveOwner, upsertLeadFromCrm, resolveFunnelColumn].map((fn) =>
+			fn.toString()
+		)
+		for (const source of sources) {
+			expect(source).not.toContain('resolveOwnerByName')
+		}
+	})
+})
