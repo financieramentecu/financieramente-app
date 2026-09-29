@@ -38,12 +38,25 @@ describe('dashboardFilterReducer', () => {
     })
   })
 
-  describe('SET_STATUS', () => {
-    it('sets statuses to the new value (single)', () => {
+  describe('SET_STATUSES', () => {
+    it('sets statuses to the given combination without touching applied', () => {
       const state = makeState()
-      const next = dashboardFilterReducer(state, { type: 'SET_STATUS', payload: 'EMITIDO' })
-      expect(next.draft.statuses).toEqual(['EMITIDO'])
+      const next = dashboardFilterReducer(state, {
+        type: 'SET_STATUSES',
+        ids: ['EMITIDO', 'FONDEADO'],
+      })
+      expect(next.draft.statuses).toEqual(['EMITIDO', 'FONDEADO'])
       expect(next.applied.statuses).toEqual([])
+    })
+
+    it('APPLY copies the status combination to the applied snapshot', () => {
+      const state = makeState()
+      const withDraft = dashboardFilterReducer(state, {
+        type: 'SET_STATUSES',
+        ids: ['EMITIDO', 'FONDEADO'],
+      })
+      const next = dashboardFilterReducer(withDraft, { type: 'APPLY' })
+      expect(next.applied.statuses).toEqual(['EMITIDO', 'FONDEADO'])
     })
   })
 
@@ -219,19 +232,24 @@ describe('dashboardFilterReducer', () => {
     })
   })
 
-  describe('SET_PLAZO', () => {
-    it('sets plazos to the given value', () => {
+  describe('SET_PLAZOS', () => {
+    it('sets plazos to the given combination', () => {
       const state = makeState()
-      const next = dashboardFilterReducer(state, { type: 'SET_PLAZO', payload: 5 })
-      expect(next.draft.plazos).toEqual([5])
+      const next = dashboardFilterReducer(state, { type: 'SET_PLAZOS', ids: [1, 5] })
+      expect(next.draft.plazos).toEqual([1, 5])
+      expect(next.applied.plazos).toEqual([])
     })
   })
 
-  describe('SET_PERIODICIDAD', () => {
-    it('sets periodicidades to the given value', () => {
+  describe('SET_PERIODICIDADES', () => {
+    it('sets periodicidades to the given combination', () => {
       const state = makeState()
-      const next = dashboardFilterReducer(state, { type: 'SET_PERIODICIDAD', payload: 'MENSUAL' })
-      expect(next.draft.periodicidades).toEqual(['MENSUAL'])
+      const next = dashboardFilterReducer(state, {
+        type: 'SET_PERIODICIDADES',
+        ids: ['Mensual', 'Anual'],
+      })
+      expect(next.draft.periodicidades).toEqual(['Mensual', 'Anual'])
+      expect(next.applied.periodicidades).toEqual([])
     })
   })
 
