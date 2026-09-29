@@ -203,7 +203,7 @@ describe('POST /api/negocios/export', () => {
 		expect(res.status).toBe(403)
 	})
 
-	it('retorna 403 cuando el rol es CONSULTOR (solo lectura) — canExportBusinessList ya lo excluye (D3)', async () => {
+	it('retorna 200 y aplica los filtros cuando el rol es CONSULTOR', async () => {
 		mockAuth.mockResolvedValue({
 			user: { email: 'consultor@test.com' },
 		} as never)
@@ -216,19 +216,32 @@ describe('POST /api/negocios/export', () => {
 			idLevel: null,
 			level: null,
 		} as never)
+		mockCount.mockResolvedValue(1)
+		mockFindMany.mockResolvedValue([minimalExportBusiness()] as never)
+		mockUserFindUnique.mockResolvedValue({ idUserLeader: null } as never)
 
 		const req = new Request('http://localhost/api/negocios/export', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
+				search: 'contrato-42',
 				dateFrom: '2026-04-01',
 				dateTo: '2026-04-30',
 			}),
 		})
 
 		const res = await POST(req)
-		expect(res.status).toBe(403)
-		expect(mockFindMany).not.toHaveBeenCalled()
+		expect(res.status).toBe(200)
+		expect(res.headers.get('Content-Type')).toBe(
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		)
+		const buf = Buffer.from(await res.arrayBuffer())
+		expect(buf.length).toBeGreaterThan(0)
+		expect(mockFindMany).toHaveBeenCalledTimes(1)
+		expect(JSON.stringify(mockCount.mock.calls[0]?.[0])).toContain('contrato-42')
+		expect(JSON.stringify(mockFindMany.mock.calls[0]?.[0])).toContain(
+			'contrato-42'
+		)
 	})
 
 	it('retorna 200, xlsx y cuerpo no vacío cuando hay datos (ADMIN)', async () => {
