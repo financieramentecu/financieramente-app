@@ -1,0 +1,62 @@
+change: comments-indicator-in-actions
+title: Comments indicator in the Business List Actions column
+status: archived
+phases_completed: [explore, proposal, spec, design]
+scenario_counts: {negocios: 29, contract-comments: 31, total: 60}
+phases_drafted: [tasks]
+next: user validation of tasks, then apply (size:exception confirmation required before apply)
+artifact_store: hybrid
+delivery_strategy: single-pr
+review_budget_changed_lines: 400
+branch: feat/comments-indicator-in-business-list
+created_at: 2026-09-30
+updated_at: 2026-10-01
+
+artifacts:
+  explore:
+    status: done
+    file: explore.md
+    note: post-exploration corrections appended
+  proposal:
+    status: validated
+    file: proposal.md
+    engram: sdd/comments-indicator-in-actions/proposal
+  spec:
+    status: validated
+    files:
+      - specs/negocios/spec.md
+      - specs/contract-comments/spec.md
+    engram: sdd/comments-indicator-in-actions/spec
+  design:
+    status: validated
+    file: design.md
+    engram: sdd/comments-indicator-in-actions/design
+    forecast_changed_lines: 738
+    open_questions: []
+    decided:
+      - "OQ1: history modal title is 'Comentarios — {contract}' with a contract and just 'Comentarios' without one (null, empty, or '-'); supersedes the 'Negocio #{id}' fallback; the create dialog stays as today"
+      - "OQ2: the R11 create-dialog scenario is dropped (CommentModal renders no thread)"
+      - "OQ3: single PR with size:exception and three work-unit commits (WU1 ~202, WU2 ~280, WU3 ~256 changed lines)"
+      - "OQ4: R7 role list uses AGENTE instead of the non-existent COACH"
+  tasks:
+    status: drafted_awaiting_user_validation
+    file: tasks.md
+    engram: sdd/comments-indicator-in-actions/tasks
+    task_count: 46
+    task_counts: {phase0: 3, wu1: 14, wu2: 8, wu3: 13, final: 8}
+    forecast_changed_lines: {wu1: 202, wu2: 280, wu3: 256, total: 738, total_with_optional_3_10: 763}
+    commits_planned: 3
+    note: single PR with size:exception and three work-unit commits; optional task 3.10 (page-client refetch test, about +25 lines) closes the last R10 hop
+  apply:
+    status: in-progress
+    completed: [phase0, wu1, wu2, wu3]
+    commits: {wu1: 90e346db, wu2: 3feabe78, wu3: 9ed6353f}
+    next: phase 4 (final verification, PR preparation, archive reminder)
+    notes: "wu2 task 2.6 skipped by its own condition (shared fixture extraction would edit use-comments.test.ts, out of scope); wu2 authored 563 lines vs ~280 forecast (test file 473); wu3 authored 547 lines vs ~281 forecast (tests 489, includes optional 3.10); both covered by size:exception. Full suite after wu3: 460 files, 3915 passed, 3 skipped"
+
+decisions:
+  - a: YES - Business List refetches after a comment is created via "Agregar comentario" (R10); counts changed by other users are not live in the list
+  - b: YES - exact count, no cap (no "99+") (R2)
+  - c: YES, AMENDED by OQ1 - modal title "Comentarios — {contract}", and just "Comentarios" when there is no contract (contract-comments R4)
+  - d: YES - CommentItem renders date and time in America/Bogota via a shared Bogota date-time formatter (name/location in design); also affects CommentsSidebar (contract-comments R11); the create dialog has no thread
+  - e: ACCEPTED - temporary list-count/modal mismatch; no code path currently deactivates comments, so the cause is a newer comment from another user; status:true filter still required

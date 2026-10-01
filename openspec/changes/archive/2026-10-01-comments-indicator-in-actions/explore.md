@@ -88,3 +88,18 @@ Business (Prisma model)
 ---
 Exploración completada: 2026-09-30  
 Siguiente artefacto: `proposal.md`
+
+---
+
+## Post-exploration corrections
+
+The following verified facts supersede earlier statements in this file (written in English; the original text above is kept unchanged).
+
+1. The Actions column is rendered by `src/features/negocios/components/BusinessRowActions.tsx` (used by `BusinessTableSection.tsx`), not by `BusinessTable/ActionCell.tsx`. `ActionCell.tsx` is dead code, referenced only by its own test, and MUST NOT be modified.
+2. There is no need for `GET /api/businesses/:id/comments/count`: the real API prefix is `/api/negocios`, and a per-row count request would cause N requests. The list endpoint `GET /api/negocios` already uses `businessWithRelations`, whose `_count` selection already provides `payments` and active `supports`. The count is obtained by adding `comments: { where: { status: true } }` to that selection and mapping it to `commentCount` on `BusinessEntity` (via `prismaBusinessToEntity`), then to the table-row model. No new endpoint, no migration, no schema change.
+3. The `Comment` model has `status Boolean @default(true)` (soft delete) and `@@index([businessId, createdAt])`; the relation field on `Business` is `comments`.
+4. Existing comments feature to reuse: `useComments(businessId)` (with SSE `comment-added`), `CommentThread`, `CommentItem`, and `CommentsSidebar` (state handling reference). `CommentModal` is the CREATE dialog ("Agregar comentario") and must not be repurposed. `GET /api/negocios/[id]/comments` returns active comments ordered oldest first and requires only a session.
+5. The shared Dialog lives at `@/features/shared/ui/dialog`; scroll area at `@/features/shared/ui/scroll-area`; badge at `@/features/shared/ui/badge`.
+6. The modal is read-only and mounted only while open; the indicator is visible to every role that can see the list, including read-only roles.
+7. Additional finding during spec: `formatDateBogota()` formats the date only (no time), and `CommentItem` formats timestamps with `toLocaleString('es-AR')` without a timezone, so the Bogotá date-time requirement needs a decision (spec open question (d)).
+8. The proposal's role list (ANALISTA_SOPORTE/AGENTE/ADMIN) was unverified and was removed.
