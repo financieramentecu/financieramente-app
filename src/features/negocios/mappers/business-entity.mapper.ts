@@ -41,6 +41,7 @@ export function prismaBusinessToEntity(
 		hasPayments: prisma._count.payments > 0,
 		hasPendingPaymentFunding: prisma.payments.some(p => p.status === 'FONDEADO' || p.status === 'EN_CARTERA'),
 		supportCount: prisma._count.supports,
+		commentCount: prisma._count.comments,
 		observations: prisma.observations ?? null,
 		novedadStatus: prisma.novedadStatus as BusinessEntity['novedadStatus'],
 		novedadMarkedAt: prisma.novedadMarkedAt?.toISOString() ?? null,

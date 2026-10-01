@@ -222,6 +222,7 @@ function createBusinessRow(mode: 'direct' | 'annual' | 'directZero'): Business {
 		hasPendingPaymentFunding: mode === 'annual',
 		numAportes: mode === 'directZero' ? 0 : null,
 		supportCount: 0,
+		commentCount: 0,
 		observations: null,
 		currency: { id: 1, name: 'COP' },
 	}
