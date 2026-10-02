@@ -11,15 +11,15 @@ import { toggleItem } from '../../lib/toggle-todas'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-interface FilterItem {
-  id: number
+interface FilterItem<TId extends string | number> {
+  id: TId
   label: string
 }
 
-interface MultiSelectFilterProps<T extends FilterItem> {
-  items: T[]
-  value: number[]
-  onChange: (ids: number[]) => void
+interface MultiSelectFilterProps<TId extends string | number> {
+  items: FilterItem<TId>[]
+  value: TId[]
+  onChange: (ids: TId[]) => void
   placeholder: string
   todasLabel: string
   searchable?: boolean
@@ -27,14 +27,14 @@ interface MultiSelectFilterProps<T extends FilterItem> {
 
 // ─── MultiSelectFilter ────────────────────────────────────────────────────────
 
-export function MultiSelectFilter<T extends FilterItem>({
+export function MultiSelectFilter<TId extends string | number>({
   items,
   value,
   onChange,
   placeholder,
   todasLabel,
   searchable = false,
-}: MultiSelectFilterProps<T>) {
+}: MultiSelectFilterProps<TId>) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   // Tracks "deselect all" intent within a popover session.
@@ -66,7 +66,7 @@ export function MultiSelectFilter<T extends FilterItem>({
     }
   }
 
-  const handleItemClick = (id: number) => {
+  const handleItemClick = (id: TId) => {
     if (noneMode) {
       // First click after "deselect all" — start a fresh specific selection
       setNoneMode(false)

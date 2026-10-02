@@ -213,6 +213,39 @@ describe('GET /api/negocios', () => {
 			)
 		})
 
+		it('selecciona solo los comentarios activos en el conteo de la lista', async () => {
+			mockAuth.mockResolvedValue({
+				user: { email: 'admin@example.com' },
+			} as never)
+			mockBusinessListParamsSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { page: 1, pageSize: 10, search: null, status: null },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue({
+				...mockUserWithRole,
+				email: 'admin@example.com',
+			})
+			mockPrismaCount.mockResolvedValue(1)
+			mockPrismaFindMany.mockResolvedValue([mockPrismaBusiness] as never)
+			mockPrismaBusinessListToEntities.mockReturnValue([] as never)
+
+			await GET(new Request('http://localhost:3000/api/negocios'))
+
+			// Count visibility is scoped by the existing `buildBusinessListWhere`
+			// (see negocios-list-hierarchy.test.ts); the count adds no scoping of its own.
+			expect(mockPrismaFindMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					include: expect.objectContaining({
+						_count: {
+							select: expect.objectContaining({
+								comments: { where: { status: true } },
+							}),
+						},
+					}),
+				})
+			)
+		})
+
 		it('debe listar negocios con paginación personalizada', async () => {
 			const mockSession = {
 				user: {

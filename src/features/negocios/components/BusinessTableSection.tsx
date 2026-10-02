@@ -87,6 +87,8 @@ interface BusinessTableSectionProps {
 	sortBy?: string
 	sortOrder?: 'asc' | 'desc'
 	onUploadSuccess?: () => void
+	/** Called after a comment is created from a row's "Agregar comentario" action */
+	onCommentCreated?: () => void
 	onDeleteSuccess?: () => void
 	onViewObservations?: (business: Business) => void
 	onSaveDateIssued?: (businessId: number, dateIssued: string) => Promise<void>
@@ -138,6 +140,7 @@ export function BusinessTableSection({
 	sortBy,
 	sortOrder,
 	onUploadSuccess,
+	onCommentCreated,
 	onDeleteSuccess,
 	onViewObservations,
 	onSaveDateIssued,
@@ -841,11 +844,13 @@ export function BusinessTableSection({
 									businessStatus={row.statusCode}
 									contract={row.contract ?? null}
 									supportCount={row.supportCount}
+									commentCount={row.commentCount}
 									userRole={userRole}
 									hasPayments={row.hasPayments}
 									hasPendingPaymentFunding={row.hasPendingPaymentFunding}
 									novedadStatus={row.novedadStatus}
 									onUploadSuccess={onUploadSuccess}
+									onCommentCreated={onCommentCreated}
 									onDeleteSuccess={onDeleteSuccess}
 									onEdit={isEditable ? () => onEditBusiness(row) : undefined}
 									onView={

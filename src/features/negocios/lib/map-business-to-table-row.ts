@@ -4,6 +4,9 @@ import {
 	type BusinessEntity,
 } from '@/features/negocios/types/business-entity.types'
 
+/** Placeholder shown in the table when a business has no contract number */
+export const EMPTY_CONTRACT_PLACEHOLDER = '-'
+
 function getBusinessStatusLabel(status: string): Business['status'] {
 	switch (status) {
 		case BUSINESS_STATUS.EMITIDO:
@@ -26,7 +29,7 @@ export function mapBusinessToTableRow(b: BusinessEntity): Business {
 		id: String(b.id),
 		identification: b.client.identityNumber,
 		clientName: b.client.fullName,
-		contract: b.contract || '-',
+		contract: b.contract || EMPTY_CONTRACT_PLACEHOLDER,
 		user: {
 			avatar: '',
 			name: b.agent.fullName,
@@ -51,6 +54,7 @@ export function mapBusinessToTableRow(b: BusinessEntity): Business {
 		hasPendingPaymentFunding: b.hasPendingPaymentFunding,
 		numAportes: b.numAportes,
 		supportCount: b.supportCount,
+		commentCount: b.commentCount,
 		observations: b.observations,
 		currency: b.currency,
 	}

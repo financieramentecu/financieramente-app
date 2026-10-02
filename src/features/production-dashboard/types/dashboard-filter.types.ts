@@ -51,7 +51,7 @@ export type FilterField =
 
 export type DashboardFilterAction =
   | { type: 'SET_DATE_RANGE'; payload: { start: Date; end: Date } }
-  | { type: 'SET_STATUS'; payload: string }
+  | { type: 'SET_STATUSES'; ids: string[] }
   | { type: 'TOGGLE_CATEGORY'; id: number }
   | { type: 'TOGGLE_COMPANY'; id: number; allProducts: ProductForCascade[] }
   | { type: 'TOGGLE_PRODUCT'; id: number }
@@ -60,8 +60,8 @@ export type DashboardFilterAction =
   | { type: 'SET_PRODUCT_IDS'; ids: number[] }
   | { type: 'SET_CATEGORY_IDS'; ids: number[] }
   | { type: 'SET_ORIGIN_IDS'; ids: number[] }
-  | { type: 'SET_PLAZO'; payload: number }
-  | { type: 'SET_PERIODICIDAD'; payload: string }
+  | { type: 'SET_PLAZOS'; ids: number[] }
+  | { type: 'SET_PERIODICIDADES'; ids: string[] }
   | { type: 'SET_INTERNACIONAL'; value: boolean }
   | { type: 'SET_HAS_SUPPORTS'; payload: boolean | undefined }
   | { type: 'SET_TODAS'; field: FilterField }

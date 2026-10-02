@@ -17,23 +17,21 @@ import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types
 
 const TODAS_SENTINEL = '__todas__'
 
-const STATUS_OPTIONS = [
-  { value: TODAS_SENTINEL, label: 'Todos' },
-  { value: BUSINESS_STATUS.VENTA_EFECTUADA, label: 'Venta efectuada' },
-  { value: BUSINESS_STATUS.EMITIDO,         label: 'Emitido' },
-  { value: BUSINESS_STATUS.FONDEADO,        label: 'Fondeado' },
-  { value: BUSINESS_STATUS.CANCELADO,       label: 'Cancelado' },
+const STATUS_ITEMS = [
+  { id: BUSINESS_STATUS.VENTA_EFECTUADA, label: 'Venta efectuada' },
+  { id: BUSINESS_STATUS.EMITIDO, label: 'Emitido' },
+  { id: BUSINESS_STATUS.FONDEADO, label: 'Fondeado' },
+  { id: BUSINESS_STATUS.CANCELADO, label: 'Cancelado' },
 ]
 
-const PLAZO_OPTIONS = [
-  { value: TODAS_SENTINEL, label: 'Todos' },
-  { value: '1', label: '1 año' },
-  { value: '2', label: '2 años' },
-  { value: '3', label: '3 años' },
-  { value: '5', label: '5 años' },
-  { value: '10', label: '10 años' },
-  { value: '15', label: '15 años' },
-  { value: '20', label: '20 años' },
+const PLAZO_ITEMS = [
+  { id: 1, label: '1 año' },
+  { id: 2, label: '2 años' },
+  { id: 3, label: '3 años' },
+  { id: 5, label: '5 años' },
+  { id: 10, label: '10 años' },
+  { id: 15, label: '15 años' },
+  { id: 20, label: '20 años' },
 ]
 
 const SUPPORT_OPTIONS = [
@@ -64,6 +62,7 @@ export function DashboardFilterPanel() {
   const companyItems  = companies.map((c) => ({ id: c.id,   label: c.name }))
   const categoryItems = categories.map((c) => ({ id: c.id,  label: c.name }))
   const originItems   = origins.map((o) => ({ id: o.id,     label: o.name }))
+  const periodicityItems = periodicidades.map((p) => ({ id: p.name, label: p.name }))
 
   // ─── Product cascade: only show products from selected companies ──────────
   const selectedCompanySet = new Set(draft.companyIds)
@@ -103,17 +102,18 @@ export function DashboardFilterPanel() {
               error={dateRangeError}
             />
 
-            <SingleSelectFilter
-              options={STATUS_OPTIONS}
-              value={draft.statuses[0] ?? TODAS_SENTINEL}
-              onChange={(v) => {
-                if (v === TODAS_SENTINEL) {
+            <MultiSelectFilter
+              items={STATUS_ITEMS}
+              value={draft.statuses}
+              onChange={(ids) => {
+                if (ids.length === 0) {
                   dispatch({ type: 'SET_TODAS', field: 'statuses' })
                 } else {
-                  dispatch({ type: 'SET_STATUS', payload: v })
+                  dispatch({ type: 'SET_STATUSES', ids })
                 }
               }}
               placeholder="Estado"
+              todasLabel="Todos"
             />
 
             <MultiSelectFilter
@@ -181,33 +181,32 @@ export function DashboardFilterPanel() {
               todasLabel="Todas"
             />
 
-            <SingleSelectFilter
-              options={PLAZO_OPTIONS}
-              value={draft.plazos[0] ? String(draft.plazos[0]) : TODAS_SENTINEL}
-              onChange={(v) => {
-                if (v === TODAS_SENTINEL) {
+            <MultiSelectFilter
+              items={PLAZO_ITEMS}
+              value={draft.plazos}
+              onChange={(ids) => {
+                if (ids.length === 0) {
                   dispatch({ type: 'SET_TODAS', field: 'plazos' })
                 } else {
-                  dispatch({ type: 'SET_PLAZO', payload: Number(v) })
+                  dispatch({ type: 'SET_PLAZOS', ids })
                 }
               }}
               placeholder="Plazo (Años)"
+              todasLabel="Todos"
             />
 
-            <SingleSelectFilter
-              options={[
-                { value: TODAS_SENTINEL, label: 'Todas' },
-                ...periodicidades.map((p) => ({ value: p.name, label: p.name })),
-              ]}
-              value={draft.periodicidades[0] ?? TODAS_SENTINEL}
-              onChange={(v) => {
-                if (v === TODAS_SENTINEL) {
+            <MultiSelectFilter
+              items={periodicityItems}
+              value={draft.periodicidades}
+              onChange={(ids) => {
+                if (ids.length === 0) {
                   dispatch({ type: 'SET_TODAS', field: 'periodicidades' })
                 } else {
-                  dispatch({ type: 'SET_PERIODICIDAD', payload: v })
+                  dispatch({ type: 'SET_PERIODICIDADES', ids })
                 }
               }}
               placeholder="Periodicidad"
+              todasLabel="Todas"
             />
           </div>
 

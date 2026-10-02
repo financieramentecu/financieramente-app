@@ -211,7 +211,7 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: null,
-				_count: { payments: 0, supports: 0 },
+				_count: { payments: 0, supports: 0, comments: 0 },
 				payments: [],
 				supports: [],
 			})
@@ -225,7 +225,7 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: 3,
-				_count: { payments: 3, supports: 0 },
+				_count: { payments: 3, supports: 0, comments: 0 },
 				payments: [{ idAnnualPayment: 1, status: 'FONDEADO' }],
 				supports: [],
 			})
@@ -239,7 +239,7 @@ describe('prismaBusinessToEntity', () => {
 			const result = prismaBusinessToEntity({
 				...mockPrismaBusiness,
 				numAportes: 3,
-				_count: { payments: 3, supports: 0 },
+				_count: { payments: 3, supports: 0, comments: 0 },
 				payments: [
 					{ idAnnualPayment: 1, status: 'PAGO_ANTICIPADO' },
 					{ idAnnualPayment: 2, status: 'PAGO_ANTICIPADO' },
@@ -250,6 +250,26 @@ describe('prismaBusinessToEntity', () => {
 			expect(result.hasPayments).toBe(true)
 			expect(result.hasPendingPaymentFunding).toBe(false)
 			expect(result.fundedAportes).toBe(0)
+		})
+
+		// ── commentCount mapping (active comments only, selected by the query) ──
+		it('should expose the active comment count from _count.comments', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				_count: { payments: 0, supports: 0, comments: 12 },
+			})
+
+			expect(result.commentCount).toBe(12)
+		})
+
+		it('should map a business without comments to a commentCount of zero', () => {
+			const result = prismaBusinessToEntity({
+				...mockPrismaBusiness,
+				_count: { payments: 0, supports: 0, comments: 0 },
+			})
+
+			expect(result.commentCount).toBe(0)
+			expect(typeof result.commentCount).toBe('number')
 		})
 
 		// ── novedadStatus / novedadMarkedAt / novedadResolvedAt mapping ──

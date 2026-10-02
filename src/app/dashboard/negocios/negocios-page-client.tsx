@@ -658,6 +658,7 @@ export function NegociosPageClient({
 				sortBy={searchParams.sortBy}
 				sortOrder={searchParams.sortOrder}
 				onUploadSuccess={() => { refetch(true); refetchStats(true) }}
+				onCommentCreated={() => { void refetch(true) }}
 				onDeleteSuccess={() => { refetch(true); refetchStats(true) }}
 				onSaveDateIssued={handleSaveDateIssued}
 				onSaveDateAnchored={handleSaveDateAnchored}
