@@ -18,6 +18,12 @@ import {
 	prismaProductToProduct,
 	prismaProductListToProducts,
 } from '@/features/product/mappers/product.mapper'
+import { buildProductListWhere } from '@/features/product/lib/product-list-where'
+import { createProductWithBaseConfigurations } from '@/features/product/services/create-product.service'
+import {
+	ProductCreateError,
+	productCreateErrorStatus,
+} from '@/features/product/lib/product-create-error'
 
 /**
  * GET /api/products
@@ -29,37 +35,16 @@ export async function GET(request: Request) {
 		const search = searchParams.get('search')
 		const status = searchParams.get('status')
 		const idCompany = searchParams.get('idCompany')
+		const eligible = searchParams.get('eligible') === 'true'
 		const page = parseInt(searchParams.get('page') || '1')
 		const pageSize = parseInt(searchParams.get('pageSize') || '10')
 
-		const where: {
-			OR?: Array<{
-				name?: { contains: string; mode: 'insensitive' }
-				company?: { name?: { contains: string; mode: 'insensitive' } }
-			}>
-			status?: boolean
-			idCompany?: number
-		} = {}
-
-		if (search) {
-			where.OR = [
-				{ name: { contains: search, mode: 'insensitive' } },
-				{ company: { name: { contains: search, mode: 'insensitive' } } },
-			]
-		}
-
-		if (status === 'active') {
-			where.status = true
-		} else if (status === 'inactive') {
-			where.status = false
-		}
-
-		if (idCompany) {
-			const companyId = parseInt(idCompany)
-			if (!isNaN(companyId)) {
-				where.idCompany = companyId
-			}
-		}
+		const where = buildProductListWhere({
+			search,
+			status,
+			idCompany,
+			eligible,
+		})
 
 		// Contar total de registros
 		const total = await prisma.product.count({ where })
@@ -120,48 +105,17 @@ export async function POST(request: Request) {
 		const body = await request.json()
 		const data = createProductSchema.parse(body)
 
-		// Normalizar nombre (trim y capitalizar primera letra)
-		const normalizedName = data.name.trim()
-		const capitalizedName =
-			normalizedName.charAt(0).toUpperCase() + normalizedName.slice(1)
-
-		// Validar unicidad de nombre por compañía (case-insensitive)
-		const existingProduct = await prisma.product.findFirst({
-			where: {
-				idCompany: data.idCompany,
-				name: {
-					equals: normalizedName,
-					mode: 'insensitive',
-				},
-			},
+		const created = await createProductWithBaseConfigurations({
+			name: data.name,
+			description: data.description ?? null,
+			idCompany: data.idCompany,
+			idTypeProduct: data.idTypeProduct ?? null,
+			status: data.status,
+			commissionPercentage: data.commissionPercentage,
+			contributionType: data.contributionType,
 		})
+		const product = created.product
 
-		if (existingProduct) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'Ya existe un producto con este nombre para esta compañía',
-			}
-			return NextResponse.json(errorResponse, { status: 409 })
-		}
-
-		// Crear producto
-		const product = await prisma.product.create({
-			data: {
-				name: capitalizedName,
-				description: data.description ?? null,
-				idCompany: data.idCompany,
-				idTypeProduct: data.idTypeProduct ?? null,
-				status: data.status,
-				commissionPercentage: data.commissionPercentage,
-				contributionType: data.contributionType,
-			},
-			include: {
-				company: true,
-				typeProduct: true,
-			},
-		})
-
-		// Registrar auditoría
 		const userId = session.user.id ? parseInt(session.user.id) : undefined
 		const headers = request.headers
 		await logAuditEvent({
@@ -170,10 +124,9 @@ export async function POST(request: Request) {
 			email: session.user.email || undefined,
 			ipAddress: getClientIp(headers),
 			userAgent: getUserAgent(headers),
-			details: `Producto creado: ${product.name} (ID: ${product.idProduct}, Compañía: ${product.company.name})`,
+			details: `Producto creado: ${product.name} (ID: ${product.idProduct}, Compañía: ${product.company.name}, configuraciones base: ${created.baseConfigurationCount})`,
 		})
 
-		// Transformar usando mapper
 		const productFormatted = prismaProductToProduct(product)
 
 		const response: ApiResponse<Product> = {
@@ -188,6 +141,16 @@ export async function POST(request: Request) {
 				error: error.issues[0]?.message || 'Datos inválidos',
 			}
 			return NextResponse.json(errorResponse, { status: 400 })
+		}
+
+		if (error instanceof ProductCreateError) {
+			const errorResponse: ApiResponse<null> = {
+				data: null,
+				error: error.message,
+			}
+			return NextResponse.json(errorResponse, {
+				status: productCreateErrorStatus(error),
+			})
 		}
 
 		if (

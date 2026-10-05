@@ -1,6 +1,11 @@
 import { prisma } from '@/lib/prisma'
 import { prismaProductConfigToProductConfig } from '@/features/product-configuration/mappers/product-configuration.mapper'
 import type { ProductConfiguration } from '@/features/product-configuration/types/product-configuration.types'
+import type { Prisma } from '@prisma/client'
+import {
+	DefaultDistributionError,
+	getDefaultDistributionRows,
+} from '@/features/distribution-commission/lib/default-distribution-table'
 
 const productConfigurationInclude = {
 	product: {
@@ -98,4 +103,97 @@ export async function isDistributionSetupComplete(
 	})
 
 	return count > 0
+}
+
+export interface StructuralProductConfigurationInput {
+	readonly idProduct: number
+	readonly idLevel: number
+	readonly levelCode: string
+	readonly code: string
+	readonly active: boolean
+}
+
+/**
+ * Writes the approved default distribution onto a commission rule.
+ * Levels outside LEVEL_0–LEVEL_5 are left without lines.
+ * Does not update rows that already exist.
+ */
+export async function writeDefaultDistributionLines(
+	tx: Prisma.TransactionClient,
+	input: {
+		readonly idProductPercentageCommission: number
+		readonly configLevelCode: string
+	}
+): Promise<number> {
+	const rows = getDefaultDistributionRows(input.configLevelCode)
+	if (!rows) {
+		return 0
+	}
+
+	const receiverCodes = rows.map((row) => row.receiverCode)
+	const levels = await tx.level.findMany({
+		where: { code: { in: [...receiverCodes] } },
+		select: { idLevel: true, code: true },
+	})
+	const idByCode = new Map(levels.map((level) => [level.code, level.idLevel]))
+	const missing = receiverCodes.filter((code) => !idByCode.has(code))
+	if (missing.length > 0) {
+		throw new DefaultDistributionError(
+			`No se pudo aplicar la distribución estándar porque faltan los niveles: ${missing.join(', ')}`
+		)
+	}
+
+	await tx.productPercentageCommissionCategory.createMany({
+		data: rows.map((row) => ({
+			idProductPercentageCommission: input.idProductPercentageCommission,
+			idLevel: idByCode.get(row.receiverCode) ?? 0,
+			porcentajeDistribucion: row.percentage,
+			active: true,
+		})),
+	})
+
+	return rows.length
+}
+
+/**
+ * Creates one product-level configuration, its commission shell, and the
+ * default distribution for LEVEL_0–LEVEL_5.
+ */
+export async function createStructuralProductConfiguration(
+	tx: Prisma.TransactionClient,
+	input: StructuralProductConfigurationInput
+) {
+	const hasDefaultDistribution = getDefaultDistributionRows(input.levelCode) !== null
+	const config = await tx.productConfiguration.create({
+		data: {
+			idProduct: input.idProduct,
+			idLevel: input.idLevel,
+			code: input.code,
+			active: input.active,
+		},
+	})
+
+	const ppc = await tx.productPercentageCommission.create({
+		data: {
+			idProductConfiguration: config.id,
+			active: input.active,
+			...(hasDefaultDistribution
+				? { description: `Distribución estándar ${input.levelCode}` }
+				: {}),
+		},
+	})
+
+	await writeDefaultDistributionLines(tx, {
+		idProductPercentageCommission: ppc.idProductPercentageCommission,
+		configLevelCode: input.levelCode,
+	})
+
+	return tx.productConfiguration.update({
+		where: { id: config.id },
+		data: {
+			idProductPercentageCommissionNewBusinesses:
+				ppc.idProductPercentageCommission,
+		},
+		include: productConfigurationInclude,
+	})
 }

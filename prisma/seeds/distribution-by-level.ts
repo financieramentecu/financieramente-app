@@ -1,50 +1,12 @@
 import { buildProductConfigurationCode } from '../../src/features/negocios/lib/product-configuration-code'
+import { DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL } from '../../src/features/distribution-commission/lib/default-distribution-table'
 
 /**
  * Distribution table: for each config level (the level of the agent being served),
  * defines what percentage each level in the override chain receives.
- *
- * Key = config level code (LEVEL_0 … LEVEL_5)
- * Value = array of { receiverCode, percentage } sorted top-down
- *
- * Source: docs/DISTRIBUTION_TABLE.md
+ * Source of truth: src/features/distribution-commission/lib/default-distribution-table.ts
  */
-const DISTRIBUTION_TABLE: Record<
-	string,
-	Array<{ receiverCode: string; percentage: number }>
-> = {
-	LEVEL_0: [
-		{ receiverCode: 'LEVEL_5', percentage: 0.0085 },
-		{ receiverCode: 'LEVEL_4', percentage: 0.017 },
-		{ receiverCode: 'LEVEL_3', percentage: 0.0255 },
-		{ receiverCode: 'LEVEL_2', percentage: 0.034 },
-		{ receiverCode: 'LEVEL_1', percentage: 0.085 },
-		{ receiverCode: 'LEVEL_0', percentage: 0.6 },
-	],
-	LEVEL_1: [
-		{ receiverCode: 'LEVEL_5', percentage: 0.017 },
-		{ receiverCode: 'LEVEL_4', percentage: 0.0255 },
-		{ receiverCode: 'LEVEL_3', percentage: 0.034 },
-		{ receiverCode: 'LEVEL_2', percentage: 0.085 },
-		{ receiverCode: 'LEVEL_1', percentage: 0.6 },
-	],
-	LEVEL_2: [
-		{ receiverCode: 'LEVEL_5', percentage: 0.0255 },
-		{ receiverCode: 'LEVEL_4', percentage: 0.034 },
-		{ receiverCode: 'LEVEL_3', percentage: 0.085 },
-		{ receiverCode: 'LEVEL_2', percentage: 0.6 },
-	],
-	LEVEL_3: [
-		{ receiverCode: 'LEVEL_5', percentage: 0.034 },
-		{ receiverCode: 'LEVEL_4', percentage: 0.085 },
-		{ receiverCode: 'LEVEL_3', percentage: 0.6 },
-	],
-	LEVEL_4: [
-		{ receiverCode: 'LEVEL_5', percentage: 0.085 },
-		{ receiverCode: 'LEVEL_4', percentage: 0.6 },
-	],
-	LEVEL_5: [{ receiverCode: 'LEVEL_5', percentage: 0.6 }],
-}
+const DISTRIBUTION_TABLE = DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyPrisma = any

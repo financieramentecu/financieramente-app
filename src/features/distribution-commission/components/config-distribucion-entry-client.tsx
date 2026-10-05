@@ -38,6 +38,7 @@ export function ConfigDistribucionEntryClient() {
 				search: q,
 				page: 1,
 				pageSize: 50,
+				eligible: true,
 			})
 			if (cancelled) return
 			if (res.data) {
