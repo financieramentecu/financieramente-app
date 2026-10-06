@@ -15,26 +15,26 @@
 - NIVEL_4->2.55 %
 - NIVEL_3->3.40 %
 - NIVEL_2->8.50 %
-- NIVEL_1->60.00 %
+- NIVEL_1->60.85 %
 
 ## NIVEL_2
 
 - NIVEL_5->2.55 %
 - NIVEL_4->3.40 %
 - NIVEL_3->8.50 %
-- NIVEL_2->60.00 %
+- NIVEL_2->62.55 %
 
 ## NIVEL_3
 
 - NIVEL_5->3.40 %
 - NIVEL_4->8.50 %
-- NIVEL_3->60.00 %
+- NIVEL_3->65.10 %
 
 ## NIVEL_4
 
 - NIVEL_5->8.50 %
-- NIVEL_4->60.00 %
+- NIVEL_4->68.50 %
 
 ## NIVEL_5
 
-- NIVEL_5->60.00 %
+- NIVEL_5->77.00 %

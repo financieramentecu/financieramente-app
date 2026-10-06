@@ -23,24 +23,24 @@ export const DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL: Readonly<
 		{ receiverCode: 'LEVEL_4', percentage: 0.0255 },
 		{ receiverCode: 'LEVEL_3', percentage: 0.034 },
 		{ receiverCode: 'LEVEL_2', percentage: 0.085 },
-		{ receiverCode: 'LEVEL_1', percentage: 0.6 },
+		{ receiverCode: 'LEVEL_1', percentage: 0.6085 },
 	],
 	LEVEL_2: [
 		{ receiverCode: 'LEVEL_5', percentage: 0.0255 },
 		{ receiverCode: 'LEVEL_4', percentage: 0.034 },
 		{ receiverCode: 'LEVEL_3', percentage: 0.085 },
-		{ receiverCode: 'LEVEL_2', percentage: 0.6 },
+		{ receiverCode: 'LEVEL_2', percentage: 0.6255 },
 	],
 	LEVEL_3: [
 		{ receiverCode: 'LEVEL_5', percentage: 0.034 },
 		{ receiverCode: 'LEVEL_4', percentage: 0.085 },
-		{ receiverCode: 'LEVEL_3', percentage: 0.6 },
+		{ receiverCode: 'LEVEL_3', percentage: 0.651 },
 	],
 	LEVEL_4: [
 		{ receiverCode: 'LEVEL_5', percentage: 0.085 },
-		{ receiverCode: 'LEVEL_4', percentage: 0.6 },
+		{ receiverCode: 'LEVEL_4', percentage: 0.685 },
 	],
-	LEVEL_5: [{ receiverCode: 'LEVEL_5', percentage: 0.6 }],
+	LEVEL_5: [{ receiverCode: 'LEVEL_5', percentage: 0.77 }],
 }
 
 export function getDefaultDistributionRows(
