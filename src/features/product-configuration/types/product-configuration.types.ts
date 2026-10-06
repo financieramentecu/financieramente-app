@@ -56,6 +56,8 @@ export interface UpdateProductConfigurationInput {
 export interface ProductConfigurationFilters {
 	search?: string
 	active?: string
+	/** Active configuration, active product, and active company. */
+	eligible?: boolean
 }
 
 /**

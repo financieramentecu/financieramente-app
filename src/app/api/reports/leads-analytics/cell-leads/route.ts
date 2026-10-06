@@ -24,6 +24,8 @@ export async function GET(
 			visibleUserIds: authz.data.visibleUserIds,
 			idLeadFunnelColumn: authz.data.cell.idLeadFunnelColumn,
 			ownerFilter: authz.data.cell.ownerFilter,
+			withBusiness: authz.data.cell.withBusiness,
+			outcomeStatus: authz.data.cell.outcomeStatus,
 		})
 		return NextResponse.json({ data })
 	} catch (error) {

@@ -27,8 +27,10 @@ export interface GetHeatmapCellLeadsQuery {
 	readonly range: LeadsAnalyticsDateRange
 	readonly viewer: LeadViewer
 	readonly visibleUserIds: readonly number[]
-	readonly idLeadFunnelColumn: number
+	readonly idLeadFunnelColumn: number | null
 	readonly ownerFilter: CellOwnerFilter
+	readonly withBusiness?: boolean
+	readonly outcomeStatus?: CellLeadRowView['outcomeStatus'] | null
 }
 
 function formatLeadName(
@@ -104,9 +106,19 @@ export async function getHeatmapCellLeads(
 	)
 
 	const ownerFilter: Prisma.LeadWhereInput = ownerWhere(query.ownerFilter, query.visibleUserIds)
+	const extraFilters: Prisma.LeadWhereInput[] = [baseWhere, ownerFilter]
+	if (query.idLeadFunnelColumn != null) {
+		extraFilters.push({ idLeadFunnelColumn: query.idLeadFunnelColumn })
+	}
+	if (query.withBusiness) {
+		extraFilters.push({ idBusiness: { not: null } })
+	}
+	if (query.outcomeStatus) {
+		extraFilters.push({ outcomeStatus: query.outcomeStatus })
+	}
 
 	const where: Prisma.LeadWhereInput = {
-		AND: [baseWhere, ownerFilter, { idLeadFunnelColumn: query.idLeadFunnelColumn }],
+		AND: extraFilters,
 	}
 
 	const [total, rows] = await Promise.all([

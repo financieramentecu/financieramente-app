@@ -35,7 +35,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	novedadStatus: null,
 	novedadMarkedAt: null,
 	novedadResolvedAt: null,
-	_count: { payments: 0, supports: 0 },
+	_count: { payments: 0, supports: 0, comments: 0 },
 	payments: [],
 	supports: [],
 	client: {

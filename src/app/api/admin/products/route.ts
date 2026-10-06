@@ -3,6 +3,11 @@ import { z } from 'zod'
 
 import { prisma } from '@/lib/prisma'
 import { createProductSchema } from '@/features/product/lib/product-schemas'
+import { createProductWithBaseConfigurations } from '@/features/product/services/create-product.service'
+import {
+	ProductCreateError,
+	productCreateErrorStatus,
+} from '@/features/product/lib/product-create-error'
 
 export async function GET(request: Request) {
 	try {
@@ -62,26 +67,29 @@ export async function POST(request: Request) {
 		const body = await request.json()
 		const data = createProductSchema.parse(body)
 
-		const product = await prisma.product.create({
-			data: {
-				name: data.name,
-				description: data.description ?? null,
-				idCompany: data.idCompany,
-				idTypeProduct: data.idTypeProduct ?? null,
-				status: data.status ?? true,
-			},
-			include: {
-				company: true,
-				typeProduct: true,
-			},
+		const created = await createProductWithBaseConfigurations({
+			name: data.name,
+			description: data.description ?? null,
+			idCompany: data.idCompany,
+			idTypeProduct: data.idTypeProduct ?? null,
+			status: data.status ?? true,
+			commissionPercentage: data.commissionPercentage,
+			contributionType: data.contributionType,
 		})
 
-		return NextResponse.json({ product }, { status: 201 })
+		return NextResponse.json({ product: created.product }, { status: 201 })
 	} catch (error) {
 		if (error instanceof z.ZodError) {
 			return NextResponse.json(
 				{ error: 'Datos inválidos', details: error.issues },
 				{ status: 400 }
+			)
+		}
+
+		if (error instanceof ProductCreateError) {
+			return NextResponse.json(
+				{ error: error.message },
+				{ status: productCreateErrorStatus(error) }
 			)
 		}
 

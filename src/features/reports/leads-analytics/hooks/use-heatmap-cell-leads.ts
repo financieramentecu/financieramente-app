@@ -7,11 +7,16 @@ import { useLeadsAnalyticsFilter } from '../components/leads-analytics-filter-co
 import type { CellOwnerFilter } from '../lib/cell-owner-filter'
 import { fetchHeatmapCellLeads } from '../lib/leads-analytics-api'
 import { LEADS_ANALYTICS_UI } from '../lib/ui-copy'
-import type { CellLeadList } from '../types/heatmap-cell-leads.types'
+import type {
+	CellLeadList,
+	CellLeadRowView,
+} from '../types/heatmap-cell-leads.types'
 
 export interface UseHeatmapCellLeadsArgs {
-	readonly idLeadFunnelColumn: number
+	readonly idLeadFunnelColumn: number | null
 	readonly ownerFilter: CellOwnerFilter
+	readonly withBusiness?: boolean
+	readonly outcomeStatus?: CellLeadRowView['outcomeStatus'] | null
 	readonly enabled: boolean
 }
 
@@ -21,6 +26,8 @@ export interface UseHeatmapCellLeadsArgs {
 export function useHeatmapCellLeads({
 	idLeadFunnelColumn,
 	ownerFilter,
+	withBusiness = false,
+	outcomeStatus = null,
 	enabled,
 }: UseHeatmapCellLeadsArgs): AsyncState<CellLeadList> {
 	const { applied } = useLeadsAnalyticsFilter()
@@ -54,6 +61,8 @@ export function useHeatmapCellLeads({
 					userIds: selectedUserIds,
 					idLeadFunnelColumn,
 					ownerFilter,
+					withBusiness,
+					outcomeStatus,
 				})
 				if (!cancelled) {
 					setState({ status: 'success', data, error: '' })
@@ -76,7 +85,7 @@ export function useHeatmapCellLeads({
 		return () => {
 			cancelled = true
 		}
-	}, [applied, enabled, idLeadFunnelColumn, ownerFilter, selectedUserIds])
+	}, [applied, enabled, idLeadFunnelColumn, ownerFilter, outcomeStatus, selectedUserIds, withBusiness])
 
 	return state
 }

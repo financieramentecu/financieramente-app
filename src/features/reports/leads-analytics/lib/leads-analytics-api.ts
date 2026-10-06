@@ -6,7 +6,10 @@ import type { LeadDetail } from '@/features/leads/types/lead.types'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { CellOwnerFilter } from './cell-owner-filter'
 import { serializeCellOwnerFilter } from './cell-owner-filter'
-import type { CellLeadList } from '../types/heatmap-cell-leads.types'
+import type {
+	CellLeadList,
+	CellLeadRowView,
+} from '../types/heatmap-cell-leads.types'
 import type {
 	LeadsAnalyticsDateRange,
 	LeadsAnalyticsReport,
@@ -41,15 +44,25 @@ export async function fetchHeatmapCellLeads(query: {
 	readonly dateFrom: string
 	readonly dateTo: string
 	readonly userIds: readonly number[]
-	readonly idLeadFunnelColumn: number
+	readonly idLeadFunnelColumn: number | null
 	readonly ownerFilter: CellOwnerFilter
+	readonly withBusiness?: boolean
+	readonly outcomeStatus?: CellLeadRowView['outcomeStatus'] | null
 }): Promise<CellLeadList> {
 	const sp = new URLSearchParams({
 		dateFrom: query.dateFrom,
 		dateTo: query.dateTo,
 		userIds: query.userIds.join(','),
-		idLeadFunnelColumn: String(query.idLeadFunnelColumn),
 	})
+	if (query.idLeadFunnelColumn != null) {
+		sp.set('idLeadFunnelColumn', String(query.idLeadFunnelColumn))
+	}
+	if (query.withBusiness) {
+		sp.set('withBusiness', 'true')
+	}
+	if (query.outcomeStatus) {
+		sp.set('outcomeStatus', query.outcomeStatus)
+	}
 	const serializedOwner = serializeCellOwnerFilter(query.ownerFilter)
 	if (serializedOwner !== undefined) {
 		sp.set('idUser', serializedOwner)

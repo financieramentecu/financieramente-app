@@ -38,6 +38,7 @@ export interface MisNegociosPageProps {
 	onPageChange?: (page: number) => void
 	onPageSizeChange?: (pageSize: number) => void
 	onUploadSuccess?: () => void
+	onCommentCreated?: () => void
 	onDeleteSuccess?: () => void
 	canExportExcel?: boolean
 	onExportExcel?: () => void
@@ -106,6 +107,7 @@ export function MisNegociosPage({
 	onPageChange,
 	onPageSizeChange,
 	onUploadSuccess,
+	onCommentCreated,
 	onDeleteSuccess,
 	canExportExcel = false,
 	onExportExcel,
@@ -176,6 +178,7 @@ export function MisNegociosPage({
 						isSearching={showTableLoading}
 						userRole={user?.role ?? undefined}
 						onUploadSuccess={onUploadSuccess}
+						onCommentCreated={onCommentCreated}
 						onDeleteSuccess={onDeleteSuccess}
 						canExportExcel={canExportExcel}
 						onExportExcel={onExportExcel}

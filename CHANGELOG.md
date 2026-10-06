@@ -4,6 +4,30 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.36.0] - 2026-10-01
+
+### Agregado
+
+- **Indicador de comentarios en la columna de Acciones:** En la lista de negocios, cada fila muestra un ícono de mensaje con el número exacto de comentarios activos (1, 12, 145, etc., sin límite). Al hacer clic se abre un modal de solo lectura con el historial completo de comentarios del negocio, ordenados de más antiguo a más reciente, en orden cronológico.
+- **Modal de historial de comentarios:** Un diálogo de solo lectura que lista todos los comentarios activos de un negocio, con nombre del autor, rol, título, detalle y fecha/hora en zona horaria de Bogotá. Incluye estados de carga, error (con reintentar), vacío y éxito. Se abre solo cuando el usuario hace clic en el indicador (no consume conexión SSE al cargar la lista).
+- **Refresco automático de la lista:** Al crear un nuevo comentario desde "Agregar comentario", la lista de negocios se actualiza automáticamente para mostrar el contador incrementado.
+
+### Mejorado
+
+- **Formato de fecha y hora en comentarios:** Las marcas de tiempo de comentarios ahora se muestran en zona horaria de Bogotá (America/Bogota) en lugar de la zona horaria del navegador. Afecta tanto el modal de historial como la barra lateral de comentarios en la página de detalle del negocio.
+
+### Técnico
+
+- `businessWithRelations` now includes a filtered `_count.comments` (only `status = true`) as part of the existing `_count` selection (no new endpoint, no migration, no schema change).
+- `BusinessEntity` and the table-row `Business` model now carry `commentCount: number`.
+- New shared helper `formatDateTimeBogota()` in `src/features/shared/lib/format-date.ts` (exported) formats dates and times in America/Bogota timezone with es-CO locale.
+- New component `CommentsHistoryModal` in `src/features/comments/components/` composed from `useComments` and `CommentThread`, with loading/error/empty/success states, explicit focus return via `onCloseAutoFocus`, and live append through existing SSE subscription.
+- `BusinessRowActions` now accepts `commentCount?: number` and `onCommentCreated?: () => void` props, renders the indicator (hidden at zero), mounts the modal conditionally with focus ref, and forwards the create callback to `CommentModal`.
+- `BusinessTableSection` and `MisNegociosPage` wire the new props; `negocios-page-client.tsx` passes `onCommentCreated={() => { void refetch(true) }}` for background list refetch.
+- `CommentItem` updated to use the shared `formatDateTimeBogota` (also affects `CommentsSidebar`).
+- Implementation split across three commits (WU1: count plumbing + formatter, WU2: history modal, WU3: indicator + wiring). ~1,290 authored changed lines (75% tests); covered by `size:exception` label (maintainer approval required before merge).
+- Coverage: 60 scenarios specified and tested (29 negocios requirements, 31 contract-comments requirements); 55 COMPLIANT, 5 PARTIAL with documented acceptance notes (no new defects).
+
 ## [1.35.0] - 2026-09-07
 
 ### Agregado
