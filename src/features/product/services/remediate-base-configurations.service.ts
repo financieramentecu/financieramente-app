@@ -6,7 +6,7 @@ import {
 import { createStructuralProductConfiguration, writeDefaultDistributionLines } from '@/features/product-configuration/services/product-configuration.service'
 import {
 	DefaultDistributionError,
-	getDefaultDistributionRows,
+	loadConfiguredDefaultLevelCodes,
 } from '@/features/distribution-commission/lib/default-distribution-table'
 
 export interface BaseConfigurationRemediationOptions {
@@ -182,6 +182,7 @@ export async function previewMissingDefaultDistributions(
 
 	const applicable: MissingDistributionTarget[] = []
 	const unsupportedLevel: MissingDistributionTarget[] = []
+	const configuredLevels = await loadConfiguredDefaultLevelCodes(prisma)
 
 	for (const config of configs) {
 		const target: MissingDistributionTarget = {
@@ -193,7 +194,7 @@ export async function previewMissingDefaultDistributions(
 				config.productPercentageCommissions[0]?.idProductPercentageCommission ??
 				null,
 		}
-		if (getDefaultDistributionRows(config.level.code)) {
+		if (configuredLevels.has(config.level.code)) {
 			applicable.push(target)
 		} else {
 			unsupportedLevel.push(target)

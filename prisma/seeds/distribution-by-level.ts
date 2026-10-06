@@ -2,9 +2,10 @@ import { buildProductConfigurationCode } from '../../src/features/negocios/lib/p
 import { DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL } from '../../src/features/distribution-commission/lib/default-distribution-table'
 
 /**
- * Distribution table: for each config level (the level of the agent being served),
- * defines what percentage each level in the override chain receives.
- * Source of truth: src/features/distribution-commission/lib/default-distribution-table.ts
+ * Initial percentages for LEVEL_0–LEVEL_5.
+ * The editable copy lives in default_distribution_percentage.
+ * This object seeds missing template rows and remains the fallback
+ * when that table has no rows yet.
  */
 const DISTRIBUTION_TABLE = DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL
 
@@ -19,6 +20,29 @@ export async function seedDistributionByLevel(prisma: AnyPrisma) {
 	const levelByCode = new Map<string, AnyPrisma>(
 		allLevels.map((l: AnyPrisma) => [l.code, l])
 	)
+
+	for (const [configLevelCode, rows] of Object.entries(DISTRIBUTION_TABLE)) {
+		const configLevel = levelByCode.get(configLevelCode)
+		if (!configLevel) continue
+		for (const row of rows) {
+			const receiver = levelByCode.get(row.receiverCode)
+			if (!receiver) continue
+			await prisma.defaultDistributionPercentage.upsert({
+				where: {
+					idConfigLevel_idReceiverLevel: {
+						idConfigLevel: configLevel.idLevel,
+						idReceiverLevel: receiver.idLevel,
+					},
+				},
+				update: {},
+				create: {
+					idConfigLevel: configLevel.idLevel,
+					idReceiverLevel: receiver.idLevel,
+					percentage: row.percentage,
+				},
+			})
+		}
+	}
 
 	// Load all active products with their company
 	const allProducts = await prisma.product.findMany({

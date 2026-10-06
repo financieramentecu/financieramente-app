@@ -49,6 +49,74 @@ export function getDefaultDistributionRows(
 	return DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL[configLevelCode] ?? null
 }
 
+export interface DefaultDistributionDbRow {
+	readonly percentage?: { toString(): string } | number | string
+	readonly receiverLevel?: { readonly code: string }
+	readonly configLevel?: { readonly code: string }
+}
+
+export interface DefaultDistributionReader {
+	defaultDistributionPercentage?: {
+		findMany: (args?: object) => Promise<readonly DefaultDistributionDbRow[]>
+	}
+}
+
+function toFraction(value: DefaultDistributionDbRow['percentage']): number {
+	return Number(value ?? 0)
+}
+
+/**
+ * Uses saved template rows when they exist. Falls back to the built-in table
+ * when the template has not been stored yet.
+ */
+export async function resolveDefaultDistributionRows(
+	db: DefaultDistributionReader,
+	configLevelCode: string
+): Promise<readonly DefaultDistributionRow[] | null> {
+	const findMany = db.defaultDistributionPercentage?.findMany
+	if (findMany) {
+		const rows = await findMany({
+			where: { configLevel: { code: configLevelCode } },
+			select: {
+				percentage: true,
+				receiverLevel: { select: { code: true } },
+			},
+			orderBy: { id: 'asc' },
+		})
+		if (rows.length > 0) {
+			return rows.map((row) => ({
+				receiverCode: row.receiverLevel?.code ?? '',
+				percentage: toFraction(row.percentage),
+			}))
+		}
+	}
+
+	return getDefaultDistributionRows(configLevelCode)
+}
+
+export async function loadConfiguredDefaultLevelCodes(
+	db: DefaultDistributionReader
+): Promise<ReadonlySet<string>> {
+	const findMany = db.defaultDistributionPercentage?.findMany
+	if (!findMany) {
+		return new Set(Object.keys(DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL))
+	}
+
+	const rows = await findMany({
+		distinct: ['idConfigLevel'],
+		select: { configLevel: { select: { code: true } } },
+	})
+	if (rows.length === 0) {
+		return new Set(Object.keys(DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL))
+	}
+
+	return new Set(
+		rows
+			.map((row) => row.configLevel?.code)
+			.filter((code): code is string => Boolean(code))
+	)
+}
+
 export class DefaultDistributionError extends Error {
 	constructor(message: string) {
 		super(message)

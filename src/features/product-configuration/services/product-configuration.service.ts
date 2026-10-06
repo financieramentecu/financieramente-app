@@ -4,7 +4,7 @@ import type { ProductConfiguration } from '@/features/product-configuration/type
 import type { Prisma } from '@prisma/client'
 import {
 	DefaultDistributionError,
-	getDefaultDistributionRows,
+	resolveDefaultDistributionRows,
 } from '@/features/distribution-commission/lib/default-distribution-table'
 
 const productConfigurationInclude = {
@@ -125,8 +125,8 @@ export async function writeDefaultDistributionLines(
 		readonly configLevelCode: string
 	}
 ): Promise<number> {
-	const rows = getDefaultDistributionRows(input.configLevelCode)
-	if (!rows) {
+	const rows = await resolveDefaultDistributionRows(tx, input.configLevelCode)
+	if (!rows || rows.length === 0) {
 		return 0
 	}
 
@@ -163,7 +163,8 @@ export async function createStructuralProductConfiguration(
 	tx: Prisma.TransactionClient,
 	input: StructuralProductConfigurationInput
 ) {
-	const hasDefaultDistribution = getDefaultDistributionRows(input.levelCode) !== null
+	const defaultRows = await resolveDefaultDistributionRows(tx, input.levelCode)
+	const hasDefaultDistribution = defaultRows !== null && defaultRows.length > 0
 	const config = await tx.productConfiguration.create({
 		data: {
 			idProduct: input.idProduct,
