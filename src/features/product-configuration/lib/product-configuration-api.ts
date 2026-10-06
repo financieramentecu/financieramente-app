@@ -25,6 +25,7 @@ export const productConfigurationApi = {
 			const queryParams = new URLSearchParams()
 			if (params?.search) queryParams.set('search', params.search)
 			if (params?.active) queryParams.set('active', params.active)
+			if (params?.eligible) queryParams.set('eligible', 'true')
 			if (params?.page)
 				queryParams.set('page', params.page.toString())
 			if (params?.pageSize)
