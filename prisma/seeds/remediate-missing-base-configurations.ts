@@ -16,25 +16,13 @@ import {
 	AuditAction,
 } from '../../src/features/auth/lib/audit-logger'
 import { prisma } from '../../src/lib/prisma'
+import { parseRemediationArgs } from '../../src/features/product/lib/remediation-cli-args'
 import {
 	applyDefaultDistributionsWhereMissing,
 	applyMissingBaseConfigurations,
 	previewMissingBaseConfigurations,
 	previewMissingDefaultDistributions,
 } from '../../src/features/product/services/remediate-base-configurations.service'
-
-function parseArgs(argv: string[]) {
-	const apply = argv.includes('--apply')
-	const productArg = argv.find((arg) => arg.startsWith('--product-id='))
-	const operatorArg = argv.find((arg) => arg.startsWith('--operator='))
-	const productIdRaw = productArg?.split('=')[1]
-	const productId = productIdRaw ? Number(productIdRaw) : undefined
-	return {
-		apply,
-		productId: productId && !Number.isNaN(productId) ? productId : undefined,
-		operatorEmail: operatorArg?.split('=')[1],
-	}
-}
 
 function writeBackup(plan: unknown): string {
 	const dir = join(process.cwd(), 'tmp')
@@ -46,9 +34,10 @@ function writeBackup(plan: unknown): string {
 }
 
 async function main() {
-	const { apply, productId, operatorEmail } = parseArgs(process.argv.slice(2))
-
 	try {
+		const { apply, productId, operatorEmail } = parseRemediationArgs(
+			process.argv.slice(2)
+		)
 		const plan = await previewMissingBaseConfigurations({ productId })
 		const distributions = await previewMissingDefaultDistributions({ productId })
 		const backupFile = writeBackup({ configurations: plan, distributions })
