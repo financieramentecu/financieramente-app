@@ -242,6 +242,10 @@ describe('POST /api/negocios/export', () => {
 		expect(JSON.stringify(mockFindMany.mock.calls[0]?.[0])).toContain(
 			'contrato-42'
 		)
+		const exportedWhere = (
+			mockFindMany.mock.calls[0]?.[0] as { where?: unknown } | undefined
+		)?.where
+		expect(JSON.stringify(exportedWhere)).not.toContain('"idUser"')
 	})
 
 	it('retorna 200, xlsx y cuerpo no vacío cuando hay datos (ADMIN)', async () => {

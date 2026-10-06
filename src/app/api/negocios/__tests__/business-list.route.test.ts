@@ -14,6 +14,7 @@ import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types
 import {
 	mockUserWithRole,
 	mockAgentUser,
+	createMockUserWithRole,
 } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
 import {
 	mockPrismaBusiness,
@@ -36,11 +37,16 @@ vi.mock('@/features/negocios/services/user-hierarchy.service', () => {
 			_prisma: unknown,
 			currentUser: { idUser: number; role?: { code: string } | null }
 		) => {
-			const ADMIN_LIKE_CODES = ['ADMIN', 'ASISTENTE_GERENCIA_OPERATIVA', 'ANALISTA_SOPORTE']
-			const isAdmin = currentUser.role?.code
-				? ADMIN_LIKE_CODES.includes(currentUser.role.code)
+			const GLOBAL_VISIBILITY_CODES = [
+				'ADMIN',
+				'ASISTENTE_GERENCIA_OPERATIVA',
+				'ANALISTA_SOPORTE',
+				'CONSULTOR',
+			]
+			const isGlobal = currentUser.role?.code
+				? GLOBAL_VISIBILITY_CODES.includes(currentUser.role.code)
 				: false
-			if (isAdmin) return undefined
+			if (isGlobal) return undefined
 			const subordinates = await getSubordinateUserIds(_prisma, currentUser.idUser)
 			return [currentUser.idUser, ...(subordinates as number[])]
 		}),
@@ -389,6 +395,41 @@ describe('GET /api/negocios', () => {
 			})
 			expect(response.status).toBe(200)
 			expect(responseData.data.businesses).toEqual(mockEntities)
+		})
+
+		it('debe listar todos los negocios para CONSULTOR, sin filtro por persona', async () => {
+			const consultor = createMockUserWithRole(UserRole.CONSULTOR)
+			consultor.idUser = 9
+			consultor.email = 'consultor@example.com'
+
+			mockAuth.mockResolvedValue({
+				user: { email: 'consultor@example.com' },
+			} as never)
+			mockBusinessListParamsSchema.safeParse.mockReturnValue({
+				success: true,
+				data: {
+					page: 1,
+					pageSize: 10,
+					search: null,
+					status: null,
+				},
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(consultor)
+			mockPrismaCount.mockResolvedValue(2)
+			mockPrismaFindMany.mockResolvedValue([mockPrismaBusiness] as never)
+			mockPrismaBusinessListToEntities.mockReturnValue([
+				{ id: 1, contract: 'PN0001234' },
+			] as never)
+
+			const request = new Request('http://localhost:3000/api/negocios')
+			const response = await GET(request)
+
+			expect(response.status).toBe(200)
+			expect(mockPrismaCount).toHaveBeenCalledWith({ where: {} })
+			expect(mockPrismaFindMany).toHaveBeenCalledWith(
+				expect.objectContaining({ where: {} })
+			)
+			expect(mockGetSubordinateUserIds).not.toHaveBeenCalled()
 		})
 
 		it('debe filtrar negocios por rol AGENTE (solo sus negocios)', async () => {
