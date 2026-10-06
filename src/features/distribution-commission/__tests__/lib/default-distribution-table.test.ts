@@ -3,6 +3,7 @@ import {
 	DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL,
 	resolveDefaultDistributionRows,
 } from '@/features/distribution-commission/lib/default-distribution-table'
+import { LEADERSHIP_ROUTE_DISTRIBUTION } from '@/features/distribution-commission/__tests__/fixtures/leadership-route-table'
 
 describe('resolveDefaultDistributionRows', () => {
 	it('uses saved template rows when the level has them', async () => {
@@ -28,26 +29,22 @@ describe('resolveDefaultDistributionRows', () => {
 		expect(rows).toEqual([{ receiverCode: 'LEVEL_5', percentage: 0.77 }])
 	})
 
-	it('matches the leadership route and sums to 77% on every level', () => {
-		for (const rows of Object.values(DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL)) {
-			const sum = rows.reduce((total, row) => total + row.percentage, 0)
-			expect(sum).toBeCloseTo(0.77, 6)
-		}
-		expect(DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL.LEVEL_0).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({ receiverCode: 'LEVEL_0', percentage: 0.6 }),
-			])
+	it('locks every receiver and percentage of the leadership route', () => {
+		expect(DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL).toEqual(
+			LEADERSHIP_ROUTE_DISTRIBUTION
 		)
-		expect(DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL.LEVEL_1).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({ receiverCode: 'LEVEL_1', percentage: 0.6085 }),
-			])
+	})
+
+	it('treats Override 17% as the sum of LEVEL_0 upline lines, not a stored row', () => {
+		const upline = LEADERSHIP_ROUTE_DISTRIBUTION.LEVEL_0.filter(
+			(row) => row.receiverCode !== 'LEVEL_0'
 		)
-		expect(DEFAULT_DISTRIBUTION_BY_CONFIG_LEVEL.LEVEL_4).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({ receiverCode: 'LEVEL_4', percentage: 0.685 }),
-			])
-		)
+		const override = upline.reduce((total, row) => total + row.percentage, 0)
+
+		expect(upline.map((row) => row.percentage)).toEqual([
+			0.0085, 0.017, 0.0255, 0.034, 0.085,
+		])
+		expect(override).toBeCloseTo(0.17, 6)
 	})
 
 	it('returns null for a level outside the template', async () => {

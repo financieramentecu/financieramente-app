@@ -1,6 +1,11 @@
 /**
  * Approved default commission distribution, stored as fractions (0.6 = 60%).
  * Source: docs/DISTRIBUTION_TABLE.md. GENERAL_LEVEL has no row in that table.
+ *
+ * Every entry is a persisted receiver line, including the highlighted own share
+ * (LEVEL_1 60.85%, LEVEL_2 62.55%, LEVEL_3 65.10%, LEVEL_4 68.50%, LEVEL_5 77%).
+ * "Override 17%" is not stored: it is the sum of the five LEVEL_0 upline lines.
+ * The 77% column footer is the sum of that level's lines, not a stored total.
  */
 export interface DefaultDistributionRow {
 	readonly receiverCode: string

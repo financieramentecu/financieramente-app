@@ -1,5 +1,24 @@
 #Tabla de distribución por nivel
 
+Cada línea de esta tabla se persiste como porcentaje del receptor (`porcentaje_distribucion`, en fracción: 60% = 0.6). No hay una fila aparte para totales.
+
+## Qué no se persiste
+
+**Override 17%** no es una regla guardada. Es la suma de las cinco líneas de override de NIVEL_0 (MS Junior): 0,85 + 1,70 + 2,55 + 3,40 + 8,50 = 17. Esas cinco líneas sí se guardan.
+
+El **77% al pie de cada columna** de la ruta de liderazgo tampoco se guarda. Es la suma de las líneas persistidas de esa columna.
+
+## Qué sí se persiste, incluidos los resaltados
+
+Los porcentajes resaltados son la parte del propio nivel y se guardan como una línea normal, no como un acumulado calculado al leer:
+
+- 60,00% → NIVEL_0 recibe NIVEL_0 (MS Junior)
+- 60,85% → NIVEL_1 recibe NIVEL_1 (MS Senior)
+- 62,55% → NIVEL_2 recibe NIVEL_2 (Team Leader)
+- 65,10% → NIVEL_3 recibe NIVEL_3 (Performance Leader)
+- 68,50% → NIVEL_4 recibe NIVEL_4 (Business Leader)
+- 77,00% → NIVEL_5 recibe NIVEL_5 (Partner)
+
 ## NIVEL_0
 
 - NIVEL_5->0.85 %
