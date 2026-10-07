@@ -43,7 +43,7 @@ const preview: Preview = {
 			values: [
 				{
 					name: 'light',
-					value: '#ffffff',
+					value: '#F2F2F2',
 				},
 				{
 					name: 'dark',
@@ -51,11 +51,11 @@ const preview: Preview = {
 				},
 				{
 					name: 'financieramente-primary',
-					value: '#00505C',
+					value: '#4F4FE0',
 				},
 				{
 					name: 'financieramente-secondary',
-					value: '#83D874',
+					value: '#07B9F7',
 				},
 			],
 		},

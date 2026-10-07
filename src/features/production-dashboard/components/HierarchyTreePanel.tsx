@@ -83,20 +83,20 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 			{/* Header */}
 			<div
 				className="flex items-center justify-between px-3 py-2.5"
-				style={{ borderBottom: '1px solid rgba(0,60,69,0.15)' }}
+				style={{ borderBottom: '1px solid rgba(79, 79, 224,0.15)' }}
 			>
 				<div className="flex items-center gap-2">
-					<Users className="size-4" style={{ color: '#003c45' }} aria-hidden="true" />
+					<Users className="size-4" style={{ color: '#4F4FE0' }} aria-hidden="true" />
 					<span
 						className="text-xs font-semibold uppercase tracking-wider"
-						style={{ color: '#003c45' }}
+						style={{ color: '#4F4FE0' }}
 					>
 						Jerarquía
 					</span>
 				</div>
 
 				<div className="flex items-center gap-1">
-					<span className="text-[10px]" style={{ color: 'rgba(0,60,69,0.5)' }}>
+					<span className="text-[10px]" style={{ color: 'rgba(79, 79, 224,0.5)' }}>
 						{selectedUserIds.length > 0 ? `${selectedUserIds.length} sel.` : 'Ninguno'}
 					</span>
 					<button
@@ -105,7 +105,7 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 						aria-label={allSelected ? 'Desmarcar todo' : 'Marcar todo'}
 						onClick={() => dispatch({ type: allSelected ? 'DESELECT_ALL' : 'SELECT_ALL' })}
 						className="cursor-pointer rounded p-0.5 transition-colors"
-						style={{ color: 'rgba(0,60,69,0.5)' }}
+						style={{ color: 'rgba(79, 79, 224,0.5)' }}
 					>
 						{allSelected || !noneSelected ? (
 							<CheckSquare className="size-3.5" />
@@ -120,7 +120,7 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 							aria-label="Colapsar panel de jerarquía"
 							onClick={onCollapse}
 							className="cursor-pointer rounded p-0.5 transition-colors hover:bg-muted/40"
-							style={{ color: 'rgba(0,60,69,0.5)' }}
+							style={{ color: 'rgba(79, 79, 224,0.5)' }}
 						>
 							<PanelLeftClose className="size-3.5" />
 						</button>
@@ -129,9 +129,9 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 			</div>
 
 			{/* Search input */}
-			<div className="px-2 py-2" style={{ borderBottom: '1px solid rgba(0,60,69,0.10)' }}>
+			<div className="px-2 py-2" style={{ borderBottom: '1px solid rgba(79, 79, 224,0.10)' }}>
 				<div className="relative flex items-center">
-					<Search className="absolute left-2 size-3.5 pointer-events-none" style={{ color: 'rgba(0,60,69,0.4)' }} />
+					<Search className="absolute left-2 size-3.5 pointer-events-none" style={{ color: 'rgba(79, 79, 224,0.4)' }} />
 					<input
 						type="text"
 						placeholder="Buscar Money Strategist…"
@@ -145,7 +145,7 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 							aria-label="Limpiar búsqueda"
 							onClick={() => setSearchQuery('')}
 							className="absolute right-2 cursor-pointer"
-							style={{ color: 'rgba(0,60,69,0.4)' }}
+							style={{ color: 'rgba(79, 79, 224,0.4)' }}
 						>
 							<X className="size-3" />
 						</button>
@@ -157,14 +157,14 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 			{query ? (
 				<div className="flex-1 overflow-y-auto px-2 py-2">
 					{searchResults.length === 0 ? (
-						<p className="px-2 py-3 text-center text-[11px]" style={{ color: 'rgba(0,60,69,0.4)' }}>
+						<p className="px-2 py-3 text-center text-[11px]" style={{ color: 'rgba(79, 79, 224,0.4)' }}>
 							Sin resultados para &ldquo;{query}&rdquo;
 						</p>
 					) : (
 						<ul className="space-y-px">
 							{searchResults.map((node) => (
 								<li key={node.userId} className="select-none">
-									<div className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-[rgba(0,60,69,0.06)]">
+									<div className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-[rgba(79, 79, 224,0.06)]">
 										<input
 											type="checkbox"
 											id={`search-node-${node.userId}`}
@@ -190,7 +190,7 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 												<span
 													className="truncate text-[13px] font-semibold leading-tight"
 													style={{
-														color: '#003c45',
+														color: '#4F4FE0',
 														textDecoration: node.included ? 'none' : 'line-through',
 													}}
 												>
@@ -226,8 +226,8 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 
 			{/* Footer */}
 			{nodes.length > 0 && (
-				<div className="px-3 py-2" style={{ borderTop: '1px solid rgba(0,60,69,0.15)' }}>
-					<p className="text-[10px]" style={{ color: 'rgba(0,60,69,0.5)' }}>
+				<div className="px-3 py-2" style={{ borderTop: '1px solid rgba(79, 79, 224,0.15)' }}>
+					<p className="text-[10px]" style={{ color: 'rgba(79, 79, 224,0.5)' }}>
 						{selectedUserIds.length} de {totalNodes} usuarios seleccionados
 					</p>
 				</div>

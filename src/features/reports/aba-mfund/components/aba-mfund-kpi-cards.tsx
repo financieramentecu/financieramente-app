@@ -93,10 +93,7 @@ export function AbaMfundKpiCards({ state }: AbaMfundKpiCardsProps) {
 	const money = (value: number) => (kpis ? formatAbaMfundMoney(value) : null)
 
 	return (
-		<section
-			className="rounded-xl p-3 shadow-md"
-			style={{ backgroundColor: '#003c45' }}
-		>
+		<section className="rounded-xl bg-primary p-3 text-primary-foreground shadow-md">
 			<div className="mb-2">
 				<h2 className="text-sm font-semibold text-white">
 					{ABA_MFUND_UI.PAGE_TITLE}

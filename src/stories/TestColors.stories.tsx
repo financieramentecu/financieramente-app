@@ -50,11 +50,11 @@ export const CSSVariables: Story = {
 				<div
 					className="p-4 rounded"
 					style={{
-						backgroundColor: '#00505C',
+						backgroundColor: '#4F4FE0',
 						color: 'white',
 					}}
 				>
-					Botón con colores hardcoded (#00505C)
+					Botón con colores hardcoded (#4F4FE0)
 				</div>
 			</div>
 
