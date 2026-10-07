@@ -54,7 +54,7 @@ function buildNode(
 		userId: user.idUser,
 		fullName: user.lastName ? `${user.name} ${user.lastName}` : user.name,
 		levelCode: level?.code ?? '',
-		levelColor: level?.color ?? '#003c45',
+		levelColor: level?.color ?? '#4F4FE0',
 		categoryName: user.category?.name ?? '',
 		idCategory: user.idCategory,
 		included: true,

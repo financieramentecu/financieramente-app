@@ -54,7 +54,7 @@ export function CommissionDiscountForm({
 			<div className="px-6 py-5 flex flex-col gap-4">
 				{/* Nombre */}
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="name" className="text-[13px] font-medium" style={{ color: '#00545c' }}>
+					<Label htmlFor="name" className="text-[13px] font-medium" style={{ color: '#4F4FE0' }}>
 						Nombre *
 					</Label>
 					<Input
@@ -71,7 +71,7 @@ export function CommissionDiscountForm({
 
 				{/* Tipo */}
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="type" className="text-[13px] font-medium" style={{ color: '#00545c' }}>
+					<Label htmlFor="type" className="text-[13px] font-medium" style={{ color: '#4F4FE0' }}>
 						Tipo *
 					</Label>
 					<Select onValueChange={(v) => setValue('type', v as 'IMPUESTO' | 'CLAWBACK')}>
@@ -81,9 +81,9 @@ export function CommissionDiscountForm({
 							style={
 								selectedType
 									? {
-											borderColor: '#00545c',
+											borderColor: '#4F4FE0',
 											borderWidth: 2,
-											boxShadow: '0 0 0 2px #00545c30',
+											boxShadow: '0 0 0 2px #4F4FE030',
 										}
 									: { borderColor: '#DDE9EB' }
 							}
@@ -110,7 +110,7 @@ export function CommissionDiscountForm({
 
 				{/* Porcentaje */}
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="percentage" className="text-[13px] font-medium" style={{ color: '#00545c' }}>
+					<Label htmlFor="percentage" className="text-[13px] font-medium" style={{ color: '#4F4FE0' }}>
 						Porcentaje (%) *
 					</Label>
 					<Input
@@ -134,7 +134,7 @@ export function CommissionDiscountForm({
 
 				{/* Descripción */}
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="description" className="text-[13px] font-medium" style={{ color: '#00545c' }}>
+					<Label htmlFor="description" className="text-[13px] font-medium" style={{ color: '#4F4FE0' }}>
 						Descripción
 					</Label>
 					<Textarea
@@ -168,7 +168,7 @@ export function CommissionDiscountForm({
 					type="submit"
 					disabled={isLoading}
 					className="inline-flex items-center gap-2 rounded-md px-4 h-9 text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-50"
-					style={{ backgroundColor: '#00545c', color: '#FFFFFF' }}
+					style={{ backgroundColor: '#4F4FE0', color: '#FFFFFF' }}
 				>
 					<Plus className="h-3.5 w-3.5" />
 					{isLoading ? 'Creando...' : 'Crear Descuento'}

@@ -257,7 +257,7 @@ export function DashboardFilterPanel() {
               type="button"
               size="sm"
               disabled={!isApplyEnabled}
-              className="h-7 px-4 text-xs bg-green-600 hover:bg-green-700 active:bg-green-800 text-white dark:bg-green-600 dark:hover:bg-green-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-7 px-4 text-xs bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50"
               onClick={handleApply}
             >
               Aplicar

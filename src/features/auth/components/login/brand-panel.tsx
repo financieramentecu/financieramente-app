@@ -31,14 +31,14 @@ export function BrandPanel({
 		>
 			<div className="flex flex-1 items-start justify-start">
 				{hasGraphic ? (
-					<div className="pointer-events-none -ml-10 max-w-none select-none md:-ml-12 lg:-ml-16">
+					<div className="pointer-events-none select-none">
 						<Image
 							src={graphicSrc!}
 							alt={graphicAlt ?? ''}
-							width={520}
-							height={499}
+							width={320}
+							height={280}
 							priority
-							className="h-auto w-[320px] md:w-[360px] lg:w-[420px]"
+							className="h-auto w-[180px] md:w-[220px] lg:w-[260px]"
 						/>
 					</div>
 				) : (
