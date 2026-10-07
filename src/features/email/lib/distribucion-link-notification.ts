@@ -135,7 +135,7 @@ export function buildDistribucionLinkHtml(
 		</p>
 	`
 
-	const logoUrl = `${baseUrl}/brand/logo-on-light.svg`
+	const logoUrl = `${baseUrl}/logos/logo-verde.svg`
 
 	return buildEmailTemplate({
 		title: copy.title,

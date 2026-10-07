@@ -61,7 +61,7 @@ export function RegularVsUnicaBars({ state, trmRate }: RegularVsUnicaBarsProps) 
 										: '—'
 								}
 								percent={regularPct}
-								barClassName="bg-primary"
+								barClassName="bg-[#003c45]"
 								metric={kpis?.regular ?? null}
 								trmRate={trmRate}
 							/>

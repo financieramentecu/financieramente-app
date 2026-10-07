@@ -28,7 +28,7 @@ function ShellContent() {
 				className="shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out"
 				style={{
 					width: sidebarCollapsed ? 0 : 288,
-					borderRight: '1px solid rgba(79, 79, 224,0.15)',
+					borderRight: '1px solid rgba(0,60,69,0.15)',
 				}}
 				aria-label={ABA_MFUND_UI.HIERARCHY}
 			>

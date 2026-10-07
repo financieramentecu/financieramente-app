@@ -15,12 +15,12 @@ export function LeadFunnelColumnView({
 	onLeadClick,
 }: LeadFunnelColumnViewProps) {
 	return (
-		<div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border-2 border-primary/25 bg-primary/5">
-			<div className="flex items-center justify-between gap-2 border-b-2 border-primary/25 bg-primary px-3 py-2.5">
+		<div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border-2 border-[#00505c]/25 bg-[#00505c]/5">
+			<div className="flex items-center justify-between gap-2 border-b-2 border-[#00505c]/25 bg-[#00505c] px-3 py-2.5">
 				<h3 className="truncate text-sm font-semibold text-white">
 					{column.name}
 				</h3>
-				<span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-primary shadow-sm">
+				<span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-[#00505c] shadow-sm">
 					{column.leads.length}
 				</span>
 			</div>

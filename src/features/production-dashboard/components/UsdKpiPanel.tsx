@@ -36,7 +36,7 @@ export function UsdKpiPanel(props: UsdKpiPanelProps) {
   const nacCopAmount = trmAvailable && computed ? computed.totalCop : undefined
 
   return (
-    <section className="rounded-xl bg-primary p-3 text-primary-foreground shadow-md">
+    <section className="rounded-xl p-3 shadow-md" style={{ backgroundColor: '#003c45' }}>
       {/* Header: title left · TRM badge right */}
       <div className="mb-2 flex items-center justify-between gap-4">
         <div>

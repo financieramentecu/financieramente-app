@@ -14,9 +14,8 @@ import {
 	SidebarMenuSkeleton,
 } from '@/features/shared/ui/sidebar'
 
-import Link from 'next/link'
+import Image from 'next/image'
 import { useSidebar } from '@/features/shared/ui/sidebar'
-import { BrandLogo } from '@/features/shared/ui/brand-logo'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { buildMenuByRole } from '@/lib/navigation/menu-builder'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
@@ -56,22 +55,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							asChild
-							className="data-[slot=sidebar-menu-button]:p-0! sidebar-button h-16 w-full"
+							className="data-[slot=sidebar-menu-button]:p-0! sidebar-button w-full h-24"
 						>
-							<Link
-								href="/dashboard"
-								className="flex h-full w-full items-center justify-center px-3"
+							<a
+								href="#"
+								className="w-full h-full flex items-center justify-center"
 							>
-								<BrandLogo
-									variant={isCollapsed ? 'mark' : 'on-dark'}
-									priority
+								<Image
+									src={
+										isCollapsed
+											? '/logos/isologo-verde.svg'
+											: '/logos/logo-verde.svg'
+									}
+									alt="Financieramente"
+									width={isCollapsed ? 60 : 150}
+									height={isCollapsed ? 60 : 80}
 									className={
 										isCollapsed
-											? 'size-8'
-											: 'h-9 w-auto max-w-[11rem]'
+											? 'size-16'
+											: 'w-full h-auto max-h-20 object-contain'
 									}
 								/>
-							</Link>
+							</a>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>

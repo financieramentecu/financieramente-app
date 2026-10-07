@@ -28,7 +28,6 @@ import { ThemeToggle } from '@/features/shared/ui/theme-toggle'
 import { HeaderImpersonationSelect } from './HeaderImpersonationSelect'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import { NotificationBell } from '@/features/shared/components/notifications/NotificationBell'
-import { BrandLogo } from '@/features/shared/ui/brand-logo'
 
 export interface BreadcrumbItemProps {
 	label: string
@@ -60,16 +59,6 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 					orientation="vertical"
 					className="mx-2 shrink-0 data-[orientation=vertical]:h-4 hidden sm:block"
 				/>
-				<BrandLogo variant="mark" className="h-8 w-8 shrink-0 sm:hidden" priority />
-				<BrandLogo
-					variant="on-light"
-					className="hidden h-8 w-auto shrink-0 sm:block"
-					priority
-				/>
-				<Separator
-					orientation="vertical"
-					className="mx-2 shrink-0 data-[orientation=vertical]:h-4 hidden md:block"
-				/>
 				<h1 className="text-base font-medium truncate min-w-0 flex-1">{title}</h1>
 				<div className="ml-auto flex items-center gap-2">
 					{impersonationEnabled && (
@@ -78,20 +67,20 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 						</div>
 					)}
 					<NotificationBell />
-					<ThemeToggle className="h-9 w-9 rounded-lg border-primary/40 px-0 text-primary hover:bg-primary/10 hover:text-primary" />
+					<ThemeToggle className="h-9 w-9 rounded-lg border-[#11525B]/40 px-0 text-[#11525B] hover:bg-[#11525B]/10 hover:text-[#11525B]" />
 					{user && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
 									variant="ghost"
-									className="h-10 rounded-lg border border-primary/40 bg-primary/8 px-2 text-primary hover:bg-primary/15 hover:text-primary min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:gap-2 sm:px-3"
+									className="h-10 rounded-lg border border-[#11525B]/40 bg-[#11525B]/8 px-2 text-[#11525B] hover:bg-[#11525B]/15 hover:text-[#11525B] min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:gap-2 sm:px-3"
 									aria-label="Menú de usuario"
 								>
 									<div className="hidden sm:flex flex-col items-end">
 										<span className="text-sm font-semibold leading-tight">
 											{user.name || user.email}
 										</span>
-										<span className="text-[11px] uppercase tracking-wide text-primary/90">
+										<span className="text-[11px] uppercase tracking-wide text-[#11525B]/90">
 											{user.role || 'Sin rol'}
 										</span>
 									</div>
@@ -100,7 +89,7 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 											src={user.image || undefined}
 											alt={user.name || ''}
 										/>
-										<AvatarFallback className="bg-primary/18 text-primary ring-1 ring-primary/35 text-[11px] font-semibold">
+										<AvatarFallback className="bg-[#11525B]/18 text-[#11525B] ring-1 ring-[#11525B]/35 text-[11px] font-semibold">
 											{userInitials}
 										</AvatarFallback>
 									</Avatar>

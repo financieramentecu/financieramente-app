@@ -92,7 +92,7 @@ export function FollowUpStatusBars({ state }: FollowUpStatusBarsProps) {
 							</button>
 							<div className="h-3 w-full overflow-hidden rounded-full bg-muted">
 								<div
-									className="h-full rounded-full bg-primary transition-all duration-300"
+									className="h-full rounded-full bg-[#003c45] transition-all duration-300"
 									style={{ width: `${barWidthPercent(bar.count, maxCount)}%` }}
 									role="progressbar"
 									aria-valuenow={bar.count}

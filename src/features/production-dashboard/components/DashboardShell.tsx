@@ -55,7 +55,7 @@ function ShellContent({ children }: { children?: ReactNode }) {
         className="shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out"
         style={{
           width: isSidebarHidden ? 0 : 288,
-          borderRight: isSidebarHidden ? 'none' : '1px solid rgba(79, 79, 224,0.15)',
+          borderRight: isSidebarHidden ? 'none' : '1px solid rgba(0,60,69,0.15)',
         }}
       >
         <HierarchyTreePanel

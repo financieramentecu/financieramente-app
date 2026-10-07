@@ -91,7 +91,7 @@ export function FundedDatePickerDialog({
 						type="button"
 						onClick={() => onConfirm(date)}
 						disabled={!date || isLoading}
-						className="bg-primary text-primary-foreground hover:bg-primary/90"
+						className="bg-green-600 hover:bg-green-700 text-white"
 					>
 						{isLoading ? 'Fondeando...' : 'Confirmar fondeo'}
 					</Button>

@@ -27,7 +27,7 @@ const ColorPaletteDemo = () => {
 					<CardHeader>
 						<CardTitle className="text-primary">Color Primario</CardTitle>
 						<CardDescription>
-							#4F4FE0 - Púrpura corporativo
+							#00505C - Verde azulado corporativo
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -41,7 +41,7 @@ const ColorPaletteDemo = () => {
 						<CardTitle className="text-secondary-foreground">
 							Color Secundario
 						</CardTitle>
-						<CardDescription>#07B9F7 - Cian de acento</CardDescription>
+						<CardDescription>#83D874 - Verde claro vibrante</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<div className="w-full h-20 bg-secondary rounded-md mb-4"></div>

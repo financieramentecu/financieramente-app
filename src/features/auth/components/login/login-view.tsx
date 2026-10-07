@@ -47,11 +47,11 @@ const DEFAULT_BRAND: BrandContent = {
 	heading: 'Financiera',
 	highlight: 'mente',
 	footerLabel: 'Financiera mente',
-	wordmarkSrc: '/brand/logo-on-light.svg',
-	wordmarkAlt: 'Financieramente',
-	footerLogoSrc: '/brand/logo-on-color.svg',
-	footerLogoAlt: 'Financieramente',
-	backgroundGraphicSrc: '/brand/isotipo-white.svg',
+	wordmarkSrc: '/logos/logo-financiera.svg',
+	wordmarkAlt: 'Financiera mente',
+	footerLogoSrc: '/logos/logo-verde.svg',
+	footerLogoAlt: 'Financiera mente',
+	backgroundGraphicSrc: '/logos/isologo.svg',
 	backgroundGraphicAlt: '',
 }
 

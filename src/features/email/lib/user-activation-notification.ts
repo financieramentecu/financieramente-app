@@ -21,7 +21,7 @@ export function generateActivationHTML(
 	params: UserActivationNotificationParams & { baseUrl: string }
 ): string {
 	const loginUrl = `${params.baseUrl}/login`
-	const logoUrl = `${params.baseUrl}/brand/logo-on-light.svg`
+	const logoUrl = `${params.baseUrl}/logos/logo-verde.svg`
 
 	const content = `
 		<p class="greeting">Hola ${escapeHtml(params.userName)},</p>

@@ -65,7 +65,7 @@ export function generateNotificationHTML(
 	}
 ): string {
 	const userUrl = `${params.baseUrl}/dashboard/admin/users/${params.userId}`
-	const logoUrl = `${params.baseUrl}/brand/logo-on-light.svg`
+	const logoUrl = `${params.baseUrl}/logos/logo-verde.svg`
 	const currentDate = new Date().toLocaleDateString('es-EC', {
 		year: 'numeric',
 		month: 'long',

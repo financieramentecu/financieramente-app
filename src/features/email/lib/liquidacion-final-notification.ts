@@ -103,7 +103,7 @@ export function buildLiquidacionFinalHtml(
 		</p>
 	`
 
-	const logoUrl = `${baseUrl}/brand/logo-on-light.svg`
+	const logoUrl = `${baseUrl}/logos/logo-verde.svg`
 
 	const html = buildEmailTemplate({
 		title: '✅ Liquidación Final Completada',

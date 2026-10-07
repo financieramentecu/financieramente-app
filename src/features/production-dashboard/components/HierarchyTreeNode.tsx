@@ -10,10 +10,10 @@ import {
 } from '@/features/shared/ui/tooltip'
 import type { HierarchyNode } from '@/features/production-dashboard/types/hierarchy.types'
 
-const BRAND = '#4F4FE0'
-const BRAND_MUTED = 'rgba(79, 79, 224, 0.35)'
-const BRAND_HOVER = 'rgba(79, 79, 224, 0.06)'
-const BRAND_BORDER = 'rgba(79, 79, 224, 0.15)'
+const GREEN = '#003c45'
+const GREEN_MUTED = 'rgba(0,60,69,0.35)'
+const GREEN_HOVER = 'rgba(0,60,69,0.06)'
+const GREEN_BORDER = 'rgba(0,60,69,0.15)'
 
 function getInitials(fullName: string): string {
 	const parts = fullName.trim().split(/\s+/)
@@ -54,7 +54,7 @@ export function HierarchyTreeNode({
 			<div
 				className="group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-150 cursor-pointer"
 				onMouseEnter={(e) =>
-					((e.currentTarget as HTMLDivElement).style.backgroundColor = BRAND_HOVER)
+					((e.currentTarget as HTMLDivElement).style.backgroundColor = GREEN_HOVER)
 				}
 				onMouseLeave={(e) =>
 					((e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent')
@@ -68,7 +68,7 @@ export function HierarchyTreeNode({
 						aria-expanded={isExpanded}
 						onClick={() => setIsExpanded((prev) => !prev)}
 						className="flex size-4 shrink-0 items-center justify-center rounded transition-colors"
-						style={{ color: BRAND_MUTED }}
+						style={{ color: GREEN_MUTED }}
 					>
 						{isExpanded ? (
 							<ChevronDown className="size-3.5" />
@@ -121,7 +121,7 @@ export function HierarchyTreeNode({
 									style={{
 										fontSize: depth === 0 ? '13px' : '12px',
 										fontWeight: depth === 0 ? 600 : 500,
-										color: BRAND,
+										color: GREEN,
 										textDecoration: isActive ? 'none' : 'line-through',
 									}}
 								>
@@ -148,7 +148,7 @@ export function HierarchyTreeNode({
 					</TooltipTrigger>
 
 					<TooltipContent side="right" className="flex flex-col gap-1">
-						<span className="font-semibold" style={{ color: BRAND }}>
+						<span className="font-semibold" style={{ color: GREEN }}>
 							{node.fullName}
 						</span>
 						{node.categoryName && (
@@ -167,7 +167,7 @@ export function HierarchyTreeNode({
 			{hasChildren && isExpanded && (
 				<ul
 					className="ml-5 mt-0.5 space-y-px pl-2"
-					style={{ borderLeft: `1.5px solid ${BRAND_BORDER}` }}
+					style={{ borderLeft: `1.5px solid ${GREEN_BORDER}` }}
 					role="group"
 					aria-label={`Subordinados de ${node.fullName}`}
 				>

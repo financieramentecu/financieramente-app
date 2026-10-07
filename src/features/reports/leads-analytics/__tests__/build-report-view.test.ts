@@ -108,6 +108,6 @@ describe('heatmapCellStyle', () => {
 	it('returns no fill for empty cells and white text on dense cells', () => {
 		expect(heatmapCellStyle(0, 10)).toEqual({})
 		expect(heatmapCellStyle(10, 10).color).toBe('white')
-		expect(heatmapCellStyle(1, 10).backgroundColor).toContain('rgba(79, 79, 224')
+		expect(heatmapCellStyle(1, 10).backgroundColor).toContain('rgba(0, 60, 69')
 	})
 })

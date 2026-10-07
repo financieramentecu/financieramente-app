@@ -145,7 +145,7 @@ describe('admin-notifications', () => {
 		it('debe incluir colores de marca', () => {
 			const html = generateNotificationHTML(params)
 
-			expect(html).toContain('#4F4FE0')
+			expect(html).toContain('#00505C')
 		})
 
 		it('debe incluir fecha formateada en español', () => {
@@ -175,7 +175,7 @@ describe('admin-notifications', () => {
 		it('debe incluir logo de Financieramente', () => {
 			const html = generateNotificationHTML(params)
 
-			expect(html).toContain('/brand/logo-on-light.svg')
+			expect(html).toContain('/logos/logo-verde.svg')
 			expect(html).toContain('<img')
 			expect(html).toContain('alt="Financieramente"')
 		})
