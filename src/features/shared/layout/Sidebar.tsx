@@ -56,18 +56,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					<SidebarMenuItem>
 						<SidebarMenuButton
 							asChild
-							className="data-[slot=sidebar-menu-button]:p-0! sidebar-button h-16 w-full"
+							className="data-[slot=sidebar-menu-button]:p-0! sidebar-button sidebar-brand-button h-16 w-full"
 						>
 							<Link
 								href="/dashboard"
-								className="flex h-full w-full items-center justify-center px-3"
+								className={
+									isCollapsed
+										? 'flex h-full w-full items-center justify-center px-0'
+										: 'flex h-full w-full items-center justify-center px-3'
+								}
 							>
 								<BrandLogo
 									variant={isCollapsed ? 'mark' : 'on-dark'}
 									priority
 									className={
 										isCollapsed
-											? 'size-8'
+											? 'size-11'
 											: 'h-9 w-auto max-w-[11rem]'
 									}
 								/>

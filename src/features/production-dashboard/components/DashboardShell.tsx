@@ -52,10 +52,9 @@ function ShellContent({ children }: { children?: ReactNode }) {
           when the user has no hierarchy/tree (CA: no blank reserved column). */}
       <aside
         data-testid="hierarchy-sidebar"
-        className="shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out"
+        className={`shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out ${isSidebarHidden ? '' : 'border-r border-border'}`}
         style={{
           width: isSidebarHidden ? 0 : 288,
-          borderRight: isSidebarHidden ? 'none' : '1px solid rgba(79, 79, 224,0.15)',
         }}
       >
         <HierarchyTreePanel

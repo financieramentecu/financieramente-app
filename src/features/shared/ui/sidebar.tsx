@@ -179,15 +179,9 @@ const Sidebar = React.forwardRef<
 			collapsible === 'offcanvas' && state === 'collapsed'
 				? 'w-0'
 				: isCollapsedIcon
-					? variant === 'floating' || variant === 'inset'
-						? 'w-16'
-						: 'w-12'
+					? 'w-16'
 					: 'w-64'
-		const sidebarContentWidth = isCollapsedIcon
-			? variant === 'floating' || variant === 'inset'
-				? 'w-16'
-				: 'w-12'
-			: 'w-64'
+		const sidebarContentWidth = isCollapsedIcon ? 'w-16' : 'w-64'
 
 		if (collapsible === 'none') {
 			return (

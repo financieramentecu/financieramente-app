@@ -33,7 +33,7 @@ export function InactivateConfirmModal({
 		<AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
 			<AlertDialogContent style={{ backgroundColor: '#F8FAFB', borderColor: '#DDE9EB' }}>
 				<AlertDialogHeader>
-					<AlertDialogTitle style={{ color: '#4F4FE0' }}>
+					<AlertDialogTitle style={{ color: '#3A6AE8' }}>
 						Confirmar inactivación
 					</AlertDialogTitle>
 					<AlertDialogDescription asChild>
@@ -66,7 +66,7 @@ export function InactivateConfirmModal({
 						onClick={onConfirm}
 						disabled={isLoading}
 						className="cursor-pointer"
-						style={{ backgroundColor: '#4F4FE0', color: '#fff' }}
+						style={{ backgroundColor: '#3A6AE8', color: '#fff' }}
 					>
 						{isLoading ? (
 							<span className="flex items-center gap-2">

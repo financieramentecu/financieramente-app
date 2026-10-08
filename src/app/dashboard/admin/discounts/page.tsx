@@ -78,7 +78,7 @@ function KpiCard({
 					</span>
 				)}
 			</div>
-			<p className="text-[34px] font-bold leading-none" style={{ color: '#4F4FE0' }}>
+			<p className="text-[34px] font-bold leading-none" style={{ color: '#3A6AE8' }}>
 				{discount ? `${Number(discount.percentage).toFixed(2)}%` : '—'}
 			</p>
 			<p className="text-[13px]" style={{ color: '#529398' }}>
@@ -127,7 +127,7 @@ export default function DiscountsAdminPage() {
 				{/* Page header */}
 				<div className="flex items-center justify-between">
 					<div className="flex flex-col gap-1">
-						<h1 className="text-[26px] font-bold leading-tight" style={{ color: '#4F4FE0' }}>
+						<h1 className="text-[26px] font-bold leading-tight" style={{ color: '#3A6AE8' }}>
 							Descuentos
 						</h1>
 						<p className="text-[13px]" style={{ color: '#529398' }}>
@@ -137,7 +137,7 @@ export default function DiscountsAdminPage() {
 					<button
 						onClick={() => setIsCreateOpen(true)}
 						className="inline-flex items-center gap-2 rounded-md px-4 h-9 text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-90"
-						style={{ backgroundColor: '#4F4FE0', color: '#FFFFFF' }}
+						style={{ backgroundColor: '#3A6AE8', color: '#FFFFFF' }}
 					>
 						<Plus className="h-3.5 w-3.5" />
 						Crear Descuento
@@ -189,7 +189,7 @@ export default function DiscountsAdminPage() {
 							className="px-6 pb-4 pt-5"
 							style={{ borderBottom: '1px solid #DDE9EB' }}
 						>
-							<DialogTitle className="text-[18px] font-bold" style={{ color: '#4F4FE0' }}>
+							<DialogTitle className="text-[18px] font-bold" style={{ color: '#3A6AE8' }}>
 								Crear Descuento
 							</DialogTitle>
 							<DialogDescription className="text-[13px]" style={{ color: '#529398' }}>

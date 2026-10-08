@@ -25,7 +25,7 @@ export function BrandPanel({
 	return (
 		<aside
 			className={cn(
-				'relative hidden h-full flex-col justify-between overflow-hidden bg-primary px-12 py-10 text-primary-foreground md:flex',
+				'relative hidden h-full flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#4A9FE8_0%,#3A6AE8_46%,#14367A_100%)] px-12 py-10 text-primary-foreground md:flex',
 				className
 			)}
 		>

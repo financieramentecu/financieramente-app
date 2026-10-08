@@ -42,7 +42,7 @@ const baseClasses =
 
 const variantStyles: Record<ButtonFixedVariant, CSSProperties> = {
 	default: {
-		backgroundColor: '#4F4FE0',
+		backgroundColor: '#3A6AE8',
 		color: 'white',
 	},
 	destructive: {
@@ -51,20 +51,20 @@ const variantStyles: Record<ButtonFixedVariant, CSSProperties> = {
 	},
 	outline: {
 		backgroundColor: 'transparent',
-		color: '#4F4FE0',
+		color: '#3A6AE8',
 		border: '1px solid #e5e7eb',
 	},
 	secondary: {
 		backgroundColor: '#07B9F7',
-		color: '#4F4FE0',
+		color: '#3A6AE8',
 	},
 	ghost: {
 		backgroundColor: 'transparent',
-		color: '#4F4FE0',
+		color: '#3A6AE8',
 	},
 	link: {
 		backgroundColor: 'transparent',
-		color: '#4F4FE0',
+		color: '#3A6AE8',
 		textDecoration: 'underline',
 	},
 }

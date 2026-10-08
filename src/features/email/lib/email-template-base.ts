@@ -1,11 +1,11 @@
 /**
  * Shared notification email styles.
- * Brandbook: purple #4F4FE0, sky #07B9F7, black, light grey #F2F2F2.
+ * Brandbook: logo blue #3A6AE8, sky #07B9F7, black, light grey #F2F2F2.
  */
 
 export const EMAIL_DESIGN_TOKENS = {
-	primary: '#4F4FE0',
-	primaryHover: '#3C3CC8',
+	primary: '#3A6AE8',
+	primaryHover: '#2E58C4',
 	accent: '#07B9F7',
 	textPrimary: '#000000',
 	textSecondary: '#333333',

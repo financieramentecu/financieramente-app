@@ -10,10 +10,10 @@ import {
 } from '@/features/shared/ui/tooltip'
 import type { HierarchyNode } from '@/features/production-dashboard/types/hierarchy.types'
 
-const BRAND = '#4F4FE0'
-const BRAND_MUTED = 'rgba(79, 79, 224, 0.35)'
-const BRAND_HOVER = 'rgba(79, 79, 224, 0.06)'
-const BRAND_BORDER = 'rgba(79, 79, 224, 0.15)'
+const BRAND = '#3A6AE8'
+const BRAND_MUTED = 'rgba(58, 106, 232, 0.72)'
+const BRAND_HOVER = 'rgba(58, 106, 232, 0.12)'
+const BRAND_BORDER = 'rgba(58, 106, 232, 0.28)'
 
 function getInitials(fullName: string): string {
 	const parts = fullName.trim().split(/\s+/)

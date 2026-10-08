@@ -4,7 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { Button } from '@/features/shared/ui/button'
 import { Separator } from '@/features/shared/ui/separator'
-import { SidebarTrigger } from '@/features/shared/ui/sidebar'
+import { SidebarTrigger, useSidebar } from '@/features/shared/ui/sidebar'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import {
 	DropdownMenu,
@@ -43,6 +43,8 @@ interface SiteHeaderProps {
 export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: SiteHeaderProps) {
 	const { user } = useAuthSession()
 	const { enabled: impersonationEnabled } = useFeatureFlag('impersonation_select')
+	const { state, isMobile } = useSidebar()
+	const showHeaderLogo = isMobile || state === 'collapsed'
 
 	const userInitials =
 		user?.name
@@ -60,16 +62,25 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 					orientation="vertical"
 					className="mx-2 shrink-0 data-[orientation=vertical]:h-4 hidden sm:block"
 				/>
-				<BrandLogo variant="mark" className="h-8 w-8 shrink-0 sm:hidden" priority />
-				<BrandLogo
-					variant="on-light"
-					className="hidden h-8 w-auto shrink-0 sm:block"
-					priority
-				/>
-				<Separator
-					orientation="vertical"
-					className="mx-2 shrink-0 data-[orientation=vertical]:h-4 hidden md:block"
-				/>
+				{showHeaderLogo ? (
+					<>
+						<BrandLogo variant="mark" className="h-9 w-9 shrink-0 sm:hidden" priority />
+						<BrandLogo
+							variant="on-light"
+							className="hidden h-8 w-auto shrink-0 sm:block dark:hidden"
+							priority
+						/>
+						<BrandLogo
+							variant="on-dark"
+							className="hidden h-8 w-auto shrink-0 dark:sm:block"
+							priority
+						/>
+						<Separator
+							orientation="vertical"
+							className="mx-2 shrink-0 data-[orientation=vertical]:h-4 hidden md:block"
+						/>
+					</>
+				) : null}
 				<h1 className="text-base font-medium truncate min-w-0 flex-1">{title}</h1>
 				<div className="ml-auto flex items-center gap-2">
 					{impersonationEnabled && (

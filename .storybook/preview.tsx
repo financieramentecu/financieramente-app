@@ -51,7 +51,7 @@ const preview: Preview = {
 				},
 				{
 					name: 'financieramente-primary',
-					value: '#4F4FE0',
+					value: '#3A6AE8',
 				},
 				{
 					name: 'financieramente-secondary',

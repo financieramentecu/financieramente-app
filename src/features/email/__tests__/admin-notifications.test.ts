@@ -145,7 +145,7 @@ describe('admin-notifications', () => {
 		it('debe incluir colores de marca', () => {
 			const html = generateNotificationHTML(params)
 
-			expect(html).toContain('#4F4FE0')
+			expect(html).toContain('#3A6AE8')
 		})
 
 		it('debe incluir fecha formateada en español', () => {

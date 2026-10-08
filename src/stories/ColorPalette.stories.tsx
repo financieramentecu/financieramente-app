@@ -27,7 +27,7 @@ const ColorPaletteDemo = () => {
 					<CardHeader>
 						<CardTitle className="text-primary">Color Primario</CardTitle>
 						<CardDescription>
-							#4F4FE0 - Púrpura corporativo
+							#3A6AE8 - Azul de marca
 						</CardDescription>
 					</CardHeader>
 					<CardContent>

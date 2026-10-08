@@ -10,8 +10,8 @@
 		--popover: 0 0% 100%;
 		--popover-foreground: 0 0% 0%;
 
-		/* Purple #4F4FE0 */
-		--primary: 240 70% 59.4%;
+		/* Logo blue #3A6AE8 */
+		--primary: 223.4 79.1% 56.9%;
 		--primary-foreground: 0 0% 100%;
 
 		/* Sky blue #07B9F7 — black text (white on sky fails contrast) */
@@ -21,8 +21,8 @@
 		--muted: 240 8% 91%;
 		--muted-foreground: 240 4% 32%;
 
-		--accent: 240 60% 96%;
-		--accent-foreground: 240 55% 32%;
+		--accent: 223 60% 96%;
+		--accent-foreground: 223 55% 32%;
 
 		--destructive: 0 84.2% 60.2%;
 		--destructive-foreground: 0 0% 100%;
@@ -34,34 +34,34 @@
 		--info: 195.5 94.5% 49.8%;
 		--info-muted: 195 80% 95%;
 
-		--chart-1: 240 70% 59.4%;
+		--chart-1: 223.4 79.1% 56.9%;
 		--chart-2: 195.5 94.5% 49.8%;
 		--chart-3: 142 76% 36%;
 		--chart-4: 38 92% 50%;
 
 		--border: 240 10% 86%;
 		--input: 240 10% 86%;
-		--ring: 240 70% 59.4%;
+		--ring: 223.4 79.1% 56.9%;
 
 		--radius: 0.75rem;
 
 		--sidebar-width: 16rem;
-		--sidebar-width-icon: 3rem;
+		--sidebar-width-icon: 4rem;
 		--sidebar-width-mobile: 18rem;
 
-		/* Black sidebar, purple active item — Brandbook dark lockup */
+		/* Black sidebar, logo-blue active item */
 		--sidebar-bg: #000000;
-		--sidebar-active-bg: #4f4fe0;
+		--sidebar-active-bg: #3A6AE8;
 		--sidebar-text: #ffffff;
 
 		--sidebar: 0 0% 0%;
 		--sidebar-foreground: 0 0% 100%;
-		--sidebar-primary: 240 70% 59.4%;
+		--sidebar-primary: 223.4 79.1% 56.9%;
 		--sidebar-primary-foreground: 0 0% 100%;
-		--sidebar-accent: 240 70% 59.4%;
+		--sidebar-accent: 223.4 79.1% 56.9%;
 		--sidebar-accent-foreground: 0 0% 100%;
 		--sidebar-border: 0 0% 18%;
-		--sidebar-ring: 240 70% 59.4%;
+		--sidebar-ring: 223.4 79.1% 56.9%;
 	}
 
 	.dark {
@@ -74,7 +74,7 @@
 		--popover: 240 8% 9%;
 		--popover-foreground: 0 0% 94.9%;
 
-		--primary: 240 70% 64%;
+		--primary: 223.4 79.1% 56.9%;
 		--primary-foreground: 0 0% 100%;
 
 		--secondary: 195.5 94.5% 49.8%;
@@ -83,7 +83,7 @@
 		--muted: 240 6% 14%;
 		--muted-foreground: 240 5% 74%;
 
-		--accent: 240 22% 18%;
+		--accent: 223 22% 18%;
 		--accent-foreground: 0 0% 94.9%;
 
 		--destructive: 0 62.8% 30.6%;
@@ -96,31 +96,31 @@
 		--info: 195.5 94.5% 55%;
 		--info-muted: 195 30% 16%;
 
-		--chart-1: 240 70% 68%;
+		--chart-1: 223.4 79.1% 62%;
 		--chart-2: 195.5 94.5% 55%;
 		--chart-3: 142 56% 45%;
 		--chart-4: 38 92% 55%;
 
 		--border: 240 6% 18%;
 		--input: 240 6% 18%;
-		--ring: 240 70% 64%;
+		--ring: 223.4 79.1% 62%;
 
 		--sidebar-width: 16rem;
-		--sidebar-width-icon: 3rem;
+		--sidebar-width-icon: 4rem;
 		--sidebar-width-mobile: 18rem;
 
 		--sidebar-bg: #000000;
-		--sidebar-active-bg: #4f4fe0;
+		--sidebar-active-bg: #3A6AE8;
 		--sidebar-text: #ffffff;
 
 		--sidebar: 0 0% 0%;
 		--sidebar-foreground: 0 0% 100%;
-		--sidebar-primary: 240 70% 64%;
+		--sidebar-primary: 223.4 79.1% 56.9%;
 		--sidebar-primary-foreground: 0 0% 100%;
-		--sidebar-accent: 240 70% 59.4%;
+		--sidebar-accent: 223.4 79.1% 56.9%;
 		--sidebar-accent-foreground: 0 0% 100%;
 		--sidebar-border: 0 0% 18%;
-		--sidebar-ring: 240 70% 64%;
+		--sidebar-ring: 223.4 79.1% 62%;
 	}
 }
 
@@ -184,6 +184,12 @@
 
 	.sidebar-button {
 		color: var(--sidebar-text) !important;
+	}
+
+	.group[data-collapsible='icon'] [data-sidebar='menu-button'].sidebar-brand-button {
+		width: 3rem !important;
+		height: 3rem !important;
+		padding: 0 !important;
 	}
 
 	.sidebar-button:hover {

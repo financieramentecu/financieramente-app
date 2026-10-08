@@ -272,7 +272,7 @@ function buildHeatmapCells(
     const idUser = user.idUser
     const fullName = user.lastName ? `${user.name} ${user.lastName}` : user.name
     const levelCode = user.level?.code ?? ''
-    const levelColor = user.level?.color ?? '#4F4FE0'
+    const levelColor = user.level?.color ?? '#3A6AE8'
     const levelOrder =
       user.level !== null && user.level !== undefined
         ? (levelOrderMap.get(user.level.idLevel) ?? 0)

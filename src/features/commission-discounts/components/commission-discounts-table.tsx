@@ -164,7 +164,7 @@ export function CommissionDiscountsTable({
 							<div className="w-[110px] shrink-0">
 								<span
 									className="text-[13px] font-semibold"
-									style={{ color: isActive ? '#4F4FE0' : '#DDE9EB' }}
+									style={{ color: isActive ? '#3A6AE8' : '#DDE9EB' }}
 								>
 									{Number(discount.percentage).toFixed(2)}%
 								</span>

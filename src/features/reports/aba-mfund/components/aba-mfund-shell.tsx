@@ -25,10 +25,9 @@ function ShellContent() {
 	return (
 		<div className="flex flex-1 min-h-0 overflow-hidden">
 			<aside
-				className="shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out"
+				className={`shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? '' : 'border-r border-border'}`}
 				style={{
 					width: sidebarCollapsed ? 0 : 288,
-					borderRight: '1px solid rgba(79, 79, 224,0.15)',
 				}}
 				aria-label={ABA_MFUND_UI.HIERARCHY}
 			>
