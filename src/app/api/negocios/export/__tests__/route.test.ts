@@ -238,7 +238,9 @@ describe('POST /api/negocios/export', () => {
 		const buf = Buffer.from(await res.arrayBuffer())
 		expect(buf.length).toBeGreaterThan(0)
 		expect(mockFindMany).toHaveBeenCalledTimes(1)
-		expect(JSON.stringify(mockCount.mock.calls[0]?.[0])).toContain('contrato-42')
+		expect(JSON.stringify(mockCount.mock.calls[0]?.[0])).toContain(
+			'contrato-42'
+		)
 		expect(JSON.stringify(mockFindMany.mock.calls[0]?.[0])).toContain(
 			'contrato-42'
 		)

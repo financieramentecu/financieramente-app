@@ -2,9 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET } from '../route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import {
-	getSubordinateUserIds,
-} from '@/features/negocios/services/user-hierarchy.service'
+import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { businessListParamsSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
@@ -33,23 +31,28 @@ vi.mock('@/features/negocios/services/user-hierarchy.service', () => {
 		// Re-implemented (not `importOriginal`) so it calls the SAME mocked
 		// `getSubordinateUserIds` reference above — keeps test control over
 		// subordinate resolution while preserving the real admin/scoped branch logic.
-		resolveVisibleUserIds: vi.fn(async (
-			_prisma: unknown,
-			currentUser: { idUser: number; role?: { code: string } | null }
-		) => {
-			const GLOBAL_VISIBILITY_CODES = [
-				'ADMIN',
-				'ASISTENTE_GERENCIA_OPERATIVA',
-				'ANALISTA_SOPORTE',
-				'CONSULTOR',
-			]
-			const isGlobal = currentUser.role?.code
-				? GLOBAL_VISIBILITY_CODES.includes(currentUser.role.code)
-				: false
-			if (isGlobal) return undefined
-			const subordinates = await getSubordinateUserIds(_prisma, currentUser.idUser)
-			return [currentUser.idUser, ...(subordinates as number[])]
-		}),
+		resolveVisibleUserIds: vi.fn(
+			async (
+				_prisma: unknown,
+				currentUser: { idUser: number; role?: { code: string } | null }
+			) => {
+				const GLOBAL_VISIBILITY_CODES = [
+					'ADMIN',
+					'ASISTENTE_GERENCIA_OPERATIVA',
+					'ANALISTA_SOPORTE',
+					'CONSULTOR',
+				]
+				const isGlobal = currentUser.role?.code
+					? GLOBAL_VISIBILITY_CODES.includes(currentUser.role.code)
+					: false
+				if (isGlobal) return undefined
+				const subordinates = await getSubordinateUserIds(
+					_prisma,
+					currentUser.idUser
+				)
+				return [currentUser.idUser, ...(subordinates as number[])]
+			}
+		),
 	}
 })
 vi.mock('@/lib/prisma', () => ({
@@ -204,9 +207,10 @@ describe('GET /api/negocios', () => {
 				email: 'admin@example.com',
 			})
 			mockPrismaCount.mockResolvedValue(2)
-			mockPrismaFindMany.mockResolvedValue(
-				[mockPrismaBusiness, mockPrismaBusinessEmitido] as never
-			)
+			mockPrismaFindMany.mockResolvedValue([
+				mockPrismaBusiness,
+				mockPrismaBusinessEmitido,
+			] as never)
 			mockPrismaBusinessListToEntities.mockReturnValue([] as never)
 
 			const request = new Request('http://localhost:3000/api/negocios')
