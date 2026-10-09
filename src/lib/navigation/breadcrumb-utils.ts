@@ -26,6 +26,7 @@ const SEGMENT_LABELS: Record<string, string> = {
 	currencies: 'Monedas',
 	origins: 'Orígenes',
 	periodicities: 'Periodicidades',
+	'document-types': 'Tipos de Documento',
 	'config-distribucion-comisiones': 'Config. distribución de comisiones',
 	'configuraciones-producto': 'Config. producto',
 	reglas: 'Reglas',

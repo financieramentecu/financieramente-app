@@ -15,6 +15,7 @@ import {
 } from '@/features/auth/lib/audit-logger'
 import { identityNumberSchema } from '../lib/identity-number.schema'
 import { canRoleEditClientInfo } from '../lib/client-edit-permissions'
+import { validateIdentityForExistingRecord } from '@/features/document-types/services/document-type.service'
 
 /**
  * Schema de validación para actualizar un cliente
@@ -37,6 +38,7 @@ const updateClientSchema = z.object({
 	identityNumber: identityNumberSchema
 		.transform((v) => v.toUpperCase())
 		.optional(),
+	typeIdentity: z.string().trim().min(1).max(10).optional(),
 	direcction: z.string().optional(),
 	city: z.string().optional(),
 	country: z.string().optional(),
@@ -109,11 +111,33 @@ export async function updateClient(
 			}
 		}
 
-		if (validatedData.identityNumber !== undefined) {
+		const nextTypeIdentity =
+			validatedData.typeIdentity ?? existingClient.typeIdentity
+		const nextIdentityNumber =
+			validatedData.identityNumber ?? existingClient.identityNumber
+
+		if (
+			validatedData.identityNumber !== undefined ||
+			validatedData.typeIdentity !== undefined
+		) {
+			const identityError = await validateIdentityForExistingRecord({
+				previousCode: existingClient.typeIdentity,
+				nextCode: nextTypeIdentity,
+				identityNumber: nextIdentityNumber,
+			})
+			if (identityError) {
+				return { data: null, error: identityError }
+			}
+		}
+
+		if (
+			validatedData.identityNumber !== undefined ||
+			validatedData.typeIdentity !== undefined
+		) {
 			const duplicate = await prisma.client.findFirst({
 				where: {
-					typeIdentity: existingClient.typeIdentity,
-					identityNumber: validatedData.identityNumber,
+					typeIdentity: nextTypeIdentity,
+					identityNumber: nextIdentityNumber,
 					NOT: { idClient: existingClient.idClient },
 				},
 			})
@@ -131,6 +155,7 @@ export async function updateClient(
 			email: string | null
 			phone: string | null
 			identityNumber: string
+			typeIdentity: string
 			direcction: string | null
 			city: string | null
 			country: string
@@ -150,6 +175,9 @@ export async function updateClient(
 		}
 		if (validatedData.identityNumber !== undefined) {
 			updateData.identityNumber = validatedData.identityNumber
+		}
+		if (validatedData.typeIdentity !== undefined) {
+			updateData.typeIdentity = nextTypeIdentity
 		}
 		if (validatedData.direcction !== undefined) {
 			updateData.direcction = validatedData.direcction

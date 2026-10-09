@@ -20,6 +20,7 @@ import {
 	Pyramid,
 	Kanban,
 	ShieldCheck,
+	IdCard,
 } from 'lucide-react'
 
 /**
@@ -32,6 +33,8 @@ export interface MenuItem {
 	subItems?: MenuItem[]
 	/** Stable report code for category-gated Reportes sub-items */
 	reportCode?: string
+	/** Visible only for the System Administrator role */
+	adminOnly?: boolean
 }
 
 /**
@@ -175,6 +178,12 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				title: 'Permisos de Reportes',
 				url: '/dashboard/admin/report-permissions',
 				icon: <ShieldCheck className="h-4 w-4" />,
+			},
+			{
+				title: 'Tipos de Documento',
+				url: '/dashboard/admin/document-types',
+				icon: <IdCard className="h-4 w-4" />,
+				adminOnly: true,
 			},
 		],
 	},

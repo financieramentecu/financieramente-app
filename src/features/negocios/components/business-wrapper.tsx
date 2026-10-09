@@ -15,6 +15,7 @@ import type { BusinessFormData } from '@/features/negocios/lib/business-form-sch
 import { UserWithRole } from '../types/business.types'
 import { useGetAllData } from '../hooks/use-get-all-data'
 import type { AgentInfo } from '../types/business-entity.types'
+import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
 
 interface Props {
 	companies: Company[]
@@ -22,6 +23,7 @@ interface Props {
 	periodicities: BuyPeriodicity[]
 	currencies: Currency[]
 	clientOrigins: ClientOrigin[]
+	documentTypeOptions?: DocumentTypeOption[]
 	currentUser: UserWithRole | null
 	/** Prefill from a lead conversion (leads-crm-sync feature) */
 	defaultValues?: Partial<BusinessFormData>
@@ -39,6 +41,7 @@ export default function BusinessWrapper({
 	defaultValues,
 	leadId,
 	businessAgent,
+	documentTypeOptions,
 	...props
 }: Props) {
 	const router = useRouter()
@@ -81,6 +84,7 @@ export default function BusinessWrapper({
 				periodicitiesOptions={periodicitiesOptions}
 				currenciesOptions={currenciesOptions}
 				clientOriginsOptions={clientOriginsOptions}
+				documentTypeOptions={documentTypeOptions}
 				defaultValues={defaultValues}
 				leadId={leadId}
 				businessAgent={businessAgent}

@@ -8,6 +8,7 @@ import { getProducts } from '@/features/product/services/product.service'
 import { getPeriodicities } from '@/features/admin/periodicities/services/periodicity.service'
 import { getCurrencies } from '@/features/admin/currencies/services/currency.service'
 import { getClientOrigins } from '@/features/origins/services/origins.service'
+import { listDocumentTypeOptionsForForm } from '@/features/document-types/services/document-type.service'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { CurrentUser } from '@/features/negocios/types/business.types'
@@ -47,6 +48,15 @@ const getClientOriginsCached = unstable_cache(
 	}
 )
 
+const getDocumentTypesCached = unstable_cache(
+	listDocumentTypeOptionsForForm,
+	['document-types-active'],
+	{
+		revalidate: 60,
+		tags: ['document-types'],
+	}
+)
+
 interface CrearNegocioPageProps {
 	searchParams: Promise<{ leadId?: string }>
 }
@@ -60,6 +70,7 @@ export default async function CrearNegocioPage({
 		periodicities,
 		currencies,
 		clientOrigins,
+		documentTypeOptions,
 		session,
 		resolvedSearchParams,
 	] = await Promise.all([
@@ -68,6 +79,7 @@ export default async function CrearNegocioPage({
 		getPeriodicitiesCached(),
 		getCurrenciesCached(),
 		getClientOriginsCached(),
+		getDocumentTypesCached(),
 		auth(),
 		searchParams,
 	])
@@ -126,6 +138,7 @@ export default async function CrearNegocioPage({
 					periodicities={periodicities}
 					currencies={currencies}
 					clientOrigins={clientOrigins}
+					documentTypeOptions={documentTypeOptions}
 					currentUser={currentUser}
 					defaultValues={leadDefaultValues}
 					leadId={leadId}

@@ -9,6 +9,9 @@ vi.mock('@/lib/prisma', () => ({
 			findUnique: vi.fn(),
 			create: vi.fn(),
 		},
+		documentType: {
+			findFirst: vi.fn(),
+		},
 	},
 }))
 
@@ -32,6 +35,17 @@ describe('createClient', () => {
 			session: { user: {} },
 		} as never)
 		vi.mocked(prisma.client.findUnique).mockResolvedValue(null)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
+			idDocumentType: 1,
+			name: 'Cédula de Ciudadanía',
+			code: 'CC',
+			dataType: 'NUMERIC',
+			minLength: 6,
+			maxLength: 10,
+			status: true,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		} as never)
 		vi.mocked(prisma.client.create).mockResolvedValue({
 			idClient: 1,
 			...basePayload,
@@ -76,6 +90,28 @@ describe('createClient', () => {
 		expect(result.data).toBeNull()
 		expect('error' in result && result.error).toBe(
 			'Ya existe un cliente con este número de identificación'
+		)
+		expect(prisma.client.create).not.toHaveBeenCalled()
+	})
+
+	it('rejects an inactive document type', async () => {
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
+			idDocumentType: 1,
+			name: 'Cédula de Ciudadanía',
+			code: 'CC',
+			dataType: 'NUMERIC',
+			minLength: 6,
+			maxLength: 10,
+			status: false,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		} as never)
+
+		const result = await createClient(basePayload)
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toBe(
+			'El tipo de documento no está disponible para nuevos registros'
 		)
 		expect(prisma.client.create).not.toHaveBeenCalled()
 	})

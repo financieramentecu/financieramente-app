@@ -25,6 +25,7 @@ export function businessEntityToFormData(
 	return {
 		// Información del cliente
 		identityNumber: business.client.identityNumber,
+		typeIdentity: business.client.typeIdentity || 'CC',
 		email: business.client.email || '',
 		name: business.client.name,
 		lastNames: business.client.lastName || '',

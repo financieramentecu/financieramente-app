@@ -156,6 +156,29 @@ model Currency {
   @@map("currency")
 }
 
+/// Catálogo de tipos de documento de identidad.
+/// `client.type_identity` y `user.type_identity` guardan `code` (sin FK)
+/// para que desactivar un tipo no altere identificaciones ya registradas.
+model DocumentType {
+  idDocumentType Int              @id @default(autoincrement()) @map("id_document_type")
+  name           String           @unique @db.VarChar(80)
+  code           String           @unique @db.VarChar(10)
+  dataType       DocumentDataType @map("data_type")
+  minLength      Int              @map("min_length")
+  maxLength      Int              @map("max_length")
+  status         Boolean          @default(true)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("document_type")
+}
+
+enum DocumentDataType {
+  NUMERIC
+  ALPHANUMERIC
+}
+
 model TypeProduct {
   idTypeProduct Int       @id @default(autoincrement()) @map("id_type_product")
   name          String    @db.VarChar(200)

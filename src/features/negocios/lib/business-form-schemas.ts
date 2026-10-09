@@ -18,6 +18,11 @@ export const businessFormSchema = z.object({
 		.min(1, 'El teléfono es obligatorio')
 		.regex(/^[0-9\s\-+]+$/, 'Formato de contacto inválido'),
 	identityNumber: identityNumberSchema,
+	typeIdentity: z
+		.string()
+		.trim()
+		.min(1, 'El tipo de documento es obligatorio')
+		.max(10, 'La abreviatura no puede exceder 10 caracteres'),
 	clientOrigin: z.string().min(1, 'El origen del cliente es obligatorio'),
 	contract: z
 		.string()
