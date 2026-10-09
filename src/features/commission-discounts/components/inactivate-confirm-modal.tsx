@@ -31,7 +31,9 @@ export function InactivateConfirmModal({
 }: InactivateConfirmModalProps) {
 	return (
 		<AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-			<AlertDialogContent style={{ backgroundColor: '#F8FAFB', borderColor: '#DDE9EB' }}>
+			<AlertDialogContent
+				style={{ backgroundColor: '#F8FAFB', borderColor: '#DDE9EB' }}
+			>
 				<AlertDialogHeader>
 					<AlertDialogTitle style={{ color: '#3A6AE8' }}>
 						Confirmar inactivación

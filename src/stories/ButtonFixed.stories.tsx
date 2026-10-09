@@ -30,8 +30,7 @@ type ButtonFixedVariant =
 	| 'link'
 type ButtonFixedSize = 'default' | 'sm' | 'lg' | 'icon'
 
-interface ButtonFixedProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonFixedProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	children: ReactNode
 	variant?: ButtonFixedVariant
 	size?: ButtonFixedSize

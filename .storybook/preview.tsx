@@ -9,10 +9,10 @@ import { createFlagsmithInstance } from '@flagsmith/flagsmith'
 // Flagsmith instance pre-initialized with all flags enabled for Storybook
 const storybookFlagsmith = createFlagsmithInstance()
 storybookFlagsmith.setState({
-  flags: {
-    negocios_advanced_filters: { enabled: true, value: null },
-    production_dashboard: { enabled: true, value: null },
-  },
+	flags: {
+		negocios_advanced_filters: { enabled: true, value: null },
+		production_dashboard: { enabled: true, value: null },
+	},
 })
 
 // Importar Tailwind CSS

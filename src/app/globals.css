@@ -51,7 +51,7 @@
 
 		/* Black sidebar, logo-blue active item */
 		--sidebar-bg: #000000;
-		--sidebar-active-bg: #3A6AE8;
+		--sidebar-active-bg: #3a6ae8;
 		--sidebar-text: #ffffff;
 
 		--sidebar: 0 0% 0%;
@@ -110,7 +110,7 @@
 		--sidebar-width-mobile: 18rem;
 
 		--sidebar-bg: #000000;
-		--sidebar-active-bg: #3A6AE8;
+		--sidebar-active-bg: #3a6ae8;
 		--sidebar-text: #ffffff;
 
 		--sidebar: 0 0% 0%;
@@ -186,7 +186,8 @@
 		color: var(--sidebar-text) !important;
 	}
 
-	.group[data-collapsible='icon'] [data-sidebar='menu-button'].sidebar-brand-button {
+	.group[data-collapsible='icon']
+		[data-sidebar='menu-button'].sidebar-brand-button {
 		width: 3rem !important;
 		height: 3rem !important;
 		padding: 0 !important;

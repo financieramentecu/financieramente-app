@@ -96,7 +96,8 @@ export async function buildHierarchyTree(
 	const overrideLevelIds = new Set<number>()
 	for (const level of levels) {
 		levelMap.set(level.idLevel, { code: level.code, color: level.color })
-		if (level.beneficiaryMode === 'OVERRIDE') overrideLevelIds.add(level.idLevel)
+		if (level.beneficiaryMode === 'OVERRIDE')
+			overrideLevelIds.add(level.idLevel)
 	}
 
 	// Only include users with an assigned level of type OVERRIDE (exclude BENEFICIARIO_GENERAL)

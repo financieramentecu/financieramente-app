@@ -26,9 +26,7 @@ const ColorPaletteDemo = () => {
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-primary">Color Primario</CardTitle>
-						<CardDescription>
-							#3A6AE8 - Azul de marca
-						</CardDescription>
+						<CardDescription>#3A6AE8 - Azul de marca</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<div className="w-full h-20 bg-primary rounded-md mb-4"></div>

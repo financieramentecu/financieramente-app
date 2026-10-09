@@ -14,7 +14,11 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/features/shared/ui/dropdown-menu'
-import { Avatar, AvatarFallback, AvatarImage } from '@/features/shared/ui/avatar'
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from '@/features/shared/ui/avatar'
 import {
 	Breadcrumb,
 	BreadcrumbList,
@@ -40,9 +44,14 @@ interface SiteHeaderProps {
 	breadcrumbs?: BreadcrumbItemProps[]
 }
 
-export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: SiteHeaderProps) {
+export function SiteHeader({
+	title = 'Financieramente',
+	breadcrumbs = [],
+}: SiteHeaderProps) {
 	const { user } = useAuthSession()
-	const { enabled: impersonationEnabled } = useFeatureFlag('impersonation_select')
+	const { enabled: impersonationEnabled } = useFeatureFlag(
+		'impersonation_select'
+	)
 	const { state, isMobile } = useSidebar()
 	const showHeaderLogo = isMobile || state === 'collapsed'
 
@@ -64,7 +73,11 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 				/>
 				{showHeaderLogo ? (
 					<>
-						<BrandLogo variant="mark" className="h-9 w-9 shrink-0 sm:hidden" priority />
+						<BrandLogo
+							variant="mark"
+							className="h-9 w-9 shrink-0 sm:hidden"
+							priority
+						/>
 						<BrandLogo
 							variant="on-light"
 							className="hidden h-8 w-auto shrink-0 sm:block dark:hidden"
@@ -81,7 +94,9 @@ export function SiteHeader({ title = 'Financieramente', breadcrumbs = [] }: Site
 						/>
 					</>
 				) : null}
-				<h1 className="text-base font-medium truncate min-w-0 flex-1">{title}</h1>
+				<h1 className="text-base font-medium truncate min-w-0 flex-1">
+					{title}
+				</h1>
 				<div className="ml-auto flex items-center gap-2">
 					{impersonationEnabled && (
 						<div className="hidden sm:block">

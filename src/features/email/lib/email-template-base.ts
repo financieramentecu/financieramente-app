@@ -168,9 +168,10 @@ export function buildEmailTemplate(options: EmailTemplateOptions): string {
 		showLogoImage = true,
 	} = options
 
-	const logoHtml = showLogoImage && logoUrl
-		? `<div class="logo-container"><img src="${logoUrl}" alt="Financieramente" class="logo" /></div>`
-		: ''
+	const logoHtml =
+		showLogoImage && logoUrl
+			? `<div class="logo-container"><img src="${logoUrl}" alt="Financieramente" class="logo" /></div>`
+			: ''
 
 	return `<!DOCTYPE html>
 <html>

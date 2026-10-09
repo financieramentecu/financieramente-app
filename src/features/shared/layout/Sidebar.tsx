@@ -25,7 +25,9 @@ import { useAuthorizedReportCodes } from '@/features/report-permissions/hooks/us
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar()
 	const { session, isLoading } = useAuthSession()
-	const { enabled: isCalculadoraEnabled } = useFeatureFlag('dashboard_calculadora')
+	const { enabled: isCalculadoraEnabled } = useFeatureFlag(
+		'dashboard_calculadora'
+	)
 	const { enabled: isDashboardEnabled } = useFeatureFlag('production_dashboard')
 	const { codes: authorizedReportCodes } = useAuthorizedReportCodes()
 	const isCollapsed = state === 'collapsed'
@@ -70,9 +72,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 									variant={isCollapsed ? 'mark' : 'on-dark'}
 									priority
 									className={
-										isCollapsed
-											? 'size-11'
-											: 'h-9 w-auto max-w-[11rem]'
+										isCollapsed ? 'size-11' : 'h-9 w-auto max-w-[11rem]'
 									}
 								/>
 							</Link>

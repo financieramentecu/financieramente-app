@@ -240,7 +240,10 @@ const Sidebar = React.forwardRef<
 						side === 'left' ? 'left-0' : 'right-0',
 						sidebarContentWidth,
 						(variant === 'floating' || variant === 'inset') && 'p-2',
-						variant === 'sidebar' && (side === 'left' ? 'border-r border-sidebar-border' : 'border-l border-sidebar-border'),
+						variant === 'sidebar' &&
+							(side === 'left'
+								? 'border-r border-sidebar-border'
+								: 'border-l border-sidebar-border'),
 						className
 					)}
 					{...props}
@@ -270,7 +273,10 @@ const SidebarTrigger = React.forwardRef<
 			data-sidebar="trigger"
 			variant="ghost"
 			size="icon"
-			className={cn('h-7 w-7 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-7 sm:w-7', className)}
+			className={cn(
+				'h-7 w-7 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-7 sm:w-7',
+				className
+			)}
 			onClick={(event) => {
 				onClick?.(event)
 				toggleSidebar()
@@ -621,8 +627,7 @@ const SidebarMenuButton = React.forwardRef<
 		}
 
 		// No tooltip on touch; expanded + full label: skip wrapper (avoids broken `hidden` on Content).
-		const showTooltip =
-			!isMobile && (state === 'collapsed' || labelTruncated)
+		const showTooltip = !isMobile && (state === 'collapsed' || labelTruncated)
 
 		if (!showTooltip) {
 			return button

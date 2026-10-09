@@ -34,11 +34,14 @@ function ShellContent({ canExport }: ShellContentProps) {
 		trmLoading,
 		trmError,
 	})
-	const { state: detailState, loadMore, isLoadingMore } =
-		useProduccionRealDetail({
-			trmRate,
-			trmLoading,
-		})
+	const {
+		state: detailState,
+		loadMore,
+		isLoadingMore,
+	} = useProduccionRealDetail({
+		trmRate,
+		trmLoading,
+	})
 	const { exportExcel, isExporting } = useProduccionRealExport({
 		trmRate,
 		trmLoading,
@@ -103,7 +106,9 @@ interface ProduccionRealShellProps {
  * Client shell: HierarchySelectionProvider > FilterProvider > content.
  * Mirrors production dashboard composition (ADR-3 / design D5).
  */
-export function ProduccionRealShell({ canExport = true }: ProduccionRealShellProps) {
+export function ProduccionRealShell({
+	canExport = true,
+}: ProduccionRealShellProps) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<HierarchySelectionProvider>

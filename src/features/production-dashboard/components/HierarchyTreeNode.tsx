@@ -54,10 +54,12 @@ export function HierarchyTreeNode({
 			<div
 				className="group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-150 cursor-pointer"
 				onMouseEnter={(e) =>
-					((e.currentTarget as HTMLDivElement).style.backgroundColor = BRAND_HOVER)
+					((e.currentTarget as HTMLDivElement).style.backgroundColor =
+						BRAND_HOVER)
 				}
 				onMouseLeave={(e) =>
-					((e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent')
+					((e.currentTarget as HTMLDivElement).style.backgroundColor =
+						'transparent')
 				}
 			>
 				{/* Chevron expand/collapse */}
