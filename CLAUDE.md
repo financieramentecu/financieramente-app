@@ -94,7 +94,8 @@ Use these skills for detailed patterns on-demand:
 | `nextjs-16`              | App Router, Server Actions, Server Components, caching     | Working with Next.js App Router, API routes            | [SKILL.md](skills/nextjs-16/SKILL.md)              |
 | `screaming-architecture` | Feature-based organization, domain-driven structure        | Organizing code by feature/domain                      | [SKILL.md](skills/screaming-architecture/SKILL.md) |
 | `commit-messages`        | Conventional commits, clear commit messages                | Writing commit messages, preparing commits             | [SKILL.md](skills/commit-messages/SKILL.md)        |
-| `code-review-skill`      | Security, performance, maintainability reviews             | Code reviews, PR reviews, security analysis            | [SKILL.md](skills/code-review-skill/SKILL.md)      |
+| `code-reviewer`          | TS/JS code review, checklists, automated analysis          | Code reviews, PR reviews                               | [SKILL.md](skills/code-reviewer/SKILL.md)          |
+| `security-review`        | Security checklist: auth, input, secrets, endpoints        | Security analysis, sensitive features                  | [SKILL.md](skills/security-review/SKILL.md)        |
 
 ### Financieramente-Specific Skills
 
