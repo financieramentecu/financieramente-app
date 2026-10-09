@@ -103,22 +103,40 @@ export function CommissionDiscountsTable({
 					borderBottom: '1px solid #DDE9EB',
 				}}
 			>
-				<span className="w-[210px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
+				<span
+					className="w-[210px] text-[11px] font-semibold tracking-[0.5px] shrink-0"
+					style={{ color: '#529398' }}
+				>
 					NOMBRE
 				</span>
-				<span className="w-[110px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
+				<span
+					className="w-[110px] text-[11px] font-semibold tracking-[0.5px] shrink-0"
+					style={{ color: '#529398' }}
+				>
 					TIPO
 				</span>
-				<span className="w-[110px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
+				<span
+					className="w-[110px] text-[11px] font-semibold tracking-[0.5px] shrink-0"
+					style={{ color: '#529398' }}
+				>
 					PORCENTAJE
 				</span>
-				<span className="w-[100px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
+				<span
+					className="w-[100px] text-[11px] font-semibold tracking-[0.5px] shrink-0"
+					style={{ color: '#529398' }}
+				>
 					ESTADO
 				</span>
-				<span className="w-[130px] text-[11px] font-semibold tracking-[0.5px] shrink-0" style={{ color: '#529398' }}>
+				<span
+					className="w-[130px] text-[11px] font-semibold tracking-[0.5px] shrink-0"
+					style={{ color: '#529398' }}
+				>
 					CREADO
 				</span>
-				<span className="flex-1 text-right text-[11px] font-semibold tracking-[0.5px]" style={{ color: '#529398' }}>
+				<span
+					className="flex-1 text-right text-[11px] font-semibold tracking-[0.5px]"
+					style={{ color: '#529398' }}
+				>
 					ACCIONES
 				</span>
 			</div>
@@ -150,8 +168,12 @@ export function CommissionDiscountsTable({
 								>
 									{discount.name}
 								</span>
-								<span className="text-[11px]" style={{ color: isActive ? '#529398' : '#DDE9EB' }}>
-									{discount.description ?? (isActive ? 'Vigente en liquidaciones' : 'Reemplazado')}
+								<span
+									className="text-[11px]"
+									style={{ color: isActive ? '#529398' : '#DDE9EB' }}
+								>
+									{discount.description ??
+										(isActive ? 'Vigente en liquidaciones' : 'Reemplazado')}
 								</span>
 							</div>
 
@@ -164,7 +186,7 @@ export function CommissionDiscountsTable({
 							<div className="w-[110px] shrink-0">
 								<span
 									className="text-[13px] font-semibold"
-									style={{ color: isActive ? '#00545c' : '#DDE9EB' }}
+									style={{ color: isActive ? '#3A6AE8' : '#DDE9EB' }}
 								>
 									{Number(discount.percentage).toFixed(2)}%
 								</span>

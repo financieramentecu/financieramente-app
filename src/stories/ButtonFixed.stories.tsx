@@ -30,8 +30,7 @@ type ButtonFixedVariant =
 	| 'link'
 type ButtonFixedSize = 'default' | 'sm' | 'lg' | 'icon'
 
-interface ButtonFixedProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonFixedProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	children: ReactNode
 	variant?: ButtonFixedVariant
 	size?: ButtonFixedSize
@@ -42,7 +41,7 @@ const baseClasses =
 
 const variantStyles: Record<ButtonFixedVariant, CSSProperties> = {
 	default: {
-		backgroundColor: '#00505C',
+		backgroundColor: '#3A6AE8',
 		color: 'white',
 	},
 	destructive: {
@@ -51,20 +50,20 @@ const variantStyles: Record<ButtonFixedVariant, CSSProperties> = {
 	},
 	outline: {
 		backgroundColor: 'transparent',
-		color: '#00505C',
+		color: '#3A6AE8',
 		border: '1px solid #e5e7eb',
 	},
 	secondary: {
-		backgroundColor: '#83D874',
-		color: '#00505C',
+		backgroundColor: '#07B9F7',
+		color: '#3A6AE8',
 	},
 	ghost: {
 		backgroundColor: 'transparent',
-		color: '#00505C',
+		color: '#3A6AE8',
 	},
 	link: {
 		backgroundColor: 'transparent',
-		color: '#00505C',
+		color: '#3A6AE8',
 		textDecoration: 'underline',
 	},
 }

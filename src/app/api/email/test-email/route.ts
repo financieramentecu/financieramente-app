@@ -138,7 +138,7 @@ Detalles:
 			padding: 20px;
 		}
 		.header {
-			background: linear-gradient(135deg, #00505C 0%, #83D874 100%);
+			background: linear-gradient(135deg, #3A6AE8 0%, #07B9F7 100%);
 			color: white;
 			padding: 30px;
 			text-align: center;
@@ -151,7 +151,7 @@ Detalles:
 		}
 		.badge {
 			display: inline-block;
-			background: #83D874;
+			background: #07B9F7;
 			color: white;
 			padding: 8px 16px;
 			border-radius: 20px;
@@ -161,7 +161,7 @@ Detalles:
 		.details {
 			background: white;
 			padding: 20px;
-			border-left: 4px solid #00505C;
+			border-left: 4px solid #3A6AE8;
 			margin: 20px 0;
 		}
 		.footer {

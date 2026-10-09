@@ -89,7 +89,7 @@ export function buildResumenPreliquidacionHtml(
 		</div>
 	`
 
-	const logoUrl = `${baseUrl}/logos/logo-verde.svg`
+	const logoUrl = `${baseUrl}/brand/logo-on-light.svg`
 
 	const html = buildEmailTemplate({
 		title: 'Resumen de pre-liquidación',

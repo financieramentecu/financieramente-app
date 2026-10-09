@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+vi.mock('next/font/google', () => ({
+	Inter: () => ({ variable: '--font-inter', className: 'font-inter' }),
+}))
+
 // Mock server-only modules
 vi.mock('@/features/shared/lib/flagsmith-server', () => ({
 	getFlagsmithServerState: vi.fn(),
