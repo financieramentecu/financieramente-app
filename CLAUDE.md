@@ -94,7 +94,8 @@ Use these skills for detailed patterns on-demand:
 | `nextjs-16`              | App Router, Server Actions, Server Components, caching     | Working with Next.js App Router, API routes            | [SKILL.md](skills/nextjs-16/SKILL.md)              |
 | `screaming-architecture` | Feature-based organization, domain-driven structure        | Organizing code by feature/domain                      | [SKILL.md](skills/screaming-architecture/SKILL.md) |
 | `commit-messages`        | Conventional commits, clear commit messages                | Writing commit messages, preparing commits             | [SKILL.md](skills/commit-messages/SKILL.md)        |
-| `code-review-skill`      | Security, performance, maintainability reviews             | Code reviews, PR reviews, security analysis            | [SKILL.md](skills/code-review-skill/SKILL.md)      |
+| `code-reviewer`          | TS/JS code review, checklists, automated analysis          | Code reviews, PR reviews                               | [SKILL.md](skills/code-reviewer/SKILL.md)          |
+| `security-review`        | Security checklist: auth, input, secrets, endpoints        | Security analysis, sensitive features                  | [SKILL.md](skills/security-review/SKILL.md)        |
 
 ### Financieramente-Specific Skills
 
@@ -219,30 +220,21 @@ Before creating a PR:
 3. Link screenshots for UI changes
 4. Ensure architecture compliance (use `architecture-enforcer` subagent)
 
-## Release Management: Changelog & Versioning
+## Release Management: Changelog & Versioning (Changesets)
 
-**MANDATORY RULE:** When archiving a feature/functionality via SDD, you MUST:
+Releases use [Changesets](https://github.com/changesets/changesets). Each branch adds its own `.changeset/*.md` file, so CHANGELOG/version merge conflicts disappear. Guide: [.changeset/README.md](.changeset/README.md).
 
-1. **Update `CHANGELOG.md`** with the complete feature description:
-   - Add a new version header `## [X.Y.Z] - YYYY-MM-DD` at the top
-   - Include all changes under `### Agregado`, `### Mejorado`, `### Corregido`, and optionally `### Técnico` sections
-   - Write from user/product perspective for "Agregado"/"Mejorado"/"Corregido"
-   - Include technical implementation details under `### Técnico` (models, endpoints, new files, migrations)
+**MANDATORY RULES:**
 
-2. **Increment `package.json` version** following **Semantic Versioning**:
-   - **MAJOR** (X.0.0): Breaking changes (API incompatibilities, data schema removals)
-   - **MINOR** (1.X.0): New features, backward-compatible additions
-   - **PATCH** (1.0.X): Bug fixes, documentation, internal optimizations
-   - Example: `1.25.0` → `1.26.0` (new feature) or `1.26.0` → `1.26.1` (bug fix)
-
-3. **Timing:** Update version and changelog **when archiving the change**, NOT before (to ensure accurate date and content).
-
-4. **Format:** Keep CHANGELOG.md structured and readable per [Keep a Changelog](https://keepachangelog.com/es-ES/) standards with Spanish UI copy and English technical details.
-
-**Example (already applied for `novedad-negocio-venta-efectuada`):**
-- Version bumped: `1.25.0` → `1.26.0`
-- Changelog entry added with Agregado/Técnico sections
-- Archive happens at archive-report time
+1. **Every PR to `develop` MUST include a changeset** (`npx changeset`, or create `.changeset/<kebab-name>.md` by hand). CI (`changeset` job in `test-pr-qa.yml`) fails without one. Only PRs that truly need no release note (docs-only, CI-only) may use the `no-changeset` label.
+2. **Bump type** follows Semantic Versioning:
+   - **major**: breaking changes (API incompatibilities, data schema removals)
+   - **minor**: new features, backward-compatible additions
+   - **patch**: bug fixes, documentation, internal optimizations
+3. **Body format:** only `### Agregado`, `### Mejorado`, `### Corregido`, `### Técnico` headings with `- ` bullets. The first three are user/product-facing in Spanish; `### Técnico` is technical in English (models, endpoints, new files, migrations). Any other content makes the release fail.
+4. **NEVER edit `CHANGELOG.md` or the `package.json` version by hand.**
+5. **SDD archive:** the archive phase adds or updates the change's changeset (bump type + sections) instead of editing CHANGELOG/version.
+6. **Release to production:** on `develop`, run `npm run release:version` (preview with `-- --dry-run`). It consolidates all pending changesets into ONE CHANGELOG entry (`## [X.Y.Z] - YYYY-MM-DD`, Bogotá date), bumps `package.json`/`package-lock.json`, and deletes the consumed changesets. Review the diff, commit `chore(release): vX.Y.Z`, open a PR `develop` → `main`, and tag `vX.Y.Z` after merge.
 
 ## Coding Language Rules
 

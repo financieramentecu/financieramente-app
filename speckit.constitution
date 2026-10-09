@@ -184,7 +184,8 @@ Use these skills for detailed patterns on-demand:
 - `nextjs-16` - App Router, Server Actions, Server Components, caching
 - `screaming-architecture` - Feature-based organization, domain-driven structure
 - `commit-messages` - Conventional commits, clear commit messages
-- `code-review-skill` - Security, performance, maintainability reviews
+- `code-reviewer` - Code reviews, PR reviews, automated analysis
+- `security-review` - Security checklist for auth, input, secrets, endpoints
 - `financieramente` - Project overview, structure, scripts, architecture
 
 ### Auto-invoke Skills
