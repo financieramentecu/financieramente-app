@@ -9,10 +9,10 @@ import { createFlagsmithInstance } from '@flagsmith/flagsmith'
 // Flagsmith instance pre-initialized with all flags enabled for Storybook
 const storybookFlagsmith = createFlagsmithInstance()
 storybookFlagsmith.setState({
-  flags: {
-    negocios_advanced_filters: { enabled: true, value: null },
-    production_dashboard: { enabled: true, value: null },
-  },
+	flags: {
+		negocios_advanced_filters: { enabled: true, value: null },
+		production_dashboard: { enabled: true, value: null },
+	},
 })
 
 // Importar Tailwind CSS
@@ -43,7 +43,7 @@ const preview: Preview = {
 			values: [
 				{
 					name: 'light',
-					value: '#ffffff',
+					value: '#F2F2F2',
 				},
 				{
 					name: 'dark',
@@ -51,11 +51,11 @@ const preview: Preview = {
 				},
 				{
 					name: 'financieramente-primary',
-					value: '#00505C',
+					value: '#3A6AE8',
 				},
 				{
 					name: 'financieramente-secondary',
-					value: '#83D874',
+					value: '#07B9F7',
 				},
 			],
 		},

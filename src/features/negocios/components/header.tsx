@@ -6,11 +6,11 @@ export function Header() {
 			{/* Logo Financiera mente */}
 			<div className="flex items-center gap-3">
 				<Image
-					src="/logos/logo-financiera.svg"
-					alt="Financiera mente"
-					width={140}
-					height={35}
-					className="h-auto w-auto"
+					src="/brand/logo-on-light.svg"
+					alt="Financieramente"
+					width={180}
+					height={36}
+					className="h-8 w-auto"
 				/>
 			</div>
 
@@ -18,11 +18,11 @@ export function Header() {
 			<div className="bg-primary w-full sm:w-auto px-4 sm:px-8 py-4 rounded-lg flex items-center gap-4 sm:gap-6">
 				<div className="w-1/2 sm:w-auto flex items-center justify-center">
 					<Image
-						src="/logos/isologo.svg"
-						alt="Isologo"
-						width={120}
-						height={120}
-						className="w-full sm:w-24 sm:h-24 h-auto object-contain"
+						src="/brand/isotipo-white.svg"
+						alt=""
+						width={96}
+						height={96}
+						className="h-auto w-full object-contain sm:h-20 sm:w-20"
 					/>
 				</div>
 				<div className="flex-1 flex flex-col">

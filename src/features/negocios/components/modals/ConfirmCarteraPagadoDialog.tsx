@@ -83,7 +83,7 @@ export function ConfirmCarteraPagadoDialog({
 						type="button"
 						onClick={handleConfirm}
 						disabled={!date}
-						className="bg-green-600 hover:bg-green-700 text-white"
+						className="bg-primary text-primary-foreground hover:bg-primary/90"
 					>
 						Confirmar pago
 					</Button>

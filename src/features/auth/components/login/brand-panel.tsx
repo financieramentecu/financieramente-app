@@ -25,20 +25,20 @@ export function BrandPanel({
 	return (
 		<aside
 			className={cn(
-				'relative hidden h-full flex-col justify-between overflow-hidden bg-primary px-12 py-10 text-primary-foreground md:flex',
+				'relative hidden h-full flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#4A9FE8_0%,#3A6AE8_46%,#14367A_100%)] px-12 py-10 text-primary-foreground md:flex',
 				className
 			)}
 		>
 			<div className="flex flex-1 items-start justify-start">
 				{hasGraphic ? (
-					<div className="pointer-events-none -ml-10 max-w-none select-none md:-ml-12 lg:-ml-16">
+					<div className="pointer-events-none select-none">
 						<Image
 							src={graphicSrc!}
 							alt={graphicAlt ?? ''}
-							width={520}
-							height={499}
+							width={320}
+							height={280}
 							priority
-							className="h-auto w-[320px] md:w-[360px] lg:w-[420px]"
+							className="h-auto w-[180px] md:w-[220px] lg:w-[260px]"
 						/>
 					</div>
 				) : (

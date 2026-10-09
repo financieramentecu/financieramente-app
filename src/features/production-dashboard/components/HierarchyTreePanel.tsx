@@ -1,17 +1,25 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Users, CheckSquare, Square, Search, X, PanelLeftClose } from 'lucide-react'
+import {
+	Users,
+	CheckSquare,
+	Square,
+	Search,
+	X,
+	PanelLeftClose,
+} from 'lucide-react'
 // CheckSquare and Square used only in the header select-all button
 import { useHierarchyTree } from '@/features/production-dashboard/hooks/use-hierarchy-tree'
-import {
-	useHierarchySelection,
-} from '@/features/production-dashboard/components/HierarchySelectionContext'
+import { useHierarchySelection } from '@/features/production-dashboard/components/HierarchySelectionContext'
 import { HierarchyTreeNode } from '@/features/production-dashboard/components/HierarchyTreeNode'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { TooltipProvider } from '@/features/shared/ui/tooltip'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
-import type { HierarchyNode, HierarchyTreeData } from '@/features/production-dashboard/types/hierarchy.types'
+import type {
+	HierarchyNode,
+	HierarchyTreeData,
+} from '@/features/production-dashboard/types/hierarchy.types'
 
 // ---------------------------------------------------------------------------
 // Skeleton loader
@@ -25,13 +33,13 @@ function HierarchyTreeSkeleton() {
 			aria-busy="true"
 			aria-label="Cargando jerarquía"
 		>
-		{[80, 64, 72, 56, 68].map((w) => (
-			<div key={w} className="flex items-center gap-2 px-2 py-1.5">
-				<Skeleton className="size-3.5 rounded-sm" />
-				<Skeleton className="size-3.5 rounded-full" />
-				<Skeleton className="h-3.5 rounded" style={{ width: `${w}%` }} />
-			</div>
-		))}
+			{[80, 64, 72, 56, 68].map((w) => (
+				<div key={w} className="flex items-center gap-2 px-2 py-1.5">
+					<Skeleton className="size-3.5 rounded-sm" />
+					<Skeleton className="size-3.5 rounded-full" />
+					<Skeleton className="h-3.5 rounded" style={{ width: `${w}%` }} />
+				</div>
+			))}
 		</div>
 	)
 }
@@ -46,7 +54,11 @@ type PanelContentProps = {
 	onCollapse?: () => void
 }
 
-function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelContentProps) {
+function PanelContent({
+	apiState,
+	activeCategoryIds = [],
+	onCollapse,
+}: PanelContentProps) {
 	const { nodes, dispatch, selectedUserIds, toggle } = useHierarchySelection()
 	const [searchQuery, setSearchQuery] = useState('')
 	const totalNodes = countNodes(0, ...nodes)
@@ -83,29 +95,40 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 			{/* Header */}
 			<div
 				className="flex items-center justify-between px-3 py-2.5"
-				style={{ borderBottom: '1px solid rgba(0,60,69,0.15)' }}
+				style={{ borderBottom: '1px solid rgba(58, 106, 232, 0.28)' }}
 			>
 				<div className="flex items-center gap-2">
-					<Users className="size-4" style={{ color: '#003c45' }} aria-hidden="true" />
+					<Users
+						className="size-4"
+						style={{ color: '#3A6AE8' }}
+						aria-hidden="true"
+					/>
 					<span
 						className="text-xs font-semibold uppercase tracking-wider"
-						style={{ color: '#003c45' }}
+						style={{ color: '#3A6AE8' }}
 					>
 						Jerarquía
 					</span>
 				</div>
 
 				<div className="flex items-center gap-1">
-					<span className="text-[10px]" style={{ color: 'rgba(0,60,69,0.5)' }}>
-						{selectedUserIds.length > 0 ? `${selectedUserIds.length} sel.` : 'Ninguno'}
+					<span
+						className="text-[10px]"
+						style={{ color: 'rgba(58, 106, 232, 0.72)' }}
+					>
+						{selectedUserIds.length > 0
+							? `${selectedUserIds.length} sel.`
+							: 'Ninguno'}
 					</span>
 					<button
 						type="button"
 						title={allSelected ? 'Desmarcar todo' : 'Marcar todo'}
 						aria-label={allSelected ? 'Desmarcar todo' : 'Marcar todo'}
-						onClick={() => dispatch({ type: allSelected ? 'DESELECT_ALL' : 'SELECT_ALL' })}
+						onClick={() =>
+							dispatch({ type: allSelected ? 'DESELECT_ALL' : 'SELECT_ALL' })
+						}
 						className="cursor-pointer rounded p-0.5 transition-colors"
-						style={{ color: 'rgba(0,60,69,0.5)' }}
+						style={{ color: 'rgba(58, 106, 232, 0.72)' }}
 					>
 						{allSelected || !noneSelected ? (
 							<CheckSquare className="size-3.5" />
@@ -120,7 +143,7 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 							aria-label="Colapsar panel de jerarquía"
 							onClick={onCollapse}
 							className="cursor-pointer rounded p-0.5 transition-colors hover:bg-muted/40"
-							style={{ color: 'rgba(0,60,69,0.5)' }}
+							style={{ color: 'rgba(58, 106, 232, 0.72)' }}
 						>
 							<PanelLeftClose className="size-3.5" />
 						</button>
@@ -129,9 +152,15 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 			</div>
 
 			{/* Search input */}
-			<div className="px-2 py-2" style={{ borderBottom: '1px solid rgba(0,60,69,0.10)' }}>
+			<div
+				className="px-2 py-2"
+				style={{ borderBottom: '1px solid rgba(58, 106, 232, 0.2)' }}
+			>
 				<div className="relative flex items-center">
-					<Search className="absolute left-2 size-3.5 pointer-events-none" style={{ color: 'rgba(0,60,69,0.4)' }} />
+					<Search
+						className="absolute left-2 size-3.5 pointer-events-none"
+						style={{ color: 'rgba(58, 106, 232, 0.65)' }}
+					/>
 					<input
 						type="text"
 						placeholder="Buscar Money Strategist…"
@@ -145,7 +174,7 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 							aria-label="Limpiar búsqueda"
 							onClick={() => setSearchQuery('')}
 							className="absolute right-2 cursor-pointer"
-							style={{ color: 'rgba(0,60,69,0.4)' }}
+							style={{ color: 'rgba(58, 106, 232, 0.65)' }}
 						>
 							<X className="size-3" />
 						</button>
@@ -157,14 +186,17 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 			{query ? (
 				<div className="flex-1 overflow-y-auto px-2 py-2">
 					{searchResults.length === 0 ? (
-						<p className="px-2 py-3 text-center text-[11px]" style={{ color: 'rgba(0,60,69,0.4)' }}>
+						<p
+							className="px-2 py-3 text-center text-[11px]"
+							style={{ color: 'rgba(58, 106, 232, 0.65)' }}
+						>
 							Sin resultados para &ldquo;{query}&rdquo;
 						</p>
 					) : (
 						<ul className="space-y-px">
 							{searchResults.map((node) => (
 								<li key={node.userId} className="select-none">
-									<div className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-[rgba(0,60,69,0.06)]">
+									<div className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-primary/10">
 										<input
 											type="checkbox"
 											id={`search-node-${node.userId}`}
@@ -190,19 +222,27 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 												<span
 													className="truncate text-[13px] font-semibold leading-tight"
 													style={{
-														color: '#003c45',
-														textDecoration: node.included ? 'none' : 'line-through',
+														color: '#3A6AE8',
+														textDecoration: node.included
+															? 'none'
+															: 'line-through',
 													}}
 												>
 													<HighlightMatch text={node.fullName} query={query} />
 												</span>
 												{node.categoryName && (
-													<span className="truncate text-[10px] font-medium leading-none" style={{ color: node.levelColor }}>
+													<span
+														className="truncate text-[10px] font-medium leading-none"
+														style={{ color: node.levelColor }}
+													>
 														{node.categoryName}
 													</span>
 												)}
 											</span>
-											<span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: node.levelColor }} />
+											<span
+												className="size-2 shrink-0 rounded-full"
+												style={{ backgroundColor: node.levelColor }}
+											/>
 										</label>
 									</div>
 								</li>
@@ -211,7 +251,10 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 					)}
 				</div>
 			) : (
-				<nav aria-label="Filtro de jerarquía" className="flex-1 overflow-y-auto px-2 py-2">
+				<nav
+					aria-label="Filtro de jerarquía"
+					className="flex-1 overflow-y-auto px-2 py-2"
+				>
 					<ul className="space-y-px" role="tree">
 						{nodes.map((node) => (
 							<HierarchyTreeNode
@@ -226,8 +269,14 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 
 			{/* Footer */}
 			{nodes.length > 0 && (
-				<div className="px-3 py-2" style={{ borderTop: '1px solid rgba(0,60,69,0.15)' }}>
-					<p className="text-[10px]" style={{ color: 'rgba(0,60,69,0.5)' }}>
+				<div
+					className="px-3 py-2"
+					style={{ borderTop: '1px solid rgba(58, 106, 232, 0.28)' }}
+				>
+					<p
+						className="text-[10px]"
+						style={{ color: 'rgba(58, 106, 232, 0.72)' }}
+					>
 						{selectedUserIds.length} de {totalNodes} usuarios seleccionados
 					</p>
 				</div>
@@ -236,7 +285,10 @@ function PanelContent({ apiState, activeCategoryIds = [], onCollapse }: PanelCon
 	)
 }
 
-function countNodes(acc: number, ...nodesArr: HierarchyTreeData['nodes'][number][]): number {
+function countNodes(
+	acc: number,
+	...nodesArr: HierarchyTreeData['nodes'][number][]
+): number {
 	return nodesArr.reduce(
 		(sum, node) => sum + 1 + countNodes(0, ...node.children),
 		acc
@@ -282,7 +334,11 @@ type HierarchyTreePanelProps = {
 	onEmptyChange?: (isEmpty: boolean) => void
 }
 
-export function HierarchyTreePanel({ activeCategoryIds = [], onCollapse, onEmptyChange }: HierarchyTreePanelProps) {
+export function HierarchyTreePanel({
+	activeCategoryIds = [],
+	onCollapse,
+	onEmptyChange,
+}: HierarchyTreePanelProps) {
 	const { state } = useHierarchyTree()
 	const isEmpty = state.status === 'success' && state.data.nodes.length === 0
 
@@ -299,8 +355,12 @@ export function HierarchyTreePanel({ activeCategoryIds = [], onCollapse, onEmpty
 
 	return (
 		<TooltipProvider delayDuration={400}>
-			<div className="flex h-full flex-col bg-white">
-				<PanelContent apiState={state} activeCategoryIds={activeCategoryIds} onCollapse={onCollapse} />
+			<div className="flex h-full flex-col bg-card text-card-foreground">
+				<PanelContent
+					apiState={state}
+					activeCategoryIds={activeCategoryIds}
+					onCollapse={onCollapse}
+				/>
 			</div>
 		</TooltipProvider>
 	)

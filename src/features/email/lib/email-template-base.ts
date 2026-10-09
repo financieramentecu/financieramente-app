@@ -1,16 +1,16 @@
 /**
- * Sistema de diseño unificado para correos de notificación.
- * Paleta: #00505C (primary), #83D874 (accent), #1a1a1a, #333333, #666666.
+ * Shared notification email styles.
+ * Brandbook: logo blue #3A6AE8, sky #07B9F7, black, light grey #F2F2F2.
  */
 
 export const EMAIL_DESIGN_TOKENS = {
-	primary: '#00505C',
-	primaryHover: '#003d47',
-	accent: '#83D874',
-	textPrimary: '#1a1a1a',
+	primary: '#3A6AE8',
+	primaryHover: '#2E58C4',
+	accent: '#07B9F7',
+	textPrimary: '#000000',
 	textSecondary: '#333333',
 	textMuted: '#666666',
-	bgBody: '#f5f5f5',
+	bgBody: '#F2F2F2',
 	bgCard: '#ffffff',
 	bgMuted: '#f8f9fa',
 	borderMuted: '#e9ecef',
@@ -26,7 +26,7 @@ export const EMAIL_BASE_STYLES = `
 	a { text-decoration: none; }
 	
 	body {
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+		font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 		line-height: 1.6;
 		color: ${EMAIL_DESIGN_TOKENS.textPrimary};
 		max-width: ${EMAIL_DESIGN_TOKENS.maxWidth};
@@ -168,9 +168,10 @@ export function buildEmailTemplate(options: EmailTemplateOptions): string {
 		showLogoImage = true,
 	} = options
 
-	const logoHtml = showLogoImage && logoUrl
-		? `<div class="logo-container"><img src="${logoUrl}" alt="Financieramente" class="logo" /></div>`
-		: ''
+	const logoHtml =
+		showLogoImage && logoUrl
+			? `<div class="logo-container"><img src="${logoUrl}" alt="Financieramente" class="logo" /></div>`
+			: ''
 
 	return `<!DOCTYPE html>
 <html>

@@ -71,20 +71,20 @@ export const Comparison: Story = {
 				<div className="grid grid-cols-2 gap-4 text-sm">
 					<div className="space-y-2">
 						<div className="font-semibold">Default:</div>
-						<div className="bg-[#00505C] text-white p-2 rounded">
-							Fondo: #00505C (Verde oscuro)
+						<div className="bg-[#3A6AE8] text-white p-2 rounded">
+							Fondo: #3A6AE8 (Azul de marca)
 						</div>
-						<div className="text-white bg-[#00505C] p-2 rounded">
+						<div className="text-white bg-[#3A6AE8] p-2 rounded">
 							Texto: Blanco
 						</div>
 					</div>
 					<div className="space-y-2">
 						<div className="font-semibold">Secondary:</div>
-						<div className="bg-[#83D874] text-[#00505C] p-2 rounded">
-							Fondo: #83D874 (Verde claro)
+						<div className="bg-[#07B9F7] text-[#3A6AE8] p-2 rounded">
+							Fondo: #07B9F7 (Cian de acento)
 						</div>
-						<div className="text-[#00505C] bg-[#83D874] p-2 rounded">
-							Texto: #00505C (Verde oscuro)
+						<div className="text-[#3A6AE8] bg-[#07B9F7] p-2 rounded">
+							Texto: #3A6AE8 (Azul de marca)
 						</div>
 					</div>
 				</div>
