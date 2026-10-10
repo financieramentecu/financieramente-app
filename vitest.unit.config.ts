@@ -14,7 +14,7 @@ export default defineConfig({
 		environment: 'jsdom',
 		setupFiles: './vitest.setup.ts',
 		globals: true,
-		include: ['src/**/*.test.{ts,tsx}'], // Solo .test, no .spec
+		include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'], // Solo .test, no .spec
 		exclude: [
 			'src/**/*.stories.{js,ts,jsx,tsx}',
 			'src/**/*.integration.test.{ts,tsx}',

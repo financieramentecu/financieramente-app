@@ -2,9 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET } from '../route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import {
-	getSubordinateUserIds,
-} from '@/features/negocios/services/user-hierarchy.service'
+import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { businessListParamsSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessListToEntities } from '@/features/negocios/mappers/business-entity.mapper'
@@ -14,6 +12,7 @@ import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types
 import {
 	mockUserWithRole,
 	mockAgentUser,
+	createMockUserWithRole,
 } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
 import {
 	mockPrismaBusiness,
@@ -32,18 +31,28 @@ vi.mock('@/features/negocios/services/user-hierarchy.service', () => {
 		// Re-implemented (not `importOriginal`) so it calls the SAME mocked
 		// `getSubordinateUserIds` reference above — keeps test control over
 		// subordinate resolution while preserving the real admin/scoped branch logic.
-		resolveVisibleUserIds: vi.fn(async (
-			_prisma: unknown,
-			currentUser: { idUser: number; role?: { code: string } | null }
-		) => {
-			const ADMIN_LIKE_CODES = ['ADMIN', 'ASISTENTE_GERENCIA_OPERATIVA', 'ANALISTA_SOPORTE']
-			const isAdmin = currentUser.role?.code
-				? ADMIN_LIKE_CODES.includes(currentUser.role.code)
-				: false
-			if (isAdmin) return undefined
-			const subordinates = await getSubordinateUserIds(_prisma, currentUser.idUser)
-			return [currentUser.idUser, ...(subordinates as number[])]
-		}),
+		resolveVisibleUserIds: vi.fn(
+			async (
+				_prisma: unknown,
+				currentUser: { idUser: number; role?: { code: string } | null }
+			) => {
+				const GLOBAL_VISIBILITY_CODES = [
+					'ADMIN',
+					'ASISTENTE_GERENCIA_OPERATIVA',
+					'ANALISTA_SOPORTE',
+					'CONSULTOR',
+				]
+				const isGlobal = currentUser.role?.code
+					? GLOBAL_VISIBILITY_CODES.includes(currentUser.role.code)
+					: false
+				if (isGlobal) return undefined
+				const subordinates = await getSubordinateUserIds(
+					_prisma,
+					currentUser.idUser
+				)
+				return [currentUser.idUser, ...(subordinates as number[])]
+			}
+		),
 	}
 })
 vi.mock('@/lib/prisma', () => ({
@@ -198,9 +207,10 @@ describe('GET /api/negocios', () => {
 				email: 'admin@example.com',
 			})
 			mockPrismaCount.mockResolvedValue(2)
-			mockPrismaFindMany.mockResolvedValue(
-				[mockPrismaBusiness, mockPrismaBusinessEmitido] as never
-			)
+			mockPrismaFindMany.mockResolvedValue([
+				mockPrismaBusiness,
+				mockPrismaBusinessEmitido,
+			] as never)
 			mockPrismaBusinessListToEntities.mockReturnValue([] as never)
 
 			const request = new Request('http://localhost:3000/api/negocios')
@@ -422,6 +432,41 @@ describe('GET /api/negocios', () => {
 			})
 			expect(response.status).toBe(200)
 			expect(responseData.data.businesses).toEqual(mockEntities)
+		})
+
+		it('debe listar todos los negocios para CONSULTOR, sin filtro por persona', async () => {
+			const consultor = createMockUserWithRole(UserRole.CONSULTOR)
+			consultor.idUser = 9
+			consultor.email = 'consultor@example.com'
+
+			mockAuth.mockResolvedValue({
+				user: { email: 'consultor@example.com' },
+			} as never)
+			mockBusinessListParamsSchema.safeParse.mockReturnValue({
+				success: true,
+				data: {
+					page: 1,
+					pageSize: 10,
+					search: null,
+					status: null,
+				},
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(consultor)
+			mockPrismaCount.mockResolvedValue(2)
+			mockPrismaFindMany.mockResolvedValue([mockPrismaBusiness] as never)
+			mockPrismaBusinessListToEntities.mockReturnValue([
+				{ id: 1, contract: 'PN0001234' },
+			] as never)
+
+			const request = new Request('http://localhost:3000/api/negocios')
+			const response = await GET(request)
+
+			expect(response.status).toBe(200)
+			expect(mockPrismaCount).toHaveBeenCalledWith({ where: {} })
+			expect(mockPrismaFindMany).toHaveBeenCalledWith(
+				expect.objectContaining({ where: {} })
+			)
+			expect(mockGetSubordinateUserIds).not.toHaveBeenCalled()
 		})
 
 		it('debe filtrar negocios por rol AGENTE (solo sus negocios)', async () => {
