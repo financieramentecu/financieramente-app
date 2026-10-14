@@ -121,7 +121,8 @@ export function barWidthPercent(count: number, maxCount: number): number {
 }
 
 /**
- * Proportional teal intensity for heatmap cells (0 = empty).
+ * Proportional brand-purple intensity for heatmap cells (0 = empty).
+ * White text only on the darkest cells so contrast stays readable.
  */
 export function heatmapCellStyle(
 	count: number,
@@ -130,7 +131,7 @@ export function heatmapCellStyle(
 	if (count <= 0 || maxCount <= 0) return {}
 	const intensity = Math.max(0.08, count / maxCount)
 	return {
-		backgroundColor: `rgba(0, 60, 69, ${intensity})`,
-		color: intensity >= 0.55 ? 'white' : undefined,
+		backgroundColor: `rgba(79, 79, 224, ${intensity})`,
+		color: intensity >= 0.85 ? 'white' : undefined,
 	}
 }

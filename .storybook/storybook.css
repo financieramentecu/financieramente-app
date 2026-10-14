@@ -118,7 +118,7 @@
 	display: flex !important;
 	flex-direction: column !important;
 	background-color: #f8f9fa !important;
-	color: #00505c !important;
+	color: #3a6ae8 !important;
 	width: var(--sidebar-width) !important;
 	height: 100vh !important;
 	position: fixed !important;
@@ -133,7 +133,7 @@
 /* Asegurar que las clases del sidebar se apliquen correctamente */
 [data-sidebar='sidebar'] {
 	background-color: #f8f9fa !important;
-	color: #00505c !important;
+	color: #3a6ae8 !important;
 	width: var(--sidebar-width) !important;
 	display: flex !important;
 	flex-direction: column !important;
@@ -209,7 +209,7 @@ main[data-sidebar-inset] {
 	transition: margin-left 200ms ease-linear !important;
 	background-color: white !important;
 	border-bottom: 1px solid #e5e7eb !important;
-	color: #00505c !important;
+	color: #3a6ae8 !important;
 	z-index: 20 !important;
 	position: relative !important;
 }
@@ -220,7 +220,7 @@ main[data-sidebar-inset] {
 
 /* Estilos para el botón Quick Create */
 .sidebar-storybook [data-sidebar='menu-button'][class*='bg-primary'] {
-	background-color: #00505c !important;
+	background-color: #3a6ae8 !important;
 	color: white !important;
 	border: none !important;
 	transition: background-color 200ms ease-linear !important;
@@ -230,14 +230,14 @@ main[data-sidebar-inset] {
 }
 
 .sidebar-storybook [data-sidebar='menu-button'][class*='bg-primary']:hover {
-	background-color: #004045 !important;
+	background-color: #2e58c4 !important;
 	color: white !important;
 }
 
 /* Estilos para los elementos de navegación */
 .sidebar-storybook [data-sidebar='menu-button']:not([class*='bg-primary']) {
 	background-color: transparent !important;
-	color: #00505c !important;
+	color: #3a6ae8 !important;
 	transition: background-color 200ms ease-linear !important;
 	border-radius: 6px !important;
 	padding: 8px 12px !important;
@@ -247,20 +247,20 @@ main[data-sidebar-inset] {
 .sidebar-storybook
 	[data-sidebar='menu-button']:not([class*='bg-primary']):hover {
 	background-color: #f3f4f6 !important;
-	color: #00505c !important;
+	color: #3a6ae8 !important;
 }
 
 /* Estilos para el texto del sidebar */
 .sidebar-storybook [data-sidebar='sidebar'] h1,
 .sidebar-storybook [data-sidebar='sidebar'] h2,
 .sidebar-storybook [data-sidebar='sidebar'] h3 {
-	color: #00505c !important;
+	color: #3a6ae8 !important;
 	font-weight: 600 !important;
 }
 
 /* Estilos para los iconos del sidebar */
 .sidebar-storybook [data-sidebar='sidebar'] svg {
-	color: #00505c !important;
+	color: #3a6ae8 !important;
 	width: 16px !important;
 	height: 16px !important;
 }

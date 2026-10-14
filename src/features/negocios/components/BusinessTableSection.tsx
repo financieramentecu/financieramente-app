@@ -209,7 +209,7 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Cliente" />
 			),
 			cell: ({ row }) => (
-				<span className="font-semibold text-[#11525B]">{row.getValue('clientName')}</span>
+				<span className="font-semibold text-primary">{row.getValue('clientName')}</span>
 			),
 			meta: {
 				sticky: 'left',
@@ -292,14 +292,14 @@ export function BusinessTableSection({
 					<div className="flex min-w-0 items-center gap-3">
 						<Avatar className="h-8 w-8">
 							<AvatarImage src={userData.avatar} alt={userData.name} />
-							<AvatarFallback className="bg-[#11525B]/18 text-[#11525B] ring-1 ring-[#11525B]/35 text-[11px] font-semibold">
+							<AvatarFallback className="bg-primary/18 text-primary ring-1 ring-primary/35 text-[11px] font-semibold">
 								{userData.name
 									.split(' ')
 									.map((n: string) => n[0])
 									.join('')}
 							</AvatarFallback>
 						</Avatar>
-						<span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis text-[#11525B]">
+						<span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis text-primary">
 							{userData.name}
 						</span>
 					</div>
@@ -390,7 +390,7 @@ export function BusinessTableSection({
 				<DataTableColumnHeader column={column} title="Valor" />
 			),
 			cell: ({ row }) => (
-				<span className="font-medium text-[#11525B]">
+				<span className="font-medium text-primary">
 					{formatCurrency(row.original.value, row.original.currency.name)}
 				</span>
 			),
@@ -513,7 +513,7 @@ export function BusinessTableSection({
 								size="icon"
 								variant="ghost"
 								onClick={handleStartEdit}
-								className="h-7 w-7 text-muted-foreground hover:text-[#11525B] hover:bg-[#11525B]/10 rounded-md transition-all duration-200 cursor-pointer shrink-0"
+								className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-all duration-200 cursor-pointer shrink-0"
 								title="Editar fecha de emisión"
 							>
 								<Pencil className="h-3.5 w-3.5" />
@@ -625,7 +625,7 @@ export function BusinessTableSection({
 								size="icon"
 								variant="ghost"
 								onClick={handleStartEdit}
-								className="h-7 w-7 text-muted-foreground hover:text-[#11525B] hover:bg-[#11525B]/10 rounded-md transition-all duration-200 cursor-pointer shrink-0"
+								className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-all duration-200 cursor-pointer shrink-0"
 								title="Editar fecha de fondeo"
 							>
 								<Pencil className="h-3.5 w-3.5" />

@@ -36,11 +36,11 @@ export default function NotFound() {
 						{/* Logo de Financiera */}
 						<div className="flex items-center justify-center">
 							<Image
-								src="/logos/logo-financiera.svg"
-								alt="Financiera mente"
-								width={200}
-								height={50}
-								className="h-auto w-auto"
+								src="/brand/logo-on-light.svg"
+								alt="Financieramente"
+								width={220}
+								height={48}
+								className="h-10 w-auto"
 								priority
 							/>
 						</div>

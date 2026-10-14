@@ -46,7 +46,9 @@ export function CommissionDiscountForm({
 
 	const hasActiveForType =
 		selectedType != null &&
-		existingDiscounts.some((d) => d.type === selectedType && d.status === 'ACTIVE')
+		existingDiscounts.some(
+			(d) => d.type === selectedType && d.status === 'ACTIVE'
+		)
 
 	return (
 		<form onSubmit={handleSubmit(onSubmit)}>
@@ -54,7 +56,11 @@ export function CommissionDiscountForm({
 			<div className="px-6 py-5 flex flex-col gap-4">
 				{/* Nombre */}
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="name" className="text-[13px] font-medium" style={{ color: '#00545c' }}>
+					<Label
+						htmlFor="name"
+						className="text-[13px] font-medium"
+						style={{ color: '#3A6AE8' }}
+					>
 						Nombre *
 					</Label>
 					<Input
@@ -71,19 +77,27 @@ export function CommissionDiscountForm({
 
 				{/* Tipo */}
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="type" className="text-[13px] font-medium" style={{ color: '#00545c' }}>
+					<Label
+						htmlFor="type"
+						className="text-[13px] font-medium"
+						style={{ color: '#3A6AE8' }}
+					>
 						Tipo *
 					</Label>
-					<Select onValueChange={(v) => setValue('type', v as 'IMPUESTO' | 'CLAWBACK')}>
+					<Select
+						onValueChange={(v) =>
+							setValue('type', v as 'IMPUESTO' | 'CLAWBACK')
+						}
+					>
 						<SelectTrigger
 							id="type"
 							className="h-9 text-[13px]"
 							style={
 								selectedType
 									? {
-											borderColor: '#00545c',
+											borderColor: '#3A6AE8',
 											borderWidth: 2,
-											boxShadow: '0 0 0 2px #00545c30',
+											boxShadow: '0 0 0 2px #3A6AE830',
 										}
 									: { borderColor: '#DDE9EB' }
 							}
@@ -101,16 +115,25 @@ export function CommissionDiscountForm({
 					{hasActiveForType && (
 						<div
 							className="rounded-md px-2.5 py-2 text-[12px] flex items-start gap-2"
-							style={{ backgroundColor: '#FFFBEB', border: '1px solid #F59E0B', color: '#92400E' }}
+							style={{
+								backgroundColor: '#FFFBEB',
+								border: '1px solid #F59E0B',
+								color: '#92400E',
+							}}
 						>
-							Ya existe un descuento activo de tipo <strong>{selectedType}</strong>. Inactívalo primero.
+							Ya existe un descuento activo de tipo{' '}
+							<strong>{selectedType}</strong>. Inactívalo primero.
 						</div>
 					)}
 				</div>
 
 				{/* Porcentaje */}
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="percentage" className="text-[13px] font-medium" style={{ color: '#00545c' }}>
+					<Label
+						htmlFor="percentage"
+						className="text-[13px] font-medium"
+						style={{ color: '#3A6AE8' }}
+					>
 						Porcentaje (%) *
 					</Label>
 					<Input
@@ -128,13 +151,19 @@ export function CommissionDiscountForm({
 						Valor entre 0.01 y 100
 					</p>
 					{errors.percentage && (
-						<p className="text-[12px] text-red-500">{errors.percentage.message}</p>
+						<p className="text-[12px] text-red-500">
+							{errors.percentage.message}
+						</p>
 					)}
 				</div>
 
 				{/* Descripción */}
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="description" className="text-[13px] font-medium" style={{ color: '#00545c' }}>
+					<Label
+						htmlFor="description"
+						className="text-[13px] font-medium"
+						style={{ color: '#3A6AE8' }}
+					>
 						Descripción
 					</Label>
 					<Textarea
@@ -168,7 +197,7 @@ export function CommissionDiscountForm({
 					type="submit"
 					disabled={isLoading}
 					className="inline-flex items-center gap-2 rounded-md px-4 h-9 text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-90 disabled:opacity-50"
-					style={{ backgroundColor: '#00545c', color: '#FFFFFF' }}
+					style={{ backgroundColor: '#3A6AE8', color: '#FFFFFF' }}
 				>
 					<Plus className="h-3.5 w-3.5" />
 					{isLoading ? 'Creando...' : 'Crear Descuento'}
