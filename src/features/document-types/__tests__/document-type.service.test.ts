@@ -3,6 +3,7 @@ import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
 import { prisma } from '@/lib/prisma'
 import {
 	createDocumentType,
+	rejectPhysicalDocumentTypeRemoval,
 	updateDocumentType,
 	validateIdentityForExistingRecord,
 	validateIdentityForNewRecord,
@@ -10,12 +11,18 @@ import {
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
+		$transaction: vi.fn(async (operations: Promise<unknown>[]) =>
+			Promise.all(operations)
+		),
 		documentType: {
 			findFirst: vi.fn(),
 			findUnique: vi.fn(),
 			findMany: vi.fn(),
 			create: vi.fn(),
 			update: vi.fn(),
+		},
+		client: {
+			updateMany: vi.fn().mockResolvedValue({ count: 0 }),
 		},
 	},
 }))
@@ -162,6 +169,47 @@ describe('document type service', () => {
 				identityNumber: '1234567890',
 			})
 		).resolves.toBeNull()
+	})
+
+	it('rejects an unknown document type on an existing record', async () => {
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+
+		await expect(
+			validateIdentityForExistingRecord({
+				previousCode: 'CC',
+				nextCode: 'ZZ',
+				identityNumber: '1234567890',
+			})
+		).resolves.toBe('El tipo de documento no existe')
+	})
+
+	it('keeps the client relation when the catalog code changes', async () => {
+		vi.mocked(prisma.documentType.findUnique).mockResolvedValue(stored)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.documentType.update).mockResolvedValue({
+			...stored,
+			code: 'PD',
+		})
+
+		const result = await updateDocumentType(1, { code: 'pd' })
+
+		expect(prisma.client.updateMany).toHaveBeenCalledWith({
+			where: { idDocumentType: 1 },
+			data: { typeIdentity: 'PD' },
+		})
+		expect('documentType' in result && result.documentType.code).toBe('PD')
+	})
+
+	it('refuses to physically delete a type that clients already use', async () => {
+		vi.mocked(prisma.documentType.findUnique).mockResolvedValue({
+			...stored,
+			_count: { clients: 3 },
+		} as never)
+
+		const result = await rejectPhysicalDocumentTypeRemoval(1)
+
+		expect(result.error).toMatch(/clientes relacionados/)
+		expect(prisma.documentType.update).not.toHaveBeenCalled()
 	})
 
 	it('rejects switching an existing record to another inactive type', async () => {

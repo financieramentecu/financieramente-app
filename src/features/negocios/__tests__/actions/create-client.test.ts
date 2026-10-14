@@ -77,7 +77,41 @@ describe('createClient', () => {
 		const result = await createClient(basePayload)
 
 		expect(result.data?.idClient).toBe(1)
-		expect(prisma.client.create).toHaveBeenCalled()
+		expect(prisma.client.create).toHaveBeenCalledWith({
+			data: expect.objectContaining({
+				typeIdentity: 'CC',
+				idDocumentType: 1,
+				identityNumber: '1234567890',
+			}),
+		})
+	})
+
+	it('rejects a create without a document type', async () => {
+		const result = await createClient({
+			...basePayload,
+			typeIdentity: ' ',
+		})
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toBe(
+			'El tipo de documento es obligatorio'
+		)
+		expect(prisma.client.create).not.toHaveBeenCalled()
+	})
+
+	it('rejects an unknown document type', async () => {
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+
+		const result = await createClient({
+			...basePayload,
+			typeIdentity: 'ZZ',
+		})
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toBe(
+			'El tipo de documento no existe'
+		)
+		expect(prisma.client.create).not.toHaveBeenCalled()
 	})
 
 	it('rejects a duplicate identityNumber + typeIdentity', async () => {

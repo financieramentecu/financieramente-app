@@ -66,6 +66,7 @@ export function negociosExportColumnHeaders(
 		'Agente',
 		'Nombres y Apellidos del Cliente',
 		'Número de Cédula',
+		'Tipo de Documento',
 		'Correo Electrónico',
 		'Teléfono',
 		'Origen del cliente',
@@ -124,6 +125,9 @@ export function mapBusinessToExportRow(
 	row['Agente'] = agentName
 	row['Nombres y Apellidos del Cliente'] = clientName
 	row['Número de Cédula'] = b.client.identityNumber ?? ''
+	row['Tipo de Documento'] = b.client.documentType
+		? `${b.client.documentType.name} (${b.client.documentType.code})`
+		: (b.client.typeIdentity ?? '')
 	row['Correo Electrónico'] = b.client.email ?? ''
 	row['Teléfono'] = b.client.phone ?? ''
 	row['Origen del cliente'] = b.clientOrigin.name

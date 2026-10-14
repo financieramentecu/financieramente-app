@@ -23,6 +23,8 @@ describe('mapBusinessToExportRow', () => {
 			name: 'Juan',
 			lastName: 'Perez',
 			identityNumber: '123456',
+			typeIdentity: 'CC',
+			documentType: { name: 'Cédula de Ciudadanía', code: 'CC' },
 			email: 'juan@example.com',
 			phone: '+57 300 000 0000'
 		},
@@ -56,22 +58,23 @@ describe('mapBusinessToExportRow', () => {
 		expect(headers[0]).toBe('Agente')
 		expect(headers[1]).toBe('Nombres y Apellidos del Cliente')
 		expect(headers[2]).toBe('Número de Cédula')
-		expect(headers[3]).toBe('Correo Electrónico')
-		expect(headers[4]).toBe('Teléfono')
-		expect(headers[5]).toBe('Origen del cliente')
-		expect(headers[6]).toBe('Compañía')
-		expect(headers[7]).toBe('Plazo')
-		expect(headers[8]).toBe('Producto')
-		expect(headers[9]).toBe('Número de Contrato')
-		expect(headers[10]).toBe('Moneda')
-		expect(headers[11]).toBe(NEGOCIOS_EXPORT_VALOR_COLUMN)
-		expect(headers[12]).toBe('Periodicidad del pago')
-		expect(headers[13]).toBe('Líder Encargado')
-		expect(headers[14]).toBe('Categoría Líder')
-		expect(headers[15]).toBe('Estado de negocio')
-		expect(headers[16]).toBe('Fecha de Creación')
-		expect(headers[17]).toBe('Fecha de Emisión')
-		expect(headers[18]).toBe('Fecha de Fondeo')
+		expect(headers[3]).toBe('Tipo de Documento')
+		expect(headers[4]).toBe('Correo Electrónico')
+		expect(headers[5]).toBe('Teléfono')
+		expect(headers[6]).toBe('Origen del cliente')
+		expect(headers[7]).toBe('Compañía')
+		expect(headers[8]).toBe('Plazo')
+		expect(headers[9]).toBe('Producto')
+		expect(headers[10]).toBe('Número de Contrato')
+		expect(headers[11]).toBe('Moneda')
+		expect(headers[12]).toBe(NEGOCIOS_EXPORT_VALOR_COLUMN)
+		expect(headers[13]).toBe('Periodicidad del pago')
+		expect(headers[14]).toBe('Líder Encargado')
+		expect(headers[15]).toBe('Categoría Líder')
+		expect(headers[16]).toBe('Estado de negocio')
+		expect(headers[17]).toBe('Fecha de Creación')
+		expect(headers[18]).toBe('Fecha de Emisión')
+		expect(headers[19]).toBe('Fecha de Fondeo')
 		expect(headers).not.toContain('Mes')
 		expect(headers).not.toContain('Año')
 		expect(headers).not.toContain('Es anualidad')
@@ -79,9 +82,9 @@ describe('mapBusinessToExportRow', () => {
 
 	it('coloca Líder 2 después de Fecha de Fondeo cuando maxLeaderLevels > 1', () => {
 		const headers = negociosExportColumnHeaders(2, 0)
-		expect(headers[18]).toBe('Fecha de Fondeo')
-		expect(headers[19]).toBe('Líder 2 nombre')
-		expect(headers[20]).toBe('Líder 2 categoría')
+		expect(headers[19]).toBe('Fecha de Fondeo')
+		expect(headers[20]).toBe('Líder 2 nombre')
+		expect(headers[21]).toBe('Líder 2 categoría')
 	})
 
 	it('usa cabeceras Fecha Fondeo Anualidad i al final cuando maxAnnualCols > 0', () => {
@@ -105,6 +108,7 @@ describe('mapBusinessToExportRow', () => {
 		expect(row['Agente']).toBe('Agente Pro')
 		expect(row['Nombres y Apellidos del Cliente']).toBe('Juan Perez')
 		expect(row['Número de Cédula']).toBe('123456')
+		expect(row['Tipo de Documento']).toBe('Cédula de Ciudadanía (CC)')
 		expect(row['Teléfono']).toBe('+57 300 000 0000')
 		expect(row['Líder Encargado']).toBe('Lider Uno')
 		expect(row['Categoría Líder']).toBe('Director')

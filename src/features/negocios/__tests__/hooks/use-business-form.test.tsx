@@ -78,6 +78,7 @@ const baseDefaults = {
 	lastNames: 'Pérez',
 	phone: '3001234567',
 	identityNumber: '12345678',
+	typeIdentity: 'CC',
 	clientOrigin: '1',
 	company: '1',
 	producto: '1',

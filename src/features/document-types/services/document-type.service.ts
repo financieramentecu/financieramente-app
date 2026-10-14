@@ -195,17 +195,49 @@ export async function updateDocumentType(
 		return { error: 'Ya existe un tipo de documento con esta abreviatura' }
 	}
 
-	const row = await prisma.documentType.update({
-		where: { idDocumentType },
-		data: {
-			name,
-			code,
-			dataType: input.dataType ?? current.dataType,
-			minLength,
-			maxLength,
-			status: input.status ?? current.status,
-		},
-	})
+	const nextData = {
+		name,
+		code,
+		dataType: input.dataType ?? current.dataType,
+		minLength,
+		maxLength,
+		status: input.status ?? current.status,
+	}
+
+	let row: DocumentType
+	try {
+		if (code !== current.code) {
+			const [updated] = await prisma.$transaction([
+				prisma.documentType.update({
+					where: { idDocumentType },
+					data: nextData,
+				}),
+				prisma.client.updateMany({
+					where: { idDocumentType },
+					data: { typeIdentity: code },
+				}),
+			])
+			row = updated
+		} else {
+			row = await prisma.documentType.update({
+				where: { idDocumentType },
+				data: nextData,
+			})
+		}
+	} catch (error) {
+		if (
+			error &&
+			typeof error === 'object' &&
+			'code' in error &&
+			error.code === 'P2002'
+		) {
+			return {
+				error:
+					'No se puede cambiar la abreviatura porque coincidiría con otra identificación ya registrada',
+			}
+		}
+		throw error
+	}
 
 	const statusChanged = row.status !== current.status
 	const action = statusChanged
@@ -228,39 +260,109 @@ export async function updateDocumentType(
 	return { documentType: toDocumentTypeDto(row) }
 }
 
+const REQUIRED_DOCUMENT_TYPE_ERROR = 'El tipo de documento es obligatorio'
+const MISSING_DOCUMENT_TYPE_ERROR = 'El tipo de documento no existe'
+const INACTIVE_DOCUMENT_TYPE_ERROR =
+	'El tipo de documento no está disponible para nuevos registros'
+
+export interface ResolvedClientDocumentType {
+	idDocumentType: number
+	code: string
+}
+
+/**
+ * Resolves a catalog row for a client identity.
+ * New assignments must be active. An update may keep the type already stored
+ * after it is deactivated, and must not switch to another inactive type.
+ */
+export async function resolveClientDocumentType(params: {
+	code: string | null | undefined
+	identityNumber: string
+	mode: 'create' | 'update'
+	previousCode?: string | null
+}): Promise<ResolvedClientDocumentType | { error: string }> {
+	const next = normalizeDocumentCode(params.code ?? '')
+	if (!next) {
+		return { error: REQUIRED_DOCUMENT_TYPE_ERROR }
+	}
+
+	const rule = await findDocumentTypeByCode(next)
+	if (!rule) {
+		return { error: MISSING_DOCUMENT_TYPE_ERROR }
+	}
+
+	const previous = normalizeDocumentCode(params.previousCode ?? '')
+	const keepsCurrentType = params.mode === 'update' && next === previous
+	if (!rule.status && !keepsCurrentType) {
+		return { error: INACTIVE_DOCUMENT_TYPE_ERROR }
+	}
+
+	const formatError = validateIdentityAgainstDocumentType(
+		params.identityNumber,
+		rule
+	)
+	if (formatError) {
+		return { error: formatError }
+	}
+
+	return { idDocumentType: rule.idDocumentType, code: rule.code }
+}
+
 export async function validateIdentityForNewRecord(
 	typeCode: string,
 	identityNumber: string
 ): Promise<string | null> {
-	const rule = await findDocumentTypeByCode(typeCode)
-	if (!rule || !rule.status) {
-		return 'El tipo de documento no está disponible para nuevos registros'
-	}
-
-	return validateIdentityAgainstDocumentType(identityNumber, rule)
+	const resolved = await resolveClientDocumentType({
+		code: typeCode,
+		identityNumber,
+		mode: 'create',
+	})
+	return 'error' in resolved ? resolved.error : null
 }
 
 /**
  * Keeps an already stored type even after it is deactivated.
- * Switching to another inactive type is rejected.
- * Missing catalog rows (legacy codes) do not block an update.
+ * Switching to another inactive or unknown type is rejected.
  */
 export async function validateIdentityForExistingRecord(params: {
 	previousCode: string
 	nextCode: string
 	identityNumber: string
 }): Promise<string | null> {
-	const previous = normalizeDocumentCode(params.previousCode)
-	const next = normalizeDocumentCode(params.nextCode)
-	const rule = await findDocumentTypeByCode(next)
+	const resolved = await resolveClientDocumentType({
+		code: params.nextCode,
+		identityNumber: params.identityNumber,
+		mode: 'update',
+		previousCode: params.previousCode,
+	})
+	return 'error' in resolved ? resolved.error : null
+}
 
-	if (!rule) {
-		return null
+/**
+ * Physical removal is rejected. Deactivation is the conservation policy:
+ * historical clients keep the foreign key.
+ */
+export async function rejectPhysicalDocumentTypeRemoval(
+	idDocumentType: number
+): Promise<{ error: string }> {
+	const current = await prisma.documentType.findUnique({
+		where: { idDocumentType },
+		include: { _count: { select: { clients: true } } },
+	})
+
+	if (!current) {
+		return { error: 'Tipo de documento no encontrado' }
 	}
 
-	if (next !== previous && !rule.status) {
-		return 'El tipo de documento no está disponible para nuevos registros'
+	if (current._count.clients > 0) {
+		return {
+			error:
+				'Este tipo de documento tiene clientes relacionados. Inactívalo para ocultarlo en nuevas asignaciones sin romper el histórico.',
+		}
 	}
 
-	return validateIdentityAgainstDocumentType(params.identityNumber, rule)
+	return {
+		error:
+			'Los tipos de documento no se eliminan físicamente. Inactívalo para retirarlo de las nuevas asignaciones.',
+	}
 }

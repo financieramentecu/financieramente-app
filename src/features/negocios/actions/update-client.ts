@@ -15,7 +15,7 @@ import {
 } from '@/features/auth/lib/audit-logger'
 import { identityNumberSchema } from '../lib/identity-number.schema'
 import { canRoleEditClientInfo } from '../lib/client-edit-permissions'
-import { validateIdentityForExistingRecord } from '@/features/document-types/services/document-type.service'
+import { resolveClientDocumentType } from '@/features/document-types/services/document-type.service'
 
 /**
  * Schema de validación para actualizar un cliente
@@ -116,18 +116,21 @@ export async function updateClient(
 		const nextIdentityNumber =
 			validatedData.identityNumber ?? existingClient.identityNumber
 
+		let resolvedType: { idDocumentType: number; code: string } | null = null
 		if (
 			validatedData.identityNumber !== undefined ||
 			validatedData.typeIdentity !== undefined
 		) {
-			const identityError = await validateIdentityForExistingRecord({
-				previousCode: existingClient.typeIdentity,
-				nextCode: nextTypeIdentity,
+			const resolved = await resolveClientDocumentType({
+				code: nextTypeIdentity,
 				identityNumber: nextIdentityNumber,
+				mode: 'update',
+				previousCode: existingClient.typeIdentity,
 			})
-			if (identityError) {
-				return { data: null, error: identityError }
+			if ('error' in resolved) {
+				return { data: null, error: resolved.error }
 			}
+			resolvedType = resolved
 		}
 
 		if (
@@ -136,7 +139,7 @@ export async function updateClient(
 		) {
 			const duplicate = await prisma.client.findFirst({
 				where: {
-					typeIdentity: nextTypeIdentity,
+					typeIdentity: resolvedType?.code ?? nextTypeIdentity,
 					identityNumber: nextIdentityNumber,
 					NOT: { idClient: existingClient.idClient },
 				},
@@ -156,6 +159,7 @@ export async function updateClient(
 			phone: string | null
 			identityNumber: string
 			typeIdentity: string
+			idDocumentType: number
 			direcction: string | null
 			city: string | null
 			country: string
@@ -176,8 +180,9 @@ export async function updateClient(
 		if (validatedData.identityNumber !== undefined) {
 			updateData.identityNumber = validatedData.identityNumber
 		}
-		if (validatedData.typeIdentity !== undefined) {
-			updateData.typeIdentity = nextTypeIdentity
+		if (resolvedType) {
+			updateData.typeIdentity = resolvedType.code
+			updateData.idDocumentType = resolvedType.idDocumentType
 		}
 		if (validatedData.direcction !== undefined) {
 			updateData.direcction = validatedData.direcction

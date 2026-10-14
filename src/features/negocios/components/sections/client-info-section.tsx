@@ -19,6 +19,7 @@ import type { Client } from '@prisma/client'
 import type { IdentityConflict } from '@/features/negocios/hooks/use-business-form'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
 import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
+import { documentTypeOptionsForSelection } from '@/features/negocios/lib/document-type-options-for-selection'
 
 import type {
 	BusinessFormField,
@@ -76,6 +77,27 @@ export function ClientInfoSection({
 
 	const documentValue = watch('identityNumber')
 	const typeIdentityValue = watch('typeIdentity')
+	const visibleDocumentTypes = documentTypeOptionsForSelection(
+		documentTypeOptions,
+		typeIdentityValue
+	)
+	const selectedIsListed = visibleDocumentTypes.some(
+		(option) => option.code === typeIdentityValue
+	)
+	const displayedDocumentTypes =
+		typeIdentityValue && !selectedIsListed
+			? [
+					...visibleDocumentTypes,
+					{
+						code: typeIdentityValue,
+						name: typeIdentityValue,
+						dataType: 'ALPHANUMERIC' as const,
+						minLength: 1,
+						maxLength: 20,
+						status: false,
+					},
+				]
+			: visibleDocumentTypes
 	const selectedDocumentType = documentTypeOptions.find(
 		(option) => option.code === typeIdentityValue
 	)
@@ -171,40 +193,43 @@ export function ClientInfoSection({
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
-				{documentTypeOptions.length > 0 && (
-					<div className="space-y-2">
-						<Label htmlFor="typeIdentity" className="text-sm font-medium">
-							Tipo de documento <span className="text-red-500">*</span>
-						</Label>
-						<Select
-							disabled={getFieldPermission('typeIdentity').disabled}
-							value={typeIdentityValue || 'CC'}
-							onValueChange={(value) =>
-								setValue('typeIdentity', value, { shouldValidate: true })
+				<div className="space-y-2">
+					<Label htmlFor="typeIdentity" className="text-sm font-medium">
+						Tipo de Documento <span className="text-red-500">*</span>
+					</Label>
+					<Select
+						disabled={getFieldPermission('typeIdentity').disabled}
+						value={typeIdentityValue || undefined}
+						onValueChange={(value) =>
+							setValue('typeIdentity', value, { shouldValidate: true })
+						}
+					>
+						<SelectTrigger
+							id="typeIdentity"
+							aria-required="true"
+							aria-invalid={errors.typeIdentity ? true : undefined}
+							aria-describedby={
+								errors.typeIdentity ? 'typeIdentity-error' : undefined
 							}
+							className={errors.typeIdentity ? 'border-red-500' : ''}
 						>
-							<SelectTrigger
-								id="typeIdentity"
-								className={errors.typeIdentity ? 'border-red-500' : ''}
-							>
-								<SelectValue placeholder="Seleccione el tipo de documento" />
-							</SelectTrigger>
-							<SelectContent>
-								{documentTypeOptions.map((option) => (
-									<SelectItem key={option.code} value={option.code}>
-										{option.name} ({option.code})
-										{option.status ? '' : ' — Inactivo'}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						{errors.typeIdentity && (
-							<p className="text-xs text-red-500">
-								{errors.typeIdentity.message}
-							</p>
-						)}
-					</div>
-				)}
+							<SelectValue placeholder="Seleccione el tipo de documento" />
+						</SelectTrigger>
+						<SelectContent>
+							{displayedDocumentTypes.map((option) => (
+								<SelectItem key={option.code} value={option.code}>
+									{option.name} ({option.code})
+									{option.status ? '' : ' — Inactivo'}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					{errors.typeIdentity && (
+						<p id="typeIdentity-error" className="text-xs text-red-500">
+							{errors.typeIdentity.message}
+						</p>
+					)}
+				</div>
 				<div className="space-y-2">
 					<Label
 						htmlFor="numeroDocumento"
