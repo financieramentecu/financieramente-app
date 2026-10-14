@@ -4,6 +4,31 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.37.0] - 2026-10-14
+
+### Agregado
+
+- **Consultor puede exportar la Lista de Negocios a Excel:** El rol Consultor mantiene solo lectura (sin crear, editar ni eliminar), pero ahora puede descargar el Excel de negocios con los mismos filtros aplicados en pantalla. Las exportaciones del Dashboard y de Reportes siguen bloqueadas.
+
+### Mejorado
+
+- **Notas de versión consolidadas automáticamente:** Cada cambio registra su propia nota y, al publicar una versión, todas se unifican en una sola entrada del CHANGELOG con un único incremento de versión, eliminando los conflictos de CHANGELOG y versión entre ramas.
+
+### Corregido
+
+- **Consultor no veía negocios en el listado ni en el Excel:** La vista de Negocios y la exportación acotaban al Consultor a su propio usuario, dejando el listado vacío. Ahora ve todos los negocios (cualquier nivel y cualquier persona), y el Excel refleja exactamente ese mismo conjunto respetando los filtros de pantalla.
+
+### Técnico
+
+- `canExportBusinessList()` allows `UserRole.CONSULTOR` before the generic read-only block; Dashboard/Reportes keep using `isReadOnlyRole` to deny their downloads.
+- `buildBusinessListWhere()` scopes via `isGlobalVisibilityRole()` so CONSULTOR is not restricted to `idUser` (list + `POST /api/negocios/export` share the same WHERE).
+- Role description and seed updated; colocated route/lib tests cover CONSULTOR global visibility and Excel export authorization.
+- Adopt `@changesets/cli` (2.x, Node 20 compatible) with `.changeset/config.json` (`baseBranch: develop`, built-in changelog disabled, private package versioning enabled).
+- New `npm run release:version` (`scripts/release/consolidate-changelog.ts`) consolidates pending changesets into one CHANGELOG entry in the existing Agregado/Mejorado/Corregido/Técnico format, then runs `changeset version` and syncs `package-lock.json`; supports `--dry-run`.
+- Pure parsing/rendering logic in `scripts/release/changelog-entry.ts` with unit tests; `vitest.unit.config.ts` now collects `scripts/**/*.test.ts`.
+- New `changeset` job in the QA PR pipeline runs `changeset status --since=origin/develop`, skippable with the `no-changeset` label.
+- `human-id` pinned to 4.1.3 via `overrides` so the Changesets CLI runs on Node 20 releases without `require(esm)` support.
+
 ## [1.36.0] - 2026-10-01
 
 ### Agregado
