@@ -5,6 +5,8 @@ import { UseFormReturn } from 'react-hook-form'
 import { Header } from './header'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { ClientInfoSection } from '@/features/negocios/components/sections/client-info-section'
+import { PolicyholderSection } from '@/features/negocios/components/sections/policyholder-section'
+import { useSearchPolicyholder } from '@/features/policyholders/hooks/use-search-policyholder'
 import { BusinessInfoSection } from '@/features/negocios/components/sections/business-info-section'
 import { CoachInfoSection } from '@/features/negocios/components/sections/coach-info-section'
 import { FormActions } from '@/features/negocios/components/form-actions'
@@ -76,6 +78,9 @@ export const BusinessForm = React.forwardRef<
 			leadId,
 		})
 
+		const policyholderSearch = useSearchPolicyholder()
+		const showPolicyholder = form.watch('clientIsPolicyholder') === false
+
 		return (
 			<div className="max-w-4xl mx-auto p-6 bg-card">
 				<Header />
@@ -107,6 +112,18 @@ export const BusinessForm = React.forwardRef<
 						canUpdateDocument={isPrivilegedRole}
 						isSubmitting={isSubmitting}
 					/>
+
+					{showPolicyholder && (
+						<PolicyholderSection
+							form={form as unknown as UseFormReturn<BusinessFormData>}
+							documentTypeOptions={documentTypeOptions ?? []}
+							results={policyholderSearch.results}
+							isSearching={policyholderSearch.state.status === 'loading'}
+							onQueryChange={policyholderSearch.setQuery}
+							isBlocked={isBlocked}
+							getFieldPermission={getFieldPermission}
+						/>
+					)}
 
 					<BusinessInfoSection
 						form={form as unknown as UseFormReturn<BusinessFormData>}

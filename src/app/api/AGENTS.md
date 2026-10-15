@@ -124,6 +124,7 @@ Read-only or shared access to system catalogs.
 | `GET`  | `/api/categories`      | List active categories. |
 | `GET`  | `/api/categories/[id]` | Get category details.   |
 | `GET`  | `/api/clients/search`  | Search clients.         |
+| `GET`  | `/api/policyholders/search` | Search policyholders by document. Does not query clients. |
 | `GET`  | `/api/companies`       | List active companies.  |
 | `GET`  | `/api/companies/[id]`  | Get company details.    |
 | `GET`  | `/api/origins`         | List client origins.    |

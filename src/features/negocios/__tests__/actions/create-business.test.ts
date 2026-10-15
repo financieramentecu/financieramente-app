@@ -31,6 +31,20 @@ vi.mock('@/lib/auth/require-write-access', () => ({
 	requireWriteAccess: vi.fn(),
 }))
 
+vi.mock('next/headers', () => ({
+	headers: vi.fn(async () => new Headers()),
+}))
+
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	AuditAction: {
+		BUSINESS_POLICYHOLDER_LINKED: 'BUSINESS_POLICYHOLDER_LINKED',
+		BUSINESS_POLICYHOLDER_UNLINKED: 'BUSINESS_POLICYHOLDER_UNLINKED',
+	},
+	getClientIp: vi.fn(() => '127.0.0.1'),
+	getUserAgent: vi.fn(() => 'test'),
+	logAuditEvent: vi.fn(),
+}))
+
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
 
 const basePayload = {
@@ -66,6 +80,8 @@ function mockCreatedBusiness(overrides: Partial<Business> = {}): Business {
 		novedadMarkedAt: null,
 		novedadResolvedAt: null,
 		isActive: true,
+		clientIsPolicyholder: true,
+		idPolicyholder: null,
 		...overrides,
 	}
 }

@@ -167,3 +167,84 @@ describe('ClientInfoSection — Tipo de Documento', () => {
 		expect(screen.queryByText(/Pasaporte/)).not.toBeInTheDocument()
 	})
 })
+
+describe('ClientInfoSection — tomador', () => {
+	it('asks whether the client is the same policyholder and defaults to yes', () => {
+		render(<Wrapper isLeadConversion={false} />)
+
+		expect(
+			screen.getByRole('heading', {
+				name: 'Información básica y general del Cliente',
+			})
+		).toBeInTheDocument()
+		expect(
+			screen.getByRole('checkbox', {
+				name: '¿El cliente es el mismo tomador?',
+			})
+		).toBeChecked()
+	})
+
+	it('clears policyholder fields when the checkbox returns to yes', async () => {
+		function Form() {
+			const form = useForm<BusinessFormData>({
+				defaultValues: {
+					email: 'lead@example.com',
+					name: 'Juan',
+					lastNames: 'Pérez',
+					phone: '3001234567',
+					identityNumber: '12345678',
+					typeIdentity: 'CC',
+					clientOrigin: '1',
+					company: '1',
+					producto: '1',
+					terms: 1,
+					currency: '1',
+					periodicity: '1',
+					value: 1,
+					agent: '1',
+					clientIsPolicyholder: false,
+					policyholderTypeIdentity: 'CC',
+					policyholderIdentityNumber: '999',
+					policyholderEmail: 'tomador@example.com',
+					policyholderName: 'Ana',
+					policyholderLastNames: 'Ruiz',
+					policyholderPhone: '3000000000',
+				},
+			})
+
+			return (
+				<>
+					<ClientInfoSection
+						form={form}
+						clientOriginsOptions={[{ value: '1', label: 'Origen' }]}
+						clientResults={[]}
+						onSearchClient={vi.fn().mockResolvedValue([])}
+						onClientSelected={vi.fn()}
+						isEditMode={false}
+						isBlocked={false}
+						getFieldPermission={() => ({
+							readonly: false,
+							disabled: false,
+							hidden: false,
+						})}
+					/>
+					<input
+						aria-label="policyholder-email"
+						value={form.watch('policyholderEmail') ?? ''}
+						readOnly
+					/>
+				</>
+			)
+		}
+
+		render(<Form />)
+		fireEvent.click(
+			screen.getByRole('checkbox', {
+				name: '¿El cliente es el mismo tomador?',
+			})
+		)
+		await waitFor(() => {
+			expect(screen.getByLabelText('policyholder-email')).toHaveValue('')
+		})
+	})
+})

@@ -25,6 +25,8 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	idProductPercentageCommission: 1,
 	idCurrency: 1,
 	idClientOrigin: 1,
+	clientIsPolicyholder: true,
+	idPolicyholder: null,
 	status: 'VENTA_EFECTUADA',
 	isActive: true,
 	createdAt: baseDate,
@@ -38,6 +40,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	_count: { payments: 0, supports: 0 },
 	payments: [],
 	supports: [],
+	policyholder: null,
 	client: {
 		idClient: 1,
 		name: 'María',
