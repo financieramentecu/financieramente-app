@@ -20,3 +20,22 @@ export function formatDateBogota(
 		timeZone: BOGOTA_TZ,
 	})
 }
+
+/**
+ * Formats a timestamp as a Bogotá date and time (es-CO, "29 sept 2026, 9:30 p. m.").
+ * The calendar day and hour are always derived in America/Bogota, so the result
+ * does not depend on the browser or server timezone. Returns '—' for empty or
+ * invalid input.
+ */
+export function formatDateTimeBogota(
+	iso: string | Date | null | undefined
+): string {
+	if (!iso) return '—'
+	const date = new Date(iso)
+	if (Number.isNaN(date.getTime())) return '—'
+	return date.toLocaleString('es-CO', {
+		dateStyle: 'medium',
+		timeStyle: 'short',
+		timeZone: BOGOTA_TZ,
+	})
+}

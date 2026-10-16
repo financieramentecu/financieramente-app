@@ -3,6 +3,7 @@ name: QA PR Testing Pipeline
 on:
   pull_request:
     branches: [develop]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 env:
   NODE_VERSION: "20"
@@ -14,6 +15,27 @@ permissions:
   checks: write
 
 jobs:
+  changeset:
+    name: 🦋 Changeset Required
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-changeset') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Fetch base branch
+        run: git fetch --no-tags origin develop:refs/remotes/origin/develop
+      - name: Require a changeset for this PR
+        run: |
+          # Fails when any file changed since origin/develop but no .changeset/*.md was added or modified.
+          # Add one with `npx changeset`, or apply the `no-changeset` label for docs-only/CI-only PRs.
+          npx changeset status --since=origin/develop
+
   lint:
     name: 🔍 Lint Code
     runs-on: ubuntu-latest

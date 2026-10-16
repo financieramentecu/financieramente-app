@@ -39,7 +39,7 @@ export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
 		'Acceso limitado a negocios y reportes de negocio',
 	[UserRole.AGENTE]: 'Solo acceso a sus propios negocios y reportes personales',
 	[UserRole.CONSULTOR]:
-		'Acceso de solo lectura a Dashboard, Negocios, Reportes y Calculadora, sin permisos de escritura ni exportación',
+		'Acceso de solo lectura a Dashboard, Negocios, Reportes y Calculadora, sin permisos de escritura. Puede exportar la Lista de Negocios a Excel; el resto de exportaciones permanece restringido',
 }
 
 /**
@@ -63,8 +63,10 @@ export const WRITE_BYPASS_ROLES: readonly UserRole[] = [
 ]
 
 /**
- * Roles restricted to company-wide read-only access: full visibility,
- * zero write/export authority.
+ * Roles restricted to company-wide read-only access: full visibility and
+ * no write authority. The Lista de Negocios Excel export is decided by
+ * `canExportBusinessList`. Dashboard and Reportes keep using
+ * `isReadOnlyRole` to block their downloads.
  */
 export const READ_ONLY_ROLES: readonly UserRole[] = [UserRole.CONSULTOR]
 
@@ -81,7 +83,8 @@ export function isWriteBypassRole(
 
 /**
  * Whether the role is restricted to company-wide read-only access
- * (no write, no export, no hierarchy level).
+ * (no write, no hierarchy level). Does not decide the Lista de Negocios
+ * Excel export.
  */
 export function isReadOnlyRole(roleCode: string | null | undefined): boolean {
 	if (!roleCode) return false

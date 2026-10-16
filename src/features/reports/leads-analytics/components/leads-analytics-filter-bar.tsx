@@ -65,7 +65,7 @@ export function LeadsAnalyticsFilterBar() {
 						type="button"
 						size="sm"
 						disabled={!isApplyEnabled}
-						className="h-7 px-4 text-xs bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+						className="h-7 px-4 text-xs bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
 						onClick={() =>
 							dispatch({ type: LEADS_ANALYTICS_FILTER_ACTION.APPLY })
 						}

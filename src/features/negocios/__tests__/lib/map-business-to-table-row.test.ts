@@ -3,7 +3,10 @@ import {
 	BUSINESS_STATUS,
 	type BusinessEntity,
 } from '@/features/negocios/types/business-entity.types'
-import { mapBusinessToTableRow } from '@/features/negocios/lib/map-business-to-table-row'
+import {
+	EMPTY_CONTRACT_PLACEHOLDER,
+	mapBusinessToTableRow,
+} from '@/features/negocios/lib/map-business-to-table-row'
 
 function createBusinessEntity(status: string): BusinessEntity {
 	return {
@@ -20,6 +23,7 @@ function createBusinessEntity(status: string): BusinessEntity {
 		hasPayments: false,
 		hasPendingPaymentFunding: false,
 		supportCount: 0,
+		commentCount: 0,
 		observations: null,
 		novedadStatus: null,
 		novedadMarkedAt: null,
@@ -63,6 +67,31 @@ function createBusinessEntity(status: string): BusinessEntity {
 }
 
 describe('mapBusinessToTableRow', () => {
+	it('propagates the active comment count to the table row', () => {
+		const row = mapBusinessToTableRow({
+			...createBusinessEntity(BUSINESS_STATUS.EMITIDO),
+			commentCount: 145,
+		})
+
+		expect(row.commentCount).toBe(145)
+	})
+
+	it('exports the empty contract placeholder as a dash', () => {
+		expect(EMPTY_CONTRACT_PLACEHOLDER).toBe('-')
+	})
+
+	it.each([null, ''])(
+		'maps an empty contract (%j) to the placeholder',
+		contract => {
+			const row = mapBusinessToTableRow({
+				...createBusinessEntity(BUSINESS_STATUS.EMITIDO),
+				contract,
+			})
+
+			expect(row.contract).toBe(EMPTY_CONTRACT_PLACEHOLDER)
+		}
+	)
+
 	it('maps LIQUIDADO to Liquidado and keeps statusCode', () => {
 		const row = mapBusinessToTableRow(
 			createBusinessEntity(BUSINESS_STATUS.LIQUIDADO)

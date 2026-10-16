@@ -27,6 +27,7 @@ const SEGMENT_LABELS: Record<string, string> = {
 	origins: 'Orígenes',
 	periodicities: 'Periodicidades',
 	'config-distribucion-comisiones': 'Config. distribución de comisiones',
+	'default-distribution': 'Distribución por defecto',
 	'configuraciones-producto': 'Config. producto',
 	reglas: 'Reglas',
 	'report-permissions': 'Permisos de Reportes',

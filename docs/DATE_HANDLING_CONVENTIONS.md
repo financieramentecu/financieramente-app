@@ -21,6 +21,7 @@ Todo el manejo de fechas de negocio pasa por dos módulos. **No se construye ni 
 |---|---|
 | Convertir un string `YYYY-MM-DD` (de un `<input type="date">` o un body de API) a `Date` | `dateOnlyToBogotaNoonUtc(dateStr)` — `src/features/negocios/lib/bogota-date.ts` |
 | Mostrar una fecha (`Date` o ISO string) al usuario | `formatDateBogota(value)` — `src/features/shared/lib/format-date.ts` |
+| Mostrar fecha **y hora** (`Date` o ISO string) al usuario, siempre en hora de Bogotá (ej. fecha de un comentario) | `formatDateTimeBogota(value)` — `src/features/shared/lib/format-date.ts` |
 | Convertir un `Date` de vuelta a `YYYY-MM-DD` (ej. para escribirlo en un param de URL) | `bogotaDateOnly(date)` — `src/features/negocios/lib/bogota-date.ts` |
 | Obtener el "hoy" calendario de Bogotá como medianoche UTC (comparaciones de mes, `bogotaYearMonth`) | `todayBogota()` — `src/features/negocios/lib/bogota-date.ts` |
 | Obtener el "hoy" calendario de Bogotá **anclado igual que `expectedDate`** (mediodía UTC) — para comparar `expectedDate <= hoy` (ej. cron de fondeo) | `todayBogotaNoonUtc()` — `src/features/negocios/lib/bogota-date.ts` |
@@ -50,7 +51,8 @@ No se migra todo de una sola vez. Cada vez que se toque un archivo que maneje fe
 
 | Archivo | Estado | Notas |
 |---|---|---|
-| `src/features/shared/lib/format-date.ts` (`formatDateBogota`) | ✅ Migrado | Fuente de verdad para mostrar fechas |
+| `src/features/shared/lib/format-date.ts` (`formatDateBogota`, `formatDateTimeBogota`) | ✅ Migrado | Fuente de verdad para mostrar fechas (y fecha con hora) |
+| `src/features/comments/components/CommentItem.tsx` | ✅ Migrado | Reemplazó `formatCommentDate` (`es-AR`, hora local del navegador) por `formatDateTimeBogota`; `CommentsSidebar` también muestra hora de Bogotá porque comparte `CommentItem` |
 | `src/features/negocios/lib/bogota-date.ts` (`dateOnlyToBogotaNoonUtc`, `todayBogota`) | ✅ Migrado | Fuente de verdad para construir fechas |
 | `src/app/api/negocios/[id]/aportes/[index]/cartera-pagado/route.ts` | ✅ Migrado | |
 | `src/app/api/negocios/[id]/aportes/[index]/date-anchored/route.ts` | ✅ Migrado | |

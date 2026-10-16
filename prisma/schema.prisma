@@ -55,6 +55,8 @@ model Level {
   productConfigurations                 ProductConfiguration[]
   productPercentageCommissionCategories ProductPercentageCommissionCategory[]
   users                                 User[]
+  defaultDistributionsAsConfig          DefaultDistributionPercentage[]       @relation("DefaultDistributionConfigLevel")
+  defaultDistributionsAsReceiver        DefaultDistributionPercentage[]       @relation("DefaultDistributionReceiverLevel")
 
   @@index([idFixedBeneficiaryUser])
   @@index([idNextLevel])
@@ -242,6 +244,23 @@ model ProductPercentageCommissionCategory {
   @@index([idLevel])
   @@index([idProductPercentageCommission])
   @@map("product_percentaje_commision_level")
+}
+
+model DefaultDistributionPercentage {
+  id              Int      @id @default(autoincrement()) @map("id_default_distribution_percentage")
+  idConfigLevel   Int      @map("id_config_level")
+  idReceiverLevel Int      @map("id_receiver_level")
+  percentage      Decimal  @map("percentage") @db.Decimal(8, 6)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  configLevel   Level @relation("DefaultDistributionConfigLevel", fields: [idConfigLevel], references: [idLevel])
+  receiverLevel Level @relation("DefaultDistributionReceiverLevel", fields: [idReceiverLevel], references: [idLevel])
+
+  @@unique([idConfigLevel, idReceiverLevel], map: "default_distribution_level_pair_key")
+  @@index([idConfigLevel], map: "default_distribution_config_level_idx")
+  @@index([idReceiverLevel], map: "default_distribution_receiver_level_idx")
+  @@map("default_distribution_percentage")
 }
 
 model User {

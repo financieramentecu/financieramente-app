@@ -18,6 +18,7 @@
 ## Checklist
 - [ ] Branch follows Git Flow (feature/..., bugfix/..., audit/...)
 - [ ] Commits follow Conventional Commits
+- [ ] Changeset added (`npx changeset`) or `no-changeset` label applied
 - [ ] Unit tests passed
 - [ ] Integration tests passed
 - [ ] OpenSpec tasks completed and archived

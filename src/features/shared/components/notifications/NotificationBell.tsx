@@ -12,7 +12,7 @@ export function NotificationBell() {
 		<Button
 			variant="ghost"
 			size="icon"
-			className="relative text-[#11525B] hover:bg-[#11525B]/10 hover:text-[#11525B]"
+			className="relative text-primary hover:bg-primary/10 hover:text-primary"
 			onClick={() => setIsOpen(!isOpen)}
 		>
 			<Bell className="h-5 w-5" />

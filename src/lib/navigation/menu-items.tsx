@@ -162,6 +162,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				icon: <PieChart className="h-4 w-4" />,
 			},
 			{
+				title: 'Distribución por defecto',
+				url: '/dashboard/admin/default-distribution',
+				icon: <Percent className="h-4 w-4" />,
+			},
+			{
 				title: 'Descuentos',
 				url: '/dashboard/admin/discounts',
 				icon: <Percent className="h-4 w-4" />,

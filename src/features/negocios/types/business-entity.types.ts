@@ -171,6 +171,8 @@ export interface BusinessEntity {
 	hasPendingPaymentFunding: boolean
 	/** Number of uploaded supports (comprobantes) for this business */
 	supportCount: number
+	/** Number of active (status = true) comments on this business */
+	commentCount: number
 	/** Observación de cancelación (prefijada con [CANCELADO] o [ELIMINADO]) */
 	observations: string | null
 	/** Estado de la novedad marcada sobre el negocio; null si nunca fue marcado */

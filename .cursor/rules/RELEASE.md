@@ -1,101 +1,67 @@
-# Release Management: Changelog & Versioning
+# Release Management: Changelog & Versioning (Changesets)
 
-**MANDATORY RULE:** When archiving an SDD feature/functionality via `/sdd-archive`, you MUST update the project version and changelog.
+**MANDATORY:** Every product change in this repo must leave a release note and eventually bump the version. Never close a feature/bugfix/COM without a changeset.
 
-## 1. Update CHANGELOG.md
+Releases use [Changesets](https://github.com/changesets/changesets). Guide: [.changeset/README.md](../../.changeset/README.md).
 
-Add a new version entry at the **top** of the changelog (before all other version headers):
+## 1. Add a changeset (every PR to `develop`)
 
-```markdown
-## [X.Y.Z] - YYYY-MM-DD
+Create `.changeset/<short-kebab-name>.md` (`npx changeset` or by hand):
+
+```md
+---
+'financieramente-app': minor
+---
 
 ### Agregado
-- Feature 1 description (user-facing, in Spanish)
-- Feature 2 description
 
-### Mejorado
-- Enhancement 1 (in Spanish)
-
-### Corregido
-- Bug fix 1 (in Spanish)
+- **Nombre visible:** Descripción para el usuario final.
 
 ### Técnico
-- Technical implementation detail 1 (in English)
-- Technical implementation detail 2
+
+- Implementation detail in English.
 ```
 
-**Guidelines:**
-- **Agregado/Mejorado/Corregido**: Write in Spanish for end-users (UI labels, feature names)
-- **Técnico**: Write in English for developers (models, APIs, implementation details)
-- **Timing**: Add changelog entry **when archiving the change** (at close of SDD cycle)
-- **Format**: Follow [Keep a Changelog](https://keepachangelog.com/es-ES/) conventions
+**Bump type (SemVer):**
 
-## 2. Increment package.json Version
+| Type | When |
+|------|------|
+| `major` | Breaking changes (API incompatibilities, schema removals) |
+| `minor` | New features, backward-compatible capabilities |
+| `patch` | Bug fixes, docs with product impact, internal optimizations |
 
-Update the `"version"` field in `package.json` following **Semantic Versioning**:
+**Body rules:**
+- Only headings: `### Agregado`, `### Mejorado`, `### Corregido`, `### Técnico`
+- First three: Spanish, user/product facing
+- `### Técnico`: English (models, APIs, files, migrations)
+- Omit unused sections
 
-| Type | When | Example |
-|------|------|---------|
-| **MAJOR** | Breaking changes (API incompatibilities, data schema removals, irreversible migrations) | `1.0.0` → `2.0.0` |
-| **MINOR** | New features, backward-compatible additions, new capabilities | `1.25.0` → `1.26.0` |
-| **PATCH** | Bug fixes, internal optimizations, documentation, non-functional changes | `1.26.0` → `1.26.1` |
+CI fails PRs to `develop` without a changeset unless labeled `no-changeset` (docs/CI-only).
 
-**Example:** Feature "novedad-negocio-venta-efectuada" added new marking capability → `1.25.0` → `1.26.0` (MINOR).
+## 2. Never edit CHANGELOG / version by hand (day to day)
 
-## 3. When to Apply
+- Do **not** edit `CHANGELOG.md` or `package.json` `"version"` during feature work.
+- On `develop`, run `npm run release:version` (preview: `npm run release:version -- --dry-run`).
+- That consolidates pending changesets into **one** `## [X.Y.Z] - YYYY-MM-DD` entry (Bogotá date), bumps `package.json` / `package-lock.json`, and deletes consumed changesets.
+- Then commit `chore(release): vX.Y.Z`, PR `develop` → `main`, tag after merge.
 
-**Apply this rule when:**
-- Archiving an SDD feature (any `/sdd-archive` completion)
-- Creating a release/tag for deployment
-- Before merging feature branches to main/develop
+## 3. When this is mandatory
 
-**Do NOT apply:**
-- For internal refactors without new user features
-- For test-only changes
-- For CI/infrastructure changes
+**Always apply when:**
+- Closing any user-facing feature, bugfix, or COM ticket
+- Opening / merging a PR to `develop`
+- Completing `/sdd-archive` (archive adds/updates the changeset, does not edit CHANGELOG by hand)
+- Code already merged without a note → add a **retroactive changeset** in a PR to `develop` (do not edit CHANGELOG/version in that PR)
 
-## 4. Workflow (Orchestrator / Archiver)
+**Skip only when:**
+- Docs-only / CI-only / infra with no product impact → use `no-changeset` label
 
-1. Run `/sdd-archive {change-name}` via subagent
-2. After archive completes, update `CHANGELOG.md` with feature details
-3. Increment `package.json` version per semantic versioning rules
-4. Document decision: create/update observation in persistent memory
-5. Commit both files together in release PR
+## 4. Retroactive gaps
 
-## Examples
+If work landed without a changeset, create the missing `.changeset/*.md` on a branch from `develop` and open a PR. Leave CHANGELOG/version untouched; they update later when someone runs `npm run release:version` on `develop`.
 
-### Example 1: New Feature (MINOR bump)
-```json
-// package.json
-"version": "1.26.0"  // was 1.25.0
-```
+## Related
 
-```markdown
-# CHANGELOG.md
-## [1.26.0] - 2026-07-31
-
-### Agregado
-- **Marcador de "Novedad" para negocios:** Gestores pueden marcar negocios en VENTA_EFECTUADA...
-```
-
-### Example 2: Bug Fix (PATCH bump)
-```json
-"version": "1.26.1"  // was 1.26.0
-```
-
-```markdown
-## [1.26.1] - 2026-08-15
-
-### Corregido
-- **Heatmap celdas no cargaban en primer render:** Problema resuelto en la carga asíncrona de TRM...
-```
-
-## Related Files
-
-- `CLAUDE.md` — Release Management section (project-level instructions)
-- `package.json` — Current version number
-- `CHANGELOG.md` — Release history and feature notes
-
-## Enforcement
-
-This rule is **mandatory** at archive time. The orchestrator/archiver is responsible for ensuring both files are updated before the change is considered complete.
+- [changelog-version.mdc](./changelog-version.mdc) — always-on agent rule
+- `CLAUDE.md` — Release Management section
+- `.changeset/README.md` — authoring format

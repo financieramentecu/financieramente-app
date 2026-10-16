@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2, ScrollText, MessageSquarePlus, AlertTriangle, CheckCircle2, Settings2 } from 'lucide-react'
+import { Upload, FileImage, MoreVertical, Pencil, Eye, Trash2, ScrollText, MessageSquare, MessageSquarePlus, AlertTriangle, CheckCircle2, Settings2 } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -22,8 +22,10 @@ import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
 import { UploadComprobanteModal } from '@/features/business-supports/components/UploadComprobanteModal'
 import { ViewComprobantesSheet } from '@/features/business-supports/components/BusinessSupportsSheet'
 import { CommentModal } from '@/features/comments/components/CommentModal'
+import { CommentsHistoryModal } from '@/features/comments/components/CommentsHistoryModal'
 import { isUploadAllowedStatus } from '@/features/business-supports/lib/upload-allowed-statuses'
 import { useManageNovedad } from '../hooks/use-manage-novedad'
+import { EMPTY_CONTRACT_PLACEHOLDER } from '../lib/map-business-to-table-row'
 import { BusinessNovedadManageModal } from './modals/BusinessNovedadManageModal'
 import { MANAGE_NOVEDAD_ALLOWED_ROLES } from './ui/NovedadManageTrigger'
 
@@ -33,6 +35,8 @@ export interface BusinessRowActionsProps {
   /** Contract number — may be null for early-stage businesses */
   contract: string | null
   supportCount?: number
+  /** Active comment count; missing or <= 0 hides the indicator */
+  commentCount?: number
   userRole?: UserRole
   hasPayments: boolean
   hasPendingPaymentFunding: boolean
@@ -44,6 +48,8 @@ export interface BusinessRowActionsProps {
   onViewObservations?: (id: number) => void
   onFondear?: (id: number) => void
   onUploadSuccess?: () => void
+  /** Called after a comment is created from "Agregar comentario" (list refetch) */
+  onCommentCreated?: () => void
   onDeleteSuccess?: () => void
   onUploadComprobante?: (id: number) => void
   onViewComprobantes?: (id: number) => void
@@ -58,9 +64,11 @@ export function BusinessRowActions({
   businessStatus,
   contract,
   supportCount: _supportCount,
+  commentCount,
   userRole,
   novedadStatus = null,
   onUploadSuccess,
+  onCommentCreated,
   onDeleteSuccess,
   onEdit,
   onView,
@@ -91,8 +99,13 @@ export function BusinessRowActions({
   const [uploadOpen, setUploadOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
   const [commentOpen, setCommentOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [manageNovedadOpen, setManageNovedadOpen] = useState(false)
+  const historyTriggerRef = useRef<HTMLButtonElement>(null)
+  const showCommentsIndicator = Number.isInteger(commentCount) && (commentCount ?? 0) > 0
   const commentContract = contract ?? `Negocio #${businessId}`
+  // The table row maps a missing contract to a placeholder; the history modal expects null for "no contract"
+  const historyContract = contract === EMPTY_CONTRACT_PLACEHOLDER ? null : contract
   const { updateStatus } = useManageNovedad(businessId)
 
   const handleConfirmManageNovedad = async (target: BusinessNovedadStatus) => {
@@ -155,6 +168,28 @@ export function BusinessRowActions({
             </TooltipTrigger>
             <TooltipContent>
               <p>Ver comprobantes</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Comments indicator — visible to every role and status, hidden at zero comments */}
+        {showCommentsIndicator && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                ref={historyTriggerRef}
+                variant="ghost"
+                size="sm"
+                className="h-8 shrink-0 gap-1 px-2"
+                aria-label={`Ver comentarios (${commentCount})`}
+                onClick={() => setHistoryOpen(true)}
+              >
+                <MessageSquare className="h-4 w-4 text-muted-foreground" aria-hidden />
+                <span className="text-xs font-medium tabular-nums">{commentCount}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Ver comentarios</p>
             </TooltipContent>
           </Tooltip>
         )}
@@ -247,6 +282,17 @@ export function BusinessRowActions({
           contract={commentContract}
           open={commentOpen}
           onClose={() => setCommentOpen(false)}
+          onCreated={onCommentCreated}
+        />
+      )}
+
+      {historyOpen && (
+        <CommentsHistoryModal
+          businessId={businessId}
+          contract={historyContract}
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          returnFocusRef={historyTriggerRef}
         />
       )}
 
