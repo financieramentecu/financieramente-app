@@ -32,6 +32,7 @@ Use these skills for detailed patterns on-demand:
 | Skill             | Description                                        | When to Use                                      | URL                                         |
 | ----------------- | -------------------------------------------------- | ------------------------------------------------ | ------------------------------------------- |
 | `financieramente` | Project overview, structure, scripts, architecture | Onboarding, navigating codebase, running scripts | [SKILL.md](skills/financieramente/SKILL.md) |
+| `financieramente-codereview` | PR review against real base branch, this repo's architecture/SOLID rules, tests, lint, merge verdict | Reviewing a PR before merge, "¿se puede mezclar?" | [SKILL.md](skills/financieramente-codereview/SKILL.md) |
 
 ### Auto-invoke Skills
 
