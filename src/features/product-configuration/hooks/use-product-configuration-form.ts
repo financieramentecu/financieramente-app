@@ -7,6 +7,7 @@ import {
 	type CreateProductConfigurationFormData,
 } from '../lib/product-configuration-schemas'
 import type { ProductConfiguration } from '../types/product-configuration.types'
+import { fetchAllActiveCompanyProducts } from '../lib/fetch-active-company-products'
 
 // Option types for the form
 export interface CompanyOption {
@@ -139,19 +140,12 @@ export function useProductConfigurationForm({
 			error: '',
 		}))
 		try {
-			const response = await fetch(
-				`/api/products?idCompany=${companyId}&status=active`
-			)
-			const result = await response.json()
-			if (result.data?.products) {
-				setProductsState({
-					status: 'success',
-					data: result.data.products,
-					error: '',
-				})
-			} else {
-				throw new Error('No se pudieron cargar los productos')
-			}
+			const products = await fetchAllActiveCompanyProducts(companyId)
+			setProductsState({
+				status: 'success',
+				data: products,
+				error: '',
+			})
 		} catch (error) {
 			setProductsState({
 				status: 'error',
