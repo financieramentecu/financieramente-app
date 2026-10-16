@@ -8,7 +8,7 @@
 import { Button } from '@/features/shared/ui/button'
 import { Pencil, Eye, Trash2, Coins } from 'lucide-react'
 
-import { UserRole, canFundPayments } from '@/features/auth/lib/roles'
+import { UserRole, canFundPayments, isBusinessOwnerRole } from '@/features/auth/lib/roles'
 import type { BusinessStatus } from '../../types/business-entity.types'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
 import {
@@ -102,7 +102,8 @@ export function ActionCell({
 		(businessStatus === BUSINESS_STATUS.EMITIDO ||
 			businessStatus === BUSINESS_STATUS.FONDEADO)
 
-	const isCoach = userRole === UserRole.AGENTE
+	// Business owners (AGENTE, PARTNER) get the read-only funding view only
+	const isCoach = isBusinessOwnerRole(userRole)
 	const showViewFondeoForCoach =
 		isCoach &&
 		hasPayments &&

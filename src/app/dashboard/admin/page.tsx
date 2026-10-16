@@ -13,6 +13,7 @@ import {
 	Tag,
 	Percent,
 	ShieldCheck,
+	Handshake,
 } from 'lucide-react'
 
 export default function AdminDashboardPage() {
@@ -58,6 +59,12 @@ export default function AdminDashboardPage() {
 			description: 'Gestionar usuarios y agentes',
 			href: '/dashboard/admin/users',
 			icon: <Users className="h-5 w-5 text-primary" />,
+		},
+		{
+			title: 'Partners',
+			description: 'Gestionar partners externos y su activación',
+			href: '/dashboard/admin/partners',
+			icon: <Handshake className="h-5 w-5 text-primary" />,
 		},
 		{
 			title: 'Descuentos',

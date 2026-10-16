@@ -11,6 +11,11 @@ import { GoogleIcon } from '@/features/auth/components/login/social-sign-in'
 import { toast } from 'sonner'
 import type { SocialProvider } from '@/features/auth/components/login/social-sign-in'
 import { ErrorMessage } from '@/features/auth/components/error-message'
+import { sanitizeCallbackUrl } from '@/features/auth/lib/callback-url'
+import {
+	RATE_LIMITED_CODE,
+	RATE_LIMITED_MESSAGE,
+} from '@/features/auth/lib/credentials-error-codes'
 
 /**
  * Componente interno que usa useSearchParams
@@ -21,9 +26,9 @@ function LoginContent() {
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [isRedirecting, setIsRedirecting] = useState(false)
 
-	const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard'
+	// Only same-origin relative paths survive (open-redirect guard).
+	const callbackUrl = sanitizeCallbackUrl(searchParams?.get('callbackUrl'))
 	const error = searchParams?.get('error')
-	const isSuperAdminMode = searchParams?.get('superadmin') === 'true'
 
 	// Redirigir a /access-denied si hay error de acceso denegado
 	// Usar useEffect para evitar problemas durante el render inicial
@@ -58,16 +63,6 @@ function LoginContent() {
 	}
 
 	const handleEmailPasswordSignIn = async (email: string, password: string) => {
-		// Validar dominio corporativo
-		const emailDomain = email.split('@')[1]
-		if (emailDomain !== 'financieramentecu.com') {
-			toast.error('Dominio no autorizado', {
-				description:
-					'Solo se permite el acceso con correos corporativos (@financieramentecu.com). Por favor, utiliza tu cuenta institucional.',
-			})
-			return
-		}
-
 		try {
 			setIsSubmitting(true)
 			const result = await signIn('credentials', {
@@ -80,7 +75,9 @@ function LoginContent() {
 			if (result?.error) {
 				toast.error('Error de autenticación', {
 					description:
-						'Credenciales inválidas o usuario no autorizado para este método de acceso.',
+						result.code === RATE_LIMITED_CODE
+							? RATE_LIMITED_MESSAGE
+							: 'Credenciales inválidas o usuario no autorizado para este método de acceso.',
 				})
 				setIsSubmitting(false)
 				return
@@ -123,18 +120,14 @@ function LoginContent() {
 		<>
 			<ErrorMessage error={error} />
 			<LoginView
-				showEmailPasswordForm={isSuperAdminMode}
-				emailPasswordForm={
-					isSuperAdminMode
-						? {
-							emailPlaceholder: 'admin@financieramentecu.com',
-							passwordPlaceholder: '••••••••',
-							submitLabel: 'Ingresar',
-							isSubmitting,
-							onSubmit: handleEmailPasswordSignIn,
-						}
-						: undefined
-				}
+				showEmailPasswordForm
+				emailPasswordForm={{
+					emailPlaceholder: 'usuario@ejemplo.com',
+					passwordPlaceholder: '••••••••',
+					submitLabel: 'Ingresar',
+					isSubmitting,
+					onSubmit: handleEmailPasswordSignIn,
+				}}
 				emailForm={{
 					placeholder: 'usuario@financieramentecu.com',
 					submitLabel: 'Ingresar con correo',

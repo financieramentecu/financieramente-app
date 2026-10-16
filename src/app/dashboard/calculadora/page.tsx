@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { redirect } from 'next/navigation'
+import { excludePartnerExternalLevel } from '@/features/shared/lib/level-codes'
 
 export const metadata = {
 	title: 'Calculadora Comisional',
@@ -46,7 +47,7 @@ export default async function CalculadoraPage() {
 	}
 
 	// Obtener datos iniciales para los selects
-	const [companies, productsRaw, origins, allLevels] = await Promise.all([
+	const [companies, productsRaw, origins, levelsRaw] = await Promise.all([
 		prisma.company.findMany({
 			where: { status: true },
 			select: { 
@@ -72,6 +73,10 @@ export default async function CalculadoraPage() {
 			orderBy: { idLevel: 'asc' },
 		})
 	])
+
+	// PARTNER_EXTERNAL sits outside the commission chain and never takes part in a
+	// distribution, so it is never a valid calculator level (PA-03, LVL-01).
+	const allLevels = excludePartnerExternalLevel(levelsRaw)
 
 	const products = productsRaw.map(p => ({
 		...p,

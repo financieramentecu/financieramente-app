@@ -53,6 +53,7 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 				email: 'admin@financieramentecu.com',
 				password: '$2a$10$hashedpassword', // Tiene contraseña configurada
 				ssoOnly: true, // Pero solo permite SSO
+				activatedAt: new Date(),
 				phone: null,
 				idLevel: null,
 				idCategory: null,
@@ -91,6 +92,7 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 				email: 'admin@financieramentecu.com',
 				password: '$2a$10$hashedpassword',
 				ssoOnly: true,
+				activatedAt: new Date(),
 				phone: null,
 				idLevel: null,
 				idCategory: null,
@@ -133,6 +135,7 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 				email: 'admin@financieramentecu.com',
 				password: '$2a$10$hashedpassword',
 				ssoOnly: false, // Permite login con contraseña
+				activatedAt: new Date(),
 				phone: null,
 				idLevel: null,
 				idCategory: null,
@@ -178,6 +181,7 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 				email: 'admin@financieramentecu.com',
 				password: null, // Sin contraseña
 				ssoOnly: false, // Permite login con contraseña
+				activatedAt: new Date(),
 				phone: null,
 				idLevel: null,
 				idCategory: null,
@@ -216,6 +220,7 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 				email: 'agente@financieramentecu.com',
 				password: '$2a$10$hashedpassword',
 				ssoOnly: false,
+				activatedAt: new Date(),
 				phone: null,
 				idLevel: null,
 				idCategory: null,
@@ -258,6 +263,7 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 				email: 'analista@financieramentecu.com',
 				password: '$2a$10$hashedpassword',
 				ssoOnly: false,
+				activatedAt: new Date(),
 				phone: null,
 				idLevel: null,
 				idCategory: null,
@@ -297,6 +303,7 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 				email: 'admin@financieramentecu.com',
 				password: '$2a$10$hashedpassword',
 				ssoOnly: false,
+				activatedAt: new Date(),
 				phone: null,
 				idLevel: null,
 				idCategory: null,
@@ -331,6 +338,7 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 				email: 'admin@financieramentecu.com',
 				password: '$2a$10$hashedpassword',
 				ssoOnly: false,
+				activatedAt: new Date(),
 				phone: null,
 				idLevel: null,
 				idCategory: null,
@@ -369,6 +377,7 @@ describe('validateUserCredentials - ssoOnly validation', () => {
 				email: 'admin@financieramentecu.com',
 				password: '$2a$10$hashedpassword',
 				ssoOnly: false,
+				activatedAt: new Date(),
 				phone: null,
 				idLevel: null,
 				idCategory: null,

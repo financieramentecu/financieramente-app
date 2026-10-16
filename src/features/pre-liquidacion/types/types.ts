@@ -15,6 +15,8 @@ export interface ArchivoDisponible {
 	rezagados: number
 	estado: string
 	registrosPreliquidados?: number
+	/** Rows excluded from distribution (partner businesses); informational, never an error */
+	excluidos?: number
 	fileType: string | null
 	/** Total de beneficiarios únicos con distribución en el archivo */
 	totalBeneficiarios?: number

@@ -6,6 +6,11 @@ vi.mock('@/auth', () => ({
   }),
 }))
 
+vi.mock('@/features/negocios/services/business-access.service', () => ({
+  // Ownership is covered by __tests__/business-ownership.routes.test.ts
+  assertBusinessAccess: vi.fn().mockResolvedValue({ ok: true, idOwner: 1 }),
+}))
+
 vi.mock('@/features/business-supports/services/business-supports.service', () => ({
   listComprobantes: vi.fn(),
   persistComprobante: vi.fn(),
@@ -16,12 +21,12 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
   getUserAgent: vi.fn().mockReturnValue('vitest'),
 }))
 
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn().mockResolvedValue({ idUser: 1, email: 'agent@example.com' }),
-    },
-  },
+vi.mock('@/features/negocios/services/user.service', () => ({
+  getCurrentUserByEmail: vi.fn().mockResolvedValue({
+    idUser: 1,
+    email: 'agent@example.com',
+    role: { code: 'AGENTE' },
+  }),
 }))
 
 import { GET, POST } from '../route'

@@ -63,6 +63,7 @@ export async function createUserAutomatically(
 
 		// Crear el usuario
 		// Nota: Ya validamos que no existe arriba, pero usamos try-catch para manejar condiciones de carrera
+		const now = new Date()
 		let newUser
 		try {
 			newUser = await prisma.user.create({
@@ -73,7 +74,9 @@ export async function createUserAutomatically(
 					typeIdentity: 'CC',
 					idRole: agenteRole.idRole,
 					active: false, // Estado Inactivo por defecto
-					entryDate: new Date(),
+					entryDate: now,
+					// SSO users have no activation step: never "pending" (AA-01)
+					activatedAt: now,
 				},
 			})
 		} catch (createError: unknown) {

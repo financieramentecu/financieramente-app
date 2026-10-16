@@ -84,6 +84,7 @@ function makeLegendItem(categoryName: string, levelColor: string): CategoryLegen
 function makeViewModel(overrides: Partial<HeatmapViewModel> = {}): HeatmapViewModel {
   return {
     rows: overrides.rows ?? [makeRow()],
+    partnerRows: overrides.partnerRows ?? [],
     companyColumns: overrides.companyColumns ?? [makeColumn()],
     legend: overrides.legend ?? [makeLegendItem('Categoría A', '#333')],
   }
@@ -430,3 +431,70 @@ describe('HeatmapTablePanel', () => {
     expect(screen.getByText('Empresa Y')).toBeInTheDocument()
   })
 })
+
+describe('HeatmapTablePanel - Partners block (PD-03)', () => {
+  function renderWithPartners(partnerRows: PersonRow[]) {
+    mockUseHeatmapTable.mockReturnValue({
+      status: 'success',
+      data: makeViewModel({
+        rows: [
+          makeRow({ idUser: 1, fullName: 'Ana Agent', categoryName: 'Categoría A' }),
+          makeRow({ idUser: 2, fullName: 'Beto Agent', categoryName: 'Categoría A' }),
+        ],
+        partnerRows,
+      }),
+      error: '',
+    })
+    return render(<HeatmapTablePanel trmRate={4600} />)
+  }
+
+  const partnerA = () =>
+    makeRow({ idUser: 20, fullName: 'Pia Partner', categoryName: 'Aliados', levelCode: 'PARTNER_EXTERNAL' })
+  const partnerB = () =>
+    makeRow({ idUser: 21, fullName: 'Quino Partner', categoryName: 'Aliados', levelCode: 'PARTNER_EXTERNAL' })
+
+  it('renders a "Partners" header below all agent rows, followed by one row per partner', () => {
+    const { container } = renderWithPartners([partnerA(), partnerB()])
+
+    const text = container.querySelector('tbody')!.textContent ?? ''
+    const order = ['Ana Agent', 'Beto Agent', 'Partners', 'Pia Partner', 'Quino Partner'].map((t) =>
+      text.indexOf(t)
+    )
+
+    expect(order.every((i) => i >= 0)).toBe(true)
+    expect([...order].sort((a, b) => a - b)).toEqual(order)
+  })
+
+  it('does not mix partners into the agent group headers (no category header for partners)', () => {
+    const { container } = renderWithPartners([partnerA()])
+
+    expect(container.querySelector('tbody')!.textContent).not.toContain('Aliados')
+  })
+
+  it('omits the "Partners" block when there are no partner rows', () => {
+    const { container } = renderWithPartners([])
+
+    expect(container.querySelector('tbody')!.textContent).not.toContain('Partners')
+  })
+
+  it('keeps the partner order when the agent sort direction is inverted', () => {
+    const { container } = renderWithPartners([partnerA(), partnerB()])
+
+    fireEvent.click(screen.getByRole('button', { name: /Money Strategist/ }))
+
+    const text = container.querySelector('tbody')!.textContent ?? ''
+    expect(text.indexOf('Beto Agent')).toBeLessThan(text.indexOf('Ana Agent'))
+    expect(text.indexOf('Ana Agent')).toBeLessThan(text.indexOf('Partners'))
+    expect(text.indexOf('Pia Partner')).toBeLessThan(text.indexOf('Quino Partner'))
+  })
+
+  it('lets a partner row expand its businesses like any agent row', () => {
+    renderWithPartners([partnerA()])
+
+    const buttons = screen.getAllByRole('button', { name: /Expandir negocios del asesor/ })
+    fireEvent.click(buttons[buttons.length - 1])
+
+    expect(screen.getByTestId('cell-detail-20-5')).toBeTruthy()
+  })
+})
+

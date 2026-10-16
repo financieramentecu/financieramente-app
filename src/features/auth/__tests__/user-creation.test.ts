@@ -61,6 +61,7 @@ describe('createUserAutomatically', () => {
 		email: 'test@financieramentecu.com',
 		password: null,
 		ssoOnly: true,
+		activatedAt: new Date(),
 		phone: null,
 		idLevel: null,
 		idCategory: null,
@@ -113,6 +114,8 @@ describe('createUserAutomatically', () => {
 					idRole: mockDefaultRole.idRole,
 					active: false,
 					entryDate: expect.any(Date),
+					// SSO users are never "pending activation" (AA-01)
+					activatedAt: expect.any(Date),
 				},
 			})
 

@@ -6,6 +6,11 @@ vi.mock('@/auth', () => ({
   }),
 }))
 
+vi.mock('@/features/negocios/services/business-access.service', () => ({
+  // Ownership is covered by __tests__/business-ownership.routes.test.ts
+  assertBusinessAccess: vi.fn().mockResolvedValue({ ok: true, idOwner: 1 }),
+}))
+
 vi.mock('@/features/business-supports/services/business-supports.service', () => ({
   deactivateComprobante: vi.fn(),
 }))
@@ -16,19 +21,15 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 }))
 
 vi.mock('@/features/negocios/services/user-hierarchy.service', () => ({
-  resolveVisibleUserIds: vi.fn().mockResolvedValue([1]),
+  resolveVisibleUserIdsForUser: vi.fn().mockResolvedValue([1]),
 }))
 
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn().mockResolvedValue({
-        idUser: 1,
-        email: 'agent@example.com',
-        role: { code: 'AGENTE' },
-      }),
-    },
-  },
+vi.mock('@/features/negocios/services/user.service', () => ({
+  getCurrentUserByEmail: vi.fn().mockResolvedValue({
+    idUser: 1,
+    email: 'agent@example.com',
+    role: { code: 'AGENTE' },
+  }),
 }))
 
 import { DELETE } from '../route'
@@ -36,12 +37,13 @@ import {
   deactivateComprobante,
 } from '@/features/business-supports/services/business-supports.service'
 import { ComprobanteError } from '@/features/business-supports/types/business-support.types'
-import { resolveVisibleUserIds } from '@/features/negocios/services/user-hierarchy.service'
-import { prisma } from '@/lib/prisma'
+import { resolveVisibleUserIdsForUser } from '@/features/negocios/services/user-hierarchy.service'
+import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { assertBusinessAccess } from '@/features/negocios/services/business-access.service'
 
 const mockDeactivate = deactivateComprobante as ReturnType<typeof vi.fn>
-const mockResolveVisible = resolveVisibleUserIds as ReturnType<typeof vi.fn>
-const mockUserFind = prisma.user.findUnique as ReturnType<typeof vi.fn>
+const mockResolveVisible = resolveVisibleUserIdsForUser as ReturnType<typeof vi.fn>
+const mockUserFind = getCurrentUserByEmail as ReturnType<typeof vi.fn>
 
 function makeDeleteRequest(): Request {
   return new Request('http://localhost/api/negocios/10/comprobantes/supp-1', {
@@ -112,6 +114,43 @@ describe('DELETE /api/negocios/[id]/comprobantes/[supportId]', () => {
 
     const res = await DELETE(makeDeleteRequest(), routeParams)
     expect(res.status).toBe(403)
+    expect(mockDeactivate).not.toHaveBeenCalled()
+  })
+
+  it('PARTNER deletes a comprobante of an own business (soft delete, scoped to self)', async () => {
+    mockUserFind.mockResolvedValue({
+      idUser: 10,
+      email: 'partner@example.com',
+      role: { code: 'PARTNER' },
+    })
+    mockResolveVisible.mockResolvedValue([10])
+
+    const res = await DELETE(makeDeleteRequest(), routeParams)
+
+    expect(res.status).toBe(200)
+    expect(mockDeactivate).toHaveBeenCalledWith(
+      'supp-1',
+      expect.objectContaining({ userId: 10, email: 'partner@example.com' }),
+      expect.objectContaining({ businessId: 10, visibleUserIds: [10] }),
+    )
+  })
+
+  it('PARTNER on a business outside their scope gets 404 and nothing is deleted', async () => {
+    mockUserFind.mockResolvedValue({
+      idUser: 10,
+      email: 'partner@example.com',
+      role: { code: 'PARTNER' },
+    })
+    vi.mocked(assertBusinessAccess).mockResolvedValueOnce({
+      ok: false,
+      reason: 'NOT_FOUND',
+    })
+
+    const res = await DELETE(makeDeleteRequest(), routeParams)
+    const body = await res.json()
+
+    expect(res.status).toBe(404)
+    expect(body).toEqual({ data: null, error: 'Negocio no encontrado' })
     expect(mockDeactivate).not.toHaveBeenCalled()
   })
 

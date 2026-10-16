@@ -1,6 +1,11 @@
 import { UserRole } from '@/features/auth/lib/roles'
 import { RolePermissions } from '@/features/auth/lib/permissions'
-import { ALL_MENU_ITEMS, AGENTE_MENU_ITEMS, MenuItem } from './menu-items'
+import {
+	ALL_MENU_ITEMS,
+	AGENTE_MENU_ITEMS,
+	PARTNER_MENU_ITEMS,
+	MenuItem,
+} from './menu-items'
 
 export interface BuildMenuFlags {
 	isCalculadoraEnabled?: boolean
@@ -19,6 +24,11 @@ export function buildMenuByRole(
 	// Si no hay rol, retornar menú vacío
 	if (!role || !permissions) {
 		return []
+	}
+
+	// Partner: solo Dashboard y Mis Negocios, sin flags ni reportes (NAV-01)
+	if (role === UserRole.PARTNER) {
+		return PARTNER_MENU_ITEMS
 	}
 
 	// Agente tiene un menú completamente personalizado
@@ -119,6 +129,12 @@ export function buildMenuByRole(
 
 		// Usuarios (solo administradores)
 		if (item.title === 'Usuarios' && permissions.administracion) {
+			filteredItems.push(item)
+			continue
+		}
+
+		// Partners (solo administradores, ADM-02)
+		if (item.title === 'Partners' && permissions.administracion) {
 			filteredItems.push(item)
 			continue
 		}

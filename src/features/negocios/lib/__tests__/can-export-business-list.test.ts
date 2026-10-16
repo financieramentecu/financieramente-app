@@ -80,4 +80,13 @@ describe('canExportBusinessList', () => {
 			})
 		).toBe(true)
 	})
+
+	it.each([undefined, 'PARTNER_EXTERNAL', 'LEVEL_0'])(
+		'allows PARTNER to export (own rows only, level %s)',
+		(levelCode) => {
+			expect(
+				canExportBusinessList({ roleCode: UserRole.PARTNER, levelCode })
+			).toBe(true)
+		}
+	)
 })

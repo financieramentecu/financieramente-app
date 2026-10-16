@@ -142,6 +142,13 @@ Administrative endpoints for managing system entities (CRUD).
 | `/api/admin/client-origins`  | Manage client origins.     |
 | `/api/admin/currencies`      | Manage currencies.         |
 | `/api/admin/product-origins` | Manage product origins.    |
+| `/api/admin/partners`        | ADMIN only. `GET` list, `POST` create a partner (sends the activation mail; 201 with `emailSent`). |
+| `/api/admin/partners/[id]`   | ADMIN only. `PUT` edit personal data and leader (email, role, level, category are not editable). |
+| `/api/admin/partners/[id]/deactivate` | ADMIN only. `POST` deactivate (soft delete); the session ends on the partner's next request. |
+| `/api/admin/partners/[id]/reactivate` | ADMIN only. `POST` reactivate a deactivated partner. |
+| `/api/admin/partners/[id]/resend-activation` | ADMIN only. `POST` issue a new activation link for a pending partner. |
+| `/api/admin/partners/leaders` | ADMIN only. `GET ?levelCode=LEVEL_1..LEVEL_5` leaders eligible for a partner. |
+| `/api/admin/partners/leader-levels` | ADMIN only. `GET` leader levels (code and display name) for the picker. |
 
 ### 5. File Processing
 
@@ -155,6 +162,18 @@ Handling file uploads and batch processing.
 | `/api/pre-liquidacion/procesar`          | Trigger processing.     |
 | `/api/pre-liquidacion/exportar/[fileId]` | Export results.         |
 | `/api/pre-liquidacion/distribucion/[settlementCommissionId]` | GET distribution breakdown; each line includes `value_commission_with_discount` (post-tax, pre-clawback). |
+
+### 5b. Account Activation & Password Reset (`/api/account/*`)
+
+Public routes (no session). They are rate limited per IP and never reveal whether an account exists.
+
+| Method | Endpoint                          | Description |
+| :----- | :-------------------------------- | :---------- |
+| `POST` | `/api/account/forgot-password`    | Body `{ email }`. Always answers the same generic 200 for ineligible accounts; sends a reset link (valid 1 hour) when the user is active, activated, not SSO-only and has a password. |
+| `POST` | `/api/account/activate`           | Body `{ token, password }`. Sets the password and activates the account (link valid 72 hours, single use). |
+| `POST` | `/api/account/reset-password`     | Body `{ token, password }`. Sets a new password (single use). |
+
+Any token problem answers 400 `Enlace inválido o vencido`; rate limiting answers 429 with `Retry-After`. The pages `/activate-account` and `/reset-password` validate the link on the server (no GET preview, the token never goes in an API query string). Rate-limit keys use the trusted client IP (`getTrustedClientIp`: `x-real-ip`, else the LAST `x-forwarded-for` hop).
 
 ### 6. System & Utility
 
