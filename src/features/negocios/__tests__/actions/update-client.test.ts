@@ -12,6 +12,9 @@ vi.mock('@/lib/prisma', () => ({
 			findFirst: vi.fn(),
 			update: vi.fn(),
 		},
+		documentType: {
+			findFirst: vi.fn(),
+		},
 	},
 }))
 
@@ -59,6 +62,17 @@ describe('updateClient — COM-63 authorization', () => {
 		vi.clearAllMocks()
 		vi.mocked(prisma.client.findUnique).mockResolvedValue(existingClient as never)
 		vi.mocked(prisma.client.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
+			idDocumentType: 1,
+			name: 'Cédula de Ciudadanía',
+			code: 'CC',
+			dataType: 'NUMERIC',
+			minLength: 6,
+			maxLength: 10,
+			status: true,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		} as never)
 		vi.mocked(prisma.client.update).mockResolvedValue({
 			...existingClient,
 			name: 'Ana María',

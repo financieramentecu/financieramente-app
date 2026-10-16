@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { findCitizenshipCardId } from './seeds/document-type'
 
 const prisma = new PrismaClient()
 
@@ -26,11 +27,13 @@ async function main() {
 	})
 
 	if (!client) {
+		const idDocumentType = await findCitizenshipCardId(prisma)
 		client = await prisma.client.create({
 			data: {
 				name: 'Test',
 				lastName: 'Sincronización',
 				typeIdentity: 'CC',
+				idDocumentType,
 				identityNumber: '9988776655',
 				email: 'test.sinc@email.com',
 				phone: '3009998877',

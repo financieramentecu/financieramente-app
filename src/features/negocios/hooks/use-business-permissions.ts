@@ -10,6 +10,7 @@ export type FieldPermission = {
 
 export type BusinessFormField =
 	| 'identityNumber'
+	| 'typeIdentity'
 	| 'email'
 	| 'name'
 	| 'lastNames'
@@ -88,6 +89,7 @@ export function useBusinessPermissions({
 
 		// 1. Información del Cliente — editable para Asistente Operativo de Gerencia y Admin (COM-63)
 		const clientFields: BusinessFormField[] = [
+			'typeIdentity',
 			'identityNumber',
 			'email',
 			'name',
