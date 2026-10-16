@@ -53,6 +53,34 @@ describe('ActionCell', () => {
 			).not.toBeInTheDocument()
 		})
 
+		it('should show edit button for FONDEADO status when user is ADMIN', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.FONDEADO}
+					userRole={UserRole.ADMIN}
+				/>
+			)
+
+			expect(
+				screen.getByRole('button', { name: /Editar/i })
+			).toBeInTheDocument()
+		})
+
+		it('should NOT show edit button for FONDEADO when user is AGENTE', () => {
+			render(
+				<ActionCell
+					{...defaultProps}
+					businessStatus={BUSINESS_STATUS.FONDEADO}
+					userRole={UserRole.AGENTE}
+				/>
+			)
+
+			expect(
+				screen.queryByRole('button', { name: /Editar/i })
+			).not.toBeInTheDocument()
+		})
+
 		it('should NOT show edit button for CANCELADO status', () => {
 			render(
 				<ActionCell

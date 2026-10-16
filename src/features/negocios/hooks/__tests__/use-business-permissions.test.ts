@@ -79,6 +79,61 @@ describe('useBusinessPermissions — COM-63 client fields', () => {
 		expect(result.current.canEditClientInfo).toBe(false)
 	})
 
+	it('permite editar campos financieros de un negocio FONDEADO al Admin', () => {
+		const { result } = renderHook(() =>
+			useBusinessPermissions({
+				mode: 'edit',
+				currentUser: userWithRole('ADMIN'),
+				businessStatus: 'FONDEADO',
+			})
+		)
+
+		for (const field of ['company', 'producto', 'terms', 'currency', 'periodicity', 'value'] as const) {
+			expect(result.current.getFieldPermission(field)).toEqual({
+				readonly: false,
+				disabled: false,
+				hidden: false,
+			})
+		}
+	})
+
+	it('permite editar campos financieros de un negocio FONDEADO al Asistente Operativo', () => {
+		const { result } = renderHook(() =>
+			useBusinessPermissions({
+				mode: 'edit',
+				currentUser: userWithRole('ASISTENTE_GERENCIA_OPERATIVA'),
+				businessStatus: 'FONDEADO',
+			})
+		)
+
+		expect(result.current.getFieldPermission('value').disabled).toBe(false)
+		expect(result.current.getFieldPermission('contract').disabled).toBe(false)
+		for (const field of CLIENT_FIELDS) {
+			expect(result.current.getFieldPermission(field).disabled).toBe(false)
+		}
+	})
+
+	it('mantiene bloqueados los campos financieros de un negocio FONDEADO para Agente', () => {
+		const { result } = renderHook(() =>
+			useBusinessPermissions({
+				mode: 'edit',
+				currentUser: userWithRole('AGENTE'),
+				businessStatus: 'FONDEADO',
+			})
+		)
+
+		expect(result.current.getFieldPermission('value')).toEqual({
+			readonly: true,
+			disabled: true,
+			hidden: false,
+		})
+		expect(result.current.getFieldPermission('agent')).toEqual({
+			readonly: true,
+			disabled: true,
+			hidden: false,
+		})
+	})
+
 	it('mantiene bloqueada la información del cliente para Analista de Soporte', () => {
 		const { result } = renderHook(() =>
 			useBusinessPermissions({

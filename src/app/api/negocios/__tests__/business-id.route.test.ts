@@ -690,6 +690,75 @@ describe('PUT /api/negocios/[id]', () => {
 			expect(response.status).toBe(400)
 		})
 
+		it('debe actualizar campos del negocio cuando está FONDEADO y el usuario es administrador', async () => {
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				contract: 'PN0001234',
+				value: 10000,
+			}
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { contract: 'PN0001234', value: 25000, term: 10 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst
+				.mockResolvedValueOnce(fundedBusiness as never)
+				.mockResolvedValueOnce(null)
+			mockUpdate.mockResolvedValue({ ...fundedBusiness, value: 25000, term: 10 } as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 1,
+				status: BUSINESS_STATUS.FONDEADO,
+				contract: 'PN0001234',
+			} as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ contract: 'PN0001234', value: 25000, term: 10 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(200)
+			expect(body.data.status).toBe(BUSINESS_STATUS.FONDEADO)
+			expect(mockUpdate).toHaveBeenCalled()
+		})
+
+		it('debe rechazar la edición de campos clave de un negocio FONDEADO cuando el usuario es agente', async () => {
+			const agentUser = {
+				...commonAdminUser,
+				idUser: 20,
+				role: { ...commonAdminUser.role, idRole: 2, code: UserRole.AGENTE },
+			}
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				idUser: 20,
+			}
+			mockAuth.mockResolvedValue({ user: { email: 'agent@example.com' } } as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { value: 25000 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(agentUser)
+			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ value: 25000 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(403)
+			expect(body.error).toMatch(/campos clave/i)
+		})
+
 		it('debe actualizar contrato cuando el negocio está EMITIDO y el usuario es administrador', async () => {
 			const emitidoBusiness = { ...commonExistingBusiness, status: BUSINESS_STATUS.EMITIDO }
 			mockAuth.mockResolvedValue(commonSession as never)
