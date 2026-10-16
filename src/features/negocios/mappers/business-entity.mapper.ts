@@ -53,6 +53,9 @@ export function prismaBusinessToEntity(
 			name: prisma.client.name,
 			lastName: prisma.client.lastName,
 			identityNumber: prisma.client.identityNumber,
+			typeIdentity: prisma.client.typeIdentity,
+			idDocumentType: prisma.client.idDocumentType,
+			documentTypeName: prisma.client.documentType.name,
 			email: prisma.client.email,
 			phone: prisma.client.phone,
 		},
@@ -96,6 +99,19 @@ export function prismaBusinessToEntity(
 			id: prisma.clientOrigin.idClientOrigin,
 			name: prisma.clientOrigin.name,
 		},
+		clientIsPolicyholder: prisma.clientIsPolicyholder,
+		policyholder: prisma.policyholder
+			? {
+					id: prisma.policyholder.idPolicyholder,
+					name: prisma.policyholder.name,
+					lastName: prisma.policyholder.lastName,
+					typeIdentity: prisma.policyholder.typeIdentity,
+					identityNumber: prisma.policyholder.identityNumber,
+					email: prisma.policyholder.email,
+					phone: prisma.policyholder.phone,
+					documentTypeName: prisma.policyholder.documentType.name,
+				}
+			: null,
 	}
 }
 

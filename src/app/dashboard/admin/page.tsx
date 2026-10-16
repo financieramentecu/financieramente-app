@@ -1,8 +1,9 @@
 'use client'
 
-import React from 'react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { AdminCard } from '@/features/admin/shared/AdminCard'
+import { UserRole } from '@/features/auth/lib/roles'
+import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import {
 	Building2,
 	Package,
@@ -13,9 +14,13 @@ import {
 	Tag,
 	Percent,
 	ShieldCheck,
+	IdCard,
 } from 'lucide-react'
 
 export default function AdminDashboardPage() {
+	const { session } = useAuthSession()
+	const isSystemAdmin = session?.user?.role === UserRole.ADMIN
+
 	const adminModules = [
 		{
 			title: 'Compañías',
@@ -71,6 +76,17 @@ export default function AdminDashboardPage() {
 			href: '/dashboard/admin/report-permissions',
 			icon: <ShieldCheck className="h-5 w-5 text-primary" />,
 		},
+		...(isSystemAdmin
+			? [
+					{
+						title: 'Tipos de Documento',
+						description:
+							'Parametrizar los documentos de identidad del formulario de negocios',
+						href: '/dashboard/admin/document-types',
+						icon: <IdCard className="h-5 w-5 text-primary" />,
+					},
+				]
+			: []),
 	]
 
 	return (

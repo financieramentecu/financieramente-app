@@ -128,7 +128,13 @@ export function buildMenuByRole(
 			item.title === 'Administración' &&
 			(permissions.administracion || permissions.configuracion)
 		) {
-			filteredItems.push(item)
+			const subItems = item.subItems?.filter(
+				(subItem) => !subItem.adminOnly || role === UserRole.ADMIN
+			)
+			filteredItems.push({
+				...item,
+				subItems,
+			})
 			continue
 		}
 	}

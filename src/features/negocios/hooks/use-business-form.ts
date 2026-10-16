@@ -10,6 +10,7 @@ import {
 import { createClient } from '@/features/negocios/actions/create-client'
 import { updateClient } from '@/features/negocios/actions/update-client'
 import { createBusiness } from '@/features/negocios/actions/create-business'
+import { syncBusinessPolicyholder } from '@/features/negocios/actions/sync-business-policyholder'
 import { resolveExistingClient } from '@/features/negocios/actions/resolve-existing-client'
 import { useSearchClient } from '@/features/negocios/hooks/use-search-client'
 import { useSearchAgents } from '@/features/negocios/hooks/use-search-agents'
@@ -19,6 +20,7 @@ import { useBusinessMutation } from '@/features/negocios/hooks/use-business-muta
 import { UserRole } from '@/features/auth/lib/roles'
 import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-permissions'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
+import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
 
 /**
  * D5: state raised when the exact-email resolution finds a client whose
@@ -31,6 +33,17 @@ export type IdentityConflict = {
 	typedIdentityNumber: string
 	error?: string
 } | null
+
+function policyholderPayload(data: BusinessFormData) {
+	return {
+		typeIdentity: data.policyholderTypeIdentity ?? '',
+		identityNumber: data.policyholderIdentityNumber ?? '',
+		email: data.policyholderEmail ?? '',
+		name: data.policyholderName ?? '',
+		lastName: data.policyholderLastNames ?? '',
+		phone: data.policyholderPhone ?? '',
+	}
+}
 
 /**
  * Hook principal que coordina toda la lógica del formulario de negocios
@@ -47,6 +60,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 		productsOptions,
 		businessAgent,
 		leadId,
+		documentTypeOptions = [],
 	} = props
 
 	const isEditMode = mode === 'edit'
@@ -75,6 +89,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			lastNames: defaultValues?.lastNames || '',
 			phone: defaultValues?.phone || '',
 			identityNumber: defaultValues?.identityNumber || '',
+			typeIdentity: defaultValues?.typeIdentity ?? '',
 			clientOrigin: defaultValues?.clientOrigin || '',
 			company: defaultValues?.company || '',
 			producto: defaultValues?.producto || '',
@@ -85,6 +100,13 @@ export function useBusinessForm(props: BusinessFormProps) {
 			agent: defaultValues?.agent || '',
 			contract: defaultValues?.contract ?? '',
 			numAportes: defaultValues?.numAportes ?? undefined,
+			clientIsPolicyholder: defaultValues?.clientIsPolicyholder ?? true,
+			policyholderTypeIdentity: defaultValues?.policyholderTypeIdentity ?? '',
+			policyholderIdentityNumber: defaultValues?.policyholderIdentityNumber ?? '',
+			policyholderEmail: defaultValues?.policyholderEmail ?? '',
+			policyholderName: defaultValues?.policyholderName ?? '',
+			policyholderLastNames: defaultValues?.policyholderLastNames ?? '',
+			policyholderPhone: defaultValues?.policyholderPhone ?? '',
 		},
 	})
 
@@ -229,6 +251,10 @@ export function useBusinessForm(props: BusinessFormProps) {
 				idProduct: parseInt(data.producto),
 				idCurrency: parseInt(data.currency),
 				idClientOrigin: parseInt(data.clientOrigin),
+				clientIsPolicyholder: data.clientIsPolicyholder !== false,
+				...(data.clientIsPolicyholder === false
+					? { policyholder: policyholderPayload(data) }
+					: {}),
 				...(leadId ? { idLead: leadId } : {}),
 			})
 
@@ -286,6 +312,79 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const handleFormSubmit = React.useCallback(
 		async (data: BusinessFormData) => {
 			try {
+				if (documentTypeOptions.length > 0) {
+					const selectedType = documentTypeOptions.find(
+						(option) => option.code === data.typeIdentity
+					)
+					const keepsStoredType =
+						Boolean(selectedClient?.typeIdentity) &&
+						selectedClient?.typeIdentity === data.typeIdentity
+					if (
+						!isEditMode &&
+						!keepsStoredType &&
+						(!selectedType || !selectedType.status)
+					) {
+						const message = data.typeIdentity
+							? 'El tipo de documento no está disponible para nuevos registros'
+							: 'El tipo de documento es obligatorio'
+						form.setError('typeIdentity', { message })
+						toast.error(
+							data.typeIdentity
+								? 'Tipo de documento no disponible'
+								: 'Selecciona el tipo de documento'
+						)
+						return
+					}
+					if (selectedType) {
+						const identityError = validateIdentityAgainstDocumentType(
+							data.identityNumber,
+							selectedType
+						)
+						if (identityError) {
+							form.setError('identityNumber', { message: identityError })
+							toast.error('Documento inválido', {
+								description: identityError,
+							})
+							return
+						}
+					}
+				}
+
+				if (data.clientIsPolicyholder === false && documentTypeOptions.length > 0) {
+					const selectedType = documentTypeOptions.find(
+						(option) => option.code === data.policyholderTypeIdentity
+					)
+					const keepsStoredType =
+						isEditMode &&
+						Boolean(defaultValues?.policyholderTypeIdentity) &&
+						defaultValues?.policyholderTypeIdentity ===
+							data.policyholderTypeIdentity
+					if (!keepsStoredType && (!selectedType || !selectedType.status)) {
+						form.setError('policyholderTypeIdentity', {
+							message: data.policyholderTypeIdentity
+								? 'El tipo de documento no está disponible para nuevos registros'
+								: 'El tipo de documento del tomador es obligatorio',
+						})
+						toast.error('Tipo de documento del tomador no disponible')
+						return
+					}
+					if (selectedType) {
+						const identityError = validateIdentityAgainstDocumentType(
+							data.policyholderIdentityNumber ?? '',
+							selectedType
+						)
+						if (identityError) {
+							form.setError('policyholderIdentityNumber', {
+								message: identityError,
+							})
+							toast.error('Documento del tomador inválido', {
+								description: identityError,
+							})
+							return
+						}
+					}
+				}
+
 				// En modo edición, enviar todos los campos que hayan cambiado (o todos los disponibles)
 				if (isEditMode && businessId) {
 					if (canEditClientInfo && !clientId) {
@@ -304,6 +403,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 							email: data.email,
 							phone: data.phone,
 							identityNumber: data.identityNumber,
+							typeIdentity: data.typeIdentity,
 							context: 'business-edit',
 							businessId,
 						})
@@ -311,6 +411,22 @@ export function useBusinessForm(props: BusinessFormProps) {
 						if ('error' in updateResult && updateResult.error) {
 							toast.error('Error al actualizar cliente', {
 								description: updateResult.error,
+							})
+							return
+						}
+					}
+
+					if (canEditClientInfo) {
+						const policyholderResult = await syncBusinessPolicyholder({
+							idBusiness: businessId,
+							clientIsPolicyholder: data.clientIsPolicyholder !== false,
+							...(data.clientIsPolicyholder === false
+								? { policyholder: policyholderPayload(data) }
+								: {}),
+						})
+						if ('error' in policyholderResult && policyholderResult.error) {
+							toast.error('Error al guardar el tomador', {
+								description: policyholderResult.error,
 							})
 							return
 						}
@@ -357,7 +473,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 				// (ClientAutocomplete) ya cubre la deduplicación por su cuenta.
 				if (!resolvedClientId && leadId) {
 					const resolveResult = await resolveExistingClient({
-						typeIdentity: 'CC',
+						typeIdentity: data.typeIdentity,
 						identityNumber: data.identityNumber,
 						email: data.email,
 						leadId,
@@ -396,7 +512,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 					const createResult = await createClient({
 						name: data.name,
 						lastName: data.lastNames,
-						typeIdentity: 'CC', // Por defecto CC
+						typeIdentity: data.typeIdentity,
 						identityNumber: data.identityNumber,
 						email: data.email,
 						phone: data.phone,
@@ -442,6 +558,9 @@ export function useBusinessForm(props: BusinessFormProps) {
 			canEditClientInfo,
 			leadId,
 			finishCreateSubmit,
+			documentTypeOptions,
+			form,
+			defaultValues,
 		]
 	)
 

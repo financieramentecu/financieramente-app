@@ -23,6 +23,7 @@ function Wrapper({
 			lastNames: 'Pérez',
 			phone: '3001234567',
 			identityNumber: '',
+			typeIdentity: '',
 			clientOrigin: '1',
 			company: '',
 			producto: '',
@@ -95,5 +96,155 @@ describe('ClientInfoSection — "Crear nuevo" prefilled-data preservation', () =
 		expect(screen.queryByDisplayValue('Juan')).not.toBeInTheDocument()
 		expect(screen.queryByDisplayValue('Pérez')).not.toBeInTheDocument()
 		expect(screen.queryByDisplayValue('3001234567')).not.toBeInTheDocument()
+	})
+})
+
+describe('ClientInfoSection — Tipo de Documento', () => {
+	it('shows the field and hides inactive types that are not already selected', async () => {
+		function Form() {
+			const form = useForm<BusinessFormData>({
+				resolver: zodResolver(businessFormSchema),
+				defaultValues: {
+					email: '',
+					name: '',
+					lastNames: '',
+					phone: '',
+					identityNumber: '',
+					typeIdentity: '',
+					clientOrigin: '1',
+					company: '',
+					producto: '',
+					terms: undefined,
+					currency: '',
+					periodicity: '',
+					value: undefined,
+					agent: '',
+				},
+			})
+
+			return (
+				<ClientInfoSection
+					form={form}
+					clientOriginsOptions={[{ value: '1', label: 'Origen' }]}
+					documentTypeOptions={[
+						{
+							code: 'CC',
+							name: 'Cédula de Ciudadanía',
+							dataType: 'NUMERIC',
+							minLength: 6,
+							maxLength: 10,
+							status: true,
+						},
+						{
+							code: 'PAS',
+							name: 'Pasaporte',
+							dataType: 'ALPHANUMERIC',
+							minLength: 6,
+							maxLength: 15,
+							status: false,
+						},
+					]}
+					clientResults={[]}
+					onSearchClient={vi.fn().mockResolvedValue([])}
+					onClientSelected={vi.fn()}
+					isEditMode={false}
+					isBlocked={false}
+					isLeadConversion={false}
+					getFieldPermission={() => ({
+						readonly: false,
+						disabled: false,
+						hidden: false,
+					})}
+				/>
+			)
+		}
+
+		render(<Form />)
+
+		expect(screen.getByText('Tipo de Documento')).toBeInTheDocument()
+		fireEvent.click(screen.getByRole('combobox', { name: /Tipo de Documento/ }))
+		expect(await screen.findByText('Cédula de Ciudadanía (CC)')).toBeInTheDocument()
+		expect(screen.queryByText(/Pasaporte/)).not.toBeInTheDocument()
+	})
+})
+
+describe('ClientInfoSection — tomador', () => {
+	it('asks whether the client is the same policyholder and defaults to yes', () => {
+		render(<Wrapper isLeadConversion={false} />)
+
+		expect(
+			screen.getByRole('heading', {
+				name: 'Información básica y general del Cliente',
+			})
+		).toBeInTheDocument()
+		expect(
+			screen.getByRole('checkbox', {
+				name: '¿El cliente es el mismo tomador?',
+			})
+		).toBeChecked()
+	})
+
+	it('clears policyholder fields when the checkbox returns to yes', async () => {
+		function Form() {
+			const form = useForm<BusinessFormData>({
+				defaultValues: {
+					email: 'lead@example.com',
+					name: 'Juan',
+					lastNames: 'Pérez',
+					phone: '3001234567',
+					identityNumber: '12345678',
+					typeIdentity: 'CC',
+					clientOrigin: '1',
+					company: '1',
+					producto: '1',
+					terms: 1,
+					currency: '1',
+					periodicity: '1',
+					value: 1,
+					agent: '1',
+					clientIsPolicyholder: false,
+					policyholderTypeIdentity: 'CC',
+					policyholderIdentityNumber: '999',
+					policyholderEmail: 'tomador@example.com',
+					policyholderName: 'Ana',
+					policyholderLastNames: 'Ruiz',
+					policyholderPhone: '3000000000',
+				},
+			})
+
+			return (
+				<>
+					<ClientInfoSection
+						form={form}
+						clientOriginsOptions={[{ value: '1', label: 'Origen' }]}
+						clientResults={[]}
+						onSearchClient={vi.fn().mockResolvedValue([])}
+						onClientSelected={vi.fn()}
+						isEditMode={false}
+						isBlocked={false}
+						getFieldPermission={() => ({
+							readonly: false,
+							disabled: false,
+							hidden: false,
+						})}
+					/>
+					<input
+						aria-label="policyholder-email"
+						value={form.watch('policyholderEmail') ?? ''}
+						readOnly
+					/>
+				</>
+			)
+		}
+
+		render(<Form />)
+		fireEvent.click(
+			screen.getByRole('checkbox', {
+				name: '¿El cliente es el mismo tomador?',
+			})
+		)
+		await waitFor(() => {
+			expect(screen.getByLabelText('policyholder-email')).toHaveValue('')
+		})
 	})
 })

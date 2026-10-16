@@ -124,6 +124,7 @@ Read-only or shared access to system catalogs.
 | `GET`  | `/api/categories`      | List active categories. |
 | `GET`  | `/api/categories/[id]` | Get category details.   |
 | `GET`  | `/api/clients/search`  | Search clients.         |
+| `GET`  | `/api/policyholders/search` | Search policyholders by document. Does not query clients. |
 | `GET`  | `/api/companies`       | List active companies.  |
 | `GET`  | `/api/companies/[id]`  | Get company details.    |
 | `GET`  | `/api/origins`         | List client origins.    |
@@ -141,6 +142,8 @@ Administrative endpoints for managing system entities (CRUD).
 | `/api/admin/categories`      | Manage categories catalog. |
 | `/api/admin/client-origins`  | Manage client origins.     |
 | `/api/admin/currencies`      | Manage currencies.         |
+| `/api/admin/document-types`  | Manage identity document types (system administrator only). |
+| `/api/document-types`        | List active document types for the business form. Client identities store `id_document_type` (FK); inactive types stay on existing clients and are omitted from new selections. |
 | `/api/admin/product-origins` | Manage product origins.    |
 
 ### 5. File Processing

@@ -5,7 +5,13 @@ import type { Prisma } from '@prisma/client'
  * categoría del coach (`user.category`).
  */
 export const businessExportInclude = {
-	client: true,
+	client: {
+		include: {
+			documentType: {
+				select: { name: true, code: true },
+			},
+		},
+	},
 	user: {
 		include: {
 			role: true,
@@ -28,6 +34,13 @@ export const businessExportInclude = {
 	currency: true,
 	buyPeriodicity: true,
 	clientOrigin: true,
+	policyholder: {
+		include: {
+			documentType: {
+				select: { name: true, code: true },
+			},
+		},
+	},
 	payments: {
 		orderBy: { installmentIndex: 'asc' },
 	},
