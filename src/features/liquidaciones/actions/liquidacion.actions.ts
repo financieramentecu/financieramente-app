@@ -6,6 +6,16 @@ import {
   obtenerTodosLosCoaches
 } from '../services/liquidacion.service';
 import { ApiResponse } from '@/features/shared/types/api-response.types';
+import { UserRole, isValidRole } from '@/features/auth/lib/roles';
+import { requireActionPermission } from '@/lib/auth/require-action-permission';
+
+// SEC-03: settlement history must never reach a PARTNER (or a pending DEFAULT /
+// unknown role). Internal roles keep today's behavior.
+// TODO(partner-profile): the permission matrix only grants `liquidaciones.liquidacion`
+// to ADMIN and ASISTENTE_GERENCIA_OPERATIVA; narrowing AGENTE / CONSULTOR /
+// ANALISTA_SOPORTE here is a product decision and is intentionally NOT done.
+const canViewLiquidaciones = (role: string | undefined): boolean =>
+  !!role && isValidRole(role) && role !== UserRole.PARTNER && role !== UserRole.DEFAULT;
 
 export async function fetchComisionesLiquidadasAction(
   params: {
@@ -17,6 +27,10 @@ export async function fetchComisionesLiquidadasAction(
     coachId?: number;
   }
 ): Promise<ApiResponse<Awaited<ReturnType<typeof obtenerComisionesLiquidadas>>>> {
+  const guard = await requireActionPermission(canViewLiquidaciones);
+  if (!guard.ok) {
+    return { data: null, error: guard.error };
+  }
   try {
     const data = await obtenerComisionesLiquidadas(params);
     return {
@@ -32,6 +46,10 @@ export async function fetchComisionesLiquidadasAction(
 }
 
 export async function fetchContratosAction(): Promise<ApiResponse<string[]>> {
+  const guard = await requireActionPermission(canViewLiquidaciones);
+  if (!guard.ok) {
+    return { data: null, error: guard.error };
+  }
   try {
     const data = await obtenerTodosLosContratos();
     return {
@@ -47,6 +65,10 @@ export async function fetchContratosAction(): Promise<ApiResponse<string[]>> {
 }
 
 export async function fetchCoachesAction(): Promise<ApiResponse<Awaited<ReturnType<typeof obtenerTodosLosCoaches>>>> {
+  const guard = await requireActionPermission(canViewLiquidaciones);
+  if (!guard.ok) {
+    return { data: null, error: guard.error };
+  }
   try {
     const data = await obtenerTodosLosCoaches();
     return {

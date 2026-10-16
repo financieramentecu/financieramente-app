@@ -13,13 +13,16 @@ export interface AgentCatalogResult {
 
 const MS_JUNIOR_LEVEL_CODE = 'LEVEL_0'
 
+/** Owner roles listed in the agent catalog (partners own businesses like agents). */
+const BUSINESS_OWNER_ROLE_CODES = ['AGENTE', 'PARTNER']
+
 const HIERARCHY_BYPASS_ROLE_CODES = new Set(['ADMIN', 'ASISTENTE_GERENCIA_OPERATIVA', 'ANALISTA_SOPORTE'])
 
 async function fetchAgentsByIds(userIds: number[]): Promise<AgentCatalogItem[]> {
 	const users = await prisma.user.findMany({
 		where: {
 			active: true,
-			role: { code: 'AGENTE' },
+			role: { code: { in: BUSINESS_OWNER_ROLE_CODES } },
 			idUser: { in: userIds },
 		},
 		select: { idUser: true, name: true, lastName: true },
@@ -35,10 +38,15 @@ export async function listActiveAgents(viewer: {
 }): Promise<AgentCatalogResult> {
 	const { idUser, roleCode, levelCode } = viewer
 
+	// PARTNER sees only their own businesses: no agent filter at all
+	if (roleCode === 'PARTNER') {
+		return { agents: [], showFilter: false }
+	}
+
 	// Backoffice roles — return all active AGENTEs
 	if (roleCode && HIERARCHY_BYPASS_ROLE_CODES.has(roleCode)) {
 		const users = await prisma.user.findMany({
-			where: { active: true, role: { code: 'AGENTE' } },
+			where: { active: true, role: { code: { in: BUSINESS_OWNER_ROLE_CODES } } },
 			select: { idUser: true, name: true, lastName: true },
 			orderBy: [{ name: 'asc' }, { lastName: 'asc' }],
 		})

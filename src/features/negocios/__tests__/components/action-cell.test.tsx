@@ -361,3 +361,39 @@ describe('ActionCell', () => {
 		})
 	})
 })
+
+describe('ActionCell — PARTNER parity with AGENTE (PA-04)', () => {
+	const props = {
+		businessId: 1,
+		businessStatus: BUSINESS_STATUS.EMITIDO,
+		userRole: UserRole.PARTNER,
+		hasPayments: true,
+		hasPendingPaymentFunding: true,
+		onEdit: vi.fn(),
+		onView: vi.fn(),
+		onCancel: vi.fn(),
+		onFondear: vi.fn(),
+	}
+
+	it('shows the read-only "Ver Fondeo" like an agent and never "Fondear"', () => {
+		render(<ActionCell {...props} />)
+		expect(
+			screen.getByRole('button', { name: 'Ver Fondeo' })
+		).toBeInTheDocument()
+		expect(
+			screen.queryByRole('button', { name: /^Fondear/ })
+		).not.toBeInTheDocument()
+	})
+
+	it('never shows cancel or edit', () => {
+		render(
+			<ActionCell {...props} businessStatus={BUSINESS_STATUS.VENTA_EFECTUADA} />
+		)
+		expect(
+			screen.queryByRole('button', { name: /Cancelar/i })
+		).not.toBeInTheDocument()
+		expect(
+			screen.queryByRole('button', { name: /Editar/i })
+		).not.toBeInTheDocument()
+	})
+})

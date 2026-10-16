@@ -109,7 +109,7 @@ export function buildCompanyColumns(rows: PersonRow[]): CompanyColumn[] {
  * Full pivot: converts HeatmapRaw[] + trmRate into HeatmapViewModel.
  * Handles company name collection in a single pass.
  */
-function pivotToViewModel(raw: HeatmapRaw[], trmRate: number): HeatmapViewModel {
+export function pivotToViewModel(raw: HeatmapRaw[], trmRate: number): HeatmapViewModel {
   // First collect company names (needed for column display)
   const companyNames = new Map<number, string>()
   for (const entry of raw) {
@@ -120,13 +120,26 @@ function pivotToViewModel(raw: HeatmapRaw[], trmRate: number): HeatmapViewModel 
     }
   }
 
-  const rows = pivotHeatmapRows(raw, trmRate)
+  // Partners (PARTNER_EXTERNAL level) are split from agents: the "Partners" block
+  // renders below the agent rows, sorted by name. Totals/legend use ALL rows.
+  const partnerIds = new Set(raw.filter((entry) => entry.isPartner).map((e) => e.idUser))
+  const pivoted = pivotHeatmapRows(raw, trmRate)
+  const agentRows = pivoted.filter((row) => !partnerIds.has(row.idUser))
+  const partnerCandidates = pivoted
+    .filter((row) => partnerIds.has(row.idUser))
+    .sort((a, b) => a.fullName.localeCompare(b.fullName))
+  // The block only exists when agent rows also exist; otherwise (partner's own
+  // dashboard) the partner row is shown as a plain single block.
+  const hasPartnerBlock = agentRows.length > 0 && partnerCandidates.length > 0
+  const rows = hasPartnerBlock ? agentRows : [...agentRows, ...partnerCandidates]
+  const partnerRows = hasPartnerBlock ? partnerCandidates : []
+  const allRows = [...rows, ...partnerRows]
 
   // Build company columns using company names
   const totalsByCompany = new Map<number, number>()
   const maxByCompany = new Map<number, number>()
 
-  for (const row of rows) {
+  for (const row of allRows) {
     for (const [idCompany, cell] of row.cellsByCompany) {
       const currentTotal = totalsByCompany.get(idCompany) ?? 0
       totalsByCompany.set(idCompany, currentTotal + cell.usdTotal)
@@ -153,7 +166,7 @@ function pivotToViewModel(raw: HeatmapRaw[], trmRate: number): HeatmapViewModel 
 
   // Build legend from visible rows (unique categoryName + levelColor)
   const legendMap = new Map<string, string>()
-  for (const row of rows) {
+  for (const row of allRows) {
     if (row.categoryName && !legendMap.has(row.categoryName)) {
       legendMap.set(row.categoryName, row.levelColor)
     }
@@ -162,7 +175,7 @@ function pivotToViewModel(raw: HeatmapRaw[], trmRate: number): HeatmapViewModel 
     ([categoryName, levelColor]) => ({ categoryName, levelColor })
   )
 
-  return { rows, companyColumns, legend }
+  return { rows, partnerRows, companyColumns, legend }
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

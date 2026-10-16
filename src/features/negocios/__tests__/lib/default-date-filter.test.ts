@@ -15,6 +15,7 @@ describe('getDefaultDateParamPair', () => {
 	})
 
 	it.each([
+		UserRole.PARTNER,
 		UserRole.ADMIN,
 		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 		UserRole.ANALISTA_SOPORTE,

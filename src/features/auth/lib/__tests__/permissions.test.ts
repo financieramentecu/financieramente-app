@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { UserRole } from '@/features/auth/lib/roles'
-import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
+import {
+	ROLE_PERMISSIONS,
+	getRolePermissions,
+} from '@/features/auth/lib/permissions'
 
 const EXISTING_WRITE_ROLES = [
 	UserRole.ADMIN,
@@ -50,5 +53,42 @@ describe('ROLE_PERMISSIONS — leads/misDistribuciones/calculadora flags', () =>
 		expect(perms.leads).toBe(false)
 		expect(perms.misDistribuciones).toBe(false)
 		expect(perms.calculadora).toBe(true)
+	})
+})
+
+describe('ROLE_PERMISSIONS — PARTNER', () => {
+	const perms = ROLE_PERMISSIONS[UserRole.PARTNER]
+
+	it('can use dashboard and manage (not cancel) own businesses', () => {
+		expect(perms.dashboard).toBe(true)
+		expect(perms.negocios).toEqual({
+			create: true,
+			edit: true,
+			list: true,
+			cancel: false,
+			viewAll: false,
+		})
+	})
+
+	it('has no cargas, liquidaciones, reportes, admin, leads, distribuciones or calculadora access', () => {
+		expect(perms.cargas).toEqual({ cargaMasiva: false, historial: false })
+		expect(perms.liquidaciones).toEqual({
+			preliquidacion: false,
+			liquidacion: false,
+		})
+		expect(perms.reportes).toEqual({
+			all: false,
+			business: false,
+			personal: false,
+		})
+		expect(perms.configuracion).toBe(false)
+		expect(perms.administracion).toBe(false)
+		expect(perms.leads).toBe(false)
+		expect(perms.misDistribuciones).toBe(false)
+		expect(perms.calculadora).toBe(false)
+	})
+
+	it('is resolvable through getRolePermissions', () => {
+		expect(getRolePermissions('PARTNER')).toBe(perms)
 	})
 })

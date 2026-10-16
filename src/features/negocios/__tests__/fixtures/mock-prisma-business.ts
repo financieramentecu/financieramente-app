@@ -62,6 +62,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 		email: 'carlos.agente@financieramente.com',
 		password: null,
 		ssoOnly: true,
+		activatedAt: baseDate,
 		phone: '3009876543',
 		idLevel: 1,
 		idCategory: 1,

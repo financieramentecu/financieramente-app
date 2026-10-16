@@ -48,3 +48,64 @@ describe('validateRoleLevelPair', () => {
 		expect(result.ok).toBe(true)
 	})
 })
+
+describe('validateRoleLevelPair — partner pairing (PM-07, ADM-01)', () => {
+	it('accepts the canonical partner pair (PARTNER + PARTNER_EXTERNAL)', () => {
+		expect(
+			validateRoleLevelPair({
+				roleCode: UserRole.PARTNER,
+				levelId: 91,
+				levelCode: 'PARTNER_EXTERNAL',
+			})
+		).toEqual({ ok: true })
+	})
+
+	it.each(['LEVEL_1', 'LEVEL_3', 'GENERAL_LEVEL', null, undefined])(
+		'rejects assigning role PARTNER with level %s (non-partner level)',
+		(levelCode) => {
+			const result = validateRoleLevelPair({
+				roleCode: UserRole.PARTNER,
+				levelId: 3,
+				levelCode,
+			})
+			expect(result.ok).toBe(false)
+			if (!result.ok) {
+				expect(result.error).toBe(
+					'El rol Partner solo se asigna desde el módulo Partners'
+				)
+			}
+		}
+	)
+
+	it.each([
+		UserRole.AGENTE,
+		UserRole.ADMIN,
+		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+		null,
+	])(
+		'rejects level PARTNER_EXTERNAL for non-partner role %s (other direction)',
+		(roleCode) => {
+			const result = validateRoleLevelPair({
+				roleCode,
+				levelId: 91,
+				levelCode: 'PARTNER_EXTERNAL',
+			})
+			expect(result.ok).toBe(false)
+			if (!result.ok) {
+				expect(result.error).toBe(
+					'El nivel Partner Externo solo se asigna desde el módulo Partners'
+				)
+			}
+		}
+	)
+
+	it('keeps accepting ordinary pairs when levelCode is provided', () => {
+		expect(
+			validateRoleLevelPair({
+				roleCode: UserRole.AGENTE,
+				levelId: 3,
+				levelCode: 'LEVEL_3',
+			})
+		).toEqual({ ok: true })
+	})
+})

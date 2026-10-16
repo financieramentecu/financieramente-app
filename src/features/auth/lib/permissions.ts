@@ -204,6 +204,34 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 		misDistribuciones: false,
 		calculadora: true,
 	},
+	[UserRole.PARTNER]: {
+		dashboard: true,
+		negocios: {
+			create: true,
+			edit: true,
+			list: true,
+			cancel: false,
+			viewAll: false,
+		},
+		cargas: {
+			cargaMasiva: false,
+			historial: false,
+		},
+		liquidaciones: {
+			preliquidacion: false,
+			liquidacion: false,
+		},
+		reportes: {
+			all: false,
+			business: false,
+			personal: false,
+		},
+		configuracion: false,
+		administracion: false,
+		leads: false,
+		misDistribuciones: false,
+		calculadora: false,
+	},
 }
 
 /**
