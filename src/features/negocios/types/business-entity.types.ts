@@ -92,6 +92,8 @@ export interface ClientInfo {
 	/** Apellido(s) del cliente */
 	lastName: string | null
 	identityNumber: string
+	/** Código del tipo de documento (`document_type.code`). */
+	typeIdentity?: string
 	email: string | null
 	phone: string | null
 }
