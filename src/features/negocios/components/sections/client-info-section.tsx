@@ -17,6 +17,7 @@ import { ClientIdentityConflictAlert } from '@/features/negocios/components/sect
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { Client } from '@prisma/client'
 import type { IdentityConflict } from '@/features/negocios/hooks/use-business-form'
+import { keepsStoredIdentity } from '@/features/document-types/lib/keeps-stored-identity'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
 import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
 import { documentTypeOptionsForSelection } from '@/features/negocios/lib/document-type-options-for-selection'
@@ -101,8 +102,16 @@ export function ClientInfoSection({
 	const selectedDocumentType = documentTypeOptions.find(
 		(option) => option.code === typeIdentityValue
 	)
+	const keepsUnchangedIdentity =
+		isEditMode &&
+		keepsStoredIdentity({
+			identityNumber: documentValue,
+			typeIdentity: typeIdentityValue,
+			storedIdentityNumber: form.formState.defaultValues?.identityNumber,
+			storedTypeIdentity: form.formState.defaultValues?.typeIdentity,
+		})
 	const identityRuleMessage =
-		selectedDocumentType && documentValue
+		selectedDocumentType && documentValue && !keepsUnchangedIdentity
 			? validateIdentityAgainstDocumentType(documentValue, selectedDocumentType)
 			: null
 	const emailValue = watch('email')

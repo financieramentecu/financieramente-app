@@ -191,6 +191,58 @@ describe('updateClient — COM-63 authorization', () => {
 		expect(prisma.client.update).toHaveBeenCalled()
 	})
 
+	it('allows an edit that keeps a legacy identity number', async () => {
+		vi.mocked(auth).mockResolvedValue({
+			user: {
+				id: '2',
+				email: 'ago@financieramentecu.com',
+				role: UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+			},
+		} as never)
+		vi.mocked(prisma.client.findUnique).mockResolvedValue({
+			...existingClient,
+			identityNumber: '1.234.567',
+		} as never)
+
+		const result = await updateClient({
+			idClient: 10,
+			name: 'Ana María',
+			identityNumber: '1.234.567',
+			typeIdentity: 'CC',
+			context: 'business-edit',
+			businessId: 99,
+		})
+
+		expect(result.data).toBeTruthy()
+		expect(prisma.client.update).toHaveBeenCalled()
+	})
+
+	it('rejects a changed identity that does not match the document type', async () => {
+		vi.mocked(auth).mockResolvedValue({
+			user: {
+				id: '2',
+				email: 'ago@financieramentecu.com',
+				role: UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+			},
+		} as never)
+		vi.mocked(prisma.client.findUnique).mockResolvedValue({
+			...existingClient,
+			identityNumber: '1.234.567',
+		} as never)
+
+		const result = await updateClient({
+			idClient: 10,
+			identityNumber: '1.234.568',
+			typeIdentity: 'CC',
+			context: 'business-edit',
+			businessId: 99,
+		})
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toMatch(/dígitos/)
+		expect(prisma.client.update).not.toHaveBeenCalled()
+	})
+
 	it('rejects agent changing identityNumber even on business-create', async () => {
 		vi.mocked(auth).mockResolvedValue({
 			user: {

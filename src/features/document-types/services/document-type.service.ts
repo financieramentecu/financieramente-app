@@ -9,6 +9,7 @@ import {
 	normalizeDocumentCode,
 	normalizeDocumentName,
 } from '@/features/document-types/lib/normalize-document-code'
+import { keepsStoredIdentity } from '@/features/document-types/lib/keeps-stored-identity'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
 import {
 	toDocumentTypeDto,
@@ -280,6 +281,7 @@ export async function resolveClientDocumentType(params: {
 	identityNumber: string
 	mode: 'create' | 'update'
 	previousCode?: string | null
+	previousIdentityNumber?: string | null
 }): Promise<ResolvedClientDocumentType | { error: string }> {
 	const next = normalizeDocumentCode(params.code ?? '')
 	if (!next) {
@@ -297,12 +299,20 @@ export async function resolveClientDocumentType(params: {
 		return { error: INACTIVE_DOCUMENT_TYPE_ERROR }
 	}
 
-	const formatError = validateIdentityAgainstDocumentType(
-		params.identityNumber,
-		rule
-	)
-	if (formatError) {
-		return { error: formatError }
+	const unchangedIdentity = keepsStoredIdentity({
+		identityNumber: params.identityNumber,
+		typeIdentity: next,
+		storedIdentityNumber: params.previousIdentityNumber,
+		storedTypeIdentity: previous,
+	})
+	if (!unchangedIdentity) {
+		const formatError = validateIdentityAgainstDocumentType(
+			params.identityNumber,
+			rule
+		)
+		if (formatError) {
+			return { error: formatError }
+		}
 	}
 
 	return { idDocumentType: rule.idDocumentType, code: rule.code }
@@ -328,12 +338,14 @@ export async function validateIdentityForExistingRecord(params: {
 	previousCode: string
 	nextCode: string
 	identityNumber: string
+	previousIdentityNumber?: string | null
 }): Promise<string | null> {
 	const resolved = await resolveClientDocumentType({
 		code: params.nextCode,
 		identityNumber: params.identityNumber,
 		mode: 'update',
 		previousCode: params.previousCode,
+		previousIdentityNumber: params.previousIdentityNumber,
 	})
 	return 'error' in resolved ? resolved.error : null
 }

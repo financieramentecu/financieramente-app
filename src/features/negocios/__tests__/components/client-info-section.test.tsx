@@ -166,4 +166,64 @@ describe('ClientInfoSection — Tipo de Documento', () => {
 		expect(await screen.findByText('Cédula de Ciudadanía (CC)')).toBeInTheDocument()
 		expect(screen.queryByText(/Pasaporte/)).not.toBeInTheDocument()
 	})
+
+	it('hides the format warning in edit mode while the stored identity stays unchanged', async () => {
+		function Form() {
+			const form = useForm<BusinessFormData>({
+				resolver: zodResolver(businessFormSchema),
+				defaultValues: {
+					email: 'ana@example.com',
+					name: 'Ana',
+					lastNames: 'Pérez',
+					phone: '3001234567',
+					identityNumber: '1.234.567',
+					typeIdentity: 'CC',
+					clientOrigin: '1',
+					company: '',
+					producto: '',
+					terms: undefined,
+					currency: '',
+					periodicity: '',
+					value: undefined,
+					agent: '',
+				},
+			})
+
+			return (
+				<ClientInfoSection
+					form={form}
+					clientOriginsOptions={[{ value: '1', label: 'Origen' }]}
+					documentTypeOptions={[
+						{
+							code: 'CC',
+							name: 'Cédula de Ciudadanía',
+							dataType: 'NUMERIC',
+							minLength: 6,
+							maxLength: 10,
+							status: true,
+						},
+					]}
+					clientResults={[]}
+					onSearchClient={vi.fn().mockResolvedValue([])}
+					onClientSelected={vi.fn()}
+					isEditMode
+					isBlocked={false}
+					isLeadConversion={false}
+					getFieldPermission={() => ({
+						readonly: false,
+						disabled: false,
+						hidden: false,
+					})}
+				/>
+			)
+		}
+
+		render(<Form />)
+		expect(screen.queryByText(/solo puede contener dígitos/)).not.toBeInTheDocument()
+
+		fireEvent.change(screen.getByLabelText(/No\. Documento/), {
+			target: { value: '9.876.543' },
+		})
+		expect(await screen.findByText(/solo puede contener dígitos/)).toBeInTheDocument()
+	})
 })

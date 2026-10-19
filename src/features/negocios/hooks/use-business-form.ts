@@ -19,6 +19,7 @@ import { useBusinessMutation } from '@/features/negocios/hooks/use-business-muta
 import { UserRole } from '@/features/auth/lib/roles'
 import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-permissions'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
+import { keepsStoredIdentity } from '@/features/document-types/lib/keeps-stored-identity'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
 
 /**
@@ -296,6 +297,18 @@ export function useBusinessForm(props: BusinessFormProps) {
 					const keepsStoredType =
 						Boolean(selectedClient?.typeIdentity) &&
 						selectedClient?.typeIdentity === data.typeIdentity
+					const storedIdentityNumber =
+						selectedClient?.identityNumber ??
+						(isEditMode ? defaultValues?.identityNumber : undefined)
+					const storedTypeIdentity =
+						selectedClient?.typeIdentity ??
+						(isEditMode ? defaultValues?.typeIdentity : undefined)
+					const keepsUnchangedIdentity = keepsStoredIdentity({
+						identityNumber: data.identityNumber,
+						typeIdentity: data.typeIdentity,
+						storedIdentityNumber,
+						storedTypeIdentity,
+					})
 					if (
 						!isEditMode &&
 						!keepsStoredType &&
@@ -312,7 +325,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 						)
 						return
 					}
-					if (selectedType) {
+					if (selectedType && !keepsUnchangedIdentity) {
 						const identityError = validateIdentityAgainstDocumentType(
 							data.identityNumber,
 							selectedType
@@ -486,6 +499,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			finishCreateSubmit,
 			documentTypeOptions,
 			form,
+			defaultValues,
 		]
 	)
 

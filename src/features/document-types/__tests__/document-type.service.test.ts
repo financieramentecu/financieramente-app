@@ -212,6 +212,32 @@ describe('document type service', () => {
 		expect(prisma.documentType.update).not.toHaveBeenCalled()
 	})
 
+	it('accepts a legacy identity number when the stored type and number stay the same', async () => {
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(stored)
+
+		await expect(
+			validateIdentityForExistingRecord({
+				previousCode: 'CC',
+				nextCode: 'CC',
+				identityNumber: '1.234.567',
+				previousIdentityNumber: '1.234.567',
+			})
+		).resolves.toBeNull()
+	})
+
+	it('rejects a legacy identity number once the stored number changes', async () => {
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(stored)
+
+		await expect(
+			validateIdentityForExistingRecord({
+				previousCode: 'CC',
+				nextCode: 'CC',
+				identityNumber: '1.234.568',
+				previousIdentityNumber: '1.234.567',
+			})
+		).resolves.toMatch(/dígitos/)
+	})
+
 	it('rejects switching an existing record to another inactive type', async () => {
 		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
 			...stored,

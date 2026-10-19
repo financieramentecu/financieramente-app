@@ -126,6 +126,7 @@ export async function updateClient(
 				identityNumber: nextIdentityNumber,
 				mode: 'update',
 				previousCode: existingClient.typeIdentity,
+				previousIdentityNumber: existingClient.identityNumber,
 			})
 			if ('error' in resolved) {
 				return { data: null, error: resolved.error }
