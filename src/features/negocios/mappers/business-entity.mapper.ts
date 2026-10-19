@@ -53,6 +53,7 @@ export function prismaBusinessToEntity(
 			name: prisma.client.name,
 			lastName: prisma.client.lastName,
 			identityNumber: prisma.client.identityNumber,
+			typeIdentity: prisma.client.typeIdentity,
 			email: prisma.client.email,
 			phone: prisma.client.phone,
 		},

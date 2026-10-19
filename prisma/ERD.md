@@ -9,6 +9,7 @@ Sistema: Financieramente — liquidación de comisiones.
 - `ContributionType`: `REGULAR` | `UNICO` (en `product.contribution_type`).
 - `Notification.status`: Boolean (`is_read`, `is_closed`) para marcar lectura y cierre.
 - `LeadOutcomeStatus`: `OPEN` | `WON` | `LOST` | `ABANDONED` (en `lead.outcome_status`, `@default(OPEN)`, `NOT NULL`). `WON` es terminal: ver nota bajo "Índices y convenciones".
+- `DocumentDataType`: `NUMERIC` | `ALPHANUMERIC` (en `document_type.data_type`).
 
 ```mermaid
 erDiagram
@@ -32,6 +33,8 @@ erDiagram
     BuyPeriodicity ||--o{ Business : "periodicidad de compra"
     Currency ||--o{ Business : "moneda negocio"
     Currency ||--o{ Company : "moneda compañía"
+    DocumentType ||--o{ Client : "code = type_identity"
+    DocumentType ||--o{ User : "code = type_identity"
 
     %% ========== PRODUCTOS Y CONFIGURACIÓN ==========
     Product ||--o{ ProductConfiguration : "combinación producto/nivel"
@@ -177,6 +180,18 @@ erDiagram
         string name
         string symbol
         boolean active
+        datetime created_at
+        datetime updated_at
+    }
+
+    DocumentType {
+        int id_document_type PK
+        string name UK
+        string code UK
+        DocumentDataType data_type
+        int min_length
+        int max_length
+        boolean status
         datetime created_at
         datetime updated_at
     }
@@ -525,6 +540,7 @@ erDiagram
 - **UK**: Unique (constraint único)  
 - Nombres de tablas y columnas en el diagrama siguen el mapeo físico de `schema.prisma` (`@@map` / `@map`).
 - `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor.
+- **Nueva tabla `document_type`** (migración `20261009193000_add_document_type`): catálogo de tipos de documento. `name` y `code` son únicos. `status = false` es el borrado lógico (nunca `delete()` físico). No hay FK física hacia `client` ni `user`: ambos guardan la abreviatura en `type_identity` (VARCHAR 10). Desactivar un tipo no modifica identificaciones ya registradas y no rompe la unicidad `(type_identity, identity_number)`. La precarga inserta CC, CE, PAS, NIT y PPT en estado activo. `max_length` queda acotado a 20 para caber en `identity_number`.
 - `SettlementCommission.id_business` es opcional en Prisma (`Int?`); el diagrama refleja la FK habitual hacia `business`.
 - Tablas físicas con typo histórico: `product_percentaje_commision`, `product_percentaje_commision_category` (ver `@@map` en el schema).
 - **Nueva tabla `default_distribution_percentage`** (migración `20261006140000_add_default_distribution_percentage`): plantilla editable de la distribución por defecto. Unique `(id_config_level, id_receiver_level)`. `percentage` es fracción (`0.6` = 60%). Al crear un producto, o al completar una configuración sin líneas, se copian estas filas. Cambiar la plantilla no reescribe distribuciones ya guardadas. La migración siembra `LEVEL_0`–`LEVEL_5` con la tabla aprobada. `GENERAL_LEVEL` no tiene filas.

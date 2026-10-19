@@ -19,6 +19,8 @@ import { useBusinessMutation } from '@/features/negocios/hooks/use-business-muta
 import { UserRole } from '@/features/auth/lib/roles'
 import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-permissions'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
+import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
+import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
 
 /**
  * D5: state raised when the exact-email resolution finds a client whose
@@ -47,6 +49,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 		productsOptions,
 		businessAgent,
 		leadId,
+		documentTypeOptions = [],
 	} = props
 
 	const isEditMode = mode === 'edit'
@@ -75,6 +78,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			lastNames: defaultValues?.lastNames || '',
 			phone: defaultValues?.phone || '',
 			identityNumber: defaultValues?.identityNumber || '',
+			typeIdentity: defaultValues?.typeIdentity || 'CC',
 			clientOrigin: defaultValues?.clientOrigin || '',
 			company: defaultValues?.company || '',
 			producto: defaultValues?.producto || '',
@@ -286,6 +290,47 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const handleFormSubmit = React.useCallback(
 		async (data: BusinessFormData) => {
 			try {
+				const identityChanged = shouldRevalidateIdentity({
+					isEditMode,
+					originalType: defaultValues?.typeIdentity,
+					nextType: data.typeIdentity,
+					originalNumber: defaultValues?.identityNumber,
+					nextNumber: data.identityNumber,
+				})
+				// An existing client is reused as stored. Catalog rules apply
+				// only when this submit will create a new client.
+				const catalogAppliesToNewClient = !isEditMode && !selectedClient
+				if (
+					documentTypeOptions.length > 0 &&
+					identityChanged &&
+					(isEditMode || catalogAppliesToNewClient)
+				) {
+					const selectedType = documentTypeOptions.find(
+						(option) => option.code === data.typeIdentity
+					)
+					if (!isEditMode && (!selectedType || !selectedType.status)) {
+						form.setError('typeIdentity', {
+							message:
+								'El tipo de documento no está disponible para nuevos registros',
+						})
+						toast.error('Tipo de documento no disponible')
+						return
+					}
+					if (selectedType) {
+						const identityError = validateIdentityAgainstDocumentType(
+							data.identityNumber,
+							selectedType
+						)
+						if (identityError) {
+							form.setError('identityNumber', { message: identityError })
+							toast.error('Documento inválido', {
+								description: identityError,
+							})
+							return
+						}
+					}
+				}
+
 				// En modo edición, enviar todos los campos que hayan cambiado (o todos los disponibles)
 				if (isEditMode && businessId) {
 					if (canEditClientInfo && !clientId) {
@@ -304,6 +349,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 							email: data.email,
 							phone: data.phone,
 							identityNumber: data.identityNumber,
+							typeIdentity: data.typeIdentity,
 							context: 'business-edit',
 							businessId,
 						})
@@ -357,7 +403,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 				// (ClientAutocomplete) ya cubre la deduplicación por su cuenta.
 				if (!resolvedClientId && leadId) {
 					const resolveResult = await resolveExistingClient({
-						typeIdentity: 'CC',
+						typeIdentity: data.typeIdentity || 'CC',
 						identityNumber: data.identityNumber,
 						email: data.email,
 						leadId,
@@ -396,7 +442,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 					const createResult = await createClient({
 						name: data.name,
 						lastName: data.lastNames,
-						typeIdentity: 'CC', // Por defecto CC
+						typeIdentity: data.typeIdentity || 'CC',
 						identityNumber: data.identityNumber,
 						email: data.email,
 						phone: data.phone,
@@ -442,6 +488,9 @@ export function useBusinessForm(props: BusinessFormProps) {
 			canEditClientInfo,
 			leadId,
 			finishCreateSubmit,
+			documentTypeOptions,
+			form,
+			defaultValues,
 		]
 	)
 
@@ -470,5 +519,6 @@ export function useBusinessForm(props: BusinessFormProps) {
 		getFieldPermission,
 		identityConflict,
 		resolveIdentityConflict,
+		hasSelectedClient: selectedClient !== null,
 	}
 }

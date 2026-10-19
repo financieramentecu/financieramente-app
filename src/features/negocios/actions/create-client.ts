@@ -6,6 +6,7 @@ import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { z } from 'zod'
 import { identityNumberSchema } from '../lib/identity-number.schema'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
+import { validateIdentityForNewRecord } from '@/features/document-types/services/document-type.service'
 
 /**
  * Schema de validación para crear un cliente
@@ -55,6 +56,14 @@ export async function createClient(
 
 		// Validar los datos de entrada
 		const validatedData = createClientSchema.parse(data)
+
+		const identityError = await validateIdentityForNewRecord(
+			validatedData.typeIdentity,
+			validatedData.identityNumber
+		)
+		if (identityError) {
+			return { data: null, error: identityError }
+		}
 
 		// Verificar que no exista un cliente con el mismo identityNumber y typeIdentity
 		const existingClient = await prisma.client.findUnique({

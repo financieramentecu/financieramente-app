@@ -17,6 +17,9 @@ import { ClientIdentityConflictAlert } from '@/features/negocios/components/sect
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { Client } from '@prisma/client'
 import type { IdentityConflict } from '@/features/negocios/hooks/use-business-form'
+import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
+import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
+import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
 
 import type {
 	BusinessFormField,
@@ -26,10 +29,13 @@ import type {
 export interface ClientInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
 	clientOriginsOptions: { value: string; label: string }[]
+	documentTypeOptions?: DocumentTypeOption[]
 	clientResults: Client[]
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
 	isEditMode?: boolean
+	/** True after the user picks an existing client. Catalog rules stay on new clients. */
+	hasSelectedClient?: boolean
 	isBlocked: boolean
 	/**
 	 * True when the form was opened as a lead conversion (`leadId` present).
@@ -51,10 +57,12 @@ export interface ClientInfoSectionProps {
 export function ClientInfoSection({
 	form,
 	clientOriginsOptions,
+	documentTypeOptions = [],
 	clientResults,
 	onSearchClient,
 	onClientSelected,
 	isEditMode = false,
+	hasSelectedClient = false,
 	isBlocked,
 	isLeadConversion = false,
 	getFieldPermission,
@@ -71,6 +79,23 @@ export function ClientInfoSection({
 	} = form
 
 	const documentValue = watch('identityNumber')
+	const typeIdentityValue = watch('typeIdentity')
+	const selectedDocumentType = documentTypeOptions.find(
+		(option) => option.code === typeIdentityValue
+	)
+	const storedIdentity = form.formState.defaultValues
+	const identityChanged = shouldRevalidateIdentity({
+		isEditMode,
+		originalType: storedIdentity?.typeIdentity,
+		nextType: typeIdentityValue,
+		originalNumber: storedIdentity?.identityNumber,
+		nextNumber: documentValue,
+	})
+	const catalogApplies = identityChanged && (isEditMode || !hasSelectedClient)
+	const identityRuleMessage =
+		selectedDocumentType && documentValue && catalogApplies
+			? validateIdentityAgainstDocumentType(documentValue, selectedDocumentType)
+			: null
 	const emailValue = watch('email')
 	const nameValue = watch('name')
 	const lastNamesValue = watch('lastNames')
@@ -105,6 +130,9 @@ export function ClientInfoSection({
 					(c) => c.identityNumber === identityNumber
 				)
 				if (selectedClient) {
+					setValue('typeIdentity', selectedClient.typeIdentity || 'CC', {
+						shouldValidate: true,
+					})
 					setValue('email', selectedClient.email || '', {
 						shouldValidate: true,
 					})
@@ -156,6 +184,40 @@ export function ClientInfoSection({
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
+				{documentTypeOptions.length > 0 && (
+					<div className="space-y-2">
+						<Label htmlFor="typeIdentity" className="text-sm font-medium">
+							Tipo de documento <span className="text-red-500">*</span>
+						</Label>
+						<Select
+							disabled={getFieldPermission('typeIdentity').disabled}
+							value={typeIdentityValue || 'CC'}
+							onValueChange={(value) =>
+								setValue('typeIdentity', value, { shouldValidate: true })
+							}
+						>
+							<SelectTrigger
+								id="typeIdentity"
+								className={errors.typeIdentity ? 'border-red-500' : ''}
+							>
+								<SelectValue placeholder="Seleccione el tipo de documento" />
+							</SelectTrigger>
+							<SelectContent>
+								{documentTypeOptions.map((option) => (
+									<SelectItem key={option.code} value={option.code}>
+										{option.name} ({option.code})
+										{option.status ? '' : ' — Inactivo'}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{errors.typeIdentity && (
+							<p className="text-xs text-red-500">
+								{errors.typeIdentity.message}
+							</p>
+						)}
+					</div>
+				)}
 				<div className="space-y-2">
 					<Label
 						htmlFor="numeroDocumento"
@@ -200,6 +262,9 @@ export function ClientInfoSection({
 						<p className="text-xs text-red-500">
 							{errors.identityNumber.message}
 						</p>
+					)}
+					{!errors.identityNumber && identityRuleMessage && (
+						<p className="text-xs text-amber-600">{identityRuleMessage}</p>
 					)}
 					{isBlocked &&
 						!errors.identityNumber &&

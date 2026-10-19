@@ -97,6 +97,31 @@ describe('buildMenuByRole reportes gating', () => {
 		expect(urls).not.toContain('/dashboard/reportes/personales')
 	})
 
+	it('shows Tipos de Documento only to the system administrator', () => {
+		const adminMenu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
+			authorizedReportCodes: [],
+		})
+		const assistantMenu = buildMenuByRole(
+			UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+			getRolePermissions(UserRole.ASISTENTE_GERENCIA_OPERATIVA),
+			{ authorizedReportCodes: [] }
+		)
+
+		const adminItem = adminMenu.find((item) => item.title === 'Administración')
+		const assistantItem = assistantMenu.find(
+			(item) => item.title === 'Administración'
+		)
+
+		expect(
+			adminItem?.subItems?.some((item) => item.title === 'Tipos de Documento')
+		).toBe(true)
+		expect(
+			assistantItem?.subItems?.some(
+				(item) => item.title === 'Tipos de Documento'
+			)
+		).toBe(false)
+	})
+
 	it('keeps Permisos de Reportes under Administración', () => {
 		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
 			authorizedReportCodes: [],

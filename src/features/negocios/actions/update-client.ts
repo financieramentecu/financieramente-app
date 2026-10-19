@@ -15,6 +15,8 @@ import {
 } from '@/features/auth/lib/audit-logger'
 import { identityNumberSchema } from '../lib/identity-number.schema'
 import { canRoleEditClientInfo } from '../lib/client-edit-permissions'
+import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
+import { validateIdentityForExistingRecord } from '@/features/document-types/services/document-type.service'
 
 /**
  * Schema de validación para actualizar un cliente
@@ -37,6 +39,7 @@ const updateClientSchema = z.object({
 	identityNumber: identityNumberSchema
 		.transform((v) => v.toUpperCase())
 		.optional(),
+	typeIdentity: z.string().trim().min(1).max(10).optional(),
 	direcction: z.string().optional(),
 	city: z.string().optional(),
 	country: z.string().optional(),
@@ -44,7 +47,9 @@ const updateClientSchema = z.object({
 	 * business-edit: edición desde formulario de negocio (COM-63) — requiere AGO/Admin.
 	 * business-create: ajuste de cliente durante creación de negocio — autenticado.
 	 */
-	context: z.enum(['business-create', 'business-edit']).default('business-create'),
+	context: z
+		.enum(['business-create', 'business-edit'])
+		.default('business-create'),
 	/** Used to revalidate the edit page after a privileged client update */
 	businessId: z.number().int().positive().optional(),
 })
@@ -54,9 +59,12 @@ export type UpdateClientInput = z.infer<typeof updateClientSchema>
 function requiresPrivilegedRole(data: {
 	context: 'business-create' | 'business-edit'
 	identityNumber?: string
+	typeIdentity?: string
 }): boolean {
 	return (
-		data.context === 'business-edit' || data.identityNumber !== undefined
+		data.context === 'business-edit' ||
+		data.identityNumber !== undefined ||
+		data.typeIdentity !== undefined
 	)
 }
 
@@ -77,8 +85,7 @@ export async function updateClient(
 		if (!guard.ok) {
 			return {
 				data: null,
-				error:
-					guard.response.status === 401 ? 'No autorizado' : 'Sin permisos',
+				error: guard.response.status === 401 ? 'No autorizado' : 'Sin permisos',
 			}
 		}
 		const session = guard.session
@@ -90,8 +97,7 @@ export async function updateClient(
 			if (!canRoleEditClientInfo(role)) {
 				return {
 					data: null,
-					error:
-						'No tienes permisos para editar la información del cliente',
+					error: 'No tienes permisos para editar la información del cliente',
 				}
 			}
 		}
@@ -109,11 +115,42 @@ export async function updateClient(
 			}
 		}
 
-		if (validatedData.identityNumber !== undefined) {
+		const nextTypeIdentity =
+			validatedData.typeIdentity ?? existingClient.typeIdentity
+		const nextIdentityNumber =
+			validatedData.identityNumber ?? existingClient.identityNumber
+		const identityChanged = shouldRevalidateIdentity({
+			isEditMode: true,
+			originalType: existingClient.typeIdentity,
+			nextType: nextTypeIdentity,
+			originalNumber: existingClient.identityNumber,
+			nextNumber: nextIdentityNumber,
+		})
+
+		if (
+			identityChanged &&
+			(validatedData.identityNumber !== undefined ||
+				validatedData.typeIdentity !== undefined)
+		) {
+			const identityError = await validateIdentityForExistingRecord({
+				previousCode: existingClient.typeIdentity,
+				nextCode: nextTypeIdentity,
+				previousIdentityNumber: existingClient.identityNumber,
+				identityNumber: nextIdentityNumber,
+			})
+			if (identityError) {
+				return { data: null, error: identityError }
+			}
+		}
+
+		if (
+			validatedData.identityNumber !== undefined ||
+			validatedData.typeIdentity !== undefined
+		) {
 			const duplicate = await prisma.client.findFirst({
 				where: {
-					typeIdentity: existingClient.typeIdentity,
-					identityNumber: validatedData.identityNumber,
+					typeIdentity: nextTypeIdentity,
+					identityNumber: nextIdentityNumber,
 					NOT: { idClient: existingClient.idClient },
 				},
 			})
@@ -131,6 +168,7 @@ export async function updateClient(
 			email: string | null
 			phone: string | null
 			identityNumber: string
+			typeIdentity: string
 			direcction: string | null
 			city: string | null
 			country: string
@@ -150,6 +188,9 @@ export async function updateClient(
 		}
 		if (validatedData.identityNumber !== undefined) {
 			updateData.identityNumber = validatedData.identityNumber
+		}
+		if (validatedData.typeIdentity !== undefined) {
+			updateData.typeIdentity = nextTypeIdentity
 		}
 		if (validatedData.direcction !== undefined) {
 			updateData.direcction = validatedData.direcction
