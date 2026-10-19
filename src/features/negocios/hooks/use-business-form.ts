@@ -297,7 +297,14 @@ export function useBusinessForm(props: BusinessFormProps) {
 					originalNumber: defaultValues?.identityNumber,
 					nextNumber: data.identityNumber,
 				})
-				if (documentTypeOptions.length > 0 && identityChanged) {
+				// An existing client is reused as stored. Catalog rules apply
+				// only when this submit will create a new client.
+				const catalogAppliesToNewClient = !isEditMode && !selectedClient
+				if (
+					documentTypeOptions.length > 0 &&
+					identityChanged &&
+					(isEditMode || catalogAppliesToNewClient)
+				) {
 					const selectedType = documentTypeOptions.find(
 						(option) => option.code === data.typeIdentity
 					)
@@ -512,5 +519,6 @@ export function useBusinessForm(props: BusinessFormProps) {
 		getFieldPermission,
 		identityConflict,
 		resolveIdentityConflict,
+		hasSelectedClient: selectedClient !== null,
 	}
 }

@@ -692,4 +692,43 @@ describe('useBusinessForm — identity revalidation on edit', () => {
 		expect(createClient).not.toHaveBeenCalled()
 		expect(onSubmit).not.toHaveBeenCalled()
 	})
+
+	it('creates a business for an existing client whose stored identity uses a legacy format', async () => {
+		vi.mocked(createBusiness).mockResolvedValue({
+			data: { idBusiness: 1 },
+		} as never)
+		const existingClient = {
+			...resolvedClient,
+			typeIdentity: 'CC',
+			identityNumber: '1.234.567',
+		}
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'create',
+				defaultValues: {
+					...baseDefaults,
+					typeIdentity: 'CC',
+					identityNumber: '1.234.567',
+				},
+				documentTypeOptions: [ccOption],
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.handleClientSelected(existingClient)
+		})
+		await submit(result)
+
+		expect(result.current.form.formState.errors.identityNumber).toBeUndefined()
+		expect(result.current.form.formState.errors.typeIdentity).toBeUndefined()
+		expect(createClient).not.toHaveBeenCalled()
+		expect(createBusiness).toHaveBeenCalledWith(
+			expect.objectContaining({ idClient: existingClient.idClient })
+		)
+		expect(onSubmit).toHaveBeenCalled()
+	})
 })

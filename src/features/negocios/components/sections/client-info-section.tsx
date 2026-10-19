@@ -34,6 +34,8 @@ export interface ClientInfoSectionProps {
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
 	isEditMode?: boolean
+	/** True after the user picks an existing client. Catalog rules stay on new clients. */
+	hasSelectedClient?: boolean
 	isBlocked: boolean
 	/**
 	 * True when the form was opened as a lead conversion (`leadId` present).
@@ -60,6 +62,7 @@ export function ClientInfoSection({
 	onSearchClient,
 	onClientSelected,
 	isEditMode = false,
+	hasSelectedClient = false,
 	isBlocked,
 	isLeadConversion = false,
 	getFieldPermission,
@@ -88,8 +91,9 @@ export function ClientInfoSection({
 		originalNumber: storedIdentity?.identityNumber,
 		nextNumber: documentValue,
 	})
+	const catalogApplies = identityChanged && (isEditMode || !hasSelectedClient)
 	const identityRuleMessage =
-		selectedDocumentType && documentValue && identityChanged
+		selectedDocumentType && documentValue && catalogApplies
 			? validateIdentityAgainstDocumentType(documentValue, selectedDocumentType)
 			: null
 	const emailValue = watch('email')
