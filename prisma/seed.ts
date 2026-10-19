@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { seedCurrencies } from './seeds/currency'
+import { seedDocumentTypes } from './seeds/document-type'
 import { seedCompanies } from './seeds/company'
 import { seedBuyPeriodicities } from './seeds/buy-periodicity'
 import { seedClientOrigins } from './seeds/client-origin'
@@ -30,6 +31,7 @@ async function main() {
 	try {
 		// 1. Catálogos base
 		await seedCurrencies(prisma)
+		await seedDocumentTypes(prisma)
 		await seedCompanies(prisma)
 		await seedBuyPeriodicities(prisma)
 		await seedClientOrigins(prisma)

@@ -11,6 +11,7 @@ import { getBusinessById } from '@/features/negocios/services/business-get-by-id
 import { getPeriodicities } from '@/features/admin/periodicities/services/periodicity.service'
 import { getCurrencies } from '@/features/admin/currencies/services/currency.service'
 import { getClientOrigins } from '@/features/origins/services/origins.service'
+import { listDocumentTypeOptionsForForm } from '@/features/document-types/services/document-type.service'
 
 // Cache de opciones del formulario
 const getCompaniesCached = unstable_cache(getCompanies, ['companies'], {
@@ -31,6 +32,11 @@ const getClientOriginsCached = unstable_cache(
 	getClientOrigins,
 	['clientOrigins'],
 	{ revalidate: 300 }
+)
+const getDocumentTypesCached = unstable_cache(
+	listDocumentTypeOptionsForForm,
+	['document-types-form'],
+	{ revalidate: 60, tags: ['document-types'] }
 )
 
 interface PageProps {
@@ -89,6 +95,22 @@ export default async function EditarNegocioPage({ params }: PageProps) {
 
 	// Transformar a entidad de dominio
 	const business = prismaBusinessToEntity(prismaBusiness)
+	const clientDocumentTypes = await getDocumentTypesCached(
+		business.client.typeIdentity
+	)
+	const policyholderCode = business.policyholder?.typeIdentity
+	const policyholderDocumentTypes = policyholderCode
+		? await getDocumentTypesCached(policyholderCode)
+		: []
+	const seenCodes = new Set<string>()
+	const documentTypeOptions = [
+		...clientDocumentTypes,
+		...policyholderDocumentTypes,
+	].filter((option) => {
+		if (seenCodes.has(option.code)) return false
+		seenCodes.add(option.code)
+		return true
+	})
 
 	return (
 		<DashboardLayout currentPage="Editar Negocio">
@@ -100,6 +122,7 @@ export default async function EditarNegocioPage({ params }: PageProps) {
 				periodicities={periodicities}
 				currencies={currencies}
 				clientOrigins={clientOrigins}
+				documentTypeOptions={documentTypeOptions}
 			/>
 		</DashboardLayout>
 	)

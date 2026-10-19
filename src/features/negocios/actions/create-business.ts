@@ -16,6 +16,18 @@ import { z } from 'zod'
 import { findProductPercentageCommission } from './find-product-percentage-commission'
 import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
+import { identityNumberSchema } from '@/features/negocios/lib/identity-number.schema'
+import {
+	PolicyholderLinkError,
+	upsertPolicyholder,
+} from '@/features/policyholders/services/policyholder.service'
+import {
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+	logAuditEvent,
+} from '@/features/auth/lib/audit-logger'
+import { headers } from 'next/headers'
 
 /**
  * Schema de validación para crear un negocio
@@ -48,6 +60,29 @@ const createBusinessSchema = z.object({
 	 * transaction that creates the business — see design D10.
 	 */
 	idLead: z.number().int().positive().optional(),
+	clientIsPolicyholder: z.boolean().optional(),
+	policyholder: z
+		.object({
+			typeIdentity: z
+				.string()
+				.trim()
+				.min(1, 'El tipo de documento del tomador es obligatorio'),
+			identityNumber: identityNumberSchema.transform((value) =>
+				value.toUpperCase()
+			),
+			email: z.email('El correo del tomador es inválido'),
+			name: z.string().trim().min(2, 'Los nombres del tomador son obligatorios'),
+			lastName: z
+				.string()
+				.trim()
+				.min(2, 'Los apellidos del tomador son obligatorios'),
+			phone: z
+				.string()
+				.trim()
+				.min(1, 'El teléfono del tomador es obligatorio')
+				.regex(/^[0-9\s\-+]+$/, 'Formato de contacto inválido'),
+		})
+		.optional(),
 })
 
 export type CreateBusinessInput = z.infer<typeof createBusinessSchema>
@@ -146,7 +181,24 @@ export async function createBusiness(
 			productName: productWithCompany?.name ?? null,
 		})
 
+		const samePerson = validatedData.clientIsPolicyholder !== false
+		if (!samePerson && !validatedData.policyholder) {
+			return {
+				data: null,
+				error: 'Los datos del tomador son obligatorios',
+			}
+		}
+
 		const business = await prisma.$transaction(async (tx) => {
+			let idPolicyholder: number | null = null
+			if (!samePerson && validatedData.policyholder) {
+				const upserted = await upsertPolicyholder(tx, validatedData.policyholder)
+				if ('error' in upserted) {
+					throw new PolicyholderLinkError(upserted.error)
+				}
+				idPolicyholder = upserted.idPolicyholder
+			}
+
 			const issuedAt =
 				status === BUSINESS_STATUS.EMITIDO ? new Date() : null
 			const created = await tx.business.create({
@@ -165,6 +217,8 @@ export async function createBusiness(
 					status,
 					dateIssued: issuedAt,
 					numAportes,
+					clientIsPolicyholder: samePerson,
+					idPolicyholder,
 				},
 			})
 
@@ -195,10 +249,28 @@ export async function createBusiness(
 			return created
 		})
 
+		const reqHeaders = await headers()
+		const userId = guard.session.user.id
+			? parseInt(guard.session.user.id, 10)
+			: undefined
+		await logAuditEvent({
+			userId: Number.isFinite(userId) ? userId : undefined,
+			email: guard.session.user.email ?? undefined,
+			ipAddress: getClientIp(reqHeaders),
+			userAgent: getUserAgent(reqHeaders),
+			action: AuditAction.BUSINESS_POLICYHOLDER_LINKED,
+			details: samePerson
+				? `Negocio ${business.idBusiness} creado con el cliente como tomador`
+				: `Negocio ${business.idBusiness} creado con tomador independiente`,
+		})
+
 		return {
 			data: business,
 		}
 	} catch (error) {
+		if (error instanceof PolicyholderLinkError) {
+			return { data: null, error: error.message }
+		}
 		if (error instanceof z.ZodError) {
 			const firstError = error.issues[0]
 			return {

@@ -12,11 +12,15 @@ import {
 	SelectValue,
 } from '@/features/shared/ui/select'
 import { Separator } from '@/features/shared/ui/separator'
+import { Checkbox } from '@/features/shared/ui/checkbox'
 import { ClientAutocomplete } from '@/features/negocios/components/fields/client-autocomplete'
 import { ClientIdentityConflictAlert } from '@/features/negocios/components/sections/client-identity-conflict-alert'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { Client } from '@prisma/client'
 import type { IdentityConflict } from '@/features/negocios/hooks/use-business-form'
+import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
+import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
+import { documentTypeOptionsForSelection } from '@/features/negocios/lib/document-type-options-for-selection'
 
 import type {
 	BusinessFormField,
@@ -26,6 +30,7 @@ import type {
 export interface ClientInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
 	clientOriginsOptions: { value: string; label: string }[]
+	documentTypeOptions?: DocumentTypeOption[]
 	clientResults: Client[]
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
@@ -51,6 +56,7 @@ export interface ClientInfoSectionProps {
 export function ClientInfoSection({
 	form,
 	clientOriginsOptions,
+	documentTypeOptions = [],
 	clientResults,
 	onSearchClient,
 	onClientSelected,
@@ -67,10 +73,40 @@ export function ClientInfoSection({
 		register,
 		setValue,
 		watch,
+		clearErrors,
 		formState: { errors },
 	} = form
 
 	const documentValue = watch('identityNumber')
+	const typeIdentityValue = watch('typeIdentity')
+	const visibleDocumentTypes = documentTypeOptionsForSelection(
+		documentTypeOptions,
+		typeIdentityValue
+	)
+	const selectedIsListed = visibleDocumentTypes.some(
+		(option) => option.code === typeIdentityValue
+	)
+	const displayedDocumentTypes =
+		typeIdentityValue && !selectedIsListed
+			? [
+					...visibleDocumentTypes,
+					{
+						code: typeIdentityValue,
+						name: typeIdentityValue,
+						dataType: 'ALPHANUMERIC' as const,
+						minLength: 1,
+						maxLength: 20,
+						status: false,
+					},
+				]
+			: visibleDocumentTypes
+	const selectedDocumentType = documentTypeOptions.find(
+		(option) => option.code === typeIdentityValue
+	)
+	const identityRuleMessage =
+		selectedDocumentType && documentValue
+			? validateIdentityAgainstDocumentType(documentValue, selectedDocumentType)
+			: null
 	const emailValue = watch('email')
 	const nameValue = watch('name')
 	const lastNamesValue = watch('lastNames')
@@ -105,6 +141,9 @@ export function ClientInfoSection({
 					(c) => c.identityNumber === identityNumber
 				)
 				if (selectedClient) {
+					setValue('typeIdentity', selectedClient.typeIdentity || 'CC', {
+						shouldValidate: true,
+					})
 					setValue('email', selectedClient.email || '', {
 						shouldValidate: true,
 					})
@@ -150,12 +189,49 @@ export function ClientInfoSection({
 		<div className="space-y-4">
 			<div className="space-y-2">
 				<h3 className="font-bold text-lg text-primary tracking-wider">
-					Información básica y general
+					Información básica y general del Cliente
 				</h3>
 				<Separator className="bg-border" />
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
+				<div className="space-y-2">
+					<Label htmlFor="typeIdentity" className="text-sm font-medium">
+						Tipo de Documento <span className="text-red-500">*</span>
+					</Label>
+					<Select
+						disabled={getFieldPermission('typeIdentity').disabled}
+						value={typeIdentityValue || undefined}
+						onValueChange={(value) =>
+							setValue('typeIdentity', value, { shouldValidate: true })
+						}
+					>
+						<SelectTrigger
+							id="typeIdentity"
+							aria-required="true"
+							aria-invalid={errors.typeIdentity ? true : undefined}
+							aria-describedby={
+								errors.typeIdentity ? 'typeIdentity-error' : undefined
+							}
+							className={errors.typeIdentity ? 'border-red-500' : ''}
+						>
+							<SelectValue placeholder="Seleccione el tipo de documento" />
+						</SelectTrigger>
+						<SelectContent>
+							{displayedDocumentTypes.map((option) => (
+								<SelectItem key={option.code} value={option.code}>
+									{option.name} ({option.code})
+									{option.status ? '' : ' — Inactivo'}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					{errors.typeIdentity && (
+						<p id="typeIdentity-error" className="text-xs text-red-500">
+							{errors.typeIdentity.message}
+						</p>
+					)}
+				</div>
 				<div className="space-y-2">
 					<Label
 						htmlFor="numeroDocumento"
@@ -200,6 +276,9 @@ export function ClientInfoSection({
 						<p className="text-xs text-red-500">
 							{errors.identityNumber.message}
 						</p>
+					)}
+					{!errors.identityNumber && identityRuleMessage && (
+						<p className="text-xs text-amber-600">{identityRuleMessage}</p>
 					)}
 					{isBlocked &&
 						!errors.identityNumber &&
@@ -338,6 +417,40 @@ export function ClientInfoSection({
 					)}
 				</div>
 
+			</div>
+
+			<div className="flex items-center gap-2">
+				<Checkbox
+					id="clientIsPolicyholder"
+					checked={watch('clientIsPolicyholder') !== false}
+					disabled={
+						getFieldPermission('clientIsPolicyholder').disabled || isBlocked
+					}
+					onCheckedChange={(checked) => {
+						const samePerson = checked === true
+						setValue('clientIsPolicyholder', samePerson, {
+							shouldValidate: true,
+						})
+						if (!samePerson) return
+						setValue('policyholderTypeIdentity', '', { shouldValidate: false })
+						setValue('policyholderIdentityNumber', '', { shouldValidate: false })
+						setValue('policyholderEmail', '', { shouldValidate: false })
+						setValue('policyholderName', '', { shouldValidate: false })
+						setValue('policyholderLastNames', '', { shouldValidate: false })
+						setValue('policyholderPhone', '', { shouldValidate: false })
+						clearErrors([
+							'policyholderTypeIdentity',
+							'policyholderIdentityNumber',
+							'policyholderEmail',
+							'policyholderName',
+							'policyholderLastNames',
+							'policyholderPhone',
+						])
+					}}
+				/>
+				<Label htmlFor="clientIsPolicyholder" className="text-sm font-medium">
+					¿El cliente es el mismo tomador?
+				</Label>
 			</div>
 
 			{identityConflict && (
