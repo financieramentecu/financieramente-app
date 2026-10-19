@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
+import { canRoleEditClientInfo } from '@/features/negocios/lib/client-edit-permissions'
 import { requireAuth } from '@/lib/auth/require-role'
 import { searchPolicyholdersByDocument } from '@/features/policyholders/services/policyholder.service'
 import type { PolicyholderSearchResult } from '@/features/policyholders/types/policyholder.types'
@@ -8,6 +9,16 @@ export async function GET(request: Request) {
 	const guard = await requireAuth()
 	if (!guard.ok) {
 		return guard.response
+	}
+
+	if (!canRoleEditClientInfo(guard.session.user.role)) {
+		return NextResponse.json(
+			{
+				data: null,
+				error: 'Sin permisos para consultar tomadores',
+			} satisfies ApiResponse<null>,
+			{ status: 403 }
+		)
 	}
 
 	try {
