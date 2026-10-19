@@ -149,19 +149,6 @@ export function useProductConfigurationForm({
 				data: products,
 				error: '',
 			})
-			const response = await fetch(
-				`/api/products?idCompany=${companyId}&eligible=true&pageSize=${AUTHORIZED_SELECTOR_PAGE_SIZE}`
-			)
-			const result = await response.json()
-			if (result.data?.products) {
-				setProductsState({
-					status: 'success',
-					data: result.data.products,
-					error: '',
-				})
-			} else {
-				throw new Error('No se pudieron cargar los productos')
-			}
 		} catch (error) {
 			setProductsState({
 				status: 'error',
