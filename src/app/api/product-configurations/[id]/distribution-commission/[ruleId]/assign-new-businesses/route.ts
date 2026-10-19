@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import { requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,11 +12,6 @@ interface RouteParams {
 	}>
 }
 
-interface AssignNewBusinessesResponse {
-	idProductConfiguration: number
-	idProductPercentageCommissionNewBusinesses: number | null
-}
-
 /**
  * POST /api/product-configurations/[id]/commission-rules/[ruleId]/assign-new-businesses
  * Assign a commission rule as default for new businesses
@@ -23,8 +19,12 @@ interface AssignNewBusinessesResponse {
 export async function POST(
 	_request: Request,
 	props: RouteParams
-): Promise<NextResponse<ApiResponse<AssignNewBusinessesResponse>>> {
+): Promise<NextResponse> {
 	const params = await props.params
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
 
 	try {
 		const productConfigId = Number(params.id)

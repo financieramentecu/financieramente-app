@@ -204,16 +204,18 @@ export async function PUT(
 			)
 		}
 
-		// Verificar que el negocio existe y el usuario tiene acceso
-		const isAgent = currentUser.role?.code === UserRole.AGENTE
+		// Verificar que el negocio existe y el usuario tiene acceso.
+		// Solo los roles con autoridad de escritura global (ADMIN/ASISTENTE/ANALISTA)
+		// ven cualquier negocio; cualquier otro rol (AGENTE, o uno nuevo a futuro)
+		// queda restringido a sus propios negocios por defecto.
 		const isAdmin = currentUser.role?.code === UserRole.ADMIN
 		const isAsistente = currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
 		const isAnalista = currentUser.role?.code === UserRole.ANALISTA_SOPORTE
 		const isPrivileged = isAdmin || isAsistente || isAnalista
 
-		const whereClause = isAgent
-			? { idBusiness: businessId, idUser: currentUser.idUser }
-			: { idBusiness: businessId }
+		const whereClause = isPrivileged
+			? { idBusiness: businessId }
+			: { idBusiness: businessId, idUser: currentUser.idUser }
 
 		const existingBusiness = await prisma.business.findFirst({
 			where: whereClause,
