@@ -3,6 +3,7 @@ import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
 import { prisma } from '@/lib/prisma'
 import {
 	createDocumentType,
+	listDocumentTypes,
 	updateDocumentType,
 	validateIdentityForExistingRecord,
 	validateIdentityForNewRecord,
@@ -16,6 +17,14 @@ vi.mock('@/lib/prisma', () => ({
 			findMany: vi.fn(),
 			create: vi.fn(),
 			update: vi.fn(),
+		},
+		client: {
+			findFirst: vi.fn(),
+			findMany: vi.fn(),
+		},
+		user: {
+			findFirst: vi.fn(),
+			findMany: vi.fn(),
 		},
 	},
 }))
@@ -116,6 +125,24 @@ describe('document type service', () => {
 		)
 	})
 
+	it('marks codes that clients or users already store', async () => {
+		vi.mocked(prisma.documentType.findMany).mockResolvedValue([
+			stored,
+			{ ...stored, idDocumentType: 2, code: 'PD', name: 'Pasaporte' },
+		])
+		vi.mocked(prisma.client.findMany).mockResolvedValue([
+			{ typeIdentity: 'cc' },
+		] as never)
+		vi.mocked(prisma.user.findMany).mockResolvedValue([
+			{ typeIdentity: 'PAS' },
+		] as never)
+
+		const result = await listDocumentTypes()
+
+		expect(result.find((row) => row.code === 'CC')?.codeInUse).toBe(true)
+		expect(result.find((row) => row.code === 'PD')?.codeInUse).toBe(false)
+	})
+
 	it('deactivates with a status update and keeps the row', async () => {
 		vi.mocked(prisma.documentType.findUnique).mockResolvedValue(stored)
 		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
@@ -144,9 +171,9 @@ describe('document type service', () => {
 			status: false,
 		})
 
-		await expect(validateIdentityForNewRecord('CC', '1234567890')).resolves.toMatch(
-			/no está disponible/
-		)
+		await expect(
+			validateIdentityForNewRecord('CC', '1234567890')
+		).resolves.toMatch(/no está disponible/)
 	})
 
 	it('keeps validating an existing record whose type was deactivated', async () => {
@@ -162,6 +189,73 @@ describe('document type service', () => {
 				identityNumber: '1234567890',
 			})
 		).resolves.toBeNull()
+	})
+
+	it('rejects renaming a code that a client already stores', async () => {
+		vi.mocked(prisma.documentType.findUnique).mockResolvedValue(stored)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.client.findFirst).mockResolvedValue({
+			idClient: 9,
+		} as never)
+		vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
+
+		const result = await updateDocumentType(1, { code: 'CCX' })
+
+		expect('error' in result && result.error).toMatch(/abreviatura/)
+		expect(prisma.documentType.update).not.toHaveBeenCalled()
+		expect(prisma.client.findFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					typeIdentity: { equals: 'CC', mode: 'insensitive' },
+				},
+			})
+		)
+	})
+
+	it('rejects renaming a code that a user already stores', async () => {
+		vi.mocked(prisma.documentType.findUnique).mockResolvedValue(stored)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.client.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.user.findFirst).mockResolvedValue({ idUser: 3 } as never)
+
+		const result = await updateDocumentType(1, { code: 'CCX' })
+
+		expect('error' in result && result.error).toMatch(/abreviatura/)
+		expect(prisma.documentType.update).not.toHaveBeenCalled()
+	})
+
+	it('renames a code that no client or user stores', async () => {
+		vi.mocked(prisma.documentType.findUnique).mockResolvedValue(stored)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.client.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.documentType.update).mockResolvedValue({
+			...stored,
+			code: 'CCX',
+		})
+
+		const result = await updateDocumentType(1, { code: 'ccx' })
+
+		expect('error' in result).toBe(false)
+		expect(prisma.documentType.update).toHaveBeenCalledWith({
+			where: { idDocumentType: 1 },
+			data: expect.objectContaining({ code: 'CCX' }),
+		})
+	})
+
+	it('updates other fields without touching references when the code stays the same', async () => {
+		vi.mocked(prisma.documentType.findUnique).mockResolvedValue(stored)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.documentType.update).mockResolvedValue({
+			...stored,
+			name: 'Cédula',
+		})
+
+		const result = await updateDocumentType(1, { name: 'Cédula', code: 'CC' })
+
+		expect('error' in result).toBe(false)
+		expect(prisma.client.findFirst).not.toHaveBeenCalled()
+		expect(prisma.user.findFirst).not.toHaveBeenCalled()
 	})
 
 	it('rejects switching an existing record to another inactive type', async () => {
@@ -181,5 +275,56 @@ describe('document type service', () => {
 				identityNumber: 'AB123456',
 			})
 		).resolves.toMatch(/no está disponible/)
+	})
+
+	it('rejects switching an existing record to a code that is not in the catalog', async () => {
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+
+		await expect(
+			validateIdentityForExistingRecord({
+				previousCode: 'CC',
+				nextCode: 'CCX',
+				identityNumber: '1234567890',
+			})
+		).resolves.toMatch(/no está disponible/)
+	})
+
+	it('keeps a stored formatted number when the document did not change', async () => {
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(stored)
+
+		await expect(
+			validateIdentityForExistingRecord({
+				previousCode: 'CC',
+				nextCode: 'CC',
+				previousIdentityNumber: '1.234.567',
+				identityNumber: '1.234.567',
+			})
+		).resolves.toBeNull()
+		expect(prisma.documentType.findFirst).not.toHaveBeenCalled()
+	})
+
+	it('rejects a formatted number when the stored document changes', async () => {
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(stored)
+
+		await expect(
+			validateIdentityForExistingRecord({
+				previousCode: 'CC',
+				nextCode: 'CC',
+				previousIdentityNumber: '1.234.567',
+				identityNumber: '9.876.543',
+			})
+		).resolves.toMatch(/dígitos/)
+	})
+
+	it('keeps a legacy code that is not in the catalog when the type does not change', async () => {
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+
+		await expect(
+			validateIdentityForExistingRecord({
+				previousCode: 'cc',
+				nextCode: 'CC',
+				identityNumber: '1234567890',
+			})
+		).resolves.toBeNull()
 	})
 })

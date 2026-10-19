@@ -20,60 +20,66 @@ import type { DocumentTypeDto } from '@/features/document-types/types/document-t
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { Button } from '@/features/shared/ui/button'
 
-const fields: CrudModalField[] = [
-	{
-		name: 'name',
-		label: 'Nombre',
-		type: 'text',
-		placeholder: 'Ej: Cédula de Ciudadanía',
-		required: true,
-	},
-	{
-		name: 'code',
-		label: 'Abreviatura / Código',
-		type: 'text',
-		placeholder: 'Ej: CC',
-		required: true,
-	},
-	{
-		name: 'dataType',
-		label: 'Tipo de dato',
-		type: 'select',
-		required: true,
-		placeholder: 'Seleccionar',
-		options: [
-			{
-				value: DOCUMENT_DATA_TYPES.NUMERIC,
-				label: DOCUMENT_DATA_TYPE_LABELS.NUMERIC,
-			},
-			{
-				value: DOCUMENT_DATA_TYPES.ALPHANUMERIC,
-				label: DOCUMENT_DATA_TYPE_LABELS.ALPHANUMERIC,
-			},
-		],
-	},
-	{
-		name: 'minLength',
-		label: 'Longitud mínima',
-		type: 'number',
-		placeholder: 'Ej: 6',
-		required: true,
-	},
-	{
-		name: 'maxLength',
-		label: 'Longitud máxima',
-		type: 'number',
-		placeholder: 'Ej: 10',
-		required: true,
-	},
-	{
-		name: 'status',
-		label: 'Estado',
-		type: 'switch',
-		description:
-			'Activo: disponible en nuevos negocios. Inactivo: se conserva para identificaciones ya registradas.',
-	},
-]
+function buildFields(codeLocked: boolean): CrudModalField[] {
+	return [
+		{
+			name: 'name',
+			label: 'Nombre',
+			type: 'text',
+			placeholder: 'Ej: Cédula de Ciudadanía',
+			required: true,
+		},
+		{
+			name: 'code',
+			label: 'Abreviatura / Código',
+			type: 'text',
+			placeholder: 'Ej: CC',
+			required: true,
+			disabled: codeLocked,
+			description: codeLocked
+				? 'La abreviatura no se puede cambiar porque ya está asignada a clientes o usuarios.'
+				: undefined,
+		},
+		{
+			name: 'dataType',
+			label: 'Tipo de dato',
+			type: 'select',
+			required: true,
+			placeholder: 'Seleccionar',
+			options: [
+				{
+					value: DOCUMENT_DATA_TYPES.NUMERIC,
+					label: DOCUMENT_DATA_TYPE_LABELS.NUMERIC,
+				},
+				{
+					value: DOCUMENT_DATA_TYPES.ALPHANUMERIC,
+					label: DOCUMENT_DATA_TYPE_LABELS.ALPHANUMERIC,
+				},
+			],
+		},
+		{
+			name: 'minLength',
+			label: 'Longitud mínima',
+			type: 'number',
+			placeholder: 'Ej: 6',
+			required: true,
+		},
+		{
+			name: 'maxLength',
+			label: 'Longitud máxima',
+			type: 'number',
+			placeholder: 'Ej: 10',
+			required: true,
+		},
+		{
+			name: 'status',
+			label: 'Estado',
+			type: 'switch',
+			description:
+				'Activo: disponible en nuevos negocios. Inactivo: se conserva para identificaciones ya registradas.',
+		},
+	]
+}
 
 export function DocumentTypesAdmin() {
 	const [isModalOpen, setIsModalOpen] = useState(false)
@@ -124,13 +130,18 @@ export function DocumentTypesAdmin() {
 		if (mode === 'create') {
 			await createDocumentType(payload)
 		} else if (selected) {
-			await updateDocumentType(selected.idDocumentType, payload)
+			await updateDocumentType(selected.idDocumentType, {
+				...payload,
+				code: selected.codeInUse ? selected.code : payload.code,
+			})
 		}
 
 		setIsModalOpen(false)
 		setSelected(null)
 		await refresh()
 	}
+
+	const codeLocked = mode === 'edit' && selected?.codeInUse === true
 
 	return (
 		<DashboardLayout currentPage="Tipos de Documento">
@@ -139,8 +150,8 @@ export function DocumentTypesAdmin() {
 					<div>
 						<h1 className="text-3xl font-bold">Tipos de Documento</h1>
 						<p className="text-muted-foreground mt-2">
-							Parametriza los documentos de identidad usados en el formulario
-							de negocios
+							Parametriza los documentos de identidad usados en el formulario de
+							negocios
 						</p>
 					</div>
 					<Button onClick={handleCreate} className="gap-2">
@@ -165,7 +176,7 @@ export function DocumentTypesAdmin() {
 							: 'Editar tipo de documento'
 					}
 					description="Nombre, abreviatura, tipo de dato y longitudes son obligatorios. La abreviatura y el nombre no pueden repetirse."
-					fields={fields}
+					fields={buildFields(codeLocked)}
 					schema={documentTypeFormSchema}
 					initialData={
 						mode === 'edit' && selected

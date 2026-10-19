@@ -1,15 +1,13 @@
 import type { DocumentType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import {
-	AuditAction,
-	logAuditEvent,
-} from '@/features/auth/lib/audit-logger'
+import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
 import { lengthRangeError } from '@/features/document-types/lib/length-range'
 import {
 	normalizeDocumentCode,
 	normalizeDocumentName,
 } from '@/features/document-types/lib/normalize-document-code'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
+import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
 import {
 	toDocumentTypeDto,
 	toDocumentTypeOption,
@@ -31,6 +29,13 @@ export interface DocumentTypeAuditContext {
 export type DocumentTypeMutationResult =
 	| { documentType: DocumentTypeDto }
 	| { error: string }
+
+const CODE_IN_USE_ERROR =
+	'No se puede cambiar la abreviatura porque ya está asignada a clientes o usuarios'
+
+function identityCodeEquals(code: string) {
+	return { equals: code, mode: 'insensitive' as const }
+}
 
 function hasDocumentTypeDelegate(): boolean {
 	return 'documentType' in prisma && prisma.documentType != null
@@ -60,11 +65,58 @@ async function findDuplicateCode(
 	})
 }
 
+async function loadReferencedDocumentCodes(): Promise<Set<string>> {
+	const [clients, users] = await Promise.all([
+		prisma.client.findMany({
+			distinct: ['typeIdentity'],
+			select: { typeIdentity: true },
+		}),
+		prisma.user.findMany({
+			distinct: ['typeIdentity'],
+			select: { typeIdentity: true },
+		}),
+	])
+
+	const codes = new Set<string>()
+	for (const row of [...clients, ...users]) {
+		const code = normalizeDocumentCode(row.typeIdentity)
+		if (code) {
+			codes.add(code)
+		}
+	}
+	return codes
+}
+
+async function isDocumentCodeInUse(code: string): Promise<boolean> {
+	const normalized = normalizeDocumentCode(code)
+	if (!normalized) {
+		return false
+	}
+
+	const [client, user] = await Promise.all([
+		prisma.client.findFirst({
+			where: { typeIdentity: identityCodeEquals(normalized) },
+			select: { idClient: true },
+		}),
+		prisma.user.findFirst({
+			where: { typeIdentity: identityCodeEquals(normalized) },
+			select: { idUser: true },
+		}),
+	])
+
+	return client != null || user != null
+}
+
 export async function listDocumentTypes(): Promise<DocumentTypeDto[]> {
-	const rows = await prisma.documentType.findMany({
-		orderBy: { name: 'asc' },
-	})
-	return rows.map(toDocumentTypeDto)
+	const [rows, referencedCodes] = await Promise.all([
+		prisma.documentType.findMany({
+			orderBy: { name: 'asc' },
+		}),
+		loadReferencedDocumentCodes(),
+	])
+	return rows.map((row) =>
+		toDocumentTypeDto(row, referencedCodes.has(normalizeDocumentCode(row.code)))
+	)
 }
 
 export async function listActiveDocumentTypeOptions(): Promise<
@@ -195,6 +247,10 @@ export async function updateDocumentType(
 		return { error: 'Ya existe un tipo de documento con esta abreviatura' }
 	}
 
+	if (code !== current.code && (await isDocumentCodeInUse(current.code))) {
+		return { error: CODE_IN_USE_ERROR }
+	}
+
 	const row = await prisma.documentType.update({
 		where: { idDocumentType },
 		data: {
@@ -241,20 +297,35 @@ export async function validateIdentityForNewRecord(
 }
 
 /**
- * Keeps an already stored type even after it is deactivated.
- * Switching to another inactive type is rejected.
- * Missing catalog rows (legacy codes) do not block an update.
+ * Keeps an already stored type even after it is deactivated, or when that
+ * exact code has no catalog row (legacy data). Switching to a missing or
+ * inactive code is rejected.
  */
 export async function validateIdentityForExistingRecord(params: {
 	previousCode: string
 	nextCode: string
+	previousIdentityNumber?: string
 	identityNumber: string
 }): Promise<string | null> {
 	const previous = normalizeDocumentCode(params.previousCode)
 	const next = normalizeDocumentCode(params.nextCode)
+	const identityChanged = shouldRevalidateIdentity({
+		isEditMode: true,
+		originalType: previous,
+		nextType: next,
+		originalNumber: params.previousIdentityNumber,
+		nextNumber: params.identityNumber,
+	})
+	if (params.previousIdentityNumber !== undefined && !identityChanged) {
+		return null
+	}
+
 	const rule = await findDocumentTypeByCode(next)
 
 	if (!rule) {
+		if (next !== previous) {
+			return 'El tipo de documento no está disponible para nuevos registros'
+		}
 		return null
 	}
 

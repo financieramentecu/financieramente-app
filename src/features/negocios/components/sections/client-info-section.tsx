@@ -18,6 +18,7 @@ import type { BusinessFormData } from '@/features/negocios/lib/business-form-sch
 import type { Client } from '@prisma/client'
 import type { IdentityConflict } from '@/features/negocios/hooks/use-business-form'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
+import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
 import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
 
 import type {
@@ -79,8 +80,16 @@ export function ClientInfoSection({
 	const selectedDocumentType = documentTypeOptions.find(
 		(option) => option.code === typeIdentityValue
 	)
+	const storedIdentity = form.formState.defaultValues
+	const identityChanged = shouldRevalidateIdentity({
+		isEditMode,
+		originalType: storedIdentity?.typeIdentity,
+		nextType: typeIdentityValue,
+		originalNumber: storedIdentity?.identityNumber,
+		nextNumber: documentValue,
+	})
 	const identityRuleMessage =
-		selectedDocumentType && documentValue
+		selectedDocumentType && documentValue && identityChanged
 			? validateIdentityAgainstDocumentType(documentValue, selectedDocumentType)
 			: null
 	const emailValue = watch('email')

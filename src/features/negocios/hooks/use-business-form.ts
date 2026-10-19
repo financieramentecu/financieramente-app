@@ -20,6 +20,7 @@ import { UserRole } from '@/features/auth/lib/roles'
 import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-permissions'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
+import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
 
 /**
  * D5: state raised when the exact-email resolution finds a client whose
@@ -289,7 +290,14 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const handleFormSubmit = React.useCallback(
 		async (data: BusinessFormData) => {
 			try {
-				if (documentTypeOptions.length > 0) {
+				const identityChanged = shouldRevalidateIdentity({
+					isEditMode,
+					originalType: defaultValues?.typeIdentity,
+					nextType: data.typeIdentity,
+					originalNumber: defaultValues?.identityNumber,
+					nextNumber: data.identityNumber,
+				})
+				if (documentTypeOptions.length > 0 && identityChanged) {
 					const selectedType = documentTypeOptions.find(
 						(option) => option.code === data.typeIdentity
 					)
@@ -475,6 +483,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			finishCreateSubmit,
 			documentTypeOptions,
 			form,
+			defaultValues,
 		]
 	)
 
