@@ -81,27 +81,10 @@ export function ClientInfoSection({
 
 	const documentValue = watch('identityNumber')
 	const typeIdentityValue = watch('typeIdentity')
-	const visibleDocumentTypes = documentTypeOptionsForSelection(
+	const displayedDocumentTypes = documentTypeOptionsForSelection(
 		documentTypeOptions,
 		typeIdentityValue
 	)
-	const selectedIsListed = visibleDocumentTypes.some(
-		(option) => option.code === typeIdentityValue
-	)
-	const displayedDocumentTypes =
-		typeIdentityValue && !selectedIsListed
-			? [
-					...visibleDocumentTypes,
-					{
-						code: typeIdentityValue,
-						name: typeIdentityValue,
-						dataType: 'ALPHANUMERIC' as const,
-						minLength: 1,
-						maxLength: 20,
-						status: false,
-					},
-				]
-			: visibleDocumentTypes
 	const selectedDocumentType = documentTypeOptions.find(
 		(option) => option.code === typeIdentityValue
 	)
