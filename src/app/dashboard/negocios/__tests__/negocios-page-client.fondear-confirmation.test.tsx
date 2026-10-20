@@ -78,10 +78,15 @@ vi.mock('@/features/negocios/services/business.service', () => ({
 vi.mock('@/features/negocios/components/MisNegociosPage', () => {
 	const MisNegociosPage = ({
 		onFondearBusiness,
+		onCommentCreated,
 	}: {
 		onFondearBusiness?: (business: Business) => void
+		onCommentCreated?: () => void
 	}) => (
 		<div>
+			<button type="button" onClick={() => onCommentCreated?.()}>
+				trigger-comment-created
+			</button>
 			<button
 				type="button"
 				onClick={() => onFondearBusiness?.(createBusinessRow('direct'))}
@@ -222,6 +227,7 @@ function createBusinessRow(mode: 'direct' | 'annual' | 'directZero'): Business {
 		hasPendingPaymentFunding: mode === 'annual',
 		numAportes: mode === 'directZero' ? 0 : null,
 		supportCount: 0,
+		commentCount: 0,
 		observations: null,
 		currency: { id: 1, name: 'COP' },
 	}
@@ -335,5 +341,16 @@ describe('NegociosPageClient - confirmacion de fondeo', () => {
 
 		expect(mockFondearBusiness).not.toHaveBeenCalled()
 		expect(screen.queryByText('direct-funding-modal-open')).not.toBeInTheDocument()
+	})
+
+	it('refetches the business list in the background, without stats, after a comment is created', async () => {
+		const user = userEvent.setup()
+		render(<NegociosPageClient />)
+
+		await user.click(screen.getByRole('button', { name: 'trigger-comment-created' }))
+
+		expect(mockRefetchBusinesses).toHaveBeenCalledTimes(1)
+		expect(mockRefetchBusinesses).toHaveBeenCalledWith(true)
+		expect(mockRefetchStats).not.toHaveBeenCalled()
 	})
 })

@@ -22,6 +22,23 @@ vi.mock('@/lib/prisma', () => ({
 			findFirst: vi.fn(),
 			create: vi.fn(),
 		},
+		company: {
+			findUnique: vi.fn(),
+		},
+		level: {
+			findMany: vi.fn(),
+		},
+		productConfiguration: {
+			create: vi.fn(),
+			update: vi.fn(),
+		},
+		productPercentageCommission: {
+			create: vi.fn(),
+		},
+		productPercentageCommissionCategory: {
+			createMany: vi.fn(),
+		},
+		$transaction: vi.fn((callback: (tx: unknown) => unknown) => callback(prisma)),
 	},
 }))
 vi.mock('@/features/product/lib/product-schemas', () => ({
@@ -255,6 +272,32 @@ describe('GET /api/products', () => {
 			})
 		})
 
+		it('debe limitar el selector a producto y compañía activos', async () => {
+			mockPrismaCount.mockResolvedValue(1)
+			mockPrismaFindMany.mockResolvedValue([createMockPrismaProduct()] as never)
+			mockPrismaProductListToProducts.mockReturnValue([
+				{ idProduct: 1, name: 'Universal NOVA' },
+			] as never)
+
+			const request = new Request(
+				'http://localhost:3000/api/products?idCompany=93&eligible=true&pageSize=1000'
+			)
+			await GET(request)
+
+			expect(mockPrismaCount).toHaveBeenCalledWith({
+				where: {
+					status: true,
+					company: { status: true },
+					idCompany: 93,
+				},
+			})
+			expect(mockPrismaFindMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					take: 1000,
+				})
+			)
+		})
+
 		it('debe ignorar idCompany inválido', async () => {
 			const mockProducts = [createMockPrismaProduct()]
 			const mockFormattedProducts = [{ idProduct: 1, name: 'Seguro de Vida' }]
@@ -364,6 +407,40 @@ describe('POST /api/products', () => {
 				} as unknown as NextResponse
 			}
 		)
+		vi.mocked(prisma.company.findUnique).mockResolvedValue({
+			idCompany: 1,
+			name: 'BMI',
+			status: true,
+		} as never)
+		vi.mocked(prisma.level.findMany).mockImplementation((async (args: {
+			where?: { code?: { in?: string[] } }
+		}) => {
+			const catalog = [
+				{ idLevel: 1, code: 'LEVEL_0' },
+				{ idLevel: 2, code: 'LEVEL_1' },
+				{ idLevel: 3, code: 'LEVEL_2' },
+				{ idLevel: 4, code: 'LEVEL_3' },
+				{ idLevel: 5, code: 'LEVEL_4' },
+				{ idLevel: 6, code: 'LEVEL_5' },
+			]
+			const wanted = args?.where?.code?.in
+			if (wanted) {
+				return catalog.filter((level) => wanted.includes(level.code))
+			}
+			return [{ idLevel: 1, code: 'LEVEL_0' }]
+		}) as never)
+		vi.mocked(prisma.productConfiguration.create).mockResolvedValue({
+			id: 10,
+		} as never)
+		vi.mocked(prisma.productPercentageCommission.create).mockResolvedValue({
+			idProductPercentageCommission: 50,
+		} as never)
+		vi.mocked(prisma.productPercentageCommissionCategory.createMany).mockResolvedValue({
+			count: 6,
+		} as never)
+		vi.mocked(prisma.productConfiguration.update).mockResolvedValue({
+			id: 10,
+		} as never)
 	})
 
 	afterEach(() => {
@@ -431,6 +508,22 @@ describe('POST /api/products', () => {
 				data: { name: 'Seguro de vida', idCompany: 1, status: true, description: null, idTypeProduct: null, commissionPercentage: 0, contributionType: 'REGULAR' },
 				include: { company: true, typeProduct: true },
 			})
+			expect(prisma.productConfiguration.create).toHaveBeenCalledWith({
+				data: {
+					idProduct: 1,
+					idLevel: 1,
+					code: 'BMI-SEGURO_DE_VIDA-LEVEL_0',
+					active: true,
+				},
+			})
+			expect(prisma.productPercentageCommission.create).toHaveBeenCalledWith({
+				data: {
+					idProductConfiguration: 10,
+					active: true,
+					description: 'Distribución estándar LEVEL_0',
+				},
+			})
+			expect(prisma.productPercentageCommissionCategory.createMany).toHaveBeenCalled()
 			expect(mockLogAuditEvent).toHaveBeenCalledWith({
 				userId: 1,
 				action: AuditAction.PRODUCT_CREATED,

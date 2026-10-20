@@ -1,4 +1,8 @@
-import { isReadOnlyRole, isWriteBypassRole } from '@/features/auth/lib/roles'
+import {
+	UserRole,
+	isReadOnlyRole,
+	isWriteBypassRole,
+} from '@/features/auth/lib/roles'
 
 /**
  * Hierarchy level codes (Nivel 2 through Nivel 6 / MIA) authorized to export
@@ -18,9 +22,10 @@ export const EXPORT_LEVEL_CODES: readonly string[] = [
  * (`POST /api/negocios/export` authorization) — see spec
  * "Excel Export Authorized by Hierarchy Level 2-6".
  *
- * Read-only precedence: the read-only check MUST run before `levelCode` is
- * ever read, so no assigned hierarchy level can re-enable export for a
- * read-only role (e.g. CONSULTOR).
+ * CONSULTOR may export this list without a hierarchy level. That exception
+ * does not grant write access, and Dashboard / Reportes keep blocking
+ * downloads with `isReadOnlyRole`. Any other read-only role stays blocked
+ * even if a hierarchy level is assigned.
  */
 export function canExportBusinessList(input: {
 	roleCode: string | undefined
@@ -28,8 +33,9 @@ export function canExportBusinessList(input: {
 }): boolean {
 	const { roleCode, levelCode } = input
 
-	if (isReadOnlyRole(roleCode)) return false
 	if (isWriteBypassRole(roleCode)) return true
+	if (roleCode === UserRole.CONSULTOR) return true
+	if (isReadOnlyRole(roleCode)) return false
 	if (!levelCode) return false
 
 	return EXPORT_LEVEL_CODES.includes(levelCode)

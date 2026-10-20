@@ -1,10 +1,7 @@
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import {
-	getClientIp,
-	getUserAgent,
-} from '@/features/auth/lib/audit-logger'
+import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { updateDocumentTypeSchema } from '@/features/document-types/lib/document-type-schemas'
 import { requireSystemAdmin } from '@/features/document-types/lib/require-system-admin'
 import {
@@ -48,7 +45,8 @@ export async function PUT(request: Request, context: RouteContext) {
 		if ('error' in result) {
 			const status = result.error.includes('no encontrado')
 				? 404
-				: result.error.startsWith('Ya existe')
+				: result.error.startsWith('Ya existe') ||
+					  result.error.includes('No se puede cambiar la abreviatura')
 					? 409
 					: 400
 			const body: ApiResponse<null> = { data: null, error: result.error }

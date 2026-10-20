@@ -27,9 +27,13 @@ vi.mock('@/features/negocios/actions/resolve-existing-client', () => ({
 	resolveExistingClient: vi.fn(),
 }))
 
+const { updateBusiness } = vi.hoisted(() => ({
+	updateBusiness: vi.fn(),
+}))
+
 vi.mock('@/features/negocios/hooks/use-business-mutation', () => ({
 	useBusinessMutation: () => ({
-		updateBusiness: vi.fn(),
+		updateBusiness,
 		isUpdating: false,
 		cancelBusiness: vi.fn(),
 		isCancelling: false,
@@ -277,6 +281,7 @@ const resolvedClient = {
 	name: 'Juan',
 	lastName: 'Pérez',
 	typeIdentity: 'CC',
+	idDocumentType: 1,
 	identityNumber: '12345678',
 	email: 'client@test.com',
 	phone: '3001234567',
@@ -593,7 +598,7 @@ describe('useBusinessForm — client resolution submit flow (D2/D5/D6/D7)', () =
 	})
 })
 
-const numericDocumentType = {
+const ccOption = {
 	code: 'CC',
 	name: 'Cédula de Ciudadanía',
 	dataType: 'NUMERIC' as const,
@@ -602,24 +607,27 @@ const numericDocumentType = {
 	status: true,
 }
 
-describe('useBusinessForm — legacy identity revalidation', () => {
+describe('useBusinessForm — identity revalidation on edit', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		vi.mocked(updateClient).mockResolvedValue({ data: { idClient: 10 } } as never)
-		vi.mocked(createBusiness).mockResolvedValue({
-			data: { idBusiness: 1 },
-		} as never)
+		updateBusiness.mockResolvedValue(true)
+		vi.mocked(createClient).mockResolvedValue({ data: createdClient } as never)
 	})
 
-	it('does not block an edit that keeps a legacy identity number', async () => {
+	it('saves an edit when the stored identity uses dots and was not changed', async () => {
+		const onSubmit = vi.fn()
 		const { result } = renderHook(() =>
 			useBusinessForm({
 				mode: 'edit',
 				businessId: 42,
-				clientId: 10,
-				defaultValues: { ...baseDefaults, identityNumber: '1.234.567' },
-				currentUser: createMockUserWithRole(UserRole.ADMIN),
-				documentTypeOptions: [numericDocumentType],
+				defaultValues: {
+					...baseDefaults,
+					typeIdentity: 'CC',
+					identityNumber: '1.234.567',
+				},
+				documentTypeOptions: [ccOption],
+				currentUser: mockUserWithRole,
+				onSubmit,
 				...options,
 			})
 		)
@@ -627,81 +635,102 @@ describe('useBusinessForm — legacy identity revalidation', () => {
 		await submit(result)
 
 		expect(result.current.form.formState.errors.identityNumber).toBeUndefined()
-		expect(updateClient).toHaveBeenCalledWith(
-			expect.objectContaining({
-				identityNumber: '1.234.567',
-				typeIdentity: 'CC',
-			})
-		)
+		expect(updateBusiness).toHaveBeenCalled()
+		expect(onSubmit).toHaveBeenCalled()
 	})
 
-	it('rejects a legacy identity number once the user changes it', async () => {
+	it('blocks an edit that replaces the stored identity with a formatted number', async () => {
+		const onSubmit = vi.fn()
 		const { result } = renderHook(() =>
 			useBusinessForm({
 				mode: 'edit',
 				businessId: 42,
-				clientId: 10,
-				defaultValues: { ...baseDefaults, identityNumber: '1.234.567' },
-				currentUser: createMockUserWithRole(UserRole.ADMIN),
-				documentTypeOptions: [numericDocumentType],
-				...options,
-			})
-		)
-
-		act(() => {
-			result.current.form.setValue('identityNumber', '9.876.543')
-		})
-		await submit(result)
-
-		expect(updateClient).not.toHaveBeenCalled()
-		expect(result.current.form.formState.errors.identityNumber?.message).toMatch(
-			/dígitos/
-		)
-	})
-
-	it('does not block create when the selected client keeps its stored legacy identity', async () => {
-		const onSubmit = vi.fn()
-		const { result } = renderHook(() =>
-			useBusinessForm({
-				mode: 'create',
-				defaultValues: { ...baseDefaults, identityNumber: '1.234.567' },
+				defaultValues: {
+					...baseDefaults,
+					typeIdentity: 'CC',
+					identityNumber: '1234567',
+				},
+				documentTypeOptions: [ccOption],
 				currentUser: mockUserWithRole,
-				documentTypeOptions: [numericDocumentType],
 				onSubmit,
 				...options,
 			})
 		)
 
 		act(() => {
-			result.current.handleClientSelected({
-				...resolvedClient,
-				idDocumentType: 1,
-				identityNumber: '1.234.567',
-			})
+			result.current.form.setValue('identityNumber', '1.234.567')
 		})
 		await submit(result)
 
-		expect(result.current.form.formState.errors.identityNumber).toBeUndefined()
-		expect(createClient).not.toHaveBeenCalled()
-		expect(createBusiness).toHaveBeenCalled()
+		expect(result.current.form.formState.errors.identityNumber?.message).toMatch(
+			/dígitos/
+		)
+		expect(updateBusiness).not.toHaveBeenCalled()
+		expect(onSubmit).not.toHaveBeenCalled()
 	})
 
-	it('rejects a new identity that does not match the document type', async () => {
+	it('blocks a new business whose identity does not match the catalog', async () => {
+		const onSubmit = vi.fn()
 		const { result } = renderHook(() =>
 			useBusinessForm({
 				mode: 'create',
-				defaultValues: { ...baseDefaults, identityNumber: '1.234.567' },
+				defaultValues: {
+					...baseDefaults,
+					typeIdentity: 'CC',
+					identityNumber: '1.234.567',
+				},
+				documentTypeOptions: [ccOption],
 				currentUser: mockUserWithRole,
-				documentTypeOptions: [numericDocumentType],
+				onSubmit,
 				...options,
 			})
 		)
 
 		await submit(result)
 
-		expect(createClient).not.toHaveBeenCalled()
 		expect(result.current.form.formState.errors.identityNumber?.message).toMatch(
 			/dígitos/
 		)
+		expect(createClient).not.toHaveBeenCalled()
+		expect(onSubmit).not.toHaveBeenCalled()
+	})
+
+	it('creates a business for an existing client whose stored identity uses a legacy format', async () => {
+		vi.mocked(createBusiness).mockResolvedValue({
+			data: { idBusiness: 1 },
+		} as never)
+		const existingClient = {
+			...resolvedClient,
+			typeIdentity: 'CC',
+			identityNumber: '1.234.567',
+		}
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'create',
+				defaultValues: {
+					...baseDefaults,
+					typeIdentity: 'CC',
+					identityNumber: '1.234.567',
+				},
+				documentTypeOptions: [ccOption],
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.handleClientSelected(existingClient)
+		})
+		await submit(result)
+
+		expect(result.current.form.formState.errors.identityNumber).toBeUndefined()
+		expect(result.current.form.formState.errors.typeIdentity).toBeUndefined()
+		expect(createClient).not.toHaveBeenCalled()
+		expect(createBusiness).toHaveBeenCalledWith(
+			expect.objectContaining({ idClient: existingClient.idClient })
+		)
+		expect(onSubmit).toHaveBeenCalled()
 	})
 })

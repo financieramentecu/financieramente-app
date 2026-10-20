@@ -29,6 +29,7 @@ export const mockBusinessList: Business[] = [
 		hasPendingPaymentFunding: false,
 		numAportes: null,
 		supportCount: 0 ,
+		commentCount: 0,
 		observations: null,
 		currency: {
 			id: 1,
@@ -63,6 +64,7 @@ export const mockBusinessList: Business[] = [
 		hasPendingPaymentFunding: false,
 		numAportes: null,
 		supportCount: 0 ,
+		commentCount: 0,
 		observations: null,
 		currency: {
 			id: 1,
@@ -97,6 +99,7 @@ export const mockBusinessList: Business[] = [
 		hasPendingPaymentFunding: false,
 		numAportes: null,
 		supportCount: 0 ,
+		commentCount: 0,
 		observations: null,
 		currency: {
 			id: 1,
@@ -131,6 +134,7 @@ export const mockBusinessList: Business[] = [
 		hasPendingPaymentFunding: false,
 		numAportes: null,
 		supportCount: 0 ,
+		commentCount: 0,
 		observations: null,
 		currency: {
 			id: 1,
@@ -165,6 +169,7 @@ export const mockBusinessList: Business[] = [
 		hasPendingPaymentFunding: false,
 		numAportes: null,
 		supportCount: 0 ,
+		commentCount: 0,
 		observations: null,
 		currency: {
 			id: 1,
@@ -199,6 +204,7 @@ export const mockBusinessList: Business[] = [
 		hasPendingPaymentFunding: false,
 		numAportes: null,
 		supportCount: 0 ,
+		commentCount: 0,
 		observations: null,
 		currency: {
 			id: 1,

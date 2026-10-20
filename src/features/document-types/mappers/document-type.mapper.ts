@@ -5,7 +5,10 @@ import type {
 	DocumentTypeOption,
 } from '@/features/document-types/types/document-type.types'
 
-export function toDocumentTypeDto(row: DocumentType): DocumentTypeDto {
+export function toDocumentTypeDto(
+	row: DocumentType,
+	codeInUse = false
+): DocumentTypeDto {
 	if (!isDocumentDataTypeCode(row.dataType)) {
 		throw new Error(`Tipo de dato no soportado: ${row.dataType}`)
 	}
@@ -18,6 +21,7 @@ export function toDocumentTypeDto(row: DocumentType): DocumentTypeDto {
 		minLength: row.minLength,
 		maxLength: row.maxLength,
 		status: row.status,
+		codeInUse,
 		createdAt: row.createdAt.toISOString(),
 		updatedAt: row.updatedAt.toISOString(),
 	}

@@ -7,6 +7,7 @@ import {
 	type CreateProductConfigurationFormData,
 } from '../lib/product-configuration-schemas'
 import type { ProductConfiguration } from '../types/product-configuration.types'
+import { AUTHORIZED_SELECTOR_PAGE_SIZE } from '@/features/product/lib/product-list-where'
 
 // Option types for the form
 export interface CompanyOption {
@@ -104,7 +105,9 @@ export function useProductConfigurationForm({
 			error: '',
 		}))
 		try {
-			const response = await fetch('/api/admin/companies?status=active')
+			const response = await fetch(
+				`/api/admin/companies?status=active&pageSize=${AUTHORIZED_SELECTOR_PAGE_SIZE}`
+			)
 			const result = await response.json()
 			if (result.data?.companies) {
 				setCompaniesState({
@@ -140,7 +143,7 @@ export function useProductConfigurationForm({
 		}))
 		try {
 			const response = await fetch(
-				`/api/products?idCompany=${companyId}&status=active`
+				`/api/products?idCompany=${companyId}&eligible=true&pageSize=${AUTHORIZED_SELECTOR_PAGE_SIZE}`
 			)
 			const result = await response.json()
 			if (result.data?.products) {
@@ -202,7 +205,9 @@ export function useProductConfigurationForm({
 			error: '',
 		}))
 		try {
-			const response = await fetch('/api/levels?status=active')
+			const response = await fetch(
+				`/api/levels?status=active&pageSize=${AUTHORIZED_SELECTOR_PAGE_SIZE}`
+			)
 			const result = await response.json()
 			if (result.data?.levels) {
 				setCategoriesState({

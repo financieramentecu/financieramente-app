@@ -21,6 +21,8 @@ erDiagram
     Level ||--o{ User : "nivel del usuario"
     Level ||--o{ ProductConfiguration : "nivel en config"
     Level ||--o{ ProductPercentageCommissionCategory : "en distribución"
+    Level ||--o{ DefaultDistributionPercentage : "nivel de la plantilla"
+    Level ||--o{ DefaultDistributionPercentage : "nivel receptor"
     Level ||--o| Level : "siguiente en jerarquía"
     User ||--o{ Level : "beneficiario fijo nivel"
     Category ||--o{ User : "categoría del usuario"
@@ -112,6 +114,15 @@ erDiagram
         enum beneficiary_mode
         int id_fixed_beneficiary_user FK
         int id_next_level FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    DefaultDistributionPercentage {
+        int id_default_distribution_percentage PK
+        int id_config_level FK
+        int id_receiver_level FK
+        decimal percentage
         datetime created_at
         datetime updated_at
     }
@@ -534,6 +545,7 @@ erDiagram
 - **`Client.id_document_type`** (migración `20261014170000_link_client_document_type`, COM-27): FK `ON DELETE RESTRICT` hacia `document_type`. `type_identity` queda como copia del `code` para la unicidad `(type_identity, identity_number)` y los consumidores existentes; no es texto libre. La migración es idempotente: solo llena `id_document_type` nulo y conserva el código que ya coincide con el catálogo. Si asignar CC a un código fuera de catálogo duplicaría `(type_identity, identity_number)`, aborta sin escribir. Cada cliente pasado a CC guarda el código anterior en `audit_log.details` (`CLIENT_DOCUMENT_TYPE_DEFAULTED`). Reejecutarla no reemplaza una FK ya definida. Desactivar un tipo lo oculta en altas nuevas y conserva la relación histórica. `User.type_identity` sigue sin FK (usuarios de plataforma, fuera de alcance). El tomador de COM-28 todavía no tiene tabla; cuando exista debe apuntar a este mismo catálogo.
 - `SettlementCommission.id_business` es opcional en Prisma (`Int?`); el diagrama refleja la FK habitual hacia `business`.
 - Tablas físicas con typo histórico: `product_percentaje_commision`, `product_percentaje_commision_category` (ver `@@map` en el schema).
+- **Nueva tabla `default_distribution_percentage`** (migración `20261006140000_add_default_distribution_percentage`): plantilla editable de la distribución por defecto. Unique `(id_config_level, id_receiver_level)`. `percentage` es fracción (`0.6` = 60%). Al crear un producto, o al completar una configuración sin líneas, se copian estas filas. Cambiar la plantilla no reescribe distribuciones ya guardadas. La migración siembra `LEVEL_0`–`LEVEL_5` con la tabla aprobada. `GENERAL_LEVEL` no tiene filas.
 - `Level.id_next_level` es una FK auto-referencial a `level.id_level` (relación nombrada `"LevelSequence"`). Permite modelar la secuencia de jerarquía: LEVEL_0 → LEVEL_1 → LEVEL_2 → LEVEL_3 → LEVEL_4 → LEVEL_5 → GENERAL_LEVEL.
 - `Level.color` almacena un color hex `#RRGGBB` (VARCHAR 7) para identificación visual de cada nivel.
 - `BeneficiaryMode` renombrado (migración manual): `UPLINE_CHAIN → OVERRIDE`, `FIXED_BENEFICIARY → BENEFICIARIO_GENERAL`.

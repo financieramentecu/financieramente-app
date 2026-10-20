@@ -69,7 +69,7 @@ export function NotificationDrawer() {
 						variant={statusFilter === 'ALL' ? 'default' : 'outline'}
 						size="sm"
 						onClick={() => setStatusFilter('ALL')}
-						className="text-xs flex-1 h-8 bg-white data-[state=active]:bg-[#11525B] data-[state=active]:text-white"
+						className="text-xs flex-1 h-8 bg-white data-[state=active]:bg-primary data-[state=active]:text-white"
 						data-state={statusFilter === 'ALL' ? 'active' : 'inactive'}
 					>
 						Todas
@@ -78,7 +78,7 @@ export function NotificationDrawer() {
 						variant={statusFilter === 'UNREAD' ? 'default' : 'outline'}
 						size="sm"
 						onClick={() => setStatusFilter('UNREAD')}
-						className="text-xs flex-1 h-8 bg-white data-[state=active]:bg-[#11525B] data-[state=active]:text-white"
+						className="text-xs flex-1 h-8 bg-white data-[state=active]:bg-primary data-[state=active]:text-white"
 						data-state={statusFilter === 'UNREAD' ? 'active' : 'inactive'}
 					>
 						Nuevas {unreadCount > 0 && `(${unreadCount})`}
@@ -119,15 +119,15 @@ export function NotificationDrawer() {
 							onClick={() => handleNotificationClick(notif)}
 						>
 							<div className="flex justify-between items-start gap-2">
-								<h3 className="font-semibold text-sm text-[#11525B] leading-tight flex-1 pr-6">
+								<h3 className="font-semibold text-sm text-primary leading-tight flex-1 pr-6">
 									{notif.title}
 								</h3>
 								<div className="flex items-center gap-2 shrink-0">
 									{!notif.isRead && (
-										<span className="h-2 w-2 rounded-full bg-[#11525B]" />
+										<span className="h-2 w-2 rounded-full bg-primary" />
 									)}
 									<button
-										className="text-[#11525B] hover:text-red-500 transition-colors p-1 rounded-md hover:bg-muted"
+										className="text-primary hover:text-red-500 transition-colors p-1 rounded-md hover:bg-muted"
 										onClick={(e) => {
 											e.stopPropagation()
 											closeNotification(notif.idNotification)
@@ -143,7 +143,7 @@ export function NotificationDrawer() {
 								{notif.message}
 							</p>
 							
-							<span className="text-xs text-[#11525B]/70 mt-1">
+							<span className="text-xs text-primary/70 mt-1">
 								{formatDistanceToNow(new Date(notif.createdAt), {
 									addSuffix: true,
 									locale: es,

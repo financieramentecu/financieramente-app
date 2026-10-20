@@ -8,6 +8,8 @@ export interface DocumentTypeDto {
 	minLength: number
 	maxLength: number
 	status: boolean
+	/** True when Client or User already stores this code in typeIdentity. */
+	codeInUse: boolean
 	createdAt: string
 	updatedAt: string
 }

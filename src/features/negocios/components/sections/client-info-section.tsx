@@ -17,8 +17,8 @@ import { ClientIdentityConflictAlert } from '@/features/negocios/components/sect
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { Client } from '@prisma/client'
 import type { IdentityConflict } from '@/features/negocios/hooks/use-business-form'
-import { keepsStoredIdentity } from '@/features/document-types/lib/keeps-stored-identity'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
+import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
 import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
 import { documentTypeOptionsForSelection } from '@/features/negocios/lib/document-type-options-for-selection'
 
@@ -35,6 +35,8 @@ export interface ClientInfoSectionProps {
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
 	isEditMode?: boolean
+	/** True after the user picks an existing client. Catalog rules stay on new clients. */
+	hasSelectedClient?: boolean
 	isBlocked: boolean
 	/**
 	 * True when the form was opened as a lead conversion (`leadId` present).
@@ -61,6 +63,7 @@ export function ClientInfoSection({
 	onSearchClient,
 	onClientSelected,
 	isEditMode = false,
+	hasSelectedClient = false,
 	isBlocked,
 	isLeadConversion = false,
 	getFieldPermission,
@@ -102,16 +105,17 @@ export function ClientInfoSection({
 	const selectedDocumentType = documentTypeOptions.find(
 		(option) => option.code === typeIdentityValue
 	)
-	const keepsUnchangedIdentity =
-		isEditMode &&
-		keepsStoredIdentity({
-			identityNumber: documentValue,
-			typeIdentity: typeIdentityValue,
-			storedIdentityNumber: form.formState.defaultValues?.identityNumber,
-			storedTypeIdentity: form.formState.defaultValues?.typeIdentity,
-		})
+	const storedIdentity = form.formState.defaultValues
+	const identityChanged = shouldRevalidateIdentity({
+		isEditMode,
+		originalType: storedIdentity?.typeIdentity,
+		nextType: typeIdentityValue,
+		originalNumber: storedIdentity?.identityNumber,
+		nextNumber: documentValue,
+	})
+	const catalogApplies = identityChanged && (isEditMode || !hasSelectedClient)
 	const identityRuleMessage =
-		selectedDocumentType && documentValue && !keepsUnchangedIdentity
+		selectedDocumentType && documentValue && catalogApplies
 			? validateIdentityAgainstDocumentType(documentValue, selectedDocumentType)
 			: null
 	const emailValue = watch('email')

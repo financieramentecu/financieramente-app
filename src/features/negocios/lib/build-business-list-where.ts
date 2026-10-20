@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client'
-import { UserRole } from '@/features/auth/lib/roles'
+import { isGlobalVisibilityRole } from '@/features/auth/lib/roles'
 import {
 	NOVEDAD_FILTER_SIN_NOVEDAD,
 	type NovedadFilterValue,
@@ -42,7 +42,8 @@ export interface BuildBusinessListWhereOptions {
 	/**
 	 * When provided and non-empty, restricts results to businesses owned by these user IDs.
 	 * Used for hierarchical visibility: [self, ...subordinates].
-	 * Ignored for ADMIN / SUPER_ADMIN roles.
+	 * Ignored for global-visibility roles (admin-like roles and CONSULTOR).
+	 * When omitted for a scoped role, falls back to the viewer's own idUser.
 	 */
 	visibleUserIds?: number[]
 }
@@ -61,11 +62,7 @@ export function buildBusinessListWhere(
 	const whereConditions: Prisma.BusinessWhereInput[] = []
 
 	const roleCode = currentUser.role?.code
-	const isAdmin =
-		roleCode === UserRole.ADMIN ||
-		roleCode === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
-		roleCode === UserRole.ANALISTA_SOPORTE
-	const isScoped = !isAdmin
+	const isScoped = !isGlobalVisibilityRole(roleCode)
 
 	if (isScoped) {
 		const { visibleUserIds } = options

@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { BusinessRowActions } from '../../components/BusinessRowActions'
 import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
@@ -23,12 +24,63 @@ vi.mock('@/features/shared/ui/dropdown-menu', () => ({
 }))
 
 vi.mock('@/features/comments/components/CommentModal', () => ({
-  CommentModal: ({ open, businessId, contract }: { open: boolean; businessId: number; contract: string }) =>
+  CommentModal: ({
+    open,
+    businessId,
+    contract,
+    onClose,
+    onCreated,
+  }: {
+    open: boolean
+    businessId: number
+    contract: string
+    onClose: () => void
+    onCreated?: () => void
+  }) =>
     open ? (
       <div data-testid="comment-modal">
         Comment modal for {businessId} - {contract}
+        <button onClick={() => onCreated?.()}>Simulate comment created</button>
+        <button onClick={onClose}>Simulate comment dialog dismissed</button>
       </div>
     ) : null,
+}))
+
+vi.mock('@/features/comments/components/CommentsHistoryModal', () => ({
+  CommentsHistoryModal: ({
+    open,
+    businessId,
+    contract,
+    onClose,
+    returnFocusRef,
+  }: {
+    open: boolean
+    businessId: number
+    contract: string | null
+    onClose: () => void
+    returnFocusRef?: React.RefObject<HTMLElement | null>
+  }) =>
+    open ? (
+      <div
+        data-testid="comments-history-modal"
+        data-business-id={businessId}
+        data-contract={contract === null ? 'null' : contract}
+        data-has-return-focus-ref={String(returnFocusRef !== undefined)}
+      >
+        <button onClick={onClose}>Simulate history close</button>
+        <button onClick={() => returnFocusRef?.current?.focus()}>Simulate focus return</button>
+      </div>
+    ) : null,
+}))
+
+vi.mock('@/features/business-supports/components/UploadComprobanteModal', () => ({
+  UploadComprobanteModal: ({ open, businessId }: { open: boolean; businessId: number }) =>
+    open ? <div data-testid="upload-comprobante-modal">Upload for {businessId}</div> : null,
+}))
+
+vi.mock('@/features/business-supports/components/BusinessSupportsSheet', () => ({
+  ViewComprobantesSheet: ({ open, businessId }: { open: boolean; businessId: number }) =>
+    open ? <div data-testid="view-comprobantes-sheet">Comprobantes for {businessId}</div> : null,
 }))
 
 vi.mock('../../components/modals/BusinessNovedadManageModal', () => ({
@@ -51,7 +103,280 @@ const defaultProps = {
   onViewComprobantes: vi.fn(),
 }
 
+/** Names of every control rendered by a row, used to compare renders with and without the indicator */
+function renderedControlNames(): string[] {
+  return screen
+    .getAllByRole('button')
+    .map((button) => button.getAttribute('aria-label') ?? button.textContent ?? '')
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 describe('BusinessRowActions', () => {
+  describe('Comments indicator visibility', () => {
+    it.each([1, 12, 145, 1000])('shows the exact count %i next to the icon', (count) => {
+      render(<BusinessRowActions {...defaultProps} commentCount={count} />)
+
+      const indicator = screen.getByRole('button', { name: `Ver comentarios (${count})` })
+      expect(indicator.textContent).toBe(String(count))
+      expect(indicator.querySelector('svg')).not.toBeNull()
+    })
+
+    it('shows the "Ver comentarios" tooltip text for the indicator', () => {
+      render(<BusinessRowActions {...defaultProps} commentCount={3} />)
+
+      expect(screen.getByText('Ver comentarios')).toBeInTheDocument()
+    })
+
+    it('places the indicator after "Ver comprobantes" and before "Más acciones"', () => {
+      render(<BusinessRowActions {...defaultProps} commentCount={3} />)
+
+      const names = renderedControlNames()
+      const viewIndex = names.indexOf('Ver comprobantes')
+      const indicatorIndex = names.indexOf('Ver comentarios (3)')
+      const moreIndex = names.indexOf('Más acciones')
+      expect(viewIndex).toBeGreaterThanOrEqual(0)
+      expect(indicatorIndex).toBe(viewIndex + 1)
+      expect(moreIndex).toBe(indicatorIndex + 1)
+    })
+
+    it.each([
+      BUSINESS_STATUS.VENTA_EFECTUADA,
+      BUSINESS_STATUS.EMITIDO,
+      BUSINESS_STATUS.FONDEADO,
+      BUSINESS_STATUS.LIQUIDADO,
+      BUSINESS_STATUS.CANCELADO,
+    ])('shows the indicator regardless of the %s business status', (status) => {
+      render(<BusinessRowActions {...defaultProps} businessStatus={status} commentCount={2} />)
+
+      expect(screen.getByRole('button', { name: 'Ver comentarios (2)' }).textContent).toBe('2')
+    })
+
+    it('opens the history modal from the keyboard with Enter and with Space', async () => {
+      const user = userEvent.setup()
+      render(<BusinessRowActions {...defaultProps} commentCount={4} />)
+      const indicator = screen.getByRole('button', { name: 'Ver comentarios (4)' })
+
+      indicator.focus()
+      await user.keyboard('{Enter}')
+      expect(screen.getByTestId('comments-history-modal')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Simulate history close' }))
+      expect(screen.queryByTestId('comments-history-modal')).not.toBeInTheDocument()
+
+      indicator.focus()
+      await user.keyboard(' ')
+      expect(screen.getByTestId('comments-history-modal')).toBeInTheDocument()
+    })
+
+    // Guard tests: green on arrival because the indicator is hidden by design at zero or when missing
+    it.each([0, undefined])('renders no indicator when commentCount is %s', (count) => {
+      render(<BusinessRowActions {...defaultProps} commentCount={count} />)
+
+      expect(screen.queryByRole('button', { name: /ver comentarios/i })).not.toBeInTheDocument()
+      expect(screen.queryByText('0')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Ver comprobantes' })).toBeInTheDocument()
+    })
+
+    it('adds no wrapper or spacer to the actions group at zero comments', () => {
+      const { unmount } = render(<BusinessRowActions {...defaultProps} />)
+      const groupWithoutProp = screen.getByRole('button', { name: 'Ver comprobantes' }).parentElement
+      const childCountWithoutProp = groupWithoutProp?.children.length
+      unmount()
+
+      render(<BusinessRowActions {...defaultProps} commentCount={0} />)
+      const groupAtZero = screen.getByRole('button', { name: 'Ver comprobantes' }).parentElement
+
+      expect(childCountWithoutProp).toBeGreaterThan(0)
+      expect(groupAtZero?.children.length).toBe(childCountWithoutProp)
+    })
+  })
+
+  describe('Comments history modal', () => {
+    it('does not mount the history modal nor open an EventSource while closed', () => {
+      const eventSourceSpy = vi.fn()
+      vi.stubGlobal('EventSource', eventSourceSpy)
+      render(<BusinessRowActions {...defaultProps} commentCount={5} />)
+
+      expect(screen.getByRole('button', { name: 'Ver comentarios (5)' })).toBeInTheDocument()
+      expect(screen.queryByTestId('comments-history-modal')).not.toBeInTheDocument()
+      expect(eventSourceSpy).not.toHaveBeenCalled()
+    })
+
+    it('mounts the history modal for the row business on click, with a focus-return ref', () => {
+      render(<BusinessRowActions {...defaultProps} businessId={42} commentCount={5} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ver comentarios (5)' }))
+
+      const modal = screen.getByTestId('comments-history-modal')
+      expect(modal).toHaveAttribute('data-business-id', '42')
+      expect(modal).toHaveAttribute('data-has-return-focus-ref', 'true')
+    })
+
+    it('returns focus to the indicator through the ref passed to the modal', () => {
+      render(<BusinessRowActions {...defaultProps} commentCount={5} />)
+      const indicator = screen.getByRole('button', { name: 'Ver comentarios (5)' })
+
+      fireEvent.click(indicator)
+      expect(indicator).not.toHaveFocus()
+      fireEvent.click(screen.getByRole('button', { name: 'Simulate focus return' }))
+
+      expect(indicator).toHaveFocus()
+    })
+
+    it.each([
+      { label: "the '-' placeholder", contract: '-', expected: 'null' },
+      { label: 'a null contract', contract: null, expected: 'null' },
+      { label: 'a real contract', contract: 'CT-2026-0042', expected: 'CT-2026-0042' },
+    ])('passes $label to the history modal as $expected', ({ contract, expected }) => {
+      render(<BusinessRowActions {...defaultProps} contract={contract} commentCount={5} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ver comentarios (5)' }))
+
+      expect(screen.getByTestId('comments-history-modal')).toHaveAttribute('data-contract', expected)
+    })
+
+    it("keeps the '-' label of the add-comment dialog unchanged", () => {
+      render(<BusinessRowActions {...defaultProps} contract="-" commentCount={5} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /agregar comentario/i }))
+
+      expect(screen.getByTestId('comment-modal')).toHaveTextContent('Comment modal for 42 - -')
+      expect(screen.queryByTestId('comments-history-modal')).not.toBeInTheDocument()
+    })
+
+    it('mounts only the history modal of the row that was clicked', () => {
+      render(
+        <>
+          <BusinessRowActions {...defaultProps} businessId={1} commentCount={3} />
+          <BusinessRowActions {...defaultProps} businessId={2} commentCount={8} />
+        </>
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ver comentarios (8)' }))
+
+      const modals = screen.getAllByTestId('comments-history-modal')
+      expect(modals).toHaveLength(1)
+      expect(modals[0]).toHaveAttribute('data-business-id', '2')
+    })
+
+    it('does not change the badge count while the modal is open (no live row update)', () => {
+      render(<BusinessRowActions {...defaultProps} commentCount={3} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ver comentarios (3)' }))
+
+      expect(screen.getByTestId('comments-history-modal')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Ver comentarios (3)' }).textContent).toBe('3')
+    })
+
+    it('unmounts the history modal on close and then mounts only the comprobantes sheet', () => {
+      render(<BusinessRowActions {...defaultProps} commentCount={3} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ver comentarios (3)' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Simulate history close' }))
+      expect(screen.queryByTestId('comments-history-modal')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ver comprobantes' }))
+
+      expect(screen.getByTestId('view-comprobantes-sheet')).toHaveTextContent('Comprobantes for 42')
+      expect(screen.queryByTestId('comments-history-modal')).not.toBeInTheDocument()
+    })
+  })
+
+  // Guard tests: green on arrival because the indicator intentionally has no role or status gate
+  describe('Comments indicator roles and non-regression', () => {
+    it('shows the indicator to a read-only CONSULTOR, opens the history, and offers no add-comment item', () => {
+      render(<BusinessRowActions {...defaultProps} userRole={UserRole.CONSULTOR} commentCount={7} />)
+
+      expect(screen.queryByRole('button', { name: /agregar comentario/i })).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Ver comentarios (7)' }))
+
+      expect(screen.getByTestId('comments-history-modal')).toBeInTheDocument()
+    })
+
+    it('shows the indicator for every real UserRole and when the role is not provided', () => {
+      const roles = [...Object.values(UserRole), undefined]
+      expect(roles.length).toBeGreaterThan(2)
+
+      for (const role of roles) {
+        const { unmount } = render(<BusinessRowActions {...defaultProps} userRole={role} commentCount={6} />)
+        expect(screen.getByRole('button', { name: 'Ver comentarios (6)' }).textContent).toBe('6')
+        unmount()
+      }
+    })
+
+    it('keeps the existing actions and their handlers when the indicator is present', () => {
+      const onUploadComprobante = vi.fn()
+      const onViewComprobantes = vi.fn()
+      const onView = vi.fn()
+      render(
+        <BusinessRowActions
+          {...defaultProps}
+          commentCount={5}
+          onUploadComprobante={onUploadComprobante}
+          onViewComprobantes={onViewComprobantes}
+          onView={onView}
+        />
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Subir comprobante' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Ver comprobantes' }))
+      fireEvent.click(screen.getByRole('button', { name: /ver detalle/i }))
+
+      expect(onUploadComprobante).toHaveBeenCalledWith(42)
+      expect(onViewComprobantes).toHaveBeenCalledWith(42)
+      expect(onView).toHaveBeenCalledWith(42)
+      expect(screen.getByRole('button', { name: 'Más acciones' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /agregar comentario/i })).toBeInTheDocument()
+    })
+
+    it('renders the same controls at zero comments as when the prop is omitted', () => {
+      const { unmount } = render(<BusinessRowActions {...defaultProps} />)
+      const withoutProp = renderedControlNames()
+      unmount()
+
+      render(<BusinessRowActions {...defaultProps} commentCount={0} />)
+
+      expect(withoutProp).toContain('Ver comprobantes')
+      expect(renderedControlNames()).toEqual(withoutProp)
+    })
+  })
+
+  describe('Comment creation refresh', () => {
+    it('opens the add-comment dialog with its existing label, separate from the history modal', () => {
+      render(<BusinessRowActions {...defaultProps} contract="CON-001" commentCount={2} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /agregar comentario/i }))
+
+      expect(screen.getByTestId('comment-modal')).toHaveTextContent('Comment modal for 42 - CON-001')
+      expect(screen.queryByTestId('comments-history-modal')).not.toBeInTheDocument()
+    })
+
+    it('calls onCommentCreated exactly once after a comment is created', () => {
+      const onCommentCreated = vi.fn()
+      render(<BusinessRowActions {...defaultProps} onCommentCreated={onCommentCreated} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /agregar comentario/i }))
+      expect(onCommentCreated).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole('button', { name: 'Simulate comment created' }))
+
+      expect(onCommentCreated).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not call onCommentCreated when the add-comment dialog is dismissed', () => {
+      const onCommentCreated = vi.fn()
+      render(<BusinessRowActions {...defaultProps} onCommentCreated={onCommentCreated} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /agregar comentario/i }))
+      fireEvent.click(screen.getByRole('button', { name: 'Simulate comment dialog dismissed' }))
+
+      expect(screen.queryByTestId('comment-modal')).not.toBeInTheDocument()
+      expect(onCommentCreated).not.toHaveBeenCalled()
+    })
+  })
+
   describe('Upload button visibility', () => {
     it('shows upload button when status is EMITIDO and contract is not null', () => {
       render(<BusinessRowActions {...defaultProps} businessStatus={BUSINESS_STATUS.EMITIDO} contract="CON-001" />)
