@@ -29,6 +29,7 @@ export const BusinessForm = React.forwardRef<
 			periodicitiesOptions,
 			currenciesOptions,
 			clientOriginsOptions,
+			documentTypeOptions,
 			businessAgent,
 			businessStatus,
 			leadId,
@@ -43,6 +44,7 @@ export const BusinessForm = React.forwardRef<
 			isEditMode,
 			handleFormSubmit,
 			handleClientSelected,
+			hasSelectedClient,
 			handleSearchClient,
 			clientResults,
 			filteredProducts,
@@ -69,6 +71,7 @@ export const BusinessForm = React.forwardRef<
 			periodicitiesOptions,
 			currenciesOptions,
 			clientOriginsOptions,
+			documentTypeOptions,
 			businessAgent,
 			businessStatus,
 			leadId,
@@ -92,9 +95,11 @@ export const BusinessForm = React.forwardRef<
 					<ClientInfoSection
 						form={form as unknown as UseFormReturn<BusinessFormData>}
 						clientOriginsOptions={clientOriginsOptions}
+						documentTypeOptions={documentTypeOptions}
 						clientResults={clientResults}
 						onSearchClient={handleSearchClient}
 						onClientSelected={handleClientSelected}
+						hasSelectedClient={hasSelectedClient}
 						isEditMode={isEditMode}
 						isBlocked={isBlocked}
 						isLeadConversion={Boolean(leadId)}

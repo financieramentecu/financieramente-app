@@ -28,6 +28,9 @@ vi.mock('@/features/admin/currencies/services/currency.service', () => ({
 vi.mock('@/features/origins/services/origins.service', () => ({
 	getClientOrigins: vi.fn().mockResolvedValue([]),
 }))
+vi.mock('@/features/document-types/services/document-type.service', () => ({
+	listDocumentTypeOptionsForForm: vi.fn().mockResolvedValue([]),
+}))
 
 vi.mock('@/auth', () => ({
 	auth: vi.fn().mockResolvedValue({ user: { email: 'user@financieramentecu.com' } }),

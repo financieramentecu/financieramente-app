@@ -1,0 +1,20 @@
+---
+description: Siempre documentar cambios con changeset (no editar CHANGELOG a mano)
+alwaysApply: true
+---
+
+# Changeset obligatorio (no CHANGELOG a mano)
+
+En este proyecto las notas de versión se escriben con **Changesets**, no editando `CHANGELOG.md` ni el `"version"` de `package.json`.
+
+## Regla
+
+1. **Todo PR a `develop`** debe incluir `.changeset/<kebab-name>.md` (o la label `no-changeset` solo si es docs/CI sin impacto de producto).
+2. El changeset usa SemVer (`major` | `minor` | `patch`) y solo secciones `### Agregado` / `### Mejorado` / `### Corregido` (español) y `### Técnico` (inglés).
+3. **Nunca editar a mano** `CHANGELOG.md` ni `"version"` en el día a día.
+4. Si el código ya se mergeó sin changeset, **agregar el changeset retroactivo** en un PR a `develop`. No consolidar release en ese PR.
+5. `npm run release:version` solo en el momento de publicar en `develop` (consolida changesets → CHANGELOG + bump). No lo corras al cerrar un ticket/feature.
+
+## Guía
+
+Ver [.changeset/README.md](../../.changeset/README.md) y [.cursor/rules/RELEASE.md](./RELEASE.md).

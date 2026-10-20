@@ -17,6 +17,10 @@ import { ClientIdentityConflictAlert } from '@/features/negocios/components/sect
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { Client } from '@prisma/client'
 import type { IdentityConflict } from '@/features/negocios/hooks/use-business-form'
+import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
+import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
+import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
+import { documentTypeOptionsForSelection } from '@/features/negocios/lib/document-type-options-for-selection'
 
 import type {
 	BusinessFormField,
@@ -26,10 +30,13 @@ import type {
 export interface ClientInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
 	clientOriginsOptions: { value: string; label: string }[]
+	documentTypeOptions?: DocumentTypeOption[]
 	clientResults: Client[]
 	onSearchClient: (query: string) => Promise<Client[]>
 	onClientSelected: (client: Client) => void
 	isEditMode?: boolean
+	/** True after the user picks an existing client. Catalog rules stay on new clients. */
+	hasSelectedClient?: boolean
 	isBlocked: boolean
 	/**
 	 * True when the form was opened as a lead conversion (`leadId` present).
@@ -51,10 +58,12 @@ export interface ClientInfoSectionProps {
 export function ClientInfoSection({
 	form,
 	clientOriginsOptions,
+	documentTypeOptions = [],
 	clientResults,
 	onSearchClient,
 	onClientSelected,
 	isEditMode = false,
+	hasSelectedClient = false,
 	isBlocked,
 	isLeadConversion = false,
 	getFieldPermission,
@@ -71,6 +80,27 @@ export function ClientInfoSection({
 	} = form
 
 	const documentValue = watch('identityNumber')
+	const typeIdentityValue = watch('typeIdentity')
+	const displayedDocumentTypes = documentTypeOptionsForSelection(
+		documentTypeOptions,
+		typeIdentityValue
+	)
+	const selectedDocumentType = documentTypeOptions.find(
+		(option) => option.code === typeIdentityValue
+	)
+	const storedIdentity = form.formState.defaultValues
+	const identityChanged = shouldRevalidateIdentity({
+		isEditMode,
+		originalType: storedIdentity?.typeIdentity,
+		nextType: typeIdentityValue,
+		originalNumber: storedIdentity?.identityNumber,
+		nextNumber: documentValue,
+	})
+	const catalogApplies = identityChanged && (isEditMode || !hasSelectedClient)
+	const identityRuleMessage =
+		selectedDocumentType && documentValue && catalogApplies
+			? validateIdentityAgainstDocumentType(documentValue, selectedDocumentType)
+			: null
 	const emailValue = watch('email')
 	const nameValue = watch('name')
 	const lastNamesValue = watch('lastNames')
@@ -78,6 +108,7 @@ export function ClientInfoSection({
 
 	// Referencia para el campo email (para mover el foco)
 	const emailInputRef = React.useRef<HTMLInputElement>(null)
+	const typeIdentityTriggerRef = React.useRef<HTMLButtonElement>(null)
 
 	// Registrar los campos correctamente
 	const emailRegister = register('email')
@@ -105,6 +136,9 @@ export function ClientInfoSection({
 					(c) => c.identityNumber === identityNumber
 				)
 				if (selectedClient) {
+					setValue('typeIdentity', selectedClient.typeIdentity || 'CC', {
+						shouldValidate: true,
+					})
 					setValue('email', selectedClient.email || '', {
 						shouldValidate: true,
 					})
@@ -138,9 +172,8 @@ export function ClientInfoSection({
 				setValue('phone', '', { shouldValidate: false })
 			}
 
-			// Mover el foco al campo email
 			setTimeout(() => {
-				emailInputRef.current?.focus()
+				typeIdentityTriggerRef.current?.focus()
 			}, 100)
 		},
 		[setValue, isLeadConversion]
@@ -191,7 +224,7 @@ export function ClientInfoSection({
 							onSearch={onSearchClient}
 							placeholder="Buscar o crear documento..."
 							onCreateNew={handleCreateNew}
-							onFocusNextField={() => emailInputRef.current?.focus()}
+							onFocusNextField={() => typeIdentityTriggerRef.current?.focus()}
 							aria-labelledby="numeroDocumento-label"
 							className={errors.identityNumber ? 'border-red-500' : ''}
 						/>
@@ -200,6 +233,9 @@ export function ClientInfoSection({
 						<p className="text-xs text-red-500">
 							{errors.identityNumber.message}
 						</p>
+					)}
+					{!errors.identityNumber && identityRuleMessage && (
+						<p className="text-xs text-amber-600">{identityRuleMessage}</p>
 					)}
 					{isBlocked &&
 						!errors.identityNumber &&
@@ -211,6 +247,45 @@ export function ClientInfoSection({
 								campos
 							</p>
 						)}
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="typeIdentity" className="text-sm font-medium">
+						Tipo de Documento <span className="text-red-500">*</span>
+					</Label>
+					<Select
+						disabled={getFieldPermission('typeIdentity').disabled}
+						value={typeIdentityValue || undefined}
+						onValueChange={(value) =>
+							setValue('typeIdentity', value, { shouldValidate: true })
+						}
+					>
+						<SelectTrigger
+							ref={typeIdentityTriggerRef}
+							id="typeIdentity"
+							aria-required="true"
+							aria-invalid={errors.typeIdentity ? true : undefined}
+							aria-describedby={
+								errors.typeIdentity ? 'typeIdentity-error' : undefined
+							}
+							className={errors.typeIdentity ? 'border-red-500' : ''}
+						>
+							<SelectValue placeholder="Seleccione el tipo de documento" />
+						</SelectTrigger>
+						<SelectContent>
+							{displayedDocumentTypes.map((option) => (
+								<SelectItem key={option.code} value={option.code}>
+									{option.name} ({option.code})
+									{option.status ? '' : ' — Inactivo'}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					{errors.typeIdentity && (
+						<p id="typeIdentity-error" className="text-xs text-red-500">
+							{errors.typeIdentity.message}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
