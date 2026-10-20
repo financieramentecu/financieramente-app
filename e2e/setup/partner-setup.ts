@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { findCitizenshipCardId } from '../../prisma/seeds/document-type'
 import {
 	computeTokenExpiry,
 	generateRawToken,
@@ -127,11 +128,13 @@ export async function seedPartnerBusinessForE2E(
 	}
 
 	const suffix = `${Date.now()}`
+	const idDocumentType = await findCitizenshipCardId(prisma)
 	const client = await prisma.client.create({
 		data: {
 			name: 'Cliente E2E',
 			lastName: 'Partner',
 			typeIdentity: 'CC',
+			idDocumentType,
 			identityNumber: `7${suffix.slice(-9)}`,
 		},
 		select: { idClient: true },

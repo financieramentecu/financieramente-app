@@ -6,6 +6,7 @@ import { ApiResponse } from '@/features/shared/types/api-response.types'
 import { z } from 'zod'
 import { identityNumberSchema } from '../lib/identity-number.schema'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
+import { resolveClientDocumentType } from '@/features/document-types/services/document-type.service'
 
 /**
  * Schema de validación para crear un cliente
@@ -17,7 +18,11 @@ const createClientSchema = z.object({
 		.min(2, 'Los apellidos son obligatorios')
 		.trim()
 		.optional(),
-	typeIdentity: z.string().default('CC'),
+	typeIdentity: z
+		.string()
+		.trim()
+		.min(1, 'El tipo de documento es obligatorio')
+		.max(10, 'La abreviatura no puede exceder 10 caracteres'),
 	identityNumber: identityNumberSchema.transform((v) => v.toUpperCase()),
 	email: z.string().email('Email inválido').optional(),
 	phone: z
@@ -56,11 +61,20 @@ export async function createClient(
 		// Validar los datos de entrada
 		const validatedData = createClientSchema.parse(data)
 
+		const resolvedType = await resolveClientDocumentType({
+			code: validatedData.typeIdentity,
+			identityNumber: validatedData.identityNumber,
+			mode: 'create',
+		})
+		if ('error' in resolvedType) {
+			return { data: null, error: resolvedType.error }
+		}
+
 		// Verificar que no exista un cliente con el mismo identityNumber y typeIdentity
 		const existingClient = await prisma.client.findUnique({
 			where: {
 				typeIdentity_identityNumber: {
-					typeIdentity: validatedData.typeIdentity,
+					typeIdentity: resolvedType.code,
 					identityNumber: validatedData.identityNumber,
 				},
 			},
@@ -78,7 +92,8 @@ export async function createClient(
 			data: {
 				name: validatedData.name,
 				lastName: validatedData.lastName,
-				typeIdentity: validatedData.typeIdentity,
+				typeIdentity: resolvedType.code,
+				idDocumentType: resolvedType.idDocumentType,
 				identityNumber: validatedData.identityNumber,
 				email: validatedData.email,
 				phone: validatedData.phone,

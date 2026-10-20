@@ -9,7 +9,11 @@ import { Prisma } from '@prisma/client'
  * Se usa en las queries de la API
  */
 export const businessWithRelations = {
-	client: true,
+	client: {
+		include: {
+			documentType: true,
+		},
+	},
 	user: {
 		include: {
 			role: true,

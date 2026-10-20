@@ -4,7 +4,9 @@ import { PrismaClient } from '@prisma/client'
 /**
  * Seed data for the new Category table.
  * Categories represent agent groupings for presentation purposes (not hierarchy).
- * All categories belong to the 'MIA' CategoryType.
+ * All categories belong to the 'MIA' CategoryType, which this seed creates
+ * itself: the migration only copies types from existing categories, so a
+ * freshly reset database has none.
  */
 export const PARTNER_EXTERNAL_CATEGORY_SEED = {
 	name: 'Partner Externo',
@@ -103,6 +105,18 @@ export async function upsertCategory(
 
 export async function seedNewCategories(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Categorías (tabla category nueva)...')
+
+	const categoryTypeNames = [
+		...new Set(CATEGORY_SEED_DATA.map((cat) => cat.categoryTypeName)),
+	]
+	for (const name of categoryTypeNames) {
+		// Resolve by unique name — never hardcode IDs
+		await prisma.categoryType.upsert({
+			where: { name },
+			update: { status: true },
+			create: { name, status: true },
+		})
+	}
 
 	for (const cat of CATEGORY_SEED_DATA) {
 		await upsertCategory(prisma, cat)

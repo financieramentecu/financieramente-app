@@ -141,6 +141,8 @@ Administrative endpoints for managing system entities (CRUD).
 | `/api/admin/categories`      | Manage categories catalog. |
 | `/api/admin/client-origins`  | Manage client origins.     |
 | `/api/admin/currencies`      | Manage currencies.         |
+| `/api/admin/document-types`  | Manage identity document types (system administrator only). |
+| `/api/document-types`        | List active document types for the business form. Client identities store `id_document_type` (FK); inactive types stay on existing clients and are omitted from new selections. |
 | `/api/admin/product-origins` | Manage product origins.    |
 | `/api/admin/partners`        | ADMIN only. `GET` list, `POST` create a partner (sends the activation mail; 201 with `emailSent`). |
 | `/api/admin/partners/[id]`   | ADMIN only. `PUT` edit personal data and leader (email, role, level, category are not editable). |

@@ -13,6 +13,7 @@ import { businessEntityToFormData } from '../../mappers/business-form.mapper'
 import type { BusinessEntity } from '../../types/business-entity.types'
 import type { UserWithRole } from '../../types/business.types'
 import type { Company } from '@prisma/client'
+import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
 
 interface EditBusinessFormContainerProps {
 	business: BusinessEntity
@@ -35,6 +36,7 @@ interface EditBusinessFormContainerProps {
 		idClientOrigin: number
 		name: string
 	}[]
+	documentTypeOptions?: DocumentTypeOption[]
 }
 
 export function EditBusinessFormContainer({
@@ -45,6 +47,7 @@ export function EditBusinessFormContainer({
 	periodicities,
 	currencies,
 	clientOrigins,
+	documentTypeOptions,
 }: EditBusinessFormContainerProps) {
 	const router = useRouter()
 
@@ -114,6 +117,7 @@ export function EditBusinessFormContainer({
 				periodicitiesOptions={periodicitiesOptions}
 				currenciesOptions={currenciesOptions}
 				clientOriginsOptions={clientOriginsOptions}
+				documentTypeOptions={documentTypeOptions}
 				businessAgent={business.agent}
 				businessStatus={business.status}
 			/>
