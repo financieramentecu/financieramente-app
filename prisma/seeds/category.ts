@@ -3,7 +3,9 @@ import { PrismaClient } from '@prisma/client'
 /**
  * Seed data for the new Category table.
  * Categories represent agent groupings for presentation purposes (not hierarchy).
- * All categories belong to the 'MIA' CategoryType.
+ * All categories belong to the 'MIA' CategoryType, which this seed creates
+ * itself: the migration only copies types from existing categories, so a
+ * freshly reset database has none.
  */
 const CATEGORY_SEED_DATA = [
 	{
@@ -46,23 +48,32 @@ const CATEGORY_SEED_DATA = [
 export async function seedNewCategories(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Categorías (tabla category nueva)...')
 
-	for (const cat of CATEGORY_SEED_DATA) {
-		// Look up CategoryType by name — never hardcode IDs
-		const categoryType = await prisma.categoryType.findUnique({
-			where: { name: cat.categoryTypeName },
+	const categoryTypeNames = [
+		...new Set(CATEGORY_SEED_DATA.map((cat) => cat.categoryTypeName)),
+	]
+	const categoryTypeIds = new Map<string, number>()
+	for (const name of categoryTypeNames) {
+		// Resolve by unique name — never hardcode IDs
+		const categoryType = await prisma.categoryType.upsert({
+			where: { name },
+			update: { status: true },
+			create: { name, status: true },
 		})
+		categoryTypeIds.set(name, categoryType.id)
+	}
 
-		if (!categoryType) {
-			console.error(
-				`❌ CategoryType '${cat.categoryTypeName}' no encontrado; omitiendo '${cat.name}'.`
+	for (const cat of CATEGORY_SEED_DATA) {
+		const idCategoryType = categoryTypeIds.get(cat.categoryTypeName)
+		if (idCategoryType === undefined) {
+			throw new Error(
+				`CategoryType '${cat.categoryTypeName}' was not resolved for '${cat.name}'`
 			)
-			continue
 		}
 
 		const existing = await prisma.category.findFirst({
 			where: {
 				name: cat.name,
-				idCategoryType: categoryType.id,
+				idCategoryType,
 			},
 		})
 
@@ -81,15 +92,10 @@ export async function seedNewCategories(prisma: PrismaClient) {
 					name: cat.name,
 					description: cat.description,
 					status: true,
-					idCategoryType: categoryType.id,
+					idCategoryType,
 				},
 			})
 			console.log(`✅ Categoría creada: ${cat.name}`)
 		}
 	}
 }
-
-const prisma = new PrismaClient()
-seedNewCategories(prisma)
-	.catch(console.error)
-	.finally(() => prisma.$disconnect())
