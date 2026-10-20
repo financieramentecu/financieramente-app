@@ -9,6 +9,7 @@
 ### Mejorado
 
 - La exportación de negocios a Excel incluye la columna **Tipo de Documento** junto al número de identificación. El número de cédula se mantiene.
+- En el formulario de negocio el número de documento va primero. Si ese documento ya existe, se carga el tipo de documento del cliente; si no existe, se continúa con el alta.
 
 ### Técnico
 

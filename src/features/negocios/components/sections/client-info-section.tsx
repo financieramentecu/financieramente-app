@@ -121,6 +121,7 @@ export function ClientInfoSection({
 
 	// Referencia para el campo email (para mover el foco)
 	const emailInputRef = React.useRef<HTMLInputElement>(null)
+	const typeIdentityTriggerRef = React.useRef<HTMLButtonElement>(null)
 
 	// Registrar los campos correctamente
 	const emailRegister = register('email')
@@ -184,9 +185,8 @@ export function ClientInfoSection({
 				setValue('phone', '', { shouldValidate: false })
 			}
 
-			// Mover el foco al campo email
 			setTimeout(() => {
-				emailInputRef.current?.focus()
+				typeIdentityTriggerRef.current?.focus()
 			}, 100)
 		},
 		[setValue, isLeadConversion]
@@ -202,43 +202,6 @@ export function ClientInfoSection({
 			</div>
 
 			<div className="grid grid-cols-2 gap-4">
-				<div className="space-y-2">
-					<Label htmlFor="typeIdentity" className="text-sm font-medium">
-						Tipo de Documento <span className="text-red-500">*</span>
-					</Label>
-					<Select
-						disabled={getFieldPermission('typeIdentity').disabled}
-						value={typeIdentityValue || undefined}
-						onValueChange={(value) =>
-							setValue('typeIdentity', value, { shouldValidate: true })
-						}
-					>
-						<SelectTrigger
-							id="typeIdentity"
-							aria-required="true"
-							aria-invalid={errors.typeIdentity ? true : undefined}
-							aria-describedby={
-								errors.typeIdentity ? 'typeIdentity-error' : undefined
-							}
-							className={errors.typeIdentity ? 'border-red-500' : ''}
-						>
-							<SelectValue placeholder="Seleccione el tipo de documento" />
-						</SelectTrigger>
-						<SelectContent>
-							{displayedDocumentTypes.map((option) => (
-								<SelectItem key={option.code} value={option.code}>
-									{option.name} ({option.code})
-									{option.status ? '' : ' — Inactivo'}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					{errors.typeIdentity && (
-						<p id="typeIdentity-error" className="text-xs text-red-500">
-							{errors.typeIdentity.message}
-						</p>
-					)}
-				</div>
 				<div className="space-y-2">
 					<Label
 						htmlFor="numeroDocumento"
@@ -274,7 +237,7 @@ export function ClientInfoSection({
 							onSearch={onSearchClient}
 							placeholder="Buscar o crear documento..."
 							onCreateNew={handleCreateNew}
-							onFocusNextField={() => emailInputRef.current?.focus()}
+							onFocusNextField={() => typeIdentityTriggerRef.current?.focus()}
 							aria-labelledby="numeroDocumento-label"
 							className={errors.identityNumber ? 'border-red-500' : ''}
 						/>
@@ -297,6 +260,45 @@ export function ClientInfoSection({
 								campos
 							</p>
 						)}
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="typeIdentity" className="text-sm font-medium">
+						Tipo de Documento <span className="text-red-500">*</span>
+					</Label>
+					<Select
+						disabled={getFieldPermission('typeIdentity').disabled}
+						value={typeIdentityValue || undefined}
+						onValueChange={(value) =>
+							setValue('typeIdentity', value, { shouldValidate: true })
+						}
+					>
+						<SelectTrigger
+							ref={typeIdentityTriggerRef}
+							id="typeIdentity"
+							aria-required="true"
+							aria-invalid={errors.typeIdentity ? true : undefined}
+							aria-describedby={
+								errors.typeIdentity ? 'typeIdentity-error' : undefined
+							}
+							className={errors.typeIdentity ? 'border-red-500' : ''}
+						>
+							<SelectValue placeholder="Seleccione el tipo de documento" />
+						</SelectTrigger>
+						<SelectContent>
+							{displayedDocumentTypes.map((option) => (
+								<SelectItem key={option.code} value={option.code}>
+									{option.name} ({option.code})
+									{option.status ? '' : ' — Inactivo'}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					{errors.typeIdentity && (
+						<p id="typeIdentity-error" className="text-xs text-red-500">
+							{errors.typeIdentity.message}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
