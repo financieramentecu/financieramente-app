@@ -6,6 +6,18 @@ import { STANDARD_DOCUMENT_TYPES } from '../../src/features/document-types/lib/s
  * Does not overwrite an existing row: an administrator may have
  * changed lengths or deactivated a type after the initial load.
  */
+export async function findCitizenshipCardId(prisma: PrismaClient): Promise<number> {
+	const citizenshipCard = await prisma.documentType.findFirst({
+		where: { code: 'CC' },
+	})
+	if (!citizenshipCard) {
+		throw new Error(
+			'Cédula de Ciudadanía (CC) debe existir antes de crear clientes'
+		)
+	}
+	return citizenshipCard.idDocumentType
+}
+
 export async function seedDocumentTypes(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Tipos de Documento...')
 

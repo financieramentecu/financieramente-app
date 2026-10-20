@@ -4,7 +4,10 @@ import { z } from 'zod'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { updateDocumentTypeSchema } from '@/features/document-types/lib/document-type-schemas'
 import { requireSystemAdmin } from '@/features/document-types/lib/require-system-admin'
-import { updateDocumentType } from '@/features/document-types/services/document-type.service'
+import {
+	rejectPhysicalDocumentTypeRemoval,
+	updateDocumentType,
+} from '@/features/document-types/services/document-type.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { DocumentTypeDto } from '@/features/document-types/types/document-type.types'
 
@@ -69,4 +72,27 @@ export async function PUT(request: Request, context: RouteContext) {
 		}
 		return NextResponse.json(body, { status: 500 })
 	}
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+	const guard = await requireSystemAdmin()
+	if (!guard.ok) {
+		const body: ApiResponse<null> = { data: null, error: guard.error }
+		return NextResponse.json(body, { status: guard.status })
+	}
+
+	const { id } = await context.params
+	const idDocumentType = parseInt(id, 10)
+	if (!Number.isInteger(idDocumentType) || idDocumentType <= 0) {
+		const body: ApiResponse<null> = {
+			data: null,
+			error: 'Identificador inválido',
+		}
+		return NextResponse.json(body, { status: 400 })
+	}
+
+	const result = await rejectPhysicalDocumentTypeRemoval(idDocumentType)
+	const status = result.error.includes('no encontrado') ? 404 : 409
+	const body: ApiResponse<null> = { data: null, error: result.error }
+	return NextResponse.json(body, { status })
 }

@@ -3,6 +3,7 @@ import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
 import { prisma } from '@/lib/prisma'
 import {
 	createDocumentType,
+	rejectPhysicalDocumentTypeRemoval,
 	listDocumentTypes,
 	updateDocumentType,
 	validateIdentityForExistingRecord,
@@ -11,6 +12,9 @@ import {
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
+		$transaction: vi.fn(async (operations: Promise<unknown>[]) =>
+			Promise.all(operations)
+		),
 		documentType: {
 			findFirst: vi.fn(),
 			findUnique: vi.fn(),
@@ -286,7 +290,7 @@ describe('document type service', () => {
 				nextCode: 'CCX',
 				identityNumber: '1234567890',
 			})
-		).resolves.toMatch(/no está disponible/)
+		).resolves.toBe('El tipo de documento no existe')
 	})
 
 	it('keeps a stored formatted number when the document did not change', async () => {
@@ -316,7 +320,7 @@ describe('document type service', () => {
 		).resolves.toMatch(/dígitos/)
 	})
 
-	it('keeps a legacy code that is not in the catalog when the type does not change', async () => {
+	it('rejects a code that is not in the catalog because clients always reference a catalog row', async () => {
 		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
 
 		await expect(
@@ -325,6 +329,18 @@ describe('document type service', () => {
 				nextCode: 'CC',
 				identityNumber: '1234567890',
 			})
-		).resolves.toBeNull()
+		).resolves.toBe('El tipo de documento no existe')
+	})
+
+	it('refuses to physically delete a type that clients already use', async () => {
+		vi.mocked(prisma.documentType.findUnique).mockResolvedValue({
+			...stored,
+			_count: { clients: 3 },
+		} as never)
+
+		const result = await rejectPhysicalDocumentTypeRemoval(1)
+
+		expect(result.error).toMatch(/clientes relacionados/)
+		expect(prisma.documentType.update).not.toHaveBeenCalled()
 	})
 })

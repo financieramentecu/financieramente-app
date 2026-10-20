@@ -64,6 +64,17 @@ describe('updateClient — COM-63 authorization', () => {
 			existingClient as never
 		)
 		vi.mocked(prisma.client.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
+			idDocumentType: 1,
+			name: 'Cédula de Ciudadanía',
+			code: 'CC',
+			dataType: 'NUMERIC',
+			minLength: 6,
+			maxLength: 10,
+			status: true,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		} as never)
 		vi.mocked(prisma.client.update).mockResolvedValue({
 			...existingClient,
 			name: 'Ana María',
@@ -212,6 +223,7 @@ describe('updateClient — COM-63 authorization', () => {
 				role: UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 			},
 		} as never)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
 
 		const result = await updateClient({
 			idClient: 10,
@@ -221,7 +233,7 @@ describe('updateClient — COM-63 authorization', () => {
 		})
 
 		expect(result.data).toBeNull()
-		expect('error' in result && result.error).toMatch(/no está disponible/)
+		expect('error' in result && result.error).toMatch(/no existe/)
 		expect(prisma.client.update).not.toHaveBeenCalled()
 	})
 

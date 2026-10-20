@@ -78,7 +78,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			lastNames: defaultValues?.lastNames || '',
 			phone: defaultValues?.phone || '',
 			identityNumber: defaultValues?.identityNumber || '',
-			typeIdentity: defaultValues?.typeIdentity || 'CC',
+			typeIdentity: defaultValues?.typeIdentity ?? '',
 			clientOrigin: defaultValues?.clientOrigin || '',
 			company: defaultValues?.company || '',
 			producto: defaultValues?.producto || '',
@@ -309,11 +309,15 @@ export function useBusinessForm(props: BusinessFormProps) {
 						(option) => option.code === data.typeIdentity
 					)
 					if (!isEditMode && (!selectedType || !selectedType.status)) {
-						form.setError('typeIdentity', {
-							message:
-								'El tipo de documento no está disponible para nuevos registros',
-						})
-						toast.error('Tipo de documento no disponible')
+						const message = data.typeIdentity
+							? 'El tipo de documento no está disponible para nuevos registros'
+							: 'El tipo de documento es obligatorio'
+						form.setError('typeIdentity', { message })
+						toast.error(
+							data.typeIdentity
+								? 'Tipo de documento no disponible'
+								: 'Selecciona el tipo de documento'
+						)
 						return
 					}
 					if (selectedType) {
@@ -403,7 +407,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 				// (ClientAutocomplete) ya cubre la deduplicación por su cuenta.
 				if (!resolvedClientId && leadId) {
 					const resolveResult = await resolveExistingClient({
-						typeIdentity: data.typeIdentity || 'CC',
+						typeIdentity: data.typeIdentity,
 						identityNumber: data.identityNumber,
 						email: data.email,
 						leadId,
@@ -442,7 +446,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 					const createResult = await createClient({
 						name: data.name,
 						lastName: data.lastNames,
-						typeIdentity: data.typeIdentity || 'CC',
+						typeIdentity: data.typeIdentity,
 						identityNumber: data.identityNumber,
 						email: data.email,
 						phone: data.phone,
