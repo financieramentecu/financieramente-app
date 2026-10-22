@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { FormEvent, useState } from 'react'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
+import { PasswordInput } from '@/features/shared/ui/password-input'
 import { Label } from '@/features/shared/ui/label'
 
 export interface EmailPasswordFormProps {
@@ -50,9 +52,8 @@ export function EmailPasswordForm({
             </div>
             <div className="space-y-2">
                 <Label htmlFor="login-password">Contraseña</Label>
-                <Input
+                <PasswordInput
                     id="login-password"
-                    type="password"
                     placeholder={passwordPlaceholder}
                     autoComplete="current-password"
                     value={password}
@@ -60,6 +61,14 @@ export function EmailPasswordForm({
                     required
                     disabled={isSubmitting}
                 />
+                <div className="text-right">
+                    <Link
+                        href="/forgot-password"
+                        className="text-xs font-medium text-primary hover:underline"
+                    >
+                        ¿Olvidaste tu contraseña?
+                    </Link>
+                </div>
             </div>
             <Button
                 type="submit"

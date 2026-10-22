@@ -5,6 +5,10 @@ import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { sendTemplatedEmail } from '@/features/email/lib/email-service'
 import { Prisma } from '@prisma/client'
+import {
+	PARTNER_MANAGED_ERROR,
+	isPartnerAccount,
+} from '@/features/admin/users/lib/partner-guard'
 
 /**
  * POST /api/admin/users/[id]/activate
@@ -37,13 +41,21 @@ export async function POST(
 		// Obtener usuario
 		const user = await prisma.user.findUnique({
 			where: { idUser: userId },
-			include: { role: true },
+			include: { role: true, level: { select: { code: true } } },
 		})
 
 		if (!user) {
 			return NextResponse.json(
 				{ success: false, error: 'Usuario no encontrado' },
 				{ status: 404 }
+			)
+		}
+
+		// Partners are activated from the Partners module (own e-mail flow).
+		if (isPartnerAccount(user)) {
+			return NextResponse.json(
+				{ success: false, error: PARTNER_MANAGED_ERROR },
+				{ status: 403 }
 			)
 		}
 

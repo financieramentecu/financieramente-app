@@ -101,6 +101,7 @@ describe('GET /api/production-dashboard/heatmap', () => {
         levelCode: 'MS_SENIOR',
         levelOrder: 2,
         levelColor: '#333',
+        isPartner: false,
         categoryName: 'Cat A',
         idCategory: 10,
         cells: [{ idCompany: 5, companyName: 'Empresa X', copTotal: 100000, foreignUsdTotal: 0, count: 1 }],

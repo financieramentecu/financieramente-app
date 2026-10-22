@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { resolveTrustedClientIp } from './trusted-client-ip'
 
 /**
  * Acciones de auditoría
@@ -95,6 +96,16 @@ export enum AuditAction {
 	LEAD_CSV_IMPORT_STARTED = 'LEAD_CSV_IMPORT_STARTED',
 	LEAD_CSV_IMPORT_COMPLETED = 'LEAD_CSV_IMPORT_COMPLETED',
 	LEAD_CSV_ROW_REJECTED = 'LEAD_CSV_ROW_REJECTED',
+	PARTNER_CREATED = 'PARTNER_CREATED',
+	PARTNER_DEACTIVATED = 'PARTNER_DEACTIVATED',
+	PARTNER_REACTIVATED = 'PARTNER_REACTIVATED',
+	PARTNER_ACTIVATION_RESENT = 'PARTNER_ACTIVATION_RESENT',
+	PARTNER_UPDATED = 'PARTNER_UPDATED',
+	ACCOUNT_ACTIVATED = 'ACCOUNT_ACTIVATED',
+	PASSWORD_RESET_REQUESTED = 'PASSWORD_RESET_REQUESTED',
+	PASSWORD_RESET_COMPLETED = 'PASSWORD_RESET_COMPLETED',
+	SETTLEMENT_EXCLUDED = 'SETTLEMENT_EXCLUDED',
+	FILE_IMPORT_EXCLUDED_ONLY_CLOSED = 'FILE_IMPORT_EXCLUDED_ONLY_CLOSED',
 }
 
 /**
@@ -134,21 +145,11 @@ export async function logAuditEvent(params: AuditLogParams): Promise<void> {
 }
 
 /**
- * Obtiene la IP del cliente desde headers
+ * Client IP for audit records. Uses the trusted source (nginx `x-real-ip`, else
+ * the LAST `x-forwarded-for` hop): the first hop is client controlled.
  */
 export function getClientIp(headers: Headers): string | undefined {
-	// Intentar obtener IP de headers comunes
-	const forwarded = headers.get('x-forwarded-for')
-	if (forwarded) {
-		return forwarded.split(',')[0].trim()
-	}
-
-	const realIp = headers.get('x-real-ip')
-	if (realIp) {
-		return realIp
-	}
-
-	return undefined
+	return resolveTrustedClientIp(headers)
 }
 
 /**

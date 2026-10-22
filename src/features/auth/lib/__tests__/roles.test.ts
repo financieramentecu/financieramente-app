@@ -8,6 +8,11 @@ import {
 	isReadOnlyRole,
 	isWriteBypassRole,
 	isGlobalVisibilityRole,
+	isValidRole,
+	isBusinessOwnerRole,
+	getRoleName,
+	ROLE_NAMES,
+	ROLE_DESCRIPTIONS,
 } from '../roles'
 
 describe('canViewPayments', () => {
@@ -180,5 +185,49 @@ describe('read-only / write-bypass / global-visibility predicates edge cases', (
 
 	it('isGlobalVisibilityRole returns false for empty string', () => {
 		expect(isGlobalVisibilityRole('')).toBe(false)
+	})
+})
+
+describe('UserRole.PARTNER', () => {
+	it('is a valid role with the PARTNER code', () => {
+		expect(UserRole.PARTNER).toBe('PARTNER')
+		expect(isValidRole('PARTNER')).toBe(true)
+	})
+
+	it('has a display name and description', () => {
+		expect(getRoleName(UserRole.PARTNER)).toBe('Partner Externo')
+		expect(ROLE_NAMES[UserRole.PARTNER]).toBeTruthy()
+		expect(ROLE_DESCRIPTIONS[UserRole.PARTNER]).toBeTruthy()
+	})
+
+	it('is neither write-bypass, read-only nor global visibility', () => {
+		expect(isWriteBypassRole(UserRole.PARTNER)).toBe(false)
+		expect(isReadOnlyRole(UserRole.PARTNER)).toBe(false)
+		expect(isGlobalVisibilityRole(UserRole.PARTNER)).toBe(false)
+	})
+
+	it('cannot fund payments but may delete comprobantes (product-owner decision 2026-10-11)', () => {
+		expect(canFundPayments(UserRole.PARTNER)).toBe(false)
+		expect(canDeleteBusinessComprobante(UserRole.PARTNER)).toBe(true)
+	})
+})
+
+describe('isBusinessOwnerRole', () => {
+	it.each([UserRole.AGENTE, UserRole.PARTNER])('returns true for %s', (role) => {
+		expect(isBusinessOwnerRole(role)).toBe(true)
+	})
+
+	it.each([
+		UserRole.ADMIN,
+		UserRole.DEFAULT,
+		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+		UserRole.ANALISTA_SOPORTE,
+		UserRole.CONSULTOR,
+		'UNKNOWN_ROLE',
+		'',
+		undefined,
+		null,
+	])('returns false for %s', (role) => {
+		expect(isBusinessOwnerRole(role)).toBe(false)
 	})
 })

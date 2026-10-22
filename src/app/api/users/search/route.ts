@@ -28,11 +28,19 @@ export async function GET(request: Request) {
 		}
 
 		// check if role is valid
-		if (roleParam && !isValidRole(roleParam)) {
+		// `role` accepts a comma-separated list (e.g. AGENTE,PARTNER for owner pickers)
+		const roleCodes = roleParam
+			? roleParam
+					.split(',')
+					.map((code) => code.trim())
+					.filter(Boolean)
+			: []
+		const invalidRole = roleCodes.find((code) => !isValidRole(code))
+		if (invalidRole) {
 			return NextResponse.json(
 				{
 					data: null,
-					error: `Rol inválido: ${roleParam}. Roles válidos: ${Object.values(UserRole).join(', ')}`,
+					error: `Rol inválido: ${invalidRole}. Roles válidos: ${Object.values(UserRole).join(', ')}`,
 				} satisfies ApiResponse<null>,
 				{ status: 400 }
 			)
@@ -55,10 +63,10 @@ export async function GET(request: Request) {
 		}
 
 		// add filter if there is a code role
-		if (roleParam && isValidRole(roleParam)) {
-			where.role = {
-				code: roleParam as UserRole,
-			}
+		if (roleCodes.length === 1) {
+			where.role = { code: roleCodes[0] as UserRole }
+		} else if (roleCodes.length > 1) {
+			where.role = { code: { in: roleCodes as UserRole[] } }
 		}
 
 		// Combine idLevel + beneficiaryMode filters into a single `level` relation block

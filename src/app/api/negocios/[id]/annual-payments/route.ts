@@ -9,7 +9,11 @@ import { prisma } from '@/lib/prisma'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { AnnualPaymentsResponse } from '@/features/negocios/types/business-api.types'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole } from '@/features/auth/lib/roles'
+import {
+	checkBusinessRoleGate,
+	resolveBusinessScope,
+} from '@/features/negocios/services/business-access.service'
+import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
 import type { BusinessStatus } from '@/features/negocios/types/business-entity.types'
 
 interface RouteParams {
@@ -49,13 +53,15 @@ export async function GET(
 			)
 		}
 
-		const isAgent = currentUser.role?.code === UserRole.AGENTE
-		const whereClause = isAgent
-			? { idBusiness: businessId, idUser: currentUser.idUser }
-			: { idBusiness: businessId }
+		// SEC-03: central access decision (AGENTE self+subordinates, PARTNER own)
+		const denied = checkBusinessRoleGate(currentUser, 'read')
+		if (denied) {
+			return businessAccessDeniedResponse(denied.reason)
+		}
+		const scope = await resolveBusinessScope(prisma, currentUser)
 
 		const business = await prisma.business.findFirst({
-			where: whereClause,
+			where: { idBusiness: businessId, ...scope },
 			include: {
 				payments: {
 					orderBy: { installmentIndex: 'asc' },

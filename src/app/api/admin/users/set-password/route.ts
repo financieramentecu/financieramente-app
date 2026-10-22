@@ -4,6 +4,10 @@ import { prisma } from '@/lib/prisma'
 import { hashPassword, validatePasswordStrength } from '@/features/auth/lib/password-utils'
 import { UserRole } from '@/features/auth/lib/roles'
 import { z } from 'zod'
+import {
+    PARTNER_MANAGED_ERROR,
+    isPartnerAccount,
+} from '@/features/admin/users/lib/partner-guard'
 
 /**
  * Schema de validación para establecer contraseña
@@ -67,13 +71,21 @@ export async function POST(request: Request) {
         // Verificar que el usuario objetivo existe
         const targetUser = await prisma.user.findUnique({
             where: { idUser: userId },
-            include: { role: true },
+            include: { role: true, level: { select: { code: true } } },
         })
 
         if (!targetUser) {
             return NextResponse.json(
                 { error: 'Usuario no encontrado' },
                 { status: 404 }
+            )
+        }
+
+        // Partners set their own password from the activation / reset link.
+        if (isPartnerAccount(targetUser)) {
+            return NextResponse.json(
+                { error: PARTNER_MANAGED_ERROR },
+                { status: 403 }
             )
         }
 

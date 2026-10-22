@@ -21,6 +21,7 @@ import {
 	canEditContractWhenBusinessEmitido,
 	canFundPayments,
 	canEliminateFondeado,
+	isBusinessOwnerRole,
 } from '@/features/auth/lib/roles'
 import { hasNestedPermission } from '@/features/auth/lib/permissions'
 import {
@@ -787,7 +788,7 @@ export function BusinessTableSection({
 						const isCancelado = row.statusCode === BUSINESS_STATUS.CANCELADO
 					const isFondeado = row.statusCode === BUSINESS_STATUS.FONDEADO
 						const isCancelable =
-							((isVentaEfectuado || isEmitido) && userRole !== UserRole.AGENTE) ||
+							((isVentaEfectuado || isEmitido) && !isBusinessOwnerRole(userRole)) ||
 							(isFondeado && canEliminateFondeado(userRole))
 						const canFondearRole = canFundPayments(userRole)
 						const showFondearDirect =
@@ -796,7 +797,7 @@ export function BusinessTableSection({
 							row.hasPayments &&
 							(isEmitido || isFondeado) &&
 							canFondearRole
-						const isCoachRole = userRole === UserRole.AGENTE
+						const isCoachRole = isBusinessOwnerRole(userRole)
 						const showViewFondeoForCoach =
 							isCoachRole && row.hasPayments && (isEmitido || isFondeado)
 						const isFondeable =
