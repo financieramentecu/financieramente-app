@@ -234,7 +234,7 @@ Releases use [Changesets](https://github.com/changesets/changesets). Each branch
 3. **Body format:** only `### Agregado`, `### Mejorado`, `### Corregido`, `### Técnico` headings with `- ` bullets. The first three are user/product-facing in Spanish; `### Técnico` is technical in English (models, endpoints, new files, migrations). Any other content makes the release fail.
 4. **NEVER edit `CHANGELOG.md` or the `package.json` version by hand.**
 5. **SDD archive:** the archive phase adds or updates the change's changeset (bump type + sections) instead of editing CHANGELOG/version.
-6. **Release to production:** on `develop`, run `npm run release:version` (preview with `-- --dry-run`). It consolidates all pending changesets into ONE CHANGELOG entry (`## [X.Y.Z] - YYYY-MM-DD`, Bogotá date), bumps `package.json`/`package-lock.json`, and deletes the consumed changesets. Review the diff, commit `chore(release): vX.Y.Z`, open a PR `develop` → `main`, and tag `vX.Y.Z` after merge.
+6. **Release to production:** from a branch synced with `develop`, run `npm run release:version` (preview with `-- --dry-run`). It consolidates all pending changesets into ONE CHANGELOG entry (`## [X.Y.Z] - YYYY-MM-DD`, Bogotá date), bumps `package.json`/`package-lock.json`, and deletes the consumed changesets. Review the diff, commit `chore(release): vX.Y.Z` on that branch, and open a PR into `develop`. Release flow is `develop → qa → main`: once the release commit is on `develop`, open a PR `develop` → `qa`, then a PR `qa` → `main`, and tag `vX.Y.Z` after the `main` merge.
 
 ## Coding Language Rules
 
