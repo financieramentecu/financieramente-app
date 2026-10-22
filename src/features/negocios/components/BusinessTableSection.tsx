@@ -779,13 +779,13 @@ export function BusinessTableSection({
 						const isVentaEfectuado =
 							row.statusCode === BUSINESS_STATUS.VENTA_EFECTUADA
 						const isEmitido = row.statusCode === BUSINESS_STATUS.EMITIDO
-						const canEditEmitido =
-							isEmitido &&
+						const isFondeado = row.statusCode === BUSINESS_STATUS.FONDEADO
+						const canEditAfterSale =
+							(isEmitido || isFondeado) &&
 							userRole !== undefined &&
 							canEditContractWhenBusinessEmitido(userRole)
-						const isEditable = isVentaEfectuado || canEditEmitido
+						const isEditable = isVentaEfectuado || canEditAfterSale
 						const isCancelado = row.statusCode === BUSINESS_STATUS.CANCELADO
-					const isFondeado = row.statusCode === BUSINESS_STATUS.FONDEADO
 						const isCancelable =
 							((isVentaEfectuado || isEmitido) && userRole !== UserRole.AGENTE) ||
 							(isFondeado && canEliminateFondeado(userRole))

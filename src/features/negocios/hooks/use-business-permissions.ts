@@ -110,14 +110,7 @@ export function useBusinessPermissions({
 			return { readonly: true, disabled: true, hidden: false }
 		}
 		if (financialFields.includes(field)) {
-			const status = businessStatus?.toUpperCase()
-			
-			// Si el negocio ya está fondeado, nadie debería editar los campos financieros
-			if (status === 'FONDEADO') {
-				return { readonly: true, disabled: true, hidden: false }
-			}
-
-			// Si es un rol privilegiado (ADMIN, etc.), puede editar siempre que no esté fondeado
+			// Privileged roles keep the same field access after funding (COM-36).
 			if (isPrivileged) {
 				return { readonly: false, disabled: false, hidden: false }
 			}
