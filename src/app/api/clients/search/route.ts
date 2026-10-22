@@ -32,6 +32,7 @@ export async function GET(request: Request) {
 				name: true,
 				lastName: true,
 				typeIdentity: true,
+				idDocumentType: true,
 				identityNumber: true,
 				email: true,
 				phone: true,

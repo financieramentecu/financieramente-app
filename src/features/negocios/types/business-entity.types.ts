@@ -92,6 +92,12 @@ export interface ClientInfo {
 	/** Apellido(s) del cliente */
 	lastName: string | null
 	identityNumber: string
+	/** Código del tipo de documento (`document_type.code`), copiado desde la FK. */
+	typeIdentity?: string
+	/** Identificador estable del catálogo COM-26. */
+	idDocumentType?: number
+	/** Nombre del tipo, incluso si luego se inactivó. */
+	documentTypeName?: string
 	email: string | null
 	phone: string | null
 }

@@ -118,6 +118,7 @@ export interface UserWithRole {
 }
 
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
+import type { DocumentTypeOption } from '@/features/document-types/types/document-type.types'
 import type {
 	AgentInfo,
 	BusinessNovedadStatus as BusinessNovedadStatusCode,
@@ -141,6 +142,8 @@ export interface BusinessFormProps {
 	periodicitiesOptions: { value: string; label: string }[]
 	currenciesOptions: { value: string; label: string }[]
 	clientOriginsOptions: { value: string; label: string }[]
+	/** Active catalog, plus the type already stored when editing an inactive one. */
+	documentTypeOptions?: DocumentTypeOption[]
 	businessAgent?: AgentInfo
 	businessStatus?: string | null
 	/**

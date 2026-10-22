@@ -158,6 +158,33 @@ model Currency {
   @@map("currency")
 }
 
+/// Catálogo de tipos de documento de identidad (COM-26).
+/// El cliente se relaciona por `id_document_type` (COM-27). Desactivar
+/// (`status = false`) oculta el tipo en altas nuevas y conserva la FK.
+/// `user.type_identity` sigue guardando solo el código: los usuarios de
+/// plataforma quedan fuera de esta relación. El tomador (COM-28) aún no
+/// tiene tabla propia y deberá usar esta misma FK cuando exista.
+model DocumentType {
+  idDocumentType Int              @id @default(autoincrement()) @map("id_document_type")
+  name           String           @unique @db.VarChar(80)
+  code           String           @unique @db.VarChar(10)
+  dataType       DocumentDataType @map("data_type")
+  minLength      Int              @map("min_length")
+  maxLength      Int              @map("max_length")
+  status         Boolean          @default(true)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  clients        Client[]
+
+  @@index([status])
+  @@map("document_type")
+}
+
+enum DocumentDataType {
+  NUMERIC
+  ALPHANUMERIC
+}
+
 model TypeProduct {
   idTypeProduct Int       @id @default(autoincrement()) @map("id_type_product")
   name          String    @db.VarChar(200)
@@ -311,22 +338,27 @@ model User {
 
 model Client {
   idClient       Int        @id @default(autoincrement()) @map("id_client")
-  name           String     @db.VarChar(200)
-  lastName       String?    @map("last_name") @db.VarChar(200)
-  typeIdentity   String     @default("CC") @map("type_identity") @db.VarChar(10)
-  identityNumber String     @map("identity_number") @db.VarChar(20)
+  name           String       @db.VarChar(200)
+  lastName       String?      @map("last_name") @db.VarChar(200)
+  /// Copia de `document_type.code` para la unicidad histórica `(type_identity, identity_number)`.
+  /// La relación estable es `idDocumentType`; no se acepta texto libre.
+  typeIdentity   String       @default("CC") @map("type_identity") @db.VarChar(10)
+  idDocumentType Int          @map("id_document_type")
+  identityNumber String       @map("identity_number") @db.VarChar(20)
   email          String?    @db.VarChar(150)
   phone          String?    @db.VarChar(30)
   direcction     String?    @db.VarChar(255)
   city           String?    @db.VarChar(100)
   country        String     @default("Colombia") @db.VarChar(50)
-  active         Boolean    @default(true)
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
   businesses     Business[]
+  documentType   DocumentType @relation(fields: [idDocumentType], references: [idDocumentType], onDelete: Restrict)
 
   @@unique([typeIdentity, identityNumber])
   @@index([identityNumber])
+  @@index([idDocumentType])
   @@map("client")
 }
 

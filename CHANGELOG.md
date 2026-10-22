@@ -4,6 +4,44 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.37.0] - 2026-10-21
+
+### Agregado
+
+- **Tipo de Documento en negocios:** Al crear o editar un negocio hay que elegir el tipo de documento del cliente desde el catálogo activo. Si el número de identificación se diligencia, el tipo es obligatorio. Un tipo que después se inactiva sigue viéndose en el negocio que ya lo usa y no aparece para asignaciones nuevas.
+- **Consultor puede exportar la Lista de Negocios a Excel:** El rol Consultor mantiene solo lectura (sin crear, editar ni eliminar), pero ahora puede descargar el Excel de negocios con los mismos filtros aplicados en pantalla. Las exportaciones del Dashboard y de Reportes siguen bloqueadas.
+- **Tipos de documento de identidad:** El Administrador del Sistema puede crear, editar y activar o inactivar tipos de documento desde Administración. El formulario de negocio valida el número según el tipo (numérico o alfanumérico, longitud mínima y máxima). Al desplegar quedan precargados CC, CE, PAS, NIT y PPT.
+
+### Mejorado
+
+- La exportación de negocios a Excel incluye la columna **Tipo de Documento** junto al número de identificación. El número de cédula se mantiene.
+- En el formulario de negocio el número de documento va primero. Si ese documento ya existe, se carga el tipo de documento del cliente; si no existe, se continúa con el alta.
+- **Notas de versión consolidadas automáticamente:** Cada cambio registra su propia nota y, al publicar una versión, todas se unifican en una sola entrada del CHANGELOG con un único incremento de versión, eliminando los conflictos de CHANGELOG y versión entre ramas.
+
+### Corregido
+
+- **Consultor no veía negocios en el listado ni en el Excel:** La vista de Negocios y la exportación acotaban al Consultor a su propio usuario, dejando el listado vacío. Ahora ve todos los negocios (cualquier nivel y cualquier persona), y el Excel refleja exactamente ese mismo conjunto respetando los filtros de pantalla.
+- **Abreviatura de un tipo en uso:** Si clientes o usuarios ya tienen esa abreviatura, el formulario de administración la deja bloqueada y el guardado rechaza el cambio. Así un código como CC no deja identificaciones sin tipo.
+- **Cambio de tipo en un cliente:** Solo un rol con permiso de edición de cliente puede cambiar el tipo de documento. El tipo nuevo tiene que existir en el catálogo; un código que no está en el catálogo solo se conserva si el cliente ya lo tenía.
+- **Edición de un negocio ya guardado:** Si el tipo y el número de documento no cambian, se puede guardar el resto del negocio aunque el número tenga puntos o guiones. La regla del catálogo se aplica cuando el documento sí cambia o cuando el negocio es nuevo.
+
+### Técnico
+
+- `Client.idDocumentType` is a required foreign key to `document_type` (`ON DELETE RESTRICT`). `type_identity` stays as the catalog code for the existing unique pair and current readers. Migration `20261014170000_link_client_document_type` is idempotent: it creates CC when missing, links matching codes, and assigns CC only when `id_document_type` is null. Before writing, it aborts when the rewrite would duplicate `(type_identity, identity_number)`. Each defaulted client keeps its previous code in `audit_log.details` (`CLIENT_DOCUMENT_TYPE_DEFAULTED`). The summary row `CLIENT_DOCUMENT_TYPE_MIGRATED` stores found/migrated/preserved/defaulted/skipped/out_of_catalog counts. Renaming a catalog code updates the denormalized `type_identity` of related clients. `DELETE /api/admin/document-types/[id]` refuses physical removal. Platform users and the future policyholder (COM-28) are not migrated here.
+- Seed fix for a freshly reset database: `seedNewCategories` now upserts its `CategoryType` ('MIA') instead of skipping every category when none exists (the migration only copies types from existing categories), and no longer runs on import. `seedUsers` resolves the demo users' level through `requireLevel` with the `LEVEL_0`/`LEVEL_2` codes created by `seedLevels`, and fails when a level is missing instead of silently leaving `id_level` null (the stale `JUNIOR`/`LIDER` codes made the agent search return no one).
+- `canExportBusinessList()` allows `UserRole.CONSULTOR` before the generic read-only block; Dashboard/Reportes keep using `isReadOnlyRole` to deny their downloads.
+- `buildBusinessListWhere()` scopes via `isGlobalVisibilityRole()` so CONSULTOR is not restricted to `idUser` (list + `POST /api/negocios/export` share the same WHERE).
+- Role description and seed updated; colocated route/lib tests cover CONSULTOR global visibility and Excel export authorization.
+- New `DocumentType` model and `DocumentDataType` enum; migration `20261009193000_add_document_type` preloads the five standard codes (`ON CONFLICT DO NOTHING`). Deactivation sets `status = false` (no physical delete and no FK to stored identities).
+- Admin API `/api/admin/document-types` (ADMIN only) and authenticated `GET /api/document-types`. Business create/update validate the identity against the catalog.
+- `updateDocumentType` rejects a code change when `Client.typeIdentity` or `User.typeIdentity` matches the current code. `validateIdentityForExistingRecord` allows a missing catalog row only when the code is unchanged, and skips the catalog format check when both `typeIdentity` and `identityNumber` are unchanged. `updateClient` treats `typeIdentity` like `identityNumber` for the privileged-role check.
+- New project + global skill `financieramente-codereview`: reviews a PR against its real base branch (three-dot diff), reads base-branch callers/hooks/services for impact, applies this repo's architecture/SOLID/soft-delete/audit-log rules and the matching stack skills (`react-19`, `typescript`, `nextjs-16`), runs `test:unit` and `lint`/`type-check`, and reports a severity-ranked merge verdict. Files: `skills/financieramente-codereview/SKILL.md`, `skills/financieramente-codereview/references/report-format.md`, `skills/financieramente-codereview/references/hosts.md`. Registered in `AGENTS.md`.
+- Adopt `@changesets/cli` (2.x, Node 20 compatible) with `.changeset/config.json` (`baseBranch: develop`, built-in changelog disabled, private package versioning enabled).
+- New `npm run release:version` (`scripts/release/consolidate-changelog.ts`) consolidates pending changesets into one CHANGELOG entry in the existing Agregado/Mejorado/Corregido/Técnico format, then runs `changeset version` and syncs `package-lock.json`; supports `--dry-run`.
+- Pure parsing/rendering logic in `scripts/release/changelog-entry.ts` with unit tests; `vitest.unit.config.ts` now collects `scripts/**/*.test.ts`.
+- New `changeset` job in the QA PR pipeline runs `changeset status --since=origin/develop`, skippable with the `no-changeset` label.
+- `human-id` pinned to 4.1.3 via `overrides` so the Changesets CLI runs on Node 20 releases without `require(esm)` support.
+
 ## [1.36.0] - 2026-10-01
 
 ### Agregado
