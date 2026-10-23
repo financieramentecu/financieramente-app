@@ -176,10 +176,12 @@ function main(): void {
 	console.log(
 		'  1. Review the diff (CHANGELOG.md, package.json, package-lock.json, .changeset/).'
 	)
-	console.log(`  2. Commit: git commit -am "chore(release): v${bumpedVersion}"`)
-	console.log('  3. Open a PR develop → main and merge it.')
+	console.log(`  2. Commit on a branch: git commit -am "chore(release): v${bumpedVersion}"`)
+	console.log('  3. Open a PR into develop and merge it.')
+	console.log('  4. Open a PR develop → qa and merge it.')
+	console.log('  5. Open a PR qa → main and merge it.')
 	console.log(
-		`  4. After merging, tag main: git tag v${bumpedVersion} && git push origin v${bumpedVersion}`
+		`  6. After merging to main, tag it: git tag v${bumpedVersion} && git push origin v${bumpedVersion}`
 	)
 }
 
