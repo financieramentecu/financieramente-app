@@ -1,8 +1,18 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { hasPermission } from '@/features/auth/lib/permissions'
+import { requireActionPermission } from '@/lib/auth/require-action-permission'
 
 export async function getProductDistribution(idProduct: number, idLevelOrigin: number) {
+	// SEC-03: requires login and the calculadora permission (PARTNER and DEFAULT do not have it)
+	const guard = await requireActionPermission((role) =>
+		hasPermission(role, 'calculadora')
+	)
+	if (!guard.ok) {
+		return { success: false, data: [], discountPercentage: 12, clawbackPercentage: 10 }
+	}
+
 	try {
 		// Fetch discount and clawback from CommissionDiscount table (global defaults)
 		const [impuesto, clawbackOperativo] = await Promise.all([

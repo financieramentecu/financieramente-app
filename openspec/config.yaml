@@ -35,8 +35,16 @@ rules:
     - Use Given/When/Then format for scenarios
     - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
   design:
-    - Include sequence diagrams for complex flows
     - Document architecture decisions with rationale
+    - Use Mermaid (```mermaid fenced blocks) for every diagram; do not use ASCII diagrams
+    - Add a "## Diagrams" section with the diagrams the specs require, choosing by need
+    - Sequence diagram (sequenceDiagram) for every flow crossing 2+ layers (UI -> route/action -> service -> Prisma/email/external)
+    - State diagram (stateDiagram-v2) for every entity whose status, lifecycle, or validity changes (user activation, tokens, business status)
+    - Flowchart (flowchart TD) for decision logic, authorization gates, and exclusion/branching rules
+    - ER diagram (erDiagram) when the Prisma schema changes, showing only new/changed models and their relations
+    - Each diagram has a one-line caption stating what it shows and which spec requirement(s) it covers
+    - Diagrams must use real names from the codebase (routes, services, models, fields) and stay consistent with the specs
+    - Mermaid diagrams do not count toward the design word budget
   tasks:
     - Group tasks by phase (infrastructure, implementation, testing)
     - Use hierarchical numbering (1.1, 1.2, etc.)

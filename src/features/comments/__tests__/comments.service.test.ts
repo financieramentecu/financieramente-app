@@ -127,6 +127,66 @@ describe('createComment', () => {
     expect(createManyArg.data[0]).toMatchObject({ idUser: 99 })
   })
 
+  it('routes PARTNER author comments to all active ANALISTA_SOPORTE users like an AGENTE (CC-02)', async () => {
+    mockPrisma.business.findUnique.mockResolvedValue({ ...BUSINESS, idUser: 1 })
+    mockPrisma.user.findUnique.mockResolvedValue({ idUser: 1, role: { code: 'PARTNER' } })
+    mockPrisma.comment.create.mockResolvedValue(
+      commentRow({ author: { idUser: 1, name: 'Pat Partner', role: { code: 'PARTNER' } } }),
+    )
+    mockPrisma.user.findMany.mockResolvedValue([{ idUser: 2 }, { idUser: 3 }])
+    mockPrisma.notification.findMany.mockResolvedValue([
+      { idUser: 2, idNotification: 100 },
+      { idUser: 3, idNotification: 101 },
+    ])
+
+    await createComment(10, { title: 'Seguimiento', detail: 'Falta el comprobante' }, CTX)
+
+    expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { role: { code: 'ANALISTA_SOPORTE' }, active: true },
+      }),
+    )
+    const createManyArg = mockPrisma.notification.createMany.mock.calls[0][0]
+    expect(createManyArg.data.map((n: { idUser: number }) => n.idUser)).toEqual([2, 3])
+    expect(createManyArg.data[0]).toMatchObject({
+      title: 'Nuevo comentario en contrato CTR-001',
+      message: 'Seguimiento - Pat Partner',
+      callbackUrl: '/dashboard/negocios/10?openComments=true',
+    })
+    expect(mockSendNotification).toHaveBeenCalledTimes(2)
+  })
+
+  it('notifies a PARTNER owner when an ANALISTA_SOPORTE comments, with the same notification as for an agent owner (CC-02)', async () => {
+    mockPrisma.business.findUnique.mockResolvedValue({ ...BUSINESS, idUser: 77 })
+    mockPrisma.user.findUnique.mockResolvedValue({ idUser: 5, role: { code: 'ANALISTA_SOPORTE' } })
+    mockPrisma.comment.create.mockResolvedValue(
+      commentRow({ author: { idUser: 5, name: 'Beto Analista', role: { code: 'ANALISTA_SOPORTE' } } }),
+    )
+    mockPrisma.notification.findMany.mockResolvedValue([{ idUser: 77, idNotification: 300 }])
+
+    await createComment(10, { title: 'Seguimiento', detail: 'Falta el comprobante' }, { ...CTX, userId: 5 })
+
+    const createManyArg = mockPrisma.notification.createMany.mock.calls[0][0]
+    expect(createManyArg.data).toEqual([
+      {
+        idUser: 77,
+        title: 'Nuevo comentario en contrato CTR-001',
+        message: 'Seguimiento - Beto Analista',
+        callbackUrl: '/dashboard/negocios/10?openComments=true',
+      },
+    ])
+  })
+
+  it('does not notify anyone for authors outside AGENTE, PARTNER and ANALISTA_SOPORTE', async () => {
+    mockPrisma.business.findUnique.mockResolvedValue(BUSINESS)
+    mockPrisma.user.findUnique.mockResolvedValue({ idUser: 1, role: { code: 'ADMIN' } })
+    mockPrisma.comment.create.mockResolvedValue(commentRow())
+
+    await createComment(10, { title: 'a', detail: 'b' }, CTX)
+
+    expect(mockPrisma.notification.createMany).not.toHaveBeenCalled()
+  })
+
   it('skips notification when Business.idUser is null (defensive guard)', async () => {
     mockPrisma.business.findUnique.mockResolvedValue({ ...BUSINESS, idUser: null })
     mockPrisma.user.findUnique.mockResolvedValue({ idUser: 5, role: { code: 'ANALISTA_SOPORTE' } })

@@ -17,6 +17,7 @@ vi.mock('@/lib/prisma', () => ({
 		business: {
 			findFirst: vi.fn(),
 		},
+		user: { findMany: vi.fn() },
 	},
 }))
 vi.mock('@/features/negocios/services/user.service')
@@ -116,6 +117,7 @@ describe('GET /api/negocios/[id]/annual-payments', () => {
 		mockGetCurrentUserByEmail.mockResolvedValue(
 			buildUserWithRole('a@test.com', UserRole.AGENTE) as never
 		)
+		vi.mocked(prisma.user.findMany).mockResolvedValue([])
 		mockFindFirst.mockResolvedValue(null)
 
 		const request = new Request(

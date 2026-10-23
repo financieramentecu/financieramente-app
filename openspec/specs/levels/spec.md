@@ -98,21 +98,36 @@ The `code` field on Level MUST have a unique constraint at the database level. N
 
 The canonical code-to-levelNumber mapping SHALL be:
 
-| Code | levelNumber |
-|------|-------------|
-| LEVEL_0 | 0 |
-| LEVEL_1 | 1 |
-| LEVEL_2 | 2 |
-| LEVEL_3 | 3 |
-| LEVEL_4 | 4 |
-| LEVEL_5 | 5 |
-| GENERAL_LEVEL | null |
+| Code             | levelNumber |
+| ---------------- | ----------- |
+| LEVEL_0          | 0           |
+| LEVEL_1          | 1           |
+| LEVEL_2          | 2           |
+| LEVEL_3          | 3           |
+| LEVEL_4          | 4           |
+| LEVEL_5          | 5           |
+| GENERAL_LEVEL    | null        |
+| PARTNER_EXTERNAL | null        |
+
+`PARTNER_EXTERNAL` (display "Partner Externo", beneficiary mode OVERRIDE) MUST sit outside the LEVEL_0..GENERAL_LEVEL chain: it MUST NOT be the next level of any level and MUST NOT be reachable through hierarchy progression. LEVEL_5 ("Partner") MUST remain unchanged.
 
 #### Scenario: Seed data matches canonical mapping
 
 - GIVEN the database is seeded with hierarchy levels
 - WHEN each level is read
 - THEN `code` and `levelNumber` SHALL match the canonical table above
+
+#### Scenario: LEVEL_5 untouched
+
+- GIVEN the seeds run on a database that already has LEVEL_5 "Partner"
+- WHEN seedLevels completes
+- THEN LEVEL_5 keeps its code, name and levelNumber, and PARTNER_EXTERNAL exists separately
+
+#### Scenario: PARTNER_EXTERNAL not renamed
+
+- GIVEN PARTNER_EXTERNAL exists
+- WHEN seedLevels runs again (including the legacy old-code rename step)
+- THEN PARTNER_EXTERNAL is not renamed or merged into LEVEL_5
 
 ### Requirement: Audit log on Level mutations
 
@@ -135,3 +150,13 @@ Every create, update, and deactivation of a Level MUST emit an audit event via `
 - GIVEN an internal error when writing to AuditLog
 - WHEN a Level mutation occurs
 - THEN the main operation SHALL still return 2xx; the audit error SHALL only be logged
+
+### Requirement: LVL-01 Partner level excluded from chains and pickers
+
+`PARTNER_EXTERNAL` MUST NOT appear in the calculadora level dropdown, in leader-candidate lists, or in admin level choices for users (PM-07, PA-03).
+
+#### Scenario: Dropdown
+
+- GIVEN the calculadora
+- WHEN levels load
+- THEN PARTNER_EXTERNAL is absent

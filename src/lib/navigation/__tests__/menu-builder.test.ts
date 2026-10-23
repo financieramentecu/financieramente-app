@@ -56,3 +56,20 @@ describe('buildMenuByRole — leads/misDistribuciones/calculadora gating (D7)', 
 		expect(items).not.toContain('Mis distribuciones')
 	})
 })
+
+describe('buildMenuByRole — Partners admin entry (ADM-02)', () => {
+	it('ADMIN sees a Partners entry pointing to the Partners module', () => {
+		const menu = buildMenuByRole(UserRole.ADMIN, ROLE_PERMISSIONS[UserRole.ADMIN], {
+			isCalculadoraEnabled: true,
+		})
+		const entry = menu.find((item) => item.title === 'Partners')
+		expect(entry?.url).toBe('/dashboard/admin/partners')
+	})
+
+	it.each(Object.values(UserRole).filter((role) => role !== UserRole.ADMIN))(
+		'%s never sees the Partners entry',
+		(role) => {
+			expect(titles(role, ['PRODUCCION_REAL'])).not.toContain('Partners')
+		}
+	)
+})

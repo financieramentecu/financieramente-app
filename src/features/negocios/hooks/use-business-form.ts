@@ -10,13 +10,14 @@ import {
 import { createClient } from '@/features/negocios/actions/create-client'
 import { updateClient } from '@/features/negocios/actions/update-client'
 import { createBusiness } from '@/features/negocios/actions/create-business'
+import { checkBusinessCreation } from '@/features/negocios/actions/check-business-creation'
 import { resolveExistingClient } from '@/features/negocios/actions/resolve-existing-client'
 import { useSearchClient } from '@/features/negocios/hooks/use-search-client'
 import { useSearchAgents } from '@/features/negocios/hooks/use-search-agents'
 import { useProductFilter } from '@/features/negocios/hooks/use-product-filter'
 import { useAgentPermissions } from '@/features/negocios/hooks/use-agent-permissions'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
-import { UserRole } from '@/features/auth/lib/roles'
+import { BUSINESS_OWNER_ROLES, UserRole } from '@/features/auth/lib/roles'
 import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-permissions'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
@@ -166,7 +167,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			if (!canSearchAgents) {
 				return []
 			}
-			const results = await handleSearchAgents(query, UserRole.AGENTE)
+			const results = await handleSearchAgents(query, BUSINESS_OWNER_ROLES)
 			setAgentsList(results)
 			return results
 		},
@@ -399,6 +400,19 @@ export function useBusinessForm(props: BusinessFormProps) {
 				}
 
 				// --- Modo creación ---
+				// NEG-02: validate owner + commission BEFORE any client is created or
+				// updated, so a product the owner cannot sell leaves nothing behind.
+				const preflight = await checkBusinessCreation({
+					idUser: parseInt(data.agent),
+					idProduct: parseInt(data.producto),
+				})
+				if ('error' in preflight) {
+					toast.error('Error al crear negocio', {
+						description: preflight.error,
+					})
+					return
+				}
+
 				let clientToUse = selectedClient
 				let resolvedClientId = selectedClient?.idClient ?? null
 

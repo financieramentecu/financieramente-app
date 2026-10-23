@@ -6,21 +6,22 @@ import {
 } from '@prisma/client'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createBusiness } from '@/features/negocios/actions/create-business'
-import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
+import { getPpcForNewBusinesses } from '@/features/negocios/services/product-configuration.service'
 import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
 import { prisma } from '@/lib/prisma'
+import { UserRole } from '@/features/auth/lib/roles'
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
-		user: { findUnique: vi.fn() },
+		user: { findUnique: vi.fn(), findMany: vi.fn() },
 		buyPeriodicity: { findUnique: vi.fn() },
 		product: { findUnique: vi.fn() },
 		$transaction: vi.fn(),
 	},
 }))
 
-vi.mock('@/features/negocios/actions/find-product-percentage-commission', () => ({
-	findProductPercentageCommission: vi.fn(),
+vi.mock('@/features/negocios/services/product-configuration.service', () => ({
+	getPpcForNewBusinesses: vi.fn(),
 }))
 
 vi.mock('@/features/leads/services/lead-conversion.service', () => ({
@@ -75,10 +76,11 @@ describe('createBusiness', () => {
 		vi.clearAllMocks()
 		vi.mocked(requireWriteAccess).mockResolvedValue({
 			ok: true,
-			session: { user: {} },
+			session: { user: { id: '1', role: UserRole.ADMIN } },
 		} as never)
-		vi.mocked(findProductPercentageCommission).mockResolvedValue({
-			data: {
+		vi.mocked(getPpcForNewBusinesses).mockResolvedValue({
+			configExists: true,
+			ppc: {
 				idProductPercentageCommission: 99,
 			} as ProductPercentageCommission,
 		})
@@ -309,8 +311,9 @@ describe('createBusiness', () => {
 	})
 
 	it('uses the commission id returned by lookup action (specific or fallback)', async () => {
-		vi.mocked(findProductPercentageCommission).mockResolvedValue({
-			data: {
+		vi.mocked(getPpcForNewBusinesses).mockResolvedValue({
+			configExists: true,
+			ppc: {
 				idProductPercentageCommission: 123,
 			} as ProductPercentageCommission,
 		})
@@ -410,6 +413,218 @@ describe('createBusiness', () => {
 
 			expect(result.data).toBeNull()
 			expect('error' in result && result.error).toBeTruthy()
+		})
+	})
+
+	describe('owner resolution and PARTNER_EXTERNAL pricing (COM-41 NEG-02, PA-04)', () => {
+		const PARTNER_SESSION_ID = 77
+
+		function setSession(id: number, role: UserRole | null) {
+			vi.mocked(requireWriteAccess).mockResolvedValue({
+				ok: true,
+				session: { user: { id: String(id), role } },
+			} as never)
+		}
+
+		function mockTransaction() {
+			const businessCreate = vi.fn().mockResolvedValue(mockCreatedBusiness())
+			vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+				callback({
+					business: { create: businessCreate },
+					payment: { createMany: vi.fn() },
+				} as never)
+			)
+			return businessCreate
+		}
+
+		function mockOwnerLevel(code: string, idLevel = 9) {
+			vi.mocked(prisma.user.findUnique).mockResolvedValue({
+				idLevel,
+				level: { code },
+			} as never)
+		}
+
+		it('PARTNER session ignores a client-sent idUser and creates for the session user', async () => {
+			setSession(PARTNER_SESSION_ID, UserRole.PARTNER)
+			mockOwnerLevel('PARTNER_EXTERNAL', 40)
+			const businessCreate = mockTransaction()
+
+			const result = await createBusiness({ ...basePayload, idUser: 5 })
+
+			expect(result.data).not.toBeNull()
+			expect(businessCreate).toHaveBeenCalledWith({
+				data: expect.objectContaining({ idUser: PARTNER_SESSION_ID }),
+			})
+			expect(prisma.user.findUnique).toHaveBeenCalledWith(
+				expect.objectContaining({ where: { idUser: PARTNER_SESSION_ID } })
+			)
+		})
+
+		it('PARTNER session resolves the PPC with the PARTNER_EXTERNAL level of the partner', async () => {
+			setSession(PARTNER_SESSION_ID, UserRole.PARTNER)
+			mockOwnerLevel('PARTNER_EXTERNAL', 40)
+			mockTransaction()
+
+			await createBusiness({ ...basePayload, idUser: 5, idProduct: 3 })
+
+			expect(getPpcForNewBusinesses).toHaveBeenCalledWith({
+				idProduct: 3,
+				idLevel: 40,
+			})
+		})
+
+		it.each([
+			UserRole.ADMIN,
+			UserRole.ANALISTA_SOPORTE,
+			UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+		])('%s may create on behalf of a partner (owner = requested partner)', async (role) => {
+			setSession(1, role)
+			mockOwnerLevel('PARTNER_EXTERNAL', 40)
+			const businessCreate = mockTransaction()
+
+			const result = await createBusiness({ ...basePayload, idUser: PARTNER_SESSION_ID })
+
+			expect(result.data).not.toBeNull()
+			expect(businessCreate).toHaveBeenCalledWith({
+				data: expect.objectContaining({ idUser: PARTNER_SESSION_ID }),
+			})
+			expect(getPpcForNewBusinesses).toHaveBeenCalledWith(
+				expect.objectContaining({ idLevel: 40 })
+			)
+		})
+
+		it('bypass role keeps creating on behalf of an agent with the agent level', async () => {
+			setSession(1, UserRole.ADMIN)
+			mockOwnerLevel('LEVEL_3', 7)
+			const businessCreate = mockTransaction()
+
+			await createBusiness({ ...basePayload, idUser: 12 })
+
+			expect(getPpcForNewBusinesses).toHaveBeenCalledWith(
+				expect.objectContaining({ idLevel: 7 })
+			)
+			expect(businessCreate).toHaveBeenCalledWith({
+				data: expect.objectContaining({ idUser: 12 }),
+			})
+		})
+
+		it('AGENTE may create for self', async () => {
+			setSession(12, UserRole.AGENTE)
+			vi.mocked(prisma.user.findMany).mockResolvedValue([
+				{ idUser: 12, idUserLeader: null },
+			] as never)
+			mockOwnerLevel('LEVEL_3', 7)
+			const businessCreate = mockTransaction()
+
+			const result = await createBusiness({ ...basePayload, idUser: 12 })
+
+			expect(result.data).not.toBeNull()
+			expect(businessCreate).toHaveBeenCalled()
+		})
+
+		it('AGENTE may create for a subordinate partner (hierarchy scope)', async () => {
+			setSession(12, UserRole.AGENTE)
+			vi.mocked(prisma.user.findMany).mockResolvedValue([
+				{ idUser: 12, idUserLeader: null },
+				{ idUser: 77, idUserLeader: 12 },
+			] as never)
+			mockOwnerLevel('PARTNER_EXTERNAL', 40)
+			const businessCreate = mockTransaction()
+
+			const result = await createBusiness({ ...basePayload, idUser: 77 })
+
+			expect(result.data).not.toBeNull()
+			expect(businessCreate).toHaveBeenCalledWith({
+				data: expect.objectContaining({ idUser: 77 }),
+			})
+		})
+
+		it('AGENTE is denied for an owner outside self and subordinates', async () => {
+			setSession(12, UserRole.AGENTE)
+			vi.mocked(prisma.user.findMany).mockResolvedValue([
+				{ idUser: 12, idUserLeader: null },
+				{ idUser: 99, idUserLeader: null },
+			] as never)
+
+			const result = await createBusiness({ ...basePayload, idUser: 99 })
+
+			expect(result.data).toBeNull()
+			expect('error' in result && result.error).toBe('Sin permisos')
+			expect(getPpcForNewBusinesses).not.toHaveBeenCalled()
+			expect(prisma.$transaction).not.toHaveBeenCalled()
+		})
+
+		it.each([UserRole.DEFAULT, null])(
+			'denies role %s without touching the database',
+			async (role) => {
+				setSession(3, role as UserRole | null)
+
+				const result = await createBusiness({ ...basePayload })
+
+				expect(result.data).toBeNull()
+				expect('error' in result && result.error).toBe('Sin permisos')
+				expect(prisma.user.findUnique).not.toHaveBeenCalled()
+				expect(prisma.$transaction).not.toHaveBeenCalled()
+			}
+		)
+
+		it('persists nothing and answers in Spanish when the product has no PARTNER_EXTERNAL configuration (thrown by lookup)', async () => {
+			setSession(PARTNER_SESSION_ID, UserRole.PARTNER)
+			mockOwnerLevel('PARTNER_EXTERNAL', 40)
+			vi.mocked(getPpcForNewBusinesses).mockRejectedValue(
+				new Error(
+					'No existe configuración de distribución para el producto y nivel seleccionados.'
+				)
+			)
+
+			const result = await createBusiness({ ...basePayload })
+
+			expect(result.data).toBeNull()
+			expect('error' in result && result.error).toBe(
+				'Este producto no está disponible para partners: no tiene configuración de comisión externa.'
+			)
+			expect(prisma.$transaction).not.toHaveBeenCalled()
+		})
+
+		it('persists nothing when the PARTNER_EXTERNAL configuration has no active PPC for new businesses', async () => {
+			setSession(PARTNER_SESSION_ID, UserRole.PARTNER)
+			mockOwnerLevel('PARTNER_EXTERNAL', 40)
+			vi.mocked(getPpcForNewBusinesses).mockResolvedValue({ configExists: true, ppc: null })
+
+			const result = await createBusiness({ ...basePayload })
+
+			expect(result.data).toBeNull()
+			expect('error' in result && result.error).toMatch(/partners/)
+			expect(prisma.$transaction).not.toHaveBeenCalled()
+		})
+
+		it('admin on behalf of a partner also fails with the partner message when the product has no partner PPC', async () => {
+			setSession(1, UserRole.ADMIN)
+			mockOwnerLevel('PARTNER_EXTERNAL', 40)
+			vi.mocked(getPpcForNewBusinesses).mockRejectedValue(
+				new Error('No existe configuración')
+			)
+
+			const result = await createBusiness({ ...basePayload, idUser: PARTNER_SESSION_ID })
+
+			expect('error' in result && result.error).toMatch(/partners/)
+			expect(prisma.$transaction).not.toHaveBeenCalled()
+		})
+
+		it('keeps the generic message for non-partner owners without configuration', async () => {
+			setSession(1, UserRole.ADMIN)
+			mockOwnerLevel('LEVEL_3', 7)
+			vi.mocked(getPpcForNewBusinesses).mockRejectedValue(
+				new Error(
+					'No hay configuración de comisión para esta combinación de producto y categoría.'
+				)
+			)
+
+			const result = await createBusiness({ ...basePayload })
+
+			expect('error' in result && result.error).toBe(
+				'No hay configuración de comisión para esta combinación de producto y categoría.'
+			)
 		})
 	})
 })

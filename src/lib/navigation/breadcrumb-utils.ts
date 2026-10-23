@@ -21,6 +21,7 @@ const SEGMENT_LABELS: Record<string, string> = {
 	crear: 'Crear',
 	editar: 'Editar',
 	users: 'Usuarios',
+	partners: 'Partners',
 	categories: 'Categorías',
 	companies: 'Compañías',
 	currencies: 'Monedas',

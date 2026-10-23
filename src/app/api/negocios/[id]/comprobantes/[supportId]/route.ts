@@ -5,13 +5,15 @@
 
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
-import { canDeleteBusinessComprobante, UserRole } from '@/features/auth/lib/roles'
+import { canDeleteBusinessComprobante, isBusinessOwnerRole } from '@/features/auth/lib/roles'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { ComprobanteError } from '@/features/business-supports/types/business-support.types'
 import { deactivateComprobante } from '@/features/business-supports/services/business-supports.service'
-import { resolveVisibleUserIds } from '@/features/negocios/services/user-hierarchy.service'
+import { assertBusinessAccess } from '@/features/negocios/services/business-access.service'
+import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
+import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { resolveVisibleUserIdsForUser } from '@/features/negocios/services/user-hierarchy.service'
 
 interface RouteParams {
   params: Promise<{ id: string; supportId: string }>
@@ -47,24 +49,26 @@ export async function DELETE(
     return NextResponse.json({ data: null, error: 'Invalid business id' }, { status: 422 })
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email! },
-    select: {
-      idUser: true,
-      email: true,
-      role: { select: { code: true } },
-    },
-  })
+  const user = await getCurrentUserByEmail(session.user.email ?? '')
   if (!user) {
     return NextResponse.json({ data: null, error: 'User not found' }, { status: 401 })
   }
-
   const roleCode = user.role?.code
   if (!canDeleteBusinessComprobante(roleCode)) {
     return NextResponse.json(
       { data: null, error: 'No tiene permiso para eliminar comprobantes' },
       { status: 403 },
     )
+  }
+
+  // SEC-03: the business must be inside the caller's scope before anything is touched
+  const access = await assertBusinessAccess({
+    user,
+    businessId,
+    mode: 'write',
+  })
+  if (!access.ok) {
+    return businessAccessDeniedResponse(access.reason)
   }
 
   const headers = request.headers
@@ -77,11 +81,8 @@ export async function DELETE(
 
   try {
     const visibleUserIds =
-      roleCode === UserRole.AGENTE
-        ? await resolveVisibleUserIds(prisma, {
-            idUser: user.idUser,
-            role: user.role,
-          })
+      isBusinessOwnerRole(roleCode)
+        ? await resolveVisibleUserIdsForUser(user)
         : undefined
 
     await deactivateComprobante(supportId, ctx, {

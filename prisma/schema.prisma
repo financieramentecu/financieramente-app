@@ -309,6 +309,8 @@ model User {
   password                            String?                 @db.VarChar(255)
   ssoOnly                             Boolean                 @default(true) @map("sso_only")
   idCategory                          Int?                    @map("id_category")
+  activatedAt                         DateTime?               @map("activated_at")
+  accountTokens                       AccountToken[]
   auditLogs                           AuditLog[]
   businesses                          Business[]
   businessSupports                    BusinessSupport[]
@@ -334,6 +336,22 @@ model User {
   @@index([idUserLeader])
   @@index([idRole])
   @@map("user")
+}
+
+model AccountToken {
+  id        Int              @id @default(autoincrement())
+  idUser    Int              @map("id_user")
+  type      AccountTokenType
+  tokenHash String           @unique @map("token_hash") @db.VarChar(64)
+  expiresAt DateTime         @map("expires_at")
+  usedAt    DateTime?        @map("used_at")
+  revokedAt DateTime?        @map("revoked_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [idUser], references: [idUser])
+
+  @@index([idUser, type])
+  @@map("account_token")
 }
 
 model Client {
@@ -631,6 +649,11 @@ model BusinessSupport {
   @@index([businessId, status])
   @@index([uploadedBy])
   @@map("business_support")
+}
+
+enum AccountTokenType {
+  ACTIVATION
+  RESET
 }
 
 enum BeneficiaryMode {

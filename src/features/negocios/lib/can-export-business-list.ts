@@ -35,6 +35,9 @@ export function canExportBusinessList(input: {
 
 	if (isWriteBypassRole(roleCode)) return true
 	if (roleCode === UserRole.CONSULTOR) return true
+	// PARTNER exports their own businesses only: the export route scopes the rows
+	// to the session owner (resolveVisibleUserIds returns just [self]).
+	if (roleCode === UserRole.PARTNER) return true
 	if (isReadOnlyRole(roleCode)) return false
 	if (!levelCode) return false
 

@@ -2,6 +2,8 @@
 
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { hasPermission } from '@/features/auth/lib/permissions'
+import { isDistributionExcludedLevel } from '@/features/shared/lib/level-codes'
 import { Decimal } from '@prisma/client/runtime/library'
 import * as Sentry from '@sentry/nextjs'
 
@@ -70,6 +72,25 @@ export async function calculateCommission(
 			}
 		}
 
+		// SEC-03: a login is not enough; the role must have the calculadora permission
+		// (PARTNER and DEFAULT do not).
+		if (!hasPermission(session?.user?.role, 'calculadora')) {
+			return {
+				success: false,
+				error: 'Sin permisos',
+				comisionBase: 0,
+				trmAplicada: params.trm,
+				desglose: [],
+				totalClawback: 0,
+				comisionNetaEstimada: 0,
+				comisionTotalBruta: 0,
+				sellerLevelCode: '',
+				userOwnLevelCode: '',
+				viewLevelCode: '',
+				leadBonus: 0,
+			}
+		}
+
 		const idUser = parseInt(userIdStr.toString(), 10)
 
 		// 1. Obtener nivel del usuario
@@ -103,6 +124,27 @@ export async function calculateCommission(
 
 		// Construir un mapa rápido id -> level
 		const levelById = new Map(allLevels.map(l => [l.idLevel, l]))
+
+		// PARTNER_EXTERNAL is outside the commission chain: never a simulation level.
+		if (
+			isDistributionExcludedLevel(levelById.get(params.idLevelOrigin)?.code) ||
+			isDistributionExcludedLevel(levelById.get(params.idLevelView)?.code)
+		) {
+			return {
+				success: false,
+				error: 'El nivel seleccionado no participa en la distribución de comisiones',
+				comisionBase: 0,
+				trmAplicada: params.trm,
+				desglose: [],
+				totalClawback: 0,
+				comisionNetaEstimada: 0,
+				comisionTotalBruta: 0,
+				sellerLevelCode: '',
+				userOwnLevelCode: '',
+				viewLevelCode: '',
+				leadBonus: 0,
+			}
+		}
 
 		// Construir los IDs permitidos caminando la cadena desde idLevelOrigin hasta idLevelView
 		// La cadena sube usando idNextLevel: LEVEL_0 -> LEVEL_1 -> ... -> LEVEL_5

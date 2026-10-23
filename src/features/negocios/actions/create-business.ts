@@ -13,9 +13,10 @@ import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aport
 import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expected-dates'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { findProductPercentageCommission } from './find-product-percentage-commission'
 import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
+import { resolveBusinessCreationContext } from '@/features/negocios/services/business-creation.service'
+import { toAccessUser } from '@/features/negocios/lib/session-access-user'
 
 /**
  * Schema de validación para crear un negocio
@@ -76,43 +77,17 @@ export async function createBusiness(
 
 		const validatedData = createBusinessSchema.parse(data)
 
-		const user = await prisma.user.findUnique({
-			where: {
-				idUser: validatedData.idUser,
-			},
-			select: {
-				idLevel: true,
-			},
-		})
-
-		if (!user) {
-			return {
-				data: null,
-				error: 'El agente seleccionado no existe',
-			}
-		}
-
-		if (!user.idLevel) {
-			return {
-				data: null,
-				error: 'El agente seleccionado no tiene un nivel asignado',
-			}
-		}
-
-		const commisionResult = await findProductPercentageCommission({
+		// NEG-02 / PA-04: the owner is decided server-side (a PARTNER always owns
+		// their own business) and the PPC is resolved with the OWNER's level.
+		// Nothing is written before this succeeds.
+		const creation = await resolveBusinessCreationContext({
+			sessionUser: toAccessUser(guard.session),
+			requestedIdUser: validatedData.idUser,
 			idProduct: validatedData.idProduct,
-			idLevel: user.idLevel,
 		})
 
-		if ('error' in commisionResult) {
-			return commisionResult
-		}
-
-		if (!commisionResult.data) {
-			return {
-				data: null,
-				error: 'Este producto no tiene una configuración de comisiones activa.',
-			}
+		if (!creation.ok) {
+			return { data: null, error: creation.error }
 		}
 
 		const contractValue =
@@ -156,10 +131,10 @@ export async function createBusiness(
 					value: validatedData.value,
 					observations: validatedData.observations || null,
 					idBuyPeriodicity: validatedData.idBuyPeriodicity || null,
-					idUser: validatedData.idUser,
+					idUser: creation.idUser,
 					idClient: validatedData.idClient,
 					idProductPercentageCommission:
-						commisionResult.data.idProductPercentageCommission,
+						creation.idProductPercentageCommission,
 					idCurrency: validatedData.idCurrency,
 					idClientOrigin: validatedData.idClientOrigin,
 					status,

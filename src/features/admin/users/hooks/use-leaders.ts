@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { apiClient } from '@/lib/api/client'
 import { UserRole } from '@/features/auth/lib/roles'
+import { isDistributionExcludedLevel } from '@/features/shared/lib/level-codes'
 
 export interface Leader {
 	id: number
@@ -67,6 +68,7 @@ export function useLeaders(
 					lastName: string | null
 					email: string | null
 					role: { code: string; name: string } | null
+					level?: { code: string } | null
 					active: boolean
 				}>
 			}>(`/admin/users?${urlParams.toString()}`)
@@ -84,6 +86,8 @@ export function useLeaders(
 					(user) =>
 						user.role?.code === UserRole.AGENTE &&
 						user.active &&
+						// A partner can never be a leader (PM-03).
+						!isDistributionExcludedLevel(user.level?.code) &&
 						(!excludeUserId || user.id !== excludeUserId)
 				)
 				.map((user) => {

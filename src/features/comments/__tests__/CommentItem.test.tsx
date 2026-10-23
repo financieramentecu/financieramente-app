@@ -36,6 +36,28 @@ describe('CommentItem', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
+  it('aligns PARTNER comments like AGENTE comments (left, muted style) and AGENTE vs ANALISTA differ', () => {
+    const { rerender } = render(<CommentItem comment={baseComment} />)
+    const agentWrapper = screen.getByTestId('comment-item-c-1')
+    expect(agentWrapper.className).toContain('justify-start')
+
+    rerender(
+      <CommentItem
+        comment={{ ...baseComment, author: { id: 7, name: 'Pat Partner', role: UserRole.PARTNER } }}
+      />,
+    )
+    const partnerWrapper = screen.getByTestId('comment-item-c-1')
+    expect(partnerWrapper.className).toContain('justify-start')
+    expect(partnerWrapper.innerHTML).toContain('bg-muted/40')
+
+    rerender(
+      <CommentItem
+        comment={{ ...baseComment, author: { id: 5, name: 'Beto', role: UserRole.ANALISTA_SOPORTE } }}
+      />,
+    )
+    expect(screen.getByTestId('comment-item-c-1').className).toContain('justify-end')
+  })
+
   it('renders https urls in detail as clickable links opening in a new tab (CA1, CA2)', () => {
     render(
       <CommentItem

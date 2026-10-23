@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { UseFormSetValue } from 'react-hook-form'
-import { UserRole } from '@/features/auth/lib/roles'
+import { UserRole, isBusinessOwnerRole } from '@/features/auth/lib/roles'
 import { UserWithRole } from '@/features/negocios/types/business.types'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { AgentInfo } from '@/features/negocios/types/business-entity.types'
@@ -68,8 +68,8 @@ export function useAgentPermissions({
 }: UseAgentPermissionsOptions) {
 	const [agentsList, setAgentsList] = React.useState<UserWithRole[]>([])
 
-	// Determinar si el usuario es AGENTE
-	const isAgentUser = currentUser?.role?.code === UserRole.AGENTE
+	// Owner roles (AGENTE, PARTNER) are locked to themselves in the owner picker
+	const isAgentUser = isBusinessOwnerRole(currentUser?.role?.code)
 
 	// Determinar si el usuario puede buscar agentes
 	const canSearchAgents =
