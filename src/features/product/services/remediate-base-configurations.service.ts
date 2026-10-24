@@ -137,8 +137,10 @@ export async function applyMissingBaseConfigurations(
 		// Each insert does ~10 sequential round-trips (duplicate checks +
 		// structural config + PPC + default distribution lines + refetch);
 		// over a remote DB (Neon) and dozens of active products, the default
-		// 5s interactive-transaction timeout is nowhere near enough.
-		{ timeout: 120_000 }
+		// 5s interactive-transaction timeout is nowhere near enough. maxWait is
+		// the time allowed to open the transaction (default 2s), which a slow or
+		// tunnelled connection can also exceed.
+		{ maxWait: 30_000, timeout: 120_000 }
 	)
 }
 
