@@ -15,6 +15,8 @@ vi.mock(
 )
 
 import {
+	PARTNER_CODE_OVERRIDES,
+	PARTNER_REMEDIATION_BATCH_SIZE,
 	PartnerSeedCoverageError,
 	remediatePartnerConfigurations,
 	runPartnerSeed,
@@ -153,6 +155,82 @@ describe('remediatePartnerConfigurations', () => {
 			expect.objectContaining({ inserts: [partnerInsert] })
 		)
 		expect(result).toMatchObject({ created: 1, skipped: 0, problems: [] })
+	})
+
+	it('applies the inserts in bounded batches and sums the results', async () => {
+		const total = PARTNER_REMEDIATION_BATCH_SIZE * 2 + 1
+		const inserts = Array.from({ length: total }, (_, index) => ({
+			...partnerInsert,
+			idProduct: index + 1,
+			code: `ACME_PROD_${index + 1}_PARTNER_EXTERNAL`,
+		}))
+		mockPreview.mockResolvedValue({
+			inserts,
+			skippedExisting: 0,
+			problems: [],
+		})
+		mockApply.mockResolvedValue({ created: 1, skipped: 1 })
+
+		const { prisma } = createPrisma()
+		await seedPartnerReferenceData(prisma)
+
+		const result = await remediatePartnerConfigurations(prisma)
+
+		const batchSizes = mockApply.mock.calls.map(([plan]) => plan.inserts.length)
+		expect(batchSizes).toEqual([
+			PARTNER_REMEDIATION_BATCH_SIZE,
+			PARTNER_REMEDIATION_BATCH_SIZE,
+			1,
+		])
+		expect(result).toMatchObject({ created: 3, skipped: 3 })
+	})
+
+	it('creates the config with the manual code when a CODE_TOO_LONG product has an override', async () => {
+		const [generatedCode, manualCode] = Object.entries(
+			PARTNER_CODE_OVERRIDES
+		)[0]
+		mockPreview.mockResolvedValue({
+			inserts: [],
+			skippedExisting: 0,
+			problems: [
+				{
+					idProduct: 82,
+					idLevel: 100,
+					code: 'CODE_TOO_LONG',
+					detail: generatedCode,
+				},
+			],
+		})
+		mockApply.mockResolvedValue({ created: 1, skipped: 0 })
+		const { prisma } = createPrisma()
+		;(prisma.level.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+			idLevel: 100,
+		})
+
+		const result = await remediatePartnerConfigurations(prisma)
+
+		expect(mockApply).toHaveBeenCalledWith(
+			expect.objectContaining({
+				inserts: [
+					expect.objectContaining({
+						idProduct: 82,
+						idLevel: 100,
+						code: manualCode,
+						levelCode: 'PARTNER_EXTERNAL',
+					}),
+				],
+			})
+		)
+		expect(result.problems).toEqual([])
+	})
+
+	it('keeps manual codes within the column limit and only for codes that are too long', () => {
+		for (const [generatedCode, manualCode] of Object.entries(
+			PARTNER_CODE_OVERRIDES
+		)) {
+			expect(generatedCode.length).toBeGreaterThan(50)
+			expect(manualCode.length).toBeLessThanOrEqual(50)
+		}
 	})
 
 	it('reports only PARTNER_EXTERNAL problems (e.g. CODE_TOO_LONG)', async () => {
