@@ -29,9 +29,10 @@ function resolveTotalPages(reportedPages: number | undefined): number {
 }
 
 /**
- * Loads every active product of a company.
+ * Loads every product eligible for the configuration selector.
+ * `eligible=true` keeps an active product only when its company is active.
  * The products endpoint defaults to 10 rows, which hides later names
- * such as "Vida Deudor" from the configuration selector.
+ * such as "Vida Deudor".
  */
 export async function fetchAllActiveCompanyProducts(
 	companyId: number,
@@ -43,7 +44,7 @@ export async function fetchAllActiveCompanyProducts(
 
 	while (page <= totalPages) {
 		const response = await request(
-			`/api/products?idCompany=${companyId}&status=active&page=${page}&pageSize=${PAGE_SIZE}`
+			`/api/products?idCompany=${companyId}&eligible=true&page=${page}&pageSize=${PAGE_SIZE}`
 		)
 		const result = (await response.json()) as ProductListBody
 		const products = result.data?.products

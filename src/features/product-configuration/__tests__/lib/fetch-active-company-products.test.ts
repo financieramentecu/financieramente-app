@@ -49,11 +49,11 @@ describe('fetchAllActiveCompanyProducts', () => {
 
 		expect(request).toHaveBeenNthCalledWith(
 			1,
-			'/api/products?idCompany=4&status=active&page=1&pageSize=100'
+			'/api/products?idCompany=4&eligible=true&page=1&pageSize=100'
 		)
 		expect(request).toHaveBeenNthCalledWith(
 			2,
-			'/api/products?idCompany=4&status=active&page=2&pageSize=100'
+			'/api/products?idCompany=4&eligible=true&page=2&pageSize=100'
 		)
 		expect(products.map((product) => product.name)).toContain('Vida Deudor')
 	})
@@ -79,5 +79,19 @@ describe('fetchAllActiveCompanyProducts', () => {
 			name: 'Producto 51',
 			idCompany: 4,
 		})
+		expect(String(request.mock.calls[0]?.[0])).toContain('eligible=true')
+		expect(String(request.mock.calls[0]?.[0])).not.toContain('status=active')
+	})
+
+	it('pages with eligible=true so an inactive company is excluded', async () => {
+		const request = vi.fn().mockResolvedValue(pageResponse([], 1))
+
+		await fetchAllActiveCompanyProducts(4, request as unknown as typeof fetch)
+
+		const url = String(request.mock.calls[0]?.[0])
+		expect(url).toBe(
+			'/api/products?idCompany=4&eligible=true&page=1&pageSize=100'
+		)
+		expect(url).not.toContain('status=active')
 	})
 })
