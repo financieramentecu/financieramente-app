@@ -286,18 +286,16 @@ export async function PUT(
 		}
 
 		const existingProductId =
-			existingBusiness.productPercentageCommission.productConfiguration.idProduct
+			existingBusiness.productPercentageCommission?.productConfiguration?.idProduct
 		const changesFundedStructure =
-			(term !== undefined && term !== existingBusiness.term) ||
-			(idBuyPeriodicity !== undefined &&
-				idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) ||
-			(idProduct !== undefined && idProduct !== existingProductId) ||
-			(numAportes !== undefined && numAportes !== (existingBusiness.numAportes ?? 0))
-
-		if (
 			existingBusiness.status === BUSINESS_STATUS.FONDEADO &&
-			changesFundedStructure
-		) {
+			((term !== undefined && term !== existingBusiness.term) ||
+				(idBuyPeriodicity !== undefined &&
+					idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) ||
+				(idProduct !== undefined && idProduct !== existingProductId) ||
+				(numAportes !== undefined && numAportes !== (existingBusiness.numAportes ?? 0)))
+
+		if (changesFundedStructure) {
 			const financialPayments = await prisma.payment.count({
 				where: {
 					idBusiness: businessId,
