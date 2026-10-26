@@ -10,4 +10,4 @@
 
 ### Técnico
 
-- New `policyholder` table, independent from `client`, with `id_document_type` FK `ON DELETE RESTRICT` and unique `(type_identity, identity_number)`. `Business.client_is_policyholder` defaults to true; `id_policyholder` is set only when the client is not the policyholder. Switching back to Sí clears the business link and does not delete the policyholder row. Migration `20261015143000_add_policyholder` is idempotent and writes `BUSINESS_POLICYHOLDER_MIGRATED`. Search endpoint: `GET /api/policyholders/search`.
+- New `policyholder` table, independent from `client`, with `id_document_type` FK `ON DELETE RESTRICT` and unique `(type_identity, identity_number)`. `Business.client_is_policyholder` defaults to true; `id_policyholder` is set only when the client is not the policyholder. Switching back to Sí clears the business link and does not delete the policyholder row. Migration `20261015143000_add_policyholder` is idempotent and writes `BUSINESS_POLICYHOLDER_MIGRATED`. Search endpoint: `GET /api/policyholders/search`. `syncBusinessPolicyholder` is registered in the Server Action inventory and keeps `requireWriteAccess` plus `canRoleEditClientInfo`.

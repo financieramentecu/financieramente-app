@@ -27,6 +27,7 @@ const EXPECTED_SERVER_ACTION_FILES = [
 	'src/features/negocios/actions/create-client.ts',
 	'src/features/negocios/actions/find-product-percentage-commission.ts',
 	'src/features/negocios/actions/resolve-existing-client.ts',
+	'src/features/negocios/actions/sync-business-policyholder.ts',
 	'src/features/negocios/actions/update-client.ts',
 ]
 
@@ -38,6 +39,7 @@ const ROLE_RESTRICTED_FILES = [
 	'src/features/negocios/actions/check-business-creation.ts',
 	'src/features/negocios/actions/create-business.ts',
 	'src/features/negocios/actions/create-client.ts',
+	'src/features/negocios/actions/sync-business-policyholder.ts',
 	'src/features/negocios/actions/update-client.ts',
 ]
 
