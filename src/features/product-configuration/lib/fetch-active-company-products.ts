@@ -5,7 +5,6 @@ export interface ActiveCompanyProduct {
 }
 
 const PAGE_SIZE = 100
-const MAX_PAGES = 50
 
 interface ProductPagePayload {
 	products?: ActiveCompanyProduct[]
@@ -16,6 +15,17 @@ interface ProductPagePayload {
 
 interface ProductListBody {
 	data?: ProductPagePayload
+}
+
+function resolveTotalPages(reportedPages: number | undefined): number {
+	if (
+		typeof reportedPages === 'number' &&
+		Number.isSafeInteger(reportedPages) &&
+		reportedPages > 0
+	) {
+		return reportedPages
+	}
+	return 1
 }
 
 /**
@@ -31,7 +41,7 @@ export async function fetchAllActiveCompanyProducts(
 	let page = 1
 	let totalPages = 1
 
-	while (page <= totalPages && page <= MAX_PAGES) {
+	while (page <= totalPages) {
 		const response = await request(
 			`/api/products?idCompany=${companyId}&status=active&page=${page}&pageSize=${PAGE_SIZE}`
 		)
@@ -42,11 +52,7 @@ export async function fetchAllActiveCompanyProducts(
 		}
 
 		collected.push(...products)
-		const reportedPages = result.data?.pagination?.totalPages
-		totalPages =
-			typeof reportedPages === 'number' && reportedPages > 0
-				? reportedPages
-				: 1
+		totalPages = resolveTotalPages(result.data?.pagination?.totalPages)
 		page += 1
 	}
 

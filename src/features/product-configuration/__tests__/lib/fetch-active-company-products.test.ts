@@ -57,4 +57,27 @@ describe('fetchAllActiveCompanyProducts', () => {
 		)
 		expect(products.map((product) => product.name)).toContain('Vida Deudor')
 	})
+
+	it('loads page 51 instead of stopping at a 50-page cap', async () => {
+		const request = vi.fn(async (url: string) => {
+			const page = Number(new URL(url, 'http://local').searchParams.get('page'))
+			return pageResponse(
+				[{ idProduct: page, name: `Producto ${page}`, idCompany: 4 }],
+				51
+			)
+		})
+
+		const products = await fetchAllActiveCompanyProducts(
+			4,
+			request as unknown as typeof fetch
+		)
+
+		expect(request).toHaveBeenCalledTimes(51)
+		expect(products).toHaveLength(51)
+		expect(products[50]).toEqual({
+			idProduct: 51,
+			name: 'Producto 51',
+			idCompany: 4,
+		})
+	})
 })
