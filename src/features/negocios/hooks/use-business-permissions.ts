@@ -108,7 +108,19 @@ export function useBusinessPermissions({
 			return { readonly: true, disabled: true, hidden: false }
 		}
 		if (financialFields.includes(field)) {
-			// Privileged roles keep the same field access after funding (COM-36).
+			const status = businessStatus?.toUpperCase()
+			const fundedStructuralFields: BusinessFormField[] = [
+				'company',
+				'producto',
+				'terms',
+				'periodicity',
+			]
+			// Changing these on a funded business rebuilds installments and can
+			// drop rows that already have a financial status.
+			if (status === 'FONDEADO' && fundedStructuralFields.includes(field)) {
+				return { readonly: true, disabled: true, hidden: false }
+			}
+
 			if (isPrivileged) {
 				return { readonly: false, disabled: false, hidden: false }
 			}

@@ -285,6 +285,44 @@ export async function PUT(
 			)
 		}
 
+		const existingProductId =
+			existingBusiness.productPercentageCommission.productConfiguration.idProduct
+		const changesFundedStructure =
+			(term !== undefined && term !== existingBusiness.term) ||
+			(idBuyPeriodicity !== undefined &&
+				idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) ||
+			(idProduct !== undefined && idProduct !== existingProductId) ||
+			(numAportes !== undefined && numAportes !== (existingBusiness.numAportes ?? 0))
+
+		if (
+			existingBusiness.status === BUSINESS_STATUS.FONDEADO &&
+			changesFundedStructure
+		) {
+			const financialPayments = await prisma.payment.count({
+				where: {
+					idBusiness: businessId,
+					status: {
+						in: [
+							AnnualPaymentStatus.FONDEADO,
+							AnnualPaymentStatus.EN_CARTERA,
+							AnnualPaymentStatus.PAGO_ANTICIPADO,
+							AnnualPaymentStatus.CARTERA_PAGADO,
+						],
+					},
+				},
+			})
+			if (financialPayments > 0) {
+				return NextResponse.json(
+					{
+						data: null,
+						error:
+							'No se puede cambiar el plazo, la periodicidad, el producto o el número de aportes de un negocio fondeado que ya tiene aportes con estado financiero.',
+					},
+					{ status: 409 }
+				)
+			}
+		}
+
 		// --- RESOLUCIÓN DE DATOS PARA ACTUALIZACIÓN ---
 		let finalIdPpc = existingBusiness.idProductPercentageCommission
 		let finalNumAportes = existingBusiness.numAportes ?? 0
