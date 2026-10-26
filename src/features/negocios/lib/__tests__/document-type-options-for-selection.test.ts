@@ -33,4 +33,30 @@ describe('documentTypeOptionsForSelection', () => {
 			documentTypeOptionsForSelection(options, 'PAS').map((option) => option.code)
 		).toEqual(['CC', 'PAS'])
 	})
+
+	it('matches the stored code regardless of case and surrounding spaces', () => {
+		expect(
+			documentTypeOptionsForSelection(options, ' pas ').map((option) => option.code)
+		).toEqual(['CC', 'PAS'])
+	})
+
+	it('lists a stored code that is missing from the catalog as an inactive option', () => {
+		const result = documentTypeOptionsForSelection(options, 'XX')
+
+		expect(result.map((option) => option.code)).toEqual(['CC', 'XX'])
+		expect(result[1]).toEqual({
+			code: 'XX',
+			name: 'XX',
+			dataType: 'ALPHANUMERIC',
+			minLength: 1,
+			maxLength: 20,
+			status: false,
+		})
+	})
+
+	it('does not add a placeholder when nothing is selected', () => {
+		expect(
+			documentTypeOptionsForSelection(options, null).map((option) => option.code)
+		).toEqual(['CC'])
+	})
 })

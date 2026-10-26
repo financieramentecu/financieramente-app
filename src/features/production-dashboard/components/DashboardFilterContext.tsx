@@ -40,8 +40,8 @@ export function dashboardFilterReducer(
     case 'SET_DATE_RANGE':
       return { ...state, draft: { ...state.draft, dateRange: action.payload } }
 
-    case 'SET_STATUS':
-      return { ...state, draft: { ...state.draft, statuses: [action.payload] } }
+    case 'SET_STATUSES':
+      return { ...state, draft: { ...state.draft, statuses: action.ids } }
 
     case 'TOGGLE_CATEGORY':
       return {
@@ -108,11 +108,11 @@ export function dashboardFilterReducer(
     case 'SET_ORIGIN_IDS':
       return { ...state, draft: { ...state.draft, originIds: action.ids } }
 
-    case 'SET_PLAZO':
-      return { ...state, draft: { ...state.draft, plazos: [action.payload] } }
+    case 'SET_PLAZOS':
+      return { ...state, draft: { ...state.draft, plazos: action.ids } }
 
-    case 'SET_PERIODICIDAD':
-      return { ...state, draft: { ...state.draft, periodicidades: [action.payload] } }
+    case 'SET_PERIODICIDADES':
+      return { ...state, draft: { ...state.draft, periodicidades: action.ids } }
 
     case 'SET_INTERNACIONAL':
       return { ...state, draft: { ...state.draft, isInternacional: action.value } }

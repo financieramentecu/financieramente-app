@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
-import { UserRole } from '@/features/auth/lib/roles'
+import { afterEach, describe, it, expect, vi } from 'vitest'
+import { ROLE_NAMES, UserRole } from '@/features/auth/lib/roles'
 import { CommentItem } from '../components/CommentItem'
 import type { CommentDTO } from '../types/comment.types'
 
@@ -13,12 +13,49 @@ const baseComment: CommentDTO = {
   createdAt: '2026-07-01T10:00:00.000Z',
 }
 
+/** Intl may emit U+00A0 / U+202F between date parts; normalize to a plain space. */
+function normalize(value: string): string {
+  return value.replace(/[\u00A0\u202F]/g, ' ')
+}
+
+// 2026-09-30T02:30:00Z is 2026-09-29 21:30 in Bogotá (UTC-5)
+const BOGOTA_INSTANT = '2026-09-30T02:30:00.000Z'
+// CLDR versions differ: es-CO "medium" is "29/09/2026" or "29 sept 2026"
+const BOGOTA_DATE = /29(\/09\/| sept?\.? )2026/
+const BOGOTA_TIME = /9:30\s?p\.\s?m\./
+
 describe('CommentItem', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it('renders title and detail as plain text when there are no urls', () => {
     render(<CommentItem comment={baseComment} />)
     expect(screen.getByText('Seguimiento')).toBeInTheDocument()
     expect(screen.getByText('Falta el comprobante')).toBeInTheDocument()
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  it('aligns PARTNER comments like AGENTE comments (left, muted style) and AGENTE vs ANALISTA differ', () => {
+    const { rerender } = render(<CommentItem comment={baseComment} />)
+    const agentWrapper = screen.getByTestId('comment-item-c-1')
+    expect(agentWrapper.className).toContain('justify-start')
+
+    rerender(
+      <CommentItem
+        comment={{ ...baseComment, author: { id: 7, name: 'Pat Partner', role: UserRole.PARTNER } }}
+      />,
+    )
+    const partnerWrapper = screen.getByTestId('comment-item-c-1')
+    expect(partnerWrapper.className).toContain('justify-start')
+    expect(partnerWrapper.innerHTML).toContain('bg-muted/40')
+
+    rerender(
+      <CommentItem
+        comment={{ ...baseComment, author: { id: 5, name: 'Beto', role: UserRole.ANALISTA_SOPORTE } }}
+      />,
+    )
+    expect(screen.getByTestId('comment-item-c-1').className).toContain('justify-end')
   })
 
   it('renders https urls in detail as clickable links opening in a new tab (CA1, CA2)', () => {
@@ -83,5 +120,36 @@ describe('CommentItem', () => {
       'target',
       '_blank',
     )
+  })
+  it.each(['UTC', 'Asia/Tokyo'])(
+    'shows the comment date and time in Bogota time when the runtime timezone is %s',
+    (timeZone) => {
+      vi.stubEnv('TZ', timeZone)
+      render(<CommentItem comment={{ ...baseComment, createdAt: BOGOTA_INSTANT }} />)
+
+      const timestamp = normalize(screen.getByTestId('comment-item-c-1').textContent ?? '')
+      expect(timestamp).toMatch(BOGOTA_DATE)
+      expect(timestamp).toMatch(BOGOTA_TIME)
+    },
+  )
+
+  it('guard: keeps author, role label, title, link and line breaks of the content', () => {
+    render(
+      <CommentItem
+        comment={{
+          ...baseComment,
+          detail: 'Primera línea\nVer https://docs.example.com/guia',
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Ana Agente')).toBeInTheDocument()
+    expect(screen.getByText(ROLE_NAMES[UserRole.AGENTE])).toBeInTheDocument()
+    expect(screen.getByText('Seguimiento')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'https://docs.example.com/guia' })).toHaveAttribute(
+      'href',
+      'https://docs.example.com/guia',
+    )
+    expect(screen.getByText(/Primera línea/).textContent).toContain('Primera línea\nVer ')
   })
 })

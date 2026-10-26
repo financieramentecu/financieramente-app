@@ -48,7 +48,8 @@ Cada feature en `src/features/<feature>/` suele tener: `components/`, `hooks/`, 
 | App Router, Server Actions, rutas API | `nextjs-16` | [nextjs-16/SKILL.md](../nextjs-16/SKILL.md) |
 | Organizar por dominio/feature | `screaming-architecture` | [screaming-architecture/SKILL.md](../screaming-architecture/SKILL.md) |
 | Mensajes de commit | `commit-messages` | [commit-messages/SKILL.md](../commit-messages/SKILL.md) |
-| Revisión de código (seguridad, rendimiento) | `code-review-skill` | [code-review-skill/SKILL.md](../code-review-skill/SKILL.md) |
+| Revisión de código | `code-reviewer` | [code-reviewer/SKILL.md](../code-reviewer/SKILL.md) |
+| Revisión de seguridad | `security-review` | [security-review/SKILL.md](../security-review/SKILL.md) |
 
 **Auto-invoke** (desde [AGENTS.md](../../AGENTS.md)): React components → `react-19` primero; TypeScript types/interfaces → `typescript` primero.
 

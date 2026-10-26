@@ -12,7 +12,12 @@ import {
 	prismaProductConfigListToProductConfigs,
 } from '@/features/product-configuration/mappers/product-configuration.mapper'
 import { buildProductConfigurationCode } from '@/features/negocios/lib/product-configuration-code'
-import { getProductConfigurationIdsWithCategoryLines } from '@/features/product-configuration/services/product-configuration.service'
+import {
+	createStructuralProductConfiguration,
+	getProductConfigurationIdsWithCategoryLines,
+} from '@/features/product-configuration/services/product-configuration.service'
+import { buildProductConfigurationListWhere } from '@/features/product-configuration/lib/product-configuration-list-where'
+import { DefaultDistributionError } from '@/features/distribution-commission/lib/default-distribution-table'
 import { auth } from '@/auth'
 import {
 	logAuditEvent,
@@ -62,33 +67,15 @@ export async function GET(request: Request) {
 		const { searchParams } = new URL(request.url)
 		const search = searchParams.get('search')
 		const active = searchParams.get('active')
+		const eligible = searchParams.get('eligible') === 'true'
 		const page = parseInt(searchParams.get('page') || '1')
 		const pageSize = parseInt(searchParams.get('pageSize') || '10')
 
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const where: Record<string, any> = {}
-
-		if (search) {
-			where.OR = [
-				{ code: { contains: search, mode: 'insensitive' } },
-				{
-					product: {
-						name: { contains: search, mode: 'insensitive' },
-					},
-				},
-				{
-					level: {
-						name: { contains: search, mode: 'insensitive' },
-					},
-				},
-			]
-		}
-
-		if (active === 'active') {
-			where.active = true
-		} else if (active === 'inactive') {
-			where.active = false
-		}
+		const where = buildProductConfigurationListWhere({
+			search,
+			active,
+			eligible,
+		})
 
 		const total = await prisma.productConfiguration.count({ where })
 
@@ -237,38 +224,15 @@ export async function POST(request: Request) {
 			return NextResponse.json(errorResponse, { status: 400 })
 		}
 
-		// Transactional creation: ProductConfiguration + PPC
-		const result = await prisma.$transaction(async (tx) => {
-			// Create ProductConfiguration
-			const config = await tx.productConfiguration.create({
-				data: {
-					idProduct: data.idProduct,
-					idLevel: data.idLevel,
-					code,
-					active: true,
-				},
+		const result = await prisma.$transaction((tx) =>
+			createStructuralProductConfiguration(tx, {
+				idProduct: data.idProduct,
+				idLevel: data.idLevel,
+				levelCode: level.code,
+				code,
+				active: true,
 			})
-
-			// Create ProductPercentageCommission
-			const ppc = await tx.productPercentageCommission.create({
-				data: {
-					idProductConfiguration: config.id,
-					active: true,
-				},
-			})
-
-			// Update ProductConfiguration with PPC reference
-			const updatedConfig = await tx.productConfiguration.update({
-				where: { id: config.id },
-				data: {
-					idProductPercentageCommissionNewBusinesses:
-						ppc.idProductPercentageCommission,
-				},
-				include: productConfigurationInclude,
-			})
-
-			return updatedConfig
-		})
+		)
 
 		await logAuditEvent({
 			userId: session?.user?.id ? parseInt(session.user.id) : undefined,
@@ -291,6 +255,14 @@ export async function POST(request: Request) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,
 				error: error.issues[0]?.message || 'Datos inválidos',
+			}
+			return NextResponse.json(errorResponse, { status: 400 })
+		}
+
+		if (error instanceof DefaultDistributionError) {
+			const errorResponse: ApiResponse<null> = {
+				data: null,
+				error: error.message,
 			}
 			return NextResponse.json(errorResponse, { status: 400 })
 		}

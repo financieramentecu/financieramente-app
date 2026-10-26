@@ -1,5 +1,13 @@
 import { PrismaClient } from '@prisma/client'
 
+export const PARTNER_ROLE = {
+	code: 'PARTNER',
+	name: 'Partner Externo',
+	description:
+		'Aliado externo: solo accede a sus propios negocios, sin participar en la distribución de comisiones',
+	active: true,
+}
+
 export const roles = [
 	{
 		code: 'ADMIN',
@@ -36,9 +44,10 @@ export const roles = [
 		code: 'CONSULTOR',
 		name: 'Consultor (Solo Lectura)',
 		description:
-			'Acceso de solo lectura a Dashboard, Negocios, Reportes y Calculadora, sin permisos de escritura ni exportación',
+			'Acceso de solo lectura a Dashboard, Negocios, Reportes y Calculadora, sin permisos de escritura. Puede exportar la Lista de Negocios a Excel; el resto de exportaciones permanece restringido',
 		active: true,
 	},
+	PARTNER_ROLE,
 ]
 
 export async function seedRoles(prisma: PrismaClient) {

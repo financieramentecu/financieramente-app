@@ -40,6 +40,7 @@ function buildBusiness(overrides: Partial<Business> = {}): Business {
 		hasPendingPaymentFunding: false,
 		numAportes: null,
 		supportCount: 1,
+		commentCount: 0,
 		observations: null,
 		currency: { id: 1, name: 'COP' },
 		...overrides,

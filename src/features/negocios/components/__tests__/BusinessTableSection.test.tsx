@@ -120,6 +120,25 @@ describe('BusinessTableSection — new toolbar', () => {
 		).not.toBeInTheDocument()
 	})
 
+	it('shows Exportar Excel and hides Agregar negocio for CONSULTOR', () => {
+		render(
+			<BusinessTableSection
+				data={[]}
+				onAddBusiness={vi.fn()}
+				onEditBusiness={vi.fn()}
+				userRole={UserRole.CONSULTOR}
+				canExportExcel={true}
+				onExportExcel={vi.fn()}
+			/>
+		)
+		expect(
+			screen.getByRole('button', { name: /exportar excel/i })
+		).toBeEnabled()
+		expect(
+			screen.queryByRole('button', { name: /agregar negocio/i })
+		).not.toBeInTheDocument()
+	})
+
 	it('does not show Export button when canExportExcel is false', () => {
 		render(
 			<BusinessTableSection

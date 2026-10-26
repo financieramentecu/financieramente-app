@@ -60,6 +60,9 @@ export const businessWithRelations = {
 			supports: {
 				where: { status: true },
 			},
+			comments: {
+				where: { status: true },
+			},
 		},
 	},
 	supports: true,

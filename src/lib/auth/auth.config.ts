@@ -3,6 +3,8 @@ import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
 import { resolveAuthSecret } from '@/lib/auth/auth-secret'
 import { isE2ETestAuthAllowed } from '@/lib/auth/test-auth'
+import { isPartnerRequestAllowed } from '@/lib/auth/partner-allowlist'
+import { UserRole } from '@/features/auth/lib/roles'
 
 /**
  * Configuración base de NextAuth - Edge Compatible
@@ -41,6 +43,20 @@ export const authConfigEdge: NextAuthConfig = {
 		strategy: 'jwt',
 	},
 	callbacks: {
+		// Edge session: the default session callback only exposes name, email and
+		// image, so `auth.user.role` was never available in `authorized`. Copy the
+		// role claim (issued by the Node `jwt` callback) from the token. This
+		// reads the cookie only; per-request DB revalidation happens in Node.
+		session({ session, token }) {
+			if (session.user) {
+				if (token?.userId) {
+					session.user.id = String(token.userId)
+				}
+				session.user.role =
+					typeof token?.role === 'string' ? (token.role as UserRole) : null
+			}
+			return session
+		},
 		// El callback authorized se usa en el middleware para verificar autenticación
 		authorized({ auth, request }) {
 			const { nextUrl } = request
@@ -54,6 +70,25 @@ export const authConfigEdge: NextAuthConfig = {
 			const isLoggedIn = !!auth?.user
 			const isOnDashboard = nextUrl.pathname.startsWith('/dashboard')
 			const isOnProtectedApi = nextUrl.pathname.startsWith('/api/protected')
+			const isOnApi = nextUrl.pathname.startsWith('/api/')
+
+			// PARTNER deny-by-default allowlist (PA-01, SEC-02). Evaluated ONLY for
+			// role PARTNER; every other role and unauthenticated request keeps the
+			// behavior below, so public/API-key/cron routes are unaffected.
+			if (
+				isLoggedIn &&
+				auth?.user?.role === UserRole.PARTNER &&
+				(isOnDashboard || isOnApi) &&
+				!isPartnerRequestAllowed(nextUrl.pathname, request.method)
+			) {
+				if (isOnApi) {
+					return Response.json(
+						{ data: null, error: 'Sin permisos' },
+						{ status: 403 }
+					)
+				}
+				return Response.redirect(new URL('/dashboard', nextUrl))
+			}
 
 			if (isOnDashboard || isOnProtectedApi) {
 				if (isLoggedIn) {

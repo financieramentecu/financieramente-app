@@ -46,6 +46,7 @@ export const BusinessForm = React.forwardRef<
 			isEditMode,
 			handleFormSubmit,
 			handleClientSelected,
+			hasSelectedClient,
 			handleSearchClient,
 			clientResults,
 			filteredProducts,
@@ -103,6 +104,7 @@ export const BusinessForm = React.forwardRef<
 						clientResults={clientResults}
 						onSearchClient={handleSearchClient}
 						onClientSelected={handleClientSelected}
+						hasSelectedClient={hasSelectedClient}
 						isEditMode={isEditMode}
 						isBlocked={isBlocked}
 						isLeadConversion={Boolean(leadId)}

@@ -60,7 +60,9 @@ const existingClient = {
 describe('updateClient — COM-63 authorization', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		vi.mocked(prisma.client.findUnique).mockResolvedValue(existingClient as never)
+		vi.mocked(prisma.client.findUnique).mockResolvedValue(
+			existingClient as never
+		)
 		vi.mocked(prisma.client.findFirst).mockResolvedValue(null)
 		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
 			idDocumentType: 1,
@@ -189,6 +191,177 @@ describe('updateClient — COM-63 authorization', () => {
 
 		expect('error' in result).toBe(false)
 		expect(prisma.client.update).toHaveBeenCalled()
+	})
+
+	it('rejects an agent changing typeIdentity on business-create', async () => {
+		vi.mocked(auth).mockResolvedValue({
+			user: {
+				id: '3',
+				email: 'agente@financieramentecu.com',
+				role: UserRole.AGENTE,
+			},
+		} as never)
+
+		const result = await updateClient({
+			idClient: 10,
+			typeIdentity: 'CE',
+			context: 'business-create',
+		})
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toBe(
+			'No tienes permisos para editar la información del cliente'
+		)
+		expect(prisma.client.update).not.toHaveBeenCalled()
+	})
+
+	it('rejects a privileged update that switches to a code outside the catalog', async () => {
+		vi.mocked(auth).mockResolvedValue({
+			user: {
+				id: '2',
+				email: 'ago@financieramentecu.com',
+				role: UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+			},
+		} as never)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue(null)
+
+		const result = await updateClient({
+			idClient: 10,
+			typeIdentity: 'CCX',
+			context: 'business-edit',
+			businessId: 99,
+		})
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toMatch(/no existe/)
+		expect(prisma.client.update).not.toHaveBeenCalled()
+	})
+
+	it('saves other fields when a stored formatted identity stays the same', async () => {
+		vi.mocked(auth).mockResolvedValue({
+			user: {
+				id: '2',
+				email: 'ago@financieramentecu.com',
+				role: UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+			},
+		} as never)
+		vi.mocked(prisma.client.findUnique).mockResolvedValue({
+			...existingClient,
+			identityNumber: '1.234.567',
+		} as never)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
+			idDocumentType: 1,
+			name: 'Cédula de Ciudadanía',
+			code: 'CC',
+			dataType: 'NUMERIC',
+			minLength: 6,
+			maxLength: 10,
+			status: true,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		} as never)
+		vi.mocked(prisma.client.update).mockResolvedValue({
+			...existingClient,
+			identityNumber: '1.234.567',
+			name: 'Ana María',
+		} as never)
+
+		const result = await updateClient({
+			idClient: 10,
+			name: 'Ana María',
+			typeIdentity: 'CC',
+			identityNumber: '1.234.567',
+			context: 'business-edit',
+			businessId: 99,
+		})
+
+		expect('error' in result).toBe(false)
+		expect(prisma.documentType.findFirst).not.toHaveBeenCalled()
+		expect(prisma.client.update).toHaveBeenCalled()
+	})
+
+	it('skips identity revalidation when an existing business edit does not change identityNumber or typeIdentity', async () => {
+		vi.mocked(auth).mockResolvedValue({
+			user: {
+				id: '2',
+				email: 'ago@financieramentecu.com',
+				role: UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+			},
+		} as never)
+		vi.mocked(prisma.client.findUnique).mockResolvedValue({
+			...existingClient,
+			typeIdentity: 'PAS',
+			identityNumber: '1.234.567',
+		} as never)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
+			idDocumentType: 2,
+			name: 'Pasaporte',
+			code: 'PAS',
+			dataType: 'ALPHANUMERIC',
+			minLength: 6,
+			maxLength: 15,
+			status: false,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		} as never)
+		vi.mocked(prisma.client.update).mockResolvedValue({
+			...existingClient,
+			typeIdentity: 'PAS',
+			identityNumber: '1.234.567',
+			name: 'Ana María',
+		} as never)
+
+		const result = await updateClient({
+			idClient: 10,
+			name: 'Ana María',
+			context: 'business-edit',
+			businessId: 99,
+		})
+
+		expect('error' in result).toBe(false)
+		expect(prisma.documentType.findFirst).not.toHaveBeenCalled()
+		expect(prisma.client.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: { name: 'Ana María' },
+			})
+		)
+	})
+
+	it('rejects a privileged update that replaces the identity with a formatted number', async () => {
+		vi.mocked(auth).mockResolvedValue({
+			user: {
+				id: '2',
+				email: 'ago@financieramentecu.com',
+				role: UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+			},
+		} as never)
+		vi.mocked(prisma.client.findUnique).mockResolvedValue({
+			...existingClient,
+			identityNumber: '1234567',
+		} as never)
+		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
+			idDocumentType: 1,
+			name: 'Cédula de Ciudadanía',
+			code: 'CC',
+			dataType: 'NUMERIC',
+			minLength: 6,
+			maxLength: 10,
+			status: true,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		} as never)
+
+		const result = await updateClient({
+			idClient: 10,
+			typeIdentity: 'CC',
+			identityNumber: '1.234.567',
+			context: 'business-edit',
+			businessId: 99,
+		})
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toMatch(/dígitos/)
+		expect(prisma.client.update).not.toHaveBeenCalled()
 	})
 
 	it('rejects agent changing identityNumber even on business-create', async () => {

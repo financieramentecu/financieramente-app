@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { GET, PUT } from '../[id]/route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
@@ -33,9 +32,8 @@ vi.mock('@/features/negocios/actions/find-product-percentage-commission', () => 
 }))
 vi.mock('@/features/pre-liquidacion/services/pre-liquidacion.service')
 vi.mock('@/features/negocios/services/product-configuration.service')
-vi.mock('@/features/negocios/services/user-hierarchy.service', () => ({
-	getSubordinateUserIds: vi.fn().mockImplementation(() => Promise.resolve([])),
-}))
+// The real visibility rule runs against the mocked Prisma (`user.findMany` -> []),
+// so an AGENTE has no subordinates here.
 
 
 vi.mock('@/lib/prisma', () => {
@@ -123,12 +121,13 @@ describe('GET /api/negocios/[id]', () => {
 	const mockGetCurrentUserByEmail = vi.mocked(getCurrentUserByEmail)
 	const mockPrismaBusinessToEntity = vi.mocked(prismaBusinessToEntity)
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
-	const mockGetSubordinateUserIds = vi.mocked(getSubordinateUserIds)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
-		// Default: no subordinates (returns empty array so visibleUserIds = [self])
-		mockGetSubordinateUserIds.mockResolvedValue([])
+		// Default: no subordinates (hierarchy lookup returns no users, so scope = [self])
+		const mockUserFindMany = (mockPrisma.user as Record<string, unknown>)
+			.findMany as ReturnType<typeof vi.fn>
+		mockUserFindMany.mockResolvedValue([])
 		mockFindFirst.mockImplementation(({ where }: { where?: Record<string, unknown> }) => {
 			if (where && (where.idBusiness || where.contract)) {
 				// Retornar un mock genérico si no se especifica en el test
@@ -603,7 +602,7 @@ describe('PUT /api/negocios/[id]', () => {
 
 			expect(response.status).toBe(200)
 			expect(mockFindFirst).toHaveBeenCalledWith(expect.objectContaining({
-				where: { idBusiness: 1, idUser: 20 },
+				where: { idBusiness: 1, idUser: { in: [20] } },
 			}))
 		})
 

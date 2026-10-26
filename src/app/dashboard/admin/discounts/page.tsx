@@ -78,7 +78,10 @@ function KpiCard({
 					</span>
 				)}
 			</div>
-			<p className="text-[34px] font-bold leading-none" style={{ color: '#00545c' }}>
+			<p
+				className="text-[34px] font-bold leading-none"
+				style={{ color: '#3A6AE8' }}
+			>
 				{discount ? `${Number(discount.percentage).toFixed(2)}%` : '—'}
 			</p>
 			<p className="text-[13px]" style={{ color: '#529398' }}>
@@ -96,21 +99,27 @@ function KpiCard({
 
 export default function DiscountsAdminPage() {
 	const [isCreateOpen, setIsCreateOpen] = useState(false)
-	const [inactivateTarget, setInactivateTarget] = useState<CommissionDiscount | null>(null)
+	const [inactivateTarget, setInactivateTarget] =
+		useState<CommissionDiscount | null>(null)
 
 	const { state, refresh } = useCommissionDiscounts()
 
 	const discounts = state.status === 'success' ? state.data : []
-	const activeImpuesto = discounts.find((d) => d.type === 'IMPUESTO' && d.status === 'ACTIVE')
-	const activeClawback = discounts.find((d) => d.type === 'CLAWBACK' && d.status === 'ACTIVE')
+	const activeImpuesto = discounts.find(
+		(d) => d.type === 'IMPUESTO' && d.status === 'ACTIVE'
+	)
+	const activeClawback = discounts.find(
+		(d) => d.type === 'CLAWBACK' && d.status === 'ACTIVE'
+	)
 
-	const { createDiscount, inactivateDiscount, isSubmitting } = useCommissionDiscountMutations({
-		onSuccess: () => {
-			setIsCreateOpen(false)
-			setInactivateTarget(null)
-			refresh()
-		},
-	})
+	const { createDiscount, inactivateDiscount, isSubmitting } =
+		useCommissionDiscountMutations({
+			onSuccess: () => {
+				setIsCreateOpen(false)
+				setInactivateTarget(null)
+				refresh()
+			},
+		})
 
 	const handleCreate = async (data: CreateCommissionDiscountData) => {
 		await createDiscount(data)
@@ -127,7 +136,10 @@ export default function DiscountsAdminPage() {
 				{/* Page header */}
 				<div className="flex items-center justify-between">
 					<div className="flex flex-col gap-1">
-						<h1 className="text-[26px] font-bold leading-tight" style={{ color: '#00545c' }}>
+						<h1
+							className="text-[26px] font-bold leading-tight"
+							style={{ color: '#3A6AE8' }}
+						>
 							Descuentos
 						</h1>
 						<p className="text-[13px]" style={{ color: '#529398' }}>
@@ -137,7 +149,7 @@ export default function DiscountsAdminPage() {
 					<button
 						onClick={() => setIsCreateOpen(true)}
 						className="inline-flex items-center gap-2 rounded-md px-4 h-9 text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-90"
-						style={{ backgroundColor: '#00545c', color: '#FFFFFF' }}
+						style={{ backgroundColor: '#3A6AE8', color: '#FFFFFF' }}
 					>
 						<Plus className="h-3.5 w-3.5" />
 						Crear Descuento
@@ -148,12 +160,16 @@ export default function DiscountsAdminPage() {
 				<div className="flex gap-4">
 					<KpiCard
 						discount={activeImpuesto}
-						icon={<Percent className="h-3.5 w-3.5" style={{ color: '#529398' }} />}
+						icon={
+							<Percent className="h-3.5 w-3.5" style={{ color: '#529398' }} />
+						}
 						label="IMPUESTO ACTIVO"
 					/>
 					<KpiCard
 						discount={activeClawback}
-						icon={<RotateCcw className="h-3.5 w-3.5" style={{ color: '#529398' }} />}
+						icon={
+							<RotateCcw className="h-3.5 w-3.5" style={{ color: '#529398' }} />
+						}
 						label="CLAWBACK ACTIVO"
 					/>
 				</div>
@@ -183,16 +199,26 @@ export default function DiscountsAdminPage() {
 				<Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
 					<DialogContent
 						className="p-0 overflow-hidden"
-						style={{ borderColor: '#DDE9EB', backgroundColor: '#FFFFFF', maxWidth: 420 }}
+						style={{
+							borderColor: '#DDE9EB',
+							backgroundColor: '#FFFFFF',
+							maxWidth: 420,
+						}}
 					>
 						<DialogHeader
 							className="px-6 pb-4 pt-5"
 							style={{ borderBottom: '1px solid #DDE9EB' }}
 						>
-							<DialogTitle className="text-[18px] font-bold" style={{ color: '#00545c' }}>
+							<DialogTitle
+								className="text-[18px] font-bold"
+								style={{ color: '#3A6AE8' }}
+							>
 								Crear Descuento
 							</DialogTitle>
-							<DialogDescription className="text-[13px]" style={{ color: '#529398' }}>
+							<DialogDescription
+								className="text-[13px]"
+								style={{ color: '#529398' }}
+							>
 								Completa el formulario para crear un nuevo descuento de comisión
 							</DialogDescription>
 						</DialogHeader>

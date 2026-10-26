@@ -22,6 +22,11 @@ import { useComments } from '../hooks/use-comments'
 
 const mockUseComments = vi.mocked(useComments)
 
+/** Intl may emit U+00A0 / U+202F between date parts; normalize to a plain space. */
+function normalize(value: string): string {
+  return value.replace(/[\u00A0\u202F]/g, ' ')
+}
+
 const COMMENT = {
   id: 'c-1',
   businessId: 10,
@@ -84,5 +89,23 @@ describe('CommentsSidebar', () => {
     ).not.toBeInTheDocument()
     // The thread stays visible — read-only means no writes, not no visibility
     expect(screen.getByText('Seguimiento')).toBeInTheDocument()
+  })
+  it('shows the comment date and time in Bogota time', () => {
+    // 2026-09-30T02:30:00Z is 2026-09-29 21:30 in Bogotá (UTC-5)
+    mockUseComments.mockReturnValue({
+      state: {
+        status: 'success',
+        data: [{ ...COMMENT, createdAt: '2026-09-30T02:30:00.000Z' }],
+        error: '',
+      },
+      refetch: vi.fn(),
+      createComment: vi.fn(),
+    })
+    render(<CommentsSidebar {...defaultProps} defaultOpen />)
+
+    const item = normalize(screen.getByTestId('comment-item-c-1').textContent ?? '')
+    // CLDR versions differ: es-CO "medium" is "29/09/2026" or "29 sept 2026"
+    expect(item).toMatch(/29(\/09\/| sept?\.? )2026/)
+    expect(item).toMatch(/9:30\s?p\.\s?m\./)
   })
 })

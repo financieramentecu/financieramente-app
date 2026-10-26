@@ -185,6 +185,54 @@ describe('POST /api/negocios/export — hierarchy scope (bug fix: no leakage)', 
 	})
 })
 
+describe('POST /api/negocios/export — PARTNER scope (NEG-03)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		mockCount.mockResolvedValue(0)
+		mockFindMany.mockResolvedValue([])
+		mockUserFindMany.mockResolvedValue([])
+	})
+
+	it('authorizes a PARTNER and restricts rows to their own businesses without a hierarchy lookup', async () => {
+		mockAuth.mockResolvedValue(makeSession('partner@test.com') as never)
+		mockGetCurrentUser.mockResolvedValue(
+			makeUser(
+				77,
+				UserRole.PARTNER,
+				'PARTNER_EXTERNAL',
+				'partner@test.com'
+			) as never
+		)
+
+		const res = await POST(makeRequest())
+
+		expect(res.status).not.toBe(403)
+		expect(mockUserFindMany).not.toHaveBeenCalled()
+		const whereStr = JSON.stringify(mockCount.mock.calls[0]?.[0]?.where ?? {})
+		expect(whereStr).toContain('"idUser":{"in":[77]}')
+	})
+
+	it('a PARTNER cannot widen the scope with the agentIds filter', async () => {
+		mockAuth.mockResolvedValue(makeSession('partner@test.com') as never)
+		mockGetCurrentUser.mockResolvedValue(
+			makeUser(
+				77,
+				UserRole.PARTNER,
+				'PARTNER_EXTERNAL',
+				'partner@test.com'
+			) as never
+		)
+
+		await POST(makeRequest({ agentIds: [1, 2, 3] }))
+
+		const where = mockCount.mock.calls[0]?.[0]?.where as { AND?: unknown[] }
+		const whereStr = JSON.stringify(where)
+		// own scope is a mandatory AND member; the filter can only narrow it further
+		expect(whereStr).toContain('"idUser":{"in":[77]}')
+		expect(Array.isArray(where.AND)).toBe(true)
+	})
+})
+
 describe('POST /api/negocios/export — regression: existing error paths still work', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()

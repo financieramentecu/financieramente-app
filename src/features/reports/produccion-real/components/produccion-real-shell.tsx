@@ -34,11 +34,14 @@ function ShellContent({ canExport }: ShellContentProps) {
 		trmLoading,
 		trmError,
 	})
-	const { state: detailState, loadMore, isLoadingMore } =
-		useProduccionRealDetail({
-			trmRate,
-			trmLoading,
-		})
+	const {
+		state: detailState,
+		loadMore,
+		isLoadingMore,
+	} = useProduccionRealDetail({
+		trmRate,
+		trmLoading,
+	})
 	const { exportExcel, isExporting } = useProduccionRealExport({
 		trmRate,
 		trmLoading,
@@ -48,10 +51,9 @@ function ShellContent({ canExport }: ShellContentProps) {
 	return (
 		<div className="flex flex-1 min-h-0 overflow-hidden">
 			<aside
-				className="shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out"
+				className={`shrink-0 overflow-hidden flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? '' : 'border-r border-border'}`}
 				style={{
 					width: sidebarCollapsed ? 0 : 288,
-					borderRight: '1px solid rgba(0,60,69,0.15)',
 				}}
 				aria-label={PRODUCCION_REAL_UI.HIERARCHY}
 			>
@@ -104,7 +106,9 @@ interface ProduccionRealShellProps {
  * Client shell: HierarchySelectionProvider > FilterProvider > content.
  * Mirrors production dashboard composition (ADR-3 / design D5).
  */
-export function ProduccionRealShell({ canExport = true }: ProduccionRealShellProps) {
+export function ProduccionRealShell({
+	canExport = true,
+}: ProduccionRealShellProps) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<HierarchySelectionProvider>

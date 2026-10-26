@@ -63,21 +63,30 @@ describe('canExportBusinessList', () => {
 		).toBe(false)
 	})
 
-	it('returns false for CONSULTOR with an assigned level within Nivel 2-6 (read-only precedence)', () => {
-		expect(
-			canExportBusinessList({
-				roleCode: UserRole.CONSULTOR,
-				levelCode: 'LEVEL_3',
-			})
-		).toBe(false)
-	})
-
-	it('returns false for CONSULTOR without any assigned level', () => {
+	it('returns true for CONSULTOR without any assigned level', () => {
 		expect(
 			canExportBusinessList({
 				roleCode: UserRole.CONSULTOR,
 				levelCode: undefined,
 			})
-		).toBe(false)
+		).toBe(true)
 	})
+
+	it('returns true for CONSULTOR even when a hierarchy level is assigned', () => {
+		expect(
+			canExportBusinessList({
+				roleCode: UserRole.CONSULTOR,
+				levelCode: 'LEVEL_3',
+			})
+		).toBe(true)
+	})
+
+	it.each([undefined, 'PARTNER_EXTERNAL', 'LEVEL_0'])(
+		'allows PARTNER to export (own rows only, level %s)',
+		(levelCode) => {
+			expect(
+				canExportBusinessList({ roleCode: UserRole.PARTNER, levelCode })
+			).toBe(true)
+		}
+	)
 })

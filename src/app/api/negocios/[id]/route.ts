@@ -21,12 +21,17 @@ import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schem
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
-import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
+import { PARTNER_PRODUCT_UNAVAILABLE_ERROR } from '@/features/negocios/services/business-creation.service'
+import { resolveDistributionLevel } from '@/features/negocios/lib/distribution-level'
+import {
+	checkBusinessRoleGate,
+	resolveBusinessScope,
+} from '@/features/negocios/services/business-access.service'
+import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
 
 import {
 	UserRole,
 	canEditContractWhenBusinessEmitido,
-	isReadOnlyRole,
 } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -82,25 +87,16 @@ export async function GET(
 			)
 		}
 
-		// Visibility scope for detail:
-		// ADMIN / ASISTENTE / ANALISTA → see any business, no idUser restriction
-		// All other roles → hierarchical scope: [self, ...subordinates]
-		const isAdmin =
-			currentUser.role?.code === UserRole.ADMIN ||
-			currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
-			currentUser.role?.code === UserRole.ANALISTA_SOPORTE
-		let whereClause: { idBusiness: number; idUser?: { in: number[] } }
-
-		if (isAdmin) {
-			whereClause = { idBusiness: businessId }
-		} else {
-			const subordinates = await getSubordinateUserIds(prisma, currentUser.idUser)
-			const visibleUserIds = [currentUser.idUser, ...subordinates]
-			whereClause = { idBusiness: businessId, idUser: { in: visibleUserIds } }
+		// SEC-03: central access decision (global roles all, AGENTE self+subordinates,
+		// PARTNER own, unknown roles fail closed).
+		const denied = checkBusinessRoleGate(currentUser, 'read')
+		if (denied) {
+			return businessAccessDeniedResponse(denied.reason)
 		}
+		const scope = await resolveBusinessScope(prisma, currentUser)
 
 		const business = await prisma.business.findFirst({
-			where: whereClause,
+			where: { idBusiness: businessId, ...scope },
 			include: businessWithRelations,
 		})
 
@@ -197,26 +193,25 @@ export async function PUT(
 			)
 		}
 
-		if (isReadOnlyRole(currentUser.role?.code)) {
-			return NextResponse.json(
-				{ data: null, error: 'Sin permisos' },
-				{ status: 403 }
-			)
+		// SEC-03: read-only and unknown roles are refused before any lookup
+		const denied = checkBusinessRoleGate(currentUser, 'write')
+		if (denied) {
+			return businessAccessDeniedResponse(denied.reason)
 		}
 
 		// Verificar que el negocio existe y el usuario tiene acceso
-		const isAgent = currentUser.role?.code === UserRole.AGENTE
 		const isAdmin = currentUser.role?.code === UserRole.ADMIN
 		const isAsistente = currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
 		const isAnalista = currentUser.role?.code === UserRole.ANALISTA_SOPORTE
 		const isPrivileged = isAdmin || isAsistente || isAnalista
 
-		const whereClause = isAgent
-			? { idBusiness: businessId, idUser: currentUser.idUser }
-			: { idBusiness: businessId }
+		// Edits stay owner-only for AGENTE (existing rule); PARTNER is own-only by scope.
+		const writeScope = await resolveBusinessScope(prisma, currentUser, {
+			ownOnly: true,
+		})
 
 		const existingBusiness = await prisma.business.findFirst({
-			where: whereClause,
+			where: { idBusiness: businessId, ...writeScope },
 			include: {
 				productPercentageCommission: {
 					include: {
@@ -227,6 +222,7 @@ export async function PUT(
 										company: true,
 									},
 								},
+								level: { select: { code: true } },
 							},
 						},
 					},
@@ -273,6 +269,14 @@ export async function PUT(
 			)
 		}
 
+		// A PARTNER can never hand their business over to another owner
+		if (idUser !== undefined && currentUser.role?.code === UserRole.PARTNER) {
+			return NextResponse.json(
+				{ data: null, error: 'No tienes permisos para reasignar el negocio' },
+				{ status: 403 }
+			)
+		}
+
 		// Validar permisos para contrato si ya está emitido
 		if (
 			isNotDraft &&
@@ -290,6 +294,14 @@ export async function PUT(
 		let finalNumAportes = existingBusiness.numAportes ?? 0
 		let shouldSyncPayments = false
 		let resolvedPeriodicityName: string | null = existingBusiness.buyPeriodicity?.name ?? null
+		// PARTNER_EXTERNAL businesses have no distribution lines: their PPC is empty by
+		// design, so the category-line validation and commission recalculation are skipped.
+		// Resolved once per level: the current level, then the final one if the owner changes.
+		const currentLevel = resolveDistributionLevel(
+			existingBusiness.productPercentageCommission?.productConfiguration?.level?.code
+		)
+		let finalLevel = currentLevel
+		const isPartnerBusiness = currentLevel.isDistributionExcluded
 
 		// --- FLUJO ESPECIAL: CAMBIO DE ORIGEN ---
 		if (idClientOrigin !== undefined && isUpdatingSensitive === false && contract === undefined) {
@@ -300,10 +312,12 @@ export async function PUT(
 				)
 			}
 
-			const validation = await validateProductConfigurationExists(
-				existingBusiness.productPercentageCommission.productConfiguration.idLevel,
-				idProduct ?? existingBusiness.productPercentageCommission.productConfiguration.idProduct
-			)
+			const validation = isPartnerBusiness
+				? { valid: true as const }
+				: await validateProductConfigurationExists(
+						existingBusiness.productPercentageCommission.productConfiguration.idLevel,
+						idProduct ?? existingBusiness.productPercentageCommission.productConfiguration.idProduct
+					)
 
 			if (!validation.valid) {
 				return NextResponse.json(
@@ -323,7 +337,7 @@ export async function PUT(
 			if (idUser !== undefined && !isNotDraft) {
 				const newUser = await prisma.user.findUnique({
 					where: { idUser: targetIdUser },
-					select: { idLevel: true },
+					select: { idLevel: true, level: { select: { code: true } } },
 				})
 				if (!newUser?.idLevel) {
 					return NextResponse.json(
@@ -332,6 +346,7 @@ export async function PUT(
 					)
 				}
 				targetIdLevel = newUser.idLevel
+				finalLevel = resolveDistributionLevel(newUser.level?.code)
 			}
 
 			const ppcResult = await findProductPercentageCommission({
@@ -341,7 +356,12 @@ export async function PUT(
 
 			if ('error' in ppcResult || !ppcResult.data) {
 				return NextResponse.json(
-					{ data: null, error: 'No existe configuración de comisiones para la combinación seleccionada' },
+					{
+						data: null,
+						error: finalLevel.isDistributionExcluded
+							? PARTNER_PRODUCT_UNAVAILABLE_ERROR
+							: 'No existe configuración de comisiones para la combinación seleccionada',
+					},
 					{ status: 400 }
 				)
 			}
@@ -489,7 +509,11 @@ export async function PUT(
 		}
 
 		// A. Cambio de origen o PPC -> Recalcular comisiones
-		if (idClientOrigin !== undefined || finalIdPpc !== existingBusiness.idProductPercentageCommission) {
+		// Skipped for PARTNER_EXTERNAL: nothing to redistribute; the origin is already persisted above.
+		if (
+			!finalLevel.isDistributionExcluded &&
+			(idClientOrigin !== undefined || finalIdPpc !== existingBusiness.idProductPercentageCommission)
+		) {
 			try {
 				await recalcularComisionesPorCambioOrigen(
 					businessId,
@@ -503,7 +527,12 @@ export async function PUT(
 
 		// B. Sincronización con Pre-liquidación (Rezagados)
 		if (idSettlementCommission && contract) {
-			await sincronizarYCalcularRegistroRezagado(idSettlementCommission, contract)
+			await sincronizarYCalcularRegistroRezagado(idSettlementCommission, contract, {
+				userId: currentUser.idUser,
+				email: session.user.email,
+				ipAddress: getClientIp(new Headers(request.headers)),
+				userAgent: getUserAgent(new Headers(request.headers)),
+			})
 		}
 
 		// C. Auditoría

@@ -84,7 +84,7 @@ export default async function EditarNegocioPage({ params }: PageProps) {
 	}
 
 	// Obtener negocio con relaciones a través del servicio
-	const prismaBusiness = await getBusinessById(businessId, currentUser)
+	const prismaBusiness = await getBusinessById(businessId, currentUser, 'write')
 
 	if (!prismaBusiness) {
 		console.log(

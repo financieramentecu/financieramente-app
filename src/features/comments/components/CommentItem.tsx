@@ -1,5 +1,5 @@
-import { UserRole } from '@/features/auth/lib/roles'
-import { ROLE_NAMES } from '@/features/auth/lib/roles'
+import { ROLE_NAMES, isBusinessOwnerRole } from '@/features/auth/lib/roles'
+import { formatDateTimeBogota } from '@/features/shared/lib/format-date'
 import type { CommentDTO } from '../types/comment.types'
 import { LinkifiedText } from './LinkifiedText'
 
@@ -9,19 +9,9 @@ interface CommentItemProps {
   highlighted?: boolean
 }
 
-function formatCommentDate(iso: string): string {
-  return new Date(iso).toLocaleString('es-AR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-/** Money Strategist (AGENTE) comments align left, Analyst (ANALISTA_SOPORTE) comments align right */
+/** Business-owner comments (AGENTE, PARTNER) align left, Analyst (ANALISTA_SOPORTE) comments align right */
 export function CommentItem({ comment, highlighted }: CommentItemProps) {
-  const isAgente = comment.author.role === UserRole.AGENTE
+  const isAgente = isBusinessOwnerRole(comment.author.role)
 
   return (
     <div
@@ -46,7 +36,7 @@ export function CommentItem({ comment, highlighted }: CommentItemProps) {
         <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap break-words">
           <LinkifiedText text={comment.detail} />
         </p>
-        <p className="text-[11px] text-muted-foreground mt-1.5">{formatCommentDate(comment.createdAt)}</p>
+        <p className="text-[11px] text-muted-foreground mt-1.5">{formatDateTimeBogota(comment.createdAt)}</p>
       </div>
     </div>
   )

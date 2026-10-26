@@ -32,6 +32,8 @@ export interface ProcessBatchSummary {
 	rezagado: number
 	noSincronizado: number
 	error: number
+	/** Rows stored as EXCLUDED (partner businesses). Optional for older callers. */
+	excluido?: number
 }
 
 export interface ProcessBatchResponse {

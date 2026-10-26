@@ -95,5 +95,82 @@ describe('planClientDocumentTypeMigration', () => {
 		expect(plan.errors).toEqual([
 			'Cliente 2: no existe Cédula de Ciudadanía (CC) en el catálogo',
 		])
+		expect(plan.collisions).toEqual([])
+	})
+
+	it('does not assign CC when that number already belongs to another client', () => {
+		const plan = planClientDocumentTypeMigration(
+			[
+				{
+					idClient: 1,
+					idDocumentType: 1,
+					typeIdentity: 'CC',
+					identityNumber: '123',
+				},
+				{
+					idClient: 2,
+					idDocumentType: null,
+					typeIdentity: 'XX',
+					identityNumber: '123',
+				},
+				{
+					idClient: 3,
+					idDocumentType: null,
+					typeIdentity: 'NIT',
+					identityNumber: '999',
+				},
+			],
+			catalog
+		)
+
+		expect(plan.assignments).toEqual([
+			{
+				idClient: 3,
+				idDocumentType: 4,
+				typeIdentity: 'NIT',
+				reason: 'matched_code',
+			},
+		])
+		expect(plan.defaultedToCitizenshipCard).toBe(0)
+		expect(plan.collisions).toEqual([
+			{
+				identityNumber: '123',
+				nextTypeIdentity: 'CC',
+				idClients: [1, 2],
+			},
+		])
+		expect(plan.errors).toEqual([
+			'Número 123: quedaría duplicado como CC en los clientes 1, 2',
+		])
+	})
+
+	it('does not assign CC when two unknown codes share the same number', () => {
+		const plan = planClientDocumentTypeMigration(
+			[
+				{
+					idClient: 7,
+					idDocumentType: null,
+					typeIdentity: 'XX',
+					identityNumber: '123',
+				},
+				{
+					idClient: 8,
+					idDocumentType: null,
+					typeIdentity: 'ZZ',
+					identityNumber: '123',
+				},
+			],
+			catalog
+		)
+
+		expect(plan.assignments).toEqual([])
+		expect(plan.migrated).toBe(0)
+		expect(plan.collisions).toEqual([
+			{
+				identityNumber: '123',
+				nextTypeIdentity: 'CC',
+				idClients: [7, 8],
+			},
+		])
 	})
 })

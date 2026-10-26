@@ -101,13 +101,30 @@ describe('buildBusinessListWhere', () => {
 			expect(w).toEqual({ AND: [{ idUser: 42 }] })
 		})
 
-		it('scoped user with empty visibleUserIds falls back to single idUser', () => {
+		it('scoped user with an empty visibleUserIds matches nothing (fail closed)', () => {
 			const w = buildBusinessListWhere(
-				{ idUser: 42, role: { code: UserRole.AGENTE } },
+				{ idUser: 42, role: { code: UserRole.DEFAULT } },
 				{},
 				{ visibleUserIds: [] }
 			)
-			expect(w).toEqual({ AND: [{ idUser: 42 }] })
+			expect(w).toEqual({ AND: [{ idUser: { in: [] } }] })
+		})
+
+		it('CONSULTOR sees every business, with no idUser restriction', () => {
+			const w = buildBusinessListWhere(
+				{ idUser: 9, role: { code: UserRole.CONSULTOR } },
+				{}
+			)
+			expect(w).toEqual({})
+		})
+
+		it('CONSULTOR keeps screen filters and still omits the idUser scope', () => {
+			const w = buildBusinessListWhere(
+				{ idUser: 9, role: { code: UserRole.CONSULTOR } },
+				{ status: 'EMITIDO' },
+				{ visibleUserIds: [9] }
+			)
+			expect(w).toEqual({ AND: [{ status: 'EMITIDO' }] })
 		})
 	})
 })

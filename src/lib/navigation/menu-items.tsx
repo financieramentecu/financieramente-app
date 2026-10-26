@@ -20,6 +20,7 @@ import {
 	Pyramid,
 	Kanban,
 	ShieldCheck,
+	Handshake,
 	IdCard,
 } from 'lucide-react'
 
@@ -120,6 +121,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		icon: <Users className="h-4 w-4" />,
 	},
 	{
+		title: 'Partners',
+		url: '/dashboard/admin/partners',
+		icon: <Handshake className="h-4 w-4" />,
+	},
+	{
 		title: 'Administración',
 		url: '/dashboard/admin/companies',
 		icon: <Settings className="h-4 w-4" />,
@@ -163,6 +169,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				title: 'Config. distribución de comisiones',
 				url: '/dashboard/config-distribucion-comisiones',
 				icon: <PieChart className="h-4 w-4" />,
+			},
+			{
+				title: 'Distribución por defecto',
+				url: '/dashboard/admin/default-distribution',
+				icon: <Percent className="h-4 w-4" />,
 			},
 			{
 				title: 'Descuentos',
@@ -232,3 +243,11 @@ export const AGENTE_MENU_ITEMS: MenuItem[] = [
 			icon: <BarChart3 className="h-4 w-4" />,
 		}, */
 ]
+
+/**
+ * Partner-specific menu items (NAV-01): only Dashboard and Mis Negocios.
+ * Reuses the agent entries to keep labels and routes.
+ */
+export const PARTNER_MENU_ITEMS: MenuItem[] = AGENTE_MENU_ITEMS.filter(
+	(item) => item.title === 'Dashboard' || item.title === 'Mis Negocios'
+)
