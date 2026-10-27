@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { Decimal } from '@prisma/client/runtime/library'
 import { AuditAction } from '@/features/auth/lib/audit-logger'
+import { isWriteBypassRole } from '@/features/auth/lib/roles'
 import {
 	COM92_CORRECTION_OUTCOME,
 	COM92_PREMIUM_CORRECTION,
@@ -16,6 +17,9 @@ type CorrectionDb = Pick<
 
 export const COM92_APPLY_BLOCKER = {
 	OPERATOR_REQUIRED: 'operator_required',
+	OPERATOR_NOT_FOUND: 'operator_not_found',
+	OPERATOR_INACTIVE: 'operator_inactive',
+	OPERATOR_FORBIDDEN: 'operator_forbidden',
 } as const
 
 export type Com92ApplyBlocker =
@@ -161,7 +165,8 @@ async function loadCorrectionInput(db: CorrectionDb) {
 /**
  * Dry-run by default. `--apply` updates only `business.value` for the
  * guarded COM-92 row and writes one audit entry in the same transaction.
- * Settlements, distributions and payments are never updated.
+ * The operator must be an active user with write authority before that
+ * transaction opens. Settlements, distributions and payments are never updated.
  */
 export async function runCom92PremiumCorrection(
 	db: CorrectionDb,
@@ -201,8 +206,40 @@ export async function runCom92PremiumCorrection(
 
 	const operator = await db.user.findUnique({
 		where: { email: operatorEmail },
-		select: { idUser: true, idRole: true },
+		select: {
+			idUser: true,
+			idRole: true,
+			active: true,
+			role: { select: { code: true } },
+		},
 	})
+
+	if (!operator) {
+		return {
+			applied: false,
+			assessment,
+			applyBlocker: COM92_APPLY_BLOCKER.OPERATOR_NOT_FOUND,
+			unchanged,
+		}
+	}
+
+	if (!operator.active) {
+		return {
+			applied: false,
+			assessment,
+			applyBlocker: COM92_APPLY_BLOCKER.OPERATOR_INACTIVE,
+			unchanged,
+		}
+	}
+
+	if (!isWriteBypassRole(operator.role?.code)) {
+		return {
+			applied: false,
+			assessment,
+			applyBlocker: COM92_APPLY_BLOCKER.OPERATOR_FORBIDDEN,
+			unchanged,
+		}
+	}
 
 	const business = loaded.business
 	await db.$transaction(async (tx) => {
@@ -226,8 +263,8 @@ export async function runCom92PremiumCorrection(
 
 		await tx.auditLog.create({
 			data: {
-				idUser: operator?.idUser,
-				idRole: operator?.idRole,
+				idUser: operator.idUser,
+				idRole: operator.idRole,
 				action: AuditAction.BUSINESS_VALUE_CORRECTED,
 				email: operatorEmail,
 				ipAddress: 'cli',

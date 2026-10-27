@@ -8,4 +8,4 @@
 
 ### Técnico
 
-- Added `prisma/seeds/correct-business-458-premium.ts` (dry-run by default, `--apply --operator=`). Deploying this change does not update the database. Running `--apply` updates only `business.value` for id 458 after identity guards and writes `BUSINESS_VALUE_CORRECTED`. Settlement, distribution and payment rows are reported and left unchanged. Reports read `business.value` at query time, so they pick up the corrected premium without a separate aggregate job.
+- Added `prisma/seeds/correct-business-458-premium.ts` (dry-run by default, `--apply --operator=`). Deploying this change does not update the database. Running `--apply` updates only `business.value` for id 458 after identity guards and writes `BUSINESS_VALUE_CORRECTED`. The operator email must match an active user whose role is `ADMIN`, `ASISTENTE_GERENCIA_OPERATIVA`, or `ANALISTA_SOPORTE`; otherwise the transaction never opens. Settlement, distribution and payment rows are reported and left unchanged. Reports read `business.value` at query time, so they pick up the corrected premium without a separate aggregate job.

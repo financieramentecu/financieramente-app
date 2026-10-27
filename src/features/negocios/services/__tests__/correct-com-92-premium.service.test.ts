@@ -60,7 +60,12 @@ function buildDb(value: string = COM92_PREMIUM_CORRECTION.previousValue) {
 			]),
 		},
 		user: {
-			findUnique: vi.fn().mockResolvedValue({ idUser: 3, idRole: 1 }),
+			findUnique: vi.fn().mockResolvedValue({
+				idUser: 3,
+				idRole: 1,
+				active: true,
+				role: { code: 'ADMIN' },
+			}),
 		},
 		$transaction: vi.fn(async (callback: (tx: unknown) => Promise<void>) =>
 			callback({
@@ -98,6 +103,9 @@ describe('runCom92PremiumCorrection', () => {
 		})
 
 		expect(result.applied).toBe(true)
+		expect(db.user.findUnique.mock.invocationCallOrder[0]).toBeLessThan(
+			db.$transaction.mock.invocationCallOrder[0]
+		)
 		expect(updateMany).toHaveBeenCalledWith({
 			where: {
 				idBusiness: 458,
@@ -169,6 +177,72 @@ describe('runCom92PremiumCorrection', () => {
 
 		expect(result.applied).toBe(false)
 		expect(result.applyBlocker).toBe('operator_required')
+		expect(updateMany).not.toHaveBeenCalled()
+		expect(db.$transaction).not.toHaveBeenCalled()
+	})
+
+	it('refuses to apply when the operator email does not exist', async () => {
+		const { db, updateMany, auditLogCreate } = buildDb()
+		db.user.findUnique.mockResolvedValue(null)
+
+		const result = await runCom92PremiumCorrection(db as never, {
+			apply: true,
+			operatorEmail: 'nadie@financieramente.co',
+		})
+
+		expect(result.applied).toBe(false)
+		expect(result.applyBlocker).toBe('operator_not_found')
+		expect(db.user.findUnique).toHaveBeenCalledWith({
+			where: { email: 'nadie@financieramente.co' },
+			select: {
+				idUser: true,
+				idRole: true,
+				active: true,
+				role: { select: { code: true } },
+			},
+		})
+		expect(db.$transaction).not.toHaveBeenCalled()
+		expect(updateMany).not.toHaveBeenCalled()
+		expect(auditLogCreate).not.toHaveBeenCalled()
+	})
+
+	it('refuses to apply when the operator is inactive', async () => {
+		const { db, updateMany } = buildDb()
+		db.user.findUnique.mockResolvedValue({
+			idUser: 3,
+			idRole: 1,
+			active: false,
+			role: { code: 'ADMIN' },
+		})
+
+		const result = await runCom92PremiumCorrection(db as never, {
+			apply: true,
+			operatorEmail: 'ops@financieramente.co',
+		})
+
+		expect(result.applied).toBe(false)
+		expect(result.applyBlocker).toBe('operator_inactive')
+		expect(db.$transaction).not.toHaveBeenCalled()
+		expect(updateMany).not.toHaveBeenCalled()
+	})
+
+	it('refuses to apply when the operator lacks write authority', async () => {
+		const { db, updateMany } = buildDb()
+		db.user.findUnique.mockResolvedValue({
+			idUser: 8,
+			idRole: 5,
+			active: true,
+			role: { code: 'AGENTE' },
+		})
+
+		const result = await runCom92PremiumCorrection(db as never, {
+			apply: true,
+			operatorEmail: 'agente@financieramente.co',
+		})
+
+		expect(result.applied).toBe(false)
+		expect(result.applyBlocker).toBe('operator_forbidden')
+		expect(db.$transaction).not.toHaveBeenCalled()
 		expect(updateMany).not.toHaveBeenCalled()
 	})
 

@@ -3,8 +3,10 @@
  *
  * Default is dry-run (no writes). Apply updates `business.value` from
  * USD 472576.00 to USD 4725.76 when identity guards match, and writes
- * a BUSINESS_VALUE_CORRECTED audit row. Settlements and payments stay
- * untouched; linked commission rows are printed for financial review.
+ * a BUSINESS_VALUE_CORRECTED audit row. The operator must be an active
+ * user with role ADMIN, ASISTENTE_GERENCIA_OPERATIVA or ANALISTA_SOPORTE.
+ * Settlements and payments stay untouched; linked commission rows are
+ * printed for financial review.
  *
  *   npx tsx prisma/seeds/correct-business-458-premium.ts
  *   npx tsx prisma/seeds/correct-business-458-premium.ts --apply --operator=ops@financieramente.co
@@ -31,8 +33,22 @@ const REASON_LABELS: Record<string, string> = {
 	value_mismatch: 'la prima no es USD 472576.00 ni USD 4725.76',
 }
 
+const BLOCKER_LABELS: Record<string, string> = {
+	operator_required: '--apply exige --operator=email',
+	operator_not_found:
+		'el correo no corresponde a ningún usuario. --apply no escribe',
+	operator_inactive:
+		'el usuario existe pero está inactivo. --apply no escribe',
+	operator_forbidden:
+		'el operador no tiene rol ADMIN, ASISTENTE_GERENCIA_OPERATIVA ni ANALISTA_SOPORTE. --apply no escribe',
+}
+
 function reasonLabel(reason: string): string {
 	return REASON_LABELS[reason] ?? reason
+}
+
+function blockerLabel(blocker: string): string {
+	return BLOCKER_LABELS[blocker] ?? blocker
 }
 
 function parseArgs(argv: readonly string[]) {
@@ -73,9 +89,7 @@ function printResult(input: {
 		)
 	}
 	if (input.applyBlocker) {
-		console.log(
-			`Bloqueo: ${input.applyBlocker}. --apply exige --operator=email`
-		)
+		console.log(`Bloqueo: ${blockerLabel(input.applyBlocker)}`)
 	}
 	console.log(`Prima aplicada: ${input.applied ? 'sí' : 'no'}`)
 	console.log(
