@@ -32,6 +32,20 @@ vi.mock('@/lib/auth/require-write-access', () => ({
 	requireWriteAccess: vi.fn(),
 }))
 
+vi.mock('next/headers', () => ({
+	headers: vi.fn(async () => new Headers()),
+}))
+
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	AuditAction: {
+		BUSINESS_POLICYHOLDER_LINKED: 'BUSINESS_POLICYHOLDER_LINKED',
+		BUSINESS_POLICYHOLDER_UNLINKED: 'BUSINESS_POLICYHOLDER_UNLINKED',
+	},
+	getClientIp: vi.fn(() => '127.0.0.1'),
+	getUserAgent: vi.fn(() => 'test'),
+	logAuditEvent: vi.fn(),
+}))
+
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
 
 const basePayload = {
@@ -67,6 +81,8 @@ function mockCreatedBusiness(overrides: Partial<Business> = {}): Business {
 		novedadMarkedAt: null,
 		novedadResolvedAt: null,
 		isActive: true,
+		clientIsPolicyholder: true,
+		idPolicyholder: null,
 		...overrides,
 	}
 }
@@ -91,6 +107,26 @@ describe('createBusiness', () => {
 			name: 'Producto Test',
 			company: { name: 'Compañia Test' },
 		} as unknown as Awaited<ReturnType<typeof prisma.product.findUnique>>)
+	})
+
+	it('rejects SKANDIA MFUND when the periodicity is not Aportes Ocasionales', async () => {
+		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+			name: 'Mensual',
+		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+		vi.mocked(prisma.product.findUnique).mockResolvedValue({
+			name: 'MFUND',
+			company: { name: 'SKANDIA' },
+		} as unknown as Awaited<ReturnType<typeof prisma.product.findUnique>>)
+
+		const result = await createBusiness({
+			...basePayload,
+			idBuyPeriodicity: 2,
+			term: 0,
+		})
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toMatch(/Aportes Ocasionales/)
+		expect(prisma.$transaction).not.toHaveBeenCalled()
 	})
 
 	it('returns rejected ApiResponse for CONSULTOR (read-only role)', async () => {

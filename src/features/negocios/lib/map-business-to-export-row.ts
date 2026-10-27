@@ -69,6 +69,13 @@ export function negociosExportColumnHeaders(
 		'Tipo de Documento',
 		'Correo Electrónico',
 		'Teléfono',
+		'Mismo tomador',
+		'Tomador Tipo de Doc.',
+		'Tomador Nro. Doc.',
+		'Tomador Email',
+		'Tomador Apellidos',
+		'Tomador Nombres',
+		'Tomador Teléfono',
 		'Origen del cliente',
 		'Compañía',
 		'Plazo',
@@ -130,6 +137,19 @@ export function mapBusinessToExportRow(
 		: (b.client.typeIdentity ?? '')
 	row['Correo Electrónico'] = b.client.email ?? ''
 	row['Teléfono'] = b.client.phone ?? ''
+	const distinctPolicyholder =
+		b.clientIsPolicyholder === false ? b.policyholder : null
+	row['Mismo tomador'] = b.clientIsPolicyholder === false ? 'No' : 'Sí'
+	row['Tomador Tipo de Doc.'] = distinctPolicyholder
+		? distinctPolicyholder.documentType
+			? `${distinctPolicyholder.documentType.name} (${distinctPolicyholder.documentType.code})`
+			: distinctPolicyholder.typeIdentity
+		: ''
+	row['Tomador Nro. Doc.'] = distinctPolicyholder?.identityNumber ?? ''
+	row['Tomador Email'] = distinctPolicyholder?.email ?? ''
+	row['Tomador Apellidos'] = distinctPolicyholder?.lastName ?? ''
+	row['Tomador Nombres'] = distinctPolicyholder?.name ?? ''
+	row['Tomador Teléfono'] = distinctPolicyholder?.phone ?? ''
 	row['Origen del cliente'] = b.clientOrigin.name
 	row['Compañía'] = product.company.name
 	row['Plazo'] = b.term ?? ''

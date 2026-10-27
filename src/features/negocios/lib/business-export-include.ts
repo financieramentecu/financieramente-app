@@ -34,6 +34,13 @@ export const businessExportInclude = {
 	currency: true,
 	buyPeriodicity: true,
 	clientOrigin: true,
+	policyholder: {
+		include: {
+			documentType: {
+				select: { name: true, code: true },
+			},
+		},
+	},
 	payments: {
 		orderBy: { installmentIndex: 'asc' },
 	},

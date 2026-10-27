@@ -6,6 +6,8 @@
 export interface Business extends Record<string, unknown> {
 	id: string
 	identification: string
+	/** Sí cuando el cliente es el mismo tomador. */
+	samePolicyholder: 'Sí' | 'No'
 	clientName: string
 	contract: string
 	user: {

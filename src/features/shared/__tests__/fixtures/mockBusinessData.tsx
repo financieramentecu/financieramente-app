@@ -4,6 +4,7 @@ export const mockBusinessList: Business[] = [
 	{
 		id: '1',
 		identification: 'CC 12345678',
+		samePolicyholder: 'Sí',
 		clientName: 'Juan Pérez López',
 		contract: 'PN0001234',
 		user: {
@@ -39,6 +40,7 @@ export const mockBusinessList: Business[] = [
 	{
 		id: '2',
 		identification: 'CC 87654321',
+		samePolicyholder: 'Sí',
 		clientName: 'Pedro Martínez',
 		contract: '-',
 		user: {
@@ -74,6 +76,7 @@ export const mockBusinessList: Business[] = [
 	{
 		id: '3',
 		identification: 'CC 11223344',
+		samePolicyholder: 'Sí',
 		clientName: 'Laura Sánchez Gómez',
 		contract: 'PN0003456',
 		user: {
@@ -109,6 +112,7 @@ export const mockBusinessList: Business[] = [
 	{
 		id: '4',
 		identification: 'CC 55667788',
+		samePolicyholder: 'Sí',
 		clientName: 'Roberto Castro',
 		contract: '-',
 		user: {
@@ -144,6 +148,7 @@ export const mockBusinessList: Business[] = [
 	{
 		id: '5',
 		identification: 'CC 99887766',
+		samePolicyholder: 'Sí',
 		clientName: 'Camila Ruiz Mendoza',
 		contract: 'PN0005678',
 		user: {
@@ -179,6 +184,7 @@ export const mockBusinessList: Business[] = [
 	{
 		id: '6',
 		identification: 'CC 33445566',
+		samePolicyholder: 'Sí',
 		clientName: 'Andrés Valencia',
 		contract: '-',
 		user: {

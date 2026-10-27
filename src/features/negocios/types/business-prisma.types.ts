@@ -45,6 +45,11 @@ export const businessWithRelations = {
 	currency: true,
 	buyPeriodicity: true,
 	clientOrigin: true,
+	policyholder: {
+		include: {
+			documentType: true,
+		},
+	},
 	/** Todos los aportes con su estado — para hasPayments, hasPendingPaymentFunding y fundedAportes */
 	payments: {
 		select: { idAnnualPayment: true, status: true },

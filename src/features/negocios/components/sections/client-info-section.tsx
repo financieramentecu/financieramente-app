@@ -12,6 +12,7 @@ import {
 	SelectValue,
 } from '@/features/shared/ui/select'
 import { Separator } from '@/features/shared/ui/separator'
+import { Checkbox } from '@/features/shared/ui/checkbox'
 import { ClientAutocomplete } from '@/features/negocios/components/fields/client-autocomplete'
 import { ClientIdentityConflictAlert } from '@/features/negocios/components/sections/client-identity-conflict-alert'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
@@ -76,6 +77,7 @@ export function ClientInfoSection({
 		register,
 		setValue,
 		watch,
+		clearErrors,
 		formState: { errors },
 	} = form
 
@@ -183,7 +185,7 @@ export function ClientInfoSection({
 		<div className="space-y-4">
 			<div className="space-y-2">
 				<h3 className="font-bold text-lg text-primary tracking-wider">
-					Información básica y general
+					Información básica y general del Cliente
 				</h3>
 				<Separator className="bg-border" />
 			</div>
@@ -413,6 +415,40 @@ export function ClientInfoSection({
 					)}
 				</div>
 
+			</div>
+
+			<div className="flex items-center gap-2">
+				<Checkbox
+					id="clientIsPolicyholder"
+					checked={watch('clientIsPolicyholder') !== false}
+					disabled={
+						getFieldPermission('clientIsPolicyholder').disabled || isBlocked
+					}
+					onCheckedChange={(checked) => {
+						const samePerson = checked === true
+						setValue('clientIsPolicyholder', samePerson, {
+							shouldValidate: true,
+						})
+						if (!samePerson) return
+						setValue('policyholderTypeIdentity', '', { shouldValidate: false })
+						setValue('policyholderIdentityNumber', '', { shouldValidate: false })
+						setValue('policyholderEmail', '', { shouldValidate: false })
+						setValue('policyholderName', '', { shouldValidate: false })
+						setValue('policyholderLastNames', '', { shouldValidate: false })
+						setValue('policyholderPhone', '', { shouldValidate: false })
+						clearErrors([
+							'policyholderTypeIdentity',
+							'policyholderIdentityNumber',
+							'policyholderEmail',
+							'policyholderName',
+							'policyholderLastNames',
+							'policyholderPhone',
+						])
+					}}
+				/>
+				<Label htmlFor="clientIsPolicyholder" className="text-sm font-medium">
+					¿El cliente es el mismo tomador?
+				</Label>
 			</div>
 
 			{identityConflict && (

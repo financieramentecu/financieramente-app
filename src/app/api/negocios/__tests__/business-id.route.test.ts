@@ -3,7 +3,9 @@ import { GET, PUT } from '../[id]/route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
+import { MFUND_PERIODICITY_ERROR } from '@/features/negocios/lib/mfund-periodicity'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
@@ -66,7 +68,12 @@ vi.mock('@/lib/prisma', () => {
 		findFirst: vi.fn(), 
 		update: vi.fn().mockResolvedValue(commonEntity) 
 	}
-	const mockPayment = { findMany: vi.fn().mockResolvedValue([]), deleteMany: vi.fn().mockResolvedValue({ count: 0 }), createMany: vi.fn().mockResolvedValue({ count: 0 }) }
+	const mockPayment = {
+		findMany: vi.fn().mockResolvedValue([]),
+		count: vi.fn().mockResolvedValue(0),
+		deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+		createMany: vi.fn().mockResolvedValue({ count: 0 }),
+	}
 	const mockUser = { findUnique: vi.fn().mockResolvedValue({ idLevel: 1 }), findMany: vi.fn().mockResolvedValue([]) }
 
 	return {
@@ -82,6 +89,7 @@ vi.mock('@/lib/prisma', () => {
 					business: mockBusiness,
 					payment: mockPayment,
 					user: mockUser,
+					$queryRaw: vi.fn().mockResolvedValue([]),
 				})
 			}),
 		},
@@ -144,6 +152,7 @@ describe('GET /api/negocios/[id]', () => {
 			}
 		)
 		vi.mocked(prisma.payment.findMany).mockResolvedValue([])
+		vi.mocked(prisma.payment.count).mockResolvedValue(0)
 		vi.mocked(prisma.payment.createMany).mockResolvedValue({ count: 0 })
 		vi.mocked(prisma.payment.deleteMany).mockResolvedValue({ count: 0 })
 	})
@@ -537,6 +546,7 @@ describe('PUT /api/negocios/[id]', () => {
 		)
 		mockUpdate.mockResolvedValue(commonUpdatedBusiness as never)
 		vi.mocked(prisma.payment.findMany).mockResolvedValue([])
+		vi.mocked(prisma.payment.count).mockResolvedValue(0)
 		vi.mocked(prisma.payment.createMany).mockResolvedValue({ count: 0 })
 		vi.mocked(prisma.payment.deleteMany).mockResolvedValue({ count: 0 })
 	})
@@ -654,6 +664,98 @@ describe('PUT /api/negocios/[id]', () => {
 		})
 	})
 
+	describe('SKANDIA MFUND periodicity', () => {
+		it('rejects an edit that would leave a periodicity other than Aportes Ocasionales', async () => {
+			const product = commonExistingBusiness.productPercentageCommission.productConfiguration.product
+			const mfundBusiness = {
+				...commonExistingBusiness,
+				productPercentageCommission: {
+					...commonExistingBusiness.productPercentageCommission,
+					productConfiguration: {
+						...commonExistingBusiness.productPercentageCommission.productConfiguration,
+						product: {
+							...product,
+							name: 'MFUND',
+							company: { ...product.company, name: 'SKANDIA' },
+						},
+					},
+				},
+			}
+
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { contract: 'MF-100' },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(mfundBusiness as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ contract: 'MF-100' }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(body.error).toBe(MFUND_PERIODICITY_ERROR)
+			expect(mockUpdate).not.toHaveBeenCalled()
+		})
+
+		it('returns 400 when the periodicity id does not exist', async () => {
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { idBuyPeriodicity: 999 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(commonExistingBusiness as never)
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue(null)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ idBuyPeriodicity: 999 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(body.error).toBe('Periodicidad no encontrada')
+			expect(mockUpdate).not.toHaveBeenCalled()
+		})
+
+		it('returns 400 when the product id does not exist', async () => {
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { idProduct: 999 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(commonExistingBusiness as never)
+			vi.mocked(findProductPercentageCommission).mockResolvedValue({
+				data: { idProductPercentageCommission: 1 },
+			} as never)
+			vi.mocked(prisma.product.findUnique).mockResolvedValue(null)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ idProduct: 999 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(body.error).toBe('Producto no encontrado')
+			expect(mockUpdate).not.toHaveBeenCalled()
+		})
+	})
+
 	describe('Casos de Autenticación', () => {
 		it('debe retornar 401 cuando no hay sesión', async () => {
 			mockAuth.mockResolvedValue(null as never)
@@ -687,6 +789,216 @@ describe('PUT /api/negocios/[id]', () => {
 
 			const response = await PUT(new Request('http://localhost:3000/api/negocios/1', { method: 'PUT', body: JSON.stringify({ contract: 'PN123' }) }), { params: Promise.resolve({ id: '1' }) })
 			expect(response.status).toBe(400)
+		})
+
+		it('debe actualizar campos del negocio cuando está FONDEADO y el usuario es administrador', async () => {
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				contract: 'PN0001234',
+				value: 10000,
+			}
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { contract: 'PN0001234', value: 25000, term: 10 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst
+				.mockResolvedValueOnce(fundedBusiness as never)
+				.mockResolvedValueOnce(null)
+			mockUpdate.mockResolvedValue({ ...fundedBusiness, value: 25000, term: 10 } as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 1,
+				status: BUSINESS_STATUS.FONDEADO,
+				contract: 'PN0001234',
+			} as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ contract: 'PN0001234', value: 25000, term: 10 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(200)
+			expect(body.data.status).toBe(BUSINESS_STATUS.FONDEADO)
+			expect(mockUpdate).toHaveBeenCalled()
+		})
+
+		it('debe rechazar la edición de campos clave de un negocio FONDEADO cuando el usuario es agente', async () => {
+			const agentUser = {
+				...commonAdminUser,
+				idUser: 20,
+				role: { ...commonAdminUser.role, idRole: 2, code: UserRole.AGENTE },
+			}
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				idUser: 20,
+			}
+			mockAuth.mockResolvedValue({ user: { email: 'agent@example.com' } } as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { value: 25000 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(agentUser)
+			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ value: 25000 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(403)
+			expect(body.error).toMatch(/campos clave/i)
+		})
+
+		it('permite corregir la prima de un FONDEADO que ya tiene aportes fondeados', async () => {
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				contract: 'PN0001234',
+				value: 10000,
+			}
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { value: 4725.76 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+			vi.mocked(prisma.payment.count).mockResolvedValue(2)
+			mockUpdate.mockResolvedValue({ ...fundedBusiness, value: 4725.76 } as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 1,
+				status: BUSINESS_STATUS.FONDEADO,
+				value: 4725.76,
+			} as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ value: 4725.76 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+
+			expect(response.status).toBe(200)
+			expect(mockUpdate).toHaveBeenCalled()
+			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
+		})
+
+		it('rechaza reducir el plazo de un FONDEADO con aportes fondeados', async () => {
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				term: 12,
+			}
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { term: 5 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+			vi.mocked(prisma.payment.count).mockResolvedValue(1)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ term: 5 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(409)
+			expect(body.error).toMatch(/aportes con estado financiero/i)
+			expect(mockUpdate).not.toHaveBeenCalled()
+			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
+		})
+
+		it('rechaza cambiar la periodicidad de un FONDEADO con aportes en cartera', async () => {
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				idBuyPeriodicity: 1,
+			}
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { idBuyPeriodicity: 2 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				idBuyPeriodicity: 2,
+				name: 'Mensual',
+			} as never)
+			vi.mocked(prisma.payment.count).mockResolvedValue(1)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ idBuyPeriodicity: 2 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+
+			expect(response.status).toBe(409)
+			expect(mockUpdate).not.toHaveBeenCalled()
+			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
+		})
+
+		it('rejects a funded term reduction when a payment becomes financial while the edit holds the row lock', async () => {
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				term: 12,
+				numAportes: 12,
+			}
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { term: 5 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+			vi.mocked(prisma.payment.count).mockResolvedValue(0)
+
+			const queryRaw = vi.fn(async () => {
+				vi.mocked(prisma.payment.count).mockResolvedValue(1)
+				return []
+			})
+			vi.mocked(prisma.$transaction).mockImplementationOnce(async (callback) => {
+				return callback({
+					business: { update: mockUpdate },
+					payment: prisma.payment,
+					$queryRaw: queryRaw,
+				} as never)
+			})
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ term: 5 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(409)
+			expect(body.error).toMatch(/aportes con estado financiero/i)
+			expect(queryRaw).toHaveBeenCalled()
+			expect(mockUpdate).not.toHaveBeenCalled()
+			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
 		})
 
 		it('debe actualizar contrato cuando el negocio está EMITIDO y el usuario es administrador', async () => {
