@@ -13,6 +13,7 @@ import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
 import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
 import { canExportBusinessList } from '@/features/negocios/lib/can-export-business-list'
+import { isValidRole, type UserRole } from '@/features/auth/lib/roles'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
@@ -626,6 +627,10 @@ export function NegociosPageClient({
 		[businesses]
 	)
 
+	const roleCode = _currentUser?.role?.code
+	const listUserRole: UserRole | undefined =
+		roleCode && isValidRole(roleCode) ? roleCode : undefined
+
 	// Combinar errores de negocios y estadísticas
 	const displayError = error || statsError
 
@@ -665,6 +670,7 @@ export function NegociosPageClient({
 				onMarkNovedad={handleMarkNovedad}
 				onUnmarkNovedad={handleUnmarkNovedad}
 				onManageNovedadSuccess={handleManageNovedadSuccess}
+				userRole={listUserRole}
 			/>
 
 			{/* Modal de Cancelación */}

@@ -108,19 +108,9 @@ export function useBusinessPermissions({
 			return { readonly: true, disabled: true, hidden: false }
 		}
 		if (financialFields.includes(field)) {
-			const status = businessStatus?.toUpperCase()
-			const fundedStructuralFields: BusinessFormField[] = [
-				'company',
-				'producto',
-				'terms',
-				'periodicity',
-			]
-			// Changing these on a funded business rebuilds installments and can
-			// drop rows that already have a financial status.
-			if (status === 'FONDEADO' && fundedStructuralFields.includes(field)) {
-				return { readonly: true, disabled: true, hidden: false }
-			}
-
+			// FONDEADO keeps the same field rules as EMITIDO. Value stays in this
+			// list on purpose: its funded-edit rule is still being refined, so it
+			// follows the privileged-role gate instead of a separate lock.
 			if (isPrivileged) {
 				return { readonly: false, disabled: false, hidden: false }
 			}

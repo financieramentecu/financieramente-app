@@ -435,8 +435,12 @@ export async function PUT(
 
 		// --- TRANSACCIÓN: solo la actualización del negocio y sincronización estructural de aportes ---
 		const updatedBusiness = await prisma.$transaction(async (tx) => {
-			if (changesFundedStructure) {
-				await assertFundedStructureUnlocked(tx, businessId)
+			if (changesFundedStructure && shouldSyncPayments) {
+				await assertFundedScheduleKeepsFinancialPayments(
+					tx,
+					businessId,
+					finalNumAportes
+				)
 			}
 
 			const updateData: Prisma.BusinessUpdateInput = {
@@ -568,7 +572,7 @@ const FINANCIAL_PAYMENT_STATUSES = [
 ] as const
 
 const FUNDED_STRUCTURE_CONFLICT_MESSAGE =
-	'No se puede cambiar el plazo, la periodicidad, el producto o el número de aportes de un negocio fondeado que ya tiene aportes con estado financiero.'
+	'No se puede dejar por fuera un aporte que ya tiene estado financiero. Ajusta el plazo o la periodicidad para que esos aportes sigan dentro del negocio.'
 
 class FundedPaymentsConflictError extends Error {
 	constructor() {
@@ -578,14 +582,16 @@ class FundedPaymentsConflictError extends Error {
 }
 
 /**
- * Locks the business and its payments, then rejects a structural edit when a
- * payment already has a financial status. The lock is held until the
- * transaction ends, so a concurrent funding transition waits instead of
+ * Locks the business and its payments, then rejects a rebuild that would drop
+ * an installment which already has a financial status. A shorter schedule is
+ * allowed when every financial installment still fits. The lock is held until
+ * the transaction ends, so a concurrent funding transition waits instead of
  * landing between the check and `payment.deleteMany`.
  */
-async function assertFundedStructureUnlocked(
+async function assertFundedScheduleKeepsFinancialPayments(
 	tx: PrismaTx,
-	businessId: number
+	businessId: number,
+	nextInstallmentCount: number
 ): Promise<void> {
 	await tx.$queryRaw`
 		SELECT "id_business" FROM "business" WHERE "id_business" = ${businessId} FOR UPDATE
@@ -594,13 +600,17 @@ async function assertFundedStructureUnlocked(
 		SELECT "id_annual_payment" FROM "payments" WHERE "id_business" = ${businessId} FOR UPDATE
 	`
 
-	const financialPayments = await tx.payment.count({
+	const financialPayments = await tx.payment.findMany({
 		where: {
 			idBusiness: businessId,
 			status: { in: [...FINANCIAL_PAYMENT_STATUSES] },
 		},
+		select: { installmentIndex: true },
 	})
-	if (financialPayments > 0) {
+	const dropsFinancialInstallment = financialPayments.some(
+		(payment) => payment.installmentIndex > nextInstallmentCount
+	)
+	if (dropsFinancialInstallment) {
 		throw new FundedPaymentsConflictError()
 	}
 }

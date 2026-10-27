@@ -88,17 +88,17 @@ describe('useBusinessPermissions — COM-63 client fields', () => {
 			})
 		)
 
-		for (const field of ['currency', 'value'] as const) {
+		for (const field of [
+			'currency',
+			'value',
+			'company',
+			'producto',
+			'terms',
+			'periodicity',
+		] as const) {
 			expect(result.current.getFieldPermission(field)).toEqual({
 				readonly: false,
 				disabled: false,
-				hidden: false,
-			})
-		}
-		for (const field of ['company', 'producto', 'terms', 'periodicity'] as const) {
-			expect(result.current.getFieldPermission(field)).toEqual({
-				readonly: true,
-				disabled: true,
 				hidden: false,
 			})
 		}
@@ -114,8 +114,10 @@ describe('useBusinessPermissions — COM-63 client fields', () => {
 		)
 
 		expect(result.current.getFieldPermission('value').disabled).toBe(false)
-		expect(result.current.getFieldPermission('terms').disabled).toBe(true)
-		expect(result.current.getFieldPermission('periodicity').disabled).toBe(true)
+		expect(result.current.getFieldPermission('terms').disabled).toBe(false)
+		expect(result.current.getFieldPermission('periodicity').disabled).toBe(false)
+		expect(result.current.getFieldPermission('company').disabled).toBe(false)
+		expect(result.current.getFieldPermission('producto').disabled).toBe(false)
 		expect(result.current.getFieldPermission('contract').disabled).toBe(false)
 		for (const field of CLIENT_FIELDS) {
 			expect(result.current.getFieldPermission(field).disabled).toBe(false)

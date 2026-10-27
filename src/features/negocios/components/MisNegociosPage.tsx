@@ -9,6 +9,7 @@ import { TableLoadingSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { AlertCircle, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { Button } from '@/features/shared/ui/button'
+import { UserRole, isValidRole } from '@/features/auth/lib/roles'
 
 interface PaginationData {
 	page: number
@@ -52,6 +53,8 @@ export interface MisNegociosPageProps {
 	onMarkNovedad?: (business: Business) => void
 	onUnmarkNovedad?: (business: Business) => void
 	onManageNovedadSuccess?: (business: Business) => void
+	/** Role from the server session. Takes precedence over the client session so the row menu matches the detail page. */
+	userRole?: UserRole
 }
 
 function StatsLoadingSkeleton() {
@@ -121,8 +124,13 @@ export function MisNegociosPage({
 	onMarkNovedad,
 	onUnmarkNovedad,
 	onManageNovedadSuccess,
+	userRole,
 }: MisNegociosPageProps) {
 	const { user } = useAuthSession()
+	const sessionRole = user?.role
+	const resolvedRole =
+		userRole ??
+		(sessionRole && isValidRole(sessionRole) ? sessionRole : undefined)
 	const isAgentUser = true // Stats visible for all roles; data is scoped server-side
 	const [statsCollapsed, setStatsCollapsed] = useState(false)
 
@@ -176,7 +184,7 @@ export function MisNegociosPage({
 						onPageChange={onPageChange}
 						onPageSizeChange={onPageSizeChange}
 						isSearching={showTableLoading}
-						userRole={user?.role ?? undefined}
+						userRole={resolvedRole}
 						onUploadSuccess={onUploadSuccess}
 						onCommentCreated={onCommentCreated}
 						onDeleteSuccess={onDeleteSuccess}

@@ -4,9 +4,9 @@
 
 ### Agregado
 
-- **Editar negocios fondeados:** Quienes ya pueden modificar un negocio emitido (Administrador, Asistente Operativo de Gerencia y Analista de Soporte) pueden corregir cliente, contrato, moneda y valor de un negocio Fondeado. Compañía, producto, plazo y periodicidad siguen bloqueados cuando ya hay aportes fondeados, en cartera o pagados, para no perder ese historial.
+- **Editar negocios fondeados:** Quienes ya pueden modificar un negocio emitido (Administrador, Asistente Operativo de Gerencia y Analista de Soporte) ven Editar en las acciones de la lista y pueden corregir los datos de creación de un negocio Fondeado, incluida compañía, producto, plazo y periodicidad. El valor sigue la regla ya habilitada para esos roles. Si el nuevo plazo dejaría por fuera un aporte fondeado, en cartera o pagado, el guardado se rechaza para no perder ese historial.
 
 ### Técnico
 
-- Funded businesses use the same list edit gate as `EMITIDO`. Privileged roles can edit value and currency; company, product, term and periodicity stay read-only in the form.
-- `PUT /api/negocios/[id]` returns 409 when a funded business with payments in `FONDEADO`, `EN_CARTERA`, `PAGO_ANTICIPADO` or `CARTERA_PAGADO` changes term, periodicity, product or installment count. The check locks those payment rows inside the same transaction as the rebuild, so a concurrent funding transition cannot land between the count and `deleteMany`. Premium-only updates do not rebuild payments.
+- The negocios list uses the server role for the edit action, same gate as `EMITIDO`, so Fondeado shows Editar for ADMIN, ASISTENTE_GERENCIA_OPERATIVA and ANALISTA_SOPORTE.
+- Privileged roles can edit company, product, term, periodicity, currency and value on a funded business. `PUT /api/negocios/[id]` rebuilds installments only when the count changes, and returns 409 when that rebuild would drop a payment in `FONDEADO`, `EN_CARTERA`, `PAGO_ANTICIPADO` or `CARTERA_PAGADO`. The check locks those rows inside the same transaction. Product-only edits that keep the installment count do not delete payments.

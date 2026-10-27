@@ -15,6 +15,7 @@ import {
 } from '@/features/negocios/types/business-entity.types'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
+import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
 import {
 	mockUserWithRole,
 	mockAgentUser,
@@ -807,6 +808,7 @@ describe('PUT /api/negocios/[id]', () => {
 				...commonExistingBusiness,
 				status: BUSINESS_STATUS.FONDEADO,
 				term: 12,
+				numAportes: 144,
 			}
 			mockAuth.mockResolvedValue(commonSession as never)
 			mockUpdateBusinessSchema.safeParse.mockReturnValue({
@@ -815,7 +817,9 @@ describe('PUT /api/negocios/[id]', () => {
 			} as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
 			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
-			vi.mocked(prisma.payment.count).mockResolvedValue(1)
+			vi.mocked(prisma.payment.findMany).mockResolvedValue([
+				{ installmentIndex: 61, status: 'FONDEADO' },
+			] as never)
 
 			const response = await PUT(
 				new Request('http://localhost:3000/api/negocios/1', {
@@ -827,7 +831,7 @@ describe('PUT /api/negocios/[id]', () => {
 			const body = await response.json()
 
 			expect(response.status).toBe(409)
-			expect(body.error).toMatch(/aportes con estado financiero/i)
+			expect(body.error).toMatch(/estado financiero/i)
 			expect(mockUpdate).not.toHaveBeenCalled()
 			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
 		})
@@ -837,6 +841,8 @@ describe('PUT /api/negocios/[id]', () => {
 				...commonExistingBusiness,
 				status: BUSINESS_STATUS.FONDEADO,
 				idBuyPeriodicity: 1,
+				term: 12,
+				numAportes: 144,
 			}
 			mockAuth.mockResolvedValue(commonSession as never)
 			mockUpdateBusinessSchema.safeParse.mockReturnValue({
@@ -845,7 +851,12 @@ describe('PUT /api/negocios/[id]', () => {
 			} as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
 			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
-			vi.mocked(prisma.payment.count).mockResolvedValue(1)
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				name: 'Pago Único',
+			} as never)
+			vi.mocked(prisma.payment.findMany).mockResolvedValue([
+				{ installmentIndex: 5, status: 'EN_CARTERA' },
+			] as never)
 
 			const response = await PUT(
 				new Request('http://localhost:3000/api/negocios/1', {
@@ -857,6 +868,51 @@ describe('PUT /api/negocios/[id]', () => {
 
 			expect(response.status).toBe(409)
 			expect(mockUpdate).not.toHaveBeenCalled()
+			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
+		})
+
+		it('permite cambiar el producto de un FONDEADO si el número de aportes no deja fuera un aporte financiero', async () => {
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				term: 12,
+				numAportes: 144,
+				contract: 'PN0001234',
+				dateIssued: new Date('2025-01-10T12:00:00.000Z'),
+			}
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { idProduct: 2 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+			vi.mocked(findProductPercentageCommission).mockResolvedValue({
+				data: { idProductPercentageCommission: 1 },
+			} as never)
+			vi.mocked(prisma.product.findUnique).mockResolvedValue({
+				name: 'Otro producto',
+				company: { name: 'Otra compañía' },
+			} as never)
+			vi.mocked(prisma.payment.findMany).mockResolvedValue([
+				{ installmentIndex: 1, status: 'FONDEADO' },
+			] as never)
+			mockUpdate.mockResolvedValue({ ...fundedBusiness } as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 1,
+				status: BUSINESS_STATUS.FONDEADO,
+			} as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ idProduct: 2 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+
+			expect(response.status).toBe(200)
+			expect(mockUpdate).toHaveBeenCalled()
 			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
 		})
 
@@ -874,10 +930,12 @@ describe('PUT /api/negocios/[id]', () => {
 			} as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
 			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
-			vi.mocked(prisma.payment.count).mockResolvedValue(0)
+			vi.mocked(prisma.payment.findMany).mockResolvedValue([])
 
 			const queryRaw = vi.fn(async () => {
-				vi.mocked(prisma.payment.count).mockResolvedValue(1)
+				vi.mocked(prisma.payment.findMany).mockResolvedValue([
+					{ installmentIndex: 100, status: 'FONDEADO' },
+				] as never)
 				return []
 			})
 			vi.mocked(prisma.$transaction).mockImplementationOnce(async (callback) => {
@@ -898,7 +956,7 @@ describe('PUT /api/negocios/[id]', () => {
 			const body = await response.json()
 
 			expect(response.status).toBe(409)
-			expect(body.error).toMatch(/aportes con estado financiero/i)
+			expect(body.error).toMatch(/estado financiero/i)
 			expect(queryRaw).toHaveBeenCalled()
 			expect(mockUpdate).not.toHaveBeenCalled()
 			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
