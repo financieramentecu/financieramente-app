@@ -89,6 +89,7 @@ vi.mock('@/lib/prisma', () => {
 					business: mockBusiness,
 					payment: mockPayment,
 					user: mockUser,
+					$queryRaw: vi.fn().mockResolvedValue([]),
 				})
 			}),
 		},
@@ -855,6 +856,50 @@ describe('PUT /api/negocios/[id]', () => {
 			)
 
 			expect(response.status).toBe(409)
+			expect(mockUpdate).not.toHaveBeenCalled()
+			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
+		})
+
+		it('rejects a funded term reduction when a payment becomes financial while the edit holds the row lock', async () => {
+			const fundedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.FONDEADO,
+				term: 12,
+				numAportes: 12,
+			}
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { term: 5 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+			vi.mocked(prisma.payment.count).mockResolvedValue(0)
+
+			const queryRaw = vi.fn(async () => {
+				vi.mocked(prisma.payment.count).mockResolvedValue(1)
+				return []
+			})
+			vi.mocked(prisma.$transaction).mockImplementationOnce(async (callback) => {
+				return callback({
+					business: { update: mockUpdate },
+					payment: prisma.payment,
+					$queryRaw: queryRaw,
+				} as never)
+			})
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ term: 5 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(409)
+			expect(body.error).toMatch(/aportes con estado financiero/i)
+			expect(queryRaw).toHaveBeenCalled()
 			expect(mockUpdate).not.toHaveBeenCalled()
 			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
 		})
