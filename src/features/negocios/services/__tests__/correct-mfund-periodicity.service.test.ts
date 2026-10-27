@@ -25,7 +25,14 @@ function dbWith(rows: unknown[]) {
 		buyPeriodicity: {
 			findFirst: vi.fn().mockResolvedValue({ idBuyPeriodicity: 5 }),
 		},
-		user: { findFirst: vi.fn().mockResolvedValue({ idUser: 9 }) },
+		user: {
+			findUnique: vi.fn().mockResolvedValue({
+				idUser: 9,
+				idRole: 1,
+				active: true,
+				role: { code: 'ADMIN' },
+			}),
+		},
 		$transaction: vi.fn(async (callback: (tx: unknown) => Promise<void>) =>
 			callback({
 				business,
@@ -101,9 +108,48 @@ describe('applyMfundPeriodicityCorrection', () => {
 
 		await expect(
 			applyMfundPeriodicityCorrection(db as never, '   ')
-		).rejects.toThrow(
-			'operator_required'
-		)
+		).rejects.toThrow('operator_required')
+		expect(db.$transaction).not.toHaveBeenCalled()
+	})
+
+	it('refuses a nonexistent operator before any write', async () => {
+		const db = dbWith([mismatch])
+		db.user.findUnique.mockResolvedValue(null)
+
+		await expect(
+			applyMfundPeriodicityCorrection(db as never, 'nobody@financieramente.co')
+		).rejects.toThrow('operator_not_found')
+		expect(db.$transaction).not.toHaveBeenCalled()
+		expect(db.updateMany).not.toHaveBeenCalled()
+	})
+
+	it('refuses an inactive or unauthorized operator before any write', async () => {
+		const db = dbWith([mismatch])
+		db.user.findUnique.mockResolvedValue({
+			idUser: 9,
+			idRole: 1,
+			active: false,
+			role: { code: 'ADMIN' },
+		})
+
+		await expect(
+			applyMfundPeriodicityCorrection(db as never, 'ops@financieramente.co')
+		).rejects.toThrow('operator_inactive')
+		expect(db.$transaction).not.toHaveBeenCalled()
+	})
+
+	it('refuses an operator without write authority before any write', async () => {
+		const db = dbWith([mismatch])
+		db.user.findUnique.mockResolvedValue({
+			idUser: 9,
+			idRole: 1,
+			active: true,
+			role: { code: 'AGENTE' },
+		})
+
+		await expect(
+			applyMfundPeriodicityCorrection(db as never, 'agent@financieramente.co')
+		).rejects.toThrow('operator_forbidden')
 		expect(db.$transaction).not.toHaveBeenCalled()
 	})
 

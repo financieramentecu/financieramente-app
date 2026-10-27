@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { AuditAction } from '@/features/auth/lib/audit-logger'
+import { isWriteBypassRole } from '@/features/auth/lib/roles'
 import {
 	MFUND_PRODUCT_NAME,
 	MFUND_REQUIRED_PERIODICITY,
@@ -95,10 +96,24 @@ export async function applyMfundPeriodicityCorrection(
 		throw new Error('required_periodicity_missing')
 	}
 
-	const operator = await db.user.findFirst({
+	const operator = await db.user.findUnique({
 		where: { email },
-		select: { idUser: true },
+		select: {
+			idUser: true,
+			idRole: true,
+			active: true,
+			role: { select: { code: true } },
+		},
 	})
+	if (!operator) {
+		throw new Error('operator_not_found')
+	}
+	if (!operator.active) {
+		throw new Error('operator_inactive')
+	}
+	if (!isWriteBypassRole(operator.role?.code)) {
+		throw new Error('operator_forbidden')
+	}
 
 	const rows = await findMfundPeriodicityMismatches(db)
 	let updated = 0
@@ -119,7 +134,8 @@ export async function applyMfundPeriodicityCorrection(
 			await tx.auditLog.create({
 				data: {
 					action: AuditAction.BUSINESS_PERIODICITY_CORRECTED,
-					idUser: operator?.idUser,
+					idUser: operator.idUser,
+					idRole: operator.idRole,
 					email,
 					details: `COM-94 negocio #${row.idBusiness} contrato ${row.contract ?? '—'}: periodicidad ${row.periodicityName ?? 'sin valor'} → ${MFUND_REQUIRED_PERIODICITY}`,
 				},
