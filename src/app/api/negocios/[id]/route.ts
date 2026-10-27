@@ -290,6 +290,16 @@ export async function PUT(
 			)
 		}
 
+		const existingProductId =
+			existingBusiness.productPercentageCommission?.productConfiguration?.idProduct
+		const changesFundedStructure =
+			existingBusiness.status === BUSINESS_STATUS.FONDEADO &&
+			((term !== undefined && term !== existingBusiness.term) ||
+				(idBuyPeriodicity !== undefined &&
+					idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) ||
+				(idProduct !== undefined && idProduct !== existingProductId) ||
+				(numAportes !== undefined && numAportes !== (existingBusiness.numAportes ?? 0)))
+
 		// --- RESOLUCIÓN DE DATOS PARA ACTUALIZACIÓN ---
 		let finalIdPpc = existingBusiness.idProductPercentageCommission
 		let finalNumAportes = existingBusiness.numAportes ?? 0
@@ -462,6 +472,10 @@ export async function PUT(
 
 		// --- TRANSACCIÓN: solo la actualización del negocio y sincronización estructural de aportes ---
 		const updatedBusiness = await prisma.$transaction(async (tx) => {
+			if (changesFundedStructure) {
+				await assertFundedStructureUnlocked(tx, businessId)
+			}
+
 			const updateData: Prisma.BusinessUpdateInput = {
 				contract: contract !== undefined ? (contract || null) : undefined,
 				clientOrigin: idClientOrigin !== undefined ? { connect: { idClientOrigin } } : undefined,
@@ -572,6 +586,12 @@ export async function PUT(
 		const entity = prismaBusinessToEntity(updatedBusiness)
 		return NextResponse.json({ data: entity })
 	} catch (error) {
+		if (error instanceof FundedPaymentsConflictError) {
+			return NextResponse.json(
+				{ data: null, error: FUNDED_STRUCTURE_CONFLICT_MESSAGE },
+				{ status: 409 }
+			)
+		}
 		console.error('Error al actualizar negocio:', error)
 		return NextResponse.json(
 			{ data: null, error: 'Error interno del servidor' },
@@ -585,6 +605,51 @@ export async function PUT(
 // ---------------------------------------------------------------------------
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
+const FINANCIAL_PAYMENT_STATUSES = [
+	AnnualPaymentStatus.FONDEADO,
+	AnnualPaymentStatus.EN_CARTERA,
+	AnnualPaymentStatus.PAGO_ANTICIPADO,
+	AnnualPaymentStatus.CARTERA_PAGADO,
+] as const
+
+const FUNDED_STRUCTURE_CONFLICT_MESSAGE =
+	'No se puede cambiar el plazo, la periodicidad, el producto o el número de aportes de un negocio fondeado que ya tiene aportes con estado financiero.'
+
+class FundedPaymentsConflictError extends Error {
+	constructor() {
+		super(FUNDED_STRUCTURE_CONFLICT_MESSAGE)
+		this.name = 'FundedPaymentsConflictError'
+	}
+}
+
+/**
+ * Locks the business and its payments, then rejects a structural edit when a
+ * payment already has a financial status. The lock is held until the
+ * transaction ends, so a concurrent funding transition waits instead of
+ * landing between the check and `payment.deleteMany`.
+ */
+async function assertFundedStructureUnlocked(
+	tx: PrismaTx,
+	businessId: number
+): Promise<void> {
+	await tx.$queryRaw`
+		SELECT "id_business" FROM "business" WHERE "id_business" = ${businessId} FOR UPDATE
+	`
+	await tx.$queryRaw`
+		SELECT "id_annual_payment" FROM "payments" WHERE "id_business" = ${businessId} FOR UPDATE
+	`
+
+	const financialPayments = await tx.payment.count({
+		where: {
+			idBusiness: businessId,
+			status: { in: [...FINANCIAL_PAYMENT_STATUSES] },
+		},
+	})
+	if (financialPayments > 0) {
+		throw new FundedPaymentsConflictError()
+	}
+}
 
 interface SyncPaymentsStructureParams {
 	businessId: number
