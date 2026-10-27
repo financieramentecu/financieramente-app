@@ -55,6 +55,7 @@ function buildBusiness(overrides: Partial<Business> = {}): Business {
 		observations: null,
 		currency: { id: 1, name: 'COP' },
 		...overrides,
+		samePolicyholder: overrides.samePolicyholder ?? 'Sí',
 	}
 }
 

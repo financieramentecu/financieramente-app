@@ -35,7 +35,9 @@ erDiagram
     Currency ||--o{ Business : "moneda negocio"
     Currency ||--o{ Company : "moneda compañía"
     DocumentType ||--o{ Client : "identifica"
+    DocumentType ||--o{ Policyholder : "identifica tomador"
     DocumentType ||--o{ User : "code = type_identity"
+    Policyholder ||--o{ Business : "tomador del negocio"
 
     %% ========== PRODUCTOS Y CONFIGURACIÓN ==========
     Product ||--o{ ProductConfiguration : "combinación producto/nivel"
@@ -304,6 +306,20 @@ erDiagram
         datetime updated_at
     }
 
+    Policyholder {
+        int id_policyholder PK
+        string name
+        string last_name
+        string type_identity
+        int id_document_type FK
+        string identity_number
+        string email
+        string phone
+        boolean active
+        datetime created_at
+        datetime updated_at
+    }
+
     %% ========== ENTIDADES - OPERACIONES ==========
     FileImport {
         int id_file_import PK
@@ -347,6 +363,8 @@ erDiagram
         int id_buy_periodicity FK
         int id_user FK
         int id_client FK
+        boolean client_is_policyholder
+        int id_policyholder FK
         int id_product_percentage_commission FK
         int id_currency FK
         int id_client_origin FK
@@ -556,7 +574,8 @@ erDiagram
 - Nombres de tablas y columnas en el diagrama siguen el mapeo físico de `schema.prisma` (`@@map` / `@map`).
 - `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor.
 - **Nueva tabla `document_type`** (migración `20261009193000_add_document_type`): catálogo de tipos de documento. `name` y `code` son únicos. `status = false` es el borrado lógico (nunca `delete()` físico). La precarga inserta CC, CE, PAS, NIT y PPT en estado activo. `max_length` queda acotado a 20 para caber en `identity_number`.
-- **`Client.id_document_type`** (migración `20261014170000_link_client_document_type`, COM-27): FK `ON DELETE RESTRICT` hacia `document_type`. `type_identity` queda como copia del `code` para la unicidad `(type_identity, identity_number)` y los consumidores existentes; no es texto libre. La migración es idempotente: solo llena `id_document_type` nulo y conserva el código que ya coincide con el catálogo. Si asignar CC a un código fuera de catálogo duplicaría `(type_identity, identity_number)`, aborta sin escribir. Cada cliente pasado a CC guarda el código anterior en `audit_log.details` (`CLIENT_DOCUMENT_TYPE_DEFAULTED`). Reejecutarla no reemplaza una FK ya definida. Desactivar un tipo lo oculta en altas nuevas y conserva la relación histórica. `User.type_identity` sigue sin FK (usuarios de plataforma, fuera de alcance). El tomador de COM-28 todavía no tiene tabla; cuando exista debe apuntar a este mismo catálogo.
+- **`Client.id_document_type`** (migración `20261014170000_link_client_document_type`, COM-27): FK `ON DELETE RESTRICT` hacia `document_type`. `type_identity` queda como copia del `code` para la unicidad `(type_identity, identity_number)` y los consumidores existentes; no es texto libre. La migración es idempotente: solo llena `id_document_type` nulo, conserva el código que ya coincide con el catálogo y asigna CC al resto. Reejecutarla no reemplaza una FK ya definida. Desactivar un tipo lo oculta en altas nuevas y conserva la relación histórica. `User.type_identity` sigue sin FK (usuarios de plataforma, fuera de alcance).
+- **`Policyholder`** (migración `20261015143000_add_policyholder`, COM-28): catálogo independiente de `Client`. `Business.client_is_policyholder` nace en `true` para los negocios existentes (el cliente es el mismo tomador) y `id_policyholder` queda nulo. Un tomador distinto se vincula solo a ese negocio (`ON DELETE RESTRICT`); volver la casilla a «Sí» desvincula el negocio y no borra la fila del tomador. La unicidad es `(type_identity, identity_number)`. Reejecutar la migración no crea tomadores ni cambia un vínculo ya guardado.
 - `SettlementCommission.id_business` es opcional en Prisma (`Int?`); el diagrama refleja la FK habitual hacia `business`.
 - Tablas físicas con typo histórico: `product_percentaje_commision`, `product_percentaje_commision_category` (ver `@@map` en el schema).
 - **Nueva tabla `default_distribution_percentage`** (migración `20261006140000_add_default_distribution_percentage`): plantilla editable de la distribución por defecto. Unique `(id_config_level, id_receiver_level)`. `percentage` es fracción (`0.6` = 60%). Al crear un producto, o al completar una configuración sin líneas, se copian estas filas. Cambiar la plantilla no reescribe distribuciones ya guardadas. La migración siembra `LEVEL_0`–`LEVEL_5` con la tabla aprobada. `GENERAL_LEVEL` no tiene filas.

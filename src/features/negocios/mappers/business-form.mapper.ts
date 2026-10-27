@@ -31,6 +31,13 @@ export function businessEntityToFormData(
 		lastNames: business.client.lastName || '',
 		phone: business.client.phone || '',
 		clientOrigin: String(business.clientOrigin.id),
+		clientIsPolicyholder: business.clientIsPolicyholder,
+		policyholderTypeIdentity: business.policyholder?.typeIdentity ?? '',
+		policyholderIdentityNumber: business.policyholder?.identityNumber ?? '',
+		policyholderEmail: business.policyholder?.email ?? '',
+		policyholderName: business.policyholder?.name ?? '',
+		policyholderLastNames: business.policyholder?.lastName ?? '',
+		policyholderPhone: business.policyholder?.phone ?? '',
 
 		// Información del producto
 		company: String(business.product.companyId),

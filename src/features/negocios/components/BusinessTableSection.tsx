@@ -102,6 +102,7 @@ interface BusinessTableSectionProps {
 const BUSINESS_COLUMN_LABELS = {
 	clientName: 'Cliente',
 	identification: 'Identificación',
+	samePolicyholder: 'Mismo tomador',
 	contract: 'Contrato',
 	status: 'Estado',
 	novedadStatus: 'Novedad',
@@ -225,6 +226,17 @@ export function BusinessTableSection({
 			),
 			cell: ({ row }) => (
 				<span className="font-medium tabular-nums whitespace-nowrap">{row.getValue('identification')}</span>
+			),
+			enableSorting: true,
+			size: 130,
+		},
+		{
+			accessorKey: 'samePolicyholder',
+			header: ({ column }) => (
+				<DataTableColumnHeader column={column} title="Mismo tomador" />
+			),
+			cell: ({ row }) => (
+				<span className="whitespace-nowrap">{row.getValue('samePolicyholder')}</span>
 			),
 			enableSorting: true,
 			size: 130,

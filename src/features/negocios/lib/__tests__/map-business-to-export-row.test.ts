@@ -34,6 +34,8 @@ describe('mapBusinessToExportRow', () => {
 			category: { name: 'Senior' },
 			role: null
 		},
+		clientIsPolicyholder: true,
+		policyholder: null,
 		clientOrigin: { name: 'Referido' },
 		currency: { name: 'COP' },
 		buyPeriodicity: { name: 'Mensual' },
@@ -61,20 +63,27 @@ describe('mapBusinessToExportRow', () => {
 		expect(headers[3]).toBe('Tipo de Documento')
 		expect(headers[4]).toBe('Correo Electrónico')
 		expect(headers[5]).toBe('Teléfono')
-		expect(headers[6]).toBe('Origen del cliente')
-		expect(headers[7]).toBe('Compañía')
-		expect(headers[8]).toBe('Plazo')
-		expect(headers[9]).toBe('Producto')
-		expect(headers[10]).toBe('Número de Contrato')
-		expect(headers[11]).toBe('Moneda')
-		expect(headers[12]).toBe(NEGOCIOS_EXPORT_VALOR_COLUMN)
-		expect(headers[13]).toBe('Periodicidad del pago')
-		expect(headers[14]).toBe('Líder Encargado')
-		expect(headers[15]).toBe('Categoría Líder')
-		expect(headers[16]).toBe('Estado de negocio')
-		expect(headers[17]).toBe('Fecha de Creación')
-		expect(headers[18]).toBe('Fecha de Emisión')
-		expect(headers[19]).toBe('Fecha de Fondeo')
+		expect(headers[6]).toBe('Mismo tomador')
+		expect(headers[7]).toBe('Tomador Tipo de Doc.')
+		expect(headers[8]).toBe('Tomador Nro. Doc.')
+		expect(headers[9]).toBe('Tomador Email')
+		expect(headers[10]).toBe('Tomador Apellidos')
+		expect(headers[11]).toBe('Tomador Nombres')
+		expect(headers[12]).toBe('Tomador Teléfono')
+		expect(headers[13]).toBe('Origen del cliente')
+		expect(headers[14]).toBe('Compañía')
+		expect(headers[15]).toBe('Plazo')
+		expect(headers[16]).toBe('Producto')
+		expect(headers[17]).toBe('Número de Contrato')
+		expect(headers[18]).toBe('Moneda')
+		expect(headers[19]).toBe(NEGOCIOS_EXPORT_VALOR_COLUMN)
+		expect(headers[20]).toBe('Periodicidad del pago')
+		expect(headers[21]).toBe('Líder Encargado')
+		expect(headers[22]).toBe('Categoría Líder')
+		expect(headers[23]).toBe('Estado de negocio')
+		expect(headers[24]).toBe('Fecha de Creación')
+		expect(headers[25]).toBe('Fecha de Emisión')
+		expect(headers[26]).toBe('Fecha de Fondeo')
 		expect(headers).not.toContain('Mes')
 		expect(headers).not.toContain('Año')
 		expect(headers).not.toContain('Es anualidad')
@@ -82,9 +91,9 @@ describe('mapBusinessToExportRow', () => {
 
 	it('coloca Líder 2 después de Fecha de Fondeo cuando maxLeaderLevels > 1', () => {
 		const headers = negociosExportColumnHeaders(2, 0)
-		expect(headers[19]).toBe('Fecha de Fondeo')
-		expect(headers[20]).toBe('Líder 2 nombre')
-		expect(headers[21]).toBe('Líder 2 categoría')
+		expect(headers[26]).toBe('Fecha de Fondeo')
+		expect(headers[27]).toBe('Líder 2 nombre')
+		expect(headers[28]).toBe('Líder 2 categoría')
 	})
 
 	it('usa cabeceras Fecha Fondeo Anualidad i al final cuando maxAnnualCols > 0', () => {
@@ -110,6 +119,38 @@ describe('mapBusinessToExportRow', () => {
 		expect(row['Número de Cédula']).toBe('123456')
 		expect(row['Tipo de Documento']).toBe('Cédula de Ciudadanía (CC)')
 		expect(row['Teléfono']).toBe('+57 300 000 0000')
+		expect(row['Mismo tomador']).toBe('Sí')
+		expect(row['Tomador Nro. Doc.']).toBe('')
+		expect(row['Tomador Email']).toBe('')
+	})
+
+	it('llena las columnas del tomador cuando es distinto del cliente', () => {
+		const row = mapBusinessToExportRow(
+			{
+				...mockBusiness,
+				clientIsPolicyholder: false,
+				policyholder: {
+					typeIdentity: 'CE',
+					identityNumber: 'CE9988',
+					email: 'tomador@example.com',
+					lastName: 'Ruiz',
+					name: 'Ana',
+					phone: '3010000000',
+					documentType: { name: 'Cédula de Extranjería', code: 'CE' },
+				},
+			} as unknown as BusinessExportPayload,
+			mockLeaders,
+			1,
+			0
+		)
+
+		expect(row['Mismo tomador']).toBe('No')
+		expect(row['Tomador Tipo de Doc.']).toBe('Cédula de Extranjería (CE)')
+		expect(row['Tomador Nro. Doc.']).toBe('CE9988')
+		expect(row['Tomador Email']).toBe('tomador@example.com')
+		expect(row['Tomador Apellidos']).toBe('Ruiz')
+		expect(row['Tomador Nombres']).toBe('Ana')
+		expect(row['Tomador Teléfono']).toBe('3010000000')
 		expect(row['Líder Encargado']).toBe('Lider Uno')
 		expect(row['Categoría Líder']).toBe('Director')
 	})

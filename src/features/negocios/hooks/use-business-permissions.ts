@@ -16,6 +16,13 @@ export type BusinessFormField =
 	| 'lastNames'
 	| 'phone'
 	| 'clientOrigin'
+	| 'clientIsPolicyholder'
+	| 'policyholderTypeIdentity'
+	| 'policyholderIdentityNumber'
+	| 'policyholderEmail'
+	| 'policyholderName'
+	| 'policyholderLastNames'
+	| 'policyholderPhone'
 	| 'company'
 	| 'producto'
 	| 'terms'
@@ -96,6 +103,13 @@ export function useBusinessPermissions({
 			'lastNames',
 			'phone',
 			'clientOrigin',
+			'clientIsPolicyholder',
+			'policyholderTypeIdentity',
+			'policyholderIdentityNumber',
+			'policyholderEmail',
+			'policyholderName',
+			'policyholderLastNames',
+			'policyholderPhone',
 		]
 		if (clientFields.includes(field)) {
 			if (canEditClientInfo) {
