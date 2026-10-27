@@ -128,6 +128,11 @@ describe('PUT /api/negocios/[id] on a PARTNER_EXTERNAL business', () => {
 		vi.mocked(findProductPercentageCommission).mockResolvedValue({
 			data: { idProductPercentageCommission: 555 },
 		} as never)
+		vi.mocked(prisma.product.findUnique).mockResolvedValue({
+			idProduct: 9,
+			name: 'Partner product',
+			company: { name: 'Partner company' },
+		} as never)
 		vi.mocked(validateProductConfigurationExists).mockResolvedValue({
 			valid: false,
 			reason: 'La configuración no tiene reglas de distribución configuradas.',

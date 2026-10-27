@@ -109,6 +109,26 @@ describe('createBusiness', () => {
 		} as unknown as Awaited<ReturnType<typeof prisma.product.findUnique>>)
 	})
 
+	it('rejects SKANDIA MFUND when the periodicity is not Aportes Ocasionales', async () => {
+		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+			name: 'Mensual',
+		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+		vi.mocked(prisma.product.findUnique).mockResolvedValue({
+			name: 'MFUND',
+			company: { name: 'SKANDIA' },
+		} as unknown as Awaited<ReturnType<typeof prisma.product.findUnique>>)
+
+		const result = await createBusiness({
+			...basePayload,
+			idBuyPeriodicity: 2,
+			term: 0,
+		})
+
+		expect(result.data).toBeNull()
+		expect('error' in result && result.error).toMatch(/Aportes Ocasionales/)
+		expect(prisma.$transaction).not.toHaveBeenCalled()
+	})
+
 	it('returns rejected ApiResponse for CONSULTOR (read-only role)', async () => {
 		vi.mocked(requireWriteAccess).mockResolvedValueOnce({
 			ok: false,

@@ -3,7 +3,9 @@ import { GET, PUT } from '../[id]/route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
+import { MFUND_PERIODICITY_ERROR } from '@/features/negocios/lib/mfund-periodicity'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
@@ -662,6 +664,98 @@ describe('PUT /api/negocios/[id]', () => {
 		})
 	})
 
+	describe('SKANDIA MFUND periodicity', () => {
+		it('rejects an edit that would leave a periodicity other than Aportes Ocasionales', async () => {
+			const product = commonExistingBusiness.productPercentageCommission.productConfiguration.product
+			const mfundBusiness = {
+				...commonExistingBusiness,
+				productPercentageCommission: {
+					...commonExistingBusiness.productPercentageCommission,
+					productConfiguration: {
+						...commonExistingBusiness.productPercentageCommission.productConfiguration,
+						product: {
+							...product,
+							name: 'MFUND',
+							company: { ...product.company, name: 'SKANDIA' },
+						},
+					},
+				},
+			}
+
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { contract: 'MF-100' },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(mfundBusiness as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ contract: 'MF-100' }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(body.error).toBe(MFUND_PERIODICITY_ERROR)
+			expect(mockUpdate).not.toHaveBeenCalled()
+		})
+
+		it('returns 400 when the periodicity id does not exist', async () => {
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { idBuyPeriodicity: 999 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(commonExistingBusiness as never)
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue(null)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ idBuyPeriodicity: 999 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(body.error).toBe('Periodicidad no encontrada')
+			expect(mockUpdate).not.toHaveBeenCalled()
+		})
+
+		it('returns 400 when the product id does not exist', async () => {
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { idProduct: 999 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(commonExistingBusiness as never)
+			vi.mocked(findProductPercentageCommission).mockResolvedValue({
+				data: { idProductPercentageCommission: 1 },
+			} as never)
+			vi.mocked(prisma.product.findUnique).mockResolvedValue(null)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ idProduct: 999 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(body.error).toBe('Producto no encontrado')
+			expect(mockUpdate).not.toHaveBeenCalled()
+		})
+	})
+
 	describe('Casos de Autenticación', () => {
 		it('debe retornar 401 cuando no hay sesión', async () => {
 			mockAuth.mockResolvedValue(null as never)
@@ -844,6 +938,10 @@ describe('PUT /api/negocios/[id]', () => {
 			} as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
 			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				idBuyPeriodicity: 2,
+				name: 'Mensual',
+			} as never)
 			vi.mocked(prisma.payment.count).mockResolvedValue(1)
 
 			const response = await PUT(
