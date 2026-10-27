@@ -391,13 +391,25 @@ export async function PUT(
 				where: { idProduct },
 				include: { company: true },
 			})
-			companyName = prod?.company.name ?? ''
-			productName = prod?.name ?? ''
+			if (!prod) {
+				return NextResponse.json(
+					{ data: null, error: 'Producto no encontrado' },
+					{ status: 400 }
+				)
+			}
+			companyName = prod.company.name
+			productName = prod.name
 		}
 
 		if (idBuyPeriodicity !== undefined && idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) {
 			const bp = await prisma.buyPeriodicity.findUnique({ where: { idBuyPeriodicity } })
-			resolvedPeriodicityName = bp?.name ?? null
+			if (!bp) {
+				return NextResponse.json(
+					{ data: null, error: 'Periodicidad no encontrada' },
+					{ status: 400 }
+				)
+			}
+			resolvedPeriodicityName = bp.name
 		}
 
 		const periodicityRejection = mfundPeriodicityError({

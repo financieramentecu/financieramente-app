@@ -3,6 +3,7 @@ import { GET, PUT } from '../[id]/route'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { MFUND_PERIODICITY_ERROR } from '@/features/negocios/lib/mfund-periodicity'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
@@ -700,6 +701,57 @@ describe('PUT /api/negocios/[id]', () => {
 
 			expect(response.status).toBe(400)
 			expect(body.error).toBe(MFUND_PERIODICITY_ERROR)
+			expect(mockUpdate).not.toHaveBeenCalled()
+		})
+
+		it('returns 400 when the periodicity id does not exist', async () => {
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { idBuyPeriodicity: 999 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(commonExistingBusiness as never)
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue(null)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ idBuyPeriodicity: 999 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(body.error).toBe('Periodicidad no encontrada')
+			expect(mockUpdate).not.toHaveBeenCalled()
+		})
+
+		it('returns 400 when the product id does not exist', async () => {
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { idProduct: 999 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(commonExistingBusiness as never)
+			vi.mocked(findProductPercentageCommission).mockResolvedValue({
+				data: { idProductPercentageCommission: 1 },
+			} as never)
+			vi.mocked(prisma.product.findUnique).mockResolvedValue(null)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ idProduct: 999 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(body.error).toBe('Producto no encontrado')
 			expect(mockUpdate).not.toHaveBeenCalled()
 		})
 	})

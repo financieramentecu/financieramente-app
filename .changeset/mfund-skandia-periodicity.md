@@ -8,5 +8,5 @@
 
 ### Técnico
 
-- `mfundPeriodicityError` guards `createBusiness` and `PUT /api/negocios/[id]`.
+- `mfundPeriodicityError` guards `createBusiness` and `PUT /api/negocios/[id]`. The PUT still answers 400 `Periodicidad no encontrada` or `Producto no encontrado` when those ids do not exist, before the MFUND rule runs.
 - `prisma/seeds/correct-mfund-periodicity.ts` inventories historical SKANDIA/MFUND rows and, with `--apply --operator`, updates only `idBuyPeriodicity`, writing `BUSINESS_PERIODICITY_CORRECTED`. Premiums, payments and settlement amounts are not rewritten.
