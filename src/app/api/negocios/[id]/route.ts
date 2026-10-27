@@ -41,6 +41,7 @@ import {
 } from '@/features/auth/lib/audit-logger'
 import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
 import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
+import { mfundPeriodicityError } from '@/features/negocios/lib/mfund-periodicity'
 import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expected-dates'
 import { AnnualPaymentStatus } from '@prisma/client'
 import { sincronizarYCalcularRegistroRezagado } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
@@ -368,29 +369,53 @@ export async function PUT(
 			finalIdPpc = ppcResult.data.idProductPercentageCommission
 		}
 
+		let companyName = existingBusiness.productPercentageCommission.productConfiguration.product.company.name
+		let productName = existingBusiness.productPercentageCommission.productConfiguration.product.name
+
+		if (idProduct !== undefined && idProduct !== existingBusiness.productPercentageCommission.productConfiguration.idProduct) {
+			const prod = await prisma.product.findUnique({
+				where: { idProduct },
+				include: { company: true },
+			})
+			if (!prod) {
+				return NextResponse.json(
+					{ data: null, error: 'Producto no encontrado' },
+					{ status: 400 }
+				)
+			}
+			companyName = prod.company.name
+			productName = prod.name
+		}
+
+		if (idBuyPeriodicity !== undefined && idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) {
+			const bp = await prisma.buyPeriodicity.findUnique({ where: { idBuyPeriodicity } })
+			if (!bp) {
+				return NextResponse.json(
+					{ data: null, error: 'Periodicidad no encontrada' },
+					{ status: 400 }
+				)
+			}
+			resolvedPeriodicityName = bp.name
+		}
+
+		const periodicityRejection = mfundPeriodicityError({
+			companyName,
+			productName,
+			periodicityName: resolvedPeriodicityName,
+		})
+		if (periodicityRejection) {
+			return NextResponse.json(
+				{ data: null, error: periodicityRejection },
+				{ status: 400 }
+			)
+		}
+
 		// 2. Calcular numAportes si cambia plazo o periodicidad o producto (por la compañía) o si se envía manualmente
 		if (term !== undefined || idBuyPeriodicity !== undefined || idProduct !== undefined || numAportes !== undefined) {
 			if (numAportes !== undefined) {
 				finalNumAportes = numAportes
 			} else {
 				const targetTerm = term ?? existingBusiness.term
-
-				if (idBuyPeriodicity !== undefined && idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) {
-					const bp = await prisma.buyPeriodicity.findUnique({ where: { idBuyPeriodicity } })
-					resolvedPeriodicityName = bp?.name ?? null
-				}
-
-				let companyName = existingBusiness.productPercentageCommission.productConfiguration.product.company.name
-				let productName = existingBusiness.productPercentageCommission.productConfiguration.product.name
-
-				if (idProduct !== undefined && idProduct !== existingBusiness.productPercentageCommission.productConfiguration.idProduct) {
-					const prod = await prisma.product.findUnique({
-						where: { idProduct },
-						include: { company: true },
-					})
-					companyName = prod?.company.name ?? ''
-					productName = prod?.name ?? ''
-				}
 
 				finalNumAportes = calculateNumAportes({
 					termYears: targetTerm ?? null,

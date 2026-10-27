@@ -4,6 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
+import { MFUND_PERIODICITY_ERROR } from '@/features/negocios/lib/mfund-periodicity'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { NextResponse } from 'next/server'
@@ -651,6 +652,47 @@ describe('PUT /api/negocios/[id]', () => {
 
 			expect(response.status).toBe(200)
 			expect(mockRecalcularComisionesPorCambioOrigen).toHaveBeenCalled()
+		})
+	})
+
+	describe('SKANDIA MFUND periodicity', () => {
+		it('rejects an edit that would leave a periodicity other than Aportes Ocasionales', async () => {
+			const product = commonExistingBusiness.productPercentageCommission.productConfiguration.product
+			const mfundBusiness = {
+				...commonExistingBusiness,
+				productPercentageCommission: {
+					...commonExistingBusiness.productPercentageCommission,
+					productConfiguration: {
+						...commonExistingBusiness.productPercentageCommission.productConfiguration,
+						product: {
+							...product,
+							name: 'MFUND',
+							company: { ...product.company, name: 'SKANDIA' },
+						},
+					},
+				},
+			}
+
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { contract: 'MF-100' },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
+			mockFindFirst.mockResolvedValueOnce(mfundBusiness as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ contract: 'MF-100' }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(400)
+			expect(body.error).toBe(MFUND_PERIODICITY_ERROR)
+			expect(mockUpdate).not.toHaveBeenCalled()
 		})
 	})
 
