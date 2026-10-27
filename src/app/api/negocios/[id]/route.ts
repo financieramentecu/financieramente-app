@@ -369,33 +369,25 @@ export async function PUT(
 			finalIdPpc = ppcResult.data.idProductPercentageCommission
 		}
 
-		let companyName = existingBusiness.productPercentageCommission.productConfiguration.product.company.name
-		let productName = existingBusiness.productPercentageCommission.productConfiguration.product.name
+		const catalogProduct =
+			existingBusiness.productPercentageCommission?.productConfiguration?.product
+		let companyName = catalogProduct?.company?.name ?? ''
+		let productName = catalogProduct?.name ?? ''
+		const currentProductId =
+			existingBusiness.productPercentageCommission?.productConfiguration?.idProduct
 
-		if (idProduct !== undefined && idProduct !== existingBusiness.productPercentageCommission.productConfiguration.idProduct) {
+		if (idProduct !== undefined && idProduct !== currentProductId) {
 			const prod = await prisma.product.findUnique({
 				where: { idProduct },
 				include: { company: true },
 			})
-			if (!prod) {
-				return NextResponse.json(
-					{ data: null, error: 'Producto no encontrado' },
-					{ status: 400 }
-				)
-			}
-			companyName = prod.company.name
-			productName = prod.name
+			companyName = prod?.company.name ?? ''
+			productName = prod?.name ?? ''
 		}
 
 		if (idBuyPeriodicity !== undefined && idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) {
 			const bp = await prisma.buyPeriodicity.findUnique({ where: { idBuyPeriodicity } })
-			if (!bp) {
-				return NextResponse.json(
-					{ data: null, error: 'Periodicidad no encontrada' },
-					{ status: 400 }
-				)
-			}
-			resolvedPeriodicityName = bp.name
+			resolvedPeriodicityName = bp?.name ?? null
 		}
 
 		const periodicityRejection = mfundPeriodicityError({
