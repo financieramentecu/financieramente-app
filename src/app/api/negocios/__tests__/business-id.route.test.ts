@@ -938,6 +938,10 @@ describe('PUT /api/negocios/[id]', () => {
 			} as never)
 			mockGetCurrentUserByEmail.mockResolvedValue(commonAdminUser)
 			mockFindFirst.mockResolvedValueOnce(fundedBusiness as never)
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				idBuyPeriodicity: 2,
+				name: 'Mensual',
+			} as never)
 			vi.mocked(prisma.payment.count).mockResolvedValue(1)
 
 			const response = await PUT(
