@@ -32,6 +32,10 @@ vi.mock('@/features/negocios/actions/resolve-existing-client', () => ({
 	resolveExistingClient: vi.fn(),
 }))
 
+vi.mock('@/features/negocios/actions/sync-business-policyholder', () => ({
+	syncBusinessPolicyholder: vi.fn().mockResolvedValue({ data: { ok: true } }),
+}))
+
 const { updateBusiness } = vi.hoisted(() => ({
 	updateBusiness: vi.fn(),
 }))
@@ -668,6 +672,91 @@ describe('useBusinessForm — identity revalidation on edit', () => {
 		vi.clearAllMocks()
 		updateBusiness.mockResolvedValue(true)
 		vi.mocked(createClient).mockResolvedValue({ data: createdClient } as never)
+	})
+
+	it('asks the support analyst to confirm before saving a new business value', async () => {
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 42,
+				defaultValues: { ...baseDefaults },
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.form.setValue('value', 1800)
+		})
+		await submit(result)
+
+		expect(result.current.valueChangeConfirmOpen).toBe(true)
+		expect(updateBusiness).not.toHaveBeenCalled()
+
+		await act(async () => {
+			await result.current.confirmBusinessValueChange()
+		})
+
+		expect(updateBusiness).toHaveBeenCalledWith(
+			42,
+			expect.objectContaining({ value: 1800 }),
+			undefined
+		)
+		expect(onSubmit).toHaveBeenCalled()
+		expect(result.current.valueChangeConfirmOpen).toBe(false)
+	})
+
+	it('keeps the stored business value when the support analyst cancels the confirmation', async () => {
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 42,
+				defaultValues: { ...baseDefaults },
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.form.setValue('value', 1800)
+		})
+		await submit(result)
+		act(() => {
+			result.current.dismissBusinessValueChange()
+		})
+
+		expect(result.current.valueChangeConfirmOpen).toBe(false)
+		expect(updateBusiness).not.toHaveBeenCalled()
+		expect(onSubmit).not.toHaveBeenCalled()
+	})
+
+	it('saves a business value change without confirmation for an administrator', async () => {
+		vi.mocked(updateClient).mockResolvedValue({ data: { idClient: 7 } } as never)
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 42,
+				clientId: 7,
+				defaultValues: { ...baseDefaults },
+				currentUser: createMockUserWithRole(UserRole.ADMIN),
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.form.setValue('value', 1800)
+		})
+		await submit(result)
+
+		expect(result.current.valueChangeConfirmOpen).toBe(false)
+		expect(updateBusiness).toHaveBeenCalled()
+		expect(onSubmit).toHaveBeenCalled()
 	})
 
 	it('saves an edit when the stored identity uses dots and was not changed', async () => {
