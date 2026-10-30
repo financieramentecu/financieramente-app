@@ -56,7 +56,7 @@ git commit -m "feat: agregar tabla de usuarios"
 
 ### 2. QA (Automático vía GitHub Actions)
 
-Cuando haces `git push origin qa`:
+Cuando se hace merge de un PR a `qa` (evento `push` sobre `qa`):
 
 ```mermaid
 sequenceDiagram
@@ -67,7 +67,7 @@ sequenceDiagram
     participant Container as Contenedor nextjs
     participant DB as PostgreSQL QA
 
-    Dev->>GitHub: git push origin qa<br/>(incluye prisma/migrations/)
+    Dev->>GitHub: Merge de PR a qa<br/>(incluye prisma/migrations/)
     GitHub->>Action: Trigger workflow deploy-qa.yml
     Action->>Droplet: SSH + Copiar archivos
     Action->>Droplet: Crear archivo .env
@@ -105,7 +105,7 @@ docker-compose exec -T nextjs sh -c "cd /app && npx prisma migrate deploy"
 
 ### 3. Producción (Automático vía GitHub Actions)
 
-Mismo flujo que QA, pero cuando haces `git push origin master`.
+Mismo flujo que QA, pero cuando se hace merge de un PR `qa` → `main`.
 
 ## Estructura de Archivos de Migraciones
 
@@ -184,7 +184,7 @@ npx prisma migrate dev --name init
 # 3. Commitear
 git add .
 git commit -m "feat: schema inicial con tabla users"
-git push origin qa
+git push origin <tu-rama>  # luego PR a develop y PR develop → qa
 
 # 4. GitHub Action automáticamente:
 #    - Despliega código a Droplet QA
@@ -210,7 +210,7 @@ npx prisma migrate dev --name agregar_posts
 # 3. Commitear
 git add .
 git commit -m "feat: agregar tabla posts"
-git push origin qa
+git push origin <tu-rama>  # luego PR a develop y PR develop → qa
 
 # 4. GitHub Action automáticamente:
 #    - Ejecuta: npx prisma migrate deploy
@@ -390,12 +390,12 @@ npx prisma migrate dev --name nueva_funcionalidad
 # 2. Probar localmente
 npm run dev
 
-# 3. Commitear y hacer push a QA
+# 3. Commitear, abrir PR a develop y luego PR develop → qa
 git add . && git commit -m "feat: nueva funcionalidad"
-git push origin qa
+git push origin <tu-rama>  # luego PR a develop y PR develop → qa
 
 # 4. Verificar que funciona en QA
-# 5. Solo entonces hacer push a master
+# 5. Solo entonces abrir el PR qa → main
 ```
 
 ### 3. Backup Antes de Migraciones Importantes
