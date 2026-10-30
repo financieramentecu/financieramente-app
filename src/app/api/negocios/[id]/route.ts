@@ -21,12 +21,17 @@ import { updateBusinessSchema } from '@/features/negocios/lib/business-api.schem
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { recalcularComisionesPorCambioOrigen } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { validateProductConfigurationExists } from '@/features/negocios/services/product-configuration.service'
-import { getSubordinateUserIds } from '@/features/negocios/services/user-hierarchy.service'
+import { PARTNER_PRODUCT_UNAVAILABLE_ERROR } from '@/features/negocios/services/business-creation.service'
+import { resolveDistributionLevel } from '@/features/negocios/lib/distribution-level'
+import {
+	checkBusinessRoleGate,
+	resolveBusinessScope,
+} from '@/features/negocios/services/business-access.service'
+import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
 
 import {
 	UserRole,
 	canEditContractWhenBusinessEmitido,
-	isReadOnlyRole,
 } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -36,6 +41,7 @@ import {
 } from '@/features/auth/lib/audit-logger'
 import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
 import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
+import { mfundPeriodicityError } from '@/features/negocios/lib/mfund-periodicity'
 import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expected-dates'
 import { AnnualPaymentStatus } from '@prisma/client'
 import { sincronizarYCalcularRegistroRezagado } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
@@ -82,25 +88,16 @@ export async function GET(
 			)
 		}
 
-		// Visibility scope for detail:
-		// ADMIN / ASISTENTE / ANALISTA → see any business, no idUser restriction
-		// All other roles → hierarchical scope: [self, ...subordinates]
-		const isAdmin =
-			currentUser.role?.code === UserRole.ADMIN ||
-			currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA ||
-			currentUser.role?.code === UserRole.ANALISTA_SOPORTE
-		let whereClause: { idBusiness: number; idUser?: { in: number[] } }
-
-		if (isAdmin) {
-			whereClause = { idBusiness: businessId }
-		} else {
-			const subordinates = await getSubordinateUserIds(prisma, currentUser.idUser)
-			const visibleUserIds = [currentUser.idUser, ...subordinates]
-			whereClause = { idBusiness: businessId, idUser: { in: visibleUserIds } }
+		// SEC-03: central access decision (global roles all, AGENTE self+subordinates,
+		// PARTNER own, unknown roles fail closed).
+		const denied = checkBusinessRoleGate(currentUser, 'read')
+		if (denied) {
+			return businessAccessDeniedResponse(denied.reason)
 		}
+		const scope = await resolveBusinessScope(prisma, currentUser)
 
 		const business = await prisma.business.findFirst({
-			where: whereClause,
+			where: { idBusiness: businessId, ...scope },
 			include: businessWithRelations,
 		})
 
@@ -197,26 +194,25 @@ export async function PUT(
 			)
 		}
 
-		if (isReadOnlyRole(currentUser.role?.code)) {
-			return NextResponse.json(
-				{ data: null, error: 'Sin permisos' },
-				{ status: 403 }
-			)
+		// SEC-03: read-only and unknown roles are refused before any lookup
+		const denied = checkBusinessRoleGate(currentUser, 'write')
+		if (denied) {
+			return businessAccessDeniedResponse(denied.reason)
 		}
 
 		// Verificar que el negocio existe y el usuario tiene acceso
-		const isAgent = currentUser.role?.code === UserRole.AGENTE
 		const isAdmin = currentUser.role?.code === UserRole.ADMIN
 		const isAsistente = currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
 		const isAnalista = currentUser.role?.code === UserRole.ANALISTA_SOPORTE
 		const isPrivileged = isAdmin || isAsistente || isAnalista
 
-		const whereClause = isAgent
-			? { idBusiness: businessId, idUser: currentUser.idUser }
-			: { idBusiness: businessId }
+		// Edits stay owner-only for AGENTE (existing rule); PARTNER is own-only by scope.
+		const writeScope = await resolveBusinessScope(prisma, currentUser, {
+			ownOnly: true,
+		})
 
 		const existingBusiness = await prisma.business.findFirst({
-			where: whereClause,
+			where: { idBusiness: businessId, ...writeScope },
 			include: {
 				productPercentageCommission: {
 					include: {
@@ -227,6 +223,7 @@ export async function PUT(
 										company: true,
 									},
 								},
+								level: { select: { code: true } },
 							},
 						},
 					},
@@ -273,6 +270,14 @@ export async function PUT(
 			)
 		}
 
+		// A PARTNER can never hand their business over to another owner
+		if (idUser !== undefined && currentUser.role?.code === UserRole.PARTNER) {
+			return NextResponse.json(
+				{ data: null, error: 'No tienes permisos para reasignar el negocio' },
+				{ status: 403 }
+			)
+		}
+
 		// Validar permisos para contrato si ya está emitido
 		if (
 			isNotDraft &&
@@ -285,11 +290,29 @@ export async function PUT(
 			)
 		}
 
+		const existingProductId =
+			existingBusiness.productPercentageCommission?.productConfiguration?.idProduct
+		const changesFundedStructure =
+			existingBusiness.status === BUSINESS_STATUS.FONDEADO &&
+			((term !== undefined && term !== existingBusiness.term) ||
+				(idBuyPeriodicity !== undefined &&
+					idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) ||
+				(idProduct !== undefined && idProduct !== existingProductId) ||
+				(numAportes !== undefined && numAportes !== (existingBusiness.numAportes ?? 0)))
+
 		// --- RESOLUCIÓN DE DATOS PARA ACTUALIZACIÓN ---
 		let finalIdPpc = existingBusiness.idProductPercentageCommission
 		let finalNumAportes = existingBusiness.numAportes ?? 0
 		let shouldSyncPayments = false
 		let resolvedPeriodicityName: string | null = existingBusiness.buyPeriodicity?.name ?? null
+		// PARTNER_EXTERNAL businesses have no distribution lines: their PPC is empty by
+		// design, so the category-line validation and commission recalculation are skipped.
+		// Resolved once per level: the current level, then the final one if the owner changes.
+		const currentLevel = resolveDistributionLevel(
+			existingBusiness.productPercentageCommission?.productConfiguration?.level?.code
+		)
+		let finalLevel = currentLevel
+		const isPartnerBusiness = currentLevel.isDistributionExcluded
 
 		// --- FLUJO ESPECIAL: CAMBIO DE ORIGEN ---
 		if (idClientOrigin !== undefined && isUpdatingSensitive === false && contract === undefined) {
@@ -300,10 +323,12 @@ export async function PUT(
 				)
 			}
 
-			const validation = await validateProductConfigurationExists(
-				existingBusiness.productPercentageCommission.productConfiguration.idLevel,
-				idProduct ?? existingBusiness.productPercentageCommission.productConfiguration.idProduct
-			)
+			const validation = isPartnerBusiness
+				? { valid: true as const }
+				: await validateProductConfigurationExists(
+						existingBusiness.productPercentageCommission.productConfiguration.idLevel,
+						idProduct ?? existingBusiness.productPercentageCommission.productConfiguration.idProduct
+					)
 
 			if (!validation.valid) {
 				return NextResponse.json(
@@ -323,7 +348,7 @@ export async function PUT(
 			if (idUser !== undefined && !isNotDraft) {
 				const newUser = await prisma.user.findUnique({
 					where: { idUser: targetIdUser },
-					select: { idLevel: true },
+					select: { idLevel: true, level: { select: { code: true } } },
 				})
 				if (!newUser?.idLevel) {
 					return NextResponse.json(
@@ -332,6 +357,7 @@ export async function PUT(
 					)
 				}
 				targetIdLevel = newUser.idLevel
+				finalLevel = resolveDistributionLevel(newUser.level?.code)
 			}
 
 			const ppcResult = await findProductPercentageCommission({
@@ -341,11 +367,61 @@ export async function PUT(
 
 			if ('error' in ppcResult || !ppcResult.data) {
 				return NextResponse.json(
-					{ data: null, error: 'No existe configuración de comisiones para la combinación seleccionada' },
+					{
+						data: null,
+						error: finalLevel.isDistributionExcluded
+							? PARTNER_PRODUCT_UNAVAILABLE_ERROR
+							: 'No existe configuración de comisiones para la combinación seleccionada',
+					},
 					{ status: 400 }
 				)
 			}
 			finalIdPpc = ppcResult.data.idProductPercentageCommission
+		}
+
+		const catalogProduct =
+			existingBusiness.productPercentageCommission?.productConfiguration?.product
+		let companyName = catalogProduct?.company?.name ?? ''
+		let productName = catalogProduct?.name ?? ''
+		const currentProductId =
+			existingBusiness.productPercentageCommission?.productConfiguration?.idProduct
+
+		if (idProduct !== undefined && idProduct !== currentProductId) {
+			const prod = await prisma.product.findUnique({
+				where: { idProduct },
+				include: { company: true },
+			})
+			if (!prod) {
+				return NextResponse.json(
+					{ data: null, error: 'Producto no encontrado' },
+					{ status: 400 }
+				)
+			}
+			companyName = prod.company.name
+			productName = prod.name
+		}
+
+		if (idBuyPeriodicity !== undefined && idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) {
+			const bp = await prisma.buyPeriodicity.findUnique({ where: { idBuyPeriodicity } })
+			if (!bp) {
+				return NextResponse.json(
+					{ data: null, error: 'Periodicidad no encontrada' },
+					{ status: 400 }
+				)
+			}
+			resolvedPeriodicityName = bp.name
+		}
+
+		const periodicityRejection = mfundPeriodicityError({
+			companyName,
+			productName,
+			periodicityName: resolvedPeriodicityName,
+		})
+		if (periodicityRejection) {
+			return NextResponse.json(
+				{ data: null, error: periodicityRejection },
+				{ status: 400 }
+			)
 		}
 
 		// 2. Calcular numAportes si cambia plazo o periodicidad o producto (por la compañía) o si se envía manualmente
@@ -354,23 +430,6 @@ export async function PUT(
 				finalNumAportes = numAportes
 			} else {
 				const targetTerm = term ?? existingBusiness.term
-
-				if (idBuyPeriodicity !== undefined && idBuyPeriodicity !== existingBusiness.idBuyPeriodicity) {
-					const bp = await prisma.buyPeriodicity.findUnique({ where: { idBuyPeriodicity } })
-					resolvedPeriodicityName = bp?.name ?? null
-				}
-
-				let companyName = existingBusiness.productPercentageCommission.productConfiguration.product.company.name
-				let productName = existingBusiness.productPercentageCommission.productConfiguration.product.name
-
-				if (idProduct !== undefined && idProduct !== existingBusiness.productPercentageCommission.productConfiguration.idProduct) {
-					const prod = await prisma.product.findUnique({
-						where: { idProduct },
-						include: { company: true },
-					})
-					companyName = prod?.company.name ?? ''
-					productName = prod?.name ?? ''
-				}
 
 				finalNumAportes = calculateNumAportes({
 					termYears: targetTerm ?? null,
@@ -425,6 +484,10 @@ export async function PUT(
 
 		// --- TRANSACCIÓN: solo la actualización del negocio y sincronización estructural de aportes ---
 		const updatedBusiness = await prisma.$transaction(async (tx) => {
+			if (changesFundedStructure) {
+				await assertFundedStructureUnlocked(tx, businessId)
+			}
+
 			const updateData: Prisma.BusinessUpdateInput = {
 				contract: contract !== undefined ? (contract || null) : undefined,
 				clientOrigin: idClientOrigin !== undefined ? { connect: { idClientOrigin } } : undefined,
@@ -489,7 +552,11 @@ export async function PUT(
 		}
 
 		// A. Cambio de origen o PPC -> Recalcular comisiones
-		if (idClientOrigin !== undefined || finalIdPpc !== existingBusiness.idProductPercentageCommission) {
+		// Skipped for PARTNER_EXTERNAL: nothing to redistribute; the origin is already persisted above.
+		if (
+			!finalLevel.isDistributionExcluded &&
+			(idClientOrigin !== undefined || finalIdPpc !== existingBusiness.idProductPercentageCommission)
+		) {
 			try {
 				await recalcularComisionesPorCambioOrigen(
 					businessId,
@@ -503,7 +570,12 @@ export async function PUT(
 
 		// B. Sincronización con Pre-liquidación (Rezagados)
 		if (idSettlementCommission && contract) {
-			await sincronizarYCalcularRegistroRezagado(idSettlementCommission, contract)
+			await sincronizarYCalcularRegistroRezagado(idSettlementCommission, contract, {
+				userId: currentUser.idUser,
+				email: session.user.email,
+				ipAddress: getClientIp(new Headers(request.headers)),
+				userAgent: getUserAgent(new Headers(request.headers)),
+			})
 		}
 
 		// C. Auditoría
@@ -526,6 +598,12 @@ export async function PUT(
 		const entity = prismaBusinessToEntity(updatedBusiness)
 		return NextResponse.json({ data: entity })
 	} catch (error) {
+		if (error instanceof FundedPaymentsConflictError) {
+			return NextResponse.json(
+				{ data: null, error: FUNDED_STRUCTURE_CONFLICT_MESSAGE },
+				{ status: 409 }
+			)
+		}
 		console.error('Error al actualizar negocio:', error)
 		return NextResponse.json(
 			{ data: null, error: 'Error interno del servidor' },
@@ -539,6 +617,51 @@ export async function PUT(
 // ---------------------------------------------------------------------------
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
+const FINANCIAL_PAYMENT_STATUSES = [
+	AnnualPaymentStatus.FONDEADO,
+	AnnualPaymentStatus.EN_CARTERA,
+	AnnualPaymentStatus.PAGO_ANTICIPADO,
+	AnnualPaymentStatus.CARTERA_PAGADO,
+] as const
+
+const FUNDED_STRUCTURE_CONFLICT_MESSAGE =
+	'No se puede cambiar el plazo, la periodicidad, el producto o el número de aportes de un negocio fondeado que ya tiene aportes con estado financiero.'
+
+class FundedPaymentsConflictError extends Error {
+	constructor() {
+		super(FUNDED_STRUCTURE_CONFLICT_MESSAGE)
+		this.name = 'FundedPaymentsConflictError'
+	}
+}
+
+/**
+ * Locks the business and its payments, then rejects a structural edit when a
+ * payment already has a financial status. The lock is held until the
+ * transaction ends, so a concurrent funding transition waits instead of
+ * landing between the check and `payment.deleteMany`.
+ */
+async function assertFundedStructureUnlocked(
+	tx: PrismaTx,
+	businessId: number
+): Promise<void> {
+	await tx.$queryRaw`
+		SELECT "id_business" FROM "business" WHERE "id_business" = ${businessId} FOR UPDATE
+	`
+	await tx.$queryRaw`
+		SELECT "id_annual_payment" FROM "payments" WHERE "id_business" = ${businessId} FOR UPDATE
+	`
+
+	const financialPayments = await tx.payment.count({
+		where: {
+			idBusiness: businessId,
+			status: { in: [...FINANCIAL_PAYMENT_STATUSES] },
+		},
+	})
+	if (financialPayments > 0) {
+		throw new FundedPaymentsConflictError()
+	}
+}
 
 interface SyncPaymentsStructureParams {
 	businessId: number

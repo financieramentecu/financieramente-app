@@ -94,6 +94,8 @@ export function createMockBusiness(
 		currency: { id: 1, name: 'COP' },
 		periodicity: { id: 1, name: 'Mensual' },
 		clientOrigin: { id: 1, name: 'Referido' },
+		clientIsPolicyholder: true,
+		policyholder: null,
 		...rest,
 	}
 }
@@ -183,6 +185,7 @@ export function createMockTableBusiness(
 	return {
 		id: '2',
 		identification: '1234567890',
+		samePolicyholder: 'Sí',
 		clientName: 'María García López',
 		contract: 'PN0005678',
 		user: {

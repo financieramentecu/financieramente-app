@@ -86,53 +86,62 @@ export async function previewMissingBaseConfigurations(
 export async function applyMissingBaseConfigurations(
 	plan: MissingBaseConfigurationPlan
 ): Promise<BaseConfigurationApplyResult> {
-	return prisma.$transaction(async (tx) => {
-		let created = 0
-		let skipped = 0
+	return prisma.$transaction(
+		async (tx) => {
+			let created = 0
+			let skipped = 0
 
-		for (const insert of plan.inserts) {
-			const existingPair = await tx.productConfiguration.findUnique({
-				where: {
-					idProduct_idLevel: {
+			for (const insert of plan.inserts) {
+				const existingPair = await tx.productConfiguration.findUnique({
+					where: {
+						idProduct_idLevel: {
+							idProduct: insert.idProduct,
+							idLevel: insert.idLevel,
+						},
+					},
+					select: { id: true },
+				})
+				if (existingPair) {
+					skipped += 1
+					continue
+				}
+
+				const existingCode = await tx.productConfiguration.findUnique({
+					where: { code: insert.code },
+					select: { id: true },
+				})
+				if (existingCode) {
+					skipped += 1
+					continue
+				}
+
+				try {
+					await createStructuralProductConfiguration(tx, {
 						idProduct: insert.idProduct,
 						idLevel: insert.idLevel,
-					},
-				},
-				select: { id: true },
-			})
-			if (existingPair) {
-				skipped += 1
-				continue
-			}
-
-			const existingCode = await tx.productConfiguration.findUnique({
-				where: { code: insert.code },
-				select: { id: true },
-			})
-			if (existingCode) {
-				skipped += 1
-				continue
-			}
-
-			try {
-				await createStructuralProductConfiguration(tx, {
-					idProduct: insert.idProduct,
-					idLevel: insert.idLevel,
-					levelCode: insert.levelCode,
-					code: insert.code,
-					active: true,
-				})
-				created += 1
-			} catch (error) {
-				if (!isUniqueConstraintError(error)) {
-					throw error
+						levelCode: insert.levelCode,
+						code: insert.code,
+						active: true,
+					})
+					created += 1
+				} catch (error) {
+					if (!isUniqueConstraintError(error)) {
+						throw error
+					}
+					skipped += 1
 				}
-				skipped += 1
 			}
-		}
 
-		return { created, skipped }
-	})
+			return { created, skipped }
+		},
+		// Each insert does ~10 sequential round-trips (duplicate checks +
+		// structural config + PPC + default distribution lines + refetch);
+		// over a remote DB (Neon) and dozens of active products, the default
+		// 5s interactive-transaction timeout is nowhere near enough. maxWait is
+		// the time allowed to open the transaction (default 2s), which a slow or
+		// tunnelled connection can also exceed.
+		{ maxWait: 30_000, timeout: 120_000 }
+	)
 }
 
 export interface MissingDistributionTarget {

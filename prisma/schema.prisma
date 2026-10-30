@@ -162,8 +162,8 @@ model Currency {
 /// El cliente se relaciona por `id_document_type` (COM-27). Desactivar
 /// (`status = false`) oculta el tipo en altas nuevas y conserva la FK.
 /// `user.type_identity` sigue guardando solo el código: los usuarios de
-/// plataforma quedan fuera de esta relación. El tomador (COM-28) aún no
-/// tiene tabla propia y deberá usar esta misma FK cuando exista.
+/// plataforma quedan fuera de esta relación. El tomador (COM-28) usa la
+/// misma FK desde `policyholder`, sin mezclarse con `client`.
 model DocumentType {
   idDocumentType Int              @id @default(autoincrement()) @map("id_document_type")
   name           String           @unique @db.VarChar(80)
@@ -175,6 +175,7 @@ model DocumentType {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
   clients        Client[]
+  policyholders  Policyholder[]
 
   @@index([status])
   @@map("document_type")
@@ -309,6 +310,8 @@ model User {
   password                            String?                 @db.VarChar(255)
   ssoOnly                             Boolean                 @default(true) @map("sso_only")
   idCategory                          Int?                    @map("id_category")
+  activatedAt                         DateTime?               @map("activated_at")
+  accountTokens                       AccountToken[]
   auditLogs                           AuditLog[]
   businesses                          Business[]
   businessSupports                    BusinessSupport[]
@@ -336,6 +339,22 @@ model User {
   @@map("user")
 }
 
+model AccountToken {
+  id        Int              @id @default(autoincrement())
+  idUser    Int              @map("id_user")
+  type      AccountTokenType
+  tokenHash String           @unique @map("token_hash") @db.VarChar(64)
+  expiresAt DateTime         @map("expires_at")
+  usedAt    DateTime?        @map("used_at")
+  revokedAt DateTime?        @map("revoked_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [idUser], references: [idUser])
+
+  @@index([idUser, type])
+  @@map("account_token")
+}
+
 model Client {
   idClient       Int        @id @default(autoincrement()) @map("id_client")
   name           String       @db.VarChar(200)
@@ -360,6 +379,29 @@ model Client {
   @@index([identityNumber])
   @@index([idDocumentType])
   @@map("client")
+}
+
+/// Tomador de la póliza. Catálogo independiente de `client`: una persona
+/// puede ser tomador y, en otro negocio, cliente, sin confundir los roles.
+model Policyholder {
+  idPolicyholder Int          @id @default(autoincrement()) @map("id_policyholder")
+  name           String       @db.VarChar(200)
+  lastName       String       @map("last_name") @db.VarChar(200)
+  typeIdentity   String       @map("type_identity") @db.VarChar(10)
+  idDocumentType Int          @map("id_document_type")
+  identityNumber String       @map("identity_number") @db.VarChar(20)
+  email          String       @db.VarChar(150)
+  phone          String       @db.VarChar(30)
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  documentType   DocumentType @relation(fields: [idDocumentType], references: [idDocumentType], onDelete: Restrict)
+  businesses     Business[]
+
+  @@unique([typeIdentity, identityNumber])
+  @@index([identityNumber])
+  @@index([idDocumentType])
+  @@map("policyholder")
 }
 
 model FileImport {
@@ -401,6 +443,9 @@ model Business {
   idBuyPeriodicity              Int?                        @map("id_buy_periodicity")
   idUser                        Int                         @map("id_user")
   idClient                      Int                         @map("id_client")
+  /// true: el cliente es el mismo tomador y no hay fila en policyholder.
+  clientIsPolicyholder          Boolean                     @default(true) @map("client_is_policyholder")
+  idPolicyholder                Int?                        @map("id_policyholder")
   idProductPercentageCommission Int                         @map("id_product_percentage_commission")
   idCurrency                    Int                         @map("id_currency")
   status                        String?                     @db.VarChar(20)
@@ -416,6 +461,7 @@ model Business {
   isActive                      Boolean                     @default(true) @map("is_active")
   buyPeriodicity                BuyPeriodicity?             @relation(fields: [idBuyPeriodicity], references: [idBuyPeriodicity])
   client                        Client                      @relation(fields: [idClient], references: [idClient])
+  policyholder                  Policyholder?               @relation(fields: [idPolicyholder], references: [idPolicyholder], onDelete: Restrict)
   clientOrigin                  ClientOrigin                @relation(fields: [idClientOrigin], references: [idClientOrigin])
   currency                      Currency                    @relation(fields: [idCurrency], references: [idCurrency])
   productPercentageCommission   ProductPercentageCommission @relation(fields: [idProductPercentageCommission], references: [idProductPercentageCommission])
@@ -429,6 +475,7 @@ model Business {
   @@index([idUser])
   @@index([contract])
   @@index([idClientOrigin])
+  @@index([idPolicyholder])
   @@map("business")
 }
 
@@ -631,6 +678,11 @@ model BusinessSupport {
   @@index([businessId, status])
   @@index([uploadedBy])
   @@map("business_support")
+}
+
+enum AccountTokenType {
+  ACTIVATION
+  RESET
 }
 
 enum BeneficiaryMode {

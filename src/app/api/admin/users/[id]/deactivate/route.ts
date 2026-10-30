@@ -3,6 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/auth/require-role'
 import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
+import {
+	PARTNER_MANAGED_ERROR,
+	isPartnerAccount,
+} from '@/features/admin/users/lib/partner-guard'
 
 /**
  * POST /api/admin/users/[id]/deactivate
@@ -32,13 +36,21 @@ export async function POST(
 		// Obtener usuario
 		const user = await prisma.user.findUnique({
 			where: { idUser: userId },
-			include: { role: true },
+			include: { role: true, level: { select: { code: true } } },
 		})
 
 		if (!user) {
 			return NextResponse.json(
 				{ success: false, error: 'Usuario no encontrado' },
 				{ status: 404 }
+			)
+		}
+
+		// Partners are deactivated from the Partners module (revokes tokens).
+		if (isPartnerAccount(user)) {
+			return NextResponse.json(
+				{ success: false, error: PARTNER_MANAGED_ERROR },
+				{ status: 403 }
 			)
 		}
 

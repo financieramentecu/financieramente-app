@@ -63,6 +63,8 @@ function createBusinessEntity(status: string): BusinessEntity {
 			id: 5,
 			name: 'Referido',
 		},
+		clientIsPolicyholder: true,
+		policyholder: null,
 	}
 }
 
@@ -99,6 +101,25 @@ describe('mapBusinessToTableRow', () => {
 
 		expect(row.status).toBe('Liquidado')
 		expect(row.statusCode).toBe(BUSINESS_STATUS.LIQUIDADO)
+		expect(row.samePolicyholder).toBe('Sí')
+	})
+
+	it('marks a distinct policyholder as No', () => {
+		const row = mapBusinessToTableRow({
+			...createBusinessEntity(BUSINESS_STATUS.EMITIDO),
+			clientIsPolicyholder: false,
+			policyholder: {
+				id: 9,
+				name: 'Ana',
+				lastName: 'Ruiz',
+				typeIdentity: 'CC',
+				identityNumber: '999',
+				email: 'ana@example.com',
+				phone: '3000000000',
+			},
+		})
+
+		expect(row.samePolicyholder).toBe('No')
 	})
 
 	it('does not map unknown statuses to Cancelado by default', () => {

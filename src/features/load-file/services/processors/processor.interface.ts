@@ -1,7 +1,11 @@
 import type { ProcessedRecord } from '../../types/load-file.types'
 
 export interface ProcessorResult {
-	status: 'SYNCHRONIZED' | 'LAG' | 'ERROR'
+	/**
+	 * `EXCLUDED`: the business belongs to a PARTNER_EXTERNAL configuration. The row is
+	 * stored for traceability but never takes part in pre-liquidation (PL-01).
+	 */
+	status: 'SYNCHRONIZED' | 'LAG' | 'ERROR' | 'EXCLUDED'
 	isLag: boolean
 	idBusiness: number | null
 	recoveredLag: boolean

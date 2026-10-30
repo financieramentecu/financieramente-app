@@ -10,13 +10,15 @@ import {
 import { createClient } from '@/features/negocios/actions/create-client'
 import { updateClient } from '@/features/negocios/actions/update-client'
 import { createBusiness } from '@/features/negocios/actions/create-business'
+import { syncBusinessPolicyholder } from '@/features/negocios/actions/sync-business-policyholder'
+import { checkBusinessCreation } from '@/features/negocios/actions/check-business-creation'
 import { resolveExistingClient } from '@/features/negocios/actions/resolve-existing-client'
 import { useSearchClient } from '@/features/negocios/hooks/use-search-client'
 import { useSearchAgents } from '@/features/negocios/hooks/use-search-agents'
 import { useProductFilter } from '@/features/negocios/hooks/use-product-filter'
 import { useAgentPermissions } from '@/features/negocios/hooks/use-agent-permissions'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
-import { UserRole } from '@/features/auth/lib/roles'
+import { BUSINESS_OWNER_ROLES, UserRole } from '@/features/auth/lib/roles'
 import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-permissions'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
@@ -33,6 +35,17 @@ export type IdentityConflict = {
 	typedIdentityNumber: string
 	error?: string
 } | null
+
+function policyholderPayload(data: BusinessFormData) {
+	return {
+		typeIdentity: data.policyholderTypeIdentity ?? '',
+		identityNumber: data.policyholderIdentityNumber ?? '',
+		email: data.policyholderEmail ?? '',
+		name: data.policyholderName ?? '',
+		lastName: data.policyholderLastNames ?? '',
+		phone: data.policyholderPhone ?? '',
+	}
+}
 
 /**
  * Hook principal que coordina toda la lógica del formulario de negocios
@@ -89,6 +102,13 @@ export function useBusinessForm(props: BusinessFormProps) {
 			agent: defaultValues?.agent || '',
 			contract: defaultValues?.contract ?? '',
 			numAportes: defaultValues?.numAportes ?? undefined,
+			clientIsPolicyholder: defaultValues?.clientIsPolicyholder ?? true,
+			policyholderTypeIdentity: defaultValues?.policyholderTypeIdentity ?? '',
+			policyholderIdentityNumber: defaultValues?.policyholderIdentityNumber ?? '',
+			policyholderEmail: defaultValues?.policyholderEmail ?? '',
+			policyholderName: defaultValues?.policyholderName ?? '',
+			policyholderLastNames: defaultValues?.policyholderLastNames ?? '',
+			policyholderPhone: defaultValues?.policyholderPhone ?? '',
 		},
 	})
 
@@ -166,7 +186,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 			if (!canSearchAgents) {
 				return []
 			}
-			const results = await handleSearchAgents(query, UserRole.AGENTE)
+			const results = await handleSearchAgents(query, BUSINESS_OWNER_ROLES)
 			setAgentsList(results)
 			return results
 		},
@@ -233,6 +253,10 @@ export function useBusinessForm(props: BusinessFormProps) {
 				idProduct: parseInt(data.producto),
 				idCurrency: parseInt(data.currency),
 				idClientOrigin: parseInt(data.clientOrigin),
+				clientIsPolicyholder: data.clientIsPolicyholder !== false,
+				...(data.clientIsPolicyholder === false
+					? { policyholder: policyholderPayload(data) }
+					: {}),
 				...(leadId ? { idLead: leadId } : {}),
 			})
 
@@ -335,6 +359,41 @@ export function useBusinessForm(props: BusinessFormProps) {
 					}
 				}
 
+				if (data.clientIsPolicyholder === false && documentTypeOptions.length > 0) {
+					const selectedType = documentTypeOptions.find(
+						(option) => option.code === data.policyholderTypeIdentity
+					)
+					const keepsStoredType =
+						isEditMode &&
+						Boolean(defaultValues?.policyholderTypeIdentity) &&
+						defaultValues?.policyholderTypeIdentity ===
+							data.policyholderTypeIdentity
+					if (!keepsStoredType && (!selectedType || !selectedType.status)) {
+						form.setError('policyholderTypeIdentity', {
+							message: data.policyholderTypeIdentity
+								? 'El tipo de documento no está disponible para nuevos registros'
+								: 'El tipo de documento del tomador es obligatorio',
+						})
+						toast.error('Tipo de documento del tomador no disponible')
+						return
+					}
+					if (selectedType) {
+						const identityError = validateIdentityAgainstDocumentType(
+							data.policyholderIdentityNumber ?? '',
+							selectedType
+						)
+						if (identityError) {
+							form.setError('policyholderIdentityNumber', {
+								message: identityError,
+							})
+							toast.error('Documento del tomador inválido', {
+								description: identityError,
+							})
+							return
+						}
+					}
+				}
+
 				// En modo edición, enviar todos los campos que hayan cambiado (o todos los disponibles)
 				if (isEditMode && businessId) {
 					if (canEditClientInfo && !clientId) {
@@ -361,6 +420,22 @@ export function useBusinessForm(props: BusinessFormProps) {
 						if ('error' in updateResult && updateResult.error) {
 							toast.error('Error al actualizar cliente', {
 								description: updateResult.error,
+							})
+							return
+						}
+					}
+
+					if (canEditClientInfo) {
+						const policyholderResult = await syncBusinessPolicyholder({
+							idBusiness: businessId,
+							clientIsPolicyholder: data.clientIsPolicyholder !== false,
+							...(data.clientIsPolicyholder === false
+								? { policyholder: policyholderPayload(data) }
+								: {}),
+						})
+						if ('error' in policyholderResult && policyholderResult.error) {
+							toast.error('Error al guardar el tomador', {
+								description: policyholderResult.error,
 							})
 							return
 						}
@@ -399,6 +474,19 @@ export function useBusinessForm(props: BusinessFormProps) {
 				}
 
 				// --- Modo creación ---
+				// NEG-02: validate owner + commission BEFORE any client is created or
+				// updated, so a product the owner cannot sell leaves nothing behind.
+				const preflight = await checkBusinessCreation({
+					idUser: parseInt(data.agent),
+					idProduct: parseInt(data.producto),
+				})
+				if ('error' in preflight) {
+					toast.error('Error al crear negocio', {
+						description: preflight.error,
+					})
+					return
+				}
+
 				let clientToUse = selectedClient
 				let resolvedClientId = selectedClient?.idClient ?? null
 

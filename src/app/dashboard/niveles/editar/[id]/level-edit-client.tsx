@@ -6,6 +6,7 @@ import { LevelForm } from '@/features/levels/components/level-form'
 import { EditLevelFormSkeleton } from '@/features/levels/components/level-form-skeleton'
 import { useLevel } from '@/features/levels/hooks/use-level'
 import { useLevels } from '@/features/levels/hooks/use-levels'
+import { buildNextLevelOptions } from '@/features/levels/lib/next-level-options'
 import { useLevelMutations } from '@/features/levels/hooks/use-level-mutations'
 import type { UpdateLevelFormData } from '@/features/levels/lib/level-schemas'
 import { toast } from 'sonner'
@@ -24,10 +25,7 @@ export function LevelEditClient({ id }: LevelEditClientProps) {
 	const { state: levelsState } = useLevels({ pageSize: 100 })
 	const allLevels =
 		levelsState.status === 'success'
-			? levelsState.data.levels.map((l) => ({
-					idLevel: l.idLevel,
-					name: l.name,
-				}))
+			? buildNextLevelOptions(levelsState.data.levels)
 			: []
 
 	const handleSubmit = useCallback(

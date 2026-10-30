@@ -14,7 +14,79 @@ import {
 	RolePermissions,
 } from '@/features/auth/lib/permissions'
 import { UserRole } from '@/features/auth/lib/roles'
+import { checkCredentialsAttempt } from '@/features/auth/lib/credentials-rate-limiter'
+import { CredentialsRateLimitedError } from '@/features/auth/lib/credentials-errors'
+import { getTrustedClientIp } from '@/features/auth/lib/trusted-client-ip'
 import { createUserAutomatically } from '@/features/auth/lib/user-creation'
+import { resolveSessionRevalidation } from '@/features/auth/lib/session-revalidation'
+import { getSessionUserState } from '@/features/auth/services/session-user.service'
+import type { JWT } from 'next-auth/jwt'
+
+/**
+ * Restores the original ADMIN identity on the token and clears the
+ * impersonation ("Ver como") fields. No-op when not impersonating.
+ */
+function restoreOriginalAdmin(token: JWT): void {
+	if (!token.originalUserId) return
+
+	token.userId = token.originalUserId
+	token.role = token.originalRole
+	token.email = token.originalEmail || undefined
+	token.name = token.originalName || null
+	if (token.role && typeof token.role === 'string') {
+		token.permissions = getRolePermissions(token.role as UserRole)
+	}
+
+	delete token.originalUserId
+	delete token.originalRole
+	delete token.originalEmail
+	delete token.originalName
+}
+
+/**
+ * Per-request revalidation (SEC-01, AA-09): re-reads `active` and the role
+ * from the database so deactivation, role changes and a revoked impersonating
+ * admin take effect on the next request. Returns null to end the session.
+ * `activatedAt` is intentionally not checked here (login gate only).
+ */
+async function revalidateSessionToken(token: JWT): Promise<JWT | null> {
+	if (typeof token.userId !== 'number') return token
+
+	const isImpersonating = !!token.originalUserId
+
+	try {
+		const [currentUser, originalUser] = await Promise.all([
+			getSessionUserState(token.userId),
+			isImpersonating
+				? getSessionUserState(token.originalUserId as number)
+				: Promise.resolve(null),
+		])
+
+		const result = resolveSessionRevalidation({
+			isImpersonating,
+			currentUser,
+			originalUser,
+		})
+
+		if (result.action === 'end') return null
+
+		if (result.action === 'restore_admin') {
+			restoreOriginalAdmin(token)
+			return token
+		}
+
+		if (token.role !== result.roleCode) {
+			token.role = result.roleCode as UserRole
+			token.permissions = getRolePermissions(result.roleCode as UserRole)
+		}
+		return token
+	} catch (error) {
+		// A transient database failure must not log everyone out: every data
+		// path needs the database and re-runs this check once it is reachable.
+		console.error('Session revalidation failed:', error)
+		return token
+	}
+}
 
 /**
  * Configuración de autenticación NextAuth
@@ -47,13 +119,22 @@ export const authConfig: NextAuthConfig = {
 				email: { label: 'Email', type: 'email' },
 				password: { label: 'Password', type: 'password' },
 			},
-			async authorize(credentials) {
+			async authorize(credentials, request) {
 				if (!credentials?.email || !credentials?.password) {
 					return null
 				}
 
 				const email = credentials.email as string
 				const password = credentials.password as string
+
+				// Brute-force guard (F26): keyed by trusted IP and email hash only, so
+				// the throttled answer is identical for existing and unknown accounts.
+				// Checked BEFORE any database or bcrypt work.
+				const attempt = checkCredentialsAttempt({
+					email,
+					clientIp: getTrustedClientIp(request.headers),
+				})
+				if (!attempt.allowed) throw new CredentialsRateLimitedError()
 
 				// Validar credenciales (solo ADMIN activos con ssoOnly = false)
 				const validation = await validateUserCredentials(email, password)
@@ -86,7 +167,16 @@ export const authConfig: NextAuthConfig = {
 		}),
 	],
 	callbacks: {
-		async signIn({ user }) {
+		async signIn({ user, account }) {
+			// Credentials already fully vetted the user in `authorize()` (active,
+			// role in ADMIN/AGENTE/PARTNER, activated, ssoOnly=false, correct
+			// password). PARTNER accounts use an external, non-corporate email by
+			// design, so the corporate-domain gate below — meant for Google OAuth
+			// only — must never run for this provider.
+			if (account?.provider === 'credentials') {
+				return true
+			}
+
 			// Validación estricta de dominio corporativo para Google OAuth
 			if (!user.email || typeof user.email !== 'string') {
 				await logAuditEvent({
@@ -247,21 +337,7 @@ export const authConfig: NextAuthConfig = {
 				if (isAdmin) {
 					if (session.impersonateUserId === 'STOP') {
 						// Restaurar la sesión del ADMIN
-						if (token.originalUserId) {
-							token.userId = token.originalUserId
-							token.role = token.originalRole
-							token.email = token.originalEmail || undefined
-							token.name = token.originalName || null
-							if (token.role && typeof token.role === 'string') {
-								token.permissions = getRolePermissions(token.role as UserRole)
-							}
-							
-							// Limpiar datos originales
-							delete token.originalUserId
-							delete token.originalRole
-							delete token.originalEmail
-							delete token.originalName
-						}
+						restoreOriginalAdmin(token)
 					} else {
 						// Iniciar impersonation
 						const targetId = parseInt(session.impersonateUserId)
@@ -311,7 +387,7 @@ export const authConfig: NextAuthConfig = {
 				}
 			}
 
-			return token
+			return revalidateSessionToken(token)
 		},
 		async session({ session, token }) {
 			// Agregar información del token a la sesión

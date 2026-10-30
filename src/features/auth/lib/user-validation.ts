@@ -81,6 +81,21 @@ export async function validateUserByEmail(
 			}
 		}
 
+		// Cuenta pendiente de activación (AA-01): no puede iniciar sesión
+		if (user.activatedAt === null) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: user.role.code as UserRole,
+				},
+				error: 'USER_INACTIVE',
+			}
+		}
+
 		return {
 			isValid: true,
 			user: {
@@ -113,7 +128,8 @@ export async function getUserRoleByEmail(
 
 /**
  * Valida credenciales de usuario (email + contraseña)
- * Solo permite login con contraseña a usuarios ADMIN activos con ssoOnly = false
+ * Permite login con contraseña a usuarios ADMIN, AGENTE y PARTNER activos,
+ * activados (activatedAt) y con ssoOnly = false
  */
 export async function validateUserCredentials(
 	email: string,
@@ -165,8 +181,12 @@ export async function validateUserCredentials(
 			}
 		}
 
-		// RESTRICCIÓN: Solo usuarios ADMIN y AGENTE pueden usar email/contraseña
-		if (user.role.code !== UserRole.ADMIN && user.role.code !== UserRole.AGENTE) {
+		// RESTRICCIÓN: Solo ADMIN, AGENTE y PARTNER pueden usar email/contraseña
+		if (
+			user.role.code !== UserRole.ADMIN &&
+			user.role.code !== UserRole.AGENTE &&
+			user.role.code !== UserRole.PARTNER
+		) {
 			return {
 				isValid: false,
 				user: {
@@ -177,6 +197,21 @@ export async function validateUserCredentials(
 					role: user.role.code as UserRole,
 				},
 				error: 'USER_INACTIVE', // Usar este error para mantener consistencia
+			}
+		}
+
+		// Cuenta pendiente de activación (AA-01): no puede iniciar sesión
+		if (user.activatedAt === null) {
+			return {
+				isValid: false,
+				user: {
+					id: user.idUser,
+					email: user.email || '',
+					name: user.name,
+					active: user.active,
+					role: user.role.code as UserRole,
+				},
+				error: 'USER_INACTIVE',
 			}
 		}
 

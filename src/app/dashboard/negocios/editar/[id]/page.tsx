@@ -84,7 +84,7 @@ export default async function EditarNegocioPage({ params }: PageProps) {
 	}
 
 	// Obtener negocio con relaciones a través del servicio
-	const prismaBusiness = await getBusinessById(businessId, currentUser)
+	const prismaBusiness = await getBusinessById(businessId, currentUser, 'write')
 
 	if (!prismaBusiness) {
 		console.log(
@@ -95,9 +95,22 @@ export default async function EditarNegocioPage({ params }: PageProps) {
 
 	// Transformar a entidad de dominio
 	const business = prismaBusinessToEntity(prismaBusiness)
-	const documentTypeOptions = await getDocumentTypesCached(
+	const clientDocumentTypes = await getDocumentTypesCached(
 		business.client.typeIdentity
 	)
+	const policyholderCode = business.policyholder?.typeIdentity
+	const policyholderDocumentTypes = policyholderCode
+		? await getDocumentTypesCached(policyholderCode)
+		: []
+	const seenCodes = new Set<string>()
+	const documentTypeOptions = [
+		...clientDocumentTypes,
+		...policyholderDocumentTypes,
+	].filter((option) => {
+		if (seenCodes.has(option.code)) return false
+		seenCodes.add(option.code)
+		return true
+	})
 
 	return (
 		<DashboardLayout currentPage="Editar Negocio">

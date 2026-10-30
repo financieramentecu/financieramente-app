@@ -1,14 +1,38 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { findProductPercentageCommission } from '@/features/negocios/actions/find-product-percentage-commission'
+import { requireActionPermission } from '@/lib/auth/require-action-permission'
 import { getPpcForNewBusinesses } from '@/features/negocios/services/product-configuration.service'
 
 vi.mock('@/features/negocios/services/product-configuration.service', () => ({
 	getPpcForNewBusinesses: vi.fn(),
 }))
 
+vi.mock('@/lib/auth/require-action-permission', () => ({
+	requireActionPermission: vi.fn(),
+}))
+
 describe('findProductPercentageCommission', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.mocked(requireActionPermission).mockResolvedValue({
+			ok: true,
+			session: { user: { role: 'AGENTE' } },
+		} as never)
+	})
+
+	it('refuses an anonymous caller without querying the service (SEC-03)', async () => {
+		vi.mocked(requireActionPermission).mockResolvedValue({
+			ok: false,
+			error: 'No autorizado',
+		})
+
+		const result = await findProductPercentageCommission({
+			idLevel: 1,
+			idProduct: 3,
+		})
+
+		expect(result).toEqual({ data: null, error: 'No autorizado' })
+		expect(getPpcForNewBusinesses).not.toHaveBeenCalled()
 	})
 
 	it('returns ppc data when service returns config with ppc', async () => {

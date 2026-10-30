@@ -13,7 +13,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
       # - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro  # Commented out - file doesn't exist yet
     ports:
-      - "5432:5432"
+      # Loopback only: reach it through an SSH tunnel, never from the network.
+      - "127.0.0.1:5432:5432"
     # Configure connection limits to prevent connection exhaustion
     command: >
       postgres
@@ -72,7 +73,15 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      # Loopback only: nginx reaches the app over the Docker network (nextjs:3000).
+      - "127.0.0.1:3000:3000"
+    # Container hardening: the app needs no extra privileges, and a PID cap
+    # limits runaway child processes (e.g. a dropped miner spawning workers).
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
     deploy:
       resources:
         limits:
