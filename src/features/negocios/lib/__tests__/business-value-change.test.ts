@@ -15,6 +15,14 @@ describe('businessValuesDiffer', () => {
 	it('detects a real change in cents', () => {
 		expect(businessValuesDiffer(10000, 10000.01)).toBe(true)
 	})
+
+	it('rounds half-up like PostgreSQL numeric(15,2) for 1.005', () => {
+		// Float `1.005 * 100` is 100.499...; string decimal rounding must yield 1.01.
+		expect(businessValuesDiffer(1.0, 1.005)).toBe(true)
+		expect(businessValuesDiffer(1.0, '1.005')).toBe(true)
+		expect(businessValuesDiffer(1.01, 1.005)).toBe(false)
+		expect(businessValuesDiffer(1.0, 1.004)).toBe(false)
+	})
 })
 
 describe('shouldConfirmSupportAnalystBusinessValueChange', () => {
@@ -33,6 +41,13 @@ describe('shouldConfirmSupportAnalystBusinessValueChange', () => {
 				nextValue: 1000,
 			})
 		).toBe(false)
+		expect(
+			shouldConfirmSupportAnalystBusinessValueChange({
+				roleCode: UserRole.ANALISTA_SOPORTE,
+				previousValue: 1.0,
+				nextValue: 1.005,
+			})
+		).toBe(true)
 	})
 
 	it('does not ask other roles', () => {
@@ -67,5 +82,20 @@ describe('buildBusinessValueChangeAudit', () => {
 			newValue: '1500.50',
 			changedAt: '2026-10-29T15:04:00.000Z',
 		})
+	})
+
+	it('formats 1.005 as 1.01 to match PostgreSQL numeric(15,2)', () => {
+		const changedAt = new Date('2026-10-29T15:04:00.000Z')
+
+		expect(
+			buildBusinessValueChangeAudit({
+				businessId: 175,
+				userId: 9,
+				email: 'soporte@financieramentecu.com',
+				previousValue: 1,
+				newValue: 1.005,
+				changedAt,
+			}).newValue
+		).toBe('1.01')
 	})
 })
