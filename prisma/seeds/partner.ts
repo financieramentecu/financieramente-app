@@ -4,7 +4,10 @@ import {
 	previewMissingBaseConfigurations,
 	type BaseConfigurationApplyResult,
 } from '../../src/features/product/services/remediate-base-configurations.service'
-import type { RemediationProblem } from '../../src/features/product/lib/base-product-configurations'
+import {
+	REMEDIATION_PROBLEM,
+	type RemediationProblem,
+} from '../../src/features/product/lib/base-product-configurations'
 import { PARTNER_EXTERNAL_LEVEL_CODE } from '../../src/features/shared/lib/level-codes'
 import { PARTNER_EXTERNAL_CATEGORY_SEED, upsertCategory } from './category'
 import { PARTNER_EXTERNAL_LEVEL_SEED, upsertLevel } from './level'
@@ -19,6 +22,19 @@ export class PartnerSeedCoverageError extends Error {
 		super(message)
 		this.name = 'PartnerSeedCoverageError'
 	}
+}
+
+/** Products applied per transaction when creating PARTNER_EXTERNAL configs. */
+export const PARTNER_REMEDIATION_BATCH_SIZE = 5
+
+/**
+ * Manual codes for products whose generated PARTNER_EXTERNAL code exceeds the
+ * VarChar(50) column. Keyed by the generated code (not the product id) so it
+ * holds across environments where ids differ.
+ */
+export const PARTNER_CODE_OVERRIDES: Readonly<Record<string, string>> = {
+	'AFIBL-SELEC_TERM_TO_A_85_&_TO_A_100-PARTNER_EXTERNAL':
+		'AFIBL-SELEC_TERM_TO_A_85_TO_A_100-PARTNER_EXTERNAL',
 }
 
 export interface PartnerRemediationResult extends BaseConfigurationApplyResult {
@@ -66,18 +82,59 @@ export async function remediatePartnerConfigurations(
 	}
 
 	const plan = await previewMissingBaseConfigurations()
+	const partnerProblems = plan.problems.filter(
+		(problem) => problem.idLevel === partnerLevel.idLevel
+	)
+	const overridden = partnerProblems.filter(
+		(problem) =>
+			problem.code === REMEDIATION_PROBLEM.CODE_TOO_LONG &&
+			problem.detail in PARTNER_CODE_OVERRIDES
+	)
 	const partnerPlan = {
 		...plan,
-		inserts: plan.inserts.filter(
-			(insert) => insert.levelCode === PARTNER_EXTERNAL_LEVEL_CODE
-		),
-		problems: plan.problems.filter(
-			(problem) => problem.idLevel === partnerLevel.idLevel
+		inserts: [
+			...plan.inserts.filter(
+				(insert) => insert.levelCode === PARTNER_EXTERNAL_LEVEL_CODE
+			),
+			// Product and company names are display-only; applying a plan only
+			// reads the ids, level code and code.
+			...overridden.map((problem) => ({
+				idProduct: problem.idProduct,
+				idLevel: problem.idLevel,
+				code: PARTNER_CODE_OVERRIDES[problem.detail],
+				productName: '',
+				companyName: '',
+				levelCode: PARTNER_EXTERNAL_LEVEL_CODE,
+			})),
+		],
+		problems: partnerProblems.filter(
+			(problem) => !overridden.includes(problem)
 		),
 	}
 
-	const applied = await applyMissingBaseConfigurations(partnerPlan)
-	return { ...applied, problems: partnerPlan.problems }
+	// One transaction per batch: a single transaction over every product needs
+	// ~10 round-trips each and outlives the interactive-transaction timeout when
+	// the database is reached through a tunnel. The apply step is idempotent,
+	// so a failed run can simply be repeated.
+	let created = 0
+	let skipped = 0
+	for (
+		let start = 0;
+		start < partnerPlan.inserts.length;
+		start += PARTNER_REMEDIATION_BATCH_SIZE
+	) {
+		const applied = await applyMissingBaseConfigurations({
+			...partnerPlan,
+			inserts: partnerPlan.inserts.slice(
+				start,
+				start + PARTNER_REMEDIATION_BATCH_SIZE
+			),
+		})
+		created += applied.created
+		skipped += applied.skipped
+	}
+
+	return { created, skipped, problems: partnerPlan.problems }
 }
 
 /**
