@@ -4,6 +4,70 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.38.0] - 2026-10-30
+
+### Agregado
+
+- **Tomador del negocio:** En el formulario de negocios, la primera sección se llama «Información básica y general del Cliente» y pregunta «¿El cliente es el mismo tomador?». La respuesta nace en «Sí». Si se cambia a «No», se capturan número y tipo de documento (en el mismo orden que el cliente), correo, apellidos, nombres y teléfono del tomador. La búsqueda por documento queda en el primer campo y usa solo el catálogo de tomadores.
+- La lista de negocios muestra la columna **Mismo tomador** (Sí o No). La exportación a Excel incluye esa columna y los datos del tomador: tipo de documento, número, correo, apellidos, nombres y teléfono.
+- Los negocios que ya existían quedan con la respuesta «Sí».
+- **Editar negocios fondeados:** Quienes ya pueden modificar un negocio emitido (Administrador, Asistente Operativo de Gerencia y Analista de Soporte) pueden corregir cliente, contrato, moneda y valor de un negocio Fondeado. Compañía, producto, plazo y periodicidad siguen bloqueados cuando ya hay aportes fondeados, en cartera o pagados, para no perder ese historial.
+- **Perfil Partner:** Los administradores pueden crear, editar, desactivar y reactivar partners desde Administración → Partners. El partner recibe un correo de activación para crear su contraseña y el administrador puede reenviar el enlace cuando haga falta.
+- **Acceso acotado para Partner:** El partner solo ve Dashboard y Mis negocios, y solo accede a sus propios negocios.
+- **¿Olvidaste tu contraseña?:** Los usuarios con correo y contraseña pueden restablecerla desde un enlace enviado a su correo.
+- **Bloque "Partners" en el heatmap:** Los líderes ven la producción de los partners de su equipo en un bloque propio del heatmap del dashboard.
+
+### Mejorado
+
+- **Inicio de sesión:** El formulario de correo y contraseña ahora está siempre visible en el login.
+- **Pre-liquidación:** Los negocios de partners se excluyen de la distribución de comisiones; los archivos que solo contienen negocios de partners también se pueden pre-liquidar.
+- **Accesos por negocio centralizados:** Los agentes ya no pueden ver ni modificar comentarios, soportes ni pagos de negocios fuera de su alcance (propios y de sus subordinados).
+- **Cierre de sesión al desactivar:** Al desactivar un usuario, su sesión se cierra en la siguiente petición.
+- **Consultor:** Ahora puede abrir el detalle de cualquier negocio en modo solo lectura, igual que en la lista; la página de edición no está disponible para este rol.
+- **Usuarios sin rol válido:** Los usuarios con rol DEFAULT o desconocido ahora reciben "Sin permisos" (403) en las rutas de negocios y en las acciones de la calculadora.
+- **Protección del inicio de sesión:** El ingreso con correo y contraseña limita los intentos repetidos y muestra "Demasiados intentos. Intenta de nuevo más tarde.".
+
+### Corregido
+
+- **Periodicidad de MFUND:** En negocios de SKANDIA con producto MFUND, la periodicidad queda en Aportes Ocasionales y no se puede cambiar, ni al crear ni al editar, tampoco si se envía otro valor por la API. Al pasar de otro producto a MFUND se aplica sola; los demás productos siguen con sus reglas.
+- **Acciones sin sesión:** Algunas acciones del servidor no exigían una sesión activa; ahora la exigen.
+- **Eliminar soporte:** Se corrigió el botón de eliminar soporte en el detalle del negocio.
+- **Redirección tras el login:** El parámetro `callbackUrl` solo acepta rutas internas de la plataforma.
+- **Límite de intentos:** La dirección IP usada para limitar intentos y para la auditoría ya no puede ser alterada por el cliente.
+- **Productos activos en la configuración:** Al crear una configuración de producto, el selector muestra los productos activos de una compañía activa. Antes solo aparecían los primeros 10, así que productos como «Vida Deudor» no se podían elegir aunque estuvieran activos. Un producto activo de una compañía inactiva no entra en la lista.
+- **Reversión de la corrección de prima del negocio 458 (COM-92):** Se retira el script y el servicio que corregían la prima de ese negocio. La corrección de periodicidad de SKANDIA/MFUND (COM-94) se mantiene.
+- **Seguridad de la plataforma:** Se actualizó el framework web a una versión con las correcciones de seguridad vigentes y se reforzó el entorno donde corre la aplicación para limitar el alcance de cualquier intrusión.
+
+### Técnico
+
+- New `policyholder` table, independent from `client`, with `id_document_type` FK `ON DELETE RESTRICT` and unique `(type_identity, identity_number)`. `Business.client_is_policyholder` defaults to true; `id_policyholder` is set only when the client is not the policyholder. Switching back to Sí clears the business link and does not delete the policyholder row. Migration `20261015143000_add_policyholder` is idempotent and writes `BUSINESS_POLICYHOLDER_MIGRATED`. Search endpoint: `GET /api/policyholders/search`. `syncBusinessPolicyholder` is registered in the Server Action inventory and keeps `requireWriteAccess` plus `canRoleEditClientInfo`.
+- Funded businesses use the same list edit gate as `EMITIDO`. Privileged roles can edit value and currency; company, product, term and periodicity stay read-only in the form.
+- `PUT /api/negocios/[id]` returns 409 when a funded business with payments in `FONDEADO`, `EN_CARTERA`, `PAGO_ANTICIPADO` or `CARTERA_PAGADO` changes term, periodicity, product or installment count. The check locks those payment rows inside the same transaction as the rebuild, so a concurrent funding transition cannot land between the count and `deleteMany`. Premium-only updates do not rebuild payments.
+- `mfundPeriodicityError` guards `createBusiness` and `PUT /api/negocios/[id]`. The PUT still answers 400 `Periodicidad no encontrada` or `Producto no encontrado` when those ids do not exist, before the MFUND rule runs.
+- `prisma/seeds/correct-mfund-periodicity.ts` inventories historical SKANDIA/MFUND rows and, with `--apply --operator`, updates only `idBuyPeriodicity`, writing `BUSINESS_PERIODICITY_CORRECTED`. Premiums, payments and settlement amounts are not rewritten.
+- Migration `20261010150000_partner_profile`: adds `User.activatedAt` (backfilled for existing users) and the `account_token` table (`AccountToken`, types `ACTIVATION` and `RESET`, SHA-256 token hash only).
+- New role `PARTNER`, level `PARTNER_EXTERNAL` and category "Partner Externo"; idempotent seed with `npm run prisma:seed:partner` (coverage gate and `CODE_TOO_LONG` check).
+- Edge allowlist `src/lib/auth/partner-allowlist.ts` and the `/api` middleware matcher: a PARTNER session is limited to allowlisted pages and endpoints.
+- Per-request session revalidation (`session-revalidation`, `session-user.service`): inactive users end their session on the next request (fail-open on DB errors).
+- New `business-access.service` centralizes business visibility and ownership for comments, supports, payments, annual payments and mark-novedad; server actions guarded with `requireActionPermission`.
+- `SettlementCommission` status `EXCLUDED` for partner businesses in the load-file processors and the pre-liquidation flow.
+- Visibility is one rule (`resolveVisibleUserIds`, reused by `resolveBusinessScope`): unknown, DEFAULT and missing roles resolve to an empty scope (fail closed); `business-access.service` returns domain reasons (`FORBIDDEN` / `NOT_FOUND`) mapped to HTTP by `business-access-http`.
+- New `AuditAction` values: `SETTLEMENT_EXCLUDED` and `FILE_IMPORT_EXCLUDED_ONLY_CLOSED` (one aggregated event per file/batch), plus `PARTNER_CREATED`, `PARTNER_UPDATED`, `PARTNER_DEACTIVATED`, `PARTNER_REACTIVATED`, `PARTNER_ACTIVATION_RESENT`, `ACCOUNT_ACTIVATED`, `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_COMPLETED`.
+- New routes: `/api/admin/partners` (+ `[id]`, `deactivate`, `reactivate`, `resend-activation`, `leaders`, `leader-levels`), `/api/account/{activate,reset-password,forgot-password}`; new pages `/activate-account`, `/forgot-password`, `/reset-password`, `/dashboard/admin/partners`.
+- Production dashboard routes pin PARTNER sessions to their own user id (`scopeUserIdsToSession`); heatmap view model gains `partnerRows`.
+- Middleware: `/api/*` uses a decode-only session read (`edge-session-token`, `getToken`) that never re-issues the session cookie; `/dashboard/*` keeps the `auth()` wrapper.
+- `auth()` is request-memoized with `React.cache` (`memoized-auth`); trusted client IP comes from `x-real-ip`, else the last `x-forwarded-for` hop (`trusted-client-ip`), used by rate limiters and audit logs.
+- Credentials login is rate limited per email hash and per IP (`credentials-rate-limiter`, error code `rate_limited`); the in-process limiter evicts expired keys and caps its size.
+- Activation and reset links are validated on the server (`account-link-preview.service`); the token preview `GET` endpoints were removed and the token is stripped from the address bar after load.
+- `prisma:seed:partner` now applies PARTNER_EXTERNAL product configurations in batches of 5 per transaction (`PARTNER_REMEDIATION_BATCH_SIZE`) instead of one transaction for every product, so it no longer exceeds the interactive-transaction timeout over a slow or tunnelled connection. The seed stays idempotent.
+- `applyMissingBaseConfigurations` sets `maxWait: 30_000` alongside `timeout: 120_000`; the default 2s `maxWait` made opening the transaction fail with P2028 ("Unable to start a transaction in the given time").
+- Added `PARTNER_CODE_OVERRIDES` (keyed by the generated code, not the product id) for products whose generated PARTNER_EXTERNAL code exceeds `ProductConfiguration.code` VarChar(50). First entry: `AFIBL-SELEC_TERM_TO_A_85_TO_A_100-PARTNER_EXTERNAL`.
+- `fetchAllActiveCompanyProducts()` pages through `GET /api/products?eligible=true&idCompany=` with `pageSize=100` until `totalPages` is covered. `eligible=true` requires both `product.status` and `company.status`. The configuration form no longer relies on the endpoint default of 10 rows.
+- Reverts merge `41d95916` (PR #376). Removes `correct-com-92-premium` service, seed and `BUSINESS_VALUE_CORRECTED`. Keeps `BUSINESS_PERIODICITY_CORRECTED` from COM-94.
+- Upgraded `next` and `eslint-config-next` 15.5.0 → 15.5.28 and `react` / `react-dom` 19.1.0 → 19.1.10 (React Server Components remote code execution advisory CVE-2025-66478 / CVE-2025-55182; 15.5.7 is the first patched 15.5.x release).
+- `docker/Dockerfile`: `/app` stays root-owned and read-only for the `nextjs` user; only `/app/.next/cache` and `/app/node_modules/.cache` are writable.
+- `docker/docker-compose.{prod,qa}.yml`: Postgres and app ports bound to `127.0.0.1`; the app container runs with `no-new-privileges`, `cap_drop: ALL` and `pids_limit: 256`.
+
 ## [1.37.0] - 2026-10-21
 
 ### Agregado
