@@ -23,6 +23,20 @@ describe('businessValuesDiffer', () => {
 		expect(businessValuesDiffer(1.01, 1.005)).toBe(false)
 		expect(businessValuesDiffer(1.0, 1.004)).toBe(false)
 	})
+
+	it('treats exponential values that round to the same cents as unchanged', () => {
+		// JSON/API can send 0.0000001; Number#toString is "1e-7". PG stores 0.00.
+		expect(businessValuesDiffer(0, 0.0000001)).toBe(false)
+		expect(businessValuesDiffer(0, '1e-7')).toBe(false)
+		expect(businessValuesDiffer(0, 1e-7)).toBe(false)
+		expect(
+			shouldConfirmSupportAnalystBusinessValueChange({
+				roleCode: UserRole.ANALISTA_SOPORTE,
+				previousValue: 0,
+				nextValue: 0.0000001,
+			})
+		).toBe(false)
+	})
 })
 
 describe('shouldConfirmSupportAnalystBusinessValueChange', () => {
@@ -97,5 +111,27 @@ describe('buildBusinessValueChangeAudit', () => {
 				changedAt,
 			}).newValue
 		).toBe('1.01')
+	})
+
+	it('formats exponential sub-cent values as 0.00, not an empty string', () => {
+		const changedAt = new Date('2026-10-29T15:04:00.000Z')
+
+		expect(
+			buildBusinessValueChangeAudit({
+				businessId: 175,
+				userId: 9,
+				email: 'soporte@financieramentecu.com',
+				previousValue: 0,
+				newValue: 0.0000001,
+				changedAt,
+			})
+		).toEqual({
+			businessId: 175,
+			userId: 9,
+			email: 'soporte@financieramentecu.com',
+			previousValue: '0.00',
+			newValue: '0.00',
+			changedAt: '2026-10-29T15:04:00.000Z',
+		})
 	})
 })

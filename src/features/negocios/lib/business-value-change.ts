@@ -6,19 +6,70 @@ export const BUSINESS_VALUE_CHANGE_CONFIRMATION =
 	'¿Está seguro de cambiar el Valor de Negocio? Esta acción afectará futuros aportes y liquidaciones.'
 
 const DECIMAL_MONEY_PATTERN = /^(-?)(\d+)(?:\.(\d+))?$/
+const SCIENTIFIC_MONEY_PATTERN = /^([+-]?)(\d+)(?:\.(\d+))?e([+-]?\d+)$/i
 
 /**
- * Converts a money amount to integer cents with half-up rounding to 2 decimal
- * places, matching PostgreSQL `numeric(15,2)`. Uses string decimal arithmetic
- * so values like `1.005` become 101 (1.01), not 100 (1.00) from float `* 100`.
+ * Expands JS scientific notation (`1e-7`, `1.5e2`) into a fixed decimal string
+ * so half-up rounding to cents can run without float `* 100`.
  */
-function toBusinessValueCents(value: BusinessValueInput): number | null {
+function expandScientificNotation(raw: string): string | null {
+	const match = SCIENTIFIC_MONEY_PATTERN.exec(raw.trim())
+	if (!match) {
+		return null
+	}
+
+	const sign = match[1] === '-' ? '-' : ''
+	const integerDigits = match[2]
+	const fractionDigits = match[3] ?? ''
+	const exponent = Number(match[4])
+	if (!Number.isFinite(exponent)) {
+		return null
+	}
+
+	const digits = `${integerDigits}${fractionDigits}`
+	const decimalIndex = integerDigits.length + exponent
+
+	if (decimalIndex <= 0) {
+		return `${sign}0.${'0'.repeat(-decimalIndex)}${digits}`
+	}
+
+	if (decimalIndex >= digits.length) {
+		return `${sign}${digits}${'0'.repeat(decimalIndex - digits.length)}`
+	}
+
+	return `${sign}${digits.slice(0, decimalIndex)}.${digits.slice(decimalIndex)}`
+}
+
+function toFixedDecimalString(value: BusinessValueInput): string | null {
 	if (value === null || value === undefined || value === '') {
+		return null
+	}
+
+	if (typeof value === 'number' && !Number.isFinite(value)) {
 		return null
 	}
 
 	const raw = (typeof value === 'number' ? value.toString() : value.toString()).trim()
 	if (raw === '') {
+		return null
+	}
+
+	if (SCIENTIFIC_MONEY_PATTERN.test(raw)) {
+		return expandScientificNotation(raw)
+	}
+
+	return raw
+}
+
+/**
+ * Converts a money amount to integer cents with half-up rounding to 2 decimal
+ * places, matching PostgreSQL `numeric(15,2)`. Uses string decimal arithmetic
+ * so values like `1.005` become 101 (1.01), not 100 (1.00) from float `* 100`,
+ * and scientific notation like `1e-7` rounds to the same cents as PG.
+ */
+function toBusinessValueCents(value: BusinessValueInput): number | null {
+	const raw = toFixedDecimalString(value)
+	if (raw === null) {
 		return null
 	}
 
