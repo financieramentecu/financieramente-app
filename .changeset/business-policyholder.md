@@ -4,7 +4,7 @@
 
 ### Agregado
 
-- **Tomador del negocio:** En el formulario de negocios, la primera sección se llama «Información básica y general del Cliente» y pregunta «¿El cliente es el mismo tomador?». La respuesta nace en «Sí». Si se cambia a «No», se capturan tipo y número de documento, correo, apellidos, nombres y teléfono del tomador. La búsqueda usa solo el catálogo de tomadores.
+- **Tomador del negocio:** En el formulario de negocios, la primera sección se llama «Información básica y general del Cliente» y pregunta «¿El cliente es el mismo tomador?». La respuesta nace en «Sí». Si se cambia a «No», se capturan número y tipo de documento (en el mismo orden que el cliente), correo, apellidos, nombres y teléfono del tomador. La búsqueda por documento queda en el primer campo y usa solo el catálogo de tomadores.
 - La lista de negocios muestra la columna **Mismo tomador** (Sí o No). La exportación a Excel incluye esa columna y los datos del tomador: tipo de documento, número, correo, apellidos, nombres y teléfono.
 - Los negocios que ya existían quedan con la respuesta «Sí».
 

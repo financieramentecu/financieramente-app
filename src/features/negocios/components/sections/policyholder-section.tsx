@@ -79,6 +79,38 @@ export function PolicyholderSection({
 
 			<div className="grid grid-cols-2 gap-4">
 				<div className="space-y-2">
+					<Label
+						htmlFor="policyholderIdentityNumber"
+						id="policyholderIdentityNumber-label"
+						className="text-sm font-medium"
+					>
+						Nro. de Documento <span className="text-red-500">*</span>
+					</Label>
+					<PolicyholderAutocomplete
+						value={documentValue}
+						results={results}
+						isSearching={isSearching}
+						disabled={fieldsDisabled}
+						onQueryChange={onQueryChange}
+						onSelect={fillPolicyholder}
+						onCreateNew={(identityNumber) => {
+							setValue('policyholderIdentityNumber', identityNumber, {
+								shouldValidate: true,
+							})
+							setValue('policyholderEmail', '', { shouldValidate: false })
+							setValue('policyholderName', '', { shouldValidate: false })
+							setValue('policyholderLastNames', '', { shouldValidate: false })
+							setValue('policyholderPhone', '', { shouldValidate: false })
+						}}
+					/>
+					{errors.policyholderIdentityNumber && (
+						<p className="text-xs text-red-500">
+							{errors.policyholderIdentityNumber.message}
+						</p>
+					)}
+				</div>
+
+				<div className="space-y-2">
 					<Label htmlFor="policyholderTypeIdentity" className="text-sm font-medium">
 						Tipo de Documento <span className="text-red-500">*</span>
 					</Label>
@@ -111,38 +143,6 @@ export function PolicyholderSection({
 					{errors.policyholderTypeIdentity && (
 						<p className="text-xs text-red-500">
 							{errors.policyholderTypeIdentity.message}
-						</p>
-					)}
-				</div>
-
-				<div className="space-y-2">
-					<Label
-						htmlFor="policyholderIdentityNumber"
-						id="policyholderIdentityNumber-label"
-						className="text-sm font-medium"
-					>
-						Nro. de Documento <span className="text-red-500">*</span>
-					</Label>
-					<PolicyholderAutocomplete
-						value={documentValue}
-						results={results}
-						isSearching={isSearching}
-						disabled={fieldsDisabled}
-						onQueryChange={onQueryChange}
-						onSelect={fillPolicyholder}
-						onCreateNew={(identityNumber) => {
-							setValue('policyholderIdentityNumber', identityNumber, {
-								shouldValidate: true,
-							})
-							setValue('policyholderEmail', '', { shouldValidate: false })
-							setValue('policyholderName', '', { shouldValidate: false })
-							setValue('policyholderLastNames', '', { shouldValidate: false })
-							setValue('policyholderPhone', '', { shouldValidate: false })
-						}}
-					/>
-					{errors.policyholderIdentityNumber && (
-						<p className="text-xs text-red-500">
-							{errors.policyholderIdentityNumber.message}
 						</p>
 					)}
 				</div>
