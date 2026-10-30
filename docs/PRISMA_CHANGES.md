@@ -64,16 +64,16 @@ git add prisma/migrations/
 # Commitear
 git commit -m "feat: agregar campos avatar y phoneNumber a User"
 
-# Push a QA para probar
-git push origin qa
+# Push de tu rama y PRs hacia QA para probar
+git push origin <tu-rama>  # luego PR a develop y PR develop → qa
 ```
 
 ### Paso 5: Aplicación Automática en QA/Producción
 
-Los cambios se aplican automáticamente cuando haces push:
+Los cambios se aplican automáticamente cuando se hace merge de un PR:
 
-- **QA**: Al hacer `git push origin qa`, GitHub Actions ejecuta `npx prisma migrate deploy`
-- **Producción**: Al hacer `git push origin master`, GitHub Actions ejecuta `npx prisma migrate deploy`
+- **QA**: Al hacer merge de un PR a `qa`, GitHub Actions ejecuta `npx prisma migrate deploy`
+- **Producción**: Al hacer merge de un PR `qa` → `main`, GitHub Actions ejecuta `npx prisma migrate deploy`
 
 ## Ejemplos Comunes de Cambios
 
@@ -335,13 +335,13 @@ npm run prisma:migrate:dev --name nuevo_campo
 # 2. Probar localmente
 npm run dev
 
-# 3. Si funciona, commitear y push a QA
+# 3. Si funciona, commitear, abrir PR a develop y luego PR develop → qa
 git add prisma/
 git commit -m "feat: agregar nuevo campo"
-git push origin qa
+git push origin <tu-rama>  # luego PR a develop y PR develop → qa
 
 # 4. Verificar en QA antes de producción
-# 5. Solo entonces push a master
+# 5. Solo entonces abrir el PR qa → main
 ```
 
 ### 4. Backup Antes de Cambios Importantes
@@ -374,15 +374,14 @@ npx prisma studio  # Abrir Prisma Studio para ver los cambios
 git add prisma/schema.prisma prisma/migrations/
 git commit -m "feat: agregar campo notes a Business"
 
-# 6. Push a QA
-git push origin qa
+# 6. Push de tu rama y PRs hacia QA
+git push origin <tu-rama>  # luego PR a develop y PR develop → qa
 
 # 7. GitHub Actions aplica automáticamente la migración en QA
 
 # 8. Verificar en QA que funciona
 
-# 9. Push a producción
-git push origin master
+# 9. Producción: abrir PR qa → main y mergearlo
 ```
 
 ## Troubleshooting
