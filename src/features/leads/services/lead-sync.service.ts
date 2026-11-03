@@ -121,6 +121,25 @@ export async function upsertLeadFromCrm(
 
 	const created = !existing
 
+	// Historial de etapas para el Dashboard Comercial: solo cuando la columna
+	// cambia (o el lead nace). Append-only; un fallo aquí no debe rechazar el
+	// webhook del CRM.
+	if (!existing || existing.idLeadFunnelColumn !== funnelColumn.idLeadFunnelColumn) {
+		try {
+			await prisma.leadStageEvent.create({
+				data: {
+					idLead: lead.idLead,
+					idUser: lead.idUser,
+					fromColumnId: existing?.idLeadFunnelColumn ?? null,
+					toColumnId: funnelColumn.idLeadFunnelColumn,
+					occurredAt: payload.updatedAt ?? receivedAt,
+				},
+			})
+		} catch (error) {
+			console.error('No se pudo registrar el evento de etapa del lead:', error)
+		}
+	}
+
 	await logAuditEvent({
 		action: created ? AuditAction.LEAD_CREATED : AuditAction.LEAD_STATUS_CHANGED,
 		email: 'crm-sync@system',

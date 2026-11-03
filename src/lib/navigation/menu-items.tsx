@@ -22,6 +22,7 @@ import {
 	ShieldCheck,
 	Handshake,
 	IdCard,
+	Gauge,
 } from 'lucide-react'
 
 /**
@@ -112,6 +113,12 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 				url: '/dashboard/reportes/aba-mfund',
 				icon: <BarChart3 className="h-4 w-4" />,
 				reportCode: 'ABA_MFUND',
+			},
+			{
+				title: 'Dashboard Comercial',
+				url: '/dashboard/reportes/comercial',
+				icon: <Gauge className="h-4 w-4" />,
+				reportCode: 'COMMERCIAL_DASHBOARD',
 			},
 		],
 	},

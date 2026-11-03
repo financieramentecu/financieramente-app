@@ -14,6 +14,7 @@ const FALLBACK_FLAGS: Record<FeatureFlag, boolean> = {
 	reportes_produccion_real: true,
 	reportes_leads_analytics: true,
 	reportes_aba_mfund: true,
+	reportes_comercial: true,
 }
 
 let instance: Flagsmith | null = null

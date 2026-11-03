@@ -101,6 +101,7 @@ describe('getReportPermissionsCatalog', () => {
 			REPORT_CODES.PRODUCCION_REAL,
 			REPORT_CODES.LEADS_ANALYTICS,
 			REPORT_CODES.ABA_MFUND,
+			REPORT_CODES.COMMERCIAL_DASHBOARD,
 		])
 		expect(catalog.reports.some((report) => report.name === 'ABA-MFUND')).toBe(
 			true

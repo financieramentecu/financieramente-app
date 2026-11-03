@@ -51,6 +51,27 @@ describe('buildMenuByRole reportes gating', () => {
 		expect(reportes?.subItems?.[0]?.url).toBe('/dashboard/reportes/aba-mfund')
 	})
 
+	it('shows Dashboard Comercial iff COMMERCIAL_DASHBOARD is authorized', () => {
+		const menu = buildMenuByRole(UserRole.AGENTE, getRolePermissions(UserRole.AGENTE), {
+			authorizedReportCodes: ['COMMERCIAL_DASHBOARD'],
+		})
+		const reportes = menu.find((item) => item.title === 'Reportes')
+		expect(reportes?.subItems?.map((s) => s.title)).toEqual([
+			'Dashboard Comercial',
+		])
+		expect(reportes?.subItems?.[0]?.url).toBe('/dashboard/reportes/comercial')
+	})
+
+	it('hides Dashboard Comercial when COMMERCIAL_DASHBOARD is not authorized', () => {
+		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
+			authorizedReportCodes: ['PRODUCCION_REAL'],
+		})
+		const reportes = menu.find((item) => item.title === 'Reportes')
+		expect(reportes?.subItems?.map((s) => s.title)).not.toContain(
+			'Dashboard Comercial'
+		)
+	})
+
 	it('hides ABA-MFUND when ABA_MFUND is not authorized', () => {
 		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
 			authorizedReportCodes: ['PRODUCCION_REAL'],

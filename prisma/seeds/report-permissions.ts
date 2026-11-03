@@ -27,6 +27,14 @@ const REPORT_SEEDS = [
 		routePath: '/dashboard/reportes/aba-mfund',
 		categoryNames: [PERFORMANCE_LEADER_NAME, BUSINESS_LEADER_NAME],
 	},
+	{
+		code: 'COMMERCIAL_DASHBOARD',
+		name: 'Dashboard Comercial',
+		description:
+			'Embudo comercial, contacto, citas, asistencia y leads estancados por Money Strategist',
+		routePath: '/dashboard/reportes/comercial',
+		categoryNames: [PERFORMANCE_LEADER_NAME, BUSINESS_LEADER_NAME],
+	},
 ] as const
 
 /**

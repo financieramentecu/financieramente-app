@@ -782,9 +782,29 @@ model Lead {
   user               User?             @relation(fields: [idUser], references: [idUser])
   funnelColumn       LeadFunnelColumn  @relation(fields: [idLeadFunnelColumn], references: [idLeadFunnelColumn])
   business           Business?         @relation(fields: [idBusiness], references: [idBusiness])
+  stageEvents        LeadStageEvent[]
 
   @@index([idUser])
   @@index([idLeadFunnelColumn])
   @@index([outcomeStatus, createdAt])
   @@map("lead")
 }
+
+/// Historial append-only de cambios de etapa de un lead (nunca se edita ni se borra).
+model LeadStageEvent {
+  idLeadStageEvent  Int      @id @default(autoincrement()) @map("id_lead_stage_event")
+  idLead            Int      @map("id_lead")
+  idUser            Int?     @map("id_user")
+  fromColumnId      Int?     @map("from_column_id")
+  toColumnId        Int      @map("to_column_id")
+  occurredAt        DateTime @map("occurred_at")
+  source            String   @default("crm-sync") @db.VarChar(40)
+  createdAt         DateTime @default(now()) @map("created_at")
+  lead              Lead     @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
+
+  @@index([idLead, occurredAt])
+  @@index([occurredAt])
+  @@index([idUser, occurredAt])
+  @@map("lead_stage_event")
+}
+

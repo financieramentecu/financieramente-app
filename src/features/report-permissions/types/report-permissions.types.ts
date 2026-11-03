@@ -6,6 +6,7 @@ export const REPORT_CODES = {
 	PRODUCCION_REAL: 'PRODUCCION_REAL',
 	LEADS_ANALYTICS: 'LEADS_ANALYTICS',
 	ABA_MFUND: 'ABA_MFUND',
+	COMMERCIAL_DASHBOARD: 'COMMERCIAL_DASHBOARD',
 } as const
 
 export type ReportCode = (typeof REPORT_CODES)[keyof typeof REPORT_CODES]
@@ -38,6 +39,13 @@ export const KNOWN_REPORT_DEFINITIONS: readonly KnownReportDefinition[] = [
 		description:
 			'Reporte ABA-MFUND (SKANDIA + MFUND) con KPIs, ranking y detalle',
 		routePath: '/dashboard/reportes/aba-mfund',
+	},
+	{
+		code: REPORT_CODES.COMMERCIAL_DASHBOARD,
+		name: 'Dashboard Comercial',
+		description:
+			'Embudo comercial, contacto, citas, asistencia y leads estancados por Money Strategist',
+		routePath: '/dashboard/reportes/comercial',
 	},
 ]
 
