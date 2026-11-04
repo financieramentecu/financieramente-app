@@ -8,14 +8,26 @@ vi.mock('@/features/auth/lib/password-utils', () => ({
 	hashPassword: vi.fn(async (p: string) => `hashed:${p}`),
 	validatePasswordStrength: vi.fn(() => ({ isValid: true })),
 }))
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	logAuditEvent: vi.fn(),
+	AuditAction: { USER_PASSWORD_SET: 'USER_PASSWORD_SET' },
+	getClientIp: vi.fn(() => '127.0.0.1'),
+	getUserAgent: vi.fn(() => 'vitest'),
+}))
 
 import { POST } from '../route'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
+import { logAuditEvent } from '@/features/auth/lib/audit-logger'
 
 function request(body: unknown) {
 	return new Request('http://localhost/api/admin/users/set-password', {
 		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			'x-real-ip': '127.0.0.1',
+			'user-agent': 'vitest',
+		},
 		body: JSON.stringify(body),
 	})
 }
@@ -43,11 +55,14 @@ describe('POST /api/admin/users/set-password — partner guard', () => {
 		expect(response.status).toBe(403)
 		expect(json.error).toContain('módulo Partners')
 		expect(prisma.user.update).not.toHaveBeenCalled()
+		expect(logAuditEvent).not.toHaveBeenCalled()
 	})
 
 	it('still sets the password of an ADMIN target (regression)', async () => {
 		vi.mocked(prisma.user.findUnique).mockResolvedValue({
 			idUser: 2,
+			idRole: 1,
+			email: 'admin@example.com',
 			role: { code: 'ADMIN' },
 			level: null,
 		} as never)
@@ -59,5 +74,21 @@ describe('POST /api/admin/users/set-password — partner guard', () => {
 
 		expect(response.status).toBe(200)
 		expect(prisma.user.update).toHaveBeenCalled()
+		expect(logAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				userId: 1,
+				roleId: 1,
+				action: 'USER_PASSWORD_SET',
+				email: 'admin@example.com',
+				ipAddress: '127.0.0.1',
+				userAgent: 'vitest',
+				details: expect.stringContaining('Usuario id=2'),
+			})
+		)
+		expect(logAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				details: expect.stringContaining('ssoOnly=false'),
+			})
+		)
 	})
 })
