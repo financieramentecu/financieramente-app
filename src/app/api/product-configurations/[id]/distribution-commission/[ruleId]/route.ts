@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateCommissionRuleApiSchema } from '@/features/distribution-commission/lib/commission-rule-schemas'
 import { prismaCommissionRuleToDomain } from '@/features/distribution-commission/mappers/commission-rule.mapper'
-import { CommissionRule } from '@/features/distribution-commission/types/commission-rule.types'
-import { ApiResponse } from '@/features/shared/types/api-response.types'
-import { requireRole } from '@/lib/auth/require-role'
+import { requireAuth, requireRole } from '@/lib/auth/require-role'
 import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -29,7 +27,12 @@ interface RouteParams {
 export async function GET(
 	request: NextRequest,
 	props: RouteParams
-): Promise<NextResponse<ApiResponse<CommissionRule>>> {
+): Promise<NextResponse> {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	const params = await props.params
 	try {
 		const productConfigId = parseInt(params.id)

@@ -8,7 +8,7 @@ import {
 	prismaLevelToLevel,
 	type PrismaLevelWithRelations as MapperPrismaLevelWithRelations
 } from '@/features/levels/mappers/level.mapper'
-import { requireRole } from '@/lib/auth/require-role'
+import { requireAuth, requireRole } from '@/lib/auth/require-role'
 import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
@@ -20,6 +20,11 @@ export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { id } = await params
 		const levelRaw = await prisma.level.findUnique({
