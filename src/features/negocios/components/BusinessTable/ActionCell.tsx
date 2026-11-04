@@ -8,7 +8,7 @@
 import { Button } from '@/features/shared/ui/button'
 import { Pencil, Eye, Trash2, Coins } from 'lucide-react'
 
-import { UserRole, canFundPayments } from '@/features/auth/lib/roles'
+import { UserRole, canFundPayments, isBusinessOwnerRole } from '@/features/auth/lib/roles'
 import type { BusinessStatus } from '../../types/business-entity.types'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
 import {
@@ -58,6 +58,7 @@ const FONDEAR_ALLOWED_ROLES: UserRole[] = [
 const EDITABLE_STATUSES: BusinessStatus[] = [
 	BUSINESS_STATUS.VENTA_EFECTUADA,
 	BUSINESS_STATUS.EMITIDO,
+	BUSINESS_STATUS.FONDEADO,
 ]
 
 /**
@@ -78,16 +79,12 @@ export function ActionCell({
 	onCancel,
 	onFondear,
 }: ActionCellProps) {
-	const canEditStatuses: BusinessStatus[] = [
-		BUSINESS_STATUS.VENTA_EFECTUADA,
-		BUSINESS_STATUS.EMITIDO,
-	]
 	const canEditRoles: UserRole[] = [
 		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 		UserRole.ADMIN,
 	]
 	const canEdit =
-		canEditStatuses.includes(businessStatus) && canEditRoles.includes(userRole)
+		EDITABLE_STATUSES.includes(businessStatus) && canEditRoles.includes(userRole)
 
 	const canCancel =
 		CANCEL_ALLOWED_ROLES.includes(userRole) &&
@@ -102,7 +99,8 @@ export function ActionCell({
 		(businessStatus === BUSINESS_STATUS.EMITIDO ||
 			businessStatus === BUSINESS_STATUS.FONDEADO)
 
-	const isCoach = userRole === UserRole.AGENTE
+	// Business owners (AGENTE, PARTNER) get the read-only funding view only
+	const isCoach = isBusinessOwnerRole(userRole)
 	const showViewFondeoForCoach =
 		isCoach &&
 		hasPayments &&
@@ -126,7 +124,7 @@ export function ActionCell({
 	return (
 		<TooltipProvider>
 			<div className="flex items-center gap-1">
-				{/* Botón Editar - Solo si el estado es VENTA_EFECTUADA */}
+				{/* Botón Editar — Venta Efectuada, Emitido o Fondeado, con rol autorizado */}
 				{canEdit && (
 					<Tooltip>
 						<TooltipTrigger asChild>

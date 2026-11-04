@@ -120,19 +120,25 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				}
 			}
 
+			// PL-01: partner businesses are stored as EXCLUDED and never distributed
+			const isExcluded = business.isDistributionExcluded === true
+			const rowStatus = isExcluded ? 'EXCLUDED' : 'SYNCHRONIZED'
+
 			if (priorCommissions.length === 0) {
 				const createdAt = business.createdAt
 				const isDateMatch =
 					createdAt >= extracted.startDate! && createdAt <= extracted.endDate!
 
-				if (isDateMatch) {
+				// An excluded row is never a LAG: there is nothing to wait for
+				if (isDateMatch || isExcluded) {
 					await this.createSync(
 						tx,
 						extracted,
 						fileImportId,
 						business.idBusiness,
 						snapshots.discountPercentage,
-						loadNumber
+						loadNumber,
+						rowStatus
 					)
 					const resolved = await tx.fileImportError.updateMany({
 						where: {
@@ -146,7 +152,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						},
 					})
 					return {
-						status: 'SYNCHRONIZED',
+						status: rowStatus,
 						isLag: false,
 						idBusiness: business.idBusiness,
 						recoveredLag: false,
@@ -200,7 +206,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 							idSettlementCommission: existingLag.idSettlementCommission,
 						},
 						data: {
-							status: 'SYNCHRONIZED',
+							status: rowStatus,
 							isLag: false,
 							lagDate: new Date(),
 						},
@@ -211,7 +217,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						fileImportId,
 						business.idBusiness,
 						snapshots.discountPercentage,
-						loadNumber
+						loadNumber,
+						rowStatus
 					)
 					const resolved = await tx.fileImportError.updateMany({
 						where: {
@@ -225,7 +232,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						},
 					})
 					return {
-						status: 'SYNCHRONIZED',
+						status: rowStatus,
 						isLag: false,
 						idBusiness: business.idBusiness,
 						recoveredLag: true,
@@ -238,7 +245,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						fileImportId,
 						business.idBusiness,
 						snapshots.discountPercentage,
-						loadNumber
+						loadNumber,
+						rowStatus
 					)
 					const resolved = await tx.fileImportError.updateMany({
 						where: {
@@ -252,7 +260,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 						},
 					})
 					return {
-						status: 'SYNCHRONIZED',
+						status: rowStatus,
 						isLag: false,
 						idBusiness: business.idBusiness,
 						recoveredLag: false,
@@ -269,7 +277,8 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 		fileImportId: number,
 		idBusiness: number,
 		discountPercentage: number | string,
-		loadNumber: number
+		loadNumber: number,
+		status: 'SYNCHRONIZED' | 'EXCLUDED'
 	) {
 		await tx.settlementCommission.create({
 			data: {
@@ -285,10 +294,10 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				commissionType: FILE_TYPES.VOLUNTARIA,
 				startDate: extracted.startDate,
 				endDate: extracted.endDate,
-				status: 'SYNCHRONIZED',
+				status,
 				isLag: false,
 				isClawback: false,
-				syncDate: new Date(),
+				syncDate: status === 'SYNCHRONIZED' ? new Date() : undefined,
 				loadNumber,
 			},
 		})

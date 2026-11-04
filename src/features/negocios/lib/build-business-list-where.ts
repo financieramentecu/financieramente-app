@@ -40,7 +40,8 @@ export interface BusinessListFilterInput {
 
 export interface BuildBusinessListWhereOptions {
 	/**
-	 * When provided and non-empty, restricts results to businesses owned by these user IDs.
+	 * When provided, restricts results to businesses owned by these user IDs
+	 * (an empty list matches nothing, fail closed for unknown roles).
 	 * Used for hierarchical visibility: [self, ...subordinates].
 	 * Ignored for global-visibility roles (admin-like roles and CONSULTOR).
 	 * When omitted for a scoped role, falls back to the viewer's own idUser.
@@ -66,7 +67,8 @@ export function buildBusinessListWhere(
 
 	if (isScoped) {
 		const { visibleUserIds } = options
-		if (visibleUserIds && visibleUserIds.length > 0) {
+		if (visibleUserIds) {
+			// An empty list (unknown role) matches nothing: fail closed.
 			whereConditions.push({ idUser: { in: visibleUserIds } })
 		} else {
 			whereConditions.push({ idUser: currentUser.idUser })

@@ -10,6 +10,7 @@ import {
   parseDashboardAppliedFilters,
   parseIds,
 } from '@/features/production-dashboard/lib/parse-dashboard-applied-filters'
+import { scopeUserIdsToSession } from '@/features/production-dashboard/lib/scope-user-ids'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { ProductionKpiRaw } from '@/features/production-dashboard/types/production-kpi.types'
 
@@ -37,13 +38,16 @@ export async function GET(
       )
     }
 
-    const userIds = parseIds(rawUserIds)
-    if (userIds === null) {
+    const requestedUserIds = parseIds(rawUserIds)
+    if (requestedUserIds === null) {
       return NextResponse.json(
         { data: null, error: 'El parámetro userIds contiene valores inválidos' },
         { status: 400 }
       )
     }
+
+    // PARTNER sessions are pinned to their own businesses (PD-01, PA-07)
+    const userIds = scopeUserIdsToSession(session, requestedUserIds)
 
     // Short-circuit: empty userIds → zeros without querying DB
     if (userIds.length === 0) {

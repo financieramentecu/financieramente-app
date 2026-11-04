@@ -49,7 +49,9 @@ vi.mock('@/features/negocios/components/ui/UserAvatar', () => ({
 	UserAvatar: () => null,
 }))
 vi.mock('@/features/business-supports/components/ViewSupportsButton', () => ({
-	ViewSupportsButton: () => <button>Ver Soportes</button>,
+	ViewSupportsButton: (props: { userRole?: string }) => (
+		<button data-user-role={props.userRole ?? ''}>Ver Soportes</button>
+	),
 }))
 vi.mock('@/features/business-supports/components/UploadSupportButton', () => ({
 	UploadSupportButton: () => <button>Subir Soporte</button>,
@@ -98,6 +100,32 @@ const baseBusiness = {
 	numAportes: null,
 	fundedAportes: null,
 }
+
+describe('DetalleNegocioPage — comprobantes role', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(getBusinessById).mockResolvedValue({} as never)
+		vi.mocked(prismaBusinessToEntity).mockReturnValue(baseBusiness as never)
+	})
+
+	it('passes the role CODE (not the display name) so PARTNER can delete comprobantes', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+			...currentUserWithRole(UserRole.PARTNER),
+			role: { code: UserRole.PARTNER, name: 'Partner Externo' },
+		} as never)
+
+		const page = await DetalleNegocioPage({
+			params: Promise.resolve({ id: '42' }),
+			searchParams: Promise.resolve({}),
+		})
+		render(page)
+
+		expect(screen.getByRole('button', { name: /ver soportes/i })).toHaveAttribute(
+			'data-user-role',
+			UserRole.PARTNER
+		)
+	})
+})
 
 describe('DetalleNegocioPage — CONSULTOR read-only actions', () => {
 	beforeEach(() => {

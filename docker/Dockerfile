@@ -114,8 +114,12 @@ RUN test -f /app/prisma/schema.prisma || (echo "ERROR: schema.prisma not found i
 RUN ls -la /app/prisma/ || (echo "ERROR: Cannot list prisma directory" && exit 1)
 RUN echo "✅ Prisma directory verified: $(ls -la /app/prisma/)"
 
-# Set correct permissions before switching to nextjs user
-RUN chown -R nextjs:nodejs /app
+# Keep the application tree root-owned and read-only for the runtime user, so a
+# compromised process cannot drop or replace files under /app (a cryptominer was
+# found in hidden /app/.<random>thv directories). Only the directories Next.js
+# writes at runtime stay writable by nextjs.
+RUN mkdir -p /app/.next/cache /app/node_modules/.cache \
+	&& chown -R nextjs:nodejs /app/.next/cache /app/node_modules/.cache
 USER nextjs
 
 # Expose port

@@ -4,6 +4,11 @@ import { requireRole } from '@/lib/auth/require-role'
 import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { validateRoleLevelPair } from '@/features/admin/users/lib/user-role-level-rules'
+import {
+	PARTNER_LEADER_ERROR,
+	PARTNER_MANAGED_ERROR,
+	isPartnerAccount,
+} from '@/features/admin/users/lib/partner-guard'
 import { Prisma } from '@prisma/client'
 
 /**
@@ -194,13 +199,25 @@ export async function PUT(
 		// Validar que el usuario existe
 		const existingUser = await prisma.user.findUnique({
 			where: { idUser: userId },
-			include: { role: true, leader: true },
+			include: {
+				role: true,
+				leader: true,
+				level: { select: { code: true } },
+			},
 		})
 
 		if (!existingUser) {
 			return NextResponse.json(
 				{ success: false, error: 'Usuario no encontrado' },
 				{ status: 404 }
+			)
+		}
+
+		// Partners are managed ONLY in the Partners module (PM-07, ADM-01).
+		if (isPartnerAccount(existingUser)) {
+			return NextResponse.json(
+				{ success: false, error: PARTNER_MANAGED_ERROR },
+				{ status: 403 }
 			)
 		}
 
@@ -219,6 +236,8 @@ export async function PUT(
 		// payload doesn't touch the role (effective role stays whatever is
 		// committed at transaction time), `null` when disconnecting.
 		let resolvedRoleCode: string | null | undefined
+		// Same idea for the level: `undefined` = untouched, `null` = cleared.
+		let resolvedLevelCode: string | null | undefined
 
 		if (roleId !== undefined) {
 			if (roleId === null) {
@@ -274,6 +293,7 @@ export async function PUT(
 		if (levelId !== undefined) {
 			if (levelId === null) {
 				updateData.level = { disconnect: true }
+				resolvedLevelCode = null
 			} else {
 				const level = await prisma.level.findUnique({
 					where: { idLevel: parseInt(levelId) },
@@ -285,6 +305,7 @@ export async function PUT(
 					)
 				}
 				updateData.level = { connect: { idLevel: level.idLevel } }
+				resolvedLevelCode = level.code
 			}
 		}
 
@@ -306,11 +327,18 @@ export async function PUT(
 				// Verificar que el líder existe y tiene nivel asignado
 				const leader = await prisma.user.findUnique({
 					where: { idUser: parseInt(leaderId) },
-					include: { role: true },
+					include: { role: true, level: { select: { code: true } } },
 				})
 				if (!leader) {
 					return NextResponse.json(
 						{ success: false, error: 'Líder no encontrado' },
+						{ status: 400 }
+					)
+				}
+				// A partner can never lead anyone (PM-03).
+				if (isPartnerAccount(leader)) {
+					return NextResponse.json(
+						{ success: false, error: PARTNER_LEADER_ERROR },
 						{ status: 400 }
 					)
 				}
@@ -340,7 +368,11 @@ export async function PUT(
 		const updatedUser = await prisma.$transaction(async (tx) => {
 			const committedUser = await tx.user.findUnique({
 				where: { idUser: userId },
-				select: { idLevel: true, role: { select: { code: true } } },
+				select: {
+					idLevel: true,
+					level: { select: { code: true } },
+					role: { select: { code: true } },
+				},
 			})
 
 			const effectiveRoleCode =
@@ -350,9 +382,15 @@ export async function PUT(
 			const effectiveLevelId =
 				'levelId' in body ? levelId : (committedUser?.idLevel ?? null)
 
+			const effectiveLevelCode =
+				resolvedLevelCode !== undefined
+					? resolvedLevelCode
+					: (committedUser?.level?.code ?? null)
+
 			const validation = validateRoleLevelPair({
 				roleCode: effectiveRoleCode,
 				levelId: effectiveLevelId,
+				levelCode: effectiveLevelCode,
 			})
 			if (!validation.ok) {
 				throw new RoleLevelValidationError(validation.error)

@@ -32,6 +32,7 @@ const activeClient = {
 	name: 'Ana',
 	lastName: 'Pérez',
 	typeIdentity: 'CC',
+	idDocumentType: 1,
 	identityNumber: '1234567890',
 	email: 'ana@example.com',
 	phone: '3001234567',

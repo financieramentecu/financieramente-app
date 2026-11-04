@@ -101,7 +101,7 @@ graph TB
         A1[PR a 'develop'] --> B1[test-pr-qa.yml<br/>Tests y Linting]
         A2[Merge PR a 'qa'] --> A3[Push a 'qa']
         A3 --> B2[deploy-qa.yml<br/>Solo Deploy]
-        C[Push a rama 'master'] --> D[deploy-prod.yml<br/>Solo Deploy]
+        C[Merge de PR a 'main'] --> D[deploy-prod.yml<br/>Solo Deploy]
     end
 
     subgraph "Digital Ocean - QA Environment"
@@ -300,7 +300,7 @@ ssh root@[IP] "htop"
 
 ### Proceso Completo de Deployment
 
-El deployment automático se activa al hacer push a las ramas `qa` o `master`. El proceso completo incluye:
+El deployment automático se activa al hacer merge de un PR a las ramas `qa` o `main`. El proceso completo incluye:
 
 #### Fase 1: Tests (Workflow Separado)
 
@@ -488,7 +488,7 @@ docker volume prune -f
 4. **Merge PR**: Aprobar y hacer merge del PR
    - Se ejecuta automáticamente `deploy-qa.yml` (solo deploy, sin tests)
 5. **Testing**: Verificar en ambiente QA
-6. **Push Producción**: `git push origin master`
+6. **Producción**: Crear PR de `qa` a `main` y hacer merge
    - Se ejecuta automáticamente `deploy-prod.yml` (solo deploy, sin tests)
 
 **Optimización**: Los workflows de deployment (`deploy-qa.yml` y `deploy-prod.yml`) NO ejecutan tests para ahorrar tiempo. Los tests ya se ejecutaron en el PR.
@@ -508,7 +508,7 @@ docker volume prune -f
 
 **deploy-prod.yml**:
 
-- Se ejecuta SOLO cuando hay `push` a la rama `master`
+- Se ejecuta SOLO cuando hay `push` a la rama `main`
 - NO se ejecuta en eventos de `pull_request` para evitar ejecuciones múltiples
 - Ejecuta: solo deploy (sin tests)
 

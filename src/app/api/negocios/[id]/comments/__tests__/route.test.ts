@@ -6,6 +6,11 @@ vi.mock('@/auth', () => ({
   }),
 }))
 
+vi.mock('@/features/negocios/services/business-access.service', () => ({
+  // Ownership is covered by __tests__/business-ownership.routes.test.ts
+  assertBusinessAccess: vi.fn().mockResolvedValue({ ok: true, idOwner: 1 }),
+}))
+
 vi.mock('@/features/comments/services/comments.service', () => ({
   getCommentsByBusinessId: vi.fn(),
   createComment: vi.fn(),
@@ -16,17 +21,19 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
   getUserAgent: vi.fn().mockReturnValue('vitest'),
 }))
 
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn().mockResolvedValue({ idUser: 1, email: 'agent@example.com' }),
-    },
-  },
+vi.mock('@/features/negocios/services/user.service', () => ({
+  getCurrentUserByEmail: vi.fn().mockResolvedValue({
+    idUser: 1,
+    email: 'agent@example.com',
+    role: { code: 'AGENTE' },
+  }),
 }))
 
 import { GET, POST } from '../route'
 import { getCommentsByBusinessId, createComment } from '@/features/comments/services/comments.service'
 import { CommentError } from '@/features/comments/types/comment.types'
+import { assertBusinessAccess } from '@/features/negocios/services/business-access.service'
+import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 
 const mockList = getCommentsByBusinessId as ReturnType<typeof vi.fn>
 const mockCreate = createComment as ReturnType<typeof vi.fn>
@@ -72,6 +79,56 @@ describe('GET /api/negocios/[id]/comments', () => {
 
     const res = await GET(makeRequest(), routeParams)
     expect(res.status).toBe(401)
+  })
+})
+
+describe('access resolution (layering)', () => {
+  it('GET loads the user through the service and calls the access service without a db handle', async () => {
+    mockList.mockResolvedValue([DTO])
+
+    await GET(makeRequest(), routeParams)
+
+    expect(getCurrentUserByEmail).toHaveBeenCalledWith('agent@example.com')
+    expect(assertBusinessAccess).toHaveBeenCalledTimes(1)
+    const [input, db] = vi.mocked(assertBusinessAccess).mock.calls[0]
+    expect(input).toMatchObject({ businessId: 10, mode: 'read' })
+    expect(input.user.idUser).toBe(1)
+    expect(db).toBeUndefined()
+  })
+
+  it('GET maps a NOT_FOUND denial to 404 "Negocio no encontrado" and never lists comments', async () => {
+    vi.mocked(assertBusinessAccess).mockResolvedValueOnce({
+      ok: false,
+      reason: 'NOT_FOUND',
+    })
+
+    const res = await GET(makeRequest(), routeParams)
+
+    expect(res.status).toBe(404)
+    expect(await res.json()).toEqual({ data: null, error: 'Negocio no encontrado' })
+    expect(mockList).not.toHaveBeenCalled()
+  })
+
+  it('POST maps a FORBIDDEN denial to 403 "Sin permisos" and never creates a comment', async () => {
+    vi.mocked(assertBusinessAccess).mockResolvedValueOnce({
+      ok: false,
+      reason: 'FORBIDDEN',
+    })
+
+    const res = await POST(makeRequest({ title: 'valid', detail: 'valid' }), routeParams)
+
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ data: null, error: 'Sin permisos' })
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('returns 401 when the session user no longer exists', async () => {
+    vi.mocked(getCurrentUserByEmail).mockResolvedValueOnce(null)
+
+    const res = await GET(makeRequest(), routeParams)
+
+    expect(res.status).toBe(401)
+    expect(assertBusinessAccess).not.toHaveBeenCalled()
   })
 })
 

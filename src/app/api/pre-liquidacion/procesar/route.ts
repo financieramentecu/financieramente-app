@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { UserRole } from '@/features/auth/lib/roles'
+import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { procesarPreLiquidacion } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import { procesarPreLiquidacionSchema } from '@/features/pre-liquidacion/lib/pre-liquidacion-schemas'
 
@@ -74,7 +75,12 @@ export async function POST(request: NextRequest) {
 		}
 
 		// Ejecutar proceso
-		const resultado = await procesarPreLiquidacion(fileImportId, rangoFecha)
+		const resultado = await procesarPreLiquidacion(fileImportId, rangoFecha, {
+			userId: Number(session.user.id),
+			email: session.user.email ?? undefined,
+			ipAddress: getClientIp(request.headers),
+			userAgent: getUserAgent(request.headers),
+		})
 
 		if (!resultado.success) {
 			return NextResponse.json({ error: resultado.mensaje }, { status: 400 })

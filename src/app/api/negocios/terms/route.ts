@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import { UserRole } from '@/features/auth/lib/roles'
 import { listDistinctTerms } from '@/features/negocios/services/business-terms.service'
 
 export async function GET(
@@ -22,7 +23,12 @@ export async function GET(
 			)
 		}
 
-		const terms = await listDistinctTerms()
+		// PARTNER only sees terms of their own businesses (NEG-03)
+		const partnerId = Number.parseInt(session.user.id ?? '', 10)
+		const terms =
+			session.user.role === UserRole.PARTNER && Number.isFinite(partnerId)
+				? await listDistinctTerms({ ownerIds: [partnerId] })
+				: await listDistinctTerms()
 
 		return NextResponse.json({ data: terms })
 	} catch (error) {

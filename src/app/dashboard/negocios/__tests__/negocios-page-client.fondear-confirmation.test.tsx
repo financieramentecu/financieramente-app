@@ -204,6 +204,7 @@ function createBusinessRow(mode: 'direct' | 'annual' | 'directZero'): Business {
 	return {
 		id: mode === 'direct' ? '101' : mode === 'annual' ? '202' : '303',
 		identification: '123',
+		samePolicyholder: 'Sí',
 		clientName: 'Cliente Demo',
 		contract:
 			mode === 'direct' ? 'PN001' : mode === 'annual' ? 'PN002' : 'PN003',

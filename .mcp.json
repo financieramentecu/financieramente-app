@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "kaneo": {
+      "type": "http",
+      "url": "https://to-do.financieramentecu.com/api/mcp"
+    }
+  }
+}

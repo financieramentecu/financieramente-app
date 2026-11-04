@@ -186,8 +186,96 @@ export function HeatmapTablePanel({ trmRate }: HeatmapTablePanelProps) {
     )
   }
 
-  const { rows, companyColumns, legend } = state.data
+  const { rows, partnerRows, companyColumns, legend } = state.data
   const sortedRows = sortDir === 'desc' ? rows : [...rows].reverse()
+  const totalCols = 1 + companyColumns.length * 2
+
+  /** One person row plus its optional category group header and expanded detail. */
+  function renderPersonRow(row: PersonRow, showCategoryHeader: boolean) {
+    const rowKeys: CellExpansionKey[] = companyColumns
+      .filter((col) => (row.cellsByCompany.get(col.idCompany)?.count ?? 0) > 0)
+      .map((col) => `${row.idUser}:${col.idCompany}` as CellExpansionKey)
+    const isRowExpanded = rowKeys.some((key) => expandedKeys.has(key))
+
+    return (
+      <React.Fragment key={row.idUser}>
+        {showCategoryHeader && (
+          <tr>
+            <td
+              colSpan={totalCols}
+              className="px-3 py-1 text-[11px] font-semibold tracking-wide border-b border-t border-border"
+              style={{ backgroundColor: `${row.levelColor}22`, color: row.levelColor }}
+            >
+              {row.categoryName}
+            </td>
+          </tr>
+        )}
+        <tr className="hover:bg-muted/30">
+          <td
+            className="px-3 py-2 text-xs border-b border-r border-border"
+            style={STICKY_CELL_STYLE}
+          >
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => toggleRow(rowKeys)}
+                disabled={rowKeys.length === 0}
+                aria-expanded={isRowExpanded}
+                aria-label={isRowExpanded ? 'Colapsar negocios del asesor' : 'Expandir negocios del asesor'}
+                title={isRowExpanded ? 'Colapsar negocios del asesor' : 'Expandir negocios del asesor'}
+                className="shrink-0 cursor-pointer rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted/40 disabled:cursor-default disabled:opacity-30"
+              >
+                {isRowExpanded ? (
+                  <ChevronDown className="size-3.5" />
+                ) : (
+                  <ChevronRight className="size-3.5" />
+                )}
+              </button>
+              <span
+                className="inline-block h-2 w-2 rounded-full shrink-0"
+                style={{ backgroundColor: row.levelColor }}
+              />
+              <span className="font-medium whitespace-nowrap">{row.fullName}</span>
+            </div>
+          </td>
+          {companyColumns.map((col) => (
+            <>
+              <UsdCell key={`${row.idUser}-${col.idCompany}-usd`} row={row} column={col} />
+              <NegCell key={`${row.idUser}-${col.idCompany}-neg`} row={row} column={col} />
+            </>
+          ))}
+        </tr>
+        {isRowExpanded && (
+          <tr>
+            <td colSpan={totalCols} className="border-b border-border bg-muted/10 p-0">
+              <div className="divide-y divide-border">
+                {rowKeys
+                  .filter((key) => expandedKeys.has(key))
+                  .map((key) => {
+                    const idCompany = Number(key.split(':')[1])
+                    const companyName =
+                      companyColumns.find((c) => c.idCompany === idCompany)?.companyName ?? ''
+                    return (
+                      <div key={key} className="border-l-2 border-primary/40 bg-gray-100 pl-3">
+                        <div className="bg-gray-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {companyName}
+                        </div>
+                        <HeatmapCellBusinessList
+                          idUser={row.idUser}
+                          idCompany={idCompany}
+                          appliedFilters={appliedFilters}
+                          periodicityIdByName={periodicityIdByName}
+                        />
+                      </div>
+                    )
+                  })}
+              </div>
+            </td>
+          </tr>
+        )}
+      </React.Fragment>
+    )
+  }
 
   return (
     <section>
@@ -197,7 +285,10 @@ export function HeatmapTablePanel({ trmRate }: HeatmapTablePanelProps) {
           <h2 className="text-sm font-semibold text-foreground">
             Producción por empresa (heatmap)
           </h2>
-          <p className="text-xs text-muted-foreground">{rows.length} asesores</p>
+          <p className="text-xs text-muted-foreground">
+            {rows.length} asesores
+            {partnerRows.length > 0 ? ` · ${partnerRows.length} partners` : ''}
+          </p>
         </div>
 
         {/* Category legend */}
@@ -269,94 +360,25 @@ export function HeatmapTablePanel({ trmRate }: HeatmapTablePanelProps) {
           </thead>
 
           <tbody>
-            {sortedRows.map((row, idx) => {
-              const isNewGroup = idx === 0 || sortedRows[idx - 1].categoryName !== row.categoryName
-              const totalCols = 1 + companyColumns.length * 2
-
-              const rowKeys: CellExpansionKey[] = companyColumns
-                .filter((col) => (row.cellsByCompany.get(col.idCompany)?.count ?? 0) > 0)
-                .map((col) => `${row.idUser}:${col.idCompany}` as CellExpansionKey)
-              const isRowExpanded = rowKeys.some((key) => expandedKeys.has(key))
-
-              return (
-                <React.Fragment key={row.idUser}>
-                  {isNewGroup && (
-                    <tr>
-                      <td
-                        colSpan={totalCols}
-                        className="px-3 py-1 text-[11px] font-semibold tracking-wide border-b border-t border-border"
-                        style={{ backgroundColor: `${row.levelColor}22`, color: row.levelColor }}
-                      >
-                        {row.categoryName}
-                      </td>
-                    </tr>
-                  )}
-                  <tr className="hover:bg-muted/30">
-                    <td
-                      className="px-3 py-2 text-xs border-b border-r border-border"
-                      style={STICKY_CELL_STYLE}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => toggleRow(rowKeys)}
-                          disabled={rowKeys.length === 0}
-                          aria-expanded={isRowExpanded}
-                          aria-label={isRowExpanded ? 'Colapsar negocios del asesor' : 'Expandir negocios del asesor'}
-                          title={isRowExpanded ? 'Colapsar negocios del asesor' : 'Expandir negocios del asesor'}
-                          className="shrink-0 cursor-pointer rounded p-0.5 text-muted-foreground transition-colors hover:bg-muted/40 disabled:cursor-default disabled:opacity-30"
-                        >
-                          {isRowExpanded ? (
-                            <ChevronDown className="size-3.5" />
-                          ) : (
-                            <ChevronRight className="size-3.5" />
-                          )}
-                        </button>
-                        <span
-                          className="inline-block h-2 w-2 rounded-full shrink-0"
-                          style={{ backgroundColor: row.levelColor }}
-                        />
-                        <span className="font-medium whitespace-nowrap">{row.fullName}</span>
-                      </div>
-                    </td>
-                    {companyColumns.map((col) => (
-                      <>
-                        <UsdCell key={`${row.idUser}-${col.idCompany}-usd`} row={row} column={col} />
-                        <NegCell key={`${row.idUser}-${col.idCompany}-neg`} row={row} column={col} />
-                      </>
-                    ))}
-                  </tr>
-                  {isRowExpanded && (
-                    <tr>
-                      <td colSpan={totalCols} className="border-b border-border bg-muted/10 p-0">
-                        <div className="divide-y divide-border">
-                          {rowKeys
-                            .filter((key) => expandedKeys.has(key))
-                            .map((key) => {
-                              const idCompany = Number(key.split(':')[1])
-                              const companyName =
-                                companyColumns.find((c) => c.idCompany === idCompany)?.companyName ?? ''
-                              return (
-                                <div key={key} className="border-l-2 border-primary/40 bg-gray-100 pl-3">
-                                  <div className="bg-gray-200 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                    {companyName}
-                                  </div>
-                                  <HeatmapCellBusinessList
-                                    idUser={row.idUser}
-                                    idCompany={idCompany}
-                                    appliedFilters={appliedFilters}
-                                    periodicityIdByName={periodicityIdByName}
-                                  />
-                                </div>
-                              )
-                            })}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
+            {sortedRows.map((row, idx) =>
+              renderPersonRow(
+                row,
+                idx === 0 || sortedRows[idx - 1].categoryName !== row.categoryName
               )
-            })}
+            )}
+            {partnerRows.length > 0 && (
+              <>
+                <tr>
+                  <td
+                    colSpan={totalCols}
+                    className="px-3 py-1 text-[11px] font-semibold tracking-wide border-b border-t border-border bg-muted/50 text-foreground"
+                  >
+                    Partners
+                  </td>
+                </tr>
+                {partnerRows.map((row) => renderPersonRow(row, false))}
+              </>
+            )}
           </tbody>
         </table>
       </div>

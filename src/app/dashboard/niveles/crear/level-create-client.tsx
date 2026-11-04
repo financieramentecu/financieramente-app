@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { LevelForm } from '@/features/levels/components/level-form'
 import { useLevelMutations } from '@/features/levels/hooks/use-level-mutations'
 import { useLevels } from '@/features/levels/hooks/use-levels'
+import { buildNextLevelOptions } from '@/features/levels/lib/next-level-options'
 import type {
 	CreateLevelFormData,
 	UpdateLevelFormData,
@@ -20,10 +21,7 @@ export function LevelCreateClient() {
 	const { state: levelsState } = useLevels({ pageSize: 100 })
 	const allLevels =
 		levelsState.status === 'success'
-			? levelsState.data.levels.map((l) => ({
-					idLevel: l.idLevel,
-					name: l.name,
-				}))
+			? buildNextLevelOptions(levelsState.data.levels)
 			: []
 
 	const handleSubmit = useCallback(

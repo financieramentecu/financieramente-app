@@ -1,0 +1,38 @@
+---
+# SDD Change State: partner-profile
+change_name: partner-profile
+status: archived
+tracker: "Kaneo COM-41"
+branch: COM-41
+
+# Artifact Store Mode
+artifact_store:
+  mode: hybrid
+  engram_topic_keys:
+    - sdd/partner-profile/explore
+    - sdd/partner-profile/proposal
+    - sdd/partner-profile/spec
+    - sdd/partner-profile/design
+    - sdd/partner-profile/tasks
+  openspec_path: "openspec/changes/partner-profile/"
+
+# Session preflight
+preflight:
+  execution_mode: interactive
+  delivery_strategy: exception-ok   # user accepted size:exception (single PR, ~3.5k lines) on 2026-10-09
+  review_budget_lines: 800
+
+decisions:
+  partner_level_code: PARTNER_EXTERNAL   # display "Partner Externo"; avoids collision with LEVEL_5 "Partner" (seeds/level.ts oldCode PARTNER)
+  partner_category_name: "Partner Externo"   # CategoryType MIA
+  partner_role_code: PARTNER
+
+phases:
+  explore: done
+  proposal: done
+  spec: done
+  design: done
+  tasks: done
+  apply: done
+  verify: done   # final re-verification verdict: PASS (0 critical, 5 warning, 9 suggestion) - see verify-report.md
+  archive: done   # specs merged into openspec/specs/, changeset .changeset/partner-profile.md (minor), archive report at Engram sdd/partner-profile/archive-report (obs #128)

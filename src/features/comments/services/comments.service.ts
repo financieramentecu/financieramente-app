@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
-import { UserRole } from '@/features/auth/lib/roles'
+import { UserRole, isBusinessOwnerRole } from '@/features/auth/lib/roles'
 import { toCommentDTO, type CommentWithAuthor } from '../mappers/comment.mapper'
 import { CommentError, type CommentDTO, type CreateCommentInput, type RequestContext } from '../types/comment.types'
 
@@ -16,7 +16,7 @@ const AUTHOR_INCLUDE = {
 
 /**
  * Resolve which users should be notified for a newly created comment.
- * - Author AGENTE (Money Strategist) -> broadcast to all active ANALISTA_SOPORTE users.
+ * - Author AGENTE (Money Strategist) or PARTNER -> broadcast to all active ANALISTA_SOPORTE users.
  * - Author ANALISTA_SOPORTE -> notify the contract's assigned Money Strategist (`Business.idUser`).
  * - Always exclude the author (no self-notify).
  * - Defensive: missing `businessOwnerId` or no active analysts both resolve to an empty list.
@@ -26,7 +26,8 @@ async function resolveRecipients(
   authorId: number,
   businessOwnerId: number | null,
 ): Promise<number[]> {
-  if (authorRole === UserRole.AGENTE) {
+  // Business-owner authors (AGENTE, PARTNER) notify the support analysts
+  if (isBusinessOwnerRole(authorRole)) {
     const analysts = await prisma.user.findMany({
       where: { role: { code: UserRole.ANALISTA_SOPORTE }, active: true },
       select: { idUser: true },

@@ -306,3 +306,39 @@ describe('resolveViewerScope', () => {
     expect(result).toEqual([1, 2, 3])
   })
 })
+
+describe('resolveViewerScope - PARTNER', () => {
+  it('returns only the partner id without querying users, even when subordinates exist', async () => {
+    mockUserFindMany.mockResolvedValue([
+      { idUser: 7, idUserLeader: null }, { idUser: 8, idUserLeader: 7 },
+    ] as never)
+
+    const result = await resolveViewerScope(7, 'PARTNER', 'PARTNER_EXTERNAL')
+
+    expect(result).toEqual([7])
+    expect(mockUserFindMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('getHeatmapRaw - isPartner flag', () => {
+  it('marks PARTNER_EXTERNAL users as partners and agents as non-partners', async () => {
+    mockLevelFindMany.mockResolvedValue(LEVEL_ROWS as never)
+    mockFindMany.mockResolvedValue([
+      makeBusinessRow({ idBusiness: 1, idUser: 1, userName: 'Ana', levelCode: 'MS_SENIOR' }),
+      makeBusinessRow({
+        idBusiness: 2,
+        idUser: 2,
+        userName: 'Paula',
+        levelCode: 'PARTNER_EXTERNAL',
+        levelId: 9,
+        idNextLevel: null,
+      }),
+    ] as never)
+
+    const result = await getHeatmapRaw(makeParams([1, 2]))
+
+    expect(result.find((r) => r.idUser === 1)?.isPartner).toBe(false)
+    expect(result.find((r) => r.idUser === 2)?.isPartner).toBe(true)
+  })
+})
+

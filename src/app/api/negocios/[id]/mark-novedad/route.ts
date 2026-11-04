@@ -18,6 +18,8 @@ import {
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { markNovedadSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { assertBusinessAccess } from '@/features/negocios/services/business-access.service'
+import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
 import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -100,6 +102,19 @@ export async function PATCH(
 				{ data: null, error: 'Sin permisos' },
 				{ status: 403 }
 			)
+		}
+
+		// [PO] PARTNER may MARK/UNMARK only their own businesses. MARK stays
+		// unchanged for internal users (no scope check).
+		if (currentUser.role?.code === UserRole.PARTNER) {
+			const access = await assertBusinessAccess({
+				user: currentUser,
+				businessId,
+				mode: 'write',
+			})
+			if (!access.ok) {
+				return businessAccessDeniedResponse(access.reason)
+			}
 		}
 
 		// Verificar que el negocio existe

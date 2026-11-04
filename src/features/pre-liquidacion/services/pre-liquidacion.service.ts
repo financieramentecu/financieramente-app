@@ -6,6 +6,17 @@ import { Prisma } from '@prisma/client'
 import { computeLineDistributionAmounts } from '@/features/pre-liquidacion/lib/compute-line-distribution'
 import { canViewUserDistributions } from '@/features/auth/lib/hierarchy'
 import type { UserRole } from '@/features/auth/lib/roles'
+import { isBusinessDistributionExcluded } from '@/features/pre-liquidacion/lib/distribution-exclusion'
+import {
+	advanceExcludedOnlyFileToPreSettled,
+	markSettlementExcluded,
+	settleExcludedOnlyFile,
+} from './excluded-settlements.service'
+import {
+	auditExcludedOnlyFileClosed,
+	auditSettlementsExcluded,
+	type ExcludedAuditContext,
+} from './excluded-audit.service'
 
 export interface ConfigCategoryItem {
 	id: number
@@ -50,7 +61,14 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 			settlementCommissions: {
 				some: {
 					status: {
-						in: ['SYNCHRONIZED', 'PRE-SETTLED', 'PRE-SETTLE-APROVED', 'SETTLED'],
+						in: [
+							'SYNCHRONIZED',
+							'PRE-SETTLED',
+							'PRE-SETTLE-APROVED',
+							'SETTLED',
+							// Partner-only files must still be listed so they can complete (PL-02)
+							'EXCLUDED',
+						],
 					},
 				},
 			},
@@ -80,7 +98,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 	const fileIds = todosArchivos.map((a) => a.idFileImport)
 	const countsMap: Record<
 		number,
-		{ sincronizados: number; registrosPreliquidados: number }
+		{ sincronizados: number; registrosPreliquidados: number; excluidos: number }
 	> = {}
 
 	if (fileIds.length > 0) {
@@ -95,6 +113,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 						'PRE-SETTLE-APROVED',
 						'SETTLED',
 						'LAG',
+						'EXCLUDED',
 					],
 				},
 			},
@@ -105,11 +124,14 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 				countsMap[row.idFileImport] = {
 					sincronizados: 0,
 					registrosPreliquidados: 0,
+					excluidos: 0,
 				}
 			}
 			const count = row._count.idSettlementCommission
 			if (row.status === 'SYNCHRONIZED') {
 				countsMap[row.idFileImport].sincronizados = count
+			} else if (row.status === 'EXCLUDED') {
+				countsMap[row.idFileImport].excluidos = count
 			} else if (
 				row.status === 'PRE-SETTLED' ||
 				row.status === 'PRE-SETTLE-APROVED' ||
@@ -161,6 +183,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 		const counts = countsMap[archivo.idFileImport] ?? {
 			sincronizados: 0,
 			registrosPreliquidados: 0,
+			excluidos: 0,
 		}
 		return {
 			idFileImport: archivo.idFileImport,
@@ -178,6 +201,7 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 			rezagados: archivo.rezagadoRecord,
 			estado: archivo.status,
 			registrosPreliquidados: counts.registrosPreliquidados,
+			excluidos: counts.excluidos,
 			totalBeneficiarios: beneficiariesByFile[archivo.idFileImport] ?? 0,
 			aprobaciones: approvalsByFile[archivo.idFileImport] ?? 0,
 		}
@@ -186,7 +210,9 @@ export async function obtenerArchivosDisponiblesPreliquidacion(): Promise<Respue
 	const disponiblesParaPreliquidar = archivos.filter(
 		(a) =>
 			a.estado === 'LOAD' &&
-			(a.sincronizados ?? 0) > (a.registrosPreliquidados ?? 0)
+			((a.sincronizados ?? 0) > (a.registrosPreliquidados ?? 0) ||
+				// Partner-only file: nothing to distribute, but it still has to complete
+				((a.sincronizados ?? 0) === 0 && (a.excluidos ?? 0) > 0))
 	)
 	const archivosPreLiquidados = archivos.filter(
 		(a) => a.estado === 'PRE-SETTLED' || (a.registrosPreliquidados ?? 0) > 0
@@ -1382,16 +1408,25 @@ export async function calcularYGuardarDistribucion(
  */
 export async function sincronizarYCalcularRegistroRezagado(
 	idSettlementCommission: number,
-	contractNumber: string
+	contractNumber: string,
+	audit?: ExcludedAuditContext
 ): Promise<{ success: boolean; mensaje: string }> {
+	// Filled inside the transaction, audited only after it commits.
+	const outcome: { excludedBusinessId?: number } = {}
 	try {
-		return await prisma.$transaction(async (tx) => {
+		const result = await prisma.$transaction(async (tx) => {
 			// 1. Buscar el negocio por número de contrato
 			const business = await tx.business.findFirst({
 				where: { contract: contractNumber },
 				include: {
 					user: true,
-					productPercentageCommission: true,
+					productPercentageCommission: {
+						include: {
+							productConfiguration: {
+								select: { level: { select: { code: true } } },
+							},
+						},
+					},
 				},
 			})
 
@@ -1414,6 +1449,19 @@ export async function sincronizarYCalcularRegistroRezagado(
 				throw new Error(
 					`El registro debe estar en estado LAG (Estado actual: ${settlement.status})`
 				)
+			}
+
+			// PL-03: a partner business is linked but never distributed
+			if (isBusinessDistributionExcluded(business)) {
+				await markSettlementExcluded(tx, idSettlementCommission, {
+					idBusiness: business.idBusiness,
+				})
+				outcome.excludedBusinessId = business.idBusiness
+				return {
+					success: true,
+					mensaje:
+						'El negocio pertenece a un partner: el registro se vinculó y quedó excluido de la distribución',
+				}
 			}
 
 			// 3. Actualizar el registro para vincularlo al negocio y marcarlo como SYNCHRONIZED
@@ -1521,6 +1569,16 @@ export async function sincronizarYCalcularRegistroRezagado(
 				mensaje: 'Registro sincronizado y pre-liquidado exitosamente',
 			}
 		})
+
+		if (outcome.excludedBusinessId !== undefined) {
+			await auditSettlementsExcluded(audit, {
+				source: 'LAG_RECOVERY',
+				excludedCount: 1,
+				idSettlementCommission,
+				idBusiness: outcome.excludedBusinessId,
+			})
+		}
+		return result
 	} catch (error) {
 		console.error('Error en sincronizarYCalcularRegistroRezagado:', error)
 		return {
@@ -1536,11 +1594,14 @@ export async function sincronizarYCalcularRegistroRezagado(
  */
 export async function procesarPreLiquidacion(
 	fileImportId: number,
-	rangoFecha: { inicio: Date; fin: Date }
+	rangoFecha: { inicio: Date; fin: Date },
+	audit?: ExcludedAuditContext
 ): Promise<{
 	success: boolean
 	registrosProcesados: number
 	registrosOmitidos?: number
+	/** Partner rows converted to EXCLUDED (no distribution) */
+	registrosExcluidos?: number
 	mensaje: string
 	registrosConError: {
 		idSettlementCommission: number
@@ -1589,13 +1650,39 @@ export async function procesarPreLiquidacion(
 				business: {
 					include: {
 						user: true,
-						productPercentageCommission: true,
+						productPercentageCommission: {
+							include: {
+								productConfiguration: {
+									select: { level: { select: { code: true } } },
+								},
+							},
+						},
 					},
 				},
 			},
 		})
 
 		if (registros.length === 0) {
+			// Partner-only file: nothing to distribute, but it must not stay in LOAD (PL-02)
+			const excludedOnly = await advanceExcludedOnlyFileToPreSettled(
+				prisma,
+				fileImportId
+			)
+			if (excludedOnly > 0) {
+				await auditExcludedOnlyFileClosed(audit, {
+					fileImportId,
+					excludedCount: excludedOnly,
+					fromStatus: 'LOAD',
+					toStatus: 'PRE-SETTLED',
+				})
+				return {
+					success: true,
+					registrosProcesados: 0,
+					registrosExcluidos: excludedOnly,
+					mensaje: `El archivo solo contiene registros de partners excluidos de la distribución (${excludedOnly}); pasó a PRE-SETTLED sin distribuciones`,
+					registrosConError: [],
+				}
+			}
 			return {
 				success: false,
 				registrosProcesados: 0,
@@ -1607,6 +1694,7 @@ export async function procesarPreLiquidacion(
 
 		let registrosProcesados = 0
 		let registrosOmitidos = 0
+		let registrosExcluidos = 0
 		const registrosConError: {
 			idSettlementCommission: number
 			categoryCode: string
@@ -1621,6 +1709,13 @@ export async function procesarPreLiquidacion(
 				console.warn(
 					`Registro ${registro.idSettlementCommission} no tiene negocio asociado`
 				)
+				continue
+			}
+
+			// PL-01 / PL-03: partner rows never get distribution rows
+			if (isBusinessDistributionExcluded(registro.business)) {
+				await markSettlementExcluded(prisma, registro.idSettlementCommission)
+				registrosExcluidos++
 				continue
 			}
 
@@ -1805,6 +1900,13 @@ export async function procesarPreLiquidacion(
 			})
 		}
 
+		// One aggregated event for every partner row converted in this run (no per-row spam)
+		await auditSettlementsExcluded(audit, {
+			source: 'PRE_LIQUIDACION',
+			excludedCount: registrosExcluidos,
+			fileImportId,
+		})
+
 		// Envío de correos con link al detalle (fire-and-forget: no bloquea la respuesta).
 		// Antes enviábamos un resumen tabular en el correo; ahora enviamos un
 		// link al recibo de distribución en la plataforma (ver
@@ -1825,12 +1927,17 @@ export async function procesarPreLiquidacion(
 			registrosOmitidos > 0
 				? ` (${registrosOmitidos} registro(s) omitido(s) por beneficiario no resuelto)`
 				: ''
+		const excludedSuffix =
+			registrosExcluidos > 0
+				? ` (${registrosExcluidos} registro(s) de partners excluido(s) de la distribución)`
+				: ''
 
 		return {
 			success: true,
 			registrosProcesados,
 			...(registrosOmitidos > 0 ? { registrosOmitidos } : {}),
-			mensaje: `Se procesaron exitosamente ${registrosProcesados} registros${omitSuffix}`,
+			...(registrosExcluidos > 0 ? { registrosExcluidos } : {}),
+			mensaje: `Se procesaron exitosamente ${registrosProcesados} registros${omitSuffix}${excludedSuffix}`,
 			registrosConError,
 		}
 	} catch (error) {
@@ -1864,11 +1971,26 @@ export async function recalcularComisionesPorCambioOrigen(
 			include: {
 				user: true,
 				productPercentageCommission: {
-					include: { productConfiguration: true },
+					include: {
+						productConfiguration: {
+							include: { level: { select: { code: true } } },
+						},
+					},
 				},
 			},
 		})
 		if (!business) throw new Error('Negocio no encontrado')
+
+		// PL-03: partner businesses have no distribution to recalculate
+		if (isBusinessDistributionExcluded(business)) {
+			return {
+				success: true,
+				business,
+				countRecreados: 0,
+				message:
+					'El negocio pertenece a un partner: no hay distribución que recalcular',
+			}
+		}
 
 		const productConfig = await tx.productConfiguration.findFirst({
 			where: {
@@ -2061,7 +2183,8 @@ export async function recalcularComisionesPorCambioOrigen(
  */
 export async function liquidarArchivoCompleto(
 	fileId: number,
-	userId: number
+	userId: number,
+	audit?: ExcludedAuditContext
 ): Promise<{ success: boolean; mensaje: string; liquidados: number }> {
 	try {
 		const preSettledRecords = await prisma.settlementCommission.findMany({
@@ -2073,6 +2196,27 @@ export async function liquidarArchivoCompleto(
 		})
 
 		if (preSettledRecords.length === 0) {
+			// Partner-only file: nothing to settle, close it as SETTLED (PL-02)
+			const fileImport = await prisma.fileImport.findUnique({
+				where: { idFileImport: fileId },
+				select: { status: true },
+			})
+			if (fileImport?.status === 'PRE-SETTLED') {
+				const excluded = await settleExcludedOnlyFile(prisma, fileId)
+				if (excluded > 0) {
+					await auditExcludedOnlyFileClosed(audit, {
+						fileImportId: fileId,
+						excludedCount: excluded,
+						fromStatus: 'PRE-SETTLED',
+						toStatus: 'SETTLED',
+					})
+					return {
+						success: true,
+						mensaje: `El archivo solo contiene registros de partners excluidos de la distribución (${excluded}); se marcó como liquidado sin distribuciones`,
+						liquidados: 0,
+					}
+				}
+			}
 			return {
 				success: false,
 				mensaje: 'No hay registros en estado Pre-liquidado para liquidar',

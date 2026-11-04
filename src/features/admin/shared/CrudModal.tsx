@@ -269,6 +269,11 @@ export function CrudModal({
 							disabled={field.disabled || isLoading}
 							className={cn(error && 'border-destructive')}
 						/>
+						{field.description && (
+							<p className="text-xs text-muted-foreground">
+								{field.description}
+							</p>
+						)}
 						{error && (
 							<p className="text-sm text-destructive">
 								{error.message as string}
@@ -281,7 +286,12 @@ export function CrudModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className={cn("max-w-2xl max-h-[90vh] overflow-y-auto", contentClassName)}>
+			<DialogContent
+				className={cn(
+					'max-w-2xl max-h-[90vh] overflow-y-auto',
+					contentClassName
+				)}
+			>
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 					{description && <DialogDescription>{description}</DialogDescription>}

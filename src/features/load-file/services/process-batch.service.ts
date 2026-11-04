@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { FILE_TYPES } from '../lib/file-types'
 import { ProcessorFactory } from './processors/processor.factory'
+import { auditSettlementsExcluded } from '@/features/pre-liquidacion/services/excluded-audit.service'
 import type {
 	ProcessBatchRequest,
 	ProcessBatchResponse,
@@ -70,6 +71,7 @@ export class ProcessBatchService {
 		let noSincronizadoTotal = 0
 		let errorTotal = 0
 		let recoveredLagsTotal = 0
+		let excludedTotal = 0
 
 		for (let i = 0; i < records.length; i += batchSize) {
 			const batch = records.slice(i, i + batchSize)
@@ -77,6 +79,8 @@ export class ProcessBatchService {
 			let rezagadoBatch = 0
 			let noSincronizadoBatch = 0
 			let errorBatch = 0
+			let excludedBatch = 0
+			let recoveredExcludedBatch = 0
 			let recoveredLagsBatch = 0
 			let resolvedErrorsBatch = 0
 
@@ -103,6 +107,14 @@ export class ProcessBatchService {
 						sincronizadoBatch++
 						if (result.recoveredLag) {
 							recoveredLagsBatch++
+						}
+					} else if (result.status === 'EXCLUDED') {
+						// PL-01: stored but outside the distribution; counts as processed
+						excludedBatch++
+						if (result.recoveredLag) {
+							// Leaves the lag bucket (DB counter) but is not a synchronized row
+							recoveredLagsBatch++
+							recoveredExcludedBatch++
 						}
 					}
 					resolvedErrorsBatch += result.resolvedErrors ?? 0
@@ -145,7 +157,11 @@ export class ProcessBatchService {
 							? { increment: netErrorDelta }
 							: { decrement: -netErrorDelta },
 					successRecord: {
-						increment: sincronizadoBatch + rezagadoBatch + noSincronizadoBatch,
+						increment:
+							sincronizadoBatch +
+							rezagadoBatch +
+							noSincronizadoBatch +
+							excludedBatch,
 					},
 				},
 			})
@@ -166,17 +182,31 @@ export class ProcessBatchService {
 			rezagadoTotal += rezagadoBatch
 			noSincronizadoTotal += noSincronizadoBatch
 			errorTotal += errorBatch
-			recoveredLagsTotal += recoveredLagsBatch
+			excludedTotal += excludedBatch
+			recoveredLagsTotal += recoveredLagsBatch - recoveredExcludedBatch
 		}
+
+		// PL-01: ONE aggregated event per processed batch call with the excluded count
+		// (not one per row). Context: the uploading user and request, as received.
+		await auditSettlementsExcluded(auditContext, {
+			source: 'LOAD',
+			excludedCount: excludedTotal,
+			fileImportId,
+		})
 
 		return {
 			summary: {
 				total:
-					sincronizadoTotal + rezagadoTotal + noSincronizadoTotal + errorTotal,
+					sincronizadoTotal +
+					rezagadoTotal +
+					noSincronizadoTotal +
+					errorTotal +
+					excludedTotal,
 				sincronizado: sincronizadoTotal + recoveredLagsTotal,
 				rezagado: rezagadoTotal,
 				noSincronizado: noSincronizadoTotal,
 				error: errorTotal,
+				excluido: excludedTotal,
 			},
 		}
 	}

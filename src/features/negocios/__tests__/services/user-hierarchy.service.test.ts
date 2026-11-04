@@ -170,15 +170,51 @@ describe('resolveVisibleUserIds', () => {
 		expect(result).toEqual([70])
 	})
 
-	it('treats user with no role as non-admin (scoped)', async () => {
+	it('fails closed (empty list) for a user without a role, without querying the hierarchy', async () => {
 		const prisma = makeUsers([{ idUser: 80, idUserLeader: null }])
-		const currentUser = {
+		const result = await resolveVisibleUserIds(prisma as never, {
 			idUser: 80,
 			role: null,
-		}
+		})
+		expect(result).toEqual([])
+		expect(prisma.user.findMany).not.toHaveBeenCalled()
+	})
 
-		const result = await resolveVisibleUserIds(prisma as never, currentUser)
-		expect(result).toEqual([80])
+	it.each([UserRole.DEFAULT, 'SOMETHING_NEW', ''])(
+		'fails closed (empty list) for role %s',
+		async (code) => {
+			const prisma = makeUsers([
+				{ idUser: 80, idUserLeader: null },
+				{ idUser: 81, idUserLeader: 80 },
+			])
+			const result = await resolveVisibleUserIds(prisma as never, {
+				idUser: 80,
+				role: { code },
+			})
+			expect(result).toEqual([])
+			expect(prisma.user.findMany).not.toHaveBeenCalled()
+		}
+	)
+
+	it('ownOnly narrows AGENTE to self and leaves global roles unrestricted', async () => {
+		const prisma = makeUsers([
+			{ idUser: 90, idUserLeader: null },
+			{ idUser: 91, idUserLeader: 90 },
+		])
+		expect(
+			await resolveVisibleUserIds(
+				prisma as never,
+				{ idUser: 90, role: { code: UserRole.AGENTE } },
+				{ ownOnly: true }
+			)
+		).toEqual([90])
+		expect(
+			await resolveVisibleUserIds(
+				prisma as never,
+				{ idUser: 90, role: { code: UserRole.ADMIN } },
+				{ ownOnly: true }
+			)
+		).toBeUndefined()
 	})
 
 	it('returns undefined for CONSULTOR role (global read-only visibility)', async () => {
@@ -190,5 +226,20 @@ describe('resolveVisibleUserIds', () => {
 
 		const result = await resolveVisibleUserIds(prisma as never, currentUser)
 		expect(result).toBeUndefined()
+	})
+
+	it('PARTNER sees only their own businesses (no hierarchy lookup)', async () => {
+		const prisma = makeUsers([
+			{ idUser: 200, idUserLeader: null },
+			{ idUser: 201, idUserLeader: 200 },
+		])
+
+		const result = await resolveVisibleUserIds(prisma as never, {
+			idUser: 200,
+			role: { code: UserRole.PARTNER },
+		})
+
+		expect(result).toEqual([200])
+		expect(prisma.user.findMany).not.toHaveBeenCalled()
 	})
 })

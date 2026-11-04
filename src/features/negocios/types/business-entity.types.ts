@@ -92,6 +92,12 @@ export interface ClientInfo {
 	/** Apellido(s) del cliente */
 	lastName: string | null
 	identityNumber: string
+	/** Código del tipo de documento (`document_type.code`), copiado desde la FK. */
+	typeIdentity?: string
+	/** Identificador estable del catálogo COM-26. */
+	idDocumentType?: number
+	/** Nombre del tipo, incluso si luego se inactivó. */
+	documentTypeName?: string
 	email: string | null
 	phone: string | null
 }
@@ -142,6 +148,20 @@ export interface ClientOriginInfo {
 	name: string
 }
 
+/**
+ * Tomador independiente del cliente. La relación vive en el negocio.
+ */
+export interface PolicyholderInfo {
+	readonly id: number
+	name: string
+	lastName: string
+	typeIdentity: string
+	identityNumber: string
+	email: string
+	phone: string
+	documentTypeName?: string
+}
+
 // ============================================
 // ENTIDAD PRINCIPAL
 // ============================================
@@ -182,6 +202,9 @@ export interface BusinessEntity {
 	/** Fecha (ISO) en que la novedad quedó resuelta; legado — ya no se emite automáticamente */
 	novedadResolvedAt: string | null
 	client: ClientInfo
+	/** true cuando el cliente es el mismo tomador. */
+	clientIsPolicyholder: boolean
+	policyholder: PolicyholderInfo | null
 	agent: AgentInfo
 	product: ProductInfo
 	currency: CurrencyInfo

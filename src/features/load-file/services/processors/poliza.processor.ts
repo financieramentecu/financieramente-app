@@ -116,11 +116,14 @@ export class PolizaProcessor implements ICommissionProcessor {
 						? Number(snapshots.clawbackPercentage)
 						: 0
 
+			// PL-01: partner businesses are stored as EXCLUDED and never distributed
+			const rowStatus = business.isDistributionExcluded ? 'EXCLUDED' : 'SYNCHRONIZED'
+
 			if (priorLag) {
 				await tx.settlementCommission.update({
 					where: { idSettlementCommission: priorLag.idSettlementCommission },
 					data: {
-						status: 'SYNCHRONIZED',
+						status: rowStatus,
 						isLag: false,
 						lagDate: new Date(),
 					},
@@ -134,7 +137,8 @@ export class PolizaProcessor implements ICommissionProcessor {
 					effectiveClawback,
 					originCommission,
 					isClawback,
-					loadNumber
+					loadNumber,
+					rowStatus
 				)
 				const resolved = await tx.fileImportError.updateMany({
 					where: {
@@ -148,7 +152,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 					},
 				})
 				return {
-					status: 'SYNCHRONIZED',
+					status: rowStatus,
 					isLag: false,
 					idBusiness: business.idBusiness,
 					recoveredLag: true,
@@ -164,7 +168,8 @@ export class PolizaProcessor implements ICommissionProcessor {
 					effectiveClawback,
 					originCommission,
 					isClawback,
-					loadNumber
+					loadNumber,
+					rowStatus
 				)
 				const resolved = await tx.fileImportError.updateMany({
 					where: {
@@ -178,7 +183,7 @@ export class PolizaProcessor implements ICommissionProcessor {
 					},
 				})
 				return {
-					status: 'SYNCHRONIZED',
+					status: rowStatus,
 					isLag: false,
 					idBusiness: business.idBusiness,
 					recoveredLag: false,
@@ -197,7 +202,8 @@ export class PolizaProcessor implements ICommissionProcessor {
 		clawbackPercentage: number,
 		originCommission: string | null,
 		isClawback: boolean,
-		loadNumber: number
+		loadNumber: number,
+		status: 'SYNCHRONIZED' | 'EXCLUDED'
 	) {
 		await tx.settlementCommission.create({
 			data: {
@@ -211,10 +217,10 @@ export class PolizaProcessor implements ICommissionProcessor {
 				clawbackPercentage,
 				originCommission,
 				commissionType: FILE_TYPES.POLIZA,
-				status: 'SYNCHRONIZED',
+				status,
 				isLag: false,
 				isClawback,
-				syncDate: new Date(),
+				syncDate: status === 'SYNCHRONIZED' ? new Date() : undefined,
 				loadNumber,
 			},
 		})

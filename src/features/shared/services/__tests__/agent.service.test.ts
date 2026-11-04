@@ -61,7 +61,9 @@ describe('listActiveAgents', () => {
 		expect(result.agents).toHaveLength(2)
 		expect(result.agents[0]).toEqual({ id: 10, name: 'Ana', lastName: 'García' })
 		expect(prisma.user.findMany).toHaveBeenCalledWith(
-			expect.objectContaining({ where: { active: true, role: { code: 'AGENTE' } } })
+			expect.objectContaining({
+				where: { active: true, role: { code: { in: ['AGENTE', 'PARTNER'] } } },
+			})
 		)
 	})
 
@@ -94,9 +96,38 @@ describe('listActiveAgents', () => {
 		expect(getAccessibleUserIds).toHaveBeenCalledWith(5)
 		expect(prisma.user.findMany).toHaveBeenCalledWith(
 			expect.objectContaining({
-				where: expect.objectContaining({ idUser: { in: [10, 11] } }),
+				where: expect.objectContaining({
+					idUser: { in: [10, 11] },
+					role: { code: { in: ['AGENTE', 'PARTNER'] } },
+				}),
 			})
 		)
+	})
+
+	it('ANALISTA_SOPORTE catalog includes partners (NEG-03)', async () => {
+		vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers as any)
+
+		await listActiveAgents({ idUser: 1, roleCode: 'ANALISTA_SOPORTE', levelCode: null })
+
+		expect(prisma.user.findMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { active: true, role: { code: { in: ['AGENTE', 'PARTNER'] } } },
+			})
+		)
+	})
+
+	it('returns no filter and queries nothing for a PARTNER viewer (locked to self)', async () => {
+		const { getAccessibleUserIds } = await import('@/features/auth/lib/hierarchy')
+
+		const result = await listActiveAgents({
+			idUser: 77,
+			roleCode: 'PARTNER',
+			levelCode: 'PARTNER_EXTERNAL',
+		})
+
+		expect(result).toEqual({ agents: [], showFilter: false })
+		expect(prisma.user.findMany).not.toHaveBeenCalled()
+		expect(getAccessibleUserIds).not.toHaveBeenCalled()
 	})
 
 	it('returns showFilter=false when AGENTE has no subordinates', async () => {

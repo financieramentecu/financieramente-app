@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { UserRole } from '@/features/auth/lib/roles'
+import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { liquidarArchivoCompleto } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 
 const ALLOWED_ROLES: UserRole[] = [
@@ -36,7 +37,13 @@ export async function POST(request: NextRequest) {
 
 		const resultado = await liquidarArchivoCompleto(
 			fileImportId,
-			Number(session.user.id)
+			Number(session.user.id),
+			{
+				userId: Number(session.user.id),
+				email: session.user.email ?? undefined,
+				ipAddress: getClientIp(request.headers),
+				userAgent: getUserAgent(request.headers),
+			}
 		)
 
 		if (!resultado.success) {

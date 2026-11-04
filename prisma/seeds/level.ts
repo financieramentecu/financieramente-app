@@ -3,11 +3,24 @@ import { PrismaClient } from '@prisma/client'
 const MIA_SYSTEM_USER_EMAIL = 'agencia@financieramentecu.com'
 
 /**
- * Seed data for the 7 standard levels.
+ * External partner level (COM-41). oldCode equals code so the legacy rename
+ * lookup can never match (or rename) another level such as LEVEL_5 "Partner".
+ * It is intentionally absent from NEXT_LEVEL_CHAIN.
+ */
+export const PARTNER_EXTERNAL_LEVEL_SEED = {
+	oldCode: 'PARTNER_EXTERNAL',
+	code: 'PARTNER_EXTERNAL',
+	name: 'Partner Externo',
+	color: '#14b8a6',
+	beneficiaryMode: 'OVERRIDE' as const,
+}
+
+/**
+ * Seed data for the standard levels (the 7 hierarchy levels plus PARTNER_EXTERNAL).
  * oldCode: code as it may exist in DB before migration.
  * code/name/color/beneficiaryMode: target values after seed.
  */
-const LEVEL_SEED_DATA = [
+export const LEVEL_SEED_DATA = [
 	{
 		oldCode: 'MS_JUNIOR',
 		code: 'LEVEL_0',
@@ -57,13 +70,14 @@ const LEVEL_SEED_DATA = [
 		color: '#6366f1',
 		beneficiaryMode: 'BENEFICIARIO_GENERAL' as const,
 	},
+	PARTNER_EXTERNAL_LEVEL_SEED,
 ]
 
 /**
  * Hierarchy chain: each code points to the next one (null = top of chain)
  * LEVEL_0 → LEVEL_1 → LEVEL_2 → LEVEL_3 → LEVEL_4 → LEVEL_5 → GENERAL_LEVEL (null)
  */
-const NEXT_LEVEL_CHAIN: Array<{ code: string; nextCode: string | null }> = [
+export const NEXT_LEVEL_CHAIN: Array<{ code: string; nextCode: string | null }> = [
 	{ code: 'LEVEL_0', nextCode: 'LEVEL_1' },
 	{ code: 'LEVEL_1', nextCode: 'LEVEL_2' },
 	{ code: 'LEVEL_2', nextCode: 'LEVEL_3' },
@@ -73,47 +87,54 @@ const NEXT_LEVEL_CHAIN: Array<{ code: string; nextCode: string | null }> = [
 	{ code: 'GENERAL_LEVEL', nextCode: null },
 ]
 
+type LevelSeedEntry = (typeof LEVEL_SEED_DATA)[number]
+
+/**
+ * Upserts one level: looks it up by oldCode first, then by code (idempotent re-runs).
+ */
+export async function upsertLevel(prisma: PrismaClient, lv: LevelSeedEntry) {
+	// Try finding by old code first, then by new code (idempotent re-runs)
+	const existing =
+		(await prisma.level.findUnique({ where: { code: lv.oldCode } })) ??
+		(await prisma.level.findUnique({ where: { code: lv.code } }))
+
+	// BENEFICIARIO_GENERAL requires idFixedBeneficiaryUser (check constraint).
+	// Always use OVERRIDE here; Pass 3 sets the final mode + user atomically.
+	const safeBeneficiaryMode =
+		lv.beneficiaryMode === 'BENEFICIARIO_GENERAL' ? 'OVERRIDE' : lv.beneficiaryMode
+
+	if (existing) {
+		await prisma.level.update({
+			where: { idLevel: existing.idLevel },
+			data: {
+				code: lv.code,
+				name: lv.name,
+				color: lv.color,
+				beneficiaryMode: safeBeneficiaryMode,
+				status: true,
+			},
+		})
+		console.log(`✅ Nivel actualizado: ${lv.name} (${lv.oldCode} → ${lv.code})`)
+	} else {
+		await prisma.level.create({
+			data: {
+				code: lv.code,
+				name: lv.name,
+				color: lv.color,
+				beneficiaryMode: safeBeneficiaryMode,
+				status: true,
+			},
+		})
+		console.log(`✅ Nivel creado: ${lv.name} (${lv.code})`)
+	}
+}
+
 export async function seedLevels(prisma: PrismaClient) {
 	// ─── Pass 1: Upsert levels by old code → update to new code/name/color/mode ───
 	console.log('\n👉 Pass 1 — Upsert niveles con nuevos códigos y colores...')
 
 	for (const lv of LEVEL_SEED_DATA) {
-		// Try finding by old code first, then by new code (idempotent re-runs)
-		const existing =
-			(await prisma.level.findUnique({ where: { code: lv.oldCode } })) ??
-			(await prisma.level.findUnique({ where: { code: lv.code } }))
-
-		// BENEFICIARIO_GENERAL requires idFixedBeneficiaryUser (check constraint).
-		// Always use OVERRIDE here; Pass 3 sets the final mode + user atomically.
-		const safeBeneficiaryMode =
-			lv.beneficiaryMode === 'BENEFICIARIO_GENERAL' ? 'OVERRIDE' : lv.beneficiaryMode
-
-		if (existing) {
-			await prisma.level.update({
-				where: { idLevel: existing.idLevel },
-				data: {
-					code: lv.code,
-					name: lv.name,
-					color: lv.color,
-					beneficiaryMode: safeBeneficiaryMode,
-					status: true,
-				},
-			})
-			console.log(
-				`✅ Nivel actualizado: ${lv.name} (${lv.oldCode} → ${lv.code})`
-			)
-		} else {
-			await prisma.level.create({
-				data: {
-					code: lv.code,
-					name: lv.name,
-					color: lv.color,
-					beneficiaryMode: safeBeneficiaryMode,
-					status: true,
-				},
-			})
-			console.log(`✅ Nivel creado: ${lv.name} (${lv.code})`)
-		}
+		await upsertLevel(prisma, lv)
 	}
 
 	// ─── Pass 2: Set idNextLevel links ───

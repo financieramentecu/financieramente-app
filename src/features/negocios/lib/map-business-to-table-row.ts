@@ -28,6 +28,7 @@ export function mapBusinessToTableRow(b: BusinessEntity): Business {
 	return {
 		id: String(b.id),
 		identification: b.client.identityNumber,
+		samePolicyholder: b.clientIsPolicyholder ? 'Sí' : 'No',
 		clientName: b.client.fullName,
 		contract: b.contract || EMPTY_CONTRACT_PLACEHOLDER,
 		user: {

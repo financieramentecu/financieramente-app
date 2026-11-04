@@ -10,6 +10,7 @@ import { createClient } from '@/features/negocios/actions/create-client'
 import { updateClient } from '@/features/negocios/actions/update-client'
 import { createBusiness } from '@/features/negocios/actions/create-business'
 import { resolveExistingClient } from '@/features/negocios/actions/resolve-existing-client'
+import { checkBusinessCreation } from '@/features/negocios/actions/check-business-creation'
 
 vi.mock('@/features/negocios/actions/create-client', () => ({
 	createClient: vi.fn(),
@@ -23,13 +24,25 @@ vi.mock('@/features/negocios/actions/create-business', () => ({
 	createBusiness: vi.fn(),
 }))
 
+vi.mock('@/features/negocios/actions/check-business-creation', () => ({
+	checkBusinessCreation: vi.fn(),
+}))
+
 vi.mock('@/features/negocios/actions/resolve-existing-client', () => ({
 	resolveExistingClient: vi.fn(),
 }))
 
+vi.mock('@/features/negocios/actions/sync-business-policyholder', () => ({
+	syncBusinessPolicyholder: vi.fn().mockResolvedValue({ data: { ok: true } }),
+}))
+
+const { updateBusiness } = vi.hoisted(() => ({
+	updateBusiness: vi.fn(),
+}))
+
 vi.mock('@/features/negocios/hooks/use-business-mutation', () => ({
 	useBusinessMutation: () => ({
-		updateBusiness: vi.fn(),
+		updateBusiness,
 		isUpdating: false,
 		cancelBusiness: vi.fn(),
 		isCancelling: false,
@@ -78,6 +91,7 @@ const baseDefaults = {
 	lastNames: 'Pérez',
 	phone: '3001234567',
 	identityNumber: '12345678',
+	typeIdentity: 'CC',
 	clientOrigin: '1',
 	company: '1',
 	producto: '1',
@@ -276,6 +290,7 @@ const resolvedClient = {
 	name: 'Juan',
 	lastName: 'Pérez',
 	typeIdentity: 'CC',
+	idDocumentType: 1,
 	identityNumber: '12345678',
 	email: 'client@test.com',
 	phone: '3001234567',
@@ -303,6 +318,57 @@ describe('useBusinessForm — client resolution submit flow (D2/D5/D6/D7)', () =
 		vi.mocked(createBusiness).mockResolvedValue({
 			data: { idBusiness: 1 },
 		} as never)
+		vi.mocked(checkBusinessCreation).mockResolvedValue({
+			data: { ok: true },
+		} as never)
+	})
+
+	it('NEG-02: stops before creating or updating any client when the pre-flight fails', async () => {
+		vi.mocked(checkBusinessCreation).mockResolvedValue({
+			data: null,
+			error: 'Este producto no está disponible para partners',
+		} as never)
+
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'create',
+				defaultValues: { ...baseDefaults },
+				currentUser: mockUserWithRole,
+				leadId: 7,
+				onSubmit,
+				...options,
+			})
+		)
+
+		await submit(result)
+
+		expect(checkBusinessCreation).toHaveBeenCalledWith({ idUser: 1, idProduct: 1 })
+		expect(resolveExistingClient).not.toHaveBeenCalled()
+		expect(createClient).not.toHaveBeenCalled()
+		expect(updateClient).not.toHaveBeenCalled()
+		expect(createBusiness).not.toHaveBeenCalled()
+		expect(onSubmit).not.toHaveBeenCalled()
+	})
+
+	it('NEG-02: runs the pre-flight before the client is created on the happy path', async () => {
+		vi.mocked(createClient).mockResolvedValue({ data: createdClient } as never)
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'create',
+				defaultValues: { ...baseDefaults },
+				currentUser: mockUserWithRole,
+				onSubmit: vi.fn(),
+				...options,
+			})
+		)
+
+		await submit(result)
+
+		const preflightOrder = vi.mocked(checkBusinessCreation).mock.invocationCallOrder[0]
+		const clientOrder = vi.mocked(createClient).mock.invocationCallOrder[0]
+		expect(preflightOrder).toBeLessThan(clientOrder)
+		expect(createBusiness).toHaveBeenCalled()
 	})
 
 	it('D2: does not call resolveExistingClient when leadId is absent (manual create)', async () => {
@@ -589,5 +655,227 @@ describe('useBusinessForm — client resolution submit flow (D2/D5/D6/D7)', () =
 		)
 		expect(onSubmit).not.toHaveBeenCalled()
 		expect(createBusiness).not.toHaveBeenCalled()
+	})
+})
+
+const ccOption = {
+	code: 'CC',
+	name: 'Cédula de Ciudadanía',
+	dataType: 'NUMERIC' as const,
+	minLength: 6,
+	maxLength: 10,
+	status: true,
+}
+
+describe('useBusinessForm — identity revalidation on edit', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		updateBusiness.mockResolvedValue(true)
+		vi.mocked(createClient).mockResolvedValue({ data: createdClient } as never)
+	})
+
+	it('asks the support analyst to confirm before saving a new business value', async () => {
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 42,
+				defaultValues: { ...baseDefaults },
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.form.setValue('value', 1800)
+		})
+		await submit(result)
+
+		expect(result.current.valueChangeConfirmOpen).toBe(true)
+		expect(updateBusiness).not.toHaveBeenCalled()
+
+		await act(async () => {
+			await result.current.confirmBusinessValueChange()
+		})
+
+		expect(updateBusiness).toHaveBeenCalledWith(
+			42,
+			expect.objectContaining({ value: 1800 }),
+			undefined
+		)
+		expect(onSubmit).toHaveBeenCalled()
+		expect(result.current.valueChangeConfirmOpen).toBe(false)
+	})
+
+	it('keeps the stored business value when the support analyst cancels the confirmation', async () => {
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 42,
+				defaultValues: { ...baseDefaults },
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.form.setValue('value', 1800)
+		})
+		await submit(result)
+		act(() => {
+			result.current.dismissBusinessValueChange()
+		})
+
+		expect(result.current.valueChangeConfirmOpen).toBe(false)
+		expect(updateBusiness).not.toHaveBeenCalled()
+		expect(onSubmit).not.toHaveBeenCalled()
+	})
+
+	it('saves a business value change without confirmation for an administrator', async () => {
+		vi.mocked(updateClient).mockResolvedValue({ data: { idClient: 7 } } as never)
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 42,
+				clientId: 7,
+				defaultValues: { ...baseDefaults },
+				currentUser: createMockUserWithRole(UserRole.ADMIN),
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.form.setValue('value', 1800)
+		})
+		await submit(result)
+
+		expect(result.current.valueChangeConfirmOpen).toBe(false)
+		expect(updateBusiness).toHaveBeenCalled()
+		expect(onSubmit).toHaveBeenCalled()
+	})
+
+	it('saves an edit when the stored identity uses dots and was not changed', async () => {
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 42,
+				defaultValues: {
+					...baseDefaults,
+					typeIdentity: 'CC',
+					identityNumber: '1.234.567',
+				},
+				documentTypeOptions: [ccOption],
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		await submit(result)
+
+		expect(result.current.form.formState.errors.identityNumber).toBeUndefined()
+		expect(updateBusiness).toHaveBeenCalled()
+		expect(onSubmit).toHaveBeenCalled()
+	})
+
+	it('blocks an edit that replaces the stored identity with a formatted number', async () => {
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 42,
+				defaultValues: {
+					...baseDefaults,
+					typeIdentity: 'CC',
+					identityNumber: '1234567',
+				},
+				documentTypeOptions: [ccOption],
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.form.setValue('identityNumber', '1.234.567')
+		})
+		await submit(result)
+
+		expect(result.current.form.formState.errors.identityNumber?.message).toMatch(
+			/dígitos/
+		)
+		expect(updateBusiness).not.toHaveBeenCalled()
+		expect(onSubmit).not.toHaveBeenCalled()
+	})
+
+	it('blocks a new business whose identity does not match the catalog', async () => {
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'create',
+				defaultValues: {
+					...baseDefaults,
+					typeIdentity: 'CC',
+					identityNumber: '1.234.567',
+				},
+				documentTypeOptions: [ccOption],
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		await submit(result)
+
+		expect(result.current.form.formState.errors.identityNumber?.message).toMatch(
+			/dígitos/
+		)
+		expect(createClient).not.toHaveBeenCalled()
+		expect(onSubmit).not.toHaveBeenCalled()
+	})
+
+	it('creates a business for an existing client whose stored identity uses a legacy format', async () => {
+		vi.mocked(createBusiness).mockResolvedValue({
+			data: { idBusiness: 1 },
+		} as never)
+		const existingClient = {
+			...resolvedClient,
+			typeIdentity: 'CC',
+			identityNumber: '1.234.567',
+		}
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'create',
+				defaultValues: {
+					...baseDefaults,
+					typeIdentity: 'CC',
+					identityNumber: '1.234.567',
+				},
+				documentTypeOptions: [ccOption],
+				currentUser: mockUserWithRole,
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.handleClientSelected(existingClient)
+		})
+		await submit(result)
+
+		expect(result.current.form.formState.errors.identityNumber).toBeUndefined()
+		expect(result.current.form.formState.errors.typeIdentity).toBeUndefined()
+		expect(createClient).not.toHaveBeenCalled()
+		expect(createBusiness).toHaveBeenCalledWith(
+			expect.objectContaining({ idClient: existingClient.idClient })
+		)
+		expect(onSubmit).toHaveBeenCalled()
 	})
 })

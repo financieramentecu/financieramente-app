@@ -6,12 +6,14 @@
 
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
 import { isReadOnlyRole } from '@/features/auth/lib/roles'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { CommentDTO } from '@/features/comments/types/comment.types'
 import { CommentError } from '@/features/comments/types/comment.types'
+import { assertBusinessAccess } from '@/features/negocios/services/business-access.service'
+import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
+import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { createCommentSchema } from '@/features/comments/schemas/comment.schema'
 import {
   createComment,
@@ -44,6 +46,23 @@ export async function GET(
 
   const { id } = await params
   const businessId = parseInt(id, 10)
+  if (Number.isNaN(businessId)) {
+    return NextResponse.json({ data: null, error: 'Invalid business id' }, { status: 422 })
+  }
+
+  const user = await getCurrentUserByEmail(session.user.email ?? '')
+  if (!user) {
+    return NextResponse.json({ data: null, error: 'User not found' }, { status: 401 })
+  }
+
+  const access = await assertBusinessAccess({
+    user,
+    businessId,
+    mode: 'read',
+  })
+  if (!access.ok) {
+    return businessAccessDeniedResponse(access.reason)
+  }
 
   try {
     const comments = await getCommentsByBusinessId(businessId)
@@ -73,6 +92,9 @@ export async function POST(
 
   const { id } = await params
   const businessId = parseInt(id, 10)
+  if (Number.isNaN(businessId)) {
+    return NextResponse.json({ data: null, error: 'Invalid business id' }, { status: 422 })
+  }
 
   const rawBody = await request.json().catch(() => null)
   const parsed = createCommentSchema.safeParse(rawBody)
@@ -83,12 +105,17 @@ export async function POST(
     )
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email! },
-    select: { idUser: true, email: true },
-  })
+  const user = await getCurrentUserByEmail(session.user.email ?? '')
   if (!user) {
     return NextResponse.json({ data: null, error: 'User not found' }, { status: 401 })
+  }
+  const access = await assertBusinessAccess({
+    user,
+    businessId,
+    mode: 'write',
+  })
+  if (!access.ok) {
+    return businessAccessDeniedResponse(access.reason)
   }
 
   const headers = request.headers

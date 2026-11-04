@@ -110,6 +110,44 @@ describe('GET /api/production-dashboard/hierarchy-tree', () => {
 		expect(body).toEqual({ data: { nodes: [] } })
 	})
 
+	it('(b2) returns an empty tree for a PARTNER viewer (role PARTNER) without building the hierarchy', async () => {
+		mockAuth.mockResolvedValue({
+			user: { email: 'partner@test.com' },
+			expires: '2099-01-01',
+		} as unknown as Awaited<ReturnType<typeof auth>>)
+		mockGetCurrentUserByEmail.mockResolvedValue({
+			...msJuniorViewer,
+			idUser: 77,
+			role: { code: 'PARTNER' },
+			level: { code: 'PARTNER_EXTERNAL' },
+		})
+
+		const response = await GET()
+		const body = await response.json()
+
+		expect(response.status).toBe(200)
+		expect(body).toEqual({ data: { nodes: [] } })
+		expect(mockBuildHierarchyTree).not.toHaveBeenCalled()
+	})
+
+	it('(b3) returns an empty tree when the level is PARTNER_EXTERNAL even if the role is not PARTNER', async () => {
+		mockAuth.mockResolvedValue({
+			user: { email: 'partner@test.com' },
+			expires: '2099-01-01',
+		} as unknown as Awaited<ReturnType<typeof auth>>)
+		mockGetCurrentUserByEmail.mockResolvedValue({
+			...msJuniorViewer,
+			role: { code: 'DEFAULT' },
+			level: { code: 'PARTNER_EXTERNAL' },
+		})
+
+		const response = await GET()
+		const body = await response.json()
+
+		expect(body).toEqual({ data: { nodes: [] } })
+		expect(mockBuildHierarchyTree).not.toHaveBeenCalled()
+	})
+
 	it('(c) returns 200 with non-empty nodes for MIA viewer (bypass role ADMIN)', async () => {
 		mockAuth.mockResolvedValue({
 			user: { email: 'mia@test.com' },

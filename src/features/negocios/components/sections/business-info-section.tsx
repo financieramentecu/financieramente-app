@@ -11,6 +11,10 @@ import { NumberInputField } from '@/features/negocios/components/fields/number-i
 import { ContractAutocomplete } from '@/features/negocios/components/fields/contract-autocomplete'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import { calculateNumAportes } from '@/features/negocios/lib/calculate-num-aportes'
+import {
+	isSkandiaMfund,
+	MFUND_REQUIRED_PERIODICITY,
+} from '@/features/negocios/lib/mfund-periodicity'
 import type {
 	BusinessFormField,
 	FieldPermission,
@@ -54,55 +58,33 @@ export function BusinessInfoSection({
 	const watchedCompanyId = watch('company')
 	const watchedProductId = watch('producto')
 	const watchedPeriodicityId = watch('periodicity')
-	const isSkandiaWithMfund = React.useMemo(() => {
-		const companyName =
-			companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
-		const productName =
-			filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
-		return companyName === 'SKANDIA' && productName === 'MFUND'
-	}, [watchedCompanyId, watchedProductId, companiesOptions, filteredProducts])
+	const companyName =
+		companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
+	const productName =
+		filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
+	const isSkandiaWithMfund = isSkandiaMfund(companyName, productName)
 
 	const isFirstRender = React.useRef(true)
-	const prevSkandiaCombo = React.useRef(false)
 
-	// Reacts to company/product changes only — drives derived fields and one-time periodicity autofill.
+	// SKANDIA + MFUND always stores Aportes Ocasionales. The select stays locked
+	// on create, on edit, and when the user switches into this product.
 	React.useEffect(() => {
-		const companyName =
-			companiesOptions.find((c) => c.value === watchedCompanyId)?.label ?? null
-		const productName =
-			filteredProducts.find((p) => p.value === watchedProductId)?.label ?? null
-
-		if (companyName === 'SKANDIA' && productName === 'MFUND') {
+		if (isSkandiaWithMfund) {
 			setValue('isSkandiaWithMfund', true, { shouldValidate: false })
 			setValue('terms', 0, { shouldValidate: false })
 			setValue('numAportes', 0, { shouldValidate: false })
 
-			const comboJustActivated = !prevSkandiaCombo.current
-			const shouldAutofillPeriodicity =
-				comboJustActivated && (!isEditMode || !isFirstRender.current)
-			if (shouldAutofillPeriodicity) {
-				const aoOption = periodicitiesOptions.find(
-					(p) => p.label === 'Aportes Ocasionales'
-				)
-				if (aoOption) {
-					setValue('periodicity', aoOption.value, { shouldValidate: false })
-				}
+			const required = periodicitiesOptions.find(
+				(option) => option.label === MFUND_REQUIRED_PERIODICITY
+			)
+			if (required && watchedPeriodicityId !== required.value) {
+				setValue('periodicity', required.value, { shouldValidate: false })
 			}
-			prevSkandiaCombo.current = true
 			return
 		}
 
-		prevSkandiaCombo.current = false
 		setValue('isSkandiaWithMfund', false, { shouldValidate: false })
-	}, [
-		watchedCompanyId,
-		watchedProductId,
-		companiesOptions,
-		filteredProducts,
-		periodicitiesOptions,
-		setValue,
-		isEditMode,
-	])
+	}, [isSkandiaWithMfund, watchedPeriodicityId, periodicitiesOptions, setValue])
 
 	// Reacts to periodicity/terms changes — calculates numAportes for non-SKANDIA+MFUND combos.
 	React.useEffect(() => {
@@ -115,7 +97,7 @@ export function BusinessInfoSection({
 				?.label ?? null
 		const termYears = typeof watchedTerms === 'number' ? watchedTerms : null
 
-		if (companyName === 'SKANDIA' && productName === 'MFUND') return
+		if (isSkandiaMfund(companyName, productName)) return
 
 		// En modo edición, si es la primera vez que se carga, no sobrescribimos con el cálculo
 		// para preservar el valor que viene de la DB.
@@ -257,7 +239,9 @@ export function BusinessInfoSection({
 					placeholder="Seleccione periodicidad"
 					options={periodicitiesOptions}
 					form={form}
-					disabled={getFieldPermission('periodicity').disabled}
+					disabled={
+						getFieldPermission('periodicity').disabled || isSkandiaWithMfund
+					}
 					required
 				/>
 

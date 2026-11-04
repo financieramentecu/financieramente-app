@@ -126,6 +126,8 @@ export interface HeatmapRaw {
   /** Integer rank derived from Level.idNextLevel chain. Orphan nodes get 0. */
   readonly levelOrder: number
   readonly levelColor: string
+  /** True when the user holds the PARTNER_EXTERNAL level (rendered in the "Partners" block). */
+  readonly isPartner: boolean
   readonly categoryName: string
   readonly idCategory: number | null
   readonly cells: ReadonlyArray<{
@@ -183,7 +185,10 @@ export interface CategoryLegendItem {
 
 /** Fully-pivoted view model consumed by HeatmapTablePanel. */
 export interface HeatmapViewModel {
+  /** Agent rows (or the single plain block when no agent rows exist). */
   readonly rows: ReadonlyArray<PersonRow>
+  /** Partner rows for the separate "Partners" block, sorted by name. Empty when the block is omitted. */
+  readonly partnerRows: ReadonlyArray<PersonRow>
   readonly companyColumns: ReadonlyArray<CompanyColumn>
   readonly legend: ReadonlyArray<CategoryLegendItem>
 }

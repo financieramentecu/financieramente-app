@@ -32,6 +32,10 @@ import {
 } from '@/features/shared/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/features/shared/ui/alert'
 import type { User } from '../types/user.types'
+import { UserRole } from '@/features/auth/lib/roles'
+import { excludePartnerExternalLevel } from '@/features/shared/lib/level-codes'
+import { isPartnerAccount } from '../lib/partner-guard'
+import { PartnerManagedNotice } from './partner-managed-notice'
 import { useRoles } from '../hooks/use-roles'
 import { useUserAccessValidation } from '../hooks/use-user-access-validation'
 import { isDefaultRole } from '../utils/user-access.utils'
@@ -83,14 +87,26 @@ export function UserActionsCard({
 	const [showDeactivateDialog, setShowDeactivateDialog] = useState(false)
 	const [validationError, setValidationError] = useState<string | null>(null)
 
-	const { roles, isLoading: loadingRoles } = useRoles()
+	// Partners are managed only in the Partners module: the form is read-only.
+	const isPartner = isPartnerAccount(user)
+	const isFormLocked = isLoading || isPartner
+
+	const { roles: allRoles, isLoading: loadingRoles } = useRoles()
+	// Role PARTNER can never be assigned from here (PM-07).
+	const roles = isPartner
+		? allRoles
+		: allRoles.filter((role) => role.code !== UserRole.PARTNER)
 	const { categories: allCategories, isLoading: loadingCategories } =
 		useCategories({
 			status: 'active',
 		})
 	const { state: levelsState } = useLevels({ status: 'active', pageSize: 100 })
-	const levels =
+	const loadedLevels =
 		levelsState.status === 'success' ? (levelsState.data?.levels ?? []) : []
+	// PARTNER_EXTERNAL is never an assignable level (LVL-01).
+	const levels = isPartner
+		? loadedLevels
+		: excludePartnerExternalLevel(loadedLevels)
 	const loadingLevels = levelsState.status === 'loading'
 
 	const [selectedLeaderLevelId, setSelectedLeaderLevelId] = useState<
@@ -317,6 +333,8 @@ export function UserActionsCard({
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-6">
+					{isPartner && <PartnerManagedNotice />}
+
 					{/* Warning Messages */}
 					{validation.hasAccessIssue && (
 						<Alert variant="destructive">
@@ -375,7 +393,7 @@ export function UserActionsCard({
 							id="active-toggle"
 							checked={active}
 							onCheckedChange={setActive}
-							disabled={isLoading}
+							disabled={isFormLocked}
 						/>
 					</div>
 
@@ -387,7 +405,7 @@ export function UserActionsCard({
 							onValueChange={(value) =>
 								setSelectedRoleId(value === 'none' ? null : parseInt(value))
 							}
-							disabled={isLoading || loadingRoles}
+							disabled={isFormLocked || loadingRoles}
 						>
 							<SelectTrigger id="role-select">
 								{loadingRoles ? (
@@ -423,7 +441,7 @@ export function UserActionsCard({
 							onValueChange={(value) =>
 								setSelectedCategoryId(value === 'none' ? null : parseInt(value))
 							}
-							disabled={isLoading || loadingCategories}
+							disabled={isFormLocked || loadingCategories}
 						>
 							<SelectTrigger
 								id="category-select"
@@ -459,7 +477,7 @@ export function UserActionsCard({
 							onValueChange={(value) =>
 								setSelectedLevelId(value === 'none' ? null : parseInt(value))
 							}
-							disabled={isLoading || loadingLevels}
+							disabled={isFormLocked || loadingLevels}
 						>
 							<SelectTrigger
 								id="level-select"
@@ -501,7 +519,7 @@ export function UserActionsCard({
 									onValueChange={(v) =>
 										setSelectedLeaderLevelId(v === 'none' ? null : parseInt(v))
 									}
-									disabled={isLoading || loadingLevels}
+									disabled={isFormLocked || loadingLevels}
 								>
 									<SelectTrigger id="leader-level-select">
 										{loadingLevels ? (
@@ -533,7 +551,7 @@ export function UserActionsCard({
 										onValueChange={(v) =>
 											setSelectedLeaderId(v === 'none' ? '' : v)
 										}
-										disabled={isLoading || loadingLeaderUsers}
+										disabled={isFormLocked || loadingLeaderUsers}
 									>
 										<SelectTrigger id="leader-user-select">
 											{loadingLeaderUsers ? (
@@ -560,7 +578,7 @@ export function UserActionsCard({
 					<div className="flex justify-end">
 						<Button
 							onClick={handleSaveClick}
-							disabled={!hasChanges || isLoading}
+							disabled={!hasChanges || isFormLocked}
 							className="gap-2 cursor-pointer"
 							size="default"
 						>

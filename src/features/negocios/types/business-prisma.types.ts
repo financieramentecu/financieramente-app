@@ -9,7 +9,11 @@ import { Prisma } from '@prisma/client'
  * Se usa en las queries de la API
  */
 export const businessWithRelations = {
-	client: true,
+	client: {
+		include: {
+			documentType: true,
+		},
+	},
 	user: {
 		include: {
 			role: true,
@@ -41,6 +45,11 @@ export const businessWithRelations = {
 	currency: true,
 	buyPeriodicity: true,
 	clientOrigin: true,
+	policyholder: {
+		include: {
+			documentType: true,
+		},
+	},
 	/** Todos los aportes con su estado — para hasPayments, hasPendingPaymentFunding y fundedAportes */
 	payments: {
 		select: { idAnnualPayment: true, status: true },

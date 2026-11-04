@@ -6,6 +6,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
+import { UserRole } from '@/features/auth/lib/roles'
+import { PARTNER_EXTERNAL_LEVEL_CODE } from '@/features/shared/lib/level-codes'
 import { buildProductionWhereClause } from './ms-chart.service'
 import type {
 	HeatmapRaw,
@@ -96,6 +98,7 @@ export function buildLevelOrderMap(levels: LevelInput[]): Map<number, number> {
 /**
  * Resolves the set of userIds the viewer is allowed to see.
  * Bypass roles (HIERARCHY_BYPASS_ROLES) → all active users.
+ * PARTNER → only the partner themselves.
  * All other roles → viewer's own subtree (viewer + active subordinates),
  * regardless of level code. GENERAL_LEVEL is a commission-calculation
  * concept only — it never grants dashboard visibility bypass.
@@ -107,6 +110,9 @@ export async function resolveViewerScope(
 	// Kept in the signature for call-site compatibility.
 	_levelCode?: string | null
 ): Promise<number[]> {
+	// A partner only ever sees their own businesses (PD-01, PA-07)
+	if (roleCode === UserRole.PARTNER) return [viewerId]
+
 	const isFullScope = isHierarchyBypassRole(roleCode)
 
 	if (isFullScope) {
@@ -343,6 +349,7 @@ function buildHeatmapCells(
 		levelCode: entry.levelCode,
 		levelOrder: entry.levelOrder,
 		levelColor: entry.levelColor,
+		isPartner: entry.levelCode === PARTNER_EXTERNAL_LEVEL_CODE,
 		categoryName: entry.categoryName,
 		idCategory: entry.idCategory,
 		cells: Array.from(entry.companyCells.values()).map((c) => ({

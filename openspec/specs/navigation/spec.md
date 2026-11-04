@@ -180,3 +180,23 @@ The sidebar menu builder MUST compose exactly four top-level entries for a `CONS
 - GIVEN an authenticated user with role `CONSULTOR`
 - WHEN the Reportes group renders
 - THEN every report category/sub-item SHALL be visible, regardless of `ReportPermission` category configuration
+
+---
+
+## ADDED Requirements (from partner-profile)
+
+### Requirement: NAV-01 PARTNER menu composition
+
+The menu for role PARTNER MUST contain exactly "Dashboard" and "Mis negocios". Calculadora, Reportes, Liquidaciones, Mis distribuciones and Administración MUST NOT appear. Other roles' menus MUST NOT change.
+
+#### Scenario: Partner menu
+
+- GIVEN a partner session
+- WHEN the menu is built
+- THEN only two entries exist
+
+#### Scenario: Agent menu unchanged
+
+- GIVEN an AGENTE session
+- WHEN the menu is built
+- THEN it equals the previous composition

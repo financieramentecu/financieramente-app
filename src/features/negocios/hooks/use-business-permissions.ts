@@ -10,11 +10,19 @@ export type FieldPermission = {
 
 export type BusinessFormField =
 	| 'identityNumber'
+	| 'typeIdentity'
 	| 'email'
 	| 'name'
 	| 'lastNames'
 	| 'phone'
 	| 'clientOrigin'
+	| 'clientIsPolicyholder'
+	| 'policyholderTypeIdentity'
+	| 'policyholderIdentityNumber'
+	| 'policyholderEmail'
+	| 'policyholderName'
+	| 'policyholderLastNames'
+	| 'policyholderPhone'
 	| 'company'
 	| 'producto'
 	| 'terms'
@@ -88,12 +96,20 @@ export function useBusinessPermissions({
 
 		// 1. Información del Cliente — editable para Asistente Operativo de Gerencia y Admin (COM-63)
 		const clientFields: BusinessFormField[] = [
+			'typeIdentity',
 			'identityNumber',
 			'email',
 			'name',
 			'lastNames',
 			'phone',
 			'clientOrigin',
+			'clientIsPolicyholder',
+			'policyholderTypeIdentity',
+			'policyholderIdentityNumber',
+			'policyholderEmail',
+			'policyholderName',
+			'policyholderLastNames',
+			'policyholderPhone',
 		]
 		if (clientFields.includes(field)) {
 			if (canEditClientInfo) {
@@ -109,13 +125,18 @@ export function useBusinessPermissions({
 		}
 		if (financialFields.includes(field)) {
 			const status = businessStatus?.toUpperCase()
-			
-			// Si el negocio ya está fondeado, nadie debería editar los campos financieros
-			if (status === 'FONDEADO') {
+			const fundedStructuralFields: BusinessFormField[] = [
+				'company',
+				'producto',
+				'terms',
+				'periodicity',
+			]
+			// Changing these on a funded business rebuilds installments and can
+			// drop rows that already have a financial status.
+			if (status === 'FONDEADO' && fundedStructuralFields.includes(field)) {
 				return { readonly: true, disabled: true, hidden: false }
 			}
 
-			// Si es un rol privilegiado (ADMIN, etc.), puede editar siempre que no esté fondeado
 			if (isPrivileged) {
 				return { readonly: false, disabled: false, hidden: false }
 			}

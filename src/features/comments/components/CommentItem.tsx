@@ -1,5 +1,4 @@
-import { UserRole } from '@/features/auth/lib/roles'
-import { ROLE_NAMES } from '@/features/auth/lib/roles'
+import { ROLE_NAMES, isBusinessOwnerRole } from '@/features/auth/lib/roles'
 import { formatDateTimeBogota } from '@/features/shared/lib/format-date'
 import type { CommentDTO } from '../types/comment.types'
 import { LinkifiedText } from './LinkifiedText'
@@ -10,9 +9,9 @@ interface CommentItemProps {
   highlighted?: boolean
 }
 
-/** Money Strategist (AGENTE) comments align left, Analyst (ANALISTA_SOPORTE) comments align right */
+/** Business-owner comments (AGENTE, PARTNER) align left, Analyst (ANALISTA_SOPORTE) comments align right */
 export function CommentItem({ comment, highlighted }: CommentItemProps) {
-  const isAgente = comment.author.role === UserRole.AGENTE
+  const isAgente = isBusinessOwnerRole(comment.author.role)
 
   return (
     <div

@@ -2,6 +2,7 @@
 
 import { ProductPercentageCommission } from '@prisma/client'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
+import { requireActionPermission } from '@/lib/auth/require-action-permission'
 import { getPpcForNewBusinesses } from '../services/product-configuration.service'
 
 /**
@@ -24,6 +25,13 @@ export interface FindProductPercentageCommissionInput {
 export async function findProductPercentageCommission(
 	params: FindProductPercentageCommissionInput
 ): Promise<ApiResponse<ProductPercentageCommission>> {
+	// SEC-03: any authenticated role (business creation and edit call this for
+	// every business owner, PARTNER included); anonymous callers are refused.
+	const guard = await requireActionPermission()
+	if (!guard.ok) {
+		return { data: null, error: guard.error }
+	}
+
 	try {
 		const { configExists, ppc } = await getPpcForNewBusinesses(params)
 

@@ -132,7 +132,7 @@ export default async function DetalleNegocioPage({ params, searchParams }: PageP
 						)}
 						<ViewSupportsButton
 							businessId={business.id}
-							userRole={currentUser.role?.name as UserRole}
+							userRole={currentUser.role?.code as UserRole | undefined}
 						/>
 						<CommentsSidebar
 							businessId={business.id}

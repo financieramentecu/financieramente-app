@@ -167,5 +167,32 @@ describe('GET /api/users/search', () => {
 				})
 			)
 		})
+
+		it('accepts several comma-separated roles (agents and partners) with an in filter', async () => {
+			mockPrismaFindMany.mockResolvedValue([] as never)
+
+			const request = new Request(
+				'http://localhost:3000/api/users/search?query=test&role=AGENTE,PARTNER'
+			)
+			await GET(request)
+
+			expect(mockPrismaFindMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: expect.objectContaining({
+						role: { code: { in: ['AGENTE', 'PARTNER'] } },
+					}),
+				})
+			)
+		})
+
+		it('returns 400 when any role in the list is invalid', async () => {
+			const request = new Request(
+				'http://localhost:3000/api/users/search?query=test&role=AGENTE,NOPE'
+			)
+			const response = await GET(request)
+
+			expect(response.status).toBe(400)
+			expect(mockPrismaFindMany).not.toHaveBeenCalled()
+		})
 	})
 })

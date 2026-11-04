@@ -12,7 +12,7 @@ export const useSearchAgents = () => {
 	})
 
 	const handleSearchAgents = React.useCallback(
-		async (query: string, role?: UserRole) => {
+		async (query: string, role?: UserRole | readonly UserRole[]) => {
 			try {
 				setState({
 					status: 'loading',
@@ -29,7 +29,10 @@ export const useSearchAgents = () => {
 
 				// add role if provided
 				if (role) {
-					params.append('role', role.toString())
+					params.append(
+						'role',
+						Array.isArray(role) ? role.join(',') : String(role)
+					)
 				}
 
 				const response = await fetch(`/api/users/search?${params.toString()}`)

@@ -44,18 +44,22 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 	disconnect: vi.fn(),
 }))
 
-// Mock de scrollIntoView para evitar errores en tests
-Element.prototype.scrollIntoView = vi.fn()
+// DOM-only polyfills: skipped under `// @vitest-environment node` suites
+// (e.g. the Edge middleware tests, which need Node's own Uint8Array/crypto).
+if (typeof Element !== 'undefined') {
+	// Mock de scrollIntoView para evitar errores en tests
+	Element.prototype.scrollIntoView = vi.fn()
 
-// Mock de hasPointerCapture para Radix UI Select
-if (typeof Element.prototype.hasPointerCapture === 'undefined') {
-	Element.prototype.hasPointerCapture = vi.fn(() => false)
-}
-if (typeof Element.prototype.setPointerCapture === 'undefined') {
-	Element.prototype.setPointerCapture = vi.fn()
-}
-if (typeof Element.prototype.releasePointerCapture === 'undefined') {
-	Element.prototype.releasePointerCapture = vi.fn()
+	// Mock de hasPointerCapture para Radix UI Select
+	if (typeof Element.prototype.hasPointerCapture === 'undefined') {
+		Element.prototype.hasPointerCapture = vi.fn(() => false)
+	}
+	if (typeof Element.prototype.setPointerCapture === 'undefined') {
+		Element.prototype.setPointerCapture = vi.fn()
+	}
+	if (typeof Element.prototype.releasePointerCapture === 'undefined') {
+		Element.prototype.releasePointerCapture = vi.fn()
+	}
 }
 
 // Mock de next/navigation

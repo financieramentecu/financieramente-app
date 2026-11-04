@@ -11,6 +11,7 @@ export enum UserRole {
 	ANALISTA_SOPORTE = 'ANALISTA_SOPORTE',
 	AGENTE = 'AGENTE',
 	CONSULTOR = 'CONSULTOR',
+	PARTNER = 'PARTNER',
 }
 
 /**
@@ -23,6 +24,7 @@ export const ROLE_NAMES: Record<UserRole, string> = {
 	[UserRole.ANALISTA_SOPORTE]: 'Analista de Soporte',
 	[UserRole.AGENTE]: 'Agente/Coach',
 	[UserRole.CONSULTOR]: 'Consultor (Solo Lectura)',
+	[UserRole.PARTNER]: 'Partner Externo',
 }
 
 /**
@@ -40,6 +42,8 @@ export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
 	[UserRole.AGENTE]: 'Solo acceso a sus propios negocios y reportes personales',
 	[UserRole.CONSULTOR]:
 		'Acceso de solo lectura a Dashboard, Negocios, Reportes y Calculadora, sin permisos de escritura. Puede exportar la Lista de Negocios a Excel; el resto de exportaciones permanece restringido',
+	[UserRole.PARTNER]:
+		'Aliado externo: solo accede a sus propios negocios, sin participar en la distribución de comisiones',
 }
 
 /**
@@ -100,6 +104,25 @@ export function isGlobalVisibilityRole(
 	roleCode: string | null | undefined
 ): boolean {
 	return isWriteBypassRole(roleCode) || isReadOnlyRole(roleCode)
+}
+
+/**
+ * Roles that own businesses (`Business.idUser`) and are scoped to them:
+ * AGENTE (self plus subordinates) and PARTNER (self only).
+ */
+export const BUSINESS_OWNER_ROLES: readonly UserRole[] = [
+	UserRole.AGENTE,
+	UserRole.PARTNER,
+]
+
+/**
+ * Whether the role is a business owner (AGENTE or PARTNER).
+ */
+export function isBusinessOwnerRole(
+	roleCode: string | null | undefined
+): boolean {
+	if (!roleCode) return false
+	return isValidRole(roleCode) && BUSINESS_OWNER_ROLES.includes(roleCode)
 }
 
 /**
@@ -202,6 +225,8 @@ const ROLES_CAN_DELETE_BUSINESS_COMPROBANTE: readonly UserRole[] = [
 	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 	UserRole.ANALISTA_SOPORTE,
 	UserRole.AGENTE,
+	// Product-owner decision 2026-10-11: partners manage comprobantes of their own businesses
+	UserRole.PARTNER,
 ]
 
 /**

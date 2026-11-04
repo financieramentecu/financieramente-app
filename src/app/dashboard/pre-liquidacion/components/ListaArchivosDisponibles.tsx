@@ -131,7 +131,9 @@ export function ListaArchivosDisponibles({
 					const archivo = row.original
 					const hasRegistros =
 						archivo.sincronizados > 0 ||
-						(archivo.registrosPreliquidados ?? 0) > 0
+						(archivo.registrosPreliquidados ?? 0) > 0 ||
+						// Partner-only file: nothing to distribute but it still has to be closed
+						(archivo.excluidos ?? 0) > 0
 
 					if (!hasRegistros) {
 						return (

@@ -16,6 +16,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { readPoolOptionsFromEnv, withPoolParams } from './prisma-pool'
 
 const globalForPrisma = globalThis as unknown as {
 	prisma: PrismaClient | undefined
@@ -24,6 +25,11 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
 	globalForPrisma.prisma ??
 	new PrismaClient({
+		// Pool size and timeouts come from PRISMA_* env vars; DATABASE_URL params win.
+		datasourceUrl: withPoolParams(
+			process.env.DATABASE_URL,
+			readPoolOptionsFromEnv(process.env)
+		),
 		log:
 			process.env.NODE_ENV === 'development'
 				? ['query', 'error', 'warn']

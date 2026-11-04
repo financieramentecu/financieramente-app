@@ -9,6 +9,8 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUserByEmail } from '@/features/shared/services/user.service'
 import { buildHierarchyTree } from '@/features/production-dashboard/services/hierarchy-tree.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import { PARTNER_EXTERNAL_LEVEL_CODE } from '@/features/shared/lib/level-codes'
+import { UserRole } from '@/features/auth/lib/roles'
 import type { HierarchyTreeData } from '@/features/production-dashboard/types/hierarchy.types'
 
 /** Level code assigned to MS Junior — receives empty tree per spec */
@@ -34,7 +36,13 @@ export async function GET(): Promise<NextResponse<ApiResponse<HierarchyTreeData>
 			)
 		}
 
-		if (viewer.level?.code === MS_JUNIOR_LEVEL_CODE) {
+		// MS Junior and partners have no subordinates to browse: empty tree, the
+		// dashboard falls back to the session user (partners see only own businesses).
+		if (
+			viewer.level?.code === MS_JUNIOR_LEVEL_CODE ||
+			viewer.role?.code === UserRole.PARTNER ||
+			viewer.level?.code === PARTNER_EXTERNAL_LEVEL_CODE
+		) {
 			return NextResponse.json({ data: { nodes: [] } })
 		}
 

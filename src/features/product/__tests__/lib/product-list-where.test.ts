@@ -34,4 +34,26 @@ describe('buildProductListWhere', () => {
 			idCompany: 4,
 		})
 	})
+
+	it('does not keep products of an inactive company when the selector is eligible', () => {
+		const eligible = buildProductListWhere({
+			search: null,
+			status: 'active',
+			idCompany: '4',
+			eligible: true,
+		})
+		const activeProductOnly = buildProductListWhere({
+			search: null,
+			status: 'active',
+			idCompany: '4',
+			eligible: false,
+		})
+
+		expect(eligible).toEqual({
+			status: true,
+			company: { status: true },
+			idCompany: 4,
+		})
+		expect(activeProductOnly.company).toBeUndefined()
+	})
 })

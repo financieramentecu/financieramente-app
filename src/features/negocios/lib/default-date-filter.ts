@@ -46,7 +46,7 @@ export interface DateParamPair {
 }
 
 /**
- * Default date dimension per role: all mapped roles (AGENTE, ADMIN,
+ * Default date dimension per role: all mapped roles (AGENTE, PARTNER, ADMIN,
  * ASISTENTE_GERENCIA_OPERATIVA, ANALISTA_SOPORTE) filter by creation date.
  * Roles not listed get no default.
  */
@@ -55,6 +55,7 @@ export function getDefaultDateParamPair(
 ): DateParamPair | null {
 	switch (roleCode) {
 		case UserRole.AGENTE:
+		case UserRole.PARTNER:
 		case UserRole.ADMIN:
 		case UserRole.ASISTENTE_GERENCIA_OPERATIVA:
 		case UserRole.ANALISTA_SOPORTE:

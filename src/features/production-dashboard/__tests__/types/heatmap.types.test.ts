@@ -21,6 +21,7 @@ describe('HeatmapRaw — shape contract', () => {
       levelCode: 'MS_SENIOR',
       levelOrder: 2,
       levelColor: '#333333',
+      isPartner: false,
       categoryName: 'Categoría A',
       idCategory: 10,
       cells: [
@@ -40,6 +41,7 @@ describe('HeatmapRaw — shape contract', () => {
       levelCode: 'MS_JUNIOR',
       levelOrder: 1,
       levelColor: '#444444',
+      isPartner: false,
       categoryName: '',
       idCategory: null,
       cells: [],
@@ -120,6 +122,7 @@ describe('HeatmapViewModel — shape contract', () => {
   it('satisfies HeatmapViewModel with rows, companyColumns, and legend', () => {
     const viewModel = {
       rows: [] as ReadonlyArray<PersonRow>,
+      partnerRows: [] as ReadonlyArray<PersonRow>,
       companyColumns: [] as ReadonlyArray<CompanyColumn>,
       legend: [] as ReadonlyArray<CategoryLegendItem>,
     } satisfies HeatmapViewModel

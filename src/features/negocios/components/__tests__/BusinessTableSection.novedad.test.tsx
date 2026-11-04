@@ -17,6 +17,7 @@ function buildBusiness(overrides: Partial<Business> = {}): Business {
 	return {
 		id: '1',
 		identification: '123',
+		samePolicyholder: 'Sí',
 		clientName: 'Cliente Test',
 		contract: 'PN0001',
 		user: { avatar: '', name: 'Agente Test' },
