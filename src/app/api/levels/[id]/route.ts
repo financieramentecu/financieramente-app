@@ -8,7 +8,8 @@ import {
 	prismaLevelToLevel,
 	type PrismaLevelWithRelations as MapperPrismaLevelWithRelations
 } from '@/features/levels/mappers/level.mapper'
-import { auth } from '@/auth'
+import { requireAuth, requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
 /**
@@ -19,6 +20,11 @@ export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { id } = await params
 		const levelRaw = await prisma.level.findUnique({
@@ -64,8 +70,13 @@ export async function PUT(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
-		const session = await auth()
+		const { session } = guard
 		const headers = request.headers
 		const { id } = await params
 		const levelId = parseInt(id)
@@ -250,8 +261,13 @@ export async function DELETE(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
-		const session = await auth()
+		const { session } = guard
 		const headers = request.headers
 		const { id } = await params
 		const levelId = parseInt(id)
