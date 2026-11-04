@@ -11,6 +11,8 @@ import { BusinessInfoSection } from '@/features/negocios/components/sections/bus
 import { CoachInfoSection } from '@/features/negocios/components/sections/coach-info-section'
 import { FormActions } from '@/features/negocios/components/form-actions'
 import { useBusinessForm } from '@/features/negocios/hooks/use-business-form'
+import { BUSINESS_VALUE_CHANGE_CONFIRMATION } from '@/features/negocios/lib/business-value-change'
+import { ConfirmActionDialog } from '@/features/shared/ui/confirm-action-dialog'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 
 export const BusinessForm = React.forwardRef<
@@ -60,6 +62,9 @@ export const BusinessForm = React.forwardRef<
 			getFieldPermission,
 			identityConflict,
 			resolveIdentityConflict,
+			valueChangeConfirmOpen,
+			confirmBusinessValueChange,
+			dismissBusinessValueChange,
 		} = useBusinessForm({
 			mode,
 			businessId,
@@ -148,6 +153,16 @@ export const BusinessForm = React.forwardRef<
 						isEditMode={isEditMode}
 					/>
 				</form>
+
+				<ConfirmActionDialog
+					open={valueChangeConfirmOpen}
+					title="Cambiar Valor de Negocio"
+					description={BUSINESS_VALUE_CHANGE_CONFIRMATION}
+					confirmLabel="Confirmar"
+					cancelLabel="Cancelar"
+					onConfirm={confirmBusinessValueChange}
+					onCancel={dismissBusinessValueChange}
+				/>
 			</div>
 		)
 	}

@@ -2,11 +2,18 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateCurrencySchema } from '@/features/admin/currencies/lib/currency-schemas'
 import { z } from 'zod'
+import { requireAuth, requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 
 export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { id } = await params
 		const currency = await prisma.currency.findUnique({
@@ -34,6 +41,11 @@ export async function PUT(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { id } = await params
 		const body = await request.json()
@@ -85,6 +97,11 @@ export async function DELETE(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { id } = await params
 		const currency = await prisma.currency.update({

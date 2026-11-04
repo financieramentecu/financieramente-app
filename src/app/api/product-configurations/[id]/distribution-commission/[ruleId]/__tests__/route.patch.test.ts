@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { NextRequest } from 'next/server'
 import { PATCH } from '../route'
+import { auth } from '@/lib/auth/nextauth'
+import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 
 const { findFirstPpc, updatePpc, countBusiness } = vi.hoisted(() => ({
@@ -21,11 +23,7 @@ vi.mock('@/lib/prisma', () => ({
 	},
 }))
 
-vi.mock('@/auth', () => ({
-	auth: vi.fn().mockResolvedValue({
-		user: { id: '1', email: 'admin@test.com' },
-	}),
-}))
+vi.mock('@/lib/auth/nextauth')
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn().mockResolvedValue(undefined),
@@ -52,9 +50,32 @@ const makeRequest = (body: unknown): NextRequest =>
 const makeParams = (id: string, ruleId: string) =>
 	({ params: Promise.resolve({ id, ruleId }) })
 
+const mockAuth = vi.mocked(auth)
+
 describe('PATCH /api/product-configurations/[id]/distribution-commission/[ruleId]', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockAuth.mockResolvedValue({
+			user: { id: '1', email: 'admin@test.com', role: UserRole.ADMIN },
+		} as never)
+	})
+
+	it('retorna 401 sin sesión', async () => {
+		mockAuth.mockResolvedValueOnce(null as never)
+		const req = makeRequest({ active: false })
+		const res = await PATCH(req, makeParams('1', '1'))
+		expect(res.status).toBe(401)
+		expect(updatePpc).not.toHaveBeenCalled()
+	})
+
+	it('retorna 403 para un rol sin autoridad de ADMIN', async () => {
+		mockAuth.mockResolvedValueOnce({
+			user: { id: '2', email: 'agente@test.com', role: UserRole.AGENTE },
+		} as never)
+		const req = makeRequest({ active: false })
+		const res = await PATCH(req, makeParams('1', '1'))
+		expect(res.status).toBe(403)
+		expect(updatePpc).not.toHaveBeenCalled()
 	})
 
 	it('desactivar regla sin negocios asociados retorna 200 y audit DEACTIVATED', async () => {

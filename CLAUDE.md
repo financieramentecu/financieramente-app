@@ -234,7 +234,7 @@ Releases use [Changesets](https://github.com/changesets/changesets). Each branch
 3. **Body format:** only `### Agregado`, `### Mejorado`, `### Corregido`, `### Técnico` headings with `- ` bullets. The first three are user/product-facing in Spanish; `### Técnico` is technical in English (models, endpoints, new files, migrations). Any other content makes the release fail.
 4. **NEVER edit `CHANGELOG.md` or the `package.json` version by hand.**
 5. **SDD archive:** the archive phase adds or updates the change's changeset (bump type + sections) instead of editing CHANGELOG/version.
-6. **Release to production:** on `develop`, run `npm run release:version` (preview with `-- --dry-run`). It consolidates all pending changesets into ONE CHANGELOG entry (`## [X.Y.Z] - YYYY-MM-DD`, Bogotá date), bumps `package.json`/`package-lock.json`, and deletes the consumed changesets. Review the diff, commit `chore(release): vX.Y.Z`, open a PR `develop` → `main`, and tag `vX.Y.Z` after merge.
+6. **Release to production:** from a branch synced with `develop`, run `npm run release:version` (preview with `-- --dry-run`). It consolidates all pending changesets into ONE CHANGELOG entry (`## [X.Y.Z] - YYYY-MM-DD`, Bogotá date), bumps `package.json`/`package-lock.json`, and deletes the consumed changesets. Review the diff, commit `chore(release): vX.Y.Z` on that branch, and open a PR into `develop`. Release flow is `develop → qa → main`: once the release commit is on `develop`, open a PR `develop` → `qa`, then a PR `qa` → `main`, and tag `vX.Y.Z` after the `main` merge.
 
 ## Coding Language Rules
 
@@ -331,3 +331,5 @@ See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed 
 - Full guide and migration tracking: [docs/DATE_HANDLING_CONVENTIONS.md](docs/DATE_HANDLING_CONVENTIONS.md). When you touch a file that handles business dates by hand, migrate it to the helpers as part of the same change and update its row in that doc.
 
 - Git: Use Git Flow (feature/, bugfix/, audit/, hotfix/). Branch from 'develop'. Commits MUST follow Conventional Commits (feat:, fix:, chore:, docs:, refactor:, audit:). PRs must use the provided template.
+- **NEVER push or commit directly to `develop`, `qa`, or `main`.** All changes to these branches MUST land through a Pull Request, including release commits (e.g. `chore(release): vX.Y.Z`) and branch-sync merges (e.g. `develop` → `qa`). Create a branch (feature/, bugfix/, chore/, etc.), push it, and open a PR into the target branch instead. GitHub-side branch protection is managed by the repo owner, not by Claude — this rule applies regardless of whether protection is enabled yet.
+- Release flow is `develop → qa → main` (not `develop → main`): release commits land on `develop` via PR, then a PR syncs `develop → qa`, then a PR releases `qa → main`.
