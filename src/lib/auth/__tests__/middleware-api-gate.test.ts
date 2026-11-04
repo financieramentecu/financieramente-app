@@ -144,7 +144,7 @@ describe('middleware /api/* decode-only gate [TM] (F1)', () => {
 		})
 	})
 
-	describe('non-partner and unauthenticated requests pass through untouched', () => {
+	describe('authenticated non-partner requests pass through untouched', () => {
 		it.each(['ADMIN', 'AGENTE', 'CONSULTOR', 'DEFAULT'])(
 			'role %s on a non-allowlisted route',
 			async (role) => {
@@ -152,25 +152,62 @@ describe('middleware /api/* decode-only gate [TM] (F1)', () => {
 				expectUntouched(await run(request('/api/admin/users', { cookie })))
 			}
 		)
+	})
 
+	describe('public API routes pass through without a session', () => {
 		it.each([
 			['/api/health', 'GET'],
-			['/api/leads/crm-sync', 'POST'],
+			['/api/account/activate', 'POST'],
 			['/api/account/forgot-password', 'POST'],
-			['/api/notifications/stream', 'GET'],
-			['/api/carga-archivos/file-import', 'POST'],
-			['/api/cron/anything', 'GET'],
+			['/api/account/reset-password', 'POST'],
 			['/api/auth/callback/credentials', 'POST'],
 			['/api/auth/session', 'GET'],
+			['/api/auth/csrf', 'GET'],
+			['/api/leads/crm-sync', 'POST'],
+			['/api/negocios/cron/fund-payments', 'POST'],
 		])('unauthenticated %s %s', async (path, method) => {
 			expectUntouched(await run(request(path, { method })))
 		})
+	})
 
-		it('x-api-key service calls pass through', async () => {
-			expectUntouched(
+	describe('unauthenticated requests to any other API route are denied (fail-closed)', () => {
+		async function expectUnauthorized(response: Response) {
+			expect(response.status).toBe(401)
+			expect(response.headers.get('set-cookie')).toBeNull()
+			expect(await response.json()).toEqual({
+				data: null,
+				error: 'No autorizado',
+			})
+		}
+
+		it.each([
+			['/api/admin/users', 'GET'],
+			['/api/negocios', 'GET'],
+			['/api/negocios/1', 'PUT'],
+			['/api/notifications/stream', 'GET'],
+			['/api/carga-archivos/file-import', 'POST'],
+			['/api/cron/anything', 'GET'],
+			['/api/some/future/route', 'DELETE'],
+		])('%s %s answers 401', async (path, method) => {
+			await expectUnauthorized(await run(request(path, { method })))
+		})
+
+		it.each([
+			['/api/health/extra', 'GET'],
+			['/api/account/activate/extra', 'POST'],
+			['/api/leads/crm-sync/extra', 'POST'],
+			['/api/negocios/cron/fund-payments/extra', 'POST'],
+			['/api/leads/crm-sync', 'GET'],
+			['/api/health', 'DELETE'],
+			['/api/negocios/cron/fund-payments', 'GET'],
+		])('public rules are anchored: %s %s answers 401', async (path, method) => {
+			await expectUnauthorized(await run(request(path, { method })))
+		})
+
+		it('x-api-key does not bypass the gate outside crm-sync', async () => {
+			await expectUnauthorized(
 				await run(
-					request('/api/leads/crm-sync', {
-						method: 'POST',
+					request('/api/admin/users', {
 						headers: { 'x-api-key': 'service-key' },
 					})
 				)
@@ -178,28 +215,28 @@ describe('middleware /api/* decode-only gate [TM] (F1)', () => {
 		})
 
 		it('treats a malformed session cookie as unauthenticated', async () => {
-			expectUntouched(
+			await expectUnauthorized(
 				await run(
 					request('/api/admin/users', { cookie: `${PLAIN_COOKIE}=not-a-jwt` })
 				)
 			)
 		})
 
-		it('treats an expired token as unauthenticated (routes do their own auth)', async () => {
-			const expired = await sessionCookie({ role: 'PARTNER' }, { maxAge: -60 })
-			expectUntouched(
+		it('treats an expired token as unauthenticated', async () => {
+			const expired = await sessionCookie({ role: 'ADMIN' }, { maxAge: -60 })
+			await expectUnauthorized(
 				await run(request('/api/admin/users', { cookie: expired }))
 			)
 		})
 
 		it('treats a token signed with another secret as unauthenticated', async () => {
 			const forged = await encode({
-				token: { userId: 1, role: 'PARTNER' },
+				token: { userId: 1, role: 'ADMIN' },
 				secret: 'another-secret-another-secret-another-secret',
 				salt: PLAIN_COOKIE,
 				maxAge: 3600,
 			})
-			expectUntouched(
+			await expectUnauthorized(
 				await run(
 					request('/api/admin/users', { cookie: `${PLAIN_COOKIE}=${forged}` })
 				)
@@ -208,12 +245,12 @@ describe('middleware /api/* decode-only gate [TM] (F1)', () => {
 
 		it('does not accept a token whose salt does not match the cookie name', async () => {
 			const wrongSalt = await encode({
-				token: { userId: 1, role: 'PARTNER' },
+				token: { userId: 1, role: 'ADMIN' },
 				secret: SECRET,
 				salt: 'something-else',
 				maxAge: 3600,
 			})
-			expectUntouched(
+			await expectUnauthorized(
 				await run(
 					request('/api/admin/users', {
 						cookie: `${PLAIN_COOKIE}=${wrongSalt}`,
