@@ -17,7 +17,6 @@ vi.mock('@/lib/prisma', () => ({
 			findUnique: vi.fn(),
 			findFirst: vi.fn(),
 			update: vi.fn(),
-			delete: vi.fn(),
 		},
 		productConfiguration: {
 			findFirst: vi.fn(),
@@ -681,7 +680,7 @@ describe('DELETE /api/products/[id]', () => {
 	const mockProductConfigurationFindFirst = vi.mocked(
 		prisma.productConfiguration.findFirst
 	)
-	const mockPrismaDelete = vi.mocked(prisma.product.delete)
+	const mockPrismaUpdate = vi.mocked(prisma.product.update)
 	const mockLogAuditEvent = vi.mocked(logAuditEvent)
 	const mockNextResponseJson = vi.mocked(NextResponse.json)
 
@@ -702,7 +701,7 @@ describe('DELETE /api/products/[id]', () => {
 	})
 
 	describe('Happy Path', () => {
-		it('debe eliminar producto exitosamente', async () => {
+		it('debe desactivar el producto (borrado lógico) exitosamente', async () => {
 			const mockSession = {
 				user: {
 					id: '1',
@@ -716,7 +715,7 @@ describe('DELETE /api/products/[id]', () => {
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
 			mockProductConfigurationFindFirst.mockResolvedValue(null) // No está en uso
-			mockPrismaDelete.mockResolvedValue(mockExistingProduct as never)
+			mockPrismaUpdate.mockResolvedValue(mockExistingProduct as never)
 
 			const request = new Request('http://localhost:3000/api/products/1', {
 				method: 'DELETE',
@@ -734,8 +733,9 @@ describe('DELETE /api/products/[id]', () => {
 			expect(mockProductConfigurationFindFirst).toHaveBeenCalledWith({
 				where: { idProduct: 1 },
 			})
-			expect(mockPrismaDelete).toHaveBeenCalledWith({
+			expect(mockPrismaUpdate).toHaveBeenCalledWith({
 				where: { idProduct: 1 },
+				data: { status: false },
 			})
 			expect(mockLogAuditEvent).toHaveBeenCalledWith({
 				userId: 1,
@@ -767,7 +767,7 @@ describe('DELETE /api/products/[id]', () => {
 				data: null,
 				error: 'No autorizado',
 			})
-			expect(mockPrismaDelete).not.toHaveBeenCalled()
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
 		})
 	})
 
@@ -796,7 +796,7 @@ describe('DELETE /api/products/[id]', () => {
 				data: null,
 				error: 'Producto no encontrado',
 			})
-			expect(mockPrismaDelete).not.toHaveBeenCalled()
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
 		})
 	})
 
@@ -835,12 +835,12 @@ describe('DELETE /api/products/[id]', () => {
 				error:
 					'Este producto está siendo utilizado en configuraciones de distribución comisional. No se puede eliminar.',
 			})
-			expect(mockPrismaDelete).not.toHaveBeenCalled()
+			expect(mockPrismaUpdate).not.toHaveBeenCalled()
 		})
 	})
 
 	describe('Casos de Errores de Base de Datos', () => {
-		it('debe retornar 500 cuando delete falla', async () => {
+		it('debe retornar 500 cuando la desactivación falla', async () => {
 			const mockSession = {
 				user: {
 					id: '1',
@@ -853,7 +853,7 @@ describe('DELETE /api/products/[id]', () => {
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
 			mockProductConfigurationFindFirst.mockResolvedValue(null)
-			mockPrismaDelete.mockRejectedValue(new Error('Delete failed'))
+			mockPrismaUpdate.mockRejectedValue(new Error('Delete failed'))
 
 			const request = new Request('http://localhost:3000/api/products/1', {
 				method: 'DELETE',
@@ -890,7 +890,7 @@ describe('DELETE /api/products/[id]', () => {
 			mockAuth.mockResolvedValue(mockSession as never)
 			mockPrismaFindUnique.mockResolvedValue(mockExistingProduct as never)
 			mockProductConfigurationFindFirst.mockResolvedValue(null)
-			mockPrismaDelete.mockRejectedValue(prismaError)
+			mockPrismaUpdate.mockRejectedValue(prismaError)
 
 			const request = new Request('http://localhost:3000/api/products/1', {
 				method: 'DELETE',
