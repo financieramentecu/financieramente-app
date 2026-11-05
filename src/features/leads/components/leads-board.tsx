@@ -8,10 +8,12 @@ import { useLeadsBoard } from '@/features/leads/hooks/use-leads-board'
 import { LeadFunnelColumnView } from '@/features/leads/components/lead-funnel-column-view'
 import { LeadFunnelColumnSkeleton } from '@/features/leads/components/lead-funnel-column-skeleton'
 import { LeadDetailSheet } from '@/features/leads/components/lead-detail-sheet'
+import { CrmSummaryCards } from '@/features/leads/analytics/crm-summary-cards'
 import { LeadsBoardFilters } from '@/features/leads/components/leads-board-filters'
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 import { Button } from '@/features/shared/ui/button'
 import { cn } from '@/lib/utils'
+import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
 
@@ -24,6 +26,13 @@ import type { LeadDetail } from '@/features/leads/types/lead.types'
 export function LeadsBoard() {
 	const { data: session } = useSession()
 	const isAdmin = session?.user?.role === UserRole.ADMIN
+	const { enabled: timelineEnabled } = useFeatureFlag('crm_timeline')
+	const { enabled: tasksEnabled } = useFeatureFlag('crm_tasks')
+	const { enabled: conversionAuditEnabled } = useFeatureFlag(
+		'crm_conversion_audit'
+	)
+	const { enabled: casesEnabled } = useFeatureFlag('crm_cases')
+	const { enabled: reportsEnabled } = useFeatureFlag('crm_reports')
 	const [filters, setFilters] = React.useState(getDefaultLeadBoardFilters())
 	const { state, refetch } = useLeadsBoard(filters)
 	const isRefreshing = state.status === 'loading'
@@ -68,6 +77,7 @@ export function LeadsBoard() {
 					Actualizar
 				</Button>
 			</div>
+			<CrmSummaryCards enabled={reportsEnabled} />
 			{(state.status === 'loading' || state.status === 'idle') && (
 				<div className="flex gap-4 overflow-x-auto pb-4">
 					{Array.from({ length: 4 }).map((_, index) => (
@@ -97,6 +107,10 @@ export function LeadsBoard() {
 				onOpenChange={setSheetOpen}
 				isAdmin={isAdmin}
 				onDeleted={handleLeadDeleted}
+				timelineEnabled={timelineEnabled}
+				tasksEnabled={tasksEnabled}
+				conversionAuditEnabled={conversionAuditEnabled}
+				casesEnabled={casesEnabled}
 			/>
 		</div>
 	)

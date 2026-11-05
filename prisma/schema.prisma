@@ -331,6 +331,12 @@ model User {
   notifications                       Notification[]
   comments                            Comment[]
   leads                               Lead[]
+  leadActivities                      LeadActivity[]          @relation("LeadActivityActor")
+  leadTasksAssigned                   LeadTask[]              @relation("LeadTaskAssignee")
+  leadTasksCreated                    LeadTask[]              @relation("LeadTaskCreator")
+  leadSupportCasesOpened               LeadSupportCase[]       @relation("LeadSupportCaseOpenedBy")
+  leadSupportCasesAssigned             LeadSupportCase[]       @relation("LeadSupportCaseAssignee")
+  leadSupportCaseComments              LeadSupportCaseComment[] @relation("LeadSupportCaseCommentAuthor")
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -471,6 +477,9 @@ model Business {
   settlementCommissions         SettlementCommission[]
   comments                      Comment[]
   lead                          Lead?
+  leadActivities                LeadActivity[]
+  leadTasks                     LeadTask[]
+  leadSupportCases              LeadSupportCase[]
 
   @@index([idUser])
   @@index([contract])
@@ -755,11 +764,126 @@ model LeadFunnelColumn {
   @@map("lead_funnel_column")
 }
 
+enum LeadActivityType {
+  NOTE_ADDED
+  TASK_CREATED
+  TASK_COMPLETED
+  TASK_REASSIGNED
+  CONVERTED
+  BUSINESS_LINKED
+  CASE_OPENED
+  CASE_UPDATED
+}
+
+enum LeadSupportCaseStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum LeadSupportCasePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum LeadTaskStatus {
+  OPEN
+  DONE
+  CANCELLED
+}
+
 enum LeadOutcomeStatus {
   OPEN
   WON
   LOST
   ABANDONED
+}
+
+
+model LeadActivity {
+  idLeadActivity Int              @id @default(autoincrement()) @map("id_lead_activity")
+  idLead         Int              @map("id_lead")
+  idBusiness     Int?             @map("id_business")
+  idUser         Int              @map("id_user")
+  type           LeadActivityType
+  occurredAt     DateTime         @default(now()) @map("occurred_at")
+  payload        Json
+  payloadVersion Int              @default(1) @map("payload_version")
+  correlationId  String?          @map("correlation_id") @db.VarChar(100)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  lead           Lead             @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
+  business       Business?        @relation(fields: [idBusiness], references: [idBusiness], onDelete: SetNull)
+  actor          User             @relation("LeadActivityActor", fields: [idUser], references: [idUser])
+
+  @@unique([idLead, correlationId])
+  @@index([idLead, occurredAt, idLeadActivity])
+  @@index([idBusiness, occurredAt])
+  @@index([correlationId])
+  @@map("lead_activity")
+}
+
+model LeadSupportCase {
+  idLeadSupportCase Int                     @id @default(autoincrement()) @map("id_lead_support_case")
+  idLead            Int                     @map("id_lead")
+  idBusiness        Int?                    @map("id_business")
+  openedBy          Int                     @map("opened_by")
+  assignedTo        Int?                    @map("assigned_to")
+  subject           String                  @db.VarChar(240)
+  status            LeadSupportCaseStatus   @default(OPEN)
+  priority          LeadSupportCasePriority @default(MEDIUM)
+  dueAt             DateTime?               @map("due_at")
+  resolvedAt        DateTime?               @map("resolved_at")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  lead              Lead                    @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
+  business          Business?               @relation(fields: [idBusiness], references: [idBusiness], onDelete: SetNull)
+  opener            User                    @relation("LeadSupportCaseOpenedBy", fields: [openedBy], references: [idUser])
+  assignee          User?                   @relation("LeadSupportCaseAssignee", fields: [assignedTo], references: [idUser])
+  comments          LeadSupportCaseComment[]
+
+  @@index([idLead, status])
+  @@index([idBusiness, status])
+  @@index([assignedTo, status, dueAt])
+  @@map("lead_support_case")
+}
+
+model LeadSupportCaseComment {
+  idLeadSupportCaseComment Int             @id @default(autoincrement()) @map("id_lead_support_case_comment")
+  idLeadSupportCase        Int             @map("id_lead_support_case")
+  authorId                 Int             @map("author_id")
+  body                     String          @db.VarChar(2000)
+  createdAt                DateTime        @default(now()) @map("created_at")
+  supportCase              LeadSupportCase @relation(fields: [idLeadSupportCase], references: [idLeadSupportCase], onDelete: Cascade)
+  author                   User            @relation("LeadSupportCaseCommentAuthor", fields: [authorId], references: [idUser])
+
+  @@index([idLeadSupportCase, createdAt])
+  @@map("lead_support_case_comment")
+}
+
+model LeadTask {
+  idLeadTask Int            @id @default(autoincrement()) @map("id_lead_task")
+  idLead     Int            @map("id_lead")
+  idBusiness Int?           @map("id_business")
+  assignedTo Int            @map("assigned_to")
+  createdBy  Int            @map("created_by")
+  title      String         @db.VarChar(240)
+  dueAt      DateTime?      @map("due_at")
+  status     LeadTaskStatus @default(OPEN)
+  completedAt DateTime?     @map("completed_at")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  lead       Lead           @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
+  business   Business?      @relation(fields: [idBusiness], references: [idBusiness], onDelete: SetNull)
+  assignee   User           @relation("LeadTaskAssignee", fields: [assignedTo], references: [idUser])
+  creator    User           @relation("LeadTaskCreator", fields: [createdBy], references: [idUser])
+
+  @@index([assignedTo, status, dueAt])
+  @@index([idLead, status])
+  @@map("lead_task")
 }
 
 model Lead {
@@ -782,6 +906,9 @@ model Lead {
   user               User?             @relation(fields: [idUser], references: [idUser])
   funnelColumn       LeadFunnelColumn  @relation(fields: [idLeadFunnelColumn], references: [idLeadFunnelColumn])
   business           Business?         @relation(fields: [idBusiness], references: [idBusiness])
+  activities         LeadActivity[]
+  tasks              LeadTask[]
+  supportCases       LeadSupportCase[]
 
   @@index([idUser])
   @@index([idLeadFunnelColumn])

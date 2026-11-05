@@ -18,6 +18,7 @@ describe('flagsmith-server', () => {
 
 	afterEach(() => {
 		delete process.env.FLAGSMITH_SERVER_KEY
+		delete process.env.LOCAL_CRM_FEATURE_FLAGS
 	})
 
 	describe('getFlagsmithServerState', () => {
@@ -34,6 +35,22 @@ describe('flagsmith-server', () => {
 			expect(parsed.flags['negocios_advanced_filters'].enabled).toBe(true)
 			expect(parsed.flags['dashboard_calculadora'].enabled).toBe(true)
 			expect(parsed.flags['impersonation_select'].enabled).toBe(true)
+			expect(parsed.flags.crm_timeline.enabled).toBe(false)
+		})
+
+		it('enables only explicitly selected CRM flags in the development stub', async () => {
+			const previousNodeEnv = process.env.NODE_ENV
+			Object.assign(process.env, { NODE_ENV: 'development' })
+			process.env.LOCAL_CRM_FEATURE_FLAGS = 'crm_timeline,crm_tasks,unknown_flag'
+
+			const { getFlagsmithServerState } = await import('../flagsmith-server')
+			const parsed = JSON.parse(await getFlagsmithServerState())
+
+			expect(parsed.flags.crm_timeline.enabled).toBe(true)
+			expect(parsed.flags.crm_tasks.enabled).toBe(true)
+			expect(parsed.flags.crm_cases.enabled).toBe(false)
+
+			Object.assign(process.env, { NODE_ENV: previousNodeEnv })
 		})
 
 		it('returns fallback state when Flagsmith API throws', async () => {
@@ -110,6 +127,7 @@ describe('flagsmith-server', () => {
 
 			expect(await isFeatureEnabledServer('negocios_advanced_filters')).toBe(true)
 			expect(await isFeatureEnabledServer('impersonation_select')).toBe(true)
+		expect(await isFeatureEnabledServer('crm_conversion_audit')).toBe(false)
 		})
 
 		it('returns the defined fallback value when Flagsmith API throws', async () => {

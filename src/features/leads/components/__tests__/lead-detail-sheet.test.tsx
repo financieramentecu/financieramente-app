@@ -15,6 +15,10 @@ vi.mock('@/features/leads/hooks/use-delete-lead', () => ({
 	useDeleteLead: () => ({ state: mockState, deleteLead: mockDeleteLead }),
 }))
 
+vi.mock('@/features/leads/activities/lead-activity-timeline', () => ({
+	LeadActivityTimeline: () => <section>Timeline</section>,
+}))
+
 function buildLead(overrides: Partial<LeadDetail> = {}): LeadDetail {
 	return {
 		idLead: 1,
@@ -113,6 +117,20 @@ describe('LeadDetailSheet', () => {
 	})
 })
 
+describe('LeadDetailSheet — CRM timeline', () => {
+	it('renders the timeline only behind its feature flag', () => {
+		render(
+			<LeadDetailSheet
+				lead={buildLead()}
+				open={true}
+				onOpenChange={vi.fn()}
+				timelineEnabled
+			/>
+		)
+		expect(screen.getByText('Timeline')).toBeInTheDocument()
+	})
+})
+
 describe('LeadDetailSheet — conversion requires an owner', () => {
 	it('renders "Convertir a negocio" as an active link when the lead has an owner', () => {
 		render(
@@ -137,9 +155,7 @@ describe('LeadDetailSheet — conversion requires an owner', () => {
 		const button = screen.getByRole('button', { name: 'Convertir a negocio' })
 		expect(button).toBeDisabled()
 		expect(screen.queryByText('Convertir a negocio')?.closest('a')).toBeNull()
-		expect(
-			screen.getByText(/asigna un owner/i)
-		).toBeInTheDocument()
+		expect(screen.getByText(/asigna un owner/i)).toBeInTheDocument()
 	})
 })
 
@@ -241,5 +257,23 @@ describe('LeadDetailSheet — admin delete', () => {
 		)
 
 		await waitFor(() => expect(onDeleted).toHaveBeenCalled())
+	})
+})
+
+describe('LeadDetailSheet — CRM conversion audit', () => {
+	it('shows a read-only conversion audit link only when the flag is enabled and a business is linked', () => {
+		render(
+			<LeadDetailSheet
+				lead={buildLead({ idBusiness: 42 })}
+				open={true}
+				onOpenChange={vi.fn()}
+				conversionAuditEnabled
+			/>
+		)
+		expect(screen.getByText('Ver auditoría de conversión')).toBeInTheDocument()
+		expect(screen.getByText('Ver auditoría de conversión').closest('a')).toHaveAttribute(
+			'href',
+			'/dashboard/negocios/42?crmAudit=1'
+		)
 	})
 })

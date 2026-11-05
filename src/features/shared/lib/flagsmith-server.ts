@@ -14,6 +14,37 @@ const FALLBACK_FLAGS: Record<FeatureFlag, boolean> = {
 	reportes_produccion_real: true,
 	reportes_leads_analytics: true,
 	reportes_aba_mfund: true,
+	crm_timeline: false,
+	crm_tasks: false,
+	crm_cases: false,
+	crm_conversion_audit: false,
+	crm_imports: false,
+	crm_reports: false,
+}
+
+const CRM_FEATURE_FLAGS = new Set<FeatureFlag>([
+	'crm_timeline',
+	'crm_tasks',
+	'crm_cases',
+	'crm_conversion_audit',
+	'crm_imports',
+	'crm_reports',
+])
+
+/**
+ * Allows a developer to exercise selected, default-off CRM surfaces locally
+ * without changing the rollout state in Flagsmith. This is intentionally
+ * ignored outside `development` and only accepts known CRM flags.
+ */
+function getLocalCrmOverrides(): Set<FeatureFlag> {
+	if (process.env.NODE_ENV !== 'development') return new Set()
+
+	return new Set(
+		(process.env.LOCAL_CRM_FEATURE_FLAGS ?? '')
+			.split(',')
+			.map((flag) => flag.trim())
+			.filter((flag): flag is FeatureFlag => CRM_FEATURE_FLAGS.has(flag as FeatureFlag))
+	)
 }
 
 let instance: Flagsmith | null = null
@@ -38,8 +69,15 @@ function getFallbackState(): FlagsmithServerState {
 }
 
 function getDevStubState(): FlagsmithServerState {
+	const localCrmOverrides = getLocalCrmOverrides()
 	const flags = Object.fromEntries(
-		ALL_FEATURE_FLAGS.map((key) => [key, { enabled: true, value: null }])
+		ALL_FEATURE_FLAGS.map((key) => [
+			key,
+			{
+				enabled: !CRM_FEATURE_FLAGS.has(key) || localCrmOverrides.has(key),
+				value: null,
+			},
+		])
 	)
 	return JSON.stringify({ api: FLAGSMITH_API_URL, flags })
 }
@@ -100,8 +138,11 @@ export async function isFeatureEnabledServer(
 	identity?: string
 ): Promise<boolean> {
 	if (process.env.NODE_ENV === 'development') return true
-	// No key configured (e.g. QA) → all flags enabled for testing, zero Flagsmith requests.
-	if (!process.env.FLAGSMITH_SERVER_KEY) return true
+	// QA keeps legacy flags available without a key, but CRM additions are
+	// explicitly default-off until their Flagsmith rollout is configured.
+	if (!process.env.FLAGSMITH_SERVER_KEY) {
+		return CRM_FEATURE_FLAGS.has(flag) ? FALLBACK_FLAGS[flag] : true
+	}
 	try {
 		const fs = getInstance()
 		const flagsObj = identity

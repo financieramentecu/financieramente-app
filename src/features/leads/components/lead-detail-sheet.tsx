@@ -30,6 +30,9 @@ import {
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
 import { canDeleteLead } from '@/features/leads/lib/can-delete-lead'
 import { useDeleteLead } from '@/features/leads/hooks/use-delete-lead'
+import { LeadActivityTimeline } from '@/features/leads/activities/lead-activity-timeline'
+import { LeadTaskList } from '@/features/leads/tasks/lead-task-list'
+import { LeadSupportCaseList } from '@/features/leads/cases/lead-support-case-list'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
 
 interface LeadDetailSheetProps {
@@ -38,6 +41,10 @@ interface LeadDetailSheetProps {
 	onOpenChange: (open: boolean) => void
 	isAdmin?: boolean
 	onDeleted?: () => void
+	timelineEnabled?: boolean
+	tasksEnabled?: boolean
+	conversionAuditEnabled?: boolean
+	casesEnabled?: boolean
 }
 
 /**
@@ -54,6 +61,10 @@ export function LeadDetailSheet({
 	onOpenChange,
 	isAdmin = false,
 	onDeleted,
+	timelineEnabled = false,
+	tasksEnabled = false,
+	conversionAuditEnabled = false,
+	casesEnabled = false,
 }: LeadDetailSheetProps) {
 	const { state: deleteState, deleteLead } = useDeleteLead()
 
@@ -66,8 +77,11 @@ export function LeadDetailSheet({
 
 	if (!lead) return null
 
-	const fullName = [lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
-	const hasExternalUrl = Boolean(lead.externalUrl && lead.externalUrl.trim() !== '')
+	const fullName =
+		[lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
+	const hasExternalUrl = Boolean(
+		lead.externalUrl && lead.externalUrl.trim() !== ''
+	)
 	const isConverted = lead.idBusiness != null
 	const hasOwner = lead.idUser != null
 	const canDelete = isAdmin && canDeleteLead(lead)
@@ -100,33 +114,77 @@ export function LeadDetailSheet({
 				<div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
 					{lead.email && (
 						<div className="flex items-center gap-2 text-sm text-foreground">
-							<Mail className="size-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+							<Mail
+								className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
+								aria-hidden
+							/>
 							<span className="truncate">{lead.email}</span>
 						</div>
 					)}
 					{lead.phone && (
 						<div className="flex items-center gap-2 text-sm text-foreground">
-							<Phone className="size-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+							<Phone
+								className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
+								aria-hidden
+							/>
 							<span>{lead.phone}</span>
 						</div>
 					)}
 					{lead.identityNumber && (
 						<div className="flex items-center gap-2 text-sm text-foreground">
-							<IdCard className="size-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+							<IdCard
+								className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
+								aria-hidden
+							/>
 							<span>{lead.identityNumber}</span>
 						</div>
 					)}
 					{lead.originTag && (
 						<div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-							<Tag className="size-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+							<Tag
+								className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
+								aria-hidden
+							/>
 							<span className="truncate">{lead.originTag}</span>
 						</div>
 					)}
-					{!lead.email && !lead.phone && !lead.identityNumber && !lead.originTag && (
-						<p className="text-sm text-slate-500 dark:text-slate-400">
-							Este lead no tiene datos de contacto adicionales.
-						</p>
+					{conversionAuditEnabled && isConverted && (
+						<div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+							<p className="font-medium">Conversión auditada</p>
+							<Link
+								href={`/dashboard/negocios/${lead.idBusiness}?crmAudit=1`}
+								className="text-primary underline-offset-4 hover:underline"
+							>
+								Ver auditoría de conversión
+							</Link>
+						</div>
 					)}
+					{timelineEnabled && (
+						<>
+							<Separator />
+							<LeadActivityTimeline leadId={lead.idLead} enabled />
+						</>
+					)}
+					{tasksEnabled && (
+						<>
+							<Separator />
+							<LeadTaskList leadId={lead.idLead} assigneeId={lead.idUser} enabled />
+						</>
+					)}
+					{casesEnabled && (
+						<>
+							<Separator />
+							<LeadSupportCaseList leadId={lead.idLead} enabled />
+						</>
+					)}
+					{!lead.email &&
+						!lead.phone &&
+						!lead.identityNumber &&
+						!lead.originTag && (
+							<p className="text-sm text-slate-500 dark:text-slate-400">
+								Este lead no tiene datos de contacto adicionales.
+							</p>
+						)}
 				</div>
 				<SheetFooter className="flex-col gap-2 border-t border-border pt-4">
 					{isConverted ? (
@@ -171,15 +229,13 @@ export function LeadDetailSheet({
 								<AlertDialogHeader>
 									<AlertDialogTitle>¿Eliminar este lead?</AlertDialogTitle>
 									<AlertDialogDescription>
-										Esta acción oculta el lead del tablero. Un futuro resync
-										del CRM puede restaurarlo.
+										Esta acción oculta el lead del tablero. Un futuro resync del
+										CRM puede restaurarlo.
 									</AlertDialogDescription>
 								</AlertDialogHeader>
 								<AlertDialogFooter>
 									<AlertDialogCancel>Cancelar</AlertDialogCancel>
-									<AlertDialogAction
-										onClick={() => deleteLead(lead.idLead)}
-									>
+									<AlertDialogAction onClick={() => deleteLead(lead.idLead)}>
 										Confirmar
 									</AlertDialogAction>
 								</AlertDialogFooter>

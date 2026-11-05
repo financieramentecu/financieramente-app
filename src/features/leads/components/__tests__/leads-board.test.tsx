@@ -7,6 +7,10 @@ import { LeadsBoard } from '@/features/leads/components/leads-board'
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
+vi.mock('@/features/shared/hooks/use-feature-flag', () => ({
+	useFeatureFlag: (flag: string) => ({ enabled: flag === 'crm_conversion_audit', value: null }),
+}))
+
 vi.mock('next-auth/react', () => ({
 	useSession: vi.fn(),
 }))
@@ -54,6 +58,16 @@ describe('LeadsBoard — admin role plumbing', () => {
 		mockFetch.mockResolvedValue({
 			json: async () => ({ data: [] }),
 		})
+	})
+
+	it('passes crmConversionAudit flag to LeadDetailSheet', async () => {
+		vi.mocked(useSession).mockReturnValue({
+			data: null,
+			status: 'unauthenticated',
+			update: vi.fn(),
+		} as never)
+		render(<LeadsBoard />)
+		await waitFor(() => expect(capturedProps.conversionAuditEnabled).toBe(true))
 	})
 
 	it('passes isAdmin={true} to LeadDetailSheet for an ADMIN session', async () => {

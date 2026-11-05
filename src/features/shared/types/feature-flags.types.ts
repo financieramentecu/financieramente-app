@@ -7,6 +7,12 @@ export const ALL_FEATURE_FLAGS = [
 	'reportes_produccion_real',
 	'reportes_leads_analytics',
 	'reportes_aba_mfund',
+	'crm_timeline',
+	'crm_tasks',
+	'crm_cases',
+	'crm_conversion_audit',
+	'crm_imports',
+	'crm_reports',
 ] as const
 
 export type FeatureFlag = (typeof ALL_FEATURE_FLAGS)[number]
