@@ -4,6 +4,7 @@ import {
 	ALL_MENU_ITEMS,
 	AGENTE_MENU_ITEMS,
 	PARTNER_MENU_ITEMS,
+	CRM_MENU_ITEM,
 	MenuItem,
 } from './menu-items'
 
@@ -56,17 +57,10 @@ export function buildMenuByRole(
 			continue
 		}
 
-		// Negocios
+		// Negocios (CRM sub-item gated by leads permission; lead visibility is
+		// resolved by hierarchy inside the module)
 		if (item.title === 'Negocios' && permissions.negocios.list) {
-			filteredItems.push(item)
-			continue
-		}
-
-		// Leads (visibilidad de qué leads ve cada usuario se resuelve por jerarquía dentro del módulo)
-		if (item.title === 'Leads') {
-			if (permissions.leads) {
-				filteredItems.push(item)
-			}
+			filteredItems.push(buildNegociosMenuItem(item, permissions))
 			continue
 		}
 
@@ -156,6 +150,25 @@ export function buildMenuByRole(
 	}
 
 	return filteredItems
+}
+
+/**
+ * Keeps the CRM sub-item only for roles with leads access. When only the
+ * listing sub-item survives, the entry renders flat (no sub-items).
+ */
+function buildNegociosMenuItem(
+	item: MenuItem,
+	permissions: RolePermissions
+): MenuItem {
+	const subItems = item.subItems?.filter(
+		(subItem) => subItem.url !== CRM_MENU_ITEM.url || permissions.leads
+	)
+
+	if (!subItems || subItems.length <= 1) {
+		return { ...item, subItems: undefined }
+	}
+
+	return { ...item, subItems }
 }
 
 /**

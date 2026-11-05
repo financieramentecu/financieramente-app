@@ -11,6 +11,7 @@ Sistema: Financieramente — liquidación de comisiones.
 - `AccountTokenType`: `ACTIVATION` | `RESET` (en `account_token.type`).
 - `LeadOutcomeStatus`: `OPEN` | `WON` | `LOST` | `ABANDONED` (en `lead.outcome_status`, `@default(OPEN)`, `NOT NULL`). `WON` es terminal: ver nota bajo "Índices y convenciones".
 - `DocumentDataType`: `NUMERIC` | `ALPHANUMERIC` (en `document_type.data_type`).
+- `LeadStageChangeSource`: `CRM_SYNC` | `CSV_IMPORT` | `MANUAL` (en `lead_stage_history.source`).
 
 ```mermaid
 erDiagram
@@ -64,6 +65,10 @@ erDiagram
     LeadFunnelColumn ||--o{ Lead : "columna del embudo"
     User ||--o{ Lead : "propietario del lead"
     Business ||--o| Lead : "negocio originado del lead"
+    Lead ||--o{ LeadStageHistory : "historial de etapas"
+    LeadFunnelColumn ||--o{ LeadStageHistory : "etapa origen"
+    LeadFunnelColumn ||--o{ LeadStageHistory : "etapa destino"
+    User ||--o{ LeadStageHistory : "usuario que movió"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
     Client ||--o{ Business : "negocios"
@@ -556,6 +561,17 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
+
+    LeadStageHistory {
+        int id_lead_stage_history PK
+        int id_lead FK
+        int from_id_lead_funnel_column FK
+        int to_id_lead_funnel_column FK
+        string source
+        int id_user FK
+        datetime changed_at
+        datetime created_at
+    }
 ```
 
 ## Leyenda de cardinalidad (Mermaid)
@@ -601,3 +617,4 @@ erDiagram
 - **Nuevas tablas `report_definition` y `category_report_permission`** (migración `20260805150000_add_report_permissions`, feature reportes/COM-80): catálogo de reportes con `code` único estable (p. ej. `PRODUCCION_REAL`) y habilitación por `Category`. Soft delete en ambas vía `status = false` — nunca `delete()` físico. Unique compuesto `(id_report, id_category)`. Save reemplaza el set: upsert `status=true` para seleccionadas; soft-disable las no seleccionadas. Seeds de deploy (`prisma migrate deploy`, no `db seed`): **Performance Leader** → `PRODUCCION_REAL` (`20260821153000`); **Performance Leader** + **Business Leader** → `LEADS_ANALYTICS` (`20260821180000`, reafirmado en `20260903120000`) y `ABA_MFUND` (`20260903120000`). ADMIN bypasea la validación de categoría al ver reportes.
 - **`User.activated_at` y nueva tabla `account_token`** (migración `20261010150000_partner_profile`, COM-41): `activated_at` es `TIMESTAMP(3)` nullable; la migración hace backfill `activated_at = created_at` para todos los usuarios existentes (nadie pierde acceso) y solo los usuarios nuevos nacen con `NULL` (pendientes de activación). El login exige `active AND activated_at IS NOT NULL`. `account_token` guarda únicamente el hash SHA-256 (`token_hash` único, `VARCHAR(64)`) de los tokens `ACTIVATION` (72 h) y `RESET` (1 h); se invalidan con `revoked_at` y se consumen con `used_at` (nunca se borran filas). Índice `(id_user, type)`.
 - **Nivel `PARTNER_EXTERNAL`** (COM-41, sembrado por `npm run prisma:seed:partner`, sin migración): fila de `level` con `beneficiary_mode = OVERRIDE` y sin `id_next_level`. Queda **fuera** de `NEXT_LEVEL_CHAIN` (no es siguiente nivel de ninguno) y no se renombra desde `LEVEL_5`, que sigue siendo "Partner". El rol `PARTNER` y la categoría "Partner Externo" (tipo `MIA`) también se siembran allí.
+- **Nueva tabla `lead_stage_history`** (migración `20261105120000_add_lead_stage_history`, change `crm-phase-0-foundation`): log de solo inserción (nunca se actualiza ni se borra) de cada transición de etapa del embudo. La escriben el webhook `crm-sync` (`source = CRM_SYNC`, `id_user = NULL`, `changed_at = updatedAt` del payload o el instante de proceso) y la importación CSV (`source = CSV_IMPORT`, `id_user` = quien importa) solo cuando el lead es nuevo (`from_id_lead_funnel_column = NULL`) o cambia de columna. Dos FKs a `lead_funnel_column` (relaciones `LeadStageHistoryFrom` / `LeadStageHistoryTo`). Índices `(id_lead, changed_at)` y `(to_id_lead_funnel_column, changed_at)` para reportes de tiempo en etapa. Un fallo al escribir el historial se reporta a Sentry y nunca rompe la sincronización. `MANUAL` queda reservado para el CRM editable (Fase 4).

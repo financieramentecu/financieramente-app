@@ -131,6 +131,22 @@ describe('LeadDetailSheet — CRM timeline', () => {
 	})
 })
 
+describe('LeadDetailSheet — GHL-managed indicator (crm-phase-0-foundation)', () => {
+	it('shows "Gestionado en GHL" when the lead has an externalCrmId', () => {
+		render(
+			<LeadDetailSheet lead={buildLead({ externalCrmId: 'crm-1' })} open={true} onOpenChange={vi.fn()} />
+		)
+		expect(screen.getByText('Gestionado en GHL')).toBeInTheDocument()
+	})
+
+	it.each([null, '  '])('hides the indicator when externalCrmId is %j', (externalCrmId) => {
+		render(
+			<LeadDetailSheet lead={buildLead({ externalCrmId })} open={true} onOpenChange={vi.fn()} />
+		)
+		expect(screen.queryByText('Gestionado en GHL')).not.toBeInTheDocument()
+	})
+})
+
 describe('LeadDetailSheet — conversion requires an owner', () => {
 	it('renders "Convertir a negocio" as an active link when the lead has an owner', () => {
 		render(

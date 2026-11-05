@@ -82,6 +82,10 @@ export function LeadDetailSheet({
 	const hasExternalUrl = Boolean(
 		lead.externalUrl && lead.externalUrl.trim() !== ''
 	)
+	// GHL stays the source of truth during the CRM migration: synced fields are read-only here
+	const isGhlManaged = Boolean(
+		lead.externalCrmId && lead.externalCrmId.trim() !== ''
+	)
 	const isConverted = lead.idBusiness != null
 	const hasOwner = lead.idUser != null
 	const canDelete = isAdmin && canDeleteLead(lead)
@@ -98,6 +102,14 @@ export function LeadDetailSheet({
 							>
 								{LEAD_OUTCOME_STATUS_LABELS[lead.outcomeStatus]}
 							</Badge>
+							{isGhlManaged && (
+								<Badge
+									variant="outline"
+									title="Los datos de este lead se gestionan en GoHighLevel y no se pueden editar aquí"
+								>
+									Gestionado en GHL
+								</Badge>
+							)}
 						</SheetTitle>
 						{lead.ownerName && (
 							<div className="mr-8 flex shrink-0 flex-col items-end gap-1">

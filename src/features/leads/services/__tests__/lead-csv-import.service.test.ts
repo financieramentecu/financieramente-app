@@ -4,6 +4,7 @@ import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { resolveOutcomeStatus } from '@/features/leads/lib/lead-outcome-status'
 import { importLeadsFromCsv } from '@/features/leads/services/lead-csv-import.service'
 import type { LeadCsvRawRow } from '@/features/leads/lib/parse-lead-csv-file'
+import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
 
 const CONTACTADO_COLUMN = {
 	idLeadFunnelColumn: 1,
@@ -54,6 +55,10 @@ vi.mock('@/lib/prisma', () => ({
 	},
 }))
 
+vi.mock('@/features/leads/services/lead-stage-history.service', () => ({
+	recordLeadStageChange: vi.fn(),
+}))
+
 vi.mock('@/features/auth/lib/audit-logger', async () => {
 	const actual = await vi.importActual<typeof import('@/features/auth/lib/audit-logger')>(
 		'@/features/auth/lib/audit-logger'
@@ -79,6 +84,36 @@ describe('importLeadsFromCsv', () => {
 					...(args as { create?: Record<string, unknown> }).create,
 				}) as never
 		)
+	})
+
+	it('records the stage change with source CSV_IMPORT and the importing user', async () => {
+		vi.mocked(prisma.lead.findUnique).mockResolvedValue({
+			idLead: 1,
+			idLeadFunnelColumn: 9,
+			outcomeStatus: 'OPEN',
+			idUser: null,
+		} as never)
+
+		await importLeadsFromCsv([makeRawRow({ id_externo_crm: 'CRM-1' })], ACTOR)
+
+		expect(recordLeadStageChange).toHaveBeenCalledWith(
+			expect.objectContaining({
+				idLead: 1,
+				fromIdLeadFunnelColumn: 9,
+				toIdLeadFunnelColumn: CONTACTADO_COLUMN.idLeadFunnelColumn,
+				source: 'CSV_IMPORT',
+				idUser: ACTOR.userId,
+			})
+		)
+	})
+
+	it('does not record history for rejected rows', async () => {
+		await importLeadsFromCsv(
+			[makeRawRow({ id_externo_crm: 'CRM-300', columna_funnel: 'Etapa Inexistente' })],
+			ACTOR
+		)
+
+		expect(recordLeadStageChange).not.toHaveBeenCalled()
 	})
 
 	it('imports valid rows and reports rejected ones without all-or-nothing rollback', async () => {

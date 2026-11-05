@@ -57,4 +57,11 @@ describe('buildBreadcrumbsFromPathname', () => {
 			{ label: 'ABA-MFUND', href: undefined },
 		])
 	})
+
+	it('labels the CRM page under Negocios', () => {
+		expect(buildBreadcrumbsFromPathname('/dashboard/negocios/crm')).toEqual([
+			{ label: 'Negocios', href: '/dashboard/negocios' },
+			{ label: 'CRM', href: undefined },
+		])
+	})
 })

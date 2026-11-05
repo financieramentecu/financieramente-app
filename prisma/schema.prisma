@@ -337,6 +337,7 @@ model User {
   leadSupportCasesOpened               LeadSupportCase[]       @relation("LeadSupportCaseOpenedBy")
   leadSupportCasesAssigned             LeadSupportCase[]       @relation("LeadSupportCaseAssignee")
   leadSupportCaseComments              LeadSupportCaseComment[] @relation("LeadSupportCaseCommentAuthor")
+  leadStageChanges                    LeadStageHistory[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -750,15 +751,17 @@ model Comment {
 }
 
 model LeadFunnelColumn {
-  idLeadFunnelColumn Int      @id @default(autoincrement()) @map("id_lead_funnel_column")
-  name               String   @db.VarChar(120)
-  externalStatusKey  String   @unique @map("external_status_key") @db.VarChar(150)
-  position           Int      @default(0)
-  isFallback         Boolean  @default(false) @map("is_fallback")
-  active             Boolean  @default(true)
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  idLeadFunnelColumn Int                @id @default(autoincrement()) @map("id_lead_funnel_column")
+  name               String             @db.VarChar(120)
+  externalStatusKey  String             @unique @map("external_status_key") @db.VarChar(150)
+  position           Int                @default(0)
+  isFallback         Boolean            @default(false) @map("is_fallback")
+  active             Boolean            @default(true)
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
   leads              Lead[]
+  stageHistoryFrom   LeadStageHistory[] @relation("LeadStageHistoryFrom")
+  stageHistoryTo     LeadStageHistory[] @relation("LeadStageHistoryTo")
 
   @@index([position])
   @@map("lead_funnel_column")
@@ -909,9 +912,36 @@ model Lead {
   activities         LeadActivity[]
   tasks              LeadTask[]
   supportCases       LeadSupportCase[]
+  stageHistory       LeadStageHistory[]
 
   @@index([idUser])
   @@index([idLeadFunnelColumn])
   @@index([outcomeStatus, createdAt])
   @@map("lead")
+}
+
+enum LeadStageChangeSource {
+  CRM_SYNC
+  CSV_IMPORT
+  MANUAL
+}
+
+/// Append-only log of funnel stage transitions (never updated or deleted).
+model LeadStageHistory {
+  idLeadStageHistory     Int                   @id @default(autoincrement()) @map("id_lead_stage_history")
+  idLead                 Int                   @map("id_lead")
+  fromIdLeadFunnelColumn Int?                  @map("from_id_lead_funnel_column")
+  toIdLeadFunnelColumn   Int                   @map("to_id_lead_funnel_column")
+  source                 LeadStageChangeSource
+  idUser                 Int?                  @map("id_user")
+  changedAt              DateTime              @map("changed_at")
+  createdAt              DateTime              @default(now()) @map("created_at")
+  lead                   Lead                  @relation(fields: [idLead], references: [idLead])
+  fromColumn             LeadFunnelColumn?     @relation("LeadStageHistoryFrom", fields: [fromIdLeadFunnelColumn], references: [idLeadFunnelColumn])
+  toColumn               LeadFunnelColumn      @relation("LeadStageHistoryTo", fields: [toIdLeadFunnelColumn], references: [idLeadFunnelColumn])
+  user                   User?                 @relation(fields: [idUser], references: [idUser])
+
+  @@index([idLead, changedAt])
+  @@index([toIdLeadFunnelColumn, changedAt])
+  @@map("lead_stage_history")
 }
