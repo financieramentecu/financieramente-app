@@ -34,6 +34,7 @@ function request(body: unknown) {
 
 beforeEach(() => {
 	vi.clearAllMocks()
+	vi.mocked(prisma.user.update).mockReset()
 	vi.mocked(auth).mockResolvedValue({
 		user: { id: '1', role: 'ADMIN' },
 	} as never)
@@ -58,7 +59,66 @@ describe('POST /api/admin/users/set-password — partner guard', () => {
 		expect(logAuditEvent).not.toHaveBeenCalled()
 	})
 
-	it('still sets the password of an ADMIN target (regression)', async () => {
+	it.each([false, true])(
+		'audits an ADMIN password update with ssoOnly=%s',
+		async (ssoOnly) => {
+			vi.mocked(prisma.user.findUnique).mockResolvedValue({
+				idUser: 2,
+				idRole: 1,
+				email: 'admin@example.com',
+				role: { code: 'ADMIN' },
+				level: null,
+			} as never)
+			vi.mocked(prisma.user.update).mockResolvedValue({} as never)
+
+			const response = await POST(
+				request({ userId: 2, password: 'abcd1234', ssoOnly })
+			)
+
+			expect(response.status).toBe(200)
+			expect(prisma.user.update).toHaveBeenCalledWith({
+				where: { idUser: 2 },
+				data: { password: 'hashed:abcd1234', ssoOnly },
+			})
+			expect(logAuditEvent).toHaveBeenCalledTimes(1)
+			expect(vi.mocked(prisma.user.update).mock.invocationCallOrder[0]).toBeLessThan(
+				vi.mocked(logAuditEvent).mock.invocationCallOrder[0]
+			)
+			expect(JSON.stringify(vi.mocked(logAuditEvent).mock.calls)).not.toContain(
+				'abcd1234'
+			)
+			expect(logAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					userId: 1,
+					roleId: 1,
+					action: 'USER_PASSWORD_SET',
+					email: 'admin@example.com',
+					ipAddress: '127.0.0.1',
+					userAgent: 'vitest',
+					details: expect.stringContaining('Usuario id=2'),
+				})
+			)
+			expect(logAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					details: expect.stringContaining(`ssoOnly=${ssoOnly}`),
+				})
+			)
+		}
+	)
+})
+
+describe('set-password audit failures', () => {
+	it('does not audit an unauthenticated request', async () => {
+		vi.mocked(auth).mockResolvedValue(null as never)
+		const response = await POST(
+			request({ userId: 2, password: 'abcd1234', ssoOnly: false })
+		)
+		expect(response.status).toBe(401)
+		expect(prisma.user.update).not.toHaveBeenCalled()
+		expect(logAuditEvent).not.toHaveBeenCalled()
+	})
+
+	it('does not audit a failed password update', async () => {
 		vi.mocked(prisma.user.findUnique).mockResolvedValue({
 			idUser: 2,
 			idRole: 1,
@@ -66,29 +126,18 @@ describe('POST /api/admin/users/set-password — partner guard', () => {
 			role: { code: 'ADMIN' },
 			level: null,
 		} as never)
-		vi.mocked(prisma.user.update).mockResolvedValue({} as never)
-
-		const response = await POST(
-			request({ userId: 2, password: 'abcd1234', ssoOnly: false })
+		vi.mocked(prisma.user.update).mockRejectedValueOnce(
+			new Error('Update failed')
 		)
-
-		expect(response.status).toBe(200)
-		expect(prisma.user.update).toHaveBeenCalled()
-		expect(logAuditEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				userId: 1,
-				roleId: 1,
-				action: 'USER_PASSWORD_SET',
-				email: 'admin@example.com',
-				ipAddress: '127.0.0.1',
-				userAgent: 'vitest',
-				details: expect.stringContaining('Usuario id=2'),
-			})
-		)
-		expect(logAuditEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				details: expect.stringContaining('ssoOnly=false'),
-			})
-		)
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+		try {
+			const response = await POST(
+				request({ userId: 2, password: 'abcd1234', ssoOnly: false })
+			)
+			expect(response.status).toBe(500)
+			expect(logAuditEvent).not.toHaveBeenCalled()
+		} finally {
+			consoleError.mockRestore()
+		}
 	})
 })
