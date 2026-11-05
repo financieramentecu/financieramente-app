@@ -116,4 +116,30 @@ describe('POST /api/admin/discounts', () => {
 		const response = await POST(request)
 		expect(response.status).toBe(409)
 	})
+
+	it('returns 409 when a concurrent request wins the race (unique violation P2002)', async () => {
+		mockAuth.mockResolvedValue({ user: { id: '1', email: 'admin@test.com' } } as never)
+		mockFindActiveByType.mockResolvedValue(null as never)
+		mockCreateDiscount.mockRejectedValue({ code: 'P2002' })
+		const request = new Request('http://localhost/api/admin/discounts', {
+			method: 'POST',
+			body: JSON.stringify(validBody),
+		})
+		const response = await POST(request)
+		const body = await response.json()
+		expect(response.status).toBe(409)
+		expect(body.error).toBe('Ya existe un descuento activo de tipo IMPUESTO')
+	})
+
+	it('still returns 500 for unexpected create errors', async () => {
+		mockAuth.mockResolvedValue({ user: { id: '1', email: 'admin@test.com' } } as never)
+		mockFindActiveByType.mockResolvedValue(null as never)
+		mockCreateDiscount.mockRejectedValue(new Error('db down'))
+		const request = new Request('http://localhost/api/admin/discounts', {
+			method: 'POST',
+			body: JSON.stringify(validBody),
+		})
+		const response = await POST(request)
+		expect(response.status).toBe(500)
+	})
 })
