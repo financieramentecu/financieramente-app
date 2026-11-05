@@ -41,7 +41,11 @@ export class ProcessBatchService {
 		}
 
 		const fileImport = await prisma.fileImport.findFirst({
-			where: { idFileImport: fileImportId, idUser: auditContext.userId },
+			where: {
+				idFileImport: fileImportId,
+				idUser: auditContext.userId,
+				status: { not: 'DELETED' },
+			},
 		})
 
 		if (!fileImport) {
