@@ -108,6 +108,8 @@ export function NegociosPageClient({
 	const [selectedBusiness, setSelectedBusiness] =
 		useState<BusinessEntity | null>(null)
 	const [isLoadingBusiness, setIsLoadingBusiness] = useState(false)
+	/** Business id the cancel modal was last opened for; guards against stale enrichment responses */
+	const cancelTargetIdRef = useRef<number | null>(null)
 
 	const [annualFundingOpen, setAnnualFundingOpen] = useState(false)
 	const [annualFundingBusinessId, setAnnualFundingBusinessId] = useState<
@@ -299,6 +301,9 @@ export function NegociosPageClient({
 	 * Abre el modal de cancelación con el negocio seleccionado
 	 */
 	const handleCancelBusiness = useCallback(async (business: Business) => {
+		const requestedId = Number(business.id)
+		cancelTargetIdRef.current = requestedId
+
 		// Set immediately from row data so the modal never closes due to null business
 		setSelectedBusiness(business as unknown as BusinessEntity)
 		setCancelModalOpen(true)
@@ -306,14 +311,22 @@ export function NegociosPageClient({
 		// Enrich with full data in the background
 		try {
 			setIsLoadingBusiness(true)
-			const response = await businessService.getById(Number(business.id))
-			if (response.data) {
+			const response = await businessService.getById(requestedId)
+			// Ignore late responses: the user may have closed the modal or opened
+			// it for another business while this request was in flight.
+			if (
+				response.data &&
+				cancelTargetIdRef.current === requestedId &&
+				Number(response.data.id) === requestedId
+			) {
 				setSelectedBusiness(response.data)
 			}
 		} catch (err) {
 			console.error('Error al cargar negocio:', err)
 		} finally {
-			setIsLoadingBusiness(false)
+			if (cancelTargetIdRef.current === requestedId) {
+				setIsLoadingBusiness(false)
+			}
 		}
 	}, [])
 
@@ -476,6 +489,7 @@ export function NegociosPageClient({
 			if (result) {
 				setCancelModalOpen(false)
 				setSelectedBusiness(null)
+				cancelTargetIdRef.current = null
 				// Refrescar lista de negocios y estadísticas
 				refetch(true)
 				refetchStats(true)
@@ -561,7 +575,9 @@ export function NegociosPageClient({
 	const handleCancelModalClose = useCallback((open: boolean) => {
 		setCancelModalOpen(open)
 		if (!open) {
+			cancelTargetIdRef.current = null
 			setSelectedBusiness(null)
+			setIsLoadingBusiness(false)
 		}
 	}, [])
 
