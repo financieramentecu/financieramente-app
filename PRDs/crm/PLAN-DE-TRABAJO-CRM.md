@@ -35,6 +35,28 @@ No vamos a instalar ninguno (stacks distintos y duplicarían usuarios/negocios);
 | **SuiteCRM** | Workflows (si X entonces Y), reglas de asignación, SLA / recordatorios, reportes de conversión | UI antigua, sobrecarga de módulos |
 | **Odoo CRM** | Pipeline con probabilidad y valor esperado, motivos de pérdida, actividades programadas con vencimiento, integración con el negocio/facturación (nuestro `Business`) | El resto del ERP |
 
+### 2.1 Qué ya se trajo de cada referencia (rama `codex/negocios-basic-crm`, Andrés)
+
+| Funcionalidad | Referencia | Estado |
+|---|---|---|
+| Timeline de eventos inmutable por lead (payload versionado, idempotente) | Twenty (`timelineActivity`) | Hecho (Andrés) |
+| Notas en el timeline | Twenty Notes / EspoCRM Stream | Hecho (Andrés) |
+| Tareas con responsable, vencimiento y estado | EspoCRM Task / Odoo `mail.activity` | Hecho (Andrés) |
+| Casos de soporte con estado, prioridad y comentarios | EspoCRM Case / SuiteCRM Cases | Hecho (Andrés) — no estaba en el plan |
+| Auditoría de conversión Lead → Negocio | EspoCRM (conversión de lead) | Hecho (Andrés) |
+| Resumen de pipeline en tarjetas | Odoo (análisis de pipeline) | Hecho (Andrés) — adelanta parte de la Fase 3 |
+| Flags por módulo (`crm_timeline`, `crm_tasks`, `crm_cases`, `crm_conversion_audit`, `crm_imports`, `crm_reports`) | — | Hecho (Andrés), apagados por defecto |
+| Historial de etapas | Odoo (seguimiento de etapa) | Hecho (Fase 0) |
+| Menú Negocios → CRM con pestañas | Twenty (vistas) | Hecho (Fase 0) |
+| Registrar llamadas, reuniones, email y WhatsApp | EspoCRM Calls & Meetings / Odoo "Registrar actividad" | Fase 1 |
+| Agenda "Mis actividades" (vencidas, hoy, próximas) | Odoo Activities / EspoCRM Activities | Fase 1 |
+| Recordatorios y resumen diario | EspoCRM reminders / Odoo | Fase 1 |
+| Lead sin actividad en N días | Odoo (días en etapa) | Fase 1 |
+| Vistas tabla, filtros guardados, etiquetas, campos personalizados | Twenty | Fase 2 |
+| Valor esperado y probabilidad | Odoo | Fase 2 |
+| Motivos de pérdida, varios pipelines, duplicados | Odoo / EspoCRM | Fase 4 |
+| Workflows y reglas de asignación | SuiteCRM | Fase 5 |
+
 ---
 
 ## 3. Navegación objetivo
@@ -92,7 +114,7 @@ El orden prioriza lo que **aporta valor sin pelear con GHL**. Las funciones que 
 
 ### Etapa A — Convivencia (GHL es la fuente de verdad)
 
-#### Fase 0 — Base (≈ 1 semana) · **en curso** (change `crm-phase-0-foundation`, rama `feature/crm-phase-0-foundation`)
+#### Fase 0 — Base (≈ 1 semana) · **hecha** (change `crm-phase-0-foundation`; aplicada sobre la rama de Andrés en `feature/crm-on-basic-crm`)
 - Reestructurar el menú: Negocios con submenú, página `/dashboard/negocios/crm` con pestañas y redirección desde `/dashboard/leads`.
 - Nueva tabla `LeadStageHistory`, alimentada por el webhook y la importación CSV: cada cambio de etapa queda registrado. Así, cuando llegue el corte, ya habrá historial para los reportes.
 - Badge "Gestionado en GHL" en el detalle de los leads sincronizados.
@@ -100,8 +122,9 @@ El orden prioriza lo que **aporta valor sin pelear con GHL**. Las funciones que 
   - Se reutiliza el flag existente `leads_module` en lugar de crear `crm_module`.
   - Los permisos granulares `crm.*` y el interruptor `crm_source_of_truth` pasan a la Fase 4: hoy no hay acciones de edición que controlar, y los permisos viajan dentro del JWT, así que renombrar `leads` rompería las sesiones activas.
 
-#### Fase 1 — Actividades y timeline (≈ 2 semanas) · **primer MVP útil**
-- Modelo `LeadActivity` (tipo: nota, llamada, reunión, email, tarea, WhatsApp; vencimiento; completada; responsable).
+#### Fase 1 — Actividades y timeline (≈ 2 semanas) · **primer MVP útil** · **diseño listo** (change `crm-phase-1-activities`)
+Parte ya está hecha en la rama de Andrés (ver sección 2.1). El diseño completa lo que falta sobre su modelo.
+- ~~Modelo `LeadActivity`~~ → ya existe (Andrés): registro de eventos inmutable + `LeadTask` para lo programado. Se amplía con llamadas, reuniones, email y WhatsApp registrados y con `LeadTask.type`.
 - Timeline en la ficha del lead: actividades, cambios de etapa (de `LeadStageHistory`) y comentarios.
 - Pestaña **Actividades**: mis pendientes de hoy, vencidas y próximas.
 - Recordatorios y notificaciones in-app/email (reutilizar `notifications` y `email`).
@@ -169,9 +192,10 @@ Sustituyen lo que hoy hacen los workflows de GHL.
 | Modelo | Fase | Notas |
 |---|---|---|
 | `LeadStageHistory` | 0 | La alimentan el webhook (Etapa A) y la UI (tras el corte) |
-| `LeadActivity` | 1 | Evaluar si reutilizar `comments` para las notas |
+| `LeadActivity`, `LeadTask`, `LeadSupportCase`, `LeadSupportCaseComment` | 1 (rama de Andrés) | Ya creados |
+| `LeadActivityType` (+ `*_LOGGED`), `LeadTaskType`, `LeadTask.reminderSentAt`, `Lead.lastActivityAt` | 1 | Migración aditiva |
 | `LeadTag`, `LeadTagOnLead`, `LeadCustomField`, `LeadCustomFieldValue` | 2 | Datos propios: sin conflicto con GHL |
-| `Lead` (+ `estimatedValue`, `probability`, `lastActivityAt`) | 2 | Migración aditiva, sin romper el webhook |
+| `Lead` (+ `estimatedValue`, `probability`) | 2 | Migración aditiva, sin romper el webhook |
 | `Lead` (+ `idLossReason`, `idPipeline`, `source`) + `LeadLossReason` + `LeadPipeline` | 4 | |
 | `CrmAutomationRule`, `CrmAutomationRun` | 5 | |
 
@@ -202,4 +226,4 @@ Sustituyen lo que hoy hacen los workflows de GHL.
 
 ## 9. Próximo paso
 
-Arrancar `/sdd-new crm-fase-0-base` (menú, permisos, flags y `LeadStageHistory`).
+Acordar con Andrés cómo entra su commit a `develop`, revisar el diseño de la Fase 1 (`openspec/changes/crm-phase-1-activities/`) y arrancar por la limpieza de rutas (Prisma fuera de los handlers).
