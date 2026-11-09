@@ -48,10 +48,10 @@ No vamos a instalar ninguno (stacks distintos y duplicarían usuarios/negocios);
 | Flags por módulo (`crm_timeline`, `crm_tasks`, `crm_cases`, `crm_conversion_audit`, `crm_imports`, `crm_reports`) | — | Hecho (Andrés), apagados por defecto |
 | Historial de etapas | Odoo (seguimiento de etapa) | Hecho (Fase 0) |
 | Menú Negocios → CRM con pestañas | Twenty (vistas) | Hecho (Fase 0) |
-| Registrar llamadas, reuniones, email y WhatsApp | EspoCRM Calls & Meetings / Odoo "Registrar actividad" | Fase 1 |
-| Agenda "Mis actividades" (vencidas, hoy, próximas) | Odoo Activities / EspoCRM Activities | Fase 1 |
-| Recordatorios y resumen diario | EspoCRM reminders / Odoo | Fase 1 |
-| Lead sin actividad en N días | Odoo (días en etapa) | Fase 1 |
+| Registrar llamadas, reuniones, email y WhatsApp | EspoCRM Calls & Meetings / Odoo "Registrar actividad" | Hecho (Fase 1) |
+| Agenda "Mis actividades" (vencidas, hoy, próximas) | Odoo Activities / EspoCRM Activities | Hecho (Fase 1) |
+| Recordatorios y resumen diario | EspoCRM reminders / Odoo | Hecho (Fase 1) |
+| Lead sin actividad en N días | Odoo (días en etapa) | Hecho (Fase 1) |
 | Vistas tabla, filtros guardados, etiquetas, campos personalizados | Twenty | Fase 2 |
 | Valor esperado y probabilidad | Odoo | Fase 2 |
 | Motivos de pérdida, varios pipelines, duplicados | Odoo / EspoCRM | Fase 4 |
@@ -122,7 +122,7 @@ El orden prioriza lo que **aporta valor sin pelear con GHL**. Las funciones que 
   - Se reutiliza el flag existente `leads_module` en lugar de crear `crm_module`.
   - Los permisos granulares `crm.*` y el interruptor `crm_source_of_truth` pasan a la Fase 4: hoy no hay acciones de edición que controlar, y los permisos viajan dentro del JWT, así que renombrar `leads` rompería las sesiones activas.
 
-#### Fase 1 — Actividades y timeline (≈ 2 semanas) · **primer MVP útil** · **diseño listo** (change `crm-phase-1-activities`)
+#### Fase 1 — Actividades y timeline (≈ 2 semanas) · **primer MVP útil** · **implementada** (change `crm-phase-1-activities`, rama `feature/crm-on-basic-crm`; falta el mockup en `Financiera.pen` y probar en QA)
 Parte ya está hecha en la rama de Andrés (ver sección 2.1). El diseño completa lo que falta sobre su modelo.
 - ~~Modelo `LeadActivity`~~ → ya existe (Andrés): registro de eventos inmutable + `LeadTask` para lo programado. Se amplía con llamadas, reuniones, email y WhatsApp registrados y con `LeadTask.type`.
 - Timeline en la ficha del lead: actividades, cambios de etapa (de `LeadStageHistory`) y comentarios.
@@ -226,4 +226,4 @@ Sustituyen lo que hoy hacen los workflows de GHL.
 
 ## 9. Próximo paso
 
-Acordar con Andrés cómo entra su commit a `develop`, revisar el diseño de la Fase 1 (`openspec/changes/crm-phase-1-activities/`) y arrancar por la limpieza de rutas (Prisma fuera de los handlers).
+Fase 1 implementada. Siguiente: acordar con Andrés cómo entra su commit a `develop`, probar la Fase 1 en QA con los flags `crm_timeline` y `crm_tasks` encendidos en Flagsmith, y arrancar la Fase 2 (vista tabla, filtros guardados, etiquetas, valor y probabilidad).
