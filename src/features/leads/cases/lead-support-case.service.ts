@@ -30,7 +30,7 @@ export interface AddLeadSupportCaseCommentInput {
   correlationId: string
 }
 
-type CaseWriter = Pick<Prisma.TransactionClient, 'leadSupportCase' | 'leadSupportCaseComment' | 'leadActivity'>
+type CaseWriter = Pick<Prisma.TransactionClient, 'leadSupportCase' | 'leadSupportCaseComment' | 'leadActivity' | 'lead'>
 
 /** Case lifecycle is additive CRM state; linked Business/Payment rows are never written here. */
 export async function createLeadSupportCaseTx(tx: CaseWriter, input: CreateLeadSupportCaseInput) {

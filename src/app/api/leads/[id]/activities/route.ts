@@ -64,8 +64,9 @@ export async function POST(request: Request, context: RouteContext) {
 		const input = leadCrmEventInputSchema.safeParse(await request.json())
 		if (!input.success) return error('Actividad inválida', 400)
 
+		const loggedAt = 'occurredAt' in input.data.payload ? input.data.payload.occurredAt : undefined
 		const activity = await appendLeadActivity(
-			{ idLead, type: input.data.type, payload: input.data.payload },
+			{ idLead, type: input.data.type, payload: input.data.payload, occurredAt: loggedAt ? new Date(loggedAt) : undefined },
 			{
 				userId: actor.idUser,
 				email: actor.email,

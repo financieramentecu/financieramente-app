@@ -4,7 +4,7 @@ import { appendLeadConversionAuditTx } from '@/features/leads/conversion/lead-co
 describe('lead conversion audit service', () => {
 	it('appends conversion and business-link events with deterministic distinct correlation ids', async () => {
 		const create = vi.fn().mockResolvedValue({})
-		const tx = { leadActivity: { create } }
+		const tx = { leadActivity: { create }, lead: { updateMany: vi.fn() } }
 
 		await appendLeadConversionAuditTx(tx as never, {
 			idLead: 12,

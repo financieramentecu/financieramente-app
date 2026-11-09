@@ -6,8 +6,9 @@ import {
 
 const create = vi.fn()
 const findMany = vi.fn()
+const updateMany = vi.fn()
 
-const tx = { leadActivity: { create } }
+const tx = { leadActivity: { create }, lead: { updateMany } }
 
 describe('lead activity service', () => {
 	beforeEach(() => vi.clearAllMocks())
@@ -62,5 +63,46 @@ describe('lead activity service', () => {
 				}),
 			])
 		)
+	})
+
+	it.each(['NOTE_ADDED', 'CALL_LOGGED', 'TASK_COMPLETED', 'CONVERTED'] as const)(
+		'bumps lead.lastActivityAt for contact event %s only when newer',
+		async (type) => {
+			create.mockResolvedValue({ idLeadActivity: 1 })
+			const occurredAt = new Date('2026-11-09T14:00:00.000Z')
+			await appendLeadActivityTx(tx as never, {
+				idLead: 12,
+				idUser: 4,
+				type,
+				payload: type === 'NOTE_ADDED' ? { note: 'x' } : type === 'CALL_LOGGED' ? { summary: 'x' } : type === 'CONVERTED' ? { businessId: 1 } : { taskId: 1 },
+				occurredAt,
+			})
+			expect(updateMany).toHaveBeenCalledWith({
+				where: { idLead: 12, OR: [{ lastActivityAt: null }, { lastActivityAt: { lt: occurredAt } }] },
+				data: { lastActivityAt: occurredAt },
+			})
+		}
+	)
+
+	it.each(['TASK_CREATED', 'TASK_REASSIGNED', 'CASE_UPDATED', 'BUSINESS_LINKED'] as const)(
+		'does not bump lastActivityAt for %s',
+		async (type) => {
+			create.mockResolvedValue({ idLeadActivity: 1 })
+			await appendLeadActivityTx(tx as never, { idLead: 12, idUser: 4, type, payload: { taskId: 1 } })
+			expect(updateMany).not.toHaveBeenCalled()
+		}
+	)
+
+	it('stores the logged occurredAt from the client payload', async () => {
+		create.mockResolvedValue({ idLeadActivity: 1 })
+		const occurredAt = new Date('2026-11-08T09:30:00.000Z')
+		await appendLeadActivityTx(tx as never, {
+			idLead: 12,
+			idUser: 4,
+			type: 'MEETING_LOGGED',
+			payload: { summary: 'Reunión inicial' },
+			occurredAt,
+		})
+		expect(create).toHaveBeenCalledWith({ data: expect.objectContaining({ occurredAt }) })
 	})
 })

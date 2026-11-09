@@ -1,26 +1,38 @@
-import type { Prisma, PrismaClient } from '@prisma/client'
+import type { LeadActivityType, Prisma, PrismaClient } from '@prisma/client'
+import type { LoggedContactPayload } from '@/features/leads/crm/lead-crm-event.schema'
+
+export type LeadActivityKind = LeadActivityType
+
+export type LeadActivityPayload =
+	| { note: string }
+	| LoggedContactPayload
+	| { taskId: number; title?: string; assignedTo?: number }
+	| { businessId: number }
+	| { caseId: number; subject?: string; status?: string; action?: 'COMMENTED' }
 
 export interface AppendLeadActivityInput {
 	idLead: number
 	idUser: number
-	type:
-		| 'NOTE_ADDED'
-		| 'TASK_CREATED'
-		| 'TASK_COMPLETED'
-		| 'TASK_REASSIGNED'
-		| 'CONVERTED'
-		| 'BUSINESS_LINKED'
-		| 'CASE_OPENED'
-		| 'CASE_UPDATED'
-	payload:
-		| { note: string }
-		| { taskId: number; title?: string; assignedTo?: number }
-		| { businessId: number }
-		| { caseId: number; subject?: string; status?: string; action?: 'COMMENTED' }
+	type: LeadActivityKind
+	payload: LeadActivityPayload
 	idBusiness?: number | null
 	occurredAt?: Date
 	correlationId?: string
 }
+
+/**
+ * Events that mean someone actually worked the lead; they move
+ * `lead.lastActivityAt` (inactivity indicator). Bookkeeping events do not.
+ */
+export const ACTIVITY_TYPES_COUNTING_AS_CONTACT: ReadonlySet<LeadActivityKind> = new Set<LeadActivityKind>([
+	'NOTE_ADDED',
+	'CALL_LOGGED',
+	'MEETING_LOGGED',
+	'EMAIL_LOGGED',
+	'WHATSAPP_LOGGED',
+	'TASK_COMPLETED',
+	'CONVERTED',
+])
 
 export interface LeadActivityCursor {
 	occurredAt: Date
@@ -34,22 +46,10 @@ export interface LeadActivityPageOptions {
 
 export interface LeadTimelineItem {
 	idLeadActivity: number
-	type:
-		| 'NOTE_ADDED'
-		| 'TASK_CREATED'
-		| 'TASK_COMPLETED'
-		| 'TASK_REASSIGNED'
-		| 'CONVERTED'
-		| 'BUSINESS_LINKED'
-		| 'CASE_OPENED'
-		| 'CASE_UPDATED'
+	type: LeadActivityKind
 	occurredAt: Date
 	actorName: string
-	payload:
-		| { note: string }
-		| { taskId: number; title?: string; assignedTo?: number }
-		| { businessId: number }
-		| { caseId: number; subject?: string; status?: string; action?: 'COMMENTED' }
+	payload: LeadActivityPayload
 }
 
 export interface LeadActivityPage {
@@ -57,7 +57,7 @@ export interface LeadActivityPage {
 	nextCursor: LeadActivityCursor | null
 }
 
-type ActivityWriter = Pick<Prisma.TransactionClient, 'leadActivity'>
+export type ActivityWriter = Pick<Prisma.TransactionClient, 'leadActivity' | 'lead'>
 type ActivityReader = Pick<PrismaClient, 'leadActivity'>
 
 /**
@@ -69,7 +69,8 @@ export async function appendLeadActivityTx(
 	tx: ActivityWriter,
 	input: AppendLeadActivityInput
 ) {
-	return tx.leadActivity.create({
+	const occurredAt = input.occurredAt ?? new Date()
+	const activity = await tx.leadActivity.create({
 		data: {
 			idLead: input.idLead,
 			idBusiness: input.idBusiness ?? null,
@@ -77,10 +78,17 @@ export async function appendLeadActivityTx(
 			type: input.type,
 			payload: input.payload,
 			payloadVersion: 1,
-			occurredAt: input.occurredAt ?? new Date(),
+			occurredAt,
 			correlationId: input.correlationId,
 		},
 	})
+	if (ACTIVITY_TYPES_COUNTING_AS_CONTACT.has(input.type)) {
+		await tx.lead.updateMany({
+			where: { idLead: input.idLead, OR: [{ lastActivityAt: null }, { lastActivityAt: { lt: occurredAt } }] },
+			data: { lastActivityAt: occurredAt },
+		})
+	}
+	return activity
 }
 
 /**

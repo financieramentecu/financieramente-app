@@ -7,7 +7,7 @@ export interface AppendLeadConversionAuditInput {
 	idUser: number
 }
 
-type ConversionActivityWriter = Pick<Prisma.TransactionClient, 'leadActivity'>
+type ConversionActivityWriter = Pick<Prisma.TransactionClient, 'leadActivity' | 'lead'>
 
 /**
  * Appends the two conversion facts only after the authoritative business/link

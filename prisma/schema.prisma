@@ -776,6 +776,10 @@ enum LeadActivityType {
   BUSINESS_LINKED
   CASE_OPENED
   CASE_UPDATED
+  CALL_LOGGED
+  MEETING_LOGGED
+  EMAIL_LOGGED
+  WHATSAPP_LOGGED
 }
 
 enum LeadSupportCaseStatus {
@@ -791,6 +795,14 @@ enum LeadSupportCasePriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum LeadTaskType {
+  TODO
+  CALL
+  MEETING
+  EMAIL
+  WHATSAPP
 }
 
 enum LeadTaskStatus {
@@ -875,8 +887,10 @@ model LeadTask {
   createdBy  Int            @map("created_by")
   title      String         @db.VarChar(240)
   dueAt      DateTime?      @map("due_at")
+  type       LeadTaskType   @default(TODO)
   status     LeadTaskStatus @default(OPEN)
   completedAt DateTime?     @map("completed_at")
+  reminderSentAt DateTime?  @map("reminder_sent_at")
   createdAt  DateTime       @default(now()) @map("created_at")
   updatedAt  DateTime       @updatedAt @map("updated_at")
   lead       Lead           @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
@@ -886,6 +900,7 @@ model LeadTask {
 
   @@index([assignedTo, status, dueAt])
   @@index([idLead, status])
+  @@index([dueAt, reminderSentAt])
   @@map("lead_task")
 }
 
@@ -904,6 +919,7 @@ model Lead {
   idBusiness         Int?              @unique @map("id_business")
   outcomeStatus      LeadOutcomeStatus @default(OPEN) @map("outcome_status")
   active             Boolean           @default(true)
+  lastActivityAt     DateTime?         @map("last_activity_at")
   createdAt          DateTime          @default(now()) @map("created_at")
   updatedAt          DateTime          @updatedAt @map("updated_at")
   user               User?             @relation(fields: [idUser], references: [idUser])
@@ -917,6 +933,7 @@ model Lead {
   @@index([idUser])
   @@index([idLeadFunnelColumn])
   @@index([outcomeStatus, createdAt])
+  @@index([outcomeStatus, lastActivityAt])
   @@map("lead")
 }
 

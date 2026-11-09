@@ -26,7 +26,7 @@ export interface ReassignLeadTaskInput {
 	correlationId: string
 }
 
-type TaskWriter = Pick<Prisma.TransactionClient, 'leadTask' | 'leadActivity'>
+type TaskWriter = Pick<Prisma.TransactionClient, 'leadTask' | 'leadActivity' | 'lead'>
 
 /** All task lifecycle transitions append an immutable activity in the caller transaction. */
 export async function createLeadTaskTx(tx: TaskWriter, input: CreateLeadTaskInput) {
