@@ -20,6 +20,7 @@ const column: LeadBoardColumn = {
 			ownerName: 'Ana Torres',
 			outcomeStatus: 'OPEN',
 			idBusiness: null,
+			inactiveDays: null,
 		},
 	],
 }

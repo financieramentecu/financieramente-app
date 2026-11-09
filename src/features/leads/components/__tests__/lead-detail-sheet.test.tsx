@@ -37,6 +37,7 @@ function buildLead(overrides: Partial<LeadDetail> = {}): LeadDetail {
 		outcomeStatus: 'OPEN',
 		createdAt: new Date(),
 		updatedAt: new Date(),
+		inactiveDays: null,
 		...overrides,
 	}
 }

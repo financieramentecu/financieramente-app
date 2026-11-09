@@ -12,6 +12,7 @@ import {
 	LEAD_OUTCOME_STATUS_BADGE_VARIANTS,
 } from '@/features/leads/lib/lead-outcome-status'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
+import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
 import { cn } from '@/lib/utils'
 import type { LeadCard as LeadCardType } from '@/features/leads/types/lead.types'
 
@@ -73,6 +74,7 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 						>
 							{LEAD_OUTCOME_STATUS_LABELS[lead.outcomeStatus]}
 						</Badge>
+						<InactivityBadge days={lead.inactiveDays} />
 					</div>
 					{lead.ownerName && (
 						<div className="flex shrink-0 flex-col items-center gap-1">

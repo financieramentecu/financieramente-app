@@ -31,6 +31,7 @@ import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
 import { canDeleteLead } from '@/features/leads/lib/can-delete-lead'
 import { useDeleteLead } from '@/features/leads/hooks/use-delete-lead'
 import { LeadActivityTimeline } from '@/features/leads/activities/lead-activity-timeline'
+import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
 import { LeadTaskList } from '@/features/leads/tasks/lead-task-list'
 import { LeadSupportCaseList } from '@/features/leads/cases/lead-support-case-list'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
@@ -110,6 +111,7 @@ export function LeadDetailSheet({
 									Gestionado en GHL
 								</Badge>
 							)}
+							<InactivityBadge days={lead.inactiveDays} />
 						</SheetTitle>
 						{lead.ownerName && (
 							<div className="mr-8 flex shrink-0 flex-col items-end gap-1">

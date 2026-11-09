@@ -27,8 +27,8 @@ describe('getLeadBoard', () => {
 			{ idLeadFunnelColumn: 2, name: 'Nuevo', position: 1, isFallback: false },
 		] as never)
 		vi.mocked(prisma.lead.findMany).mockResolvedValue([
-			{ idLead: 10, idLeadFunnelColumn: 2, idUser: 5, name: 'A', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', idBusiness: 77, user: { name: 'Ana', lastName: 'Torres' } },
-			{ idLead: 11, idLeadFunnelColumn: 1, idUser: 5, name: 'B', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', idBusiness: null, user: null },
+			{ idLead: 10, idLeadFunnelColumn: 2, idUser: 5, name: 'A', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', idBusiness: 77, lastActivityAt: new Date(), createdAt: new Date('2026-01-01T00:00:00Z'), user: { name: 'Ana', lastName: 'Torres' } },
+			{ idLead: 11, idLeadFunnelColumn: 1, idUser: 5, name: 'B', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', idBusiness: null, lastActivityAt: null, createdAt: new Date('2026-01-01T00:00:00Z'), user: null },
 		] as never)
 
 		const board = await getLeadBoard(
@@ -46,6 +46,8 @@ describe('getLeadBoard', () => {
 		const sinMapearColumn = board.find((c) => c.idLeadFunnelColumn === 1)
 		expect(sinMapearColumn?.leads[0].ownerName).toBeNull()
 		expect(sinMapearColumn?.leads[0].idBusiness).toBeNull()
+		expect(nuevoColumn?.leads[0].inactiveDays).toBeNull()
+		expect(sinMapearColumn?.leads[0].inactiveDays).toBeGreaterThan(7)
 	})
 
 	it('selects idBusiness in a single query (no extra query per card)', async () => {

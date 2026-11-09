@@ -2,62 +2,35 @@
 
 import * as React from 'react'
 import { RefreshCw } from 'lucide-react'
-import { useSession } from 'next-auth/react'
-import { UserRole } from '@/features/auth/lib/roles'
 import { useLeadsBoard } from '@/features/leads/hooks/use-leads-board'
 import { LeadFunnelColumnView } from '@/features/leads/components/lead-funnel-column-view'
 import { LeadFunnelColumnSkeleton } from '@/features/leads/components/lead-funnel-column-skeleton'
-import { LeadDetailSheet } from '@/features/leads/components/lead-detail-sheet'
+import { CrmLeadDetailSheet } from '@/features/leads/components/crm-lead-detail-sheet'
+import { useLeadDetailSheet } from '@/features/leads/hooks/use-lead-detail-sheet'
 import { CrmSummaryCards } from '@/features/leads/analytics/crm-summary-cards'
 import { LeadsBoardFilters } from '@/features/leads/components/leads-board-filters'
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 import { Button } from '@/features/shared/ui/button'
 import { cn } from '@/lib/utils'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
-import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import type { LeadDetail } from '@/features/leads/types/lead.types'
 
 /**
  * Container component for the read-only Leads Kanban board.
  * Fetches columns via `useLeadsBoard(filters)`, renders `LeadsBoardFilters`
- * + `LeadFunnelColumnView` per column, and opens `LeadDetailSheet` on card
+ * + `LeadFunnelColumnView` per column, and opens `CrmLeadDetailSheet` on card
  * click.
  */
 export function LeadsBoard() {
-	const { data: session } = useSession()
-	const isAdmin = session?.user?.role === UserRole.ADMIN
-	const { enabled: timelineEnabled } = useFeatureFlag('crm_timeline')
-	const { enabled: tasksEnabled } = useFeatureFlag('crm_tasks')
-	const { enabled: conversionAuditEnabled } = useFeatureFlag(
-		'crm_conversion_audit'
-	)
-	const { enabled: casesEnabled } = useFeatureFlag('crm_cases')
 	const { enabled: reportsEnabled } = useFeatureFlag('crm_reports')
 	const [filters, setFilters] = React.useState(getDefaultLeadBoardFilters())
 	const { state, refetch } = useLeadsBoard(filters)
 	const isRefreshing = state.status === 'loading'
-	const [selectedLead, setSelectedLead] = React.useState<LeadDetail | null>(
-		null
-	)
-	const [sheetOpen, setSheetOpen] = React.useState(false)
+	const sheet = useLeadDetailSheet()
 
-	const handleLeadDeleted = React.useCallback(() => {
-		setSheetOpen(false)
+	function handleLeadDeleted() {
+		sheet.setOpen(false)
 		refetch()
-	}, [refetch])
-
-	const handleLeadClick = React.useCallback(async (idLead: number) => {
-		try {
-			const response = await fetch(`/api/leads/${idLead}`)
-			const body: ApiResponse<LeadDetail> = await response.json()
-			if (!('error' in body)) {
-				setSelectedLead(body.data)
-				setSheetOpen(true)
-			}
-		} catch {
-			// Silently ignore — detail sheet simply won't open
-		}
-	}, [])
+	}
 
 	return (
 		<div className="space-y-4">
@@ -96,21 +69,16 @@ export function LeadsBoard() {
 						<LeadFunnelColumnView
 							key={column.idLeadFunnelColumn}
 							column={column}
-							onLeadClick={handleLeadClick}
+							onLeadClick={(idLead) => void sheet.openLead(idLead)}
 						/>
 					))}
 				</div>
 			)}
-			<LeadDetailSheet
-				lead={selectedLead}
-				open={sheetOpen}
-				onOpenChange={setSheetOpen}
-				isAdmin={isAdmin}
+			<CrmLeadDetailSheet
+				lead={sheet.lead}
+				open={sheet.open}
+				onOpenChange={sheet.setOpen}
 				onDeleted={handleLeadDeleted}
-				timelineEnabled={timelineEnabled}
-				tasksEnabled={tasksEnabled}
-				conversionAuditEnabled={conversionAuditEnabled}
-				casesEnabled={casesEnabled}
 			/>
 		</div>
 	)

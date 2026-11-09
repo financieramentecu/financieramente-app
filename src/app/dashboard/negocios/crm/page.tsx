@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
@@ -26,7 +26,9 @@ export default async function CrmPage() {
 	return (
 		<DashboardLayout currentPage="CRM" breadcrumbs={[]}>
 			<div className="space-y-6">
-				<CrmTabs />
+				<Suspense fallback={null}>
+					<CrmTabs />
+				</Suspense>
 			</div>
 		</DashboardLayout>
 	)

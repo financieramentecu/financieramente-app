@@ -1,30 +1,64 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import { useSearchParams } from 'next/navigation'
+import { useFlags } from '@flagsmith/flagsmith/react'
 import { CrmTabs } from '@/features/leads/components/crm-tabs'
+import { useLeadDetailSheet } from '@/features/leads/hooks/use-lead-detail-sheet'
 
+vi.mock('next/navigation', () => ({ useSearchParams: vi.fn() }))
+vi.mock('@flagsmith/flagsmith/react', () => ({ useFlags: vi.fn() }))
 vi.mock('@/features/leads/components/leads-board', () => ({
 	LeadsBoard: () => <div data-testid="leads-board" />,
 }))
+vi.mock('@/features/leads/agenda/activities-agenda', () => ({
+	ActivitiesAgenda: () => <div data-testid="activities-agenda" />,
+}))
+vi.mock('@/features/leads/components/crm-lead-detail-sheet', () => ({
+	CrmLeadDetailSheet: () => null,
+}))
+vi.mock('@/features/leads/hooks/use-lead-detail-sheet', () => ({ useLeadDetailSheet: vi.fn() }))
+
+const openLead = vi.fn()
+
+function setup(params: string, tasksEnabled: boolean) {
+	vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams(params) as never)
+	vi.mocked(useFlags).mockReturnValue({ crm_tasks: { enabled: tasksEnabled, value: null } } as never)
+	render(<CrmTabs />)
+}
 
 describe('CrmTabs', () => {
-	it('selects the Pipeline tab and renders the leads board', () => {
-		render(<CrmTabs />)
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(useLeadDetailSheet).mockReturnValue({ lead: null, open: false, setOpen: vi.fn(), openLead })
+	})
 
-		expect(screen.getByRole('tab', { name: /Pipeline/ })).toHaveAttribute(
-			'aria-selected',
-			'true'
-		)
+	it('selects the Pipeline tab and renders the leads board', () => {
+		setup('', true)
+		expect(screen.getByRole('tab', { name: /Pipeline/ })).toHaveAttribute('aria-selected', 'true')
 		expect(screen.getByTestId('leads-board')).toBeInTheDocument()
 	})
 
-	it.each(['Leads', 'Actividades', 'Reportes'])(
-		'renders the %s tab disabled as coming soon',
-		(label) => {
-			render(<CrmTabs />)
+	it.each(['Leads', 'Reportes'])('renders the %s tab disabled as coming soon', (label) => {
+		setup('', true)
+		const tab = screen.getByRole('tab', { name: new RegExp(label) })
+		expect(tab).toBeDisabled()
+		expect(tab).toHaveTextContent('Próximamente')
+	})
 
-			const tab = screen.getByRole('tab', { name: new RegExp(label) })
-			expect(tab).toBeDisabled()
-			expect(tab).toHaveTextContent('Próximamente')
-		}
-	)
+	it('keeps Actividades disabled while crm_tasks is off', () => {
+		setup('tab=actividades', false)
+		expect(screen.getByRole('tab', { name: /Actividades/ })).toBeDisabled()
+		expect(screen.getByRole('tab', { name: /Pipeline/ })).toHaveAttribute('aria-selected', 'true')
+	})
+
+	it('opens Actividades from ?tab=actividades when crm_tasks is on', () => {
+		setup('tab=actividades', true)
+		expect(screen.getByRole('tab', { name: /Actividades/ })).toHaveAttribute('aria-selected', 'true')
+		expect(screen.getByTestId('activities-agenda')).toBeInTheDocument()
+	})
+
+	it('opens the lead sheet from ?lead=', async () => {
+		setup('tab=actividades&lead=42', true)
+		await waitFor(() => expect(openLead).toHaveBeenCalledWith(42))
+	})
 })

@@ -42,6 +42,8 @@ export interface LeadCard {
 	ownerName: string | null
 	outcomeStatus: LeadOutcomeStatus
 	idBusiness: number | null
+	/** Idle days when the open lead passed `CRM_INACTIVITY_DAYS`, else null. */
+	inactiveDays: number | null
 }
 
 /**
@@ -64,6 +66,8 @@ export interface LeadDetail {
 	outcomeStatus: LeadOutcomeStatus
 	createdAt: Date
 	updatedAt: Date
+	/** Idle days when the open lead passed `CRM_INACTIVITY_DAYS`, else null. */
+	inactiveDays: number | null
 }
 
 /**

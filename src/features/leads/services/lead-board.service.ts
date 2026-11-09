@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
+import { getInactivityDays, resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
 import type {
 	LeadBoardColumn,
 	LeadDetail,
@@ -51,10 +52,14 @@ export async function getLeadBoard(
 				idLeadFunnelColumn: true,
 				outcomeStatus: true,
 				idBusiness: true,
+				lastActivityAt: true,
+				createdAt: true,
 				user: { select: { name: true, lastName: true } },
 			},
 		}),
 	])
+	const now = new Date()
+	const threshold = resolveInactivityThreshold()
 
 	return columns.map((column) => ({
 		idLeadFunnelColumn: column.idLeadFunnelColumn,
@@ -74,6 +79,7 @@ export async function getLeadBoard(
 				ownerName: buildOwnerName(lead.user ?? null),
 				outcomeStatus: lead.outcomeStatus,
 				idBusiness: lead.idBusiness,
+				inactiveDays: getInactivityDays(lead, now, threshold),
 			})),
 	}))
 }
@@ -113,5 +119,6 @@ export async function getLeadDetail(
 		idBusiness: lead.idBusiness,
 		createdAt: lead.createdAt,
 		updatedAt: lead.updatedAt,
+		inactiveDays: getInactivityDays(lead, new Date(), resolveInactivityThreshold()),
 	}
 }
