@@ -38,21 +38,72 @@ describe('LeadActivityTimeline', () => {
 	it('creates a plain-text note through the lead activity API', async () => {
 		const fetchMock = vi
 			.fn()
-			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { items: [] } }) })
+			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { items: [], nextCursor: null } }) })
 			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { idLeadActivity: 2 } }) })
-			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { items: [] } }) })
+			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { items: [], nextCursor: null } }) })
 		vi.stubGlobal('fetch', fetchMock)
 
 		render(<LeadActivityTimeline leadId={1} enabled />)
-		fireEvent.change(await screen.findByLabelText('Nueva nota'), {
-			target: { value: 'Llamar el viernes' },
-		})
-		fireEvent.click(screen.getByRole('button', { name: 'Agregar nota' }))
+		fireEvent.change(await screen.findByLabelText('Detalle'), { target: { value: 'Llamar el viernes' } })
+		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }))
 
 		await waitFor(() =>
 			expect(fetchMock).toHaveBeenCalledWith(
 				'/api/leads/1/activities',
-				expect.objectContaining({ method: 'POST' })
+				expect.objectContaining({
+					method: 'POST',
+					body: JSON.stringify({ type: 'NOTE_ADDED', payload: { note: 'Llamar el viernes' } }),
+				})
+			)
+		)
+	})
+
+	it('logs a call with its outcome', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { items: [], nextCursor: null } }) })
+			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { idLeadActivity: 3 } }) })
+			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { items: [], nextCursor: null } }) })
+		vi.stubGlobal('fetch', fetchMock)
+
+		render(<LeadActivityTimeline leadId={1} enabled />)
+		fireEvent.change(await screen.findByLabelText('Tipo de actividad'), { target: { value: 'CALL_LOGGED' } })
+		fireEvent.change(screen.getByLabelText('Resultado'), { target: { value: 'NO_ANSWER' } })
+		fireEvent.change(screen.getByLabelText('Detalle'), { target: { value: 'Sin respuesta' } })
+		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }))
+
+		await waitFor(() =>
+			expect(fetchMock).toHaveBeenCalledWith(
+				'/api/leads/1/activities',
+				expect.objectContaining({
+					body: JSON.stringify({ type: 'CALL_LOGGED', payload: { summary: 'Sin respuesta', outcome: 'NO_ANSWER' } }),
+				})
+			)
+		)
+	})
+
+	it('renders stage changes and loads more pages', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					data: {
+						items: [{ kind: 'stage_change', idLeadStageHistory: 4, occurredAt: '2026-11-05T10:00:00.000Z', actorName: null, fromColumnName: 'Nuevo', toColumnName: 'Contactado', source: 'CRM_SYNC' }],
+						nextCursor: '2026-11-05T10:00:00.000Z|stage_change|4',
+					},
+				}),
+			})
+			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: { items: [], nextCursor: null } }) })
+		vi.stubGlobal('fetch', fetchMock)
+
+		render(<LeadActivityTimeline leadId={1} enabled />)
+		expect(await screen.findByText('Nuevo → Contactado')).toBeInTheDocument()
+		expect(screen.getByText('GHL')).toBeInTheDocument()
+		fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+		await waitFor(() =>
+			expect(fetchMock).toHaveBeenLastCalledWith(
+				'/api/leads/1/activities?limit=25&cursor=2026-11-05T10%3A00%3A00.000Z%7Cstage_change%7C4'
 			)
 		)
 	})

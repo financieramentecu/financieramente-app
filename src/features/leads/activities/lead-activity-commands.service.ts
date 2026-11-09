@@ -3,16 +3,10 @@ import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
 import {
 	appendLeadActivityTx,
-	getLeadActivityPage,
 	type AppendLeadActivityInput,
-	type LeadActivityPageOptions,
 } from '@/features/leads/activities/lead-activity.service'
 
 export type AppendClientActivityInput = Pick<AppendLeadActivityInput, 'idLead' | 'type' | 'payload' | 'occurredAt'>
-
-export function listLeadActivities(idLead: number, options: LeadActivityPageOptions = {}) {
-	return getLeadActivityPage(prisma, idLead, options)
-}
 
 /** Appends a user-originated timeline event and audits it. */
 export async function appendLeadActivity(input: AppendClientActivityInput, ctx: CrmRequestContext) {

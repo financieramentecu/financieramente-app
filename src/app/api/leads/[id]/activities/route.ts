@@ -8,25 +8,12 @@ import {
 	requireCrmActor,
 } from '@/lib/auth/require-crm-actor'
 import { leadCrmEventInputSchema } from '@/features/leads/crm/lead-crm-event.schema'
-import type { LeadActivityCursor, LeadActivityPage } from '@/features/leads/activities/lead-activity.service'
-import {
-	appendLeadActivity,
-	listLeadActivities,
-} from '@/features/leads/activities/lead-activity-commands.service'
+import { appendLeadActivity } from '@/features/leads/activities/lead-activity-commands.service'
+import { getLeadTimelinePage, type LeadTimelinePage } from '@/features/leads/activities/lead-timeline.service'
+import { decodeTimelineCursor } from '@/features/leads/activities/merge-timeline'
 
 interface RouteContext {
 	params: Promise<{ id: string }>
-}
-
-function parseCursor(value: string | null): LeadActivityCursor | undefined {
-	if (!value) return undefined
-	const [dateValue, idValue] = value.split('|')
-	const occurredAt = new Date(dateValue)
-	const idLeadActivity = Number.parseInt(idValue ?? '', 10)
-	if (Number.isNaN(occurredAt.getTime()) || !Number.isSafeInteger(idLeadActivity) || idLeadActivity < 1) {
-		return undefined
-	}
-	return { occurredAt, idLeadActivity }
 }
 
 export async function GET(request: Request, context: RouteContext) {
@@ -41,11 +28,11 @@ export async function GET(request: Request, context: RouteContext) {
 		const limit = Number.parseInt(url.searchParams.get('limit') ?? '25', 10)
 		if (!Number.isFinite(limit) || limit < 1 || limit > 100) return error('Límite inválido', 400)
 		const cursorValue = url.searchParams.get('cursor')
-		const cursor = parseCursor(cursorValue)
+		const cursor = cursorValue ? decodeTimelineCursor(cursorValue) : null
 		if (cursorValue && !cursor) return error('Cursor inválido', 400)
 
-		const page = await listLeadActivities(idLead, { limit, cursor })
-		return NextResponse.json({ data: page } satisfies ApiResponse<LeadActivityPage>)
+		const page = await getLeadTimelinePage(idLead, { limit, cursor: cursor ?? undefined })
+		return NextResponse.json({ data: page } satisfies ApiResponse<LeadTimelinePage>)
 	} catch (cause) {
 		console.error('Error fetching lead activities:', cause)
 		return error('Error al obtener las actividades del lead', 500)
