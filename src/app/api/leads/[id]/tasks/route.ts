@@ -50,6 +50,7 @@ export async function POST(request: Request, context: RouteContext) {
 				idLead,
 				assignedTo: input.data.assignedTo,
 				title: input.data.title,
+				type: input.data.type,
 				dueAt: input.data.dueAt ? new Date(input.data.dueAt) : null,
 			},
 			{

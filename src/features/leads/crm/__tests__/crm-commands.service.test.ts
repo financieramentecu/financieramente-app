@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { appendLeadActivityTx } from '@/features/leads/activities/lead-activity.service'
-import { completeLeadTaskTx, createLeadTaskTx, reassignLeadTaskTx } from '@/features/leads/tasks/lead-task.service'
+import { completeLeadTaskTx, createLeadTaskTx, reassignLeadTaskTx, rescheduleLeadTaskTx } from '@/features/leads/tasks/lead-task.service'
 import {
 	addLeadSupportCaseCommentTx,
 	createLeadSupportCaseTx,
@@ -15,6 +15,7 @@ import {
 	findLeadTaskRef,
 	listLeadTasks,
 	reassignLeadTask,
+	rescheduleLeadTask,
 } from '@/features/leads/tasks/lead-task-commands.service'
 import {
 	addLeadSupportCaseComment,
@@ -41,6 +42,7 @@ vi.mock('@/features/leads/tasks/lead-task.service', () => ({
 	createLeadTaskTx: vi.fn(),
 	completeLeadTaskTx: vi.fn(),
 	reassignLeadTaskTx: vi.fn(),
+	rescheduleLeadTaskTx: vi.fn(),
 }))
 vi.mock('@/features/leads/cases/lead-support-case.service', () => ({
 	createLeadSupportCaseTx: vi.fn(),
@@ -87,6 +89,10 @@ describe('CRM command services', () => {
 		vi.mocked(reassignLeadTaskTx).mockResolvedValue({ idLeadTask: 3 } as never)
 		await reassignLeadTask({ idLeadTask: 3, idLead: 1, assignedTo: 8 }, ctx)
 		expectAudit(AuditAction.LEAD_TASK_REASSIGNED)
+
+		vi.mocked(rescheduleLeadTaskTx).mockResolvedValue({ idLeadTask: 3 } as never)
+		await rescheduleLeadTask({ idLeadTask: 3, idLead: 1, dueAt: null }, ctx)
+		expectAudit(AuditAction.LEAD_TASK_UPDATED)
 	})
 
 	it('finds a task reference', async () => {

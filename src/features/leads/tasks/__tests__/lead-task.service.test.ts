@@ -3,6 +3,7 @@ import {
 	completeLeadTaskTx,
 	createLeadTaskTx,
 	reassignLeadTaskTx,
+	rescheduleLeadTaskTx,
 } from '@/features/leads/tasks/lead-task.service'
 
 const create = vi.fn()
@@ -90,5 +91,19 @@ describe('lead task service', () => {
 			expect.anything(),
 			expect.objectContaining({ type: 'TASK_REASSIGNED', idLead: 4, idUser: 7 })
 	)
+	})
+
+	it('stores the task type on create', async () => {
+		create.mockResolvedValue({ idLeadTask: 11, idLead: 4, title: 't' })
+		await createLeadTaskTx(tx as never, { idLead: 4, assignedTo: 8, createdBy: 7, title: 't', type: 'MEETING', correlationId: 'c' })
+		expect(create).toHaveBeenCalledWith({ data: expect.objectContaining({ type: 'MEETING' }) })
+	})
+
+	it('reschedules a task and clears its reminder so it fires again', async () => {
+		update.mockResolvedValue({ idLeadTask: 10 })
+		const dueAt = new Date('2026-11-12T15:00:00.000Z')
+		await rescheduleLeadTaskTx(tx as never, { idLeadTask: 10, dueAt })
+		expect(update).toHaveBeenCalledWith({ where: { idLeadTask: 10 }, data: { dueAt, reminderSentAt: null } })
+		expect(appendLeadActivityTx).not.toHaveBeenCalled()
 	})
 })

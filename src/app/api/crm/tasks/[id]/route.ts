@@ -12,6 +12,7 @@ import {
 	completeLeadTask,
 	findLeadTaskRef,
 	reassignLeadTask,
+	rescheduleLeadTask,
 } from '@/features/leads/tasks/lead-task-commands.service'
 
 interface RouteContext {
@@ -43,6 +44,11 @@ export async function PATCH(request: Request, context: RouteContext) {
 			const assignedTo = input.data.assignedTo as number
 			if (!canAssignWithinScope(actor, assignedTo)) return error('No puedes asignar fuera de tu alcance', 403)
 			const updated = await reassignLeadTask({ idLeadTask, idLead: task.idLead, assignedTo }, ctx)
+			return NextResponse.json({ data: updated })
+		}
+		if (input.data.action === 'reschedule') {
+			const dueAt = input.data.dueAt ? new Date(input.data.dueAt) : null
+			const updated = await rescheduleLeadTask({ idLeadTask, idLead: task.idLead, dueAt }, ctx)
 			return NextResponse.json({ data: updated })
 		}
 		const updated = await completeLeadTask({ idLeadTask, idLead: task.idLead }, ctx)

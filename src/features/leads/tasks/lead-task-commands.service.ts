@@ -5,13 +5,16 @@ import {
 	completeLeadTaskTx,
 	createLeadTaskTx,
 	reassignLeadTaskTx,
+	rescheduleLeadTaskTx,
 } from '@/features/leads/tasks/lead-task.service'
+import type { LeadTaskKind } from '@/features/leads/tasks/lead-task.schema'
 
 export interface CreateTaskCommand {
 	idLead: number
 	assignedTo: number
 	title: string
 	dueAt?: Date | null
+	type?: LeadTaskKind
 }
 
 function audit(ctx: CrmRequestContext, action: AuditAction, details: string) {
@@ -32,6 +35,7 @@ export function listLeadTasks(idLead: number) {
 		select: {
 			idLeadTask: true,
 			title: true,
+			type: true,
 			dueAt: true,
 			status: true,
 			assignedTo: true,
@@ -75,6 +79,19 @@ export async function reassignLeadTask(
 		ctx,
 		AuditAction.LEAD_TASK_REASSIGNED,
 		`Lead ${input.idLead}: task ${input.idLeadTask} reassigned to ${input.assignedTo}`
+	)
+	return task
+}
+
+export async function rescheduleLeadTask(
+	input: { idLeadTask: number; idLead: number; dueAt: Date | null },
+	ctx: CrmRequestContext
+) {
+	const task = await prisma.$transaction((tx) => rescheduleLeadTaskTx(tx, input))
+	await audit(
+		ctx,
+		AuditAction.LEAD_TASK_UPDATED,
+		`Lead ${input.idLead}: task ${input.idLeadTask} rescheduled to ${input.dueAt?.toISOString() ?? 'sin fecha'}`
 	)
 	return task
 }

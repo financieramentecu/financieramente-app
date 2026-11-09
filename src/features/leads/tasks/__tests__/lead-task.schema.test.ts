@@ -10,4 +10,17 @@ describe('lead task schemas', () => {
 		expect(leadTaskCreateSchema.safeParse({ title: '<script>x</script>', assignedTo: 7 }).success).toBe(false)
 		expect(leadTaskUpdateSchema.safeParse({ status: 'OPEN' }).success).toBe(false)
 	})
+
+	it('accepts a task type and defaults to TODO', () => {
+		expect(leadTaskCreateSchema.parse({ title: 'Llamar', assignedTo: 7 }).type).toBe('TODO')
+		expect(leadTaskCreateSchema.parse({ title: 'Llamar', assignedTo: 7, type: 'CALL' }).type).toBe('CALL')
+		expect(leadTaskCreateSchema.safeParse({ title: 'x', assignedTo: 7, type: 'FAX' }).success).toBe(false)
+	})
+
+	it('accepts reschedule with a date or null and rejects it without dueAt', () => {
+		expect(leadTaskUpdateSchema.safeParse({ action: 'reschedule', dueAt: '2026-11-10T15:00:00.000Z' }).success).toBe(true)
+		expect(leadTaskUpdateSchema.safeParse({ action: 'reschedule', dueAt: null }).success).toBe(true)
+		expect(leadTaskUpdateSchema.safeParse({ action: 'reschedule' }).success).toBe(false)
+		expect(leadTaskUpdateSchema.safeParse({ action: 'complete', dueAt: null }).success).toBe(false)
+	})
 })

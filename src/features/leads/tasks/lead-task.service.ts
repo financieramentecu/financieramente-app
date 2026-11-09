@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { appendLeadActivityTx } from '@/features/leads/activities/lead-activity.service'
+import type { LeadTaskKind } from '@/features/leads/tasks/lead-task.schema'
 
 export interface CreateLeadTaskInput {
 	idLead: number
@@ -8,6 +9,7 @@ export interface CreateLeadTaskInput {
 	createdBy: number
 	title: string
 	dueAt?: Date | null
+	type?: LeadTaskKind
 	correlationId: string
 }
 
@@ -38,6 +40,7 @@ export async function createLeadTaskTx(tx: TaskWriter, input: CreateLeadTaskInpu
 			createdBy: input.createdBy,
 			title: input.title,
 			dueAt: input.dueAt ?? null,
+			type: input.type ?? 'TODO',
 			status: 'OPEN',
 		},
 	})
@@ -79,4 +82,15 @@ export async function reassignLeadTaskTx(tx: TaskWriter, input: ReassignLeadTask
 		correlationId: input.correlationId,
 	})
 	return task
+}
+
+/** A new due date re-arms the reminder (`reminderSentAt = null`). Bookkeeping only: no timeline event. */
+export async function rescheduleLeadTaskTx(
+	tx: Pick<Prisma.TransactionClient, 'leadTask'>,
+	input: { idLeadTask: number; dueAt: Date | null }
+) {
+	return tx.leadTask.update({
+		where: { idLeadTask: input.idLeadTask },
+		data: { dueAt: input.dueAt, reminderSentAt: null },
+	})
 }

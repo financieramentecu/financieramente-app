@@ -274,6 +274,14 @@ jobs:
           (crontab -l 2>/dev/null | grep -v 'fund-payments' || true
            echo "0 6 * * * curl -s -X POST https://negocios.financieramentecu.co/api/negocios/cron/fund-payments -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_PROD }}' >> /var/log/financieramente/fund-payments.log 2>&1") | crontab -
 
+          # Ensure CRM task reminders cron (idempotent, every 15 minutes)
+          (crontab -l 2>/dev/null | grep -v 'crm-task-reminders' || true
+           echo "*/15 * * * * curl -s -X POST https://negocios.financieramentecu.co/api/leads/cron/task-reminders -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_PROD }}' >> /var/log/financieramente/crm-task-reminders.log 2>&1") | crontab -
+
+          # Ensure CRM daily task digest cron (idempotent, daily at 12:00 UTC = 07:00 Bogotá)
+          (crontab -l 2>/dev/null | grep -v 'crm-task-digest' || true
+           echo "0 12 * * * curl -s -X POST https://negocios.financieramentecu.co/api/leads/cron/task-digest -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_PROD }}' >> /var/log/financieramente/crm-task-digest.log 2>&1") | crontab -
+
           # Wait for services to be ready
           echo "Waiting for services to start..."
           sleep 30
