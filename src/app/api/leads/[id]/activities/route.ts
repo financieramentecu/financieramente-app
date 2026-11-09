@@ -1,52 +1,21 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import {
-	getAccessibleUserIds,
-	isHierarchyBypassRole,
-} from '@/features/auth/lib/hierarchy'
-import { getLeadDetail } from '@/features/leads/services/lead-board.service'
-import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
+	crmErrorResponse as error,
+	findScopedLead,
+	parsePositiveId,
+	requireCrmActor,
+} from '@/lib/auth/require-crm-actor'
 import { leadCrmEventInputSchema } from '@/features/leads/crm/lead-crm-event.schema'
-import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
+import type { LeadActivityCursor, LeadActivityPage } from '@/features/leads/activities/lead-activity.service'
 import {
-	appendLeadActivityTx,
-	getLeadActivityPage,
-	type LeadActivityCursor,
-	type LeadActivityPage,
-} from '@/features/leads/activities/lead-activity.service'
+	appendLeadActivity,
+	listLeadActivities,
+} from '@/features/leads/activities/lead-activity-commands.service'
 
 interface RouteContext {
 	params: Promise<{ id: string }>
-}
-
-interface CrmRouteContext {
-	idLead: number
-	idUser: number
-	roleCode: string | null | undefined
-	visibleUserIds: number[]
-}
-
-function error(message: string, status: number) {
-	const body: ApiResponse<null> = { data: null, error: message }
-	return NextResponse.json(body, { status })
-}
-
-function isRouteResponse(value: CrmRouteContext | Response): value is Response {
-	return (
-		value instanceof Response ||
-		(typeof value === 'object' &&
-			value !== null &&
-			'status' in value &&
-			'json' in value)
-	)
-}
-
-function parseLeadId(value: string): number | null {
-	const idLead = Number.parseInt(value, 10)
-	return Number.isSafeInteger(idLead) && idLead > 0 ? idLead : null
 }
 
 function parseCursor(value: string | null): LeadActivityCursor | undefined {
@@ -54,70 +23,29 @@ function parseCursor(value: string | null): LeadActivityCursor | undefined {
 	const [dateValue, idValue] = value.split('|')
 	const occurredAt = new Date(dateValue)
 	const idLeadActivity = Number.parseInt(idValue ?? '', 10)
-	if (
-		Number.isNaN(occurredAt.getTime()) ||
-		!Number.isSafeInteger(idLeadActivity) ||
-		idLeadActivity < 1
-	) {
+	if (Number.isNaN(occurredAt.getTime()) || !Number.isSafeInteger(idLeadActivity) || idLeadActivity < 1) {
 		return undefined
 	}
 	return { occurredAt, idLeadActivity }
 }
 
-async function resolveCrmContext(
-	context: RouteContext
-): Promise<CrmRouteContext | Response> {
-	const session = await auth()
-	if (!session?.user?.email) return error('No autorizado', 401)
-	if (!(await isFeatureEnabledServer('crm_timeline', session.user.email))) {
-		return error('CRM no disponible', 404)
-	}
-
-	const { id } = await context.params
-	const idLead = parseLeadId(id)
-	if (!idLead) return error('Identificador de lead inválido', 400)
-
-	const currentUser = await getCurrentUserByEmail(session.user.email)
-	if (!currentUser) return error('Usuario no encontrado', 404)
-	const roleCode = currentUser.role?.code
-	if (!canAccessCrm(roleCode)) return error('Sin permisos para CRM', 403)
-
-	const visibleUserIds = isHierarchyBypassRole(roleCode)
-		? []
-		: await getAccessibleUserIds(currentUser.idUser)
-	const lead = await getLeadDetail(idLead, currentUser, { visibleUserIds })
-	if (!lead) return error('Lead no encontrado', 404)
-
-	return { idLead, idUser: currentUser.idUser, roleCode, visibleUserIds }
-}
-
 export async function GET(request: Request, context: RouteContext) {
 	try {
-		const crm = await resolveCrmContext(context)
-		if (isRouteResponse(crm)) return crm
+		const guard = await requireCrmActor('crm_timeline')
+		if (!guard.ok) return guard.response
+		const idLead = parsePositiveId((await context.params).id)
+		if (!idLead) return error('Identificador de lead inválido', 400)
+		if (!(await findScopedLead(guard.actor, idLead))) return error('Lead no encontrado', 404)
 
 		const url = new URL(request.url)
-		const requestedLimit = Number.parseInt(
-			url.searchParams.get('limit') ?? '25',
-			10
-		)
-		if (
-			!Number.isFinite(requestedLimit) ||
-			requestedLimit < 1 ||
-			requestedLimit > 100
-		) {
-			return error('Límite inválido', 400)
-		}
+		const limit = Number.parseInt(url.searchParams.get('limit') ?? '25', 10)
+		if (!Number.isFinite(limit) || limit < 1 || limit > 100) return error('Límite inválido', 400)
 		const cursorValue = url.searchParams.get('cursor')
 		const cursor = parseCursor(cursorValue)
 		if (cursorValue && !cursor) return error('Cursor inválido', 400)
 
-		const page = await getLeadActivityPage(prisma, crm.idLead, {
-			limit: requestedLimit,
-			cursor,
-		})
-		const body: ApiResponse<LeadActivityPage> = { data: page }
-		return NextResponse.json(body)
+		const page = await listLeadActivities(idLead, { limit, cursor })
+		return NextResponse.json({ data: page } satisfies ApiResponse<LeadActivityPage>)
 	} catch (cause) {
 		console.error('Error fetching lead activities:', cause)
 		return error('Error al obtener las actividades del lead', 500)
@@ -126,22 +54,24 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function POST(request: Request, context: RouteContext) {
 	try {
-		const crm = await resolveCrmContext(context)
-		if (isRouteResponse(crm)) return crm
-		if (!canManageCrm(crm.roleCode))
-			return error('Sin permisos para modificar CRM', 403)
+		const guard = await requireCrmActor('crm_timeline', { manage: true })
+		if (!guard.ok) return guard.response
+		const { actor } = guard
+		const idLead = parsePositiveId((await context.params).id)
+		if (!idLead) return error('Identificador de lead inválido', 400)
+		if (!(await findScopedLead(actor, idLead))) return error('Lead no encontrado', 404)
 
 		const input = leadCrmEventInputSchema.safeParse(await request.json())
 		if (!input.success) return error('Actividad inválida', 400)
 
-		const activity = await prisma.$transaction((tx) =>
-			appendLeadActivityTx(tx, {
-				idLead: crm.idLead,
-				idUser: crm.idUser,
-				type: input.data.type,
-				payload: input.data.payload,
-				correlationId: crypto.randomUUID(),
-			})
+		const activity = await appendLeadActivity(
+			{ idLead, type: input.data.type, payload: input.data.payload },
+			{
+				userId: actor.idUser,
+				email: actor.email,
+				ipAddress: getClientIp(request.headers),
+				userAgent: getUserAgent(request.headers),
+			}
 		)
 		return NextResponse.json({ data: activity }, { status: 201 })
 	} catch (cause) {
