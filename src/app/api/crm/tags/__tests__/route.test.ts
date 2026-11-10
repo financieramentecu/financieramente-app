@@ -17,7 +17,7 @@ vi.mock('@/features/leads/tags/lead-tag.service', () => ({
 	setLeadTags: vi.fn(),
 }))
 
-const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7], canManage: true }
+const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7], canManage: true, idCategory: null }
 const json = (method: string, body: unknown) =>
 	new Request('http://x', { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) })

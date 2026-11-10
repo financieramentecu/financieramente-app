@@ -26,7 +26,7 @@ vi.mock('next/server', () => ({
 	NextResponse: { json: vi.fn((data, init) => ({ status: init?.status ?? 200, json: () => Promise.resolve(data) })) },
 }))
 
-const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7, 8], canManage: true }
+const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7, 8], canManage: true, idCategory: null }
 const patch = (body: unknown) =>
 	new Request('http://x', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) })

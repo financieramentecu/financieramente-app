@@ -18,6 +18,8 @@ export interface CrmActor {
 	/** Empty array means "no restriction" (hierarchy bypass role). */
 	visibleUserIds: number[]
 	canManage: boolean
+	/** User category, for category-based report permissions (`canViewReport`). */
+	idCategory: number | null
 }
 
 export type RequireCrmActorResult =
@@ -60,7 +62,14 @@ export async function requireCrmActor(
 
 	return {
 		ok: true,
-		actor: { idUser: currentUser.idUser, email, roleCode, visibleUserIds, canManage },
+		actor: {
+			idUser: currentUser.idUser,
+			email,
+			roleCode,
+			visibleUserIds,
+			canManage,
+			idCategory: currentUser.idCategory ?? null,
+		},
 	}
 }
 

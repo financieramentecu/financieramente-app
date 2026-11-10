@@ -21,7 +21,7 @@ vi.mock('@/features/leads/views/lead-saved-view.service', () => ({
 	MAX_SAVED_VIEWS_PER_USER: 20,
 }))
 
-const actor = { idUser: 7, email: 'a@x.co', roleCode: 'CONSULTOR', visibleUserIds: [], canManage: false }
+const actor = { idUser: 7, email: 'a@x.co', roleCode: 'CONSULTOR', visibleUserIds: [], canManage: false, idCategory: null }
 const json = (method: string, body: unknown) =>
 	new Request('http://x', { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) })
