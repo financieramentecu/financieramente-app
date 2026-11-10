@@ -65,7 +65,7 @@ describe('requireCrmActor', () => {
 		const result = await requireCrmActor('crm_tasks')
 		expect(result.ok).toBe(true)
 		if (result.ok) {
-			expect(result.actor).toMatchObject({ idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7, 8], canManage: true })
+			expect(result.actor).toMatchObject({ idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7, 8], canManage: true, idCategory: null })
 		}
 	})
 
