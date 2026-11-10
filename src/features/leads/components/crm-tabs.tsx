@@ -8,6 +8,7 @@ import { canManageCrm } from '@/features/leads/crm/crm-policy'
 import { LeadsBoard } from '@/features/leads/components/leads-board'
 import { ActivitiesAgenda } from '@/features/leads/agenda/activities-agenda'
 import { LeadsTable } from '@/features/leads/table/leads-table'
+import { CrmReports } from '@/features/leads/reports/crm-reports'
 import { CrmLeadDetailSheet } from '@/features/leads/components/crm-lead-detail-sheet'
 import { useLeadDetailSheet } from '@/features/leads/hooks/use-lead-detail-sheet'
 import {
@@ -66,6 +67,7 @@ export function CrmTabs() {
 				<TabsContent value="activities">
 					{activeTab === 'activities' && <ActivitiesAgenda onOpenLead={(idLead) => void openLead(idLead)} />}
 				</TabsContent>
+				<TabsContent value="reports">{activeTab === 'reports' && <CrmReports />}</TabsContent>
 			</Tabs>
 			<CrmLeadDetailSheet lead={sheet.lead} open={sheet.open} onOpenChange={sheet.setOpen} />
 		</>

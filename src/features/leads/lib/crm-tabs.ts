@@ -22,7 +22,7 @@ export const CRM_TABS: readonly CrmTabDefinition[] = [
 	{ id: 'pipeline', label: 'Pipeline', slug: 'pipeline', enabled: true },
 	{ id: 'leads', label: 'Leads', slug: 'leads', enabled: true, flag: 'crm_lead_table' },
 	{ id: 'activities', label: 'Actividades', slug: 'actividades', enabled: true, flag: 'crm_tasks' },
-	{ id: 'reports', label: 'Reportes', slug: 'reportes', enabled: false },
+	{ id: 'reports', label: 'Reportes', slug: 'reportes', enabled: true, flag: 'crm_reports' },
 ]
 
 export const DEFAULT_CRM_TAB: CrmTabId = 'pipeline'

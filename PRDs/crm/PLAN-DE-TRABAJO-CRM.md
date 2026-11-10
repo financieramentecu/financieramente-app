@@ -52,8 +52,9 @@ No vamos a instalar ninguno (stacks distintos y duplicarían usuarios/negocios);
 | Agenda "Mis actividades" (vencidas, hoy, próximas) | Odoo Activities / EspoCRM Activities | Hecho (Fase 1) |
 | Recordatorios y resumen diario | EspoCRM reminders / Odoo | Hecho (Fase 1) |
 | Lead sin actividad en N días | Odoo (días en etapa) | Hecho (Fase 1) |
-| Vistas tabla, filtros guardados, etiquetas, campos personalizados | Twenty | Fase 2 |
-| Valor esperado y probabilidad | Odoo | Fase 2 |
+| Vistas tabla, filtros guardados, etiquetas, campos personalizados | Twenty | Hecho (Fase 2) |
+| Valor esperado y probabilidad | Odoo | Hecho (Fase 2) |
+| Embudo, tasas de cierre, tiempo por etapa, desglose por origen, asesor y equipo, pronóstico ponderado | Odoo (análisis de pipeline) / EspoCRM reportes | Hecho (Fase 3) |
 | Motivos de pérdida, varios pipelines, duplicados | Odoo / EspoCRM | Fase 4 |
 | Workflows y reglas de asignación | SuiteCRM | Fase 5 |
 
@@ -136,7 +137,7 @@ Parte ya está hecha en la rama de Andrés (ver sección 2.1). El diseño comple
 - Etiquetas (`LeadTag`) y campos personalizados simples.
 - Campos propios del CRM: valor estimado y probabilidad, para calcular el valor ponderado del pipeline.
 
-#### Fase 3 — Reportes (≈ 1-2 semanas)
+#### Fase 3 — Reportes (≈ 1-2 semanas) — implementada (change `crm-phase-3-reports`, flag `crm_reports` y reporte `CRM_PIPELINE` en Permisos de Reportes)
 - Embudo de conversión, tasas de ganados y perdidos, tiempo promedio en cada etapa.
 - Leads por origen, por asesor y por equipo (respetando la jerarquía).
 - Pronóstico con el valor ponderado.
@@ -226,4 +227,4 @@ Sustituyen lo que hoy hacen los workflows de GHL.
 
 ## 9. Próximo paso
 
-Fases 1 y 2 implementadas en `feature/crm-on-basic-crm`. Siguiente: acordar con Andrés cómo entra su commit a `develop`, probar en QA con los flags `crm_timeline`, `crm_tasks`, `crm_lead_table` y `crm_lead_fields` encendidos en Flagsmith, y arrancar la Fase 3 (reportes: embudo, conversión, tiempo por etapa y pronóstico con el valor ponderado).
+Fases 1, 2 y 3 implementadas en `feature/crm-on-basic-crm`. Siguiente: acordar con Andrés cómo entra su commit a `develop`; probar en QA con los flags `crm_timeline`, `crm_tasks`, `crm_lead_table`, `crm_lead_fields` y `crm_reports` encendidos en Flagsmith, y habilitar el reporte **CRM — Pipeline** por categoría en Permisos de Reportes; luego la Fase 4 (gestión editable detrás de `crm_source_of_truth`).

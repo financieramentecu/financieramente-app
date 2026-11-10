@@ -19,6 +19,9 @@ vi.mock('@/features/leads/table/leads-table', () => ({
 		<div data-testid="leads-table" data-fields={String(fieldsEnabled)} data-configure={String(canConfigure)} />
 	),
 }))
+vi.mock('@/features/leads/reports/crm-reports', () => ({
+	CrmReports: () => <div data-testid="crm-reports" />,
+}))
 vi.mock('@/features/leads/components/crm-lead-detail-sheet', () => ({
 	CrmLeadDetailSheet: () => null,
 }))
@@ -70,6 +73,12 @@ describe('CrmTabs', () => {
 		setup('tab=actividades', true)
 		expect(screen.getByRole('tab', { name: /Actividades/ })).toHaveAttribute('aria-selected', 'true')
 		expect(screen.getByTestId('activities-agenda')).toBeInTheDocument()
+	})
+
+	it('opens Reportes from ?tab=reportes when crm_reports is on', () => {
+		setup('tab=reportes', true, ['crm_reports'])
+		expect(screen.getByRole('tab', { name: /Reportes/ })).toHaveAttribute('aria-selected', 'true')
+		expect(screen.getByTestId('crm-reports')).toBeInTheDocument()
 	})
 
 	it('opens the lead sheet from ?lead=', async () => {

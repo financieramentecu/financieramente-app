@@ -10,6 +10,12 @@ describe('resolveCrmTabs', () => {
 		expect(off.find((t) => t.id === 'pipeline')?.enabled).toBe(true)
 		expect(on.find((t) => t.id === 'reports')?.enabled).toBe(false)
 	})
+
+	it('enables Reportes only while crm_reports is on', () => {
+		const on = resolveCrmTabs((flag) => flag === 'crm_reports')
+		expect(on.find((t) => t.id === 'reports')?.enabled).toBe(true)
+		expect(resolveCrmTabs(() => false).find((t) => t.id === 'reports')?.enabled).toBe(false)
+	})
 })
 
 describe('resolveInitialCrmTab', () => {
@@ -19,7 +25,8 @@ describe('resolveInitialCrmTab', () => {
 	})
 	it('falls back to the pipeline for unknown or disabled tabs', () => {
 		expect(resolveInitialCrmTab('otra', tabs)).toBe('pipeline')
-		expect(resolveInitialCrmTab('reportes', tabs)).toBe('pipeline')
+		expect(resolveInitialCrmTab('reportes', tabs)).toBe('reports')
+		expect(resolveInitialCrmTab('reportes', resolveCrmTabs(() => false))).toBe('pipeline')
 		expect(resolveInitialCrmTab('actividades', resolveCrmTabs(() => false))).toBe('pipeline')
 		expect(resolveInitialCrmTab(null, tabs)).toBe('pipeline')
 	})
