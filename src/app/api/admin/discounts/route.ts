@@ -60,9 +60,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 	if (!guard.ok) return guard.response
 	const { session } = guard
 
+	let requestedType: string | undefined
 	try {
 		const body = await request.json()
 		const input = createCommissionDiscountSchema.parse(body)
+		requestedType = input.type
 
 		const existing = await findActiveByType(input.type)
 		if (existing) {
@@ -98,6 +100,22 @@ export async function POST(request: Request): Promise<NextResponse> {
 			return NextResponse.json(
 				{ data: null, error: error.issues[0]?.message ?? 'Datos inválidos' },
 				{ status: 400 }
+			)
+		}
+		// Concurrent request created the active discount first: the partial unique
+		// index (one ACTIVE per type) rejects the second insert.
+		if (
+			error &&
+			typeof error === 'object' &&
+			'code' in error &&
+			error.code === 'P2002'
+		) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: `Ya existe un descuento activo de tipo ${requestedType}`,
+				},
+				{ status: 409 }
 			)
 		}
 		return NextResponse.json(
