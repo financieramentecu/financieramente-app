@@ -38,6 +38,9 @@ function buildLead(overrides: Partial<LeadDetail> = {}): LeadDetail {
 		createdAt: new Date(),
 		updatedAt: new Date(),
 		inactiveDays: null,
+		tags: [],
+		estimatedValue: null,
+		probability: null,
 		...overrides,
 	}
 }

@@ -8,6 +8,8 @@ import { getAccessibleUserIds, isHierarchyBypassRole } from '@/features/auth/lib
 import { getLeadDetail } from '@/features/leads/services/lead-board.service'
 import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
+import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
+import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
 export interface CrmActor {
 	idUser: number
@@ -64,11 +66,7 @@ export async function requireCrmActor(
 
 /** Lead visible to the actor, or null (missing and out-of-scope are indistinguishable). */
 export function findScopedLead(actor: CrmActor, idLead: number): Promise<LeadDetail | null> {
-	return getLeadDetail(
-		idLead,
-		{ idUser: actor.idUser, role: actor.roleCode ? { code: actor.roleCode } : null },
-		{ visibleUserIds: actor.visibleUserIds }
-	)
+	return getLeadDetail(idLead, toLeadViewer(actor), { visibleUserIds: actor.visibleUserIds })
 }
 
 export function canAssignWithinScope(
@@ -83,4 +81,28 @@ export function canAssignWithinScope(
 export function parsePositiveId(value: string): number | null {
 	const parsed = Number.parseInt(value, 10)
 	return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null
+}
+
+/** Hierarchy viewer shape expected by the lead services. */
+export function toLeadViewer(actor: CrmActor): { idUser: number; role: { code: string } | null } {
+	return { idUser: actor.idUser, role: actor.roleCode ? { code: actor.roleCode } : null }
+}
+
+/** Audit context (who and from where) for a CRM mutation. */
+export function toCrmRequestContext(actor: CrmActor, request: Request): CrmRequestContext {
+	return {
+		userId: actor.idUser,
+		email: actor.email,
+		ipAddress: getClientIp(request.headers),
+		userAgent: getUserAgent(request.headers),
+	}
+}
+
+/** Parsed JSON body, or `undefined` when it is missing or malformed (callers answer 400). */
+export async function readJsonBody(request: Request): Promise<unknown> {
+	try {
+		return await request.json()
+	} catch {
+		return undefined
+	}
 }

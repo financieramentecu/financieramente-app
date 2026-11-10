@@ -27,6 +27,8 @@ function buildLead(overrides: Partial<LeadCardType> = {}): LeadCardType {
 		outcomeStatus: 'OPEN',
 		idBusiness: null,
 		inactiveDays: null,
+		tags: [],
+		estimatedValue: null,
 		...overrides,
 	}
 }

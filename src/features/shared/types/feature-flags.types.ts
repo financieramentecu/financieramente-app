@@ -13,6 +13,8 @@ export const ALL_FEATURE_FLAGS = [
 	'crm_conversion_audit',
 	'crm_imports',
 	'crm_reports',
+	'crm_lead_table',
+	'crm_lead_fields',
 ] as const
 
 export type FeatureFlag = (typeof ALL_FEATURE_FLAGS)[number]

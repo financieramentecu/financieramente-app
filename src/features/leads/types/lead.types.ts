@@ -1,4 +1,5 @@
 import type { Lead, LeadFunnelColumn, LeadOutcomeStatus } from '@prisma/client'
+import type { LeadTagChip } from '@/features/leads/table/lead-table.types'
 
 /**
  * Domain types for the Leads feature.
@@ -44,6 +45,9 @@ export interface LeadCard {
 	idBusiness: number | null
 	/** Idle days when the open lead passed `CRM_INACTIVITY_DAYS`, else null. */
 	inactiveDays: number | null
+	/** CRM-owned: active tags and expected value (decimal string). */
+	tags: LeadTagChip[]
+	estimatedValue: string | null
 }
 
 /**
@@ -68,6 +72,10 @@ export interface LeadDetail {
 	updatedAt: Date
 	/** Idle days when the open lead passed `CRM_INACTIVITY_DAYS`, else null. */
 	inactiveDays: number | null
+	/** CRM-owned data (never written by crm-sync). */
+	tags: LeadTagChip[]
+	estimatedValue: string | null
+	probability: number | null
 }
 
 /**

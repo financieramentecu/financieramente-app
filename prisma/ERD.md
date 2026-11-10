@@ -14,6 +14,7 @@ Sistema: Financieramente — liquidación de comisiones.
 - `LeadStageChangeSource`: `CRM_SYNC` | `CSV_IMPORT` | `MANUAL` (en `lead_stage_history.source`).
 - `LeadActivityType`: `NOTE_ADDED` | `CALL_LOGGED` | `MEETING_LOGGED` | `EMAIL_LOGGED` | `WHATSAPP_LOGGED` | `TASK_CREATED` | `TASK_COMPLETED` | `TASK_REASSIGNED` | `CONVERTED` | `BUSINESS_LINKED` | `CASE_OPENED` | `CASE_UPDATED` (en `lead_activity.type`).
 - `LeadTaskType`: `TODO` | `CALL` | `MEETING` | `EMAIL` | `WHATSAPP` (en `lead_task.type`, `@default(TODO)`).
+- `LeadCustomFieldType`: `TEXT` | `NUMBER` | `DATE` | `SELECT` (en `lead_custom_field.type`; inmutable tras crear el campo).
 - `LeadTaskStatus`: `OPEN` | `DONE` | `CANCELLED` (en `lead_task.status`).
 - `LeadSupportCaseStatus`: `OPEN` | `IN_PROGRESS` | `WAITING` | `RESOLVED` | `CLOSED` (en `lead_support_case.status`).
 - `LeadSupportCasePriority`: `LOW` | `MEDIUM` | `HIGH` | `URGENT` (en `lead_support_case.priority`).
@@ -85,6 +86,9 @@ erDiagram
     User ||--o{ LeadSupportCase : "abre / asignado"
     LeadSupportCase ||--o{ LeadSupportCaseComment : "comentarios"
     User ||--o{ LeadSupportCaseComment : "autor"
+    Lead ||--o{ LeadTagAssignment : "etiquetas"
+    LeadTag ||--o{ LeadTagAssignment : "asignaciones"
+    User ||--o{ LeadSavedView : "vistas guardadas"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
     Client ||--o{ Business : "negocios"
@@ -575,6 +579,9 @@ erDiagram
         string outcome_status
         boolean active
         datetime last_activity_at
+        decimal estimated_value
+        int probability
+        json custom_field_values
         datetime created_at
         datetime updated_at
     }
@@ -641,6 +648,49 @@ erDiagram
         string body
         datetime created_at
     }
+
+    LeadTag {
+        int id_lead_tag PK
+        string name
+        string color
+        boolean active
+        int created_by
+        datetime created_at
+        datetime updated_at
+    }
+
+    LeadTagAssignment {
+        int id_lead_tag_assignment PK
+        int id_lead FK
+        int id_lead_tag FK
+        boolean active
+        int assigned_by
+        datetime created_at
+        datetime updated_at
+    }
+
+    LeadCustomField {
+        int id_lead_custom_field PK
+        string key UK
+        string label
+        string type
+        json options
+        int position
+        boolean active
+        int created_by
+        datetime created_at
+        datetime updated_at
+    }
+
+    LeadSavedView {
+        int id_lead_saved_view PK
+        int id_user FK
+        string name
+        json query
+        boolean active
+        datetime created_at
+        datetime updated_at
+    }
 ```
 
 ## Leyenda de cardinalidad (Mermaid)
@@ -689,3 +739,4 @@ erDiagram
 - **Nueva tabla `lead_stage_history`** (migración `20261105120000_add_lead_stage_history`, change `crm-phase-0-foundation`): log de solo inserción (nunca se actualiza ni se borra) de cada transición de etapa del embudo. La escriben el webhook `crm-sync` (`source = CRM_SYNC`, `id_user = NULL`, `changed_at = updatedAt` del payload o el instante de proceso) y la importación CSV (`source = CSV_IMPORT`, `id_user` = quien importa) solo cuando el lead es nuevo (`from_id_lead_funnel_column = NULL`) o cambia de columna. Dos FKs a `lead_funnel_column` (relaciones `LeadStageHistoryFrom` / `LeadStageHistoryTo`). Índices `(id_lead, changed_at)` y `(to_id_lead_funnel_column, changed_at)` para reportes de tiempo en etapa. Un fallo al escribir el historial se reporta a Sentry y nunca rompe la sincronización. `MANUAL` queda reservado para el CRM editable (Fase 4).
 - **CRM: `lead_activity`, `lead_task`, `lead_support_case`, `lead_support_case_comment`** (migraciones `20261105165000`–`20261105180000`, rama `codex/negocios-basic-crm`): `lead_activity` es un registro de eventos de solo inserción (payload JSON versionado; `(id_lead, correlation_id)` único para idempotencia; cursor `(occurred_at, id_lead_activity)`). Solo `NOTE_ADDED` y `*_LOGGED` los envía el cliente; el resto los escriben los servicios. `lead_task` = trabajo programado (estilo Odoo `mail.activity`); `lead_support_case` = casos de soporte (estilo EspoCRM Case). Los cambios de etapa **no** se duplican en `lead_activity`: el timeline los mezcla al leer desde `lead_stage_history` (el webhook no tiene actor y `lead_activity.id_user` es obligatorio).
 - **CRM Fase 1** (migración `20261109120000_extend_lead_activity_and_task`, change `crm-phase-1-activities`): `LeadActivityType` += `CALL_LOGGED | MEETING_LOGGED | EMAIL_LOGGED | WHATSAPP_LOGGED`; nuevo enum `LeadTaskType` y columnas `lead_task.type` (`DEFAULT 'TODO'`) y `lead_task.reminder_sent_at` (índice `(due_at, reminder_sent_at)`: el cron reclama la tarea con `updateMany ... WHERE reminder_sent_at IS NULL` antes de notificar; reprogramar la tarea lo vuelve `NULL`). `lead.last_activity_at` es dato propio del CRM (nunca lo escriben el webhook ni el CSV): lo actualiza `appendLeadActivityTx` en la misma transacción para los eventos de contacto, solo si es más reciente; índice `(outcome_status, last_activity_at)` para el indicador "Sin actividad".
+- **CRM Fase 2** (migración `20261110120000_add_lead_views_tags_fields`, change `crm-phase-2-views-tags`): datos propios del CRM que el webhook `crm-sync` nunca escribe. `lead.estimated_value` (`DECIMAL(15,2)`) y `lead.probability` (`CHECK 0..100`) dan el valor ponderado del pipeline (valor × probabilidad / 100). `lead.custom_field_values` es un JSON indexado por `lead_custom_field.key` (sin tabla EAV); se valida contra los campos activos al escribir y un campo desactivado oculta su valor sin borrarlo. `lead_custom_field.key` es único para siempre (no se reutiliza la clave de un campo inactivo). `lead_tag_assignment` tiene `(id_lead, id_lead_tag)` único: quitar una etiqueta pone `active=false` y volver a ponerla reactiva la misma fila. `lead_tag.name` es único entre las activas sin distinguir mayúsculas (lo valida el servicio). `lead_saved_view` es personal (`id_user`), guarda filtros y orden de la tabla sin paginación; máximo 20 activas por usuario. `created_by` / `assigned_by` son ids de usuario sin FK (solo trazabilidad; la auditoría está en `AuditLog`).

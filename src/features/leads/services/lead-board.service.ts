@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { getInactivityDays, resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
@@ -7,6 +8,12 @@ import type {
 	LeadOutcomeStatus,
 	LeadViewer,
 } from '@/features/leads/types/lead.types'
+
+const activeTagsSelect = {
+	where: { active: true, tag: { active: true } },
+	select: { tag: { select: { idLeadTag: true, name: true, color: true } } },
+	orderBy: { tag: { name: 'asc' } },
+} satisfies Prisma.Lead$tagAssignmentsArgs
 
 function buildOwnerName(user: { name: string; lastName: string | null } | null): string | null {
 	if (!user) return null
@@ -54,7 +61,9 @@ export async function getLeadBoard(
 				idBusiness: true,
 				lastActivityAt: true,
 				createdAt: true,
+				estimatedValue: true,
 				user: { select: { name: true, lastName: true } },
+				tagAssignments: activeTagsSelect,
 			},
 		}),
 	])
@@ -80,6 +89,8 @@ export async function getLeadBoard(
 				outcomeStatus: lead.outcomeStatus,
 				idBusiness: lead.idBusiness,
 				inactiveDays: getInactivityDays(lead, now, threshold),
+				tags: lead.tagAssignments.map((assignment) => assignment.tag),
+				estimatedValue: lead.estimatedValue?.toString() ?? null,
 			})),
 	}))
 }
@@ -97,7 +108,7 @@ export async function getLeadDetail(
 	const where = buildLeadListWhere(viewer, {}, options)
 	const lead = await prisma.lead.findFirst({
 		where: { ...where, AND: [...(Array.isArray(where.AND) ? where.AND : []), { idLead }] },
-		include: { user: { select: { name: true, lastName: true } } },
+		include: { user: { select: { name: true, lastName: true } }, tagAssignments: activeTagsSelect },
 	})
 
 	if (!lead) return null
@@ -120,5 +131,8 @@ export async function getLeadDetail(
 		createdAt: lead.createdAt,
 		updatedAt: lead.updatedAt,
 		inactiveDays: getInactivityDays(lead, new Date(), resolveInactivityThreshold()),
+		tags: lead.tagAssignments.map((assignment) => assignment.tag),
+		estimatedValue: lead.estimatedValue?.toString() ?? null,
+		probability: lead.probability,
 	}
 }

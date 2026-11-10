@@ -21,6 +21,8 @@ const column: LeadBoardColumn = {
 			outcomeStatus: 'OPEN',
 			idBusiness: null,
 			inactiveDays: null,
+			tags: [],
+			estimatedValue: null,
 		},
 	],
 }

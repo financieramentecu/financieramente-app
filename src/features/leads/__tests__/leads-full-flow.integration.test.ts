@@ -95,6 +95,10 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 				phone: null,
 				originTag: null,
 				outcomeStatus: 'OPEN',
+				createdAt: new Date('2026-11-01T15:00:00.000Z'),
+				lastActivityAt: null,
+				estimatedValue: null,
+				tagAssignments: [],
 			},
 		] as never)
 
@@ -183,6 +187,10 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 				phone: null,
 				originTag: null,
 				outcomeStatus: 'WON',
+				createdAt: new Date('2026-11-01T15:00:00.000Z'),
+				lastActivityAt: null,
+				estimatedValue: null,
+				tagAssignments: [],
 			},
 		] as never)
 
@@ -376,6 +384,10 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 					phone: null,
 					originTag: null,
 					outcomeStatus: 'OPEN',
+					createdAt: new Date('2026-11-01T15:00:00.000Z'),
+					lastActivityAt: null,
+					estimatedValue: null,
+					tagAssignments: [],
 				},
 			] as never)
 			const boardAfterResync = await getLeadBoard(

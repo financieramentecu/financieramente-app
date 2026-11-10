@@ -20,6 +20,8 @@ const FALLBACK_FLAGS: Record<FeatureFlag, boolean> = {
 	crm_conversion_audit: false,
 	crm_imports: false,
 	crm_reports: false,
+	crm_lead_table: false,
+	crm_lead_fields: false,
 }
 
 const CRM_FEATURE_FLAGS = new Set<FeatureFlag>([
@@ -29,6 +31,8 @@ const CRM_FEATURE_FLAGS = new Set<FeatureFlag>([
 	'crm_conversion_audit',
 	'crm_imports',
 	'crm_reports',
+	'crm_lead_table',
+	'crm_lead_fields',
 ])
 
 /**
