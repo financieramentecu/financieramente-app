@@ -497,4 +497,4 @@ Además de `fund-payments`, el mismo `CRON_SECRET` protege `POST /api/leads/cron
 
 ## LOCAL_CRM_FEATURE_FLAGS (solo desarrollo)
 
-Lista separada por comas de flags `crm_*` que se encienden en local sin tocar Flagsmith (por ejemplo `crm_timeline,crm_tasks`). Se ignora fuera de `NODE_ENV=development`. Ojo: en QA sin `FLAGSMITH_SERVER_KEY` los flags `crm_*` quedan **apagados** (a diferencia del resto de flags), así que para probar el CRM en QA hay que encenderlos en Flagsmith.
+Lista separada por comas de flags `crm_*` que se encienden en local sin tocar Flagsmith (por ejemplo `crm_timeline,crm_tasks,crm_lead_table,crm_lead_fields`). Flags válidos: `crm_timeline`, `crm_tasks`, `crm_cases`, `crm_conversion_audit`, `crm_imports`, `crm_reports`, `crm_lead_table` (pestaña Leads, vistas guardadas y exportación CSV) y `crm_lead_fields` (etiquetas, valor estimado, probabilidad y campos personalizados). Se ignora fuera de `NODE_ENV=development`. Ojo: en QA sin `FLAGSMITH_SERVER_KEY` los flags `crm_*` quedan **apagados** (a diferencia del resto de flags), así que para probar el CRM en QA hay que encenderlos en Flagsmith.

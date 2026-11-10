@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { UserRole } from '@/features/auth/lib/roles'
+import { canManageCrm } from '@/features/leads/crm/crm-policy'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import { LeadDetailSheet } from '@/features/leads/components/lead-detail-sheet'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
@@ -23,6 +24,7 @@ export function CrmLeadDetailSheet({
 	const { enabled: tasksEnabled } = useFeatureFlag('crm_tasks')
 	const { enabled: conversionAuditEnabled } = useFeatureFlag('crm_conversion_audit')
 	const { enabled: casesEnabled } = useFeatureFlag('crm_cases')
+	const { enabled: crmFieldsEnabled } = useFeatureFlag('crm_lead_fields')
 
 	return (
 		<LeadDetailSheet
@@ -35,6 +37,8 @@ export function CrmLeadDetailSheet({
 			tasksEnabled={tasksEnabled}
 			conversionAuditEnabled={conversionAuditEnabled}
 			casesEnabled={casesEnabled}
+			crmFieldsEnabled={crmFieldsEnabled}
+			canManageCrm={canManageCrm(session?.user?.role)}
 		/>
 	)
 }

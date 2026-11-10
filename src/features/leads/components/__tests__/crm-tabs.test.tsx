@@ -7,11 +7,17 @@ import { useLeadDetailSheet } from '@/features/leads/hooks/use-lead-detail-sheet
 
 vi.mock('next/navigation', () => ({ useSearchParams: vi.fn() }))
 vi.mock('@flagsmith/flagsmith/react', () => ({ useFlags: vi.fn() }))
+vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { role: 'AGENTE' } } }) }))
 vi.mock('@/features/leads/components/leads-board', () => ({
 	LeadsBoard: () => <div data-testid="leads-board" />,
 }))
 vi.mock('@/features/leads/agenda/activities-agenda', () => ({
 	ActivitiesAgenda: () => <div data-testid="activities-agenda" />,
+}))
+vi.mock('@/features/leads/table/leads-table', () => ({
+	LeadsTable: ({ fieldsEnabled, canConfigure }: { fieldsEnabled: boolean; canConfigure: boolean }) => (
+		<div data-testid="leads-table" data-fields={String(fieldsEnabled)} data-configure={String(canConfigure)} />
+	),
 }))
 vi.mock('@/features/leads/components/crm-lead-detail-sheet', () => ({
 	CrmLeadDetailSheet: () => null,
@@ -20,9 +26,11 @@ vi.mock('@/features/leads/hooks/use-lead-detail-sheet', () => ({ useLeadDetailSh
 
 const openLead = vi.fn()
 
-function setup(params: string, tasksEnabled: boolean) {
+function setup(params: string, tasksEnabled: boolean, extraFlags: string[] = []) {
 	vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams(params) as never)
-	vi.mocked(useFlags).mockReturnValue({ crm_tasks: { enabled: tasksEnabled, value: null } } as never)
+	const flags: Record<string, { enabled: boolean; value: null }> = { crm_tasks: { enabled: tasksEnabled, value: null } }
+	for (const flag of extraFlags) flags[flag] = { enabled: true, value: null }
+	vi.mocked(useFlags).mockReturnValue(flags as never)
 	render(<CrmTabs />)
 }
 
@@ -43,6 +51,13 @@ describe('CrmTabs', () => {
 		const tab = screen.getByRole('tab', { name: new RegExp(label) })
 		expect(tab).toBeDisabled()
 		expect(tab).toHaveTextContent('Próximamente')
+	})
+
+	it('opens the Leads table from ?tab=leads when crm_lead_table is on', () => {
+		setup('tab=leads', true, ['crm_lead_table', 'crm_lead_fields'])
+		expect(screen.getByRole('tab', { name: /Leads/ })).toHaveAttribute('aria-selected', 'true')
+		expect(screen.getByTestId('leads-table')).toHaveAttribute('data-fields', 'true')
+		expect(screen.getByTestId('leads-table')).toHaveAttribute('data-configure', 'true')
 	})
 
 	it('keeps Actividades disabled while crm_tasks is off', () => {

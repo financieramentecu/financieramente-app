@@ -33,6 +33,7 @@ import { useDeleteLead } from '@/features/leads/hooks/use-delete-lead'
 import { LeadActivityTimeline } from '@/features/leads/activities/lead-activity-timeline'
 import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
 import { LeadTaskList } from '@/features/leads/tasks/lead-task-list'
+import { LeadCrmFieldsSection } from '@/features/leads/custom-fields/lead-crm-fields-section'
 import { LeadSupportCaseList } from '@/features/leads/cases/lead-support-case-list'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
 
@@ -44,6 +45,10 @@ interface LeadDetailSheetProps {
 	onDeleted?: () => void
 	timelineEnabled?: boolean
 	tasksEnabled?: boolean
+	/** `crm_lead_fields`: value, probability, tags and custom fields. */
+	crmFieldsEnabled?: boolean
+	/** CRM mutation right (`canManageCrm`); read-only otherwise. */
+	canManageCrm?: boolean
 	conversionAuditEnabled?: boolean
 	casesEnabled?: boolean
 }
@@ -64,6 +69,8 @@ export function LeadDetailSheet({
 	onDeleted,
 	timelineEnabled = false,
 	tasksEnabled = false,
+	crmFieldsEnabled = false,
+	canManageCrm = false,
 	conversionAuditEnabled = false,
 	casesEnabled = false,
 }: LeadDetailSheetProps) {
@@ -172,6 +179,12 @@ export function LeadDetailSheet({
 								Ver auditoría de conversión
 							</Link>
 						</div>
+					)}
+					{crmFieldsEnabled && (
+						<>
+							<Separator />
+							<LeadCrmFieldsSection key={lead.idLead} idLead={lead.idLead} initialTags={lead.tags} canEdit={canManageCrm} />
+						</>
 					)}
 					{timelineEnabled && (
 						<>

@@ -19,6 +19,10 @@ vi.mock('@/features/leads/activities/lead-activity-timeline', () => ({
 	LeadActivityTimeline: () => <section>Timeline</section>,
 }))
 
+vi.mock('@/features/leads/custom-fields/lead-crm-fields-section', () => ({
+	LeadCrmFieldsSection: ({ canEdit }: { canEdit: boolean }) => <section>CRM fields {canEdit ? 'editable' : 'read-only'}</section>,
+}))
+
 function buildLead(overrides: Partial<LeadDetail> = {}): LeadDetail {
 	return {
 		idLead: 1,
@@ -132,6 +136,17 @@ describe('LeadDetailSheet — CRM timeline', () => {
 			/>
 		)
 		expect(screen.getByText('Timeline')).toBeInTheDocument()
+	})
+})
+
+describe('LeadDetailSheet — CRM fields', () => {
+	it('renders the CRM fields section only behind crm_lead_fields, read-only without management rights', () => {
+		const { rerender } = render(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} />)
+		expect(screen.queryByText(/CRM fields/)).not.toBeInTheDocument()
+		rerender(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} crmFieldsEnabled />)
+		expect(screen.getByText('CRM fields read-only')).toBeInTheDocument()
+		rerender(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} crmFieldsEnabled canManageCrm />)
+		expect(screen.getByText('CRM fields editable')).toBeInTheDocument()
 	})
 })
 

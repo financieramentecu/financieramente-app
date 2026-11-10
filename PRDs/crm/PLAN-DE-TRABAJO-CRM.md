@@ -130,7 +130,7 @@ Parte ya está hecha en la rama de Andrés (ver sección 2.1). El diseño comple
 - Recordatorios y notificaciones in-app/email (reutilizar `notifications` y `email`).
 - Indicador de "lead sin actividad en X días".
 
-#### Fase 2 — Vistas, etiquetas y datos propios (≈ 2 semanas)
+#### Fase 2 — Vistas, etiquetas y datos propios (≈ 2 semanas) — implementada (change `crm-phase-2-views-tags`, flags `crm_lead_table` y `crm_lead_fields`)
 - Vista tabla con filtros, búsqueda, orden, paginación y exportación CSV.
 - Vistas guardadas por usuario.
 - Etiquetas (`LeadTag`) y campos personalizados simples.
@@ -226,4 +226,4 @@ Sustituyen lo que hoy hacen los workflows de GHL.
 
 ## 9. Próximo paso
 
-Fase 1 implementada. Siguiente: acordar con Andrés cómo entra su commit a `develop`, probar la Fase 1 en QA con los flags `crm_timeline` y `crm_tasks` encendidos en Flagsmith, y arrancar la Fase 2 (vista tabla, filtros guardados, etiquetas, valor y probabilidad).
+Fases 1 y 2 implementadas en `feature/crm-on-basic-crm`. Siguiente: acordar con Andrés cómo entra su commit a `develop`, probar en QA con los flags `crm_timeline`, `crm_tasks`, `crm_lead_table` y `crm_lead_fields` encendidos en Flagsmith, y arrancar la Fase 3 (reportes: embudo, conversión, tiempo por etapa y pronóstico con el valor ponderado).

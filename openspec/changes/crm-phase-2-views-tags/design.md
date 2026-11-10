@@ -62,7 +62,7 @@ Parsed from `URLSearchParams` with zod; the same shape is stored in a saved view
 
 ## D5. Saved views
 
-Per user. `GET/POST /api/crm/views`, `PATCH/DELETE /api/crm/views/[id]` (only the owner; others get 404). Max 20 active views per user. DELETE = `active=false`. Audit `LEAD_VIEW_CREATED/UPDATED/DEACTIVATED`.
+Per user; any CRM role, CONSULTOR included (a view is a personal preference, not CRM data). `GET/POST /api/crm/views`, `PATCH/DELETE /api/crm/views/[id]` (only the owner; others get 404). Max 20 active views per user. DELETE = `active=false`. Audit `LEAD_VIEW_CREATED/UPDATED/DEACTIVATED`.
 
 ## D6. Tags
 
@@ -77,11 +77,11 @@ Custom field definitions: `GET /api/crm/custom-fields` (any), `POST`, `PATCH /ap
 
 ## D8. Read model
 
-`LeadDetail` gains `estimatedValue: string|null`, `probability`, `customFieldValues`, `tags: {idLeadTag,name,color}[]`. `LeadCard` gains `tags` (shown as chips) and `estimatedValue`.
+`LeadDetail` gains `tags`, `estimatedValue` and `probability`; custom values are read from `GET /api/leads/[id]/crm-fields`. `LeadCard` gains `tags` and `estimatedValue`. Stage options for the filters come from `GET /api/crm/stages` (the funnel-columns API is admin-only).
 
 ## D9. UI
 
-- `Leads` tab enabled behind `crm_lead_table`: `LeadsTable` (search box, filter popovers, sortable headers, pager, totals footer, "Exportar CSV"), `SavedViewsMenu` (apply, save current, rename, delete). Row click opens the shared detail sheet. Table state ↔ URL (`?tab=leads&q=…`).
+- `Leads` tab enabled behind `crm_lead_table`: `LeadsTable` (search box, multi-select filters, sortable headers, pager, totals line, "Exportar CSV"), `SavedViewsBar` (apply, save current, delete; rename is API-only for now). The owner filter is API-only in this phase. Row click opens the shared detail sheet. Table state ↔ URL (`?tab=leads&q=…`).
 - Detail sheet section "Datos del CRM" behind `crm_lead_fields`: value, probability, tags picker, custom fields; read-only for CONSULTOR.
 - Managers: "Configurar" dialog in the Leads tab with two lists (tags, custom fields).
 - Hooks use `AsyncState<T>`; components never call `fetch`.

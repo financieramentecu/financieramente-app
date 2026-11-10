@@ -3,8 +3,11 @@
 import * as React from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useFlags } from '@flagsmith/flagsmith/react'
+import { useSession } from 'next-auth/react'
+import { canManageCrm } from '@/features/leads/crm/crm-policy'
 import { LeadsBoard } from '@/features/leads/components/leads-board'
 import { ActivitiesAgenda } from '@/features/leads/agenda/activities-agenda'
+import { LeadsTable } from '@/features/leads/table/leads-table'
 import { CrmLeadDetailSheet } from '@/features/leads/components/crm-lead-detail-sheet'
 import { useLeadDetailSheet } from '@/features/leads/hooks/use-lead-detail-sheet'
 import {
@@ -17,11 +20,12 @@ import {
 import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/features/shared/ui/tabs'
 
-const TAB_FLAGS = CRM_TABS.flatMap((tab) => (tab.flag ? [tab.flag] : []))
+const TAB_FLAGS: FeatureFlag[] = [...CRM_TABS.flatMap((tab) => (tab.flag ? [tab.flag] : [])), 'crm_lead_fields']
 
 export function CrmTabs() {
 	const searchParams = useSearchParams()
 	const flags = useFlags(TAB_FLAGS)
+	const { data: session } = useSession()
 	const tabs = resolveCrmTabs((flag: FeatureFlag) => flags[flag]?.enabled ?? false)
 	const initialTab = resolveInitialCrmTab(searchParams.get('tab'), tabs)
 	const [selectedTab, setSelectedTab] = React.useState<CrmTabId | null>(null)
@@ -49,6 +53,15 @@ export function CrmTabs() {
 				</TabsList>
 				<TabsContent value="pipeline">
 					<LeadsBoard />
+				</TabsContent>
+				<TabsContent value="leads">
+					{activeTab === 'leads' && (
+						<LeadsTable
+							onOpenLead={(idLead) => void openLead(idLead)}
+							fieldsEnabled={flags.crm_lead_fields?.enabled ?? false}
+							canConfigure={canManageCrm(session?.user?.role)}
+						/>
+					)}
 				</TabsContent>
 				<TabsContent value="activities">
 					{activeTab === 'activities' && <ActivitiesAgenda onOpenLead={(idLead) => void openLead(idLead)} />}
