@@ -65,7 +65,6 @@ export const businessWithRelations = {
 			},
 		},
 	},
-	supports: true,
 } satisfies Prisma.BusinessInclude
 
 /**
