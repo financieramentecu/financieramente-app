@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
 	buildDefaultDateSeedQuery,
+	buildNegociosSeedRedirectPath,
 	getCurrentMonthRange,
 	getDefaultDateParamPair,
 	hasAnyDateParam,
@@ -152,5 +153,75 @@ describe('buildDefaultDateSeedQuery', () => {
 	it('returns null for roles without a default date filter', () => {
 		expect(buildDefaultDateSeedQuery(UserRole.DEFAULT, {}, now)).toBeNull()
 		expect(buildDefaultDateSeedQuery(undefined, {}, now)).toBeNull()
+	})
+})
+
+describe('buildNegociosSeedRedirectPath', () => {
+	const now = new Date('2026-11-11T15:00:00Z')
+
+	it('seeds the current month for a GET to the negocios page without dates', () => {
+		expect(
+			buildNegociosSeedRedirectPath(
+				'/dashboard/negocios',
+				'GET',
+				UserRole.ADMIN,
+				new URLSearchParams(),
+				now
+			)
+		).toBe('/dashboard/negocios?createdFrom=2026-11-01&createdTo=2026-11-11')
+	})
+
+	it('keeps existing params and drops the router _rsc param', () => {
+		expect(
+			buildNegociosSeedRedirectPath(
+				'/dashboard/negocios',
+				'GET',
+				UserRole.ADMIN,
+				new URLSearchParams('statuses=EMITIDO&_rsc=abc'),
+				now
+			)
+		).toBe(
+			'/dashboard/negocios?statuses=EMITIDO&createdFrom=2026-11-01&createdTo=2026-11-11'
+		)
+	})
+
+	it('does not redirect when the URL already has a date filter', () => {
+		expect(
+			buildNegociosSeedRedirectPath(
+				'/dashboard/negocios',
+				'GET',
+				UserRole.ADMIN,
+				new URLSearchParams('createdFrom=2026-10-01&createdTo=2026-10-31'),
+				now
+			)
+		).toBeNull()
+	})
+
+	it.each([
+		['another path', '/dashboard/leads', 'GET'],
+		['a nested negocios path', '/dashboard/negocios/crear', 'GET'],
+		['a non-GET method', '/dashboard/negocios', 'POST'],
+	])('does not redirect for %s', (_label, pathname, method) => {
+		expect(
+			buildNegociosSeedRedirectPath(
+				pathname,
+				method,
+				UserRole.ADMIN,
+				new URLSearchParams(),
+				now
+			)
+		).toBeNull()
+	})
+
+	it('does not redirect when the role has no default or is unknown', () => {
+		expect(
+			buildNegociosSeedRedirectPath(
+				'/dashboard/negocios',
+				'GET',
+				undefined,
+				new URLSearchParams(),
+				now
+			)
+		).toBeNull()
 	})
 })

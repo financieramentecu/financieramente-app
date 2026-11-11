@@ -10,6 +10,7 @@ import { isPartnerRequestAllowed } from '@/lib/auth/partner-allowlist'
 import { isPublicApiRequest } from '@/lib/auth/public-api-allowlist'
 import { isE2ETestAuthAllowed } from '@/lib/auth/test-auth'
 import { UserRole } from '@/features/auth/lib/roles'
+import { buildNegociosSeedRedirectPath } from '@/features/negocios/lib/default-date-filter'
 
 /**
  * Middleware para proteger rutas usando NextAuth v5
@@ -47,6 +48,20 @@ const dashboardMiddleware = auth((req) => {
 			userId: req.auth?.user?.id,
 			cookies: req.cookies.getAll().map((c) => c.name), // Solo nombres para privacidad
 		})
+	}
+
+	// Seed the negocios default date filter here, before the page renders, so
+	// a client-side navigation follows the redirect without a blank screen.
+	if (isLoggedIn) {
+		const seedPath = buildNegociosSeedRedirectPath(
+			nextUrl.pathname,
+			req.method,
+			req.auth?.user?.role ?? undefined,
+			nextUrl.searchParams
+		)
+		if (seedPath) {
+			return NextResponse.redirect(new URL(seedPath, nextUrl))
+		}
 	}
 })
 
