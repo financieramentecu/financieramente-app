@@ -31,6 +31,15 @@ const optionalComment = z
 	.optional()
 	.transform((value) => (value ? value : undefined))
 
+const commentBody = z
+	.string()
+	.trim()
+	.min(1)
+	.max(2000)
+	.refine((value) => !/[<>]/.test(value), 'El texto no puede incluir HTML')
+
+export const leadTaskCommentSchema = z.object({ body: commentBody }).strict()
+
 export const leadTaskUpdateSchema = z
 	.object({
 		action: z.enum(['complete', 'reassign', 'reschedule', 'move']),

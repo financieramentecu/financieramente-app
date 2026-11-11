@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import {
 	canAssignWithinScope,
@@ -16,11 +17,16 @@ import {
 	leadSupportCaseCommentSchema,
 	leadSupportCaseUpdateSchema,
 } from '@/features/leads/cases/lead-support-case.schema'
+import { AGENDA_BUCKETS } from '@/features/leads/tasks/agenda-bucket-range'
+import { dueAtForActivityBucket } from '@/features/leads/agenda/activity-bucket'
 import {
 	addLeadSupportCaseComment,
 	findLeadSupportCaseRef,
+	placeLeadSupportCase,
 	transitionLeadSupportCase,
 } from '@/features/leads/cases/lead-support-case-commands.service'
+
+const caseMoveSchema = z.object({ bucket: z.enum(AGENDA_BUCKETS) }).strict()
 
 interface RouteContext {
 	params: Promise<{ id: string }>
@@ -57,6 +63,19 @@ export async function PATCH(request: Request, context: RouteContext) {
 		if (!resolved.ok) return resolved.response
 		const incoming = await readJsonOrFiles(request)
 		if (!incoming.ok) return error(incoming.error, 400)
+		const move = caseMoveSchema.safeParse(incoming.body)
+		if (move.success) {
+			const updated = await placeLeadSupportCase(
+				{
+					idLeadSupportCase: resolved.supportCase.idLeadSupportCase,
+					idLead: resolved.supportCase.idLead,
+					bucket: move.data.bucket,
+					dueAt: move.data.bucket === 'done' ? undefined : dueAtForActivityBucket(move.data.bucket, new Date()),
+				},
+				requestContext(resolved.actor, request)
+			)
+			return NextResponse.json({ data: updated })
+		}
 		const files = validateActivityFiles(incoming.files)
 		if (!files.ok) return error(files.error, 400)
 		const input = leadSupportCaseUpdateSchema.safeParse(incoming.body)

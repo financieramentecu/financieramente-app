@@ -110,3 +110,48 @@ export async function addLeadSupportCaseComment(
 	)
 	return comment
 }
+
+const commentSelect = {
+	idLeadSupportCaseComment: true,
+	body: true,
+	createdAt: true,
+	author: { select: { name: true, lastName: true } },
+} as const
+
+export function listLeadSupportCaseComments(idLeadSupportCase: number) {
+	return prisma.leadSupportCaseComment.findMany({
+		where: { idLeadSupportCase },
+		orderBy: [{ createdAt: 'desc' }, { idLeadSupportCaseComment: 'desc' }],
+		select: commentSelect,
+	})
+}
+
+/** Drops a case into an activities column: done resolves it, any other column reopens it on that day. */
+export async function placeLeadSupportCase(
+	input: { idLeadSupportCase: number; idLead: number; bucket: 'overdue' | 'today' | 'upcoming' | 'done'; dueAt?: Date },
+	ctx: CrmRequestContext
+) {
+	if (input.bucket === 'done') {
+		return transitionLeadSupportCase(
+			{ idLeadSupportCase: input.idLeadSupportCase, idLead: input.idLead, status: 'RESOLVED' },
+			ctx
+		)
+	}
+	const updated = await prisma.$transaction((tx) =>
+		transitionLeadSupportCaseTx(tx, {
+			idLeadSupportCase: input.idLeadSupportCase,
+			idLead: input.idLead,
+			updatedBy: ctx.userId,
+			status: 'OPEN',
+			dueAt: input.dueAt ?? null,
+			clearResolvedAt: true,
+			correlationId: crypto.randomUUID(),
+		})
+	)
+	await audit(
+		ctx,
+		AuditAction.LEAD_SUPPORT_CASE_UPDATED,
+		`Lead ${input.idLead}: case ${input.idLeadSupportCase} moved to ${input.bucket}`
+	)
+	return updated
+}

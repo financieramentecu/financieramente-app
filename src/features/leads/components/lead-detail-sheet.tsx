@@ -41,6 +41,7 @@ import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
 import { LeadTaskList } from '@/features/leads/tasks/lead-task-list'
 import { LeadCrmFieldsSection } from '@/features/leads/custom-fields/lead-crm-fields-section'
 import { LeadSupportCaseList } from '@/features/leads/cases/lead-support-case-list'
+import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
 
 const LEAD_SHEET_PANEL = {
@@ -81,6 +82,7 @@ interface LeadDetailSheetProps {
 	canManageCrm?: boolean
 	conversionAuditEnabled?: boolean
 	casesEnabled?: boolean
+	onViewActivity?: (focus: ActivityFocus) => void
 }
 
 /**
@@ -103,6 +105,7 @@ export function LeadDetailSheet({
 	canManageCrm = false,
 	conversionAuditEnabled = false,
 	casesEnabled = false,
+	onViewActivity,
 }: LeadDetailSheetProps) {
 	const { state: deleteState, deleteLead } = useDeleteLead()
 	const [panel, setPanel] = useState<LeadSheetPanel>(LEAD_SHEET_PANEL.DETAIL)
@@ -253,6 +256,7 @@ export function LeadDetailSheet({
 								open={open}
 								tasksEnabled={tasksEnabled}
 								casesEnabled={casesEnabled}
+								onViewActivity={onViewActivity}
 							/>
 						)}
 						{!lead.email &&
@@ -349,12 +353,14 @@ function LeadWorkTabs({
 	open,
 	tasksEnabled,
 	casesEnabled,
+	onViewActivity,
 }: {
 	leadId: number
 	assigneeId: number | null
 	open: boolean
 	tasksEnabled: boolean
 	casesEnabled: boolean
+	onViewActivity?: (focus: ActivityFocus) => void
 }) {
 	const defaultTab = tasksEnabled ? WORK_TAB.TASKS : WORK_TAB.CASES
 	const [workTab, setWorkTab] = useState<WorkTab>(defaultTab)
@@ -388,13 +394,22 @@ function LeadWorkTabs({
 					)}
 				</TabsList>
 				{tasksEnabled && (
-					<TabsContent value={WORK_TAB.TASKS} forceMount hidden={active !== WORK_TAB.TASKS} className="mt-3">
-						<LeadTaskList leadId={leadId} assigneeId={assigneeId} enabled={open} />
+					<TabsContent value={WORK_TAB.TASKS} className="mt-3">
+						<LeadTaskList
+							leadId={leadId}
+							assigneeId={assigneeId}
+							enabled={open && active === WORK_TAB.TASKS}
+							onView={onViewActivity}
+						/>
 					</TabsContent>
 				)}
 				{casesEnabled && (
-					<TabsContent value={WORK_TAB.CASES} forceMount hidden={active !== WORK_TAB.CASES} className="mt-3">
-						<LeadSupportCaseList leadId={leadId} enabled={open} />
+					<TabsContent value={WORK_TAB.CASES} className="mt-3">
+						<LeadSupportCaseList
+							leadId={leadId}
+							enabled={open && active === WORK_TAB.CASES}
+							onView={onViewActivity}
+						/>
 					</TabsContent>
 				)}
 			</Tabs>

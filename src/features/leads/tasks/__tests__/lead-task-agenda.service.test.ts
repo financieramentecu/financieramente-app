@@ -67,8 +67,11 @@ describe('getActivityBoard', () => {
 				dueAt: new Date('2026-11-08T15:00:00Z'),
 				status: 'OPEN',
 				completedAt: null,
+				createdAt: new Date('2026-11-01T15:00:00Z'),
 				assignee: { name: 'Ana', lastName: 'Torres' },
+				creator: { name: 'Ana', lastName: 'Torres' },
 				lead: { name: 'Luis', lastName: null },
+				_count: { comments: 2 },
 			},
 		] as never)
 		const now = new Date('2026-11-09T15:00:00.000Z')

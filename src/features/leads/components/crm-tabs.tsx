@@ -20,6 +20,7 @@ import {
 } from '@/features/leads/lib/crm-tabs'
 import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
 import { CrmHierarchyShell } from '@/features/leads/components/crm-hierarchy-shell'
+import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/features/shared/ui/tabs'
 
 const TAB_FLAGS: FeatureFlag[] = [...CRM_TABS.flatMap((tab) => (tab.flag ? [tab.flag] : [])), 'crm_lead_fields']
@@ -39,6 +40,7 @@ export function CrmTabs() {
 		)
 	}
 	const sheet = useLeadDetailSheet()
+	const [activityFocus, setActivityFocus] = React.useState<ActivityFocus | null>(null)
 	const deepLinkLead = parseLeadParam(searchParams.get('lead'))
 	const { openLead } = sheet
 
@@ -73,14 +75,26 @@ export function CrmTabs() {
 				</TabsContent>
 				<TabsContent value="activities" forceMount hidden={activeTab !== 'activities'}>
 					{visitedTabs.includes('activities') && (
-						<ActivitiesAgenda onOpenLead={(idLead) => void openLead(idLead)} />
+						<ActivitiesAgenda
+							onOpenLead={(idLead) => void openLead(idLead)}
+							focus={activityFocus}
+						/>
 					)}
 				</TabsContent>
 				<TabsContent value="reports" forceMount hidden={activeTab !== 'reports'}>
 					{visitedTabs.includes('reports') && <CrmReports />}
 				</TabsContent>
 			</Tabs>
-			<CrmLeadDetailSheet lead={sheet.lead} open={sheet.open} onOpenChange={sheet.setOpen} />
+			<CrmLeadDetailSheet
+				lead={sheet.lead}
+				open={sheet.open}
+				onOpenChange={sheet.setOpen}
+				onViewActivity={(focus) => {
+					setActivityFocus(focus)
+					setSelectedTab('activities')
+					sheet.setOpen(false)
+				}}
+			/>
 		</CrmHierarchyShell>
 	)
 }

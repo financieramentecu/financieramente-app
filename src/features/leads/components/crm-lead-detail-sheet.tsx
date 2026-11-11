@@ -5,6 +5,7 @@ import { UserRole } from '@/features/auth/lib/roles'
 import { canManageCrm } from '@/features/leads/crm/crm-policy'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import { LeadDetailSheet } from '@/features/leads/components/lead-detail-sheet'
+import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
 
 /** Lead detail sheet wired to the viewer's CRM feature flags. */
@@ -13,11 +14,13 @@ export function CrmLeadDetailSheet({
 	open,
 	onOpenChange,
 	onDeleted,
+	onViewActivity,
 }: {
 	lead: LeadDetail | null
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onDeleted?: () => void
+	onViewActivity?: (focus: ActivityFocus) => void
 }) {
 	const { data: session } = useSession()
 	const { enabled: timelineEnabled } = useFeatureFlag('crm_timeline')
@@ -39,6 +42,7 @@ export function CrmLeadDetailSheet({
 			casesEnabled={casesEnabled}
 			crmFieldsEnabled={crmFieldsEnabled}
 			canManageCrm={canManageCrm(session?.user?.role)}
+			onViewActivity={onViewActivity}
 		/>
 	)
 }

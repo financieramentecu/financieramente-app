@@ -26,7 +26,10 @@ export interface ActivityBoardTask {
 	dueAt: Date | null
 	status: LeadTaskStatus
 	completedAt: Date | null
+	createdAt: Date
 	assigneeName: string
+	creatorName: string
+	commentCount: number
 }
 
 /**
@@ -54,21 +57,32 @@ export async function getActivityBoard(assigneeIds: number[] | null, now: Date =
 			dueAt: true,
 			status: true,
 			completedAt: true,
+			createdAt: true,
 			assignee: { select: { name: true, lastName: true } },
+			creator: { select: { name: true, lastName: true } },
 			lead: { select: { name: true, lastName: true } },
+			_count: { select: { comments: true } },
 		},
 	})
 	return rows.map((row) => ({
 		idLeadTask: row.idLeadTask,
 		idLead: row.idLead,
-		leadName: [row.lead.name, row.lead.lastName].filter(Boolean).join(' ') || 'Sin nombre',
+		leadName: personName(row.lead),
 		title: row.title,
 		type: row.type,
 		dueAt: row.dueAt,
 		status: row.status,
 		completedAt: row.completedAt,
-		assigneeName: [row.assignee.name, row.assignee.lastName].filter(Boolean).join(' ') || 'Sin nombre',
+		createdAt: row.createdAt,
+		assigneeName: personName(row.assignee),
+		creatorName: personName(row.creator),
+		commentCount: row._count.comments,
 	}))
+}
+
+function personName(user: { name: string | null; lastName: string | null } | null): string {
+	if (!user) return 'Sin nombre'
+	return [user.name, user.lastName].filter(Boolean).join(' ') || 'Sin nombre'
 }
 
 /** The viewer's own tasks for one agenda bucket, on active leads only. */

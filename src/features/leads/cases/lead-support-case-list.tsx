@@ -10,6 +10,7 @@ import { formatDateBogota } from '@/features/shared/lib/format-date'
 import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 import { jsonOrFilesInit } from '@/features/leads/activities/json-or-files'
 import { ResolutionNoteForm } from '@/features/leads/activities/resolution-note-form'
+import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
 
 type SupportCaseStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING' | 'RESOLVED' | 'CLOSED'
 type SupportCasePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
@@ -51,9 +52,11 @@ function isOpen(status: SupportCaseStatus): boolean {
 export function LeadSupportCaseList({
 	leadId,
 	enabled,
+	onView,
 }: {
 	leadId: number
 	enabled: boolean
+	onView?: (focus: ActivityFocus) => void
 }) {
 	const [cases, setCases] = useState<SupportCase[]>([])
 	const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -206,6 +209,16 @@ export function LeadSupportCaseList({
 					<div className="flex flex-wrap items-center gap-2">
 						<Badge variant="outline">{statusLabel[supportCase.status]}</Badge>
 						<Badge variant="secondary">{priorityLabel[supportCase.priority]}</Badge>
+						{onView && (
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								onClick={() => onView({ kind: 'case', id: supportCase.idLeadSupportCase })}
+							>
+								Ver
+							</Button>
+						)}
 						{isOpen(supportCase.status) && draftId !== supportCase.idLeadSupportCase && (
 							<Button
 								type="button"

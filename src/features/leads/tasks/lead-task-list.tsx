@@ -12,6 +12,7 @@ import { bogotaLocalDateTimeToIso } from '@/features/leads/tasks/bogota-datetime
 import { ResolutionNoteForm } from '@/features/leads/activities/resolution-note-form'
 import { useLeadTasks } from '@/features/leads/tasks/use-lead-tasks'
 import type { LeadTaskDto } from '@/features/leads/tasks/lead-tasks-api'
+import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
 
 const SELECT_CLASS = 'h-9 w-full rounded-md border border-input bg-background px-2 text-sm'
 
@@ -21,7 +22,17 @@ function describeTaskStatus(task: LeadTaskDto): string {
 	return task.dueAt ? `Vence ${formatDateTimeBogota(task.dueAt)}` : 'Sin fecha límite'
 }
 
-export function LeadTaskList({ leadId, assigneeId, enabled }: { leadId: number; assigneeId?: number | null; enabled: boolean }) {
+export function LeadTaskList({
+	leadId,
+	assigneeId,
+	enabled,
+	onView,
+}: {
+	leadId: number
+	assigneeId?: number | null
+	enabled: boolean
+	onView?: (focus: ActivityFocus) => void
+}) {
 	const { state, create, complete } = useLeadTasks(leadId, enabled)
 	const [title, setTitle] = React.useState('')
 	const [type, setType] = React.useState<LeadTaskKind>('TODO')
@@ -102,11 +113,18 @@ export function LeadTaskList({ leadId, assigneeId, enabled }: { leadId: number; 
 							{task.title}
 							<span className="text-xs font-normal text-muted-foreground">{TASK_TYPE_LABELS[task.type ?? 'TODO']}</span>
 						</p>
-						{task.status === 'OPEN' && completingId !== task.idLeadTask && (
-							<Button type="button" size="sm" onClick={() => setCompletingId(task.idLeadTask)} aria-label={`Completar ${task.title}`}>
-								Completar
-							</Button>
-						)}
+						<span className="flex shrink-0 gap-1">
+							{onView && (
+								<Button type="button" size="sm" variant="outline" onClick={() => onView({ kind: 'task', id: task.idLeadTask })}>
+									Ver
+								</Button>
+							)}
+							{task.status === 'OPEN' && completingId !== task.idLeadTask && (
+								<Button type="button" size="sm" onClick={() => setCompletingId(task.idLeadTask)} aria-label={`Completar ${task.title}`}>
+									Completar
+								</Button>
+							)}
+						</span>
 					</div>
 					<p className="text-xs text-muted-foreground">{describeTaskStatus(task)} · {[task.assignee.name, task.assignee.lastName].filter(Boolean).join(' ')}</p>
 					{completingId === task.idLeadTask && (

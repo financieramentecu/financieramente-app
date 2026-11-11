@@ -14,14 +14,23 @@ const task = (id: number, overrides: object = {}) => ({
 	dueAt: dueAtForActivityBucket('overdue', now).toISOString(),
 	status: 'OPEN',
 	completedAt: null,
+	createdAt: now.toISOString(),
 	assigneeName: 'Ana Torres',
+	creatorName: 'Ana Torres',
+	commentCount: 1,
 	...overrides,
 })
 
-function mockBoard(tasks: unknown[]) {
+function mockBoard(tasks: unknown[], cases: unknown[] = []) {
 	return vi.fn((url: string, init?: RequestInit) => {
+		if (typeof url === 'string' && url.includes('activity-comments')) {
+			return Promise.resolve({
+				ok: true,
+				json: async () => ({ data: [{ id: 9, body: 'Ya llamé', createdAt: now.toISOString(), authorName: 'Ana' }] }),
+			})
+		}
 		if (init?.method === 'PATCH') return Promise.resolve({ ok: true, json: async () => ({ data: {} }) })
-		return Promise.resolve({ ok: true, json: async () => ({ data: tasks }) })
+		return Promise.resolve({ ok: true, json: async () => ({ data: { tasks, cases } }) })
 	})
 }
 
@@ -53,6 +62,53 @@ describe('ActivitiesAgenda', () => {
 		render(<ActivitiesAgenda onOpenLead={onOpenLead} />)
 		fireEvent.click(await screen.findByRole('button', { name: 'Lead 2' }))
 		expect(onOpenLead).toHaveBeenCalledWith(42)
+	})
+
+	it('shows a case and opens its comments without dragging', async () => {
+		vi.stubGlobal('fetch', mockBoard([], [{
+			idLeadSupportCase: 5,
+			idLead: 8,
+			leadName: 'Lead caso',
+			subject: 'Pago devuelto',
+			status: 'OPEN',
+			priority: 'HIGH',
+			dueAt: dueAtForActivityBucket('today', now).toISOString(),
+			resolvedAt: null,
+			createdAt: now.toISOString(),
+			assigneeName: 'Ana Torres',
+			commentCount: 1,
+		}]))
+		render(<ActivitiesAgenda onOpenLead={vi.fn()} />)
+		fireEvent.click(await screen.findByText('Pago devuelto'))
+		expect(await screen.findByText('Ya llamé')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Completar caso' })).toBeInTheDocument()
+	})
+
+	it('filters the board to tasks or cases', async () => {
+		vi.stubGlobal('fetch', mockBoard([task(1, { title: 'Llamar cliente' })], [{
+			idLeadSupportCase: 5,
+			idLead: 8,
+			leadName: 'Lead caso',
+			subject: 'Pago devuelto',
+			status: 'OPEN',
+			priority: 'HIGH',
+			dueAt: dueAtForActivityBucket('today', now).toISOString(),
+			resolvedAt: null,
+			createdAt: now.toISOString(),
+			assigneeName: 'Ana Torres',
+			commentCount: 0,
+		}]))
+		render(<ActivitiesAgenda onOpenLead={vi.fn()} />)
+		expect(await screen.findByText('Llamar cliente')).toBeInTheDocument()
+		expect(screen.getByText('Pago devuelto')).toBeInTheDocument()
+
+		fireEvent.click(screen.getByRole('button', { name: 'Casos' }))
+		expect(screen.queryByText('Llamar cliente')).not.toBeInTheDocument()
+		expect(screen.getByText('Pago devuelto')).toBeInTheDocument()
+
+		fireEvent.click(screen.getByRole('button', { name: 'Tareas' }))
+		expect(screen.getByText('Llamar cliente')).toBeInTheDocument()
+		expect(screen.queryByText('Pago devuelto')).not.toBeInTheDocument()
 	})
 
 	it('shows an error when the board cannot load', async () => {

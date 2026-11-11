@@ -25,5 +25,33 @@ export interface ActivityBoardTaskDto {
 	dueAt: string | null
 	status: 'OPEN' | 'DONE' | 'CANCELLED'
 	completedAt: string | null
+	createdAt: string
 	assigneeName: string
+	creatorName: string
+	commentCount: number
 }
+
+export type ActivityCaseStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING' | 'RESOLVED' | 'CLOSED'
+export type ActivityCasePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+
+/** Support case on the same activities Kanban (dates serialized). */
+export interface ActivityBoardCaseDto {
+	idLeadSupportCase: number
+	idLead: number
+	leadName: string
+	subject: string
+	status: ActivityCaseStatus
+	priority: ActivityCasePriority
+	dueAt: string | null
+	resolvedAt: string | null
+	createdAt: string
+	assigneeName: string
+	commentCount: number
+}
+
+export interface ActivityBoardDto {
+	tasks: ActivityBoardTaskDto[]
+	cases: ActivityBoardCaseDto[]
+}
+
+export type ActivityFocus = { kind: 'task' | 'case'; id: number }

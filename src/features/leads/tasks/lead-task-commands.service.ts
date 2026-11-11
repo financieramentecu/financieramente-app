@@ -47,6 +47,30 @@ export function listLeadTasks(idLead: number) {
 	})
 }
 
+export function listLeadTaskComments(idLeadTask: number) {
+	return prisma.leadTaskComment.findMany({
+		where: { idLeadTask },
+		orderBy: [{ createdAt: 'desc' }, { idLeadTaskComment: 'desc' }],
+		select: {
+			idLeadTaskComment: true,
+			body: true,
+			createdAt: true,
+			author: { select: { name: true, lastName: true } },
+		},
+	})
+}
+
+export async function addLeadTaskComment(
+	input: { idLeadTask: number; idLead: number; body: string },
+	ctx: CrmRequestContext
+) {
+	const comment = await prisma.leadTaskComment.create({
+		data: { idLeadTask: input.idLeadTask, authorId: ctx.userId, body: input.body },
+	})
+	await audit(ctx, AuditAction.LEAD_TASK_COMMENTED, `Lead ${input.idLead}: task ${input.idLeadTask} commented`)
+	return comment
+}
+
 export function findLeadTaskRef(idLeadTask: number) {
 	return prisma.leadTask.findUnique({
 		where: { idLeadTask },

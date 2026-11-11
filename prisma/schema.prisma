@@ -338,6 +338,7 @@ model User {
   leadSupportCasesOpened              LeadSupportCase[]        @relation("LeadSupportCaseOpenedBy")
   leadSupportCasesAssigned            LeadSupportCase[]        @relation("LeadSupportCaseAssignee")
   leadSupportCaseComments             LeadSupportCaseComment[] @relation("LeadSupportCaseCommentAuthor")
+  leadTaskComments                    LeadTaskComment[]        @relation("LeadTaskCommentAuthor")
   leadStageChanges                    LeadStageHistory[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
@@ -895,13 +896,27 @@ model LeadTask {
   updatedAt      DateTime       @updatedAt @map("updated_at")
   lead           Lead           @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
   business       Business?      @relation(fields: [idBusiness], references: [idBusiness], onDelete: SetNull)
-  assignee       User           @relation("LeadTaskAssignee", fields: [assignedTo], references: [idUser])
-  creator        User           @relation("LeadTaskCreator", fields: [createdBy], references: [idUser])
+  assignee       User              @relation("LeadTaskAssignee", fields: [assignedTo], references: [idUser])
+  creator        User              @relation("LeadTaskCreator", fields: [createdBy], references: [idUser])
+  comments       LeadTaskComment[]
 
   @@index([assignedTo, status, dueAt])
   @@index([idLead, status])
   @@index([dueAt, reminderSentAt])
   @@map("lead_task")
+}
+
+model LeadTaskComment {
+  idLeadTaskComment Int      @id @default(autoincrement()) @map("id_lead_task_comment")
+  idLeadTask        Int      @map("id_lead_task")
+  authorId          Int      @map("author_id")
+  body              String   @db.VarChar(2000)
+  createdAt         DateTime @default(now()) @map("created_at")
+  task              LeadTask @relation(fields: [idLeadTask], references: [idLeadTask], onDelete: Cascade)
+  author            User     @relation("LeadTaskCommentAuthor", fields: [authorId], references: [idUser])
+
+  @@index([idLeadTask, createdAt])
+  @@map("lead_task_comment")
 }
 
 model Lead {

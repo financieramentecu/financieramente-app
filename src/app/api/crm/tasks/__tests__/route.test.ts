@@ -17,6 +17,7 @@ vi.mock('@/lib/auth/require-crm-actor', async (importOriginal) => ({
 	findScopedLead: vi.fn(),
 }))
 vi.mock('@/features/leads/tasks/lead-task-agenda.service', () => ({ getTaskAgenda: vi.fn(), getActivityBoard: vi.fn() }))
+vi.mock('@/features/leads/cases/lead-case-agenda.service', () => ({ getActivityCases: vi.fn(async () => []) }))
 vi.mock('@/features/leads/tasks/lead-task-commands.service', () => ({
 	completeLeadTask: vi.fn(),
 	findLeadTaskRef: vi.fn(),
