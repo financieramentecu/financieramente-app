@@ -1,6 +1,5 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
 import { auth } from '@/auth'
 import {
 	buildDefaultDateSeedQuery,
@@ -9,6 +8,7 @@ import {
 import type { PageSearchParams } from '@/features/negocios/lib/default-date-filter'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { NegociosPageClient } from './negocios-page-client'
+import { NegociosPageSkeleton } from '@/features/negocios/components/NegociosPageSkeleton'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { getNegociosInitialData } from '@/features/negocios/services/negocios-initial-data.server'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
@@ -34,14 +34,6 @@ async function NegociosPageData({
 			currentUser={currentUser ?? undefined}
 			initialData={initialData}
 		/>
-	)
-}
-
-function NegociosPageFallback() {
-	return (
-		<div className="flex h-64 items-center justify-center">
-			<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-		</div>
 	)
 }
 
@@ -77,7 +69,7 @@ export default async function NegociosPage({
 
 	return (
 		<DashboardLayout currentPage="Negocio">
-			<Suspense fallback={<NegociosPageFallback />}>
+			<Suspense fallback={<NegociosPageSkeleton />}>
 				<NegociosPageData
 					currentUser={currentUser}
 					searchParams={resolvedSearchParams}
