@@ -43,3 +43,6 @@ lines of a multi-line bullet). Omit sections you do not need. Anything else make
 ```
 
 PRs that truly need no release note (docs-only, CI-only) use the `no-changeset` label instead.
+
+Release PRs titled `chore(release): vX.Y.Z` are exempt automatically: `release:version` deletes the
+consumed changesets, so the CI changeset check skips them (no label needed).
