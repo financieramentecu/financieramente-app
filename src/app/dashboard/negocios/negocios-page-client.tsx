@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'
 import MisNegociosPage from '@/features/negocios/components/MisNegociosPage'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
@@ -16,22 +16,15 @@ import { canExportBusinessList } from '@/features/negocios/lib/can-export-busine
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
-import type {
-	BusinessEntity,
-	BusinessStatus,
-	NovedadFilterValue,
-} from '@/features/negocios/types/business-entity.types'
+import type { BusinessEntity } from '@/features/negocios/types/business-entity.types'
 import type {
 	AnnualInstallmentDto,
 	BusinessListParams,
 	NegociosExportBody,
 } from '@/features/negocios/types/business-api.types'
 import { mapBusinessToTableRow } from '@/features/negocios/lib/map-business-to-table-row'
-import {
-	getCurrentMonthRange,
-	getDefaultDateParamPair,
-	hasAnyDateParam,
-} from '@/features/negocios/lib/default-date-filter'
+import { parseBusinessUrlFilters } from '@/features/negocios/lib/parse-business-url-filters'
+import type { NegociosInitialData } from '@/features/negocios/types/negocios-initial-data.types'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -49,8 +42,8 @@ const SEARCH_DEBOUNCE_DELAY = 500
 
 interface NegociosPageClientProps {
 	currentUser?: UserWithRole
-	/** Initial searchParams from the server component (for SSR hydration) */
-	initialSearchParams?: Record<string, string | string[] | undefined>
+	/** First page of the list and KPIs loaded by the Server Component. */
+	initialData?: NegociosInitialData
 }
 
 /**
@@ -60,46 +53,16 @@ interface NegociosPageClientProps {
  */
 export function NegociosPageClient({
 	currentUser: _currentUser,
-	initialSearchParams: _initialSearchParams,
+	initialData,
 }: NegociosPageClientProps) {
 	const router = useRouter()
 	const urlSearchParams = useNextSearchParams()
 
 	// Derive filter params from URL search params (written by AdvancedFiltersSheet)
-	const urlFilterParams: Partial<BusinessListParams> = useMemo(() => {
-		const statuses = urlSearchParams.getAll('statuses') as BusinessStatus[]
-		const companyIds = urlSearchParams.getAll('companyIds').map(Number).filter(n => !isNaN(n))
-		const productIds = urlSearchParams.getAll('productIds').map(Number).filter(n => !isNaN(n))
-		const originIds = urlSearchParams.getAll('originIds').map(Number).filter(n => !isNaN(n))
-		const terms = urlSearchParams.getAll('terms').map(Number).filter(n => !isNaN(n))
-		const periodicityIds = urlSearchParams.getAll('periodicityIds').map(Number).filter(n => !isNaN(n))
-		const agentCategoryIds = urlSearchParams.getAll('agentCategoryIds').map(Number).filter(n => !isNaN(n))
-		const agentIds = urlSearchParams.getAll('agentIds').map(Number).filter(n => !isNaN(n))
-		const novedadStatuses = urlSearchParams.getAll('novedadStatuses') as NovedadFilterValue[]
-		const hasSupportsParam = urlSearchParams.get('hasSupports')
-		const hasSupports = hasSupportsParam === 'true' ? true : hasSupportsParam === 'false' ? false : undefined
-		const agentNameFromUrl = urlSearchParams.get('agentName') ?? undefined
-
-		return {
-			statuses: statuses.length > 0 ? statuses : undefined,
-			dateFrom: urlSearchParams.get('dateFrom') ?? undefined,
-			dateTo: urlSearchParams.get('dateTo') ?? undefined,
-			createdFrom: urlSearchParams.get('createdFrom') ?? undefined,
-			createdTo: urlSearchParams.get('createdTo') ?? undefined,
-			dateIssuedFrom: urlSearchParams.get('dateIssuedFrom') ?? undefined,
-			dateIssuedTo: urlSearchParams.get('dateIssuedTo') ?? undefined,
-			agentName: agentNameFromUrl,
-			hasSupports,
-			companyIds: companyIds.length > 0 ? companyIds : undefined,
-			productIds: productIds.length > 0 ? productIds : undefined,
-			originIds: originIds.length > 0 ? originIds : undefined,
-			terms: terms.length > 0 ? terms : undefined,
-			periodicityIds: periodicityIds.length > 0 ? periodicityIds : undefined,
-			agentCategoryIds: agentCategoryIds.length > 0 ? agentCategoryIds : undefined,
-			agentIds: agentIds.length > 0 ? agentIds : undefined,
-			novedadStatuses: novedadStatuses.length > 0 ? novedadStatuses : undefined,
-		}
-	}, [urlSearchParams])
+	const urlFilterParams: Partial<BusinessListParams> = useMemo(
+		() => parseBusinessUrlFilters(urlSearchParams),
+		[urlSearchParams]
+	)
 
 	// Estado para modales
 	const [cancelModalOpen, setCancelModalOpen] = useState(false)
@@ -108,6 +71,8 @@ export function NegociosPageClient({
 	const [selectedBusiness, setSelectedBusiness] =
 		useState<BusinessEntity | null>(null)
 	const [isLoadingBusiness, setIsLoadingBusiness] = useState(false)
+	/** Business id the cancel modal was last opened for; guards against stale enrichment responses */
+	const cancelTargetIdRef = useRef<number | null>(null)
 
 	const [annualFundingOpen, setAnnualFundingOpen] = useState(false)
 	const [annualFundingBusinessId, setAnnualFundingBusinessId] = useState<
@@ -142,9 +107,6 @@ export function NegociosPageClient({
 	const [searchInput, setSearchInput] = useState('')
 	const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_DELAY)
 
-	// Fechas por defecto para el Coach (Mes actual)
-	const defaultDates = useMemo(() => getCurrentMonthRange(), [])
-
 	// Estado para paginación
 	// Sin dateFrom/dateTo por defecto: el listado muestra todos los negocios;
 	// los KPI de stats usan las fechas del picker o el rango por defecto.
@@ -156,22 +118,9 @@ export function NegociosPageClient({
 		originIds: [],
 	})
 
-	// Seed the role's default date filter (current month on creation date) into
-	// the URL once per mount, so the AdvancedFiltersSheet and the active-filter
-	// badge reflect it. Skips when the URL already carries a date filter.
-	// "Limpiar filtros" in AdvancedFiltersSheet re-seeds the current month
-	// itself (this effect does not run again after the first mount seed).
-	const defaultDatePair = getDefaultDateParamPair(_currentUser?.role?.code)
-	const hasSeededDefaultDateRef = useRef(false)
-	useEffect(() => {
-		if (!defaultDatePair || hasSeededDefaultDateRef.current) return
-		hasSeededDefaultDateRef.current = true
-		if (hasAnyDateParam(urlSearchParams)) return
-		const params = new URLSearchParams(urlSearchParams.toString())
-		params.set(defaultDatePair.fromKey, defaultDates.from)
-		params.set(defaultDatePair.toKey, defaultDates.to)
-		router.replace(`?${params.toString()}`, { scroll: false })
-	}, [defaultDatePair, urlSearchParams, router, defaultDates])
+	// The role's default date filter (current month) is seeded into the URL by
+	// the Server Component (page.tsx) before this component mounts.
+	// "Limpiar filtros" in AdvancedFiltersSheet re-seeds the current month itself.
 
 	// Trackear si la tabla ya se inicializó (cargó datos al menos una vez)
 	const [hasInitialized, setHasInitialized] = useState(false)
@@ -226,7 +175,12 @@ export function NegociosPageClient({
 	// createdFrom/createdTo → createdAt, dateIssuedFrom/dateIssuedTo → dateIssued)
 	// with no role-based remapping.
 	const { businesses, isLoading, error, pagination, refetch } =
-		useBusinesses(mergedParams)
+		useBusinesses(
+			mergedParams,
+			initialData?.list
+				? { data: initialData.list, renderId: initialData.renderId }
+				: undefined
+		)
 
 	const isDebouncing = searchInput !== debouncedSearch
 
@@ -252,7 +206,12 @@ export function NegociosPageClient({
 		isLoading: isLoadingStats,
 		error: statsError,
 		refetch: refetchStats,
-	} = useBusinessStats(urlFilterParams)
+	} = useBusinessStats(
+		urlFilterParams,
+		initialData?.stats
+			? { data: initialData.stats, renderId: initialData.renderId }
+			: undefined
+	)
 
 	const {
 		cancelBusiness,
@@ -299,6 +258,9 @@ export function NegociosPageClient({
 	 * Abre el modal de cancelación con el negocio seleccionado
 	 */
 	const handleCancelBusiness = useCallback(async (business: Business) => {
+		const requestedId = Number(business.id)
+		cancelTargetIdRef.current = requestedId
+
 		// Set immediately from row data so the modal never closes due to null business
 		setSelectedBusiness(business as unknown as BusinessEntity)
 		setCancelModalOpen(true)
@@ -306,14 +268,22 @@ export function NegociosPageClient({
 		// Enrich with full data in the background
 		try {
 			setIsLoadingBusiness(true)
-			const response = await businessService.getById(Number(business.id))
-			if (response.data) {
+			const response = await businessService.getById(requestedId)
+			// Ignore late responses: the user may have closed the modal or opened
+			// it for another business while this request was in flight.
+			if (
+				response.data &&
+				cancelTargetIdRef.current === requestedId &&
+				Number(response.data.id) === requestedId
+			) {
 				setSelectedBusiness(response.data)
 			}
 		} catch (err) {
 			console.error('Error al cargar negocio:', err)
 		} finally {
-			setIsLoadingBusiness(false)
+			if (cancelTargetIdRef.current === requestedId) {
+				setIsLoadingBusiness(false)
+			}
 		}
 	}, [])
 
@@ -476,6 +446,7 @@ export function NegociosPageClient({
 			if (result) {
 				setCancelModalOpen(false)
 				setSelectedBusiness(null)
+				cancelTargetIdRef.current = null
 				// Refrescar lista de negocios y estadísticas
 				refetch(true)
 				refetchStats(true)
@@ -561,7 +532,9 @@ export function NegociosPageClient({
 	const handleCancelModalClose = useCallback((open: boolean) => {
 		setCancelModalOpen(open)
 		if (!open) {
+			cancelTargetIdRef.current = null
 			setSelectedBusiness(null)
+			setIsLoadingBusiness(false)
 		}
 	}, [])
 

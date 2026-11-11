@@ -36,6 +36,7 @@ describe('AuditAction — partner profile (PM-08)', () => {
 		'ACCOUNT_ACTIVATED',
 		'PASSWORD_RESET_REQUESTED',
 		'PASSWORD_RESET_COMPLETED',
+		'USER_PASSWORD_SET',
 	])('includes %s with a matching string value', (action) => {
 		expect(AuditAction[action as keyof typeof AuditAction]).toBe(action)
 	})

@@ -5,7 +5,6 @@ import { REPORT_CODES } from '@/features/report-permissions/types/report-permiss
 import { AbaMfundShell } from '@/features/reports/aba-mfund/components/aba-mfund-shell'
 import { ABA_MFUND_UI } from '@/features/reports/aba-mfund/lib/ui-copy'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
-import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { getCurrentUserByEmail } from '@/features/shared/services/user.service'
 
 /**
@@ -17,14 +16,6 @@ export default async function AbaMfundPage() {
 
 	if (!session?.user?.email) {
 		redirect('/login')
-	}
-
-	const isEnabled = await isFeatureEnabledServer(
-		'reportes_aba_mfund',
-		session.user.email
-	)
-	if (!isEnabled) {
-		redirect('/access-denied?reason=feature_disabled')
 	}
 
 	const currentUser = await getCurrentUserByEmail(session.user.email)
