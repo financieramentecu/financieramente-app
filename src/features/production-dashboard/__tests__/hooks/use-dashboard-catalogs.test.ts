@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { useDashboardCatalogs } from '../../hooks/use-dashboard-catalogs'
+import {
+  useDashboardCatalogs,
+  resetDashboardCatalogsRequest,
+} from '../../hooks/use-dashboard-catalogs'
 
 vi.mock('@/lib/api/client', () => ({
   apiClient: { get: vi.fn() },
@@ -13,6 +16,7 @@ const mockGet = vi.mocked(apiClient.get)
 describe('useDashboardCatalogs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetDashboardCatalogsRequest()
   })
 
   it('starts in loading state', () => {
@@ -61,5 +65,35 @@ describe('useDashboardCatalogs', () => {
     const { result } = renderHook(() => useDashboardCatalogs())
 
     await waitFor(() => expect(result.current.status).toBe('error'))
+  })
+
+  it('shares one request between consumers mounted at the same time', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        companies: [], products: [], origins: [], categories: [], periodicidades: [],
+      },
+    })
+
+    const first = renderHook(() => useDashboardCatalogs())
+    const second = renderHook(() => useDashboardCatalogs())
+
+    await waitFor(() => expect(first.result.current.status).toBe('success'))
+    await waitFor(() => expect(second.result.current.status).toBe('success'))
+    expect(mockGet).toHaveBeenCalledTimes(1)
+  })
+
+  it('loads fresh data when a consumer mounts after the previous request settled', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        companies: [], products: [], origins: [], categories: [], periodicidades: [],
+      },
+    })
+
+    const first = renderHook(() => useDashboardCatalogs())
+    await waitFor(() => expect(first.result.current.status).toBe('success'))
+
+    const second = renderHook(() => useDashboardCatalogs())
+    await waitFor(() => expect(second.result.current.status).toBe('success'))
+    expect(mockGet).toHaveBeenCalledTimes(2)
   })
 })

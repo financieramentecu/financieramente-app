@@ -59,6 +59,7 @@ function setupMocks(nodes: HierarchyNode[], userIds: readonly number[] = []) {
   mockUseHierarchySelection.mockReturnValue({
     nodes,
     selectedUserIds: userIds,
+    isHierarchyResolved: true,
     toggle: vi.fn(),
     dispatch: vi.fn(),
   })
@@ -138,6 +139,7 @@ describe('useMsBarChart', () => {
     mockUseHierarchySelection.mockReturnValue({
       nodes: [],
       selectedUserIds: [],
+      isHierarchyResolved: true,
       toggle: vi.fn(),
       dispatch: vi.fn(),
     })
@@ -276,6 +278,7 @@ describe('useMsBarChart', () => {
     mockUseHierarchySelection.mockReturnValue({
       nodes: [makeNode(1, 'MS_SENIOR', true), makeNode(2, 'MS_JUNIOR', false)],
       selectedUserIds: [1],
+      isHierarchyResolved: true,
       toggle: vi.fn(),
       dispatch: vi.fn(),
     })
