@@ -129,25 +129,6 @@ describe('set-password audit failures', () => {
 		vi.mocked(prisma.user.update).mockRejectedValueOnce(
 			new Error('Update failed')
 		)
-
-		expect(response.status).toBe(200)
-		expect(prisma.user.update).toHaveBeenCalled()
-		expect(logAuditEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				userId: 1,
-				roleId: 1,
-				action: 'USER_PASSWORD_SET',
-				email: 'admin@example.com',
-				ipAddress: '127.0.0.1',
-				userAgent: 'vitest',
-				details: expect.stringContaining('Usuario id=2'),
-			})
-		)
-		expect(logAuditEvent).toHaveBeenCalledWith(
-			expect.objectContaining({
-				details: expect.stringContaining('ssoOnly=false'),
-			})
-		)
 		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 		try {
 			const response = await POST(
