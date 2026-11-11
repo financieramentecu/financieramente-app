@@ -22,11 +22,20 @@ export const leadTaskCreateSchema = z
 	})
 	.strict()
 
+const optionalComment = z
+	.string()
+	.trim()
+	.max(2000)
+	.refine((value) => value.length === 0 || !/[<>]/.test(value), 'El texto no puede incluir HTML')
+	.optional()
+	.transform((value) => (value ? value : undefined))
+
 export const leadTaskUpdateSchema = z
 	.object({
 		action: z.enum(['complete', 'reassign', 'reschedule']),
 		assignedTo: positiveUserId.optional(),
 		dueAt: z.string().datetime().nullable().optional(),
+		comment: optionalComment,
 	})
 	.superRefine((input, context) => {
 		if (input.action === 'reassign' && !input.assignedTo) {
@@ -34,6 +43,9 @@ export const leadTaskUpdateSchema = z
 		}
 		if (input.action === 'complete' && input.assignedTo) {
 			context.addIssue({ code: z.ZodIssueCode.custom, message: 'assignedTo no aplica al completar' })
+		}
+		if (input.action !== 'complete' && input.comment) {
+			context.addIssue({ code: z.ZodIssueCode.custom, message: 'El comentario solo aplica al completar' })
 		}
 		if (input.action === 'reschedule' && input.dueAt === undefined) {
 			context.addIssue({ code: z.ZodIssueCode.custom, message: 'dueAt es obligatorio al reprogramar' })

@@ -25,14 +25,13 @@ const stage = (id: number, iso: string) => ({
 describe('getLeadTimelinePage', () => {
 	beforeEach(() => vi.clearAllMocks())
 
-	it('merges activities and stage changes newest first', async () => {
+	it('merges activities and stage changes oldest first', async () => {
 		vi.mocked(getLeadActivityPage).mockResolvedValue({ items: [activity(1, '2026-11-09T11:00:00Z')], nextCursor: null })
 		vi.mocked(prisma.leadStageHistory.findMany).mockResolvedValue([stage(3, '2026-11-09T10:00:00Z')] as never)
 
 		const page = await getLeadTimelinePage(12, { limit: 10 })
 
 		expect(page.items).toEqual([
-			expect.objectContaining({ kind: 'activity', idLeadActivity: 1 }),
 			{
 				kind: 'stage_change',
 				idLeadStageHistory: 3,
@@ -42,6 +41,7 @@ describe('getLeadTimelinePage', () => {
 				toColumnName: 'Contactado',
 				source: 'CRM_SYNC',
 			},
+			expect.objectContaining({ kind: 'activity', idLeadActivity: 1 }),
 		])
 		expect(page.nextCursor).toBeNull()
 	})
@@ -64,11 +64,11 @@ describe('getLeadTimelinePage', () => {
 
 		expect(getLeadActivityPage).toHaveBeenCalledWith(prisma, 12, {
 			limit: 5,
-			cursor: { occurredAt, idLeadActivity: 1 },
+			cursor: { occurredAt, idLeadActivity: Number.MAX_SAFE_INTEGER },
 		})
 		expect(vi.mocked(prisma.leadStageHistory.findMany).mock.calls[0][0]?.where).toEqual({
 			idLead: 12,
-			OR: [{ changedAt: { lt: occurredAt } }, { changedAt: occurredAt, idLeadStageHistory: { lt: 3 } }],
+			OR: [{ changedAt: { gt: occurredAt } }, { changedAt: occurredAt, idLeadStageHistory: { gt: 3 } }],
 		})
 	})
 
@@ -84,7 +84,7 @@ describe('getLeadTimelinePage', () => {
 		})
 		expect(vi.mocked(prisma.leadStageHistory.findMany).mock.calls[0][0]?.where).toEqual({
 			idLead: 12,
-			changedAt: { lte: occurredAt },
+			changedAt: { gte: occurredAt },
 		})
 	})
 })

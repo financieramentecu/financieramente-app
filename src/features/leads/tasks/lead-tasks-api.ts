@@ -1,3 +1,4 @@
+import { jsonOrFilesInit } from '@/features/leads/activities/json-or-files'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { LeadTaskKind } from '@/features/leads/tasks/lead-task.schema'
 
@@ -35,11 +36,14 @@ export async function createLeadTaskRequest(leadId: number, task: NewLeadTask): 
 	if (!response.ok) throw new Error('create')
 }
 
-export async function completeLeadTaskRequest(idLeadTask: number): Promise<void> {
-	const response = await fetch(`/api/crm/tasks/${idLeadTask}`, {
-		method: 'PATCH',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ action: 'complete' }),
-	})
+export async function completeLeadTaskRequest(
+	idLeadTask: number,
+	note: { comment?: string; files?: readonly File[] } = {}
+): Promise<void> {
+	const body = note.comment ? { action: 'complete', comment: note.comment } : { action: 'complete' }
+	const response = await fetch(
+		`/api/crm/tasks/${idLeadTask}`,
+		jsonOrFilesInit('PATCH', body, note.files ?? [])
+	)
 	if (!response.ok) throw new Error('complete')
 }

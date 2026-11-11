@@ -46,9 +46,12 @@ export function useLeadTasks(leadId: number, enabled: boolean) {
 		}
 	}
 
-	async function complete(idLeadTask: number): Promise<boolean> {
+	async function complete(
+		idLeadTask: number,
+		note: { comment?: string; files?: readonly File[] } = {}
+	): Promise<boolean> {
 		try {
-			await completeLeadTaskRequest(idLeadTask)
+			await completeLeadTaskRequest(idLeadTask, note)
 			await reload()
 			return true
 		} catch {

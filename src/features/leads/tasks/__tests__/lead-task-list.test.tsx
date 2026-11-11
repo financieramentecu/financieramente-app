@@ -35,9 +35,20 @@ describe('LeadTaskList', () => {
 		vi.stubGlobal('fetch', fetchMock)
 		render(<LeadTaskList leadId={4} assigneeId={7} enabled />)
 		expect(await screen.findByText('Email')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Completar Enviar propuesta' })).toHaveClass('bg-primary')
 		fireEvent.click(screen.getByRole('button', { name: 'Completar Enviar propuesta' }))
-		await waitFor(() =>
-			expect(fetchMock).toHaveBeenCalledWith('/api/crm/tasks/5', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ action: 'complete' }) }))
-		)
+		fireEvent.change(screen.getByLabelText('Qué pasó'), { target: { value: 'El cliente aceptó' } })
+		const file = new File(['ok'], 'acuerdo.pdf', { type: 'application/pdf' })
+		fireEvent.change(screen.getByLabelText('Adjuntar archivos'), { target: { files: [file] } })
+		fireEvent.click(screen.getByRole('button', { name: 'Completar tarea' }))
+		await waitFor(() => {
+			const posted = fetchMock.mock.calls.find((call) => call[1]?.method === 'PATCH')
+			expect(posted?.[0]).toBe('/api/crm/tasks/5')
+			expect(posted?.[1].body).toBeInstanceOf(FormData)
+			expect((posted?.[1].body as FormData).get('event')).toBe(
+				JSON.stringify({ action: 'complete', comment: 'El cliente aceptó' })
+			)
+			expect((posted?.[1].body as FormData).get('files')).toBe(file)
+		})
 	})
 })

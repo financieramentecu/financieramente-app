@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import type { LeadActivityAttachment } from '@/features/leads/activities/lead-activity-attachment'
 import { appendLeadActivityTx } from '@/features/leads/activities/lead-activity.service'
 
 export type LeadSupportCaseStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING' | 'RESOLVED' | 'CLOSED'
@@ -21,6 +22,8 @@ export interface TransitionLeadSupportCaseInput {
   status: LeadSupportCaseStatus
   assignedTo?: number | null
   correlationId: string
+  comment?: string
+  attachments?: LeadActivityAttachment[]
 }
 export interface AddLeadSupportCaseCommentInput {
   idLeadSupportCase: number
@@ -71,7 +74,13 @@ export async function transitionLeadSupportCaseTx(tx: CaseWriter, input: Transit
     idUser: input.updatedBy,
     idBusiness: supportCase.idBusiness,
     type: 'CASE_UPDATED',
-    payload: { caseId: supportCase.idLeadSupportCase, status: input.status },
+    payload: {
+      caseId: supportCase.idLeadSupportCase,
+      subject: supportCase.subject,
+      status: input.status,
+      ...(input.comment ? { comment: input.comment } : {}),
+      ...(input.attachments?.length ? { attachments: input.attachments } : {}),
+    },
     correlationId: input.correlationId,
   })
   return supportCase

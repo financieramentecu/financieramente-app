@@ -32,7 +32,16 @@ describe('describeTimelineEntry', () => {
 		expect(describeTimelineEntry(activity('CONVERTED', { businessId: 77 }))).toMatchObject({ title: 'Lead convertido a negocio', detail: 'Negocio #77' })
 		expect(describeTimelineEntry(activity('TASK_CREATED', { taskId: 3, title: 'Llamar' }))).toMatchObject({ title: 'Tarea creada', detail: 'Llamar' })
 		expect(describeTimelineEntry(activity('TASK_COMPLETED', { taskId: 3 }))).toMatchObject({ title: 'Tarea completada', detail: 'Tarea #3' })
-		expect(describeTimelineEntry(activity('CASE_UPDATED', { caseId: 4, subject: 'Devolución', status: 'RESOLVED' }))).toMatchObject({ title: 'Caso de soporte actualizado', detail: 'Devolución · RESOLVED' })
+		expect(describeTimelineEntry(activity('CASE_UPDATED', { caseId: 4, subject: 'Devolución', status: 'RESOLVED' }))).toMatchObject({ title: 'Caso resuelto', detail: 'Devolución · Resuelto' })
+		expect(describeTimelineEntry(activity('CASE_UPDATED', { caseId: 4, subject: 'Devolución', status: 'CLOSED' }))).toMatchObject({ title: 'Caso cerrado', detail: 'Devolución · Cerrado' })
+		expect(describeTimelineEntry(activity('TASK_COMPLETED', { taskId: 3, title: 'Llamar', comment: 'Contestó' }))).toMatchObject({
+			title: 'Tarea completada',
+			detail: 'Llamar\nContestó',
+		})
+		expect(describeTimelineEntry(activity('CASE_UPDATED', { caseId: 4, subject: 'Devolución', status: 'CLOSED', comment: 'Listo' }))).toMatchObject({
+			title: 'Caso cerrado',
+			detail: 'Devolución · Cerrado\nListo',
+		})
 	})
 
 	it('describes stage changes with their source', () => {

@@ -20,7 +20,9 @@ vi.mock('@/features/leads/activities/lead-activity-timeline', () => ({
 }))
 
 vi.mock('@/features/leads/custom-fields/lead-crm-fields-section', () => ({
-	LeadCrmFieldsSection: ({ canEdit }: { canEdit: boolean }) => <section>CRM fields {canEdit ? 'editable' : 'read-only'}</section>,
+	LeadCrmFieldsSection: ({ canEdit }: { canEdit: boolean }) => (
+		<section>CRM fields {canEdit ? 'editable' : 'read-only'}</section>
+	),
 }))
 
 function buildLead(overrides: Partial<LeadDetail> = {}): LeadDetail {
@@ -126,8 +128,16 @@ describe('LeadDetailSheet', () => {
 })
 
 describe('LeadDetailSheet — CRM timeline', () => {
-	it('renders the timeline only behind its feature flag', () => {
-		render(
+	it('shows the activity timeline on the Historial tab when the feature is on', async () => {
+		const user = userEvent.setup()
+		const { rerender } = render(
+			<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} />
+		)
+		await user.click(screen.getByRole('tab', { name: 'Historial' }))
+		expect(screen.getByText('La línea de tiempo de este lead no está disponible.')).toBeInTheDocument()
+		expect(screen.queryByText('Timeline')).not.toBeInTheDocument()
+
+		rerender(
 			<LeadDetailSheet
 				lead={buildLead()}
 				open={true}
@@ -135,17 +145,62 @@ describe('LeadDetailSheet — CRM timeline', () => {
 				timelineEnabled
 			/>
 		)
+		await user.click(screen.getByRole('tab', { name: 'Historial' }))
 		expect(screen.getByText('Timeline')).toBeInTheDocument()
+	})
+
+	it('puts tasks and cases in a tab inside Detalle, after the CRM section', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve({ ok: true, json: async () => ({ data: [] }) }))
+		)
+		const user = userEvent.setup()
+		render(
+			<LeadDetailSheet
+				lead={buildLead()}
+				open={true}
+				onOpenChange={vi.fn()}
+				tasksEnabled
+				casesEnabled
+				crmFieldsEnabled
+			/>
+		)
+		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute('data-state', 'active')
+		const crm = screen.getByText('CRM fields read-only')
+		const tasks = screen.getByRole('tab', { name: 'Tareas' })
+		expect(crm.compareDocumentPosition(tasks) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+		expect(screen.queryByRole('heading', { name: 'Casos de soporte' })).not.toBeInTheDocument()
+
+		await user.click(screen.getByRole('tab', { name: 'Casos' }))
+		expect(screen.getByRole('heading', { name: 'Casos de soporte' })).toBeInTheDocument()
+		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute('data-state', 'active')
 	})
 })
 
 describe('LeadDetailSheet — CRM fields', () => {
 	it('renders the CRM fields section only behind crm_lead_fields, read-only without management rights', () => {
-		const { rerender } = render(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} />)
+		const { rerender } = render(
+			<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} />
+		)
 		expect(screen.queryByText(/CRM fields/)).not.toBeInTheDocument()
-		rerender(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} crmFieldsEnabled />)
+		rerender(
+			<LeadDetailSheet
+				lead={buildLead()}
+				open={true}
+				onOpenChange={vi.fn()}
+				crmFieldsEnabled
+			/>
+		)
 		expect(screen.getByText('CRM fields read-only')).toBeInTheDocument()
-		rerender(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} crmFieldsEnabled canManageCrm />)
+		rerender(
+			<LeadDetailSheet
+				lead={buildLead()}
+				open={true}
+				onOpenChange={vi.fn()}
+				crmFieldsEnabled
+				canManageCrm
+			/>
+		)
 		expect(screen.getByText('CRM fields editable')).toBeInTheDocument()
 	})
 })
@@ -153,17 +208,28 @@ describe('LeadDetailSheet — CRM fields', () => {
 describe('LeadDetailSheet — GHL-managed indicator (crm-phase-0-foundation)', () => {
 	it('shows "Gestionado en GHL" when the lead has an externalCrmId', () => {
 		render(
-			<LeadDetailSheet lead={buildLead({ externalCrmId: 'crm-1' })} open={true} onOpenChange={vi.fn()} />
+			<LeadDetailSheet
+				lead={buildLead({ externalCrmId: 'crm-1' })}
+				open={true}
+				onOpenChange={vi.fn()}
+			/>
 		)
 		expect(screen.getByText('Gestionado en GHL')).toBeInTheDocument()
 	})
 
-	it.each([null, '  '])('hides the indicator when externalCrmId is %j', (externalCrmId) => {
-		render(
-			<LeadDetailSheet lead={buildLead({ externalCrmId })} open={true} onOpenChange={vi.fn()} />
-		)
-		expect(screen.queryByText('Gestionado en GHL')).not.toBeInTheDocument()
-	})
+	it.each([null, '  '])(
+		'hides the indicator when externalCrmId is %j',
+		(externalCrmId) => {
+			render(
+				<LeadDetailSheet
+					lead={buildLead({ externalCrmId })}
+					open={true}
+					onOpenChange={vi.fn()}
+				/>
+			)
+			expect(screen.queryByText('Gestionado en GHL')).not.toBeInTheDocument()
+		}
+	)
 })
 
 describe('LeadDetailSheet — conversion requires an owner', () => {
@@ -306,9 +372,8 @@ describe('LeadDetailSheet — CRM conversion audit', () => {
 			/>
 		)
 		expect(screen.getByText('Ver auditoría de conversión')).toBeInTheDocument()
-		expect(screen.getByText('Ver auditoría de conversión').closest('a')).toHaveAttribute(
-			'href',
-			'/dashboard/negocios/42?crmAudit=1'
-		)
+		expect(
+			screen.getByText('Ver auditoría de conversión').closest('a')
+		).toHaveAttribute('href', '/dashboard/negocios/42?crmAudit=1')
 	})
 })

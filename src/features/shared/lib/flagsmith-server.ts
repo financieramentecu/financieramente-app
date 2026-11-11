@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import { Flagsmith } from 'flagsmith-nodejs'
 import { ALL_FEATURE_FLAGS } from '@/features/shared/types/feature-flags.types'
 import type { FeatureFlag, FlagsmithServerState } from '@/features/shared/types/feature-flags.types'
@@ -65,6 +66,15 @@ function getInstance(): Flagsmith {
 	return instance
 }
 
+/**
+ * One Flagsmith read per request and identity. The layout and the page guards
+ * of the same render share it; an empty identity reads environment flags.
+ */
+const readRemoteFlags = cache(async (identity: string) => {
+	const client = getInstance()
+	return identity ? client.getIdentityFlags(identity) : client.getEnvironmentFlags()
+})
+
 function getFallbackState(): FlagsmithServerState {
 	const flags = Object.fromEntries(
 		ALL_FEATURE_FLAGS.map((key) => [key, { enabled: FALLBACK_FLAGS[key], value: null }])
@@ -99,10 +109,7 @@ export async function getFlagsmithServerState(
 	// No key configured (e.g. QA) → all flags enabled for testing, zero Flagsmith requests.
 	if (!process.env.FLAGSMITH_SERVER_KEY) return getDevStubState()
 	try {
-		const fs = getInstance()
-		const flagsObj = identity
-			? await fs.getIdentityFlags(identity)
-			: await fs.getEnvironmentFlags()
+		const flagsObj = await readRemoteFlags(identity ?? '')
 
 		// Convert flagsmith-nodejs Flags to @flagsmith/flagsmith IState shape
 		const clientFlags: Record<string, { id?: number; enabled: boolean; value: string | number | boolean | null }> = {}
@@ -148,10 +155,7 @@ export async function isFeatureEnabledServer(
 		return CRM_FEATURE_FLAGS.has(flag) ? FALLBACK_FLAGS[flag] : true
 	}
 	try {
-		const fs = getInstance()
-		const flagsObj = identity
-			? await fs.getIdentityFlags(identity)
-			: await fs.getEnvironmentFlags()
+		const flagsObj = await readRemoteFlags(identity ?? '')
 		const entry = flagsObj.flags[flag]
 		return entry?.enabled ?? FALLBACK_FLAGS[flag]
 	} catch {

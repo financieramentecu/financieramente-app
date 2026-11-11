@@ -51,9 +51,9 @@ export function useLeadTimeline(leadId: number, enabled: boolean) {
 	}
 
 	/** Returns false when the activity could not be saved. */
-	async function logActivity(input: LeadCrmEventInput): Promise<boolean> {
+	async function logActivity(input: LeadCrmEventInput, files: readonly File[] = []): Promise<boolean> {
 		try {
-			await postLeadActivity(leadId, input)
+			await postLeadActivity(leadId, input, files)
 			await reload()
 			return true
 		} catch {

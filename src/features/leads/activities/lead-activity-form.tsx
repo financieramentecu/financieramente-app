@@ -1,6 +1,6 @@
 'use client'
 
-import * as React from 'react'
+import { useState, type FormEvent } from 'react'
 import { Textarea } from '@/features/shared/ui/textarea'
 import { Button } from '@/features/shared/ui/button'
 import {
@@ -34,25 +34,27 @@ export function LeadActivityForm({
 	onSubmit,
 }: {
 	leadId: number
-	onSubmit: (input: LeadCrmEventInput) => Promise<boolean>
+	onSubmit: (input: LeadCrmEventInput, files: readonly File[]) => Promise<boolean>
 }) {
-	const [type, setType] = React.useState<FormType>('NOTE_ADDED')
-	const [text, setText] = React.useState('')
-	const [outcome, setOutcome] = React.useState<ContactOutcome | ''>('')
-	const [saving, setSaving] = React.useState(false)
-	const [formError, setFormError] = React.useState<string | null>(null)
+	const [type, setType] = useState<FormType>('NOTE_ADDED')
+	const [text, setText] = useState('')
+	const [outcome, setOutcome] = useState<ContactOutcome | ''>('')
+	const [files, setFiles] = useState<File[]>([])
+	const [saving, setSaving] = useState(false)
+	const [formError, setFormError] = useState<string | null>(null)
 
-	async function submit(event: React.FormEvent<HTMLFormElement>) {
+	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
 		const trimmed = text.trim()
-		if (!trimmed) return
+		if (!trimmed && files.length === 0) return
 		setSaving(true)
 		setFormError(null)
-		const saved = await onSubmit(buildActivityInput(type, trimmed, outcome))
+		const saved = await onSubmit(buildActivityInput(type, trimmed || 'Adjunto', outcome), files)
 		setSaving(false)
 		if (saved) {
 			setText('')
 			setOutcome('')
+			setFiles([])
 		} else {
 			setFormError('No fue posible registrar la actividad. Inténtalo de nuevo.')
 		}
@@ -80,8 +82,45 @@ export function LeadActivityForm({
 			</div>
 			<label htmlFor={`activity-detail-${leadId}`} className="sr-only">Detalle</label>
 			<Textarea id={`activity-detail-${leadId}`} value={text} onChange={(event) => setText(event.target.value)} maxLength={2000} placeholder={type === 'NOTE_ADDED' ? 'Registra un seguimiento' : '¿Qué pasó en el contacto?'} disabled={saving} />
+			<div className="space-y-1">
+				<label htmlFor={`activity-files-${leadId}`} className="text-xs text-muted-foreground">
+					Adjuntar archivos
+				</label>
+				<input
+					id={`activity-files-${leadId}`}
+					type="file"
+					multiple
+					accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,.docx,.xlsx"
+					disabled={saving}
+					className="block w-full text-sm"
+					onChange={(event) => {
+						const selected = Array.from(event.target.files ?? [])
+						setFiles((current) => [...current, ...selected].slice(0, 3))
+						event.target.value = ''
+					}}
+				/>
+				<p className="text-xs text-muted-foreground">Hasta 3 archivos, de 4 MB cada uno.</p>
+				{files.length > 0 && (
+					<ul className="space-y-1 text-sm">
+						{files.map((file) => (
+							<li key={`${file.name}-${file.size}`} className="flex items-center justify-between gap-2">
+								<span className="truncate">{file.name}</span>
+								<button
+									type="button"
+									className="text-xs text-muted-foreground underline"
+									onClick={() =>
+										setFiles((current) => current.filter((item) => item !== file))
+									}
+								>
+									Quitar
+								</button>
+							</li>
+						))}
+					</ul>
+				)}
+			</div>
 			{formError && <p role="alert" className="text-sm text-destructive">{formError}</p>}
-			<Button type="submit" size="sm" disabled={saving || !text.trim()}>{saving ? 'Guardando…' : 'Registrar'}</Button>
+			<Button type="submit" size="sm" disabled={saving || (!text.trim() && files.length === 0)}>{saving ? 'Guardando…' : 'Registrar'}</Button>
 		</form>
 	)
 }

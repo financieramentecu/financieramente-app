@@ -32,18 +32,9 @@ import { UserRole } from '@/features/auth/lib/roles'
 
 const { auth } = NextAuth(authConfigEdge)
 
-const dashboardMiddleware = auth((req) => {
-	const isLoggedIn = !!req.auth
-	const { nextUrl } = req
-
-	// Log para diagnóstico de problemas de sesión en QA (403 después de 20 min)
-	if (nextUrl.pathname.startsWith('/dashboard')) {
-		console.log(`[Middleware] ${req.method} ${nextUrl.pathname}`, {
-			hasAuth: isLoggedIn,
-			userId: req.auth?.user?.id,
-			cookies: req.cookies.getAll().map((c) => c.name), // Solo nombres para privacidad
-		})
-	}
+const dashboardMiddleware = auth(() => {
+	// Authorization lives in the Edge `authorized` callback. This handler used
+	// to log every dashboard request, including the cookie names.
 })
 
 function takesDecodeOnlyPath(pathname: string): boolean {

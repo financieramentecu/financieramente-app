@@ -11,11 +11,28 @@ export async function fetchTimelinePage(leadId: number, cursor?: string | null):
 	return { items: body.data?.items ?? [], nextCursor: body.data?.nextCursor ?? null }
 }
 
-export async function postLeadActivity(leadId: number, input: LeadCrmEventInput): Promise<void> {
-	const response = await fetch(`/api/leads/${leadId}/activities`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(input),
-	})
+export async function postLeadActivity(
+	leadId: number,
+	input: LeadCrmEventInput,
+	files: readonly File[] = []
+): Promise<void> {
+	const response =
+		files.length === 0
+			? await fetch(`/api/leads/${leadId}/activities`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(input),
+				})
+			: await fetch(`/api/leads/${leadId}/activities`, {
+					method: 'POST',
+					body: activityFormData(input, files),
+				})
 	if (!response.ok) throw new Error('activity')
+}
+
+function activityFormData(input: LeadCrmEventInput, files: readonly File[]): FormData {
+	const body = new FormData()
+	body.set('event', JSON.stringify(input))
+	for (const file of files) body.append('files', file)
+	return body
 }

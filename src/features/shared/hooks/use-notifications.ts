@@ -30,6 +30,10 @@ export function useNotifications(userId: number) {
 	}, [])
 
 	useEffect(() => {
+		// Session id arrives after the first paint. Skip the placeholder 0 so
+		// the list and the stream open once, when the user is known.
+		if (userId <= 0) return
+
 		fetchNotifications()
 
 		// Open SSE connection — native browser API, no third-party library needed.

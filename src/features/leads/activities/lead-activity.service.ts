@@ -1,14 +1,30 @@
 import type { LeadActivityType, Prisma, PrismaClient } from '@prisma/client'
+import type { LeadActivityAttachment } from '@/features/leads/activities/lead-activity-attachment'
 import type { LoggedContactPayload } from '@/features/leads/crm/lead-crm-event.schema'
+
+export type { LeadActivityAttachment } from '@/features/leads/activities/lead-activity-attachment'
 
 export type LeadActivityKind = LeadActivityType
 
 export type LeadActivityPayload =
-	| { note: string }
-	| LoggedContactPayload
-	| { taskId: number; title?: string; assignedTo?: number }
+	| { note: string; attachments?: LeadActivityAttachment[] }
+	| (LoggedContactPayload & { attachments?: LeadActivityAttachment[] })
+	| {
+			taskId: number
+			title?: string
+			assignedTo?: number
+			comment?: string
+			attachments?: LeadActivityAttachment[]
+	  }
 	| { businessId: number }
-	| { caseId: number; subject?: string; status?: string; action?: 'COMMENTED' }
+	| {
+			caseId: number
+			subject?: string
+			status?: string
+			action?: 'COMMENTED'
+			comment?: string
+			attachments?: LeadActivityAttachment[]
+	  }
 
 export interface AppendLeadActivityInput {
 	idLead: number
@@ -76,7 +92,7 @@ export async function appendLeadActivityTx(
 			idBusiness: input.idBusiness ?? null,
 			idUser: input.idUser,
 			type: input.type,
-			payload: input.payload,
+			payload: input.payload as Prisma.InputJsonValue,
 			payloadVersion: 1,
 			occurredAt,
 			correlationId: input.correlationId,
@@ -92,8 +108,8 @@ export async function appendLeadActivityTx(
 }
 
 /**
- * Uses a compound timestamp/id cursor so new activities cannot make a page
- * duplicate or skip older events with the same timestamp.
+ * Uses a compound timestamp/id cursor so a page continues with events that
+ * happened after the last one shown.
  */
 export async function getLeadActivityPage(
 	client: ActivityReader,
@@ -106,10 +122,10 @@ export async function getLeadActivityPage(
 				AND: [
 					{
 						OR: [
-							{ occurredAt: { lt: options.cursor.occurredAt } },
+							{ occurredAt: { gt: options.cursor.occurredAt } },
 							{
 								occurredAt: options.cursor.occurredAt,
-								idLeadActivity: { lt: options.cursor.idLeadActivity },
+								idLeadActivity: { gt: options.cursor.idLeadActivity },
 							},
 						],
 					},
@@ -119,7 +135,7 @@ export async function getLeadActivityPage(
 
 	const rows = await client.leadActivity.findMany({
 		where: { idLead, ...cursorFilter },
-		orderBy: [{ occurredAt: 'desc' }, { idLeadActivity: 'desc' }],
+		orderBy: [{ occurredAt: 'asc' }, { idLeadActivity: 'asc' }],
 		take: limit + 1,
 		select: {
 			idLeadActivity: true,

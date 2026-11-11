@@ -39,6 +39,25 @@ function respond(body: unknown, ok = true) {
 	return Promise.resolve({ ok, json: async () => body })
 }
 
+const emptyDetail = {
+	leads: [],
+	stages: [],
+	view: 'current',
+	stage: null,
+	page: 1,
+	pageSize: 25,
+	totalLeads: 0,
+	range: report.range,
+}
+
+function mockReportFetch(pipeline: unknown, ok = true) {
+	return vi.fn((input: RequestInfo | URL) => {
+		const url = String(input)
+		if (url.includes('/api/crm/reports/stage-detail')) return respond({ data: emptyDetail })
+		return respond(ok ? { data: pipeline } : pipeline, ok)
+	})
+}
+
 describe('formatReportRate', () => {
 	it('formats fractions as percentages and null as a dash', () => {
 		expect(formatReportRate(0.5)).toBe('50 %')
@@ -51,7 +70,7 @@ describe('CrmReports', () => {
 	beforeEach(() => vi.restoreAllMocks())
 
 	it('loads the default range and renders KPIs, funnel, durations, breakdown and forecast', async () => {
-		const fetchMock = vi.fn(() => respond({ data: report }))
+		const fetchMock = mockReportFetch(report)
 		vi.stubGlobal('fetch', fetchMock)
 		render(<CrmReports />)
 
@@ -69,10 +88,19 @@ describe('CrmReports', () => {
 		expect(screen.getByRole('cell', { name: '2,5' })).toBeInTheDocument()
 		expect(screen.getByRole('cell', { name: 'Facebook' })).toBeInTheDocument()
 		expect(screen.getAllByText(/900\.000/).length).toBeGreaterThan(0)
+		expect(screen.getByRole('link', { name: 'Exportar Excel' })).toHaveAttribute(
+			'href',
+			'/api/crm/reports/export?format=xlsx&from=2026-08-12&to=2026-11-09'
+		)
+		expect(screen.getByRole('link', { name: 'Exportar PDF' })).toHaveAttribute(
+			'href',
+			'/api/crm/reports/export?format=pdf&from=2026-08-12&to=2026-11-09'
+		)
+		expect(await screen.findByText('Detalle por lead y etapa')).toBeInTheDocument()
 	})
 
 	it('switches the breakdown between origin, advisor and team', async () => {
-		vi.stubGlobal('fetch', vi.fn(() => respond({ data: report })))
+		vi.stubGlobal('fetch', mockReportFetch(report))
 		render(<CrmReports />)
 		await screen.findByText('Embudo de conversión')
 
@@ -85,7 +113,7 @@ describe('CrmReports', () => {
 	})
 
 	it('reloads with the chosen range', async () => {
-		const fetchMock = vi.fn(() => respond({ data: report }))
+		const fetchMock = mockReportFetch(report)
 		vi.stubGlobal('fetch', fetchMock)
 		render(<CrmReports />)
 		await screen.findByText('Embudo de conversión')
@@ -94,18 +122,18 @@ describe('CrmReports', () => {
 		fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-10-31' } })
 		fireEvent.click(screen.getByRole('button', { name: 'Aplicar' }))
 		await screen.findByText('Embudo de conversión')
-		expect(fetchMock).toHaveBeenLastCalledWith('/api/crm/reports/pipeline?from=2026-10-01&to=2026-10-31')
+		expect(fetchMock).toHaveBeenCalledWith('/api/crm/reports/pipeline?from=2026-10-01&to=2026-10-31')
 	})
 
 	it('shows the server message on error (permission or size limit)', async () => {
-		vi.stubGlobal('fetch', vi.fn(() => respond({ data: null, error: 'No tienes permiso para ver este reporte' }, false)))
+		vi.stubGlobal('fetch', mockReportFetch({ data: null, error: 'No tienes permiso para ver este reporte' }, false))
 		render(<CrmReports />)
 		expect(await screen.findByRole('alert')).toHaveTextContent('No tienes permiso para ver este reporte')
 	})
 
 	it('shows an empty state when the range has no leads', async () => {
 		const empty = { ...report, outcomes: { ...report.outcomes, total: 0 } }
-		vi.stubGlobal('fetch', vi.fn(() => respond({ data: empty })))
+		vi.stubGlobal('fetch', mockReportFetch(empty))
 		render(<CrmReports />)
 		expect(await screen.findByText('No hay leads creados en este rango de fechas.')).toBeInTheDocument()
 	})

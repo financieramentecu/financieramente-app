@@ -49,7 +49,7 @@ describe('lead activity service', () => {
 		expect(findMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: expect.objectContaining({ idLead: 12 }),
-				orderBy: [{ occurredAt: 'desc' }, { idLeadActivity: 'desc' }],
+				orderBy: [{ occurredAt: 'asc' }, { idLeadActivity: 'asc' }],
 				take: 21,
 			})
 		)
@@ -58,7 +58,7 @@ describe('lead activity service', () => {
 			expect.arrayContaining([
 				expect.objectContaining({
 					OR: expect.arrayContaining([
-						{ occurredAt: { lt: new Date('2026-11-05T10:00:00.000Z') } },
+						{ occurredAt: { gt: new Date('2026-11-05T10:00:00.000Z') } },
 					]),
 				}),
 			])

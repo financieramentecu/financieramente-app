@@ -11,14 +11,14 @@ const at = (iso: string) => new Date(iso)
 const key = (iso: string, kind: TimelineKey['kind'], id: number): TimelineKey => ({ occurredAt: at(iso), kind, id })
 
 describe('compareTimelineKeys', () => {
-	it('orders newest first', () => {
-		expect(compareTimelineKeys(key('2026-11-09T11:00:00Z', 'activity', 1), key('2026-11-09T10:00:00Z', 'activity', 2))).toBeLessThan(0)
+	it('orders oldest first', () => {
+		expect(compareTimelineKeys(key('2026-11-09T10:00:00Z', 'activity', 2), key('2026-11-09T11:00:00Z', 'activity', 1))).toBeLessThan(0)
 	})
 	it('puts activities before stage changes on equal time', () => {
 		expect(compareTimelineKeys(key('2026-11-09T10:00:00Z', 'activity', 1), key('2026-11-09T10:00:00Z', 'stage_change', 9))).toBeLessThan(0)
 	})
-	it('breaks remaining ties by id desc', () => {
-		expect(compareTimelineKeys(key('2026-11-09T10:00:00Z', 'activity', 5), key('2026-11-09T10:00:00Z', 'activity', 3))).toBeLessThan(0)
+	it('breaks remaining ties by smaller id first', () => {
+		expect(compareTimelineKeys(key('2026-11-09T10:00:00Z', 'activity', 3), key('2026-11-09T10:00:00Z', 'activity', 5))).toBeLessThan(0)
 	})
 })
 
@@ -28,7 +28,7 @@ describe('mergeTimelineEntries', () => {
 
 	it('merges two sorted lists and truncates to the limit', () => {
 		const { items, hasMore } = mergeTimelineEntries(a, s, 2)
-		expect(items.map((i) => `${i.kind}:${i.id}`)).toEqual(['activity:2', 'stage_change:7'])
+		expect(items.map((i) => `${i.kind}:${i.id}`)).toEqual(['activity:1', 'stage_change:7'])
 		expect(hasMore).toBe(true)
 	})
 

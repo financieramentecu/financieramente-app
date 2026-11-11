@@ -29,5 +29,35 @@ describe('LeadSupportCaseList', () => {
     expect(await screen.findByText('Solicitud de devolución')).toBeInTheDocument()
     expect(screen.getByText('Abierto')).toBeInTheDocument()
     expect(screen.getByText('Alta', { selector: 'div' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cerrar caso' })).toBeInTheDocument()
+  })
+
+  it('closes an open case', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [{ idLeadSupportCase: 9, subject: 'Solicitud de devolución', status: 'OPEN', priority: 'HIGH', dueAt: null }] }),
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: { idLeadSupportCase: 9, status: 'CLOSED' } }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: [{ idLeadSupportCase: 9, subject: 'Solicitud de devolución', status: 'CLOSED', priority: 'HIGH', dueAt: null }] }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<LeadSupportCaseList leadId={4} enabled />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Cerrar caso' }))
+    fireEvent.change(screen.getByLabelText('Qué pasó'), { target: { value: 'Se devolvió el pago' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar caso' }))
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/crm/cases/9',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'CLOSED', comment: 'Se devolvió el pago' }),
+        })
+      )
+    )
+    expect(await screen.findByText('Cerrado')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cerrar caso' })).not.toBeInTheDocument()
   })
 })

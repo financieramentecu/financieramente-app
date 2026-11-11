@@ -37,19 +37,22 @@ function toKey(entry: LeadTimelineEntry): TimelineKey {
 }
 
 function activityCursorAfter(cursor: TimelineKey): LeadActivityCursor {
-	// After a stage-change key, every activity at that instant was already shown
-	// (activities sort first), so only strictly older ones remain: id < 1.
-	return { occurredAt: cursor.occurredAt, idLeadActivity: cursor.kind === 'activity' ? cursor.id : 1 }
+	// Activities sort before stage changes at the same instant, so a stage
+	// cursor has already passed every activity at that time.
+	return {
+		occurredAt: cursor.occurredAt,
+		idLeadActivity: cursor.kind === 'activity' ? cursor.id : Number.MAX_SAFE_INTEGER,
+	}
 }
 
 function stageWhereAfter(idLead: number, cursor?: TimelineKey): Prisma.LeadStageHistoryWhereInput {
 	if (!cursor) return { idLead }
-	if (cursor.kind === 'activity') return { idLead, changedAt: { lte: cursor.occurredAt } }
+	if (cursor.kind === 'activity') return { idLead, changedAt: { gte: cursor.occurredAt } }
 	return {
 		idLead,
 		OR: [
-			{ changedAt: { lt: cursor.occurredAt } },
-			{ changedAt: cursor.occurredAt, idLeadStageHistory: { lt: cursor.id } },
+			{ changedAt: { gt: cursor.occurredAt } },
+			{ changedAt: cursor.occurredAt, idLeadStageHistory: { gt: cursor.id } },
 		],
 	}
 }
@@ -70,7 +73,7 @@ export async function getLeadTimelinePage(
 		getLeadActivityPage(prisma, idLead, { limit, cursor: cursor ? activityCursorAfter(cursor) : undefined }),
 		prisma.leadStageHistory.findMany({
 			where: stageWhereAfter(idLead, cursor),
-			orderBy: [{ changedAt: 'desc' }, { idLeadStageHistory: 'desc' }],
+			orderBy: [{ changedAt: 'asc' }, { idLeadStageHistory: 'asc' }],
 			take: limit + 1,
 			select: {
 				idLeadStageHistory: true,

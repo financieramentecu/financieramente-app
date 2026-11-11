@@ -35,7 +35,7 @@ function fullName(user: { name: string; lastName: string | null }): string {
 }
 
 /** Same lead set the Leads table shows for this range and owners. */
-function buildReportWhere(
+export function buildCrmReportLeadWhere(
 	viewer: LeadViewer,
 	query: CrmReportQuery,
 	visibleUserIds: number[],
@@ -75,7 +75,7 @@ export async function getCrmPipelineReport(
 	visibleUserIds: number[],
 	now: Date = new Date()
 ): Promise<CrmPipelineReportResult> {
-	const where = buildReportWhere(viewer, query, visibleUserIds, now)
+	const where = buildCrmReportLeadWhere(viewer, query, visibleUserIds, now)
 	const total = await prisma.lead.count({ where })
 	if (total > CRM_REPORT_LEAD_LIMIT) return { ok: false, reason: 'TOO_MANY_LEADS', total }
 

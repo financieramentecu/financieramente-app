@@ -1,3 +1,4 @@
+import type { LeadActivityAttachment } from '@/features/leads/activities/lead-activity-attachment'
 import { prisma } from '@/lib/prisma'
 import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
@@ -32,7 +33,7 @@ function audit(ctx: CrmRequestContext, action: AuditAction, details: string) {
 export function listLeadSupportCases(idLead: number) {
 	return prisma.leadSupportCase.findMany({
 		where: { idLead },
-		orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+		orderBy: [{ createdAt: 'desc' }, { idLeadSupportCase: 'desc' }],
 		select: {
 			idLeadSupportCase: true,
 			subject: true,
@@ -73,7 +74,14 @@ export async function createLeadSupportCase(input: OpenCaseCommand, ctx: CrmRequ
 }
 
 export async function transitionLeadSupportCase(
-	input: { idLeadSupportCase: number; idLead: number; status: LeadSupportCaseStatus; assignedTo?: number },
+	input: {
+		idLeadSupportCase: number
+		idLead: number
+		status: LeadSupportCaseStatus
+		assignedTo?: number
+		comment?: string
+		attachments?: LeadActivityAttachment[]
+	},
 	ctx: CrmRequestContext
 ) {
 	const updated = await prisma.$transaction((tx) =>

@@ -1,4 +1,4 @@
-import * as React from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ExternalLink, Mail, Phone, IdCard, Tag, Trash2 } from 'lucide-react'
 import {
@@ -31,11 +31,41 @@ import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
 import { canDeleteLead } from '@/features/leads/lib/can-delete-lead'
 import { useDeleteLead } from '@/features/leads/hooks/use-delete-lead'
 import { LeadActivityTimeline } from '@/features/leads/activities/lead-activity-timeline'
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from '@/features/shared/ui/tabs'
 import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
 import { LeadTaskList } from '@/features/leads/tasks/lead-task-list'
 import { LeadCrmFieldsSection } from '@/features/leads/custom-fields/lead-crm-fields-section'
 import { LeadSupportCaseList } from '@/features/leads/cases/lead-support-case-list'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
+
+const LEAD_SHEET_PANEL = {
+	DETAIL: 'detail',
+	HISTORY: 'history',
+} as const
+
+type LeadSheetPanel = (typeof LEAD_SHEET_PANEL)[keyof typeof LEAD_SHEET_PANEL]
+
+const WORK_TAB = {
+	TASKS: 'tasks',
+	CASES: 'cases',
+} as const
+
+type WorkTab = (typeof WORK_TAB)[keyof typeof WORK_TAB]
+
+const SHEET_TAB_CLASS = 'h-8 min-w-0 whitespace-normal px-2 text-xs'
+
+function isLeadSheetPanel(value: string): value is LeadSheetPanel {
+	return value === LEAD_SHEET_PANEL.DETAIL || value === LEAD_SHEET_PANEL.HISTORY
+}
+
+function isWorkTab(value: string): value is WorkTab {
+	return value === WORK_TAB.TASKS || value === WORK_TAB.CASES
+}
 
 interface LeadDetailSheetProps {
 	lead: LeadDetail | null
@@ -75,8 +105,13 @@ export function LeadDetailSheet({
 	casesEnabled = false,
 }: LeadDetailSheetProps) {
 	const { state: deleteState, deleteLead } = useDeleteLead()
+	const [panel, setPanel] = useState<LeadSheetPanel>(LEAD_SHEET_PANEL.DETAIL)
 
-	React.useEffect(() => {
+	useEffect(() => {
+		setPanel(LEAD_SHEET_PANEL.DETAIL)
+	}, [lead?.idLead])
+
+	useEffect(() => {
 		if (deleteState.status === 'success') {
 			onDeleted?.()
 		}
@@ -100,10 +135,10 @@ export function LeadDetailSheet({
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="gap-0">
+			<SheetContent className="gap-0 overflow-hidden sm:max-w-md">
 				<SheetHeader className="pb-3">
 					<div className="flex items-start justify-between gap-2">
-						<SheetTitle className="flex flex-wrap items-center gap-2 text-lg">
+						<SheetTitle className="flex min-w-0 flex-wrap items-center gap-2 text-lg">
 							{fullName}
 							<Badge
 								variant={LEAD_OUTCOME_STATUS_BADGE_VARIANTS[lead.outcomeStatus]}
@@ -132,96 +167,128 @@ export function LeadDetailSheet({
 					<SheetDescription>Detalle del lead</SheetDescription>
 				</SheetHeader>
 				<Separator />
-				<div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-					{lead.email && (
-						<div className="flex items-center gap-2 text-sm text-foreground">
-							<Mail
-								className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
-								aria-hidden
+				<Tabs
+					value={panel}
+					onValueChange={(value) => {
+						if (isLeadSheetPanel(value)) setPanel(value)
+					}}
+					className="flex min-h-0 flex-1 flex-col"
+				>
+					<div className="min-w-0 px-4 pt-3">
+						<TabsList className="grid h-auto w-full max-w-full grid-cols-2">
+							<TabsTrigger value={LEAD_SHEET_PANEL.DETAIL} className={SHEET_TAB_CLASS}>
+								Detalle
+							</TabsTrigger>
+							<TabsTrigger value={LEAD_SHEET_PANEL.HISTORY} className={SHEET_TAB_CLASS}>
+								Historial
+							</TabsTrigger>
+						</TabsList>
+					</div>
+					<TabsContent
+						value={LEAD_SHEET_PANEL.DETAIL}
+						className="mt-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
+					>
+						{lead.email && (
+							<div className="flex items-center gap-2 text-sm text-foreground">
+								<Mail
+									className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
+									aria-hidden
+								/>
+								<span className="truncate">{lead.email}</span>
+							</div>
+						)}
+						{lead.phone && (
+							<div className="flex items-center gap-2 text-sm text-foreground">
+								<Phone
+									className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
+									aria-hidden
+								/>
+								<span>{lead.phone}</span>
+							</div>
+						)}
+						{lead.identityNumber && (
+							<div className="flex items-center gap-2 text-sm text-foreground">
+								<IdCard
+									className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
+									aria-hidden
+								/>
+								<span>{lead.identityNumber}</span>
+							</div>
+						)}
+						{lead.originTag && (
+							<div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+								<Tag
+									className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
+									aria-hidden
+								/>
+								<span className="truncate">{lead.originTag}</span>
+							</div>
+						)}
+						{conversionAuditEnabled && isConverted && (
+							<div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+								<p className="font-medium">Conversión auditada</p>
+								<Link
+									href={`/dashboard/negocios/${lead.idBusiness}?crmAudit=1`}
+									className="text-primary underline-offset-4 hover:underline"
+								>
+									Ver auditoría de conversión
+								</Link>
+							</div>
+						)}
+						{crmFieldsEnabled && (
+							<>
+								<Separator />
+								<LeadCrmFieldsSection
+									key={lead.idLead}
+									idLead={lead.idLead}
+									initialTags={lead.tags}
+									canEdit={canManageCrm}
+								/>
+							</>
+						)}
+						{(tasksEnabled || casesEnabled) && (
+							<LeadWorkTabs
+								leadId={lead.idLead}
+								assigneeId={lead.idUser}
+								open={open}
+								tasksEnabled={tasksEnabled}
+								casesEnabled={casesEnabled}
 							/>
-							<span className="truncate">{lead.email}</span>
-						</div>
-					)}
-					{lead.phone && (
-						<div className="flex items-center gap-2 text-sm text-foreground">
-							<Phone
-								className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
-								aria-hidden
+						)}
+						{!lead.email &&
+							!lead.phone &&
+							!lead.identityNumber &&
+							!lead.originTag && (
+								<p className="text-sm text-slate-500 dark:text-slate-400">
+									Este lead no tiene datos de contacto adicionales.
+								</p>
+							)}
+					</TabsContent>
+					<TabsContent
+						value={LEAD_SHEET_PANEL.HISTORY}
+						className="mt-0 flex-1 space-y-4 overflow-y-auto px-4 py-4"
+					>
+						{timelineEnabled ? (
+							<LeadActivityTimeline
+								leadId={lead.idLead}
+								enabled={open && panel === LEAD_SHEET_PANEL.HISTORY}
 							/>
-							<span>{lead.phone}</span>
-						</div>
-					)}
-					{lead.identityNumber && (
-						<div className="flex items-center gap-2 text-sm text-foreground">
-							<IdCard
-								className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
-								aria-hidden
-							/>
-							<span>{lead.identityNumber}</span>
-						</div>
-					)}
-					{lead.originTag && (
-						<div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-							<Tag
-								className="size-4 shrink-0 text-slate-500 dark:text-slate-400"
-								aria-hidden
-							/>
-							<span className="truncate">{lead.originTag}</span>
-						</div>
-					)}
-					{conversionAuditEnabled && isConverted && (
-						<div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
-							<p className="font-medium">Conversión auditada</p>
-							<Link
-								href={`/dashboard/negocios/${lead.idBusiness}?crmAudit=1`}
-								className="text-primary underline-offset-4 hover:underline"
-							>
-								Ver auditoría de conversión
-							</Link>
-						</div>
-					)}
-					{crmFieldsEnabled && (
-						<>
-							<Separator />
-							<LeadCrmFieldsSection key={lead.idLead} idLead={lead.idLead} initialTags={lead.tags} canEdit={canManageCrm} />
-						</>
-					)}
-					{timelineEnabled && (
-						<>
-							<Separator />
-							<LeadActivityTimeline leadId={lead.idLead} enabled />
-						</>
-					)}
-					{tasksEnabled && (
-						<>
-							<Separator />
-							<LeadTaskList leadId={lead.idLead} assigneeId={lead.idUser} enabled />
-						</>
-					)}
-					{casesEnabled && (
-						<>
-							<Separator />
-							<LeadSupportCaseList leadId={lead.idLead} enabled />
-						</>
-					)}
-					{!lead.email &&
-						!lead.phone &&
-						!lead.identityNumber &&
-						!lead.originTag && (
-							<p className="text-sm text-slate-500 dark:text-slate-400">
-								Este lead no tiene datos de contacto adicionales.
+						) : (
+							<p className="text-sm text-muted-foreground">
+								La línea de tiempo de este lead no está disponible.
 							</p>
 						)}
-				</div>
+					</TabsContent>
+				</Tabs>
 				<SheetFooter className="flex-col gap-2 border-t border-border pt-4">
 					{isConverted ? (
-						<Button asChild>
+						<Button asChild className="w-full">
 							<Link href={`/dashboard/negocios/${lead.idBusiness}`}>
 								Ver negocio
 							</Link>
 						</Button>
 					) : hasOwner ? (
-						<Button asChild>
+						<Button asChild className="w-full">
 							<Link href={`/dashboard/negocios/crear?leadId=${lead.idLead}`}>
 								Convertir a negocio
 							</Link>
@@ -237,7 +304,7 @@ export function LeadDetailSheet({
 						</div>
 					)}
 					{hasExternalUrl && (
-						<Button asChild variant="outline">
+						<Button asChild variant="outline" className="w-full">
 							<a href={lead.externalUrl!} target="_blank" rel="noreferrer">
 								Ver en CRM
 								<ExternalLink className="size-3.5" aria-hidden />
@@ -272,5 +339,69 @@ export function LeadDetailSheet({
 				</SheetFooter>
 			</SheetContent>
 		</Sheet>
+	)
+}
+
+/** Tasks and cases live inside Detalle, after the CRM fields. */
+function LeadWorkTabs({
+	leadId,
+	assigneeId,
+	open,
+	tasksEnabled,
+	casesEnabled,
+}: {
+	leadId: number
+	assigneeId: number | null
+	open: boolean
+	tasksEnabled: boolean
+	casesEnabled: boolean
+}) {
+	const defaultTab = tasksEnabled ? WORK_TAB.TASKS : WORK_TAB.CASES
+	const [workTab, setWorkTab] = useState<WorkTab>(defaultTab)
+
+	useEffect(() => {
+		setWorkTab(defaultTab)
+	}, [leadId, defaultTab])
+
+	const active = workTab === WORK_TAB.CASES && casesEnabled ? WORK_TAB.CASES : defaultTab
+	const columns = tasksEnabled && casesEnabled ? 'grid-cols-2' : 'grid-cols-1'
+
+	return (
+		<div className="space-y-3">
+			<Separator />
+			<Tabs
+				value={active}
+				onValueChange={(value) => {
+					if (isWorkTab(value)) setWorkTab(value)
+				}}
+			>
+				<TabsList className={`grid h-auto w-full ${columns}`}>
+					{tasksEnabled && (
+						<TabsTrigger value={WORK_TAB.TASKS} className={SHEET_TAB_CLASS}>
+							Tareas
+						</TabsTrigger>
+					)}
+					{casesEnabled && (
+						<TabsTrigger value={WORK_TAB.CASES} className={SHEET_TAB_CLASS}>
+							Casos
+						</TabsTrigger>
+					)}
+				</TabsList>
+				{tasksEnabled && (
+					<TabsContent value={WORK_TAB.TASKS} className="mt-3">
+						<LeadTaskList
+							leadId={leadId}
+							assigneeId={assigneeId}
+							enabled={open && active === WORK_TAB.TASKS}
+						/>
+					</TabsContent>
+				)}
+				{casesEnabled && (
+					<TabsContent value={WORK_TAB.CASES} className="mt-3">
+						<LeadSupportCaseList leadId={leadId} enabled={open && active === WORK_TAB.CASES} />
+					</TabsContent>
+				)}
+			</Tabs>
+		</div>
 	)
 }

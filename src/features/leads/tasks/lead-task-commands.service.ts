@@ -1,3 +1,4 @@
+import type { LeadActivityAttachment } from '@/features/leads/activities/lead-activity-attachment'
 import { prisma } from '@/lib/prisma'
 import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
@@ -31,7 +32,7 @@ function audit(ctx: CrmRequestContext, action: AuditAction, details: string) {
 export function listLeadTasks(idLead: number) {
 	return prisma.leadTask.findMany({
 		where: { idLead },
-		orderBy: [{ status: 'asc' }, { dueAt: 'asc' }, { idLeadTask: 'asc' }],
+		orderBy: [{ createdAt: 'desc' }, { idLeadTask: 'desc' }],
 		select: {
 			idLeadTask: true,
 			title: true,
@@ -60,7 +61,15 @@ export async function createLeadTask(input: CreateTaskCommand, ctx: CrmRequestCo
 	return task
 }
 
-export async function completeLeadTask(input: { idLeadTask: number; idLead: number }, ctx: CrmRequestContext) {
+export async function completeLeadTask(
+	input: {
+		idLeadTask: number
+		idLead: number
+		comment?: string
+		attachments?: LeadActivityAttachment[]
+	},
+	ctx: CrmRequestContext
+) {
 	const task = await prisma.$transaction((tx) =>
 		completeLeadTaskTx(tx, { ...input, completedBy: ctx.userId, correlationId: crypto.randomUUID() })
 	)

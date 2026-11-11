@@ -30,6 +30,14 @@ export const CONTACT_OUTCOME_LABELS: Record<ContactOutcome, string> = {
 	RESCHEDULED: 'Reprogramado',
 }
 
+const CASE_STATUS_LABELS: Record<string, string> = {
+	OPEN: 'Abierto',
+	IN_PROGRESS: 'En proceso',
+	WAITING: 'En espera',
+	RESOLVED: 'Resuelto',
+	CLOSED: 'Cerrado',
+}
+
 const STAGE_SOURCE_LABELS: Record<TimelineStageDto['source'], string> = {
 	CRM_SYNC: 'GHL',
 	CSV_IMPORT: 'Importación CSV',
@@ -68,7 +76,22 @@ export function describeTimelineEntry(entry: TimelineEntryDto): TimelineEntryVie
 	if ('businessId' in payload) return { ...base, detail: `Negocio #${payload.businessId}` }
 	if ('caseId' in payload) {
 		const subject = payload.subject ?? `Caso #${payload.caseId}`
-		return { ...base, detail: payload.status ? `${subject} · ${payload.status}` : subject }
+		const statusLabel = payload.status
+			? (CASE_STATUS_LABELS[payload.status] ?? payload.status)
+			: null
+		const title =
+			payload.status === 'CLOSED'
+				? 'Caso cerrado'
+				: payload.status === 'RESOLVED'
+					? 'Caso resuelto'
+					: base.title
+		const detail = statusLabel ? `${subject} · ${statusLabel}` : subject
+		return {
+			...base,
+			title,
+			detail: payload.comment ? `${detail}\n${payload.comment}` : detail,
+		}
 	}
-	return { ...base, detail: payload.title ?? `Tarea #${payload.taskId}` }
+	const taskDetail = payload.title ?? `Tarea #${payload.taskId}`
+	return { ...base, detail: payload.comment ? `${taskDetail}\n${payload.comment}` : taskDetail }
 }

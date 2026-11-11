@@ -9,6 +9,7 @@ import { formatDateTimeBogota } from '@/features/shared/lib/format-date'
 import { LEAD_TASK_TYPES, type LeadTaskKind } from '@/features/leads/tasks/lead-task.schema'
 import { TASK_TYPE_LABELS } from '@/features/leads/agenda/task-type-labels'
 import { bogotaLocalDateTimeToIso } from '@/features/leads/tasks/bogota-datetime-input'
+import { ResolutionNoteForm } from '@/features/leads/activities/resolution-note-form'
 import { useLeadTasks } from '@/features/leads/tasks/use-lead-tasks'
 import type { LeadTaskDto } from '@/features/leads/tasks/lead-tasks-api'
 
@@ -26,6 +27,7 @@ export function LeadTaskList({ leadId, assigneeId, enabled }: { leadId: number; 
 	const [type, setType] = React.useState<LeadTaskKind>('TODO')
 	const [dueAt, setDueAt] = React.useState('')
 	const [saving, setSaving] = React.useState(false)
+	const [completingId, setCompletingId] = React.useState<number | null>(null)
 	const [formError, setFormError] = React.useState<string | null>(null)
 	if (!enabled) return null
 
@@ -50,8 +52,16 @@ export function LeadTaskList({ leadId, assigneeId, enabled }: { leadId: number; 
 		}
 	}
 
-	async function handleComplete(idLeadTask: number) {
-		if (!(await complete(idLeadTask))) setFormError('No fue posible completar la tarea. Inténtalo de nuevo.')
+	async function handleComplete(idLeadTask: number, comment: string, files: File[]) {
+		setSaving(true)
+		setFormError(null)
+		const done = await complete(idLeadTask, {
+			...(comment ? { comment } : {}),
+			...(files.length > 0 ? { files } : {}),
+		})
+		setSaving(false)
+		if (done) setCompletingId(null)
+		else setFormError('No fue posible completar la tarea. Inténtalo de nuevo.')
 	}
 
 	const tasks = state.status === 'success' ? state.data : []
@@ -92,13 +102,23 @@ export function LeadTaskList({ leadId, assigneeId, enabled }: { leadId: number; 
 							{task.title}
 							<span className="text-xs font-normal text-muted-foreground">{TASK_TYPE_LABELS[task.type ?? 'TODO']}</span>
 						</p>
-						{task.status === 'OPEN' && (
-							<Button type="button" size="sm" variant="ghost" onClick={() => void handleComplete(task.idLeadTask)} aria-label={`Completar ${task.title}`}>
+						{task.status === 'OPEN' && completingId !== task.idLeadTask && (
+							<Button type="button" size="sm" onClick={() => setCompletingId(task.idLeadTask)} aria-label={`Completar ${task.title}`}>
 								Completar
 							</Button>
 						)}
 					</div>
 					<p className="text-xs text-muted-foreground">{describeTaskStatus(task)} · {[task.assignee.name, task.assignee.lastName].filter(Boolean).join(' ')}</p>
+					{completingId === task.idLeadTask && (
+						<ResolutionNoteForm
+							id={`task-${task.idLeadTask}`}
+							submitLabel="Completar tarea"
+							pendingLabel="Completando…"
+							saving={saving}
+							onCancel={() => setCompletingId(null)}
+							onSubmit={(comment, files) => void handleComplete(task.idLeadTask, comment, files)}
+						/>
+					)}
 					<Separator className="mt-3" />
 				</div>
 			))}

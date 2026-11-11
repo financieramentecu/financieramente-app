@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import type { LeadActivityAttachment } from '@/features/leads/activities/lead-activity-attachment'
 import { appendLeadActivityTx } from '@/features/leads/activities/lead-activity.service'
 import type { LeadTaskKind } from '@/features/leads/tasks/lead-task.schema'
 
@@ -18,6 +19,8 @@ export interface CompleteLeadTaskInput {
 	idLead: number
 	completedBy: number
 	correlationId: string
+	comment?: string
+	attachments?: LeadActivityAttachment[]
 }
 
 export interface ReassignLeadTaskInput {
@@ -63,7 +66,12 @@ export async function completeLeadTaskTx(tx: TaskWriter, input: CompleteLeadTask
 		idLead: input.idLead,
 		idUser: input.completedBy,
 		type: 'TASK_COMPLETED',
-		payload: { taskId: task.idLeadTask },
+		payload: {
+			taskId: task.idLeadTask,
+			title: task.title,
+			...(input.comment ? { comment: input.comment } : {}),
+			...(input.attachments?.length ? { attachments: input.attachments } : {}),
+		},
 		correlationId: input.correlationId,
 	})
 	return task
@@ -78,7 +86,7 @@ export async function reassignLeadTaskTx(tx: TaskWriter, input: ReassignLeadTask
 		idLead: input.idLead,
 		idUser: input.reassignedBy,
 		type: 'TASK_REASSIGNED',
-		payload: { taskId: task.idLeadTask, assignedTo: input.assignedTo },
+		payload: { taskId: task.idLeadTask, title: task.title, assignedTo: input.assignedTo },
 		correlationId: input.correlationId,
 	})
 	return task

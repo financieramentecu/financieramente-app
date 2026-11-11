@@ -8,6 +8,10 @@ import {
 	requireCrmActor,
 	type CrmActor,
 } from '@/lib/auth/require-crm-actor'
+import { validateActivityFiles } from '@/features/leads/activities/lead-activity-attachment'
+import { storeLeadActivityFiles } from '@/features/leads/activities/lead-activity-files.service'
+import { LeadAttachmentStorageError } from '@/features/leads/activities/lead-attachment-storage'
+import { readJsonOrFiles } from '@/features/leads/activities/json-or-files'
 import {
 	leadSupportCaseCommentSchema,
 	leadSupportCaseUpdateSchema,
@@ -51,10 +55,28 @@ export async function PATCH(request: Request, context: RouteContext) {
 	try {
 		const resolved = await resolveCase(context)
 		if (!resolved.ok) return resolved.response
-		const input = leadSupportCaseUpdateSchema.safeParse(await request.json())
+		const incoming = await readJsonOrFiles(request)
+		if (!incoming.ok) return error(incoming.error, 400)
+		const files = validateActivityFiles(incoming.files)
+		if (!files.ok) return error(files.error, 400)
+		const input = leadSupportCaseUpdateSchema.safeParse(incoming.body)
 		if (!input.success) return error('Actualización inválida', 400)
+		if (incoming.files.length > 0 && input.data.status !== 'CLOSED') {
+			return error('Los archivos solo se adjuntan al cerrar el caso', 400)
+		}
 		if (!canAssignWithinScope(resolved.actor, input.data.assignedTo)) {
 			return error('No puedes asignar fuera de tu alcance', 403)
+		}
+		let attachments
+		if (incoming.files.length > 0) {
+			try {
+				attachments = await storeLeadActivityFiles(resolved.supportCase.idLead, incoming.files)
+			} catch (cause) {
+				if (cause instanceof LeadAttachmentStorageError) {
+					return error('No se pueden adjuntar archivos en este momento', 503)
+				}
+				throw cause
+			}
 		}
 		const updated = await transitionLeadSupportCase(
 			{
@@ -62,6 +84,8 @@ export async function PATCH(request: Request, context: RouteContext) {
 				idLead: resolved.supportCase.idLead,
 				status: input.data.status,
 				assignedTo: input.data.assignedTo,
+				comment: input.data.comment,
+				attachments,
 			},
 			requestContext(resolved.actor, request)
 		)
