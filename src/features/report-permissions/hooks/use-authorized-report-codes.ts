@@ -17,6 +17,11 @@ import type { AsyncState } from '@/features/shared/types/async-state.types'
 export function useAuthorizedReportCodes() {
 	const { session } = useAuthSession()
 	const bypassRole = isReportViewBypassRole(session?.user?.role)
+	// Primitive key: `session.user` is a new object on every session refetch,
+	// which would re-run the request for the same user.
+	const userKey = session?.user
+		? (session.user.id ?? session.user.email ?? 'user')
+		: null
 	const [state, setState] = useState<AsyncState<readonly string[]>>({
 		status: 'idle',
 		data: undefined,
@@ -24,7 +29,7 @@ export function useAuthorizedReportCodes() {
 	})
 
 	useEffect(() => {
-		if (!session?.user) {
+		if (!userKey) {
 			setState({ status: 'idle', data: undefined, error: '' })
 			return
 		}
@@ -56,7 +61,7 @@ export function useAuthorizedReportCodes() {
 		return () => {
 			cancelled = true
 		}
-	}, [session?.user])
+	}, [userKey])
 
 	const codes =
 		state.status === 'success'

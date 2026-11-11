@@ -72,6 +72,8 @@ export function useBusinesses(
 	const paramsKey = JSON.stringify(params)
 	// Params the server-provided data belongs to; cleared once they change.
 	const initialKeyRef = useRef(initial ? paramsKey : null)
+	// Whether this instance owns the server render's data (null until claimed).
+	const ownsInitialRef = useRef<boolean | null>(null)
 
 	// Guards against out-of-order responses: if params change quickly (e.g.
 	// applying a filter right after the initial unfiltered load), a slower
@@ -113,9 +115,13 @@ export function useBusinesses(
 
 	useEffect(() => {
 		if (initial && initialKeyRef.current === paramsKey) {
-			initialKeyRef.current = null
+			// Claim once per mounted instance (kept in a ref) so React StrictMode's
+			// double effect run does not mistake the second run for a remount.
+			if (ownsInitialRef.current === null) {
+				ownsInitialRef.current = claimInitialRender(`list:${initial.renderId}`)
+			}
 			// First mount of this server render: its data is current.
-			if (claimInitialRender(`list:${initial.renderId}`)) return
+			if (ownsInitialRef.current) return
 			// Same render mounted again (back/forward): refresh silently.
 			void fetchBusinesses(true)
 			return

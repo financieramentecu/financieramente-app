@@ -45,7 +45,7 @@ function computeKpis(raw: ProductionKpiRaw, trmRate: number): ProductionKpiCompu
  * - Hierarchy nodes present and selected → uses selectedUserIds.
  */
 export function useProductionKpis(trmRate: number): UseProductionKpisResult {
-  const { nodes, selectedUserIds } = useHierarchySelection()
+  const { nodes, selectedUserIds, isHierarchyResolved } = useHierarchySelection()
   const { appliedFilters } = useDashboardFilter()
   const { data: session, status: sessionStatus } = useSession()
 
@@ -61,6 +61,14 @@ export function useProductionKpis(trmRate: number): UseProductionKpisResult {
 
   useEffect(() => {
     // MS Junior path: no hierarchy nodes, use session userId
+    // Hierarchy still loading: wait for it instead of fetching with only the
+    // session user and throwing that response away when the tree arrives.
+    // (`=== false` keeps consumers that do not provide the flag working.)
+    if (nodes.length === 0 && isHierarchyResolved === false) {
+      setIsLoading(true)
+      return
+    }
+
     if (nodes.length === 0) {
       if (sessionStatus === 'loading') {
         setIsLoading(true)
@@ -150,7 +158,7 @@ export function useProductionKpis(trmRate: number): UseProductionKpisResult {
       cancelled = true
     }
     // Intentionally NOT including trmRate — conversion is client-side (CAP-4)
-  }, [selectedUserIds, appliedFilters, selfUserId])
+  }, [selectedUserIds, appliedFilters, selfUserId, isHierarchyResolved])
 
   const computed = raw !== null ? computeKpis(raw, trmRate) : null
 
