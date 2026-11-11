@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { useBusinesses } from '../../hooks/use-businesses'
 import { useBusinessStats } from '../../hooks/use-business-stats'
 import { businessService } from '../../services/business.service'
@@ -111,5 +112,31 @@ describe('useBusinessStats with server initial data', () => {
 			expect(result.current.stats?.ventasEfectuadas.count).toBe(9)
 		)
 		expect(mockGetStats).toHaveBeenCalledTimes(1)
+	})
+})
+
+describe('server initial data under React StrictMode', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(businessService.getAll).mockResolvedValue({ data: listOf(2) })
+		vi.mocked(businessService.getStats).mockResolvedValue({ data: statsOf(2) })
+	})
+
+	it('does not refetch the list when the effect runs twice on mount', () => {
+		renderHook(
+			() => useBusinesses({ page: 1 }, { data: listOf(1), renderId: 'strict-list' }),
+			{ wrapper: StrictMode }
+		)
+
+		expect(businessService.getAll).not.toHaveBeenCalled()
+	})
+
+	it('does not refetch the stats when the effect runs twice on mount', () => {
+		renderHook(
+			() => useBusinessStats({}, { data: statsOf(1), renderId: 'strict-stats' }),
+			{ wrapper: StrictMode }
+		)
+
+		expect(businessService.getStats).not.toHaveBeenCalled()
 	})
 })

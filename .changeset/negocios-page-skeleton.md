@@ -6,6 +6,7 @@
 
 - **Carga de Negocios:** al abrir la pantalla de Negocios se muestra de inmediato un esqueleto con los indicadores y la tabla, en lugar de una pantalla en blanco mientras se cargan los datos.
 - **Apertura más rápida de Negocios:** al entrar sin filtros de fecha, la pantalla aplica el mes actual con una espera menos antes de mostrarse.
+- La pantalla de Negocios deja de repetir peticiones innecesarias al cargar (notificaciones, reportes autorizados y datos ya recibidos del servidor), por lo que abre más rápido.
 
 ### Técnico
 
@@ -13,3 +14,4 @@
 - `negocios/page.tsx` computes the default date seed from `session.user.role` and redirects before `getCurrentUserByEmail`; the database role is still checked afterwards as a fallback when the session role is missing or has no default.
 - `src/app/dashboard/layout.tsx` no longer awaits `auth()` itself: the check moved to `DashboardSessionGate` (`src/features/auth/components/dashboard-session-gate.tsx`) inside a `Suspense` with `DashboardLoadingSkeleton`, so every dashboard page paints a skeleton while the session is revalidated. The children are still rendered only after the gate resolves (SEC-01 unchanged).
 - `src/middleware.ts` now seeds the negocios default date filter (`buildNegociosSeedRedirectPath`, Edge-safe, drops the router `_rsc` param) and redirects before the page renders. A client-side navigation follows that redirect inside its own request, which removes the ~0.5 s blank screen caused by the page's `redirect()` tearing down the loading UI. The page keeps its own redirect as a fallback for the database role.
+- Fewer duplicate requests on page load (36 → 13 measured on `/dashboard/negocios`): `useBusinesses` / `useBusinessStats` keep the server-data claim in a ref so React StrictMode's double effect no longer refetches the list and KPIs; `useNotifications` skips the fetch and SSE stream while the user id is still 0; `useAuthorizedReportCodes` depends on a primitive user key instead of the `session.user` object, so each session refetch no longer re-requests `/api/reports/me`.
