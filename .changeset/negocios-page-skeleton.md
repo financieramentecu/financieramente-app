@@ -11,3 +11,4 @@
 
 - Add `NegociosPageSkeleton` and `src/app/dashboard/negocios/loading.tsx` (covers the session and user lookups before the page's own `Suspense`), and use the skeleton as the `Suspense` fallback in `negocios/page.tsx` instead of the bare `Loader2` spinner.
 - `negocios/page.tsx` computes the default date seed from `session.user.role` and redirects before `getCurrentUserByEmail`; the database role is still checked afterwards as a fallback when the session role is missing or has no default.
+- `src/app/dashboard/layout.tsx` no longer awaits `auth()` itself: the check moved to `DashboardSessionGate` (`src/features/auth/components/dashboard-session-gate.tsx`) inside a `Suspense` with `DashboardLoadingSkeleton`, so every dashboard page paints a skeleton while the session is revalidated. The children are still rendered only after the gate resolves (SEC-01 unchanged).
