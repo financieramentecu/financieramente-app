@@ -3,75 +3,54 @@ import { deleteFileImport } from '@/features/load-file/services/delete-file-impo
 
 const mockFindFirst = vi.fn()
 const mockTransaction = vi.fn()
-const mockFindUnique = vi.fn()
+const mockFileImportFindUnique = vi.fn()
+const mockFileImportUpdateMany = vi.fn()
 const mockSettlementFindMany = vi.fn()
+const mockSettlementUpdateMany = vi.fn()
 const mockDistributionFindMany = vi.fn()
-const mockClawbackDeleteMany = vi.fn()
 const mockDistributionUpdateMany = vi.fn()
-const mockSettlementDeleteMany = vi.fn()
-const mockFileImportErrorDeleteMany = vi.fn()
-const mockFileImportDeleteMany = vi.fn()
+const mockClawbackUpdateMany = vi.fn()
+
+// Models intentionally expose NO deleteMany/delete: any physical delete throws.
+const txClient = {
+	fileImport: {
+		findUnique: (...args: unknown[]) => mockFileImportFindUnique(...args),
+		updateMany: (...args: unknown[]) => mockFileImportUpdateMany(...args),
+	},
+	settlementCommission: {
+		findMany: (...args: unknown[]) => mockSettlementFindMany(...args),
+		updateMany: (...args: unknown[]) => mockSettlementUpdateMany(...args),
+	},
+	comissionDistribution: {
+		findMany: (...args: unknown[]) => mockDistributionFindMany(...args),
+		updateMany: (...args: unknown[]) => mockDistributionUpdateMany(...args),
+	},
+	clawback: {
+		updateMany: (...args: unknown[]) => mockClawbackUpdateMany(...args),
+	},
+}
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		fileImport: {
 			findFirst: (...args: unknown[]) => mockFindFirst(...args),
-			findUnique: (...args: unknown[]) => mockFindUnique(...args),
-			deleteMany: (...args: unknown[]) => mockFileImportDeleteMany(...args),
-		},
-		settlementCommission: {
-			findMany: (...args: unknown[]) => mockSettlementFindMany(...args),
-			deleteMany: (...args: unknown[]) => mockSettlementDeleteMany(...args),
-		},
-		comissionDistribution: {
-			findMany: (...args: unknown[]) => mockDistributionFindMany(...args),
-			updateMany: (...args: unknown[]) => mockDistributionUpdateMany(...args),
-		},
-		clawback: {
-			deleteMany: (...args: unknown[]) => mockClawbackDeleteMany(...args),
-		},
-		fileImportError: {
-			deleteMany: (...args: unknown[]) => mockFileImportErrorDeleteMany(...args),
 		},
 		$transaction: (callback: (tx: unknown) => Promise<unknown>) =>
 			mockTransaction(callback),
 	},
 }))
 
-async function getMockTx() {
-	let tx: Record<string, unknown> = {}
-	vi.mocked(mockTransaction).mockImplementation(async (callback) => {
-		tx = {
-			fileImport: {
-				findUnique: vi.fn().mockResolvedValue({ idFileImport: 1 }),
-				deleteMany: mockFileImportDeleteMany,
-			},
-			settlementCommission: {
-				findMany: mockSettlementFindMany,
-				deleteMany: mockSettlementDeleteMany,
-			},
-			comissionDistribution: {
-				findMany: mockDistributionFindMany,
-				updateMany: mockDistributionUpdateMany,
-			},
-			clawback: { deleteMany: mockClawbackDeleteMany },
-			fileImportError: { deleteMany: mockFileImportErrorDeleteMany },
-		}
-		return callback(tx)
-	})
-	return tx
-}
-
-describe('deleteFileImport', () => {
+describe('deleteFileImport (soft delete)', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockTransaction.mockImplementation(async (callback) => callback(txClient))
+		mockFileImportFindUnique.mockResolvedValue({ idFileImport: 1 })
+		mockFileImportUpdateMany.mockResolvedValue({ count: 1 })
 		mockSettlementFindMany.mockResolvedValue([])
+		mockSettlementUpdateMany.mockResolvedValue({ count: 0 })
 		mockDistributionFindMany.mockResolvedValue([])
-		mockClawbackDeleteMany.mockResolvedValue({ count: 0 })
 		mockDistributionUpdateMany.mockResolvedValue({ count: 0 })
-		mockSettlementDeleteMany.mockResolvedValue({ count: 0 })
-		mockFileImportErrorDeleteMany.mockResolvedValue({ count: 0 })
-		mockFileImportDeleteMany.mockResolvedValue({ count: 1 })
+		mockClawbackUpdateMany.mockResolvedValue({ count: 0 })
 	})
 
 	it('returns NOT_FOUND when file import does not exist or does not belong to user', async () => {
@@ -87,65 +66,86 @@ describe('deleteFileImport', () => {
 		expect(mockTransaction).not.toHaveBeenCalled()
 	})
 
-	it('returns INVALID_STATUS when status is PRE-SETTLED', async () => {
-		mockFindFirst.mockResolvedValue({
-			idFileImport: 1,
-			status: 'PRE-SETTLED',
-		})
+	it('looks the file up excluding already deleted imports', async () => {
+		mockFindFirst.mockResolvedValue(null)
 
-		const result = await deleteFileImport(1, 1)
+		await deleteFileImport(5, 7)
 
-		expect(result).toEqual({
-			ok: false,
-			code: 'INVALID_STATUS',
-			message: expect.stringContaining('LOAD o ERROR'),
-		})
-		expect(mockTransaction).not.toHaveBeenCalled()
+		expect(mockFindFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					idFileImport: 5,
+					idUser: 7,
+					status: { not: 'DELETED' },
+				},
+			})
+		)
 	})
 
-	it('returns INVALID_STATUS when status is SETTLED', async () => {
-		mockFindFirst.mockResolvedValue({
-			idFileImport: 1,
-			status: 'SETTLED',
-		})
+	it.each(['PRE-SETTLED', 'SETTLED'])(
+		'returns INVALID_STATUS when status is %s',
+		async (status) => {
+			mockFindFirst.mockResolvedValue({ idFileImport: 1, status })
 
-		const result = await deleteFileImport(1, 1)
+			const result = await deleteFileImport(1, 1)
 
-		expect(result).toEqual({
-			ok: false,
-			code: 'INVALID_STATUS',
-			message: expect.stringContaining('LOAD o ERROR'),
-		})
-		expect(mockTransaction).not.toHaveBeenCalled()
-	})
+			expect(result).toEqual({
+				ok: false,
+				code: 'INVALID_STATUS',
+				message: expect.stringContaining('LOAD o ERROR'),
+			})
+			expect(mockTransaction).not.toHaveBeenCalled()
+		}
+	)
 
-	it('returns success when status is LOAD and runs transaction', async () => {
-		mockFindFirst.mockResolvedValue({
-			idFileImport: 1,
-			status: 'LOAD',
-		})
-		await getMockTx()
+	it.each(['LOAD', 'ERROR'])(
+		'soft deletes the file import and its settlements when status is %s',
+		async (status) => {
+			mockFindFirst.mockResolvedValue({ idFileImport: 1, status })
+
+			const result = await deleteFileImport(1, 1)
+
+			expect(result).toEqual({ ok: true })
+			expect(mockFileImportUpdateMany).toHaveBeenCalledWith({
+				where: { idFileImport: 1 },
+				data: { status: 'DELETED' },
+			})
+			expect(mockSettlementUpdateMany).toHaveBeenCalledWith({
+				where: { idFileImport: 1 },
+				data: { status: 'DELETED' },
+			})
+		}
+	)
+
+	it('deactivates distributions and marks clawbacks as deleted without removing rows', async () => {
+		mockFindFirst.mockResolvedValue({ idFileImport: 1, status: 'LOAD' })
+		mockSettlementFindMany.mockResolvedValue([
+			{ idSettlementCommission: 10 },
+			{ idSettlementCommission: 11 },
+		])
+		mockDistributionFindMany.mockResolvedValue([
+			{ idComissionDistribution: 100 },
+			{ idComissionDistribution: 101 },
+		])
 
 		const result = await deleteFileImport(1, 1)
 
 		expect(result).toEqual({ ok: true })
-		expect(mockTransaction).toHaveBeenCalled()
-		expect(mockFileImportErrorDeleteMany).toHaveBeenCalled()
-		expect(mockFileImportDeleteMany).toHaveBeenCalled()
+		expect(mockDistributionUpdateMany).toHaveBeenCalledWith({
+			where: { idSettlementCommission: { in: [10, 11] } },
+			data: { isActive: false },
+		})
+		expect(mockClawbackUpdateMany).toHaveBeenCalledWith({
+			where: { idComissionDistribution: { in: [100, 101] } },
+			data: { state: 'DELETED' },
+		})
 	})
 
-	it('returns success when status is ERROR and runs transaction', async () => {
-		mockFindFirst.mockResolvedValue({
-			idFileImport: 1,
-			status: 'ERROR',
-		})
-		await getMockTx()
+	it('throws NOT_FOUND when the file disappears inside the transaction', async () => {
+		mockFindFirst.mockResolvedValue({ idFileImport: 1, status: 'LOAD' })
+		mockFileImportFindUnique.mockResolvedValue(null)
 
-		const result = await deleteFileImport(1, 1)
-
-		expect(result).toEqual({ ok: true })
-		expect(mockTransaction).toHaveBeenCalled()
-		expect(mockFileImportErrorDeleteMany).toHaveBeenCalled()
-		expect(mockFileImportDeleteMany).toHaveBeenCalled()
+		await expect(deleteFileImport(1, 1)).rejects.toThrow('NOT_FOUND')
+		expect(mockFileImportUpdateMany).not.toHaveBeenCalled()
 	})
 })

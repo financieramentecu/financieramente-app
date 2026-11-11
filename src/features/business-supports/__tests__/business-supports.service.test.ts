@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { MAX_BYTES } from '../lib/mime-utils'
 import { ComprobanteError } from '../types/business-support.types'
 
 // Mock Prisma
@@ -119,6 +120,28 @@ describe('presignComprobanteUpload', () => {
 
     expect(result.url).toBe('https://put.example.com/url')
     expect(result.key).toContain('CTR-001')
+  })
+
+  it('rejects files above the size limit before signing a URL', async () => {
+    mockPrisma.business.findUnique.mockResolvedValue(ACTIVE_BUSINESS)
+
+    await expect(
+      presignComprobanteUpload(10, 'image/jpeg', MAX_BYTES + 1, CTX),
+    ).rejects.toMatchObject({ code: 'FILE_TOO_LARGE' })
+    expect(mockPresignPutUrl).not.toHaveBeenCalled()
+  })
+
+  it('binds the declared size to the presigned URL', async () => {
+    mockPrisma.business.findUnique.mockResolvedValue(ACTIVE_BUSINESS)
+    mockPresignPutUrl.mockResolvedValue('https://put.example.com/url')
+
+    await presignComprobanteUpload(10, 'image/jpeg', 2048, CTX)
+
+    expect(mockPresignPutUrl).toHaveBeenCalledWith(
+      expect.any(String),
+      'image/jpeg',
+      2048,
+    )
   })
 
   it('throws NOT_FOUND when business does not exist', async () => {

@@ -11,6 +11,10 @@ vi.mock('next/navigation', () => ({
 	useSearchParams: () => mockSearchParams,
 }))
 
+vi.mock('@/features/shared/lib/replace-url-query', () => ({
+	replaceUrlQuery: (query: string) => mockReplace(query),
+}))
+
 // Mock catalog hooks
 vi.mock('@/features/negocios/hooks/use-periodicities', () => ({
 	usePeriodicities: () => ({
