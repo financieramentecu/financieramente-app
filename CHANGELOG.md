@@ -37,6 +37,7 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - Ya no es posible tener dos descuentos activos del mismo tipo (Impuesto o Clawback) aunque dos personas los creen al mismo tiempo; el segundo intento recibe un aviso claro.
 - Las acciones de una fila del listado de negocios (subir soporte, comentar, gestionar novedad) ya no se aplican a otro negocio cuando la lista se recarga o se reordena con un modal abierto.
 - El modal de cancelar negocio ya no puede quedar apuntando a un negocio abierto antes, evitando cancelar el negocio equivocado.
+- Se corrige el fallo del despliegue (build de la imagen) causado por la página de columnas del embudo de leads.
 - Se corrige un error que impedía cargar la pantalla de negocios por un import faltante.
 - El módulo de liquidaciones deja de abrir su propio grupo de conexiones a la base de datos y reutiliza el compartido de la aplicación.
 
@@ -69,6 +70,7 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 - Added `AuditAction.BUSINESS_CREATED` and `AuditAction.CLIENT_CREATED`, logged from the `createBusiness` and `createClient` Server Actions after a successful create. The existing `BUSINESS_POLICYHOLDER_LINKED` event is kept unchanged.
 - `BusinessTableSection` passes `getRowId` (business id) to `DataTable`; rows were keyed by index.
 - `NegociosPageClient.handleCancelBusiness` ignores stale `getById` responses via a target-id ref.
+- `dashboard/admin/lead-funnel-columns/page.tsx` exports `dynamic = 'force-dynamic'`: it queries Prisma directly and, since `DashboardRootLayout` stopped calling `auth()`, Next.js prerendered it at build time without `DATABASE_URL`.
 - Add the missing `useRef` import in `negocios-page-client.tsx`, which broke 17 unit tests on `develop`.
 - `negocios/page.tsx` hace streaming de `getNegociosInitialData` (lista y KPIs) con una sola resolución de jerarquía compartida. Los hooks `useBusinesses` y `useBusinessStats` aceptan datos iniciales y solo consultan al cambiar filtros.
 - La siembra del filtro de fecha por rol se hace en el servidor (`buildDefaultDateSeedQuery`) en lugar de un `router.replace` en el cliente.
