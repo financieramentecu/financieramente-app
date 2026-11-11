@@ -1,5 +1,5 @@
 ---
-"financieramente": patch
+"financieramente-app": patch
 ---
 
 ### Técnico
