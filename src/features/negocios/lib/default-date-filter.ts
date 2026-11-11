@@ -103,3 +103,39 @@ export function buildDefaultDateSeedQuery(
 	params.set(pair.toKey, range.to)
 	return params.toString()
 }
+
+const NEGOCIOS_PATH = '/dashboard/negocios'
+
+/**
+ * Edge-friendly version of the seed redirect for the negocios page: returns
+ * the path (with query) to redirect to, or null when no redirect applies.
+ *
+ * Doing it in the middleware, before the page renders, lets a client-side
+ * navigation follow the redirect inside its own request instead of rendering
+ * the page, throwing `redirect()` and flashing a blank screen. `_rsc` is the
+ * router's cache-busting param and must never end up in the seeded URL.
+ */
+export function buildNegociosSeedRedirectPath(
+	pathname: string,
+	method: string,
+	roleCode: string | undefined,
+	searchParams: URLSearchParams,
+	now: Date = new Date()
+): string | null {
+	if (method !== 'GET' || pathname !== NEGOCIOS_PATH) return null
+
+	const record: PageSearchParams = {}
+	searchParams.forEach((value, key) => {
+		if (key === '_rsc') return
+		const current = record[key]
+		record[key] =
+			current === undefined
+				? value
+				: Array.isArray(current)
+					? [...current, value]
+					: [current, value]
+	})
+
+	const query = buildDefaultDateSeedQuery(roleCode, record, now)
+	return query ? `${NEGOCIOS_PATH}?${query}` : null
+}
