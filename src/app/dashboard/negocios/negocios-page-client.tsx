@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams as useNextSearchParams } from 'next/navigation'
 import MisNegociosPage from '@/features/negocios/components/MisNegociosPage'
 import { BusinessCancelModal } from '@/features/negocios/components/modals/BusinessCancelModal'
