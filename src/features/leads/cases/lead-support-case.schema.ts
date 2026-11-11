@@ -23,6 +23,7 @@ export const leadSupportCaseUpdateSchema = z.object({
   status: z.enum(['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED']),
   assignedTo: positiveId.optional(),
   comment: optionalComment,
+  resolvedAt: z.string().datetime().optional(),
 }).strict()
 
 export const leadSupportCaseCommentSchema = z.object({ body: plainText(2000) }).strict()

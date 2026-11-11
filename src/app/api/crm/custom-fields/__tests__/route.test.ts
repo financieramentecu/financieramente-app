@@ -71,13 +71,13 @@ describe('/api/leads/[id]/crm-fields', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		vi.mocked(requireCrmActor).mockResolvedValue({ ok: true, actor })
-		vi.mocked(findScopedLead).mockResolvedValue({ idLead: 10 } as never)
+		vi.mocked(findScopedLead).mockResolvedValue(true)
 	})
 
 	it('reads the CRM fields of a lead in scope', async () => {
 		vi.mocked(getLeadCrmFields).mockResolvedValue({ estimatedValue: null, probability: null, customFieldValues: {} })
 		expect((await GET_FIELDS(new Request('http://x'), ctx('10'))).status).toBe(200)
-		vi.mocked(findScopedLead).mockResolvedValue(null)
+		vi.mocked(findScopedLead).mockResolvedValue(false)
 		expect((await GET_FIELDS(new Request('http://x'), ctx('10'))).status).toBe(404)
 	})
 

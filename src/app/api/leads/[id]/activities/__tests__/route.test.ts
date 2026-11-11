@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GET, POST } from '../route'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { getLeadDetail } from '@/features/leads/services/lead-board.service'
+import { getLeadDetail, isLeadVisible } from '@/features/leads/services/lead-board.service'
 import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { appendLeadActivityTx } from '@/features/leads/activities/lead-activity.service'
@@ -18,6 +18,7 @@ vi.mock('@/features/auth/lib/hierarchy', () => ({
 }))
 vi.mock('@/features/leads/services/lead-board.service', () => ({
 	getLeadDetail: vi.fn(),
+	isLeadVisible: vi.fn(),
 }))
 vi.mock('@/features/leads/crm/crm-policy', () => ({
 	canAccessCrm: vi.fn(),
@@ -66,6 +67,7 @@ describe('/api/leads/[id]/activities', () => {
 		vi.mocked(canAccessCrm).mockReturnValue(true)
 		vi.mocked(canManageCrm).mockReturnValue(true)
 		vi.mocked(getLeadDetail).mockResolvedValue({ idLead: 1 } as never)
+		vi.mocked(isLeadVisible).mockResolvedValue(true)
 	})
 
 	it('returns 404 while crm_timeline is disabled', async () => {

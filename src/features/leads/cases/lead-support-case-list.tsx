@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { LifeBuoy } from 'lucide-react'
 import { Badge } from '@/features/shared/ui/badge'
 import { Separator } from '@/features/shared/ui/separator'
 import { Input } from '@/features/shared/ui/input'
 import { Button } from '@/features/shared/ui/button'
 import { formatDateBogota } from '@/features/shared/lib/format-date'
+import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 import { jsonOrFilesInit } from '@/features/leads/activities/json-or-files'
 import { ResolutionNoteForm } from '@/features/leads/activities/resolution-note-form'
 
@@ -19,6 +20,7 @@ interface SupportCase {
 	status: SupportCaseStatus
 	priority: SupportCasePriority
 	dueAt: string | null
+	resolvedAt: string | null
 }
 
 interface CasesResponse {
@@ -62,16 +64,18 @@ export function LeadSupportCaseList({
 	const [draftId, setDraftId] = useState<number | null>(null)
 	const [formError, setFormError] = useState<string | null>(null)
 	const [reloadKey, setReloadKey] = useState(0)
+	const loadedLeadId = useRef<number | null>(null)
 
 	useEffect(() => {
 		if (!enabled) return
 		let cancelled = false
-		setStatus('loading')
+		setStatus((current) => (loadedLeadId.current === leadId && current === 'idle' ? current : 'loading'))
 		fetch(`/api/leads/${leadId}/cases`)
 			.then(async (response) => {
 				if (!response.ok) throw new Error()
 				const body = (await response.json()) as CasesResponse
 				if (!cancelled) {
+					loadedLeadId.current = leadId
 					setCases(body.data ?? [])
 					setStatus('idle')
 				}
@@ -108,10 +112,20 @@ export function LeadSupportCaseList({
 		}
 	}
 
-	async function closeCase(idLeadSupportCase: number, comment: string, files: File[]) {
+	async function closeCase(
+		idLeadSupportCase: number,
+		comment: string,
+		files: File[],
+		closeOn?: string
+	) {
 		setClosingId(idLeadSupportCase)
 		setFormError(null)
-		const body = comment ? { status: 'CLOSED', comment } : { status: 'CLOSED' }
+		const resolvedAt = closeOn ? dateOnlyToBogotaNoonUtc(closeOn).toISOString() : undefined
+		const body = {
+			status: 'CLOSED' as const,
+			...(comment ? { comment } : {}),
+			...(resolvedAt ? { resolvedAt } : {}),
+		}
 		try {
 			const response = await fetch(
 				`/api/crm/cases/${idLeadSupportCase}`,
@@ -209,9 +223,17 @@ export function LeadSupportCaseList({
 							submitLabel="Cerrar caso"
 							pendingLabel="Cerrando…"
 							saving={closingId === supportCase.idLeadSupportCase}
+							includeCloseDate
 							onCancel={() => setDraftId(null)}
-							onSubmit={(comment, files) => void closeCase(supportCase.idLeadSupportCase, comment, files)}
+							onSubmit={(comment, files, closeOn) =>
+								void closeCase(supportCase.idLeadSupportCase, comment, files, closeOn)
+							}
 						/>
+					)}
+					{supportCase.resolvedAt && (
+						<p className="text-xs text-muted-foreground">
+							Cierre: {formatDateBogota(supportCase.resolvedAt)}
+						</p>
 					)}
 					{supportCase.dueAt && (
 						<p className="text-xs text-muted-foreground">

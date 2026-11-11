@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GET, POST } from '../route'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { getLeadDetail } from '@/features/leads/services/lead-board.service'
+import { getLeadDetail, isLeadVisible } from '@/features/leads/services/lead-board.service'
 import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { createLeadTaskTx } from '@/features/leads/tasks/lead-task.service'
@@ -10,7 +10,7 @@ import { createLeadTaskTx } from '@/features/leads/tasks/lead-task.service'
 vi.mock('@/auth', () => ({ auth: vi.fn() }))
 vi.mock('@/features/negocios/services/user.service', () => ({ getCurrentUserByEmail: vi.fn() }))
 vi.mock('@/features/auth/lib/hierarchy', () => ({ getAccessibleUserIds: vi.fn(() => Promise.resolve([])), isHierarchyBypassRole: vi.fn(() => true) }))
-vi.mock('@/features/leads/services/lead-board.service', () => ({ getLeadDetail: vi.fn() }))
+vi.mock('@/features/leads/services/lead-board.service', () => ({ getLeadDetail: vi.fn(), isLeadVisible: vi.fn() }))
 vi.mock('@/features/leads/crm/crm-policy', () => ({ canAccessCrm: vi.fn(), canManageCrm: vi.fn() }))
 vi.mock('@/features/shared/lib/flagsmith-server', () => ({ isFeatureEnabledServer: vi.fn() }))
 vi.mock('@/features/leads/tasks/lead-task.service', () => ({ createLeadTaskTx: vi.fn() }))
@@ -29,6 +29,7 @@ describe('/api/leads/[id]/tasks', () => {
 		vi.mocked(canAccessCrm).mockReturnValue(true)
 		vi.mocked(canManageCrm).mockReturnValue(true)
 		vi.mocked(getLeadDetail).mockResolvedValue({ idLead: 1 } as never)
+		vi.mocked(isLeadVisible).mockResolvedValue(true)
 	})
 
 	it('returns 404 while crm_tasks is disabled', async () => {

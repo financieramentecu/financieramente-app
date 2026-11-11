@@ -102,3 +102,14 @@ export async function rescheduleLeadTaskTx(
 		data: { dueAt: input.dueAt, reminderSentAt: null },
 	})
 }
+
+/** Puts a completed task back on the agenda at a new due date. Bookkeeping only. */
+export async function reopenLeadTaskTx(
+	tx: Pick<Prisma.TransactionClient, 'leadTask'>,
+	input: { idLeadTask: number; dueAt: Date }
+) {
+	return tx.leadTask.update({
+		where: { idLeadTask: input.idLeadTask },
+		data: { status: 'OPEN', completedAt: null, dueAt: input.dueAt, reminderSentAt: null },
+	})
+}

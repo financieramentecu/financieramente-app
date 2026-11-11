@@ -19,29 +19,42 @@ function buildQueryString(filters: LeadBoardFilters | undefined): string {
 	}
 	params.set('createdFrom', filters.createdAtRange.gte.toISOString().slice(0, 10))
 	params.set('createdTo', filters.createdAtRange.lte.toISOString().slice(0, 10))
+	for (const ownerId of filters.ownerIds ?? []) {
+		params.append('owner', String(ownerId))
+	}
 
 	return `?${params.toString()}`
 }
 
+function filterKey(filters: LeadBoardFilters | undefined): string {
+	if (!filters) return ''
+	return [
+		filters.outcomeStatuses.join(','),
+		filters.createdAtRange.gte.toISOString(),
+		filters.createdAtRange.lte.toISOString(),
+		(filters.ownerIds ?? []).join(','),
+	].join('|')
+}
+
 /**
- * Fetches the read-only Leads Kanban board. Refetches whenever `filters`
- * changes (outcome-status chips / createdAt range) — omitting `filters`
- * lets the server apply `getDefaultLeadBoardFilters()`. There is no
- * real-time push for new leads (webhook-driven, no WebSocket/SSE in this
- * feature), so freshness is manual (`refetch`, wired to a button by the
- * caller) plus an automatic refetch when the tab regains focus/visibility
- * — cheap, no server load while the tab is backgrounded, unlike interval
- * polling.
+ * Fetches the Leads Kanban board. Refetches when `filters` change.
+ * Omitting `filters` lets the server apply `getDefaultLeadBoardFilters()`.
+ * Freshness is manual (`refetch`, wired to the Actualizar button). The board
+ * does not reload on window focus or when GoHighLevel syncs a lead.
+ * `paused` holds the request until the hierarchy tree has settled.
  */
-export function useLeadsBoard(filters?: LeadBoardFilters) {
+export function useLeadsBoard(filters?: LeadBoardFilters, paused = false) {
 	const [state, setState] = React.useState<AsyncState<LeadBoardColumn[]>>(
 		initialState
 	)
+	const filtersRef = React.useRef(filters)
+	filtersRef.current = filters
+	const key = filterKey(filters)
 
 	const fetchBoard = React.useCallback(async () => {
 		setState({ status: 'loading', data: undefined, error: '' })
 		try {
-			const response = await fetch(`/api/leads${buildQueryString(filters)}`)
+			const response = await fetch(`/api/leads${buildQueryString(filtersRef.current)}`)
 			const body: ApiResponse<LeadBoardColumn[]> = await response.json()
 
 			if ('error' in body) {
@@ -57,27 +70,19 @@ export function useLeadsBoard(filters?: LeadBoardFilters) {
 				error: 'Error al cargar el tablero de leads',
 			})
 		}
-	}, [filters])
+	}, [key])
 
 	React.useEffect(() => {
-		fetchBoard()
-	}, [fetchBoard])
+		if (paused) return
+		void fetchBoard()
+	}, [fetchBoard, paused])
 
-	React.useEffect(() => {
-		const handleFocusRefetch = () => {
-			if (document.visibilityState === 'visible') {
-				fetchBoard()
-			}
-		}
+	function updateColumns(updater: (columns: LeadBoardColumn[]) => LeadBoardColumn[]) {
+		setState((current) => {
+			if (current.status !== 'success') return current
+			return { status: 'success', data: updater(current.data), error: '' }
+		})
+	}
 
-		window.addEventListener('focus', handleFocusRefetch)
-		document.addEventListener('visibilitychange', handleFocusRefetch)
-
-		return () => {
-			window.removeEventListener('focus', handleFocusRefetch)
-			document.removeEventListener('visibilitychange', handleFocusRefetch)
-		}
-	}, [fetchBoard])
-
-	return { state, refetch: fetchBoard }
+	return { state, refetch: fetchBoard, updateColumns }
 }

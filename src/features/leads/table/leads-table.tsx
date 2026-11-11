@@ -1,7 +1,7 @@
 'use client'
 
-import * as React from 'react'
-import { ArrowDown, ArrowUp, Download, Search } from 'lucide-react'
+import { Fragment, useEffect, useState, type FormEvent } from 'react'
+import { ArrowDown, ArrowUp, ChevronDown, Download, Search } from 'lucide-react'
 import { Badge } from '@/features/shared/ui/badge'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
@@ -36,8 +36,10 @@ import type {
 	LeadTablePage,
 	LeadTableRow,
 } from '@/features/leads/table/lead-table.types'
+import { LeadTableDetail } from '@/features/leads/table/lead-table-detail'
 import { SavedViewsBar } from '@/features/leads/views/saved-views-bar'
 import { CrmSettingsDialog } from '@/features/leads/custom-fields/crm-settings-dialog'
+import { CRM_HIERARCHY_EMPTY_MESSAGE, useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
 
 const STATUS_OPTIONS = LEAD_OUTCOME_STATUS_VALUES.map((value) => ({
 	value,
@@ -137,13 +139,36 @@ export function LeadsTable({
 }) {
 	const { query, state, updateFilters, goToPage, toggleSort, replaceQuery } =
 		useLeadTable()
-	const { stages, tags } = useLeadTableOptions(fieldsEnabled)
-	const [search, setSearch] = React.useState(query.q ?? '')
+	const hierarchy = useCrmHierarchyFilter()
+	const ownerKey = hierarchy.ownerIds.join(',')
+	const [search, setSearch] = useState(query.q ?? '')
+	const [openIds, setOpenIds] = useState<number[]>([])
 	const sortProps = { current: query.sort, dir: query.dir, onSort: toggleSort }
 
-	function submitSearch(event: React.FormEvent<HTMLFormElement>) {
+	useEffect(() => {
+		if (!hierarchy.ready || hierarchy.noneSelected) return
+		if (query.ownerIds.join(',') === ownerKey) return
+		updateFilters({ ownerIds: hierarchy.ownerIds })
+		// ownerKey is the identity of the hierarchy selection.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [hierarchy.ready, hierarchy.noneSelected, ownerKey])
+	const { stages, tags } = useLeadTableOptions(fieldsEnabled)
+
+	function toggleLead(idLead: number) {
+		setOpenIds((current) =>
+			current.includes(idLead) ? current.filter((id) => id !== idLead) : [...current, idLead]
+		)
+	}
+
+	const columnCount = fieldsEnabled ? 8 : 6
+
+	function submitSearch(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
 		updateFilters({ q: search.trim() || undefined })
+	}
+
+	if (hierarchy.noneSelected) {
+		return <p className="text-sm text-muted-foreground">{CRM_HIERARCHY_EMPTY_MESSAGE}</p>
 	}
 
 	return (
@@ -280,75 +305,98 @@ export function LeadsTable({
 										</TableCell>
 									</TableRow>
 								)}
-								{state.data.items.map((row) => (
-									<TableRow
-										key={row.idLead}
-										className="cursor-pointer"
-										onClick={() => onOpenLead(row.idLead)}
-									>
-										<TableCell>
-											<button
-												type="button"
-												className="text-left font-medium underline-offset-2 hover:underline"
-												onClick={(event) => {
-													event.stopPropagation()
-													onOpenLead(row.idLead)
-												}}
-											>
-												{fullName(row)}
-											</button>
-											<p className="text-xs text-muted-foreground">
-												{row.email ?? row.phone ?? ''}
-											</p>
-											{fieldsEnabled && row.tags.length > 0 && (
-												<div className="mt-1 flex flex-wrap gap-1">
-													{row.tags.map((tag) => (
-														<Badge
-															key={tag.idLeadTag}
-															variant="outline"
-															style={{
-																borderColor: tag.color,
-																color: tag.color,
-															}}
-														>
-															{tag.name}
-														</Badge>
-													))}
-												</div>
-											)}
-										</TableCell>
-										<TableCell>{row.stageName}</TableCell>
-										<TableCell>
-											<Badge
-												variant={
-													LEAD_OUTCOME_STATUS_BADGE_VARIANTS[row.outcomeStatus]
-												}
-											>
-												{LEAD_OUTCOME_STATUS_LABELS[row.outcomeStatus]}
-											</Badge>
-										</TableCell>
-										<TableCell>{row.ownerName ?? 'Sin asignar'}</TableCell>
-										{fieldsEnabled && (
-											<TableCell className="text-right">
-												{formatLeadAmount(row.estimatedValue)}
-											</TableCell>
-										)}
-										{fieldsEnabled && (
-											<TableCell className="text-right">
-												{row.probability === null ? '—' : `${row.probability}%`}
-											</TableCell>
-										)}
-										<TableCell>
-											<span className="flex flex-wrap items-center gap-1">
-												{row.lastActivityAt
-													? formatDateBogota(row.lastActivityAt)
-													: 'Sin actividad'}
-												<InactivityBadge days={row.inactiveDays} />
-											</span>
-										</TableCell>
-										<TableCell>{formatDateBogota(row.createdAt)}</TableCell>
-									</TableRow>
-								))}
+								{state.data.items.map((row) => {
+									const open = openIds.includes(row.idLead)
+									const name = fullName(row)
+									return (
+										<Fragment key={row.idLead}>
+											<TableRow className={open ? 'border-b-0' : undefined}>
+												<TableCell>
+													<button
+														type="button"
+														className="inline-flex items-center gap-1 text-left font-medium underline-offset-2 hover:underline"
+														aria-expanded={open}
+														onClick={() => toggleLead(row.idLead)}
+													>
+														<ChevronDown
+															className={`size-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+															aria-hidden
+														/>
+														{name}
+													</button>
+													<p className="text-xs text-muted-foreground">
+														{row.email ?? row.phone ?? ''}
+													</p>
+													{fieldsEnabled && row.tags.length > 0 && (
+														<div className="mt-1 flex flex-wrap gap-1">
+															{row.tags.map((tag) => (
+																<Badge
+																	key={tag.idLeadTag}
+																	variant="outline"
+																	style={{
+																		borderColor: tag.color,
+																		color: tag.color,
+																	}}
+																>
+																	{tag.name}
+																</Badge>
+															))}
+														</div>
+													)}
+													<Button
+														type="button"
+														size="sm"
+														variant="ghost"
+														className="mt-1 h-7 px-2"
+														onClick={() => onOpenLead(row.idLead)}
+													>
+														Abrir ficha
+													</Button>
+												</TableCell>
+												<TableCell>{row.stageName}</TableCell>
+												<TableCell>
+													<Badge
+														variant={
+															LEAD_OUTCOME_STATUS_BADGE_VARIANTS[row.outcomeStatus]
+														}
+													>
+														{LEAD_OUTCOME_STATUS_LABELS[row.outcomeStatus]}
+													</Badge>
+												</TableCell>
+												<TableCell>{row.ownerName ?? 'Sin asignar'}</TableCell>
+												{fieldsEnabled && (
+													<TableCell className="text-right">
+														{formatLeadAmount(row.estimatedValue)}
+													</TableCell>
+												)}
+												{fieldsEnabled && (
+													<TableCell className="text-right">
+														{row.probability === null ? '—' : `${row.probability}%`}
+													</TableCell>
+												)}
+												<TableCell>
+													<span className="flex flex-wrap items-center gap-1">
+														{row.lastActivityAt
+															? formatDateBogota(row.lastActivityAt)
+															: 'Sin actividad'}
+														<InactivityBadge days={row.inactiveDays} />
+													</span>
+												</TableCell>
+												<TableCell>{formatDateBogota(row.createdAt)}</TableCell>
+											</TableRow>
+											{open ? (
+												<TableRow>
+													<TableCell
+														colSpan={columnCount}
+														className="bg-slate-50 dark:bg-slate-900/40"
+													>
+														<LeadTableDetail idLead={row.idLead} leadName={name} />
+													</TableCell>
+												</TableRow>
+											) : null}
+										</Fragment>
+									)
+								})}
 							</TableBody>
 						</Table>
 					</div>

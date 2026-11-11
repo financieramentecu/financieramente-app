@@ -5,9 +5,8 @@ import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { getAccessibleUserIds, isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
-import { getLeadDetail } from '@/features/leads/services/lead-board.service'
+import { isLeadVisible } from '@/features/leads/services/lead-board.service'
 import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
-import type { LeadDetail } from '@/features/leads/types/lead.types'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
@@ -73,9 +72,9 @@ export async function requireCrmActor(
 	}
 }
 
-/** Lead visible to the actor, or null (missing and out-of-scope are indistinguishable). */
-export function findScopedLead(actor: CrmActor, idLead: number): Promise<LeadDetail | null> {
-	return getLeadDetail(idLead, toLeadViewer(actor), { visibleUserIds: actor.visibleUserIds })
+/** Lead visible to the actor. Missing and out-of-scope are both false. */
+export function findScopedLead(actor: CrmActor, idLead: number): Promise<boolean> {
+	return isLeadVisible(idLead, toLeadViewer(actor), { visibleUserIds: actor.visibleUserIds })
 }
 
 export function canAssignWithinScope(

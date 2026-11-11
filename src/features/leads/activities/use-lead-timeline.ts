@@ -13,6 +13,7 @@ const LOAD_ERROR = 'No fue posible cargar la timeline. Inténtalo de nuevo.'
 export function useLeadTimeline(leadId: number, enabled: boolean) {
 	const [state, setState] = React.useState<AsyncState<TimelinePageDto>>(IDLE)
 	const [loadingMore, setLoadingMore] = React.useState(false)
+	const loadedLeadId = React.useRef<number | null>(null)
 
 	async function reload() {
 		setState(LOADING)
@@ -26,9 +27,14 @@ export function useLeadTimeline(leadId: number, enabled: boolean) {
 	React.useEffect(() => {
 		if (!enabled) return
 		let cancelled = false
-		setState(LOADING)
+		const sameLead = loadedLeadId.current === leadId
+		if (!sameLead) setState(LOADING)
 		fetchTimelinePage(leadId)
-			.then((data) => !cancelled && setState({ status: 'success', data, error: '' }))
+			.then((data) => {
+				if (cancelled) return
+				loadedLeadId.current = leadId
+				setState({ status: 'success', data, error: '' })
+			})
 			.catch(() => !cancelled && setState({ status: 'error', data: undefined, error: LOAD_ERROR }))
 		return () => {
 			cancelled = true

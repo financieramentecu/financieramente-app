@@ -24,6 +24,7 @@ import type {
 	CrmReportBreakdownRow,
 	CrmReportRange,
 } from '@/features/leads/reports/crm-pipeline-report.types'
+import { CRM_HIERARCHY_EMPTY_MESSAGE, useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
 
 type BreakdownKind = 'byOrigin' | 'byAdvisor' | 'byTeam'
 
@@ -79,7 +80,7 @@ function RangeForm({
 				Aplicar
 			</Button>
 			<p className="text-xs text-muted-foreground">
-				Leads creados en el rango (hora de Bogotá).
+				Leads creados en el rango (hora de Bogotá). El árbol de la izquierda elige de quién se ve la información; con todos marcados se ve tu equipo completo.
 			</p>
 		</form>
 	)
@@ -383,18 +384,46 @@ function ReportBody({ report }: { report: CrmPipelineReport }) {
 
 /** CRM "Reportes" tab: funnel, rates, time per stage, breakdowns and weighted forecast. */
 export function CrmReports() {
+	const hierarchy = useCrmHierarchyFilter()
 	const { state, range, load } = useCrmPipelineReport()
 	const [appliedRange, setAppliedRange] = React.useState<CrmReportRange | null>(null)
+	const ownerKey = hierarchy.ownerIds.join(',')
+	const loadRef = React.useRef(load)
+	const rangeRef = React.useRef(range)
+	const ownersRef = React.useRef(hierarchy.ownerIds)
+	loadRef.current = load
+	rangeRef.current = range
+	ownersRef.current = hierarchy.ownerIds
+	const skippedInitial = React.useRef(false)
+
+	React.useEffect(() => {
+		if (!hierarchy.ready || hierarchy.noneSelected) return
+		if (!skippedInitial.current && hierarchy.ownerIds.length === 0) {
+			skippedInitial.current = true
+			return
+		}
+		skippedInitial.current = true
+		const current = rangeRef.current
+		void loadRef.current(
+			current
+				? { ...current, ownerIds: ownersRef.current }
+				: { from: '', to: '', ownerIds: ownersRef.current }
+		)
+	}, [hierarchy.ready, hierarchy.noneSelected, ownerKey])
 
 	return (
 		<div className="space-y-4">
+			{hierarchy.noneSelected ? (
+				<p className="text-sm text-muted-foreground">{CRM_HIERARCHY_EMPTY_MESSAGE}</p>
+			) : (
+				<>
 			{/* Remount when the served range changes so the inputs show it. */}
 			<RangeForm
 				key={range ? `${range.from}:${range.to}` : 'none'}
 				initial={range}
 				onApply={(next) => {
 					setAppliedRange(next)
-					void load(next)
+					void load({ ...next, ownerIds: hierarchy.ownerIds })
 				}}
 			/>
 			{state.status === 'loading' && (
@@ -414,19 +443,21 @@ export function CrmReports() {
 			{state.status === 'success' && (
 				<div className="flex flex-wrap gap-2">
 					<Button asChild variant="outline" size="sm">
-						<a href={buildCrmReportExportUrl(state.data.range, 'xlsx')}>
+						<a href={buildCrmReportExportUrl(state.data.range, 'xlsx', hierarchy.ownerIds)}>
 							Exportar Excel
 						</a>
 					</Button>
 					<Button asChild variant="outline" size="sm">
-						<a href={buildCrmReportExportUrl(state.data.range, 'pdf')}>
+						<a href={buildCrmReportExportUrl(state.data.range, 'pdf', hierarchy.ownerIds)}>
 							Exportar PDF
 						</a>
 					</Button>
 				</div>
 			)}
 			{state.status === 'success' && <ReportBody report={state.data} />}
-			<CrmStageDetailSection range={appliedRange} />
+			<CrmStageDetailSection range={appliedRange} ownerIds={hierarchy.ownerIds} />
+				</>
+			)}
 		</div>
 	)
 }

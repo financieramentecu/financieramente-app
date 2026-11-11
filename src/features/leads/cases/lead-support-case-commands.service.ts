@@ -81,6 +81,7 @@ export async function transitionLeadSupportCase(
 		assignedTo?: number
 		comment?: string
 		attachments?: LeadActivityAttachment[]
+		resolvedAt?: Date
 	},
 	ctx: CrmRequestContext
 ) {

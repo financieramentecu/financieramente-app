@@ -24,6 +24,7 @@ export interface TransitionLeadSupportCaseInput {
   correlationId: string
   comment?: string
   attachments?: LeadActivityAttachment[]
+  resolvedAt?: Date | null
 }
 export interface AddLeadSupportCaseCommentInput {
   idLeadSupportCase: number
@@ -66,7 +67,9 @@ export async function transitionLeadSupportCaseTx(tx: CaseWriter, input: Transit
     data: {
       status: input.status,
       ...(input.assignedTo !== undefined ? { assignedTo: input.assignedTo } : {}),
-      ...(input.status === 'RESOLVED' || input.status === 'CLOSED' ? { resolvedAt: new Date() } : {}),
+      ...(input.status === 'RESOLVED' || input.status === 'CLOSED'
+        ? { resolvedAt: input.resolvedAt ?? new Date() }
+        : {}),
     },
   })
   await appendLeadActivityTx(tx, {

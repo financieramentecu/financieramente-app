@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '@/lib/prisma'
-import { getTaskAgenda } from '@/features/leads/tasks/lead-task-agenda.service'
+import { getActivityBoard, getTaskAgenda } from '@/features/leads/tasks/lead-task-agenda.service'
 
 vi.mock('@/lib/prisma', () => ({ prisma: { leadTask: { findMany: vi.fn() } } }))
 
@@ -51,5 +51,38 @@ describe('getTaskAgenda', () => {
 		expect(vi.mocked(prisma.leadTask.findMany).mock.calls[0][0]?.orderBy).toEqual([{ completedAt: 'desc' }])
 		await getTaskAgenda(7, 'today', new Date())
 		expect(vi.mocked(prisma.leadTask.findMany).mock.calls[1][0]?.orderBy).toEqual([{ dueAt: 'asc' }, { idLeadTask: 'asc' }])
+	})
+})
+
+describe('getActivityBoard', () => {
+	beforeEach(() => vi.clearAllMocks())
+
+	it('loads the four agenda windows for the given assignees', async () => {
+		vi.mocked(prisma.leadTask.findMany).mockResolvedValue([
+			{
+				idLeadTask: 3,
+				idLead: 12,
+				title: 'Llamar',
+				type: 'CALL',
+				dueAt: new Date('2026-11-08T15:00:00Z'),
+				status: 'OPEN',
+				completedAt: null,
+				assignee: { name: 'Ana', lastName: 'Torres' },
+				lead: { name: 'Luis', lastName: null },
+			},
+		] as never)
+		const now = new Date('2026-11-09T15:00:00.000Z')
+
+		const items = await getActivityBoard([7, 8], now)
+
+		expect(vi.mocked(prisma.leadTask.findMany).mock.calls[0][0]?.where).toEqual({
+			lead: { active: true },
+			assignedTo: { in: [7, 8] },
+			OR: [
+				{ status: 'OPEN', OR: [{ dueAt: null }, { dueAt: { lt: new Date('2026-11-24T05:00:00.000Z') } }] },
+				{ status: 'DONE', completedAt: { gte: new Date('2026-11-02T15:00:00.000Z') } },
+			],
+		})
+		expect(items[0]).toMatchObject({ leadName: 'Luis', assigneeName: 'Ana Torres', status: 'OPEN' })
 	})
 })

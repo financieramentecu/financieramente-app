@@ -1,9 +1,9 @@
 /**
- * Demo leads that do not come from GoHighLevel.
- *
- * `externalCrmId` and `externalUrl` stay null, so the detail sheet does not
- * show "Gestionado en GHL". Notes, tasks, tags, estimated value, probability
- * and stage history are CRM-owned.
+ * Demo leads that do not come from GoHighLevel, owned by people who already
+ * exist in the hierarchy. Asesor Demo is not in that tree, so the filter
+ * cannot show their cards. Each lead and its tasks belong to a real advisor
+ * (a leader and their children when the tree has them) so checking a person
+ * in the CRM hierarchy changes what you see.
  *
  * Idempotent: matched by the demo email. Safe to re-run.
  * Uses `.env.local` (the database `npm run dev` reads).
@@ -19,8 +19,6 @@ const HOUR_MS = 60 * 60 * 1000
 /** America/Bogota is UTC-5 all year. */
 const BOGOTA_OFFSET_MS = 5 * HOUR_MS
 const EMAIL_DOMAIN = 'financieramente.demo'
-/** Dedicated owner. Never a real advisor: demo tasks must not land on someone who already works leads. */
-const DEMO_OWNER_EMAIL = `asesor.demo@${EMAIL_DOMAIN}`
 
 type Outcome = 'OPEN' | 'WON' | 'LOST'
 type TaskType = 'TODO' | 'CALL' | 'MEETING' | 'EMAIL' | 'WHATSAPP'
@@ -279,36 +277,61 @@ function createdAtFor(now: Date, lead: DemoLead): Date {
 	return wanted.getTime() < monthNoon.getTime() ? monthNoon : wanted
 }
 
+interface HierarchyOwner {
+	idUser: number
+	name: string
+	lastName: string | null
+	idUserLeader: number | null
+}
+
+/** A leader plus their children, so filtering one branch changes the board. */
+function pickOwners(users: HierarchyOwner[]): HierarchyOwner[] {
+	const byId = new Map(users.map((user) => [user.idUser, user]))
+	const children = new Map<number, HierarchyOwner[]>()
+	for (const user of users) {
+		if (user.idUserLeader === null || !byId.has(user.idUserLeader)) continue
+		const list = children.get(user.idUserLeader) ?? []
+		list.push(user)
+		children.set(user.idUserLeader, list)
+	}
+	let leader = users[0]
+	let childCount = -1
+	for (const user of users) {
+		const count = children.get(user.idUser)?.length ?? 0
+		if (count > childCount) {
+			leader = user
+			childCount = count
+		}
+	}
+	const branch = [leader, ...(children.get(leader.idUser) ?? []).slice(0, 3)]
+	return branch.length > 1 ? branch : users.slice(0, 4)
+}
+
+function displayName(user: { name: string; lastName: string | null }): string {
+	return [user.name, user.lastName].filter(Boolean).join(' ')
+}
+
 async function main() {
 	const { PrismaClient } = await import('@prisma/client')
 	const prisma = new PrismaClient()
 	const now = new Date()
 
 	try {
-		const agentRole = await prisma.role.findFirst({
-			where: { code: 'AGENTE', active: true },
-			select: { idRole: true },
+		const hierarchy = await prisma.user.findMany({
+			where: {
+				active: true,
+				idLevel: { not: null },
+				level: { beneficiaryMode: 'OVERRIDE', status: true },
+			},
+			select: { idUser: true, name: true, lastName: true, idUserLeader: true },
+			orderBy: { idUser: 'asc' },
 		})
-		if (!agentRole) {
-			console.error('No hay un rol AGENTE activo. No se cargaron demos.')
+		const owners = pickOwners(hierarchy)
+		if (owners.length === 0) {
+			console.error('No hay personas activas en la jerarquía. No se cargaron demos.')
 			process.exit(1)
 		}
-		const owner = await prisma.user.upsert({
-			where: { email: DEMO_OWNER_EMAIL },
-			update: { name: 'Asesor', lastName: 'Demo', active: true, idRole: agentRole.idRole },
-			create: {
-				name: 'Asesor',
-				lastName: 'Demo',
-				email: DEMO_OWNER_EMAIL,
-				typeIdentity: 'CC',
-				identityNumber: '9001000001',
-				idRole: agentRole.idRole,
-				entryDate: new Date('2026-11-01T00:00:00.000Z'),
-				active: true,
-				ssoOnly: true,
-			},
-			select: { idUser: true, name: true, lastName: true },
-		})
+		const owner = owners[0]
 
 		const columns = await prisma.leadFunnelColumn.findMany({
 			where: { active: true },
@@ -391,7 +414,8 @@ async function main() {
 		}
 
 		let count = 0
-		for (const demo of DEMO_LEADS) {
+		for (const [index, demo] of DEMO_LEADS.entries()) {
+			const advisor = owners[index % owners.length]
 			const idLeadFunnelColumn = columnId.get(demo.columnKey)
 			if (!idLeadFunnelColumn) {
 				console.warn(`Sin columna ${demo.columnKey}. Se omite ${demo.name}.`)
@@ -409,7 +433,7 @@ async function main() {
 				originTag: demo.originTag,
 				externalCrmId: null,
 				externalUrl: null,
-				idUser: owner.idUser,
+				idUser: advisor.idUser,
 				idLeadFunnelColumn,
 				outcomeStatus: demo.outcome,
 				active: true,
@@ -430,10 +454,10 @@ async function main() {
 
 			await prisma.leadActivity.upsert({
 				where: { idLead_correlationId: { idLead: lead.idLead, correlationId: `demo-crm:${demo.slug}:note` } },
-				update: { payload: { note: demo.note }, occurredAt: createdAt, idUser: owner.idUser },
+				update: { payload: { note: demo.note }, occurredAt: createdAt, idUser: advisor.idUser },
 				create: {
 					idLead: lead.idLead,
-					idUser: owner.idUser,
+					idUser: advisor.idUser,
 					type: 'NOTE_ADDED',
 					payload: { note: demo.note },
 					payloadVersion: 1,
@@ -447,11 +471,11 @@ async function main() {
 					update: {
 						payload: { summary: demo.callSummary, outcome: 'CONNECTED', durationMinutes: 12 },
 						occurredAt: lastActivityAt,
-						idUser: owner.idUser,
+						idUser: advisor.idUser,
 					},
 					create: {
 						idLead: lead.idLead,
-						idUser: owner.idUser,
+						idUser: advisor.idUser,
 						type: 'CALL_LOGGED',
 						payload: { summary: demo.callSummary, outcome: 'CONNECTED', durationMinutes: 12 },
 						payloadVersion: 1,
@@ -475,7 +499,7 @@ async function main() {
 							fromIdLeadFunnelColumn: fromId ?? null,
 							toIdLeadFunnelColumn: toId,
 							source: 'MANUAL',
-							idUser: owner.idUser,
+							idUser: advisor.idUser,
 							changedAt: daysAgo(now, step.daysAgo),
 						},
 					})
@@ -498,8 +522,8 @@ async function main() {
 					status: task.status,
 					dueAt,
 					completedAt,
-					assignedTo: owner.idUser,
-					createdBy: owner.idUser,
+					assignedTo: advisor.idUser,
+					createdBy: advisor.idUser,
 				}
 				if (current) {
 					await prisma.leadTask.update({ where: { idLeadTask: current.idLeadTask }, data: taskData })
@@ -515,8 +539,8 @@ async function main() {
 				if (!idLeadTag) continue
 				await prisma.leadTagAssignment.upsert({
 					where: { idLead_idLeadTag: { idLead: lead.idLead, idLeadTag } },
-					update: { active: true, assignedBy: owner.idUser },
-					create: { idLead: lead.idLead, idLeadTag, assignedBy: owner.idUser },
+					update: { active: true, assignedBy: advisor.idUser },
+					create: { idLead: lead.idLead, idLeadTag, assignedBy: advisor.idUser },
 				})
 			}
 
@@ -525,12 +549,17 @@ async function main() {
 					where: { idLead: lead.idLead, subject: demo.supportSubject },
 					select: { idLeadSupportCase: true },
 				})
-				if (!support) {
+				if (support) {
+					await prisma.leadSupportCase.update({
+						where: { idLeadSupportCase: support.idLeadSupportCase },
+						data: { openedBy: advisor.idUser, assignedTo: advisor.idUser },
+					})
+				} else {
 					await prisma.leadSupportCase.create({
 						data: {
 							idLead: lead.idLead,
-							openedBy: owner.idUser,
-							assignedTo: owner.idUser,
+							openedBy: advisor.idUser,
+							assignedTo: advisor.idUser,
 							subject: demo.supportSubject,
 							status: 'OPEN',
 							priority: 'HIGH',
@@ -541,30 +570,12 @@ async function main() {
 			}
 
 			count += 1
-			console.log(`  ${demo.name} ${demo.lastName} · ${demo.columnKey} · ${demo.outcome}`)
+			console.log(`  ${demo.name} ${demo.lastName} · ${displayName(advisor)} · ${demo.columnKey}`)
 		}
 
-		const demoLead = { email: { endsWith: `@${EMAIL_DOMAIN}` } }
-		await prisma.leadStageHistory.updateMany({
-			where: { lead: demoLead, source: 'MANUAL' },
-			data: { idUser: owner.idUser },
-		})
-		await prisma.leadSupportCase.updateMany({
-			where: { lead: demoLead },
-			data: { openedBy: owner.idUser, assignedTo: owner.idUser },
-		})
-		await prisma.leadTag.updateMany({
-			where: { name: { in: TAGS.map((tag) => tag.name) } },
-			data: { createdBy: owner.idUser },
-		})
-		await prisma.leadCustomField.updateMany({
-			where: { key: { in: ['demo_producto', 'demo_meta'] } },
-			data: { createdBy: owner.idUser },
-		})
-
-		const ownerName = [owner.name, owner.lastName].filter(Boolean).join(' ')
-		console.log(`\n${count} leads demo, sin vínculo con GoHighLevel.`)
-		console.log(`Responsable y agenda: ${ownerName}. No se asignó a un asesor que ya tenía trabajo.`)
+		const ownerName = owners.map(displayName).join(', ')
+		console.log(`\n${count} leads demo, asignados a personas que ya están en la jerarquía.`)
+		console.log(`Filtra por: ${ownerName}.`)
 		console.log('En la pestaña Leads abre la vista "Demos del CRM" o busca "Demo".')
 	} finally {
 		await prisma.$disconnect()

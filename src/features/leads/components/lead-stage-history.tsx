@@ -41,7 +41,7 @@ export function LeadStageHistory({
 				</p>
 			)}
 			<ol className="space-y-0">
-				{stays.map((stay) => (
+				{stays.toReversed().map((stay) => (
 					<li
 						key={`${stay.columnName}-${stay.enteredAt}`}
 						className="relative border-l border-slate-200 pb-4 pl-4 last:pb-0 dark:border-slate-700"

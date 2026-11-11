@@ -50,31 +50,24 @@ describe('CrmStageDetailSection', () => {
 		)
 	})
 
-	it('groups the lead on its last stage and reveals tasks, cases and past stages on hover', async () => {
+	it('groups the lead on its last stage and opens tasks, cases and stages from that row', async () => {
 		render(<CrmStageDetailSection range={null} />)
 
 		expect(await screen.findByRole('cell', { name: 'Contacto 1ra Vez' })).toBeInTheDocument()
-		expect(screen.queryByRole('cell', { name: 'Lead Nuevo' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('list', { name: 'Etapas de María González' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Desacoplar historial' })).not.toBeInTheDocument()
 
-		fireEvent.mouseEnter(screen.getByRole('button', { name: 'Historial de María González' }))
+		fireEvent.click(screen.getByRole('button', { name: 'Detalle de María González' }))
 		expect(await screen.findByText('Llamar')).toBeInTheDocument()
 		expect(screen.getByText('Devolución')).toBeInTheDocument()
 		expect(screen.getByText('Cierre')).toBeInTheDocument()
-		expect(screen.getByText(/Abierto/)).toBeInTheDocument()
-		expect(screen.getByText(/Cerrado/)).toBeInTheDocument()
-	})
-
-	it('uncouples the history as a cascade inside the lead', async () => {
-		render(<CrmStageDetailSection range={null} />)
-		await screen.findByRole('cell', { name: 'Contacto 1ra Vez' })
-		expect(screen.queryByRole('list', { name: 'Etapas de María González' })).not.toBeInTheDocument()
-
-		fireEvent.click(screen.getByRole('button', { name: 'Desacoplar historial' }))
-		const cascade = await screen.findByRole('list', { name: 'Etapas de María González' })
+		const cascade = screen.getByRole('list', { name: 'Etapas de María González' })
+		expect(cascade.querySelector('li')).toHaveTextContent('Contacto 1ra Vez')
 		expect(cascade).toHaveTextContent('Lead Nuevo')
-		expect(cascade).toHaveTextContent('Contacto 1ra Vez')
 		expect(cascade.querySelector('li')).toHaveClass('bg-slate-200/80', 'hover:bg-slate-300')
-		expect(screen.getByRole('cell', { name: 'Contacto 1ra Vez' })).toBeInTheDocument()
+
+		fireEvent.click(screen.getByRole('button', { name: 'Detalle de María González' }))
+		expect(screen.queryByRole('list', { name: 'Etapas de María González' })).not.toBeInTheDocument()
 	})
 
 	it('reloads with the chosen page size', async () => {

@@ -8,13 +8,13 @@ export interface TimelineKey {
 
 const KIND_RANK: Record<TimelineKind, number> = { activity: 0, stage_change: 1 }
 
-/** Timeline order: oldest first, then activities before stage changes, then smaller id. */
+/** Timeline order: newest first, then stage changes before activities, then larger id. */
 export function compareTimelineKeys(a: TimelineKey, b: TimelineKey): number {
-	const byTime = a.occurredAt.getTime() - b.occurredAt.getTime()
+	const byTime = b.occurredAt.getTime() - a.occurredAt.getTime()
 	if (byTime !== 0) return byTime
-	const byKind = KIND_RANK[a.kind] - KIND_RANK[b.kind]
+	const byKind = KIND_RANK[b.kind] - KIND_RANK[a.kind]
 	if (byKind !== 0) return byKind
-	return a.id - b.id
+	return b.id - a.id
 }
 
 export function mergeTimelineEntries<T extends TimelineKey>(

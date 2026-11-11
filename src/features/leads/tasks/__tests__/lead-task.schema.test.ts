@@ -24,5 +24,7 @@ describe('lead task schemas', () => {
 		expect(leadTaskUpdateSchema.safeParse({ action: 'complete', dueAt: null }).success).toBe(false)
 		expect(leadTaskUpdateSchema.safeParse({ action: 'complete', comment: 'El cliente aceptó' }).success).toBe(true)
 		expect(leadTaskUpdateSchema.safeParse({ action: 'reassign', assignedTo: 3, comment: 'nota' }).success).toBe(false)
+		expect(leadTaskUpdateSchema.safeParse({ action: 'move', bucket: 'today' }).success).toBe(true)
+		expect(leadTaskUpdateSchema.safeParse({ action: 'move' }).success).toBe(false)
 	})
 })

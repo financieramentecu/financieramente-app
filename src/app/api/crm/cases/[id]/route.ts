@@ -86,6 +86,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 				assignedTo: input.data.assignedTo,
 				comment: input.data.comment,
 				attachments,
+				resolvedAt: input.data.resolvedAt ? new Date(input.data.resolvedAt) : undefined,
 			},
 			requestContext(resolved.actor, request)
 		)

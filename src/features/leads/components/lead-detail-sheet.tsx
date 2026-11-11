@@ -388,17 +388,13 @@ function LeadWorkTabs({
 					)}
 				</TabsList>
 				{tasksEnabled && (
-					<TabsContent value={WORK_TAB.TASKS} className="mt-3">
-						<LeadTaskList
-							leadId={leadId}
-							assigneeId={assigneeId}
-							enabled={open && active === WORK_TAB.TASKS}
-						/>
+					<TabsContent value={WORK_TAB.TASKS} forceMount hidden={active !== WORK_TAB.TASKS} className="mt-3">
+						<LeadTaskList leadId={leadId} assigneeId={assigneeId} enabled={open} />
 					</TabsContent>
 				)}
 				{casesEnabled && (
-					<TabsContent value={WORK_TAB.CASES} className="mt-3">
-						<LeadSupportCaseList leadId={leadId} enabled={open && active === WORK_TAB.CASES} />
+					<TabsContent value={WORK_TAB.CASES} forceMount hidden={active !== WORK_TAB.CASES} className="mt-3">
+						<LeadSupportCaseList leadId={leadId} enabled={open} />
 					</TabsContent>
 				)}
 			</Tabs>

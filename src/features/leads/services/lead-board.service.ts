@@ -24,6 +24,8 @@ export interface LeadBoardOptions {
 	visibleUserIds?: number[]
 	outcomeStatuses?: LeadOutcomeStatus[]
 	createdAtRange?: { gte: Date; lte: Date }
+	/** Selected advisors. Empty keeps the full hierarchy. */
+	ownerIds?: number[]
 }
 
 /**
@@ -45,6 +47,7 @@ export async function getLeadBoard(
 				{
 					outcomeStatuses: options.outcomeStatuses,
 					createdAtRange: options.createdAtRange,
+					ownerIds: options.ownerIds,
 				},
 				options
 			),
@@ -95,6 +98,31 @@ export async function getLeadBoard(
 	}))
 }
 
+function whereForLead(
+	idLead: number,
+	viewer: LeadViewer,
+	options: LeadBoardOptions
+): Prisma.LeadWhereInput {
+	const where = buildLeadListWhere(viewer, {}, options)
+	return {
+		...where,
+		AND: [...(Array.isArray(where.AND) ? where.AND : []), { idLead }],
+	}
+}
+
+/** True when the lead exists and the viewer is allowed to see it. Selects no extra columns. */
+export async function isLeadVisible(
+	idLead: number,
+	viewer: LeadViewer,
+	options: LeadBoardOptions = {}
+): Promise<boolean> {
+	const lead = await prisma.lead.findFirst({
+		where: whereForLead(idLead, viewer, options),
+		select: { idLead: true },
+	})
+	return lead !== null
+}
+
 /**
  * Returns a single lead's detail, scoped to the viewer's hierarchy.
  * Returns `null` when the lead does not exist or is outside the viewer's
@@ -105,9 +133,8 @@ export async function getLeadDetail(
 	viewer: LeadViewer,
 	options: LeadBoardOptions = {}
 ): Promise<LeadDetail | null> {
-	const where = buildLeadListWhere(viewer, {}, options)
 	const lead = await prisma.lead.findFirst({
-		where: { ...where, AND: [...(Array.isArray(where.AND) ? where.AND : []), { idLead }] },
+		where: whereForLead(idLead, viewer, options),
 		include: { user: { select: { name: true, lastName: true } }, tagAssignments: activeTagsSelect },
 	})
 

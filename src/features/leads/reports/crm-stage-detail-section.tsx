@@ -1,6 +1,7 @@
 'use client'
 
-import { Fragment, useState, type ReactNode } from 'react'
+import { Fragment, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
 import {
 	Card,
@@ -8,15 +9,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/features/shared/ui/card'
-import { Popover, PopoverContent, PopoverTrigger } from '@/features/shared/ui/popover'
 import { Skeleton } from '@/features/shared/ui/skeleton'
+import { LeadDetailPanel } from '@/features/leads/components/lead-detail-panel'
 import { formatStageDuration } from '@/features/leads/lib/format-stage-duration'
 import type { CrmReportRange } from '@/features/leads/reports/crm-pipeline-report.types'
 import {
 	CRM_STAGE_DETAIL_PAGE_SIZES,
-	type CrmStageDetailCase,
-	type CrmStageDetailLead,
-	type CrmStageDetailTask,
 } from '@/features/leads/reports/crm-stage-detail.types'
 import { useCrmStageDetail } from '@/features/leads/reports/use-crm-stage-detail'
 import { formatDateTimeBogota } from '@/features/shared/lib/format-date'
@@ -27,174 +25,27 @@ const count = new Intl.NumberFormat('es-CO')
 const selectClass =
 	'h-9 rounded-md border border-input bg-background px-3 text-sm'
 
-function taskLabel(task: CrmStageDetailTask): string {
-	if (task.status === 'DONE') {
-		return task.completedAt
-			? `Completada · ${formatDateTimeBogota(task.completedAt)}`
-			: 'Completada'
-	}
-	if (task.status === 'CANCELLED') {
-		return task.completedAt
-			? `Cancelada · ${formatDateTimeBogota(task.completedAt)}`
-			: 'Cancelada'
-	}
-	return 'Abierta'
-}
+/** Advisor view: one row per lead. Each name opens that lead's history. */
+const NO_OWNERS: readonly number[] = []
 
-function caseLabel(supportCase: CrmStageDetailCase): string {
-	if (supportCase.status === 'RESOLVED') {
-		return supportCase.resolvedAt
-			? `Resuelto · ${formatDateTimeBogota(supportCase.resolvedAt)}`
-			: 'Resuelto'
-	}
-	if (supportCase.status === 'CLOSED') {
-		return supportCase.resolvedAt
-			? `Cerrado · ${formatDateTimeBogota(supportCase.resolvedAt)}`
-			: 'Cerrado'
-	}
-	if (supportCase.status === 'IN_PROGRESS') return 'En proceso'
-	if (supportCase.status === 'WAITING') return 'En espera'
-	return 'Abierto'
-}
-
-function HistoryList({
-	title,
-	empty,
-	children,
+export function CrmStageDetailSection({
+	range,
+	ownerIds = NO_OWNERS,
 }: {
-	title: string
-	empty: string
-	children: ReactNode
+	range: CrmReportRange | null
+	ownerIds?: readonly number[]
 }) {
-	return (
-		<div className="space-y-1">
-			<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-				{title}
-			</p>
-			{children ?? <p className="text-sm text-muted-foreground">{empty}</p>}
-		</div>
-	)
-}
-
-function LeadHistory({ lead }: { lead: CrmStageDetailLead }) {
-	return (
-		<div className="max-h-80 space-y-3 overflow-y-auto">
-			<HistoryList title="Etapas" empty="Sin etapas">
-				{lead.stays.length > 0 ? (
-					<ul className="space-y-1 text-sm">
-						{lead.stays.map((stay) => (
-							<li key={`${stay.stageName}-${stay.enteredAt}`}>
-								<span className="font-medium">{stay.stageName}</span>
-								<span className="text-muted-foreground">
-									{' '}
-									· {formatStageDuration(stay.durationMs)}
-									{stay.current ? ' · En curso' : ''}
-								</span>
-							</li>
-						))}
-					</ul>
-				) : null}
-			</HistoryList>
-			<HistoryList title="Tareas" empty="Sin tareas">
-				{lead.tasks.length > 0 ? (
-					<ul className="space-y-1 text-sm">
-						{lead.tasks.map((task) => (
-							<li key={`${task.title}-${task.completedAt ?? task.status}`}>
-								<span className="font-medium">{task.title}</span>
-								<span className="text-muted-foreground"> · {taskLabel(task)}</span>
-							</li>
-						))}
-					</ul>
-				) : null}
-			</HistoryList>
-			<HistoryList title="Casos" empty="Sin casos">
-				{lead.cases.length > 0 ? (
-					<ul className="space-y-1 text-sm">
-						{lead.cases.map((supportCase) => (
-							<li key={`${supportCase.subject}-${supportCase.resolvedAt ?? supportCase.status}`}>
-								<span className="font-medium">{supportCase.subject}</span>
-								<span className="text-muted-foreground">
-									{' '}
-									· {caseLabel(supportCase)}
-								</span>
-							</li>
-						))}
-					</ul>
-				) : null}
-			</HistoryList>
-		</div>
-	)
-}
-
-function LeadName({ lead }: { lead: CrmStageDetailLead }) {
-	const [open, setOpen] = useState(false)
-	return (
-		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<button
-					type="button"
-					className="text-left font-medium underline-offset-2 hover:underline"
-					aria-label={`Historial de ${lead.leadName}`}
-					onMouseEnter={() => setOpen(true)}
-					onMouseLeave={() => setOpen(false)}
-				>
-					{lead.leadName}
-				</button>
-			</PopoverTrigger>
-			<PopoverContent
-				align="start"
-				className="w-96"
-				onMouseEnter={() => setOpen(true)}
-				onMouseLeave={() => setOpen(false)}
-			>
-				<p className="mb-2 text-sm font-semibold">{lead.leadName}</p>
-				<LeadHistory lead={lead} />
-			</PopoverContent>
-		</Popover>
-	)
-}
-
-function LeadCascade({ lead }: { lead: CrmStageDetailLead }) {
-	return (
-		<tr>
-			<td colSpan={6} className="bg-slate-50 px-3 py-2 dark:bg-slate-900/40">
-				<ol
-					aria-label={`Etapas de ${lead.leadName}`}
-					className="ml-6 space-y-1 border-l-2 border-slate-300 py-1 pl-4 dark:border-slate-600"
-				>
-					{lead.stays.map((stay) => (
-						<li
-							key={`${lead.idLead}-${stay.stageName}-${stay.enteredAt}`}
-							className="relative rounded-md bg-slate-200/80 px-3 py-1.5 transition-colors hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
-						>
-							<span
-								className="absolute -left-[21px] top-1.5 size-2.5 rounded-full border-2 border-background bg-primary"
-								aria-hidden
-							/>
-							<p className="text-sm font-medium text-foreground">{stay.stageName}</p>
-							<p className="text-xs text-muted-foreground">
-								{formatDateTimeBogota(stay.enteredAt)}
-								{' → '}
-								{stay.current ? 'En curso' : formatDateTimeBogota(stay.leftAt)}
-								{' · '}
-								{formatStageDuration(stay.durationMs)}
-							</p>
-						</li>
-					))}
-				</ol>
-			</td>
-		</tr>
-	)
-}
-
-/** Advisor view: one row per lead, filtered by its last stage, expandable to the full history. */
-export function CrmStageDetailSection({ range }: { range: CrmReportRange | null }) {
-	const { state, page, setPage, pageSize, setPageSize, stage, setStage, view, setView } =
-		useCrmStageDetail(range)
+	const { state, page, setPage, pageSize, setPageSize, stage, setStage } =
+		useCrmStageDetail(range, ownerIds)
+	const [openIds, setOpenIds] = useState<number[]>([])
 	const data = state.status === 'success' ? state.data : null
 	const totalPages = data ? Math.max(1, Math.ceil(data.totalLeads / data.pageSize)) : 1
-	const history = view === 'history'
-	const stageLabel = history ? 'Etapa del historial' : 'Último estado'
+
+	function toggleLead(idLead: number) {
+		setOpenIds((current) =>
+			current.includes(idLead) ? current.filter((id) => id !== idLead) : [...current, idLead]
+		)
+	}
 
 	return (
 		<Card>
@@ -203,16 +54,15 @@ export function CrmStageDetailSection({ range }: { range: CrmReportRange | null 
 			</CardHeader>
 			<CardContent className="space-y-3">
 				<p className="text-sm text-muted-foreground">
-					Cada fila es un lead en su último estado. Pasa el cursor sobre el
-					nombre para ver tareas, casos y cuánto duró cada etapa. Desacoplar
-					abre, dentro de ese lead, la cascada de etapas por las que pasó.
+					Cada fila es un lead en su último estado. Pulsa el nombre para abrir
+					o cerrar sus etapas, tareas y casos.
 				</p>
 				<div className="flex flex-wrap items-end gap-3">
 					<label className="space-y-1 text-sm">
-						<span className="font-medium">{stageLabel}</span>
+						<span className="font-medium">Último estado</span>
 						<select
 							className={selectClass}
-							aria-label={stageLabel}
+							aria-label="Último estado"
 							value={stage ?? ''}
 							onChange={(event) => setStage(event.target.value || null)}
 						>
@@ -239,20 +89,6 @@ export function CrmStageDetailSection({ range }: { range: CrmReportRange | null 
 							))}
 						</select>
 					</label>
-					<div className="flex gap-2" role="group" aria-label="Agrupar detalle">
-						<ViewButton
-							active={view === 'current'}
-							onClick={() => setView('current')}
-						>
-							Agrupar
-						</ViewButton>
-						<ViewButton
-							active={view === 'history'}
-							onClick={() => setView('history')}
-						>
-							Desacoplar historial
-						</ViewButton>
-					</div>
 				</div>
 				{state.status === 'loading' && <Skeleton className="h-40 w-full" />}
 				{state.status === 'error' && (
@@ -282,12 +118,25 @@ export function CrmStageDetailSection({ range }: { range: CrmReportRange | null 
 								{data.leads.map((lead) => {
 									const current =
 										lead.stays.find((stay) => stay.current) ?? lead.stays.at(-1)
+									const open = openIds.includes(lead.idLead)
 									return (
 										<Fragment key={lead.idLead}>
-											<tr className={history ? 'border-b-0' : undefined}>
+											<tr className={open ? 'border-b-0' : undefined}>
 												<td className={cellClass}>{lead.advisorName}</td>
 												<td className={cellClass}>
-													<LeadName lead={lead} />
+													<button
+														type="button"
+														className="inline-flex items-center gap-1 text-left font-medium underline-offset-2 hover:underline"
+														aria-expanded={open}
+														aria-label={`Detalle de ${lead.leadName}`}
+														onClick={() => toggleLead(lead.idLead)}
+													>
+														<ChevronDown
+															className={`size-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+															aria-hidden
+														/>
+														{lead.leadName}
+													</button>
 												</td>
 												<td className={cellClass}>{lead.currentStage}</td>
 												<td className={cellClass}>
@@ -302,7 +151,21 @@ export function CrmStageDetailSection({ range }: { range: CrmReportRange | null 
 														: '—'}
 												</td>
 											</tr>
-											{history ? <LeadCascade lead={lead} /> : null}
+											{open ? (
+												<tr>
+													<td
+														colSpan={6}
+														className="bg-slate-50 px-3 py-2 dark:bg-slate-900/40"
+													>
+														<LeadDetailPanel
+															leadName={lead.leadName}
+															stays={lead.stays}
+															tasks={lead.tasks}
+															cases={lead.cases}
+														/>
+													</td>
+												</tr>
+											) : null}
 										</Fragment>
 									)
 								})}
@@ -342,24 +205,3 @@ export function CrmStageDetailSection({ range }: { range: CrmReportRange | null 
 	)
 }
 
-function ViewButton({
-	active,
-	onClick,
-	children,
-}: {
-	active: boolean
-	onClick: () => void
-	children: ReactNode
-}) {
-	return (
-		<Button
-			type="button"
-			size="sm"
-			variant={active ? 'default' : 'outline'}
-			aria-pressed={active}
-			onClick={onClick}
-		>
-			{children}
-		</Button>
-	)
-}

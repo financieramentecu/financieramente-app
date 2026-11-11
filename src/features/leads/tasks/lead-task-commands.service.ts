@@ -6,6 +6,7 @@ import {
 	completeLeadTaskTx,
 	createLeadTaskTx,
 	reassignLeadTaskTx,
+	reopenLeadTaskTx,
 	rescheduleLeadTaskTx,
 } from '@/features/leads/tasks/lead-task.service'
 import type { LeadTaskKind } from '@/features/leads/tasks/lead-task.schema'
@@ -101,6 +102,19 @@ export async function rescheduleLeadTask(
 		ctx,
 		AuditAction.LEAD_TASK_UPDATED,
 		`Lead ${input.idLead}: task ${input.idLeadTask} rescheduled to ${input.dueAt?.toISOString() ?? 'sin fecha'}`
+	)
+	return task
+}
+
+export async function reopenLeadTask(
+	input: { idLeadTask: number; idLead: number; dueAt: Date },
+	ctx: CrmRequestContext
+) {
+	const task = await prisma.$transaction((tx) => reopenLeadTaskTx(tx, { idLeadTask: input.idLeadTask, dueAt: input.dueAt }))
+	await audit(
+		ctx,
+		AuditAction.LEAD_TASK_UPDATED,
+		`Lead ${input.idLead}: task ${input.idLeadTask} reopened for ${input.dueAt.toISOString()}`
 	)
 	return task
 }

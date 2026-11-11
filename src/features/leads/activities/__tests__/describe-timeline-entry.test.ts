@@ -44,7 +44,7 @@ describe('describeTimelineEntry', () => {
 		})
 	})
 
-	it('describes stage changes with their source', () => {
+	it('describes stage changes as the person who moved the lead', () => {
 		expect(
 			describeTimelineEntry({
 				kind: 'stage_change',
@@ -55,7 +55,7 @@ describe('describeTimelineEntry', () => {
 				toColumnName: 'Contactado',
 				source: 'CRM_SYNC',
 			})
-		).toEqual({ title: 'Cambio de etapa', detail: 'Nuevo → Contactado', meta: 'GHL', actor: 'Sistema' })
+		).toEqual({ title: 'Cambio de etapa', detail: 'Nuevo → Contactado', actor: 'Asesor' })
 	})
 
 	it('describes the first stage without an origin', () => {

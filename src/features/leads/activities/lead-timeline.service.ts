@@ -36,23 +36,23 @@ function toKey(entry: LeadTimelineEntry): TimelineKey {
 		: { occurredAt: entry.occurredAt, kind: 'stage_change', id: entry.idLeadStageHistory }
 }
 
-function activityCursorAfter(cursor: TimelineKey): LeadActivityCursor {
-	// Activities sort before stage changes at the same instant, so a stage
-	// cursor has already passed every activity at that time.
+function activityCursorBefore(cursor: TimelineKey): LeadActivityCursor {
+	// In newest-first order, stage changes at an instant come before activities,
+	// so a stage cursor has already passed every activity at that time.
 	return {
 		occurredAt: cursor.occurredAt,
-		idLeadActivity: cursor.kind === 'activity' ? cursor.id : Number.MAX_SAFE_INTEGER,
+		idLeadActivity: cursor.kind === 'activity' ? cursor.id : 0,
 	}
 }
 
-function stageWhereAfter(idLead: number, cursor?: TimelineKey): Prisma.LeadStageHistoryWhereInput {
+function stageWhereBefore(idLead: number, cursor?: TimelineKey): Prisma.LeadStageHistoryWhereInput {
 	if (!cursor) return { idLead }
-	if (cursor.kind === 'activity') return { idLead, changedAt: { gte: cursor.occurredAt } }
+	if (cursor.kind === 'activity') return { idLead, changedAt: { lt: cursor.occurredAt } }
 	return {
 		idLead,
 		OR: [
-			{ changedAt: { gt: cursor.occurredAt } },
-			{ changedAt: cursor.occurredAt, idLeadStageHistory: { gt: cursor.id } },
+			{ changedAt: { lt: cursor.occurredAt } },
+			{ changedAt: cursor.occurredAt, idLeadStageHistory: { lt: cursor.id } },
 		],
 	}
 }
@@ -60,7 +60,8 @@ function stageWhereAfter(idLead: number, cursor?: TimelineKey): Prisma.LeadStage
 /**
  * Lead timeline: CRM activity events merged with funnel stage changes
  * (Twenty timeline / Odoo chatter tracking). Stage changes stay in
- * `LeadStageHistory` because webhook changes have no acting user.
+ * `LeadStageHistory`. A move made in this CRM keeps the person who dragged
+ * the card. Older sync rows without an actor fall back to the lead's advisor.
  */
 export async function getLeadTimelinePage(
 	idLead: number,
@@ -70,10 +71,10 @@ export async function getLeadTimelinePage(
 	const { cursor } = options
 
 	const [activityPage, stageRows] = await Promise.all([
-		getLeadActivityPage(prisma, idLead, { limit, cursor: cursor ? activityCursorAfter(cursor) : undefined }),
+		getLeadActivityPage(prisma, idLead, { limit, cursor: cursor ? activityCursorBefore(cursor) : undefined }),
 		prisma.leadStageHistory.findMany({
-			where: stageWhereAfter(idLead, cursor),
-			orderBy: [{ changedAt: 'asc' }, { idLeadStageHistory: 'asc' }],
+			where: stageWhereBefore(idLead, cursor),
+			orderBy: [{ changedAt: 'desc' }, { idLeadStageHistory: 'desc' }],
 			take: limit + 1,
 			select: {
 				idLeadStageHistory: true,
@@ -82,20 +83,24 @@ export async function getLeadTimelinePage(
 				fromColumn: { select: { name: true } },
 				toColumn: { select: { name: true } },
 				user: { select: { name: true, lastName: true } },
+				lead: { select: { user: { select: { name: true, lastName: true } } } },
 			},
 		}),
 	])
 
 	const activities: LeadTimelineEntry[] = activityPage.items.map((item) => ({ ...item, kind: 'activity' }))
-	const stages: LeadTimelineEntry[] = stageRows.map((row) => ({
-		kind: 'stage_change',
-		idLeadStageHistory: row.idLeadStageHistory,
-		occurredAt: row.changedAt,
-		actorName: row.user ? [row.user.name, row.user.lastName].filter(Boolean).join(' ') : null,
-		fromColumnName: row.fromColumn?.name ?? null,
-		toColumnName: row.toColumn.name,
-		source: row.source,
-	}))
+	const stages: LeadTimelineEntry[] = stageRows.map((row) => {
+		const actor = row.user ?? row.lead.user
+		return {
+			kind: 'stage_change',
+			idLeadStageHistory: row.idLeadStageHistory,
+			occurredAt: row.changedAt,
+			actorName: actor ? [actor.name, actor.lastName].filter(Boolean).join(' ') : null,
+			fromColumnName: row.fromColumn?.name ?? null,
+			toColumnName: row.toColumn.name,
+			source: row.source,
+		}
+	})
 
 	const keyed = (entries: LeadTimelineEntry[]) => entries.map((entry) => ({ ...toKey(entry), entry }))
 	const { items, hasMore } = mergeTimelineEntries(keyed(activities), keyed(stages), limit, {

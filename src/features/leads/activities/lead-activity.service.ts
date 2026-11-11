@@ -108,8 +108,8 @@ export async function appendLeadActivityTx(
 }
 
 /**
- * Uses a compound timestamp/id cursor so a page continues with events that
- * happened after the last one shown.
+ * Uses a compound timestamp/id cursor so the next page continues with events
+ * older than the last one shown. The visible order is newest first.
  */
 export async function getLeadActivityPage(
 	client: ActivityReader,
@@ -122,10 +122,10 @@ export async function getLeadActivityPage(
 				AND: [
 					{
 						OR: [
-							{ occurredAt: { gt: options.cursor.occurredAt } },
+							{ occurredAt: { lt: options.cursor.occurredAt } },
 							{
 								occurredAt: options.cursor.occurredAt,
-								idLeadActivity: { gt: options.cursor.idLeadActivity },
+								idLeadActivity: { lt: options.cursor.idLeadActivity },
 							},
 						],
 					},
@@ -135,7 +135,7 @@ export async function getLeadActivityPage(
 
 	const rows = await client.leadActivity.findMany({
 		where: { idLead, ...cursorFilter },
-		orderBy: [{ occurredAt: 'asc' }, { idLeadActivity: 'asc' }],
+		orderBy: [{ occurredAt: 'desc' }, { idLeadActivity: 'desc' }],
 		take: limit + 1,
 		select: {
 			idLeadActivity: true,

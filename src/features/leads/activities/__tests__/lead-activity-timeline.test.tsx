@@ -188,7 +188,8 @@ describe('LeadActivityTimeline', () => {
 
 		render(<LeadActivityTimeline leadId={1} enabled />)
 		expect(await screen.findByText('Nuevo → Contactado')).toBeInTheDocument()
-		expect(screen.getByText(/GHL/)).toBeInTheDocument()
+		expect(screen.getByText(/Asesor/)).toBeInTheDocument()
+		expect(screen.queryByText(/GHL/)).not.toBeInTheDocument()
 		fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
 		await waitFor(() =>
 			expect(fetchMock).toHaveBeenLastCalledWith(

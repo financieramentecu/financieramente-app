@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
+import { Paperclip } from 'lucide-react'
 import { Textarea } from '@/features/shared/ui/textarea'
 import { Button } from '@/features/shared/ui/button'
 import {
@@ -42,6 +43,7 @@ export function LeadActivityForm({
 	const [files, setFiles] = useState<File[]>([])
 	const [saving, setSaving] = useState(false)
 	const [formError, setFormError] = useState<string | null>(null)
+	const fileInput = useRef<HTMLInputElement>(null)
 
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
@@ -83,22 +85,33 @@ export function LeadActivityForm({
 			<label htmlFor={`activity-detail-${leadId}`} className="sr-only">Detalle</label>
 			<Textarea id={`activity-detail-${leadId}`} value={text} onChange={(event) => setText(event.target.value)} maxLength={2000} placeholder={type === 'NOTE_ADDED' ? 'Registra un seguimiento' : '¿Qué pasó en el contacto?'} disabled={saving} />
 			<div className="space-y-1">
-				<label htmlFor={`activity-files-${leadId}`} className="text-xs text-muted-foreground">
+				<label htmlFor={`activity-files-${leadId}`} className="sr-only">
 					Adjuntar archivos
 				</label>
 				<input
+					ref={fileInput}
 					id={`activity-files-${leadId}`}
 					type="file"
 					multiple
 					accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,.docx,.xlsx"
 					disabled={saving}
-					className="block w-full text-sm"
+					className="sr-only"
 					onChange={(event) => {
 						const selected = Array.from(event.target.files ?? [])
 						setFiles((current) => [...current, ...selected].slice(0, 3))
 						event.target.value = ''
 					}}
 				/>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={saving}
+					onClick={() => fileInput.current?.click()}
+				>
+					<Paperclip className="size-4" aria-hidden />
+					Adjuntar archivo
+				</Button>
 				<p className="text-xs text-muted-foreground">Hasta 3 archivos, de 4 MB cada uno.</p>
 				{files.length > 0 && (
 					<ul className="space-y-1 text-sm">

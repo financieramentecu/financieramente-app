@@ -14,6 +14,7 @@ const LOAD_ERROR = 'No fue posible cargar las tareas. Inténtalo de nuevo.'
 
 export function useLeadTasks(leadId: number, enabled: boolean) {
 	const [state, setState] = React.useState<AsyncState<LeadTaskDto[]>>({ status: 'idle', data: undefined, error: '' })
+	const loadedLeadId = React.useRef<number | null>(null)
 
 	async function reload() {
 		try {
@@ -26,9 +27,14 @@ export function useLeadTasks(leadId: number, enabled: boolean) {
 	React.useEffect(() => {
 		if (!enabled) return
 		let cancelled = false
-		setState({ status: 'loading', data: undefined, error: '' })
+		const sameLead = loadedLeadId.current === leadId
+		if (!sameLead) setState({ status: 'loading', data: undefined, error: '' })
 		fetchLeadTasks(leadId)
-			.then((data) => !cancelled && setState({ status: 'success', data, error: '' }))
+			.then((data) => {
+				if (cancelled) return
+				loadedLeadId.current = leadId
+				setState({ status: 'success', data, error: '' })
+			})
 			.catch(() => !cancelled && setState({ status: 'error', data: undefined, error: LOAD_ERROR }))
 		return () => {
 			cancelled = true

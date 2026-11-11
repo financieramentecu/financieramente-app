@@ -59,7 +59,7 @@ describe('PUT /api/leads/[id]/tags', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		vi.mocked(requireCrmActor).mockResolvedValue({ ok: true, actor })
-		vi.mocked(findScopedLead).mockResolvedValue({ idLead: 10 } as never)
+		vi.mocked(findScopedLead).mockResolvedValue(true)
 	})
 
 	it('replaces the tags of a lead in scope', async () => {
@@ -70,7 +70,7 @@ describe('PUT /api/leads/[id]/tags', () => {
 	})
 
 	it('404s outside the scope and 400s on bad input or unknown tags', async () => {
-		vi.mocked(findScopedLead).mockResolvedValueOnce(null)
+		vi.mocked(findScopedLead).mockResolvedValueOnce(false)
 		expect((await PUT(json('PUT', { tagIds: [] }), ctx('10'))).status).toBe(404)
 		expect((await PUT(json('PUT', { tagIds: ['a'] }), ctx('10'))).status).toBe(400)
 		vi.mocked(setLeadTags).mockResolvedValue({ ok: false, reason: 'UNKNOWN_TAG' })

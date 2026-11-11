@@ -38,10 +38,8 @@ const CASE_STATUS_LABELS: Record<string, string> = {
 	CLOSED: 'Cerrado',
 }
 
-const STAGE_SOURCE_LABELS: Record<TimelineStageDto['source'], string> = {
-	CRM_SYNC: 'GHL',
+const STAGE_SOURCE_LABELS: Partial<Record<TimelineStageDto['source'], string>> = {
 	CSV_IMPORT: 'Importación CSV',
-	MANUAL: 'Manual',
 }
 
 export function timelineEntryKey(entry: TimelineEntryDto): string {
@@ -51,11 +49,12 @@ export function timelineEntryKey(entry: TimelineEntryDto): string {
 /** Human-readable view of a timeline entry; never exposes raw payload JSON. */
 export function describeTimelineEntry(entry: TimelineEntryDto): TimelineEntryView {
 	if (entry.kind === 'stage_change') {
+		const meta = STAGE_SOURCE_LABELS[entry.source]
 		return {
 			title: 'Cambio de etapa',
 			detail: entry.fromColumnName ? `${entry.fromColumnName} → ${entry.toColumnName}` : `Entró en ${entry.toColumnName}`,
-			meta: STAGE_SOURCE_LABELS[entry.source],
-			actor: entry.actorName ?? 'Sistema',
+			...(meta ? { meta } : {}),
+			actor: entry.actorName ?? 'Asesor',
 		}
 	}
 

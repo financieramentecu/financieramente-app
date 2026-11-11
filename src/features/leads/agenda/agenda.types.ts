@@ -14,3 +14,16 @@ export interface AgendaTaskDto {
 }
 
 export type AgendaByBucket = Record<AgendaBucket, AgendaTaskDto[]>
+
+/** Open task on the activities Kanban (dates serialized). */
+export interface ActivityBoardTaskDto {
+	idLeadTask: number
+	idLead: number
+	leadName: string
+	title: string
+	type: LeadTaskKind
+	dueAt: string | null
+	status: 'OPEN' | 'DONE' | 'CANCELLED'
+	completedAt: string | null
+	assigneeName: string
+}

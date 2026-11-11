@@ -40,6 +40,7 @@ function setup(params: string, tasksEnabled: boolean, extraFlags: string[] = [])
 describe('CrmTabs', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
 		vi.mocked(useLeadDetailSheet).mockReturnValue({ lead: null, open: false, setOpen: vi.fn(), openLead })
 	})
 

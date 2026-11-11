@@ -20,28 +20,29 @@ const stage = (id: number, iso: string) => ({
 	fromColumn: { name: 'Nuevo' },
 	toColumn: { name: 'Contactado' },
 	user: null,
+	lead: { user: { name: 'Ana', lastName: 'Torres' } },
 })
 
 describe('getLeadTimelinePage', () => {
 	beforeEach(() => vi.clearAllMocks())
 
-	it('merges activities and stage changes oldest first', async () => {
+	it('merges activities and stage changes newest first', async () => {
 		vi.mocked(getLeadActivityPage).mockResolvedValue({ items: [activity(1, '2026-11-09T11:00:00Z')], nextCursor: null })
 		vi.mocked(prisma.leadStageHistory.findMany).mockResolvedValue([stage(3, '2026-11-09T10:00:00Z')] as never)
 
 		const page = await getLeadTimelinePage(12, { limit: 10 })
 
 		expect(page.items).toEqual([
+			expect.objectContaining({ kind: 'activity', idLeadActivity: 1 }),
 			{
 				kind: 'stage_change',
 				idLeadStageHistory: 3,
 				occurredAt: new Date('2026-11-09T10:00:00Z'),
-				actorName: null,
+				actorName: 'Ana Torres',
 				fromColumnName: 'Nuevo',
 				toColumnName: 'Contactado',
 				source: 'CRM_SYNC',
 			},
-			expect.objectContaining({ kind: 'activity', idLeadActivity: 1 }),
 		])
 		expect(page.nextCursor).toBeNull()
 	})
@@ -56,7 +57,7 @@ describe('getLeadTimelinePage', () => {
 		expect(page.nextCursor).toBe('2026-11-09T12:00:00.000Z|activity|2')
 	})
 
-	it('after a stage-change cursor skips activities at that same instant', async () => {
+	it('before a stage-change cursor skips activities at that same instant', async () => {
 		vi.mocked(getLeadActivityPage).mockResolvedValue({ items: [], nextCursor: null })
 		vi.mocked(prisma.leadStageHistory.findMany).mockResolvedValue([])
 		const occurredAt = new Date('2026-11-09T10:00:00Z')
@@ -64,15 +65,15 @@ describe('getLeadTimelinePage', () => {
 
 		expect(getLeadActivityPage).toHaveBeenCalledWith(prisma, 12, {
 			limit: 5,
-			cursor: { occurredAt, idLeadActivity: Number.MAX_SAFE_INTEGER },
+			cursor: { occurredAt, idLeadActivity: 0 },
 		})
 		expect(vi.mocked(prisma.leadStageHistory.findMany).mock.calls[0][0]?.where).toEqual({
 			idLead: 12,
-			OR: [{ changedAt: { gt: occurredAt } }, { changedAt: occurredAt, idLeadStageHistory: { gt: 3 } }],
+			OR: [{ changedAt: { lt: occurredAt } }, { changedAt: occurredAt, idLeadStageHistory: { lt: 3 } }],
 		})
 	})
 
-	it('after an activity cursor includes stage changes at that same instant', async () => {
+	it('before an activity cursor keeps only older stage changes', async () => {
 		vi.mocked(getLeadActivityPage).mockResolvedValue({ items: [], nextCursor: null })
 		vi.mocked(prisma.leadStageHistory.findMany).mockResolvedValue([])
 		const occurredAt = new Date('2026-11-09T10:00:00Z')
@@ -84,7 +85,7 @@ describe('getLeadTimelinePage', () => {
 		})
 		expect(vi.mocked(prisma.leadStageHistory.findMany).mock.calls[0][0]?.where).toEqual({
 			idLead: 12,
-			changedAt: { gte: occurredAt },
+			changedAt: { lt: occurredAt },
 		})
 	})
 })

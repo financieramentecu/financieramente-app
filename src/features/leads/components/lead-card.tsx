@@ -22,8 +22,7 @@ interface LeadCardProps {
 }
 
 /**
- * Presentational, read-only Kanban card. No drag handle, no move affordance
- * — the Leads board never lets a user reorder or edit a lead from the UI.
+ * Presentational Kanban card. The board wraps it when the card can be dragged.
  */
 export function LeadCard({ lead, onClick }: LeadCardProps) {
 	const fullName = [lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'

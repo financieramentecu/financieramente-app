@@ -19,6 +19,7 @@ import {
 	type CrmTabId,
 } from '@/features/leads/lib/crm-tabs'
 import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
+import { CrmHierarchyShell } from '@/features/leads/components/crm-hierarchy-shell'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/features/shared/ui/tabs'
 
 const TAB_FLAGS: FeatureFlag[] = [...CRM_TABS.flatMap((tab) => (tab.flag ? [tab.flag] : [])), 'crm_lead_fields']
@@ -30,7 +31,13 @@ export function CrmTabs() {
 	const tabs = resolveCrmTabs((flag: FeatureFlag) => flags[flag]?.enabled ?? false)
 	const initialTab = resolveInitialCrmTab(searchParams.get('tab'), tabs)
 	const [selectedTab, setSelectedTab] = React.useState<CrmTabId | null>(null)
+	const [visitedTabs, setVisitedTabs] = React.useState<CrmTabId[]>([])
 	const activeTab = selectedTab ?? initialTab
+	if (!visitedTabs.includes(activeTab)) {
+		setVisitedTabs((current) =>
+			current.includes(activeTab) ? current : [...current, activeTab]
+		)
+	}
 	const sheet = useLeadDetailSheet()
 	const deepLinkLead = parseLeadParam(searchParams.get('lead'))
 	const { openLead } = sheet
@@ -42,7 +49,7 @@ export function CrmTabs() {
 	}, [deepLinkLead])
 
 	return (
-		<>
+		<CrmHierarchyShell>
 			<Tabs value={activeTab} onValueChange={(value) => setSelectedTab(value as CrmTabId)} className="space-y-4">
 				<TabsList>
 					{tabs.map((tab) => (
@@ -52,11 +59,11 @@ export function CrmTabs() {
 						</TabsTrigger>
 					))}
 				</TabsList>
-				<TabsContent value="pipeline">
-					<LeadsBoard />
+				<TabsContent value="pipeline" forceMount hidden={activeTab !== 'pipeline'}>
+					{visitedTabs.includes('pipeline') && <LeadsBoard />}
 				</TabsContent>
-				<TabsContent value="leads">
-					{activeTab === 'leads' && (
+				<TabsContent value="leads" forceMount hidden={activeTab !== 'leads'}>
+					{visitedTabs.includes('leads') && (
 						<LeadsTable
 							onOpenLead={(idLead) => void openLead(idLead)}
 							fieldsEnabled={flags.crm_lead_fields?.enabled ?? false}
@@ -64,12 +71,16 @@ export function CrmTabs() {
 						/>
 					)}
 				</TabsContent>
-				<TabsContent value="activities">
-					{activeTab === 'activities' && <ActivitiesAgenda onOpenLead={(idLead) => void openLead(idLead)} />}
+				<TabsContent value="activities" forceMount hidden={activeTab !== 'activities'}>
+					{visitedTabs.includes('activities') && (
+						<ActivitiesAgenda onOpenLead={(idLead) => void openLead(idLead)} />
+					)}
 				</TabsContent>
-				<TabsContent value="reports">{activeTab === 'reports' && <CrmReports />}</TabsContent>
+				<TabsContent value="reports" forceMount hidden={activeTab !== 'reports'}>
+					{visitedTabs.includes('reports') && <CrmReports />}
+				</TabsContent>
 			</Tabs>
 			<CrmLeadDetailSheet lead={sheet.lead} open={sheet.open} onOpenChange={sheet.setOpen} />
-		</>
+		</CrmHierarchyShell>
 	)
 }

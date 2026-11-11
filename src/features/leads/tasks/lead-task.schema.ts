@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { AGENDA_BUCKETS } from '@/features/leads/tasks/agenda-bucket-range'
 
 const plainText = z
 	.string()
@@ -32,10 +33,11 @@ const optionalComment = z
 
 export const leadTaskUpdateSchema = z
 	.object({
-		action: z.enum(['complete', 'reassign', 'reschedule']),
+		action: z.enum(['complete', 'reassign', 'reschedule', 'move']),
 		assignedTo: positiveUserId.optional(),
 		dueAt: z.string().datetime().nullable().optional(),
 		comment: optionalComment,
+		bucket: z.enum(AGENDA_BUCKETS).optional(),
 	})
 	.superRefine((input, context) => {
 		if (input.action === 'reassign' && !input.assignedTo) {
@@ -52,5 +54,14 @@ export const leadTaskUpdateSchema = z
 		}
 		if (input.action !== 'reschedule' && input.dueAt !== undefined) {
 			context.addIssue({ code: z.ZodIssueCode.custom, message: 'dueAt solo aplica al reprogramar' })
+		}
+		if (input.action === 'move' && !input.bucket) {
+			context.addIssue({ code: z.ZodIssueCode.custom, message: 'bucket es obligatorio al mover' })
+		}
+		if (input.action !== 'move' && input.bucket) {
+			context.addIssue({ code: z.ZodIssueCode.custom, message: 'bucket solo aplica al mover' })
+		}
+		if (input.action === 'move' && input.assignedTo) {
+			context.addIssue({ code: z.ZodIssueCode.custom, message: 'assignedTo no aplica al mover' })
 		}
 	})

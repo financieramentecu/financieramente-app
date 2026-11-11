@@ -3,7 +3,7 @@ import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { getAccessibleUserIds, isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
-import { getLeadDetail } from '@/features/leads/services/lead-board.service'
+import { isLeadVisible } from '@/features/leads/services/lead-board.service'
 import {
 	canAssignWithinScope,
 	findScopedLead,
@@ -18,7 +18,7 @@ vi.mock('@/features/auth/lib/hierarchy', () => ({
 	isHierarchyBypassRole: vi.fn(),
 }))
 vi.mock('@/features/shared/lib/flagsmith-server', () => ({ isFeatureEnabledServer: vi.fn() }))
-vi.mock('@/features/leads/services/lead-board.service', () => ({ getLeadDetail: vi.fn() }))
+vi.mock('@/features/leads/services/lead-board.service', () => ({ isLeadVisible: vi.fn() }))
 vi.mock('next/server', () => ({
 	NextResponse: {
 		json: vi.fn((data, init) => ({ status: init?.status ?? 200, json: () => Promise.resolve(data) })),
@@ -93,11 +93,11 @@ describe('canAssignWithinScope', () => {
 })
 
 describe('findScopedLead', () => {
-	it('delegates to getLeadDetail with the actor scope', async () => {
-		vi.mocked(getLeadDetail).mockResolvedValue({ idLead: 4 } as never)
+	it('checks visibility with the actor scope and does not load the lead body', async () => {
+		vi.mocked(isLeadVisible).mockResolvedValue(true)
 		const actor = { idUser: 7, roleCode: 'AGENTE', visibleUserIds: [7] } as never
-		await expect(findScopedLead(actor, 4)).resolves.toEqual({ idLead: 4 })
-		expect(getLeadDetail).toHaveBeenCalledWith(4, { idUser: 7, role: { code: 'AGENTE' } }, { visibleUserIds: [7] })
+		await expect(findScopedLead(actor, 4)).resolves.toBe(true)
+		expect(isLeadVisible).toHaveBeenCalledWith(4, { idUser: 7, role: { code: 'AGENTE' } }, { visibleUserIds: [7] })
 	})
 })
 

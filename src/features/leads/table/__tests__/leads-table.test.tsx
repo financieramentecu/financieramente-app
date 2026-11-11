@@ -125,11 +125,40 @@ describe('LeadsTable', () => {
 		)
 	})
 
-	it('opens the lead from a row', async () => {
+	it('opens the lead sheet from the row action', async () => {
 		const { onOpenLead } = renderTable()
-		const cell = await screen.findByText('Contactado', { selector: 'td' })
-		fireEvent.click(cell)
+		fireEvent.click(await screen.findByRole('button', { name: 'Abrir ficha' }))
 		expect(onOpenLead).toHaveBeenCalledWith(1)
+	})
+
+	it('expands one lead and closes it again', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn((input: string) => {
+				if (String(input).endsWith('/stage-history')) {
+					return Promise.resolve({
+						ok: true,
+						json: async () => ({
+							data: [
+								{
+									columnName: 'Contactado',
+									enteredAt: '2026-11-01T15:00:00.000Z',
+									leftAt: null,
+									durationMs: 1000,
+									current: true,
+								},
+							],
+						}),
+					})
+				}
+				return Promise.resolve({ ok: true, json: async () => ({ data: [] }) })
+			})
+		)
+		renderTable()
+		fireEvent.click(await screen.findByRole('button', { name: 'Ana Pérez' }))
+		expect(await screen.findByRole('list', { name: 'Etapas de Ana Pérez' })).toHaveTextContent('Contactado')
+		fireEvent.click(screen.getByRole('button', { name: 'Ana Pérez' }))
+		expect(screen.queryByRole('list', { name: 'Etapas de Ana Pérez' })).not.toBeInTheDocument()
 	})
 
 	it('shows an empty state and API errors', async () => {

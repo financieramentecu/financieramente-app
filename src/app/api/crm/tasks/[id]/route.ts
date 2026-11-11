@@ -11,11 +11,13 @@ import { validateActivityFiles } from '@/features/leads/activities/lead-activity
 import { storeLeadActivityFiles } from '@/features/leads/activities/lead-activity-files.service'
 import { LeadAttachmentStorageError } from '@/features/leads/activities/lead-attachment-storage'
 import { readJsonOrFiles } from '@/features/leads/activities/json-or-files'
+import { dueAtForActivityBucket, type OpenActivityBucket } from '@/features/leads/agenda/activity-bucket'
 import { leadTaskUpdateSchema } from '@/features/leads/tasks/lead-task.schema'
 import {
 	completeLeadTask,
 	findLeadTaskRef,
 	reassignLeadTask,
+	reopenLeadTask,
 	rescheduleLeadTask,
 } from '@/features/leads/tasks/lead-task-commands.service'
 
@@ -33,7 +35,6 @@ export async function PATCH(request: Request, context: RouteContext) {
 
 		const task = await findLeadTaskRef(idLeadTask)
 		if (!task || !(await findScopedLead(actor, task.idLead))) return error('Tarea no encontrada', 404)
-		if (task.status !== 'OPEN') return error('La tarea ya no está abierta', 409)
 
 		const incoming = await readJsonOrFiles(request)
 		if (!incoming.ok) return error(incoming.error, 400)
@@ -41,6 +42,8 @@ export async function PATCH(request: Request, context: RouteContext) {
 		if (!files.ok) return error(files.error, 400)
 		const input = leadTaskUpdateSchema.safeParse(incoming.body)
 		if (!input.success) return error('Actualización inválida', 400)
+		if (task.status !== 'OPEN' && input.data.action !== 'move') return error('La tarea ya no está abierta', 409)
+		if (task.status === 'CANCELLED') return error('La tarea ya no está abierta', 409)
 		if (incoming.files.length > 0 && input.data.action !== 'complete') {
 			return error('Los archivos solo se adjuntan al completar la tarea', 400)
 		}
@@ -60,6 +63,21 @@ export async function PATCH(request: Request, context: RouteContext) {
 		if (input.data.action === 'reschedule') {
 			const dueAt = input.data.dueAt ? new Date(input.data.dueAt) : null
 			const updated = await rescheduleLeadTask({ idLeadTask, idLead: task.idLead, dueAt }, ctx)
+			return NextResponse.json({ data: updated })
+		}
+		if (input.data.action === 'move') {
+			const bucket = input.data.bucket
+			if (!bucket) return error('Actualización inválida', 400)
+			if (bucket === 'done') {
+				if (task.status === 'DONE') return NextResponse.json({ data: { idLeadTask } })
+				const updated = await completeLeadTask({ idLeadTask, idLead: task.idLead }, ctx)
+				return NextResponse.json({ data: updated })
+			}
+			const dueAt = dueAtForActivityBucket(bucket as OpenActivityBucket, new Date())
+			const updated =
+				task.status === 'DONE'
+					? await reopenLeadTask({ idLeadTask, idLead: task.idLead, dueAt }, ctx)
+					: await rescheduleLeadTask({ idLeadTask, idLead: task.idLead, dueAt }, ctx)
 			return NextResponse.json({ data: updated })
 		}
 		let attachments

@@ -39,6 +39,24 @@ describe('lead support case service', () => {
     expect(appendLeadActivityTx).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ type: 'CASE_UPDATED', idLead: 4, idUser: 7 }))
   })
 
+  it('stores the chosen close date when the case is closed', async () => {
+    const resolvedAt = new Date('2026-11-09T12:00:00.000Z')
+    update.mockResolvedValue({ idLeadSupportCase: 9, idLead: 4, status: 'CLOSED', resolvedAt })
+    appendLeadActivityTx.mockResolvedValue({ idLeadActivity: 4 })
+    await transitionLeadSupportCaseTx(tx as never, {
+      idLeadSupportCase: 9,
+      idLead: 4,
+      updatedBy: 7,
+      status: 'CLOSED',
+      resolvedAt,
+      correlationId: 'case-4-close-1',
+    })
+    expect(update).toHaveBeenCalledWith({
+      where: { idLeadSupportCase: 9 },
+      data: expect.objectContaining({ status: 'CLOSED', resolvedAt }),
+    })
+  })
+
   it('adds an immutable plain-text comment and timeline event', async () => {
     commentCreate.mockResolvedValue({ idLeadSupportCaseComment: 2 })
     appendLeadActivityTx.mockResolvedValue({ idLeadActivity: 3 })

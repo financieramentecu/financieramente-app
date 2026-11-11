@@ -47,13 +47,19 @@ describe('LeadSupportCaseList', () => {
     render(<LeadSupportCaseList leadId={4} enabled />)
     fireEvent.click(await screen.findByRole('button', { name: 'Cerrar caso' }))
     fireEvent.change(screen.getByLabelText('Qué pasó'), { target: { value: 'Se devolvió el pago' } })
+    fireEvent.change(screen.getByLabelText('Fecha de cierre'), { target: { value: '2026-11-09' } })
+    expect(screen.getByRole('button', { name: 'Adjuntar archivo' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar caso' }))
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/crm/cases/9',
         expect.objectContaining({
           method: 'PATCH',
-          body: JSON.stringify({ status: 'CLOSED', comment: 'Se devolvió el pago' }),
+          body: JSON.stringify({
+            status: 'CLOSED',
+            comment: 'Se devolvió el pago',
+            resolvedAt: '2026-11-09T12:00:00.000Z',
+          }),
         })
       )
     )
