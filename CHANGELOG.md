@@ -4,6 +4,74 @@ Todos los cambios notables del proyecto se documentan en este archivo.
 
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.39.0] - 2026-11-11
+
+### Agregado
+
+- **Confirmación del Valor de Negocio:** El Analista de Soporte puede corregir el valor del negocio en Venta Efectuada, Emitido y Fondeado. Si cambia ese valor y pulsa Actualizar Negocio, debe confirmar el mensaje de que la acción afectará futuros aportes y liquidaciones. Cancelar no guarda nada. Confirmar guarda el valor y deja trazabilidad con el negocio, el usuario, la fecha y los valores anterior y nuevo.
+
+### Mejorado
+
+- **Carga más estable:** la plataforma deja de consultar un servicio externo de configuración en cada visita. Todos los módulos (Dashboard, Calculadora, Leads y Reportes) siguen visibles como hasta ahora.
+- La creación de negocios y de clientes ahora queda registrada en la auditoría, con el usuario, la fecha y los datos principales del registro.
+- **Carga más rápida de Negocios:** La primera página de negocios y los indicadores se cargan desde el servidor al abrir la pantalla, sin una segunda carga en el navegador.
+- **Filtros de fecha por rol:** El mes actual se aplica desde el inicio, sin un cambio de URL posterior.
+- Las consultas simultáneas ya no se bloquean por falta de conexiones a la base de datos, lo que reduce las lentitudes y los errores en horas de mayor uso.
+
+### Corregido
+
+- **Errores 403 de producción:** se eliminan los errores periódicos de acceso al servicio de feature flags.
+- Solo los administradores pueden crear o inactivar descuentos de comisión (Impuesto y Clawback). Antes cualquier usuario con sesión podía hacerlo llamando directamente al servicio.
+- Las rutas `/api/*` ahora rechazan con 401 cualquier solicitud sin sesión válida, aunque una ruta olvide validar la sesión por su cuenta.
+- **Endpoints administrativos sin control de acceso:** varios endpoints internos (envío de correos, niveles de comisión, reglas de distribución de comisión, periodicidades y monedas) no verificaban que el usuario estuviera autenticado y autorizado antes de ejecutar la operación. Ahora exigen sesión y, cuando corresponde, rol de Administrador.
+- **Acceso a negocios de otros usuarios por URL:** al consultar o editar el detalle de un negocio, el filtro de propiedad solo se aplicaba al rol Agente; cualquier otro rol no privilegiado podía ver o modificar negocios ajenos cambiando el identificador en la URL. Ahora el filtro de propiedad aplica a cualquier rol que no tenga autoridad de escritura global.
+- Al eliminar una carga de archivo (estado LOAD o ERROR) ya no se borran físicamente sus comisiones, errores ni clawbacks: la carga queda marcada como eliminada y se conserva el historial. La eliminación queda registrada en auditoría.
+- El límite de tamaño de los comprobantes y de los lotes de carga de archivos ahora también se valida en el servidor, no solo en la pantalla.
+- **Auditoría al establecer contraseña de admin:** El cambio de contraseña desde el panel de usuarios queda registrado en el log de auditoría.
+- Eliminar un producto o un origen de cliente ya no borra el registro de la base de datos: ahora se desactiva (borrado lógico) y se conserva el historial.
+- Ya no es posible tener dos descuentos activos del mismo tipo (Impuesto o Clawback) aunque dos personas los creen al mismo tiempo; el segundo intento recibe un aviso claro.
+- Las acciones de una fila del listado de negocios (subir soporte, comentar, gestionar novedad) ya no se aplican a otro negocio cuando la lista se recarga o se reordena con un modal abierto.
+- El modal de cancelar negocio ya no puede quedar apuntando a un negocio abierto antes, evitando cancelar el negocio equivocado.
+- Se corrige un error que impedía cargar la pantalla de negocios por un import faltante.
+- El módulo de liquidaciones deja de abrir su propio grupo de conexiones a la base de datos y reutiliza el compartido de la aplicación.
+
+### Técnico
+
+- Document the `develop → qa → main` release flow and require PRs for `develop`, `qa` and `main` in `CLAUDE.md` and `.cursor/rules/RELEASE.md`.
+- Replace obsolete `master` and direct `git push` instructions with the PR flow in `docs/INFRASTRUCTURE.md`, `docs/PRISMA_CHANGES.md`, `docs/PRISMA_MIGRATIONS.md` and `docs/DATABASE_CONNECTION.md`.
+- Update the `release:version` next-steps output in `scripts/release/consolidate-changelog.ts` to the `develop → qa → main` sequence.
+- Support analysts get a confirmation dialog in the business edit form when `value` changes. `PUT /api/negocios/[id]` writes `BUSINESS_VALUE_CHANGED` with previous and new amounts only for that role.
+- Removed Flagsmith (`flagsmith-nodejs`, `@flagsmith/flagsmith`), `FlagsmithProvider`, `useFeatureFlag`, `isFeatureEnabledServer` and the feature flag catalog; every previously flagged module is now unconditionally enabled. Impersonation UI stays ADMIN-only via existing role checks.
+- `POST /api/admin/discounts` and `POST /api/admin/discounts/[id]/inactivate` now use `requireRole([UserRole.ADMIN])` (401 unauthenticated, 403 other roles). `GET /api/admin/discounts` is unchanged.
+- `src/middleware.ts`: fail-closed backstop for `/api/*`; unauthenticated requests get `401 { data: null, error: 'No autorizado' }` unless they match `src/lib/auth/public-api-allowlist.ts` (health, `/api/auth/*`, account flows, `leads/crm-sync`, `negocios/cron/fund-payments`).
+- Extended `middleware-api-gate.test.ts` with public-route, anchoring and invalid-token cases.
+- `src/app/api/email/send/route.ts`: added `requireRole([UserRole.ADMIN])` guard (POST).
+- `src/app/api/levels/route.ts` and `[id]/route.ts`: added `requireRole([UserRole.ADMIN])` guard (POST/PUT/DELETE), reusing the guard's session for audit logging.
+- `src/app/api/product-configurations/[id]/distribution-commission/route.ts`, `[ruleId]/route.ts`, `[ruleId]/assign-new-businesses/route.ts`: added `requireRole([UserRole.ADMIN])` guard (POST/PUT/PATCH).
+- `src/app/api/admin/periodicities/route.ts` and `[id]/route.ts`, `src/app/api/admin/currencies/route.ts` and `[id]/route.ts`: added `requireAuth()` (GET) and `requireRole([UserRole.ADMIN])` (POST/PUT/DELETE) guards — these routes had no authentication check at all.
+- `src/features/negocios/services/business-get-by-id.server.ts`: ownership scoping now uses `isWriteBypassRole()` instead of comparing only against `UserRole.AGENTE`.
+- `src/app/api/negocios/[id]/route.ts` (PUT): ownership `whereClause` now derives from the existing `isPrivileged` flag (`ADMIN`/`ASISTENTE_GERENCIA_OPERATIVA`/`ANALISTA_SOPORTE`) instead of `isAgent`, closing the same gap for any non-privileged role.
+- `delete-file-import.service.ts`: replaced `deleteMany` with logical deletion (`FileImport.status`, `SettlementCommission.status` and `Clawback.state` set to `DELETED`; distributions `isActive=false`; `FileImportError` rows kept).
+- Added `AuditAction.FILE_IMPORT_DELETED`, logged in `DELETE /api/carga-archivos/file-import/[id]`.
+- Excluded `DELETED` from file import id lookups, upload deduplication and the voluntaria prior-commission check. No schema migration.
+- `presignComprobanteUpload` now enforces `MAX_BYTES` (`FILE_TOO_LARGE`) and `presignPutUrl` signs `ContentLength`, so Spaces rejects an upload whose size differs from the validated one.
+- `POST /api/carga-archivos/process-batch` returns 413 when a batch exceeds `MAX_BATCH_RECORDS` (500) or `MAX_BATCH_HEADERS` (200) (`load-file/lib/process-batch-limits.ts`).
+- `POST /api/admin/users/set-password` now calls `logAuditEvent()` with `AuditAction.USER_PASSWORD_SET` (admin actor, target email, IP, user-agent, `ssoOnly` flag; never the password).
+- `DELETE /api/products/[id]` and `DELETE /api/origins/[id]` now call `deactivateProduct` / `deactivateClientOrigin` (services) which `update({ status: false })` instead of `prisma.*.delete()`. In-use validation and audit logging are unchanged.
+- Migration `20261105160000_commission_discount_one_active_per_type`: partial unique index `UNIQUE(type) WHERE status = 'ACTIVE'` on `commission_discount`, with a pre-check that aborts with a readable error if duplicated ACTIVE rows exist.
+- `POST /api/admin/discounts` maps Prisma `P2002` to 409. No schema model change (the index is SQL-only).
+- Added `AuditAction.BUSINESS_CREATED` and `AuditAction.CLIENT_CREATED`, logged from the `createBusiness` and `createClient` Server Actions after a successful create. The existing `BUSINESS_POLICYHOLDER_LINKED` event is kept unchanged.
+- `BusinessTableSection` passes `getRowId` (business id) to `DataTable`; rows were keyed by index.
+- `NegociosPageClient.handleCancelBusiness` ignores stale `getById` responses via a target-id ref.
+- Add the missing `useRef` import in `negocios-page-client.tsx`, which broke 17 unit tests on `develop`.
+- `negocios/page.tsx` hace streaming de `getNegociosInitialData` (lista y KPIs) con una sola resolución de jerarquía compartida. Los hooks `useBusinesses` y `useBusinessStats` aceptan datos iniciales y solo consultan al cambiar filtros.
+- La siembra del filtro de fecha por rol se hace en el servidor (`buildDefaultDateSeedQuery`) en lugar de un `router.replace` en el cliente.
+- `businessWithRelations` ya no carga las filas de `business_support`; solo se usa su conteo.
+- Consulta de la lista extraída a `business-list.service.ts`; `/api/negocios` y `/api/negocios/stats` mantienen el mismo contrato.
+- Add `src/lib/prisma-pool.ts` (`withPoolParams`, `readPoolOptionsFromEnv`) and pass the result as `datasourceUrl` in the `PrismaClient` singleton. Pool size and timeouts come from `PRISMA_CONNECTION_LIMIT`, `PRISMA_POOL_TIMEOUT` and `PRISMA_CONNECT_TIMEOUT`; parameters already present in `DATABASE_URL` take precedence.
+- Set defaults in `docker-compose.prod.yml` (15 connections) and `docker-compose.qa.yml` (8 connections), with 20s pool timeout and 10s connect timeout.
+- `liquidacion.service.ts` now imports the shared `prisma` singleton instead of calling `new PrismaClient()`.
+
 ## [1.38.0] - 2026-10-30
 
 ### Agregado
