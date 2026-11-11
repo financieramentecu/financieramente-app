@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { useDashboardCatalogs } from '../../hooks/use-dashboard-catalogs'
 
 vi.mock('@/lib/api/client', () => ({
   apiClient: { get: vi.fn() },
@@ -10,9 +9,16 @@ import { apiClient } from '@/lib/api/client'
 
 const mockGet = vi.mocked(apiClient.get)
 
+type UseDashboardCatalogs = typeof import('../../hooks/use-dashboard-catalogs').useDashboardCatalogs
+let useDashboardCatalogs: UseDashboardCatalogs
+
 describe('useDashboardCatalogs', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    // Fresh module per test: the in-flight request is module state, so a request
+    // left pending by one test must not leak into the next.
+    vi.resetModules()
+    ;({ useDashboardCatalogs } = await import('../../hooks/use-dashboard-catalogs'))
   })
 
   it('starts in loading state', () => {
@@ -61,5 +67,35 @@ describe('useDashboardCatalogs', () => {
     const { result } = renderHook(() => useDashboardCatalogs())
 
     await waitFor(() => expect(result.current.status).toBe('error'))
+  })
+
+  it('shares one request between consumers mounted at the same time', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        companies: [], products: [], origins: [], categories: [], periodicidades: [],
+      },
+    })
+
+    const first = renderHook(() => useDashboardCatalogs())
+    const second = renderHook(() => useDashboardCatalogs())
+
+    await waitFor(() => expect(first.result.current.status).toBe('success'))
+    await waitFor(() => expect(second.result.current.status).toBe('success'))
+    expect(mockGet).toHaveBeenCalledTimes(1)
+  })
+
+  it('loads fresh data when a consumer mounts after the previous request settled', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        companies: [], products: [], origins: [], categories: [], periodicidades: [],
+      },
+    })
+
+    const first = renderHook(() => useDashboardCatalogs())
+    await waitFor(() => expect(first.result.current.status).toBe('success'))
+
+    const second = renderHook(() => useDashboardCatalogs())
+    await waitFor(() => expect(second.result.current.status).toBe('success'))
+    expect(mockGet).toHaveBeenCalledTimes(2)
   })
 })

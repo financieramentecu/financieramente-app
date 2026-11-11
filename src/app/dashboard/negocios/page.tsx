@@ -1,6 +1,5 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
 import { auth } from '@/auth'
 import {
 	buildDefaultDateSeedQuery,
@@ -9,6 +8,7 @@ import {
 import type { PageSearchParams } from '@/features/negocios/lib/default-date-filter'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { NegociosPageClient } from './negocios-page-client'
+import { NegociosPageSkeleton } from '@/features/negocios/components/NegociosPageSkeleton'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { getNegociosInitialData } from '@/features/negocios/services/negocios-initial-data.server'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
@@ -37,14 +37,6 @@ async function NegociosPageData({
 	)
 }
 
-function NegociosPageFallback() {
-	return (
-		<div className="flex h-64 items-center justify-center">
-			<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-		</div>
-	)
-}
-
 /**
  * Negocios page (Server Component): resolves the session and user, seeds the
  * role's default date filter, and streams the initial data to the client.
@@ -60,13 +52,14 @@ export default async function NegociosPage({
 		return null
 	}
 
-	const currentUser = await getCurrentUserByEmail(session.user.email)
-
 	// Await searchParams (Next.js 15: searchParams is a Promise in server components)
 	const resolvedSearchParams = searchParams ? await searchParams : {}
 
-	// Seed the role's default date filter before rendering, so the client
-	// mounts with it already in the URL and the list is loaded only once.
+	const currentUser = await getCurrentUserByEmail(session.user.email)
+
+	// The Edge middleware already seeds the default date filter from the session
+	// role (so client navigations never flash a blank screen). The database role
+	// is authoritative: cover a session role that is missing or out of date.
 	const seedQuery = buildDefaultDateSeedQuery(
 		currentUser?.role?.code,
 		resolvedSearchParams
@@ -77,7 +70,7 @@ export default async function NegociosPage({
 
 	return (
 		<DashboardLayout currentPage="Negocio">
-			<Suspense fallback={<NegociosPageFallback />}>
+			<Suspense fallback={<NegociosPageSkeleton />}>
 				<NegociosPageData
 					currentUser={currentUser}
 					searchParams={resolvedSearchParams}

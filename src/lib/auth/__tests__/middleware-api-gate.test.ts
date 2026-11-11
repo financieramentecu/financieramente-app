@@ -318,9 +318,28 @@ describe('middleware /dashboard/* keeps the auth() wrapper behavior', () => {
 
 	it('lets a PARTNER open the allowlisted negocios page', async () => {
 		const cookie = await sessionCookie({ role: 'PARTNER' })
-		const response = await run(request('/dashboard/negocios', { cookie }))
+		const response = await run(
+			request('/dashboard/negocios?createdFrom=2026-11-01&createdTo=2026-11-11', {
+				cookie,
+			})
+		)
 		expect(response.status).toBe(200)
 		expect(response.headers.get('location')).toBeNull()
+	})
+
+	it('seeds the default date filter for the negocios page before it renders', async () => {
+		const cookie = await sessionCookie({ role: 'PARTNER' })
+		const response = await run(request('/dashboard/negocios', { cookie }))
+		expect(response.status).toBe(307)
+		const location = new URL(response.headers.get('location') ?? '')
+		expect(location.pathname).toBe('/dashboard/negocios')
+		expect(location.searchParams.get('createdFrom')).toMatch(/^\d{4}-\d{2}-01$/)
+		expect(location.searchParams.get('createdTo')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+	})
+
+	it('does not seed the date filter for anonymous requests', async () => {
+		const response = await run(request('/dashboard/negocios'))
+		expect(response.headers.get('location') ?? '').not.toContain('createdFrom')
 	})
 
 	it('redirects the DEFAULT role to access-denied', async () => {
