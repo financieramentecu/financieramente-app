@@ -28,6 +28,10 @@ import {
 	resolveBusinessScope,
 } from '@/features/negocios/services/business-access.service'
 import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
+import {
+	buildBusinessValueChangeAudit,
+	businessValuesDiffer,
+} from '@/features/negocios/lib/business-value-change'
 
 import {
 	UserRole,
@@ -579,13 +583,17 @@ export async function PUT(
 		}
 
 		// C. Auditoría
-		await logAuditEvent({
+		const auditContext = {
 			userId: currentUser.idUser,
 			roleId: currentUser.idRole ?? undefined,
-			action: AuditAction.BUSINESS_UPDATED,
 			email: session.user.email,
 			ipAddress: getClientIp(new Headers(request.headers)),
 			userAgent: getUserAgent(new Headers(request.headers)),
+		}
+
+		await logAuditEvent({
+			...auditContext,
+			action: AuditAction.BUSINESS_UPDATED,
 			details: JSON.stringify({
 				businessId,
 				previousStatus: existingBusiness.status,
@@ -594,6 +602,27 @@ export async function PUT(
 				wasPrivileged: isPrivileged,
 			}),
 		})
+
+		if (
+			isAnalista &&
+			value !== undefined &&
+			businessValuesDiffer(existingBusiness.value, value)
+		) {
+			await logAuditEvent({
+				...auditContext,
+				action: AuditAction.BUSINESS_VALUE_CHANGED,
+				details: JSON.stringify(
+					buildBusinessValueChangeAudit({
+						businessId,
+						userId: currentUser.idUser,
+						email: session.user.email ?? '',
+						previousValue: existingBusiness.value,
+						newValue: value,
+						changedAt: new Date(),
+					})
+				),
+			})
+		}
 
 		const entity = prismaBusinessToEntity(updatedBusiness)
 		return NextResponse.json({ data: entity })

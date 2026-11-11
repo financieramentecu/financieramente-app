@@ -83,13 +83,17 @@ function getClient(): S3Client {
 export async function presignPutUrl(
   objectKey: string,
   mimeType: string,
+  sizeBytes?: number,
   expiresIn = 300,
 ): Promise<string> {
   const { bucket } = getSpacesConfig()
+  // ContentLength is part of the signature: Spaces rejects an upload whose
+  // body size differs from the size that was validated server-side.
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: objectKey,
     ContentType: mimeType,
+    ...(sizeBytes !== undefined && { ContentLength: sizeBytes }),
   })
   return getSignedUrl(getClient(), command, { expiresIn })
 }

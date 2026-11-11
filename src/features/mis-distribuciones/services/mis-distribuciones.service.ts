@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { FILE_IMPORT_STATUS_DELETED } from '@/features/load-file/lib/file-import-status'
 import {
 	canViewUserDistributions,
 	isHierarchyBypassRole,
@@ -119,7 +120,13 @@ export async function obtenerMisArchivosConDistribucion(
 	if (!Number.isFinite(idBeneficiary) || idBeneficiary <= 0) return []
 
 	const distribuciones = await prisma.comissionDistribution.findMany({
-		where: { idBeneficiaryUser: idBeneficiary },
+		where: {
+			idBeneficiaryUser: idBeneficiary,
+			isActive: true,
+			settlementCommission: {
+				fileImport: { status: { not: FILE_IMPORT_STATUS_DELETED } },
+			},
+		},
 		select: {
 			valueComission: true,
 			valueCommissionWithDiscount: true,
@@ -266,8 +273,11 @@ export async function obtenerReciboDistribucion(params: {
 	)
 	if (!allowed) return null
 
-	const fileImport = await prisma.fileImport.findUnique({
-		where: { idFileImport: fileImportId },
+	const fileImport = await prisma.fileImport.findFirst({
+		where: {
+			idFileImport: fileImportId,
+			status: { not: FILE_IMPORT_STATUS_DELETED },
+		},
 		select: {
 			idFileImport: true,
 			nameFile: true,
@@ -297,6 +307,7 @@ export async function obtenerReciboDistribucion(params: {
 	const rows: DistributionRow[] = await prisma.comissionDistribution.findMany({
 		where: {
 			idBeneficiaryUser: beneficiaryId,
+			isActive: true,
 			settlementCommission: { idFileImport: fileImportId },
 		},
 		include: {
@@ -513,7 +524,11 @@ export async function registrarAprobacionDistribucion(params: {
 	const count = await prisma.comissionDistribution.count({
 		where: {
 			idBeneficiaryUser: idUser,
-			settlementCommission: { idFileImport: fileImportId },
+			isActive: true,
+			settlementCommission: {
+				idFileImport: fileImportId,
+				fileImport: { status: { not: FILE_IMPORT_STATUS_DELETED } },
+			},
 		},
 	})
 	if (count === 0) {
@@ -562,7 +577,10 @@ export async function contarAprobacionesArchivo(
 	}
 	const [beneficiarios, aprobados] = await Promise.all([
 		prisma.comissionDistribution.findMany({
-			where: { settlementCommission: { idFileImport: fileImportId } },
+			where: {
+				isActive: true,
+				settlementCommission: { idFileImport: fileImportId },
+			},
 			select: { idBeneficiaryUser: true },
 			distinct: ['idBeneficiaryUser'],
 		}),

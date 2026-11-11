@@ -16,6 +16,8 @@ import type { HierarchyNode } from '@/features/production-dashboard/types/hierar
 
 type SelectionState = {
 	nodes: HierarchyNode[]
+	/** True once the hierarchy request has settled (loaded, empty or failed). */
+	resolved: boolean
 }
 
 type Action =
@@ -89,13 +91,13 @@ function selectionReducer(
 ): SelectionState {
 	switch (action.type) {
 		case 'INIT':
-			return { nodes: action.nodes }
+			return { nodes: action.nodes, resolved: true }
 		case 'TOGGLE_NODE':
-			return { nodes: toggleNodeInTree(state.nodes, action.userId) }
+			return { ...state, nodes: toggleNodeInTree(state.nodes, action.userId) }
 		case 'SELECT_ALL':
-			return { nodes: state.nodes.map((n) => setIncludedRecursive(n, true)) }
+			return { ...state, nodes: state.nodes.map((n) => setIncludedRecursive(n, true)) }
 		case 'DESELECT_ALL':
-			return { nodes: state.nodes.map((n) => setIncludedRecursive(n, false)) }
+			return { ...state, nodes: state.nodes.map((n) => setIncludedRecursive(n, false)) }
 		default:
 			return state
 	}
@@ -107,6 +109,12 @@ function selectionReducer(
 
 type HierarchySelectionContextValue = {
 	nodes: HierarchyNode[]
+	/**
+	 * False while the hierarchy request is in flight. Data hooks must wait for it
+	 * instead of fetching with only the session user and discarding that response
+	 * when the tree arrives.
+	 */
+	isHierarchyResolved: boolean
 	selectedUserIds: readonly number[]
 	toggle: (userId: number) => void
 	dispatch: Dispatch<Action>
@@ -134,6 +142,7 @@ export function HierarchySelectionProvider({
 }: HierarchySelectionProviderProps) {
 	const [state, dispatch] = useReducer(selectionReducer, {
 		nodes: initialNodes,
+		resolved: initialNodes.length > 0,
 	})
 
 	const toggle = (userId: number) =>
@@ -146,7 +155,13 @@ export function HierarchySelectionProvider({
 
 	return (
 		<HierarchySelectionContext.Provider
-			value={{ nodes: state.nodes, selectedUserIds, toggle, dispatch }}
+			value={{
+				nodes: state.nodes,
+				isHierarchyResolved: state.resolved,
+				selectedUserIds,
+				toggle,
+				dispatch,
+			}}
 		>
 			{children}
 		</HierarchySelectionContext.Provider>

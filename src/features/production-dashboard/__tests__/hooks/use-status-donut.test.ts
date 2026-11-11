@@ -65,6 +65,7 @@ function setupMocks(
       children: [],
     })),
     selectedUserIds,
+    isHierarchyResolved: true,
     toggle: vi.fn(),
     dispatch: vi.fn(),
   })

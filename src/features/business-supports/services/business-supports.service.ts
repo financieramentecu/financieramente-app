@@ -2,7 +2,12 @@ import { prisma } from '@/lib/prisma'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { presignPutUrl, presignGetUrl, getSpacesConfig } from '../lib/spaces-client'
 import { buildComprobanteKey } from '../lib/object-key'
-import { isAllowedMime, extensionFor } from '../lib/mime-utils'
+import {
+  isAllowedMime,
+  extensionFor,
+  validateUpload,
+  MAX_BYTES,
+} from '../lib/mime-utils'
 import {
   comprobantePathId,
   isUploadAllowedStatus,
@@ -69,7 +74,7 @@ export async function listComprobantes(
 export async function presignComprobanteUpload(
   businessId: number,
   mime: string,
-  _size: number,
+  size: number,
   _ctx: RequestContext,
 ): Promise<PresignResponse> {
   const business = await prisma.business.findUnique({
@@ -92,11 +97,18 @@ export async function presignComprobanteUpload(
     throw new ComprobanteError('INVALID_MIME', `MIME type '${mime}' is not allowed`)
   }
 
+  if (!validateUpload(mime, size).ok) {
+    throw new ComprobanteError(
+      'FILE_TOO_LARGE',
+      `File exceeds the maximum size of ${MAX_BYTES} bytes`,
+    )
+  }
+
   const ext = extensionFor(mime)!
   const { prefix } = getSpacesConfig()
   const pathId = comprobantePathId(business.contract, businessId)
   const key = buildComprobanteKey({ prefix, pathId, ext })
-  const url = await presignPutUrl(key, mime)
+  const url = await presignPutUrl(key, mime, size)
 
   return { url, key }
 }

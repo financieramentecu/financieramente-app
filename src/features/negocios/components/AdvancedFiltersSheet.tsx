@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
+import { replaceUrlQuery } from '@/features/shared/lib/replace-url-query'
 import { useForm, Controller } from 'react-hook-form'
 import { Filter } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
@@ -136,7 +137,6 @@ function toDateStr(date: Date): string {
  * "Aplicar" commits to URL; dismissing without apply leaves URL unchanged.
  */
 export function AdvancedFiltersSheet() {
-	const router = useRouter()
 	const searchParams = useSearchParams()
 
 	const [open, setOpen] = useState(false)
@@ -264,10 +264,10 @@ export function AdvancedFiltersSheet() {
 			// Reset to page 1 when filters change
 			params.set('page', '1')
 
-			router.replace(`?${params.toString()}`, { scroll: false })
+			replaceUrlQuery(`?${params.toString()}`)
 			setOpen(false)
 		},
-		[router, searchParams]
+		[searchParams]
 	)
 
 	// Resync draft form with current URL params on every open — the URL may have
@@ -312,9 +312,9 @@ export function AdvancedFiltersSheet() {
 		params.set('createdTo', monthTo)
 		params.set('page', '1')
 
-		router.replace(`?${params.toString()}`, { scroll: false })
+		replaceUrlQuery(`?${params.toString()}`)
 		setOpen(false)
-	}, [reset, searchParams, router])
+	}, [reset, searchParams])
 
 	return (
 		<Sheet open={open} onOpenChange={handleOpenChange}>

@@ -2,6 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from '../route'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth/nextauth'
+import { UserRole } from '@/features/auth/lib/roles'
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
@@ -13,6 +15,8 @@ vi.mock('@/lib/prisma', () => ({
 		},
 	},
 }))
+
+vi.mock('@/lib/auth/nextauth')
 
 vi.mock('next/server', () => ({
 	NextResponse: {
@@ -28,9 +32,41 @@ describe('POST /api/product-configurations/[id]/commission-rules/[ruleId]/assign
 		prisma.productPercentageCommission.findUnique
 	)
 	const mockConfigUpdate = vi.mocked(prisma.productConfiguration.update)
+	const mockAuth = vi.mocked(auth)
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockAuth.mockResolvedValue({
+			user: { id: '1', email: 'admin@test.com', role: UserRole.ADMIN },
+		} as never)
+	})
+
+	it('should return 401 without a session', async () => {
+		mockAuth.mockResolvedValueOnce(null as never)
+		const request = new Request(
+			'http://localhost:3000/api/product-configurations/10/commission-rules/5/assign-new-businesses',
+			{ method: 'POST' }
+		)
+		const response = await POST(request, {
+			params: Promise.resolve({ id: '10', ruleId: '5' }),
+		})
+		expect(response.status).toBe(401)
+		expect(mockConfigUpdate).not.toHaveBeenCalled()
+	})
+
+	it('should return 403 for a role without ADMIN authority', async () => {
+		mockAuth.mockResolvedValueOnce({
+			user: { id: '2', email: 'agente@test.com', role: UserRole.AGENTE },
+		} as never)
+		const request = new Request(
+			'http://localhost:3000/api/product-configurations/10/commission-rules/5/assign-new-businesses',
+			{ method: 'POST' }
+		)
+		const response = await POST(request, {
+			params: Promise.resolve({ id: '10', ruleId: '5' }),
+		})
+		expect(response.status).toBe(403)
+		expect(mockConfigUpdate).not.toHaveBeenCalled()
 	})
 
 	it('should assign the default rule for new businesses', async () => {

@@ -18,6 +18,36 @@ export interface DashboardCatalogsData {
   periodicidades: DashboardCatalogItem[]
 }
 
+let inFlightRequest: Promise<DashboardCatalogsData> | null = null
+
+/**
+ * One request shared by every consumer mounted at the same time (the filter
+ * panel and the heatmap both need the catalogs). It is dropped as soon as it
+ * settles, so a later mount always loads fresh data.
+ */
+function loadDashboardCatalogs(): Promise<DashboardCatalogsData> {
+  if (inFlightRequest) return inFlightRequest
+
+  const request = apiClient
+    .get<ApiResponse<DashboardCatalogsResponse>>('/production-dashboard/catalogs')
+    .then((response) => {
+      if (!response.data) throw new Error('Failed to load catalogs')
+      return {
+        companies: response.data.companies,
+        products: response.data.products,
+        origins: response.data.origins,
+        categories: response.data.categories,
+        periodicidades: response.data.periodicidades,
+      }
+    })
+    .finally(() => {
+      if (inFlightRequest === request) inFlightRequest = null
+    })
+
+  inFlightRequest = request
+  return request
+}
+
 /**
  * Fetches all active catalog items for dashboard filter dropdowns in a single request.
  * Uses a dedicated unpaginated endpoint — no truncation risk.
@@ -32,35 +62,16 @@ export function useDashboardCatalogs(): AsyncState<DashboardCatalogsData> {
   useEffect(() => {
     let cancelled = false
 
-    async function fetchCatalogs() {
-      try {
-        const response = await apiClient.get<ApiResponse<DashboardCatalogsResponse>>(
-          '/production-dashboard/catalogs'
-        )
-
-        if (cancelled) return
-
-        if (response.data) {
-          setState({
-            status: 'success',
-            data: {
-              companies: response.data.companies,
-              products: response.data.products,
-              origins: response.data.origins,
-              categories: response.data.categories,
-              periodicidades: response.data.periodicidades,
-            },
-            error: '',
-          })
-        } else {
+    loadDashboardCatalogs()
+      .then((data) => {
+        if (!cancelled) setState({ status: 'success', data, error: '' })
+      })
+      .catch(() => {
+        if (!cancelled) {
           setState({ status: 'error', data: undefined, error: 'Failed to load catalogs' })
         }
-      } catch {
-        if (!cancelled) setState({ status: 'error', data: undefined, error: 'Failed to load catalogs' })
-      }
-    }
+      })
 
-    fetchCatalogs()
     return () => { cancelled = true }
   }, [])
 

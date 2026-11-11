@@ -514,6 +514,8 @@ model CommissionDiscount {
 
   @@index([status])
   @@index([type])
+  // Partial unique index "commission_discount_one_active_per_type_idx"
+  // (UNIQUE(type) WHERE status = 'ACTIVE') lives only in the migration SQL.
   @@map("commission_discount")
 }
 

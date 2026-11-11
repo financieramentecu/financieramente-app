@@ -65,6 +65,7 @@ function setupMocks(
       children: [],
     })),
     selectedUserIds,
+    isHierarchyResolved: true,
     toggle: vi.fn(),
     dispatch: vi.fn(),
   })
@@ -250,6 +251,7 @@ describe('useCompanyDonut', () => {
         },
       ],
       selectedUserIds: [1, 2],
+      isHierarchyResolved: true,
       toggle: vi.fn(),
       dispatch: vi.fn(),
     })

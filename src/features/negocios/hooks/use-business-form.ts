@@ -23,6 +23,7 @@ import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-p
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
 import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
+import { shouldConfirmSupportAnalystBusinessValueChange } from '@/features/negocios/lib/business-value-change'
 
 /**
  * D5: state raised when the exact-email resolution finds a client whose
@@ -78,6 +79,8 @@ export function useBusinessForm(props: BusinessFormProps) {
 		React.useState<IdentityConflict>(null)
 	const [pendingSubmitData, setPendingSubmitData] =
 		React.useState<BusinessFormData | null>(null)
+	const [valueChangeConfirmOpen, setValueChangeConfirmOpen] = React.useState(false)
+	const skipValueChangeConfirmRef = React.useRef(false)
 
 	const { handleSearchClient, results: clientResults } = useSearchClient()
 	const { handleSearchAgents } = useSearchAgents()
@@ -194,6 +197,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 	)
 
 	const handleInvalidSubmit = React.useCallback(() => {
+		skipValueChangeConfirmRef.current = false
 		toast.error('Campos obligatorios incompletos', {
 			description:
 				'Revisa los campos marcados con asterisco rojo e intenta guardar de nuevo.',
@@ -396,6 +400,20 @@ export function useBusinessForm(props: BusinessFormProps) {
 
 				// En modo edición, enviar todos los campos que hayan cambiado (o todos los disponibles)
 				if (isEditMode && businessId) {
+					const bypassValueChangeConfirm = skipValueChangeConfirmRef.current
+					skipValueChangeConfirmRef.current = false
+					if (
+						!bypassValueChangeConfirm &&
+						shouldConfirmSupportAnalystBusinessValueChange({
+							roleCode: currentUser?.role?.code,
+							previousValue: defaultValues?.value,
+							nextValue: data.value,
+						})
+					) {
+						setValueChangeConfirmOpen(true)
+						return
+					}
+
 					if (canEditClientInfo && !clientId) {
 						toast.error('Error al actualizar cliente', {
 							description:
@@ -583,8 +601,20 @@ export function useBusinessForm(props: BusinessFormProps) {
 			documentTypeOptions,
 			form,
 			defaultValues,
+			currentUser?.role?.code,
 		]
 	)
+
+	const confirmBusinessValueChange = () => {
+		skipValueChangeConfirmRef.current = true
+		setValueChangeConfirmOpen(false)
+		return handleSubmit(handleFormSubmit, handleInvalidSubmit)()
+	}
+
+	const dismissBusinessValueChange = () => {
+		skipValueChangeConfirmRef.current = false
+		setValueChangeConfirmOpen(false)
+	}
 
 	return {
 		form,
@@ -612,5 +642,8 @@ export function useBusinessForm(props: BusinessFormProps) {
 		identityConflict,
 		resolveIdentityConflict,
 		hasSelectedClient: selectedClient !== null,
+		valueChangeConfirmOpen,
+		confirmBusinessValueChange,
+		dismissBusinessValueChange,
 	}
 }

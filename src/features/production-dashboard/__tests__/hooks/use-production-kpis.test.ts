@@ -57,6 +57,7 @@ function setupMocks(
       included: n.included,
       children: [],
     })),
+    isHierarchyResolved: true,
     toggle: vi.fn(),
     dispatch: vi.fn(),
   })

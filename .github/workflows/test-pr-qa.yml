@@ -18,7 +18,9 @@ jobs:
   changeset:
     name: 🦋 Changeset Required
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-changeset') }}
+    # Release PRs (`npm run release:version`) consume and delete the pending changesets,
+    # so they never carry one. Skip them by title; other PRs can use the `no-changeset` label.
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-changeset') && !startsWith(github.event.pull_request.title, 'chore(release):') }}
     steps:
       - uses: actions/checkout@v4
         with:
