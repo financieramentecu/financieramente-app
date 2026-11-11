@@ -31,7 +31,11 @@ export async function GET(
 
 		// Verify the file import exists and belongs to the user
 		const fileImport = await prisma.fileImport.findFirst({
-			where: { idFileImport: fileImportId, idUser: parseInt(session.user.id) },
+			where: {
+				idFileImport: fileImportId,
+				idUser: parseInt(session.user.id),
+				status: { not: 'DELETED' },
+			},
 		})
 
 		if (!fileImport) {
