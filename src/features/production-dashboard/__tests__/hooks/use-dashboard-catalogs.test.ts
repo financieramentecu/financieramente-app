@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import {
-  useDashboardCatalogs,
-  resetDashboardCatalogsRequest,
-} from '../../hooks/use-dashboard-catalogs'
 
 vi.mock('@/lib/api/client', () => ({
   apiClient: { get: vi.fn() },
@@ -13,10 +9,16 @@ import { apiClient } from '@/lib/api/client'
 
 const mockGet = vi.mocked(apiClient.get)
 
+type UseDashboardCatalogs = typeof import('../../hooks/use-dashboard-catalogs').useDashboardCatalogs
+let useDashboardCatalogs: UseDashboardCatalogs
+
 describe('useDashboardCatalogs', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
-    resetDashboardCatalogsRequest()
+    // Fresh module per test: the in-flight request is module state, so a request
+    // left pending by one test must not leak into the next.
+    vi.resetModules()
+    ;({ useDashboardCatalogs } = await import('../../hooks/use-dashboard-catalogs'))
   })
 
   it('starts in loading state', () => {

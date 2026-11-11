@@ -23,19 +23,9 @@ vi.mock('../negocios-page-client', () => ({ NegociosPageClient: () => null }))
 
 import NegociosPage from '../page'
 
-describe('NegociosPage default date seed', () => {
+describe('NegociosPage default date seed (database role fallback)', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-	})
-
-	it('redirects with the current month before looking up the user when the session role has a default', async () => {
-		authMock.mockResolvedValue({ user: { email: 'a@b.com', role: 'ADMIN' } })
-
-		await expect(
-			NegociosPage({ searchParams: Promise.resolve({}) })
-		).rejects.toThrow(/NEXT_REDIRECT:\/dashboard\/negocios\?createdFrom=/)
-
-		expect(getCurrentUserByEmailMock).not.toHaveBeenCalled()
 	})
 
 	it('does not redirect when the URL already carries a date filter', async () => {
@@ -52,7 +42,7 @@ describe('NegociosPage default date seed', () => {
 		expect(redirectMock).not.toHaveBeenCalled()
 	})
 
-	it('falls back to the database role when the session role is missing', async () => {
+	it('seeds from the database role when the middleware could not (session role missing)', async () => {
 		authMock.mockResolvedValue({ user: { email: 'a@b.com', role: null } })
 		getCurrentUserByEmailMock.mockResolvedValue({ role: { code: 'ADMIN' } })
 

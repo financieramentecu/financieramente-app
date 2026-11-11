@@ -20,11 +20,6 @@ export interface DashboardCatalogsData {
 
 let inFlightRequest: Promise<DashboardCatalogsData> | null = null
 
-/** Test helper: forget the shared in-flight request. */
-export function resetDashboardCatalogsRequest(): void {
-  inFlightRequest = null
-}
-
 /**
  * One request shared by every consumer mounted at the same time (the filter
  * panel and the heatmap both need the catalogs). It is dropped as soon as it

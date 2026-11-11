@@ -55,22 +55,11 @@ export default async function NegociosPage({
 	// Await searchParams (Next.js 15: searchParams is a Promise in server components)
 	const resolvedSearchParams = searchParams ? await searchParams : {}
 
-	// Seed the role's default date filter before rendering, so the client
-	// mounts with it already in the URL and the list is loaded only once.
-	// The session role is enough to decide it, so redirect before the user
-	// lookup instead of paying for it twice.
-	const earlySeedQuery = buildDefaultDateSeedQuery(
-		session.user.role ?? undefined,
-		resolvedSearchParams
-	)
-	if (earlySeedQuery) {
-		redirect(`/dashboard/negocios?${earlySeedQuery}`)
-	}
-
 	const currentUser = await getCurrentUserByEmail(session.user.email)
 
-	// The database role is authoritative: cover a session role that is missing
-	// or out of date.
+	// The Edge middleware already seeds the default date filter from the session
+	// role (so client navigations never flash a blank screen). The database role
+	// is authoritative: cover a session role that is missing or out of date.
 	const seedQuery = buildDefaultDateSeedQuery(
 		currentUser?.role?.code,
 		resolvedSearchParams
