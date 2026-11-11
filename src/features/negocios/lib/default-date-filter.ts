@@ -64,3 +64,42 @@ export function getDefaultDateParamPair(
 			return null
 	}
 }
+
+export type PageSearchParams = Record<string, string | string[] | undefined>
+
+/** Next.js page `searchParams` as a URLSearchParams (repeated keys kept). */
+export function toUrlSearchParams(searchParams: PageSearchParams): URLSearchParams {
+	const params = new URLSearchParams()
+	for (const [key, value] of Object.entries(searchParams)) {
+		if (value === undefined) continue
+		for (const item of Array.isArray(value) ? value : [value]) {
+			params.append(key, item)
+		}
+	}
+	return params
+}
+
+/**
+ * Query string that seeds the role's default date filter (current month),
+ * keeping every param already in the URL. Returns null when no seed applies:
+ * the role has no default, or the URL already carries a date filter.
+ *
+ * Used by the negocios Server Component so the first render already has the
+ * filter and the list is fetched once.
+ */
+export function buildDefaultDateSeedQuery(
+	roleCode: string | undefined,
+	searchParams: PageSearchParams,
+	now: Date = new Date()
+): string | null {
+	const pair = getDefaultDateParamPair(roleCode)
+	if (!pair) return null
+
+	const params = toUrlSearchParams(searchParams)
+	if (hasAnyDateParam(params)) return null
+
+	const range = getCurrentMonthRange(now)
+	params.set(pair.fromKey, range.from)
+	params.set(pair.toKey, range.to)
+	return params.toString()
+}

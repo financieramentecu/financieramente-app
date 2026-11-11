@@ -55,6 +55,13 @@ import { formatDateBogota } from '@/features/shared/lib/format-date'
 import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 
 
+/**
+ * Stable row identity by business id. Without it TanStack keys rows by index,
+ * so row-level state (open upload/comment modals) jumps to a different business
+ * when the list is refetched or re-sorted.
+ */
+export const getBusinessRowId = (row: Pick<Business, 'id'>): string => String(row.id)
+
 interface PaginationData {
 	page: number
 	pageSize: number
@@ -729,6 +736,7 @@ export function BusinessTableSection({
 					dense={true}
 					columns={columns}
 					data={data}
+					getRowId={getBusinessRowId}
 					columnLabels={BUSINESS_COLUMN_LABELS}
 					searchable={true}
 					onGlobalSearch={onGlobalSearch}

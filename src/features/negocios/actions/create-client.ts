@@ -7,6 +7,13 @@ import { z } from 'zod'
 import { identityNumberSchema } from '../lib/identity-number.schema'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
 import { resolveClientDocumentType } from '@/features/document-types/services/document-type.service'
+import {
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+	logAuditEvent,
+} from '@/features/auth/lib/audit-logger'
+import { headers } from 'next/headers'
 
 /**
  * Schema de validación para crear un cliente
@@ -101,6 +108,19 @@ export async function createClient(
 				city: validatedData.city,
 				country: validatedData.country,
 			},
+		})
+
+		const reqHeaders = await headers()
+		const userId = guard.session.user.id
+			? parseInt(guard.session.user.id, 10)
+			: undefined
+		await logAuditEvent({
+			userId: Number.isFinite(userId) ? userId : undefined,
+			email: guard.session.user.email ?? undefined,
+			ipAddress: getClientIp(reqHeaders),
+			userAgent: getUserAgent(reqHeaders),
+			action: AuditAction.CLIENT_CREATED,
+			details: `Cliente ${client.idClient} creado (${client.typeIdentity} ${client.identityNumber})`,
 		})
 
 		return {

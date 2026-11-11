@@ -7,11 +7,12 @@
  * Recalcula cuando cambian los filtros avanzados (misma shape que la lista).
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { businessService } from '../services/business.service'
 import type { CoachKpiResponse } from '../types/business-api.types'
 import type { BusinessFilterParams } from '../lib/business-api.schemas'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
+import { claimInitialRender, type InitialData } from '../lib/initial-render-claim'
 
 interface UseBusinessStatsReturn {
 	stats: CoachKpiResponse | null
@@ -26,15 +27,18 @@ interface UseBusinessStatsReturn {
  * @param params - Filtros avanzados (misma semántica que GET /api/negocios)
  */
 export function useBusinessStats(
-	params: Partial<BusinessFilterParams> = {}
+	params: Partial<BusinessFilterParams> = {},
+	initial?: InitialData<CoachKpiResponse>
 ): UseBusinessStatsReturn {
-	const [state, setState] = useState<AsyncState<CoachKpiResponse>>({
-		status: 'loading',
-		data: undefined,
-		error: '',
-	})
+	const [state, setState] = useState<AsyncState<CoachKpiResponse>>(
+		initial
+			? { status: 'success', data: initial.data, error: '' }
+			: { status: 'loading', data: undefined, error: '' }
+	)
 
 	const paramsKey = JSON.stringify(params)
+	// Params the server-provided data belongs to; cleared once they change.
+	const initialKeyRef = useRef(initial ? paramsKey : null)
 
 	const fetchStats = useCallback(
 		async (isBackground: boolean = false) => {
@@ -80,7 +84,17 @@ export function useBusinessStats(
 	)
 
 	useEffect(() => {
+		if (initial && initialKeyRef.current === paramsKey) {
+			initialKeyRef.current = null
+			// First mount of this server render: its data is current.
+			if (claimInitialRender(`stats:${initial.renderId}`)) return
+			// Same render mounted again (back/forward): refresh silently.
+			void fetchStats(true)
+			return
+		}
+		initialKeyRef.current = null
 		fetchStats()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [fetchStats])
 
 	return {

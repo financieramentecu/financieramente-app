@@ -40,7 +40,6 @@ const config: StorybookConfig & {
 			// Both the @/ alias and the absolute path to catch whichever webpack sees first
 			'@/lib/auth/nextauth': require.resolve('./mocks/nextauth.ts'),
 			[path.resolve(__dirname, '../src/lib/auth/nextauth')]: require.resolve('./mocks/nextauth.ts'),
-			'@flagsmith/flagsmith/react': require.resolve('./mocks/flagsmith-react.ts'),
 		}
 		return config
 	},
@@ -69,8 +68,6 @@ const config: StorybookConfig & {
 			{ find: '@/lib/auth/nextauth', replacement: require.resolve('./mocks/nextauth.ts') },
 			// Absolute path alias — catches tsconfig-resolved @/ imports before vite sees them
 			{ find: path.resolve(__dirname, '../src/lib/auth/nextauth'), replacement: require.resolve('./mocks/nextauth.ts') },
-			// RegExp required for scoped subpath packages (@flagsmith/flagsmith/react)
-			{ find: /^@flagsmith\/flagsmith\/react$/, replacement: require.resolve('./mocks/flagsmith-react.ts') },
 		]
 		return config
 	},

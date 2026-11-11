@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+	buildDefaultDateSeedQuery,
 	getCurrentMonthRange,
 	getDefaultDateParamPair,
 	hasAnyDateParam,
@@ -111,5 +112,45 @@ describe('hasAnyDateParam', () => {
 		const params = new URLSearchParams()
 		params.set('dateFrom', '')
 		expect(hasAnyDateParam(params)).toBe(false)
+	})
+})
+
+describe('buildDefaultDateSeedQuery', () => {
+	const now = new Date('2026-03-15T17:00:00Z')
+
+	it('seeds the current month on the role default dimension', () => {
+		const query = buildDefaultDateSeedQuery(UserRole.AGENTE, {}, now)
+		const params = new URLSearchParams(query ?? '')
+		expect(params.get('createdFrom')).toBe('2026-03-01')
+		expect(params.get('createdTo')).toBe('2026-03-15')
+		expect(params.get('dateFrom')).toBeNull()
+	})
+
+	it('preserves existing non-date params, including repeated keys', () => {
+		const query = buildDefaultDateSeedQuery(
+			UserRole.ADMIN,
+			{ statuses: ['EMITIDO', 'FONDEADO'], agentName: 'Ana', empty: undefined },
+			now
+		)
+		const params = new URLSearchParams(query ?? '')
+		expect(params.getAll('statuses')).toEqual(['EMITIDO', 'FONDEADO'])
+		expect(params.get('agentName')).toBe('Ana')
+		expect(params.has('empty')).toBe(false)
+		expect(params.get('createdFrom')).toBe('2026-03-01')
+	})
+
+	it('returns null when the URL already carries a date filter', () => {
+		expect(
+			buildDefaultDateSeedQuery(
+				UserRole.ADMIN,
+				{ dateIssuedFrom: '2026-01-01', dateIssuedTo: '2026-01-31' },
+				now
+			)
+		).toBeNull()
+	})
+
+	it('returns null for roles without a default date filter', () => {
+		expect(buildDefaultDateSeedQuery(UserRole.DEFAULT, {}, now)).toBeNull()
+		expect(buildDefaultDateSeedQuery(undefined, {}, now)).toBeNull()
 	})
 })

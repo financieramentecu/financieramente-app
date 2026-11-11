@@ -19,16 +19,11 @@ import { useSidebar } from '@/features/shared/ui/sidebar'
 import { BrandLogo } from '@/features/shared/ui/brand-logo'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { buildMenuByRole } from '@/lib/navigation/menu-builder'
-import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import { useAuthorizedReportCodes } from '@/features/report-permissions/hooks/use-authorized-report-codes'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar()
 	const { session, isLoading } = useAuthSession()
-	const { enabled: isCalculadoraEnabled } = useFeatureFlag(
-		'dashboard_calculadora'
-	)
-	const { enabled: isDashboardEnabled } = useFeatureFlag('production_dashboard')
 	const { codes: authorizedReportCodes } = useAuthorizedReportCodes()
 	const isCollapsed = state === 'collapsed'
 
@@ -38,18 +33,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			return []
 		}
 
-		let items = buildMenuByRole(session.user.role, session.user.permissions, {
-			isCalculadoraEnabled,
+		return buildMenuByRole(session.user.role, session.user.permissions, {
 			authorizedReportCodes,
 		})
-
-		// Hide production dashboard when feature flag is off
-		if (!isDashboardEnabled) {
-			items = items.filter((item) => item.url !== '/dashboard')
-		}
-
-		return items
-	}, [session, isCalculadoraEnabled, isDashboardEnabled, authorizedReportCodes])
+	}, [session, authorizedReportCodes])
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
