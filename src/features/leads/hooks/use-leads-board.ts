@@ -79,5 +79,12 @@ export function useLeadsBoard(filters?: LeadBoardFilters) {
 		}
 	}, [fetchBoard])
 
-	return { state, refetch: fetchBoard }
+	function updateColumns(updater: (columns: LeadBoardColumn[]) => LeadBoardColumn[]) {
+		setState((current) => {
+			if (current.status !== 'success') return current
+			return { status: 'success', data: updater(current.data), error: '' }
+		})
+	}
+
+	return { state, refetch: fetchBoard, updateColumns }
 }
