@@ -267,11 +267,19 @@ export async function createBusiness(
 		const userId = guard.session.user.id
 			? parseInt(guard.session.user.id, 10)
 			: undefined
-		await logAuditEvent({
+		const auditActor = {
 			userId: Number.isFinite(userId) ? userId : undefined,
 			email: guard.session.user.email ?? undefined,
 			ipAddress: getClientIp(reqHeaders),
 			userAgent: getUserAgent(reqHeaders),
+		}
+		await logAuditEvent({
+			...auditActor,
+			action: AuditAction.BUSINESS_CREATED,
+			details: `Negocio ${business.idBusiness} creado (cliente: ${business.idClient}, agente: ${business.idUser}, valor: ${validatedData.value}, estado: ${business.status})`,
+		})
+		await logAuditEvent({
+			...auditActor,
 			action: AuditAction.BUSINESS_POLICYHOLDER_LINKED,
 			details: samePerson
 				? `Negocio ${business.idBusiness} creado con el cliente como tomador`

@@ -109,7 +109,11 @@ describe('HierarchyTreePanel', () => {
 	it('(a) returns null (no panel rendered) when nodes array is empty', () => {
 		mockUseHierarchyTree.mockReturnValue(makeSuccessState([]))
 
-		const { container } = render(<HierarchyTreePanel />)
+		const { container } = render(
+			<HierarchySelectionProvider>
+				<HierarchyTreePanel />
+			</HierarchySelectionProvider>
+		)
 
 		expect(container.firstChild).toBeNull()
 	})
@@ -118,7 +122,11 @@ describe('HierarchyTreePanel', () => {
 		mockUseHierarchyTree.mockReturnValue(makeSuccessState([]))
 		const onEmptyChange = vi.fn()
 
-		render(<HierarchyTreePanel onEmptyChange={onEmptyChange} />)
+		render(
+			<HierarchySelectionProvider>
+				<HierarchyTreePanel onEmptyChange={onEmptyChange} />
+			</HierarchySelectionProvider>
+		)
 
 		expect(onEmptyChange).toHaveBeenCalledWith(true)
 	})
@@ -203,5 +211,46 @@ describe('HierarchyTreePanel', () => {
 
 		// After cascade both are excluded
 		expect(screen.getByTestId('selected-ids')).toHaveTextContent('')
+	})
+})
+
+describe('HierarchyTreePanel resolves the hierarchy selection', () => {
+	function Probe() {
+		const { isHierarchyResolved } = useHierarchySelection()
+		return <span data-testid="resolved">{String(isHierarchyResolved)}</span>
+	}
+
+	function renderWithProbe() {
+		render(
+			<HierarchySelectionProvider>
+				<HierarchyTreePanel />
+				<Probe />
+			</HierarchySelectionProvider>
+		)
+	}
+
+	beforeEach(() => {
+		vi.clearAllMocks()
+	})
+
+	it('stays unresolved while the tree is loading', () => {
+		mockUseHierarchyTree.mockReturnValue(makeLoadingState())
+		renderWithProbe()
+		expect(screen.getByTestId('resolved')).toHaveTextContent('false')
+	})
+
+	it('resolves when the tree is empty, even though no panel is rendered', () => {
+		mockUseHierarchyTree.mockReturnValue(makeSuccessState([]))
+		renderWithProbe()
+		expect(screen.getByTestId('resolved')).toHaveTextContent('true')
+	})
+
+	it('resolves when the request fails, so data hooks fall back to the session user', () => {
+		mockUseHierarchyTree.mockReturnValue({
+			state: { status: 'error', data: undefined, error: 'boom' },
+			refetch: vi.fn(),
+		})
+		renderWithProbe()
+		expect(screen.getByTestId('resolved')).toHaveTextContent('true')
 	})
 })

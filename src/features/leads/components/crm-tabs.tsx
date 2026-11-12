@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useFlags } from '@flagsmith/flagsmith/react'
 import { useSession } from 'next-auth/react'
 import { canManageCrm } from '@/features/leads/crm/crm-policy'
 import { LeadsBoard } from '@/features/leads/components/leads-board'
@@ -12,24 +11,21 @@ import { CrmReports } from '@/features/leads/reports/crm-reports'
 import { CrmLeadDetailSheet } from '@/features/leads/components/crm-lead-detail-sheet'
 import { useLeadDetailSheet } from '@/features/leads/hooks/use-lead-detail-sheet'
 import {
-	CRM_TABS,
 	parseLeadParam,
 	resolveCrmTabs,
 	resolveInitialCrmTab,
 	type CrmTabId,
 } from '@/features/leads/lib/crm-tabs'
+import { isFlagEnabled } from '@/features/shared/lib/feature-flag'
 import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
 import { CrmHierarchyShell } from '@/features/leads/components/crm-hierarchy-shell'
 import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/features/shared/ui/tabs'
 
-const TAB_FLAGS: FeatureFlag[] = [...CRM_TABS.flatMap((tab) => (tab.flag ? [tab.flag] : [])), 'crm_lead_fields']
-
 export function CrmTabs() {
 	const searchParams = useSearchParams()
-	const flags = useFlags(TAB_FLAGS)
 	const { data: session } = useSession()
-	const tabs = resolveCrmTabs((flag: FeatureFlag) => flags[flag]?.enabled ?? false)
+	const tabs = resolveCrmTabs((flag: FeatureFlag) => isFlagEnabled(flag))
 	const initialTab = resolveInitialCrmTab(searchParams.get('tab'), tabs)
 	const [selectedTab, setSelectedTab] = React.useState<CrmTabId | null>(null)
 	const [visitedTabs, setVisitedTabs] = React.useState<CrmTabId[]>([])
@@ -69,7 +65,7 @@ export function CrmTabs() {
 					{visitedTabs.includes('leads') && (
 						<LeadsTable
 							onOpenLead={(idLead) => void openLead(idLead)}
-							fieldsEnabled={flags.crm_lead_fields?.enabled ?? false}
+							fieldsEnabled={isFlagEnabled('crm_lead_fields')}
 							canConfigure={canManageCrm(session?.user?.role)}
 						/>
 					)}

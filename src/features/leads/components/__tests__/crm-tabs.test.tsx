@@ -1,12 +1,12 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { useSearchParams } from 'next/navigation'
-import { useFlags } from '@flagsmith/flagsmith/react'
+import { isFlagEnabled } from '@/features/shared/lib/feature-flag'
 import { CrmTabs } from '@/features/leads/components/crm-tabs'
 import { useLeadDetailSheet } from '@/features/leads/hooks/use-lead-detail-sheet'
 
 vi.mock('next/navigation', () => ({ useSearchParams: vi.fn() }))
-vi.mock('@flagsmith/flagsmith/react', () => ({ useFlags: vi.fn() }))
+vi.mock('@/features/shared/lib/feature-flag', () => ({ isFlagEnabled: vi.fn() }))
 vi.mock('next-auth/react', () => ({ useSession: () => ({ data: { user: { role: 'AGENTE' } } }) }))
 vi.mock('@/features/leads/components/leads-board', () => ({
 	LeadsBoard: () => <div data-testid="leads-board" />,
@@ -33,7 +33,7 @@ function setup(params: string, tasksEnabled: boolean, extraFlags: string[] = [])
 	vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams(params) as never)
 	const flags: Record<string, { enabled: boolean; value: null }> = { crm_tasks: { enabled: tasksEnabled, value: null } }
 	for (const flag of extraFlags) flags[flag] = { enabled: true, value: null }
-	vi.mocked(useFlags).mockReturnValue(flags as never)
+	vi.mocked(isFlagEnabled).mockImplementation((flag) => flags[flag]?.enabled ?? false)
 	render(<CrmTabs />)
 }
 

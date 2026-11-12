@@ -11,6 +11,7 @@ import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.
 import { appendLeadConversionAuditTx } from '@/features/leads/conversion/lead-conversion-audit.service'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { prisma } from '@/lib/prisma'
+import { logAuditEvent } from '@/features/auth/lib/audit-logger'
 import { UserRole } from '@/features/auth/lib/roles'
 
 vi.mock('@/lib/prisma', () => ({
@@ -48,6 +49,7 @@ vi.mock('next/headers', () => ({
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	AuditAction: {
+		BUSINESS_CREATED: 'BUSINESS_CREATED',
 		BUSINESS_POLICYHOLDER_LINKED: 'BUSINESS_POLICYHOLDER_LINKED',
 		BUSINESS_POLICYHOLDER_UNLINKED: 'BUSINESS_POLICYHOLDER_UNLINKED',
 	},
@@ -151,6 +153,47 @@ describe('createBusiness', () => {
 		expect(result.data).toBeNull()
 		expect('error' in result && result.error).toBeTruthy()
 		expect(prisma.$transaction).not.toHaveBeenCalled()
+	})
+
+	it('logs a BUSINESS_CREATED audit event after creating the business', async () => {
+		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+			name: 'Anual',
+		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+		const created = mockCreatedBusiness({ idBusiness: 77 })
+		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+			return callback({
+				business: { create: vi.fn().mockResolvedValue(created) },
+				payment: { createMany: vi.fn() },
+			} as never)
+		})
+
+		await createBusiness({ ...basePayload, idBuyPeriodicity: 1, term: 3 })
+
+		expect(logAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				userId: 1,
+				action: 'BUSINESS_CREATED',
+				details: expect.stringContaining('77'),
+			})
+		)
+	})
+
+	it('does not log BUSINESS_CREATED when the creation fails', async () => {
+		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+			name: 'Anual',
+		} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+		vi.mocked(prisma.$transaction).mockRejectedValue(new Error('boom'))
+
+		const result = await createBusiness({
+			...basePayload,
+			idBuyPeriodicity: 1,
+			term: 3,
+		})
+
+		expect(result.data).toBeNull()
+		expect(logAuditEvent).not.toHaveBeenCalledWith(
+			expect.objectContaining({ action: 'BUSINESS_CREATED' })
+		)
 	})
 
 	it('does NOT create payment rows when business is VENTA_EFECTUADA', async () => {

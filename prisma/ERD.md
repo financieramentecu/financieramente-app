@@ -738,6 +738,8 @@ erDiagram
 
 ## Índices y convenciones
 
+- **`commission_discount` — un solo ACTIVE por tipo (COM-65)**: índice único parcial `commission_discount_one_active_per_type_idx` (`UNIQUE(type) WHERE status = 'ACTIVE'`). Solo existe en el SQL de la migración `20261105160000_commission_discount_one_active_per_type` (Prisma no declara índices parciales en el schema). La migración aborta con un mensaje claro si ya hay duplicados ACTIVE.
+
 - **PK**: Primary Key  
 - **FK**: Foreign Key  
 - **UK**: Unique (constraint único)  

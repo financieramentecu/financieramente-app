@@ -30,9 +30,9 @@ export function useNotifications(userId: number) {
 	}, [])
 
 	useEffect(() => {
-		// Session id arrives after the first paint. Skip the placeholder 0 so
-		// the list and the stream open once, when the user is known.
-		if (userId <= 0) return
+		// The session is still loading (id 0): fetching and opening the SSE
+		// stream now would be thrown away as soon as the real id arrives.
+		if (!userId) return
 
 		fetchNotifications()
 
