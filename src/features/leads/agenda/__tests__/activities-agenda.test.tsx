@@ -109,6 +109,7 @@ describe('ActivitiesAgenda', () => {
 		render(<ActivitiesAgenda onOpenLead={vi.fn()} onOpenActivity={vi.fn()} canConfigure />)
 		const custom = await screen.findByRole('region', { name: 'Seguimiento' })
 		expect(within(custom).getByText('En seguimiento')).toBeInTheDocument()
+		expect(within(custom).getAllByText('Seguimiento').length).toBeGreaterThan(1)
 		expect(within(screen.getByRole('region', { name: 'Vencidas' })).queryByText('En seguimiento')).not.toBeInTheDocument()
 		fireEvent.click(screen.getByRole('button', { name: 'Columnas' }))
 		expect(screen.getByRole('button', { name: 'Agregar' })).toBeInTheDocument()

@@ -11,6 +11,8 @@ import {
 	rescheduleLeadTaskTx,
 } from '@/features/leads/tasks/lead-task.service'
 import { resolveTaskActivityLabel } from '@/features/leads/activities/activity-label.service'
+import { activityStateName } from '@/features/leads/agenda/activity-bucket'
+import { listActivityColumns } from '@/features/leads/agenda/activity-column.service'
 import { TASK_TYPE_LABELS } from '@/features/leads/agenda/task-type-labels'
 import type { LeadTaskKind } from '@/features/leads/tasks/lead-task.schema'
 
@@ -35,24 +37,30 @@ function audit(ctx: CrmRequestContext, action: AuditAction, details: string) {
 }
 
 export async function listLeadTasks(idLead: number) {
-	const rows = await prisma.leadTask.findMany({
-		where: { idLead },
-		orderBy: [{ createdAt: 'desc' }, { idLeadTask: 'desc' }],
-		select: {
-			idLeadTask: true,
-			title: true,
-			type: true,
-			dueAt: true,
-			status: true,
-			assignedTo: true,
-			completedAt: true,
-			assignee: { select: { name: true, lastName: true } },
-			activityLabel: { select: { name: true } },
-		},
-	})
-	return rows.map(({ activityLabel, ...task }) => ({
+	const [rows, columns] = await Promise.all([
+		prisma.leadTask.findMany({
+			where: { idLead },
+			orderBy: [{ createdAt: 'desc' }, { idLeadTask: 'desc' }],
+			select: {
+				idLeadTask: true,
+				title: true,
+				type: true,
+				dueAt: true,
+				status: true,
+				columnCode: true,
+				assignedTo: true,
+				completedAt: true,
+				assignee: { select: { name: true, lastName: true } },
+				activityLabel: { select: { name: true } },
+			},
+		}),
+		listActivityColumns(),
+	])
+	const now = new Date()
+	return rows.map(({ activityLabel, columnCode, ...task }) => ({
 		...task,
 		typeLabel: activityLabel?.name ?? TASK_TYPE_LABELS[task.type],
+		stateLabel: activityStateName({ ...task, columnCode }, columns, now),
 	}))
 }
 

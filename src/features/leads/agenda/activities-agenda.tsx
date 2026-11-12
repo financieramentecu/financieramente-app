@@ -19,7 +19,7 @@ import { Button } from '@/features/shared/ui/button'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { formatDateTimeBogota } from '@/features/shared/lib/format-date'
 import { ACTIVITY_COLUMN_CODE } from '@/features/leads/agenda/activity-column.types'
-import { placedColumn } from '@/features/leads/agenda/activity-bucket'
+import { activityStateName, placedColumn } from '@/features/leads/agenda/activity-bucket'
 import { ActivityColumnSettings } from '@/features/leads/agenda/activity-column-settings'
 import { useActivityColumns } from '@/features/leads/agenda/use-activity-columns'
 import { TASK_TYPE_LABELS } from '@/features/leads/agenda/task-type-labels'
@@ -31,7 +31,6 @@ import type {
 	ActivityBoardCaseDto,
 	ActivityBoardTaskDto,
 	ActivityCasePriority,
-	ActivityCaseStatus,
 	ActivityFocus,
 } from '@/features/leads/agenda/agenda.types'
 import { cn } from '@/lib/utils'
@@ -41,14 +40,6 @@ const kanbanCollision: CollisionDetection = (args) => {
 	return hits.length > 0 ? hits : closestCorners(args)
 }
 
-const TASK_STATUS_LABELS = { OPEN: 'Abierta', DONE: 'Completada', CANCELLED: 'Cancelada' } as const
-const CASE_STATUS_LABELS: Record<ActivityCaseStatus, string> = {
-	OPEN: 'Abierto',
-	IN_PROGRESS: 'En proceso',
-	WAITING: 'En espera',
-	RESOLVED: 'Resuelto',
-	CLOSED: 'Cerrado',
-}
 const CASE_PRIORITY_LABELS: Record<ActivityCasePriority, string> = {
 	LOW: 'Prioridad baja',
 	MEDIUM: 'Prioridad media',
@@ -130,10 +121,12 @@ function LeadName({ name, onOpen }: { name: string; onOpen: () => void }) {
 
 function ActivityCard({
 	card,
+	stateName,
 	onOpenLead,
 	onOpen,
 }: {
 	card: ActivityCardModel
+	stateName: string
 	onOpenLead: (idLead: number, leadName: string) => void
 	onOpen: (focus: ActivityFocus) => void
 }) {
@@ -151,7 +144,7 @@ function ActivityCard({
 						<ActivityDueBadge dueAt={task.dueAt} prefix="Vence" closed={task.status !== 'OPEN'} />
 					</div>
 				</div>
-				<p className="text-xs text-muted-foreground">{TASK_STATUS_LABELS[task.status]}</p>
+				<p className="text-xs text-muted-foreground">{stateName}</p>
 				<LeadName name={task.leadName} onOpen={() => onOpenLead(task.idLead, task.leadName)} />
 				<p className="text-xs text-muted-foreground">Responsable: {task.assigneeName}</p>
 				<p className="text-xs text-muted-foreground">Creada por: {task.creatorName}</p>
@@ -178,7 +171,7 @@ function ActivityCard({
 				</div>
 			</div>
 			<p className="text-xs text-muted-foreground">
-				{CASE_STATUS_LABELS[supportCase.status]} · {CASE_PRIORITY_LABELS[supportCase.priority]}
+				{stateName} · {CASE_PRIORITY_LABELS[supportCase.priority]}
 			</p>
 			<LeadName name={supportCase.leadName} onOpen={() => onOpenLead(supportCase.idLead, supportCase.leadName)} />
 			<p className="text-xs text-muted-foreground">Responsable: {supportCase.assigneeName}</p>
@@ -190,10 +183,12 @@ function ActivityCard({
 
 function DraggableActivity({
 	card,
+	stateName,
 	onOpenLead,
 	onOpen,
 }: {
 	card: ActivityCardModel
+	stateName: string
 	onOpenLead: (idLead: number, leadName: string) => void
 	onOpen: (focus: ActivityFocus) => void
 }) {
@@ -201,7 +196,7 @@ function DraggableActivity({
 	const { listeners, setNodeRef, isDragging } = useDraggable({ id: `${focus.kind}:${focus.id}` })
 	return (
 		<div ref={setNodeRef} className={isDragging ? 'cursor-grabbing opacity-40' : 'cursor-grab touch-none'} {...listeners}>
-			<ActivityCard card={card} onOpenLead={onOpenLead} onOpen={onOpen} />
+			<ActivityCard card={card} stateName={stateName} onOpenLead={onOpenLead} onOpen={onOpen} />
 		</div>
 	)
 }
@@ -238,7 +233,7 @@ function ActivityColumn({
 			<div className="flex min-h-64 flex-1 flex-col gap-2 p-3">
 				{cards.map((card) => {
 					const focus = cardFocus(card)
-					return <DraggableActivity key={`${focus.kind}-${focus.id}`} card={card} onOpenLead={onOpenLead} onOpen={onOpen} />
+					return <DraggableActivity key={`${focus.kind}-${focus.id}`} card={card} stateName={title} onOpenLead={onOpenLead} onOpen={onOpen} />
 				})}
 				{cards.length === 0 && <p className="px-1 text-xs text-slate-600 dark:text-slate-400">Sin actividades</p>}
 			</div>
@@ -307,7 +302,8 @@ export function ActivitiesAgenda({
 		const dragged = parseDragId(event.active.id)
 		const bucket = parseBucketId(event.over?.id)
 		if (!dragged || !bucket) return
-		void place(dragged, bucket)
+		const stateName = columns.columns.find((column) => column.code === bucket)?.name
+		void place(dragged, bucket, stateName)
 	}
 
 	const board = state.status === 'success' ? state.data : { tasks: [], cases: [] }
@@ -390,7 +386,12 @@ export function ActivitiesAgenda({
 							<DragOverlay dropAnimation={null}>
 								{dragging ? (
 									<div className="w-72 cursor-grabbing">
-										<ActivityCard card={dragging} onOpenLead={() => undefined} onOpen={() => undefined} />
+										<ActivityCard
+											card={dragging}
+											stateName={activityStateName(activityOf(dragging), columns.columns, now) ?? ''}
+											onOpenLead={() => undefined}
+											onOpen={() => undefined}
+										/>
 									</div>
 								) : null}
 							</DragOverlay>

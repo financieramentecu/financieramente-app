@@ -21,6 +21,10 @@ import type { ActivityFinishActions, ActivityFinishState, ActivityFocus } from '
 const SELECT_CLASS = 'h-9 w-full rounded-md border border-input bg-background px-2 text-sm'
 
 function describeTaskStatus(task: LeadTaskDto): string {
+	if (task.stateLabel) {
+		if (task.status === 'OPEN' && task.dueAt) return `${task.stateLabel} · Vence ${formatDateTimeBogota(task.dueAt)}`
+		return task.stateLabel
+	}
 	if (task.status === 'DONE') return 'Completada'
 	if (task.status === 'CANCELLED') return 'Cancelada'
 	return task.dueAt ? `Vence ${formatDateTimeBogota(task.dueAt)}` : 'Sin fecha límite'

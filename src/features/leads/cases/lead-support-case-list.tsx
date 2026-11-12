@@ -24,6 +24,8 @@ interface SupportCase {
 	priority: SupportCasePriority
 	dueAt: string | null
 	resolvedAt: string | null
+	/** Column name: the state shown on the activities board. */
+	stateLabel?: string | null
 }
 
 interface CasesResponse {
@@ -271,7 +273,7 @@ export function LeadSupportCaseList({
 							<p className="text-xs font-medium text-muted-foreground">Descripción</p>
 							<p className="font-medium">{supportCase.subject}</p>
 							<p className="text-xs text-muted-foreground">
-								{statusLabel[supportCase.status]} · Prioridad {priorityLabel[supportCase.priority].toLowerCase()}
+								{supportCase.stateLabel ?? statusLabel[supportCase.status]} · Prioridad {priorityLabel[supportCase.priority].toLowerCase()}
 								{supportCase.dueAt ? ` · SLA ${formatDateBogota(supportCase.dueAt)}` : ''}
 							</p>
 						</div>
@@ -280,7 +282,7 @@ export function LeadSupportCaseList({
 					)}
 					{!focusOnly && (
 					<div className="flex flex-wrap items-center gap-2">
-						<Badge variant="outline">{statusLabel[supportCase.status]}</Badge>
+						<Badge variant="outline">{supportCase.stateLabel ?? statusLabel[supportCase.status]}</Badge>
 						<Badge variant="secondary">{priorityLabel[supportCase.priority]}</Badge>
 						<Button
 							type="button"

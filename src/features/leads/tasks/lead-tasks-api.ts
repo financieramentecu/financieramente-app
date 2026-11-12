@@ -11,6 +11,8 @@ export interface LeadTaskDto {
 	status: 'OPEN' | 'DONE' | 'CANCELLED'
 	assignedTo: number
 	completedAt: string | null
+	/** Column name: the state shown on the activities board. */
+	stateLabel?: string | null
 	assignee: { name: string; lastName: string | null }
 }
 
