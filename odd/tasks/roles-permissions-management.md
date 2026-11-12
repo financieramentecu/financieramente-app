@@ -1,0 +1,49 @@
+# Feature: roles-permissions-management
+
+Objective: let admins create roles and configure their permissions (with data scope) from the UI, replacing permissions hardcoded in code.
+Branch: feature/roles-permissions-management (from `develop`; not created yet) · Delivery: ask-on-risk · Test runner: Vitest (`npm run test:unit`)
+Design reference: https://claude.ai/artifact/S77U27fUx1zfYkvdhiV7SQ (6 boards: role list, new role, editor, comparison matrix)
+
+## Specs
+
+- S1. Permission catalog lives in code and is synced to the database (same pattern as `KNOWN_REPORT_DEFINITIONS`). Admins assign permissions to roles but cannot create permissions. User: "opcion A, quiero que tengamos un modulo que este centralizado para la administracion y no tener reglas dispersas por todo el codigo".
+- S2. One centralized module `src/features/access-control/` (catalog, pure `can`/`getScope`/`meetsMinLevel`, scope resolver, services, actions, hooks, components, types, tests). Endpoints use a single guard (`requirePermission`), components a single hook (`usePermissions`), menu built from the same permissions. `auth/lib/permissions.ts` and `auth/lib/roles.ts` become thin wrappers during migration, then are removed. ESLint rule forbids `UserRole.X` outside `access-control` (approved).
+- S3. ANALISTA_SOPORTE `negocios.ver` default scope = Compañía. User: "como Analista de Soporte es operativo deberia ver todos los negocios".
+- S4. ANALISTA_SOPORTE aportes stay as today: `aportes.fondear` ON, `aportes.ver` OFF; editable later. User: "dejemolo como estaba pero si se necesita se le puede agregar ese permisos desde la configuración". Editor warns when "fondear" is on without "ver".
+- S5. ANALISTA_SOPORTE `liquidacion.liquidar` default OFF (API currently accepts it; menu hides it); an admin can enable it from the editor.
+- S6. ASISTENTE_GERENCIA_OPERATIVA: `carga.masiva` default OFF; `configuracion.*`, `usuarios.*`, `partners.gestionar` default ADMIN-only; all activable for other roles. User: "Admin me parece bien que por default tenga esos permisos sin modificar y si se necesita roles que pueden acceder a el admin puedan acceder".
+- S7. ADMIN is locked: all permissions, scope Compañía, not editable (enforced in the API, not only the UI); new permissions are granted to ADMIN automatically. Nobody can remove their own `roles.gestionar`.
+- S8. Role `DEFAULT` is renamed to `SIN_ROL` (name "Sin rol asignado"), system role, no permissions, not deletable. User: "podemos hacer la mejora SIN_ROL para que sea mas descriptivo" / "confirmo". Migration changes `code`; update ~15 references, seed, ERD. Users keep the link via `idRole`.
+- S9. `negocios.exportar` minimum level is configurable per role. User: "que sea configurable". Stored as `RolePermission.idMinLevel` (FK to `Level`), generic for any permission with `supportsMinLevel`; initial value LEVEL_2 to keep today's behavior.
+- S10. Reports stay as today (visibility by Category via Permisos de Reportes), only linked from the editor; `reportes.exportar` is a normal permission. User: "dejarlo como esta, luego vemos como lo mejoramos."
+- S11. Data model: `Permission` (code unique, name, module, sortOrder, supportsScope, supportsMinLevel, status); `RolePermission` (idRole, idPermission, scope OWN|TEAM|COMPANY nullable, idMinLevel nullable, status; unique role+permission); `Role.isSystem`. Soft delete only.
+- S12. Repo rules: audit every mutation with `logAuditEvent` (`ROLE_CREATED`, `ROLE_UPDATED`, `ROLE_PERMISSIONS_CHANGED`, `ROLE_DEACTIVATED`), update `prisma/ERD.md`, add a changeset, code in English / UI strings in Spanish, services own Prisma.
+- S13. Initial seed reproduces today's `ROLE_PERMISSIONS` plus S3-S6, so nobody gains or loses access except what is agreed.
+
+## Tasks
+
+- [x] T1 · S8, S11, S13 · inline · Data model: Prisma models, migration (incl. DEFAULT→SIN_ROL), catalog sync, seed, ERD · done 2026-11-12: tsc 0 errors, eslint clean, 592 test files / 5618 tests green; migration + seed applied to Neon branch `roles-permissions-management` · commit: pending
+- [ ] T2 · S1, S2, S3-S7, S9 · inline · `access-control` core: catalog, `can`, `getScope`, `meetsMinLevel`, scope resolver (unify hierarchy logic), tests · commit: pending
+- [ ] T3 · S7, S12 · inline · Services, actions/API for roles and role permissions (extend the existing GET-only `src/app/api/admin/roles/route.ts`), audit events, ADMIN lock, self-lockout guard · commit: pending
+- [ ] T4 · S4, S9, S10 · inline · UI: role list, create role, editor (scope + min level selector, dependency warning), matrix; add Users/History tabs once designed · commit: pending
+- [ ] T5 · S2, S5, S6 · inline (per module, behind an activation flag) · Migrate the ~96 role checks to `requirePermission`/`usePermissions`, module by module · commit: pending
+- [ ] T6 · S2 · inline · ESLint rule, remove old wrappers, changeset · commit: pending
+
+## Notes from T1
+
+- Catalog has 44 permissions (the "~55" in early notes was an estimate). Defaults per role come from the design matrix + S3-S6; grants marked `VERIFY` in `default-role-grants.ts` (novedades.marcar, aportes.pago_anticipado/cartera, comprobantes.subir, comentarios.crear, liquidacion.notificar, distribuciones.ver for Analista) are a conservative reading and must be confirmed per module in T5.
+- Dev DB: Neon project `financieramente-dev`; branch `development` is EMPTY (0 tables), so work uses the branch `roles-permissions-management` (created from it, 77 migrations + `npm run prisma:seed` + `prisma:seed:permissions`). The full seed takes ~25 min from a laptop.
+- `User.idRole` is already nullable in the schema (a future "no role" model remains possible).
+
+## Open design gaps (not blocking T1-T3)
+
+- "Usuarios con este rol" and "Historial de cambios" tabs have no board.
+- Min-level selector, dependency warning, save error/confirmation states, behavior when deactivating a role with users, and how a role is assigned to a user are not designed.
+- JWT: permissions in token vs. cache/DB read (decide in T2/T3).
+
+## Log
+
+- L1 (2026-11-11) user, verbatim: "vamos a explorar esta nueva funcionalidad que me permita administrar y configurar los roles y permisos existentes. adjunto el diseño de funcionalidad, vamos a explorar que nos queda pendiente por cerrar para cumplir con la necesidad. https://claude.ai/artifact/S77U27fUx1zfYkvdhiV7SQ#page-dcb81aee8d83"
+- L2 (2026-11-11) exploration: permissions are hardcoded (`ROLE_PERMISSIONS`, 20 coarse flags vs ~55 in the design); `role` table has metadata only; `UserRole` is a TS enum; 96 files check roles; role is already revalidated per request in `src/lib/auth/config.ts`. Five menu-vs-API differences resolved as S3-S6.
+- L3 (2026-11-11) user: "siempre hay que usar engram crea el ODD y deja la regla que ya usamos ODD por SDD" → this document + Engram mirror `odd/roles-permissions-management/tasks`; project CLAUDE.md now states ODD replaces SDD.
+- L4 (2026-11-12) T1 implemented and verified on branch `feature/roles-permissions-management`; Neon branch created and seeded. Next: commit T1 in slices, then T2 (`can`, `getScope`, `meetsMinLevel`, scope resolver).
