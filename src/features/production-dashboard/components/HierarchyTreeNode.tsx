@@ -26,12 +26,15 @@ type HierarchyTreeNodeProps = {
 	depth?: number
 	/** Category IDs from filter context — non-matching nodes are dimmed */
 	activeCategoryIds?: number[]
+	/** Show the whole name on more than one line. The dashboard keeps a single truncated line. */
+	wrapName?: boolean
 }
 
 export function HierarchyTreeNode({
 	node,
 	depth = 0,
 	activeCategoryIds = [],
+	wrapName = false,
 }: HierarchyTreeNodeProps) {
 	const isCategoryDimmed =
 		activeCategoryIds.length > 0 &&
@@ -119,7 +122,7 @@ export function HierarchyTreeNode({
 							{/* Name + category column */}
 							<span className="flex min-w-0 flex-1 flex-col gap-0.5">
 								<span
-									className="truncate leading-tight"
+									className={wrapName ? 'whitespace-normal break-words leading-tight' : 'truncate leading-tight'}
 									style={{
 										fontSize: depth === 0 ? '13px' : '12px',
 										fontWeight: depth === 0 ? 600 : 500,
@@ -179,6 +182,7 @@ export function HierarchyTreeNode({
 							node={child}
 							depth={depth + 1}
 							activeCategoryIds={activeCategoryIds}
+							wrapName={wrapName}
 						/>
 					))}
 				</ul>

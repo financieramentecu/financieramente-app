@@ -18,6 +18,7 @@ import {
 import { Button } from '@/features/shared/ui/button'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { formatDateTimeBogota } from '@/features/shared/lib/format-date'
+import { CRM_HIERARCHY_EMPTY_MESSAGE, useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
 import { ACTIVITY_COLUMN_CODE } from '@/features/leads/agenda/activity-column.types'
 import { activityStateName, placedColumn } from '@/features/leads/agenda/activity-bucket'
 import { ActivityColumnSettings } from '@/features/leads/agenda/activity-column-settings'
@@ -253,8 +254,9 @@ export function ActivitiesAgenda({
 	refreshKey?: number
 	canConfigure?: boolean
 }) {
-	const columns = useActivityColumns(true)
-	const { state, place } = useActivityBoard([], false, refreshKey)
+	const hierarchy = useCrmHierarchyFilter()
+	const columns = useActivityColumns(!hierarchy.noneSelected)
+	const { state, place } = useActivityBoard(hierarchy.ownerIds, !hierarchy.ready || hierarchy.noneSelected, refreshKey)
 	const [dragging, setDragging] = useState<ActivityCardModel | null>(null)
 	const [kindFilter, setKindFilter] = useState<ActivityKindFilter>('all')
 	const skipClick = useRef(false)
@@ -314,6 +316,10 @@ export function ActivitiesAgenda({
 
 	return (
 		<div className="space-y-4">
+			{hierarchy.noneSelected ? (
+				<p className="text-sm text-muted-foreground">{CRM_HIERARCHY_EMPTY_MESSAGE}</p>
+			) : (
+				<>
 					<div className="flex flex-wrap items-center justify-between gap-2">
 						<div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar actividades">
 							{KIND_FILTERS.map((option) => (
@@ -397,6 +403,8 @@ export function ActivitiesAgenda({
 							</DragOverlay>
 						</DndContext>
 					)}
+				</>
+			)}
 		</div>
 	)
 }

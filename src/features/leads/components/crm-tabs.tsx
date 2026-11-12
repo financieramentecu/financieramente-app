@@ -18,6 +18,7 @@ import {
 } from '@/features/leads/lib/crm-tabs'
 import { isFlagEnabled } from '@/features/shared/lib/feature-flag'
 import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
+import { CrmHierarchyShell } from '@/features/leads/components/crm-hierarchy-shell'
 import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/features/shared/ui/tabs'
 
@@ -47,7 +48,7 @@ export function CrmTabs() {
 	}, [deepLinkLead])
 
 	return (
-		<>
+		<CrmHierarchyShell>
 			<Tabs value={activeTab} onValueChange={(value) => setSelectedTab(value as CrmTabId)} className="space-y-4">
 				<TabsList>
 					{tabs.map((tab) => (
@@ -101,6 +102,6 @@ export function CrmTabs() {
 				previewName={sheet.previewName}
 				loadError={sheet.loadError}
 			/>
-		</>
+		</CrmHierarchyShell>
 	)
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import {
 	DndContext,
@@ -25,6 +25,7 @@ import { LeadsBoardFilters } from '@/features/leads/components/leads-board-filte
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 import { parsePrefixedId } from '@/features/leads/lib/parse-board-drag-id'
 import { moveLeadOnBoard, restoreLeadIfStillInColumn } from '@/features/leads/lib/move-lead-on-board'
+import { CRM_HIERARCHY_EMPTY_MESSAGE, useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
 import { Button } from '@/features/shared/ui/button'
 import { cn } from '@/lib/utils'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
@@ -43,8 +44,16 @@ const kanbanCollision: CollisionDetection = (args) => {
  */
 export function LeadsBoard() {
 	const { enabled: reportsEnabled } = useFeatureFlag('crm_reports')
+	const hierarchy = useCrmHierarchyFilter()
 	const [filters, setFilters] = useState(getDefaultLeadBoardFilters())
-	const { state, refetch, updateColumns } = useLeadsBoard(filters)
+	const ownerKey = hierarchy.ownerIds.join(',')
+	useEffect(() => {
+		if (!hierarchy.ready) return
+		setFilters((current) =>
+			current.ownerIds.join(',') === ownerKey ? current : { ...current, ownerIds: hierarchy.ownerIds }
+		)
+	}, [hierarchy.ready, hierarchy.ownerIds, ownerKey])
+	const { state, refetch, updateColumns } = useLeadsBoard(filters, !hierarchy.ready || hierarchy.noneSelected)
 	const isRefreshing = state.status === 'loading'
 	const sheet = useLeadDetailSheet()
 	const [draggingLead, setDraggingLead] = useState<LeadCardType | null>(null)
@@ -124,6 +133,10 @@ export function LeadsBoard() {
 				</Button>
 			</div>
 			<CrmSummaryCards enabled={reportsEnabled} />
+			{hierarchy.noneSelected ? (
+				<p className="text-sm text-muted-foreground">{CRM_HIERARCHY_EMPTY_MESSAGE}</p>
+			) : (
+				<>
 			{(state.status === 'loading' || state.status === 'idle') && (
 				<div className="flex gap-4 overflow-x-auto pb-4">
 					{Array.from({ length: 4 }).map((_, index) => (
@@ -161,6 +174,8 @@ export function LeadsBoard() {
 						) : null}
 					</DragOverlay>
 				</DndContext>
+			)}
+				</>
 			)}
 			<CrmLeadDetailSheet lead={sheet.lead} open={sheet.open} onOpenChange={sheet.setOpen} onDeleted={handleLeadDeleted} />
 		</div>

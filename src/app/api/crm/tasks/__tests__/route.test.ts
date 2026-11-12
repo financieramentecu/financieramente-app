@@ -48,11 +48,11 @@ describe('GET /api/crm/tasks', () => {
 		expect(requireCrmActor).toHaveBeenCalledWith('crm_tasks')
 	})
 
-	it('returns the viewer hierarchy on the board view', async () => {
+	it('returns hierarchy tasks for the board view, narrowed to requested advisors', async () => {
 		vi.mocked(getActivityBoard).mockResolvedValue([])
 		const response = await GET(new Request('http://x/?view=board&owner=8&owner=99'))
 		expect(response.status).toBe(200)
-		expect(getActivityBoard).toHaveBeenCalledWith([7, 8])
+		expect(getActivityBoard).toHaveBeenCalledWith([8])
 	})
 
 	it('rejects unknown buckets', async () => {
