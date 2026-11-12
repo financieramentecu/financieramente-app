@@ -857,6 +857,8 @@ model LeadSupportCase {
   status            LeadSupportCaseStatus    @default(OPEN)
   priority          LeadSupportCasePriority  @default(MEDIUM)
   dueAt             DateTime?                @map("due_at")
+  /// Custom board column. Null keeps the case in the due-date column.
+  columnCode        String?                  @map("column_code") @db.VarChar(20)
   resolvedAt        DateTime?                @map("resolved_at")
   createdAt         DateTime                 @default(now()) @map("created_at")
   updatedAt         DateTime                 @updatedAt @map("updated_at")
@@ -869,6 +871,7 @@ model LeadSupportCase {
   @@index([idLead, status])
   @@index([idBusiness, status])
   @@index([assignedTo, status, dueAt])
+  @@index([columnCode])
   @@map("lead_support_case")
 }
 
@@ -904,16 +907,18 @@ model LeadActivityLabel {
   @@map("lead_activity_label")
 }
 
-/// Editable title of one activities-board column. The code decides which cards land there.
+/// Board column. System codes group cards by due date. Any other code is a custom column.
 model LeadActivityColumn {
   idLeadActivityColumn Int      @id @default(autoincrement()) @map("id_lead_activity_column")
   code                 String   @unique @db.VarChar(20)
   name                 String   @db.VarChar(40)
   position             Int      @default(0)
+  active               Boolean  @default(true)
   updatedBy            Int      @map("updated_by")
   updatedAt            DateTime @updatedAt @map("updated_at")
   updater              User     @relation("LeadActivityColumnUpdater", fields: [updatedBy], references: [idUser])
 
+  @@index([active, position])
   @@map("lead_activity_column")
 }
 
@@ -927,6 +932,8 @@ model LeadTask {
   dueAt               DateTime?          @map("due_at")
   type                LeadTaskType       @default(TODO)
   idLeadActivityLabel Int?               @map("id_lead_activity_label")
+  /// Custom board column. Null keeps the card in the due-date column.
+  columnCode          String?            @map("column_code") @db.VarChar(20)
   status              LeadTaskStatus     @default(OPEN)
   completedAt         DateTime?          @map("completed_at")
   reminderSentAt      DateTime?          @map("reminder_sent_at")
@@ -941,6 +948,7 @@ model LeadTask {
 
   @@index([assignedTo, status, dueAt])
   @@index([idLead, status])
+  @@index([columnCode])
   @@index([dueAt, reminderSentAt])
   @@index([idLeadActivityLabel])
   @@map("lead_task")

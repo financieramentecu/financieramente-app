@@ -23,7 +23,7 @@ export async function fetchActivityBoard(ownerIds: number[]): Promise<ActivityBo
 	return body.data ?? { tasks: [], cases: [] }
 }
 
-export async function moveCase(idLeadSupportCase: number, bucket: AgendaBucket): Promise<void> {
+export async function moveCase(idLeadSupportCase: number, bucket: string): Promise<void> {
 	const response = await fetch(`/api/crm/cases/${idLeadSupportCase}`, {
 		method: 'PATCH',
 		headers: { 'Content-Type': 'application/json' },
@@ -48,7 +48,7 @@ export async function completeActivity(focus: ActivityFocus): Promise<void> {
 	if (!response.ok) throw new Error('complete')
 }
 
-export async function moveTask(idLeadTask: number, bucket: AgendaBucket): Promise<void> {
+export async function moveTask(idLeadTask: number, bucket: string): Promise<void> {
 	const response = await fetch(`/api/crm/tasks/${idLeadTask}`, {
 		method: 'PATCH',
 		headers: { 'Content-Type': 'application/json' },

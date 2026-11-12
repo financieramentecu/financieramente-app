@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AGENDA_BUCKETS } from '@/features/leads/tasks/agenda-bucket-range'
+import { ACTIVITY_COLUMN_CODE } from '@/features/leads/agenda/activity-column.types'
 
 const plainText = z
 	.string()
@@ -47,7 +47,7 @@ export const leadTaskUpdateSchema = z
 		assignedTo: positiveUserId.optional(),
 		dueAt: z.string().datetime().nullable().optional(),
 		comment: optionalComment,
-		bucket: z.enum(AGENDA_BUCKETS).optional(),
+		bucket: z.string().regex(ACTIVITY_COLUMN_CODE).optional(),
 	})
 	.superRefine((input, context) => {
 		if (input.action === 'reassign' && !input.assignedTo) {

@@ -12,6 +12,8 @@ import { storeLeadActivityFiles } from '@/features/leads/activities/lead-activit
 import { LeadAttachmentStorageError } from '@/features/leads/activities/lead-attachment-storage'
 import { readJsonOrFiles } from '@/features/leads/activities/json-or-files'
 import { dueAtForActivityBucket, type OpenActivityBucket } from '@/features/leads/agenda/activity-bucket'
+import { clearActivityPin, pinActivityColumn } from '@/features/leads/agenda/activity-column.service'
+import { isAgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
 import { leadTaskUpdateSchema } from '@/features/leads/tasks/lead-task.schema'
 import {
 	completeLeadTask,
@@ -68,8 +70,16 @@ export async function PATCH(request: Request, context: RouteContext) {
 		if (input.data.action === 'move') {
 			const bucket = input.data.bucket
 			if (!bucket) return error('Actualización inválida', 400)
+			if (!isAgendaBucket(bucket)) {
+				const pinned = await pinActivityColumn('task', idLeadTask, bucket, ctx)
+				if (!pinned) return error('Columna no encontrada', 404)
+				return NextResponse.json({ data: { idLeadTask } })
+			}
 			if (bucket === 'done') {
-				if (task.status === 'DONE') return NextResponse.json({ data: { idLeadTask } })
+				if (task.status === 'DONE') {
+					await clearActivityPin('task', idLeadTask, ctx)
+					return NextResponse.json({ data: { idLeadTask } })
+				}
 				const updated = await completeLeadTask({ idLeadTask, idLead: task.idLead }, ctx)
 				return NextResponse.json({ data: updated })
 			}

@@ -133,7 +133,10 @@ describe('lead task service', () => {
 		update.mockResolvedValue({ idLeadTask: 10 })
 		const dueAt = new Date('2026-11-12T15:00:00.000Z')
 		await rescheduleLeadTaskTx(tx as never, { idLeadTask: 10, dueAt })
-		expect(update).toHaveBeenCalledWith({ where: { idLeadTask: 10 }, data: { dueAt, reminderSentAt: null } })
+		expect(update).toHaveBeenCalledWith({
+			where: { idLeadTask: 10 },
+			data: { dueAt, reminderSentAt: null, columnCode: null },
+		})
 		expect(appendLeadActivityTx).not.toHaveBeenCalled()
 	})
 })

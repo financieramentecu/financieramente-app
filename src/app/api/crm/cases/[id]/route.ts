@@ -17,7 +17,9 @@ import {
 	leadSupportCaseCommentSchema,
 	leadSupportCaseUpdateSchema,
 } from '@/features/leads/cases/lead-support-case.schema'
-import { AGENDA_BUCKETS } from '@/features/leads/tasks/agenda-bucket-range'
+import { pinActivityColumn } from '@/features/leads/agenda/activity-column.service'
+import { ACTIVITY_COLUMN_CODE } from '@/features/leads/agenda/activity-column.types'
+import { isAgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
 import { dueAtForActivityBucket } from '@/features/leads/agenda/activity-bucket'
 import {
 	addLeadSupportCaseComment,
@@ -26,7 +28,7 @@ import {
 	transitionLeadSupportCase,
 } from '@/features/leads/cases/lead-support-case-commands.service'
 
-const caseMoveSchema = z.object({ bucket: z.enum(AGENDA_BUCKETS) }).strict()
+const caseMoveSchema = z.object({ bucket: z.string().regex(ACTIVITY_COLUMN_CODE) }).strict()
 
 interface RouteContext {
 	params: Promise<{ id: string }>
@@ -65,6 +67,12 @@ export async function PATCH(request: Request, context: RouteContext) {
 		if (!incoming.ok) return error(incoming.error, 400)
 		const move = caseMoveSchema.safeParse(incoming.body)
 		if (move.success) {
+			const ctx = requestContext(resolved.actor, request)
+			if (!isAgendaBucket(move.data.bucket)) {
+				const pinned = await pinActivityColumn('case', resolved.supportCase.idLeadSupportCase, move.data.bucket, ctx)
+				if (!pinned) return error('Columna no encontrada', 404)
+				return NextResponse.json({ data: { idLeadSupportCase: resolved.supportCase.idLeadSupportCase } })
+			}
 			const updated = await placeLeadSupportCase(
 				{
 					idLeadSupportCase: resolved.supportCase.idLeadSupportCase,
@@ -72,7 +80,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 					bucket: move.data.bucket,
 					dueAt: move.data.bucket === 'done' ? undefined : dueAtForActivityBucket(move.data.bucket, new Date()),
 				},
-				requestContext(resolved.actor, request)
+				ctx
 			)
 			return NextResponse.json({ data: updated })
 		}

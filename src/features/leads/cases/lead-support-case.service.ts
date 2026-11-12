@@ -27,6 +27,7 @@ export interface TransitionLeadSupportCaseInput {
   resolvedAt?: Date | null
   dueAt?: Date | null
   clearResolvedAt?: boolean
+  clearColumnCode?: boolean
 }
 export interface AddLeadSupportCaseCommentInput {
   idLeadSupportCase: number
@@ -71,6 +72,7 @@ export async function transitionLeadSupportCaseTx(tx: CaseWriter, input: Transit
       ...(input.assignedTo !== undefined ? { assignedTo: input.assignedTo } : {}),
       ...(input.dueAt !== undefined ? { dueAt: input.dueAt } : {}),
       ...(input.clearResolvedAt ? { resolvedAt: null } : {}),
+      ...(input.clearColumnCode ? { columnCode: null } : {}),
       ...(input.status === 'RESOLVED' || input.status === 'CLOSED'
         ? { resolvedAt: input.resolvedAt ?? new Date() }
         : {}),

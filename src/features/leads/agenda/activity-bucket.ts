@@ -1,4 +1,4 @@
-import { DONE_LOOKBACK_DAYS, getBogotaDayBounds, UPCOMING_DAYS, type AgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
+import { DONE_LOOKBACK_DAYS, getBogotaDayBounds, isAgendaBucket, UPCOMING_DAYS, type AgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
 import { bogotaDateOnly, dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -52,4 +52,28 @@ export function activityBucket(task: BucketTask, now: Date): AgendaBucket | null
 	if (due < end) return 'today'
 	if (due < new Date(end.getTime() + UPCOMING_DAYS * DAY_MS)) return 'upcoming'
 	return null
+}
+
+/** Column title shown as the task or case state, or null when the card is not on the board. */
+export function activityStateName(
+	activity: BucketTask & { columnCode?: string | null },
+	columns: readonly { code: string; name: string }[],
+	now: Date
+): string | null {
+	const code = placedColumn(activity, columns, now)
+	if (!code) return null
+	return columns.find((column) => column.code === code)?.name ?? null
+}
+
+/** Column that shows the card. A custom pin wins; otherwise the due-date column, if it is still visible. */
+export function placedColumn(
+	activity: BucketTask & { columnCode?: string | null },
+	columns: readonly { code: string }[],
+	now: Date
+): string | null {
+	const pinned = activity.columnCode
+	if (pinned && !isAgendaBucket(pinned) && columns.some((column) => column.code === pinned)) return pinned
+	const bucket = activityBucket(activity, now)
+	if (!bucket || !columns.some((column) => column.code === bucket)) return null
+	return bucket
 }

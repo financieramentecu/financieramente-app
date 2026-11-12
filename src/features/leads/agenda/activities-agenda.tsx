@@ -19,8 +19,8 @@ import { Button } from '@/features/shared/ui/button'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { formatDateTimeBogota } from '@/features/shared/lib/format-date'
 import { CRM_HIERARCHY_EMPTY_MESSAGE, useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
-import { AGENDA_BUCKETS, type AgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
-import { activityBucket } from '@/features/leads/agenda/activity-bucket'
+import { ACTIVITY_COLUMN_CODE } from '@/features/leads/agenda/activity-column.types'
+import { activityStateName, placedColumn } from '@/features/leads/agenda/activity-bucket'
 import { ActivityColumnSettings } from '@/features/leads/agenda/activity-column-settings'
 import { useActivityColumns } from '@/features/leads/agenda/use-activity-columns'
 import { TASK_TYPE_LABELS } from '@/features/leads/agenda/task-type-labels'
@@ -32,7 +32,6 @@ import type {
 	ActivityBoardCaseDto,
 	ActivityBoardTaskDto,
 	ActivityCasePriority,
-	ActivityCaseStatus,
 	ActivityFocus,
 } from '@/features/leads/agenda/agenda.types'
 import { cn } from '@/lib/utils'
@@ -42,14 +41,6 @@ const kanbanCollision: CollisionDetection = (args) => {
 	return hits.length > 0 ? hits : closestCorners(args)
 }
 
-const TASK_STATUS_LABELS = { OPEN: 'Abierta', DONE: 'Completada', CANCELLED: 'Cancelada' } as const
-const CASE_STATUS_LABELS: Record<ActivityCaseStatus, string> = {
-	OPEN: 'Abierto',
-	IN_PROGRESS: 'En proceso',
-	WAITING: 'En espera',
-	RESOLVED: 'Resuelto',
-	CLOSED: 'Cerrado',
-}
 const CASE_PRIORITY_LABELS: Record<ActivityCasePriority, string> = {
 	LOW: 'Prioridad baja',
 	MEDIUM: 'Prioridad media',
@@ -69,16 +60,21 @@ const KIND_FILTERS: { id: ActivityKindFilter; label: string }[] = [
 	{ id: 'case', label: 'Casos' },
 ]
 
+function activityOf(card: ActivityCardModel) {
+	if (card.kind === 'task') return card.task
+	return { ...caseAsTask(card.supportCase), columnCode: card.supportCase.columnCode }
+}
+
 function cardFocus(card: ActivityCardModel): ActivityFocus {
 	return card.kind === 'task'
 		? { kind: 'task', id: card.task.idLeadTask }
 		: { kind: 'case', id: card.supportCase.idLeadSupportCase }
 }
 
-function parseBucketId(value: unknown): AgendaBucket | null {
+function parseBucketId(value: unknown): string | null {
 	if (typeof value !== 'string' || !value.startsWith('bucket:')) return null
-	const bucket = value.slice('bucket:'.length)
-	return (AGENDA_BUCKETS as readonly string[]).includes(bucket) ? (bucket as AgendaBucket) : null
+	const code = value.slice('bucket:'.length)
+	return ACTIVITY_COLUMN_CODE.test(code) ? code : null
 }
 
 function parseDragId(value: unknown): ActivityFocus | null {
@@ -126,10 +122,12 @@ function LeadName({ name, onOpen }: { name: string; onOpen: () => void }) {
 
 function ActivityCard({
 	card,
+	stateName,
 	onOpenLead,
 	onOpen,
 }: {
 	card: ActivityCardModel
+	stateName: string
 	onOpenLead: (idLead: number, leadName: string) => void
 	onOpen: (focus: ActivityFocus) => void
 }) {
@@ -147,7 +145,7 @@ function ActivityCard({
 						<ActivityDueBadge dueAt={task.dueAt} prefix="Vence" closed={task.status !== 'OPEN'} />
 					</div>
 				</div>
-				<p className="text-xs text-muted-foreground">{TASK_STATUS_LABELS[task.status]}</p>
+				<p className="text-xs text-muted-foreground">{stateName}</p>
 				<LeadName name={task.leadName} onOpen={() => onOpenLead(task.idLead, task.leadName)} />
 				<p className="text-xs text-muted-foreground">Responsable: {task.assigneeName}</p>
 				<p className="text-xs text-muted-foreground">Creada por: {task.creatorName}</p>
@@ -174,7 +172,7 @@ function ActivityCard({
 				</div>
 			</div>
 			<p className="text-xs text-muted-foreground">
-				{CASE_STATUS_LABELS[supportCase.status]} · {CASE_PRIORITY_LABELS[supportCase.priority]}
+				{stateName} · {CASE_PRIORITY_LABELS[supportCase.priority]}
 			</p>
 			<LeadName name={supportCase.leadName} onOpen={() => onOpenLead(supportCase.idLead, supportCase.leadName)} />
 			<p className="text-xs text-muted-foreground">Responsable: {supportCase.assigneeName}</p>
@@ -186,10 +184,12 @@ function ActivityCard({
 
 function DraggableActivity({
 	card,
+	stateName,
 	onOpenLead,
 	onOpen,
 }: {
 	card: ActivityCardModel
+	stateName: string
 	onOpenLead: (idLead: number, leadName: string) => void
 	onOpen: (focus: ActivityFocus) => void
 }) {
@@ -197,7 +197,7 @@ function DraggableActivity({
 	const { listeners, setNodeRef, isDragging } = useDraggable({ id: `${focus.kind}:${focus.id}` })
 	return (
 		<div ref={setNodeRef} className={isDragging ? 'cursor-grabbing opacity-40' : 'cursor-grab touch-none'} {...listeners}>
-			<ActivityCard card={card} onOpenLead={onOpenLead} onOpen={onOpen} />
+			<ActivityCard card={card} stateName={stateName} onOpenLead={onOpenLead} onOpen={onOpen} />
 		</div>
 	)
 }
@@ -209,7 +209,7 @@ function ActivityColumn({
 	onOpenLead,
 	onOpen,
 }: {
-	bucket: AgendaBucket
+	bucket: string
 	title: string
 	cards: ActivityCardModel[]
 	onOpenLead: (idLead: number, leadName: string) => void
@@ -234,7 +234,7 @@ function ActivityColumn({
 			<div className="flex min-h-64 flex-1 flex-col gap-2 p-3">
 				{cards.map((card) => {
 					const focus = cardFocus(card)
-					return <DraggableActivity key={`${focus.kind}-${focus.id}`} card={card} onOpenLead={onOpenLead} onOpen={onOpen} />
+					return <DraggableActivity key={`${focus.kind}-${focus.id}`} card={card} stateName={title} onOpenLead={onOpenLead} onOpen={onOpen} />
 				})}
 				{cards.length === 0 && <p className="px-1 text-xs text-slate-600 dark:text-slate-400">Sin actividades</p>}
 			</div>
@@ -242,7 +242,7 @@ function ActivityColumn({
 	)
 }
 
-/** Activities Kanban: tasks and cases in the four time columns. */
+/** Activities Kanban. Due-date columns fill themselves; a custom column receives dropped cards. */
 export function ActivitiesAgenda({
 	onOpenLead,
 	onOpenActivity,
@@ -304,7 +304,8 @@ export function ActivitiesAgenda({
 		const dragged = parseDragId(event.active.id)
 		const bucket = parseBucketId(event.over?.id)
 		if (!dragged || !bucket) return
-		void place(dragged, bucket)
+		const stateName = columns.columns.find((column) => column.code === bucket)?.name
+		void place(dragged, bucket, stateName)
 	}
 
 	const board = state.status === 'success' ? state.data : { tasks: [], cases: [] }
@@ -336,7 +337,13 @@ export function ActivitiesAgenda({
 						</div>
 						{canConfigure && (
 							<div className="flex flex-wrap gap-2">
-								<ActivityColumnSettings state={columns.state} actionError={columns.actionError} onSave={columns.save} />
+								<ActivityColumnSettings
+									state={columns.state}
+									actionError={columns.actionError}
+									onSave={columns.save}
+									onAdd={columns.add}
+									onRemove={columns.remove}
+								/>
 								<ActivityLabelSettings />
 							</div>
 						)}
@@ -344,14 +351,14 @@ export function ActivitiesAgenda({
 					{(state.status === 'loading' || state.status === 'idle') && (
 						<div role="status" aria-busy="true" className="flex gap-4 overflow-x-auto pb-4">
 							<span className="sr-only">Cargando actividades…</span>
-							{AGENDA_BUCKETS.map((bucket) => (
+							{columns.columns.map((column) => (
 								<section
-									key={bucket}
+									key={column.code}
 									className="flex min-h-80 w-72 shrink-0 flex-col overflow-hidden rounded-lg border-2 border-primary/25 bg-primary/5"
-									aria-label={columns.title(bucket)}
+									aria-label={column.name}
 								>
 									<div className="border-b-2 border-primary/25 bg-primary px-3 py-2.5">
-										<h3 className="text-sm font-semibold text-white">{columns.title(bucket)}</h3>
+										<h3 className="text-sm font-semibold text-white">{column.name}</h3>
 									</div>
 									<div className="flex flex-col gap-2 p-3">
 										<Skeleton className="h-20 w-full bg-white/80" />
@@ -371,15 +378,12 @@ export function ActivitiesAgenda({
 							onDragEnd={handleDragEnd}
 						>
 							<div className="flex gap-4 overflow-x-auto pb-4">
-								{AGENDA_BUCKETS.map((bucket) => (
+								{columns.columns.map((column) => (
 									<ActivityColumn
-										key={bucket}
-										bucket={bucket}
-										title={columns.title(bucket)}
-										cards={cards.filter((card) => {
-											const source = card.kind === 'task' ? card.task : caseAsTask(card.supportCase)
-											return activityBucket(source, now) === bucket
-										})}
+										key={column.code}
+										bucket={column.code}
+										title={column.name}
+										cards={cards.filter((card) => placedColumn(activityOf(card), columns.columns, now) === column.code)}
 										onOpenLead={openLead}
 										onOpen={openCard}
 									/>
@@ -388,7 +392,12 @@ export function ActivitiesAgenda({
 							<DragOverlay dropAnimation={null}>
 								{dragging ? (
 									<div className="w-72 cursor-grabbing">
-										<ActivityCard card={dragging} onOpenLead={() => undefined} onOpen={() => undefined} />
+										<ActivityCard
+											card={dragging}
+											stateName={activityStateName(activityOf(dragging), columns.columns, now) ?? ''}
+											onOpenLead={() => undefined}
+											onOpen={() => undefined}
+										/>
 									</div>
 								) : null}
 							</DragOverlay>

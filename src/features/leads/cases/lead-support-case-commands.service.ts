@@ -9,6 +9,8 @@ import {
 	type LeadSupportCasePriority,
 	type LeadSupportCaseStatus,
 } from '@/features/leads/cases/lead-support-case.service'
+import { activityStateName } from '@/features/leads/agenda/activity-bucket'
+import { listActivityColumns } from '@/features/leads/agenda/activity-column.service'
 
 export interface OpenCaseCommand {
 	idLead: number
@@ -30,20 +32,41 @@ function audit(ctx: CrmRequestContext, action: AuditAction, details: string) {
 	})
 }
 
-export function listLeadSupportCases(idLead: number) {
-	return prisma.leadSupportCase.findMany({
-		where: { idLead },
-		orderBy: [{ createdAt: 'desc' }, { idLeadSupportCase: 'desc' }],
-		select: {
-			idLeadSupportCase: true,
-			subject: true,
-			status: true,
-			priority: true,
-			dueAt: true,
-			resolvedAt: true,
-			assignedTo: true,
-			assignee: { select: { name: true, lastName: true } },
-		},
+export async function listLeadSupportCases(idLead: number) {
+	const [rows, columns] = await Promise.all([
+		prisma.leadSupportCase.findMany({
+			where: { idLead },
+			orderBy: [{ createdAt: 'desc' }, { idLeadSupportCase: 'desc' }],
+			select: {
+				idLeadSupportCase: true,
+				subject: true,
+				status: true,
+				priority: true,
+				dueAt: true,
+				columnCode: true,
+				resolvedAt: true,
+				assignedTo: true,
+				assignee: { select: { name: true, lastName: true } },
+			},
+		}),
+		listActivityColumns(),
+	])
+	const now = new Date()
+	return rows.map(({ columnCode, ...supportCase }) => {
+		const closed = supportCase.status === 'RESOLVED' || supportCase.status === 'CLOSED'
+		return {
+			...supportCase,
+			stateLabel: activityStateName(
+				{
+					status: closed ? 'DONE' : 'OPEN',
+					dueAt: supportCase.dueAt,
+					completedAt: supportCase.resolvedAt,
+					columnCode,
+				},
+				columns,
+				now
+			),
+		}
 	})
 }
 
@@ -82,6 +105,7 @@ export async function transitionLeadSupportCase(
 		comment?: string
 		attachments?: LeadActivityAttachment[]
 		resolvedAt?: Date
+		clearColumnCode?: boolean
 	},
 	ctx: CrmRequestContext
 ) {
@@ -133,7 +157,7 @@ export async function placeLeadSupportCase(
 ) {
 	if (input.bucket === 'done') {
 		return transitionLeadSupportCase(
-			{ idLeadSupportCase: input.idLeadSupportCase, idLead: input.idLead, status: 'RESOLVED' },
+			{ idLeadSupportCase: input.idLeadSupportCase, idLead: input.idLead, status: 'RESOLVED', clearColumnCode: true },
 			ctx
 		)
 	}
@@ -145,6 +169,7 @@ export async function placeLeadSupportCase(
 			status: 'OPEN',
 			dueAt: input.dueAt ?? null,
 			clearResolvedAt: true,
+			clearColumnCode: true,
 			correlationId: crypto.randomUUID(),
 		})
 	)

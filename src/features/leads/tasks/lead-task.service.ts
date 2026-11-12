@@ -71,7 +71,7 @@ export async function createLeadTaskTx(tx: TaskWriter, input: CreateLeadTaskInpu
 export async function completeLeadTaskTx(tx: TaskWriter, input: CompleteLeadTaskInput) {
 	const task = await tx.leadTask.update({
 		where: { idLeadTask: input.idLeadTask },
-		data: { status: 'DONE', completedAt: new Date() },
+		data: { status: 'DONE', completedAt: new Date(), columnCode: null },
 	})
 	await appendLeadActivityTx(tx, {
 		idLead: input.idLead,
@@ -134,7 +134,7 @@ export async function rescheduleLeadTaskTx(
 ) {
 	return tx.leadTask.update({
 		where: { idLeadTask: input.idLeadTask },
-		data: { dueAt: input.dueAt, reminderSentAt: null },
+		data: { dueAt: input.dueAt, reminderSentAt: null, columnCode: null },
 	})
 }
 
@@ -145,6 +145,6 @@ export async function reopenLeadTaskTx(
 ) {
 	return tx.leadTask.update({
 		where: { idLeadTask: input.idLeadTask },
-		data: { status: 'OPEN', completedAt: null, dueAt: input.dueAt, reminderSentAt: null },
+		data: { status: 'OPEN', completedAt: null, dueAt: input.dueAt, reminderSentAt: null, columnCode: null },
 	})
 }

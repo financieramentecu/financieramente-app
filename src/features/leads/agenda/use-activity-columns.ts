@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
-import { columnTitle } from '@/features/leads/agenda/activity-bucket'
-import { fetchActivityColumns, renameActivityColumn } from '@/features/leads/agenda/activity-columns-api'
-import type { ActivityColumn } from '@/features/leads/agenda/activity-column.types'
-import type { AgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
+import { createActivityColumn, deleteActivityColumn, fetchActivityColumns, renameActivityColumn } from '@/features/leads/agenda/activity-columns-api'
+import { BUILTIN_ACTIVITY_COLUMNS, type ActivityColumn } from '@/features/leads/agenda/activity-column.types'
 
-/** Column titles for the activities board. Falls back to the built-in names until the catalogue loads. */
+/** Visible board columns. Falls back to the four due-date columns until the catalogue loads. */
 export function useActivityColumns(enabled: boolean) {
 	const [state, setState] = useState<AsyncState<ActivityColumn[]>>({ status: 'idle', data: undefined, error: '' })
 	const [actionError, setActionError] = useState<string | null>(null)
@@ -26,10 +24,10 @@ export function useActivityColumns(enabled: boolean) {
 		void load()
 	}, [enabled])
 
-	async function save(code: AgendaBucket, name: string): Promise<boolean> {
+	async function run(action: () => Promise<void>): Promise<boolean> {
 		setActionError(null)
 		try {
-			await renameActivityColumn(code, name)
+			await action()
 			await load()
 			return true
 		} catch (cause) {
@@ -38,10 +36,14 @@ export function useActivityColumns(enabled: boolean) {
 		}
 	}
 
+	const columns = state.status === 'success' && state.data.length > 0 ? state.data : BUILTIN_ACTIVITY_COLUMNS
+
 	return {
 		state,
 		actionError,
-		title: (bucket: AgendaBucket) => columnTitle(state.status === 'success' ? state.data : [], bucket),
-		save,
+		columns,
+		save: (code: string, name: string) => run(() => renameActivityColumn(code, name).then(() => undefined)),
+		add: (name: string) => run(() => createActivityColumn(name).then(() => undefined)),
+		remove: (code: string) => run(() => deleteActivityColumn(code)),
 	}
 }

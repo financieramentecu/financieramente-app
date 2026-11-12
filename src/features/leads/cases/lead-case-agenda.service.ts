@@ -18,6 +18,7 @@ export interface ActivityBoardCase {
 	createdAt: Date
 	assigneeName: string
 	commentCount: number
+	columnCode: string | null
 }
 
 function personName(user: { name: string; lastName: string | null } | null): string {
@@ -41,6 +42,7 @@ export async function getActivityCases(assigneeIds: number[] | null, now: Date =
 					status: { in: ['RESOLVED', 'CLOSED'] },
 					resolvedAt: { gte: new Date(now.getTime() - DONE_LOOKBACK_DAYS * DAY_MS) },
 				},
+				{ columnCode: { not: null } },
 			],
 		},
 		orderBy: [{ dueAt: 'asc' }, { idLeadSupportCase: 'asc' }],
@@ -54,6 +56,7 @@ export async function getActivityCases(assigneeIds: number[] | null, now: Date =
 			dueAt: true,
 			resolvedAt: true,
 			createdAt: true,
+			columnCode: true,
 			assignee: { select: { name: true, lastName: true } },
 			lead: { select: { name: true, lastName: true } },
 			_count: { select: { comments: true } },
@@ -71,5 +74,6 @@ export async function getActivityCases(assigneeIds: number[] | null, now: Date =
 		createdAt: row.createdAt,
 		assigneeName: personName(row.assignee),
 		commentCount: row._count.comments,
+		columnCode: row.columnCode,
 	}))
 }

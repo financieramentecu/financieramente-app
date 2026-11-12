@@ -34,6 +34,7 @@ export interface ActivityBoardTask {
 	assigneeName: string
 	creatorName: string
 	commentCount: number
+	columnCode: string | null
 }
 
 /**
@@ -49,6 +50,7 @@ export async function getActivityBoard(assigneeIds: number[] | null, now: Date =
 			OR: [
 				{ status: 'OPEN', OR: [{ dueAt: null }, { dueAt: { lt: new Date(end.getTime() + UPCOMING_DAYS * DAY_MS) } }] },
 				{ status: 'DONE', completedAt: { gte: new Date(now.getTime() - DONE_LOOKBACK_DAYS * DAY_MS) } },
+				{ columnCode: { not: null }, status: { not: 'CANCELLED' } },
 			],
 		},
 		orderBy: [{ dueAt: 'asc' }, { idLeadTask: 'asc' }],
@@ -62,6 +64,7 @@ export async function getActivityBoard(assigneeIds: number[] | null, now: Date =
 			status: true,
 			completedAt: true,
 			createdAt: true,
+			columnCode: true,
 			activityLabel: { select: { name: true, color: true } },
 			assignee: { select: { name: true, lastName: true } },
 			creator: { select: { name: true, lastName: true } },
@@ -84,6 +87,7 @@ export async function getActivityBoard(assigneeIds: number[] | null, now: Date =
 		assigneeName: personName(row.assignee),
 		creatorName: personName(row.creator),
 		commentCount: row._count.comments,
+		columnCode: row.columnCode,
 	}))
 }
 

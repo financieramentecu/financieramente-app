@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { ActivitiesAgenda } from '@/features/leads/agenda/activities-agenda'
 import { dueAtForActivityBucket } from '@/features/leads/agenda/activity-bucket'
 import { activityDueCardText } from '@/features/leads/agenda/activity-due-label'
@@ -64,7 +64,7 @@ describe('ActivitiesAgenda', () => {
 		render(<ActivitiesAgenda onOpenLead={vi.fn()} onOpenActivity={vi.fn()} canConfigure />)
 		expect(await screen.findByText('Visita')).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: 'Etiquetas' })).toBeInTheDocument()
-		expect(screen.getByRole('button', { name: 'Cabeceras' })).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Columnas' })).toBeInTheDocument()
 	})
 
 	it('shows renamed column headers from the catalogue', async () => {
@@ -89,6 +89,31 @@ describe('ActivitiesAgenda', () => {
 		expect(screen.getByRole('region', { name: 'Para hoy' })).toBeInTheDocument()
 		expect(screen.getByRole('region', { name: 'En camino' })).toBeInTheDocument()
 		expect(screen.getByRole('region', { name: 'Listas' })).toBeInTheDocument()
+	})
+
+	it('shows a custom column and keeps a pinned task there', async () => {
+		vi.stubGlobal('fetch', (url: string, init?: RequestInit) => {
+			if (url.includes('activity-columns')) {
+				return Promise.resolve({
+					ok: true,
+					json: async () => ({
+						data: [
+							{ code: 'overdue', name: 'Vencidas', position: 0 },
+							{ code: 'xabc', name: 'Seguimiento', position: 4 },
+						],
+					}),
+				})
+			}
+			return mockBoard([task(1, { title: 'En seguimiento', columnCode: 'xabc' })])(url, init)
+		})
+		render(<ActivitiesAgenda onOpenLead={vi.fn()} onOpenActivity={vi.fn()} canConfigure />)
+		const custom = await screen.findByRole('region', { name: 'Seguimiento' })
+		expect(within(custom).getByText('En seguimiento')).toBeInTheDocument()
+		expect(within(custom).getAllByText('Seguimiento').length).toBeGreaterThan(1)
+		expect(within(screen.getByRole('region', { name: 'Vencidas' })).queryByText('En seguimiento')).not.toBeInTheDocument()
+		fireEvent.click(screen.getByRole('button', { name: 'Columnas' }))
+		expect(screen.getByRole('button', { name: 'Agregar' })).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Eliminar columna Seguimiento' })).toBeInTheDocument()
 	})
 
 	it('opens the lead when its name is clicked', async () => {

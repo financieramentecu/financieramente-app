@@ -32,6 +32,7 @@ export interface ActivityBoardTaskDto {
 	assigneeName: string
 	creatorName: string
 	commentCount: number
+	columnCode?: string | null
 }
 
 export type ActivityCaseStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING' | 'RESOLVED' | 'CLOSED'
@@ -50,6 +51,7 @@ export interface ActivityBoardCaseDto {
 	createdAt: string
 	assigneeName: string
 	commentCount: number
+	columnCode?: string | null
 }
 
 export interface ActivityBoardDto {

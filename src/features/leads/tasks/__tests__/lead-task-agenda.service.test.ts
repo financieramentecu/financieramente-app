@@ -85,6 +85,7 @@ describe('getActivityBoard', () => {
 			OR: [
 				{ status: 'OPEN', OR: [{ dueAt: null }, { dueAt: { lt: new Date('2026-11-24T05:00:00.000Z') } }] },
 				{ status: 'DONE', completedAt: { gte: new Date('2026-11-02T15:00:00.000Z') } },
+				{ columnCode: { not: null }, status: { not: 'CANCELLED' } },
 			],
 		})
 		expect(items[0]).toMatchObject({
