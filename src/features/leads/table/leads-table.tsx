@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useState, type FormEvent } from 'react'
+import { Fragment, useEffect, useState, type FormEvent } from 'react'
 import { ArrowDown, ArrowUp, ChevronDown, Download, Search } from 'lucide-react'
 import { Badge } from '@/features/shared/ui/badge'
 import { Button } from '@/features/shared/ui/button'
@@ -39,6 +39,7 @@ import type {
 import { LeadTableDetail } from '@/features/leads/table/lead-table-detail'
 import { SavedViewsBar } from '@/features/leads/views/saved-views-bar'
 import { CrmSettingsDialog } from '@/features/leads/custom-fields/crm-settings-dialog'
+import { CRM_HIERARCHY_EMPTY_MESSAGE, useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
 
 const STATUS_OPTIONS = LEAD_OUTCOME_STATUS_VALUES.map((value) => ({
 	value,
@@ -138,9 +139,19 @@ export function LeadsTable({
 }) {
 	const { query, state, updateFilters, goToPage, toggleSort, replaceQuery } =
 		useLeadTable()
+	const hierarchy = useCrmHierarchyFilter()
+	const ownerKey = hierarchy.ownerIds.join(',')
 	const [search, setSearch] = useState(query.q ?? '')
 	const [openIds, setOpenIds] = useState<number[]>([])
 	const sortProps = { current: query.sort, dir: query.dir, onSort: toggleSort }
+
+	useEffect(() => {
+		if (!hierarchy.ready || hierarchy.noneSelected) return
+		if (query.ownerIds.join(',') === ownerKey) return
+		updateFilters({ ownerIds: hierarchy.ownerIds })
+		// ownerKey is the identity of the hierarchy selection.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [hierarchy.ready, hierarchy.noneSelected, ownerKey])
 	const { stages, tags } = useLeadTableOptions(fieldsEnabled)
 
 	function toggleLead(idLead: number) {
@@ -154,6 +165,10 @@ export function LeadsTable({
 	function submitSearch(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
 		updateFilters({ q: search.trim() || undefined })
+	}
+
+	if (hierarchy.noneSelected) {
+		return <p className="text-sm text-muted-foreground">{CRM_HIERARCHY_EMPTY_MESSAGE}</p>
 	}
 
 	return (
