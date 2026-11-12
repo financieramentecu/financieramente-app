@@ -19,9 +19,18 @@ import type {
  * absent param applies the shared default (`getDefaultLeadBoardFilters()`);
  * a present-but-empty param applies no filter on that dimension.
  */
+function parseOwnerIds(searchParams: URLSearchParams): number[] {
+	const ids = searchParams.getAll('owner').flatMap((value) => {
+		const parsed = Number.parseInt(value, 10)
+		return Number.isSafeInteger(parsed) && parsed > 0 ? [parsed] : []
+	})
+	return [...new Set(ids)]
+}
+
 function parseBoardFilters(searchParams: URLSearchParams): {
 	outcomeStatuses?: LeadOutcomeStatus[]
 	createdAtRange?: { gte: Date; lte: Date }
+	ownerIds: number[]
 } {
 	const defaults = getDefaultLeadBoardFilters()
 
@@ -40,12 +49,13 @@ function parseBoardFilters(searchParams: URLSearchParams): {
 				: undefined
 			: defaults.createdAtRange
 
-	return { outcomeStatuses, createdAtRange }
+	return { outcomeStatuses, createdAtRange, ownerIds: parseOwnerIds(searchParams) }
 }
 
 /**
  * GET /api/leads
- * Read-only Kanban board: active columns with hierarchy-scoped leads.
+ * Kanban board: active columns with hierarchy-scoped leads.
+ * `owner` repeats to narrow that hierarchy to specific advisors.
  */
 export async function GET(request: Request) {
 	const session = await auth()
@@ -72,12 +82,13 @@ export async function GET(request: Request) {
 			: await getAccessibleUserIds(currentUser.idUser)
 
 		const { searchParams } = new URL(request.url)
-		const { outcomeStatuses, createdAtRange } = parseBoardFilters(searchParams)
+		const { outcomeStatuses, createdAtRange, ownerIds } = parseBoardFilters(searchParams)
 
 		const board = await getLeadBoard(currentUser, {
 			visibleUserIds,
 			outcomeStatuses,
 			createdAtRange,
+			ownerIds,
 		})
 
 		const response: ApiResponse<LeadBoardColumn[]> = { data: board }

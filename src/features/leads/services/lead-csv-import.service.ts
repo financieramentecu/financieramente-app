@@ -11,6 +11,7 @@ import type { ActiveUserForNameMatch } from '@/features/leads/lib/resolve-owner-
 import { leadCsvRowSchema } from '@/features/leads/types/lead-csv-import.schema'
 import type { LeadCsvRawRow } from '@/features/leads/lib/parse-lead-csv-file'
 import type { LeadCsvImportSummary, LeadCsvOwnerlessLead } from '@/features/leads/types/lead-csv-import.types'
+import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
 
 export interface LeadCsvImportActor {
 	userId?: number
@@ -144,7 +145,7 @@ export async function importLeadsFromCsv(
 		)
 
 		const receivedAt = new Date()
-		await prisma.lead.upsert({
+		const lead = await prisma.lead.upsert({
 			where: { externalCrmId: row.id_externo_crm },
 			create: {
 				...upsertData,
@@ -160,6 +161,15 @@ export async function importLeadsFromCsv(
 				active: true,
 				updatedAt: receivedAt,
 			},
+		})
+
+		await recordLeadStageChange({
+			idLead: lead.idLead,
+			fromIdLeadFunnelColumn: existing?.idLeadFunnelColumn,
+			toIdLeadFunnelColumn: funnelColumnResult.value.idLeadFunnelColumn,
+			source: 'CSV_IMPORT',
+			idUser: actor.userId,
+			changedAt: receivedAt,
 		})
 
 		summary.imported += 1
