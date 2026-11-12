@@ -15,3 +15,4 @@ export type {
 	RoleGrants,
 	RolePermissionGrant,
 } from './types/access-control.types'
+export { requirePermission } from './services/require-permission'
