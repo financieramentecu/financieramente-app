@@ -50,6 +50,7 @@ export function LeadsBoardFilters({ value, onChange }: LeadsBoardFiltersProps) {
 					Estado del lead
 				</span>
 				<MultiSelect
+					ariaLabel="Estado del lead"
 					options={OUTCOME_STATUS_OPTIONS}
 					value={value.outcomeStatuses}
 					onChange={(outcomeStatuses) =>

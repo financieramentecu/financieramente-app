@@ -67,7 +67,7 @@ export async function requireCrmActor(
 			roleCode,
 			visibleUserIds,
 			canManage,
-			idCategory: null,
+			idCategory: currentUser.idCategory ?? null,
 		},
 	}
 }

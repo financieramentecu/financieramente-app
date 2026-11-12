@@ -39,3 +39,14 @@ export function formatDateTimeBogota(
 		timeZone: BOGOTA_TZ,
 	})
 }
+
+/** Hour in America/Bogota, e.g. "10:30 a. m.". '—' for empty or invalid input. */
+export function formatTimeBogota(iso: string | Date | null | undefined): string {
+	if (!iso) return '—'
+	const date = new Date(iso)
+	if (Number.isNaN(date.getTime())) return '—'
+	return date.toLocaleTimeString('es-CO', {
+		timeStyle: 'short',
+		timeZone: BOGOTA_TZ,
+	})
+}
