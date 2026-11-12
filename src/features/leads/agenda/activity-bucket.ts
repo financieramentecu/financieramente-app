@@ -54,6 +54,17 @@ export function activityBucket(task: BucketTask, now: Date): AgendaBucket | null
 	return null
 }
 
+/** Column title shown as the task or case state, or null when the card is not on the board. */
+export function activityStateName(
+	activity: BucketTask & { columnCode?: string | null },
+	columns: readonly { code: string; name: string }[],
+	now: Date
+): string | null {
+	const code = placedColumn(activity, columns, now)
+	if (!code) return null
+	return columns.find((column) => column.code === code)?.name ?? null
+}
+
 /** Column that shows the card. A custom pin wins; otherwise the due-date column, if it is still visible. */
 export function placedColumn(
 	activity: BucketTask & { columnCode?: string | null },

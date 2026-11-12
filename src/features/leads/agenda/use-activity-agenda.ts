@@ -51,7 +51,7 @@ export function useActivityBoard(ownerIds: number[], paused = false, refreshKey 
 			.catch(() => setState({ status: 'error', data: undefined, error: LOAD_ERROR }))
 	}
 
-	async function place(focus: ActivityFocus, code: string) {
+	async function place(focus: ActivityFocus, code: string, stateName?: string) {
 		const now = new Date()
 		const system = isAgendaBucket(code)
 		let moved = false
@@ -93,7 +93,9 @@ export function useActivityBoard(ownerIds: number[], paused = false, refreshKey 
 		try {
 			if (focus.kind === 'task') await moveTask(focus.id, code)
 			else await moveCase(focus.id, code)
-			toast.success('Actividad actualizada')
+			toast.success('Estado actualizado', {
+				description: stateName ? `Quedó en ${stateName}.` : undefined,
+			})
 		} catch {
 			reload()
 			toast.error('No se guardó el cambio', { description: 'No fue posible mover la actividad.' })

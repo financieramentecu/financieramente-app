@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 import { Columns3, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/features/shared/ui/dialog'
@@ -14,6 +15,14 @@ const COLUMN_HINTS: Record<AgendaBucket, string> = {
 	today: 'Actividades que vencen hoy',
 	upcoming: 'Actividades que vencen después',
 	done: 'Actividades ya completadas',
+}
+
+async function saveColumn(code: string, name: string, onSave: (code: string, name: string) => Promise<boolean>) {
+	if (await onSave(code, name)) toast.success('Columna actualizada', { description: `El estado ahora es ${name}.` })
+}
+
+async function removeColumn(code: string, onRemove: (code: string) => Promise<boolean>) {
+	if (await onRemove(code)) toast.success('Columna eliminada')
 }
 
 function columnHint(column: ActivityColumn): string {
@@ -37,10 +46,16 @@ function ColumnRow({
 		<li className="space-y-1">
 			<div className="flex items-center gap-2">
 				<Input aria-label={`Columna ${column.name}`} value={name} maxLength={40} onChange={(event) => setName(event.target.value)} />
-				<Button type="button" size="sm" variant="outline" disabled={!dirty || !name.trim()} onClick={() => void onSave(column.code, name.trim())}>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={!dirty || !name.trim()}
+					onClick={() => void saveColumn(column.code, name.trim(), onSave)}
+				>
 					Guardar
 				</Button>
-				<Button type="button" size="sm" variant="ghost" aria-label={`Eliminar columna ${column.name}`} onClick={() => void onRemove(column.code)}>
+				<Button type="button" size="sm" variant="ghost" aria-label={`Eliminar columna ${column.name}`} onClick={() => void removeColumn(column.code, onRemove)}>
 					<Trash2 className="size-3.5" aria-hidden />
 				</Button>
 			</div>
@@ -69,7 +84,11 @@ export function ActivityColumnSettings({
 
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
-		if (name.trim() && (await onAdd(name.trim()))) setName('')
+		const next = name.trim()
+		if (next && (await onAdd(next))) {
+			setName('')
+			toast.success('Columna agregada', { description: `${next} ya es un estado del tablero.` })
+		}
 	}
 
 	return (
@@ -84,7 +103,7 @@ export function ActivityColumnSettings({
 				<DialogHeader>
 					<DialogTitle>Columnas del tablero</DialogTitle>
 					<DialogDescription>
-						Agrega, renombra o elimina columnas. Las de vencimiento agrupan las tarjetas por la fecha. Una columna nueva queda vacía hasta que sueltes una tarjeta. Eliminar no borra las actividades: si quitas una de vencimiento, créala otra vez con el mismo nombre para volver a verla.
+						El nombre de cada columna es el estado de la tarea o del caso. Ese mismo estado se ve en el pipeline. Las de vencimiento agrupan por la fecha; una columna nueva queda vacía hasta que sueltes una tarjeta. Eliminar no borra las actividades: si quitas una de vencimiento, créala otra vez con el mismo nombre para volver a verla.
 					</DialogDescription>
 				</DialogHeader>
 				{state.status === 'loading' && <p role="status" className="text-sm text-muted-foreground">Cargando…</p>}

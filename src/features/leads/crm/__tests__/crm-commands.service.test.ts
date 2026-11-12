@@ -29,6 +29,7 @@ vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		$transaction: vi.fn((callback: (tx: unknown) => unknown) => callback({ tx: true })),
 		leadTask: { findMany: vi.fn(), findUnique: vi.fn() },
+		leadActivityColumn: { findMany: vi.fn().mockResolvedValue([]) },
 		leadActivityLabel: { findFirst: vi.fn() },
 		leadSupportCase: { findMany: vi.fn(), findUnique: vi.fn() },
 		business: { findUnique: vi.fn() },
