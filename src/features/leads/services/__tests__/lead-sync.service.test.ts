@@ -6,6 +6,7 @@ import {
 	resolveOwner,
 	upsertLeadFromCrm,
 } from '@/features/leads/services/lead-sync.service'
+import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
 
 const FALLBACK_COLUMN = {
 	idLeadFunnelColumn: 1,
@@ -51,6 +52,10 @@ vi.mock('@/lib/prisma', () => ({
 			upsert: vi.fn(),
 		},
 	},
+}))
+
+vi.mock('@/features/leads/services/lead-stage-history.service', () => ({
+	recordLeadStageChange: vi.fn(),
 }))
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
@@ -545,6 +550,66 @@ describe('upsertLeadFromCrm', () => {
 				expect.objectContaining({ action: AuditAction.LEAD_REACTIVATED })
 			)
 		})
+	})
+})
+
+describe('upsertLeadFromCrm — stage history (crm-phase-0-foundation)', () => {
+	const WON_COLUMN = { ...FALLBACK_COLUMN, idLeadFunnelColumn: 5, externalStatusKey: 'won', isFallback: false }
+
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(WON_COLUMN as never)
+		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 10 } as never)
+	})
+
+	it('records the first stage of a new lead with source CRM_SYNC', async () => {
+		vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
+
+		await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'won' })
+
+		expect(recordLeadStageChange).toHaveBeenCalledWith(
+			expect.objectContaining({
+				idLead: 10,
+				fromIdLeadFunnelColumn: undefined,
+				toIdLeadFunnelColumn: 5,
+				source: 'CRM_SYNC',
+			})
+		)
+	})
+
+	it('passes the previous column so a move is recorded from → to', async () => {
+		vi.mocked(prisma.lead.findUnique).mockResolvedValue(
+			makeExistingLead({ idLeadFunnelColumn: 1 }) as never
+		)
+
+		await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'won' })
+
+		expect(recordLeadStageChange).toHaveBeenCalledWith(
+			expect.objectContaining({ fromIdLeadFunnelColumn: 1, toIdLeadFunnelColumn: 5 })
+		)
+	})
+
+	it('uses the payload updatedAt as changedAt for historical syncs', async () => {
+		vi.mocked(prisma.lead.findUnique).mockResolvedValue(
+			makeExistingLead({ idLeadFunnelColumn: 1 }) as never
+		)
+		const updatedAt = new Date('2026-08-01T10:00:00Z')
+
+		await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'won', updatedAt })
+
+		expect(recordLeadStageChange).toHaveBeenCalledWith(
+			expect.objectContaining({ changedAt: updatedAt })
+		)
+	})
+
+	it('falls back to the processing instant as changedAt', async () => {
+		vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
+		const before = Date.now()
+
+		await upsertLeadFromCrm({ externalCrmId: 'crm-1', statusKey: 'won' })
+
+		const [input] = vi.mocked(recordLeadStageChange).mock.calls[0]!
+		expect(input.changedAt.getTime()).toBeGreaterThanOrEqual(before)
 	})
 })
 

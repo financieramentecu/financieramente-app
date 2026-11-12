@@ -38,31 +38,15 @@ import { buildNegociosSeedRedirectPath } from '@/features/negocios/lib/default-d
 const { auth } = NextAuth(authConfigEdge)
 
 const dashboardMiddleware = auth((req) => {
-	const isLoggedIn = !!req.auth
+	if (!req.auth) return
 	const { nextUrl } = req
-
-	// Log para diagnóstico de problemas de sesión en QA (403 después de 20 min)
-	if (nextUrl.pathname.startsWith('/dashboard')) {
-		console.log(`[Middleware] ${req.method} ${nextUrl.pathname}`, {
-			hasAuth: isLoggedIn,
-			userId: req.auth?.user?.id,
-			cookies: req.cookies.getAll().map((c) => c.name), // Solo nombres para privacidad
-		})
-	}
-
-	// Seed the negocios default date filter here, before the page renders, so
-	// a client-side navigation follows the redirect without a blank screen.
-	if (isLoggedIn) {
-		const seedPath = buildNegociosSeedRedirectPath(
-			nextUrl.pathname,
-			req.method,
-			req.auth?.user?.role ?? undefined,
-			nextUrl.searchParams
-		)
-		if (seedPath) {
-			return NextResponse.redirect(new URL(seedPath, nextUrl))
-		}
-	}
+	const seedPath = buildNegociosSeedRedirectPath(
+		nextUrl.pathname,
+		req.method,
+		req.auth.user?.role ?? undefined,
+		nextUrl.searchParams
+	)
+	if (seedPath) return NextResponse.redirect(new URL(seedPath, nextUrl))
 })
 
 function takesDecodeOnlyPath(pathname: string): boolean {

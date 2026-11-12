@@ -12,6 +12,7 @@ import {
 	LEAD_OUTCOME_STATUS_BADGE_VARIANTS,
 } from '@/features/leads/lib/lead-outcome-status'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
+import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
 import { cn } from '@/lib/utils'
 import type { LeadCard as LeadCardType } from '@/features/leads/types/lead.types'
 
@@ -21,8 +22,7 @@ interface LeadCardProps {
 }
 
 /**
- * Presentational, read-only Kanban card. No drag handle, no move affordance
- * — the Leads board never lets a user reorder or edit a lead from the UI.
+ * Presentational Kanban card. The board wraps it when the card can be dragged.
  */
 export function LeadCard({ lead, onClick }: LeadCardProps) {
 	const fullName = [lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
@@ -73,6 +73,7 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 						>
 							{LEAD_OUTCOME_STATUS_LABELS[lead.outcomeStatus]}
 						</Badge>
+						<InactivityBadge days={lead.inactiveDays} />
 					</div>
 					{lead.ownerName && (
 						<div className="flex shrink-0 flex-col items-center gap-1">

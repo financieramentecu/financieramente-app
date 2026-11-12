@@ -38,6 +38,13 @@ export interface MenuItem {
 	adminOnly?: boolean
 }
 
+/** CRM entry, nested under Negocios / Mis Negocios */
+export const CRM_MENU_ITEM: MenuItem = {
+	title: 'CRM',
+	url: '/dashboard/negocios/crm',
+	icon: <Kanban className="h-4 w-4" />,
+}
+
 /**
  * Definición completa de todos los items de menú disponibles
  */
@@ -51,11 +58,14 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		title: 'Negocios',
 		url: '/dashboard/negocios',
 		icon: <Folder className="h-4 w-4" />,
-	},
-	{
-		title: 'Leads',
-		url: '/dashboard/leads',
-		icon: <Kanban className="h-4 w-4" />,
+		subItems: [
+			{
+				title: 'Ver Negocios',
+				url: '/dashboard/negocios',
+				icon: <List className="h-4 w-4" />,
+			},
+			CRM_MENU_ITEM,
+		],
 	},
 	{
 		title: 'Carga Archivos',
@@ -225,12 +235,8 @@ export const AGENTE_MENU_ITEMS: MenuItem[] = [
 				url: '/dashboard/negocios/crear',
 				icon: <Plus className="h-4 w-4" />,
 			},
+			CRM_MENU_ITEM,
 		],
-	},
-	{
-		title: 'Leads',
-		url: '/dashboard/leads',
-		icon: <Kanban className="h-4 w-4" />,
 	},
 	{
 		title: 'Calculadora',

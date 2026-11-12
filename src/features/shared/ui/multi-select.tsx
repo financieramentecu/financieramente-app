@@ -22,6 +22,8 @@ interface MultiSelectProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  /** Accessible name when the visible placeholder is not enough. */
+  ariaLabel?: string
 }
 
 export function MultiSelect({
@@ -31,6 +33,7 @@ export function MultiSelect({
   placeholder = "Seleccionar",
   className,
   disabled = false,
+  ariaLabel,
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -67,6 +70,7 @@ export function MultiSelect({
             className
           )}
           aria-expanded={open}
+          aria-label={ariaLabel}
         >
           <span className="truncate">{triggerLabel}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
