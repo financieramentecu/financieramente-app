@@ -13,6 +13,12 @@ export const ACTIVITY_COLUMN_LABELS: Record<AgendaBucket, string> = {
 	done: 'Completadas',
 }
 
+/** Visible column title. A renamed catalogue wins; otherwise the built-in label. */
+export function columnTitle(columns: readonly { code: string; name: string }[], bucket: AgendaBucket): string {
+	const match = columns.find((column) => column.code === bucket)
+	return match?.name || ACTIVITY_COLUMN_LABELS[bucket]
+}
+
 interface BucketTask {
 	status: 'OPEN' | 'DONE' | 'CANCELLED'
 	dueAt: string | Date | null

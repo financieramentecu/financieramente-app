@@ -57,6 +57,20 @@ describe('LeadDetailSheet', () => {
 		mockState = { status: 'idle', data: undefined, error: '' }
 	})
 
+	it('opens immediately with the known name while the lead is still loading', () => {
+		render(
+			<LeadDetailSheet
+				lead={null}
+				open={true}
+				previewName="Camila Herrera"
+				onOpenChange={vi.fn()}
+			/>
+		)
+		expect(screen.getByRole('dialog')).toBeInTheDocument()
+		expect(screen.getByRole('heading', { name: 'Camila Herrera' })).toBeInTheDocument()
+		expect(screen.getByRole('status')).toHaveTextContent('Cargando el lead…')
+	})
+
 	it('renders "Ver en CRM" when externalUrl is present', () => {
 		render(
 			<LeadDetailSheet
@@ -174,6 +188,57 @@ describe('LeadDetailSheet — CRM timeline', () => {
 		await user.click(screen.getByRole('tab', { name: 'Casos' }))
 		expect(screen.getByRole('heading', { name: 'Casos de soporte' })).toBeInTheDocument()
 		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute('data-state', 'active')
+	})
+
+	it('shows the activity description, a comment composer, and close when opened from an activity', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn((url: string) => {
+				if (url.includes('activity-comments')) {
+					return Promise.resolve({
+						ok: true,
+						json: async () => ({
+							data: [{ id: 3, body: 'Seguimiento', createdAt: '2026-11-12T15:00:00.000Z', authorName: 'Ana' }],
+						}),
+					})
+				}
+				return Promise.resolve({
+					ok: true,
+					json: async () => ({
+						data: [{
+							idLeadTask: 5,
+							title: 'Llamar',
+							type: 'CALL',
+							dueAt: null,
+							status: 'OPEN',
+							assignedTo: 5,
+							completedAt: null,
+							assignee: { name: 'Ana', lastName: null },
+						}],
+					}),
+				})
+			})
+		)
+		render(
+			<LeadDetailSheet
+				lead={buildLead()}
+				open={true}
+				onOpenChange={vi.fn()}
+				timelineEnabled
+				tasksEnabled
+				activityFocus={{ kind: 'task', id: 5 }}
+			/>
+		)
+		expect(screen.queryByText('Timeline')).not.toBeInTheDocument()
+		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute('data-state', 'active')
+		expect(await screen.findByText('Descripción')).toBeInTheDocument()
+		expect(screen.getByText('Llamar')).toBeInTheDocument()
+		expect(await screen.findByText('Seguimiento')).toBeInTheDocument()
+		expect(screen.queryByRole('tab', { name: 'Tareas' })).not.toBeInTheDocument()
+		expect(screen.queryByLabelText('Nueva tarea')).not.toBeInTheDocument()
+		expect(screen.getByLabelText('Agregar comentario')).toBeInTheDocument()
+		expect(screen.queryByRole('link', { name: 'Convertir a negocio' })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Finalizar actividad' })).toBeEnabled()
 	})
 })
 

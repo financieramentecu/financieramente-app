@@ -42,6 +42,14 @@ describe('describeTimelineEntry', () => {
 			title: 'Caso cerrado',
 			detail: 'Devolución · Cerrado\nListo',
 		})
+		expect(describeTimelineEntry(activity('TASK_COMMENTED', { taskId: 3, title: 'Llamar', action: 'COMMENTED', comment: 'Volví a llamar' }))).toMatchObject({
+			title: 'Volví a llamar',
+			detail: 'Llamar',
+		})
+		expect(describeTimelineEntry(activity('CASE_UPDATED', { caseId: 4, subject: 'Devolución', action: 'COMMENTED', comment: 'Falta el soporte' }))).toMatchObject({
+			title: 'Falta el soporte',
+			detail: 'Devolución',
+		})
 	})
 
 	it('describes stage changes as the person who moved the lead', () => {

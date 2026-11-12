@@ -16,6 +16,7 @@ import {
 	type CrmFieldsFormValues,
 } from '@/features/leads/custom-fields/build-crm-fields-patch'
 import { useLeadCrmFields } from '@/features/leads/custom-fields/use-lead-crm-fields'
+import { Skeleton } from '@/features/shared/ui/skeleton'
 
 const SELECT_CLASS = 'h-9 w-full rounded-md border border-input bg-background px-2 text-sm'
 
@@ -96,7 +97,15 @@ export function LeadCrmFieldsSection({
 	const [form, setForm] = React.useState<CrmFieldsFormValues | null>(null)
 
 	if (state.status === 'loading' || state.status === 'idle') {
-		return <p role="status" className="text-sm text-muted-foreground">Cargando datos del CRM…</p>
+		return (
+			<div role="status" aria-busy="true" className="space-y-3">
+				<span className="sr-only">Cargando datos del CRM…</span>
+				<Skeleton className="h-4 w-32" />
+				<Skeleton className="h-9 w-full" />
+				<Skeleton className="h-9 w-full" />
+				<Skeleton className="h-9 w-2/3" />
+			</div>
+		)
 	}
 	if (state.status === 'error') {
 		return <p role="alert" className="text-sm text-destructive">{state.error}</p>

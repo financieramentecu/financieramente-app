@@ -41,6 +41,7 @@ export function CrmTabs() {
 	}
 	const sheet = useLeadDetailSheet()
 	const [activityFocus, setActivityFocus] = React.useState<ActivityFocus | null>(null)
+	const [activityRevision, setActivityRevision] = React.useState(0)
 	const deepLinkLead = parseLeadParam(searchParams.get('lead'))
 	const { openLead } = sheet
 
@@ -76,8 +77,16 @@ export function CrmTabs() {
 				<TabsContent value="activities" forceMount hidden={activeTab !== 'activities'}>
 					{visitedTabs.includes('activities') && (
 						<ActivitiesAgenda
-							onOpenLead={(idLead) => void openLead(idLead)}
-							focus={activityFocus}
+							canConfigure={canManageCrm(session?.user?.role)}
+							onOpenLead={(idLead, leadName) => {
+								setActivityFocus(null)
+								void openLead(idLead, leadName)
+							}}
+							onOpenActivity={(idLead, focus, leadName) => {
+								setActivityFocus(focus)
+								void openLead(idLead, leadName)
+							}}
+							refreshKey={activityRevision}
 						/>
 					)}
 				</TabsContent>
@@ -88,12 +97,14 @@ export function CrmTabs() {
 			<CrmLeadDetailSheet
 				lead={sheet.lead}
 				open={sheet.open}
-				onOpenChange={sheet.setOpen}
-				onViewActivity={(focus) => {
-					setActivityFocus(focus)
-					setSelectedTab('activities')
-					sheet.setOpen(false)
+				onOpenChange={(next) => {
+					sheet.setOpen(next)
+					if (!next) setActivityFocus(null)
 				}}
+				activityFocus={activityFocus}
+				onActivityChanged={() => setActivityRevision((current) => current + 1)}
+				previewName={sheet.previewName}
+				loadError={sheet.loadError}
 			/>
 		</CrmHierarchyShell>
 	)

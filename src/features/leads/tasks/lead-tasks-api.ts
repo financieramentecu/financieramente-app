@@ -6,6 +6,7 @@ export interface LeadTaskDto {
 	idLeadTask: number
 	title: string
 	type: LeadTaskKind
+	typeLabel?: string
 	dueAt: string | null
 	status: 'OPEN' | 'DONE' | 'CANCELLED'
 	assignedTo: number
@@ -17,6 +18,7 @@ export interface NewLeadTask {
 	title: string
 	assignedTo: number
 	type: LeadTaskKind
+	idLeadActivityLabel?: number
 	dueAt?: string
 }
 

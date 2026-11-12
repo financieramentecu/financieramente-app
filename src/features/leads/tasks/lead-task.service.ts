@@ -11,6 +11,7 @@ export interface CreateLeadTaskInput {
 	title: string
 	dueAt?: Date | null
 	type?: LeadTaskKind
+	idLeadActivityLabel?: number | null
 	correlationId: string
 }
 
@@ -32,6 +33,15 @@ export interface ReassignLeadTaskInput {
 }
 
 type TaskWriter = Pick<Prisma.TransactionClient, 'leadTask' | 'leadActivity' | 'lead'>
+type TaskCommentWriter = Pick<Prisma.TransactionClient, 'leadTask' | 'leadTaskComment' | 'leadActivity' | 'lead'>
+
+export interface AddLeadTaskCommentInput {
+	idLeadTask: number
+	idLead: number
+	authorId: number
+	body: string
+	correlationId: string
+}
 
 /** All task lifecycle transitions append an immutable activity in the caller transaction. */
 export async function createLeadTaskTx(tx: TaskWriter, input: CreateLeadTaskInput) {
@@ -44,6 +54,7 @@ export async function createLeadTaskTx(tx: TaskWriter, input: CreateLeadTaskInpu
 			title: input.title,
 			dueAt: input.dueAt ?? null,
 			type: input.type ?? 'TODO',
+			idLeadActivityLabel: input.idLeadActivityLabel ?? null,
 			status: 'OPEN',
 		},
 	})
@@ -90,6 +101,30 @@ export async function reassignLeadTaskTx(tx: TaskWriter, input: ReassignLeadTask
 		correlationId: input.correlationId,
 	})
 	return task
+}
+
+/** A task comment is its own timeline event, separate from completing the task. */
+export async function addLeadTaskCommentTx(tx: TaskCommentWriter, input: AddLeadTaskCommentInput) {
+	const task = await tx.leadTask.findUnique({
+		where: { idLeadTask: input.idLeadTask },
+		select: { title: true },
+	})
+	const comment = await tx.leadTaskComment.create({
+		data: { idLeadTask: input.idLeadTask, authorId: input.authorId, body: input.body },
+	})
+	await appendLeadActivityTx(tx, {
+		idLead: input.idLead,
+		idUser: input.authorId,
+		type: 'TASK_COMMENTED',
+		payload: {
+			taskId: input.idLeadTask,
+			action: 'COMMENTED',
+			comment: input.body,
+			...(task?.title ? { title: task.title } : {}),
+		},
+		correlationId: input.correlationId,
+	})
+	return comment
 }
 
 /** A new due date re-arms the reminder (`reminderSentAt = null`). Bookkeeping only: no timeline event. */

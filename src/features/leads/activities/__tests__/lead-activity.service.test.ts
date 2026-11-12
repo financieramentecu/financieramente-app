@@ -84,7 +84,7 @@ describe('lead activity service', () => {
 		}
 	)
 
-	it.each(['TASK_CREATED', 'TASK_REASSIGNED', 'CASE_UPDATED', 'BUSINESS_LINKED'] as const)(
+	it.each(['TASK_CREATED', 'TASK_REASSIGNED', 'TASK_COMMENTED', 'CASE_UPDATED', 'BUSINESS_LINKED'] as const)(
 		'does not bump lastActivityAt for %s',
 		async (type) => {
 			create.mockResolvedValue({ idLeadActivity: 1 })

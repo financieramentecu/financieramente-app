@@ -4,6 +4,10 @@ import { todayBogota } from '@/features/negocios/lib/bogota-date'
 export const AGENDA_BUCKETS = ['overdue', 'today', 'upcoming', 'done'] as const
 export type AgendaBucket = (typeof AGENDA_BUCKETS)[number]
 
+export function isAgendaBucket(value: string): value is AgendaBucket {
+	return (AGENDA_BUCKETS as readonly string[]).includes(value)
+}
+
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 /** America/Bogota is UTC-5 all year (no DST). */

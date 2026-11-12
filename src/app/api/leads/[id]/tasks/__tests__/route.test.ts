@@ -14,7 +14,13 @@ vi.mock('@/features/leads/services/lead-board.service', () => ({ getLeadDetail: 
 vi.mock('@/features/leads/crm/crm-policy', () => ({ canAccessCrm: vi.fn(), canManageCrm: vi.fn() }))
 vi.mock('@/features/shared/lib/flagsmith-server', () => ({ isFeatureEnabledServer: vi.fn() }))
 vi.mock('@/features/leads/tasks/lead-task.service', () => ({ createLeadTaskTx: vi.fn() }))
-vi.mock('@/lib/prisma', () => ({ prisma: { leadTask: { findMany: vi.fn() }, $transaction: vi.fn((callback) => callback({})) } }))
+vi.mock('@/lib/prisma', () => ({
+	prisma: {
+		leadTask: { findMany: vi.fn() },
+		leadActivityLabel: { findFirst: vi.fn() },
+		$transaction: vi.fn((callback) => callback({})),
+	},
+}))
 vi.mock('next/server', () => ({ NextResponse: { json: vi.fn((data, init) => ({ status: init?.status ?? 200, json: () => Promise.resolve(data) })) } }))
 
 const context = (id: string) => ({ params: Promise.resolve({ id }) })

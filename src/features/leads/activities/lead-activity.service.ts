@@ -14,6 +14,7 @@ export type LeadActivityPayload =
 			title?: string
 			assignedTo?: number
 			comment?: string
+			action?: 'COMMENTED'
 			attachments?: LeadActivityAttachment[]
 	  }
 	| { businessId: number }

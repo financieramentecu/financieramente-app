@@ -41,7 +41,14 @@ describe('CrmTabs', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
-		vi.mocked(useLeadDetailSheet).mockReturnValue({ lead: null, open: false, setOpen: vi.fn(), openLead })
+		vi.mocked(useLeadDetailSheet).mockReturnValue({
+			lead: null,
+			open: false,
+			setOpen: vi.fn(),
+			openLead,
+			previewName: null,
+			loadError: null,
+		})
 	})
 
 	it('selects the Pipeline tab and renders the leads board', () => {

@@ -45,12 +45,13 @@ export async function POST(request: Request, context: RouteContext) {
 			return error('No puedes asignar fuera de tu alcance', 403)
 		}
 
-		const task = await createLeadTask(
+		const created = await createLeadTask(
 			{
 				idLead,
 				assignedTo: input.data.assignedTo,
 				title: input.data.title,
 				type: input.data.type,
+				idLeadActivityLabel: input.data.idLeadActivityLabel,
 				dueAt: input.data.dueAt ? new Date(input.data.dueAt) : null,
 			},
 			{
@@ -60,7 +61,8 @@ export async function POST(request: Request, context: RouteContext) {
 				userAgent: getUserAgent(request.headers),
 			}
 		)
-		return NextResponse.json({ data: task }, { status: 201 })
+		if (!created.ok) return error('Etiqueta de actividad no encontrada', 400)
+		return NextResponse.json({ data: created.task }, { status: 201 })
 	} catch (cause) {
 		console.error('Error creating lead task:', cause)
 		return error('Error al crear la tarea del lead', 500)

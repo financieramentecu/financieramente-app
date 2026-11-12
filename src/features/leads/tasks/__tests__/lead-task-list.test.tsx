@@ -27,6 +27,32 @@ describe('LeadTaskList', () => {
 		)
 	})
 
+	it('adds a comment on a task', async () => {
+		const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+			if (url.includes('activity-comments') && init?.method === 'POST') {
+				return { ok: true, json: async () => ({ data: { id: 1 } }) }
+			}
+			if (url.includes('activity-comments')) {
+				return { ok: true, json: async () => ({ data: [] }) }
+			}
+			return { ok: true, json: async () => ({ data: [openTask] }) }
+		})
+		vi.stubGlobal('fetch', fetchMock)
+		render(<LeadTaskList leadId={4} assigneeId={7} enabled />)
+		fireEvent.click(await screen.findByRole('button', { name: 'Comentarios' }))
+		expect(await screen.findByText('Sin comentarios')).toBeInTheDocument()
+		fireEvent.change(screen.getByLabelText('Agregar comentario'), { target: { value: 'Llamé de nuevo' } })
+		fireEvent.click(screen.getByRole('button', { name: 'Agregar comentario' }))
+		expect(await screen.findByText('Llamé de nuevo')).toBeInTheDocument()
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/crm/activity-comments',
+			expect.objectContaining({
+				method: 'POST',
+				body: JSON.stringify({ kind: 'task', id: 5, body: 'Llamé de nuevo' }),
+			})
+		)
+	})
+
 	it('completes an open task', async () => {
 		const fetchMock = vi.fn()
 			.mockResolvedValueOnce({ ok: true, json: async () => ({ data: [openTask] }) })

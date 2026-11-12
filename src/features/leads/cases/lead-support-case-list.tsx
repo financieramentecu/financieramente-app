@@ -10,7 +10,9 @@ import { formatDateBogota } from '@/features/shared/lib/format-date'
 import { dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
 import { jsonOrFilesInit } from '@/features/leads/activities/json-or-files'
 import { ResolutionNoteForm } from '@/features/leads/activities/resolution-note-form'
-import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
+import { ActivityCommentThread } from '@/features/leads/agenda/activity-comment-thread'
+import { LeadListSkeleton } from '@/features/leads/components/lead-loading-skeleton'
+import type { ActivityFinishActions, ActivityFinishState, ActivityFocus } from '@/features/leads/agenda/agenda.types'
 
 type SupportCaseStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING' | 'RESOLVED' | 'CLOSED'
 type SupportCasePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
@@ -52,11 +54,20 @@ function isOpen(status: SupportCaseStatus): boolean {
 export function LeadSupportCaseList({
 	leadId,
 	enabled,
-	onView,
+	commentFocus = null,
+	onCommented,
+	focusOnly = false,
+	finishActions,
+	onFinishState,
 }: {
 	leadId: number
 	enabled: boolean
-	onView?: (focus: ActivityFocus) => void
+	commentFocus?: ActivityFocus | null
+	onCommented?: () => void
+	/** Opened from Actividades: this case only, with its description and a comment composer. */
+	focusOnly?: boolean
+	finishActions?: { current: ActivityFinishActions | null }
+	onFinishState?: (state: ActivityFinishState) => void
 }) {
 	const [cases, setCases] = useState<SupportCase[]>([])
 	const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -67,7 +78,12 @@ export function LeadSupportCaseList({
 	const [draftId, setDraftId] = useState<number | null>(null)
 	const [formError, setFormError] = useState<string | null>(null)
 	const [reloadKey, setReloadKey] = useState(0)
+	const [openComments, setOpenComments] = useState<number | null>(commentFocus?.kind === 'case' ? commentFocus.id : null)
 	const loadedLeadId = useRef<number | null>(null)
+
+	useEffect(() => {
+		if (commentFocus?.kind === 'case') setOpenComments(commentFocus.id)
+	}, [commentFocus])
 
 	useEffect(() => {
 		if (!enabled) return
@@ -91,7 +107,39 @@ export function LeadSupportCaseList({
 		}
 	}, [enabled, leadId, reloadKey])
 
-	if (!enabled) return null
+	const focusedCase = focusOnly
+		? cases.find((supportCase) => commentFocus?.kind === 'case' && supportCase.idLeadSupportCase === commentFocus.id)
+		: undefined
+
+	if (focusOnly && finishActions) {
+		finishActions.current = focusedCase
+			? {
+				start: () => setDraftId(focusedCase.idLeadSupportCase),
+				cancel: () => setDraftId(null),
+				submit: (comment, files, closeOn) => {
+					void closeCase(focusedCase.idLeadSupportCase, comment, files, closeOn)
+				},
+			}
+			: null
+	}
+
+	useEffect(() => {
+		if (!focusOnly || !onFinishState) return
+		if (!enabled || status === 'loading' || loadedLeadId.current !== leadId) {
+			onFinishState({ status: 'loading', drafting: false, pending: closingId != null, includeCloseDate: true })
+			return
+		}
+		if (!focusedCase) {
+			onFinishState({ status: 'missing', drafting: false, pending: closingId != null, includeCloseDate: true })
+			return
+		}
+		onFinishState({
+			status: isOpen(focusedCase.status) ? 'open' : 'closed',
+			drafting: draftId === focusedCase.idLeadSupportCase,
+			pending: closingId === focusedCase.idLeadSupportCase,
+			includeCloseDate: true,
+		})
+	}, [focusOnly, onFinishState, enabled, status, leadId, focusedCase, draftId, closingId])
 
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
@@ -144,14 +192,23 @@ export function LeadSupportCaseList({
 		}
 	}
 
+	const visibleCases = focusOnly
+		? cases.filter((supportCase) => commentFocus?.kind === 'case' && supportCase.idLeadSupportCase === commentFocus.id)
+		: cases
+
+	if (!enabled) return null
+
 	return (
-		<section aria-labelledby="lead-support-cases-title" className="space-y-3">
-			<div className="flex items-center gap-2">
-				<LifeBuoy className="size-4 text-slate-500" aria-hidden />
-				<h3 id="lead-support-cases-title" className="text-sm font-semibold">
-					Casos de soporte
-				</h3>
-			</div>
+		<section aria-label={focusOnly ? 'Actividad' : undefined} aria-labelledby={focusOnly ? undefined : 'lead-support-cases-title'} className="space-y-3">
+			{!focusOnly && (
+				<div className="flex items-center gap-2">
+					<LifeBuoy className="size-4 text-slate-500" aria-hidden />
+					<h3 id="lead-support-cases-title" className="text-sm font-semibold">
+						Casos de soporte
+					</h3>
+				</div>
+			)}
+			{!focusOnly && (
 			<form onSubmit={submit} className="space-y-2 rounded-md border border-border p-3">
 				<label htmlFor={`lead-case-${leadId}`} className="text-sm font-medium">
 					Asunto del caso
@@ -188,37 +245,54 @@ export function LeadSupportCaseList({
 					{saving ? 'Abriendo…' : 'Abrir caso'}
 				</Button>
 			</form>
+			)}
 			{status === 'loading' && (
-				<p role="status" className="text-sm text-muted-foreground">
-					Cargando casos…
-				</p>
+				<LeadListSkeleton label={focusOnly ? 'Cargando la actividad…' : 'Cargando casos…'} rows={focusOnly ? 1 : 3} />
 			)}
 			{status === 'error' && (
 				<p role="alert" className="text-sm text-destructive">
 					No fue posible cargar los casos. Inténtalo de nuevo.
 				</p>
 			)}
-			{status === 'idle' && cases.length === 0 && (
-				<p className="text-sm text-muted-foreground">
-					No hay casos de soporte para este lead.
+			{focusOnly && formError && (
+				<p role="alert" className="text-sm text-destructive">
+					{formError}
 				</p>
 			)}
-			{cases.map((supportCase) => (
+			{status === 'idle' && visibleCases.length === 0 && (
+				<p className="text-sm text-muted-foreground">
+					{focusOnly ? 'No se encontró la actividad.' : 'No hay casos de soporte para este lead.'}
+				</p>
+			)}
+			{visibleCases.map((supportCase) => (
 				<div key={supportCase.idLeadSupportCase} className="space-y-1 text-sm">
-					<p className="font-medium">{supportCase.subject}</p>
+					{focusOnly ? (
+						<div className="space-y-1">
+							<p className="text-xs font-medium text-muted-foreground">Descripción</p>
+							<p className="font-medium">{supportCase.subject}</p>
+							<p className="text-xs text-muted-foreground">
+								{statusLabel[supportCase.status]} · Prioridad {priorityLabel[supportCase.priority].toLowerCase()}
+								{supportCase.dueAt ? ` · SLA ${formatDateBogota(supportCase.dueAt)}` : ''}
+							</p>
+						</div>
+					) : (
+						<p className="font-medium">{supportCase.subject}</p>
+					)}
+					{!focusOnly && (
 					<div className="flex flex-wrap items-center gap-2">
 						<Badge variant="outline">{statusLabel[supportCase.status]}</Badge>
 						<Badge variant="secondary">{priorityLabel[supportCase.priority]}</Badge>
-						{onView && (
-							<Button
-								type="button"
-								size="sm"
-								variant="outline"
-								onClick={() => onView({ kind: 'case', id: supportCase.idLeadSupportCase })}
-							>
-								Ver
-							</Button>
-						)}
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							aria-expanded={openComments === supportCase.idLeadSupportCase}
+							onClick={() =>
+								setOpenComments((current) => (current === supportCase.idLeadSupportCase ? null : supportCase.idLeadSupportCase))
+							}
+						>
+							Comentarios
+						</Button>
 						{isOpen(supportCase.status) && draftId !== supportCase.idLeadSupportCase && (
 							<Button
 								type="button"
@@ -230,7 +304,14 @@ export function LeadSupportCaseList({
 							</Button>
 						)}
 					</div>
-					{draftId === supportCase.idLeadSupportCase && (
+					)}
+					{focusOnly && (
+						<ActivityCommentThread focus={{ kind: 'case', id: supportCase.idLeadSupportCase }} onChanged={onCommented} />
+					)}
+					{!focusOnly && openComments === supportCase.idLeadSupportCase && (
+						<ActivityCommentThread focus={{ kind: 'case', id: supportCase.idLeadSupportCase }} onChanged={onCommented} />
+					)}
+					{!focusOnly && draftId === supportCase.idLeadSupportCase && (
 						<ResolutionNoteForm
 							id={`case-${supportCase.idLeadSupportCase}`}
 							submitLabel="Cerrar caso"
@@ -248,7 +329,7 @@ export function LeadSupportCaseList({
 							Cierre: {formatDateBogota(supportCase.resolvedAt)}
 						</p>
 					)}
-					{supportCase.dueAt && (
+					{!focusOnly && supportCase.dueAt && (
 						<p className="text-xs text-muted-foreground">
 							SLA: {formatDateBogota(supportCase.dueAt)}
 						</p>

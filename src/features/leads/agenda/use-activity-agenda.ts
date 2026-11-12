@@ -21,7 +21,7 @@ function withCaseBucket(supportCase: ActivityBoardCaseDto, bucket: AgendaBucket,
 }
 
 /** Tasks and cases of the viewer hierarchy, grouped later into the four time columns. */
-export function useActivityBoard(ownerIds: number[], paused = false) {
+export function useActivityBoard(ownerIds: number[], paused = false, refreshKey = 0) {
 	const ownerKey = ownerIds.join(',')
 	const [state, setState] = useState<AsyncState<ActivityBoardDto>>({ status: 'loading', data: undefined, error: '' })
 
@@ -41,7 +41,7 @@ export function useActivityBoard(ownerIds: number[], paused = false) {
 		}
 		// ownerKey is the stable identity of ownerIds.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ownerKey, paused])
+	}, [ownerKey, paused, refreshKey])
 
 	function reload() {
 		setState((current) => (current.status === 'success' ? current : { status: 'loading', data: undefined, error: '' }))

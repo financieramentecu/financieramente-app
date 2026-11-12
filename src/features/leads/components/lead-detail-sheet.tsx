@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ExternalLink, Mail, Phone, IdCard, Tag, Trash2 } from 'lucide-react'
 import {
@@ -28,9 +28,12 @@ import {
 	LEAD_OUTCOME_STATUS_BADGE_VARIANTS,
 } from '@/features/leads/lib/lead-outcome-status'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
+import { Skeleton } from '@/features/shared/ui/skeleton'
 import { canDeleteLead } from '@/features/leads/lib/can-delete-lead'
 import { useDeleteLead } from '@/features/leads/hooks/use-delete-lead'
 import { LeadActivityTimeline } from '@/features/leads/activities/lead-activity-timeline'
+import { ResolutionNoteForm } from '@/features/leads/activities/resolution-note-form'
+import { ActivityCommentThread } from '@/features/leads/agenda/activity-comment-thread'
 import {
 	Tabs,
 	TabsContent,
@@ -41,7 +44,7 @@ import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
 import { LeadTaskList } from '@/features/leads/tasks/lead-task-list'
 import { LeadCrmFieldsSection } from '@/features/leads/custom-fields/lead-crm-fields-section'
 import { LeadSupportCaseList } from '@/features/leads/cases/lead-support-case-list'
-import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
+import type { ActivityFinishActions, ActivityFinishState, ActivityFocus } from '@/features/leads/agenda/agenda.types'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
 
 const LEAD_SHEET_PANEL = {
@@ -59,6 +62,20 @@ const WORK_TAB = {
 type WorkTab = (typeof WORK_TAB)[keyof typeof WORK_TAB]
 
 const SHEET_TAB_CLASS = 'h-8 min-w-0 whitespace-normal px-2 text-xs'
+
+const IDLE_FINISH: ActivityFinishState = {
+	status: 'loading',
+	drafting: false,
+	pending: false,
+	includeCloseDate: false,
+}
+
+function sameFinish(current: ActivityFinishState, next: ActivityFinishState): boolean {
+	return current.status === next.status
+		&& current.drafting === next.drafting
+		&& current.pending === next.pending
+		&& current.includeCloseDate === next.includeCloseDate
+}
 
 function isLeadSheetPanel(value: string): value is LeadSheetPanel {
 	return value === LEAD_SHEET_PANEL.DETAIL || value === LEAD_SHEET_PANEL.HISTORY
@@ -82,7 +99,12 @@ interface LeadDetailSheetProps {
 	canManageCrm?: boolean
 	conversionAuditEnabled?: boolean
 	casesEnabled?: boolean
-	onViewActivity?: (focus: ActivityFocus) => void
+	/** Task or case that opened this sheet from Actividades. */
+	activityFocus?: ActivityFocus | null
+	onActivityChanged?: () => void
+	/** Name already known by the caller, shown while the detail request is in flight. */
+	previewName?: string | null
+	loadError?: string | null
 }
 
 /**
@@ -105,10 +127,26 @@ export function LeadDetailSheet({
 	canManageCrm = false,
 	conversionAuditEnabled = false,
 	casesEnabled = false,
-	onViewActivity,
+	activityFocus = null,
+	onActivityChanged,
+	previewName = null,
+	loadError = null,
 }: LeadDetailSheetProps) {
 	const { state: deleteState, deleteLead } = useDeleteLead()
 	const [panel, setPanel] = useState<LeadSheetPanel>(LEAD_SHEET_PANEL.DETAIL)
+	const finishActions = useRef<ActivityFinishActions | null>(null)
+	const [finishState, setFinishState] = useState<ActivityFinishState>(IDLE_FINISH)
+	const finishKey = activityFocus ? `${activityFocus.kind}:${activityFocus.id}` : ''
+	const [seenFinishKey, setSeenFinishKey] = useState(finishKey)
+	if (finishKey !== seenFinishKey) {
+		setSeenFinishKey(finishKey)
+		setFinishState(IDLE_FINISH)
+		finishActions.current = null
+	}
+
+	function publishFinishState(next: ActivityFinishState) {
+		setFinishState((current) => (sameFinish(current, next) ? current : next))
+	}
 
 	useEffect(() => {
 		setPanel(LEAD_SHEET_PANEL.DETAIL)
@@ -121,7 +159,31 @@ export function LeadDetailSheet({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [deleteState.status])
 
-	if (!lead) return null
+	if (!lead) {
+		return (
+			<Sheet open={open} onOpenChange={onOpenChange}>
+				<SheetContent className="gap-0 overflow-hidden sm:max-w-md">
+					<SheetHeader className="pb-3">
+						<SheetTitle>{previewName || 'Detalle del lead'}</SheetTitle>
+						<SheetDescription>Detalle del lead</SheetDescription>
+					</SheetHeader>
+					{loadError ? (
+						<p role="alert" className="px-4 text-sm text-destructive">
+							{loadError}
+						</p>
+					) : (
+						<div role="status" aria-busy="true" className="space-y-3 px-4">
+							<span className="sr-only">Cargando el lead…</span>
+							<Skeleton className="h-4 w-28" />
+							<Skeleton className="h-4 w-56" />
+							<Skeleton className="h-4 w-40" />
+							<Skeleton className="h-24 w-full" />
+						</div>
+					)}
+				</SheetContent>
+			</Sheet>
+		)
+	}
 
 	const fullName =
 		[lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
@@ -249,6 +311,11 @@ export function LeadDetailSheet({
 								/>
 							</>
 						)}
+						{activityFocus &&
+							((activityFocus.kind === 'task' && !tasksEnabled) ||
+								(activityFocus.kind === 'case' && !casesEnabled)) && (
+								<ActivityCommentThread focus={activityFocus} onChanged={onActivityChanged} />
+							)}
 						{(tasksEnabled || casesEnabled) && (
 							<LeadWorkTabs
 								leadId={lead.idLead}
@@ -256,7 +323,10 @@ export function LeadDetailSheet({
 								open={open}
 								tasksEnabled={tasksEnabled}
 								casesEnabled={casesEnabled}
-								onViewActivity={onViewActivity}
+								activityFocus={activityFocus}
+								onActivityChanged={onActivityChanged}
+								finishActions={finishActions}
+								onFinishState={publishFinishState}
 							/>
 						)}
 						{!lead.email &&
@@ -285,7 +355,27 @@ export function LeadDetailSheet({
 					</TabsContent>
 				</Tabs>
 				<SheetFooter className="flex-col gap-2 border-t border-border pt-4">
-					{isConverted ? (
+					{activityFocus ? (
+						finishState.drafting ? (
+							<ResolutionNoteForm
+								id={`finish-${activityFocus.kind}-${activityFocus.id}`}
+								submitLabel="Finalizar actividad"
+								pendingLabel="Finalizando…"
+								saving={finishState.pending}
+								includeCloseDate={finishState.includeCloseDate}
+								onCancel={() => finishActions.current?.cancel()}
+								onSubmit={(comment, files, closeOn) => finishActions.current?.submit(comment, files, closeOn)}
+							/>
+						) : (
+							<Button
+								className="w-full"
+								disabled={finishState.status !== 'open' || finishState.pending}
+								onClick={() => finishActions.current?.start()}
+							>
+								{finishState.status === 'closed' ? 'Actividad finalizada' : 'Finalizar actividad'}
+							</Button>
+						)
+					) : isConverted ? (
 						<Button asChild className="w-full">
 							<Link href={`/dashboard/negocios/${lead.idBusiness}`}>
 								Ver negocio
@@ -307,7 +397,7 @@ export function LeadDetailSheet({
 							</p>
 						</div>
 					)}
-					{hasExternalUrl && (
+					{!activityFocus && hasExternalUrl && (
 						<Button asChild variant="outline" className="w-full">
 							<a href={lead.externalUrl!} target="_blank" rel="noreferrer">
 								Ver en CRM
@@ -315,7 +405,7 @@ export function LeadDetailSheet({
 							</a>
 						</Button>
 					)}
-					{canDelete && (
+					{!activityFocus && canDelete && (
 						<AlertDialog>
 							<AlertDialogTrigger asChild>
 								<Button variant="destructive" className="w-full">
@@ -353,24 +443,75 @@ function LeadWorkTabs({
 	open,
 	tasksEnabled,
 	casesEnabled,
-	onViewActivity,
+	activityFocus,
+	onActivityChanged,
+	finishActions,
+	onFinishState,
 }: {
 	leadId: number
 	assigneeId: number | null
 	open: boolean
 	tasksEnabled: boolean
 	casesEnabled: boolean
-	onViewActivity?: (focus: ActivityFocus) => void
+	activityFocus: ActivityFocus | null
+	onActivityChanged?: () => void
+	finishActions?: { current: ActivityFinishActions | null }
+	onFinishState?: (state: ActivityFinishState) => void
 }) {
 	const defaultTab = tasksEnabled ? WORK_TAB.TASKS : WORK_TAB.CASES
 	const [workTab, setWorkTab] = useState<WorkTab>(defaultTab)
+	const focusedTask = activityFocus?.kind === 'task' && tasksEnabled
+	const focusedCase = activityFocus?.kind === 'case' && casesEnabled
 
 	useEffect(() => {
+		if (activityFocus?.kind === 'case' && casesEnabled) {
+			setWorkTab(WORK_TAB.CASES)
+			return
+		}
+		if (activityFocus?.kind === 'task' && tasksEnabled) {
+			setWorkTab(WORK_TAB.TASKS)
+			return
+		}
 		setWorkTab(defaultTab)
-	}, [leadId, defaultTab])
+	}, [leadId, defaultTab, activityFocus, casesEnabled, tasksEnabled])
 
 	const active = workTab === WORK_TAB.CASES && casesEnabled ? WORK_TAB.CASES : defaultTab
 	const columns = tasksEnabled && casesEnabled ? 'grid-cols-2' : 'grid-cols-1'
+
+	if (focusedTask) {
+		return (
+			<div className="space-y-3">
+				<Separator />
+				<LeadTaskList
+					leadId={leadId}
+					assigneeId={assigneeId}
+					enabled={open}
+					commentFocus={activityFocus}
+					onCommented={onActivityChanged}
+					focusOnly
+					finishActions={finishActions}
+					onFinishState={onFinishState}
+				/>
+			</div>
+		)
+	}
+
+	if (focusedCase) {
+		return (
+			<div className="space-y-3">
+				<Separator />
+				<LeadSupportCaseList
+					leadId={leadId}
+					enabled={open}
+					commentFocus={activityFocus}
+					onCommented={onActivityChanged}
+					focusOnly
+					finishActions={finishActions}
+					onFinishState={onFinishState}
+				/>
+			</div>
+		)
+	}
 
 	return (
 		<div className="space-y-3">
@@ -399,7 +540,8 @@ function LeadWorkTabs({
 							leadId={leadId}
 							assigneeId={assigneeId}
 							enabled={open && active === WORK_TAB.TASKS}
-							onView={onViewActivity}
+							commentFocus={activityFocus}
+							onCommented={onActivityChanged}
 						/>
 					</TabsContent>
 				)}
@@ -408,7 +550,8 @@ function LeadWorkTabs({
 						<LeadSupportCaseList
 							leadId={leadId}
 							enabled={open && active === WORK_TAB.CASES}
-							onView={onViewActivity}
+							commentFocus={activityFocus}
+							onCommented={onActivityChanged}
 						/>
 					</TabsContent>
 				)}

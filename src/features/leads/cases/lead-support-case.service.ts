@@ -94,6 +94,10 @@ export async function transitionLeadSupportCaseTx(tx: CaseWriter, input: Transit
 }
 
 export async function addLeadSupportCaseCommentTx(tx: CaseWriter, input: AddLeadSupportCaseCommentInput) {
+  const supportCase = await tx.leadSupportCase.findUnique({
+    where: { idLeadSupportCase: input.idLeadSupportCase },
+    select: { subject: true },
+  })
   const comment = await tx.leadSupportCaseComment.create({
     data: { idLeadSupportCase: input.idLeadSupportCase, authorId: input.authorId, body: input.body },
   })
@@ -101,7 +105,12 @@ export async function addLeadSupportCaseCommentTx(tx: CaseWriter, input: AddLead
     idLead: input.idLead,
     idUser: input.authorId,
     type: 'CASE_UPDATED',
-    payload: { caseId: input.idLeadSupportCase, action: 'COMMENTED' },
+    payload: {
+      caseId: input.idLeadSupportCase,
+      action: 'COMMENTED',
+      comment: input.body,
+      ...(supportCase?.subject ? { subject: supportCase.subject } : {}),
+    },
     correlationId: input.correlationId,
   })
   return comment

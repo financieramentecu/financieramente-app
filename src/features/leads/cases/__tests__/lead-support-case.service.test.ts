@@ -14,8 +14,9 @@ vi.mock('@/features/leads/activities/lead-activity.service', () => ({
   appendLeadActivityTx: (...args: unknown[]) => appendLeadActivityTx(...args),
 }))
 
+const findUnique = vi.fn()
 const tx = {
-  leadSupportCase: { create, update },
+  leadSupportCase: { create, update, findUnique },
   leadSupportCaseComment: { create: commentCreate },
   leadActivity: { create: vi.fn() },
 }
@@ -58,6 +59,7 @@ describe('lead support case service', () => {
   })
 
   it('adds an immutable plain-text comment and timeline event', async () => {
+    findUnique.mockResolvedValue({ subject: 'Devolución' })
     commentCreate.mockResolvedValue({ idLeadSupportCaseComment: 2 })
     appendLeadActivityTx.mockResolvedValue({ idLeadActivity: 3 })
     await addLeadSupportCaseCommentTx(tx as never, { idLeadSupportCase: 9, idLead: 4, authorId: 7, body: 'Se solicitó soporte documental.', correlationId: 'case-4-comment-1' })

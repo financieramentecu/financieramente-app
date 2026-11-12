@@ -1,16 +1,15 @@
-import type { TimelineEntryDto } from '@/features/leads/activities/lead-timeline.types'
 import { bogotaDateOnly } from '@/features/negocios/lib/bogota-date'
 import { formatDateBogota } from '@/features/shared/lib/format-date'
 
-export interface TimelineDayGroup {
+export interface TimelineDayGroup<T> {
 	day: string
 	label: string
-	items: TimelineEntryDto[]
+	items: T[]
 }
 
-/** Groups timeline entries by the Bogotá calendar day, keeping the incoming order. */
-export function groupTimelineByDay(items: readonly TimelineEntryDto[]): TimelineDayGroup[] {
-	const groups: TimelineDayGroup[] = []
+/** Groups dated entries by the Bogotá calendar day, keeping the incoming order. */
+export function groupTimelineByDay<T extends { occurredAt: string }>(items: readonly T[]): TimelineDayGroup<T>[] {
+	const groups: TimelineDayGroup<T>[] = []
 	for (const item of items) {
 		const occurredAt = new Date(item.occurredAt)
 		if (Number.isNaN(occurredAt.getTime())) continue

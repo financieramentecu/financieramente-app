@@ -1,5 +1,7 @@
 import type { LeadTaskStatus, LeadTaskType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { DEFAULT_ACTIVITY_LABEL_COLOR } from '@/features/leads/activities/activity-label.types'
+import { TASK_TYPE_LABELS } from '@/features/leads/agenda/task-type-labels'
 import { DONE_LOOKBACK_DAYS, getAgendaBucketWhere, getBogotaDayBounds, UPCOMING_DAYS, type AgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
 
 export interface AgendaTaskItem {
@@ -23,6 +25,8 @@ export interface ActivityBoardTask {
 	leadName: string
 	title: string
 	type: LeadTaskType
+	typeLabel: string
+	typeColor: string
 	dueAt: Date | null
 	status: LeadTaskStatus
 	completedAt: Date | null
@@ -58,6 +62,7 @@ export async function getActivityBoard(assigneeIds: number[] | null, now: Date =
 			status: true,
 			completedAt: true,
 			createdAt: true,
+			activityLabel: { select: { name: true, color: true } },
 			assignee: { select: { name: true, lastName: true } },
 			creator: { select: { name: true, lastName: true } },
 			lead: { select: { name: true, lastName: true } },
@@ -70,6 +75,8 @@ export async function getActivityBoard(assigneeIds: number[] | null, now: Date =
 		leadName: personName(row.lead),
 		title: row.title,
 		type: row.type,
+		typeLabel: row.activityLabel?.name ?? TASK_TYPE_LABELS[row.type],
+		typeColor: row.activityLabel?.color ?? DEFAULT_ACTIVITY_LABEL_COLOR,
 		dueAt: row.dueAt,
 		status: row.status,
 		completedAt: row.completedAt,

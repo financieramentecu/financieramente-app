@@ -339,6 +339,8 @@ model User {
   leadSupportCasesAssigned            LeadSupportCase[]        @relation("LeadSupportCaseAssignee")
   leadSupportCaseComments             LeadSupportCaseComment[] @relation("LeadSupportCaseCommentAuthor")
   leadTaskComments                    LeadTaskComment[]        @relation("LeadTaskCommentAuthor")
+  leadActivityLabelsCreated           LeadActivityLabel[]      @relation("LeadActivityLabelCreator")
+  leadActivityColumnsUpdated          LeadActivityColumn[]     @relation("LeadActivityColumnUpdater")
   leadStageChanges                    LeadStageHistory[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
@@ -774,6 +776,7 @@ enum LeadActivityType {
   TASK_CREATED
   TASK_COMPLETED
   TASK_REASSIGNED
+  TASK_COMMENTED
   CONVERTED
   BUSINESS_LINKED
   CASE_OPENED
@@ -880,29 +883,64 @@ model LeadSupportCaseComment {
   @@map("lead_support_case_comment")
 }
 
+/// Catalogue of activity names shown on task cards. Seeded codes match `LeadTaskType`.
+model LeadActivityLabel {
+  idLeadActivityLabel Int        @id @default(autoincrement()) @map("id_lead_activity_label")
+  name                String     @db.VarChar(40)
+  color               String     @default("#64748b") @db.VarChar(7)
+  /// Built-in task type. Null for labels created by the team.
+  code                String?    @unique @db.VarChar(20)
+  active              Boolean    @default(true)
+  position            Int        @default(0)
+  createdBy           Int        @map("created_by")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+  creator             User       @relation("LeadActivityLabelCreator", fields: [createdBy], references: [idUser])
+  tasks               LeadTask[]
+
+  @@index([active, position])
+  @@map("lead_activity_label")
+}
+
+/// Editable title of one activities-board column. The code decides which cards land there.
+model LeadActivityColumn {
+  idLeadActivityColumn Int      @id @default(autoincrement()) @map("id_lead_activity_column")
+  code                 String   @unique @db.VarChar(20)
+  name                 String   @db.VarChar(40)
+  position             Int      @default(0)
+  updatedBy            Int      @map("updated_by")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  updater              User     @relation("LeadActivityColumnUpdater", fields: [updatedBy], references: [idUser])
+
+  @@map("lead_activity_column")
+}
+
 model LeadTask {
-  idLeadTask     Int            @id @default(autoincrement()) @map("id_lead_task")
-  idLead         Int            @map("id_lead")
-  idBusiness     Int?           @map("id_business")
-  assignedTo     Int            @map("assigned_to")
-  createdBy      Int            @map("created_by")
-  title          String         @db.VarChar(240)
-  dueAt          DateTime?      @map("due_at")
-  type           LeadTaskType   @default(TODO)
-  status         LeadTaskStatus @default(OPEN)
-  completedAt    DateTime?      @map("completed_at")
-  reminderSentAt DateTime?      @map("reminder_sent_at")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
-  lead           Lead           @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
-  business       Business?      @relation(fields: [idBusiness], references: [idBusiness], onDelete: SetNull)
-  assignee       User              @relation("LeadTaskAssignee", fields: [assignedTo], references: [idUser])
-  creator        User              @relation("LeadTaskCreator", fields: [createdBy], references: [idUser])
-  comments       LeadTaskComment[]
+  idLeadTask          Int                @id @default(autoincrement()) @map("id_lead_task")
+  idLead              Int                @map("id_lead")
+  idBusiness          Int?               @map("id_business")
+  assignedTo          Int                @map("assigned_to")
+  createdBy           Int                @map("created_by")
+  title               String             @db.VarChar(240)
+  dueAt               DateTime?          @map("due_at")
+  type                LeadTaskType       @default(TODO)
+  idLeadActivityLabel Int?               @map("id_lead_activity_label")
+  status              LeadTaskStatus     @default(OPEN)
+  completedAt         DateTime?          @map("completed_at")
+  reminderSentAt      DateTime?          @map("reminder_sent_at")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  lead                Lead               @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
+  business            Business?          @relation(fields: [idBusiness], references: [idBusiness], onDelete: SetNull)
+  assignee            User               @relation("LeadTaskAssignee", fields: [assignedTo], references: [idUser])
+  creator             User               @relation("LeadTaskCreator", fields: [createdBy], references: [idUser])
+  activityLabel       LeadActivityLabel? @relation(fields: [idLeadActivityLabel], references: [idLeadActivityLabel], onDelete: SetNull)
+  comments            LeadTaskComment[]
 
   @@index([assignedTo, status, dueAt])
   @@index([idLead, status])
   @@index([dueAt, reminderSentAt])
+  @@index([idLeadActivityLabel])
   @@map("lead_task")
 }
 

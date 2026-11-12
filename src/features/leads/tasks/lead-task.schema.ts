@@ -20,6 +20,7 @@ export const leadTaskCreateSchema = z
 		assignedTo: positiveUserId,
 		dueAt: z.string().datetime().optional(),
 		type: z.enum(LEAD_TASK_TYPES).default('TODO'),
+		idLeadActivityLabel: z.number().int().positive().optional(),
 	})
 	.strict()
 

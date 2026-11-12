@@ -14,13 +14,19 @@ export function CrmLeadDetailSheet({
 	open,
 	onOpenChange,
 	onDeleted,
-	onViewActivity,
+	activityFocus = null,
+	onActivityChanged,
+	previewName = null,
+	loadError = null,
 }: {
 	lead: LeadDetail | null
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onDeleted?: () => void
-	onViewActivity?: (focus: ActivityFocus) => void
+	activityFocus?: ActivityFocus | null
+	onActivityChanged?: () => void
+	previewName?: string | null
+	loadError?: string | null
 }) {
 	const { data: session } = useSession()
 	const { enabled: timelineEnabled } = useFeatureFlag('crm_timeline')
@@ -42,7 +48,10 @@ export function CrmLeadDetailSheet({
 			casesEnabled={casesEnabled}
 			crmFieldsEnabled={crmFieldsEnabled}
 			canManageCrm={canManageCrm(session?.user?.role)}
-			onViewActivity={onViewActivity}
+			activityFocus={activityFocus}
+			onActivityChanged={onActivityChanged}
+			previewName={previewName}
+			loadError={loadError}
 		/>
 	)
 }

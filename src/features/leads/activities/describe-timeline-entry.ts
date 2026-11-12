@@ -17,6 +17,7 @@ const ACTIVITY_TITLES: Record<string, string> = {
 	TASK_CREATED: 'Tarea creada',
 	TASK_COMPLETED: 'Tarea completada',
 	TASK_REASSIGNED: 'Tarea reasignada',
+	TASK_COMMENTED: 'Comentario',
 	CONVERTED: 'Lead convertido a negocio',
 	BUSINESS_LINKED: 'Negocio vinculado',
 	CASE_OPENED: 'Caso de soporte abierto',
@@ -61,6 +62,19 @@ export function describeTimelineEntry(entry: TimelineEntryDto): TimelineEntryVie
 	const title = ACTIVITY_TITLES[entry.type] ?? 'Actividad'
 	const { payload } = entry
 	const base = { title, actor: entry.actorName }
+
+	if ('action' in payload && payload.action === 'COMMENTED') {
+		const about =
+			('title' in payload && payload.title) ||
+			('subject' in payload && payload.subject) ||
+			('taskId' in payload ? `Tarea #${payload.taskId}` : `Caso #${payload.caseId}`)
+		const written = 'comment' in payload && payload.comment ? payload.comment : null
+		return {
+			...base,
+			title: written ?? about,
+			detail: written ? about : '',
+		}
+	}
 
 	if ('note' in payload) return { ...base, detail: payload.note }
 	if ('summary' in payload) {

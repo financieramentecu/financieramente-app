@@ -22,6 +22,9 @@ export interface ActivityBoardTaskDto {
 	leadName: string
 	title: string
 	type: LeadTaskKind
+	/** Catalogue name. Absent until the board response includes it. */
+	typeLabel?: string
+	typeColor?: string
 	dueAt: string | null
 	status: 'OPEN' | 'DONE' | 'CANCELLED'
 	completedAt: string | null
@@ -55,3 +58,19 @@ export interface ActivityBoardDto {
 }
 
 export type ActivityFocus = { kind: 'task' | 'case'; id: number }
+
+export type ActivityFinishStatus = 'loading' | 'open' | 'closed' | 'missing'
+
+/** Footer action for the activity sheet. The list owns the mutation. */
+export interface ActivityFinishState {
+	status: ActivityFinishStatus
+	drafting: boolean
+	pending: boolean
+	includeCloseDate: boolean
+}
+
+export interface ActivityFinishActions {
+	start: () => void
+	cancel: () => void
+	submit: (comment: string, files: File[], closeOn?: string) => void
+}

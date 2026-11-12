@@ -14,6 +14,7 @@ describe('lead task schemas', () => {
 	it('accepts a task type and defaults to TODO', () => {
 		expect(leadTaskCreateSchema.parse({ title: 'Llamar', assignedTo: 7 }).type).toBe('TODO')
 		expect(leadTaskCreateSchema.parse({ title: 'Llamar', assignedTo: 7, type: 'CALL' }).type).toBe('CALL')
+		expect(leadTaskCreateSchema.parse({ title: 'Llamar', assignedTo: 7, idLeadActivityLabel: 9 }).idLeadActivityLabel).toBe(9)
 		expect(leadTaskCreateSchema.safeParse({ title: 'x', assignedTo: 7, type: 'FAX' }).success).toBe(false)
 	})
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
 	DndContext,
 	DragOverlay,
@@ -16,12 +16,16 @@ import {
 	type DragStartEvent,
 } from '@dnd-kit/core'
 import { Button } from '@/features/shared/ui/button'
+import { Skeleton } from '@/features/shared/ui/skeleton'
 import { formatDateTimeBogota } from '@/features/shared/lib/format-date'
 import { CRM_HIERARCHY_EMPTY_MESSAGE, useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
 import { AGENDA_BUCKETS, type AgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
-import { ACTIVITY_COLUMN_LABELS, activityBucket } from '@/features/leads/agenda/activity-bucket'
+import { activityBucket } from '@/features/leads/agenda/activity-bucket'
+import { ActivityColumnSettings } from '@/features/leads/agenda/activity-column-settings'
+import { useActivityColumns } from '@/features/leads/agenda/use-activity-columns'
 import { TASK_TYPE_LABELS } from '@/features/leads/agenda/task-type-labels'
-import { ActivityWorkPanel } from '@/features/leads/agenda/activity-work-panel'
+import { activityDueCardText, isActivityOverdue } from '@/features/leads/agenda/activity-due-label'
+import { ActivityLabelSettings } from '@/features/leads/activities/activity-label-settings'
 import { caseAsTask, useActivityBoard } from '@/features/leads/agenda/use-activity-agenda'
 import { parsePrefixedId } from '@/features/leads/lib/parse-board-drag-id'
 import type {
@@ -65,25 +69,10 @@ const KIND_FILTERS: { id: ActivityKindFilter; label: string }[] = [
 	{ id: 'case', label: 'Casos' },
 ]
 
-function commentLabel(count: number): string {
-	if (count === 0) return 'Sin comentarios'
-	if (count === 1) return '1 comentario'
-	return `${count} comentarios`
-}
-
 function cardFocus(card: ActivityCardModel): ActivityFocus {
 	return card.kind === 'task'
 		? { kind: 'task', id: card.task.idLeadTask }
 		: { kind: 'case', id: card.supportCase.idLeadSupportCase }
-}
-
-function cardTitle(card: ActivityCardModel): string {
-	return card.kind === 'task' ? card.task.title : card.supportCase.subject
-}
-
-function cardCanComplete(card: ActivityCardModel): boolean {
-	if (card.kind === 'task') return card.task.status === 'OPEN'
-	return card.supportCase.status !== 'RESOLVED' && card.supportCase.status !== 'CLOSED'
 }
 
 function parseBucketId(value: unknown): AgendaBucket | null {
@@ -98,6 +87,26 @@ function parseDragId(value: unknown): ActivityFocus | null {
 	const caseId = parsePrefixedId(value, 'case:')
 	if (caseId) return { kind: 'case', id: caseId }
 	return null
+}
+
+function ActivityTypeBadge({ label, color }: { label: string; color?: string }) {
+	return (
+		<span
+			className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium"
+			style={color ? { borderColor: color, color } : undefined}
+		>
+			{label}
+		</span>
+	)
+}
+
+function ActivityDueBadge({ dueAt, prefix, closed }: { dueAt: string | null; prefix: 'Vence' | 'SLA'; closed: boolean }) {
+	const overdue = isActivityOverdue(dueAt, new Date(), closed)
+	return (
+		<span className={cn('shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium', overdue && 'border-destructive text-destructive')}>
+			{activityDueCardText(dueAt, prefix)}
+		</span>
+	)
 }
 
 function LeadName({ name, onOpen }: { name: string; onOpen: () => void }) {
@@ -121,7 +130,7 @@ function ActivityCard({
 	onOpen,
 }: {
 	card: ActivityCardModel
-	onOpenLead: (idLead: number) => void
+	onOpenLead: (idLead: number, leadName: string) => void
 	onOpen: (focus: ActivityFocus) => void
 }) {
 	if (card.kind === 'task') {
@@ -133,16 +142,17 @@ function ActivityCard({
 			>
 				<div className="flex items-start justify-between gap-2">
 					<p className="text-sm font-medium leading-snug">{task.title}</p>
-					<span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium">Tarea · {TASK_TYPE_LABELS[task.type]}</span>
+					<div className="flex shrink-0 flex-col items-end gap-1">
+						<ActivityTypeBadge label={task.typeLabel ?? TASK_TYPE_LABELS[task.type]} color={task.typeColor} />
+						<ActivityDueBadge dueAt={task.dueAt} prefix="Vence" closed={task.status !== 'OPEN'} />
+					</div>
 				</div>
 				<p className="text-xs text-muted-foreground">{TASK_STATUS_LABELS[task.status]}</p>
-				<LeadName name={task.leadName} onOpen={() => onOpenLead(task.idLead)} />
+				<LeadName name={task.leadName} onOpen={() => onOpenLead(task.idLead, task.leadName)} />
 				<p className="text-xs text-muted-foreground">Responsable: {task.assigneeName}</p>
 				<p className="text-xs text-muted-foreground">Creada por: {task.creatorName}</p>
 				<p className="text-xs text-muted-foreground">Creada: {formatDateTimeBogota(task.createdAt)}</p>
-				<p className="text-xs text-muted-foreground">{task.dueAt ? `Vence: ${formatDateTimeBogota(task.dueAt)}` : 'Sin fecha límite'}</p>
 				{task.completedAt && <p className="text-xs text-muted-foreground">Completada: {formatDateTimeBogota(task.completedAt)}</p>}
-				<p className="text-xs font-medium text-primary">{commentLabel(task.commentCount)}</p>
 			</article>
 		)
 	}
@@ -154,17 +164,22 @@ function ActivityCard({
 		>
 			<div className="flex items-start justify-between gap-2">
 				<p className="text-sm font-medium leading-snug">{supportCase.subject}</p>
-				<span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium">Caso</span>
+				<div className="flex shrink-0 flex-col items-end gap-1">
+					<ActivityTypeBadge label="Caso" />
+					<ActivityDueBadge
+						dueAt={supportCase.dueAt}
+						prefix="SLA"
+						closed={supportCase.status === 'RESOLVED' || supportCase.status === 'CLOSED'}
+					/>
+				</div>
 			</div>
 			<p className="text-xs text-muted-foreground">
 				{CASE_STATUS_LABELS[supportCase.status]} · {CASE_PRIORITY_LABELS[supportCase.priority]}
 			</p>
-			<LeadName name={supportCase.leadName} onOpen={() => onOpenLead(supportCase.idLead)} />
+			<LeadName name={supportCase.leadName} onOpen={() => onOpenLead(supportCase.idLead, supportCase.leadName)} />
 			<p className="text-xs text-muted-foreground">Responsable: {supportCase.assigneeName}</p>
 			<p className="text-xs text-muted-foreground">Creado: {formatDateTimeBogota(supportCase.createdAt)}</p>
-			<p className="text-xs text-muted-foreground">{supportCase.dueAt ? `SLA: ${formatDateTimeBogota(supportCase.dueAt)}` : 'Sin fecha límite'}</p>
 			{supportCase.resolvedAt && <p className="text-xs text-muted-foreground">Cierre: {formatDateTimeBogota(supportCase.resolvedAt)}</p>}
-			<p className="text-xs font-medium text-primary">{commentLabel(supportCase.commentCount)}</p>
 		</article>
 	)
 }
@@ -175,7 +190,7 @@ function DraggableActivity({
 	onOpen,
 }: {
 	card: ActivityCardModel
-	onOpenLead: (idLead: number) => void
+	onOpenLead: (idLead: number, leadName: string) => void
 	onOpen: (focus: ActivityFocus) => void
 }) {
 	const focus = cardFocus(card)
@@ -189,13 +204,15 @@ function DraggableActivity({
 
 function ActivityColumn({
 	bucket,
+	title,
 	cards,
 	onOpenLead,
 	onOpen,
 }: {
 	bucket: AgendaBucket
+	title: string
 	cards: ActivityCardModel[]
-	onOpenLead: (idLead: number) => void
+	onOpenLead: (idLead: number, leadName: string) => void
 	onOpen: (focus: ActivityFocus) => void
 }) {
 	const { setNodeRef, isOver } = useDroppable({ id: `bucket:${bucket}` })
@@ -210,7 +227,7 @@ function ActivityColumn({
 		>
 			<div className="flex items-center justify-between gap-2 border-b-2 border-primary/25 bg-primary px-3 py-2.5">
 				<h3 id={`activity-column-${bucket}`} className="truncate text-sm font-semibold text-white">
-					{ACTIVITY_COLUMN_LABELS[bucket]}
+					{title}
 				</h3>
 				<span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-primary shadow-sm">{cards.length}</span>
 			</div>
@@ -228,23 +245,23 @@ function ActivityColumn({
 /** Activities Kanban: tasks and cases in the four time columns. */
 export function ActivitiesAgenda({
 	onOpenLead,
-	focus = null,
+	onOpenActivity,
+	refreshKey = 0,
+	canConfigure = false,
 }: {
-	onOpenLead: (idLead: number) => void
-	focus?: ActivityFocus | null
+	onOpenLead: (idLead: number, leadName: string) => void
+	onOpenActivity: (idLead: number, focus: ActivityFocus, leadName: string) => void
+	refreshKey?: number
+	canConfigure?: boolean
 }) {
 	const hierarchy = useCrmHierarchyFilter()
-	const { state, place, reload } = useActivityBoard(hierarchy.ownerIds, !hierarchy.ready || hierarchy.noneSelected)
+	const columns = useActivityColumns(!hierarchy.noneSelected)
+	const { state, place } = useActivityBoard(hierarchy.ownerIds, !hierarchy.ready || hierarchy.noneSelected, refreshKey)
 	const [dragging, setDragging] = useState<ActivityCardModel | null>(null)
-	const [open, setOpen] = useState<ActivityFocus | null>(null)
 	const [kindFilter, setKindFilter] = useState<ActivityKindFilter>('all')
 	const skipClick = useRef(false)
 	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 	const now = new Date()
-
-	useEffect(() => {
-		if (focus) setOpen(focus)
-	}, [focus])
 
 	function finishDrag() {
 		setDragging(null)
@@ -253,14 +270,20 @@ export function ActivitiesAgenda({
 		}, 0)
 	}
 
-	function openLead(idLead: number) {
+	function openLead(idLead: number, leadName: string) {
 		if (skipClick.current) return
-		onOpenLead(idLead)
+		onOpenLead(idLead, leadName)
 	}
 
 	function openCard(next: ActivityFocus) {
-		if (skipClick.current) return
-		setOpen(next)
+		if (skipClick.current || state.status !== 'success') return
+		if (next.kind === 'task') {
+			const task = state.data.tasks.find((item) => item.idLeadTask === next.id)
+			if (task) onOpenActivity(task.idLead, next, task.leadName)
+			return
+		}
+		const supportCase = state.data.cases.find((item) => item.idLeadSupportCase === next.id)
+		if (supportCase) onOpenActivity(supportCase.idLead, next, supportCase.leadName)
 	}
 
 	function handleDragStart(event: DragStartEvent) {
@@ -289,12 +312,6 @@ export function ActivitiesAgenda({
 		...(kindFilter === 'case' ? [] : board.tasks.map((task) => ({ kind: 'task' as const, task }))),
 		...(kindFilter === 'task' ? [] : board.cases.map((supportCase) => ({ kind: 'case' as const, supportCase }))),
 	]
-	const openCardModel = open
-		? cards.find((card) => {
-				const current = cardFocus(card)
-				return current.kind === open.kind && current.id === open.id
-			})
-		: undefined
 
 	return (
 		<div className="space-y-4">
@@ -302,22 +319,47 @@ export function ActivitiesAgenda({
 				<p className="text-sm text-muted-foreground">{CRM_HIERARCHY_EMPTY_MESSAGE}</p>
 			) : (
 				<>
-					<div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar actividades">
-						{KIND_FILTERS.map((option) => (
-							<Button
-								key={option.id}
-								type="button"
-								size="sm"
-								variant={kindFilter === option.id ? 'default' : 'outline'}
-								aria-pressed={kindFilter === option.id}
-								onClick={() => setKindFilter(option.id)}
-							>
-								{option.label}
-							</Button>
-						))}
+					<div className="flex flex-wrap items-center justify-between gap-2">
+						<div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar actividades">
+							{KIND_FILTERS.map((option) => (
+								<Button
+									key={option.id}
+									type="button"
+									size="sm"
+									variant={kindFilter === option.id ? 'default' : 'outline'}
+									aria-pressed={kindFilter === option.id}
+									onClick={() => setKindFilter(option.id)}
+								>
+									{option.label}
+								</Button>
+							))}
+						</div>
+						{canConfigure && (
+							<div className="flex flex-wrap gap-2">
+								<ActivityColumnSettings state={columns.state} actionError={columns.actionError} onSave={columns.save} />
+								<ActivityLabelSettings />
+							</div>
+						)}
 					</div>
 					{(state.status === 'loading' || state.status === 'idle') && (
-						<p role="status" className="text-sm text-muted-foreground">Cargando actividades…</p>
+						<div role="status" aria-busy="true" className="flex gap-4 overflow-x-auto pb-4">
+							<span className="sr-only">Cargando actividades…</span>
+							{AGENDA_BUCKETS.map((bucket) => (
+								<section
+									key={bucket}
+									className="flex min-h-80 w-72 shrink-0 flex-col overflow-hidden rounded-lg border-2 border-primary/25 bg-primary/5"
+									aria-label={columns.title(bucket)}
+								>
+									<div className="border-b-2 border-primary/25 bg-primary px-3 py-2.5">
+										<h3 className="text-sm font-semibold text-white">{columns.title(bucket)}</h3>
+									</div>
+									<div className="flex flex-col gap-2 p-3">
+										<Skeleton className="h-20 w-full bg-white/80" />
+										<Skeleton className="h-20 w-full bg-white/80" />
+									</div>
+								</section>
+							))}
+						</div>
 					)}
 					{state.status === 'error' && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
 					{state.status === 'success' && (
@@ -333,6 +375,7 @@ export function ActivitiesAgenda({
 									<ActivityColumn
 										key={bucket}
 										bucket={bucket}
+										title={columns.title(bucket)}
 										cards={cards.filter((card) => {
 											const source = card.kind === 'task' ? card.task : caseAsTask(card.supportCase)
 											return activityBucket(source, now) === bucket
@@ -350,15 +393,6 @@ export function ActivitiesAgenda({
 								) : null}
 							</DragOverlay>
 						</DndContext>
-					)}
-					{open && (kindFilter === 'all' || open.kind === kindFilter) && (
-						<ActivityWorkPanel
-							focus={open}
-							title={openCardModel ? cardTitle(openCardModel) : open.kind === 'task' ? 'Tarea' : 'Caso'}
-							canComplete={openCardModel ? cardCanComplete(openCardModel) : true}
-							onClose={() => setOpen(null)}
-							onChanged={reload}
-						/>
 					)}
 				</>
 			)}

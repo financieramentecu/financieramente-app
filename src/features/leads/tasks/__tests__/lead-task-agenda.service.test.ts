@@ -71,6 +71,7 @@ describe('getActivityBoard', () => {
 				assignee: { name: 'Ana', lastName: 'Torres' },
 				creator: { name: 'Ana', lastName: 'Torres' },
 				lead: { name: 'Luis', lastName: null },
+				activityLabel: { name: 'Llamada comercial', color: '#0284c7' },
 				_count: { comments: 2 },
 			},
 		] as never)
@@ -86,6 +87,12 @@ describe('getActivityBoard', () => {
 				{ status: 'DONE', completedAt: { gte: new Date('2026-11-02T15:00:00.000Z') } },
 			],
 		})
-		expect(items[0]).toMatchObject({ leadName: 'Luis', assigneeName: 'Ana Torres', status: 'OPEN' })
+		expect(items[0]).toMatchObject({
+			leadName: 'Luis',
+			assigneeName: 'Ana Torres',
+			status: 'OPEN',
+			typeLabel: 'Llamada comercial',
+			typeColor: '#0284c7',
+		})
 	})
 })

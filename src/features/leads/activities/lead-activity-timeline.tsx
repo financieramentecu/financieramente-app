@@ -2,6 +2,7 @@
 
 import { MessageSquareText } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
+import { LeadTimelineSkeleton } from '@/features/leads/components/lead-loading-skeleton'
 import { formatTimeBogota } from '@/features/shared/lib/format-date'
 import { groupTimelineByDay } from '@/features/leads/activities/group-timeline-by-day'
 import { useLeadTimeline } from '@/features/leads/activities/use-lead-timeline'
@@ -38,11 +39,7 @@ export function LeadActivityTimeline({
 				</h3>
 			</div>
 			<LeadActivityForm leadId={leadId} onSubmit={logActivity} />
-			{state.status === 'loading' && (
-				<p role="status" className="text-sm text-muted-foreground">
-					Cargando la línea de tiempo…
-				</p>
-			)}
+			{state.status === 'loading' && <LeadTimelineSkeleton label="Cargando la línea de tiempo…" />}
 			{state.status === 'error' && (
 				<p role="alert" className="text-sm text-destructive">
 					{state.error}

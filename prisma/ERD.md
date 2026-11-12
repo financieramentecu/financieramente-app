@@ -12,8 +12,8 @@ Sistema: Financieramente — liquidación de comisiones.
 - `LeadOutcomeStatus`: `OPEN` | `WON` | `LOST` | `ABANDONED` (en `lead.outcome_status`, `@default(OPEN)`, `NOT NULL`). `WON` es terminal: ver nota bajo "Índices y convenciones".
 - `DocumentDataType`: `NUMERIC` | `ALPHANUMERIC` (en `document_type.data_type`).
 - `LeadStageChangeSource`: `CRM_SYNC` | `CSV_IMPORT` | `MANUAL` (en `lead_stage_history.source`).
-- `LeadActivityType`: `NOTE_ADDED` | `CALL_LOGGED` | `MEETING_LOGGED` | `EMAIL_LOGGED` | `WHATSAPP_LOGGED` | `TASK_CREATED` | `TASK_COMPLETED` | `TASK_REASSIGNED` | `CONVERTED` | `BUSINESS_LINKED` | `CASE_OPENED` | `CASE_UPDATED` (en `lead_activity.type`).
-- `LeadTaskType`: `TODO` | `CALL` | `MEETING` | `EMAIL` | `WHATSAPP` (en `lead_task.type`, `@default(TODO)`).
+- `LeadActivityType`: `NOTE_ADDED` | `CALL_LOGGED` | `MEETING_LOGGED` | `EMAIL_LOGGED` | `WHATSAPP_LOGGED` | `TASK_CREATED` | `TASK_COMPLETED` | `TASK_REASSIGNED` | `TASK_COMMENTED` | `CONVERTED` | `BUSINESS_LINKED` | `CASE_OPENED` | `CASE_UPDATED` (en `lead_activity.type`). `TASK_COMMENTED` registra un comentario de tarea; un comentario de caso sigue siendo `CASE_UPDATED` con `action: COMMENTED`.
+- `LeadTaskType`: `TODO` | `CALL` | `MEETING` | `EMAIL` | `WHATSAPP` (en `lead_task.type`, `@default(TODO)`). El nombre visible vive en `lead_activity_label` (`code` nulo = etiqueta creada por el equipo).
 - `LeadCustomFieldType`: `TEXT` | `NUMBER` | `DATE` | `SELECT` (en `lead_custom_field.type`; inmutable tras crear el campo).
 - `LeadTaskStatus`: `OPEN` | `DONE` | `CANCELLED` (en `lead_task.status`).
 - `LeadSupportCaseStatus`: `OPEN` | `IN_PROGRESS` | `WAITING` | `RESOLVED` | `CLOSED` (en `lead_support_case.status`).
@@ -81,6 +81,9 @@ erDiagram
     Lead ||--o{ LeadTask : "tareas"
     Business ||--o{ LeadTask : "negocio relacionado"
     User ||--o{ LeadTask : "responsable / creador"
+    User ||--o{ LeadActivityLabel : "crea etiquetas de actividad"
+    User ||--o{ LeadActivityColumn : "renombra cabeceras"
+    LeadActivityLabel ||--o{ LeadTask : "etiqueta visible"
     LeadTask ||--o{ LeadTaskComment : "comentarios"
     User ||--o{ LeadTaskComment : "autor"
     Lead ||--o{ LeadSupportCase : "casos de soporte"
@@ -612,12 +615,34 @@ erDiagram
         datetime created_at
     }
 
+    LeadActivityLabel {
+        int id_lead_activity_label PK
+        string name
+        string color
+        string code
+        boolean active
+        int position
+        int created_by FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    LeadActivityColumn {
+        int id_lead_activity_column PK
+        string code
+        string name
+        int position
+        int updated_by FK
+        datetime updated_at
+    }
+
     LeadTask {
         int id_lead_task PK
         int id_lead FK
         int id_business FK
         int assigned_to FK
         int created_by FK
+        int id_lead_activity_label FK
         string title
         string type
         datetime due_at
@@ -747,6 +772,8 @@ erDiagram
 - **`User.activated_at` y nueva tabla `account_token`** (migración `20261010150000_partner_profile`, COM-41): `activated_at` es `TIMESTAMP(3)` nullable; la migración hace backfill `activated_at = created_at` para todos los usuarios existentes (nadie pierde acceso) y solo los usuarios nuevos nacen con `NULL` (pendientes de activación). El login exige `active AND activated_at IS NOT NULL`. `account_token` guarda únicamente el hash SHA-256 (`token_hash` único, `VARCHAR(64)`) de los tokens `ACTIVATION` (72 h) y `RESET` (1 h); se invalidan con `revoked_at` y se consumen con `used_at` (nunca se borran filas). Índice `(id_user, type)`.
 - **Nivel `PARTNER_EXTERNAL`** (COM-41, sembrado por `npm run prisma:seed:partner`, sin migración): fila de `level` con `beneficiary_mode = OVERRIDE` y sin `id_next_level`. Queda **fuera** de `NEXT_LEVEL_CHAIN` (no es siguiente nivel de ninguno) y no se renombra desde `LEVEL_5`, que sigue siendo "Partner". El rol `PARTNER` y la categoría "Partner Externo" (tipo `MIA`) también se siembran allí.
 - **Nueva tabla `lead_stage_history`** (migración `20261105120000_add_lead_stage_history`, change `crm-phase-0-foundation`): log de solo inserción (nunca se actualiza ni se borra) de cada transición de etapa del embudo. La escriben el webhook `crm-sync` (`source = CRM_SYNC`, `id_user = NULL`, `changed_at = updatedAt` del payload o el instante de proceso) y la importación CSV (`source = CSV_IMPORT`, `id_user` = quien importa) solo cuando el lead es nuevo (`from_id_lead_funnel_column = NULL`) o cambia de columna. Dos FKs a `lead_funnel_column` (relaciones `LeadStageHistoryFrom` / `LeadStageHistoryTo`). Índices `(id_lead, changed_at)` y `(to_id_lead_funnel_column, changed_at)` para reportes de tiempo en etapa. Un fallo al escribir el historial se reporta a Sentry y nunca rompe la sincronización. `MANUAL` queda reservado para el CRM editable (Fase 4).
+- **CRM: cabeceras del tablero** (migración `20261112190000_add_lead_activity_column`): `lead_activity_column` guarda el título visible de cada columna (`code` único `overdue | today | upcoming | done`). La migración siembra Vencidas, Vencen hoy, Próximas a vencer y Completadas. Renombrar no mueve las tarjetas: el `code` sigue decidiendo la columna. No se crean ni se borran columnas.
+- **CRM: etiquetas de actividad** (migración `20261112183000_add_lead_activity_label`): `lead_activity_label` es el catálogo de nombres que se ven en la tarjeta (color, `active`, `code` único y nulo en las etiquetas creadas por el equipo). La migración siembra Tarea, Llamada, Reunión, Email y WhatsApp con el `id_user` más bajo y enlaza `lead_task.id_lead_activity_label` según `lead_task.type`. `lead_task.type` se conserva para recordatorios y tareas anteriores al catálogo. Borrar una etiqueta es lógico (`active = false`); la última etiqueta activa no se puede desactivar.
 - **CRM: `lead_task_comment`** (migración `20261111170000_add_lead_task_comment`): comentarios de una tarea, escritos desde Actividades. Mismo patrón que `lead_support_case_comment` (solo inserción, índice `(id_lead_task, created_at)`).
 - **CRM: `lead_activity`, `lead_task`, `lead_support_case`, `lead_support_case_comment`** (migraciones `20261105165000`–`20261105180000`, rama `codex/negocios-basic-crm`): `lead_activity` es un registro de eventos de solo inserción (payload JSON versionado; `(id_lead, correlation_id)` único para idempotencia; cursor `(occurred_at, id_lead_activity)`). Solo `NOTE_ADDED` y `*_LOGGED` los envía el cliente; el resto los escriben los servicios. `lead_task` = trabajo programado (estilo Odoo `mail.activity`); `lead_support_case` = casos de soporte (estilo EspoCRM Case). Los cambios de etapa **no** se duplican en `lead_activity`: el timeline los mezcla al leer desde `lead_stage_history` (el webhook no tiene actor y `lead_activity.id_user` es obligatorio).
 - **CRM Fase 1** (migración `20261109120000_extend_lead_activity_and_task`, change `crm-phase-1-activities`): `LeadActivityType` += `CALL_LOGGED | MEETING_LOGGED | EMAIL_LOGGED | WHATSAPP_LOGGED`; nuevo enum `LeadTaskType` y columnas `lead_task.type` (`DEFAULT 'TODO'`) y `lead_task.reminder_sent_at` (índice `(due_at, reminder_sent_at)`: el cron reclama la tarea con `updateMany ... WHERE reminder_sent_at IS NULL` antes de notificar; reprogramar la tarea lo vuelve `NULL`). `lead.last_activity_at` es dato propio del CRM (nunca lo escriben el webhook ni el CSV): lo actualiza `appendLeadActivityTx` en la misma transacción para los eventos de contacto, solo si es más reciente; índice `(outcome_status, last_activity_at)` para el indicador "Sin actividad".
