@@ -3,6 +3,7 @@ import type {
 	DataScopeCode,
 	RolePermissionGrant,
 } from '../types/access-control.types'
+import type { PermissionChanges } from '../types/role.types'
 import { RoleServiceError } from './role-errors'
 
 type Db = Pick<
@@ -20,11 +21,6 @@ export interface RoleInput {
 	readonly description?: string | null
 }
 
-export interface PermissionChanges {
-	readonly added: string[]
-	readonly removed: string[]
-	readonly changed: string[]
-}
 
 /** `Líder de Cobranza` -> `LIDER_DE_COBRANZA`. */
 export function buildRoleCode(name: string): string {

@@ -139,6 +139,12 @@ export function buildMenuByRole(
 			continue
 		}
 
+		// Roles y permisos (solo administradores)
+		if (item.title === 'Roles' && permissions.administracion) {
+			filteredItems.push(item)
+			continue
+		}
+
 		// Administración
 		if (
 			item.title === 'Administración' &&
