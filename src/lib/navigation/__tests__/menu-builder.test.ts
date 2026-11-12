@@ -35,7 +35,7 @@ describe('buildMenuByRole — leads/misDistribuciones/calculadora gating (D7)', 
 	})
 
 	it('DEFAULT sees no menu items (all permissions false, unchanged)', () => {
-		expect(titles(UserRole.DEFAULT)).toEqual([])
+		expect(titles(UserRole.SIN_ROL)).toEqual([])
 	})
 
 	it('AGENTE keeps its bespoke menu with Leads and Calculadora (unchanged)', () => {

@@ -47,14 +47,14 @@ export default async function Home() {
 		console.log('[Root Page] Session.user.role === undefined:', session.user.role === undefined)
 		console.log('[Root Page] Session.user.role === null:', session.user.role === null)
 		console.log('[Root Page] !session.user.role:', !session.user.role)
-		console.log('[Root Page] UserRole.DEFAULT:', UserRole.DEFAULT)
-		console.log('[Root Page] session.user.role === UserRole.DEFAULT:', session.user.role === UserRole.DEFAULT)
+		console.log('[Root Page] UserRole.SIN_ROL:', UserRole.SIN_ROL)
+		console.log('[Root Page] session.user.role === UserRole.SIN_ROL:', session.user.role === UserRole.SIN_ROL)
 	}
 	console.log('[Root Page] ============================')
 
 	if (session?.user) {
 		// Si el usuario tiene rol DEFAULT, redirigir a access-denied
-		if (session.user.role === UserRole.DEFAULT) {
+		if (session.user.role === UserRole.SIN_ROL) {
 			console.log('[Root Page] User has DEFAULT role, redirecting to access-denied')
 			redirect('/access-denied?reason=default_role')
 			return

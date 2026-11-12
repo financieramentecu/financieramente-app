@@ -6,7 +6,7 @@
 
 export enum UserRole {
 	ADMIN = 'ADMIN',
-	DEFAULT = 'DEFAULT',
+	SIN_ROL = 'SIN_ROL',
 	ASISTENTE_GERENCIA_OPERATIVA = 'ASISTENTE_GERENCIA_OPERATIVA',
 	ANALISTA_SOPORTE = 'ANALISTA_SOPORTE',
 	AGENTE = 'AGENTE',
@@ -19,7 +19,7 @@ export enum UserRole {
  */
 export const ROLE_NAMES: Record<UserRole, string> = {
 	[UserRole.ADMIN]: 'Administrador del Sistema',
-	[UserRole.DEFAULT]: 'Default',
+	[UserRole.SIN_ROL]: 'Sin rol asignado',
 	[UserRole.ASISTENTE_GERENCIA_OPERATIVA]: 'Asistente Operativo de Gerencia',
 	[UserRole.ANALISTA_SOPORTE]: 'Analista de Soporte',
 	[UserRole.AGENTE]: 'Agente/Coach',
@@ -33,8 +33,8 @@ export const ROLE_NAMES: Record<UserRole, string> = {
 export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
 	[UserRole.ADMIN]:
 		'Acceso total a todos los módulos y configuración del sistema',
-	[UserRole.DEFAULT]:
-		'Rol por defecto asignado a usuarios nuevos pendientes de activación',
+	[UserRole.SIN_ROL]:
+		'Usuarios nuevos pendientes de activación. No tiene permisos.',
 	[UserRole.ASISTENTE_GERENCIA_OPERATIVA]:
 		'Acceso completo al sistema excepto administración',
 	[UserRole.ANALISTA_SOPORTE]:

@@ -35,13 +35,13 @@ describe('toCommentDTO', () => {
 
   it('falls back to DEFAULT when author has no role', () => {
     const dto = toCommentDTO(buildRow({ author: { idUser: 3, name: 'Sin Rol', role: null } }))
-    expect(dto.author.role).toBe(UserRole.DEFAULT)
+    expect(dto.author.role).toBe(UserRole.SIN_ROL)
   })
 
   it('falls back to DEFAULT for an unknown role code', () => {
     const dto = toCommentDTO(
       buildRow({ author: { idUser: 4, name: 'Rol Raro', role: { code: 'UNKNOWN_ROLE' } } }),
     )
-    expect(dto.author.role).toBe(UserRole.DEFAULT)
+    expect(dto.author.role).toBe(UserRole.SIN_ROL)
   })
 })

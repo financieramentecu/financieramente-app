@@ -15,7 +15,7 @@ import { requireActionPermission } from '@/lib/auth/require-action-permission';
 // to ADMIN and ASISTENTE_GERENCIA_OPERATIVA; narrowing AGENTE / CONSULTOR /
 // ANALISTA_SOPORTE here is a product decision and is intentionally NOT done.
 const canViewLiquidaciones = (role: string | undefined): boolean =>
-  !!role && isValidRole(role) && role !== UserRole.PARTNER && role !== UserRole.DEFAULT;
+  !!role && isValidRole(role) && role !== UserRole.PARTNER && role !== UserRole.SIN_ROL;
 
 export async function fetchComisionesLiquidadasAction(
   params: {

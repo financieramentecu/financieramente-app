@@ -33,7 +33,7 @@ describe('requireActionPermission', () => {
 		})
 	})
 
-	it.each([UserRole.PARTNER, UserRole.DEFAULT, 'SOMETHING_NEW'])(
+	it.each([UserRole.PARTNER, UserRole.SIN_ROL, 'SOMETHING_NEW'])(
 		'rejects %s with "Sin permisos" when the permission check fails',
 		async (role) => {
 			vi.mocked(auth).mockResolvedValue({ user: { role } } as never)

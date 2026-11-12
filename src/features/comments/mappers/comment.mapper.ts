@@ -20,7 +20,7 @@ export function toCommentDTO(row: CommentWithAuthor): CommentDTO {
   const roleCode = row.author.role?.code
   const role = roleCode && Object.values(UserRole).includes(roleCode as UserRole)
     ? (roleCode as UserRole)
-    : UserRole.DEFAULT
+    : UserRole.SIN_ROL
 
   return {
     id: row.id,

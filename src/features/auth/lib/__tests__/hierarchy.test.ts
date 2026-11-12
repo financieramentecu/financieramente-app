@@ -7,7 +7,7 @@ describe.each([
 	{ role: UserRole.ASISTENTE_GERENCIA_OPERATIVA, expected: true },
 	{ role: UserRole.ANALISTA_SOPORTE, expected: true },
 	{ role: UserRole.AGENTE, expected: false },
-	{ role: UserRole.DEFAULT, expected: false },
+	{ role: UserRole.SIN_ROL, expected: false },
 	{ role: UserRole.CONSULTOR, expected: true },
 ])('isHierarchyBypassRole($role)', ({ role, expected }) => {
 	it(`returns ${expected}`, () => {

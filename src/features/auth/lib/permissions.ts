@@ -64,7 +64,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
 		misDistribuciones: true,
 		calculadora: true,
 	},
-	[UserRole.DEFAULT]: {
+	[UserRole.SIN_ROL]: {
 		dashboard: false,
 		negocios: {
 			create: false,

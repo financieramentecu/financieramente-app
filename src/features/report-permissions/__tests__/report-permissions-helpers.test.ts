@@ -82,7 +82,7 @@ describe.each([
 	{ role: UserRole.ASISTENTE_GERENCIA_OPERATIVA, expected: false },
 	{ role: UserRole.ANALISTA_SOPORTE, expected: false },
 	{ role: UserRole.AGENTE, expected: false },
-	{ role: UserRole.DEFAULT, expected: false },
+	{ role: UserRole.SIN_ROL, expected: false },
 	{ role: UserRole.CONSULTOR, expected: true },
 ])('isReportViewBypassRole($role)', ({ role, expected }) => {
 	it(`returns ${expected}`, () => {

@@ -93,7 +93,7 @@ describe('GET /api/pre-liquidacion/distribucion/[settlementCommissionId]', () =>
 
 	it('returns 403 when role is DEFAULT', async () => {
 		mockAuth.mockResolvedValue({
-			user: { id: '1', role: UserRole.DEFAULT },
+			user: { id: '1', role: UserRole.SIN_ROL },
 		} as never)
 
 		const request = new Request(

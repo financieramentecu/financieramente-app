@@ -180,7 +180,7 @@ describe('resolveVisibleUserIds', () => {
 		expect(prisma.user.findMany).not.toHaveBeenCalled()
 	})
 
-	it.each([UserRole.DEFAULT, 'SOMETHING_NEW', ''])(
+	it.each([UserRole.SIN_ROL, 'SOMETHING_NEW', ''])(
 		'fails closed (empty list) for role %s',
 		async (code) => {
 			const prisma = makeUsers([

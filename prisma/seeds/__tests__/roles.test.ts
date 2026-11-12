@@ -13,7 +13,7 @@ describe('roles seed data', () => {
 		expect(codes).toEqual(
 			expect.arrayContaining([
 				'ADMIN',
-				'DEFAULT',
+				'SIN_ROL',
 				'ASISTENTE_GERENCIA_OPERATIVA',
 				'ANALISTA_SOPORTE',
 				'AGENTE',

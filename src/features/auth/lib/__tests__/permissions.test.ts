@@ -23,9 +23,9 @@ describe('ROLE_PERMISSIONS — leads/misDistribuciones/calculadora flags', () =>
 	)
 
 	it('DEFAULT has leads/misDistribuciones/calculadora = false (matches existing all-false shape)', () => {
-		expect(ROLE_PERMISSIONS[UserRole.DEFAULT].leads).toBe(false)
-		expect(ROLE_PERMISSIONS[UserRole.DEFAULT].misDistribuciones).toBe(false)
-		expect(ROLE_PERMISSIONS[UserRole.DEFAULT].calculadora).toBe(false)
+		expect(ROLE_PERMISSIONS[UserRole.SIN_ROL].leads).toBe(false)
+		expect(ROLE_PERMISSIONS[UserRole.SIN_ROL].misDistribuciones).toBe(false)
+		expect(ROLE_PERMISSIONS[UserRole.SIN_ROL].calculadora).toBe(false)
 	})
 
 	it('CONSULTOR gets the read-only-scoped permission set per design D7', () => {

@@ -102,7 +102,7 @@ describe('NegociosPageClient — default date filter seed', () => {
 		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 		UserRole.ANALISTA_SOPORTE,
 		UserRole.AGENTE,
-		UserRole.DEFAULT,
+		UserRole.SIN_ROL,
 	])('%s does not navigate on mount', (role) => {
 		render(<NegociosPageClient currentUser={userWithRole(role)} />)
 

@@ -28,7 +28,7 @@ describe('canEditContractWhenBusinessEmitido', () => {
 	})
 
 	it('returns false for DEFAULT', () => {
-		expect(canEditContractWhenBusinessEmitido(UserRole.DEFAULT)).toBe(false)
+		expect(canEditContractWhenBusinessEmitido(UserRole.SIN_ROL)).toBe(false)
 	})
 
 	it('returns false for undefined', () => {

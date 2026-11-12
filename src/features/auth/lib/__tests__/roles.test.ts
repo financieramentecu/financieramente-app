@@ -33,7 +33,7 @@ describe('canViewPayments', () => {
 	})
 
 	it('returns false for DEFAULT', () => {
-		expect(canViewPayments(UserRole.DEFAULT)).toBe(false)
+		expect(canViewPayments(UserRole.SIN_ROL)).toBe(false)
 	})
 
 	it('returns false for undefined', () => {
@@ -67,7 +67,7 @@ describe('canFundPayments', () => {
 	})
 
 	it('returns false for DEFAULT', () => {
-		expect(canFundPayments(UserRole.DEFAULT)).toBe(false)
+		expect(canFundPayments(UserRole.SIN_ROL)).toBe(false)
 	})
 
 	it('returns false for undefined', () => {
@@ -103,7 +103,7 @@ describe('canDeleteBusinessComprobante', () => {
 	})
 
 	it('returns false for DEFAULT', () => {
-		expect(canDeleteBusinessComprobante(UserRole.DEFAULT)).toBe(false)
+		expect(canDeleteBusinessComprobante(UserRole.SIN_ROL)).toBe(false)
 	})
 
 	it('returns false for undefined', () => {
@@ -145,7 +145,7 @@ describe.each([
 		globalVisibility: false,
 	},
 	{
-		role: UserRole.DEFAULT,
+		role: UserRole.SIN_ROL,
 		readOnly: false,
 		writeBypass: false,
 		globalVisibility: false,
@@ -219,7 +219,7 @@ describe('isBusinessOwnerRole', () => {
 
 	it.each([
 		UserRole.ADMIN,
-		UserRole.DEFAULT,
+		UserRole.SIN_ROL,
 		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 		UserRole.ANALISTA_SOPORTE,
 		UserRole.CONSULTOR,

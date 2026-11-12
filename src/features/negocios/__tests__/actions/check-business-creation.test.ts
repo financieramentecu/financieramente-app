@@ -105,7 +105,7 @@ describe('checkBusinessCreation (pre-flight before client persistence)', () => {
 	})
 
 	it('denies an unknown role', async () => {
-		setSession(3, UserRole.DEFAULT)
+		setSession(3, UserRole.SIN_ROL)
 
 		const result = await checkBusinessCreation({ idUser: 5, idProduct: 3 })
 

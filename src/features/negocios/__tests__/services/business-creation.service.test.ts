@@ -107,7 +107,7 @@ describe('resolveBusinessCreationContext (domain result, no HTTP shapes)', () =>
 
 	it('denies a role without owner rights before any lookup', async () => {
 		const result = await resolve({
-			sessionUser: { idUser: 3, role: { code: UserRole.DEFAULT } },
+			sessionUser: { idUser: 3, role: { code: UserRole.SIN_ROL } },
 		})
 
 		expect(result).toEqual({ ok: false, error: 'Sin permisos' })

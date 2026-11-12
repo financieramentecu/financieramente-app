@@ -103,7 +103,7 @@ describe('buildBusinessListWhere', () => {
 
 		it('scoped user with an empty visibleUserIds matches nothing (fail closed)', () => {
 			const w = buildBusinessListWhere(
-				{ idUser: 42, role: { code: UserRole.DEFAULT } },
+				{ idUser: 42, role: { code: UserRole.SIN_ROL } },
 				{},
 				{ visibleUserIds: [] }
 			)

@@ -145,7 +145,7 @@ describe('middleware /api/* decode-only gate [TM] (F1)', () => {
 	})
 
 	describe('authenticated non-partner requests pass through untouched', () => {
-		it.each(['ADMIN', 'AGENTE', 'CONSULTOR', 'DEFAULT'])(
+		it.each(['ADMIN', 'AGENTE', 'CONSULTOR', 'SIN_ROL'])(
 			'role %s on a non-allowlisted route',
 			async (role) => {
 				const cookie = await sessionCookie({ role })
@@ -342,8 +342,8 @@ describe('middleware /dashboard/* keeps the auth() wrapper behavior', () => {
 		expect(response.headers.get('location') ?? '').not.toContain('createdFrom')
 	})
 
-	it('redirects the DEFAULT role to access-denied', async () => {
-		const cookie = await sessionCookie({ role: 'DEFAULT' })
+	it('redirects the SIN_ROL role to access-denied', async () => {
+		const cookie = await sessionCookie({ role: 'SIN_ROL' })
 		const response = await run(request('/dashboard', { cookie }))
 		expect(response.status).toBe(302)
 		expect(response.headers.get('location')).toContain('/access-denied')

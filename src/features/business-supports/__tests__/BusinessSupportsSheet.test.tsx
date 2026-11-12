@@ -213,7 +213,7 @@ describe('ViewComprobantesSheet', () => {
       refetch: vi.fn(),
     })
     render(
-      <ViewComprobantesSheet {...defaultProps} userRole={UserRole.DEFAULT} />,
+      <ViewComprobantesSheet {...defaultProps} userRole={UserRole.SIN_ROL} />,
     )
     expect(
       screen.queryByRole('button', { name: /eliminar comprobante/i }),

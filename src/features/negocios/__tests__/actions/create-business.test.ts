@@ -633,7 +633,7 @@ describe('createBusiness', () => {
 			expect(prisma.$transaction).not.toHaveBeenCalled()
 		})
 
-		it.each([UserRole.DEFAULT, null])(
+		it.each([UserRole.SIN_ROL, null])(
 			'denies role %s without touching the database',
 			async (role) => {
 				setSession(3, role as UserRole | null)
