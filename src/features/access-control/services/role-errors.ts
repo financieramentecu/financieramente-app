@@ -1,6 +1,7 @@
 export type RoleErrorCode =
 	| 'NOT_FOUND'
 	| 'CODE_TAKEN'
+	| 'INVALID_NAME'
 	| 'LOCKED_ROLE'
 	| 'SYSTEM_ROLE'
 	| 'SELF_LOCKOUT'

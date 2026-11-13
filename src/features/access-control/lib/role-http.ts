@@ -5,6 +5,7 @@ import { RoleServiceError, type RoleErrorCode } from '../services/role-errors'
 const STATUS_BY_CODE: Record<RoleErrorCode, number> = {
 	NOT_FOUND: 404,
 	CODE_TAKEN: 409,
+	INVALID_NAME: 400,
 	LOCKED_ROLE: 403,
 	SYSTEM_ROLE: 409,
 	SELF_LOCKOUT: 409,

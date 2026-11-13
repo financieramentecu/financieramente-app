@@ -22,7 +22,10 @@ export interface RoleInput {
 }
 
 
-/** `Líder de Cobranza` -> `LIDER_DE_COBRANZA`. */
+/** `role.code` is VarChar(50). */
+const ROLE_CODE_MAX_LENGTH = 50
+
+/** `Líder de Cobranza` -> `LIDER_DE_COBRANZA` (at most 50 characters). */
 export function buildRoleCode(name: string): string {
 	return name
 		.normalize('NFD')
@@ -31,6 +34,8 @@ export function buildRoleCode(name: string): string {
 		.toUpperCase()
 		.replace(/[^A-Z0-9]+/g, '_')
 		.replace(/^_+|_+$/g, '')
+		.slice(0, ROLE_CODE_MAX_LENGTH)
+		.replace(/_+$/g, '')
 }
 
 async function findActiveRole(db: Pick<Db, 'role'>, idRole: number) {
@@ -47,7 +52,11 @@ async function findActiveRole(db: Pick<Db, 'role'>, idRole: number) {
 export async function createRole(db: Db, input: RoleInput) {
 	const code = buildRoleCode(input.name)
 	if (!code) {
-		throw new RoleServiceError('CODE_TAKEN', 'Nombre de rol inválido', 'name')
+		throw new RoleServiceError(
+			'INVALID_NAME',
+			'El nombre debe tener al menos una letra o un número',
+			'name'
+		)
 	}
 	const existing = await db.role.findUnique({
 		where: { code },

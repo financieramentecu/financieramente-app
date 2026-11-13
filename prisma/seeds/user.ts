@@ -140,6 +140,28 @@ export async function seedAgenciaSystemUser(
 	}
 }
 
+/**
+ * Accounts provisioned by this seed. They are system/default accounts with no
+ * activation e-mail flow, so they must be able to sign in right away
+ * (`activatedAt` is what the login gate checks for pending accounts).
+ */
+export const SEEDED_USER_EMAILS = [
+	adminUser.email,
+	andresUser.email,
+	liderUser.email,
+	agentUser.email,
+	agenciaSystemUser.email,
+	superAdminUser.email,
+] as const
+
+/** Marks the seeded accounts as activated; never touches an existing date. */
+export async function activateSeededUsers(prisma: PrismaClient): Promise<void> {
+	await prisma.user.updateMany({
+		where: { email: { in: [...SEEDED_USER_EMAILS] }, activatedAt: null },
+		data: { activatedAt: new Date() },
+	})
+}
+
 export async function seedUsers(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Usuarios (Users)...')
 	
@@ -376,4 +398,6 @@ export async function seedUsers(prisma: PrismaClient) {
 			)
 		}
 	}
+
+	await activateSeededUsers(prisma)
 }

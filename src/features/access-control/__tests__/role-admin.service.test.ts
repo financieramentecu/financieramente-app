@@ -67,6 +67,19 @@ describe('buildRoleCode', () => {
 	})
 })
 
+describe('role code limits (VarChar(50))', () => {
+	it('caps the generated code at 50 characters without a trailing underscore', () => {
+		const code = buildRoleCode('Coordinador de operaciones comerciales y soporte regional')
+		expect(code.length).toBeLessThanOrEqual(50)
+		expect(code.endsWith('_')).toBe(false)
+		expect(code.startsWith('COORDINADOR_DE_OPERACIONES')).toBe(true)
+	})
+
+	it('rejects a name with no letters or digits as an invalid name, not as a duplicate', async () => {
+		expect(await codeOf(createRole(createDb() as never, { name: '***' }))).toBe('INVALID_NAME')
+	})
+})
+
 describe('createRole', () => {
 	it('creates a non-system role with a generated code and no grants', async () => {
 		const db = createDb()
