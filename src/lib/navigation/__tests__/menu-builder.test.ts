@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { UserRole } from '@/features/auth/lib/roles'
-import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
+import { DEFAULT_ROLE_GRANTS } from '@/features/access-control/catalog/default-role-grants'
 import { buildMenuByRole } from '@/lib/navigation/menu-builder'
 
 function titles(role: UserRole, authorizedReportCodes?: readonly string[]) {
-	return buildMenuByRole(role, ROLE_PERMISSIONS[role], {
+	return buildMenuByRole(role, DEFAULT_ROLE_GRANTS[role], {
 		isCalculadoraEnabled: true,
 		authorizedReportCodes,
 	}).map((item) => item.title)
@@ -39,7 +39,7 @@ describe('buildMenuByRole — leads/misDistribuciones/calculadora gating (D7)', 
 	})
 
 	it('AGENTE keeps its bespoke menu with Leads and Calculadora (unchanged)', () => {
-		const items = buildMenuByRole(UserRole.AGENTE, ROLE_PERMISSIONS[UserRole.AGENTE], {
+		const items = buildMenuByRole(UserRole.AGENTE, DEFAULT_ROLE_GRANTS[UserRole.AGENTE], {
 			isCalculadoraEnabled: true,
 		}).map((item) => item.title)
 		expect(items).toEqual(['Dashboard', 'Mis Negocios', 'Leads', 'Calculadora'])
@@ -59,7 +59,7 @@ describe('buildMenuByRole — leads/misDistribuciones/calculadora gating (D7)', 
 
 describe('buildMenuByRole — Partners admin entry (ADM-02)', () => {
 	it('ADMIN sees a Partners entry pointing to the Partners module', () => {
-		const menu = buildMenuByRole(UserRole.ADMIN, ROLE_PERMISSIONS[UserRole.ADMIN], {
+		const menu = buildMenuByRole(UserRole.ADMIN, DEFAULT_ROLE_GRANTS[UserRole.ADMIN], {
 			isCalculadoraEnabled: true,
 		})
 		const entry = menu.find((item) => item.title === 'Partners')
