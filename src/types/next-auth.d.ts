@@ -1,7 +1,6 @@
 import { DefaultSession, DefaultUser } from 'next-auth'
 import { JWT as DefaultJWT } from 'next-auth/jwt'
 import { UserRole } from '@/features/auth/lib/roles'
-import { RolePermissions } from '@/features/auth/lib/permissions'
 import type { RoleGrants } from '@/features/access-control/types/access-control.types'
 
 declare module 'next-auth' {
@@ -9,7 +8,6 @@ declare module 'next-auth' {
 		user: {
 			id: string
 			role: UserRole | null
-			permissions: RolePermissions | null
 			/** Grants of the effective role (access-control); absent on stale sessions. */
 			grants?: RoleGrants
 			/** Level codes lowest to highest; filled only when a grant has a minimum level. */
@@ -23,7 +21,6 @@ declare module 'next-auth' {
 
 	interface User extends DefaultUser {
 		role?: UserRole
-		permissions?: RolePermissions | null
 		originalUserId?: number | null
 		originalRole?: UserRole | null
 		originalEmail?: string | null
@@ -35,7 +32,6 @@ declare module 'next-auth/jwt' {
 	interface JWT extends DefaultJWT {
 		userId?: number
 		role?: UserRole | null
-		permissions?: RolePermissions | null
 		originalUserId?: number | null
 		originalRole?: UserRole | null
 		originalEmail?: string | null

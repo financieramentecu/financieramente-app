@@ -1,24 +1,15 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { UserRole } from '@/features/auth/lib/roles'
-import {
-	RolePermissions,
-	getRolePermissions,
-	hasPermission,
-	hasNestedPermission,
-} from '@/features/auth/lib/permissions'
 import { canWithLevel, can, getScope } from '@/features/access-control/lib/authorization'
 
 /**
- * Hook para acceder a permisos del usuario actual
+ * Permisos del usuario actual (grants de su rol efectivo). Falla cerrado: sin
+ * sesión o sin grants nada está permitido.
  */
 export function usePermissions() {
 	const { data: session } = useSession()
 	const role = session?.user?.role
-	const permissions =
-		session?.user?.permissions || getRolePermissions(role || null)
-
 	const grants = session?.user?.grants
 
 	return {
@@ -30,13 +21,6 @@ export function usePermissions() {
 		/** Permission granted and the given level reaches its minimum level. */
 		canWithLevel: (permissionCode: string, levelCode: string | null | undefined) =>
 			canWithLevel(grants, permissionCode, levelCode, session?.user?.levelOrder ?? []),
-		role: role as UserRole | null | undefined,
-		permissions: permissions as RolePermissions | null,
-		hasPermission: (permission: keyof RolePermissions) =>
-			hasPermission(role, permission),
-		hasNestedPermission: (
-			category: keyof RolePermissions,
-			permission: string
-		) => hasNestedPermission(role, category, permission),
+		role,
 	}
 }

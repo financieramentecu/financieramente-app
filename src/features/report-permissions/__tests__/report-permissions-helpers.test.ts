@@ -12,7 +12,6 @@ import {
 	REPORT_CODES,
 	type CategoryPermissionRow,
 } from '@/features/report-permissions/types/report-permissions.types'
-import { UserRole } from '@/features/auth/lib/roles'
 
 describe('report-permissions helpers', () => {
 	const allIds = [1, 2, 3]

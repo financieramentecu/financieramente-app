@@ -245,6 +245,13 @@ src/features/
 
 See [.cursor/rules/ARCHITECTURE.md](.cursor/rules/ARCHITECTURE.md) for detailed architecture guidelines.
 
+### Authorization (roles & permissions) — MANDATORY
+
+- **Never branch on a role code** (`UserRole.X`, `role === 'ADMIN'`). Every access decision goes through the central module `src/features/access-control/`: permissions are defined once in `catalog/permissions.catalog.ts` (with the default grants in `catalog/default-role-grants.ts`) and checked with `requirePermission(code)` / `requireRolePermission(code)` (API), `roleCan(roleCode, code)` / `roleScope(...)` (services, server actions), `usePermissions().can(code)` (client) and `resolveOwnerScope` / `resolveLeadVisibility` for data scope.
+- To protect something new: add a permission to the catalog (and its default grants), check it, and keep `src/features/access-control/__tests__/legacy-parity.test.ts` in step. A new catalog permission reaches existing roles through `npm run prisma:seed:permissions` (it only adds the new codes; it never overwrites edits made from the roles screen).
+- ESLint (`no-restricted-syntax`) rejects `UserRole.X` outside an explicit allowlist of structural identity rules in `eslint.config.mjs` (authentication, impersonation, the locked ADMIN, the external PARTNER). Do not extend that list for access decisions.
+- `ACCESS_CONTROL_SOURCE`: unset/`defaults` serves the in-code default grants (no database read); `db` serves `role_permission`, editable from `/dashboard/admin/roles`. Set `db` only after running `npm run prisma:seed:permissions` in that environment.
+
 ### Soft Delete (eliminación lógica)
 
 - **NEVER use `prisma.model.delete()`** anywhere in the codebase. All deletions MUST be logical: set `status = false` via `prisma.model.update({ data: { status: false } })`.

@@ -1,177 +1,98 @@
 import { describe, it, expect } from 'vitest'
 import { UserRole } from '@/features/auth/lib/roles'
-import {
-	isGlobalVisibilityRole,
-	canDeleteBusinessComprobante,
-	canEditContractWhenBusinessEmitido,
-	canEliminateFondeado,
-	canFundPayments,
-	canViewPayments,
-} from '@/features/auth/lib/roles'
-import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
 import { DEFAULT_ROLE_GRANTS } from '../catalog/default-role-grants'
 import { can, getScope } from '../lib/authorization'
 
 /**
- * Safety net of the migration (T5): the default grants must reproduce what the
- * hardcoded role checks decide today. A divergence here is a behavior change.
+ * Contract of the default grants: who holds each permission when nobody has
+ * edited anything. These sets reproduce what the hardcoded role checks decided
+ * before the roles & permissions administration existed, plus the product
+ * decisions S3-S6 (see odd/tasks/roles-permissions-management.md). A change
+ * here is a behavior change for every environment on `defaults`.
  */
-const ROLES = Object.values(UserRole)
+const ADMIN = UserRole.ADMIN
+const ASISTENTE = UserRole.ASISTENTE_GERENCIA_OPERATIVA
+const ANALISTA = UserRole.ANALISTA_SOPORTE
+const AGENTE = UserRole.AGENTE
+const CONSULTOR = UserRole.CONSULTOR
+const PARTNER = UserRole.PARTNER
 
-/**
- * Deliberate product decisions (S6) that differ from the legacy table: the
- * ASISTENTE no longer gets mass upload or configuration by default. Both only
- * drive menu visibility today; they stay activable from the roles editor.
- */
-const INTENTIONAL_DIVERGENCES: Partial<
-	Record<
-		UserRole,
-		{
-			cargaMasiva?: boolean
-			configuracion?: boolean
-			leads?: boolean
-			misDistribuciones?: boolean
-		}
-	>
-> = {
-	// leads.ver stays company-wide for CONSULTOR: the leads API and the leads
-	// analytics report always let it read every lead (global visibility); only
-	// the menu entry hid it. The menu keeps hiding it until it is migrated.
-	[UserRole.CONSULTOR]: { leads: true, misDistribuciones: true },
-	[UserRole.ASISTENTE_GERENCIA_OPERATIVA]: {
-		cargaMasiva: false,
-		configuracion: false,
-	},
+const ROLES = Object.values(UserRole)
+const sorted = (roles: readonly string[]) => [...roles].sort()
+const rolesWith = (code: string) =>
+	ROLES.filter((role) => can(DEFAULT_ROLE_GRANTS[role], code)).sort()
+
+const HOLDERS: Readonly<Record<string, readonly UserRole[]>> = {
+	// negocios
+	'dashboard.ver': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR, PARTNER],
+	'negocios.ver': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR, PARTNER],
+	'negocios.crear': [ADMIN, ASISTENTE, ANALISTA, AGENTE, PARTNER],
+	'negocios.editar': [ADMIN, ASISTENTE, ANALISTA, AGENTE, PARTNER],
+	'negocios.cancelar': [ADMIN, ASISTENTE, ANALISTA],
+	'negocios.exportar': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR, PARTNER],
+	'negocios.editar_contrato_emitido': [ADMIN, ASISTENTE, ANALISTA],
+	'negocios.editar_desde_lista': [ADMIN, ASISTENTE],
+	'negocios.editar_fecha_emision': [ADMIN, ANALISTA],
+	'clientes.editar': [ADMIN, ASISTENTE],
+	// aportes y comprobantes
+	'aportes.ver': [ADMIN, ASISTENTE, AGENTE],
+	'aportes.fondear': [ADMIN, ASISTENTE, ANALISTA],
+	'aportes.eliminar_fondeado': [ADMIN, ASISTENTE, ANALISTA],
+	'aportes.pago_anticipado': [ADMIN, ASISTENTE, ANALISTA],
+	'aportes.cartera': [ADMIN, ASISTENTE, ANALISTA],
+	'comprobantes.eliminar': [ADMIN, ASISTENTE, ANALISTA, AGENTE, PARTNER],
+	// novedades
+	'novedades.marcar': [ADMIN, ASISTENTE, ANALISTA, AGENTE, PARTNER],
+	'novedades.gestionar': [ADMIN, ANALISTA],
+	'novedades.desmarcar_ajenas': [ADMIN, ASISTENTE],
+	// leads y liquidacion
+	'leads.ver': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR],
+	'preliquidacion.ver': [ADMIN, ASISTENTE, ANALISTA],
+	'preliquidacion.procesar': [ADMIN, ASISTENTE],
+	'preliquidacion.rezagar': [ADMIN, ASISTENTE, ANALISTA],
+	'liquidacion.ver': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR],
+	'liquidacion.liquidar': [ADMIN, ASISTENTE], // S5: not ANALISTA
+	'liquidacion.notificar': [ADMIN, ASISTENTE],
+	'distribuciones.ver': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR],
+	'calculadora.usar': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR],
+	// carga, reportes
+	'carga.masiva': [ADMIN], // S6
+	'carga.ver_todos': [ADMIN],
+	'reportes.exportar': [ADMIN, ASISTENTE, ANALISTA, AGENTE],
+	'reportes.ver_todos': [ADMIN, CONSULTOR],
+	// administracion (S6: ADMIN only by default)
+	'usuarios.ver': [ADMIN],
+	'partners.gestionar': [ADMIN],
+	'configuracion.catalogos': [ADMIN],
+	'configuracion.distribucion': [ADMIN],
+	'roles.gestionar': [ADMIN],
 }
 
-describe.each(ROLES)('default grants vs legacy checks: %s', (role) => {
-	const grants = DEFAULT_ROLE_GRANTS[role]
-	const legacy = ROLE_PERMISSIONS[role]
-
-	it('has default grants defined', () => {
-		expect(grants).toBeDefined()
+describe('default grants contract', () => {
+	it.each(Object.entries(HOLDERS))('%s is held by exactly the expected roles', (code, roles) => {
+		expect(rolesWith(code)).toEqual(sorted(roles))
 	})
 
-	it('matches the ROLE_PERMISSIONS table', () => {
-		expect({
-			dashboard: can(grants, 'dashboard.ver'),
-			create: can(grants, 'negocios.crear'),
-			edit: can(grants, 'negocios.editar'),
-			list: can(grants, 'negocios.ver'),
-			cancel: can(grants, 'negocios.cancelar'),
-			viewAll: getScope(grants, 'negocios.ver') === 'COMPANY',
-			cargaMasiva: can(grants, 'carga.masiva'),
-			historial: can(grants, 'carga.historial'),
-			preliquidacion: can(grants, 'preliquidacion.ver'),
-			liquidacion: can(grants, 'liquidacion.liquidar'),
-			configuracion: can(grants, 'configuracion.catalogos'),
-			administracion: can(grants, 'usuarios.ver'),
-			leads: can(grants, 'leads.ver'),
-			misDistribuciones: can(grants, 'distribuciones.ver'),
-			calculadora: can(grants, 'calculadora.usar'),
-		}).toEqual({
-			dashboard: legacy.dashboard,
-			create: legacy.negocios.create,
-			edit: legacy.negocios.edit,
-			list: legacy.negocios.list,
-			cancel: legacy.negocios.cancel,
-			// the table's `viewAll` is stale: real visibility is isGlobalVisibilityRole
-			viewAll: isGlobalVisibilityRole(role),
-			cargaMasiva:
-				INTENTIONAL_DIVERGENCES[role]?.cargaMasiva ?? legacy.cargas.cargaMasiva,
-			historial: legacy.cargas.historial,
-			preliquidacion: legacy.liquidaciones.preliquidacion,
-			liquidacion: legacy.liquidaciones.liquidacion,
-			configuracion:
-				INTENTIONAL_DIVERGENCES[role]?.configuracion ?? legacy.configuracion,
-			administracion: legacy.administracion,
-			leads: INTENTIONAL_DIVERGENCES[role]?.leads ?? legacy.leads,
-			misDistribuciones:
-				INTENTIONAL_DIVERGENCES[role]?.misDistribuciones ?? legacy.misDistribuciones,
-			calculadora: legacy.calculadora,
-		})
+	it('SIN_ROL holds nothing', () => {
+		expect(DEFAULT_ROLE_GRANTS[UserRole.SIN_ROL]).toEqual({})
 	})
 
-	it('matches the role helper functions', () => {
-		expect({
-			emitido: can(grants, 'negocios.editar_contrato_emitido'),
-			viewPayments: can(grants, 'aportes.ver'),
-			fund: can(grants, 'aportes.fondear'),
-			eliminate: can(grants, 'aportes.eliminar_fondeado'),
-			// pago anticipado and cartera endpoints are guarded by canFundPayments today
-			earlyPayment: can(grants, 'aportes.pago_anticipado'),
-			portfolio: can(grants, 'aportes.cartera'),
-			deleteComprobante: can(grants, 'comprobantes.eliminar'),
-		}).toEqual({
-			emitido: canEditContractWhenBusinessEmitido(role),
-			viewPayments: canViewPayments(role),
-			fund: canFundPayments(role),
-			eliminate: canEliminateFondeado(role),
-			earlyPayment: canFundPayments(role),
-			portfolio: canFundPayments(role),
-			deleteComprobante: canDeleteBusinessComprobante(role),
-		})
-	})
-})
-
-/**
- * The negocios list hides buttons more strictly than the API. These are the
- * roles that see them today; the defaults must keep it exactly that way.
- */
-describe('default grants vs list UI visibility', () => {
-	const rolesWith = (code: string) =>
-		ROLES.filter((role) => can(DEFAULT_ROLE_GRANTS[role], code)).sort()
-
-	it('shows Edit in the list only to ADMIN and ASISTENTE', () => {
-		expect(rolesWith('negocios.editar_desde_lista')).toEqual(
-			[UserRole.ADMIN, UserRole.ASISTENTE_GERENCIA_OPERATIVA].sort()
-		)
+	it('shows Edit in the list only to ADMIN and ASISTENTE (the API also lets ANALISTA edit)', () => {
+		expect(rolesWith('negocios.editar_desde_lista')).toEqual(sorted([ADMIN, ASISTENTE]))
+		expect(rolesWith('negocios.editar')).toContain(ANALISTA)
 	})
 
-	it('allows the inline issue-date edit only to ADMIN and ANALISTA_SOPORTE', () => {
-		expect(rolesWith('negocios.editar_fecha_emision')).toEqual(
-			[UserRole.ADMIN, UserRole.ANALISTA_SOPORTE].sort()
-		)
-	})
-
-	it('manages novedades only with ADMIN and ANALISTA_SOPORTE', () => {
-		expect(rolesWith('novedades.gestionar')).toEqual(
-			[UserRole.ADMIN, UserRole.ANALISTA_SOPORTE].sort()
-		)
+	it('keeps company-wide visibility for the backoffice roles and the read-only CONSULTOR', () => {
+		const company = ROLES.filter(
+			(role) => getScope(DEFAULT_ROLE_GRANTS[role], 'negocios.ver') === 'COMPANY'
+		).sort()
+		expect(company).toEqual(sorted([ADMIN, ASISTENTE, ANALISTA, CONSULTOR]))
 	})
 
 	it('treats AGENTE and PARTNER as the owner-scoped (coach) roles', () => {
 		const owners = ROLES.filter((role) =>
 			['OWN', 'TEAM'].includes(getScope(DEFAULT_ROLE_GRANTS[role], 'negocios.ver') ?? '')
 		).sort()
-		expect(owners).toEqual([UserRole.AGENTE, UserRole.PARTNER].sort())
-	})
-})
-
-describe('default grants vs report access', () => {
-	const rolesWith = (code: string) =>
-		ROLES.filter((role) => can(DEFAULT_ROLE_GRANTS[role], code)).sort()
-
-	it('skips the report category filter only for ADMIN and the read-only CONSULTOR', () => {
-		expect(rolesWith('reportes.ver_todos')).toEqual(
-			[UserRole.ADMIN, UserRole.CONSULTOR].sort()
-		)
-	})
-
-	it('exports reports for every role that can write, never CONSULTOR', () => {
-		expect(rolesWith('reportes.exportar')).toEqual(
-			[
-				UserRole.ADMIN,
-				UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-				UserRole.ANALISTA_SOPORTE,
-				UserRole.AGENTE,
-			].sort()
-		)
-	})
-
-	it('lets only ADMIN and ASISTENTE unmark any business novedad', () => {
-		expect(rolesWith('novedades.desmarcar_ajenas')).toEqual(
-			[UserRole.ADMIN, UserRole.ASISTENTE_GERENCIA_OPERATIVA].sort()
-		)
+		expect(owners).toEqual(sorted([AGENTE, PARTNER]))
 	})
 })

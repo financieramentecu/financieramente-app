@@ -203,7 +203,6 @@ function SupportGallery({
 
 export function ViewComprobantesSheet({
   businessId,
-  userRole,
   open,
   onClose,
   onSupportDeleted,

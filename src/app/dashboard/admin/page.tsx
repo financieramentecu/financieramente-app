@@ -3,7 +3,6 @@
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { AdminCard } from '@/features/admin/shared/AdminCard'
 import { usePermissions } from '@/features/shared/hooks/use-permissions'
-import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import {
 	Building2,
 	Package,
@@ -19,7 +18,6 @@ import {
 } from 'lucide-react'
 
 export default function AdminDashboardPage() {
-	const { session } = useAuthSession()
 	const { can } = usePermissions()
 	const isSystemAdmin = can('configuracion.tipos_documento')
 

@@ -6,3 +6,5 @@
 export const ADMIN_ROLE_CODE = 'ADMIN'
 export const PARTNER_ROLE_CODE = 'PARTNER'
 export const SIN_ROL_ROLE_CODE = 'SIN_ROL'
+/** The platform's read-only role: it never carries a hierarchy level. */
+export const READ_ONLY_ROLE_CODE = 'CONSULTOR'

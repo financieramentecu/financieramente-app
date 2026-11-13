@@ -6,7 +6,6 @@ import {
 } from '@/features/access-control/testing/mock-permissions'
 import { FundingModal } from '../FundingModal'
 import type { PaymentInstallmentDto } from '../../../types/business-api.types'
-import { canFundPayments } from '@/features/auth/lib/roles'
 
 vi.mock('@/features/shared/hooks/use-permissions', async () => ({
 	usePermissions: (
@@ -29,8 +28,9 @@ vi.mock('../../../hooks/use-aporte-transitions', () => ({
 	}),
 }))
 
-vi.mock('@/features/auth/lib/roles', () => ({
-	canFundPayments: vi.fn(() => true),
+const mockCanFund = vi.hoisted(() => ({ value: true }))
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({ can: () => mockCanFund.value }),
 }))
 
 // Mock FundFirstPaymentDialog so we can control its behavior in tests
@@ -82,7 +82,7 @@ function makeFondeadoInstallment2(): PaymentInstallmentDto {
 
 beforeEach(() => {
 	vi.clearAllMocks()
-	vi.mocked(canFundPayments).mockReturnValue(true)
+	mockCanFund.value = true
 })
 
 describe('FundingModal — FONDEAR button for installment 1 SIN_FONDEAR', () => {
@@ -99,8 +99,8 @@ describe('FundingModal — FONDEAR button for installment 1 SIN_FONDEAR', () => 
 		expect(screen.getByRole('button', { name: /fondear primer aporte/i })).toBeInTheDocument()
 	})
 
-	it('does NOT show Fondear button when canFundPayments returns false (AGENTE)', () => {
-		vi.mocked(canFundPayments).mockReturnValue(false)
+	it('does NOT show Fondear button when the role cannot fund (aportes.fondear) (AGENTE)', () => {
+		mockCanFund.value = false
 
 		render(
 			<FundingModal

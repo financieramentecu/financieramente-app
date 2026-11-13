@@ -54,59 +54,6 @@ export function isValidRole(role: string): role is UserRole {
 }
 
 /**
- * Roles with unconditional write authority (create/edit/cancel/fund/export)
- * across the whole system, regardless of hierarchy level.
- * Exact membership mirrors the pre-existing bypass lists
- * (HIERARCHY_BYPASS_ROLES / EXPORT_ADMIN_ROLES) — do not change without
- * re-verifying every consumer's byte-identical behavior.
- */
-export const WRITE_BYPASS_ROLES: readonly UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-]
-
-/**
- * Roles restricted to company-wide read-only access: full visibility and
- * no write authority. The Lista de Negocios Excel export is decided by
- * `canExportBusinessList`. Dashboard and Reportes keep using
- * `isReadOnlyRole` to block their downloads.
- */
-export const READ_ONLY_ROLES: readonly UserRole[] = [UserRole.CONSULTOR]
-
-/**
- * Whether the role has unconditional write authority (bypasses hierarchy
- * level restrictions for create/edit/cancel/fund/export actions).
- */
-export function isWriteBypassRole(
-	roleCode: string | null | undefined
-): boolean {
-	if (!roleCode) return false
-	return isValidRole(roleCode) && WRITE_BYPASS_ROLES.includes(roleCode)
-}
-
-/**
- * Whether the role is restricted to company-wide read-only access
- * (no write, no hierarchy level). Does not decide the Lista de Negocios
- * Excel export.
- */
-export function isReadOnlyRole(roleCode: string | null | undefined): boolean {
-	if (!roleCode) return false
-	return isValidRole(roleCode) && READ_ONLY_ROLES.includes(roleCode)
-}
-
-/**
- * Whether the role sees company-wide data regardless of hierarchy subtree —
- * true for write-bypass roles AND read-only roles. MUST NOT be used to
- * authorize a write action; only `isWriteBypassRole` may do that.
- */
-export function isGlobalVisibilityRole(
-	roleCode: string | null | undefined
-): boolean {
-	return isWriteBypassRole(roleCode) || isReadOnlyRole(roleCode)
-}
-
-/**
  * Roles that own businesses (`Business.idUser`) and are scoped to them:
  * AGENTE (self plus subordinates) and PARTNER (self only).
  */
@@ -126,30 +73,6 @@ export function isBusinessOwnerRole(
 }
 
 /**
- * Roles that may update contract when the business is already EMITIDO
- */
-export const ROLES_CAN_EDIT_CONTRACT_WHEN_EMITIDO: readonly UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-]
-
-/**
- * Whether the role may change contract on a business in EMITIDO status
- */
-export function canEditContractWhenBusinessEmitido(
-	roleCode: string | undefined
-): boolean {
-	if (roleCode === undefined || roleCode === '') {
-		return false
-	}
-	return (
-		isValidRole(roleCode) &&
-		ROLES_CAN_EDIT_CONTRACT_WHEN_EMITIDO.includes(roleCode as UserRole)
-	)
-}
-
-/**
  * Obtiene el nombre legible de un rol
  */
 export function getRoleName(role: UserRole | string): string {
@@ -157,87 +80,4 @@ export function getRoleName(role: UserRole | string): string {
 		return ROLE_NAMES[role]
 	}
 	return role
-}
-
-/**
- * Roles that can view payment installments (aportes)
- */
-const ROLES_CAN_VIEW_PAYMENTS: readonly UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.AGENTE,
-]
-
-/**
- * Whether the role may view payment installments in the UI
- */
-export function canViewPayments(roleCode: string | undefined): boolean {
-	if (!roleCode) return false
-	return (
-		isValidRole(roleCode) &&
-		ROLES_CAN_VIEW_PAYMENTS.includes(roleCode as UserRole)
-	)
-}
-
-/**
- * Roles that can fund payment installments (aportes)
- * AGENTE (Coach) is explicitly excluded — view only
- */
-const ROLES_CAN_FUND_PAYMENTS: readonly UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-]
-
-/**
- * Whether the role may fund payment installments
- * Used for UI guard and API auth
- */
-const ROLES_CAN_ELIMINATE_FONDEADO = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-]
-
-export function canEliminateFondeado(roleCode: string | undefined): boolean {
-	if (!roleCode) return false
-	return (
-		isValidRole(roleCode) &&
-		ROLES_CAN_ELIMINATE_FONDEADO.includes(roleCode as UserRole)
-	)
-}
-
-export function canFundPayments(roleCode: string | undefined): boolean {
-	if (!roleCode) return false
-	return (
-		isValidRole(roleCode) &&
-		ROLES_CAN_FUND_PAYMENTS.includes(roleCode as UserRole)
-	)
-}
-
-/**
- * Roles that can soft-delete business payment supports (comprobantes).
- * Includes Money Strategist (AGENTE) so agents can correct their own uploads
- * without depending on operational analysts (COM-75).
- */
-const ROLES_CAN_DELETE_BUSINESS_COMPROBANTE: readonly UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-	UserRole.AGENTE,
-	// Product-owner decision 2026-10-11: partners manage comprobantes of their own businesses
-	UserRole.PARTNER,
-]
-
-/**
- * Whether the role may delete (soft-delete) business comprobantes in the UI/API
- */
-export function canDeleteBusinessComprobante(
-	roleCode: string | undefined
-): boolean {
-	if (!roleCode) return false
-	return (
-		isValidRole(roleCode) &&
-		ROLES_CAN_DELETE_BUSINESS_COMPROBANTE.includes(roleCode as UserRole)
-	)
 }
