@@ -1,6 +1,6 @@
 # Loading skeletons across screens
 Objective: replace spinners / "Cargando..." text on screen-level data loads with skeletons shaped like the final content (no layout jump).
-Branch: feature/loading-skeletons (cut from feature/roles-permissions-management, unpushed). Delivery: ask-on-risk. Runner: vitest.
+Branch: feature/roles-permissions-management (work was briefly on a separate branch, merged back by fast-forward). Delivery: ask-on-risk. Runner: vitest.
 
 ## Specs
 - S1: "quiero que las cargas de las pantalla usemos skeletons para mejorar la experiencia de usuario"
