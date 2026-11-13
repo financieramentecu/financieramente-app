@@ -29,6 +29,12 @@ describe('scopeUserIdsToSession', () => {
 		expect(
 			await scopeUserIdsToSession({ user: { id: '3', role: 'ADMIN' } }, [5])
 		).toEqual([5])
-		expect(await scopeUserIdsToSession({ user: { id: '3' } }, [5])).toEqual([5])
+	})
+
+	it('fails closed for a session without role or a role lacking dashboard.ver', async () => {
+		expect(await scopeUserIdsToSession({ user: { id: '3' } }, [5])).toEqual([])
+		expect(
+			await scopeUserIdsToSession({ user: { id: '3', role: 'SIN_ROL' } }, [5])
+		).toEqual([])
 	})
 })
