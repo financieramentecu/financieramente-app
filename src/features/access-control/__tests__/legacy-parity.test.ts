@@ -24,8 +24,15 @@ const ROLES = Object.values(UserRole)
  * drive menu visibility today; they stay activable from the roles editor.
  */
 const INTENTIONAL_DIVERGENCES: Partial<
-	Record<UserRole, { cargaMasiva: boolean; configuracion: boolean }>
+	Record<
+		UserRole,
+		{ cargaMasiva?: boolean; configuracion?: boolean; leads?: boolean }
+	>
 > = {
+	// leads.ver stays company-wide for CONSULTOR: the leads API and the leads
+	// analytics report always let it read every lead (global visibility); only
+	// the menu entry hid it. The menu keeps hiding it until it is migrated.
+	[UserRole.CONSULTOR]: { leads: true },
 	[UserRole.ASISTENTE_GERENCIA_OPERATIVA]: {
 		cargaMasiva: false,
 		configuracion: false,
@@ -73,7 +80,7 @@ describe.each(ROLES)('default grants vs legacy checks: %s', (role) => {
 			configuracion:
 				INTENTIONAL_DIVERGENCES[role]?.configuracion ?? legacy.configuracion,
 			administracion: legacy.administracion,
-			leads: legacy.leads,
+			leads: INTENTIONAL_DIVERGENCES[role]?.leads ?? legacy.leads,
 			misDistribuciones: legacy.misDistribuciones,
 			calculadora: legacy.calculadora,
 		})

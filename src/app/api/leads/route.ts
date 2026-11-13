@@ -1,11 +1,8 @@
+import { resolveLeadVisibility } from '@/features/leads/services/lead-visibility.service'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import {
-	getAccessibleUserIds,
-	isHierarchyBypassRole,
-} from '@/features/auth/lib/hierarchy'
 import { getLeadBoard } from '@/features/leads/services/lead-board.service'
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 import { parseBogotaInclusiveUtcRange } from '@/features/shared/lib/bogota-date-range'
@@ -67,15 +64,17 @@ export async function GET(request: Request) {
 			return NextResponse.json(errorResponse, { status: 404 })
 		}
 
-		const visibleUserIds = isHierarchyBypassRole(currentUser.role?.code)
-			? []
-			: await getAccessibleUserIds(currentUser.idUser)
+		const { unrestricted, visibleUserIds } = await resolveLeadVisibility(
+			currentUser.role?.code,
+			currentUser.idUser
+		)
 
 		const { searchParams } = new URL(request.url)
 		const { outcomeStatuses, createdAtRange } = parseBoardFilters(searchParams)
 
 		const board = await getLeadBoard(currentUser, {
 			visibleUserIds,
+			unrestricted,
 			outcomeStatuses,
 			createdAtRange,
 		})

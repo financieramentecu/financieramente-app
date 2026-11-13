@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { importLeadsFromCsv } from '@/features/leads/services/lead-csv-import.service'
 import type { LeadCsvRawRow } from '@/features/leads/lib/parse-lead-csv-file'
 import type { LeadCsvImportSummary } from '@/features/leads/types/lead-csv-import.types'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-
-const ALLOWED_ROLES = [UserRole.ADMIN, UserRole.ASISTENTE_GERENCIA_OPERATIVA]
 
 const csvImportBodySchema = z.object({
 	rows: z.array(z.record(z.string(), z.string())),
@@ -32,8 +30,7 @@ export async function POST(request: Request) {
 	}
 
 	const currentUser = await getCurrentUserByEmail(session.user.email)
-	const userRole = currentUser?.role?.code as UserRole
-	if (!userRole || !ALLOWED_ROLES.includes(userRole)) {
+	if (!(await roleCan(currentUser?.role?.code, 'leads.importar_csv'))) {
 		const errorResponse: ApiResponse<null> = {
 			data: null,
 			error: 'No tiene permisos para importar leads',

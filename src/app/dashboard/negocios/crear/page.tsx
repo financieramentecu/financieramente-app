@@ -114,6 +114,7 @@ export default async function CrearNegocioPage({
 
 			const lead = await getLeadForConversion(parsedLeadId, currentUser, {
 				visibleUserIds,
+				unrestricted: canWriteCompanyWide,
 			})
 
 			// Not found, out of the viewer's hierarchy, already converted, or

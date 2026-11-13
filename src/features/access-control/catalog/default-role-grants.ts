@@ -59,9 +59,10 @@ const ROWS: Readonly<Record<string, string>> = {
 	'comprobantes.eliminar': 'C C C E - P',
 	'comentarios.crear': 'Y Y Y Y - Y', // VERIFY
 
-	'leads.ver': 'C C C E - -',
+	'leads.ver': 'C C C E C -', // CONSULTOR keeps company-wide read (legacy global visibility)
 	'leads.importar_csv': 'Y Y - - - -',
 	'leads.configurar_funnel': 'Y - - - - -',
+	'leads.eliminar': 'Y - - - - -',
 
 	'carga.masiva': 'Y - - - - -', // S6: only ADMIN by default
 	'carga.historial': 'Y Y - - - -',

@@ -65,6 +65,7 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 		['leads.ver', 'Ver leads', { scope: true }],
 		['leads.importar_csv', 'Importar leads desde CSV'],
 		['leads.configurar_funnel', 'Configurar columnas del funnel'],
+		['leads.eliminar', 'Eliminar leads'],
 	]),
 	...module('Carga de archivos', [
 		['carga.masiva', 'Carga masiva de archivos'],

@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { buildLeadCsvTemplate } from '@/features/leads/lib/lead-csv-template'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-
-const ALLOWED_ROLES = [UserRole.ADMIN, UserRole.ASISTENTE_GERENCIA_OPERATIVA]
 
 /**
  * GET /api/leads/csv-template — downloadable header-only CSV template for
@@ -19,8 +17,7 @@ export async function GET() {
 	}
 
 	const currentUser = await getCurrentUserByEmail(session.user.email)
-	const userRole = currentUser?.role?.code as UserRole
-	if (!userRole || !ALLOWED_ROLES.includes(userRole)) {
+	if (!(await roleCan(currentUser?.role?.code, 'leads.importar_csv'))) {
 		const errorResponse: ApiResponse<null> = {
 			data: null,
 			error: 'No tiene permisos para descargar la plantilla de importación',
