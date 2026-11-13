@@ -1,5 +1,6 @@
 'use client'
 
+import { ListRowsSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
@@ -8,7 +9,6 @@ import type { ProductConfiguration } from '@/features/product-configuration/type
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
-import { Loader2 } from 'lucide-react'
 
 export function ConfigDistribucionEntryClient() {
 	const router = useRouter()
@@ -98,10 +98,7 @@ export function ConfigDistribucionEntryClient() {
 				)}
 
 				{state.status === 'loading' && (
-					<div className="flex items-center gap-2 py-8 text-muted-foreground">
-						<Loader2 className="h-5 w-5 animate-spin" />
-						Buscando…
-					</div>
+					<ListRowsSkeleton label="Buscando configuraciones" rows={4} />
 				)}
 
 				{state.status === 'error' && (

@@ -1,5 +1,6 @@
 'use client'
 
+import { FormSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/features/shared/ui/button'
@@ -86,7 +87,7 @@ export function DefaultDistributionEditor() {
 	}
 
 	if (state.status === 'loading' || state.status === 'idle') {
-		return <p className="text-sm text-muted-foreground">Cargando porcentajes...</p>
+		return <FormSkeleton label="Cargando porcentajes" fields={5} />
 	}
 
 	if (state.status === 'error') {
