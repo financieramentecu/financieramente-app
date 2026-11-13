@@ -1,7 +1,23 @@
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import {
+	setMockRole,
+	roleFromElement,
+} from '@/features/access-control/testing/mock-permissions'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BusinessTableSection } from '../BusinessTableSection'
 import { UserRole } from '@/features/auth/lib/roles'
+
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
+const render = (...args: Parameters<typeof rtlRender>) => {
+	setMockRole(roleFromElement(args[0]))
+	return rtlRender(...args)
+}
+
 
 // Mock heavy dependencies
 vi.mock('@/features/shared/ui/DataTable/DataTable', () => ({

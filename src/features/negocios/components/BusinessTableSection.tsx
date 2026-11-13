@@ -16,14 +16,9 @@ import { BusinessRowActions } from './BusinessRowActions'
 import { Input } from '@/features/shared/ui/input'
 import { formatCurrency } from '@/features/admin/currencies/lib/currency-formatters'
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
-import {
-	UserRole,
-	canEditContractWhenBusinessEmitido,
-	canFundPayments,
-	canEliminateFondeado,
-	isBusinessOwnerRole,
-} from '@/features/auth/lib/roles'
-import { hasNestedPermission } from '@/features/auth/lib/permissions'
+import type { UserRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
+import { isOwnerScope } from '@/features/access-control/lib/authorization'
 import {
 	Tooltip,
 	TooltipContent,
@@ -158,6 +153,7 @@ export function BusinessTableSection({
 	onUnmarkNovedad,
 	onManageNovedadSuccess,
 }: BusinessTableSectionProps) {
+	const { can, scope } = usePermissions()
 	const [editingDateId, setEditingDateId] = useState<number | null>(null)
 	const [tempDate, setTempDate] = useState<string>('')
 	const [isSavingDate, setIsSavingDate] = useState(false)
@@ -428,7 +424,7 @@ export function BusinessTableSection({
 
 				const isEditable =
 					business.statusCode === BUSINESS_STATUS.EMITIDO &&
-					(userRole === UserRole.ADMIN || userRole === UserRole.ANALISTA_SOPORTE) &&
+					can('negocios.editar_fecha_emision') &&
 					typeof onSaveDateIssued === 'function'
 
 				const handleStartEdit = (e: React.MouseEvent) => {
@@ -555,7 +551,7 @@ export function BusinessTableSection({
 				const isEditing = editingAnchoredId === businessId
 
 				const isEditable =
-					canFundPayments(userRole) &&
+					can('aportes.fondear') &&
 					typeof onSaveDateAnchored === 'function'
 
 				const toDateOnly = (iso: string | null | undefined) => {
@@ -714,7 +710,7 @@ export function BusinessTableSection({
 	const canCreateBusiness =
 		userRole === undefined
 			? true
-			: hasNestedPermission(userRole, 'negocios', 'create')
+			: can('negocios.crear')
 
 	return (
 		<TooltipProvider>
@@ -804,20 +800,20 @@ export function BusinessTableSection({
 						const canEditAfterSale =
 							(isEmitido || isFondeado) &&
 							userRole !== undefined &&
-							canEditContractWhenBusinessEmitido(userRole)
+							can('negocios.editar_contrato_emitido')
 						const isEditable = isVentaEfectuado || canEditAfterSale
 						const isCancelado = row.statusCode === BUSINESS_STATUS.CANCELADO
 						const isCancelable =
-							((isVentaEfectuado || isEmitido) && !isBusinessOwnerRole(userRole)) ||
-							(isFondeado && canEliminateFondeado(userRole))
-						const canFondearRole = canFundPayments(userRole)
+							((isVentaEfectuado || isEmitido) && can('negocios.cancelar')) ||
+							(isFondeado && can('aportes.eliminar_fondeado'))
+						const canFondearRole = can('aportes.fondear')
 						const showFondearDirect =
 							isEmitido && !row.hasPayments && canFondearRole
 						const showFondearAnnual =
 							row.hasPayments &&
 							(isEmitido || isFondeado) &&
 							canFondearRole
-						const isCoachRole = isBusinessOwnerRole(userRole)
+						const isCoachRole = isOwnerScope(scope('negocios.ver'))
 						const showViewFondeoForCoach =
 							isCoachRole && row.hasPayments && (isEmitido || isFondeado)
 						const isFondeable =

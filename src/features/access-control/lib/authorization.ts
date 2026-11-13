@@ -46,3 +46,11 @@ export function canWithLevel(
 	const grant = grants?.[permissionCode]
 	return grant !== undefined && meetsMinLevel(grant, userLevelCode, levelOrder)
 }
+
+/**
+ * Whether a scope limits the viewer to their own businesses or team (the
+ * "coach" experience of AGENTE/PARTNER), as opposed to company-wide or none.
+ */
+export function isOwnerScope(scope: DataScopeCode | undefined): boolean {
+	return scope === 'OWN' || scope === 'TEAM'
+}

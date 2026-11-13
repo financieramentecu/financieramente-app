@@ -17,7 +17,7 @@ import { ConfirmCarteraPagadoDialog } from './ConfirmCarteraPagadoDialog'
 import { EditFundedDateModal } from './EditFundedDateModal'
 import { FundFirstPaymentDialog } from './FundFirstPaymentDialog'
 import { useAporteTransitions } from '../../hooks/use-aporte-transitions'
-import { canFundPayments } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import type { BusinessEntity } from '../../types/business-entity.types'
 
 type ConfirmableAction = Exclude<AporteAction, 'UNMARK_CARTERA' | 'FONDEAR'>
@@ -65,7 +65,6 @@ export function FundingModal({
 	isLoadingInstallments = false,
 	periodicidadLabel,
 	plazo,
-	roleCode,
 	businessStatus = 'FONDEADO',
 	dateAnchored = null,
 	onRefetchInstallments,
@@ -85,7 +84,8 @@ export function FundingModal({
 		setInstallments(initialInstallments)
 	}, [initialInstallments])
 
-	const canMutate = canFundPayments(roleCode)
+	const { can } = usePermissions()
+	const canMutate = can('aportes.fondear')
 
 	// Business is considered "not funded" if: status is EMITIDO OR dateAnchored is null.
 	// This handles both: (1) initial EMITIDO state, and (2) edge case where status changed to CARTERA

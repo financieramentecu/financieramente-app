@@ -18,7 +18,8 @@ import {
 } from '@/features/shared/ui/dropdown-menu'
 import type { BusinessStatus, BusinessNovedadStatus, BusinessEntity } from '../types/business-entity.types'
 import { BUSINESS_STATUS, BUSINESS_NOVEDAD_STATUS } from '../types/business-entity.types'
-import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
+import type { UserRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { UploadComprobanteModal } from '@/features/business-supports/components/UploadComprobanteModal'
 import { ViewComprobantesSheet } from '@/features/business-supports/components/BusinessSupportsSheet'
 import { CommentModal } from '@/features/comments/components/CommentModal'
@@ -27,7 +28,6 @@ import { isUploadAllowedStatus } from '@/features/business-supports/lib/upload-a
 import { useManageNovedad } from '../hooks/use-manage-novedad'
 import { EMPTY_CONTRACT_PLACEHOLDER } from '../lib/map-business-to-table-row'
 import { BusinessNovedadManageModal } from './modals/BusinessNovedadManageModal'
-import { MANAGE_NOVEDAD_ALLOWED_ROLES } from './ui/NovedadManageTrigger'
 
 export interface BusinessRowActionsProps {
   businessId: number
@@ -83,19 +83,18 @@ export function BusinessRowActions({
   // Company-wide read-only roles (CONSULTOR) never get a write action rendered
   // here, regardless of status/novedad gates below — see spec "UI mutating
   // actions hidden for read-only role".
-  const isReadOnly = isReadOnlyRole(userRole)
-  const canUpload = isUploadAllowedStatus(businessStatus) && !isReadOnly
+  const { can } = usePermissions()
+  // Read-only viewers (CONSULTOR) cannot edit: the dropdown hides edit, comment and cancel
+  const isReadOnly = !can('negocios.editar')
+  const canUpload =
+    isUploadAllowedStatus(businessStatus) && can('comprobantes.subir')
   const canMarkNovedad =
     businessStatus === BUSINESS_STATUS.VENTA_EFECTUADA &&
     novedadStatus === null &&
-    !isReadOnly
+    can('novedades.marcar')
   const canUnmarkNovedad =
-    novedadStatus === BUSINESS_NOVEDAD_STATUS.NUEVA && !isReadOnly
-  const canManageNovedad =
-    novedadStatus !== null &&
-    userRole !== undefined &&
-    MANAGE_NOVEDAD_ALLOWED_ROLES.includes(userRole) &&
-    !isReadOnly
+    novedadStatus === BUSINESS_NOVEDAD_STATUS.NUEVA && can('novedades.marcar')
+  const canManageNovedad = novedadStatus !== null && can('novedades.gestionar')
   const [uploadOpen, setUploadOpen] = useState(false)
   const [viewOpen, setViewOpen] = useState(false)
   const [commentOpen, setCommentOpen] = useState(false)

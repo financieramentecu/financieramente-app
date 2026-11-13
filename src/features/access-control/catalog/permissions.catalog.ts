@@ -37,7 +37,12 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 			'Exportar lista de negocios a Excel',
 			{ scope: true, minLevel: true },
 		],
-		['negocios.editar_contrato_emitido', 'Editar contrato con negocio EMITIDO'],
+		[
+			'negocios.editar_contrato_emitido',
+			'Editar contrato y datos financieros de un negocio EMITIDO',
+		],
+		['negocios.editar_desde_lista', 'Mostrar la acción Editar en la lista'],
+		['negocios.editar_fecha_emision', 'Editar la fecha de emisión desde la lista'],
 		['clientes.editar', 'Editar datos del cliente'],
 	]),
 	...module('Novedades', [

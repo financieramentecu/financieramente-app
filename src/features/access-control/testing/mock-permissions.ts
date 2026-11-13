@@ -28,3 +28,17 @@ export function mockedUsePermissions() {
 			canWithLevel(grants, code, level, DEFAULT_LEVEL_ORDER),
 	}
 }
+
+type RoleProps = {
+	props?: { userRole?: string; userRoleCode?: string; roleCode?: string }
+}
+
+/**
+ * Role carried by a component under test through its legacy role props, or the
+ * fallback when it has none. Lets a test file keep rendering `<Comp userRole=... />`
+ * while the mocked `usePermissions` answers for that same role.
+ */
+export function roleFromElement(ui: unknown, fallback = 'ADMIN'): string {
+	const props = (ui as RoleProps)?.props
+	return props?.userRole ?? props?.userRoleCode ?? props?.roleCode ?? fallback
+}

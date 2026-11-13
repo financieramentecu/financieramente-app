@@ -42,6 +42,8 @@ const ROWS: Readonly<Record<string, string>> = {
 	'negocios.cancelar': 'Y Y Y - - -',
 	'negocios.exportar': 'C C C E C P',
 	'negocios.editar_contrato_emitido': 'Y Y Y - - -',
+	'negocios.editar_desde_lista': 'Y Y - - - -', // list UI shows Edit to these roles today
+	'negocios.editar_fecha_emision': 'Y - Y - - -', // list UI: inline issue-date edit
 	'clientes.editar': 'Y Y - - - -',
 
 	'novedades.marcar': 'C C C E - P', // VERIFY

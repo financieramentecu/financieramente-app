@@ -4,6 +4,12 @@ import { useAgentPermissions } from '@/features/negocios/hooks/use-agent-permiss
 import { createMockAgentInfo } from '@/features/negocios/__tests__/fixtures/mock-business'
 import { mockUserWithRole } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
 
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
 describe('useAgentPermissions — lead-owner lock (leadId + businessAgent)', () => {
 	it('is NOT locked when leadId is absent, even with a businessAgent present', () => {
 		const setValue = vi.fn()

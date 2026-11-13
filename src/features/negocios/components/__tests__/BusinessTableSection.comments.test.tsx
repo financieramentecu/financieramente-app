@@ -1,9 +1,25 @@
-import { render } from '@testing-library/react'
+import { render as rtlRender } from '@testing-library/react'
+import {
+	setMockRole,
+	roleFromElement,
+} from '@/features/access-control/testing/mock-permissions'
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { BusinessTableSection } from '../BusinessTableSection'
 import type { BusinessRowActionsProps } from '../BusinessRowActions'
 import type { Business } from '@/features/negocios/types/business.types'
 import { BUSINESS_STATUS } from '@/features/negocios/types/business-entity.types'
+
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
+const render = (...args: Parameters<typeof rtlRender>) => {
+	setMockRole(roleFromElement(args[0]))
+	return rtlRender(...args)
+}
+
 
 const { rowActionsProps, commentsApiList } = vi.hoisted(() => ({
 	rowActionsProps: [] as Array<Record<string, unknown>>,

@@ -92,4 +92,23 @@ describe('permission catalog sync', () => {
 		)
 		expect(exportRow).toMatchObject({ scope: 'TEAM', idMinLevel: 3 })
 	})
+
+	it('reports the permissions that did not exist before the sync', async () => {
+		prisma.permission.findMany.mockResolvedValueOnce([{ code: 'dashboard.ver' }])
+		const created = await syncPermissionCatalog(asClient())
+		expect(created).toHaveLength(PERMISSION_CATALOG.length - 1)
+		expect(created).not.toContain('dashboard.ver')
+	})
+
+	it('gives only brand-new permissions to roles that already have grants', async () => {
+		prisma.role.findMany.mockResolvedValue([{ idRole: 5, code: 'CONSULTOR' }])
+		prisma.rolePermission.count.mockResolvedValue(3)
+
+		await seedDefaultRoleGrants(asClient(), ['dashboard.ver', 'negocios.crear'])
+
+		const call = prisma.rolePermission.createMany.mock.calls[0][0]
+		// CONSULTOR default: dashboard.ver yes, negocios.crear no
+		expect(call.data).toHaveLength(1)
+		expect(call.skipDuplicates).toBe(true)
+	})
 })

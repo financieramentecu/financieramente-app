@@ -12,9 +12,9 @@ import {
  */
 export async function seedPermissions(prisma: PrismaClient) {
 	console.log('\n👉 Procesando Permisos...')
-	await syncPermissionCatalog(prisma)
+	const created = await syncPermissionCatalog(prisma)
 	await syncAdminPermissions(prisma)
-	await seedDefaultRoleGrants(prisma)
+	await seedDefaultRoleGrants(prisma, created)
 	const total = await prisma.permission.count({ where: { status: true } })
 	console.log(`✅ Permisos sincronizados: ${total}`)
 }

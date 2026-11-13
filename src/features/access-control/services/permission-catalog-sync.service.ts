@@ -10,7 +10,12 @@ const ADMIN_ROLE_CODE = 'ADMIN'
  */
 export async function syncPermissionCatalog(
 	prisma: PrismaClient
-): Promise<void> {
+): Promise<string[]> {
+	const existing = new Set(
+		(await prisma.permission.findMany({ select: { code: true } })).map(
+			(p) => p.code
+		)
+	)
 	for (const [index, permission] of PERMISSION_CATALOG.entries()) {
 		const fields = {
 			name: permission.name,
@@ -31,6 +36,10 @@ export async function syncPermissionCatalog(
 		where: { code: { notIn: PERMISSION_CATALOG.map((p) => p.code) } },
 		data: { status: false },
 	})
+
+	return PERMISSION_CATALOG.map((p) => p.code).filter(
+		(code) => !existing.has(code)
+	)
 }
 
 /**
@@ -72,11 +81,14 @@ export async function syncAdminPermissions(
 
 /**
  * Seeds the initial grants of the non-admin roles. A role that already has
- * any role_permission row is skipped, so re-running the seed never overwrites
- * changes made from the roles editor.
+ * any role_permission row only receives the permissions listed in
+ * `newPermissionCodes` (created by this sync), so re-running the seed never
+ * overwrites changes made from the roles editor while new catalog permissions
+ * still reach the roles that should have them.
  */
 export async function seedDefaultRoleGrants(
-	prisma: PrismaClient
+	prisma: PrismaClient,
+	newPermissionCodes: readonly string[] = []
 ): Promise<void> {
 	const [roles, permissions, levels] = await Promise.all([
 		prisma.role.findMany({
@@ -99,10 +111,11 @@ export async function seedDefaultRoleGrants(
 		const existing = await prisma.rolePermission.count({
 			where: { idRole: role.idRole },
 		})
-		if (existing > 0) continue
+		if (existing > 0 && newPermissionCodes.length === 0) continue
 
 		const data = Object.entries(DEFAULT_ROLE_GRANTS[role.code] ?? {}).flatMap(
 			([code, grant]) => {
+				if (existing > 0 && !newPermissionCodes.includes(code)) return []
 				const idPermission = permissionIdByCode.get(code)
 				if (idPermission === undefined) return []
 				return [
@@ -119,7 +132,10 @@ export async function seedDefaultRoleGrants(
 			}
 		)
 		if (data.length > 0) {
-			await prisma.rolePermission.createMany({ data })
+			await prisma.rolePermission.createMany({
+				data,
+				skipDuplicates: existing > 0,
+			})
 		}
 	}
 }

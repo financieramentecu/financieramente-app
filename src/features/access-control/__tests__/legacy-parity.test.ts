@@ -100,3 +100,37 @@ describe.each(ROLES)('default grants vs legacy checks: %s', (role) => {
 		})
 	})
 })
+
+/**
+ * The negocios list hides buttons more strictly than the API. These are the
+ * roles that see them today; the defaults must keep it exactly that way.
+ */
+describe('default grants vs list UI visibility', () => {
+	const rolesWith = (code: string) =>
+		ROLES.filter((role) => can(DEFAULT_ROLE_GRANTS[role], code)).sort()
+
+	it('shows Edit in the list only to ADMIN and ASISTENTE', () => {
+		expect(rolesWith('negocios.editar_desde_lista')).toEqual(
+			[UserRole.ADMIN, UserRole.ASISTENTE_GERENCIA_OPERATIVA].sort()
+		)
+	})
+
+	it('allows the inline issue-date edit only to ADMIN and ANALISTA_SOPORTE', () => {
+		expect(rolesWith('negocios.editar_fecha_emision')).toEqual(
+			[UserRole.ADMIN, UserRole.ANALISTA_SOPORTE].sort()
+		)
+	})
+
+	it('manages novedades only with ADMIN and ANALISTA_SOPORTE', () => {
+		expect(rolesWith('novedades.gestionar')).toEqual(
+			[UserRole.ADMIN, UserRole.ANALISTA_SOPORTE].sort()
+		)
+	})
+
+	it('treats AGENTE and PARTNER as the owner-scoped (coach) roles', () => {
+		const owners = ROLES.filter((role) =>
+			['OWN', 'TEAM'].includes(getScope(DEFAULT_ROLE_GRANTS[role], 'negocios.ver') ?? '')
+		).sort()
+		expect(owners).toEqual([UserRole.AGENTE, UserRole.PARTNER].sort())
+	})
+})

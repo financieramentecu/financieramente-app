@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { can, getScope, meetsMinLevel, canWithLevel } from '../lib/authorization'
+import {
+	can,
+	getScope,
+	meetsMinLevel,
+	canWithLevel,
+	isOwnerScope,
+} from '../lib/authorization'
 import { buildLevelOrder } from '../lib/level-order'
 import type { RoleGrants } from '../types/access-control.types'
 
@@ -98,5 +104,14 @@ describe('canWithLevel', () => {
 		expect(canWithLevel(grants, 'negocios.exportar', 'LEVEL_2', order)).toBe(true)
 		expect(canWithLevel(grants, 'negocios.exportar', 'LEVEL_1', order)).toBe(false)
 		expect(canWithLevel(grants, 'negocios.ver', 'LEVEL_3', order)).toBe(false)
+	})
+})
+
+describe('isOwnerScope', () => {
+	it('is true only for OWN and TEAM', () => {
+		expect(isOwnerScope('OWN')).toBe(true)
+		expect(isOwnerScope('TEAM')).toBe(true)
+		expect(isOwnerScope('COMPANY')).toBe(false)
+		expect(isOwnerScope(undefined)).toBe(false)
 	})
 })

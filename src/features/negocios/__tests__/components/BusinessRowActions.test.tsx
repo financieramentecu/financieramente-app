@@ -1,10 +1,26 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import {
+	setMockRole,
+	roleFromElement,
+} from '@/features/access-control/testing/mock-permissions'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { BusinessRowActions } from '../../components/BusinessRowActions'
 import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
 import type { BusinessNovedadStatus } from '../../types/business-entity.types'
+
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
+const render = (...args: Parameters<typeof rtlRender>) => {
+	setMockRole(roleFromElement(args[0]))
+	return rtlRender(...args)
+}
+
 
 vi.mock('@/features/shared/ui/tooltip', () => ({
   TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
