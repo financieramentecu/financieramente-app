@@ -16,6 +16,8 @@ const LOCKED_ROLE_CODES = ['ADMIN', 'SIN_ROL'] as const
 const ADMIN_ROLE_CODE = 'ADMIN'
 const SELF_MANAGEMENT_PERMISSION = 'roles.gestionar'
 /** Privilege-escalation permissions: only ADMIN may grant them to a role. */
+/** Interactive transaction limits (Prisma default is 5s, too short for remote DBs). */
+const TRANSACTION_OPTIONS = { timeout: 30000, maxWait: 10000 } as const
 const ADMIN_ONLY_GRANTS = ['roles.gestionar', 'usuarios.ver_como'] as const
 
 export interface RoleInput {
@@ -187,9 +189,17 @@ export async function setRolePermissions(
 			)
 		}
 
+		const existingIds = new Set(rows.map((r) => r.idPermission))
 		const added: string[] = []
 		const changed: string[] = []
 		const removed: string[] = []
+		const toCreate: {
+			idRole: number
+			idPermission: number
+			scope: string | null
+			idMinLevel: number | null
+			status: boolean
+		}[] = []
 
 		for (const [code, grant] of Object.entries(grants)) {
 			const current = active.get(code)
@@ -202,11 +212,19 @@ export async function setRolePermissions(
 				? (levelIdByCode.get(grant.minLevelCode) ?? null)
 				: null
 			const data = { scope: grant.scope ?? null, idMinLevel, status: true }
-			await tx.rolePermission.upsert({
-				where: { idRole_idPermission: { idRole, idPermission: permission.idPermission } },
-				create: { idRole, idPermission: permission.idPermission, ...data },
-				update: data,
-			})
+			if (existingIds.has(permission.idPermission)) {
+				await tx.rolePermission.update({
+					where: { idRole_idPermission: { idRole, idPermission: permission.idPermission } },
+					data,
+				})
+			} else {
+				toCreate.push({ idRole, idPermission: permission.idPermission, ...data })
+			}
+		}
+		// One round trip for every brand-new grant: per-row writes against a remote
+		// database exceed the transaction timeout on large permission sets.
+		if (toCreate.length > 0) {
+			await tx.rolePermission.createMany({ data: toCreate as never })
 		}
 
 		const removedIds: number[] = []
@@ -223,7 +241,7 @@ export async function setRolePermissions(
 		}
 
 		return { added, removed, changed }
-	})
+	}, TRANSACTION_OPTIONS)
 }
 
 export async function deactivateRole(

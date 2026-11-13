@@ -41,6 +41,8 @@ function createDb(opts: {
 		rolePermission: {
 			findMany: vi.fn().mockResolvedValue(opts.current ?? []),
 			upsert: vi.fn().mockResolvedValue({}),
+			createMany: vi.fn().mockResolvedValue({ count: 0 }),
+			update: vi.fn().mockResolvedValue({}),
 			updateMany: vi.fn().mockResolvedValue({ count: 0 }),
 		},
 		user: { count: vi.fn().mockResolvedValue(opts.users ?? 0) },
@@ -90,7 +92,7 @@ describe('createRole', () => {
 			})
 		)
 		expect(role.code).toBe('AUDITOR')
-		expect(db.rolePermission.upsert).not.toHaveBeenCalled()
+		expect(db.rolePermission.createMany).not.toHaveBeenCalled()
 	})
 
 	it('rejects a code that already exists', async () => {
@@ -139,13 +141,53 @@ describe('setRolePermissions', () => {
 		expect(result.added).toEqual(['negocios.exportar'])
 		expect(result.removed).toEqual(['aportes.fondear'])
 		expect(result.changed).toEqual(['negocios.ver'])
-		expect(db.rolePermission.upsert).toHaveBeenCalledTimes(2)
+		// New grants go in ONE createMany (a remote DB makes per-row writes time out).
+		expect(db.rolePermission.createMany).toHaveBeenCalledTimes(1)
+		expect(db.rolePermission.createMany).toHaveBeenCalledWith({
+			data: [{ idRole: 5, idPermission: 3, scope: 'TEAM', idMinLevel: 3, status: true }],
+		})
+		expect(db.rolePermission.update).toHaveBeenCalledTimes(1)
+		expect(db.rolePermission.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { idRole_idPermission: { idRole: 5, idPermission: 2 } },
+				data: { scope: 'TEAM', idMinLevel: null, status: true },
+			})
+		)
+		expect(db.rolePermission.upsert).not.toHaveBeenCalled()
 		expect(db.rolePermission.updateMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: { idRole: 5, idPermission: { in: [4] } },
 				data: { status: false },
 			})
 		)
+	})
+
+	it('writes every new grant of a large set with a single createMany', async () => {
+		const db = createDb({ role: editableRole })
+		await setRolePermissions(db as never, 5, actor, {
+			'negocios.ver': { scope: 'COMPANY' },
+			'negocios.exportar': { scope: 'TEAM', minLevelCode: 'LEVEL_2' },
+			'aportes.fondear': {},
+		})
+		expect(db.rolePermission.createMany).toHaveBeenCalledTimes(1)
+		expect(db.rolePermission.createMany.mock.calls[0]![0].data).toHaveLength(3)
+		expect(db.rolePermission.update).not.toHaveBeenCalled()
+		expect(db.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+			timeout: 30000,
+			maxWait: 10000,
+		})
+	})
+
+	it('reactivates a previously removed grant with an update, not a duplicate insert', async () => {
+		const db = createDb({
+			role: editableRole,
+			current: [
+				{ idPermission: 4, status: false, scope: null, minLevel: null, permission: { code: 'aportes.fondear' } },
+			],
+		})
+		await setRolePermissions(db as never, 5, actor, { 'aportes.fondear': {} })
+		expect(db.rolePermission.createMany).not.toHaveBeenCalled()
+		expect(db.rolePermission.update).toHaveBeenCalledTimes(1)
 	})
 
 	it('writes nothing when the grants are unchanged', async () => {
@@ -157,7 +199,9 @@ describe('setRolePermissions', () => {
 		})
 		const result = await setRolePermissions(db as never, 5, actor, { 'aportes.fondear': {} })
 		expect(result).toEqual({ added: [], removed: [], changed: [] })
-		expect(db.rolePermission.upsert).not.toHaveBeenCalled()
+		expect(db.rolePermission.createMany).not.toHaveBeenCalled()
+		expect(db.rolePermission.createMany).not.toHaveBeenCalled()
+		expect(db.rolePermission.update).not.toHaveBeenCalled()
 		expect(db.rolePermission.updateMany).not.toHaveBeenCalled()
 	})
 
@@ -165,14 +209,14 @@ describe('setRolePermissions', () => {
 		for (const code of ['ADMIN', 'SIN_ROL']) {
 			const db = createDb({ role: { ...editableRole, code, isSystem: true } })
 			expect(await codeOf(setRolePermissions(db as never, 5, actor, {}))).toBe('LOCKED_ROLE')
-			expect(db.rolePermission.upsert).not.toHaveBeenCalled()
+			expect(db.rolePermission.createMany).not.toHaveBeenCalled()
 		}
 	})
 
 	it('rejects removing roles.gestionar from the actor own role', async () => {
 		const db = createDb({ role: editableRole })
 		expect(await codeOf(setRolePermissions(db as never, 5, 'ANALISTA', { 'aportes.fondear': {} }))).toBe('SELF_LOCKOUT')
-		expect(db.rolePermission.upsert).not.toHaveBeenCalled()
+		expect(db.rolePermission.createMany).not.toHaveBeenCalled()
 	})
 
 	it('allows the actor own role when roles.gestionar stays', async () => {
@@ -186,7 +230,7 @@ describe('setRolePermissions', () => {
 			'roles.gestionar': {},
 			'aportes.fondear': {},
 		})
-		expect(db.rolePermission.upsert).toHaveBeenCalledTimes(1)
+		expect(db.rolePermission.createMany).toHaveBeenCalledTimes(1)
 	})
 
 	it('only ADMIN may grant roles.gestionar or usuarios.ver_como', async () => {
@@ -194,11 +238,11 @@ describe('setRolePermissions', () => {
 		expect(
 			await codeOf(setRolePermissions(db as never, 5, 'ANALISTA', { 'roles.gestionar': {} }))
 		).toBe('ADMIN_ONLY_PERMISSION')
-		expect(db.rolePermission.upsert).not.toHaveBeenCalled()
+		expect(db.rolePermission.createMany).not.toHaveBeenCalled()
 
 		const okDb = createDb({ role: { ...editableRole, code: 'OTRO' } })
 		await setRolePermissions(okDb as never, 5, 'ADMIN', { 'roles.gestionar': {} })
-		expect(okDb.rolePermission.upsert).toHaveBeenCalledTimes(1)
+		expect(okDb.rolePermission.createMany).toHaveBeenCalledTimes(1)
 	})
 
 	it('rejects unknown permission codes', async () => {
