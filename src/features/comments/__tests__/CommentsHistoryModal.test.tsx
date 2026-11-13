@@ -155,7 +155,9 @@ describe('CommentsHistoryModal content and data states', () => {
     mockList.mockReturnValue(new Promise(() => {}))
     render(<CommentsHistoryModal businessId={10} contract={CONTRACT} open onClose={vi.fn()} />)
 
-    expect(screen.getByText('Cargando comentarios…')).toBeInTheDocument()
+    expect(
+      screen.getByRole('status', { name: 'Cargando comentarios' })
+    ).toBeInTheDocument()
     expect(screen.queryAllByTestId(/comment-item-/)).toHaveLength(0)
     expect(screen.queryByText(EMPTY_MESSAGE)).not.toBeInTheDocument()
   })
@@ -178,7 +180,9 @@ describe('CommentsHistoryModal content and data states', () => {
     render(<CommentsHistoryModal businessId={10} contract={CONTRACT} open onClose={vi.fn()} />)
 
     await user.click(await screen.findByRole('button', { name: 'Reintentar' }))
-    expect(screen.getByText('Cargando comentarios…')).toBeInTheDocument()
+    expect(
+      screen.getByRole('status', { name: 'Cargando comentarios' })
+    ).toBeInTheDocument()
 
     retry.resolve([buildComment({ id: 'c1' }), buildComment({ id: 'c2' })])
     expect(await screen.findAllByTestId(/comment-item-/)).toHaveLength(2)

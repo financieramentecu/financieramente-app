@@ -1,5 +1,6 @@
 'use client'
 
+import { ListRowsSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { useState } from 'react'
 import { Trash2, ImageIcon, ZoomIn, FileText } from 'lucide-react'
 import { toast } from 'sonner'
@@ -244,9 +245,7 @@ export function ViewComprobantesSheet({
           </SheetHeader>
 
           {state.status === 'loading' && (
-            <div className="flex flex-1 items-center justify-center">
-              <p className="text-sm text-muted-foreground animate-pulse">Cargando comprobantes…</p>
-            </div>
+            <ListRowsSkeleton label="Cargando comprobantes" rows={4} />
           )}
 
           {state.status === 'error' && (

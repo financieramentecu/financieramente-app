@@ -150,7 +150,9 @@ describe('ViewComprobantesSheet', () => {
       refetch: vi.fn(),
     })
     render(<ViewComprobantesSheet {...defaultProps} />)
-    expect(screen.getByText(/cargando/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole('status', { name: 'Cargando comprobantes' })
+    ).toBeInTheDocument()
   })
 
   it('shows empty state when no comprobantes', () => {

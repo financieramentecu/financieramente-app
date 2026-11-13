@@ -1,5 +1,9 @@
 'use client'
 
+import {
+	SkeletonRegion,
+	TableRowsLoadingSkeleton,
+} from '@/features/shared/ui/loading-skeletons'
 import { useEffect, useState } from 'react'
 import {
 	Dialog,
@@ -167,10 +171,9 @@ export function ModalDetallePreLiquidacion({
 				</DialogHeader>
 
 				{isLoading ? (
-					<div className="text-center py-12">
-						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-						<p className="text-muted-foreground mt-4">Cargando detalle...</p>
-					</div>
+					<SkeletonRegion label="Cargando detalle">
+                        <TableRowsLoadingSkeleton rows={6} />
+                    </SkeletonRegion>
 				) : error ? (
 					<div className="p-4 bg-red-50 text-red-700 rounded-md">
 						<p>{error}</p>
