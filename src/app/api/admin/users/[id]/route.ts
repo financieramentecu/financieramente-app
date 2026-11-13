@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { validateRoleLevelPair } from '@/features/admin/users/lib/user-role-level-rules'
 import {
@@ -59,7 +58,7 @@ export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('usuarios.ver')
 	if (!guard.ok) {
 		return guard.response
 	}
@@ -177,7 +176,7 @@ export async function PUT(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('usuarios.gestionar')
 	if (!guard.ok) {
 		return guard.response
 	}

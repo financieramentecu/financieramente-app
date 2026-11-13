@@ -5,8 +5,7 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { Company } from '@/features/company/types/company.types'
 import { prismaCompanyToCompany } from '@/features/company/mappers/company.mapper'
 import { z } from 'zod'
-import { requireAuth, requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireAuth, requireRolePermission } from '@/lib/auth/require-role'
 // REFRESH: 2026-04-29T19:32:00
 import {
 	logAuditEvent,
@@ -65,7 +64,7 @@ export async function PUT(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.catalogos')
 	if (!guard.ok) {
 		return guard.response
 	}
@@ -246,7 +245,7 @@ export async function DELETE(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.catalogos')
 	if (!guard.ok) {
 		return guard.response
 	}

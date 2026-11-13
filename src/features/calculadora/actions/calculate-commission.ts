@@ -2,7 +2,7 @@
 
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { hasPermission } from '@/features/auth/lib/permissions'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { isDistributionExcludedLevel } from '@/features/shared/lib/level-codes'
 import { Decimal } from '@prisma/client/runtime/library'
 import * as Sentry from '@sentry/nextjs'
@@ -74,7 +74,7 @@ export async function calculateCommission(
 
 		// SEC-03: a login is not enough; the role must have the calculadora permission
 		// (PARTNER and DEFAULT do not).
-		if (!hasPermission(session?.user?.role, 'calculadora')) {
+		if (!(await roleCan(session?.user?.role, 'calculadora.usar'))) {
 			return {
 				success: false,
 				error: 'Sin permisos',

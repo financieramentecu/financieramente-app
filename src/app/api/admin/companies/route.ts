@@ -9,8 +9,7 @@ import type {
 import { prismaCompanyToCompany } from '@/features/company/mappers/company.mapper'
 // REFRESH: 2026-04-29T19:32:00
 import { z } from 'zod'
-import { requireAuth, requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireAuth, requireRolePermission } from '@/lib/auth/require-role'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -90,7 +89,7 @@ export async function GET(request: Request) {
  * Creates a new company
  */
 export async function POST(request: Request) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.catalogos')
 	if (!guard.ok) {
 		return guard.response
 	}

@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { UserRole } from '@/features/auth/lib/roles'
 
 vi.mock('@/lib/auth/require-role', () => ({
-	requireRole: vi.fn(),
+	requireRolePermission: vi.fn(),
 }))
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
@@ -39,7 +39,7 @@ vi.mock(
 	})
 )
 
-import { requireRole } from '@/lib/auth/require-role'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import {
 	getReportPermissionsCatalog,
 	replaceReportPermissions,
@@ -47,7 +47,7 @@ import {
 import { logAuditEvent } from '@/features/auth/lib/audit-logger'
 import { GET, PUT } from '@/app/api/report-permissions/route'
 
-const mockRequireRole = vi.mocked(requireRole)
+const mockRequireRole = vi.mocked(requireRolePermission)
 const mockGetCatalog = vi.mocked(getReportPermissionsCatalog)
 const mockReplace = vi.mocked(replaceReportPermissions)
 

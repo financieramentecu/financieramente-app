@@ -6,16 +6,13 @@ import {
   obtenerTodosLosCoaches
 } from '../services/liquidacion.service';
 import { ApiResponse } from '@/features/shared/types/api-response.types';
-import { UserRole, isValidRole } from '@/features/auth/lib/roles';
+import { roleCan } from '@/features/access-control/services/role-permission-check';
 import { requireActionPermission } from '@/lib/auth/require-action-permission';
 
-// SEC-03: settlement history must never reach a PARTNER (or a pending DEFAULT /
-// unknown role). Internal roles keep today's behavior.
-// TODO(partner-profile): the permission matrix only grants `liquidaciones.liquidacion`
-// to ADMIN and ASISTENTE_GERENCIA_OPERATIVA; narrowing AGENTE / CONSULTOR /
-// ANALISTA_SOPORTE here is a product decision and is intentionally NOT done.
-const canViewLiquidaciones = (role: string | undefined): boolean =>
-  !!role && isValidRole(role) && role !== UserRole.PARTNER && role !== UserRole.SIN_ROL;
+// SEC-03: settlement history never reaches a PARTNER or a role without a role
+// (`liquidacion.ver`); internal roles keep today's behavior.
+const canViewLiquidaciones = (role: string | undefined): Promise<boolean> =>
+  roleCan(role, 'liquidacion.ver');
 
 export async function fetchComisionesLiquidadasAction(
   params: {

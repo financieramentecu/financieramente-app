@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { AuditAction } from '@/features/auth/lib/audit-logger'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { createPartnerSchema } from '@/features/admin/partners/lib/partner-schemas'
@@ -27,7 +26,7 @@ import type {
  * Lists partners with their derived status (ADMIN only).
  */
 export async function GET(): Promise<NextResponse<ApiResponse<PartnerDto[]>>> {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('partners.gestionar')
 	if (!guard.ok) {
 		return guard.response as NextResponse<ApiResponse<PartnerDto[]>>
 	}
@@ -47,7 +46,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<PartnerDto[]>>> {
 export async function POST(
 	request: Request
 ): Promise<NextResponse<ApiResponse<PartnerWithEmailResult>>> {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('partners.gestionar')
 	if (!guard.ok) {
 		return guard.response as NextResponse<ApiResponse<PartnerWithEmailResult>>
 	}

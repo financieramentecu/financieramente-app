@@ -70,6 +70,7 @@ const ROWS: Readonly<Record<string, string>> = {
 	'preliquidacion.ver': 'Y Y Y - - -',
 	'preliquidacion.procesar': 'Y Y - - - -',
 	'preliquidacion.rezagar': 'Y Y Y - - -',
+	'liquidacion.ver': 'Y Y Y Y Y -', // every internal role; never PARTNER (SEC-03)
 	'liquidacion.liquidar': 'Y Y - - - -', // S5: Analista off by default
 	'liquidacion.notificar': 'Y Y - - - -', // VERIFY
 
@@ -88,6 +89,7 @@ const ROWS: Readonly<Record<string, string>> = {
 	'configuracion.catalogos': 'Y - - - - -', // S6
 	'configuracion.productos': 'Y - - - - -', // S6
 	'configuracion.distribucion': 'Y - - - - -', // S6
+	'configuracion.correo': 'Y - - - - -',
 	'configuracion.tipos_documento': 'Y - - - - -',
 	'reportes.permisos': 'Y - - - - -',
 

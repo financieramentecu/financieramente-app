@@ -83,7 +83,7 @@ describe("'use server' guard inventory", () => {
 		(file) => {
 			const source = readFileSync(join(process.cwd(), file), 'utf8')
 			expect(source).toMatch(
-				/requireWriteAccess\s*\(|requireActionPermission\s*\(|requireRole\s*\(|hasPermission\s*\(/
+				/requireWriteAccess\s*\(|requireActionPermission\s*\(|requireRole\s*\(|hasPermission\s*\(|roleCan\s*\(/
 			)
 		}
 	)

@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createCurrencySchema } from '@/features/admin/currencies/lib/currency-schemas'
 import { z } from 'zod'
-import { requireAuth, requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireAuth, requireRolePermission } from '@/lib/auth/require-role'
 
 export async function GET(request: Request) {
 	const guard = await requireAuth()
@@ -45,7 +44,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.catalogos')
 	if (!guard.ok) {
 		return guard.response
 	}

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { leaderLevelQuerySchema } from '@/features/admin/partners/lib/partner-schemas'
 import {
@@ -17,7 +16,7 @@ import type { PartnerLeaderOption } from '@/features/admin/partners/types/partne
 export async function GET(
 	request: Request
 ): Promise<NextResponse<ApiResponse<PartnerLeaderOption[]>>> {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('partners.gestionar')
 	if (!guard.ok) {
 		return guard.response as NextResponse<ApiResponse<PartnerLeaderOption[]>>
 	}

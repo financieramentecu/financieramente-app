@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { liquidarArchivoCompleto } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
-
-const ALLOWED_ROLES: UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-]
 
 /**
  * POST /api/pre-liquidacion/liquidar-archivo
@@ -20,8 +15,8 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 		}
 
-		const role = session.user?.role as UserRole | undefined
-		if (!role || !ALLOWED_ROLES.includes(role)) {
+		const role = session.user?.role
+		if (!(await roleCan(role, 'liquidacion.liquidar'))) {
 			return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 		}
 

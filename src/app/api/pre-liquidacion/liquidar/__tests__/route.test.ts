@@ -90,9 +90,25 @@ describe('POST /api/pre-liquidacion/liquidar', () => {
 		expect(mockLiquidarRegistros).not.toHaveBeenCalled()
 	})
 
-	it('returns 200 with liquidated and fileCompleted when allowed role', async () => {
+	it('S5: ANALISTA_SOPORTE no longer liquidates by default (403)', async () => {
 		mockAuth.mockResolvedValue({
 			user: { id: '10', role: UserRole.ANALISTA_SOPORTE },
+		} as never)
+
+		const response = await POST(
+			new Request('http://localhost/api/pre-liquidacion/liquidar', {
+				method: 'POST',
+				body: JSON.stringify({ ids: [1], fileId: 1 }),
+			}) as never
+		)
+
+		expect(response.status).toBe(403)
+		expect(mockLiquidarRegistros).not.toHaveBeenCalled()
+	})
+
+	it('returns 200 with liquidated and fileCompleted when allowed role', async () => {
+		mockAuth.mockResolvedValue({
+			user: { id: '10', role: UserRole.ASISTENTE_GERENCIA_OPERATIVA },
 		} as never)
 		mockLiquidarRegistros.mockResolvedValue({
 			liquidated: 3,
