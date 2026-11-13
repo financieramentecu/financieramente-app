@@ -48,7 +48,6 @@ interface UseBusinessPermissionsProps {
  */
 export function useBusinessPermissions({
 	mode,
-	currentUser,
 	businessStatus,
 }: UseBusinessPermissionsProps) {
 	const isEditMode = mode === 'edit'
