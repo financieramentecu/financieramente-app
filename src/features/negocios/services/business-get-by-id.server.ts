@@ -21,7 +21,7 @@ export async function getBusinessById(
 	currentUser: { idUser: number; role: { code: string } | null },
 	mode: BusinessAccessMode = 'read'
 ) {
-	if (checkBusinessRoleGate(currentUser, mode)) return null
+	if (await checkBusinessRoleGate(currentUser, mode)) return null
 
 	const scope = await resolveBusinessScope(prisma, currentUser, {
 		ownOnly: mode === 'write',

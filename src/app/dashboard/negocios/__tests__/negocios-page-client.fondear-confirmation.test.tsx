@@ -234,6 +234,14 @@ function createBusinessRow(mode: 'direct' | 'annual' | 'directZero'): Business {
 	}
 }
 
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({
+		can: () => true,
+		scope: () => undefined,
+		canWithLevel: () => true,
+	}),
+}))
+
 describe('NegociosPageClient - confirmacion de fondeo', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()

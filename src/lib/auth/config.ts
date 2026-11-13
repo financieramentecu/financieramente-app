@@ -15,7 +15,7 @@ import {
 } from '@/features/auth/lib/permissions'
 import { UserRole } from '@/features/auth/lib/roles'
 import { prisma } from '@/lib/prisma'
-import { resolveRoleGrants } from '@/features/access-control/services/role-grants.service'
+import { resolveLevelOrder, resolveRoleGrants } from '@/features/access-control/services/role-grants.service'
 import { checkCredentialsAttempt } from '@/features/auth/lib/credentials-rate-limiter'
 import { CredentialsRateLimitedError } from '@/features/auth/lib/credentials-errors'
 import { getTrustedClientIp } from '@/features/auth/lib/trusted-client-ip'
@@ -422,6 +422,12 @@ export const authConfig: NextAuthConfig = {
 					console.error('Failed to resolve role grants:', error)
 					session.user.grants = {}
 				}
+				const needsLevels = Object.values(session.user.grants ?? {}).some(
+					(grant) => grant.minLevelCode
+				)
+				session.user.levelOrder = needsLevels
+					? [...(await resolveLevelOrder(prisma))]
+					: []
 				
 				// Pasar datos de impersonation si existen
 				if (token.originalUserId) {

@@ -4,6 +4,7 @@
  * PUT - Actualizar un negocio (principalmente el contrato)
  */
 
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { auth } from '@/auth'
@@ -35,7 +36,6 @@ import {
 
 import {
 	UserRole,
-	canEditContractWhenBusinessEmitido,
 } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -94,7 +94,7 @@ export async function GET(
 
 		// SEC-03: central access decision (global roles all, AGENTE self+subordinates,
 		// PARTNER own, unknown roles fail closed).
-		const denied = checkBusinessRoleGate(currentUser, 'read')
+		const denied = await checkBusinessRoleGate(currentUser, 'read')
 		if (denied) {
 			return businessAccessDeniedResponse(denied.reason)
 		}
@@ -199,7 +199,7 @@ export async function PUT(
 		}
 
 		// SEC-03: read-only and unknown roles are refused before any lookup
-		const denied = checkBusinessRoleGate(currentUser, 'write')
+		const denied = await checkBusinessRoleGate(currentUser, 'write')
 		if (denied) {
 			return businessAccessDeniedResponse(denied.reason)
 		}
@@ -286,7 +286,7 @@ export async function PUT(
 		if (
 			isNotDraft &&
 			contract !== undefined &&
-			!canEditContractWhenBusinessEmitido(currentUser.role?.code)
+			!(await roleCan(currentUser.role?.code, 'negocios.editar_contrato_emitido'))
 		) {
 			return NextResponse.json(
 				{ data: null, error: 'No tienes permisos para editar el contrato de un negocio ya emitido' },

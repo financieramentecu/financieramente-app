@@ -1,6 +1,8 @@
 import type { PrismaClient } from '@prisma/client'
 import { prisma as sharedPrisma } from '@/lib/prisma'
-import { UserRole, isGlobalVisibilityRole } from '@/features/auth/lib/roles'
+import { getScope } from '@/features/access-control/lib/authorization'
+import { resolveOwnerScope } from '@/features/access-control/services/scope-resolver.service'
+import { getRoleGrants } from '@/features/access-control/services/role-permission-check'
 import { getSubordinateUserIds as getTeamSubordinateUserIds } from '@/features/access-control/services/team-hierarchy.service'
 
 /**
@@ -21,8 +23,8 @@ export interface VisibilityOptions {
 /**
  * SINGLE visibility rule shared by the business list/export/stats endpoints
  * and the per-business access decision (`resolveBusinessScope`):
- * - Global-visibility roles (write-bypass ADMIN-like roles + read-only CONSULTOR)
- *   -> `undefined` (no `idUser` filter, sees every business).
+ * Driven by the `negocios.ver` grant of the role:
+ * - COMPANY scope *   -> `undefined` (no `idUser` filter, sees every business).
  * - AGENTE -> `[self, ...subordinates]` (hierarchy subtree; `[self]` with `ownOnly`).
  * - PARTNER -> `[self]` only, never a hierarchy lookup.
  * - Anything else (DEFAULT, unknown, missing role) -> `[]` (fails closed).
@@ -35,16 +37,13 @@ export async function resolveVisibleUserIds(
 	currentUser: { idUser: number; role?: { code: string } | null },
 	options: VisibilityOptions = {}
 ): Promise<number[] | undefined> {
-	const roleCode = currentUser.role?.code
-
-	if (isGlobalVisibilityRole(roleCode)) return undefined
-	if (roleCode === UserRole.PARTNER) return [currentUser.idUser]
-	if (roleCode === UserRole.AGENTE) {
-		if (options.ownOnly) return [currentUser.idUser]
-		const subordinates = await getSubordinateUserIds(prisma, currentUser.idUser)
-		return [currentUser.idUser, ...subordinates]
-	}
-	return []
+	const grants = await getRoleGrants(currentUser.role?.code)
+	return resolveOwnerScope(
+		prisma,
+		currentUser,
+		getScope(grants, 'negocios.ver'),
+		options
+	)
 }
 
 /**

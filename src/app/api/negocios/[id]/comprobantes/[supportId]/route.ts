@@ -6,7 +6,8 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
-import { canDeleteBusinessComprobante, isBusinessOwnerRole } from '@/features/auth/lib/roles'
+import { isBusinessOwnerRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { ComprobanteError } from '@/features/business-supports/types/business-support.types'
 import { deactivateComprobante } from '@/features/business-supports/services/business-supports.service'
@@ -54,7 +55,7 @@ export async function DELETE(
     return NextResponse.json({ data: null, error: 'User not found' }, { status: 401 })
   }
   const roleCode = user.role?.code
-  if (!canDeleteBusinessComprobante(roleCode)) {
+  if (!(await roleCan(roleCode, 'comprobantes.eliminar'))) {
     return NextResponse.json(
       { data: null, error: 'No tiene permiso para eliminar comprobantes' },
       { status: 403 },

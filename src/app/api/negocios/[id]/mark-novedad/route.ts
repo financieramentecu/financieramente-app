@@ -20,7 +20,8 @@ import { markNovedadSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { assertBusinessAccess } from '@/features/negocios/services/business-access.service'
 import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
-import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
+import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -97,7 +98,7 @@ export async function PATCH(
 			)
 		}
 
-		if (isReadOnlyRole(currentUser.role?.code)) {
+		if (!(await roleCan(currentUser.role?.code, 'novedades.marcar'))) {
 			return NextResponse.json(
 				{ data: null, error: 'Sin permisos' },
 				{ status: 403 }

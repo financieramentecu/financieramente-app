@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { isReadOnlyRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { CommentDTO } from '@/features/comments/types/comment.types'
@@ -86,7 +86,7 @@ export async function POST(
   if (!session?.user) {
     return NextResponse.json({ data: null, error: 'Unauthorized' }, { status: 401 })
   }
-  if (isReadOnlyRole(session.user.role)) {
+  if (!(await roleCan(session.user.role, 'comentarios.crear'))) {
     return NextResponse.json({ data: null, error: 'Sin permisos' }, { status: 403 })
   }
 

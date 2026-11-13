@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({
+		can: () => true,
+		scope: () => undefined,
+		canWithLevel: () => true,
+	}),
+}))
+
 const redirectMock = vi.hoisted(() =>
 	vi.fn((url: string) => {
 		throw new Error(`NEXT_REDIRECT:${url}`)

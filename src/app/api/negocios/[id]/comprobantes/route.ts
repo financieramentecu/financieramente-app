@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { isReadOnlyRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { BusinessSupportDTO } from '@/features/business-supports/types/business-support.types'
@@ -94,7 +94,7 @@ export async function POST(
   if (!session?.user) {
     return NextResponse.json({ data: null, error: 'Unauthorized' }, { status: 401 })
   }
-  if (isReadOnlyRole(session.user.role)) {
+  if (!(await roleCan(session.user.role, 'comprobantes.subir'))) {
     return NextResponse.json({ data: null, error: 'Sin permisos' }, { status: 403 })
   }
 

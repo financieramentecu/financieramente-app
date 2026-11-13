@@ -85,12 +85,17 @@ describe.each(ROLES)('default grants vs legacy checks: %s', (role) => {
 			viewPayments: can(grants, 'aportes.ver'),
 			fund: can(grants, 'aportes.fondear'),
 			eliminate: can(grants, 'aportes.eliminar_fondeado'),
+			// pago anticipado and cartera endpoints are guarded by canFundPayments today
+			earlyPayment: can(grants, 'aportes.pago_anticipado'),
+			portfolio: can(grants, 'aportes.cartera'),
 			deleteComprobante: can(grants, 'comprobantes.eliminar'),
 		}).toEqual({
 			emitido: canEditContractWhenBusinessEmitido(role),
 			viewPayments: canViewPayments(role),
 			fund: canFundPayments(role),
 			eliminate: canEliminateFondeado(role),
+			earlyPayment: canFundPayments(role),
+			portfolio: canFundPayments(role),
 			deleteComprobante: canDeleteBusinessComprobante(role),
 		})
 	})

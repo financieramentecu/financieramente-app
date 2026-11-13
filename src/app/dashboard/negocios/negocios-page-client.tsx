@@ -12,7 +12,7 @@ import { useBusinessMutation } from '@/features/negocios/hooks/use-business-muta
 import { useBusinesses } from '@/features/negocios/hooks/use-businesses'
 import { useBusinessExport } from '@/features/negocios/hooks/use-business-export'
 import { useBusinessStats } from '@/features/negocios/hooks/use-business-stats'
-import { canExportBusinessList } from '@/features/negocios/lib/can-export-business-list'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { useDebounce } from '@/features/admin/users/hooks/use-debounce'
 import { Business } from '@/features/negocios/types/business.types'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
@@ -227,10 +227,11 @@ export function NegociosPageClient({
 		error: exportExcelError,
 	} = useBusinessExport()
 
-	const canExportExcel = canExportBusinessList({
-		roleCode: _currentUser?.role?.code,
-		levelCode: _currentUser?.level?.code,
-	})
+	const { canWithLevel } = usePermissions()
+	const canExportExcel = canWithLevel(
+		'negocios.exportar',
+		_currentUser?.level?.code
+	)
 
 	// Handlers
 	const handleAddBusiness = useCallback(() => {

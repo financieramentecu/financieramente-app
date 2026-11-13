@@ -17,6 +17,7 @@ import {
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { cancelBusinessSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -28,15 +29,6 @@ import {
 interface RouteParams {
 	params: Promise<{ id: string }>
 }
-
-/**
- * Roles que pueden cancelar negocios
- */
-const CANCEL_ALLOWED_ROLES = [
-	UserRole.ADMIN,
-	UserRole.ANALISTA_SOPORTE,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-]
 
 /**
  * PATCH /api/negocios/[id]/cancel
@@ -94,7 +86,8 @@ export async function PATCH(
 
 		// Verificar que el usuario tiene permiso para cancelar
 		const userRole = currentUser.role?.code as UserRole
-		if (!CANCEL_ALLOWED_ROLES.includes(userRole)) {
+		const mayCancel = await roleCan(userRole, 'negocios.cancelar')
+		if (!mayCancel) {
 			return NextResponse.json(
 				{ data: null, error: 'No tiene permisos para cancelar negocios' },
 				{ status: 403 }
@@ -127,7 +120,7 @@ export async function PATCH(
 			BUSINESS_STATUS.EMITIDO,
 		]
 		const isFondeado = existingBusiness.status === BUSINESS_STATUS.FONDEADO
-		const canCancelFondeado = isFondeado && CANCEL_ALLOWED_ROLES.includes(userRole)
+		const canCancelFondeado = isFondeado && mayCancel
 
 		if (!cancelableStatuses.includes(existingBusiness.status as typeof BUSINESS_STATUS.VENTA_EFECTUADA) && !canCancelFondeado) {
 			return NextResponse.json(

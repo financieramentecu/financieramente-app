@@ -50,8 +50,8 @@ const ROWS: Readonly<Record<string, string>> = {
 	'aportes.ver': 'C C - E - -', // S4: Analista funds but does not view
 	'aportes.fondear': 'Y Y Y - - -',
 	'aportes.eliminar_fondeado': 'Y Y Y - - -',
-	'aportes.pago_anticipado': 'Y Y - - - -', // VERIFY
-	'aportes.cartera': 'Y Y - - - -', // VERIFY
+	'aportes.pago_anticipado': 'Y Y Y - - -', // legacy: same roles as canFundPayments
+	'aportes.cartera': 'Y Y Y - - -', // legacy: same roles as canFundPayments
 
 	'comprobantes.subir': 'C C C E - P', // VERIFY
 	'comprobantes.eliminar': 'C C C E - P',

@@ -5,6 +5,14 @@ import { NegociosPageClient } from '../negocios-page-client'
 import { UserRole } from '@/features/auth/lib/roles'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
 
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({
+		can: () => true,
+		scope: () => undefined,
+		canWithLevel: () => true,
+	}),
+}))
+
 const navCtx = vi.hoisted(() => ({
 	mockReplace: vi.fn(),
 	searchParams: new URLSearchParams(),

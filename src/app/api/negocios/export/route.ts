@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
 		}
 
-		const isAuthorized = canExportBusinessList({
+		const isAuthorized = await canExportBusinessList({
 			roleCode: currentUser.role?.code,
 			levelCode: currentUser.level?.code,
 		})

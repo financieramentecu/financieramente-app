@@ -17,6 +17,8 @@ declare module 'next-auth' {
 			role?: UserRole | null
 			permissions?: RolePermissions | null
 			grants?: RoleGrants
+			/** Level codes lowest to highest; filled only when a grant has a minimum level. */
+			levelOrder?: string[]
 		} & DefaultSession['user']
 	}
 

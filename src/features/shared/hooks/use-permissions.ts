@@ -8,7 +8,7 @@ import {
 	hasPermission,
 	hasNestedPermission,
 } from '@/features/auth/lib/permissions'
-import { can, getScope } from '@/features/access-control/lib/authorization'
+import { canWithLevel, can, getScope } from '@/features/access-control/lib/authorization'
 
 /**
  * Hook para acceder a permisos del usuario actual
@@ -27,6 +27,9 @@ export function usePermissions() {
 		can: (permissionCode: string) => can(grants, permissionCode),
 		/** Data scope of a permission, when granted. */
 		scope: (permissionCode: string) => getScope(grants, permissionCode),
+		/** Permission granted and the given level reaches its minimum level. */
+		canWithLevel: (permissionCode: string, levelCode: string | null | undefined) =>
+			canWithLevel(grants, permissionCode, levelCode, session?.user?.levelOrder ?? []),
 		role: role as UserRole | null | undefined,
 		permissions: permissions as RolePermissions | null,
 		hasPermission: (permission: keyof RolePermissions) =>

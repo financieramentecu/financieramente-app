@@ -71,3 +71,21 @@ export async function resolveRoleGrants(
 	if (isDatabaseGrantsEnabled()) return loadRoleGrants(prisma, roleCode)
 	return DEFAULT_ROLE_GRANTS[roleCode] ?? {}
 }
+
+/** Level chain seeded by the product; used while grants come from the defaults. */
+export const DEFAULT_LEVEL_ORDER: readonly string[] = [
+	'LEVEL_0',
+	'LEVEL_1',
+	'LEVEL_2',
+	'LEVEL_3',
+	'LEVEL_4',
+	'LEVEL_5',
+	'GENERAL_LEVEL',
+]
+
+/** Level order honoring the activation flag (no query while on defaults). */
+export async function resolveLevelOrder(
+	prisma: Pick<PrismaClient, 'level'>
+): Promise<readonly string[]> {
+	return isDatabaseGrantsEnabled() ? loadLevelOrder(prisma) : DEFAULT_LEVEL_ORDER
+}

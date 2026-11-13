@@ -12,6 +12,8 @@ declare module 'next-auth' {
 			permissions: RolePermissions | null
 			/** Grants of the effective role (access-control); absent on stale sessions. */
 			grants?: RoleGrants
+			/** Level codes lowest to highest; filled only when a grant has a minimum level. */
+			levelOrder?: string[]
 			originalUserId?: number | null
 			originalRole?: UserRole | null
 			originalEmail?: string | null
