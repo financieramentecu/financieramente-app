@@ -51,7 +51,7 @@ export interface ClientInfoSectionProps {
 	/** D5: identity-document conflict raised by the lead-conversion client resolution. */
 	identityConflict?: IdentityConflict
 	onResolveIdentityConflict?: (choice: 'update' | 'keep') => void
-	/** From `canRoleEditClientInfo(currentUser.role.code)` — gates "Actualizar documento". */
+	/** From `can("clientes.editar")` — gates "Actualizar documento". */
 	canUpdateDocument?: boolean
 	isSubmitting?: boolean
 }

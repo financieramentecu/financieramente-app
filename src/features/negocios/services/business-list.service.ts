@@ -90,7 +90,7 @@ export async function listBusinesses(
 			agentIds: nonEmpty(params.agentIds),
 			novedadStatuses: nonEmpty(params.novedadStatuses),
 		}),
-		{ visibleUserIds }
+		{ visibleUserIds, unrestricted: visibleUserIds === undefined }
 	)
 
 	const [total, businesses] = await Promise.all([

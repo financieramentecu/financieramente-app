@@ -120,7 +120,7 @@ export async function POST(request: Request) {
 						? parsed.data.novedadStatuses
 						: undefined,
 			}),
-			{ visibleUserIds }
+			{ visibleUserIds, unrestricted: visibleUserIds === undefined }
 		)
 
 		const total = await prisma.business.count({ where })

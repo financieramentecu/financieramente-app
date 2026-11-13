@@ -19,6 +19,7 @@ import { useProductFilter } from '@/features/negocios/hooks/use-product-filter'
 import { useAgentPermissions } from '@/features/negocios/hooks/use-agent-permissions'
 import { useBusinessMutation } from '@/features/negocios/hooks/use-business-mutation'
 import { BUSINESS_OWNER_ROLES, UserRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-permissions'
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
@@ -53,6 +54,7 @@ function policyholderPayload(data: BusinessFormData) {
  * Inicializa el formulario, maneja la creación de clientes y coordina hooks secundarios
  */
 export function useBusinessForm(props: BusinessFormProps) {
+	const { can } = usePermissions()
 	const {
 		mode = 'create',
 		businessId,
@@ -123,9 +125,7 @@ export function useBusinessForm(props: BusinessFormProps) {
 	const documentValue = watch('identityNumber')
 
 	// Roles que siempre tienen habilitada la búsqueda (sin esperar el documento)
-	const isPrivilegedRole =
-		currentUser?.role?.code === UserRole.ADMIN ||
-		currentUser?.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
+	const isPrivilegedRole = can('clientes.editar')
 
 	// Determinar si los campos de contacto (email/name/lastNames/phone/clientOrigin)
 	// y el selector de agente deben estar bloqueados. Es la única derivación de
