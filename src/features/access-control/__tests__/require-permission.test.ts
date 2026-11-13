@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const auth = vi.fn()
-const loadRoleGrants = vi.fn()
+const resolveRoleGrants = vi.fn()
 vi.mock('@/lib/auth/nextauth', () => ({ auth: () => auth() }))
 vi.mock('@/lib/prisma', () => ({ prisma: {} }))
 vi.mock('../services/role-grants.service', () => ({
-	loadRoleGrants: (...args: unknown[]) => loadRoleGrants(...args),
+	resolveRoleGrants: (...args: unknown[]) => resolveRoleGrants(...args),
 }))
 
 import { requirePermission } from '../services/require-permission'
 
 beforeEach(() => {
 	auth.mockReset()
-	loadRoleGrants.mockReset()
+	resolveRoleGrants.mockReset()
 })
 
 describe('requirePermission', () => {
@@ -25,7 +25,7 @@ describe('requirePermission', () => {
 
 	it('answers 403 when the role lacks the permission (fails closed)', async () => {
 		auth.mockResolvedValue({ user: { id: '1', role: 'AGENTE' } })
-		loadRoleGrants.mockResolvedValue({})
+		resolveRoleGrants.mockResolvedValue({})
 		const guard = await requirePermission('roles.ver')
 		expect(guard.ok).toBe(false)
 		if (!guard.ok) expect(guard.response.status).toBe(403)
@@ -33,12 +33,12 @@ describe('requirePermission', () => {
 
 	it('passes with the session and grants when the permission is granted', async () => {
 		auth.mockResolvedValue({ user: { id: '1', role: 'ADMIN' } })
-		loadRoleGrants.mockResolvedValue({ 'roles.ver': {} })
+		resolveRoleGrants.mockResolvedValue({ 'roles.ver': {} })
 		const guard = await requirePermission('roles.ver')
 		expect(guard.ok).toBe(true)
 		if (guard.ok) {
 			expect(guard.grants).toEqual({ 'roles.ver': {} })
-			expect(loadRoleGrants).toHaveBeenCalledWith(expect.anything(), 'ADMIN')
+			expect(resolveRoleGrants).toHaveBeenCalledWith(expect.anything(), 'ADMIN')
 		}
 	})
 })

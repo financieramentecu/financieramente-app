@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
+import { DEFAULT_ROLE_GRANTS } from '../catalog/default-role-grants'
 import { buildLevelOrder } from '../lib/level-order'
 import type {
 	RoleGrants,
@@ -49,4 +50,24 @@ export async function loadLevelOrder(
 	return buildLevelOrder(
 		levels.map((l) => ({ code: l.code, nextCode: l.nextLevel?.code ?? null }))
 	)
+}
+
+/**
+ * Activation flag of the roles & permissions administration.
+ * - `defaults` (unset): grants come from the in-code defaults; no database
+ *   read and no seed needed, so a deploy can never lock everyone out.
+ * - `db`: grants come from `role_permission`, editable from the roles screen.
+ */
+export function isDatabaseGrantsEnabled(): boolean {
+	return process.env.ACCESS_CONTROL_SOURCE === 'db'
+}
+
+/** The grants every authorization decision must use (honors the flag). */
+export async function resolveRoleGrants(
+	prisma: Pick<PrismaClient, 'role' | 'rolePermission'>,
+	roleCode: string | null | undefined
+): Promise<RoleGrants> {
+	if (!roleCode) return {}
+	if (isDatabaseGrantsEnabled()) return loadRoleGrants(prisma, roleCode)
+	return DEFAULT_ROLE_GRANTS[roleCode] ?? {}
 }

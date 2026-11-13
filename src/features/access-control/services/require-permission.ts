@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
 import { can } from '../lib/authorization'
 import type { RoleGrants } from '../types/access-control.types'
-import { loadRoleGrants } from './role-grants.service'
+import { resolveRoleGrants } from './role-grants.service'
 
 export type RequirePermissionFailure = { ok: false; response: NextResponse }
 export type RequirePermissionSuccess = {
@@ -31,7 +31,7 @@ export async function requirePermission(
 			),
 		}
 	}
-	const grants = await loadRoleGrants(prisma, session.user.role)
+	const grants = await resolveRoleGrants(prisma, session.user.role)
 	if (!can(grants, permissionCode)) {
 		return {
 			ok: false,

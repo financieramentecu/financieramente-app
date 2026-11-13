@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { PrismaClient } from '@prisma/client'
-import { loadRoleGrants, loadLevelOrder } from '../services/role-grants.service'
+import {
+	loadRoleGrants,
+	loadLevelOrder,
+	resolveRoleGrants,
+} from '../services/role-grants.service'
+import { DEFAULT_ROLE_GRANTS } from '../catalog/default-role-grants'
 
 function db(overrides: {
 	role?: { idRole: number; active: boolean } | null
@@ -64,5 +69,33 @@ describe('loadLevelOrder', () => {
 			})
 		)
 		expect(order).toEqual(['LEVEL_0', 'LEVEL_1', 'LEVEL_2'])
+	})
+})
+
+describe('resolveRoleGrants (activation flag)', () => {
+	const prismaStub = (rows: unknown[] = []) =>
+		db({ role: { idRole: 4, active: true }, rows })
+
+	it('serves the in-code defaults unless the source is switched to db', async () => {
+		vi.stubEnv('ACCESS_CONTROL_SOURCE', '')
+		const client = prismaStub()
+		const grants = await resolveRoleGrants(client, 'ASISTENTE_GERENCIA_OPERATIVA')
+		expect(grants).toBe(DEFAULT_ROLE_GRANTS.ASISTENTE_GERENCIA_OPERATIVA)
+		expect(client.role.findUnique).not.toHaveBeenCalled()
+	})
+
+	it('fails closed for an unknown role while on defaults', async () => {
+		vi.stubEnv('ACCESS_CONTROL_SOURCE', 'defaults')
+		expect(await resolveRoleGrants(prismaStub(), 'CUSTOM')).toEqual({})
+		expect(await resolveRoleGrants(prismaStub(), null)).toEqual({})
+	})
+
+	it('reads the database when the source is db', async () => {
+		vi.stubEnv('ACCESS_CONTROL_SOURCE', 'db')
+		const client = prismaStub([
+			{ scope: null, minLevel: null, permission: { code: 'aportes.fondear' } },
+		])
+		expect(await resolveRoleGrants(client, 'CUSTOM')).toEqual({ 'aportes.fondear': {} })
+		vi.unstubAllEnvs()
 	})
 })

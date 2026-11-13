@@ -14,6 +14,8 @@ import {
 	RolePermissions,
 } from '@/features/auth/lib/permissions'
 import { UserRole } from '@/features/auth/lib/roles'
+import { prisma } from '@/lib/prisma'
+import { resolveRoleGrants } from '@/features/access-control/services/role-grants.service'
 import { checkCredentialsAttempt } from '@/features/auth/lib/credentials-rate-limiter'
 import { CredentialsRateLimitedError } from '@/features/auth/lib/credentials-errors'
 import { getTrustedClientIp } from '@/features/auth/lib/trusted-client-ip'
@@ -408,6 +410,17 @@ export const authConfig: NextAuthConfig = {
 					session.user.permissions = token.permissions as RolePermissions
 				} else {
 					session.user.permissions = null
+				}
+				// Grants follow the effective role on every session read, so a change
+				// of role (or of the role's permissions) applies without a new login.
+				try {
+					session.user.grants = await resolveRoleGrants(
+						prisma,
+						session.user.role
+					)
+				} catch (error) {
+					console.error('Failed to resolve role grants:', error)
+					session.user.grants = {}
 				}
 				
 				// Pasar datos de impersonation si existen

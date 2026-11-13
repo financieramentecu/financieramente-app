@@ -6,7 +6,12 @@ export { can, getScope, meetsMinLevel, canWithLevel } from './lib/authorization'
 export { buildLevelOrder } from './lib/level-order'
 export { PERMISSION_CATALOG, PERMISSION_CODES } from './catalog/permissions.catalog'
 export { DEFAULT_ROLE_GRANTS } from './catalog/default-role-grants'
-export { loadRoleGrants, loadLevelOrder } from './services/role-grants.service'
+export {
+	loadRoleGrants,
+	loadLevelOrder,
+	resolveRoleGrants,
+	isDatabaseGrantsEnabled,
+} from './services/role-grants.service'
 export { resolveOwnerScope } from './services/scope-resolver.service'
 export { getSubordinateUserIds } from './services/team-hierarchy.service'
 export type {
