@@ -8,6 +8,7 @@ export type RoleErrorCode =
 	| 'ROLE_IN_USE'
 	| 'INVALID_PERMISSION'
 	| 'INVALID_GRANT'
+	| 'ADMIN_ONLY_PERMISSION'
 
 /** Domain error of role administration. The message is user-facing (Spanish). */
 export class RoleServiceError extends Error {

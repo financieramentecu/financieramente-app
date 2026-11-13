@@ -12,6 +12,7 @@ const STATUS_BY_CODE: Record<RoleErrorCode, number> = {
 	ROLE_IN_USE: 409,
 	INVALID_PERMISSION: 400,
 	INVALID_GRANT: 400,
+	ADMIN_ONLY_PERMISSION: 403,
 }
 
 export function roleErrorJson(

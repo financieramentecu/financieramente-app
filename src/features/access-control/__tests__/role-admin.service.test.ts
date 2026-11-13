@@ -176,9 +176,29 @@ describe('setRolePermissions', () => {
 	})
 
 	it('allows the actor own role when roles.gestionar stays', async () => {
-		const db = createDb({ role: editableRole })
-		await setRolePermissions(db as never, 5, 'ANALISTA', { 'roles.gestionar': {} })
+		const db = createDb({
+			role: editableRole,
+			current: [
+				{ idPermission: 1, status: true, scope: null, minLevel: null, permission: { code: 'roles.gestionar' } },
+			],
+		})
+		await setRolePermissions(db as never, 5, 'ANALISTA', {
+			'roles.gestionar': {},
+			'aportes.fondear': {},
+		})
 		expect(db.rolePermission.upsert).toHaveBeenCalledTimes(1)
+	})
+
+	it('only ADMIN may grant roles.gestionar or usuarios.ver_como', async () => {
+		const db = createDb({ role: { ...editableRole, code: 'OTRO' } })
+		expect(
+			await codeOf(setRolePermissions(db as never, 5, 'ANALISTA', { 'roles.gestionar': {} }))
+		).toBe('ADMIN_ONLY_PERMISSION')
+		expect(db.rolePermission.upsert).not.toHaveBeenCalled()
+
+		const okDb = createDb({ role: { ...editableRole, code: 'OTRO' } })
+		await setRolePermissions(okDb as never, 5, 'ADMIN', { 'roles.gestionar': {} })
+		expect(okDb.rolePermission.upsert).toHaveBeenCalledTimes(1)
 	})
 
 	it('rejects unknown permission codes', async () => {

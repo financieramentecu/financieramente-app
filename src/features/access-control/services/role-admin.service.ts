@@ -15,6 +15,8 @@ type Db = Pick<
 const LOCKED_ROLE_CODES = ['ADMIN', 'SIN_ROL'] as const
 const ADMIN_ROLE_CODE = 'ADMIN'
 const SELF_MANAGEMENT_PERMISSION = 'roles.gestionar'
+/** Privilege-escalation permissions: only ADMIN may grant them to a role. */
+const ADMIN_ONLY_GRANTS = ['roles.gestionar', 'usuarios.ver_como'] as const
 
 export interface RoleInput {
 	readonly name: string
@@ -173,6 +175,17 @@ export async function setRolePermissions(
 		const active = new Map(
 			rows.filter((r) => r.status).map((r) => [r.permission.code, r])
 		)
+
+		const restricted = ADMIN_ONLY_GRANTS.find(
+			(code) => code in grants && !active.has(code)
+		)
+		if (restricted && actorRoleCode !== ADMIN_ROLE_CODE) {
+			throw new RoleServiceError(
+				'ADMIN_ONLY_PERMISSION',
+				`Solo un administrador puede conceder el permiso ${restricted}`,
+				restricted
+			)
+		}
 
 		const added: string[] = []
 		const changed: string[] = []
