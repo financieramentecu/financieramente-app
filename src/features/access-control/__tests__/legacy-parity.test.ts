@@ -147,3 +147,31 @@ describe('default grants vs list UI visibility', () => {
 		expect(owners).toEqual([UserRole.AGENTE, UserRole.PARTNER].sort())
 	})
 })
+
+describe('default grants vs report access', () => {
+	const rolesWith = (code: string) =>
+		ROLES.filter((role) => can(DEFAULT_ROLE_GRANTS[role], code)).sort()
+
+	it('skips the report category filter only for ADMIN and the read-only CONSULTOR', () => {
+		expect(rolesWith('reportes.ver_todos')).toEqual(
+			[UserRole.ADMIN, UserRole.CONSULTOR].sort()
+		)
+	})
+
+	it('exports reports for every role that can write, never CONSULTOR', () => {
+		expect(rolesWith('reportes.exportar')).toEqual(
+			[
+				UserRole.ADMIN,
+				UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+				UserRole.ANALISTA_SOPORTE,
+				UserRole.AGENTE,
+			].sort()
+		)
+	})
+
+	it('lets only ADMIN and ASISTENTE unmark any business novedad', () => {
+		expect(rolesWith('novedades.desmarcar_ajenas')).toEqual(
+			[UserRole.ADMIN, UserRole.ASISTENTE_GERENCIA_OPERATIVA].sort()
+		)
+	})
+})

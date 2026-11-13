@@ -25,8 +25,7 @@ import { useFileHistory, type CargaHistorial } from '../hooks/use-file-history'
 import { ConfirmModal, Modal } from '@/features/shared/ui/modal'
 import { RecordsByStatusView } from './RecordsByStatusView'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
-import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
-import type { UserRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { FileImportCard } from './FileImportCard'
 import type { FileImportStatus } from './ui/FileStatusBadge'
 
@@ -56,10 +55,8 @@ export function HistorialCargasTab({
 }: HistorialCargasTabProps) {
 	const router = useRouter()
 	const { user } = useAuthSession()
-	const canPreliquidar =
-		user?.role != null &&
-		(ROLE_PERMISSIONS[user.role as UserRole]?.liquidaciones?.preliquidacion ??
-			false)
+	const { can } = usePermissions()
+	const canPreliquidar = user?.role != null && can('preliquidacion.ver')
 
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 	const [itemToDelete, setItemToDelete] = useState<string | null>(null)

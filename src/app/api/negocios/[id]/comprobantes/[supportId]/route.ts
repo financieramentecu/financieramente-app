@@ -6,8 +6,8 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
-import { isBusinessOwnerRole } from '@/features/auth/lib/roles'
-import { roleCan } from '@/features/access-control/services/role-permission-check'
+import { isOwnerScope } from '@/features/access-control/lib/authorization'
+import { roleCan, roleScope } from '@/features/access-control/services/role-permission-check'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { ComprobanteError } from '@/features/business-supports/types/business-support.types'
 import { deactivateComprobante } from '@/features/business-supports/services/business-supports.service'
@@ -82,7 +82,7 @@ export async function DELETE(
 
   try {
     const visibleUserIds =
-      isBusinessOwnerRole(roleCode)
+      isOwnerScope(await roleScope(roleCode, 'negocios.ver'))
         ? await resolveVisibleUserIdsForUser(user)
         : undefined
 

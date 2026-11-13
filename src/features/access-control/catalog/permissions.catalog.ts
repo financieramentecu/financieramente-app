@@ -48,6 +48,7 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 	...module('Novedades', [
 		['novedades.marcar', 'Marcar novedad', { scope: true }],
 		['novedades.gestionar', 'Gestionar novedad'],
+		['novedades.desmarcar_ajenas', 'Desmarcar la novedad de cualquier negocio'],
 	]),
 	...module('Aportes y pagos', [
 		['aportes.ver', 'Ver aportes', { scope: true }],
@@ -69,6 +70,7 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 	]),
 	...module('Carga de archivos', [
 		['carga.masiva', 'Carga masiva de archivos'],
+		['carga.ver_todos', 'Ver las cargas de todos los usuarios'],
 		['carga.historial', 'Ver historial de cargas'],
 	]),
 	...module('Liquidaciones', [
@@ -83,7 +85,8 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 		['distribuciones.ver', 'Ver mis distribuciones', { scope: true }],
 		['calculadora.usar', 'Usar calculadora'],
 	]),
-	...module('Reportes', [['reportes.exportar', 'Exportar reportes']]),
+	...module('Reportes', [['reportes.ver_todos', 'Ver todos los reportes sin restricción de categoría'],
+		['reportes.exportar', 'Exportar reportes']]),
 	...module('Usuarios y Partners', [
 		['usuarios.ver', 'Ver usuarios'],
 		['usuarios.gestionar', 'Crear y editar usuarios'],

@@ -24,7 +24,8 @@ import { Badge } from '@/features/shared/ui/badge'
 import { useBusinessSupports } from '../hooks/useBusinessSupports'
 import { useDeleteComprobante } from '../hooks/useDeleteComprobante'
 import type { BusinessSupportDTO } from '../types/business-support.types'
-import { UserRole, canDeleteBusinessComprobante } from '@/features/auth/lib/roles'
+import type { UserRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { isImageMime } from '../lib/mime-utils'
 
 interface ViewComprobantesSheetProps {
@@ -209,7 +210,8 @@ export function ViewComprobantesSheet({
 }: ViewComprobantesSheetProps) {
   const { state, refetch } = useBusinessSupports(businessId)
   const { remove } = useDeleteComprobante(businessId)
-  const canDelete = canDeleteBusinessComprobante(userRole)
+  const { can } = usePermissions()
+  const canDelete = can('comprobantes.eliminar')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
 

@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleScope } from '@/features/access-control/services/role-permission-check'
 import { listDistinctTerms } from '@/features/negocios/services/business-terms.service'
 
 export async function GET(
@@ -26,7 +26,8 @@ export async function GET(
 		// PARTNER only sees terms of their own businesses (NEG-03)
 		const partnerId = Number.parseInt(session.user.id ?? '', 10)
 		const terms =
-			session.user.role === UserRole.PARTNER && Number.isFinite(partnerId)
+			(await roleScope(session.user.role, 'negocios.ver')) === 'OWN' &&
+			Number.isFinite(partnerId)
 				? await listDistinctTerms({ ownerIds: [partnerId] })
 				: await listDistinctTerms()
 

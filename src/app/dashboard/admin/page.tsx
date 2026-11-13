@@ -2,7 +2,7 @@
 
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { AdminCard } from '@/features/admin/shared/AdminCard'
-import { UserRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import {
 	Building2,
@@ -20,7 +20,8 @@ import {
 
 export default function AdminDashboardPage() {
 	const { session } = useAuthSession()
-	const isSystemAdmin = session?.user?.role === UserRole.ADMIN
+	const { can } = usePermissions()
+	const isSystemAdmin = can('configuracion.tipos_documento')
 
 	const adminModules = [
 		{

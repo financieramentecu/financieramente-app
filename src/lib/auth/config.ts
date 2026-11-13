@@ -15,6 +15,7 @@ import {
 } from '@/features/auth/lib/permissions'
 import { UserRole } from '@/features/auth/lib/roles'
 import { prisma } from '@/lib/prisma'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { resolveLevelOrder, resolveRoleGrants } from '@/features/access-control/services/role-grants.service'
 import { checkCredentialsAttempt } from '@/features/auth/lib/credentials-rate-limiter'
 import { CredentialsRateLimitedError } from '@/features/auth/lib/credentials-errors'
@@ -334,7 +335,9 @@ export const authConfig: NextAuthConfig = {
 			// Manejo de impersonation (Ver Como)
 			if (trigger === 'update' && session?.impersonateUserId) {
 				// Solo permitimos impersonar si el rol original es ADMIN
-				const isAdmin = token.originalRole === UserRole.ADMIN || token.role === UserRole.ADMIN
+				const isAdmin =
+					Boolean(token.originalUserId) ||
+					(await roleCan(token.role, 'usuarios.ver_como'))
 				
 				if (isAdmin) {
 					if (session.impersonateUserId === 'STOP') {

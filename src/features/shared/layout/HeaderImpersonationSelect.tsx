@@ -16,7 +16,8 @@ import {
 	PopoverTrigger,
 } from '@/features/shared/ui/popover'
 import { Button } from '@/features/shared/ui/button'
-import { UserRole } from '@/features/auth/lib/roles'
+import { ADMIN_ROLE_CODE } from '@/features/access-control/lib/system-roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { apiClient } from '@/lib/api/client'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { UserWithRole } from '@/features/negocios/types/business.types'
@@ -32,7 +33,9 @@ export function HeaderImpersonationSelect() {
 	// Solo administradores o admins suplantando a otros ven este selector
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const user = session?.user as any
-	const isAdmin = user?.role === UserRole.ADMIN || user?.originalRole === UserRole.ADMIN
+	const { can } = usePermissions()
+	// Impersonating means the original session belonged to a user allowed to do it
+	const isAdmin = can('usuarios.ver_como') || Boolean(user?.originalUserId)
 	
 	const userId = user?.id
 	const originalUserId = user?.originalUserId
@@ -49,7 +52,7 @@ export function HeaderImpersonationSelect() {
 					if (isMounted && res.data) {
 						// Filtramos al propio admin para que no se vea a sí mismo en la lista
 						const currentOriginalId = originalUserId || userId
-						const filtered = res.data.filter(u => u.idUser.toString() !== currentOriginalId?.toString() && u.role?.code !== UserRole.ADMIN)
+						const filtered = res.data.filter(u => u.idUser.toString() !== currentOriginalId?.toString() && u.role?.code !== ADMIN_ROLE_CODE)
 						setUsers(filtered)
 					}
 				} catch (error) {

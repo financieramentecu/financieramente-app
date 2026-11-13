@@ -48,6 +48,7 @@ const ROWS: Readonly<Record<string, string>> = {
 
 	'novedades.marcar': 'C C C E - P', // VERIFY
 	'novedades.gestionar': 'Y - Y - - -',
+	'novedades.desmarcar_ajenas': 'Y Y - - - -',
 
 	'aportes.ver': 'C C - E - -', // S4: Analista funds but does not view
 	'aportes.fondear': 'Y Y Y - - -',
@@ -65,6 +66,7 @@ const ROWS: Readonly<Record<string, string>> = {
 	'leads.eliminar': 'Y - - - - -',
 
 	'carga.masiva': 'Y - - - - -', // S6: only ADMIN by default
+	'carga.ver_todos': 'Y - - - - -', // file imports of every user (others see their own)
 	'carga.historial': 'Y Y - - - -',
 
 	'preliquidacion.ver': 'Y Y Y - - -',
@@ -77,7 +79,8 @@ const ROWS: Readonly<Record<string, string>> = {
 	'distribuciones.ver': 'C C C E C -', // legacy global visibility (CONSULTOR too); only the menu hides it
 	'calculadora.usar': 'Y Y Y Y Y -',
 
-	'reportes.exportar': 'Y Y - - - -',
+	'reportes.exportar': 'Y Y Y Y - -', // every writer role; CONSULTOR never exports
+	'reportes.ver_todos': 'Y - - - Y -', // ADMIN and the read-only CONSULTOR skip the category filter
 
 	'usuarios.ver': 'Y - - - - -',
 	'usuarios.gestionar': 'Y - - - - -',

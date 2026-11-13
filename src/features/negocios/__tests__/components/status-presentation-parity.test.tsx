@@ -30,7 +30,7 @@ vi.mock('@/features/negocios/services/user.service', () => ({
 		id: 1,
 		name: 'Test User',
 		email: 'test@financieramente.com',
-		role: { name: 'ADMIN' },
+		role: { name: 'ADMIN', code: 'ADMIN' },
 	})),
 }))
 

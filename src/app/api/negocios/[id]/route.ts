@@ -4,7 +4,7 @@
  * PUT - Actualizar un negocio (principalmente el contrato)
  */
 
-import { roleCan } from '@/features/access-control/services/role-permission-check'
+import { roleCan, roleScope } from '@/features/access-control/services/role-permission-check'
 import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { auth } from '@/auth'
@@ -205,10 +205,12 @@ export async function PUT(
 		}
 
 		// Verificar que el negocio existe y el usuario tiene acceso
-		const isAdmin = currentUser.role?.code === UserRole.ADMIN
-		const isAsistente = currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
 		const isAnalista = currentUser.role?.code === UserRole.ANALISTA_SOPORTE
-		const isPrivileged = isAdmin || isAsistente || isAnalista
+		// Roles that may edit sensitive fields of a business that is no longer a draft
+		const isPrivileged = await roleCan(
+			currentUser.role?.code,
+			'negocios.editar_contrato_emitido'
+		)
 
 		// Edits stay owner-only for AGENTE (existing rule); PARTNER is own-only by scope.
 		const writeScope = await resolveBusinessScope(prisma, currentUser, {
@@ -275,7 +277,10 @@ export async function PUT(
 		}
 
 		// A PARTNER can never hand their business over to another owner
-		if (idUser !== undefined && currentUser.role?.code === UserRole.PARTNER) {
+		if (
+			idUser !== undefined &&
+			(await roleScope(currentUser.role?.code, 'negocios.ver')) === 'OWN'
+		) {
 			return NextResponse.json(
 				{ data: null, error: 'No tienes permisos para reasignar el negocio' },
 				{ status: 403 }
