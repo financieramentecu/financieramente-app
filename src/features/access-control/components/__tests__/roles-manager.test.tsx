@@ -50,6 +50,7 @@ describe('RolesManager loading', () => {
 		expect(screen.getByRole('status', { name: 'Cargando roles' })).toBeInTheDocument()
 		expect(screen.queryByText('Cargando roles...')).not.toBeInTheDocument()
 		expect(screen.queryByRole('table')).not.toBeInTheDocument()
+		expect(screen.queryByText(/0 roles/)).not.toBeInTheDocument()
 	})
 })
 

@@ -62,7 +62,8 @@ export function RolesManager() {
 				<div className="min-w-0">
 					<h1 className="text-xl font-semibold leading-tight md:text-2xl">Roles y permisos</h1>
 					<p className="text-xs text-muted-foreground sm:text-sm">
-						{allRoles.length} roles · define qué puede hacer cada uno
+						{state.status === 'loading' ? '' : `${allRoles.length} roles · `}
+						define qué puede hacer cada uno
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
