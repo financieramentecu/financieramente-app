@@ -2,16 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Lock, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, Lock, Search, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/features/shared/ui/alert'
 import { Button } from '@/features/shared/ui/button'
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from '@/features/shared/ui/card'
 import { Input } from '@/features/shared/ui/input'
 import { Label } from '@/features/shared/ui/label'
 import {
@@ -22,14 +16,16 @@ import {
 	SelectValue,
 } from '@/features/shared/ui/select'
 import { Switch } from '@/features/shared/ui/switch'
-import { Textarea } from '@/features/shared/ui/textarea'
+import { cn } from '@/lib/utils'
 import { useRoleActions } from '../hooks/use-role-actions'
 import { useRoleDetail } from '../hooks/use-role-detail'
 import {
+	filterModuleGroups,
 	findDependencyWarnings,
 	groupCatalogByModule,
 	grantsEqual,
 	setMinLevel,
+	setModuleGrants,
 	setScope,
 	toggleGrant,
 } from '../lib/permission-matrix'
@@ -43,6 +39,7 @@ const SCOPE_LABELS: Record<DataScopeCode, string> = {
 }
 const NO_MIN_LEVEL = '__none__'
 const LOCKED_CODES = ['ADMIN', 'SIN_ROL']
+const COMPACT_SELECT = 'h-7 w-[8.5rem] px-2 text-xs'
 
 interface RoleEditorProps {
 	roleId: number
@@ -52,13 +49,7 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
 	const state = useRoleDetail(roleId)
 
 	return (
-		<div className="space-y-4 md:space-y-6">
-			<Button asChild variant="ghost" size="sm" className="gap-2">
-				<Link href="/dashboard/admin/roles">
-					<ArrowLeft className="h-4 w-4" />
-					Roles
-				</Link>
-			</Button>
+		<div className="space-y-3">
 			{state.status === 'loading' && (
 				<p className="text-sm text-muted-foreground">Cargando rol...</p>
 			)}
@@ -80,16 +71,32 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 	const [grants, setGrants] = useState<RoleGrants>(detail.grants)
 	const [name, setName] = useState(role.name)
 	const [description, setDescription] = useState(role.description ?? '')
+	const [savedDetails, setSavedDetails] = useState({
+		name: role.name,
+		description: role.description ?? '',
+	})
+	const [query, setQuery] = useState('')
+	const [onlyGranted, setOnlyGranted] = useState(false)
 
 	const dirty = !grantsEqual(grants, saved)
-	const detailsDirty = name !== role.name || description !== (role.description ?? '')
+	const detailsDirty =
+		name !== savedDetails.name || description !== savedDetails.description
+	const hasChanges = dirty || detailsDirty
 	const warnings = findDependencyWarnings(grants)
 	const nameByCode = new Map(catalog.map((p) => [p.code, p.name]))
+	const groups = groupCatalogByModule(catalog)
+	const visibleGroups = filterModuleGroups(groups, query, grants, onlyGranted)
+	const grantedCount = locked
+		? role.code === 'ADMIN'
+			? catalog.length
+			: 0
+		: Object.keys(grants).length
 
 	async function handleSave() {
 		if (detailsDirty && role.code !== 'ADMIN') {
 			const outcome = await update(role.id, { name, description })
 			if (!outcome.ok) return void toast.error(outcome.error)
+			setSavedDetails({ name, description })
 		}
 		if (dirty) {
 			const outcome = await savePermissions(role.id, grants)
@@ -99,26 +106,47 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 		toast.success('Cambios guardados')
 	}
 
+	function handleDiscard() {
+		setGrants(saved)
+		setName(savedDetails.name)
+		setDescription(savedDetails.description)
+	}
+
 	return (
 		<>
-			<div className="flex items-center justify-between gap-4">
-				<div>
-					<h1 className="text-2xl md:text-3xl font-bold">{role.name}</h1>
-					<p className="text-sm text-muted-foreground">
-						{role.userCount} usuario(s) activo(s) · {role.code}
+			<div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-x-3 gap-y-2 border-b bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+				<Button asChild variant="ghost" size="icon" className="h-8 w-8" aria-label="Volver a Roles">
+					<Link href="/dashboard/admin/roles">
+						<ArrowLeft className="h-4 w-4" />
+					</Link>
+				</Button>
+				<div className="min-w-0 flex-1">
+					<h1 className="truncate text-lg font-semibold leading-tight md:text-xl">{role.name}</h1>
+					<p className="truncate text-xs text-muted-foreground">
+						{role.code} · {role.userCount} usuario(s) activo(s) · {grantedCount} de {catalog.length} permisos
 					</p>
 				</div>
 				{!locked && (
-					<Button onClick={handleSave} disabled={pending || (!dirty && !detailsDirty)}>
-						Guardar cambios
-					</Button>
+					<div className="flex items-center gap-2">
+						{hasChanges && (
+							<span className="hidden text-xs text-amber-600 sm:inline" role="status">
+								Cambios sin guardar
+							</span>
+						)}
+						<Button variant="ghost" size="sm" onClick={handleDiscard} disabled={pending || !hasChanges}>
+							Descartar
+						</Button>
+						<Button size="sm" onClick={handleSave} disabled={pending || !hasChanges}>
+							Guardar cambios
+						</Button>
+					</div>
 				)}
 			</div>
 
 			{locked && (
-				<Alert>
+				<Alert className="py-2">
 					<Lock className="h-4 w-4" />
-					<AlertDescription>
+					<AlertDescription className="text-sm">
 						{role.code === 'ADMIN'
 							? 'El rol Administrador tiene todos los permisos con alcance de toda la compañía y no se puede modificar.'
 							: 'Este rol no tiene permisos y no se puede modificar.'}
@@ -127,13 +155,13 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 			)}
 
 			{warnings.length > 0 && (
-				<Alert>
+				<Alert className="py-2">
 					<TriangleAlert className="h-4 w-4" />
-					<AlertDescription>
+					<AlertDescription className="text-sm">
 						{warnings.map((w) => (
 							<p key={w.code}>
-								“{nameByCode.get(w.code)}” está activo sin “{nameByCode.get(w.requires)}”. El
-								rol podrá actuar sobre registros que no puede ver.
+								“{nameByCode.get(w.code)}” está activo sin “{nameByCode.get(w.requires)}”. El rol podrá actuar
+								sobre registros que no puede ver.
 							</p>
 						))}
 					</AlertDescription>
@@ -141,95 +169,139 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 			)}
 
 			{!locked && (
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-lg">Datos del rol</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="space-y-2">
-							<Label htmlFor="role-name">Nombre</Label>
-							<Input id="role-name" value={name} maxLength={100} onChange={(e) => setName(e.target.value)} />
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="role-description">Descripción</Label>
-							<Textarea id="role-description" value={description} maxLength={500} onChange={(e) => setDescription(e.target.value)} />
-						</div>
-					</CardContent>
-				</Card>
+				<div className="grid gap-3 rounded-lg border bg-card p-3 md:grid-cols-2">
+					<div className="space-y-1">
+						<Label htmlFor="role-name" className="text-xs">Nombre</Label>
+						<Input id="role-name" className="h-8" value={name} maxLength={100} onChange={(e) => setName(e.target.value)} />
+					</div>
+					<div className="space-y-1">
+						<Label htmlFor="role-description" className="text-xs">Descripción</Label>
+						<Input id="role-description" className="h-8" value={description} maxLength={500} onChange={(e) => setDescription(e.target.value)} />
+					</div>
+				</div>
 			)}
 
-			{groupCatalogByModule(catalog).map((group) => (
-				<Card key={group.module}>
-					<CardHeader>
-						<CardTitle className="text-lg">{group.module}</CardTitle>
-					</CardHeader>
-					<CardContent className="divide-y">
-						{group.permissions.map((permission) => {
-							const grant = grants[permission.code]
-							const enabled = locked ? role.code === 'ADMIN' : grant !== undefined
-							return (
-								<div key={permission.code} className="flex flex-wrap items-center justify-between gap-3 py-3">
-									<Label htmlFor={permission.code} className="flex-1 min-w-48">
-										{permission.name}
-									</Label>
-									<div className="flex items-center gap-3">
-										{enabled && permission.supportsScope && (
-											<Select
-												value={role.code === 'ADMIN' ? 'COMPANY' : (grant?.scope ?? 'OWN')}
-												disabled={locked}
-												onValueChange={(v) =>
-													setGrants((g) => setScope(g, permission.code, v as DataScopeCode))
-												}
+			<div className="flex flex-wrap items-center gap-3">
+				<div className="relative min-w-48 flex-1 sm:max-w-xs">
+					<Search className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" aria-hidden />
+					<Input
+						className="h-8 pl-8"
+						placeholder="Buscar permiso..."
+						aria-label="Buscar permiso"
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+					/>
+				</div>
+				<div className="flex items-center gap-2">
+					<Switch id="only-granted" size="sm" checked={onlyGranted} onCheckedChange={setOnlyGranted} />
+					<Label htmlFor="only-granted" className="cursor-pointer text-xs">Solo activos</Label>
+				</div>
+			</div>
+
+			{visibleGroups.length === 0 && (
+				<p className="py-6 text-center text-sm text-muted-foreground">Ningún permiso coincide con la búsqueda.</p>
+			)}
+
+			<div className="grid items-start gap-3 xl:grid-cols-2">
+				{visibleGroups.map((group) => {
+					const modulePermissions = groups.find((g) => g.module === group.module)?.permissions ?? group.permissions
+					const moduleOn = modulePermissions.filter((p) =>
+						locked ? role.code === 'ADMIN' : p.code in grants
+					).length
+					const allOn = moduleOn === modulePermissions.length
+					return (
+						<section key={group.module} className="overflow-hidden rounded-lg border bg-card">
+							<header className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5">
+								<h2 className="text-sm font-semibold">
+									{group.module}
+									<span className="ml-2 text-xs font-normal text-muted-foreground">
+										{moduleOn}/{modulePermissions.length}
+									</span>
+								</h2>
+								{!locked && (
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-6 px-2 text-xs"
+										onClick={() => setGrants((g) => setModuleGrants(g, modulePermissions, !allOn))}
+									>
+										{allOn ? 'Quitar todos' : 'Activar todos'}
+									</Button>
+								)}
+							</header>
+							<div className="divide-y">
+								{group.permissions.map((permission) => {
+									const grant = grants[permission.code]
+									const enabled = locked ? role.code === 'ADMIN' : grant !== undefined
+									return (
+										<div
+											key={permission.code}
+											className={cn(
+												'flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5 transition-colors',
+												!locked && 'hover:bg-muted/40'
+											)}
+										>
+											<Label
+												htmlFor={permission.code}
+												className={cn('min-w-[12rem] flex-1 cursor-pointer text-sm font-normal leading-snug', !enabled && 'text-muted-foreground')}
 											>
-												<SelectTrigger className="w-44" aria-label={`Alcance de ${permission.name}`}>
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent>
-													{DATA_SCOPES.map((scope) => (
-														<SelectItem key={scope} value={scope}>
-															{SCOPE_LABELS[scope]}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										)}
-										{enabled && permission.supportsMinLevel && !locked && (
-											<Select
-												value={grant?.minLevelCode ?? NO_MIN_LEVEL}
-												onValueChange={(v) =>
-													setGrants((g) =>
-														setMinLevel(g, permission.code, v === NO_MIN_LEVEL ? undefined : v)
-													)
-												}
-											>
-												<SelectTrigger className="w-44" aria-label={`Nivel mínimo de ${permission.name}`}>
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value={NO_MIN_LEVEL}>Sin nivel mínimo</SelectItem>
-													{levels.map((level) => (
-														<SelectItem key={level.code} value={level.code}>
-															Desde {level.name}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										)}
-										<Switch
-											id={permission.code}
-											checked={enabled}
-											disabled={locked}
-											onCheckedChange={(on) =>
-												setGrants((g) => toggleGrant(g, permission, on))
-											}
-										/>
-									</div>
-								</div>
-							)
-						})}
-					</CardContent>
-				</Card>
-			))}
+												{permission.name}
+											</Label>
+											<div className="flex items-center gap-2">
+												{enabled && permission.supportsScope && (
+													<Select
+														value={role.code === 'ADMIN' ? 'COMPANY' : (grant?.scope ?? 'OWN')}
+														disabled={locked}
+														onValueChange={(v) => setGrants((g) => setScope(g, permission.code, v as DataScopeCode))}
+													>
+														<SelectTrigger className={COMPACT_SELECT} aria-label={`Alcance de ${permission.name}`}>
+															<SelectValue />
+														</SelectTrigger>
+														<SelectContent>
+															{DATA_SCOPES.map((scope) => (
+																<SelectItem key={scope} value={scope}>
+																	{SCOPE_LABELS[scope]}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												)}
+												{enabled && permission.supportsMinLevel && !locked && (
+													<Select
+														value={grant?.minLevelCode ?? NO_MIN_LEVEL}
+														onValueChange={(v) =>
+															setGrants((g) => setMinLevel(g, permission.code, v === NO_MIN_LEVEL ? undefined : v))
+														}
+													>
+														<SelectTrigger className={COMPACT_SELECT} aria-label={`Nivel mínimo de ${permission.name}`}>
+															<SelectValue />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value={NO_MIN_LEVEL}>Sin nivel mínimo</SelectItem>
+															{levels.map((level) => (
+																<SelectItem key={level.code} value={level.code}>
+																	Desde {level.name}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												)}
+												<Switch
+													id={permission.code}
+													size="sm"
+													checked={enabled}
+													disabled={locked}
+													onCheckedChange={(on) => setGrants((g) => toggleGrant(g, permission, on))}
+												/>
+											</div>
+										</div>
+									)
+								})}
+							</div>
+						</section>
+					)
+				})}
+			</div>
 		</>
 	)
 }

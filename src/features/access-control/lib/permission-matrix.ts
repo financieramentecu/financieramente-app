@@ -88,3 +88,46 @@ export function grantsEqual(a: RoleGrants, b: RoleGrants): boolean {
 		)
 	})
 }
+
+/** Turns a whole module on (keeping what was already configured) or off. */
+export function setModuleGrants(
+	grants: RoleGrants,
+	permissions: readonly PermissionDefinition[],
+	enabled: boolean
+): RoleGrants {
+	return permissions.reduce<RoleGrants>(
+		(acc, permission) =>
+			enabled && permission.code in acc
+				? acc
+				: toggleGrant(acc, permission, enabled),
+		grants
+	)
+}
+
+function normalizeText(value: string): string {
+	return value
+		.normalize('NFD')
+		.replace(/[̀-ͯ]/g, '')
+		.toLowerCase()
+		.trim()
+}
+
+/** Filters the module groups by a name query and/or "only granted", dropping empty modules. */
+export function filterModuleGroups(
+	groups: readonly ModuleGroup[],
+	query: string,
+	grants: RoleGrants,
+	onlyGranted: boolean
+): ModuleGroup[] {
+	const needle = normalizeText(query)
+	return groups
+		.map((group) => ({
+			module: group.module,
+			permissions: group.permissions.filter(
+				(permission) =>
+					(!onlyGranted || permission.code in grants) &&
+					(needle === '' || normalizeText(permission.name).includes(needle))
+			),
+		}))
+		.filter((group) => group.permissions.length > 0)
+}

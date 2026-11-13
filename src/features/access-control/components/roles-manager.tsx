@@ -3,18 +3,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/features/shared/ui/alert'
 import { Badge } from '@/features/shared/ui/badge'
 import { Button } from '@/features/shared/ui/button'
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from '@/features/shared/ui/card'
+import { Input } from '@/features/shared/ui/input'
 import { ConfirmActionDialog } from '@/features/shared/ui/confirm-action-dialog'
 import {
 	Table,
@@ -36,6 +30,7 @@ export function RolesManager() {
 	const { deactivate } = useRoleActions()
 	const [createOpen, setCreateOpen] = useState(false)
 	const [toDeactivate, setToDeactivate] = useState<RoleOverview | null>(null)
+	const [search, setSearch] = useState('')
 
 	async function handleConfirmDeactivate() {
 		const role = toDeactivate
@@ -50,21 +45,41 @@ export function RolesManager() {
 		void refresh()
 	}
 
-	const roles = state.status === 'success' ? state.data : []
+	const allRoles = state.status === 'success' ? state.data : []
+	const needle = search.trim().toLowerCase()
+	const roles = needle
+		? allRoles.filter(
+				(role) =>
+					role.name.toLowerCase().includes(needle) ||
+					role.code.toLowerCase().includes(needle)
+			)
+		: allRoles
 
 	return (
-		<div className="space-y-4 md:space-y-6">
-			<div className="flex items-center justify-between gap-4">
-				<div>
-					<h1 className="text-2xl md:text-3xl font-bold">Roles y permisos</h1>
-					<p className="text-muted-foreground mt-1 text-sm md:text-base hidden sm:block">
-						Crea roles y define qué puede hacer cada uno
+		<div className="space-y-3">
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				<div className="min-w-0">
+					<h1 className="text-xl font-semibold leading-tight md:text-2xl">Roles y permisos</h1>
+					<p className="text-xs text-muted-foreground sm:text-sm">
+						{allRoles.length} roles · define qué puede hacer cada uno
 					</p>
 				</div>
-				<Button className="gap-2" onClick={() => setCreateOpen(true)}>
-					<Plus className="h-4 w-4" />
-					Crear rol
-				</Button>
+				<div className="flex items-center gap-2">
+					<div className="relative">
+						<Search className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" aria-hidden />
+						<Input
+							className="h-8 w-44 pl-8 sm:w-56"
+							placeholder="Buscar rol..."
+							aria-label="Buscar rol"
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+						/>
+					</div>
+					<Button size="sm" className="h-8 gap-1.5" onClick={() => setCreateOpen(true)}>
+						<Plus className="h-4 w-4" />
+						Crear rol
+					</Button>
+				</div>
 			</div>
 
 			{state.status === 'error' && (
@@ -73,63 +88,62 @@ export function RolesManager() {
 				</Alert>
 			)}
 
-			<Card className="shadow-none sm:shadow-sm">
-				<CardHeader className="pb-3 md:pb-6">
-					<CardTitle className="text-xl md:text-2xl">Roles</CardTitle>
-					<CardDescription className="hidden sm:block">
-						Usuarios activos y permisos habilitados de cada rol
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{state.status === 'loading' ? (
-						<p className="text-sm text-muted-foreground">Cargando roles...</p>
-					) : (
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Rol</TableHead>
-									<TableHead className="text-right">Usuarios</TableHead>
-									<TableHead className="text-right">Permisos</TableHead>
-									<TableHead className="text-right">Acciones</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{roles.map((role) => (
-									<TableRow key={role.id}>
-										<TableCell>
-											<div className="flex items-center gap-2 font-medium">
-												{role.name}
-												{role.isSystem && <Badge variant="secondary">Sistema</Badge>}
-											</div>
-											{role.description && (
-												<p className="text-xs text-muted-foreground">{role.description}</p>
-											)}
-										</TableCell>
-										<TableCell className="text-right">{role.userCount}</TableCell>
-										<TableCell className="text-right">{role.permissionCount}</TableCell>
-										<TableCell className="text-right space-x-2">
-											<Button asChild size="sm" variant="outline">
+			<div className="overflow-hidden rounded-lg border bg-card">
+				{state.status === 'loading' ? (
+					<p className="p-4 text-sm text-muted-foreground">Cargando roles...</p>
+				) : roles.length === 0 ? (
+					<p className="p-6 text-center text-sm text-muted-foreground">
+						{needle ? 'Ningún rol coincide con la búsqueda.' : 'Aún no hay roles.'}
+					</p>
+				) : (
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead className="h-9 px-3">Rol</TableHead>
+								<TableHead className="h-9 w-20 px-3 text-right">Usuarios</TableHead>
+								<TableHead className="h-9 w-20 px-3 text-right">Permisos</TableHead>
+								<TableHead className="h-9 w-44 px-3 text-right">Acciones</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{roles.map((role) => (
+								<TableRow key={role.id}>
+									<TableCell className="px-3 py-2">
+										<div className="flex items-center gap-2 text-sm font-medium">
+											{role.name}
+											{role.isSystem && <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">Sistema</Badge>}
+										</div>
+										{role.description && (
+											<p className="line-clamp-1 text-xs text-muted-foreground">{role.description}</p>
+										)}
+									</TableCell>
+									<TableCell className="px-3 py-2 text-right text-sm tabular-nums">{role.userCount}</TableCell>
+									<TableCell className="px-3 py-2 text-right text-sm tabular-nums">{role.permissionCount}</TableCell>
+									<TableCell className="px-3 py-2 text-right">
+										<div className="flex items-center justify-end gap-1.5">
+											<Button asChild size="sm" variant="outline" className="h-7 px-2.5 text-xs">
 												<Link href={`/dashboard/admin/roles/${role.id}`}>
-													{role.code === 'ADMIN' ? 'Ver' : 'Editar'}
+													{role.code === 'ADMIN' || role.code === 'SIN_ROL' ? 'Ver' : 'Editar'}
 												</Link>
 											</Button>
 											{!role.isSystem && (
 												<Button
 													size="sm"
-													variant="outline"
+													variant="ghost"
+													className="h-7 px-2.5 text-xs text-destructive hover:text-destructive"
 													onClick={() => setToDeactivate(role)}
 												>
 													Desactivar
 												</Button>
 											)}
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					)}
-				</CardContent>
-			</Card>
+										</div>
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				)}
+			</div>
 
 			<CreateRoleDialog
 				open={createOpen}

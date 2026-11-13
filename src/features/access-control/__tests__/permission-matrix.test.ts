@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
 	groupCatalogByModule,
+	setModuleGrants,
+	filterModuleGroups,
 	toggleGrant,
 	setScope,
 	setMinLevel,
@@ -70,5 +72,57 @@ describe('grantsEqual', () => {
 		expect(grantsEqual({ a: {}, b: { scope: 'OWN' } }, { b: { scope: 'OWN' }, a: {} })).toBe(true)
 		expect(grantsEqual({ a: {} }, { a: { scope: 'OWN' } })).toBe(false)
 		expect(grantsEqual({ a: {} }, {})).toBe(false)
+	})
+})
+
+describe('setModuleGrants', () => {
+	const negocios = PERMISSION_CATALOG.filter((p) => p.module === 'Negocios')
+
+	it('enables every permission of the module, scoped ones with the narrowest scope', () => {
+		const grants = setModuleGrants({}, negocios, true)
+		expect(Object.keys(grants)).toHaveLength(negocios.length)
+		expect(grants['negocios.ver']).toEqual({ scope: 'OWN' })
+		expect(grants['negocios.crear']).toEqual({})
+	})
+
+	it('keeps the scope and level of grants that were already on', () => {
+		const grants = setModuleGrants(
+			{ 'negocios.exportar': { scope: 'TEAM', minLevelCode: 'LEVEL_2' } },
+			negocios,
+			true
+		)
+		expect(grants['negocios.exportar']).toEqual({ scope: 'TEAM', minLevelCode: 'LEVEL_2' })
+	})
+
+	it('removes only the module permissions and leaves the rest', () => {
+		const grants = setModuleGrants(
+			{ 'negocios.ver': { scope: 'OWN' }, 'leads.ver': { scope: 'OWN' } },
+			negocios,
+			false
+		)
+		expect(grants).toEqual({ 'leads.ver': { scope: 'OWN' } })
+	})
+})
+
+describe('filterModuleGroups', () => {
+	const groups = groupCatalogByModule(PERMISSION_CATALOG)
+
+	it('matches by name ignoring case and accents, dropping empty modules', () => {
+		const result = filterModuleGroups(groups, 'EXPORTAR', {}, false)
+		expect(result.length).toBeGreaterThan(0)
+		expect(result.every((g) => g.permissions.length > 0)).toBe(true)
+		expect(result.flatMap((g) => g.permissions).every((p) => /exportar/i.test(p.name))).toBe(true)
+		const accent = filterModuleGroups(groups, 'comision', {}, false)
+		expect(accent.flatMap((g) => g.permissions).length).toBeGreaterThan(0)
+	})
+
+	it('shows only granted permissions when asked', () => {
+		const result = filterModuleGroups(groups, '', { 'negocios.ver': { scope: 'OWN' } }, true)
+		expect(result.flatMap((g) => g.permissions.map((p) => p.code))).toEqual(['negocios.ver'])
+	})
+
+	it('returns everything without a query or filter', () => {
+		const result = filterModuleGroups(groups, '  ', {}, false)
+		expect(result.flatMap((g) => g.permissions)).toHaveLength(PERMISSION_CATALOG.length)
 	})
 })

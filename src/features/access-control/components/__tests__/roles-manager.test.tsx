@@ -54,3 +54,12 @@ describe('RolesManager', () => {
 		expect(mocks.toastError).toHaveBeenCalledWith('El rol tiene 3 usuario(s) activo(s)')
 	})
 })
+
+describe('RolesManager search', () => {
+	it('filters the list by name or code', async () => {
+		render(<RolesManager />)
+		await userEvent.type(screen.getByRole('textbox', { name: 'Buscar rol' }), 'audit')
+		expect(screen.getByText('Auditor')).toBeInTheDocument()
+		expect(screen.queryByText('Administrador')).not.toBeInTheDocument()
+	})
+})

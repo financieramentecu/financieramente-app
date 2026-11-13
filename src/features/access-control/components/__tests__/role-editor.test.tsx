@@ -67,6 +67,27 @@ describe('RoleEditor', () => {
 		mocks.detail = detail('ADMIN', {}, true)
 		render(<RoleEditor roleId={1} />)
 		expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
-		expect(screen.getAllByRole('switch')[0]).toBeDisabled()
+		expect(screen.getByRole('switch', { name: 'Ver dashboard' })).toBeDisabled()
+	})
+})
+
+describe('RoleEditor compact tools', () => {
+	it('filters permissions by the search box and by "solo activos"', async () => {
+		mocks.detail = detail('ANALISTA', { 'aportes.fondear': {} })
+		render(<RoleEditor roleId={5} />)
+		await userEvent.type(screen.getByRole('textbox', { name: 'Buscar permiso' }), 'fondear')
+		expect(screen.getByRole('switch', { name: 'Fondear aportes' })).toBeInTheDocument()
+		expect(screen.queryByRole('switch', { name: 'Ver dashboard' })).not.toBeInTheDocument()
+	})
+
+	it('turns a whole module on with one click and offers to discard the changes', async () => {
+		mocks.detail = detail('ANALISTA', {})
+		render(<RoleEditor roleId={5} />)
+		const discard = screen.getByRole('button', { name: 'Descartar' })
+		expect(discard).toBeDisabled()
+		await userEvent.click(screen.getAllByRole('button', { name: 'Activar todos' })[0])
+		expect(screen.getByRole('switch', { name: 'Ver dashboard' })).toBeChecked()
+		await userEvent.click(discard)
+		expect(screen.getByRole('switch', { name: 'Ver dashboard' })).not.toBeChecked()
 	})
 })
