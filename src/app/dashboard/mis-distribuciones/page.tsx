@@ -1,5 +1,6 @@
 'use client'
 
+import { DistributionCardsSkeleton } from '@/features/mis-distribuciones/components/distribution-skeletons'
 import Link from 'next/link'
 import { useState, Suspense } from 'react'
 import {
@@ -9,7 +10,6 @@ import {
 	CheckCircle2,
 	Clock,
 	ArrowRight,
-	Loader2,
 } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { EmptyState } from '@/features/shared/ui/empty-state'
@@ -83,10 +83,7 @@ function MisDistribucionesContent() {
 				</div>
 
 				{isLoading ? (
-					<div className="flex items-center gap-2 text-muted-foreground">
-						<Loader2 className="h-4 w-4 animate-spin" />
-						Cargando distribuciones…
-					</div>
+					<DistributionCardsSkeleton />
 				) : error ? (
 					<div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
 						{error}
@@ -178,8 +175,8 @@ export default function MisDistribucionesPage() {
 	return (
 		<Suspense fallback={
 			<DashboardLayout currentPage="Mis distribuciones">
-				<div className="flex items-center justify-center p-12 text-muted-foreground">
-					<Loader2 className="h-8 w-8 animate-spin" />
+				<div className="p-4">
+					<DistributionCardsSkeleton />
 				</div>
 			</DashboardLayout>
 		}>
