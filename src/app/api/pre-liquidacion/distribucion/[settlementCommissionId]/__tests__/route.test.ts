@@ -14,7 +14,9 @@ vi.mock(
 	})
 )
 vi.mock('@/features/auth/lib/hierarchy', () => ({
-	isHierarchyBypassRole: vi.fn().mockReturnValue(false),
+	canSeeAllDistributions: vi.fn(async (role: string | null) =>
+		['ADMIN', 'ASISTENTE_GERENCIA_OPERATIVA', 'ANALISTA_SOPORTE'].includes(role ?? '')
+	),
 }))
 
 const mockAuth = vi.mocked(auth)

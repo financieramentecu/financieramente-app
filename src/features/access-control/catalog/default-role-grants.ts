@@ -73,7 +73,7 @@ const ROWS: Readonly<Record<string, string>> = {
 	'liquidacion.liquidar': 'Y Y - - - -', // S5: Analista off by default
 	'liquidacion.notificar': 'Y Y - - - -', // VERIFY
 
-	'distribuciones.ver': 'C C P E - -', // VERIFY Analista scope
+	'distribuciones.ver': 'C C C E C -', // legacy global visibility (CONSULTOR too); only the menu hides it
 	'calculadora.usar': 'Y Y Y Y Y -',
 
 	'reportes.exportar': 'Y Y - - - -',

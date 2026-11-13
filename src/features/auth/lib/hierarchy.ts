@@ -6,30 +6,22 @@
  * A viewer sees their own distributions plus those of any user downstream from
  * them in the tree.
  *
- * Backoffice roles (ADMIN, ASISTENTE_GERENCIA_OPERATIVA, ANALISTA_SOPORTE) are
- * considered omniscient and bypass the hierarchy lookup.
+ * Roles whose `distribuciones.ver` scope is COMPANY see everybody and skip the
+ * hierarchy lookup.
  */
 
 import { prisma } from '@/lib/prisma'
-import { UserRole, WRITE_BYPASS_ROLES, isGlobalVisibilityRole } from './roles'
+import type { UserRole } from './roles'
+import { roleScope } from '@/features/access-control/services/role-permission-check'
 
 /**
- * Roles that can WRITE regardless of hierarchy (unchanged, write-only
- * semantics). Kept as a re-export of `WRITE_BYPASS_ROLES` for backward
- * compatibility with existing imports — DO NOT use for visibility checks.
+ * Whether the role sees every user's distributions: the COMPANY scope of
+ * `distribuciones.ver` (ADMIN-like roles and the read-only CONSULTOR by default).
  */
-export const HIERARCHY_BYPASS_ROLES: ReadonlyArray<UserRole> =
-	WRITE_BYPASS_ROLES
-
-/**
- * Returns true when the given role bypasses hierarchy restrictions for
- * VISIBILITY purposes (sees every user's distributions). Write-bypass roles
- * and read-only roles both qualify — see `isGlobalVisibilityRole`.
- */
-export function isHierarchyBypassRole(
+export async function canSeeAllDistributions(
 	role: UserRole | string | null | undefined
-): boolean {
-	return isGlobalVisibilityRole(role)
+): Promise<boolean> {
+	return (await roleScope(role, 'distribuciones.ver')) === 'COMPANY'
 }
 
 interface RawUserId {
@@ -72,7 +64,7 @@ export async function getAccessibleUserIds(
  * distributions, considering role-based bypass plus hierarchy descent.
  *
  * - Anyone may view their own distributions.
- * - Bypass roles (see {@link HIERARCHY_BYPASS_ROLES}) see everybody.
+ * - Roles with COMPANY scope (see {@link canSeeAllDistributions}) see everybody.
  * - Otherwise, `targetUserId` must be a descendant of `viewerId`.
  */
 export async function canViewUserDistributions(
@@ -84,7 +76,7 @@ export async function canViewUserDistributions(
 	if (!Number.isFinite(targetUserId) || targetUserId <= 0) return false
 
 	if (viewerId === targetUserId) return true
-	if (isHierarchyBypassRole(viewerRole)) return true
+	if (await canSeeAllDistributions(viewerRole)) return true
 
 	const accessible = await getAccessibleUserIds(viewerId)
 	return accessible.includes(targetUserId)

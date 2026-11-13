@@ -26,13 +26,18 @@ const ROLES = Object.values(UserRole)
 const INTENTIONAL_DIVERGENCES: Partial<
 	Record<
 		UserRole,
-		{ cargaMasiva?: boolean; configuracion?: boolean; leads?: boolean }
+		{
+			cargaMasiva?: boolean
+			configuracion?: boolean
+			leads?: boolean
+			misDistribuciones?: boolean
+		}
 	>
 > = {
 	// leads.ver stays company-wide for CONSULTOR: the leads API and the leads
 	// analytics report always let it read every lead (global visibility); only
 	// the menu entry hid it. The menu keeps hiding it until it is migrated.
-	[UserRole.CONSULTOR]: { leads: true },
+	[UserRole.CONSULTOR]: { leads: true, misDistribuciones: true },
 	[UserRole.ASISTENTE_GERENCIA_OPERATIVA]: {
 		cargaMasiva: false,
 		configuracion: false,
@@ -81,7 +86,8 @@ describe.each(ROLES)('default grants vs legacy checks: %s', (role) => {
 				INTENTIONAL_DIVERGENCES[role]?.configuracion ?? legacy.configuracion,
 			administracion: legacy.administracion,
 			leads: INTENTIONAL_DIVERGENCES[role]?.leads ?? legacy.leads,
-			misDistribuciones: legacy.misDistribuciones,
+			misDistribuciones:
+				INTENTIONAL_DIVERGENCES[role]?.misDistribuciones ?? legacy.misDistribuciones,
 			calculadora: legacy.calculadora,
 		})
 	})

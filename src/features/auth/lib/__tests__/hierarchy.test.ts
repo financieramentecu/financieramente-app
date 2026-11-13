@@ -1,6 +1,9 @@
-import { describe, it, expect } from 'vitest'
-import { isHierarchyBypassRole, HIERARCHY_BYPASS_ROLES } from '../hierarchy'
-import { UserRole, WRITE_BYPASS_ROLES } from '../roles'
+import { describe, it, expect, vi } from 'vitest'
+
+vi.mock('@/lib/prisma', () => ({ prisma: {} }))
+
+import { canSeeAllDistributions } from '../hierarchy'
+import { UserRole } from '../roles'
 
 describe.each([
 	{ role: UserRole.ADMIN, expected: true },
@@ -9,28 +12,17 @@ describe.each([
 	{ role: UserRole.AGENTE, expected: false },
 	{ role: UserRole.SIN_ROL, expected: false },
 	{ role: UserRole.CONSULTOR, expected: true },
-])('isHierarchyBypassRole($role)', ({ role, expected }) => {
-	it(`returns ${expected}`, () => {
-		expect(isHierarchyBypassRole(role)).toBe(expected)
+	{ role: UserRole.PARTNER, expected: false },
+])('canSeeAllDistributions($role)', ({ role, expected }) => {
+	it(`returns ${expected}`, async () => {
+		expect(await canSeeAllDistributions(role)).toBe(expected)
 	})
 })
 
-describe('isHierarchyBypassRole edge cases', () => {
-	it('returns false for undefined', () => {
-		expect(isHierarchyBypassRole(undefined)).toBe(false)
-	})
-
-	it('returns false for null', () => {
-		expect(isHierarchyBypassRole(null)).toBe(false)
-	})
-})
-
-describe('HIERARCHY_BYPASS_ROLES (write-only list, kept for compat)', () => {
-	it('remains exactly WRITE_BYPASS_ROLES — write semantics, not visibility', () => {
-		expect(HIERARCHY_BYPASS_ROLES).toEqual(WRITE_BYPASS_ROLES)
-	})
-
-	it('does NOT include CONSULTOR', () => {
-		expect(HIERARCHY_BYPASS_ROLES).not.toContain(UserRole.CONSULTOR)
+describe('canSeeAllDistributions edge cases', () => {
+	it('fails closed for undefined, null and unknown roles', async () => {
+		expect(await canSeeAllDistributions(undefined)).toBe(false)
+		expect(await canSeeAllDistributions(null)).toBe(false)
+		expect(await canSeeAllDistributions('SOMETHING_NEW')).toBe(false)
 	})
 })

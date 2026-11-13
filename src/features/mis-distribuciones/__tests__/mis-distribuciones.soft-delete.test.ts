@@ -17,7 +17,7 @@ vi.mock('@/lib/prisma', () => ({
 
 vi.mock('@/features/auth/lib/hierarchy', () => ({
 	canViewUserDistributions: vi.fn().mockResolvedValue(true),
-	isHierarchyBypassRole: vi.fn().mockReturnValue(false),
+	canSeeAllDistributions: vi.fn().mockResolvedValue(false),
 }))
 
 const activeOnly = { isActive: true }
