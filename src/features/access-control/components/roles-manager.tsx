@@ -1,5 +1,6 @@
 'use client'
 
+import { ListRowsSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -90,7 +91,7 @@ export function RolesManager() {
 
 			<div className="overflow-hidden rounded-lg border bg-card">
 				{state.status === 'loading' ? (
-					<p className="p-4 text-sm text-muted-foreground">Cargando roles...</p>
+					<ListRowsSkeleton label="Cargando roles" rows={6} />
 				) : roles.length === 0 ? (
 					<p className="p-6 text-center text-sm text-muted-foreground">
 						{needle ? 'Ningún rol coincide con la búsqueda.' : 'Aún no hay roles.'}

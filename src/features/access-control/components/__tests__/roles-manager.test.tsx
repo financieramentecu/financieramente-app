@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
 	deactivate: vi.fn(),
 	refresh: vi.fn(),
 	toastError: vi.fn(),
+	loading: false,
 }))
 
 vi.mock('next/link', () => ({
@@ -19,7 +20,9 @@ vi.mock('../create-role-dialog', () => ({ CreateRoleDialog: () => null }))
 vi.mock('../../hooks/use-roles', () => ({
 	useRoles: () => ({
 		refresh: mocks.refresh,
-		state: {
+		state: mocks.loading
+			? { status: 'loading', error: '', data: undefined }
+			: {
 			status: 'success',
 			error: '',
 			data: [
@@ -35,7 +38,20 @@ vi.mock('../../hooks/use-role-actions', () => ({
 
 import { RolesManager } from '../roles-manager'
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+	vi.clearAllMocks()
+	mocks.loading = false
+})
+
+describe('RolesManager loading', () => {
+	it('shows a labelled skeleton instead of the roles table while loading', () => {
+		mocks.loading = true
+		render(<RolesManager />)
+		expect(screen.getByRole('status', { name: 'Cargando roles' })).toBeInTheDocument()
+		expect(screen.queryByText('Cargando roles...')).not.toBeInTheDocument()
+		expect(screen.queryByRole('table')).not.toBeInTheDocument()
+	})
+})
 
 describe('RolesManager', () => {
 	it('lists roles and offers deactivate only for non-system roles', () => {

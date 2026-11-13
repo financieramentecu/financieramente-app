@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { PERMISSION_CATALOG } from '../../catalog/permissions.catalog'
 
 const mocks = vi.hoisted(() => ({
+	loading: false,
 	savePermissions: vi.fn(),
 	update: vi.fn(),
 	detail: null as unknown,
@@ -16,7 +17,10 @@ vi.mock('next/link', () => ({
 }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('../../hooks/use-role-detail', () => ({
-	useRoleDetail: () => ({ status: 'success', data: mocks.detail, error: '' }),
+	useRoleDetail: () =>
+		mocks.loading
+			? { status: 'loading', data: undefined, error: '' }
+			: { status: 'success', data: mocks.detail, error: '' },
 }))
 vi.mock('../../hooks/use-role-actions', () => ({
 	useRoleActions: () => ({
@@ -39,8 +43,18 @@ function detail(code: string, grants: Record<string, object>, isSystem = false) 
 
 beforeEach(() => {
 	vi.clearAllMocks()
+	mocks.loading = false
 	mocks.savePermissions.mockResolvedValue({ ok: true, data: {} })
 	mocks.update.mockResolvedValue({ ok: true, data: undefined })
+})
+
+describe('RoleEditor loading', () => {
+	it('shows a labelled skeleton shaped like the editor while the role loads', () => {
+		mocks.loading = true
+		render(<RoleEditor roleId={5} />)
+		expect(screen.getByRole('status', { name: 'Cargando rol' })).toBeInTheDocument()
+		expect(screen.queryByText('Cargando rol...')).not.toBeInTheDocument()
+	})
 })
 
 describe('RoleEditor', () => {
