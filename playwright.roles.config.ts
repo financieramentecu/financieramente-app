@@ -31,6 +31,17 @@ export default defineConfig({
 			use: { ...devices['Desktop Chrome'], channel: 'chrome' },
 		},
 		{
+			name: 'restricted-teardown',
+			testMatch: /restricted-user\.teardown\.ts/,
+		},
+		{
+			name: 'restricted-setup',
+			testMatch: /restricted-user\.setup\.ts/,
+			use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+			dependencies: ['setup'],
+			teardown: 'restricted-teardown',
+		},
+		{
 			name: 'chrome',
 			// Uses the locally installed Google Chrome (no browser download needed).
 			use: {
@@ -38,8 +49,8 @@ export default defineConfig({
 				channel: 'chrome',
 				storageState: 'e2e/.auth/admin.json',
 			},
-			dependencies: ['setup'],
-			testIgnore: /auth\.setup\.ts/,
+			dependencies: ['setup', 'restricted-setup'],
+			testIgnore: /(auth\.setup|restricted-user\.(setup|teardown))\.ts/,
 		},
 	],
 })

@@ -22,6 +22,14 @@ export class RoleEditorPage {
 		this.lockedNotice = page.getByText(/no se puede modificar/).first()
 	}
 
+	async goto(roleId: number) {
+		await this.page.goto(`/dashboard/admin/roles/${roleId}`)
+	}
+
+	permissionSwitch(name: string): Locator {
+		return this.page.getByRole('switch', { name, exact: true })
+	}
+
 	/** Delays the role detail API so the skeleton stays visible long enough to assert. */
 	async delayDetail(ms: number) {
 		await this.page.route('**/api/admin/roles/*', async (route) => {
