@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
 	refresh: vi.fn(),
 	toastError: vi.fn(),
 	loading: false,
+	canManage: true,
 }))
 
 vi.mock('next/link', () => ({
@@ -15,6 +16,9 @@ vi.mock('next/link', () => ({
 	),
 }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({ can: (code: string) => (code === 'roles.gestionar' ? mocks.canManage : true) }),
+}))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: mocks.toastError } }))
 vi.mock('../create-role-dialog', () => ({ CreateRoleDialog: () => null }))
 vi.mock('../../hooks/use-roles', () => ({
@@ -41,6 +45,19 @@ import { RolesManager } from '../roles-manager'
 beforeEach(() => {
 	vi.clearAllMocks()
 	mocks.loading = false
+	mocks.canManage = true
+})
+
+describe('RolesManager without roles.gestionar', () => {
+	it('is read-only: no create button, no deactivate, every row is "Ver"', () => {
+		mocks.canManage = false
+		render(<RolesManager />)
+		expect(screen.getByText('Auditor')).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Crear rol' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Desactivar' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('link', { name: 'Editar' })).not.toBeInTheDocument()
+		expect(screen.getAllByRole('link', { name: 'Ver' })).toHaveLength(2)
+	})
 })
 
 describe('RolesManager loading', () => {

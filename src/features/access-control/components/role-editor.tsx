@@ -22,6 +22,7 @@ import {
 } from '@/features/shared/ui/select'
 import { Switch } from '@/features/shared/ui/switch'
 import { cn } from '@/lib/utils'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { useRoleActions } from '../hooks/use-role-actions'
 import { useRoleDetail } from '../hooks/use-role-detail'
 import {
@@ -91,6 +92,9 @@ export function RoleEditor({ roleId }: RoleEditorProps) {
 function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 	const { role, catalog, levels } = detail
 	const locked = LOCKED_CODES.includes(role.code)
+	const { can } = usePermissions()
+	// Locked roles are never editable; otherwise saving needs roles.gestionar.
+	const readOnly = locked || !can('roles.gestionar')
 	const { update, savePermissions, pending } = useRoleActions()
 	const [saved, setSaved] = useState<RoleGrants>(detail.grants)
 	const [grants, setGrants] = useState<RoleGrants>(detail.grants)
@@ -151,7 +155,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 						{role.code} · {role.userCount} usuario(s) activo(s) · {grantedCount} de {catalog.length} permisos
 					</p>
 				</div>
-				{!locked && (
+				{!readOnly && (
 					<div className="flex items-center gap-2">
 						{hasChanges && (
 							<span className="hidden text-xs text-amber-600 sm:inline" role="status">
@@ -179,6 +183,15 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 				</Alert>
 			)}
 
+			{!locked && readOnly && (
+				<Alert className="py-2">
+					<Lock className="h-4 w-4" />
+					<AlertDescription className="text-sm">
+						Solo lectura: tu rol puede ver los roles pero no puede modificarlos.
+					</AlertDescription>
+				</Alert>
+			)}
+
 			{warnings.length > 0 && (
 				<Alert className="py-2">
 					<TriangleAlert className="h-4 w-4" />
@@ -193,7 +206,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 				</Alert>
 			)}
 
-			{!locked && (
+			{!readOnly && (
 				<div className="grid gap-3 rounded-lg border bg-card p-3 md:grid-cols-2">
 					<div className="space-y-1">
 						<Label htmlFor="role-name" className="text-xs">Nombre</Label>
@@ -243,7 +256,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 										{moduleOn}/{modulePermissions.length}
 									</span>
 								</h2>
-								{!locked && (
+								{!readOnly && (
 									<Button
 										variant="ghost"
 										size="sm"
@@ -263,7 +276,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 											key={permission.code}
 											className={cn(
 												'flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-1.5 transition-colors',
-												!locked && 'hover:bg-muted/40'
+												!readOnly && 'hover:bg-muted/40'
 											)}
 										>
 											<Label
@@ -276,7 +289,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 												{enabled && permission.supportsScope && (
 													<Select
 														value={role.code === 'ADMIN' ? 'COMPANY' : (grant?.scope ?? 'OWN')}
-														disabled={locked}
+														disabled={readOnly}
 														onValueChange={(v) => setGrants((g) => setScope(g, permission.code, v as DataScopeCode))}
 													>
 														<SelectTrigger className={COMPACT_SELECT} aria-label={`Alcance de ${permission.name}`}>
@@ -294,6 +307,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 												{enabled && permission.supportsMinLevel && !locked && (
 													<Select
 														value={grant?.minLevelCode ?? NO_MIN_LEVEL}
+														disabled={readOnly}
 														onValueChange={(v) =>
 															setGrants((g) => setMinLevel(g, permission.code, v === NO_MIN_LEVEL ? undefined : v))
 														}
@@ -315,7 +329,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 													id={permission.code}
 													size="sm"
 													checked={enabled}
-													disabled={locked}
+													disabled={readOnly}
 													onCheckedChange={(on) => setGrants((g) => toggleGrant(g, permission, on))}
 												/>
 											</div>

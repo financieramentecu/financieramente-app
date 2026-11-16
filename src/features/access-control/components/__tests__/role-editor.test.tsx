@@ -5,6 +5,7 @@ import { PERMISSION_CATALOG } from '../../catalog/permissions.catalog'
 
 const mocks = vi.hoisted(() => ({
 	loading: false,
+	canManage: true,
 	savePermissions: vi.fn(),
 	update: vi.fn(),
 	detail: null as unknown,
@@ -14,6 +15,9 @@ vi.mock('next/link', () => ({
 	default: ({ children, href }: { children: React.ReactNode; href: string }) => (
 		<a href={href}>{children}</a>
 	),
+}))
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({ can: (code: string) => (code === 'roles.gestionar' ? mocks.canManage : true) }),
 }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('../../hooks/use-role-detail', () => ({
@@ -44,8 +48,25 @@ function detail(code: string, grants: Record<string, object>, isSystem = false) 
 beforeEach(() => {
 	vi.clearAllMocks()
 	mocks.loading = false
+	mocks.canManage = true
 	mocks.savePermissions.mockResolvedValue({ ok: true, data: {} })
 	mocks.update.mockResolvedValue({ ok: true, data: undefined })
+})
+
+describe('RoleEditor without roles.gestionar', () => {
+	it('opens read-only: no save bar, no name form, switches disabled, with a notice', () => {
+		mocks.canManage = false
+		mocks.detail = detail('ANALISTA', { 'aportes.fondear': {} })
+		render(<RoleEditor roleId={5} />)
+		expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
+		expect(screen.queryByLabelText('Nombre')).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Activar todos' })).not.toBeInTheDocument()
+		// Permission switches carry the permission code as id; the "Solo activos" filter is not one.
+		const switches = screen.getAllByRole('switch').filter((el) => el.id.includes('.'))
+		expect(switches.length).toBeGreaterThan(0)
+		for (const control of switches) expect(control).toBeDisabled()
+		expect(screen.getByText(/no puede modificarlos|solo lectura/i)).toBeInTheDocument()
+	})
 })
 
 describe('RoleEditor loading', () => {

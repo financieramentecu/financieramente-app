@@ -19,6 +19,7 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/features/shared/ui/table'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { useRoleActions } from '../hooks/use-role-actions'
 import { useRoles } from '../hooks/use-roles'
 import type { RoleOverview } from '../types/role.types'
@@ -29,6 +30,8 @@ export function RolesManager() {
 	const router = useRouter()
 	const { state, refresh } = useRoles()
 	const { deactivate } = useRoleActions()
+	const { can } = usePermissions()
+	const canManage = can('roles.gestionar')
 	const [createOpen, setCreateOpen] = useState(false)
 	const [toDeactivate, setToDeactivate] = useState<RoleOverview | null>(null)
 	const [search, setSearch] = useState('')
@@ -77,10 +80,12 @@ export function RolesManager() {
 							onChange={(e) => setSearch(e.target.value)}
 						/>
 					</div>
-					<Button size="sm" className="h-8 gap-1.5" onClick={() => setCreateOpen(true)}>
-						<Plus className="h-4 w-4" />
-						Crear rol
-					</Button>
+					{canManage && (
+						<Button size="sm" className="h-8 gap-1.5" onClick={() => setCreateOpen(true)}>
+							<Plus className="h-4 w-4" />
+							Crear rol
+						</Button>
+					)}
 				</div>
 			</div>
 
@@ -125,10 +130,10 @@ export function RolesManager() {
 										<div className="flex items-center justify-end gap-1.5">
 											<Button asChild size="sm" variant="outline" className="h-7 px-2.5 text-xs">
 												<Link href={`/dashboard/admin/roles/${role.id}`}>
-													{role.code === 'ADMIN' || role.code === 'SIN_ROL' ? 'Ver' : 'Editar'}
+													{!canManage || role.code === 'ADMIN' || role.code === 'SIN_ROL' ? 'Ver' : 'Editar'}
 												</Link>
 											</Button>
-											{!role.isSystem && (
+											{canManage && !role.isSystem && (
 												<Button
 													size="sm"
 													variant="ghost"
