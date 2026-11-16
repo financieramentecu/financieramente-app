@@ -47,6 +47,8 @@ test.describe('Roles admin', () => {
 		await expect(roleEditor.loadingSkeleton).toBeVisible()
 		await expect(roleEditor.loadingSkeleton).toHaveCount(0)
 		await expect(roleEditor.backLink).toBeVisible()
+		// The editor bar already names the role and links back, so no breadcrumb row.
+		await expect(roleEditor.breadcrumb).toHaveCount(0)
 	})
 
 	test('creates a role and stores ALL permissions', async ({ page, rolesList, roleEditor }) => {

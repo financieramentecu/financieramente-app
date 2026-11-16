@@ -9,6 +9,7 @@ export class RoleEditorPage {
 	readonly enableAllButtons: Locator
 	readonly disableAllButtons: Locator
 	readonly lockedNotice: Locator
+	readonly breadcrumb: Locator
 
 	constructor(private readonly page: Page) {
 		this.loadingSkeleton = page.getByRole('status', { name: 'Cargando rol' })
@@ -17,6 +18,7 @@ export class RoleEditorPage {
 		this.saveToast = page.getByText('Cambios guardados').first()
 		this.enableAllButtons = page.getByRole('button', { name: 'Activar todos' })
 		this.disableAllButtons = page.getByRole('button', { name: 'Quitar todos' })
+		this.breadcrumb = page.getByRole('navigation', { name: 'breadcrumb' })
 		this.lockedNotice = page.getByText(/no se puede modificar/).first()
 	}
 

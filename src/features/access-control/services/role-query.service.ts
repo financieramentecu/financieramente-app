@@ -40,18 +40,6 @@ export async function getRoleDetail(
 	}
 }
 
-/** Display name of an active role, or null when it does not exist or is inactive. */
-export async function getRoleName(
-	db: Pick<PrismaClient, 'role'>,
-	idRole: number
-): Promise<string | null> {
-	const role = await db.role.findUnique({
-		where: { idRole },
-		select: { name: true, active: true },
-	})
-	return role?.active ? role.name : null
-}
-
 /** Active roles with their active user and enabled permission counts. */
 export async function listRolesOverview(
 	db: Pick<PrismaClient, 'role'>
