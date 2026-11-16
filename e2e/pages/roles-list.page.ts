@@ -10,6 +10,9 @@ export class RolesListPage {
 	readonly createNameInput: Locator
 	readonly createSubmit: Locator
 	readonly deactivateToast: Locator
+	readonly deactivateButtons: Locator
+	readonly editLinks: Locator
+	readonly viewLinks: Locator
 
 	constructor(private readonly page: Page) {
 		this.loadingSkeleton = page.getByRole('status', { name: 'Cargando roles' })
@@ -20,6 +23,9 @@ export class RolesListPage {
 		this.createNameInput = page.getByLabel('Nombre')
 		this.createSubmit = this.createDialog.getByRole('button', { name: 'Crear rol' })
 		this.deactivateToast = page.getByText('Rol desactivado').first()
+		this.deactivateButtons = page.getByRole('button', { name: 'Desactivar' })
+		this.editLinks = page.getByRole('link', { name: 'Editar', exact: true })
+		this.viewLinks = page.getByRole('link', { name: 'Ver', exact: true })
 	}
 
 	async goto() {

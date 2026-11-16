@@ -1,6 +1,13 @@
 import { test, expect } from './fixtures'
 import { DashboardNav } from '../pages/dashboard-nav.page'
-import { readRestrictedUser, RESTRICTED_STORAGE_STATE } from './restricted-user.fixture'
+import { NegociosPage } from '../pages/negocios.page'
+import { RolesListPage } from '../pages/roles-list.page'
+import { RoleEditorPage } from '../pages/role-editor.page'
+import {
+	ADMIN_STORAGE_STATE_FILE,
+	readRestrictedUser,
+	RESTRICTED_STORAGE_STATE,
+} from './restricted-user.fixture'
 
 /**
  * E2E — grants stored on a role really apply to the user who signs in.
@@ -84,5 +91,58 @@ test.describe('Role grants apply to the signed-in user', () => {
 		await expect(nav.link('Roles')).toHaveCount(0)
 		expect((await userPage.request.get(ROLES_OVERVIEW_API)).status()).toBe(403)
 		await userContext.close()
+	})
+})
+
+test.describe('Screens adapt to what the role may do', () => {
+	test('Negocios hides create and export for a view-only role', async ({ browser }) => {
+		const context = await browser.newContext({ storageState: RESTRICTED_STORAGE_STATE })
+		const page = await context.newPage()
+		const negocios = new NegociosPage(page)
+		await negocios.goto()
+
+		await expect(negocios.heading).toBeVisible()
+		await expect(negocios.advancedFilters).toBeVisible()
+		await expect(negocios.addButton).toHaveCount(0)
+		await expect(negocios.exportButton).toHaveCount(0)
+		await context.close()
+	})
+
+	test('Roles screens are read-only for a role that can only see roles', async ({ browser }) => {
+		const restricted = readRestrictedUser()
+		const adminContext = await browser.newContext({ storageState: ADMIN_STORAGE_STATE_FILE })
+		const putGrants = (grants: Record<string, object>) =>
+			adminContext.request.put(`/api/admin/roles/${restricted.roleId}/permissions`, {
+				data: { grants },
+			})
+		const base = { 'negocios.ver': { scope: 'OWN' }, 'calculadora.usar': {} }
+
+		try {
+			expect((await putGrants({ ...base, 'roles.ver': {} })).status()).toBe(200)
+
+			const userContext = await browser.newContext({ storageState: RESTRICTED_STORAGE_STATE })
+			const page = await userContext.newPage()
+			const list = new RolesListPage(page)
+			const editor = new RoleEditorPage(page)
+			await list.goto()
+
+			// Can read: the list is there.
+			await expect(list.table).toBeVisible()
+			await expect(list.row(/Administrador/)).toBeVisible()
+			// Cannot write: no create, no deactivate, no edit links.
+			await expect(list.createButton).toHaveCount(0)
+			await expect(list.deactivateButtons).toHaveCount(0)
+			await expect(list.editLinks).toHaveCount(0)
+
+			// The editor opens read-only: no save bar, switches disabled.
+			await list.openRole(/Administrador/)
+			await expect(editor.saveButton).toHaveCount(0)
+			await expect(editor.permissionSwitch('Ver roles')).toBeDisabled()
+			await userContext.close()
+		} finally {
+			// Always give the role back its original grants.
+			await putGrants(base)
+			await adminContext.close()
+		}
 	})
 })
