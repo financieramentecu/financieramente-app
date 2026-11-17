@@ -2,7 +2,6 @@ import * as React from 'react'
 import { UseFormSetValue } from 'react-hook-form'
 import { UserRole } from '@/features/auth/lib/roles'
 import { usePermissions } from '@/features/shared/hooks/use-permissions'
-import { isOwnerScope } from '@/features/access-control/lib/authorization'
 import { UserWithRole } from '@/features/negocios/types/business.types'
 import type { BusinessFormData } from '@/features/negocios/lib/business-form-schemas'
 import type { AgentInfo } from '@/features/negocios/types/business-entity.types'
@@ -70,13 +69,17 @@ export function useAgentPermissions({
 }: UseAgentPermissionsOptions) {
 	const [agentsList, setAgentsList] = React.useState<UserWithRole[]>([])
 
-	// Owner roles (AGENTE, PARTNER) are locked to themselves in the owner picker
+	// The owner picker follows `negocios.asignar_strategist`: only COMPANY may
+	// search and pick another Money Strategist. TEAM, OWN or no grant stay
+	// locked to the session user (the user search is not hierarchy-scoped, so
+	// the picker never offers it for TEAM; the server still accepts a
+	// subordinate there).
 	const { can, scope } = usePermissions()
-	const isAgentUser = isOwnerScope(scope('negocios.ver'))
+	const canPickOtherOwner = scope('negocios.asignar_strategist') === 'COMPANY'
+	const isAgentUser = !canPickOtherOwner
 
 	// Determinar si el usuario puede buscar agentes
-	const canSearchAgents =
-		can('negocios.crear') && scope('negocios.ver') === 'COMPANY'
+	const canSearchAgents = can('negocios.crear') && canPickOtherOwner
 
 	// Conversión de lead con owner ya asignado: el campo `agent` se bloquea
 	// y se fija al owner del lead. Nunca aplica en edición (ahí el agente

@@ -30,6 +30,11 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 	...module('Negocios', [
 		['negocios.ver', 'Ver negocios', { scope: true }],
 		['negocios.crear', 'Crear negocio'],
+		[
+			'negocios.asignar_strategist',
+			'Asignar el Money Strategist al crear un negocio',
+			{ scope: true },
+		],
 		['negocios.editar', 'Editar negocio', { scope: true }],
 		['negocios.cancelar', 'Cancelar negocio'],
 		[

@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
 import { can, getScope } from '@/features/access-control/lib/authorization'
+import { resolveOwnerScope } from '@/features/access-control/services/scope-resolver.service'
 import { getRoleGrants } from '@/features/access-control/services/role-permission-check'
 import { prisma as sharedPrisma } from '@/lib/prisma'
 import { resolveVisibleUserIds } from './user-hierarchy.service'
@@ -113,9 +114,9 @@ export async function assertBusinessAccess(
 /**
  * Decides the owner (`Business.idUser`) for a new business, from the grants:
  * - needs `negocios.crear`; anything else is denied.
- * - OWN scope (PARTNER): always the session user (client input ignored).
- * - COMPANY scope (ADMIN-like roles): the requested user (on-behalf creation).
- * - TEAM scope (AGENTE): the requested user only when inside self plus subordinates.
+ * - `negocios.asignar_strategist` scope decides who the owner may be:
+ *   COMPANY any requested user, TEAM the requested user only inside self plus
+ *   subordinates, OWN (or no grant) always the session user (input ignored).
  */
 export async function resolveBusinessOwnerId(
 	db: Pick<PrismaClient, 'user'>,
@@ -125,19 +126,17 @@ export async function resolveBusinessOwnerId(
 	const grants = await getRoleGrants(user.role?.code)
 	if (!can(grants, 'negocios.crear')) return { ok: false }
 
-	switch (getScope(grants, 'negocios.ver')) {
-		case 'OWN':
-			return { ok: true, idUser: user.idUser }
+	switch (getScope(grants, 'negocios.asignar_strategist')) {
 		case 'COMPANY':
 			return { ok: true, idUser: requestedIdUser }
 		case 'TEAM': {
-			const scope = await resolveBusinessScope(db, user)
-			return scope.idUser?.in.includes(requestedIdUser)
+			const allowed = await resolveOwnerScope(db, user, 'TEAM')
+			return allowed?.includes(requestedIdUser)
 				? { ok: true, idUser: requestedIdUser }
 				: { ok: false }
 		}
 		default:
-			return { ok: false }
+			return { ok: true, idUser: user.idUser }
 	}
 }
 

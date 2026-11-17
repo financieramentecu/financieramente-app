@@ -38,6 +38,9 @@ const ROWS: Readonly<Record<string, string>> = {
 
 	'negocios.ver': 'C C C E C P', // S3: Analista sees the company
 	'negocios.crear': 'Y Y Y Y - Y',
+	// Who the new business may be assigned to: C any user (form shows the picker),
+	// E self + subordinates (API only; the form keeps it on self), P only self.
+	'negocios.asignar_strategist': 'C C C E - P',
 	'negocios.editar': 'C C C E - P',
 	'negocios.cancelar': 'Y Y Y - - -',
 	'negocios.exportar': 'C C C E C P',

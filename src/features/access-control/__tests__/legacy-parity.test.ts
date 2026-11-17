@@ -27,6 +27,7 @@ const HOLDERS: Readonly<Record<string, readonly UserRole[]>> = {
 	'dashboard.ver': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR, PARTNER],
 	'negocios.ver': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR, PARTNER],
 	'negocios.crear': [ADMIN, ASISTENTE, ANALISTA, AGENTE, PARTNER],
+	'negocios.asignar_strategist': [ADMIN, ASISTENTE, ANALISTA, AGENTE, PARTNER],
 	'negocios.editar': [ADMIN, ASISTENTE, ANALISTA, AGENTE, PARTNER],
 	'negocios.cancelar': [ADMIN, ASISTENTE, ANALISTA],
 	'negocios.exportar': [ADMIN, ASISTENTE, ANALISTA, AGENTE, CONSULTOR, PARTNER],
@@ -69,29 +70,37 @@ const HOLDERS: Readonly<Record<string, readonly UserRole[]>> = {
 }
 
 describe('default grants contract', () => {
-	it.each(Object.entries(HOLDERS))('%s is held by exactly the expected roles', (code, roles) => {
-		expect(rolesWith(code)).toEqual(sorted(roles))
-	})
+	it.each(Object.entries(HOLDERS))(
+		'%s is held by exactly the expected roles',
+		(code, roles) => {
+			expect(rolesWith(code)).toEqual(sorted(roles))
+		}
+	)
 
 	it('SIN_ROL holds nothing', () => {
 		expect(DEFAULT_ROLE_GRANTS[UserRole.SIN_ROL]).toEqual({})
 	})
 
 	it('shows Edit in the list only to ADMIN and ASISTENTE (the API also lets ANALISTA edit)', () => {
-		expect(rolesWith('negocios.editar_desde_lista')).toEqual(sorted([ADMIN, ASISTENTE]))
+		expect(rolesWith('negocios.editar_desde_lista')).toEqual(
+			sorted([ADMIN, ASISTENTE])
+		)
 		expect(rolesWith('negocios.editar')).toContain(ANALISTA)
 	})
 
 	it('keeps company-wide visibility for the backoffice roles and the read-only CONSULTOR', () => {
 		const company = ROLES.filter(
-			(role) => getScope(DEFAULT_ROLE_GRANTS[role], 'negocios.ver') === 'COMPANY'
+			(role) =>
+				getScope(DEFAULT_ROLE_GRANTS[role], 'negocios.ver') === 'COMPANY'
 		).sort()
 		expect(company).toEqual(sorted([ADMIN, ASISTENTE, ANALISTA, CONSULTOR]))
 	})
 
 	it('treats AGENTE and PARTNER as the owner-scoped (coach) roles', () => {
 		const owners = ROLES.filter((role) =>
-			['OWN', 'TEAM'].includes(getScope(DEFAULT_ROLE_GRANTS[role], 'negocios.ver') ?? '')
+			['OWN', 'TEAM'].includes(
+				getScope(DEFAULT_ROLE_GRANTS[role], 'negocios.ver') ?? ''
+			)
 		).sort()
 		expect(owners).toEqual(sorted([AGENTE, PARTNER]))
 	})
