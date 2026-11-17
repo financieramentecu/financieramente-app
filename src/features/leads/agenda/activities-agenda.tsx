@@ -26,6 +26,7 @@ import { useActivityColumns } from '@/features/leads/agenda/use-activity-columns
 import { TASK_TYPE_LABELS } from '@/features/leads/agenda/task-type-labels'
 import { activityDueCardText, isActivityOverdue } from '@/features/leads/agenda/activity-due-label'
 import { ActivityLabelSettings } from '@/features/leads/activities/activity-label-settings'
+import { TaskNoticeSettings } from '@/features/leads/tasks/task-notice-settings'
 import { caseAsTask, useActivityBoard } from '@/features/leads/agenda/use-activity-agenda'
 import { parsePrefixedId } from '@/features/leads/lib/parse-board-drag-id'
 import type {
@@ -345,6 +346,7 @@ export function ActivitiesAgenda({
 									onRemove={columns.remove}
 								/>
 								<ActivityLabelSettings />
+								<TaskNoticeSettings />
 							</div>
 						)}
 					</div>
