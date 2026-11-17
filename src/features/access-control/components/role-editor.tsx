@@ -250,10 +250,10 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 					const allOn = moduleOn === modulePermissions.length
 					return (
 						<section key={group.module} className="mb-3 break-inside-avoid overflow-hidden rounded-lg border bg-card">
-							<header className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5">
+							<header className="flex items-center justify-between gap-2 bg-primary px-3 py-2 text-primary-foreground">
 								<h2 className="text-sm font-semibold">
 									{group.module}
-									<span className="ml-2 text-xs font-normal text-muted-foreground">
+									<span className="ml-2 text-xs font-normal text-primary-foreground/80">
 										{moduleOn}/{modulePermissions.length}
 									</span>
 								</h2>
@@ -261,7 +261,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 									<Button
 										variant="ghost"
 										size="sm"
-										className="h-6 px-2 text-xs"
+										className="h-6 px-2 text-xs text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
 										onClick={() => setGrants((g) => setModuleGrants(g, modulePermissions, !allOn))}
 									>
 										{allOn ? 'Quitar todos' : 'Activar todos'}
