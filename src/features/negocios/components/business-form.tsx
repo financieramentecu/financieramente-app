@@ -96,7 +96,6 @@ export const BusinessForm = React.forwardRef<
 						form={form as unknown as UseFormReturn<BusinessFormData>}
 						agentsList={agentsList}
 						onSearchAgents={canSearchAgents ? handleAgentSearch : undefined}
-						isBlocked={isBlocked}
 						isAgentUser={isAgentUser}
 						isEditMode={isEditMode}
 						isAgentLocked={isLeadOwnerLocked}
