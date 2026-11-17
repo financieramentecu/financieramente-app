@@ -240,7 +240,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 				<p className="py-6 text-center text-sm text-muted-foreground">Ningún permiso coincide con la búsqueda.</p>
 			)}
 
-			<div className="grid items-start gap-3 xl:grid-cols-2">
+			<div className="xl:columns-2 xl:gap-3">
 				{visibleGroups.map((group) => {
 					const modulePermissions = groups.find((g) => g.module === group.module)?.permissions ?? group.permissions
 					const moduleOn = modulePermissions.filter((p) =>
@@ -248,7 +248,7 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 					).length
 					const allOn = moduleOn === modulePermissions.length
 					return (
-						<section key={group.module} className="overflow-hidden rounded-lg border bg-card">
+						<section key={group.module} className="mb-3 break-inside-avoid overflow-hidden rounded-lg border bg-card">
 							<header className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5">
 								<h2 className="text-sm font-semibold">
 									{group.module}
