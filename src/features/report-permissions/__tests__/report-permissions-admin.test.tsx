@@ -85,6 +85,14 @@ describe('ReportPermissionsAdmin', () => {
 		vi.clearAllMocks()
 	})
 
+	it('shows a labelled skeleton while the catalog loads', () => {
+		mockHook({ catalogState: { status: 'loading', data: undefined, error: '' } })
+		render(<ReportPermissionsAdmin />)
+
+		expect(screen.getByRole('status', { name: 'Cargando permisos' })).toBeInTheDocument()
+		expect(screen.queryByText('Cargando permisos…')).not.toBeInTheDocument()
+	})
+
 	it('renders category matrix and Todas control', () => {
 		mockHook()
 		render(<ReportPermissionsAdmin />)

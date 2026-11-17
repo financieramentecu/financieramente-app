@@ -13,7 +13,7 @@ import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { CurrentUser } from '@/features/negocios/types/business.types'
 import { getAccessibleUserIds } from '@/features/auth/lib/hierarchy'
-import { isWriteBypassRole } from '@/features/auth/lib/roles'
+import { roleCan, roleScope } from '@/features/access-control/services/role-permission-check'
 import { getLeadForConversion } from '@/features/leads/services/lead-conversion.service'
 import { mapLeadToBusinessDefaults } from '@/features/leads/mappers/lead-to-business-defaults'
 import { mapLeadOwnerToAgentInfo } from '@/features/leads/mappers/lead-owner-to-agent-info'
@@ -105,12 +105,16 @@ export default async function CrearNegocioPage({
 			// the WRITE bypass predicate, not the broader visibility bypass —
 			// otherwise a globally-visible, read-only role (CONSULTOR) would see
 			// unrestricted lead prefill data on a screen it cannot actually use.
-			const visibleUserIds = isWriteBypassRole(currentUser.role?.code)
+			const canWriteCompanyWide =
+				(await roleCan(currentUser.role?.code, 'negocios.crear')) &&
+				(await roleScope(currentUser.role?.code, 'negocios.ver')) === 'COMPANY'
+			const visibleUserIds = canWriteCompanyWide
 				? []
 				: await getAccessibleUserIds(currentUser.idUser)
 
 			const lead = await getLeadForConversion(parsedLeadId, currentUser, {
 				visibleUserIds,
+				unrestricted: canWriteCompanyWide,
 			})
 
 			// Not found, out of the viewer's hierarchy, already converted, or

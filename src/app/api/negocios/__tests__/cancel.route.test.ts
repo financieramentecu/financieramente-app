@@ -625,7 +625,7 @@ describe('PATCH /api/negocios/[id]/cancel', () => {
 				email: 'default@example.com',
 				role: {
 					idRole: 1,
-					code: UserRole.DEFAULT,
+					code: UserRole.SIN_ROL,
 					name: 'Default',
 					description: 'Rol por defecto',
 					active: true,

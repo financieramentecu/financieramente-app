@@ -67,7 +67,7 @@ export async function validateUserByEmail(
 		}
 
 		// Bloquear usuarios con rol DEFAULT (requieren activación y asignación de rol)
-		if (user.role.code === UserRole.DEFAULT) {
+		if (user.role.code === UserRole.SIN_ROL) {
 			return {
 				isValid: false,
 				user: {

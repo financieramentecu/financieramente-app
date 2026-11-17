@@ -12,13 +12,10 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { Settings2 } from 'lucide-react'
 import { Button } from '@/features/shared/ui/button'
-import { UserRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { useManageNovedad } from '../../hooks/use-manage-novedad'
 import { BusinessNovedadManageModal } from '../modals/BusinessNovedadManageModal'
 import type { BusinessEntity, BusinessNovedadStatus } from '../../types/business-entity.types'
-
-/** Roles con permiso para gestionar manualmente el estado de novedad */
-export const MANAGE_NOVEDAD_ALLOWED_ROLES: string[] = [UserRole.ADMIN, UserRole.ANALISTA_SOPORTE]
 
 interface NovedadManageTriggerProps {
 	businessId: number
@@ -30,18 +27,15 @@ interface NovedadManageTriggerProps {
 export function NovedadManageTrigger({
 	businessId,
 	novedadStatus,
-	userRoleCode,
 	onSuccess,
 }: NovedadManageTriggerProps) {
+	const { can } = usePermissions()
 	const router = useRouter()
 	const [open, setOpen] = useState(false)
 	const { updateStatus } = useManageNovedad(businessId)
 
 	const canManage =
-		novedadStatus !== null &&
-		userRoleCode !== null &&
-		userRoleCode !== undefined &&
-		MANAGE_NOVEDAD_ALLOWED_ROLES.includes(userRoleCode)
+		novedadStatus !== null && can('novedades.gestionar')
 
 	if (!canManage) {
 		return null

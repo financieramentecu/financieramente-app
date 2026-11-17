@@ -1,5 +1,4 @@
 import type { Prisma, LeadOutcomeStatus } from '@prisma/client'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 
 export interface LeadListFilterInput {
 	search?: string
@@ -13,6 +12,12 @@ export interface BuildLeadListWhereOptions {
 	 * (`getAccessibleUserIds()` — [self, ...descendants]).
 	 */
 	visibleUserIds?: number[]
+	/**
+	 * The viewer sees every lead (COMPANY scope of `leads.ver`). Resolved by the
+	 * caller with `resolveLeadVisibility`; the clause is skipped, never inferred
+	 * from the role code.
+	 */
+	unrestricted?: boolean
 }
 
 /**
@@ -33,10 +38,7 @@ export function buildLeadListWhere(
 ): Prisma.LeadWhereInput {
 	const whereConditions: Prisma.LeadWhereInput[] = [{ active: true }]
 
-	const roleCode = currentUser.role?.code
-	const isBypass = isHierarchyBypassRole(roleCode)
-
-	if (!isBypass) {
+	if (!options.unrestricted) {
 		const { visibleUserIds } = options
 		// Deliberately no `OR idUser: null` branch here — owner-less leads
 		// must stay invisible to non-bypass roles per the Leads spec.

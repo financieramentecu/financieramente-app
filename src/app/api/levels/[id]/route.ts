@@ -8,8 +8,7 @@ import {
 	prismaLevelToLevel,
 	type PrismaLevelWithRelations as MapperPrismaLevelWithRelations
 } from '@/features/levels/mappers/level.mapper'
-import { requireAuth, requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireAuth, requireRolePermission } from '@/lib/auth/require-role'
 import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
 /**
@@ -70,7 +69,7 @@ export async function PUT(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.catalogos')
 	if (!guard.ok) {
 		return guard.response
 	}
@@ -261,7 +260,7 @@ export async function DELETE(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.catalogos')
 	if (!guard.ok) {
 		return guard.response
 	}

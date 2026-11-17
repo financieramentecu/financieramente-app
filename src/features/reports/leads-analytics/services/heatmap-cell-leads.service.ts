@@ -30,6 +30,8 @@ export interface GetHeatmapCellLeadsQuery {
 	readonly idLeadFunnelColumn: number | null
 	readonly ownerFilter: CellOwnerFilter
 	readonly withBusiness?: boolean
+	/** COMPANY-scope viewer: no owner clause beyond the requested owner filter. */
+	readonly isBypass?: boolean
 	readonly outcomeStatus?: CellLeadRowView['outcomeStatus'] | null
 }
 
@@ -102,7 +104,10 @@ export async function getHeatmapCellLeads(
 	const baseWhere = buildLeadListWhere(
 		query.viewer,
 		{ createdAtRange },
-		{ visibleUserIds: [...query.visibleUserIds] }
+		{
+			visibleUserIds: [...query.visibleUserIds],
+			unrestricted: query.isBypass === true,
+		}
 	)
 
 	const ownerFilter: Prisma.LeadWhereInput = ownerWhere(query.ownerFilter, query.visibleUserIds)

@@ -13,8 +13,7 @@ import {
 	type PrismaLevelWithRelations as MapperPrismaLevelWithRelations
 } from '@/features/levels/mappers/level.mapper'
 import { Prisma } from '@prisma/client'
-import { requireAuth, requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireAuth, requireRolePermission } from '@/lib/auth/require-role'
 import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
 
@@ -107,7 +106,7 @@ export async function GET(request: Request) {
  * Creates a new level
  */
 export async function POST(request: Request) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.catalogos')
 	if (!guard.ok) {
 		return guard.response
 	}

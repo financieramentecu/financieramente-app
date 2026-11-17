@@ -1,6 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { UserRole } from '@/features/auth/lib/roles'
+import { setMockRole } from '@/features/access-control/testing/mock-permissions'
+
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
 
 vi.mock('@/features/shared/hooks/use-auth-session', () => ({
 	useAuthSession: vi.fn(),
@@ -12,6 +19,11 @@ vi.mock('@/features/report-permissions/lib/report-permissions-api', () => ({
 
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { fetchMyAuthorizedReports } from '@/features/report-permissions/lib/report-permissions-api'
+function mockSession(value: { session?: { user?: { role?: string } } | null }) {
+	setMockRole(value.session?.user?.role)
+	vi.mocked(useAuthSession).mockReturnValue(value as never)
+}
+
 import { useAuthorizedReportCodes } from '@/features/report-permissions/hooks/use-authorized-report-codes'
 import { REPORT_CODES } from '@/features/report-permissions/types/report-permissions.types'
 
@@ -21,7 +33,7 @@ describe('useAuthorizedReportCodes', () => {
 	})
 
 	it('always exposes PRODUCCION_REAL for ADMIN even before the API resolves', () => {
-		vi.mocked(useAuthSession).mockReturnValue({
+		mockSession({
 			session: { user: { role: UserRole.ADMIN } },
 		} as never)
 		vi.mocked(fetchMyAuthorizedReports).mockReturnValue(new Promise(() => {}))
@@ -33,7 +45,7 @@ describe('useAuthorizedReportCodes', () => {
 	})
 
 	it('keeps PRODUCCION_REAL and ABA_MFUND for ADMIN when the API returns an empty catalog', async () => {
-		vi.mocked(useAuthSession).mockReturnValue({
+		mockSession({
 			session: { user: { role: UserRole.ADMIN } },
 		} as never)
 		vi.mocked(fetchMyAuthorizedReports).mockResolvedValue({ codes: [] })
@@ -48,7 +60,7 @@ describe('useAuthorizedReportCodes', () => {
 	})
 
 	it('does not invent codes for non-admin when the API is empty', async () => {
-		vi.mocked(useAuthSession).mockReturnValue({
+		mockSession({
 			session: { user: { role: UserRole.AGENTE } },
 		} as never)
 		vi.mocked(fetchMyAuthorizedReports).mockResolvedValue({ codes: [] })
@@ -62,7 +74,7 @@ describe('useAuthorizedReportCodes', () => {
 	})
 
 	it('exposes ABA_MFUND for a non-admin when the API returns it', async () => {
-		vi.mocked(useAuthSession).mockReturnValue({
+		mockSession({
 			session: { user: { role: UserRole.AGENTE } },
 		} as never)
 		vi.mocked(fetchMyAuthorizedReports).mockResolvedValue({

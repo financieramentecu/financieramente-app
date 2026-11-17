@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { AuditAction } from '@/features/auth/lib/audit-logger'
-import { isWriteBypassRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import {
 	MFUND_PRODUCT_NAME,
 	MFUND_REQUIRED_PERIODICITY,
@@ -111,7 +111,7 @@ export async function applyMfundPeriodicityCorrection(
 	if (!operator.active) {
 		throw new Error('operator_inactive')
 	}
-	if (!isWriteBypassRole(operator.role?.code)) {
+	if (!(await roleCan(operator.role?.code, 'negocios.editar_contrato_emitido'))) {
 		throw new Error('operator_forbidden')
 	}
 

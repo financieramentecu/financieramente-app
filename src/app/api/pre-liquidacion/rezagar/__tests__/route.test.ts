@@ -37,7 +37,7 @@ describe('POST /api/pre-liquidacion/rezagar', () => {
 
 	it('returns 403 for unauthorized role', async () => {
 		mockAuth.mockResolvedValue({
-			user: { id: '1', role: UserRole.DEFAULT },
+			user: { id: '1', role: UserRole.SIN_ROL },
 		} as never)
 		const request = new Request(
 			'http://localhost/api/pre-liquidacion/rezagar',

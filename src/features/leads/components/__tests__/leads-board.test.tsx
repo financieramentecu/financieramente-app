@@ -58,7 +58,7 @@ describe('LeadsBoard — admin role plumbing', () => {
 
 	it('passes isAdmin={true} to LeadDetailSheet for an ADMIN session', async () => {
 		vi.mocked(useSession).mockReturnValue({
-			data: { user: { role: 'ADMIN' }, expires: '' },
+			data: { user: { role: 'ADMIN', grants: { 'leads.eliminar': {} } }, expires: '' },
 			status: 'authenticated',
 			update: vi.fn(),
 		} as never)
@@ -82,7 +82,7 @@ describe('LeadsBoard — admin role plumbing', () => {
 
 	it('onDeleted closes the sheet and triggers refetch', async () => {
 		vi.mocked(useSession).mockReturnValue({
-			data: { user: { role: 'ADMIN' }, expires: '' },
+			data: { user: { role: 'ADMIN', grants: { 'leads.eliminar': {} } }, expires: '' },
 			status: 'authenticated',
 			update: vi.fn(),
 		} as never)

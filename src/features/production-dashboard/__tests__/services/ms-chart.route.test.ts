@@ -38,7 +38,7 @@ function makeRequest(params: Record<string, string> = {}): NextRequest {
   return new NextRequest(url)
 }
 
-const authedSession = { user: { id: '1', name: 'Test User', email: 'test@example.com' } }
+const authedSession = { user: { id: '1', name: 'Test User', email: 'test@example.com', role: 'ADMIN' } }
 
 beforeEach(() => {
   vi.clearAllMocks()

@@ -96,6 +96,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 			name: 'Money Strategist',
 			description: 'Solo acceso a sus propios negocios',
 			active: true,
+			isSystem: false,
 			createdAt: baseDate,
 			updatedAt: baseDate,
 		},

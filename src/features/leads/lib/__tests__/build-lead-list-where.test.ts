@@ -7,7 +7,7 @@ describe('buildLeadListWhere', () => {
 		const where = buildLeadListWhere(
 			{ idUser: 1, role: { code: UserRole.ADMIN } },
 			{},
-			{ visibleUserIds: [1, 2, 3] }
+			{ visibleUserIds: [1, 2, 3], unrestricted: true }
 		)
 
 		expect(where).not.toHaveProperty('idUser')
@@ -22,7 +22,7 @@ describe('buildLeadListWhere', () => {
 		const where = buildLeadListWhere(
 			{ idUser: 9, role: { code: UserRole.CONSULTOR } },
 			{},
-			{ visibleUserIds: [9] }
+			{ visibleUserIds: [9], unrestricted: true }
 		)
 
 		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
@@ -140,5 +140,25 @@ describe('buildLeadListWhere', () => {
 			)
 			expect(hasCreatedAtClause).toBe(false)
 		})
+	})
+})
+
+describe('buildLeadListWhere with an explicit unrestricted viewer', () => {
+	it('adds no idUser clause when the caller marks the viewer unrestricted', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 1, role: { code: 'CUSTOM' } },
+			{},
+			{ unrestricted: true }
+		)
+		expect(JSON.stringify(where)).not.toContain('idUser')
+	})
+
+	it('scopes any viewer that is not unrestricted, whatever its role code', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 1, role: { code: 'ADMIN' } },
+			{},
+			{ visibleUserIds: [4] }
+		)
+		expect(JSON.stringify(where)).toContain('"idUser":{"in":[4]}')
 	})
 })

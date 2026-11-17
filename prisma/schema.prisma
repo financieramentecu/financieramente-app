@@ -57,6 +57,7 @@ model Level {
   users                                 User[]
   defaultDistributionsAsConfig          DefaultDistributionPercentage[]       @relation("DefaultDistributionConfigLevel")
   defaultDistributionsAsReceiver        DefaultDistributionPercentage[]       @relation("DefaultDistributionReceiverLevel")
+  rolePermissionsMinLevel               RolePermission[]
 
   @@index([idFixedBeneficiaryUser])
   @@index([idNextLevel])
@@ -121,17 +122,61 @@ model CategoryType {
 }
 
 model Role {
-  idRole      Int        @id @default(autoincrement()) @map("id_role")
-  code        String     @unique @db.VarChar(50)
-  name        String     @db.VarChar(100)
-  description String?
-  active      Boolean    @default(true)
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-  auditLogs   AuditLog[]
-  users       User[]
+  idRole          Int              @id @default(autoincrement()) @map("id_role")
+  code            String           @unique @db.VarChar(50)
+  name            String           @db.VarChar(100)
+  description     String?
+  active          Boolean          @default(true)
+  isSystem        Boolean          @default(false) @map("is_system")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  auditLogs       AuditLog[]
+  users           User[]
+  rolePermissions RolePermission[]
 
   @@map("role")
+}
+
+enum DataScope {
+  OWN
+  TEAM
+  COMPANY
+}
+
+model Permission {
+  idPermission     Int              @id @default(autoincrement()) @map("id_permission")
+  code             String           @unique @db.VarChar(80)
+  name             String           @db.VarChar(150)
+  module           String           @db.VarChar(60)
+  sortOrder        Int              @default(0) @map("sort_order")
+  supportsScope    Boolean          @default(false) @map("supports_scope")
+  supportsMinLevel Boolean          @default(false) @map("supports_min_level")
+  status           Boolean          @default(true)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  rolePermissions  RolePermission[]
+
+  @@index([module])
+  @@map("permission")
+}
+
+model RolePermission {
+  idRolePermission Int        @id @default(autoincrement()) @map("id_role_permission")
+  idRole           Int        @map("id_role")
+  idPermission     Int        @map("id_permission")
+  scope            DataScope?
+  idMinLevel       Int?       @map("id_min_level")
+  status           Boolean    @default(true)
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  role             Role       @relation(fields: [idRole], references: [idRole])
+  permission       Permission @relation(fields: [idPermission], references: [idPermission])
+  minLevel         Level?     @relation(fields: [idMinLevel], references: [idLevel])
+
+  @@unique([idRole, idPermission])
+  @@index([idPermission])
+  @@index([idMinLevel])
+  @@map("role_permission")
 }
 
 model BuyPeriodicity {

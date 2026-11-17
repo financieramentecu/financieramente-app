@@ -92,7 +92,7 @@ describe('resolveBusinessScope', () => {
 		expect(prisma.user.findMany).not.toHaveBeenCalled()
 	})
 
-	it.each([UserRole.DEFAULT, 'SOMETHING_NEW', '', null])(
+	it.each([UserRole.SIN_ROL, 'SOMETHING_NEW', '', null])(
 		'role %s fails closed with an empty scope',
 		async (role) => {
 			const scope = await resolveBusinessScope(
@@ -245,7 +245,7 @@ describe('assertBusinessAccess', () => {
 		})
 	})
 
-	it.each([UserRole.DEFAULT, 'SOMETHING_NEW', '', null])(
+	it.each([UserRole.SIN_ROL, 'SOMETHING_NEW', '', null])(
 		'role %s fails closed (403) in both modes and never queries a business',
 		async (role) => {
 			for (const mode of ['read', 'write'] as const) {
@@ -330,7 +330,7 @@ describe('resolveBusinessOwnerId', () => {
 		expect(await run(asUser(1, UserRole.AGENTE), 3)).toEqual({ ok: false })
 	})
 
-	it.each([UserRole.CONSULTOR, UserRole.DEFAULT, 'SOMETHING_NEW', null])(
+	it.each([UserRole.CONSULTOR, UserRole.SIN_ROL, 'SOMETHING_NEW', null])(
 		'role %s is denied',
 		async (role) => {
 			expect(await run(asUser(1, role), 1)).toEqual({ ok: false })
@@ -345,31 +345,58 @@ describe('checkBusinessRoleGate', () => {
 		UserRole.ANALISTA_SOPORTE,
 		UserRole.AGENTE,
 		UserRole.PARTNER,
-	])('%s passes for read and write', (role) => {
-		expect(checkBusinessRoleGate(asUser(1, role), 'read')).toBeNull()
-		expect(checkBusinessRoleGate(asUser(1, role), 'write')).toBeNull()
+	])('%s passes for read and write', async (role) => {
+		expect(await checkBusinessRoleGate(asUser(1, role), 'read')).toBeNull()
+		expect(await checkBusinessRoleGate(asUser(1, role), 'write')).toBeNull()
 	})
 
-	it('CONSULTOR passes read and gets 403 on write', () => {
+	it('CONSULTOR passes read and gets 403 on write', async () => {
 		expect(
-			checkBusinessRoleGate(asUser(1, UserRole.CONSULTOR), 'read')
+			await checkBusinessRoleGate(asUser(1, UserRole.CONSULTOR), 'read')
 		).toBeNull()
 		expect(
-			checkBusinessRoleGate(asUser(1, UserRole.CONSULTOR), 'write')
+			await checkBusinessRoleGate(asUser(1, UserRole.CONSULTOR), 'write')
 		).toEqual({ ok: false, reason: 'FORBIDDEN' })
 	})
 
-	it.each([UserRole.DEFAULT, 'SOMETHING_NEW', '', null])(
+	it.each([UserRole.SIN_ROL, 'SOMETHING_NEW', '', null])(
 		'%s fails closed for read and write',
-		(role) => {
-			expect(checkBusinessRoleGate(asUser(1, role), 'read')).toEqual({
+		async (role) => {
+			expect(await checkBusinessRoleGate(asUser(1, role), 'read')).toEqual({
 				ok: false,
 				reason: 'FORBIDDEN',
 			})
-			expect(checkBusinessRoleGate(asUser(1, role), 'write')).toEqual({
+			expect(await checkBusinessRoleGate(asUser(1, role), 'write')).toEqual({
 				ok: false,
 				reason: 'FORBIDDEN',
 			})
 		}
 	)
+})
+
+describe('business access driven by database grants (flag db)', () => {
+	it('uses the role_permission grants of a custom role', async () => {
+		vi.stubEnv('ACCESS_CONTROL_SOURCE', 'db')
+		const prismaMod = await import('@/lib/prisma')
+		const prismaAny = prismaMod.prisma as unknown as Record<string, unknown>
+		const original = { role: prismaAny.role, rolePermission: prismaAny.rolePermission }
+		prismaAny.role = { findUnique: vi.fn().mockResolvedValue({ idRole: 9, active: true }) }
+		prismaAny.rolePermission = {
+			findMany: vi.fn().mockResolvedValue([
+				{ scope: 'COMPANY', minLevel: null, permission: { code: 'negocios.ver' } },
+			]),
+		}
+		try {
+			expect(await checkBusinessRoleGate(asUser(1, 'AUDITOR'), 'read')).toBeNull()
+			// no negocios.editar granted: writes are refused
+			expect(await checkBusinessRoleGate(asUser(1, 'AUDITOR'), 'write')).toEqual({
+				ok: false,
+				reason: 'FORBIDDEN',
+			})
+		} finally {
+			prismaAny.role = original.role
+			prismaAny.rolePermission = original.rolePermission
+			vi.unstubAllEnvs()
+		}
+	})
 })

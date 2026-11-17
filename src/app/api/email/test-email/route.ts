@@ -4,8 +4,7 @@ import {
 	sendEmail,
 	sendTemplatedEmail,
 } from '@/features/email/lib/email-service'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 
 /**
  * Whether the test-email debug endpoints are reachable at all. Restricted to
@@ -29,7 +28,7 @@ export async function GET() {
 		return NextResponse.json({ error: 'Not found' }, { status: 404 })
 	}
 
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.correo')
 	if (!guard.ok) {
 		return guard.response
 	}
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: 'Not found' }, { status: 404 })
 	}
 
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.correo')
 	if (!guard.ok) {
 		return guard.response
 	}

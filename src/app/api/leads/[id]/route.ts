@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requirePermission } from '@/features/access-control/services/require-permission'
+import { resolveLeadVisibility } from '@/features/leads/services/lead-visibility.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import {
-	getAccessibleUserIds,
-	isHierarchyBypassRole,
 } from '@/features/auth/lib/hierarchy'
 import { getLeadDetail } from '@/features/leads/services/lead-board.service'
 import { deleteLead } from '@/features/leads/services/lead-admin.service'
@@ -52,11 +50,15 @@ export async function GET(_request: Request, context: RouteContext) {
 			return NextResponse.json(errorResponse, { status: 404 })
 		}
 
-		const visibleUserIds = isHierarchyBypassRole(currentUser.role?.code)
-			? []
-			: await getAccessibleUserIds(currentUser.idUser)
+		const { unrestricted, visibleUserIds } = await resolveLeadVisibility(
+			currentUser.role?.code,
+			currentUser.idUser
+		)
 
-		const lead = await getLeadDetail(idLead, currentUser, { visibleUserIds })
+		const lead = await getLeadDetail(idLead, currentUser, {
+			visibleUserIds,
+			unrestricted,
+		})
 
 		if (!lead) {
 			const errorResponse: ApiResponse<null> = {
@@ -85,7 +87,7 @@ export async function GET(_request: Request, context: RouteContext) {
  * re-evaluates eligibility server-side (never trusts a client-side check).
  */
 export async function DELETE(_request: Request, context: RouteContext) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requirePermission('leads.eliminar')
 	if (!guard.ok) {
 		return guard.response
 	}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { Session } from 'next-auth'
 import { auth } from '@/lib/auth/nextauth'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import type { UserRole } from '@/features/auth/lib/roles'
 
 export type RequireRoleFailure = {
@@ -72,4 +73,26 @@ export async function requireAuth(): Promise<
 		}
 	}
 	return { ok: true, session }
+}
+
+/**
+ * Same contract and response bodies as `requireRole`, but the gate is a
+ * permission of the access-control catalog instead of a hardcoded role list:
+ * an authenticated session whose role holds `permissionCode`.
+ */
+export async function requireRolePermission(
+	permissionCode: string
+): Promise<RequireRoleSuccess | RequireRoleFailure> {
+	const guard = await requireAuth()
+	if (!guard.ok) return guard
+	if (!(await roleCan(guard.session.user.role, permissionCode))) {
+		return {
+			ok: false,
+			response: NextResponse.json(
+				{ success: false, error: 'Sin permisos' },
+				{ status: 403 }
+			),
+		}
+	}
+	return guard
 }

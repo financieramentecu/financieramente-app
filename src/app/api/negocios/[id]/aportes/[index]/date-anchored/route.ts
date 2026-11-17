@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { auth } from '@/auth'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { PaymentInstallmentDto } from '@/features/negocios/types/business-api.types'
-import { canFundPayments } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { updatePaymentDateAnchored } from '@/features/negocios/services/payment-state.service'
@@ -42,7 +42,7 @@ export async function PATCH(
 			)
 		}
 
-		if (!canFundPayments(currentUser.role?.code)) {
+		if (!(await roleCan(currentUser.role?.code, 'aportes.fondear'))) {
 			return NextResponse.json(
 				{ data: null, error: 'Permiso denegado' },
 				{ status: 403 }

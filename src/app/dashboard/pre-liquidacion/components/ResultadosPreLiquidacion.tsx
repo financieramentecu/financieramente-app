@@ -1,5 +1,9 @@
 'use client'
 
+import {
+	SkeletonRegion,
+	TableRowsLoadingSkeleton,
+} from '@/features/shared/ui/loading-skeletons'
 import { useResultadosPreLiquidacion } from '@/features/pre-liquidacion/hooks/use-resultados-pre-liquidacion'
 import {
     // ... imports
@@ -131,10 +135,9 @@ export function ResultadosPreLiquidacion({
                 </div>
 
                 {isLoading ? (
-                    <div className="text-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto"></div>
-                        <p className="text-muted-foreground mt-4">Cargando resultados...</p>
-                    </div>
+                    <SkeletonRegion label="Cargando resultados">
+                        <TableRowsLoadingSkeleton rows={6} />
+                    </SkeletonRegion>
                 ) : resultados.length === 0 ? (
 <div className="text-center py-12 text-muted-foreground">
                                         No se encontraron registros que coincidan con los filtros.

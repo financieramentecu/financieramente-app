@@ -6,6 +6,12 @@ import { createMockUserWithRole } from '@/features/shared/__tests__/fixtures/moc
 
 // ---------- module mocks ----------
 
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
 vi.mock('@/features/negocios/hooks/use-business-mutation', () => ({
 	useBusinessMutation: () => ({
 		updateBusiness: vi.fn(),

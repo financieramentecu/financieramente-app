@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +20,7 @@ export async function POST(
 	props: RouteParams
 ): Promise<NextResponse> {
 	const params = await props.params
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.distribucion')
 	if (!guard.ok) {
 		return guard.response
 	}

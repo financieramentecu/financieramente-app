@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { createCommissionDiscountSchema } from '@/features/commission-discounts/lib/commission-discount-schemas'
 import {
 	listDiscounts,
@@ -56,7 +55,7 @@ export async function GET(
 
 export async function POST(request: Request): Promise<NextResponse> {
 	// Discounts feed every commission calculation: only ADMIN may create them.
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.catalogos')
 	if (!guard.ok) return guard.response
 	const { session } = guard
 

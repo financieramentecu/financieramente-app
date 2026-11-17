@@ -126,10 +126,10 @@ describe('authConfigEdge authorized - non-partner regression', () => {
 		}
 	)
 
-	it('redirects a DEFAULT role on the dashboard to access-denied', async () => {
+	it('redirects a SIN_ROL role on the dashboard to access-denied', async () => {
 		const result = (await callAuthorized({
 			pathname: '/dashboard',
-			role: 'DEFAULT',
+			role: 'SIN_ROL',
 		})) as Response
 		expect(result.status).toBe(302)
 		expect(new URL(result.headers.get('Location')!).pathname).toBe(
@@ -137,9 +137,9 @@ describe('authConfigEdge authorized - non-partner regression', () => {
 		)
 	})
 
-	it('does not gate DEFAULT on /api (only dashboard pages)', async () => {
+	it('does not gate SIN_ROL on /api (only dashboard pages)', async () => {
 		await expect(
-			callAuthorized({ pathname: '/api/negocios', role: 'DEFAULT' })
+			callAuthorized({ pathname: '/api/negocios', role: 'SIN_ROL' })
 		).resolves.toBe(true)
 	})
 })

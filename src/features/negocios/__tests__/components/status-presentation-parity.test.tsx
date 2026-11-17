@@ -1,9 +1,25 @@
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import {
+	setMockRole,
+	roleFromElement,
+} from '@/features/access-control/testing/mock-permissions'
 import { describe, expect, it, vi } from 'vitest'
 import { BusinessViewModal } from '@/features/negocios/components/modals/BusinessViewModal'
 import { BusinessStatusBadge } from '@/features/negocios/components/ui/BusinessStatusBadge'
 import { createMockBusiness } from '@/features/negocios/__tests__/fixtures/mock-business'
 import DetalleNegocioPage from '@/app/dashboard/negocios/[id]/page'
+
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
+const render = (...args: Parameters<typeof rtlRender>) => {
+	setMockRole(roleFromElement(args[0]))
+	return rtlRender(...args)
+}
+
 
 vi.mock('@/auth', () => ({
 	auth: vi.fn(async () => ({ user: { email: 'test@financieramente.com' } })),
@@ -14,7 +30,7 @@ vi.mock('@/features/negocios/services/user.service', () => ({
 		id: 1,
 		name: 'Test User',
 		email: 'test@financieramente.com',
-		role: { name: 'ADMIN' },
+		role: { name: 'ADMIN', code: 'ADMIN' },
 	})),
 }))
 

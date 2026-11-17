@@ -15,6 +15,7 @@ import {
 	getNovedadContext,
 	updateNovedadStatus,
 } from '@/features/negocios/services/business-novedad.service'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -30,7 +31,6 @@ interface RouteParams {
 /**
  * Roles que pueden gestionar manualmente el estado de novedad
  */
-const MANAGE_NOVEDAD_ALLOWED_ROLES = [UserRole.ADMIN, UserRole.ANALISTA_SOPORTE]
 
 /**
  * PATCH /api/negocios/[id]/manage-novedad
@@ -63,7 +63,7 @@ export async function PATCH(
 		}
 
 		const userRole = currentUser.role?.code as UserRole
-		if (!MANAGE_NOVEDAD_ALLOWED_ROLES.includes(userRole)) {
+		if (!(await roleCan(userRole, 'novedades.gestionar'))) {
 			return NextResponse.json(
 				{ data: null, error: 'No tiene permisos para gestionar la novedad de este negocio' },
 				{ status: 403 }

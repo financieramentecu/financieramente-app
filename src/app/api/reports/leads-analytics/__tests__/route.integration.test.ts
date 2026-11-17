@@ -56,7 +56,6 @@ vi.mock(
 )
 
 vi.mock('@/features/auth/lib/hierarchy', () => ({
-	isHierarchyBypassRole: vi.fn(),
 }))
 
 vi.mock('@/features/reports/leads-analytics/lib/leads-analytics-scope', () => ({
@@ -76,7 +75,6 @@ import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/shared/services/user.service'
 import { canViewReport } from '@/features/report-permissions/services/report-permissions.service'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 import { getLeadsAnalyticsReport } from '@/features/reports/leads-analytics/services/leads-analytics.service'
 import { GET } from '@/app/api/reports/leads-analytics/route'
 import { EMPTY_LEADS_ANALYTICS_REPORT } from '@/features/reports/leads-analytics/lib/empty-report'
@@ -84,7 +82,6 @@ import { EMPTY_LEADS_ANALYTICS_REPORT } from '@/features/reports/leads-analytics
 const mockAuth = vi.mocked(auth)
 const mockGetUser = vi.mocked(getCurrentUserByEmail)
 const mockCanView = vi.mocked(canViewReport)
-const mockBypass = vi.mocked(isHierarchyBypassRole)
 const mockReport = vi.mocked(getLeadsAnalyticsReport)
 
 function reportRequest(
@@ -135,7 +132,6 @@ describe('GET /api/reports/leads-analytics', () => {
 			role: { code: UserRole.AGENTE },
 		} as never)
 		mockCanView.mockResolvedValue(true)
-		mockBypass.mockReturnValue(false)
 		mockReport.mockResolvedValue(EMPTY_LEADS_ANALYTICS_REPORT)
 
 		const res = await GET(reportRequest())

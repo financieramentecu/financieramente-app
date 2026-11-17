@@ -1,6 +1,6 @@
 import { DefaultSession } from 'next-auth'
 import { UserRole } from '@/features/auth/lib/roles'
-import { RolePermissions } from '@/features/auth/lib/permissions'
+import type { RoleGrants } from '@/features/access-control/types/access-control.types'
 
 /**
  * Tipos extendidos para NextAuth
@@ -14,7 +14,9 @@ declare module 'next-auth' {
 			name?: string | null
 			image?: string | null
 			role?: UserRole | null
-			permissions?: RolePermissions | null
+			grants?: RoleGrants
+			/** Level codes lowest to highest; filled only when a grant has a minimum level. */
+			levelOrder?: string[]
 		} & DefaultSession['user']
 	}
 

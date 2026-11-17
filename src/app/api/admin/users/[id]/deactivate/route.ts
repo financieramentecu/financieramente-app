@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import {
 	PARTNER_MANAGED_ERROR,
@@ -17,7 +16,7 @@ export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('usuarios.activar')
 	if (!guard.ok) {
 		return guard.response
 	}

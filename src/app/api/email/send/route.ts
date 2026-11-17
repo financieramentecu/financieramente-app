@@ -8,8 +8,7 @@ import {
 	sendEmailSchema,
 } from '@/features/email/lib/email-schemas'
 import { z } from 'zod'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 
 /**
  * POST /api/email/send
@@ -21,7 +20,7 @@ import { UserRole } from '@/features/auth/lib/roles'
  * 2. Email tradicional (texto plano o HTML)
  */
 export async function POST(request: Request) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('configuracion.correo')
 	if (!guard.ok) {
 		return guard.response
 	}

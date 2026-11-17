@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { AppSidebar } from '../Sidebar'
 import { SidebarProvider } from '@/features/shared/ui/sidebar'
 import { UserRole } from '@/features/auth/lib/roles'
-import { getRolePermissions } from '@/features/auth/lib/permissions'
+import { DEFAULT_ROLE_GRANTS } from '@/features/access-control/catalog/default-role-grants'
 
 vi.mock('next-auth/react', () => ({
 	useSession: vi.fn(),
@@ -54,7 +54,7 @@ describe('AppSidebar', () => {
 			data: {
 				user: {
 					role: UserRole.ADMIN,
-					permissions: getRolePermissions(UserRole.ADMIN),
+					grants: DEFAULT_ROLE_GRANTS[UserRole.ADMIN],
 				},
 			},
 			status: 'authenticated',

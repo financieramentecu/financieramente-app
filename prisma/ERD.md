@@ -11,6 +11,7 @@ Sistema: Financieramente — liquidación de comisiones.
 - `AccountTokenType`: `ACTIVATION` | `RESET` (en `account_token.type`).
 - `LeadOutcomeStatus`: `OPEN` | `WON` | `LOST` | `ABANDONED` (en `lead.outcome_status`, `@default(OPEN)`, `NOT NULL`). `WON` es terminal: ver nota bajo "Índices y convenciones".
 - `DocumentDataType`: `NUMERIC` | `ALPHANUMERIC` (en `document_type.data_type`).
+- `DataScope`: `OWN` | `TEAM` | `COMPANY` (en `role_permission.scope`, nullable: solo aplica a permisos con `permission.supports_scope`).
 - `LeadStageChangeSource`: `CRM_SYNC` | `CSV_IMPORT` | `MANUAL` (en `lead_stage_history.source`).
 - `LeadActivityType`: `NOTE_ADDED` | `CALL_LOGGED` | `MEETING_LOGGED` | `EMAIL_LOGGED` | `WHATSAPP_LOGGED` | `TASK_CREATED` | `TASK_COMPLETED` | `TASK_REASSIGNED` | `TASK_COMMENTED` | `CONVERTED` | `BUSINESS_LINKED` | `CASE_OPENED` | `CASE_UPDATED` (en `lead_activity.type`). `TASK_COMMENTED` registra un comentario de tarea; un comentario de caso sigue siendo `CASE_UPDATED` con `action: COMMENTED`.
 - `LeadTaskType`: `TODO` | `CALL` | `MEETING` | `EMAIL` | `WHATSAPP` (en `lead_task.type`, `@default(TODO)`). El nombre visible vive en `lead_activity_label` (`code` nulo = etiqueta creada por el equipo).
@@ -38,6 +39,9 @@ erDiagram
     ReportDefinition ||--o{ CategoryReportPermission : "categorías habilitadas"
     Role ||--o{ User : "rol asignado"
     Role ||--o{ AuditLog : "rol en auditoría"
+    Role ||--o{ RolePermission : "permisos del rol"
+    Permission ||--o{ RolePermission : "asignado a roles"
+    Level ||--o{ RolePermission : "nivel mínimo"
     BuyPeriodicity ||--o{ Business : "periodicidad de compra"
     Currency ||--o{ Business : "moneda negocio"
     Currency ||--o{ Company : "moneda compañía"
@@ -197,6 +201,31 @@ erDiagram
         string name
         text description
         boolean active
+        boolean is_system
+        datetime created_at
+        datetime updated_at
+    }
+
+    Permission {
+        int id_permission PK
+        string code UK
+        string name
+        string module
+        int sort_order
+        boolean supports_scope
+        boolean supports_min_level
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
+
+    RolePermission {
+        int id_role_permission PK
+        int id_role FK
+        int id_permission FK
+        enum scope "DataScope, nullable"
+        int id_min_level FK "nullable"
+        boolean status
         datetime created_at
         datetime updated_at
     }
@@ -776,6 +805,7 @@ erDiagram
 - **Nuevas tablas `report_definition` y `category_report_permission`** (migración `20260805150000_add_report_permissions`, feature reportes/COM-80): catálogo de reportes con `code` único estable (p. ej. `PRODUCCION_REAL`) y habilitación por `Category`. Soft delete en ambas vía `status = false` — nunca `delete()` físico. Unique compuesto `(id_report, id_category)`. Save reemplaza el set: upsert `status=true` para seleccionadas; soft-disable las no seleccionadas. Seeds de deploy (`prisma migrate deploy`, no `db seed`): **Performance Leader** → `PRODUCCION_REAL` (`20260821153000`); **Performance Leader** + **Business Leader** → `LEADS_ANALYTICS` (`20260821180000`, reafirmado en `20260903120000`) y `ABA_MFUND` (`20260903120000`). ADMIN bypasea la validación de categoría al ver reportes.
 - **`User.activated_at` y nueva tabla `account_token`** (migración `20261010150000_partner_profile`, COM-41): `activated_at` es `TIMESTAMP(3)` nullable; la migración hace backfill `activated_at = created_at` para todos los usuarios existentes (nadie pierde acceso) y solo los usuarios nuevos nacen con `NULL` (pendientes de activación). El login exige `active AND activated_at IS NOT NULL`. `account_token` guarda únicamente el hash SHA-256 (`token_hash` único, `VARCHAR(64)`) de los tokens `ACTIVATION` (72 h) y `RESET` (1 h); se invalidan con `revoked_at` y se consumen con `used_at` (nunca se borran filas). Índice `(id_user, type)`.
 - **Nivel `PARTNER_EXTERNAL`** (COM-41, sembrado por `npm run prisma:seed:partner`, sin migración): fila de `level` con `beneficiary_mode = OVERRIDE` y sin `id_next_level`. Queda **fuera** de `NEXT_LEVEL_CHAIN` (no es siguiente nivel de ninguno) y no se renombra desde `LEVEL_5`, que sigue siendo "Partner". El rol `PARTNER` y la categoría "Partner Externo" (tipo `MIA`) también se siembran allí.
+- **Gestión de roles y permisos** (migración `20261112174104_access_control_permissions`, feature `access-control`): nuevas tablas `permission` (catálogo definido en código, sincronizado por `npm run prisma:seed:permissions`; nunca se borra, se desactiva con `status`) y `role_permission` (UNIQUE `id_role + id_permission`; `scope` nullable de tipo `DataScope`; `id_min_level` FK nullable a `level` para permisos con nivel mínimo configurable, p. ej. `negocios.exportar`). `role.is_system` marca los roles que no se pueden eliminar ni cambiar de código (`ADMIN`, `PARTNER`, `SIN_ROL`). La migración renombra el rol `DEFAULT` a `SIN_ROL` (`name` = "Sin rol asignado"); los usuarios conservan el vínculo por `id_role`. `ADMIN` recibe siempre todos los permisos con alcance `COMPANY`.
 - **Nueva tabla `lead_stage_history`** (migración `20261105120000_add_lead_stage_history`, change `crm-phase-0-foundation`): log de solo inserción (nunca se actualiza ni se borra) de cada transición de etapa del embudo. La escriben el webhook `crm-sync` (`source = CRM_SYNC`, `id_user = NULL`, `changed_at = updatedAt` del payload o el instante de proceso) y la importación CSV (`source = CSV_IMPORT`, `id_user` = quien importa) solo cuando el lead es nuevo (`from_id_lead_funnel_column = NULL`) o cambia de columna. Dos FKs a `lead_funnel_column` (relaciones `LeadStageHistoryFrom` / `LeadStageHistoryTo`). Índices `(id_lead, changed_at)` y `(to_id_lead_funnel_column, changed_at)` para reportes de tiempo en etapa. Un fallo al escribir el historial se reporta a Sentry y nunca rompe la sincronización. `MANUAL` queda reservado para el CRM editable (Fase 4).
 - **CRM: columnas del tablero** (migraciones `20261112190000_add_lead_activity_column` y `20261112200000_activity_column_catalogue`): `lead_activity_column` guarda el título visible. Los `code` `overdue | today | upcoming | done` siguen agrupando por vencimiento. Cualquier otro `code` es una columna creada por el equipo: la tarjeta cae ahí solo si `lead_task.column_code` o `lead_support_case.column_code` apunta a ese código. `active = false` oculta la columna (no se borra la fila). Ocultar una columna propia devuelve sus tarjetas a la columna de vencimiento. La última columna visible no se puede ocultar. Volver a crear una columna oculta con el mismo nombre la reactiva.
 - **CRM: etiquetas de actividad** (migración `20261112183000_add_lead_activity_label`): `lead_activity_label` es el catálogo de nombres que se ven en la tarjeta (color, `active`, `code` único y nulo en las etiquetas creadas por el equipo). La migración siembra Tarea, Llamada, Reunión, Email y WhatsApp con el `id_user` más bajo y enlaza `lead_task.id_lead_activity_label` según `lead_task.type`. `lead_task.type` se conserva para recordatorios y tareas anteriores al catálogo. Borrar una etiqueta es lógico (`active = false`); la última etiqueta activa no se puede desactivar.

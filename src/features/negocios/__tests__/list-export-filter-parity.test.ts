@@ -9,6 +9,11 @@ import { toBusinessListFilterInput } from '@/features/negocios/lib/to-business-l
 import { UserRole } from '@/features/auth/lib/roles'
 
 const adminUser = { idUser: 1, role: { code: UserRole.ADMIN } }
+/** ADMIN-like viewer: COMPANY scope, so the caller marks the list unrestricted. */
+const buildAdminWhere = (
+	filters: Parameters<typeof buildBusinessListWhere>[1],
+	options: Parameters<typeof buildBusinessListWhere>[2] = {}
+) => buildBusinessListWhere(adminUser, filters, { unrestricted: true, ...options })
 
 describe('lista GET vs export POST — paridad de filtros (tasks 5.5)', () => {
 	it('mismos search, status y rango de fechas → mismo BusinessListFilterInput y mismo Prisma where', () => {
@@ -41,8 +46,8 @@ describe('lista GET vs export POST — paridad de filtros (tasks 5.5)', () => {
 		})
 
 		expect(filtersExport).toEqual(filtersList)
-		expect(buildBusinessListWhere(adminUser, filtersList)).toEqual(
-			buildBusinessListWhere(adminUser, filtersExport)
+		expect(buildAdminWhere(filtersList)).toEqual(
+			buildAdminWhere(filtersExport)
 		)
 	})
 
@@ -67,8 +72,8 @@ describe('lista GET vs export POST — paridad de filtros (tasks 5.5)', () => {
 		})
 
 		expect(filtersExport).toEqual(filtersList)
-		expect(buildBusinessListWhere(adminUser, filtersList)).toEqual(
-			buildBusinessListWhere(adminUser, filtersExport)
+		expect(buildAdminWhere(filtersList)).toEqual(
+			buildAdminWhere(filtersExport)
 		)
 	})
 
@@ -176,15 +181,15 @@ describe('lista GET vs export POST — paridad de filtros (tasks 5.5)', () => {
 		})
 
 		expect(filtersFromExport).toEqual(filtersFromList)
-		expect(buildBusinessListWhere(adminUser, filtersFromList)).toEqual(
-			buildBusinessListWhere(adminUser, filtersFromExport)
+		expect(buildAdminWhere(filtersFromList)).toEqual(
+			buildAdminWhere(filtersFromExport)
 		)
 	})
 
 	it('single status backward compat: status=EMITIDO produces correct WHERE', () => {
 		const listParsed = businessListParamsSchema.parse({ status: 'EMITIDO' })
 		const filters = toBusinessListFilterInput({ status: listParsed.status })
-		const where = buildBusinessListWhere(adminUser, filters)
+		const where = buildAdminWhere(filters)
 		expect(where).toEqual({ AND: [{ status: 'EMITIDO' }] })
 	})
 })

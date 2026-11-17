@@ -1,5 +1,7 @@
 'use client'
 
+import { SkeletonRegion } from '@/features/shared/ui/loading-skeletons'
+import { Skeleton } from '@/features/shared/ui/skeleton'
 import { useEffect, useRef, useState } from 'react'
 import { MessageSquare } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/features/shared/ui/sheet'
@@ -70,9 +72,15 @@ export function CommentsSidebar({
           </SheetHeader>
 
           {state.status === 'loading' && (
-            <div className="flex flex-1 items-center justify-center">
-              <p className="text-sm text-muted-foreground animate-pulse">Cargando comentarios…</p>
-            </div>
+            <SkeletonRegion label="Cargando comentarios" className="space-y-4 p-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                </div>
+              ))}
+            </SkeletonRegion>
           )}
 
           {state.status === 'error' && (

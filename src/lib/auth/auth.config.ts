@@ -92,8 +92,8 @@ export const authConfigEdge: NextAuthConfig = {
 
 			if (isOnDashboard || isOnProtectedApi) {
 				if (isLoggedIn) {
-					// Verificar rol DEFAULT
-					if (auth?.user?.role === 'DEFAULT') {
+					// Verificar rol SIN_ROL
+					if (auth?.user?.role === 'SIN_ROL') {
 						return Response.redirect(
 							new URL('/access-denied?reason=default_role', nextUrl)
 						)

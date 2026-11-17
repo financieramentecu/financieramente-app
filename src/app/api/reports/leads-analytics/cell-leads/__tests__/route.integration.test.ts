@@ -56,7 +56,6 @@ vi.mock(
 )
 
 vi.mock('@/features/auth/lib/hierarchy', () => ({
-	isHierarchyBypassRole: vi.fn(),
 }))
 
 vi.mock('@/features/reports/leads-analytics/lib/leads-analytics-scope', () => ({
@@ -76,14 +75,12 @@ import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/shared/services/user.service'
 import { canViewReport } from '@/features/report-permissions/services/report-permissions.service'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 import { getHeatmapCellLeads } from '@/features/reports/leads-analytics/services/heatmap-cell-leads.service'
 import { GET } from '@/app/api/reports/leads-analytics/cell-leads/route'
 
 const mockAuth = vi.mocked(auth)
 const mockGetUser = vi.mocked(getCurrentUserByEmail)
 const mockCanView = vi.mocked(canViewReport)
-const mockBypass = vi.mocked(isHierarchyBypassRole)
 const mockCellLeads = vi.mocked(getHeatmapCellLeads)
 
 function cellRequest(idUser?: string): NextRequest {
@@ -112,7 +109,6 @@ describe('GET /api/reports/leads-analytics/cell-leads', () => {
 			level: { code: 'PERFORMANCE_LEADER' },
 		} as never)
 		mockCanView.mockResolvedValue(true)
-		mockBypass.mockReturnValue(false)
 		mockCellLeads.mockResolvedValue({ leads: [], total: 0, isTruncated: false })
 	})
 

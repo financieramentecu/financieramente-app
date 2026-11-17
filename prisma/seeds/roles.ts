@@ -16,10 +16,10 @@ export const roles = [
 		active: true,
 	},
 	{
-		code: 'DEFAULT',
-		name: 'Default',
+		code: 'SIN_ROL',
+		name: 'Sin rol asignado',
 		description:
-			'Rol por defecto asignado a usuarios nuevos pendientes de activación',
+			'Usuarios nuevos pendientes de activación. No tiene permisos.',
 		active: true,
 	},
 	{

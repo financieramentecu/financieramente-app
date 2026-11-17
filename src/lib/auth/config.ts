@@ -9,11 +9,10 @@ import {
 	validateUserById,
 } from '@/features/auth/lib/user-validation'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
-import {
-	getRolePermissions,
-	RolePermissions,
-} from '@/features/auth/lib/permissions'
 import { UserRole } from '@/features/auth/lib/roles'
+import { prisma } from '@/lib/prisma'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
+import { resolveLevelOrder, resolveRoleGrants } from '@/features/access-control/services/role-grants.service'
 import { checkCredentialsAttempt } from '@/features/auth/lib/credentials-rate-limiter'
 import { CredentialsRateLimitedError } from '@/features/auth/lib/credentials-errors'
 import { getTrustedClientIp } from '@/features/auth/lib/trusted-client-ip'
@@ -33,9 +32,6 @@ function restoreOriginalAdmin(token: JWT): void {
 	token.role = token.originalRole
 	token.email = token.originalEmail || undefined
 	token.name = token.originalName || null
-	if (token.role && typeof token.role === 'string') {
-		token.permissions = getRolePermissions(token.role as UserRole)
-	}
 
 	delete token.originalUserId
 	delete token.originalRole
@@ -77,7 +73,6 @@ async function revalidateSessionToken(token: JWT): Promise<JWT | null> {
 
 		if (token.role !== result.roleCode) {
 			token.role = result.roleCode as UserRole
-			token.permissions = getRolePermissions(result.roleCode as UserRole)
 		}
 		return token
 	} catch (error) {
@@ -322,17 +317,14 @@ export const authConfig: NextAuthConfig = {
 				token.name = user.name || null
 				token.picture = user.image || null
 				token.role = user.role as UserRole | null | undefined
-
-				// Obtener permisos del rol
-				if (token.role && typeof token.role === 'string') {
-					token.permissions = getRolePermissions(token.role as UserRole)
-				}
 			}
 
 			// Manejo de impersonation (Ver Como)
 			if (trigger === 'update' && session?.impersonateUserId) {
 				// Solo permitimos impersonar si el rol original es ADMIN
-				const isAdmin = token.originalRole === UserRole.ADMIN || token.role === UserRole.ADMIN
+				const isAdmin =
+					Boolean(token.originalUserId) ||
+					(await roleCan(token.role, 'usuarios.ver_como'))
 				
 				if (isAdmin) {
 					if (session.impersonateUserId === 'STOP') {
@@ -362,10 +354,6 @@ export const authConfig: NextAuthConfig = {
 									token.role = validation.user.role
 									token.email = validation.user.email
 									token.name = validation.user.name
-									
-									if (token.role && typeof token.role === 'string') {
-										token.permissions = getRolePermissions(token.role as UserRole)
-									}
 								} else {
 									console.warn(`Admin ${token.email} intentó impersonar a otro Admin (ID: ${targetId}) - Acción bloqueada por seguridad.`)
 								}
@@ -381,9 +369,6 @@ export const authConfig: NextAuthConfig = {
 				if (validation.isValid && validation.user) {
 					token.userId = validation.user.id
 					token.role = validation.user.role
-					if (token.role && typeof token.role === 'string') {
-						token.permissions = getRolePermissions(token.role as UserRole)
-					}
 				}
 			}
 
@@ -404,11 +389,23 @@ export const authConfig: NextAuthConfig = {
 				session.user.role =
 					(typeof token.role === 'string' ? (token.role as UserRole) : null) ||
 					null
-				if (token.permissions && typeof token.permissions === 'object') {
-					session.user.permissions = token.permissions as RolePermissions
-				} else {
-					session.user.permissions = null
+				// Grants follow the effective role on every session read, so a change
+				// of role (or of the role's permissions) applies without a new login.
+				try {
+					session.user.grants = await resolveRoleGrants(
+						prisma,
+						session.user.role
+					)
+				} catch (error) {
+					console.error('Failed to resolve role grants:', error)
+					session.user.grants = {}
 				}
+				const needsLevels = Object.values(session.user.grants ?? {}).some(
+					(grant) => grant.minLevelCode
+				)
+				session.user.levelOrder = needsLevels
+					? [...(await resolveLevelOrder(prisma))]
+					: []
 				
 				// Pasar datos de impersonation si existen
 				if (token.originalUserId) {

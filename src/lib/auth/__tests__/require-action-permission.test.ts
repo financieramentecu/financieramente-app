@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/auth/nextauth', () => ({ auth: vi.fn() }))
+vi.mock('@/lib/prisma', () => ({ prisma: {} }))
 
 import { auth } from '@/lib/auth/nextauth'
 import { requireActionPermission } from '../require-action-permission'
-import { hasPermission } from '@/features/auth/lib/permissions'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { UserRole } from '@/features/auth/lib/roles'
 
 const calculadoraAllowed = (role: string | undefined) =>
-	hasPermission(role, 'calculadora')
+	roleCan(role, 'calculadora.usar')
 
 describe('requireActionPermission', () => {
 	beforeEach(() => {
@@ -33,7 +34,7 @@ describe('requireActionPermission', () => {
 		})
 	})
 
-	it.each([UserRole.PARTNER, UserRole.DEFAULT, 'SOMETHING_NEW'])(
+	it.each([UserRole.PARTNER, UserRole.SIN_ROL, 'SOMETHING_NEW'])(
 		'rejects %s with "Sin permisos" when the permission check fails',
 		async (role) => {
 			vi.mocked(auth).mockResolvedValue({ user: { role } } as never)

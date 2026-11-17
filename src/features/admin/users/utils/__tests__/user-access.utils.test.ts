@@ -43,7 +43,7 @@ describe('user-access.utils', () => {
         ...mockActiveUserWithRole,
         role: {
             id: 2,
-            code: UserRole.DEFAULT,
+            code: UserRole.SIN_ROL,
             name: 'Default',
         },
     }
@@ -156,7 +156,7 @@ describe('user-access.utils', () => {
 
     describe('isDefaultRole', () => {
         it('should return true for DEFAULT role code', () => {
-            expect(isDefaultRole(UserRole.DEFAULT)).toBe(true)
+            expect(isDefaultRole(UserRole.SIN_ROL)).toBe(true)
         })
 
         it('should return false for non-DEFAULT role code', () => {

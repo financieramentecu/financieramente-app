@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PUT } from '../route'
 import { POST as activate } from '../activate/route'
 import { POST as deactivate } from '../deactivate/route'
-import { requireRole } from '@/lib/auth/require-role'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/features/auth/lib/audit-logger'
 import { sendTemplatedEmail } from '@/features/email/lib/email-service'
 
-vi.mock('@/lib/auth/require-role', () => ({ requireRole: vi.fn() }))
+vi.mock('@/lib/auth/require-role', () => ({ requireRolePermission: vi.fn() }))
 
 vi.mock('@/lib/prisma', () => {
 	const prisma = {
@@ -66,7 +66,7 @@ function mockExisting(overrides: Record<string, unknown>) {
 
 beforeEach(() => {
 	vi.clearAllMocks()
-	vi.mocked(requireRole).mockResolvedValue({
+	vi.mocked(requireRolePermission).mockResolvedValue({
 		ok: true,
 		session: { user: { id: '99', role: 'ADMIN' } },
 	} as never)

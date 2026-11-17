@@ -1,6 +1,6 @@
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { prisma } from '@/lib/prisma'
 import {
-	isReportViewBypassRole,
 	knownReportCodes,
 	mergeKnownReportCodes,
 } from '@/features/report-permissions/lib/report-permissions-helpers'
@@ -194,7 +194,7 @@ export async function canViewReport(
 	user: ReportAccessUser,
 	reportCode: string
 ): Promise<boolean> {
-	if (isReportViewBypassRole(user.roleCode)) {
+	if (await roleCan(user.roleCode, 'reportes.ver_todos')) {
 		return true
 	}
 	if (!user.idCategory) {
@@ -218,7 +218,7 @@ export async function canViewReport(
 export async function getAuthorizedReportCodes(
 	user: ReportAccessUser
 ): Promise<AuthorizedReportsDto> {
-	if (isReportViewBypassRole(user.roleCode)) {
+	if (await roleCan(user.roleCode, 'reportes.ver_todos')) {
 		try {
 			const reports = await prisma.reportDefinition.findMany({
 				where: { status: true },

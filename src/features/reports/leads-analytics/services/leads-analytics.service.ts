@@ -48,7 +48,7 @@ export async function getLeadsAnalyticsReport(
 	const baseWhere = buildLeadListWhere(
 		query.viewer,
 		{ createdAtRange },
-		{ visibleUserIds: [...query.visibleUserIds] }
+		{ visibleUserIds: [...query.visibleUserIds], unrestricted: query.isBypass }
 	)
 	const where: Prisma.LeadWhereInput = query.isBypass
 		? { AND: [baseWhere, { idUser: { in: [...query.visibleUserIds] } }] }

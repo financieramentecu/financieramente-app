@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { BusinessEntity } from '@/features/negocios/types/business-entity.types'
-import { canFundPayments } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { updateBusinessDateAnchored } from '@/features/negocios/services/business-date-anchored.service'
@@ -45,7 +45,7 @@ export async function PATCH(
 			)
 		}
 
-		if (!canFundPayments(currentUser.role?.code)) {
+		if (!(await roleCan(currentUser.role?.code, 'aportes.fondear'))) {
 			return NextResponse.json(
 				{ data: null, error: 'Permiso denegado' },
 				{ status: 403 }

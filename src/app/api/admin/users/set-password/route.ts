@@ -1,3 +1,4 @@
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
         }
 
         // Verificar que el usuario autenticado sea ADMIN
-        if (session.user.role !== UserRole.ADMIN) {
+        if (!(await roleCan(session.user.role, 'usuarios.contrasena'))) {
             return NextResponse.json(
                 { error: 'No autorizado. Solo administradores pueden establecer contraseñas.' },
                 { status: 403 }

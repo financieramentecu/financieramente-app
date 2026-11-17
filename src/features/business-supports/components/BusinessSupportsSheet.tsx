@@ -1,5 +1,6 @@
 'use client'
 
+import { ListRowsSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { useState } from 'react'
 import { Trash2, ImageIcon, ZoomIn, FileText } from 'lucide-react'
 import { toast } from 'sonner'
@@ -24,7 +25,8 @@ import { Badge } from '@/features/shared/ui/badge'
 import { useBusinessSupports } from '../hooks/useBusinessSupports'
 import { useDeleteComprobante } from '../hooks/useDeleteComprobante'
 import type { BusinessSupportDTO } from '../types/business-support.types'
-import { UserRole, canDeleteBusinessComprobante } from '@/features/auth/lib/roles'
+import type { UserRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { isImageMime } from '../lib/mime-utils'
 
 interface ViewComprobantesSheetProps {
@@ -202,14 +204,14 @@ function SupportGallery({
 
 export function ViewComprobantesSheet({
   businessId,
-  userRole,
   open,
   onClose,
   onSupportDeleted,
 }: ViewComprobantesSheetProps) {
   const { state, refetch } = useBusinessSupports(businessId)
   const { remove } = useDeleteComprobante(businessId)
-  const canDelete = canDeleteBusinessComprobante(userRole)
+  const { can } = usePermissions()
+  const canDelete = can('comprobantes.eliminar')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
@@ -243,9 +245,7 @@ export function ViewComprobantesSheet({
           </SheetHeader>
 
           {state.status === 'loading' && (
-            <div className="flex flex-1 items-center justify-center">
-              <p className="text-sm text-muted-foreground animate-pulse">Cargando comprobantes…</p>
-            </div>
+            <ListRowsSkeleton label="Cargando comprobantes" rows={4} />
           )}
 
           {state.status === 'error' && (

@@ -54,7 +54,7 @@ export async function GET(
 		}
 
 		// SEC-03: central access decision (AGENTE self+subordinates, PARTNER own)
-		const denied = checkBusinessRoleGate(currentUser, 'read')
+		const denied = await checkBusinessRoleGate(currentUser, 'read')
 		if (denied) {
 			return businessAccessDeniedResponse(denied.reason)
 		}

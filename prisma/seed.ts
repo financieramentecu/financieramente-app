@@ -10,6 +10,7 @@ import { seedNewCategories } from './seeds/category'
 import { seedDiscount } from './seeds/discount'
 import { seedProducts } from './seeds/product'
 import { seedRoles } from './seeds/roles'
+import { seedPermissions } from './seeds/permissions'
 import { seedUsers } from './seeds/user'
 import { seedProductPercentages } from './seeds/product-percentage'
 import { seedDistributionByLevel } from './seeds/distribution-by-level'
@@ -59,6 +60,7 @@ async function main() {
 
 		// 5. Seguridad y Roles
 		await seedRoles(prisma)
+		await seedPermissions(prisma)
 
 		// 5. Usuarios (depende de Roles)
 		await seedUsers(prisma)

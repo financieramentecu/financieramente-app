@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth/nextauth'
+import { AuditAction } from '@/features/auth/lib/audit-logger'
+import { requirePermission } from '@/features/access-control/services/require-permission'
+import { createRole } from '@/features/access-control/services/role-admin.service'
+import { roleInputSchema } from '@/features/access-control/lib/role-schemas'
+import {
+	roleErrorJson,
+	roleErrorResponse,
+} from '@/features/access-control/lib/role-http'
+import {
+	auditRoleEvent,
+	resolveRoleAuditActor,
+} from '@/features/access-control/services/role-audit.service'
 
 /**
  * GET /api/admin/roles
@@ -53,4 +65,44 @@ export async function GET() {
             { status: 500 }
         )
     }
+}
+
+/**
+ * POST /api/admin/roles
+ * Creates a custom role with no permissions (requires `roles.gestionar`).
+ */
+export async function POST(request: Request) {
+	const guard = await requirePermission('roles.gestionar')
+	if (!guard.ok) return guard.response
+
+	let body: unknown
+	try {
+		body = await request.json()
+	} catch {
+		return roleErrorJson('Solicitud inválida', 400)
+	}
+	const parsed = roleInputSchema.safeParse(body)
+	if (!parsed.success) {
+		const issue = parsed.error.issues[0]
+		return roleErrorJson(issue?.message ?? 'Datos inválidos', 400, {
+			field: issue?.path[0],
+		})
+	}
+
+	try {
+		const role = await createRole(prisma, parsed.data)
+		await auditRoleEvent({
+			action: AuditAction.ROLE_CREATED,
+			actor: resolveRoleAuditActor(guard.session),
+			request,
+			roleId: role.idRole,
+			summary: `Rol creado: ${role.name} (${role.code})`,
+		})
+		return NextResponse.json(
+			{ data: { id: role.idRole, code: role.code, name: role.name, description: role.description } },
+			{ status: 201 }
+		)
+	} catch (error) {
+		return roleErrorResponse(error, 'Error al crear el rol')
+	}
 }

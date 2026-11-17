@@ -5,6 +5,7 @@ import type { LeadViewer } from '@/features/leads/types/lead.types'
 
 export interface LeadForConversionOptions {
 	visibleUserIds?: number[]
+	unrestricted?: boolean
 }
 
 const leadForConversionInclude = {

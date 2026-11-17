@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PUT } from '../route'
-import { requireRole } from '@/lib/auth/require-role'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { prisma } from '@/lib/prisma'
 
 vi.mock('@/lib/auth/require-role', () => ({
-	requireRole: vi.fn(),
+	requireRolePermission: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => {
@@ -54,7 +54,7 @@ const AGENTE_ROLE = { idRole: 5, code: 'AGENTE', name: 'Agente' }
 describe('PUT /api/admin/users/[id] — read-only role / level guard', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		vi.mocked(requireRole).mockResolvedValue({
+		vi.mocked(requireRolePermission).mockResolvedValue({
 			ok: true,
 			session: { user: { id: '1' } },
 		} as never)

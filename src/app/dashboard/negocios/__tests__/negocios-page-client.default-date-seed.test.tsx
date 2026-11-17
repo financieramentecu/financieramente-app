@@ -5,6 +5,14 @@ import { NegociosPageClient } from '../negocios-page-client'
 import { UserRole } from '@/features/auth/lib/roles'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
 
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({
+		can: () => true,
+		scope: () => undefined,
+		canWithLevel: () => true,
+	}),
+}))
+
 const navCtx = vi.hoisted(() => ({
 	mockReplace: vi.fn(),
 	searchParams: new URLSearchParams(),
@@ -102,7 +110,7 @@ describe('NegociosPageClient — default date filter seed', () => {
 		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 		UserRole.ANALISTA_SOPORTE,
 		UserRole.AGENTE,
-		UserRole.DEFAULT,
+		UserRole.SIN_ROL,
 	])('%s does not navigate on mount', (role) => {
 		render(<NegociosPageClient currentUser={userWithRole(role)} />)
 

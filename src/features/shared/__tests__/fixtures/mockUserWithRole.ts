@@ -1,3 +1,4 @@
+import { setMockRole } from '@/features/access-control/testing/mock-permissions'
 import { UserRole } from '@/features/auth/lib/roles'
 import { UserWithRole } from '@/features/negocios/types/business.types'
 
@@ -57,6 +58,8 @@ export const mockAgentUser: UserWithRole = {
 
 /** Usuario mock con rol explícito (evita confundir con el objeto `mockUserWithRole`). */
 export function createMockUserWithRole(roleCode: UserRole): UserWithRole {
+	// keeps the mocked usePermissions in step with the user a test builds
+	setMockRole(roleCode)
 	const r = mockUserWithRole.role!
 	return {
 		...mockUserWithRole,

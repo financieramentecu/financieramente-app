@@ -1,5 +1,6 @@
 'use client'
 
+import { CardGridSkeleton } from '@/features/shared/ui/loading-skeletons'
 import {
 	REPORT_PERMISSIONS_UI,
 } from '@/features/report-permissions/lib/report-permissions-helpers'
@@ -29,9 +30,7 @@ export function ReportPermissionsAdmin() {
 	} = useReportPermissions()
 
 	if (catalogState.status === 'loading' || catalogState.status === 'idle') {
-		return (
-			<p className="text-muted-foreground text-sm">Cargando permisos…</p>
-		)
+		return <CardGridSkeleton label="Cargando permisos" cards={3} columns={3} />
 	}
 
 	if (catalogState.status === 'error') {

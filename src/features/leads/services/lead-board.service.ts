@@ -14,6 +14,7 @@ function buildOwnerName(user: { name: string; lastName: string | null } | null):
 
 export interface LeadBoardOptions {
 	visibleUserIds?: number[]
+	unrestricted?: boolean
 	outcomeStatuses?: LeadOutcomeStatus[]
 	createdAtRange?: { gte: Date; lte: Date }
 }

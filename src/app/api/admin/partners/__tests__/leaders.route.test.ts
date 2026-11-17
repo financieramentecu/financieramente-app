@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextResponse } from 'next/server'
 
-vi.mock('@/lib/auth/require-role', () => ({ requireRole: vi.fn() }))
+vi.mock('@/lib/auth/require-role', () => ({ requireRolePermission: vi.fn() }))
 
 vi.mock('@/features/admin/partners/services/partner.service', async () => {
 	const errors =
@@ -15,7 +15,7 @@ vi.mock('@/features/admin/partners/services/partner.service', async () => {
 
 import { GET as getLeaders } from '../leaders/route'
 import { GET as getLeaderLevels } from '../leader-levels/route'
-import { requireRole } from '@/lib/auth/require-role'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import {
 	listLeaderCandidates,
 	listLeaderLevels,
@@ -27,7 +27,7 @@ const get = (qs: string) =>
 
 beforeEach(() => {
 	vi.clearAllMocks()
-	vi.mocked(requireRole).mockResolvedValue({
+	vi.mocked(requireRolePermission).mockResolvedValue({
 		ok: true,
 		session: SESSION,
 	} as never)
@@ -41,7 +41,7 @@ beforeEach(() => {
 
 describe('GET /api/admin/partners/leaders', () => {
 	it('requires ADMIN and passes the guard response through', async () => {
-		vi.mocked(requireRole).mockResolvedValue({
+		vi.mocked(requireRolePermission).mockResolvedValue({
 			ok: false,
 			response: NextResponse.json(
 				{ success: false, error: 'x' },
@@ -50,7 +50,7 @@ describe('GET /api/admin/partners/leaders', () => {
 		} as never)
 		const response = await getLeaders(get('?levelCode=LEVEL_1'))
 		expect(response.status).toBe(403)
-		expect(requireRole).toHaveBeenCalledWith(['ADMIN'])
+		expect(requireRolePermission).toHaveBeenCalledWith('partners.gestionar')
 		expect(listLeaderCandidates).not.toHaveBeenCalled()
 	})
 
@@ -81,7 +81,7 @@ describe('GET /api/admin/partners/leaders', () => {
 
 describe('GET /api/admin/partners/leader-levels', () => {
 	it('requires ADMIN', async () => {
-		vi.mocked(requireRole).mockResolvedValue({
+		vi.mocked(requireRolePermission).mockResolvedValue({
 			ok: false,
 			response: NextResponse.json(
 				{ success: false, error: 'x' },

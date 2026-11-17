@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { UseFormReturn } from 'react-hook-form'
-import { cn } from '@/lib/utils'
 import { Input } from '@/features/shared/ui/input'
 import { Label } from '@/features/shared/ui/label'
 import { Separator } from '@/features/shared/ui/separator'
@@ -19,7 +18,6 @@ export interface CoachInfoSectionProps {
 	form: UseFormReturn<BusinessFormData>
 	agentsList: UserWithRole[]
 	onSearchAgents?: (query: string) => Promise<UserWithRole[]>
-	isBlocked: boolean
 	isEditMode?: boolean
 	isAgentUser?: boolean
 	/**
@@ -37,7 +35,6 @@ export function CoachInfoSection({
 	form,
 	agentsList,
 	onSearchAgents,
-	isBlocked,
 	isEditMode = false,
 	isAgentUser,
 	isAgentLocked,
@@ -79,7 +76,7 @@ export function CoachInfoSection({
 							className="bg-muted cursor-not-allowed font-medium"
 						/>
 					) : (
-						<div className={cn("transition-opacity", isBlocked && "pointer-events-none opacity-70")}>
+						<div>
 							<AgentAutocomplete
 								value={agentValue}
 								onChange={(value) =>
@@ -88,7 +85,7 @@ export function CoachInfoSection({
 								agents={agentsList}
 								placeholder="Buscar Money Strategist..."
 								aria-labelledby="agent-label"
-								disabled={isBlocked || isAgentUser || isAgentLocked}
+								disabled={isAgentUser || isAgentLocked}
 								className={getFieldClassName(agentError)}
 								onSearch={onSearchAgents}
 							/>

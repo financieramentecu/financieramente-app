@@ -186,3 +186,108 @@ export function TableRowsLoadingSkeleton({ rows = 5 }: { rows?: number }) {
 		</div>
 	)
 }
+
+/**
+ * Accessible wrapper for any skeleton: announces a busy status region so
+ * screen readers (and tests) can tell a screen is loading.
+ */
+export function SkeletonRegion({
+	label,
+	className,
+	children,
+}: {
+	label: string
+	className?: string
+	children: React.ReactNode
+}) {
+	return (
+		<div role="status" aria-busy="true" aria-label={label} className={className}>
+			{children}
+		</div>
+	)
+}
+
+/** Compact list/table-like rows (title line + secondary line + trailing action). */
+export function ListRowsSkeleton({
+	label,
+	rows = 5,
+}: {
+	label: string
+	rows?: number
+}) {
+	return (
+		<SkeletonRegion label={label} className="divide-y divide-border">
+			{Array.from({ length: rows }).map((_, i) => (
+				<div
+					key={i}
+					data-testid="skeleton-row"
+					className="flex items-center justify-between gap-4 px-4 py-3"
+				>
+					<div className="space-y-2">
+						<Skeleton className="h-4 w-40" />
+						<Skeleton className="h-3 w-64 max-w-full" />
+					</div>
+					<Skeleton className="h-7 w-16 rounded-md" />
+				</div>
+			))}
+		</SkeletonRegion>
+	)
+}
+
+/** Grid of cards, each with a title line and a few content lines. */
+export function CardGridSkeleton({
+	label,
+	cards = 4,
+	columns = 2,
+}: {
+	label: string
+	cards?: number
+	columns?: 1 | 2 | 3
+}) {
+	const grid =
+		columns === 3
+			? 'grid gap-3 md:grid-cols-2 xl:grid-cols-3'
+			: columns === 2
+				? 'grid gap-3 xl:grid-cols-2'
+				: 'grid gap-3'
+	return (
+		<SkeletonRegion label={label} className={grid}>
+			{Array.from({ length: cards }).map((_, i) => (
+				<div
+					key={i}
+					data-testid="skeleton-card"
+					className="space-y-3 rounded-lg border border-border bg-card p-4"
+				>
+					<Skeleton className="h-5 w-1/3" />
+					<Skeleton className="h-4 w-full" />
+					<Skeleton className="h-4 w-5/6" />
+					<Skeleton className="h-4 w-2/3" />
+				</div>
+			))}
+		</SkeletonRegion>
+	)
+}
+
+/** Form placeholder: label + input per field and an action row. */
+export function FormSkeleton({
+	label,
+	fields = 4,
+}: {
+	label: string
+	fields?: number
+}) {
+	return (
+		<SkeletonRegion label={label} className="space-y-4">
+			{Array.from({ length: fields }).map((_, i) => (
+				<div key={i} data-testid="skeleton-field" className="space-y-2">
+					<Skeleton className="h-4 w-28" />
+					<Skeleton className="h-10 w-full rounded-md" />
+				</div>
+			))}
+			<div className="flex justify-end gap-2 pt-2">
+				<Skeleton className="h-9 w-24 rounded-md" />
+				<Skeleton className="h-9 w-32 rounded-md" />
+			</div>
+		</SkeletonRegion>
+	)
+}

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { UserWithRole } from '@/features/negocios/types/business.types'
-import { canRoleEditClientInfo } from '@/features/negocios/lib/client-edit-permissions'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 
 export type FieldPermission = {
 	readonly: boolean
@@ -48,26 +48,17 @@ interface UseBusinessPermissionsProps {
  */
 export function useBusinessPermissions({
 	mode,
-	currentUser,
 	businessStatus,
 }: UseBusinessPermissionsProps) {
 	const isEditMode = mode === 'edit'
-	const roleCode = currentUser?.role?.code
+	const { can } = usePermissions()
 
-	// Roles privilegiados (pueden editar campos financieros en estados avanzados)
-	const isPrivileged = useMemo(() => {
-		const code = roleCode?.toUpperCase()
-		return (
-			code === 'ADMIN' ||
-			code === 'ASISTENTE_GERENCIA_OPERATIVA' ||
-			code === 'ANALISTA_SOPORTE'
-		)
-	}, [roleCode])
+	// Privileged roles can edit financial fields in advanced states: the same
+	// roles that may change a contract once the business is EMITIDO.
+	const isPrivileged = can('negocios.editar_contrato_emitido')
 
-	// Roles que pueden editar datos del cliente en la sección "Información básica y general"
-	const canEditClientInfo = useMemo(() => {
-		return canRoleEditClientInfo(roleCode)
-	}, [roleCode])
+	// Roles that can edit client data in "Información básica y general"
+	const canEditClientInfo = can('clientes.editar')
 
 	// El negocio es un borrador (Venta Efectuada)
 	const isDraft = useMemo(() => {

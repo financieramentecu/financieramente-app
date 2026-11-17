@@ -1,5 +1,5 @@
 import { auth } from '@/auth'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 
 export async function requireSystemAdmin() {
@@ -10,8 +10,9 @@ export async function requireSystemAdmin() {
 
 	const currentUser = await getCurrentUserByEmail(session.user.email)
 	if (
-		session.user.role !== UserRole.ADMIN ||
-		currentUser?.role?.code !== UserRole.ADMIN
+		!currentUser ||
+		!(await roleCan(session.user.role, 'configuracion.tipos_documento')) ||
+		!(await roleCan(currentUser?.role?.code, 'configuracion.tipos_documento'))
 	) {
 		return {
 			ok: false as const,

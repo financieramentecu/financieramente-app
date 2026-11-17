@@ -5,6 +5,14 @@ import { NegociosPageClient } from '../negocios-page-client'
 import { UserRole } from '@/features/auth/lib/roles'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
 
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({
+		can: () => true,
+		scope: () => undefined,
+		canWithLevel: () => true,
+	}),
+}))
+
 const navCtx = vi.hoisted(() => ({
 	mockReplace: vi.fn(),
 	searchParams: new URLSearchParams(),
@@ -106,7 +114,7 @@ describe('NegociosPageClient — page resets when an advanced filter is applied'
 
 	it('resets the local page back to 1 when a new date filter lands in the URL while on page 2+', () => {
 		const { rerender } = render(
-			<NegociosPageClient currentUser={userWithRole(UserRole.DEFAULT)} />
+			<NegociosPageClient currentUser={userWithRole(UserRole.SIN_ROL)} />
 		)
 
 		// User navigates to page 2 of the unfiltered list.
@@ -123,7 +131,7 @@ describe('NegociosPageClient — page resets when an advanced filter is applied'
 			dateIssuedTo: '2026-06-10',
 			page: '1',
 		})
-		rerender(<NegociosPageClient currentUser={userWithRole(UserRole.DEFAULT)} />)
+		rerender(<NegociosPageClient currentUser={userWithRole(UserRole.SIN_ROL)} />)
 
 		// The actual fetch must use page 1 — otherwise it requests an offset
 		// beyond the (smaller) filtered result set and silently returns nothing.

@@ -13,17 +13,17 @@ export type ActionPermissionResult =
  * session itself (SEC-03).
  *
  * - No session -> `No autorizado`.
- * - `isAllowed(role)` false (missing role included) -> `Sin permisos`.
+ * - `isAllowed(role)` false (it may be async, e.g. a grants lookup) (missing role included) -> `Sin permisos`.
  * - Without a predicate any authenticated user passes.
  */
 export async function requireActionPermission(
-	isAllowed?: (role: string | undefined) => boolean
+	isAllowed?: (role: string | undefined) => boolean | Promise<boolean>
 ): Promise<ActionPermissionResult> {
 	const session = (await auth()) as Session | null
 	if (!session?.user) {
 		return { ok: false, error: 'No autorizado' }
 	}
-	if (isAllowed && !isAllowed(session.user.role ?? undefined)) {
+	if (isAllowed && !(await isAllowed(session.user.role ?? undefined))) {
 		return { ok: false, error: 'Sin permisos' }
 	}
 	return { ok: true, session }

@@ -7,13 +7,7 @@ import {
 } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { RespuestaDistribucionComision } from '@/features/pre-liquidacion/types/types'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
-
-const BACKOFFICE_ROLES: UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-]
+import { canSeeAllDistributions } from '@/features/auth/lib/hierarchy'
 
 /**
  * GET /api/pre-liquidacion/distribucion/[settlementCommissionId]
@@ -46,9 +40,7 @@ export async function GET(
 
 		// Backoffice roles ven todo. El resto (coach/líder) sólo si el negocio
 		// tiene alguna distribución hacia ellos o hacia un subordinado suyo.
-		const isBackoffice = !!role && BACKOFFICE_ROLES.includes(role)
-		const bypasses = isHierarchyBypassRole(role ?? null)
-		if (!isBackoffice && !bypasses) {
+		if (!(await canSeeAllDistributions(role ?? null))) {
 			const allowed = await puedeVerDistribucionComision({
 				settlementCommissionId,
 				viewerId,

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { DELETE, GET } from '../route'
-import { requireRole } from '@/lib/auth/require-role'
+import { requirePermission } from '@/features/access-control/services/require-permission'
 import { deleteLead } from '@/features/leads/services/lead-admin.service'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { getLeadDetail } from '@/features/leads/services/lead-board.service'
 
-vi.mock('@/lib/auth/require-role', () => ({
-	requireRole: vi.fn(),
+vi.mock('@/features/access-control/services/require-permission', () => ({
+	requirePermission: vi.fn(),
 }))
 
 vi.mock('@/features/leads/services/lead-admin.service', () => ({
@@ -50,7 +50,7 @@ describe('DELETE /api/leads/[id]', () => {
 	})
 
 	it('returns 401 when unauthenticated', async () => {
-		vi.mocked(requireRole).mockResolvedValue({
+		vi.mocked(requirePermission).mockResolvedValue({
 			ok: false,
 			response: { status: 401, json: () => Promise.resolve({ success: false, error: 'No autorizado' }) },
 		} as never)
@@ -62,7 +62,7 @@ describe('DELETE /api/leads/[id]', () => {
 	})
 
 	it('returns 403 for a non-admin (role gate runs before lookup)', async () => {
-		vi.mocked(requireRole).mockResolvedValue({
+		vi.mocked(requirePermission).mockResolvedValue({
 			ok: false,
 			response: { status: 403, json: () => Promise.resolve({ success: false, error: 'Sin permisos' }) },
 		} as never)
@@ -74,7 +74,7 @@ describe('DELETE /api/leads/[id]', () => {
 	})
 
 	it('returns 400 on a NaN id', async () => {
-		vi.mocked(requireRole).mockResolvedValue({
+		vi.mocked(requirePermission).mockResolvedValue({
 			ok: true,
 			session: { user: { id: '1', email: 'admin@x.com' } },
 		} as never)
@@ -86,7 +86,7 @@ describe('DELETE /api/leads/[id]', () => {
 	})
 
 	it('returns 404 when the lead does not exist', async () => {
-		vi.mocked(requireRole).mockResolvedValue({
+		vi.mocked(requirePermission).mockResolvedValue({
 			ok: true,
 			session: { user: { id: '1', email: 'admin@x.com' } },
 		} as never)
@@ -102,7 +102,7 @@ describe('DELETE /api/leads/[id]', () => {
 	})
 
 	it('returns 409 when the lead is ineligible', async () => {
-		vi.mocked(requireRole).mockResolvedValue({
+		vi.mocked(requirePermission).mockResolvedValue({
 			ok: true,
 			session: { user: { id: '1', email: 'admin@x.com' } },
 		} as never)
@@ -117,7 +117,7 @@ describe('DELETE /api/leads/[id]', () => {
 	})
 
 	it('returns 200 with idLead on success', async () => {
-		vi.mocked(requireRole).mockResolvedValue({
+		vi.mocked(requirePermission).mockResolvedValue({
 			ok: true,
 			session: { user: { id: '1', email: 'admin@x.com' } },
 		} as never)

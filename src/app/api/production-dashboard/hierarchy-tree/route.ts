@@ -10,7 +10,7 @@ import { getCurrentUserByEmail } from '@/features/shared/services/user.service'
 import { buildHierarchyTree } from '@/features/production-dashboard/services/hierarchy-tree.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { PARTNER_EXTERNAL_LEVEL_CODE } from '@/features/shared/lib/level-codes'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleScope } from '@/features/access-control/services/role-permission-check'
 import type { HierarchyTreeData } from '@/features/production-dashboard/types/hierarchy.types'
 
 /** Level code assigned to MS Junior — receives empty tree per spec */
@@ -40,7 +40,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<HierarchyTreeData>
 		// dashboard falls back to the session user (partners see only own businesses).
 		if (
 			viewer.level?.code === MS_JUNIOR_LEVEL_CODE ||
-			viewer.role?.code === UserRole.PARTNER ||
+			(await roleScope(viewer.role?.code, 'dashboard.ver')) === 'OWN' ||
 			viewer.level?.code === PARTNER_EXTERNAL_LEVEL_CODE
 		) {
 			return NextResponse.json({ data: { nodes: [] } })

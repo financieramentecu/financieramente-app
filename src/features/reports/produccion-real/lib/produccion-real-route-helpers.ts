@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/shared/services/user.service'
-import { isReadOnlyRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { canViewReport } from '@/features/report-permissions/services/report-permissions.service'
 import { REPORT_CODES } from '@/features/report-permissions/types/report-permissions.types'
 import {
@@ -167,7 +167,7 @@ export async function authorizeAndParseProduccionRealExportBody(
 	// above. A read-only role (CONSULTOR) may view every report category but
 	// MUST NOT export — see report-permissions spec "Report export blocked
 	// for read-only roles".
-	if (isReadOnlyRole(currentUser.role?.code ?? roleFallback)) {
+	if (!(await roleCan(currentUser.role?.code ?? roleFallback, 'reportes.exportar'))) {
 		return {
 			ok: false,
 			response: NextResponse.json(
