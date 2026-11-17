@@ -193,12 +193,13 @@ function RoleEditorForm({ detail }: { detail: RoleDetail }) {
 			)}
 
 			{warnings.length > 0 && (
-				<Alert className="py-2">
+				<Alert className="border-amber-300 bg-amber-50 py-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100 [&>svg]:top-3.5 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400">
 					<TriangleAlert className="h-4 w-4" />
-					<AlertDescription className="text-sm">
+					<AlertDescription className="space-y-1 text-sm leading-snug">
 						{warnings.map((w) => (
 							<p key={w.code}>
-								“{nameByCode.get(w.code)}” está activo sin “{nameByCode.get(w.requires)}”. El rol podrá actuar
+								<strong className="font-semibold">“{nameByCode.get(w.code)}”</strong> está activo sin{' '}
+								<strong className="font-semibold">“{nameByCode.get(w.requires)}”</strong>. El rol podrá actuar
 								sobre registros que no puede ver.
 							</p>
 						))}
