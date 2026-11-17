@@ -16,4 +16,3 @@
 - `crm_notification_setting` stores anticipation days (0–30, default 1). `lead_task.advance_notified_at` claims the upcoming in-app notice; `reminder_sent_at` claims the day-of notice.
 - `GET`/`PUT /api/crm/notification-settings` (CRM managers, `crm_tasks`). Cron `task-reminders` notifies today and the anticipation window; `task-digest` emails overdue open tasks once a day at 07:00 Bogotá.
 - In development, `next dev` runs the in-app reminder job on startup and every 15 minutes. The digest email stays on the external crontab.
-- In development, when `SENDGRID_API_KEY` is empty, `sendEmail` delivers to a free Ethereal inbox and logs a preview URL.
