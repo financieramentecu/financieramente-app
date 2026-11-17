@@ -40,6 +40,8 @@ const config: StorybookConfig & {
 			// Both the @/ alias and the absolute path to catch whichever webpack sees first
 			'@/lib/auth/nextauth': require.resolve('./mocks/nextauth.ts'),
 			[path.resolve(__dirname, '../src/lib/auth/nextauth')]: require.resolve('./mocks/nextauth.ts'),
+			// Chromatic bundles client stories, including server actions they import.
+			'server-only': path.resolve(__dirname, '../src/__mocks__/server-only.ts'),
 		}
 		return config
 	},
@@ -68,6 +70,7 @@ const config: StorybookConfig & {
 			{ find: '@/lib/auth/nextauth', replacement: require.resolve('./mocks/nextauth.ts') },
 			// Absolute path alias — catches tsconfig-resolved @/ imports before vite sees them
 			{ find: path.resolve(__dirname, '../src/lib/auth/nextauth'), replacement: require.resolve('./mocks/nextauth.ts') },
+			{ find: 'server-only', replacement: path.resolve(__dirname, '../src/__mocks__/server-only.ts') },
 		]
 		return config
 	},
