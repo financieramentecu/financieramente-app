@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import {
 	DndContext,
 	DragOverlay,
@@ -208,17 +208,46 @@ function ActivityColumn({
 	cards,
 	onOpenLead,
 	onOpen,
+	movable = true,
 }: {
 	bucket: string
 	title: string
 	cards: ActivityCardModel[]
 	onOpenLead: (idLead: number, leadName: string) => void
 	onOpen: (focus: ActivityFocus) => void
+	movable?: boolean
 }) {
-	const { setNodeRef, isOver } = useDroppable({ id: `bucket:${bucket}` })
+	if (!movable) {
+		return (
+			<ActivityColumnFrame bucket={bucket} title={title} count={cards.length}>
+				{cards.map((card) => {
+					const focus = cardFocus(card)
+					return <ActivityCard key={`${focus.kind}-${focus.id}`} card={card} stateName={title} onOpenLead={onOpenLead} onOpen={onOpen} />
+				})}
+			</ActivityColumnFrame>
+		)
+	}
+	return <DroppableActivityColumn bucket={bucket} title={title} cards={cards} onOpenLead={onOpenLead} onOpen={onOpen} />
+}
+
+function ActivityColumnFrame({
+	bucket,
+	title,
+	count,
+	isOver = false,
+	dropRef,
+	children,
+}: {
+	bucket: string
+	title: string
+	count: number
+	isOver?: boolean
+	dropRef?: (node: HTMLElement | null) => void
+	children: ReactNode
+}) {
 	return (
 		<section
-			ref={setNodeRef}
+			ref={dropRef}
 			className={cn(
 				'flex min-h-80 w-72 shrink-0 flex-col overflow-hidden rounded-lg border-2 border-primary/25 bg-primary/5',
 				isOver && 'ring-2 ring-primary ring-offset-2'
@@ -229,16 +258,37 @@ function ActivityColumn({
 				<h3 id={`activity-column-${bucket}`} className="truncate text-sm font-semibold text-white">
 					{title}
 				</h3>
-				<span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-primary shadow-sm">{cards.length}</span>
+				<span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-primary shadow-sm">{count}</span>
 			</div>
 			<div className="flex min-h-64 flex-1 flex-col gap-2 p-3">
-				{cards.map((card) => {
-					const focus = cardFocus(card)
-					return <DraggableActivity key={`${focus.kind}-${focus.id}`} card={card} stateName={title} onOpenLead={onOpenLead} onOpen={onOpen} />
-				})}
-				{cards.length === 0 && <p className="px-1 text-xs text-slate-600 dark:text-slate-400">Sin actividades</p>}
+				{children}
+				{count === 0 && <p className="px-1 text-xs text-slate-600 dark:text-slate-400">Sin actividades</p>}
 			</div>
 		</section>
+	)
+}
+
+function DroppableActivityColumn({
+	bucket,
+	title,
+	cards,
+	onOpenLead,
+	onOpen,
+}: {
+	bucket: string
+	title: string
+	cards: ActivityCardModel[]
+	onOpenLead: (idLead: number, leadName: string) => void
+	onOpen: (focus: ActivityFocus) => void
+}) {
+	const { setNodeRef, isOver } = useDroppable({ id: `bucket:${bucket}` })
+	return (
+		<ActivityColumnFrame bucket={bucket} title={title} count={cards.length} isOver={isOver} dropRef={setNodeRef}>
+			{cards.map((card) => {
+				const focus = cardFocus(card)
+				return <DraggableActivity key={`${focus.kind}-${focus.id}`} card={card} stateName={title} onOpenLead={onOpenLead} onOpen={onOpen} />
+			})}
+		</ActivityColumnFrame>
 	)
 }
 
@@ -247,11 +297,14 @@ export function ActivitiesAgenda({
 	onOpenLead,
 	onOpenActivity,
 	refreshKey = 0,
+	canMove = true,
 	canConfigure = false,
 }: {
 	onOpenLead: (idLead: number, leadName: string) => void
 	onOpenActivity: (idLead: number, focus: ActivityFocus, leadName: string) => void
 	refreshKey?: number
+	/** Read-only viewers can open cards but cannot drag them. */
+	canMove?: boolean
 	canConfigure?: boolean
 }) {
 	const hierarchy = useCrmHierarchyFilter()
@@ -370,6 +423,7 @@ export function ActivitiesAgenda({
 					)}
 					{state.status === 'error' && <p role="alert" className="text-sm text-destructive">{state.error}</p>}
 					{state.status === 'success' && (
+						canMove ? (
 						<DndContext
 							sensors={sensors}
 							collisionDetection={kanbanCollision}
@@ -402,6 +456,21 @@ export function ActivitiesAgenda({
 								) : null}
 							</DragOverlay>
 						</DndContext>
+						) : (
+							<div className="flex gap-4 overflow-x-auto pb-4">
+								{columns.columns.map((column) => (
+									<ActivityColumn
+										key={column.code}
+										bucket={column.code}
+										title={column.name}
+										cards={cards.filter((card) => placedColumn(activityOf(card), columns.columns, now) === column.code)}
+										onOpenLead={openLead}
+										onOpen={openCard}
+										movable={false}
+									/>
+								))}
+							</div>
+						)
 					)}
 				</>
 			)}

@@ -28,9 +28,9 @@ export function useCrmHierarchyFilter(): CrmHierarchyFilter {
 }
 
 /**
- * Same hierarchy tree as the dashboard. A super admin sees the whole company.
- * Everyone else sees themselves and the people under them, and can uncheck
- * branches to look at specific people.
+ * Hierarchy for the CRM. Write-bypass roles and people with the granted
+ * read-only view see the whole company. An advisor without that grant sees
+ * only their branch.
  */
 export function CrmHierarchyShell({ children }: { children: ReactNode }) {
 	return (
@@ -73,6 +73,7 @@ function CrmHierarchyLayout({ children }: { children: ReactNode }) {
 						aria-label="Jerarquía"
 					>
 						<HierarchyTreePanel
+							endpoint="/api/crm/hierarchy-tree"
 							wrapNames
 							onCollapse={() => setCollapsed(true)}
 							onEmptyChange={setHidePanel}

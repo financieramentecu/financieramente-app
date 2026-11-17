@@ -84,8 +84,17 @@ describe('buildMenuByRole — CRM under Negocios (crm-phase-0-foundation)', () =
 		expect(crm?.url).toBe('/dashboard/negocios/crm')
 	})
 
-	it('CONSULTOR keeps a flat Negocios entry without CRM', () => {
+	it('CONSULTOR keeps a flat Negocios entry until the CRM view is granted', () => {
 		expect(subItemTitles(UserRole.CONSULTOR, 'Negocios')).toBeUndefined()
+	})
+
+	it('CONSULTOR sees CRM under Negocios when the read-only grant is on', () => {
+		const negocios = buildMenuByRole(UserRole.CONSULTOR, ROLE_PERMISSIONS[UserRole.CONSULTOR], {
+			isCalculadoraEnabled: true,
+			authorizedReportCodes: ['PRODUCCION_REAL'],
+			canViewOthersCrm: true,
+		}).find((item) => item.title === 'Negocios')
+		expect(negocios?.subItems?.map((subItem) => subItem.title)).toEqual(['Ver Negocios', 'CRM'])
 	})
 
 	it('AGENTE sees CRM inside Mis Negocios', () => {

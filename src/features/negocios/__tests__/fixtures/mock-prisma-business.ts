@@ -87,6 +87,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 		idUserLeader: null,
 		entryDate: baseDate,
 		retirementDate: null,
+		canViewOthersCrm: false,
 		active: true,
 		createdAt: baseDate,
 		updatedAt: baseDate,
