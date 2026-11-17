@@ -64,29 +64,29 @@ model Level {
 }
 
 model Category {
-  id             Int          @id @default(autoincrement()) @map("id_category")
-  name           String       @db.VarChar(100)
-  description    String?
-  status         Boolean      @default(true)
-  idCategoryType Int          @map("id_category_type")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
-  categoryType   CategoryType @relation(fields: [idCategoryType], references: [id])
-  users          User[]
+  id                Int                        @id @default(autoincrement()) @map("id_category")
+  name              String                     @db.VarChar(100)
+  description       String?
+  status            Boolean                    @default(true)
+  idCategoryType    Int                        @map("id_category_type")
+  createdAt         DateTime                   @default(now()) @map("created_at")
+  updatedAt         DateTime                   @updatedAt @map("updated_at")
+  categoryType      CategoryType               @relation(fields: [idCategoryType], references: [id])
+  users             User[]
   reportPermissions CategoryReportPermission[]
 
   @@map("category")
 }
 
 model ReportDefinition {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique @db.VarChar(50)
-  name        String   @db.VarChar(150)
+  id          Int                        @id @default(autoincrement())
+  code        String                     @unique @db.VarChar(50)
+  name        String                     @db.VarChar(150)
   description String?
-  routePath   String   @map("route_path") @db.VarChar(200)
-  status      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  routePath   String                     @map("route_path") @db.VarChar(200)
+  status      Boolean                    @default(true)
+  createdAt   DateTime                   @default(now()) @map("created_at")
+  updatedAt   DateTime                   @updatedAt @map("updated_at")
   permissions CategoryReportPermission[]
 
   @@map("report_definition")
@@ -292,45 +292,56 @@ model DefaultDistributionPercentage {
 }
 
 model User {
-  idUser                              Int                     @id @default(autoincrement()) @map("id_user")
-  name                                String                  @db.VarChar(150)
-  lastName                            String?                 @map("last_name") @db.VarChar(150)
-  typeIdentity                        String                  @default("CC") @map("type_identity") @db.VarChar(10)
-  identityNumber                      String?                 @map("identity_number") @db.VarChar(20)
-  email                               String                  @unique @db.VarChar(150)
-  phone                               String?                 @db.VarChar(30)
-  idLevel                             Int?                    @map("id_level")
-  idUserLeader                        Int?                    @map("id_user_leader")
-  entryDate                           DateTime                @map("entry_date") @db.Date
-  retirementDate                      DateTime?               @map("retirement_date") @db.Date
-  active                              Boolean                 @default(true)
-  createdAt                           DateTime                @default(now()) @map("created_at")
-  updatedAt                           DateTime                @updatedAt @map("updated_at")
-  idRole                              Int?                    @map("id_role")
-  password                            String?                 @db.VarChar(255)
-  ssoOnly                             Boolean                 @default(true) @map("sso_only")
-  idCategory                          Int?                    @map("id_category")
-  activatedAt                         DateTime?               @map("activated_at")
+  idUser                              Int                      @id @default(autoincrement()) @map("id_user")
+  name                                String                   @db.VarChar(150)
+  lastName                            String?                  @map("last_name") @db.VarChar(150)
+  typeIdentity                        String                   @default("CC") @map("type_identity") @db.VarChar(10)
+  identityNumber                      String?                  @map("identity_number") @db.VarChar(20)
+  email                               String                   @unique @db.VarChar(150)
+  phone                               String?                  @db.VarChar(30)
+  idLevel                             Int?                     @map("id_level")
+  idUserLeader                        Int?                     @map("id_user_leader")
+  entryDate                           DateTime                 @map("entry_date") @db.Date
+  retirementDate                      DateTime?                @map("retirement_date") @db.Date
+  active                              Boolean                  @default(true)
+  createdAt                           DateTime                 @default(now()) @map("created_at")
+  updatedAt                           DateTime                 @updatedAt @map("updated_at")
+  idRole                              Int?                     @map("id_role")
+  password                            String?                  @db.VarChar(255)
+  ssoOnly                             Boolean                  @default(true) @map("sso_only")
+  idCategory                          Int?                     @map("id_category")
+  activatedAt                         DateTime?                @map("activated_at")
   accountTokens                       AccountToken[]
   auditLogs                           AuditLog[]
   businesses                          Business[]
   businessSupports                    BusinessSupport[]
   clawbacks                           Clawback[]
   clawbackBalance                     ClawbackBalance?
-  comissionDistributionsAsBeneficiary ComissionDistribution[] @relation("BeneficiaryUser")
-  commissionDiscountsCreated          CommissionDiscount[]    @relation("DiscountCreatedBy")
-  commissionDiscountsUpdated          CommissionDiscount[]    @relation("DiscountUpdatedBy")
+  comissionDistributionsAsBeneficiary ComissionDistribution[]  @relation("BeneficiaryUser")
+  commissionDiscountsCreated          CommissionDiscount[]     @relation("DiscountCreatedBy")
+  commissionDiscountsUpdated          CommissionDiscount[]     @relation("DiscountUpdatedBy")
   distributionApprovals               DistributionApproval[]
   fileImports                         FileImport[]
-  levelsAsFixedBeneficiary            Level[]                 @relation("LevelFixedBeneficiary")
-  category                            Category?               @relation(fields: [idCategory], references: [id])
-  level                               Level?                  @relation(fields: [idLevel], references: [idLevel])
-  role                                Role?                   @relation(fields: [idRole], references: [idRole])
-  leader                              User?                   @relation("UserLeader", fields: [idUserLeader], references: [idUser])
-  subordinates                        User[]                  @relation("UserLeader")
+  levelsAsFixedBeneficiary            Level[]                  @relation("LevelFixedBeneficiary")
+  category                            Category?                @relation(fields: [idCategory], references: [id])
+  level                               Level?                   @relation(fields: [idLevel], references: [idLevel])
+  role                                Role?                    @relation(fields: [idRole], references: [idRole])
+  leader                              User?                    @relation("UserLeader", fields: [idUserLeader], references: [idUser])
+  subordinates                        User[]                   @relation("UserLeader")
   notifications                       Notification[]
   comments                            Comment[]
   leads                               Lead[]
+  leadActivities                      LeadActivity[]           @relation("LeadActivityActor")
+  leadTasksAssigned                   LeadTask[]               @relation("LeadTaskAssignee")
+  leadTasksCreated                    LeadTask[]               @relation("LeadTaskCreator")
+  leadSavedViews                      LeadSavedView[]
+  leadSupportCasesOpened              LeadSupportCase[]        @relation("LeadSupportCaseOpenedBy")
+  leadSupportCasesAssigned            LeadSupportCase[]        @relation("LeadSupportCaseAssignee")
+  leadSupportCaseComments             LeadSupportCaseComment[] @relation("LeadSupportCaseCommentAuthor")
+  leadTaskComments                    LeadTaskComment[]        @relation("LeadTaskCommentAuthor")
+  leadActivityLabelsCreated           LeadActivityLabel[]      @relation("LeadActivityLabelCreator")
+  leadActivityColumnsUpdated          LeadActivityColumn[]     @relation("LeadActivityColumnUpdater")
+  leadStageChanges                    LeadStageHistory[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -356,7 +367,7 @@ model AccountToken {
 }
 
 model Client {
-  idClient       Int        @id @default(autoincrement()) @map("id_client")
+  idClient       Int          @id @default(autoincrement()) @map("id_client")
   name           String       @db.VarChar(200)
   lastName       String?      @map("last_name") @db.VarChar(200)
   /// Copia de `document_type.code` para la unicidad histórica `(type_identity, identity_number)`.
@@ -364,11 +375,11 @@ model Client {
   typeIdentity   String       @default("CC") @map("type_identity") @db.VarChar(10)
   idDocumentType Int          @map("id_document_type")
   identityNumber String       @map("identity_number") @db.VarChar(20)
-  email          String?    @db.VarChar(150)
-  phone          String?    @db.VarChar(30)
-  direcction     String?    @db.VarChar(255)
-  city           String?    @db.VarChar(100)
-  country        String     @default("Colombia") @db.VarChar(50)
+  email          String?      @db.VarChar(150)
+  phone          String?      @db.VarChar(30)
+  direcction     String?      @db.VarChar(255)
+  city           String?      @db.VarChar(100)
+  country        String       @default("Colombia") @db.VarChar(50)
   active         Boolean      @default(true)
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
@@ -471,6 +482,9 @@ model Business {
   settlementCommissions         SettlementCommission[]
   comments                      Comment[]
   lead                          Lead?
+  leadActivities                LeadActivity[]
+  leadTasks                     LeadTask[]
+  leadSupportCases              LeadSupportCase[]
 
   @@index([idUser])
   @@index([contract])
@@ -743,18 +757,65 @@ model Comment {
 }
 
 model LeadFunnelColumn {
-  idLeadFunnelColumn Int      @id @default(autoincrement()) @map("id_lead_funnel_column")
-  name               String   @db.VarChar(120)
-  externalStatusKey  String   @unique @map("external_status_key") @db.VarChar(150)
-  position           Int      @default(0)
-  isFallback         Boolean  @default(false) @map("is_fallback")
-  active             Boolean  @default(true)
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  idLeadFunnelColumn Int                @id @default(autoincrement()) @map("id_lead_funnel_column")
+  name               String             @db.VarChar(120)
+  externalStatusKey  String             @unique @map("external_status_key") @db.VarChar(150)
+  position           Int                @default(0)
+  isFallback         Boolean            @default(false) @map("is_fallback")
+  active             Boolean            @default(true)
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
   leads              Lead[]
+  stageHistoryFrom   LeadStageHistory[] @relation("LeadStageHistoryFrom")
+  stageHistoryTo     LeadStageHistory[] @relation("LeadStageHistoryTo")
 
   @@index([position])
   @@map("lead_funnel_column")
+}
+
+enum LeadActivityType {
+  NOTE_ADDED
+  TASK_CREATED
+  TASK_COMPLETED
+  TASK_REASSIGNED
+  TASK_COMMENTED
+  CONVERTED
+  BUSINESS_LINKED
+  CASE_OPENED
+  CASE_UPDATED
+  CALL_LOGGED
+  MEETING_LOGGED
+  EMAIL_LOGGED
+  WHATSAPP_LOGGED
+}
+
+enum LeadSupportCaseStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum LeadSupportCasePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum LeadTaskType {
+  TODO
+  CALL
+  MEETING
+  EMAIL
+  WHATSAPP
+}
+
+enum LeadTaskStatus {
+  OPEN
+  DONE
+  CANCELLED
 }
 
 enum LeadOutcomeStatus {
@@ -764,29 +825,281 @@ enum LeadOutcomeStatus {
   ABANDONED
 }
 
+model LeadActivity {
+  idLeadActivity Int              @id @default(autoincrement()) @map("id_lead_activity")
+  idLead         Int              @map("id_lead")
+  idBusiness     Int?             @map("id_business")
+  idUser         Int              @map("id_user")
+  type           LeadActivityType
+  occurredAt     DateTime         @default(now()) @map("occurred_at")
+  payload        Json
+  payloadVersion Int              @default(1) @map("payload_version")
+  correlationId  String?          @map("correlation_id") @db.VarChar(100)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  lead           Lead             @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
+  business       Business?        @relation(fields: [idBusiness], references: [idBusiness], onDelete: SetNull)
+  actor          User             @relation("LeadActivityActor", fields: [idUser], references: [idUser])
+
+  @@unique([idLead, correlationId])
+  @@index([idLead, occurredAt, idLeadActivity])
+  @@index([idBusiness, occurredAt])
+  @@index([correlationId])
+  @@map("lead_activity")
+}
+
+model LeadSupportCase {
+  idLeadSupportCase Int                      @id @default(autoincrement()) @map("id_lead_support_case")
+  idLead            Int                      @map("id_lead")
+  idBusiness        Int?                     @map("id_business")
+  openedBy          Int                      @map("opened_by")
+  assignedTo        Int?                     @map("assigned_to")
+  subject           String                   @db.VarChar(240)
+  status            LeadSupportCaseStatus    @default(OPEN)
+  priority          LeadSupportCasePriority  @default(MEDIUM)
+  dueAt             DateTime?                @map("due_at")
+  /// Custom board column. Null keeps the case in the due-date column.
+  columnCode        String?                  @map("column_code") @db.VarChar(20)
+  resolvedAt        DateTime?                @map("resolved_at")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  lead              Lead                     @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
+  business          Business?                @relation(fields: [idBusiness], references: [idBusiness], onDelete: SetNull)
+  opener            User                     @relation("LeadSupportCaseOpenedBy", fields: [openedBy], references: [idUser])
+  assignee          User?                    @relation("LeadSupportCaseAssignee", fields: [assignedTo], references: [idUser])
+  comments          LeadSupportCaseComment[]
+
+  @@index([idLead, status])
+  @@index([idBusiness, status])
+  @@index([assignedTo, status, dueAt])
+  @@index([columnCode])
+  @@map("lead_support_case")
+}
+
+model LeadSupportCaseComment {
+  idLeadSupportCaseComment Int             @id @default(autoincrement()) @map("id_lead_support_case_comment")
+  idLeadSupportCase        Int             @map("id_lead_support_case")
+  authorId                 Int             @map("author_id")
+  body                     String          @db.VarChar(2000)
+  createdAt                DateTime        @default(now()) @map("created_at")
+  supportCase              LeadSupportCase @relation(fields: [idLeadSupportCase], references: [idLeadSupportCase], onDelete: Cascade)
+  author                   User            @relation("LeadSupportCaseCommentAuthor", fields: [authorId], references: [idUser])
+
+  @@index([idLeadSupportCase, createdAt])
+  @@map("lead_support_case_comment")
+}
+
+/// Catalogue of activity names shown on task cards. Seeded codes match `LeadTaskType`.
+model LeadActivityLabel {
+  idLeadActivityLabel Int        @id @default(autoincrement()) @map("id_lead_activity_label")
+  name                String     @db.VarChar(40)
+  color               String     @default("#64748b") @db.VarChar(7)
+  /// Built-in task type. Null for labels created by the team.
+  code                String?    @unique @db.VarChar(20)
+  active              Boolean    @default(true)
+  position            Int        @default(0)
+  createdBy           Int        @map("created_by")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+  creator             User       @relation("LeadActivityLabelCreator", fields: [createdBy], references: [idUser])
+  tasks               LeadTask[]
+
+  @@index([active, position])
+  @@map("lead_activity_label")
+}
+
+/// Board column. System codes group cards by due date. Any other code is a custom column.
+model LeadActivityColumn {
+  idLeadActivityColumn Int      @id @default(autoincrement()) @map("id_lead_activity_column")
+  code                 String   @unique @db.VarChar(20)
+  name                 String   @db.VarChar(40)
+  position             Int      @default(0)
+  active               Boolean  @default(true)
+  updatedBy            Int      @map("updated_by")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  updater              User     @relation("LeadActivityColumnUpdater", fields: [updatedBy], references: [idUser])
+
+  @@index([active, position])
+  @@map("lead_activity_column")
+}
+
+model LeadTask {
+  idLeadTask          Int                @id @default(autoincrement()) @map("id_lead_task")
+  idLead              Int                @map("id_lead")
+  idBusiness          Int?               @map("id_business")
+  assignedTo          Int                @map("assigned_to")
+  createdBy           Int                @map("created_by")
+  title               String             @db.VarChar(240)
+  dueAt               DateTime?          @map("due_at")
+  type                LeadTaskType       @default(TODO)
+  idLeadActivityLabel Int?               @map("id_lead_activity_label")
+  /// Custom board column. Null keeps the card in the due-date column.
+  columnCode          String?            @map("column_code") @db.VarChar(20)
+  status              LeadTaskStatus     @default(OPEN)
+  completedAt         DateTime?          @map("completed_at")
+  reminderSentAt      DateTime?          @map("reminder_sent_at")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+  lead                Lead               @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
+  business            Business?          @relation(fields: [idBusiness], references: [idBusiness], onDelete: SetNull)
+  assignee            User               @relation("LeadTaskAssignee", fields: [assignedTo], references: [idUser])
+  creator             User               @relation("LeadTaskCreator", fields: [createdBy], references: [idUser])
+  activityLabel       LeadActivityLabel? @relation(fields: [idLeadActivityLabel], references: [idLeadActivityLabel], onDelete: SetNull)
+  comments            LeadTaskComment[]
+
+  @@index([assignedTo, status, dueAt])
+  @@index([idLead, status])
+  @@index([columnCode])
+  @@index([dueAt, reminderSentAt])
+  @@index([idLeadActivityLabel])
+  @@map("lead_task")
+}
+
+model LeadTaskComment {
+  idLeadTaskComment Int      @id @default(autoincrement()) @map("id_lead_task_comment")
+  idLeadTask        Int      @map("id_lead_task")
+  authorId          Int      @map("author_id")
+  body              String   @db.VarChar(2000)
+  createdAt         DateTime @default(now()) @map("created_at")
+  task              LeadTask @relation(fields: [idLeadTask], references: [idLeadTask], onDelete: Cascade)
+  author            User     @relation("LeadTaskCommentAuthor", fields: [authorId], references: [idUser])
+
+  @@index([idLeadTask, createdAt])
+  @@map("lead_task_comment")
+}
+
 model Lead {
-  idLead             Int               @id @default(autoincrement()) @map("id_lead")
-  externalCrmId      String?           @unique @map("external_crm_id") @db.VarChar(150)
-  name               String?           @db.VarChar(200)
-  lastName           String?           @map("last_name") @db.VarChar(200)
-  email              String?           @db.VarChar(150)
-  phone              String?           @db.VarChar(30)
-  identityNumber     String?           @map("identity_number") @db.VarChar(20)
-  originTag          String?           @map("origin_tag") @db.VarChar(120)
-  externalUrl        String?           @map("external_url")
-  idUser             Int?              @map("id_user")
-  idLeadFunnelColumn Int               @map("id_lead_funnel_column")
-  idBusiness         Int?              @unique @map("id_business")
-  outcomeStatus      LeadOutcomeStatus @default(OPEN) @map("outcome_status")
-  active             Boolean           @default(true)
-  createdAt          DateTime          @default(now()) @map("created_at")
-  updatedAt          DateTime          @updatedAt @map("updated_at")
-  user               User?             @relation(fields: [idUser], references: [idUser])
-  funnelColumn       LeadFunnelColumn  @relation(fields: [idLeadFunnelColumn], references: [idLeadFunnelColumn])
-  business           Business?         @relation(fields: [idBusiness], references: [idBusiness])
+  idLead             Int                 @id @default(autoincrement()) @map("id_lead")
+  externalCrmId      String?             @unique @map("external_crm_id") @db.VarChar(150)
+  name               String?             @db.VarChar(200)
+  lastName           String?             @map("last_name") @db.VarChar(200)
+  email              String?             @db.VarChar(150)
+  phone              String?             @db.VarChar(30)
+  identityNumber     String?             @map("identity_number") @db.VarChar(20)
+  originTag          String?             @map("origin_tag") @db.VarChar(120)
+  externalUrl        String?             @map("external_url")
+  idUser             Int?                @map("id_user")
+  idLeadFunnelColumn Int                 @map("id_lead_funnel_column")
+  idBusiness         Int?                @unique @map("id_business")
+  outcomeStatus      LeadOutcomeStatus   @default(OPEN) @map("outcome_status")
+  active             Boolean             @default(true)
+  lastActivityAt     DateTime?           @map("last_activity_at")
+  /// CRM-owned (never written by crm-sync): expected deal value and win probability (0..100).
+  estimatedValue     Decimal?            @map("estimated_value") @db.Decimal(15, 2)
+  probability        Int?
+  /// CRM-owned custom field values keyed by `LeadCustomField.key`.
+  customFieldValues  Json                @default("{}") @map("custom_field_values")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  user               User?               @relation(fields: [idUser], references: [idUser])
+  funnelColumn       LeadFunnelColumn    @relation(fields: [idLeadFunnelColumn], references: [idLeadFunnelColumn])
+  business           Business?           @relation(fields: [idBusiness], references: [idBusiness])
+  activities         LeadActivity[]
+  tasks              LeadTask[]
+  supportCases       LeadSupportCase[]
+  stageHistory       LeadStageHistory[]
+  tagAssignments     LeadTagAssignment[]
 
   @@index([idUser])
   @@index([idLeadFunnelColumn])
   @@index([outcomeStatus, createdAt])
+  @@index([outcomeStatus, lastActivityAt])
   @@map("lead")
+}
+
+enum LeadStageChangeSource {
+  CRM_SYNC
+  CSV_IMPORT
+  MANUAL
+}
+
+/// Append-only log of funnel stage transitions (never updated or deleted).
+model LeadStageHistory {
+  idLeadStageHistory     Int                   @id @default(autoincrement()) @map("id_lead_stage_history")
+  idLead                 Int                   @map("id_lead")
+  fromIdLeadFunnelColumn Int?                  @map("from_id_lead_funnel_column")
+  toIdLeadFunnelColumn   Int                   @map("to_id_lead_funnel_column")
+  source                 LeadStageChangeSource
+  idUser                 Int?                  @map("id_user")
+  changedAt              DateTime              @map("changed_at")
+  createdAt              DateTime              @default(now()) @map("created_at")
+  lead                   Lead                  @relation(fields: [idLead], references: [idLead])
+  fromColumn             LeadFunnelColumn?     @relation("LeadStageHistoryFrom", fields: [fromIdLeadFunnelColumn], references: [idLeadFunnelColumn])
+  toColumn               LeadFunnelColumn      @relation("LeadStageHistoryTo", fields: [toIdLeadFunnelColumn], references: [idLeadFunnelColumn])
+  user                   User?                 @relation(fields: [idUser], references: [idUser])
+
+  @@index([idLead, changedAt])
+  @@index([toIdLeadFunnelColumn, changedAt])
+  @@map("lead_stage_history")
+}
+
+/// CRM tag catalogue (CRM-owned). Deactivated, never deleted.
+model LeadTag {
+  idLeadTag   Int                 @id @default(autoincrement()) @map("id_lead_tag")
+  name        String              @db.VarChar(60)
+  color       String              @default("#64748b") @db.VarChar(7)
+  active      Boolean             @default(true)
+  createdBy   Int                 @map("created_by")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  assignments LeadTagAssignment[]
+
+  @@index([active])
+  @@map("lead_tag")
+}
+
+/// Tag on a lead. Removing a tag sets `active=false`; re-adding reactivates the row.
+model LeadTagAssignment {
+  idLeadTagAssignment Int      @id @default(autoincrement()) @map("id_lead_tag_assignment")
+  idLead              Int      @map("id_lead")
+  idLeadTag           Int      @map("id_lead_tag")
+  active              Boolean  @default(true)
+  assignedBy          Int      @map("assigned_by")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  lead                Lead     @relation(fields: [idLead], references: [idLead])
+  tag                 LeadTag  @relation(fields: [idLeadTag], references: [idLeadTag])
+
+  @@unique([idLead, idLeadTag])
+  @@index([idLeadTag, active])
+  @@map("lead_tag_assignment")
+}
+
+enum LeadCustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+}
+
+/// Definition of a CRM custom field; values live in `Lead.customFieldValues`.
+model LeadCustomField {
+  idLeadCustomField Int                 @id @default(autoincrement()) @map("id_lead_custom_field")
+  key               String              @unique @db.VarChar(40)
+  label             String              @db.VarChar(80)
+  type              LeadCustomFieldType
+  /// SELECT only: list of allowed string values.
+  options           Json                @default("[]")
+  position          Int                 @default(0)
+  active            Boolean             @default(true)
+  createdBy         Int                 @map("created_by")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  @@index([active, position])
+  @@map("lead_custom_field")
+}
+
+/// Per-user saved filters and sort of the CRM lead table.
+model LeadSavedView {
+  idLeadSavedView Int      @id @default(autoincrement()) @map("id_lead_saved_view")
+  idUser          Int      @map("id_user")
+  name            String   @db.VarChar(60)
+  query           Json
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  user            User     @relation(fields: [idUser], references: [idUser])
+
+  @@index([idUser, active])
+  @@map("lead_saved_view")
 }
