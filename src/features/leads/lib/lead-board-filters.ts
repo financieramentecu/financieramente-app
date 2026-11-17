@@ -6,6 +6,8 @@ export interface LeadBoardFilters {
 	createdAtRange: { gte: Date; lte: Date }
 	/** Empty means the whole hierarchy. */
 	ownerIds: number[]
+	/** Unchecked hierarchy branches. Empty keeps the server scope. */
+	excludedOwnerIds: number[]
 }
 
 /**
@@ -18,5 +20,6 @@ export function getDefaultLeadBoardFilters(): LeadBoardFilters {
 		outcomeStatuses: ['OPEN'],
 		createdAtRange: currentBogotaMonthRange(),
 		ownerIds: [],
+		excludedOwnerIds: [],
 	}
 }

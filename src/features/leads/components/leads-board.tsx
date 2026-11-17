@@ -46,13 +46,15 @@ export function LeadsBoard() {
 	const { enabled: reportsEnabled } = useFeatureFlag('crm_reports')
 	const hierarchy = useCrmHierarchyFilter()
 	const [filters, setFilters] = useState(getDefaultLeadBoardFilters())
-	const ownerKey = hierarchy.ownerIds.join(',')
+	const excludeKey = hierarchy.excludedOwnerIds.join(',')
 	useEffect(() => {
 		if (!hierarchy.ready) return
 		setFilters((current) =>
-			current.ownerIds.join(',') === ownerKey ? current : { ...current, ownerIds: hierarchy.ownerIds }
+			current.excludedOwnerIds.join(',') === excludeKey && current.ownerIds.length === 0
+				? current
+				: { ...current, ownerIds: [], excludedOwnerIds: hierarchy.excludedOwnerIds }
 		)
-	}, [hierarchy.ready, hierarchy.ownerIds, ownerKey])
+	}, [hierarchy.ready, hierarchy.excludedOwnerIds, excludeKey])
 	const { state, refetch, updateColumns } = useLeadsBoard(filters, !hierarchy.ready || hierarchy.noneSelected)
 	const isRefreshing = state.status === 'loading'
 	const sheet = useLeadDetailSheet()

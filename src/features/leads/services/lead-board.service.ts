@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
+import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
 import { getInactivityDays, resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
 import type {
 	LeadBoardColumn,
@@ -26,6 +27,8 @@ export interface LeadBoardOptions {
 	createdAtRange?: { gte: Date; lte: Date }
 	/** Selected advisors. Empty keeps the full hierarchy. */
 	ownerIds?: number[]
+	/** Unchecked hierarchy nodes. Expanded to their descendants before the query. */
+	excludedOwnerIds?: number[]
 }
 
 /**
@@ -36,6 +39,7 @@ export async function getLeadBoard(
 	viewer: LeadViewer,
 	options: LeadBoardOptions = {}
 ): Promise<LeadBoardColumn[]> {
+	const excludedOwnerIds = await expandExcludedOwnerIds(options.excludedOwnerIds ?? [], options.visibleUserIds ?? [])
 	const [columns, leads] = await Promise.all([
 		prisma.leadFunnelColumn.findMany({
 			where: { active: true },
@@ -48,6 +52,7 @@ export async function getLeadBoard(
 					outcomeStatuses: options.outcomeStatuses,
 					createdAtRange: options.createdAtRange,
 					ownerIds: options.ownerIds,
+					excludedOwnerIds,
 				},
 				options
 			),

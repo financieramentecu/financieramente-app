@@ -22,6 +22,9 @@ function buildQueryString(filters: LeadBoardFilters | undefined): string {
 	for (const ownerId of filters.ownerIds ?? []) {
 		params.append('owner', String(ownerId))
 	}
+	for (const ownerId of filters.excludedOwnerIds ?? []) {
+		params.append('exclude', String(ownerId))
+	}
 
 	return `?${params.toString()}`
 }
@@ -33,6 +36,7 @@ function filterKey(filters: LeadBoardFilters | undefined): string {
 		filters.createdAtRange.gte.toISOString(),
 		filters.createdAtRange.lte.toISOString(),
 		(filters.ownerIds ?? []).join(','),
+		(filters.excludedOwnerIds ?? []).join(','),
 	].join('|')
 }
 

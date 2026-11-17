@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { buildLeadTableWhere, resolveLeadTableOptions } from '@/features/leads/table/build-lead-table-where'
+import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
 import { DEFAULT_LEAD_TABLE_QUERY } from '@/features/leads/table/lead-table-query.schema'
 import type { LeadViewer } from '@/features/leads/types/lead.types'
 import { buildCrmPipelineReport } from '@/features/leads/reports/build-crm-pipeline-report'
@@ -43,7 +44,7 @@ export function buildCrmReportLeadWhere(
 ): Prisma.LeadWhereInput {
 	return buildLeadTableWhere(
 		viewer,
-		{ ...DEFAULT_LEAD_TABLE_QUERY, from: query.from, to: query.to, ownerIds: [...query.ownerIds] },
+		{ ...DEFAULT_LEAD_TABLE_QUERY, from: query.from, to: query.to, ownerIds: [...query.ownerIds], excludedOwnerIds: [...(query.excludedOwnerIds ?? [])] },
 		resolveLeadTableOptions(visibleUserIds, now)
 	)
 }
@@ -75,7 +76,15 @@ export async function getCrmPipelineReport(
 	visibleUserIds: number[],
 	now: Date = new Date()
 ): Promise<CrmPipelineReportResult> {
-	const where = buildCrmReportLeadWhere(viewer, query, visibleUserIds, now)
+	const where = buildCrmReportLeadWhere(
+		viewer,
+		{
+			...query,
+			excludedOwnerIds: await expandExcludedOwnerIds(query.excludedOwnerIds ?? [], visibleUserIds),
+		},
+		visibleUserIds,
+		now
+	)
 	const total = await prisma.lead.count({ where })
 	if (total > CRM_REPORT_LEAD_LIMIT) return { ok: false, reason: 'TOO_MANY_LEADS', total }
 

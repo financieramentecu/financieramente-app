@@ -10,6 +10,7 @@ import {
 	buildCrmReportLeadWhere,
 	CRM_REPORT_LEAD_LIMIT,
 } from '@/features/leads/reports/crm-pipeline-report.service'
+import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
 import type { CrmReportQuery } from '@/features/leads/reports/crm-pipeline-report.types'
 import type {
 	CrmStageDetailFilter,
@@ -41,7 +42,15 @@ async function loadCrmStageDetailInputs(
 	| { ok: true; leads: CrmStageDetailLeadInput[] }
 	| { ok: false; reason: 'TOO_MANY_LEADS' }
 > {
-	const where = buildCrmReportLeadWhere(viewer, query, visibleUserIds, now)
+	const where = buildCrmReportLeadWhere(
+		viewer,
+		{
+			...query,
+			excludedOwnerIds: await expandExcludedOwnerIds(query.excludedOwnerIds ?? [], visibleUserIds),
+		},
+		visibleUserIds,
+		now
+	)
 	const total = await prisma.lead.count({ where })
 	if (total > CRM_REPORT_LEAD_LIMIT) return { ok: false, reason: 'TOO_MANY_LEADS' }
 
