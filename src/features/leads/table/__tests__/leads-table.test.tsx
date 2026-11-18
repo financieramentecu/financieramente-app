@@ -4,6 +4,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { LeadsTable } from '@/features/leads/table/leads-table'
 import { fetchLeadTable, fetchStageOptions, fetchTagOptions } from '@/features/leads/table/lead-table-api'
 import type { LeadTablePage, LeadTableRow } from '@/features/leads/table/lead-table.types'
+import type { SavedLeadTableQuery } from '@/features/leads/views/lead-saved-view.types'
 
 vi.mock('next/navigation', () => ({ useRouter: vi.fn(), useSearchParams: vi.fn(), usePathname: vi.fn() }))
 vi.mock('@/features/leads/table/lead-table-api', async (importOriginal) => ({
@@ -13,8 +14,8 @@ vi.mock('@/features/leads/table/lead-table-api', async (importOriginal) => ({
 	fetchTagOptions: vi.fn(),
 }))
 vi.mock('@/features/leads/views/saved-views-bar', () => ({
-	SavedViewsBar: ({ onApply }: { onApply: (query: unknown) => void }) => (
-		<button type="button" onClick={() => onApply({ statuses: ['WON'], stageIds: [], ownerIds: [], tagIds: [], idle: false, sort: 'name', dir: 'asc' })}>
+	SavedViewsBar: ({ onApply }: { onApply: (query: SavedLeadTableQuery) => void }) => (
+		<button type="button" onClick={() => onApply({ statuses: ['WON'], stageIds: [], ownerIds: [], excludedOwnerIds: [], tagIds: [], idle: false, sort: 'name', dir: 'asc' })}>
 			Aplicar vista
 		</button>
 	),
