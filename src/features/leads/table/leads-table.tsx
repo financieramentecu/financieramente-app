@@ -143,18 +143,18 @@ export function LeadsTable({
 	const { query, state, updateFilters, goToPage, toggleSort, replaceQuery } =
 		useLeadTable()
 	const hierarchy = useCrmHierarchyFilter()
-	const ownerKey = hierarchy.ownerIds.join(',')
+	const excludeKey = hierarchy.excludedOwnerIds.join(',')
 	const [search, setSearch] = useState(query.q ?? '')
 	const [openIds, setOpenIds] = useState<number[]>([])
 	const sortProps = { current: query.sort, dir: query.dir, onSort: toggleSort }
 
 	useEffect(() => {
 		if (!hierarchy.ready || hierarchy.noneSelected) return
-		if (query.ownerIds.join(',') === ownerKey) return
-		updateFilters({ ownerIds: hierarchy.ownerIds })
-		// ownerKey is the identity of the hierarchy selection.
+		if (query.excludedOwnerIds.join(',') === excludeKey && query.ownerIds.length === 0) return
+		updateFilters({ ownerIds: [], excludedOwnerIds: hierarchy.excludedOwnerIds })
+		// excludeKey is the identity of the hierarchy selection.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [hierarchy.ready, hierarchy.noneSelected, ownerKey])
+	}, [hierarchy.ready, hierarchy.noneSelected, excludeKey])
 	const { stages, tags } = useLeadTableOptions(fieldsEnabled)
 
 	function toggleLead(idLead: number) {

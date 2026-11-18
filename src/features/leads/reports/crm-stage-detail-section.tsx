@@ -31,12 +31,14 @@ const NO_OWNERS: readonly number[] = []
 export function CrmStageDetailSection({
 	range,
 	ownerIds = NO_OWNERS,
+	excludedOwnerIds = NO_OWNERS,
 }: {
 	range: CrmReportRange | null
 	ownerIds?: readonly number[]
+	excludedOwnerIds?: readonly number[]
 }) {
 	const { state, page, setPage, pageSize, setPageSize, stage, setStage } =
-		useCrmStageDetail(range, ownerIds)
+		useCrmStageDetail(range, ownerIds, excludedOwnerIds)
 	const [openIds, setOpenIds] = useState<number[]>([])
 	const data = state.status === 'success' ? state.data : null
 	const totalPages = data ? Math.max(1, Math.ceil(data.totalLeads / data.pageSize)) : 1

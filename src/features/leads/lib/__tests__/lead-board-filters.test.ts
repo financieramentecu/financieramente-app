@@ -16,6 +16,7 @@ describe('getDefaultLeadBoardFilters', () => {
 
 		expect(filters.outcomeStatuses).toEqual(['OPEN'])
 		expect(filters.ownerIds).toEqual([])
+		expect(filters.excludedOwnerIds).toEqual([])
 		expect(filters.createdAtRange.gte.getTime()).toBe(
 			expectedRange.gte.getTime()
 		)

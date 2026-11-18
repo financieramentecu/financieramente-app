@@ -41,6 +41,12 @@ function ownerClause(viewer: LeadViewer, ownerIds: number[], visibleUserIds: num
 	return [{ idUser: { in: allowed } }]
 }
 
+/** Unchecked branches already expanded to their descendants. */
+function excludedClause(excludedOwnerIds: readonly number[] | undefined): Prisma.LeadWhereInput[] {
+	if (!excludedOwnerIds || excludedOwnerIds.length === 0) return []
+	return [{ idUser: { notIn: [...excludedOwnerIds] } }]
+}
+
 function idleClause(now: Date, inactivityDays: number): Prisma.LeadWhereInput {
 	const cutoff = new Date(now.getTime() - inactivityDays * DAY_MS)
 	return {
@@ -70,6 +76,7 @@ export function buildLeadTableWhere(
 		...(Array.isArray(base.AND) ? base.AND : base.AND ? [base.AND] : []),
 		...searchClauses(query.q),
 		...ownerClause(viewer, query.ownerIds, options.visibleUserIds),
+		...excludedClause(query.excludedOwnerIds),
 	]
 	if (query.stageIds.length > 0) and.push({ idLeadFunnelColumn: { in: query.stageIds } })
 	if (query.tagIds.length > 0) {

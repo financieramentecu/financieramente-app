@@ -387,18 +387,18 @@ export function CrmReports({ canExport = true }: { canExport?: boolean }) {
 	const hierarchy = useCrmHierarchyFilter()
 	const { state, range, load } = useCrmPipelineReport()
 	const [appliedRange, setAppliedRange] = React.useState<CrmReportRange | null>(null)
-	const ownerKey = hierarchy.ownerIds.join(',')
+	const excludeKey = hierarchy.excludedOwnerIds.join(',')
 	const loadRef = React.useRef(load)
 	const rangeRef = React.useRef(range)
-	const ownersRef = React.useRef(hierarchy.ownerIds)
+	const excludedRef = React.useRef(hierarchy.excludedOwnerIds)
 	loadRef.current = load
 	rangeRef.current = range
-	ownersRef.current = hierarchy.ownerIds
+	excludedRef.current = hierarchy.excludedOwnerIds
 	const skippedInitial = React.useRef(false)
 
 	React.useEffect(() => {
 		if (!hierarchy.ready || hierarchy.noneSelected) return
-		if (!skippedInitial.current && hierarchy.ownerIds.length === 0) {
+		if (!skippedInitial.current && hierarchy.excludedOwnerIds.length === 0) {
 			skippedInitial.current = true
 			return
 		}
@@ -406,10 +406,10 @@ export function CrmReports({ canExport = true }: { canExport?: boolean }) {
 		const current = rangeRef.current
 		void loadRef.current(
 			current
-				? { ...current, ownerIds: ownersRef.current }
-				: { from: '', to: '', ownerIds: ownersRef.current }
+				? { ...current, ownerIds: [], excludedOwnerIds: excludedRef.current }
+				: { from: '', to: '', ownerIds: [], excludedOwnerIds: excludedRef.current }
 		)
-	}, [hierarchy.ready, hierarchy.noneSelected, ownerKey])
+	}, [hierarchy.ready, hierarchy.noneSelected, excludeKey])
 
 	return (
 		<div className="space-y-4">
@@ -423,7 +423,7 @@ export function CrmReports({ canExport = true }: { canExport?: boolean }) {
 				initial={range}
 				onApply={(next) => {
 					setAppliedRange(next)
-					void load({ ...next, ownerIds: hierarchy.ownerIds })
+					void load({ ...next, ownerIds: [], excludedOwnerIds: hierarchy.excludedOwnerIds })
 				}}
 			/>
 			{state.status === 'loading' && (
@@ -443,19 +443,19 @@ export function CrmReports({ canExport = true }: { canExport?: boolean }) {
 			{state.status === 'success' && canExport && (
 				<div className="flex flex-wrap gap-2">
 					<Button asChild variant="outline" size="sm">
-						<a href={buildCrmReportExportUrl(state.data.range, 'xlsx', hierarchy.ownerIds)}>
+						<a href={buildCrmReportExportUrl(state.data.range, 'xlsx', [], hierarchy.excludedOwnerIds)}>
 							Exportar Excel
 						</a>
 					</Button>
 					<Button asChild variant="outline" size="sm">
-						<a href={buildCrmReportExportUrl(state.data.range, 'pdf', hierarchy.ownerIds)}>
+						<a href={buildCrmReportExportUrl(state.data.range, 'pdf', [], hierarchy.excludedOwnerIds)}>
 							Exportar PDF
 						</a>
 					</Button>
 				</div>
 			)}
 			{state.status === 'success' && <ReportBody report={state.data} />}
-			<CrmStageDetailSection range={appliedRange} ownerIds={hierarchy.ownerIds} />
+			<CrmStageDetailSection range={appliedRange} excludedOwnerIds={hierarchy.excludedOwnerIds} />
 				</>
 			)}
 		</div>

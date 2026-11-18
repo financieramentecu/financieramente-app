@@ -309,7 +309,7 @@ export function ActivitiesAgenda({
 }) {
 	const hierarchy = useCrmHierarchyFilter()
 	const columns = useActivityColumns(!hierarchy.noneSelected)
-	const { state, place } = useActivityBoard(hierarchy.ownerIds, !hierarchy.ready || hierarchy.noneSelected, refreshKey)
+	const { state, place } = useActivityBoard(hierarchy.excludedOwnerIds, !hierarchy.ready || hierarchy.noneSelected, refreshKey)
 	const [dragging, setDragging] = useState<ActivityCardModel | null>(null)
 	const [kindFilter, setKindFilter] = useState<ActivityKindFilter>('all')
 	const skipClick = useRef(false)

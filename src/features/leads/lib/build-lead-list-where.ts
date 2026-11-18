@@ -7,6 +7,11 @@ export interface LeadListFilterInput {
 	createdAtRange?: { gte: Date; lte: Date }
 	/** Narrows the hierarchy. Never widens it: a bypass role may use any id. */
 	ownerIds?: number[]
+	/**
+	 * Branches removed from the server scope (the unchecked person and everyone
+	 * under them). Never widens the hierarchy.
+	 */
+	excludedOwnerIds?: number[]
 }
 
 export interface BuildLeadListWhereOptions {
@@ -48,6 +53,10 @@ export function buildLeadListWhere(
 
 	if (filters.ownerIds && filters.ownerIds.length > 0) {
 		whereConditions.push({ idUser: { in: filters.ownerIds } })
+	}
+
+	if (filters.excludedOwnerIds && filters.excludedOwnerIds.length > 0) {
+		whereConditions.push({ idUser: { notIn: filters.excludedOwnerIds } })
 	}
 
 	if (filters.outcomeStatuses && filters.outcomeStatuses.length > 0) {

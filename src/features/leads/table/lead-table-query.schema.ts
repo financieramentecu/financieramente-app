@@ -13,6 +13,8 @@ export interface LeadTableQuery {
 	statuses: LeadOutcomeStatus[]
 	stageIds: number[]
 	ownerIds: number[]
+	/** Unchecked hierarchy branches. Empty keeps the server scope. */
+	excludedOwnerIds: number[]
 	tagIds: number[]
 	/** Bogotá `YYYY-MM-DD`, inclusive; always sent together with `to`. */
 	from?: string
@@ -30,6 +32,7 @@ export const DEFAULT_LEAD_TABLE_QUERY: LeadTableQuery = {
 	statuses: [],
 	stageIds: [],
 	ownerIds: [],
+	excludedOwnerIds: [],
 	tagIds: [],
 	idle: false,
 	sort: 'createdAt',
@@ -52,6 +55,7 @@ const leadTableQuerySchema = z
 		statuses: z.array(z.enum(LEAD_OUTCOME_STATUS_VALUES as [LeadOutcomeStatus, ...LeadOutcomeStatus[]])).default([]),
 		stageIds: z.array(positiveId).default([]),
 		ownerIds: z.array(positiveId).default([]),
+		excludedOwnerIds: z.array(positiveId).max(2_000).default([]),
 		tagIds: z.array(positiveId).default([]),
 		from: z.string().regex(ISO_DAY, 'Fecha inválida').optional(),
 		to: z.string().regex(ISO_DAY, 'Fecha inválida').optional(),
@@ -92,6 +96,7 @@ export function parseLeadTableQuery(params: URLSearchParams): LeadTableQueryResu
 			statuses: params.getAll('status'),
 			stageIds: params.getAll('stage'),
 			ownerIds: params.getAll('owner'),
+			excludedOwnerIds: params.getAll('exclude'),
 			tagIds: params.getAll('tag'),
 			from: optional('from'),
 			to: optional('to'),
@@ -128,6 +133,7 @@ export function toLeadTableSearchParams(query: LeadTableQuery): URLSearchParams 
 	query.statuses.forEach((value) => params.append('status', value))
 	query.stageIds.forEach((value) => params.append('stage', String(value)))
 	query.ownerIds.forEach((value) => params.append('owner', String(value)))
+	query.excludedOwnerIds.forEach((value) => params.append('exclude', String(value)))
 	query.tagIds.forEach((value) => params.append('tag', String(value)))
 	if (query.from && query.to) {
 		params.set('from', query.from)
