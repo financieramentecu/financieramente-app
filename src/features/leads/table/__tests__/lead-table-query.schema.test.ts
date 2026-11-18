@@ -25,6 +25,7 @@ describe('parseLeadTableQuery', () => {
 				statuses: ['OPEN', 'WON'],
 				stageIds: [3],
 				ownerIds: [7, 8],
+				excludedOwnerIds: [],
 				tagIds: [2],
 				from: '2026-11-01',
 				to: '2026-11-30',

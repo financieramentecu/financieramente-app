@@ -9,6 +9,7 @@ import {
 import { getLeadBoard } from '@/features/leads/services/lead-board.service'
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 import { parseBogotaInclusiveUtcRange } from '@/features/shared/lib/bogota-date-range'
+import { parseRepeatedUserIds } from '@/features/leads/lib/parse-user-ids'
 import type {
 	LeadBoardColumn,
 	LeadOutcomeStatus,
@@ -31,6 +32,7 @@ function parseBoardFilters(searchParams: URLSearchParams): {
 	outcomeStatuses?: LeadOutcomeStatus[]
 	createdAtRange?: { gte: Date; lte: Date }
 	ownerIds: number[]
+	excludedOwnerIds: number[]
 } {
 	const defaults = getDefaultLeadBoardFilters()
 
@@ -49,13 +51,19 @@ function parseBoardFilters(searchParams: URLSearchParams): {
 				: undefined
 			: defaults.createdAtRange
 
-	return { outcomeStatuses, createdAtRange, ownerIds: parseOwnerIds(searchParams) }
+	return {
+		outcomeStatuses,
+		createdAtRange,
+		ownerIds: parseOwnerIds(searchParams),
+		excludedOwnerIds: parseRepeatedUserIds(searchParams.getAll('exclude')),
+	}
 }
 
 /**
  * GET /api/leads
  * Kanban board: active columns with hierarchy-scoped leads.
  * `owner` repeats to narrow that hierarchy to specific advisors.
+ * `exclude` repeats to drop unchecked branches and the people under them.
  */
 export async function GET(request: Request) {
 	const session = await auth()
@@ -82,13 +90,14 @@ export async function GET(request: Request) {
 			: await getAccessibleUserIds(currentUser.idUser)
 
 		const { searchParams } = new URL(request.url)
-		const { outcomeStatuses, createdAtRange, ownerIds } = parseBoardFilters(searchParams)
+		const { outcomeStatuses, createdAtRange, ownerIds, excludedOwnerIds } = parseBoardFilters(searchParams)
 
 		const board = await getLeadBoard(currentUser, {
 			visibleUserIds,
 			outcomeStatuses,
 			createdAtRange,
 			ownerIds,
+			excludedOwnerIds,
 		})
 
 		const response: ApiResponse<LeadBoardColumn[]> = { data: board }

@@ -6,6 +6,16 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const BOARD_LIMIT = 500
 const OPEN_STATUSES: LeadSupportCaseStatus[] = ['OPEN', 'IN_PROGRESS', 'WAITING']
 
+function assignedToWhere(assigneeIds: number[] | null, excludedAssigneeIds: readonly number[]) {
+	if (!assigneeIds && excludedAssigneeIds.length === 0) return {}
+	return {
+		assignedTo: {
+			...(assigneeIds ? { in: assigneeIds } : {}),
+			...(excludedAssigneeIds.length > 0 ? { notIn: [...excludedAssigneeIds] } : {}),
+		},
+	}
+}
+
 export interface ActivityBoardCase {
 	idLeadSupportCase: number
 	idLead: number
@@ -27,12 +37,16 @@ function personName(user: { name: string; lastName: string | null } | null): str
 }
 
 /** Support cases in the same four time windows as tasks. `null` assignees means every case. */
-export async function getActivityCases(assigneeIds: number[] | null, now: Date = new Date()): Promise<ActivityBoardCase[]> {
+export async function getActivityCases(
+	assigneeIds: number[] | null,
+	now: Date = new Date(),
+	excludedAssigneeIds: readonly number[] = []
+): Promise<ActivityBoardCase[]> {
 	const { end } = getBogotaDayBounds(now)
 	const rows = await prisma.leadSupportCase.findMany({
 		where: {
 			lead: { active: true },
-			...(assigneeIds ? { assignedTo: { in: assigneeIds } } : {}),
+			...assignedToWhere(assigneeIds, excludedAssigneeIds),
 			OR: [
 				{
 					status: { in: OPEN_STATUSES },

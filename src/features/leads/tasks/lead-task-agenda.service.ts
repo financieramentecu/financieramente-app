@@ -19,6 +19,16 @@ const AGENDA_LIMIT = 200
 const BOARD_LIMIT = 500
 const DAY_MS = 24 * 60 * 60 * 1000
 
+function assignedToWhere(assigneeIds: number[] | null, excludedAssigneeIds: readonly number[]) {
+	if (!assigneeIds && excludedAssigneeIds.length === 0) return {}
+	return {
+		assignedTo: {
+			...(assigneeIds ? { in: assigneeIds } : {}),
+			...(excludedAssigneeIds.length > 0 ? { notIn: [...excludedAssigneeIds] } : {}),
+		},
+	}
+}
+
 export interface ActivityBoardTask {
 	idLeadTask: number
 	idLead: number
@@ -40,13 +50,18 @@ export interface ActivityBoardTask {
 /**
  * Tasks that belong in the four agenda columns, for the viewer's hierarchy.
  * `null` assignees means every task (hierarchy bypass, no advisor filter).
+ * `excludedAssigneeIds` drops those people on top of the inclusion list.
  */
-export async function getActivityBoard(assigneeIds: number[] | null, now: Date = new Date()): Promise<ActivityBoardTask[]> {
+export async function getActivityBoard(
+	assigneeIds: number[] | null,
+	now: Date = new Date(),
+	excludedAssigneeIds: readonly number[] = []
+): Promise<ActivityBoardTask[]> {
 	const { end } = getBogotaDayBounds(now)
 	const rows = await prisma.leadTask.findMany({
 		where: {
 			lead: { active: true },
-			...(assigneeIds ? { assignedTo: { in: assigneeIds } } : {}),
+			...assignedToWhere(assigneeIds, excludedAssigneeIds),
 			OR: [
 				{ status: 'OPEN', OR: [{ dueAt: null }, { dueAt: { lt: new Date(end.getTime() + UPCOMING_DAYS * DAY_MS) } }] },
 				{ status: 'DONE', completedAt: { gte: new Date(now.getTime() - DONE_LOOKBACK_DAYS * DAY_MS) } },

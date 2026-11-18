@@ -14,9 +14,9 @@ export async function fetchAgenda(): Promise<AgendaByBucket> {
 	return Object.fromEntries(AGENDA_BUCKETS.map((bucket, index) => [bucket, lists[index]])) as AgendaByBucket
 }
 
-export async function fetchActivityBoard(ownerIds: number[]): Promise<ActivityBoardDto> {
+export async function fetchActivityBoard(excludedOwnerIds: number[]): Promise<ActivityBoardDto> {
 	const params = new URLSearchParams({ view: 'board' })
-	for (const ownerId of ownerIds) params.append('owner', String(ownerId))
+	for (const ownerId of excludedOwnerIds) params.append('exclude', String(ownerId))
 	const response = await fetch(`/api/crm/tasks?${params.toString()}`)
 	if (!response.ok) throw new Error('agenda')
 	const body = (await response.json()) as ApiResponse<ActivityBoardDto>
