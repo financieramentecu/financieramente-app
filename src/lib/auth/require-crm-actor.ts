@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import type { ApiErrorResponse } from '@/features/shared/types/api-response.types'
 import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
@@ -29,9 +29,9 @@ export interface CrmActor {
 
 export type RequireCrmActorResult =
 	| { ok: true; actor: CrmActor }
-	| { ok: false; response: NextResponse<ApiResponse<null>> }
+	| { ok: false; response: NextResponse<ApiErrorResponse> }
 
-export function crmErrorResponse(message: string, status: number): NextResponse<ApiResponse<null>> {
+export function crmErrorResponse(message: string, status: number): NextResponse<ApiErrorResponse> {
 	return NextResponse.json({ data: null, error: message }, { status })
 }
 
