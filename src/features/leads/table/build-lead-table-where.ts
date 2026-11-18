@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
+import { isWriteBypassRole } from '@/features/auth/lib/roles'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
 import type { LeadViewer } from '@/features/leads/types/lead.types'
@@ -36,9 +36,8 @@ function searchClauses(q: string | undefined): Prisma.LeadWhereInput[] {
 /** Owner filter restricted to the viewer's hierarchy so it can only narrow, never widen. */
 function ownerClause(viewer: LeadViewer, ownerIds: number[], visibleUserIds: number[]): Prisma.LeadWhereInput[] {
 	if (ownerIds.length === 0) return []
-	const allowed = isHierarchyBypassRole(viewer.role?.code)
-		? ownerIds
-		: ownerIds.filter((id) => visibleUserIds.includes(id))
+	const companyWide = isWriteBypassRole(viewer.role?.code) || visibleUserIds.length === 0
+	const allowed = companyWide ? ownerIds : ownerIds.filter((id) => visibleUserIds.includes(id))
 	return [{ idUser: { in: allowed } }]
 }
 

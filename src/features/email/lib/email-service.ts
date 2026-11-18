@@ -113,6 +113,11 @@ export async function sendEmail(params: SendEmailParams): Promise<EmailResult> {
         }
     }
 
+    if (process.env.NODE_ENV === 'development' && !process.env.SENDGRID_API_KEY) {
+        const { sendDevEtherealEmail } = await import('./dev-ethereal-email')
+        return sendDevEtherealEmail(params)
+    }
+
     // Determinar email de origen
     const fromEmail = params.from || SendGridConfig.getFromEmail()
     if (!isValidEmail(fromEmail)) {

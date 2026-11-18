@@ -24,6 +24,8 @@ const actor = {
 	visibleUserIds: [7, 8],
 	canManage: true,
 	idCategory: 3,
+	manageableUserIds: [7, 8],
+	canViewOthersCrm: false,
 }
 
 describe('GET /api/crm/reports/summary', () => {

@@ -156,7 +156,8 @@ POSTGRES_PASSWORD_PROD  → Segunda contraseña generada
 JWT_SECRET=your_jwt_secret_here
 ENCRYPTION_KEY=your_encryption_key_here
 
-# SendGrid (Recomendado)
+# SendGrid (Recomendado). En desarrollo, si la clave está vacía, el correo
+# se entrega en un buzón gratuito de Ethereal y la URL de vista previa sale en la consola.
 SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SENDGRID_FROM_EMAIL=noreply@financieramente.com
 SENDGRID_FROM_NAME=Financieramente
@@ -493,7 +494,7 @@ Opcional. Días sin actividad tras los cuales un lead **abierto** muestra el avi
 
 ## CRON_SECRET — crons del CRM
 
-Además de `fund-payments`, el mismo `CRON_SECRET` protege `POST /api/leads/cron/task-reminders` (cada 15 min: notificación in-app de tareas vencidas) y `POST /api/leads/cron/task-digest` (12:00 UTC = 07:00 Bogotá: resumen diario por email). Las líneas de crontab las instalan `deploy-qa.yml` y `deploy-prod.yml` con `CRON_SECRET_QA` / `CRON_SECRET_PROD`.
+Además de `fund-payments`, el mismo `CRON_SECRET` protege `POST /api/leads/cron/task-reminders` (cada 15 min: aviso in-app de tareas que vencen hoy y de las que entran en los días de anticipación guardados en `crm_notification_setting`) y `POST /api/leads/cron/task-digest` (12:00 UTC = 07:00 Bogotá: un correo al asesor por las tareas abiertas que ya vencieron; no incluye las de hoy ni las próximas). Las líneas de crontab las instalan `deploy-qa.yml` y `deploy-prod.yml` con `CRON_SECRET_QA` / `CRON_SECRET_PROD`. En desarrollo, al arrancar `next dev` el proceso de avisos in-app corre solo y se repite cada 15 minutos; el correo del resumen sigue saliendo solo por el crontab.
 
 ## Disponibilidad del CRM
 
