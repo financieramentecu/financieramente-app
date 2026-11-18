@@ -91,7 +91,7 @@ export async function completeLeadTaskTx(tx: TaskWriter, input: CompleteLeadTask
 export async function reassignLeadTaskTx(tx: TaskWriter, input: ReassignLeadTaskInput) {
 	const task = await tx.leadTask.update({
 		where: { idLeadTask: input.idLeadTask },
-		data: { assignedTo: input.assignedTo },
+		data: { assignedTo: input.assignedTo, reminderSentAt: null, advanceNotifiedAt: null },
 	})
 	await appendLeadActivityTx(tx, {
 		idLead: input.idLead,
