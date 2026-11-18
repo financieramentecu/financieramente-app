@@ -8,6 +8,8 @@ export interface CrmReportRange {
 
 export interface CrmReportQuery extends CrmReportRange {
 	readonly ownerIds: readonly number[]
+	/** Unchecked hierarchy branches. Empty keeps the server scope. */
+	readonly excludedOwnerIds?: readonly number[]
 }
 
 // ---- Dataset (service → pure builder). Never carries contact fields. ----

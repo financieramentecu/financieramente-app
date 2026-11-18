@@ -28,8 +28,12 @@ function toErrorMessage(cause: unknown): string {
 const NO_OWNERS: readonly number[] = []
 
 /** One page of grouped leads. `null` asks the server for its default range. */
-export function useCrmStageDetail(range: CrmReportRange | null, ownerIds: readonly number[] = NO_OWNERS) {
-	const rangeKey = `${range ? `${range.from}:${range.to}` : 'default'}:${ownerIds.join(',')}`
+export function useCrmStageDetail(
+	range: CrmReportRange | null,
+	ownerIds: readonly number[] = NO_OWNERS,
+	excludedOwnerIds: readonly number[] = NO_OWNERS
+) {
+	const rangeKey = `${range ? `${range.from}:${range.to}` : 'default'}:${ownerIds.join(',')}:${excludedOwnerIds.join(',')}`
 	const [page, setPage] = useState(1)
 	const [pageSize, setPageSize] = useState<CrmStageDetailPageSize>(
 		CRM_STAGE_DETAIL_DEFAULT_PAGE_SIZE
@@ -69,7 +73,7 @@ export function useCrmStageDetail(range: CrmReportRange | null, ownerIds: readon
 		fetchCrmStageDetail(range, activePage, pageSize, {
 			view: activeView,
 			stage: activeStage,
-		}, ownerIds)
+		}, ownerIds, excludedOwnerIds)
 			.then((data) => {
 				if (!cancelled) setState({ status: 'success', data, error: '' })
 			})
@@ -84,7 +88,7 @@ export function useCrmStageDetail(range: CrmReportRange | null, ownerIds: readon
 		return () => {
 			cancelled = true
 		}
-	}, [range, rangeKey, activePage, pageSize, activeStage, activeView, ownerIds])
+	}, [range, rangeKey, activePage, pageSize, activeStage, activeView, ownerIds, excludedOwnerIds])
 
 	function selectPageSize(next: number) {
 		if (isCrmStageDetailPageSize(next)) setPageSize(next)

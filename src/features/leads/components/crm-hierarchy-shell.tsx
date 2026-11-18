@@ -4,16 +4,31 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { PanelLeftOpen } from 'lucide-react'
 import { HierarchySelectionProvider, useHierarchySelection } from '@/features/production-dashboard/components/HierarchySelectionContext'
 import { HierarchyTreePanel } from '@/features/production-dashboard/components/HierarchyTreePanel'
+import type { HierarchyNode } from '@/features/production-dashboard/types/hierarchy.types'
 import { resolveCrmOwnerIds, type CrmHierarchyFilter } from '@/features/leads/lib/resolve-crm-owner-ids'
 
-const STANDALONE_FILTER: CrmHierarchyFilter = { ready: true, noneSelected: false, ownerIds: [] }
+const STANDALONE_FILTER: CrmHierarchyFilter = { ready: true, noneSelected: false, ownerIds: [], excludedOwnerIds: [] }
+
+function collectTreeUserIds(nodes: readonly HierarchyNode[]): number[] {
+	const ids: number[] = []
+	const walk = (list: readonly HierarchyNode[]) => {
+		for (const node of list) {
+			ids.push(node.userId)
+			walk(node.children)
+		}
+	}
+	walk(nodes)
+	return ids
+}
 
 function sameFilter(left: CrmHierarchyFilter, right: CrmHierarchyFilter): boolean {
 	return (
 		left.ready === right.ready &&
 		left.noneSelected === right.noneSelected &&
 		left.ownerIds.length === right.ownerIds.length &&
-		left.ownerIds.every((id, index) => id === right.ownerIds[index])
+		left.ownerIds.every((id, index) => id === right.ownerIds[index]) &&
+		left.excludedOwnerIds.length === right.excludedOwnerIds.length &&
+		left.excludedOwnerIds.every((id, index) => id === right.excludedOwnerIds[index])
 	)
 }
 
@@ -46,13 +61,15 @@ function CrmHierarchyLayout({ children }: { children: ReactNode }) {
 	const [hidePanel, setHidePanel] = useState(false)
 	const [loaded, setLoaded] = useState(false)
 	const [treeNodeCount, setTreeNodeCount] = useState(0)
+	const treeUserIds = collectTreeUserIds(nodes)
 	const resolved = resolveCrmOwnerIds({
 		loaded,
 		selectionNodeCount: nodes.length,
 		treeNodeCount,
 		selectedUserIds,
+		treeUserIds,
 	})
-	const filterKey = `${resolved.ready}:${resolved.noneSelected}:${resolved.ownerIds.join(',')}`
+	const filterKey = `${resolved.ready}:${resolved.noneSelected}:${resolved.ownerIds.join(',')}:${resolved.excludedOwnerIds.join(',')}`
 	// Start on the server's own scope so Pipeline, tasks and cases do not wait
 	// for the tree. The first paint already shows everyone the viewer may see.
 	const [filter, setFilter] = useState<CrmHierarchyFilter>(STANDALONE_FILTER)

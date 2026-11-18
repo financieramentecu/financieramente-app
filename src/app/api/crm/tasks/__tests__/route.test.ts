@@ -52,7 +52,7 @@ describe('GET /api/crm/tasks', () => {
 		vi.mocked(getActivityBoard).mockResolvedValue([])
 		const response = await GET(new Request('http://x/?view=board&owner=8&owner=99'))
 		expect(response.status).toBe(200)
-		expect(getActivityBoard).toHaveBeenCalledWith([8])
+		expect(getActivityBoard).toHaveBeenCalledWith([8], expect.any(Date), [])
 	})
 
 	it('rejects unknown buckets', async () => {
