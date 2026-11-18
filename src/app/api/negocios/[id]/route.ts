@@ -31,6 +31,7 @@ import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-a
 import {
 	buildBusinessValueChangeAudit,
 	businessValuesDiffer,
+	canEditBusinessValue,
 } from '@/features/negocios/lib/business-value-change'
 
 import {
@@ -269,6 +270,22 @@ export async function PUT(
 				{
 					data: null,
 					error: 'No tienes permisos para editar campos clave de un negocio ya emitido',
+				},
+				{ status: 403 }
+			)
+		}
+
+		// VENTA_EFECTUADA still lets the owner edit the rest of the draft, but
+		// Valor de Negocio is reserved for support, operations, and admin.
+		if (
+			!canEditBusinessValue(currentUser.role?.code) &&
+			value !== undefined &&
+			businessValuesDiffer(existingBusiness.value, value)
+		) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: 'No tienes permisos para editar el Valor de Negocio',
 				},
 				{ status: 403 }
 			)
