@@ -61,6 +61,21 @@ describe('requireCrmActor', () => {
 		if (!result.ok) expect(result.response.status).toBe(403)
 	})
 
+	it.each([false, true])('enforces the consultant CRM grant (%s)', async (granted) => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+			idUser: 3,
+			role: { code: 'CONSULTOR' },
+			canViewOthersCrm: granted,
+		} as never)
+		const result = await requireCrmActor('crm_tasks')
+		expect(result.ok).toBe(granted)
+		if (!result.ok) expect(result.response.status).toBe(403)
+		if (result.ok) {
+			expect(result.actor.visibleUserIds).toEqual([])
+			expect(result.actor.canManage).toBe(false)
+		}
+	})
+
 	it('resolves the actor with its hierarchy scope', async () => {
 		const result = await requireCrmActor('crm_tasks')
 		expect(result.ok).toBe(true)

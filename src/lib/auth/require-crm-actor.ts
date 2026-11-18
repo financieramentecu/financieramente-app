@@ -70,6 +70,10 @@ export async function requireCrmActor(
 		treeUserIds,
 	})
 
+	if (!visibility.canOpenCrm) {
+		return { ok: false, response: crmErrorResponse('Sin permisos para CRM', 403) }
+	}
+
 	return {
 		ok: true,
 		actor: {
