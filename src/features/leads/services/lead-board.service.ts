@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
+import { parseStoredFormFields } from '@/features/leads/lib/parse-stored-form-fields'
 import type {
 	LeadBoardColumn,
 	LeadDetail,
@@ -91,7 +92,20 @@ export async function getLeadDetail(
 	const where = buildLeadListWhere(viewer, {}, options)
 	const lead = await prisma.lead.findFirst({
 		where: { ...where, AND: [...(Array.isArray(where.AND) ? where.AND : []), { idLead }] },
-		include: { user: { select: { name: true, lastName: true } } },
+		include: {
+			user: { select: { name: true, lastName: true } },
+			formSubmissions: {
+				orderBy: { submittedAt: 'desc' },
+				select: {
+					submissionId: true,
+					landingKey: true,
+					landingName: true,
+					formVersion: true,
+					submittedAt: true,
+					fields: true,
+				},
+			},
+		},
 	})
 
 	if (!lead) return null
@@ -113,5 +127,13 @@ export async function getLeadDetail(
 		idBusiness: lead.idBusiness,
 		createdAt: lead.createdAt,
 		updatedAt: lead.updatedAt,
+		formSubmissions: lead.formSubmissions.map((submission) => ({
+			submissionId: submission.submissionId,
+			landingKey: submission.landingKey,
+			landingName: submission.landingName,
+			formVersion: submission.formVersion,
+			submittedAt: submission.submittedAt.toISOString(),
+			fields: parseStoredFormFields(submission.fields),
+		})),
 	}
 }

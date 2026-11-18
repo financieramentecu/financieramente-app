@@ -1,4 +1,5 @@
 import type { Lead, LeadFunnelColumn, LeadOutcomeStatus } from '@prisma/client'
+import type { LeadFormSubmissionView } from '@/features/leads/types/form-submission.types'
 
 /**
  * Domain types for the Leads feature.
@@ -64,6 +65,8 @@ export interface LeadDetail {
 	outcomeStatus: LeadOutcomeStatus
 	createdAt: Date
 	updatedAt: Date
+	/** Landing snapshots, newest first. Absent on callers that only need contact fields. */
+	formSubmissions?: LeadFormSubmissionView[]
 }
 
 /**

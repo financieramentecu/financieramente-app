@@ -178,6 +178,14 @@ Public routes (no session). They are rate limited per IP and never reveal whethe
 
 Any token problem answers 400 `Enlace inválido o vencido`; rate limiting answers 429 with `Retry-After`. The pages `/activate-account` and `/reset-password` validate the link on the server (no GET preview, the token never goes in an API query string). Rate-limit keys use the trusted client IP (`getTrustedClientIp`: `x-real-ip`, else the LAST `x-forwarded-for` hop).
 
+### 5c. Landing form submissions (`/api/leads/form-submissions`)
+
+Public to n8n. Authenticates with the same `x-api-key` as `POST /api/leads/crm-sync`. One JSON body creates or matches a lead and stores the form snapshot in the same transaction. An invalid body returns 400 and writes nothing. The same `submissionId` returns 200 without a second snapshot.
+
+| Method | Endpoint | Description |
+| :----- | :------- | :---------- |
+| `POST` | `/api/leads/form-submissions` | Body: `submissionId`, `submittedAt`, `landing`, `lead`, `fields`. |
+
 ### 6. System & Utility
 
 | Endpoint                  | Description            |

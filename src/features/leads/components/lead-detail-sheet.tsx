@@ -27,6 +27,7 @@ import {
 	LEAD_OUTCOME_STATUS_LABELS,
 	LEAD_OUTCOME_STATUS_BADGE_VARIANTS,
 } from '@/features/leads/lib/lead-outcome-status'
+import { LeadFormOriginSection } from '@/features/leads/components/lead-form-origin-section'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
 import { canDeleteLead } from '@/features/leads/lib/can-delete-lead'
 import { useDeleteLead } from '@/features/leads/hooks/use-delete-lead'
@@ -122,6 +123,7 @@ export function LeadDetailSheet({
 							<span className="truncate">{lead.originTag}</span>
 						</div>
 					)}
+					<LeadFormOriginSection submissions={lead.formSubmissions ?? []} />
 					{!lead.email && !lead.phone && !lead.identityNumber && !lead.originTag && (
 						<p className="text-sm text-slate-500 dark:text-slate-400">
 							Este lead no tiene datos de contacto adicionales.
