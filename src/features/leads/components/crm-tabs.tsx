@@ -4,7 +4,6 @@ import * as React from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { canManageCrm } from '@/features/leads/crm/crm-policy'
-import { isWriteBypassRole } from '@/features/auth/lib/roles'
 import { LeadsBoard } from '@/features/leads/components/leads-board'
 import { ActivitiesAgenda } from '@/features/leads/agenda/activities-agenda'
 import { LeadsTable } from '@/features/leads/table/leads-table'
@@ -36,10 +35,6 @@ export function CrmTabs() {
 			current.includes(activeTab) ? current : [...current, activeTab]
 		)
 	}
-	const canManage = canManageCrm(session?.user?.role)
-	const companyReadOnly =
-		session?.user?.canViewOthersCrm === true && !isWriteBypassRole(session?.user?.role)
-	const canExport = canManage && !companyReadOnly
 	const sheet = useLeadDetailSheet()
 	const [activityFocus, setActivityFocus] = React.useState<ActivityFocus | null>(null)
 	const [activityRevision, setActivityRevision] = React.useState(0)
@@ -64,23 +59,21 @@ export function CrmTabs() {
 					))}
 				</TabsList>
 				<TabsContent value="pipeline" forceMount hidden={activeTab !== 'pipeline'}>
-					{visitedTabs.includes('pipeline') && <LeadsBoard canMove={canManage} />}
+					{visitedTabs.includes('pipeline') && <LeadsBoard />}
 				</TabsContent>
 				<TabsContent value="leads" forceMount hidden={activeTab !== 'leads'}>
 					{visitedTabs.includes('leads') && (
 						<LeadsTable
 							onOpenLead={(idLead) => void openLead(idLead)}
 							fieldsEnabled={isFlagEnabled('crm_lead_fields')}
-							canConfigure={canManage}
-							canExport={canExport}
+							canConfigure={canManageCrm(session?.user?.role)}
 						/>
 					)}
 				</TabsContent>
 				<TabsContent value="activities" forceMount hidden={activeTab !== 'activities'}>
 					{visitedTabs.includes('activities') && (
 						<ActivitiesAgenda
-							canMove={canManage}
-							canConfigure={canManage}
+							canConfigure={canManageCrm(session?.user?.role)}
 							onOpenLead={(idLead, leadName) => {
 								setActivityFocus(null)
 								void openLead(idLead, leadName)
@@ -94,7 +87,7 @@ export function CrmTabs() {
 					)}
 				</TabsContent>
 				<TabsContent value="reports" forceMount hidden={activeTab !== 'reports'}>
-					{visitedTabs.includes('reports') && <CrmReports canExport={canExport} />}
+					{visitedTabs.includes('reports') && <CrmReports />}
 				</TabsContent>
 			</Tabs>
 			<CrmLeadDetailSheet

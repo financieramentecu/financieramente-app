@@ -44,7 +44,7 @@ async function resolveCase(context: RouteContext): Promise<ResolvedCase> {
 	const idLeadSupportCase = parsePositiveId((await context.params).id)
 	if (!idLeadSupportCase) return { ok: false, response: error('Identificador de caso inválido', 400) }
 	const supportCase = await findLeadSupportCaseRef(idLeadSupportCase)
-	if (!supportCase || !(await findScopedLead(guard.actor, supportCase.idLead, 'write'))) {
+	if (!supportCase || !(await findScopedLead(guard.actor, supportCase.idLead))) {
 		return { ok: false, response: error('Caso no encontrado', 404) }
 	}
 	return { ok: true, actor: guard.actor, supportCase }

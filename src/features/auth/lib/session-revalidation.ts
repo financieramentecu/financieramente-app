@@ -13,7 +13,6 @@ import { UserRole } from './roles'
 export interface SessionUserState {
 	readonly active: boolean
 	readonly roleCode: string | null
-	readonly canViewOthersCrm?: boolean
 }
 
 export interface SessionRevalidationInput {

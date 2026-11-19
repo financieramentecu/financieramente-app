@@ -13,5 +13,4 @@ export interface SessionUser {
 	idUserLeader: number | null
 	role: { code: string } | null
 	level: { code: string } | null
-	canViewOthersCrm?: boolean
 }

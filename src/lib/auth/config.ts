@@ -36,7 +36,6 @@ function restoreOriginalAdmin(token: JWT): void {
 	if (token.role && typeof token.role === 'string') {
 		token.permissions = getRolePermissions(token.role as UserRole)
 	}
-	token.canViewOthersCrm = false
 
 	delete token.originalUserId
 	delete token.originalRole
@@ -76,11 +75,10 @@ async function revalidateSessionToken(token: JWT): Promise<JWT | null> {
 			return token
 		}
 
-		token.role = result.roleCode as UserRole
-		if (typeof result.roleCode === 'string') {
+		if (token.role !== result.roleCode) {
+			token.role = result.roleCode as UserRole
 			token.permissions = getRolePermissions(result.roleCode as UserRole)
 		}
-		token.canViewOthersCrm = currentUser?.canViewOthersCrm === true
 		return token
 	} catch (error) {
 		// A transient database failure must not log everyone out: every data
@@ -411,7 +409,6 @@ export const authConfig: NextAuthConfig = {
 				} else {
 					session.user.permissions = null
 				}
-				session.user.canViewOthersCrm = token.canViewOthersCrm === true
 				
 				// Pasar datos de impersonation si existen
 				if (token.originalUserId) {

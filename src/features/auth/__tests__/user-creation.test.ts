@@ -69,7 +69,6 @@ describe('createUserAutomatically', () => {
 		idUserLeader: null,
 		entryDate: new Date(),
 		retirementDate: null,
-		canViewOthersCrm: false,
 		active: false,
 		createdAt: new Date(),
 		updatedAt: new Date(),

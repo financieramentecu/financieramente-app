@@ -77,14 +77,14 @@ export async function POST(request: Request) {
 			const input = leadTaskCommentSchema.safeParse({ body: body.body })
 			if (!input.success) return error('Comentario inválido', 400)
 			const task = await findLeadTaskRef(parsed.data.id)
-			if (!task || !(await findScopedLead(guard.actor, task.idLead, 'write'))) return error('Tarea no encontrada', 404)
+			if (!task || !(await findScopedLead(guard.actor, task.idLead))) return error('Tarea no encontrada', 404)
 			const comment = await addLeadTaskComment({ idLeadTask: task.idLeadTask, idLead: task.idLead, body: input.data.body }, ctx)
 			return NextResponse.json({ data: { id: comment.idLeadTaskComment } }, { status: 201 })
 		}
 		const input = leadSupportCaseCommentSchema.safeParse({ body: body.body })
 		if (!input.success) return error('Comentario inválido', 400)
 		const supportCase = await findLeadSupportCaseRef(parsed.data.id)
-		if (!supportCase || !(await findScopedLead(guard.actor, supportCase.idLead, 'write'))) return error('Caso no encontrado', 404)
+		if (!supportCase || !(await findScopedLead(guard.actor, supportCase.idLead))) return error('Caso no encontrado', 404)
 		const comment = await addLeadSupportCaseComment(
 			{ idLeadSupportCase: supportCase.idLeadSupportCase, idLead: supportCase.idLead, body: input.data.body },
 			ctx

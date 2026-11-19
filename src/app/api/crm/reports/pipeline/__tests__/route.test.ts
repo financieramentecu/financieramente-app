@@ -14,7 +14,7 @@ vi.mock('@/features/leads/reports/crm-pipeline-report.service', () => ({
 	CRM_REPORT_LEAD_LIMIT: 20000,
 }))
 
-const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7, 8], canManage: true, idCategory: 3, manageableUserIds: [7, 8], canViewOthersCrm: false }
+const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7, 8], canManage: true, idCategory: 3 }
 const request = (search = '') => new Request(`http://x/api/crm/reports/pipeline${search}`)
 
 describe('GET /api/crm/reports/pipeline', () => {

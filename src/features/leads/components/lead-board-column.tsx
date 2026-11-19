@@ -26,23 +26,8 @@ function DraggableLeadCard({
 	)
 }
 
-/** One pipeline column. Read-only viewers get static cards; managers can drag them. */
+/** One pipeline column that accepts a dragged lead and renders draggable cards. */
 export function LeadBoardColumn({
-	column,
-	onLeadClick,
-	movable = true,
-}: {
-	column: LeadBoardColumn
-	onLeadClick: (idLead: number) => void
-	movable?: boolean
-}) {
-	if (!movable) {
-		return <LeadFunnelColumnView column={column} onLeadClick={onLeadClick} />
-	}
-	return <DroppableLeadColumn column={column} onLeadClick={onLeadClick} />
-}
-
-function DroppableLeadColumn({
 	column,
 	onLeadClick,
 }: {

@@ -131,14 +131,11 @@ export function LeadsTable({
 	onOpenLead,
 	fieldsEnabled,
 	canConfigure = false,
-	canExport = true,
 }: {
 	onOpenLead: (idLead: number) => void
 	fieldsEnabled: boolean
 	/** CRM managers see the tag / custom field settings. */
 	canConfigure?: boolean
-	/** Read-only viewers outside the sales tree can see the table, not download it. */
-	canExport?: boolean
 }) {
 	const { query, state, updateFilters, goToPage, toggleSort, replaceQuery } =
 		useLeadTable()
@@ -235,14 +232,12 @@ export function LeadsTable({
 				</label>
 				<div className="ml-auto flex items-center gap-2">
 					{fieldsEnabled && canConfigure && <CrmSettingsDialog />}
-					{canExport && (
-						<Button asChild size="sm" variant="outline">
-							<a href={buildLeadExportUrl(query)} download>
-								<Download className="size-4" aria-hidden />
-								Exportar CSV
-							</a>
-						</Button>
-					)}
+					<Button asChild size="sm" variant="outline">
+						<a href={buildLeadExportUrl(query)} download>
+							<Download className="size-4" aria-hidden />
+							Exportar CSV
+						</a>
+					</Button>
 				</div>
 			</div>
 

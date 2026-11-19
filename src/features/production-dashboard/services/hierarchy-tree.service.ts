@@ -64,8 +64,7 @@ function buildNode(
 
 export async function buildHierarchyTree(
 	viewer: SessionUser,
-	prisma: Pick<PrismaClient, 'user' | 'level'>,
-	options?: { fullTree?: boolean }
+	prisma: Pick<PrismaClient, 'user' | 'level'>
 ): Promise<HierarchyNode[]> {
 	const [users, levels] = await Promise.all([
 		prisma.user.findMany({
@@ -124,7 +123,7 @@ export async function buildHierarchyTree(
 		childrenMap.set(user.idUserLeader, existing)
 	}
 
-	const fullTree = options?.fullTree === true || isFullTreeViewer(viewer)
+	const fullTree = isFullTreeViewer(viewer)
 	const rootIds = fullTree
 		? eligibleUsers
 				.filter((u) => u.idUserLeader === null)

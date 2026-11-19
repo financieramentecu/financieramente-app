@@ -50,7 +50,7 @@ export async function POST(request: Request, context: RouteContext) {
 		const { actor } = guard
 		const idLead = parsePositiveId((await context.params).id)
 		if (!idLead) return error('Identificador de lead inválido', 400)
-		if (!(await findScopedLead(actor, idLead, 'write'))) return error('Lead no encontrado', 404)
+		if (!(await findScopedLead(actor, idLead))) return error('Lead no encontrado', 404)
 
 		const incoming = await readIncomingActivity(request)
 		if (!incoming.ok) return error(incoming.error, 400)

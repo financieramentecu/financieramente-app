@@ -135,7 +135,7 @@ describe('lead task service', () => {
 		await rescheduleLeadTaskTx(tx as never, { idLeadTask: 10, dueAt })
 		expect(update).toHaveBeenCalledWith({
 			where: { idLeadTask: 10 },
-			data: { dueAt, reminderSentAt: null, advanceNotifiedAt: null, columnCode: null },
+			data: { dueAt, reminderSentAt: null, columnCode: null },
 		})
 		expect(appendLeadActivityTx).not.toHaveBeenCalled()
 	})

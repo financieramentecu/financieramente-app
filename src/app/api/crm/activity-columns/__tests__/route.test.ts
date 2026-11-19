@@ -15,7 +15,7 @@ vi.mock('@/features/leads/agenda/activity-column.service', () => ({
 	deactivateActivityColumn: vi.fn(),
 }))
 
-const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7], canManage: true, idCategory: null, manageableUserIds: [7], canViewOthersCrm: false }
+const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7], canManage: true, idCategory: null }
 const json = (body: unknown) =>
 	new Request('http://x', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
 const ctx = (code: string) => ({ params: Promise.resolve({ code }) })

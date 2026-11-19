@@ -41,7 +41,6 @@ export interface User {
 	level: Level | null
 	leader: Leader | null
 	active: boolean
-	canViewOthersCrm?: boolean
 	readonly createdAt: Date
 	lastLogin: Date | null
 }
@@ -58,5 +57,4 @@ export interface UpdateUserInput {
 	categoryId?: number | null
 	levelId?: number | null
 	leaderId?: number | null
-	canViewOthersCrm?: boolean
 }

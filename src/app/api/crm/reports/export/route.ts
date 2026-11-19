@@ -36,9 +36,6 @@ export async function GET(request: Request) {
 	try {
 		const access = await authorizeCrmReport()
 		if (!access.ok) return access.response
-		if (!access.actor.canManage || access.actor.canViewOthersCrm) {
-			return crmErrorResponse('Sin permisos para exportar este reporte', 403)
-		}
 
 		const url = new URL(request.url)
 		const format = parseFormat(url.searchParams.get('format'))

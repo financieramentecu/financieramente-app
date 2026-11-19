@@ -151,7 +151,6 @@ export async function GET(
 					}
 					: null,
 				active: user.active,
-				canViewOthersCrm: user.canViewOthersCrm,
 				createdAt: user.createdAt,
 				lastLogin: lastLogin?.createdAt || null,
 			},
@@ -195,7 +194,7 @@ export async function PUT(
 		}
 
 		const body = await request.json()
-		const { active, roleId, categoryId, levelId, leaderId, canViewOthersCrm } = body
+		const { active, roleId, categoryId, levelId, leaderId } = body
 
 		// Validar que el usuario existe
 		const existingUser = await prisma.user.findUnique({
@@ -231,13 +230,6 @@ export async function PUT(
 
 		if (typeof active === 'boolean') {
 			updateData.active = active
-		}
-
-		if (
-			typeof canViewOthersCrm === 'boolean' &&
-			canViewOthersCrm !== existingUser.canViewOthersCrm
-		) {
-			updateData.canViewOthersCrm = canViewOthersCrm
 		}
 
 		// Resolved role code for the requested update, `undefined` when the
@@ -496,21 +488,6 @@ export async function PUT(
 			})
 		}
 
-		if (
-			typeof canViewOthersCrm === 'boolean' &&
-			canViewOthersCrm !== existingUser.canViewOthersCrm
-		) {
-			await logAuditEvent({
-				userId: adminUserId,
-				roleId: updatedUser.idRole || undefined,
-				action: AuditAction.CRM_OTHERS_VIEW_UPDATED,
-				email: existingUser.email || undefined,
-				details: canViewOthersCrm
-					? 'Se otorgó la vista de solo lectura de los leads y reportes de otras ramas'
-					: 'Se retiró la vista de los leads y reportes de otras ramas',
-			})
-		}
-
 		return NextResponse.json({
 			success: true,
 			data: {
@@ -548,7 +525,6 @@ export async function PUT(
 					}
 					: null,
 				active: updatedUser.active,
-				canViewOthersCrm: updatedUser.canViewOthersCrm,
 			},
 			message: 'Usuario actualizado exitosamente',
 		})

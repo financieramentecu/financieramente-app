@@ -9,7 +9,6 @@ declare module 'next-auth' {
 			id: string
 			role: UserRole | null
 			permissions: RolePermissions | null
-			canViewOthersCrm?: boolean
 			originalUserId?: number | null
 			originalRole?: UserRole | null
 			originalEmail?: string | null
@@ -32,7 +31,6 @@ declare module 'next-auth/jwt' {
 		userId?: number
 		role?: UserRole | null
 		permissions?: RolePermissions | null
-		canViewOthersCrm?: boolean
 		originalUserId?: number | null
 		originalRole?: UserRole | null
 		originalEmail?: string | null

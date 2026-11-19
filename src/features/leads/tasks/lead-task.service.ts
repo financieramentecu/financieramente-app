@@ -127,14 +127,14 @@ export async function addLeadTaskCommentTx(tx: TaskCommentWriter, input: AddLead
 	return comment
 }
 
-/** A new due date re-arms both notices. Bookkeeping only: no timeline event. */
+/** A new due date re-arms the reminder (`reminderSentAt = null`). Bookkeeping only: no timeline event. */
 export async function rescheduleLeadTaskTx(
 	tx: Pick<Prisma.TransactionClient, 'leadTask'>,
 	input: { idLeadTask: number; dueAt: Date | null }
 ) {
 	return tx.leadTask.update({
 		where: { idLeadTask: input.idLeadTask },
-		data: { dueAt: input.dueAt, reminderSentAt: null, advanceNotifiedAt: null, columnCode: null },
+		data: { dueAt: input.dueAt, reminderSentAt: null, columnCode: null },
 	})
 }
 
@@ -145,6 +145,6 @@ export async function reopenLeadTaskTx(
 ) {
 	return tx.leadTask.update({
 		where: { idLeadTask: input.idLeadTask },
-		data: { status: 'OPEN', completedAt: null, dueAt: input.dueAt, reminderSentAt: null, advanceNotifiedAt: null, columnCode: null },
+		data: { status: 'OPEN', completedAt: null, dueAt: input.dueAt, reminderSentAt: null, columnCode: null },
 	})
 }

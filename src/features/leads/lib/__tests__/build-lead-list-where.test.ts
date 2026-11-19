@@ -18,22 +18,11 @@ describe('buildLeadListWhere', () => {
 		expect(hasIdUserClause).toBe(false)
 	})
 
-	it('CONSULTOR without a company-wide grant stays on the ids they were given', () => {
+	it('CONSULTOR (read-only global visibility) sees all active leads — no idUser scoping', () => {
 		const where = buildLeadListWhere(
 			{ idUser: 9, role: { code: UserRole.CONSULTOR } },
 			{},
 			{ visibleUserIds: [9] }
-		)
-
-		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
-		expect(andConditions).toEqual(expect.arrayContaining([{ idUser: { in: [9] } }]))
-	})
-
-	it('an empty visible set is the granted company-wide read', () => {
-		const where = buildLeadListWhere(
-			{ idUser: 9, role: { code: UserRole.CONSULTOR } },
-			{},
-			{ visibleUserIds: [] }
 		)
 
 		const andConditions = Array.isArray(where.AND) ? where.AND : [where]

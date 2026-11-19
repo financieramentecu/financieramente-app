@@ -15,7 +15,6 @@ declare module 'next-auth' {
 			image?: string | null
 			role?: UserRole | null
 			permissions?: RolePermissions | null
-			canViewOthersCrm?: boolean
 		} & DefaultSession['user']
 	}
 

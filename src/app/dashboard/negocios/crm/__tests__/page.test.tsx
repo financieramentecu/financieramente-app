@@ -27,9 +27,9 @@ vi.mock('@/features/leads/components/crm-tabs', () => ({
 	CrmTabs: () => null,
 }))
 
-function mockSession(role: UserRole, canViewOthersCrm = false) {
+function mockSession(role: UserRole) {
 	vi.mocked(auth).mockResolvedValue({
-		user: { email: 'user@financieramentecu.com', role, canViewOthersCrm },
+		user: { email: 'user@financieramentecu.com', role },
 	} as never)
 }
 
@@ -39,21 +39,13 @@ describe('CrmPage guards', () => {
 		vi.mocked(isFeatureEnabledServer).mockResolvedValue(true)
 	})
 
-	it('redirects PARTNER (no leads access) to /dashboard/negocios', async () => {
-		mockSession(UserRole.PARTNER)
-		await expect(CrmPage()).rejects.toThrow('redirect:/dashboard/negocios')
-	})
-
-	it('redirects CONSULTOR until an admin grants the CRM view', async () => {
-		mockSession(UserRole.CONSULTOR)
-		await expect(CrmPage()).rejects.toThrow('redirect:/dashboard/negocios')
-	})
-
-	it('renders for CONSULTOR when the read-only grant is on', async () => {
-		mockSession(UserRole.CONSULTOR, true)
-		await expect(CrmPage()).resolves.toBeTruthy()
-		expect(redirect).not.toHaveBeenCalled()
-	})
+	it.each([UserRole.PARTNER, UserRole.CONSULTOR])(
+		'redirects %s (no leads access) to /dashboard/negocios',
+		async (role) => {
+			mockSession(role)
+			await expect(CrmPage()).rejects.toThrow('redirect:/dashboard/negocios')
+		}
+	)
 
 	it('redirects to /dashboard when leads_module is disabled', async () => {
 		mockSession(UserRole.ADMIN)

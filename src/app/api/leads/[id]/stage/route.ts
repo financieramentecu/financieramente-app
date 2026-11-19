@@ -22,7 +22,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 		if (!guard.ok) return guard.response
 		const idLead = parsePositiveId((await context.params).id)
 		if (!idLead) return error('Identificador de lead inválido', 400)
-		if (!(await findScopedLead(guard.actor, idLead, 'write'))) return error('Lead no encontrado', 404)
+		if (!(await findScopedLead(guard.actor, idLead))) return error('Lead no encontrado', 404)
 		const input = moveLeadStageSchema.safeParse(await readJsonBody(request))
 		if (!input.success) return error(input.error.issues[0]?.message ?? 'Datos inválidos', 400)
 		const result = await moveLeadToStage(idLead, input.data.idLeadFunnelColumn, toCrmRequestContext(guard.actor, request))

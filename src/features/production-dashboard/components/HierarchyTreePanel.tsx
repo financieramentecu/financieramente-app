@@ -337,8 +337,6 @@ type HierarchyTreePanelProps = {
 	onLoaded?: (nodeCount: number) => void
 	/** CRM shows each person's full name. The dashboard keeps the single-line cut. */
 	wrapNames?: boolean
-	/** CRM asks for the granted company tree. The dashboard keeps its own route. */
-	endpoint?: string
 }
 
 export function HierarchyTreePanel({
@@ -347,9 +345,8 @@ export function HierarchyTreePanel({
 	onEmptyChange,
 	onLoaded,
 	wrapNames = false,
-	endpoint,
 }: HierarchyTreePanelProps) {
-	const { state } = useHierarchyTree(endpoint)
+	const { state } = useHierarchyTree()
 	const { dispatch } = useHierarchySelection()
 	const isEmpty = state.status === 'success' && state.data.nodes.length === 0
 

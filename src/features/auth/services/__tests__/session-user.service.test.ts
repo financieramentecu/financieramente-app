@@ -26,7 +26,6 @@ describe('getSessionUserState', () => {
 		await expect(getSessionUserState(7)).resolves.toEqual({
 			active: true,
 			roleCode: 'PARTNER',
-			canViewOthersCrm: undefined,
 		})
 	})
 
@@ -35,7 +34,6 @@ describe('getSessionUserState', () => {
 		await expect(getSessionUserState(7)).resolves.toEqual({
 			active: false,
 			roleCode: null,
-			canViewOthersCrm: undefined,
 		})
 	})
 
@@ -45,7 +43,7 @@ describe('getSessionUserState', () => {
 		expect(findUnique).toHaveBeenCalledTimes(1)
 		expect(findUnique).toHaveBeenCalledWith({
 			where: { idUser: 5 },
-			select: { active: true, canViewOthersCrm: true, role: { select: { code: true } } },
+			select: { active: true, role: { select: { code: true } } },
 		})
 	})
 })

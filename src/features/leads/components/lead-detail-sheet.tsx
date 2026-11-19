@@ -381,13 +381,13 @@ export function LeadDetailSheet({
 								Ver negocio
 							</Link>
 						</Button>
-					) : canManageCrm && hasOwner ? (
+					) : hasOwner ? (
 						<Button asChild className="w-full">
 							<Link href={`/dashboard/negocios/crear?leadId=${lead.idLead}`}>
 								Convertir a negocio
 							</Link>
 						</Button>
-					) : canManageCrm ? (
+					) : (
 						<div className="space-y-1">
 							<Button disabled className="w-full">
 								Convertir a negocio
@@ -396,7 +396,7 @@ export function LeadDetailSheet({
 								Asigna un owner al lead antes de convertirlo a negocio.
 							</p>
 						</div>
-					) : null}
+					)}
 					{!activityFocus && hasExternalUrl && (
 						<Button asChild variant="outline" className="w-full">
 							<a href={lead.externalUrl!} target="_blank" rel="noreferrer">

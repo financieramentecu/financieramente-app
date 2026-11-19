@@ -61,7 +61,6 @@ interface UserActionsCardProps {
 		categoryId?: number | null
 		levelId?: number | null
 		leaderId?: number | null
-		canViewOthersCrm?: boolean
 	}) => Promise<void>
 	isLoading?: boolean
 }
@@ -84,7 +83,6 @@ export function UserActionsCard({
 	const [selectedLeaderId, setSelectedLeaderId] = useState<string>(
 		user.leader?.id ? user.leader.id.toString() : ''
 	)
-	const [canViewOthersCrm, setCanViewOthersCrm] = useState(user.canViewOthersCrm === true)
 	const [hasChanges, setHasChanges] = useState(false)
 	const [showDeactivateDialog, setShowDeactivateDialog] = useState(false)
 	const [validationError, setValidationError] = useState<string | null>(null)
@@ -207,14 +205,12 @@ export function UserActionsCard({
 		const levelChanged = selectedLevelId !== (user.level?.id || null)
 		const leaderNumericId = selectedLeaderId ? parseInt(selectedLeaderId) : null
 		const leaderChanged = leaderNumericId !== (user.leader?.id || null)
-		const crmViewChanged = canViewOthersCrm !== (user.canViewOthersCrm === true)
 		setHasChanges(
 			activeChanged ||
 				roleChanged ||
 				categoryChanged ||
 				levelChanged ||
-				leaderChanged ||
-				crmViewChanged
+				leaderChanged
 		)
 	}, [
 		active,
@@ -222,13 +218,11 @@ export function UserActionsCard({
 		selectedCategoryId,
 		selectedLevelId,
 		selectedLeaderId,
-		canViewOthersCrm,
 		user.active,
 		user.role,
 		user.category,
 		user.level,
 		user.leader,
-		user.canViewOthersCrm,
 	])
 
 	const handleSaveClick = () => {
@@ -290,7 +284,6 @@ export function UserActionsCard({
 			categoryId?: number | null
 			levelId?: number | null
 			leaderId?: number | null
-			canViewOthersCrm?: boolean
 		} = {}
 
 		if (active !== user.active) {
@@ -312,10 +305,6 @@ export function UserActionsCard({
 		const leaderChanged = leaderNumericId !== (user.leader?.id || null)
 		if (leaderChanged) {
 			updates.leaderId = leaderNumericId
-		}
-
-		if (canViewOthersCrm !== (user.canViewOthersCrm === true)) {
-			updates.canViewOthersCrm = canViewOthersCrm
 		}
 
 		if (Object.keys(updates).length > 0) {
@@ -583,23 +572,6 @@ export function UserActionsCard({
 								</div>
 							)}
 						</>
-					)}
-
-					{!isPartner && (
-						<div className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
-							<div className="space-y-1">
-								<Label htmlFor="crm-others-view">Ver leads y reportes de otras ramas</Label>
-								<p className="text-sm text-muted-foreground">
-									Permiso de solo lectura. Sin él, el asesor solo ve su rama. Quien no está en el árbol entra al CRM únicamente si se lo otorgas.
-								</p>
-							</div>
-							<Switch
-								id="crm-others-view"
-								checked={canViewOthersCrm}
-								onCheckedChange={setCanViewOthersCrm}
-								disabled={isFormLocked}
-							/>
-						</div>
 					)}
 
 					{/* Save Button */}

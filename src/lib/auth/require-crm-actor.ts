@@ -4,9 +4,7 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { getAccessibleUserIds } from '@/features/auth/lib/hierarchy'
-import { isWriteBypassRole } from '@/features/auth/lib/roles'
-import { resolveCrmVisibility } from '@/features/leads/crm/crm-visibility'
+import { getAccessibleUserIds, isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 import { isLeadVisible } from '@/features/leads/services/lead-board.service'
 import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
@@ -16,12 +14,8 @@ export interface CrmActor {
 	idUser: number
 	email: string
 	roleCode: string | null | undefined
-	/** Empty array means company-wide read. */
+	/** Empty array means "no restriction" (hierarchy bypass role). */
 	visibleUserIds: number[]
-	/** Empty array means company-wide write. A read grant does not widen this. */
-	manageableUserIds: number[]
-	/** Effective grant: read other branches' lead states and CRM reports. */
-	canViewOthersCrm: boolean
 	canManage: boolean
 	/** User category, for category-based report permissions (`canViewReport`). */
 	idCategory: number | null
@@ -61,14 +55,9 @@ export async function requireCrmActor(
 		return { ok: false, response: crmErrorResponse('Sin permisos para modificar CRM', 403) }
 	}
 
-	const treeUserIds = isWriteBypassRole(roleCode)
+	const visibleUserIds = isHierarchyBypassRole(roleCode)
 		? []
 		: await getAccessibleUserIds(currentUser.idUser)
-	const visibility = resolveCrmVisibility({
-		roleCode,
-		granted: currentUser.canViewOthersCrm === true,
-		treeUserIds,
-	})
 
 	return {
 		ok: true,
@@ -76,34 +65,25 @@ export async function requireCrmActor(
 			idUser: currentUser.idUser,
 			email,
 			roleCode,
-			visibleUserIds: visibility.visibleUserIds,
-			manageableUserIds: visibility.manageableUserIds,
-			canViewOthersCrm: visibility.visibleUserIds.length === 0 && !isWriteBypassRole(roleCode),
+			visibleUserIds,
 			canManage,
 			idCategory: currentUser.idCategory ?? null,
 		},
 	}
 }
 
-/** Lead visible to the actor. `write` uses the branch they may change. */
-export function findScopedLead(
-	actor: CrmActor,
-	idLead: number,
-	access: 'read' | 'write' = 'read'
-): Promise<boolean> {
-	const visibleUserIds =
-		access === 'write' ? (actor.manageableUserIds ?? actor.visibleUserIds) : actor.visibleUserIds
-	return isLeadVisible(idLead, toLeadViewer(actor), { visibleUserIds })
+/** Lead visible to the actor. Missing and out-of-scope are both false. */
+export function findScopedLead(actor: CrmActor, idLead: number): Promise<boolean> {
+	return isLeadVisible(idLead, toLeadViewer(actor), { visibleUserIds: actor.visibleUserIds })
 }
 
 export function canAssignWithinScope(
-	actor: Pick<CrmActor, 'idUser' | 'visibleUserIds'> & { manageableUserIds?: number[] },
+	actor: Pick<CrmActor, 'idUser' | 'visibleUserIds'>,
 	assignee: number | undefined
 ): boolean {
 	if (assignee === undefined) return true
-	const scope = actor.manageableUserIds ?? actor.visibleUserIds
-	if (scope.length === 0) return true
-	return assignee === actor.idUser || scope.includes(assignee)
+	if (actor.visibleUserIds.length === 0) return true
+	return assignee === actor.idUser || actor.visibleUserIds.includes(assignee)
 }
 
 export function parsePositiveId(value: string): number | null {

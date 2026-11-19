@@ -41,7 +41,7 @@ export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
 		'Acceso limitado a negocios y reportes de negocio',
 	[UserRole.AGENTE]: 'Solo acceso a sus propios negocios y reportes personales',
 	[UserRole.CONSULTOR]:
-		'Acceso de solo lectura a Dashboard, Negocios, Reportes y Calculadora, sin permisos de escritura y sin pertenecer al árbol de asesores. Los estados de leads y los reportes del CRM se ven solo si un administrador otorga ese permiso. Puede exportar la Lista de Negocios a Excel; el resto de exportaciones permanece restringido',
+		'Acceso de solo lectura a Dashboard, Negocios, Reportes y Calculadora, sin permisos de escritura. Puede exportar la Lista de Negocios a Excel; el resto de exportaciones permanece restringido',
 	[UserRole.PARTNER]:
 		'Aliado externo: solo accede a sus propios negocios, sin participar en la distribución de comisiones',
 }
