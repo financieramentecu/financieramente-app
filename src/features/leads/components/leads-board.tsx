@@ -1,43 +1,65 @@
 'use client'
 
-import * as React from 'react'
+import { useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
+import {
+	DndContext,
+	DragOverlay,
+	PointerSensor,
+	closestCorners,
+	pointerWithin,
+	useSensor,
+	useSensors,
+	type CollisionDetection,
+	type DragEndEvent,
+	type DragStartEvent,
+} from '@dnd-kit/core'
 import { useSession } from 'next-auth/react'
+import { toast } from 'sonner'
 import { UserRole } from '@/features/auth/lib/roles'
 import { useLeadsBoard } from '@/features/leads/hooks/use-leads-board'
-import { LeadFunnelColumnView } from '@/features/leads/components/lead-funnel-column-view'
+import { LeadBoardColumn } from '@/features/leads/components/lead-board-column'
 import { LeadFunnelColumnSkeleton } from '@/features/leads/components/lead-funnel-column-skeleton'
 import { LeadDetailSheet } from '@/features/leads/components/lead-detail-sheet'
+import { LeadCard } from '@/features/leads/components/lead-card'
 import { LeadsBoardFilters } from '@/features/leads/components/leads-board-filters'
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
+import { parsePrefixedId } from '@/features/leads/lib/parse-board-drag-id'
+import { moveLeadOnBoard, restoreLeadIfStillInColumn } from '@/features/leads/lib/move-lead-on-board'
 import { Button } from '@/features/shared/ui/button'
 import { cn } from '@/lib/utils'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import type { LeadDetail } from '@/features/leads/types/lead.types'
+import type { LeadCard as LeadCardType, LeadDetail } from '@/features/leads/types/lead.types'
+
+/** Prefer the column under the pointer so a card can cross into the next stage. */
+const kanbanCollision: CollisionDetection = (args) => {
+	const hits = pointerWithin(args)
+	return hits.length > 0 ? hits : closestCorners(args)
+}
 
 /**
- * Container component for the read-only Leads Kanban board.
- * Fetches columns via `useLeadsBoard(filters)`, renders `LeadsBoardFilters`
- * + `LeadFunnelColumnView` per column, and opens `LeadDetailSheet` on card
- * click.
+ * Leads Kanban. Cards move between columns with drag and drop; the stage
+ * change is stored as a manual action of the signed-in user.
  */
 export function LeadsBoard() {
 	const { data: session } = useSession()
 	const isAdmin = session?.user?.role === UserRole.ADMIN
-	const [filters, setFilters] = React.useState(getDefaultLeadBoardFilters())
-	const { state, refetch } = useLeadsBoard(filters)
+	const [filters, setFilters] = useState(getDefaultLeadBoardFilters())
+	const { state, refetch, updateColumns } = useLeadsBoard(filters)
 	const isRefreshing = state.status === 'loading'
-	const [selectedLead, setSelectedLead] = React.useState<LeadDetail | null>(
-		null
-	)
-	const [sheetOpen, setSheetOpen] = React.useState(false)
+	const [selectedLead, setSelectedLead] = useState<LeadDetail | null>(null)
+	const [sheetOpen, setSheetOpen] = useState(false)
+	const [draggingLead, setDraggingLead] = useState<LeadCardType | null>(null)
+	const skipClick = useRef(false)
+	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
-	const handleLeadDeleted = React.useCallback(() => {
+	function handleLeadDeleted() {
 		setSheetOpen(false)
 		refetch()
-	}, [refetch])
+	}
 
-	const handleLeadClick = React.useCallback(async (idLead: number) => {
+	async function handleLeadClick(idLead: number) {
+		if (skipClick.current) return
 		try {
 			const response = await fetch(`/api/leads/${idLead}`)
 			const body: ApiResponse<LeadDetail> = await response.json()
@@ -46,9 +68,56 @@ export function LeadsBoard() {
 				setSheetOpen(true)
 			}
 		} catch {
-			// Silently ignore — detail sheet simply won't open
+			// Detail sheet stays closed when the lead cannot be loaded.
 		}
-	}, [])
+	}
+
+	function handleDragStart(event: DragStartEvent) {
+		skipClick.current = true
+		const idLead = parsePrefixedId(event.active.id, 'lead:')
+		if (!idLead || state.status !== 'success') return
+		const lead = state.data.flatMap((column) => column.leads).find((item) => item.idLead === idLead)
+		setDraggingLead(lead ?? null)
+	}
+
+	function finishDrag() {
+		setDraggingLead(null)
+		window.setTimeout(() => {
+			skipClick.current = false
+		}, 0)
+	}
+
+	async function handleDragEnd(event: DragEndEvent) {
+		finishDrag()
+		const idLead = parsePrefixedId(event.active.id, 'lead:')
+		const toColumn = parsePrefixedId(event.over?.id, 'column:')
+		if (!idLead || !toColumn || state.status !== 'success') return
+		const fromColumn = state.data.find((column) => column.leads.some((lead) => lead.idLead === idLead))
+		const next = moveLeadOnBoard(state.data, idLead, toColumn)
+		if (!fromColumn || !next) return
+		const homeColumnId = fromColumn.idLeadFunnelColumn
+		updateColumns(() => next)
+
+		try {
+			const response = await fetch(`/api/leads/${idLead}/stage`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ idLeadFunnelColumn: toColumn }),
+			})
+			if (!response.ok) {
+				const body = (await response.json()) as { error?: string }
+				updateColumns((columns) => restoreLeadIfStillInColumn(columns, idLead, toColumn, homeColumnId))
+				toast.error('No se guardó el cambio de etapa', {
+					description: body.error ?? 'No fue posible mover el lead.',
+				})
+				return
+			}
+			toast.success('Etapa actualizada')
+		} catch {
+			updateColumns((columns) => restoreLeadIfStillInColumn(columns, idLead, toColumn, homeColumnId))
+			toast.error('No se guardó el cambio de etapa', { description: 'No fue posible mover el lead.' })
+		}
+	}
 
 	return (
 		<div className="space-y-4">
@@ -61,10 +130,7 @@ export function LeadsBoard() {
 					disabled={isRefreshing}
 					aria-label="Actualizar tablero de leads"
 				>
-					<RefreshCw
-						className={cn('size-4', isRefreshing && 'animate-spin')}
-						aria-hidden
-					/>
+					<RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} aria-hidden />
 					Actualizar
 				</Button>
 			</div>
@@ -81,15 +147,30 @@ export function LeadsBoard() {
 				</p>
 			)}
 			{state.status === 'success' && (
-				<div className="flex gap-4 overflow-x-auto pb-4">
-					{state.data.map((column) => (
-						<LeadFunnelColumnView
-							key={column.idLeadFunnelColumn}
-							column={column}
-							onLeadClick={handleLeadClick}
-						/>
-					))}
-				</div>
+				<DndContext
+					sensors={sensors}
+					collisionDetection={kanbanCollision}
+					onDragStart={handleDragStart}
+					onDragCancel={finishDrag}
+					onDragEnd={(event) => void handleDragEnd(event)}
+				>
+					<div className="flex gap-4 overflow-x-auto pb-4">
+						{state.data.map((column) => (
+							<LeadBoardColumn
+								key={column.idLeadFunnelColumn}
+								column={column}
+								onLeadClick={(idLead) => void handleLeadClick(idLead)}
+							/>
+						))}
+					</div>
+					<DragOverlay dropAnimation={null}>
+						{draggingLead ? (
+							<div className="w-72 cursor-grabbing">
+								<LeadCard lead={draggingLead} />
+							</div>
+						) : null}
+					</DragOverlay>
+				</DndContext>
 			)}
 			<LeadDetailSheet
 				lead={selectedLead}

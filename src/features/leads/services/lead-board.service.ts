@@ -78,6 +78,20 @@ export async function getLeadBoard(
 	}))
 }
 
+/** True when the lead exists and the viewer is allowed to see it. */
+export async function isLeadVisible(
+	idLead: number,
+	viewer: LeadViewer,
+	options: LeadBoardOptions = {}
+): Promise<boolean> {
+	const where = buildLeadListWhere(viewer, {}, options)
+	const lead = await prisma.lead.findFirst({
+		where: { ...where, AND: [...(Array.isArray(where.AND) ? where.AND : []), { idLead }] },
+		select: { idLead: true },
+	})
+	return lead !== null
+}
+
 /**
  * Returns a single lead's detail, scoped to the viewer's hierarchy.
  * Returns `null` when the lead does not exist or is outside the viewer's
