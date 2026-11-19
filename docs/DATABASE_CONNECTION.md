@@ -327,7 +327,7 @@ DIRECT_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres"
 │  (Development)  │
 └─────────────────┘
          │
-         │ git push origin qa
+         │ PR develop → qa
          ▼
 ┌─────────────────┐
 │      QA         │
@@ -335,7 +335,7 @@ DIRECT_URL="postgresql://postgres:PASSWORD@db.xxx.supabase.co:5432/postgres"
 │  (Testing)      │
 └─────────────────┘
          │
-         │ git push origin master
+         │ PR qa → main
          ▼
 ┌─────────────────┐
 │   PRODUCCIÓN    │

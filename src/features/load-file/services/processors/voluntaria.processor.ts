@@ -62,6 +62,7 @@ export class VoluntariaProcessor implements ICommissionProcessor {
 				where: {
 					contract: extracted.contract,
 					commissionType: FILE_TYPES.VOLUNTARIA,
+					status: { not: 'DELETED' },
 				},
 			})
 

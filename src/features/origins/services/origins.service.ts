@@ -15,3 +15,16 @@ export async function getClientOrigins(): Promise<ClientOrigin[]> {
 		},
 	})
 }
+
+/**
+ * Logical delete: client origins are never physically removed. Callers must
+ * verify the origin is not in use before deactivating it.
+ */
+export async function deactivateClientOrigin(
+	idClientOrigin: number
+): Promise<ClientOrigin> {
+	return await prisma.clientOrigin.update({
+		where: { idClientOrigin },
+		data: { status: false },
+	})
+}

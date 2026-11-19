@@ -12,6 +12,7 @@ import {
 	getUserAgent,
 } from '@/features/auth/lib/audit-logger'
 import { prismaClientOriginToClientOrigin } from '@/features/origins/mappers/prisma.mapper'
+import { deactivateClientOrigin } from '@/features/origins/services/origins.service'
 
 /**
  * GET /api/origins/[id]
@@ -294,10 +295,8 @@ export async function DELETE(
 			return NextResponse.json(errorResponse, { status: 409 })
 		}
 
-		// Eliminar origen
-		await prisma.clientOrigin.delete({
-			where: { idClientOrigin: originId },
-		})
+		// Borrado lógico (status = false)
+		await deactivateClientOrigin(originId)
 
 		// Registrar auditoría
 		const userId = session.user.id ? parseInt(session.user.id) : undefined

@@ -119,9 +119,14 @@ type StatsUser = {
 export async function getBusinessStats(
 	prisma: PrismaClient,
 	currentUser: StatsUser,
-	filters: BusinessFilterParams
+	filters: BusinessFilterParams,
+	resolvedVisibility?: { visibleUserIds: number[] | undefined }
 ): Promise<CoachKpiResponse> {
-	const visibleUserIds = await resolveVisibleUserIds(prisma, currentUser)
+	// A caller that already resolved the scope (page load sharing it with the
+	// list) passes it in; otherwise it is resolved here with the same rule.
+	const visibleUserIds = resolvedVisibility
+		? resolvedVisibility.visibleUserIds
+		: await resolveVisibleUserIds(prisma, currentUser)
 
 	const filterInput = toBusinessListFilterInput({
 		search: filters.search,

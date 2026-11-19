@@ -10,10 +10,6 @@ vi.mock('next-auth/react', () => ({
 	useSession: vi.fn(),
 }))
 
-vi.mock('@/features/shared/hooks/use-feature-flag', () => ({
-	useFeatureFlag: () => ({ enabled: true, value: null }),
-}))
-
 beforeEach(() => {
 	// jsdom does not implement matchMedia — the sidebar's mobile-breakpoint
 	// hook (useIsMobile) needs it to mount at all.

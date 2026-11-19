@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
+import { requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import { createCommissionDiscountSchema } from '@/features/commission-discounts/lib/commission-discount-schemas'
 import {
 	listDiscounts,
@@ -53,17 +55,16 @@ export async function GET(
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-	const session = await auth()
-	if (!session?.user) {
-		return NextResponse.json(
-			{ data: null, error: 'Unauthorized' },
-			{ status: 401 }
-		)
-	}
+	// Discounts feed every commission calculation: only ADMIN may create them.
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) return guard.response
+	const { session } = guard
 
+	let requestedType: string | undefined
 	try {
 		const body = await request.json()
 		const input = createCommissionDiscountSchema.parse(body)
+		requestedType = input.type
 
 		const existing = await findActiveByType(input.type)
 		if (existing) {
@@ -99,6 +100,22 @@ export async function POST(request: Request): Promise<NextResponse> {
 			return NextResponse.json(
 				{ data: null, error: error.issues[0]?.message ?? 'Datos inválidos' },
 				{ status: 400 }
+			)
+		}
+		// Concurrent request created the active discount first: the partial unique
+		// index (one ACTIVE per type) rejects the second insert.
+		if (
+			error &&
+			typeof error === 'object' &&
+			'code' in error &&
+			error.code === 'P2002'
+		) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: `Ya existe un descuento activo de tipo ${requestedType}`,
+				},
+				{ status: 409 }
 			)
 		}
 		return NextResponse.json(

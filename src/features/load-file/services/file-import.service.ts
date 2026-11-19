@@ -88,7 +88,7 @@ export class FileImportService {
 				month,
 				year,
 				idUser,
-				status: { notIn: ['COMPLETED', 'PRE-SETTLED'] },
+				status: { notIn: ['COMPLETED', 'PRE-SETTLED', 'DELETED'] },
 			},
 			orderBy: { createdAt: 'desc' },
 		})

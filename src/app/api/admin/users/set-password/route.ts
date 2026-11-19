@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, validatePasswordStrength } from '@/features/auth/lib/password-utils'
+import {
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+	logAuditEvent,
+} from '@/features/auth/lib/audit-logger'
 import { UserRole } from '@/features/auth/lib/roles'
 import { z } from 'zod'
 import {
@@ -109,6 +115,19 @@ export async function POST(request: Request) {
                 password: hashedPassword,
                 ssoOnly,
             },
+        })
+
+        const adminUserId = session.user.id
+            ? parseInt(session.user.id, 10)
+            : undefined
+        await logAuditEvent({
+            userId: adminUserId,
+            roleId: targetUser.idRole || undefined,
+            action: AuditAction.USER_PASSWORD_SET,
+            email: targetUser.email || undefined,
+            ipAddress: getClientIp(request.headers),
+            userAgent: getUserAgent(request.headers),
+            details: `Contraseña establecida por administrador. Usuario id=${userId}, ssoOnly=${ssoOnly}`,
         })
 
         return NextResponse.json(

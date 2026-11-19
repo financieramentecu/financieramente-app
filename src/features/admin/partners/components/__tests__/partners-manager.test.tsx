@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
 	toastSuccess: vi.fn(),
 	toastError: vi.fn(),
 	toastWarning: vi.fn(),
-	flagEnabled: false,
 	partnersState: {
 		status: 'success',
 		data: [] as unknown[],
@@ -60,9 +59,6 @@ vi.mock('../edit-partner-dialog', () => ({
 		</div>
 	),
 }))
-vi.mock('@/features/shared/hooks/use-feature-flag', () => ({
-	useFeatureFlag: () => ({ enabled: mocks.flagEnabled, value: null }),
-}))
 vi.mock('next-auth/react', () => ({
 	useSession: () => ({ update: mocks.update }),
 }))
@@ -93,7 +89,6 @@ const PENDING: PartnerDto = {
 
 beforeEach(() => {
 	vi.clearAllMocks()
-	mocks.flagEnabled = false
 	mocks.partnersState = { status: 'success', data: [PENDING], error: '' }
 	mocks.run.mockResolvedValue({ ok: true })
 })
@@ -182,8 +177,7 @@ describe('PartnersManager', () => {
 		expect(screen.getByText('Sin permisos')).toBeInTheDocument()
 	})
 
-	it('starts impersonation of a pending partner when the flag is on', async () => {
-		mocks.flagEnabled = true
+	it('starts impersonation of a pending partner', async () => {
 		mocks.update.mockResolvedValue(undefined)
 		const assign = vi.fn()
 		Object.defineProperty(window, 'location', {
@@ -193,10 +187,5 @@ describe('PartnersManager', () => {
 		render(<PartnersManager />)
 		await userEvent.click(screen.getByRole('button', { name: /ver como/i }))
 		expect(mocks.update).toHaveBeenCalledWith({ impersonateUserId: '1' })
-	})
-
-	it('hides "Ver como" when the flag is off', () => {
-		render(<PartnersManager />)
-		expect(screen.queryByRole('button', { name: /ver como/i })).toBeNull()
 	})
 })

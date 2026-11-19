@@ -24,7 +24,7 @@ type FetchStatus = 'idle' | 'loading' | 'error'
  * No trmRate prop needed — company donut is count-based only.
  */
 export function useCompanyDonut(): AsyncState<CompanyDonutSlice[]> {
-  const { nodes, selectedUserIds } = useHierarchySelection()
+  const { nodes, selectedUserIds, isHierarchyResolved } = useHierarchySelection()
   const { appliedFilters } = useDashboardFilter()
   const { data: session, status: sessionStatus } = useSession()
 
@@ -36,6 +36,14 @@ export function useCompanyDonut(): AsyncState<CompanyDonutSlice[]> {
 
   useEffect(() => {
     // MS Junior path: no hierarchy nodes, use session userId
+    // Hierarchy still loading: wait for it instead of fetching with only the
+    // session user and throwing that response away when the tree arrives.
+    // (`=== false` keeps consumers that do not provide the flag working.)
+    if (nodes.length === 0 && isHierarchyResolved === false) {
+      setFetchStatus('loading')
+      return
+    }
+
     if (nodes.length === 0) {
       if (sessionStatus === 'loading') {
         setFetchStatus('loading')
@@ -138,7 +146,7 @@ export function useCompanyDonut(): AsyncState<CompanyDonutSlice[]> {
       controller.abort()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUserIds, appliedFilters, selfUserId])
+  }, [selectedUserIds, appliedFilters, selfUserId, isHierarchyResolved])
 
   // Derive AsyncState from internal state pieces
   if (fetchStatus === 'loading') {

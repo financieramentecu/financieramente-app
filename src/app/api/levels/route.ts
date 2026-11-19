@@ -13,7 +13,8 @@ import {
 	type PrismaLevelWithRelations as MapperPrismaLevelWithRelations
 } from '@/features/levels/mappers/level.mapper'
 import { Prisma } from '@prisma/client'
-import { auth } from '@/auth'
+import { requireAuth, requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
 
@@ -23,6 +24,11 @@ import { logAuditEvent, AuditAction, getClientIp, getUserAgent } from '@/feature
  * Lists levels with pagination and search
  */
 export async function GET(request: Request) {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { searchParams } = new URL(request.url)
 		const search = searchParams.get('search')
@@ -101,8 +107,13 @@ export async function GET(request: Request) {
  * Creates a new level
  */
 export async function POST(request: Request) {
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
-		const session = await auth()
+		const { session } = guard
 		const headers = request.headers
 		const body = await request.json()
 		const data = createLevelSchema.parse(body)

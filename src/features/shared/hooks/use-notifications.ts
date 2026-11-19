@@ -30,6 +30,10 @@ export function useNotifications(userId: number) {
 	}, [])
 
 	useEffect(() => {
+		// The session is still loading (id 0): fetching and opening the SSE
+		// stream now would be thrown away as soon as the real id arrives.
+		if (!userId) return
+
 		fetchNotifications()
 
 		// Open SSE connection — native browser API, no third-party library needed.

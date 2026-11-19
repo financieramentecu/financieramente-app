@@ -2,8 +2,15 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createCurrencySchema } from '@/features/admin/currencies/lib/currency-schemas'
 import { z } from 'zod'
+import { requireAuth, requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 
 export async function GET(request: Request) {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const { searchParams } = new URL(request.url)
 		const search = searchParams.get('search')
@@ -38,6 +45,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
 		const body = await request.json()
 		const data = createCurrencySchema.parse(body)

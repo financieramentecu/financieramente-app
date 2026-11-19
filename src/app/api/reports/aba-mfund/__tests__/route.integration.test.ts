@@ -153,9 +153,6 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 	getUserAgent: vi.fn(() => 'vitest'),
 }))
 
-vi.mock('@/features/shared/lib/flagsmith-server', () => ({
-	isFeatureEnabledServer: vi.fn(),
-}))
 
 import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
@@ -170,7 +167,6 @@ import {
 	AbaMfundExportOversizeError,
 } from '@/features/reports/aba-mfund/services/aba-mfund-export.service'
 import { logAuditEvent } from '@/features/auth/lib/audit-logger'
-import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { GET as getKpis } from '@/app/api/reports/aba-mfund/kpis/route'
 import { GET as getDetail } from '@/app/api/reports/aba-mfund/detail/route'
 import { GET as getRanking } from '@/app/api/reports/aba-mfund/ranking/route'
@@ -184,7 +180,6 @@ const mockDetail = vi.mocked(getAbaMfundDetail)
 const mockRanking = vi.mocked(getAbaMfundRanking)
 const mockExport = vi.mocked(exportAbaMfundExcel)
 const mockAudit = vi.mocked(logAuditEvent)
-const mockFlag = vi.mocked(isFeatureEnabledServer)
 
 function makeUser(
 	overrides: {
@@ -273,7 +268,6 @@ describe('ABA-MFUND report APIs', () => {
 		expect(mockDetail).not.toHaveBeenCalled()
 		expect(mockRanking).not.toHaveBeenCalled()
 		expect(mockExport).not.toHaveBeenCalled()
-		expect(mockFlag).not.toHaveBeenCalled()
 	})
 
 	it('returns 404 on KPIs when user is missing', async () => {
@@ -309,7 +303,6 @@ describe('ABA-MFUND report APIs', () => {
 			'ABA_MFUND'
 		)
 		expect(mockKpis).not.toHaveBeenCalled()
-		expect(mockFlag).not.toHaveBeenCalled()
 	})
 
 	it('returns 200 on KPIs for ADMIN bypass without checking the feature flag', async () => {
@@ -338,7 +331,6 @@ describe('ABA-MFUND report APIs', () => {
 			'ABA_MFUND'
 		)
 		expect(mockKpis).toHaveBeenCalled()
-		expect(mockFlag).not.toHaveBeenCalled()
 	})
 
 	it('returns 200 on KPIs for an authorized agent (no feature flag required)', async () => {
@@ -357,7 +349,6 @@ describe('ABA-MFUND report APIs', () => {
 		expect(body.data.abaTotal.sum).toBe(1_000_000)
 		expect(body.data.ticketPromedio).toBe(250_000)
 		expect(mockKpis).toHaveBeenCalled()
-		expect(mockFlag).not.toHaveBeenCalled()
 	})
 
 	it('returns 403 on detail without permission', async () => {
@@ -403,7 +394,6 @@ describe('ABA-MFUND report APIs', () => {
 		expect(body.data.rows[0].clientName).toBe('Ana Gómez')
 		expect(body.data.hasMore).toBe(false)
 		expect(mockDetail).toHaveBeenCalled()
-		expect(mockFlag).not.toHaveBeenCalled()
 	})
 
 	it('returns 403 on ranking without permission', async () => {
@@ -451,7 +441,6 @@ describe('ABA-MFUND report APIs', () => {
 		expect(body.data.agents[0].idUser).toBe(10)
 		expect(body.data.agents[0].businesses[0].contract).toBe('C-001')
 		expect(mockRanking).toHaveBeenCalled()
-		expect(mockFlag).not.toHaveBeenCalled()
 	})
 
 	it('returns 403 on export without permission and does not audit', async () => {
@@ -496,7 +485,6 @@ describe('ABA-MFUND report APIs', () => {
 		const bytes = Buffer.from(await res.arrayBuffer())
 		const workbook = XLSX.read(bytes, { type: 'buffer' })
 		expect(workbook.SheetNames).toEqual([ABA_MFUND_SHEET.DETAIL])
-		expect(mockFlag).not.toHaveBeenCalled()
 	})
 
 	it('returns 404 on empty export without auditing', async () => {

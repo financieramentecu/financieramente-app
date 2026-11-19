@@ -15,3 +15,16 @@ export async function getProducts(): Promise<PrismaProduct[]> {
 		},
 	})
 }
+
+/**
+ * Logical delete: products are never physically removed. Callers must verify
+ * the product is not in use before deactivating it.
+ */
+export async function deactivateProduct(
+	idProduct: number
+): Promise<PrismaProduct> {
+	return await prisma.product.update({
+		where: { idProduct },
+		data: { status: false },
+	})
+}

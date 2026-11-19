@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateCommissionRuleApiSchema } from '@/features/distribution-commission/lib/commission-rule-schemas'
 import { prismaCommissionRuleToDomain } from '@/features/distribution-commission/mappers/commission-rule.mapper'
-import { CommissionRule } from '@/features/distribution-commission/types/commission-rule.types'
-import { ApiResponse } from '@/features/shared/types/api-response.types'
-import { auth } from '@/auth'
+import { requireAuth, requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -28,7 +27,12 @@ interface RouteParams {
 export async function GET(
 	request: NextRequest,
 	props: RouteParams
-): Promise<NextResponse<ApiResponse<CommissionRule>>> {
+): Promise<NextResponse> {
+	const guard = await requireAuth()
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	const params = await props.params
 	try {
 		const productConfigId = parseInt(params.id)
@@ -91,10 +95,15 @@ export async function GET(
 export async function PUT(
 	request: NextRequest,
 	props: RouteParams
-): Promise<NextResponse<ApiResponse<CommissionRule>>> {
+): Promise<NextResponse> {
 	const params = await props.params
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
-		const session = await auth()
+		const { session } = guard
 		const headers = request.headers
 		const productConfigId = parseInt(params.id)
 		const ruleId = parseInt(params.ruleId)
@@ -260,10 +269,15 @@ export async function PUT(
 export async function PATCH(
 	request: NextRequest,
 	props: RouteParams
-): Promise<NextResponse<ApiResponse<CommissionRule>>> {
+): Promise<NextResponse> {
 	const params = await props.params
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) {
+		return guard.response
+	}
+
 	try {
-		const session = await auth()
+		const { session } = guard
 		const headers = request.headers
 		const productConfigId = parseInt(params.id)
 		const ruleId = parseInt(params.ruleId)

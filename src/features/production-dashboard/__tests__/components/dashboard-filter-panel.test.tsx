@@ -49,6 +49,7 @@ describe('DashboardFilterPanel', () => {
     mockUseHierarchySelection.mockReturnValue({
       nodes: [],
       selectedUserIds: [],
+      isHierarchyResolved: true,
       toggle: vi.fn(),
       dispatch: emptyHierarchyDispatch,
     })

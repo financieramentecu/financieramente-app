@@ -15,6 +15,8 @@ import type {
 	BusinessListResponse,
 } from '../types/business-api.types'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
+import { toBusinessListRequest } from '../lib/to-business-list-request'
+import { claimInitialRender, type InitialData } from '../lib/initial-render-claim'
 
 /** Paginación por defecto */
 const DEFAULT_PAGINATION = {
@@ -58,13 +60,20 @@ interface UseBusinessesReturn {
  * ```
  */
 export function useBusinesses(
-	params: BusinessListParams = {}
+	params: BusinessListParams = {},
+	initial?: InitialData<BusinessListResponse>
 ): UseBusinessesReturn {
-	const [state, setState] = useState<AsyncState<BusinessListResponse>>({
-		status: 'loading',
-		data: undefined,
-		error: '',
-	})
+	const [state, setState] = useState<AsyncState<BusinessListResponse>>(
+		initial
+			? { status: 'success', data: initial.data, error: '' }
+			: { status: 'loading', data: undefined, error: '' }
+	)
+
+	const paramsKey = JSON.stringify(params)
+	// Params the server-provided data belongs to; cleared once they change.
+	const initialKeyRef = useRef(initial ? paramsKey : null)
+	// Whether this instance owns the server render's data (null until claimed).
+	const ownsInitialRef = useRef<boolean | null>(null)
 
 	// Guards against out-of-order responses: if params change quickly (e.g.
 	// applying a filter right after the initial unfiltered load), a slower
@@ -80,38 +89,9 @@ export function useBusinesses(
 		}
 
 		try {
-			const hasFullFundDateRange = Boolean(
-				params.dateFrom && params.dateTo
+			const response = await businessService.getAll(
+				toBusinessListRequest(params)
 			)
-			const hasFullCreatedDateRange = Boolean(params.createdFrom && params.createdTo)
-
-			const hasFullIssuedDateRange = Boolean(params.dateIssuedFrom && params.dateIssuedTo)
-
-			const response = await businessService.getAll({
-				page: params.page || 1,
-				pageSize: params.pageSize || 10,
-				search: params.search,
-				status: params.status,
-				statuses: params.statuses,
-				dateFrom: hasFullFundDateRange ? params.dateFrom : undefined,
-				dateTo: hasFullFundDateRange ? params.dateTo : undefined,
-				createdFrom: hasFullCreatedDateRange ? params.createdFrom : undefined,
-				createdTo: hasFullCreatedDateRange ? params.createdTo : undefined,
-				dateIssuedFrom: hasFullIssuedDateRange ? params.dateIssuedFrom : undefined,
-				dateIssuedTo: hasFullIssuedDateRange ? params.dateIssuedTo : undefined,
-				agentName: params.agentName,
-				hasSupports: params.hasSupports,
-				sortBy: params.sortBy,
-				sortOrder: params.sortOrder,
-				companyIds: params.companyIds,
-				productIds: params.productIds,
-				originIds: params.originIds,
-				terms: params.terms,
-				periodicityIds: params.periodicityIds,
-				agentCategoryIds: params.agentCategoryIds,
-				agentIds: params.agentIds,
-				novedadStatuses: params.novedadStatuses,
-			})
 
 			if (requestId !== latestRequestId.current) return
 
@@ -131,10 +111,24 @@ export function useBusinesses(
 			})
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [JSON.stringify(params)])
+	}, [paramsKey])
 
 	useEffect(() => {
+		if (initial && initialKeyRef.current === paramsKey) {
+			// Claim once per mounted instance (kept in a ref) so React StrictMode's
+			// double effect run does not mistake the second run for a remount.
+			if (ownsInitialRef.current === null) {
+				ownsInitialRef.current = claimInitialRender(`list:${initial.renderId}`)
+			}
+			// First mount of this server render: its data is current.
+			if (ownsInitialRef.current) return
+			// Same render mounted again (back/forward): refresh silently.
+			void fetchBusinesses(true)
+			return
+		}
+		initialKeyRef.current = null
 		fetchBusinesses()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [fetchBusinesses])
 
 	// Retornar valores compatibles con la interfaz existente

@@ -65,12 +65,6 @@ function PanelContent({
 	const allSelected = nodes.length > 0 && selectedUserIds.length === totalNodes
 	const noneSelected = selectedUserIds.length === 0
 
-	useEffect(() => {
-		if (apiState.status === 'success') {
-			dispatch({ type: 'INIT', nodes: apiState.data.nodes })
-		}
-	}, [apiState, dispatch])
-
 	if (apiState.status === 'loading' || apiState.status === 'idle') {
 		return <HierarchyTreeSkeleton />
 	}
@@ -340,7 +334,20 @@ export function HierarchyTreePanel({
 	onEmptyChange,
 }: HierarchyTreePanelProps) {
 	const { state } = useHierarchyTree()
+	const { dispatch } = useHierarchySelection()
 	const isEmpty = state.status === 'success' && state.data.nodes.length === 0
+
+	// Lives here (not in PanelContent) because PanelContent is not rendered when
+	// the tree is empty, and the data hooks still need to know it settled. A
+	// failed request resolves as an empty hierarchy: hooks fall back to the
+	// session user, as they did before.
+	useEffect(() => {
+		if (state.status === 'success') {
+			dispatch({ type: 'INIT', nodes: state.data.nodes })
+		} else if (state.status === 'error') {
+			dispatch({ type: 'INIT', nodes: [] })
+		}
+	}, [state, dispatch])
 
 	useEffect(() => {
 		if (state.status === 'success') {

@@ -9,56 +9,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { CoachKpiResponse } from '@/features/negocios/types/business-api.types'
-import type { BusinessStatus } from '@/features/negocios/types/business-entity.types'
 import { businessFilterParamsSchema } from '@/features/negocios/lib/business-api.schemas'
+import { parseBusinessFilterQuery } from '@/features/negocios/lib/parse-business-list-query'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { getBusinessStats } from '@/features/negocios/services/business-stats.service'
 import { prisma } from '@/lib/prisma'
-
-function parseStatsQueryParams(searchParams: URLSearchParams) {
-	return {
-		search: searchParams.get('search'),
-		status: searchParams.get('status'),
-		statuses: searchParams.getAll('statuses') as BusinessStatus[],
-		dateFrom: searchParams.get('dateFrom'),
-		dateTo: searchParams.get('dateTo'),
-		createdFrom: searchParams.get('createdFrom'),
-		createdTo: searchParams.get('createdTo'),
-		dateIssuedFrom: searchParams.get('dateIssuedFrom'),
-		dateIssuedTo: searchParams.get('dateIssuedTo'),
-		agentName: searchParams.get('agentName'),
-		hasSupports: searchParams.get('hasSupports'),
-		companyIds: searchParams
-			.getAll('companyIds')
-			.map(Number)
-			.filter((n) => !Number.isNaN(n)),
-		productIds: searchParams
-			.getAll('productIds')
-			.map(Number)
-			.filter((n) => !Number.isNaN(n)),
-		originIds: searchParams
-			.getAll('originIds')
-			.map(Number)
-			.filter((n) => !Number.isNaN(n)),
-		terms: searchParams
-			.getAll('terms')
-			.map(Number)
-			.filter((n) => !Number.isNaN(n)),
-		periodicityIds: searchParams
-			.getAll('periodicityIds')
-			.map(Number)
-			.filter((n) => !Number.isNaN(n)),
-		agentCategoryIds: searchParams
-			.getAll('agentCategoryIds')
-			.map(Number)
-			.filter((n) => !Number.isNaN(n)),
-		agentIds: searchParams
-			.getAll('agentIds')
-			.map(Number)
-			.filter((n) => !Number.isNaN(n)),
-		novedadStatuses: searchParams.getAll('novedadStatuses'),
-	}
-}
 
 export async function GET(
 	req: NextRequest
@@ -82,7 +37,7 @@ export async function GET(
 
 		const { searchParams } = new URL(req.url)
 		const validationResult = businessFilterParamsSchema.safeParse(
-			parseStatsQueryParams(searchParams)
+			parseBusinessFilterQuery(searchParams)
 		)
 
 		if (!validationResult.success) {

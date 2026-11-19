@@ -41,9 +41,10 @@ CI fails PRs to `develop` without a changeset unless labeled `no-changeset` (doc
 ## 2. Never edit CHANGELOG / version by hand (day to day)
 
 - Do **not** edit `CHANGELOG.md` or `package.json` `"version"` during feature work.
-- On `develop`, run `npm run release:version` (preview: `npm run release:version -- --dry-run`).
+- Never commit or push directly to `develop`, `qa`, or `main` — every change to these branches goes through a PR. From a branch synced with `develop`, run `npm run release:version` (preview: `npm run release:version -- --dry-run`).
 - That consolidates pending changesets into **one** `## [X.Y.Z] - YYYY-MM-DD` entry (Bogotá date), bumps `package.json` / `package-lock.json`, and deletes consumed changesets.
-- Then commit `chore(release): vX.Y.Z`, PR `develop` → `main`, tag after merge.
+- Then commit `chore(release): vX.Y.Z` on that branch, open a PR into `develop` and merge it.
+- Release flow is `develop → qa → main`: after the release commit is on `develop`, open a PR `develop` → `qa` and merge it, then a PR `qa` → `main` and merge it, then tag `main`.
 
 ## 3. When this is mandatory
 
