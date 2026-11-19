@@ -515,7 +515,7 @@ export async function PUT(
 				currency: idCurrency !== undefined ? { connect: { idCurrency } } : undefined,
 				buyPeriodicity: idBuyPeriodicity !== undefined ? { connect: { idBuyPeriodicity } } : undefined,
 				term: term !== undefined ? term : undefined,
-				value: value !== undefined ? value : undefined,
+				value: canEditBusinessValue(currentUser.role?.code) ? value : undefined,
 				status: newStatus,
 				productPercentageCommission: { connect: { idProductPercentageCommission: finalIdPpc } },
 				numAportes: finalNumAportes,
