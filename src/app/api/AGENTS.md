@@ -180,7 +180,7 @@ Any token problem answers 400 `Enlace inválido o vencido`; rate limiting answer
 
 ### 5c. Landing form submissions (`/api/leads/form-submissions`)
 
-Public to n8n. Authenticates with the same `x-api-key` as `POST /api/leads/crm-sync`. One JSON body creates or matches a lead and stores the form snapshot in the same transaction. An invalid body returns 400 and writes nothing. The same `submissionId` returns 200 without a second snapshot.
+Public to n8n. Authenticates with the same `x-api-key` as `POST /api/leads/crm-sync`. One JSON body creates or matches a lead and stores the form snapshot in the same transaction. Missing/invalid keys return 401 without database writes or audit rows. Authenticated traffic passes the existing rate limit before parsing or auditing; requests over the limit return 429 without database writes or audit rows. An invalid body within the authenticated limit returns 400 with a rejection audit only, without a lead or snapshot. The same `submissionId` returns 200 without a second snapshot.
 
 | Method | Endpoint | Description |
 | :----- | :------- | :---------- |

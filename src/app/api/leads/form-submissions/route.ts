@@ -47,13 +47,17 @@ async function reject(
  */
 export async function POST(request: Request) {
 	const apiKey = request.headers.get('x-api-key')
+	// Unauthenticated and throttled traffic must never trigger database writes.
 	if (!isValidApiKey(apiKey)) {
-		return reject(request, 'No autorizado', 401)
+		return NextResponse.json({ data: null, error: 'No autorizado' } satisfies ApiResponse<null>, { status: 401 })
 	}
 
 	const rateLimitResult = checkRateLimit(apiKey ?? '')
 	if (!rateLimitResult.allowed) {
-		return reject(request, 'Límite de solicitudes excedido', 429)
+		return NextResponse.json(
+			{ data: null, error: 'Límite de solicitudes excedido' } satisfies ApiResponse<null>,
+			{ status: 429 }
+		)
 	}
 
 	let body: unknown

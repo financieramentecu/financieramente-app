@@ -53,6 +53,29 @@ describe('POST /api/leads/form-submissions', () => {
 		const response = await POST(buildRequest(validBody))
 		expect(response.status).toBe(401)
 		expect(ingestLeadFormSubmission).not.toHaveBeenCalled()
+		expect(logAuditEvent).not.toHaveBeenCalled()
+	})
+
+	it('never writes audit rows for repeated invalid keys or consumes the authenticated quota', async () => {
+		vi.mocked(isValidApiKey).mockReturnValue(false)
+		for (let attempt = 0; attempt < 150; attempt++) {
+			const response = await POST(buildRequest(validBody, { 'x-api-key': `invalid-${attempt}` }))
+			expect(response.status).toBe(401)
+		}
+		expect(logAuditEvent).not.toHaveBeenCalled()
+		expect(ingestLeadFormSubmission).not.toHaveBeenCalled()
+		expect(checkRateLimit).not.toHaveBeenCalled()
+	})
+
+	it('never writes audit rows for repeated requests over the authenticated rate limit', async () => {
+		vi.mocked(isValidApiKey).mockReturnValue(true)
+		vi.mocked(checkRateLimit).mockReturnValue({ allowed: false, retryAfterSeconds: 60 })
+		for (let attempt = 0; attempt < 150; attempt++) {
+			const response = await POST(buildRequest(validBody, { 'x-api-key': 'valid' }))
+			expect(response.status).toBe(429)
+		}
+		expect(logAuditEvent).not.toHaveBeenCalled()
+		expect(ingestLeadFormSubmission).not.toHaveBeenCalled()
 	})
 
 	it('returns 400 and does not store an invalid contract', async () => {
