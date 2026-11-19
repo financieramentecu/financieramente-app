@@ -54,14 +54,19 @@ export function useActivityBoard(ownerIds: number[], paused = false, refreshKey 
 	async function place(focus: ActivityFocus, code: string, stateName?: string) {
 		const now = new Date()
 		const system = isAgendaBucket(code)
-		let moved = false
+		if (state.status !== 'success') return
+		const activity = focus.kind === 'task'
+			? state.data.tasks.find((item) => item.idLeadTask === focus.id)
+			: state.data.cases.find((item) => item.idLeadSupportCase === focus.id)
+		if (!activity) return
+		const bucketState = 'idLeadTask' in activity ? activity : caseAsTask(activity)
+		if (system ? activityBucket(bucketState, now) === code && !activity.columnCode : activity.columnCode === code) return
 		setState((current) => {
 			if (current.status !== 'success') return current
 			if (focus.kind === 'task') {
 				const task = current.data.tasks.find((item) => item.idLeadTask === focus.id)
 				if (!task) return current
 				if (system ? activityBucket(task, now) === code && !task.columnCode : task.columnCode === code) return current
-				moved = true
 				const next = system ? withTaskBucket(task, code as AgendaBucket, now) : { ...task, columnCode: code }
 				return {
 					status: 'success',
@@ -78,7 +83,6 @@ export function useActivityBoard(ownerIds: number[], paused = false, refreshKey 
 				? activityBucket(caseAsTask(supportCase), now) === code && !supportCase.columnCode
 				: supportCase.columnCode === code
 			if (alreadyThere) return current
-			moved = true
 			const next = system ? withCaseBucket(supportCase, code as AgendaBucket, now) : { ...supportCase, columnCode: code }
 			return {
 				status: 'success',
@@ -89,7 +93,6 @@ export function useActivityBoard(ownerIds: number[], paused = false, refreshKey 
 				},
 			}
 		})
-		if (!moved) return
 		try {
 			if (focus.kind === 'task') await moveTask(focus.id, code)
 			else await moveCase(focus.id, code)
