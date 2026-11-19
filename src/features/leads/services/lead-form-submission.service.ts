@@ -89,6 +89,16 @@ export async function ingestLeadFormSubmission(
 ): Promise<IngestLeadFormResult> {
 	try {
 		const result = await prisma.$transaction(async (tx) => {
+			const identityKeys = [
+				payload.lead.identityNumber && `document:${payload.lead.identityNumber}`,
+				payload.lead.email && `email:${payload.lead.email.toLowerCase()}`,
+				payload.lead.phone && `phone:${payload.lead.phone}`,
+			].filter((key): key is string => Boolean(key)).sort()
+			// Serialize overlapping identities before matching; sorted keys avoid deadlocks.
+			for (const identityKey of identityKeys) {
+				await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`lead-form:${identityKey}`}, 0))`
+			}
+
 			const stored = await tx.leadFormSubmission.findUnique({
 				where: { submissionId: payload.submissionId },
 				select: { idLead: true },
@@ -113,8 +123,8 @@ export async function ingestLeadFormSubmission(
 				return { idLead: existingId, created: false, replayed: false, ownerUnresolved: false }
 			}
 
-			const column = await resolveFunnelColumn(payload.lead.statusKey)
-			const ownerId = await resolveOwner(payload.lead.ownerEmail)
+			const column = await resolveFunnelColumn(payload.lead.statusKey, tx)
+			const ownerId = await resolveOwner(payload.lead.ownerEmail, tx)
 			const createdLead = await tx.lead.create({
 				data: {
 					name: payload.lead.name ?? null,
@@ -155,7 +165,7 @@ export async function ingestLeadFormSubmission(
 				replayed: false,
 				ownerUnresolved: Boolean(payload.lead.ownerEmail) && ownerId === null,
 			}
-		})
+		}, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 
 		if (!result.replayed) {
 			if (result.created) {

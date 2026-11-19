@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import {
@@ -10,6 +11,7 @@ import type { FormSubmissionPayload } from '@/features/leads/types/form-submissi
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		$transaction: vi.fn(),
+		$executeRaw: vi.fn(),
 		leadFormSubmission: { findUnique: vi.fn(), create: vi.fn() },
 		lead: { findMany: vi.fn(), create: vi.fn() },
 		leadFunnelColumn: { findFirst: vi.fn() },
@@ -119,5 +121,31 @@ describe('ingestLeadFormSubmission', () => {
 		await expect(ingestLeadFormSubmission(payload)).rejects.toBeInstanceOf(LeadFormSubmissionError)
 		expect(prisma.lead.create).not.toHaveBeenCalled()
 		expect(prisma.leadFormSubmission.create).not.toHaveBeenCalled()
+	})
+
+	it('locks all matching identities in a stable order before reading the lead', async () => {
+		await ingestLeadFormSubmission({ ...payload, lead: { ...payload.lead, email: 'ANA@CORREO.COM' } })
+
+		expect(vi.mocked(prisma.$executeRaw).mock.calls.map(([, key]) => key)).toEqual([
+			'lead-form:document:1234567890',
+			'lead-form:email:ana@correo.com',
+			'lead-form:phone:3001234567',
+		])
+		expect(vi.mocked(prisma.$executeRaw).mock.invocationCallOrder.at(-1)).toBeLessThan(
+			vi.mocked(prisma.lead.findMany).mock.invocationCallOrder[0]
+		)
+		expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+			isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+		})
+	})
+
+	it('returns the stored result when the same submission wins a concurrent unique insert', async () => {
+		vi.mocked(prisma.$transaction).mockRejectedValueOnce(
+			new Prisma.PrismaClientKnownRequestError('Unique submission', { code: 'P2002', clientVersion: '6' })
+		)
+		vi.mocked(prisma.leadFormSubmission.findUnique).mockResolvedValue({ idLead: 8 } as never)
+
+		await expect(ingestLeadFormSubmission(payload)).resolves.toEqual({ idLead: 8, created: false, replayed: true })
+		expect(logAuditEvent).not.toHaveBeenCalled()
 	})
 })

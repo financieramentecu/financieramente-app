@@ -11,3 +11,4 @@
 
 - `POST /api/leads/form-submissions` accepts the n8n contract (`x-api-key`, same as crm-sync). Invalid keys (401) and rate-limited requests (429) never write to Postgres. Body validation failures within the authenticated rate limit audit `LEAD_FORM_SUBMISSION_REJECTED` without creating a lead or snapshot.
 - `lead_form_submission` stores one snapshot per `submission_id`. A known prospect only gains a snapshot. A new prospect is created in one transaction with stage source `LANDING_FORM`.
+- Concurrent submissions sharing a document, email or phone use the same prospect without creating duplicates; repeated submission IDs still reuse the stored snapshot.

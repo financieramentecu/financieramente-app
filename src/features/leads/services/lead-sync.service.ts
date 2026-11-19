@@ -1,4 +1,4 @@
-import type { Lead, LeadFunnelColumn } from '@prisma/client'
+import type { Lead, LeadFunnelColumn, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import {
 	logAuditEvent,
@@ -16,14 +16,15 @@ const FALLBACK_STATUS_KEY = '__unmapped__'
  * Falls back to the fixed "Sin mapear" column when no mapping exists.
  */
 export async function resolveFunnelColumn(
-	statusKey: string
+	statusKey: string,
+	client: Pick<Prisma.TransactionClient, 'leadFunnelColumn'> = prisma
 ): Promise<LeadFunnelColumn> {
-	const matched = await prisma.leadFunnelColumn.findFirst({
+	const matched = await client.leadFunnelColumn.findFirst({
 		where: { externalStatusKey: normalizeFunnelStatusKey(statusKey), active: true },
 	})
 	if (matched) return matched
 
-	const fallback = await prisma.leadFunnelColumn.findFirst({
+	const fallback = await client.leadFunnelColumn.findFirst({
 		where: { externalStatusKey: FALLBACK_STATUS_KEY },
 	})
 	if (!fallback) {
@@ -44,7 +45,8 @@ export async function resolveFunnelColumn(
  * resolved.
  */
 export async function resolveOwner(
-	ownerEmail: string | undefined
+	ownerEmail: string | undefined,
+	client: Pick<Prisma.TransactionClient, 'user'> = prisma
 ): Promise<number | null | undefined> {
 	if (!ownerEmail || ownerEmail.trim() === '') {
 		return undefined
@@ -53,7 +55,7 @@ export async function resolveOwner(
 	// Emails are conventionally case-insensitive; without `mode: 'insensitive'`
 	// (+ trim) a CRM sending a different casing/whitespace than the stored
 	// `User.email` would silently fail to match, leaving the lead owner-less.
-	const user = await prisma.user.findFirst({
+	const user = await client.user.findFirst({
 		where: {
 			email: { equals: ownerEmail.trim(), mode: 'insensitive' },
 			active: true,
