@@ -7,6 +7,7 @@ import {
 import { buildLeadUpsertData } from '@/features/leads/lib/build-lead-upsert-data'
 import { resolveOutcomeStatus } from '@/features/leads/lib/lead-outcome-status'
 import { normalizeFunnelStatusKey } from '@/features/leads/lib/normalize-funnel-status-key'
+import { escapeLikePattern } from '@/features/leads/lib/escape-like-pattern'
 import type { CrmSyncPayload } from '@/features/leads/types/crm-sync.schema'
 
 const FALLBACK_STATUS_KEY = '__unmapped__'
@@ -57,7 +58,7 @@ export async function resolveOwner(
 	// `User.email` would silently fail to match, leaving the lead owner-less.
 	const user = await client.user.findFirst({
 		where: {
-			email: { equals: ownerEmail.trim(), mode: 'insensitive' },
+			email: { equals: escapeLikePattern(ownerEmail.trim()), mode: 'insensitive' },
 			active: true,
 		},
 		select: { idUser: true },

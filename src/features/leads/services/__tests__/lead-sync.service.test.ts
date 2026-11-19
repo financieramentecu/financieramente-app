@@ -157,6 +157,14 @@ describe('resolveOwner', () => {
 		expect(findFirst).toHaveBeenCalledOnce()
 		expect(prisma.user.findFirst).not.toHaveBeenCalled()
 	})
+
+	it('treats wildcard characters in owner emails literally after trimming', async () => {
+		vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
+		await expect(resolveOwner('  Agent_Name%Test@Example.com  ')).resolves.toBeNull()
+		expect(prisma.user.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+			where: { email: { equals: String.raw`Agent\_Name\%Test@Example.com`, mode: 'insensitive' }, active: true },
+		}))
+	})
 })
 
 describe('upsertLeadFromCrm', () => {

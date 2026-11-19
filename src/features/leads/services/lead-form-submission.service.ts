@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { resolveFunnelColumn, resolveOwner } from '@/features/leads/services/lead-sync.service'
+import { escapeLikePattern } from '@/features/leads/lib/escape-like-pattern'
 import type { FormSubmissionPayload } from '@/features/leads/types/form-submission.schema'
 import type { IngestLeadFormResult } from '@/features/leads/types/form-submission.types'
 
@@ -57,7 +58,7 @@ async function resolveExistingLead(lead: LeadLookup, identity: LeadIdentity): Pr
 	}
 	if (identity.email) {
 		const byEmail = await findSingleActiveLead(lead, {
-			email: { equals: identity.email, mode: 'insensitive' },
+			email: { equals: escapeLikePattern(identity.email), mode: 'insensitive' },
 		})
 		if (byEmail === 'ambiguous') {
 			throw new LeadFormSubmissionError('AMBIGUOUS_LEAD', 'Hay más de un prospecto con ese correo')

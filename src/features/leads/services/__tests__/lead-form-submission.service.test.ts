@@ -139,6 +139,20 @@ describe('ingestLeadFormSubmission', () => {
 		})
 	})
 
+	it('matches email wildcard characters literally while locking the unescaped identity', async () => {
+		vi.mocked(prisma.lead.findMany).mockResolvedValueOnce([{ idLead: 15 }] as never)
+		await ingestLeadFormSubmission({
+			...payload,
+			lead: { ...payload.lead, identityNumber: undefined, phone: undefined, email: 'ana_%@correo.com' },
+		})
+
+		expect(prisma.lead.findMany).toHaveBeenCalledWith(expect.objectContaining({
+			where: { active: true, email: { equals: String.raw`ana\_\%@correo.com`, mode: 'insensitive' } },
+		}))
+		expect(vi.mocked(prisma.$executeRaw).mock.calls[0][1]).toBe('lead-form:email:ana_%@correo.com')
+		expect(prisma.lead.create).not.toHaveBeenCalled()
+	})
+
 	it('returns the stored result when the same submission wins a concurrent unique insert', async () => {
 		vi.mocked(prisma.$transaction).mockRejectedValueOnce(
 			new Prisma.PrismaClientKnownRequestError('Unique submission', { code: 'P2002', clientVersion: '6' })
