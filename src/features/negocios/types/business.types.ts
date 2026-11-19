@@ -98,6 +98,7 @@ export interface UserWithRole {
 	active?: boolean
 	idRole?: number | null // Opcional para compatibilidad
 	idUserLeader?: number | null
+	idCategory?: number | null
 	entryDate?: Date | string
 	retirementDate?: Date | string | null
 	password?: string | null

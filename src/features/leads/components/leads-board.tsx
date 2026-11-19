@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import {
 	DndContext,
@@ -14,22 +14,23 @@ import {
 	type DragEndEvent,
 	type DragStartEvent,
 } from '@dnd-kit/core'
-import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
-import { UserRole } from '@/features/auth/lib/roles'
 import { useLeadsBoard } from '@/features/leads/hooks/use-leads-board'
 import { LeadBoardColumn } from '@/features/leads/components/lead-board-column'
 import { LeadFunnelColumnSkeleton } from '@/features/leads/components/lead-funnel-column-skeleton'
-import { LeadDetailSheet } from '@/features/leads/components/lead-detail-sheet'
-import { LeadCard } from '@/features/leads/components/lead-card'
+import { CrmLeadDetailSheet } from '@/features/leads/components/crm-lead-detail-sheet'
+import { useLeadDetailSheet } from '@/features/leads/hooks/use-lead-detail-sheet'
+import { CrmSummaryCards } from '@/features/leads/analytics/crm-summary-cards'
 import { LeadsBoardFilters } from '@/features/leads/components/leads-board-filters'
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 import { parsePrefixedId } from '@/features/leads/lib/parse-board-drag-id'
 import { moveLeadOnBoard, restoreLeadIfStillInColumn } from '@/features/leads/lib/move-lead-on-board'
+import { CRM_HIERARCHY_EMPTY_MESSAGE, useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
 import { Button } from '@/features/shared/ui/button'
 import { cn } from '@/lib/utils'
-import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import type { LeadCard as LeadCardType, LeadDetail } from '@/features/leads/types/lead.types'
+import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
+import { LeadCard } from '@/features/leads/components/lead-card'
+import type { LeadCard as LeadCardType } from '@/features/leads/types/lead.types'
 
 /** Prefer the column under the pointer so a card can cross into the next stage. */
 const kanbanCollision: CollisionDetection = (args) => {
@@ -42,34 +43,28 @@ const kanbanCollision: CollisionDetection = (args) => {
  * change is stored as a manual action of the signed-in user.
  */
 export function LeadsBoard() {
-	const { data: session } = useSession()
-	const isAdmin = session?.user?.role === UserRole.ADMIN
+	const { enabled: reportsEnabled } = useFeatureFlag('crm_reports')
+	const hierarchy = useCrmHierarchyFilter()
 	const [filters, setFilters] = useState(getDefaultLeadBoardFilters())
-	const { state, refetch, updateColumns } = useLeadsBoard(filters)
+	const excludeKey = hierarchy.excludedOwnerIds.join(',')
+	useEffect(() => {
+		if (!hierarchy.ready) return
+		setFilters((current) =>
+			current.excludedOwnerIds.join(',') === excludeKey && current.ownerIds.length === 0
+				? current
+				: { ...current, ownerIds: [], excludedOwnerIds: hierarchy.excludedOwnerIds }
+		)
+	}, [hierarchy.ready, hierarchy.excludedOwnerIds, excludeKey])
+	const { state, refetch, updateColumns } = useLeadsBoard(filters, !hierarchy.ready || hierarchy.noneSelected)
 	const isRefreshing = state.status === 'loading'
-	const [selectedLead, setSelectedLead] = useState<LeadDetail | null>(null)
-	const [sheetOpen, setSheetOpen] = useState(false)
+	const sheet = useLeadDetailSheet()
 	const [draggingLead, setDraggingLead] = useState<LeadCardType | null>(null)
 	const skipClick = useRef(false)
 	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
 	function handleLeadDeleted() {
-		setSheetOpen(false)
+		sheet.setOpen(false)
 		refetch()
-	}
-
-	async function handleLeadClick(idLead: number) {
-		if (skipClick.current) return
-		try {
-			const response = await fetch(`/api/leads/${idLead}`)
-			const body: ApiResponse<LeadDetail> = await response.json()
-			if (!('error' in body)) {
-				setSelectedLead(body.data)
-				setSheetOpen(true)
-			}
-		} catch {
-			// Detail sheet stays closed when the lead cannot be loaded.
-		}
 	}
 
 	function handleDragStart(event: DragStartEvent) {
@@ -85,6 +80,11 @@ export function LeadsBoard() {
 		window.setTimeout(() => {
 			skipClick.current = false
 		}, 0)
+	}
+
+	function openLead(idLead: number) {
+		if (skipClick.current) return
+		void sheet.openLead(idLead)
 	}
 
 	async function handleDragEnd(event: DragEndEvent) {
@@ -134,6 +134,11 @@ export function LeadsBoard() {
 					Actualizar
 				</Button>
 			</div>
+			<CrmSummaryCards enabled={reportsEnabled} />
+			{hierarchy.noneSelected ? (
+				<p className="text-sm text-muted-foreground">{CRM_HIERARCHY_EMPTY_MESSAGE}</p>
+			) : (
+				<>
 			{(state.status === 'loading' || state.status === 'idle') && (
 				<div className="flex gap-4 overflow-x-auto pb-4">
 					{Array.from({ length: 4 }).map((_, index) => (
@@ -159,7 +164,7 @@ export function LeadsBoard() {
 							<LeadBoardColumn
 								key={column.idLeadFunnelColumn}
 								column={column}
-								onLeadClick={(idLead) => void handleLeadClick(idLead)}
+								onLeadClick={openLead}
 							/>
 						))}
 					</div>
@@ -172,13 +177,9 @@ export function LeadsBoard() {
 					</DragOverlay>
 				</DndContext>
 			)}
-			<LeadDetailSheet
-				lead={selectedLead}
-				open={sheetOpen}
-				onOpenChange={setSheetOpen}
-				isAdmin={isAdmin}
-				onDeleted={handleLeadDeleted}
-			/>
+				</>
+			)}
+			<CrmLeadDetailSheet lead={sheet.lead} open={sheet.open} onOpenChange={sheet.setOpen} onDeleted={handleLeadDeleted} />
 		</div>
 	)
 }

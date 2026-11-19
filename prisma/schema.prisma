@@ -341,6 +341,7 @@ model User {
   leadTaskComments                    LeadTaskComment[]        @relation("LeadTaskCommentAuthor")
   leadActivityLabelsCreated           LeadActivityLabel[]      @relation("LeadActivityLabelCreator")
   leadActivityColumnsUpdated          LeadActivityColumn[]     @relation("LeadActivityColumnUpdater")
+  crmNotificationSettingsUpdated      CrmNotificationSetting[] @relation("CrmNotificationSettingUpdater")
   leadStageChanges                    LeadStageHistory[]
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
@@ -936,7 +937,10 @@ model LeadTask {
   columnCode          String?            @map("column_code") @db.VarChar(20)
   status              LeadTaskStatus     @default(OPEN)
   completedAt         DateTime?          @map("completed_at")
+  /// In-app notice for the Bogotá day the task is due. Cleared on reschedule.
   reminderSentAt      DateTime?          @map("reminder_sent_at")
+  /// In-app notice once the task enters the configured anticipation window.
+  advanceNotifiedAt   DateTime?          @map("advance_notified_at")
   createdAt           DateTime           @default(now()) @map("created_at")
   updatedAt           DateTime           @updatedAt @map("updated_at")
   lead                Lead               @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
@@ -950,8 +954,20 @@ model LeadTask {
   @@index([idLead, status])
   @@index([columnCode])
   @@index([dueAt, reminderSentAt])
+  @@index([dueAt, advanceNotifiedAt])
   @@index([idLeadActivityLabel])
   @@map("lead_task")
+}
+
+/// Singleton (`id = 1`): days before due when an open task gets an in-app notice.
+model CrmNotificationSetting {
+  id               Int      @id @default(1) @map("id_crm_notification_setting")
+  anticipationDays Int      @default(1) @map("anticipation_days")
+  updatedBy        Int?     @map("updated_by")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updater          User?    @relation("CrmNotificationSettingUpdater", fields: [updatedBy], references: [idUser])
+
+  @@map("crm_notification_setting")
 }
 
 model LeadTaskComment {

@@ -8,6 +8,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createBusiness } from '@/features/negocios/actions/create-business'
 import { getPpcForNewBusinesses } from '@/features/negocios/services/product-configuration.service'
 import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
+import { appendLeadConversionAuditTx } from '@/features/leads/conversion/lead-conversion-audit.service'
+import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/features/auth/lib/audit-logger'
 import { UserRole } from '@/features/auth/lib/roles'
@@ -27,6 +29,14 @@ vi.mock('@/features/negocios/services/product-configuration.service', () => ({
 
 vi.mock('@/features/leads/services/lead-conversion.service', () => ({
 	linkLeadToBusinessTx: vi.fn(),
+}))
+
+vi.mock('@/features/leads/conversion/lead-conversion-audit.service', () => ({
+	appendLeadConversionAuditTx: vi.fn(),
+}))
+
+vi.mock('@/features/shared/lib/flagsmith-server', () => ({
+	isFeatureEnabledServer: vi.fn(),
 }))
 
 vi.mock('@/lib/auth/require-write-access', () => ({
@@ -92,6 +102,7 @@ function mockCreatedBusiness(overrides: Partial<Business> = {}): Business {
 describe('createBusiness', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.mocked(isFeatureEnabledServer).mockResolvedValue(false)
 		vi.mocked(requireWriteAccess).mockResolvedValue({
 			ok: true,
 			session: { user: { id: '1', role: UserRole.ADMIN } },
@@ -465,6 +476,33 @@ describe('createBusiness', () => {
 			expect(linkLeadToBusinessTx).toHaveBeenCalledWith(capturedTx, 5, 77)
 		})
 
+		it('appends conversion audit events only after the existing lead link succeeds when the flag is enabled', async () => {
+			vi.mocked(isFeatureEnabledServer).mockResolvedValue(true)
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				name: 'Anual',
+			} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+			const created = mockCreatedBusiness({ idBusiness: 77, status: 'VENTA_EFECTUADA' })
+			let capturedTx: unknown
+			vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+				capturedTx = {
+					business: { create: vi.fn().mockResolvedValue(created) },
+					payment: { createMany: vi.fn() },
+					leadActivity: { create: vi.fn() },
+				}
+				return callback(capturedTx as never)
+			})
+			vi.mocked(linkLeadToBusinessTx).mockResolvedValue(undefined)
+			vi.mocked(appendLeadConversionAuditTx).mockResolvedValue(undefined)
+
+			await createBusiness({ ...basePayload, idBuyPeriodicity: 1, term: 3, idLead: 5 })
+
+			expect(appendLeadConversionAuditTx).toHaveBeenCalledWith(capturedTx, {
+				idLead: 5,
+				idBusiness: 77,
+				idUser: 1,
+			})
+		})
+
 		it('rolls back the whole transaction (no Business created) when the lead is already converted', async () => {
 			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
 				name: 'Anual',
@@ -499,7 +537,8 @@ describe('createBusiness', () => {
 		const PARTNER_SESSION_ID = 77
 
 		function setSession(id: number, role: UserRole | null) {
-			vi.mocked(requireWriteAccess).mockResolvedValue({
+			vi.mocked(isFeatureEnabledServer).mockResolvedValue(false)
+		vi.mocked(requireWriteAccess).mockResolvedValue({
 				ok: true,
 				session: { user: { id: String(id), role } },
 			} as never)

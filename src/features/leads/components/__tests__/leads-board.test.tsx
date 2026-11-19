@@ -7,6 +7,14 @@ import { LeadsBoard } from '@/features/leads/components/leads-board'
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
+function boardFetches() {
+	return mockFetch.mock.calls.filter((call) => String(call[0]).startsWith('/api/leads'))
+}
+
+vi.mock('@/features/shared/hooks/use-feature-flag', () => ({
+	useFeatureFlag: (flag: string) => ({ enabled: flag === 'crm_conversion_audit', value: null }),
+}))
+
 vi.mock('next-auth/react', () => ({
 	useSession: vi.fn(),
 }))
@@ -35,7 +43,7 @@ describe('LeadsBoard — manual refresh button', () => {
 	it('renders an "Actualizar" button that triggers a new fetch on click', async () => {
 		render(<LeadsBoard />)
 
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
+		await waitFor(() => expect(boardFetches()).toHaveLength(1))
 
 		const button = screen.getByRole('button', { name: /actualizar/i })
 		expect(button).toBeInTheDocument()
@@ -43,7 +51,7 @@ describe('LeadsBoard — manual refresh button', () => {
 		const user = userEvent.setup()
 		await user.click(button)
 
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2))
+		await waitFor(() => expect(boardFetches()).toHaveLength(2))
 	})
 })
 
@@ -54,6 +62,16 @@ describe('LeadsBoard — admin role plumbing', () => {
 		mockFetch.mockResolvedValue({
 			json: async () => ({ data: [] }),
 		})
+	})
+
+	it('passes crmConversionAudit flag to LeadDetailSheet', async () => {
+		vi.mocked(useSession).mockReturnValue({
+			data: null,
+			status: 'unauthenticated',
+			update: vi.fn(),
+		} as never)
+		render(<LeadsBoard />)
+		await waitFor(() => expect(capturedProps.conversionAuditEnabled).toBe(true))
 	})
 
 	it('passes isAdmin={true} to LeadDetailSheet for an ADMIN session', async () => {
@@ -88,13 +106,13 @@ describe('LeadsBoard — admin role plumbing', () => {
 		} as never)
 
 		render(<LeadsBoard />)
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
+		await waitFor(() => expect(boardFetches()).toHaveLength(1))
 
 		expect(capturedProps.onDeleted).toBeInstanceOf(Function)
 		act(() => {
 			;(capturedProps.onDeleted as () => void)()
 		})
 
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2))
+		await waitFor(() => expect(boardFetches()).toHaveLength(2))
 	})
 })

@@ -10,7 +10,6 @@ describe('LeadsBoardFilters', () => {
 
 		render(<LeadsBoardFilters value={defaults} onChange={onChange} />)
 
-		// MultiSelect trigger shows the single selected label
 		expect(screen.getByText('Abierto')).toBeInTheDocument()
 	})
 
@@ -20,7 +19,7 @@ describe('LeadsBoardFilters', () => {
 
 		render(<LeadsBoardFilters value={defaults} onChange={onChange} />)
 
-		fireEvent.click(screen.getByRole('combobox'))
+		fireEvent.click(screen.getByRole('combobox', { name: 'Estado del lead' }))
 		fireEvent.click(screen.getByRole('option', { name: 'Ganado' }))
 
 		expect(onChange).toHaveBeenCalledWith(
@@ -36,7 +35,7 @@ describe('LeadsBoardFilters', () => {
 
 		render(<LeadsBoardFilters value={defaults} onChange={onChange} />)
 
-		fireEvent.click(screen.getByRole('combobox'))
+		fireEvent.click(screen.getByRole('combobox', { name: 'Estado del lead' }))
 		fireEvent.click(screen.getByRole('option', { name: 'Abierto' }))
 
 		expect(onChange).toHaveBeenCalledWith(
@@ -50,8 +49,6 @@ describe('LeadsBoardFilters', () => {
 
 		render(<LeadsBoardFilters value={defaults} onChange={onChange} />)
 
-		expect(
-			screen.getByText(/\d{2}\/\d{2}\/\d{4}/)
-		).toBeInTheDocument()
+		expect(screen.getByText(/\d{2}\/\d{2}\/\d{4}/)).toBeInTheDocument()
 	})
 })

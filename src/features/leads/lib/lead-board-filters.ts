@@ -4,6 +4,10 @@ import { currentBogotaMonthRange } from '@/features/shared/lib/bogota-date-range
 export interface LeadBoardFilters {
 	outcomeStatuses: LeadOutcomeStatus[]
 	createdAtRange: { gte: Date; lte: Date }
+	/** Empty means the whole hierarchy. */
+	ownerIds: number[]
+	/** Unchecked hierarchy branches. Empty keeps the server scope. */
+	excludedOwnerIds: number[]
 }
 
 /**
@@ -15,5 +19,7 @@ export function getDefaultLeadBoardFilters(): LeadBoardFilters {
 	return {
 		outcomeStatuses: ['OPEN'],
 		createdAtRange: currentBogotaMonthRange(),
+		ownerIds: [],
+		excludedOwnerIds: [],
 	}
 }
