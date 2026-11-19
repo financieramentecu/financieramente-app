@@ -85,7 +85,7 @@ export async function sendDueTaskReminders(now: Date = new Date()): Promise<Remi
 
 	const [todayTasks, upcomingTasks] = await Promise.all([
 		prisma.leadTask.findMany({
-			where: { status: 'OPEN', dueAt: { gte: start, lt: end }, reminderSentAt: null, lead: { active: true } },
+			where: { status: 'OPEN', dueAt: { gte: start, lt: end }, reminderSentAt: null, lead: { active: true }, assignee: { active: true } },
 			orderBy: { dueAt: 'asc' },
 			take: REMINDER_BATCH,
 			select: taskSelect,
@@ -98,6 +98,7 @@ export async function sendDueTaskReminders(now: Date = new Date()): Promise<Remi
 						dueAt: { gte: end, lt: upcomingEnd },
 						advanceNotifiedAt: null,
 						lead: { active: true },
+						assignee: { active: true },
 					},
 					orderBy: { dueAt: 'asc' },
 					take: REMINDER_BATCH,
@@ -125,20 +126,31 @@ export async function sendDueTaskReminders(now: Date = new Date()): Promise<Remi
 async function notifyOnce(task: NoticeTask, kind: NoticeKind, now: Date): Promise<'notified' | 'skipped' | 'failed'> {
 	const copy = NOTICE_COPY[kind]
 	try {
-		const claim = await prisma.leadTask.updateMany({
-			where: { idLeadTask: task.idLeadTask, [copy.claimField]: null },
-			data: { [copy.claimField]: now },
-		})
-		if (claim.count !== 1) return 'skipped'
+		const notification = await prisma.$transaction(async (tx) => {
+			const claim = await tx.leadTask.updateMany({
+				where: {
+					idLeadTask: task.idLeadTask,
+					status: 'OPEN',
+					assignedTo: task.assignedTo,
+					dueAt: task.dueAt,
+					lead: { active: true },
+					assignee: { active: true },
+					[copy.claimField]: null,
+				},
+				data: { [copy.claimField]: now },
+			})
+			if (claim.count !== 1) return null
 
-		const notification = await prisma.notification.create({
-			data: {
-				idUser: task.assignedTo,
-				title: copy.title,
-				message: taskNoticeMessage(task),
-				callbackUrl: taskCallbackUrl(task.idLead),
-			},
+			return tx.notification.create({
+				data: {
+					idUser: task.assignedTo,
+					title: copy.title,
+					message: taskNoticeMessage(task),
+					callbackUrl: taskCallbackUrl(task.idLead),
+				},
+			})
 		})
+		if (!notification) return 'skipped'
 		await notificationProvider.sendNotification(task.assignedTo, notification).catch((error) => {
 			Sentry.captureException(error)
 		})
