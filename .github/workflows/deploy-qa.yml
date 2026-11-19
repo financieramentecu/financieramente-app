@@ -305,13 +305,15 @@ jobs:
             (crontab -l 2>/dev/null | grep -v 'fund-payments' || true
              echo "0 6 * * * curl -s -X POST https://negocios.qa.financieramentecu.co/api/negocios/cron/fund-payments -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_QA }}' >> /var/log/financieramente/fund-payments.log 2>&1") | crontab -
 
-            # Ensure CRM task reminders cron (idempotent, every 15 minutes)
-            (crontab -l 2>/dev/null | grep -v 'crm-task-reminders' || true
-             echo "*/15 * * * * curl -s -X POST https://negocios.qa.financieramentecu.co/api/leads/cron/task-reminders -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_QA }}' >> /var/log/financieramente/crm-task-reminders.log 2>&1") | crontab -
-
-            # Ensure CRM daily task digest cron (idempotent, daily at 12:00 UTC = 07:00 Bogotá)
-            (crontab -l 2>/dev/null | grep -v 'crm-task-digest' || true
-             echo "0 12 * * * curl -s -X POST https://negocios.qa.financieramentecu.co/api/leads/cron/task-digest -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_QA }}' >> /var/log/financieramente/crm-task-digest.log 2>&1") | crontab -
+            # CRM task crons stay uninstalled until the CRM is enabled outside development.
+            # Drop lines a previous deploy of this branch may have added, and keep every other job.
+            current_crontab="$(crontab -l 2>/dev/null || true)"
+            if printf '%s\n' "$current_crontab" | grep -Eq 'crm-task-reminders|crm-task-digest'; then
+              filtered_crontab="$(printf '%s\n' "$current_crontab" | grep -Ev 'crm-task-reminders|crm-task-digest' || true)"
+              if [ -n "$filtered_crontab" ]; then
+                printf '%s\n' "$filtered_crontab" | crontab -
+              fi
+            fi
 
       - name: Health check
         uses: appleboy/ssh-action@v1.0.3

@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { appendLeadActivityTx } from '@/features/leads/activities/lead-activity.service'
 
 export interface AppendLeadConversionAuditInput {
@@ -10,10 +11,9 @@ export interface AppendLeadConversionAuditInput {
 type ConversionActivityWriter = Pick<Prisma.TransactionClient, 'leadActivity' | 'lead'>
 
 /**
- * Appends the two conversion facts only after the authoritative business/link
- * transaction has succeeded. Correlation ids are deterministic and distinct so
- * the database uniqueness constraint makes a replay safe without allowing the
- * CRM to create or mutate a Business itself.
+ * Appends the two conversion facts on the supplied writer. Correlation ids are
+ * deterministic and distinct so the database uniqueness constraint makes a
+ * replay safe without allowing the CRM to create or mutate a Business itself.
  */
 export async function appendLeadConversionAuditTx(
 	tx: ConversionActivityWriter,
@@ -38,4 +38,15 @@ export async function appendLeadConversionAuditTx(
 		payload,
 		correlationId: `${baseCorrelationId}:business-linked`,
 	})
+}
+
+/**
+ * Writes the conversion timeline after the business transaction has committed.
+ * Callers must not invoke this inside that transaction: a failure here has to
+ * stay independent of the business row.
+ */
+export async function appendLeadConversionAuditAfterCommit(
+	input: AppendLeadConversionAuditInput
+): Promise<void> {
+	await prisma.$transaction((tx) => appendLeadConversionAuditTx(tx, input))
 }
