@@ -43,6 +43,7 @@ import {
 import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
 import { LeadTaskList } from '@/features/leads/tasks/lead-task-list'
 import { LeadCrmFieldsSection } from '@/features/leads/custom-fields/lead-crm-fields-section'
+import { LeadFormSnapshots } from '@/features/leads/components/lead-form-snapshots'
 import { LeadSupportCaseList } from '@/features/leads/cases/lead-support-case-list'
 import type { ActivityFinishActions, ActivityFinishState, ActivityFocus } from '@/features/leads/agenda/agenda.types'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
@@ -289,6 +290,7 @@ export function LeadDetailSheet({
 								<span className="truncate">{lead.originTag}</span>
 							</div>
 						)}
+						<LeadFormSnapshots snapshots={lead.formSubmissions ?? []} />
 						{conversionAuditEnabled && isConverted && (
 							<div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
 								<p className="font-medium">Conversión auditada</p>

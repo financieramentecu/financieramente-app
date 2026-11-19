@@ -998,6 +998,8 @@ model Lead {
   supportCases       LeadSupportCase[]
   stageHistory       LeadStageHistory[]
   tagAssignments     LeadTagAssignment[]
+  originAssignments  LeadOriginAssignment[]
+  formSubmissions    LeadFormSubmission[]
 
   @@index([idUser])
   @@index([idLeadFunnelColumn])
@@ -1062,6 +1064,56 @@ model LeadTagAssignment {
   @@unique([idLead, idLeadTag])
   @@index([idLeadTag, active])
   @@map("lead_tag_assignment")
+}
+
+/// Acquisition-source catalogue keyed by the normalized `utm_source`.
+/// Deactivated, never deleted. Distinct from `ClientOrigin` (business origin).
+model LeadOrigin {
+  idLeadOrigin Int                    @id @default(autoincrement()) @map("id_lead_origin")
+  code         String                 @unique @db.VarChar(120)
+  name         String                 @db.VarChar(120)
+  status       Boolean                @default(true)
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  assignments  LeadOriginAssignment[]
+
+  @@index([status])
+  @@map("lead_origin")
+}
+
+/// Origin label on a lead. Removing the link sets `active=false`.
+model LeadOriginAssignment {
+  idLeadOriginAssignment Int        @id @default(autoincrement()) @map("id_lead_origin_assignment")
+  idLead                 Int        @map("id_lead")
+  idLeadOrigin           Int        @map("id_lead_origin")
+  active                 Boolean    @default(true)
+  firstSeenAt            DateTime   @map("first_seen_at")
+  lastSeenAt             DateTime   @map("last_seen_at")
+  createdAt              DateTime   @default(now()) @map("created_at")
+  updatedAt              DateTime   @updatedAt @map("updated_at")
+  lead                   Lead       @relation(fields: [idLead], references: [idLead])
+  origin                 LeadOrigin @relation(fields: [idLeadOrigin], references: [idLeadOrigin])
+
+  @@unique([idLead, idLeadOrigin])
+  @@index([idLeadOrigin, active])
+  @@map("lead_origin_assignment")
+}
+
+/// Immutable snapshot of one landing-form submission. Never updated or deleted.
+model LeadFormSubmission {
+  idLeadFormSubmission Int      @id @default(autoincrement()) @map("id_lead_form_submission")
+  submissionId         String   @unique @map("submission_id") @db.VarChar(200)
+  idLead               Int      @map("id_lead")
+  landingKey           String   @map("landing_key") @db.VarChar(80)
+  landingName          String   @map("landing_name") @db.VarChar(120)
+  landingVersion       String   @map("landing_version") @db.VarChar(40)
+  submittedAt          DateTime @map("submitted_at")
+  fields               Json
+  createdAt            DateTime @default(now()) @map("created_at")
+  lead                 Lead     @relation(fields: [idLead], references: [idLead])
+
+  @@index([idLead, submittedAt])
+  @@map("lead_form_submission")
 }
 
 enum LeadCustomFieldType {

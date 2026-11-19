@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
 import { getInactivityDays, resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
+import { mapFormSnapshot } from '@/features/leads/lib/map-form-snapshot'
 import type {
 	LeadBoardColumn,
 	LeadDetail,
@@ -140,7 +141,21 @@ export async function getLeadDetail(
 ): Promise<LeadDetail | null> {
 	const lead = await prisma.lead.findFirst({
 		where: whereForLead(idLead, viewer, options),
-		include: { user: { select: { name: true, lastName: true } }, tagAssignments: activeTagsSelect },
+		include: {
+			user: { select: { name: true, lastName: true } },
+			tagAssignments: activeTagsSelect,
+			formSubmissions: {
+				orderBy: { submittedAt: 'desc' },
+				select: {
+					submissionId: true,
+					landingKey: true,
+					landingName: true,
+					landingVersion: true,
+					submittedAt: true,
+					fields: true,
+				},
+			},
+		},
 	})
 
 	if (!lead) return null
@@ -166,5 +181,6 @@ export async function getLeadDetail(
 		tags: lead.tagAssignments.map((assignment) => assignment.tag),
 		estimatedValue: lead.estimatedValue?.toString() ?? null,
 		probability: lead.probability,
+		formSubmissions: (lead.formSubmissions ?? []).map(mapFormSnapshot),
 	}
 }

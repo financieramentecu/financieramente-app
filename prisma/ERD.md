@@ -93,6 +93,9 @@ erDiagram
     User ||--o{ LeadSupportCaseComment : "autor"
     Lead ||--o{ LeadTagAssignment : "etiquetas"
     LeadTag ||--o{ LeadTagAssignment : "asignaciones"
+    Lead ||--o{ LeadOriginAssignment : "orígenes del lead"
+    LeadOrigin ||--o{ LeadOriginAssignment : "etiqueta de origen"
+    Lead ||--o{ LeadFormSubmission : "fotos de formulario"
     User ||--o{ LeadSavedView : "vistas guardadas"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
@@ -707,6 +710,38 @@ erDiagram
         datetime updated_at
     }
 
+    LeadOrigin {
+        int id_lead_origin PK
+        string code UK
+        string name
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
+
+    LeadOriginAssignment {
+        int id_lead_origin_assignment PK
+        int id_lead FK
+        int id_lead_origin FK
+        boolean active
+        datetime first_seen_at
+        datetime last_seen_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    LeadFormSubmission {
+        int id_lead_form_submission PK
+        string submission_id UK
+        int id_lead FK
+        string landing_key
+        string landing_name
+        string landing_version
+        datetime submitted_at
+        json fields
+        datetime created_at
+    }
+
     LeadCustomField {
         int id_lead_custom_field PK
         string key UK
@@ -783,3 +818,5 @@ erDiagram
 - **CRM: `lead_activity`, `lead_task`, `lead_support_case`, `lead_support_case_comment`** (migraciones `20261105165000`–`20261105180000`, rama `codex/negocios-basic-crm`): `lead_activity` es un registro de eventos de solo inserción (payload JSON versionado; `(id_lead, correlation_id)` único para idempotencia; cursor `(occurred_at, id_lead_activity)`). Solo `NOTE_ADDED` y `*_LOGGED` los envía el cliente; el resto los escriben los servicios. `lead_task` = trabajo programado (estilo Odoo `mail.activity`); `lead_support_case` = casos de soporte (estilo EspoCRM Case). Los cambios de etapa **no** se duplican en `lead_activity`: el timeline los mezcla al leer desde `lead_stage_history` (el webhook no tiene actor y `lead_activity.id_user` es obligatorio).
 - **CRM Fase 1** (migración `20261109120000_extend_lead_activity_and_task`, change `crm-phase-1-activities`): `LeadActivityType` += `CALL_LOGGED | MEETING_LOGGED | EMAIL_LOGGED | WHATSAPP_LOGGED`; nuevo enum `LeadTaskType` y columnas `lead_task.type` (`DEFAULT 'TODO'`) y `lead_task.reminder_sent_at` (índice `(due_at, reminder_sent_at)`: el cron reclama la tarea con `updateMany ... WHERE reminder_sent_at IS NULL` antes de notificar; reprogramar la tarea lo vuelve `NULL`). `lead.last_activity_at` es dato propio del CRM (nunca lo escriben el webhook ni el CSV): lo actualiza `appendLeadActivityTx` en la misma transacción para los eventos de contacto, solo si es más reciente; índice `(outcome_status, last_activity_at)` para el indicador "Sin actividad".
 - **CRM Fase 2** (migración `20261110120000_add_lead_views_tags_fields`, change `crm-phase-2-views-tags`): datos propios del CRM que el webhook `crm-sync` nunca escribe. `lead.estimated_value` (`DECIMAL(15,2)`) y `lead.probability` (`CHECK 0..100`) dan el valor ponderado del pipeline (valor × probabilidad / 100). `lead.custom_field_values` es un JSON indexado por `lead_custom_field.key` (sin tabla EAV); se valida contra los campos activos al escribir y un campo desactivado oculta su valor sin borrarlo. `lead_custom_field.key` es único para siempre (no se reutiliza la clave de un campo inactivo). `lead_tag_assignment` tiene `(id_lead, id_lead_tag)` único: quitar una etiqueta pone `active=false` y volver a ponerla reactiva la misma fila. `lead_tag.name` es único entre las activas sin distinguir mayúsculas (lo valida el servicio). `lead_saved_view` es personal (`id_user`), guarda filtros y orden de la tabla sin paginación; máximo 20 activas por usuario. `created_by` / `assigned_by` son ids de usuario sin FK (solo trazabilidad; la auditoría está en `AuditLog`).
+- **Origen del lead** (migración `20261119141100_add_lead_origin`): catálogo `lead_origin` distinto de `client_origin` (ese sigue siendo el origen del negocio). `code` es el `utm_source` normalizado (minúsculas, sin acentos, espacios y guiones como `_`) y es único. El webhook `POST /api/leads/crm-sync` lo recibe en el cuerpo o en el query `utm_source`, crea la fila si no existe y no reactiva una fila con `status = false`. `lead_origin_assignment` es la pivote `(id_lead, id_lead_origin)` única: el mismo origen refresca `last_seen_at`; un origen nuevo del mismo lead agrega otra fila activa (historial). El nombre del catálogo se copia a `lead.origin_tag` para la tarjeta actual. Borrado lógico: `status = false` en el catálogo y `active = false` en la pivote.
+- **Foto de formulario** (migración `20261119145000_add_lead_form_submission`, COM-247): `lead_form_submission` es de solo inserción. `submission_id` único evita duplicar un reintento. `fields` guarda la etiqueta, el tipo y el valor en el orden recibido (`text | number | date | select`). Un `submission_id` nuevo sobre un prospecto ya encontrado por documento, correo o teléfono agrega otra foto y no reescribe las anteriores ni la etapa, el valor, la probabilidad ni las etiquetas del CRM.

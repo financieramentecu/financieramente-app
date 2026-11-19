@@ -100,3 +100,18 @@ describe('crmSyncPayloadSchema — createdAt / updatedAt (historical timestamps)
 		).toThrow()
 	})
 })
+
+describe('crmSyncPayloadSchema — utm_source', () => {
+	it('keeps the landing query value when present', () => {
+		const result = crmSyncPayloadSchema.parse({
+			...basePayload,
+			utm_source: 'Money Map',
+		})
+		expect(result.utm_source).toBe('Money Map')
+	})
+
+	it('leaves utm_source undefined when the field is absent', () => {
+		const result = crmSyncPayloadSchema.parse(basePayload)
+		expect(result.utm_source).toBeUndefined()
+	})
+})
