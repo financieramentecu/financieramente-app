@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from 'react'
 import { Bell } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { UserRole } from '@/features/auth/lib/roles'
 import { toast } from 'sonner'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
@@ -9,10 +11,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { TASK_NOTICE_ANTICIPATION } from '@/features/leads/tasks/task-notice.constants'
 import { useTaskNoticeSettings } from '@/features/leads/tasks/use-task-notice-settings'
 
-/** CRM managers set how many days before due an open task is announced in the app. */
+/** Administrators set how many days before due an open task is announced in the app. */
 export function TaskNoticeSettings() {
+	const { data: session } = useSession()
 	const [open, setOpen] = useState(false)
 	const settings = useTaskNoticeSettings(open)
+	if (session?.user?.role !== UserRole.ADMIN) return null
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>

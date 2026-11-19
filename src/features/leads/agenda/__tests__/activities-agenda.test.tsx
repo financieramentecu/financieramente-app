@@ -4,6 +4,10 @@ import { ActivitiesAgenda } from '@/features/leads/agenda/activities-agenda'
 import { dueAtForActivityBucket } from '@/features/leads/agenda/activity-bucket'
 import { activityDueCardText } from '@/features/leads/agenda/activity-due-label'
 
+vi.mock('next-auth/react', () => ({
+	useSession: () => ({ data: { user: { role: 'ADMIN' } } }),
+}))
+
 const now = new Date()
 
 const task = (id: number, overrides: object = {}) => ({

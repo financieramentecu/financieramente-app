@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useSession } from 'next-auth/react'
 import { TaskNoticeSettings } from '@/features/leads/tasks/task-notice-settings'
+
+vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 
@@ -10,7 +13,10 @@ function jsonResponse(data: unknown, ok = true) {
 }
 
 describe('TaskNoticeSettings', () => {
-	beforeEach(() => vi.unstubAllGlobals())
+	beforeEach(() => {
+		vi.unstubAllGlobals()
+		vi.mocked(useSession).mockReturnValue({ data: { user: { role: 'ADMIN' } }, status: 'authenticated' } as never)
+	})
 
 	it('loads the saved days and stores a new anticipation', async () => {
 		const user = userEvent.setup()
@@ -35,5 +41,14 @@ describe('TaskNoticeSettings', () => {
 			'/api/crm/notification-settings',
 			expect.objectContaining({ method: 'PUT', body: JSON.stringify({ anticipationDays: 3 }) })
 		)
+	})
+})
+
+
+describe('task notice settings visibility', () => {
+	it('does not offer global settings to an AGENTE', () => {
+		vi.mocked(useSession).mockReturnValue({ data: { user: { role: 'AGENTE' } }, status: 'authenticated' } as never)
+		render(<TaskNoticeSettings />)
+		expect(screen.queryByRole('button', { name: 'Avisos' })).not.toBeInTheDocument()
 	})
 })

@@ -39,3 +39,16 @@ describe('/api/crm/notification-settings', () => {
 		expect(saveTaskNoticeSetting).toHaveBeenCalledTimes(1)
 	})
 })
+
+
+describe('global task notice administration', () => {
+	beforeEach(() => vi.clearAllMocks())
+
+	it('rejects an AGENTE before reading or changing company-wide settings', async () => {
+		vi.mocked(requireCrmActor).mockResolvedValue({ ok: true, actor: { ...actor, roleCode: 'AGENTE' } })
+		expect((await GET()).status).toBe(403)
+		expect((await PUT(json({ anticipationDays: 0 }))).status).toBe(403)
+		expect(getTaskNoticeSetting).not.toHaveBeenCalled()
+		expect(saveTaskNoticeSetting).not.toHaveBeenCalled()
+	})
+})
