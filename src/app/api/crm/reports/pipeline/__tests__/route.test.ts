@@ -38,6 +38,16 @@ describe('GET /api/crm/reports/pipeline', () => {
 		expect(getCrmPipelineReport).not.toHaveBeenCalled()
 	})
 
+	it('allows the explicit company read grant without a category report permission', async () => {
+		vi.mocked(requireCrmActor).mockResolvedValue({ ok: true, actor: { ...actor, visibleUserIds: [], canViewOthersCrm: true } })
+		vi.mocked(canViewReport).mockResolvedValue(false)
+		const report = { range: { from: '2026-10-01', to: '2026-10-31' } }
+		vi.mocked(getCrmPipelineReport).mockResolvedValue({ ok: true, report } as never)
+		const response = await GET(request('?from=2026-10-01&to=2026-10-31'))
+		expect(response.status).toBe(200)
+		expect(getCrmPipelineReport).toHaveBeenCalledWith(expect.anything(), expect.anything(), [])
+	})
+
 	it('rejects an invalid range', async () => {
 		const response = await GET(request('?from=2026-03-02&to=2026-03-01'))
 		expect(response.status).toBe(400)
