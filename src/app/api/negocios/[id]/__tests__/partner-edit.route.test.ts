@@ -245,12 +245,28 @@ describe('PUT /api/negocios/[id] on a PARTNER_EXTERNAL business', () => {
 			expect(mockTxUpdate).not.toHaveBeenCalled()
 		})
 
-		it('non-product edits (value, term) keep the PPC and never recalculate', async () => {
+		it('term edits with the unchanged value keep the PPC and never recalculate', async () => {
+			setup(PARTNER, partnerBusiness(mockPrismaBusinessVentaEfectuada))
+
+			const res = await put({
+				value: Number(mockPrismaBusinessVentaEfectuada.value),
+				term: 3,
+			})
+
+			expect(res.status).toBe(200)
+			expect(findProductPercentageCommission).not.toHaveBeenCalled()
+			expect(recalcularComisionesPorCambioOrigen).not.toHaveBeenCalled()
+		})
+
+		it('PARTNER cannot change the business value, even with another draft edit', async () => {
 			setup(PARTNER, partnerBusiness(mockPrismaBusinessVentaEfectuada))
 
 			const res = await put({ value: 2_000_000, term: 3 })
 
-			expect(res.status).toBe(200)
+			expect(res.status).toBe(403)
+			expect((await res.json()).error).toContain('Valor de Negocio')
+			expect(mockTxUpdate).not.toHaveBeenCalled()
+			expect(logAuditEvent).not.toHaveBeenCalled()
 			expect(findProductPercentageCommission).not.toHaveBeenCalled()
 			expect(recalcularComisionesPorCambioOrigen).not.toHaveBeenCalled()
 		})
