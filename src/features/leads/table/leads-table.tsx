@@ -243,7 +243,10 @@ export function LeadsTable({
 
 			<SavedViewsBar
 				currentQuery={toSavedLeadTableQuery(query)}
-				onApply={replaceQuery}
+				onApply={(saved) => replaceQuery({
+					...saved,
+					excludedOwnerIds: [...new Set([...saved.excludedOwnerIds, ...hierarchy.excludedOwnerIds])],
+				})}
 			/>
 
 			{state.status === 'error' && (
