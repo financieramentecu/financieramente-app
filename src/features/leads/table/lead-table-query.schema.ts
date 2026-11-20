@@ -16,6 +16,8 @@ export interface LeadTableQuery {
 	/** Unchecked hierarchy branches. Empty keeps the server scope. */
 	excludedOwnerIds: number[]
 	tagIds: number[]
+	/** Active rows in `client_origin`. Empty means every origin. */
+	originIds: number[]
 	/** Bogotá `YYYY-MM-DD`, inclusive; always sent together with `to`. */
 	from?: string
 	to?: string
@@ -34,6 +36,7 @@ export const DEFAULT_LEAD_TABLE_QUERY: LeadTableQuery = {
 	ownerIds: [],
 	excludedOwnerIds: [],
 	tagIds: [],
+	originIds: [],
 	idle: false,
 	sort: 'createdAt',
 	dir: 'desc',
@@ -57,6 +60,7 @@ const leadTableQuerySchema = z
 		ownerIds: z.array(positiveId).default([]),
 		excludedOwnerIds: z.array(positiveId).max(2_000).default([]),
 		tagIds: z.array(positiveId).default([]),
+		originIds: z.array(positiveId).default([]),
 		from: z.string().regex(ISO_DAY, 'Fecha inválida').optional(),
 		to: z.string().regex(ISO_DAY, 'Fecha inválida').optional(),
 		idle: z.boolean().default(false),
@@ -87,7 +91,7 @@ function toResult(parsed: ReturnType<typeof leadTableQuerySchema.safeParse>): Le
 	return { ok: true, query }
 }
 
-/** Table query from `?q=&status=&stage=&owner=&tag=&from=&to=&idle=1&sort=&dir=&page=&pageSize=`. */
+/** Table query from `?q=&status=&stage=&owner=&tag=&origin=&from=&to=&idle=1&sort=&dir=&page=&pageSize=`. */
 export function parseLeadTableQuery(params: URLSearchParams): LeadTableQueryResult {
 	const optional = (key: string) => params.get(key) ?? undefined
 	return toResult(
@@ -98,6 +102,7 @@ export function parseLeadTableQuery(params: URLSearchParams): LeadTableQueryResu
 			ownerIds: params.getAll('owner'),
 			excludedOwnerIds: params.getAll('exclude'),
 			tagIds: params.getAll('tag'),
+			originIds: params.getAll('origin'),
 			from: optional('from'),
 			to: optional('to'),
 			idle: params.get('idle') === '1',
@@ -135,6 +140,7 @@ export function toLeadTableSearchParams(query: LeadTableQuery): URLSearchParams 
 	query.ownerIds.forEach((value) => params.append('owner', String(value)))
 	query.excludedOwnerIds.forEach((value) => params.append('exclude', String(value)))
 	query.tagIds.forEach((value) => params.append('tag', String(value)))
+	query.originIds.forEach((value) => params.append('origin', String(value)))
 	if (query.from && query.to) {
 		params.set('from', query.from)
 		params.set('to', query.to)

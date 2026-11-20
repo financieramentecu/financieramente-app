@@ -8,6 +8,8 @@ export interface LeadBoardFilters {
 	ownerIds: number[]
 	/** Unchecked hierarchy branches. Empty keeps the server scope. */
 	excludedOwnerIds: number[]
+	/** Empty means every origin. Values are `client_origin` ids. */
+	originIds: number[]
 }
 
 /**
@@ -21,5 +23,6 @@ export function getDefaultLeadBoardFilters(): LeadBoardFilters {
 		createdAtRange: currentBogotaMonthRange(),
 		ownerIds: [],
 		excludedOwnerIds: [],
+		originIds: [],
 	}
 }

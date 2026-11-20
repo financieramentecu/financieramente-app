@@ -150,16 +150,33 @@ describe('buildLeadListWhere', () => {
 		)
 		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
 		expect(andConditions).toContainEqual({ idUser: { in: [5, 6, 7] } })
-		expect(andConditions).toContainEqual({ OR: [{ idUser: null }, { idUser: { notIn: [6] } }] })
+		expect(andConditions).toContainEqual({ idUser: { notIn: [6] } })
 	})
 
-	it('keeps unassigned leads visible to admins when excluding an owner', () => {
-		expect(buildLeadListWhere(
+	it('filters by active client-origin links when origin ids are selected', () => {
+		const where = buildLeadListWhere(
 			{ idUser: 1, role: { code: UserRole.ADMIN } },
-			{ excludedOwnerIds: [6] }
-		)).toEqual({
-			AND: [{ active: true }, { OR: [{ idUser: null }, { idUser: { notIn: [6] } }] }],
+			{ originIds: [4, 5] }
+		)
+		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
+		expect(andConditions).toContainEqual({
+			leadClientOrigins: {
+				some: {
+					idClientOrigin: { in: [4, 5] },
+					active: true,
+					clientOrigin: { status: true },
+				},
+			},
 		})
+	})
+
+	it('adds no origin clause when originIds is empty', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 1, role: { code: UserRole.ADMIN } },
+			{ originIds: [] }
+		)
+		const serialized = JSON.stringify(where)
+		expect(serialized).not.toContain('leadClientOrigins')
 	})
 
 	it('adds an owner clause that cannot widen a scoped hierarchy', () => {

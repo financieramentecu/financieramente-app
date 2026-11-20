@@ -39,12 +39,17 @@ describe('buildLeadTableWhere', () => {
 		})
 	})
 
-	it('filters by status, stage, tag and Bogotá created range', () => {
-		const and = build({ statuses: ['OPEN'], stageIds: [3, 4], tagIds: [2], from: '2026-11-01', to: '2026-11-30' })
+	it('filters by status, stage, tag, origin and Bogotá created range', () => {
+		const and = build({ statuses: ['OPEN'], stageIds: [3, 4], tagIds: [2], originIds: [4, 9], from: '2026-11-01', to: '2026-11-30' })
 		expect(and).toContainEqual({ outcomeStatus: { in: ['OPEN'] } })
 		expect(and).toContainEqual({ idLeadFunnelColumn: { in: [3, 4] } })
 		expect(and).toContainEqual({
 			tagAssignments: { some: { idLeadTag: { in: [2] }, active: true, tag: { active: true } } },
+		})
+		expect(and).toContainEqual({
+			leadClientOrigins: {
+				some: { idClientOrigin: { in: [4, 9] }, active: true, clientOrigin: { status: true } },
+			},
 		})
 		expect(and).toContainEqual({
 			createdAt: { gte: new Date('2026-11-01T05:00:00.000Z'), lte: new Date('2026-12-01T04:59:59.999Z') },
@@ -53,14 +58,7 @@ describe('buildLeadTableWhere', () => {
 
 	it('excludes an unchecked branch and keeps the rest of the hierarchy', () => {
 		expect(build({ excludedOwnerIds: [6] })).toContainEqual({ idUser: { in: [5, 6] } })
-		expect(build({ excludedOwnerIds: [6] })).toContainEqual({ OR: [{ idUser: null }, { idUser: { notIn: [6] } }] })
-	})
-
-	it('keeps unassigned leads in the admin table when excluding an owner', () => {
-		expect(build({ excludedOwnerIds: [6] }, admin, [])).toEqual([
-			{ active: true },
-			{ OR: [{ idUser: null }, { idUser: { notIn: [6] } }] },
-		])
+		expect(build({ excludedOwnerIds: [6] })).toContainEqual({ idUser: { notIn: [6] } })
 	})
 
 	it('never widens the scope through the owner filter', () => {

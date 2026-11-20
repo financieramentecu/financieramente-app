@@ -12,6 +12,8 @@ export interface LeadListFilterInput {
 	 * under them). Never widens the hierarchy.
 	 */
 	excludedOwnerIds?: number[]
+	/** Active `lead_client_origin` links. Empty keeps every origin. */
+	originIds?: number[]
 }
 
 export interface BuildLeadListWhereOptions {
@@ -55,9 +57,7 @@ export function buildLeadListWhere(
 	}
 
 	if (filters.excludedOwnerIds && filters.excludedOwnerIds.length > 0) {
-		whereConditions.push({
-			OR: [{ idUser: null }, { idUser: { notIn: filters.excludedOwnerIds } }],
-		})
+		whereConditions.push({ idUser: { notIn: filters.excludedOwnerIds } })
 	}
 
 	if (filters.outcomeStatuses && filters.outcomeStatuses.length > 0) {
@@ -66,6 +66,18 @@ export function buildLeadListWhere(
 
 	if (filters.createdAtRange) {
 		whereConditions.push({ createdAt: filters.createdAtRange })
+	}
+
+	if (filters.originIds && filters.originIds.length > 0) {
+		whereConditions.push({
+			leadClientOrigins: {
+				some: {
+					idClientOrigin: { in: filters.originIds },
+					active: true,
+					clientOrigin: { status: true },
+				},
+			},
+		})
 	}
 
 	return { AND: whereConditions }

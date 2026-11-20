@@ -24,6 +24,8 @@ function buildLead(overrides: Partial<LeadDetail> = {}): LeadDetail {
 		tags: [],
 		estimatedValue: null,
 		probability: null,
+		formSubmissions: [],
+		relations: [],
 		...overrides,
 	}
 }

@@ -103,4 +103,13 @@ describe('GET /api/leads', () => {
 			})
 		)
 	})
+
+	it('parses repeated origin ids for the client-origin pivot', async () => {
+		await GET(buildRequest('?origin=4&origin=5&origin=0'))
+
+		expect(getLeadBoard).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ originIds: [4, 5] })
+		)
+	})
 })

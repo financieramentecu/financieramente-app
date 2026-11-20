@@ -46,6 +46,7 @@ describe('CrmTabs', () => {
 			open: false,
 			setOpen: vi.fn(),
 			openLead,
+			patchLead: vi.fn(),
 			previewName: null,
 			loadError: null,
 		})
