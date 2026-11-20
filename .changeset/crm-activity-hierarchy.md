@@ -9,6 +9,7 @@
 ### Corregido
 
 - CRM: al desmarcar una persona del árbol se ocultan sus leads y los de quienes están debajo, y siguen viéndose los de las demás personas aunque no aparezcan en el árbol.
+- CRM: los roles con acceso global conservan los leads sin asignar al desmarcar personas, tanto en Pipeline como en la tabla; los roles limitados a su jerarquía siguen sin ver leads sin dueño.
 
 ### Mejorado
 
@@ -16,7 +17,6 @@
 
 ### Técnico
 
-- `GET /api/crm/advisors` lists the hierarchy for CRM filters.
 - `GET /api/crm/tasks?view=board&owner=` narrows the activity board to advisors inside the viewer's hierarchy.
 - Pipeline, lead table, activity board and report queries accept repeated `exclude` params. The server drops those branches and their descendants, and never widens the hierarchy.
 - `npm run prisma:seed:crm-demo` assigns demo leads and tasks to existing hierarchy users so the filter can be checked.

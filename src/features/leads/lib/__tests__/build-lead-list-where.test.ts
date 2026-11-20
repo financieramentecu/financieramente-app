@@ -150,7 +150,16 @@ describe('buildLeadListWhere', () => {
 		)
 		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
 		expect(andConditions).toContainEqual({ idUser: { in: [5, 6, 7] } })
-		expect(andConditions).toContainEqual({ idUser: { notIn: [6] } })
+		expect(andConditions).toContainEqual({ OR: [{ idUser: null }, { idUser: { notIn: [6] } }] })
+	})
+
+	it('keeps unassigned leads visible to admins when excluding an owner', () => {
+		expect(buildLeadListWhere(
+			{ idUser: 1, role: { code: UserRole.ADMIN } },
+			{ excludedOwnerIds: [6] }
+		)).toEqual({
+			AND: [{ active: true }, { OR: [{ idUser: null }, { idUser: { notIn: [6] } }] }],
+		})
 	})
 
 	it('adds an owner clause that cannot widen a scoped hierarchy', () => {
