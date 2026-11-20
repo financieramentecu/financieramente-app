@@ -3,7 +3,10 @@ import { POST } from '../route'
 import { isValidApiKey } from '@/features/leads/lib/api-key-guard'
 import { checkRateLimit } from '@/features/leads/lib/rate-limiter'
 import { upsertLeadFromCrm } from '@/features/leads/services/lead-sync.service'
-import { ingestLeadFormSubmission } from '@/features/leads/services/lead-form-submission.service'
+import {
+	ingestLeadFormSubmission,
+	LeadFormSubmissionError,
+} from '@/features/leads/services/lead-form-submission.service'
 import { logAuditEvent } from '@/features/auth/lib/audit-logger'
 
 vi.mock('@/features/leads/lib/api-key-guard', () => ({
@@ -15,9 +18,15 @@ vi.mock('@/features/leads/lib/rate-limiter', () => ({
 vi.mock('@/features/leads/services/lead-sync.service', () => ({
 	upsertLeadFromCrm: vi.fn(),
 }))
-vi.mock('@/features/leads/services/lead-form-submission.service', () => ({
-	ingestLeadFormSubmission: vi.fn(),
-}))
+vi.mock(
+	'@/features/leads/services/lead-form-submission.service',
+	async (importOriginal) => ({
+		...(await importOriginal<
+			typeof import('@/features/leads/services/lead-form-submission.service')
+		>()),
+		ingestLeadFormSubmission: vi.fn(),
+	})
+)
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
@@ -75,7 +84,10 @@ describe('POST /api/leads/crm-sync', () => {
 
 	it('returns 429 when the caller exceeded the rate limit, without touching the payload', async () => {
 		vi.mocked(isValidApiKey).mockReturnValue(true)
-		vi.mocked(checkRateLimit).mockReturnValue({ allowed: false, retryAfterSeconds: 30 })
+		vi.mocked(checkRateLimit).mockReturnValue({
+			allowed: false,
+			retryAfterSeconds: 30,
+		})
 
 		const response = await POST(
 			buildRequest(
@@ -99,7 +111,11 @@ describe('POST /api/leads/crm-sync', () => {
 
 	it('returns 200 and creates a lead on a well-formed payload', async () => {
 		vi.mocked(isValidApiKey).mockReturnValue(true)
-		vi.mocked(upsertLeadFromCrm).mockResolvedValue({ idLead: 1, created: true, origin: null })
+		vi.mocked(upsertLeadFromCrm).mockResolvedValue({
+			idLead: 1,
+			created: true,
+			origin: null,
+		})
 
 		const response = await POST(
 			buildRequest(
@@ -116,7 +132,11 @@ describe('POST /api/leads/crm-sync', () => {
 
 	it('is idempotent: reposting the identical payload still returns 200', async () => {
 		vi.mocked(isValidApiKey).mockReturnValue(true)
-		vi.mocked(upsertLeadFromCrm).mockResolvedValue({ idLead: 1, created: false, origin: null })
+		vi.mocked(upsertLeadFromCrm).mockResolvedValue({
+			idLead: 1,
+			created: false,
+			origin: null,
+		})
 
 		const response = await POST(
 			buildRequest(
@@ -132,7 +152,11 @@ describe('POST /api/leads/crm-sync', () => {
 
 	it('returns 200 even when ownerEmail is unmatched (never rejects the ingest)', async () => {
 		vi.mocked(isValidApiKey).mockReturnValue(true)
-		vi.mocked(upsertLeadFromCrm).mockResolvedValue({ idLead: 2, created: true, origin: null })
+		vi.mocked(upsertLeadFromCrm).mockResolvedValue({
+			idLead: 2,
+			created: true,
+			origin: null,
+		})
 
 		const response = await POST(
 			buildRequest(
@@ -175,7 +199,7 @@ describe('POST /api/leads/crm-sync', () => {
 		vi.mocked(ingestLeadFormSubmission).mockResolvedValue({
 			idLead: 9,
 			created: true,
-			submissionId: 'cdt:77ab',
+			replayed: false,
 		})
 
 		const response = await POST(
@@ -193,7 +217,12 @@ describe('POST /api/leads/crm-sync', () => {
 		const body = await response.json()
 
 		expect(response.status).toBe(200)
-		expect(body.data).toEqual({ idLead: 9, created: true, submissionId: 'cdt:77ab' })
+		expect(body.data).toEqual({
+			idLead: 9,
+			created: true,
+			replayed: false,
+			submissionId: 'cdt:77ab',
+		})
 		expect(upsertLeadFromCrm).not.toHaveBeenCalled()
 	})
 
@@ -202,7 +231,7 @@ describe('POST /api/leads/crm-sync', () => {
 		vi.mocked(ingestLeadFormSubmission).mockResolvedValue({
 			idLead: 9,
 			created: true,
-			submissionId: 'cdt:77ab',
+			replayed: false,
 		})
 
 		const response = await POST(
@@ -235,7 +264,9 @@ describe('POST /api/leads/crm-sync', () => {
 					submittedAt: '2026-11-18T14:02:00-05:00',
 					landing: { key: 'cdt', name: 'CDT', version: '1' },
 					lead: { statusKey: 'nuevo' },
-					fields: [{ key: 'adjunto', label: 'Adjunto', type: 'file', value: 'a.pdf' }],
+					fields: [
+						{ key: 'adjunto', label: 'Adjunto', type: 'file', value: 'a.pdf' },
+					],
 				},
 				{ 'x-api-key': 'valid' }
 			)
@@ -245,4 +276,35 @@ describe('POST /api/leads/crm-sync', () => {
 		expect(ingestLeadFormSubmission).not.toHaveBeenCalled()
 		expect(logAuditEvent).toHaveBeenCalled()
 	})
+})
+
+
+it('rejects a partial form instead of silently running the flat sync', async () => {
+	vi.clearAllMocks()
+	vi.mocked(isValidApiKey).mockReturnValue(true)
+	vi.mocked(checkRateLimit).mockReturnValue({ allowed: true })
+	const response = await POST(buildRequest({ externalCrmId: 'crm-1', statusKey: 'new', submissionId: 'partial' }, { 'x-api-key': 'valid' }))
+	expect(response.status).toBe(400)
+	expect(upsertLeadFromCrm).not.toHaveBeenCalled()
+	expect(ingestLeadFormSubmission).not.toHaveBeenCalled()
+})
+
+it('returns 409 for the same ambiguous identity rejected by form-submissions', async () => {
+	vi.clearAllMocks()
+	vi.mocked(isValidApiKey).mockReturnValue(true)
+	vi.mocked(checkRateLimit).mockReturnValue({ allowed: true })
+	vi.mocked(ingestLeadFormSubmission).mockRejectedValueOnce(new LeadFormSubmissionError('AMBIGUOUS_LEAD', 'Documento ambiguo'))
+	const response = await POST(buildRequest({ submissionId: 'ambiguous', submittedAt: '2026-11-18T14:02:00-05:00', landing: {key: 'cdt', name: 'CDT', version: '1'}, lead: {statusKey: 'new', email: 'ana@example.com'}, fields: [] }, { 'x-api-key': 'valid' }))
+	expect(response.status).toBe(409)
+	expect(upsertLeadFromCrm).not.toHaveBeenCalled()
+})
+
+it.each([401, 429])('does not audit or ingest rejected traffic (%s)', async (status) => {
+	vi.clearAllMocks()
+	vi.mocked(isValidApiKey).mockReturnValue(status !== 401)
+	vi.mocked(checkRateLimit).mockReturnValue({ allowed: status !== 429 })
+	const response = await POST(buildRequest({}, { 'x-api-key': 'test' }))
+	expect(response.status).toBe(status)
+	expect(logAuditEvent).not.toHaveBeenCalled()
+	expect(ingestLeadFormSubmission).not.toHaveBeenCalled()
 })

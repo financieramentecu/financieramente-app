@@ -1,33 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { logAuditEvent } from '@/features/auth/lib/audit-logger'
-import { ingestLeadFormSubmission } from '@/features/leads/services/lead-form-submission.service'
-import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
+import {
+	ingestLeadFormSubmission,
+	LeadFormSubmissionError,
+} from '@/features/leads/services/lead-form-submission.service'
 import type { FormSubmissionPayload } from '@/features/leads/types/form-submission.schema'
 
-vi.mock('@/lib/prisma', () => {
-	const client = {
+vi.mock('@/lib/prisma', () => ({
+	prisma: {
+		$transaction: vi.fn(),
+		$executeRaw: vi.fn(),
 		leadFormSubmission: { findUnique: vi.fn(), create: vi.fn() },
-		lead: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
-		leadOrigin: { findUnique: vi.fn(), create: vi.fn() },
-		leadOriginAssignment: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+		lead: { findMany: vi.fn(), create: vi.fn() },
 		leadFunnelColumn: { findFirst: vi.fn() },
 		user: { findFirst: vi.fn() },
-		$transaction: vi.fn(),
-	}
-	client.$transaction.mockImplementation(async (fn: (tx: typeof client) => unknown) => fn(client))
-	return { prisma: client }
-})
-
-vi.mock('@/features/leads/services/lead-stage-history.service', () => ({
-	recordLeadStageChange: vi.fn(),
+		leadStageHistory: { create: vi.fn() },
+		leadOrigin: { findUnique: vi.fn(), upsert: vi.fn() },
+		leadOriginAssignment: { findUnique: vi.fn(), upsert: vi.fn() },
+	},
 }))
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
 		LEAD_CREATED: 'LEAD_CREATED',
-		LEAD_FORM_SUBMISSION_RECORDED: 'LEAD_FORM_SUBMISSION_RECORDED',
+		LEAD_OWNER_UNRESOLVED: 'LEAD_OWNER_UNRESOLVED',
+		LEAD_FORM_SUBMISSION_STORED: 'LEAD_FORM_SUBMISSION_STORED',
 		LEAD_ORIGIN_CREATED: 'LEAD_ORIGIN_CREATED',
 		LEAD_ORIGIN_ASSIGNED: 'LEAD_ORIGIN_ASSIGNED',
 		LEAD_ORIGIN_INACTIVE: 'LEAD_ORIGIN_INACTIVE',
@@ -46,127 +46,157 @@ const payload: FormSubmissionPayload = {
 		phone: '3001234567',
 		identityNumber: '1234567890',
 		originTag: 'Crédito libre inversión',
-		ownerEmail: 'asesor@financieramente.com',
+		ownerEmail: undefined,
 	},
-	fields: [
-		{ key: 'monto', label: 'Monto solicitado', type: 'number', value: 0 },
-		{ key: 'tiene_codeudor', label: '¿Tiene codeudor?', type: 'select', value: 'No' },
-	],
+	fields: [{ key: 'monto', label: 'Monto solicitado', type: 'number', value: 0 }],
 }
 
 describe('ingestLeadFormSubmission', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		vi.mocked(prisma.$transaction).mockImplementation(async (fn) =>
-			(fn as (tx: typeof prisma) => Promise<unknown>)(prisma)
-		)
-		vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue({
-			idLeadFunnelColumn: 2,
-			externalStatusKey: 'NUEVO',
-		} as never)
-		vi.mocked(prisma.user.findFirst).mockResolvedValue({ idUser: 9 } as never)
+		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+			if (typeof callback === 'function') return callback(prisma as never)
+			return undefined
+		})
 		vi.mocked(prisma.leadFormSubmission.findUnique).mockResolvedValue(null)
-		vi.mocked(prisma.lead.findFirst).mockResolvedValue(null)
-		vi.mocked(prisma.lead.create).mockResolvedValue({ idLead: 20 } as never)
-	})
-
-	it('returns the original lead when submissionId was already stored', async () => {
-		vi.mocked(prisma.leadFormSubmission.findUnique).mockResolvedValue({
-			idLead: 4,
-			submissionId: payload.submissionId,
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([])
+		vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue({
+			idLeadFunnelColumn: 4,
+			externalStatusKey: 'nuevo',
 		} as never)
-
-		const result = await ingestLeadFormSubmission(payload)
-
-		expect(result).toEqual({ idLead: 4, created: false, submissionId: payload.submissionId })
-		expect(prisma.$transaction).not.toHaveBeenCalled()
-		expect(prisma.lead.create).not.toHaveBeenCalled()
+		vi.mocked(prisma.lead.create).mockResolvedValue({ idLead: 21 } as never)
+		vi.mocked(prisma.leadFormSubmission.create).mockResolvedValue({} as never)
+		vi.mocked(prisma.leadStageHistory.create).mockResolvedValue({} as never)
 	})
 
-	it('creates the lead and the snapshot together when the person is new', async () => {
+	it('replays a known submission without writing', async () => {
+		vi.mocked(prisma.leadFormSubmission.findUnique).mockResolvedValue({ idLead: 8 } as never)
+
+		await expect(ingestLeadFormSubmission(payload)).resolves.toEqual({
+			idLead: 8,
+			created: false,
+			replayed: true,
+		})
+		expect(prisma.lead.create).not.toHaveBeenCalled()
+		expect(prisma.leadFormSubmission.create).not.toHaveBeenCalled()
+		expect(logAuditEvent).not.toHaveBeenCalled()
+	})
+
+	it('appends a snapshot when the document already belongs to a prospect', async () => {
+		vi.mocked(prisma.lead.findMany).mockResolvedValueOnce([{ idLead: 15 }] as never)
+
+		await expect(ingestLeadFormSubmission(payload)).resolves.toEqual({
+			idLead: 15,
+			created: false,
+			replayed: false,
+		})
+		expect(prisma.lead.create).not.toHaveBeenCalled()
+		expect(prisma.leadFormSubmission.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ idLead: 15, submissionId: payload.submissionId }),
+			})
+		)
+		expect(logAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ action: AuditAction.LEAD_FORM_SUBMISSION_STORED })
+		)
+	})
+
+	it('creates the prospect and the snapshot together when nobody matches', async () => {
 		const result = await ingestLeadFormSubmission(payload)
 
-		expect(result).toEqual({ idLead: 20, created: true, submissionId: payload.submissionId })
+		expect(result).toEqual({ idLead: 21, created: true, replayed: false })
 		expect(prisma.lead.create).toHaveBeenCalledWith(
 			expect.objectContaining({
 				data: expect.objectContaining({
+					identityNumber: '1234567890',
+					idLeadFunnelColumn: 4,
 					originTag: 'Crédito libre inversión',
-					idUser: 9,
-					idLeadFunnelColumn: 2,
 				}),
 			})
 		)
-		expect(prisma.lead.update).not.toHaveBeenCalled()
-		expect(prisma.leadFormSubmission.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				data: expect.objectContaining({
-					idLead: 20,
-					fields: payload.fields,
-				}),
-			})
+		expect(prisma.leadStageHistory.create).toHaveBeenCalledWith(
+			expect.objectContaining({ data: expect.objectContaining({ source: 'LANDING_FORM', idLead: 21 }) })
 		)
-		expect(recordLeadStageChange).toHaveBeenCalled()
-		expect(logAuditEvent).toHaveBeenCalled()
+		expect(logAuditEvent).toHaveBeenCalledWith(expect.objectContaining({ action: AuditAction.LEAD_CREATED }))
 	})
 
-	it('adds only the snapshot when the document or email already belongs to a lead', async () => {
-		vi.mocked(prisma.lead.findFirst)
-			.mockResolvedValueOnce(null)
-			.mockResolvedValueOnce({ idLead: 8 } as never)
+	it('refuses an ambiguous match before any write', async () => {
+		vi.mocked(prisma.lead.findMany).mockResolvedValueOnce([{ idLead: 1 }, { idLead: 2 }] as never)
 
-		const result = await ingestLeadFormSubmission(payload)
-
-		expect(result).toEqual({ idLead: 8, created: false, submissionId: payload.submissionId })
+		await expect(ingestLeadFormSubmission(payload)).rejects.toBeInstanceOf(LeadFormSubmissionError)
 		expect(prisma.lead.create).not.toHaveBeenCalled()
-		expect(prisma.lead.update).not.toHaveBeenCalled()
-		expect(recordLeadStageChange).not.toHaveBeenCalled()
-		expect(prisma.leadFormSubmission.create).toHaveBeenCalledWith(
-			expect.objectContaining({ data: expect.objectContaining({ idLead: 8 }) })
-		)
+		expect(prisma.leadFormSubmission.create).not.toHaveBeenCalled()
 	})
 
-	it('labels a new lead with utm_source and links the origin pivot', async () => {
-		vi.mocked(prisma.leadOrigin.findUnique).mockResolvedValue(null)
-		vi.mocked(prisma.leadOrigin.create).mockResolvedValue({
-			idLeadOrigin: 4,
-			code: 'money_map',
-			name: 'Money Map',
-			status: true,
-		} as never)
-		vi.mocked(prisma.leadOriginAssignment.findUnique).mockResolvedValue(null)
+	it('locks all matching identities in a stable order before reading the lead', async () => {
+		await ingestLeadFormSubmission({ ...payload, lead: { ...payload.lead, email: 'ANA@CORREO.COM' } })
 
-		await ingestLeadFormSubmission({ ...payload, utm_source: 'Money Map' })
-
-		expect(prisma.lead.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				data: expect.objectContaining({ originTag: 'Money Map' }),
-			})
+		expect(vi.mocked(prisma.$executeRaw).mock.calls.map(([, key]) => key)).toEqual([
+			'lead-form:document:1234567890',
+			'lead-form:email:ana@correo.com',
+			'lead-form:phone:3001234567',
+		])
+		expect(vi.mocked(prisma.$executeRaw).mock.invocationCallOrder.at(-1)).toBeLessThan(
+			vi.mocked(prisma.lead.findMany).mock.invocationCallOrder[0]
 		)
-		expect(prisma.leadOriginAssignment.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				data: expect.objectContaining({ idLead: 20, idLeadOrigin: 4, active: true }),
-			})
-		)
+		expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+			isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+		})
 	})
 
-	it('links utm_source on an existing lead without rewriting the lead', async () => {
-		vi.mocked(prisma.lead.findFirst).mockResolvedValue({ idLead: 8 } as never)
-		vi.mocked(prisma.leadOrigin.findUnique).mockResolvedValue({
-			idLeadOrigin: 4,
-			code: 'money_map',
-			name: 'Money Map',
-			status: true,
-		} as never)
-		vi.mocked(prisma.leadOriginAssignment.findUnique).mockResolvedValue(null)
+	it('matches email wildcard characters literally while locking the unescaped identity', async () => {
+		vi.mocked(prisma.lead.findMany).mockResolvedValueOnce([{ idLead: 15 }] as never)
+		await ingestLeadFormSubmission({
+			...payload,
+			lead: { ...payload.lead, identityNumber: undefined, phone: undefined, email: 'ana_%@correo.com' },
+		})
 
-		await ingestLeadFormSubmission({ ...payload, utm_source: 'Money Map' })
-
+		expect(prisma.lead.findMany).toHaveBeenCalledWith(expect.objectContaining({
+			where: { active: true, email: { equals: String.raw`ana\_\%@correo.com`, mode: 'insensitive' } },
+		}))
+		expect(vi.mocked(prisma.$executeRaw).mock.calls[0][1]).toBe('lead-form:email:ana_%@correo.com')
 		expect(prisma.lead.create).not.toHaveBeenCalled()
-		expect(prisma.lead.update).not.toHaveBeenCalled()
-		expect(prisma.leadOriginAssignment.create).toHaveBeenCalledWith(
-			expect.objectContaining({
-				data: expect.objectContaining({ idLead: 8, idLeadOrigin: 4 }),
-			})
+	})
+
+	it('returns the stored result when the same submission wins a concurrent unique insert', async () => {
+		vi.mocked(prisma.$transaction).mockRejectedValueOnce(
+			new Prisma.PrismaClientKnownRequestError('Unique submission', { code: 'P2002', clientVersion: '6' })
 		)
+		vi.mocked(prisma.leadFormSubmission.findUnique).mockResolvedValue({ idLead: 8 } as never)
+
+		await expect(ingestLeadFormSubmission(payload)).resolves.toEqual({ idLead: 8, created: false, replayed: true })
+		expect(logAuditEvent).not.toHaveBeenCalled()
+	})
+})
+
+
+describe('form origin transaction', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+			if (typeof callback === 'function') return callback(prisma as never)
+		})
+		vi.mocked(prisma.leadFormSubmission.findUnique).mockResolvedValue(null)
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([{ idLead: 15 }] as never)
+		vi.mocked(prisma.leadOrigin.findUnique).mockResolvedValue({ idLeadOrigin: 4, code: 'money_map', name: 'Money Map', status: true } as never)
+		vi.mocked(prisma.leadOriginAssignment.findUnique).mockResolvedValue(null)
+	})
+
+	it('stores the origin and canonical snapshot together for an existing lead', async () => {
+		await ingestLeadFormSubmission({ ...payload, utm_source: 'money_map' })
+		expect(prisma.leadOriginAssignment.upsert).toHaveBeenCalledWith(expect.objectContaining({
+			create: expect.objectContaining({ idLead: 15, idLeadOrigin: 4 }),
+		}))
+		expect(prisma.leadFormSubmission.create).toHaveBeenCalledWith(expect.objectContaining({
+			data: expect.objectContaining({ idLead: 15, formVersion: '3' }),
+		}))
+		expect(prisma.lead.create).not.toHaveBeenCalled()
+	})
+
+	it('does not commit a snapshot or audit success when assigning its origin fails', async () => {
+		vi.mocked(prisma.leadOriginAssignment.upsert).mockRejectedValueOnce(new Error('origin failed'))
+		await expect(ingestLeadFormSubmission({ ...payload, utm_source: 'money_map' })).rejects.toThrow('origin failed')
+		expect(prisma.leadFormSubmission.create).not.toHaveBeenCalled()
+		expect(logAuditEvent).not.toHaveBeenCalled()
 	})
 })

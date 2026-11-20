@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { crmSyncPayloadSchema } from '@/features/leads/types/crm-sync.schema'
 import {
-	formSubmissionSchema,
+	formSubmissionPayloadSchema,
 	isFormSubmissionBody,
 	readSubmissionId,
 } from '@/features/leads/types/form-submission.schema'
@@ -11,7 +11,10 @@ import { isValidApiKey } from '@/features/leads/lib/api-key-guard'
 import { checkRateLimit } from '@/features/leads/lib/rate-limiter'
 import { mergeUtmSource } from '@/features/leads/lib/merge-utm-source'
 import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
-import { ingestLeadFormSubmission } from '@/features/leads/services/lead-form-submission.service'
+import {
+	ingestLeadFormSubmission,
+	LeadFormSubmissionError,
+} from '@/features/leads/services/lead-form-submission.service'
 import { upsertLeadFromCrm } from '@/features/leads/services/lead-sync.service'
 
 /**
@@ -46,7 +49,7 @@ export async function POST(request: Request) {
 		const queryUtm = new URL(request.url).searchParams.get('utm_source')
 		const body = mergeUtmSource(rawBody, queryUtm)
 		if (isFormSubmissionBody(body)) {
-			const parsed = formSubmissionSchema.safeParse(body)
+			const parsed = formSubmissionPayloadSchema.safeParse(body)
 			if (!parsed.success) {
 				await logAuditEvent({
 					action: AuditAction.LEAD_FORM_SUBMISSION_REJECTED,
@@ -61,7 +64,10 @@ export async function POST(request: Request) {
 			}
 
 			const result = await ingestLeadFormSubmission(parsed.data)
-			return NextResponse.json({ data: result }, { status: 200 })
+			return NextResponse.json(
+				{ data: { ...result, submissionId: parsed.data.submissionId } },
+				{ status: 200 }
+			)
 		}
 
 		const payload = crmSyncPayloadSchema.parse(body)
@@ -71,6 +77,12 @@ export async function POST(request: Request) {
 		const response: ApiResponse<typeof result> = { data: result }
 		return NextResponse.json(response, { status: 200 })
 	} catch (error) {
+		if (error instanceof LeadFormSubmissionError) {
+			return NextResponse.json(
+				{ data: null, error: error.message } satisfies ApiResponse<null>,
+				{ status: 409 }
+			)
+		}
 		if (error instanceof z.ZodError) {
 			const errorResponse: ApiResponse<null> = {
 				data: null,

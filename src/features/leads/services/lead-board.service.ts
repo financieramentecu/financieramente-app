@@ -1,9 +1,9 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
+import { parseStoredFormFields } from '@/features/leads/lib/parse-stored-form-fields'
 import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
 import { getInactivityDays, resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
-import { mapFormSnapshot } from '@/features/leads/lib/map-form-snapshot'
 import type {
 	LeadBoardColumn,
 	LeadDetail,
@@ -142,15 +142,15 @@ export async function getLeadDetail(
 	const lead = await prisma.lead.findFirst({
 		where: whereForLead(idLead, viewer, options),
 		include: {
-			user: { select: { name: true, lastName: true } },
 			tagAssignments: activeTagsSelect,
+			user: { select: { name: true, lastName: true } },
 			formSubmissions: {
 				orderBy: { submittedAt: 'desc' },
 				select: {
 					submissionId: true,
 					landingKey: true,
 					landingName: true,
-					landingVersion: true,
+					formVersion: true,
 					submittedAt: true,
 					fields: true,
 				},
@@ -177,10 +177,17 @@ export async function getLeadDetail(
 		idBusiness: lead.idBusiness,
 		createdAt: lead.createdAt,
 		updatedAt: lead.updatedAt,
+		formSubmissions: lead.formSubmissions.map((submission) => ({
+			submissionId: submission.submissionId,
+			landingKey: submission.landingKey,
+			landingName: submission.landingName,
+			formVersion: submission.formVersion,
+			submittedAt: submission.submittedAt.toISOString(),
+			fields: parseStoredFormFields(submission.fields),
+		})),
 		inactiveDays: getInactivityDays(lead, new Date(), resolveInactivityThreshold()),
 		tags: lead.tagAssignments.map((assignment) => assignment.tag),
 		estimatedValue: lead.estimatedValue?.toString() ?? null,
 		probability: lead.probability,
-		formSubmissions: (lead.formSubmissions ?? []).map(mapFormSnapshot),
 	}
 }

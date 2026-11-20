@@ -244,3 +244,26 @@ Repetir la misma llamada más de ~120 veces en menos de un minuto con la misma A
 - Contrato del payload: `src/features/leads/types/crm-sync.schema.ts`
 - Lógica de resolución de outcome: `src/features/leads/lib/lead-outcome-status.ts`
 - Lógica de upsert/sync: `src/features/leads/services/lead-sync.service.ts`
+
+
+## Formularios de landing: dependencia de #423
+
+#423 define el contrato, la tabla y el detalle del formulario. #424 agrega `utm_source`
+y permite enviar ese mismo contrato a `POST /api/leads/crm-sync`; el endpoint
+`POST /api/leads/form-submissions` sigue disponible. Ambos llaman al mismo servicio,
+comparten `submissionId` e idempotencia y no crean dos fotos si se reintenta por otra ruta.
+El webhook plano de GHL conserva su contrato con `externalCrmId` y `statusKey`.
+
+- Usar únicamente `20261118150000_add_lead_form_submission`: la columna es `form_version`.
+- #424 añade `20261119141100_add_lead_origin`; no vuelve a crear `lead_form_submission`.
+- `submissionId` admite hasta 150 caracteres; hace falta documento, correo o teléfono.
+- Campos vacíos se mandan como `null`; `0` y `No` se conservan. Se admiten hasta 80 campos.
+- `utm_source` es opcional. En `crm-sync` puede llegar en JSON o query string.
+- Foto, prospecto nuevo y asociación del origen se guardan en una transacción.
+- Una identidad ambigua responde 409 sin guardar foto; un contrato inválido responde 400.
+- Los rechazos 401 y 429 no escriben auditoría ni prospectos.
+
+Orden de revisión e integración: **#423 → #424**. La migración alternativa
+`20261119145000_add_lead_form_submission` fue retirada de #424 antes de integrarlo.
+Si alguien la aplicó manualmente en una base existente, revisar su historial antes de
+usar `migrate deploy`: no marcar migraciones como aplicadas ni borrar tablas para forzarlo.

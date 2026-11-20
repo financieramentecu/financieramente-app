@@ -55,7 +55,9 @@ export function buildLeadListWhere(
 	}
 
 	if (filters.excludedOwnerIds && filters.excludedOwnerIds.length > 0) {
-		whereConditions.push({ idUser: { notIn: filters.excludedOwnerIds } })
+		whereConditions.push({
+			OR: [{ idUser: null }, { idUser: { notIn: filters.excludedOwnerIds } }],
+		})
 	}
 
 	if (filters.outcomeStatuses && filters.outcomeStatuses.length > 0) {

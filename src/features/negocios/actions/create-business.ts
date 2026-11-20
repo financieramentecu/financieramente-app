@@ -13,7 +13,7 @@ import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expect
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
-import { appendLeadConversionAuditTx } from '@/features/leads/conversion/lead-conversion-audit.service'
+import { appendLeadConversionAuditAfterCommit } from '@/features/leads/conversion/lead-conversion-audit.service'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
 import { identityNumberSchema } from '@/features/negocios/lib/identity-number.schema'
@@ -251,17 +251,25 @@ export async function createBusiness(
 				// lead throws here, which rolls back the whole transaction —
 				// no orphaned Business is ever created.
 				await linkLeadToBusinessTx(tx, validatedData.idLead, created.idBusiness)
-				if (shouldAppendConversionAudit) {
-					await appendLeadConversionAuditTx(tx, {
-						idLead: validatedData.idLead,
-						idBusiness: created.idBusiness,
-						idUser: auditActorId,
-					})
-				}
 			}
 
 			return created
 		})
+
+		if (shouldAppendConversionAudit && validatedData.idLead != null) {
+			try {
+				await appendLeadConversionAuditAfterCommit({
+					idLead: validatedData.idLead,
+					idBusiness: business.idBusiness,
+					idUser: auditActorId,
+				})
+			} catch (error) {
+				console.error(
+					'Lead conversion audit failed after the business was created:',
+					error
+				)
+			}
+		}
 
 		const reqHeaders = await headers()
 		const userId = guard.session.user.id

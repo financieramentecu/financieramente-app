@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prisma } from '@/lib/prisma'
-import { assignLeadOrigin, resolveLeadOrigin } from '@/features/leads/services/lead-origin.service'
+import {
+	assignLeadOrigin,
+	resolveLeadOrigin,
+} from '@/features/leads/services/lead-origin.service'
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
 		leadOrigin: {
 			findUnique: vi.fn(),
-			create: vi.fn(),
+			upsert: vi.fn(),
 		},
 		leadOriginAssignment: {
 			findUnique: vi.fn(),
-			create: vi.fn(),
+			upsert: vi.fn(),
 			update: vi.fn(),
 		},
 	},
@@ -22,8 +25,12 @@ describe('resolveLeadOrigin', () => {
 	beforeEach(() => vi.clearAllMocks())
 
 	it('does nothing when utm_source is absent or blank', async () => {
-		await expect(resolveLeadOrigin(undefined)).resolves.toEqual({ status: 'absent' })
-		await expect(resolveLeadOrigin('   ')).resolves.toEqual({ status: 'absent' })
+		await expect(resolveLeadOrigin(undefined)).resolves.toEqual({
+			status: 'absent',
+		})
+		await expect(resolveLeadOrigin('   ')).resolves.toEqual({
+			status: 'absent',
+		})
 		expect(prisma.leadOrigin.findUnique).not.toHaveBeenCalled()
 	})
 
@@ -42,7 +49,7 @@ describe('resolveLeadOrigin', () => {
 			name: 'Money Map',
 			createdCatalog: false,
 		})
-		expect(prisma.leadOrigin.create).not.toHaveBeenCalled()
+		expect(prisma.leadOrigin.upsert).not.toHaveBeenCalled()
 	})
 
 	it('refuses an inactive catalogue row', async () => {
@@ -61,7 +68,7 @@ describe('resolveLeadOrigin', () => {
 
 	it('creates the catalogue row from the incoming value', async () => {
 		vi.mocked(prisma.leadOrigin.findUnique).mockResolvedValue(null)
-		vi.mocked(prisma.leadOrigin.create).mockResolvedValue({
+		vi.mocked(prisma.leadOrigin.upsert).mockResolvedValue({
 			idLeadOrigin: 8,
 			code: 'money_flow',
 			name: 'Money Flow',
@@ -75,8 +82,10 @@ describe('resolveLeadOrigin', () => {
 			name: 'Money Flow',
 			createdCatalog: true,
 		})
-		expect(prisma.leadOrigin.create).toHaveBeenCalledWith({
-			data: { code: 'money_flow', name: 'Money Flow', status: true },
+		expect(prisma.leadOrigin.upsert).toHaveBeenCalledWith({
+			where: { code: 'money_flow' },
+			create: { code: 'money_flow', name: 'Money Flow', status: true },
+			update: { code: 'money_flow' },
 		})
 	})
 })
@@ -91,8 +100,10 @@ describe('assignLeadOrigin', () => {
 			assignLeadOrigin({ idLead: 10, idLeadOrigin: 4, seenAt })
 		).resolves.toBe('created')
 
-		expect(prisma.leadOriginAssignment.create).toHaveBeenCalledWith({
-			data: {
+		expect(prisma.leadOriginAssignment.upsert).toHaveBeenCalledWith({
+			where: { idLead_idLeadOrigin: { idLead: 10, idLeadOrigin: 4 } },
+			update: { active: true, lastSeenAt: seenAt },
+			create: {
 				idLead: 10,
 				idLeadOrigin: 4,
 				active: true,
@@ -122,9 +133,11 @@ describe('assignLeadOrigin', () => {
 		await expect(
 			assignLeadOrigin({ idLead: 10, idLeadOrigin: 4, seenAt })
 		).resolves.toBe('refreshed')
-		expect(prisma.leadOriginAssignment.update).toHaveBeenCalledWith({
-			where: { idLeadOriginAssignment: 3 },
-			data: { active: true, lastSeenAt: seenAt },
-		})
+		expect(prisma.leadOriginAssignment.upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { idLead_idLeadOrigin: { idLead: 10, idLeadOrigin: 4 } },
+				update: { active: true, lastSeenAt: seenAt },
+			})
+		)
 	})
 })
