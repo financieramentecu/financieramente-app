@@ -82,7 +82,7 @@ Semántica general: **upsert por `externalCrmId`** con **partial merge** — un 
 
 ## 3b. Formulario de landing (mismo `POST /api/leads/crm-sync`)
 
-Si el JSON trae `submissionId`, `landing` y `fields`, el webhook guarda la foto del formulario en lugar del upsert por `externalCrmId`. La ficha fija del CRM (etiquetas, valor, probabilidad, tareas, casos) no se usa para esas respuestas.
+Si el JSON trae algún marcador de formulario (`submissionId`, `landing` o `fields`), se exige el contrato completo el webhook guarda la foto del formulario en lugar del upsert por `externalCrmId`. La ficha fija del CRM (etiquetas, valor, probabilidad, tareas, casos) no se usa para esas respuestas.
 
 n8n hace un solo POST. Un `submissionId` repetido responde 200 con el mismo `idLead` y no escribe otra foto. Si el contrato no valida, responde 400 y no guarda nada.
 
@@ -90,7 +90,7 @@ n8n hace un solo POST. Un `submissionId` repetido responde 200 con el mismo `idL
 
 `lead.statusKey` sigue el catálogo de la sección 2. Para caer en Lead Nuevo hay que enviar `NUEVO_LEAD`. El ejemplo `nuevo` no coincide con esa clave y queda en "Sin mapear".
 
-`0` y `No` se conservan. `null`, `""` y el texto `null` se guardan como vacío y el detalle muestra **Sin información**.
+`0` y `No` se conservan. n8n debe enviar `null` para una respuesta vacía y el detalle muestra **Sin información**. Las cadenas vacías se rechazan; el texto `null` es texto literal.
 
 ## 4. Curl de prueba
 
