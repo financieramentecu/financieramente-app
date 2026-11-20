@@ -27,6 +27,7 @@ import {
 	LEAD_OUTCOME_STATUS_LABELS,
 	LEAD_OUTCOME_STATUS_BADGE_VARIANTS,
 } from '@/features/leads/lib/lead-outcome-status'
+import { LeadFormOriginSection } from '@/features/leads/components/lead-form-origin-section'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { canDeleteLead } from '@/features/leads/lib/can-delete-lead'
@@ -289,6 +290,7 @@ export function LeadDetailSheet({
 								<span className="truncate">{lead.originTag}</span>
 							</div>
 						)}
+						<LeadFormOriginSection submissions={lead.formSubmissions ?? []} />
 						{conversionAuditEnabled && isConverted && (
 							<div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
 								<p className="font-medium">Conversión auditada</p>
