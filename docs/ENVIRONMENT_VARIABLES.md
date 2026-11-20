@@ -487,3 +487,14 @@ ingesta del webhook (401 en cada request) sin afectar los leads ya
 almacenados ni el resto del sistema — ver Rollback Plan en
 `openspec/changes/leads-crm-sync/proposal.md`.
 
+## CRM_INACTIVITY_DAYS (crm-phase-1-activities)
+
+Opcional. Días sin actividad tras los cuales un lead **abierto** muestra el aviso "Sin actividad · N días" en el tablero y en la ficha. Entero positivo; si falta o no es válido se usa **7**. Se lee solo en el servidor (`resolveInactivityThreshold()` en `src/features/leads/lib/inactivity-days.ts`), así que no necesita prefijo `NEXT_PUBLIC_`. Para cambiarlo en QA o producción hay que añadirlo al `.env` del droplet y al bloque `environment:` del servicio `nextjs` en `docker/docker-compose.{qa,prod}.yml`.
+
+## CRON_SECRET — crons del CRM
+
+Además de `fund-payments`, el mismo `CRON_SECRET` protege `POST /api/leads/cron/task-reminders` (cada 15 min: notificación in-app de tareas vencidas) y `POST /api/leads/cron/task-digest` (12:00 UTC = 07:00 Bogotá: resumen diario por email). Esos endpoints no revisan los flags `crm_*`: si se programan, envían notificaciones y correos aunque el CRM esté apagado. Por eso `deploy-qa.yml` y `deploy-prod.yml` no instalan esas líneas de crontab mientras el CRM solo esté activo en desarrollo. Se añadirán cuando el CRM se habilite en QA o producción.
+
+## Disponibilidad del CRM
+
+Los flags `crm_*` están activos únicamente con `NODE_ENV=development`. En QA y producción permanecen apagados; no hay una variable de entorno para encenderlos. `LOCAL_CRM_FEATURE_FLAGS` y `FLAGSMITH_SERVER_KEY` no se leen: la integración con Flagsmith fue retirada. Para probar el CRM, usa el servidor de desarrollo. Habilitarlo en otros entornos requiere cambiar la política de `src/features/shared/lib/feature-flag.ts`.

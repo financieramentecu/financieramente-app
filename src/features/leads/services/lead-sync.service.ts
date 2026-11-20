@@ -8,6 +8,7 @@ import { buildLeadUpsertData } from '@/features/leads/lib/build-lead-upsert-data
 import { resolveOutcomeStatus } from '@/features/leads/lib/lead-outcome-status'
 import { normalizeFunnelStatusKey } from '@/features/leads/lib/normalize-funnel-status-key'
 import type { CrmSyncPayload } from '@/features/leads/types/crm-sync.schema'
+import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
 
 const FALLBACK_STATUS_KEY = '__unmapped__'
 
@@ -120,6 +121,14 @@ export async function upsertLeadFromCrm(
 	})
 
 	const created = !existing
+
+	await recordLeadStageChange({
+		idLead: lead.idLead,
+		fromIdLeadFunnelColumn: existing?.idLeadFunnelColumn,
+		toIdLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
+		source: 'CRM_SYNC',
+		changedAt: payload.updatedAt ?? receivedAt,
+	})
 
 	await logAuditEvent({
 		action: created ? AuditAction.LEAD_CREATED : AuditAction.LEAD_STATUS_CHANGED,

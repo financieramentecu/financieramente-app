@@ -141,4 +141,17 @@ describe('buildLeadListWhere', () => {
 			expect(hasCreatedAtClause).toBe(false)
 		})
 	})
+
+	it('adds an owner clause that cannot widen a scoped hierarchy', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 5, role: { code: UserRole.AGENTE } },
+			{ ownerIds: [6, 99] },
+			{ visibleUserIds: [5, 6] }
+		)
+		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
+		const ownerClauses = andConditions.filter(
+			(clause) => clause && typeof clause === 'object' && 'idUser' in clause
+		)
+		expect(ownerClauses).toEqual([{ idUser: { in: [5, 6] } }, { idUser: { in: [6, 99] } }])
+	})
 })

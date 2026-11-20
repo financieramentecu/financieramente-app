@@ -13,6 +13,9 @@ const lead = (idLead: number): LeadBoardColumn['leads'][number] => ({
 	ownerName: null,
 	outcomeStatus: 'OPEN',
 	idBusiness: null,
+	inactiveDays: null,
+	tags: [],
+	estimatedValue: null,
 })
 
 function columns(): LeadBoardColumn[] {
