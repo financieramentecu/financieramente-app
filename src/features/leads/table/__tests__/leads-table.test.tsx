@@ -4,8 +4,14 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { LeadsTable } from '@/features/leads/table/leads-table'
 import { fetchLeadTable, fetchStageOptions, fetchTagOptions } from '@/features/leads/table/lead-table-api'
 import type { LeadTablePage, LeadTableRow } from '@/features/leads/table/lead-table.types'
+import type { SavedLeadTableQuery } from '@/features/leads/views/lead-saved-view.types'
+import { useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
 
 vi.mock('next/navigation', () => ({ useRouter: vi.fn(), useSearchParams: vi.fn(), usePathname: vi.fn() }))
+vi.mock('@/features/leads/components/crm-hierarchy-shell', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@/features/leads/components/crm-hierarchy-shell')>()),
+	useCrmHierarchyFilter: vi.fn(),
+}))
 vi.mock('@/features/leads/table/lead-table-api', async (importOriginal) => ({
 	...(await importOriginal<typeof import('@/features/leads/table/lead-table-api')>()),
 	fetchLeadTable: vi.fn(),
@@ -13,8 +19,8 @@ vi.mock('@/features/leads/table/lead-table-api', async (importOriginal) => ({
 	fetchTagOptions: vi.fn(),
 }))
 vi.mock('@/features/leads/views/saved-views-bar', () => ({
-	SavedViewsBar: ({ onApply }: { onApply: (query: unknown) => void }) => (
-		<button type="button" onClick={() => onApply({ statuses: ['WON'], stageIds: [], ownerIds: [], tagIds: [], idle: false, sort: 'name', dir: 'asc' })}>
+	SavedViewsBar: ({ onApply }: { onApply: (query: SavedLeadTableQuery) => void }) => (
+		<button type="button" onClick={() => onApply({ statuses: ['WON'], stageIds: [], ownerIds: [5], excludedOwnerIds: [7], tagIds: [], idle: false, sort: 'name', dir: 'asc' })}>
 			Aplicar vista
 		</button>
 	),
@@ -57,6 +63,7 @@ function renderTable(params = 'tab=leads', fieldsEnabled = true) {
 describe('LeadsTable', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.mocked(useCrmHierarchyFilter).mockReturnValue({ ready: true, noneSelected: false, ownerIds: [], excludedOwnerIds: [] })
 		vi.mocked(useRouter).mockReturnValue({ replace } as never)
 		vi.mocked(usePathname).mockReturnValue('/dashboard/negocios/crm')
 		vi.mocked(fetchLeadTable).mockResolvedValue(page())
@@ -123,6 +130,17 @@ describe('LeadsTable', () => {
 		await waitFor(() =>
 			expect(fetchLeadTable).toHaveBeenLastCalledWith(expect.objectContaining({ statuses: ['WON'], sort: 'name', dir: 'asc', page: 1 }))
 		)
+	})
+
+	it('keeps hierarchy exclusions when applying a saved view and preserves its own filters', async () => {
+		vi.mocked(useCrmHierarchyFilter).mockReturnValue({ ready: true, noneSelected: false, ownerIds: [], excludedOwnerIds: [8] })
+		renderTable()
+		await waitFor(() => expect(fetchLeadTable).toHaveBeenLastCalledWith(expect.objectContaining({ excludedOwnerIds: [8] })))
+		fireEvent.click(screen.getByRole('button', { name: 'Aplicar vista' }))
+		await waitFor(() => expect(fetchLeadTable).toHaveBeenLastCalledWith(expect.objectContaining({ statuses: ['WON'] })))
+		expect(fetchLeadTable).toHaveBeenLastCalledWith(expect.objectContaining({
+			ownerIds: [5], excludedOwnerIds: [7, 8], sort: 'name', dir: 'asc', page: 1,
+		}))
 	})
 
 	it('opens the lead sheet from the row action', async () => {

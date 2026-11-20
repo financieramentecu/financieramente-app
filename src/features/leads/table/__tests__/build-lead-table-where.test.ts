@@ -51,6 +51,18 @@ describe('buildLeadTableWhere', () => {
 		})
 	})
 
+	it('excludes an unchecked branch and keeps the rest of the hierarchy', () => {
+		expect(build({ excludedOwnerIds: [6] })).toContainEqual({ idUser: { in: [5, 6] } })
+		expect(build({ excludedOwnerIds: [6] })).toContainEqual({ OR: [{ idUser: null }, { idUser: { notIn: [6] } }] })
+	})
+
+	it('keeps unassigned leads in the admin table when excluding an owner', () => {
+		expect(build({ excludedOwnerIds: [6] }, admin, [])).toEqual([
+			{ active: true },
+			{ OR: [{ idUser: null }, { idUser: { notIn: [6] } }] },
+		])
+	})
+
 	it('never widens the scope through the owner filter', () => {
 		expect(build({ ownerIds: [6, 99] })).toContainEqual({ idUser: { in: [6] } })
 		expect(build({ ownerIds: [99] })).toContainEqual({ idUser: { in: [] } })

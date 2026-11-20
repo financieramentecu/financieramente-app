@@ -142,6 +142,26 @@ describe('buildLeadListWhere', () => {
 		})
 	})
 
+	it('drops an excluded branch without replacing the server scope', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 5, role: { code: UserRole.AGENTE } },
+			{ excludedOwnerIds: [6] },
+			{ visibleUserIds: [5, 6, 7] }
+		)
+		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
+		expect(andConditions).toContainEqual({ idUser: { in: [5, 6, 7] } })
+		expect(andConditions).toContainEqual({ OR: [{ idUser: null }, { idUser: { notIn: [6] } }] })
+	})
+
+	it('keeps unassigned leads visible to admins when excluding an owner', () => {
+		expect(buildLeadListWhere(
+			{ idUser: 1, role: { code: UserRole.ADMIN } },
+			{ excludedOwnerIds: [6] }
+		)).toEqual({
+			AND: [{ active: true }, { OR: [{ idUser: null }, { idUser: { notIn: [6] } }] }],
+		})
+	})
+
 	it('adds an owner clause that cannot widen a scoped hierarchy', () => {
 		const where = buildLeadListWhere(
 			{ idUser: 5, role: { code: UserRole.AGENTE } },

@@ -14,13 +14,13 @@ function parse(search: string) {
 describe('parseCrmReportQuery', () => {
 	it('defaults to the last 90 Bogotá days ending today', () => {
 		expect(CRM_REPORT_DEFAULT_DAYS).toBe(90)
-		expect(parse('')).toEqual({ ok: true, query: { from: '2026-08-12', to: '2026-11-09', ownerIds: [] } })
+		expect(parse('')).toEqual({ ok: true, query: { from: '2026-08-12', to: '2026-11-09', ownerIds: [], excludedOwnerIds: [] } })
 	})
 
 	it('accepts an explicit range and repeated owners', () => {
 		expect(parse('from=2026-01-01&to=2026-03-31&owner=4&owner=9&owner=4')).toEqual({
 			ok: true,
-			query: { from: '2026-01-01', to: '2026-03-31', ownerIds: [4, 9] },
+			query: { from: '2026-01-01', to: '2026-03-31', ownerIds: [4, 9], excludedOwnerIds: [] },
 		})
 	})
 

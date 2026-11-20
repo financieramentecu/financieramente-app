@@ -4,13 +4,25 @@ import { crmErrorResponse as error, requireCrmActor } from '@/lib/auth/require-c
 import { AGENDA_BUCKETS, type AgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
 import { getActivityBoard, getTaskAgenda, type ActivityBoardTask, type AgendaTaskItem } from '@/features/leads/tasks/lead-task-agenda.service'
 import { getActivityCases, type ActivityBoardCase } from '@/features/leads/cases/lead-case-agenda.service'
+import { resolveAssigneeScope } from '@/features/leads/lib/resolve-assignee-scope'
+import { parseRepeatedUserIds } from '@/features/leads/lib/parse-user-ids'
+import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
 
 function isAgendaBucket(value: string | null): value is AgendaBucket {
 	return value !== null && (AGENDA_BUCKETS as readonly string[]).includes(value)
 }
 
+function parseOwnerIds(searchParams: URLSearchParams): number[] {
+	const ids = searchParams.getAll('owner').flatMap((value) => {
+		const parsed = Number.parseInt(value, 10)
+		return Number.isSafeInteger(parsed) && parsed > 0 ? [parsed] : []
+	})
+	return [...new Set(ids)]
+}
+
 /**
- * GET /api/crm/tasks?view=board — open tasks in the viewer's hierarchy.
+ * GET /api/crm/tasks?view=board&owner=&exclude= — open tasks of the hierarchy.
+ * `owner` includes advisors. `exclude` drops unchecked branches and the people under them.
  * GET /api/crm/tasks?bucket= — one time bucket of the viewer's own agenda.
  */
 export async function GET(request: Request) {
@@ -19,9 +31,15 @@ export async function GET(request: Request) {
 		if (!guard.ok) return guard.response
 		const { searchParams } = new URL(request.url)
 		if (searchParams.get('view') === 'board') {
-			const visible = guard.actor.visibleUserIds
-			const scope = visible.length === 0 ? null : visible
-			const [tasks, cases] = await Promise.all([getActivityBoard(scope), getActivityCases(scope)])
+			const include = resolveAssigneeScope(guard.actor.visibleUserIds, parseOwnerIds(searchParams))
+			const exclude = await expandExcludedOwnerIds(
+				parseRepeatedUserIds(searchParams.getAll('exclude')),
+				guard.actor.visibleUserIds
+			)
+			const [tasks, cases] = await Promise.all([
+				getActivityBoard(include, new Date(), exclude),
+				getActivityCases(include, new Date(), exclude),
+			])
 			return NextResponse.json({ data: { tasks, cases } } satisfies ApiResponse<{ tasks: ActivityBoardTask[]; cases: ActivityBoardCase[] }>)
 		}
 		const bucket = searchParams.get('bucket')

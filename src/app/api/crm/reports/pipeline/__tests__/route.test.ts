@@ -59,7 +59,7 @@ describe('GET /api/crm/reports/pipeline', () => {
 		expect(await response.json()).toEqual({ data: report })
 		expect(getCrmPipelineReport).toHaveBeenCalledWith(
 			{ idUser: 7, role: { code: 'AGENTE' } },
-			{ from: '2026-10-01', to: '2026-10-31', ownerIds: [8] },
+			{ from: '2026-10-01', to: '2026-10-31', ownerIds: [8], excludedOwnerIds: [] },
 			[7, 8]
 		)
 	})

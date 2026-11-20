@@ -17,9 +17,18 @@ function appendOwners(params: URLSearchParams, ownerIds: readonly number[] | und
 	for (const ownerId of ownerIds ?? []) params.append('owner', String(ownerId))
 }
 
+function appendExcluded(params: URLSearchParams, excludedOwnerIds: readonly number[] | undefined) {
+	for (const ownerId of excludedOwnerIds ?? []) params.append('exclude', String(ownerId))
+}
+
+interface CrmOwnerQuery {
+	ownerIds?: readonly number[]
+	excludedOwnerIds?: readonly number[]
+}
+
 /** Pipeline report; without a range the server uses its default (last 90 days). */
 export async function fetchCrmPipelineReport(
-	range?: { from?: string; to?: string; ownerIds?: readonly number[] }
+	range?: { from?: string; to?: string } & CrmOwnerQuery
 ): Promise<CrmPipelineReport> {
 	const params = new URLSearchParams()
 	if (range?.from && range?.to) {
@@ -27,6 +36,7 @@ export async function fetchCrmPipelineReport(
 		params.set('to', range.to)
 	}
 	appendOwners(params, range?.ownerIds)
+	appendExcluded(params, range?.excludedOwnerIds)
 	const query = params.toString()
 	return readApiData(await fetch(`/api/crm/reports/pipeline${query ? `?${query}` : ''}`), 'No fue posible cargar el reporte.')
 }
@@ -36,7 +46,8 @@ export async function fetchCrmStageDetail(
 	page: number,
 	pageSize: CrmStageDetailPageSize,
 	filter: CrmStageDetailFilter,
-	ownerIds: readonly number[] = []
+	ownerIds: readonly number[] = [],
+	excludedOwnerIds: readonly number[] = []
 ): Promise<CrmStageDetailPage> {
 	const params = new URLSearchParams({
 		page: String(page),
@@ -49,6 +60,7 @@ export async function fetchCrmStageDetail(
 	}
 	if (filter.stage) params.set('stage', filter.stage)
 	appendOwners(params, ownerIds)
+	appendExcluded(params, excludedOwnerIds)
 	return readApiData(
 		await fetch(`/api/crm/reports/stage-detail?${params.toString()}`),
 		'No fue posible cargar el detalle del reporte.'
@@ -58,9 +70,11 @@ export async function fetchCrmStageDetail(
 export function buildCrmReportExportUrl(
 	range: CrmReportRange,
 	format: CrmReportExportFormat,
-	ownerIds: readonly number[] = []
+	ownerIds: readonly number[] = [],
+	excludedOwnerIds: readonly number[] = []
 ): string {
 	const params = new URLSearchParams({ format, from: range.from, to: range.to })
 	appendOwners(params, ownerIds)
+	appendExcluded(params, excludedOwnerIds)
 	return `/api/crm/reports/export?${params.toString()}`
 }

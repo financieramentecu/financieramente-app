@@ -22,15 +22,15 @@ function withCaseBucket(supportCase: ActivityBoardCaseDto, bucket: AgendaBucket,
 }
 
 /** Tasks and cases of the viewer hierarchy, grouped later into the four time columns. */
-export function useActivityBoard(ownerIds: number[], paused = false, refreshKey = 0) {
-	const ownerKey = ownerIds.join(',')
+export function useActivityBoard(excludedOwnerIds: number[], paused = false, refreshKey = 0) {
+	const ownerKey = excludedOwnerIds.join(',')
 	const [state, setState] = useState<AsyncState<ActivityBoardDto>>({ status: 'loading', data: undefined, error: '' })
 
 	useEffect(() => {
 		if (paused) return
 		let cancelled = false
 		setState((current) => (current.status === 'success' ? current : { status: 'loading', data: undefined, error: '' }))
-		fetchActivityBoard(ownerIds)
+		fetchActivityBoard(excludedOwnerIds)
 			.then((data) => {
 				if (!cancelled) setState({ status: 'success', data, error: '' })
 			})
@@ -40,13 +40,13 @@ export function useActivityBoard(ownerIds: number[], paused = false, refreshKey 
 		return () => {
 			cancelled = true
 		}
-		// ownerKey is the stable identity of ownerIds.
+		// ownerKey is the stable identity of excludedOwnerIds.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ownerKey, paused, refreshKey])
 
 	function reload() {
 		setState((current) => (current.status === 'success' ? current : { status: 'loading', data: undefined, error: '' }))
-		fetchActivityBoard(ownerIds)
+		fetchActivityBoard(excludedOwnerIds)
 			.then((data) => setState({ status: 'success', data, error: '' }))
 			.catch(() => setState({ status: 'error', data: undefined, error: LOAD_ERROR }))
 	}

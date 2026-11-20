@@ -17,7 +17,7 @@ export function useCrmPipelineReport() {
 	const [range, setRange] = React.useState<CrmReportRange | null>(null)
 	const requestId = React.useRef(0)
 
-	async function load(range?: { from?: string; to?: string; ownerIds?: readonly number[] }) {
+	async function load(range?: { from?: string; to?: string; ownerIds?: readonly number[]; excludedOwnerIds?: readonly number[] }) {
 		const id = ++requestId.current
 		setState({ status: 'loading', data: undefined, error: '' })
 		try {

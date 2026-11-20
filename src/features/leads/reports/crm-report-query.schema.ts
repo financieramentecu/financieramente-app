@@ -20,9 +20,10 @@ const isoDay = z.string().refine(isCalendarDay, 'Fecha inválida')
 const crmReportQuerySchema = z.object({
 	from: isoDay.optional(),
 	to: isoDay.optional(),
-	ownerIds: z
-		.array(z.coerce.number().int().positive().max(2_147_483_647))
-		.max(CRM_REPORT_MAX_OWNERS, `Máximo ${CRM_REPORT_MAX_OWNERS} responsables`),
+		ownerIds: z
+			.array(z.coerce.number().int().positive().max(2_147_483_647))
+			.max(CRM_REPORT_MAX_OWNERS, `Máximo ${CRM_REPORT_MAX_OWNERS} responsables`),
+		excludedOwnerIds: z.array(z.coerce.number().int().positive().max(2_147_483_647)).max(2_000).default([]),
 })
 
 /** Inclusive number of days between two `YYYY-MM-DD` values. */
@@ -42,6 +43,7 @@ export function parseCrmReportQuery(params: URLSearchParams, now: Date = new Dat
 		from: params.get('from') ?? undefined,
 		to: params.get('to') ?? undefined,
 		ownerIds: params.getAll('owner'),
+		excludedOwnerIds: params.getAll('exclude'),
 	})
 	if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Parámetros inválidos' }
 
@@ -55,5 +57,5 @@ export function parseCrmReportQuery(params: URLSearchParams, now: Date = new Dat
 		return { ok: false, error: `El rango admite máximo ${CRM_REPORT_MAX_DAYS} días` }
 	}
 
-	return { ok: true, query: { ...range, ownerIds: [...new Set(parsed.data.ownerIds)] } }
+	return { ok: true, query: { ...range, ownerIds: [...new Set(parsed.data.ownerIds)], excludedOwnerIds: [...new Set(parsed.data.excludedOwnerIds)] } }
 }

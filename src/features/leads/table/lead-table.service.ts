@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getInactivityDays } from '@/features/leads/lib/inactivity-days'
 import type { LeadViewer } from '@/features/leads/types/lead.types'
 import { buildLeadTableWhere, type LeadTableWhereOptions } from '@/features/leads/table/build-lead-table-where'
+import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
 import type { LeadTableQuery } from '@/features/leads/table/lead-table-query.schema'
 import type { LeadTablePage, LeadTableRow, LeadTableTotals } from '@/features/leads/table/lead-table.types'
 
@@ -101,7 +102,11 @@ export async function getLeadTable(
 	query: LeadTableQuery,
 	options: LeadTableWhereOptions
 ): Promise<LeadTablePage> {
-	const where = buildLeadTableWhere(viewer, query, options)
+	const scopedQuery = {
+		...query,
+		excludedOwnerIds: await expandExcludedOwnerIds(query.excludedOwnerIds, options.visibleUserIds),
+	}
+	const where = buildLeadTableWhere(viewer, scopedQuery, options)
 	const [records, total, totals] = await Promise.all([
 		prisma.lead.findMany({
 			where,
@@ -130,7 +135,11 @@ export async function listLeadTableForExport(
 	query: LeadTableQuery,
 	options: LeadTableWhereOptions
 ): Promise<LeadTableExportResult> {
-	const where = buildLeadTableWhere(viewer, query, options)
+	const scopedQuery = {
+		...query,
+		excludedOwnerIds: await expandExcludedOwnerIds(query.excludedOwnerIds, options.visibleUserIds),
+	}
+	const where = buildLeadTableWhere(viewer, scopedQuery, options)
 	const total = await prisma.lead.count({ where })
 	if (total > LEAD_TABLE_EXPORT_LIMIT) return { ok: false, reason: 'TOO_MANY_ROWS' }
 	const records = await prisma.lead.findMany({

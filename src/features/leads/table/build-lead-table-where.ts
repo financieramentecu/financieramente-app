@@ -63,6 +63,7 @@ export function buildLeadTableWhere(
 		viewer,
 		{
 			outcomeStatuses: query.statuses,
+			excludedOwnerIds: query.excludedOwnerIds,
 			createdAtRange: query.from && query.to ? parseBogotaInclusiveUtcRange(query.from, query.to) : undefined,
 		},
 		{ visibleUserIds: options.visibleUserIds }
