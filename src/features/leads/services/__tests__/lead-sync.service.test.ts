@@ -51,6 +51,15 @@ vi.mock('@/lib/prisma', () => ({
 			findUnique: vi.fn(),
 			upsert: vi.fn(),
 		},
+		leadOrigin: {
+			findUnique: vi.fn(),
+			upsert: vi.fn(),
+		},
+		leadOriginAssignment: {
+			findUnique: vi.fn(),
+			upsert: vi.fn(),
+			update: vi.fn(),
+		},
 	},
 }))
 
@@ -69,6 +78,9 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 		LEAD_OUTCOME_STATUS_UNRESOLVED: 'LEAD_OUTCOME_STATUS_UNRESOLVED',
 		LEAD_OUTCOME_STATUS_LOCKED: 'LEAD_OUTCOME_STATUS_LOCKED',
 		LEAD_REACTIVATED: 'LEAD_REACTIVATED',
+		LEAD_ORIGIN_CREATED: 'LEAD_ORIGIN_CREATED',
+		LEAD_ORIGIN_ASSIGNED: 'LEAD_ORIGIN_ASSIGNED',
+		LEAD_ORIGIN_INACTIVE: 'LEAD_ORIGIN_INACTIVE',
 	},
 	getClientIp: vi.fn(() => '127.0.0.1'),
 	getUserAgent: vi.fn(() => 'n8n'),
@@ -636,6 +648,72 @@ describe('upsertLeadFromCrm — stage history (crm-phase-0-foundation)', () => {
 
 		const [input] = vi.mocked(recordLeadStageChange).mock.calls[0]!
 		expect(input.changedAt.getTime()).toBeGreaterThanOrEqual(before)
+	})
+})
+
+describe('upsertLeadFromCrm origin label', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(
+			FALLBACK_COLUMN as never
+		)
+		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 10 } as never)
+		vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
+	})
+
+	it('creates the catalogue row, labels originTag and links the pivot', async () => {
+		vi.mocked(prisma.leadOrigin.findUnique).mockResolvedValue(null)
+		vi.mocked(prisma.leadOrigin.upsert).mockResolvedValue({
+			idLeadOrigin: 8,
+			code: 'money_map',
+			name: 'Money Map',
+			status: true,
+		} as never)
+		vi.mocked(prisma.leadOriginAssignment.findUnique).mockResolvedValue(null)
+
+		const result = await upsertLeadFromCrm({
+			externalCrmId: 'crm-1',
+			statusKey: 'new',
+			utm_source: 'Money Map',
+		})
+
+		const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+		expect(upsertCall.create.originTag).toBe('Money Map')
+		expect(prisma.leadOriginAssignment.upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				create: expect.objectContaining({ idLead: 10, idLeadOrigin: 8, active: true }),
+			})
+		)
+		expect(result.origin).toEqual({ code: 'money_map', name: 'Money Map' })
+		expect(logAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ action: AuditAction.LEAD_ORIGIN_CREATED })
+		)
+		expect(logAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ action: AuditAction.LEAD_ORIGIN_ASSIGNED })
+		)
+	})
+
+	it('does not label the lead when the catalogue origin is inactive', async () => {
+		vi.mocked(prisma.leadOrigin.findUnique).mockResolvedValue({
+			idLeadOrigin: 8,
+			code: 'money_map',
+			name: 'Money Map',
+			status: false,
+		} as never)
+
+		const result = await upsertLeadFromCrm({
+			externalCrmId: 'crm-1',
+			statusKey: 'new',
+			utm_source: 'Money Map',
+		})
+
+		const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0][0]
+		expect(upsertCall.create.originTag).toBeUndefined()
+		expect(prisma.leadOriginAssignment.upsert).not.toHaveBeenCalled()
+		expect(result.origin).toBeNull()
+		expect(logAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ action: AuditAction.LEAD_ORIGIN_INACTIVE })
+		)
 	})
 })
 
