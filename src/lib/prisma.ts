@@ -30,8 +30,9 @@ export const prisma =
 			process.env.DATABASE_URL,
 			readPoolOptionsFromEnv(process.env)
 		),
+		// Full SQL logging serializes every round trip. Opt in with PRISMA_LOG_QUERIES=1.
 		log:
-			process.env.NODE_ENV === 'development'
+			process.env.NODE_ENV === 'development' && process.env.PRISMA_LOG_QUERIES === '1'
 				? ['query', 'error', 'warn']
 				: ['error'],
 	})

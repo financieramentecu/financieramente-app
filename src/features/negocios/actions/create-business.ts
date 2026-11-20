@@ -13,6 +13,8 @@ import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expect
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
+import { appendLeadConversionAuditAfterCommit } from '@/features/leads/conversion/lead-conversion-audit.service'
+import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
 import { identityNumberSchema } from '@/features/negocios/lib/identity-number.schema'
 import {
@@ -112,6 +114,14 @@ export async function createBusiness(
 		}
 
 		const validatedData = createBusinessSchema.parse(data)
+		const auditActorId = Number.parseInt(guard.session.user.id ?? '', 10)
+		const shouldAppendConversionAudit =
+			validatedData.idLead != null &&
+			Number.isSafeInteger(auditActorId) &&
+			(await isFeatureEnabledServer(
+				'crm_conversion_audit',
+				guard.session.user.email ?? undefined
+			))
 
 		// NEG-02 / PA-04: the owner is decided server-side (a PARTNER always owns
 		// their own business) and the PPC is resolved with the OWNER's level.
@@ -245,6 +255,21 @@ export async function createBusiness(
 
 			return created
 		})
+
+		if (shouldAppendConversionAudit && validatedData.idLead != null) {
+			try {
+				await appendLeadConversionAuditAfterCommit({
+					idLead: validatedData.idLead,
+					idBusiness: business.idBusiness,
+					idUser: auditActorId,
+				})
+			} catch (error) {
+				console.error(
+					'Lead conversion audit failed after the business was created:',
+					error
+				)
+			}
+		}
 
 		const reqHeaders = await headers()
 		const userId = guard.session.user.id

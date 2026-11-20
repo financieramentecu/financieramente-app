@@ -33,18 +33,7 @@ describe('useLeadsBoard — refresh', () => {
 		expect(mockFetch).toHaveBeenCalledTimes(2)
 	})
 
-	it('refetches when the window regains focus', async () => {
-		renderHook(() => useLeadsBoard())
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
-
-		await act(async () => {
-			window.dispatchEvent(new Event('focus'))
-		})
-
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2))
-	})
-
-	it('refetches when the tab becomes visible again', async () => {
+	it('does not refetch when the window regains focus or the tab becomes visible', async () => {
 		Object.defineProperty(document, 'visibilityState', {
 			value: 'visible',
 			configurable: true,
@@ -53,21 +42,7 @@ describe('useLeadsBoard — refresh', () => {
 		await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
 
 		await act(async () => {
-			document.dispatchEvent(new Event('visibilitychange'))
-		})
-
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2))
-	})
-
-	it('does not refetch on visibilitychange while the tab is hidden', async () => {
-		renderHook(() => useLeadsBoard())
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
-
-		Object.defineProperty(document, 'visibilityState', {
-			value: 'hidden',
-			configurable: true,
-		})
-		await act(async () => {
+			window.dispatchEvent(new Event('focus'))
 			document.dispatchEvent(new Event('visibilitychange'))
 		})
 

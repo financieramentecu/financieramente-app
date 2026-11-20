@@ -1,12 +1,21 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { parseStoredFormFields } from '@/features/leads/lib/parse-stored-form-fields'
+import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
+import { getInactivityDays, resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
 import type {
 	LeadBoardColumn,
 	LeadDetail,
 	LeadOutcomeStatus,
 	LeadViewer,
 } from '@/features/leads/types/lead.types'
+
+const activeTagsSelect = {
+	where: { active: true, tag: { active: true } },
+	select: { tag: { select: { idLeadTag: true, name: true, color: true } } },
+	orderBy: { tag: { name: 'asc' } },
+} satisfies Prisma.Lead$tagAssignmentsArgs
 
 function buildOwnerName(user: { name: string; lastName: string | null } | null): string | null {
 	if (!user) return null
@@ -17,6 +26,10 @@ export interface LeadBoardOptions {
 	visibleUserIds?: number[]
 	outcomeStatuses?: LeadOutcomeStatus[]
 	createdAtRange?: { gte: Date; lte: Date }
+	/** Selected advisors. Empty keeps the full hierarchy. */
+	ownerIds?: number[]
+	/** Unchecked hierarchy nodes. Expanded to their descendants before the query. */
+	excludedOwnerIds?: number[]
 }
 
 /**
@@ -27,6 +40,7 @@ export async function getLeadBoard(
 	viewer: LeadViewer,
 	options: LeadBoardOptions = {}
 ): Promise<LeadBoardColumn[]> {
+	const excludedOwnerIds = await expandExcludedOwnerIds(options.excludedOwnerIds ?? [], options.visibleUserIds ?? [])
 	const [columns, leads] = await Promise.all([
 		prisma.leadFunnelColumn.findMany({
 			where: { active: true },
@@ -38,6 +52,8 @@ export async function getLeadBoard(
 				{
 					outcomeStatuses: options.outcomeStatuses,
 					createdAtRange: options.createdAtRange,
+					ownerIds: options.ownerIds,
+					excludedOwnerIds,
 				},
 				options
 			),
@@ -52,10 +68,16 @@ export async function getLeadBoard(
 				idLeadFunnelColumn: true,
 				outcomeStatus: true,
 				idBusiness: true,
+				lastActivityAt: true,
+				createdAt: true,
+				estimatedValue: true,
 				user: { select: { name: true, lastName: true } },
+				tagAssignments: activeTagsSelect,
 			},
 		}),
 	])
+	const now = new Date()
+	const threshold = resolveInactivityThreshold()
 
 	return columns.map((column) => ({
 		idLeadFunnelColumn: column.idLeadFunnelColumn,
@@ -75,8 +97,36 @@ export async function getLeadBoard(
 				ownerName: buildOwnerName(lead.user ?? null),
 				outcomeStatus: lead.outcomeStatus,
 				idBusiness: lead.idBusiness,
+				inactiveDays: getInactivityDays(lead, now, threshold),
+				tags: lead.tagAssignments.map((assignment) => assignment.tag),
+				estimatedValue: lead.estimatedValue?.toString() ?? null,
 			})),
 	}))
+}
+
+function whereForLead(
+	idLead: number,
+	viewer: LeadViewer,
+	options: LeadBoardOptions
+): Prisma.LeadWhereInput {
+	const where = buildLeadListWhere(viewer, {}, options)
+	return {
+		...where,
+		AND: [...(Array.isArray(where.AND) ? where.AND : []), { idLead }],
+	}
+}
+
+/** True when the lead exists and the viewer is allowed to see it. Selects no extra columns. */
+export async function isLeadVisible(
+	idLead: number,
+	viewer: LeadViewer,
+	options: LeadBoardOptions = {}
+): Promise<boolean> {
+	const lead = await prisma.lead.findFirst({
+		where: whereForLead(idLead, viewer, options),
+		select: { idLead: true },
+	})
+	return lead !== null
 }
 
 /**
@@ -89,10 +139,10 @@ export async function getLeadDetail(
 	viewer: LeadViewer,
 	options: LeadBoardOptions = {}
 ): Promise<LeadDetail | null> {
-	const where = buildLeadListWhere(viewer, {}, options)
 	const lead = await prisma.lead.findFirst({
-		where: { ...where, AND: [...(Array.isArray(where.AND) ? where.AND : []), { idLead }] },
+		where: whereForLead(idLead, viewer, options),
 		include: {
+			tagAssignments: activeTagsSelect,
 			user: { select: { name: true, lastName: true } },
 			formSubmissions: {
 				orderBy: { submittedAt: 'desc' },
@@ -135,5 +185,9 @@ export async function getLeadDetail(
 			submittedAt: submission.submittedAt.toISOString(),
 			fields: parseStoredFormFields(submission.fields),
 		})),
+		inactiveDays: getInactivityDays(lead, new Date(), resolveInactivityThreshold()),
+		tags: lead.tagAssignments.map((assignment) => assignment.tag),
+		estimatedValue: lead.estimatedValue?.toString() ?? null,
+		probability: lead.probability,
 	}
 }

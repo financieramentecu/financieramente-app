@@ -6,6 +6,7 @@ export interface BreadcrumbItemShape {
 const SEGMENT_LABELS: Record<string, string> = {
 	dashboard: 'Inicio',
 	negocios: 'Negocios',
+	crm: 'CRM',
 	'carga-archivos': 'Carga de archivos',
 	'pre-liquidacion': 'Pre-liquidación',
 	liquidaciones: 'Liquidaciones',

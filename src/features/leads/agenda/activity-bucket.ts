@@ -1,0 +1,79 @@
+import { DONE_LOOKBACK_DAYS, getBogotaDayBounds, isAgendaBucket, UPCOMING_DAYS, type AgendaBucket } from '@/features/leads/tasks/agenda-bucket-range'
+import { bogotaDateOnly, dateOnlyToBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+const OPEN_BUCKETS = ['overdue', 'today', 'upcoming'] as const
+export type OpenActivityBucket = (typeof OPEN_BUCKETS)[number]
+
+export const ACTIVITY_COLUMN_LABELS: Record<AgendaBucket, string> = {
+	overdue: 'Vencidas',
+	today: 'Vencen hoy',
+	upcoming: 'Próximas a vencer',
+	done: 'Completadas',
+}
+
+/** Visible column title. A renamed catalogue wins; otherwise the built-in label. */
+export function columnTitle(columns: readonly { code: string; name: string }[], bucket: AgendaBucket): string {
+	const match = columns.find((column) => column.code === bucket)
+	return match?.name || ACTIVITY_COLUMN_LABELS[bucket]
+}
+
+interface BucketTask {
+	status: 'OPEN' | 'DONE' | 'CANCELLED'
+	dueAt: string | Date | null
+	completedAt: string | Date | null
+}
+
+function shiftDateOnly(dateOnly: string, days: number): string {
+	const [year, month, day] = dateOnly.split('-').map(Number)
+	return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10)
+}
+
+/** Noon UTC of the Bogotá day that lands the task in that open column. */
+export function dueAtForActivityBucket(bucket: OpenActivityBucket, now: Date): Date {
+	const today = bogotaDateOnly(now)
+	const shift = bucket === 'overdue' ? -1 : bucket === 'today' ? 0 : 1
+	return dateOnlyToBogotaNoonUtc(shiftDateOnly(today, shift))
+}
+
+/** Column of a task, or null when it falls outside the four agenda windows. */
+export function activityBucket(task: BucketTask, now: Date): AgendaBucket | null {
+	if (task.status === 'DONE') {
+		if (!task.completedAt) return null
+		const completed = new Date(task.completedAt)
+		return completed >= new Date(now.getTime() - DONE_LOOKBACK_DAYS * DAY_MS) ? 'done' : null
+	}
+	if (task.status !== 'OPEN') return null
+	if (!task.dueAt) return 'upcoming'
+	const due = new Date(task.dueAt)
+	const { start, end } = getBogotaDayBounds(now)
+	if (due < start) return 'overdue'
+	if (due < end) return 'today'
+	if (due < new Date(end.getTime() + UPCOMING_DAYS * DAY_MS)) return 'upcoming'
+	return null
+}
+
+/** Column title shown as the task or case state, or null when the card is not on the board. */
+export function activityStateName(
+	activity: BucketTask & { columnCode?: string | null },
+	columns: readonly { code: string; name: string }[],
+	now: Date
+): string | null {
+	const code = placedColumn(activity, columns, now)
+	if (!code) return null
+	return columns.find((column) => column.code === code)?.name ?? null
+}
+
+/** Column that shows the card. A custom pin wins; otherwise the due-date column, if it is still visible. */
+export function placedColumn(
+	activity: BucketTask & { columnCode?: string | null },
+	columns: readonly { code: string }[],
+	now: Date
+): string | null {
+	const pinned = activity.columnCode
+	if (pinned && !isAgendaBucket(pinned) && columns.some((column) => column.code === pinned)) return pinned
+	const bucket = activityBucket(activity, now)
+	if (!bucket || !columns.some((column) => column.code === bucket)) return null
+	return bucket
+}

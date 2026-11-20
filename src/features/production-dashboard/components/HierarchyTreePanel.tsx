@@ -52,12 +52,14 @@ type PanelContentProps = {
 	apiState: AsyncState<HierarchyTreeData>
 	activeCategoryIds?: number[]
 	onCollapse?: () => void
+	wrapNames?: boolean
 }
 
 function PanelContent({
 	apiState,
 	activeCategoryIds = [],
 	onCollapse,
+	wrapNames = false,
 }: PanelContentProps) {
 	const { nodes, dispatch, selectedUserIds, toggle } = useHierarchySelection()
 	const [searchQuery, setSearchQuery] = useState('')
@@ -214,7 +216,11 @@ function PanelContent({
 											</span>
 											<span className="flex min-w-0 flex-1 flex-col gap-0.5">
 												<span
-													className="truncate text-[13px] font-semibold leading-tight"
+													className={
+														wrapNames
+															? 'whitespace-normal break-words text-[13px] font-semibold leading-tight'
+															: 'truncate text-[13px] font-semibold leading-tight'
+													}
 													style={{
 														color: '#3A6AE8',
 														textDecoration: node.included
@@ -255,6 +261,7 @@ function PanelContent({
 								key={node.userId}
 								node={node}
 								activeCategoryIds={activeCategoryIds}
+								wrapName={wrapNames}
 							/>
 						))}
 					</ul>
@@ -326,12 +333,18 @@ type HierarchyTreePanelProps = {
 	 * panel's width/border — otherwise an empty tree leaves a blank column.
 	 */
 	onEmptyChange?: (isEmpty: boolean) => void
+	/** Node count once the tree request settles. Zero means empty tree or a failed load. */
+	onLoaded?: (nodeCount: number) => void
+	/** CRM shows each person's full name. The dashboard keeps the single-line cut. */
+	wrapNames?: boolean
 }
 
 export function HierarchyTreePanel({
 	activeCategoryIds = [],
 	onCollapse,
 	onEmptyChange,
+	onLoaded,
+	wrapNames = false,
 }: HierarchyTreePanelProps) {
 	const { state } = useHierarchyTree()
 	const { dispatch } = useHierarchySelection()
@@ -350,8 +363,13 @@ export function HierarchyTreePanel({
 	}, [state, dispatch])
 
 	useEffect(() => {
+		if (state.status === 'error') {
+			onLoaded?.(0)
+			return
+		}
 		if (state.status === 'success') {
 			onEmptyChange?.(isEmpty)
+			onLoaded?.(countNodes(0, ...state.data.nodes))
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [state.status, isEmpty])
@@ -367,6 +385,7 @@ export function HierarchyTreePanel({
 					apiState={state}
 					activeCategoryIds={activeCategoryIds}
 					onCollapse={onCollapse}
+					wrapNames={wrapNames}
 				/>
 			</div>
 		</TooltipProvider>
