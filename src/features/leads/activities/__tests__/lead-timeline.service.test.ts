@@ -3,7 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getLeadActivityPage } from '@/features/leads/activities/lead-activity.service'
 import { getLeadTimelinePage } from '@/features/leads/activities/lead-timeline.service'
 
-vi.mock('@/lib/prisma', () => ({ prisma: { leadStageHistory: { findMany: vi.fn() } } }))
+vi.mock('@/lib/prisma', () => ({
+	prisma: { leadStageHistory: { findMany: vi.fn() }, leadLink: { findMany: vi.fn() } },
+}))
 vi.mock('@/features/leads/activities/lead-activity.service', () => ({ getLeadActivityPage: vi.fn() }))
 
 const activity = (id: number, iso: string) => ({
@@ -24,7 +26,10 @@ const stage = (id: number, iso: string) => ({
 })
 
 describe('getLeadTimelinePage', () => {
-	beforeEach(() => vi.clearAllMocks())
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(prisma.leadLink.findMany).mockResolvedValue([])
+	})
 
 	it('merges activities and stage changes newest first', async () => {
 		vi.mocked(getLeadActivityPage).mockResolvedValue({ items: [activity(1, '2026-11-09T11:00:00Z')], nextCursor: null })

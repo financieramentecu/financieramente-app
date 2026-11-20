@@ -1,13 +1,15 @@
-import type { LeadStageChangeSource, Prisma } from '@prisma/client'
+import type { LeadLinkSource, LeadStageChangeSource, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { leadDisplayName } from '@/features/leads/lib/lead-display-name'
+import type { LeadLinkSide } from '@/features/leads/types/lead-link.types'
 import {
 	getLeadActivityPage,
 	type LeadActivityCursor,
 	type LeadTimelineItem,
 } from '@/features/leads/activities/lead-activity.service'
 import {
+	compareTimelineKeys,
 	encodeTimelineCursor,
-	mergeTimelineEntries,
 	type TimelineKey,
 } from '@/features/leads/activities/merge-timeline'
 
@@ -23,7 +25,19 @@ export interface LeadTimelineStageEntry {
 	source: LeadStageChangeSource
 }
 
-export type LeadTimelineEntry = LeadTimelineActivityEntry | LeadTimelineStageEntry
+export interface LeadTimelineIngressEntry {
+	kind: 'lead_ingress'
+	idLeadLink: number
+	occurredAt: Date
+	actorName: string | null
+	originName: string
+	incomingLeadName: string
+	relatedLeadName: string
+	side: LeadLinkSide
+	source: LeadLinkSource
+}
+
+export type LeadTimelineEntry = LeadTimelineActivityEntry | LeadTimelineStageEntry | LeadTimelineIngressEntry
 
 export interface LeadTimelinePage {
 	items: LeadTimelineEntry[]
@@ -31,14 +45,22 @@ export interface LeadTimelinePage {
 }
 
 function toKey(entry: LeadTimelineEntry): TimelineKey {
-	return entry.kind === 'activity'
-		? { occurredAt: entry.occurredAt, kind: 'activity', id: entry.idLeadActivity }
-		: { occurredAt: entry.occurredAt, kind: 'stage_change', id: entry.idLeadStageHistory }
+	if (entry.kind === 'activity') {
+		return { occurredAt: entry.occurredAt, kind: 'activity', id: entry.idLeadActivity }
+	}
+	if (entry.kind === 'lead_ingress') {
+		return { occurredAt: entry.occurredAt, kind: 'lead_ingress', id: entry.idLeadLink }
+	}
+	return { occurredAt: entry.occurredAt, kind: 'stage_change', id: entry.idLeadStageHistory }
 }
 
 function activityCursorBefore(cursor: TimelineKey): LeadActivityCursor {
-	// In newest-first order, stage changes at an instant come before activities,
-	// so a stage cursor has already passed every activity at that time.
+	// Ingress is shown before stages and activities at the same instant,
+	// so those activities still belong on the next page.
+	if (cursor.kind === 'lead_ingress') {
+		return { occurredAt: cursor.occurredAt, idLeadActivity: Number.MAX_SAFE_INTEGER }
+	}
+	// A stage cursor has already passed every activity at that time.
 	return {
 		occurredAt: cursor.occurredAt,
 		idLeadActivity: cursor.kind === 'activity' ? cursor.id : 0,
@@ -48,11 +70,35 @@ function activityCursorBefore(cursor: TimelineKey): LeadActivityCursor {
 function stageWhereBefore(idLead: number, cursor?: TimelineKey): Prisma.LeadStageHistoryWhereInput {
 	if (!cursor) return { idLead }
 	if (cursor.kind === 'activity') return { idLead, changedAt: { lt: cursor.occurredAt } }
+	if (cursor.kind === 'lead_ingress') return { idLead, changedAt: { lte: cursor.occurredAt } }
 	return {
 		idLead,
 		OR: [
 			{ changedAt: { lt: cursor.occurredAt } },
 			{ changedAt: cursor.occurredAt, idLeadStageHistory: { lt: cursor.id } },
+		],
+	}
+}
+
+function personWhere(idLead: number): Prisma.LeadLinkWhereInput {
+	return { active: true, OR: [{ idLead }, { idRelatedLead: idLead }] }
+}
+
+function ingressWhereBefore(idLead: number, cursor?: TimelineKey): Prisma.LeadLinkWhereInput {
+	const person = personWhere(idLead)
+	if (!cursor || cursor.kind !== 'lead_ingress') {
+		if (!cursor) return person
+		return { AND: [person, { linkedAt: { lt: cursor.occurredAt } }] }
+	}
+	return {
+		AND: [
+			person,
+			{
+				OR: [
+					{ linkedAt: { lt: cursor.occurredAt } },
+					{ linkedAt: cursor.occurredAt, idLeadLink: { lt: cursor.id } },
+				],
+			},
 		],
 	}
 }
@@ -70,7 +116,7 @@ export async function getLeadTimelinePage(
 	const limit = Math.min(Math.max(options.limit ?? 25, 1), 100)
 	const { cursor } = options
 
-	const [activityPage, stageRows] = await Promise.all([
+	const [activityPage, stageRows, ingressRows] = await Promise.all([
 		getLeadActivityPage(prisma, idLead, { limit, cursor: cursor ? activityCursorBefore(cursor) : undefined }),
 		prisma.leadStageHistory.findMany({
 			where: stageWhereBefore(idLead, cursor),
@@ -84,6 +130,34 @@ export async function getLeadTimelinePage(
 				toColumn: { select: { name: true } },
 				user: { select: { name: true, lastName: true } },
 				lead: { select: { user: { select: { name: true, lastName: true } } } },
+			},
+		}),
+		prisma.leadLink.findMany({
+			where: ingressWhereBefore(idLead, cursor),
+			orderBy: [{ linkedAt: 'desc' }, { idLeadLink: 'desc' }],
+			take: limit + 1,
+			select: {
+				idLeadLink: true,
+				idLead: true,
+				idRelatedLead: true,
+				source: true,
+				linkedAt: true,
+				clientOrigin: { select: { name: true } },
+				linker: { select: { name: true, lastName: true } },
+				lead: {
+					select: {
+						name: true,
+						lastName: true,
+						user: { select: { name: true, lastName: true } },
+					},
+				},
+				relatedLead: {
+					select: {
+						name: true,
+						lastName: true,
+						user: { select: { name: true, lastName: true } },
+					},
+				},
 			},
 		}),
 	])
@@ -102,10 +176,31 @@ export async function getLeadTimelinePage(
 		}
 	})
 
-	const keyed = (entries: LeadTimelineEntry[]) => entries.map((entry) => ({ ...toKey(entry), entry }))
-	const { items, hasMore } = mergeTimelineEntries(keyed(activities), keyed(stages), limit, {
-		sourceHasMore: activityPage.nextCursor !== null || stageRows.length > limit,
+	const ingress: LeadTimelineEntry[] = ingressRows.map((row) => {
+		const advisor = row.linker ?? row.lead.user ?? row.relatedLead.user
+		return {
+			kind: 'lead_ingress',
+			idLeadLink: row.idLeadLink,
+			occurredAt: row.linkedAt,
+			actorName: advisor ? [advisor.name, advisor.lastName].filter(Boolean).join(' ') : null,
+			originName: row.clientOrigin?.name ?? 'Sin origen',
+			incomingLeadName: leadDisplayName({ idLead: row.idLead, ...row.lead }),
+			relatedLeadName: leadDisplayName({ idLead: row.idRelatedLead, ...row.relatedLead }),
+			side: row.idLead === idLead ? 'incoming' : 'related',
+			source: row.source,
+		}
 	})
+
+	const keyed = (entries: LeadTimelineEntry[]) => entries.map((entry) => ({ ...toKey(entry), entry }))
+	const merged = [...keyed(activities), ...keyed(stages), ...keyed(ingress)].sort((left, right) =>
+		compareTimelineKeys(left, right)
+	)
+	const hasMore =
+		merged.length > limit ||
+		activityPage.nextCursor !== null ||
+		stageRows.length > limit ||
+		ingressRows.length > limit
+	const items = merged.slice(0, limit)
 	const last = items.at(-1)
 	return {
 		items: items.map((item) => item.entry),

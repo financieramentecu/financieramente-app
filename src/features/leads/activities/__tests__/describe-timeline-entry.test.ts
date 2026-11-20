@@ -66,6 +66,43 @@ describe('describeTimelineEntry', () => {
 		).toEqual({ title: 'Cambio de etapa', detail: 'Nuevo → Contactado', actor: 'Asesor' })
 	})
 
+	it('describes a new origin ingress on both leads', () => {
+		const ingress = {
+			kind: 'lead_ingress' as const,
+			idLeadLink: 4,
+			occurredAt: '2026-11-18T18:44:00.000Z',
+			actorName: null,
+			originName: 'Money Strategy',
+			incomingLeadName: 'Camilo Restrepo',
+			relatedLeadName: 'Danna Guzman',
+			side: 'related' as const,
+			source: 'AUTO' as const,
+		}
+		expect(describeTimelineEntry(ingress)).toEqual({
+			title: 'Ingreso de lead',
+			detail: 'Camilo Restrepo ingresó por Money Strategy.',
+			meta: 'Mismo Money Strategy',
+			actor: 'Sistema',
+		})
+		expect(
+			describeTimelineEntry({
+				kind: 'lead_ingress',
+				idLeadLink: 4,
+				occurredAt: '2026-11-18T18:44:00.000Z',
+				actorName: 'Ana',
+				originName: 'Money Strategy',
+				incomingLeadName: 'Camilo Restrepo',
+				relatedLeadName: 'Danna Guzman',
+				side: 'incoming',
+				source: 'MANUAL',
+			})
+		).toMatchObject({
+			detail: 'Ingresó por Money Strategy y quedó relacionado con Danna Guzman.',
+			meta: 'Mismo Money Strategy · Validado en el CRM',
+			actor: 'Ana',
+		})
+	})
+
 	it('describes the first stage without an origin', () => {
 		expect(
 			describeTimelineEntry({

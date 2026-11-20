@@ -75,7 +75,7 @@ export function LeadActivityTimeline({
 									<p className="text-sm whitespace-pre-wrap text-foreground">
 										{view.detail}
 									</p>
-									{entry.kind !== 'stage_change' && (
+									{(entry.kind === 'activity' || entry.kind === undefined) && (
 										<ActivityAttachments leadId={leadId} entry={entry} />
 									)}
 								</li>

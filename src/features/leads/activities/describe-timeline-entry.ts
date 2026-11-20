@@ -1,5 +1,5 @@
 import type { ContactOutcome } from '@/features/leads/crm/lead-crm-event.schema'
-import type { TimelineEntryDto, TimelineStageDto } from '@/features/leads/activities/lead-timeline.types'
+import type { TimelineEntryDto, TimelineIngressDto, TimelineStageDto } from '@/features/leads/activities/lead-timeline.types'
 
 export interface TimelineEntryView {
 	title: string
@@ -44,11 +44,15 @@ const STAGE_SOURCE_LABELS: Partial<Record<TimelineStageDto['source'], string>> =
 }
 
 export function timelineEntryKey(entry: TimelineEntryDto): string {
-	return entry.kind === 'stage_change' ? `stage_change-${entry.idLeadStageHistory}` : `activity-${entry.idLeadActivity}`
+	if (entry.kind === 'stage_change') return `stage_change-${entry.idLeadStageHistory}`
+	if (entry.kind === 'lead_ingress') return `lead_ingress-${entry.idLeadLink}`
+	return `activity-${entry.idLeadActivity}`
 }
 
 /** Human-readable view of a timeline entry; never exposes raw payload JSON. */
 export function describeTimelineEntry(entry: TimelineEntryDto): TimelineEntryView {
+	if (entry.kind === 'lead_ingress') return describeIngress(entry)
+
 	if (entry.kind === 'stage_change') {
 		const meta = STAGE_SOURCE_LABELS[entry.source]
 		return {
@@ -107,4 +111,18 @@ export function describeTimelineEntry(entry: TimelineEntryDto): TimelineEntryVie
 	}
 	const taskDetail = payload.title ?? `Tarea #${payload.taskId}`
 	return { ...base, detail: payload.comment ? `${taskDetail}\n${payload.comment}` : taskDetail }
+}
+
+function describeIngress(entry: TimelineIngressDto): TimelineEntryView {
+	const detail =
+		entry.side === 'incoming'
+			? `Ingresó por ${entry.originName} y quedó relacionado con ${entry.relatedLeadName}.`
+			: `${entry.incomingLeadName} ingresó por ${entry.originName}.`
+	const meta = entry.source === 'MANUAL' ? 'Mismo Money Strategy · Validado en el CRM' : 'Mismo Money Strategy'
+	return {
+		title: 'Ingreso de lead',
+		detail,
+		meta,
+		actor: entry.actorName ?? 'Sistema',
+	}
 }
