@@ -9,7 +9,8 @@ type UseHierarchyTreeResult = {
 	refetch: () => Promise<void>
 }
 
-export function useHierarchyTree(): UseHierarchyTreeResult {
+export function useHierarchyTree(endpoint?: string): UseHierarchyTreeResult {
+	const url = endpoint ?? '/api/production-dashboard/hierarchy-tree'
 	const [state, setState] = useState<AsyncState<HierarchyTreeData>>({
 		status: 'idle',
 		data: undefined,
@@ -20,7 +21,7 @@ export function useHierarchyTree(): UseHierarchyTreeResult {
 		setState({ status: 'loading', data: undefined, error: '' })
 
 		try {
-			const res = await fetch('/api/production-dashboard/hierarchy-tree')
+			const res = await fetch(url)
 
 			if (!res.ok) {
 				const json: unknown = await res.json()
@@ -45,7 +46,7 @@ export function useHierarchyTree(): UseHierarchyTreeResult {
 				error: 'Error al cargar la jerarquía',
 			})
 		}
-	}, [])
+	}, [url])
 
 	useEffect(() => {
 		fetchTree()

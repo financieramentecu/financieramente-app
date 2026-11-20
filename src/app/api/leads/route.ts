@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import {
-	getAccessibleUserIds,
-	isHierarchyBypassRole,
-} from '@/features/auth/lib/hierarchy'
+import { requireCrmActor, toLeadViewer } from '@/lib/auth/require-crm-actor'
 import { getLeadBoard } from '@/features/leads/services/lead-board.service'
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 import { parseBogotaInclusiveUtcRange } from '@/features/shared/lib/bogota-date-range'
@@ -66,34 +61,16 @@ function parseBoardFilters(searchParams: URLSearchParams): {
  * `exclude` repeats to drop unchecked branches and the people under them.
  */
 export async function GET(request: Request) {
-	const session = await auth()
-	if (!session?.user?.email) {
-		const errorResponse: ApiResponse<null> = {
-			data: null,
-			error: 'No autorizado',
-		}
-		return NextResponse.json(errorResponse, { status: 401 })
-	}
-
 	try {
-		const currentUser = await getCurrentUserByEmail(session.user.email)
-		if (!currentUser) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'Usuario no encontrado',
-			}
-			return NextResponse.json(errorResponse, { status: 404 })
-		}
-
-		const visibleUserIds = isHierarchyBypassRole(currentUser.role?.code)
-			? []
-			: await getAccessibleUserIds(currentUser.idUser)
+		const guard = await requireCrmActor('leads_module')
+		if (!guard.ok) return guard.response
+		const { actor } = guard
 
 		const { searchParams } = new URL(request.url)
 		const { outcomeStatuses, createdAtRange, ownerIds, excludedOwnerIds } = parseBoardFilters(searchParams)
 
-		const board = await getLeadBoard(currentUser, {
-			visibleUserIds,
+		const board = await getLeadBoard(toLeadViewer(actor), {
+			visibleUserIds: actor.visibleUserIds,
 			outcomeStatuses,
 			createdAtRange,
 			ownerIds,

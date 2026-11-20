@@ -99,6 +99,7 @@ export interface UserWithRole {
 	idRole?: number | null // Opcional para compatibilidad
 	idUserLeader?: number | null
 	idCategory?: number | null
+	canViewOthersCrm?: boolean
 	entryDate?: Date | string
 	retirementDate?: Date | string | null
 	password?: string | null

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 import { authorizeCrmReport } from '@/features/leads/reports/authorize-crm-report'
 import { toLeadViewer } from '@/lib/auth/require-crm-actor'
 import { getCrmSummary } from '@/features/leads/analytics/crm-summary.service'
@@ -21,7 +20,7 @@ export async function GET() {
 		const data = await getCrmSummary({
 			viewer: toLeadViewer(actor),
 			visibleUserIds: actor.visibleUserIds,
-			isBypass: isHierarchyBypassRole(actor.roleCode),
+			isBypass: actor.visibleUserIds.length === 0,
 		})
 		return NextResponse.json({ data } satisfies ApiResponse<typeof data>)
 	} catch (cause) {

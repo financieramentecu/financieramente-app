@@ -26,6 +26,7 @@ export async function getCurrentUserByEmail(
 			idUserLeader: user.idUserLeader,
 			role: user.role ? { code: user.role.code } : null,
 			level: user.level ? { code: user.level.code } : null,
+			canViewOthersCrm: user.canViewOthersCrm,
 		}
 	} catch (error) {
 		console.error('Error getting current user by email:', error)

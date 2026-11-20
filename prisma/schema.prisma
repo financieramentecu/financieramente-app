@@ -311,6 +311,8 @@ model User {
   ssoOnly                             Boolean                  @default(true) @map("sso_only")
   idCategory                          Int?                     @map("id_category")
   activatedAt                         DateTime?                @map("activated_at")
+  /// Granted read-only view of other branches' lead states and CRM reports.
+  canViewOthersCrm                    Boolean                  @default(false) @map("can_view_others_crm")
   accountTokens                       AccountToken[]
   auditLogs                           AuditLog[]
   businesses                          Business[]

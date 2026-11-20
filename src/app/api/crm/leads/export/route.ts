@@ -15,6 +15,7 @@ export async function GET(request: Request) {
 	try {
 		const guard = await requireCrmActor('crm_lead_table')
 		if (!guard.ok) return guard.response
+		if (!guard.actor.canManage || guard.actor.canViewOthersCrm) return error('Sin permisos para exportar', 403)
 		const parsed = parseLeadTableQuery(new URL(request.url).searchParams)
 		if (!parsed.ok) return error(parsed.error, 400)
 		const result = await exportLeadTable(
