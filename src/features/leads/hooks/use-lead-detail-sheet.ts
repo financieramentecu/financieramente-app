@@ -45,5 +45,9 @@ export function useLeadDetailSheet() {
 		}
 	}
 
-	return { lead, open, setOpen, openLead, previewName, loadError }
+	function patchLead(patch: Partial<LeadDetail>) {
+		setLead((current) => (current ? { ...current, ...patch } : current))
+	}
+
+	return { lead, open, setOpen, openLead, patchLead, previewName, loadError }
 }

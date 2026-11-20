@@ -2,6 +2,7 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { toLeadTableSearchParams, type LeadTableQuery } from '@/features/leads/table/lead-table-query.schema'
 import type { LeadTablePage, LeadTagChip } from '@/features/leads/table/lead-table.types'
 import type { LeadStageOption } from '@/features/leads/table/lead-stage-options.service'
+import type { LeadOriginOption } from '@/features/leads/table/lead-origin-options.service'
 
 async function readData<T>(response: Response, fallback: string): Promise<T> {
 	const body = (await response.json().catch(() => null)) as ApiResponse<T> | null
@@ -28,6 +29,10 @@ export async function fetchStageOptions(): Promise<LeadStageOption[]> {
 
 export async function fetchTagOptions(): Promise<LeadTagChip[]> {
 	return readData(await fetch('/api/crm/tags'), 'No fue posible cargar las etiquetas.')
+}
+
+export async function fetchOriginOptions(): Promise<LeadOriginOption[]> {
+	return readData(await fetch('/api/crm/origins'), 'No fue posible cargar los orígenes.')
 }
 
 export { readData as readApiData }

@@ -28,11 +28,20 @@ function parseOwnerIds(searchParams: URLSearchParams): number[] {
 	return [...new Set(ids)]
 }
 
+function parseOriginIds(searchParams: URLSearchParams): number[] {
+	const ids = searchParams.getAll('origin').flatMap((value) => {
+		const parsed = Number.parseInt(value, 10)
+		return Number.isSafeInteger(parsed) && parsed > 0 ? [parsed] : []
+	})
+	return [...new Set(ids)]
+}
+
 function parseBoardFilters(searchParams: URLSearchParams): {
 	outcomeStatuses?: LeadOutcomeStatus[]
 	createdAtRange?: { gte: Date; lte: Date }
 	ownerIds: number[]
 	excludedOwnerIds: number[]
+	originIds: number[]
 } {
 	const defaults = getDefaultLeadBoardFilters()
 
@@ -56,6 +65,7 @@ function parseBoardFilters(searchParams: URLSearchParams): {
 		createdAtRange,
 		ownerIds: parseOwnerIds(searchParams),
 		excludedOwnerIds: parseRepeatedUserIds(searchParams.getAll('exclude')),
+		originIds: parseOriginIds(searchParams),
 	}
 }
 
@@ -90,7 +100,8 @@ export async function GET(request: Request) {
 			: await getAccessibleUserIds(currentUser.idUser)
 
 		const { searchParams } = new URL(request.url)
-		const { outcomeStatuses, createdAtRange, ownerIds, excludedOwnerIds } = parseBoardFilters(searchParams)
+		const { outcomeStatuses, createdAtRange, ownerIds, excludedOwnerIds, originIds } =
+			parseBoardFilters(searchParams)
 
 		const board = await getLeadBoard(currentUser, {
 			visibleUserIds,
@@ -98,6 +109,7 @@ export async function GET(request: Request) {
 			createdAtRange,
 			ownerIds,
 			excludedOwnerIds,
+			originIds,
 		})
 
 		const response: ApiResponse<LeadBoardColumn[]> = { data: board }

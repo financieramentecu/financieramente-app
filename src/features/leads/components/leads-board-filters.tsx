@@ -7,9 +7,11 @@ import { DateRangePicker } from '@/features/shared/ui/date-range-picker'
 import { LEAD_OUTCOME_STATUS_LABELS } from '@/features/leads/lib/lead-outcome-status'
 import { LEAD_OUTCOME_STATUS_VALUES } from '@/features/leads/types/lead.types'
 import type { LeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
+import type { LeadOriginOption } from '@/features/leads/table/lead-origin-options.service'
 
 interface LeadsBoardFiltersProps {
 	value: LeadBoardFilters
+	origins: LeadOriginOption[]
 	onChange: (value: LeadBoardFilters) => void
 }
 
@@ -33,11 +35,13 @@ const DATE_RANGE_CALENDAR_STYLE = {
 
 /**
  * Presentational filter bar for the Leads Kanban board (D18): outcome-status
- * chips (`MultiSelect`, additive OR) + a `createdAt` date range
- * (`DateRangePicker`). Initial state comes from `getDefaultLeadBoardFilters()`
- * upstream — this component only reflects/mutates `value`.
+ * chips (`MultiSelect`, additive OR), a `createdAt` date range
+ * (`DateRangePicker`), and the lead origin (`client_origin` via
+ * `lead_client_origin`). Initial state comes from
+ * `getDefaultLeadBoardFilters()` upstream — this component only
+ * reflects/mutates `value`.
  */
-export function LeadsBoardFilters({ value, onChange }: LeadsBoardFiltersProps) {
+export function LeadsBoardFilters({ value, origins, onChange }: LeadsBoardFiltersProps) {
 	const dateRangeValue: DateRange | undefined = {
 		from: value.createdAtRange.gte,
 		to: value.createdAtRange.lte,
@@ -60,6 +64,26 @@ export function LeadsBoardFilters({ value, onChange }: LeadsBoardFiltersProps) {
 						})
 					}
 					placeholder="Estado del lead"
+				/>
+			</div>
+			<div className="flex w-60 flex-col gap-1.5">
+				<span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+					Origen del lead
+				</span>
+				<MultiSelect
+					ariaLabel="Origen del lead"
+					options={origins.map((origin) => ({
+						value: String(origin.idClientOrigin),
+						label: origin.name,
+					}))}
+					value={value.originIds.map(String)}
+					onChange={(originIds) =>
+						onChange({
+							...value,
+							originIds: originIds.map(Number),
+						})
+					}
+					placeholder="Origen del lead"
 				/>
 			</div>
 			<div className="flex w-72 flex-col gap-1.5">
