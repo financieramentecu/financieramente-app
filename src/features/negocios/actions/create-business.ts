@@ -12,7 +12,10 @@ import { mfundPeriodicityError } from '@/features/negocios/lib/mfund-periodicity
 import { calculateExpectedDates } from '@/features/negocios/lib/calculate-expected-dates'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
+import {
+	isLeadWithinConversionScope,
+	linkLeadToBusinessTx,
+} from '@/features/leads/services/lead-conversion.service'
 import { appendLeadConversionAuditAfterCommit } from '@/features/leads/conversion/lead-conversion-audit.service'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
@@ -122,6 +125,15 @@ export async function createBusiness(
 				'crm_conversion_audit',
 				guard.session.user.email ?? undefined
 			))
+
+		// A lead can only be converted from the caller's own branch. The page
+		// checks this too, but a Server Action can be invoked directly.
+		if (
+			validatedData.idLead != null &&
+			!(await isLeadWithinConversionScope(validatedData.idLead, toAccessUser(guard.session)))
+		) {
+			return { data: null, error: 'El lead no existe o está fuera de tu alcance' }
+		}
 
 		// NEG-02 / PA-04: the owner is decided server-side (a PARTNER always owns
 		// their own business) and the PPC is resolved with the OWNER's level.
