@@ -95,6 +95,8 @@ erDiagram
     Lead ||--o{ LeadTagAssignment : "etiquetas"
     Lead ||--o{ LeadFormSubmission : "fotos de formulario"
     LeadTag ||--o{ LeadTagAssignment : "asignaciones"
+    Lead ||--o{ LeadOriginAssignment : "orígenes del lead"
+    LeadOrigin ||--o{ LeadOriginAssignment : "etiqueta de origen"
     User ||--o{ LeadSavedView : "vistas guardadas"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
@@ -726,6 +728,26 @@ erDiagram
         int id_lead_tag FK
         boolean active
         int assigned_by
+        datetime created_at
+        datetime updated_at
+    }
+
+    LeadOrigin {
+        int id_lead_origin PK
+        string code UK
+        string name
+        boolean status
+        datetime created_at
+        datetime updated_at
+    }
+
+    LeadOriginAssignment {
+        int id_lead_origin_assignment PK
+        int id_lead FK
+        int id_lead_origin FK
+        boolean active
+        datetime first_seen_at
+        datetime last_seen_at
         datetime created_at
         datetime updated_at
     }

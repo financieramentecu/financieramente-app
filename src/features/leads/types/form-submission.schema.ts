@@ -11,7 +11,8 @@ export const FORM_FIELD_TYPE = {
 	SELECT: 'select',
 } as const
 
-export type FormFieldType = (typeof FORM_FIELD_TYPE)[keyof typeof FORM_FIELD_TYPE]
+export type FormFieldType =
+	(typeof FORM_FIELD_TYPE)[keyof typeof FORM_FIELD_TYPE]
 
 const FORM_FIELD_TYPES = [
 	FORM_FIELD_TYPE.TEXT,
@@ -72,11 +73,25 @@ export const formFieldSchema = z
 	})
 	.superRefine((field, context) => {
 		if (field.value === null) return
-		if (field.type === FORM_FIELD_TYPE.TEXT && typeof field.value !== 'string') {
-			context.addIssue({ code: 'custom', message: `${field.label}: el texto debe ser una cadena`, path: ['value'] })
+		if (
+			field.type === FORM_FIELD_TYPE.TEXT &&
+			typeof field.value !== 'string'
+		) {
+			context.addIssue({
+				code: 'custom',
+				message: `${field.label}: el texto debe ser una cadena`,
+				path: ['value'],
+			})
 		}
-		if (field.type === FORM_FIELD_TYPE.NUMBER && typeof field.value !== 'number') {
-			context.addIssue({ code: 'custom', message: `${field.label}: el número debe ser numérico`, path: ['value'] })
+		if (
+			field.type === FORM_FIELD_TYPE.NUMBER &&
+			typeof field.value !== 'number'
+		) {
+			context.addIssue({
+				code: 'custom',
+				message: `${field.label}: el número debe ser numérico`,
+				path: ['value'],
+			})
 		}
 		if (field.type === FORM_FIELD_TYPE.DATE) {
 			if (typeof field.value !== 'string' || !isCalendarDateOnly(field.value)) {
@@ -87,23 +102,36 @@ export const formFieldSchema = z
 				})
 			}
 		}
-		if (field.type === FORM_FIELD_TYPE.SELECT && typeof field.value === 'number') {
-			context.addIssue({ code: 'custom', message: `${field.label}: la selección debe ser texto`, path: ['value'] })
+		if (
+			field.type === FORM_FIELD_TYPE.SELECT &&
+			typeof field.value === 'number'
+		) {
+			context.addIssue({
+				code: 'custom',
+				message: `${field.label}: la selección debe ser texto`,
+				path: ['value'],
+			})
 		}
 	})
 
-export const formFieldsSchema = z.array(formFieldSchema).max(80, 'Máximo 80 campos')
+export const formFieldsSchema = z
+	.array(formFieldSchema)
+	.max(80, 'Máximo 80 campos')
 
 const leadIdentitySchema = z
 	.object({
 		statusKey: z.string().trim().min(1, 'statusKey es obligatorio').max(120),
 		name: optionalText(200),
 		lastName: optionalText(200),
-		email: z.union([z.literal(''), z.string().trim().email().max(150)]).optional(),
+		email: z
+			.union([z.literal(''), z.string().trim().email().max(150)])
+			.optional(),
 		phone: optionalText(30),
 		identityNumber: optionalText(20),
 		originTag: optionalText(120),
-		ownerEmail: z.union([z.literal(''), z.string().trim().email().max(150)]).optional(),
+		ownerEmail: z
+			.union([z.literal(''), z.string().trim().email().max(150)])
+			.optional(),
 	})
 	.transform((lead) => ({
 		...lead,
@@ -120,16 +148,38 @@ const leadIdentitySchema = z
  * n8n must send `null` for an empty answer so `0` and `"No"` stay intact.
  */
 export const formSubmissionPayloadSchema = z.object({
-	submissionId: z.string().trim().min(1, 'submissionId es obligatorio').max(150),
+	submissionId: z
+		.string()
+		.trim()
+		.min(1, 'submissionId es obligatorio')
+		.max(150),
 	submittedAt: offsetAwareInstant,
 	landing: z.object({
 		key: z.string().trim().min(1, 'landing.key es obligatorio').max(80),
 		name: z.string().trim().min(1, 'landing.name es obligatorio').max(120),
 		version: z.string().trim().min(1, 'landing.version es obligatorio').max(40),
 	}),
+	utm_source: z.string().trim().max(2000).optional(),
 	lead: leadIdentitySchema,
 	fields: formFieldsSchema,
 })
 
 export type FormField = z.infer<typeof formFieldSchema>
 export type FormSubmissionPayload = z.infer<typeof formSubmissionPayloadSchema>
+
+/** A partial form envelope must not fall through to the flat CRM upsert. */
+export function isFormSubmissionBody(body: unknown): boolean {
+	return (
+		typeof body === 'object' &&
+		body !== null &&
+		('submissionId' in body || 'landing' in body || 'fields' in body)
+	)
+}
+
+export function readSubmissionId(body: unknown): string | undefined {
+	if (typeof body !== 'object' || body === null || !('submissionId' in body))
+		return undefined
+	return typeof body.submissionId === 'string'
+		? body.submissionId.slice(0, 150)
+		: undefined
+}

@@ -24,6 +24,12 @@ export const crmSyncPayloadSchema = z.object({
 	phone: z.string().optional(),
 	identityNumber: z.string().optional(),
 	originTag: z.string().optional(),
+	/**
+	 * Landing-page query parameter forwarded by n8n.
+	 * Also accepted as `?utm_source=` on this request.
+	 * Resolved against `lead_origin` and linked through the pivot.
+	 */
+	utm_source: z.string().optional(),
 	externalUrl: z.union([z.literal(''), z.string().url()]).optional(),
 	ownerEmail: z.union([z.literal(''), z.string().email()]).optional(),
 	// Never a `z.enum()` — an unrecognized value MUST NOT reject the webhook
