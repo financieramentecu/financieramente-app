@@ -8,6 +8,11 @@ import {
 } from '@/features/leads/services/lead-origin.service'
 import { resolveFunnelColumn, resolveOwner } from '@/features/leads/services/lead-sync.service'
 import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
+import { recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
+import {
+	findSamePersonLead,
+	personAlreadyHasOrigin,
+} from '@/features/leads/services/find-same-person-lead'
 import type { FormSubmissionPayload } from '@/features/leads/types/form-submission.schema'
 
 export interface FormSubmissionResult {
@@ -16,61 +21,9 @@ export interface FormSubmissionResult {
 	submissionId: string
 }
 
-type LeadLookup = Prisma.TransactionClient
-
 function present(value: string | undefined): string | undefined {
 	const trimmed = value?.trim()
 	return trimmed ? trimmed : undefined
-}
-
-const MATCHED_LEAD_SELECT = { idLead: true, idUser: true } as const
-
-/**
- * Document, then email, then phone. The first hit wins.
- * The matched row is not rewritten. A different origin becomes its own lead.
- */
-async function findExistingLead(
-	tx: LeadLookup,
-	lead: FormSubmissionPayload['lead']
-): Promise<{ idLead: number; idUser: number | null } | null> {
-	const identityNumber = present(lead.identityNumber)
-	const email = present(lead.email)
-	const phone = present(lead.phone)
-
-	if (identityNumber) {
-		const byDocument = await tx.lead.findFirst({
-			where: { identityNumber, active: true },
-			select: MATCHED_LEAD_SELECT,
-		})
-		if (byDocument) return byDocument
-	}
-
-	if (email) {
-		const byEmail = await tx.lead.findFirst({
-			where: { email: { equals: email, mode: 'insensitive' }, active: true },
-			select: MATCHED_LEAD_SELECT,
-		})
-		if (byEmail) return byEmail
-	}
-
-	if (!phone) return null
-	return tx.lead.findFirst({
-		where: { phone, active: true },
-		select: MATCHED_LEAD_SELECT,
-	})
-}
-
-/** True when this person already has an active link to the incoming origin. */
-async function personAlreadyHasOrigin(
-	tx: LeadLookup,
-	idLead: number,
-	idClientOrigin: number
-): Promise<boolean> {
-	const row = await tx.leadClientOrigin.findFirst({
-		where: { idLead, idClientOrigin, active: true },
-		select: { idLeadClientOrigin: true },
-	})
-	return row !== null
 }
 
 function isUniqueConflict(error: unknown): boolean {
@@ -107,10 +60,11 @@ export async function ingestLeadFormSubmission(
 					stored: false,
 					columnId: null as number | null,
 					relatedTo: null as number | null,
+					assignedAdvisorId: null as number | null,
 				}
 			}
 
-			const matched = await findExistingLead(tx, payload.lead)
+			const matched = await findSamePersonLead(tx, payload.lead)
 			const splitByOrigin =
 				matched !== null &&
 				origin.status === 'ready' &&
@@ -118,6 +72,7 @@ export async function ingestLeadFormSubmission(
 			let idLead = splitByOrigin ? undefined : matched?.idLead
 			let columnId: number | null = null
 			let relatedTo: number | null = null
+			let assignedAdvisorId: number | null = null
 			if (!idLead) {
 				const [funnelColumn, ownerId] = await Promise.all([
 					resolveFunnelColumn(payload.lead.statusKey),
@@ -125,6 +80,7 @@ export async function ingestLeadFormSubmission(
 				])
 				columnId = funnelColumn.idLeadFunnelColumn
 				const advisorId = splitByOrigin ? (matched?.idUser ?? ownerId ?? null) : (ownerId ?? null)
+				assignedAdvisorId = advisorId
 				idLead = (
 					await tx.lead.create({
 						data: {
@@ -161,6 +117,10 @@ export async function ingestLeadFormSubmission(
 				}
 			}
 
+			if (idLead === undefined) {
+				throw new Error('Form lead was not persisted')
+			}
+
 			await tx.leadFormSubmission.create({
 				data: {
 					submissionId: payload.submissionId,
@@ -173,8 +133,25 @@ export async function ingestLeadFormSubmission(
 				},
 			})
 
-			return { idLead, created: !matched || splitByOrigin, stored: true, columnId, relatedTo }
+			return {
+				idLead,
+				created: !matched || splitByOrigin,
+				stored: true,
+				columnId,
+				relatedTo,
+				assignedAdvisorId,
+			}
 		})
+
+		if (result.stored && result.assignedAdvisorId != null && result.idLead != null) {
+			await recordOwnerChange({
+				idLead: result.idLead,
+				fromUserId: null,
+				toUserId: result.assignedAdvisorId,
+				source: 'SYSTEM',
+				changedAt: payload.submittedAt,
+			})
+		}
 
 		if (result.stored && result.created && result.columnId !== null) {
 			await recordLeadStageChange({

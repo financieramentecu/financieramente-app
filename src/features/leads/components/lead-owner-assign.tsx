@@ -2,14 +2,18 @@
 
 import { useState } from 'react'
 import { Button } from '@/features/shared/ui/button'
+import { SingleSelect } from '@/features/shared/ui/single-select'
 import { useAssignLeadOwner } from '@/features/leads/hooks/use-assign-lead-owner'
-import { useHierarchyAdvisors } from '@/features/leads/hooks/use-hierarchy-advisors'
 import type { AssignedLeadOwner } from '@/features/leads/hooks/use-assign-lead-owner'
+import type { HierarchyAdvisor } from '@/features/leads/types/hierarchy-advisor.types'
 
 interface LeadOwnerAssignProps {
 	idLead: number
 	idUser: number | null
 	ownerName: string | null
+	advisors: HierarchyAdvisor[]
+	advisorsReady: boolean
+	advisorsError?: string
 	onAssigned?: (owner: AssignedLeadOwner) => void
 }
 
@@ -18,12 +22,27 @@ export function LeadOwnerAssign({
 	idLead,
 	idUser,
 	ownerName,
+	advisors,
+	advisorsReady,
+	advisorsError = '',
 	onAssigned,
 }: LeadOwnerAssignProps) {
-	const advisors = useHierarchyAdvisors()
 	const { state, assign } = useAssignLeadOwner()
-	const [selectedId, setSelectedId] = useState(idUser ? String(idUser) : '')
-	const options = advisors.status === 'success' ? advisors.data : []
+	const assignedId = idUser != null ? String(idUser) : ''
+	const [trackedLeadId, setTrackedLeadId] = useState(idLead)
+	const [trackedOwnerId, setTrackedOwnerId] = useState(assignedId)
+	const [pickedId, setPickedId] = useState<string | null>(null)
+	if (trackedLeadId !== idLead || trackedOwnerId !== assignedId) {
+		setTrackedLeadId(idLead)
+		setTrackedOwnerId(assignedId)
+		setPickedId(null)
+	}
+	const selectedId = pickedId ?? assignedId
+	const ownerListed = advisors.some((advisor) => String(advisor.idUser) === assignedId)
+	const visibleOptions =
+		assignedId && ownerName && idUser != null && !ownerListed
+			? [{ idUser, name: ownerName }, ...advisors]
+			: advisors
 	const pending = state.status === 'loading'
 
 	async function handleAssign() {
@@ -44,20 +63,18 @@ export function LeadOwnerAssign({
 			</p>
 			<label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
 				Money Strategy disponibles
-				<select
-					aria-label="Money Strategy disponibles"
-					className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+				<SingleSelect
+					ariaLabel="Money Strategy disponibles"
+					searchLabel="Buscar Money Strategy"
+					placeholder="Selecciona un Money Strategy"
+					options={visibleOptions.map((advisor) => ({
+						value: String(advisor.idUser),
+						label: advisor.name,
+					}))}
 					value={selectedId}
-					disabled={advisors.status !== 'success' || pending}
-					onChange={(event) => setSelectedId(event.target.value)}
-				>
-					<option value="">Selecciona un Money Strategy</option>
-					{options.map((advisor) => (
-						<option key={advisor.idUser} value={advisor.idUser}>
-							{advisor.name}
-						</option>
-					))}
-				</select>
+					disabled={!advisorsReady || pending}
+					onChange={setPickedId}
+				/>
 			</label>
 			<Button
 				type="button"
@@ -67,9 +84,9 @@ export function LeadOwnerAssign({
 			>
 				{pending ? 'Asignando…' : 'Asignar Money Strategy'}
 			</Button>
-			{advisors.status === 'error' ? (
+			{advisorsError ? (
 				<p role="alert" className="text-sm text-destructive">
-					{advisors.error}
+					{advisorsError}
 				</p>
 			) : null}
 			{state.status === 'error' ? (

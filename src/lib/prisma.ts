@@ -17,35 +17,65 @@
 
 import { PrismaClient } from '@prisma/client'
 import { readPoolOptionsFromEnv, withPoolParams } from './prisma-pool'
+import { isBenignPrismaConnectionError, isNeonDatabaseUrl } from './prisma-log'
+
+const NEON_KEEPALIVE_MS = 4 * 60 * 1000
 
 const globalForPrisma = globalThis as unknown as {
 	prisma: PrismaClient | undefined
+	neonKeepAliveStarted?: boolean
 }
 
-export const prisma =
-	globalForPrisma.prisma ??
-	new PrismaClient({
+function createPrismaClient(): PrismaClient {
+	const logQueries =
+		process.env.NODE_ENV === 'development' && process.env.PRISMA_LOG_QUERIES === '1'
+
+	const client = new PrismaClient({
 		// Pool size and timeouts come from PRISMA_* env vars; DATABASE_URL params win.
 		datasourceUrl: withPoolParams(
 			process.env.DATABASE_URL,
 			readPoolOptionsFromEnv(process.env)
 		),
+		// Errors are events so a Neon suspend does not print one line per pooled connection.
 		// Full SQL logging serializes every round trip. Opt in with PRISMA_LOG_QUERIES=1.
-		log:
-			process.env.NODE_ENV === 'development' && process.env.PRISMA_LOG_QUERIES === '1'
-				? ['query', 'error', 'warn']
-				: ['error'],
+		log: logQueries
+			? [
+					{ emit: 'event', level: 'error' },
+					{ emit: 'stdout', level: 'query' },
+					{ emit: 'stdout', level: 'warn' },
+				]
+			: [{ emit: 'event', level: 'error' }],
 	})
+
+	client.$on('error', (event) => {
+		if (isBenignPrismaConnectionError(event.message)) return
+		console.error(event.message)
+	})
+
+	return client
+}
+
+function startNeonKeepAlive(client: PrismaClient): void {
+	if (process.env.NODE_ENV !== 'development') return
+	if (!isNeonDatabaseUrl(process.env.DATABASE_URL)) return
+	if (globalForPrisma.neonKeepAliveStarted) return
+
+	const timer = setInterval(() => {
+		void client.$queryRaw`SELECT 1`.catch(() => undefined)
+	}, NEON_KEEPALIVE_MS)
+	timer.unref?.()
+	globalForPrisma.neonKeepAliveStarted = true
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+
+if (!globalForPrisma.prisma) {
+	startNeonKeepAlive(prisma)
+}
 
 // Store Prisma Client in global to prevent multiple instances
 // This is critical for preventing connection pool exhaustion
-// In production, Next.js may create multiple instances, so we ensure singleton
-// REFRESH: 2026-04-29T19:32:00
-if (process.env.NODE_ENV === 'production') {
-	globalForPrisma.prisma = prisma
-} else {
-	globalForPrisma.prisma = prisma
-}
+globalForPrisma.prisma = prisma
 
 // Advertencia en desarrollo si se importa desde un Client Component
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {

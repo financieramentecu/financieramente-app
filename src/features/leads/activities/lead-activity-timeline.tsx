@@ -47,7 +47,7 @@ export function LeadActivityTimeline({
 			)}
 			{state.status === 'success' && items.length === 0 && (
 				<p className="text-sm text-muted-foreground">
-					Aún no hay actividades, tareas ni cambios de etapa para este lead.
+					Aún no hay actividades, tareas ni cambios de etapa, de Money Strategy o de origen para este lead.
 				</p>
 			)}
 			{days.map((group) => (

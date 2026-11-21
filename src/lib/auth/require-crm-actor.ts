@@ -6,7 +6,7 @@ import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { getAccessibleUserIds, isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
 import { isLeadVisible } from '@/features/leads/services/lead-board.service'
-import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
+import { canAccessCrm, canLeadMoneyStrategies, canManageCrm } from '@/features/leads/crm/crm-policy'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
@@ -75,6 +75,14 @@ export async function requireCrmActor(
 /** Lead visible to the actor. Missing and out-of-scope are both false. */
 export function findScopedLead(actor: CrmActor, idLead: number): Promise<boolean> {
 	return isLeadVisible(idLead, toLeadViewer(actor), { visibleUserIds: actor.visibleUserIds })
+}
+
+/** Admin, or a viewer who has at least one person under them. */
+export async function actorLeadsMoneyStrategies(actor: CrmActor): Promise<boolean> {
+	if (canLeadMoneyStrategies(actor.roleCode, actor.visibleUserIds, actor.idUser)) return true
+	if (actor.visibleUserIds.length > 0) return false
+	const accessible = await getAccessibleUserIds(actor.idUser)
+	return canLeadMoneyStrategies(actor.roleCode, accessible, actor.idUser)
 }
 
 export function canAssignWithinScope(

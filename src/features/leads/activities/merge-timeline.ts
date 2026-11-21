@@ -1,4 +1,4 @@
-export type TimelineKind = 'activity' | 'stage_change' | 'lead_ingress'
+export type TimelineKind = 'activity' | 'stage_change' | 'lead_change' | 'lead_ingress'
 
 export interface TimelineKey {
 	occurredAt: Date
@@ -6,7 +6,12 @@ export interface TimelineKey {
 	id: number
 }
 
-const KIND_RANK: Record<TimelineKind, number> = { activity: 0, stage_change: 1, lead_ingress: 2 }
+const KIND_RANK: Record<TimelineKind, number> = {
+	activity: 0,
+	stage_change: 1,
+	lead_change: 2,
+	lead_ingress: 3,
+}
 
 /** Timeline order: newest first, then stage changes before activities, then larger id. */
 export function compareTimelineKeys(a: TimelineKey, b: TimelineKey): number {
@@ -41,7 +46,9 @@ export function decodeTimelineCursor(value: string): TimelineKey | null {
 	const kind = parts.length === 2 ? 'activity' : kindOrId
 	const idValue = parts.length === 2 ? kindOrId : maybeId
 	if (parts.length !== 2 && parts.length !== 3) return null
-	if (kind !== 'activity' && kind !== 'stage_change' && kind !== 'lead_ingress') return null
+	if (kind !== 'activity' && kind !== 'stage_change' && kind !== 'lead_change' && kind !== 'lead_ingress') {
+		return null
+	}
 	const occurredAt = new Date(iso ?? '')
 	const id = Number.parseInt(idValue ?? '', 10)
 	if (Number.isNaN(occurredAt.getTime()) || !Number.isSafeInteger(id) || id < 1) return null

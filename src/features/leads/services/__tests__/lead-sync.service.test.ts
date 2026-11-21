@@ -49,7 +49,11 @@ vi.mock('@/lib/prisma', () => ({
 		},
 		lead: {
 			findUnique: vi.fn(),
+			findFirst: vi.fn(),
 			upsert: vi.fn(),
+		},
+		leadLink: {
+			create: vi.fn(),
 		},
 		clientOrigin: {
 			findMany: vi.fn(),
@@ -57,6 +61,7 @@ vi.mock('@/lib/prisma', () => ({
 		},
 		leadClientOrigin: {
 			findUnique: vi.fn(),
+			findFirst: vi.fn(),
 			create: vi.fn(),
 			update: vi.fn(),
 		},
@@ -81,6 +86,7 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 		LEAD_ORIGIN_CREATED: 'LEAD_ORIGIN_CREATED',
 		LEAD_ORIGIN_ASSIGNED: 'LEAD_ORIGIN_ASSIGNED',
 		LEAD_ORIGIN_INACTIVE: 'LEAD_ORIGIN_INACTIVE',
+		LEAD_RELATED: 'LEAD_RELATED',
 	},
 	getClientIp: vi.fn(() => '127.0.0.1'),
 	getUserAgent: vi.fn(() => 'n8n'),
@@ -172,6 +178,7 @@ describe('upsertLeadFromCrm', () => {
 		vi.mocked(prisma.lead.upsert).mockResolvedValue({
 			idLead: 10,
 		} as never)
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue(null)
 	})
 
 	it('creates a lead and logs LEAD_CREATED when it did not previously exist', async () => {
@@ -697,6 +704,7 @@ describe('upsertLeadFromCrm origin label', () => {
 		)
 		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 10 } as never)
 		vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue(null)
 	})
 
 	it('creates the client origin, labels originTag and links the pivot', async () => {
@@ -750,6 +758,64 @@ describe('upsertLeadFromCrm origin label', () => {
 		expect(result.origin).toBeNull()
 		expect(logAuditEvent).toHaveBeenCalledWith(
 			expect.objectContaining({ action: AuditAction.LEAD_ORIGIN_INACTIVE })
+		)
+	})
+
+	it('links the new CRM card to the form lead when the same person arrives from another origin', async () => {
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue({ idLead: 8, idUser: 15 } as never)
+		vi.mocked(prisma.user.findFirst).mockResolvedValue({ idUser: 99 } as never)
+		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 44, idUser: 15 } as never)
+		vi.mocked(prisma.clientOrigin.findMany).mockResolvedValue([
+			{ idClientOrigin: 20, name: 'Money Flow', status: true },
+		] as never)
+		vi.mocked(prisma.leadClientOrigin.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.leadClientOrigin.findUnique).mockResolvedValue(null)
+
+		const linkedAt = new Date('2026-11-20T19:00:00.000Z')
+		const result = await upsertLeadFromCrm({
+			externalCrmId: 'crm-flow-1',
+			statusKey: 'new',
+			name: 'Ana',
+			lastName: 'Pérez',
+			email: 'ana.nueva@example.com',
+			phone: '3005550101',
+			identityNumber: '1234567890',
+			ownerEmail: 'otro.asesor@example.com',
+			utm_source: 'Money Flow',
+			updatedAt: linkedAt,
+		})
+
+		expect(result).toEqual({
+			idLead: 44,
+			created: true,
+			origin: { code: 'money_flow', name: 'Money Flow' },
+		})
+		expect(prisma.lead.findFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({ identityNumber: '1234567890', active: true }),
+			})
+		)
+		const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0]![0]
+		expect(upsertCall.create.idUser).toBe(15)
+		expect(upsertCall.create.originTag).toBe('Money Flow')
+		expect(upsertCall.create.email).toBe('ana.nueva@example.com')
+		expect(prisma.leadLink.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					idLead: 44,
+					idRelatedLead: 8,
+					idClientOrigin: 20,
+					source: 'AUTO',
+					active: true,
+					linkedAt,
+				}),
+			})
+		)
+		expect(logAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: AuditAction.LEAD_RELATED,
+				details: expect.stringContaining('relacionado con 8'),
+			})
 		)
 	})
 })

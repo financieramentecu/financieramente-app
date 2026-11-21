@@ -37,6 +37,31 @@ describe('LeadRelationPanel', () => {
 		expect(screen.queryByRole('button', { name: 'Relacionar lead' })).not.toBeInTheDocument()
 	})
 
+	it('shows the relation on the other lead and does not ask to relate again', () => {
+		render(
+			<LeadRelationPanel
+				idLead={238}
+				canManage
+				relations={[
+					{
+						idLeadLink: 1,
+						otherLeadId: 237,
+						otherName: 'Ana Pérez (prueba)',
+						originName: 'Money Flow',
+						side: 'related',
+						source: 'MANUAL',
+						linkedAt: '2026-11-20T19:31:00.000Z',
+					},
+				]}
+			/>
+		)
+
+		expect(
+			screen.getByText('Está relacionado con Ana Pérez (prueba). Ese ingreso es por Money Flow.')
+		).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: 'Relacionar lead' })).not.toBeInTheDocument()
+	})
+
 	it('relates the lead after the origin and the other lead are chosen', async () => {
 		const user = userEvent.setup()
 		relate.mockResolvedValue({
@@ -64,5 +89,31 @@ describe('LeadRelationPanel', () => {
 		expect(relate).toHaveBeenCalledWith(240, 239, 4)
 		expect(await screen.findByText('Ingresó por Money Strategy y está relacionado con Danna Guzman.')).toBeInTheDocument()
 		expect(onRelated).toHaveBeenCalledWith({ idUser: 9, ownerName: 'Ana Torres' }, expect.any(Array))
+	})
+
+	it('relates the lead without choosing an origin', async () => {
+		const user = userEvent.setup()
+		relate.mockResolvedValue({
+			relation: {
+				idLeadLink: 3,
+				otherLeadId: 239,
+				otherName: 'Danna Guzman',
+				originName: 'Sin origen',
+				side: 'incoming',
+				source: 'MANUAL',
+				linkedAt: '2026-11-20T16:00:00.000Z',
+			},
+			idUser: null,
+			ownerName: null,
+		})
+		render(<LeadRelationPanel idLead={240} canManage relations={[]} />)
+
+		await user.type(screen.getByRole('textbox', { name: 'Buscar lead para relacionar' }), 'Danna')
+		await user.click(screen.getByRole('button', { name: 'Buscar' }))
+		await user.click(await screen.findByRole('button', { name: /Danna Guzman/ }))
+		await user.click(screen.getByRole('button', { name: 'Relacionar lead' }))
+
+		expect(relate).toHaveBeenCalledWith(240, 239, null)
+		expect(await screen.findByText('Quedó relacionado con Danna Guzman.')).toBeInTheDocument()
 	})
 })

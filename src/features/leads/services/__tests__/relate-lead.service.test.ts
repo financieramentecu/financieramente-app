@@ -18,6 +18,14 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 	AuditAction: { LEAD_RELATED: 'LEAD_RELATED' },
 }))
 
+vi.mock('@/features/leads/services/lead-origin.service', () => ({
+	assignLeadOrigin: vi.fn().mockResolvedValue('created'),
+}))
+
+vi.mock('@/features/leads/services/record-lead-change.service', () => ({
+	recordOwnerChange: vi.fn().mockResolvedValue(undefined),
+}))
+
 const ctx = { userId: 3, email: 'ana@financieramente.com' }
 
 describe('relateLead', () => {
@@ -84,6 +92,50 @@ describe('relateLead', () => {
 		if (result.ok) {
 			expect(result.ownerName).toBe('Ana Torres')
 			expect(result.relation.otherName).toBe('Danna Guzman')
+		}
+	})
+
+	it('links without an origin when none is provided', async () => {
+		vi.mocked(prisma.lead.findFirst)
+			.mockResolvedValueOnce({
+				idLead: 240,
+				name: 'Camilo',
+				lastName: 'Restrepo',
+				originTag: null,
+				idUser: null,
+				active: true,
+			} as never)
+			.mockResolvedValueOnce({
+				idLead: 239,
+				name: 'Danna',
+				lastName: 'Guzman',
+				originTag: 'Money Strategy',
+				idUser: 15,
+				active: true,
+			} as never)
+		vi.mocked(prisma.leadLink.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.leadLink.create).mockResolvedValue({
+			idLeadLink: 2,
+			linkedAt: new Date('2026-11-20T16:00:00.000Z'),
+		} as never)
+		vi.mocked(prisma.user.findFirst).mockResolvedValue({ name: 'Ana', lastName: 'Torres' } as never)
+
+		const result = await relateLead(240, 239, null, ctx)
+
+		expect(result.ok).toBe(true)
+		expect(prisma.clientOrigin.findFirst).not.toHaveBeenCalled()
+		expect(prisma.leadLink.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					idLead: 240,
+					idRelatedLead: 239,
+					idClientOrigin: null,
+					source: 'MANUAL',
+				}),
+			})
+		)
+		if (result.ok) {
+			expect(result.relation.originName).toBe('Sin origen')
 		}
 	})
 })

@@ -79,8 +79,8 @@ describe('describeTimelineEntry', () => {
 			source: 'AUTO' as const,
 		}
 		expect(describeTimelineEntry(ingress)).toEqual({
-			title: 'Ingreso de lead',
-			detail: 'Camilo Restrepo ingresó por Money Strategy.',
+			title: 'Relación entre leads',
+			detail: 'Está relacionado con Camilo Restrepo. Ese ingreso es por Money Strategy.',
 			meta: 'Mismo Money Strategy',
 			actor: 'Sistema',
 		})
@@ -97,8 +97,43 @@ describe('describeTimelineEntry', () => {
 				source: 'MANUAL',
 			})
 		).toMatchObject({
-			detail: 'Ingresó por Money Strategy y quedó relacionado con Danna Guzman.',
+			detail: 'Quedó relacionado con Danna Guzman. El ingreso es por Money Strategy.',
 			meta: 'Mismo Money Strategy · Validado en el CRM',
+			actor: 'Ana',
+		})
+	})
+
+	it('describes a Money Strategy change and marks a system assignment', () => {
+		expect(
+			describeTimelineEntry({
+				kind: 'lead_change',
+				idLeadChangeHistory: 2,
+				occurredAt: '2026-11-20T15:00:00.000Z',
+				change: 'OWNER',
+				source: 'SYSTEM',
+				actorName: null,
+				fromLabel: null,
+				toLabel: 'Laura Gomez',
+			})
+		).toEqual({
+			title: 'Cambio de Money Strategy',
+			detail: 'Sin Money Strategy → Laura Gomez',
+			actor: 'Sistema',
+		})
+		expect(
+			describeTimelineEntry({
+				kind: 'lead_change',
+				idLeadChangeHistory: 3,
+				occurredAt: '2026-11-20T15:00:00.000Z',
+				change: 'ORIGIN',
+				source: 'MANUAL',
+				actorName: 'Ana',
+				fromLabel: 'Propio',
+				toLabel: 'Money Flow',
+			})
+		).toEqual({
+			title: 'Cambio de origen',
+			detail: 'Propio → Money Flow',
 			actor: 'Ana',
 		})
 	})

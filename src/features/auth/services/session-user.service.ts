@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { isRetryablePrismaConnectionError } from '@/lib/prisma-log'
 import type { SessionUserState } from '../lib/session-revalidation'
 
 /**
@@ -7,9 +8,7 @@ import type { SessionUserState } from '../lib/session-revalidation'
  * One primary-key read selecting only `active` and the role code. Deliberately
  * does not select `activatedAt`: the activation gate applies at login only.
  */
-export async function getSessionUserState(
-	userId: number
-): Promise<SessionUserState | null> {
+async function readSessionUserState(userId: number): Promise<SessionUserState | null> {
 	const user = await prisma.user.findUnique({
 		where: { idUser: userId },
 		select: { active: true, role: { select: { code: true } } },
@@ -18,4 +17,15 @@ export async function getSessionUserState(
 	if (!user) return null
 
 	return { active: user.active, roleCode: user.role?.code ?? null }
+}
+
+export async function getSessionUserState(
+	userId: number
+): Promise<SessionUserState | null> {
+	try {
+		return await readSessionUserState(userId)
+	} catch (error) {
+		if (!isRetryablePrismaConnectionError(error)) throw error
+		return readSessionUserState(userId)
+	}
 }

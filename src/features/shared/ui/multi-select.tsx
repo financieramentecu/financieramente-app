@@ -83,7 +83,8 @@ export function MultiSelect({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: 'min(300px, var(--radix-popover-content-available-height, 300px))',
+          maxHeight:
+            'min(28rem, var(--radix-popover-content-available-height, 28rem))',
           overflow: 'hidden',
         }}
       >
@@ -107,7 +108,10 @@ export function MultiSelect({
         </div>
 
         {/* List — fills remaining space and scrolls */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        <div
+          className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
+          style={{ scrollbarGutter: 'stable' }}
+        >
           {filtered.length === 0 ? (
             <div style={{ padding: '24px 0', textAlign: 'center', fontSize: '14px', color: 'var(--muted-foreground)' }}>
               Sin resultados

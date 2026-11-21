@@ -46,4 +46,26 @@ describe('getSessionUserState', () => {
 			select: { active: true, role: { select: { code: true } } },
 		})
 	})
+
+	it('reads the user again when the database closed the connection', async () => {
+		findUnique
+			.mockRejectedValueOnce({ code: 'P1017', message: 'Server has closed the connection.' })
+			.mockResolvedValueOnce({ active: true, role: { code: 'ADMIN' } } as never)
+
+		await expect(getSessionUserState(7)).resolves.toEqual({
+			active: true,
+			roleCode: 'ADMIN',
+		})
+		expect(findUnique).toHaveBeenCalledTimes(2)
+	})
+
+	it('does not retry a non-connection failure', async () => {
+		findUnique.mockRejectedValueOnce({ code: 'P2002', message: 'Unique constraint' })
+		await expect(getSessionUserState(7)).rejects.toEqual({
+			code: 'P2002',
+			message: 'Unique constraint',
+		})
+		expect(findUnique).toHaveBeenCalledTimes(1)
+	})
 })
+

@@ -4,7 +4,11 @@ import { getLeadActivityPage } from '@/features/leads/activities/lead-activity.s
 import { getLeadTimelinePage } from '@/features/leads/activities/lead-timeline.service'
 
 vi.mock('@/lib/prisma', () => ({
-	prisma: { leadStageHistory: { findMany: vi.fn() }, leadLink: { findMany: vi.fn() } },
+	prisma: {
+		leadStageHistory: { findMany: vi.fn() },
+		leadLink: { findMany: vi.fn() },
+		leadChangeHistory: { findMany: vi.fn() },
+	},
 }))
 vi.mock('@/features/leads/activities/lead-activity.service', () => ({ getLeadActivityPage: vi.fn() }))
 
@@ -29,6 +33,7 @@ describe('getLeadTimelinePage', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		vi.mocked(prisma.leadLink.findMany).mockResolvedValue([])
+		vi.mocked(prisma.leadChangeHistory.findMany).mockResolvedValue([])
 	})
 
 	it('merges activities and stage changes newest first', async () => {

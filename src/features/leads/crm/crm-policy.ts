@@ -19,3 +19,16 @@ export function canAccessCrm(roleCode: string | null | undefined): boolean {
 export function canManageCrm(roleCode: string | null | undefined): boolean {
 	return canAccessCrm(roleCode) && !isReadOnlyRole(roleCode)
 }
+
+/**
+ * Changing the Money Strategy and relating leads is limited to an admin or
+ * someone who already leads other people. A leaf advisor only sees the result.
+ */
+export function canLeadMoneyStrategies(
+	roleCode: string | null | undefined,
+	accessibleUserIds: readonly number[],
+	viewerId: number
+): boolean {
+	if (roleCode === UserRole.ADMIN) return true
+	return accessibleUserIds.some((id) => id !== viewerId)
+}
