@@ -1016,6 +1016,7 @@ model Lead {
   supportCases       LeadSupportCase[]
   stageHistory       LeadStageHistory[]
   tagAssignments     LeadTagAssignment[]
+  formSubmissions    LeadFormSubmission[]
 
   @@index([idUser])
   @@index([idLeadFunnelColumn])
@@ -1028,6 +1029,24 @@ enum LeadStageChangeSource {
   CRM_SYNC
   CSV_IMPORT
   MANUAL
+  LANDING_FORM
+}
+
+/// Append-only snapshot of a landing form posted by n8n. A retry reuses `submissionId`.
+model LeadFormSubmission {
+  idLeadFormSubmission Int      @id @default(autoincrement()) @map("id_lead_form_submission")
+  idLead               Int      @map("id_lead")
+  submissionId         String   @unique @map("submission_id") @db.VarChar(150)
+  landingKey           String   @map("landing_key") @db.VarChar(80)
+  landingName          String   @map("landing_name") @db.VarChar(120)
+  formVersion          String   @map("form_version") @db.VarChar(40)
+  submittedAt          DateTime @map("submitted_at")
+  fields               Json
+  createdAt            DateTime @default(now()) @map("created_at")
+  lead                 Lead     @relation(fields: [idLead], references: [idLead])
+
+  @@index([idLead, submittedAt])
+  @@map("lead_form_submission")
 }
 
 /// Append-only log of funnel stage transitions (never updated or deleted).

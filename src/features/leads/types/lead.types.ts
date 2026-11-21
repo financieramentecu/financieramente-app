@@ -1,4 +1,5 @@
 import type { Lead, LeadFunnelColumn, LeadOutcomeStatus } from '@prisma/client'
+import type { LeadFormSubmissionView } from '@/features/leads/types/form-submission.types'
 import type { LeadTagChip } from '@/features/leads/table/lead-table.types'
 
 /**
@@ -70,6 +71,8 @@ export interface LeadDetail {
 	outcomeStatus: LeadOutcomeStatus
 	createdAt: Date
 	updatedAt: Date
+	/** Landing snapshots, newest first. Absent on callers that only need contact fields. */
+	formSubmissions?: LeadFormSubmissionView[]
 	/** Idle days when the open lead passed `CRM_INACTIVITY_DAYS`, else null. */
 	inactiveDays: number | null
 	/** CRM-owned data (never written by crm-sync). */

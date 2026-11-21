@@ -11,7 +11,7 @@ Sistema: Financieramente — liquidación de comisiones.
 - `AccountTokenType`: `ACTIVATION` | `RESET` (en `account_token.type`).
 - `LeadOutcomeStatus`: `OPEN` | `WON` | `LOST` | `ABANDONED` (en `lead.outcome_status`, `@default(OPEN)`, `NOT NULL`). `WON` es terminal: ver nota bajo "Índices y convenciones".
 - `DocumentDataType`: `NUMERIC` | `ALPHANUMERIC` (en `document_type.data_type`).
-- `LeadStageChangeSource`: `CRM_SYNC` | `CSV_IMPORT` | `MANUAL` (en `lead_stage_history.source`).
+- `LeadStageChangeSource`: `CRM_SYNC` | `CSV_IMPORT` | `MANUAL` | `LANDING_FORM` (en `lead_stage_history.source`). `LANDING_FORM` es el alta de un prospecto que llega por el formulario de una landing.
 - `LeadActivityType`: `NOTE_ADDED` | `CALL_LOGGED` | `MEETING_LOGGED` | `EMAIL_LOGGED` | `WHATSAPP_LOGGED` | `TASK_CREATED` | `TASK_COMPLETED` | `TASK_REASSIGNED` | `TASK_COMMENTED` | `CONVERTED` | `BUSINESS_LINKED` | `CASE_OPENED` | `CASE_UPDATED` (en `lead_activity.type`). `TASK_COMMENTED` registra un comentario de tarea; un comentario de caso sigue siendo `CASE_UPDATED` con `action: COMMENTED`.
 - `LeadTaskType`: `TODO` | `CALL` | `MEETING` | `EMAIL` | `WHATSAPP` (en `lead_task.type`, `@default(TODO)`). El nombre visible vive en `lead_activity_label` (`code` nulo = etiqueta creada por el equipo).
 - `LeadCustomFieldType`: `TEXT` | `NUMBER` | `DATE` | `SELECT` (en `lead_custom_field.type`; inmutable tras crear el campo).
@@ -93,6 +93,7 @@ erDiagram
     LeadSupportCase ||--o{ LeadSupportCaseComment : "comentarios"
     User ||--o{ LeadSupportCaseComment : "autor"
     Lead ||--o{ LeadTagAssignment : "etiquetas"
+    Lead ||--o{ LeadFormSubmission : "fotos de formulario"
     LeadTag ||--o{ LeadTagAssignment : "asignaciones"
     User ||--o{ LeadSavedView : "vistas guardadas"
 
@@ -593,6 +594,18 @@ erDiagram
         datetime updated_at
     }
 
+    LeadFormSubmission {
+        int id_lead_form_submission PK
+        int id_lead FK
+        string submission_id UK
+        string landing_key
+        string landing_name
+        string form_version
+        datetime submitted_at
+        json fields
+        datetime created_at
+    }
+
     LeadStageHistory {
         int id_lead_stage_history PK
         int id_lead FK
@@ -793,4 +806,5 @@ erDiagram
 - **CRM: `lead_activity`, `lead_task`, `lead_support_case`, `lead_support_case_comment`** (migraciones `20261105165000`–`20261105180000`, rama `codex/negocios-basic-crm`): `lead_activity` es un registro de eventos de solo inserción (payload JSON versionado; `(id_lead, correlation_id)` único para idempotencia; cursor `(occurred_at, id_lead_activity)`). Solo `NOTE_ADDED` y `*_LOGGED` los envía el cliente; el resto los escriben los servicios. `lead_task` = trabajo programado (estilo Odoo `mail.activity`); `lead_support_case` = casos de soporte (estilo EspoCRM Case). Los cambios de etapa **no** se duplican en `lead_activity`: el timeline los mezcla al leer desde `lead_stage_history` (el webhook no tiene actor y `lead_activity.id_user` es obligatorio).
 - **Avisos de tareas del CRM** (migración `20261117140000_crm_task_notice_settings`): `lead_task.advance_notified_at` marca el aviso in-app de la ventana de anticipación (índice `(due_at, advance_notified_at)`). `reminder_sent_at` queda solo para el aviso del día de vencimiento. Reprogramar o reabrir limpia ambos. `crm_notification_setting` es una fila única (`id = 1`) con `anticipation_days` de 0 a 30 (check en la migración, default 1). El cron de las 07:00 Bogotá envía correo solo de tareas abiertas ya vencidas; el de cada 15 min avisa en la app las de hoy y las que entran en esa anticipación. Las completadas o canceladas no entran (`status = OPEN`).
 - **CRM Fase 1** (migración `20261109120000_extend_lead_activity_and_task`, change `crm-phase-1-activities`): `LeadActivityType` += `CALL_LOGGED | MEETING_LOGGED | EMAIL_LOGGED | WHATSAPP_LOGGED`; nuevo enum `LeadTaskType` y columnas `lead_task.type` (`DEFAULT 'TODO'`) y `lead_task.reminder_sent_at` (índice `(due_at, reminder_sent_at)`: el cron reclama la tarea con `updateMany ... WHERE reminder_sent_at IS NULL` antes de notificar; reprogramar la tarea lo vuelve `NULL`). `lead.last_activity_at` es dato propio del CRM (nunca lo escriben el webhook ni el CSV): lo actualiza `appendLeadActivityTx` en la misma transacción para los eventos de contacto, solo si es más reciente; índice `(outcome_status, last_activity_at)` para el indicador "Sin actividad".
+- **Fotos de formulario de landing** (migración `20261118150000_add_lead_form_submission`, COM-247): `lead_form_submission` es de solo inserción. `submission_id` es único y hace idempotente el POST de n8n. `fields` guarda el arreglo validado (`text`, `number`, `date`, `select`) con etiqueta y valor; una landing nueva no agrega columnas. Un prospecto que ya existe solo recibe otra foto: no se mueve su etapa ni se tocan valor, probabilidad, campos del CRM ni etiquetas. `LANDING_FORM` en `lead_stage_history.source` registra únicamente el alta. Soft delete del lead no borra las fotos.
 - **CRM Fase 2** (migración `20261110120000_add_lead_views_tags_fields`, change `crm-phase-2-views-tags`): datos propios del CRM que el webhook `crm-sync` nunca escribe. `lead.estimated_value` (`DECIMAL(15,2)`) y `lead.probability` (`CHECK 0..100`) dan el valor ponderado del pipeline (valor × probabilidad / 100). `lead.custom_field_values` es un JSON indexado por `lead_custom_field.key` (sin tabla EAV); se valida contra los campos activos al escribir y un campo desactivado oculta su valor sin borrarlo. `lead_custom_field.key` es único para siempre (no se reutiliza la clave de un campo inactivo). `lead_tag_assignment` tiene `(id_lead, id_lead_tag)` único: quitar una etiqueta pone `active=false` y volver a ponerla reactiva la misma fila. `lead_tag.name` es único entre las activas sin distinguir mayúsculas (lo valida el servicio). `lead_saved_view` es personal (`id_user`), guarda filtros y orden de la tabla sin paginación; máximo 20 activas por usuario. `created_by` / `assigned_by` son ids de usuario sin FK (solo trazabilidad; la auditoría está en `AuditLog`).
