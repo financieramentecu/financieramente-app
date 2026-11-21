@@ -42,7 +42,7 @@ const kanbanCollision: CollisionDetection = (args) => {
  * Leads Kanban. Cards move between columns with drag and drop; the stage
  * change is stored as a manual action of the signed-in user.
  */
-export function LeadsBoard() {
+export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 	const { enabled: reportsEnabled } = useFeatureFlag('crm_reports')
 	const hierarchy = useCrmHierarchyFilter()
 	const [filters, setFilters] = useState(getDefaultLeadBoardFilters())
@@ -151,7 +151,7 @@ export function LeadsBoard() {
 					{state.error}
 				</p>
 			)}
-			{state.status === 'success' && (
+			{state.status === 'success' && canMove && (
 				<DndContext
 					sensors={sensors}
 					collisionDetection={kanbanCollision}
@@ -176,6 +176,18 @@ export function LeadsBoard() {
 						) : null}
 					</DragOverlay>
 				</DndContext>
+			)}
+			{state.status === 'success' && !canMove && (
+				<div className="flex gap-4 overflow-x-auto pb-4">
+					{state.data.map((column) => (
+						<LeadBoardColumn
+							key={column.idLeadFunnelColumn}
+							column={column}
+							onLeadClick={openLead}
+							movable={false}
+						/>
+					))}
+				</div>
 			)}
 				</>
 			)}

@@ -194,6 +194,15 @@ Public to n8n. Authenticates with the same `x-api-key` as `POST /api/leads/crm-s
 | `/api/health`             | System health check.   |
 | `/api/email/send`         | Send generic email.    |
 
+### 7. CRM task notices
+
+| Method | Endpoint | Description |
+| :----- | :------- | :---------- |
+| `GET` | `/api/crm/notification-settings` | Anticipation days for upcoming task notices. CRM managers, flag `crm_tasks`. |
+| `PUT` | `/api/crm/notification-settings` | Body `{ anticipationDays }` integer 0–30. Same guard. |
+| `POST` | `/api/leads/cron/task-reminders` | Every 15 min. In-app notices for tasks due today and inside the anticipation window. Bearer `CRON_SECRET`. |
+| `POST` | `/api/leads/cron/task-digest` | 07:00 Bogotá. Email to the assignee for open overdue tasks only. Bearer `CRON_SECRET`. |
+
 ## Development Guidelines
 
 1.  **Always use `ApiResponse<T>`**: No loose JSON objects.

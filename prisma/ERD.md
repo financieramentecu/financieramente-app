@@ -83,6 +83,7 @@ erDiagram
     User ||--o{ LeadTask : "responsable / creador"
     User ||--o{ LeadActivityLabel : "crea etiquetas de actividad"
     User ||--o{ LeadActivityColumn : "renombra cabeceras"
+    User ||--o{ CrmNotificationSetting : "actualiza avisos de tareas"
     LeadActivityLabel ||--o{ LeadTask : "etiqueta visible"
     LeadTask ||--o{ LeadTaskComment : "comentarios"
     User ||--o{ LeadTaskComment : "autor"
@@ -306,6 +307,7 @@ erDiagram
         date entry_date
         date retirement_date
         boolean active
+        boolean can_view_others_crm
         datetime activated_at
         datetime created_at
         datetime updated_at
@@ -666,7 +668,15 @@ erDiagram
         string status
         datetime completed_at
         datetime reminder_sent_at
+        datetime advance_notified_at
         datetime created_at
+        datetime updated_at
+    }
+
+    CrmNotificationSetting {
+        int id_crm_notification_setting PK
+        int anticipation_days
+        int updated_by FK
         datetime updated_at
     }
 
@@ -782,7 +792,7 @@ erDiagram
 - **FK**: Foreign Key  
 - **UK**: Unique (constraint único)  
 - Nombres de tablas y columnas en el diagrama siguen el mapeo físico de `schema.prisma` (`@@map` / `@map`).
-- `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor.
+- `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor. `can_view_others_crm` (migración `20261117153000_user_can_view_others_crm`) es un permiso otorgado por persona: sin él, un asesor solo ve su rama; con él, ve en solo lectura los estados de leads y los reportes del CRM de las demás ramas.
 - **Nueva tabla `document_type`** (migración `20261009193000_add_document_type`): catálogo de tipos de documento. `name` y `code` son únicos. `status = false` es el borrado lógico (nunca `delete()` físico). La precarga inserta CC, CE, PAS, NIT y PPT en estado activo. `max_length` queda acotado a 20 para caber en `identity_number`.
 - **`Client.id_document_type`** (migración `20261014170000_link_client_document_type`, COM-27): FK `ON DELETE RESTRICT` hacia `document_type`. `type_identity` queda como copia del `code` para la unicidad `(type_identity, identity_number)` y los consumidores existentes; no es texto libre. La migración es idempotente: solo llena `id_document_type` nulo, conserva el código que ya coincide con el catálogo y asigna CC al resto. Reejecutarla no reemplaza una FK ya definida. Desactivar un tipo lo oculta en altas nuevas y conserva la relación histórica. `User.type_identity` sigue sin FK (usuarios de plataforma, fuera de alcance).
 - **`Policyholder`** (migración `20261015143000_add_policyholder`, COM-28): catálogo independiente de `Client`. `Business.client_is_policyholder` nace en `true` para los negocios existentes (el cliente es el mismo tomador) y `id_policyholder` queda nulo. Un tomador distinto se vincula solo a ese negocio (`ON DELETE RESTRICT`); volver la casilla a «Sí» desvincula el negocio y no borra la fila del tomador. La unicidad es `(type_identity, identity_number)`. Reejecutar la migración no crea tomadores ni cambia un vínculo ya guardado.
@@ -816,6 +826,7 @@ erDiagram
 - **CRM: etiquetas de actividad** (migración `20261112183000_add_lead_activity_label`): `lead_activity_label` es el catálogo de nombres que se ven en la tarjeta (color, `active`, `code` único y nulo en las etiquetas creadas por el equipo). La migración siembra Tarea, Llamada, Reunión, Email y WhatsApp con el `id_user` más bajo y enlaza `lead_task.id_lead_activity_label` según `lead_task.type`. `lead_task.type` se conserva para recordatorios y tareas anteriores al catálogo. Borrar una etiqueta es lógico (`active = false`); la última etiqueta activa no se puede desactivar.
 - **CRM: `lead_task_comment`** (migración `20261111170000_add_lead_task_comment`): comentarios de una tarea, escritos desde Actividades. Mismo patrón que `lead_support_case_comment` (solo inserción, índice `(id_lead_task, created_at)`).
 - **CRM: `lead_activity`, `lead_task`, `lead_support_case`, `lead_support_case_comment`** (migraciones `20261105165000`–`20261105180000`, rama `codex/negocios-basic-crm`): `lead_activity` es un registro de eventos de solo inserción (payload JSON versionado; `(id_lead, correlation_id)` único para idempotencia; cursor `(occurred_at, id_lead_activity)`). Solo `NOTE_ADDED` y `*_LOGGED` los envía el cliente; el resto los escriben los servicios. `lead_task` = trabajo programado (estilo Odoo `mail.activity`); `lead_support_case` = casos de soporte (estilo EspoCRM Case). Los cambios de etapa **no** se duplican en `lead_activity`: el timeline los mezcla al leer desde `lead_stage_history` (el webhook no tiene actor y `lead_activity.id_user` es obligatorio).
+- **Avisos de tareas del CRM** (migración `20261117140000_crm_task_notice_settings`): `lead_task.advance_notified_at` marca el aviso in-app de la ventana de anticipación (índice `(due_at, advance_notified_at)`). `reminder_sent_at` queda solo para el aviso del día de vencimiento. Reprogramar o reabrir limpia ambos. `crm_notification_setting` es una fila única (`id = 1`) con `anticipation_days` de 0 a 30 (check en la migración, default 1). El cron de las 07:00 Bogotá envía correo solo de tareas abiertas ya vencidas; el de cada 15 min avisa en la app las de hoy y las que entran en esa anticipación. Las completadas o canceladas no entran (`status = OPEN`).
 - **CRM Fase 1** (migración `20261109120000_extend_lead_activity_and_task`, change `crm-phase-1-activities`): `LeadActivityType` += `CALL_LOGGED | MEETING_LOGGED | EMAIL_LOGGED | WHATSAPP_LOGGED`; nuevo enum `LeadTaskType` y columnas `lead_task.type` (`DEFAULT 'TODO'`) y `lead_task.reminder_sent_at` (índice `(due_at, reminder_sent_at)`: el cron reclama la tarea con `updateMany ... WHERE reminder_sent_at IS NULL` antes de notificar; reprogramar la tarea lo vuelve `NULL`). `lead.last_activity_at` es dato propio del CRM (nunca lo escriben el webhook ni el CSV): lo actualiza `appendLeadActivityTx` en la misma transacción para los eventos de contacto, solo si es más reciente; índice `(outcome_status, last_activity_at)` para el indicador "Sin actividad".
 - **Fotos de formulario de landing** (migración `20261118150000_add_lead_form_submission`, COM-247): `lead_form_submission` es de solo inserción. `submission_id` es único y hace idempotente el POST de n8n. `fields` guarda el arreglo validado (`text`, `number`, `date`, `select`) con etiqueta y valor; una landing nueva no agrega columnas. Un prospecto que ya existe solo recibe otra foto: no se mueve su etapa ni se tocan valor, probabilidad, campos del CRM ni etiquetas. `LANDING_FORM` en `lead_stage_history.source` registra únicamente el alta. Soft delete del lead no borra las fotos.
 - **CRM Fase 2** (migración `20261110120000_add_lead_views_tags_fields`, change `crm-phase-2-views-tags`): datos propios del CRM que el webhook `crm-sync` nunca escribe. `lead.estimated_value` (`DECIMAL(15,2)`) y `lead.probability` (`CHECK 0..100`) dan el valor ponderado del pipeline (valor × probabilidad / 100). `lead.custom_field_values` es un JSON indexado por `lead_custom_field.key` (sin tabla EAV); se valida contra los campos activos al escribir y un campo desactivado oculta su valor sin borrarlo. `lead_custom_field.key` es único para siempre (no se reutiliza la clave de un campo inactivo). `lead_tag_assignment` tiene `(id_lead, id_lead_tag)` único: quitar una etiqueta pone `active=false` y volver a ponerla reactiva la misma fila. `lead_tag.name` es único entre las activas sin distinguir mayúsculas (lo valida el servicio). `lead_saved_view` es personal (`id_user`), guarda filtros y orden de la tabla sin paginación; máximo 20 activas por usuario. `created_by` / `assigned_by` son ids de usuario sin FK (solo trazabilidad; la auditoría está en `AuditLog`).

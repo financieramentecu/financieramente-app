@@ -15,7 +15,7 @@ vi.mock('@/features/leads/table/lead-table.service', () => ({ getLeadTable: vi.f
 vi.mock('@/features/leads/table/lead-stage-options.service', () => ({ listLeadStageOptions: vi.fn() }))
 vi.mock('@/features/leads/table/lead-table-export.service', () => ({ exportLeadTable: vi.fn() }))
 
-const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7, 8], canManage: true, idCategory: null }
+const actor = { idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7, 8], canManage: true, idCategory: null, manageableUserIds: [7, 8], canViewOthersCrm: false }
 
 describe('GET /api/crm/leads', () => {
 	beforeEach(() => {
