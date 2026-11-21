@@ -12,6 +12,8 @@ export interface BuildMenuFlags {
 	isCalculadoraEnabled?: boolean
 	/** Authorized report codes from category permissions (or ADMIN bypass) */
 	authorizedReportCodes?: readonly string[]
+	/** Person granted a read-only view of other branches' lead states and CRM reports. */
+	canViewOthersCrm?: boolean
 }
 
 /**
@@ -60,7 +62,7 @@ export function buildMenuByRole(
 		// Negocios (CRM sub-item gated by leads permission; lead visibility is
 		// resolved by hierarchy inside the module)
 		if (item.title === 'Negocios' && permissions.negocios.list) {
-			filteredItems.push(buildNegociosMenuItem(item, permissions))
+			filteredItems.push(buildNegociosMenuItem(item, permissions, flags))
 			continue
 		}
 
@@ -158,10 +160,12 @@ export function buildMenuByRole(
  */
 function buildNegociosMenuItem(
 	item: MenuItem,
-	permissions: RolePermissions
+	permissions: RolePermissions,
+	flags?: BuildMenuFlags
 ): MenuItem {
+	const canOpenCrm = permissions.leads || flags?.canViewOthersCrm === true
 	const subItems = item.subItems?.filter(
-		(subItem) => subItem.url !== CRM_MENU_ITEM.url || permissions.leads
+		(subItem) => subItem.url !== CRM_MENU_ITEM.url || canOpenCrm
 	)
 
 	if (!subItems || subItems.length <= 1) {

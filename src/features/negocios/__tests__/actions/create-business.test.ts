@@ -7,8 +7,11 @@ import {
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createBusiness } from '@/features/negocios/actions/create-business'
 import { getPpcForNewBusinesses } from '@/features/negocios/services/product-configuration.service'
-import { linkLeadToBusinessTx } from '@/features/leads/services/lead-conversion.service'
-import { appendLeadConversionAuditTx } from '@/features/leads/conversion/lead-conversion-audit.service'
+import {
+	isLeadWithinConversionScope,
+	linkLeadToBusinessTx,
+} from '@/features/leads/services/lead-conversion.service'
+import { appendLeadConversionAuditAfterCommit } from '@/features/leads/conversion/lead-conversion-audit.service'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { prisma } from '@/lib/prisma'
 import { logAuditEvent } from '@/features/auth/lib/audit-logger'
@@ -28,11 +31,12 @@ vi.mock('@/features/negocios/services/product-configuration.service', () => ({
 }))
 
 vi.mock('@/features/leads/services/lead-conversion.service', () => ({
+	isLeadWithinConversionScope: vi.fn(),
 	linkLeadToBusinessTx: vi.fn(),
 }))
 
 vi.mock('@/features/leads/conversion/lead-conversion-audit.service', () => ({
-	appendLeadConversionAuditTx: vi.fn(),
+	appendLeadConversionAuditAfterCommit: vi.fn(),
 }))
 
 vi.mock('@/features/shared/lib/flagsmith-server', () => ({
@@ -103,6 +107,7 @@ describe('createBusiness', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		vi.mocked(isFeatureEnabledServer).mockResolvedValue(false)
+		vi.mocked(isLeadWithinConversionScope).mockResolvedValue(true)
 		vi.mocked(requireWriteAccess).mockResolvedValue({
 			ok: true,
 			session: { user: { id: '1', role: UserRole.ADMIN } },
@@ -492,15 +497,88 @@ describe('createBusiness', () => {
 				return callback(capturedTx as never)
 			})
 			vi.mocked(linkLeadToBusinessTx).mockResolvedValue(undefined)
-			vi.mocked(appendLeadConversionAuditTx).mockResolvedValue(undefined)
+			vi.mocked(appendLeadConversionAuditAfterCommit).mockResolvedValue(undefined)
 
 			await createBusiness({ ...basePayload, idBuyPeriodicity: 1, term: 3, idLead: 5 })
 
-			expect(appendLeadConversionAuditTx).toHaveBeenCalledWith(capturedTx, {
+			expect(linkLeadToBusinessTx).toHaveBeenCalledWith(capturedTx, 5, 77)
+			expect(appendLeadConversionAuditAfterCommit).toHaveBeenCalledWith({
 				idLead: 5,
 				idBusiness: 77,
 				idUser: 1,
 			})
+		})
+
+		it('keeps the created business when the conversion audit fails after commit', async () => {
+			vi.mocked(isFeatureEnabledServer).mockResolvedValue(true)
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				name: 'Anual',
+			} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+			const created = mockCreatedBusiness({ idBusiness: 77, status: 'VENTA_EFECTUADA' })
+			vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+				callback({
+					business: { create: vi.fn().mockResolvedValue(created) },
+					payment: { createMany: vi.fn() },
+				} as never)
+			)
+			vi.mocked(linkLeadToBusinessTx).mockResolvedValue(undefined)
+			vi.mocked(appendLeadConversionAuditAfterCommit).mockRejectedValue(
+				new Error('audit down')
+			)
+			const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+			const result = await createBusiness({
+				...basePayload,
+				idBuyPeriodicity: 1,
+				term: 3,
+				idLead: 5,
+			})
+
+			expect(result.data?.idBusiness).toBe(77)
+			expect(appendLeadConversionAuditAfterCommit).toHaveBeenCalledWith({
+				idLead: 5,
+				idBusiness: 77,
+				idUser: 1,
+			})
+			errorSpy.mockRestore()
+		})
+
+		it('rejects a lead outside the caller scope before writing anything', async () => {
+			vi.mocked(isLeadWithinConversionScope).mockResolvedValue(false)
+
+			const result = await createBusiness({
+				...basePayload,
+				idBuyPeriodicity: 1,
+				term: 3,
+				idLead: 5,
+			})
+
+			expect(result.data).toBeNull()
+			expect('error' in result && result.error).toBe(
+				'El lead no existe o está fuera de tu alcance'
+			)
+			expect(isLeadWithinConversionScope).toHaveBeenCalledWith(5, {
+				idUser: 1,
+				role: { code: UserRole.ADMIN },
+			})
+			expect(prisma.$transaction).not.toHaveBeenCalled()
+			expect(linkLeadToBusinessTx).not.toHaveBeenCalled()
+		})
+
+		it('does not check the lead scope when no idLead is provided', async () => {
+			vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
+				name: 'Anual',
+			} as Awaited<ReturnType<typeof prisma.buyPeriodicity.findUnique>>)
+			vi.mocked(prisma.$transaction).mockImplementation(async (callback) =>
+				callback({
+					business: { create: vi.fn().mockResolvedValue(mockCreatedBusiness()) },
+					payment: { createMany: vi.fn() },
+				} as never)
+			)
+
+			await createBusiness({ ...basePayload, idBuyPeriodicity: 1, term: 3 })
+
+			expect(isLeadWithinConversionScope).not.toHaveBeenCalled()
 		})
 
 		it('rolls back the whole transaction (no Business created) when the lead is already converted', async () => {

@@ -383,7 +383,7 @@ function ReportBody({ report }: { report: CrmPipelineReport }) {
 }
 
 /** CRM "Reportes" tab: funnel, rates, time per stage, breakdowns and weighted forecast. */
-export function CrmReports() {
+export function CrmReports({ canExport = true }: { canExport?: boolean }) {
 	const hierarchy = useCrmHierarchyFilter()
 	const { state, range, load } = useCrmPipelineReport()
 	const [appliedRange, setAppliedRange] = React.useState<CrmReportRange | null>(null)
@@ -440,7 +440,7 @@ export function CrmReports() {
 					{state.error}
 				</p>
 			)}
-			{state.status === 'success' && (
+			{state.status === 'success' && canExport && (
 				<div className="flex flex-wrap gap-2">
 					<Button asChild variant="outline" size="sm">
 						<a href={buildCrmReportExportUrl(state.data.range, 'xlsx', [], hierarchy.excludedOwnerIds)}>

@@ -304,6 +304,7 @@ erDiagram
         date entry_date
         date retirement_date
         boolean active
+        boolean can_view_others_crm
         datetime activated_at
         datetime created_at
         datetime updated_at
@@ -756,7 +757,7 @@ erDiagram
 - **FK**: Foreign Key  
 - **UK**: Unique (constraint único)  
 - Nombres de tablas y columnas en el diagrama siguen el mapeo físico de `schema.prisma` (`@@map` / `@map`).
-- `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor.
+- `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor. `can_view_others_crm` (migración `20261117153000_user_can_view_others_crm`) es un permiso otorgado por persona: sin él, un asesor solo ve su rama; con él, ve en solo lectura los estados de leads y los reportes del CRM de las demás ramas.
 - **Nueva tabla `document_type`** (migración `20261009193000_add_document_type`): catálogo de tipos de documento. `name` y `code` son únicos. `status = false` es el borrado lógico (nunca `delete()` físico). La precarga inserta CC, CE, PAS, NIT y PPT en estado activo. `max_length` queda acotado a 20 para caber en `identity_number`.
 - **`Client.id_document_type`** (migración `20261014170000_link_client_document_type`, COM-27): FK `ON DELETE RESTRICT` hacia `document_type`. `type_identity` queda como copia del `code` para la unicidad `(type_identity, identity_number)` y los consumidores existentes; no es texto libre. La migración es idempotente: solo llena `id_document_type` nulo, conserva el código que ya coincide con el catálogo y asigna CC al resto. Reejecutarla no reemplaza una FK ya definida. Desactivar un tipo lo oculta en altas nuevas y conserva la relación histórica. `User.type_identity` sigue sin FK (usuarios de plataforma, fuera de alcance).
 - **`Policyholder`** (migración `20261015143000_add_policyholder`, COM-28): catálogo independiente de `Client`. `Business.client_is_policyholder` nace en `true` para los negocios existentes (el cliente es el mismo tomador) y `id_policyholder` queda nulo. Un tomador distinto se vincula solo a ese negocio (`ON DELETE RESTRICT`); volver la casilla a «Sí» desvincula el negocio y no borra la fila del tomador. La unicidad es `(type_identity, identity_number)`. Reejecutar la migración no crea tomadores ni cambia un vínculo ya guardado.

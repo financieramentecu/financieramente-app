@@ -16,6 +16,6 @@
 ### Técnico
 - Migration `20261109120000_extend_lead_activity_and_task`: `LeadActivityType` += `*_LOGGED`, new enum `LeadTaskType`, `lead_task.type`, `lead_task.reminder_sent_at`, `lead.last_activity_at` (+ indexes).
 - New `requireCrmActor` guard (`src/lib/auth/require-crm-actor.ts`) and CRM command services; CRM route handlers no longer call Prisma and every CRM mutation is audited (`LEAD_ACTIVITY_*`, `LEAD_TASK_*`, `LEAD_SUPPORT_CASE_*`).
-- New endpoints: `GET /api/crm/tasks?bucket=`, `PATCH /api/crm/tasks/[id]` `reschedule` action, cron `POST /api/leads/cron/task-reminders` and `POST /api/leads/cron/task-digest` (wired into QA/prod crontabs).
+- New endpoints: `GET /api/crm/tasks?bucket=`, `PATCH /api/crm/tasks/[id]` `reschedule` action, cron `POST /api/leads/cron/task-reminders` and `POST /api/leads/cron/task-digest` (not installed in QA/prod crontabs until CRM is enabled outside development).
 - `verifyCronSecret` extracted to `src/lib/auth/verify-cron-secret.ts` and reused by `fund-payments`.
 - Optional env `CRM_INACTIVITY_DAYS` (default 7).

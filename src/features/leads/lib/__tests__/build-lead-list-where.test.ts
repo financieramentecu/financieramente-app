@@ -18,11 +18,22 @@ describe('buildLeadListWhere', () => {
 		expect(hasIdUserClause).toBe(false)
 	})
 
-	it('CONSULTOR (read-only global visibility) sees all active leads — no idUser scoping', () => {
+	it('CONSULTOR without a company-wide grant stays on the ids they were given', () => {
 		const where = buildLeadListWhere(
 			{ idUser: 9, role: { code: UserRole.CONSULTOR } },
 			{},
 			{ visibleUserIds: [9] }
+		)
+
+		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
+		expect(andConditions).toEqual(expect.arrayContaining([{ idUser: { in: [9] } }]))
+	})
+
+	it('an empty visible set is the granted company-wide read', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 9, role: { code: UserRole.CONSULTOR } },
+			{},
+			{ visibleUserIds: [] }
 		)
 
 		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
@@ -150,7 +161,16 @@ describe('buildLeadListWhere', () => {
 		)
 		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
 		expect(andConditions).toContainEqual({ idUser: { in: [5, 6, 7] } })
-		expect(andConditions).toContainEqual({ idUser: { notIn: [6] } })
+		expect(andConditions).toContainEqual({ OR: [{ idUser: null }, { idUser: { notIn: [6] } }] })
+	})
+
+	it('keeps unassigned leads visible to admins when excluding an owner', () => {
+		expect(buildLeadListWhere(
+			{ idUser: 1, role: { code: UserRole.ADMIN } },
+			{ excludedOwnerIds: [6] }
+		)).toEqual({
+			AND: [{ active: true }, { OR: [{ idUser: null }, { idUser: { notIn: [6] } }] }],
+		})
 	})
 
 	it('adds an owner clause that cannot widen a scoped hierarchy', () => {

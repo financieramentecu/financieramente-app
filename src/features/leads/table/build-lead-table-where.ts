@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
+import { isWriteBypassRole } from '@/features/auth/lib/roles'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
 import type { LeadViewer } from '@/features/leads/types/lead.types'
@@ -36,16 +36,9 @@ function searchClauses(q: string | undefined): Prisma.LeadWhereInput[] {
 /** Owner filter restricted to the viewer's hierarchy so it can only narrow, never widen. */
 function ownerClause(viewer: LeadViewer, ownerIds: number[], visibleUserIds: number[]): Prisma.LeadWhereInput[] {
 	if (ownerIds.length === 0) return []
-	const allowed = isHierarchyBypassRole(viewer.role?.code)
-		? ownerIds
-		: ownerIds.filter((id) => visibleUserIds.includes(id))
+	const companyWide = isWriteBypassRole(viewer.role?.code) || visibleUserIds.length === 0
+	const allowed = companyWide ? ownerIds : ownerIds.filter((id) => visibleUserIds.includes(id))
 	return [{ idUser: { in: allowed } }]
-}
-
-/** Unchecked branches already expanded to their descendants. */
-function excludedClause(excludedOwnerIds: readonly number[] | undefined): Prisma.LeadWhereInput[] {
-	if (!excludedOwnerIds || excludedOwnerIds.length === 0) return []
-	return [{ idUser: { notIn: [...excludedOwnerIds] } }]
 }
 
 function idleClause(now: Date, inactivityDays: number): Prisma.LeadWhereInput {
@@ -69,6 +62,7 @@ export function buildLeadTableWhere(
 		viewer,
 		{
 			outcomeStatuses: query.statuses,
+			excludedOwnerIds: query.excludedOwnerIds,
 			createdAtRange: query.from && query.to ? parseBogotaInclusiveUtcRange(query.from, query.to) : undefined,
 		},
 		{ visibleUserIds: options.visibleUserIds }
@@ -77,7 +71,6 @@ export function buildLeadTableWhere(
 		...(Array.isArray(base.AND) ? base.AND : base.AND ? [base.AND] : []),
 		...searchClauses(query.q),
 		...ownerClause(viewer, query.ownerIds, options.visibleUserIds),
-		...excludedClause(query.excludedOwnerIds),
 	]
 	if (query.stageIds.length > 0) and.push({ idLeadFunnelColumn: { in: query.stageIds } })
 	if (query.tagIds.length > 0) {
