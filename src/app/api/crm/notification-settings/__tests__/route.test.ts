@@ -12,7 +12,16 @@ vi.mock('@/features/leads/tasks/crm-notification-setting.service', () => ({
 	saveTaskNoticeSetting: vi.fn(),
 }))
 
-const actor = { idUser: 7, email: 'a@x.co', roleCode: 'ADMIN', visibleUserIds: [], canManage: true, idCategory: null }
+const actor = {
+	idUser: 7,
+	email: 'a@x.co',
+	roleCode: 'ADMIN',
+	visibleUserIds: [],
+	manageableUserIds: [],
+	canViewOthersCrm: false,
+	canManage: true,
+	idCategory: null,
+}
 const json = (body: unknown) => new Request('http://x', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
 
 describe('/api/crm/notification-settings', () => {
