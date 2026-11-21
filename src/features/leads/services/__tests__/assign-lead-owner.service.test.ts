@@ -29,13 +29,12 @@ const leads = [
 ]
 
 function installSamePersonGraph() {
-	vi.mocked(prisma.lead.findMany).mockImplementation((async (args: { where?: { idLead?: { in?: number[] }; OR?: unknown; NOT?: { idUser: number } } }) => {
+	vi.mocked(prisma.lead.findMany).mockImplementation((async (args: { where?: { idLead?: { in?: number[] }; OR?: unknown } }) => {
 		const where = args?.where as {
 			idLead?: { in?: number[] }
 			OR?: Array<Record<string, unknown>>
-			NOT?: { idUser: number }
 		}
-		if (where?.NOT) {
+		if (where?.OR) {
 			return leads.filter((lead) => where.idLead?.in?.includes(lead.idLead) && lead.idUser !== 9)
 		}
 		if (where?.idLead?.in && !where.OR) {
@@ -73,6 +72,13 @@ describe('assignLeadOwner', () => {
 		expect(result.ok).toBe(true)
 		if (!result.ok) return
 		expect(result.assignedLeadIds.sort((a, b) => a - b)).toEqual([12, 20, 21])
+		expect(prisma.lead.findMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({
+					OR: [{ idUser: null }, { idUser: { not: 9 } }],
+				}),
+			})
+		)
 		expect(prisma.lead.updateMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: expect.objectContaining({
@@ -109,9 +115,9 @@ describe('assignLeadOwner', () => {
 			name: 'Laura',
 			lastName: null,
 		} as never)
-		vi.mocked(prisma.lead.findMany).mockImplementation((async (args: { where?: { NOT?: { idUser: number }; idLead?: { in?: number[] } } }) => {
-			const where = args?.where as { NOT?: { idUser: number }; idLead?: { in?: number[] } }
-			if (where?.NOT) return [{ idLead: 12, idUser: null }]
+		vi.mocked(prisma.lead.findMany).mockImplementation((async (args: { where?: { OR?: unknown; idLead?: { in?: number[] } } }) => {
+			const where = args?.where as { OR?: unknown; idLead?: { in?: number[] } }
+			if (where?.OR) return [{ idLead: 12, idUser: null }]
 			return [{ idLead: 12, idUser: null, email: '   ', phone: null, identityNumber: null }]
 		}) as never)
 		vi.mocked(prisma.leadLink.findMany).mockResolvedValue([])

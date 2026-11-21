@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import {
+	actorLeadsMoneyStrategies,
 	crmErrorResponse as error,
 	findScopedLead,
 	parsePositiveId,
@@ -17,11 +18,14 @@ interface RouteContext {
 
 type RelatedLead = Extract<RelateLeadResult, { ok: true }>
 
-/** POST /api/leads/[id]/relation — validate an origin and link this lead to another. */
+/** POST /api/leads/[id]/relation — link this lead to another; origin is optional. */
 export async function POST(request: Request, context: RouteContext) {
 	try {
 		const guard = await requireCrmActor('leads_module', { manage: true })
 		if (!guard.ok) return guard.response
+		if (!(await actorLeadsMoneyStrategies(guard.actor))) {
+			return error('Sin permisos para relacionar leads', 403)
+		}
 		const idLead = parsePositiveId((await context.params).id)
 		if (!idLead) return error('Identificador de lead inválido', 400)
 		const input = relateLeadSchema.safeParse(await readJsonBody(request))
@@ -33,7 +37,7 @@ export async function POST(request: Request, context: RouteContext) {
 		const result = await relateLead(
 			idLead,
 			input.data.idRelatedLead,
-			input.data.idClientOrigin,
+			input.data.idClientOrigin ?? null,
 			toCrmRequestContext(guard.actor, request)
 		)
 		if (!result.ok) return error(result.error, 400)

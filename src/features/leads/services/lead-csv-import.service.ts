@@ -12,6 +12,7 @@ import { leadCsvRowSchema } from '@/features/leads/types/lead-csv-import.schema'
 import type { LeadCsvRawRow } from '@/features/leads/lib/parse-lead-csv-file'
 import type { LeadCsvImportSummary, LeadCsvOwnerlessLead } from '@/features/leads/types/lead-csv-import.types'
 import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
+import { recordLeadChanges, recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
 
 export interface LeadCsvImportActor {
 	userId?: number
@@ -172,6 +173,36 @@ export async function importLeadsFromCsv(
 			changedAt: receivedAt,
 		})
 
+		const actorLabel = userLabel(activeUsers, actor.userId)
+		if (resolvedOwnerId !== undefined && resolvedOwnerId !== (existing?.idUser ?? null)) {
+			await recordOwnerChange({
+				idLead: lead.idLead,
+				fromUserId: existing?.idUser ?? null,
+				toUserId: resolvedOwnerId,
+				source: 'MANUAL',
+				idActor: actor.userId,
+				actorLabel,
+				fromLabel: userLabel(activeUsers, existing?.idUser ?? null),
+				toLabel: resolvedOwnerId == null ? 'Sin Money Strategy' : (userLabel(activeUsers, resolvedOwnerId) ?? 'Sin Money Strategy'),
+				changedAt: receivedAt,
+			})
+		}
+		const nextOrigin = typeof upsertData.originTag === 'string' ? upsertData.originTag : null
+		if (nextOrigin && nextOrigin !== (existing?.originTag ?? null)) {
+			await recordLeadChanges([
+				{
+					idLead: lead.idLead,
+					kind: 'ORIGIN',
+					source: 'MANUAL',
+					idActor: actor.userId,
+					actorLabel,
+					fromLabel: existing?.originTag ?? null,
+					toLabel: nextOrigin,
+					changedAt: receivedAt,
+				},
+			])
+		}
+
 		summary.imported += 1
 		if (existing) {
 			summary.updated += 1
@@ -218,6 +249,14 @@ interface ResolveRowOwnerParams {
 interface ResolveRowOwnerResult {
 	resolvedOwnerId: number | null | undefined
 	ownerlessEntry: LeadCsvOwnerlessLead | undefined
+}
+
+function userLabel(users: ActiveUserForNameMatch[], idUser: number | null | undefined): string | null {
+	if (idUser == null) return null
+	const user = users.find((candidate) => candidate.idUser === idUser)
+	if (!user) return null
+	const name = [user.name, user.lastName].filter(Boolean).join(' ').trim()
+	return name || null
 }
 
 /**

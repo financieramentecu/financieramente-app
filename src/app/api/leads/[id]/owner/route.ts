@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import {
+	actorLeadsMoneyStrategies,
 	canAssignWithinScope,
 	crmErrorResponse as error,
 	findScopedLead,
@@ -21,6 +22,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 	try {
 		const guard = await requireCrmActor('leads_module', { manage: true })
 		if (!guard.ok) return guard.response
+		if (!(await actorLeadsMoneyStrategies(guard.actor))) {
+			return error('Sin permisos para asignar un Money Strategy', 403)
+		}
 		const idLead = parsePositiveId((await context.params).id)
 		if (!idLead) return error('Identificador de lead inválido', 400)
 		if (!(await findScopedLead(guard.actor, idLead)))

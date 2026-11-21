@@ -29,6 +29,7 @@ import {
 } from '@/features/leads/lib/lead-outcome-status'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
 import { LeadOwnerAssign } from '@/features/leads/components/lead-owner-assign'
+import { useHierarchyAdvisors } from '@/features/leads/hooks/use-hierarchy-advisors'
 import type { AssignedLeadOwner } from '@/features/leads/hooks/use-assign-lead-owner'
 import { Skeleton } from '@/features/shared/ui/skeleton'
 import { canDeleteLead } from '@/features/leads/lib/can-delete-lead'
@@ -87,6 +88,43 @@ function sameFinish(
 		current.drafting === next.drafting &&
 		current.pending === next.pending &&
 		current.includeCloseDate === next.includeCloseDate
+	)
+}
+
+function LeadPersonActions({
+	lead,
+	onOwnerAssigned,
+}: {
+	lead: LeadDetail
+	onOwnerAssigned?: (owner: AssignedLeadOwner) => void
+}) {
+	const { state, canLead } = useHierarchyAdvisors()
+	const advisors = state.status === 'success' ? state.data : []
+
+	return (
+		<>
+			<LeadRelationPanel
+				key={`relation-${lead.idLead}`}
+				idLead={lead.idLead}
+				relations={lead.relations ?? []}
+				canManage={canLead}
+				onRelated={(owner) => {
+					if (owner) onOwnerAssigned?.(owner)
+				}}
+			/>
+			{canLead ? (
+				<LeadOwnerAssign
+					key={`owner-${lead.idLead}`}
+					idLead={lead.idLead}
+					idUser={lead.idUser}
+					ownerName={lead.ownerName}
+					advisors={advisors}
+					advisorsReady={state.status === 'success'}
+					advisorsError={state.status === 'error' ? state.error : ''}
+					onAssigned={onOwnerAssigned}
+				/>
+			) : null}
+		</>
 	)
 }
 
@@ -315,23 +353,7 @@ export function LeadDetailSheet({
 							</div>
 						)}
 						<LeadFormSnapshots snapshots={lead.formSubmissions ?? []} />
-						<LeadRelationPanel
-							key={lead.idLead}
-							idLead={lead.idLead}
-							relations={lead.relations ?? []}
-							canManage={canManageCrm}
-							onRelated={(owner) => {
-								if (owner) onOwnerAssigned?.(owner)
-							}}
-						/>
-						{canManageCrm ? (
-							<LeadOwnerAssign
-								idLead={lead.idLead}
-								idUser={lead.idUser}
-								ownerName={lead.ownerName}
-								onAssigned={onOwnerAssigned}
-							/>
-						) : null}
+						<LeadPersonActions lead={lead} onOwnerAssigned={onOwnerAssigned} />
 						{conversionAuditEnabled && isConverted && (
 							<div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
 								<p className="font-medium">Conversión auditada</p>

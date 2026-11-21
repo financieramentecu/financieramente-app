@@ -10,21 +10,24 @@ export interface RelatedLeadResult {
 
 const IDLE: AsyncState<RelatedLeadResult> = { status: 'idle', data: undefined, error: '' }
 
-/** Validates an origin and links the open lead to another lead of the same person. */
+/** Links the open lead to another lead of the same person. Origin is optional. */
 export function useRelateLead() {
 	const [state, setState] = useState<AsyncState<RelatedLeadResult>>(IDLE)
 
 	async function relate(
 		idLead: number,
 		idRelatedLead: number,
-		idClientOrigin: number
+		idClientOrigin: number | null
 	): Promise<RelatedLeadResult | null> {
 		setState({ status: 'loading', data: undefined, error: '' })
 		try {
 			const response = await fetch(`/api/leads/${idLead}/relation`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ idRelatedLead, idClientOrigin }),
+				body: JSON.stringify({
+					idRelatedLead,
+					...(idClientOrigin != null ? { idClientOrigin } : {}),
+				}),
 			})
 			const body = (await response.json()) as {
 				data?: RelatedLeadResult | null

@@ -25,7 +25,7 @@ export function LeadRelationPanel({ idLead, relations, canManage, onRelated }: L
 	const [candidates, setCandidates] = useState<LeadCandidate[]>([])
 	const [selectedId, setSelectedId] = useState<number | null>(null)
 	const [searchError, setSearchError] = useState('')
-	const alreadyLinked = items.some((item) => item.side === LEAD_LINK_SIDES.INCOMING)
+	const alreadyLinked = items.length > 0
 	const pending = state.status === 'loading'
 
 	useEffect(() => {
@@ -51,9 +51,11 @@ export function LeadRelationPanel({ idLead, relations, canManage, onRelated }: L
 	}
 
 	async function handleRelate() {
+		if (selectedId == null) return
 		const parsedOrigin = Number(originId)
-		if (!selectedId || !Number.isInteger(parsedOrigin) || parsedOrigin <= 0) return
-		const related = await relate(idLead, selectedId, parsedOrigin)
+		const idClientOrigin =
+			originId && Number.isInteger(parsedOrigin) && parsedOrigin > 0 ? parsedOrigin : null
+		const related = await relate(idLead, selectedId, idClientOrigin)
 		if (!related) return
 		const next = [related.relation, ...items]
 		setItems(next)
@@ -79,8 +81,12 @@ export function LeadRelationPanel({ idLead, relations, canManage, onRelated }: L
 					{items.map((item) => (
 						<li key={item.idLeadLink} className="rounded-md bg-slate-50 px-3 py-2 text-sm dark:bg-slate-900">
 							{item.side === LEAD_LINK_SIDES.INCOMING
-								? `Ingresó por ${item.originName} y está relacionado con ${item.otherName}.`
-								: `${item.otherName} ingresó por ${item.originName}.`}
+								? item.originName === 'Sin origen'
+									? `Quedó relacionado con ${item.otherName}.`
+									: `Ingresó por ${item.originName} y está relacionado con ${item.otherName}.`
+								: item.originName === 'Sin origen'
+									? `Está relacionado con ${item.otherName}.`
+									: `Está relacionado con ${item.otherName}. Ese ingreso es por ${item.originName}.`}
 						</li>
 					))}
 				</ul>
@@ -88,17 +94,17 @@ export function LeadRelationPanel({ idLead, relations, canManage, onRelated }: L
 			{canManage && !alreadyLinked ? (
 				<div className="space-y-2">
 					<p className="text-xs text-muted-foreground">
-						Si los datos no coinciden, valida el origen y relaciónalo con el lead de la misma persona. El Money Strategy queda igual y el ingreso se ve en el historial. Al convertir, el cliente se busca por documento y queda una sola ficha.
+						Si los datos no coinciden, relaciónalo con el lead de la misma persona. El origen es opcional. El Money Strategy queda igual y el ingreso se ve en el historial. Al convertir, el cliente se busca por documento y queda una sola ficha.
 					</p>
 					<label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
-						Origen del sistema
+						Origen del sistema (opcional)
 						<select
 							aria-label="Origen del sistema"
 							className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
 							value={originId}
 							onChange={(event) => setOriginId(event.target.value)}
 						>
-							<option value="">Selecciona un origen</option>
+							<option value="">Sin origen</option>
 							{origins.map((origin) => (
 								<option key={origin.idClientOrigin} value={origin.idClientOrigin}>
 									{origin.name}
@@ -144,7 +150,7 @@ export function LeadRelationPanel({ idLead, relations, canManage, onRelated }: L
 					<Button
 						type="button"
 						size="sm"
-						disabled={!originId || selectedId == null || pending}
+						disabled={selectedId == null || pending}
 						onClick={() => void handleRelate()}
 					>
 						{pending ? 'Relacionando…' : 'Relacionar lead'}
