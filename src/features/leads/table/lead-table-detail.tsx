@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { LeadActivityTimeline } from '@/features/leads/activities/lead-activity-timeline'
 import { LeadDetailPanel } from '@/features/leads/components/lead-detail-panel'
+import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import type {
 	CrmStageDetailCase,
 	CrmStageDetailStay,
@@ -38,8 +40,9 @@ function toStay(stay: LeadStageStayDto): CrmStageDetailStay {
 	}
 }
 
-/** Loads one lead's stages, tasks and cases when its table row is open. */
+/** Loads one lead's stages, tasks, cases and timeline when its table row is open. */
 export function LeadTableDetail({ idLead, leadName }: { idLead: number; leadName: string }) {
+	const { enabled: timelineEnabled } = useFeatureFlag('crm_timeline')
 	const [state, setState] = useState<AsyncState<LeadAccordionDetail>>(LOADING)
 
 	useEffect(() => {
@@ -93,11 +96,14 @@ export function LeadTableDetail({ idLead, leadName }: { idLead: number; leadName
 	}
 	if (state.status !== 'success') return null
 	return (
-		<LeadDetailPanel
-			leadName={leadName}
-			stays={state.data.stays}
-			tasks={state.data.tasks}
-			cases={state.data.cases}
-		/>
+		<div className="space-y-4">
+			<LeadDetailPanel
+				leadName={leadName}
+				stays={state.data.stays}
+				tasks={state.data.tasks}
+				cases={state.data.cases}
+			/>
+			{timelineEnabled ? <LeadActivityTimeline leadId={idLead} enabled /> : null}
+		</div>
 	)
 }

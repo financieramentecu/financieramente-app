@@ -66,6 +66,78 @@ describe('describeTimelineEntry', () => {
 		).toEqual({ title: 'Cambio de etapa', detail: 'Nuevo → Contactado', actor: 'Asesor' })
 	})
 
+	it('describes a new origin ingress on both leads', () => {
+		const ingress = {
+			kind: 'lead_ingress' as const,
+			idLeadLink: 4,
+			occurredAt: '2026-11-18T18:44:00.000Z',
+			actorName: null,
+			originName: 'Money Strategy',
+			incomingLeadName: 'Camilo Restrepo',
+			relatedLeadName: 'Danna Guzman',
+			side: 'related' as const,
+			source: 'AUTO' as const,
+		}
+		expect(describeTimelineEntry(ingress)).toEqual({
+			title: 'Relación entre leads',
+			detail: 'Está relacionado con Camilo Restrepo. Ese ingreso es por Money Strategy.',
+			meta: 'Mismo Money Strategy',
+			actor: 'Sistema',
+		})
+		expect(
+			describeTimelineEntry({
+				kind: 'lead_ingress',
+				idLeadLink: 4,
+				occurredAt: '2026-11-18T18:44:00.000Z',
+				actorName: 'Ana',
+				originName: 'Money Strategy',
+				incomingLeadName: 'Camilo Restrepo',
+				relatedLeadName: 'Danna Guzman',
+				side: 'incoming',
+				source: 'MANUAL',
+			})
+		).toMatchObject({
+			detail: 'Quedó relacionado con Danna Guzman. El ingreso es por Money Strategy.',
+			meta: 'Mismo Money Strategy · Validado en el CRM',
+			actor: 'Ana',
+		})
+	})
+
+	it('describes a Money Strategy change and marks a system assignment', () => {
+		expect(
+			describeTimelineEntry({
+				kind: 'lead_change',
+				idLeadChangeHistory: 2,
+				occurredAt: '2026-11-20T15:00:00.000Z',
+				change: 'OWNER',
+				source: 'SYSTEM',
+				actorName: null,
+				fromLabel: null,
+				toLabel: 'Laura Gomez',
+			})
+		).toEqual({
+			title: 'Cambio de Money Strategy',
+			detail: 'Sin Money Strategy → Laura Gomez',
+			actor: 'Sistema',
+		})
+		expect(
+			describeTimelineEntry({
+				kind: 'lead_change',
+				idLeadChangeHistory: 3,
+				occurredAt: '2026-11-20T15:00:00.000Z',
+				change: 'ORIGIN',
+				source: 'MANUAL',
+				actorName: 'Ana',
+				fromLabel: 'Propio',
+				toLabel: 'Money Flow',
+			})
+		).toEqual({
+			title: 'Cambio de origen',
+			detail: 'Propio → Money Flow',
+			actor: 'Ana',
+		})
+	})
+
 	it('describes the first stage without an origin', () => {
 		expect(
 			describeTimelineEntry({

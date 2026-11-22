@@ -5,6 +5,7 @@ import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { leadDisplayName } from '@/features/leads/lib/lead-display-name'
 import { assignLeadOrigin } from '@/features/leads/services/lead-origin.service'
+import { recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
 import type { LeadViewer } from '@/features/leads/types/lead.types'
 import {
 	LEAD_LINK_SIDES,
@@ -39,13 +40,14 @@ function personName(user: { name: string; lastName: string | null } | null): str
 }
 
 /**
- * Validates an origin from the catalogue and links this lead to another one.
- * Both leads keep their own card. They share one advisor.
+ * Links this lead to another one of the same person.
+ * Origin is optional: when set, it is stored on the link and on the lead.
+ * Both cards keep their own row and share one advisor.
  */
 export async function relateLead(
 	idLead: number,
 	idRelatedLead: number,
-	idClientOrigin: number,
+	idClientOrigin: number | null,
 	ctx: CrmRequestContext
 ): Promise<RelateLeadResult> {
 	if (idLead === idRelatedLead) {
@@ -55,10 +57,12 @@ export async function relateLead(
 	const [current, related, origin, existing] = await Promise.all([
 		prisma.lead.findFirst({ where: { idLead, active: true }, select: LEAD_SELECT }),
 		prisma.lead.findFirst({ where: { idLead: idRelatedLead, active: true }, select: LEAD_SELECT }),
-		prisma.clientOrigin.findFirst({
-			where: { idClientOrigin },
-			select: { idClientOrigin: true, name: true, status: true },
-		}),
+		idClientOrigin != null
+			? prisma.clientOrigin.findFirst({
+					where: { idClientOrigin },
+					select: { idClientOrigin: true, name: true, status: true },
+				})
+			: Promise.resolve(null),
 		prisma.leadLink.findFirst({
 			where: {
 				active: true,
@@ -72,19 +76,23 @@ export async function relateLead(
 	])
 
 	if (!current || !related) return { ok: false, error: 'Lead no encontrado' }
-	if (!origin) return { ok: false, error: 'El origen no existe' }
-	if (!origin.status) return { ok: false, error: 'El origen no está activo' }
+	if (idClientOrigin != null) {
+		if (!origin) return { ok: false, error: 'El origen no existe' }
+		if (!origin.status) return { ok: false, error: 'El origen no está activo' }
+	}
 	if (existing) return { ok: false, error: 'Estos leads ya están relacionados' }
 
 	const seenAt = new Date()
 	const sharedAdvisor = related.idUser ?? current.idUser
+	const originIdToStore = origin?.idClientOrigin ?? null
+	const originName = origin?.name ?? 'Sin origen'
 	const linked = await prisma.$transaction(async (tx) => {
 		await shareAdvisor(tx, current, related, sharedAdvisor)
 		return tx.leadLink.create({
 			data: {
 				idLead,
 				idRelatedLead,
-				idClientOrigin,
+				idClientOrigin: originIdToStore,
 				source: 'MANUAL',
 				active: true,
 				linkedAt: seenAt,
@@ -94,11 +102,38 @@ export async function relateLead(
 		})
 	})
 
-	await assignLeadOrigin({ idLead, idClientOrigin, seenAt })
-	if (!current.originTag) {
-		await prisma.lead.update({
-			where: { idLead },
-			data: { originTag: origin.name },
+	if (originIdToStore != null) {
+		await assignLeadOrigin({
+			idLead,
+			idClientOrigin: originIdToStore,
+			seenAt,
+			history: { source: 'MANUAL', idActor: ctx.userId },
+		})
+		if (!current.originTag) {
+			await prisma.lead.update({
+				where: { idLead },
+				data: { originTag: originName },
+			})
+		}
+	}
+	if (sharedAdvisor != null && current.idUser !== sharedAdvisor) {
+		await recordOwnerChange({
+			idLead: current.idLead,
+			fromUserId: current.idUser,
+			toUserId: sharedAdvisor,
+			source: 'MANUAL',
+			idActor: ctx.userId,
+			changedAt: seenAt,
+		})
+	}
+	if (sharedAdvisor != null && related.idUser !== sharedAdvisor) {
+		await recordOwnerChange({
+			idLead: related.idLead,
+			fromUserId: related.idUser,
+			toUserId: sharedAdvisor,
+			source: 'MANUAL',
+			idActor: ctx.userId,
+			changedAt: seenAt,
 		})
 	}
 
@@ -115,7 +150,10 @@ export async function relateLead(
 		email: ctx.email,
 		ipAddress: ctx.ipAddress,
 		userAgent: ctx.userAgent,
-		details: `Lead ${idLead} relacionado con ${idRelatedLead} por el origen ${origin.name}`,
+		details:
+			originIdToStore != null
+				? `Lead ${idLead} relacionado con ${idRelatedLead} por el origen ${originName}`
+				: `Lead ${idLead} relacionado con ${idRelatedLead}`,
 	})
 
 	return {
@@ -126,7 +164,7 @@ export async function relateLead(
 			idLeadLink: linked.idLeadLink,
 			otherLeadId: related.idLead,
 			otherName: leadDisplayName(related),
-			originName: origin.name,
+			originName,
 			side: LEAD_LINK_SIDES.INCOMING,
 			source: 'MANUAL',
 			linkedAt: linked.linkedAt.toISOString(),

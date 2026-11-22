@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
+import { recordLeadChanges } from '@/features/leads/services/record-lead-change.service'
 
 export type AssignLeadOwnerResult =
 	| { ok: true; idUser: number; ownerName: string; assignedLeadIds: number[] }
@@ -112,16 +113,33 @@ export async function assignLeadOwner(
 
 	const assignedLeadIds = await collectSamePersonLeadIds(idLead)
 	const pending = await prisma.lead.findMany({
-		where: { idLead: { in: assignedLeadIds }, active: true, NOT: { idUser } },
-		select: { idLead: true },
+		where: {
+			idLead: { in: assignedLeadIds },
+			active: true,
+			// `NOT: { idUser }` drops rows whose owner is null, so a first assignment never lands.
+			OR: [{ idUser: null }, { idUser: { not: idUser } }],
+		},
+		select: { idLead: true, user: { select: { name: true, lastName: true } } },
 	})
 	const ownerName = displayName(user)
 	if (pending.length > 0) {
 		const changedIds = pending.map((row) => row.idLead)
+		const changedAt = new Date()
 		await prisma.lead.updateMany({
 			where: { idLead: { in: changedIds }, active: true },
-			data: { idUser, lastActivityAt: new Date() },
+			data: { idUser, lastActivityAt: changedAt },
 		})
+		await recordLeadChanges(
+			pending.map((row) => ({
+				idLead: row.idLead,
+				kind: 'OWNER',
+				source: 'MANUAL',
+				idActor: ctx.userId,
+				fromLabel: row.user ? displayName(row.user) : null,
+				toLabel: ownerName,
+				changedAt,
+			}))
+		)
 		await logAuditEvent({
 			userId: ctx.userId,
 			email: ctx.email,

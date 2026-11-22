@@ -15,8 +15,15 @@ vi.mock('@/features/leads/hooks/use-delete-lead', () => ({
 	useDeleteLead: () => ({ state: mockState, deleteLead: mockDeleteLead }),
 }))
 
+const advisorAccess = vi.hoisted(() => ({
+	current: {
+		state: { status: 'success' as const, data: [] as Array<{ idUser: number; name: string }>, error: '' },
+		canLead: false,
+	},
+}))
+
 vi.mock('@/features/leads/hooks/use-hierarchy-advisors', () => ({
-	useHierarchyAdvisors: () => ({ status: 'success', data: [], error: '' }),
+	useHierarchyAdvisors: () => advisorAccess.current,
 }))
 
 vi.mock('@/features/leads/hooks/use-assign-lead-owner', () => ({
@@ -39,6 +46,13 @@ vi.mock('@/features/leads/custom-fields/lead-crm-fields-section', () => ({
 		<section>CRM fields {canEdit ? 'editable' : 'read-only'}</section>
 	),
 }))
+
+beforeEach(() => {
+	advisorAccess.current = {
+		state: { status: 'success', data: [], error: '' },
+		canLead: false,
+	}
+})
 
 function buildLead(overrides: Partial<LeadDetail> = {}): LeadDetail {
 	return {
@@ -72,6 +86,10 @@ describe('LeadDetailSheet', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		mockState = { status: 'idle', data: undefined, error: '' }
+		advisorAccess.current = {
+			state: { status: 'success', data: [], error: '' },
+			canLead: false,
+		}
 	})
 
 	it('opens immediately with the known name while the lead is still loading', () => {
@@ -97,6 +115,20 @@ describe('LeadDetailSheet', () => {
 			/>
 		)
 		expect(screen.queryByText('Ver en CRM')).not.toBeInTheDocument()
+	})
+
+	it('hides Money Strategy assignment from an advisor who leads nobody', () => {
+		render(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} canManageCrm />)
+		expect(screen.queryByRole('combobox', { name: 'Money Strategy disponibles' })).not.toBeInTheDocument()
+	})
+
+	it('shows Money Strategy assignment to the leader in charge', () => {
+		advisorAccess.current = {
+			state: { status: 'success', data: [{ idUser: 9, name: 'Laura Gomez' }], error: '' },
+			canLead: true,
+		}
+		render(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} />)
+		expect(screen.getByRole('combobox', { name: 'Money Strategy disponibles' })).toBeInTheDocument()
 	})
 
 	it('shows "Convertir a negocio" when the lead is not yet converted', () => {
@@ -349,6 +381,10 @@ describe('LeadDetailSheet — admin delete', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		mockState = { status: 'idle', data: undefined, error: '' }
+		advisorAccess.current = {
+			state: { status: 'success', data: [], error: '' },
+			canLead: false,
+		}
 	})
 
 	it('hides the delete action for a non-admin', () => {

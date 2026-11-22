@@ -350,6 +350,7 @@ model User {
   leadActivityColumnsUpdated          LeadActivityColumn[]     @relation("LeadActivityColumnUpdater")
   crmNotificationSettingsUpdated      CrmNotificationSetting[] @relation("CrmNotificationSettingUpdater")
   leadStageChanges                    LeadStageHistory[]
+  leadChangesMade                     LeadChangeHistory[]          @relation("LeadChangeActor")
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -1020,6 +1021,7 @@ model Lead {
   tasks              LeadTask[]
   supportCases       LeadSupportCase[]
   stageHistory       LeadStageHistory[]
+  changeHistory      LeadChangeHistory[]
   tagAssignments     LeadTagAssignment[]
   leadClientOrigins  LeadClientOrigin[]
   formSubmissions    LeadFormSubmission[]
@@ -1057,6 +1059,16 @@ model LeadFormSubmission {
   @@map("lead_form_submission")
 }
 
+enum LeadChangeKind {
+  OWNER
+  ORIGIN
+}
+
+enum LeadChangeSource {
+  SYSTEM
+  MANUAL
+}
+
 /// Append-only log of funnel stage transitions (never updated or deleted).
 model LeadStageHistory {
   idLeadStageHistory     Int                   @id @default(autoincrement()) @map("id_lead_stage_history")
@@ -1075,6 +1087,26 @@ model LeadStageHistory {
   @@index([idLead, changedAt])
   @@index([toIdLeadFunnelColumn, changedAt])
   @@map("lead_stage_history")
+}
+
+/// Append-only log of Money Strategy and client-origin changes shown on the CRM timeline.
+model LeadChangeHistory {
+  idLeadChangeHistory Int              @id @default(autoincrement()) @map("id_lead_change_history")
+  idLead              Int              @map("id_lead")
+  kind                LeadChangeKind
+  source              LeadChangeSource
+  /// Person who made the change. Null when `source` is SYSTEM.
+  idActor             Int?             @map("id_actor")
+  actorLabel          String?          @map("actor_label") @db.VarChar(200)
+  fromLabel           String?          @map("from_label") @db.VarChar(200)
+  toLabel             String           @map("to_label") @db.VarChar(200)
+  changedAt           DateTime         @map("changed_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  lead                Lead             @relation(fields: [idLead], references: [idLead])
+  actor               User?            @relation("LeadChangeActor", fields: [idActor], references: [idUser], onDelete: SetNull)
+
+  @@index([idLead, changedAt])
+  @@map("lead_change_history")
 }
 
 /// CRM tag catalogue (CRM-owned). Deactivated, never deleted.

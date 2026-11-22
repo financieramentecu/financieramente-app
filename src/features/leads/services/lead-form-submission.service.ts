@@ -11,8 +11,10 @@ import type { IngestLeadFormResult } from '@/features/leads/types/form-submissio
 
 import {
 	assignLeadOrigin,
+	recordOriginChange,
 	resolveLeadOrigin,
 } from '@/features/leads/services/lead-origin.service'
+import { recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
 
 const SYSTEM_EMAIL = 'form-submission@system'
 
@@ -158,6 +160,7 @@ export async function ingestLeadFormSubmission(
 				const existingId = await resolveExistingLead(tx.lead, payload.lead)
 				let idLead = existingId
 				let ownerUnresolved = false
+				let assignedOwnerId: number | null = null
 				if (idLead === null) {
 					const column = await resolveFunnelColumn(payload.lead.statusKey, tx)
 					const ownerId = await resolveOwner(payload.lead.ownerEmail, tx)
@@ -188,6 +191,7 @@ export async function ingestLeadFormSubmission(
 						},
 					})
 					idLead = createdLead.idLead
+					assignedOwnerId = ownerId ?? null
 					ownerUnresolved = Boolean(payload.lead.ownerEmail) && ownerId === null
 				}
 				const assignment =
@@ -217,6 +221,7 @@ export async function ingestLeadFormSubmission(
 					created: existingId === null,
 					replayed: false,
 					ownerUnresolved,
+					assignedOwnerId,
 					origin,
 					assignment,
 				}
@@ -225,6 +230,25 @@ export async function ingestLeadFormSubmission(
 		)
 
 		if (!result.replayed) {
+			if (result.assignedOwnerId != null) {
+				await recordOwnerChange({
+					idLead: result.idLead,
+					fromUserId: null,
+					toUserId: result.assignedOwnerId,
+					source: 'SYSTEM',
+					changedAt: payload.submittedAt,
+				})
+			}
+			if (
+				result.origin?.status === 'ready' &&
+				(result.assignment === 'created' || result.assignment === 'reactivated')
+			) {
+				await recordOriginChange({
+					idLead: result.idLead,
+					idClientOrigin: result.origin.idClientOrigin,
+					seenAt: payload.submittedAt,
+				})
+			}
 			if (result.origin?.status === 'inactive') {
 				await logAuditEvent({
 					action: AuditAction.LEAD_ORIGIN_INACTIVE,

@@ -8,7 +8,7 @@ import { getAccessibleUserIds } from '@/features/auth/lib/hierarchy'
 import { isWriteBypassRole } from '@/features/auth/lib/roles'
 import { resolveCrmVisibility } from '@/features/leads/crm/crm-visibility'
 import { isLeadVisible } from '@/features/leads/services/lead-board.service'
-import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
+import { canAccessCrm, canLeadMoneyStrategies, canManageCrm } from '@/features/leads/crm/crm-policy'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
@@ -98,6 +98,14 @@ export function findScopedLead(
 	const visibleUserIds =
 		access === 'write' ? (actor.manageableUserIds ?? actor.visibleUserIds) : actor.visibleUserIds
 	return isLeadVisible(idLead, toLeadViewer(actor), { visibleUserIds })
+}
+
+/** Admin, or a viewer who has at least one person under them. */
+export async function actorLeadsMoneyStrategies(actor: CrmActor): Promise<boolean> {
+	if (canLeadMoneyStrategies(actor.roleCode, actor.visibleUserIds, actor.idUser)) return true
+	if (actor.visibleUserIds.length > 0) return false
+	const accessible = await getAccessibleUserIds(actor.idUser)
+	return canLeadMoneyStrategies(actor.roleCode, accessible, actor.idUser)
 }
 
 export function canAssignWithinScope(

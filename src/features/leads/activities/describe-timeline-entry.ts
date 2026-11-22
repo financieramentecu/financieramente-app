@@ -1,5 +1,10 @@
 import type { ContactOutcome } from '@/features/leads/crm/lead-crm-event.schema'
-import type { TimelineEntryDto, TimelineStageDto } from '@/features/leads/activities/lead-timeline.types'
+import type {
+	TimelineChangeDto,
+	TimelineEntryDto,
+	TimelineIngressDto,
+	TimelineStageDto,
+} from '@/features/leads/activities/lead-timeline.types'
 
 export interface TimelineEntryView {
 	title: string
@@ -44,11 +49,17 @@ const STAGE_SOURCE_LABELS: Partial<Record<TimelineStageDto['source'], string>> =
 }
 
 export function timelineEntryKey(entry: TimelineEntryDto): string {
-	return entry.kind === 'stage_change' ? `stage_change-${entry.idLeadStageHistory}` : `activity-${entry.idLeadActivity}`
+	if (entry.kind === 'stage_change') return `stage_change-${entry.idLeadStageHistory}`
+	if (entry.kind === 'lead_change') return `lead_change-${entry.idLeadChangeHistory}`
+	if (entry.kind === 'lead_ingress') return `lead_ingress-${entry.idLeadLink}`
+	return `activity-${entry.idLeadActivity}`
 }
 
 /** Human-readable view of a timeline entry; never exposes raw payload JSON. */
 export function describeTimelineEntry(entry: TimelineEntryDto): TimelineEntryView {
+	if (entry.kind === 'lead_ingress') return describeIngress(entry)
+	if (entry.kind === 'lead_change') return describeChange(entry)
+
 	if (entry.kind === 'stage_change') {
 		const meta = STAGE_SOURCE_LABELS[entry.source]
 		return {
@@ -107,4 +118,34 @@ export function describeTimelineEntry(entry: TimelineEntryDto): TimelineEntryVie
 	}
 	const taskDetail = payload.title ?? `Tarea #${payload.taskId}`
 	return { ...base, detail: payload.comment ? `${taskDetail}\n${payload.comment}` : taskDetail }
+}
+
+function describeChange(entry: TimelineChangeDto): TimelineEntryView {
+	const from =
+		entry.fromLabel ?? (entry.change === 'OWNER' ? 'Sin Money Strategy' : 'Sin origen')
+	const title = entry.change === 'OWNER' ? 'Cambio de Money Strategy' : 'Cambio de origen'
+	return {
+		title,
+		detail: `${from} → ${entry.toLabel}`,
+		actor: entry.source === 'SYSTEM' ? 'Sistema' : (entry.actorName ?? 'Asesor'),
+	}
+}
+
+function describeIngress(entry: TimelineIngressDto): TimelineEntryView {
+	const hasOrigin = entry.originName !== 'Sin origen'
+	const detail =
+		entry.side === 'incoming'
+			? hasOrigin
+				? `Quedó relacionado con ${entry.relatedLeadName}. El ingreso es por ${entry.originName}.`
+				: `Quedó relacionado con ${entry.relatedLeadName}.`
+			: hasOrigin
+				? `Está relacionado con ${entry.incomingLeadName}. Ese ingreso es por ${entry.originName}.`
+				: `Está relacionado con ${entry.incomingLeadName}.`
+	const meta = entry.source === 'MANUAL' ? 'Mismo Money Strategy · Validado en el CRM' : 'Mismo Money Strategy'
+	return {
+		title: 'Relación entre leads',
+		detail,
+		meta,
+		actor: entry.actorName ?? 'Sistema',
+	}
 }

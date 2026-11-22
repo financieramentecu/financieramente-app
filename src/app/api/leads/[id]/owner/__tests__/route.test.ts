@@ -37,7 +37,7 @@ describe('PATCH /api/leads/[id]/owner', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		vi.mocked(isLeadVisible).mockResolvedValue(true)
-		vi.mocked(getAccessibleUserIds).mockResolvedValue([7])
+		vi.mocked(getAccessibleUserIds).mockResolvedValue([7, 9])
 		vi.mocked(assignLeadOwner).mockResolvedValue({
 			ok: true,
 			idUser: 7,
@@ -72,6 +72,19 @@ describe('PATCH /api/leads/[id]/owner', () => {
 			7,
 			expect.objectContaining({ userId: 7 })
 		)
+	})
+
+	it('rejects an advisor who does not lead anyone', async () => {
+		vi.mocked(getAccessibleUserIds).mockResolvedValue([7])
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+			idUser: 7,
+			role: { code: 'AGENTE' },
+		} as never)
+		const response = await PATCH(assignRequest(7), {
+			params: Promise.resolve({ id: '12' }),
+		})
+		expect(response.status).toBe(403)
+		expect(assignLeadOwner).not.toHaveBeenCalled()
 	})
 
 	it('rejects an advisor outside the actor scope', async () => {

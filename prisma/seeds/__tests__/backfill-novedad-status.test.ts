@@ -17,6 +17,7 @@ vi.mock('@prisma/client', () => {
 				create: mockAuditCreate,
 			},
 			$disconnect: vi.fn(),
+			$on: vi.fn(),
 		})),
 	}
 })

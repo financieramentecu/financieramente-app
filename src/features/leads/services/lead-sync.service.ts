@@ -10,10 +10,15 @@ import { normalizeFunnelStatusKey } from '@/features/leads/lib/normalize-funnel-
 import type { LeadWritePayload } from '@/features/leads/types/crm-sync.schema'
 import { escapeLikePattern } from '@/features/leads/lib/escape-like-pattern'
 import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
+import { recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
 import {
 	assignLeadOrigin,
 	resolveLeadOrigin,
 } from '@/features/leads/services/lead-origin.service'
+import {
+	findSamePersonLead,
+	personAlreadyHasOrigin,
+} from '@/features/leads/services/find-same-person-lead'
 
 const FALLBACK_STATUS_KEY = '__unmapped__'
 
@@ -106,11 +111,25 @@ export async function upsertLeadFromCrm(
 	} = resolveOutcomeStatus(payload.outcomeStatus, existing?.outcomeStatus)
 	const payloadForMerge =
 		origin.status === 'ready' ? { ...payload, originTag: origin.name } : payload
+	const matched =
+		existing === null
+			? await findSamePersonLead(prisma, {
+					identityNumber: payload.identityNumber,
+					email: payload.email,
+					phone: payload.phone,
+				})
+			: null
+	const splitByOrigin =
+		matched !== null &&
+		origin.status === 'ready' &&
+		!(await personAlreadyHasOrigin(prisma, matched.idLead, origin.idClientOrigin))
+	const ownerToStore =
+		splitByOrigin && matched?.idUser != null ? matched.idUser : resolvedOwnerId
 
 	const upsertData = buildLeadUpsertData(
 		payloadForMerge,
 		existing ?? {},
-		resolvedOwnerId,
+		ownerToStore,
 		resolvedOutcomeStatus
 	)
 
@@ -140,6 +159,24 @@ export async function upsertLeadFromCrm(
 
 	const created = !existing
 
+	if (created && splitByOrigin && matched && origin.status === 'ready') {
+		await prisma.leadLink.create({
+			data: {
+				idLead: lead.idLead,
+				idRelatedLead: matched.idLead,
+				idClientOrigin: origin.idClientOrigin,
+				source: 'AUTO',
+				active: true,
+				linkedAt: payload.updatedAt ?? receivedAt,
+			},
+		})
+		await logAuditEvent({
+			action: AuditAction.LEAD_RELATED,
+			email: 'crm-sync@system',
+			details: `Lead ${lead.idLead} ingresó por otro origen y quedó relacionado con ${matched.idLead} (externalCrmId: ${payload.externalCrmId})`,
+		})
+	}
+
 	await recordLeadStageChange({
 		idLead: lead.idLead,
 		fromIdLeadFunnelColumn: existing?.idLeadFunnelColumn,
@@ -154,8 +191,18 @@ export async function upsertLeadFromCrm(
 		details: `Lead ${created ? 'creado' : 'actualizado'} vía webhook CRM (externalCrmId: ${payload.externalCrmId}, statusKey: ${payload.statusKey})`,
 	})
 
-	if (resolvedOwnerId !== undefined) {
-		if (resolvedOwnerId === null) {
+	if (ownerToStore !== undefined && ownerToStore !== (existing?.idUser ?? null)) {
+		await recordOwnerChange({
+			idLead: lead.idLead,
+			fromUserId: existing?.idUser ?? null,
+			toUserId: ownerToStore,
+			source: 'SYSTEM',
+			changedAt: payload.updatedAt ?? receivedAt,
+		})
+	}
+
+	if (ownerToStore !== undefined) {
+		if (ownerToStore === null) {
 			await logAuditEvent({
 				action: AuditAction.LEAD_OWNER_UNRESOLVED,
 				email: 'crm-sync@system',
@@ -165,7 +212,7 @@ export async function upsertLeadFromCrm(
 			await logAuditEvent({
 				action: AuditAction.LEAD_OWNER_ASSIGNED,
 				email: 'crm-sync@system',
-				details: `Propietario asignado/reasignado (lead externalCrmId: ${payload.externalCrmId}, idUser: ${resolvedOwnerId})`,
+				details: `Propietario asignado/reasignado (lead externalCrmId: ${payload.externalCrmId}, idUser: ${ownerToStore})`,
 			})
 		}
 	}
