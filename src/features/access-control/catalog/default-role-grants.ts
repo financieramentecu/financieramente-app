@@ -43,6 +43,7 @@ const ROWS: Readonly<Record<string, string>> = {
 	'negocios.asignar_strategist': 'C C C E - P',
 	'negocios.editar': 'C C C E - P',
 	'negocios.cancelar': 'Y Y Y - - -',
+	'negocios.editar_valor': 'Y Y Y - - -', // support, operations and admin only
 	'negocios.exportar': 'C C C E C P',
 	'negocios.editar_contrato_emitido': 'Y Y Y - - -',
 	'negocios.editar_desde_lista': 'Y Y - - - -', // list UI shows Edit to these roles today
@@ -64,9 +65,14 @@ const ROWS: Readonly<Record<string, string>> = {
 	'comentarios.crear': 'Y Y Y Y - Y', // VERIFY
 
 	'leads.ver': 'C C C E C -', // CONSULTOR keeps company-wide read (legacy global visibility)
+	// CRM access and writes (legacy "leads" menu right): C writes the whole company,
+	// E only the viewer's branch. CONSULTOR never writes; PARTNER never opens the CRM.
+	'leads.gestionar': 'C C C E - -',
+	'leads.reasignar_estrategia': 'Y - - - - -', // legacy: only ADMIN reassigns any lead's Money Strategy
 	'leads.importar_csv': 'Y Y - - - -',
 	'leads.configurar_funnel': 'Y - - - - -',
 	'leads.eliminar': 'Y - - - - -',
+	'leads.configurar_avisos': 'Y - - - - -', // legacy: only ADMIN sets task notice days
 
 	'carga.masiva': 'Y - - - - -', // S6: only ADMIN by default
 	'carga.ver_todos': 'Y - - - - -', // file imports of every user (others see their own)

@@ -35,6 +35,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
 		return buildMenuByRole(session.user.role, session.user.grants, {
 			authorizedReportCodes,
+			canViewOthersCrm: session.user.canViewOthersCrm === true,
 		})
 	}, [session, authorizedReportCodes])
 

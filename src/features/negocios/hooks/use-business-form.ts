@@ -466,7 +466,9 @@ export function useBusinessForm(props: BusinessFormProps) {
 							idSettlementCommission: idSettlementCommission || undefined,
 							idProduct: data.producto ? parseInt(data.producto) : undefined,
 							term: data.terms,
-							value: data.value,
+							value: can('negocios.editar_valor')
+								? data.value
+								: undefined,
 							idBuyPeriodicity: data.periodicity
 								? parseInt(data.periodicity)
 								: undefined,

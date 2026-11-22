@@ -164,6 +164,7 @@ describe('middleware /api/* decode-only gate [TM] (F1)', () => {
 			['/api/auth/session', 'GET'],
 			['/api/auth/csrf', 'GET'],
 			['/api/leads/crm-sync', 'POST'],
+			['/api/leads/form-submissions', 'POST'],
 			['/api/negocios/cron/fund-payments', 'POST'],
 		])('unauthenticated %s %s', async (path, method) => {
 			expectUntouched(await run(request(path, { method })))
@@ -196,6 +197,8 @@ describe('middleware /api/* decode-only gate [TM] (F1)', () => {
 			['/api/health/extra', 'GET'],
 			['/api/account/activate/extra', 'POST'],
 			['/api/leads/crm-sync/extra', 'POST'],
+			['/api/leads/form-submissions/extra', 'POST'],
+			['/api/leads/form-submissions', 'GET'],
 			['/api/negocios/cron/fund-payments/extra', 'POST'],
 			['/api/leads/crm-sync', 'GET'],
 			['/api/health', 'DELETE'],

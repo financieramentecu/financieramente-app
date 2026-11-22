@@ -30,7 +30,9 @@ export default function UserDetailPage() {
         active?: boolean
         roleId?: number | null
         categoryId?: number | null
+        levelId?: number | null
         leaderId?: number | null
+        canViewOthersCrm?: boolean
     }) => {
         await updateUser(userId, data)
         refreshUser()

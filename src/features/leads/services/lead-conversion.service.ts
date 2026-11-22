@@ -1,6 +1,8 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
+import { getAccessibleUserIds } from '@/features/auth/lib/hierarchy'
+import { roleScope } from '@/features/access-control/services/role-permission-check'
 import type { LeadViewer } from '@/features/leads/types/lead.types'
 
 export interface LeadForConversionOptions {
@@ -47,6 +49,31 @@ export async function getLeadForConversion(
 		},
 		include: leadForConversionInclude,
 	})
+}
+
+/**
+ * Whether the viewer may convert this lead: it exists and sits inside the
+ * viewer's own branch (a company-scope writer covers the whole company). The
+ * read-only view of other branches never counts here. Converted and ownerless
+ * leads stay in scope on purpose: `linkLeadToBusinessTx` reports those with
+ * its own message. Enforced server-side so it does not depend on the page.
+ */
+export async function isLeadWithinConversionScope(
+	idLead: number,
+	viewer: LeadViewer
+): Promise<boolean> {
+	const visibleUserIds =
+		(await roleScope(viewer.role?.code, 'leads.gestionar')) === 'COMPANY'
+		? []
+		: await getAccessibleUserIds(viewer.idUser)
+	const where = buildLeadListWhere(viewer, {}, { visibleUserIds })
+	const scopedConditions = Array.isArray(where.AND) ? where.AND : []
+
+	const lead = await prisma.lead.findFirst({
+		where: { ...where, AND: [...scopedConditions, { idLead }] },
+		select: { idLead: true },
+	})
+	return lead !== null
 }
 
 /**

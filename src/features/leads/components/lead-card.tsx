@@ -12,6 +12,8 @@ import {
 	LEAD_OUTCOME_STATUS_BADGE_VARIANTS,
 } from '@/features/leads/lib/lead-outcome-status'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
+import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
+import { originLabelTone } from '@/features/leads/lib/origin-label-tone'
 import { cn } from '@/lib/utils'
 import type { LeadCard as LeadCardType } from '@/features/leads/types/lead.types'
 
@@ -21,8 +23,7 @@ interface LeadCardProps {
 }
 
 /**
- * Presentational, read-only Kanban card. No drag handle, no move affordance
- * — the Leads board never lets a user reorder or edit a lead from the UI.
+ * Presentational Kanban card. The board wraps it when the card can be dragged.
  */
 export function LeadCard({ lead, onClick }: LeadCardProps) {
 	const fullName = [lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
@@ -67,12 +68,25 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 								</TooltipProvider>
 							)}
 						</div>
-						<Badge
-							className="w-fit"
-							variant={LEAD_OUTCOME_STATUS_BADGE_VARIANTS[lead.outcomeStatus]}
-						>
-							{LEAD_OUTCOME_STATUS_LABELS[lead.outcomeStatus]}
-						</Badge>
+						<div className="flex flex-wrap items-center gap-1.5">
+							<Badge
+								className="w-fit"
+								variant={LEAD_OUTCOME_STATUS_BADGE_VARIANTS[lead.outcomeStatus]}
+							>
+								{LEAD_OUTCOME_STATUS_LABELS[lead.outcomeStatus]}
+							</Badge>
+							{lead.originTag && (
+								<span
+									className={cn(
+										'inline-flex max-w-full truncate rounded-full px-2 py-0.5 text-[11px] font-medium',
+										originLabelTone(lead.originTag)
+									)}
+								>
+									{lead.originTag}
+								</span>
+							)}
+						</div>
+						<InactivityBadge days={lead.inactiveDays} />
 					</div>
 					{lead.ownerName && (
 						<div className="flex shrink-0 flex-col items-center gap-1">
@@ -83,15 +97,10 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 						</div>
 					)}
 				</div>
-				{(lead.email || lead.phone || lead.originTag) && (
+				{(lead.email || lead.phone) && (
 					<div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
 						{lead.email && <p className="truncate">{lead.email}</p>}
 						{lead.phone && <p>{lead.phone}</p>}
-						{lead.originTag && (
-							<p className="truncate text-slate-500 dark:text-slate-400">
-								{lead.originTag}
-							</p>
-						)}
 					</div>
 				)}
 			</CardContent>

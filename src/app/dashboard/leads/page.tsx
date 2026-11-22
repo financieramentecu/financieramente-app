@@ -1,13 +1,6 @@
-import React from 'react'
-import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
-import { LeadsBoard } from '@/features/leads/components/leads-board'
+import { permanentRedirect } from 'next/navigation'
 
+/** Legacy route: lead management moved to Negocios → CRM. */
 export default function LeadsPage() {
-	return (
-		<DashboardLayout currentPage="Leads" breadcrumbs={[]}>
-			<div className="space-y-6">
-				<LeadsBoard />
-			</div>
-		</DashboardLayout>
-	)
+	permanentRedirect('/dashboard/negocios/crm')
 }

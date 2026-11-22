@@ -28,11 +28,15 @@ model Company {
 model ClientOrigin {
   idClientOrigin Int        @id @default(autoincrement()) @map("id_client_origin")
   name           String     @db.VarChar(100)
+  /// Normalized catalogue key copied from the retired `lead_origin.code`. Null on rows that predate that catalogue.
+  code           String?    @unique @db.VarChar(120)
   description    String?
   status         Boolean    @default(true)
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
   businesses     Business[]
+  leadLinks      LeadClientOrigin[]
+  personLinks    LeadLink[]
 
   @@map("client_origin")
 }
@@ -356,6 +360,8 @@ model User {
   ssoOnly                             Boolean                  @default(true) @map("sso_only")
   idCategory                          Int?                     @map("id_category")
   activatedAt                         DateTime?                @map("activated_at")
+  /// Granted read-only view of other branches' lead states and CRM reports.
+  canViewOthersCrm                    Boolean                  @default(false) @map("can_view_others_crm")
   accountTokens                       AccountToken[]
   auditLogs                           AuditLog[]
   businesses                          Business[]
@@ -377,6 +383,7 @@ model User {
   comments                            Comment[]
   leads                               Lead[]
   leadActivities                      LeadActivity[]           @relation("LeadActivityActor")
+  leadLinksCreated                    LeadLink[]               @relation("LeadLinkAuthor")
   leadTasksAssigned                   LeadTask[]               @relation("LeadTaskAssignee")
   leadTasksCreated                    LeadTask[]               @relation("LeadTaskCreator")
   leadSavedViews                      LeadSavedView[]
@@ -386,7 +393,9 @@ model User {
   leadTaskComments                    LeadTaskComment[]        @relation("LeadTaskCommentAuthor")
   leadActivityLabelsCreated           LeadActivityLabel[]      @relation("LeadActivityLabelCreator")
   leadActivityColumnsUpdated          LeadActivityColumn[]     @relation("LeadActivityColumnUpdater")
+  crmNotificationSettingsUpdated      CrmNotificationSetting[] @relation("CrmNotificationSettingUpdater")
   leadStageChanges                    LeadStageHistory[]
+  leadChangesMade                     LeadChangeHistory[]          @relation("LeadChangeActor")
 
   @@unique([typeIdentity, identityNumber], name: "user_typeIdentity_identityNumber_key", map: "user_typeIdentity_identityNumber_key")
   @@index([typeIdentity])
@@ -981,7 +990,10 @@ model LeadTask {
   columnCode          String?            @map("column_code") @db.VarChar(20)
   status              LeadTaskStatus     @default(OPEN)
   completedAt         DateTime?          @map("completed_at")
+  /// In-app notice for the Bogotá day the task is due. Cleared on reschedule.
   reminderSentAt      DateTime?          @map("reminder_sent_at")
+  /// In-app notice once the task enters the configured anticipation window.
+  advanceNotifiedAt   DateTime?          @map("advance_notified_at")
   createdAt           DateTime           @default(now()) @map("created_at")
   updatedAt           DateTime           @updatedAt @map("updated_at")
   lead                Lead               @relation(fields: [idLead], references: [idLead], onDelete: Cascade)
@@ -995,8 +1007,20 @@ model LeadTask {
   @@index([idLead, status])
   @@index([columnCode])
   @@index([dueAt, reminderSentAt])
+  @@index([dueAt, advanceNotifiedAt])
   @@index([idLeadActivityLabel])
   @@map("lead_task")
+}
+
+/// Singleton (`id = 1`): days before due when an open task gets an in-app notice.
+model CrmNotificationSetting {
+  id               Int      @id @default(1) @map("id_crm_notification_setting")
+  anticipationDays Int      @default(1) @map("anticipation_days")
+  updatedBy        Int?     @map("updated_by")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updater          User?    @relation("CrmNotificationSettingUpdater", fields: [updatedBy], references: [idUser])
+
+  @@map("crm_notification_setting")
 }
 
 model LeadTaskComment {
@@ -1042,7 +1066,12 @@ model Lead {
   tasks              LeadTask[]
   supportCases       LeadSupportCase[]
   stageHistory       LeadStageHistory[]
+  changeHistory      LeadChangeHistory[]
   tagAssignments     LeadTagAssignment[]
+  leadClientOrigins  LeadClientOrigin[]
+  formSubmissions    LeadFormSubmission[]
+  ingressLinks       LeadLink[]          @relation("LeadLinkIngress")
+  relatedLinks       LeadLink[]          @relation("LeadLinkRelated")
 
   @@index([idUser])
   @@index([idLeadFunnelColumn])
@@ -1054,6 +1083,34 @@ model Lead {
 enum LeadStageChangeSource {
   CRM_SYNC
   CSV_IMPORT
+  MANUAL
+  LANDING_FORM
+}
+
+/// Append-only snapshot of a landing form posted by n8n. A retry reuses `submissionId`.
+model LeadFormSubmission {
+  idLeadFormSubmission Int      @id @default(autoincrement()) @map("id_lead_form_submission")
+  idLead               Int      @map("id_lead")
+  submissionId         String   @unique @map("submission_id") @db.VarChar(150)
+  landingKey           String   @map("landing_key") @db.VarChar(80)
+  landingName          String   @map("landing_name") @db.VarChar(120)
+  formVersion          String   @map("form_version") @db.VarChar(40)
+  submittedAt          DateTime @map("submitted_at")
+  fields               Json
+  createdAt            DateTime @default(now()) @map("created_at")
+  lead                 Lead     @relation(fields: [idLead], references: [idLead])
+
+  @@index([idLead, submittedAt])
+  @@map("lead_form_submission")
+}
+
+enum LeadChangeKind {
+  OWNER
+  ORIGIN
+}
+
+enum LeadChangeSource {
+  SYSTEM
   MANUAL
 }
 
@@ -1075,6 +1132,26 @@ model LeadStageHistory {
   @@index([idLead, changedAt])
   @@index([toIdLeadFunnelColumn, changedAt])
   @@map("lead_stage_history")
+}
+
+/// Append-only log of Money Strategy and client-origin changes shown on the CRM timeline.
+model LeadChangeHistory {
+  idLeadChangeHistory Int              @id @default(autoincrement()) @map("id_lead_change_history")
+  idLead              Int              @map("id_lead")
+  kind                LeadChangeKind
+  source              LeadChangeSource
+  /// Person who made the change. Null when `source` is SYSTEM.
+  idActor             Int?             @map("id_actor")
+  actorLabel          String?          @map("actor_label") @db.VarChar(200)
+  fromLabel           String?          @map("from_label") @db.VarChar(200)
+  toLabel             String           @map("to_label") @db.VarChar(200)
+  changedAt           DateTime         @map("changed_at")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  lead                Lead             @relation(fields: [idLead], references: [idLead])
+  actor               User?            @relation("LeadChangeActor", fields: [idActor], references: [idUser], onDelete: SetNull)
+
+  @@index([idLead, changedAt])
+  @@map("lead_change_history")
 }
 
 /// CRM tag catalogue (CRM-owned). Deactivated, never deleted.
@@ -1108,6 +1185,52 @@ model LeadTagAssignment {
   @@index([idLeadTag, active])
   @@map("lead_tag_assignment")
 }
+
+/// Lead seen from a `client_origin`. Removing the link sets `active=false`.
+model LeadClientOrigin {
+  idLeadClientOrigin Int          @id @default(autoincrement()) @map("id_lead_client_origin")
+  idLead             Int          @map("id_lead")
+  idClientOrigin     Int          @map("id_client_origin")
+  active             Boolean      @default(true)
+  firstSeenAt        DateTime     @map("first_seen_at")
+  lastSeenAt         DateTime     @map("last_seen_at")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+  lead               Lead         @relation(fields: [idLead], references: [idLead])
+  clientOrigin       ClientOrigin @relation(fields: [idClientOrigin], references: [idClientOrigin])
+
+  @@unique([idLead, idClientOrigin])
+  @@index([idClientOrigin, active])
+  @@map("lead_client_origin")
+}
+
+enum LeadLinkSource {
+  AUTO
+  MANUAL
+}
+
+/// A later ingress of the same person. The new lead stays its own card.
+/// Deactivated with `active = false`, never deleted.
+model LeadLink {
+  idLeadLink     Int            @id @default(autoincrement()) @map("id_lead_link")
+  idLead         Int            @map("id_lead")
+  idRelatedLead  Int            @map("id_related_lead")
+  idClientOrigin Int?           @map("id_client_origin")
+  source         LeadLinkSource
+  active         Boolean        @default(true)
+  linkedAt       DateTime       @map("linked_at")
+  linkedBy       Int?           @map("linked_by")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  lead           Lead           @relation("LeadLinkIngress", fields: [idLead], references: [idLead])
+  relatedLead    Lead           @relation("LeadLinkRelated", fields: [idRelatedLead], references: [idLead])
+  clientOrigin   ClientOrigin?  @relation(fields: [idClientOrigin], references: [idClientOrigin])
+  linker         User?          @relation("LeadLinkAuthor", fields: [linkedBy], references: [idUser], onDelete: SetNull)
+
+  @@unique([idLead, idRelatedLead])
+  @@index([idRelatedLead, active])
+  @@map("lead_link")
+}
+
 
 enum LeadCustomFieldType {
   TEXT

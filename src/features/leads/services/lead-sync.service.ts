@@ -1,4 +1,4 @@
-import type { Lead, LeadFunnelColumn } from '@prisma/client'
+import type { Lead, LeadFunnelColumn, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import {
 	logAuditEvent,
@@ -7,7 +7,18 @@ import {
 import { buildLeadUpsertData } from '@/features/leads/lib/build-lead-upsert-data'
 import { resolveOutcomeStatus } from '@/features/leads/lib/lead-outcome-status'
 import { normalizeFunnelStatusKey } from '@/features/leads/lib/normalize-funnel-status-key'
-import type { CrmSyncPayload } from '@/features/leads/types/crm-sync.schema'
+import type { LeadWritePayload } from '@/features/leads/types/crm-sync.schema'
+import { escapeLikePattern } from '@/features/leads/lib/escape-like-pattern'
+import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
+import { recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
+import {
+	assignLeadOrigin,
+	resolveLeadOrigin,
+} from '@/features/leads/services/lead-origin.service'
+import {
+	findSamePersonLead,
+	personAlreadyHasOrigin,
+} from '@/features/leads/services/find-same-person-lead'
 
 const FALLBACK_STATUS_KEY = '__unmapped__'
 
@@ -16,14 +27,15 @@ const FALLBACK_STATUS_KEY = '__unmapped__'
  * Falls back to the fixed "Sin mapear" column when no mapping exists.
  */
 export async function resolveFunnelColumn(
-	statusKey: string
+	statusKey: string,
+	client: Pick<Prisma.TransactionClient, 'leadFunnelColumn'> = prisma
 ): Promise<LeadFunnelColumn> {
-	const matched = await prisma.leadFunnelColumn.findFirst({
+	const matched = await client.leadFunnelColumn.findFirst({
 		where: { externalStatusKey: normalizeFunnelStatusKey(statusKey), active: true },
 	})
 	if (matched) return matched
 
-	const fallback = await prisma.leadFunnelColumn.findFirst({
+	const fallback = await client.leadFunnelColumn.findFirst({
 		where: { externalStatusKey: FALLBACK_STATUS_KEY },
 	})
 	if (!fallback) {
@@ -44,7 +56,8 @@ export async function resolveFunnelColumn(
  * resolved.
  */
 export async function resolveOwner(
-	ownerEmail: string | undefined
+	ownerEmail: string | undefined,
+	client: Pick<Prisma.TransactionClient, 'user'> = prisma
 ): Promise<number | null | undefined> {
 	if (!ownerEmail || ownerEmail.trim() === '') {
 		return undefined
@@ -53,9 +66,9 @@ export async function resolveOwner(
 	// Emails are conventionally case-insensitive; without `mode: 'insensitive'`
 	// (+ trim) a CRM sending a different casing/whitespace than the stored
 	// `User.email` would silently fail to match, leaving the lead owner-less.
-	const user = await prisma.user.findFirst({
+	const user = await client.user.findFirst({
 		where: {
-			email: { equals: ownerEmail.trim(), mode: 'insensitive' },
+			email: { equals: escapeLikePattern(ownerEmail.trim()), mode: 'insensitive' },
 			active: true,
 		},
 		select: { idUser: true },
@@ -64,9 +77,15 @@ export async function resolveOwner(
 	return user ? user.idUser : null
 }
 
+export interface UpsertLeadOriginResult {
+	code: string
+	name: string
+}
+
 export interface UpsertLeadFromCrmResult {
 	idLead: number
 	created: boolean
+	origin: UpsertLeadOriginResult | null
 }
 
 /**
@@ -74,24 +93,43 @@ export interface UpsertLeadFromCrmResult {
  * from the `externalCrmId` unique upsert — no separate event table.
  */
 export async function upsertLeadFromCrm(
-	payload: CrmSyncPayload
+	payload: LeadWritePayload
 ): Promise<UpsertLeadFromCrmResult> {
 	const existing = await prisma.lead.findUnique({
 		where: { externalCrmId: payload.externalCrmId },
 	})
 
-	const funnelColumn = await resolveFunnelColumn(payload.statusKey)
-	const resolvedOwnerId = await resolveOwner(payload.ownerEmail)
+	const [funnelColumn, resolvedOwnerId, origin] = await Promise.all([
+		resolveFunnelColumn(payload.statusKey),
+		resolveOwner(payload.ownerEmail),
+		resolveLeadOrigin(payload.utm_source),
+	])
 	const {
 		value: resolvedOutcomeStatus,
 		unresolved: outcomeUnresolved,
 		locked: outcomeLocked,
 	} = resolveOutcomeStatus(payload.outcomeStatus, existing?.outcomeStatus)
+	const payloadForMerge =
+		origin.status === 'ready' ? { ...payload, originTag: origin.name } : payload
+	const matched =
+		existing === null
+			? await findSamePersonLead(prisma, {
+					identityNumber: payload.identityNumber,
+					email: payload.email,
+					phone: payload.phone,
+				})
+			: null
+	const splitByOrigin =
+		matched !== null &&
+		origin.status === 'ready' &&
+		!(await personAlreadyHasOrigin(prisma, matched.idLead, origin.idClientOrigin))
+	const ownerToStore =
+		splitByOrigin && matched?.idUser != null ? matched.idUser : resolvedOwnerId
 
 	const upsertData = buildLeadUpsertData(
-		payload,
+		payloadForMerge,
 		existing ?? {},
-		resolvedOwnerId,
+		ownerToStore,
 		resolvedOutcomeStatus
 	)
 
@@ -121,14 +159,50 @@ export async function upsertLeadFromCrm(
 
 	const created = !existing
 
+	if (created && splitByOrigin && matched && origin.status === 'ready') {
+		await prisma.leadLink.create({
+			data: {
+				idLead: lead.idLead,
+				idRelatedLead: matched.idLead,
+				idClientOrigin: origin.idClientOrigin,
+				source: 'AUTO',
+				active: true,
+				linkedAt: payload.updatedAt ?? receivedAt,
+			},
+		})
+		await logAuditEvent({
+			action: AuditAction.LEAD_RELATED,
+			email: 'crm-sync@system',
+			details: `Lead ${lead.idLead} ingresó por otro origen y quedó relacionado con ${matched.idLead} (externalCrmId: ${payload.externalCrmId})`,
+		})
+	}
+
+	await recordLeadStageChange({
+		idLead: lead.idLead,
+		fromIdLeadFunnelColumn: existing?.idLeadFunnelColumn,
+		toIdLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
+		source: 'CRM_SYNC',
+		changedAt: payload.updatedAt ?? receivedAt,
+	})
+
 	await logAuditEvent({
 		action: created ? AuditAction.LEAD_CREATED : AuditAction.LEAD_STATUS_CHANGED,
 		email: 'crm-sync@system',
 		details: `Lead ${created ? 'creado' : 'actualizado'} vía webhook CRM (externalCrmId: ${payload.externalCrmId}, statusKey: ${payload.statusKey})`,
 	})
 
-	if (resolvedOwnerId !== undefined) {
-		if (resolvedOwnerId === null) {
+	if (ownerToStore !== undefined && ownerToStore !== (existing?.idUser ?? null)) {
+		await recordOwnerChange({
+			idLead: lead.idLead,
+			fromUserId: existing?.idUser ?? null,
+			toUserId: ownerToStore,
+			source: 'SYSTEM',
+			changedAt: payload.updatedAt ?? receivedAt,
+		})
+	}
+
+	if (ownerToStore !== undefined) {
+		if (ownerToStore === null) {
 			await logAuditEvent({
 				action: AuditAction.LEAD_OWNER_UNRESOLVED,
 				email: 'crm-sync@system',
@@ -138,7 +212,7 @@ export async function upsertLeadFromCrm(
 			await logAuditEvent({
 				action: AuditAction.LEAD_OWNER_ASSIGNED,
 				email: 'crm-sync@system',
-				details: `Propietario asignado/reasignado (lead externalCrmId: ${payload.externalCrmId}, idUser: ${resolvedOwnerId})`,
+				details: `Propietario asignado/reasignado (lead externalCrmId: ${payload.externalCrmId}, idUser: ${ownerToStore})`,
 			})
 		}
 	}
@@ -178,5 +252,45 @@ export async function upsertLeadFromCrm(
 		})
 	}
 
-	return { idLead: lead.idLead, created }
+	if (origin.status === 'inactive') {
+		await logAuditEvent({
+			action: AuditAction.LEAD_ORIGIN_INACTIVE,
+			email: 'crm-sync@system',
+			details: `utm_source coincide con un origen inactivo y no se etiqueta (lead externalCrmId: ${payload.externalCrmId}, code: ${origin.code})`,
+		})
+		return { idLead: lead.idLead, created, origin: null }
+	}
+
+	if (origin.status !== 'ready') {
+		return { idLead: lead.idLead, created, origin: null }
+	}
+
+	const seenAt = payload.updatedAt ?? receivedAt
+	const assignment = await assignLeadOrigin({
+		idLead: lead.idLead,
+		idClientOrigin: origin.idClientOrigin,
+		seenAt,
+	})
+
+	if (origin.createdCatalog) {
+		await logAuditEvent({
+			action: AuditAction.LEAD_ORIGIN_CREATED,
+			email: 'crm-sync@system',
+			details: `Origen de lead creado desde utm_source (code: ${origin.code}, name: ${origin.name})`,
+		})
+	}
+
+	if (assignment !== 'refreshed') {
+		await logAuditEvent({
+			action: AuditAction.LEAD_ORIGIN_ASSIGNED,
+			email: 'crm-sync@system',
+			details: `Origen ${origin.code} ${assignment === 'created' ? 'asignado' : 'reactivado'} al lead (externalCrmId: ${payload.externalCrmId})`,
+		})
+	}
+
+	return {
+		idLead: lead.idLead,
+		created,
+		origin: { code: origin.code, name: origin.name },
+	}
 }

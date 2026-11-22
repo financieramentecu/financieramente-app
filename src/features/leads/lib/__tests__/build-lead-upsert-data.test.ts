@@ -5,6 +5,7 @@ import type { CrmSyncPayload } from '@/features/leads/types/crm-sync.schema'
 const basePayload: CrmSyncPayload = {
 	externalCrmId: 'crm-1',
 	statusKey: 'new',
+	ownerEmail: 'asesor@example.com',
 }
 
 const storedLead = {
@@ -18,6 +19,18 @@ const storedLead = {
 }
 
 describe('buildLeadUpsertData', () => {
+	it('never writes CRM-owned data (value, probability, custom fields, activity timestamp)', () => {
+		const result = buildLeadUpsertData(
+			{ ...basePayload, name: 'Ana', email: 'ana@x.co', estimatedValue: '1', probability: 90, customFieldValues: { a: 1 } } as never,
+			storedLead,
+			5,
+			'OPEN'
+		)
+		for (const key of ['estimatedValue', 'probability', 'customFieldValues', 'lastActivityAt', 'tagAssignments']) {
+			expect(result).not.toHaveProperty(key)
+		}
+	})
+
 	it('never overwrites stored values when optional fields are absent', () => {
 		const result = buildLeadUpsertData(basePayload, storedLead)
 

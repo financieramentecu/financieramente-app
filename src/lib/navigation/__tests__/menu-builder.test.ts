@@ -11,25 +11,22 @@ function titles(role: UserRole, authorizedReportCodes?: readonly string[]) {
 }
 
 describe('buildMenuByRole — leads/misDistribuciones/calculadora gating (D7)', () => {
-	it('ADMIN keeps unconditional Leads/Mis distribuciones/Calculadora (unchanged)', () => {
+	it('ADMIN keeps unconditional Mis distribuciones/Calculadora (unchanged)', () => {
 		const items = titles(UserRole.ADMIN, ['PRODUCCION_REAL'])
-		expect(items).toContain('Leads')
 		expect(items).toContain('Mis distribuciones')
 		expect(items).toContain('Calculadora')
 	})
 
-	it('ASISTENTE_GERENCIA_OPERATIVA keeps unconditional Leads/Mis distribuciones/Calculadora (unchanged)', () => {
+	it('ASISTENTE_GERENCIA_OPERATIVA keeps unconditional Mis distribuciones/Calculadora (unchanged)', () => {
 		const items = titles(UserRole.ASISTENTE_GERENCIA_OPERATIVA, [
 			'PRODUCCION_REAL',
 		])
-		expect(items).toContain('Leads')
 		expect(items).toContain('Mis distribuciones')
 		expect(items).toContain('Calculadora')
 	})
 
-	it('ANALISTA_SOPORTE keeps unconditional Leads/Mis distribuciones/Calculadora (unchanged)', () => {
+	it('ANALISTA_SOPORTE keeps unconditional Mis distribuciones/Calculadora (unchanged)', () => {
 		const items = titles(UserRole.ANALISTA_SOPORTE, ['PRODUCCION_REAL'])
-		expect(items).toContain('Leads')
 		expect(items).toContain('Mis distribuciones')
 		expect(items).toContain('Calculadora')
 	})
@@ -38,11 +35,11 @@ describe('buildMenuByRole — leads/misDistribuciones/calculadora gating (D7)', 
 		expect(titles(UserRole.SIN_ROL)).toEqual([])
 	})
 
-	it('AGENTE keeps its bespoke menu with Leads and Calculadora (unchanged)', () => {
+	it('AGENTE keeps its bespoke menu with Calculadora', () => {
 		const items = buildMenuByRole(UserRole.AGENTE, DEFAULT_ROLE_GRANTS[UserRole.AGENTE], {
 			isCalculadoraEnabled: true,
 		}).map((item) => item.title)
-		expect(items).toEqual(['Dashboard', 'Mis Negocios', 'Leads', 'Calculadora'])
+		expect(items).toEqual(['Dashboard', 'Mis Negocios', 'Calculadora'])
 	})
 
 	it('CONSULTOR sees exactly Dashboard/Negocios/Reportes/Calculadora', () => {
@@ -54,6 +51,58 @@ describe('buildMenuByRole — leads/misDistribuciones/calculadora gating (D7)', 
 		const items = titles(UserRole.CONSULTOR, ['PRODUCCION_REAL'])
 		expect(items).not.toContain('Leads')
 		expect(items).not.toContain('Mis distribuciones')
+	})
+})
+
+function subItemTitles(role: UserRole, parentTitle: string) {
+	return buildMenuByRole(role, DEFAULT_ROLE_GRANTS[role], {
+		isCalculadoraEnabled: true,
+		authorizedReportCodes: ['PRODUCCION_REAL'],
+	})
+		.find((item) => item.title === parentTitle)
+		?.subItems?.map((subItem) => subItem.title)
+}
+
+describe('buildMenuByRole — CRM under Negocios (crm-phase-0-foundation)', () => {
+	it.each([
+		UserRole.ADMIN,
+		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
+		UserRole.ANALISTA_SOPORTE,
+	])('%s sees Negocios with Ver Negocios and CRM sub-items', (role) => {
+		expect(subItemTitles(role, 'Negocios')).toEqual(['Ver Negocios', 'CRM'])
+	})
+
+	it.each(Object.values(UserRole))('%s never sees a top-level Leads entry', (role) => {
+		expect(titles(role, ['PRODUCCION_REAL'])).not.toContain('Leads')
+	})
+
+	it('CRM sub-item links to /dashboard/negocios/crm', () => {
+		const negocios = buildMenuByRole(UserRole.ADMIN, DEFAULT_ROLE_GRANTS[UserRole.ADMIN]).find(
+			(item) => item.title === 'Negocios'
+		)
+		const crm = negocios?.subItems?.find((subItem) => subItem.title === 'CRM')
+		expect(crm?.url).toBe('/dashboard/negocios/crm')
+	})
+
+	it('CONSULTOR keeps a flat Negocios entry until the CRM view is granted', () => {
+		expect(subItemTitles(UserRole.CONSULTOR, 'Negocios')).toBeUndefined()
+	})
+
+	it('CONSULTOR sees CRM under Negocios when the read-only grant is on', () => {
+		const negocios = buildMenuByRole(UserRole.CONSULTOR, DEFAULT_ROLE_GRANTS[UserRole.CONSULTOR], {
+			isCalculadoraEnabled: true,
+			authorizedReportCodes: ['PRODUCCION_REAL'],
+			canViewOthersCrm: true,
+		}).find((item) => item.title === 'Negocios')
+		expect(negocios?.subItems?.map((subItem) => subItem.title)).toEqual(['Ver Negocios', 'CRM'])
+	})
+
+	it('AGENTE sees CRM inside Mis Negocios', () => {
+		expect(subItemTitles(UserRole.AGENTE, 'Mis Negocios')).toEqual([
+			'Ver Mis Negocios',
+			'Crear Negocio',
+			'CRM',
+		])
 	})
 })
 

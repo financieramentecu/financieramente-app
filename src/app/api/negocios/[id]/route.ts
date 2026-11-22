@@ -276,6 +276,23 @@ export async function PUT(
 			)
 		}
 
+		// VENTA_EFECTUADA still lets the owner edit the rest of the draft, but
+		// Valor de Negocio is reserved for support, operations, and admin.
+		const canEditValue = await roleCan(currentUser.role?.code, 'negocios.editar_valor')
+		if (
+			!canEditValue &&
+			value !== undefined &&
+			businessValuesDiffer(existingBusiness.value, value)
+		) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: 'No tienes permisos para editar el Valor de Negocio',
+				},
+				{ status: 403 }
+			)
+		}
+
 		// A PARTNER can never hand their business over to another owner
 		if (
 			idUser !== undefined &&
@@ -503,7 +520,7 @@ export async function PUT(
 				currency: idCurrency !== undefined ? { connect: { idCurrency } } : undefined,
 				buyPeriodicity: idBuyPeriodicity !== undefined ? { connect: { idBuyPeriodicity } } : undefined,
 				term: term !== undefined ? term : undefined,
-				value: value !== undefined ? value : undefined,
+				value: canEditValue ? value : undefined,
 				status: newStatus,
 				productPercentageCommission: { connect: { idProductPercentageCommission: finalIdPpc } },
 				numAportes: finalNumAportes,

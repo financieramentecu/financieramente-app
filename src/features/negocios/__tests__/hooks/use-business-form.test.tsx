@@ -769,6 +769,34 @@ describe('useBusinessForm — identity revalidation on edit', () => {
 		expect(onSubmit).toHaveBeenCalled()
 	})
 
+	it('does not send a business value change when the editor is a Coach', async () => {
+		const onSubmit = vi.fn()
+		const { result } = renderHook(() =>
+			useBusinessForm({
+				mode: 'edit',
+				businessId: 389,
+				businessStatus: 'VENTA_EFECTUADA',
+				defaultValues: { ...baseDefaults },
+				currentUser: createMockUserWithRole(UserRole.AGENTE),
+				onSubmit,
+				...options,
+			})
+		)
+
+		act(() => {
+			result.current.form.setValue('value', 1800)
+		})
+		await submit(result)
+
+		expect(result.current.valueChangeConfirmOpen).toBe(false)
+		expect(updateBusiness).toHaveBeenCalledWith(
+			389,
+			expect.objectContaining({ value: undefined }),
+			undefined
+		)
+		expect(onSubmit).toHaveBeenCalled()
+	})
+
 	it('saves an edit when the stored identity uses dots and was not changed', async () => {
 		const onSubmit = vi.fn()
 		const { result } = renderHook(() =>

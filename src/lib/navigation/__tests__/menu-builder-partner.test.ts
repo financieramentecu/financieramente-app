@@ -83,7 +83,6 @@ describe('buildMenuByRole - PARTNER (NAV-01, PA-02)', () => {
 		expect(items.map((i) => i.title)).toEqual([
 			'Dashboard',
 			'Mis Negocios',
-			'Leads',
 			'Calculadora',
 		])
 	})

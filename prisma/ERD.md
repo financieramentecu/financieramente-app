@@ -12,8 +12,11 @@ Sistema: Financieramente — liquidación de comisiones.
 - `LeadOutcomeStatus`: `OPEN` | `WON` | `LOST` | `ABANDONED` (en `lead.outcome_status`, `@default(OPEN)`, `NOT NULL`). `WON` es terminal: ver nota bajo "Índices y convenciones".
 - `DocumentDataType`: `NUMERIC` | `ALPHANUMERIC` (en `document_type.data_type`).
 - `DataScope`: `OWN` | `TEAM` | `COMPANY` (en `role_permission.scope`, nullable: solo aplica a permisos con `permission.supports_scope`).
-- `LeadStageChangeSource`: `CRM_SYNC` | `CSV_IMPORT` | `MANUAL` (en `lead_stage_history.source`).
+- `LeadStageChangeSource`: `CRM_SYNC` | `CSV_IMPORT` | `MANUAL` | `LANDING_FORM` (en `lead_stage_history.source`). `LANDING_FORM` es el alta de un prospecto que llega por el formulario de una landing.
 - `LeadActivityType`: `NOTE_ADDED` | `CALL_LOGGED` | `MEETING_LOGGED` | `EMAIL_LOGGED` | `WHATSAPP_LOGGED` | `TASK_CREATED` | `TASK_COMPLETED` | `TASK_REASSIGNED` | `TASK_COMMENTED` | `CONVERTED` | `BUSINESS_LINKED` | `CASE_OPENED` | `CASE_UPDATED` (en `lead_activity.type`). `TASK_COMMENTED` registra un comentario de tarea; un comentario de caso sigue siendo `CASE_UPDATED` con `action: COMMENTED`.
+- `LeadLinkSource`: `AUTO` | `MANUAL` (en `lead_link.source`). `AUTO` lo escribe el formulario cuando la persona ya existe y el origen es otro. `MANUAL` lo escribe quien valida el origen en el detalle.
+- `LeadChangeKind`: `OWNER` | `ORIGIN` (en `lead_change_history.kind`).
+- `LeadChangeSource`: `SYSTEM` | `MANUAL` (en `lead_change_history.source`). `SYSTEM` no tiene actor; el historial del CRM lo muestra como Sistema.
 - `LeadTaskType`: `TODO` | `CALL` | `MEETING` | `EMAIL` | `WHATSAPP` (en `lead_task.type`, `@default(TODO)`). El nombre visible vive en `lead_activity_label` (`code` nulo = etiqueta creada por el equipo).
 - `LeadCustomFieldType`: `TEXT` | `NUMBER` | `DATE` | `SELECT` (en `lead_custom_field.type`; inmutable tras crear el campo).
 - `LeadTaskStatus`: `OPEN` | `DONE` | `CANCELLED` (en `lead_task.status`).
@@ -27,6 +30,8 @@ erDiagram
     TypeProduct ||--o{ Product : "clasifica"
     CategoryType ||--o{ Category : "tipo de categoría"
     ClientOrigin ||--o{ Business : "origen del negocio"
+    ClientOrigin ||--o{ LeadClientOrigin : "leads del origen"
+    Lead ||--o{ LeadClientOrigin : "orígenes del cliente"
     Level ||--o{ User : "nivel del usuario"
     Level ||--o{ ProductConfiguration : "nivel en config"
     Level ||--o{ ProductPercentageCommissionCategory : "en distribución"
@@ -87,6 +92,7 @@ erDiagram
     User ||--o{ LeadTask : "responsable / creador"
     User ||--o{ LeadActivityLabel : "crea etiquetas de actividad"
     User ||--o{ LeadActivityColumn : "renombra cabeceras"
+    User ||--o{ CrmNotificationSetting : "actualiza avisos de tareas"
     LeadActivityLabel ||--o{ LeadTask : "etiqueta visible"
     LeadTask ||--o{ LeadTaskComment : "comentarios"
     User ||--o{ LeadTaskComment : "autor"
@@ -96,7 +102,14 @@ erDiagram
     LeadSupportCase ||--o{ LeadSupportCaseComment : "comentarios"
     User ||--o{ LeadSupportCaseComment : "autor"
     Lead ||--o{ LeadTagAssignment : "etiquetas"
+    Lead ||--o{ LeadFormSubmission : "fotos de formulario"
     LeadTag ||--o{ LeadTagAssignment : "asignaciones"
+    Lead ||--o{ LeadLink : "ingreso nuevo"
+    Lead ||--o{ LeadLink : "lead ya conocido"
+    ClientOrigin ||--o{ LeadLink : "origen del ingreso"
+    User ||--o{ LeadLink : "quien relacionó"
+    Lead ||--o{ LeadChangeHistory : "cambios de asesor y origen"
+    User ||--o{ LeadChangeHistory : "quien cambió"
     User ||--o{ LeadSavedView : "vistas guardadas"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
@@ -127,6 +140,7 @@ erDiagram
     ClientOrigin {
         int id_client_origin PK
         string name
+        string code UK
         text description
         boolean status
         datetime created_at
@@ -332,6 +346,7 @@ erDiagram
         date entry_date
         date retirement_date
         boolean active
+        boolean can_view_others_crm
         datetime activated_at
         datetime created_at
         datetime updated_at
@@ -620,6 +635,31 @@ erDiagram
         datetime updated_at
     }
 
+    LeadChangeHistory {
+        int id_lead_change_history PK
+        int id_lead FK
+        string kind
+        string source
+        int id_actor FK
+        string actor_label
+        string from_label
+        string to_label
+        datetime changed_at
+        datetime created_at
+    }
+
+    LeadFormSubmission {
+        int id_lead_form_submission PK
+        int id_lead FK
+        string submission_id UK
+        string landing_key
+        string landing_name
+        string form_version
+        datetime submitted_at
+        json fields
+        datetime created_at
+    }
+
     LeadStageHistory {
         int id_lead_stage_history PK
         int id_lead FK
@@ -680,7 +720,15 @@ erDiagram
         string status
         datetime completed_at
         datetime reminder_sent_at
+        datetime advance_notified_at
         datetime created_at
+        datetime updated_at
+    }
+
+    CrmNotificationSetting {
+        int id_crm_notification_setting PK
+        int anticipation_days
+        int updated_by FK
         datetime updated_at
     }
 
@@ -736,6 +784,29 @@ erDiagram
         datetime updated_at
     }
 
+    LeadClientOrigin {
+        int id_lead_client_origin PK
+        int id_lead FK
+        int id_client_origin FK
+        boolean active
+        datetime first_seen_at
+        datetime last_seen_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    LeadLink {
+        int id_lead_link PK
+        int id_lead FK
+        int id_related_lead FK
+        int id_client_origin FK
+        enum source
+        boolean active
+        datetime linked_at
+        int linked_by FK
+        datetime created_at
+    }
+
     LeadCustomField {
         int id_lead_custom_field PK
         string key UK
@@ -776,7 +847,7 @@ erDiagram
 - **FK**: Foreign Key  
 - **UK**: Unique (constraint único)  
 - Nombres de tablas y columnas en el diagrama siguen el mapeo físico de `schema.prisma` (`@@map` / `@map`).
-- `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor.
+- `User`: además de `email` UK, existe constraint único compuesto `(type_identity, identity_number)` cuando ambos tienen valor. `can_view_others_crm` (migración `20261117153000_user_can_view_others_crm`) es un permiso otorgado por persona: sin él, un asesor solo ve su rama; con él, ve en solo lectura los estados de leads y los reportes del CRM de las demás ramas.
 - **Nueva tabla `document_type`** (migración `20261009193000_add_document_type`): catálogo de tipos de documento. `name` y `code` son únicos. `status = false` es el borrado lógico (nunca `delete()` físico). La precarga inserta CC, CE, PAS, NIT y PPT en estado activo. `max_length` queda acotado a 20 para caber en `identity_number`.
 - **`Client.id_document_type`** (migración `20261014170000_link_client_document_type`, COM-27): FK `ON DELETE RESTRICT` hacia `document_type`. `type_identity` queda como copia del `code` para la unicidad `(type_identity, identity_number)` y los consumidores existentes; no es texto libre. La migración es idempotente: solo llena `id_document_type` nulo, conserva el código que ya coincide con el catálogo y asigna CC al resto. Reejecutarla no reemplaza una FK ya definida. Desactivar un tipo lo oculta en altas nuevas y conserva la relación histórica. `User.type_identity` sigue sin FK (usuarios de plataforma, fuera de alcance).
 - **`Policyholder`** (migración `20261015143000_add_policyholder`, COM-28): catálogo independiente de `Client`. `Business.client_is_policyholder` nace en `true` para los negocios existentes (el cliente es el mismo tomador) y `id_policyholder` queda nulo. Un tomador distinto se vincula solo a ese negocio (`ON DELETE RESTRICT`); volver la casilla a «Sí» desvincula el negocio y no borra la fila del tomador. La unicidad es `(type_identity, identity_number)`. Reejecutar la migración no crea tomadores ni cambia un vínculo ya guardado.
@@ -806,10 +877,17 @@ erDiagram
 - **`User.activated_at` y nueva tabla `account_token`** (migración `20261010150000_partner_profile`, COM-41): `activated_at` es `TIMESTAMP(3)` nullable; la migración hace backfill `activated_at = created_at` para todos los usuarios existentes (nadie pierde acceso) y solo los usuarios nuevos nacen con `NULL` (pendientes de activación). El login exige `active AND activated_at IS NOT NULL`. `account_token` guarda únicamente el hash SHA-256 (`token_hash` único, `VARCHAR(64)`) de los tokens `ACTIVATION` (72 h) y `RESET` (1 h); se invalidan con `revoked_at` y se consumen con `used_at` (nunca se borran filas). Índice `(id_user, type)`.
 - **Nivel `PARTNER_EXTERNAL`** (COM-41, sembrado por `npm run prisma:seed:partner`, sin migración): fila de `level` con `beneficiary_mode = OVERRIDE` y sin `id_next_level`. Queda **fuera** de `NEXT_LEVEL_CHAIN` (no es siguiente nivel de ninguno) y no se renombra desde `LEVEL_5`, que sigue siendo "Partner". El rol `PARTNER` y la categoría "Partner Externo" (tipo `MIA`) también se siembran allí.
 - **Gestión de roles y permisos** (migración `20261112174104_access_control_permissions`, feature `access-control`): nuevas tablas `permission` (catálogo definido en código, sincronizado por `npm run prisma:seed:permissions`; nunca se borra, se desactiva con `status`) y `role_permission` (UNIQUE `id_role + id_permission`; `scope` nullable de tipo `DataScope`; `id_min_level` FK nullable a `level` para permisos con nivel mínimo configurable, p. ej. `negocios.exportar`). `role.is_system` marca los roles que no se pueden eliminar ni cambiar de código (`ADMIN`, `PARTNER`, `SIN_ROL`). La migración renombra el rol `DEFAULT` a `SIN_ROL` (`name` = "Sin rol asignado"); los usuarios conservan el vínculo por `id_role`. `ADMIN` recibe siempre todos los permisos con alcance `COMPANY`.
+- **Nueva tabla `lead_change_history`** (migración `20261120180000_add_lead_change_history`): log de solo inserción de cada cambio de Money Strategy (`OWNER`) o de origen de cliente (`ORIGIN`). `source = SYSTEM` deja `id_actor` y `actor_label` nulos y el historial del CRM dice Sistema. `MANUAL` guarda quién lo hizo en el CRM o en la importación CSV. `from_label` nulo significa que antes no había asesor u origen. No se actualiza ni se borra. El timeline lo mezcla al leer; no se duplica en `lead_activity` porque ese registro exige un usuario.
 - **Nueva tabla `lead_stage_history`** (migración `20261105120000_add_lead_stage_history`, change `crm-phase-0-foundation`): log de solo inserción (nunca se actualiza ni se borra) de cada transición de etapa del embudo. La escriben el webhook `crm-sync` (`source = CRM_SYNC`, `id_user = NULL`, `changed_at = updatedAt` del payload o el instante de proceso) y la importación CSV (`source = CSV_IMPORT`, `id_user` = quien importa) solo cuando el lead es nuevo (`from_id_lead_funnel_column = NULL`) o cambia de columna. Dos FKs a `lead_funnel_column` (relaciones `LeadStageHistoryFrom` / `LeadStageHistoryTo`). Índices `(id_lead, changed_at)` y `(to_id_lead_funnel_column, changed_at)` para reportes de tiempo en etapa. Un fallo al escribir el historial se reporta a Sentry y nunca rompe la sincronización. `MANUAL` queda reservado para el CRM editable (Fase 4).
 - **CRM: columnas del tablero** (migraciones `20261112190000_add_lead_activity_column` y `20261112200000_activity_column_catalogue`): `lead_activity_column` guarda el título visible. Los `code` `overdue | today | upcoming | done` siguen agrupando por vencimiento. Cualquier otro `code` es una columna creada por el equipo: la tarjeta cae ahí solo si `lead_task.column_code` o `lead_support_case.column_code` apunta a ese código. `active = false` oculta la columna (no se borra la fila). Ocultar una columna propia devuelve sus tarjetas a la columna de vencimiento. La última columna visible no se puede ocultar. Volver a crear una columna oculta con el mismo nombre la reactiva.
 - **CRM: etiquetas de actividad** (migración `20261112183000_add_lead_activity_label`): `lead_activity_label` es el catálogo de nombres que se ven en la tarjeta (color, `active`, `code` único y nulo en las etiquetas creadas por el equipo). La migración siembra Tarea, Llamada, Reunión, Email y WhatsApp con el `id_user` más bajo y enlaza `lead_task.id_lead_activity_label` según `lead_task.type`. `lead_task.type` se conserva para recordatorios y tareas anteriores al catálogo. Borrar una etiqueta es lógico (`active = false`); la última etiqueta activa no se puede desactivar.
 - **CRM: `lead_task_comment`** (migración `20261111170000_add_lead_task_comment`): comentarios de una tarea, escritos desde Actividades. Mismo patrón que `lead_support_case_comment` (solo inserción, índice `(id_lead_task, created_at)`).
 - **CRM: `lead_activity`, `lead_task`, `lead_support_case`, `lead_support_case_comment`** (migraciones `20261105165000`–`20261105180000`, rama `codex/negocios-basic-crm`): `lead_activity` es un registro de eventos de solo inserción (payload JSON versionado; `(id_lead, correlation_id)` único para idempotencia; cursor `(occurred_at, id_lead_activity)`). Solo `NOTE_ADDED` y `*_LOGGED` los envía el cliente; el resto los escriben los servicios. `lead_task` = trabajo programado (estilo Odoo `mail.activity`); `lead_support_case` = casos de soporte (estilo EspoCRM Case). Los cambios de etapa **no** se duplican en `lead_activity`: el timeline los mezcla al leer desde `lead_stage_history` (el webhook no tiene actor y `lead_activity.id_user` es obligatorio).
+- **Avisos de tareas del CRM** (migración `20261117140000_crm_task_notice_settings`): `lead_task.advance_notified_at` marca el aviso in-app de la ventana de anticipación (índice `(due_at, advance_notified_at)`). `reminder_sent_at` queda solo para el aviso del día de vencimiento. Reprogramar o reabrir limpia ambos. `crm_notification_setting` es una fila única (`id = 1`) con `anticipation_days` de 0 a 30 (check en la migración, default 1). El cron de las 07:00 Bogotá envía correo solo de tareas abiertas ya vencidas; el de cada 15 min avisa en la app las de hoy y las que entran en esa anticipación. Las completadas o canceladas no entran (`status = OPEN`).
 - **CRM Fase 1** (migración `20261109120000_extend_lead_activity_and_task`, change `crm-phase-1-activities`): `LeadActivityType` += `CALL_LOGGED | MEETING_LOGGED | EMAIL_LOGGED | WHATSAPP_LOGGED`; nuevo enum `LeadTaskType` y columnas `lead_task.type` (`DEFAULT 'TODO'`) y `lead_task.reminder_sent_at` (índice `(due_at, reminder_sent_at)`: el cron reclama la tarea con `updateMany ... WHERE reminder_sent_at IS NULL` antes de notificar; reprogramar la tarea lo vuelve `NULL`). `lead.last_activity_at` es dato propio del CRM (nunca lo escriben el webhook ni el CSV): lo actualiza `appendLeadActivityTx` en la misma transacción para los eventos de contacto, solo si es más reciente; índice `(outcome_status, last_activity_at)` para el indicador "Sin actividad".
+- **Fotos de formulario de landing** (migración `20261118150000_add_lead_form_submission`, COM-247): `lead_form_submission` es de solo inserción. `submission_id` es único y hace idempotente el POST de n8n. `fields` guarda el arreglo validado (`text`, `number`, `date`, `select`) con etiqueta y valor; una landing nueva no agrega columnas. Un prospecto que ya existe solo recibe otra foto: no se mueve su etapa ni se tocan valor, probabilidad, campos del CRM ni etiquetas. `LANDING_FORM` en `lead_stage_history.source` registra únicamente el alta. Soft delete del lead no borra las fotos.
 - **CRM Fase 2** (migración `20261110120000_add_lead_views_tags_fields`, change `crm-phase-2-views-tags`): datos propios del CRM que el webhook `crm-sync` nunca escribe. `lead.estimated_value` (`DECIMAL(15,2)`) y `lead.probability` (`CHECK 0..100`) dan el valor ponderado del pipeline (valor × probabilidad / 100). `lead.custom_field_values` es un JSON indexado por `lead_custom_field.key` (sin tabla EAV); se valida contra los campos activos al escribir y un campo desactivado oculta su valor sin borrarlo. `lead_custom_field.key` es único para siempre (no se reutiliza la clave de un campo inactivo). `lead_tag_assignment` tiene `(id_lead, id_lead_tag)` único: quitar una etiqueta pone `active=false` y volver a ponerla reactiva la misma fila. `lead_tag.name` es único entre las activas sin distinguir mayúsculas (lo valida el servicio). `lead_saved_view` es personal (`id_user`), guarda filtros y orden de la tabla sin paginación; máximo 20 activas por usuario. `created_by` / `assigned_by` son ids de usuario sin FK (solo trazabilidad; la auditoría está en `AuditLog`).
+- **Catálogo único de origen** (migración `20261120170000_move_lead_origin_into_client_origin`): `lead_origin` y `lead_origin_assignment` se retiran. El `code` (VARCHAR 120, único, nulo en las filas anteriores) guarda la clave que tenía ese catálogo. Las filas de `client_origin` que ya existían conservan nombre, descripción y estado; solo reciben `code` cuando el nombre coincide. Los vínculos de lead se copian a `lead_client_origin` sin reescribir un par que ya estaba. `client_origin` sigue siendo el catálogo de los negocios.
+- **Origen del lead** (migración `20261120143000_add_lead_client_origin`): el catálogo es `client_origin`, el mismo de los negocios. `lead_client_origin` es la pivote `(id_lead, id_client_origin)` única. El `utm_source` se compara con el nombre normalizado (minúsculas, sin acentos, espacios y guiones como `_`): `Money Strategy` y `money_strategy` son el mismo origen. Si no existe, el webhook crea la fila en `client_origin` y no reactiva una con `status = false`. Repetir el par refresca `last_seen_at`; quitar el vínculo pone `active = false`. El filtro de la tabla de leads lee esta pivote. El nombre se copia a `lead.origin_tag` para la tarjeta.
+- **Foto de formulario** (migración `20261119145000_add_lead_form_submission`, COM-247): `lead_form_submission` es de solo inserción. `submission_id` único evita duplicar un reintento. `fields` guarda la etiqueta, el tipo y el valor en el orden recibido (`text | number | date | select`). Un `submission_id` nuevo sobre un prospecto ya encontrado por documento, correo o teléfono, con el mismo origen, agrega otra foto y no reescribe las anteriores ni la etapa, el valor, la probabilidad ni las etiquetas del CRM. Si el origen es otro, se crea un segundo lead.
+- **Misma persona, otro origen** (migración `20261120160000_add_lead_link`): `lead_link` une el lead nuevo (`id_lead`) con el lead ya conocido (`id_related_lead`). `CHECK (id_lead <> id_related_lead)`. El par es único. `active = false` desvincula; no hay borrado físico. El asesor se copia para que ambos tengan el mismo `id_user`. El timeline mezcla estas filas como ingreso de lead. Al convertir, el cliente sigue siendo único por documento.

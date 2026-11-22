@@ -37,6 +37,7 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 		],
 		['negocios.editar', 'Editar negocio', { scope: true }],
 		['negocios.cancelar', 'Cancelar negocio'],
+		['negocios.editar_valor', 'Editar el Valor de Negocio'],
 		[
 			'negocios.exportar',
 			'Exportar lista de negocios a Excel',
@@ -69,9 +70,12 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 	]),
 	...module('Leads', [
 		['leads.ver', 'Ver leads', { scope: true }],
+		['leads.gestionar', 'Abrir y gestionar el CRM de leads', { scope: true }],
+		['leads.reasignar_estrategia', 'Cambiar el Money Strategy de cualquier lead'],
 		['leads.importar_csv', 'Importar leads desde CSV'],
 		['leads.configurar_funnel', 'Configurar columnas del funnel'],
 		['leads.eliminar', 'Eliminar leads'],
+		['leads.configurar_avisos', 'Configurar los avisos de vencimiento de tareas del CRM'],
 	]),
 	...module('Carga de archivos', [
 		['carga.masiva', 'Carga masiva de archivos'],

@@ -1,5 +1,5 @@
 import type { Prisma, LeadOutcomeStatus } from '@prisma/client'
-import type { CrmSyncPayload } from '@/features/leads/types/crm-sync.schema'
+import type { LeadWritePayload } from '@/features/leads/types/crm-sync.schema'
 
 export interface StoredLeadContactFields {
 	name?: string | null
@@ -44,7 +44,7 @@ const OPTIONAL_STRING_FIELDS = [
  * entirely in `resolveOutcomeStatus()`, never here.
  */
 export function buildLeadUpsertData(
-	payload: CrmSyncPayload,
+	payload: LeadWritePayload,
 	_storedLead: StoredLeadContactFields,
 	resolvedOwnerId?: number | null,
 	resolvedOutcomeStatus?: LeadOutcomeStatus

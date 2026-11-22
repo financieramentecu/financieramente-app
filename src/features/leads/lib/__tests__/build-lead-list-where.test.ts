@@ -18,11 +18,22 @@ describe('buildLeadListWhere', () => {
 		expect(hasIdUserClause).toBe(false)
 	})
 
-	it('CONSULTOR (read-only global visibility) sees all active leads — no idUser scoping', () => {
+	it('CONSULTOR without a company-wide grant stays on the ids they were given', () => {
 		const where = buildLeadListWhere(
 			{ idUser: 9, role: { code: UserRole.CONSULTOR } },
 			{},
-			{ visibleUserIds: [9], unrestricted: true }
+			{ visibleUserIds: [9] }
+		)
+
+		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
+		expect(andConditions).toEqual(expect.arrayContaining([{ idUser: { in: [9] } }]))
+	})
+
+	it('an empty visible set is the granted company-wide read', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 9, role: { code: UserRole.CONSULTOR } },
+			{},
+			{ visibleUserIds: [] }
 		)
 
 		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
@@ -140,6 +151,56 @@ describe('buildLeadListWhere', () => {
 			)
 			expect(hasCreatedAtClause).toBe(false)
 		})
+	})
+
+	it('drops an excluded branch without replacing the server scope', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 5, role: { code: UserRole.AGENTE } },
+			{ excludedOwnerIds: [6] },
+			{ visibleUserIds: [5, 6, 7] }
+		)
+		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
+		expect(andConditions).toContainEqual({ idUser: { in: [5, 6, 7] } })
+		expect(andConditions).toContainEqual({ idUser: { notIn: [6] } })
+	})
+
+	it('filters by active client-origin links when origin ids are selected', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 1, role: { code: UserRole.ADMIN } },
+			{ originIds: [4, 5] }
+		)
+		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
+		expect(andConditions).toContainEqual({
+			leadClientOrigins: {
+				some: {
+					idClientOrigin: { in: [4, 5] },
+					active: true,
+					clientOrigin: { status: true },
+				},
+			},
+		})
+	})
+
+	it('adds no origin clause when originIds is empty', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 1, role: { code: UserRole.ADMIN } },
+			{ originIds: [] }
+		)
+		const serialized = JSON.stringify(where)
+		expect(serialized).not.toContain('leadClientOrigins')
+	})
+
+	it('adds an owner clause that cannot widen a scoped hierarchy', () => {
+		const where = buildLeadListWhere(
+			{ idUser: 5, role: { code: UserRole.AGENTE } },
+			{ ownerIds: [6, 99] },
+			{ visibleUserIds: [5, 6] }
+		)
+		const andConditions = Array.isArray(where.AND) ? where.AND : [where]
+		const ownerClauses = andConditions.filter(
+			(clause) => clause && typeof clause === 'object' && 'idUser' in clause
+		)
+		expect(ownerClauses).toEqual([{ idUser: { in: [5, 6] } }, { idUser: { in: [6, 99] } }])
 	})
 })
 

@@ -63,7 +63,8 @@ describe('AppSidebar', () => {
 
 		renderSidebar()
 
-		expect(screen.getByRole('link', { name: /negocios/i })).toBeInTheDocument()
+		// Negocios is a collapsible group (Ver Negocios + CRM), rendered as a toggle button
+		expect(screen.getByRole('button', { name: /negocios/i })).toBeInTheDocument()
 		expect(screen.queryByTestId('skeleton')).not.toBeInTheDocument()
 	})
 })

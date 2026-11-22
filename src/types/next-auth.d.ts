@@ -12,6 +12,7 @@ declare module 'next-auth' {
 			grants?: RoleGrants
 			/** Level codes lowest to highest; filled only when a grant has a minimum level. */
 			levelOrder?: string[]
+			canViewOthersCrm?: boolean
 			originalUserId?: number | null
 			originalRole?: UserRole | null
 			originalEmail?: string | null
@@ -32,6 +33,7 @@ declare module 'next-auth/jwt' {
 	interface JWT extends DefaultJWT {
 		userId?: number
 		role?: UserRole | null
+		canViewOthersCrm?: boolean
 		originalUserId?: number | null
 		originalRole?: UserRole | null
 		originalEmail?: string | null

@@ -5,6 +5,7 @@ import {
 	ALL_MENU_ITEMS,
 	AGENTE_MENU_ITEMS,
 	PARTNER_MENU_ITEMS,
+	CRM_MENU_ITEM,
 	MenuItem,
 } from './menu-items'
 
@@ -12,13 +13,14 @@ export interface BuildMenuFlags {
 	isCalculadoraEnabled?: boolean
 	/** Authorized report codes from category permissions (or ADMIN bypass) */
 	authorizedReportCodes?: readonly string[]
+	/** Person granted a read-only view of other branches' lead states and CRM reports. */
+	canViewOthersCrm?: boolean
 }
 
 /** Permission that shows each top-level entry of the full menu. */
 const ITEM_PERMISSION: Readonly<Record<string, string>> = {
 	Dashboard: 'dashboard.ver',
 	Negocios: 'negocios.ver',
-	Leads: 'leads.ver',
 	'Carga Archivos': 'carga.masiva',
 	Calculadora: 'calculadora.usar',
 	'Mis distribuciones': 'distribuciones.ver',
@@ -28,10 +30,7 @@ const ITEM_PERMISSION: Readonly<Record<string, string>> = {
 }
 
 /** Entries a read-only viewer (can see businesses but not edit them) never gets. */
-const HIDDEN_FROM_READ_ONLY: ReadonlySet<string> = new Set([
-	'Leads',
-	'Mis distribuciones',
-])
+const HIDDEN_FROM_READ_ONLY: ReadonlySet<string> = new Set(['Mis distribuciones'])
 
 /** Permission behind each Liquidaciones sub-entry. */
 const LIQUIDACIONES_PERMISSION: Readonly<Record<string, string>> = {
@@ -103,7 +102,12 @@ export function buildMenuByRole(
 				continue
 			}
 			if (isReadOnlyViewer && HIDDEN_FROM_READ_ONLY.has(item.title)) continue
-			if (allowed(permission)) filteredItems.push(item)
+			if (allowed(permission)) {
+				// Negocios carries the CRM sub-item, gated by its own permission.
+				filteredItems.push(
+					item.title === 'Negocios' ? buildNegociosMenuItem(item, grants, flags) : item
+				)
+			}
 			continue
 		}
 
@@ -146,6 +150,27 @@ export function buildMenuByRole(
 	}
 
 	return filteredItems
+}
+
+/**
+ * Keeps the CRM sub-item only for roles with leads access. When only the
+ * listing sub-item survives, the entry renders flat (no sub-items).
+ */
+function buildNegociosMenuItem(
+	item: MenuItem,
+	grants: RoleGrants,
+	flags?: BuildMenuFlags
+): MenuItem {
+	const canOpenCrm = can(grants, 'leads.gestionar') || flags?.canViewOthersCrm === true
+	const subItems = item.subItems?.filter(
+		(subItem) => subItem.url !== CRM_MENU_ITEM.url || canOpenCrm
+	)
+
+	if (!subItems || subItems.length <= 1) {
+		return { ...item, subItems: undefined }
+	}
+
+	return { ...item, subItems }
 }
 
 /**

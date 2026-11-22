@@ -2,9 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '@/lib/prisma'
 import {
 	getLeadForConversion,
+	isLeadWithinConversionScope,
 	linkLeadToBusinessTx,
 } from '@/features/leads/services/lead-conversion.service'
+import { getAccessibleUserIds } from '@/features/auth/lib/hierarchy'
 import { UserRole } from '@/features/auth/lib/roles'
+
+vi.mock('@/features/auth/lib/hierarchy', () => ({
+	getAccessibleUserIds: vi.fn(),
+}))
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
@@ -101,6 +107,55 @@ describe('getLeadForConversion', () => {
 		expect(callArgs?.include).toEqual({
 			user: { include: { role: true, category: true } },
 		})
+	})
+})
+
+describe('isLeadWithinConversionScope', () => {
+	beforeEach(() => vi.clearAllMocks())
+
+	it('scopes an advisor to their own branch and never returns a lead outside it', async () => {
+		vi.mocked(getAccessibleUserIds).mockResolvedValue([5, 6])
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue(null)
+
+		const allowed = await isLeadWithinConversionScope(99, {
+			idUser: 5,
+			role: { code: UserRole.AGENTE },
+		})
+
+		expect(allowed).toBe(false)
+		expect(getAccessibleUserIds).toHaveBeenCalledWith(5)
+		const where = JSON.stringify(vi.mocked(prisma.lead.findFirst).mock.calls[0][0]?.where)
+		expect(where).toContain('"idLead":99')
+		expect(where).toContain('"idUser":{"in":[5,6]}')
+	})
+
+	it('allows a lead inside the advisor branch', async () => {
+		vi.mocked(getAccessibleUserIds).mockResolvedValue([5, 6])
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue({ idLead: 3 } as never)
+
+		await expect(
+			isLeadWithinConversionScope(3, { idUser: 5, role: { code: UserRole.AGENTE } })
+		).resolves.toBe(true)
+	})
+
+	it('does not restrict by owner for a write-bypass role', async () => {
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue({ idLead: 3 } as never)
+
+		await expect(
+			isLeadWithinConversionScope(3, { idUser: 1, role: { code: UserRole.ADMIN } })
+		).resolves.toBe(true)
+		expect(getAccessibleUserIds).not.toHaveBeenCalled()
+		const where = JSON.stringify(vi.mocked(prisma.lead.findFirst).mock.calls[0][0]?.where)
+		expect(where).not.toContain('"idUser":{"in"')
+	})
+
+	it('keeps converted and ownerless leads in scope so the link step reports its own error', async () => {
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue({ idLead: 3 } as never)
+
+		await isLeadWithinConversionScope(3, { idUser: 1, role: { code: UserRole.ADMIN } })
+
+		const where = JSON.stringify(vi.mocked(prisma.lead.findFirst).mock.calls[0][0]?.where)
+		expect(where).not.toContain('idBusiness')
 	})
 })
 

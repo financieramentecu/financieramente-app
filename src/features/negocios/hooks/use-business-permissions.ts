@@ -57,6 +57,9 @@ export function useBusinessPermissions({
 	// roles that may change a contract once the business is EMITIDO.
 	const isPrivileged = can('negocios.editar_contrato_emitido')
 
+	// Valor de Negocio is exclusive to support, operations and admin in every status.
+	const canEditValue = can('negocios.editar_valor')
+
 	// Roles that can edit client data in "Información básica y general"
 	const canEditClientInfo = can('clientes.editar')
 
@@ -125,6 +128,12 @@ export function useBusinessPermissions({
 			// Changing these on a funded business rebuilds installments and can
 			// drop rows that already have a financial status.
 			if (status === 'FONDEADO' && fundedStructuralFields.includes(field)) {
+				return { readonly: true, disabled: true, hidden: false }
+			}
+
+			// Drafts stay editable for the other financial fields, but Valor de
+			// Negocio is exclusive to support, operations, and admin in every status.
+			if (field === 'value' && !canEditValue) {
 				return { readonly: true, disabled: true, hidden: false }
 			}
 
