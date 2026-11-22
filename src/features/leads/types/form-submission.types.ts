@@ -1,26 +1,17 @@
-export const FORM_FIELD_TYPES = {
-	TEXT: 'text',
-	NUMBER: 'number',
-	DATE: 'date',
-	SELECT: 'select',
-} as const
+import type { FormField } from '@/features/leads/types/form-submission.schema'
 
-export type FormFieldType = (typeof FORM_FIELD_TYPES)[keyof typeof FORM_FIELD_TYPES]
-
-export type FormFieldValue = string | number | string[] | null
-
-export interface LeadFormField {
-	key: string
-	label: string
-	type: FormFieldType
-	value: FormFieldValue
-}
-
-export interface LeadFormSnapshot {
+/** One stored landing snapshot, newest first in the prospect detail. */
+export interface LeadFormSubmissionView {
 	submissionId: string
 	landingKey: string
 	landingName: string
-	landingVersion: string
+	formVersion: string
 	submittedAt: string
-	fields: LeadFormField[]
+	fields: FormField[]
+}
+
+export interface IngestLeadFormResult {
+	idLead: number
+	created: boolean
+	replayed: boolean
 }

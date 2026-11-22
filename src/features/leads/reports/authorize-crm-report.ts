@@ -22,10 +22,12 @@ export type CrmReportAccess =
 export async function authorizeCrmReport(): Promise<CrmReportAccess> {
 	const guard = await requireCrmActor('crm_reports')
 	if (!guard.ok) return guard
-	const allowed = await canViewReport(
-		{ roleCode: guard.actor.roleCode, idCategory: guard.actor.idCategory },
-		REPORT_CODES.CRM_PIPELINE
-	)
+	const allowed =
+		guard.actor.canViewOthersCrm ||
+		(await canViewReport(
+			{ roleCode: guard.actor.roleCode, idCategory: guard.actor.idCategory },
+			REPORT_CODES.CRM_PIPELINE
+		))
 	if (!allowed)
 		return {
 			ok: false,

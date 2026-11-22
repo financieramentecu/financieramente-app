@@ -49,7 +49,7 @@ vi.mock('@/lib/prisma', () => ({
 		},
 		lead: {
 			findUnique: vi.fn(),
-			findFirst: vi.fn(),
+			findMany: vi.fn(),
 			upsert: vi.fn(),
 		},
 		leadLink: {
@@ -119,6 +119,15 @@ describe('resolveFunnelColumn', () => {
 		expect(result.isFallback).toBe(true)
 		expect(result.externalStatusKey).toBe('__unmapped__')
 	})
+
+	it('uses the transaction client for both the exact and fallback lookups', async () => {
+		const findFirst = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(FALLBACK_COLUMN)
+		const client = { leadFunnelColumn: { findFirst } } as unknown as Pick<typeof prisma, 'leadFunnelColumn'>
+
+		await expect(resolveFunnelColumn('unknown_stage', client)).resolves.toEqual(FALLBACK_COLUMN)
+		expect(findFirst).toHaveBeenCalledTimes(2)
+		expect(prisma.leadFunnelColumn.findFirst).not.toHaveBeenCalled()
+	})
 })
 
 describe('resolveOwner', () => {
@@ -167,6 +176,23 @@ describe('resolveOwner', () => {
 			})
 		)
 	})
+
+	it('uses the transaction client instead of another pool connection', async () => {
+		const findFirst = vi.fn().mockResolvedValue({ idUser: 99 })
+		const client = { user: { findFirst } } as unknown as Pick<typeof prisma, 'user'>
+
+		await expect(resolveOwner('agent@example.com', client)).resolves.toBe(99)
+		expect(findFirst).toHaveBeenCalledOnce()
+		expect(prisma.user.findFirst).not.toHaveBeenCalled()
+	})
+
+	it('treats wildcard characters in owner emails literally after trimming', async () => {
+		vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
+		await expect(resolveOwner('  Agent_Name%Test@Example.com  ')).resolves.toBeNull()
+		expect(prisma.user.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+			where: { email: { equals: String.raw`Agent\_Name\%Test@Example.com`, mode: 'insensitive' }, active: true },
+		}))
+	})
 })
 
 describe('upsertLeadFromCrm', () => {
@@ -178,7 +204,7 @@ describe('upsertLeadFromCrm', () => {
 		vi.mocked(prisma.lead.upsert).mockResolvedValue({
 			idLead: 10,
 		} as never)
-		vi.mocked(prisma.lead.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([])
 	})
 
 	it('creates a lead and logs LEAD_CREATED when it did not previously exist', async () => {
@@ -704,7 +730,7 @@ describe('upsertLeadFromCrm origin label', () => {
 		)
 		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 10 } as never)
 		vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
-		vi.mocked(prisma.lead.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([])
 	})
 
 	it('creates the client origin, labels originTag and links the pivot', async () => {
@@ -762,7 +788,7 @@ describe('upsertLeadFromCrm origin label', () => {
 	})
 
 	it('links the new CRM card to the form lead when the same person arrives from another origin', async () => {
-		vi.mocked(prisma.lead.findFirst).mockResolvedValue({ idLead: 8, idUser: 15 } as never)
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([{ idLead: 8, idUser: 15 }] as never)
 		vi.mocked(prisma.user.findFirst).mockResolvedValue({ idUser: 99 } as never)
 		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 44, idUser: 15 } as never)
 		vi.mocked(prisma.clientOrigin.findMany).mockResolvedValue([
@@ -790,7 +816,7 @@ describe('upsertLeadFromCrm origin label', () => {
 			created: true,
 			origin: { code: 'money_flow', name: 'Money Flow' },
 		})
-		expect(prisma.lead.findFirst).toHaveBeenCalledWith(
+		expect(prisma.lead.findMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: expect.objectContaining({ identityNumber: '1234567890', active: true }),
 			})
@@ -817,6 +843,34 @@ describe('upsertLeadFromCrm origin label', () => {
 				details: expect.stringContaining('relacionado con 8'),
 			})
 		)
+	})
+
+	it('does not inherit an owner or link when the contact matches more than one lead', async () => {
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([
+			{ idLead: 8, idUser: 15 },
+			{ idLead: 9, idUser: 16 },
+		] as never)
+		vi.mocked(prisma.user.findFirst).mockResolvedValue({ idUser: 99 } as never)
+		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 45, idUser: 99 } as never)
+		vi.mocked(prisma.clientOrigin.findMany).mockResolvedValue([
+			{ idClientOrigin: 20, name: 'Money Flow', status: true },
+		] as never)
+		vi.mocked(prisma.leadClientOrigin.findFirst).mockResolvedValue(null)
+		vi.mocked(prisma.leadClientOrigin.findUnique).mockResolvedValue(null)
+
+		await upsertLeadFromCrm({
+			externalCrmId: 'crm-flow-2',
+			statusKey: 'new',
+			name: 'Ana',
+			email: 'ana@example.com',
+			identityNumber: '1234567890',
+			ownerEmail: 'otro.asesor@example.com',
+			utm_source: 'Money Flow',
+		})
+
+		const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls.at(-1)![0]
+		expect(upsertCall.create.idUser).toBe(99)
+		expect(prisma.leadLink.create).not.toHaveBeenCalled()
 	})
 })
 

@@ -18,13 +18,16 @@ vi.mock('@/auth', () => ({
 	auth: vi.fn(),
 }))
 
+vi.mock('@/features/shared/lib/flagsmith-server', () => ({
+	isFeatureEnabledServer: vi.fn().mockResolvedValue(true),
+}))
 vi.mock('@/features/negocios/services/user.service', () => ({
 	getCurrentUserByEmail: vi.fn(),
 }))
 
 vi.mock('@/features/auth/lib/hierarchy', () => ({
-	getAccessibleUserIds: vi.fn(() => Promise.resolve([])),
-	isHierarchyBypassRole: vi.fn(() => true),
+	getAccessibleUserIds: vi.fn(() => Promise.resolve([5, 6])),
+	isHierarchyBypassRole: vi.fn((role: string) => role === 'ADMIN' || role === 'CONSULTOR'),
 }))
 
 vi.mock('@/features/leads/services/lead-board.service', () => ({
@@ -155,5 +158,28 @@ describe('GET /api/leads/[id] — remains unaffected by the DELETE addition', ()
 
 		expect(response.status).toBe(200)
 		expect(body.data).toEqual({ idLead: 1 })
+	})
+})
+
+
+describe('GET /api/leads/[id] CRM read grants', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(auth).mockResolvedValue({ user: { email: 'a@x.com' } } as never)
+		vi.mocked(getLeadDetail).mockResolvedValue({ idLead: 42 } as never)
+	})
+
+	it('rejects a CONSULTOR without the grant before querying the lead', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 5, role: { code: 'CONSULTOR' }, canViewOthersCrm: false } as never)
+		const response = await GET(new Request('http://x'), buildContext('42'))
+		expect(response.status).toBe(403)
+		expect(getLeadDetail).not.toHaveBeenCalled()
+	})
+
+	it('uses company-wide scope for an AGENTE with the grant when opening another branch lead', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 5, role: { code: 'AGENTE' }, canViewOthersCrm: true } as never)
+		const response = await GET(new Request('http://x'), buildContext('42'))
+		expect(response.status).toBe(200)
+		expect(getLeadDetail).toHaveBeenCalledWith(42, expect.anything(), { visibleUserIds: [] })
 	})
 })

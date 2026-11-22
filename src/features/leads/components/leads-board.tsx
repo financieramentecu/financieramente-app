@@ -49,7 +49,7 @@ const kanbanCollision: CollisionDetection = (args) => {
  * Leads Kanban. Cards move between columns with drag and drop; the stage
  * change is stored as a manual action of the signed-in user.
  */
-export function LeadsBoard() {
+export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 	const { enabled: reportsEnabled } = useFeatureFlag('crm_reports')
 	const hierarchy = useCrmHierarchyFilter()
 	const [filters, setFilters] = useState(getDefaultLeadBoardFilters())
@@ -193,44 +193,56 @@ export function LeadsBoard() {
 				</p>
 			) : (
 				<>
-					{(state.status === 'loading' || state.status === 'idle') && (
-						<div className="flex gap-4 overflow-x-auto pb-4">
-							{Array.from({ length: 4 }).map((_, index) => (
-								<LeadFunnelColumnSkeleton key={index} />
-							))}
-						</div>
-					)}
-					{state.status === 'error' && (
-						<p className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-							{state.error}
-						</p>
-					)}
-					{state.status === 'success' && (
-						<DndContext
-							sensors={sensors}
-							collisionDetection={kanbanCollision}
-							onDragStart={handleDragStart}
-							onDragCancel={finishDrag}
-							onDragEnd={(event) => void handleDragEnd(event)}
-						>
-							<div className="flex gap-4 overflow-x-auto pb-4">
-								{state.data.map((column) => (
-									<LeadBoardColumn
-										key={column.idLeadFunnelColumn}
-										column={column}
-										onLeadClick={openLead}
-									/>
-								))}
+			{(state.status === 'loading' || state.status === 'idle') && (
+				<div className="flex gap-4 overflow-x-auto pb-4">
+					{Array.from({ length: 4 }).map((_, index) => (
+						<LeadFunnelColumnSkeleton key={index} />
+					))}
+				</div>
+			)}
+			{state.status === 'error' && (
+				<p className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+					{state.error}
+				</p>
+			)}
+			{state.status === 'success' && canMove && (
+				<DndContext
+					sensors={sensors}
+					collisionDetection={kanbanCollision}
+					onDragStart={handleDragStart}
+					onDragCancel={finishDrag}
+					onDragEnd={(event) => void handleDragEnd(event)}
+				>
+					<div className="flex gap-4 overflow-x-auto pb-4">
+						{state.data.map((column) => (
+							<LeadBoardColumn
+								key={column.idLeadFunnelColumn}
+								column={column}
+								onLeadClick={openLead}
+							/>
+						))}
+					</div>
+					<DragOverlay dropAnimation={null}>
+						{draggingLead ? (
+							<div className="w-72 cursor-grabbing">
+								<LeadCard lead={draggingLead} />
 							</div>
-							<DragOverlay dropAnimation={null}>
-								{draggingLead ? (
-									<div className="w-72 cursor-grabbing">
-										<LeadCard lead={draggingLead} />
-									</div>
-								) : null}
-							</DragOverlay>
-						</DndContext>
-					)}
+						) : null}
+					</DragOverlay>
+				</DndContext>
+			)}
+			{state.status === 'success' && !canMove && (
+				<div className="flex gap-4 overflow-x-auto pb-4">
+					{state.data.map((column) => (
+						<LeadBoardColumn
+							key={column.idLeadFunnelColumn}
+							column={column}
+							onLeadClick={openLead}
+							movable={false}
+						/>
+					))}
+				</div>
+			)}
 				</>
 			)}
 			<CrmLeadDetailSheet

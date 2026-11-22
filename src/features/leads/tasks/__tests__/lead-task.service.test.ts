@@ -88,13 +88,39 @@ describe('lead task service', () => {
 
 		expect(update).toHaveBeenCalledWith({
 			where: { idLeadTask: 10 },
-			data: { assignedTo: 9 },
+			data: { assignedTo: 9, reminderSentAt: null, advanceNotifiedAt: null },
 		})
 		expect(appendLeadActivityTx).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.objectContaining({ type: 'TASK_REASSIGNED', idLead: 4, idUser: 7 })
 	)
 	})
+
+	it.each(['reminderSentAt', 'advanceNotifiedAt'] as const)(
+		're-arms notices when reassigning after %s was sent',
+		async (sentField) => {
+			const task = {
+				idLeadTask: 10,
+				idLead: 4,
+				title: 'Llamar',
+				assignedTo: 8,
+				reminderSentAt: null as Date | null,
+				advanceNotifiedAt: null as Date | null,
+				[sentField]: new Date('2026-11-09T15:00:00Z'),
+			}
+			update.mockImplementationOnce(async ({ data }: { data: Partial<typeof task> }) => ({ ...task, ...data }))
+
+			const reassigned = await reassignLeadTaskTx(tx as never, {
+				idLeadTask: 10,
+				idLead: 4,
+				assignedTo: 9,
+				reassignedBy: 7,
+				correlationId: 'task-reassign-after-notice',
+			})
+
+			expect(reassigned).toMatchObject({ assignedTo: 9, reminderSentAt: null, advanceNotifiedAt: null })
+		}
+	)
 
 	it('stores the task type on create', async () => {
 		create.mockResolvedValue({ idLeadTask: 11, idLead: 4, title: 't' })
@@ -135,7 +161,7 @@ describe('lead task service', () => {
 		await rescheduleLeadTaskTx(tx as never, { idLeadTask: 10, dueAt })
 		expect(update).toHaveBeenCalledWith({
 			where: { idLeadTask: 10 },
-			data: { dueAt, reminderSentAt: null, columnCode: null },
+			data: { dueAt, reminderSentAt: null, advanceNotifiedAt: null, columnCode: null },
 		})
 		expect(appendLeadActivityTx).not.toHaveBeenCalled()
 	})

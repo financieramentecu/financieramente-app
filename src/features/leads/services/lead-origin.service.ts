@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/nextjs'
-import type { LeadChangeSource } from '@prisma/client'
+import type { LeadChangeSource, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { leadOriginLabel, normalizeUtmSource } from '@/features/leads/lib/normalize-utm-source'
 import { recordLeadChanges } from '@/features/leads/services/record-lead-change.service'
@@ -22,13 +22,16 @@ export type ResolvedLeadOrigin =
  * "Money Strategy", "money-strategy" and "money_strategy" are the same origin.
  * A missing name is created. An inactive name is left inactive.
  */
-export async function resolveLeadOrigin(raw: string | undefined): Promise<ResolvedLeadOrigin> {
+export async function resolveLeadOrigin(
+	raw: string | undefined,
+	client: Prisma.TransactionClient = prisma
+): Promise<ResolvedLeadOrigin> {
 	if (raw === undefined || raw.trim() === '') return { status: 'absent' }
 
 	const code = normalizeUtmSource(raw)
 	if (code === null) return { status: 'absent' }
 
-	const rows = await prisma.clientOrigin.findMany({
+	const rows = await client.clientOrigin.findMany({
 		select: { idClientOrigin: true, name: true, status: true },
 	})
 	const matches = rows.filter((row) => normalizeUtmSource(row.name) === code)
@@ -44,7 +47,7 @@ export async function resolveLeadOrigin(raw: string | undefined): Promise<Resolv
 	}
 	if (matches.some((row) => !row.status)) return { status: 'inactive', code }
 
-	const created = await prisma.clientOrigin.create({
+	const created = await client.clientOrigin.create({
 		data: { name: leadOriginLabel(raw, code).slice(0, CLIENT_ORIGIN_NAME_MAX), status: true },
 		select: { idClientOrigin: true, name: true },
 	})
@@ -59,18 +62,27 @@ export async function resolveLeadOrigin(raw: string | undefined): Promise<Resolv
 
 export type OriginAssignmentChange = 'created' | 'reactivated' | 'refreshed'
 
-/**
- * Links a lead to a `client_origin` through `lead_client_origin`.
- * Repeating the same pair refreshes `lastSeenAt` and reactivates a removed row.
- */
-export async function assignLeadOrigin(input: {
+export interface OriginAssignmentInput {
 	idLead: number
 	idClientOrigin: number
 	seenAt: Date
 	/** Who assigned it. Omitted calls are the webhook or the form, so they count as the system. */
 	history?: { source: LeadChangeSource; idActor?: number | null; actorLabel?: string | null }
-}): Promise<OriginAssignmentChange> {
-	const existing = await prisma.leadClientOrigin.findUnique({
+}
+
+/**
+ * Links a lead to a `client_origin` through `lead_client_origin`.
+ * Repeating the same pair refreshes `lastSeenAt` and reactivates a removed row.
+ *
+ * The timeline entry is written here only when no transaction client is passed.
+ * Inside a transaction the lead may not be committed yet, so the caller must
+ * call `recordOriginChange` after the commit.
+ */
+export async function assignLeadOrigin(
+	input: OriginAssignmentInput,
+	client: Prisma.TransactionClient = prisma
+): Promise<OriginAssignmentChange> {
+	const existing = await client.leadClientOrigin.findUnique({
 		where: {
 			idLead_idClientOrigin: {
 				idLead: input.idLead,
@@ -81,7 +93,7 @@ export async function assignLeadOrigin(input: {
 	})
 
 	if (!existing) {
-		await prisma.leadClientOrigin.create({
+		await client.leadClientOrigin.create({
 			data: {
 				idLead: input.idLead,
 				idClientOrigin: input.idClientOrigin,
@@ -90,25 +102,21 @@ export async function assignLeadOrigin(input: {
 				lastSeenAt: input.seenAt,
 			},
 		})
-		await recordOriginChange(input)
+		if (client === prisma) await recordOriginChange(input)
 		return 'created'
 	}
 
-	await prisma.leadClientOrigin.update({
+	await client.leadClientOrigin.update({
 		where: { idLeadClientOrigin: existing.idLeadClientOrigin },
 		data: { active: true, lastSeenAt: input.seenAt },
 	})
 
-	if (!existing.active) await recordOriginChange(input)
+	if (!existing.active && client === prisma) await recordOriginChange(input)
 	return existing.active ? 'refreshed' : 'reactivated'
 }
 
-async function recordOriginChange(input: {
-	idLead: number
-	idClientOrigin: number
-	seenAt: Date
-	history?: { source: LeadChangeSource; idActor?: number | null; actorLabel?: string | null }
-}): Promise<void> {
+/** Appends the origin change to the CRM timeline. Never throws. */
+export async function recordOriginChange(input: OriginAssignmentInput): Promise<void> {
 	try {
 		const [origin, previous] = await Promise.all([
 			prisma.clientOrigin.findUnique({

@@ -36,7 +36,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 		if (!idLeadTask) return error('Identificador de tarea inválido', 400)
 
 		const task = await findLeadTaskRef(idLeadTask)
-		if (!task || !(await findScopedLead(actor, task.idLead))) return error('Tarea no encontrada', 404)
+		if (!task || !(await findScopedLead(actor, task.idLead, 'write'))) return error('Tarea no encontrada', 404)
 
 		const incoming = await readJsonOrFiles(request)
 		if (!incoming.ok) return error(incoming.error, 400)

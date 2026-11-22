@@ -23,6 +23,8 @@ const actor = {
 	roleCode: 'AGENTE',
 	visibleUserIds: [7, 8],
 	canManage: true,
+	manageableUserIds: [7, 8],
+	canViewOthersCrm: false,
 	idCategory: 3,
 }
 
@@ -64,5 +66,19 @@ describe('GET /api/crm/reports/summary', () => {
 			visibleUserIds: [7, 8],
 			isBypass: false,
 		})
+	})
+
+	it('keeps company-wide report reads for an actor with the read grant', async () => {
+		vi.mocked(requireCrmActor).mockResolvedValue({
+			ok: true,
+			actor: { ...actor, visibleUserIds: [], canViewOthersCrm: true },
+		})
+		expect((await GET()).status).toBe(200)
+		expect(getCrmSummary).toHaveBeenCalledWith(
+			expect.objectContaining({
+				visibleUserIds: [],
+				isBypass: true,
+			})
+		)
 	})
 })

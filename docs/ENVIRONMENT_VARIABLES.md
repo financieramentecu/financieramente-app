@@ -493,7 +493,7 @@ Opcional. Días sin actividad tras los cuales un lead **abierto** muestra el avi
 
 ## CRON_SECRET — crons del CRM
 
-Además de `fund-payments`, el mismo `CRON_SECRET` protege `POST /api/leads/cron/task-reminders` (cada 15 min: notificación in-app de tareas vencidas) y `POST /api/leads/cron/task-digest` (12:00 UTC = 07:00 Bogotá: resumen diario por email). Esos endpoints no revisan los flags `crm_*`: si se programan, envían notificaciones y correos aunque el CRM esté apagado. Por eso `deploy-qa.yml` y `deploy-prod.yml` no instalan esas líneas de crontab mientras el CRM solo esté activo en desarrollo. Se añadirán cuando el CRM se habilite en QA o producción.
+Además de `fund-payments`, el mismo `CRON_SECRET` protege `POST /api/leads/cron/task-reminders` (cada 15 min: aviso in-app de las tareas que vencen hoy y de las que entran en los días de anticipación guardados en `crm_notification_setting`) y `POST /api/leads/cron/task-digest` (12:00 UTC = 07:00 Bogotá: un correo al asesor por las tareas abiertas que ya vencieron; no incluye las de hoy ni las próximas). Esos endpoints no revisan los flags `crm_*`: si se programan, envían notificaciones y correos aunque el CRM esté apagado. Por eso `deploy-qa.yml` y `deploy-prod.yml` no instalan esas líneas de crontab mientras el CRM solo esté activo en desarrollo. Se añadirán cuando el CRM se habilite en QA o producción. En desarrollo, al arrancar `next dev` el proceso de avisos in-app corre solo y se repite cada 15 minutos; el correo del resumen solo sale por el crontab.
 
 ## Disponibilidad del CRM
 

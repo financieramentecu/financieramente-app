@@ -11,12 +11,20 @@ import type { SessionUserState } from '../lib/session-revalidation'
 async function readSessionUserState(userId: number): Promise<SessionUserState | null> {
 	const user = await prisma.user.findUnique({
 		where: { idUser: userId },
-		select: { active: true, role: { select: { code: true } } },
+		select: {
+			active: true,
+			canViewOthersCrm: true,
+			role: { select: { code: true } },
+		},
 	})
 
 	if (!user) return null
 
-	return { active: user.active, roleCode: user.role?.code ?? null }
+	return {
+		active: user.active,
+		roleCode: user.role?.code ?? null,
+		canViewOthersCrm: user.canViewOthersCrm,
+	}
 }
 
 export async function getSessionUserState(
