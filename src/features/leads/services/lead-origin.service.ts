@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { leadOriginLabel, normalizeUtmSource } from '@/features/leads/lib/normalize-utm-source'
 
@@ -19,13 +20,16 @@ export type ResolvedLeadOrigin =
  * "Money Strategy", "money-strategy" and "money_strategy" are the same origin.
  * A missing name is created. An inactive name is left inactive.
  */
-export async function resolveLeadOrigin(raw: string | undefined): Promise<ResolvedLeadOrigin> {
+export async function resolveLeadOrigin(
+	raw: string | undefined,
+	client: Prisma.TransactionClient = prisma
+): Promise<ResolvedLeadOrigin> {
 	if (raw === undefined || raw.trim() === '') return { status: 'absent' }
 
 	const code = normalizeUtmSource(raw)
 	if (code === null) return { status: 'absent' }
 
-	const rows = await prisma.clientOrigin.findMany({
+	const rows = await client.clientOrigin.findMany({
 		select: { idClientOrigin: true, name: true, status: true },
 	})
 	const matches = rows.filter((row) => normalizeUtmSource(row.name) === code)
@@ -41,7 +45,7 @@ export async function resolveLeadOrigin(raw: string | undefined): Promise<Resolv
 	}
 	if (matches.some((row) => !row.status)) return { status: 'inactive', code }
 
-	const created = await prisma.clientOrigin.create({
+	const created = await client.clientOrigin.create({
 		data: { name: leadOriginLabel(raw, code).slice(0, CLIENT_ORIGIN_NAME_MAX), status: true },
 		select: { idClientOrigin: true, name: true },
 	})
@@ -60,12 +64,15 @@ export type OriginAssignmentChange = 'created' | 'reactivated' | 'refreshed'
  * Links a lead to a `client_origin` through `lead_client_origin`.
  * Repeating the same pair refreshes `lastSeenAt` and reactivates a removed row.
  */
-export async function assignLeadOrigin(input: {
-	idLead: number
-	idClientOrigin: number
-	seenAt: Date
-}): Promise<OriginAssignmentChange> {
-	const existing = await prisma.leadClientOrigin.findUnique({
+export async function assignLeadOrigin(
+	input: {
+		idLead: number
+		idClientOrigin: number
+		seenAt: Date
+	},
+	client: Prisma.TransactionClient = prisma
+): Promise<OriginAssignmentChange> {
+	const existing = await client.leadClientOrigin.findUnique({
 		where: {
 			idLead_idClientOrigin: {
 				idLead: input.idLead,
@@ -76,7 +83,7 @@ export async function assignLeadOrigin(input: {
 	})
 
 	if (!existing) {
-		await prisma.leadClientOrigin.create({
+		await client.leadClientOrigin.create({
 			data: {
 				idLead: input.idLead,
 				idClientOrigin: input.idClientOrigin,
@@ -88,7 +95,7 @@ export async function assignLeadOrigin(input: {
 		return 'created'
 	}
 
-	await prisma.leadClientOrigin.update({
+	await client.leadClientOrigin.update({
 		where: { idLeadClientOrigin: existing.idLeadClientOrigin },
 		data: { active: true, lastSeenAt: input.seenAt },
 	})

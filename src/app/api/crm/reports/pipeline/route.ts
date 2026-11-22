@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { crmErrorResponse, requireCrmActor, toLeadViewer } from '@/lib/auth/require-crm-actor'
-import { canViewReport } from '@/features/report-permissions/services/report-permissions.service'
-import { REPORT_CODES } from '@/features/report-permissions/types/report-permissions.types'
+import { crmErrorResponse, toLeadViewer } from '@/lib/auth/require-crm-actor'
+import { authorizeCrmReport } from '@/features/leads/reports/authorize-crm-report'
 import { parseCrmReportQuery } from '@/features/leads/reports/crm-report-query.schema'
 import { CRM_REPORT_LEAD_LIMIT, getCrmPipelineReport } from '@/features/leads/reports/crm-pipeline-report.service'
 import type { CrmPipelineReport } from '@/features/leads/reports/crm-pipeline-report.types'
@@ -10,15 +9,9 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 /** CRM pipeline report: funnel, rates, time per stage, breakdowns and forecast (aggregates only). */
 export async function GET(request: Request) {
 	try {
-		const guard = await requireCrmActor('crm_reports')
+		const guard = await authorizeCrmReport()
 		if (!guard.ok) return guard.response
 		const { actor } = guard
-
-		const allowed = await canViewReport(
-			{ roleCode: actor.roleCode, idCategory: actor.idCategory },
-			REPORT_CODES.CRM_PIPELINE
-		)
-		if (!allowed) return crmErrorResponse('No tienes permiso para ver este reporte', 403)
 
 		const parsed = parseCrmReportQuery(new URL(request.url).searchParams)
 		if (!parsed.ok) return crmErrorResponse(parsed.error, 400)

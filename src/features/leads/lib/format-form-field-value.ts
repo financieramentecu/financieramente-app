@@ -1,15 +1,23 @@
-import type { FormFieldValue } from '@/features/leads/types/form-submission.types'
+import { FORM_FIELD_TYPE, type FormField } from '@/features/leads/types/form-submission.schema'
+import { formatDateBogota } from '@/features/shared/lib/format-date'
 
-export const EMPTY_FORM_ANSWER = 'Sin información'
+export const EMPTY_FORM_VALUE = 'Sin información'
 
-/** Renders a stored answer. `0` and `No` stay visible; null and an empty list do not. */
-export function formatFormFieldValue(value: FormFieldValue): string {
-	if (value === null) return EMPTY_FORM_ANSWER
-	if (typeof value === 'number') return String(value)
-	if (Array.isArray(value)) {
-		const items = value.map((item) => item.trim()).filter((item) => item !== '')
-		return items.length === 0 ? EMPTY_FORM_ANSWER : items.join(', ')
+/** Label answer for the prospect detail. `0` and `"No"` stay visible. */
+export function formatFormFieldValue(field: FormField): string {
+	const { value } = field
+	if (value === null) return EMPTY_FORM_VALUE
+	if (field.type === FORM_FIELD_TYPE.NUMBER && typeof value === 'number') {
+		return value.toLocaleString('es-CO')
 	}
-	const trimmed = value.trim()
-	return trimmed === '' ? EMPTY_FORM_ANSWER : trimmed
+	if (field.type === FORM_FIELD_TYPE.DATE && typeof value === 'string') {
+		return formatDateBogota(value)
+	}
+	if (Array.isArray(value)) {
+		return value.length > 0 ? value.join(', ') : EMPTY_FORM_VALUE
+	}
+	if (typeof value === 'string') {
+		return value.trim() === '' ? EMPTY_FORM_VALUE : value
+	}
+	return EMPTY_FORM_VALUE
 }

@@ -27,6 +27,7 @@ import {
 	LEAD_OUTCOME_STATUS_LABELS,
 	LEAD_OUTCOME_STATUS_BADGE_VARIANTS,
 } from '@/features/leads/lib/lead-outcome-status'
+import { LeadFormOriginSection } from '@/features/leads/components/lead-form-origin-section'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
 import { LeadOwnerAssign } from '@/features/leads/components/lead-owner-assign'
 import type { AssignedLeadOwner } from '@/features/leads/hooks/use-assign-lead-owner'
@@ -45,7 +46,6 @@ import {
 import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
 import { LeadTaskList } from '@/features/leads/tasks/lead-task-list'
 import { LeadCrmFieldsSection } from '@/features/leads/custom-fields/lead-crm-fields-section'
-import { LeadFormSnapshots } from '@/features/leads/components/lead-form-snapshots'
 import { LeadRelationPanel } from '@/features/leads/components/lead-relation-panel'
 import { LeadSupportCaseList } from '@/features/leads/cases/lead-support-case-list'
 import type {
@@ -314,7 +314,7 @@ export function LeadDetailSheet({
 								<span className="truncate">{lead.originTag}</span>
 							</div>
 						)}
-						<LeadFormSnapshots snapshots={lead.formSubmissions ?? []} />
+						<LeadFormOriginSection submissions={lead.formSubmissions ?? []} />
 						<LeadRelationPanel
 							key={lead.idLead}
 							idLead={lead.idLead}
@@ -431,13 +431,13 @@ export function LeadDetailSheet({
 								Ver negocio
 							</Link>
 						</Button>
-					) : hasOwner ? (
+					) : canManageCrm && hasOwner ? (
 						<Button asChild className="w-full">
 							<Link href={`/dashboard/negocios/crear?leadId=${lead.idLead}`}>
 								Convertir a negocio
 							</Link>
 						</Button>
-					) : (
+					) : canManageCrm ? (
 						<div className="space-y-1">
 							<Button disabled className="w-full">
 								Convertir a negocio
@@ -446,7 +446,7 @@ export function LeadDetailSheet({
 								Asigna un owner al lead antes de convertirlo a negocio.
 							</p>
 						</div>
-					)}
+					) : null}
 					{!activityFocus && canDelete && (
 						<AlertDialog>
 							<AlertDialogTrigger asChild>

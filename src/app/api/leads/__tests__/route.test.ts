@@ -6,6 +6,9 @@ import { getAccessibleUserIds } from '@/features/auth/lib/hierarchy'
 import { getLeadBoard } from '@/features/leads/services/lead-board.service'
 
 vi.mock('@/auth')
+vi.mock('@/features/shared/lib/flagsmith-server', () => ({
+	isFeatureEnabledServer: vi.fn().mockResolvedValue(true),
+}))
 vi.mock('@/features/negocios/services/user.service', () => ({
 	getCurrentUserByEmail: vi.fn(),
 }))
@@ -68,6 +71,20 @@ describe('GET /api/leads', () => {
 			expect.objectContaining({ visibleUserIds: [5, 6] })
 		)
 		expect(response.status).toBe(200)
+	})
+
+	it('rejects a CONSULTOR without the explicit CRM read grant before querying leads', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 5, role: { code: 'CONSULTOR' }, canViewOthersCrm: false } as never)
+		const response = await GET(buildRequest())
+		expect(response.status).toBe(403)
+		expect(getLeadBoard).not.toHaveBeenCalled()
+	})
+
+	it('uses company-wide read for an AGENTE with the explicit grant', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 5, role: { code: 'AGENTE' }, canViewOthersCrm: true } as never)
+		const response = await GET(buildRequest())
+		expect(response.status).toBe(200)
+		expect(getLeadBoard).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ visibleUserIds: [] }))
 	})
 
 	it('applies getDefaultLeadBoardFilters() when no query params are present', async () => {

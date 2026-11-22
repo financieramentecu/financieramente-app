@@ -61,19 +61,61 @@ describe('requireCrmActor', () => {
 		if (!result.ok) expect(result.response.status).toBe(403)
 	})
 
+	it.each([false, true])('enforces the consultant CRM grant (%s)', async (granted) => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+			idUser: 3,
+			role: { code: 'CONSULTOR' },
+			canViewOthersCrm: granted,
+		} as never)
+		const result = await requireCrmActor('crm_tasks')
+		expect(result.ok).toBe(granted)
+		if (!result.ok) expect(result.response.status).toBe(403)
+		if (result.ok) {
+			expect(result.actor.visibleUserIds).toEqual([])
+			expect(result.actor.canManage).toBe(false)
+		}
+	})
+
 	it('resolves the actor with its hierarchy scope', async () => {
 		const result = await requireCrmActor('crm_tasks')
 		expect(result.ok).toBe(true)
 		if (result.ok) {
-			expect(result.actor).toMatchObject({ idUser: 7, email: 'a@x.co', roleCode: 'AGENTE', visibleUserIds: [7, 8], canManage: true, idCategory: null })
+			expect(result.actor).toMatchObject({
+				idUser: 7,
+				email: 'a@x.co',
+				roleCode: 'AGENTE',
+				visibleUserIds: [7, 8],
+				manageableUserIds: [7, 8],
+				canViewOthersCrm: false,
+				canManage: true,
+				idCategory: null,
+			})
 		}
 	})
 
-	it('uses an empty scope (all) for bypass roles', async () => {
-		vi.mocked(isHierarchyBypassRole).mockReturnValue(true)
+	it('uses an empty scope (all) for write-bypass roles', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 1, role: { code: 'ADMIN' } } as never)
 		const result = await requireCrmActor('crm_tasks')
-		if (result.ok) expect(result.actor.visibleUserIds).toEqual([])
+		if (result.ok) {
+			expect(result.actor.visibleUserIds).toEqual([])
+			expect(result.actor.manageableUserIds).toEqual([])
+		}
 		expect(getAccessibleUserIds).not.toHaveBeenCalled()
+	})
+
+	it('lets a granted advisor read the company and manage only their branch', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+			idUser: 7,
+			role: { code: 'AGENTE' },
+			canViewOthersCrm: true,
+		} as never)
+		const result = await requireCrmActor('crm_tasks')
+		if (result.ok) {
+			expect(result.actor.visibleUserIds).toEqual([])
+			expect(result.actor.manageableUserIds).toEqual([7, 8])
+			expect(result.actor.canViewOthersCrm).toBe(true)
+			expect(result.actor.canManage).toBe(true)
+		}
 	})
 })
 
@@ -89,6 +131,12 @@ describe('canAssignWithinScope', () => {
 	})
 	it('allows anyone for bypass scope', () => {
 		expect(canAssignWithinScope({ idUser: 1, visibleUserIds: [] }, 99)).toBe(true)
+	})
+
+	it('refuses an assignee outside the writable branch even when reads are company-wide', () => {
+		expect(
+			canAssignWithinScope({ idUser: 7, visibleUserIds: [], manageableUserIds: [7, 8] }, 99)
+		).toBe(false)
 	})
 })
 

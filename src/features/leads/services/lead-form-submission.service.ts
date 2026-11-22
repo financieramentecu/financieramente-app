@@ -1,267 +1,291 @@
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
+import {
+	resolveFunnelColumn,
+	resolveOwner,
+} from '@/features/leads/services/lead-sync.service'
+import { escapeLikePattern } from '@/features/leads/lib/escape-like-pattern'
+import type { FormSubmissionPayload } from '@/features/leads/types/form-submission.schema'
+import type { IngestLeadFormResult } from '@/features/leads/types/form-submission.types'
+
 import {
 	assignLeadOrigin,
 	resolveLeadOrigin,
-	type ResolvedLeadOrigin,
 } from '@/features/leads/services/lead-origin.service'
-import { resolveFunnelColumn, resolveOwner } from '@/features/leads/services/lead-sync.service'
-import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
-import type { FormSubmissionPayload } from '@/features/leads/types/form-submission.schema'
 
-export interface FormSubmissionResult {
-	idLead: number
-	created: boolean
-	submissionId: string
-}
+const SYSTEM_EMAIL = 'form-submission@system'
 
-type LeadLookup = Prisma.TransactionClient
-
-function present(value: string | undefined): string | undefined {
-	const trimmed = value?.trim()
-	return trimmed ? trimmed : undefined
-}
-
-const MATCHED_LEAD_SELECT = { idLead: true, idUser: true } as const
-
-/**
- * Document, then email, then phone. The first hit wins.
- * The matched row is not rewritten. A different origin becomes its own lead.
- */
-async function findExistingLead(
-	tx: LeadLookup,
-	lead: FormSubmissionPayload['lead']
-): Promise<{ idLead: number; idUser: number | null } | null> {
-	const identityNumber = present(lead.identityNumber)
-	const email = present(lead.email)
-	const phone = present(lead.phone)
-
-	if (identityNumber) {
-		const byDocument = await tx.lead.findFirst({
-			where: { identityNumber, active: true },
-			select: MATCHED_LEAD_SELECT,
-		})
-		if (byDocument) return byDocument
+export class LeadFormSubmissionError extends Error {
+	constructor(
+		readonly code: 'AMBIGUOUS_LEAD',
+		message: string
+	) {
+		super(message)
+		this.name = 'LeadFormSubmissionError'
 	}
+}
 
-	if (email) {
-		const byEmail = await tx.lead.findFirst({
-			where: { email: { equals: email, mode: 'insensitive' }, active: true },
-			select: MATCHED_LEAD_SELECT,
-		})
-		if (byEmail) return byEmail
+interface AuditContext {
+	ipAddress?: string
+	userAgent?: string
+}
+
+interface LeadIdentity {
+	identityNumber?: string
+	email?: string
+	phone?: string
+}
+
+type LeadLookup = {
+	findMany: (args: {
+		where: {
+			active: boolean
+			identityNumber?: string
+			email?: { equals: string; mode: 'insensitive' }
+			phone?: string
+		}
+		select: { idLead: true }
+		take: number
+	}) => Promise<Array<{ idLead: number }>>
+}
+
+async function findSingleActiveLead(
+	lead: LeadLookup,
+	where: {
+		identityNumber?: string
+		email?: { equals: string; mode: 'insensitive' }
+		phone?: string
 	}
-
-	if (!phone) return null
-	return tx.lead.findFirst({
-		where: { phone, active: true },
-		select: MATCHED_LEAD_SELECT,
+): Promise<number | 'ambiguous' | null> {
+	const rows = await lead.findMany({
+		where: { active: true, ...where },
+		select: { idLead: true },
+		take: 2,
 	})
+	if (rows.length > 1) return 'ambiguous'
+	if (rows.length === 1) return rows[0].idLead
+	return null
 }
 
-/** True when this person already has an active link to the incoming origin. */
-async function personAlreadyHasOrigin(
-	tx: LeadLookup,
-	idLead: number,
-	idClientOrigin: number
-): Promise<boolean> {
-	const row = await tx.leadClientOrigin.findFirst({
-		where: { idLead, idClientOrigin, active: true },
-		select: { idLeadClientOrigin: true },
-	})
-	return row !== null
+async function resolveExistingLead(
+	lead: LeadLookup,
+	identity: LeadIdentity
+): Promise<number | null> {
+	if (identity.identityNumber) {
+		const byDocument = await findSingleActiveLead(lead, {
+			identityNumber: identity.identityNumber,
+		})
+		if (byDocument === 'ambiguous') {
+			throw new LeadFormSubmissionError(
+				'AMBIGUOUS_LEAD',
+				'Hay más de un prospecto con ese documento'
+			)
+		}
+		if (byDocument !== null) return byDocument
+	}
+	if (identity.email) {
+		const byEmail = await findSingleActiveLead(lead, {
+			email: { equals: escapeLikePattern(identity.email), mode: 'insensitive' },
+		})
+		if (byEmail === 'ambiguous') {
+			throw new LeadFormSubmissionError(
+				'AMBIGUOUS_LEAD',
+				'Hay más de un prospecto con ese correo'
+			)
+		}
+		if (byEmail !== null) return byEmail
+	}
+	if (identity.phone) {
+		const byPhone = await findSingleActiveLead(lead, { phone: identity.phone })
+		if (byPhone === 'ambiguous') {
+			throw new LeadFormSubmissionError(
+				'AMBIGUOUS_LEAD',
+				'Hay más de un prospecto con ese teléfono'
+			)
+		}
+		if (byPhone !== null) return byPhone
+	}
+	return null
 }
 
-function isUniqueConflict(error: unknown): boolean {
+function isUniqueViolation(error: unknown): boolean {
 	return (
-		typeof error === 'object' &&
-		error !== null &&
-		'code' in error &&
-		(error as { code: unknown }).code === 'P2002'
+		error instanceof Prisma.PrismaClientKnownRequestError &&
+		error.code === 'P2002'
 	)
 }
 
 /**
- * Stores one landing snapshot. The lead row and the snapshot commit together.
- * A repeated `submissionId` returns the original lead and writes nothing.
+ * Stores one landing snapshot and creates the prospect only when no active
+ * match exists. An existing prospect keeps its stage, owner and CRM fields.
+ * The same `submissionId` is a retry and writes nothing.
  */
 export async function ingestLeadFormSubmission(
-	payload: FormSubmissionPayload
-): Promise<FormSubmissionResult> {
-	const alreadyStored = await loadExistingSubmission(payload.submissionId)
-	if (alreadyStored) return alreadyStored
-
-	const origin = await resolveLeadOrigin(payload.utm_source)
-
+	payload: FormSubmissionPayload,
+	audit: AuditContext = {}
+): Promise<IngestLeadFormResult> {
 	try {
-		const result = await prisma.$transaction(async (tx) => {
-			const existing = await tx.leadFormSubmission.findUnique({
-				where: { submissionId: payload.submissionId },
-				select: { idLead: true },
-			})
-			if (existing) {
-				return {
-					idLead: existing.idLead,
-					created: false,
-					stored: false,
-					columnId: null as number | null,
-					relatedTo: null as number | null,
+		const result = await prisma.$transaction(
+			async (tx) => {
+				const identityKeys = [
+					payload.lead.identityNumber &&
+						`document:${payload.lead.identityNumber}`,
+					payload.lead.email && `email:${payload.lead.email.toLowerCase()}`,
+					payload.lead.phone && `phone:${payload.lead.phone}`,
+				]
+					.filter((key): key is string => Boolean(key))
+					.sort()
+				// Serialize overlapping identities before matching; sorted keys avoid deadlocks.
+				for (const identityKey of identityKeys) {
+					await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`lead-form:${identityKey}`}, 0))`
 				}
-			}
 
-			const matched = await findExistingLead(tx, payload.lead)
-			const splitByOrigin =
-				matched !== null &&
-				origin.status === 'ready' &&
-				!(await personAlreadyHasOrigin(tx, matched.idLead, origin.idClientOrigin))
-			let idLead = splitByOrigin ? undefined : matched?.idLead
-			let columnId: number | null = null
-			let relatedTo: number | null = null
-			if (!idLead) {
-				const [funnelColumn, ownerId] = await Promise.all([
-					resolveFunnelColumn(payload.lead.statusKey),
-					resolveOwner(payload.lead.ownerEmail),
-				])
-				columnId = funnelColumn.idLeadFunnelColumn
-				const advisorId = splitByOrigin ? (matched?.idUser ?? ownerId ?? null) : (ownerId ?? null)
-				idLead = (
-					await tx.lead.create({
+				const stored = await tx.leadFormSubmission.findUnique({
+					where: { submissionId: payload.submissionId },
+					select: { idLead: true },
+				})
+				if (stored) {
+					return {
+						idLead: stored.idLead,
+						created: false,
+						replayed: true,
+						ownerUnresolved: false,
+					}
+				}
+
+				const origin = await resolveLeadOrigin(payload.utm_source, tx)
+				const existingId = await resolveExistingLead(tx.lead, payload.lead)
+				let idLead = existingId
+				let ownerUnresolved = false
+				if (idLead === null) {
+					const column = await resolveFunnelColumn(payload.lead.statusKey, tx)
+					const ownerId = await resolveOwner(payload.lead.ownerEmail, tx)
+					const createdLead = await tx.lead.create({
 						data: {
-							name: present(payload.lead.name),
-							lastName: present(payload.lead.lastName),
-							email: present(payload.lead.email),
-							phone: present(payload.lead.phone),
-							identityNumber: present(payload.lead.identityNumber),
+							name: payload.lead.name ?? null,
+							lastName: payload.lead.lastName ?? null,
+							email: payload.lead.email ?? null,
+							phone: payload.lead.phone ?? null,
+							identityNumber: payload.lead.identityNumber ?? null,
 							originTag:
 								origin.status === 'ready'
 									? origin.name
-									: (present(payload.lead.originTag) ?? payload.landing.name),
-							idUser: advisorId,
-							idLeadFunnelColumn: columnId,
+									: (payload.lead.originTag ?? payload.landing.name),
+							idUser: ownerId ?? null,
+							idLeadFunnelColumn: column.idLeadFunnelColumn,
+							outcomeStatus: 'OPEN',
 							active: true,
-							createdAt: payload.submittedAt,
-							updatedAt: payload.submittedAt,
 						},
-						select: { idLead: true },
 					})
-				).idLead
-				if (splitByOrigin && matched) {
-					await tx.leadLink.create({
+					await tx.leadStageHistory.create({
 						data: {
-							idLead,
-							idRelatedLead: matched.idLead,
-							idClientOrigin: origin.idClientOrigin,
-							source: 'AUTO',
-							active: true,
-							linkedAt: payload.submittedAt,
+							idLead: createdLead.idLead,
+							fromIdLeadFunnelColumn: null,
+							toIdLeadFunnelColumn: column.idLeadFunnelColumn,
+							source: 'LANDING_FORM',
+							changedAt: payload.submittedAt,
 						},
 					})
-					relatedTo = matched.idLead
+					idLead = createdLead.idLead
+					ownerUnresolved = Boolean(payload.lead.ownerEmail) && ownerId === null
+				}
+				const assignment =
+					origin.status === 'ready'
+						? await assignLeadOrigin(
+								{
+									idLead,
+									idClientOrigin: origin.idClientOrigin,
+									seenAt: payload.submittedAt,
+								},
+								tx
+							)
+						: null
+				await tx.leadFormSubmission.create({
+					data: {
+						idLead,
+						submissionId: payload.submissionId,
+						landingKey: payload.landing.key,
+						landingName: payload.landing.name,
+						formVersion: payload.landing.version,
+						submittedAt: payload.submittedAt,
+						fields: payload.fields,
+					},
+				})
+				return {
+					idLead,
+					created: existingId === null,
+					replayed: false,
+					ownerUnresolved,
+					origin,
+					assignment,
+				}
+			},
+			{ isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted }
+		)
+
+		if (!result.replayed) {
+			if (result.origin?.status === 'inactive') {
+				await logAuditEvent({
+					action: AuditAction.LEAD_ORIGIN_INACTIVE,
+					email: SYSTEM_EMAIL,
+					details: `Origen inactivo: ${result.origin.code} (submissionId: ${payload.submissionId})`,
+				})
+			} else if (result.origin?.status === 'ready') {
+				if (result.origin.createdCatalog) {
+					await logAuditEvent({
+						action: AuditAction.LEAD_ORIGIN_CREATED,
+						email: SYSTEM_EMAIL,
+						details: `Origen creado: ${result.origin.code}`,
+					})
+				}
+				if (result.assignment !== 'refreshed') {
+					await logAuditEvent({
+						action: AuditAction.LEAD_ORIGIN_ASSIGNED,
+						email: SYSTEM_EMAIL,
+						details: `Origen ${result.origin.code} asignado al lead ${result.idLead}`,
+					})
 				}
 			}
-
-			await tx.leadFormSubmission.create({
-				data: {
-					submissionId: payload.submissionId,
-					idLead,
-					landingKey: payload.landing.key,
-					landingName: payload.landing.name,
-					landingVersion: payload.landing.version,
-					submittedAt: payload.submittedAt,
-					fields: payload.fields as Prisma.InputJsonValue,
-				},
-			})
-
-			return { idLead, created: !matched || splitByOrigin, stored: true, columnId, relatedTo }
-		})
-
-		if (result.stored && result.created && result.columnId !== null) {
-			await recordLeadStageChange({
-				idLead: result.idLead,
-				fromIdLeadFunnelColumn: null,
-				toIdLeadFunnelColumn: result.columnId,
-				source: 'CRM_SYNC',
-				changedAt: payload.submittedAt,
-			})
+			if (result.created) {
+				await logAuditEvent({
+					action: AuditAction.LEAD_CREATED,
+					email: SYSTEM_EMAIL,
+					ipAddress: audit.ipAddress,
+					userAgent: audit.userAgent,
+					details: `Prospecto creado desde landing ${payload.landing.key} (submissionId: ${payload.submissionId})`,
+				})
+			}
+			if (result.ownerUnresolved) {
+				await logAuditEvent({
+					action: AuditAction.LEAD_OWNER_UNRESOLVED,
+					email: SYSTEM_EMAIL,
+					ipAddress: audit.ipAddress,
+					userAgent: audit.userAgent,
+					details: `ownerEmail no coincide con ningún usuario activo (submissionId: ${payload.submissionId})`,
+				})
+			}
 			await logAuditEvent({
-				action: AuditAction.LEAD_CREATED,
-				email: 'crm-sync@system',
-				details: `Lead creado desde formulario ${payload.landing.key} (submissionId: ${payload.submissionId})`,
+				action: AuditAction.LEAD_FORM_SUBMISSION_STORED,
+				email: SYSTEM_EMAIL,
+				ipAddress: audit.ipAddress,
+				userAgent: audit.userAgent,
+				details: `Foto de formulario guardada (submissionId: ${payload.submissionId}, landing: ${payload.landing.key}, lead: ${result.idLead})`,
 			})
 		}
 
-		if (result.stored && result.relatedTo !== null) {
-			await logAuditEvent({
-				action: AuditAction.LEAD_RELATED,
-				email: 'crm-sync@system',
-				details: `Lead ${result.idLead} ingresó por otro origen y quedó relacionado con ${result.relatedTo} (submissionId: ${payload.submissionId})`,
-			})
+		return {
+			idLead: result.idLead,
+			created: result.created,
+			replayed: result.replayed,
 		}
-
-		if (result.stored) {
-			await logAuditEvent({
-				action: AuditAction.LEAD_FORM_SUBMISSION_RECORDED,
-				email: 'crm-sync@system',
-				details: `Foto de formulario ${payload.landing.key} v${payload.landing.version} guardada (submissionId: ${payload.submissionId}, idLead: ${result.idLead})`,
-			})
-			await recordFormOrigin(origin, result.idLead, payload.submissionId, payload.submittedAt)
-		}
-
-		return { idLead: result.idLead, created: result.created, submissionId: payload.submissionId }
 	} catch (error) {
-		if (!isUniqueConflict(error)) throw error
-		const raced = await loadExistingSubmission(payload.submissionId)
-		if (raced) return raced
-		throw error
-	}
-}
-
-async function recordFormOrigin(
-	origin: ResolvedLeadOrigin,
-	idLead: number,
-	submissionId: string,
-	seenAt: Date
-): Promise<void> {
-	if (origin.status === 'inactive') {
-		await logAuditEvent({
-			action: AuditAction.LEAD_ORIGIN_INACTIVE,
-			email: 'crm-sync@system',
-			details: `utm_source coincide con un origen inactivo y no se etiqueta (submissionId: ${submissionId}, code: ${origin.code})`,
+		if (!isUniqueViolation(error)) throw error
+		const stored = await prisma.leadFormSubmission.findUnique({
+			where: { submissionId: payload.submissionId },
+			select: { idLead: true },
 		})
-		return
+		if (!stored) throw error
+		return { idLead: stored.idLead, created: false, replayed: true }
 	}
-
-	if (origin.status !== 'ready') return
-
-	const assignment = await assignLeadOrigin({
-		idLead,
-		idClientOrigin: origin.idClientOrigin,
-		seenAt,
-	})
-
-	if (origin.createdCatalog) {
-		await logAuditEvent({
-			action: AuditAction.LEAD_ORIGIN_CREATED,
-			email: 'crm-sync@system',
-			details: `Origen de lead creado desde utm_source (code: ${origin.code}, name: ${origin.name})`,
-		})
-	}
-
-	if (assignment !== 'refreshed') {
-		await logAuditEvent({
-			action: AuditAction.LEAD_ORIGIN_ASSIGNED,
-			email: 'crm-sync@system',
-			details: `Origen ${origin.code} ${assignment === 'created' ? 'asignado' : 'reactivado'} al lead (submissionId: ${submissionId})`,
-		})
-	}
-}
-
-export async function loadExistingSubmission(submissionId: string): Promise<FormSubmissionResult | null> {
-	const existing = await prisma.leadFormSubmission.findUnique({
-		where: { submissionId },
-		select: { idLead: true, submissionId: true },
-	})
-	if (!existing) return null
-	return { idLead: existing.idLead, created: false, submissionId: existing.submissionId }
 }

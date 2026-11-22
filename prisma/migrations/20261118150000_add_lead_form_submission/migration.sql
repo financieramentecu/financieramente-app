@@ -1,14 +1,14 @@
--- Immutable landing-form snapshots attached to a lead.
--- One row per submission_id. The fields JSON is the photo n8n sent.
+-- AlterEnum
+ALTER TYPE "LeadStageChangeSource" ADD VALUE 'LANDING_FORM';
 
 -- CreateTable
 CREATE TABLE "lead_form_submission" (
     "id_lead_form_submission" SERIAL NOT NULL,
-    "submission_id" VARCHAR(200) NOT NULL,
     "id_lead" INTEGER NOT NULL,
+    "submission_id" VARCHAR(150) NOT NULL,
     "landing_key" VARCHAR(80) NOT NULL,
     "landing_name" VARCHAR(120) NOT NULL,
-    "landing_version" VARCHAR(40) NOT NULL,
+    "form_version" VARCHAR(40) NOT NULL,
     "submitted_at" TIMESTAMP(3) NOT NULL,
     "fields" JSONB NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

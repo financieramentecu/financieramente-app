@@ -105,6 +105,7 @@ describe('LeadDetailSheet', () => {
 				lead={buildLead({ idBusiness: null })}
 				open={true}
 				onOpenChange={vi.fn()}
+				canManageCrm
 			/>
 		)
 		expect(screen.getByText('Convertir a negocio')).toBeInTheDocument()
@@ -310,6 +311,7 @@ describe('LeadDetailSheet — conversion requires an owner', () => {
 				lead={buildLead({ idUser: 5, idBusiness: null })}
 				open={true}
 				onOpenChange={vi.fn()}
+				canManageCrm
 			/>
 		)
 		const link = screen.getByText('Convertir a negocio').closest('a')
@@ -322,12 +324,24 @@ describe('LeadDetailSheet — conversion requires an owner', () => {
 				lead={buildLead({ idUser: null, idBusiness: null })}
 				open={true}
 				onOpenChange={vi.fn()}
+				canManageCrm
 			/>
 		)
 		const button = screen.getByRole('button', { name: 'Convertir a negocio' })
 		expect(button).toBeDisabled()
 		expect(screen.queryByText('Convertir a negocio')?.closest('a')).toBeNull()
 		expect(screen.getByText(/asigna un owner/i)).toBeInTheDocument()
+	})
+
+	it('hides conversion for a read-only viewer', () => {
+		render(
+			<LeadDetailSheet
+				lead={buildLead({ idUser: 5, idBusiness: null })}
+				open={true}
+				onOpenChange={vi.fn()}
+			/>
+		)
+		expect(screen.queryByText('Convertir a negocio')).not.toBeInTheDocument()
 	})
 })
 
