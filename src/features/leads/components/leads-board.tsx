@@ -22,10 +22,17 @@ import { CrmLeadDetailSheet } from '@/features/leads/components/crm-lead-detail-
 import { useLeadDetailSheet } from '@/features/leads/hooks/use-lead-detail-sheet'
 import { CrmSummaryCards } from '@/features/leads/analytics/crm-summary-cards'
 import { LeadsBoardFilters } from '@/features/leads/components/leads-board-filters'
+import { useLeadOriginOptions } from '@/features/leads/hooks/use-lead-origin-options'
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 import { parsePrefixedId } from '@/features/leads/lib/parse-board-drag-id'
-import { moveLeadOnBoard, restoreLeadIfStillInColumn } from '@/features/leads/lib/move-lead-on-board'
-import { CRM_HIERARCHY_EMPTY_MESSAGE, useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
+import {
+	moveLeadOnBoard,
+	restoreLeadIfStillInColumn,
+} from '@/features/leads/lib/move-lead-on-board'
+import {
+	CRM_HIERARCHY_EMPTY_MESSAGE,
+	useCrmHierarchyFilter,
+} from '@/features/leads/components/crm-hierarchy-shell'
 import { Button } from '@/features/shared/ui/button'
 import { cn } from '@/lib/utils'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
@@ -46,32 +53,62 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 	const { enabled: reportsEnabled } = useFeatureFlag('crm_reports')
 	const hierarchy = useCrmHierarchyFilter()
 	const [filters, setFilters] = useState(getDefaultLeadBoardFilters())
+	const origins = useLeadOriginOptions()
 	const excludeKey = hierarchy.excludedOwnerIds.join(',')
 	useEffect(() => {
 		if (!hierarchy.ready) return
 		setFilters((current) =>
-			current.excludedOwnerIds.join(',') === excludeKey && current.ownerIds.length === 0
+			current.excludedOwnerIds.join(',') === excludeKey &&
+			current.ownerIds.length === 0
 				? current
-				: { ...current, ownerIds: [], excludedOwnerIds: hierarchy.excludedOwnerIds }
+				: {
+						...current,
+						ownerIds: [],
+						excludedOwnerIds: hierarchy.excludedOwnerIds,
+					}
 		)
 	}, [hierarchy.ready, hierarchy.excludedOwnerIds, excludeKey])
-	const { state, refetch, updateColumns } = useLeadsBoard(filters, !hierarchy.ready || hierarchy.noneSelected)
+	const { state, refetch, updateColumns } = useLeadsBoard(
+		filters,
+		!hierarchy.ready || hierarchy.noneSelected
+	)
 	const isRefreshing = state.status === 'loading'
 	const sheet = useLeadDetailSheet()
 	const [draggingLead, setDraggingLead] = useState<LeadCardType | null>(null)
 	const skipClick = useRef(false)
-	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+	const sensors = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+	)
 
 	function handleLeadDeleted() {
 		sheet.setOpen(false)
 		refetch()
 	}
 
+	function handleOwnerAssigned(owner: { idUser: number; ownerName: string; assignedLeadIds?: number[] }) {
+		const idLead = sheet.lead?.idLead
+		sheet.patchLead(owner)
+		const ids = new Set(owner.assignedLeadIds ?? (idLead == null ? [] : [idLead]))
+		if (ids.size === 0) return
+		updateColumns((columns) =>
+			columns.map((column) => ({
+				...column,
+				leads: column.leads.map((card) =>
+					ids.has(card.idLead)
+						? { ...card, idUser: owner.idUser, ownerName: owner.ownerName }
+						: card
+				),
+			}))
+		)
+	}
+
 	function handleDragStart(event: DragStartEvent) {
 		skipClick.current = true
 		const idLead = parsePrefixedId(event.active.id, 'lead:')
 		if (!idLead || state.status !== 'success') return
-		const lead = state.data.flatMap((column) => column.leads).find((item) => item.idLead === idLead)
+		const lead = state.data
+			.flatMap((column) => column.leads)
+			.find((item) => item.idLead === idLead)
 		setDraggingLead(lead ?? null)
 	}
 
@@ -92,7 +129,9 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 		const idLead = parsePrefixedId(event.active.id, 'lead:')
 		const toColumn = parsePrefixedId(event.over?.id, 'column:')
 		if (!idLead || !toColumn || state.status !== 'success') return
-		const fromColumn = state.data.find((column) => column.leads.some((lead) => lead.idLead === idLead))
+		const fromColumn = state.data.find((column) =>
+			column.leads.some((lead) => lead.idLead === idLead)
+		)
 		const next = moveLeadOnBoard(state.data, idLead, toColumn)
 		if (!fromColumn || !next) return
 		const homeColumnId = fromColumn.idLeadFunnelColumn
@@ -106,7 +145,9 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 			})
 			if (!response.ok) {
 				const body = (await response.json()) as { error?: string }
-				updateColumns((columns) => restoreLeadIfStillInColumn(columns, idLead, toColumn, homeColumnId))
+				updateColumns((columns) =>
+					restoreLeadIfStillInColumn(columns, idLead, toColumn, homeColumnId)
+				)
 				toast.error('No se guardó el cambio de etapa', {
 					description: body.error ?? 'No fue posible mover el lead.',
 				})
@@ -114,15 +155,23 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 			}
 			toast.success('Etapa actualizada')
 		} catch {
-			updateColumns((columns) => restoreLeadIfStillInColumn(columns, idLead, toColumn, homeColumnId))
-			toast.error('No se guardó el cambio de etapa', { description: 'No fue posible mover el lead.' })
+			updateColumns((columns) =>
+				restoreLeadIfStillInColumn(columns, idLead, toColumn, homeColumnId)
+			)
+			toast.error('No se guardó el cambio de etapa', {
+				description: 'No fue posible mover el lead.',
+			})
 		}
 	}
 
 	return (
 		<div className="space-y-4">
 			<div className="flex flex-wrap items-end justify-between gap-3">
-				<LeadsBoardFilters value={filters} onChange={setFilters} />
+				<LeadsBoardFilters
+					value={filters}
+					origins={origins}
+					onChange={setFilters}
+				/>
 				<Button
 					variant="outline"
 					size="sm"
@@ -130,13 +179,18 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 					disabled={isRefreshing}
 					aria-label="Actualizar tablero de leads"
 				>
-					<RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} aria-hidden />
+					<RefreshCw
+						className={cn('size-4', isRefreshing && 'animate-spin')}
+						aria-hidden
+					/>
 					Actualizar
 				</Button>
 			</div>
 			<CrmSummaryCards enabled={reportsEnabled} />
 			{hierarchy.noneSelected ? (
-				<p className="text-sm text-muted-foreground">{CRM_HIERARCHY_EMPTY_MESSAGE}</p>
+				<p className="text-sm text-muted-foreground">
+					{CRM_HIERARCHY_EMPTY_MESSAGE}
+				</p>
 			) : (
 				<>
 			{(state.status === 'loading' || state.status === 'idle') && (
@@ -191,7 +245,13 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 			)}
 				</>
 			)}
-			<CrmLeadDetailSheet lead={sheet.lead} open={sheet.open} onOpenChange={sheet.setOpen} onDeleted={handleLeadDeleted} />
+			<CrmLeadDetailSheet
+				lead={sheet.lead}
+				open={sheet.open}
+				onOpenChange={sheet.setOpen}
+				onDeleted={handleLeadDeleted}
+				onOwnerAssigned={handleOwnerAssigned}
+			/>
 		</div>
 	)
 }

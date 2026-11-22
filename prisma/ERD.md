@@ -13,6 +13,7 @@ Sistema: Financieramente — liquidación de comisiones.
 - `DocumentDataType`: `NUMERIC` | `ALPHANUMERIC` (en `document_type.data_type`).
 - `LeadStageChangeSource`: `CRM_SYNC` | `CSV_IMPORT` | `MANUAL` | `LANDING_FORM` (en `lead_stage_history.source`). `LANDING_FORM` es el alta de un prospecto que llega por el formulario de una landing.
 - `LeadActivityType`: `NOTE_ADDED` | `CALL_LOGGED` | `MEETING_LOGGED` | `EMAIL_LOGGED` | `WHATSAPP_LOGGED` | `TASK_CREATED` | `TASK_COMPLETED` | `TASK_REASSIGNED` | `TASK_COMMENTED` | `CONVERTED` | `BUSINESS_LINKED` | `CASE_OPENED` | `CASE_UPDATED` (en `lead_activity.type`). `TASK_COMMENTED` registra un comentario de tarea; un comentario de caso sigue siendo `CASE_UPDATED` con `action: COMMENTED`.
+- `LeadLinkSource`: `AUTO` | `MANUAL` (en `lead_link.source`). `AUTO` lo escribe el formulario cuando la persona ya existe y el origen es otro. `MANUAL` lo escribe quien valida el origen en el detalle.
 - `LeadTaskType`: `TODO` | `CALL` | `MEETING` | `EMAIL` | `WHATSAPP` (en `lead_task.type`, `@default(TODO)`). El nombre visible vive en `lead_activity_label` (`code` nulo = etiqueta creada por el equipo).
 - `LeadCustomFieldType`: `TEXT` | `NUMBER` | `DATE` | `SELECT` (en `lead_custom_field.type`; inmutable tras crear el campo).
 - `LeadTaskStatus`: `OPEN` | `DONE` | `CANCELLED` (en `lead_task.status`).
@@ -26,6 +27,8 @@ erDiagram
     TypeProduct ||--o{ Product : "clasifica"
     CategoryType ||--o{ Category : "tipo de categoría"
     ClientOrigin ||--o{ Business : "origen del negocio"
+    ClientOrigin ||--o{ LeadClientOrigin : "leads del origen"
+    Lead ||--o{ LeadClientOrigin : "orígenes del cliente"
     Level ||--o{ User : "nivel del usuario"
     Level ||--o{ ProductConfiguration : "nivel en config"
     Level ||--o{ ProductPercentageCommissionCategory : "en distribución"
@@ -95,8 +98,10 @@ erDiagram
     Lead ||--o{ LeadTagAssignment : "etiquetas"
     Lead ||--o{ LeadFormSubmission : "fotos de formulario"
     LeadTag ||--o{ LeadTagAssignment : "asignaciones"
-    Lead ||--o{ LeadOriginAssignment : "orígenes del lead"
-    LeadOrigin ||--o{ LeadOriginAssignment : "etiqueta de origen"
+    Lead ||--o{ LeadLink : "ingreso nuevo"
+    Lead ||--o{ LeadLink : "lead ya conocido"
+    ClientOrigin ||--o{ LeadLink : "origen del ingreso"
+    User ||--o{ LeadLink : "quien relacionó"
     User ||--o{ LeadSavedView : "vistas guardadas"
 
     %% ========== CLIENTES Y NEGOCIOS ==========
@@ -127,6 +132,7 @@ erDiagram
     ClientOrigin {
         int id_client_origin PK
         string name
+        string code UK
         text description
         boolean status
         datetime created_at
@@ -732,24 +738,27 @@ erDiagram
         datetime updated_at
     }
 
-    LeadOrigin {
-        int id_lead_origin PK
-        string code UK
-        string name
-        boolean status
-        datetime created_at
-        datetime updated_at
-    }
-
-    LeadOriginAssignment {
-        int id_lead_origin_assignment PK
+    LeadClientOrigin {
+        int id_lead_client_origin PK
         int id_lead FK
-        int id_lead_origin FK
+        int id_client_origin FK
         boolean active
         datetime first_seen_at
         datetime last_seen_at
         datetime created_at
         datetime updated_at
+    }
+
+    LeadLink {
+        int id_lead_link PK
+        int id_lead FK
+        int id_related_lead FK
+        int id_client_origin FK
+        enum source
+        boolean active
+        datetime linked_at
+        int linked_by FK
+        datetime created_at
     }
 
     LeadCustomField {
@@ -830,3 +839,7 @@ erDiagram
 - **CRM Fase 1** (migración `20261109120000_extend_lead_activity_and_task`, change `crm-phase-1-activities`): `LeadActivityType` += `CALL_LOGGED | MEETING_LOGGED | EMAIL_LOGGED | WHATSAPP_LOGGED`; nuevo enum `LeadTaskType` y columnas `lead_task.type` (`DEFAULT 'TODO'`) y `lead_task.reminder_sent_at` (índice `(due_at, reminder_sent_at)`: el cron reclama la tarea con `updateMany ... WHERE reminder_sent_at IS NULL` antes de notificar; reprogramar la tarea lo vuelve `NULL`). `lead.last_activity_at` es dato propio del CRM (nunca lo escriben el webhook ni el CSV): lo actualiza `appendLeadActivityTx` en la misma transacción para los eventos de contacto, solo si es más reciente; índice `(outcome_status, last_activity_at)` para el indicador "Sin actividad".
 - **Fotos de formulario de landing** (migración `20261118150000_add_lead_form_submission`, COM-247): `lead_form_submission` es de solo inserción. `submission_id` es único y hace idempotente el POST de n8n. `fields` guarda el arreglo validado (`text`, `number`, `date`, `select`) con etiqueta y valor; una landing nueva no agrega columnas. Un prospecto que ya existe solo recibe otra foto: no se mueve su etapa ni se tocan valor, probabilidad, campos del CRM ni etiquetas. `LANDING_FORM` en `lead_stage_history.source` registra únicamente el alta. Soft delete del lead no borra las fotos.
 - **CRM Fase 2** (migración `20261110120000_add_lead_views_tags_fields`, change `crm-phase-2-views-tags`): datos propios del CRM que el webhook `crm-sync` nunca escribe. `lead.estimated_value` (`DECIMAL(15,2)`) y `lead.probability` (`CHECK 0..100`) dan el valor ponderado del pipeline (valor × probabilidad / 100). `lead.custom_field_values` es un JSON indexado por `lead_custom_field.key` (sin tabla EAV); se valida contra los campos activos al escribir y un campo desactivado oculta su valor sin borrarlo. `lead_custom_field.key` es único para siempre (no se reutiliza la clave de un campo inactivo). `lead_tag_assignment` tiene `(id_lead, id_lead_tag)` único: quitar una etiqueta pone `active=false` y volver a ponerla reactiva la misma fila. `lead_tag.name` es único entre las activas sin distinguir mayúsculas (lo valida el servicio). `lead_saved_view` es personal (`id_user`), guarda filtros y orden de la tabla sin paginación; máximo 20 activas por usuario. `created_by` / `assigned_by` son ids de usuario sin FK (solo trazabilidad; la auditoría está en `AuditLog`).
+- **Catálogo único de origen** (migración `20261120170000_move_lead_origin_into_client_origin`): `lead_origin` y `lead_origin_assignment` se retiran. El `code` (VARCHAR 120, único, nulo en las filas anteriores) guarda la clave que tenía ese catálogo. Las filas de `client_origin` que ya existían conservan nombre, descripción y estado; solo reciben `code` cuando el nombre coincide. Los vínculos de lead se copian a `lead_client_origin` sin reescribir un par que ya estaba. `client_origin` sigue siendo el catálogo de los negocios.
+- **Origen del lead** (migración `20261120143000_add_lead_client_origin`): el catálogo es `client_origin`, el mismo de los negocios. `lead_client_origin` es la pivote `(id_lead, id_client_origin)` única. El `utm_source` se compara con el nombre normalizado (minúsculas, sin acentos, espacios y guiones como `_`): `Money Strategy` y `money_strategy` son el mismo origen. Si no existe, el webhook crea la fila en `client_origin` y no reactiva una con `status = false`. Repetir el par refresca `last_seen_at`; quitar el vínculo pone `active = false`. El filtro de la tabla de leads lee esta pivote. El nombre se copia a `lead.origin_tag` para la tarjeta.
+- **Foto de formulario** (migración `20261119145000_add_lead_form_submission`, COM-247): `lead_form_submission` es de solo inserción. `submission_id` único evita duplicar un reintento. `fields` guarda la etiqueta, el tipo y el valor en el orden recibido (`text | number | date | select`). Un `submission_id` nuevo sobre un prospecto ya encontrado por documento, correo o teléfono, con el mismo origen, agrega otra foto y no reescribe las anteriores ni la etapa, el valor, la probabilidad ni las etiquetas del CRM. Si el origen es otro, se crea un segundo lead.
+- **Misma persona, otro origen** (migración `20261120160000_add_lead_link`): `lead_link` une el lead nuevo (`id_lead`) con el lead ya conocido (`id_related_lead`). `CHECK (id_lead <> id_related_lead)`. El par es único. `active = false` desvincula; no hay borrado físico. El asesor se copia para que ambos tengan el mismo `id_user`. El timeline mezcla estas filas como ingreso de lead. Al convertir, el cliente sigue siendo único por documento.

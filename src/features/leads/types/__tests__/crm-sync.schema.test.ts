@@ -4,6 +4,7 @@ import { crmSyncPayloadSchema } from '@/features/leads/types/crm-sync.schema'
 const basePayload = {
 	externalCrmId: 'crm-1',
 	statusKey: 'new',
+	ownerEmail: 'asesor@example.com',
 }
 
 describe('crmSyncPayloadSchema — outcomeStatus', () => {
@@ -108,6 +109,20 @@ describe('crmSyncPayloadSchema — utm_source', () => {
 			utm_source: 'Money Map',
 		})
 		expect(result.utm_source).toBe('Money Map')
+	})
+
+	it('rejects a payload without ownerEmail', () => {
+		expect(() =>
+			crmSyncPayloadSchema.parse({ externalCrmId: 'crm-1', statusKey: 'new' })
+		).toThrow(/ownerEmail/)
+	})
+
+	it('keeps an unmatched ownerEmail so the lead can be stored without an advisor', () => {
+		const result = crmSyncPayloadSchema.parse({
+			...basePayload,
+			ownerEmail: 'nadie@example.com',
+		})
+		expect(result.ownerEmail).toBe('nadie@example.com')
 	})
 
 	it('leaves utm_source undefined when the field is absent', () => {

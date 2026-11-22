@@ -195,7 +195,7 @@ export async function ingestLeadFormSubmission(
 						? await assignLeadOrigin(
 								{
 									idLead,
-									idLeadOrigin: origin.idLeadOrigin,
+									idClientOrigin: origin.idClientOrigin,
 									seenAt: payload.submittedAt,
 								},
 								tx

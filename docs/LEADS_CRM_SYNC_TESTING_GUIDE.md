@@ -71,7 +71,7 @@ Fuente: `src/features/leads/types/crm-sync.schema.ts`.
 | `phone` | No | string | Ídem. |
 | `identityNumber` | No | string | Cédula — normalmente no llega en el sync inicial. |
 | `originTag` | No | string | Texto libre legado. Si llega `utm_source`, el nombre del catálogo pisa este campo. |
-| `utm_source` | No | string | **Parámetro que n8n debe reenviar.** Es el query param de la landing (`?utm_source=`). Se acepta en el JSON o como query de este mismo `POST`. Se normaliza a `lead_origin.code` (`Money Map`, `money-map` y `money_map` son el mismo origen). Si el código no existe, se crea el catálogo y se etiqueta el lead por la pivote `lead_origin_assignment`. Un origen con `status = false` no se reactiva y no rechaza el webhook. |
+| `utm_source` | No | string | **Parámetro que n8n debe reenviar.** Es el query param de la landing (`?utm_source=`). Se acepta en el JSON o como query de este mismo `POST`. Se normaliza a `client_origin.code` (`Money Map`, `money-map` y `money_map` son el mismo origen). Si el código no existe, se crea el catálogo y se etiqueta el lead por la pivote `lead_client_origin`. Un origen con `status = false` no se reactiva y no rechaza el webhook. |
 | `externalUrl` | No | string vacío o URL válida | Habilita el botón "Ver en CRM" en el detalle. |
 | `ownerEmail` | No | string vacío o email válido | Se resuelve contra `User.email` → `Lead.ownerId` (match **case-insensitive** + trim, ej. `Agente@Dominio.com` matchea igual que `agente@dominio.com`). Siempre reasigna si viene presente y distinto (no hay "owner fijo"). Si no matchea ningún usuario activo, el lead queda sin dueño (`ownerId` null) y solo lo ven roles admin. |
 | `outcomeStatus` | No, pero **recomendado enviarlo siempre** | string, se normaliza a mayúsculas | Debe resolver a `OPEN`/`WON`/`LOST`/`ABANDONED`. Valor no reconocido → cae a `OPEN`, responde 200 igual, audit log `LEAD_OUTCOME_STATUS_UNRESOLVED`. **`WON` es terminal**: una vez que el lead ya está en `WON`, ningún webhook posterior puede cambiarlo (el resto de los campos sí se siguen actualizando); el intento queda registrado como `LEAD_OUTCOME_STATUS_LOCKED`. |
@@ -86,7 +86,7 @@ Si el JSON trae algún marcador de formulario (`submissionId`, `landing` o `fiel
 
 n8n hace un solo POST. Un `submissionId` repetido responde 200 con el mismo `idLead` y no escribe otra foto. Si el contrato no valida, responde 400 y no guarda nada.
 
-`utm_source` va en la raíz del JSON, o como `?utm_source=` en la misma URL. Es el origen de la landing (`Money Map`, `money-map` y `money_map` son el mismo). Si el código no existe, se crea y se enlaza por `lead_origin_assignment`. En un prospecto nuevo, el nombre del catálogo queda como etiqueta. En uno que ya existe, solo se suma el origen: no se reescribe la ficha.
+`utm_source` va en la raíz del JSON, o como `?utm_source=` en la misma URL. Es el origen de la landing (`Money Map`, `money-map` y `money_map` son el mismo). Si el código no existe, se crea y se enlaza por `lead_client_origin`. En un prospecto nuevo, el nombre del catálogo queda como etiqueta. En uno que ya existe, solo se suma el origen: no se reescribe la ficha.
 
 `lead.statusKey` sigue el catálogo de la sección 2. Para caer en Lead Nuevo hay que enviar `NUEVO_LEAD`. El ejemplo `nuevo` no coincide con esa clave y queda en "Sin mapear".
 

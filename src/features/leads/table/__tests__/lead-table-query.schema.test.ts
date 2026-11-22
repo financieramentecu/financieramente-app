@@ -17,7 +17,7 @@ describe('parseLeadTableQuery', () => {
 	})
 
 	it('parses repeated filters, search, range, idle, sort and paging', () => {
-		const result = parse('q=%20ana%20&status=OPEN&status=WON&stage=3&owner=7&owner=8&tag=2&from=2026-11-01&to=2026-11-30&idle=1&sort=estimatedValue&dir=asc&page=3&pageSize=50')
+		const result = parse('q=%20ana%20&status=OPEN&status=WON&stage=3&owner=7&owner=8&tag=2&origin=4&origin=9&from=2026-11-01&to=2026-11-30&idle=1&sort=estimatedValue&dir=asc&page=3&pageSize=50')
 		expect(result).toEqual({
 			ok: true,
 			query: {
@@ -27,6 +27,7 @@ describe('parseLeadTableQuery', () => {
 				ownerIds: [7, 8],
 				excludedOwnerIds: [],
 				tagIds: [2],
+				originIds: [4, 9],
 				from: '2026-11-01',
 				to: '2026-11-30',
 				idle: true,

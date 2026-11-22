@@ -5,6 +5,7 @@ import type { CrmSyncPayload } from '@/features/leads/types/crm-sync.schema'
 const basePayload: CrmSyncPayload = {
 	externalCrmId: 'crm-1',
 	statusKey: 'new',
+	ownerEmail: 'asesor@example.com',
 }
 
 const storedLead = {

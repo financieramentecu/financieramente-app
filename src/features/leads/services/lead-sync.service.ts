@@ -7,8 +7,8 @@ import {
 import { buildLeadUpsertData } from '@/features/leads/lib/build-lead-upsert-data'
 import { resolveOutcomeStatus } from '@/features/leads/lib/lead-outcome-status'
 import { normalizeFunnelStatusKey } from '@/features/leads/lib/normalize-funnel-status-key'
+import type { LeadWritePayload } from '@/features/leads/types/crm-sync.schema'
 import { escapeLikePattern } from '@/features/leads/lib/escape-like-pattern'
-import type { CrmSyncPayload } from '@/features/leads/types/crm-sync.schema'
 import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
 import {
 	assignLeadOrigin,
@@ -88,7 +88,7 @@ export interface UpsertLeadFromCrmResult {
  * from the `externalCrmId` unique upsert — no separate event table.
  */
 export async function upsertLeadFromCrm(
-	payload: CrmSyncPayload
+	payload: LeadWritePayload
 ): Promise<UpsertLeadFromCrmResult> {
 	const existing = await prisma.lead.findUnique({
 		where: { externalCrmId: payload.externalCrmId },
@@ -221,7 +221,7 @@ export async function upsertLeadFromCrm(
 	const seenAt = payload.updatedAt ?? receivedAt
 	const assignment = await assignLeadOrigin({
 		idLead: lead.idLead,
-		idLeadOrigin: origin.idLeadOrigin,
+		idClientOrigin: origin.idClientOrigin,
 		seenAt,
 	})
 

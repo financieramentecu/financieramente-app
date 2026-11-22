@@ -147,7 +147,6 @@ export function LeadsTable({
 	const [search, setSearch] = useState(query.q ?? '')
 	const [openIds, setOpenIds] = useState<number[]>([])
 	const sortProps = { current: query.sort, dir: query.dir, onSort: toggleSort }
-
 	useEffect(() => {
 		if (!hierarchy.ready || hierarchy.noneSelected) return
 		if (query.excludedOwnerIds.join(',') === excludeKey && query.ownerIds.length === 0) return
@@ -155,7 +154,7 @@ export function LeadsTable({
 		// excludeKey is the identity of the hierarchy selection.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [hierarchy.ready, hierarchy.noneSelected, excludeKey])
-	const { stages, tags } = useLeadTableOptions(fieldsEnabled)
+	const { stages, origins, tags } = useLeadTableOptions(fieldsEnabled)
 
 	function toggleLead(idLead: number) {
 		setOpenIds((current) =>
@@ -212,6 +211,17 @@ export function LeadsTable({
 					}))}
 					value={query.stageIds.map(String)}
 					onChange={(values) => updateFilters({ stageIds: values.map(Number) })}
+				/>
+				<MultiSelect
+					className="w-44"
+					ariaLabel="Origen"
+					placeholder="Origen"
+					options={origins.map((origin) => ({
+						value: String(origin.idClientOrigin),
+						label: origin.name,
+					}))}
+					value={query.originIds.map(String)}
+					onChange={(values) => updateFilters({ originIds: values.map(Number) })}
 				/>
 				{fieldsEnabled && (
 					<MultiSelect

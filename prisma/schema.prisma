@@ -28,11 +28,15 @@ model Company {
 model ClientOrigin {
   idClientOrigin Int        @id @default(autoincrement()) @map("id_client_origin")
   name           String     @db.VarChar(100)
+  /// Normalized catalogue key copied from the retired `lead_origin.code`. Null on rows that predate that catalogue.
+  code           String?    @unique @db.VarChar(120)
   description    String?
   status         Boolean    @default(true)
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
   businesses     Business[]
+  leadLinks      LeadClientOrigin[]
+  personLinks    LeadLink[]
 
   @@map("client_origin")
 }
@@ -334,6 +338,7 @@ model User {
   comments                            Comment[]
   leads                               Lead[]
   leadActivities                      LeadActivity[]           @relation("LeadActivityActor")
+  leadLinksCreated                    LeadLink[]               @relation("LeadLinkAuthor")
   leadTasksAssigned                   LeadTask[]               @relation("LeadTaskAssignee")
   leadTasksCreated                    LeadTask[]               @relation("LeadTaskCreator")
   leadSavedViews                      LeadSavedView[]
@@ -1016,8 +1021,10 @@ model Lead {
   supportCases       LeadSupportCase[]
   stageHistory       LeadStageHistory[]
   tagAssignments     LeadTagAssignment[]
-  originAssignments  LeadOriginAssignment[]
+  leadClientOrigins  LeadClientOrigin[]
   formSubmissions    LeadFormSubmission[]
+  ingressLinks       LeadLink[]          @relation("LeadLinkIngress")
+  relatedLinks       LeadLink[]          @relation("LeadLinkRelated")
 
   @@index([idUser])
   @@index([idLeadFunnelColumn])
@@ -1102,38 +1109,51 @@ model LeadTagAssignment {
   @@map("lead_tag_assignment")
 }
 
-/// Acquisition-source catalogue keyed by the normalized `utm_source`.
-/// Deactivated, never deleted. Distinct from `ClientOrigin` (business origin).
-model LeadOrigin {
-  idLeadOrigin Int                    @id @default(autoincrement()) @map("id_lead_origin")
-  code         String                 @unique @db.VarChar(120)
-  name         String                 @db.VarChar(120)
-  status       Boolean                @default(true)
-  createdAt    DateTime               @default(now()) @map("created_at")
-  updatedAt    DateTime               @updatedAt @map("updated_at")
-  assignments  LeadOriginAssignment[]
+/// Lead seen from a `client_origin`. Removing the link sets `active=false`.
+model LeadClientOrigin {
+  idLeadClientOrigin Int          @id @default(autoincrement()) @map("id_lead_client_origin")
+  idLead             Int          @map("id_lead")
+  idClientOrigin     Int          @map("id_client_origin")
+  active             Boolean      @default(true)
+  firstSeenAt        DateTime     @map("first_seen_at")
+  lastSeenAt         DateTime     @map("last_seen_at")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+  lead               Lead         @relation(fields: [idLead], references: [idLead])
+  clientOrigin       ClientOrigin @relation(fields: [idClientOrigin], references: [idClientOrigin])
 
-  @@index([status])
-  @@map("lead_origin")
+  @@unique([idLead, idClientOrigin])
+  @@index([idClientOrigin, active])
+  @@map("lead_client_origin")
 }
 
-/// Origin label on a lead. Removing the link sets `active=false`.
-model LeadOriginAssignment {
-  idLeadOriginAssignment Int        @id @default(autoincrement()) @map("id_lead_origin_assignment")
-  idLead                 Int        @map("id_lead")
-  idLeadOrigin           Int        @map("id_lead_origin")
-  active                 Boolean    @default(true)
-  firstSeenAt            DateTime   @map("first_seen_at")
-  lastSeenAt             DateTime   @map("last_seen_at")
-  createdAt              DateTime   @default(now()) @map("created_at")
-  updatedAt              DateTime   @updatedAt @map("updated_at")
-  lead                   Lead       @relation(fields: [idLead], references: [idLead])
-  origin                 LeadOrigin @relation(fields: [idLeadOrigin], references: [idLeadOrigin])
-
-  @@unique([idLead, idLeadOrigin])
-  @@index([idLeadOrigin, active])
-  @@map("lead_origin_assignment")
+enum LeadLinkSource {
+  AUTO
+  MANUAL
 }
+
+/// A later ingress of the same person. The new lead stays its own card.
+/// Deactivated with `active = false`, never deleted.
+model LeadLink {
+  idLeadLink     Int            @id @default(autoincrement()) @map("id_lead_link")
+  idLead         Int            @map("id_lead")
+  idRelatedLead  Int            @map("id_related_lead")
+  idClientOrigin Int?           @map("id_client_origin")
+  source         LeadLinkSource
+  active         Boolean        @default(true)
+  linkedAt       DateTime       @map("linked_at")
+  linkedBy       Int?           @map("linked_by")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  lead           Lead           @relation("LeadLinkIngress", fields: [idLead], references: [idLead])
+  relatedLead    Lead           @relation("LeadLinkRelated", fields: [idRelatedLead], references: [idLead])
+  clientOrigin   ClientOrigin?  @relation(fields: [idClientOrigin], references: [idClientOrigin])
+  linker         User?          @relation("LeadLinkAuthor", fields: [linkedBy], references: [idUser], onDelete: SetNull)
+
+  @@unique([idLead, idRelatedLead])
+  @@index([idRelatedLead, active])
+  @@map("lead_link")
+}
+
 
 enum LeadCustomFieldType {
   TEXT

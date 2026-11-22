@@ -1,6 +1,7 @@
 import type { Lead, LeadFunnelColumn, LeadOutcomeStatus } from '@prisma/client'
 import type { LeadFormSubmissionView } from '@/features/leads/types/form-submission.types'
 import type { LeadTagChip } from '@/features/leads/table/lead-table.types'
+import type { LeadRelationSummary } from '@/features/leads/types/lead-link.types'
 
 /**
  * Domain types for the Leads feature.
@@ -75,10 +76,12 @@ export interface LeadDetail {
 	formSubmissions?: LeadFormSubmissionView[]
 	/** Idle days when the open lead passed `CRM_INACTIVITY_DAYS`, else null. */
 	inactiveDays: number | null
-	/** CRM-owned data (never written by crm-sync). */
+	/** CRM-owned data (never written by a landing form). */
 	tags: LeadTagChip[]
 	estimatedValue: string | null
 	probability: number | null
+	/** Other leads of the same person. Empty when this card is not linked. */
+	relations: LeadRelationSummary[]
 }
 
 /**

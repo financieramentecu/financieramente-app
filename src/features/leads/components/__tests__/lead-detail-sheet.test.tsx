@@ -15,6 +15,21 @@ vi.mock('@/features/leads/hooks/use-delete-lead', () => ({
 	useDeleteLead: () => ({ state: mockState, deleteLead: mockDeleteLead }),
 }))
 
+vi.mock('@/features/leads/hooks/use-hierarchy-advisors', () => ({
+	useHierarchyAdvisors: () => ({ status: 'success', data: [], error: '' }),
+}))
+
+vi.mock('@/features/leads/hooks/use-assign-lead-owner', () => ({
+	useAssignLeadOwner: () => ({
+		state: { status: 'idle', data: undefined, error: '' },
+		assign: vi.fn(),
+	}),
+}))
+
+vi.mock('@/features/leads/components/lead-relation-panel', () => ({
+	LeadRelationPanel: () => <section>Relación de leads</section>,
+}))
+
 vi.mock('@/features/leads/activities/lead-activity-timeline', () => ({
 	LeadActivityTimeline: () => <section>Timeline</section>,
 }))
@@ -48,6 +63,7 @@ function buildLead(overrides: Partial<LeadDetail> = {}): LeadDetail {
 		estimatedValue: null,
 		probability: null,
 		formSubmissions: [],
+		relations: [],
 		...overrides,
 	}
 }
@@ -72,21 +88,10 @@ describe('LeadDetailSheet', () => {
 		expect(screen.getByRole('status')).toHaveTextContent('Cargando el lead…')
 	})
 
-	it('renders "Ver en CRM" when externalUrl is present', () => {
+	it('does not render "Ver en CRM"', () => {
 		render(
 			<LeadDetailSheet
 				lead={buildLead({ externalUrl: 'https://crm.example/lead/1' })}
-				open={true}
-				onOpenChange={vi.fn()}
-			/>
-		)
-		expect(screen.getByText('Ver en CRM')).toBeInTheDocument()
-	})
-
-	it('does not render "Ver en CRM" when externalUrl is null', () => {
-		render(
-			<LeadDetailSheet
-				lead={buildLead({ externalUrl: null })}
 				open={true}
 				onOpenChange={vi.fn()}
 			/>

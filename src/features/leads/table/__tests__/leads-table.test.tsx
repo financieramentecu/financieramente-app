@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { LeadsTable } from '@/features/leads/table/leads-table'
-import { fetchLeadTable, fetchStageOptions, fetchTagOptions } from '@/features/leads/table/lead-table-api'
+import { fetchLeadTable, fetchOriginOptions, fetchStageOptions, fetchTagOptions } from '@/features/leads/table/lead-table-api'
 import type { LeadTablePage, LeadTableRow } from '@/features/leads/table/lead-table.types'
 import type { SavedLeadTableQuery } from '@/features/leads/views/lead-saved-view.types'
 import { useCrmHierarchyFilter } from '@/features/leads/components/crm-hierarchy-shell'
@@ -16,11 +16,12 @@ vi.mock('@/features/leads/table/lead-table-api', async (importOriginal) => ({
 	...(await importOriginal<typeof import('@/features/leads/table/lead-table-api')>()),
 	fetchLeadTable: vi.fn(),
 	fetchStageOptions: vi.fn(),
+	fetchOriginOptions: vi.fn(),
 	fetchTagOptions: vi.fn(),
 }))
 vi.mock('@/features/leads/views/saved-views-bar', () => ({
 	SavedViewsBar: ({ onApply }: { onApply: (query: SavedLeadTableQuery) => void }) => (
-		<button type="button" onClick={() => onApply({ statuses: ['WON'], stageIds: [], ownerIds: [5], excludedOwnerIds: [7], tagIds: [], idle: false, sort: 'name', dir: 'asc' })}>
+		<button type="button" onClick={() => onApply({ statuses: ['WON'], stageIds: [], ownerIds: [5], excludedOwnerIds: [7], tagIds: [], originIds: [], idle: false, sort: 'name', dir: 'asc' })}>
 			Aplicar vista
 		</button>
 	),
@@ -68,6 +69,7 @@ describe('LeadsTable', () => {
 		vi.mocked(usePathname).mockReturnValue('/dashboard/negocios/crm')
 		vi.mocked(fetchLeadTable).mockResolvedValue(page())
 		vi.mocked(fetchStageOptions).mockResolvedValue([{ idLeadFunnelColumn: 2, name: 'Contactado' }])
+		vi.mocked(fetchOriginOptions).mockResolvedValue([{ idClientOrigin: 4, name: 'Money Map' }])
 		vi.mocked(fetchTagOptions).mockResolvedValue([{ idLeadTag: 1, name: 'VIP', color: '#f00' }])
 	})
 
@@ -87,7 +89,9 @@ describe('LeadsTable', () => {
 		await screen.findByRole('button', { name: 'Ana Pérez' })
 		expect(screen.queryByText('VIP')).not.toBeInTheDocument()
 		expect(screen.queryByLabelText('Totales del pipeline')).not.toBeInTheDocument()
+		expect(screen.getByRole('combobox', { name: 'Origen' })).toBeInTheDocument()
 		expect(fetchTagOptions).not.toHaveBeenCalled()
+		expect(fetchOriginOptions).toHaveBeenCalled()
 	})
 
 	it('searches, keeps the tab param in the URL and resets to page 1', async () => {

@@ -106,6 +106,7 @@ export function CrmTabs() {
 				}}
 				activityFocus={activityFocus}
 				onActivityChanged={() => setActivityRevision((current) => current + 1)}
+				onOwnerAssigned={(owner) => sheet.patchLead(owner)}
 				previewName={sheet.previewName}
 				loadError={sheet.loadError}
 			/>

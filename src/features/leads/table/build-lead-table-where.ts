@@ -41,6 +41,12 @@ function ownerClause(viewer: LeadViewer, ownerIds: number[], visibleUserIds: num
 	return [{ idUser: { in: allowed } }]
 }
 
+/** Unchecked branches already expanded to their descendants. */
+function excludedClause(excludedOwnerIds: readonly number[] | undefined): Prisma.LeadWhereInput[] {
+	if (!excludedOwnerIds || excludedOwnerIds.length === 0) return []
+	return [{ idUser: { notIn: [...excludedOwnerIds] } }]
+}
+
 function idleClause(now: Date, inactivityDays: number): Prisma.LeadWhereInput {
 	const cutoff = new Date(now.getTime() - inactivityDays * DAY_MS)
 	return {
@@ -51,7 +57,7 @@ function idleClause(now: Date, inactivityDays: number): Prisma.LeadWhereInput {
 
 /**
  * WHERE clause of the CRM lead table: the board's scope rules
- * (`buildLeadListWhere`) plus search, stage, owner, tag and idle filters.
+ * (`buildLeadListWhere`) plus search, stage, owner, tag, origin and idle filters.
  */
 export function buildLeadTableWhere(
 	viewer: LeadViewer,
@@ -62,7 +68,6 @@ export function buildLeadTableWhere(
 		viewer,
 		{
 			outcomeStatuses: query.statuses,
-			excludedOwnerIds: query.excludedOwnerIds,
 			createdAtRange: query.from && query.to ? parseBogotaInclusiveUtcRange(query.from, query.to) : undefined,
 		},
 		{ visibleUserIds: options.visibleUserIds }
@@ -71,10 +76,18 @@ export function buildLeadTableWhere(
 		...(Array.isArray(base.AND) ? base.AND : base.AND ? [base.AND] : []),
 		...searchClauses(query.q),
 		...ownerClause(viewer, query.ownerIds, options.visibleUserIds),
+		...excludedClause(query.excludedOwnerIds),
 	]
 	if (query.stageIds.length > 0) and.push({ idLeadFunnelColumn: { in: query.stageIds } })
 	if (query.tagIds.length > 0) {
 		and.push({ tagAssignments: { some: { idLeadTag: { in: query.tagIds }, active: true, tag: { active: true } } } })
+	}
+	if (query.originIds.length > 0) {
+		and.push({
+			leadClientOrigins: {
+				some: { idClientOrigin: { in: query.originIds }, active: true, clientOrigin: { status: true } },
+			},
+		})
 	}
 	if (query.idle) and.push(idleClause(options.now, options.inactivityDays))
 	return { AND: and }

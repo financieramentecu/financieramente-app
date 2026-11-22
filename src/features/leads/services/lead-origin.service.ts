@@ -1,24 +1,24 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import {
-	leadOriginLabel,
-	normalizeUtmSource,
-} from '@/features/leads/lib/normalize-utm-source'
+import { leadOriginLabel, normalizeUtmSource } from '@/features/leads/lib/normalize-utm-source'
+
+const CLIENT_ORIGIN_NAME_MAX = 100
 
 export type ResolvedLeadOrigin =
 	| { status: 'absent' }
 	| { status: 'inactive'; code: string }
 	| {
 			status: 'ready'
-			idLeadOrigin: number
+			idClientOrigin: number
 			code: string
 			name: string
 			createdCatalog: boolean
 	  }
 
 /**
- * Loads the origin catalogue row for an incoming `utm_source`.
- * A missing code is created. An inactive code is left inactive.
+ * Matches `utm_source` against `client_origin.name`.
+ * "Money Strategy", "money-strategy" and "money_strategy" are the same origin.
+ * A missing name is created. An inactive name is left inactive.
  */
 export async function resolveLeadOrigin(
 	raw: string | undefined,
@@ -29,28 +29,30 @@ export async function resolveLeadOrigin(
 	const code = normalizeUtmSource(raw)
 	if (code === null) return { status: 'absent' }
 
-	const existing = await client.leadOrigin.findUnique({ where: { code } })
-	if (existing) {
-		if (!existing.status) return { status: 'inactive', code }
+	const rows = await client.clientOrigin.findMany({
+		select: { idClientOrigin: true, name: true, status: true },
+	})
+	const matches = rows.filter((row) => normalizeUtmSource(row.name) === code)
+	const active = matches.find((row) => row.status)
+	if (active) {
 		return {
 			status: 'ready',
-			idLeadOrigin: existing.idLeadOrigin,
-			code: existing.code,
-			name: existing.name,
+			idClientOrigin: active.idClientOrigin,
+			code,
+			name: active.name,
 			createdCatalog: false,
 		}
 	}
+	if (matches.some((row) => !row.status)) return { status: 'inactive', code }
 
-	const created = await client.leadOrigin.upsert({
-		where: { code },
-		create: { code, name: leadOriginLabel(raw, code), status: true },
-		update: { code },
+	const created = await client.clientOrigin.create({
+		data: { name: leadOriginLabel(raw, code).slice(0, CLIENT_ORIGIN_NAME_MAX), status: true },
+		select: { idClientOrigin: true, name: true },
 	})
-	if (!created.status) return { status: 'inactive', code }
 	return {
 		status: 'ready',
-		idLeadOrigin: created.idLeadOrigin,
-		code: created.code,
+		idClientOrigin: created.idClientOrigin,
+		code,
 		name: created.name,
 		createdCatalog: true,
 	}
@@ -59,42 +61,44 @@ export async function resolveLeadOrigin(
 export type OriginAssignmentChange = 'created' | 'reactivated' | 'refreshed'
 
 /**
- * Links a lead to an origin through the pivot. Repeating the same pair
- * refreshes `lastSeenAt` and reactivates a previously removed row.
+ * Links a lead to a `client_origin` through `lead_client_origin`.
+ * Repeating the same pair refreshes `lastSeenAt` and reactivates a removed row.
  */
 export async function assignLeadOrigin(
 	input: {
 		idLead: number
-		idLeadOrigin: number
+		idClientOrigin: number
 		seenAt: Date
 	},
 	client: Prisma.TransactionClient = prisma
 ): Promise<OriginAssignmentChange> {
-	const existing = await client.leadOriginAssignment.findUnique({
+	const existing = await client.leadClientOrigin.findUnique({
 		where: {
-			idLead_idLeadOrigin: {
+			idLead_idClientOrigin: {
 				idLead: input.idLead,
-				idLeadOrigin: input.idLeadOrigin,
+				idClientOrigin: input.idClientOrigin,
 			},
 		},
-		select: { idLeadOriginAssignment: true, active: true },
+		select: { idLeadClientOrigin: true, active: true },
 	})
 
-	await client.leadOriginAssignment.upsert({
-		where: {
-			idLead_idLeadOrigin: {
+	if (!existing) {
+		await client.leadClientOrigin.create({
+			data: {
 				idLead: input.idLead,
-				idLeadOrigin: input.idLeadOrigin,
+				idClientOrigin: input.idClientOrigin,
+				active: true,
+				firstSeenAt: input.seenAt,
+				lastSeenAt: input.seenAt,
 			},
-		},
-		create: {
-			idLead: input.idLead,
-			idLeadOrigin: input.idLeadOrigin,
-			active: true,
-			firstSeenAt: input.seenAt,
-			lastSeenAt: input.seenAt,
-		},
-		update: { active: true, lastSeenAt: input.seenAt },
+		})
+		return 'created'
+	}
+
+	await client.leadClientOrigin.update({
+		where: { idLeadClientOrigin: existing.idLeadClientOrigin },
+		data: { active: true, lastSeenAt: input.seenAt },
 	})
-	return !existing ? 'created' : existing.active ? 'refreshed' : 'reactivated'
+
+	return existing.active ? 'refreshed' : 'reactivated'
 }

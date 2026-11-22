@@ -4,6 +4,8 @@ import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { parseStoredFormFields } from '@/features/leads/lib/parse-stored-form-fields'
 import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
 import { getInactivityDays, resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
+import { leadDisplayName } from '@/features/leads/lib/lead-display-name'
+import { LEAD_LINK_SIDES } from '@/features/leads/types/lead-link.types'
 import type {
 	LeadBoardColumn,
 	LeadDetail,
@@ -30,6 +32,8 @@ export interface LeadBoardOptions {
 	ownerIds?: number[]
 	/** Unchecked hierarchy nodes. Expanded to their descendants before the query. */
 	excludedOwnerIds?: number[]
+	/** Active links in `lead_client_origin`. Empty keeps every origin. */
+	originIds?: number[]
 }
 
 /**
@@ -54,6 +58,7 @@ export async function getLeadBoard(
 					createdAtRange: options.createdAtRange,
 					ownerIds: options.ownerIds,
 					excludedOwnerIds,
+					originIds: options.originIds,
 				},
 				options
 			),
@@ -155,6 +160,28 @@ export async function getLeadDetail(
 					fields: true,
 				},
 			},
+			ingressLinks: {
+				where: { active: true },
+				orderBy: { linkedAt: 'desc' },
+				select: {
+					idLeadLink: true,
+					source: true,
+					linkedAt: true,
+					clientOrigin: { select: { name: true } },
+					relatedLead: { select: { idLead: true, name: true, lastName: true } },
+				},
+			},
+			relatedLinks: {
+				where: { active: true },
+				orderBy: { linkedAt: 'desc' },
+				select: {
+					idLeadLink: true,
+					source: true,
+					linkedAt: true,
+					clientOrigin: { select: { name: true } },
+					lead: { select: { idLead: true, name: true, lastName: true } },
+				},
+			},
 		},
 	})
 
@@ -189,5 +216,25 @@ export async function getLeadDetail(
 		tags: lead.tagAssignments.map((assignment) => assignment.tag),
 		estimatedValue: lead.estimatedValue?.toString() ?? null,
 		probability: lead.probability,
+		relations: [
+			...(lead.ingressLinks ?? []).map((row) => ({
+				idLeadLink: row.idLeadLink,
+				otherLeadId: row.relatedLead.idLead,
+				otherName: leadDisplayName(row.relatedLead),
+				originName: row.clientOrigin?.name ?? 'Sin origen',
+				side: LEAD_LINK_SIDES.INCOMING,
+				source: row.source,
+				linkedAt: row.linkedAt.toISOString(),
+			})),
+			...(lead.relatedLinks ?? []).map((row) => ({
+				idLeadLink: row.idLeadLink,
+				otherLeadId: row.lead.idLead,
+				otherName: leadDisplayName(row.lead),
+				originName: row.clientOrigin?.name ?? 'Sin origen',
+				side: LEAD_LINK_SIDES.RELATED,
+				source: row.source,
+				linkedAt: row.linkedAt.toISOString(),
+			})),
+		],
 	}
 }

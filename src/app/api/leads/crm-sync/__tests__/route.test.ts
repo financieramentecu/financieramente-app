@@ -109,6 +109,16 @@ describe('POST /api/leads/crm-sync', () => {
 		expect(upsertLeadFromCrm).not.toHaveBeenCalled()
 	})
 
+	it('returns 400 when ownerEmail is missing', async () => {
+		vi.mocked(isValidApiKey).mockReturnValue(true)
+
+		const response = await POST(
+			buildRequest({ externalCrmId: 'crm-1', statusKey: 'new' }, { 'x-api-key': 'valid' })
+		)
+		expect(response.status).toBe(400)
+		expect(upsertLeadFromCrm).not.toHaveBeenCalled()
+	})
+
 	it('returns 200 and creates a lead on a well-formed payload', async () => {
 		vi.mocked(isValidApiKey).mockReturnValue(true)
 		vi.mocked(upsertLeadFromCrm).mockResolvedValue({
@@ -119,7 +129,7 @@ describe('POST /api/leads/crm-sync', () => {
 
 		const response = await POST(
 			buildRequest(
-				{ externalCrmId: 'crm-1', statusKey: 'new' },
+				{ externalCrmId: 'crm-1', statusKey: 'new', ownerEmail: 'asesor@example.com' },
 				{ 'x-api-key': 'valid' }
 			)
 		)
@@ -140,7 +150,7 @@ describe('POST /api/leads/crm-sync', () => {
 
 		const response = await POST(
 			buildRequest(
-				{ externalCrmId: 'crm-1', statusKey: 'new' },
+				{ externalCrmId: 'crm-1', statusKey: 'new', ownerEmail: 'asesor@example.com' },
 				{ 'x-api-key': 'valid' }
 			)
 		)
@@ -182,7 +192,7 @@ describe('POST /api/leads/crm-sync', () => {
 
 		const response = await POST(
 			buildRequest(
-				{ externalCrmId: 'crm-1', statusKey: 'new' },
+				{ externalCrmId: 'crm-1', statusKey: 'new', ownerEmail: 'asesor@example.com' },
 				{ 'x-api-key': 'valid' },
 				'http://localhost:3000/api/leads/crm-sync?utm_source=Money%20Map'
 			)
@@ -208,7 +218,7 @@ describe('POST /api/leads/crm-sync', () => {
 					submissionId: 'cdt:77ab',
 					submittedAt: '2026-11-18T14:02:00-05:00',
 					landing: { key: 'cdt', name: 'CDT', version: '1' },
-					lead: { statusKey: 'nuevo', name: 'Luis', email: 'luis@correo.com' },
+					lead: { statusKey: 'nuevo', name: 'Luis', email: 'luis@correo.com', ownerEmail: 'asesor@financieramente.com' },
 					fields: [{ key: 'monto', label: 'Valor', type: 'number', value: 0 }],
 				},
 				{ 'x-api-key': 'valid' }
@@ -240,7 +250,7 @@ describe('POST /api/leads/crm-sync', () => {
 					submissionId: 'cdt:77ab',
 					submittedAt: '2026-11-18T14:02:00-05:00',
 					landing: { key: 'cdt', name: 'CDT', version: '1' },
-					lead: { statusKey: 'nuevo', name: 'Luis', email: 'luis@correo.com' },
+					lead: { statusKey: 'nuevo', name: 'Luis', email: 'luis@correo.com', ownerEmail: 'asesor@financieramente.com' },
 					fields: [{ key: 'monto', label: 'Valor', type: 'number', value: 0 }],
 				},
 				{ 'x-api-key': 'valid' },

@@ -6,6 +6,7 @@ import { canManageCrm } from '@/features/leads/crm/crm-policy'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import { LeadDetailSheet } from '@/features/leads/components/lead-detail-sheet'
 import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
+import type { AssignedLeadOwner } from '@/features/leads/hooks/use-assign-lead-owner'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
 
 /** Lead detail sheet wired to the viewer's CRM feature flags. */
@@ -14,6 +15,7 @@ export function CrmLeadDetailSheet({
 	open,
 	onOpenChange,
 	onDeleted,
+	onOwnerAssigned,
 	activityFocus = null,
 	onActivityChanged,
 	previewName = null,
@@ -23,6 +25,7 @@ export function CrmLeadDetailSheet({
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onDeleted?: () => void
+	onOwnerAssigned?: (owner: AssignedLeadOwner) => void
 	activityFocus?: ActivityFocus | null
 	onActivityChanged?: () => void
 	previewName?: string | null
@@ -42,6 +45,7 @@ export function CrmLeadDetailSheet({
 			onOpenChange={onOpenChange}
 			isAdmin={session?.user?.role === UserRole.ADMIN}
 			onDeleted={onDeleted}
+			onOwnerAssigned={onOwnerAssigned}
 			timelineEnabled={timelineEnabled}
 			tasksEnabled={tasksEnabled}
 			conversionAuditEnabled={conversionAuditEnabled}
