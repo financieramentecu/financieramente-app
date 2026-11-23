@@ -111,13 +111,13 @@ describe('CreateLeadDialog', () => {
 	it('preserves input and presents an accessible server rejection', async () => {
 		fetchMock.mockResolvedValue({
 			ok: false,
-			json: async () => ({ data: null, error: 'Contacto existente' }),
+			json: async () => ({ data: null, error: 'El origen Propio no está disponible' }),
 		})
 		render(<CreateLeadDialog onCreated={vi.fn()} />)
 		const user = await fill()
 		await user.click(screen.getByRole('button', { name: 'Crear lead' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent(
-			'Contacto existente'
+			'El origen Propio no está disponible'
 		)
 		expect(screen.getByLabelText('Nombre')).toHaveValue('Ana')
 		expect(screen.getByLabelText('Correo')).toHaveValue('ana@example.com')

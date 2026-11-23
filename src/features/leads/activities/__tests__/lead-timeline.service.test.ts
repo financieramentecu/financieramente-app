@@ -98,4 +98,66 @@ describe('getLeadTimelinePage', () => {
 			changedAt: { lt: occurredAt },
 		})
 	})
+	it.each([
+		{ idLead: 4, side: 'incoming', linkIds: [21, 22] },
+		{ idLead: 11, side: 'related', linkIds: [21] },
+		{ idLead: 12, side: 'related', linkIds: [22] },
+	])(
+		'shows automatic contact relations on lead $idLead without sharing activities',
+		async ({ idLead, side, linkIds }) => {
+			vi.mocked(getLeadActivityPage).mockResolvedValue({
+				items: [],
+				nextCursor: null,
+			})
+			vi.mocked(prisma.leadStageHistory.findMany).mockResolvedValue([])
+			const linkedAt = new Date('2026-11-23T10:00:00Z')
+			const links = [11, 12].map((idRelatedLead, index) => ({
+				idLeadLink: 21 + index,
+				idLead: 4,
+				idRelatedLead,
+				source: 'AUTO',
+				linkedAt,
+				clientOrigin: { name: 'Propio' },
+				linker: { name: 'Creator', lastName: 'Test' },
+				lead: {
+					name: 'Ana',
+					lastName: 'New',
+					user: { name: 'Selected', lastName: 'Advisor' },
+				},
+				relatedLead: {
+					name: 'Ana',
+					lastName: 'Existing',
+					user: { name: 'Previous', lastName: 'Advisor' },
+				},
+			}))
+			vi.mocked(prisma.leadLink.findMany).mockResolvedValue(
+				links.filter((link) => link.idLead === idLead || link.idRelatedLead === idLead) as never
+			)
+
+			const page = await getLeadTimelinePage(idLead, { limit: 10 })
+			expect(prisma.leadLink.findMany).toHaveBeenCalledWith(expect.objectContaining({
+				where: { active: true, OR: [{ idLead }, { idRelatedLead: idLead }] },
+			}))
+
+			expect(page.items).toHaveLength(linkIds.length)
+			expect(page.items).toEqual(
+				expect.arrayContaining(
+					linkIds.map((idLeadLink) =>
+						expect.objectContaining({
+							kind: 'lead_ingress',
+							idLeadLink,
+							side,
+							source: 'AUTO',
+							actorName: 'Creator Test',
+							originName: 'Propio',
+						})
+					)
+				)
+			)
+			expect(getLeadActivityPage).toHaveBeenCalledWith(prisma, idLead, {
+				limit: 10,
+				cursor: undefined,
+			})
+		}
+	)
 })

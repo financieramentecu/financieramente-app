@@ -45,7 +45,7 @@ export async function createLead(
 					error: 'La etapa Lead Nuevo no está disponible',
 					status: 409,
 				}
-			const duplicate = await tx.lead.findFirst({
+			const matches = await tx.lead.findMany({
 				where: {
 					active: true,
 					OR: [
@@ -67,12 +67,6 @@ export async function createLead(
 				},
 				select: { idLead: true },
 			})
-			if (duplicate)
-				return {
-					ok: false,
-					error: 'Ya existe un lead con estos datos de contacto',
-					status: 409,
-				}
 			const origin = await resolveLeadOrigin('Propio', tx)
 			if (origin.status !== 'ready')
 				return {
@@ -103,6 +97,19 @@ export async function createLead(
 				},
 				tx
 			)
+			if (matches.length > 0) {
+				await tx.leadLink.createMany({
+					data: matches.map((matched) => ({
+						idLead: lead.idLead,
+						idRelatedLead: matched.idLead,
+						idClientOrigin: origin.idClientOrigin,
+						source: 'AUTO' as const,
+						linkedAt: changedAt,
+						linkedBy: ctx.userId,
+					})),
+				})
+			}
+
 			await tx.leadStageHistory.create({
 				data: {
 					idLead: lead.idLead,

@@ -120,10 +120,10 @@ describe('POST /api/leads', () => {
 		).toBe(400)
 		expect(createLead).not.toHaveBeenCalled()
 	})
-	it('returns a useful contact conflict', async () => {
+	it('returns a useful configuration conflict', async () => {
 		vi.mocked(createLead).mockResolvedValue({
 			ok: false,
-			error: 'Contacto existente',
+			error: 'El origen Propio no está disponible',
 			status: 409,
 		})
 		expect((await POST(request({ name: 'Ana', phone: '123' }))).status).toBe(

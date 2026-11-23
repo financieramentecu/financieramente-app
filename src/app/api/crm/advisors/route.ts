@@ -9,11 +9,9 @@ import { listHierarchyAdvisors } from '@/features/leads/services/hierarchy-advis
 import type { HierarchyAdvisor } from '@/features/leads/types/hierarchy-advisor.types'
 
 /** GET /api/crm/advisors — people in the viewer's hierarchy, for CRM filters. */
-export async function GET(request?: Request) {
+export async function GET(request: Request) {
 	try {
-		const assignable = request
-			? new URL(request.url).searchParams.get('assignable') === 'true'
-			: false
+		const assignable = new URL(request.url).searchParams.get('assignable') === 'true'
 		const guard = await requireCrmActor(
 			'leads_module',
 			assignable ? { manage: true } : {}

@@ -10,6 +10,7 @@ The Pipelines board only receives leads through integrations/imports. Advisors n
 - Create an active `OPEN` lead in the active `NUEVO_LEAD` column with origin **Propio**.
 - A leaf Money Strategist owns the lead automatically. An administrator or leader can select an active advisor within their existing write scope.
 - Enforce permissions on the server, persist the origin pivot atomically, record the real actor, and refresh the board after success.
+- Repeated document, email or phone creates a distinct lead automatically related to every active contact match; each side shows the relation in its existing timeline.
 
 ## Capabilities
 
@@ -26,4 +27,4 @@ The Pipelines board only receives leads through integrations/imports. Advisors n
 
 ## Risk and rollback
 
-The main risk is unauthorized assignment through a forged request or a broad read grant. Authorize against `manageableUserIds`, never read-only visibility. Do not merge or reassign an existing contact as a side effect of creation; reject a conflicting contact without exposing another branch's data. Revert the feature code to remove creation; preserve manually created leads and their origins.
+The main risk is unauthorized assignment through a forged request or a broad read grant. Authorize against `manageableUserIds`, never read-only visibility. Do not merge, overwrite or reassign existing leads as a side effect of creation. Save automatic contact relations atomically with the new lead while retaining its explicitly authorized advisor. Keep existing API visibility controls and timeline behavior. Revert the feature code to remove creation; preserve manually created leads and their origins.

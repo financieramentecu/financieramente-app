@@ -180,7 +180,7 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 					origins={origins}
 					onChange={setFilters}
 				/>
-				<div className="flex items-center gap-2">
+				<div className="ml-3 flex items-center gap-2">
 					{canMove ? (
 						<CreateLeadDialog
 							onCreated={() => {

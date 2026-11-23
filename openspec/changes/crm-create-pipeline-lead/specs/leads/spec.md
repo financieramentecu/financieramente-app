@@ -54,13 +54,33 @@ Every manually created lead MUST use origin `Propio`, including its `LeadClientO
 - **WHEN** creation is attempted
 - **THEN** no partial lead SHALL remain and the user SHALL receive a useful error.
 
-### Requirement: Preserve existing contacts
-Manual creation MUST NOT merge, reassign or overwrite another existing lead when its contact data matches. A contact conflict SHALL be rejected without disclosing another branch's contact data.
+### Requirement: Create and automatically relate repeated contacts
+Manual creation MUST always create a distinct lead, including when an active lead already matches a nonempty submitted document, email or phone. The new lead MUST be related to every active match through an `AUTO` `LeadLink`, with the `Propio` origin, creator and timestamp, in the same transaction. Existing contacts and owners MUST remain unchanged; the new lead MUST retain its explicitly authorized advisor.
 
-#### Scenario: Existing matching contact
-- **GIVEN** an existing lead matching the submitted document, email or phone
+#### Scenario: Multiple existing contact matches
+- **GIVEN** active leads matching any submitted document, email or phone
 - **WHEN** manual creation is requested
-- **THEN** the API SHALL return a generic conflict and leave existing leads unchanged.
+- **THEN** the API SHALL return 201 for a distinct new lead and atomically link it to every matched lead without merging, overwriting or reassigning them.
+
+#### Scenario: No contact match
+- **GIVEN** no active lead matches the submitted contact fields
+- **WHEN** manual creation is requested
+- **THEN** creation SHALL succeed without creating relation rows.
+
+#### Scenario: Exact nonempty matching
+- **GIVEN** blank optional fields or an email containing SQL wildcard characters
+- **WHEN** contact matches are queried
+- **THEN** blank fields SHALL NOT match and case-insensitive email equality SHALL treat wildcard characters literally.
+
+#### Scenario: Relation timeline from both endpoints
+- **GIVEN** automatic links from the new lead to matching existing leads
+- **WHEN** an authorized viewer opens any linked lead's timeline
+- **THEN** its timeline SHALL display the corresponding relationship with creator and origin, without claiming that advisors are identical or copying other leads' activities.
+
+#### Scenario: Relation persistence failure
+- **GIVEN** failure while saving an automatic link
+- **WHEN** creation is attempted
+- **THEN** the transaction SHALL leave no partial new lead, origin association or links, and no success audit SHALL be recorded.
 
 ### Requirement: Recover from submission failure
 The form SHALL prevent repeated submissions while saving and preserve input when the server rejects creation or the connection fails.
