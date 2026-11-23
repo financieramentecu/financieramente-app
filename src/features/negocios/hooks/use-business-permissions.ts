@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { UserWithRole } from '@/features/negocios/types/business.types'
 import { canRoleEditClientInfo } from '@/features/negocios/lib/client-edit-permissions'
+import { canEditBusinessValue } from '@/features/negocios/lib/business-value-change'
 
 export type FieldPermission = {
 	readonly: boolean
@@ -134,6 +135,12 @@ export function useBusinessPermissions({
 			// Changing these on a funded business rebuilds installments and can
 			// drop rows that already have a financial status.
 			if (status === 'FONDEADO' && fundedStructuralFields.includes(field)) {
+				return { readonly: true, disabled: true, hidden: false }
+			}
+
+			// Drafts stay editable for the other financial fields, but Valor de
+			// Negocio is exclusive to support, operations, and admin in every status.
+			if (field === 'value' && !canEditBusinessValue(roleCode)) {
 				return { readonly: true, disabled: true, hidden: false }
 			}
 

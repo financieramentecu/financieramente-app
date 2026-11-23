@@ -1,31 +1,12 @@
 import { NextResponse } from 'next/server'
-import { timingSafeEqual } from 'crypto'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { fundDuePayments } from '@/features/negocios/services/payment-state.service'
 import { todayBogotaNoonUtc } from '@/features/negocios/lib/bogota-date'
+import { verifyCronSecret } from '@/lib/auth/verify-cron-secret'
 
 interface FundPaymentsSummary {
 	fundedPayments: number
 	fondeadoBusinesses: number
-}
-
-function verifyCronSecret(authorizationHeader: string | null): boolean {
-	const expected = process.env.CRON_SECRET
-	if (!expected || !authorizationHeader) return false
-
-	const prefix = 'Bearer '
-	if (!authorizationHeader.startsWith(prefix)) return false
-
-	const incoming = authorizationHeader.slice(prefix.length)
-
-	// Length pre-check: crypto.timingSafeEqual throws on length mismatch,
-	// so we guard with an early return first.
-	if (incoming.length !== expected.length) return false
-
-	const incomingBuf = Buffer.from(incoming)
-	const expectedBuf = Buffer.from(expected)
-
-	return timingSafeEqual(incomingBuf, expectedBuf)
 }
 
 export async function POST(

@@ -143,6 +143,38 @@ describe('useBusinessPermissions — COM-63 client fields', () => {
 		})
 	})
 
+	it('keeps Valor de Negocio locked for Coach on a draft sale', () => {
+		for (const businessStatus of ['VENTA_EFECTUADA', 'EMITIDO', 'FONDEADO', null]) {
+			const { result } = renderHook(() =>
+				useBusinessPermissions({
+					mode: 'edit',
+					currentUser: userWithRole('AGENTE'),
+					businessStatus,
+				})
+			)
+
+			expect(result.current.getFieldPermission('value')).toEqual({
+				readonly: true,
+				disabled: true,
+				hidden: false,
+			})
+		}
+	})
+
+	it('still lets Coach edit the other financial fields of a draft sale', () => {
+		const { result } = renderHook(() =>
+			useBusinessPermissions({
+				mode: 'edit',
+				currentUser: userWithRole('AGENTE'),
+				businessStatus: 'VENTA_EFECTUADA',
+			})
+		)
+
+		for (const field of ['company', 'producto', 'terms', 'currency', 'periodicity'] as const) {
+			expect(result.current.getFieldPermission(field).disabled).toBe(false)
+		}
+	})
+
 	it('permite al Analista de Soporte editar el valor en cualquier estado operativo', () => {
 		for (const businessStatus of ['VENTA_EFECTUADA', 'EMITIDO', 'FONDEADO']) {
 			const { result } = renderHook(() =>

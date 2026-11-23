@@ -829,6 +829,81 @@ describe('PUT /api/negocios/[id]', () => {
 			expect(mockUpdate).toHaveBeenCalled()
 		})
 
+		it('rejects a Coach value change on a VENTA_EFECTUADA business', async () => {
+			const agentUser = {
+				...commonAdminUser,
+				idUser: 20,
+				role: { ...commonAdminUser.role, idRole: 2, code: UserRole.AGENTE },
+			}
+			const draftBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				idUser: 20,
+				value: 15000000,
+			}
+			mockAuth.mockResolvedValue({ user: { email: 'agent@example.com' } } as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { value: 16000000, contract: 'PN0009999' },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(agentUser)
+			mockFindFirst.mockResolvedValueOnce(draftBusiness as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ value: 16000000, contract: 'PN0009999' }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(403)
+			expect(body.error).toMatch(/Valor de Negocio/i)
+			expect(mockUpdate).not.toHaveBeenCalled()
+			expect(mockLogAuditEvent).not.toHaveBeenCalled()
+		})
+
+		it('lets a Coach update a draft contract when the business value is unchanged', async () => {
+			const agentUser = {
+				...commonAdminUser,
+				idUser: 20,
+				role: { ...commonAdminUser.role, idRole: 2, code: UserRole.AGENTE },
+			}
+			const draftBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				idUser: 20,
+				value: 15000000,
+			}
+			mockAuth.mockResolvedValue({ user: { email: 'agent@example.com' } } as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { value: 15000000, contract: 'PN0009999' },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(agentUser)
+			mockFindFirst
+				.mockResolvedValueOnce(draftBusiness as never)
+				.mockResolvedValueOnce(null)
+			mockUpdate.mockResolvedValue({ ...draftBusiness, contract: 'PN0009999' } as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 1,
+				status: BUSINESS_STATUS.EMITIDO,
+				contract: 'PN0009999',
+			} as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ value: 15000000, contract: 'PN0009999' }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+
+			expect(response.status).toBe(200)
+			expect(mockUpdate).toHaveBeenCalled()
+		})
+
 		it('debe rechazar la edición de campos clave de un negocio FONDEADO cuando el usuario es agente', async () => {
 			const agentUser = {
 				...commonAdminUser,

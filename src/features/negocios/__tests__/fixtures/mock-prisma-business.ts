@@ -87,6 +87,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 		idUserLeader: null,
 		entryDate: baseDate,
 		retirementDate: null,
+		canViewOthersCrm: false,
 		active: true,
 		createdAt: baseDate,
 		updatedAt: baseDate,
@@ -162,6 +163,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	clientOrigin: {
 		idClientOrigin: 1,
 		name: 'Referido',
+		code: null,
 		description: 'Cliente referido por otro cliente',
 		status: true,
 		createdAt: baseDate,

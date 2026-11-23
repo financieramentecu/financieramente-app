@@ -16,4 +16,11 @@ export async function register() {
       debug: false,
     });
   }
+
+  if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.NODE_ENV === 'development') {
+    const { startCrmTaskReminderScheduler } = await import(
+      '@/features/leads/tasks/dev-task-reminder-scheduler'
+    );
+    startCrmTaskReminderScheduler();
+  }
 }

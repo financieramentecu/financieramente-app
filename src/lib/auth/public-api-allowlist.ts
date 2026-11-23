@@ -30,6 +30,7 @@ const PUBLIC_API_RULES: readonly PublicApiRule[] = [
 	},
 	// Service-to-service inbound CRM sync (validates `x-api-key` itself)
 	{ pattern: /^\/api\/leads\/crm-sync$/, methods: ['POST'] },
+	{ pattern: /^\/api\/leads\/form-submissions$/, methods: ['POST'] },
 	// Scheduled job (validates `Authorization: Bearer CRON_SECRET` itself)
 	{ pattern: /^\/api\/negocios\/cron\/fund-payments$/, methods: ['POST'] },
 ]

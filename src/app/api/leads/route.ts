@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import {
-	getAccessibleUserIds,
-	isHierarchyBypassRole,
-} from '@/features/auth/lib/hierarchy'
+import { requireCrmActor, toLeadViewer } from '@/lib/auth/require-crm-actor'
 import { getLeadBoard } from '@/features/leads/services/lead-board.service'
 import { getDefaultLeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 import { parseBogotaInclusiveUtcRange } from '@/features/shared/lib/bogota-date-range'
+import { parseRepeatedUserIds } from '@/features/leads/lib/parse-user-ids'
 import type {
 	LeadBoardColumn,
 	LeadOutcomeStatus,
@@ -19,9 +15,28 @@ import type {
  * absent param applies the shared default (`getDefaultLeadBoardFilters()`);
  * a present-but-empty param applies no filter on that dimension.
  */
+function parseOwnerIds(searchParams: URLSearchParams): number[] {
+	const ids = searchParams.getAll('owner').flatMap((value) => {
+		const parsed = Number.parseInt(value, 10)
+		return Number.isSafeInteger(parsed) && parsed > 0 ? [parsed] : []
+	})
+	return [...new Set(ids)]
+}
+
+function parseOriginIds(searchParams: URLSearchParams): number[] {
+	const ids = searchParams.getAll('origin').flatMap((value) => {
+		const parsed = Number.parseInt(value, 10)
+		return Number.isSafeInteger(parsed) && parsed > 0 ? [parsed] : []
+	})
+	return [...new Set(ids)]
+}
+
 function parseBoardFilters(searchParams: URLSearchParams): {
 	outcomeStatuses?: LeadOutcomeStatus[]
 	createdAtRange?: { gte: Date; lte: Date }
+	ownerIds: number[]
+	excludedOwnerIds: number[]
+	originIds: number[]
 } {
 	const defaults = getDefaultLeadBoardFilters()
 
@@ -40,44 +55,38 @@ function parseBoardFilters(searchParams: URLSearchParams): {
 				: undefined
 			: defaults.createdAtRange
 
-	return { outcomeStatuses, createdAtRange }
+	return {
+		outcomeStatuses,
+		createdAtRange,
+		ownerIds: parseOwnerIds(searchParams),
+		excludedOwnerIds: parseRepeatedUserIds(searchParams.getAll('exclude')),
+		originIds: parseOriginIds(searchParams),
+	}
 }
 
 /**
  * GET /api/leads
- * Read-only Kanban board: active columns with hierarchy-scoped leads.
+ * Kanban board: active columns with hierarchy-scoped leads.
+ * `owner` repeats to narrow that hierarchy to specific advisors.
+ * `exclude` repeats to drop unchecked branches and the people under them.
  */
 export async function GET(request: Request) {
-	const session = await auth()
-	if (!session?.user?.email) {
-		const errorResponse: ApiResponse<null> = {
-			data: null,
-			error: 'No autorizado',
-		}
-		return NextResponse.json(errorResponse, { status: 401 })
-	}
-
 	try {
-		const currentUser = await getCurrentUserByEmail(session.user.email)
-		if (!currentUser) {
-			const errorResponse: ApiResponse<null> = {
-				data: null,
-				error: 'Usuario no encontrado',
-			}
-			return NextResponse.json(errorResponse, { status: 404 })
-		}
-
-		const visibleUserIds = isHierarchyBypassRole(currentUser.role?.code)
-			? []
-			: await getAccessibleUserIds(currentUser.idUser)
+		const guard = await requireCrmActor('leads_module')
+		if (!guard.ok) return guard.response
+		const { actor } = guard
 
 		const { searchParams } = new URL(request.url)
-		const { outcomeStatuses, createdAtRange } = parseBoardFilters(searchParams)
+		const { outcomeStatuses, createdAtRange, ownerIds, excludedOwnerIds, originIds } =
+			parseBoardFilters(searchParams)
 
-		const board = await getLeadBoard(currentUser, {
-			visibleUserIds,
+		const board = await getLeadBoard(toLeadViewer(actor), {
+			visibleUserIds: actor.visibleUserIds,
 			outcomeStatuses,
 			createdAtRange,
+			ownerIds,
+			excludedOwnerIds,
+			originIds,
 		})
 
 		const response: ApiResponse<LeadBoardColumn[]> = { data: board }

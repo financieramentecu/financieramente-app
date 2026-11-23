@@ -26,6 +26,9 @@ function buildLead(overrides: Partial<LeadCardType> = {}): LeadCardType {
 		ownerName: 'Ana Torres',
 		outcomeStatus: 'OPEN',
 		idBusiness: null,
+		inactiveDays: null,
+		tags: [],
+		estimatedValue: null,
 		...overrides,
 	}
 }
@@ -88,5 +91,33 @@ describe('LeadCard — owner avatar', () => {
 	it('renders no owner avatar or name when the lead has no owner', () => {
 		render(<LeadCard lead={buildLead({ ownerName: null })} onClick={vi.fn()} />)
 		expect(screen.queryByText('AT')).not.toBeInTheDocument()
+	})
+})
+
+describe('LeadCard — origin label', () => {
+	it('renders the origin as a colored label', () => {
+		render(<LeadCard lead={buildLead({ originTag: 'Money Strategy' })} onClick={vi.fn()} />)
+		expect(screen.getByText('Money Strategy')).toHaveClass('rounded-full')
+	})
+
+	it('gives different origins different colors', () => {
+		const { rerender } = render(
+			<LeadCard lead={buildLead({ originTag: 'Money Strategy' })} onClick={vi.fn()} />
+		)
+		const strategy = screen.getByText('Money Strategy').className
+		rerender(<LeadCard lead={buildLead({ originTag: 'Monimpas' })} onClick={vi.fn()} />)
+		expect(screen.getByText('Monimpas').className).not.toBe(strategy)
+	})
+
+	it('hides the origin label when the lead has none', () => {
+		render(<LeadCard lead={buildLead({ originTag: null })} onClick={vi.fn()} />)
+		expect(screen.queryByText('facebook')).not.toBeInTheDocument()
+	})
+})
+
+describe('LeadCard — inactivity', () => {
+	it('shows the stale badge for idle open leads', () => {
+		render(<LeadCard lead={buildLead({ inactiveDays: 10 })} onClick={vi.fn()} />)
+		expect(screen.getByText('Sin actividad · 10 días')).toBeInTheDocument()
 	})
 })

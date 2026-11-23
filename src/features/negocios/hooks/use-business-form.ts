@@ -23,7 +23,10 @@ import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-p
 import type { BusinessFormProps } from '@/features/negocios/types/business.types'
 import { validateIdentityAgainstDocumentType } from '@/features/document-types/lib/validate-identity'
 import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
-import { shouldConfirmSupportAnalystBusinessValueChange } from '@/features/negocios/lib/business-value-change'
+import {
+	canEditBusinessValue,
+	shouldConfirmSupportAnalystBusinessValueChange,
+} from '@/features/negocios/lib/business-value-change'
 
 /**
  * D5: state raised when the exact-email resolution finds a client whose
@@ -466,7 +469,9 @@ export function useBusinessForm(props: BusinessFormProps) {
 							idSettlementCommission: idSettlementCommission || undefined,
 							idProduct: data.producto ? parseInt(data.producto) : undefined,
 							term: data.terms,
-							value: data.value,
+							value: canEditBusinessValue(currentUser?.role?.code)
+								? data.value
+								: undefined,
 							idBuyPeriodicity: data.periodicity
 								? parseInt(data.periodicity)
 								: undefined,
