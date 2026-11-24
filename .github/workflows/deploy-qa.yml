@@ -50,6 +50,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             NEXT_PUBLIC_API_URL=https://negocios.qa.financieramentecu.co
+            NEXT_PUBLIC_APP_ENV=qa
             NEXT_TELEMETRY_DISABLED=1
             BUILD_SHA=${{ github.sha }}
             AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_QA }}
@@ -305,7 +306,7 @@ jobs:
             (crontab -l 2>/dev/null | grep -v 'fund-payments' || true
              echo "0 6 * * * curl -s -X POST https://negocios.qa.financieramentecu.co/api/negocios/cron/fund-payments -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_QA }}' >> /var/log/financieramente/fund-payments.log 2>&1") | crontab -
 
-            # CRM task crons stay uninstalled until the CRM is enabled outside development.
+            # CRM task crons stay uninstalled during QA validation; enabling tabs does not schedule mail.
             # Drop lines a previous deploy of this branch may have added, and keep every other job.
             current_crontab="$(crontab -l 2>/dev/null || true)"
             if printf '%s\n' "$current_crontab" | grep -Eq 'crm-task-reminders|crm-task-digest'; then

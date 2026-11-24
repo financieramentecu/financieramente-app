@@ -13,9 +13,13 @@ const CRM_FEATURE_FLAGS = new Set<FeatureFlag>([
 
 /**
  * Flagsmith was removed because the hosted service rejected production reads.
- * Existing product modules stay on. CRM surfaces stay off outside local development.
+ * Existing product modules stay on. CRM is available locally and in QA builds.
  */
 export function isFlagEnabled(flag: FeatureFlag): boolean {
-	if (process.env.NODE_ENV === 'development') return true
+	if (
+		process.env.NODE_ENV === 'development' ||
+		process.env.NEXT_PUBLIC_APP_ENV === 'qa'
+	)
+		return true
 	return !CRM_FEATURE_FLAGS.has(flag)
 }
