@@ -1,4 +1,4 @@
-# CRM: Create a lead from Pipelines
+# CRM: Pipeline lead creation and associated opportunities
 
 ## Why
 
@@ -11,11 +11,13 @@ The Pipelines board only receives leads through integrations/imports. Advisors n
 - A leaf Money Strategist owns the lead automatically. An administrator or leader can select an active advisor within their existing write scope.
 - Enforce permissions on the server, persist the origin pivot atomically, record the real actor, and refresh the board after success.
 - Repeated document, email or phone creates a distinct lead automatically related to every active contact match; each side shows the relation in its existing timeline.
+- Count **Oportunidades activas** once per connected group represented by current pipeline filters, including unrelated leads once each.
+- Add a clickable **Oportunidades asociadas** card counting participating filtered lead records and toggling a related-only view while preserving base summary counts.
 
 ## Capabilities
 
 ### Modified capabilities
-- `leads`: manual lead creation and ownership at creation.
+- `leads`: manual creation, scoped ownership, grouped opportunity counts and associated-lead filtering.
 
 ## Impact
 

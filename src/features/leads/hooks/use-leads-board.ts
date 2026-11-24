@@ -2,46 +2,13 @@ import * as React from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 import type { LeadBoardColumn } from '@/features/leads/types/lead.types'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import { serializeLeadBoardFilters } from '@/features/leads/lib/lead-board-query'
 import type { LeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 
 const initialState: AsyncState<LeadBoardColumn[]> = {
 	status: 'idle',
 	data: undefined,
 	error: '',
-}
-
-function buildQueryString(filters: LeadBoardFilters | undefined): string {
-	if (!filters) return ''
-
-	const params = new URLSearchParams()
-	for (const status of filters.outcomeStatuses) {
-		params.append('outcomeStatus', status)
-	}
-	params.set('createdFrom', filters.createdAtRange.gte.toISOString().slice(0, 10))
-	params.set('createdTo', filters.createdAtRange.lte.toISOString().slice(0, 10))
-	for (const ownerId of filters.ownerIds ?? []) {
-		params.append('owner', String(ownerId))
-	}
-	for (const ownerId of filters.excludedOwnerIds ?? []) {
-		params.append('exclude', String(ownerId))
-	}
-	for (const originId of filters.originIds ?? []) {
-		params.append('origin', String(originId))
-	}
-
-	return `?${params.toString()}`
-}
-
-function filterKey(filters: LeadBoardFilters | undefined): string {
-	if (!filters) return ''
-	return [
-		filters.outcomeStatuses.join(','),
-		filters.createdAtRange.gte.toISOString(),
-		filters.createdAtRange.lte.toISOString(),
-		(filters.ownerIds ?? []).join(','),
-		(filters.excludedOwnerIds ?? []).join(','),
-		(filters.originIds ?? []).join(','),
-	].join('|')
 }
 
 /**
@@ -52,18 +19,19 @@ function filterKey(filters: LeadBoardFilters | undefined): string {
  * `paused` holds the request until the hierarchy tree has settled.
  */
 export function useLeadsBoard(filters?: LeadBoardFilters, paused = false) {
-	const [state, setState] = React.useState<AsyncState<LeadBoardColumn[]>>(
-		initialState
-	)
-	const filtersRef = React.useRef(filters)
-	filtersRef.current = filters
-	const key = filterKey(filters)
+	const [state, setState] =
+		React.useState<AsyncState<LeadBoardColumn[]>>(initialState)
+	const requestId = React.useRef(0)
+	const key = serializeLeadBoardFilters(filters)
 
 	const fetchBoard = React.useCallback(async () => {
+		if (paused) return
+		const currentRequest = ++requestId.current
 		setState({ status: 'loading', data: undefined, error: '' })
 		try {
-			const response = await fetch(`/api/leads${buildQueryString(filtersRef.current)}`)
+			const response = await fetch(`/api/leads${key}`)
 			const body: ApiResponse<LeadBoardColumn[]> = await response.json()
+			if (currentRequest !== requestId.current) return
 
 			if ('error' in body) {
 				setState({ status: 'error', data: undefined, error: body.error })
@@ -72,20 +40,26 @@ export function useLeadsBoard(filters?: LeadBoardFilters, paused = false) {
 
 			setState({ status: 'success', data: body.data, error: '' })
 		} catch {
+			if (currentRequest !== requestId.current) return
 			setState({
 				status: 'error',
 				data: undefined,
 				error: 'Error al cargar el tablero de leads',
 			})
 		}
-	}, [key])
+	}, [key, paused])
 
 	React.useEffect(() => {
 		if (paused) return
 		void fetchBoard()
+		return () => {
+			requestId.current += 1
+		}
 	}, [fetchBoard, paused])
 
-	function updateColumns(updater: (columns: LeadBoardColumn[]) => LeadBoardColumn[]) {
+	function updateColumns(
+		updater: (columns: LeadBoardColumn[]) => LeadBoardColumn[]
+	) {
 		setState((current) => {
 			if (current.status !== 'success') return current
 			return { status: 'success', data: updater(current.data), error: '' }

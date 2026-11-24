@@ -89,3 +89,42 @@ The form SHALL prevent repeated submissions while saving and preserve input when
 - **GIVEN** a completed form and a failed API request
 - **WHEN** saving finishes
 - **THEN** the dialog remains open, input is preserved, and an accessible error is shown.
+
+
+### Requirement: Count scoped opportunity groups
+The pipeline's **Oportunidades activas** card SHALL count each connected component represented by the current filtered board once, including unrelated leads as singleton groups. Components MUST be built from active leads within the authorized hierarchy, selected owners and expanded excluded branches, with active `LeadLink` edges whose distinct endpoints both belong to that scope. Both `AUTO` and `MANUAL` links SHALL count. Date, origin and outcome filters SHALL select displayed members after grouping. Invisible, inactive or branch-excluded intermediaries MUST NOT connect records; visible intermediaries outside ordinary date/origin/outcome filters SHALL preserve grouping. Hidden endpoints MUST NOT be returned or made accessible.
+
+#### Scenario: Chains, triangles and unrelated records
+- **GIVEN** A, B and C form a chain or triangle in scope, and D is unrelated, with all four matching pipeline filters
+- **WHEN** summary cards render
+- **THEN** active opportunities SHALL be 2 and associated lead records SHALL be 3, regardless of edge direction or repeated edges.
+
+#### Scenario: Visible intermediary outside an ordinary filter
+- **GIVEN** scoped links A—B and B—C, with A and C matching pipeline filters and B outside the selected date, origin or outcome
+- **WHEN** counts are computed
+- **THEN** A and C SHALL represent one opportunity and two associated displayed records.
+
+#### Scenario: Hidden or excluded intermediary
+- **GIVEN** links A—B and B—C, with A and C in scope and B invisible, inactive, outside selected owners or in an excluded branch
+- **WHEN** counts are computed
+- **THEN** A and C SHALL count as separate singleton opportunities unless another valid scoped path connects them, without revealing B.
+
+#### Scenario: Invalid relation or empty population
+- **GIVEN** an inactive relation, a self-link or no filtered leads
+- **WHEN** cards render
+- **THEN** invalid edges SHALL NOT create association membership, and an empty filtered population SHALL show zero on both cards.
+
+### Requirement: Toggle associated opportunities
+The pipeline SHALL display an **Oportunidades asociadas** card counting distinct filtered lead records belonging to scoped components of size greater than one, rather than components or relation rows. It MUST be a keyboard-accessible toggle with a clear pressed state. Activating it SHALL show only associated filtered records; activating it again SHALL restore the full filtered board. Both summary counts MUST continue using the filtered base population before this toggle.
+
+#### Scenario: Activate and clear the associated filter
+- **GIVEN** associated A, B and C plus unrelated D all match pipeline filters
+- **WHEN** the user activates the associated card by pointer or keyboard
+- **THEN** only A, B and C SHALL remain, the control SHALL report its pressed state, and counts SHALL remain 2 and 3
+- **WHEN** the user activates it again
+- **THEN** D SHALL reappear without another mutation.
+
+#### Scenario: Refresh the current context
+- **GIVEN** the associated toggle is active
+- **WHEN** ordinary filters, hierarchy selections, refresh or successful lead creation change the base context
+- **THEN** counts and association membership SHALL update from that context without retaining stale or inaccessible records.

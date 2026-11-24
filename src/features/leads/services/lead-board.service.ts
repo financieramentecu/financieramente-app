@@ -2,14 +2,21 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { parseStoredFormFields } from '@/features/leads/lib/parse-stored-form-fields'
-import { expandExcludedOwnerIds } from '@/features/leads/services/excluded-owner.service'
-import { getInactivityDays, resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
+import {
+	resolveLeadPipelineScope,
+	type LeadPipelineOptions,
+} from '@/features/leads/services/lead-pipeline-scope.service'
+import { getLeadAssociationGraph } from '@/features/leads/services/lead-associations.service'
+import { countLeadAssociationGroups } from '@/features/leads/lib/lead-association-groups'
+import {
+	getInactivityDays,
+	resolveInactivityThreshold,
+} from '@/features/leads/lib/inactivity-days'
 import { leadDisplayName } from '@/features/leads/lib/lead-display-name'
 import { LEAD_LINK_SIDES } from '@/features/leads/types/lead-link.types'
 import type {
 	LeadBoardColumn,
 	LeadDetail,
-	LeadOutcomeStatus,
 	LeadViewer,
 } from '@/features/leads/types/lead.types'
 
@@ -19,22 +26,14 @@ const activeTagsSelect = {
 	orderBy: { tag: { name: 'asc' } },
 } satisfies Prisma.Lead$tagAssignmentsArgs
 
-function buildOwnerName(user: { name: string; lastName: string | null } | null): string | null {
+function buildOwnerName(
+	user: { name: string; lastName: string | null } | null
+): string | null {
 	if (!user) return null
 	return [user.name, user.lastName].filter(Boolean).join(' ')
 }
 
-export interface LeadBoardOptions {
-	visibleUserIds?: number[]
-	outcomeStatuses?: LeadOutcomeStatus[]
-	createdAtRange?: { gte: Date; lte: Date }
-	/** Selected advisors. Empty keeps the full hierarchy. */
-	ownerIds?: number[]
-	/** Unchecked hierarchy nodes. Expanded to their descendants before the query. */
-	excludedOwnerIds?: number[]
-	/** Active links in `lead_client_origin`. Empty keeps every origin. */
-	originIds?: number[]
-}
+export type LeadBoardOptions = LeadPipelineOptions
 
 /**
  * Returns the Kanban board: every active `LeadFunnelColumn` (ordered by
@@ -44,24 +43,26 @@ export async function getLeadBoard(
 	viewer: LeadViewer,
 	options: LeadBoardOptions = {}
 ): Promise<LeadBoardColumn[]> {
-	const excludedOwnerIds = await expandExcludedOwnerIds(options.excludedOwnerIds ?? [], options.visibleUserIds ?? [])
+	const { graphWhere, filteredWhere } = await resolveLeadPipelineScope(
+		viewer,
+		options
+	)
+	let where = filteredWhere
+	if (options.associatedOnly) {
+		const graph = await getLeadAssociationGraph(graphWhere)
+		const { associatedLeadIds } = countLeadAssociationGroups(
+			graph.leadIds,
+			graph.links
+		)
+		where = { AND: [filteredWhere, { idLead: { in: associatedLeadIds } }] }
+	}
 	const [columns, leads] = await Promise.all([
 		prisma.leadFunnelColumn.findMany({
 			where: { active: true },
 			orderBy: { position: 'asc' },
 		}),
 		prisma.lead.findMany({
-			where: buildLeadListWhere(
-				viewer,
-				{
-					outcomeStatuses: options.outcomeStatuses,
-					createdAtRange: options.createdAtRange,
-					ownerIds: options.ownerIds,
-					excludedOwnerIds,
-					originIds: options.originIds,
-				},
-				options
-			),
+			where,
 			select: {
 				idLead: true,
 				name: true,
@@ -212,7 +213,11 @@ export async function getLeadDetail(
 			submittedAt: submission.submittedAt.toISOString(),
 			fields: parseStoredFormFields(submission.fields),
 		})),
-		inactiveDays: getInactivityDays(lead, new Date(), resolveInactivityThreshold()),
+		inactiveDays: getInactivityDays(
+			lead,
+			new Date(),
+			resolveInactivityThreshold()
+		),
 		tags: lead.tagAssignments.map((assignment) => assignment.tag),
 		estimatedValue: lead.estimatedValue?.toString() ?? null,
 		probability: lead.probability,

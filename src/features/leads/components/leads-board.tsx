@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { CreateLeadDialog } from '@/features/leads/components/create-lead-dialog'
 import { RefreshCw } from 'lucide-react'
 import {
@@ -55,23 +55,15 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 	const hierarchy = useCrmHierarchyFilter()
 	const [filters, setFilters] = useState(getDefaultLeadBoardFilters())
 	const [creationRevision, setCreationRevision] = useState(0)
+	const [summaryRevision, setSummaryRevision] = useState(0)
 	const origins = useLeadOriginOptions(creationRevision)
-	const excludeKey = hierarchy.excludedOwnerIds.join(',')
-	useEffect(() => {
-		if (!hierarchy.ready) return
-		setFilters((current) =>
-			current.excludedOwnerIds.join(',') === excludeKey &&
-			current.ownerIds.length === 0
-				? current
-				: {
-						...current,
-						ownerIds: [],
-						excludedOwnerIds: hierarchy.excludedOwnerIds,
-					}
-		)
-	}, [hierarchy.ready, hierarchy.excludedOwnerIds, excludeKey])
+	const scopedFilters = {
+		...filters,
+		ownerIds: [],
+		excludedOwnerIds: hierarchy.excludedOwnerIds,
+	}
 	const { state, refetch, updateColumns } = useLeadsBoard(
-		filters,
+		scopedFilters,
 		!hierarchy.ready || hierarchy.noneSelected
 	)
 	const isRefreshing = state.status === 'loading'
@@ -82,9 +74,14 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
 	)
 
+	function refreshPipeline() {
+		refetch()
+		setSummaryRevision((value) => value + 1)
+	}
+
 	function handleLeadDeleted() {
 		sheet.setOpen(false)
-		refetch()
+		refreshPipeline()
 	}
 
 	function handleOwnerAssigned(owner: {
@@ -108,6 +105,7 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 				),
 			}))
 		)
+		refreshPipeline()
 	}
 
 	function handleDragStart(event: DragStartEvent) {
@@ -176,7 +174,7 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 		<div className="space-y-4">
 			<div className="flex flex-wrap items-end justify-between gap-3">
 				<LeadsBoardFilters
-					value={filters}
+					value={scopedFilters}
 					origins={origins}
 					onChange={setFilters}
 				/>
@@ -185,7 +183,7 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 						<CreateLeadDialog
 							onCreated={() => {
 								setCreationRevision((value) => value + 1)
-								refetch()
+								refreshPipeline()
 								toast.success('Lead creado')
 							}}
 						/>
@@ -193,8 +191,10 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 					<Button
 						variant="outline"
 						size="sm"
-						onClick={refetch}
-						disabled={isRefreshing}
+						onClick={refreshPipeline}
+						disabled={
+							isRefreshing || !hierarchy.ready || hierarchy.noneSelected
+						}
 						aria-label="Actualizar tablero de leads"
 					>
 						<RefreshCw
@@ -205,7 +205,15 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 					</Button>
 				</div>
 			</div>
-			<CrmSummaryCards enabled={reportsEnabled} />
+			<CrmSummaryCards
+				enabled={reportsEnabled}
+				paused={!hierarchy.ready || hierarchy.noneSelected}
+				filters={scopedFilters}
+				refreshKey={summaryRevision}
+				onAssociatedOnlyChange={(associatedOnly) =>
+					setFilters((current) => ({ ...current, associatedOnly }))
+				}
+			/>
 			{hierarchy.noneSelected ? (
 				<p className="text-sm text-muted-foreground">
 					{CRM_HIERARCHY_EMPTY_MESSAGE}

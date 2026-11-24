@@ -31,8 +31,16 @@ No blocking correctness, security, accessibility or architecture finding was ide
 - Source review included connected CRM guard, write/read visibility, hierarchy-advisor service, origin resolver/pivot, person matching, audit logger and database model.
 - Current branch verified as `feature/crm-create-pipeline-lead`. No commits, merges or pushes were performed by this review.
 
-## Limits
+## Phase 4: Scoped groups and associated pipeline filter
 
-The persistence tests mock Prisma. Transaction rollback and concurrent repeated-contact creation were inspected at the transaction boundary, not exercised against live PostgreSQL. No authenticated browser or QA environment was used; no full repository suite, production build or deployment was run by this review. The OpenSpec CLI is unavailable, so artifact verification was performed directly from the installed skill and repository files.
+Active opportunities now count represented connected groups, including singletons. The new associated card counts matching lead records in groups of at least two, toggles the board filter and preserves its base count. Group construction uses active leads and links whose endpoints are both in the authorized owner/branch scope; dates, origins and outcomes then select members. Hidden or excluded intermediaries cannot affect counts. Visible out-of-filter intermediaries preserve a group.
+
+Independent architecture review found no remaining blockers after adding stale-request protection, deriving hierarchy filters synchronously and refreshing the board/summary after creation and owner assignment. The summary keeps its existing report authorization and exposes only aggregate values. The graph queries project only identifiers.
+
+Validation: 144 files / 919 tests passed across the lead feature, lead APIs, advisor API, summary API and CRM actor guard. After adding the owner-refresh regression and simplifying the board request callback, the two affected component/hook files passed 9 tests. Final TypeScript and touched-file ESLint passed with exit 0; no schema changes or dependencies were introduced.
+
+## Runtime limits
+
+The persistence tests mock Prisma. Transaction rollback and concurrent repeated-contact creation were inspected at the transaction boundary, not exercised against live PostgreSQL. The grouped pipeline was not verified in an authenticated browser or deployed QA flow; no full repository suite, production build or deployment was run by this review. The OpenSpec CLI is unavailable, so artifact verification was performed directly from the installed skill and repository files.
 
 The design was aligned with the requested optional advisor selection: administrators/leaders may retain the explicit self-assignment default. Active-user eligibility preserves the existing advisor service semantics; this change does not introduce a new role classification.

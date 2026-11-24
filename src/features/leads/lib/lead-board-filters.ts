@@ -10,6 +10,8 @@ export interface LeadBoardFilters {
 	excludedOwnerIds: number[]
 	/** Empty means every origin. Values are `client_origin` ids. */
 	originIds: number[]
+	/** Show only records in a visible associated group. */
+	associatedOnly?: boolean
 }
 
 /**

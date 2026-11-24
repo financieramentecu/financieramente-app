@@ -54,4 +54,34 @@ stateDiagram-v2
 
 ## Verification
 
+See the scoped opportunity amendment below for its additional graph, filtering and accessibility checks.
+
 Focused schema, route, service and UI tests cover valid creation, empty/invalid input, self-assignment, authorized delegated assignment, forbidden cross-branch assignment, read-grant isolation, inactive owner/origin, missing stage, repeated contacts linked to all active matches, literal email matching, relation history on both endpoints, link-persistence rollback, and submission errors. Run type checking and lint on touched files; report any unavailable runtime verification.
+
+
+## Amendment: Scoped opportunity groups and associated view
+
+Build the graph from active hierarchy-visible leads after selected owners and expanded excluded hierarchy branches. Treat active `LeadLink` records as undirected edges, regardless of `AUTO` or `MANUAL` source, retaining an edge only when both distinct endpoints belong to that graph scope. Invisible, inactive or excluded branch members never connect or expose records.
+
+Apply date, origin and outcome filters after graph grouping to obtain the base displayed lead population. **Oportunidades activas** equals the number of distinct connected-component roots represented by those filtered records, including singletons. **Oportunidades asociadas** equals the number of filtered records whose scoped component has more than one member. A visible out-of-date, different-origin or different-outcome intermediary can connect two matching records; an invisible or branch-excluded intermediary cannot. Components without a displayed member contribute zero.
+
+For A—B—C plus unrelated D, the cards show 2 active opportunities and 3 associated records when all match. If B fails the date filter, the cards show 2 active opportunities and 2 associated records for displayed A, C and D. A triangle or reversed/duplicate edges do not increase group/member counts. Self-links do not make a singleton associated.
+
+Reuse existing board scope/filter builders and a small pure graph helper. Return only required aggregates or flags/IDs for already-visible displayed leads, not hidden graph endpoints or contacts. Preserve existing board response callers, CRM task/case metrics and feature flags. No schema or dependency changes are needed.
+
+Make the associated card a keyboard-accessible button with an explicit pressed state. Its toggle filters displayed cards to associated members and toggles back to the full base board. Counts always use the un-toggled filtered base population. Ordinary filter changes, refresh and successful lead creation update graph membership and counts. Empty scope yields zero counts and an empty board. This is read-only behavior; existing record and write authorization remain unchanged.
+
+```mermaid
+flowchart TD
+    A[Authorized hierarchy plus selected and excluded owners] --> B[Scoped active lead graph]
+    B --> C[Active LeadLink edges with both endpoints in scope]
+    C --> D[Connected components including singletons]
+    D --> E[Intersect with date origin outcome filters]
+    E --> F[Distinct represented roots: active opportunities]
+    E --> G[Filtered records in components of size greater than one: associated opportunities]
+    E --> H{Associated card pressed?}
+    H -->|Yes| I[Show associated filtered records]
+    H -->|No| J[Show all filtered records]
+```
+
+The graph is built within hierarchy/owner scope before ordinary filters; the toggle changes displayed members without shrinking base summary counts (grouped count and associated view requirements).
