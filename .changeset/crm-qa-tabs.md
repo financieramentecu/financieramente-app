@@ -4,8 +4,8 @@
 
 ### Corregido
 
-- Disponibilidad de las pestañas y funciones del CRM en QA, conservando su desactivación en producción.
+- Disponibilidad de las pestañas y funciones del CRM mediante el despliegue habitual de QA a producción, sin activar parámetros adicionales por entorno.
 
 ### Técnico
 
-- Bake the QA environment label into both client and server feature checks through the Docker build argument.
+- Remove the environment-dependent CRM rollout gate while preserving existing role, report and record-scope authorization.

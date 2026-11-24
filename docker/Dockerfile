@@ -51,7 +51,6 @@ RUN npx prisma generate
 # Build the application
 # Build arguments for Next.js public variables (must be available at build time)
 ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_APP_ENV=production
 ARG NEXT_TELEMETRY_DISABLED=1
 ARG BUILD_SHA
 # NextAuth: required during `next build` because auth config resolves the secret at import time
@@ -62,7 +61,6 @@ ARG NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ENV NEXT_PUBLIC_APP_ENV=${NEXT_PUBLIC_APP_ENV}
 ENV BUILD_SHA=${BUILD_SHA}
 ENV AUTH_SECRET=${AUTH_SECRET}
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
