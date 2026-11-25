@@ -15,6 +15,8 @@ export const createLeadSchema = z
 		phone: optionalText(30),
 		identityNumber: optionalText(20),
 		idUser: z.number().int().positive().optional(),
+		idLeadCapture: z.number().int().positive().optional(),
+		referrerName: optionalText(200),
 	})
 	.refine(
 		(value) => Boolean(value.email || value.phone || value.identityNumber),

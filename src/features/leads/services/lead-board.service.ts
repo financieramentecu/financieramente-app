@@ -47,9 +47,10 @@ export async function getLeadBoard(
 		viewer,
 		options
 	)
+	const graph = await getLeadAssociationGraph(graphWhere)
+	const { groups } = countLeadAssociationGroups(graph.leadIds, graph.links)
 	let where = filteredWhere
 	if (options.associatedOnly) {
-		const graph = await getLeadAssociationGraph(graphWhere)
 		const { associatedLeadIds } = countLeadAssociationGroups(
 			graph.leadIds,
 			graph.links
@@ -65,6 +66,23 @@ export async function getLeadBoard(
 			where,
 			select: {
 				idLead: true,
+				capture: {
+					select: {
+						idLeadCapture: true,
+						name: true,
+						level: true,
+						status: true,
+					},
+				},
+				referrerName: true,
+				leadClientOrigins: {
+					orderBy: { firstSeenAt: 'asc' },
+					take: 1,
+					select: {
+						firstSeenAt: true,
+						clientOrigin: { select: { name: true } },
+					},
+				},
 				name: true,
 				lastName: true,
 				email: true,
@@ -82,6 +100,68 @@ export async function getLeadBoard(
 			},
 		}),
 	])
+	const selectedIds = new Set(leads.map((lead) => lead.idLead))
+	const contextIds = groups
+		.filter((group) => group.some((id) => selectedIds.has(id)))
+		.flatMap((group) => group.filter((id) => !selectedIds.has(id)))
+	// One scoped batch supplies initial attribution without widening selectable opportunities.
+	const context = contextIds.length
+		? await prisma.lead.findMany({
+				where: { AND: [graphWhere, { idLead: { in: contextIds } }] },
+				select: {
+					idLead: true,
+					createdAt: true,
+					referrerName: true,
+					leadClientOrigins: {
+						orderBy: [{ firstSeenAt: 'asc' }, { idLeadClientOrigin: 'asc' }],
+						take: 1,
+						select: {
+							firstSeenAt: true,
+							clientOrigin: { select: { name: true } },
+						},
+					},
+				},
+			})
+		: []
+	const attributionLeads = [...leads, ...context]
+
+	const selectedLeads = groups.flatMap((group) => {
+		const members = leads.filter((lead) => group.includes(lead.idLead))
+		if (members.length === 0) return []
+		members.sort(
+			(a, b) =>
+				(b.capture?.level ?? -1) - (a.capture?.level ?? -1) ||
+				b.createdAt.getTime() - a.createdAt.getTime() ||
+				b.idLead - a.idLead
+		)
+		const attributionMembers = attributionLeads.filter((member) =>
+			group.includes(member.idLead)
+		)
+		const first = [...attributionMembers].sort(
+			(a, b) =>
+				a.createdAt.getTime() - b.createdAt.getTime() || a.idLead - b.idLead
+		)[0]
+		const firstOrigin = attributionMembers
+			.flatMap((member) => member.leadClientOrigins ?? [])
+			.sort((a, b) => a.firstSeenAt.getTime() - b.firstSeenAt.getTime())[0]
+		return [
+			{
+				...members[0],
+				firstOriginTag: firstOrigin?.clientOrigin.name ?? null,
+				firstReferrerName: first?.referrerName ?? null,
+				personKey: Math.min(...group),
+				captures: members.map((member) => ({
+					idLead: member.idLead,
+					capture: member.capture ?? null,
+					referrerName: member.referrerName ?? null,
+					originTag: member.originTag,
+					idLeadFunnelColumn: member.idLeadFunnelColumn,
+					outcomeStatus: member.outcomeStatus,
+					createdAt: member.createdAt.toISOString(),
+				})),
+			},
+		]
+	})
 	const now = new Date()
 	const threshold = resolveInactivityThreshold()
 
@@ -90,10 +170,16 @@ export async function getLeadBoard(
 		name: column.name,
 		position: column.position,
 		isFallback: column.isFallback,
-		leads: leads
+		leads: selectedLeads
 			.filter((lead) => lead.idLeadFunnelColumn === column.idLeadFunnelColumn)
 			.map((lead) => ({
 				idLead: lead.idLead,
+				capture: lead.capture ?? null,
+				referrerName: lead.referrerName ?? null,
+				personKey: lead.personKey,
+				firstOriginTag: lead.firstOriginTag,
+				firstReferrerName: lead.firstReferrerName,
+				captures: lead.captures,
 				name: lead.name,
 				lastName: lead.lastName,
 				email: lead.email,
@@ -108,6 +194,13 @@ export async function getLeadBoard(
 				estimatedValue: lead.estimatedValue?.toString() ?? null,
 			})),
 	}))
+}
+
+function whereForLeadScope(
+	viewer: LeadViewer,
+	options: LeadBoardOptions
+): Prisma.LeadWhereInput {
+	return buildLeadListWhere(viewer, {}, options)
 }
 
 function whereForLead(
@@ -149,6 +242,9 @@ export async function getLeadDetail(
 		where: whereForLead(idLead, viewer, options),
 		include: {
 			tagAssignments: activeTagsSelect,
+			capture: {
+				select: { idLeadCapture: true, name: true, level: true, status: true },
+			},
 			user: { select: { name: true, lastName: true } },
 			formSubmissions: {
 				orderBy: { submittedAt: 'desc' },
@@ -162,7 +258,10 @@ export async function getLeadDetail(
 				},
 			},
 			ingressLinks: {
-				where: { active: true },
+				where: {
+					active: true,
+					relatedLead: whereForLeadScope(viewer, options),
+				},
 				orderBy: { linkedAt: 'desc' },
 				select: {
 					idLeadLink: true,
@@ -173,7 +272,7 @@ export async function getLeadDetail(
 				},
 			},
 			relatedLinks: {
-				where: { active: true },
+				where: { active: true, lead: whereForLeadScope(viewer, options) },
 				orderBy: { linkedAt: 'desc' },
 				select: {
 					idLeadLink: true,
@@ -187,10 +286,54 @@ export async function getLeadDetail(
 	})
 
 	if (!lead) return null
-
+	const graph = await getLeadAssociationGraph(
+		whereForLeadScope(viewer, options)
+	)
+	const group = countLeadAssociationGroups(
+		graph.leadIds,
+		graph.links
+	).groups.find((ids) => ids.includes(idLead)) ?? [idLead]
+	const records = await prisma.lead.findMany({
+		where: {
+			AND: [whereForLeadScope(viewer, options), { idLead: { in: group } }],
+		},
+		select: {
+			idLead: true,
+			leadClientOrigins: {
+				orderBy: { firstSeenAt: 'asc' },
+				take: 1,
+				select: { firstSeenAt: true, clientOrigin: { select: { name: true } } },
+			},
+			capture: {
+				select: { idLeadCapture: true, name: true, level: true, status: true },
+			},
+			referrerName: true,
+			originTag: true,
+			idLeadFunnelColumn: true,
+			outcomeStatus: true,
+			createdAt: true,
+		},
+		orderBy: [{ createdAt: 'desc' }, { idLead: 'desc' }],
+	})
+	const first = [...records].sort(
+		(a, b) =>
+			a.createdAt.getTime() - b.createdAt.getTime() || a.idLead - b.idLead
+	)[0]
+	const firstOrigin = records
+		.flatMap((row) => row.leadClientOrigins ?? [])
+		.sort((a, b) => a.firstSeenAt.getTime() - b.firstSeenAt.getTime())[0]
 	return {
+		firstOriginTag: firstOrigin?.clientOrigin.name ?? null,
+		firstReferrerName: first?.referrerName ?? null,
 		idLead: lead.idLead,
 		externalCrmId: lead.externalCrmId,
+		capture: lead.capture ?? null,
+		referrerName: lead.referrerName ?? null,
+		personKey: Math.min(...group),
+		captures: records.map((row) => ({
+			...row,
+			createdAt: row.createdAt.toISOString(),
+		})),
 		name: lead.name,
 		lastName: lead.lastName,
 		email: lead.email,

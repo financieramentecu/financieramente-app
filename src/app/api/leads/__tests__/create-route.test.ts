@@ -56,7 +56,8 @@ describe('POST /api/leads', () => {
 		expect(createLead).toHaveBeenCalledWith(
 			expect.any(Object),
 			1,
-			expect.objectContaining({ userId: 1 })
+			expect.objectContaining({ userId: 1 }),
+			[1, 2]
 		)
 	})
 	it('rejects a leaf forging an owner', async () => {
@@ -73,7 +74,8 @@ describe('POST /api/leads', () => {
 		expect(createLead).toHaveBeenCalledWith(
 			expect.any(Object),
 			2,
-			expect.any(Object)
+			expect.any(Object),
+			[1, 2]
 		)
 	})
 	it('rejects cross-branch assignment despite company-wide read grant', async () => {

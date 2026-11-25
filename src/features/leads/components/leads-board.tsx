@@ -274,6 +274,7 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 			)}
 			<CrmLeadDetailSheet
 				lead={sheet.lead}
+				onSelectLead={sheet.openLead}
 				open={sheet.open}
 				onOpenChange={sheet.setOpen}
 				onDeleted={handleLeadDeleted}

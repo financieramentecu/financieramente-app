@@ -16,8 +16,8 @@ vi.mock('../lead-origin.service', () => ({
 const tx = {
 	user: { findFirst: vi.fn() },
 	leadFunnelColumn: { findFirst: vi.fn() },
-	lead: { findMany: vi.fn(), create: vi.fn() },
-	leadLink: { createMany: vi.fn() },
+	lead: { findMany: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
+	leadLink: { createMany: vi.fn(), findMany: vi.fn() },
 	leadStageHistory: { create: vi.fn() },
 	leadChangeHistory: { createMany: vi.fn() },
 }
@@ -35,6 +35,7 @@ beforeEach(() => {
 	})
 	tx.leadFunnelColumn.findFirst.mockResolvedValue({ idLeadFunnelColumn: 3 })
 	tx.lead.findMany.mockResolvedValue([])
+	tx.leadLink.findMany.mockResolvedValue([])
 	tx.lead.create.mockResolvedValue({ idLead: 4 })
 	tx.leadStageHistory.create.mockResolvedValue({})
 	vi.mocked(resolveLeadOrigin).mockResolvedValue({
@@ -110,11 +111,14 @@ describe('createLead', () => {
 		expect(logAuditEvent).not.toHaveBeenCalled()
 	})
 	it('creates a distinct lead linked to every contact match without changing existing owners', async () => {
-		tx.lead.findMany.mockResolvedValue([
-			{ idLead: 11 },
-			{ idLead: 12 },
-			{ idLead: 13 },
-		])
+		tx.lead.findMany
+			.mockResolvedValueOnce([{ idLead: 11 }, { idLead: 12 }, { idLead: 13 }])
+			.mockResolvedValueOnce([
+				{ idLead: 11, idUser: 2 },
+				{ idLead: 12, idUser: 2 },
+				{ idLead: 13, idUser: 2 },
+			])
+			.mockResolvedValue([])
 		expect(
 			await createLead(
 				{
@@ -124,7 +128,8 @@ describe('createLead', () => {
 					identityNumber: 'AB12',
 				},
 				2,
-				ctx
+				ctx,
+				[]
 			)
 		).toEqual({ ok: true, lead: { idLead: 4, idUser: 2 } })
 		expect(tx.lead.findMany).toHaveBeenCalledWith({
@@ -185,12 +190,15 @@ describe('createLead', () => {
 		})
 	})
 	it('fails the transaction if automatic linkage fails, without auditing success', async () => {
-		tx.lead.findMany.mockResolvedValue([{ idLead: 11 }])
+		tx.lead.findMany
+			.mockResolvedValueOnce([{ idLead: 11 }])
+			.mockResolvedValueOnce([{ idLead: 11, idUser: 2 }])
+			.mockResolvedValue([])
 		tx.leadLink.createMany.mockRejectedValueOnce(
 			new Error('link storage unavailable')
 		)
 		await expect(
-			createLead({ name: 'Ana', phone: '123' }, 2, ctx)
+			createLead({ name: 'Ana', phone: '123' }, 2, ctx, [])
 		).rejects.toThrow('link storage unavailable')
 		expect(tx.leadStageHistory.create).not.toHaveBeenCalled()
 		expect(logAuditEvent).not.toHaveBeenCalled()

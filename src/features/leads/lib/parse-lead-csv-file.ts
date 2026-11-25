@@ -1,7 +1,13 @@
 import * as XLSX from 'xlsx'
-import { LEAD_CSV_HEADERS, type LeadCsvHeader } from '@/features/leads/lib/lead-csv-template'
+import {
+	LEAD_CSV_HEADERS,
+	LEAD_CSV_FULL_HEADERS,
+	LEAD_CSV_ATTRIBUTION_HEADERS,
+	type LeadCsvHeader,
+} from '@/features/leads/lib/lead-csv-template'
 
-export type LeadCsvRawRow = Record<LeadCsvHeader, string>
+export type LeadCsvRawRow = Record<LeadCsvHeader, string> &
+	Partial<Record<(typeof LEAD_CSV_ATTRIBUTION_HEADERS)[number], string>>
 
 export type ParseLeadCsvFileResult =
 	| { rejected: false; rows: LeadCsvRawRow[] }
@@ -13,24 +19,36 @@ export type ParseLeadCsvFileResult =
  * header row doesn't match `LEAD_CSV_HEADERS` exactly in count and order —
  * distinct from per-row validation, which happens later in the Zod schema.
  */
-export function parseLeadCsvFile(workbook: XLSX.WorkBook): ParseLeadCsvFileResult {
+export function parseLeadCsvFile(
+	workbook: XLSX.WorkBook
+): ParseLeadCsvFileResult {
 	const firstSheetName = workbook.SheetNames[0]
 	if (!firstSheetName) {
 		return { rejected: true, reason: 'El archivo no contiene hojas de cálculo' }
 	}
 
 	const worksheet = workbook.Sheets[firstSheetName]
-	const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as unknown[][]
+	const data = XLSX.utils.sheet_to_json(worksheet, {
+		header: 1,
+		defval: '',
+	}) as unknown[][]
 
 	if (data.length === 0) {
 		return { rejected: true, reason: 'El archivo está vacío' }
 	}
 
-	const headerRow = (data[0] as string[]).map((header) => header?.toString().trim())
-	const expected = LEAD_CSV_HEADERS as readonly string[]
+	const headerRow = (data[0] as string[]).map((header) =>
+		header?.toString().trim()
+	)
+	const expected = (
+		headerRow.length === LEAD_CSV_HEADERS.length
+			? LEAD_CSV_HEADERS
+			: LEAD_CSV_FULL_HEADERS
+	) as readonly string[]
 
 	const headersMatch =
-		headerRow.length === expected.length && headerRow.every((header, index) => header === expected[index])
+		headerRow.length === expected.length &&
+		headerRow.every((header, index) => header === expected[index])
 
 	if (!headersMatch) {
 		return {
@@ -41,8 +59,8 @@ export function parseLeadCsvFile(workbook: XLSX.WorkBook): ParseLeadCsvFileResul
 
 	const rows: LeadCsvRawRow[] = data.slice(1).map((dataRow) => {
 		const row = {} as LeadCsvRawRow
-		LEAD_CSV_HEADERS.forEach((header, index) => {
-			row[header] = (dataRow[index] ?? '').toString()
+		expected.forEach((header, index) => {
+			row[header as keyof LeadCsvRawRow] = (dataRow[index] ?? '').toString()
 		})
 		return row
 	})

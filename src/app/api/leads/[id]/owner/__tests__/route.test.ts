@@ -58,6 +58,24 @@ describe('PATCH /api/leads/[id]/owner', () => {
 		expect(assignLeadOwner).not.toHaveBeenCalled()
 	})
 
+	it('returns409 for a generic group conflict', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
+			idUser: 7,
+			role: { code: 'AGENTE' },
+		} as never)
+		vi.mocked(assignLeadOwner).mockResolvedValue({
+			ok: false,
+			status: 409,
+			error: 'No fue posible modificar el grupo relacionado',
+		})
+		const response = await PATCH(assignRequest(7), {
+			params: Promise.resolve({ id: '12' }),
+		})
+		expect(response.status).toBe(409)
+		expect(await response.json()).toMatchObject({
+			error: 'No fue posible modificar el grupo relacionado',
+		})
+	})
 	it('assigns an advisor inside the actor scope', async () => {
 		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
 			idUser: 7,
@@ -70,7 +88,8 @@ describe('PATCH /api/leads/[id]/owner', () => {
 		expect(assignLeadOwner).toHaveBeenCalledWith(
 			12,
 			7,
-			expect.objectContaining({ userId: 7 })
+			expect.objectContaining({ userId: 7 }),
+			[7, 9]
 		)
 	})
 

@@ -4,6 +4,15 @@ import userEvent from '@testing-library/user-event'
 import { CreateLeadDialog } from '../create-lead-dialog'
 import { useSession } from 'next-auth/react'
 import { useHierarchyAdvisors } from '@/features/leads/hooks/use-hierarchy-advisors'
+vi.mock('@/features/leads/captures/use-lead-captures', () => ({
+	useLeadCaptures: () => ({
+		state: {
+			status: 'success',
+			data: [{ idLeadCapture: 4, name: 'Programa', level: 2, status: true }],
+			error: '',
+		},
+	}),
+}))
 vi.mock('next-auth/react', () => ({ useSession: vi.fn() }))
 vi.mock('@/features/leads/hooks/use-hierarchy-advisors', () => ({
 	useHierarchyAdvisors: vi.fn(),
@@ -68,7 +77,17 @@ describe('CreateLeadDialog', () => {
 		const onCreated = vi.fn()
 		render(<CreateLeadDialog onCreated={onCreated} />)
 		const user = await fill()
-		expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+		await user.selectOptions(
+			screen.getByRole('combobox', { name: 'Captura / oferta' }),
+			'4'
+		)
+		await user.type(
+			screen.getByLabelText('Quién lo refirió (opcional)'),
+			'María'
+		)
+		expect(
+			screen.queryByRole('combobox', { name: 'Money Strategy' })
+		).not.toBeInTheDocument()
 		await user.click(screen.getByRole('button', { name: 'Crear lead' }))
 		await waitFor(() =>
 			expect(onCreated).toHaveBeenCalledWith({ idLead: 3, idUser: 1 })
@@ -76,6 +95,10 @@ describe('CreateLeadDialog', () => {
 		expect(JSON.parse(fetchMock.mock.calls[0][1].body)).not.toHaveProperty(
 			'idUser'
 		)
+		expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+			idLeadCapture: 4,
+			referrerName: 'María',
+		})
 		expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 		expect(useHierarchyAdvisors).toHaveBeenCalledWith(true)
 	})
@@ -111,7 +134,10 @@ describe('CreateLeadDialog', () => {
 	it('preserves input and presents an accessible server rejection', async () => {
 		fetchMock.mockResolvedValue({
 			ok: false,
-			json: async () => ({ data: null, error: 'El origen Propio no está disponible' }),
+			json: async () => ({
+				data: null,
+				error: 'El origen Propio no está disponible',
+			}),
 		})
 		render(<CreateLeadDialog onCreated={vi.fn()} />)
 		const user = await fill()

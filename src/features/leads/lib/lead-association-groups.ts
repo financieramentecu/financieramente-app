@@ -33,5 +33,8 @@ export function countLeadAssociationGroups(
 	return {
 		opportunities: new Set(selected.map(root)).size,
 		associatedLeadIds: selected.filter((id) => size.get(root(id))! > 1),
+		groups: [...new Set([...parent.keys()].map(root))].map((groupRoot) =>
+			[...parent.keys()].filter((id) => root(id) === groupRoot)
+		),
 	}
 }

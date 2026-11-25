@@ -23,6 +23,16 @@ export default function AdminDashboardPage() {
 	const isSystemAdmin = session?.user?.role === UserRole.ADMIN
 
 	const adminModules = [
+		...(isSystemAdmin
+			? [
+					{
+						title: 'Capturas',
+						description: 'Gestionar ofertas y niveles del CRM',
+						href: '/dashboard/admin/lead-captures',
+						icon: <Tag className="h-5 w-5 text-primary" />,
+					},
+				]
+			: []),
 		{
 			title: 'Compañías',
 			description: 'Gestionar compañías aseguradoras',

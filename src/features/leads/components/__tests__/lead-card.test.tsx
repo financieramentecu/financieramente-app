@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { LeadCard } from '@/features/leads/components/lead-card'
 import { LEAD_OUTCOME_STATUS_LABELS } from '@/features/leads/lib/lead-outcome-status'
 import type { LeadCard as LeadCardType } from '@/features/leads/types/lead.types'
@@ -47,7 +47,9 @@ describe('LeadCard — outcome badge', () => {
 	)
 
 	it('renders the badge without altering the card contact fields', () => {
-		render(<LeadCard lead={buildLead({ outcomeStatus: 'WON' })} onClick={vi.fn()} />)
+		render(
+			<LeadCard lead={buildLead({ outcomeStatus: 'WON' })} onClick={vi.fn()} />
+		)
 		expect(screen.getByText('Juan Perez')).toBeInTheDocument()
 		expect(screen.getByText('juan@example.com')).toBeInTheDocument()
 		expect(screen.getByText(LEAD_OUTCOME_STATUS_LABELS.WON)).toBeInTheDocument()
@@ -83,7 +85,12 @@ describe('LeadCard — converted-lead indicator (idBusiness)', () => {
 
 describe('LeadCard — owner avatar', () => {
 	it('renders the owner name and initials avatar when ownerName is present', () => {
-		render(<LeadCard lead={buildLead({ ownerName: 'Ana Torres' })} onClick={vi.fn()} />)
+		render(
+			<LeadCard
+				lead={buildLead({ ownerName: 'Ana Torres' })}
+				onClick={vi.fn()}
+			/>
+		)
 		expect(screen.getByText('Ana Torres')).toBeInTheDocument()
 		expect(screen.getByText('AT')).toBeInTheDocument()
 	})
@@ -96,16 +103,26 @@ describe('LeadCard — owner avatar', () => {
 
 describe('LeadCard — origin label', () => {
 	it('renders the origin as a colored label', () => {
-		render(<LeadCard lead={buildLead({ originTag: 'Money Strategy' })} onClick={vi.fn()} />)
+		render(
+			<LeadCard
+				lead={buildLead({ originTag: 'Money Strategy' })}
+				onClick={vi.fn()}
+			/>
+		)
 		expect(screen.getByText('Money Strategy')).toHaveClass('rounded-full')
 	})
 
 	it('gives different origins different colors', () => {
 		const { rerender } = render(
-			<LeadCard lead={buildLead({ originTag: 'Money Strategy' })} onClick={vi.fn()} />
+			<LeadCard
+				lead={buildLead({ originTag: 'Money Strategy' })}
+				onClick={vi.fn()}
+			/>
 		)
 		const strategy = screen.getByText('Money Strategy').className
-		rerender(<LeadCard lead={buildLead({ originTag: 'Monimpas' })} onClick={vi.fn()} />)
+		rerender(
+			<LeadCard lead={buildLead({ originTag: 'Monimpas' })} onClick={vi.fn()} />
+		)
 		expect(screen.getByText('Monimpas').className).not.toBe(strategy)
 	})
 
@@ -117,7 +134,50 @@ describe('LeadCard — origin label', () => {
 
 describe('LeadCard — inactivity', () => {
 	it('shows the stale badge for idle open leads', () => {
-		render(<LeadCard lead={buildLead({ inactiveDays: 10 })} onClick={vi.fn()} />)
+		render(
+			<LeadCard lead={buildLead({ inactiveDays: 10 })} onClick={vi.fn()} />
+		)
 		expect(screen.getByText('Sin actividad · 10 días')).toBeInTheDocument()
+	})
+})
+
+describe('LeadCard — grouped captures', () => {
+	it('opens only the selected opportunity and retains both capture options', () => {
+		const onClick = vi.fn()
+		const capture = {
+			idLeadCapture: 1,
+			name: 'Diagnóstico',
+			level: 1,
+			status: true,
+		}
+		const second = {
+			idLeadCapture: 2,
+			name: 'Programa',
+			level: 2,
+			status: true,
+		}
+		const captures = [capture, second].map((item, index) => ({
+			idLead: index + 1,
+			capture: item,
+			referrerName: 'María',
+			originTag: 'Propio',
+			idLeadFunnelColumn: index + 1,
+			outcomeStatus: 'OPEN' as const,
+			createdAt: '2026-11-24T10:00:00Z',
+		}))
+		render(
+			<LeadCard
+				lead={buildLead({ capture, captures, referrerName: 'María' })}
+				onClick={onClick}
+			/>
+		)
+		fireEvent.change(
+			screen.getByRole('combobox', { name: 'Captura / oportunidad' }),
+			{ target: { value: '2' } }
+		)
+		expect(onClick).toHaveBeenCalledExactlyOnceWith(2)
+		expect(screen.getAllByRole('option')).toHaveLength(2)
+		expect(screen.getByText('Referido por: María')).toBeInTheDocument()
+		expect(captures.every((item) => item.capture.status)).toBe(true)
 	})
 })

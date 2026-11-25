@@ -85,7 +85,8 @@ export async function POST(request: Request) {
 		const result = await createLead(
 			parsed.data,
 			idUser,
-			toCrmRequestContext(actor, request)
+			toCrmRequestContext(actor, request),
+			actor.manageableUserIds
 		)
 		if (!result.ok) return crmErrorResponse(result.error, result.status)
 		return NextResponse.json({ data: result.lead }, { status: 201 })

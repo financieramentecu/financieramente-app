@@ -1,24 +1,26 @@
-import type { Lead, LeadFunnelColumn, Prisma } from '@prisma/client'
+import { Prisma, type Lead, type LeadFunnelColumn } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import {
-	logAuditEvent,
-	AuditAction,
-} from '@/features/auth/lib/audit-logger'
+import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { buildLeadUpsertData } from '@/features/leads/lib/build-lead-upsert-data'
 import { resolveOutcomeStatus } from '@/features/leads/lib/lead-outcome-status'
 import { normalizeFunnelStatusKey } from '@/features/leads/lib/normalize-funnel-status-key'
 import type { LeadWritePayload } from '@/features/leads/types/crm-sync.schema'
 import { escapeLikePattern } from '@/features/leads/lib/escape-like-pattern'
-import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
-import { recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
 import {
 	assignLeadOrigin,
 	resolveLeadOrigin,
 } from '@/features/leads/services/lead-origin.service'
 import {
-	findSamePersonLead,
-	personAlreadyHasOrigin,
-} from '@/features/leads/services/find-same-person-lead'
+	LeadPersonGroupError,
+	collectPersonGroupIds,
+	findPersonContactIds,
+	resolvePersonGroupOwner,
+	propagatePersonGroupOwner,
+} from '@/features/leads/services/lead-person-group.service'
+import {
+	validateLeadCapture,
+	LeadCaptureValidationError,
+} from '@/features/leads/captures/lead-capture.service'
 
 const FALLBACK_STATUS_KEY = '__unmapped__'
 
@@ -31,7 +33,10 @@ export async function resolveFunnelColumn(
 	client: Pick<Prisma.TransactionClient, 'leadFunnelColumn'> = prisma
 ): Promise<LeadFunnelColumn> {
 	const matched = await client.leadFunnelColumn.findFirst({
-		where: { externalStatusKey: normalizeFunnelStatusKey(statusKey), active: true },
+		where: {
+			externalStatusKey: normalizeFunnelStatusKey(statusKey),
+			active: true,
+		},
 	})
 	if (matched) return matched
 
@@ -46,15 +51,7 @@ export async function resolveFunnelColumn(
 	return fallback
 }
 
-/**
- * Resolves `ownerEmail` to a `User.idUser`. No sticky owner: every payload
- * with a present, non-empty `ownerEmail` re-resolves and MUST overwrite the
- * current owner, matched or not.
- *
- * @returns `undefined` when `ownerEmail` is absent/empty (preserve current
- * owner); `null` when present but unmatched (clear owner); a number when
- * resolved.
- */
+/** Resolve a trusted incoming owner; unmatched addresses never clear a known group owner. */
 export async function resolveOwner(
 	ownerEmail: string | undefined,
 	client: Pick<Prisma.TransactionClient, 'user'> = prisma
@@ -68,7 +65,10 @@ export async function resolveOwner(
 	// `User.email` would silently fail to match, leaving the lead owner-less.
 	const user = await client.user.findFirst({
 		where: {
-			email: { equals: escapeLikePattern(ownerEmail.trim()), mode: 'insensitive' },
+			email: {
+				equals: escapeLikePattern(ownerEmail.trim()),
+				mode: 'insensitive',
+			},
 			active: true,
 		},
 		select: { idUser: true },
@@ -95,113 +95,197 @@ export interface UpsertLeadFromCrmResult {
 export async function upsertLeadFromCrm(
 	payload: LeadWritePayload
 ): Promise<UpsertLeadFromCrmResult> {
-	const existing = await prisma.lead.findUnique({
-		where: { externalCrmId: payload.externalCrmId },
-	})
-
-	const [funnelColumn, resolvedOwnerId, origin] = await Promise.all([
-		resolveFunnelColumn(payload.statusKey),
-		resolveOwner(payload.ownerEmail),
-		resolveLeadOrigin(payload.utm_source),
-	])
-	const {
-		value: resolvedOutcomeStatus,
-		unresolved: outcomeUnresolved,
-		locked: outcomeLocked,
-	} = resolveOutcomeStatus(payload.outcomeStatus, existing?.outcomeStatus)
-	const payloadForMerge =
-		origin.status === 'ready' ? { ...payload, originTag: origin.name } : payload
-	const matched =
-		existing === null
-			? await findSamePersonLead(prisma, {
-					identityNumber: payload.identityNumber,
-					email: payload.email,
-					phone: payload.phone,
+	const result = await prisma
+		.$transaction(
+			async (tx) => {
+				const existing = await tx.lead.findUnique({
+					where: { externalCrmId: payload.externalCrmId },
 				})
-			: null
-	const splitByOrigin =
-		matched !== null &&
-		origin.status === 'ready' &&
-		!(await personAlreadyHasOrigin(prisma, matched.idLead, origin.idClientOrigin))
-	const ownerToStore =
-		splitByOrigin && matched?.idUser != null ? matched.idUser : resolvedOwnerId
-
-	const upsertData = buildLeadUpsertData(
-		payloadForMerge,
-		existing ?? {},
-		ownerToStore,
-		resolvedOutcomeStatus
-	)
-
-	// Single shared instant so a create never records `createdAt` and
-	// `updatedAt` microseconds apart (design D2a). Captured before the
-	// upsert since the write destroys the pre-upsert `active` evidence.
-	const receivedAt = new Date()
-	const wasInactive = existing?.active === false
-
-	const lead: Lead = await prisma.lead.upsert({
-		where: { externalCrmId: payload.externalCrmId },
-		create: {
-			...upsertData,
-			externalCrmId: payload.externalCrmId,
-			idLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
-			active: true,
-			createdAt: payload.createdAt ?? receivedAt,
-			updatedAt: payload.updatedAt ?? receivedAt,
-		},
-		update: {
-			...upsertData,
-			idLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
-			active: true,
-			updatedAt: payload.updatedAt ?? receivedAt,
-		},
-	})
-
-	const created = !existing
-
-	if (created && splitByOrigin && matched && origin.status === 'ready') {
-		await prisma.leadLink.create({
-			data: {
-				idLead: lead.idLead,
-				idRelatedLead: matched.idLead,
-				idClientOrigin: origin.idClientOrigin,
-				source: 'AUTO',
-				active: true,
-				linkedAt: payload.updatedAt ?? receivedAt,
+				if (
+					existing?.idLeadCapture != null &&
+					payload.idLeadCapture != null &&
+					existing.idLeadCapture !== payload.idLeadCapture
+				) {
+					throw new LeadCaptureValidationError()
+				}
+				await validateLeadCapture(
+					tx,
+					payload.idLeadCapture,
+					existing?.idLeadCapture
+				)
+				const [funnelColumn, resolvedOwnerId, origin] = await Promise.all([
+					resolveFunnelColumn(payload.statusKey, tx),
+					resolveOwner(payload.ownerEmail, tx),
+					resolveLeadOrigin(payload.utm_source, tx),
+				])
+				const {
+					value: resolvedOutcomeStatus,
+					unresolved: outcomeUnresolved,
+					locked: outcomeLocked,
+				} = resolveOutcomeStatus(payload.outcomeStatus, existing?.outcomeStatus)
+				const matches = await findPersonContactIds(
+					tx,
+					payload,
+					existing?.idLead
+				)
+				const data = buildLeadUpsertData(
+					origin.status === 'ready'
+						? { ...payload, originTag: origin.name }
+						: payload,
+					existing ?? {},
+					undefined,
+					resolvedOutcomeStatus
+				)
+				const receivedAt = new Date()
+				const changedAt = payload.updatedAt ?? receivedAt
+				const lead: Lead = await tx.lead.upsert({
+					where: { externalCrmId: payload.externalCrmId },
+					create: {
+						...data,
+						externalCrmId: payload.externalCrmId,
+						idLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
+						active: true,
+						createdAt: payload.createdAt ?? receivedAt,
+						updatedAt: changedAt,
+					},
+					update: {
+						...data,
+						idLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
+						active: true,
+						updatedAt: changedAt,
+					},
+				})
+				const currentGroup = await collectPersonGroupIds([lead.idLead], tx)
+				const groupIds = await collectPersonGroupIds(
+					[...currentGroup, ...matches],
+					tx
+				)
+				const ownerToStore = await resolvePersonGroupOwner(tx, groupIds, {
+					manageableUserIds: [],
+					...(typeof resolvedOwnerId === 'number'
+						? { targetOwnerId: resolvedOwnerId }
+						: {}),
+				})
+				if (ownerToStore !== null)
+					await propagatePersonGroupOwner(
+						tx,
+						groupIds,
+						ownerToStore,
+						{ source: 'SYSTEM' },
+						changedAt
+					)
+				const joined = groupIds.filter((id) => !currentGroup.includes(id))
+				for (const idRelatedLead of joined) {
+					const link = {
+						idLead: lead.idLead,
+						idRelatedLead,
+						idClientOrigin:
+							origin.status === 'ready' ? origin.idClientOrigin : null,
+						source: 'AUTO' as const,
+						active: true,
+						linkedAt: changedAt,
+					}
+					await tx.leadLink.upsert({
+						where: {
+							idLead_idRelatedLead: { idLead: lead.idLead, idRelatedLead },
+						},
+						create: link,
+						update: { active: true, linkedAt: changedAt },
+					})
+				}
+				if (
+					!existing ||
+					existing.idLeadFunnelColumn !== funnelColumn.idLeadFunnelColumn
+				) {
+					await tx.leadStageHistory.create({
+						data: {
+							idLead: lead.idLead,
+							fromIdLeadFunnelColumn: existing?.idLeadFunnelColumn ?? null,
+							toIdLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
+							source: 'CRM_SYNC',
+							changedAt,
+						},
+					})
+				}
+				const assignment =
+					origin.status === 'ready'
+						? await assignLeadOrigin(
+								{
+									idLead: lead.idLead,
+									idClientOrigin: origin.idClientOrigin,
+									seenAt: changedAt,
+								},
+								tx
+							)
+						: null
+				if (origin.status === 'ready' && assignment !== 'refreshed') {
+					await tx.leadChangeHistory.createMany({
+						data: [
+							{
+								idLead: lead.idLead,
+								kind: 'ORIGIN',
+								source: 'SYSTEM',
+								fromLabel: existing?.originTag ?? null,
+								toLabel: origin.name,
+								changedAt,
+							},
+						],
+					})
+				}
+				return {
+					existing,
+					lead,
+					created: existing === null,
+					wasInactive: existing?.active === false,
+					origin,
+					assignment,
+					ownerToStore,
+					resolvedOwnerId,
+					resolvedOutcomeStatus,
+					outcomeUnresolved,
+					outcomeLocked,
+					joined,
+				}
 			},
+			{ isolationLevel: 'Serializable' }
+		)
+		.catch((cause: unknown) => {
+			if (
+				cause instanceof Prisma.PrismaClientKnownRequestError &&
+				cause.code === 'P2034'
+			)
+				throw new LeadPersonGroupError()
+			throw cause
 		})
+	const {
+		existing,
+		lead,
+		created,
+		wasInactive,
+		origin,
+		assignment,
+		ownerToStore,
+		resolvedOutcomeStatus,
+		outcomeUnresolved,
+		outcomeLocked,
+	} = result
+	if (result.joined.length > 0) {
 		await logAuditEvent({
 			action: AuditAction.LEAD_RELATED,
 			email: 'crm-sync@system',
-			details: `Lead ${lead.idLead} ingresó por otro origen y quedó relacionado con ${matched.idLead} (externalCrmId: ${payload.externalCrmId})`,
+			details: `Lead ${lead.idLead} relacionado automáticamente con ${result.joined.length} registros de la misma persona`,
 		})
 	}
 
-	await recordLeadStageChange({
-		idLead: lead.idLead,
-		fromIdLeadFunnelColumn: existing?.idLeadFunnelColumn,
-		toIdLeadFunnelColumn: funnelColumn.idLeadFunnelColumn,
-		source: 'CRM_SYNC',
-		changedAt: payload.updatedAt ?? receivedAt,
-	})
-
 	await logAuditEvent({
-		action: created ? AuditAction.LEAD_CREATED : AuditAction.LEAD_STATUS_CHANGED,
+		action: created
+			? AuditAction.LEAD_CREATED
+			: AuditAction.LEAD_STATUS_CHANGED,
 		email: 'crm-sync@system',
 		details: `Lead ${created ? 'creado' : 'actualizado'} vía webhook CRM (externalCrmId: ${payload.externalCrmId}, statusKey: ${payload.statusKey})`,
 	})
 
-	if (ownerToStore !== undefined && ownerToStore !== (existing?.idUser ?? null)) {
-		await recordOwnerChange({
-			idLead: lead.idLead,
-			fromUserId: existing?.idUser ?? null,
-			toUserId: ownerToStore,
-			source: 'SYSTEM',
-			changedAt: payload.updatedAt ?? receivedAt,
-		})
-	}
-
-	if (ownerToStore !== undefined) {
+	if (result.resolvedOwnerId !== undefined) {
 		if (ownerToStore === null) {
 			await logAuditEvent({
 				action: AuditAction.LEAD_OWNER_UNRESOLVED,
@@ -264,13 +348,6 @@ export async function upsertLeadFromCrm(
 	if (origin.status !== 'ready') {
 		return { idLead: lead.idLead, created, origin: null }
 	}
-
-	const seenAt = payload.updatedAt ?? receivedAt
-	const assignment = await assignLeadOrigin({
-		idLead: lead.idLead,
-		idClientOrigin: origin.idClientOrigin,
-		seenAt,
-	})
 
 	if (origin.createdCatalog) {
 		await logAuditEvent({

@@ -12,3 +12,18 @@ export async function getLeadAssociationGraph(scope: Prisma.LeadWhereInput) {
 	])
 	return { leadIds: leads.map((lead) => lead.idLead), links }
 }
+
+/** Only visible active endpoints contribute to a person's read projection. */
+export async function getVisiblePersonGroupIds(
+	idLead: number,
+	scope: Prisma.LeadWhereInput
+): Promise<number[]> {
+	const graph = await getLeadAssociationGraph(scope)
+	const { countLeadAssociationGroups } =
+		await import('@/features/leads/lib/lead-association-groups')
+	return (
+		countLeadAssociationGroups(graph.leadIds, graph.links).groups.find((ids) =>
+			ids.includes(idLead)
+		) ?? []
+	)
+}

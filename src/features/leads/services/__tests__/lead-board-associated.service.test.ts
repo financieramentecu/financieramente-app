@@ -70,9 +70,9 @@ it('filters to scoped associated members while keeping contextual filters and ou
 		})
 	)
 })
-it('does not read graph or narrow ids when associated-only is cleared', async () => {
+it('retains person grouping without narrowing ids when associated-only is cleared', async () => {
 	await getLeadBoard(viewer, { visibleUserIds: [5], associatedOnly: false })
-	expect(getLeadAssociationGraph).not.toHaveBeenCalled()
+	expect(getLeadAssociationGraph).toHaveBeenCalledTimes(1)
 	expect(prisma.lead.findMany).toHaveBeenCalledWith(
 		expect.objectContaining({
 			where: {
@@ -96,4 +96,17 @@ it('returns no related records when the selected graph has no actual association
 			where: { AND: [expect.any(Object), { idLead: { in: [] } }] },
 		})
 	)
+})
+
+it('shows one person card with both active captures, ordered by level without changing their lifecycle', async () => {
+ vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([{ idLeadFunnelColumn: 1, name: 'Nuevo', position: 0, isFallback: false }, { idLeadFunnelColumn: 2, name: 'Contacto', position: 1, isFallback: false }] as never)
+ const common = { name: 'Ana', lastName: null, email: 'ana@example.com', phone: null, originTag: 'Propio', idUser: 5, user: null, outcomeStatus: 'OPEN', idBusiness: null, lastActivityAt: null, estimatedValue: null, tagAssignments: [] }
+ vi.mocked(prisma.lead.findMany).mockResolvedValue([
+  { ...common, idLead: 1, idLeadFunnelColumn: 1, capture: { idLeadCapture: 1, name: 'Inicial', level: 1, status: true }, createdAt: new Date('2026-11-20') },
+  { ...common, idLead: 2, idLeadFunnelColumn: 2, capture: { idLeadCapture: 2, name: 'Avanzada', level: 2, status: true }, createdAt: new Date('2026-11-21') },
+ ] as never)
+ const board = await getLeadBoard(viewer, { visibleUserIds: [5] })
+ expect(board[0].leads).toHaveLength(0)
+ expect(board[1].leads).toHaveLength(1)
+ expect(board[1].leads[0]).toMatchObject({ idLead: 2, personKey: 1, captures: [expect.objectContaining({ idLead: 2, outcomeStatus: 'OPEN' }), expect.objectContaining({ idLead: 1, outcomeStatus: 'OPEN' })] })
 })

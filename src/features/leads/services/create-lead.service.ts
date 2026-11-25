@@ -1,3 +1,9 @@
+import {
+	collectPersonGroupIds,
+	resolvePersonGroupOwner,
+	propagatePersonGroupOwner,
+	LeadPersonGroupError,
+} from './lead-person-group.service'
 import { prisma } from '@/lib/prisma'
 import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
@@ -19,136 +25,190 @@ type CreateLeadResult =
 export async function createLead(
 	input: CreateLeadInput,
 	idUser: number,
-	ctx: CrmRequestContext
+	ctx: CrmRequestContext,
+	manageableUserIds: readonly number[] = [ctx.userId]
 ): Promise<CreateLeadResult> {
-	const result = await prisma.$transaction(
-		async (tx): Promise<CreateLeadResult> => {
-			const [owner, column] = await Promise.all([
-				tx.user.findFirst({
-					where: { idUser, active: true },
-					select: { idUser: true, name: true, lastName: true },
-				}),
-				tx.leadFunnelColumn.findFirst({
-					where: { externalStatusKey: 'NUEVO_LEAD', active: true },
-					select: { idLeadFunnelColumn: true },
-				}),
-			])
-			if (!owner)
-				return {
-					ok: false,
-					error: 'El Money Strategy no existe o está inactivo',
-					status: 400,
-				}
-			if (!column)
-				return {
-					ok: false,
-					error: 'La etapa Lead Nuevo no está disponible',
-					status: 409,
-				}
-			const matches = await tx.lead.findMany({
-				where: {
-					active: true,
-					OR: [
-						...(input.email
-							? [
-									{
-										email: {
-											equals: escapeLikePattern(input.email),
-											mode: 'insensitive' as const,
+	try {
+		const result = await prisma.$transaction(
+			async (tx): Promise<CreateLeadResult> => {
+				const [owner, column] = await Promise.all([
+					tx.user.findFirst({
+						where: { idUser, active: true },
+						select: { idUser: true, name: true, lastName: true },
+					}),
+					tx.leadFunnelColumn.findFirst({
+						where: { externalStatusKey: 'NUEVO_LEAD', active: true },
+						select: { idLeadFunnelColumn: true },
+					}),
+				])
+				if (!owner)
+					return {
+						ok: false,
+						error: 'El Money Strategy no existe o está inactivo',
+						status: 400,
+					}
+				if (!column)
+					return {
+						ok: false,
+						error: 'La etapa Lead Nuevo no está disponible',
+						status: 409,
+					}
+				const matches = await tx.lead.findMany({
+					where: {
+						active: true,
+						OR: [
+							...(input.email
+								? [
+										{
+											email: {
+												equals: escapeLikePattern(input.email),
+												mode: 'insensitive' as const,
+											},
 										},
-									},
-								]
-							: []),
-						...(input.phone ? [{ phone: input.phone }] : []),
-						...(input.identityNumber
-							? [{ identityNumber: input.identityNumber }]
-							: []),
-					],
-				},
-				select: { idLead: true },
-			})
-			const origin = await resolveLeadOrigin('Propio', tx)
-			if (origin.status !== 'ready')
-				return {
-					ok: false,
-					error: 'El origen Propio no está disponible',
-					status: 409,
-				}
-			const changedAt = new Date()
-			const lead = await tx.lead.create({
-				data: {
-					name: input.name,
-					lastName: input.lastName || null,
-					email: input.email || null,
-					phone: input.phone || null,
-					identityNumber: input.identityNumber || null,
-					idUser,
-					idLeadFunnelColumn: column.idLeadFunnelColumn,
-					originTag: origin.name,
-					outcomeStatus: 'OPEN',
-				},
-				select: { idLead: true },
-			})
-			await assignLeadOrigin(
-				{
-					idLead: lead.idLead,
-					idClientOrigin: origin.idClientOrigin,
-					seenAt: changedAt,
-				},
-				tx
-			)
-			if (matches.length > 0) {
-				await tx.leadLink.createMany({
-					data: matches.map((matched) => ({
+									]
+								: []),
+							...(input.phone ? [{ phone: input.phone }] : []),
+							...(input.identityNumber
+								? [{ identityNumber: input.identityNumber }]
+								: []),
+						],
+					},
+					select: { idLead: true },
+				})
+				const ids = matches.length
+					? await collectPersonGroupIds(
+							matches.map((row) => row.idLead),
+							tx
+						)
+					: []
+				const groupOwner = await resolvePersonGroupOwner(tx, ids, {
+					manageableUserIds,
+					targetOwnerId: input.idUser,
+				})
+				const effectiveOwnerId = groupOwner ?? idUser
+				const effectiveOwner =
+					effectiveOwnerId === idUser
+						? owner
+						: await tx.user.findFirst({
+								where: { idUser: effectiveOwnerId, active: true },
+								select: { idUser: true, name: true, lastName: true },
+							})
+				if (!effectiveOwner) throw new LeadPersonGroupError()
+				if (
+					input.idLeadCapture !== undefined &&
+					!(await tx.leadCapture.findFirst({
+						where: { idLeadCapture: input.idLeadCapture, status: true },
+						select: { idLeadCapture: true },
+					}))
+				)
+					return {
+						ok: false,
+						error: 'La captura no está disponible',
+						status: 409,
+					}
+				const origin = await resolveLeadOrigin('Propio', tx)
+				if (origin.status !== 'ready')
+					return {
+						ok: false,
+						error: 'El origen Propio no está disponible',
+						status: 409,
+					}
+				const changedAt = new Date()
+				const lead = await tx.lead.create({
+					data: {
+						name: input.name,
+						lastName: input.lastName || null,
+						email: input.email || null,
+						phone: input.phone || null,
+						identityNumber: input.identityNumber || null,
+						idUser: effectiveOwnerId,
+						idLeadCapture: input.idLeadCapture,
+						referrerName: input.referrerName || null,
+						idLeadFunnelColumn: column.idLeadFunnelColumn,
+						originTag: origin.name,
+						outcomeStatus: 'OPEN',
+					},
+					select: { idLead: true },
+				})
+				await assignLeadOrigin(
+					{
 						idLead: lead.idLead,
-						idRelatedLead: matched.idLead,
 						idClientOrigin: origin.idClientOrigin,
-						source: 'AUTO' as const,
-						linkedAt: changedAt,
-						linkedBy: ctx.userId,
+						seenAt: changedAt,
+					},
+					tx
+				)
+				if (ids.length > 0) {
+					await propagatePersonGroupOwner(
+						tx,
+						ids,
+						effectiveOwnerId,
+						{ source: 'MANUAL', idActor: ctx.userId, actorLabel: ctx.email },
+						changedAt
+					)
+				}
+				if (matches.length > 0) {
+					await tx.leadLink.createMany({
+						data: ids.map((matchedId) => ({
+							idLead: lead.idLead,
+							idRelatedLead: matchedId,
+							idClientOrigin: origin.idClientOrigin,
+							source: 'AUTO' as const,
+							linkedAt: changedAt,
+							linkedBy: ctx.userId,
+						})),
+					})
+				}
+
+				await tx.leadStageHistory.create({
+					data: {
+						idLead: lead.idLead,
+						toIdLeadFunnelColumn: column.idLeadFunnelColumn,
+						source: 'MANUAL',
+						idUser: ctx.userId,
+						changedAt,
+					},
+				})
+				await tx.leadChangeHistory.createMany({
+					data: [
+						{
+							idLead: lead.idLead,
+							kind: 'OWNER' as const,
+							toLabel: [effectiveOwner.name, effectiveOwner.lastName]
+								.filter(Boolean)
+								.join(' '),
+						},
+						{
+							idLead: lead.idLead,
+							kind: 'ORIGIN' as const,
+							toLabel: origin.name,
+						},
+					].map((entry) => ({
+						...entry,
+						source: 'MANUAL',
+						idActor: ctx.userId,
+						actorLabel: ctx.email,
+						fromLabel: null,
+						changedAt,
 					})),
 				})
-			}
-
-			await tx.leadStageHistory.create({
-				data: {
-					idLead: lead.idLead,
-					toIdLeadFunnelColumn: column.idLeadFunnelColumn,
-					source: 'MANUAL',
-					idUser: ctx.userId,
-					changedAt,
-				},
+				return {
+					ok: true,
+					lead: { idLead: lead.idLead, idUser: effectiveOwnerId },
+				}
+			},
+			{ isolationLevel: 'Serializable' }
+		)
+		if (result.ok)
+			await logAuditEvent({
+				...ctx,
+				action: AuditAction.LEAD_CREATED,
+				details: `Lead ${result.lead.idLead} creado desde Pipelines con origen Propio y Money Strategy ${idUser}`,
 			})
-			await tx.leadChangeHistory.createMany({
-				data: [
-					{
-						idLead: lead.idLead,
-						kind: 'OWNER' as const,
-						toLabel: [owner.name, owner.lastName].filter(Boolean).join(' '),
-					},
-					{
-						idLead: lead.idLead,
-						kind: 'ORIGIN' as const,
-						toLabel: origin.name,
-					},
-				].map((entry) => ({
-					...entry,
-					source: 'MANUAL',
-					idActor: ctx.userId,
-					actorLabel: ctx.email,
-					fromLabel: null,
-					changedAt,
-				})),
-			})
-			return { ok: true, lead: { idLead: lead.idLead, idUser } }
-		},
-		{ isolationLevel: 'Serializable' }
-	)
-	if (result.ok)
-		await logAuditEvent({
-			...ctx,
-			action: AuditAction.LEAD_CREATED,
-			details: `Lead ${result.lead.idLead} creado desde Pipelines con origen Propio y Money Strategy ${idUser}`,
-		})
-	return result
+		return result
+	} catch (cause) {
+		if (cause instanceof LeadPersonGroupError)
+			return { ok: false, error: cause.message, status: 409 }
+		throw cause
+	}
 }

@@ -19,6 +19,15 @@ function makeRow(overrides: Partial<LeadCsvRow> = {}): LeadCsvRow {
 }
 
 describe('mapCsvRowToLeadPayload', () => {
+	it('maps new optional attribution and preserves old payload keys', () => {
+		expect(
+			mapCsvRowToLeadPayload(makeRow({ id_captura: 2, referido_por: 'Ana' }))
+		).toMatchObject({ idLeadCapture: 2, referrerName: 'Ana' })
+		expect(mapCsvRowToLeadPayload(makeRow())).not.toHaveProperty(
+			'idLeadCapture'
+		)
+	})
+
 	it('maps a full row to the CrmSyncPayload shape', () => {
 		const payload = mapCsvRowToLeadPayload(makeRow())
 
@@ -33,14 +42,18 @@ describe('mapCsvRowToLeadPayload', () => {
 	})
 
 	it('preserves omit-means-preserve for empty optional fields', () => {
-		const payload = mapCsvRowToLeadPayload(makeRow({ origen: '', propietario_correo: '' }))
+		const payload = mapCsvRowToLeadPayload(
+			makeRow({ origen: '', propietario_correo: '' })
+		)
 
 		expect(payload.originTag).toBeUndefined()
 		expect(payload.ownerEmail).toBeUndefined()
 	})
 
 	it('never leaks propietario_nombre into the CrmSyncPayload shape', () => {
-		const payload = mapCsvRowToLeadPayload(makeRow({ propietario_nombre: 'Yohan España' }))
+		const payload = mapCsvRowToLeadPayload(
+			makeRow({ propietario_nombre: 'Yohan España' })
+		)
 
 		expect(payload).not.toHaveProperty('propietario_nombre')
 		expect(payload).not.toHaveProperty('ownerName')

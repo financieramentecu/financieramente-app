@@ -15,6 +15,7 @@ import {
 	DialogFooter,
 	DialogTrigger,
 } from '@/features/shared/ui/dialog'
+import { useLeadCaptures } from '@/features/leads/captures/use-lead-captures'
 import { useCreateLead } from '@/features/leads/hooks/use-create-lead'
 import { useHierarchyAdvisors } from '@/features/leads/hooks/use-hierarchy-advisors'
 import type { CreatedLead } from '@/features/leads/lib/create-lead.schema'
@@ -58,6 +59,8 @@ function CreateLeadForm({
 	mutation,
 }: CreateLeadDialogProps & { mutation: ReturnType<typeof useCreateLead> }) {
 	const advisors = useHierarchyAdvisors(true)
+	const captures = useLeadCaptures()
+	const [idLeadCapture, setIdLeadCapture] = useState('')
 	const { state, create } = mutation
 	const [idUser, setIdUser] = useState('')
 	const pending = state.status === 'loading'
@@ -69,6 +72,7 @@ function CreateLeadForm({
 		const values = Object.fromEntries(new FormData(event.currentTarget))
 		const result = await create({
 			...values,
+			...(idLeadCapture ? { idLeadCapture: Number(idLeadCapture) } : {}),
 			...(advisors.canLead && idUser ? { idUser: Number(idUser) } : {}),
 		})
 		if (result) onCreated(result)
@@ -122,6 +126,38 @@ function CreateLeadForm({
 					<label className="block space-y-1 text-sm">
 						Documento
 						<Input name="identityNumber" maxLength={20} />
+					</label>
+					<div className="space-y-1">
+						<p className="text-sm">Captura / oferta</p>
+						<SingleSelect
+							ariaLabel="Captura / oferta"
+							placeholder="Sin captura"
+							value={idLeadCapture}
+							onChange={setIdLeadCapture}
+							disabled={pending || captures.state.status !== 'success'}
+							options={
+								captures.state.status === 'success'
+									? captures.state.data.map((capture) => ({
+											value: String(capture.idLeadCapture),
+											label: capture.name,
+										}))
+									: []
+							}
+						/>
+						{captures.state.status === 'loading' && (
+							<p role="status" className="text-xs">
+								Cargando capturas…
+							</p>
+						)}
+						{captures.state.status === 'error' && (
+							<p role="alert" className="text-sm text-destructive">
+								{captures.state.error}
+							</p>
+						)}
+					</div>
+					<label className="block space-y-1 text-sm">
+						Quién lo refirió (opcional)
+						<Input name="referrerName" maxLength={200} />
 					</label>
 					<p className="text-xs text-muted-foreground">
 						Ingresa al menos correo, teléfono o documento.
