@@ -30,3 +30,5 @@ The script asserts the exact localhost database before importing Prisma. It crea
 Deployment: apply the additive migration using the existing migration workflow. No new required environment variables or cron jobs. Keep nullable columns on application rollback; do not drop captured data.
 
 Browser acceptance has not been performed on this branch and remains a QA validation step. No QA/production writes or deployment performed.
+
+CI follow-up: the first PR run passed lint, unit and integration jobs but Chromatic could not extract stories because the existing CreateBusinessForm story imported real Next.js server actions and initialized Prisma in the browser. Storybook now aliases those action modules to explicit unavailable-action mocks, for both Webpack and Vite. Production action code is unchanged. Storybook build, TypeScript and targeted lint passed; the affected default form story rendered in the in-app browser with no console errors. This Storybook smoke check does not replace CRM acceptance in QA.
