@@ -21,12 +21,25 @@ const storedLead = {
 describe('buildLeadUpsertData', () => {
 	it('never writes CRM-owned data (value, probability, custom fields, activity timestamp)', () => {
 		const result = buildLeadUpsertData(
-			{ ...basePayload, name: 'Ana', email: 'ana@x.co', estimatedValue: '1', probability: 90, customFieldValues: { a: 1 } } as never,
+			{
+				...basePayload,
+				name: 'Ana',
+				email: 'ana@x.co',
+				estimatedValue: '1',
+				probability: 90,
+				customFieldValues: { a: 1 },
+			} as never,
 			storedLead,
 			5,
 			'OPEN'
 		)
-		for (const key of ['estimatedValue', 'probability', 'customFieldValues', 'lastActivityAt', 'tagAssignments']) {
+		for (const key of [
+			'estimatedValue',
+			'probability',
+			'customFieldValues',
+			'lastActivityAt',
+			'tagAssignments',
+		]) {
 			expect(result).not.toHaveProperty(key)
 		}
 	})
@@ -105,6 +118,42 @@ describe('buildLeadUpsertData', () => {
 				'WON'
 			)
 			expect(result.outcomeStatus).toBe('WON')
+		})
+	})
+})
+
+describe('initial attribution', () => {
+	it('preserves the existing capture, source and referrer on resync', () => {
+		const result = buildLeadUpsertData(
+			{
+				externalCrmId: 'x',
+				statusKey: 'new',
+				originTag: 'Later',
+				referrerName: 'Later referrer',
+				idLeadCapture: 2,
+			},
+			{ originTag: 'First', referrerName: 'First referrer', idLeadCapture: 1 }
+		)
+		expect(result).not.toHaveProperty('originTag')
+		expect(result).not.toHaveProperty('referrerName')
+		expect(result).not.toHaveProperty('idLeadCapture')
+	})
+	it('fills only missing initial attribution', () => {
+		expect(
+			buildLeadUpsertData(
+				{
+					externalCrmId: 'x',
+					statusKey: 'new',
+					originTag: 'First',
+					referrerName: ' Referrer ',
+					idLeadCapture: 1,
+				},
+				{}
+			)
+		).toMatchObject({
+			originTag: 'First',
+			referrerName: 'Referrer',
+			idLeadCapture: 1,
 		})
 	})
 })

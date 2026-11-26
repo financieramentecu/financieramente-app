@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { getVisiblePersonGroupIds } from '@/features/leads/services/lead-associations.service'
 import { GET, POST } from '../route'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { getLeadDetail, isLeadVisible } from '@/features/leads/services/lead-board.service'
+import {
+	getLeadDetail,
+	isLeadVisible,
+} from '@/features/leads/services/lead-board.service'
 import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { appendLeadActivityTx } from '@/features/leads/activities/lead-activity.service'
 import { getLeadTimelinePage } from '@/features/leads/activities/lead-timeline.service'
 
+vi.mock('@/features/leads/services/lead-associations.service', () => ({
+	getVisiblePersonGroupIds: vi.fn(),
+}))
 vi.mock('@/auth', () => ({ auth: vi.fn() }))
 vi.mock('@/features/negocios/services/user.service', () => ({
 	getCurrentUserByEmail: vi.fn(),
@@ -34,7 +41,10 @@ vi.mock('@/features/leads/activities/lead-timeline.service', () => ({
 	getLeadTimelinePage: vi.fn(),
 }))
 vi.mock('@/lib/prisma', () => ({
-	prisma: { $transaction: vi.fn((callback) => callback({})) },
+	prisma: {
+		auditLog: { create: vi.fn() },
+		$transaction: vi.fn((callback) => callback({})),
+	},
 }))
 vi.mock('next/server', () => ({
 	NextResponse: {
@@ -56,6 +66,7 @@ const request = (body?: unknown) =>
 describe('/api/leads/[id]/activities', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		vi.mocked(getVisiblePersonGroupIds).mockResolvedValue([1, 2])
 		vi.mocked(auth).mockResolvedValue({
 			user: { email: 'agent@example.com' },
 		} as never)
@@ -84,7 +95,12 @@ describe('/api/leads/[id]/activities', () => {
 		})
 		const response = await GET(request(), context('1'))
 		expect(response.status).toBe(200)
-		expect(getLeadTimelinePage).toHaveBeenCalled()
+		expect(getVisiblePersonGroupIds).toHaveBeenCalledWith(1, expect.any(Object))
+		expect(getLeadTimelinePage).toHaveBeenCalledWith(1, {
+			limit: 25,
+			cursor: undefined,
+			visibleLeadIds: [1, 2],
+		})
 	})
 
 	it('accepts only a typed note mutation and appends it in a transaction', async () => {
@@ -117,34 +133,64 @@ describe('/api/leads/[id]/activities', () => {
 	})
 
 	it('passes a decoded timeline cursor and rejects a malformed one', async () => {
-		vi.mocked(getLeadTimelinePage).mockResolvedValue({ items: [], nextCursor: null })
-		const ok = await GET(new Request('http://x/?cursor=2026-11-09T10:00:00.000Z|stage_change|3'), context('1'))
+		vi.mocked(getLeadTimelinePage).mockResolvedValue({
+			items: [],
+			nextCursor: null,
+		})
+		const ok = await GET(
+			new Request('http://x/?cursor=2026-11-09T10:00:00.000Z|stage_change|3'),
+			context('1')
+		)
 		expect(ok.status).toBe(200)
 		expect(getLeadTimelinePage).toHaveBeenCalledWith(1, {
 			limit: 25,
-			cursor: { occurredAt: new Date('2026-11-09T10:00:00.000Z'), kind: 'stage_change', id: 3 },
+			visibleLeadIds: [1, 2],
+			cursor: {
+				occurredAt: new Date('2026-11-09T10:00:00.000Z'),
+				kind: 'stage_change',
+				id: 3,
+			},
 		})
 		const bad = await GET(new Request('http://x/?cursor=nope'), context('1'))
 		expect(bad.status).toBe(400)
 	})
 
 	it('accepts a logged call and stores its occurredAt', async () => {
-		vi.mocked(appendLeadActivityTx).mockResolvedValue({ idLeadActivity: 10 } as never)
+		vi.mocked(appendLeadActivityTx).mockResolvedValue({
+			idLeadActivity: 10,
+		} as never)
 		const occurredAt = '2026-11-08T15:00:00.000Z'
 		const response = await POST(
-			request({ type: 'CALL_LOGGED', payload: { summary: 'Interesada', outcome: 'CONNECTED', occurredAt } }),
+			request({
+				type: 'CALL_LOGGED',
+				payload: { summary: 'Interesada', outcome: 'CONNECTED', occurredAt },
+			}),
 			context('1')
 		)
 		expect(response.status).toBe(201)
 		expect(appendLeadActivityTx).toHaveBeenCalledWith(
 			expect.anything(),
-			expect.objectContaining({ type: 'CALL_LOGGED', occurredAt: new Date(occurredAt) })
+			expect.objectContaining({
+				type: 'CALL_LOGGED',
+				occurredAt: new Date(occurredAt),
+			})
 		)
 	})
 
 	it('forbids read-only roles from logging activities', async () => {
 		vi.mocked(canManageCrm).mockReturnValue(false)
-		const response = await POST(request({ type: 'NOTE_ADDED', payload: { note: 'x' } }), context('1'))
+		const response = await POST(
+			request({ type: 'NOTE_ADDED', payload: { note: 'x' } }),
+			context('1')
+		)
 		expect(response.status).toBe(403)
+	})
+
+	it('does not resolve or expose group membership for an invisible lead', async () => {
+		vi.mocked(isLeadVisible).mockResolvedValue(false)
+		const response = await GET(request(), context('1'))
+		expect(response.status).toBe(404)
+		expect(getVisiblePersonGroupIds).not.toHaveBeenCalled()
+		expect(getLeadTimelinePage).not.toHaveBeenCalled()
 	})
 })

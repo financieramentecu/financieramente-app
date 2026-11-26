@@ -41,14 +41,19 @@ describe('GET /api/crm/reports/summary', () => {
 			ok: false,
 			response: crmErrorResponse('No autorizado', 401),
 		})
-		expect((await GET()).status).toBe(401)
+		expect(
+			(await GET(new Request('http://localhost/api/crm/reports/summary')))
+				.status
+		).toBe(401)
 		expect(requireCrmActor).toHaveBeenCalledWith('crm_reports')
 		expect(getCrmSummary).not.toHaveBeenCalled()
 	})
 
 	it('rejects a CRM actor without the category report permission', async () => {
 		vi.mocked(canViewReport).mockResolvedValue(false)
-		const response = await GET()
+		const response = await GET(
+			new Request('http://localhost/api/crm/reports/summary')
+		)
 		expect(response.status).toBe(403)
 		expect(canViewReport).toHaveBeenCalledWith(
 			{ roleCode: 'AGENTE', idCategory: 3 },
@@ -58,13 +63,19 @@ describe('GET /api/crm/reports/summary', () => {
 	})
 
 	it('returns metrics restricted to the authorized actor hierarchy', async () => {
-		const response = await GET()
+		const response = await GET(
+			new Request('http://localhost/api/crm/reports/summary')
+		)
 		expect(response.status).toBe(200)
 		expect(await response.json()).toEqual({ data: EMPTY_CRM_SUMMARY })
 		expect(getCrmSummary).toHaveBeenCalledWith({
 			viewer: { idUser: 7, role: { code: 'AGENTE' } },
 			visibleUserIds: [7, 8],
 			isBypass: false,
+			filters: expect.objectContaining({
+				outcomeStatuses: ['OPEN'],
+				associatedOnly: false,
+			}),
 		})
 	})
 
@@ -73,11 +84,31 @@ describe('GET /api/crm/reports/summary', () => {
 			ok: true,
 			actor: { ...actor, visibleUserIds: [], canViewOthersCrm: true },
 		})
-		expect((await GET()).status).toBe(200)
+		expect(
+			(await GET(new Request('http://localhost/api/crm/reports/summary')))
+				.status
+		).toBe(200)
 		expect(getCrmSummary).toHaveBeenCalledWith(
 			expect.objectContaining({
 				visibleUserIds: [],
 				isBypass: true,
+			})
+		)
+	})
+	it('shares pipeline date/outcome/origin/branch parsing without associated-only narrowing', async () => {
+		await GET(
+			new Request(
+				'http://localhost/api/crm/reports/summary?outcomeStatus=OPEN&origin=4&exclude=8&createdFrom=2026-11-01&createdTo=2026-11-30&associatedOnly=true'
+			)
+		)
+		expect(getCrmSummary).toHaveBeenCalledWith(
+			expect.objectContaining({
+				filters: expect.objectContaining({
+					outcomeStatuses: ['OPEN'],
+					originIds: [4],
+					excludedOwnerIds: [8],
+					createdAtRange: expect.any(Object),
+				}),
 			})
 		)
 	})

@@ -48,11 +48,12 @@ export interface LeadTimelineIngressEntry {
 	source: LeadLinkSource
 }
 
-export type LeadTimelineEntry =
+export type LeadTimelineEntry = (
 	| LeadTimelineActivityEntry
 	| LeadTimelineStageEntry
 	| LeadTimelineChangeEntry
 	| LeadTimelineIngressEntry
+) & { idLead?: number; captureName?: string | null }
 
 export interface LeadTimelinePage {
 	items: LeadTimelineEntry[]
@@ -115,11 +116,14 @@ function changeWhereBefore(idLead: number, cursor?: TimelineKey): Prisma.LeadCha
 	return { idLead, changedAt: { lt: cursor.occurredAt } }
 }
 
-function personWhere(idLead: number): Prisma.LeadLinkWhereInput {
+function personWhere(idLead: number | readonly number[]): Prisma.LeadLinkWhereInput {
+	if (typeof idLead !== 'number') {
+		return { active: true, idLead: { in: [...idLead] }, idRelatedLead: { in: [...idLead] } }
+	}
 	return { active: true, OR: [{ idLead }, { idRelatedLead: idLead }] }
 }
 
-function ingressWhereBefore(idLead: number, cursor?: TimelineKey): Prisma.LeadLinkWhereInput {
+function ingressWhereBefore(idLead: number | readonly number[], cursor?: TimelineKey): Prisma.LeadLinkWhereInput {
 	const person = personWhere(idLead)
 	if (!cursor || cursor.kind !== 'lead_ingress') {
 		if (!cursor) return person
@@ -142,36 +146,40 @@ function ingressWhereBefore(idLead: number, cursor?: TimelineKey): Prisma.LeadLi
  * Lead timeline: CRM activity events merged with funnel stage changes
  * (Twenty timeline / Odoo chatter tracking). Stage changes stay in
  * `LeadStageHistory`. A move made in this CRM keeps the person who dragged
- * the card. Older sync rows without an actor fall back to the lead's advisor.
+ * the card. Automated changes are never attributed to the assigned advisor.
  */
 export async function getLeadTimelinePage(
 	idLead: number,
-	options: { limit?: number; cursor?: TimelineKey } = {}
+	options: { limit?: number; cursor?: TimelineKey; visibleLeadIds?: readonly number[] } = {}
 ): Promise<LeadTimelinePage> {
 	const limit = Math.min(Math.max(options.limit ?? 25, 1), 100)
 	const { cursor } = options
+	const groupId = options.visibleLeadIds ? { in: [...options.visibleLeadIds] } : idLead
 
 	const [activityPage, stageRows, changeRows, ingressRows] = await Promise.all([
-		getLeadActivityPage(prisma, idLead, { limit, cursor: cursor ? activityCursorBefore(cursor) : undefined }),
+		getLeadActivityPage(prisma, idLead, { limit, cursor: cursor ? activityCursorBefore(cursor) : undefined, ...(options.visibleLeadIds ? { leadIds: options.visibleLeadIds } : {}) }),
 		prisma.leadStageHistory.findMany({
-			where: stageWhereBefore(idLead, cursor),
+			where: { ...stageWhereBefore(idLead, cursor), idLead: groupId },
 			orderBy: [{ changedAt: 'desc' }, { idLeadStageHistory: 'desc' }],
 			take: limit + 1,
 			select: {
+				idLead: true,
 				idLeadStageHistory: true,
 				changedAt: true,
 				source: true,
 				fromColumn: { select: { name: true } },
 				toColumn: { select: { name: true } },
 				user: { select: { name: true, lastName: true } },
-				lead: { select: { user: { select: { name: true, lastName: true } } } },
+				lead: { select: { capture: { select: { name: true } } } },
 			},
 		}),
 		prisma.leadChangeHistory.findMany({
-			where: changeWhereBefore(idLead, cursor),
+			where: { ...changeWhereBefore(idLead, cursor), idLead: groupId },
 			orderBy: [{ changedAt: 'desc' }, { idLeadChangeHistory: 'desc' }],
 			take: limit + 1,
 			select: {
+				idLead: true,
+				lead: { select: { capture: { select: { name: true } } } },
 				idLeadChangeHistory: true,
 				changedAt: true,
 				kind: true,
@@ -182,7 +190,7 @@ export async function getLeadTimelinePage(
 			},
 		}),
 		prisma.leadLink.findMany({
-			where: ingressWhereBefore(idLead, cursor),
+			where: ingressWhereBefore(options.visibleLeadIds ?? idLead, cursor),
 			orderBy: [{ linkedAt: 'desc' }, { idLeadLink: 'desc' }],
 			take: limit + 1,
 			select: {
@@ -197,14 +205,13 @@ export async function getLeadTimelinePage(
 					select: {
 						name: true,
 						lastName: true,
-						user: { select: { name: true, lastName: true } },
+						capture: { select: { name: true } },
 					},
 				},
 				relatedLead: {
 					select: {
 						name: true,
 						lastName: true,
-						user: { select: { name: true, lastName: true } },
 					},
 				},
 			},
@@ -213,12 +220,13 @@ export async function getLeadTimelinePage(
 
 	const activities: LeadTimelineEntry[] = activityPage.items.map((item) => ({ ...item, kind: 'activity' }))
 	const stages: LeadTimelineEntry[] = stageRows.map((row) => {
-		const actor = row.user ?? row.lead.user
+		const actor = row.user
 		return {
+			...(options.visibleLeadIds ? { idLead: row.idLead, captureName: row.lead?.capture?.name ?? null } : {}),
 			kind: 'stage_change',
 			idLeadStageHistory: row.idLeadStageHistory,
 			occurredAt: row.changedAt,
-			actorName: actor ? [actor.name, actor.lastName].filter(Boolean).join(' ') : null,
+			actorName: row.source === 'CRM_SYNC' || row.source === 'LANDING_FORM' ? 'Sistema' : actor ? [actor.name, actor.lastName].filter(Boolean).join(' ') : 'Autor no registrado',
 			fromColumnName: row.fromColumn?.name ?? null,
 			toColumnName: row.toColumn.name,
 			source: row.source,
@@ -226,23 +234,25 @@ export async function getLeadTimelinePage(
 	})
 
 	const changes: LeadTimelineEntry[] = changeRows.map((row) => ({
+		...(options.visibleLeadIds ? { idLead: row.idLead, captureName: row.lead?.capture?.name ?? null } : {}),
 		kind: 'lead_change',
 		idLeadChangeHistory: row.idLeadChangeHistory,
 		occurredAt: row.changedAt,
 		change: row.kind,
 		source: row.source,
-		actorName: row.actorLabel,
+		actorName: row.source === 'SYSTEM' ? 'Sistema' : row.actorLabel ?? 'Autor no registrado',
 		fromLabel: row.fromLabel,
 		toLabel: row.toLabel,
 	}))
 
 	const ingress: LeadTimelineEntry[] = ingressRows.map((row) => {
-		const advisor = row.linker ?? row.lead.user ?? row.relatedLead.user
+		const actor = row.linker
 		return {
+			...(options.visibleLeadIds ? { idLead: row.idLead, captureName: row.lead?.capture?.name ?? null } : {}),
 			kind: 'lead_ingress',
 			idLeadLink: row.idLeadLink,
 			occurredAt: row.linkedAt,
-			actorName: advisor ? [advisor.name, advisor.lastName].filter(Boolean).join(' ') : null,
+			actorName: row.source === 'AUTO' ? 'Sistema' : actor ? [actor.name, actor.lastName].filter(Boolean).join(' ') : 'Autor no registrado',
 			originName: row.clientOrigin?.name ?? 'Sin origen',
 			incomingLeadName: leadDisplayName({ idLead: row.idLead, ...row.lead }),
 			relatedLeadName: leadDisplayName({ idLead: row.idRelatedLead, ...row.relatedLead }),

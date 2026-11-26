@@ -129,6 +129,8 @@ const leadIdentitySchema = z
 		phone: optionalText(30),
 		identityNumber: optionalText(20),
 		originTag: optionalText(120),
+		idLeadCapture: z.number().int().positive().optional(),
+		referrerName: optionalText(200),
 		ownerEmail: z
 			.union([z.literal(''), z.string().trim().email().max(150)])
 			.optional(),

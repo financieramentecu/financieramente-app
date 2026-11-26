@@ -15,7 +15,8 @@ import type { LeadWritePayload } from '@/features/leads/types/crm-sync.schema'
  * empty placeholder here is inert by construction.
  */
 export function mapCsvRowToLeadPayload(row: LeadCsvRow): LeadWritePayload {
-	const originTag = row.origen && row.origen.trim() !== '' ? row.origen : undefined
+	const originTag =
+		row.origen && row.origen.trim() !== '' ? row.origen : undefined
 	const ownerEmail =
 		row.propietario_correo && row.propietario_correo.trim() !== ''
 			? row.propietario_correo
@@ -31,5 +32,7 @@ export function mapCsvRowToLeadPayload(row: LeadCsvRow): LeadWritePayload {
 		originTag,
 		ownerEmail,
 		createdAt: row.fecha_creacion,
+		...(row.id_captura === undefined ? {} : { idLeadCapture: row.id_captura }),
+		...(row.referido_por ? { referrerName: row.referido_por } : {}),
 	}
 }

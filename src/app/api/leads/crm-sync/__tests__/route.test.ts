@@ -1,3 +1,5 @@
+import { LeadPersonGroupError } from '@/features/leads/services/lead-person-group.service'
+import { LeadCaptureValidationError } from '@/features/leads/captures/lead-capture.service'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from '../route'
 import { isValidApiKey } from '@/features/leads/lib/api-key-guard'
@@ -113,7 +115,10 @@ describe('POST /api/leads/crm-sync', () => {
 		vi.mocked(isValidApiKey).mockReturnValue(true)
 
 		const response = await POST(
-			buildRequest({ externalCrmId: 'crm-1', statusKey: 'new' }, { 'x-api-key': 'valid' })
+			buildRequest(
+				{ externalCrmId: 'crm-1', statusKey: 'new' },
+				{ 'x-api-key': 'valid' }
+			)
 		)
 		expect(response.status).toBe(400)
 		expect(upsertLeadFromCrm).not.toHaveBeenCalled()
@@ -129,7 +134,11 @@ describe('POST /api/leads/crm-sync', () => {
 
 		const response = await POST(
 			buildRequest(
-				{ externalCrmId: 'crm-1', statusKey: 'new', ownerEmail: 'asesor@example.com' },
+				{
+					externalCrmId: 'crm-1',
+					statusKey: 'new',
+					ownerEmail: 'asesor@example.com',
+				},
 				{ 'x-api-key': 'valid' }
 			)
 		)
@@ -150,7 +159,11 @@ describe('POST /api/leads/crm-sync', () => {
 
 		const response = await POST(
 			buildRequest(
-				{ externalCrmId: 'crm-1', statusKey: 'new', ownerEmail: 'asesor@example.com' },
+				{
+					externalCrmId: 'crm-1',
+					statusKey: 'new',
+					ownerEmail: 'asesor@example.com',
+				},
 				{ 'x-api-key': 'valid' }
 			)
 		)
@@ -192,7 +205,11 @@ describe('POST /api/leads/crm-sync', () => {
 
 		const response = await POST(
 			buildRequest(
-				{ externalCrmId: 'crm-1', statusKey: 'new', ownerEmail: 'asesor@example.com' },
+				{
+					externalCrmId: 'crm-1',
+					statusKey: 'new',
+					ownerEmail: 'asesor@example.com',
+				},
 				{ 'x-api-key': 'valid' },
 				'http://localhost:3000/api/leads/crm-sync?utm_source=Money%20Map'
 			)
@@ -218,7 +235,12 @@ describe('POST /api/leads/crm-sync', () => {
 					submissionId: 'cdt:77ab',
 					submittedAt: '2026-11-18T14:02:00-05:00',
 					landing: { key: 'cdt', name: 'CDT', version: '1' },
-					lead: { statusKey: 'nuevo', name: 'Luis', email: 'luis@correo.com', ownerEmail: 'asesor@financieramente.com' },
+					lead: {
+						statusKey: 'nuevo',
+						name: 'Luis',
+						email: 'luis@correo.com',
+						ownerEmail: 'asesor@financieramente.com',
+					},
 					fields: [{ key: 'monto', label: 'Valor', type: 'number', value: 0 }],
 				},
 				{ 'x-api-key': 'valid' }
@@ -250,7 +272,12 @@ describe('POST /api/leads/crm-sync', () => {
 					submissionId: 'cdt:77ab',
 					submittedAt: '2026-11-18T14:02:00-05:00',
 					landing: { key: 'cdt', name: 'CDT', version: '1' },
-					lead: { statusKey: 'nuevo', name: 'Luis', email: 'luis@correo.com', ownerEmail: 'asesor@financieramente.com' },
+					lead: {
+						statusKey: 'nuevo',
+						name: 'Luis',
+						email: 'luis@correo.com',
+						ownerEmail: 'asesor@financieramente.com',
+					},
 					fields: [{ key: 'monto', label: 'Valor', type: 'number', value: 0 }],
 				},
 				{ 'x-api-key': 'valid' },
@@ -288,12 +315,16 @@ describe('POST /api/leads/crm-sync', () => {
 	})
 })
 
-
 it('rejects a partial form instead of silently running the flat sync', async () => {
 	vi.clearAllMocks()
 	vi.mocked(isValidApiKey).mockReturnValue(true)
 	vi.mocked(checkRateLimit).mockReturnValue({ allowed: true })
-	const response = await POST(buildRequest({ externalCrmId: 'crm-1', statusKey: 'new', submissionId: 'partial' }, { 'x-api-key': 'valid' }))
+	const response = await POST(
+		buildRequest(
+			{ externalCrmId: 'crm-1', statusKey: 'new', submissionId: 'partial' },
+			{ 'x-api-key': 'valid' }
+		)
+	)
 	expect(response.status).toBe(400)
 	expect(upsertLeadFromCrm).not.toHaveBeenCalled()
 	expect(ingestLeadFormSubmission).not.toHaveBeenCalled()
@@ -303,18 +334,60 @@ it('returns 409 for the same ambiguous identity rejected by form-submissions', a
 	vi.clearAllMocks()
 	vi.mocked(isValidApiKey).mockReturnValue(true)
 	vi.mocked(checkRateLimit).mockReturnValue({ allowed: true })
-	vi.mocked(ingestLeadFormSubmission).mockRejectedValueOnce(new LeadFormSubmissionError('AMBIGUOUS_LEAD', 'Documento ambiguo'))
-	const response = await POST(buildRequest({ submissionId: 'ambiguous', submittedAt: '2026-11-18T14:02:00-05:00', landing: {key: 'cdt', name: 'CDT', version: '1'}, lead: {statusKey: 'new', email: 'ana@example.com'}, fields: [] }, { 'x-api-key': 'valid' }))
+	vi.mocked(ingestLeadFormSubmission).mockRejectedValueOnce(
+		new LeadFormSubmissionError('AMBIGUOUS_LEAD', 'Documento ambiguo')
+	)
+	const response = await POST(
+		buildRequest(
+			{
+				submissionId: 'ambiguous',
+				submittedAt: '2026-11-18T14:02:00-05:00',
+				landing: { key: 'cdt', name: 'CDT', version: '1' },
+				lead: { statusKey: 'new', email: 'ana@example.com' },
+				fields: [],
+			},
+			{ 'x-api-key': 'valid' }
+		)
+	)
 	expect(response.status).toBe(409)
 	expect(upsertLeadFromCrm).not.toHaveBeenCalled()
 })
 
-it.each([401, 429])('does not audit or ingest rejected traffic (%s)', async (status) => {
-	vi.clearAllMocks()
-	vi.mocked(isValidApiKey).mockReturnValue(status !== 401)
-	vi.mocked(checkRateLimit).mockReturnValue({ allowed: status !== 429 })
-	const response = await POST(buildRequest({}, { 'x-api-key': 'test' }))
-	expect(response.status).toBe(status)
-	expect(logAuditEvent).not.toHaveBeenCalled()
-	expect(ingestLeadFormSubmission).not.toHaveBeenCalled()
+it.each([401, 429])(
+	'does not audit or ingest rejected traffic (%s)',
+	async (status) => {
+		vi.clearAllMocks()
+		vi.mocked(isValidApiKey).mockReturnValue(status !== 401)
+		vi.mocked(checkRateLimit).mockReturnValue({ allowed: status !== 429 })
+		const response = await POST(buildRequest({}, { 'x-api-key': 'test' }))
+		expect(response.status).toBe(status)
+		expect(logAuditEvent).not.toHaveBeenCalled()
+		expect(ingestLeadFormSubmission).not.toHaveBeenCalled()
+	}
+)
+
+describe('CRM person conflict responses', () => {
+	it.each([new LeadPersonGroupError(), new LeadCaptureValidationError()])(
+		'returns a generic 409 for %s',
+		async (error) => {
+			vi.mocked(isValidApiKey).mockReturnValue(true)
+			vi.mocked(checkRateLimit).mockReturnValue({ allowed: true })
+			vi.mocked(upsertLeadFromCrm).mockRejectedValueOnce(error)
+			const response = await POST(
+				buildRequest(
+					{
+						externalCrmId: 'x',
+						statusKey: 'new',
+						ownerEmail: 'missing@example.com',
+					},
+					{ 'x-api-key': 'valid' }
+				)
+			)
+			expect(response.status).toBe(409)
+			expect(await response.json()).toEqual({
+				data: null,
+				error: error.message,
+			})
+		}
+	)
 })

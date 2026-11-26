@@ -194,6 +194,19 @@ Public to n8n. Authenticates with the same `x-api-key` as `POST /api/leads/crm-s
 | `/api/health`             | System health check.   |
 | `/api/email/send`         | Send generic email.    |
 
+### 6b. Native pipeline leads
+
+| Method | Endpoint | Description |
+| :----- | :------- | :---------- |
+| `POST` | `/api/leads` | CRM session and `leads_module` management access. Body: required `name`, at least one of `email`, `phone`, `identityNumber`; optional `lastName` and `idUser`. Creates an `OPEN` native lead in `NUEVO_LEAD` with origin `Propio`, without an external CRM ID. Returns `ApiResponse<{ idLead, idUser }>` with 201. |
+| `GET` | `/api/crm/advisors?assignable=true` | Management access; active advisors inside the actor's write scope. The default advisors query continues to use read scope for filters. |
+
+Omitted `idUser` assigns the authenticated creator. Only administrators/team leaders may select another owner, inside `manageableUserIds`; a company-wide read grant never widens assignment. Invalid bodies return 400, unauthorized assignment 403, unavailable origin/initial stage 409. Lead, origin pivot and manual timeline entries are atomic; the audit identifies the real creator. Repeated contacts create a distinct lead and `AUTO` links to every active lead matching any nonempty document, email or phone. Links use the real creator and `Propio` origin in the same transaction, and appear in the existing timeline from either endpoint. Existing matching leads are never overwritten or reassigned; each lead retains its authorized owner.
+
+### 6c. Pipeline association metrics
+
+The pipeline `GET /api/leads` accepts `associatedOnly=true` to return only leads in an active related group within the selected hierarchy. `GET /api/crm/reports/summary` accepts the same date, outcome, origin, owner and excluded-branch filters. Its `opportunities` counts distinct connected groups (including singletons); `associatedOpportunities` counts matching lead records belonging to groups of at least two. Both relation endpoints must be active and visible in the selected owner scope. Grouping happens before date/outcome/origin filtering, preserving visible intermediaries outside those filters. The summary ignores `associatedOnly`, keeping the card counts stable while toggling the board filter. Summary report authorization remains unchanged.
+
 ### 7. CRM task notices
 
 | Method | Endpoint | Description |

@@ -10,7 +10,10 @@ import {
 	toCrmRequestContext,
 } from '@/lib/auth/require-crm-actor'
 import { relateLeadSchema } from '@/features/leads/lib/relate-lead.schema'
-import { relateLead, type RelateLeadResult } from '@/features/leads/services/relate-lead.service'
+import {
+	relateLead,
+	type RelateLeadResult,
+} from '@/features/leads/services/relate-lead.service'
 
 interface RouteContext {
 	params: Promise<{ id: string }>
@@ -29,19 +32,26 @@ export async function POST(request: Request, context: RouteContext) {
 		const idLead = parsePositiveId((await context.params).id)
 		if (!idLead) return error('Identificador de lead inválido', 400)
 		const input = relateLeadSchema.safeParse(await readJsonBody(request))
-		if (!input.success) return error(input.error.issues[0]?.message ?? 'Datos inválidos', 400)
-		if (!(await findScopedLead(guard.actor, idLead))) return error('Lead no encontrado', 404)
-		if (!(await findScopedLead(guard.actor, input.data.idRelatedLead))) {
+		if (!input.success)
+			return error(input.error.issues[0]?.message ?? 'Datos inválidos', 400)
+		if (!(await findScopedLead(guard.actor, idLead, 'write')))
+			return error('Lead no encontrado', 404)
+		if (
+			!(await findScopedLead(guard.actor, input.data.idRelatedLead, 'write'))
+		) {
 			return error('Lead no encontrado', 404)
 		}
 		const result = await relateLead(
 			idLead,
 			input.data.idRelatedLead,
 			input.data.idClientOrigin ?? null,
-			toCrmRequestContext(guard.actor, request)
+			toCrmRequestContext(guard.actor, request),
+			guard.actor.manageableUserIds
 		)
-		if (!result.ok) return error(result.error, 400)
-		return NextResponse.json({ data: result } satisfies ApiResponse<RelatedLead>)
+		if (!result.ok) return error(result.error, result.status ?? 400)
+		return NextResponse.json({
+			data: result,
+		} satisfies ApiResponse<RelatedLead>)
 	} catch (cause) {
 		console.error('Error relating leads:', cause)
 		return error('No fue posible relacionar el lead', 500)

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { LEAD_CSV_HEADERS, buildLeadCsvTemplate } from '@/features/leads/lib/lead-csv-template'
+import {
+	LEAD_CSV_HEADERS,
+	LEAD_CSV_FULL_HEADERS,
+	buildLeadCsvTemplate,
+} from '@/features/leads/lib/lead-csv-template'
 
 describe('LEAD_CSV_HEADERS', () => {
 	it('has exactly the 11 headers in the fixed order, propietario_nombre last', () => {
@@ -24,6 +28,6 @@ describe('buildLeadCsvTemplate', () => {
 		const template = buildLeadCsvTemplate()
 		const lines = template.split('\n').filter((line) => line.length > 0)
 		expect(lines).toHaveLength(1)
-		expect(lines[0]).toBe(LEAD_CSV_HEADERS.join(','))
+		expect(lines[0]).toBe(LEAD_CSV_FULL_HEADERS.join(','))
 	})
 })

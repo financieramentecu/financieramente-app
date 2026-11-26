@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import { CreateLeadDialog } from '@/features/leads/components/create-lead-dialog'
 import { RefreshCw } from 'lucide-react'
 import {
 	DndContext,
@@ -53,23 +54,16 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 	const { enabled: reportsEnabled } = useFeatureFlag('crm_reports')
 	const hierarchy = useCrmHierarchyFilter()
 	const [filters, setFilters] = useState(getDefaultLeadBoardFilters())
-	const origins = useLeadOriginOptions()
-	const excludeKey = hierarchy.excludedOwnerIds.join(',')
-	useEffect(() => {
-		if (!hierarchy.ready) return
-		setFilters((current) =>
-			current.excludedOwnerIds.join(',') === excludeKey &&
-			current.ownerIds.length === 0
-				? current
-				: {
-						...current,
-						ownerIds: [],
-						excludedOwnerIds: hierarchy.excludedOwnerIds,
-					}
-		)
-	}, [hierarchy.ready, hierarchy.excludedOwnerIds, excludeKey])
+	const [creationRevision, setCreationRevision] = useState(0)
+	const [summaryRevision, setSummaryRevision] = useState(0)
+	const origins = useLeadOriginOptions(creationRevision)
+	const scopedFilters = {
+		...filters,
+		ownerIds: [],
+		excludedOwnerIds: hierarchy.excludedOwnerIds,
+	}
 	const { state, refetch, updateColumns } = useLeadsBoard(
-		filters,
+		scopedFilters,
 		!hierarchy.ready || hierarchy.noneSelected
 	)
 	const isRefreshing = state.status === 'loading'
@@ -80,15 +74,26 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
 	)
 
-	function handleLeadDeleted() {
-		sheet.setOpen(false)
+	function refreshPipeline() {
 		refetch()
+		setSummaryRevision((value) => value + 1)
 	}
 
-	function handleOwnerAssigned(owner: { idUser: number; ownerName: string; assignedLeadIds?: number[] }) {
+	function handleLeadDeleted() {
+		sheet.setOpen(false)
+		refreshPipeline()
+	}
+
+	function handleOwnerAssigned(owner: {
+		idUser: number
+		ownerName: string
+		assignedLeadIds?: number[]
+	}) {
 		const idLead = sheet.lead?.idLead
 		sheet.patchLead(owner)
-		const ids = new Set(owner.assignedLeadIds ?? (idLead == null ? [] : [idLead]))
+		const ids = new Set(
+			owner.assignedLeadIds ?? (idLead == null ? [] : [idLead])
+		)
 		if (ids.size === 0) return
 		updateColumns((columns) =>
 			columns.map((column) => ({
@@ -100,6 +105,7 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 				),
 			}))
 		)
+		refreshPipeline()
 	}
 
 	function handleDragStart(event: DragStartEvent) {
@@ -168,85 +174,107 @@ export function LeadsBoard({ canMove = true }: { canMove?: boolean }) {
 		<div className="space-y-4">
 			<div className="flex flex-wrap items-end justify-between gap-3">
 				<LeadsBoardFilters
-					value={filters}
+					value={scopedFilters}
 					origins={origins}
 					onChange={setFilters}
 				/>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={refetch}
-					disabled={isRefreshing}
-					aria-label="Actualizar tablero de leads"
-				>
-					<RefreshCw
-						className={cn('size-4', isRefreshing && 'animate-spin')}
-						aria-hidden
-					/>
-					Actualizar
-				</Button>
+				<div className="ml-3 flex items-center gap-2">
+					{canMove ? (
+						<CreateLeadDialog
+							onCreated={() => {
+								setCreationRevision((value) => value + 1)
+								refreshPipeline()
+								toast.success('Lead creado')
+							}}
+						/>
+					) : null}
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={refreshPipeline}
+						disabled={
+							isRefreshing || !hierarchy.ready || hierarchy.noneSelected
+						}
+						aria-label="Actualizar tablero de leads"
+					>
+						<RefreshCw
+							className={cn('size-4', isRefreshing && 'animate-spin')}
+							aria-hidden
+						/>
+						Actualizar
+					</Button>
+				</div>
 			</div>
-			<CrmSummaryCards enabled={reportsEnabled} />
+			<CrmSummaryCards
+				enabled={reportsEnabled}
+				paused={!hierarchy.ready || hierarchy.noneSelected}
+				filters={scopedFilters}
+				refreshKey={summaryRevision}
+				onAssociatedOnlyChange={(associatedOnly) =>
+					setFilters((current) => ({ ...current, associatedOnly }))
+				}
+			/>
 			{hierarchy.noneSelected ? (
 				<p className="text-sm text-muted-foreground">
 					{CRM_HIERARCHY_EMPTY_MESSAGE}
 				</p>
 			) : (
 				<>
-			{(state.status === 'loading' || state.status === 'idle') && (
-				<div className="flex gap-4 overflow-x-auto pb-4">
-					{Array.from({ length: 4 }).map((_, index) => (
-						<LeadFunnelColumnSkeleton key={index} />
-					))}
-				</div>
-			)}
-			{state.status === 'error' && (
-				<p className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-					{state.error}
-				</p>
-			)}
-			{state.status === 'success' && canMove && (
-				<DndContext
-					sensors={sensors}
-					collisionDetection={kanbanCollision}
-					onDragStart={handleDragStart}
-					onDragCancel={finishDrag}
-					onDragEnd={(event) => void handleDragEnd(event)}
-				>
-					<div className="flex gap-4 overflow-x-auto pb-4">
-						{state.data.map((column) => (
-							<LeadBoardColumn
-								key={column.idLeadFunnelColumn}
-								column={column}
-								onLeadClick={openLead}
-							/>
-						))}
-					</div>
-					<DragOverlay dropAnimation={null}>
-						{draggingLead ? (
-							<div className="w-72 cursor-grabbing">
-								<LeadCard lead={draggingLead} />
+					{(state.status === 'loading' || state.status === 'idle') && (
+						<div className="flex gap-4 overflow-x-auto pb-4">
+							{Array.from({ length: 4 }).map((_, index) => (
+								<LeadFunnelColumnSkeleton key={index} />
+							))}
+						</div>
+					)}
+					{state.status === 'error' && (
+						<p className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+							{state.error}
+						</p>
+					)}
+					{state.status === 'success' && canMove && (
+						<DndContext
+							sensors={sensors}
+							collisionDetection={kanbanCollision}
+							onDragStart={handleDragStart}
+							onDragCancel={finishDrag}
+							onDragEnd={(event) => void handleDragEnd(event)}
+						>
+							<div className="flex gap-4 overflow-x-auto pb-4">
+								{state.data.map((column) => (
+									<LeadBoardColumn
+										key={column.idLeadFunnelColumn}
+										column={column}
+										onLeadClick={openLead}
+									/>
+								))}
 							</div>
-						) : null}
-					</DragOverlay>
-				</DndContext>
-			)}
-			{state.status === 'success' && !canMove && (
-				<div className="flex gap-4 overflow-x-auto pb-4">
-					{state.data.map((column) => (
-						<LeadBoardColumn
-							key={column.idLeadFunnelColumn}
-							column={column}
-							onLeadClick={openLead}
-							movable={false}
-						/>
-					))}
-				</div>
-			)}
+							<DragOverlay dropAnimation={null}>
+								{draggingLead ? (
+									<div className="w-72 cursor-grabbing">
+										<LeadCard lead={draggingLead} />
+									</div>
+								) : null}
+							</DragOverlay>
+						</DndContext>
+					)}
+					{state.status === 'success' && !canMove && (
+						<div className="flex gap-4 overflow-x-auto pb-4">
+							{state.data.map((column) => (
+								<LeadBoardColumn
+									key={column.idLeadFunnelColumn}
+									column={column}
+									onLeadClick={openLead}
+									movable={false}
+								/>
+							))}
+						</div>
+					)}
 				</>
 			)}
 			<CrmLeadDetailSheet
 				lead={sheet.lead}
+				onSelectLead={sheet.openLead}
 				open={sheet.open}
 				onOpenChange={sheet.setOpen}
 				onDeleted={handleLeadDeleted}

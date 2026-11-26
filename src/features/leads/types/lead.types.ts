@@ -1,3 +1,4 @@
+import type { LeadCaptureOption } from '@/features/leads/captures/lead-capture.types'
 import type { Lead, LeadFunnelColumn, LeadOutcomeStatus } from '@prisma/client'
 import type { LeadFormSubmissionView } from '@/features/leads/types/form-submission.types'
 import type { LeadTagChip } from '@/features/leads/table/lead-table.types'
@@ -34,7 +35,24 @@ export interface LeadBoardColumn {
 /**
  * Minimal projection of a `Lead` rendered on a Kanban card.
  */
-export interface LeadCard {
+export interface LeadCaptureRecord {
+	idLead: number
+	capture: LeadCaptureOption | null
+	referrerName: string | null
+	originTag: string | null
+	idLeadFunnelColumn: number
+	outcomeStatus: LeadOutcomeStatus
+	createdAt: string
+}
+export interface LeadPersonFields {
+	firstOriginTag?: string | null
+	firstReferrerName?: string | null
+	capture?: LeadCaptureOption | null
+	referrerName?: string | null
+	personKey?: number
+	captures?: LeadCaptureRecord[]
+}
+export interface LeadCard extends LeadPersonFields {
 	idLead: number
 	name: string | null
 	lastName: string | null
@@ -55,7 +73,7 @@ export interface LeadCard {
 /**
  * Full detail projection of a `Lead`, including conversion state.
  */
-export interface LeadDetail {
+export interface LeadDetail extends LeadPersonFields {
 	idLead: number
 	externalCrmId: string | null
 	name: string | null
