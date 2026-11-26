@@ -103,6 +103,17 @@ describe('presignPutUrl', () => {
     expect(typeof url).toBe('string')
     expect(url.length).toBeGreaterThan(0)
   })
+
+  it('signs the exact content length when a size is provided', async () => {
+    const { PutObjectCommand } = await import('@aws-sdk/client-s3')
+    const { presignPutUrl } = await getModule()
+
+    await presignPutUrl('some/key.jpg', 'image/jpeg', 4096)
+
+    expect(PutObjectCommand).toHaveBeenLastCalledWith(
+      expect.objectContaining({ ContentLength: 4096 }),
+    )
+  })
 })
 
 describe('presignGetUrl', () => {

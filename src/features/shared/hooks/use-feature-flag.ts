@@ -1,5 +1,6 @@
 'use client'
-import { useFlags } from '@flagsmith/flagsmith/react'
+
+import { isFlagEnabled } from '@/features/shared/lib/feature-flag'
 import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
 
 export interface FeatureFlagResult {
@@ -8,7 +9,5 @@ export interface FeatureFlagResult {
 }
 
 export function useFeatureFlag(flag: FeatureFlag): FeatureFlagResult {
-	const flags = useFlags([flag])
-	const entry = flags[flag]
-	return { enabled: entry?.enabled ?? false, value: entry?.value ?? null }
+	return { enabled: isFlagEnabled(flag), value: null }
 }

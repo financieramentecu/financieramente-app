@@ -1,4 +1,8 @@
+import type { LeadCaptureOption } from '@/features/leads/captures/lead-capture.types'
 import type { Lead, LeadFunnelColumn, LeadOutcomeStatus } from '@prisma/client'
+import type { LeadFormSubmissionView } from '@/features/leads/types/form-submission.types'
+import type { LeadTagChip } from '@/features/leads/table/lead-table.types'
+import type { LeadRelationSummary } from '@/features/leads/types/lead-link.types'
 
 /**
  * Domain types for the Leads feature.
@@ -31,7 +35,24 @@ export interface LeadBoardColumn {
 /**
  * Minimal projection of a `Lead` rendered on a Kanban card.
  */
-export interface LeadCard {
+export interface LeadCaptureRecord {
+	idLead: number
+	capture: LeadCaptureOption | null
+	referrerName: string | null
+	originTag: string | null
+	idLeadFunnelColumn: number
+	outcomeStatus: LeadOutcomeStatus
+	createdAt: string
+}
+export interface LeadPersonFields {
+	firstOriginTag?: string | null
+	firstReferrerName?: string | null
+	capture?: LeadCaptureOption | null
+	referrerName?: string | null
+	personKey?: number
+	captures?: LeadCaptureRecord[]
+}
+export interface LeadCard extends LeadPersonFields {
 	idLead: number
 	name: string | null
 	lastName: string | null
@@ -42,12 +63,17 @@ export interface LeadCard {
 	ownerName: string | null
 	outcomeStatus: LeadOutcomeStatus
 	idBusiness: number | null
+	/** Idle days when the open lead passed `CRM_INACTIVITY_DAYS`, else null. */
+	inactiveDays: number | null
+	/** CRM-owned: active tags and expected value (decimal string). */
+	tags: LeadTagChip[]
+	estimatedValue: string | null
 }
 
 /**
  * Full detail projection of a `Lead`, including conversion state.
  */
-export interface LeadDetail {
+export interface LeadDetail extends LeadPersonFields {
 	idLead: number
 	externalCrmId: string | null
 	name: string | null
@@ -64,6 +90,16 @@ export interface LeadDetail {
 	outcomeStatus: LeadOutcomeStatus
 	createdAt: Date
 	updatedAt: Date
+	/** Landing snapshots, newest first. Absent on callers that only need contact fields. */
+	formSubmissions?: LeadFormSubmissionView[]
+	/** Idle days when the open lead passed `CRM_INACTIVITY_DAYS`, else null. */
+	inactiveDays: number | null
+	/** CRM-owned data (never written by a landing form). */
+	tags: LeadTagChip[]
+	estimatedValue: string | null
+	probability: number | null
+	/** Other leads of the same person. Empty when this card is not linked. */
+	relations: LeadRelationSummary[]
 }
 
 /**

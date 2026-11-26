@@ -30,7 +30,6 @@ import {
 import { User, Mail, LogOut } from 'lucide-react'
 import { ThemeToggle } from '@/features/shared/ui/theme-toggle'
 import { HeaderImpersonationSelect } from './HeaderImpersonationSelect'
-import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import { NotificationBell } from '@/features/shared/components/notifications/NotificationBell'
 import { BrandLogo } from '@/features/shared/ui/brand-logo'
 
@@ -49,9 +48,6 @@ export function SiteHeader({
 	breadcrumbs = [],
 }: SiteHeaderProps) {
 	const { user } = useAuthSession()
-	const { enabled: impersonationEnabled } = useFeatureFlag(
-		'impersonation_select'
-	)
 	const { state, isMobile } = useSidebar()
 	const showHeaderLogo = isMobile || state === 'collapsed'
 
@@ -98,11 +94,9 @@ export function SiteHeader({
 					{title}
 				</h1>
 				<div className="ml-auto flex items-center gap-2">
-					{impersonationEnabled && (
-						<div className="hidden sm:block">
-							<HeaderImpersonationSelect />
-						</div>
-					)}
+					<div className="hidden sm:block">
+						<HeaderImpersonationSelect />
+					</div>
 					<NotificationBell />
 					<ThemeToggle className="h-9 w-9 rounded-lg border-primary/40 px-0 text-primary hover:bg-primary/10 hover:text-primary" />
 					{user && (

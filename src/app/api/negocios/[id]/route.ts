@@ -28,6 +28,11 @@ import {
 	resolveBusinessScope,
 } from '@/features/negocios/services/business-access.service'
 import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
+import {
+	buildBusinessValueChangeAudit,
+	businessValuesDiffer,
+	canEditBusinessValue,
+} from '@/features/negocios/lib/business-value-change'
 
 import {
 	UserRole,
@@ -270,6 +275,22 @@ export async function PUT(
 			)
 		}
 
+		// VENTA_EFECTUADA still lets the owner edit the rest of the draft, but
+		// Valor de Negocio is reserved for support, operations, and admin.
+		if (
+			!canEditBusinessValue(currentUser.role?.code) &&
+			value !== undefined &&
+			businessValuesDiffer(existingBusiness.value, value)
+		) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: 'No tienes permisos para editar el Valor de Negocio',
+				},
+				{ status: 403 }
+			)
+		}
+
 		// A PARTNER can never hand their business over to another owner
 		if (idUser !== undefined && currentUser.role?.code === UserRole.PARTNER) {
 			return NextResponse.json(
@@ -494,7 +515,7 @@ export async function PUT(
 				currency: idCurrency !== undefined ? { connect: { idCurrency } } : undefined,
 				buyPeriodicity: idBuyPeriodicity !== undefined ? { connect: { idBuyPeriodicity } } : undefined,
 				term: term !== undefined ? term : undefined,
-				value: value !== undefined ? value : undefined,
+				value: canEditBusinessValue(currentUser.role?.code) ? value : undefined,
 				status: newStatus,
 				productPercentageCommission: { connect: { idProductPercentageCommission: finalIdPpc } },
 				numAportes: finalNumAportes,
@@ -579,13 +600,17 @@ export async function PUT(
 		}
 
 		// C. Auditoría
-		await logAuditEvent({
+		const auditContext = {
 			userId: currentUser.idUser,
 			roleId: currentUser.idRole ?? undefined,
-			action: AuditAction.BUSINESS_UPDATED,
 			email: session.user.email,
 			ipAddress: getClientIp(new Headers(request.headers)),
 			userAgent: getUserAgent(new Headers(request.headers)),
+		}
+
+		await logAuditEvent({
+			...auditContext,
+			action: AuditAction.BUSINESS_UPDATED,
 			details: JSON.stringify({
 				businessId,
 				previousStatus: existingBusiness.status,
@@ -594,6 +619,27 @@ export async function PUT(
 				wasPrivileged: isPrivileged,
 			}),
 		})
+
+		if (
+			isAnalista &&
+			value !== undefined &&
+			businessValuesDiffer(existingBusiness.value, value)
+		) {
+			await logAuditEvent({
+				...auditContext,
+				action: AuditAction.BUSINESS_VALUE_CHANGED,
+				details: JSON.stringify(
+					buildBusinessValueChangeAudit({
+						businessId,
+						userId: currentUser.idUser,
+						email: session.user.email ?? '',
+						previousValue: existingBusiness.value,
+						newValue: value,
+						changedAt: new Date(),
+					})
+				),
+			})
+		}
 
 		const entity = prismaBusinessToEntity(updatedBusiness)
 		return NextResponse.json({ data: entity })

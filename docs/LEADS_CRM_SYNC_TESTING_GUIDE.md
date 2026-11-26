@@ -70,7 +70,8 @@ Fuente: `src/features/leads/types/crm-sync.schema.ts`.
 | `email` | No | string vacío o email válido | Ídem. |
 | `phone` | No | string | Ídem. |
 | `identityNumber` | No | string | Cédula — normalmente no llega en el sync inicial. |
-| `originTag` | No | string | Etiqueta informativa del pipeline de origen. |
+| `originTag` | No | string | Texto libre legado. Si llega `utm_source`, el nombre del catálogo pisa este campo. |
+| `utm_source` | No | string | **Parámetro que n8n debe reenviar.** Es el query param de la landing (`?utm_source=`). Se acepta en el JSON o como query de este mismo `POST`. Se normaliza a `client_origin.code` (`Money Map`, `money-map` y `money_map` son el mismo origen). Si el código no existe, se crea el catálogo y se etiqueta el lead por la pivote `lead_client_origin`. Un origen con `status = false` no se reactiva y no rechaza el webhook. |
 | `externalUrl` | No | string vacío o URL válida | Habilita el botón "Ver en CRM" en el detalle. |
 | `ownerEmail` | No | string vacío o email válido | Se resuelve contra `User.email` → `Lead.ownerId` (match **case-insensitive** + trim, ej. `Agente@Dominio.com` matchea igual que `agente@dominio.com`). Siempre reasigna si viene presente y distinto (no hay "owner fijo"). Si no matchea ningún usuario activo, el lead queda sin dueño (`ownerId` null) y solo lo ven roles admin. |
 | `outcomeStatus` | No, pero **recomendado enviarlo siempre** | string, se normaliza a mayúsculas | Debe resolver a `OPEN`/`WON`/`LOST`/`ABANDONED`. Valor no reconocido → cae a `OPEN`, responde 200 igual, audit log `LEAD_OUTCOME_STATUS_UNRESOLVED`. **`WON` es terminal**: una vez que el lead ya está en `WON`, ningún webhook posterior puede cambiarlo (el resto de los campos sí se siguen actualizando); el intento queda registrado como `LEAD_OUTCOME_STATUS_LOCKED`. |
@@ -78,6 +79,18 @@ Fuente: `src/features/leads/types/crm-sync.schema.ts`.
 Semántica general: **upsert por `externalCrmId`** con **partial merge** — un campo opcional ausente o vacío nunca borra un valor ya guardado. El webhook nunca se rechaza por datos de negocio desconocidos (`statusKey`/`outcomeStatus`/`ownerEmail` sin match); solo se rechaza por API key inválida (401), rate limit excedido (429) o payload inválido (400, ej. `externalCrmId`/`statusKey` faltantes, o un email/URL mal formado).
 
 > **Recomendación para la configuración de n8n**: aunque `outcomeStatus` es técnicamente opcional (si falta, se preserva el valor ya guardado), configurá el workflow para que lo mande **en todas las llamadas**, no solo cuando cambia. Así el payload siempre refleja el estado real actual del lead en el CRM, sin depender de que el workflow "recuerde" cuándo omitirlo. Ver el ejemplo de progresión completa abajo.
+
+## 3b. Formulario de landing (mismo `POST /api/leads/crm-sync`)
+
+Si el JSON trae algún marcador de formulario (`submissionId`, `landing` o `fields`), se exige el contrato completo el webhook guarda la foto del formulario en lugar del upsert por `externalCrmId`. La ficha fija del CRM (etiquetas, valor, probabilidad, tareas, casos) no se usa para esas respuestas.
+
+n8n hace un solo POST. Un `submissionId` repetido responde 200 con el mismo `idLead` y no escribe otra foto. Si el contrato no valida, responde 400 y no guarda nada.
+
+`utm_source` va en la raíz del JSON, o como `?utm_source=` en la misma URL. Es el origen de la landing (`Money Map`, `money-map` y `money_map` son el mismo). Si el código no existe, se crea y se enlaza por `lead_client_origin`. En un prospecto nuevo, el nombre del catálogo queda como etiqueta. En uno que ya existe, solo se suma el origen: no se reescribe la ficha.
+
+`lead.statusKey` sigue el catálogo de la sección 2. Para caer en Lead Nuevo hay que enviar `NUEVO_LEAD`. El ejemplo `nuevo` no coincide con esa clave y queda en "Sin mapear".
+
+`0` y `No` se conservan. n8n debe enviar `null` para una respuesta vacía y el detalle muestra **Sin información**. Las cadenas vacías se rechazan; el texto `null` es texto literal.
 
 ## 4. Curl de prueba
 
@@ -94,7 +107,7 @@ curl -X POST http://localhost:3000/api/leads/crm-sync \
     "lastName": "Gonzalez",
     "email": "maria.gonzalez@example.com",
     "phone": "3011234567",
-    "originTag": "Asesorías Estratégicas de Cortesía",
+    "utm_source": "Money Map",
     "ownerEmail": "un-usuario-real@tudominio.com",
     "outcomeStatus": "OPEN"
   }'
@@ -231,3 +244,32 @@ Repetir la misma llamada más de ~120 veces en menos de un minuto con la misma A
 - Contrato del payload: `src/features/leads/types/crm-sync.schema.ts`
 - Lógica de resolución de outcome: `src/features/leads/lib/lead-outcome-status.ts`
 - Lógica de upsert/sync: `src/features/leads/services/lead-sync.service.ts`
+
+
+## Formularios de landing: dependencia de #423
+
+#423 define el contrato, la tabla y el detalle del formulario. #424 agrega `utm_source`
+y permite enviar ese mismo contrato a `POST /api/leads/crm-sync`; el endpoint
+`POST /api/leads/form-submissions` sigue disponible. Ambos llaman al mismo servicio,
+comparten `submissionId` e idempotencia y no crean dos fotos si se reintenta por otra ruta.
+El webhook plano de GHL conserva su contrato con `externalCrmId` y `statusKey`.
+
+- Usar únicamente `20261118150000_add_lead_form_submission`: la columna es `form_version`.
+- #424 añade `20261119141100_add_lead_origin`; no vuelve a crear `lead_form_submission`.
+- `submissionId` admite hasta 150 caracteres; hace falta documento, correo o teléfono.
+- Campos vacíos se mandan como `null`; `0` y `No` se conservan. Se admiten hasta 80 campos.
+- `utm_source` es opcional. En `crm-sync` puede llegar en JSON o query string.
+- Foto, prospecto nuevo y asociación del origen se guardan en una transacción.
+- Una identidad ambigua responde 409 sin guardar foto; un contrato inválido responde 400.
+- Los rechazos 401 y 429 no escriben auditoría ni prospectos.
+
+Orden de revisión e integración: **#423 → #424**. La migración alternativa
+`20261119145000_add_lead_form_submission` fue retirada de #424 antes de integrarlo.
+Si alguien la aplicó manualmente en una base existente, revisar su historial antes de
+usar `migrate deploy`: no marcar migraciones como aplicadas ni borrar tablas para forzarlo.
+
+## CSV: captación y referido opcionales
+
+La plantilla añade `id_captura,referido_por` después de las 11 columnas históricas. Se aceptan archivos con exactamente las 11 columnas anteriores o las 13 nuevas, en su orden original. Las celdas vacías no borran atribución existente. `id_captura` debe ser un entero positivo de una captación activa; `referido_por` admite hasta 200 caracteres. Una oportunidad ya atribuida a una captación no puede cambiarse a otra mediante reintento: use otro `id_externo_crm` para la nueva oportunidad.
+
+Cada fila se confirma en una transacción independiente: un error revierte esa fila y se informa en el resumen, conservando las filas válidas. Todos los contactos coincidentes y sus relaciones se verifican con el alcance de escritura real del importador antes de vincular o propagar propietario. Un propietario resuelto por correo/nombre se propaga; un propietario ausente o sin coincidencia hereda el único conocido. Conflictos sin propietario explícito se rechazan. La importación no cancela captaciones ni administra sesiones.

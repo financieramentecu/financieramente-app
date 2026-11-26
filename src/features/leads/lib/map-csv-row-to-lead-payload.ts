@@ -1,5 +1,5 @@
 import type { LeadCsvRow } from '@/features/leads/types/lead-csv-import.schema'
-import type { CrmSyncPayload } from '@/features/leads/types/crm-sync.schema'
+import type { LeadWritePayload } from '@/features/leads/types/crm-sync.schema'
 
 /**
  * Maps a validated `LeadCsvRow` to the `CrmSyncPayload` shape consumed
@@ -14,8 +14,9 @@ import type { CrmSyncPayload } from '@/features/leads/types/crm-sync.schema'
  * payload is built, and `buildLeadUpsertData` never reads `.statusKey`. The
  * empty placeholder here is inert by construction.
  */
-export function mapCsvRowToLeadPayload(row: LeadCsvRow): CrmSyncPayload {
-	const originTag = row.origen && row.origen.trim() !== '' ? row.origen : undefined
+export function mapCsvRowToLeadPayload(row: LeadCsvRow): LeadWritePayload {
+	const originTag =
+		row.origen && row.origen.trim() !== '' ? row.origen : undefined
 	const ownerEmail =
 		row.propietario_correo && row.propietario_correo.trim() !== ''
 			? row.propietario_correo
@@ -31,5 +32,7 @@ export function mapCsvRowToLeadPayload(row: LeadCsvRow): CrmSyncPayload {
 		originTag,
 		ownerEmail,
 		createdAt: row.fecha_creacion,
+		...(row.id_captura === undefined ? {} : { idLeadCapture: row.id_captura }),
+		...(row.referido_por ? { referrerName: row.referido_por } : {}),
 	}
 }

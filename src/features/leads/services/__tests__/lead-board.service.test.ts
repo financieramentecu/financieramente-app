@@ -1,10 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { getLeadAssociationGraph } from '@/features/leads/services/lead-associations.service'
 import { UserRole } from '@/features/auth/lib/roles'
 import {
 	getLeadBoard,
 	getLeadDetail,
 } from '@/features/leads/services/lead-board.service'
+
+vi.mock('../lead-associations.service', () => ({
+	getLeadAssociationGraph: vi
+		.fn()
+		.mockResolvedValue({ leadIds: [10, 11], links: [] }),
+}))
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
@@ -21,14 +29,110 @@ vi.mock('@/lib/prisma', () => ({
 describe('getLeadBoard', () => {
 	beforeEach(() => vi.clearAllMocks())
 
+	it('uses full visible group attribution while retaining only filtered selectable captures in one batch', async () => {
+		vi.mocked(getLeadAssociationGraph).mockResolvedValueOnce({
+			leadIds: [10, 11],
+			links: [{ idLead: 10, idRelatedLead: 11 }],
+		})
+		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([
+			{ idLeadFunnelColumn: 2, name: 'Nuevo', position: 1, isFallback: false },
+		] as never)
+		vi.mocked(prisma.lead.findMany)
+			.mockResolvedValueOnce([
+				{
+					idLead: 11,
+					idLeadFunnelColumn: 2,
+					name: 'Ana',
+					createdAt: new Date('2026-02-01'),
+					lastActivityAt: new Date(),
+					outcomeStatus: 'OPEN',
+					originTag: 'Later',
+					referrerName: 'Later referrer',
+					capture: { idLeadCapture: 2, name: 'Higher', level: 2, status: true },
+					leadClientOrigins: [],
+					tagAssignments: [],
+					user: null,
+					estimatedValue: null,
+				},
+			] as never)
+			.mockResolvedValueOnce([
+				{
+					idLead: 10,
+					createdAt: new Date('2026-01-01'),
+					referrerName: 'First referrer',
+					leadClientOrigins: [
+						{
+							firstSeenAt: new Date('2026-01-01'),
+							clientOrigin: { name: 'First source' },
+						},
+					],
+				},
+			] as never)
+		const board = await getLeadBoard(
+			{ idUser: 5, role: { code: UserRole.AGENTE } },
+			{ visibleUserIds: [5], outcomeStatuses: ['OPEN'] }
+		)
+		expect(board[0].leads[0]).toMatchObject({
+			idLead: 11,
+			firstOriginTag: 'First source',
+			firstReferrerName: 'First referrer',
+			captures: [{ idLead: 11 }],
+		})
+		expect(prisma.lead.findMany).toHaveBeenCalledTimes(2)
+		const contextWhere = vi.mocked(prisma.lead.findMany).mock.calls[1][0]?.where
+		expect(contextWhere).toMatchObject({
+			AND: [expect.anything(), { idLead: { in: [10] } }],
+		})
+		expect(JSON.stringify(contextWhere)).toContain('"idUser":{"in":[5]}')
+		expect(JSON.stringify(contextWhere)).not.toContain('"outcomeStatus"')
+	})
 	it('groups leads by column server-side', async () => {
 		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([
-			{ idLeadFunnelColumn: 1, name: 'Sin mapear', position: 0, isFallback: true },
+			{
+				idLeadFunnelColumn: 1,
+				name: 'Sin mapear',
+				position: 0,
+				isFallback: true,
+			},
 			{ idLeadFunnelColumn: 2, name: 'Nuevo', position: 1, isFallback: false },
 		] as never)
 		vi.mocked(prisma.lead.findMany).mockResolvedValue([
-			{ idLead: 10, idLeadFunnelColumn: 2, idUser: 5, name: 'A', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', idBusiness: 77, user: { name: 'Ana', lastName: 'Torres' } },
-			{ idLead: 11, idLeadFunnelColumn: 1, idUser: 5, name: 'B', lastName: null, email: null, phone: null, originTag: null, outcomeStatus: 'OPEN', idBusiness: null, user: null },
+			{
+				idLead: 10,
+				idLeadFunnelColumn: 2,
+				idUser: 5,
+				name: 'A',
+				lastName: null,
+				email: null,
+				phone: null,
+				originTag: null,
+				outcomeStatus: 'OPEN',
+				idBusiness: 77,
+				lastActivityAt: new Date(),
+				createdAt: new Date('2026-01-01T00:00:00Z'),
+				estimatedValue: null,
+				formSubmissions: [],
+				tagAssignments: [],
+				user: { name: 'Ana', lastName: 'Torres' },
+			},
+			{
+				idLead: 11,
+				idLeadFunnelColumn: 1,
+				idUser: 5,
+				name: 'B',
+				lastName: null,
+				email: null,
+				phone: null,
+				originTag: null,
+				outcomeStatus: 'OPEN',
+				idBusiness: null,
+				lastActivityAt: null,
+				createdAt: new Date('2026-01-01T00:00:00Z'),
+				estimatedValue: null,
+				formSubmissions: [],
+				tagAssignments: [],
+				user: null,
+			},
 		] as never)
 
 		const board = await getLeadBoard(
@@ -46,6 +150,8 @@ describe('getLeadBoard', () => {
 		const sinMapearColumn = board.find((c) => c.idLeadFunnelColumn === 1)
 		expect(sinMapearColumn?.leads[0].ownerName).toBeNull()
 		expect(sinMapearColumn?.leads[0].idBusiness).toBeNull()
+		expect(nuevoColumn?.leads[0].inactiveDays).toBeNull()
+		expect(sinMapearColumn?.leads[0].inactiveDays).toBeGreaterThan(7)
 	})
 
 	it('selects idBusiness in a single query (no extra query per card)', async () => {
@@ -63,7 +169,12 @@ describe('getLeadBoard', () => {
 
 	it('excludes owner-less leads for non-bypass roles', async () => {
 		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([
-			{ idLeadFunnelColumn: 1, name: 'Sin mapear', position: 0, isFallback: true },
+			{
+				idLeadFunnelColumn: 1,
+				name: 'Sin mapear',
+				position: 0,
+				isFallback: true,
+			},
 		] as never)
 		vi.mocked(prisma.lead.findMany).mockResolvedValue([])
 
@@ -111,5 +222,80 @@ describe('getLeadDetail', () => {
 		)
 
 		expect(result).toBeNull()
+	})
+
+	it('maps CRM tags and estimated value on the detail', async () => {
+		vi.mocked(prisma.lead.findFirst).mockResolvedValue({
+			idLead: 10,
+			externalCrmId: null,
+			name: 'A',
+			lastName: null,
+			email: null,
+			phone: null,
+			identityNumber: null,
+			originTag: null,
+			externalUrl: null,
+			idUser: 5,
+			outcomeStatus: 'OPEN',
+			idLeadFunnelColumn: 2,
+			idBusiness: null,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+			lastActivityAt: new Date(),
+			estimatedValue: new Prisma.Decimal('2500000'),
+			probability: 30,
+			user: null,
+			formSubmissions: [],
+			tagAssignments: [{ tag: { idLeadTag: 1, name: 'VIP', color: '#f00' } }],
+		} as never)
+		const detail = await getLeadDetail(
+			10,
+			{ idUser: 5, role: { code: UserRole.AGENTE } },
+			{ visibleUserIds: [5] }
+		)
+		expect(detail).toMatchObject({
+			tags: [{ idLeadTag: 1, name: 'VIP', color: '#f00' }],
+			estimatedValue: '2500000',
+			probability: 30,
+		})
+		expect(
+			JSON.stringify(vi.mocked(prisma.lead.findFirst).mock.calls[0][0])
+		).toContain('"tagAssignments"')
+	})
+})
+
+describe('getLeadBoard CRM data', () => {
+	it('maps tags and estimated value on cards', async () => {
+		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([
+			{ idLeadFunnelColumn: 2, name: 'Nuevo', position: 1, isFallback: false },
+		] as never)
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([
+			{
+				idLead: 10,
+				idLeadFunnelColumn: 2,
+				idUser: 5,
+				name: 'A',
+				lastName: null,
+				email: null,
+				phone: null,
+				originTag: null,
+				outcomeStatus: 'OPEN',
+				idBusiness: null,
+				lastActivityAt: new Date(),
+				createdAt: new Date(),
+				estimatedValue: null,
+				user: null,
+				formSubmissions: [],
+				tagAssignments: [{ tag: { idLeadTag: 1, name: 'VIP', color: '#f00' } }],
+			},
+		] as never)
+		const [column] = await getLeadBoard({
+			idUser: 5,
+			role: { code: UserRole.ADMIN },
+		})
+		expect(column.leads[0]).toMatchObject({
+			tags: [{ idLeadTag: 1, name: 'VIP', color: '#f00' }],
+			estimatedValue: null,
+		})
 	})
 })

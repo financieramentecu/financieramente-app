@@ -16,6 +16,7 @@ export const updateUserSchema = (
 			categoryId: z.number().int().positive().nullable().optional(),
 			levelId: z.number().int().positive().nullable().optional(),
 			leaderId: z.number().int().positive().nullable().optional(),
+			canViewOthersCrm: z.boolean().optional(),
 		})
 		.refine(
 			(data) => {

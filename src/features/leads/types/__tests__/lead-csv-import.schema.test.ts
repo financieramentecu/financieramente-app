@@ -18,6 +18,24 @@ function validRawRow(overrides: Record<string, string> = {}) {
 }
 
 describe('leadCsvRowSchema', () => {
+	it('validates optional capture identifiers and referrer length', () => {
+		expect(
+			leadCsvRowSchema.safeParse(
+				validRawRow({ id_captura: '2', referido_por: 'Ana' })
+			)
+		).toMatchObject({
+			success: true,
+			data: { id_captura: 2, referido_por: 'Ana' },
+		})
+		for (const id of ['0', '-1', '1.2', 'bad', '9007199254740993'])
+			expect(
+				leadCsvRowSchema.safeParse(validRawRow({ id_captura: id })).success
+			).toBe(false)
+		expect(
+			leadCsvRowSchema.safeParse(validRawRow({ referido_por: 'x'.repeat(201) }))
+				.success
+		).toBe(false)
+	})
 	it('parses a fully valid row', () => {
 		const result = leadCsvRowSchema.safeParse(validRawRow())
 		expect(result.success).toBe(true)
@@ -31,7 +49,9 @@ describe('leadCsvRowSchema', () => {
 	})
 
 	it('rejects a naive (offset-less) fecha_creacion', () => {
-		const result = leadCsvRowSchema.safeParse(validRawRow({ fecha_creacion: '2023-01-15' }))
+		const result = leadCsvRowSchema.safeParse(
+			validRawRow({ fecha_creacion: '2023-01-15' })
+		)
 		expect(result.success).toBe(false)
 	})
 
@@ -43,7 +63,9 @@ describe('leadCsvRowSchema', () => {
 	})
 
 	it('rejects a missing id_externo_crm', () => {
-		const result = leadCsvRowSchema.safeParse(validRawRow({ id_externo_crm: '' }))
+		const result = leadCsvRowSchema.safeParse(
+			validRawRow({ id_externo_crm: '' })
+		)
 		expect(result.success).toBe(false)
 	})
 
@@ -52,11 +74,15 @@ describe('leadCsvRowSchema', () => {
 			validRawRow({ propietario_nombre: 'Yohan España' })
 		)
 		expect(result.success).toBe(true)
-		expect(result.success && result.data.propietario_nombre).toBe('Yohan España')
+		expect(result.success && result.data.propietario_nombre).toBe(
+			'Yohan España'
+		)
 	})
 
 	it('accepts an empty propietario_nombre as omit-preserve', () => {
-		const result = leadCsvRowSchema.safeParse(validRawRow({ propietario_nombre: '' }))
+		const result = leadCsvRowSchema.safeParse(
+			validRawRow({ propietario_nombre: '' })
+		)
 		expect(result.success).toBe(true)
 		expect(result.success && result.data.propietario_nombre).toBe('')
 	})

@@ -143,6 +143,70 @@ describe('useBusinessPermissions — COM-63 client fields', () => {
 		})
 	})
 
+	it('keeps Valor de Negocio locked for Coach on a draft sale', () => {
+		for (const businessStatus of ['VENTA_EFECTUADA', 'EMITIDO', 'FONDEADO', null]) {
+			const { result } = renderHook(() =>
+				useBusinessPermissions({
+					mode: 'edit',
+					currentUser: userWithRole('AGENTE'),
+					businessStatus,
+				})
+			)
+
+			expect(result.current.getFieldPermission('value')).toEqual({
+				readonly: true,
+				disabled: true,
+				hidden: false,
+			})
+		}
+	})
+
+	it('still lets Coach edit the other financial fields of a draft sale', () => {
+		const { result } = renderHook(() =>
+			useBusinessPermissions({
+				mode: 'edit',
+				currentUser: userWithRole('AGENTE'),
+				businessStatus: 'VENTA_EFECTUADA',
+			})
+		)
+
+		for (const field of ['company', 'producto', 'terms', 'currency', 'periodicity'] as const) {
+			expect(result.current.getFieldPermission(field).disabled).toBe(false)
+		}
+	})
+
+	it('permite al Analista de Soporte editar el valor en cualquier estado operativo', () => {
+		for (const businessStatus of ['VENTA_EFECTUADA', 'EMITIDO', 'FONDEADO']) {
+			const { result } = renderHook(() =>
+				useBusinessPermissions({
+					mode: 'edit',
+					currentUser: userWithRole('ANALISTA_SOPORTE'),
+					businessStatus,
+				})
+			)
+
+			expect(result.current.getFieldPermission('value')).toEqual({
+				readonly: false,
+				disabled: false,
+				hidden: false,
+			})
+		}
+	})
+
+	it('mantiene bloqueados plazo y periodicidad de un negocio FONDEADO para el Analista de Soporte', () => {
+		const { result } = renderHook(() =>
+			useBusinessPermissions({
+				mode: 'edit',
+				currentUser: userWithRole('ANALISTA_SOPORTE'),
+				businessStatus: 'FONDEADO',
+			})
+		)
+
+		expect(result.current.getFieldPermission('terms').disabled).toBe(true)
+		expect(result.current.getFieldPermission('periodicity').disabled).toBe(true)
+		expect(result.current.getFieldPermission('value').disabled).toBe(false)
+	})
+
 	it('mantiene bloqueada la información del cliente para Analista de Soporte', () => {
 		const { result } = renderHook(() =>
 			useBusinessPermissions({

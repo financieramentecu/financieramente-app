@@ -245,14 +245,51 @@ describe('PUT /api/negocios/[id] on a PARTNER_EXTERNAL business', () => {
 			expect(mockTxUpdate).not.toHaveBeenCalled()
 		})
 
-		it('non-product edits (value, term) keep the PPC and never recalculate', async () => {
+		it('term edits with the unchanged value keep the PPC and never recalculate', async () => {
 			setup(PARTNER, partnerBusiness(mockPrismaBusinessVentaEfectuada))
 
-			const res = await put({ value: 2_000_000, term: 3 })
+			const res = await put({
+				value: Number(mockPrismaBusinessVentaEfectuada.value),
+				term: 3,
+			})
 
 			expect(res.status).toBe(200)
 			expect(findProductPercentageCommission).not.toHaveBeenCalled()
 			expect(recalcularComisionesPorCambioOrigen).not.toHaveBeenCalled()
+		})
+
+		it('PARTNER cannot change the business value, even with another draft edit', async () => {
+			setup(PARTNER, partnerBusiness(mockPrismaBusinessVentaEfectuada))
+
+			const res = await put({ value: 2_000_000, term: 3 })
+
+			expect(res.status).toBe(403)
+			expect((await res.json()).error).toContain('Valor de Negocio')
+			expect(mockTxUpdate).not.toHaveBeenCalled()
+			expect(logAuditEvent).not.toHaveBeenCalled()
+			expect(findProductPercentageCommission).not.toHaveBeenCalled()
+			expect(recalcularComisionesPorCambioOrigen).not.toHaveBeenCalled()
+		})
+
+		it('does not overwrite a concurrent authorized value change when PARTNER sends the old value', async () => {
+			const initialValue = Number(mockPrismaBusinessVentaEfectuada.value)
+			const concurrentValue = initialValue + 1000
+			setup(PARTNER, partnerBusiness(mockPrismaBusinessVentaEfectuada))
+			let persistedValue = initialValue
+			vi.mocked(prisma.$transaction).mockImplementationOnce(async (callback: any) => {
+				persistedValue = concurrentValue
+				return callback({ business: { update: mockTxUpdate } })
+			})
+			mockTxUpdate.mockImplementationOnce(async ({ data }: any) => {
+				if (data.value !== undefined) persistedValue = data.value
+				return { idBusiness: 10, status: 'VENTA_EFECTUADA', value: persistedValue }
+			})
+
+			const res = await put({ value: initialValue })
+
+			expect(res.status).toBe(200)
+			expect(persistedValue).toBe(concurrentValue)
+			expect(mockTxUpdate.mock.calls[0][0].data.value).toBeUndefined()
 		})
 
 		it('PARTNER cannot reassign the business owner', async () => {

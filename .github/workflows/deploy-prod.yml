@@ -52,8 +52,6 @@ jobs:
             NEXT_PUBLIC_API_URL=https://negocios.financieramentecu.co
             NEXT_TELEMETRY_DISABLED=1
             AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET_PROD }}
-            FLAGSMITH_SERVER_KEY=${{ secrets.FLAGSMITH_SERVER_KEY_PROD }}
-            NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY=${{ secrets.FLAGSMITH_CLIENT_KEY_PROD }}
             SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
             NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN_PROD }}
             SENTRY_PROJECT=financieramente-prod
@@ -153,8 +151,6 @@ jobs:
           DO_SPACES_ENDPOINT=${{ secrets.DO_SPACES_ENDPOINT }}
           DO_SPACES_BUCKET=${{ secrets.DO_SPACES_BUCKET }}
           DO_SPACES_PREFIX=prod
-          NEXT_PUBLIC_FLAGSMITH_CLIENT_KEY=${{ secrets.FLAGSMITH_CLIENT_KEY_PROD }}
-          FLAGSMITH_SERVER_KEY=${{ secrets.FLAGSMITH_SERVER_KEY_PROD }}
           NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN_PROD }}
           SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           CRON_SECRET=${{ secrets.CRON_SECRET_PROD }}
@@ -273,6 +269,16 @@ jobs:
           # Ensure fund-payments cron (idempotent, daily at 06:00 UTC = 01:00 Bogotá)
           (crontab -l 2>/dev/null | grep -v 'fund-payments' || true
            echo "0 6 * * * curl -s -X POST https://negocios.financieramentecu.co/api/negocios/cron/fund-payments -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_PROD }}' >> /var/log/financieramente/fund-payments.log 2>&1") | crontab -
+
+          # Scheduled CRM notifications require separate activation from feature availability.
+          # Drop lines a previous deploy of this branch may have added, and keep every other job.
+          current_crontab="$(crontab -l 2>/dev/null || true)"
+          if printf '%s\n' "$current_crontab" | grep -Eq 'crm-task-reminders|crm-task-digest'; then
+            filtered_crontab="$(printf '%s\n' "$current_crontab" | grep -Ev 'crm-task-reminders|crm-task-digest' || true)"
+            if [ -n "$filtered_crontab" ]; then
+              printf '%s\n' "$filtered_crontab" | crontab -
+            fi
+          fi
 
           # Wait for services to be ready
           echo "Waiting for services to start..."

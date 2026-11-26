@@ -487,3 +487,14 @@ ingesta del webhook (401 en cada request) sin afectar los leads ya
 almacenados ni el resto del sistema — ver Rollback Plan en
 `openspec/changes/leads-crm-sync/proposal.md`.
 
+## CRM_INACTIVITY_DAYS (crm-phase-1-activities)
+
+Opcional. Días sin actividad tras los cuales un lead **abierto** muestra el aviso "Sin actividad · N días" en el tablero y en la ficha. Entero positivo; si falta o no es válido se usa **7**. Se lee solo en el servidor (`resolveInactivityThreshold()` en `src/features/leads/lib/inactivity-days.ts`), así que no necesita prefijo `NEXT_PUBLIC_`. Para cambiarlo en QA o producción hay que añadirlo al `.env` del droplet y al bloque `environment:` del servicio `nextjs` en `docker/docker-compose.{qa,prod}.yml`.
+
+## CRON_SECRET — crons del CRM
+
+Además de `fund-payments`, el mismo `CRON_SECRET` protege `POST /api/leads/cron/task-reminders` (cada 15 min: aviso in-app de las tareas que vencen hoy y de las que entran en los días de anticipación guardados en `crm_notification_setting`) y `POST /api/leads/cron/task-digest` (12:00 UTC = 07:00 Bogotá: un correo al asesor por las tareas abiertas que ya vencieron; no incluye las de hoy ni las próximas). Esos endpoints no revisan los flags `crm_*`: si se programan, envían notificaciones y correos aunque el CRM esté apagado. Los workflows no instalan esos crons automáticamente; habilitar las pestañas en QA no activa los envíos programados. En desarrollo, al arrancar `next dev` el proceso de avisos in-app corre solo y se repite cada 15 minutos; el correo del resumen solo sale por el crontab.
+
+## Disponibilidad del CRM
+
+Las funciones incluidas en la versión desplegada están disponibles en desarrollo, QA y producción, sin banderas ni parámetros adicionales por entorno. La promoción habitual de QA a producción incorpora el CRM automáticamente; los roles, permisos de reportes y ámbitos de acceso a registros siguen siendo obligatorios. `NEXT_PUBLIC_APP_ENV`, `LOCAL_CRM_FEATURE_FLAGS` y `FLAGSMITH_SERVER_KEY` no controlan la disponibilidad: la integración con Flagsmith fue retirada.

@@ -39,7 +39,6 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	novedadResolvedAt: null,
 	_count: { payments: 0, supports: 0, comments: 0 },
 	payments: [],
-	supports: [],
 	policyholder: null,
 	client: {
 		idClient: 1,
@@ -88,6 +87,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 		idUserLeader: null,
 		entryDate: baseDate,
 		retirementDate: null,
+		canViewOthersCrm: false,
 		active: true,
 		createdAt: baseDate,
 		updatedAt: baseDate,
@@ -163,6 +163,7 @@ export const mockPrismaBusiness: PrismaBusinessWithRelations = {
 	clientOrigin: {
 		idClientOrigin: 1,
 		name: 'Referido',
+		code: null,
 		description: 'Cliente referido por otro cliente',
 		status: true,
 		createdAt: baseDate,

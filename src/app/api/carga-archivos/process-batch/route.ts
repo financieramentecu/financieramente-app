@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
+import { exceedsProcessBatchLimits } from '@/features/load-file/lib/process-batch-limits'
 import { processBatchService } from '@/features/load-file/services/process-batch.service'
 import type {
 	ProcessBatchRequest,
@@ -19,6 +20,16 @@ export async function POST(request: NextRequest) {
 		}
 
 		const body: ProcessBatchRequest = await request.json()
+
+		if (exceedsProcessBatchLimits(body)) {
+			return NextResponse.json(
+				{
+					data: null,
+					error: 'El lote excede el tamaño máximo permitido',
+				} satisfies ApiResponse<null>,
+				{ status: 413 }
+			)
+		}
 
 		const auditContext = {
 			userId: Number(session.user.id),

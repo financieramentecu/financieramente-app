@@ -178,6 +178,14 @@ Public routes (no session). They are rate limited per IP and never reveal whethe
 
 Any token problem answers 400 `Enlace inválido o vencido`; rate limiting answers 429 with `Retry-After`. The pages `/activate-account` and `/reset-password` validate the link on the server (no GET preview, the token never goes in an API query string). Rate-limit keys use the trusted client IP (`getTrustedClientIp`: `x-real-ip`, else the LAST `x-forwarded-for` hop).
 
+### 5c. Landing form submissions (`/api/leads/form-submissions`)
+
+Public to n8n. Authenticates with the same `x-api-key` as `POST /api/leads/crm-sync`. One JSON body creates or matches a lead and stores the form snapshot in the same transaction. Missing/invalid keys return 401 without database writes or audit rows. Authenticated traffic passes the existing rate limit before parsing or auditing; requests over the limit return 429 without database writes or audit rows. An invalid body within the authenticated limit returns 400 with a rejection audit only, without a lead or snapshot. The same `submissionId` returns 200 without a second snapshot.
+
+| Method | Endpoint | Description |
+| :----- | :------- | :---------- |
+| `POST` | `/api/leads/form-submissions` | Body: `submissionId`, `submittedAt`, `landing`, `lead`, `fields`. |
+
 ### 6. System & Utility
 
 | Endpoint                  | Description            |
@@ -185,6 +193,28 @@ Any token problem answers 400 `Enlace inválido o vencido`; rate limiting answer
 | `/api/auth/[...nextauth]` | NextAuth.js endpoints. |
 | `/api/health`             | System health check.   |
 | `/api/email/send`         | Send generic email.    |
+
+### 6b. Native pipeline leads
+
+| Method | Endpoint | Description |
+| :----- | :------- | :---------- |
+| `POST` | `/api/leads` | CRM session and `leads_module` management access. Body: required `name`, at least one of `email`, `phone`, `identityNumber`; optional `lastName` and `idUser`. Creates an `OPEN` native lead in `NUEVO_LEAD` with origin `Propio`, without an external CRM ID. Returns `ApiResponse<{ idLead, idUser }>` with 201. |
+| `GET` | `/api/crm/advisors?assignable=true` | Management access; active advisors inside the actor's write scope. The default advisors query continues to use read scope for filters. |
+
+Omitted `idUser` assigns the authenticated creator. Only administrators/team leaders may select another owner, inside `manageableUserIds`; a company-wide read grant never widens assignment. Invalid bodies return 400, unauthorized assignment 403, unavailable origin/initial stage 409. Lead, origin pivot and manual timeline entries are atomic; the audit identifies the real creator. Repeated contacts create a distinct lead and `AUTO` links to every active lead matching any nonempty document, email or phone. Links use the real creator and `Propio` origin in the same transaction, and appear in the existing timeline from either endpoint. Existing matching leads are never overwritten or reassigned; each lead retains its authorized owner.
+
+### 6c. Pipeline association metrics
+
+The pipeline `GET /api/leads` accepts `associatedOnly=true` to return only leads in an active related group within the selected hierarchy. `GET /api/crm/reports/summary` accepts the same date, outcome, origin, owner and excluded-branch filters. Its `opportunities` counts distinct connected groups (including singletons); `associatedOpportunities` counts matching lead records belonging to groups of at least two. Both relation endpoints must be active and visible in the selected owner scope. Grouping happens before date/outcome/origin filtering, preserving visible intermediaries outside those filters. The summary ignores `associatedOnly`, keeping the card counts stable while toggling the board filter. Summary report authorization remains unchanged.
+
+### 7. CRM task notices
+
+| Method | Endpoint | Description |
+| :----- | :------- | :---------- |
+| `GET` | `/api/crm/notification-settings` | Anticipation days for upcoming task notices. CRM managers, flag `crm_tasks`. |
+| `PUT` | `/api/crm/notification-settings` | Body `{ anticipationDays }` integer 0–30. Same guard. |
+| `POST` | `/api/leads/cron/task-reminders` | Every 15 min. In-app notices for tasks due today and inside the anticipation window. Bearer `CRON_SECRET`. |
+| `POST` | `/api/leads/cron/task-digest` | 07:00 Bogotá. Email to the assignee for open overdue tasks only. Bearer `CRON_SECRET`. |
 
 ## Development Guidelines
 

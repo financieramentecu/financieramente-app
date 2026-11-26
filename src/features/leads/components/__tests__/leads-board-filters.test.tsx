@@ -8,19 +8,19 @@ describe('LeadsBoardFilters', () => {
 		const defaults = getDefaultLeadBoardFilters()
 		const onChange = vi.fn()
 
-		render(<LeadsBoardFilters value={defaults} onChange={onChange} />)
+		render(<LeadsBoardFilters value={defaults} origins={[]} onChange={onChange} />)
 
-		// MultiSelect trigger shows the single selected label
 		expect(screen.getByText('Abierto')).toBeInTheDocument()
+		expect(screen.getByRole('combobox', { name: 'Origen del lead' })).toBeInTheDocument()
 	})
 
 	it('calling onChange with an additional outcomeStatus keeps existing selections (additive OR)', () => {
 		const defaults = getDefaultLeadBoardFilters()
 		const onChange = vi.fn()
 
-		render(<LeadsBoardFilters value={defaults} onChange={onChange} />)
+		render(<LeadsBoardFilters value={defaults} origins={[]} onChange={onChange} />)
 
-		fireEvent.click(screen.getByRole('combobox'))
+		fireEvent.click(screen.getByRole('combobox', { name: 'Estado del lead' }))
 		fireEvent.click(screen.getByRole('option', { name: 'Ganado' }))
 
 		expect(onChange).toHaveBeenCalledWith(
@@ -34,9 +34,9 @@ describe('LeadsBoardFilters', () => {
 		const defaults = getDefaultLeadBoardFilters()
 		const onChange = vi.fn()
 
-		render(<LeadsBoardFilters value={defaults} onChange={onChange} />)
+		render(<LeadsBoardFilters value={defaults} origins={[]} onChange={onChange} />)
 
-		fireEvent.click(screen.getByRole('combobox'))
+		fireEvent.click(screen.getByRole('combobox', { name: 'Estado del lead' }))
 		fireEvent.click(screen.getByRole('option', { name: 'Abierto' }))
 
 		expect(onChange).toHaveBeenCalledWith(
@@ -48,10 +48,31 @@ describe('LeadsBoardFilters', () => {
 		const defaults = getDefaultLeadBoardFilters()
 		const onChange = vi.fn()
 
-		render(<LeadsBoardFilters value={defaults} onChange={onChange} />)
+		render(<LeadsBoardFilters value={defaults} origins={[]} onChange={onChange} />)
 
-		expect(
-			screen.getByText(/\d{2}\/\d{2}\/\d{4}/)
-		).toBeInTheDocument()
+		expect(screen.getByText(/\d{2}\/\d{2}\/\d{4}/)).toBeInTheDocument()
+	})
+
+	it('selecting an origin keeps the rest of the filters and stores its client_origin id', () => {
+		const defaults = getDefaultLeadBoardFilters()
+		const onChange = vi.fn()
+
+		render(
+			<LeadsBoardFilters
+				value={defaults}
+				origins={[{ idClientOrigin: 4, name: 'Money Strategy' }]}
+				onChange={onChange}
+			/>
+		)
+
+		fireEvent.click(screen.getByRole('combobox', { name: 'Origen del lead' }))
+		fireEvent.click(screen.getByRole('option', { name: 'Money Strategy' }))
+
+		expect(onChange).toHaveBeenCalledWith(
+			expect.objectContaining({
+				originIds: [4],
+				outcomeStatuses: defaults.outcomeStatuses,
+			})
+		)
 	})
 })

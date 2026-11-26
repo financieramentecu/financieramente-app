@@ -3,6 +3,7 @@ import { POST } from '../route'
 import { NextResponse } from 'next/server'
 
 vi.mock('@/auth')
+vi.mock('@/lib/auth/require-role', () => ({ requireRole: vi.fn() }))
 vi.mock('@/features/commission-discounts/services/commission-discount.service', () => ({
 	findDiscountById: vi.fn(),
 	inactivateDiscount: vi.fn(),
@@ -24,14 +25,29 @@ vi.mock('next/server', () => ({
 	},
 }))
 
-import { auth } from '@/auth'
+import { requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import {
 	findDiscountById,
 	inactivateDiscount,
 } from '@/features/commission-discounts/services/commission-discount.service'
 import { NextResponse as NextResponseType } from 'next/server'
 
-const mockAuth = vi.mocked(auth)
+const mockRequireRole = vi.mocked(requireRole)
+
+function allowAdmin() {
+	mockRequireRole.mockResolvedValue({
+		ok: true,
+		session: { user: { id: '1', email: 'admin@test.com', role: UserRole.ADMIN } },
+	} as never)
+}
+
+function denyWith(status: number) {
+	mockRequireRole.mockResolvedValue({
+		ok: false,
+		response: { status, json: () => Promise.resolve({ error: 'denied' }) },
+	} as never)
+}
 const mockFindDiscountById = vi.mocked(findDiscountById)
 const mockInactivateDiscount = vi.mocked(inactivateDiscount)
 const mockNextResponseJson = vi.mocked(NextResponse.json)
@@ -47,15 +63,37 @@ beforeEach(() => {
 const params = { params: Promise.resolve({ id: '1' }) }
 
 describe('POST /api/admin/discounts/[id]/inactivate', () => {
+	it('only allows the ADMIN role', async () => {
+		allowAdmin()
+		mockFindDiscountById.mockResolvedValue({ id: 1, status: 'ACTIVE' } as never)
+		mockInactivateDiscount.mockResolvedValue({ id: 1, status: 'INACTIVE' } as never)
+		await POST(
+			new Request('http://localhost/api/admin/discounts/1/inactivate', { method: 'POST' }),
+			params
+		)
+		expect(mockRequireRole).toHaveBeenCalledWith([UserRole.ADMIN])
+	})
+
+	it('returns 403 and inactivates nothing for a non-admin role', async () => {
+		denyWith(403)
+		const response = await POST(
+			new Request('http://localhost/api/admin/discounts/1/inactivate', { method: 'POST' }),
+			params
+		)
+		expect(response.status).toBe(403)
+		expect(mockFindDiscountById).not.toHaveBeenCalled()
+		expect(mockInactivateDiscount).not.toHaveBeenCalled()
+	})
+
 	it('returns 401 when unauthenticated', async () => {
-		mockAuth.mockResolvedValue(null as never)
+		denyWith(401)
 		const request = new Request('http://localhost/api/admin/discounts/1/inactivate', { method: 'POST' })
 		const response = await POST(request, params)
 		expect(response.status).toBe(401)
 	})
 
 	it('returns 404 when discount not found', async () => {
-		mockAuth.mockResolvedValue({ user: { id: '1' } } as never)
+		allowAdmin()
 		mockFindDiscountById.mockResolvedValue(null as never)
 		const request = new Request('http://localhost/api/admin/discounts/1/inactivate', { method: 'POST' })
 		const response = await POST(request, params)
@@ -63,7 +101,7 @@ describe('POST /api/admin/discounts/[id]/inactivate', () => {
 	})
 
 	it('returns 400 when discount is already INACTIVE', async () => {
-		mockAuth.mockResolvedValue({ user: { id: '1' } } as never)
+		allowAdmin()
 		mockFindDiscountById.mockResolvedValue({ id: 1, status: 'INACTIVE' } as never)
 		const request = new Request('http://localhost/api/admin/discounts/1/inactivate', { method: 'POST' })
 		const response = await POST(request, params)
@@ -71,7 +109,7 @@ describe('POST /api/admin/discounts/[id]/inactivate', () => {
 	})
 
 	it('returns 200 with { status: INACTIVE } for ACTIVE discount', async () => {
-		mockAuth.mockResolvedValue({ user: { id: '1' } } as never)
+		allowAdmin()
 		mockFindDiscountById.mockResolvedValue({ id: 1, status: 'ACTIVE' } as never)
 		mockInactivateDiscount.mockResolvedValue({ id: 1, status: 'INACTIVE' } as never)
 		const request = new Request('http://localhost/api/admin/discounts/1/inactivate', { method: 'POST' })

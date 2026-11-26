@@ -82,7 +82,11 @@ export async function getFileImportRecords(
 	} = {}
 ): Promise<FileImportRecordsResponse | null> {
 	const fileImport = await prisma.fileImport.findFirst({
-		where: { idFileImport: fileImportId, idUser: userId },
+		where: {
+			idFileImport: fileImportId,
+			idUser: userId,
+			status: { not: 'DELETED' },
+		},
 	})
 	if (!fileImport) return null
 
@@ -158,7 +162,11 @@ export async function getFileImportSummary(
 	loadNumber?: number
 ) {
 	const fileImport = await prisma.fileImport.findFirst({
-		where: { idFileImport: fileImportId, idUser: userId },
+		where: {
+			idFileImport: fileImportId,
+			idUser: userId,
+			status: { not: 'DELETED' },
+		},
 	})
 	if (!fileImport) return null
 

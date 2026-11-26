@@ -1,10 +1,19 @@
 import type { Prisma, LeadOutcomeStatus } from '@prisma/client'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
+import { isWriteBypassRole } from '@/features/auth/lib/roles'
 
 export interface LeadListFilterInput {
 	search?: string
 	outcomeStatuses?: LeadOutcomeStatus[]
 	createdAtRange?: { gte: Date; lte: Date }
+	/** Narrows the hierarchy. Never widens it: a bypass role may use any id. */
+	ownerIds?: number[]
+	/**
+	 * Branches removed from the server scope (the unchecked person and everyone
+	 * under them). Never widens the hierarchy.
+	 */
+	excludedOwnerIds?: number[]
+	/** Active `lead_client_origin` links. Empty keeps every origin. */
+	originIds?: number[]
 }
 
 export interface BuildLeadListWhereOptions {
@@ -17,11 +26,11 @@ export interface BuildLeadListWhereOptions {
 
 /**
  * Builds the Prisma WHERE clause for the Leads board/list, mirroring
- * `buildBusinessListWhere()` with one Leads-specific rule: for non-bypass
- * roles, the `idUser` clause is `{ in: visibleUserIds }` WITHOUT an
- * `OR idUser: null` branch. A lead with no assigned owner is therefore
- * admin-only (`HIERARCHY_BYPASS_ROLES`) — deliberately never surfaced to a
- * scoped, non-bypass viewer even when their hierarchy is otherwise visible.
+ * `buildBusinessListWhere()` with one Leads-specific rule: a scoped viewer
+ * gets `{ idUser: { in: visibleUserIds } }` WITHOUT an `OR idUser: null`
+ * branch. An empty `visibleUserIds` means company-wide read (write-bypass
+ * roles, or a person granted that view). Ownerless leads stay hidden from
+ * a scoped viewer.
  */
 export function buildLeadListWhere(
 	currentUser: {
@@ -32,15 +41,24 @@ export function buildLeadListWhere(
 	options: BuildLeadListWhereOptions = {}
 ): Prisma.LeadWhereInput {
 	const whereConditions: Prisma.LeadWhereInput[] = [{ active: true }]
-
 	const roleCode = currentUser.role?.code
-	const isBypass = isHierarchyBypassRole(roleCode)
 
-	if (!isBypass) {
-		const { visibleUserIds } = options
-		// Deliberately no `OR idUser: null` branch here — owner-less leads
-		// must stay invisible to non-bypass roles per the Leads spec.
-		whereConditions.push({ idUser: { in: visibleUserIds ?? [] } })
+	const companyWide =
+		isWriteBypassRole(roleCode) ||
+		(options.visibleUserIds !== undefined && options.visibleUserIds.length === 0)
+
+	if (!companyWide) {
+		// Deliberately no `OR idUser: null` branch — ownerless leads stay
+		// hidden from a viewer limited to a branch.
+		whereConditions.push({ idUser: { in: options.visibleUserIds ?? [] } })
+	}
+
+	if (filters.ownerIds && filters.ownerIds.length > 0) {
+		whereConditions.push({ idUser: { in: filters.ownerIds } })
+	}
+
+	if (filters.excludedOwnerIds && filters.excludedOwnerIds.length > 0) {
+		whereConditions.push({ idUser: { notIn: filters.excludedOwnerIds } })
 	}
 
 	if (filters.outcomeStatuses && filters.outcomeStatuses.length > 0) {
@@ -49,6 +67,18 @@ export function buildLeadListWhere(
 
 	if (filters.createdAtRange) {
 		whereConditions.push({ createdAt: filters.createdAtRange })
+	}
+
+	if (filters.originIds && filters.originIds.length > 0) {
+		whereConditions.push({
+			leadClientOrigins: {
+				some: {
+					idClientOrigin: { in: filters.originIds },
+					active: true,
+					clientOrigin: { status: true },
+				},
+			},
+		})
 	}
 
 	return { AND: whereConditions }

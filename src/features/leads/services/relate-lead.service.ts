@@ -1,0 +1,248 @@
+import type { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { AuditAction, logAuditEvent } from '@/features/auth/lib/audit-logger'
+import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
+import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
+import { leadDisplayName } from '@/features/leads/lib/lead-display-name'
+import { assignLeadOrigin } from '@/features/leads/services/lead-origin.service'
+import {
+	collectPersonGroupIds,
+	resolvePersonGroupOwner,
+	propagatePersonGroupOwner,
+	LeadPersonGroupError,
+} from './lead-person-group.service'
+import type { LeadViewer } from '@/features/leads/types/lead.types'
+import {
+	LEAD_LINK_SIDES,
+	type LeadCandidate,
+	type LeadRelationSummary,
+} from '@/features/leads/types/lead-link.types'
+
+const LEAD_SELECT = {
+	idLead: true,
+	name: true,
+	lastName: true,
+	originTag: true,
+	idUser: true,
+	active: true,
+} satisfies Prisma.LeadSelect
+
+export type RelateLeadResult =
+	| {
+			ok: true
+			relation: LeadRelationSummary
+			idUser: number | null
+			ownerName: string | null
+	  }
+	| { ok: false; error: string; status?: number }
+
+function personName(
+	user: { name: string; lastName: string | null } | null
+): string | null {
+	if (!user) return null
+	const name = [user.name, user.lastName].filter(Boolean).join(' ').trim()
+	return name || null
+}
+
+/**
+ * Links this lead to another one of the same person.
+ * Origin is optional: when set, it is stored on the link and on the lead.
+ * Both cards keep their own row and share one advisor.
+ */
+export async function relateLead(
+	idLead: number,
+	idRelatedLead: number,
+	idClientOrigin: number | null,
+	ctx: CrmRequestContext,
+	manageableUserIds: readonly number[] = [ctx.userId]
+): Promise<RelateLeadResult> {
+	if (idLead === idRelatedLead) {
+		return { ok: false, error: 'Un lead no se puede relacionar consigo mismo' }
+	}
+
+	const [current, related, origin, existing] = await Promise.all([
+		prisma.lead.findFirst({
+			where: { idLead, active: true },
+			select: LEAD_SELECT,
+		}),
+		prisma.lead.findFirst({
+			where: { idLead: idRelatedLead, active: true },
+			select: LEAD_SELECT,
+		}),
+		idClientOrigin != null
+			? prisma.clientOrigin.findFirst({
+					where: { idClientOrigin },
+					select: { idClientOrigin: true, name: true, status: true },
+				})
+			: Promise.resolve(null),
+		prisma.leadLink.findFirst({
+			where: {
+				active: true,
+				OR: [
+					{ idLead, idRelatedLead },
+					{ idLead: idRelatedLead, idRelatedLead: idLead },
+				],
+			},
+			select: { idLeadLink: true },
+		}),
+	])
+
+	if (!current || !related) return { ok: false, error: 'Lead no encontrado' }
+	if (idClientOrigin != null) {
+		if (!origin) return { ok: false, error: 'El origen no existe' }
+		if (!origin.status) return { ok: false, error: 'El origen no está activo' }
+	}
+	if (existing) return { ok: false, error: 'Estos leads ya están relacionados' }
+
+	const seenAt = new Date()
+	let sharedAdvisor: number | null = null
+	const originIdToStore = origin?.idClientOrigin ?? null
+	const originName = origin?.name ?? 'Sin origen'
+	let linked: { idLeadLink: number; linkedAt: Date }
+	try {
+		linked = await prisma.$transaction(
+			async (tx) => {
+				const ids = await collectPersonGroupIds([idLead, idRelatedLead], tx)
+				sharedAdvisor = await resolvePersonGroupOwner(tx, ids, {
+					manageableUserIds,
+				})
+				if (sharedAdvisor == null) throw new LeadPersonGroupError()
+				await propagatePersonGroupOwner(
+					tx,
+					ids,
+					sharedAdvisor,
+					{ source: 'MANUAL', idActor: ctx.userId, actorLabel: ctx.email },
+					seenAt
+				)
+				if (originIdToStore != null) {
+					const result = await assignLeadOrigin(
+						{ idLead, idClientOrigin: originIdToStore, seenAt },
+						tx
+					)
+					const currentAtWrite = await tx.lead.findFirst({
+						where: { idLead, active: true },
+						select: { originTag: true },
+					})
+					if (!currentAtWrite) throw new LeadPersonGroupError()
+					if (!currentAtWrite.originTag)
+						await tx.lead.update({
+							where: { idLead },
+							data: { originTag: originName },
+						})
+					if (result === 'created' || result === 'reactivated')
+						await tx.leadChangeHistory.createMany({
+							data: [
+								{
+									idLead,
+									kind: 'ORIGIN',
+									source: 'MANUAL',
+									idActor: ctx.userId,
+									actorLabel: ctx.email,
+									fromLabel: null,
+									toLabel: originName,
+									changedAt: seenAt,
+								},
+							],
+						})
+				}
+				return tx.leadLink.create({
+					data: {
+						idLead,
+						idRelatedLead,
+						idClientOrigin: originIdToStore,
+						source: 'MANUAL',
+						active: true,
+						linkedAt: seenAt,
+						linkedBy: ctx.userId,
+					},
+					select: { idLeadLink: true, linkedAt: true },
+				})
+			},
+			{ isolationLevel: 'Serializable' }
+		)
+	} catch (cause) {
+		if (cause instanceof LeadPersonGroupError)
+			return { ok: false, error: cause.message, status: 409 }
+		throw cause
+	}
+
+	const owner = sharedAdvisor
+		? await prisma.user.findFirst({
+				where: { idUser: sharedAdvisor, active: true },
+				select: { name: true, lastName: true },
+			})
+		: null
+
+	await logAuditEvent({
+		action: AuditAction.LEAD_RELATED,
+		userId: ctx.userId,
+		email: ctx.email,
+		ipAddress: ctx.ipAddress,
+		userAgent: ctx.userAgent,
+		details:
+			originIdToStore != null
+				? `Lead ${idLead} relacionado con ${idRelatedLead} por el origen ${originName}`
+				: `Lead ${idLead} relacionado con ${idRelatedLead}`,
+	})
+
+	return {
+		ok: true,
+		idUser: sharedAdvisor,
+		ownerName: personName(owner),
+		relation: {
+			idLeadLink: linked.idLeadLink,
+			otherLeadId: related.idLead,
+			otherName: leadDisplayName(related),
+			originName,
+			side: LEAD_LINK_SIDES.INCOMING,
+			source: 'MANUAL',
+			linkedAt: linked.linkedAt.toISOString(),
+		},
+	}
+}
+
+/** Leads the viewer can relate, matched by name, email, phone or document. */
+export async function searchLeadCandidates(
+	viewer: LeadViewer,
+	options: { visibleUserIds?: number[] },
+	query: string,
+	excludeId: number
+): Promise<LeadCandidate[]> {
+	const term = query.trim()
+	if (term.length < 2) return []
+	const where = buildLeadListWhere(viewer, {}, options)
+	const leads = await prisma.lead.findMany({
+		where: {
+			AND: [
+				where,
+				{ idLead: { not: excludeId } },
+				{
+					OR: [
+						{ name: { contains: term, mode: 'insensitive' } },
+						{ lastName: { contains: term, mode: 'insensitive' } },
+						{ email: { contains: term, mode: 'insensitive' } },
+						{ phone: { contains: term } },
+						{ identityNumber: { contains: term } },
+					],
+				},
+			],
+		},
+		take: 8,
+		orderBy: { updatedAt: 'desc' },
+		select: {
+			idLead: true,
+			name: true,
+			lastName: true,
+			email: true,
+			phone: true,
+			originTag: true,
+		},
+	})
+	return leads.map((lead) => ({
+		idLead: lead.idLead,
+		name: leadDisplayName(lead),
+		email: lead.email,
+		phone: lead.phone,
+		originTag: lead.originTag,
+	}))
+}

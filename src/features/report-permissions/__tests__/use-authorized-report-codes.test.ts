@@ -75,4 +75,19 @@ describe('useAuthorizedReportCodes', () => {
 		})
 		expect(result.current.codes).toEqual([REPORT_CODES.ABA_MFUND])
 	})
+
+	it('does not refetch when the session refreshes with a new user object for the same user', async () => {
+		let session = { user: { id: '5', role: UserRole.AGENTE } }
+		vi.mocked(useAuthSession).mockImplementation(() => ({ session }) as never)
+		vi.mocked(fetchMyAuthorizedReports).mockResolvedValue({ codes: ['A'] })
+
+		const { rerender } = renderHook(() => useAuthorizedReportCodes())
+		await waitFor(() => expect(fetchMyAuthorizedReports).toHaveBeenCalledTimes(1))
+
+		// Same user, brand new object (what every session refetch produces).
+		session = { user: { id: '5', role: UserRole.AGENTE } }
+		rerender()
+
+		expect(fetchMyAuthorizedReports).toHaveBeenCalledTimes(1)
+	})
 })

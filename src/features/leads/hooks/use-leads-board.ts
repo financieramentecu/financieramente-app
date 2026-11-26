@@ -2,6 +2,7 @@ import * as React from 'react'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 import type { LeadBoardColumn } from '@/features/leads/types/lead.types'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
+import { serializeLeadBoardFilters } from '@/features/leads/lib/lead-board-query'
 import type { LeadBoardFilters } from '@/features/leads/lib/lead-board-filters'
 
 const initialState: AsyncState<LeadBoardColumn[]> = {
@@ -10,39 +11,27 @@ const initialState: AsyncState<LeadBoardColumn[]> = {
 	error: '',
 }
 
-function buildQueryString(filters: LeadBoardFilters | undefined): string {
-	if (!filters) return ''
-
-	const params = new URLSearchParams()
-	for (const status of filters.outcomeStatuses) {
-		params.append('outcomeStatus', status)
-	}
-	params.set('createdFrom', filters.createdAtRange.gte.toISOString().slice(0, 10))
-	params.set('createdTo', filters.createdAtRange.lte.toISOString().slice(0, 10))
-
-	return `?${params.toString()}`
-}
-
 /**
- * Fetches the read-only Leads Kanban board. Refetches whenever `filters`
- * changes (outcome-status chips / createdAt range) — omitting `filters`
- * lets the server apply `getDefaultLeadBoardFilters()`. There is no
- * real-time push for new leads (webhook-driven, no WebSocket/SSE in this
- * feature), so freshness is manual (`refetch`, wired to a button by the
- * caller) plus an automatic refetch when the tab regains focus/visibility
- * — cheap, no server load while the tab is backgrounded, unlike interval
- * polling.
+ * Fetches the Leads Kanban board. Refetches when `filters` change.
+ * Omitting `filters` lets the server apply `getDefaultLeadBoardFilters()`.
+ * Freshness is manual (`refetch`, wired to the Actualizar button). The board
+ * does not reload on window focus or when GoHighLevel syncs a lead.
+ * `paused` holds the request until the hierarchy tree has settled.
  */
-export function useLeadsBoard(filters?: LeadBoardFilters) {
-	const [state, setState] = React.useState<AsyncState<LeadBoardColumn[]>>(
-		initialState
-	)
+export function useLeadsBoard(filters?: LeadBoardFilters, paused = false) {
+	const [state, setState] =
+		React.useState<AsyncState<LeadBoardColumn[]>>(initialState)
+	const requestId = React.useRef(0)
+	const key = serializeLeadBoardFilters(filters)
 
 	const fetchBoard = React.useCallback(async () => {
+		if (paused) return
+		const currentRequest = ++requestId.current
 		setState({ status: 'loading', data: undefined, error: '' })
 		try {
-			const response = await fetch(`/api/leads${buildQueryString(filters)}`)
+			const response = await fetch(`/api/leads${key}`)
 			const body: ApiResponse<LeadBoardColumn[]> = await response.json()
+			if (currentRequest !== requestId.current) return
 
 			if ('error' in body) {
 				setState({ status: 'error', data: undefined, error: body.error })
@@ -51,33 +40,31 @@ export function useLeadsBoard(filters?: LeadBoardFilters) {
 
 			setState({ status: 'success', data: body.data, error: '' })
 		} catch {
+			if (currentRequest !== requestId.current) return
 			setState({
 				status: 'error',
 				data: undefined,
 				error: 'Error al cargar el tablero de leads',
 			})
 		}
-	}, [filters])
+	}, [key, paused])
 
 	React.useEffect(() => {
-		fetchBoard()
-	}, [fetchBoard])
-
-	React.useEffect(() => {
-		const handleFocusRefetch = () => {
-			if (document.visibilityState === 'visible') {
-				fetchBoard()
-			}
-		}
-
-		window.addEventListener('focus', handleFocusRefetch)
-		document.addEventListener('visibilitychange', handleFocusRefetch)
-
+		if (paused) return
+		void fetchBoard()
 		return () => {
-			window.removeEventListener('focus', handleFocusRefetch)
-			document.removeEventListener('visibilitychange', handleFocusRefetch)
+			requestId.current += 1
 		}
-	}, [fetchBoard])
+	}, [fetchBoard, paused])
 
-	return { state, refetch: fetchBoard }
+	function updateColumns(
+		updater: (columns: LeadBoardColumn[]) => LeadBoardColumn[]
+	) {
+		setState((current) => {
+			if (current.status !== 'success') return current
+			return { status: 'success', data: updater(current.data), error: '' }
+		})
+	}
+
+	return { state, refetch: fetchBoard, updateColumns }
 }

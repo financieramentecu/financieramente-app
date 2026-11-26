@@ -24,8 +24,17 @@ export const crmSyncPayloadSchema = z.object({
 	phone: z.string().optional(),
 	identityNumber: z.string().optional(),
 	originTag: z.string().optional(),
+	idLeadCapture: z.number().int().positive().optional(),
+	referrerName: z.string().trim().max(200).optional(),
+	/**
+	 * Landing-page query parameter forwarded by n8n.
+	 * Also accepted as `?utm_source=` on this request.
+	 * Resolved against `client_origin` and linked through the pivot.
+	 */
+	utm_source: z.string().optional(),
 	externalUrl: z.union([z.literal(''), z.string().url()]).optional(),
-	ownerEmail: z.union([z.literal(''), z.string().email()]).optional(),
+	/** Required. An unmatched value preserves the known group advisor; a new unowned group stays unassigned. */
+	ownerEmail: z.string().trim().min(1, 'ownerEmail es obligatorio'),
 	// Never a `z.enum()` — an unrecognized value MUST NOT reject the webhook
 	// (D12). The service resolves it with `resolveOutcomeStatus()`.
 	outcomeStatus: z
@@ -37,3 +46,8 @@ export const crmSyncPayloadSchema = z.object({
 })
 
 export type CrmSyncPayload = z.infer<typeof crmSyncPayloadSchema>
+
+/** Internal write shape. CSV import may omit `ownerEmail` to keep the current advisor. */
+export type LeadWritePayload = Omit<CrmSyncPayload, 'ownerEmail'> & {
+	ownerEmail?: string
+}

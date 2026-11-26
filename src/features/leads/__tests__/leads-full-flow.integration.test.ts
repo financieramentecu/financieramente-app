@@ -7,8 +7,8 @@ import { getLeadBoard } from '@/features/leads/services/lead-board.service'
 import { getLeadForConversion } from '@/features/leads/services/lead-conversion.service'
 import { deleteLead } from '@/features/leads/services/lead-admin.service'
 
-vi.mock('@/lib/prisma', () => ({
-	prisma: {
+vi.mock('@/lib/prisma', () => {
+	const db = {
 		leadFunnelColumn: {
 			findFirst: vi.fn(),
 			findMany: vi.fn(),
@@ -16,15 +16,39 @@ vi.mock('@/lib/prisma', () => ({
 		user: {
 			findFirst: vi.fn(),
 		},
+		leadLink: { findMany: vi.fn().mockResolvedValue([]), upsert: vi.fn() },
+		leadStageHistory: { create: vi.fn() },
+		leadChangeHistory: { createMany: vi.fn() },
 		lead: {
 			findUnique: vi.fn(),
 			upsert: vi.fn(),
 			update: vi.fn(),
+			updateMany: vi.fn(),
 			findMany: vi.fn(),
 			findFirst: vi.fn(),
 		},
-	},
-}))
+	}
+	return {
+		prisma: {
+			...db,
+			$transaction: vi.fn(async (callback) =>
+				callback({
+					...db,
+					lead: {
+						...db.lead,
+						findMany: vi.fn(async ({ where }) =>
+							(where.idLead?.in ?? []).map((idLead: number) => ({
+								idLead,
+								idUser: null,
+								user: null,
+							}))
+						),
+					},
+				})
+			),
+		},
+	}
+})
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
@@ -53,11 +77,17 @@ const NEW_COLUMN = {
 }
 
 describe('Leads full flow: webhook create -> board visibility -> conversion, with audit trail', () => {
-	beforeEach(() => vi.clearAllMocks())
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([])
+		vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
+	})
 
 	it('creates via webhook, becomes visible on the owner-scoped board, and is eligible for conversion — each step audited', async () => {
 		// --- Step 1: webhook creates the lead, owned by user 5 ---
-		vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(NEW_COLUMN as never)
+		vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(
+			NEW_COLUMN as never
+		)
 		vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
 		vi.mocked(prisma.user.findFirst).mockResolvedValue({ idUser: 5 } as never)
 		vi.mocked(prisma.lead.upsert).mockResolvedValue({
@@ -75,6 +105,13 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 		})
 
 		expect(created.created).toBe(true)
+		expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+			isolationLevel: 'Serializable',
+		})
+		expect(prisma.lead.updateMany).toHaveBeenCalledWith({
+			where: { idLead: { in: [100] }, active: true },
+			data: { idUser: 5, lastActivityAt: expect.any(Date) },
+		})
 		expect(logAuditEvent).toHaveBeenCalledWith(
 			expect.objectContaining({ action: AuditAction.LEAD_CREATED })
 		)
@@ -83,7 +120,9 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 		)
 
 		// --- Step 2: the owning agent (idUser=5) sees it on the board ---
-		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([NEW_COLUMN] as never)
+		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([
+			NEW_COLUMN,
+		] as never)
 		vi.mocked(prisma.lead.findMany).mockResolvedValue([
 			{
 				idLead: 100,
@@ -95,6 +134,10 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 				phone: null,
 				originTag: null,
 				outcomeStatus: 'OPEN',
+				createdAt: new Date('2026-11-01T15:00:00.000Z'),
+				lastActivityAt: null,
+				estimatedValue: null,
+				tagAssignments: [],
 			},
 		] as never)
 
@@ -104,6 +147,25 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 		)
 		const nuevoColumn = board.find((c) => c.idLeadFunnelColumn === 2)
 		expect(nuevoColumn?.leads.map((l) => l.idLead)).toContain(100)
+		expect(nuevoColumn?.leads[0]).toMatchObject({
+			personKey: 100,
+			capture: null,
+			referrerName: null,
+			captures: [
+				{
+					idLead: 100,
+					capture: null,
+					referrerName: null,
+					idLeadFunnelColumn: 2,
+					outcomeStatus: 'OPEN',
+				},
+			],
+		})
+		expect(prisma.lead.findMany).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				where: { AND: [{ active: true }, { idUser: { in: [5] } }] },
+			})
+		)
 
 		// A different, unrelated agent (idUser=6) must NOT see it
 		vi.mocked(prisma.lead.findMany).mockResolvedValue([])
@@ -112,6 +174,11 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 			{ visibleUserIds: [6] }
 		)
 		expect(otherBoard.flatMap((c) => c.leads)).toHaveLength(0)
+		expect(prisma.lead.findMany).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				where: { AND: [{ active: true }, { idUser: { in: [6] } }] },
+			})
+		)
 
 		// --- Step 3: the owning agent can resolve the lead for conversion ---
 		vi.mocked(prisma.lead.findFirst).mockResolvedValue({
@@ -134,7 +201,9 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 	})
 
 	it('outcomeStatus lifecycle: default OPEN -> webhook to WON -> unresolved fallback -> WON lock on a later webhook', async () => {
-		vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(NEW_COLUMN as never)
+		vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(
+			NEW_COLUMN as never
+		)
 
 		// --- Step 1: webhook creates the lead, defaults to OPEN ---
 		vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce(null)
@@ -167,11 +236,15 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 			outcomeStatus: 'WON',
 		})
 		expect(logAuditEvent).toHaveBeenCalledWith(
-			expect.objectContaining({ action: AuditAction.LEAD_OUTCOME_STATUS_CHANGED })
+			expect.objectContaining({
+				action: AuditAction.LEAD_OUTCOME_STATUS_CHANGED,
+			})
 		)
 
 		// --- Step 3: the board query for outcomeStatus=WON returns the lead ---
-		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([NEW_COLUMN] as never)
+		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([
+			NEW_COLUMN,
+		] as never)
 		vi.mocked(prisma.lead.findMany).mockResolvedValue([
 			{
 				idLead: 200,
@@ -183,6 +256,10 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 				phone: null,
 				originTag: null,
 				outcomeStatus: 'WON',
+				createdAt: new Date('2026-11-01T15:00:00.000Z'),
+				lastActivityAt: null,
+				estimatedValue: null,
+				tagAssignments: [],
 			},
 		] as never)
 
@@ -234,10 +311,14 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 		})
 		expect(lockedResult.idLead).toBe(200)
 		expect(logAuditEvent).toHaveBeenCalledWith(
-			expect.objectContaining({ action: AuditAction.LEAD_OUTCOME_STATUS_LOCKED })
+			expect.objectContaining({
+				action: AuditAction.LEAD_OUTCOME_STATUS_LOCKED,
+			})
 		)
 		expect(logAuditEvent).not.toHaveBeenCalledWith(
-			expect.objectContaining({ action: AuditAction.LEAD_OUTCOME_STATUS_CHANGED })
+			expect.objectContaining({
+				action: AuditAction.LEAD_OUTCOME_STATUS_CHANGED,
+			})
 		)
 
 		// The board query for outcomeStatus=WON still returns the lead unchanged
@@ -311,7 +392,9 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 
 	describe('admin delete then CRM resync round trip', () => {
 		it('an admin-deleted lead disappears from the board, then a CRM resync of the same externalCrmId restores it', async () => {
-			vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([NEW_COLUMN] as never)
+			vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([
+				NEW_COLUMN,
+			] as never)
 
 			// --- Admin deletes the eligible lead (soft delete) ---
 			vi.mocked(prisma.lead.findUnique).mockResolvedValueOnce({
@@ -329,7 +412,7 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 			expect(deleteResult.data).toEqual({ idLead: 500 })
 
 			// --- Board no longer returns it (DB-level `active: true` filter simulated) ---
-			vi.mocked(prisma.lead.findMany).mockResolvedValueOnce([])
+			vi.mocked(prisma.lead.findMany).mockResolvedValue([])
 			const boardAfterDelete = await getLeadBoard(
 				{ idUser: 1, role: { code: UserRole.ADMIN } },
 				{}
@@ -365,7 +448,7 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 			expect(upsertCall.update.active).toBe(true)
 
 			// --- Board returns it again ---
-			vi.mocked(prisma.lead.findMany).mockResolvedValueOnce([
+			vi.mocked(prisma.lead.findMany).mockResolvedValue([
 				{
 					idLead: 500,
 					idLeadFunnelColumn: 2,
@@ -376,6 +459,10 @@ describe('Leads full flow: webhook create -> board visibility -> conversion, wit
 					phone: null,
 					originTag: null,
 					outcomeStatus: 'OPEN',
+					createdAt: new Date('2026-11-01T15:00:00.000Z'),
+					lastActivityAt: null,
+					estimatedValue: null,
+					tagAssignments: [],
 				},
 			] as never)
 			const boardAfterResync = await getLeadBoard(

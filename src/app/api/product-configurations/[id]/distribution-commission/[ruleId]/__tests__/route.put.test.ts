@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { NextRequest } from 'next/server'
 import { PUT } from '../route'
+import { auth } from '@/lib/auth/nextauth'
+import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 
 const createMany = vi.fn()
@@ -28,11 +30,7 @@ vi.mock('@/lib/prisma', () => ({
 	},
 }))
 
-vi.mock('@/auth', () => ({
-	auth: vi.fn().mockResolvedValue({
-		user: { id: '1', email: 'admin@test.com' },
-	}),
-}))
+vi.mock('@/lib/auth/nextauth')
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn().mockResolvedValue(undefined),
@@ -46,9 +44,14 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 	getUserAgent: vi.fn().mockReturnValue('test-agent'),
 }))
 
+const mockAuth = vi.mocked(auth)
+
 describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockAuth.mockResolvedValue({
+			user: { id: '1', email: 'admin@test.com', role: UserRole.ADMIN },
+		} as never)
 		findUniquePpc.mockResolvedValue({
 			idProductConfiguration: 1,
 			hasPortfolio: true,
@@ -136,5 +139,41 @@ describe('PUT /api/product-configurations/[id]/distribution-commission/[ruleId]'
 				}),
 			],
 		})
+	})
+
+	it('retorna 401 sin sesión', async () => {
+		mockAuth.mockResolvedValueOnce(null as never)
+		const req = {
+			json: async () => ({
+				description: 'd',
+				hasPortfolio: false,
+				categories: [],
+			}),
+		} as unknown as NextRequest
+
+		const res = await PUT(req, {
+			params: Promise.resolve({ id: '1', ruleId: '1' }),
+		})
+		expect(res.status).toBe(401)
+		expect(updatePpc).not.toHaveBeenCalled()
+	})
+
+	it('retorna 403 para un rol sin autoridad de ADMIN', async () => {
+		mockAuth.mockResolvedValueOnce({
+			user: { id: '2', email: 'agente@test.com', role: UserRole.AGENTE },
+		} as never)
+		const req = {
+			json: async () => ({
+				description: 'd',
+				hasPortfolio: false,
+				categories: [],
+			}),
+		} as unknown as NextRequest
+
+		const res = await PUT(req, {
+			params: Promise.resolve({ id: '1', ruleId: '1' }),
+		})
+		expect(res.status).toBe(403)
+		expect(updatePpc).not.toHaveBeenCalled()
 	})
 })

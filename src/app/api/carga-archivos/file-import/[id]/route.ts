@@ -6,6 +6,13 @@ import { deleteFileImport } from '@/features/load-file/services/delete-file-impo
 import { getFileImportSummary } from '@/features/load-file/services/file-import-records.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { FileImport } from '@prisma/client'
+import {
+	logAuditEvent,
+	AuditAction,
+	getClientIp,
+	getUserAgent,
+} from '@/features/auth/lib/audit-logger'
+import { FILE_IMPORT_STATUS_DELETED } from '@/features/load-file/lib/file-import-status'
 
 export async function GET(
 	request: NextRequest,
@@ -36,7 +43,10 @@ export async function GET(
 
 		if (loadNumber !== undefined && isNaN(loadNumber)) {
 			return NextResponse.json(
-				{ data: null, error: 'loadNumber inválido' } satisfies ApiResponse<null>,
+				{
+					data: null,
+					error: 'loadNumber inválido',
+				} satisfies ApiResponse<null>,
 				{ status: 400 }
 			)
 		}
@@ -64,6 +74,7 @@ export async function GET(
 			where: {
 				idFileImport: fileImportId,
 				idUser: Number(session.user.id),
+				status: { not: FILE_IMPORT_STATUS_DELETED },
 			},
 		})
 
@@ -97,7 +108,7 @@ export async function GET(
 }
 
 export async function DELETE(
-	_request: NextRequest,
+	request: NextRequest,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
 	try {
@@ -119,12 +130,17 @@ export async function DELETE(
 			)
 		}
 
-		const result = await deleteFileImport(
-			fileImportId,
-			Number(session.user.id)
-		)
+		const result = await deleteFileImport(fileImportId, Number(session.user.id))
 
 		if (result.ok) {
+			await logAuditEvent({
+				userId: Number(session.user.id),
+				action: AuditAction.FILE_IMPORT_DELETED,
+				email: session.user.email ?? undefined,
+				ipAddress: getClientIp(request.headers),
+				userAgent: getUserAgent(request.headers),
+				details: `FileImport ${fileImportId} eliminado lógicamente (estado ${FILE_IMPORT_STATUS_DELETED})`,
+			})
 			return NextResponse.json(
 				{ data: { success: true } } satisfies ApiResponse<{ success: boolean }>,
 				{ status: 200 }

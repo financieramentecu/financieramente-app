@@ -1,12 +1,16 @@
 import { prisma } from '@/lib/prisma'
 import type { DeleteFileImportResult } from '../types/load-file.types'
+import { FILE_IMPORT_STATUS_DELETED } from '../lib/file-import-status'
 
 const INVALID_STATUS_MESSAGE =
 	'Solo se puede eliminar un archivo en estado LOAD o ERROR. El archivo está pre-liquidado o liquidado.'
 
 /**
- * Deletes a file import and all dependent records only when status is LOAD or ERROR.
- * Validates ownership and status; performs deletes in FK-safe order within a single transaction.
+ * Logically deletes a file import (and everything loaded from it) only when its
+ * status is LOAD or ERROR. No row is physically removed: the file import and its
+ * settlements move to status DELETED, distributions are deactivated and
+ * clawbacks are marked DELETED, all within a single transaction. Import errors
+ * are kept as history and are only reachable through the (hidden) file import.
  */
 export async function deleteFileImport(
 	fileImportId: number,
@@ -16,6 +20,7 @@ export async function deleteFileImport(
 		where: {
 			idFileImport: fileImportId,
 			idUser,
+			status: { not: FILE_IMPORT_STATUS_DELETED },
 		},
 		select: { idFileImport: true, status: true },
 	})
@@ -57,11 +62,14 @@ export async function deleteFileImport(
 				where: { idSettlementCommission: { in: settlementIds } },
 				select: { idComissionDistribution: true },
 			})
-			const distributionIds = distributions.map((d) => d.idComissionDistribution)
+			const distributionIds = distributions.map(
+				(d) => d.idComissionDistribution
+			)
 
 			if (distributionIds.length > 0) {
-				await tx.clawback.deleteMany({
+				await tx.clawback.updateMany({
 					where: { idComissionDistribution: { in: distributionIds } },
+					data: { state: FILE_IMPORT_STATUS_DELETED },
 				})
 			}
 			await tx.comissionDistribution.updateMany({
@@ -70,15 +78,13 @@ export async function deleteFileImport(
 			})
 		}
 
-		await tx.settlementCommission.deleteMany({
+		await tx.settlementCommission.updateMany({
 			where: { idFileImport: fileImportId },
+			data: { status: FILE_IMPORT_STATUS_DELETED },
 		})
-		await tx.fileImportError.deleteMany({
+		await tx.fileImport.updateMany({
 			where: { idFileImport: fileImportId },
-		})
-		// deleteMany avoids P2025 when relations are already removed
-		await tx.fileImport.deleteMany({
-			where: { idFileImport: fileImportId },
+			data: { status: FILE_IMPORT_STATUS_DELETED },
 		})
 	})
 

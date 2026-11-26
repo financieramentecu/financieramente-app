@@ -34,6 +34,7 @@ function setupContextMocks() {
   mockUseHierarchySelection.mockReturnValue({
     selectedUserIds: [1, 2],
     nodes: [],
+    isHierarchyResolved: true,
     toggle: vi.fn(),
     dispatch: vi.fn(),
   })

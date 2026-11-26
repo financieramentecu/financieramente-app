@@ -14,7 +14,6 @@ import {
 	CardTitle,
 } from '@/features/shared/ui/card'
 import { ConfirmActionDialog } from '@/features/shared/ui/confirm-action-dialog'
-import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import {
 	usePartnerActions,
 	type PartnerAction,
@@ -38,9 +37,6 @@ export function PartnersManager() {
 	const { state, refresh } = usePartners()
 	const { pending, run } = usePartnerActions(refresh)
 	const { update } = useSession()
-	const { enabled: impersonationEnabled } = useFeatureFlag(
-		'impersonation_select'
-	)
 	const [createOpen, setCreateOpen] = useState(false)
 	const [toDeactivate, setToDeactivate] = useState<PartnerDto | null>(null)
 	const [toEdit, setToEdit] = useState<PartnerDto | null>(null)
@@ -140,7 +136,7 @@ export function PartnersManager() {
 						pending={pending}
 						onAction={handleAction}
 						onEdit={setToEdit}
-						onImpersonate={impersonationEnabled ? handleImpersonate : undefined}
+						onImpersonate={handleImpersonate}
 					/>
 				</CardContent>
 			</Card>

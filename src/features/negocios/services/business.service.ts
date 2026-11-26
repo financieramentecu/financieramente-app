@@ -18,34 +18,12 @@ import type {
 } from '../types/business-api.types'
 import type { BusinessFilterParams } from '../lib/business-api.schemas'
 
+import { buildQueryString } from '../lib/business-query-string'
+
 /**
  * Base URL para las APIs de negocios
  */
 const BASE_URL = '/api/negocios'
-
-/**
- * Construye query string a partir de parámetros
- */
-function buildQueryString(params: Record<string, unknown>): string {
-	const searchParams = new URLSearchParams()
-
-	Object.entries(params).forEach(([key, value]) => {
-		if (value !== undefined && value !== null && value !== '') {
-			if (Array.isArray(value)) {
-				value.forEach(item => {
-					if (item !== undefined && item !== null && item !== '') {
-						searchParams.append(key, String(item))
-					}
-				})
-			} else {
-				searchParams.append(key, String(value))
-			}
-		}
-	})
-
-	const queryString = searchParams.toString()
-	return queryString ? `?${queryString}` : ''
-}
 
 /**
  * Servicio de negocios

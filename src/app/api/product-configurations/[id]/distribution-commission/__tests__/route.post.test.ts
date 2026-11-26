@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { NextRequest } from 'next/server'
 import { POST } from '../route'
+import { auth } from '@/lib/auth/nextauth'
+import { UserRole } from '@/features/auth/lib/roles'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 
 const { findFirstPpc, createPpc, createManyCategories, findUniqueOrThrowPpc } =
@@ -29,11 +31,7 @@ vi.mock('@/lib/prisma', () => ({
 	},
 }))
 
-vi.mock('@/auth', () => ({
-	auth: vi.fn().mockResolvedValue({
-		user: { id: '1', email: 'admin@test.com' },
-	}),
-}))
+vi.mock('@/lib/auth/nextauth')
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn().mockResolvedValue(undefined),
@@ -74,9 +72,14 @@ const makeRequest = (body: unknown): NextRequest =>
 
 const makeParams = (id: string) => ({ params: Promise.resolve({ id }) })
 
+const mockAuth = vi.mocked(auth)
+
 describe('POST /api/product-configurations/[id]/distribution-commission', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockAuth.mockResolvedValue({
+			user: { id: '1', email: 'admin@test.com', role: UserRole.ADMIN },
+		} as never)
 	})
 
 	it('crea regla exitosamente y dispara audit DISTRIBUTION_COMMISSION_CREATED', async () => {
@@ -123,13 +126,8 @@ describe('POST /api/product-configurations/[id]/distribution-commission', () => 
 		expect(createPpc).not.toHaveBeenCalled()
 	})
 
-	it('sin sesión el handler sigue operando (sin guard de auth explícito)', async () => {
-		const { auth } = await import('@/auth')
-		vi.mocked(auth).mockResolvedValueOnce(null)
-
-		findFirstPpc.mockResolvedValueOnce(null)
-		createPpc.mockResolvedValueOnce({ idProductPercentageCommission: 11 })
-		findUniqueOrThrowPpc.mockResolvedValueOnce(baseNewRule)
+	it('retorna 401 sin sesión', async () => {
+		mockAuth.mockResolvedValueOnce(null as never)
 
 		const req = makeRequest({
 			description: 'Regla nueva',
@@ -137,8 +135,24 @@ describe('POST /api/product-configurations/[id]/distribution-commission', () => 
 			categories: [],
 		})
 
-		// The POST route has no explicit auth guard — session is used only for audit log.
 		const res = await POST(req, makeParams('1'))
-		expect(res.status).toBe(200)
+		expect(res.status).toBe(401)
+		expect(createPpc).not.toHaveBeenCalled()
+	})
+
+	it('retorna 403 para un rol sin autoridad de ADMIN', async () => {
+		mockAuth.mockResolvedValueOnce({
+			user: { id: '2', email: 'agente@test.com', role: UserRole.AGENTE },
+		} as never)
+
+		const req = makeRequest({
+			description: 'Regla nueva',
+			hasPortfolio: false,
+			categories: [],
+		})
+
+		const res = await POST(req, makeParams('1'))
+		expect(res.status).toBe(403)
+		expect(createPpc).not.toHaveBeenCalled()
 	})
 })

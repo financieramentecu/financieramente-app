@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
 import { NegociosPageClient } from '../negocios-page-client'
 import { UserRole } from '@/features/auth/lib/roles'
-import { getCurrentMonthRange } from '@/features/negocios/lib/default-date-filter'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
 
 const navCtx = vi.hoisted(() => ({
@@ -89,61 +88,23 @@ function userWithRole(code: string): UserWithRole {
 	return { idUser: 1, role: { code } } as unknown as UserWithRole
 }
 
-function seededParams(): URLSearchParams {
-	expect(navCtx.mockReplace).toHaveBeenCalledTimes(1)
-	const url = navCtx.mockReplace.mock.calls[0][0] as string
-	return new URLSearchParams(url.replace(/^\?/, ''))
-}
-
-describe('NegociosPageClient — role-based default date filter seed', () => {
+describe('NegociosPageClient — default date filter seed', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		navCtx.searchParams = new URLSearchParams()
 	})
 
+	// The seed is done by the Server Component (page.tsx) via
+	// buildDefaultDateSeedQuery. Seeding from the client caused a second
+	// navigation and a duplicated list/stats fetch on first load.
 	it.each([
 		UserRole.ADMIN,
 		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
 		UserRole.ANALISTA_SOPORTE,
-	])('%s seeds creation date params (current month) into the URL', (role) => {
+		UserRole.AGENTE,
+		UserRole.DEFAULT,
+	])('%s does not navigate on mount', (role) => {
 		render(<NegociosPageClient currentUser={userWithRole(role)} />)
-
-		const { from, to } = getCurrentMonthRange()
-		const params = seededParams()
-		expect(params.get('createdFrom')).toBe(from)
-		expect(params.get('createdTo')).toBe(to)
-		expect(params.get('dateFrom')).toBeNull()
-	})
-
-	it('AGENTE seeds creation date params (current month) into the URL', () => {
-		render(<NegociosPageClient currentUser={userWithRole(UserRole.AGENTE)} />)
-
-		const { from, to } = getCurrentMonthRange()
-		const params = seededParams()
-		expect(params.get('createdFrom')).toBe(from)
-		expect(params.get('createdTo')).toBe(to)
-		expect(params.get('dateFrom')).toBeNull()
-	})
-
-	it('does not seed when the URL already carries a date filter', () => {
-		navCtx.searchParams = new URLSearchParams({
-			dateIssuedFrom: '2026-01-01',
-			dateIssuedTo: '2026-01-31',
-		})
-
-		render(<NegociosPageClient currentUser={userWithRole(UserRole.ADMIN)} />)
-
-		expect(navCtx.mockReplace).not.toHaveBeenCalled()
-	})
-
-	it('does not seed for roles without a default date filter', () => {
-		render(<NegociosPageClient currentUser={userWithRole(UserRole.DEFAULT)} />)
-
-		expect(navCtx.mockReplace).not.toHaveBeenCalled()
-	})
-
-	it('does not seed when there is no current user', () => {
-		render(<NegociosPageClient />)
 
 		expect(navCtx.mockReplace).not.toHaveBeenCalled()
 	})

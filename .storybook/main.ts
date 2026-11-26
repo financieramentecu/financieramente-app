@@ -1,6 +1,13 @@
 import type { StorybookConfig } from '@storybook/nextjs'
 import path from 'path'
 
+const businessActionAliases = Object.fromEntries(
+	['create-client', 'update-client', 'create-business', 'sync-business-policyholder', 'check-business-creation', 'resolve-existing-client'].flatMap((action) => [
+		[`@/features/negocios/actions/${action}`, require.resolve('./mocks/business-actions.ts')],
+		[path.resolve(__dirname, `../src/features/negocios/actions/${action}`), require.resolve('./mocks/business-actions.ts')],
+	])
+)
+
 const config: StorybookConfig & {
 	viteFinal?: (
 		config: Record<string, unknown>
@@ -33,6 +40,7 @@ const config: StorybookConfig & {
 		config.resolve = config.resolve || {}
 		config.resolve.alias = {
 			...config.resolve.alias,
+			...businessActionAliases,
 			// next-auth$ = exact match; without $ it would also match next-auth/react as a prefix
 			'next-auth$': require.resolve('./mocks/next-auth.ts'),
 			'next-auth/react': require.resolve('./mocks/next-auth-react.tsx'),
@@ -40,7 +48,8 @@ const config: StorybookConfig & {
 			// Both the @/ alias and the absolute path to catch whichever webpack sees first
 			'@/lib/auth/nextauth': require.resolve('./mocks/nextauth.ts'),
 			[path.resolve(__dirname, '../src/lib/auth/nextauth')]: require.resolve('./mocks/nextauth.ts'),
-			'@flagsmith/flagsmith/react': require.resolve('./mocks/flagsmith-react.ts'),
+			// Chromatic bundles client stories, including server actions they import.
+			'server-only': path.resolve(__dirname, '../src/__mocks__/server-only.ts'),
 		}
 		return config
 	},
@@ -61,6 +70,7 @@ const config: StorybookConfig & {
 					([find, replacement]) => ({ find, replacement })
 				)
 		viteConfig.resolve.alias = [
+			...Object.entries(businessActionAliases).map(([find, replacement]) => ({ find, replacement })),
 			...existingEntries,
 			// /^next-auth$/ = exact match; plain string would also match next-auth/react as a prefix
 			{ find: /^next-auth$/, replacement: require.resolve('./mocks/next-auth.ts') },
@@ -69,8 +79,7 @@ const config: StorybookConfig & {
 			{ find: '@/lib/auth/nextauth', replacement: require.resolve('./mocks/nextauth.ts') },
 			// Absolute path alias — catches tsconfig-resolved @/ imports before vite sees them
 			{ find: path.resolve(__dirname, '../src/lib/auth/nextauth'), replacement: require.resolve('./mocks/nextauth.ts') },
-			// RegExp required for scoped subpath packages (@flagsmith/flagsmith/react)
-			{ find: /^@flagsmith\/flagsmith\/react$/, replacement: require.resolve('./mocks/flagsmith-react.ts') },
+			{ find: 'server-only', replacement: path.resolve(__dirname, '../src/__mocks__/server-only.ts') },
 		]
 		return config
 	},

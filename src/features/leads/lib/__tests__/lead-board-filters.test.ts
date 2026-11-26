@@ -15,6 +15,9 @@ describe('getDefaultLeadBoardFilters', () => {
 		const expectedRange = currentBogotaMonthRange()
 
 		expect(filters.outcomeStatuses).toEqual(['OPEN'])
+		expect(filters.ownerIds).toEqual([])
+		expect(filters.excludedOwnerIds).toEqual([])
+		expect(filters.originIds).toEqual([])
 		expect(filters.createdAtRange.gte.getTime()).toBe(
 			expectedRange.gte.getTime()
 		)

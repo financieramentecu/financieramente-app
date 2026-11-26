@@ -10,10 +10,6 @@ vi.mock('next-auth/react', () => ({
 	useSession: vi.fn(),
 }))
 
-vi.mock('@/features/shared/hooks/use-feature-flag', () => ({
-	useFeatureFlag: () => ({ enabled: true, value: null }),
-}))
-
 beforeEach(() => {
 	// jsdom does not implement matchMedia — the sidebar's mobile-breakpoint
 	// hook (useIsMobile) needs it to mount at all.
@@ -67,7 +63,8 @@ describe('AppSidebar', () => {
 
 		renderSidebar()
 
-		expect(screen.getByRole('link', { name: /negocios/i })).toBeInTheDocument()
+		// Negocios is a collapsible group (Ver Negocios + CRM), rendered as a toggle button
+		expect(screen.getByRole('button', { name: /negocios/i })).toBeInTheDocument()
 		expect(screen.queryByTestId('skeleton')).not.toBeInTheDocument()
 	})
 })

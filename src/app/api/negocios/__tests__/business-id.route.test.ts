@@ -110,6 +110,7 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 	logAuditEvent: vi.fn(),
 	AuditAction: {
 		BUSINESS_UPDATED: 'BUSINESS_UPDATED',
+		BUSINESS_VALUE_CHANGED: 'BUSINESS_VALUE_CHANGED',
 		BUSINESS_NOVEDAD_RESOLVED: 'BUSINESS_NOVEDAD_RESOLVED',
 	},
 	getClientIp: vi.fn(() => '127.0.0.1'),
@@ -828,6 +829,81 @@ describe('PUT /api/negocios/[id]', () => {
 			expect(mockUpdate).toHaveBeenCalled()
 		})
 
+		it('rejects a Coach value change on a VENTA_EFECTUADA business', async () => {
+			const agentUser = {
+				...commonAdminUser,
+				idUser: 20,
+				role: { ...commonAdminUser.role, idRole: 2, code: UserRole.AGENTE },
+			}
+			const draftBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				idUser: 20,
+				value: 15000000,
+			}
+			mockAuth.mockResolvedValue({ user: { email: 'agent@example.com' } } as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { value: 16000000, contract: 'PN0009999' },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(agentUser)
+			mockFindFirst.mockResolvedValueOnce(draftBusiness as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ value: 16000000, contract: 'PN0009999' }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+			const body = await response.json()
+
+			expect(response.status).toBe(403)
+			expect(body.error).toMatch(/Valor de Negocio/i)
+			expect(mockUpdate).not.toHaveBeenCalled()
+			expect(mockLogAuditEvent).not.toHaveBeenCalled()
+		})
+
+		it('lets a Coach update a draft contract when the business value is unchanged', async () => {
+			const agentUser = {
+				...commonAdminUser,
+				idUser: 20,
+				role: { ...commonAdminUser.role, idRole: 2, code: UserRole.AGENTE },
+			}
+			const draftBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.VENTA_EFECTUADA,
+				idUser: 20,
+				value: 15000000,
+			}
+			mockAuth.mockResolvedValue({ user: { email: 'agent@example.com' } } as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { value: 15000000, contract: 'PN0009999' },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(agentUser)
+			mockFindFirst
+				.mockResolvedValueOnce(draftBusiness as never)
+				.mockResolvedValueOnce(null)
+			mockUpdate.mockResolvedValue({ ...draftBusiness, contract: 'PN0009999' } as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 1,
+				status: BUSINESS_STATUS.EMITIDO,
+				contract: 'PN0009999',
+			} as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ value: 15000000, contract: 'PN0009999' }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+
+			expect(response.status).toBe(200)
+			expect(mockUpdate).toHaveBeenCalled()
+		})
+
 		it('debe rechazar la edición de campos clave de un negocio FONDEADO cuando el usuario es agente', async () => {
 			const agentUser = {
 				...commonAdminUser,
@@ -893,6 +969,101 @@ describe('PUT /api/negocios/[id]', () => {
 			expect(response.status).toBe(200)
 			expect(mockUpdate).toHaveBeenCalled()
 			expect(prisma.payment.deleteMany).not.toHaveBeenCalled()
+		})
+
+		it('registra la trazabilidad del valor cuando el Analista de Soporte lo cambia', async () => {
+			const analystUser = {
+				...commonAdminUser,
+				idUser: 9,
+				email: 'soporte@financieramentecu.com',
+				role: {
+					...commonAdminUser.role,
+					code: UserRole.ANALISTA_SOPORTE,
+				},
+			}
+			const emittedBusiness = {
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.EMITIDO,
+				value: 10000,
+			}
+			mockAuth.mockResolvedValue({
+				user: { email: 'soporte@financieramentecu.com' },
+			} as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { value: 15000 },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(analystUser)
+			mockFindFirst.mockResolvedValueOnce(emittedBusiness as never)
+			mockUpdate.mockResolvedValue({ ...emittedBusiness, value: 15000 } as never)
+			mockPrismaBusinessToEntity.mockReturnValue({
+				id: 1,
+				status: BUSINESS_STATUS.EMITIDO,
+				value: 15000,
+			} as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ value: 15000 }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+
+			expect(response.status).toBe(200)
+			expect(mockLogAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: AuditAction.BUSINESS_VALUE_CHANGED,
+					userId: 9,
+					email: 'soporte@financieramentecu.com',
+					details: expect.stringContaining('"previousValue":"10000.00"'),
+				})
+			)
+			expect(mockLogAuditEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: AuditAction.BUSINESS_VALUE_CHANGED,
+					details: expect.stringContaining('"newValue":"15000.00"'),
+				})
+			)
+		})
+
+		it('no registra trazabilidad de valor cuando el Analista de Soporte no lo cambia', async () => {
+			const analystUser = {
+				...commonAdminUser,
+				role: {
+					...commonAdminUser.role,
+					code: UserRole.ANALISTA_SOPORTE,
+				},
+			}
+			mockAuth.mockResolvedValue(commonSession as never)
+			mockUpdateBusinessSchema.safeParse.mockReturnValue({
+				success: true,
+				data: { value: 10000, contract: 'PN0001234' },
+			} as never)
+			mockGetCurrentUserByEmail.mockResolvedValue(analystUser)
+			mockFindFirst.mockResolvedValueOnce({
+				...commonExistingBusiness,
+				status: BUSINESS_STATUS.EMITIDO,
+				contract: 'PN0001234',
+				value: 10000,
+			} as never)
+			mockUpdate.mockResolvedValue(commonUpdatedBusiness as never)
+			mockPrismaBusinessToEntity.mockReturnValue(commonEntity as never)
+
+			const response = await PUT(
+				new Request('http://localhost:3000/api/negocios/1', {
+					method: 'PUT',
+					body: JSON.stringify({ value: 10000, contract: 'PN0001234' }),
+				}),
+				{ params: Promise.resolve({ id: '1' }) }
+			)
+
+			expect(response.status).toBe(200)
+			expect(mockLogAuditEvent).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: AuditAction.BUSINESS_VALUE_CHANGED,
+				})
+			)
 		})
 
 		it('rechaza reducir el plazo de un FONDEADO con aportes fondeados', async () => {

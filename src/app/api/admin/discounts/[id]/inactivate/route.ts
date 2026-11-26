@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { requireRole } from '@/lib/auth/require-role'
+import { UserRole } from '@/features/auth/lib/roles'
 import {
 	findDiscountById,
 	inactivateDiscount,
@@ -15,10 +16,10 @@ export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-	const session = await auth()
-	if (!session?.user) {
-		return NextResponse.json({ data: null, error: 'Unauthorized' }, { status: 401 })
-	}
+	// Inactivating the only active discount breaks settlement: ADMIN only.
+	const guard = await requireRole([UserRole.ADMIN])
+	if (!guard.ok) return guard.response
+	const { session } = guard
 
 	const { id } = await params
 	const discountId = parseInt(id, 10)

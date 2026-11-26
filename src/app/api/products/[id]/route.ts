@@ -12,6 +12,7 @@ import {
 	getUserAgent,
 } from '@/features/auth/lib/audit-logger'
 import { prismaProductToProduct } from '@/features/product/mappers/product.mapper'
+import { deactivateProduct } from '@/features/product/services/product.service'
 
 /**
  * GET /api/products/[id]
@@ -342,10 +343,8 @@ export async function DELETE(
 			return NextResponse.json(errorResponse, { status: 409 })
 		}
 
-		// Eliminar producto
-		await prisma.product.delete({
-			where: { idProduct: productId },
-		})
+		// Borrado lógico (status = false)
+		await deactivateProduct(productId)
 
 		// Registrar auditoría
 		const userId = session.user.id ? parseInt(session.user.id) : undefined

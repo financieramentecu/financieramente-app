@@ -12,6 +12,8 @@ import {
 	LEAD_OUTCOME_STATUS_BADGE_VARIANTS,
 } from '@/features/leads/lib/lead-outcome-status'
 import { LeadOwnerAvatar } from '@/features/leads/components/lead-owner-avatar'
+import { InactivityBadge } from '@/features/leads/components/inactivity-badge'
+import { originLabelTone } from '@/features/leads/lib/origin-label-tone'
 import { cn } from '@/lib/utils'
 import type { LeadCard as LeadCardType } from '@/features/leads/types/lead.types'
 
@@ -21,11 +23,11 @@ interface LeadCardProps {
 }
 
 /**
- * Presentational, read-only Kanban card. No drag handle, no move affordance
- * — the Leads board never lets a user reorder or edit a lead from the UI.
+ * Presentational Kanban card. The board wraps it when the card can be dragged.
  */
 export function LeadCard({ lead, onClick }: LeadCardProps) {
-	const fullName = [lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
+	const fullName =
+		[lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
 	// A lead counts as converted whenever `idBusiness` is non-null, regardless
 	// of the linked Business's current status (including cancelled).
 	const isConverted = lead.idBusiness !== null
@@ -59,7 +61,11 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 												className="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-100 p-1 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300"
 												aria-label="Negocio creado"
 											>
-												<Star className="size-3" aria-hidden fill="currentColor" />
+												<Star
+													className="size-3"
+													aria-hidden
+													fill="currentColor"
+												/>
 											</span>
 										</TooltipTrigger>
 										<TooltipContent>Negocio creado</TooltipContent>
@@ -67,12 +73,33 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 								</TooltipProvider>
 							)}
 						</div>
-						<Badge
-							className="w-fit"
-							variant={LEAD_OUTCOME_STATUS_BADGE_VARIANTS[lead.outcomeStatus]}
-						>
-							{LEAD_OUTCOME_STATUS_LABELS[lead.outcomeStatus]}
-						</Badge>
+						<div className="flex flex-wrap items-center gap-1.5">
+							<Badge
+								className="w-fit"
+								variant={LEAD_OUTCOME_STATUS_BADGE_VARIANTS[lead.outcomeStatus]}
+							>
+								{LEAD_OUTCOME_STATUS_LABELS[lead.outcomeStatus]}
+							</Badge>
+							{lead.originTag && (
+								<span
+									className={cn(
+										'inline-flex max-w-full truncate rounded-full px-2 py-0.5 text-[11px] font-medium',
+										originLabelTone(lead.originTag)
+									)}
+								>
+									{lead.originTag}
+								</span>
+							)}
+						</div>
+						<p className="text-xs text-muted-foreground">
+							Captura: {lead.capture?.name ?? 'Sin captura'}
+						</p>
+						{lead.referrerName && (
+							<p className="text-xs text-muted-foreground">
+								Referido por: {lead.referrerName}
+							</p>
+						)}
+						<InactivityBadge days={lead.inactiveDays} />
 					</div>
 					{lead.ownerName && (
 						<div className="flex shrink-0 flex-col items-center gap-1">
@@ -83,15 +110,32 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 						</div>
 					)}
 				</div>
-				{(lead.email || lead.phone || lead.originTag) && (
+				{lead.captures && lead.captures.length > 1 && (
+					<label
+						className="block space-y-1 text-xs"
+						onClick={(event) => event.stopPropagation()}
+						onKeyDown={(event) => event.stopPropagation()}
+					>
+						Captura / oportunidad
+						<select
+							aria-label="Captura / oportunidad"
+							className="w-full rounded-md border bg-background p-2 text-sm"
+							value={lead.idLead}
+							onPointerDown={(event) => event.stopPropagation()}
+							onChange={(event) => onClick?.(Number(event.target.value))}
+						>
+							{lead.captures.map((item) => (
+								<option key={item.idLead} value={item.idLead}>
+									{item.capture?.name ?? 'Sin captura'} · #{item.idLead}
+								</option>
+							))}
+						</select>
+					</label>
+				)}
+				{(lead.email || lead.phone) && (
 					<div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
 						{lead.email && <p className="truncate">{lead.email}</p>}
 						{lead.phone && <p>{lead.phone}</p>}
-						{lead.originTag && (
-							<p className="truncate text-slate-500 dark:text-slate-400">
-								{lead.originTag}
-							</p>
-						)}
 					</div>
 				)}
 			</CardContent>

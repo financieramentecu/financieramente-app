@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createClient } from '@/features/negocios/actions/create-client'
 import { prisma } from '@/lib/prisma'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
+import { logAuditEvent } from '@/features/auth/lib/audit-logger'
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
@@ -19,6 +20,17 @@ vi.mock('@/lib/auth/require-write-access', () => ({
 	requireWriteAccess: vi.fn(),
 }))
 
+vi.mock('next/headers', () => ({
+	headers: vi.fn(async () => new Headers()),
+}))
+
+vi.mock('@/features/auth/lib/audit-logger', () => ({
+	AuditAction: { CLIENT_CREATED: 'CLIENT_CREATED' },
+	getClientIp: vi.fn(() => '127.0.0.1'),
+	getUserAgent: vi.fn(() => 'test'),
+	logAuditEvent: vi.fn(),
+}))
+
 const basePayload = {
 	name: 'Ana',
 	lastName: 'Pérez',
@@ -32,7 +44,7 @@ describe('createClient', () => {
 		vi.clearAllMocks()
 		vi.mocked(requireWriteAccess).mockResolvedValue({
 			ok: true,
-			session: { user: {} },
+			session: { user: { id: '5', email: 'agent@test.com' } },
 		} as never)
 		vi.mocked(prisma.client.findUnique).mockResolvedValue(null)
 		vi.mocked(prisma.documentType.findFirst).mockResolvedValue({
@@ -84,6 +96,29 @@ describe('createClient', () => {
 				identityNumber: '1234567890',
 			}),
 		})
+	})
+
+	it('logs a CLIENT_CREATED audit event with the actor', async () => {
+		await createClient(basePayload)
+
+		expect(logAuditEvent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				userId: 5,
+				email: 'agent@test.com',
+				action: 'CLIENT_CREATED',
+				details: expect.stringContaining('1'),
+			})
+		)
+	})
+
+	it('does not log when the client already exists', async () => {
+		vi.mocked(prisma.client.findUnique).mockResolvedValue({
+			idClient: 99,
+		} as never)
+
+		await createClient(basePayload)
+
+		expect(logAuditEvent).not.toHaveBeenCalled()
 	})
 
 	it('rejects a create without a document type', async () => {

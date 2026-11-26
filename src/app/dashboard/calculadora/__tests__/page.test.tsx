@@ -8,9 +8,6 @@ const { mockAuth, mockLevelFindMany } = vi.hoisted(() => ({
 
 vi.mock('@/auth', () => ({ auth: mockAuth }))
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
-vi.mock('@/features/shared/lib/flagsmith-server', () => ({
-	isFeatureEnabledServer: vi.fn().mockResolvedValue(true),
-}))
 vi.mock('@/features/shared/layout/DashboardLayout', () => ({
 	DashboardLayout: ({ children }: { children: ReactNode }) => children,
 }))

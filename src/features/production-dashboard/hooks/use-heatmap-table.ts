@@ -195,7 +195,7 @@ type FetchStatus = 'idle' | 'loading' | 'error'
  * - Hierarchy nodes present and selected → uses selectedUserIds.
  */
 export function useHeatmapTable(trmRate: number | null): AsyncState<HeatmapViewModel> {
-  const { nodes, selectedUserIds } = useHierarchySelection()
+  const { nodes, selectedUserIds, isHierarchyResolved } = useHierarchySelection()
   const { appliedFilters } = useDashboardFilter()
   const { data: session, status: sessionStatus } = useSession()
 
@@ -214,6 +214,14 @@ export function useHeatmapTable(trmRate: number | null): AsyncState<HeatmapViewM
     }
 
     // MS Junior path: no hierarchy nodes, use session userId
+    // Hierarchy still loading: wait for it instead of fetching with only the
+    // session user and throwing that response away when the tree arrives.
+    // (`=== false` keeps consumers that do not provide the flag working.)
+    if (nodes.length === 0 && isHierarchyResolved === false) {
+      setFetchStatus('loading')
+      return
+    }
+
     if (nodes.length === 0) {
       if (sessionStatus === 'loading') {
         setFetchStatus('loading')
@@ -315,7 +323,7 @@ export function useHeatmapTable(trmRate: number | null): AsyncState<HeatmapViewM
     // trmRate value excluded — TRM conversion is client-side only.
     // trmRate !== null is included to trigger the initial fetch once trmRate resolves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUserIds, appliedFilters, trmRate !== null, selfUserId])
+  }, [selectedUserIds, appliedFilters, trmRate !== null, selfUserId, isHierarchyResolved])
 
   // Handle null trmRate → remain idle
   if (trmRate === null) {

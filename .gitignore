@@ -71,3 +71,12 @@ memory-bank/*
 
 
 *.dump
+# Herramientas locales de agentes IA (codegraph, engram, skills instaladas localmente)
+.engram/
+.codegraph/
+skills/ponytail/
+skills/ponytail-audit/
+skills/ponytail-debt/
+skills/ponytail-gain/
+skills/ponytail-help/
+skills/ponytail-review/
