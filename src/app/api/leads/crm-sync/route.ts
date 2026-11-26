@@ -1,3 +1,5 @@
+import { LeadPersonGroupError } from '@/features/leads/services/lead-person-group.service'
+import { LeadCaptureValidationError } from '@/features/leads/captures/lead-capture.service'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
@@ -77,7 +79,11 @@ export async function POST(request: Request) {
 		const response: ApiResponse<typeof result> = { data: result }
 		return NextResponse.json(response, { status: 200 })
 	} catch (error) {
-		if (error instanceof LeadFormSubmissionError) {
+		if (
+			error instanceof LeadFormSubmissionError ||
+			error instanceof LeadPersonGroupError ||
+			error instanceof LeadCaptureValidationError
+		) {
 			return NextResponse.json(
 				{ data: null, error: error.message } satisfies ApiResponse<null>,
 				{ status: 409 }

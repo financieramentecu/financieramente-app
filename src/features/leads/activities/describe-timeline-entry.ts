@@ -141,7 +141,7 @@ function describeIngress(entry: TimelineIngressDto): TimelineEntryView {
 			: hasOrigin
 				? `Está relacionado con ${entry.incomingLeadName}. Ese ingreso es por ${entry.originName}.`
 				: `Está relacionado con ${entry.incomingLeadName}.`
-	const meta = entry.source === 'MANUAL' ? 'Mismo Money Strategy · Validado en el CRM' : 'Mismo Money Strategy'
+	const meta = entry.source === 'MANUAL' ? 'Mismo Money Strategy · Validado en el CRM' : 'Coincidencia de datos de contacto'
 	return {
 		title: 'Relación entre leads',
 		detail,

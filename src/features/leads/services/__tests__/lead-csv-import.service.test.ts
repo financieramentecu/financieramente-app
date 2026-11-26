@@ -3,8 +3,13 @@ import { prisma } from '@/lib/prisma'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { resolveOutcomeStatus } from '@/features/leads/lib/lead-outcome-status'
 import { importLeadsFromCsv } from '@/features/leads/services/lead-csv-import.service'
+import {
+	resolvePersonGroupOwner,
+	propagatePersonGroupOwner,
+	findPersonContactIds,
+} from '@/features/leads/services/lead-person-group.service'
+import { validateLeadCapture } from '@/features/leads/captures/lead-capture.service'
 import type { LeadCsvRawRow } from '@/features/leads/lib/parse-lead-csv-file'
-import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
 
 const CONTACTADO_COLUMN = {
 	idLeadFunnelColumn: 1,
@@ -17,6 +22,7 @@ const CONTACTADO_COLUMN = {
 
 const ACTOR = {
 	userId: 7,
+	manageableUserIds: [],
 	email: 'ana@financieramente.com',
 	ipAddress: '127.0.0.1',
 	userAgent: 'vitest',
@@ -41,6 +47,10 @@ function makeRawRow(overrides: Partial<LeadCsvRawRow> = {}): LeadCsvRawRow {
 
 vi.mock('@/lib/prisma', () => ({
 	prisma: {
+		$transaction: vi.fn(),
+		leadStageHistory: { create: vi.fn() },
+		leadChangeHistory: { createMany: vi.fn() },
+		leadLink: { createMany: vi.fn() },
 		leadFunnelColumn: {
 			findMany: vi.fn(),
 		},
@@ -55,14 +65,22 @@ vi.mock('@/lib/prisma', () => ({
 	},
 }))
 
-vi.mock('@/features/leads/services/lead-stage-history.service', () => ({
-	recordLeadStageChange: vi.fn(),
+vi.mock('@/features/leads/services/lead-person-group.service', () => ({
+	findPersonContactIds: vi.fn(),
+	collectPersonGroupIds: vi.fn(async (ids: number[]) => ids),
+	resolvePersonGroupOwner: vi.fn(),
+	propagatePersonGroupOwner: vi.fn(),
+	LeadPersonGroupError: class extends Error {},
+}))
+vi.mock('@/features/leads/captures/lead-capture.service', () => ({
+	validateLeadCapture: vi.fn(),
+	LeadCaptureValidationError: class extends Error {},
 }))
 
 vi.mock('@/features/auth/lib/audit-logger', async () => {
-	const actual = await vi.importActual<typeof import('@/features/auth/lib/audit-logger')>(
-		'@/features/auth/lib/audit-logger'
-	)
+	const actual = await vi.importActual<
+		typeof import('@/features/auth/lib/audit-logger')
+	>('@/features/auth/lib/audit-logger')
 	return {
 		...actual,
 		logAuditEvent: vi.fn(),
@@ -72,7 +90,22 @@ vi.mock('@/features/auth/lib/audit-logger', async () => {
 describe('importLeadsFromCsv', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([CONTACTADO_COLUMN] as never)
+		vi.mocked(prisma.$transaction).mockImplementation(
+			async (fn: unknown) =>
+				(fn as (tx: typeof prisma) => Promise<unknown>)(prisma) as never
+		)
+		vi.mocked(findPersonContactIds).mockResolvedValue([])
+		vi.mocked(resolvePersonGroupOwner).mockImplementation(
+			async (_db, _ids, options) =>
+				options.targetOwnerId ??
+				(await prisma.lead.findUnique({ where: { externalCrmId: 'mock' } }))
+					?.idUser ??
+				null
+		)
+		vi.mocked(validateLeadCapture).mockResolvedValue(undefined)
+		vi.mocked(prisma.leadFunnelColumn.findMany).mockResolvedValue([
+			CONTACTADO_COLUMN,
+		] as never)
 		vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
 		vi.mocked(prisma.user.findMany).mockResolvedValue([])
 		vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
@@ -86,6 +119,103 @@ describe('importLeadsFromCsv', () => {
 		)
 	})
 
+	it('passes the full write scope and propagates the resolved group owner', async () => {
+		vi.mocked(findPersonContactIds).mockResolvedValue([8, 9])
+		vi.mocked(resolvePersonGroupOwner).mockResolvedValue(12)
+		await importLeadsFromCsv([makeRawRow()], {
+			...ACTOR,
+			manageableUserIds: [12],
+		})
+		expect(resolvePersonGroupOwner).toHaveBeenCalledWith(
+			prisma,
+			[8, 9],
+			expect.objectContaining({ manageableUserIds: [12] })
+		)
+		expect(propagatePersonGroupOwner).toHaveBeenCalledWith(
+			prisma,
+			[8, 9],
+			12,
+			expect.objectContaining({ source: 'MANUAL', idActor: 7 }),
+			expect.any(Date)
+		)
+		expect(prisma.leadLink.createMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.arrayContaining([
+					expect.objectContaining({ idRelatedLead: 8 }),
+					expect.objectContaining({ idRelatedLead: 9 }),
+				]),
+			})
+		)
+	})
+	it('rejects a denied row without writing and continues with the next row', async () => {
+		vi.mocked(resolvePersonGroupOwner).mockRejectedValueOnce(
+			new Error('No fue posible modificar el grupo relacionado')
+		)
+		const summary = await importLeadsFromCsv(
+			[makeRawRow(), makeRawRow({ id_externo_crm: 'CRM-2' })],
+			ACTOR
+		)
+		expect(summary.imported).toBe(1)
+		expect(summary.rejected).toHaveLength(1)
+		expect(prisma.lead.upsert).toHaveBeenCalledTimes(1)
+	})
+	it('preserves attribution on retry and rejects a different assigned capture', async () => {
+		vi.mocked(prisma.lead.findUnique).mockResolvedValue({
+			idLead: 1,
+			idLeadCapture: 2,
+			referrerName: 'First',
+			originTag: 'Original',
+			idUser: 12,
+		} as never)
+		await importLeadsFromCsv(
+			[makeRawRow({ id_captura: '2', referido_por: 'Later' })],
+			ACTOR
+		)
+		expect(prisma.lead.upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				update: expect.objectContaining({
+					idLeadCapture: 2,
+					referrerName: 'First',
+				}),
+			})
+		)
+		const summary = await importLeadsFromCsv(
+			[makeRawRow({ id_captura: '3' })],
+			ACTOR
+		)
+		expect(summary.rejected).toHaveLength(1)
+		expect(prisma.lead.upsert).toHaveBeenCalledTimes(1)
+	})
+	it('rejects a failed transaction without counting that row, then imports the next', async () => {
+		vi.mocked(prisma.leadStageHistory.create).mockRejectedValueOnce(
+			new Error('write failed')
+		)
+		const summary = await importLeadsFromCsv(
+			[makeRawRow(), makeRawRow({ id_externo_crm: 'CRM-2' })],
+			ACTOR
+		)
+		expect(summary.imported).toBe(1)
+		expect(summary.rejected).toEqual([
+			expect.objectContaining({
+				rowNumber: 2,
+				reason: 'No fue posible importar la fila',
+			}),
+		])
+		expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+			isolationLevel: 'Serializable',
+		})
+	})
+	it('validates capture before writing', async () => {
+		vi.mocked(validateLeadCapture).mockRejectedValueOnce(
+			new Error('La captación no está disponible')
+		)
+		const summary = await importLeadsFromCsv(
+			[makeRawRow({ id_captura: '2' })],
+			ACTOR
+		)
+		expect(summary.rejected).toHaveLength(1)
+		expect(prisma.lead.upsert).not.toHaveBeenCalled()
+	})
 	it('records the stage change with source CSV_IMPORT and the importing user', async () => {
 		vi.mocked(prisma.lead.findUnique).mockResolvedValue({
 			idLead: 1,
@@ -96,31 +226,39 @@ describe('importLeadsFromCsv', () => {
 
 		await importLeadsFromCsv([makeRawRow({ id_externo_crm: 'CRM-1' })], ACTOR)
 
-		expect(recordLeadStageChange).toHaveBeenCalledWith(
-			expect.objectContaining({
+		expect(prisma.leadStageHistory.create).toHaveBeenCalledWith({
+			data: expect.objectContaining({
 				idLead: 1,
 				fromIdLeadFunnelColumn: 9,
 				toIdLeadFunnelColumn: CONTACTADO_COLUMN.idLeadFunnelColumn,
 				source: 'CSV_IMPORT',
 				idUser: ACTOR.userId,
-			})
-		)
+			}),
+		})
 	})
 
 	it('does not record history for rejected rows', async () => {
 		await importLeadsFromCsv(
-			[makeRawRow({ id_externo_crm: 'CRM-300', columna_funnel: 'Etapa Inexistente' })],
+			[
+				makeRawRow({
+					id_externo_crm: 'CRM-300',
+					columna_funnel: 'Etapa Inexistente',
+				}),
+			],
 			ACTOR
 		)
 
-		expect(recordLeadStageChange).not.toHaveBeenCalled()
+		expect(prisma.leadStageHistory.create).not.toHaveBeenCalled()
 	})
 
 	it('imports valid rows and reports rejected ones without all-or-nothing rollback', async () => {
 		const rows = [
 			makeRawRow({ id_externo_crm: 'CRM-1' }),
 			makeRawRow({ id_externo_crm: 'CRM-2' }),
-			makeRawRow({ id_externo_crm: 'CRM-3', columna_funnel: 'Etapa Inexistente' }),
+			makeRawRow({
+				id_externo_crm: 'CRM-3',
+				columna_funnel: 'Etapa Inexistente',
+			}),
 			makeRawRow({ id_externo_crm: 'CRM-4' }),
 			makeRawRow({ id_externo_crm: 'CRM-5', estado: 'en_revision' }),
 		]
@@ -148,7 +286,9 @@ describe('importLeadsFromCsv', () => {
 	})
 
 	it('rejects an unrecognized estado, never falling back to OPEN', async () => {
-		const rows = [makeRawRow({ id_externo_crm: 'CRM-200', estado: 'en_revision' })]
+		const rows = [
+			makeRawRow({ id_externo_crm: 'CRM-200', estado: 'en_revision' }),
+		]
 
 		const summary = await importLeadsFromCsv(rows, ACTOR)
 
@@ -158,7 +298,12 @@ describe('importLeadsFromCsv', () => {
 	})
 
 	it('rejects an unmatched columna_funnel, never falling back to a default column', async () => {
-		const rows = [makeRawRow({ id_externo_crm: 'CRM-300', columna_funnel: 'Etapa Inexistente' })]
+		const rows = [
+			makeRawRow({
+				id_externo_crm: 'CRM-300',
+				columna_funnel: 'Etapa Inexistente',
+			}),
+		]
 
 		const summary = await importLeadsFromCsv(rows, ACTOR)
 
@@ -191,7 +336,10 @@ describe('importLeadsFromCsv', () => {
 		vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
 
 		const rows = [
-			makeRawRow({ id_externo_crm: 'CRM-400', propietario_correo: 'noexiste@example.com' }),
+			makeRawRow({
+				id_externo_crm: 'CRM-400',
+				propietario_correo: 'noexiste@example.com',
+			}),
 		]
 
 		const summary = await importLeadsFromCsv(rows, ACTOR)
@@ -214,7 +362,11 @@ describe('importLeadsFromCsv', () => {
 		} as never)
 
 		const rows = [
-			makeRawRow({ id_externo_crm: 'CRM-500', telefono: '3009999999', origen: '' }),
+			makeRawRow({
+				id_externo_crm: 'CRM-500',
+				telefono: '3009999999',
+				origen: '',
+			}),
 		]
 
 		await importLeadsFromCsv(rows, ACTOR)
@@ -267,8 +419,13 @@ describe('importLeadsFromCsv', () => {
 		const EMAIL_MATCH = { idUser: 5, name: 'Email', lastName: 'Match' }
 
 		it('email match wins: resolveOwnerByName is never consulted when the email resolves', async () => {
-			vi.mocked(prisma.user.findFirst).mockResolvedValue({ idUser: EMAIL_MATCH.idUser } as never)
-			vi.mocked(prisma.user.findMany).mockResolvedValue([YOHAN, EMAIL_MATCH] as never)
+			vi.mocked(prisma.user.findFirst).mockResolvedValue({
+				idUser: EMAIL_MATCH.idUser,
+			} as never)
+			vi.mocked(prisma.user.findMany).mockResolvedValue([
+				YOHAN,
+				EMAIL_MATCH,
+			] as never)
 
 			const rows = [
 				makeRawRow({
@@ -379,7 +536,7 @@ describe('importLeadsFromCsv', () => {
 			})
 		})
 
-		it('unmatched email with no name clears the owner and reports EMAIL_UNMATCHED', async () => {
+		it('unmatched email with no known group owner keeps it unassigned and reports EMAIL_UNMATCHED', async () => {
 			vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
 			vi.mocked(prisma.user.findMany).mockResolvedValue([])
 
@@ -396,7 +553,7 @@ describe('importLeadsFromCsv', () => {
 			const upsertArgs = vi.mocked(prisma.lead.upsert).mock.calls[0][0] as {
 				create: Record<string, unknown>
 			}
-			expect(upsertArgs.create.idUser).toBeNull()
+			expect(upsertArgs.create.idUser).toBeUndefined()
 			expect(summary.ownerlessLeads).toHaveLength(1)
 			expect(summary.ownerlessLeads[0]).toMatchObject({
 				reason: 'EMAIL_UNMATCHED',
@@ -424,7 +581,9 @@ describe('importLeadsFromCsv', () => {
 			}
 			expect(upsertArgs.create.idUser).toBeUndefined()
 			expect(summary.ownerlessLeads).toHaveLength(1)
-			expect(summary.ownerlessLeads[0]).toMatchObject({ reason: 'NO_OWNER_PROVIDED' })
+			expect(summary.ownerlessLeads[0]).toMatchObject({
+				reason: 'NO_OWNER_PROVIDED',
+			})
 		})
 
 		it('both owner columns empty on an existing owned lead preserves the owner and is not reported ownerless', async () => {
@@ -450,7 +609,7 @@ describe('importLeadsFromCsv', () => {
 			const upsertArgs = vi.mocked(prisma.lead.upsert).mock.calls[0][0] as {
 				update: Record<string, unknown>
 			}
-			expect(upsertArgs.update.idUser).toBeUndefined()
+			expect(upsertArgs.update.idUser).toBe(99)
 			expect(summary.ownerlessLeads).toHaveLength(0)
 		})
 
@@ -477,8 +636,10 @@ describe('importLeadsFromCsv', () => {
 			const upsertArgs = vi.mocked(prisma.lead.upsert).mock.calls[0][0] as {
 				update: Record<string, unknown>
 			}
-			expect(upsertArgs.update.idUser).toBeUndefined()
-			expect(summary.ownerlessLeads[0]).toMatchObject({ reason: 'NAME_UNMATCHED' })
+			expect(upsertArgs.update.idUser).toBe(99)
+			expect(summary.ownerlessLeads[0]).toMatchObject({
+				reason: 'NAME_UNMATCHED',
+			})
 		})
 
 		it('preloads active users exactly once for a multi-row file', async () => {
@@ -486,9 +647,18 @@ describe('importLeadsFromCsv', () => {
 			vi.mocked(prisma.user.findMany).mockResolvedValue([YOHAN] as never)
 
 			const rows = [
-				makeRawRow({ id_externo_crm: 'CRM-900', propietario_nombre: 'Yohan España' }),
-				makeRawRow({ id_externo_crm: 'CRM-901', propietario_nombre: 'Yohan España' }),
-				makeRawRow({ id_externo_crm: 'CRM-902', propietario_nombre: 'Yohan España' }),
+				makeRawRow({
+					id_externo_crm: 'CRM-900',
+					propietario_nombre: 'Yohan España',
+				}),
+				makeRawRow({
+					id_externo_crm: 'CRM-901',
+					propietario_nombre: 'Yohan España',
+				}),
+				makeRawRow({
+					id_externo_crm: 'CRM-902',
+					propietario_nombre: 'Yohan España',
+				}),
 			]
 
 			await importLeadsFromCsv(rows, ACTOR)

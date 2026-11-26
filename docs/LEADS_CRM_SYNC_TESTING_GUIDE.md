@@ -267,3 +267,9 @@ Orden de revisión e integración: **#423 → #424**. La migración alternativa
 `20261119145000_add_lead_form_submission` fue retirada de #424 antes de integrarlo.
 Si alguien la aplicó manualmente en una base existente, revisar su historial antes de
 usar `migrate deploy`: no marcar migraciones como aplicadas ni borrar tablas para forzarlo.
+
+## CSV: captación y referido opcionales
+
+La plantilla añade `id_captura,referido_por` después de las 11 columnas históricas. Se aceptan archivos con exactamente las 11 columnas anteriores o las 13 nuevas, en su orden original. Las celdas vacías no borran atribución existente. `id_captura` debe ser un entero positivo de una captación activa; `referido_por` admite hasta 200 caracteres. Una oportunidad ya atribuida a una captación no puede cambiarse a otra mediante reintento: use otro `id_externo_crm` para la nueva oportunidad.
+
+Cada fila se confirma en una transacción independiente: un error revierte esa fila y se informa en el resumen, conservando las filas válidas. Todos los contactos coincidentes y sus relaciones se verifican con el alcance de escritura real del importador antes de vincular o propagar propietario. Un propietario resuelto por correo/nombre se propaga; un propietario ausente o sin coincidencia hereda el único conocido. Conflictos sin propietario explícito se rechazan. La importación no cancela captaciones ni administra sesiones.

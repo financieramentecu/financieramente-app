@@ -6,6 +6,7 @@ import {
 	findScopedLead,
 	parsePositiveId,
 	requireCrmActor,
+	toLeadViewer,
 } from '@/lib/auth/require-crm-actor'
 import { leadCrmEventInputSchema } from '@/features/leads/crm/lead-crm-event.schema'
 import { validateActivityFiles } from '@/features/leads/activities/lead-activity-attachment'
@@ -15,6 +16,8 @@ import { storeLeadActivityFiles } from '@/features/leads/activities/lead-activit
 import { LeadAttachmentStorageError } from '@/features/leads/activities/lead-attachment-storage'
 import { getLeadTimelinePage, type LeadTimelinePage } from '@/features/leads/activities/lead-timeline.service'
 import { decodeTimelineCursor } from '@/features/leads/activities/merge-timeline'
+import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
+import { getVisiblePersonGroupIds } from '@/features/leads/services/lead-associations.service'
 
 interface RouteContext {
 	params: Promise<{ id: string }>
@@ -35,7 +38,10 @@ export async function GET(request: Request, context: RouteContext) {
 		const cursor = cursorValue ? decodeTimelineCursor(cursorValue) : null
 		if (cursorValue && !cursor) return error('Cursor inválido', 400)
 
-		const page = await getLeadTimelinePage(idLead, { limit, cursor: cursor ?? undefined })
+		const visibleLeadIds = await getVisiblePersonGroupIds(idLead, buildLeadListWhere(
+			toLeadViewer(guard.actor), {}, { visibleUserIds: guard.actor.visibleUserIds }
+		))
+		const page = await getLeadTimelinePage(idLead, { limit, cursor: cursor ?? undefined, visibleLeadIds })
 		return NextResponse.json({ data: page } satisfies ApiResponse<LeadTimelinePage>)
 	} catch (cause) {
 		console.error('Error fetching lead activities:', cause)

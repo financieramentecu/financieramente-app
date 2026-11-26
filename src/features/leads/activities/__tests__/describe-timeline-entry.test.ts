@@ -81,7 +81,7 @@ describe('describeTimelineEntry', () => {
 		expect(describeTimelineEntry(ingress)).toEqual({
 			title: 'Relación entre leads',
 			detail: 'Está relacionado con Camilo Restrepo. Ese ingreso es por Money Strategy.',
-			meta: 'Mismo Money Strategy',
+			meta: 'Coincidencia de datos de contacto',
 			actor: 'Sistema',
 		})
 		expect(

@@ -157,6 +157,7 @@ interface LeadDetailSheetProps {
 	/** Name already known by the caller, shown while the detail request is in flight. */
 	previewName?: string | null
 	loadError?: string | null
+	onSelectLead?: (idLead: number) => void
 }
 
 /**
@@ -184,6 +185,7 @@ export function LeadDetailSheet({
 	onActivityChanged,
 	previewName = null,
 	loadError = null,
+	onSelectLead,
 }: LeadDetailSheetProps) {
 	const { state: deleteState, deleteLead } = useDeleteLead()
 	const [panel, setPanel] = useState<LeadSheetPanel>(LEAD_SHEET_PANEL.DETAIL)
@@ -218,9 +220,9 @@ export function LeadDetailSheet({
 	if (!lead) {
 		return (
 			<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="gap-0 overflow-y-auto sm:max-w-md">
-				<SheetHeader className="pb-3">
-					<SheetTitle>{previewName || 'Detalle del lead'}</SheetTitle>
+				<SheetContent className="gap-0 overflow-y-auto sm:max-w-md">
+					<SheetHeader className="pb-3">
+						<SheetTitle>{previewName || 'Detalle del lead'}</SheetTitle>
 						<SheetDescription>Detalle del lead</SheetDescription>
 					</SheetHeader>
 					{loadError ? (
@@ -351,6 +353,32 @@ export function LeadDetailSheet({
 								/>
 								<span className="truncate">{lead.originTag}</span>
 							</div>
+						)}
+						<div className="space-y-1 text-sm">
+							<p>Origen: {lead.originTag ?? 'Desconocido'}</p>
+							<p>Captura: {lead.capture?.name ?? 'Sin captura'}</p>
+							<p>Referido por: {lead.referrerName ?? 'Desconocido'}</p>
+							<p>Origen inicial: {lead.firstOriginTag ?? 'Desconocido'}</p>
+							<p>
+								Referente inicial: {lead.firstReferrerName ?? 'Desconocido'}
+							</p>
+						</div>
+						{onSelectLead && lead.captures && lead.captures.length > 1 && (
+							<label className="block space-y-1 text-sm">
+								Captura / oportunidad
+								<select
+									aria-label="Captura / oportunidad"
+									className="w-full rounded-md border bg-background p-2"
+									value={lead.idLead}
+									onChange={(event) => onSelectLead(Number(event.target.value))}
+								>
+									{lead.captures.map((item) => (
+										<option key={item.idLead} value={item.idLead}>
+											{item.capture?.name ?? 'Sin captura'} · #{item.idLead}
+										</option>
+									))}
+								</select>
+							</label>
 						)}
 						<LeadFormOriginSection submissions={lead.formSubmissions ?? []} />
 						<LeadPersonActions lead={lead} onOwnerAssigned={onOwnerAssigned} />

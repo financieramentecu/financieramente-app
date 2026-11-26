@@ -24,6 +24,8 @@ export const crmSyncPayloadSchema = z.object({
 	phone: z.string().optional(),
 	identityNumber: z.string().optional(),
 	originTag: z.string().optional(),
+	idLeadCapture: z.number().int().positive().optional(),
+	referrerName: z.string().trim().max(200).optional(),
 	/**
 	 * Landing-page query parameter forwarded by n8n.
 	 * Also accepted as `?utm_source=` on this request.
@@ -31,7 +33,7 @@ export const crmSyncPayloadSchema = z.object({
 	 */
 	utm_source: z.string().optional(),
 	externalUrl: z.union([z.literal(''), z.string().url()]).optional(),
-	/** Required. A value that matches no active user leaves the lead without an advisor. */
+	/** Required. An unmatched value preserves the known group advisor; a new unowned group stays unassigned. */
 	ownerEmail: z.string().trim().min(1, 'ownerEmail es obligatorio'),
 	// Never a `z.enum()` — an unrecognized value MUST NOT reject the webhook
 	// (D12). The service resolves it with `resolveOutcomeStatus()`.

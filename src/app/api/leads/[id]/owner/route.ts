@@ -27,7 +27,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 		}
 		const idLead = parsePositiveId((await context.params).id)
 		if (!idLead) return error('Identificador de lead inválido', 400)
-		if (!(await findScopedLead(guard.actor, idLead)))
+		if (!(await findScopedLead(guard.actor, idLead, 'write')))
 			return error('Lead no encontrado', 404)
 		const input = assignLeadOwnerSchema.safeParse(await readJsonBody(request))
 		if (!input.success)
@@ -38,9 +38,10 @@ export async function PATCH(request: Request, context: RouteContext) {
 		const result = await assignLeadOwner(
 			idLead,
 			input.data.idUser,
-			toCrmRequestContext(guard.actor, request)
+			toCrmRequestContext(guard.actor, request),
+			guard.actor.manageableUserIds
 		)
-		if (!result.ok) return error(result.error, 400)
+		if (!result.ok) return error(result.error, result.status ?? 400)
 		return NextResponse.json({
 			data: {
 				idLead,
