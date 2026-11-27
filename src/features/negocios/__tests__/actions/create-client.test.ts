@@ -72,6 +72,11 @@ describe('createClient', () => {
 		} as never)
 	})
 
+	it('gates creation on negocios.crear, not negocios.editar', async () => {
+		await createClient(basePayload)
+		expect(requireWriteAccess).toHaveBeenCalledWith('negocios.crear')
+	})
+
 	it('returns rejected ApiResponse for CONSULTOR (read-only role)', async () => {
 		vi.mocked(requireWriteAccess).mockResolvedValueOnce({
 			ok: false,

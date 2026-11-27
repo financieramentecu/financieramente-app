@@ -127,6 +127,11 @@ describe('createBusiness', () => {
 		} as unknown as Awaited<ReturnType<typeof prisma.product.findUnique>>)
 	})
 
+	it('gates creation on negocios.crear, not negocios.editar', async () => {
+		await createBusiness(basePayload)
+		expect(requireWriteAccess).toHaveBeenCalledWith('negocios.crear')
+	})
+
 	it('rejects SKANDIA MFUND when the periodicity is not Aportes Ocasionales', async () => {
 		vi.mocked(prisma.buyPeriodicity.findUnique).mockResolvedValue({
 			name: 'Mensual',

@@ -56,7 +56,7 @@ export async function createClient(
 	data: CreateClientInput
 ): Promise<ApiResponse<Client>> {
 	try {
-		const guard = await requireWriteAccess()
+		const guard = await requireWriteAccess('negocios.crear')
 		if (!guard.ok) {
 			return {
 				data: null,

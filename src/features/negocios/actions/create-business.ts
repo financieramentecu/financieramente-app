@@ -108,7 +108,7 @@ export async function createBusiness(
 	data: CreateBusinessInput
 ): Promise<ApiResponse<Business>> {
 	try {
-		const guard = await requireWriteAccess()
+		const guard = await requireWriteAccess('negocios.crear')
 		if (!guard.ok) {
 			return {
 				data: null,

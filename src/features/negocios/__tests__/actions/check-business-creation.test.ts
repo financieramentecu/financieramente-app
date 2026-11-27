@@ -61,6 +61,7 @@ describe('checkBusinessCreation (pre-flight before client persistence)', () => {
 		await checkBusinessCreation({ idUser: 5, idProduct: 3 })
 
 		expect(requireWriteAccess).toHaveBeenCalledTimes(1)
+		expect(requireWriteAccess).toHaveBeenCalledWith('negocios.crear')
 		expect(requireActionPermission).not.toHaveBeenCalled()
 	})
 

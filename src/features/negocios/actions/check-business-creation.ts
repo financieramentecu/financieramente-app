@@ -28,7 +28,7 @@ export async function checkBusinessCreation(input: {
 	idProduct: number
 }): Promise<ApiResponse<{ ok: true }>> {
 	try {
-		const guard = await requireWriteAccess()
+		const guard = await requireWriteAccess('negocios.crear')
 		if (!guard.ok) {
 			return {
 				data: null,
