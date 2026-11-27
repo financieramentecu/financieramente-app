@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { LeadDetailSheet } from '@/features/leads/components/lead-detail-sheet'
 import type { LeadDetail } from '@/features/leads/types/lead.types'
@@ -17,7 +17,11 @@ vi.mock('@/features/leads/hooks/use-delete-lead', () => ({
 
 const advisorAccess = vi.hoisted(() => ({
 	current: {
-		state: { status: 'success' as const, data: [] as Array<{ idUser: number; name: string }>, error: '' },
+		state: {
+			status: 'success' as const,
+			data: [] as Array<{ idUser: number; name: string }>,
+			error: '',
+		},
 		canLead: false,
 	},
 }))
@@ -102,7 +106,9 @@ describe('LeadDetailSheet', () => {
 			/>
 		)
 		expect(screen.getByRole('dialog')).toBeInTheDocument()
-		expect(screen.getByRole('heading', { name: 'Camila Herrera' })).toBeInTheDocument()
+		expect(
+			screen.getByRole('heading', { name: 'Camila Herrera' })
+		).toBeInTheDocument()
 		expect(screen.getByRole('status')).toHaveTextContent('Cargando el lead…')
 	})
 
@@ -118,17 +124,34 @@ describe('LeadDetailSheet', () => {
 	})
 
 	it('hides Money Strategy assignment from an advisor who leads nobody', () => {
-		render(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} canManageCrm />)
-		expect(screen.queryByRole('combobox', { name: 'Money Strategy disponibles' })).not.toBeInTheDocument()
+		render(
+			<LeadDetailSheet
+				lead={buildLead()}
+				open={true}
+				onOpenChange={vi.fn()}
+				canManageCrm
+			/>
+		)
+		expect(
+			screen.queryByRole('combobox', { name: 'Money Strategy disponibles' })
+		).not.toBeInTheDocument()
 	})
 
 	it('shows Money Strategy assignment to the leader in charge', () => {
 		advisorAccess.current = {
-			state: { status: 'success', data: [{ idUser: 9, name: 'Laura Gomez' }], error: '' },
+			state: {
+				status: 'success',
+				data: [{ idUser: 9, name: 'Laura Gomez' }],
+				error: '',
+			},
 			canLead: true,
 		}
-		render(<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} />)
-		expect(screen.getByRole('combobox', { name: 'Money Strategy disponibles' })).toBeInTheDocument()
+		render(
+			<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} />
+		)
+		expect(
+			screen.getByRole('combobox', { name: 'Money Strategy disponibles' })
+		).toBeInTheDocument()
 	})
 
 	it('shows "Convertir a negocio" when the lead is not yet converted', () => {
@@ -187,7 +210,9 @@ describe('LeadDetailSheet — CRM timeline', () => {
 			<LeadDetailSheet lead={buildLead()} open={true} onOpenChange={vi.fn()} />
 		)
 		await user.click(screen.getByRole('tab', { name: 'Historial' }))
-		expect(screen.getByText('La línea de tiempo de este lead no está disponible.')).toBeInTheDocument()
+		expect(
+			screen.getByText('La línea de tiempo de este lead no está disponible.')
+		).toBeInTheDocument()
 		expect(screen.queryByText('Timeline')).not.toBeInTheDocument()
 
 		rerender(
@@ -205,7 +230,9 @@ describe('LeadDetailSheet — CRM timeline', () => {
 	it('puts tasks and cases in a tab inside Detalle, after the CRM section', async () => {
 		vi.stubGlobal(
 			'fetch',
-			vi.fn(() => Promise.resolve({ ok: true, json: async () => ({ data: [] }) }))
+			vi.fn(() =>
+				Promise.resolve({ ok: true, json: async () => ({ data: [] }) })
+			)
 		)
 		const user = userEvent.setup()
 		render(
@@ -218,15 +245,27 @@ describe('LeadDetailSheet — CRM timeline', () => {
 				crmFieldsEnabled
 			/>
 		)
-		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute('data-state', 'active')
+		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute(
+			'data-state',
+			'active'
+		)
 		const crm = screen.getByText('CRM fields read-only')
 		const tasks = screen.getByRole('tab', { name: 'Tareas' })
-		expect(crm.compareDocumentPosition(tasks) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-		expect(screen.queryByRole('heading', { name: 'Casos de soporte' })).not.toBeInTheDocument()
+		expect(
+			crm.compareDocumentPosition(tasks) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy()
+		expect(
+			screen.queryByRole('heading', { name: 'Casos de soporte' })
+		).not.toBeInTheDocument()
 
 		await user.click(screen.getByRole('tab', { name: 'Casos' }))
-		expect(screen.getByRole('heading', { name: 'Casos de soporte' })).toBeInTheDocument()
-		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute('data-state', 'active')
+		expect(
+			screen.getByRole('heading', { name: 'Casos de soporte' })
+		).toBeInTheDocument()
+		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute(
+			'data-state',
+			'active'
+		)
 	})
 
 	it('shows the activity description, a comment composer, and close when opened from an activity', async () => {
@@ -237,23 +276,32 @@ describe('LeadDetailSheet — CRM timeline', () => {
 					return Promise.resolve({
 						ok: true,
 						json: async () => ({
-							data: [{ id: 3, body: 'Seguimiento', createdAt: '2026-11-12T15:00:00.000Z', authorName: 'Ana' }],
+							data: [
+								{
+									id: 3,
+									body: 'Seguimiento',
+									createdAt: '2026-11-12T15:00:00.000Z',
+									authorName: 'Ana',
+								},
+							],
 						}),
 					})
 				}
 				return Promise.resolve({
 					ok: true,
 					json: async () => ({
-						data: [{
-							idLeadTask: 5,
-							title: 'Llamar',
-							type: 'CALL',
-							dueAt: null,
-							status: 'OPEN',
-							assignedTo: 5,
-							completedAt: null,
-							assignee: { name: 'Ana', lastName: null },
-						}],
+						data: [
+							{
+								idLeadTask: 5,
+								title: 'Llamar',
+								type: 'CALL',
+								dueAt: null,
+								status: 'OPEN',
+								assignedTo: 5,
+								completedAt: null,
+								assignee: { name: 'Ana', lastName: null },
+							},
+						],
 					}),
 				})
 			})
@@ -269,15 +317,24 @@ describe('LeadDetailSheet — CRM timeline', () => {
 			/>
 		)
 		expect(screen.queryByText('Timeline')).not.toBeInTheDocument()
-		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute('data-state', 'active')
+		expect(screen.getByRole('tab', { name: 'Detalle' })).toHaveAttribute(
+			'data-state',
+			'active'
+		)
 		expect(await screen.findByText('Descripción')).toBeInTheDocument()
 		expect(screen.getByText('Llamar')).toBeInTheDocument()
 		expect(await screen.findByText('Seguimiento')).toBeInTheDocument()
-		expect(screen.queryByRole('tab', { name: 'Tareas' })).not.toBeInTheDocument()
+		expect(
+			screen.queryByRole('tab', { name: 'Tareas' })
+		).not.toBeInTheDocument()
 		expect(screen.queryByLabelText('Nueva tarea')).not.toBeInTheDocument()
 		expect(screen.getByLabelText('Agregar comentario')).toBeInTheDocument()
-		expect(screen.queryByRole('link', { name: 'Convertir a negocio' })).not.toBeInTheDocument()
-		expect(screen.getByRole('button', { name: 'Finalizar actividad' })).toBeEnabled()
+		expect(
+			screen.queryByRole('link', { name: 'Convertir a negocio' })
+		).not.toBeInTheDocument()
+		expect(
+			screen.getByRole('button', { name: 'Finalizar actividad' })
+		).toBeEnabled()
 	})
 })
 
@@ -497,4 +554,44 @@ describe('LeadDetailSheet — CRM conversion audit', () => {
 			screen.getByText('Ver auditoría de conversión').closest('a')
 		).toHaveAttribute('href', '/dashboard/negocios/42?crmAudit=1')
 	})
+})
+
+it('switches the selected opportunity without changing attribution or business targets locally', () => {
+	const capture = { idLeadCapture: 2, name: 'Programa', level: 2, status: true }
+	const lead = buildLead({
+		capture,
+		referrerName: 'María',
+		firstOriginTag: 'Evento',
+		firstReferrerName: 'Luis',
+		captures: [1, 2].map((idLead) => ({
+			idLead,
+			capture,
+			referrerName: 'María',
+			originTag: 'Propio',
+			idLeadFunnelColumn: 1,
+			outcomeStatus: 'OPEN',
+			createdAt: '2026-11-24T00:00:00Z',
+		})),
+	})
+	const onSelectLead = vi.fn()
+	render(
+		<LeadDetailSheet
+			lead={lead}
+			open
+			onOpenChange={vi.fn()}
+			onSelectLead={onSelectLead}
+			canManageCrm
+		/>
+	)
+	fireEvent.change(
+		screen.getByRole('combobox', { name: 'Captura / oportunidad' }),
+		{ target: { value: '2' } }
+	)
+	expect(onSelectLead).toHaveBeenCalledExactlyOnceWith(2)
+	expect(screen.getByText('Captura: Programa')).toBeInTheDocument()
+	expect(screen.getByText('Referido por: María')).toBeInTheDocument()
+	expect(screen.getByText('Origen inicial: Evento')).toBeInTheDocument()
+	expect(
+		screen.getByRole('link', { name: 'Convertir a negocio' })
+	).toHaveAttribute('href', '/dashboard/negocios/crear?leadId=1')
 })

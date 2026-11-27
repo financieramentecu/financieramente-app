@@ -19,14 +19,26 @@ describe('LeadActivityTimeline', () => {
 						items: [
 							{
 								idLeadActivity: 1,
+								idLead: 9,
+								captureName: 'Programa',
 								type: 'NOTE_ADDED',
 								occurredAt: '2026-11-05T10:00:00.000Z',
 								actorName: 'Ana',
 								payload: {
 									note: 'Seguimiento agendado',
 									attachments: [
-										{ name: 'foto.png', mimeType: 'image/png', size: 10, key: 'leads/1/a' },
-										{ name: 'cotizacion.pdf', mimeType: 'application/pdf', size: 20, key: 'leads/1/b' },
+										{
+											name: 'foto.png',
+											mimeType: 'image/png',
+											size: 10,
+											key: 'leads/1/a',
+										},
+										{
+											name: 'cotizacion.pdf',
+											mimeType: 'application/pdf',
+											size: 20,
+											key: 'leads/1/b',
+										},
 									],
 								},
 							},
@@ -39,13 +51,19 @@ describe('LeadActivityTimeline', () => {
 
 		render(<LeadActivityTimeline leadId={1} enabled />)
 		expect(await screen.findByText('Seguimiento agendado')).toBeInTheDocument()
+		expect(screen.getByText(/Ana.*Programa.*#9/)).toBeInTheDocument()
 		expect(screen.getByText('Nota de seguimiento')).toBeInTheDocument()
-		expect(screen.getByRole('heading', { name: formatDateBogota('2026-11-05T10:00:00.000Z') })).toBeInTheDocument()
-		expect(screen.getByRole('button', { name: 'Ampliar foto.png' })).toBeInTheDocument()
-		expect(screen.getByRole('link', { name: 'Descargar cotizacion.pdf' })).toHaveAttribute(
-			'href',
-			'/api/leads/1/activities/1/files/1'
-		)
+		expect(
+			screen.getByRole('heading', {
+				name: formatDateBogota('2026-11-05T10:00:00.000Z'),
+			})
+		).toBeInTheDocument()
+		expect(
+			screen.getByRole('button', { name: 'Ampliar foto.png' })
+		).toBeInTheDocument()
+		expect(
+			screen.getByRole('link', { name: 'Descargar cotizacion.pdf' })
+		).toHaveAttribute('href', '/api/leads/9/activities/1/files/1')
 	})
 
 	it('creates a plain-text note through the lead activity API', async () => {
@@ -110,7 +128,9 @@ describe('LeadActivityTimeline', () => {
 		fireEvent.click(screen.getByRole('button', { name: 'Registrar' }))
 
 		await waitFor(() => {
-			const posted = fetchMock.mock.calls.find((call) => call[1]?.method === 'POST')
+			const posted = fetchMock.mock.calls.find(
+				(call) => call[1]?.method === 'POST'
+			)
 			expect(posted?.[1].body).toBeInstanceOf(FormData)
 			expect((posted?.[1].body as FormData).get('files')).toBe(file)
 		})

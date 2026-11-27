@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { roleCan } from '@/features/access-control/services/role-permission-check'
+import { roleCan, roleScope } from '@/features/access-control/services/role-permission-check'
+import { getAccessibleUserIds } from '@/features/auth/lib/hierarchy'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { importLeadsFromCsv } from '@/features/leads/services/lead-csv-import.service'
@@ -25,7 +26,10 @@ const csvImportBodySchema = z.object({
 export async function POST(request: Request) {
 	const session = await auth()
 	if (!session?.user?.email) {
-		const errorResponse: ApiResponse<null> = { data: null, error: 'No autorizado' }
+		const errorResponse: ApiResponse<null> = {
+			data: null,
+			error: 'No autorizado',
+		}
 		return NextResponse.json(errorResponse, { status: 401 })
 	}
 
@@ -42,11 +46,15 @@ export async function POST(request: Request) {
 		const body = await request.json()
 		const { rows } = csvImportBodySchema.parse(body)
 
-		const userId = session.user.id ? parseInt(session.user.id) : undefined
+		const userId = currentUser!.idUser
 		const summary: LeadCsvImportSummary = await importLeadsFromCsv(
 			rows as LeadCsvRawRow[],
 			{
 				userId,
+				// Empty list = the whole company: a COMPANY-scoped CRM writer may assign anyone.
+				manageableUserIds: (await roleScope(currentUser!.role?.code, 'leads.gestionar')) === 'COMPANY'
+					? []
+					: await getAccessibleUserIds(currentUser!.idUser),
 				email: session.user.email,
 				ipAddress: getClientIp(request.headers),
 				userAgent: getUserAgent(request.headers),

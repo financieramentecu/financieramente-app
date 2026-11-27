@@ -18,6 +18,7 @@ export function CrmLeadDetailSheet({
 	onActivityChanged,
 	previewName = null,
 	loadError = null,
+	onSelectLead,
 }: {
 	lead: LeadDetail | null
 	open: boolean
@@ -28,17 +29,21 @@ export function CrmLeadDetailSheet({
 	onActivityChanged?: () => void
 	previewName?: string | null
 	loadError?: string | null
+	onSelectLead?: (idLead: number) => void
 }) {
 	const { can } = usePermissions()
 	const { enabled: timelineEnabled } = useFeatureFlag('crm_timeline')
 	const { enabled: tasksEnabled } = useFeatureFlag('crm_tasks')
-	const { enabled: conversionAuditEnabled } = useFeatureFlag('crm_conversion_audit')
+	const { enabled: conversionAuditEnabled } = useFeatureFlag(
+		'crm_conversion_audit'
+	)
 	const { enabled: casesEnabled } = useFeatureFlag('crm_cases')
 	const { enabled: crmFieldsEnabled } = useFeatureFlag('crm_lead_fields')
 
 	return (
 		<LeadDetailSheet
 			lead={lead}
+			onSelectLead={onSelectLead}
 			open={open}
 			onOpenChange={onOpenChange}
 			isAdmin={can('leads.eliminar')}

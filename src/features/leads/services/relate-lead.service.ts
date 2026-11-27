@@ -5,7 +5,12 @@ import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { leadDisplayName } from '@/features/leads/lib/lead-display-name'
 import { assignLeadOrigin } from '@/features/leads/services/lead-origin.service'
-import { recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
+import {
+	collectPersonGroupIds,
+	resolvePersonGroupOwner,
+	propagatePersonGroupOwner,
+	LeadPersonGroupError,
+} from './lead-person-group.service'
 import type { LeadViewer } from '@/features/leads/types/lead.types'
 import {
 	LEAD_LINK_SIDES,
@@ -22,8 +27,6 @@ const LEAD_SELECT = {
 	active: true,
 } satisfies Prisma.LeadSelect
 
-type LinkLead = Prisma.LeadGetPayload<{ select: typeof LEAD_SELECT }>
-
 export type RelateLeadResult =
 	| {
 			ok: true
@@ -31,9 +34,11 @@ export type RelateLeadResult =
 			idUser: number | null
 			ownerName: string | null
 	  }
-	| { ok: false; error: string }
+	| { ok: false; error: string; status?: number }
 
-function personName(user: { name: string; lastName: string | null } | null): string | null {
+function personName(
+	user: { name: string; lastName: string | null } | null
+): string | null {
 	if (!user) return null
 	const name = [user.name, user.lastName].filter(Boolean).join(' ').trim()
 	return name || null
@@ -48,15 +53,22 @@ export async function relateLead(
 	idLead: number,
 	idRelatedLead: number,
 	idClientOrigin: number | null,
-	ctx: CrmRequestContext
+	ctx: CrmRequestContext,
+	manageableUserIds: readonly number[] = [ctx.userId]
 ): Promise<RelateLeadResult> {
 	if (idLead === idRelatedLead) {
 		return { ok: false, error: 'Un lead no se puede relacionar consigo mismo' }
 	}
 
 	const [current, related, origin, existing] = await Promise.all([
-		prisma.lead.findFirst({ where: { idLead, active: true }, select: LEAD_SELECT }),
-		prisma.lead.findFirst({ where: { idLead: idRelatedLead, active: true }, select: LEAD_SELECT }),
+		prisma.lead.findFirst({
+			where: { idLead, active: true },
+			select: LEAD_SELECT,
+		}),
+		prisma.lead.findFirst({
+			where: { idLead: idRelatedLead, active: true },
+			select: LEAD_SELECT,
+		}),
 		idClientOrigin != null
 			? prisma.clientOrigin.findFirst({
 					where: { idClientOrigin },
@@ -83,58 +95,75 @@ export async function relateLead(
 	if (existing) return { ok: false, error: 'Estos leads ya están relacionados' }
 
 	const seenAt = new Date()
-	const sharedAdvisor = related.idUser ?? current.idUser
+	let sharedAdvisor: number | null = null
 	const originIdToStore = origin?.idClientOrigin ?? null
 	const originName = origin?.name ?? 'Sin origen'
-	const linked = await prisma.$transaction(async (tx) => {
-		await shareAdvisor(tx, current, related, sharedAdvisor)
-		return tx.leadLink.create({
-			data: {
-				idLead,
-				idRelatedLead,
-				idClientOrigin: originIdToStore,
-				source: 'MANUAL',
-				active: true,
-				linkedAt: seenAt,
-				linkedBy: ctx.userId,
+	let linked: { idLeadLink: number; linkedAt: Date }
+	try {
+		linked = await prisma.$transaction(
+			async (tx) => {
+				const ids = await collectPersonGroupIds([idLead, idRelatedLead], tx)
+				sharedAdvisor = await resolvePersonGroupOwner(tx, ids, {
+					manageableUserIds,
+				})
+				if (sharedAdvisor == null) throw new LeadPersonGroupError()
+				await propagatePersonGroupOwner(
+					tx,
+					ids,
+					sharedAdvisor,
+					{ source: 'MANUAL', idActor: ctx.userId, actorLabel: ctx.email },
+					seenAt
+				)
+				if (originIdToStore != null) {
+					const result = await assignLeadOrigin(
+						{ idLead, idClientOrigin: originIdToStore, seenAt },
+						tx
+					)
+					const currentAtWrite = await tx.lead.findFirst({
+						where: { idLead, active: true },
+						select: { originTag: true },
+					})
+					if (!currentAtWrite) throw new LeadPersonGroupError()
+					if (!currentAtWrite.originTag)
+						await tx.lead.update({
+							where: { idLead },
+							data: { originTag: originName },
+						})
+					if (result === 'created' || result === 'reactivated')
+						await tx.leadChangeHistory.createMany({
+							data: [
+								{
+									idLead,
+									kind: 'ORIGIN',
+									source: 'MANUAL',
+									idActor: ctx.userId,
+									actorLabel: ctx.email,
+									fromLabel: null,
+									toLabel: originName,
+									changedAt: seenAt,
+								},
+							],
+						})
+				}
+				return tx.leadLink.create({
+					data: {
+						idLead,
+						idRelatedLead,
+						idClientOrigin: originIdToStore,
+						source: 'MANUAL',
+						active: true,
+						linkedAt: seenAt,
+						linkedBy: ctx.userId,
+					},
+					select: { idLeadLink: true, linkedAt: true },
+				})
 			},
-			select: { idLeadLink: true, linkedAt: true },
-		})
-	})
-
-	if (originIdToStore != null) {
-		await assignLeadOrigin({
-			idLead,
-			idClientOrigin: originIdToStore,
-			seenAt,
-			history: { source: 'MANUAL', idActor: ctx.userId },
-		})
-		if (!current.originTag) {
-			await prisma.lead.update({
-				where: { idLead },
-				data: { originTag: originName },
-			})
-		}
-	}
-	if (sharedAdvisor != null && current.idUser !== sharedAdvisor) {
-		await recordOwnerChange({
-			idLead: current.idLead,
-			fromUserId: current.idUser,
-			toUserId: sharedAdvisor,
-			source: 'MANUAL',
-			idActor: ctx.userId,
-			changedAt: seenAt,
-		})
-	}
-	if (sharedAdvisor != null && related.idUser !== sharedAdvisor) {
-		await recordOwnerChange({
-			idLead: related.idLead,
-			fromUserId: related.idUser,
-			toUserId: sharedAdvisor,
-			source: 'MANUAL',
-			idActor: ctx.userId,
-			changedAt: seenAt,
-		})
+			{ isolationLevel: 'Serializable' }
+		)
+	} catch (cause) {
+		if (cause instanceof LeadPersonGroupError)
+			return { ok: false, error: cause.message, status: 409 }
+		throw cause
 	}
 
 	const owner = sharedAdvisor
@@ -170,23 +199,6 @@ export async function relateLead(
 			linkedAt: linked.linkedAt.toISOString(),
 		},
 	}
-}
-
-async function shareAdvisor(
-	tx: Prisma.TransactionClient,
-	current: LinkLead,
-	related: LinkLead,
-	sharedAdvisor: number | null
-): Promise<void> {
-	if (sharedAdvisor == null) return
-	const updates: Promise<unknown>[] = []
-	if (current.idUser !== sharedAdvisor) {
-		updates.push(tx.lead.update({ where: { idLead: current.idLead }, data: { idUser: sharedAdvisor } }))
-	}
-	if (related.idUser !== sharedAdvisor) {
-		updates.push(tx.lead.update({ where: { idLead: related.idLead }, data: { idUser: sharedAdvisor } }))
-	}
-	await Promise.all(updates)
 }
 
 /** Leads the viewer can relate, matched by name, email, phone or document. */

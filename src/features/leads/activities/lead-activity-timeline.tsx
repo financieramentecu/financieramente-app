@@ -39,7 +39,9 @@ export function LeadActivityTimeline({
 				</h3>
 			</div>
 			<LeadActivityForm leadId={leadId} onSubmit={logActivity} />
-			{state.status === 'loading' && <LeadTimelineSkeleton label="Cargando la línea de tiempo…" />}
+			{state.status === 'loading' && (
+				<LeadTimelineSkeleton label="Cargando la línea de tiempo…" />
+			)}
 			{state.status === 'error' && (
 				<p role="alert" className="text-sm text-destructive">
 					{state.error}
@@ -47,7 +49,8 @@ export function LeadActivityTimeline({
 			)}
 			{state.status === 'success' && items.length === 0 && (
 				<p className="text-sm text-muted-foreground">
-					Aún no hay actividades, tareas ni cambios de etapa, de Money Strategy o de origen para este lead.
+					Aún no hay actividades, tareas ni cambios de etapa, de Money Strategy
+					o de origen para este lead.
 				</p>
 			)}
 			{days.map((group) => (
@@ -70,13 +73,19 @@ export function LeadActivityTimeline({
 									<p className="text-xs text-muted-foreground">
 										{formatTimeBogota(entry.occurredAt)} · {view.actor}
 										{view.meta ? ` · ${view.meta}` : ''}
+										{entry.idLead != null
+											? ` · ${entry.captureName ?? 'Sin captura'} · #${entry.idLead}`
+											: ''}
 									</p>
 									<p className="text-sm font-medium">{view.title}</p>
 									<p className="text-sm whitespace-pre-wrap text-foreground">
 										{view.detail}
 									</p>
 									{(entry.kind === 'activity' || entry.kind === undefined) && (
-										<ActivityAttachments leadId={leadId} entry={entry} />
+										<ActivityAttachments
+											leadId={entry.idLead ?? leadId}
+											entry={entry}
+										/>
 									)}
 								</li>
 							)

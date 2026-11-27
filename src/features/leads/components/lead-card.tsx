@@ -26,7 +26,8 @@ interface LeadCardProps {
  * Presentational Kanban card. The board wraps it when the card can be dragged.
  */
 export function LeadCard({ lead, onClick }: LeadCardProps) {
-	const fullName = [lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
+	const fullName =
+		[lead.name, lead.lastName].filter(Boolean).join(' ') || 'Sin nombre'
 	// A lead counts as converted whenever `idBusiness` is non-null, regardless
 	// of the linked Business's current status (including cancelled).
 	const isConverted = lead.idBusiness !== null
@@ -60,7 +61,11 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 												className="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-100 p-1 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300"
 												aria-label="Negocio creado"
 											>
-												<Star className="size-3" aria-hidden fill="currentColor" />
+												<Star
+													className="size-3"
+													aria-hidden
+													fill="currentColor"
+												/>
 											</span>
 										</TooltipTrigger>
 										<TooltipContent>Negocio creado</TooltipContent>
@@ -86,6 +91,14 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 								</span>
 							)}
 						</div>
+						<p className="text-xs text-muted-foreground">
+							Captura: {lead.capture?.name ?? 'Sin captura'}
+						</p>
+						{lead.referrerName && (
+							<p className="text-xs text-muted-foreground">
+								Referido por: {lead.referrerName}
+							</p>
+						)}
 						<InactivityBadge days={lead.inactiveDays} />
 					</div>
 					{lead.ownerName && (
@@ -97,6 +110,28 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
 						</div>
 					)}
 				</div>
+				{lead.captures && lead.captures.length > 1 && (
+					<label
+						className="block space-y-1 text-xs"
+						onClick={(event) => event.stopPropagation()}
+						onKeyDown={(event) => event.stopPropagation()}
+					>
+						Captura / oportunidad
+						<select
+							aria-label="Captura / oportunidad"
+							className="w-full rounded-md border bg-background p-2 text-sm"
+							value={lead.idLead}
+							onPointerDown={(event) => event.stopPropagation()}
+							onChange={(event) => onClick?.(Number(event.target.value))}
+						>
+							{lead.captures.map((item) => (
+								<option key={item.idLead} value={item.idLead}>
+									{item.capture?.name ?? 'Sin captura'} · #{item.idLead}
+								</option>
+							))}
+						</select>
+					</label>
+				)}
 				{(lead.email || lead.phone) && (
 					<div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
 						{lead.email && <p className="truncate">{lead.email}</p>}

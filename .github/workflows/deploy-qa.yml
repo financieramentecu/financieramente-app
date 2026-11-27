@@ -305,7 +305,7 @@ jobs:
             (crontab -l 2>/dev/null | grep -v 'fund-payments' || true
              echo "0 6 * * * curl -s -X POST https://negocios.qa.financieramentecu.co/api/negocios/cron/fund-payments -H 'Authorization: Bearer ${{ secrets.CRON_SECRET_QA }}' >> /var/log/financieramente/fund-payments.log 2>&1") | crontab -
 
-            # CRM task crons stay uninstalled until the CRM is enabled outside development.
+            # Scheduled CRM notifications require separate activation from feature availability.
             # Drop lines a previous deploy of this branch may have added, and keep every other job.
             current_crontab="$(crontab -l 2>/dev/null || true)"
             if printf '%s\n' "$current_crontab" | grep -Eq 'crm-task-reminders|crm-task-digest'; then

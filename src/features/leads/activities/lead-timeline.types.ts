@@ -4,8 +4,13 @@ import type { LeadLinkSide, LeadLinkSourceName } from '@/features/leads/types/le
 export type LeadChangeKindName = 'OWNER' | 'ORIGIN'
 export type LeadChangeSourceName = 'SYSTEM' | 'MANUAL'
 
+interface TimelineSourceContext {
+	idLead?: number
+	captureName?: string | null
+}
+
 /** Timeline entries as received by the browser (dates serialized). */
-export type TimelineActivityDto = {
+export type TimelineActivityDto = TimelineSourceContext & {
 	kind?: 'activity'
 	idLeadActivity: number
 	type: LeadActivityKind
@@ -14,17 +19,17 @@ export type TimelineActivityDto = {
 	payload: LeadActivityPayload
 }
 
-export type TimelineStageDto = {
+export type TimelineStageDto = TimelineSourceContext & {
 	kind: 'stage_change'
 	idLeadStageHistory: number
 	occurredAt: string
 	actorName: string | null
 	fromColumnName: string | null
 	toColumnName: string
-	source: 'CRM_SYNC' | 'CSV_IMPORT' | 'MANUAL'
+	source: 'CRM_SYNC' | 'CSV_IMPORT' | 'MANUAL' | 'LANDING_FORM'
 }
 
-export type TimelineChangeDto = {
+export type TimelineChangeDto = TimelineSourceContext & {
 	kind: 'lead_change'
 	idLeadChangeHistory: number
 	occurredAt: string
@@ -35,7 +40,7 @@ export type TimelineChangeDto = {
 	toLabel: string
 }
 
-export type TimelineIngressDto = {
+export type TimelineIngressDto = TimelineSourceContext & {
 	kind: 'lead_ingress'
 	idLeadLink: number
 	occurredAt: string

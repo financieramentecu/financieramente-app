@@ -5,7 +5,11 @@ import type { AsyncState } from '@/features/shared/types/async-state.types'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { HierarchyAdvisor } from '@/features/leads/types/hierarchy-advisor.types'
 
-const LOADING: AsyncState<HierarchyAdvisor[]> = { status: 'loading', data: undefined, error: '' }
+const LOADING: AsyncState<HierarchyAdvisor[]> = {
+	status: 'loading',
+	data: undefined,
+	error: '',
+}
 
 export interface HierarchyAdvisorAccess {
 	state: AsyncState<HierarchyAdvisor[]>
@@ -14,16 +18,22 @@ export interface HierarchyAdvisorAccess {
 }
 
 /** Advisors the signed-in user can filter, plus whether they may assign one. */
-export function useHierarchyAdvisors(): HierarchyAdvisorAccess {
+export function useHierarchyAdvisors(
+	assignable = false
+): HierarchyAdvisorAccess {
 	const [state, setState] = useState<AsyncState<HierarchyAdvisor[]>>(LOADING)
 	const [canLead, setCanLead] = useState(false)
 
 	useEffect(() => {
 		let cancelled = false
-		fetch('/api/crm/advisors')
+		fetch(
+			assignable ? '/api/crm/advisors?assignable=true' : '/api/crm/advisors'
+		)
 			.then(async (response) => {
 				if (!response.ok) throw new Error('advisors')
-				const body = (await response.json()) as ApiResponse<HierarchyAdvisor[]> & {
+				const body = (await response.json()) as ApiResponse<
+					HierarchyAdvisor[]
+				> & {
 					canLeadMoneyStrategies?: boolean
 				}
 				if (!Array.isArray(body.data)) throw new Error('advisors')
@@ -35,13 +45,17 @@ export function useHierarchyAdvisors(): HierarchyAdvisorAccess {
 			.catch(() => {
 				if (!cancelled) {
 					setCanLead(false)
-					setState({ status: 'error', data: undefined, error: 'No fue posible cargar los asesores.' })
+					setState({
+						status: 'error',
+						data: undefined,
+						error: 'No fue posible cargar los asesores.',
+					})
 				}
 			})
 		return () => {
 			cancelled = true
 		}
-	}, [])
+	}, [assignable])
 
 	return { state, canLead }
 }

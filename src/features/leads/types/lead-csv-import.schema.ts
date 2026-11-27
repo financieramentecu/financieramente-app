@@ -8,7 +8,9 @@ import { z } from 'zod'
  * "offset-aware ISO 8601 or reject" requirement rather than the plain
  * `YYYY-MM-DD` date-only convention used elsewhere in the app.
  */
-const offsetAwareInstant = z.iso.datetime({ offset: true }).transform((value) => new Date(value))
+const offsetAwareInstant = z.iso
+	.datetime({ offset: true })
+	.transform((value) => new Date(value))
 
 /**
  * Zod row schema for one CSV data row (10 columns, raw string values as
@@ -29,6 +31,13 @@ export const leadCsvRowSchema = z.object({
 	origen: z.string().optional(),
 	propietario_correo: z.union([z.literal(''), z.string().email()]).optional(),
 	propietario_nombre: z.string().optional(),
+	id_captura: z
+		.string()
+		.trim()
+		.optional()
+		.transform((value) => (value ? Number(value) : undefined))
+		.pipe(z.number().int().positive().safe().optional()),
+	referido_por: z.string().trim().max(200).optional(),
 })
 
 export type LeadCsvRow = z.infer<typeof leadCsvRowSchema>

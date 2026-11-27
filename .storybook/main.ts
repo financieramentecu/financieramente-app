@@ -1,6 +1,13 @@
 import type { StorybookConfig } from '@storybook/nextjs'
 import path from 'path'
 
+const businessActionAliases = Object.fromEntries(
+	['create-client', 'update-client', 'create-business', 'sync-business-policyholder', 'check-business-creation', 'resolve-existing-client'].flatMap((action) => [
+		[`@/features/negocios/actions/${action}`, require.resolve('./mocks/business-actions.ts')],
+		[path.resolve(__dirname, `../src/features/negocios/actions/${action}`), require.resolve('./mocks/business-actions.ts')],
+	])
+)
+
 const config: StorybookConfig & {
 	viteFinal?: (
 		config: Record<string, unknown>
@@ -33,6 +40,7 @@ const config: StorybookConfig & {
 		config.resolve = config.resolve || {}
 		config.resolve.alias = {
 			...config.resolve.alias,
+			...businessActionAliases,
 			// next-auth$ = exact match; without $ it would also match next-auth/react as a prefix
 			'next-auth$': require.resolve('./mocks/next-auth.ts'),
 			'next-auth/react': require.resolve('./mocks/next-auth-react.tsx'),
@@ -62,6 +70,7 @@ const config: StorybookConfig & {
 					([find, replacement]) => ({ find, replacement })
 				)
 		viteConfig.resolve.alias = [
+			...Object.entries(businessActionAliases).map(([find, replacement]) => ({ find, replacement })),
 			...existingEntries,
 			// /^next-auth$/ = exact match; plain string would also match next-auth/react as a prefix
 			{ find: /^next-auth$/, replacement: require.resolve('./mocks/next-auth.ts') },

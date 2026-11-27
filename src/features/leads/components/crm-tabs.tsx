@@ -100,6 +100,10 @@ export function CrmTabs() {
 			</Tabs>
 			<CrmLeadDetailSheet
 				lead={sheet.lead}
+				onSelectLead={(idLead) => {
+					setActivityFocus(null)
+					sheet.openLead(idLead)
+				}}
 				open={sheet.open}
 				onOpenChange={(next) => {
 					sheet.setOpen(next)

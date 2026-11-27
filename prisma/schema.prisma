@@ -1036,6 +1036,18 @@ model LeadTaskComment {
   @@map("lead_task_comment")
 }
 
+model LeadCapture {
+  idLeadCapture Int      @id @default(autoincrement()) @map("id_lead_capture")
+  name          String   @unique @db.VarChar(120)
+  level         Int      @default(0)
+  status        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  leads         Lead[]
+
+  @@map("lead_capture")
+}
+
 model Lead {
   idLead             Int                 @id @default(autoincrement()) @map("id_lead")
   externalCrmId      String?             @unique @map("external_crm_id") @db.VarChar(150)
@@ -1045,6 +1057,9 @@ model Lead {
   phone              String?             @db.VarChar(30)
   identityNumber     String?             @map("identity_number") @db.VarChar(20)
   originTag          String?             @map("origin_tag") @db.VarChar(120)
+  idLeadCapture      Int?                @map("id_lead_capture")
+  referrerName         String?             @map("referrer_name") @db.VarChar(200)
+  capture            LeadCapture?        @relation(fields: [idLeadCapture], references: [idLeadCapture], onDelete: Restrict)
   externalUrl        String?             @map("external_url")
   idUser             Int?                @map("id_user")
   idLeadFunnelColumn Int                 @map("id_lead_funnel_column")
@@ -1075,6 +1090,7 @@ model Lead {
 
   @@index([idUser])
   @@index([idLeadFunnelColumn])
+  @@index([idLeadCapture])
   @@index([outcomeStatus, createdAt])
   @@index([outcomeStatus, lastActivityAt])
   @@map("lead")

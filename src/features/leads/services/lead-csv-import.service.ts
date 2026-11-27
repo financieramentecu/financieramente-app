@@ -10,12 +10,25 @@ import { resolveOwnerByName } from '@/features/leads/lib/resolve-owner-by-name'
 import type { ActiveUserForNameMatch } from '@/features/leads/lib/resolve-owner-by-name'
 import { leadCsvRowSchema } from '@/features/leads/types/lead-csv-import.schema'
 import type { LeadCsvRawRow } from '@/features/leads/lib/parse-lead-csv-file'
-import type { LeadCsvImportSummary, LeadCsvOwnerlessLead } from '@/features/leads/types/lead-csv-import.types'
-import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
-import { recordLeadChanges, recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
+import type {
+	LeadCsvImportSummary,
+	LeadCsvOwnerlessLead,
+} from '@/features/leads/types/lead-csv-import.types'
+import {
+	findPersonContactIds,
+	collectPersonGroupIds,
+	resolvePersonGroupOwner,
+	propagatePersonGroupOwner,
+	LeadPersonGroupError,
+} from '@/features/leads/services/lead-person-group.service'
+import {
+	validateLeadCapture,
+	LeadCaptureValidationError,
+} from '@/features/leads/captures/lead-capture.service'
 
 export interface LeadCsvImportActor {
 	userId?: number
+	manageableUserIds?: readonly number[]
 	email: string
 	ipAddress?: string
 	userAgent?: string
@@ -35,7 +48,7 @@ const HEADER_ROW_OFFSET = 2
  * already-parsed value — its `unresolved` branch is structurally
  * unreachable here.
  *
- * Row-level tolerance: every row is processed independently. There is no
+ * Row-level tolerance: every row is processed independently. Each row has its own
  * wrapping `$transaction` — a rejected row never rolls back an earlier
  * successful upsert in the same file.
  */
@@ -62,14 +75,20 @@ export async function importLeadsFromCsv(
 		details: `Importación CSV de leads iniciada (${rawRows.length} filas)`,
 	})
 
-	const activeColumns = await prisma.leadFunnelColumn.findMany({ where: { active: true } })
+	const activeColumns = await prisma.leadFunnelColumn.findMany({
+		where: { active: true },
+	})
 	const activeUsers: ActiveUserForNameMatch[] = await prisma.user.findMany({
 		where: { active: true },
 		select: { idUser: true, name: true, lastName: true },
 	})
 	const seenExternalCrmIds = new Set<string>()
 
-	const reject = async (rowNumber: number, externalCrmId: string | undefined, reason: string) => {
+	const reject = async (
+		rowNumber: number,
+		externalCrmId: string | undefined,
+		reason: string
+	) => {
 		summary.rejected.push({ rowNumber, externalCrmId, reason })
 		await logAuditEvent({
 			action: AuditAction.LEAD_CSV_ROW_REJECTED,
@@ -106,7 +125,10 @@ export async function importLeadsFromCsv(
 		}
 		seenExternalCrmIds.add(row.id_externo_crm)
 
-		const funnelColumnResult = resolveFunnelColumnByName(row.columna_funnel, activeColumns)
+		const funnelColumnResult = resolveFunnelColumnByName(
+			row.columna_funnel,
+			activeColumns
+		)
 		if (funnelColumnResult.rejected) {
 			await reject(rowNumber, row.id_externo_crm, funnelColumnResult.reason)
 			continue
@@ -118,108 +140,188 @@ export async function importLeadsFromCsv(
 			continue
 		}
 
-		const existing = await prisma.lead.findUnique({
-			where: { externalCrmId: row.id_externo_crm },
-		})
-
-		const emailResolvedOwnerId = await resolveOwner(row.propietario_correo)
-		const { resolvedOwnerId, ownerlessEntry } = resolveRowOwner({
-			rowNumber,
-			externalCrmId: row.id_externo_crm,
-			propietarioCorreo: row.propietario_correo,
-			propietarioNombre: row.propietario_nombre,
-			emailResolvedOwnerId,
-			hasExistingOwner: Boolean(existing?.idUser),
-			activeUsers,
-		})
-		const {
-			value: resolvedOutcomeStatus,
-			locked: outcomeLocked,
-		} = resolveOutcomeStatus(outcomeStatusResult.value, existing?.outcomeStatus)
-
-		const payload = mapCsvRowToLeadPayload(row)
-		const upsertData = buildLeadUpsertData(
-			payload,
-			existing ?? {},
-			resolvedOwnerId,
-			resolvedOutcomeStatus
-		)
-
-		const receivedAt = new Date()
-		const lead = await prisma.lead.upsert({
-			where: { externalCrmId: row.id_externo_crm },
-			create: {
-				...upsertData,
-				externalCrmId: row.id_externo_crm,
-				idLeadFunnelColumn: funnelColumnResult.value.idLeadFunnelColumn,
-				active: true,
-				createdAt: row.fecha_creacion ?? receivedAt,
-				updatedAt: receivedAt,
-			},
-			update: {
-				...upsertData,
-				idLeadFunnelColumn: funnelColumnResult.value.idLeadFunnelColumn,
-				active: true,
-				updatedAt: receivedAt,
-			},
-		})
-
-		await recordLeadStageChange({
-			idLead: lead.idLead,
-			fromIdLeadFunnelColumn: existing?.idLeadFunnelColumn,
-			toIdLeadFunnelColumn: funnelColumnResult.value.idLeadFunnelColumn,
-			source: 'CSV_IMPORT',
-			idUser: actor.userId,
-			changedAt: receivedAt,
-		})
-
-		const actorLabel = userLabel(activeUsers, actor.userId)
-		if (resolvedOwnerId !== undefined && resolvedOwnerId !== (existing?.idUser ?? null)) {
-			await recordOwnerChange({
-				idLead: lead.idLead,
-				fromUserId: existing?.idUser ?? null,
-				toUserId: resolvedOwnerId,
-				source: 'MANUAL',
-				idActor: actor.userId,
-				actorLabel,
-				fromLabel: userLabel(activeUsers, existing?.idUser ?? null),
-				toLabel: resolvedOwnerId == null ? 'Sin Money Strategy' : (userLabel(activeUsers, resolvedOwnerId) ?? 'Sin Money Strategy'),
-				changedAt: receivedAt,
-			})
-		}
-		const nextOrigin = typeof upsertData.originTag === 'string' ? upsertData.originTag : null
-		if (nextOrigin && nextOrigin !== (existing?.originTag ?? null)) {
-			await recordLeadChanges([
-				{
-					idLead: lead.idLead,
-					kind: 'ORIGIN',
-					source: 'MANUAL',
-					idActor: actor.userId,
-					actorLabel,
-					fromLabel: existing?.originTag ?? null,
-					toLabel: nextOrigin,
-					changedAt: receivedAt,
+		try {
+			const result = await prisma.$transaction(
+				async (tx) => {
+					const existing = await tx.lead.findUnique({
+						where: { externalCrmId: row.id_externo_crm },
+					})
+					const emailResolvedOwnerId = await resolveOwner(
+						row.propietario_correo
+					)
+					const ownerResolution = resolveRowOwner({
+						rowNumber,
+						externalCrmId: row.id_externo_crm,
+						propietarioCorreo: row.propietario_correo,
+						propietarioNombre: row.propietario_nombre,
+						emailResolvedOwnerId,
+						hasExistingOwner: Boolean(existing?.idUser),
+						activeUsers,
+					})
+					const payload = mapCsvRowToLeadPayload(row)
+					const matches = await findPersonContactIds(
+						tx,
+						payload,
+						existing?.idLead
+					)
+					const ids = await collectPersonGroupIds(
+						[...matches, ...(existing ? [existing.idLead] : [])],
+						tx
+					)
+					const ownerId = await resolvePersonGroupOwner(tx, ids, {
+						manageableUserIds: actor.manageableUserIds,
+						...(typeof ownerResolution.resolvedOwnerId === 'number'
+							? { targetOwnerId: ownerResolution.resolvedOwnerId }
+							: {}),
+					})
+					if (
+						existing?.idLeadCapture != null &&
+						row.id_captura !== undefined &&
+						row.id_captura !== existing.idLeadCapture
+					)
+						throw new Error('La captación requiere una oportunidad diferente')
+					await validateLeadCapture(tx, row.id_captura, existing?.idLeadCapture)
+					const { value: resolvedOutcomeStatus, locked: outcomeLocked } =
+						resolveOutcomeStatus(
+							outcomeStatusResult.value,
+							existing?.outcomeStatus
+						)
+					const upsertData = buildLeadUpsertData(
+						payload,
+						existing ?? {},
+						ownerId ?? undefined,
+						resolvedOutcomeStatus
+					)
+					// Attribution is first observed per Lead; retries never rewrite existing values.
+					if (existing?.originTag) delete upsertData.originTag
+					const receivedAt = new Date()
+					const lead = await tx.lead.upsert({
+						where: { externalCrmId: row.id_externo_crm },
+						create: {
+							...upsertData,
+							externalCrmId: row.id_externo_crm,
+							idLeadFunnelColumn: funnelColumnResult.value.idLeadFunnelColumn,
+							active: true,
+							createdAt: row.fecha_creacion ?? receivedAt,
+							updatedAt: receivedAt,
+							idLeadCapture: row.id_captura,
+							referrerName: row.referido_por || null,
+						},
+						update: {
+							...upsertData,
+							idLeadFunnelColumn: funnelColumnResult.value.idLeadFunnelColumn,
+							active: true,
+							updatedAt: receivedAt,
+							idLeadCapture: existing?.idLeadCapture ?? row.id_captura,
+							referrerName:
+								existing?.referrerName || row.referido_por || undefined,
+						},
+					})
+					if (matches.length)
+						await tx.leadLink.createMany({
+							data: matches.map((idRelatedLead) => ({
+								idLead: lead.idLead,
+								idRelatedLead,
+								source: 'AUTO' as const,
+								linkedBy: actor.userId ?? null,
+								linkedAt: receivedAt,
+							})),
+							skipDuplicates: true,
+						})
+					const actorLabel = userLabel(activeUsers, actor.userId) ?? actor.email
+					if (ownerId !== null)
+						await propagatePersonGroupOwner(
+							tx,
+							ids,
+							ownerId,
+							{ source: 'MANUAL', idActor: actor.userId, actorLabel },
+							receivedAt
+						)
+					if (
+						existing?.idLeadFunnelColumn !==
+						funnelColumnResult.value.idLeadFunnelColumn
+					)
+						await tx.leadStageHistory.create({
+							data: {
+								idLead: lead.idLead,
+								fromIdLeadFunnelColumn: existing?.idLeadFunnelColumn ?? null,
+								toIdLeadFunnelColumn:
+									funnelColumnResult.value.idLeadFunnelColumn,
+								source: 'CSV_IMPORT',
+								idUser: actor.userId ?? null,
+								changedAt: receivedAt,
+							},
+						})
+					const changes = []
+					if (ownerId !== (existing?.idUser ?? null))
+						changes.push({
+							idLead: lead.idLead,
+							kind: 'OWNER' as const,
+							source: 'MANUAL' as const,
+							idActor: actor.userId ?? null,
+							actorLabel,
+							fromLabel: userLabel(activeUsers, existing?.idUser),
+							toLabel: userLabel(activeUsers, ownerId) ?? 'Sin Money Strategy',
+							changedAt: receivedAt,
+						})
+					const nextOrigin =
+						typeof upsertData.originTag === 'string'
+							? upsertData.originTag
+							: null
+					if (nextOrigin && nextOrigin !== (existing?.originTag ?? null))
+						changes.push({
+							idLead: lead.idLead,
+							kind: 'ORIGIN' as const,
+							source: 'MANUAL' as const,
+							idActor: actor.userId ?? null,
+							actorLabel,
+							fromLabel: existing?.originTag ?? null,
+							toLabel: nextOrigin,
+							changedAt: receivedAt,
+						})
+					if (changes.length)
+						await tx.leadChangeHistory.createMany({ data: changes })
+					return {
+						existing,
+						outcomeLocked,
+						ownerlessEntry:
+							ownerId !== null &&
+							ownerResolution.ownerlessEntry?.reason === 'NO_OWNER_PROVIDED'
+								? undefined
+								: ownerResolution.ownerlessEntry,
+					}
 				},
-			])
-		}
+				{ isolationLevel: 'Serializable' }
+			)
+			const { existing, outcomeLocked, ownerlessEntry } = result
 
-		summary.imported += 1
-		if (existing) {
-			summary.updated += 1
-		} else {
-			summary.created += 1
-		}
+			summary.imported += 1
+			if (existing) {
+				summary.updated += 1
+			} else {
+				summary.created += 1
+			}
 
-		if (ownerlessEntry) {
-			summary.ownerlessLeads.push(ownerlessEntry)
-		}
+			if (ownerlessEntry) {
+				summary.ownerlessLeads.push(ownerlessEntry)
+			}
 
-		if (outcomeLocked) {
-			summary.wonLockedLeads.push({
-				rowNumber,
-				externalCrmId: row.id_externo_crm,
-				attemptedStatus: outcomeStatusResult.value,
-			})
+			if (outcomeLocked) {
+				summary.wonLockedLeads.push({
+					rowNumber,
+					externalCrmId: row.id_externo_crm,
+					attemptedStatus: outcomeStatusResult.value,
+				})
+			}
+		} catch (cause) {
+			const reason =
+				cause instanceof LeadPersonGroupError ||
+				cause instanceof LeadCaptureValidationError ||
+				(cause instanceof Error &&
+					cause.message === 'La captación requiere una oportunidad diferente')
+					? cause.message
+					: 'No fue posible importar la fila'
+			await reject(rowNumber, row.id_externo_crm, reason)
 		}
 	}
 
@@ -251,7 +353,10 @@ interface ResolveRowOwnerResult {
 	ownerlessEntry: LeadCsvOwnerlessLead | undefined
 }
 
-function userLabel(users: ActiveUserForNameMatch[], idUser: number | null | undefined): string | null {
+function userLabel(
+	users: ActiveUserForNameMatch[],
+	idUser: number | null | undefined
+): string | null {
 	if (idUser == null) return null
 	const user = users.find((candidate) => candidate.idUser === idUser)
 	if (!user) return null
@@ -298,7 +403,11 @@ function resolveRowOwner(params: ResolveRowOwnerParams): ResolveRowOwnerResult {
 		if (!hasExistingOwner) {
 			return {
 				resolvedOwnerId: emailResolvedOwnerId,
-				ownerlessEntry: { rowNumber, externalCrmId, reason: 'NO_OWNER_PROVIDED' },
+				ownerlessEntry: {
+					rowNumber,
+					externalCrmId,
+					reason: 'NO_OWNER_PROVIDED',
+				},
 			}
 		}
 		return { resolvedOwnerId: emailResolvedOwnerId, ownerlessEntry: undefined }

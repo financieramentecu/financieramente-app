@@ -59,9 +59,12 @@ export interface LeadActivityCursor {
 export interface LeadActivityPageOptions {
 	limit?: number
 	cursor?: LeadActivityCursor
+	leadIds?: readonly number[]
 }
 
 export interface LeadTimelineItem {
+	idLead?: number
+	captureName?: string | null
 	idLeadActivity: number
 	type: LeadActivityKind
 	occurredAt: Date
@@ -135,10 +138,12 @@ export async function getLeadActivityPage(
 		: {}
 
 	const rows = await client.leadActivity.findMany({
-		where: { idLead, ...cursorFilter },
+		where: { idLead: options.leadIds ? { in: [...options.leadIds] } : idLead, ...cursorFilter },
 		orderBy: [{ occurredAt: 'desc' }, { idLeadActivity: 'desc' }],
 		take: limit + 1,
 		select: {
+			idLead: true,
+			lead: { select: { capture: { select: { name: true } } } },
 			idLeadActivity: true,
 			type: true,
 			occurredAt: true,
@@ -153,6 +158,7 @@ export async function getLeadActivityPage(
 
 	return {
 		items: visibleRows.map((row) => ({
+			...(options.leadIds ? { idLead: row.idLead, captureName: row.lead?.capture?.name ?? null } : {}),
 			idLeadActivity: row.idLeadActivity,
 			type: row.type,
 			occurredAt: row.occurredAt,

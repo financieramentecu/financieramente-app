@@ -78,6 +78,7 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 		['leads.configurar_avisos', 'Configurar los avisos de vencimiento de tareas del CRM'],
 		['leads.configurar_crm', 'Configurar campos, etiquetas y columnas de actividad del CRM'],
 		['leads.exportar', 'Exportar leads y reportes del CRM'],
+		['leads.gestionar_capturas', 'Gestionar las capturas de leads (ofertas y niveles)'],
 	]),
 	...module('Carga de archivos', [
 		['carga.masiva', 'Carga masiva de archivos'],

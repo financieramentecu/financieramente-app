@@ -11,16 +11,21 @@ import type { IngestLeadFormResult } from '@/features/leads/types/form-submissio
 
 import {
 	assignLeadOrigin,
-	recordOriginChange,
 	resolveLeadOrigin,
 } from '@/features/leads/services/lead-origin.service'
-import { recordOwnerChange } from '@/features/leads/services/record-lead-change.service'
+import { validateLeadCapture } from '@/features/leads/captures/lead-capture.service'
+import {
+	findPersonContactIds,
+	collectPersonGroupIds,
+	resolvePersonGroupOwner,
+	propagatePersonGroupOwner,
+} from '@/features/leads/services/lead-person-group.service'
 
 const SYSTEM_EMAIL = 'form-submission@system'
 
 export class LeadFormSubmissionError extends Error {
 	constructor(
-		readonly code: 'AMBIGUOUS_LEAD',
+		readonly code: 'AMBIGUOUS_LEAD' | 'GROUP_CONFLICT',
 		message: string
 	) {
 		super(message)
@@ -120,7 +125,7 @@ function isUniqueViolation(error: unknown): boolean {
 
 /**
  * Stores one landing snapshot and creates the prospect only when no active
- * match exists. An existing prospect keeps its stage, owner and CRM fields.
+ * match exists. An existing opportunity keeps its stage and attribution; trusted owners propagate.
  * The same `submissionId` is a retry and writes nothing.
  */
 export async function ingestLeadFormSubmission(
@@ -157,13 +162,56 @@ export async function ingestLeadFormSubmission(
 				}
 
 				const origin = await resolveLeadOrigin(payload.utm_source, tx)
-				const existingId = await resolveExistingLead(tx.lead, payload.lead)
+				let groupIds: number[] = []
+				let existingId: number | null
+				if (payload.lead.idLeadCapture !== undefined) {
+					const matches = await findPersonContactIds(tx, payload.lead)
+					if (matches.length) {
+						groupIds = await collectPersonGroupIds([matches[0]], tx)
+						if (matches.some((id) => !groupIds.includes(id)))
+							throw new LeadFormSubmissionError(
+								'AMBIGUOUS_LEAD',
+								'No fue posible identificar un único grupo relacionado'
+							)
+						const sameCapture = await tx.lead.findFirst({
+							where: {
+								active: true,
+								idLead: { in: groupIds },
+								idLeadCapture: payload.lead.idLeadCapture,
+							},
+							orderBy: { idLead: 'asc' },
+							select: { idLead: true },
+						})
+						existingId = sameCapture?.idLead ?? null
+					} else existingId = null
+				} else {
+					existingId = await resolveExistingLead(tx.lead, payload.lead)
+					groupIds = await collectPersonGroupIds(
+						existingId === null ? [] : [existingId],
+						tx
+					)
+				}
+				const existing =
+					existingId === null
+						? null
+						: await tx.lead.findUnique({ where: { idLead: existingId } })
+				await validateLeadCapture(
+					tx,
+					payload.lead.idLeadCapture,
+					existing?.idLeadCapture
+				)
+				const incomingOwner = await resolveOwner(payload.lead.ownerEmail, tx)
+				const ownerId = await resolvePersonGroupOwner(tx, groupIds, {
+					manageableUserIds: [],
+					...(typeof incomingOwner === 'number'
+						? { targetOwnerId: incomingOwner }
+						: {}),
+				})
 				let idLead = existingId
-				let ownerUnresolved = false
-				let assignedOwnerId: number | null = null
+				const ownerUnresolved =
+					Boolean(payload.lead.ownerEmail) && incomingOwner === null
 				if (idLead === null) {
 					const column = await resolveFunnelColumn(payload.lead.statusKey, tx)
-					const ownerId = await resolveOwner(payload.lead.ownerEmail, tx)
 					const createdLead = await tx.lead.create({
 						data: {
 							name: payload.lead.name ?? null,
@@ -175,7 +223,9 @@ export async function ingestLeadFormSubmission(
 								origin.status === 'ready'
 									? origin.name
 									: (payload.lead.originTag ?? payload.landing.name),
-							idUser: ownerId ?? null,
+							idLeadCapture: payload.lead.idLeadCapture ?? null,
+							referrerName: payload.lead.referrerName ?? null,
+							idUser: ownerId,
 							idLeadFunnelColumn: column.idLeadFunnelColumn,
 							outcomeStatus: 'OPEN',
 							active: true,
@@ -191,9 +241,61 @@ export async function ingestLeadFormSubmission(
 						},
 					})
 					idLead = createdLead.idLead
-					assignedOwnerId = ownerId ?? null
-					ownerUnresolved = Boolean(payload.lead.ownerEmail) && ownerId === null
+					if (groupIds.length)
+						await tx.leadLink.createMany({
+							data: groupIds.map((idRelatedLead) => ({
+								idLead: createdLead.idLead,
+								idRelatedLead,
+								source: 'AUTO' as const,
+								linkedAt: payload.submittedAt,
+							})),
+							skipDuplicates: true,
+						})
+					if (ownerId !== null) {
+						const owner = await tx.user.findFirst({
+							where: { idUser: ownerId },
+							select: { name: true, lastName: true },
+						})
+						await tx.leadChangeHistory.createMany({
+							data: [
+								{
+									idLead,
+									kind: 'OWNER',
+									source: 'SYSTEM',
+									fromLabel: null,
+									toLabel: owner
+										? [owner.name, owner.lastName].filter(Boolean).join(' ')
+										: String(ownerId),
+									changedAt: payload.submittedAt,
+								},
+							],
+						})
+					}
+				} else if (existing) {
+					const attribution: Prisma.LeadUpdateInput = {}
+					if (!existing.referrerName && payload.lead.referrerName)
+						attribution.referrerName = payload.lead.referrerName
+					if (
+						existing.idLeadCapture == null &&
+						payload.lead.idLeadCapture !== undefined
+					)
+						attribution.capture = {
+							connect: { idLeadCapture: payload.lead.idLeadCapture },
+						}
+					if (!existing.originTag && origin.status === 'ready')
+						attribution.originTag = origin.name
+					if (Object.keys(attribution).length)
+						await tx.lead.update({ where: { idLead }, data: attribution })
 				}
+				if (ownerId !== null)
+					await propagatePersonGroupOwner(
+						tx,
+						groupIds,
+						ownerId,
+						{ source: 'SYSTEM' },
+						payload.submittedAt
+					)
+
 				const assignment =
 					origin.status === 'ready'
 						? await assignLeadOrigin(
@@ -205,6 +307,23 @@ export async function ingestLeadFormSubmission(
 								tx
 							)
 						: null
+				if (
+					origin.status === 'ready' &&
+					(assignment === 'created' || assignment === 'reactivated')
+				)
+					await tx.leadChangeHistory.createMany({
+						data: [
+							{
+								idLead,
+								kind: 'ORIGIN',
+								source: 'SYSTEM',
+								fromLabel: existing?.originTag ?? null,
+								toLabel: origin.name,
+								changedAt: payload.submittedAt,
+							},
+						],
+					})
+
 				await tx.leadFormSubmission.create({
 					data: {
 						idLead,
@@ -221,34 +340,14 @@ export async function ingestLeadFormSubmission(
 					created: existingId === null,
 					replayed: false,
 					ownerUnresolved,
-					assignedOwnerId,
 					origin,
 					assignment,
 				}
 			},
-			{ isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted }
+			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
 		)
 
 		if (!result.replayed) {
-			if (result.assignedOwnerId != null) {
-				await recordOwnerChange({
-					idLead: result.idLead,
-					fromUserId: null,
-					toUserId: result.assignedOwnerId,
-					source: 'SYSTEM',
-					changedAt: payload.submittedAt,
-				})
-			}
-			if (
-				result.origin?.status === 'ready' &&
-				(result.assignment === 'created' || result.assignment === 'reactivated')
-			) {
-				await recordOriginChange({
-					idLead: result.idLead,
-					idClientOrigin: result.origin.idClientOrigin,
-					seenAt: payload.submittedAt,
-				})
-			}
 			if (result.origin?.status === 'inactive') {
 				await logAuditEvent({
 					action: AuditAction.LEAD_ORIGIN_INACTIVE,
@@ -304,6 +403,14 @@ export async function ingestLeadFormSubmission(
 			replayed: result.replayed,
 		}
 	} catch (error) {
+		if (
+			error instanceof Prisma.PrismaClientKnownRequestError &&
+			error.code === 'P2034'
+		)
+			throw new LeadFormSubmissionError(
+				'GROUP_CONFLICT',
+				'No fue posible modificar el grupo relacionado'
+			)
 		if (!isUniqueViolation(error)) throw error
 		const stored = await prisma.leadFormSubmission.findUnique({
 			where: { submissionId: payload.submissionId },

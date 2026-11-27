@@ -8,6 +8,8 @@ export interface StoredLeadContactFields {
 	phone?: string | null
 	identityNumber?: string | null
 	originTag?: string | null
+	idLeadCapture?: number | null
+	referrerName?: string | null
 	externalUrl?: string | null
 }
 
@@ -45,7 +47,7 @@ const OPTIONAL_STRING_FIELDS = [
  */
 export function buildLeadUpsertData(
 	payload: LeadWritePayload,
-	_storedLead: StoredLeadContactFields,
+	storedLead: StoredLeadContactFields,
 	resolvedOwnerId?: number | null,
 	resolvedOutcomeStatus?: LeadOutcomeStatus
 ): Prisma.LeadUncheckedCreateInput & Prisma.LeadUncheckedUpdateInput {
@@ -54,10 +56,17 @@ export function buildLeadUpsertData(
 	}
 
 	for (const field of OPTIONAL_STRING_FIELDS) {
+		if (field === 'originTag' && storedLead.originTag?.trim()) continue
 		const incomingValue = payload[field]
 		if (incomingValue !== undefined && incomingValue.trim() !== '') {
 			data[field] = incomingValue
 		}
+	}
+	if (storedLead.idLeadCapture == null && payload.idLeadCapture !== undefined) {
+		data.idLeadCapture = payload.idLeadCapture
+	}
+	if (!storedLead.referrerName?.trim() && payload.referrerName?.trim()) {
+		data.referrerName = payload.referrerName.trim()
 	}
 
 	if (resolvedOwnerId !== undefined) {

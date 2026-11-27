@@ -20,8 +20,19 @@ import {
 export default function AdminDashboardPage() {
 	const { can } = usePermissions()
 	const isSystemAdmin = can('configuracion.tipos_documento')
+	const canManageCaptures = can('leads.gestionar_capturas')
 
 	const adminModules = [
+		...(canManageCaptures
+			? [
+					{
+						title: 'Capturas',
+						description: 'Gestionar ofertas y niveles del CRM',
+						href: '/dashboard/admin/lead-captures',
+						icon: <Tag className="h-5 w-5 text-primary" />,
+					},
+				]
+			: []),
 		{
 			title: 'Compañías',
 			description: 'Gestionar compañías aseguradoras',

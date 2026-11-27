@@ -6,7 +6,6 @@ import {
 	resolveOwner,
 	upsertLeadFromCrm,
 } from '@/features/leads/services/lead-sync.service'
-import { recordLeadStageChange } from '@/features/leads/services/lead-stage-history.service'
 
 const FALLBACK_COLUMN = {
 	idLeadFunnelColumn: 1,
@@ -51,10 +50,13 @@ vi.mock('@/lib/prisma', () => ({
 			findUnique: vi.fn(),
 			findMany: vi.fn(),
 			upsert: vi.fn(),
+			updateMany: vi.fn(),
 		},
-		leadLink: {
-			create: vi.fn(),
-		},
+		leadLink: { findMany: vi.fn(), upsert: vi.fn() },
+		leadStageHistory: { create: vi.fn() },
+		leadChangeHistory: { createMany: vi.fn() },
+		leadCapture: { findFirst: vi.fn() },
+		$transaction: vi.fn(),
 		clientOrigin: {
 			findMany: vi.fn(),
 			create: vi.fn(),
@@ -66,10 +68,6 @@ vi.mock('@/lib/prisma', () => ({
 			update: vi.fn(),
 		},
 	},
-}))
-
-vi.mock('@/features/leads/services/lead-stage-history.service', () => ({
-	recordLeadStageChange: vi.fn(),
 }))
 
 vi.mock('@/features/auth/lib/audit-logger', () => ({
@@ -91,6 +89,18 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 	getClientIp: vi.fn(() => '127.0.0.1'),
 	getUserAgent: vi.fn(() => 'n8n'),
 }))
+
+beforeEach(() => {
+	vi.mocked(prisma.$transaction).mockImplementation(
+		async (callback) =>
+			(callback as unknown as (tx: typeof prisma) => Promise<unknown>)(
+				prisma
+			) as never
+	)
+	vi.mocked(prisma.leadLink.findMany).mockResolvedValue([])
+	vi.mocked(prisma.lead.findMany).mockResolvedValue([])
+	vi.mocked(prisma.lead.findUnique).mockResolvedValue(null)
+})
 
 describe('resolveFunnelColumn', () => {
 	beforeEach(() => vi.clearAllMocks())
@@ -121,10 +131,18 @@ describe('resolveFunnelColumn', () => {
 	})
 
 	it('uses the transaction client for both the exact and fallback lookups', async () => {
-		const findFirst = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(FALLBACK_COLUMN)
-		const client = { leadFunnelColumn: { findFirst } } as unknown as Pick<typeof prisma, 'leadFunnelColumn'>
+		const findFirst = vi
+			.fn()
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(FALLBACK_COLUMN)
+		const client = { leadFunnelColumn: { findFirst } } as unknown as Pick<
+			typeof prisma,
+			'leadFunnelColumn'
+		>
 
-		await expect(resolveFunnelColumn('unknown_stage', client)).resolves.toEqual(FALLBACK_COLUMN)
+		await expect(resolveFunnelColumn('unknown_stage', client)).resolves.toEqual(
+			FALLBACK_COLUMN
+		)
 		expect(findFirst).toHaveBeenCalledTimes(2)
 		expect(prisma.leadFunnelColumn.findFirst).not.toHaveBeenCalled()
 	})
@@ -179,7 +197,10 @@ describe('resolveOwner', () => {
 
 	it('uses the transaction client instead of another pool connection', async () => {
 		const findFirst = vi.fn().mockResolvedValue({ idUser: 99 })
-		const client = { user: { findFirst } } as unknown as Pick<typeof prisma, 'user'>
+		const client = { user: { findFirst } } as unknown as Pick<
+			typeof prisma,
+			'user'
+		>
 
 		await expect(resolveOwner('agent@example.com', client)).resolves.toBe(99)
 		expect(findFirst).toHaveBeenCalledOnce()
@@ -188,10 +209,20 @@ describe('resolveOwner', () => {
 
 	it('treats wildcard characters in owner emails literally after trimming', async () => {
 		vi.mocked(prisma.user.findFirst).mockResolvedValue(null)
-		await expect(resolveOwner('  Agent_Name%Test@Example.com  ')).resolves.toBeNull()
-		expect(prisma.user.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-			where: { email: { equals: String.raw`Agent\_Name\%Test@Example.com`, mode: 'insensitive' }, active: true },
-		}))
+		await expect(
+			resolveOwner('  Agent_Name%Test@Example.com  ')
+		).resolves.toBeNull()
+		expect(prisma.user.findFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					email: {
+						equals: String.raw`Agent\_Name\%Test@Example.com`,
+						mode: 'insensitive',
+					},
+					active: true,
+				},
+			})
+		)
 	})
 })
 
@@ -663,14 +694,14 @@ describe('upsertLeadFromCrm — stage history (crm-phase-0-foundation)', () => {
 			statusKey: 'won',
 		})
 
-		expect(recordLeadStageChange).toHaveBeenCalledWith(
-			expect.objectContaining({
+		expect(prisma.leadStageHistory.create).toHaveBeenCalledWith({
+			data: expect.objectContaining({
 				idLead: 10,
-				fromIdLeadFunnelColumn: undefined,
+				fromIdLeadFunnelColumn: null,
 				toIdLeadFunnelColumn: 5,
 				source: 'CRM_SYNC',
-			})
-		)
+			}),
+		})
 	})
 
 	it('passes the previous column so a move is recorded from → to', async () => {
@@ -683,12 +714,12 @@ describe('upsertLeadFromCrm — stage history (crm-phase-0-foundation)', () => {
 			statusKey: 'won',
 		})
 
-		expect(recordLeadStageChange).toHaveBeenCalledWith(
-			expect.objectContaining({
+		expect(prisma.leadStageHistory.create).toHaveBeenCalledWith({
+			data: expect.objectContaining({
 				fromIdLeadFunnelColumn: 1,
 				toIdLeadFunnelColumn: 5,
-			})
-		)
+			}),
+		})
 	})
 
 	it('uses the payload updatedAt as changedAt for historical syncs', async () => {
@@ -703,9 +734,9 @@ describe('upsertLeadFromCrm — stage history (crm-phase-0-foundation)', () => {
 			updatedAt,
 		})
 
-		expect(recordLeadStageChange).toHaveBeenCalledWith(
-			expect.objectContaining({ changedAt: updatedAt })
-		)
+		expect(prisma.leadStageHistory.create).toHaveBeenCalledWith({
+			data: expect.objectContaining({ changedAt: updatedAt }),
+		})
 	})
 
 	it('falls back to the processing instant as changedAt', async () => {
@@ -717,8 +748,9 @@ describe('upsertLeadFromCrm — stage history (crm-phase-0-foundation)', () => {
 			statusKey: 'won',
 		})
 
-		const [input] = vi.mocked(recordLeadStageChange).mock.calls[0]!
-		expect(input.changedAt.getTime()).toBeGreaterThanOrEqual(before)
+		const [{ data: input }] = vi.mocked(prisma.leadStageHistory.create).mock
+			.calls[0]!
+		expect((input.changedAt as Date).getTime()).toBeGreaterThanOrEqual(before)
 	})
 })
 
@@ -788,9 +820,14 @@ describe('upsertLeadFromCrm origin label', () => {
 	})
 
 	it('links the new CRM card to the form lead when the same person arrives from another origin', async () => {
-		vi.mocked(prisma.lead.findMany).mockResolvedValue([{ idLead: 8, idUser: 15 }] as never)
+		vi.mocked(prisma.lead.findMany).mockResolvedValue([
+			{ idLead: 8, idUser: 15 },
+		] as never)
 		vi.mocked(prisma.user.findFirst).mockResolvedValue({ idUser: 99 } as never)
-		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 44, idUser: 15 } as never)
+		vi.mocked(prisma.lead.upsert).mockResolvedValue({
+			idLead: 44,
+			idUser: 15,
+		} as never)
 		vi.mocked(prisma.clientOrigin.findMany).mockResolvedValue([
 			{ idClientOrigin: 20, name: 'Money Flow', status: true },
 		] as never)
@@ -818,16 +855,19 @@ describe('upsertLeadFromCrm origin label', () => {
 		})
 		expect(prisma.lead.findMany).toHaveBeenCalledWith(
 			expect.objectContaining({
-				where: expect.objectContaining({ identityNumber: '1234567890', active: true }),
+				where: expect.objectContaining({
+					OR: expect.arrayContaining([{ identityNumber: '1234567890' }]),
+					active: true,
+				}),
 			})
 		)
 		const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls[0]![0]
-		expect(upsertCall.create.idUser).toBe(15)
+		expect(upsertCall.create.idUser).toBeUndefined()
 		expect(upsertCall.create.originTag).toBe('Money Flow')
 		expect(upsertCall.create.email).toBe('ana.nueva@example.com')
-		expect(prisma.leadLink.create).toHaveBeenCalledWith(
+		expect(prisma.leadLink.upsert).toHaveBeenCalledWith(
 			expect.objectContaining({
-				data: expect.objectContaining({
+				create: expect.objectContaining({
 					idLead: 44,
 					idRelatedLead: 8,
 					idClientOrigin: 20,
@@ -840,18 +880,21 @@ describe('upsertLeadFromCrm origin label', () => {
 		expect(logAuditEvent).toHaveBeenCalledWith(
 			expect.objectContaining({
 				action: AuditAction.LEAD_RELATED,
-				details: expect.stringContaining('relacionado con 8'),
+				details: expect.stringContaining('relacionado automáticamente'),
 			})
 		)
 	})
 
-	it('does not inherit an owner or link when the contact matches more than one lead', async () => {
+	it('links every contact match and applies the explicit resolved owner', async () => {
 		vi.mocked(prisma.lead.findMany).mockResolvedValue([
 			{ idLead: 8, idUser: 15 },
 			{ idLead: 9, idUser: 16 },
 		] as never)
 		vi.mocked(prisma.user.findFirst).mockResolvedValue({ idUser: 99 } as never)
-		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 45, idUser: 99 } as never)
+		vi.mocked(prisma.lead.upsert).mockResolvedValue({
+			idLead: 45,
+			idUser: 99,
+		} as never)
 		vi.mocked(prisma.clientOrigin.findMany).mockResolvedValue([
 			{ idClientOrigin: 20, name: 'Money Flow', status: true },
 		] as never)
@@ -869,8 +912,8 @@ describe('upsertLeadFromCrm origin label', () => {
 		})
 
 		const upsertCall = vi.mocked(prisma.lead.upsert).mock.calls.at(-1)![0]
-		expect(upsertCall.create.idUser).toBe(99)
-		expect(prisma.leadLink.create).not.toHaveBeenCalled()
+		expect(upsertCall.create.idUser).toBeUndefined()
+		expect(prisma.leadLink.upsert).toHaveBeenCalledTimes(2)
 	})
 })
 
@@ -882,5 +925,116 @@ describe('CSV name-based owner resolution isolation', () => {
 		for (const source of sources) {
 			expect(source).not.toContain('resolveOwnerByName')
 		}
+	})
+})
+
+describe('CRM capture and group invariants', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		vi.mocked(prisma.leadFunnelColumn.findFirst).mockResolvedValue(
+			FALLBACK_COLUMN as never
+		)
+		vi.mocked(prisma.lead.upsert).mockResolvedValue({ idLead: 10 } as never)
+	})
+	it('rejects replacing a stored capture before any mutation', async () => {
+		vi.mocked(prisma.lead.findUnique).mockResolvedValue(
+			makeExistingLead({ idLeadCapture: 1 }) as never
+		)
+		await expect(
+			upsertLeadFromCrm({
+				externalCrmId: 'crm-1',
+				statusKey: 'new',
+				idLeadCapture: 2,
+			})
+		).rejects.toThrow()
+		expect(prisma.lead.upsert).not.toHaveBeenCalled()
+		expect(prisma.leadLink.upsert).not.toHaveBeenCalled()
+	})
+	it('retains an unchanged inactive capture and first attribution on retry', async () => {
+		vi.mocked(prisma.lead.findUnique).mockResolvedValue(
+			makeExistingLead({
+				idLeadCapture: 1,
+				referrerName: 'First',
+				originTag: 'First source',
+			}) as never
+		)
+		await upsertLeadFromCrm({
+			externalCrmId: 'crm-1',
+			statusKey: 'new',
+			idLeadCapture: 1,
+			referrerName: 'Later',
+			originTag: 'Later source',
+		})
+		expect(prisma.leadCapture.findFirst).not.toHaveBeenCalled()
+		const { update } = vi.mocked(prisma.lead.upsert).mock.calls[0]![0]
+		expect(update).not.toHaveProperty('idLeadCapture')
+		expect(update).not.toHaveProperty('referrerName')
+		expect(update).not.toHaveProperty('originTag')
+		expect(prisma.leadStageHistory.create).not.toHaveBeenCalled()
+	})
+	it('inherits a known related owner when the supplied email is unmatched', async () => {
+		vi.mocked(prisma.user.findFirst)
+			.mockResolvedValueOnce(null)
+			.mockResolvedValue({
+				idUser: 15,
+				name: 'Advisor',
+				lastName: 'One',
+			} as never)
+		vi.mocked(prisma.lead.findMany)
+			.mockResolvedValueOnce([{ idLead: 8 }] as never)
+			.mockResolvedValueOnce([
+				{ idLead: 10, idUser: null },
+				{ idLead: 8, idUser: 15 },
+			] as never)
+			.mockResolvedValueOnce([{ idLead: 10, user: null }] as never)
+		await upsertLeadFromCrm({
+			externalCrmId: 'crm-1',
+			statusKey: 'new',
+			email: 'same@example.com',
+			ownerEmail: 'unmatched@example.com',
+		})
+		expect(prisma.lead.updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({ data: expect.objectContaining({ idUser: 15 }) })
+		)
+		expect(prisma.leadLink.upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				create: expect.objectContaining({
+					idLead: 10,
+					idRelatedLead: 8,
+					active: true,
+				}),
+			})
+		)
+		expect(prisma.leadChangeHistory.createMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.arrayContaining([
+					expect.objectContaining({
+						idLead: 10,
+						kind: 'OWNER',
+						source: 'SYSTEM',
+					}),
+				]),
+			})
+		)
+		expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+			isolationLevel: 'Serializable',
+		})
+	})
+	it('rejects conflicting related owners without an explicit resolved target', async () => {
+		vi.mocked(prisma.lead.findMany)
+			.mockResolvedValueOnce([{ idLead: 8 }, { idLead: 9 }] as never)
+			.mockResolvedValueOnce([
+				{ idLead: 8, idUser: 15 },
+				{ idLead: 9, idUser: 16 },
+			] as never)
+		await expect(
+			upsertLeadFromCrm({
+				externalCrmId: 'crm-1',
+				statusKey: 'new',
+				email: 'same@example.com',
+			})
+		).rejects.toThrow('No fue posible modificar el grupo relacionado')
+		expect(prisma.leadLink.upsert).not.toHaveBeenCalled()
+		expect(logAuditEvent).not.toHaveBeenCalled()
 	})
 })

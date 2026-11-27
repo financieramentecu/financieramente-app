@@ -15,10 +15,14 @@ import {
 import { formSubmissionPayloadSchema } from '@/features/leads/types/form-submission.schema'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 
+import { LeadCaptureValidationError } from '@/features/leads/captures/lead-capture.service'
+import { LeadPersonGroupError } from '@/features/leads/services/lead-person-group.service'
+
 const SYSTEM_EMAIL = 'form-submission@system'
 
 function readSubmissionId(body: unknown): string | undefined {
-	if (!body || typeof body !== 'object' || !('submissionId' in body)) return undefined
+	if (!body || typeof body !== 'object' || !('submissionId' in body))
+		return undefined
 	const value = body.submissionId
 	return typeof value === 'string' ? value.slice(0, 150) : undefined
 }
@@ -49,13 +53,19 @@ export async function POST(request: Request) {
 	const apiKey = request.headers.get('x-api-key')
 	// Unauthenticated and throttled traffic must never trigger database writes.
 	if (!isValidApiKey(apiKey)) {
-		return NextResponse.json({ data: null, error: 'No autorizado' } satisfies ApiResponse<null>, { status: 401 })
+		return NextResponse.json(
+			{ data: null, error: 'No autorizado' } satisfies ApiResponse<null>,
+			{ status: 401 }
+		)
 	}
 
 	const rateLimitResult = checkRateLimit(apiKey ?? '')
 	if (!rateLimitResult.allowed) {
 		return NextResponse.json(
-			{ data: null, error: 'Límite de solicitudes excedido' } satisfies ApiResponse<null>,
+			{
+				data: null,
+				error: 'Límite de solicitudes excedido',
+			} satisfies ApiResponse<null>,
 			{ status: 429 }
 		)
 	}
@@ -70,7 +80,12 @@ export async function POST(request: Request) {
 	const submissionId = readSubmissionId(body)
 	const parsed = formSubmissionPayloadSchema.safeParse(body)
 	if (!parsed.success) {
-		return reject(request, parsed.error.issues[0]?.message || 'Datos inválidos', 400, submissionId)
+		return reject(
+			request,
+			parsed.error.issues[0]?.message || 'Datos inválidos',
+			400,
+			submissionId
+		)
 	}
 
 	try {
@@ -80,13 +95,27 @@ export async function POST(request: Request) {
 		})
 		return NextResponse.json({ data: result })
 	} catch (error) {
-		if (error instanceof LeadFormSubmissionError) {
+		if (
+			error instanceof LeadFormSubmissionError ||
+			error instanceof LeadCaptureValidationError ||
+			error instanceof LeadPersonGroupError
+		) {
 			return reject(request, error.message, 409, parsed.data.submissionId)
 		}
 		if (error instanceof z.ZodError) {
-			return reject(request, error.issues[0]?.message || 'Datos inválidos', 400, parsed.data.submissionId)
+			return reject(
+				request,
+				error.issues[0]?.message || 'Datos inválidos',
+				400,
+				parsed.data.submissionId
+			)
 		}
 		console.error('Error storing landing form submission:', error)
-		return reject(request, 'Error al guardar el formulario', 500, parsed.data.submissionId)
+		return reject(
+			request,
+			'Error al guardar el formulario',
+			500,
+			parsed.data.submissionId
+		)
 	}
 }
