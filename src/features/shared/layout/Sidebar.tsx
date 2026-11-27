@@ -33,7 +33,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			return []
 		}
 
-		return buildMenuByRole(session.user.role, session.user.permissions, {
+		return buildMenuByRole(session.user.role, session.user.grants, {
 			authorizedReportCodes,
 			canViewOthersCrm: session.user.canViewOthersCrm === true,
 		})

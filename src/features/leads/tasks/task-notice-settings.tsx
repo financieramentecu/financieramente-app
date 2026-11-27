@@ -2,8 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 import { Bell } from 'lucide-react'
-import { useSession } from 'next-auth/react'
-import { UserRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { toast } from 'sonner'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
@@ -13,10 +12,10 @@ import { useTaskNoticeSettings } from '@/features/leads/tasks/use-task-notice-se
 
 /** Administrators set how many days before due an open task is announced in the app. */
 export function TaskNoticeSettings() {
-	const { data: session } = useSession()
+	const { can } = usePermissions()
 	const [open, setOpen] = useState(false)
 	const settings = useTaskNoticeSettings(open)
-	if (session?.user?.role !== UserRole.ADMIN) return null
+	if (!can('leads.configurar_avisos')) return null
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>

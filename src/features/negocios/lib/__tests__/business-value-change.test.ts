@@ -3,7 +3,6 @@ import { UserRole } from '@/features/auth/lib/roles'
 import {
 	buildBusinessValueChangeAudit,
 	businessValuesDiffer,
-	canEditBusinessValue,
 	shouldConfirmSupportAnalystBusinessValueChange,
 } from '@/features/negocios/lib/business-value-change'
 
@@ -37,22 +36,6 @@ describe('businessValuesDiffer', () => {
 				nextValue: 0.0000001,
 			})
 		).toBe(false)
-	})
-})
-
-describe('canEditBusinessValue', () => {
-	it('allows support, operations, and admin', () => {
-		expect(canEditBusinessValue(UserRole.ANALISTA_SOPORTE)).toBe(true)
-		expect(canEditBusinessValue(UserRole.ASISTENTE_GERENCIA_OPERATIVA)).toBe(true)
-		expect(canEditBusinessValue(UserRole.ADMIN)).toBe(true)
-		expect(canEditBusinessValue('analista_soporte')).toBe(true)
-	})
-
-	it('blocks coach and other roles, including a missing role', () => {
-		expect(canEditBusinessValue(UserRole.AGENTE)).toBe(false)
-		expect(canEditBusinessValue(UserRole.PARTNER)).toBe(false)
-		expect(canEditBusinessValue(null)).toBe(false)
-		expect(canEditBusinessValue(undefined)).toBe(false)
 	})
 })
 

@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { UserWithRole } from '@/features/negocios/types/business.types'
-import { canRoleEditClientInfo } from '@/features/negocios/lib/client-edit-permissions'
-import { canEditBusinessValue } from '@/features/negocios/lib/business-value-change'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 
 export type FieldPermission = {
 	readonly: boolean
@@ -49,26 +48,20 @@ interface UseBusinessPermissionsProps {
  */
 export function useBusinessPermissions({
 	mode,
-	currentUser,
 	businessStatus,
 }: UseBusinessPermissionsProps) {
 	const isEditMode = mode === 'edit'
-	const roleCode = currentUser?.role?.code
+	const { can } = usePermissions()
 
-	// Roles privilegiados (pueden editar campos financieros en estados avanzados)
-	const isPrivileged = useMemo(() => {
-		const code = roleCode?.toUpperCase()
-		return (
-			code === 'ADMIN' ||
-			code === 'ASISTENTE_GERENCIA_OPERATIVA' ||
-			code === 'ANALISTA_SOPORTE'
-		)
-	}, [roleCode])
+	// Privileged roles can edit financial fields in advanced states: the same
+	// roles that may change a contract once the business is EMITIDO.
+	const isPrivileged = can('negocios.editar_contrato_emitido')
 
-	// Roles que pueden editar datos del cliente en la sección "Información básica y general"
-	const canEditClientInfo = useMemo(() => {
-		return canRoleEditClientInfo(roleCode)
-	}, [roleCode])
+	// Valor de Negocio is exclusive to support, operations and admin in every status.
+	const canEditValue = can('negocios.editar_valor')
+
+	// Roles that can edit client data in "Información básica y general"
+	const canEditClientInfo = can('clientes.editar')
 
 	// El negocio es un borrador (Venta Efectuada)
 	const isDraft = useMemo(() => {
@@ -140,7 +133,7 @@ export function useBusinessPermissions({
 
 			// Drafts stay editable for the other financial fields, but Valor de
 			// Negocio is exclusive to support, operations, and admin in every status.
-			if (field === 'value' && !canEditBusinessValue(roleCode)) {
+			if (field === 'value' && !canEditValue) {
 				return { readonly: true, disabled: true, hidden: false }
 			}
 

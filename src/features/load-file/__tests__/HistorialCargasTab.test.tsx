@@ -4,6 +4,13 @@ import { HistorialCargasTab } from '../components/HistorialCargasTab'
 import { useFileHistory, type CargaHistorial } from '../hooks/use-file-history'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import { UserRole } from '@/features/auth/lib/roles'
+import { setMockRole } from '@/features/access-control/testing/mock-permissions'
+
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
 
 vi.mock('../hooks/use-file-history')
 vi.mock('@/features/shared/hooks/use-auth-session')
@@ -27,6 +34,12 @@ vi.mock('@/features/shared/ui/modal', () => ({
 
 const mockUseFileHistory = vi.mocked(useFileHistory)
 const mockUseAuthSession = vi.mocked(useAuthSession)
+// the mocked usePermissions answers for the role of the mocked session
+const originalMockReturn = mockUseAuthSession.mockReturnValue.bind(mockUseAuthSession)
+mockUseAuthSession.mockReturnValue = ((value: { user?: { role?: string } | null }) => {
+	setMockRole(value?.user?.role)
+	return originalMockReturn(value as never)
+}) as typeof mockUseAuthSession.mockReturnValue
 
 function makeCarga(overrides: Partial<CargaHistorial> = {}): CargaHistorial {
 	return {

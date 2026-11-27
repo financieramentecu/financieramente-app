@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { logAuditEvent, AuditAction } from '@/features/auth/lib/audit-logger'
 import { validateRoleLevelPair } from '@/features/admin/users/lib/user-role-level-rules'
 import {
@@ -10,6 +9,8 @@ import {
 	isPartnerAccount,
 } from '@/features/admin/users/lib/partner-guard'
 import { Prisma } from '@prisma/client'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
+import { ADMIN_ROLE_CODE } from '@/features/access-control/lib/system-roles'
 
 /**
  * Thrown when the effective (roleCode, levelId) pair violates the
@@ -17,6 +18,26 @@ import { Prisma } from '@prisma/client'
  * Caught explicitly to surface a 400 instead of the generic 500 handler.
  */
 class RoleLevelValidationError extends Error {}
+
+/**
+ * Changing a user's role is role management, not user editing: it needs
+ * `roles.gestionar`, and only an ADMIN may grant or remove the ADMIN role, so a
+ * delegated `usuarios.gestionar` can never escalate anyone to ADMIN.
+ */
+async function roleChangeRejection(
+	actorRoleCode: string | null | undefined,
+	currentRoleCode: string | null | undefined,
+	nextRoleCode: string | null
+): Promise<string | null> {
+	if (!(await roleCan(actorRoleCode, 'roles.gestionar'))) {
+		return 'Sin permisos para asignar roles'
+	}
+	const touchesAdmin = currentRoleCode === ADMIN_ROLE_CODE || nextRoleCode === ADMIN_ROLE_CODE
+	if (touchesAdmin && actorRoleCode !== ADMIN_ROLE_CODE) {
+		return 'Solo un administrador puede asignar o quitar el rol Administrador'
+	}
+	return null
+}
 
 type CategorySummary = {
 	id: number
@@ -59,7 +80,7 @@ export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('usuarios.ver')
 	if (!guard.ok) {
 		return guard.response
 	}
@@ -178,7 +199,7 @@ export async function PUT(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('usuarios.gestionar')
 	if (!guard.ok) {
 		return guard.response
 	}
@@ -249,6 +270,16 @@ export async function PUT(
 
 		if (roleId !== undefined) {
 			if (roleId === null) {
+				if (existingUser.role) {
+					const rejection = await roleChangeRejection(
+						session.user.role,
+						existingUser.role.code,
+						null
+					)
+					if (rejection) {
+						return NextResponse.json({ success: false, error: rejection }, { status: 403 })
+					}
+				}
 				updateData.role = { disconnect: true }
 				resolvedRoleCode = null
 			} else {
@@ -261,6 +292,16 @@ export async function PUT(
 						{ success: false, error: 'Rol no encontrado' },
 						{ status: 400 }
 					)
+				}
+				if (role.idRole !== existingUser.idRole) {
+					const rejection = await roleChangeRejection(
+						session.user.role,
+						existingUser.role?.code,
+						role.code
+					)
+					if (rejection) {
+						return NextResponse.json({ success: false, error: rejection }, { status: 403 })
+					}
 				}
 				updateData.role = { connect: { idRole: role.idRole } }
 				resolvedRoleCode = role.code

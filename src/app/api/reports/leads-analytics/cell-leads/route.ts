@@ -22,6 +22,7 @@ export async function GET(
 			range: authz.data.range,
 			viewer: authz.data.viewer,
 			visibleUserIds: authz.data.visibleUserIds,
+			isBypass: authz.data.isBypass,
 			idLeadFunnelColumn: authz.data.cell.idLeadFunnelColumn,
 			ownerFilter: authz.data.cell.ownerFilter,
 			withBusiness: authz.data.cell.withBusiness,

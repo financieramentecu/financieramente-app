@@ -1,3 +1,4 @@
+import { FormSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { Suspense } from 'react'
 import { CalculadoraClient } from '@/features/calculadora/components/calculadora-client'
 import { auth } from '@/auth'
@@ -115,7 +116,9 @@ export default async function CalculadoraPage() {
 						Simula la distribución de comisiones para proyectar tus ganancias
 					</p>
 				</div>
-				<Suspense fallback={<div>Cargando calculadora...</div>}>
+				<Suspense
+					fallback={<FormSkeleton label="Cargando calculadora" fields={5} />}
+				>
 					<CalculadoraClient
 						companies={companies}
 						products={products}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth/nextauth'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import {
 	FileImportService,
 	PeriodCompletedError,
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
 
 		const { month, year, status, search } = query.data
 		const userId = Number(session.user.id)
-		const isAdmin = session.user.role === UserRole.ADMIN
+		const isAdmin = await roleCan(session.user.role, 'carga.ver_todos')
 
 		const statusArray =
 			status && status.trim().length > 0

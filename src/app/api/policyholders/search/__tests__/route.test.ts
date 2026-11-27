@@ -58,7 +58,7 @@ describe('GET /api/policyholders/search', () => {
 		UserRole.AGENTE,
 		UserRole.ANALISTA_SOPORTE,
 		UserRole.CONSULTOR,
-		UserRole.DEFAULT,
+		UserRole.SIN_ROL,
 	])(
 		'returns 403 for %s and does not return policyholder data',
 		async (role) => {

@@ -83,7 +83,7 @@ describe('getBusinessById', () => {
 	})
 
 	it('unknown or missing role fails closed without querying', async () => {
-		for (const role of [{ code: 'SOMETHING_NEW' }, { code: UserRole.DEFAULT }, null]) {
+		for (const role of [{ code: 'SOMETHING_NEW' }, { code: UserRole.SIN_ROL }, null]) {
 			expect(await getBusinessById(123, { idUser: 1, role } as any)).toBeNull()
 		}
 		expect(prisma.business.findFirst).not.toHaveBeenCalled()

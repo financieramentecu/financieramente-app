@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { buildMenuByRole } from '@/lib/navigation/menu-builder'
 import { UserRole } from '@/features/auth/lib/roles'
-import { getRolePermissions } from '@/features/auth/lib/permissions'
+import { DEFAULT_ROLE_GRANTS } from '@/features/access-control/catalog/default-role-grants'
 
 describe('buildMenuByRole reportes gating', () => {
-	const adminPermissions = getRolePermissions(UserRole.ADMIN)
+	const adminPermissions = DEFAULT_ROLE_GRANTS[UserRole.ADMIN]
 
 	it('hides Reportes when no authorized codes', () => {
 		const menu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
@@ -62,7 +62,7 @@ describe('buildMenuByRole reportes gating', () => {
 	})
 
 	it('keeps Producción Real independently visible when only PRODUCCION_REAL is authorized', () => {
-		const menu = buildMenuByRole(UserRole.AGENTE, getRolePermissions(UserRole.AGENTE), {
+		const menu = buildMenuByRole(UserRole.AGENTE, DEFAULT_ROLE_GRANTS[UserRole.AGENTE], {
 			authorizedReportCodes: ['PRODUCCION_REAL'],
 		})
 		const reportes = menu.find((item) => item.title === 'Reportes')
@@ -97,13 +97,13 @@ describe('buildMenuByRole reportes gating', () => {
 		expect(urls).not.toContain('/dashboard/reportes/personales')
 	})
 
-	it('shows Tipos de Documento only to the system administrator', () => {
+	it('shows Tipos de Documento only to the system administrator (S6)', () => {
 		const adminMenu = buildMenuByRole(UserRole.ADMIN, adminPermissions, {
 			authorizedReportCodes: [],
 		})
 		const assistantMenu = buildMenuByRole(
 			UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-			getRolePermissions(UserRole.ASISTENTE_GERENCIA_OPERATIVA),
+			DEFAULT_ROLE_GRANTS[UserRole.ASISTENTE_GERENCIA_OPERATIVA],
 			{ authorizedReportCodes: [] }
 		)
 
@@ -115,11 +115,9 @@ describe('buildMenuByRole reportes gating', () => {
 		expect(
 			adminItem?.subItems?.some((item) => item.title === 'Tipos de Documento')
 		).toBe(true)
-		expect(
-			assistantItem?.subItems?.some(
-				(item) => item.title === 'Tipos de Documento'
-			)
-		).toBe(false)
+		// S6: configuration is ADMIN-only by default, so the assistant gets no
+		// Administración entry at all (activable from the roles editor)
+		expect(assistantItem).toBeUndefined()
 	})
 
 	it('keeps Permisos de Reportes under Administración', () => {

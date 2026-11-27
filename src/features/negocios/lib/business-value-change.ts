@@ -1,20 +1,5 @@
 import { UserRole } from '@/features/auth/lib/roles'
 
-const BUSINESS_VALUE_EDITOR_ROLES: ReadonlySet<string> = new Set([
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-])
-
-/**
- * Valor de Negocio stays editable for support, operations, and admin only.
- * Coach/Agente and other roles keep the amount they set at creation.
- */
-export function canEditBusinessValue(roleCode: string | null | undefined): boolean {
-	const code = roleCode?.trim().toUpperCase()
-	return code !== undefined && BUSINESS_VALUE_EDITOR_ROLES.has(code)
-}
-
 type BusinessValueInput = number | string | { toString(): string } | null | undefined
 
 export const BUSINESS_VALUE_CHANGE_CONFIRMATION =

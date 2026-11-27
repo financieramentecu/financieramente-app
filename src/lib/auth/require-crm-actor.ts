@@ -5,10 +5,10 @@ import type { FeatureFlag } from '@/features/shared/types/feature-flags.types'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { getAccessibleUserIds } from '@/features/auth/lib/hierarchy'
-import { isWriteBypassRole } from '@/features/auth/lib/roles'
+import { roleCan, roleScope } from '@/features/access-control/services/role-permission-check'
 import { resolveCrmVisibility } from '@/features/leads/crm/crm-visibility'
 import { isLeadVisible } from '@/features/leads/services/lead-board.service'
-import { canAccessCrm, canLeadMoneyStrategies, canManageCrm } from '@/features/leads/crm/crm-policy'
+import { canLeadMoneyStrategies } from '@/features/leads/crm/crm-policy'
 import type { CrmRequestContext } from '@/features/leads/crm/crm-request-context'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 
@@ -23,9 +23,16 @@ export interface CrmActor {
 	/** Effective grant: read other branches' lead states and CRM reports. */
 	canViewOthersCrm: boolean
 	canManage: boolean
+	/** `leads.reasignar_estrategia`: may change any lead's Money Strategy. */
+	canReassignAnyStrategy?: boolean
+	/** `leads.exportar`: may download the lead table and CRM reports. */
+	canExport?: boolean
 	/** User category, for category-based report permissions (`canViewReport`). */
 	idCategory: number | null
 }
+
+/** Permission behind the CRM settings: custom fields, tags, activity labels and columns. */
+export const CRM_CONFIG_PERMISSION = 'leads.configurar_crm'
 
 export type RequireCrmActorResult =
 	| { ok: true; actor: CrmActor }
@@ -42,7 +49,7 @@ export function crmErrorResponse(message: string, status: number): NextResponse<
  */
 export async function requireCrmActor(
 	flag: FeatureFlag,
-	options: { manage?: boolean } = {}
+	options: { manage?: boolean; permission?: string } = {}
 ): Promise<RequireCrmActorResult> {
 	const session = await auth()
 	const email = session?.user?.email
@@ -55,19 +62,26 @@ export async function requireCrmActor(
 	if (!currentUser) return { ok: false, response: crmErrorResponse('Usuario no encontrado', 404) }
 
 	const roleCode = currentUser.role?.code
-	if (!canAccessCrm(roleCode)) return { ok: false, response: crmErrorResponse('Sin permisos para CRM', 403) }
-	const canManage = canManageCrm(roleCode)
+	const [manageScope, canViewLeads] = await Promise.all([
+		roleScope(roleCode, 'leads.gestionar'),
+		roleCan(roleCode, 'leads.ver'),
+	])
+	const canManage = manageScope !== undefined
 	if (options.manage && !canManage) {
 		return { ok: false, response: crmErrorResponse('Sin permisos para modificar CRM', 403) }
 	}
+	if (options.permission && !(await roleCan(roleCode, options.permission))) {
+		return { ok: false, response: crmErrorResponse('Sin permisos para esta acción del CRM', 403) }
+	}
 
-	const treeUserIds = isWriteBypassRole(roleCode)
-		? []
-		: await getAccessibleUserIds(currentUser.idUser)
+	const treeUserIds =
+		manageScope === 'COMPANY' ? [] : await getAccessibleUserIds(currentUser.idUser)
 	const visibility = resolveCrmVisibility({
-		roleCode,
+		manageScope,
+		canViewLeads,
 		granted: currentUser.canViewOthersCrm === true,
 		treeUserIds,
+		viewerId: currentUser.idUser,
 	})
 
 	if (!visibility.canOpenCrm) {
@@ -82,8 +96,10 @@ export async function requireCrmActor(
 			roleCode,
 			visibleUserIds: visibility.visibleUserIds,
 			manageableUserIds: visibility.manageableUserIds,
-			canViewOthersCrm: visibility.visibleUserIds.length === 0 && !isWriteBypassRole(roleCode),
+			canViewOthersCrm: visibility.visibleUserIds.length === 0 && !visibility.companyWrite,
 			canManage,
+			canReassignAnyStrategy: await roleCan(roleCode, 'leads.reasignar_estrategia'),
+			canExport: await roleCan(roleCode, 'leads.exportar'),
 			idCategory: currentUser.idCategory ?? null,
 		},
 	}
@@ -102,10 +118,10 @@ export function findScopedLead(
 
 /** Admin, or a viewer who has at least one person under them. */
 export async function actorLeadsMoneyStrategies(actor: CrmActor): Promise<boolean> {
-	if (canLeadMoneyStrategies(actor.roleCode, actor.visibleUserIds, actor.idUser)) return true
+	if (canLeadMoneyStrategies(actor.canReassignAnyStrategy === true, actor.visibleUserIds, actor.idUser)) return true
 	if (actor.visibleUserIds.length > 0) return false
 	const accessible = await getAccessibleUserIds(actor.idUser)
-	return canLeadMoneyStrategies(actor.roleCode, accessible, actor.idUser)
+	return canLeadMoneyStrategies(actor.canReassignAnyStrategy === true, accessible, actor.idUser)
 }
 
 export function canAssignWithinScope(

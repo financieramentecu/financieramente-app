@@ -2,6 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { buildBusinessListWhere } from '@/features/negocios/lib/build-business-list-where'
 import { UserRole } from '@/features/auth/lib/roles'
 
+/** COMPANY-scope viewers (ADMIN, CONSULTOR): the caller marks the list unrestricted. */
+const buildGlobalWhere = (
+	user: Parameters<typeof buildBusinessListWhere>[0],
+	filters: Parameters<typeof buildBusinessListWhere>[1],
+	options: Parameters<typeof buildBusinessListWhere>[2] = {}
+) => buildBusinessListWhere(user, filters, { unrestricted: true, ...options })
+
 describe('buildBusinessListWhere', () => {
 	it('restringe por idUser cuando el rol es AGENTE', () => {
 		const w = buildBusinessListWhere(
@@ -14,7 +21,7 @@ describe('buildBusinessListWhere', () => {
 	it('excluye dateAnchored null cuando hay rango', () => {
 		const gte = new Date('2026-01-01T05:00:00.000Z')
 		const lte = new Date('2026-01-31T04:59:59.999Z')
-		const w = buildBusinessListWhere(
+		const w = buildGlobalWhere(
 			{ idUser: 1, role: { code: UserRole.ADMIN } },
 			{ dateAnchoredRange: { gte, lte } }
 		)
@@ -38,7 +45,7 @@ describe('buildBusinessListWhere', () => {
 	it('acota por createdAt cuando hay createdAtRange', () => {
 		const gte = new Date('2026-04-01T05:00:00.000Z')
 		const lte = new Date('2026-04-30T04:59:59.999Z')
-		const w = buildBusinessListWhere(
+		const w = buildGlobalWhere(
 			{ idUser: 1, role: { code: UserRole.ADMIN } },
 			{ createdAtRange: { gte, lte } }
 		)
@@ -85,7 +92,7 @@ describe('buildBusinessListWhere', () => {
 		})
 
 		it('admin with visibleUserIds applies no idUser filter', () => {
-			const w = buildBusinessListWhere(
+			const w = buildGlobalWhere(
 				{ idUser: 1, role: { code: UserRole.ADMIN } },
 				{},
 				{ visibleUserIds: [10, 20, 30] }
@@ -103,7 +110,7 @@ describe('buildBusinessListWhere', () => {
 
 		it('scoped user with an empty visibleUserIds matches nothing (fail closed)', () => {
 			const w = buildBusinessListWhere(
-				{ idUser: 42, role: { code: UserRole.DEFAULT } },
+				{ idUser: 42, role: { code: UserRole.SIN_ROL } },
 				{},
 				{ visibleUserIds: [] }
 			)
@@ -111,7 +118,7 @@ describe('buildBusinessListWhere', () => {
 		})
 
 		it('CONSULTOR sees every business, with no idUser restriction', () => {
-			const w = buildBusinessListWhere(
+			const w = buildGlobalWhere(
 				{ idUser: 9, role: { code: UserRole.CONSULTOR } },
 				{}
 			)
@@ -119,7 +126,7 @@ describe('buildBusinessListWhere', () => {
 		})
 
 		it('CONSULTOR keeps screen filters and still omits the idUser scope', () => {
-			const w = buildBusinessListWhere(
+			const w = buildGlobalWhere(
 				{ idUser: 9, role: { code: UserRole.CONSULTOR } },
 				{ status: 'EMITIDO' },
 				{ visibleUserIds: [9] }

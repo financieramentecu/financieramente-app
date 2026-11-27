@@ -1,34 +1,30 @@
-import {
-	UserRole,
-	isReadOnlyRole,
-	isValidRole,
-} from '@/features/auth/lib/roles'
+import { can } from '@/features/access-control/lib/authorization'
+import type { RoleGrants } from '@/features/access-control/types/access-control.types'
 
 /**
- * CRM authorization starts fail-closed while routes continue to apply the
- * existing hierarchy scope. This is intentionally separate from UI flags.
+ * CRM authorization is driven by the `leads.gestionar` permission: it opens the
+ * CRM and allows its mutations. Routes keep applying the hierarchy scope on top.
+ * Fails closed: no grants means no access.
  */
-export function canAccessCrm(roleCode: string | null | undefined): boolean {
-	if (!roleCode || !isValidRole(roleCode)) return false
-	return roleCode !== UserRole.DEFAULT
+export function canAccessCrm(grants: RoleGrants | null | undefined): boolean {
+	return can(grants, 'leads.gestionar')
+}
+
+/** Mutation right over CRM leads (the data scope narrows which ones). */
+export function canManageCrm(grants: RoleGrants | null | undefined): boolean {
+	return canAccessCrm(grants)
 }
 
 /**
- * Consultors retain global read visibility but never gain CRM mutation rights.
- */
-export function canManageCrm(roleCode: string | null | undefined): boolean {
-	return canAccessCrm(roleCode) && !isReadOnlyRole(roleCode)
-}
-
-/**
- * Changing the Money Strategy and relating leads is limited to an admin or
- * someone who already leads other people. A leaf advisor only sees the result.
+ * Changing the Money Strategy and relating leads is limited to whoever may
+ * reassign any lead (`leads.reasignar_estrategia`) or someone who already
+ * leads other people. A leaf advisor only sees the result.
  */
 export function canLeadMoneyStrategies(
-	roleCode: string | null | undefined,
+	canReassignAny: boolean,
 	accessibleUserIds: readonly number[],
 	viewerId: number
 ): boolean {
-	if (roleCode === UserRole.ADMIN) return true
+	if (canReassignAny) return true
 	return accessibleUserIds.some((id) => id !== viewerId)
 }

@@ -48,7 +48,7 @@ describe('/api/crm/custom-fields', () => {
 	it('creates a definition (managers) and validates it', async () => {
 		vi.mocked(createLeadCustomField).mockResolvedValue({ ok: true, field })
 		expect((await POST(json('POST', { key: 'product', label: 'Producto', type: 'SELECT', options: ['A'] }))).status).toBe(201)
-		expect(requireCrmActor).toHaveBeenCalledWith('crm_lead_fields', { manage: true })
+		expect(requireCrmActor).toHaveBeenCalledWith('crm_lead_fields', { manage: true, permission: 'leads.configurar_crm' })
 		expect((await POST(json('POST', { key: 'Product', label: 'P', type: 'TEXT' }))).status).toBe(400)
 		expect((await POST(json('POST', { key: 'product', label: 'P', type: 'SELECT' }))).status).toBe(400)
 		expect((await POST(json('POST', { key: 'product', label: 'P', type: 'TEXT', options: ['A'] }))).status).toBe(400)

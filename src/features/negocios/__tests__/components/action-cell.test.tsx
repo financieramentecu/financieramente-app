@@ -1,8 +1,24 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import {
+	setMockRole,
+	roleFromElement,
+} from '@/features/access-control/testing/mock-permissions'
 import { describe, it, expect, vi } from 'vitest'
 import { ActionCell } from '../../components/BusinessTable/ActionCell'
 import { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
+
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
+const render = (...args: Parameters<typeof rtlRender>) => {
+	setMockRole(roleFromElement(args[0]))
+	return rtlRender(...args)
+}
+
 
 describe('ActionCell', () => {
 	const defaultProps = {

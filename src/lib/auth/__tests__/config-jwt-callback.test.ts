@@ -85,13 +85,12 @@ describe('authConfig jwt callback - per-request revalidation (SEC-01)', () => {
 		expect(result).toBeNull()
 	})
 
-	it('keeps the session and refreshes role and permissions from the database', async () => {
+	it('keeps the session and refreshes the role from the database (grants follow it in the session callback)', async () => {
 		stubStates({ 7: activeState('CONSULTOR') })
 		const result = await runJwt({
 			token: { userId: 7, email: 'a@x.com', role: 'AGENTE' },
 		})
 		expect(result).toMatchObject({ userId: 7, role: 'CONSULTOR' })
-		expect(result?.permissions).toBeTruthy()
 	})
 
 	it('reads the user state exactly once for a plain session', async () => {

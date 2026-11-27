@@ -14,7 +14,9 @@ vi.mock(
 	})
 )
 vi.mock('@/features/auth/lib/hierarchy', () => ({
-	isHierarchyBypassRole: vi.fn().mockReturnValue(false),
+	canSeeAllDistributions: vi.fn(async (role: string | null) =>
+		['ADMIN', 'ASISTENTE_GERENCIA_OPERATIVA', 'ANALISTA_SOPORTE'].includes(role ?? '')
+	),
 }))
 
 const mockAuth = vi.mocked(auth)
@@ -93,7 +95,7 @@ describe('GET /api/pre-liquidacion/distribucion/[settlementCommissionId]', () =>
 
 	it('returns 403 when role is DEFAULT', async () => {
 		mockAuth.mockResolvedValue({
-			user: { id: '1', role: UserRole.DEFAULT },
+			user: { id: '1', role: UserRole.SIN_ROL },
 		} as never)
 
 		const request = new Request(

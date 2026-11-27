@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { isReadOnlyRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import {
 	requireAuth,
 	type RequireRoleFailure,
@@ -7,8 +7,9 @@ import {
 } from '@/lib/auth/require-role'
 
 /**
- * Require an authenticated session whose role has write authority.
- * Rejects with a 403 for a read-only role (CONSULTOR), independent of the
+ * Require an authenticated session whose role has write authority
+ * (`negocios.editar` by default; the business creation flow passes
+ * `negocios.crear`, so a role that may create without editing still can). Rejects with a 403 for a read-only role (CONSULTOR), independent of the
  * client's UI state — see spec "Server-side rejection independent of UI
  * state". Composed on top of `requireAuth()`, so an unauthenticated caller
  * still gets the underlying 401 failure.
@@ -19,7 +20,9 @@ import {
  * if (!guard.ok) return guard.response
  * ```
  */
-export async function requireWriteAccess(): Promise<
+export async function requireWriteAccess(
+	permissionCode: 'negocios.editar' | 'negocios.crear' = 'negocios.editar'
+): Promise<
 	RequireRoleSuccess | RequireRoleFailure
 > {
 	const guard = await requireAuth()
@@ -27,7 +30,7 @@ export async function requireWriteAccess(): Promise<
 		return guard
 	}
 
-	if (isReadOnlyRole(guard.session.user.role)) {
+	if (!(await roleCan(guard.session.user.role, permissionCode))) {
 		return {
 			ok: false,
 			response: NextResponse.json(

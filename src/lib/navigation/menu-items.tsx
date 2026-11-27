@@ -136,6 +136,11 @@ export const ALL_MENU_ITEMS: MenuItem[] = [
 		icon: <Handshake className="h-4 w-4" />,
 	},
 	{
+		title: 'Roles',
+		url: '/dashboard/admin/roles',
+		icon: <ShieldCheck className="h-4 w-4" />,
+	},
+	{
 		title: 'Administración',
 		url: '/dashboard/admin/companies',
 		icon: <Settings className="h-4 w-4" />,

@@ -1,9 +1,10 @@
 'use client'
 
+import { DistributionReceiptSkeleton } from '@/features/mis-distribuciones/components/distribution-skeletons'
 import { use, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { ReciboDistribucion } from '@/features/mis-distribuciones/components/ReciboDistribucion'
 import { AcordeonNegocioDistribucion } from '@/features/mis-distribuciones/components/AcordeonNegocioDistribucion'
@@ -69,12 +70,7 @@ export default function MisDistribucionesDetallePage({ params }: PageProps) {
 					)}
 				</div>
 
-				{isLoading && (
-					<div className="flex items-center gap-2 text-muted-foreground">
-						<Loader2 className="h-4 w-4 animate-spin" />
-						Cargando recibo…
-					</div>
-				)}
+				{isLoading && <DistributionReceiptSkeleton />}
 
 				{!isLoading && error && (
 					<div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">

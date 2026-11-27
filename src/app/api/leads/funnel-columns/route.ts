@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { createLeadFunnelColumn } from '@/features/leads/services/lead-funnel-column.service'
@@ -27,7 +27,7 @@ export async function GET() {
 	}
 
 	const currentUser = await getCurrentUserByEmail(session.user.email)
-	if (currentUser?.role?.code !== UserRole.ADMIN) {
+	if (!(await roleCan(currentUser?.role?.code, 'leads.configurar_funnel'))) {
 		const errorResponse: ApiResponse<null> = {
 			data: null,
 			error: 'Solo administradores pueden acceder a esta sección',
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 	}
 
 	const currentUser = await getCurrentUserByEmail(session.user.email)
-	if (currentUser?.role?.code !== UserRole.ADMIN) {
+	if (!(await roleCan(currentUser?.role?.code, 'leads.configurar_funnel'))) {
 		const errorResponse: ApiResponse<null> = {
 			data: null,
 			error: 'Solo administradores pueden acceder a esta sección',

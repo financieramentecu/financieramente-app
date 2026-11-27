@@ -20,7 +20,7 @@ import { markNovedadSchema } from '@/features/negocios/lib/business-api.schemas'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { assertBusinessAccess } from '@/features/negocios/services/business-access.service'
 import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-access-http'
-import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
+import { roleCan, roleScope } from '@/features/access-control/services/role-permission-check'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -31,15 +31,6 @@ import {
 interface RouteParams {
 	params: Promise<{ id: string }>
 }
-
-/**
- * Roles que pueden desmarcar la novedad de cualquier negocio, sin importar
- * quién es el Money Strategist dueño (bypass de ownership en UNMARK).
- */
-const UNMARK_OWNERSHIP_BYPASS_ROLES = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-]
 
 /**
  * PATCH /api/negocios/[id]/mark-novedad
@@ -97,7 +88,7 @@ export async function PATCH(
 			)
 		}
 
-		if (isReadOnlyRole(currentUser.role?.code)) {
+		if (!(await roleCan(currentUser.role?.code, 'novedades.marcar'))) {
 			return NextResponse.json(
 				{ data: null, error: 'Sin permisos' },
 				{ status: 403 }
@@ -106,7 +97,7 @@ export async function PATCH(
 
 		// [PO] PARTNER may MARK/UNMARK only their own businesses. MARK stays
 		// unchanged for internal users (no scope check).
-		if (currentUser.role?.code === UserRole.PARTNER) {
+		if ((await roleScope(currentUser.role?.code, 'negocios.ver')) === 'OWN') {
 			const access = await assertBusinessAccess({
 				user: currentUser,
 				businessId,
@@ -155,8 +146,10 @@ export async function PATCH(
 				)
 			}
 
-			const userRole = currentUser.role?.code as UserRole
-			const canBypassOwnership = UNMARK_OWNERSHIP_BYPASS_ROLES.includes(userRole)
+			const canBypassOwnership = await roleCan(
+				currentUser.role?.code,
+				'novedades.desmarcar_ajenas'
+			)
 
 			if (!canBypassOwnership && existingBusiness.idUser !== currentUser.idUser) {
 				return NextResponse.json(

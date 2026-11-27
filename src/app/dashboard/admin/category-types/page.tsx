@@ -1,3 +1,4 @@
+import { ListRowsSkeleton } from '@/features/shared/ui/loading-skeletons'
 import { Metadata } from 'next'
 import { Suspense } from 'react'
 import { CategoryTypesTable } from '@/features/category-types/components/category-types-table'
@@ -26,8 +27,8 @@ export default function CategoryTypesPage() {
 
 				<Suspense
 					fallback={
-						<div className="rounded-lg border border-[#DDE9EB] bg-white p-6 text-sm text-[#529398]">
-							Cargando tipos de categoría...
+						<div className="rounded-lg border border-border bg-card">
+							<ListRowsSkeleton label="Cargando tipos de categoría" rows={5} />
 						</div>
 					}
 				>

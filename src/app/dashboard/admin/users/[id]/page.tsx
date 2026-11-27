@@ -1,8 +1,9 @@
 'use client'
 
+import { FormSkeleton } from '@/features/shared/ui/loading-skeletons'
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { Button } from '@/features/shared/ui/button'
 import {
@@ -40,11 +41,8 @@ export default function UserDetailPage() {
     if (isLoading) {
         return (
             <DashboardLayout currentPage="Usuarios">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="text-center space-y-4">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                        <p className="text-muted-foreground">Cargando información del usuario...</p>
-                    </div>
+                <div className="max-w-2xl space-y-4">
+                    <FormSkeleton label="Cargando usuario" fields={4} />
                 </div>
             </DashboardLayout>
         )

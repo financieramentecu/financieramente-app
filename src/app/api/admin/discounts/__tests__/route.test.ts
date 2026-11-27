@@ -3,7 +3,7 @@ import { GET, POST } from '../route'
 import { NextResponse } from 'next/server'
 
 vi.mock('@/auth')
-vi.mock('@/lib/auth/require-role', () => ({ requireRole: vi.fn() }))
+vi.mock('@/lib/auth/require-role', () => ({ requireRolePermission: vi.fn() }))
 vi.mock('@/features/commission-discounts/services/commission-discount.service', () => ({
 	listDiscounts: vi.fn(),
 	findActiveByType: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock('next/server', () => ({
 }))
 
 import { auth } from '@/auth'
-import { requireRole } from '@/lib/auth/require-role'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { UserRole } from '@/features/auth/lib/roles'
 import {
 	listDiscounts,
@@ -37,7 +37,7 @@ import {
 import { NextResponse as NextResponseType } from 'next/server'
 
 const mockAuth = vi.mocked(auth)
-const mockRequireRole = vi.mocked(requireRole)
+const mockRequireRole = vi.mocked(requireRolePermission)
 
 function allowAdmin() {
 	mockRequireRole.mockResolvedValue({
@@ -101,7 +101,7 @@ describe('POST /api/admin/discounts', () => {
 				body: JSON.stringify(validBody),
 			})
 		)
-		expect(mockRequireRole).toHaveBeenCalledWith([UserRole.ADMIN])
+		expect(mockRequireRole).toHaveBeenCalledWith('configuracion.catalogos')
 	})
 
 	it('returns 403 and creates nothing for a non-admin role', async () => {

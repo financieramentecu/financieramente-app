@@ -1,7 +1,7 @@
 /**
  * API Route: /api/crm/hierarchy-tree
- * GET — CRM tree. The company tree is returned only for write-bypass roles
- * or for a person an admin granted the read-only view of other branches.
+ * GET — CRM tree. The company tree is returned only for company-scope CRM
+ * writers or for a person an admin granted the read-only view of other branches.
  */
 
 import { NextResponse } from 'next/server'
@@ -11,7 +11,6 @@ import { getCurrentUserByEmail } from '@/features/shared/services/user.service'
 import { buildHierarchyTree } from '@/features/production-dashboard/services/hierarchy-tree.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { PARTNER_EXTERNAL_LEVEL_CODE } from '@/features/shared/lib/level-codes'
-import { UserRole, isWriteBypassRole } from '@/features/auth/lib/roles'
 import type { HierarchyTreeData } from '@/features/production-dashboard/types/hierarchy.types'
 
 const MS_JUNIOR_LEVEL_CODE = 'LEVEL_0'
@@ -28,14 +27,14 @@ export async function GET(): Promise<NextResponse<ApiResponse<HierarchyTreeData>
 
 		if (
 			viewer.level?.code === MS_JUNIOR_LEVEL_CODE ||
-			viewer.role?.code === UserRole.PARTNER ||
 			viewer.level?.code === PARTNER_EXTERNAL_LEVEL_CODE
 		) {
 			return NextResponse.json({ data: { nodes: [] } })
 		}
 
 		const nodes = await buildHierarchyTree(viewer, prisma, {
-			fullTree: isWriteBypassRole(viewer.role?.code) || viewer.canViewOthersCrm === true,
+			// Empty visibility = company-wide read (company-scope writer or granted view).
+			fullTree: guard.actor.visibleUserIds.length === 0,
 		})
 		return NextResponse.json({ data: { nodes } })
 	} catch (error) {

@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { fetchMyAuthorizedReports } from '@/features/report-permissions/lib/report-permissions-api'
 import {
-	isReportViewBypassRole,
 	knownReportCodes,
 	mergeKnownReportCodes,
 } from '@/features/report-permissions/lib/report-permissions-helpers'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
 import type { AsyncState } from '@/features/shared/types/async-state.types'
 
@@ -16,7 +16,8 @@ import type { AsyncState } from '@/features/shared/types/async-state.types'
  */
 export function useAuthorizedReportCodes() {
 	const { session } = useAuthSession()
-	const bypassRole = isReportViewBypassRole(session?.user?.role)
+	const { can } = usePermissions()
+	const bypassRole = can('reportes.ver_todos')
 	// Primitive key: `session.user` is a new object on every session refetch,
 	// which would re-run the request for the same user.
 	const userKey = session?.user

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requirePermission } from '@/features/access-control/services/require-permission'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import { requireCrmActor, toLeadViewer } from '@/lib/auth/require-crm-actor'
 import { getLeadDetail } from '@/features/leads/services/lead-board.service'
@@ -62,7 +61,7 @@ export async function GET(_request: Request, context: RouteContext) {
  * re-evaluates eligibility server-side (never trusts a client-side check).
  */
 export async function DELETE(_request: Request, context: RouteContext) {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requirePermission('leads.eliminar')
 	if (!guard.ok) {
 		return guard.response
 	}

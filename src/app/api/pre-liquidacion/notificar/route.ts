@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth/nextauth'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import {
 	enviarNotificacionesPorArchivo,
 	type ResultadoEnvioNotificaciones,
 } from '@/features/pre-liquidacion/services/notificar-preliquidacion.service'
 import type { DistribucionLinkKind } from '@/features/email/lib/distribucion-link-notification'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-
-const ALLOWED_ROLES: UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-]
 
 const BodySchema = z.object({
 	fileImportId: z.number().int().positive(),
@@ -50,8 +45,8 @@ export async function POST(
 			)
 		}
 
-		const role = session.user?.role as UserRole | undefined
-		if (!role || !ALLOWED_ROLES.includes(role)) {
+		const role = session.user?.role
+		if (!(await roleCan(role, 'liquidacion.notificar'))) {
 			return NextResponse.json(
 				{ data: null, error: 'Forbidden' },
 				{ status: 403 }

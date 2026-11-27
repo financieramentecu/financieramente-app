@@ -3,6 +3,9 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { CreateLeadDialog } from '../create-lead-dialog'
 import { useSession } from 'next-auth/react'
+import { DEFAULT_ROLE_GRANTS } from '@/features/access-control/catalog/default-role-grants'
+
+const grantsOf = (role: string) => (DEFAULT_ROLE_GRANTS as Record<string, unknown>)[role] ?? {}
 import { useHierarchyAdvisors } from '@/features/leads/hooks/use-hierarchy-advisors'
 vi.mock('@/features/leads/captures/use-lead-captures', () => ({
 	useLeadCaptures: () => ({
@@ -48,7 +51,7 @@ beforeEach(() => {
 	vi.clearAllMocks()
 	vi.stubGlobal('fetch', fetchMock)
 	vi.mocked(useSession).mockReturnValue({
-		data: { user: { role: 'AGENTE' } },
+		data: { user: { role: 'AGENTE', grants: grantsOf('AGENTE') } },
 		status: 'authenticated',
 		update: vi.fn(),
 	} as never)
@@ -123,7 +126,7 @@ describe('CreateLeadDialog', () => {
 	})
 	it.each(['CONSULTOR', 'DEFAULT'])('hides creation for role %s', (role) => {
 		vi.mocked(useSession).mockReturnValue({
-			data: { user: { role } },
+			data: { user: { role, grants: grantsOf(role) } },
 			status: 'authenticated',
 		} as never)
 		render(<CreateLeadDialog onCreated={vi.fn()} />)

@@ -240,6 +240,14 @@ function deferred<T>() {
 	return { promise, resolve }
 }
 
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({
+		can: () => true,
+		scope: () => undefined,
+		canWithLevel: () => true,
+	}),
+}))
+
 describe('NegociosPageClient - cancel modal target', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()

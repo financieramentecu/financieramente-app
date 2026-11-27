@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/auth', () => ({
   auth: vi.fn().mockResolvedValue({
-    user: { email: 'agent@example.com', id: '1' },
+    user: { email: 'agent@example.com', id: '1', role: 'AGENTE' },
   }),
 }))
 

@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
+import { roleScope } from '@/features/access-control/services/role-permission-check'
 import { canViewReport } from '@/features/report-permissions/services/report-permissions.service'
 import { REPORT_CODES } from '@/features/report-permissions/types/report-permissions.types'
 import { getCurrentUserByEmail } from '@/features/shared/services/user.service'
@@ -98,7 +98,7 @@ async function resolveAuthorizedViewer(): Promise<
 	return {
 		ok: true,
 		viewer,
-		isBypass: isHierarchyBypassRole(roleCode),
+		isBypass: (await roleScope(roleCode, 'leads.ver')) === 'COMPANY',
 		idUser: currentUser.idUser,
 		roleCode,
 		levelCode: currentUser.level?.code,

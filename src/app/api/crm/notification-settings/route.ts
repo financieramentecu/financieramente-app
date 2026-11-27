@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import {
 	crmErrorResponse as error,
@@ -15,7 +15,7 @@ export async function GET() {
 	try {
 		const guard = await requireCrmActor('crm_tasks', { manage: true })
 		if (!guard.ok) return guard.response
-		if (guard.actor.roleCode !== UserRole.ADMIN) return error('Sin permisos para administrar los avisos', 403)
+		if (!(await roleCan(guard.actor.roleCode, 'leads.configurar_avisos'))) return error('Sin permisos para administrar los avisos', 403)
 		return NextResponse.json({ data: await getTaskNoticeSetting() } satisfies ApiResponse<TaskNoticeSetting>)
 	} catch (cause) {
 		console.error('Error fetching CRM task notice settings:', cause)
@@ -28,7 +28,7 @@ export async function PUT(request: Request) {
 	try {
 		const guard = await requireCrmActor('crm_tasks', { manage: true })
 		if (!guard.ok) return guard.response
-		if (guard.actor.roleCode !== UserRole.ADMIN) return error('Sin permisos para administrar los avisos', 403)
+		if (!(await roleCan(guard.actor.roleCode, 'leads.configurar_avisos'))) return error('Sin permisos para administrar los avisos', 403)
 		const input = taskNoticeSettingSchema.safeParse(await readJsonBody(request))
 		if (!input.success) return error(input.error.issues[0]?.message ?? 'Días de anticipación inválidos', 400)
 		const data = await saveTaskNoticeSetting(input.data.anticipationDays, toCrmRequestContext(guard.actor, request))

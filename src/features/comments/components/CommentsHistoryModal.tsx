@@ -1,5 +1,7 @@
 'use client'
 
+import { SkeletonRegion } from '@/features/shared/ui/loading-skeletons'
+import { Skeleton } from '@/features/shared/ui/skeleton'
 import type { RefObject } from 'react'
 import {
   Dialog,
@@ -62,9 +64,15 @@ export function CommentsHistoryModal({
 
         <div data-testid="comments-history-body" className="min-h-0 flex-1 overflow-y-auto">
           {(state.status === 'idle' || state.status === 'loading') && (
-            <p className="py-10 text-center text-sm text-muted-foreground animate-pulse">
-              Cargando comentarios…
-            </p>
+            <SkeletonRegion label="Cargando comentarios" className="space-y-4 p-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                </div>
+              ))}
+            </SkeletonRegion>
           )}
 
           {state.status === 'error' && (

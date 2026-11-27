@@ -34,7 +34,7 @@ function makeRequest(params: Record<string, string> = {}): NextRequest {
 }
 
 const authenticatedSession = {
-  user: { email: 'user@test.com' },
+  user: { email: 'user@test.com', role: 'ADMIN' },
   expires: '2099-01-01',
 } as unknown as Awaited<ReturnType<typeof auth>>
 

@@ -48,6 +48,7 @@ describe('createUserAutomatically', () => {
 		name: 'Agente',
 		description: 'Rol de Agente',
 		active: true,
+		isSystem: false,
 		createdAt: new Date(),
 		updatedAt: new Date(),
 	}

@@ -1,5 +1,6 @@
-import { UserRole } from '@/features/auth/lib/roles'
-import { RolePermissions } from '@/features/auth/lib/permissions'
+import { can } from '@/features/access-control/lib/authorization'
+import { menuTemplateForRole } from '@/features/access-control/lib/menu-template'
+import type { RoleGrants } from '@/features/access-control/types/access-control.types'
 import {
 	ALL_MENU_ITEMS,
 	AGENTE_MENU_ITEMS,
@@ -16,26 +17,67 @@ export interface BuildMenuFlags {
 	canViewOthersCrm?: boolean
 }
 
+/** Permission that shows each top-level entry of the full menu. */
+const ITEM_PERMISSION: Readonly<Record<string, string>> = {
+	Dashboard: 'dashboard.ver',
+	Negocios: 'negocios.ver',
+	'Carga Archivos': 'carga.masiva',
+	Calculadora: 'calculadora.usar',
+	'Mis distribuciones': 'distribuciones.ver',
+	Usuarios: 'usuarios.ver',
+	Partners: 'partners.gestionar',
+	Roles: 'roles.ver',
+}
+
+/** Entries a read-only viewer (can see businesses but not edit them) never gets. */
+const HIDDEN_FROM_READ_ONLY: ReadonlySet<string> = new Set(['Mis distribuciones'])
+
+/** Permission behind each Liquidaciones sub-entry. */
+const LIQUIDACIONES_PERMISSION: Readonly<Record<string, string>> = {
+	Preliquidación: 'preliquidacion.ver',
+	Liquidación: 'liquidacion.liquidar',
+}
+
+/** Permission behind each Administración sub-entry. */
+const ADMIN_SUBITEM_PERMISSION: Readonly<Record<string, string>> = {
+	Compañias: 'configuracion.catalogos',
+	Productos: 'configuracion.productos',
+	'Niveles (Jerarquía)': 'configuracion.catalogos',
+	Categorías: 'configuracion.catalogos',
+	'Tipo Categoría': 'configuracion.catalogos',
+	'Origen Cliente': 'configuracion.catalogos',
+	'Config. Producto': 'configuracion.productos',
+	'Config. distribución de comisiones': 'configuracion.distribucion',
+	'Distribución por defecto': 'configuracion.distribucion',
+	Descuentos: 'configuracion.catalogos',
+	'Columnas del Funnel de Leads': 'leads.configurar_funnel',
+	'Permisos de Reportes': 'reportes.permisos',
+	'Tipos de Documento': 'configuracion.tipos_documento',
+}
+
 /**
- * Construye el menú de navegación según el rol y permisos del usuario
+ * Construye el menú de navegación según el rol (plantilla) y los permisos
+ * (grants) del usuario. Sin grants (sesión antigua) el menú queda vacío.
  */
 export function buildMenuByRole(
-	role: UserRole | string | null | undefined,
-	permissions: RolePermissions | null | undefined,
+	role: string | null | undefined,
+	grants: RoleGrants | null | undefined,
 	flags?: BuildMenuFlags
 ): MenuItem[] {
 	// Si no hay rol, retornar menú vacío
-	if (!role || !permissions) {
+	if (!role || !grants) {
 		return []
 	}
 
+	const template = menuTemplateForRole(role)
+
 	// Partner: solo Dashboard y Mis Negocios, sin flags ni reportes (NAV-01)
-	if (role === UserRole.PARTNER) {
+	if (template === 'PARTNER') {
 		return PARTNER_MENU_ITEMS
 	}
 
 	// Agente tiene un menú completamente personalizado
-	if (role === UserRole.AGENTE) {
+	if (template === 'AGENTE') {
 		let items = AGENTE_MENU_ITEMS
 		// Si la calculadora está deshabilitada, filtrarla
 		if (flags?.isCalculadoraEnabled === false) {
@@ -49,63 +91,34 @@ export function buildMenuByRole(
 		return items
 	}
 
-	// Para otros roles, filtrar items según permisos
+	const allowed = (code: string) => can(grants, code)
+	const isReadOnlyViewer = allowed('negocios.ver') && !allowed('negocios.editar')
 	const filteredItems: MenuItem[] = []
 
 	for (const item of ALL_MENU_ITEMS) {
-		// Dashboard siempre visible si tiene acceso
-		if (item.title === 'Dashboard' && permissions.dashboard) {
-			filteredItems.push(item)
-			continue
-		}
-
-		// Negocios (CRM sub-item gated by leads permission; lead visibility is
-		// resolved by hierarchy inside the module)
-		if (item.title === 'Negocios' && permissions.negocios.list) {
-			filteredItems.push(buildNegociosMenuItem(item, permissions, flags))
-			continue
-		}
-
-		// Carga Archivos (usa permiso de cargas)
-		if (item.title === 'Carga Archivos' && permissions.cargas.cargaMasiva) {
-			filteredItems.push(item)
+		const permission = ITEM_PERMISSION[item.title]
+		if (permission) {
+			if (item.title === 'Calculadora' && flags?.isCalculadoraEnabled === false) {
+				continue
+			}
+			if (isReadOnlyViewer && HIDDEN_FROM_READ_ONLY.has(item.title)) continue
+			if (allowed(permission)) {
+				// Negocios carries the CRM sub-item, gated by its own permission.
+				filteredItems.push(
+					item.title === 'Negocios' ? buildNegociosMenuItem(item, grants, flags) : item
+				)
+			}
 			continue
 		}
 
 		// Liquidaciones
 		if (item.title === 'Liquidaciones') {
-			if (
-				permissions.liquidaciones.preliquidacion ||
-				permissions.liquidaciones.liquidacion
-			) {
-				const subItems = item.subItems?.filter((subItem) => {
-					if (subItem.title === 'Preliquidación')
-						return permissions.liquidaciones.preliquidacion
-					if (subItem.title === 'Liquidación')
-						return permissions.liquidaciones.liquidacion
-					return false
-				})
-
-				filteredItems.push({
-					...item,
-					subItems: subItems && subItems.length > 0 ? subItems : undefined,
-				})
-			}
-			continue
-		}
-
-		// Calculadora
-		if (item.title === 'Calculadora') {
-			if (permissions.calculadora && flags?.isCalculadoraEnabled !== false) {
-				filteredItems.push(item)
-			}
-			continue
-		}
-
-		// Mis distribuciones
-		if (item.title === 'Mis distribuciones') {
-			if (permissions.misDistribuciones) {
-				filteredItems.push(item)
+			const subItems = item.subItems?.filter((subItem) => {
+				const code = LIQUIDACIONES_PERMISSION[subItem.title]
+				return code !== undefined && allowed(code)
+			})
+			if (subItems && subItems.length > 0) {
+				filteredItems.push({ ...item, subItems })
 			}
 			continue
 		}
@@ -123,30 +136,15 @@ export function buildMenuByRole(
 			continue
 		}
 
-		// Usuarios (solo administradores)
-		if (item.title === 'Usuarios' && permissions.administracion) {
-			filteredItems.push(item)
-			continue
-		}
-
-		// Partners (solo administradores, ADM-02)
-		if (item.title === 'Partners' && permissions.administracion) {
-			filteredItems.push(item)
-			continue
-		}
-
-		// Administración
-		if (
-			item.title === 'Administración' &&
-			(permissions.administracion || permissions.configuracion)
-		) {
-			const subItems = item.subItems?.filter(
-				(subItem) => !subItem.adminOnly || role === UserRole.ADMIN
-			)
-			filteredItems.push({
-				...item,
-				subItems,
+		// Administración: each sub-entry follows its own permission
+		if (item.title === 'Administración') {
+			const subItems = item.subItems?.filter((subItem) => {
+				const code = ADMIN_SUBITEM_PERMISSION[subItem.title]
+				return code !== undefined && allowed(code)
 			})
+			if (subItems && subItems.length > 0) {
+				filteredItems.push({ ...item, subItems })
+			}
 			continue
 		}
 	}
@@ -160,10 +158,10 @@ export function buildMenuByRole(
  */
 function buildNegociosMenuItem(
 	item: MenuItem,
-	permissions: RolePermissions,
+	grants: RoleGrants,
 	flags?: BuildMenuFlags
 ): MenuItem {
-	const canOpenCrm = permissions.leads || flags?.canViewOthersCrm === true
+	const canOpenCrm = can(grants, 'leads.gestionar') || flags?.canViewOthersCrm === true
 	const subItems = item.subItems?.filter(
 		(subItem) => subItem.url !== CRM_MENU_ITEM.url || canOpenCrm
 	)
@@ -216,7 +214,7 @@ function buildReportesMenuItem(
  * Obtiene la URL de redirección post-login según el rol
  */
 export function getRedirectUrlByRole(
-	_role: UserRole | string | null | undefined
+	_role: string | null | undefined
 ): string {
 	return '/dashboard/negocios'
 }

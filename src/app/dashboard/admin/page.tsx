@@ -2,8 +2,7 @@
 
 import { DashboardLayout } from '@/features/shared/layout/DashboardLayout'
 import { AdminCard } from '@/features/admin/shared/AdminCard'
-import { UserRole } from '@/features/auth/lib/roles'
-import { useAuthSession } from '@/features/shared/hooks/use-auth-session'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import {
 	Building2,
 	Package,
@@ -19,11 +18,12 @@ import {
 } from 'lucide-react'
 
 export default function AdminDashboardPage() {
-	const { session } = useAuthSession()
-	const isSystemAdmin = session?.user?.role === UserRole.ADMIN
+	const { can } = usePermissions()
+	const isSystemAdmin = can('configuracion.tipos_documento')
+	const canManageCaptures = can('leads.gestionar_capturas')
 
 	const adminModules = [
-		...(isSystemAdmin
+		...(canManageCaptures
 			? [
 					{
 						title: 'Capturas',

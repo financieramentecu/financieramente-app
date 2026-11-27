@@ -1,7 +1,6 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
-import { isReadOnlyRole as checkIsReadOnlyRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 
 export const READ_ONLY_ROLE_REASON = 'Solo lectura: tu rol no permite esta acción'
 
@@ -16,8 +15,9 @@ export interface UseReadOnlyRoleResult {
  * `requireWriteAccess()`.
  */
 export function useReadOnlyRole(): UseReadOnlyRoleResult {
-	const { data: session } = useSession()
-	const isReadOnly = checkIsReadOnlyRole(session?.user?.role)
+	const { can } = usePermissions()
+	// Read-only = cannot edit businesses (CONSULTOR by default)
+	const isReadOnly = !can('negocios.editar')
 
 	return {
 		isReadOnly,

@@ -10,6 +10,14 @@ import {
 	createMockClientInfo,
 } from '@/features/negocios/__tests__/fixtures/mock-business'
 
+vi.mock('@/features/shared/hooks/use-permissions', () => ({
+	usePermissions: () => ({
+		can: () => true,
+		scope: () => undefined,
+		canWithLevel: () => true,
+	}),
+}))
+
 const listCtx = vi.hoisted(() => ({
 	mockBusinesses: [] as BusinessEntity[],
 	mockRefetch: vi.fn(),

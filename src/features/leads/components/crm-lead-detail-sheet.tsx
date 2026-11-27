@@ -1,8 +1,6 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
-import { UserRole } from '@/features/auth/lib/roles'
-import { canManageCrm } from '@/features/leads/crm/crm-policy'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { useFeatureFlag } from '@/features/shared/hooks/use-feature-flag'
 import { LeadDetailSheet } from '@/features/leads/components/lead-detail-sheet'
 import type { ActivityFocus } from '@/features/leads/agenda/agenda.types'
@@ -33,7 +31,7 @@ export function CrmLeadDetailSheet({
 	loadError?: string | null
 	onSelectLead?: (idLead: number) => void
 }) {
-	const { data: session } = useSession()
+	const { can } = usePermissions()
 	const { enabled: timelineEnabled } = useFeatureFlag('crm_timeline')
 	const { enabled: tasksEnabled } = useFeatureFlag('crm_tasks')
 	const { enabled: conversionAuditEnabled } = useFeatureFlag(
@@ -48,7 +46,7 @@ export function CrmLeadDetailSheet({
 			onSelectLead={onSelectLead}
 			open={open}
 			onOpenChange={onOpenChange}
-			isAdmin={session?.user?.role === UserRole.ADMIN}
+			isAdmin={can('leads.eliminar')}
 			onDeleted={onDeleted}
 			onOwnerAssigned={onOwnerAssigned}
 			timelineEnabled={timelineEnabled}
@@ -56,7 +54,7 @@ export function CrmLeadDetailSheet({
 			conversionAuditEnabled={conversionAuditEnabled}
 			casesEnabled={casesEnabled}
 			crmFieldsEnabled={crmFieldsEnabled}
-			canManageCrm={canManageCrm(session?.user?.role)}
+			canManageCrm={can('leads.gestionar')}
 			activityFocus={activityFocus}
 			onActivityChanged={onActivityChanged}
 			previewName={previewName}

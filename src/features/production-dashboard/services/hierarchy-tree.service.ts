@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 import type { SessionUser } from '@/features/shared/types/session-user.types'
 import type { HierarchyNode } from '@/features/production-dashboard/types/hierarchy.types'
-import { isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
+import { roleScope } from '@/features/access-control/services/role-permission-check'
 
 type UserRow = {
 	idUser: number
@@ -22,11 +22,11 @@ type LevelRow = {
 	beneficiaryMode: string
 }
 
-function isFullTreeViewer(viewer: SessionUser): boolean {
+async function isFullTreeViewer(viewer: SessionUser): Promise<boolean> {
 	// GENERAL_LEVEL is a commission-calculation concept only — it never grants
-	// dashboard visibility bypass. Only global-visibility roles see the full tree.
+	// dashboard visibility bypass. Only COMPANY scope of `dashboard.ver` sees the full tree.
 	if (!viewer.role) return false
-	return isHierarchyBypassRole(viewer.role.code)
+	return (await roleScope(viewer.role.code, 'dashboard.ver')) === 'COMPANY'
 }
 
 function buildNode(
@@ -124,7 +124,7 @@ export async function buildHierarchyTree(
 		childrenMap.set(user.idUserLeader, existing)
 	}
 
-	const fullTree = options?.fullTree === true || isFullTreeViewer(viewer)
+	const fullTree = options?.fullTree === true || (await isFullTreeViewer(viewer))
 	const rootIds = fullTree
 		? eligibleUsers
 				.filter((u) => u.idUserLeader === null)

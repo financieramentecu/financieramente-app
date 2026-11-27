@@ -4,7 +4,7 @@ import { headers } from 'next/headers'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireWriteAccess } from '@/lib/auth/require-write-access'
-import { canRoleEditClientInfo } from '@/features/negocios/lib/client-edit-permissions'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { identityNumberSchema } from '@/features/negocios/lib/identity-number.schema'
 import {
 	PolicyholderLinkError,
@@ -61,7 +61,7 @@ export async function syncBusinessPolicyholder(
 			}
 		}
 
-		if (!canRoleEditClientInfo(guard.session.user.role)) {
+		if (!(await roleCan(guard.session.user.role, 'clientes.editar'))) {
 			return {
 				data: null,
 				error: 'Sin permisos para modificar el tomador',

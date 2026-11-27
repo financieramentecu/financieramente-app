@@ -45,6 +45,7 @@
 		"prisma:seed:lead-funnel-columns": "tsx prisma/seed-lead-funnel-columns.ts",
 		"prisma:seed:report-permissions": "tsx prisma/seed-report-permissions.ts",
 		"prisma:seed:roles": "tsx prisma/seed-roles.ts",
+		"prisma:seed:permissions": "tsx prisma/seed-permissions.ts",
 		"prisma:seed:partner": "tsx prisma/seed-partner.ts",
 		"prisma:seed:crm-demo": "tsx prisma/seed-crm-demo.ts",
 		"format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",

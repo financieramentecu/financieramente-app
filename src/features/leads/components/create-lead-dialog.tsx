@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
-import { useSession } from 'next-auth/react'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { canManageCrm } from '@/features/leads/crm/crm-policy'
 import { Button } from '@/features/shared/ui/button'
 import { Input } from '@/features/shared/ui/input'
@@ -25,10 +25,10 @@ interface CreateLeadDialogProps {
 }
 
 export function CreateLeadDialog({ onCreated }: CreateLeadDialogProps) {
-	const { data: session } = useSession()
+	const { grants } = usePermissions()
 	const [open, setOpen] = useState(false)
 	const mutation = useCreateLead()
-	if (!canManageCrm(session?.user?.role)) return null
+	if (!canManageCrm(grants)) return null
 	return (
 		<Dialog
 			open={open}

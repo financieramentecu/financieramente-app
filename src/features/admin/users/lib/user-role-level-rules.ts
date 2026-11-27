@@ -1,4 +1,7 @@
-import { isReadOnlyRole, UserRole } from '@/features/auth/lib/roles'
+import {
+	PARTNER_ROLE_CODE,
+	READ_ONLY_ROLE_CODE,
+} from '@/features/access-control/lib/system-roles'
 import { PARTNER_EXTERNAL_LEVEL_CODE } from '@/features/shared/lib/level-codes'
 import {
 	PARTNER_LEVEL_ASSIGNMENT_ERROR,
@@ -30,7 +33,7 @@ export function validateRoleLevelPair(input: {
 }): ValidateRoleLevelPairResult {
 	const { roleCode, levelId, levelCode } = input
 
-	const isPartnerRole = roleCode === UserRole.PARTNER
+	const isPartnerRole = roleCode === PARTNER_ROLE_CODE
 	const isPartnerLevel = levelCode === PARTNER_EXTERNAL_LEVEL_CODE
 	if (isPartnerRole && !isPartnerLevel) {
 		return { ok: false, error: PARTNER_ROLE_ASSIGNMENT_ERROR }
@@ -39,7 +42,7 @@ export function validateRoleLevelPair(input: {
 		return { ok: false, error: PARTNER_LEVEL_ASSIGNMENT_ERROR }
 	}
 
-	if (isReadOnlyRole(roleCode) && levelId !== null && levelId !== undefined) {
+	if (roleCode === READ_ONLY_ROLE_CODE && levelId !== null && levelId !== undefined) {
 		return {
 			ok: false,
 			error:

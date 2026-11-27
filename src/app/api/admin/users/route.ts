@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { Prisma } from '@prisma/client'
 
 /**
@@ -15,7 +14,7 @@ import { Prisma } from '@prisma/client'
  */
 export async function GET(request: Request) {
 	// Requiere sesión + rol ADMIN.
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('usuarios.ver')
 	if (!guard.ok) {
 		return guard.response
 	}

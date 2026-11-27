@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireRole } from '@/lib/auth/require-role'
-import { UserRole } from '@/features/auth/lib/roles'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -27,7 +26,7 @@ import type {
 export async function GET(
 	request: Request
 ): Promise<NextResponse<ApiResponse<ReportPermissionsCatalog>>> {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('reportes.permisos')
 	if (!guard.ok) {
 		return NextResponse.json(
 			{ data: null, error: guard.response.status === 401 ? 'Unauthorized' : 'Sin permisos' },
@@ -59,7 +58,7 @@ export async function GET(
 export async function PUT(
 	request: Request
 ): Promise<NextResponse<ApiResponse<ReportPermissionMatrix>>> {
-	const guard = await requireRole([UserRole.ADMIN])
+	const guard = await requireRolePermission('reportes.permisos')
 	if (!guard.ok) {
 		return NextResponse.json(
 			{ data: null, error: guard.response.status === 401 ? 'Unauthorized' : 'Sin permisos' },

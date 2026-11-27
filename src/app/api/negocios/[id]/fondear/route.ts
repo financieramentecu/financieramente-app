@@ -16,7 +16,8 @@ import {
 } from '@/features/negocios/types/business-prisma.types'
 import { prismaBusinessToEntity } from '@/features/negocios/mappers/business-entity.mapper'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { UserRole, canFundPayments } from '@/features/auth/lib/roles'
+import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import {
 	logAuditEvent,
 	AuditAction,
@@ -120,7 +121,7 @@ export async function POST(
 
 		// Verificar que el usuario tiene permiso para fondear
 		const userRole = currentUser.role?.code as UserRole
-		if (!canFundPayments(userRole)) {
+		if (!(await roleCan(userRole, 'aportes.fondear'))) {
 			return NextResponse.json(
 				{ data: null, error: 'No tiene permisos para fondear negocios' },
 				{ status: 403 }

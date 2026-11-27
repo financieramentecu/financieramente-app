@@ -3,8 +3,7 @@
 import * as React from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { canManageCrm } from '@/features/leads/crm/crm-policy'
-import { isWriteBypassRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { LeadsBoard } from '@/features/leads/components/leads-board'
 import { ActivitiesAgenda } from '@/features/leads/agenda/activities-agenda'
 import { LeadsTable } from '@/features/leads/table/leads-table'
@@ -36,10 +35,12 @@ export function CrmTabs() {
 			current.includes(activeTab) ? current : [...current, activeTab]
 		)
 	}
-	const canManage = canManageCrm(session?.user?.role)
+	const { can, scope } = usePermissions()
+	const canManage = can('leads.gestionar')
 	const companyReadOnly =
-		session?.user?.canViewOthersCrm === true && !isWriteBypassRole(session?.user?.role)
-	const canExport = canManage && !companyReadOnly
+		session?.user?.canViewOthersCrm === true && scope('leads.gestionar') !== 'COMPANY'
+	const canConfigure = can('leads.configurar_crm')
+	const canExport = can('leads.exportar') && !companyReadOnly
 	const sheet = useLeadDetailSheet()
 	const [activityFocus, setActivityFocus] = React.useState<ActivityFocus | null>(null)
 	const [activityRevision, setActivityRevision] = React.useState(0)
@@ -71,7 +72,7 @@ export function CrmTabs() {
 						<LeadsTable
 							onOpenLead={(idLead) => void openLead(idLead)}
 							fieldsEnabled={isFlagEnabled('crm_lead_fields')}
-							canConfigure={canManage}
+							canConfigure={canConfigure}
 							canExport={canExport}
 						/>
 					)}
@@ -80,7 +81,7 @@ export function CrmTabs() {
 					{visitedTabs.includes('activities') && (
 						<ActivitiesAgenda
 							canMove={canManage}
-							canConfigure={canManage}
+							canConfigure={canConfigure}
 							onOpenLead={(idLead, leadName) => {
 								setActivityFocus(null)
 								void openLead(idLead, leadName)

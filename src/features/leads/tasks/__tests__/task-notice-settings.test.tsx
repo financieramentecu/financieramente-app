@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { DEFAULT_ROLE_GRANTS } from '@/features/access-control/catalog/default-role-grants'
 import { useSession } from 'next-auth/react'
 import { TaskNoticeSettings } from '@/features/leads/tasks/task-notice-settings'
 
@@ -15,7 +16,7 @@ function jsonResponse(data: unknown, ok = true) {
 describe('TaskNoticeSettings', () => {
 	beforeEach(() => {
 		vi.unstubAllGlobals()
-		vi.mocked(useSession).mockReturnValue({ data: { user: { role: 'ADMIN' } }, status: 'authenticated' } as never)
+		vi.mocked(useSession).mockReturnValue({ data: { user: { role: 'ADMIN', grants: DEFAULT_ROLE_GRANTS.ADMIN } }, status: 'authenticated' } as never)
 	})
 
 	it('loads the saved days and stores a new anticipation', async () => {

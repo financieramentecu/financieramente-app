@@ -80,3 +80,6 @@ skills/ponytail-debt/
 skills/ponytail-gain/
 skills/ponytail-help/
 skills/ponytail-review/
+
+# Playwright stored auth sessions (roles e2e)
+e2e/.auth/

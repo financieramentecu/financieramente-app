@@ -1,10 +1,14 @@
 'use client'
 
+import {
+	SkeletonRegion,
+	TableRowsLoadingSkeleton,
+} from '@/features/shared/ui/loading-skeletons'
 import { useParams, useRouter } from 'next/navigation'
 import { useCommissionRules } from '@/features/distribution-commission/hooks/use-commission-rules'
 import { CommissionRulesTable } from '@/features/distribution-commission/components/commission-rules-table'
 import { Button } from '@/features/shared/ui/button'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import {
 	Card,
@@ -72,9 +76,9 @@ export default function CommissionRulesPage() {
 					</CardHeader>
 					<CardContent className="space-y-4">
 						{isLoading ? (
-							<div className="flex h-24 items-center justify-center">
-								<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-							</div>
+							<SkeletonRegion label="Cargando reglas">
+								<TableRowsLoadingSkeleton rows={5} />
+							</SkeletonRegion>
 						) : isError ? (
 							<div className="flex h-24 items-center justify-center text-destructive">
 								Error: {error}

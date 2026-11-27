@@ -128,6 +128,9 @@ Administrative endpoints for managing system entities (CRUD).
 | :------------------------------------------- | :------------------------------------------------------------------------------------------------- |
 | `/api/admin/users`                           | Manage system users.                                                                               |
 | `/api/admin/roles`                           | Manage user roles.                                                                                 |
+| `/api/admin/roles/overview`                  | `GET` active roles with active user and enabled permission counts (`roles.ver`). |
+| `/api/admin/roles/[id]`                      | `GET` role + grants + permission catalog (`roles.ver`); `PUT` name/description, `DELETE` soft delete (`roles.gestionar`). ADMIN cannot be edited; system roles and roles with active users cannot be deactivated. |
+| `/api/admin/roles/[id]/permissions`          | `PUT` replaces the grant set (`roles.gestionar`). ADMIN and SIN_ROL are locked; a role cannot drop `roles.gestionar` from the actor's own role (409); only ADMIN may newly grant `roles.gestionar` or `usuarios.ver_como` (403). |
 | `/api/admin/companies`                       | Manage companies info.                                                                             |
 | `/api/admin/products`                        | Manage products catalog.                                                                           |
 | `/api/admin/categories`                      | Manage categories catalog.                                                                         |

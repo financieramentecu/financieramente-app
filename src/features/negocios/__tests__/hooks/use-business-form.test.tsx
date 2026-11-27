@@ -6,11 +6,18 @@ import {
 	createMockUserWithRole,
 } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
 import { UserRole } from '@/features/auth/lib/roles'
+import { setMockRole } from '@/features/access-control/testing/mock-permissions'
 import { createClient } from '@/features/negocios/actions/create-client'
 import { updateClient } from '@/features/negocios/actions/update-client'
 import { createBusiness } from '@/features/negocios/actions/create-business'
 import { resolveExistingClient } from '@/features/negocios/actions/resolve-existing-client'
 import { checkBusinessCreation } from '@/features/negocios/actions/check-business-creation'
+
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
 
 vi.mock('@/features/negocios/actions/create-client', () => ({
 	createClient: vi.fn(),
@@ -101,6 +108,9 @@ const baseDefaults = {
 	value: 1000,
 	agent: '1',
 }
+
+// the default fixture user stands behind the mocked usePermissions
+beforeEach(() => setMockRole(mockUserWithRole.role?.code))
 
 describe('useBusinessForm', () => {
 	it('initializes contract from defaultValues in edit mode when stored', () => {

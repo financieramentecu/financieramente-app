@@ -15,7 +15,8 @@ import { formatDateBogota } from '@/features/shared/lib/format-date'
 import { ViewSupportsButton } from '@/features/business-supports/components/ViewSupportsButton'
 import { UploadSupportButton } from '@/features/business-supports/components/UploadSupportButton'
 import { CommentsSidebar } from '@/features/comments/components/CommentsSidebar'
-import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
+import type { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import Link from 'next/link'
 import { buttonVariants } from '@/features/shared/ui/button'
 
@@ -73,7 +74,7 @@ export default async function DetalleNegocioPage({ params, searchParams }: PageP
 	const business = prismaBusinessToEntity(prismaBusiness)
 	// Company-wide read-only role (CONSULTOR) sees the detail view but never a
 	// mutating action here — same guarantee as the Negocios list actions.
-	const isReadOnly = isReadOnlyRole(currentUser.role?.code)
+	const isReadOnly = !(await roleCan(currentUser.role?.code, 'negocios.editar'))
 
 	return (
 		<DashboardLayout currentPage={`Negocio #${business.id}`}>

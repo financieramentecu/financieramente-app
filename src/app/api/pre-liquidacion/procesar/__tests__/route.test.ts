@@ -64,7 +64,7 @@ describe('POST /api/pre-liquidacion/procesar', () => {
 
 	it('returns 403 when role is DEFAULT', async () => {
 		mockAuth.mockResolvedValue({
-			user: { id: '3', role: UserRole.DEFAULT },
+			user: { id: '3', role: UserRole.SIN_ROL },
 		} as never)
 
 		const response = await POST(makeRequest({ fileImportId: 1, mes: '2026-01' }) as never)

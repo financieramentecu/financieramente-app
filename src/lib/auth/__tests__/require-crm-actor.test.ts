@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import { getAccessibleUserIds, isHierarchyBypassRole } from '@/features/auth/lib/hierarchy'
+import { getAccessibleUserIds } from '@/features/auth/lib/hierarchy'
+import { DEFAULT_ROLE_GRANTS } from '@/features/access-control/catalog/default-role-grants'
+import { can, getScope } from '@/features/access-control/lib/authorization'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { isLeadVisible } from '@/features/leads/services/lead-board.service'
 import {
@@ -11,11 +13,18 @@ import {
 	requireCrmActor,
 } from '../require-crm-actor'
 
+function grantsOf(role: string | null | undefined) {
+	return (DEFAULT_ROLE_GRANTS as Record<string, never>)[role ?? ''] ?? {}
+}
+
 vi.mock('@/auth', () => ({ auth: vi.fn() }))
 vi.mock('@/features/negocios/services/user.service', () => ({ getCurrentUserByEmail: vi.fn() }))
 vi.mock('@/features/auth/lib/hierarchy', () => ({
 	getAccessibleUserIds: vi.fn(),
-	isHierarchyBypassRole: vi.fn(),
+}))
+vi.mock('@/features/access-control/services/role-permission-check', () => ({
+	roleCan: vi.fn(async (role: string, code: string) => can(grantsOf(role), code)),
+	roleScope: vi.fn(async (role: string, code: string) => getScope(grantsOf(role), code)),
 }))
 vi.mock('@/features/shared/lib/flagsmith-server', () => ({ isFeatureEnabledServer: vi.fn() }))
 vi.mock('@/features/leads/services/lead-board.service', () => ({ isLeadVisible: vi.fn() }))
@@ -31,7 +40,6 @@ describe('requireCrmActor', () => {
 		vi.mocked(auth).mockResolvedValue({ user: { email: 'a@x.co' } } as never)
 		vi.mocked(isFeatureEnabledServer).mockResolvedValue(true)
 		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 7, role: { code: 'AGENTE' } } as never)
-		vi.mocked(isHierarchyBypassRole).mockReturnValue(false)
 		vi.mocked(getAccessibleUserIds).mockResolvedValue([7, 8])
 	})
 
@@ -50,15 +58,32 @@ describe('requireCrmActor', () => {
 	})
 
 	it('returns 403 for a role without CRM access', async () => {
-		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 2, role: { code: 'DEFAULT' } } as never)
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 2, role: { code: 'SIN_ROL' } } as never)
 		const result = await requireCrmActor('crm_tasks')
 		if (!result.ok) expect(result.response.status).toBe(403)
 	})
 
-	it('returns 403 for a read-only role when management is required', async () => {
+	it('returns 403 for a role without CRM write access when management is required', async () => {
 		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 3, role: { code: 'CONSULTOR' } } as never)
 		const result = await requireCrmActor('crm_tasks', { manage: true })
 		if (!result.ok) expect(result.response.status).toBe(403)
+	})
+
+	it('returns 403 when the role lacks the extra permission the route asks for', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 7, role: { code: 'AGENTE' } } as never)
+		const result = await requireCrmActor('crm_tasks', { manage: true, permission: 'leads.eliminar' })
+		expect(result.ok).toBe(false)
+		if (!result.ok) expect(result.response.status).toBe(403)
+	})
+
+	it.each([
+		['ADMIN', true],
+		['AGENTE', true],
+	])('lets %s configure the CRM by default', async (role, expected) => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 7, role: { code: role } } as never)
+		const result = await requireCrmActor('crm_tasks', { manage: true, permission: 'leads.configurar_crm' })
+		expect(result.ok).toBe(expected)
+		if (result.ok) expect(result.actor.canExport).toBe(true)
 	})
 
 	it.each([false, true])('enforces the consultant CRM grant (%s)', async (granted) => {
@@ -93,7 +118,7 @@ describe('requireCrmActor', () => {
 		}
 	})
 
-	it('uses an empty scope (all) for write-bypass roles', async () => {
+	it('uses an empty scope (all) for company-scope writers', async () => {
 		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 1, role: { code: 'ADMIN' } } as never)
 		const result = await requireCrmActor('crm_tasks')
 		if (result.ok) {

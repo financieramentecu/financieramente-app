@@ -3,15 +3,15 @@ import { GET, POST } from '../route'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import { getLeadDetail, isLeadVisible } from '@/features/leads/services/lead-board.service'
-import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
+import { roleCan, roleScope } from '@/features/access-control/services/role-permission-check'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { createLeadTaskTx } from '@/features/leads/tasks/lead-task.service'
 
 vi.mock('@/auth', () => ({ auth: vi.fn() }))
 vi.mock('@/features/negocios/services/user.service', () => ({ getCurrentUserByEmail: vi.fn() }))
-vi.mock('@/features/auth/lib/hierarchy', () => ({ getAccessibleUserIds: vi.fn(() => Promise.resolve([])), isHierarchyBypassRole: vi.fn(() => true) }))
+vi.mock('@/features/auth/lib/hierarchy', () => ({ getAccessibleUserIds: vi.fn(() => Promise.resolve([])) }))
 vi.mock('@/features/leads/services/lead-board.service', () => ({ getLeadDetail: vi.fn(), isLeadVisible: vi.fn() }))
-vi.mock('@/features/leads/crm/crm-policy', () => ({ canAccessCrm: vi.fn(), canManageCrm: vi.fn() }))
+vi.mock('@/features/access-control/services/role-permission-check', () => ({ roleCan: vi.fn(), roleScope: vi.fn() }))
 vi.mock('@/features/shared/lib/flagsmith-server', () => ({ isFeatureEnabledServer: vi.fn() }))
 vi.mock('@/features/leads/tasks/lead-task.service', () => ({ createLeadTaskTx: vi.fn() }))
 vi.mock('@/lib/prisma', () => ({
@@ -32,8 +32,8 @@ describe('/api/leads/[id]/tasks', () => {
 		vi.mocked(auth).mockResolvedValue({ user: { email: 'agent@example.com' } } as never)
 		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 7, role: { code: 'AGENTE' } } as never)
 		vi.mocked(isFeatureEnabledServer).mockResolvedValue(true)
-		vi.mocked(canAccessCrm).mockReturnValue(true)
-		vi.mocked(canManageCrm).mockReturnValue(true)
+		vi.mocked(roleCan).mockResolvedValue(true)
+		vi.mocked(roleScope).mockResolvedValue('TEAM')
 		vi.mocked(getLeadDetail).mockResolvedValue({ idLead: 1 } as never)
 		vi.mocked(isLeadVisible).mockResolvedValue(true)
 	})

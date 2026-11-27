@@ -50,7 +50,18 @@ describe('GET /api/crm/leads', () => {
 describe('GET /api/crm/leads/export', () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
-		vi.mocked(requireCrmActor).mockResolvedValue({ ok: true, actor })
+		vi.mocked(requireCrmActor).mockResolvedValue({ ok: true, actor: { ...actor, canExport: true } })
+	})
+
+	it('403s without the export permission', async () => {
+		vi.mocked(requireCrmActor).mockResolvedValue({ ok: true, actor: { ...actor, canExport: false } })
+		expect((await EXPORT(new Request('http://x/api/crm/leads/export'))).status).toBe(403)
+		expect(exportLeadTable).not.toHaveBeenCalled()
+	})
+
+	it('403s for a read-only company grant even with the export permission', async () => {
+		vi.mocked(requireCrmActor).mockResolvedValue({ ok: true, actor: { ...actor, canExport: true, canViewOthersCrm: true } })
+		expect((await EXPORT(new Request('http://x/api/crm/leads/export'))).status).toBe(403)
 	})
 
 	it('streams a CSV attachment and passes the audit context', async () => {

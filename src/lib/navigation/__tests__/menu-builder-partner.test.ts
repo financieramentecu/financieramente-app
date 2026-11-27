@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { UserRole } from '@/features/auth/lib/roles'
-import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
+import { DEFAULT_ROLE_GRANTS } from '@/features/access-control/catalog/default-role-grants'
 import { buildMenuByRole } from '@/lib/navigation/menu-builder'
 import {
 	AGENTE_MENU_ITEMS,
@@ -13,7 +13,7 @@ describe('buildMenuByRole - PARTNER (NAV-01, PA-02)', () => {
 	it('contains exactly Dashboard and Mis Negocios', () => {
 		const items = buildMenuByRole(
 			UserRole.PARTNER,
-			ROLE_PERMISSIONS[UserRole.PARTNER],
+			DEFAULT_ROLE_GRANTS[UserRole.PARTNER],
 			{
 				isCalculadoraEnabled: true,
 			}
@@ -29,7 +29,7 @@ describe('buildMenuByRole - PARTNER (NAV-01, PA-02)', () => {
 	it('ignores the calculadora flag and authorized report codes', () => {
 		const items = buildMenuByRole(
 			UserRole.PARTNER,
-			ROLE_PERMISSIONS[UserRole.PARTNER],
+			DEFAULT_ROLE_GRANTS[UserRole.PARTNER],
 			{
 				isCalculadoraEnabled: true,
 				authorizedReportCodes: ALL_REPORT_CODES,
@@ -73,7 +73,7 @@ describe('buildMenuByRole - PARTNER (NAV-01, PA-02)', () => {
 	it('keeps the AGENTE menu unchanged', () => {
 		const items = buildMenuByRole(
 			UserRole.AGENTE,
-			ROLE_PERMISSIONS[UserRole.AGENTE],
+			DEFAULT_ROLE_GRANTS[UserRole.AGENTE],
 			{
 				isCalculadoraEnabled: true,
 			}

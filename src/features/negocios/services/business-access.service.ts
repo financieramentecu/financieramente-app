@@ -1,10 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
-import {
-	UserRole,
-	isGlobalVisibilityRole,
-	isReadOnlyRole,
-	isWriteBypassRole,
-} from '@/features/auth/lib/roles'
+import { can, getScope } from '@/features/access-control/lib/authorization'
+import { resolveOwnerScope } from '@/features/access-control/services/scope-resolver.service'
+import { getRoleGrants } from '@/features/access-control/services/role-permission-check'
 import { prisma as sharedPrisma } from '@/lib/prisma'
 import { resolveVisibleUserIds } from './user-hierarchy.service'
 
@@ -51,10 +48,6 @@ export interface BusinessScopeOptions {
 
 type BusinessAccessDb = Pick<PrismaClient, 'user' | 'business'>
 
-function isScopedRole(roleCode: string | undefined): boolean {
-	return roleCode === UserRole.AGENTE || roleCode === UserRole.PARTNER
-}
-
 /**
  * Prisma `where` fragment for the single visibility rule
  * (`resolveVisibleUserIds`): `undefined` ids mean unrestricted.
@@ -69,22 +62,20 @@ export async function resolveBusinessScope(
 }
 
 /**
- * Pure role gate. Returns a denial (403) when the role has no business access
- * at all (fail closed) or is read-only on a write; `null` when the role may
- * proceed to the scope check. Routes that load the business themselves use
- * this plus `resolveBusinessScope` in their own `where` clause.
+ * Role gate from the role's grants. Returns a denial (403) when the role cannot
+ * see businesses at all (fail closed) or cannot edit on a write; `null` when
+ * the role may proceed to the scope check. Routes that load the business
+ * themselves use this plus `resolveBusinessScope` in their own `where` clause.
  */
-export function checkBusinessRoleGate(
+export async function checkBusinessRoleGate(
 	user: AccessUser,
 	mode: BusinessAccessMode
-): Extract<BusinessAccessResult, { ok: false }> | null {
-	const roleCode = user.role?.code
-	const hasKnownScope =
-		isGlobalVisibilityRole(roleCode) || isScopedRole(roleCode)
-	if (!hasKnownScope) {
+): Promise<Extract<BusinessAccessResult, { ok: false }> | null> {
+	const grants = await getRoleGrants(user.role?.code)
+	if (!can(grants, 'negocios.ver')) {
 		return { ok: false, reason: 'FORBIDDEN' }
 	}
-	if (mode === 'write' && isReadOnlyRole(roleCode)) {
+	if (mode === 'write' && !can(grants, 'negocios.editar')) {
 		return { ok: false, reason: 'FORBIDDEN' }
 	}
 	return null
@@ -105,7 +96,7 @@ export async function assertBusinessAccess(
 ): Promise<BusinessAccessResult> {
 	const { user, businessId, mode, ownOnly } = input
 
-	const denied = checkBusinessRoleGate(user, mode)
+	const denied = await checkBusinessRoleGate(user, mode)
 	if (denied) return denied
 
 	const scope = await resolveBusinessScope(db, user, { ownOnly })
@@ -121,26 +112,31 @@ export async function assertBusinessAccess(
 }
 
 /**
- * Decides the owner (`Business.idUser`) for a new business.
- * - PARTNER: always the session user (client input ignored).
- * - Write-bypass roles: the requested user (on-behalf creation, as for agents today).
- * - AGENTE: the requested user only when inside self plus subordinates.
- * - Everything else: denied.
+ * Decides the owner (`Business.idUser`) for a new business, from the grants:
+ * - needs `negocios.crear`; anything else is denied.
+ * - `negocios.asignar_strategist` scope decides who the owner may be:
+ *   COMPANY any requested user, TEAM the requested user only inside self plus
+ *   subordinates, OWN (or no grant) always the session user (input ignored).
  */
 export async function resolveBusinessOwnerId(
 	db: Pick<PrismaClient, 'user'>,
 	input: { user: AccessUser; requestedIdUser: number }
 ): Promise<{ ok: true; idUser: number } | { ok: false }> {
 	const { user, requestedIdUser } = input
-	const roleCode = user.role?.code
+	const grants = await getRoleGrants(user.role?.code)
+	if (!can(grants, 'negocios.crear')) return { ok: false }
 
-	if (roleCode === UserRole.PARTNER) return { ok: true, idUser: user.idUser }
-	if (isWriteBypassRole(roleCode)) return { ok: true, idUser: requestedIdUser }
-	if (roleCode === UserRole.AGENTE) {
-		const scope = await resolveBusinessScope(db, user)
-		return scope.idUser?.in.includes(requestedIdUser)
-			? { ok: true, idUser: requestedIdUser }
-			: { ok: false }
+	switch (getScope(grants, 'negocios.asignar_strategist')) {
+		case 'COMPANY':
+			return { ok: true, idUser: requestedIdUser }
+		case 'TEAM': {
+			const allowed = await resolveOwnerScope(db, user, 'TEAM')
+			return allowed?.includes(requestedIdUser)
+				? { ok: true, idUser: requestedIdUser }
+				: { ok: false }
+		}
+		default:
+			return { ok: true, idUser: user.idUser }
 	}
-	return { ok: false }
 }
+

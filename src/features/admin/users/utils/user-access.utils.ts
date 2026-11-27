@@ -12,7 +12,7 @@ export function hasNoRole(user: User | null | undefined): boolean {
  * Verifica si el usuario tiene el rol DEFAULT
  */
 export function hasDefaultRole(user: User | null | undefined): boolean {
-    return user?.role?.code === UserRole.DEFAULT
+    return user?.role?.code === UserRole.SIN_ROL
 }
 
 /**
@@ -54,5 +54,5 @@ export function getAccessIssues(user: User | null | undefined): string[] {
  * Verifica si un rol específico es el rol DEFAULT
  */
 export function isDefaultRole(roleCode: string | null | undefined): boolean {
-    return roleCode === UserRole.DEFAULT
+    return roleCode === UserRole.SIN_ROL
 }

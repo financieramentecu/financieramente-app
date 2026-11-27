@@ -158,6 +158,7 @@ export async function getBusinessStats(
 
 	const listWhere = buildBusinessListWhere(currentUser, filterInput, {
 		visibleUserIds,
+		unrestricted: visibleUserIds === undefined,
 	})
 
 	const userStatuses = filterInput.statuses

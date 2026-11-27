@@ -7,7 +7,7 @@ import { Button } from '@/features/shared/ui/button'
 export interface ClientIdentityConflictAlertProps {
 	storedIdentityNumber: string
 	typedIdentityNumber: string
-	/** From `canRoleEditClientInfo(currentUser.role.code)` — the server remains authoritative. */
+	/** From `can("clientes.editar")` — the server remains authoritative. */
 	canUpdateDocument: boolean
 	onKeep: () => void
 	onUpdate: () => void

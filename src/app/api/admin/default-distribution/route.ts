@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import {
 	AuditAction,
 	getClientIp,
@@ -29,7 +29,7 @@ async function requireAdmin() {
 			),
 		}
 	}
-	if (session.user.role !== UserRole.ADMIN && session.user.role !== UserRole.ASISTENTE_GERENCIA_OPERATIVA) {
+	if (!(await roleCan(session.user.role, 'configuracion.distribucion'))) {
 		return {
 			session: null,
 			response: NextResponse.json(

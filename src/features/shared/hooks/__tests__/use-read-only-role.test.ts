@@ -6,6 +6,7 @@ vi.mock('next-auth/react', () => ({
 	useSession: vi.fn(),
 }))
 
+import { DEFAULT_ROLE_GRANTS } from '@/features/access-control/catalog/default-role-grants'
 import { useReadOnlyRole } from '../use-read-only-role'
 
 describe('useReadOnlyRole', () => {
@@ -15,7 +16,7 @@ describe('useReadOnlyRole', () => {
 
 	it('returns isReadOnly: true and the explanatory reason for CONSULTOR', () => {
 		vi.mocked(useSession).mockReturnValue({
-			data: { user: { role: 'CONSULTOR' } },
+			data: { user: { role: 'CONSULTOR', grants: DEFAULT_ROLE_GRANTS['CONSULTOR'] } },
 			status: 'authenticated',
 		} as never)
 
@@ -29,7 +30,7 @@ describe('useReadOnlyRole', () => {
 
 	it('returns isReadOnly: false for a write-capable role (ADMIN)', () => {
 		vi.mocked(useSession).mockReturnValue({
-			data: { user: { role: 'ADMIN' } },
+			data: { user: { role: 'ADMIN', grants: DEFAULT_ROLE_GRANTS['ADMIN'] } },
 			status: 'authenticated',
 		} as never)
 
@@ -38,7 +39,7 @@ describe('useReadOnlyRole', () => {
 		expect(result.current.isReadOnly).toBe(false)
 	})
 
-	it('returns isReadOnly: false when there is no session', () => {
+	it('fails closed (isReadOnly: true) when there is no session or no grants', () => {
 		vi.mocked(useSession).mockReturnValue({
 			data: null,
 			status: 'unauthenticated',
@@ -46,6 +47,6 @@ describe('useReadOnlyRole', () => {
 
 		const { result } = renderHook(() => useReadOnlyRole())
 
-		expect(result.current.isReadOnly).toBe(false)
+		expect(result.current.isReadOnly).toBe(true)
 	})
 })

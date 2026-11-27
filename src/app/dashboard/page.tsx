@@ -25,7 +25,7 @@ export default async function DashboardPage() {
 		redirect('/login')
 	}
 
-	if (session.user.role === UserRole.DEFAULT) {
+	if (session.user.role === UserRole.SIN_ROL) {
 		redirect('/access-denied?reason=default_role')
 	}
 

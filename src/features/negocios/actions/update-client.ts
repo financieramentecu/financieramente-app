@@ -14,7 +14,7 @@ import {
 	logAuditEvent,
 } from '@/features/auth/lib/audit-logger'
 import { identityNumberSchema } from '../lib/identity-number.schema'
-import { canRoleEditClientInfo } from '../lib/client-edit-permissions'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { shouldRevalidateIdentity } from '@/features/document-types/lib/should-revalidate-identity'
 import { resolveClientDocumentType } from '@/features/document-types/services/document-type.service'
 
@@ -94,7 +94,7 @@ export async function updateClient(
 
 		const role = session.user.role
 		if (requiresPrivilegedRole(validatedData)) {
-			if (!canRoleEditClientInfo(role)) {
+			if (!(await roleCan(role, 'clientes.editar'))) {
 				return {
 					data: null,
 					error: 'No tienes permisos para editar la información del cliente',

@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth/nextauth'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { obtenerRegistrosParaLiquidacion } from '@/features/pre-liquidacion/services/pre-liquidacion.service'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import type { RespuestaRegistrosLiquidacion } from '@/features/pre-liquidacion/types/types'
-
-const ALLOWED_ROLES: UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-	UserRole.ANALISTA_SOPORTE,
-]
 
 /**
  * GET /api/pre-liquidacion/registros/[fileId]
@@ -28,8 +22,8 @@ export async function GET(
 			)
 		}
 
-		const role = session.user?.role as UserRole | undefined
-		if (!role || !ALLOWED_ROLES.includes(role)) {
+		const role = session.user?.role
+		if (!(await roleCan(role, 'preliquidacion.ver'))) {
 			return NextResponse.json(
 				{ data: null, error: 'Sin permisos para este recurso' },
 				{ status: 403 }

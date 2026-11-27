@@ -1,5 +1,4 @@
 import type { Prisma, LeadOutcomeStatus } from '@prisma/client'
-import { isWriteBypassRole } from '@/features/auth/lib/roles'
 
 export interface LeadListFilterInput {
 	search?: string
@@ -22,6 +21,11 @@ export interface BuildLeadListWhereOptions {
 	 * (`getAccessibleUserIds()` — [self, ...descendants]).
 	 */
 	visibleUserIds?: number[]
+	/**
+	 * The viewer sees every lead. Resolved by the caller from a permission scope;
+	 * the clause is skipped, never inferred from the role code.
+	 */
+	unrestricted?: boolean
 }
 
 /**
@@ -41,10 +45,12 @@ export function buildLeadListWhere(
 	options: BuildLeadListWhereOptions = {}
 ): Prisma.LeadWhereInput {
 	const whereConditions: Prisma.LeadWhereInput[] = [{ active: true }]
-	const roleCode = currentUser.role?.code
 
+	// Company-wide: the caller resolved an unrestricted scope, or passed an empty
+	// hierarchy list (the CRM actor's "whole company" marker). Never inferred
+	// from a role code.
 	const companyWide =
-		isWriteBypassRole(roleCode) ||
+		options.unrestricted === true ||
 		(options.visibleUserIds !== undefined && options.visibleUserIds.length === 0)
 
 	if (!companyWide) {

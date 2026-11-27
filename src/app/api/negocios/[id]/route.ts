@@ -4,6 +4,7 @@
  * PUT - Actualizar un negocio (principalmente el contrato)
  */
 
+import { roleCan, roleScope } from '@/features/access-control/services/role-permission-check'
 import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { auth } from '@/auth'
@@ -31,12 +32,10 @@ import { businessAccessDeniedResponse } from '@/features/negocios/lib/business-a
 import {
 	buildBusinessValueChangeAudit,
 	businessValuesDiffer,
-	canEditBusinessValue,
 } from '@/features/negocios/lib/business-value-change'
 
 import {
 	UserRole,
-	canEditContractWhenBusinessEmitido,
 } from '@/features/auth/lib/roles'
 import {
 	logAuditEvent,
@@ -95,7 +94,7 @@ export async function GET(
 
 		// SEC-03: central access decision (global roles all, AGENTE self+subordinates,
 		// PARTNER own, unknown roles fail closed).
-		const denied = checkBusinessRoleGate(currentUser, 'read')
+		const denied = await checkBusinessRoleGate(currentUser, 'read')
 		if (denied) {
 			return businessAccessDeniedResponse(denied.reason)
 		}
@@ -200,16 +199,18 @@ export async function PUT(
 		}
 
 		// SEC-03: read-only and unknown roles are refused before any lookup
-		const denied = checkBusinessRoleGate(currentUser, 'write')
+		const denied = await checkBusinessRoleGate(currentUser, 'write')
 		if (denied) {
 			return businessAccessDeniedResponse(denied.reason)
 		}
 
 		// Verificar que el negocio existe y el usuario tiene acceso
-		const isAdmin = currentUser.role?.code === UserRole.ADMIN
-		const isAsistente = currentUser.role?.code === UserRole.ASISTENTE_GERENCIA_OPERATIVA
 		const isAnalista = currentUser.role?.code === UserRole.ANALISTA_SOPORTE
-		const isPrivileged = isAdmin || isAsistente || isAnalista
+		// Roles that may edit sensitive fields of a business that is no longer a draft
+		const isPrivileged = await roleCan(
+			currentUser.role?.code,
+			'negocios.editar_contrato_emitido'
+		)
 
 		// Edits stay owner-only for AGENTE (existing rule); PARTNER is own-only by scope.
 		const writeScope = await resolveBusinessScope(prisma, currentUser, {
@@ -277,8 +278,9 @@ export async function PUT(
 
 		// VENTA_EFECTUADA still lets the owner edit the rest of the draft, but
 		// Valor de Negocio is reserved for support, operations, and admin.
+		const canEditValue = await roleCan(currentUser.role?.code, 'negocios.editar_valor')
 		if (
-			!canEditBusinessValue(currentUser.role?.code) &&
+			!canEditValue &&
 			value !== undefined &&
 			businessValuesDiffer(existingBusiness.value, value)
 		) {
@@ -292,7 +294,10 @@ export async function PUT(
 		}
 
 		// A PARTNER can never hand their business over to another owner
-		if (idUser !== undefined && currentUser.role?.code === UserRole.PARTNER) {
+		if (
+			idUser !== undefined &&
+			(await roleScope(currentUser.role?.code, 'negocios.ver')) === 'OWN'
+		) {
 			return NextResponse.json(
 				{ data: null, error: 'No tienes permisos para reasignar el negocio' },
 				{ status: 403 }
@@ -303,7 +308,7 @@ export async function PUT(
 		if (
 			isNotDraft &&
 			contract !== undefined &&
-			!canEditContractWhenBusinessEmitido(currentUser.role?.code)
+			!(await roleCan(currentUser.role?.code, 'negocios.editar_contrato_emitido'))
 		) {
 			return NextResponse.json(
 				{ data: null, error: 'No tienes permisos para editar el contrato de un negocio ya emitido' },
@@ -515,7 +520,7 @@ export async function PUT(
 				currency: idCurrency !== undefined ? { connect: { idCurrency } } : undefined,
 				buyPeriodicity: idBuyPeriodicity !== undefined ? { connect: { idBuyPeriodicity } } : undefined,
 				term: term !== undefined ? term : undefined,
-				value: canEditBusinessValue(currentUser.role?.code) ? value : undefined,
+				value: canEditValue ? value : undefined,
 				status: newStatus,
 				productPercentageCommission: { connect: { idProductPercentageCommission: finalIdPpc } },
 				numAportes: finalNumAportes,

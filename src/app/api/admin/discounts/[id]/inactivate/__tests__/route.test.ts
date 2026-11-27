@@ -3,7 +3,7 @@ import { POST } from '../route'
 import { NextResponse } from 'next/server'
 
 vi.mock('@/auth')
-vi.mock('@/lib/auth/require-role', () => ({ requireRole: vi.fn() }))
+vi.mock('@/lib/auth/require-role', () => ({ requireRolePermission: vi.fn() }))
 vi.mock('@/features/commission-discounts/services/commission-discount.service', () => ({
 	findDiscountById: vi.fn(),
 	inactivateDiscount: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('next/server', () => ({
 	},
 }))
 
-import { requireRole } from '@/lib/auth/require-role'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import { UserRole } from '@/features/auth/lib/roles'
 import {
 	findDiscountById,
@@ -33,7 +33,7 @@ import {
 } from '@/features/commission-discounts/services/commission-discount.service'
 import { NextResponse as NextResponseType } from 'next/server'
 
-const mockRequireRole = vi.mocked(requireRole)
+const mockRequireRole = vi.mocked(requireRolePermission)
 
 function allowAdmin() {
 	mockRequireRole.mockResolvedValue({
@@ -71,7 +71,7 @@ describe('POST /api/admin/discounts/[id]/inactivate', () => {
 			new Request('http://localhost/api/admin/discounts/1/inactivate', { method: 'POST' }),
 			params
 		)
-		expect(mockRequireRole).toHaveBeenCalledWith([UserRole.ADMIN])
+		expect(mockRequireRole).toHaveBeenCalledWith('configuracion.catalogos')
 	})
 
 	it('returns 403 and inactivates nothing for a non-admin role', async () => {

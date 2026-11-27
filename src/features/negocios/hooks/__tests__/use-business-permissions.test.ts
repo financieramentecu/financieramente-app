@@ -1,9 +1,18 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { setMockRole } from '@/features/access-control/testing/mock-permissions'
+
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
 import { renderHook } from '@testing-library/react'
 import { useBusinessPermissions } from '@/features/negocios/hooks/use-business-permissions'
 import type { UserWithRole } from '@/features/negocios/types/business.types'
 
 function userWithRole(code: string): UserWithRole {
+	setMockRole(code)
 	return {
 		idUser: 1,
 		name: 'Test',

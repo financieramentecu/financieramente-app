@@ -32,7 +32,6 @@ function Wrapper({ isAgentLocked }: { isAgentLocked?: boolean }) {
 		<CoachInfoSection
 			form={form}
 			agentsList={[]}
-			isBlocked={false}
 			isAgentLocked={isAgentLocked}
 		/>
 	)

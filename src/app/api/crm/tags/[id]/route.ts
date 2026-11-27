@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import {
 	crmErrorResponse as error,
 	parsePositiveId,
+	CRM_CONFIG_PERMISSION,
 	requireCrmActor,
 	toCrmRequestContext,
 } from '@/lib/auth/require-crm-actor'
@@ -14,7 +15,7 @@ interface RouteContext {
 /** DELETE /api/crm/tags/[id] — soft delete; the tag disappears from every lead. CRM managers only. */
 export async function DELETE(request: Request, context: RouteContext) {
 	try {
-		const guard = await requireCrmActor('crm_lead_fields', { manage: true })
+		const guard = await requireCrmActor('crm_lead_fields', { manage: true, permission: CRM_CONFIG_PERMISSION })
 		if (!guard.ok) return guard.response
 		const idTag = parsePositiveId((await context.params).id)
 		if (!idTag) return error('Identificador de etiqueta inválido', 400)

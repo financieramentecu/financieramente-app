@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import { isReadOnlyRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { canViewReport } from '@/features/report-permissions/services/report-permissions.service'
 import { REPORT_CODES } from '@/features/report-permissions/types/report-permissions.types'
 import { ProduccionRealShell } from '@/features/reports/produccion-real/components/produccion-real-shell'
@@ -36,7 +36,7 @@ export default async function ProduccionRealPage() {
 		redirect('/access-denied?reason=no_permissions')
 	}
 
-	const canExport = !isReadOnlyRole(currentUser.role?.code)
+	const canExport = await roleCan(currentUser.role?.code, 'reportes.exportar')
 
 	return (
 		<DashboardLayout currentPage={PRODUCCION_REAL_UI.PAGE_TITLE} disableScroll>

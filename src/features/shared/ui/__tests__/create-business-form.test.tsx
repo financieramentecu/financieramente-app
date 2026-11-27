@@ -4,9 +4,16 @@ import userEvent from '@testing-library/user-event'
 import { BusinessForm as CreateBusinessForm } from '@/features/negocios/components/business-form'
 import { mockUsers } from '@/features/shared/__tests__/fixtures/mockUsers'
 import { mockUserWithRole } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
+import { setMockRole } from '@/features/access-control/testing/mock-permissions'
 
 // Mock de los hooks que hacen llamadas a la API
 const mockHandleSearchClient = vi.fn().mockResolvedValue(mockUsers)
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
 vi.mock('@/features/negocios/hooks/use-search-client', () => ({
 	useSearchClient: () => ({
 		handleSearchClient: mockHandleSearchClient,
@@ -56,6 +63,7 @@ describe('CreateBusinessForm', () => {
 	}
 
 	beforeEach(() => {
+		setMockRole(mockUserWithRole.role?.code)
 		vi.clearAllMocks()
 	})
 

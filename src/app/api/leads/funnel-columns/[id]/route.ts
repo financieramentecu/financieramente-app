@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
-import { UserRole } from '@/features/auth/lib/roles'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { getClientIp, getUserAgent } from '@/features/auth/lib/audit-logger'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
 import {
@@ -27,7 +27,7 @@ async function requireAdmin() {
 	}
 
 	const currentUser = await getCurrentUserByEmail(session.user.email)
-	if (currentUser?.role?.code !== UserRole.ADMIN) {
+	if (!(await roleCan(currentUser?.role?.code, 'leads.configurar_funnel'))) {
 		return {
 			ok: false as const,
 			status: 403,

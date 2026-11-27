@@ -1,24 +1,4 @@
-import { UserRole, isReadOnlyRole } from '@/features/auth/lib/roles'
 import { REPORT_CODES } from '@/features/report-permissions/types/report-permissions.types'
-
-/** Roles that unconditionally bypass category-based report visibility checks. */
-export const REPORT_VIEW_BYPASS_ROLES: readonly UserRole[] = [UserRole.ADMIN]
-
-/**
- * Whether the role bypasses the report-category visibility filter.
- * ADMIN always bypasses; read-only roles (CONSULTOR) also bypass visibility
- * only — this MUST NOT be reused to authorize report export (see
- * `isReadOnlyRole` export-guard requirement).
- */
-export function isReportViewBypassRole(
-	roleCode: string | null | undefined
-): boolean {
-	if (!roleCode) return false
-	return (
-		REPORT_VIEW_BYPASS_ROLES.includes(roleCode as UserRole) ||
-		isReadOnlyRole(roleCode)
-	)
-}
 
 /** Catalog codes that ADMIN must always see in the Reportes menu. */
 export function knownReportCodes(): readonly string[] {

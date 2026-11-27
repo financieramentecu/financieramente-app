@@ -36,7 +36,7 @@ describe('/api/crm/activity-columns', () => {
 	it('renames a column only with management rights', async () => {
 		vi.mocked(renameActivityColumn).mockResolvedValue({ ok: true, column: overdue })
 		expect((await PATCH(json({ name: 'Atrasadas' }), ctx('overdue'))).status).toBe(200)
-		expect(requireCrmActor).toHaveBeenCalledWith('crm_tasks', { manage: true })
+		expect(requireCrmActor).toHaveBeenCalledWith('crm_tasks', { manage: true, permission: 'leads.configurar_crm' })
 	})
 
 	it('maps an invalid name, an unknown column and a duplicate title', async () => {

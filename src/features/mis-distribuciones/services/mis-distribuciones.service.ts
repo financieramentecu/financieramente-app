@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { FILE_IMPORT_STATUS_DELETED } from '@/features/load-file/lib/file-import-status'
 import {
 	canViewUserDistributions,
-	isHierarchyBypassRole,
+	canSeeAllDistributions,
 } from '@/features/auth/lib/hierarchy'
 import type { UserRole } from '@/features/auth/lib/roles'
 import type {
@@ -465,7 +465,7 @@ export async function obtenerReciboDistribucion(params: {
 	})
 
 	const viewerIsBeneficiary = viewerId === beneficiaryId
-	const bypass = isHierarchyBypassRole(viewerRole)
+	const bypass = await canSeeAllDistributions(viewerRole)
 
 	return {
 		beneficiario: {

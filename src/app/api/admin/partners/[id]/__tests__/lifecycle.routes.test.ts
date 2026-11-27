@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextResponse } from 'next/server'
 
-vi.mock('@/lib/auth/require-role', () => ({ requireRole: vi.fn() }))
+vi.mock('@/lib/auth/require-role', () => ({ requireRolePermission: vi.fn() }))
 
 vi.mock('@/features/admin/partners/services/partner.service', async () => {
 	const errors =
@@ -33,7 +33,7 @@ vi.mock('@/features/auth/lib/audit-logger', () => ({
 import { POST as deactivate } from '../deactivate/route'
 import { POST as reactivate } from '../reactivate/route'
 import { POST as resend } from '../resend-activation/route'
-import { requireRole } from '@/lib/auth/require-role'
+import { requireRolePermission } from '@/lib/auth/require-role'
 import {
 	PartnerServiceError,
 	deactivatePartner,
@@ -67,7 +67,7 @@ const params = (id: string) => ({ params: Promise.resolve({ id }) })
 
 beforeEach(() => {
 	vi.clearAllMocks()
-	vi.mocked(requireRole).mockResolvedValue({
+	vi.mocked(requireRolePermission).mockResolvedValue({
 		ok: true,
 		session: SESSION,
 	} as never)
@@ -100,13 +100,13 @@ describe.each(ROUTES)(
 	(_name, handler, service, action) => {
 		it('requires ADMIN', async () => {
 			await handler(req(), params('21'))
-			expect(requireRole).toHaveBeenCalledWith(['ADMIN'])
+			expect(requireRolePermission).toHaveBeenCalledWith('partners.gestionar')
 		})
 
 		it.each([401, 403])(
 			'returns the guard response (%i) and changes nothing',
 			async (status) => {
-				vi.mocked(requireRole).mockResolvedValue({
+				vi.mocked(requireRolePermission).mockResolvedValue({
 					ok: false,
 					response: NextResponse.json(
 						{ success: false, error: 'x' },

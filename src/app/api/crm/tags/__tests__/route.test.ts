@@ -37,7 +37,7 @@ describe('/api/crm/tags', () => {
 	it('creates tags only with management rights', async () => {
 		vi.mocked(createLeadTag).mockResolvedValue({ ok: true, tag: { idLeadTag: 1, name: 'VIP', color: '#64748b' } })
 		expect((await POST(json('POST', { name: 'VIP' }))).status).toBe(201)
-		expect(requireCrmActor).toHaveBeenCalledWith('crm_lead_fields', { manage: true })
+		expect(requireCrmActor).toHaveBeenCalledWith('crm_lead_fields', { manage: true, permission: 'leads.configurar_crm' })
 		expect(createLeadTag).toHaveBeenCalledWith({ name: 'VIP', color: '#64748b' }, expect.objectContaining({ userId: 7 }))
 	})
 

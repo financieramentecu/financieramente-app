@@ -1,6 +1,7 @@
 'use client'
 
-import { Loader2, DollarSign, Tag, Package, MapPin, User } from 'lucide-react'
+import { ListRowsSkeleton } from '@/features/shared/ui/loading-skeletons'
+import { DollarSign, Tag, Package, MapPin, User } from 'lucide-react'
 import { Modal } from '@/features/shared/ui/modal'
 import { DataTable } from '@/features/shared/ui/DataTable/DataTable'
 import { useDistribucionComision } from '../hooks/use-distribucion-comision'
@@ -74,15 +75,7 @@ export function ModalDetalleDistribucion({
 			className="max-w-6xl"
 		>
 			{isLoading && (
-				<div
-					className="flex flex-col items-center justify-center gap-3 py-12"
-					aria-label="Cargando distribución"
-				>
-					<Loader2 className="h-8 w-8 animate-spin text-primary/40" />
-					<p className="text-sm text-muted-foreground">
-						Cargando distribución...
-					</p>
-				</div>
+				<ListRowsSkeleton label="Cargando distribución" rows={5} />
 			)}
 
 			{!isLoading && error && (

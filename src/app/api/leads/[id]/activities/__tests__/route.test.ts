@@ -3,11 +3,8 @@ import { getVisiblePersonGroupIds } from '@/features/leads/services/lead-associa
 import { GET, POST } from '../route'
 import { auth } from '@/auth'
 import { getCurrentUserByEmail } from '@/features/negocios/services/user.service'
-import {
-	getLeadDetail,
-	isLeadVisible,
-} from '@/features/leads/services/lead-board.service'
-import { canAccessCrm, canManageCrm } from '@/features/leads/crm/crm-policy'
+import { getLeadDetail, isLeadVisible } from '@/features/leads/services/lead-board.service'
+import { roleCan, roleScope } from '@/features/access-control/services/role-permission-check'
 import { isFeatureEnabledServer } from '@/features/shared/lib/flagsmith-server'
 import { appendLeadActivityTx } from '@/features/leads/activities/lead-activity.service'
 import { getLeadTimelinePage } from '@/features/leads/activities/lead-timeline.service'
@@ -21,15 +18,14 @@ vi.mock('@/features/negocios/services/user.service', () => ({
 }))
 vi.mock('@/features/auth/lib/hierarchy', () => ({
 	getAccessibleUserIds: vi.fn(() => Promise.resolve([])),
-	isHierarchyBypassRole: vi.fn(() => true),
 }))
 vi.mock('@/features/leads/services/lead-board.service', () => ({
 	getLeadDetail: vi.fn(),
 	isLeadVisible: vi.fn(),
 }))
-vi.mock('@/features/leads/crm/crm-policy', () => ({
-	canAccessCrm: vi.fn(),
-	canManageCrm: vi.fn(),
+vi.mock('@/features/access-control/services/role-permission-check', () => ({
+	roleCan: vi.fn(),
+	roleScope: vi.fn(),
 }))
 vi.mock('@/features/shared/lib/flagsmith-server', () => ({
 	isFeatureEnabledServer: vi.fn(),
@@ -75,8 +71,8 @@ describe('/api/leads/[id]/activities', () => {
 			role: { code: 'AGENTE' },
 		} as never)
 		vi.mocked(isFeatureEnabledServer).mockResolvedValue(true)
-		vi.mocked(canAccessCrm).mockReturnValue(true)
-		vi.mocked(canManageCrm).mockReturnValue(true)
+		vi.mocked(roleCan).mockResolvedValue(true)
+		vi.mocked(roleScope).mockResolvedValue('TEAM')
 		vi.mocked(getLeadDetail).mockResolvedValue({ idLead: 1 } as never)
 		vi.mocked(isLeadVisible).mockResolvedValue(true)
 	})
@@ -178,11 +174,8 @@ describe('/api/leads/[id]/activities', () => {
 	})
 
 	it('forbids read-only roles from logging activities', async () => {
-		vi.mocked(canManageCrm).mockReturnValue(false)
-		const response = await POST(
-			request({ type: 'NOTE_ADDED', payload: { note: 'x' } }),
-			context('1')
-		)
+		vi.mocked(roleScope).mockResolvedValue(undefined)
+		const response = await POST(request({ type: 'NOTE_ADDED', payload: { note: 'x' } }), context('1'))
 		expect(response.status).toBe(403)
 	})
 

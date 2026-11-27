@@ -61,6 +61,7 @@ describe('checkBusinessCreation (pre-flight before client persistence)', () => {
 		await checkBusinessCreation({ idUser: 5, idProduct: 3 })
 
 		expect(requireWriteAccess).toHaveBeenCalledTimes(1)
+		expect(requireWriteAccess).toHaveBeenCalledWith('negocios.crear')
 		expect(requireActionPermission).not.toHaveBeenCalled()
 	})
 
@@ -105,7 +106,7 @@ describe('checkBusinessCreation (pre-flight before client persistence)', () => {
 	})
 
 	it('denies an unknown role', async () => {
-		setSession(3, UserRole.DEFAULT)
+		setSession(3, UserRole.SIN_ROL)
 
 		const result = await checkBusinessCreation({ idUser: 5, idProduct: 3 })
 

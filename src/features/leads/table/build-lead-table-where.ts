@@ -1,5 +1,4 @@
 import type { Prisma } from '@prisma/client'
-import { isWriteBypassRole } from '@/features/auth/lib/roles'
 import { buildLeadListWhere } from '@/features/leads/lib/build-lead-list-where'
 import { resolveInactivityThreshold } from '@/features/leads/lib/inactivity-days'
 import type { LeadViewer } from '@/features/leads/types/lead.types'
@@ -34,9 +33,9 @@ function searchClauses(q: string | undefined): Prisma.LeadWhereInput[] {
 }
 
 /** Owner filter restricted to the viewer's hierarchy so it can only narrow, never widen. */
-function ownerClause(viewer: LeadViewer, ownerIds: number[], visibleUserIds: number[]): Prisma.LeadWhereInput[] {
+function ownerClause(ownerIds: number[], visibleUserIds: number[]): Prisma.LeadWhereInput[] {
 	if (ownerIds.length === 0) return []
-	const companyWide = isWriteBypassRole(viewer.role?.code) || visibleUserIds.length === 0
+	const companyWide = visibleUserIds.length === 0
 	const allowed = companyWide ? ownerIds : ownerIds.filter((id) => visibleUserIds.includes(id))
 	return [{ idUser: { in: allowed } }]
 }
@@ -75,7 +74,7 @@ export function buildLeadTableWhere(
 	const and: Prisma.LeadWhereInput[] = [
 		...(Array.isArray(base.AND) ? base.AND : base.AND ? [base.AND] : []),
 		...searchClauses(query.q),
-		...ownerClause(viewer, query.ownerIds, options.visibleUserIds),
+		...ownerClause(query.ownerIds, options.visibleUserIds),
 		...excludedClause(query.excludedOwnerIds),
 	]
 	if (query.stageIds.length > 0) and.push({ idLeadFunnelColumn: { in: query.stageIds } })

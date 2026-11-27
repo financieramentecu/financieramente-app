@@ -47,7 +47,7 @@ export async function GET(
     }
 
     // PARTNER sessions are pinned to their own businesses (PD-01, PA-07)
-    const userIds = scopeUserIdsToSession(session, requestedUserIds)
+    const userIds = await scopeUserIdsToSession(session, requestedUserIds)
 
     // Short-circuit: empty userIds → zeros without querying DB
     if (userIds.length === 0) {

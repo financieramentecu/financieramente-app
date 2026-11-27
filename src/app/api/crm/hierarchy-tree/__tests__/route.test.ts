@@ -30,7 +30,7 @@ describe('GET /api/crm/hierarchy-tree', () => {
 	it('returns the full tree for an authorized read grant', async () => {
 		vi.mocked(requireCrmActor).mockResolvedValue({
 			ok: true,
-			actor: { email: 'reader@example.com' },
+			actor: { email: 'reader@example.com', visibleUserIds: [] },
 		} as never)
 		const viewer = { idUser: 7, role: { code: 'CONSULTOR' }, canViewOthersCrm: true }
 		vi.mocked(getCurrentUserByEmail).mockResolvedValue(viewer as never)

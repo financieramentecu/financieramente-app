@@ -29,7 +29,7 @@ describe('getDefaultDateParamPair', () => {
 	})
 
 	it('returns null for roles without a default date filter', () => {
-		expect(getDefaultDateParamPair(UserRole.DEFAULT)).toBeNull()
+		expect(getDefaultDateParamPair(UserRole.SIN_ROL)).toBeNull()
 		expect(getDefaultDateParamPair(undefined)).toBeNull()
 		expect(getDefaultDateParamPair('UNKNOWN_ROLE')).toBeNull()
 	})
@@ -151,7 +151,7 @@ describe('buildDefaultDateSeedQuery', () => {
 	})
 
 	it('returns null for roles without a default date filter', () => {
-		expect(buildDefaultDateSeedQuery(UserRole.DEFAULT, {}, now)).toBeNull()
+		expect(buildDefaultDateSeedQuery(UserRole.SIN_ROL, {}, now)).toBeNull()
 		expect(buildDefaultDateSeedQuery(undefined, {}, now)).toBeNull()
 	})
 })

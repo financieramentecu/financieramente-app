@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { UserRole } from '@/features/auth/lib/roles'
-import { ROLE_PERMISSIONS } from '@/features/auth/lib/permissions'
+import { DEFAULT_ROLE_GRANTS } from '@/features/access-control/catalog/default-role-grants'
 import { buildMenuByRole } from '@/lib/navigation/menu-builder'
 
 function titles(role: UserRole, authorizedReportCodes?: readonly string[]) {
-	return buildMenuByRole(role, ROLE_PERMISSIONS[role], {
+	return buildMenuByRole(role, DEFAULT_ROLE_GRANTS[role], {
 		isCalculadoraEnabled: true,
 		authorizedReportCodes,
 	}).map((item) => item.title)
@@ -32,11 +32,11 @@ describe('buildMenuByRole — leads/misDistribuciones/calculadora gating (D7)', 
 	})
 
 	it('DEFAULT sees no menu items (all permissions false, unchanged)', () => {
-		expect(titles(UserRole.DEFAULT)).toEqual([])
+		expect(titles(UserRole.SIN_ROL)).toEqual([])
 	})
 
 	it('AGENTE keeps its bespoke menu with Calculadora', () => {
-		const items = buildMenuByRole(UserRole.AGENTE, ROLE_PERMISSIONS[UserRole.AGENTE], {
+		const items = buildMenuByRole(UserRole.AGENTE, DEFAULT_ROLE_GRANTS[UserRole.AGENTE], {
 			isCalculadoraEnabled: true,
 		}).map((item) => item.title)
 		expect(items).toEqual(['Dashboard', 'Mis Negocios', 'Calculadora'])
@@ -55,7 +55,7 @@ describe('buildMenuByRole — leads/misDistribuciones/calculadora gating (D7)', 
 })
 
 function subItemTitles(role: UserRole, parentTitle: string) {
-	return buildMenuByRole(role, ROLE_PERMISSIONS[role], {
+	return buildMenuByRole(role, DEFAULT_ROLE_GRANTS[role], {
 		isCalculadoraEnabled: true,
 		authorizedReportCodes: ['PRODUCCION_REAL'],
 	})
@@ -77,7 +77,7 @@ describe('buildMenuByRole — CRM under Negocios (crm-phase-0-foundation)', () =
 	})
 
 	it('CRM sub-item links to /dashboard/negocios/crm', () => {
-		const negocios = buildMenuByRole(UserRole.ADMIN, ROLE_PERMISSIONS[UserRole.ADMIN]).find(
+		const negocios = buildMenuByRole(UserRole.ADMIN, DEFAULT_ROLE_GRANTS[UserRole.ADMIN]).find(
 			(item) => item.title === 'Negocios'
 		)
 		const crm = negocios?.subItems?.find((subItem) => subItem.title === 'CRM')
@@ -89,7 +89,7 @@ describe('buildMenuByRole — CRM under Negocios (crm-phase-0-foundation)', () =
 	})
 
 	it('CONSULTOR sees CRM under Negocios when the read-only grant is on', () => {
-		const negocios = buildMenuByRole(UserRole.CONSULTOR, ROLE_PERMISSIONS[UserRole.CONSULTOR], {
+		const negocios = buildMenuByRole(UserRole.CONSULTOR, DEFAULT_ROLE_GRANTS[UserRole.CONSULTOR], {
 			isCalculadoraEnabled: true,
 			authorizedReportCodes: ['PRODUCCION_REAL'],
 			canViewOthersCrm: true,
@@ -108,7 +108,7 @@ describe('buildMenuByRole — CRM under Negocios (crm-phase-0-foundation)', () =
 
 describe('buildMenuByRole — Partners admin entry (ADM-02)', () => {
 	it('ADMIN sees a Partners entry pointing to the Partners module', () => {
-		const menu = buildMenuByRole(UserRole.ADMIN, ROLE_PERMISSIONS[UserRole.ADMIN], {
+		const menu = buildMenuByRole(UserRole.ADMIN, DEFAULT_ROLE_GRANTS[UserRole.ADMIN], {
 			isCalculadoraEnabled: true,
 		})
 		const entry = menu.find((item) => item.title === 'Partners')

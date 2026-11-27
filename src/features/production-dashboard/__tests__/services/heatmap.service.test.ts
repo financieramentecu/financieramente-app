@@ -255,7 +255,7 @@ describe('resolveViewerScope', () => {
       { idUser: 1, idUserLeader: null }, { idUser: 2, idUserLeader: 1 },
     ] as never)
 
-    const result = await resolveViewerScope(1, 'DEFAULT', 'GENERAL_LEVEL')
+    const result = await resolveViewerScope(1, 'AGENTE', 'GENERAL_LEVEL')
     // Subtree call: prisma.user.findMany is invoked with the subtree query shape
     // (select idUser + idUserLeader), not the full-scope shape (select idUser only)
     expect(mockUserFindMany).toHaveBeenCalledWith(
@@ -271,7 +271,7 @@ describe('resolveViewerScope', () => {
       { idUser: 5, idUserLeader: null },
     ] as never)
 
-    const result = await resolveViewerScope(5, 'DEFAULT', 'MS_JUNIOR')
+    const result = await resolveViewerScope(5, 'AGENTE', 'MS_JUNIOR')
     expect(mockUserFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({ idUserLeader: true }),
@@ -286,14 +286,14 @@ describe('resolveViewerScope', () => {
       { idUser: 2 }, { idUser: 3 }, { idUser: 4 },
     ] as never)
 
-    const result = await resolveViewerScope(2, 'DEFAULT', 'TEAM_LEADER')
+    const result = await resolveViewerScope(2, 'AGENTE', 'TEAM_LEADER')
     expect(result).toContain(2)
   })
 
   it('(d) returns at least viewerId for any role', async () => {
     mockUserFindMany.mockResolvedValue([{ idUser: 5 }] as never)
 
-    const result = await resolveViewerScope(5, 'DEFAULT', 'MS_JUNIOR')
+    const result = await resolveViewerScope(5, 'AGENTE', 'MS_JUNIOR')
     expect(result).toContain(5)
   })
 

@@ -4,6 +4,12 @@ import { useAgentPermissions } from '@/features/negocios/hooks/use-agent-permiss
 import { UserRole } from '@/features/auth/lib/roles'
 import { createMockUserWithRole } from '@/features/shared/__tests__/fixtures/mockUserWithRole'
 
+vi.mock('@/features/shared/hooks/use-permissions', async () => ({
+	usePermissions: (
+		await import('@/features/access-control/testing/mock-permissions')
+	).mockedUsePermissions,
+}))
+
 describe('useAgentPermissions — PARTNER owner (NEG-03, PA-04)', () => {
 	it('locks the picker to the partner exactly like an agent', () => {
 		const setValue = vi.fn()

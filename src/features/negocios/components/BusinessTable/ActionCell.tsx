@@ -8,8 +8,10 @@
 import { Button } from '@/features/shared/ui/button'
 import { Pencil, Eye, Trash2, Coins } from 'lucide-react'
 
-import { UserRole, canFundPayments, isBusinessOwnerRole } from '@/features/auth/lib/roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
+import { isOwnerScope } from '@/features/access-control/lib/authorization'
 import type { BusinessStatus } from '../../types/business-entity.types'
+import type { UserRole } from '@/features/auth/lib/roles'
 import { BUSINESS_STATUS } from '../../types/business-entity.types'
 import {
 	Tooltip,
@@ -36,23 +38,6 @@ interface ActionCellProps {
 }
 
 /**
- * Roles que pueden cancelar negocios
- */
-const CANCEL_ALLOWED_ROLES: UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ANALISTA_SOPORTE,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-]
-
-/**
- * Roles que pueden fondear negocios
- */
-const FONDEAR_ALLOWED_ROLES: UserRole[] = [
-	UserRole.ADMIN,
-	UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-]
-
-/**
  * Estados que permiten edición
  */
 const EDITABLE_STATUSES: BusinessStatus[] = [
@@ -71,7 +56,6 @@ const CANCELABLE_STATUSES: BusinessStatus[] = [
 export function ActionCell({
 	businessId,
 	businessStatus,
-	userRole,
 	hasPayments,
 	hasPendingPaymentFunding,
 	onEdit,
@@ -79,16 +63,12 @@ export function ActionCell({
 	onCancel,
 	onFondear,
 }: ActionCellProps) {
-	const canEditRoles: UserRole[] = [
-		UserRole.ASISTENTE_GERENCIA_OPERATIVA,
-		UserRole.ADMIN,
-	]
+	const { can, scope } = usePermissions()
 	const canEdit =
-		EDITABLE_STATUSES.includes(businessStatus) && canEditRoles.includes(userRole)
+		EDITABLE_STATUSES.includes(businessStatus) && can('negocios.editar_desde_lista')
 
 	const canCancel =
-		CANCEL_ALLOWED_ROLES.includes(userRole) &&
-		CANCELABLE_STATUSES.includes(businessStatus)
+		can('negocios.cancelar') && CANCELABLE_STATUSES.includes(businessStatus)
 
 	const showFondearDirect =
 		!hasPayments &&
@@ -100,14 +80,14 @@ export function ActionCell({
 			businessStatus === BUSINESS_STATUS.FONDEADO)
 
 	// Business owners (AGENTE, PARTNER) get the read-only funding view only
-	const isCoach = isBusinessOwnerRole(userRole)
+	const isCoach = isOwnerScope(scope('negocios.ver'))
 	const showViewFondeoForCoach =
 		isCoach &&
 		hasPayments &&
 		(businessStatus === BUSINESS_STATUS.EMITIDO ||
 			businessStatus === BUSINESS_STATUS.FONDEADO)
 	const showFondearButton =
-		(canFundPayments(userRole) && (showFondearDirect || showFondearAnnual)) ||
+		(can('aportes.fondear') && (showFondearDirect || showFondearAnnual)) ||
 		showViewFondeoForCoach
 
 	const fondearButtonLabel = isCoach
@@ -212,8 +192,6 @@ export function ActionCell({
  * Exportar constantes para uso en tests
  */
 export {
-	CANCEL_ALLOWED_ROLES,
-	FONDEAR_ALLOWED_ROLES,
 	EDITABLE_STATUSES,
 	CANCELABLE_STATUSES,
 }

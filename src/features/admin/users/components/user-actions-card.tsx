@@ -37,6 +37,7 @@ import { excludePartnerExternalLevel } from '@/features/shared/lib/level-codes'
 import { isPartnerAccount } from '../lib/partner-guard'
 import { PartnerManagedNotice } from './partner-managed-notice'
 import { useRoles } from '../hooks/use-roles'
+import { usePermissions } from '@/features/shared/hooks/use-permissions'
 import { useUserAccessValidation } from '../hooks/use-user-access-validation'
 import { isDefaultRole } from '../utils/user-access.utils'
 import { updateUserSchema } from '../lib/user-schemas'
@@ -94,6 +95,8 @@ export function UserActionsCard({
 	const isFormLocked = isLoading || isPartner
 
 	const { roles: allRoles, isLoading: loadingRoles } = useRoles()
+	// Changing a role is role management: the API rejects it without roles.gestionar.
+	const canAssignRoles = usePermissions().can('roles.gestionar')
 	// Role PARTNER can never be assigned from here (PM-07).
 	const roles = isPartner
 		? allRoles
@@ -416,7 +419,7 @@ export function UserActionsCard({
 							onValueChange={(value) =>
 								setSelectedRoleId(value === 'none' ? null : parseInt(value))
 							}
-							disabled={isFormLocked || loadingRoles}
+							disabled={isFormLocked || loadingRoles || !canAssignRoles}
 						>
 							<SelectTrigger id="role-select">
 								{loadingRoles ? (

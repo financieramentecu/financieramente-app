@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ApiResponse } from '@/features/shared/types/api-response.types'
-import { canRoleEditClientInfo } from '@/features/negocios/lib/client-edit-permissions'
+import { roleCan } from '@/features/access-control/services/role-permission-check'
 import { requireAuth } from '@/lib/auth/require-role'
 import { searchPolicyholdersByDocument } from '@/features/policyholders/services/policyholder.service'
 import type { PolicyholderSearchResult } from '@/features/policyholders/types/policyholder.types'
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 		return guard.response
 	}
 
-	if (!canRoleEditClientInfo(guard.session.user.role)) {
+	if (!(await roleCan(guard.session.user.role, 'clientes.editar'))) {
 		return NextResponse.json(
 			{
 				data: null,
