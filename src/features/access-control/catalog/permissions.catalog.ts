@@ -68,7 +68,7 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 		['comprobantes.eliminar', 'Eliminar comprobantes', { scope: true }],
 		['comentarios.crear', 'Comentar en negocios'],
 	]),
-	...module('Leads', [
+	...module('Leads (CRM)', [
 		['leads.ver', 'Ver leads', { scope: true }],
 		['leads.gestionar', 'Abrir y gestionar el CRM de leads', { scope: true }],
 		['leads.reasignar_estrategia', 'Cambiar el Money Strategy de cualquier lead'],
