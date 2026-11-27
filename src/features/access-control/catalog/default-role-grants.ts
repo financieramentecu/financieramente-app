@@ -73,6 +73,8 @@ const ROWS: Readonly<Record<string, string>> = {
 	'leads.configurar_funnel': 'Y - - - - -',
 	'leads.eliminar': 'Y - - - - -',
 	'leads.configurar_avisos': 'Y - - - - -', // legacy: only ADMIN sets task notice days
+	'leads.configurar_crm': 'Y Y Y Y - -', // legacy: every CRM manager configures fields, tags and activity columns
+	'leads.exportar': 'Y Y Y Y - -', // legacy: every CRM manager exports; read-only grants never do
 
 	'carga.masiva': 'Y - - - - -', // S6: only ADMIN by default
 	'carga.ver_todos': 'Y - - - - -', // file imports of every user (others see their own)

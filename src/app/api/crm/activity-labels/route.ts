@@ -3,6 +3,7 @@ import type { ApiResponse } from '@/features/shared/types/api-response.types'
 import {
 	crmErrorResponse as error,
 	readJsonBody,
+	CRM_CONFIG_PERMISSION,
 	requireCrmActor,
 	toCrmRequestContext,
 } from '@/lib/auth/require-crm-actor'
@@ -26,7 +27,7 @@ export async function GET() {
 /** POST /api/crm/activity-labels — create (or reactivate) an activity label. */
 export async function POST(request: Request) {
 	try {
-		const guard = await requireCrmActor('crm_tasks', { manage: true })
+		const guard = await requireCrmActor('crm_tasks', { manage: true, permission: CRM_CONFIG_PERMISSION })
 		if (!guard.ok) return guard.response
 		const input = activityLabelCreateSchema.safeParse(await readJsonBody(request))
 		if (!input.success) return error(input.error.issues[0]?.message ?? 'Etiqueta inválida', 400)

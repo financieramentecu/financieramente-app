@@ -69,6 +69,23 @@ describe('requireCrmActor', () => {
 		if (!result.ok) expect(result.response.status).toBe(403)
 	})
 
+	it('returns 403 when the role lacks the extra permission the route asks for', async () => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 7, role: { code: 'AGENTE' } } as never)
+		const result = await requireCrmActor('crm_tasks', { manage: true, permission: 'leads.eliminar' })
+		expect(result.ok).toBe(false)
+		if (!result.ok) expect(result.response.status).toBe(403)
+	})
+
+	it.each([
+		['ADMIN', true],
+		['AGENTE', true],
+	])('lets %s configure the CRM by default', async (role, expected) => {
+		vi.mocked(getCurrentUserByEmail).mockResolvedValue({ idUser: 7, role: { code: role } } as never)
+		const result = await requireCrmActor('crm_tasks', { manage: true, permission: 'leads.configurar_crm' })
+		expect(result.ok).toBe(expected)
+		if (result.ok) expect(result.actor.canExport).toBe(true)
+	})
+
 	it.each([false, true])('enforces the consultant CRM grant (%s)', async (granted) => {
 		vi.mocked(getCurrentUserByEmail).mockResolvedValue({
 			idUser: 3,

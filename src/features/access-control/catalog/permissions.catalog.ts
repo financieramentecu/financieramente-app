@@ -76,6 +76,8 @@ export const PERMISSION_CATALOG: readonly PermissionDefinition[] = [
 		['leads.configurar_funnel', 'Configurar columnas del funnel'],
 		['leads.eliminar', 'Eliminar leads'],
 		['leads.configurar_avisos', 'Configurar los avisos de vencimiento de tareas del CRM'],
+		['leads.configurar_crm', 'Configurar campos, etiquetas y columnas de actividad del CRM'],
+		['leads.exportar', 'Exportar leads y reportes del CRM'],
 	]),
 	...module('Carga de archivos', [
 		['carga.masiva', 'Carga masiva de archivos'],

@@ -41,7 +41,7 @@ describe('/api/crm/activity-labels', () => {
 	it('creates labels only with management rights', async () => {
 		vi.mocked(createActivityLabel).mockResolvedValue({ ok: true, label: visita })
 		expect((await POST(json('POST', { name: 'Visita' }))).status).toBe(201)
-		expect(requireCrmActor).toHaveBeenCalledWith('crm_tasks', { manage: true })
+		expect(requireCrmActor).toHaveBeenCalledWith('crm_tasks', { manage: true, permission: 'leads.configurar_crm' })
 	})
 
 	it('maps validation, duplicates and the last active label', async () => {

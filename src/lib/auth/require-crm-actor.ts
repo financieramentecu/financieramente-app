@@ -25,9 +25,14 @@ export interface CrmActor {
 	canManage: boolean
 	/** `leads.reasignar_estrategia`: may change any lead's Money Strategy. */
 	canReassignAnyStrategy?: boolean
+	/** `leads.exportar`: may download the lead table and CRM reports. */
+	canExport?: boolean
 	/** User category, for category-based report permissions (`canViewReport`). */
 	idCategory: number | null
 }
+
+/** Permission behind the CRM settings: custom fields, tags, activity labels and columns. */
+export const CRM_CONFIG_PERMISSION = 'leads.configurar_crm'
 
 export type RequireCrmActorResult =
 	| { ok: true; actor: CrmActor }
@@ -44,7 +49,7 @@ export function crmErrorResponse(message: string, status: number): NextResponse<
  */
 export async function requireCrmActor(
 	flag: FeatureFlag,
-	options: { manage?: boolean } = {}
+	options: { manage?: boolean; permission?: string } = {}
 ): Promise<RequireCrmActorResult> {
 	const session = await auth()
 	const email = session?.user?.email
@@ -64,6 +69,9 @@ export async function requireCrmActor(
 	const canManage = manageScope !== undefined
 	if (options.manage && !canManage) {
 		return { ok: false, response: crmErrorResponse('Sin permisos para modificar CRM', 403) }
+	}
+	if (options.permission && !(await roleCan(roleCode, options.permission))) {
+		return { ok: false, response: crmErrorResponse('Sin permisos para esta acción del CRM', 403) }
 	}
 
 	const treeUserIds =
@@ -91,6 +99,7 @@ export async function requireCrmActor(
 			canViewOthersCrm: visibility.visibleUserIds.length === 0 && !visibility.companyWrite,
 			canManage,
 			canReassignAnyStrategy: await roleCan(roleCode, 'leads.reasignar_estrategia'),
+			canExport: await roleCan(roleCode, 'leads.exportar'),
 			idCategory: currentUser.idCategory ?? null,
 		},
 	}

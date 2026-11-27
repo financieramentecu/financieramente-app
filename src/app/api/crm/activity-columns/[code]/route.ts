@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import { crmErrorResponse as error, readJsonBody, requireCrmActor, toCrmRequestContext } from '@/lib/auth/require-crm-actor'
+import { crmErrorResponse as error, readJsonBody, CRM_CONFIG_PERMISSION, requireCrmActor, toCrmRequestContext } from '@/lib/auth/require-crm-actor'
 import { activityColumnRenameSchema } from '@/features/leads/agenda/activity-column.schema'
 import { ACTIVITY_COLUMN_CODE, type ActivityColumn } from '@/features/leads/agenda/activity-column.types'
 import { deactivateActivityColumn, renameActivityColumn } from '@/features/leads/agenda/activity-column.service'
@@ -12,7 +12,7 @@ interface RouteContext {
 /** PATCH /api/crm/activity-columns/[code] — rename one board column. */
 export async function PATCH(request: Request, context: RouteContext) {
 	try {
-		const guard = await requireCrmActor('crm_tasks', { manage: true })
+		const guard = await requireCrmActor('crm_tasks', { manage: true, permission: CRM_CONFIG_PERMISSION })
 		if (!guard.ok) return guard.response
 		const code = (await context.params).code
 		if (!ACTIVITY_COLUMN_CODE.test(code)) return error('Columna no encontrada', 404)
@@ -31,7 +31,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 /** DELETE /api/crm/activity-columns/[code] — hide a column. Cards stay in the CRM. */
 export async function DELETE(request: Request, context: RouteContext) {
 	try {
-		const guard = await requireCrmActor('crm_tasks', { manage: true })
+		const guard = await requireCrmActor('crm_tasks', { manage: true, permission: CRM_CONFIG_PERMISSION })
 		if (!guard.ok) return guard.response
 		const code = (await context.params).code
 		if (!ACTIVITY_COLUMN_CODE.test(code)) return error('Columna no encontrada', 404)

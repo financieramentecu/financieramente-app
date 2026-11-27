@@ -4,6 +4,7 @@ import {
 	crmErrorResponse as error,
 	parsePositiveId,
 	readJsonBody,
+	CRM_CONFIG_PERMISSION,
 	requireCrmActor,
 	toCrmRequestContext,
 } from '@/lib/auth/require-crm-actor'
@@ -18,7 +19,7 @@ interface RouteContext {
 /** PATCH /api/crm/custom-fields/[id] — label, options (lists) or position. CRM managers only. */
 export async function PATCH(request: Request, context: RouteContext) {
 	try {
-		const guard = await requireCrmActor('crm_lead_fields', { manage: true })
+		const guard = await requireCrmActor('crm_lead_fields', { manage: true, permission: CRM_CONFIG_PERMISSION })
 		if (!guard.ok) return guard.response
 		const idField = parsePositiveId((await context.params).id)
 		if (!idField) return error('Identificador de campo inválido', 400)
@@ -40,7 +41,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 /** DELETE /api/crm/custom-fields/[id] — soft delete; stored values are kept. */
 export async function DELETE(request: Request, context: RouteContext) {
 	try {
-		const guard = await requireCrmActor('crm_lead_fields', { manage: true })
+		const guard = await requireCrmActor('crm_lead_fields', { manage: true, permission: CRM_CONFIG_PERMISSION })
 		if (!guard.ok) return guard.response
 		const idField = parsePositiveId((await context.params).id)
 		if (!idField) return error('Identificador de campo inválido', 400)

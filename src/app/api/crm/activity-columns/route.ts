@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { ApiResponse } from '@/features/shared/types/api-response.types'
-import { crmErrorResponse as error, readJsonBody, requireCrmActor, toCrmRequestContext } from '@/lib/auth/require-crm-actor'
+import { crmErrorResponse as error, readJsonBody, CRM_CONFIG_PERMISSION, requireCrmActor, toCrmRequestContext } from '@/lib/auth/require-crm-actor'
 import { activityColumnRenameSchema } from '@/features/leads/agenda/activity-column.schema'
 import { createActivityColumn, listActivityColumns } from '@/features/leads/agenda/activity-column.service'
 import type { ActivityColumn } from '@/features/leads/agenda/activity-column.types'
@@ -23,7 +23,7 @@ export async function GET() {
 /** POST /api/crm/activity-columns — add a column, or show again one hidden with the same name. */
 export async function POST(request: Request) {
 	try {
-		const guard = await requireCrmActor('crm_tasks', { manage: true })
+		const guard = await requireCrmActor('crm_tasks', { manage: true, permission: CRM_CONFIG_PERMISSION })
 		if (!guard.ok) return guard.response
 		const input = activityColumnRenameSchema.safeParse(await readJsonBody(request))
 		if (!input.success) return error(input.error.issues[0]?.message ?? 'Columna inválida', 400)

@@ -39,7 +39,8 @@ export function CrmTabs() {
 	const canManage = can('leads.gestionar')
 	const companyReadOnly =
 		session?.user?.canViewOthersCrm === true && scope('leads.gestionar') !== 'COMPANY'
-	const canExport = canManage && !companyReadOnly
+	const canConfigure = can('leads.configurar_crm')
+	const canExport = can('leads.exportar') && !companyReadOnly
 	const sheet = useLeadDetailSheet()
 	const [activityFocus, setActivityFocus] = React.useState<ActivityFocus | null>(null)
 	const [activityRevision, setActivityRevision] = React.useState(0)
@@ -71,7 +72,7 @@ export function CrmTabs() {
 						<LeadsTable
 							onOpenLead={(idLead) => void openLead(idLead)}
 							fieldsEnabled={isFlagEnabled('crm_lead_fields')}
-							canConfigure={canManage}
+							canConfigure={canConfigure}
 							canExport={canExport}
 						/>
 					)}
@@ -80,7 +81,7 @@ export function CrmTabs() {
 					{visitedTabs.includes('activities') && (
 						<ActivitiesAgenda
 							canMove={canManage}
-							canConfigure={canManage}
+							canConfigure={canConfigure}
 							onOpenLead={(idLead, leadName) => {
 								setActivityFocus(null)
 								void openLead(idLead, leadName)
